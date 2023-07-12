@@ -65,7 +65,7 @@ class SundialsIntegrator : public IntegratorBase<T>
 {
 private:
     amrex::Real timestep;
-    typedef IntegratorBase<T> BaseT;
+    using BaseT = IntegratorBase<T>;
 
     bool use_erk_strategy;
     bool use_mri_strategy;

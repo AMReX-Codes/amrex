@@ -101,7 +101,7 @@ void test ()
     constexpr int NReal  = 12;
     constexpr int NInt   = 4;
 
-    typedef ParticleContainerPureSoA<NReal, NInt> MyPC;
+    using MyPC = ParticleContainerPureSoA<NReal, NInt>;
     MyPC myPC(geom, dmap, ba, ref_ratio);
     myPC.SetVerbose(false);
 

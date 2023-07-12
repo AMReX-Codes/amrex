@@ -151,7 +151,7 @@ protected:
     * \brief The type of our freelist and blocklist.
     * We use a set sorted from lo to hi memory addresses.
     */
-    typedef std::set<Node> NL;
+    using NL = std::set<Node>;
 
     //! The list of blocks allocated via ::operator new().
     std::vector<std::pair<void*,std::size_t> > m_alloc;

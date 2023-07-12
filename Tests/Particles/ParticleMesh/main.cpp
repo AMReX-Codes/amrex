@@ -50,7 +50,7 @@ void testParticleMesh (TestParams& parms)
   iMultiFab partiMF(ba, dmap, 1 + AMREX_SPACEDIM, 1);
   partiMF.setVal(0);
 
-  typedef ParticleContainer<1 + 2*AMREX_SPACEDIM, 1> MyParticleContainer;
+  using MyParticleContainer = ParticleContainer<1 + 2*AMREX_SPACEDIM, 1>;
   MyParticleContainer myPC(geom, dmap, ba);
   myPC.SetVerbose(false);
 

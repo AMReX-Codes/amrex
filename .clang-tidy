@@ -25,7 +25,6 @@ Checks: >
        -modernize-macro-to-enum,
        -modernize-return-braced-init-list,
        -modernize-use-trailing-return-type,
-       -modernize-use-using,
      performance-*,
      readability-*,
        -readability-braces-around-statements,

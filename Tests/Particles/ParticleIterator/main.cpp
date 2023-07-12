@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
   for (int lev = 0; lev < nlevs; lev++)
     dmap[lev].define(ba[lev]);
 
-  typedef ParticleContainer<1+BL_SPACEDIM> MyParticleContainer;
+  using MyParticleContainer = ParticleContainer<1+BL_SPACEDIM>;
   MyParticleContainer MyPC(geom, dmap, ba, rr);
 
   MyParticleContainer::ParticleInitData pdata = {{1.0},{},{},{}};

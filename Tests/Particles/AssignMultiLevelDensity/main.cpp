@@ -87,7 +87,7 @@ void test_assign_density(TestParams& parms)
         acceleration[lev]->setVal(5.0, 1);
     }
 
-    typedef AmrParticleContainer<1> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<1>;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
 

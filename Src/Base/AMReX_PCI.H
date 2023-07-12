@@ -92,7 +92,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     if (N_locs == 0) return;
     bool is_thread_safe = thecpc.m_threadsafe_loc;
 
-    typedef Array4CopyTag<value_type> TagType;
+    using TagType = Array4CopyTag<value_type>;
     Vector<TagType> loc_copy_tags;
     loc_copy_tags.reserve(N_locs);
 

@@ -30,8 +30,8 @@ namespace amrex
 {
     class AMReX;
 
-    typedef void (*PTR_TO_VOID_FUNC)();
-    typedef void (*ErrorHandler) (const char* msg);
+    using PTR_TO_VOID_FUNC = void (*)();
+    using ErrorHandler = void (*)(const char*);
 
     namespace system
     {

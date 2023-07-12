@@ -15,17 +15,17 @@ namespace amrex {
 
 extern "C"
 {
-    typedef void (*BndryFuncDefault)(Real* data, AMREX_ARLIM_P(lo), AMREX_ARLIM_P(hi),
-                                     const int* dom_lo, const int* dom_hi,
-                                     const Real* dx, const Real* grd_lo,
-                                     const Real* time, const int* bc);
-    typedef void (*BndryFunc3DDefault)(Real* data, const int* lo, const int* hi,
-                                       const int* dom_lo, const int* dom_hi,
-                                       const Real* dx, const Real* grd_lo,
-                                       const Real* time, const int* bc);
+    using BndryFuncDefault = void (*)(Real* data, AMREX_ARLIM_P(lo), AMREX_ARLIM_P(hi),
+                                      const int* dom_lo, const int* dom_hi,
+                                      const Real* dx, const Real* grd_lo,
+                                      const Real* time, const int* bc);
+    using BndryFunc3DDefault = void (*)(Real* data, const int* lo, const int* hi,
+                                        const int* dom_lo, const int* dom_hi,
+                                        const Real* dx, const Real* grd_lo,
+                                        const Real* time, const int* bc);
 }
 
-typedef void (*UserFillBox) (Box const& bx, Array4<Real> const& dest,
+using UserFillBox = void (*)(Box const& bx, Array4<Real> const& dest,
                              int dcomp, int numcomp,
                              GeometryData const& geom, Real time,
                              const BCRec* bcr, int bcomp,

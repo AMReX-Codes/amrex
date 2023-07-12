@@ -74,7 +74,7 @@ void
 fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcomp,
             int ncomp, F && f, Vector<Array4Tag<int> > const& masks)
 {
-    typedef Array4MaskCopyTag<T0, T1> TagType;
+    using TagType = Array4MaskCopyTag<T0, T1>;
     Vector<TagType> tags;
     const int N = copy_tags.size();
     tags.reserve(N);
@@ -276,7 +276,7 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
     if (N_locs == 0) return;
     bool is_thread_safe = TheFB.m_threadsafe_loc;
 
-    typedef Array4CopyTag<value_type> TagType;
+    using TagType = Array4CopyTag<value_type>;
     Vector<TagType> loc_copy_tags;
     loc_copy_tags.reserve(N_locs);
 
@@ -337,7 +337,7 @@ FabArray<FAB>::CMD_local_setVal_gpu (typename FabArray<FAB>::value_type x,
     if (N_locs == 0) return;
     bool is_thread_safe = thecmd.m_threadsafe_loc;
 
-    typedef Array4BoxTag<value_type> TagType;
+    using TagType = Array4BoxTag<value_type>;
     Vector<TagType> loc_setval_tags;
     loc_setval_tags.reserve(N_locs);
 
@@ -365,7 +365,7 @@ FabArray<FAB>::CMD_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
     auto const& RcvTags = *(thecmd.m_RcvTags);
     bool is_thread_safe = thecmd.m_threadsafe_rcv;
 
-    typedef Array4BoxTag<value_type> TagType;
+    using TagType = Array4BoxTag<value_type>;
     Vector<TagType> rcv_setval_tags;
 
     for (auto it = RcvTags.begin(); it != RcvTags.end(); ++it) {
@@ -749,7 +749,7 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
     }
 #endif
 
-    typedef Array4CopyTag<BUF, value_type> TagType;
+    using TagType = Array4CopyTag<BUF, value_type>;
     Vector<TagType> snd_copy_tags;
     for (int j = 0; j < N_snds; ++j)
     {
@@ -812,7 +812,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     }
 #endif
 
-    typedef Array4CopyTag<value_type, BUF> TagType;
+    using TagType = Array4CopyTag<value_type, BUF>;
     Vector<TagType> recv_copy_tags;
     recv_copy_tags.reserve(N_rcvs);
 

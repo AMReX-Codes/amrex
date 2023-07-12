@@ -83,7 +83,7 @@ void test_ghosts_and_virtuals (TestParams& parms)
         dmap.at(lev) = DistributionMapping{ba.at(lev)};
     }
 
-    typedef AmrParticleContainer<1, 0, 0, 1> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<1, 0, 0, 1>;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(parms.verbose);
 
@@ -218,7 +218,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         dmap_orig.at(lev) = DistributionMapping{ba_orig.at(lev)};
     }
 
-    typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<4, 0, 0, 0>;
     using PType = typename MyParticleContainer::SuperParticleType;
     MyParticleContainer myPC(geom, dmap_orig, ba_orig, rr);
 
@@ -413,7 +413,7 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
         dmap.at(lev) = DistributionMapping{ba.at(lev)};
     }
 
-    typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<4, 0, 0, 0>;
     using PType = typename MyParticleContainer::SuperParticleType;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
@@ -606,7 +606,7 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
         dmap.at(lev) = DistributionMapping{ba.at(lev)};
     }
 
-    typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<4, 0, 0, 0>;
     using PType = typename MyParticleContainer::SuperParticleType;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);

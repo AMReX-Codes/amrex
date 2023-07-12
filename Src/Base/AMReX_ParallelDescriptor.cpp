@@ -1424,9 +1424,9 @@ ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
     enum { IO_Buffer_Size = 262144 * 8 };
 
 #ifdef BL_SETBUF_SIGNED_CHAR
-    typedef signed char Setbuf_Char_Type;
+    using Setbuf_Char_Type = signed char;
 #else
-    typedef char Setbuf_Char_Type;
+    using Setbuf_Char_Type = char;
 #endif
 
     Vector<Setbuf_Char_Type> io_buffer(IO_Buffer_Size);

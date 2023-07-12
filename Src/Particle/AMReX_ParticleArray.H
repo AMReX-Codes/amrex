@@ -42,7 +42,7 @@ struct ParticleArrayAccessor;
 template <class T>
 class ref_wrapper {
 public:
-    typedef T type;
+    using type = T;
 
     AMREX_GPU_HOST_DEVICE
     ref_wrapper(T& ref) noexcept : _ptr(&ref) {}

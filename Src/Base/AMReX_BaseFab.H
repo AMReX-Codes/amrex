@@ -186,7 +186,7 @@ public:
 
     template <class U> friend class BaseFab;
 
-    typedef T         value_type;
+    using value_type = T;
 
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
     BaseFab () noexcept = default;
