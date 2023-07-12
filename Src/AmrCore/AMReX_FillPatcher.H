@@ -412,6 +412,7 @@ template <std::size_t order>
 void FillPatcher<MF>::storeRKCoarseData (Real /*time*/, Real dt, MF const& S_old,
                                          Array<MF,order> const& RK_k)
 {
+    BL_PROFILE("FillPatcher::storeRKCoarseData()");
     m_dt_coarse = dt;
     m_cf_crse_data.resize(order+1);
 
@@ -433,6 +434,7 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
                               MF& mf, Real time, BC& cbc, BC& fbc,
                               Vector<BCRec> const& bcs)
 {
+    BL_PROFILE("FillPatcher::fillRK()");
     int rk_order = m_cf_crse_data.size()-1;
     if (rk_order != 3 && rk_order != 4) {
         amrex::Abort("FillPatcher: unsupported RK order "+std::to_string(rk_order));

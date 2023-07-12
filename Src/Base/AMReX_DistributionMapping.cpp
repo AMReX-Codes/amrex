@@ -1990,6 +1990,7 @@ DistributionMapping::readFrom (std::istream& is)
 
     int n;
     is.ignore(100000, '(') >> n;
+    AMREX_ASSERT(n >= 0 && n < std::numeric_limits<int>::max());
     pmap.resize(n);
     for (auto& x : pmap) {
         is >> x;
@@ -2049,7 +2050,7 @@ DistributionMapping MakeSimilarDM (const BoxArray& ba, const BoxArray& src_ba,
                     max_overlap_index = gid;
                 }
             }
-            AMREX_ASSERT(max_overlap > 0);
+            AMREX_ASSERT(max_overlap > 0 && max_overlap_index >= 0);
             pmap[i] = src_dm[max_overlap_index];
         }
     }

@@ -179,9 +179,10 @@ public:
     }
 
     // For backward compatibility
-    void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
+    void FillBoundary (MultiFab& mf, int icomp, int ncomp, IntVect const& nghost,
                        Real time, int bccomp) {
-        this->operator()(mf,dcomp,ncomp,nghost,time,bccomp);
+        // NOLINTNEXTLINE(readability-suspicious-call-argument)
+        this->operator()(mf,icomp,ncomp,nghost,time,bccomp);
     }
 
 private:

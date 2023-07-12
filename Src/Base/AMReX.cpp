@@ -78,6 +78,16 @@
 #include <vector>
 #include <algorithm>
 
+#ifdef AMREX_USE_COVERITY
+namespace {
+    // coverity[+kill]
+    void amrex_coverity_abort()
+    {
+        std::exit(EXIT_FAILURE);
+    }
+}
+#endif
+
 namespace amrex {
 
 std::vector<std::unique_ptr<AMReX> > AMReX::m_instance;
@@ -206,20 +216,25 @@ amrex::Warning (const std::string& msg)
 }
 
 void
-amrex::Error_host (const char * msg)
+amrex::Error_host (const char* type, const char * msg)
 {
+    amrex::ignore_unused(type);
+#ifdef AMREX_USE_COVERITY
+    amrex_coverity_abort();
+#else
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
         throw RuntimeError(msg);
     } else {
-        write_lib_id("Error");
+        write_lib_id(type);
         write_to_stderr_without_buffering(msg);
 #ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_abort_omp_critical)
 #endif
         ParallelDescriptor::Abort();
     }
+#endif
 }
 
 void
@@ -231,25 +246,11 @@ amrex::Warning_host (const char * msg)
 }
 
 void
-amrex::Abort_host (const char * msg)
-{
-    if (system::error_handler) {
-        system::error_handler(msg);
-    } else if (system::throw_exception) {
-        throw RuntimeError(msg);
-    } else {
-       write_lib_id("Abort");
-       write_to_stderr_without_buffering(msg);
-#ifdef AMREX_USE_OMP
-#pragma omp critical (amrex_abort_omp_critical)
-#endif
-       ParallelDescriptor::Abort();
-   }
-}
-
-void
 amrex::Assert_host (const char* EX, const char* file, int line, const char* msg)
 {
+#ifdef AMREX_USE_COVERITY
+    amrex_coverity_abort();
+#else
     const int N = 512;
 
     char buf[N];
@@ -282,6 +283,7 @@ amrex::Assert_host (const char* EX, const char* file, int line, const char* msg)
 #endif
        ParallelDescriptor::Abort();
    }
+#endif
 }
 
 namespace
@@ -492,11 +494,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.queryAdd("abort_on_unused_inputs", system::abort_on_unused_inputs);
 
 #ifdef AMREX_USE_SYCL
-        // Disable SIGSEGV handling by default for certain Intel GPUs,
-        // because it is currently used by their managed memory
-        // implementation.
-        if (Gpu::Device::deviceName().find("[0x0bd6]") != std::string::npos || // PVC
-            Gpu::Device::deviceName().find("[0x020f]") != std::string::npos) { // ATS
+        // Disable SIGSEGV handling by default for Intel GPUs, because it is
+        // currently used by their managed memory implementation with discrete
+        // GPUs
+        if (Gpu::Device::deviceVendor().find("Intel") != std::string::npos) {
             system::handle_sigsegv = 0;
         }
 #endif
@@ -602,6 +603,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     iMultiFab::Initialize();
     VisMF::Initialize();
     AsyncOut::Initialize();
+    VectorGrowthStrategy::Initialize();
 
 #ifdef AMREX_USE_EB
     EB2::Initialize();
@@ -659,7 +661,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     BL_TINY_PROFILE_INITIALIZE();
 
-    AMReX::push(new AMReX());
+    AMReX::push(new AMReX()); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
     return AMReX::top(); // NOLINT
 }
 
@@ -691,7 +693,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
     BL_TINY_PROFILE_FINALIZE();
     BL_PROFILE_FINALIZE();
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     amrex::DeallocateRandomSeedDevArray();
 #endif
 

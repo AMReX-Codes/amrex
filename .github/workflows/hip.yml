@@ -38,7 +38,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=45M
+        export CCACHE_MAXSIZE=100M
         ccache -z
 
         source /etc/profile.d/rocm.sh
@@ -56,7 +56,6 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
             -DAMReX_EB=ON                                 \
             -DAMReX_ENABLE_TESTS=ON                       \
-            -DAMReX_PARTICLES=ON                          \
             -DAMReX_FORTRAN=ON                            \
             -DAMReX_LINEAR_SOLVERS=ON                     \
             -DAMReX_GPU_BACKEND=HIP                       \
@@ -118,7 +117,6 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
             -DAMReX_EB=OFF                                \
             -DAMReX_ENABLE_TESTS=ON                       \
-            -DAMReX_PARTICLES=ON                          \
             -DAMReX_FORTRAN=ON                            \
             -DAMReX_GPU_RDC=OFF                           \
             -DAMReX_LINEAR_SOLVERS=ON                     \
@@ -187,7 +185,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=60M
+        export CCACHE_MAXSIZE=120M
         ccache -z
 
         cd Tests/LinearSolvers/NodeEB

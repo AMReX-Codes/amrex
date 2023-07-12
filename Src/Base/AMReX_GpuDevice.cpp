@@ -467,6 +467,7 @@ Device::initialize_gpu ()
     { // device property
         auto const& d = *sycl_device;
         device_prop.name = d.get_info<sycl::info::device::name>();
+        device_prop.vendor = d.get_info<sycl::info::device::vendor>();
         device_prop.totalGlobalMem = d.get_info<sycl::info::device::global_mem_size>();
         device_prop.sharedMemPerBlock = d.get_info<sycl::info::device::local_mem_size>();
         device_prop.multiProcessorCount = d.get_info<sycl::info::device::max_compute_units>();
@@ -489,6 +490,7 @@ Device::initialize_gpu ()
         {
             amrex::Print() << "Device Properties:\n"
                            << "  name: " << device_prop.name << "\n"
+                           << "  vendor: " << device_prop.vendor << "\n"
                            << "  totalGlobalMem: " << device_prop.totalGlobalMem << "\n"
                            << "  sharedMemPerBlock: " << device_prop.sharedMemPerBlock << "\n"
                            << "  multiProcessorCount: " << device_prop.multiProcessorCount << "\n"

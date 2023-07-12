@@ -46,7 +46,6 @@ jobs:
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF               `
-              -DAMReX_PARTICLES=ON          `
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --config Debug -j 2
 
@@ -89,7 +88,6 @@ jobs:
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF               `
-              -DAMReX_PARTICLES=ON          `
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --config RelWithDebInfo -j 2
 
@@ -115,8 +113,7 @@ jobs:
               -DAMReX_ENABLE_TESTS=ON       ^
               -DAMReX_FORTRAN=OFF           ^
               -DAMReX_MPI=OFF               ^
-              -DAMReX_OMP=ON                ^
-              -DAMReX_PARTICLES=ON
+              -DAMReX_OMP=ON
         cmake --build build --config Release -j 2
 
   save_pr_number:

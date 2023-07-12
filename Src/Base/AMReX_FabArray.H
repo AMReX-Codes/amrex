@@ -144,7 +144,7 @@ struct MFInfo {
 struct TheFaArenaDeleter {
     using pointer = char*;
     void operator()(pointer p) const noexcept {
-        The_FA_Arena()->free(p);
+        The_Comms_Arena()->free(p);
     }
 };
 using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
@@ -3404,6 +3404,7 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
     else
 #endif
     {
+        AMREX_ASSERT(thecmd.m_LocTags && thecmd.m_RcvTags);
         const CopyComTagsContainer&      LocTags = *(thecmd.m_LocTags);
         const MapOfCopyComTagContainers& RcvTags = *(thecmd.m_RcvTags);
         auto N_locs = static_cast<int>(LocTags.size());

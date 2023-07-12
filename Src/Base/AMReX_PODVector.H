@@ -218,6 +218,20 @@ namespace amrex
         }
     }
 
+    namespace VectorGrowthStrategy
+    {
+        extern AMREX_EXPORT Real growth_factor;
+        inline Real GetGrowthFactor () { return growth_factor; }
+        inline void SetGrowthFactor (Real a_factor);
+
+        namespace detail
+        {
+            void ValidateUserInput ();
+        }
+
+        void Initialize ();
+    }
+
     template <class T, class Allocator = std::allocator<T> >
     class PODVector : public Allocator
     {
@@ -612,7 +626,8 @@ namespace amrex
 
             while (new_capacity < (capacity() + a_num_to_be_added))
             {
-                new_capacity = (3 * new_capacity + 1)/2;
+                new_capacity = static_cast<size_type>(
+                    VectorGrowthStrategy::GetGrowthFactor() * static_cast<Real>(new_capacity + 1));
             }
 
             return new_capacity;
@@ -704,8 +719,6 @@ namespace amrex
         {
             deallocate(m_data, capacity());
 
-            Allocator::operator=(std::move(static_cast<Allocator const&>(a_vector)));
-
             m_data = a_vector.m_data;
             m_size = a_vector.m_size;
             m_capacity = a_vector.m_capacity;
@@ -713,6 +726,8 @@ namespace amrex
             a_vector.m_data = nullptr;
             a_vector.m_size = 0;
             a_vector.m_capacity = 0;
+
+            Allocator::operator=(std::move(static_cast<Allocator const&>(a_vector)));
 
             return *this;
         }

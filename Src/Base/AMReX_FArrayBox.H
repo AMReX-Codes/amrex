@@ -3,13 +3,9 @@
 #define BL_FARRAYBOX_H
 #include <AMReX_Config.H>
 
-#include <AMReX_Box.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_FabConv.H>
-#include <AMReX_REAL.H>
-#include <AMReX_SPACE.H>
 #include <AMReX_FabFactory.H>
-#include <cmath>
 
 namespace amrex {
 

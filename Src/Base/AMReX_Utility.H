@@ -209,7 +209,7 @@ namespace amrex
 
       private:
         int tries, maxTries;
-        bool abortOnRetryFailure;
+        bool abortOnRetryFailure = true;
         std::string fileName;
         std::ostream &sros;
         std::ostream::pos_type spos;

@@ -1259,9 +1259,9 @@ MLEBABecLap::getEBFluxes (const Vector<MultiFab*>& a_flux, const Vector<MultiFab
                                  Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
                                  Array4<Real const> const& apzfab = area[2]->const_array(mfi););
                     Array4<Real const> const& bcfab = bcent->const_array(mfi);
-                    Array4<Real const> const& bebfab = (is_eb_dirichlet)
-                        ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
-                    Array4<Real const> const& phiebfab = (is_eb_dirichlet && m_is_eb_inhomog)
+                    // is_eb_dirichlet is true
+                    Array4<Real const> const& bebfab = m_eb_b_coeffs[amrlev][mglev]->const_array(mfi);
+                    Array4<Real const> const& phiebfab = (m_is_eb_inhomog)
                         ? m_eb_phi[amrlev]->const_array(mfi) : foo;
 
                     AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,

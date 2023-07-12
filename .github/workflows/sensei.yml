@@ -31,7 +31,6 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug \
             -DAMReX_ENABLE_TESTS=ON  \
             -DAMReX_FORTRAN=OFF      \
-            -DAMReX_PARTICLES=ON     \
             -DAMReX_SENSEI=ON
     - name: Build
       run: |

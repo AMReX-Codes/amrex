@@ -41,7 +41,6 @@ jobs:
             -DAMReX_EB=ON                                \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_FORTRAN=OFF                          \
-            -DAMReX_PARTICLES=ON                         \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which gcc)              \
             -DCMAKE_CXX_COMPILER=$(which g++)            \
@@ -88,7 +87,8 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=235M
+        export CCACHE_MAXSIZE=60M
+        export CCACHE_DEPEND=1
         ccache -z
 
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
@@ -100,7 +100,6 @@ jobs:
             -DAMReX_EB=ON                                \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_FORTRAN=OFF                          \
-            -DAMReX_PARTICLES=ON                         \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
@@ -149,12 +148,11 @@ jobs:
         nvfortran --version
         cmake --version
 
-        # Disable Fortran due to space limit
         cmake -S . -B build                              \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_ENABLE_TESTS=ON                      \
-            -DAMReX_PARTICLES=ON                         \
-            -DAMReX_FORTRAN=OFF                          \
+            -DAMReX_TEST_TYPE=Small                      \
+            -DAMReX_FORTRAN=ON                           \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which nvc)              \
             -DCMAKE_CXX_COMPILER=$(which nvc++)          \

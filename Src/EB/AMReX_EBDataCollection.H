@@ -11,6 +11,7 @@ namespace amrex {
 
 template <class T> class FabArray;
 class MultiFab;
+class iMultiFab;
 class MultiCutFab;
 namespace EB2 { class Level; }
 
@@ -39,6 +40,7 @@ public:
     [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
     [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
     [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getEdgeCent () const;
+    [[nodiscard]] const iMultiFab* getCutCellMask () const;
 
 private:
 
@@ -63,6 +65,9 @@ private:
     Array<MultiCutFab*,AMREX_SPACEDIM> m_areafrac {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
     Array<MultiCutFab*,AMREX_SPACEDIM> m_facecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
     Array<MultiCutFab*,AMREX_SPACEDIM> m_edgecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
+
+    // for levels created by addRegularCoarseLevels only
+    iMultiFab* m_cutcellmask = nullptr;
 };
 
 }
