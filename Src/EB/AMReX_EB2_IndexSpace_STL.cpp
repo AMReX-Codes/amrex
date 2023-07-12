@@ -88,4 +88,10 @@ IndexSpaceSTL::addFineLevels (int /*num_new_fine_levels*/)
     amrex::Abort("IndexSpaceSTL::addFineLevels: todo");
 }
 
+void
+IndexSpaceSTL::addRegularCoarseLevels (int /*num_new_coarse_levels*/)
+{
+    amrex::Abort("IndexSpaceSTL::addRegularCoarseLevels: todo");
+}
+
 }
