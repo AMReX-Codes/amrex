@@ -1,3 +1,7 @@
+if ( NOT AMReX_SENSEI )
+   return ()
+endif ()
+
 foreach(D IN LISTS AMReX_SPACEDIM)
     set(_sources     main.cpp)
     set(_input_files inputs.rt  )

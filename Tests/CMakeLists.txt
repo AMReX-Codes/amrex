@@ -120,7 +120,7 @@ else()
    set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Reinit Amr CLZ Parser Parser2 CTOParFor RoundoffDomain)
 
    if (AMReX_PARTICLES)
-      list(APPEND AMREX_TESTS_SUBDIRS Particles)
+     list(APPEND AMREX_TESTS_SUBDIRS Particles)
    endif ()
 
    if (AMReX_EB)
