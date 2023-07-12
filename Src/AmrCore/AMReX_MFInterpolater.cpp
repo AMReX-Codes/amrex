@@ -72,7 +72,11 @@ Box
 MFCellConsLinInterp::CoarseBox (const Box& fine, const IntVect& ratio)
 {
     Box crse = amrex::coarsen(fine,ratio);
-    crse.grow(1);
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {
+        if (ratio[dim] > 1) {
+            crse.grow(dim,1);
+        }
+    }
     return crse;
 }
 
@@ -116,7 +120,7 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int, int) noexcept
                 {
                     mf_cell_cons_lin_interp_llslope(i,0,0, tmp[box_no], crse[box_no], ccomp, nc,
-                                                    cdomain, pbc);
+                                                    cdomain, ratio, pbc);
                 });
             } else {
                 ParallelFor(crsemf, IntVect(-1), nc,
@@ -145,7 +149,7 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int) noexcept
                 {
                     mf_cell_cons_lin_interp_llslope(i,j,0, tmp[box_no], crse[box_no], ccomp, nc,
-                                                    cdomain, pbc);
+                                                    cdomain, ratio, pbc);
                 });
             } else {
                 ParallelFor(crsemf, IntVect(-1), nc,
@@ -172,7 +176,7 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
                     mf_cell_cons_lin_interp_llslope(i,j,k, tmp[box_no], crse[box_no], ccomp, nc,
-                                                    cdomain, pbc);
+                                                    cdomain, ratio, pbc);
                 });
             } else {
                 ParallelFor(crsemf, IntVect(-1), nc,
@@ -224,7 +228,7 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                         [&] (int i, int, int) noexcept
                         {
                             mf_cell_cons_lin_interp_llslope(i,0,0, tmp, crse, ccomp, nc,
-                                                            cdomain, pbc);
+                                                            cdomain, ratio, pbc);
                         });
                     } else {
                         amrex::LoopConcurrentOnCpu(cbox, nc,
@@ -251,7 +255,7 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                         [&] (int i, int j, int) noexcept
                         {
                             mf_cell_cons_lin_interp_llslope(i,j,0, tmp, crse, ccomp, nc,
-                                                            cdomain, pbc);
+                                                            cdomain, ratio, pbc);
                         });
                     } else {
                         amrex::LoopConcurrentOnCpu(cbox, nc,
@@ -276,7 +280,7 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                         [&] (int i, int j, int k) noexcept
                         {
                             mf_cell_cons_lin_interp_llslope(i,j,k, tmp, crse, ccomp, nc,
-                                                            cdomain, pbc);
+                                                            cdomain, ratio, pbc);
                         });
                     } else {
                         amrex::LoopConcurrentOnCpu(cbox, nc,
@@ -304,7 +308,11 @@ Box
 MFCellConsLinMinmaxLimitInterp::CoarseBox (const Box& fine, const IntVect& ratio)
 {
     Box crse = amrex::coarsen(fine,ratio);
-    crse.grow(1);
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {
+        if (ratio[dim] > 1) {
+            crse.grow(dim,1);
+        }
+    }
     return crse;
 }
 
@@ -406,10 +414,10 @@ MFCellBilinear::CoarseBox (const Box& fine, const IntVect& ratio)
     const int* chi = crse.hiVect();
 
     for (int i = 0; i < AMREX_SPACEDIM; i++) {
-        if ((lo[i]-clo[i]*ratio[i])*2 < ratio[i]) {
+        if ( ratio[i] > 1 && ((lo[i]-clo[i]*ratio[i])*2 < ratio[i]) ) {
             crse.growLo(i,1);
         }
-        if ((hi[i]-chi[i]*ratio[i])*2 >= ratio[i]) {
+        if ( ratio[i] > 1 && ((hi[i]-chi[i]*ratio[i])*2 >= ratio[i]) ) {
             crse.growHi(i,1);
         }
     }
