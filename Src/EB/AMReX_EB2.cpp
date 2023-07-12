@@ -240,6 +240,14 @@ void addFineLevels (int num_new_fine_levels)
     }
 }
 
+void addRegularCoarseLevels (int num_new_coarse_levels)
+{
+    auto *p = const_cast<IndexSpace*>(TopIndexSpace());
+    if (p) {
+        p->addRegularCoarseLevels(num_new_coarse_levels);
+    }
+}
+
 void
 BuildFromChkptFile (std::string const& fname,
                     const Geometry& geom, int required_coarsening_level,
