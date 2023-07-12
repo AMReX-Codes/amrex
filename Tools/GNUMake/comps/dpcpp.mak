@@ -6,6 +6,9 @@ CC  = icx
 FC  = ifx
 F90 = ifx
 
+amrex_oneapi_version = $(shell $(CXX) --version | head -1)
+$(info oneAPI version: $(amrex_oneapi_version))
+
 CXXFLAGS =
 CFLAGS   =
 FFLAGS   =
