@@ -28,22 +28,22 @@ public:
 
   // invoke the in situ analysis with data from an AmrMesh
   // instance.
-  template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+  template<typename ParticleType, int NArrayReal, int NArrayInt>
   int update(
     const double time,
     const int time_step,
-    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *particles,
+    amrex::ParticleContainer<ParticleType, NArrayReal, NArrayInt> *particles,
     const std::map<std::string, std::vector<int>> & particles_rStructs = {},
     const std::map<std::string, int> & particles_iStructs = {},
     const std::map<std::string, std::vector<int>> & particles_rArrays = {},
     const std::map<std::string, int> & particles_iArrays = {});
 };
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template<typename ParticleType, int NArrayReal, int NArrayInt>
 int ParticleInSituBridge::update(
   const double time,
   const int time_step,
-  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> *particles,
+  amrex::ParticleContainer<ParticleType, NArrayReal, NArrayInt> *particles,
   const std::map<std::string, std::vector<int>> & particles_rStructs,
   const std::map<std::string, int> & particles_iStructs,
   const std::map<std::string, std::vector<int>> & particles_rArrays,
@@ -64,8 +64,8 @@ int ParticleInSituBridge::update(
       return -1;
     }
 
-    ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt> *data_adaptor
-      = ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New();
+    ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt> *data_adaptor
+      = ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::New();
 
     if (comm != MPI_COMM_NULL)
         data_adaptor->SetCommunicator(comm);

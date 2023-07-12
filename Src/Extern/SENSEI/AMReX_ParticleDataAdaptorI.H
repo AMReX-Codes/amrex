@@ -18,20 +18,20 @@
 namespace amrex
 {
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>*
-ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New()
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>*
+ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::New()
 {
-  auto result = new ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  auto result = new ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>;
   result->InitializeObjectBase();
   return result;
 }
-// senseiNewMacro(ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>);
+// senseiNewMacro(ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>);
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetDataSource(
-    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::SetDataSource(
+    amrex::ParticleContainer<ParticleType, NArrayReal, NArrayInt> * particles,
     const std::map<std::string, std::vector<int>> & rStructs,
     const std::map<std::string, int> & iStructs,
     const std::map<std::string, std::vector<int>> & rArrays,
@@ -52,8 +52,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetData
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetArrayNames(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::SetArrayNames(
   const std::map<std::string, std::vector<int>> & rStructs,
   const std::map<std::string, int> & iStructs,
   const std::map<std::string, std::vector<int>> & rArrays,
@@ -143,8 +143,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetArra
   return 0;
 }
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetNumberOfMeshes(unsigned int &numMeshes)
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetNumberOfMeshes(unsigned int &numMeshes)
 {
   numMeshes = 1;
   return 0;
@@ -152,8 +152,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetNumb
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshName(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshName(
   unsigned int id, std::string &meshName)
 {
   meshName = m_particlesName;
@@ -163,8 +163,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshHasGhostNodes(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshHasGhostNodes(
   const std::string &meshName,
   int &nLayers)
 {
@@ -175,8 +175,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshHasGhostCells(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshHasGhostCells(
   const std::string &meshName,
   int &nLayers)
 {
@@ -187,8 +187,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetNumberOfArrays(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetNumberOfArrays(
   const std::string &meshName,
   int association,
   unsigned int &numberOfArrays)
@@ -206,8 +206,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetNumb
 #endif
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetArrayName(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetArrayName(
   const std::string &meshName,
   int association,
   unsigned int index,
@@ -249,8 +249,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetArra
 #endif
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMesh(
   const std::string &meshName,
   bool structureOnly,
   svtkDataObject *&mesh)
@@ -284,8 +284,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhostNodesArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddGhostNodesArray(
   svtkDataObject*,
   const std::string &meshName)
 {
@@ -298,8 +298,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhos
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhostCellsArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddGhostCellsArray(
   svtkDataObject*,
   const std::string &meshName)
 {
@@ -312,8 +312,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhos
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddArray(
   svtkDataObject* mesh,
   const std::string &meshName,
   int association,
@@ -356,8 +356,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddArra
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReleaseData()
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::ReleaseData()
 {
   this->m_particles = nullptr;
   return 0;
@@ -365,8 +365,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::Release
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR >= 3
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshMetadata(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshMetadata(
   unsigned int id,
   sensei::MeshMetadataPtr &metadata)
 {
@@ -645,8 +645,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 #endif
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-svtkPolyData* ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::BuildParticles()
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+svtkPolyData* ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::BuildParticles()
 {
   // return particle data pd
   svtkPolyData* pd  = svtkPolyData::New();
@@ -682,7 +682,7 @@ svtkPolyData* ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt
   // loop over levels in the particle container
   for (int lev = 0; lev < particles.size();  lev++)
   {
-    using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
     for (MyParIter pti(*this->m_particles, lev); pti.isValid(); ++pti)
     {
       auto& aos = pti.GetArrayOfStructs();
@@ -729,8 +729,8 @@ svtkPolyData* ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesIDArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesIDArray(
   svtkDataObject* mesh)
 {
   auto svtk_particles = dynamic_cast<svtkPolyData*>(mesh);
@@ -747,7 +747,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   int *partIds = idArray->GetPointer(0);
 
   // loop over particles and append their cpu value to the list
-  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
   long ptId = 0;
   for (int level = 0; level < particles.size(); ++level)
   {
@@ -774,8 +774,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesCPUArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesCPUArray(
   svtkDataObject* mesh)
 {
   auto svtk_particles = dynamic_cast<svtkPolyData*>(mesh);
@@ -792,7 +792,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   int* partCpu = cpuArray->GetPointer(0);
 
   // loop over particles and append their cpu value to the list
-  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level < particles.size(); ++level)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
@@ -818,8 +818,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesSOARealArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOARealArray(
   const std::string &arrayName,
   svtkDataObject* mesh)
 {
@@ -863,7 +863,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   double* pData = data->GetPointer(0);
 #endif
 
-  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level < this->m_particles->numLevels(); ++level)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
@@ -905,8 +905,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesSOAIntArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOAIntArray(
   const std::string &arrayName,
   svtkDataObject* mesh)
 {
@@ -938,7 +938,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   int* pData = data->GetPointer(0);
 
   // fill array
-  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level< this->m_particles->numLevels(); level++)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
@@ -976,8 +976,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesAOSRealArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSRealArray(
   const std::string &arrayName,
   svtkDataObject* mesh)
 {
@@ -1025,7 +1025,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
 #endif
 
   // copy the data from each level
-  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level<particles.size();level++)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
@@ -1062,8 +1062,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesAOSIntArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSIntArray(
   const std::string &arrayName,
   svtkDataObject* mesh)
 {
@@ -1097,7 +1097,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   data->SetNumberOfValues(nptsOnProc);
   int* pData = data->GetPointer(0);
 
-  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level<particles.size(); ++level)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
