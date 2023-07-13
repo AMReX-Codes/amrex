@@ -16,7 +16,7 @@ AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::New()
 template<typename ParticleType, int NArrayReal, int NArrayInt>
 int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::SetDataSource(
   Amr *amr,
-  amrex::ParticleContainer<ParticleType, NArrayReal, NArrayInt> * particles,
+  amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt> * particles,
   const std::map<std::string, std::vector<int>> & rStructs,
   const std::map<std::string, int> & iStructs,
   const std::map<std::string, std::vector<int>> & rArrays,

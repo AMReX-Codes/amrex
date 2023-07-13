@@ -25,7 +25,7 @@ public:
 
   // set the source of the simulation data
   int SetDataSource(
-    amrex::ParticleContainer<ParticleType, NArrayReal, NArrayInt> * particles,
+    amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt> * particles,
     const std::map<std::string, std::vector<int>> & rStructs = {},
     const std::map<std::string, int> & iStructs = {},
     const std::map<std::string, std::vector<int>> & rArrays = {},
@@ -86,7 +86,7 @@ private:
 
   const std::string m_particlesName = "particles";
 
-  amrex::ParticleContainer<ParticleType, NArrayReal, NArrayInt>* m_particles;
+  amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>* m_particles;
 
   using RealDataMapType = std::map<std::string, std::vector<int>>;
   using IntDataMapType = std::map<std::string, int>;

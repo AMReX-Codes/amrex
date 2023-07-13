@@ -32,7 +32,7 @@ public:
   int update(
     const double time,
     const int time_step,
-    amrex::ParticleContainer<ParticleType, NArrayReal, NArrayInt> *particles,
+    amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt> *particles,
     const std::map<std::string, std::vector<int>> & particles_rStructs = {},
     const std::map<std::string, int> & particles_iStructs = {},
     const std::map<std::string, std::vector<int>> & particles_rArrays = {},
@@ -43,7 +43,7 @@ template<typename ParticleType, int NArrayReal, int NArrayInt>
 int ParticleInSituBridge::update(
   const double time,
   const int time_step,
-  amrex::ParticleContainer<ParticleType, NArrayReal, NArrayInt> *particles,
+  amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt> *particles,
   const std::map<std::string, std::vector<int>> & particles_rStructs,
   const std::map<std::string, int> & particles_iStructs,
   const std::map<std::string, std::vector<int>> & particles_rArrays,
