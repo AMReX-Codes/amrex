@@ -6,7 +6,7 @@
 #if !defined(AMREX_PARTICLES) || !defined(AMREX_USE_SENSEI_INSITU)
 #error Incompatible AMReX library configuration! This tutorial requires AMREX_PARTICLES and AMREX_USE_SENSEI_INSITU
 #endif
-#include <AMReX_AmrParticleInSituBridge.H>
+#include <AMReX_ParticleInSituBridge.H>
 
 using namespace amrex;
 
@@ -245,7 +245,7 @@ void testRedistribute ()
 
     pc.InitParticles(nppc);
 
-    auto *insitu_bridge = new AmrParticleInSituBridge;
+    auto *insitu_bridge = new ParticleInSituBridge;
 
     if (insitu_bridge->initialize()) {
         amrex::ErrorStream() << "Failed to initialize the in situ bridge." << std::endl;
@@ -258,7 +258,7 @@ void testRedistribute ()
     std::map<std::string, std::vector<int>> rArrays;
     std::map<std::string, int> iArrays;
 
-    if (insitu_bridge->update(&amr, tracers, rStructs)) {
+    if (insitu_bridge->update(0.0, 0, &pc, rStructs)) {
         amrex::ErrorStream() << "Failed to update the in situ bridge." << std::endl;
         amrex::Abort();
     }
