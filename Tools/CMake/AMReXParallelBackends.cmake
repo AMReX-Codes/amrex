@@ -320,6 +320,7 @@ if (AMReX_HIP)
    if(LINKER_HAS_WHOLE_ARCHIVE_OFFLOAD)
        foreach(D IN LISTS AMReX_SPACEDIM)
            target_link_options(amrex_${D}d PUBLIC
+               "$<$<LINK_LANGUAGE:HIP>:SHELL:-Xoffload-linker --whole-archive>"
                "$<$<LINK_LANGUAGE:CXX>:SHELL:-Xoffload-linker --whole-archive>")
        endforeach()
    endif()
@@ -330,6 +331,11 @@ if (AMReX_HIP)
        # ROCm 4.5: use unsafe floating point atomics, otherwise atomicAdd is much slower
        # 
        target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-munsafe-fp-atomics>)
+
+       # ROCm 5.5: forgets to enforce C++17 (default seems lower)
+       # https://github.com/AMReX-Codes/amrex/issues/3337
+       #
+       target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
    endforeach()
 
    # Equivalently, relocatable-device-code (RDC) flags are needed for `extern`
@@ -345,6 +351,7 @@ if (AMReX_HIP)
                   -fgpu-rdc)
            else()
                target_link_options(amrex_${D}d PUBLIC
+                  "$<$<LINK_LANGUAGE:HIP>:-fgpu-rdc>"
                   "$<$<LINK_LANGUAGE:CXX>:-fgpu-rdc>")
            endif()
        endforeach()

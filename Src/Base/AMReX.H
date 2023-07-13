@@ -109,7 +109,7 @@ namespace amrex
     //! Print out message to cerr and exit via amrex::Abort().
     void Error (const std::string& msg);
 
-    void Error_host (const char* msg);
+    void Error_host (const char* type, const char* msg);
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Error (const char* msg = nullptr) {
@@ -121,7 +121,7 @@ namespace amrex
         AMREX_DEVICE_ASSERT(0);
 #endif
 #else
-        Error_host(msg);
+        Error_host("Error", msg);
 #endif
     }
 
@@ -146,8 +146,6 @@ namespace amrex
     //! Print out message to cerr and exit via abort().
     void Abort (const std::string& msg);
 
-    void Abort_host (const char * msg);
-
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Abort (const char * msg = nullptr) {
 #if AMREX_DEVICE_COMPILE
@@ -158,7 +156,7 @@ namespace amrex
         AMREX_DEVICE_ASSERT(0);
 #endif
 #else
-        Abort_host(msg);
+        Error_host("Abort", msg);
 #endif
     }
 

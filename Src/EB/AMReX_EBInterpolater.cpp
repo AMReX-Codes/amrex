@@ -31,7 +31,7 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
 
     if (crse.getType() == FabType::regular)
     {
-        BL_ASSERT(amrex::getEBCellFlagFab(fine).getType(target_fine_region) == FabType::regular);
+        AMREX_ASSERT(amrex::getEBCellFlagFab(fine).getType(target_fine_region) == FabType::regular);
     }
     else
     {

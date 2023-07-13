@@ -80,11 +80,6 @@ public:
     //! Construct an empty BoxDomain of IndexType itype.
     explicit BoxDomain (IndexType itype);
 
-    BoxDomain (const BoxDomain& rhs) = default;
-    BoxDomain (BoxDomain&& rhs) = default;
-    BoxDomain& operator= (const BoxDomain& rhs) = default;
-    BoxDomain& operator= (BoxDomain&& rhs) = default;
-
     //! Add a Box to the domain.
     void add (const Box& b);
 
@@ -98,7 +93,7 @@ public:
     * Returns True if this BoxDomain is valid.  Checks for
     * disjointness. Returns true if the BoxDomain is empty.
     */
-    bool ok () const;
+    [[nodiscard]] bool ok () const;
 
     //! Promoted from BoxList.
     using BoxList::clear;
@@ -137,7 +132,7 @@ public:
     using BoxList::shiftHalf;
 
     //! Return a const reference to the underlying BoxList of this BoxDomain.
-    const BoxList& boxList () const;
+    [[nodiscard]] const BoxList& boxList () const;
 
     //! Are the BoxDomains equal?
     bool operator== (const BoxDomain& rhs) const;

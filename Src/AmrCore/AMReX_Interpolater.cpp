@@ -448,6 +448,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     AMREX_ASSERT(fine.box().contains(fine_region));
 
     bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
+    amrex::ignore_unused(run_on_gpu);
 
     Box const& cdomain = crse_geom.Domain();
     amrex::ignore_unused(fine_geom);
@@ -458,14 +459,19 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     const Box& crse_region = CoarseBox(fine_region,ratio);
     const Box& cslope_bx = amrex::grow(crse_region,-1);
 
+    FArrayBox ccfab(cslope_bx, ncomp*AMREX_SPACEDIM);
+    Array4<Real> const& tmp = ccfab.array();
+    Array4<Real const> const& ctmp = ccfab.const_array();
+
+#ifdef AMREX_USE_GPU
     AsyncArray<BCRec> async_bcr(bcr.data(), (run_on_gpu) ? ncomp : 0);
     BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
-    FArrayBox ccfab(cslope_bx, ncomp*AMREX_SPACEDIM);
     Elixir cceli;
     if (run_on_gpu) cceli = ccfab.elixir();
-    Array4<Real> const& tmp = ccfab.array();
-    Array4<Real const> const& ctmp = ccfab.const_array();
+#else
+    BCRec const* bcrp = bcr.data();
+#endif
 
 #if (AMREX_SPACEDIM == 1)
     if (crse_geom.IsSPHERICAL()) {
@@ -596,13 +602,10 @@ CellQuadratic::interp (const FArrayBox& crse,
 
     // Are we running on GPU?
     bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
+    amrex::ignore_unused(run_on_gpu);
 
     // Set up domain for coarse geometry
     Box const& cdomain = crse_geom.Domain();
-
-    // Set up AsyncArray for boundary conditions
-    AsyncArray<BCRec> async_bcr(bcr.data(), (run_on_gpu) ? ncomp : 0);
-    BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
     // Set up temporary fab (with elixir, as needed) for coarse grid slopes
 #if (AMREX_SPACEDIM == 2)
@@ -611,8 +614,17 @@ CellQuadratic::interp (const FArrayBox& crse,
     int nslp = 9; // x, y, z, x^2, y^2, z^2, xy, xz, yz, in that order.
 #endif /* AMREX_SPACEDIM == 2 */
     FArrayBox sfab(cslope_bx, nslp*ncomp);
+
+#ifdef AMREX_USE_GPU
+    // Set up AsyncArray for boundary conditions
+    AsyncArray<BCRec> async_bcr(bcr.data(), (run_on_gpu) ? ncomp : 0);
+    BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
+
     Elixir seli;
     if (run_on_gpu) seli = sfab.elixir();
+#else
+    BCRec const* bcrp = bcr.data();
+#endif
 
     // Extract pointers to fab data
     Array4<Real>       const&   finearr = fine.array();
@@ -1057,8 +1069,10 @@ CellQuartic::interp (const FArrayBox& crse,
     Box bz = amrex::coarsen(target_fine_region, IntVect(2,2,1));
     bz.grow(IntVect(2,2,0));
     FArrayBox tmpz(bz, ncomp);
+#ifdef AMREX_USE_GPU
     Elixir tmpz_eli;
     if (run_on_gpu) tmpz_eli = tmpz.elixir();
+#endif
     Array4<Real> const& tmpzarr = tmpz.array();
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, bz, ncomp, i, j, k, n,
     {
@@ -1070,8 +1084,10 @@ CellQuartic::interp (const FArrayBox& crse,
     Box by = amrex::coarsen(target_fine_region, IntVect(AMREX_D_DECL(2,1,1)));
     by.grow(IntVect(AMREX_D_DECL(2,0,0)));
     FArrayBox tmpy(by, ncomp);
+#ifdef AMREX_USE_GPU
     Elixir tmpy_eli;
     if (run_on_gpu) tmpy_eli = tmpy.elixir();
+#endif
     Array4<Real> const& tmpyarr = tmpy.array();
 #if (AMREX_SPACEDIM == 2)
     Array4<Real const> srcarr = crsearr;

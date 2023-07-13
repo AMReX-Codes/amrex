@@ -192,7 +192,7 @@ namespace amrex
         explicit expect (std::string str_);
         explicit expect (const char* istr_);
         explicit expect (char c);
-        const std::string& the_string( ) const;
+        [[nodiscard]] const std::string& the_string( ) const;
     private:
         std::string istr;
     };
@@ -200,11 +200,8 @@ namespace amrex
     class StreamRetry
     {
       public:
-        StreamRetry(std::ostream &os, std::string suffix,
-                    const int maxtries);
-        StreamRetry(std::string filename,
-                    const bool abortonretryfailure,
-                    const int maxtries);
+        StreamRetry(std::ostream &os, std::string suffix, int maxtries);
+        StreamRetry(std::string filename, bool abortonretryfailure, int maxtries);
         bool TryOutput();
         bool TryFileOutput();
         static int NStreamErrors()       { return nStreamErrors; }
@@ -212,7 +209,7 @@ namespace amrex
 
       private:
         int tries, maxTries;
-        bool abortOnRetryFailure;
+        bool abortOnRetryFailure = true;
         std::string fileName;
         std::ostream &sros;
         std::ostream::pos_type spos;

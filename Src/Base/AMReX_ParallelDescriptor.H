@@ -57,18 +57,14 @@ namespace ParallelDescriptor
     {
     public:
 
-        Message () :
-            m_finished(true),
-            m_type(MPI_DATATYPE_NULL),
-            m_req(MPI_REQUEST_NULL) {}
+        Message () = default;
         Message (MPI_Request req_, MPI_Datatype type_) :
             m_finished(false),
             m_type(type_),
             m_req(req_) {}
         Message (MPI_Status stat_, MPI_Datatype type_) :
-            m_finished(true),
             m_type(type_),
-            m_req(MPI_REQUEST_NULL), m_stat(stat_) {}
+            m_stat(stat_) {}
         void wait ();
         bool test ();
         size_t count () const;
@@ -80,10 +76,10 @@ namespace ParallelDescriptor
 
     private:
 
-        bool               m_finished; // NOLINT(modernize-use-default-member-init)
-        MPI_Datatype       m_type;
-        MPI_Request        m_req;
-        mutable MPI_Status m_stat;
+        bool               m_finished = true;
+        MPI_Datatype       m_type = MPI_DATATYPE_NULL;
+        MPI_Request        m_req  = MPI_REQUEST_NULL;
+        mutable MPI_Status m_stat{};
     };
 
 #ifdef BL_USE_MPI

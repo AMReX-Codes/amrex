@@ -206,33 +206,33 @@ class NFilesIter
 
   private:
 
-    int myProc;
-    int nProcs;
-    int nOutFiles;
-    int nSets;
-    bool groupSets;
-    int mySetPosition;
-    int fileNumber;
+    int myProc = -1;
+    int nProcs = -1;
+    int nOutFiles = -1;
+    int nSets = -1;
+    bool groupSets = false;
+    int mySetPosition = -1;
+    int fileNumber = -1;
     std::string filePrefix;
     std::string fullFileName;
     VisMFBuffer::IO_Buffer io_buffer;
     std::fstream fileStream;
-    bool finishedWriting;
-    bool isReading;
-    bool finishedReading;
+    bool finishedWriting = false;
+    bool isReading = false;
+    bool finishedReading = false;
     Vector<int> readRanks;
     Vector< Vector<int> > fileNumbersWriteOrder;        //!< [filenumber][ranks in order they wrote to filenumber]
-    int myReadIndex;
-    bool useStaticSetSelection;
-    int remainingWriters, deciderProc, coordinatorProc;
-    int deciderTag, coordinatorTag, doneTag, writeTag;
-    int stWriteTag;
-    int stReadTag;
+    int myReadIndex = -1;
+    bool useStaticSetSelection = true;
+    int remainingWriters = -1, deciderProc=-1, coordinatorProc = -1;
+    int deciderTag = -1, coordinatorTag = -1, doneTag = -1, writeTag=-1;
+    int stWriteTag = -1;
+    int stReadTag = -1;
     Vector<int> availableDeciders;
     Vector<int> setZeroProcs;
-    bool useSparseFPP;
+    bool useSparseFPP = false;
     Vector<int> sparseWritingRanks;
-    int mySparseFileNumber;
+    int mySparseFileNumber = -1;
 
     static int currentDeciderIndex;
 

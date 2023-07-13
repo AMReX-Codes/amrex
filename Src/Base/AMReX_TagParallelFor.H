@@ -17,7 +17,7 @@ struct Array4PairTag {
     Array4<T const> sfab;
     Box dbox;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
@@ -28,7 +28,7 @@ struct Array4CopyTag {
     Box dbox;
     Dim3 offset; // sbox.smallEnd() - dbox.smallEnd()
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
@@ -40,7 +40,7 @@ struct Array4MaskCopyTag {
     Box dbox;
     Dim3 offset; // sbox.smallEnd() - dbox.smallEnd()
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
@@ -48,7 +48,7 @@ template <class T>
 struct Array4Tag {
     Array4<T> dfab;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box box () const noexcept { return Box(dfab); }
 };
 
@@ -57,7 +57,7 @@ struct Array4BoxTag {
     Array4<T> dfab;
     Box       dbox;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
@@ -67,7 +67,7 @@ struct Array4BoxValTag {
     Box       dbox;
     T          val;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
@@ -76,7 +76,7 @@ struct VectorTag {
     T* p;
     int m_size;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int size () const noexcept { return m_size; }
 };
 

@@ -42,4 +42,5 @@ Checks: >
      mpi-*
     '
 
-HeaderFilterRegex: '[^n][^o][^l][^i][^n][^t]\.H$'
+# Files not ending with nolint.H will be filtered in.
+HeaderFilterRegex: '([^n].....|[^o]....|[^l]...|[^i]..|[^n].|[^t])\.H$'

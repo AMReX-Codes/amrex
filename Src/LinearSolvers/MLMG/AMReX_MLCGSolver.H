@@ -21,7 +21,9 @@ public:
     ~MLCGSolverT ();
 
     MLCGSolverT (const MLCGSolverT<MF>& rhs) = delete;
+    MLCGSolverT (MLCGSolverT<MF>&& rhs) = delete;
     MLCGSolverT<MF>& operator= (const MLCGSolverT<MF>& rhs) = delete;
+    MLCGSolverT<MF>& operator= (MLCGSolverT<MF>&& rhs) = delete;
 
     void setSolver (Type _typ) noexcept { solver_type = _typ; }
 
@@ -35,26 +37,26 @@ public:
     int solve (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
 
     void setVerbose (int _verbose) { verbose = _verbose; }
-    int getVerbose () const { return verbose; }
+    [[nodiscard]] int getVerbose () const { return verbose; }
 
     void setMaxIter (int _maxiter) { maxiter = _maxiter; }
-    int getMaxIter () const { return maxiter; }
+    [[nodiscard]] int getMaxIter () const { return maxiter; }
 
     void setNGhost(int _nghost) {nghost = IntVect(_nghost);}
-    int getNGhost() {return nghost[0];}
+    [[nodiscard]] int getNGhost() {return nghost[0];}
 
-    RT dotxy (const MF& r, const MF& z, bool local = false);
-    RT norm_inf (const MF& res, bool local = false);
+    [[nodiscard]] RT dotxy (const MF& r, const MF& z, bool local = false);
+    [[nodiscard]] RT norm_inf (const MF& res, bool local = false);
     int solve_bicgstab (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
     int solve_cg (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
 
-    int getNumIters () const noexcept { return iter; }
+    [[nodiscard]] int getNumIters () const noexcept { return iter; }
 
 private:
 
     MLLinOpT<MF>& Lp;
     Type solver_type;
-    const int amrlev;
+    const int amrlev = 0;
     const int mglev;
     int verbose   = 0;
     int maxiter   = 100;
@@ -64,10 +66,10 @@ private:
 
 template <typename MF>
 MLCGSolverT<MF>::MLCGSolverT (MLLinOpT<MF>& _lp, Type _typ)
-    : Lp(_lp), solver_type(_typ), amrlev(0), mglev(_lp.NMGLevels(0)-1)
+    : Lp(_lp), solver_type(_typ), mglev(_lp.NMGLevels(0)-1)
 {}
 
-template <typename MF> MLCGSolverT<MF>::~MLCGSolverT () {}
+template <typename MF> MLCGSolverT<MF>::~MLCGSolverT () = default;
 
 template <typename MF>
 int

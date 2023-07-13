@@ -206,6 +206,7 @@ MPI_Error (const char* file, int line, const char* str, int rc)
     amrex::Error(the_message_string(file, line, str, rc));
 }
 
+// coverity[+kill]
 void
 Abort (int errorcode, bool backtrace)
 {
@@ -1147,6 +1148,7 @@ EndParallel ()
     ParallelContext::pop();
 }
 
+// coverity[+kill]
 void
 Abort (int errorcode, bool backtrace)
 {
@@ -1490,6 +1492,9 @@ Finalize ()
 void
 StartTeams ()
 {
+    int nprocs = ParallelDescriptor::NProcs();
+    int rank   = ParallelDescriptor::MyProc();
+
     int team_size = 1;
     int do_team_reduce = 0;
 
@@ -1497,13 +1502,10 @@ StartTeams ()
     ParmParse pp("team");
     pp.queryAdd("size", team_size);
     pp.queryAdd("reduce", do_team_reduce);
-#endif
-
-    int nprocs = ParallelDescriptor::NProcs();
-    int rank   = ParallelDescriptor::MyProc();
-
-    if (nprocs % team_size != 0)
+    if (nprocs % team_size != 0) {
         amrex::Abort("Number of processes not divisible by team size");
+    }
+#endif
 
     m_Team.m_numTeams    = nprocs / team_size;
     m_Team.m_size        = team_size;
@@ -1600,7 +1602,7 @@ alignof_comm_data (std::size_t nbytes)
         return sizeof(ParallelDescriptor::lull_t);
     } else {
         amrex::Abort("TODO: message size is too big");
-        return 0;
+        return 1;
     }
 }
 

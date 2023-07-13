@@ -8,7 +8,7 @@ namespace amrex::EB2 {
 class ChkptFile
 {
 private:
-    std::string m_restart_file = "";
+    std::string m_restart_file;
 
     const std::string m_volfrac_name   = "volfrac";
     const std::string m_centroid_name  = "centroid";

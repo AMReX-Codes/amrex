@@ -1346,7 +1346,8 @@ protected:
     * \param lev_max
     * \param local_grid
     */
-    bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
+    template <typename P>
+    bool EnforcePeriodicWhere (P& prt, ParticleLocData& pld,
                                int lev_min = 0, int lev_max = -1, int local_grid=-1) const;
 
 public:
@@ -1378,7 +1379,8 @@ private:
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                           int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
-    void locateParticle (ParticleType& p, ParticleLocData& pld,
+    template <typename P>
+    void locateParticle (P& p, ParticleLocData& pld,
                          int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
 
     void Initialize ();

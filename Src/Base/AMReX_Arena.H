@@ -31,6 +31,7 @@ Arena* The_Async_Arena ();
 Arena* The_Device_Arena ();
 Arena* The_Managed_Arena ();
 Arena* The_Pinned_Arena ();
+Arena* The_Comms_Arena ();
 Arena* The_Cpu_Arena ();
 
 struct ArenaInfo
@@ -86,12 +87,19 @@ class Arena
 public:
 
     virtual ~Arena () = default;
+    Arena () noexcept = default;
+
+    Arena (const Arena& rhs) = delete;
+    Arena (Arena&& rhs) = delete;
+    Arena& operator= (const Arena& rhs) = delete;
+    Arena& operator= (Arena&& rhs) = delete;
+
     /**
     * Allocate a dynamic memory arena
     * \param sz size of the memory request
     * \return a pointer to the allocated memory
     */
-    virtual void* alloc (std::size_t sz) = 0;
+    [[nodiscard]] virtual void* alloc (std::size_t sz) = 0;
     /**
     * \brief A pure virtual function for deleting the arena pointed to by pt
     */
@@ -120,7 +128,7 @@ public:
      * const funciton because it may attempt to release memory back to the
      * system.
      */
-    virtual bool hasFreeDeviceMemory (std::size_t sz);
+    [[nodiscard]] virtual bool hasFreeDeviceMemory (std::size_t sz);
 
     /**
      * \brief Add this Arena to the list of Arenas that are profiled by TinyProfiler.

@@ -36,7 +36,7 @@ struct SparseBinIteratorFactory
           m_items(items), m_num_bins(bins.size())
     {}
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     index_type getIndex (const index_type bin_number) const noexcept
     {
         if (m_num_bins == 1) return 0;
@@ -58,7 +58,7 @@ struct SparseBinIteratorFactory
         return m_not_found;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     BinIterator<T> getBinIterator (const index_type bin_number) const noexcept
     {
         auto index = getIndex(bin_number);
@@ -171,31 +171,31 @@ public:
     }
 
     //! \brief the number of items in the container
-    Long numItems () const noexcept { return m_perm.size(); }
+    [[nodiscard]] Long numItems () const noexcept { return m_perm.size(); }
 
     //! \brief the number of bins in the container
-    Long numBins () const noexcept { return m_offsets.size()-1; }
+    [[nodiscard]] Long numBins () const noexcept { return m_offsets.size()-1; }
 
     //! \brief returns the pointer to the permutation array
-    index_type* permutationPtr () noexcept { return m_perm.dataPtr(); }
+    [[nodiscard]] index_type* permutationPtr () noexcept { return m_perm.dataPtr(); }
 
     //! \brief returns the pointer to the offsets array
-    index_type* offsetsPtr () noexcept { return m_offsets.dataPtr(); }
+    [[nodiscard]] index_type* offsetsPtr () noexcept { return m_offsets.dataPtr(); }
 
     //! \brief returns the pointer to the array of non-zero bins
-    index_type* getNonZeroBinsPtr() noexcept { return m_bins.dataPtr(); }
+    [[nodiscard]] index_type* getNonZeroBinsPtr() noexcept { return m_bins.dataPtr(); }
 
     //! \brief returns const pointer to the permutation array
-    const index_type* permutationPtr () const noexcept { return m_perm.dataPtr(); }
+    [[nodiscard]] const index_type* permutationPtr () const noexcept { return m_perm.dataPtr(); }
 
     //! \brief returns const pointer to the offsets array
-    const index_type* offsetsPtr () const noexcept { return m_offsets.dataPtr(); }
+    [[nodiscard]] const index_type* offsetsPtr () const noexcept { return m_offsets.dataPtr(); }
 
     //! \brief returns the pointer to the array of non-zero bins
-    const index_type* getNonZeroBinsPtr() const noexcept { return m_bins.dataPtr(); }
+    [[nodiscard]] const index_type* getNonZeroBinsPtr() const noexcept { return m_bins.dataPtr(); }
 
     //! \brief returns a GPU-capable object that can create iterators over the items in a bin.
-    SparseBinIteratorFactory<T> getBinIteratorFactory() const noexcept
+    [[nodiscard]] SparseBinIteratorFactory<T> getBinIteratorFactory() const noexcept
     {
         return SparseBinIteratorFactory<T>(m_bins, m_offsets, m_perm, m_items);
     }

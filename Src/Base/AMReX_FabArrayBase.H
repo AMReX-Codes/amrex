@@ -492,7 +492,7 @@ public:
         Long         m_nuse{0};
         bool         m_multi_ghost = false;
         //
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined (AMREX_USE_CUDA)
         CudaGraph<CopyMemory> m_localCopy;
         CudaGraph<CopyMemory> m_copyToBuffer;
         CudaGraph<CopyMemory> m_copyFromBuffer;
@@ -720,8 +720,6 @@ bool CheckRcvStats (Vector<MPI_Status>& recv_stats, const Vector<std::size_t>& r
 #endif
 
 std::ostream& operator<< (std::ostream& os, const FabArrayBase::BDKey& id);
-
-Arena* The_FA_Arena ();
 
 }
 

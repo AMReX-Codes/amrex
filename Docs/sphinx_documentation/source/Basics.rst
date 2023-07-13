@@ -2031,8 +2031,8 @@ multi-threaded codes race conditions could occur.
    |                        |e|                          |                        |f|                           |
    +-----------------------------------------------------+------------------------------------------------------+
    | | Example of cell-centered grown tile boxes. As     | | Example of face type grown tile boxes. As          |
-   | | indicated by symbols, there are 8 tiles and four  | | indicated by symbols, there are 8 tiles and four   |
-   | | in each grid in this example. Tiles from the      | | in each grid in this example. Tiles from the       |
+   | | indicated by symbols and colors, there are 4      | | indicated by symbols and colors, there are 4 tiles |
+   | | tiles per grid in this example. Tiles from the    | | per grid in this example. Tiles from the           |
    | | same grid do not overlap. But tiles from          | | same grid do not overlap even though they          |
    | | different grids may overlap.                      | | have face index type.                              |
    |                                                     |                                                      |

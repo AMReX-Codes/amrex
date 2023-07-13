@@ -18,8 +18,7 @@ MultiCutFab::MultiCutFab (const BoxArray& ba, const DistributionMapping& dm,
     remove();
 }
 
-MultiCutFab::~MultiCutFab ()
-= default;
+MultiCutFab::~MultiCutFab () = default;
 
 void
 MultiCutFab::define (const BoxArray& ba, const DistributionMapping& dm,

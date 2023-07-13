@@ -234,6 +234,14 @@ public:
     const DistributionMapping& DistributionMap () const noexcept { return dmap; }
     //
     const FabFactory<FArrayBox>& Factory () const noexcept { return *m_factory; }
+    //
+#ifdef AMREX_USE_EB
+    const EBFArrayBoxFactory&
+    EBFactory () const noexcept {
+        return static_cast<amrex::EBFArrayBoxFactory const&>(*m_factory);
+    }
+#endif
+
     //! Number of grids at this level.
     int numGrids () const noexcept { return static_cast<int>(grids.size()); }
     //! Number of states at this level.
@@ -588,14 +596,14 @@ private:
     MultiFab&                  m_leveldata;
     MultiFabCopyDescriptor     m_mfcd;
     Vector< Vector<MultiFabId> > m_mfid;     // [level][oldnew]
-    Interpolater*              m_map;
+    Interpolater*              m_map = nullptr;
     std::map<int,Box>          m_ba;
-    Real                       m_time;
-    int                        m_growsize;
-    int                        m_index;
-    int                        m_scomp;
-    int                        m_ncomp;
-    bool                       m_FixUpCorners;
+    Real                       m_time = std::numeric_limits<Real>::lowest();
+    int                        m_growsize = std::numeric_limits<int>::lowest();
+    int                        m_index = -1;
+    int                        m_scomp = -1;
+    int                        m_ncomp = -1;
+    bool                       m_FixUpCorners = false;
 
     std::map< int,Vector< Vector<Box> > >                m_fbox; // [grid][level][validregion]
     std::map< int,Vector< Vector<Box> > >                m_cbox; // [grid][level][fillablesubbox]
@@ -614,7 +622,7 @@ void AmrLevel::RK (int order, int state_type, Real time, Real dt, int iteration,
     MultiFab& S_new = get_new_data(state_type);
     const Real t_old = state[state_type].prevTime();
     const Real t_new = state[state_type].curTime();
-    AMREX_ALWAYS_ASSERT(amrex::almostEqual(time,t_old) && amrex::almostEqual(time+dt,t_new));
+    AMREX_ALWAYS_ASSERT(amrex::almostEqual(time,t_old,10) && amrex::almostEqual(time+dt,t_new,10));
 
     if (order == 2) {
         RungeKutta::RK2(S_old, S_new, time, dt, std::forward<F>(f),
@@ -654,6 +662,7 @@ void AmrLevel::storeRKCoarseData (int state_type, Real time, Real dt,
                                   MultiFab const& S_old,
                                   Array<MultiFab,order> const& rkk)
 {
+    BL_PROFILE("AmrLevel::storeRKCoarseData()");
     if (level == parent->finestLevel()) { return; }
 
     const StateDescriptor& desc = AmrLevel::desc_lst[state_type];

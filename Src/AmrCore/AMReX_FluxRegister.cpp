@@ -1017,6 +1017,7 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
     }
 
     bool run_on_gpu = Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_gpu);
 
     // cell-centered mask:
     constexpr int crse_cell = 0;
@@ -1046,6 +1047,7 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
     {
         const std::vector<IntVect>& pshifts = cperiod.shiftIntVect();
         Vector<Array4BoxTag<int> > tags;
+        amrex::ignore_unused(tags);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
@@ -1075,9 +1077,12 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                     for (const auto& is : isects)
                     {
                         Box const& b = is.second-iv;
+#ifdef AMREX_USE_GPU
                         if (run_on_gpu) {
                             tags.push_back({fab,b});
-                        } else {
+                        } else
+#endif
+                        {
                             cc_mask[mfi].setVal<RunOn::Host>(fine_cell, b, 0, 1);
                         }
                     }

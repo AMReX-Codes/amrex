@@ -139,12 +139,27 @@ struct BlockStatus<T, false>
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     STVA<T> read () volatile {
+#if defined(AMREX_USE_SYCL)
+        constexpr auto mo = sycl::memory_order::relaxed;
+        constexpr auto ms = sycl::memory_scope::device;
+        constexpr auto as = sycl::access::address_space::global_space;
+#endif
         if (status == 'x') {
             return {'x', 0};
         } else if (status == 'a') {
+#if defined(AMREX_USE_SYCL)
+            sycl::atomic_ref<T,mo,ms,as> ar{const_cast<T&>(aggregate)};
+            return {'a', ar.load()};
+#else
             return {'a', aggregate};
+#endif
         } else {
+#if defined(AMREX_USE_SYCL)
+            sycl::atomic_ref<T,mo,ms,as> ar{const_cast<T&>(inclusive)};
+            return {'p', ar.load()};
+#else
             return {'p', inclusive};
+#endif
         }
     }
 

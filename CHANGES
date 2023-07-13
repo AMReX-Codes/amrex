@@ -1,3 +1,103 @@
+# 23.07
+
+  -- Allow users to change the default vector growth stategy (#3389)
+
+  -- Communications arena implementation (#3388)
+
+  -- CI: oneAPI SYCL for AMD GPUs (#3341)
+
+  -- GPU: Always deallocate gpu_rand_state in Finalize() (#3384)
+
+  -- Hypre ILU options (#3381)
+
+  -- Amr Class: Synchronization of StateData's Time (#3375)
+
+  -- EB 2D: Fix levelset on nodes adjacent to covered edges (#3370)
+
+  -- Add workflow for oneAPI SYCL on Nvidia GPUs (#3360)
+
+  -- CMake: Enforce >= C++17 for ROCm (#3355)
+
+  -- Use device arena for the_fa_arena when activating GPU-aware MPI (#3362)
+
+  -- Coverity Scan (#3361)
+
+  -- CMake: AMReX_TEST_TYPE (#3357)
+
+  -- CMake: Enable AMReX_PARTICLES by default (#3358)
+
+  -- Add AMReX Apps to CI (#3348)
+
+  -- Make sure amrex::Long is wider than int. (#3345)
+
+  -- Particle Ids: Add int Constants (#3338)
+
+  -- CI: Clang CUDA (#3184)
+
+  -- Reinforce __CUDACC__ conditionals w/ AMREX_USE_CUDA (#3331)
+
+  -- CMake: Link option when HIP is a language (#3335)
+
+# 23.06
+
+  -- Implement Checkpoint, Restart, and Plotfile for pure SOA (#3332)
+
+  -- Clang: -Wno-null-conversion for Lexer (#3333)
+
+  -- Fix Pure SOA RedistributeGPU: size from ptile, not the AoS (#3330)
+
+  -- cleaning and fixes for PureSoA ParticleTile (#3327)
+
+  -- RealBox: Accept RealVect Setters (#3328)
+
+  -- Port InitRandom for pure SoA (#3325)
+
+  -- FillBoundary for Spherical Coordinates (#3286)
+
+  -- Fix: AMReXConfig.cmake Multi-Dim (#3324)
+
+  -- HypreSolver: a new interface for Hypre (#3269)
+
+  -- Fix Tests/EB_CNS in 2D (#3323)
+
+  -- Fix CodeQL warnings (#3318)
+
+  -- Add get/set of AMRErrorTagInfo in AMRErrorTag (#3317)
+
+  -- GNU Make: allow skipping paths when running clang-tidy (#3316)
+
+  -- Multi-Dim Buildsystem Support (#3309)
+
+  -- GNU Make: use CLANG_TIDY_CONFIG_FILE if it's set (#3315)
+
+  -- Refactor Parser (#3265)
+
+  -- Enable binning for ParticleTileData (#3307)
+
+  -- ParticleTile: More SoA Updates (#3305)
+
+  -- HIP Debug Build (#3311)
+
+  -- Run PODVector::push_back on GPU (#3308)
+
+  -- ParticleInit: Implicit Int Float Conversion (#3304)
+
+  -- More constexpr if for pure soa in RedistributeCPU (#3299)
+
+  -- MLEBNodeFDLaplacian: Implement the alpha term (#3301)
+
+  -- Fixing the ParIter numParticles functions for pure SOA (#3303)
+
+  -- Add .mailmap (#3295)
+
+  -- Implement StructOfArray::empty() and ParticleTile::empty() for pure SoA (#3296)
+
+  -- port the old BoxLib faverage tool to AMReX (#3293)
+
+  -- GNU Make: add -pthread for HIP (#3294)
+
+  -- Github Cache: Path and Hypre (#3288)
+
 # 23.05
 
   -- Support SoA-Only Particles (#2878)

@@ -179,7 +179,11 @@ FArrayBox::initVal () noexcept
             {
                 p[i] = x;
             });
+#ifdef AMREX_USE_GPU
             if (runon == RunOn::Gpu) Gpu::streamSynchronize();
+#else
+            amrex::ignore_unused(runon);
+#endif
         }
     }
 }
@@ -484,6 +488,7 @@ FABio::read_header (std::istream& is,
         is >> machine;
         is >> bx;
         is >> nvar;
+        AMREX_ASSERT(nvar >= 0 && nvar < std::numeric_limits<int>::max());
         //
         // Set the FArrayBox to the appropriate size.
         //
@@ -513,6 +518,7 @@ FABio::read_header (std::istream& is,
         is >> *rd;
         is >> bx;
         is >> nvar;
+        AMREX_ASSERT(nvar >= 0 && nvar < std::numeric_limits<int>::max());
         //
         // Set the FArrayBox to the appropriate size.
         //

@@ -213,7 +213,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                             // Shift the position.
                             for (int d=0; d<AMREX_SPACEDIM; ++d)
                             {
-                                p_rep.pos(d) = static_cast<ParticleReal>(p.pos(d) + (rep[d]-1)*DomSize[d]);
+                                p_rep.pos(d) = static_cast<ParticleReal>(p.pos(d) + Real(rep[d]-1)*DomSize[d]);
                             }
 
                             // Copy the extra data
@@ -558,7 +558,7 @@ InitFromBinaryFile (const std::string& file,
         {
             do
             {
-                int n = int(amrex::Random() * (NProcs-1));
+                auto n = int(amrex::Random() * Real(NProcs-1));
 
                 AMREX_ASSERT(n >= 0);
                 AMREX_ASSERT(n < NProcs);
@@ -571,7 +571,7 @@ InitFromBinaryFile (const std::string& file,
 
             int i = 0;
 
-            for (std::set<int>::const_iterator it = readers.begin(), End = readers.end();
+            for (auto it = readers.cbegin(), End = readers.cend();
                  it != End;
                  ++it, ++i)
             {
@@ -645,7 +645,7 @@ InitFromBinaryFile (const std::string& file,
         //
         const std::streamoff ENDPOS = ifs.tellg();
 
-        RealSizeInFile = (ENDPOS - CURPOS) / (NP*(DM+NX));
+        RealSizeInFile = int((ENDPOS - CURPOS) / (NP*(DM+NX)));
 
         AMREX_ASSERT(RealSizeInFile == sizeof(float) || RealSizeInFile == sizeof(double));
         //
@@ -763,14 +763,14 @@ InitFromBinaryFile (const std::string& file,
                 {
                     if (RealSizeInFile == sizeof(float))
                     {
-                        ifs.read((char*)&fxtra[0], extradata*sizeof(float));
+                        ifs.read((char*)&fxtra[0], std::streamsize(extradata*sizeof(float)));
 
                         for (int ii = 0; ii < extradata; ii++)
                             p.rdata(ii) = static_cast<ParticleReal>(fxtra[ii]);
                     }
                     else if (RealSizeInFile == sizeof(double))
                     {
-                        ifs.read((char*)&dxtra[0], extradata*sizeof(double));
+                        ifs.read((char*)&dxtra[0], std::streamsize(extradata*sizeof(double)));
 
                         for (int ii = 0; ii < extradata; ii++)
                             p.rdata(ii) = static_cast<ParticleReal>(dxtra[ii]);
@@ -783,11 +783,11 @@ InitFromBinaryFile (const std::string& file,
                 {
                     if (RealSizeInFile == sizeof(float))
                     {
-                        ifs.read((char*)&fignore[0], (NX-extradata)*sizeof(float));
+                        ifs.read((char*)&fignore[0], std::streamsize((NX-extradata)*sizeof(float)));
                     }
                     else if (RealSizeInFile == sizeof(double))
                     {
-                        ifs.read((char*)&dignore[0], (NX-extradata)*sizeof(double));
+                        ifs.read((char*)&dignore[0], std::streamsize((NX-extradata)*sizeof(double)));
                     }
                 }
 
@@ -957,7 +957,7 @@ InitRandom (Long                    icount,
     AMREX_ASSERT(iseed  > 0);
     AMREX_ASSERT(icount > 0);
 
-    AMREX_ASSERT(m_gdb != 0);
+    AMREX_ASSERT(m_gdb != nullptr);
 
     const int       MyProc   = ParallelDescriptor::MyProc();
     const int       NProcs   = ParallelDescriptor::NProcs();
@@ -1141,7 +1141,7 @@ InitRandom (Long                    icount,
                                    dst_tile.GetArrayOfStructs().begin() + old_size);
                 }
 
-                for (int i = 0; i < NArrayReal; ++i) {
+                for (int i = 0; i < NArrayReal; ++i) { // NOLINT(readability-misleading-indentation)
                     Gpu::copyAsync(Gpu::hostToDevice,
                                    host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
                                    host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
@@ -1284,7 +1284,7 @@ InitRandom (Long                    icount,
                                    dst_tile.GetArrayOfStructs().begin() + old_size);
                 }
 
-                for (int i = 0; i < NArrayReal; ++i) {
+                for (int i = 0; i < NArrayReal; ++i) { // NOLINT(readability-misleading-indentation)
                     Gpu::copyAsync(Gpu::hostToDevice,
                                    host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
                                    host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
@@ -1329,7 +1329,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
     AMREX_ASSERT(iseed  > 0);
     AMREX_ASSERT(icount_per_box > 0);
 
-    AMREX_ASSERT(m_gdb != 0);
+    AMREX_ASSERT(m_gdb != nullptr);
 
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const auto      strttime = amrex::second();
@@ -1362,9 +1362,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
         for (Long jcnt = 0; jcnt < icount_per_box; jcnt++) {
         for (Long kcnt = 0; kcnt < icount_per_box; kcnt++)
         {
-            p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (dist(mt) + icnt) / icount_per_box * grid_box.length(0));
-            p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (dist(mt) + jcnt) / icount_per_box * grid_box.length(1));
-            p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (dist(mt) + kcnt) / icount_per_box * grid_box.length(2));
+            p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (dist(mt) + double(icnt)) / double(icount_per_box) * grid_box.length(0));
+            p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (dist(mt) + double(jcnt)) / double(icount_per_box) * grid_box.length(1));
+            p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (dist(mt) + double(kcnt)) / double(icount_per_box) * grid_box.length(2));
 
             for (int i = 0; i < AMREX_SPACEDIM; i++)
                 AMREX_ASSERT(p.pos(i) < grid_box.hi(i));
@@ -1425,7 +1425,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
 
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitOnePerCell()");
 
-    AMREX_ASSERT(m_gdb != 0);
+    AMREX_ASSERT(m_gdb != nullptr);
 
     // Note that x_off, y_off and z_off are the offsets from the lower left corner
     // in each cell as measured in units of dx, so they must be in [0,1]
@@ -1507,7 +1507,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitNRandomPerCell()");
 
-    AMREX_ASSERT(m_gdb != 0);
+    AMREX_ASSERT(m_gdb != nullptr);
 
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const auto      strttime = amrex::second();
@@ -1554,7 +1554,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
                     int iter = 0;
                     while (iter < max_iter) {
                         r = amrex::Random();
-                        p.pos(i) = static_cast<ParticleReal>(grid_box.lo(i) + (r + cell[i]-beg[i])*dx[i]);
+                        p.pos(i) = static_cast<ParticleReal>(grid_box.lo(i) + (r + Real(cell[i]-beg[i]))*dx[i]);
                         if (p.pos(i) < grid_box.hi(i)) break;
                         iter++;
                     }

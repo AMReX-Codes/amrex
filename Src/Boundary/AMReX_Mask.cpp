@@ -55,6 +55,7 @@ operator>> (std::istream& is,
     Box b;
     int ncomp;
     is >> b >> ncomp;
+    AMREX_ASSERT(ncomp >= 0 && ncomp < std::numeric_limits<int>::max());
     is.ignore(BL_IGNORE_MAX, '\n');
     m.resize(b,ncomp);
     IntVect sm = b.smallEnd();
@@ -89,6 +90,7 @@ Mask::readFrom (std::istream& is)
     Box b;
     int ncomp;
     is >> b >> ncomp;
+    AMREX_ASSERT(ncomp >= 0 && ncomp < std::numeric_limits<int>::max());
     is.ignore(BL_IGNORE_MAX, '\n');
     resize(b,ncomp);
     int *ptr = dataPtr();

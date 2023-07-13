@@ -15,7 +15,6 @@ class AllRegularIF
 public:
     constexpr Real operator() (const RealArray&) const noexcept { return -1.0; }
 
-    AMREX_GPU_HOST_DEVICE
     constexpr Real operator() (AMREX_D_DECL(Real, Real, Real)) const noexcept { return -1.0; }
 };
 

@@ -57,7 +57,7 @@ public:
     void setMultiValued (int n) noexcept {
         flag &= zero_lower_mask;
         flag |= multi_valued_bits;
-        BL_ASSERT(n >= 2 && n <= 7);
+        AMREX_ASSERT(n >= 2 && n <= 7);
         flag |= static_cast<uint32_t>(n) << pos_numvofs;
     }
 

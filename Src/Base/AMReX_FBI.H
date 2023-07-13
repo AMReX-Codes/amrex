@@ -385,7 +385,7 @@ FabArray<FAB>::CMD_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
     });
 }
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined (AMREX_USE_CUDA)
 template <class FAB>
 void
 FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp)
@@ -551,7 +551,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp
 
 #ifdef AMREX_USE_GPU
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
 
 template <class FAB>
 void

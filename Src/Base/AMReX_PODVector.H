@@ -218,6 +218,20 @@ namespace amrex
         }
     }
 
+    namespace VectorGrowthStrategy
+    {
+        extern AMREX_EXPORT Real growth_factor;
+        inline Real GetGrowthFactor () { return growth_factor; }
+        inline void SetGrowthFactor (Real a_factor);
+
+        namespace detail
+        {
+            void ValidateUserInput ();
+        }
+
+        void Initialize ();
+    }
+
     template <class T, class Allocator = std::allocator<T> >
     class PODVector : public Allocator
     {
@@ -262,32 +276,40 @@ namespace amrex
         explicit PODVector (size_type a_size) noexcept
             : m_data(nullptr), m_size(a_size)
         {
-            AllocateBuffer(GetNewCapacity(a_size));
+            if (a_size != 0) {
+                AllocateBuffer(GetNewCapacity(a_size));
+            }
         }
 
         PODVector (size_type a_size, const value_type& a_value,
                    const allocator_type& a_allocator = Allocator()) noexcept
             : Allocator(a_allocator), m_data(nullptr), m_size(a_size)
         {
-            AllocateBuffer(GetNewCapacity(a_size));
-            detail::uninitializedFillNImpl<Allocator>(m_data, a_size, a_value, *this);
+            if (a_size != 0) {
+                AllocateBuffer(GetNewCapacity(a_size));
+                detail::uninitializedFillNImpl<Allocator>(m_data, a_size, a_value, *this);
+            }
         }
 
         PODVector (std::initializer_list<T> a_initializer_list,
                    const allocator_type& a_allocator = Allocator()) noexcept
             : Allocator(a_allocator), m_data(nullptr), m_size(a_initializer_list.size())
         {
-            AllocateBuffer(GetNewCapacity(m_size));
-            detail::initFromListImpl<Allocator>(m_data, a_initializer_list, *this);
+            if (a_initializer_list.size() != 0) {
+                AllocateBuffer(GetNewCapacity(m_size));
+                detail::initFromListImpl<Allocator>(m_data, a_initializer_list, *this);
+            }
         }
 
         PODVector (const PODVector<T, Allocator>& a_vector) noexcept
             : Allocator(a_vector), m_data(nullptr), m_size(a_vector.size())
         {
             using namespace detail;
-            AllocateBuffer(a_vector.capacity());
-            auto r = memCopyImpl<Allocator>(m_data, a_vector.m_data, a_vector.size() * sizeof(T), *this);
-            if (r) { Gpu::streamSynchronize(); }
+            if (a_vector.size() != 0) {
+                AllocateBuffer(a_vector.capacity());
+                auto r = memCopyImpl<Allocator>(m_data, a_vector.m_data, a_vector.size() * sizeof(T), *this);
+                if (r) { Gpu::streamSynchronize(); }
+            }
         }
 
         PODVector (PODVector<T, Allocator>&& a_vector) noexcept
@@ -604,7 +626,8 @@ namespace amrex
 
             while (new_capacity < (capacity() + a_num_to_be_added))
             {
-                new_capacity = (3 * new_capacity + 1)/2;
+                new_capacity = static_cast<size_type>(
+                    VectorGrowthStrategy::GetGrowthFactor() * static_cast<Real>(new_capacity + 1));
             }
 
             return new_capacity;
@@ -696,8 +719,6 @@ namespace amrex
         {
             deallocate(m_data, capacity());
 
-            Allocator::operator=(std::move(static_cast<Allocator const&>(a_vector)));
-
             m_data = a_vector.m_data;
             m_size = a_vector.m_size;
             m_capacity = a_vector.m_capacity;
@@ -705,6 +726,8 @@ namespace amrex
             a_vector.m_data = nullptr;
             a_vector.m_size = 0;
             a_vector.m_capacity = 0;
+
+            Allocator::operator=(std::move(static_cast<Allocator const&>(a_vector)));
 
             return *this;
         }
