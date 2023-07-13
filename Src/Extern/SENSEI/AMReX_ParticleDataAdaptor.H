@@ -17,8 +17,8 @@ template<typename ParticleType, int NArrayReal, int NArrayInt>
 class ParticleDataAdaptor : public sensei::DataAdaptor
 {
 public:
-  static constexpr int NStructReal = ParticleType::NReal
-  static constexpr int NStructInt  = ParticleType::Int
+  static constexpr int NStructReal = ParticleType::NReal;
+  static constexpr int NStructInt  = ParticleType::Int;
 
   static ParticleDataAdaptor* New();
   senseiTypeMacro(ParticleDataAdaptor, sensei::DataAdaptor);
