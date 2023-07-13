@@ -682,7 +682,7 @@ svtkPolyData* ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::BuildPar
   // loop over levels in the particle container
   for (int lev = 0; lev < particles.size();  lev++)
   {
-    using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
+    using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
     for (MyParIter pti(*this->m_particles, lev); pti.isValid(); ++pti)
     {
       auto& aos = pti.GetArrayOfStructs();
@@ -747,7 +747,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesIDArra
   int *partIds = idArray->GetPointer(0);
 
   // loop over particles and append their cpu value to the list
-  using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
   long ptId = 0;
   for (int level = 0; level < particles.size(); ++level)
   {
@@ -792,7 +792,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesCPUArr
   int* partCpu = cpuArray->GetPointer(0);
 
   // loop over particles and append their cpu value to the list
-  using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level < particles.size(); ++level)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
@@ -863,7 +863,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOARea
   double* pData = data->GetPointer(0);
 #endif
 
-  using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level < this->m_particles->numLevels(); ++level)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
@@ -938,7 +938,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOAInt
   int* pData = data->GetPointer(0);
 
   // fill array
-  using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level< this->m_particles->numLevels(); level++)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
@@ -1025,7 +1025,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSRea
 #endif
 
   // copy the data from each level
-  using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level<particles.size();level++)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
@@ -1097,7 +1097,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSInt
   data->SetNumberOfValues(nptsOnProc);
   int* pData = data->GetPointer(0);
 
-  using MyParIter = ParIter<ParticleType, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level<particles.size(); ++level)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
