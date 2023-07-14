@@ -16,7 +16,7 @@ public:
         : public std::runtime_error
     {
     public :
-        error(const std::string& what) : std::runtime_error(what) {}
+        using std::runtime_error::runtime_error;
     };
 
     template <typename T> friend class MLCGSolverT;
