@@ -473,7 +473,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                     }
 
                     if ( throw_exception ) {
-                        throw error(std::string("MLMG blew up."));
+                        throw error("MLMG blew up.");
                     } else {
                         amrex::Abort("MLMG failing so lets stop here");
                     }
