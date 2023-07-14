@@ -12,6 +12,13 @@ class MLMGT
 {
 public:
 
+    class error
+        : public std::runtime_error
+    {
+    public :
+        error(const std::string& what) : std::runtime_error(what) {}
+    };
+
     template <typename T> friend class MLCGSolverT;
 
     using FAB = typename MF::fab_type;
@@ -104,6 +111,7 @@ public:
     */
     void apply (const Vector<MF*>& out, const Vector<MF*>& in);
 
+    void setThrowException (bool t) noexcept { throw_exception = t; }
     void setVerbose (int v) noexcept { verbose = v; }
     void setMaxIter (int n) noexcept { max_iters = n; }
     void setMaxFmgIter (int n) noexcept { max_fmg_iters = n; }
@@ -211,7 +219,9 @@ public:
 
 private:
 
+    bool throw_exception = false;
     int verbose = 1;
+
     int max_iters = 200;
     int do_fixed_number_of_iters = 0;
 
@@ -453,16 +463,21 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 }
                 break;
             } else {
-              if (composite_norminf > RT(1.e20)*max_norm)
-              {
-                  if (verbose > 0) {
-                      amrex::Print() << "MLMG: Failing to converge after " << iter+1 << " iterations."
-                                     << " resid, resid/" << norm_name << " = "
-                                     << composite_norminf << ", "
-                                     << composite_norminf/max_norm << "\n";
-                  }
-                  amrex::Abort("MLMG failing so lets stop here");
-              }
+                if (composite_norminf > RT(1.e20)*max_norm)
+                {
+                    if (verbose > 0) {
+                        amrex::Print() << "MLMG: Failing to converge after " << iter+1 << " iterations."
+                                       << " resid, resid/" << norm_name << " = "
+                                       << composite_norminf << ", "
+                                       << composite_norminf/max_norm << "\n";
+                    }
+
+                    if ( throw_exception ) {
+                        throw error(std::string("MLMG blew up."));
+                    } else {
+                        amrex::Abort("MLMG failing so lets stop here");
+                    }
+                }
             }
         }
 
@@ -473,7 +488,12 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                                << composite_norminf << ", "
                                << composite_norminf/max_norm << "\n";
             }
-            amrex::Abort("MLMG failed");
+
+            if ( throw_exception ) {
+                throw error(std::string("MLMG failed to converge."));
+            } else {
+                amrex::Abort("MLMG failed.");
+            }
         }
         timer[iter_time] = amrex::second() - iter_start_time;
     }
