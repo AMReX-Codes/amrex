@@ -490,7 +490,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
             }
 
             if ( throw_exception ) {
-                throw error(std::string("MLMG failed to converge."));
+                throw error("MLMG failed to converge.");
             } else {
                 amrex::Abort("MLMG failed.");
             }
