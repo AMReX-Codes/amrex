@@ -195,7 +195,6 @@ public:
     using ParticleVector = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleVector;
     using ParticleTile = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleTileType;
     using IntVector  = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IntVector;
-    using SendBuffer = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SendBuffer;
 
     NeighborParticleContainer (ParGDBBase* gdb, int ncells);
 

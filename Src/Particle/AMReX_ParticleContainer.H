@@ -189,7 +189,6 @@ public:
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
     using CharVector       = Gpu::DeviceVector<char>;
-    using SendBuffer       = Gpu::PolymorphicVector<char>;
     using ParIterType      = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParConstIterType = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
 
