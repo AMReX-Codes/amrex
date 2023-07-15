@@ -47,9 +47,9 @@ namespace {
         }
         BoxArray slice_ba(&boxes[0], static_cast<int>(boxes.size()));
         DistributionMapping slice_dmap(std::move(procs));
-        std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, ncomp, 0,
-                                                     MFInfo(), cell_centered_data.Factory()));
-        return slice;
+
+        return std::make_unique<MultiFab>(slice_ba, slice_dmap, ncomp, 0,
+                                          MFInfo(), FArrayBoxFactory());
     }
 }
 
