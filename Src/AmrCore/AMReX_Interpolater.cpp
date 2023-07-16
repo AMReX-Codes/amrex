@@ -14,8 +14,6 @@ namespace amrex {
  * PCInterp, NodeBilinear, FaceLinear, CellConservativeLinear, and
  * CellBilinear are supported for all dimensions on cpu and gpu.
  *
- * FaceLinear assumes that ratio > 1 in all directions
- *
  * CellConservativeProtected only works in 2D and 3D on cpu and gpu
  * and assumes that ratio > 1 in all directions
  *
@@ -170,14 +168,6 @@ FaceLinear::interp_face (const FArrayBox&  crse,
 {
     BL_PROFILE("FaceLinear::interp_face()");
 
-    AMREX_ALWAYS_ASSERT(ratio[0] > 1);
-#if (AMREX_SPACEDIM >= 2)
-    AMREX_ALWAYS_ASSERT(ratio[1] > 1);
-#endif
-#if (AMREX_SPACEDIM == 3)
-    AMREX_ALWAYS_ASSERT(ratio[2] > 1);
-#endif
-
     AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
 
     Array4<Real> const& fine_arr = fine.array(fine_comp);
@@ -267,14 +257,6 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                              const RunOn       runon)
 {
     BL_PROFILE("FaceLinear::interp_arr()");
-
-    AMREX_ALWAYS_ASSERT(ratio[0] > 1);
-#if (AMREX_SPACEDIM >= 2)
-    AMREX_ALWAYS_ASSERT(ratio[1] > 1);
-#endif
-#if (AMREX_SPACEDIM == 3)
-    AMREX_ALWAYS_ASSERT(ratio[2] > 1);
-#endif
 
     Array<IndexType, AMREX_SPACEDIM> types;
     for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -385,10 +367,10 @@ CellBilinear::CoarseBox (const Box& fine, const IntVect& ratio)
     const int* chi = crse.hiVect();
 
     for (int i = 0; i < AMREX_SPACEDIM; i++) {
-        if ( ratio[i] > 1 && ((lo[i]-clo[i]*ratio[i])*2 < ratio[i]) ) {
+        if ((lo[i]-clo[i]*ratio[i])*2 < ratio[i]) {
             crse.growLo(i,1);
         }
-        if ( ratio[i] > 1 && ((hi[i]-chi[i]*ratio[i])*2 >= ratio[i]) ) {
+        if ((hi[i]-chi[i]*ratio[i])*2 >= ratio[i]) {
             crse.growHi(i,1);
         }
     }
@@ -579,11 +561,7 @@ CellQuadratic::CoarseBox (const Box&     fine,
                           const IntVect& ratio)
 {
     Box crse = amrex::coarsen(fine,ratio);
-    for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {
-        if (ratio[dim] > 1) {
-            crse.grow(dim,1);
-        }
-    }
+    crse.grow(1);
     return crse;
 }
 
@@ -915,12 +893,7 @@ Box
 FaceDivFree::CoarseBox (const Box&     fine,
                         const IntVect& ratio)
 {
-    Box crse = amrex::coarsen(fine,ratio);
-    for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {
-        if (ratio[dim] > 1) {
-            crse.grow(dim,1);
-        }
-    }
+    Box crse = amrex::coarsen(fine,ratio).grow(1);
     return crse;
 }
 

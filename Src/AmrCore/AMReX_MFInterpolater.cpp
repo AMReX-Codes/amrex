@@ -414,10 +414,10 @@ MFCellBilinear::CoarseBox (const Box& fine, const IntVect& ratio)
     const int* chi = crse.hiVect();
 
     for (int i = 0; i < AMREX_SPACEDIM; i++) {
-        if ( ratio[i] > 1 && ((lo[i]-clo[i]*ratio[i])*2 < ratio[i]) ) {
+        if ((lo[i]-clo[i]*ratio[i])*2 < ratio[i]) {
             crse.growLo(i,1);
         }
-        if ( ratio[i] > 1 && ((hi[i]-chi[i]*ratio[i])*2 >= ratio[i]) ) {
+        if ((hi[i]-chi[i]*ratio[i])*2 >= ratio[i]) {
             crse.growHi(i,1);
         }
     }
