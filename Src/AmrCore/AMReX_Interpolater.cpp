@@ -850,13 +850,7 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
                                  RunOn             runon)
 {
     BL_PROFILE("CellConservativeQuartic::interp()");
-    AMREX_ASSERT(ratio[0] == 2);
-#if (AMREX_SPACEDIM >= 2)
-    AMREX_ASSERT(ratio[0] == ratio[1]);
-#endif
-#if (AMREX_SPACEDIM == 3)
-    AMREX_ASSERT(ratio[1] == ratio[2]);
-#endif
+    AMREX_ASSERT(ratio == 2);
     amrex::ignore_unused(ratio);
 
     //
