@@ -170,14 +170,7 @@ FaceLinear::interp_face (const FArrayBox&  crse,
 {
     BL_PROFILE("FaceLinear::interp_face()");
 
-    AMREX_ALWAYS_ASSERT(ratio[0] > 1);
-#if (AMREX_SPACEDIM >= 2)
-    AMREX_ALWAYS_ASSERT(ratio[1] > 1);
-#endif
-#if (AMREX_SPACEDIM == 3)
-    AMREX_ALWAYS_ASSERT(ratio[2] > 1);
-#endif
-
+    AMREX_ALWAYS_ASSERT(ratio.allGT(IntVect(1)));
     AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
 
     Array4<Real> const& fine_arr = fine.array(fine_comp);
@@ -268,13 +261,7 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
 {
     BL_PROFILE("FaceLinear::interp_arr()");
 
-    AMREX_ALWAYS_ASSERT(ratio[0] > 1);
-#if (AMREX_SPACEDIM >= 2)
-    AMREX_ALWAYS_ASSERT(ratio[1] > 1);
-#endif
-#if (AMREX_SPACEDIM == 3)
-    AMREX_ALWAYS_ASSERT(ratio[2] > 1);
-#endif
+    AMREX_ALWAYS_ASSERT(ratio.allGT(IntVect(1)));
 
     Array<IndexType, AMREX_SPACEDIM> types;
     for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -771,13 +758,7 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
                                     Vector<BCRec>&   /*bcr*/,
                                     RunOn            runon)
 {
-    AMREX_ALWAYS_ASSERT(ratio[0] > 1);
-#if (AMREX_SPACEDIM >= 2)
-    AMREX_ALWAYS_ASSERT(ratio[1] > 1);
-#endif
-#if (AMREX_SPACEDIM == 3)
-    AMREX_ALWAYS_ASSERT(ratio[2] > 1);
-#endif
+    AMREX_ALWAYS_ASSERT(ratio.allGT(IntVect(1)));
 
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(fine,fine_state,
