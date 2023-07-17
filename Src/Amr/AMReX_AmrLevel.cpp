@@ -40,16 +40,8 @@ AmrLevel::post_timestep (int /*iteration*/)
 }
 
 void
-AmrLevel::postCoarseTimeStep (Real time)
+AmrLevel::postCoarseTimeStep (Real /*time*/)
 {
-    BL_ASSERT(level == 0);
-    // sync up statedata time
-    for (int lev = 0; lev <= parent->finestLevel(); ++lev) {
-        AmrLevel& amrlevel = parent->getLevel(lev);
-        for (int i = 0; i < amrlevel.state.size(); ++i) {
-            amrlevel.state[i].syncNewTimeLevel(time);
-        }
-    }
 }
 
 void
@@ -143,6 +135,7 @@ AmrLevel::writePlotFile (const std::string& dir,
                          std::ostream&      os,
                          VisMF::How         how)
 {
+    BL_PROFILE("AmrLevel::writePlotFile()");
     int i, n;
     //
     // The list of indices of State to write to plotfile.
@@ -1095,6 +1088,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 void
 FillPatchIterator::FillFromLevel0 (Real time, int idx, int scomp, int dcomp, int ncomp)
 {
+    BL_PROFILE("FillPatchIterator::FillFromLevel0()");
     BL_ASSERT(m_amrlevel.level == 0);
 
     StateData& statedata = m_amrlevel.state[idx];
@@ -1113,6 +1107,7 @@ FillPatchIterator::FillFromLevel0 (Real time, int idx, int scomp, int dcomp, int
 void
 FillPatchIterator::FillFromTwoLevels (Real time, int idx, int scomp, int dcomp, int ncomp)
 {
+    BL_PROFILE("FillPatchIterator::FillFromTwoLevels()");
     int ilev_fine = m_amrlevel.level;
     int ilev_crse = ilev_fine-1;
 
@@ -1605,6 +1600,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 std::unique_ptr<MultiFab>
 AmrLevel::derive (const std::string& name, Real time, int ngrow)
 {
+    BL_PROFILE("AmrLevel::derive()");
     BL_ASSERT(ngrow >= 0);
 
     std::unique_ptr<MultiFab> mf;
@@ -1721,6 +1717,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
 void
 AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 {
+    BL_PROFILE("AmrLevel::derive()");
     BL_ASSERT(dcomp < mf.nComp());
 
     const int ngrow = mf.nGrow();
@@ -2104,6 +2101,7 @@ void
 AmrLevel::FillPatcherFill (MultiFab& mf, int dcomp, int ncomp, int nghost,
                            Real time, int state_index, int scomp)
 {
+    BL_PROFILE("AmrLevel::FillPatcherFill()");
     if (level == 0) {
         FillPatch(*this, mf, nghost, time, state_index, scomp, ncomp, dcomp);
     } else {
@@ -2166,6 +2164,7 @@ AmrLevel::FillPatch (AmrLevel& amrlevel,
                      int       ncomp,
                      int       dcomp)
 {
+    BL_PROFILE("AmrLevel::FillPatch()");
     BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
     BL_ASSERT(boxGrow <= leveldata.nGrow());
     FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
@@ -2183,6 +2182,7 @@ AmrLevel::FillPatchAdd (AmrLevel& amrlevel,
                         int       ncomp,
                         int       dcomp)
 {
+    BL_PROFILE("AmrLevel::FillPatchAdd()");
     BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
     BL_ASSERT(boxGrow <= leveldata.nGrow());
     FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
@@ -2227,6 +2227,7 @@ void
 AmrLevel::FillRKPatch (int state_index, MultiFab& S, Real time,
                        int stage, int iteration, int ncycle)
 {
+    BL_PROFILE("AmrLevel::FillRKPatch()");
     StateDataPhysBCFunct physbcf(state[state_index], 0, geom);
 
     if (level == 0) {

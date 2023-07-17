@@ -1993,7 +1993,8 @@ Amr::timeStep (int  level,
     if (verbose > 0)
     {
         amrex::Print() << "[Level " << level << " step " << level_steps[level]+1 << "] "
-                       << "ADVANCE with dt = " << dt_level[level] << "\n";
+                       << "ADVANCE at time " << time
+                       << " with dt = " << dt_level[level] << "\n";
     }
 
     Real dt_new = amr_level[level]->advance(time,dt_level[level],iteration,niter);
@@ -2108,8 +2109,15 @@ Amr::coarseTimeStep (Real stop_time)
 
     cumtime += dt_level[0];
 
-    amr_level[0]->postCoarseTimeStep(cumtime);
+    // sync up statedata time
+    for (int lev = 0; lev <= finestLevel(); ++lev) {
+        AmrLevel& amrlevel = getLevel(lev);
+        for (auto& statedata : amrlevel.state) {
+            statedata.syncNewTimeLevel(cumtime);
+        }
+    }
 
+    amr_level[0]->postCoarseTimeStep(cumtime);
 
     if (verbose > 0)
     {

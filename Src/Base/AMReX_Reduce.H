@@ -666,9 +666,14 @@ public:
     template <typename D>
     typename D::Type value (D & reduce_data)
     {
+        auto hp = reduce_data.hostPtr();
+
+        if (m_result_is_ready) {
+            return *hp;
+        }
+
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
-        auto hp = reduce_data.hostPtr();
         auto dp = reduce_data.devicePtr();
         auto const& nblocks = reduce_data.nBlocks();
 #if defined(AMREX_USE_SYCL)
@@ -676,7 +681,6 @@ public:
             const int N = nblocks[0];
             if (N == 0) {
                 Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(*hp);
-                return *hp;
             } else {
                 Gpu::PinnedVector<ReduceTuple> tmp(N);
                 Gpu::dtoh_memcpy_async(tmp.data(), dp, sizeof(ReduceTuple)*N);
@@ -684,7 +688,7 @@ public:
                 for (int i = 1; i < N; ++i) {
                     Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(tmp[0], tmp[i]);
                 }
-                return tmp[0];
+                *hp = tmp[0];
             }
         } else
 #endif
@@ -738,9 +742,14 @@ public:
             });
 #endif
             Gpu::streamSynchronize();
-            return *hp;
         }
+
+        m_result_is_ready = true;
+        return *hp;
     }
+
+private:
+    bool m_result_is_ready = false;
 };
 
 namespace Reduce {
@@ -1135,15 +1144,20 @@ public:
     template <typename D>
     typename D::Type value (D & reduce_data)
     {
-        using ReduceTuple = typename D::Type;
         auto& rrv = reduce_data.reference();
-        if (rrv.size() > 1) {
-            for (int i = 1, N = rrv.size(); i < N; ++i) {
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rrv[0], rrv[i]);
+        if (! m_result_is_ready) {
+            using ReduceTuple = typename D::Type;
+            if (rrv.size() > 1) {
+                for (int i = 1, N = rrv.size(); i < N; ++i) {
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rrv[0], rrv[i]);
+                }
             }
+            m_result_is_ready = true;
         }
         return rrv[0];
     }
+
+    bool m_result_is_ready = false;
 };
 
 namespace Reduce {

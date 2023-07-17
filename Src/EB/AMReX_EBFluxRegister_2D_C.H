@@ -9,12 +9,11 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, Array4<Real> const& d,
                             Array4<int const> const& flag, Array4<Real const> const& fx,
                             Array4<Real const> const& fy, Array4<Real const> const& vfrac,
                             Array4<Real const> const& ax, Array4<Real const> const& ay,
-                            Real dtdx, Real dtdy)
+                            Real dtdx, Real dtdy, int ncomp)
 {
     if (flag(i,j,k) == amrex_yafluxreg_crse_fine_boundary_cell
         && vfrac(i,j,k) > Real(1.e-14))
     {
-        int ncomp = d.nComp();
         Real volinv = Real(1.0)/vfrac(i,j,k);
 
         if (flag(i-1,j,k) == amrex_yafluxreg_fine_cell) {

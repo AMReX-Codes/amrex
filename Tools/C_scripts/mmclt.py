@@ -14,6 +14,11 @@ def mmclt(argv):
     parser.add_argument("--input",
                         help="Ccache log file",
                         default="ccache.log.txt")
+    parser.add_argument("--identifier",
+                        help="Unique identifier for finding compilaton line in the log file",
+                        default="Src/Base")
+    # We assume Src/Base can be used as an indentifier to distinguish amrex code
+    # from cmake's temporary files like build/CMakeFiles/CMakeScratch/TryCompile-hw3x4m/test_mpi.cpp
     parser.add_argument("--output",
                         help="Make file for clang-tidy",
                         default="clang-tidy-ccache-misses.mak")
@@ -30,9 +35,7 @@ def mmclt(argv):
     fout.write("clang-tidy: $$(all_targets)\n")
     fout.write("\t@echo SUCCESS\n\n")
 
-    # We assume Src/Base can be used as an indentifier to distinguish amrex code
-    # from cmake's temporary files like build/CMakeFiles/CMakeScratch/TryCompile-hw3x4m/test_mpi.cpp
-    exe_re = re.compile(r" Executing .*? (-.*Src/Base.*) -c .* -o .* (\S*)")
+    exe_re = re.compile(r" Executing .*? (-.*{}.*) -c .* -o .* (\S*)".format(args.identifier))
 
     count = 0
     for line in fin.readlines():

@@ -27,6 +27,7 @@ using gpuDeviceProp_t = cudaDeviceProp;
 #elif defined(AMREX_USE_SYCL)
     struct gpuDeviceProp_t {
         std::string name;
+        std::string vendor; // SYCL only (inferred for CUDA and HIP)
         std::size_t totalGlobalMem;
         std::size_t sharedMemPerBlock;
         int multiProcessorCount;
@@ -140,6 +141,20 @@ public:
     static int devicePropMajor () noexcept { return device_prop.major; }
     static int devicePropMinor () noexcept { return device_prop.minor; }
 #endif
+
+    static std::string deviceVendor() noexcept
+    {
+#if defined(AMREX_USE_HIP) && defined(__HIP_PLATFORM_AMD__)
+        return std::string("AMD");
+#elif defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(__HIP_PLATFORM_NVIDIA__))
+        // Using HIP on NVIDIA GPUs isn't currently supported by AMReX
+        return std::string("NVIDIA");
+#elif defined(AMREX_USE_SYCL)
+        return device_prop.vendor;
+#else
+        return std::string("Unknown");
+#endif
+    }
 
     static std::size_t freeMemAvailable ();
     static void profilerStart ();

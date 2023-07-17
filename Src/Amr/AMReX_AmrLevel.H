@@ -234,6 +234,14 @@ public:
     const DistributionMapping& DistributionMap () const noexcept { return dmap; }
     //
     const FabFactory<FArrayBox>& Factory () const noexcept { return *m_factory; }
+    //
+#ifdef AMREX_USE_EB
+    const EBFArrayBoxFactory&
+    EBFactory () const noexcept {
+        return static_cast<amrex::EBFArrayBoxFactory const&>(*m_factory);
+    }
+#endif
+
     //! Number of grids at this level.
     int numGrids () const noexcept { return static_cast<int>(grids.size()); }
     //! Number of states at this level.
@@ -614,7 +622,7 @@ void AmrLevel::RK (int order, int state_type, Real time, Real dt, int iteration,
     MultiFab& S_new = get_new_data(state_type);
     const Real t_old = state[state_type].prevTime();
     const Real t_new = state[state_type].curTime();
-    AMREX_ALWAYS_ASSERT(amrex::almostEqual(time,t_old) && amrex::almostEqual(time+dt,t_new));
+    AMREX_ALWAYS_ASSERT(amrex::almostEqual(time,t_old,10) && amrex::almostEqual(time+dt,t_new,10));
 
     if (order == 2) {
         RungeKutta::RK2(S_old, S_new, time, dt, std::forward<F>(f),
@@ -654,6 +662,7 @@ void AmrLevel::storeRKCoarseData (int state_type, Real time, Real dt,
                                   MultiFab const& S_old,
                                   Array<MultiFab,order> const& rkk)
 {
+    BL_PROFILE("AmrLevel::storeRKCoarseData()");
     if (level == parent->finestLevel()) { return; }
 
     const StateDescriptor& desc = AmrLevel::desc_lst[state_type];

@@ -38,7 +38,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=45M
+        export CCACHE_MAXSIZE=100M
         ccache -z
 
         source /etc/profile.d/rocm.sh
@@ -185,7 +185,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=60M
+        export CCACHE_MAXSIZE=120M
         ccache -z
 
         cd Tests/LinearSolvers/NodeEB

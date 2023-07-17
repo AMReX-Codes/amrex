@@ -492,7 +492,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
     Gpu::dtoh_memcpy(hv_ntags.data(), dv_ntags.data(), ntotblocks*sizeof(int));
 
     Gpu::PinnedVector<int> hv_tags_offset(ntotblocks+1);
-    hv_tags_offset[0] = 0;
+    if (! hv_tags_offset.empty()) { hv_tags_offset[0] = 0; }
     std::partial_sum(hv_ntags.begin(), hv_ntags.end(), hv_tags_offset.begin()+1);
     int ntotaltags = hv_tags_offset.back();
 

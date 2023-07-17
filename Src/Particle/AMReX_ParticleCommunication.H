@@ -313,7 +313,8 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     }
 
     if (! snd_buffer.arena()->hasFreeDeviceMemory(total_buffer_size)) {
-        snd_buffer.m_arena = The_Pinned_Arena();
+        snd_buffer.clear();
+        snd_buffer.setArena(The_Pinned_Arena());
     }
     snd_buffer.resize(total_buffer_size);
 

@@ -9,3 +9,7 @@ set -eu -o pipefail
 curl -o oneapi_nvidia.sh -L "https://developer.codeplay.com/api/v1/products/download?product=oneapi&variant=nvidia&filters[]=linux&aat=$1"
 chmod +x oneapi_nvidia.sh
 sudo ./oneapi_nvidia.sh --yes
+
+curl -o oneapi_amd.sh -L "https://developer.codeplay.com/api/v1/products/download?product=oneapi&variant=amd&filters[]=linux&aat=$1"
+chmod +x oneapi_amd.sh
+sudo ./oneapi_amd.sh --yes

@@ -494,11 +494,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.queryAdd("abort_on_unused_inputs", system::abort_on_unused_inputs);
 
 #ifdef AMREX_USE_SYCL
-        // Disable SIGSEGV handling by default for certain Intel GPUs,
-        // because it is currently used by their managed memory
-        // implementation.
-        if (Gpu::Device::deviceName().find("[0x0bd6]") != std::string::npos || // PVC
-            Gpu::Device::deviceName().find("[0x020f]") != std::string::npos) { // ATS
+        // Disable SIGSEGV handling by default for Intel GPUs, because it is
+        // currently used by their managed memory implementation with discrete
+        // GPUs
+        if (Gpu::Device::deviceVendor().find("Intel") != std::string::npos) {
             system::handle_sigsegv = 0;
         }
 #endif
@@ -604,6 +603,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     iMultiFab::Initialize();
     VisMF::Initialize();
     AsyncOut::Initialize();
+    VectorGrowthStrategy::Initialize();
 
 #ifdef AMREX_USE_EB
     EB2::Initialize();
@@ -661,7 +661,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     BL_TINY_PROFILE_INITIALIZE();
 
-    AMReX::push(new AMReX());
+    AMReX::push(new AMReX()); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
     return AMReX::top(); // NOLINT
 }
 
@@ -693,7 +693,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
     BL_TINY_PROFILE_FINALIZE();
     BL_PROFILE_FINALIZE();
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     amrex::DeallocateRandomSeedDevArray();
 #endif
 
