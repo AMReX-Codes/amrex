@@ -685,7 +685,7 @@ svtkPolyData* ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::BuildPar
     using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
     for (MyParIter pti(*this->m_particles, lev); pti.isValid(); ++pti)
     {
-      auto ptd = pti.getParticleTileData();
+      auto ptd = pti.GetParticleTile().getParticleTileData();
       auto numReal = pti.numParticles();
 
       for (long long i = 0; i < numReal; ++i)
@@ -753,7 +753,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesIDArra
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      auto ptd = pti.getParticleTileData();
+      auto ptd = pti.GetParticleTile().getParticleTileData();
       auto numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
@@ -797,7 +797,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesCPUArr
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      auto ptd = pti.getParticleTileData();
+      auto ptd = pti.GetParticleTile().getParticleTileData();
       auto numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
