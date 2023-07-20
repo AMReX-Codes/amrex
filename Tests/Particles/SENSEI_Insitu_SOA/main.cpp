@@ -253,7 +253,7 @@ void testRedistribute ()
     }
 
     // define specifications for fields on particles
-    std::map<std::string, std::vector<int>> rStructs = {{"u", {0,1,2}}};
+    std::map<std::string, std::vector<int>> rStructs;
     std::map<std::string, int> iStructs;
     std::map<std::string, std::vector<int>> rArrays;
     std::map<std::string, int> iArrays;

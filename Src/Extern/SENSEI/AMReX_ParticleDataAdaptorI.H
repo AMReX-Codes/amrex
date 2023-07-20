@@ -685,18 +685,18 @@ svtkPolyData* ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::BuildPar
     using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
     for (MyParIter pti(*this->m_particles, lev); pti.isValid(); ++pti)
     {
-      auto& aos = pti.GetArrayOfStructs();
+      const auto ptd = pti.getConstParticleTileData();
       auto numReal = pti.numParticles();
 
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = aos[i];
+        const auto& part = make_particle<ConstParticleType>{}(ptd, i);
         if (part.id() > 0)
         {
           // add a vertex type cell
           vertex->InsertNextCell(1);
           vertex->InsertCellPoint(ptId);
-          // copy the partilce coordinates
+          // copy the particle coordinates
 #if (AMREX_SPACEDIM == 1)
           pCoords[0] = part.pos(0);
           pCoords[1] = amrex_particle_real(0);
@@ -753,11 +753,11 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesIDArra
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      auto& aos = pti.GetArrayOfStructs();
+      const auto& ptd = pti.getConstParticleTileData();
       auto numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = aos[i];
+        const auto &part = make_particle<ConstParticleType>{}(ptd, i);
         if (part.id() > 0)
         {
           partIds[i] = part.id();
@@ -797,11 +797,11 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesCPUArr
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      auto& aos = pti.GetArrayOfStructs();
+      const auto& ptd = pti.getConstParticleTileData();
       auto numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = aos[i];
+        const auto &part = make_particle<ConstParticleType>{}(ptd, i);
         if (part.id() > 0)
         {
           partCpu[i] = part.cpu();
