@@ -1052,6 +1052,37 @@ public:
     //! Returns [prefix.]* parameters.
     [[nodiscard]] static std::set<std::string> getEntries (const std::string& prefix = std::string());
 
+    /**
+     * \brief Control multi-line support
+     *
+     * By default, ParmParse supports multi-line values. For example,
+     \verbatim
+         plot_vars = dens vx vy vx
+                     energy entropy
+     \endverbatim
+     * This can be disabled by calling this function setMultiLineSupport(false)
+     * before amrex::Initialize(). This can avoid errors in inputs like,
+     \verbatim
+         algo.current_deposition = direct
+
+         # Enable galilean
+         psatd.use_default_v_galilean # Unfortunately we forgot = 1
+     \endverbatim
+     * With multi-line support, this is equivalent to
+     \verbatim
+         algo.current_deposition = direct psatd.use_default_v_galilean
+     \endverbatim
+     * With multi-line support disabled, it will abort. Note that after
+     * multi-line support is disabled, one is still allowed to have
+     \verbatim
+         f = "x + y
+              + sin(z)"
+     \endverbatim
+     * because here what's inside the pair of double quotes is considered a
+     * single string.
+     */
+    static void setMultiLineSupport (bool b);
+
     struct PP_entry;
     using Table = std::list<PP_entry>;
     static void appendTable(ParmParse::Table& tab);
