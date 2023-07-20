@@ -372,6 +372,38 @@ Available choices are
   :cpp:`LPInfo::setConsolidationStrategy(int)`, to give control over how this
   process works.
 
+
+:cpp:`MLMG::setThrowException(bool)` controls whether multigrid failure results
+in aborting (default) or throwing an exception, whereby control will return to the calling
+application. The application code must catch the exception:
+
+.. highlight:: c++
+
+::
+
+    try {
+        mlmg.solve(...);
+    } catch (const MLMG::error& e) {
+        Print()<<e.what()<<std::endl; //Prints description of error
+
+        // Do something else...
+    }
+
+Note that exceptions that are not caught are passed up the calling chain so that
+application codes using specialized solvers relying on MLMG can still catch the exception.
+For example, using AMReX-Hydro's :cpp:`NodalProjector`
+
+.. highlight:: c++
+
+::
+
+    try {
+        nodal_projector.project(...);
+    } catch (const MLMG::error& e) {
+        // Do something else...
+    }
+
+
 Boundary Stencils for Cell-Centered Solvers
 ===========================================
 

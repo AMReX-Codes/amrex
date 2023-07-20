@@ -15,6 +15,7 @@
 #include <iostream>
 #include <iterator>
 #include <list>
+#include <numeric>
 #include <regex>
 #include <set>
 #include <sstream>
@@ -33,7 +34,16 @@ static bool finalize_verbose = false;
 static bool finalize_verbose = true;
 #endif
 
+namespace {
+    bool g_multi_line_support = true;
+}
+
 std::string const ParmParse::FileKeyword = "FILE";
+
+void ParmParse::setMultiLineSupport (bool b)
+{
+    g_multi_line_support = b;
+}
 
 //
 // Used by constructor to build table.
@@ -257,9 +267,10 @@ state_name[] =
    "LIST"
 };
 
-void
+int
 eat_garbage (const char*& str)
 {
+    int num_linefeeds = 0;
     for (;;)
     {
         if ( *str == 0 ) break; // NOLINT
@@ -271,8 +282,9 @@ eat_garbage (const char*& str)
             }
             continue;
         }
-        else if ( isspace(*str) )
+        else if ( std::isspace(*str) )
         {
+            if (*str == '\n') { ++num_linefeeds; }
             str++;
         }
         else
@@ -280,22 +292,16 @@ eat_garbage (const char*& str)
             break;
         }
     }
+    return num_linefeeds;
 }
 
 PType
-getToken (const char*& str,
-          std::string& ostr)
+getToken (const char*& str, std::string& ostr, int& num_linefeeds)
 {
-#define ERROR_MESS                                                             \
-   amrex::ErrorStream() << "ParmParse::getToken(): invalid string = " << ostr << '\n'; \
-   amrex::ErrorStream() << "STATE = " << state_name[state]              \
-                        << ", next char = " << ch << '\n';              \
-   amrex::ErrorStream() << ", rest of input = \n" << str << '\n';       \
-   amrex::Abort()
    //
    // Eat white space and comments.
    //
-   eat_garbage(str);
+   num_linefeeds = eat_garbage(str);
    //
    // Check for end of file.
    //
@@ -343,7 +349,7 @@ getToken (const char*& str,
                str++;
                return pCloseBracket;
            }
-           else if ( isalpha(ch) )
+           else if ( std::isalpha(ch) )
            {
                ostr += ch; str++;
                state = IDENTIFIER;
@@ -355,11 +361,11 @@ getToken (const char*& str,
            }
            break;
        case IDENTIFIER:
-           if ( isalnum(ch) || ch == '_' || ch == '.' || ch == '[' || ch == ']' || ch == '+' || ch == '-' )
+           if ( std::isalnum(ch) || ch == '_' || ch == '.' || ch == '[' || ch == ']' || ch == '+' || ch == '-' )
            {
                ostr += ch; str++;
            }
-           else if ( isspace(ch) || ch == '=' )
+           else if ( std::isspace(ch) || ch == '=' )
            {
                return pDefn;
            }
@@ -388,7 +394,7 @@ getToken (const char*& str,
            }
            break;
        case STRING:
-           if ( isspace(ch) || ch == '=' )
+           if ( std::isspace(ch) || ch == '=' )
            {
                return pValue;
            }
@@ -409,10 +415,13 @@ getToken (const char*& str,
            }
            break;
        default:
-           ERROR_MESS;
+           amrex::ErrorStream() << "ParmParse::getToken(): invalid string = " << ostr << '\n'
+                                << "STATE = " << state_name[state]
+                                << ", next char = " << ch << '\n'
+                                << ", rest of input = \n" << str << '\n';
+           amrex::Abort();
        }
    }
-#undef ERROR_MESS
 }
 
 
@@ -676,12 +685,14 @@ bldTable (const char*&                    str,
     std::list<std::string> cur_list;
     ParmParse::Table       cur_table;
     std::string            tmp_str;
+    std::vector<int>       cur_linefeeds;
 
     for (;;)
     {
         std::string tokname;
+        int num_linefeeds;
 
-        PType token = getToken(str,tokname);
+        PType token = getToken(str,tokname, num_linefeeds);
 
         switch (token)
         {
@@ -692,6 +703,16 @@ bldTable (const char*&                    str,
             }
             AMREX_FALLTHROUGH;
         case pEOF:
+            if (! g_multi_line_support &&
+                std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
+            {
+                std::string error_message("ParmParse: Multiple lines in ");
+                error_message.append(cur_name).append(" =");
+                for (auto const& x : cur_list) {
+                    error_message.append(" ").append(x);
+                }
+                amrex::Abort(error_message);
+            }
             addDefn(cur_name,cur_list,tab);
             return;
         case pOpenBracket:
@@ -703,6 +724,17 @@ bldTable (const char*&                    str,
             {
                 tmp_str = cur_list.back();
                 cur_list.pop_back();
+                cur_linefeeds.pop_back();
+                if (! g_multi_line_support &&
+                    std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
+                {
+                    std::string error_message("ParmParse: Multiple lines in ");
+                    error_message.append(cur_name).append(" =");
+                    for (auto const& x : cur_list) {
+                        error_message.append(" ").append(x);
+                    }
+                    amrex::Abort(error_message);
+                }
                 addDefn(cur_name, cur_list, tab);
                 cur_name = tmp_str;
             }
@@ -716,14 +748,26 @@ bldTable (const char*&                    str,
             }
             if ( !cur_list.empty() )
             {
+                //
+                // Read one too far, remove last name on list.
+                //
                 tmp_str = cur_list.back();
                 cur_list.pop_back();
+                cur_linefeeds.pop_back();
+                if (! g_multi_line_support &&
+                    std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
+                {
+                    std::string error_message("ParmParse: Multiple lines in ");
+                    error_message.append(cur_name).append(" =");
+                    for (auto const& x : cur_list) {
+                        error_message.append(" ").append(x);
+                    }
+                    amrex::Abort(error_message);
+                }
                 addDefn(cur_name,cur_list,tab);
                 cur_name = tmp_str;
             }
-            //
-            // Read one too far, remove last name on list.
-            //
+            cur_linefeeds.clear();
             break;
         case pDefn:
             if ( cur_name.empty() )
@@ -743,6 +787,7 @@ bldTable (const char*&                    str,
                 amrex::Abort(msg.c_str());
             }
             cur_list.push_back(tokname);
+            cur_linefeeds.push_back(num_linefeeds);
             break;
         }
     }

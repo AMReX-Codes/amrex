@@ -319,7 +319,6 @@ Device::Initialize ()
 
 #elif defined(AMREX_USE_SYCL)
 
-#if 0
         auto const& d = *sycl_device;
         if (d.has(sycl::aspect::ext_intel_device_info_uuid)) {
             auto uuid = d.get_info<sycl::ext::intel::info::device::uuid>();
@@ -345,10 +344,20 @@ Device::Initialize ()
             }
             num_devices_used = uuid_counts.size();
             num_device_partners = uuid_counts[my_uuid];
-        }
-#else
-        num_device_partners = 1;  // xxxxx SYCL: todo, also check memory available when implicit scaling is off.
+
+#if 0
+            for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+                if (i == ParallelDescriptor::MyProc()) {
+                    std::cout << "Proc. " << i << ": |";
+                    for (auto x : uuid) {
+                        std::cout << std::hex << static_cast<unsigned int>(x) << "|";
+                    }
+                    std::cout << std::endl;;
+                }
+                ParallelDescriptor::Barrier();
+            }
 #endif
+        }
 
 #endif
 
