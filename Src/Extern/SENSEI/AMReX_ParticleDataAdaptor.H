@@ -18,7 +18,7 @@ class ParticleDataAdaptor : public sensei::DataAdaptor
 {
 public:
   static constexpr int NStructReal = ParticleType::NReal;
-  static constexpr int NStructInt  = ParticleType::Int;
+  static constexpr int NStructInt  = ParticleType::NInt;
 
   static ParticleDataAdaptor* New();
   senseiTypeMacro(ParticleDataAdaptor, sensei::DataAdaptor);

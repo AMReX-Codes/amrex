@@ -59,14 +59,14 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::SetArrayNames(
   const std::map<std::string, std::vector<int>> & rArrays,
   const std::map<std::string, int> & iArrays)
 {
-    if(rStructs.size() <= NStructReal)
+    if(rStructs.size() <= ParticleType::NReal)
   {
     // check that no indices from the rStructs map exceed allowable value
     for(auto s : rStructs)
     {
       for(auto i : s.second)
       {
-        if(i >= NStructReal)
+        if(i >= ParticleType::NReal)
         {
           SENSEI_ERROR("rStruct index exceeds internal storage size");
           return -1;
@@ -81,12 +81,12 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::SetArrayNames(
     return -1;
   }
 
-  if(iStructs.size() <= NStructInt)
+  if(iStructs.size() <= ParticleType::NInt)
   {
     // check that no indices from the iStructs map exceed allowable value
     for(auto s : iStructs)
     {
-      if(s.second >= NStructInt)
+      if(s.second >= ParticleType::NInt)
         {
           SENSEI_ERROR("iStructs index exceeds internal storage size");
           return -1;
@@ -685,12 +685,12 @@ svtkPolyData* ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::BuildPar
     using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
     for (MyParIter pti(*this->m_particles, lev); pti.isValid(); ++pti)
     {
-      const auto ptd = pti.getConstParticleTileData();
+      auto ptd = pti.getParticleTileData();
       auto numReal = pti.numParticles();
 
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto& part = make_particle<ConstParticleType>{}(ptd, i);
+        const auto& part = make_particle<ParticleType>{}(ptd, i);
         if (part.id() > 0)
         {
           // add a vertex type cell
@@ -753,11 +753,11 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesIDArra
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      const auto& ptd = pti.getConstParticleTileData();
+      auto ptd = pti.getParticleTileData();
       auto numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = make_particle<ConstParticleType>{}(ptd, i);
+        const auto &part = make_particle<ParticleType>{}(ptd, i);
         if (part.id() > 0)
         {
           partIds[i] = part.id();
@@ -797,11 +797,11 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesCPUArr
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      const auto& ptd = pti.getConstParticleTileData();
+      auto ptd = pti.getParticleTileData();
       auto numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = make_particle<ConstParticleType>{}(ptd, i);
+        const auto &part = make_particle<ParticleType>{}(ptd, i);
         if (part.id() > 0)
         {
           partCpu[i] = part.cpu();
@@ -1000,7 +1000,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSRea
   // check that the indices are within the templated storage spec
   for (auto i : indices)
   {
-    if (i >= NStructReal)
+    if (i >= ParticleType::NReal)
     {
       SENSEI_ERROR("Index out of bounds for real AOS named \"" << arrayName << "\"");
       return -1;
@@ -1023,6 +1023,8 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSRea
 #else
   double *pData = data->GetPointer(0);
 #endif
+
+  if constexpr(!ParticleType::is_soa_particle) {
 
   // copy the data from each level
   using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
@@ -1058,6 +1060,8 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSRea
   auto block = dynamic_cast<svtkPolyData*>(blocks->GetBlock(rank));
   block->GetPointData()->AddArray(data);
 
+  }
+
   return 0;
 }
 
@@ -1084,11 +1088,13 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSInt
   int index = ait->second;
 
   // check that the index are within the templated storage spec
-  if(index >= NStructInt)
+  if(index >= ParticleType::NInt)
   {
     SENSEI_ERROR("Index out of bounds for int AOS named \"" << arrayName << "\"");
     return -1;
   }
+
+  if constexpr(!ParticleType::is_soa_particle) {
 
   // allocate svtkArray
   svtkNew<svtkIntArray> data;
@@ -1126,6 +1132,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSInt
   auto block = dynamic_cast<svtkPolyData*>(blocks->GetBlock(rank));
   block->GetPointData()->AddArray(data);
 
+  }
 
   return 0;
 }
