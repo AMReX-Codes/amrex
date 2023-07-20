@@ -80,8 +80,8 @@ function (install_amrex_targets)
 
        # Install fortran modules if Fortran is enabled
        get_property(_lang GLOBAL PROPERTY ENABLED_LANGUAGES)
-       if ("Fortran" IN_LIST _lang AND "amrex" IN_LIST _targets)
-          get_target_property(_mod_dir amrex Fortran_MODULE_DIRECTORY )
+       if ("Fortran" IN_LIST _lang AND "amrex_${AMReX_SPACEDIM_LAST}d" IN_LIST _targets)
+          get_target_property(_mod_dir "amrex_${AMReX_SPACEDIM_LAST}d" Fortran_MODULE_DIRECTORY )
           install( DIRECTORY ${_mod_dir}/ DESTINATION include ) # Trailing backslash is crucial here!
        endif ()
 

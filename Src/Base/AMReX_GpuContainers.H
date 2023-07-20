@@ -62,16 +62,6 @@ namespace amrex::Gpu {
     using HostVector = PinnedVector<T>;
 
     /**
-     * \brief The behavior of PolymorphicVector changes depending on
-     * the amrex.use_gpu_aware_mpi runtime flag. If the flag is true,
-     * this vector will use device memory. If it is false, this Vector
-     * will use pinned memory.
-     *
-     */
-    template <class T>
-    using PolymorphicVector = PODVector<T, PolymorphicAllocator<T> >;
-
-    /**
      * \brief This is identical to ManagedVector<T>. The ManagedDeviceVector
      * form is deprecated and will be removed in a future release.
      *
@@ -101,9 +91,6 @@ namespace amrex::Gpu {
 
     template <class T>
     using AsyncVector = PODVector<T>;
-
-    template <class T>
-    using PolymorphicVector = PODVector<T>;
 #endif
 
     struct HostToDevice {};
