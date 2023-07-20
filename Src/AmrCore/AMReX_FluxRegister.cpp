@@ -319,7 +319,7 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
 
     /* Populate destination MultiFab */
 #ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel private( iX_B0, iX_E0 ) if (Gpu::notInLaunchRegion())
 #endif
     for ( MFIter mfi( SurfaceFlux, TilingIfNotGPU() ); mfi.isValid(); ++mfi )
     {
