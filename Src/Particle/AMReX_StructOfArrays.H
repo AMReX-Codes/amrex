@@ -31,9 +31,15 @@ struct StructOfArrays {
     [[nodiscard]] std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
     [[nodiscard]] std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }
 
+    /** Get access to the particle Real Arrays (only compile-time components) */
     [[nodiscard]] const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
+    /** Get access to the particle Int Arrays (only compile-time components) */
     [[nodiscard]] const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
 
+    /** Get access to a particle Real component Array (compile-time and runtime component)
+     *
+     * @param index component with 0...NReal-1 compile-time and NReal... runtime arguments
+     */
     [[nodiscard]] RealVector& GetRealData (const int index) {
         AMREX_ASSERT(index >= 0 && index < NReal + static_cast<int>(m_runtime_rdata.size()));
         if (index >= 0 && index < NReal) return m_rdata[index];
@@ -43,6 +49,10 @@ struct StructOfArrays {
         }
     }
 
+    /** Get access to a particle Real component Array (compile-time and runtime component)
+     *
+     * @param index component with 0...NReal-1 compile-time and NReal... runtime arguments
+     */
     [[nodiscard]] const RealVector& GetRealData (const int index) const {
         AMREX_ASSERT(index >= 0 && index < NReal + static_cast<int>(m_runtime_rdata.size()));
         if (index >= 0 && index < NReal) return m_rdata[index];
@@ -52,6 +62,10 @@ struct StructOfArrays {
         }
     }
 
+    /** Get access to a particle Int component Array (compile-time and runtime component)
+     *
+     * @param index component with 0...NInt-1 compile-time and NInt... runtime arguments
+     */
     [[nodiscard]] IntVector& GetIntData (const int index) {
         AMREX_ASSERT(index >= 0 && index < NInt + static_cast<int>(m_runtime_idata.size()));
         if (index >= 0 && index < NInt) return m_idata[index];
@@ -61,7 +75,12 @@ struct StructOfArrays {
         }
    }
 
-    [[nodiscard]] const IntVector& GetIntData (const int index) const {
+   /** Get access to a particle Int component Array (compile-time and runtime component)
+    *
+    * @param index component with 0...NInt-1 compile-time and NInt... runtime arguments
+    * @return
+    */
+   [[nodiscard]] const IntVector& GetIntData (const int index) const {
         AMREX_ASSERT(index >= 0 && index < NInt + static_cast<int>(m_runtime_idata.size()));
         if (index >= 0 && index < NInt) return m_idata[index];
         else {
