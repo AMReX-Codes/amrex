@@ -34,16 +34,7 @@ static bool finalize_verbose = false;
 static bool finalize_verbose = true;
 #endif
 
-namespace {
-    bool g_multi_line_support = true;
-}
-
 std::string const ParmParse::FileKeyword = "FILE";
-
-void ParmParse::setMultiLineSupport (bool b)
-{
-    g_multi_line_support = b;
-}
 
 //
 // Used by constructor to build table.
@@ -286,6 +277,21 @@ eat_garbage (const char*& str)
         {
             if (*str == '\n') { ++num_linefeeds; }
             str++;
+        }
+        else if ( *str == '\\' ) // '\' followed by a line break is continuation to next line
+        {
+            // Unfortunately, a line break has three variants, \r, \n, and \r\n.
+            if (*(str+1) == '\n') {
+                str += 2;
+            } else if (*(str+1) == '\r') {
+                if (*(str+2) == '\n') {
+                    str += 3;
+                } else {
+                    str += 2;
+                }
+            } else {
+                break;
+            }
         }
         else
         {
@@ -703,14 +709,14 @@ bldTable (const char*&                    str,
             }
             AMREX_FALLTHROUGH;
         case pEOF:
-            if (! g_multi_line_support &&
-                std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
+            if (std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
             {
                 std::string error_message("ParmParse: Multiple lines in ");
                 error_message.append(cur_name).append(" =");
                 for (auto const& x : cur_list) {
                     error_message.append(" ").append(x);
                 }
+                error_message.append(". Must use \\ for line continuation.");
                 amrex::Abort(error_message);
             }
             addDefn(cur_name,cur_list,tab);
@@ -725,14 +731,14 @@ bldTable (const char*&                    str,
                 tmp_str = cur_list.back();
                 cur_list.pop_back();
                 cur_linefeeds.pop_back();
-                if (! g_multi_line_support &&
-                    std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
+                if (std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
                 {
                     std::string error_message("ParmParse: Multiple lines in ");
                     error_message.append(cur_name).append(" =");
                     for (auto const& x : cur_list) {
                         error_message.append(" ").append(x);
                     }
+                    error_message.append(". Must use \\ for line continuation.");
                     amrex::Abort(error_message);
                 }
                 addDefn(cur_name, cur_list, tab);
@@ -754,14 +760,14 @@ bldTable (const char*&                    str,
                 tmp_str = cur_list.back();
                 cur_list.pop_back();
                 cur_linefeeds.pop_back();
-                if (! g_multi_line_support &&
-                    std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
+                if (std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
                 {
                     std::string error_message("ParmParse: Multiple lines in ");
                     error_message.append(cur_name).append(" =");
                     for (auto const& x : cur_list) {
                         error_message.append(" ").append(x);
                     }
+                    error_message.append(". Must use \\ for line continuation.");
                     amrex::Abort(error_message);
                 }
                 addDefn(cur_name,cur_list,tab);
