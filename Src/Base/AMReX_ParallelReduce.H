@@ -36,14 +36,15 @@ namespace detail {
     inline void Reduce (ReduceOp op, T* v, int cnt, int root, MPI_Comm comm)
     {
         auto mpi_op = mpi_ops[static_cast<int>(op)]; // NOLINT
-        Vector<T> tmp(v, v+cnt);
         if (root == -1) {
             // TODO: add BL_COMM_PROFILE commands
-            MPI_Allreduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
+            MPI_Allreduce(MPI_IN_PLACE, v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
                           mpi_op, comm);
         } else {
             // TODO: add BL_COMM_PROFILE commands
-            MPI_Reduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
+            const auto* sendbuf = (ParallelDescriptor::MyProc(comm) == root) ?
+                (void const*)(MPI_IN_PLACE) : (void const*) v;
+            MPI_Reduce(sendbuf, v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
                        mpi_op, root, comm);
         }
     }

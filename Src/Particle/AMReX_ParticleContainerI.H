@@ -1097,31 +1097,41 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
     if (memEfficientSort) {
         if constexpr(!ParticleType::is_soa_particle) {
-            ParticleVector tmp_particles(np_total);
-            auto src = ptile.getParticleTileData();
-            ParticleType* dst = tmp_particles.data();
-
-            AMREX_HOST_DEVICE_FOR_1D( np_total, i,
-            {
-                dst[i] = i < np ? src.m_aos[permutations[i]] : src.m_aos[i];
-            });
-
+            static_assert(sizeof(ParticleType)%4 == 0 && sizeof(uint32_t) == 4);
+            using tmp_t = std::conditional_t<sizeof(ParticleType)%8 == 0,
+                                             uint64_t, uint32_t>;
+            constexpr std::size_t nchunks = sizeof(ParticleType) / sizeof(tmp_t);
+            Gpu::DeviceVector<tmp_t> tmp(np);
+            auto* ptmp = tmp.data();
+            auto* paos = (tmp_t*)(ptile.getParticleTileData().m_aos);
+            for (std::size_t ichunk = 0; ichunk < nchunks; ++ichunk) {
+                // Do not need to reorder neighbor particles
+                AMREX_HOST_DEVICE_FOR_1D(np, i,
+                {
+                    ptmp[i] = paos[permutations[i]*nchunks+ichunk];
+                });
+                AMREX_HOST_DEVICE_FOR_1D(np, i,
+                {
+                    paos[i*nchunks+ichunk] = ptmp[i];
+                });
+            }
             Gpu::streamSynchronize();
-            ptile.GetArrayOfStructs()().swap(tmp_particles);
         }
 
-        RealVector tmp_real(np_total);
-        for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
-            auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
-            ParticleReal* dst = tmp_real.data();
-            AMREX_HOST_DEVICE_FOR_1D( np_total, i,
-            {
-                dst[i] = i < np ? src[permutations[i]] : src[i];
-            });
+        { // Create a scope for the temporary vector below
+            RealVector tmp_real(np_total);
+            for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
+                auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
+                ParticleReal* dst = tmp_real.data();
+                AMREX_HOST_DEVICE_FOR_1D( np_total, i,
+                {
+                    dst[i] = i < np ? src[permutations[i]] : src[i];
+                });
 
-            Gpu::streamSynchronize();
+                Gpu::streamSynchronize();
 
-            ptile.GetStructOfArrays().GetRealData(comp).swap(tmp_real);
+                ptile.GetStructOfArrays().GetRealData(comp).swap(tmp_real);
+            }
         }
 
         IntVector tmp_int(np_total);

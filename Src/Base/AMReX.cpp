@@ -548,14 +548,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 if (invalid)   curr_fpe_excepts |= FE_INVALID;
                 if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
                 if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
-#if !defined(AMREX_USE_SYCL) && (!defined(__PGI) || (__PGIC__ >= 16))
-                // xxxxx SYCL todo: fpe trap
                 prev_fpe_excepts = fegetexcept();
                 if (curr_fpe_excepts != 0) {
                     feenableexcept(curr_fpe_excepts);  // trap floating point exceptions
                     prev_handler_sigfpe = std::signal(SIGFPE,  BLBackTrace::handler);
                 }
-#endif
 
 #elif defined(__APPLE__) && defined(__x86_64__)
                 prev_fpe_mask = _MM_GET_EXCEPTION_MASK();
