@@ -837,6 +837,8 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
             );
         }
     }
+
+    addInhomogNeumannFlux(amrlev, grad, sol, false);
 }
 
 void
