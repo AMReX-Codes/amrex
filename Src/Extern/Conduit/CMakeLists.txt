@@ -4,6 +4,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     # TODO: Particles PR merges another file
     target_sources(amrex_${D}d
        PRIVATE
+       AMReX_Conduit_Blueprint_ParticlesI.H
        AMReX_Conduit_Blueprint.H
        AMReX_Conduit_Blueprint.cpp
     )
