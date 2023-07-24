@@ -216,6 +216,12 @@ else
   USE_CONDUIT := FALSE
 endif
 
+ifdef USE_CATALYST
+  USE_CATALYST := $(strip $(USE_CATALYST))
+else
+  USE_CATALYST := FALSE
+endif
+
 ifdef USE_ASCENT
   USE_ASCENT := $(strip $(USE_ASCENT))
 else
@@ -1055,6 +1061,11 @@ endif
 ifeq ($(USE_CONDUIT),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.conduit...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.conduit
+endif
+
+ifeq ($(USE_CATALYST),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.catalyst...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.catalyst
 endif
 
 ifeq ($(USE_ASCENT),TRUE)

@@ -43,7 +43,6 @@ include(AMReXParallelBackends)
 # Add definitions
 #
 include(AMReXSetDefines)
-
 #
 # Find and link third party libraries if needed
 #
@@ -188,7 +187,7 @@ if (AMReX_SENSEI)
    add_subdirectory(Extern/SENSEI)
 endif ()
 
-if (AMReX_CONDUIT OR AMReX_ASCENT)
+if (AMReX_CONDUIT OR AMReX_ASCENT OR AMReX_CATALYST)
    add_subdirectory(Extern/Conduit)
 endif ()
 

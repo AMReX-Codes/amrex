@@ -42,6 +42,7 @@
 #cmakedefine AMREX_USE_SENSEI_INSITU
 #cmakedefine AMREX_NO_SENSEI_AMR_INST
 #cmakedefine AMREX_USE_CONDUIT
+#cmakedefine AMREX_USE_CATALYST
 #cmakedefine AMREX_USE_ASCENT
 #cmakedefine AMREX_USE_EB
 #cmakedefine AMREX_USE_CUDA

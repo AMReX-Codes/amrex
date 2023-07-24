@@ -148,6 +148,9 @@ add_amrex_define( AMREX_NO_SENSEI_AMR_INST NO_LEGACY IF AMReX_NO_SENSEI_AMR_INST
 # Conduit Support
 add_amrex_define( AMREX_USE_CONDUIT NO_LEGACY IF AMReX_CONDUIT )
 
+# Catalyst Support
+add_amrex_define( AMREX_USE_CATALYST NO_LEGACY IF AMReX_CATALYST )
+
 # Ascent Support
 add_amrex_define( AMREX_USE_ASCENT NO_LEGACY IF AMReX_ASCENT )
 
