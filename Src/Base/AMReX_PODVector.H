@@ -8,6 +8,7 @@
 #include <AMReX_GpuDevice.H>
 #include <AMReX_TypeTraits.H>
 
+#include <iterator>
 #include <type_traits>
 #include <utility>
 #include <memory>
@@ -230,7 +231,7 @@ namespace amrex
 
         using const_reference        = const T&;
         using const_pointer          = const T*;
-        using const_iterator         = const T* ;
+        using const_iterator         = const T*;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
     private:
