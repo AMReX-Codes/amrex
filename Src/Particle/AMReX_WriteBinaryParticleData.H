@@ -42,11 +42,10 @@ fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F&& f)
         [=] AMREX_GPU_DEVICE (int k, amrex::RandomEngine const& engine) noexcept
         {
             const auto p = ptd.getSuperParticle(k);
-            amrex::ignore_unused(flag_ptr, f);
+            amrex::ignore_unused(flag_ptr, f, engine);
             if constexpr (IsCallable<F,decltype(p),RandomEngine>::value) {
                 flag_ptr[k] = f(p,engine);
             } else {
-                amrex::ignore_unused(engine);
                 flag_ptr[k] = f(p);
             }
         });

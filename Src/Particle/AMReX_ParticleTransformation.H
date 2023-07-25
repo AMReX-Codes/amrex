@@ -391,11 +391,10 @@ Index filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
     amrex::ParallelForRNG(n,
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        amrex::ignore_unused(src_data, src_start);
+        amrex::ignore_unused(p_mask, src_data, src_start, engine);
         if constexpr (IsCallable<Pred,decltype(src_data),Index,RandomEngine>::value) {
             p_mask[i] = p(src_data, src_start+i, engine);
         } else {
-            amrex::ignore_unused(engine);
             p_mask[i] = p(src_data, src_start+i);
         }
     });
@@ -563,7 +562,7 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
     amrex::ParallelForRNG(np,
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        amrex::ignore_unused(src_data);
+        amrex::ignore_unused(p_mask, src_data, engine);
         if constexpr (IsCallable<Pred,decltype(src_data),int,RandomEngine>::value) {
             p_mask[i] = p(src_data, i, engine);
         } else {
@@ -606,7 +605,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F
     amrex::ParallelForRNG(np,
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        amrex::ignore_unused(src_data, src_start);
+        amrex::ignore_unused(p_mask, src_data, src_start, engine);
         if constexpr (IsCallable<Pred,decltype(src_data),Index,RandomEngine>::value) {
             p_mask[i] = p(src_data, src_start+i, engine);
         } else {
