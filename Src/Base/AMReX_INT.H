@@ -17,11 +17,11 @@
 #endif
 
 #if (INT_MAX == LONG_MAX)
-typedef          long long amrex_long;
-typedef unsigned long long amrex_ulong;
+typedef          long long amrex_long;  // NOLINT(modernize-use-using) // so that this can be a C header
+typedef unsigned long long amrex_ulong; // NOLINT(modernize-use-using)
 #else
-typedef          long amrex_long;
-typedef unsigned long amrex_ulong;
+typedef          long amrex_long;       // NOLINT(modernize-use-using)
+typedef unsigned long amrex_ulong;      // NOLINT(modernize-use-using)
 #endif
 
 #ifdef __cplusplus

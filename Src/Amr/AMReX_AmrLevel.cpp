@@ -769,9 +769,9 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
         //
         // A couple typedefs we'll use in the next code segment.
         //
-        typedef std::map<int,Vector<Vector<Box> > >::value_type IntAABoxMapValType;
+        using IntAABoxMapValType = std::map<int,Vector<Vector<Box> > >::value_type;
 
-        typedef std::map<int,Vector<Vector<Vector<FillBoxId> > > >::value_type IntAAAFBIDMapValType;
+        using IntAAAFBIDMapValType = std::map<int,Vector<Vector<Vector<FillBoxId> > > >::value_type;
 
         if (m_leveldata.DistributionMap()[i] != MyProc) continue;
         //

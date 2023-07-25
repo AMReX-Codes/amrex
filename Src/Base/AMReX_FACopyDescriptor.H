@@ -106,13 +106,13 @@ FabCopyDescriptor<FAB>::~FabCopyDescriptor ()
 template <class FAB>
 class FabArrayCopyDescriptor
 {
-  typedef std::multimap<int,FabCopyDescriptor<FAB>*> FCDMap;
+    using FCDMap = std::multimap<int,FabCopyDescriptor<FAB>*>;
 
-  typedef typename FCDMap::value_type     FCDMapValueType;
-  typedef typename FCDMap::iterator       FCDMapIter;
-  typedef typename FCDMap::const_iterator FCDMapConstIter;
+    using FCDMapValueType = typename FCDMap::value_type;
+    using FCDMapIter      = typename FCDMap::iterator;
+    using FCDMapConstIter = typename FCDMap::const_iterator;
 
-  public:
+public:
 
     FabArrayCopyDescriptor () = default;
 
@@ -186,9 +186,9 @@ private:
     //!
     //! Some useful typedefs.
     //!
-    typedef std::vector<FabArrayBase::FabComTag> FabComTagContainer;
+    using FabComTagContainer = std::vector<FabArrayBase::FabComTag>;
 
-    typedef std::vector<FabComTagContainer::const_iterator> FabComTagIterContainer;
+    using FabComTagIterContainer = std::vector<FabComTagContainer::const_iterator>;
     //!
     //! The data.
     //!
@@ -438,7 +438,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     if (ParallelDescriptor::NProcs() == 1) return;
 
 #ifdef BL_USE_MPI
-    typedef typename FAB::value_type value_type;
+    using value_type = typename FAB::value_type;
 
     BL_PROFILE("FabArrayCopyDescriptor::CollectData()");
 

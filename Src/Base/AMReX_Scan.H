@@ -407,8 +407,8 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
     std::size_t sm = sizeof(T) * (Gpu::Device::warp_size + nwarps_per_block) + sizeof(int);
     auto stream = Gpu::gpuStream();
 
-    typedef typename std::conditional<sizeof(detail::STVA<T>) <= 8,
-        detail::BlockStatus<T,true>, detail::BlockStatus<T,false> >::type BlockStatusT;
+    using BlockStatusT = typename std::conditional<sizeof(detail::STVA<T>) <= 8,
+        detail::BlockStatus<T,true>, detail::BlockStatus<T,false> >::type;
 
     std::size_t nbytes_blockstatus = Arena::align(sizeof(BlockStatusT)*nblocks);
     std::size_t nbytes_blockid = Arena::align(sizeof(unsigned int));
@@ -638,8 +638,8 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
     std::size_t sm = 0;
     auto stream = Gpu::gpuStream();
 
-    typedef rocprim::detail::lookback_scan_state<T> ScanTileState;
-    typedef rocprim::detail::ordered_block_id<unsigned int> OrderedBlockId;
+    using ScanTileState = rocprim::detail::lookback_scan_state<T>;
+    using OrderedBlockId = rocprim::detail::ordered_block_id<unsigned int>;
 
     std::size_t nbytes_tile_state = rocprim::detail::align_size
         (ScanTileState::get_storage_size(nblocks));
@@ -666,13 +666,13 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
     amrex::launch_global<nthreads> <<<nblocks, nthreads, sm, stream>>> (
     [=] AMREX_GPU_DEVICE () noexcept
     {
-        typedef rocprim::block_load<T, nthreads, nelms_per_thread,
-                                    rocprim::block_load_method::block_load_transpose> BlockLoad;
-        typedef rocprim::block_scan<T, nthreads,
-                                    rocprim::block_scan_algorithm::using_warp_scan> BlockScan;
-        typedef rocprim::block_exchange<T, nthreads, nelms_per_thread> BlockExchange;
-        typedef rocprim::detail::lookback_scan_prefix_op
-            <T, rocprim::plus<T>, ScanTileState> LookbackScanPrefixOp;
+        using BlockLoad = rocprim::block_load<T, nthreads, nelms_per_thread,
+                                              rocprim::block_load_method::block_load_transpose>;
+        using BlockScan = rocprim::block_scan<T, nthreads,
+                                              rocprim::block_scan_algorithm::using_warp_scan>;
+        using BlockExchange = rocprim::block_exchange<T, nthreads, nelms_per_thread>;
+        using LookbackScanPrefixOp = rocprim::detail::lookback_scan_prefix_op
+            <T, rocprim::plus<T>, ScanTileState>;
 
         __shared__ struct TempStorage {
             typename OrderedBlockId::storage_type ordered_bid;
@@ -781,7 +781,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
     std::size_t sm = 0;
     auto stream = Gpu::gpuStream();
 
-    typedef cub::ScanTileState<T> ScanTileState;
+    using ScanTileState = cub::ScanTileState<T>;
     std::size_t tile_state_size = 0;
     ScanTileState::AllocationSize(nblocks, tile_state_size);
 
@@ -804,11 +804,10 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
     amrex::launch_global<nthreads> <<<nblocks, nthreads, sm, stream>>> (
     [=] AMREX_GPU_DEVICE () noexcept
     {
-        typedef cub::BlockLoad<T, nthreads, nelms_per_thread, cub::BLOCK_LOAD_WARP_TRANSPOSE>
-            BlockLoad;
-        typedef cub::BlockScan<T, nthreads, cub::BLOCK_SCAN_WARP_SCANS> BlockScan;
-        typedef cub::BlockExchange<T, nthreads, nelms_per_thread>       BlockExchange;
-        typedef cub::TilePrefixCallbackOp<T, cub::Sum, ScanTileState>   TilePrefixCallbackOp;
+        using BlockLoad = cub::BlockLoad<T, nthreads, nelms_per_thread, cub::BLOCK_LOAD_WARP_TRANSPOSE>;
+        using BlockScan = cub::BlockScan<T, nthreads, cub::BLOCK_SCAN_WARP_SCANS>;
+        using BlockExchange = cub::BlockExchange<T, nthreads, nelms_per_thread>;
+        using TilePrefixCallbackOp = cub::TilePrefixCallbackOp<T, cub::Sum, ScanTileState>;
 
         __shared__ union TempStorage
         {
@@ -916,8 +915,8 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
     std::size_t sm = sizeof(T) * (Gpu::Device::warp_size + nwarps_per_block) + sizeof(int);
     auto stream = Gpu::gpuStream();
 
-    typedef typename std::conditional<sizeof(detail::STVA<T>) <= 8,
-        detail::BlockStatus<T,true>, detail::BlockStatus<T,false> >::type BlockStatusT;
+    using BlockStatusT = typename std::conditional<sizeof(detail::STVA<T>) <= 8,
+        detail::BlockStatus<T,true>, detail::BlockStatus<T,false> >::type;
 
     std::size_t nbytes_blockstatus = Arena::align(sizeof(BlockStatusT)*nblocks);
     std::size_t nbytes_blockid = Arena::align(sizeof(unsigned int));

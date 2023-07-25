@@ -142,7 +142,7 @@ while ( false )
     //! Provide functionalities needed to construct a team of processes to perform a particular job
     struct ProcessTeam
     {
-        typedef MPI_Comm team_t;
+        using team_t = MPI_Comm;
 
         //! synchronize processes within the team
         void Barrier () const {

@@ -325,7 +325,7 @@ class FabArray
 public:
 
     struct FABType {
-        typedef FAB value_type;
+        using value_type = FAB;
     };
 
     /*
@@ -1301,7 +1301,7 @@ protected:
     bool SharedMemory () const noexcept { return shmem.alloc; }
 
 private:
-    typedef typename std::vector<FAB*>::iterator    Iterator;
+    using Iterator = typename std::vector<FAB*>::iterator;
 
     void AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
                     const Vector<std::string>& tags);

@@ -121,7 +121,7 @@ namespace {
     std::streamsize  prev_out_precision;
     std::streamsize  prev_err_precision;
     std::new_handler prev_new_handler;
-    typedef void (*SignalHandler)(int);
+    using SignalHandler = void (*)(int);
     SignalHandler prev_handler_sigsegv = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
     SignalHandler prev_handler_sigterm = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
     SignalHandler prev_handler_sigint  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)

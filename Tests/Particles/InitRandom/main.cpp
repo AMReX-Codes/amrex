@@ -63,7 +63,7 @@ void testSOA ()
     constexpr int NReal  = 12;
     constexpr int NInt   = 4;
 
-    typedef ParticleContainerPureSoA<NReal, NInt> MyPC;
+    using MyPC = ParticleContainerPureSoA<NReal, NInt>;
     MyPC myPC(geom, dmap, ba, ref_ratio);
     myPC.SetVerbose(false);
 
@@ -122,7 +122,7 @@ void test ()
     constexpr int NArrayReal  = 8;
     constexpr int NArrayInt   = 3;
 
-    typedef ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> MyPC;
+    using MyPC = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     MyPC myPC(geom, dmap, ba, ref_ratio);
     myPC.SetVerbose(false);
 

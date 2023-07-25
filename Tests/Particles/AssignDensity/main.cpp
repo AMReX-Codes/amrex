@@ -51,7 +51,7 @@ void test_assign_density(TestParams& parms)
   MultiFab partMF(ba, dmap, 1 + BL_SPACEDIM, 1);
   partMF.setVal(0.0);
 
-  typedef ParticleContainer<1 + BL_SPACEDIM> MyParticleContainer;
+  using MyParticleContainer = ParticleContainer<1 + BL_SPACEDIM>;
   MyParticleContainer myPC(geom, dmap, ba);
   myPC.SetVerbose(false);
 

@@ -11,7 +11,7 @@
 
 extern "C"
 {
-    typedef void (*amrex_void_cfun)();
+    using amrex_void_cfun = void (*)();
 
     void amrex_fi_init (char* cmd, int fcomm, int arg_parmparse, amrex_void_cfun proc_parmparse)
     {
