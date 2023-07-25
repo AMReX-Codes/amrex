@@ -379,7 +379,8 @@ int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
  * \param n the number of particles to apply the operation to
  *
  */
-template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N>
+template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N,
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> = 0>
 Index filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
                        Index src_start, Index dst_start, N n) noexcept
 {
@@ -592,7 +593,8 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
  *
  */
 
-template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index>
+template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index,
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> = 0>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f,
                                    Index src_start, Index dst_start) noexcept
 {
