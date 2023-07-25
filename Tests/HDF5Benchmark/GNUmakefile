@@ -23,7 +23,8 @@ USE_PARTICLES = TRUE
 EBASE     = main
 
 USE_HDF5  = TRUE
-HDF5_HOME = /lustre/orion/geo130/world-shared/gnu/hdf5.1.14.1.sync.cmake
+HDF5_HOME = $(OLCF_HDF5_ROOT)
+# HDF5_HOME = /lustre/orion/geo130/world-shared/gnu/hdf5.1.14.1.sync.cmake
 # HDF5_HOME = $(HDF5_ROOT)
 # HDF5_HOME = /lustre/orion/geo130/world-shared/gnu/hdf5.1.14.1.async.cmake
 
