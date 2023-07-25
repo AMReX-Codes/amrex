@@ -380,9 +380,8 @@ int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
  *
  */
 template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N>
-auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
-                      Index src_start, Index dst_start, N n) noexcept
-    -> decltype(Index(particle_detail::call_f(p, typename SrcTile::ConstParticleTileDataType(), int{}, RandomEngine{})))
+Index filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
+                       Index src_start, Index dst_start, N n) noexcept
 {
     Gpu::DeviceVector<Index> mask(n);
 
@@ -595,9 +594,8 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
  */
 
 template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index>
-auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f,
-                      Index src_start, Index dst_start) noexcept
-    -> decltype(Index(particle_detail::call_f(p, typename SrcTile::ConstParticleTileDataType(), int{}, RandomEngine{})))
+Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f,
+                                   Index src_start, Index dst_start) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> mask(np);
