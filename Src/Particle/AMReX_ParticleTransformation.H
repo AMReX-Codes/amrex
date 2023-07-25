@@ -392,7 +392,13 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
     amrex::ParallelForRNG(n,
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
+        amrex::ignore_unused(src_data, src_start);
+        if constexpr (IsCallable<Pred,decltype(src_data),Index,RandomEngine>::value) {
+            p_mask[i] = p(src_data, src_start+i, engine);
+        } else {
+            amrex::ignore_unused(engine);
+            p_mask[i] = p(src_data, src_start+i);
+        }
     });
     return filterParticles(dst, src, mask.dataPtr(), src_start, dst_start, n);
 }
@@ -558,7 +564,13 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
     amrex::ParallelForRNG(np,
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = particle_detail::call_f(p, src_data, i, engine);
+        amrex::ignore_unused(src_data);
+        if constexpr (IsCallable<Pred,decltype(src_data),int,RandomEngine>::value) {
+            p_mask[i] = p(src_data, i, engine);
+        } else {
+            amrex::ignore_unused(engine);
+            p_mask[i] = p(src_data, i);
+        }
     });
     return filterAndTransformParticles(dst1, dst2, src, mask.dataPtr(), std::forward<F>(f));
 }
@@ -596,7 +608,13 @@ auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&
     amrex::ParallelForRNG(np,
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
+        amrex::ignore_unused(src_data, src_start);
+        if constexpr (IsCallable<Pred,decltype(src_data),Index,RandomEngine>::value) {
+            p_mask[i] = p(src_data, src_start+i, engine);
+        } else {
+            amrex::ignore_unused(engine);
+            p_mask[i] = p(src_data, src_start+i);
+        }
     });
     return filterAndTransformParticles(dst, src, mask.dataPtr(), std::forward<F>(f), src_start, dst_start);
 }
