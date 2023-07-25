@@ -554,6 +554,16 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                     prev_handler_sigfpe = std::signal(SIGFPE,  BLBackTrace::handler);
                 }
 
+#elif defined(__APPLE__) && defined(__aarch64__)
+                fenv_t env;
+                fegetenv(&env);
+                if (invalid)   env.__fpcr |= __fpcr_trap_invalid;
+                if (divbyzero) env.__fpcr |= __fpcr_trap_divbyzero;
+                if (overflow)  env.__fpcr |= __fpcr_trap_overflow;
+                fesetenv(&env);
+                // SIGILL ref: https://developer.apple.com/forums/thread/689159
+                prev_handler_sigfpe = std::signal(SIGILL,  BLBackTrace::handler);
+
 #elif defined(__APPLE__) && defined(__x86_64__)
                 prev_fpe_mask = _MM_GET_EXCEPTION_MASK();
                 curr_fpe_excepts = 0u;
