@@ -76,13 +76,13 @@ static int ReadHDF5Attr(hid_t loc, const char *name, void *data, hid_t dtype)
     return 1;
 }
 
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
 static void SetHDF5fapl(hid_t fapl, MPI_Comm comm)
 #else
 static void SetHDF5fapl(hid_t fapl)
 #endif
 {
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
 
     // Alignment and metadata block size
@@ -381,7 +381,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
     pc.nOutFilesPrePost = nOutFiles;
 
     fapl = H5Pcreate (H5P_FILE_ACCESS);
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
 #else
     SetHDF5fapl(fapl);
