@@ -127,7 +127,7 @@ static void SetHDF5fapl(hid_t fapl)
     H5Pset_all_coll_metadata_ops(fapl, true);
 
     // Defer cache flush
-    // 7/19/23 Comment out the following as it is causing segfault 
+    // 7/19/23 Comment out the following as it is causing segfault
     // with vol-async on Frontier
     /* H5AC_cache_config_t cache_config; */
     /* cache_config.version = H5AC__CURR_CACHE_CONFIG_VERSION; */
