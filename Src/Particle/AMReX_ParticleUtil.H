@@ -22,8 +22,23 @@ namespace amrex
 
 namespace particle_detail {
 
-// The next several functions are used by ParticleReduce
+// This function is used by ParticleReduce
+template <typename F, typename T_ParticleType, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
+             const int i) noexcept
+{
+    if constexpr (IsCallable<F, decltype(p.m_aos[i])>::value) {
+        return f(p.m_aos[i]);
+    } else if constexpr (IsCallable<F, decltype(p.getSuperParticle(i))>::value) {
+        return f(p.getSuperParticle(i));
+    } else {
+        return f(p, i);
+    }
+}
 
+    /*
 // Lambda takes a Particle
 template <typename F, typename T_ParticleType, int NAR, int NAI>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -57,6 +72,7 @@ auto call_f (F const& f,
 {
     return f(p, i);
 }
+    */
 
 // This function is used by ParticleToMesh and MeshToParticle
 template <typename F, typename T, typename T_ParticleType, template<class, int, int> class PTDType, int NAR, int NAI>
