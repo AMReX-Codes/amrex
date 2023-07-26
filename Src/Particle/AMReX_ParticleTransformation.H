@@ -380,7 +380,7 @@ int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
  *
  */
 template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N,
-          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> = 0>
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> nvccfoo = 0>
 Index filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
                        Index src_start, Index dst_start, N n) noexcept
 {
@@ -593,7 +593,7 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
  */
 
 template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index,
-          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> = 0>
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> nvccfoo = 0>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f,
                                    Index src_start, Index dst_start) noexcept
 {
@@ -610,7 +610,6 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F
         if constexpr (IsCallable<Pred,decltype(src_data),Index,RandomEngine>::value) {
             p_mask[i] = p(src_data, src_start+i, engine);
         } else {
-            amrex::ignore_unused(engine);
             p_mask[i] = p(src_data, src_start+i);
         }
     });
