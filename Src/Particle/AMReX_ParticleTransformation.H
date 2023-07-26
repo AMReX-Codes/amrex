@@ -379,10 +379,10 @@ int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
  * \param n the number of particles to apply the operation to
  *
  */
-template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N>
-auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
-                      Index src_start, Index dst_start, N n) noexcept
-    -> decltype(Index(particle_detail::call_f(p, typename SrcTile::ConstParticleTileDataType(), int{}, RandomEngine{})))
+template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N,
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> nvccfoo = 0>
+Index filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
+                       Index src_start, Index dst_start, N n) noexcept
 {
     Gpu::DeviceVector<Index> mask(n);
 
@@ -392,7 +392,12 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
     amrex::ParallelForRNG(n,
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
+        amrex::ignore_unused(p, p_mask, src_data, src_start, engine);
+        if constexpr (IsCallable<Pred,decltype(src_data),Index,RandomEngine>::value) {
+            p_mask[i] = p(src_data, src_start+i, engine);
+        } else {
+            p_mask[i] = p(src_data, src_start+i);
+        }
     });
     return filterParticles(dst, src, mask.dataPtr(), src_start, dst_start, n);
 }
@@ -558,7 +563,12 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
     amrex::ParallelForRNG(np,
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = particle_detail::call_f(p, src_data, i, engine);
+        amrex::ignore_unused(p, p_mask, src_data, engine);
+        if constexpr (IsCallable<Pred,decltype(src_data),int,RandomEngine>::value) {
+            p_mask[i] = p(src_data, i, engine);
+        } else {
+            p_mask[i] = p(src_data, i);
+        }
     });
     return filterAndTransformParticles(dst1, dst2, src, mask.dataPtr(), std::forward<F>(f));
 }
@@ -582,10 +592,10 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
  *
  */
 
-template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index>
-auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f,
-                      Index src_start, Index dst_start) noexcept
-    -> decltype(Index(particle_detail::call_f(p, typename SrcTile::ConstParticleTileDataType(), int{}, RandomEngine{})))
+template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index,
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> nvccfoo = 0>
+Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f,
+                                   Index src_start, Index dst_start) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> mask(np);
@@ -596,7 +606,12 @@ auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&
     amrex::ParallelForRNG(np,
     [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
+        amrex::ignore_unused(p, p_mask, src_data, src_start, engine);
+        if constexpr (IsCallable<Pred,decltype(src_data),Index,RandomEngine>::value) {
+            p_mask[i] = p(src_data, src_start+i, engine);
+        } else {
+            p_mask[i] = p(src_data, src_start+i);
+        }
     });
     return filterAndTransformParticles(dst, src, mask.dataPtr(), std::forward<F>(f), src_start, dst_start);
 }
