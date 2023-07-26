@@ -42,7 +42,12 @@ fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F&& f)
         [=] AMREX_GPU_DEVICE (int k, amrex::RandomEngine const& engine) noexcept
         {
             const auto p = ptd.getSuperParticle(k);
-            flag_ptr[k] = particle_detail::call_f(f,p,engine);
+            amrex::ignore_unused(flag_ptr, f, engine);
+            if constexpr (IsCallable<F,decltype(p),RandomEngine>::value) {
+                flag_ptr[k] = f(p,engine);
+            } else {
+                flag_ptr[k] = f(p);
+            }
         });
 }
 
@@ -59,7 +64,11 @@ fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F&& f)
     auto flag_ptr = pflags.data();
     for (int k = 0; k < np; ++k) {
         const auto p = ptd.getSuperParticle(k);
-        flag_ptr[k] = particle_detail::call_f(f,p,RandomEngine{});
+        if constexpr (IsCallable<F,decltype(p),RandomEngine>::value) {
+            flag_ptr[k] = f(p,RandomEngine{});
+        } else {
+            flag_ptr[k] = f(p);
+        }
     }
 }
 

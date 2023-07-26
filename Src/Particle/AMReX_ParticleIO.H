@@ -169,7 +169,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-                            [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p)
+                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
                             {
                                 return p.id() > 0;
                             });
