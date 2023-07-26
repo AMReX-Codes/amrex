@@ -591,7 +591,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
     hid_t dxpl_col, dxpl_ind, dcpl_int, dcpl_real;
     dxpl_col = H5Pcreate(H5P_DATASET_XFER);
     dxpl_ind = H5Pcreate(H5P_DATASET_XFER);
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     H5Pset_dxpl_mpio(dxpl_col, H5FD_MPIO_COLLECTIVE);
 #endif
     dcpl_int  = H5Pcreate(H5P_DATASET_CREATE);
@@ -721,7 +721,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
         my_mfi_cnt++;
     }
 
-    #ifdef BL_USE_MPI
+    #ifdef AMREX_USE_MPI
     // Collect the number of mf and total size of mf from each rank
     MPI_Allgather(&my_mfi_cnt, 1, ParallelDescriptor::Mpi_typemap<int>::type(), &(all_mfi_cnt[0]), 1,
                   ParallelDescriptor::Mpi_typemap<int>::type(), ParallelDescriptor::Communicator());
@@ -767,7 +767,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
     H5Sclose(int_dset_space);
 
     // Create the real data
-    #ifdef BL_USE_MPI
+    #ifdef AMREX_USE_MPI
     MPI_Allgather(&my_mfi_real_total_size, 1, ParallelDescriptor::Mpi_typemap<ULong>::type(),
                   &(all_mfi_real_total_size[0]), 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), ParallelDescriptor::Communicator());
     #else
@@ -996,7 +996,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
     int ret;
 
     fapl = H5Pcreate (H5P_FILE_ACCESS);
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
 #else
     SetHDF5fapl(fapl);
