@@ -102,6 +102,7 @@ namespace system
     int handle_sigint;
     int handle_sigabrt;
     int handle_sigfpe;
+    int handle_sigill;
     int call_addr2line;
     int throw_exception;
     int regtest_reduction;
@@ -127,6 +128,7 @@ namespace {
     SignalHandler prev_handler_sigint  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
     SignalHandler prev_handler_sigabrt = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
     SignalHandler prev_handler_sigfpe  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
+    SignalHandler prev_handler_sigill  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
 #if defined(__linux__)
     int           prev_fpe_excepts = 0;
     int           curr_fpe_excepts = 0;
@@ -329,6 +331,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::handle_sigint  = 1;
     system::handle_sigabrt = 1;
     system::handle_sigfpe  = 1;
+    system::handle_sigill  = 1;
     system::call_addr2line = 1;
     system::throw_exception = 0;
     system::osout = &a_osout;
@@ -509,6 +512,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             pp.queryAdd("handle_sigint" , system::handle_sigint );
             pp.queryAdd("handle_sigabrt", system::handle_sigabrt);
             pp.queryAdd("handle_sigfpe" , system::handle_sigfpe );
+            pp.queryAdd("handle_sigill" , system::handle_sigill );
 
             // We save the singal handlers and restore them in Finalize.
             if (system::handle_sigsegv) {
@@ -574,6 +578,25 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                     _MM_SET_EXCEPTION_MASK(prev_fpe_mask & ~curr_fpe_excepts);
                     prev_handler_sigfpe = std::signal(SIGFPE,  BLBackTrace::handler);
                 }
+#endif
+            }
+
+            prev_handler_sigill = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
+            if (system::handle_sigill)
+            {
+                int invalid = 0, divbyzero=0, overflow=0;
+                pp.queryAdd("fpe_trap_invalid", invalid);
+                pp.queryAdd("fpe_trap_zero", divbyzero);
+                pp.queryAdd("fpe_trap_overflow", overflow);
+#if defined(__APPLE__) && defined(__aarch64__)
+                fenv_t env;
+                fegetenv(&env);
+                if (invalid)   env.__fpcr |= __fpcr_trap_invalid;
+                if (divbyzero) env.__fpcr |= __fpcr_trap_divbyzero;
+                if (overflow)  env.__fpcr |= __fpcr_trap_overflow;
+                fesetenv(&env);
+                // SIGILL ref: https://developer.apple.com/forums/thread/689159
+                prev_handler_sigill = std::signal(SIGILL,  BLBackTrace::handler);
 #endif
             }
         }
@@ -772,6 +795,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
         if (prev_handler_sigint  != SIG_ERR) std::signal(SIGINT , prev_handler_sigint);  // NOLINT(performance-no-int-to-ptr)
         if (prev_handler_sigabrt != SIG_ERR) std::signal(SIGABRT, prev_handler_sigabrt); // NOLINT(performance-no-int-to-ptr)
         if (prev_handler_sigfpe  != SIG_ERR) std::signal(SIGFPE , prev_handler_sigfpe);  // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigill  != SIG_ERR) std::signal(SIGILL , prev_handler_sigill);  // NOLINT(performance-no-int-to-ptr)
 #if defined(__linux__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {
