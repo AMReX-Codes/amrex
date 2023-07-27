@@ -278,12 +278,10 @@ Arena::Initialize ()
     BL_ASSERT(the_comms_arena == nullptr || the_comms_arena == The_BArena());
 
 #ifdef AMREX_USE_GPU
-#ifdef AMREX_USE_SYCL
-    the_arena_init_size = 1024L*1024L*1024L; // xxxxx SYCL: todo
-#else
     the_arena_init_size = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 4L * 3L;
+#ifdef AMREX_USE_SYCL
+    the_arena_init_size = std::min(the_arena_init_size, Gpu::Device::maxMemAllocSize());
 #endif
-
     the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem();
 #endif
 
