@@ -58,6 +58,9 @@ BLBackTrace::handler(int s)
     case SIGFPE:
         amrex::ErrorStream() << "Erroneous arithmetic operation\n";
         break;
+    case SIGILL:
+        amrex::ErrorStream() << "SIGILL Invalid, privileged, or ill-formed instruction\n";
+        break;
     case SIGTERM:
         amrex::ErrorStream() << "SIGTERM\n";
         break;

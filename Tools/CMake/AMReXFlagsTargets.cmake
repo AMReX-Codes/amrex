@@ -131,6 +131,7 @@ target_compile_options ( Flags_FPE
    $<${_cxx_cray}:-K trap=fp>
    $<${_fortran_clang}:>
    $<${_cxx_clang}:-ftrapv>
+   $<${_cxx_appleclang}:-ftrapv>	
    )
 
 #
