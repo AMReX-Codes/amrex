@@ -242,7 +242,13 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
             const auto& pmap = GetParticles(lev);
             for (const auto& kv : pmap) {
-              const auto& pbox = kv.second.GetArrayOfStructs();
+                using PinnedTile = amrex::ParticleTile<Particle<AMREX_SPACEDIM, 0>, 0, 0,
+                                                       amrex::PinnedArenaAllocator>;
+                PinnedTile pinned_tile;
+                pinned_tile.define(NumRuntimeRealComps(), NumRuntimeIntComps());
+                amrex::copyParticles(pinned_tile, kv.second);
+
+              const auto& pbox = pinned_tile.GetArrayOfStructs();
               for (int k = 0; k < pbox.numParticles(); ++k)
               {
                 const ParticleType& p = pbox[k];
