@@ -285,7 +285,6 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 #ifdef AMREX_USE_GPU
                   std::unique_ptr<FArrayBox> hostfab;
                   {
-                      amrex::Print() << fab.arena()->isManaged() << " " << fab.arena()->isDevice() << "\n";
                       hostfab = std::make_unique<FArrayBox>(fab.box(), fab.nComp(),
                                                             The_Pinned_Arena());
                       Gpu::dtoh_memcpy_async(hostfab->dataPtr(), fab.dataPtr(),
