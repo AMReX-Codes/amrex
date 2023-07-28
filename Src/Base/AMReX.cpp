@@ -574,11 +574,12 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             prev_handler_sigill = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
             if (system::handle_sigill)
             {
+#if defined(__APPLE__) && defined(__aarch64__)
                 int invalid = 0, divbyzero=0, overflow=0;
                 pp.queryAdd("fpe_trap_invalid", invalid);
                 pp.queryAdd("fpe_trap_zero", divbyzero);
                 pp.queryAdd("fpe_trap_overflow", overflow);
-#if defined(__APPLE__) && defined(__aarch64__)
+
                 fenv_t env;
                 fegetenv(&env);
                 if (invalid)   env.__fpcr |= __fpcr_trap_invalid;
@@ -586,8 +587,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 if (overflow)  env.__fpcr |= __fpcr_trap_overflow;
                 fesetenv(&env);
                 // SIGILL ref: https://developer.apple.com/forums/thread/689159
-                prev_handler_sigill = std::signal(SIGILL,  BLBackTrace::handler);
 #endif
+                prev_handler_sigill = std::signal(SIGILL,  BLBackTrace::handler);
             }
         }
 
