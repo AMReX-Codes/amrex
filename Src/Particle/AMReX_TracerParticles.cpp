@@ -238,21 +238,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             //
             // Do we have any particles at this level that need writing?
             //
-            bool gotwork = false;
-
-            const auto& pmap = GetParticles(lev);
-            for (const auto& kv : pmap) {
-              const auto& pbox = kv.second.GetArrayOfStructs();
-              for (int k = 0; k < pbox.numParticles(); ++k)
-              {
-                const ParticleType& p = pbox[k];
-                if (p.id() > 0) {
-                  gotwork = true;
-                  break;
-                }
-              }
-              if (gotwork) break;
-            }
+            bool gotwork = NumberOfParticlesAtLevel(lev, true, true) > 0;
 
             if (gotwork)
               {
@@ -280,12 +266,34 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                 std::vector<ParticleReal> vals(M);
 
+                const auto& pmap = GetParticles(lev);
                 for (const auto& kv : pmap) {
+                  using PinnedTile = amrex::ParticleTile<Particle<AMREX_SPACEDIM, 0>, 0, 0,
+                                                         amrex::PinnedArenaAllocator>;
+                  PinnedTile pinned_tile;
+                  pinned_tile.define(NumRuntimeRealComps(), NumRuntimeIntComps());
+                  pinned_tile.resize(kv.second.numParticles());
+                  amrex::copyParticles(pinned_tile, kv.second);
+
                   int grid = kv.first.first;
-                  const auto& pbox = kv.second.GetArrayOfStructs();
+                  const auto& pbox = pinned_tile.GetArrayOfStructs();
                   const Box&       bx   = ba[grid];
                   const FArrayBox& fab  = mf[grid];
-                  const auto uccarr = fab.array();
+                  auto uccarr = fab.array();
+
+                  amrex::Array4<amrex::Real const>* uccarr_ptr = &uccarr;
+#ifdef AMREX_USE_GPU
+                  std::unique_ptr<FArrayBox> hostfab;
+                  {
+                      hostfab = std::make_unique<FArrayBox>(fab.box(), fab.nComp(),
+                                                            The_Pinned_Arena());
+                      Gpu::dtoh_memcpy_async(hostfab->dataPtr(), fab.dataPtr(),
+                                             fab.size()*sizeof(Real));
+                      Gpu::streamSynchronize();
+                      auto hostarr = hostfab->const_array();
+                      uccarr_ptr = &hostarr;
+                  }
+#endif
 
                   for (int k = 0; k < pbox.numParticles(); ++k)
                     {
@@ -313,7 +321,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                       if (M > 0)
                         {
-                          cic_interpolate(p, plo, dxi, uccarr, &vals[0], M);
+                          cic_interpolate(p, plo, dxi, *uccarr_ptr, &vals[0], M);
 
                           for (int i = 0; i < M; i++)
                             {
