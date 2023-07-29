@@ -42,10 +42,16 @@ struct StructOfArrays {
      */
     [[nodiscard]] RealVector& GetRealData (const int index) {
         AMREX_ASSERT(index >= 0 && index < NReal + static_cast<int>(m_runtime_rdata.size()));
-        if (index >= 0 && index < NReal) return m_rdata[index];
-        else {
+        if constexpr (NReal == 0) {
             AMREX_ASSERT(m_defined);
-            return m_runtime_rdata[index - NReal];
+            return m_runtime_rdata[index];
+        } else {
+            if (index < NReal) {
+                return m_rdata[index];
+            } else {
+                AMREX_ASSERT(m_defined);
+                return m_runtime_rdata[index - NReal];
+            }
         }
     }
 
@@ -55,10 +61,16 @@ struct StructOfArrays {
      */
     [[nodiscard]] const RealVector& GetRealData (const int index) const {
         AMREX_ASSERT(index >= 0 && index < NReal + static_cast<int>(m_runtime_rdata.size()));
-        if (index >= 0 && index < NReal) return m_rdata[index];
-        else {
+        if constexpr (NReal == 0) {
             AMREX_ASSERT(m_defined);
-            return m_runtime_rdata[index - NReal];
+            return m_runtime_rdata[index];
+        } else {
+            if (index < NReal) {
+                return m_rdata[index];
+            } else {
+                AMREX_ASSERT(m_defined);
+                return m_runtime_rdata[index - NReal];
+            }
         }
     }
 
@@ -68,10 +80,16 @@ struct StructOfArrays {
      */
     [[nodiscard]] IntVector& GetIntData (const int index) {
         AMREX_ASSERT(index >= 0 && index < NInt + static_cast<int>(m_runtime_idata.size()));
-        if (index >= 0 && index < NInt) return m_idata[index];
-        else {
+        if constexpr (NInt == 0) {
             AMREX_ASSERT(m_defined);
-            return m_runtime_idata[index - NInt];
+            return m_runtime_idata[index];
+        } else {
+            if (index < NInt) {
+                return m_idata[index];
+            } else {
+                AMREX_ASSERT(m_defined);
+                return m_runtime_idata[index - NInt];
+            }
         }
    }
 
@@ -82,10 +100,16 @@ struct StructOfArrays {
     */
    [[nodiscard]] const IntVector& GetIntData (const int index) const {
         AMREX_ASSERT(index >= 0 && index < NInt + static_cast<int>(m_runtime_idata.size()));
-        if (index >= 0 && index < NInt) return m_idata[index];
-        else {
+        if constexpr (NInt == 0) {
             AMREX_ASSERT(m_defined);
-            return m_runtime_idata[index - NInt];
+            return m_runtime_idata[index];
+        } else {
+            if (index < NInt) {
+                return m_idata[index];
+            } else {
+                AMREX_ASSERT(m_defined);
+                return m_runtime_idata[index - NInt];
+            }
         }
     }
 
@@ -148,8 +172,12 @@ struct StructOfArrays {
 
     void resize (size_t count)
     {
-        for (int i = 0; i < NReal; ++i) m_rdata[i].resize(count);
-        for (int i = 0; i < NInt;  ++i) m_idata[i].resize(count);
+        if constexpr (NReal > 0) {
+            for (int i = 0; i < NReal; ++i) { m_rdata[i].resize(count); }
+        }
+        if constexpr (NInt > 0) {
+            for (int i = 0; i < NInt;  ++i) { m_idata[i].resize(count); }
+        }
         for (int i = 0; i < int(m_runtime_rdata.size()); ++i) m_runtime_rdata[i].resize(count);
         for (int i = 0; i < int(m_runtime_idata.size()); ++i) m_runtime_idata[i].resize(count);
     }
