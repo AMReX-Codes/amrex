@@ -31,14 +31,14 @@ namespace amrex
         m_data.resize(local_size());
       }
 
-    ~LayoutData () { if (m_need_to_clear_bd) clearThisBD(); }
+    ~LayoutData () { if (m_need_to_clear_bd) { clearThisBD(); } }
 
     LayoutData (const LayoutData& rhs) noexcept
         : FabArrayBase(rhs),
           m_data(rhs.m_data),
           m_need_to_clear_bd(rhs.m_need_to_clear_bd)
     {
-        if (m_need_to_clear_bd) addThisBD();
+        if (m_need_to_clear_bd) { addThisBD(); }
     }
 
     LayoutData (LayoutData&& rhs) noexcept
@@ -54,13 +54,13 @@ namespace amrex
         if (&rhs != this)
         {
             m_data.clear();
-            if (m_need_to_clear_bd) clearThisBD();
+            if (m_need_to_clear_bd) { clearThisBD(); }
 
             FabArrayBase::operator=(rhs);
             m_data = rhs.m_data;
             m_need_to_clear_bd = rhs.m_need_to_clear_bd;
 
-            if (m_need_to_clear_bd) addThisBD();
+            if (m_need_to_clear_bd) { addThisBD(); }
         }
         return *this;
     }
@@ -70,7 +70,7 @@ namespace amrex
         if (&rhs != this)
         {
             m_data.clear();
-            if (m_need_to_clear_bd) clearThisBD();
+            if (m_need_to_clear_bd) { clearThisBD(); }
 
             FabArrayBase::operator=(static_cast<FabArrayBase&&>(rhs));
             m_data = std::move(rhs.m_data);

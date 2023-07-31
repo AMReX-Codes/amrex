@@ -117,7 +117,7 @@ namespace amrex
 #if defined(NDEBUG)
         amrex::ignore_unused(msg);
 #else
-        if (msg) AMREX_DEVICE_PRINTF("Error %s\n", msg);
+        if (msg) { AMREX_DEVICE_PRINTF("Error %s\n", msg); }
         AMREX_DEVICE_ASSERT(0);
 #endif
 #else
@@ -136,7 +136,7 @@ namespace amrex
 #if defined(NDEBUG)
         amrex::ignore_unused(msg);
 #else
-        if (msg) AMREX_DEVICE_PRINTF("Warning %s\n", msg);
+        if (msg) { AMREX_DEVICE_PRINTF("Warning %s\n", msg); }
 #endif
 #else
         Warning_host(msg);
@@ -152,7 +152,7 @@ namespace amrex
 #if defined(NDEBUG)
         amrex::ignore_unused(msg);
 #else
-        if (msg) AMREX_DEVICE_PRINTF("Abort %s\n", msg);
+        if (msg) { AMREX_DEVICE_PRINTF("Abort %s\n", msg); }
         AMREX_DEVICE_ASSERT(0);
 #endif
 #else
