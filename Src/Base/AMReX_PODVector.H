@@ -123,7 +123,9 @@ namespace amrex
                 }
             }
 #endif
-            for (Size i = 0; i < count; ++i) { dst[i] = src[i]; }
+            if constexpr (! RunOnGpu<Allocator<T>>::value) {
+                for (Size i = 0; i < count; ++i) { dst[i] = src[i]; }
+            }
         }
 
         template <typename Allocator>
