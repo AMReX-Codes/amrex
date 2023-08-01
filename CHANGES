@@ -1,3 +1,102 @@
+# 23.08
+
+  -- Fix a bug in AmrMesh::ChopGrids (#3460)
+
+  -- Remove use of managed memory from TracerParticleContainer::TimeStamp (#3457)
+
+  -- Mac Arm64 Architecture fpe handling (#3447)
+
+  -- SYCL: Remove Workaround no longer needed (#3455)
+
+  -- SENSEI: SoA Particle Support (#3349)
+
+  -- Warn if USE_GPU_RDC=TRUE when HIP_SAVE_TEMPS=TRUE (#3454)
+
+  -- SYCL: Allocate 3/4 of total global memory by default (#3431)
+
+  -- GPU Assignment (#3382)
+
+  -- call_f refactor (#3452)
+
+  -- HDF5 bug fix for vol-async and compression (#3451)
+
+  -- Add second template parameter to other AoS for swap (#3450)
+
+  -- Refactor call_f in ParticleTransformation and WriteBinaryParticleData
+     to use constexpr if (#3448)
+
+  -- Fix this version of WritePlotFile to use SuperParticle, as expected by
+     WriteBinaryParticleData (#3449)
+
+  -- PODVector: Add a Missing STL Include (#3445)
+
+  -- Disable Managed Memory for The_Arena by default. (#3438)
+
+  -- SYCL RelWithDebInfo Build: Add -g1 (#3429)
+
+  -- Clang Tidy: +modernize-use-using (#3420)
+
+  -- Intel CI: Update Warning Flags (#3443)
+
+  -- In MLEBABecLap::compGrad, add missing call to addInhomogNeumannFlux (#3441)
+
+  -- Doxygen: SoA Get[Real/Int]Data (#3439)
+
+  -- ParmParse: Line Continuation (#3437)
+
+  -- SYCL: Get Pointer Type (#3434)
+
+  -- SYCL: UUID (#3432)
+
+  -- Re-Enable FPE Trap for SYCL (#3430)
+
+  -- Memory Efficient AoS Particle Sorting (#3427)
+
+  -- Use MPI_IN_PLACE (#3428)
+
+  -- PODVector Updates (#3425)
+
+  -- generalize interpolaters to not need or use extra values in a direction
+     for which the refinement ratio is 1 (#3415)
+
+  -- Fix Fortran module installation (#3411)
+
+  -- Fix allocateSlice for EB (#3391)
+
+  -- Update Intel compiler installation (#3423)
+
+  -- Improve comments and documentation on FaceDivFree Interpolater. (#3422)
+
+  -- Add the option to throw an exception on MLMG failure rather than aborting (#3424)
+
+  -- Make ReduceData::value safer (#3421)
+
+  -- Use atomic load in SYCL version of the single-pass scan (#3419)
+
+  -- GPU: Add Device::deviceVendor() function and fix #3416 (#3418)
+
+  -- New feature in EB: Add regular coarse levels (#3414)
+
+  -- add access function for EBFactory (moved out of IAMR) (#3417)
+
+  -- DataServices: Qualify math functions with `std::` namespace specifier (#3406)
+
+  -- Update CleanUpCache workflow (#3403)
+
+  -- Add some profilers to AmrLevel and FillPatcher (#3402)
+
+  -- Update the clang-tidy/ccache script (#3399)
+
+  -- Update Git workflow in CONTRIBUTING.md (#3397)
+
+  -- move redist into amrex (#3378)
+
+  -- Amr: Add printing of simulation time (#3392)
+
+  -- Add function for setting growth factor (#3394)
+
+  -- Updates Ascent Github Actions CI to use 0.9.2 (latest release)
+
 # 23.07
 
   -- Allow users to change the default vector growth stategy (#3389)
