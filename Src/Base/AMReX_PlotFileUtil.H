@@ -2,14 +2,17 @@
 #define AMREX_PLOTFILEUTIL_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Array.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileDataImpl.H>
+#include <AMReX_Vector.H>
 
 #ifdef AMREX_USE_HDF5
 #include <AMReX_PlotFileUtilHDF5.H>
 #endif
 
+#include <ostream>
 #include <string>
 #include <memory>
 
