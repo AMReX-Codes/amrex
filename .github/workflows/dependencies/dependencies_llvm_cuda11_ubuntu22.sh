@@ -10,6 +10,8 @@ sudo apt-get -qqq update
 sudo apt-get install -y \
     build-essential     \
     ca-certificates     \
+    libunwind-15        \
+    libunwind-15-dev    \
     clang-15            \
     libc++-15-dev       \
     libc++abi-15-dev    \
