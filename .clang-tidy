@@ -20,6 +20,7 @@ Checks: >
        -cppcoreguidelines-non-private-member-variables-in-classes,
        -cppcoreguidelines-owning-memory,
        -cppcoreguidelines-pro-*,
+     misc-misplaced-const,
      modernize-*,
        -modernize-avoid-c-arrays,
        -modernize-macro-to-enum,
