@@ -37,8 +37,9 @@ struct RedistributeUnpackPolicy
         int N = static_cast<int>(sizes.size());
 
         std::map<PTile*, int> tile_sizes;
-        for(int i = 0; i < N; ++i)
+        for(int i = 0; i < N; ++i) {
             tile_sizes[tiles[i]] = tiles[i]->numParticles();
+        }
 
         for(int i = 0; i < N; ++i)
         {
@@ -46,8 +47,9 @@ struct RedistributeUnpackPolicy
             tile_sizes[tiles[i]] += sizes[i];
         }
 
-        for (auto& kv : tile_sizes)
+        for (auto& kv : tile_sizes) {
             kv.first->resize(kv.second);
+        }
     }
 };
 
@@ -66,7 +68,7 @@ struct ParticleCopyOp
 
     [[nodiscard]] int numCopies (int gid, int lev) const
     {
-        if (m_boxes.size() <= lev) return 0;
+        if (m_boxes.size() <= lev) { return 0; }
         auto mit = m_boxes[lev].find(gid);
         return mit == m_boxes[lev].end() ? 0 : int(mit->second.size());
     }
@@ -160,7 +162,7 @@ struct ParticleCopyPlan
             {
                 int gid = kv.first.first;
                 int num_copies = op.numCopies(gid, lev);
-                if (num_copies == 0) continue;
+                if (num_copies == 0) { continue; }
                 m_dst_indices[lev][gid].resize(num_copies);
 
                 const auto* p_boxes = op.m_boxes[lev].at(gid).dataPtr();
@@ -337,7 +339,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             const auto ptd = src_tile.getConstParticleTileData();
 
             int num_copies = op.numCopies(gid, lev);
-            if (num_copies == 0) continue;
+            if (num_copies == 0) { continue; }
 
             const auto* p_boxes = op.m_boxes[lev].at(gid).dataPtr();
             const auto* p_levels = op.m_levels[lev].at(gid).dataPtr();
@@ -370,11 +372,12 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                                            AMREX_SPACEDIM*sizeof(ParticleReal));
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                         {
-                            if (! is_per[idim]) continue;
-                            if (pshift[idim] > 0)
+                            if (! is_per[idim]) { continue; }
+                            if (pshift[idim] > 0) {
                                 pos[idim] += phi[idim] - plo[idim];
-                            else if (pshift[idim] < 0)
+                            } else if (pshift[idim] < 0) {
                                 pos[idim] -= phi[idim] - plo[idim];
+                            }
                         }
                         amrex::Gpu::memcpy(&p_snd_buffer[dst_offset], &pos[0],
                                            AMREX_SPACEDIM*sizeof(ParticleReal));
@@ -461,7 +464,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
     const int NProcs = ParallelContext::NProcsSub();
     const int MyProc = ParallelContext::MyProcSub();
 
-    if (NProcs == 1) return;
+    if (NProcs == 1) { return; }
 
     Vector<int> RcvProc;
     Vector<Long> rOffset;
@@ -519,15 +522,15 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
             ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum, ParallelContext::CommunicatorSub()).req();
     }
 
-    if (plan.m_NumSnds == 0) return;
+    if (plan.m_NumSnds == 0) { return; }
 
     // Send.
     for (int i = 0; i < NProcs; ++i)
     {
-        if (i == MyProc) continue;
+        if (i == MyProc) { continue; }
         const auto Who  = i;
         const auto Cnt  = plan.m_snd_counts[i];
-        if (Cnt == 0) continue;
+        if (Cnt == 0) { continue; }
 
         auto snd_offset = plan.m_snd_offsets[i];
         AMREX_ASSERT(plan.m_snd_counts[i] % ParallelDescriptor::alignof_comm_data(plan.m_snd_num_particles[i]*psize) == 0);
@@ -554,7 +557,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
 
 #ifdef AMREX_USE_MPI
     const int NProcs = ParallelContext::NProcsSub();
-    if (NProcs == 1) return;
+    if (NProcs == 1) { return; }
 
     const int MyProc = ParallelContext::MyProcSub();
     amrex::ignore_unused(MyProc);

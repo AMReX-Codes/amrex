@@ -129,7 +129,7 @@ countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>&
             const auto& pflags = particle_io_flags[lev].at(kv.first);
             for (int k = 0; k < kv.second.numParticles(); ++k)
             {
-                if (pflags[k]) nparticles++;
+                if (pflags[k]) { nparticles++; }
             }
         }
     }
@@ -143,7 +143,7 @@ countFlags (const Container<int,Allocator>& pflags)
     int nparticles = 0;
     for (std::size_t k = 0; k < pflags.size(); ++k)
     {
-        if (pflags[k]) nparticles++;
+        if (pflags[k]) { nparticles++; }
     }
     return nparticles;
 }
@@ -175,15 +175,17 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
             const Vector<int>& tiles, int np, bool is_checkpoint)
 {
     int num_output_int = 0;
-    for (int i = 0; i < pc.NumIntComps() + PC::NStructInt; ++i)
-        if (write_int_comp[i]) ++num_output_int;
+    for (int i = 0; i < pc.NumIntComps() + PC::NStructInt; ++i) {
+        if (write_int_comp[i]) { ++num_output_int; }
+    }
 
     const Long iChunkSize = 2 + num_output_int;
     idata.resize(np*iChunkSize);
 
     int num_output_real = 0;
-    for (int i = 0; i < pc.NumRealComps() + PC::NStructReal; ++i)
-        if (write_real_comp[i]) ++num_output_real;
+    for (int i = 0; i < pc.NumRealComps() + PC::NStructReal; ++i) {
+        if (write_real_comp[i]) { ++num_output_real; }
+    }
 
     const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
     rdata.resize(np*rChunkSize);
@@ -279,20 +281,22 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
             const Vector<int>& tiles, int np, bool is_checkpoint)
 {
     int num_output_int = 0;
-    for (int i = 0; i < pc.NumIntComps() + PC::NStructInt; ++i)
-        if (write_int_comp[i]) ++num_output_int;
+    for (int i = 0; i < pc.NumIntComps() + PC::NStructInt; ++i) {
+        if (write_int_comp[i]) { ++num_output_int; }
+    }
 
     const Long iChunkSize = 2 + num_output_int;
     idata.resize(np*iChunkSize);
 
     int num_output_real = 0;
-    for (int i = 0; i < pc.NumRealComps() + PC::NStructReal; ++i)
-        if (write_real_comp[i]) ++num_output_real;
+    for (int i = 0; i < pc.NumRealComps() + PC::NStructReal; ++i) {
+        if (write_real_comp[i]) { ++num_output_real; }
+    }
 
     const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
     rdata.resize(np*rChunkSize);
 
-        int* iptr = idata.dataPtr();
+    int* iptr = idata.dataPtr();
     ParticleReal* rptr = rdata.dataPtr();
     for (unsigned i = 0; i < tiles.size(); i++) {
         const auto& ptile = pc.ParticlesAt(lev, grid, tiles[i]);
@@ -313,7 +317,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                     iptr += 2;
 
                     // Real: positions
-                    for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
+                    for (int j = 0; j < AMREX_SPACEDIM; j++) { rptr[j] = p.pos(j); }
                     rptr += AMREX_SPACEDIM;
 
                     // extra AoS Int components
@@ -340,7 +344,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                     iptr += 1;
 
                     // Real: position
-                    for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = soa.GetRealData(j)[pindex];
+                    for (int j = 0; j < AMREX_SPACEDIM; j++) { rptr[j] = soa.GetRealData(j)[pindex]; }
                     rptr += AMREX_SPACEDIM;
                 }
 
@@ -392,7 +396,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == pc.NumIntComps() + NStructInt);
 
     std::string pdir = dir;
-    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') pdir += '/';
+    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') { pdir += '/'; }
     pdir += name;
 
     if ( ! pc.GetLevelDirectoriesCreated()) {
@@ -444,15 +448,16 @@ void WriteBinaryParticleDataSync (PC const& pc,
     {
         std::string HdrFileName = pdir;
 
-        if ( ! HdrFileName.empty() && HdrFileName[HdrFileName.size()-1] != '/')
+        if ( ! HdrFileName.empty() && HdrFileName[HdrFileName.size()-1] != '/') {
             HdrFileName += '/';
+        }
 
         HdrFileName += "Header";
         pc.HdrFileNamePrePost = HdrFileName;
 
         HdrFile.open(HdrFileName.c_str(), std::ios::out|std::ios::trunc);
 
-        if ( ! HdrFile.good()) amrex::FileOpenFailed(HdrFileName);
+        if ( ! HdrFile.good()) { amrex::FileOpenFailed(HdrFileName); }
 
         //
         // First thing written is our version string.
@@ -470,12 +475,14 @@ void WriteBinaryParticleDataSync (PC const& pc,
         }
 
         int num_output_real = 0;
-        for (int i = 0; i < pc.NumRealComps() + NStructReal; ++i)
-            if (write_real_comp[i]) ++num_output_real;
+        for (int i = 0; i < pc.NumRealComps() + NStructReal; ++i) {
+            if (write_real_comp[i]) { ++num_output_real; }
+        }
 
         int num_output_int = 0;
-        for (int i = 0; i < pc.NumIntComps() + NStructInt; ++i)
-            if (write_int_comp[i]) ++num_output_int;
+        for (int i = 0; i < pc.NumIntComps() + NStructInt; ++i) {
+            if (write_int_comp[i]) { ++num_output_int; }
+        }
 
         // AMREX_SPACEDIM and N for sanity checking.
         HdrFile << AMREX_SPACEDIM << '\n';
@@ -484,15 +491,17 @@ void WriteBinaryParticleDataSync (PC const& pc,
         HdrFile << num_output_real << '\n';
 
         // Real component names
-        for (int i = 0; i < NStructReal + pc.NumRealComps(); ++i )
-            if (write_real_comp[i]) HdrFile << real_comp_names[i] << '\n';
+        for (int i = 0; i < NStructReal + pc.NumRealComps(); ++i ) {
+            if (write_real_comp[i]) { HdrFile << real_comp_names[i] << '\n'; }
+        }
 
         // The number of extra int parameters
         HdrFile << num_output_int << '\n';
 
         // int component names
-        for (int i = 0; i < NStructInt + pc.NumIntComps(); ++i )
-            if (write_int_comp[i]) HdrFile << int_comp_names[i] << '\n';
+        for (int i = 0; i < NStructInt + pc.NumIntComps(); ++i ) {
+            if (write_int_comp[i]) { HdrFile << int_comp_names[i] << '\n'; }
+        }
 
         bool is_checkpoint_legacy = true; // legacy
         HdrFile << is_checkpoint_legacy << '\n';
@@ -507,8 +516,9 @@ void WriteBinaryParticleDataSync (PC const& pc,
         HdrFile << pc.finestLevel() << '\n';
 
         // Then the number of grids at each level.
-        for (int lev = 0; lev <= pc.finestLevel(); lev++)
+        for (int lev = 0; lev <= pc.finestLevel(); lev++) {
             HdrFile << pc.ParticleBoxArray(lev).size() << '\n';
+        }
     }
 
     // We want to write the data out in parallel.
@@ -517,7 +527,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
 
     ParmParse pp("particles");
     pp.queryAdd("particles_nfiles",nOutFiles);
-    if(nOutFiles == -1) nOutFiles = NProcs;
+    if(nOutFiles == -1) { nOutFiles = NProcs; }
     nOutFiles = std::max(1, std::min(nOutFiles,NProcs));
     pc.nOutFilesPrePost = nOutFiles;
 
@@ -538,15 +548,17 @@ void WriteBinaryParticleDataSync (PC const& pc,
 
         if (gotsome)
         {
-            if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
+            if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') { LevelDir += '/'; }
 
             LevelDir = amrex::Concatenate(LevelDir.append("Level_"), lev, 1);
 
             if ( ! pc.GetLevelDirectoriesCreated())
             {
-                if (ParallelDescriptor::IOProcessor())
-                    if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
+                if (ParallelDescriptor::IOProcessor()) {
+                    if ( ! amrex::UtilCreateDirectory(LevelDir, 0755)) {
                         amrex::CreateDirectoryFailed(LevelDir);
+                    }
+                }
                 ParallelDescriptor::Barrier();
             }
         }
@@ -715,7 +727,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     }
 
     std::string pdir = dir;
-    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') pdir += '/';
+    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') { pdir += '/'; }
     pdir += name;
 
     if (MyProc == IOProcNumber)
@@ -735,7 +747,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
             if (gotsome)
             {
-                if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
+                if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') { LevelDir += '/'; }
 
                 LevelDir = amrex::Concatenate(LevelDir.append("Level_"), lev, 1);
 
@@ -810,11 +822,13 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
                 new_ptile.define(runtime_real_comps, runtime_int_comps);
 
-                for (auto comp(0); comp < runtime_real_comps; ++comp)
-                  new_ptile.push_back_real(NArrayReal+comp, np, 0.);
+                for (auto comp(0); comp < runtime_real_comps; ++comp) {
+                    new_ptile.push_back_real(NArrayReal+comp, np, 0.);
+                }
 
-                for (auto comp(0); comp < runtime_int_comps; ++comp)
-                  new_ptile.push_back_int(NArrayInt+comp, np, 0);
+                for (auto comp(0); comp < runtime_int_comps; ++comp) {
+                    new_ptile.push_back_int(NArrayInt+comp, np, 0);
+                }
 
                 amrex::filterParticles(new_ptile, ptile, KeepValidFilter());
             }
@@ -845,14 +859,15 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             std::string HdrFileName = pdir;
             std::ofstream HdrFile;
 
-            if ( ! HdrFileName.empty() && HdrFileName[HdrFileName.size()-1] != '/')
+            if ( ! HdrFileName.empty() && HdrFileName[HdrFileName.size()-1] != '/') {
                 HdrFileName += '/';
+            }
 
             HdrFileName += "Header";
 
             HdrFile.open(HdrFileName.c_str(), std::ios::out|std::ios::trunc);
 
-            if ( ! HdrFile.good()) amrex::FileOpenFailed(HdrFileName);
+            if ( ! HdrFile.good()) { amrex::FileOpenFailed(HdrFileName); }
 
             std::string version_string = is_checkpoint ? PC::CheckpointVersion() : PC::PlotfileVersion();
             if (sizeof(typename PC::ParticleType::RealType) == 4)
@@ -865,12 +880,14 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             }
 
             int num_output_real = 0;
-            for (int i = 0; i < nrc + NStructReal; ++i)
-                if (write_real_comp[i]) ++num_output_real;
+            for (int i = 0; i < nrc + NStructReal; ++i) {
+                if (write_real_comp[i]) { ++num_output_real; }
+            }
 
             int num_output_int = 0;
-            for (int i = 0; i < nic + NStructInt; ++i)
-                if (write_int_comp[i]) ++num_output_int;
+            for (int i = 0; i < nic + NStructInt; ++i) {
+                if (write_int_comp[i]) { ++num_output_int; }
+            }
 
             // AMREX_SPACEDIM and N for sanity checking.
             HdrFile << AMREX_SPACEDIM << '\n';
@@ -879,15 +896,17 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             HdrFile << num_output_real << '\n';
 
             // Real component names
-            for (int i = 0; i < NStructReal + nrc; ++i )
-                if (write_real_comp[i]) HdrFile << real_comp_names[i] << '\n';
+            for (int i = 0; i < NStructReal + nrc; ++i ) {
+                if (write_real_comp[i]) { HdrFile << real_comp_names[i] << '\n'; }
+            }
 
             // The number of extra int parameters
             HdrFile << num_output_int << '\n';
 
             // int component names
-            for (int i = 0; i < NStructInt + nic; ++i )
-                if (write_int_comp[i]) HdrFile << int_comp_names[i] << '\n';
+            for (int i = 0; i < NStructInt + nic; ++i ) {
+                if (write_int_comp[i]) { HdrFile << int_comp_names[i] << '\n'; }
+            }
 
             bool is_checkpoint_legacy = true; // legacy
             HdrFile << is_checkpoint_legacy << '\n';
@@ -902,8 +921,9 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             HdrFile << finest_level << '\n';
 
             // Then the number of grids at each level.
-            for (int lev = 0; lev <= finest_level; lev++)
+            for (int lev = 0; lev <= finest_level; lev++) {
                 HdrFile << dms[lev].size() << '\n';
+            }
 
             for (int lev = 0; lev <= finest_level; lev++)
             {
@@ -942,7 +962,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             }
 
             std::string LevelDir = pdir;
-            if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
+            if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') { LevelDir += '/'; }
             LevelDir = amrex::Concatenate(LevelDir.append("Level_"), lev, 1);
             std::string filePrefix(LevelDir);
             filePrefix += '/';
@@ -956,14 +976,15 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             for (int k = 0; k < bas[lev].size(); ++k)
             {
                 int rank = dms[lev][k];
-                if (rank != MyProc) continue;
+                if (rank != MyProc) { continue; }
                 const int grid = k;
-                if (np_per_grid_local[lev][grid] == 0) continue;
+                if (np_per_grid_local[lev][grid] == 0) { continue; }
 
                 // First write out the integer data in binary.
                 int num_output_int = 0;
-                for (int i = 0; i < nic + NStructInt; ++i)
-                    if (write_int_comp[i]) ++num_output_int;
+                for (int i = 0; i < nic + NStructInt; ++i) {
+                    if (write_int_comp[i]) { ++num_output_int; }
+                }
 
                 const Long iChunkSize = 2 + num_output_int;
                 Vector<int> istuff(np_per_grid_local[lev][grid]*iChunkSize);
@@ -978,7 +999,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                         const auto& soa  = pbox.GetStructOfArrays();
 
                         const auto& p = make_particle<typename PC::ConstParticleType>{}(ptd, pindex);
-                        if (p.id() <= 0) continue;
+                        if (p.id() <= 0) { continue; }
 
                         // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct
                         //       for backwards compatibility with readers
@@ -1024,8 +1045,9 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
                 // Write the Real data in binary.
                 int num_output_real = 0;
-                for (int i = 0; i < nrc + NStructReal; ++i)
-                    if (write_real_comp[i]) ++num_output_real;
+                for (int i = 0; i < nrc + NStructReal; ++i) {
+                    if (write_real_comp[i]) { ++num_output_real; }
+                }
 
                 const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
                 Vector<typename PC::ParticleType::RealType> rstuff(np_per_grid_local[lev][grid]*rChunkSize);
@@ -1041,12 +1063,12 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                         const auto& soa  = pbox.GetStructOfArrays();
                         const auto& p = make_particle<typename PC::ConstParticleType>{}(ptd, pindex);
 
-                        if (p.id() <= 0) continue;
+                        if (p.id() <= 0) { continue; }
 
                         if constexpr(!PC::ParticleType::is_soa_particle)
                         {
                             // Real: position
-                            for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
+                            for (int j = 0; j < AMREX_SPACEDIM; j++) { rptr[j] = p.pos(j); }
                             rptr += AMREX_SPACEDIM;
 
                             // extra AoS real
@@ -1061,7 +1083,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                         }
                         else {
                             // Real: position
-                            for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = soa.GetRealData(j)[pindex];
+                            for (int j = 0; j < AMREX_SPACEDIM; j++) { rptr[j] = soa.GetRealData(j)[pindex]; }
                             rptr += AMREX_SPACEDIM;
                         }
 

@@ -73,7 +73,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                                [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p = p_pbox[i];
-                if (p.id() <= 0) return;
+                if (p.id() <= 0) { return; }
                 ParticleReal v[AMREX_SPACEDIM];
                 mac_interpolate(p, plo, dxi, umacarr, v);
                 if (ipass == 0)
@@ -151,7 +151,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                                [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p  = p_pbox[i];
-                if (p.id() <= 0) return;
+                if (p.id() <= 0) { return; }
                 ParticleReal v[AMREX_SPACEDIM];
 
                 cic_interpolate(p, plo, dxi, uccarr, v);
@@ -258,8 +258,9 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                 TimeStampFile.seekp(0, std::ios::end);
 
-                if (!TimeStampFile.good())
+                if (!TimeStampFile.good()) {
                     amrex::FileOpenFailed(FileName);
+                }
 
                 const auto M  = static_cast<int>(indices.size());
                 const BoxArray& ba = mf.boxArray();
@@ -299,11 +300,11 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                     {
                       const ParticleType& p = pbox[k];
 
-                      if (p.id() <= 0) continue;
+                      if (p.id() <= 0) { continue; }
 
                       const IntVect& iv = Index(p,lev);
 
-                      if (!bx.contains(iv) && !ba.contains(iv)) continue;
+                      if (!bx.contains(iv) && !ba.contains(iv)) { continue; }
 
                       TimeStampFile << p.id()  << ' ' << p.cpu() << ' ';
 
@@ -321,7 +322,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                       if (M > 0)
                         {
-                          cic_interpolate(p, plo, dxi, *uccarr_ptr, &vals[0], M);
+                          cic_interpolate(p, plo, dxi, *uccarr_ptr, vals.data(), M);
 
                           for (int i = 0; i < M; i++)
                             {
@@ -341,8 +342,9 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             const int wakeUpPID = (MyProc + nOutFiles);
             const int tag       = (MyProc % nOutFiles);
 
-            if (wakeUpPID < NProcs)
+            if (wakeUpPID < NProcs) {
                 ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+            }
         }
         if (mySet == (iSet + 1))
         {
@@ -369,6 +371,6 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 #ifdef AMREX_LAZY
         });
 #endif
-    }
+   }
 }
 }

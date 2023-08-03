@@ -375,7 +375,7 @@ public:
                     for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                       const auto& pid = pperm[p];
                       bool  ghost_pid = (pid >= np_real);
-                      if (is_same && (pid == i)) continue;
+                      if (is_same && (pid == i)) { continue; }
                       if (call_check_pair(check_pair,
                                           src_ptile_data, dst_ptile_data,
                                           i, pid, type, ghost_i, ghost_pid)) {
@@ -435,7 +435,7 @@ public:
                   for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                     const auto& pid = pperm[p];
                     bool  ghost_pid = (pid >= np_real);
-                    if (is_same && (pid == i)) continue;
+                    if (is_same && (pid == i)) { continue; }
                     if (call_check_pair(check_pair,
                                         src_ptile_data, dst_ptile_data,
                                         i, pid, type, ghost_i, ghost_pid)) {
