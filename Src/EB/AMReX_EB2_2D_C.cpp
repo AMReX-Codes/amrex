@@ -278,10 +278,10 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             else
             {
                 int ncuts = 0;
-                if (fx(i  ,j  ,0) == Type::irregular) ++ncuts;
-                if (fx(i+1,j  ,0) == Type::irregular) ++ncuts;
-                if (fy(i  ,j  ,0) == Type::irregular) ++ncuts;
-                if (fy(i  ,j+1,0) == Type::irregular) ++ncuts;
+                if (fx(i  ,j  ,0) == Type::irregular) { ++ncuts; }
+                if (fx(i+1,j  ,0) == Type::irregular) { ++ncuts; }
+                if (fy(i  ,j  ,0) == Type::irregular) { ++ncuts; }
+                if (fy(i  ,j+1,0) == Type::irregular) { ++ncuts; }
                 if (ncuts > 2) {
                     Gpu::Atomic::Add(dp,1);
                 }
@@ -437,10 +437,10 @@ void set_connection_flags (Box const& bxg1,
 
         auto flg = cell(i,j,0);
 
-        if (fx(i  ,j  ,0) == Type::covered) flg.setDisconnected(IntVect(-1, 0));
-        if (fx(i+1,j  ,0) == Type::covered) flg.setDisconnected(IntVect( 1, 0));
-        if (fy(i  ,j  ,0) == Type::covered) flg.setDisconnected(IntVect( 0,-1));
-        if (fy(i  ,j+1,0) == Type::covered) flg.setDisconnected(IntVect( 0, 1));
+        if (fx(i  ,j  ,0) == Type::covered) { flg.setDisconnected(IntVect(-1, 0)); }
+        if (fx(i+1,j  ,0) == Type::covered) { flg.setDisconnected(IntVect( 1, 0)); }
+        if (fy(i  ,j  ,0) == Type::covered) { flg.setDisconnected(IntVect( 0,-1)); }
+        if (fy(i  ,j+1,0) == Type::covered) { flg.setDisconnected(IntVect( 0, 1)); }
 
         if (((fx(i,j,0) == Type::covered) || fy(i-1,j,0) == Type::covered) &&
             ((fx(i,j-1,0) == Type::covered) || fy(i,j,0) == Type::covered))

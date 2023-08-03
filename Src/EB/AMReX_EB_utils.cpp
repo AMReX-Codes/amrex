@@ -139,19 +139,19 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         if ( std::abs(edge_v[0]) > eps ) {
             cx_lo = -( edge_p0[0] - static_cast<Real>( ind_loop[0]     ) * dx[0] ) / edge_v[0];
             cx_hi = -( edge_p0[0] - static_cast<Real>( ind_loop[0] + 1 ) * dx[0] ) / edge_v[0];
-            if ( edge_v[0] < 0._rt ) amrex::Swap(cx_lo, cx_hi);
+            if ( edge_v[0] < 0._rt ) { amrex::Swap(cx_lo, cx_hi); }
         }
         //
         if ( std::abs(edge_v[1]) > eps ) {
             cy_lo = -( edge_p0[1] - static_cast<Real>( ind_loop[1]     ) * dx[1] ) / edge_v[1];
             cy_hi = -( edge_p0[1] - static_cast<Real>( ind_loop[1] + 1 ) * dx[1] ) / edge_v[1];
-            if ( edge_v[1] < 0._rt ) amrex::Swap(cy_lo, cy_hi);
+            if ( edge_v[1] < 0._rt ) { amrex::Swap(cy_lo, cy_hi); }
         }
         //
         if ( std::abs(edge_v[2]) > eps ) {
             cz_lo = -( edge_p0[2] - static_cast<Real>( ind_loop[2]     ) * dx[2] ) / edge_v[2];
             cz_hi = -( edge_p0[2] - static_cast<Real>( ind_loop[2] + 1 ) * dx[2] ) / edge_v[2];
-            if ( edge_v[2] < 0._rt ) amrex::Swap(cz_lo, cz_hi);
+            if ( edge_v[2] < 0._rt ) { amrex::Swap(cz_lo, cz_hi); }
         }
         //
         Real lambda_min = amrex::max(cx_lo, cy_lo, cz_lo);

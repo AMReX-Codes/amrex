@@ -271,10 +271,10 @@ void build_cellflag_from_ap (int i, int j, Array4<EBCellFlag> const& cflag,
     // By default, all neighbors are already set.
     auto flg = cflag(i,j,k);
 
-    if (apx(i  ,j  ,k) == 0.0_rt) flg.setDisconnected(-1, 0, 0);
-    if (apx(i+1,j  ,k) == 0.0_rt) flg.setDisconnected( 1, 0, 0);
-    if (apy(i  ,j  ,k) == 0.0_rt) flg.setDisconnected( 0,-1, 0);
-    if (apy(i  ,j+1,k) == 0.0_rt) flg.setDisconnected( 0, 1, 0);
+    if (apx(i  ,j  ,k) == 0.0_rt) { flg.setDisconnected(-1, 0, 0); }
+    if (apx(i+1,j  ,k) == 0.0_rt) { flg.setDisconnected( 1, 0, 0); }
+    if (apy(i  ,j  ,k) == 0.0_rt) { flg.setDisconnected( 0,-1, 0); }
+    if (apy(i  ,j+1,k) == 0.0_rt) { flg.setDisconnected( 0, 1, 0); }
 
     if ((apx(i,j  ,k) == 0.0_rt || apy(i-1,j,k) == 0.0_rt) &&
         (apx(i,j-1,k) == 0.0_rt || apy(i  ,j,k) == 0.0_rt))

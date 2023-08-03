@@ -102,17 +102,19 @@ amrex_flux_redistribute (
 #if (AMREX_SPACEDIM == 2)
                 int kk(0);
 #else
-                for (int kk = -1; kk <= 1; kk++)
+                for (int kk = -1; kk <= 1; kk++) {
 #endif
-                 for (int jj = -1; jj <= 1; jj++)
-                  for (int ii = -1; ii <= 1; ii++)
-                      if ( (ii != 0 || jj != 0 || kk != 0) && flag(i,j,k).isConnected(ii,jj,kk) &&
-                            dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
-                      {
-                          Real wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
-                          vtot   += wted_frac;
-                          divnc  += wted_frac * divc(i+ii,j+jj,k+kk,n);
-                      }
+                for (int jj = -1; jj <= 1; jj++) {
+                for (int ii = -1; ii <= 1; ii++) {
+                    if ( (ii != 0 || jj != 0 || kk != 0) && flag(i,j,k).isConnected(ii,jj,kk) &&
+                         dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
+                    {
+                        Real wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
+                        vtot   += wted_frac;
+                        divnc  += wted_frac * divc(i+ii,j+jj,k+kk,n);
+                    }
+                AMREX_D_TERM(},},})
+
                 divnc /= vtot;
 
                 // We need to multiply by mask to make sure optmp is zero for cells
@@ -135,17 +137,19 @@ amrex_flux_redistribute (
 #if (AMREX_SPACEDIM == 2)
                 int kk(0);
 #else
-                for (int kk = -1; kk <= 1; kk++)
+                for (int kk = -1; kk <= 1; kk++) {
 #endif
-                 for (int jj = -1; jj <= 1; jj++)
-                  for (int ii = -1; ii <= 1; ii++)
-                      if ( (ii != 0 || jj != 0 || kk != 0) && flag(i,j,k).isConnected(ii,jj,kk) &&
-                            dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
-                      {
-                          Real unwted_frac = vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
-                          vtot  += unwted_frac;
-                          divnc += unwted_frac*divc(i+ii,j+jj,k+kk,n);
-                      }
+                for (int jj = -1; jj <= 1; jj++) {
+                for (int ii = -1; ii <= 1; ii++) {
+                    if ( (ii != 0 || jj != 0 || kk != 0) && flag(i,j,k).isConnected(ii,jj,kk) &&
+                         dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
+                    {
+                        Real unwted_frac = vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
+                        vtot  += unwted_frac;
+                        divnc += unwted_frac*divc(i+ii,j+jj,k+kk,n);
+                    }
+                AMREX_D_TERM(},},})
+
                 divnc /= vtot;
 
                 // We need to multiply by mask to make sure optmp is zero for cells
@@ -172,14 +176,16 @@ amrex_flux_redistribute (
 #if (AMREX_SPACEDIM == 2)
             int kk(0);
 #else
-            for (int kk = -1; kk <= 1; kk++)
+            for (int kk = -1; kk <= 1; kk++) {
 #endif
-             for (int jj = -1; jj <= 1; jj++)
-              for (int ii = -1; ii <= 1; ii++)
-                  if ( (ii != 0 || jj != 0 || kk != 0) && flag(i,j,k).isConnected(ii,jj,kk) )
-                  {
-                      wtot += vfrac(i+ii,j+jj,k+kk)*wt(i+ii,j+jj,k+kk)* mask(i+ii,j+jj,k+kk);
-                  }
+            for (int jj = -1; jj <= 1; jj++) {
+            for (int ii = -1; ii <= 1; ii++) {
+                if ( (ii != 0 || jj != 0 || kk != 0) && flag(i,j,k).isConnected(ii,jj,kk) )
+                {
+                    wtot += vfrac(i+ii,j+jj,k+kk)*wt(i+ii,j+jj,k+kk)* mask(i+ii,j+jj,k+kk);
+                }
+            AMREX_D_TERM(},},})
+
 #ifdef AMREX_USE_FLOAT
             wtot = Real(1.0)/(wtot + Real(1.e-30));
 #else
@@ -212,71 +218,72 @@ amrex_flux_redistribute (
 #else
                     ( (i >= bx_ilo) && (i <= bx_ihi) && (j >= bx_jlo) && (j <= bx_jhi) && (k >= bx_klo) && (k <= bx_khi) );
 #endif
-                if (inside) as_fine_valid_cell = true;
+                if (inside) { as_fine_valid_cell = true; }
                 as_fine_ghost_cell = (levmsk(i,j,k) == level_mask_not_covered); // not covered by other grids
             }
 
 #if (AMREX_SPACEDIM == 2)
             kk = 0;
 #else
-            for (int kk = -1; kk <= 1; kk++)
+            for (int kk = -1; kk <= 1; kk++) {
 #endif
-             for (int jj = -1; jj <= 1; jj++)
-              for (int ii = -1; ii <= 1; ii++)
-                  if ( (ii != 0 || jj != 0 || kk != 0) && flag(i,j,k).isConnected(ii,jj,kk) )
-                  {
-                      int iii = i + ii;
-                      int jjj = j + jj;
-                      int kkk = k + kk;
+            for (int jj = -1; jj <= 1; jj++) {
+            for (int ii = -1; ii <= 1; ii++) {
+                if ( (ii != 0 || jj != 0 || kk != 0) && flag(i,j,k).isConnected(ii,jj,kk) )
+                {
+                    int iii = i + ii;
+                    int jjj = j + jj;
+                    int kkk = k + kk;
 
-                      Real drho = delm(i,j,k,n)*wtot*wt(iii,jjj,kkk)* mask(iii,jjj,kkk) ;
-                      Gpu::Atomic::Add(&optmp(iii,jjj,kkk,n), drho);
+                    Real drho = delm(i,j,k,n)*wtot*wt(iii,jjj,kkk)* mask(iii,jjj,kkk) ;
+                    Gpu::Atomic::Add(&optmp(iii,jjj,kkk,n), drho);
 
-                      valid_dst_cell = ( (iii >= bx_ilo) && (iii <= bx_ihi) &&
-                                         (jjj >= bx_jlo) && (jjj <= bx_jhi) );
+                    valid_dst_cell = ( (iii >= bx_ilo) && (iii <= bx_ihi) &&
+                                       (jjj >= bx_jlo) && (jjj <= bx_jhi) );
 #if (AMREX_SPACEDIM == 3)
-                      valid_dst_cell &= ( (kkk >= bx_klo) && (kkk <= bx_khi) );
+                    valid_dst_cell &= ( (kkk >= bx_klo) && (kkk <= bx_khi) );
 #endif
 
-                      if (as_crse_crse_cell)
-                      {
-                         if ( (rr_flag_crse(iii,jjj,kkk) == amrex_yafluxreg_fine_cell) &&
-                              (vfrac(i,j,k) > reredistribution_threshold) )
-                         {
-                             Gpu::Atomic::Add(&rr_drho_crse(i,j,k,n),
-                                              dt*drho*(vfrac(iii,jjj,kkk)/vfrac(i,j,k)));
-                         }
-                      }
+                    if (as_crse_crse_cell)
+                    {
+                        if ( (rr_flag_crse(iii,jjj,kkk) == amrex_yafluxreg_fine_cell) &&
+                             (vfrac(i,j,k) > reredistribution_threshold) )
+                        {
+                            Gpu::Atomic::Add(&rr_drho_crse(i,j,k,n),
+                                             dt*drho*(vfrac(iii,jjj,kkk)/vfrac(i,j,k)));
+                        }
+                    }
 
-                      if (as_crse_covered_cell && valid_dst_cell)
-                      {
-                         if ( (rr_flag_crse(iii,jjj,kkk) == amrex_yafluxreg_crse_fine_boundary_cell) &&
-                                     (vfrac(iii,jjj,kkk) > reredistribution_threshold) )
-                         {
+                    if (as_crse_covered_cell && valid_dst_cell)
+                    {
+                        if ( (rr_flag_crse(iii,jjj,kkk) == amrex_yafluxreg_crse_fine_boundary_cell) &&
+                             (vfrac(iii,jjj,kkk) > reredistribution_threshold) )
+                        {
                             // recipient is a crse/fine boundary cell
-                             Gpu::Atomic::Add(&rr_drho_crse(iii,jjj,kkk,n), -dt*drho);
-                         }
-                      }
+                            Gpu::Atomic::Add(&rr_drho_crse(iii,jjj,kkk,n), -dt*drho);
+                        }
+                    }
 
-                      if (as_fine_valid_cell && !valid_dst_cell)
-                      {
-                          Gpu::Atomic::Add(&dm_as_fine(iii,jjj,kkk,n), dt*drho*vfrac(iii,jjj,kkk));
-                      }
+                    if (as_fine_valid_cell && !valid_dst_cell)
+                    {
+                        Gpu::Atomic::Add(&dm_as_fine(iii,jjj,kkk,n), dt*drho*vfrac(iii,jjj,kkk));
+                    }
 
-                      if (as_fine_ghost_cell && valid_dst_cell)
-                      {
-                          Gpu::Atomic::Add(&dm_as_fine(i,j,k,n), -dt*drho*vfrac(iii,jjj,kkk));
-                      }
-
-                  } // isConnected
+                    if (as_fine_ghost_cell && valid_dst_cell)
+                    {
+                        Gpu::Atomic::Add(&dm_as_fine(i,j,k,n), -dt*drho*vfrac(iii,jjj,kkk));
+                    }
+                } // isConnected
+            AMREX_D_TERM(},},})
         } // isSingleValued
     });
 
     amrex::ParallelFor(bx, ncomp,
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
-        if (!flag(i,j,k).isCovered())
+        if (!flag(i,j,k).isCovered()) {
             dqdt(i,j,k,icomp+n) = divc(i,j,k,n) + optmp(i,j,k,n);
+        }
     });
 
 
