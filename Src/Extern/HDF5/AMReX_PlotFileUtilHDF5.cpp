@@ -470,7 +470,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
     pos = compression.find("ZFP");
     if (pos != std::string::npos) {
         ret = H5Z_zfp_initialize();
-        if (ret < 0) amrex::Abort("ZFP initialize failed!");
+        if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
     }
 #endif
 
@@ -912,7 +912,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     pos = compression.find("ZFP");
     if (pos != std::string::npos) {
         ret = H5Z_zfp_initialize();
-        if (ret < 0) amrex::Abort("ZFP initialize failed!");
+        if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
     }
 #endif
 
@@ -920,7 +920,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     pos = compression.find("SZ");
     if (pos != std::string::npos) {
         ret = H5Z_SZ_Init((char*)value_env.c_str());
-        if (ret < 0) amrex::Abort("ZFP initialize failed, check SZ config file!");
+        if (ret < 0) { amrex::Abort("ZFP initialize failed, check SZ config file!"); }
     }
 #endif
 
@@ -1161,24 +1161,26 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
             snprintf(dataname, sizeof dataname, "data:datatype=%d", jj);
 #ifdef AMREX_USE_HDF5_ASYNC
             dataset = H5Dcreate_async(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT, es_id_g);
-            if(dataset < 0) std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
+            if(dataset < 0) { std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl; }
 
-            if (hs_procsize[0] == 0)
+            if (hs_procsize[0] == 0) {
                 H5Sselect_none(dataspace);
-            else
+            } else {
                 H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
+            }
 
             ret = H5Dwrite_async(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer_ind.dataPtr(), es_id_g);
             if(ret < 0) { std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl; break; }
             H5Dclose_async(dataset, es_id_g);
 #else
             dataset = H5Dcreate(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT);
-            if(dataset < 0) std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
+            if(dataset < 0) { std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl; }
 
-            if (hs_procsize[0] == 0)
+            if (hs_procsize[0] == 0) {
                 H5Sselect_none(dataspace);
-            else
+            } else {
                 H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
+            }
 
             ret = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer_ind.dataPtr());
             if(ret < 0) { std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl; break; }
