@@ -460,13 +460,15 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         });
                     } else
 #endif
-                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                     {
-                        Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
+                        ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                        {
+                            Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
                             if (datma[bi](i,j,k) * vol >= threshold) {
                                 tagma[bi](i,j,k) = tag_update;
                             }
-                    });
+                        });
+                    }
                 }
                 else if (m_test == VORT)
                 {
