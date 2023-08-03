@@ -823,8 +823,8 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     if (apz(i,j,k+1) > Real(0.0) && apz(i,j,k+1) < Real(1.0)) {
                         int ii = i + (fcz(i,j,k+1,0) >= Real(0.0) ? 1 : -1);
                         int jj = j + (fcz(i,j,k+1,1) >= Real(0.0) ? 1 : -1);
-                        Real fracx = (ccm(ii,j,k) || ccm(ii,j,k)) ? std::abs(fcz(i,j,k+1,0)) : Real(0.0);
-                        Real fracy = (ccm(i,jj,k) || ccm(i,jj,k)) ? std::abs(fcz(i,j,k+1,1)) : Real(0.0);
+                        Real fracx = (ccm(ii,j,k) || ccm(ii,j,k+1)) ? std::abs(fcz(i,j,k+1,0)) : Real(0.0);
+                        Real fracy = (ccm(i,jj,k) || ccm(i,jj,k+1)) ? std::abs(fcz(i,j,k+1,1)) : Real(0.0);
                         fzp_0 = (Real(1.0)-fracx)*(Real(1.0)-fracy) *  fzp_0
                             + fracx*(Real(1.0)-fracy) * fz(ii,j ,k+1,0)
                             + fracy*(Real(1.0)-fracx) * fz(i ,jj,k+1,0)
