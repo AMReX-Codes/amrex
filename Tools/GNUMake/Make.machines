@@ -76,8 +76,10 @@ endif
 
 ifeq ($(findstring alcf.anl.gov, $(host_name)),alcf.anl.gov)
   ifeq ($(findstring theta, $(host_name)), theta)
+  ifneq ($(findstring thetagpu, $(host_name)), thetagpu)
     which_site := alcf
     which_computer := theta
+  endif
   endif
   ifeq ($(findstring polaris, $(host_name)), polaris)
     which_site := alcf
