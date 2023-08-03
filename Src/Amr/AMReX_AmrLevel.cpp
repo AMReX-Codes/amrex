@@ -123,7 +123,7 @@ AmrLevel::AmrLevel (Amr&            papa,
                         *m_factory);
     }
 
-    if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
+    if (parent->useFixedCoarseGrids()) { constructAreaNotToTag(); }
 
     post_step_regrid = 0;
 
@@ -186,8 +186,9 @@ AmrLevel::writePlotFile (const std::string& dir,
         //
         os << thePlotFileType() << '\n';
 
-        if (n_data_items == 0)
+        if (n_data_items == 0) {
             amrex::Error("Must specify at least one valid data item to plot");
+        }
 
         os << n_data_items << '\n';
 
@@ -219,25 +220,31 @@ AmrLevel::writePlotFile (const std::string& dir,
         os << parent->cumTime() << '\n';
         int f_lev = parent->finestLevel();
         os << f_lev << '\n';
-        for (i = 0; i < AMREX_SPACEDIM; i++)
+        for (i = 0; i < AMREX_SPACEDIM; i++) {
             os << Geom().ProbLo(i) << ' ';
+        }
         os << '\n';
-        for (i = 0; i < AMREX_SPACEDIM; i++)
+        for (i = 0; i < AMREX_SPACEDIM; i++) {
             os << Geom().ProbHi(i) << ' ';
+        }
         os << '\n';
-        for (i = 0; i < f_lev; i++)
+        for (i = 0; i < f_lev; i++) {
             os << parent->refRatio(i)[0] << ' ';
+        }
         os << '\n';
-        for (i = 0; i <= f_lev; i++)
+        for (i = 0; i <= f_lev; i++) {
             os << parent->Geom(i).Domain() << ' ';
+        }
         os << '\n';
-        for (i = 0; i <= f_lev; i++)
+        for (i = 0; i <= f_lev; i++) {
             os << parent->levelSteps(i) << ' ';
+        }
         os << '\n';
         for (i = 0; i <= f_lev; i++)
         {
-            for (int k = 0; k < AMREX_SPACEDIM; k++)
+            for (int k = 0; k < AMREX_SPACEDIM; k++) {
                 os << parent->Geom(i).CellSize()[k] << ' ';
+            }
             os << '\n';
         }
         os << (int) Geom().Coord() << '\n';
@@ -281,8 +288,9 @@ AmrLevel::writePlotFile (const std::string& dir,
         for (i = 0; i < grids.size(); ++i)
         {
             RealBox gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
-            for (n = 0; n < AMREX_SPACEDIM; n++)
+            for (n = 0; n < AMREX_SPACEDIM; n++) {
                 os << gridloc.lo(n) << ' ' << gridloc.hi(n) << '\n';
+}
         }
         //
         // The full relative pathname of the MultiFabs at this level.
@@ -447,7 +455,7 @@ AmrLevel::restart (Amr&          papa,
 
     m_fillpatcher.resize(ndesc);
 
-    if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
+    if (parent->useFixedCoarseGrids()) { constructAreaNotToTag(); }
 
     post_step_regrid = 0;
 
@@ -483,8 +491,9 @@ AmrLevel::isStateVariable (const std::string& name, int& state_indx, int& n)
 
         for (n = 0; n < desc.nComp(); n++)
         {
-            if (desc.name(n) == name)
+            if (desc.name(n) == name) {
                 return true;
+            }
         }
     }
     return false;
@@ -773,7 +782,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
         using IntAAAFBIDMapValType = std::map<int,Vector<Vector<Vector<FillBoxId> > > >::value_type;
 
-        if (m_leveldata.DistributionMap()[i] != MyProc) continue;
+        if (m_leveldata.DistributionMap()[i] != MyProc) { continue; }
         //
         // Insert with a hint since the indices are ordered lowest to highest.
         //
@@ -1179,7 +1188,7 @@ FixUpPhysCorners (FArrayBox&      fab,
     const Geometry& TheGeom    = TheLevel.Geom();
     const Box&      ProbDomain = TheState.getDomain();
 
-    if (!HasPhysBndry(fab.box(),ProbDomain,TheGeom)) return;
+    if (!HasPhysBndry(fab.box(),ProbDomain,TheGeom)) { return; }
 
     FArrayBox tmp;
 
@@ -1191,14 +1200,14 @@ FixUpPhysCorners (FArrayBox&      fab,
         {
             const int lo = ProbDomain.smallEnd(dir) - fab.box().smallEnd(dir);
             const int hi = fab.box().bigEnd(dir)    - ProbDomain.bigEnd(dir);
-            if (lo > 0) GrownDomain.growLo(dir,lo);
-            if (hi > 0) GrownDomain.growHi(dir,hi);
+            if (lo > 0) { GrownDomain.growLo(dir,lo); }
+            if (hi > 0) { GrownDomain.growHi(dir,hi); }
         }
     }
 
     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
-        if (!TheGeom.isPeriodic(dir)) continue;
+        if (!TheGeom.isPeriodic(dir)) { continue; }
 
         Box lo_slab = fab.box();
         Box hi_slab = fab.box();
@@ -1331,7 +1340,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             {
                 FArrayBox& dstfab = *CrseFabs[i];
 
-                if (ThePDomain.contains(dstfab.box())) continue;
+                if (ThePDomain.contains(dstfab.box())) { continue; }
 
                 Vector<IntVect> pshifts(27);
 
@@ -1469,8 +1478,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                 Box src_dst = FinestCrseFabs[i]->box() & fab.box();
                 src_dst    &= FineDomain;
 
-                if (src_dst.ok())
+                if (src_dst.ok()) {
                     fab.copy<RunOn::Host>(*FinestCrseFabs[i],src_dst,0,src_dst,dcomp,m_ncomp);
+                }
 
                 fab.shift(-iv);
             }
@@ -1856,8 +1866,9 @@ AmrLevel::getBCArray (int State_Type,
     {
         bcr = state[State_Type].getBC(strt_comp+n,gridno);
         const int* b_rec = bcr.vect();
-        for (int m = 0; m < 2*AMREX_SPACEDIM; m++)
+        for (int m = 0; m < 2*AMREX_SPACEDIM; m++) {
             bc[2*AMREX_SPACEDIM*n + m] = b_rec[m];
+        }
     }
 
     return bc;
@@ -1884,12 +1895,13 @@ AmrLevel::setPlotVariables ()
         {
             pp.get("plot_vars", nm, i);
 
-            if (nm == "ALL")
+            if (nm == "ALL") {
                 amrex::Amr::fillStatePlotVarList();
-            else if (nm == "NONE")
+            } else if (nm == "NONE") {
                 amrex::Amr::clearStatePlotVarList();
-            else
+            } else {
                 amrex::Amr::addStatePlotVar(nm);
+            }
         }
     }
     else
@@ -1910,12 +1922,13 @@ AmrLevel::setPlotVariables ()
         {
             pp.get("derive_plot_vars", nm, i);
 
-            if (nm == "ALL")
+            if (nm == "ALL") {
                 amrex::Amr::fillDerivePlotVarList();
-            else if (nm == "NONE")
+            } else if (nm == "NONE") {
                 amrex::Amr::clearDerivePlotVarList();
-            else
+            } else {
                 amrex::Amr::addDerivePlotVar(nm);
+            }
         }
     }
     else
@@ -1942,12 +1955,13 @@ AmrLevel::setSmallPlotVariables ()
         {
             pp.get("small_plot_vars", nm, i);
 
-            if (nm == "ALL")
+            if (nm == "ALL") {
                 amrex::Amr::fillStateSmallPlotVarList();
-            else if (nm == "NONE")
+            } else if (nm == "NONE") {
                 amrex::Amr::clearStateSmallPlotVarList();
-            else
+            } else {
                 amrex::Amr::addStateSmallPlotVar(nm);
+            }
         }
     }
     else
@@ -1968,12 +1982,13 @@ AmrLevel::setSmallPlotVariables ()
         {
             pp.get("derive_small_plot_vars", nm, i);
 
-            if (nm == "ALL")
+            if (nm == "ALL") {
                 amrex::Amr::fillDeriveSmallPlotVarList();
-            else if (nm == "NONE")
+            } else if (nm == "NONE") {
                 amrex::Amr::clearDeriveSmallPlotVarList();
-            else
+            } else {
                 amrex::Amr::addDeriveSmallPlotVar(nm);
+            }
         }
     }
     else
@@ -2056,8 +2071,9 @@ void AmrLevel::setAreaNotToTag (BoxArray& ba) noexcept
 
 void AmrLevel::constructAreaNotToTag ()
 {
-    if (level == 0 || !parent->useFixedCoarseGrids() || parent->useFixedUpToLevel()>level)
+    if (level == 0 || !parent->useFixedCoarseGrids() || parent->useFixedUpToLevel()>level) {
         return;
+    }
 
     // We are restricting the tagging on the finest fixed level
     if (parent->useFixedUpToLevel()==level)
