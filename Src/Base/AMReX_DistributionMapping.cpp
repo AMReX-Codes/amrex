@@ -106,7 +106,7 @@ DistributionMapping::operator!= (const DistributionMapping& rhs) const noexcept
 void
 DistributionMapping::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
     //
     // Set defaults here!!!
     //
@@ -856,13 +856,13 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<Long>& wgts,
     {
         RoundRobinProcessorMap(static_cast<int>(wgts.size()),nprocs, sort);
 
-        if (efficiency) *efficiency = 1;
+        if (efficiency) { *efficiency = 1; }
     }
     else
     {
         Real eff = 0;
         KnapSackDoIt(wgts, nprocs, eff, do_full_knapsack, nmax, sort);
-        if (efficiency) *efficiency = eff;
+        if (efficiency) { *efficiency = eff; }
     }
 }
 
@@ -1335,7 +1335,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         LIpairV.emplace_back(wgt,i);
     }
 
-    if (sort) Sort(LIpairV, true);
+    if (sort) { Sort(LIpairV, true); }
 
     if (flag_verbose_mapper) {
         for (const auto &p : LIpairV) {
@@ -1441,11 +1441,11 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         for (int i = 0; i < nteams; ++i)
         {
             const Long W = LIpairV[i].first;
-            if (W > max_wgt) max_wgt = W;
+            if (W > max_wgt) { max_wgt = W; }
             sum_wgt += W;
         }
         Real efficiency = static_cast<Real>(sum_wgt)/static_cast<Real>(nteams*max_wgt);
-        if (eff) *eff = efficiency;
+        if (eff) { *eff = efficiency; }
 
         if (verbose)
         {
@@ -1871,7 +1871,7 @@ DistributionMapping::makeSFC (const LayoutData<Real>& rcost_local,
         }
 
         // Broadcast vector from which to construct new distribution mapping
-        ParallelDescriptor::Bcast(&pmap[0], pmap.size(), root);
+        ParallelDescriptor::Bcast(pmap.data(), pmap.size(), root);
         if (ParallelDescriptor::MyProc() != root)
         {
             r = DistributionMapping(pmap);
@@ -1968,8 +1968,9 @@ operator<< (std::ostream&              os,
 
     os << ')' << '\n';
 
-    if (os.fail())
+    if (os.fail()) {
         amrex::Error("operator<<(ostream &, DistributionMapping &) failed");
+    }
 
     return os;
 }

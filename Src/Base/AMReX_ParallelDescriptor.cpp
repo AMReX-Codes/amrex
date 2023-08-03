@@ -263,22 +263,22 @@ Message::test ()
 int
 Message::tag () const
 {
-    if ( !m_finished ) amrex::Error("Message::tag: Not Finished!");
+    if ( !m_finished ) { amrex::Error("Message::tag: Not Finished!"); }
     return m_stat.MPI_TAG;
 }
 
 int
 Message::pid () const
 {
-    if ( !m_finished ) amrex::Error("Message::pid: Not Finished!");
+    if ( !m_finished ) { amrex::Error("Message::pid: Not Finished!"); }
     return m_stat.MPI_SOURCE;
 }
 
 size_t
 Message::count () const
 {
-    if ( m_type == MPI_DATATYPE_NULL ) amrex::Error("Message::count: Bad Type!");
-    if ( !m_finished ) amrex::Error("Message::count: Not Finished!");
+    if ( m_type == MPI_DATATYPE_NULL ) { amrex::Error("Message::count: Bad Type!"); }
+    if ( !m_finished ) { amrex::Error("Message::count: Not Finished!"); }
     int cnt;
     BL_MPI_REQUIRE( MPI_Get_count(&m_stat, m_type, &cnt) );
     return cnt;
@@ -394,7 +394,7 @@ StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
 #ifdef BL_USE_MPI3
     int mpi_version, mpi_subversion;
     BL_MPI_REQUIRE( MPI_Get_version(&mpi_version, &mpi_subversion) );
-    if (mpi_version < 3) amrex::Abort("MPI 3 is needed because USE_MPI3=TRUE");
+    if (mpi_version < 3) { amrex::Abort("MPI 3 is needed because USE_MPI3=TRUE"); }
 #endif
 
     // Wait until all other processes are properly started.
@@ -604,8 +604,9 @@ ReduceBoolAnd (bool& r, int cpu)
 
     detail::DoReduce<int>(&src,MPI_SUM,1,cpu);
 
-    if (ParallelDescriptor::MyProc() == cpu)
+    if (ParallelDescriptor::MyProc() == cpu) {
         r = (src == ParallelDescriptor::NProcs()) ? true : false;
+    }
 }
 
 void
@@ -625,8 +626,9 @@ ReduceBoolOr (bool& r, int cpu)
 
     detail::DoReduce<int>(&src,MPI_SUM,1,cpu);
 
-    if (ParallelDescriptor::MyProc() == cpu)
+    if (ParallelDescriptor::MyProc() == cpu) {
         r = (src == 0) ? false : true;
+    }
 }
 
 void
@@ -1165,8 +1167,9 @@ Gather (Real const* sendbuf, int nsend, Real* recvbuf, int root)
     BL_ASSERT(!(sendbuf == nullptr));
     BL_ASSERT(!(recvbuf == nullptr));
 
-    for (int i = 0; i < nsend; ++i)
+    for (int i = 0; i < nsend; ++i) {
         recvbuf[i] = sendbuf[i];
+    }
 }
 
 void
@@ -1568,7 +1571,7 @@ StartTeams ()
         for (int i = 0; i < lead_ranks.size(); ++i) {
             lead_ranks[i] = i * team_size;
         }
-        BL_MPI_REQUIRE( MPI_Group_incl(grp, lead_ranks.size(), &lead_ranks[0], &lead_grp) );
+        BL_MPI_REQUIRE( MPI_Group_incl(grp, lead_ranks.size(), lead_ranks.data(), &lead_grp) );
         BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
                                         lead_grp, &m_Team.m_lead_comm) );
 
@@ -1591,14 +1594,15 @@ mpi_level_to_string (int mtlev)
 {
     amrex::ignore_unused(mtlev);
 #ifdef AMREX_USE_MPI
-    if (mtlev == MPI_THREAD_SINGLE)
+    if (mtlev == MPI_THREAD_SINGLE) {
         return std::string("MPI_THREAD_SINGLE");
-    if (mtlev == MPI_THREAD_FUNNELED)
+    } else if (mtlev == MPI_THREAD_FUNNELED) {
         return std::string("MPI_THREAD_FUNNELED");
-    if (mtlev == MPI_THREAD_SERIALIZED)
+    } else if (mtlev == MPI_THREAD_SERIALIZED) {
         return std::string("MPI_THREAD_SERIALIZED");
-    if (mtlev == MPI_THREAD_MULTIPLE)
+    } else if (mtlev == MPI_THREAD_MULTIPLE) {
         return std::string("MPI_THREAD_MULTIPLE");
+    }
 #endif
     return std::string("UNKNOWN");
 }

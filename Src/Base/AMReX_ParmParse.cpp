@@ -85,7 +85,7 @@ ParmParse::PP_entry::~PP_entry ()
 ParmParse::PP_entry&
 ParmParse::PP_entry::operator= (const PP_entry& pe)
 {
-    if ( &pe == this ) return *this;
+    if ( &pe == this ) { return *this; }
     m_name = pe.m_name;
     m_vals = pe.m_vals;
     m_table = nullptr;
@@ -105,7 +105,7 @@ ParmParse::PP_entry::print () const {
     for ( int i = 0; i < n; i++)
     {
         t << m_vals[i];
-        if ( i < n-1 ) t << " ";
+        if ( i < n-1 ) { t << " "; }
     }
     return t.str();
 }
@@ -118,7 +118,7 @@ operator<< (std::ostream& os, const ParmParse::PP_entry& pp)
     for ( int i = 0; i < n; i++ )
     {
         os << pp.m_vals[i];
-        if ( i < n-1 ) os << ", ";
+        if ( i < n-1 ) { os << ", "; }
     }
     os << "]";
 
@@ -147,10 +147,10 @@ isT (const std::string& str, T& val)
 {
     std::istringstream s(str);
     s >> val;
-    if ( s.fail() ) return false;
+    if ( s.fail() ) { return false; }
     std::string left;
     std::getline(s, left);
-    if ( !left.empty() ) return false;
+    if ( !left.empty() ) { return false; }
     return true;
 }
 
@@ -264,7 +264,7 @@ eat_garbage (const char*& str)
     int num_linefeeds = 0;
     for (;;)
     {
-        if ( *str == 0 ) break; // NOLINT
+        if ( *str == 0 ) { break; } // NOLINT
         else if ( *str == '#' )
         {
             while ( *str && *str != '\n' )
@@ -656,8 +656,9 @@ addDefn (std::string&         def,
         tab.emplace_back(def,val);
     }
     val.clear();
-    if ( def != ParmParse::FileKeyword )
+    if ( def != ParmParse::FileKeyword ) {
         def = std::string();
+    }
 }
 
 void
@@ -915,7 +916,7 @@ squeryarr (const ParmParse::Table& table,
         num_val = static_cast<int>(def->m_vals.size());
     }
 
-    if ( num_val == 0 ) return true;
+    if ( num_val == 0 ) { return true; }
 
     int stop_ix = start_ix + num_val - 1;
     if ( static_cast<int>(ref.size()) <= stop_ix )
@@ -1183,7 +1184,7 @@ unused_table_entries_q (const ParmParse::Table& table, const std::string& prefix
             }
             else
             {
-                if (unused_table_entries_q(*li.m_table, prefix)) return true;
+                if (unused_table_entries_q(*li.m_table, prefix)) { return true; }
             }
         }
         else if ( !li.m_queried )
@@ -1248,11 +1249,11 @@ ParmParse::QueryUnusedInputs ()
 {
     if ( ParallelDescriptor::IOProcessor() && unused_table_entries_q(g_table))
     {
-      finalize_verbose = amrex::system::verbose;
-      if (finalize_verbose) amrex::OutStream() << "Unused ParmParse Variables:\n";
-      finalize_table("  [TOP]", g_table);
-      if (finalize_verbose) amrex::OutStream() << std::endl;
-      return true;
+        finalize_verbose = amrex::system::verbose;
+        if (finalize_verbose) { amrex::OutStream() << "Unused ParmParse Variables:\n"; }
+        finalize_table("  [TOP]", g_table);
+        if (finalize_verbose) { amrex::OutStream() << std::endl; }
+        return true;
     }
     return false;
 }
@@ -1314,14 +1315,16 @@ ParmParse::Finalize ()
 {
     if ( ParallelDescriptor::IOProcessor() && unused_table_entries_q(g_table))
     {
-      finalize_verbose = amrex::system::verbose;
-      if (finalize_verbose) amrex::OutStream() << "Unused ParmParse Variables:\n";
-      finalize_table("  [TOP]", g_table);
-      if (finalize_verbose) amrex::OutStream() << std::endl;
-      //
-      // First loop through and delete all queried entries.
-      //
-      if (amrex::system::abort_on_unused_inputs) amrex::Abort("ERROR: unused ParmParse variables.");
+        finalize_verbose = amrex::system::verbose;
+        if (finalize_verbose) { amrex::OutStream() << "Unused ParmParse Variables:\n"; }
+        finalize_table("  [TOP]", g_table);
+        if (finalize_verbose) { amrex::OutStream() << std::endl; }
+        //
+        // First loop through and delete all queried entries.
+        //
+        if (amrex::system::abort_on_unused_inputs) {
+            amrex::Abort("ERROR: unused ParmParse variables.");
+        }
     }
     g_table.clear();
 

@@ -473,7 +473,7 @@ Device::initialize_gpu ()
 #endif
         }
         auto found = std::find(sgss.begin(), sgss.end(), static_cast<decltype(sgss)::value_type>(warp_size));
-        if (found == sgss.end()) amrex::Abort("Incorrect subgroup size");
+        if (found == sgss.end()) { amrex::Abort("Incorrect subgroup size"); }
     }
 #endif
 

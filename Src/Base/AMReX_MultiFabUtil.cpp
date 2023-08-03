@@ -45,7 +45,7 @@ namespace {
             boxes.push_back(is.second);
             slice_to_full_ba_map.push_back(is.first);
         }
-        BoxArray slice_ba(&boxes[0], static_cast<int>(boxes.size()));
+        BoxArray slice_ba(boxes.data(), static_cast<int>(boxes.size()));
         DistributionMapping slice_dmap(std::move(procs));
 
         return std::make_unique<MultiFab>(slice_ba, slice_dmap, ncomp, 0,
@@ -470,7 +470,7 @@ namespace amrex
         const auto type = fine.ixType();
         int dir;
         for (dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-            if (type.cellCentered(dir)) break;
+            if (type.cellCentered(dir)) { break; }
         }
         auto tmptype = type;
         tmptype.set(dir);

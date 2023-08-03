@@ -1255,7 +1255,7 @@ protected:
 
         ~ShMem () { // NOLINT
 #if defined(BL_USE_MPI3)
-            if (win != MPI_WIN_NULL) MPI_Win_free(&win);
+            if (win != MPI_WIN_NULL) { MPI_Win_free(&win); }
 #endif
 #ifdef BL_USE_TEAM
             if (alloc) {
@@ -1937,7 +1937,7 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
-    if (!define_function_called) return false;
+    if (!define_function_called) { return false; }
 
     int isok = 1;
 
@@ -3242,7 +3242,7 @@ FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngho
 {
     BL_PROFILE("FabArray<FAB>::SumBoundary_nowait()");
 
-    if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) return;
+    if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) { return; }
 
     AMREX_ASSERT(src_nghost <= n_grow);
 
@@ -3262,7 +3262,7 @@ FabArray<FAB>::SumBoundary_finish ()
     BL_PROFILE("FabArray<FAB>::SumBoundary_finish()");
 
     // If pcd doesn't exist, ParallelCopy was all local and operation was fully completed in "SumBoundary_nowait".
-    if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) return;
+    if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) { return; }
 
     auto* tmp = const_cast<FabArray<FAB>*> (this->pcd->src);
     this->ParallelCopy_finish();

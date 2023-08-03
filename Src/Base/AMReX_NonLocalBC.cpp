@@ -51,7 +51,7 @@ void PrepareCommBuffers(CommData& comm,
     comm.stats.clear();
 
     const auto N_comms = static_cast<int>(cctc.size());
-    if (N_comms == 0) return;
+    if (N_comms == 0) { return; }
     // reserve for upcominf push_backs
     comm.data.reserve(N_comms);
     comm.size.reserve(N_comms);

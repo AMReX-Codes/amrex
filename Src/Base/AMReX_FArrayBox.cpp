@@ -123,7 +123,7 @@ FArrayBox::FArrayBox (const Box& b, int ncomp, Arena* ar)
 FArrayBox::FArrayBox (const Box& b, int n, bool alloc, bool shared, Arena* ar)
     : BaseFab<Real>(b,n,alloc,shared,ar)
 {
-    if (alloc) initVal();
+    if (alloc) { initVal(); }
 }
 
 FArrayBox::FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp)
@@ -180,7 +180,7 @@ FArrayBox::initVal () noexcept
                 p[i] = x;
             });
 #ifdef AMREX_USE_GPU
-            if (runon == RunOn::Gpu) Gpu::streamSynchronize();
+            if (runon == RunOn::Gpu) { Gpu::streamSynchronize(); }
 #else
             amrex::ignore_unused(runon);
 #endif
@@ -346,7 +346,7 @@ FArrayBox::get_initval ()
 void
 FArrayBox::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
     initialized = true;
 
     BL_ASSERT(fabio == nullptr);
@@ -419,14 +419,13 @@ FArrayBox::Initialize ()
 
     if (pp.query("ordering", ord))
     {
-        if (ord == "NORMAL_ORDER")
+        if (ord == "NORMAL_ORDER") {
             FArrayBox::setOrdering(FABio::FAB_NORMAL_ORDER);
-        else if (ord == "REVERSE_ORDER")
+        } else if (ord == "REVERSE_ORDER") {
             FArrayBox::setOrdering(FABio::FAB_REVERSE_ORDER);
-        else if (ord == "REVERSE_ORDER_2")
+        } else if (ord == "REVERSE_ORDER_2") {
             FArrayBox::setOrdering(FABio::FAB_REVERSE_ORDER_2);
-        else
-        {
+        } else {
             amrex::ErrorStream() << "FArrayBox::init(): Bad FABio::Ordering = " << ord;
             amrex::Abort();
         }
@@ -472,11 +471,11 @@ FABio::read_header (std::istream& is,
     char c;
 
     is >> c;
-    if(c != 'F') amrex::Error("FABio::read_header(): expected \'F\'");
+    if(c != 'F') { amrex::Error("FABio::read_header(): expected \'F\'"); }
     is >> c;
-    if(c != 'A') amrex::Error("FABio::read_header(): expected \'A\'");
+    if(c != 'A') { amrex::Error("FABio::read_header(): expected \'A\'"); }
     is >> c;
-    if(c != 'B') amrex::Error("FABio::read_header(): expected \'B\'");
+    if(c != 'B') { amrex::Error("FABio::read_header(): expected \'B\'"); }
 
     is >> c;
     if(c == ':') {  // ---- The "old" FAB format.
@@ -551,11 +550,11 @@ FABio::read_header (std::istream& is,
     char c;
 
     is >> c;
-    if(c != 'F') amrex::Error("FABio::read_header(): expected \'F\'");
+    if(c != 'F') { amrex::Error("FABio::read_header(): expected \'F\'"); }
     is >> c;
-    if(c != 'A') amrex::Error("FABio::read_header(): expected \'A\'");
+    if(c != 'A') { amrex::Error("FABio::read_header(): expected \'A\'"); }
     is >> c;
-    if(c != 'B') amrex::Error("FABio::read_header(): expected \'B\'");
+    if(c != 'B') { amrex::Error("FABio::read_header(): expected \'B\'"); }
 
     is >> c;
     if(c == ':') {  // ---- The "old" FAB format.

@@ -140,7 +140,7 @@ public:
     void operator() (MultiFab& mf, int icomp, int ncomp, IntVect const& nghost,
                      Real time, int bccomp)
     {
-        if (m_geom.isAllPeriodic()) return;
+        if (m_geom.isAllPeriodic()) { return; }
 
         BL_PROFILE("PhysBCFunct::()");
 
@@ -234,7 +234,7 @@ GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
         }
     }
 
-    if (gdomain.contains(bx)) return;
+    if (gdomain.contains(bx)) { return; }
 
     Array4<Real> const& fab = dest.array();
     const auto geomdata = geom.data();
@@ -359,7 +359,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
         }
     }
 
-    if (gdomain.contains(bx)) return;
+    if (gdomain.contains(bx)) { return; }
 
     Array4<Real> const& fab = dest.array();
     const auto geomdata = geom.data();
@@ -383,7 +383,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
         Vector<Box> face_boxes;
         for (const Box& b : dom_face_boxes) {
             Box tmp = b & bx;
-            if (tmp.ok()) face_boxes.push_back(tmp);
+            if (tmp.ok()) { face_boxes.push_back(tmp); }
         }
         const int n_face_boxes = face_boxes.size();
         if (n_face_boxes == 1) {
@@ -443,7 +443,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
         Vector<Box> edge_boxes;
         for (const Box& b : dom_edge_boxes) {
             Box tmp = b & bx;
-            if (tmp.ok()) edge_boxes.push_back(tmp);
+            if (tmp.ok()) { edge_boxes.push_back(tmp); }
         }
         const int n_edge_boxes = edge_boxes.size();
         if (n_edge_boxes == 1) {
@@ -491,7 +491,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
         Vector<Box> corner_boxes;
         for (const Box& b : dom_corner_boxes) {
             Box tmp = b & bx;
-            if (tmp.ok()) corner_boxes.push_back(tmp);
+            if (tmp.ok()) { corner_boxes.push_back(tmp); }
         }
         const int n_corner_boxes = corner_boxes.size();
         if (n_corner_boxes == 1) {

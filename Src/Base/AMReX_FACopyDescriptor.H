@@ -94,8 +94,9 @@ FabCopyDescriptor<FAB>::FabCopyDescriptor ()
 template <class FAB>
 FabCopyDescriptor<FAB>::~FabCopyDescriptor ()
 {
-    if (cacheDataAllocated)
+    if (cacheDataAllocated) {
         delete localFabSource;
+    }
 }
 
 /**
@@ -435,7 +436,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 {
     dataAvailable = true;
 
-    if (ParallelDescriptor::NProcs() == 1) return;
+    if (ParallelDescriptor::NProcs() == 1) { return; }
 
 #ifdef BL_USE_MPI
     using value_type = typename FAB::value_type;
@@ -524,9 +525,11 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         }
         BL_ASSERT(SndsArray[MyProc] == 0);
 
-        for (int i = 0; i < NProcs; i++)
-            if (SndsArray[i] > 0)
+        for (int i = 0; i < NProcs; i++) {
+            if (SndsArray[i] > 0) {
                 Snds[i] = SndsArray[i];
+            }
+        }
     }
 
     // There are two rounds of send and recv.
@@ -538,7 +541,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     const auto N_snds = static_cast<int>(Snds.size());
     const auto N_rcvs = static_cast<int>(Rcvs.size());
 
-    if ( N_snds == 0 && N_rcvs == 0 ) return;
+    if ( N_snds == 0 && N_rcvs == 0 ) { return; }
 
     const int Nints = 4 + 3*AMREX_SPACEDIM;  // # of ints in a meta-data
 

@@ -212,7 +212,7 @@ FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
 {
     auto const& LocTags = *(TheFB.m_LocTags);
     auto N_locs = static_cast<int>(LocTags.size());
-    if (N_locs == 0) return;
+    if (N_locs == 0) { return; }
     bool is_thread_safe = TheFB.m_threadsafe_loc;
     if (is_thread_safe)
     {
@@ -273,7 +273,7 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
 {
     auto const& LocTags = *(TheFB.m_LocTags);
     int N_locs = LocTags.size();
-    if (N_locs == 0) return;
+    if (N_locs == 0) { return; }
     bool is_thread_safe = TheFB.m_threadsafe_loc;
 
     using TagType = Array4CopyTag<value_type>;
@@ -334,7 +334,7 @@ FabArray<FAB>::CMD_local_setVal_gpu (typename FabArray<FAB>::value_type x,
 {
     auto const& LocTags = *(thecmd.m_LocTags);
     int N_locs = LocTags.size();
-    if (N_locs == 0) return;
+    if (N_locs == 0) { return; }
     bool is_thread_safe = thecmd.m_threadsafe_loc;
 
     using TagType = Array4BoxTag<value_type>;
@@ -374,7 +374,7 @@ FabArray<FAB>::CMD_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
         }
     }
 
-    if (rcv_setval_tags.empty()) return;
+    if (rcv_setval_tags.empty()) { return; }
 
     AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value || is_thread_safe);
 
@@ -561,7 +561,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int n
                                                Vector<typename FabArray<FAB>::CopyComTagsContainer const*> const& send_cctc)
 {
     const int N_snds = send_data.size();
-    if (N_snds == 0) return;
+    if (N_snds == 0) { return; }
 
     if ( !(TheFB.m_copyToBuffer.ready()) )
     {
@@ -648,7 +648,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
                                                  bool /*is_thread_safe*/)
 {
     const int N_rcvs = recv_cctc.size();
-    if (N_rcvs == 0) return;
+    if (N_rcvs == 0) { return; }
 
     int launches = 0;
     LayoutData<Vector<VoidCopyTag> > recv_copy_tags(boxArray(),DistributionMap());
@@ -735,7 +735,7 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
     amrex::ignore_unused(send_size);
 
     const int N_snds = send_data.size();
-    if (N_snds == 0) return;
+    if (N_snds == 0) { return; }
 
     char* pbuffer = send_data[0];
     std::size_t szbuffer = 0;
@@ -796,7 +796,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     amrex::ignore_unused(recv_size);
 
     const int N_rcvs = recv_cctc.size();
-    if (N_rcvs == 0) return;
+    if (N_rcvs == 0) { return; }
 
     char* pbuffer = recv_data[0];
 #if 0
@@ -905,7 +905,7 @@ FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int nc
     amrex::ignore_unused(send_size);
 
     auto const N_snds = static_cast<int>(send_data.size());
-    if (N_snds == 0) return;
+    if (N_snds == 0) { return; }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
@@ -945,7 +945,7 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     amrex::ignore_unused(recv_size);
 
     auto const N_rcvs = static_cast<int>(recv_cctc.size());
-    if (N_rcvs == 0) return;
+    if (N_rcvs == 0) { return; }
 
     if (is_thread_safe)
     {

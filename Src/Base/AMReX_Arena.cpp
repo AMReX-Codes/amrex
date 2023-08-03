@@ -141,7 +141,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-        if (p && (nbytes > 0) && arena_info.device_use_hostalloc) mlock(p, nbytes);
+        if (p && (nbytes > 0) && arena_info.device_use_hostalloc) { mlock(p, nbytes); }
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
@@ -201,13 +201,13 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-    if (p && (nbytes > 0) && arena_info.device_use_hostalloc) mlock(p, nbytes);
+    if (p && (nbytes > 0) && arena_info.device_use_hostalloc) { mlock(p, nbytes); }
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 #endif
 #endif
-    if (p == nullptr) amrex::Abort("Sorry, malloc failed");
+    if (p == nullptr) { amrex::Abort("Sorry, malloc failed"); }
     return p;
 }
 
@@ -217,7 +217,7 @@ Arena::deallocate_system (void* p, std::size_t nbytes) // NOLINT(readability-mak
 #ifdef AMREX_USE_GPU
     if (arena_info.use_cpu_memory)
     {
-        if (p && arena_info.device_use_hostalloc) AMREX_MUNLOCK(p, nbytes);
+        if (p && arena_info.device_use_hostalloc) { AMREX_MUNLOCK(p, nbytes); }
         std::free(p);
     }
     else if (arena_info.device_use_hostalloc)
@@ -235,7 +235,7 @@ Arena::deallocate_system (void* p, std::size_t nbytes) // NOLINT(readability-mak
              sycl::free(p,Gpu::Device::syclContext()));
     }
 #else
-    if (p && arena_info.device_use_hostalloc) AMREX_MUNLOCK(p, nbytes);
+    if (p && arena_info.device_use_hostalloc) { AMREX_MUNLOCK(p, nbytes); }
     std::free(p);
 #endif
 }
@@ -265,7 +265,7 @@ namespace {
 void
 Arena::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
     initialized = true;
 
     // see reason on allowed reuse of the default CPU BArena in Arena::Finalize

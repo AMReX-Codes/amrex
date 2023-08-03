@@ -409,7 +409,7 @@ public:
         RegionTag (RegionTag && rhs) noexcept : tagged(rhs.tagged) { rhs.tagged = false; }
         RegionTag& operator= (RegionTag const&) = delete;
         RegionTag& operator= (RegionTag &&) = delete;
-        ~RegionTag () { if (tagged) popRegionTag(); }
+        ~RegionTag () { if (tagged) { popRegionTag(); } }
     private:
         bool tagged = false;
     };

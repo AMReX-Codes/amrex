@@ -618,7 +618,7 @@ public:
               typename M=std::enable_if_t<std::is_integral<N>::value> >
     void eval (N n, D & reduce_data, F&& f)
     {
-        if (n <= 0) return;
+        if (n <= 0) { return; }
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
         auto dp = reduce_data.devicePtr(stream);
@@ -887,7 +887,7 @@ bool AnyOf (N n, T const* v, P&& pred)
     amrex::launch<AMREX_GPU_MAX_THREADS>(ec.numBlocks.x, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
-        if (threadIdx.x == 0) has_any = *dp;
+        if (threadIdx.x == 0) { has_any = *dp; }
         __syncthreads();
 
         if (!has_any)
@@ -953,7 +953,7 @@ bool AnyOf (Box const& box, P&& pred)
                         Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
-        if (threadIdx.x == 0) has_any = *dp;
+        if (threadIdx.x == 0) { has_any = *dp; }
         __syncthreads();
 
         if (!has_any)
@@ -1259,7 +1259,7 @@ bool AnyOf (Box const& box, P&&pred)
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        if (pred(i,j,k)) return true;
+        if (pred(i,j,k)) { return true; }
     }}}
     return false;
 }

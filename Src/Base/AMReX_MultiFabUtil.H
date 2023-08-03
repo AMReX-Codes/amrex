@@ -844,7 +844,7 @@ void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
     const auto type = fine.ixType();
     int dir;
     for (dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-        if (type.nodeCentered(dir)) break;
+        if (type.nodeCentered(dir)) { break; }
     }
     auto tmptype = type;
     tmptype.unset(dir);

@@ -177,7 +177,7 @@ while ( false )
 #if defined(BL_USE_MPI3)
             if (m_size > 1) {
                 MPI_Comm_free(&m_team_comm);
-                if (m_rankInTeam==0) MPI_Comm_free(&m_lead_comm);
+                if (m_rankInTeam==0) { MPI_Comm_free(&m_lead_comm); }
             }
 #endif
         }
@@ -355,8 +355,8 @@ while ( false )
     {
         int rb, re;
         {
-            if (rit < 0) rit = ParallelDescriptor::MyRankInTeam();
-            if (nworkers == 0) nworkers = ParallelDescriptor::TeamSize();
+            if (rit < 0) { rit = ParallelDescriptor::MyRankInTeam(); }
+            if (nworkers == 0) { nworkers = ParallelDescriptor::TeamSize(); }
             BL_ASSERT(rit<nworkers);
             if (nworkers == 1) {
                 rb = begin;
@@ -948,7 +948,7 @@ ParallelDescriptor::Gather (const T& t, int root)
     BL_COMM_PROFILE(BLProfiler::GatherTi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     std::vector<T> resl;
-    if ( root == MyProc() ) resl.resize(NProcs());
+    if ( root == MyProc() ) { resl.resize(NProcs()); }
     BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(&t),
                                1,
                                Mpi_typemap<T>::type(),
@@ -971,7 +971,7 @@ ParallelDescriptor::Gatherv (const T* send, int sc,
     BL_COMM_PROFILE(BLProfiler::Gatherv,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     MPI_Gatherv(send, sc, ParallelDescriptor::Mpi_typemap<T>::type(),
-                recv, &rc[0], &disp[0], ParallelDescriptor::Mpi_typemap<T>::type(),
+                recv, rc.data(), disp.data(), ParallelDescriptor::Mpi_typemap<T>::type(),
                 root, Communicator());
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, std::accumulate(rc.begin(),rc.end(),0)*sizeof(T), root, BLProfiler::NoTag());
@@ -1028,7 +1028,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     }
 
     Vector<int> disp(nprocs);
-    if (!disp.empty()) disp[0] = 0;
+    if (!disp.empty()) { disp[0] = 0; }
     std::partial_sum(recvcount.begin(), recvcount.end()-1, disp.begin()+1);
     Vector<T> new_index_to_T(sendbuf.size());
 
