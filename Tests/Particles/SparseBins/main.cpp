@@ -32,8 +32,9 @@ void testIntersection()
                                  params.is_periodic)};
 
     Vector<IntVect> rr(params.nlevs-1);
-    for (int lev = 1; lev < params.nlevs; lev++)
+    for (int lev = 1; lev < params.nlevs; lev++) {
         rr[lev-1] = IntVect(AMREX_D_DECL(2,2,2));
+    }
 
     RealBox real_box;
     for (int n = 0; n < AMREX_SPACEDIM; n++)

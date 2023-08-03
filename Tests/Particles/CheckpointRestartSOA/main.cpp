@@ -120,12 +120,14 @@ void test ()
         amrex::Print() << " done \n";
 
         Vector<std::string> particle_realnames;
-        for (int i = 0; i < NReal; ++i)
+        for (int i = 0; i < NReal; ++i) {
             particle_realnames.push_back("particle_real_component_" + std::to_string(i));
+        }
 
         Vector<std::string> particle_intnames;
-        for (int i = 0; i < NInt; ++i)
+        for (int i = 0; i < NInt; ++i) {
             particle_intnames.push_back("particle_int_component_" + std::to_string(i));
+        }
 
         for (int ts = 0; ts < nparticlefile; ts++) {
             std::snprintf(fname, sizeof fname, "%splt%05d", directory.c_str(), ts);
@@ -217,8 +219,9 @@ void set_grids_nested (Vector<Box>& domains,
     domains[0].setBig(domain_hi);
 
     ref_ratio.resize(nlevs-1);
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         ref_ratio[lev-1] = IntVect(AMREX_D_DECL(2, 2, 2));
+    }
 
     grids.resize(nlevs);
     grids[0].define(domains[0]);

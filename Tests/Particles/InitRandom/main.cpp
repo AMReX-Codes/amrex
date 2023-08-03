@@ -159,8 +159,9 @@ void set_grids_nested (Vector<Box>& domains,
     domains[0].setBig(domain_hi);
 
     ref_ratio.resize(nlevs-1);
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         ref_ratio[lev-1] = IntVect(AMREX_D_DECL(2, 2, 2));
+    }
 
     grids.resize(nlevs);
     grids[0].define(domains[0]);
