@@ -980,8 +980,9 @@ void mlebtensor_flux_0 (Box const& box,
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (ap(i,j,k) != Real(0.0)) {
-                    for (int n=0; n<AMREX_SPACEDIM; n++)
+                    for (int n=0; n<AMREX_SPACEDIM; n++) {
                       Ax(i,j,k,n) += bscalar*fx(i,j,k,n);
+                    }
                 }
                 //else MLEBABec::compFlux already set Ax = 0
             }
@@ -1003,8 +1004,9 @@ void mlebtensor_flux_x (Box const& box, Array4<Real> const& Ax,
     {
         if (!face_only || lof == i || hif == i) {
           if (apx(i,j,k) == Real(1.0)) {
-            for (int n=0; n<AMREX_SPACEDIM; n++)
+            for (int n=0; n<AMREX_SPACEDIM; n++) {
                 Ax(i,j,k,n) += bscalar*fx(i,j,k,n);
+            }
           }
           else if (apx(i,j,k) != Real(0.0)) {
                 Real fxm_0 = fx(i,j,k,0);
@@ -1049,8 +1051,9 @@ void mlebtensor_flux_y (Box const& box, Array4<Real> const& Ay,
     {
         if (!face_only || lof == j || hif == j) {
           if (apy(i,j,k) == Real(1.0)) {
-            for (int n=0; n<AMREX_SPACEDIM; n++)
+            for (int n=0; n<AMREX_SPACEDIM; n++) {
                   Ay(i,j,k,n) += bscalar*fy(i,j,k,n);
+            }
           } else if (apy(i,j,k) != 0) {
                   Real fym_0 = fy(i,j,k,0);
                   Real fym_1 = fy(i,j,k,1);
@@ -1095,8 +1098,9 @@ void mlebtensor_flux_z (Box const& box, Array4<Real> const& Az,
     {
         if (!face_only || lof == k || hif == k) {
           if (apz(i,j,k) == Real(1.0)) {
-            for (int n=0; n<AMREX_SPACEDIM; n++)
+            for (int n=0; n<AMREX_SPACEDIM; n++) {
                   Az(i,j,k,n) += bscalar*fz(i,j,k,n);
+            }
           }
           else if (apz(i,j,k) != 0.) {
                   Real fzm_0 = fz(i,j,k,0);

@@ -255,12 +255,12 @@ void abec_gsrb_with_line_solve (
     // int idir = 1;
 
     // This should be moved outside the kernel!
-    if (dhy <= dhx) amrex::Abort("dhy is supposed to be much larger than dhx");
+    if (dhy <= dhx) { amrex::Abort("dhy is supposed to be much larger than dhx"); }
 
     int ilen = hi.y - lo.y + 1;
 
     // This should be moved outside the kernel!
-    if (ilen > 32) amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32");
+    if (ilen > 32) { amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32"); }
 
     Array1D<T,0,31> a_ls;
     Array1D<T,0,31> b_ls;
@@ -295,10 +295,12 @@ void abec_gsrb_with_line_solve (
                            +       bX(i+1,j,0,n)*phi(i+1,j,0,n) );
 
                     // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
-                    if (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+                    if (i == vlo.x && m0(vlo.x-1,j,0) > 0) {
                         rho -= dhx*bX(i  ,j,0,n)*phi(i-1,j,0,n);
-                    if (i == vhi.x && m3(vhi.x+1,j,0) > 0)
+                    }
+                    if (i == vhi.x && m3(vhi.x+1,j,0) > 0) {
                         rho -= dhx*bX(i+1,j,0,n)*phi(i+1,j,0,n);
+                    }
 
                     a_ls(j-lo.y) = -dhy*bY(i,j,0,n);
                     b_ls(j-lo.y) =  g_m_d;
@@ -308,11 +310,11 @@ void abec_gsrb_with_line_solve (
 
                     if (j == lo.y) {
                         a_ls(j-lo.y) = T(0.);
-                        if (!(m1(i,vlo.y-1,0) > 0)) r_ls(j-lo.y) += dhy*bY(i,j,0,n)*phi(i,j-1,0,n);
+                        if (!(m1(i,vlo.y-1,0) > 0)) { r_ls(j-lo.y) += dhy*bY(i,j,0,n)*phi(i,j-1,0,n); }
                     }
                     if (j == hi.y) {
                         c_ls(j-lo.y) = T(0.);
-                        if (!(m3(i,vhi.y+1,0) > 0)) r_ls(j-lo.y) += dhy*bY(i,j+1,0,n)*phi(i,j+1,0,n);
+                        if (!(m3(i,vhi.y+1,0) > 0)) { r_ls(j-lo.y) += dhy*bY(i,j+1,0,n)*phi(i,j+1,0,n); }
                     }
                 }
 //                      This is the tridiagonal solve
@@ -323,7 +325,7 @@ void abec_gsrb_with_line_solve (
                     for (int jj = 1; jj <= ilen-1; jj++) {
                         gam(jj) = c_ls(jj-1) / bet;
                         bet = b_ls(jj) - a_ls(jj)*gam(jj);
-                        if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
+                        if (bet == 0) { amrex::Abort(">>>TRIDIAG FAILED"); }
                         u_ls(jj) = (r_ls(jj)-a_ls(jj)*u_ls(jj-1)) / bet;
                     }
 
