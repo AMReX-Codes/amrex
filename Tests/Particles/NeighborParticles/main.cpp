@@ -85,41 +85,49 @@ void testNeighborParticles ()
 
     IntVect nppc(params.num_ppc);
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "About to initialize particles \n";
+    }
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Check neighbors after init ... \n";
+    }
     pc.checkNeighborParticles();
 
     pc.fillNeighbors();
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Check neighbors after fill ... \n";
+    }
     pc.checkNeighborParticles();
 
     pc.updateNeighbors();
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Check neighbors after update ... \n";
+    }
     pc.checkNeighborParticles();
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Now resetting the particle test_id values  \n";
+    }
     pc.reset_test_id();
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Check neighbors after reset ... \n";
+    }
     pc.checkNeighborParticles();
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Now updateNeighbors again ...  \n";
+    }
     pc.updateNeighbors();
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Check neighbors after update ... \n";
+    }
     pc.checkNeighborParticles();
 
     ParallelDescriptor::Barrier();
