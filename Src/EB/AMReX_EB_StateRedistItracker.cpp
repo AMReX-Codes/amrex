@@ -27,16 +27,17 @@ MakeITracker ( Box const& bx,
 
     const Box domain = lev_geom.Domain();
 
-    // Note that itracker has 4 components and all are initialized to zero
-    // We will add to the first component every time this cell is included in a merged neighborhood,
-    //    either by merging or being merged
-    // We identify the cells in the remaining three components with the following ordering
+    // Note that itracker has 4 components -- the first component stores the
+    //      number of neighbors and each additional component stores where that neighbor is
+    //
+    // We identify the neighbors with the following ordering
     //
     // ^  6 7 8
     // |  4   5
     // j  1 2 3
     //   i --->
 
+    // Note the first component of imap/jmap should never be used
     Array<int,9> imap{0,-1,0,1,-1,1,-1,0,1};
     Array<int,9> jmap{0,-1,-1,-1,0,0,1,1,1};
 
@@ -241,10 +242,10 @@ MakeITracker ( Box const& bx,
 
     const Box domain = lev_geom.Domain();
 
-    // Note that itracker has 8 components and all are initialized to zero
-    // We will add to the first component every time this cell is included in a merged neighborhood,
-    //    either by merging or being merged
-    // We identify the cells in the remaining three components with the following ordering
+    // Note that itracker has 8 components -- the first component stores the
+    //      number of neighbors and each additional component stores where that neighbor is
+    //
+    // We identify the neighbors with the following ordering
     //
     //    at k-1   |   at k  |   at k+1
     //
@@ -253,7 +254,7 @@ MakeITracker ( Box const& bx,
     // j  9  10 11 |  1 2 3  |  18 19 20
     //   i --->
     //
-    // Note the first component of each of these arrays should never be used
+    // Note the first component of imap/jmap/kmap should never be used
     Array<int,27>    imap{0,-1, 0, 1,-1, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1,-1, 0, 1};
     Array<int,27>    jmap{0,-1,-1,-1, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1,-1,-1,-1, 0, 0, 0, 1, 1, 1};
     Array<int,27>    kmap{0, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
@@ -331,6 +332,7 @@ MakeITracker ( Box const& bx,
                } else {
                    itracker(i,j,k,1) = 2;
                }
+
            // z-component of normal is greatest
            } else {
                if (nz > 0) {
@@ -571,6 +573,7 @@ MakeITracker ( Box const& bx,
                            } else {
                                itracker(i,j,k,7) = 18;
                            }
+
                        } else { // nz <= 0
 
                            itracker(i,j,k,4) = 13;

@@ -42,7 +42,9 @@ amrex_flux_redistribute (
         amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
     }
 
-    const Box dbox = geom.growPeriodicDomain(2);
+    const Box dbox1 = geom.growPeriodicDomain(1);
+    const Box dbox2 = geom.growPeriodicDomain(2);
+
     const Box& grown1_bx = amrex::grow(bx,1);
     const Box& grown2_bx = amrex::grow(bx,2);
 
@@ -75,10 +77,9 @@ amrex_flux_redistribute (
     //
     AMREX_FOR_3D(grown2_bx, i, j, k,
     {
-        mask(i,j,k) = (dbox.contains(IntVect(AMREX_D_DECL(i,j,k)))) ? 1.0 : 0.0;
+        mask(i,j,k) = (dbox2.contains(IntVect(AMREX_D_DECL(i,j,k)))) ? 1.0 : 0.0;
     });
 
-    //LOOK AT THIS
     //
     // Init to zero tmp array
     //
@@ -107,7 +108,7 @@ amrex_flux_redistribute (
                 for (int jj = -1; jj <= 1; jj++) {
                 for (int ii = -1; ii <= 1; ii++) {
                     if ( (ii != 0 || jj != 0 || kk != 0) && flag(i,j,k).isConnected(ii,jj,kk) &&
-                         dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
+                         dbox2.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
                     {
                         Real wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                         vtot   += wted_frac;
@@ -142,7 +143,7 @@ amrex_flux_redistribute (
                 for (int jj = -1; jj <= 1; jj++) {
                 for (int ii = -1; ii <= 1; ii++) {
                     if ( (ii != 0 || jj != 0 || kk != 0) && flag(i,j,k).isConnected(ii,jj,kk) &&
-                         dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
+                         dbox2.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
                     {
                         Real unwted_frac = vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                         vtot  += unwted_frac;
@@ -219,7 +220,7 @@ amrex_flux_redistribute (
                     ( (i >= bx_ilo) && (i <= bx_ihi) && (j >= bx_jlo) && (j <= bx_jhi) && (k >= bx_klo) && (k <= bx_khi) );
 #endif
                 if (inside) { as_fine_valid_cell = true; }
-                as_fine_ghost_cell = (levmsk(i,j,k) == level_mask_not_covered); // not covered by other grids
+                as_fine_ghost_cell = (levmsk(i,j,k) == level_mask_not_covered); // not covered by other grids at this level
             }
 
 #if (AMREX_SPACEDIM == 2)
@@ -264,12 +265,12 @@ amrex_flux_redistribute (
                         }
                     }
 
-                    if (as_fine_valid_cell && !valid_dst_cell)
+                    if (as_fine_valid_cell && !valid_dst_cell && dbox1.contains(IntVect(AMREX_D_DECL(iii,jjj,kkk))))
                     {
                         Gpu::Atomic::Add(&dm_as_fine(iii,jjj,kkk,n), dt*drho*vfrac(iii,jjj,kkk));
                     }
 
-                    if (as_fine_ghost_cell && valid_dst_cell)
+                    if (as_fine_ghost_cell && valid_dst_cell && dbox1.contains(IntVect(AMREX_D_DECL(i,j,k))))
                     {
                         Gpu::Atomic::Add(&dm_as_fine(i,j,k,n), -dt*drho*vfrac(iii,jjj,kkk));
                     }
