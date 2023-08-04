@@ -53,8 +53,8 @@ MakeITracker ( Box const& bx,
     });
 
     Box domain_per_grown = domain;
-    if (is_periodic_x) domain_per_grown.grow(0,4);
-    if (is_periodic_y) domain_per_grown.grow(1,4);
+    if (is_periodic_x) { domain_per_grown.grow(0,4); }
+    if (is_periodic_y) { domain_per_grown.grow(1,4); }
 
     Box const& bxg4 = amrex::grow(bx,4);
     Box bx_per_g4= domain_per_grown & bxg4;
@@ -78,16 +78,18 @@ MakeITracker ( Box const& bx,
            // As a first pass, choose just based on the normal
            if (std::abs(nx) > std::abs(ny))
            {
-               if (nx > 0)
+               if (nx > 0) {
                    itracker(i,j,k,1) = 5;
-               else
+               } else {
                    itracker(i,j,k,1) = 4;
+               }
 
            } else {
-               if (ny > 0)
+               if (ny > 0) {
                    itracker(i,j,k,1) = 7;
-               else
+               } else {
                    itracker(i,j,k,1) = 2;
+               }
            }
 
            bool xdir_mns_ok = (is_periodic_x || (i > domain.smallEnd(0)));
@@ -115,8 +117,9 @@ MakeITracker ( Box const& bx,
            int joff = jmap[itracker(i,j,k,1)];
 
            // Sanity check
-           if (vfrac(i+ioff,j+joff,k) == 0.)
+           if (vfrac(i+ioff,j+joff,k) == 0.) {
                amrex::Abort(" Trying to merge with covered cell");
+           }
 
            Real sum_vol = vfrac(i,j,k) + vfrac(i+ioff,j+joff,k);
 
@@ -184,14 +187,15 @@ MakeITracker ( Box const& bx,
                ioff = imap[itracker(i,j,k,1)] + imap[itracker(i,j,k,2)];
                joff = jmap[itracker(i,j,k,1)] + jmap[itracker(i,j,k,2)];
 
-               if (ioff > 0 && joff > 0)
+               if (ioff > 0 && joff > 0) {
                    itracker(i,j,k,3) = 8;
-               else if (ioff < 0 && joff > 0)
+               } else if (ioff < 0 && joff > 0) {
                    itracker(i,j,k,3) = 6;
-               else if (ioff > 0 && joff < 0)
+               } else if (ioff > 0 && joff < 0) {
                    itracker(i,j,k,3) = 3;
-               else
+               } else {
                    itracker(i,j,k,3) = 1;
+               }
 
                // (i,j) merges with at least three cells now
                itracker(i,j,k,0) += 1;
@@ -270,10 +274,10 @@ MakeITracker ( Box const& bx,
     });
 
     Box domain_per_grown = domain;
-    if (is_periodic_x) domain_per_grown.grow(0,4);
-    if (is_periodic_y) domain_per_grown.grow(1,4);
+    if (is_periodic_x) { domain_per_grown.grow(0,4); }
+    if (is_periodic_y) { domain_per_grown.grow(1,4); }
 #if (AMREX_SPACEDIM == 3)
-    if (is_periodic_z) domain_per_grown.grow(2,4);
+    if (is_periodic_z) { domain_per_grown.grow(2,4); }
 #endif
 
     Box const& bxg4 = amrex::grow(bx,4);
@@ -312,54 +316,59 @@ MakeITracker ( Box const& bx,
            if ( (std::abs(nx) > std::abs(ny)) &&
                 (std::abs(nx) > std::abs(nz)) )
            {
-               if (nx > 0)
+               if (nx > 0) {
                    itracker(i,j,k,1) = 5;
-               else
+               } else {
                    itracker(i,j,k,1) = 4;
+               }
 
            // y-component of normal is greatest
            } else if ( (std::abs(ny) >= std::abs(nx)) &&
                        (std::abs(ny) > std::abs(nz)) )
            {
-               if (ny > 0)
+               if (ny > 0) {
                    itracker(i,j,k,1) = 7;
-               else
-
+               } else {
                    itracker(i,j,k,1) = 2;
+               }
            // z-component of normal is greatest
            } else {
-               if (nz > 0)
+               if (nz > 0) {
                    itracker(i,j,k,1) = 22;
-               else
+               } else {
                    itracker(i,j,k,1) = 13;
+               }
            }
 
            // Override above logic if trying to reach outside a domain boundary (and non-periodic)
            if ( (!xdir_mns_ok && (itracker(i,j,k,1) == 4)) ||
                 (!xdir_pls_ok && (itracker(i,j,k,1) == 5)) )
            {
-               if ( (std::abs(ny) > std::abs(nz)) )
+               if ( (std::abs(ny) > std::abs(nz)) ) {
                    itracker(i,j,k,1) = (ny > 0) ? 7 : 2;
-               else
+               } else {
                    itracker(i,j,k,1) = (nz > 0) ? 22 : 13;
+               }
            }
 
            if ( (!ydir_mns_ok && (itracker(i,j,k,1) == 2)) ||
                 (!ydir_pls_ok && (itracker(i,j,k,1) == 7)) )
            {
-               if ( (std::abs(nx) > std::abs(nz)) )
+               if ( (std::abs(nx) > std::abs(nz)) ) {
                    itracker(i,j,k,1) = (nx > 0) ? 5 : 4;
-               else
+               } else {
                    itracker(i,j,k,1) = (nz > 0) ? 22 : 13;
+               }
            }
 
            if ( (!zdir_mns_ok && (itracker(i,j,k,1) == 13)) ||
                 (!zdir_pls_ok && (itracker(i,j,k,1) == 22)) )
            {
-               if ( (std::abs(nx) > std::abs(ny)) )
+               if ( (std::abs(nx) > std::abs(ny)) ) {
                    itracker(i,j,k,1) = (nx > 0) ? 5 : 4;
-               else
+               } else {
                    itracker(i,j,k,1) = (ny > 0) ? 7 : 2;
+               }
            }
 
            // (i,j,k) merges with at least one cell now
@@ -466,36 +475,39 @@ MakeITracker ( Box const& bx,
                // Both nbors are in the koff=0 plane
                if (koff == 0)
                {
-                   if (ioff > 0 && joff > 0)
+                   if (ioff > 0 && joff > 0) {
                        itracker(i,j,k,3) = 8;
-                   else if (ioff < 0 && joff > 0)
+                   } else if (ioff < 0 && joff > 0) {
                        itracker(i,j,k,3) = 6;
-                   else if (ioff > 0 && joff < 0)
+                   } else if (ioff > 0 && joff < 0) {
                        itracker(i,j,k,3) = 3;
-                   else
+                   } else {
                        itracker(i,j,k,3) = 1;
+                   }
 
                // Both nbors are in the joff=0 plane
                } else if (joff == 0) {
-                   if (ioff > 0 && koff > 0)
+                   if (ioff > 0 && koff > 0) {
                        itracker(i,j,k,3) = 23;
-                   else if (ioff < 0 && koff > 0)
+                   } else if (ioff < 0 && koff > 0) {
                        itracker(i,j,k,3) = 21;
-                   else if (ioff > 0 && koff < 0)
+                   } else if (ioff > 0 && koff < 0) {
                        itracker(i,j,k,3) = 14;
-                   else
+                   } else {
                        itracker(i,j,k,3) = 12;
+                   }
 
                // Both nbors are in the ioff=0 plane
                } else {
-                   if (joff > 0 && koff > 0)
+                   if (joff > 0 && koff > 0) {
                        itracker(i,j,k,3) = 25;
-                   else if (joff < 0 && koff > 0)
+                   } else if (joff < 0 && koff > 0) {
                        itracker(i,j,k,3) = 19;
-                   else if (joff > 0 && koff < 0)
+                   } else if (joff > 0 && koff < 0) {
                        itracker(i,j,k,3) = 16;
-                   else
+                   } else {
                        itracker(i,j,k,3) = 10;
+                   }
                }
 
                // (i,j,k) merges with at least three cells now
@@ -539,14 +551,16 @@ MakeITracker ( Box const& bx,
                        {
                            itracker(i,j,k,4) = 22;
 
-                           if (ioff > 0)
+                           if (ioff > 0) {
                                itracker(i,j,k,5) =  23;
-                           else
+                           } else {
                                itracker(i,j,k,5) =  21;
-                           if (joff > 0)
+                           }
+                           if (joff > 0) {
                                itracker(i,j,k,6) =  25;
-                           else
+                           } else {
                                itracker(i,j,k,6) =  19;
+                           }
 
                            if (ioff > 0 && joff > 0) {
                                itracker(i,j,k,7) = 26;
@@ -561,14 +575,16 @@ MakeITracker ( Box const& bx,
 
                            itracker(i,j,k,4) = 13;
 
-                           if (ioff > 0)
+                           if (ioff > 0) {
                                itracker(i,j,k,5) =  14;
-                           else
+                           } else {
                                itracker(i,j,k,5) =  12;
-                           if (joff > 0)
+                           }
+                           if (joff > 0) {
                                itracker(i,j,k,6) =  16;
-                           else
+                           } else {
                                itracker(i,j,k,6) =  10;
+                           }
 
                            if (ioff > 0 && joff > 0) {
                                itracker(i,j,k,7) = 17;
@@ -585,14 +601,16 @@ MakeITracker ( Box const& bx,
                        {
                            itracker(i,j,k,4) = 7;
 
-                           if (ioff > 0)
+                           if (ioff > 0) {
                                itracker(i,j,k,5) =  8;
-                           else
+                           } else {
                                itracker(i,j,k,5) =  6;
-                           if (koff > 0)
+                           }
+                           if (koff > 0) {
                                itracker(i,j,k,6) =  25;
-                           else
+                           } else {
                                itracker(i,j,k,6) =  16;
+                           }
 
                            if (ioff > 0 && koff > 0) {
                                itracker(i,j,k,7) = 26;
@@ -608,14 +626,16 @@ MakeITracker ( Box const& bx,
 
                            itracker(i,j,k,4) = 2;
 
-                           if (ioff > 0)
+                           if (ioff > 0) {
                                itracker(i,j,k,5) =  3;
-                           else
+                           } else {
                                itracker(i,j,k,5) =  1;
-                           if (koff > 0)
+                           }
+                           if (koff > 0) {
                                itracker(i,j,k,6) =  19;
-                           else
+                           } else {
                                itracker(i,j,k,6) =  10;
+                           }
 
                            if (ioff > 0 && koff > 0) {
                                itracker(i,j,k,7) = 20;
@@ -633,14 +653,16 @@ MakeITracker ( Box const& bx,
                        {
                            itracker(i,j,k,4) = 5;
 
-                           if (joff > 0)
+                           if (joff > 0) {
                                itracker(i,j,k,5) =  8;
-                           else
+                           } else {
                                itracker(i,j,k,5) =  3;
-                           if (koff > 0)
+                           }
+                           if (koff > 0) {
                                itracker(i,j,k,6) =  23;
-                           else
+                           } else {
                                itracker(i,j,k,6) =  14;
+                           }
 
                            if (joff > 0 && koff > 0) {
                                itracker(i,j,k,7) = 26;
@@ -655,14 +677,16 @@ MakeITracker ( Box const& bx,
 
                            itracker(i,j,k,4) = 4;
 
-                           if (joff > 0)
+                           if (joff > 0) {
                                itracker(i,j,k,5) =  6;
-                           else
+                           } else {
                                itracker(i,j,k,5) =  1;
-                           if (koff > 0)
+                           }
+                           if (koff > 0) {
                                itracker(i,j,k,6) =  21;
-                           else
+                           } else {
                                itracker(i,j,k,6) =  12;
+                           }
 
                            if (joff > 0 && koff > 0) {
                                itracker(i,j,k,7) = 24;

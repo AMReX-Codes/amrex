@@ -74,10 +74,10 @@ amrex_calc_centroid_limiter(int i, int j, int k, int n,
             {
                 Real new_lim = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n));
 
-                if (amrex::Math::abs(delta_x) > epsilon) xalpha = amrex::min(xalpha,new_lim);
-                if (amrex::Math::abs(delta_y) > epsilon) yalpha = amrex::min(yalpha,new_lim);
+                if (amrex::Math::abs(delta_x) > epsilon) { xalpha = amrex::min(xalpha,new_lim); }
+                if (amrex::Math::abs(delta_y) > epsilon) { yalpha = amrex::min(yalpha,new_lim); }
 #if (AMREX_SPACEDIM == 3)
-                if (amrex::Math::abs(delta_z) > epsilon) zalpha = amrex::min(zalpha,new_lim);
+                if (amrex::Math::abs(delta_z) > epsilon) { zalpha = amrex::min(zalpha,new_lim); }
 #endif
             }
         }

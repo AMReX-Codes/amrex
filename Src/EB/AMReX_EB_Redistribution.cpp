@@ -31,12 +31,14 @@ namespace amrex {
         const Real* dx = geom.CellSize();
 
 #if (AMREX_SPACEDIM == 2)
-        if (! amrex::almostEqual(dx[0], dx[1]))
+        if (! amrex::almostEqual(dx[0], dx[1])) {
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
+        }
 #elif (AMREX_SPACEDIM == 3)
         if( ! amrex::almostEqual(dx[0],dx[1]) ||
-            ! amrex::almostEqual(dx[1],dx[2]) )
+            ! amrex::almostEqual(dx[1],dx[2]) ) {
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
+        }
 #endif
 
         //
