@@ -282,7 +282,7 @@ Arena::Initialize ()
 #ifdef AMREX_USE_SYCL
     the_arena_init_size = std::min(the_arena_init_size, Gpu::Device::maxMemAllocSize());
 #endif
-    the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem();
+    the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 2L;
 #endif
 
     ParmParse pp("amrex");
