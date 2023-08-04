@@ -68,7 +68,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 bl[dir].push_back(amrex::coarsen(amrex::bdryNode(ccbx,face.first),
                                                  ref_ratio));
                 procmap[dir].push_back(fdm[i]);
-                if (fdm[i] == myproc) my_global_indices[dir].push_back(i);
+                if (fdm[i] == myproc) { my_global_indices[dir].push_back(i); }
             }
         }
 
@@ -140,7 +140,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 const int dir = face.coordDir();
                 bl[dir].push_back(amrex::bdryNode(ccbx,face));
                 procmap[dir].push_back(cdm[i]);
-                if (cdm[i] == myproc) my_global_indices[dir].push_back(i);
+                if (cdm[i] == myproc) { my_global_indices[dir].push_back(i); }
             }
         }
 
