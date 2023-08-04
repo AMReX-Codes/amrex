@@ -74,7 +74,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
     {
         auto p = make_particle<ParticleType>{}(ptd,i);
-        if ((p.id() < 0)) return false;
+        if ((p.id() < 0)) { return false; }
         IntVect iv(
             AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
                          int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
@@ -383,7 +383,7 @@ int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
                      const Box& domain) noexcept
 {
-    if (p.id() < 0) return -1;
+    if (p.id() < 0) { return -1; }
     IntVect iv = getParticleCell(p, plo, dxi, domain);
     return mask(iv);
 }
@@ -400,7 +400,7 @@ bool enforcePeriodic (P& p,
     bool shifted = false;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (! is_per[idim]) continue;
+        if (! is_per[idim]) { continue; }
         if (p.pos(idim) > rhi[idim]) {
             while (p.pos(idim) > rhi[idim]) {
                 p.pos(idim) -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
@@ -441,7 +441,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                           int lev_min, int lev_max, int nGrow, bool remove_negative)
 {
     const int np = ptile.numParticles();
-    if (np == 0) return 0;
+    if (np == 0) { return 0; }
 
     auto getPID = pmap.getPIDFunctor();
 
