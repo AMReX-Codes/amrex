@@ -901,6 +901,10 @@ ifeq ($(USE_EB),TRUE)
     DEFINES += -DAMREX_USE_EB
 endif
 
+ifeq ($(USE_MOVING_EB),TRUE)
+    DEFINES += -DAMREX_USE_MOVING_EB
+endif
+
 ifeq ($(AMREX_XSDK),TRUE)
    DEFINES += -DAMREX_XSDK
 endif
