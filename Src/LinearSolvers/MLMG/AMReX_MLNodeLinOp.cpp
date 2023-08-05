@@ -257,7 +257,7 @@ void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geome
 void
 MLNodeLinOp::buildMasks ()
 {
-    if (m_masks_built) return;
+    if (m_masks_built) { return; }
 
     BL_PROFILE("MLNodeLinOp::buildMasks()");
 
@@ -289,7 +289,7 @@ MLNodeLinOp::buildMasks ()
             ccm.BuildMask(ccdomain,period,0,1,2,0);
 
             MFItInfo mfi_info;
-            if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+            if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
             if (m_overset_dirichlet_mask && mglev > 0) {
                 const auto& dmask_fine = *m_dirichlet_mask[amrlev][mglev-1];

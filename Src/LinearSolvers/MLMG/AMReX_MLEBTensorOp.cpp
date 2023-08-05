@@ -203,7 +203,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     BL_PROFILE("MLEBTensorOp::apply()");
     MLEBABecLap::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
 
-    if (mglev >= m_kappa[amrlev].size()) return;
+    if (mglev >= m_kappa[amrlev].size()) { return; }
 
     applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
 
@@ -228,7 +228,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     compCrossTerms(amrlev, mglev, in, bndry);
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -237,7 +237,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
         const Box& bx = mfi.tilebox();
 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (fabtyp == FabType::covered) continue;
+        if (fabtyp == FabType::covered) { continue; }
 
         Array4<Real> const axfab = out.array(mfi);
         AMREX_D_TERM(Array4<Real const> const fxfab = fluxmf[0].const_array(mfi);,
@@ -311,7 +311,7 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf,
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -504,14 +504,15 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 {
     BL_PROFILE("MLEBTensorOp::compFlux()");
 
-    if ( !(loc==Location::FaceCenter || loc==Location::FaceCentroid) )
+    if ( !(loc==Location::FaceCenter || loc==Location::FaceCentroid) ) {
         amrex::Abort("MLEBTensorOp::compFlux() unknown location for fluxes.");
+    }
 
     const int mglev = 0;
     const int ncomp = getNComp();
     MLEBABecLap::compFlux(amrlev, fluxes, sol, loc);
 
-    if (mglev >= m_kappa[amrlev].size()) return;
+    if (mglev >= m_kappa[amrlev].size()) { return; }
 
     applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
 
@@ -526,7 +527,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
     compCrossTerms(amrlev, mglev, sol, m_bndry_sol[amrlev].get());
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -535,7 +536,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
         const Box& bx = mfi.tilebox();
 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (fabtyp == FabType::covered) continue;
+        if (fabtyp == FabType::covered) { continue; }
 
         if (fabtyp == FabType::regular)
         {
@@ -648,7 +649,7 @@ MLEBTensorOp::compVelGrad (int amrlev,
         const Box& bx = mfi.tilebox();
 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (fabtyp == FabType::covered) continue;
+        if (fabtyp == FabType::covered) { continue; }
 
         Array4<Real const> const vfab = sol.const_array(mfi);
         AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,

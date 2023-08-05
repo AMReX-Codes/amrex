@@ -186,11 +186,11 @@ void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& domain,
 {
     Box gdomain = domain;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (! bflo[idim]) gdomain.growLo(idim,1);
-        if (! bfhi[idim]) gdomain.growHi(idim,1);
+        if (! bflo[idim]) { gdomain.growLo(idim,1); }
+        if (! bfhi[idim]) { gdomain.growHi(idim,1); }
     }
 
-    if (gdomain.strictly_contains(vbx)) return;
+    if (gdomain.strictly_contains(vbx)) { return; }
 
     const int offset = domain.cellCentered() ? 0 : 1;
 
@@ -667,7 +667,7 @@ void tridiagonal_solve (Array1D<Real,0,31>& a_ls, Array1D<Real,0,31>& b_ls, Arra
     for (int i = 1; i <= ilen - 1; i++) {
         gam(i) = c_ls(i-1) / bet;
         bet = b_ls(i) - a_ls(i)*gam(i);
-        if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
+        if (bet == 0) { amrex::Abort(">>>TRIDIAG FAILED"); }
         u_ls(i) = (r_ls(i)-a_ls(i)*u_ls(i-1)) / bet;
     }
     for (int i = ilen-2; i >= 0; i--) {
@@ -707,7 +707,9 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
         ilen = hi.x - lo.x + 1;
     }
 
-    if (ilen > 32) amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is hard-wired to be no longer than 32");
+    if (ilen > 32) {
+        amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa is hard-wired to be no longer than 32");
+    }
 
     Array1D<Real,0,31> a_ls,b_ls,c_ls,u_ls,r_ls,gam;
 
@@ -1079,13 +1081,25 @@ void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real con
         // The nodal divergence operator should not see the tangential velocity
         //     at an inflow face
         if ((bclo[0] == LinOpBCType::Neumann || bclo[0] == LinOpBCType::inflow)
-            && i == domlo.x) zero_ilo = Real(0.0);
+            && i == domlo.x)
+        {
+            zero_ilo = Real(0.0);
+        }
         if ((bchi[0] == LinOpBCType::Neumann || bchi[0] == LinOpBCType::inflow)
-            && i == domhi.x) zero_ihi = Real(0.0);
+            && i == domhi.x)
+        {
+            zero_ihi = Real(0.0);
+        }
         if ((bclo[1] == LinOpBCType::Neumann || bclo[1] == LinOpBCType::inflow)
-            && j == domlo.y) zero_jlo = Real(0.0);
+            && j == domlo.y)
+        {
+            zero_jlo = Real(0.0);
+        }
         if ((bchi[1] == LinOpBCType::Neumann || bchi[1] == LinOpBCType::inflow)
-            && j == domhi.y) zero_jhi = Real(0.0);
+            && j == domhi.y)
+        {
+            zero_jhi = Real(0.0);
+        }
 
         rhs(i,j,k) = facx*(-vel(i-1,j-1,k,0)*zero_jlo + vel(i,j-1,k,0)*zero_jlo
                            -vel(i-1,j  ,k,0)*zero_jhi + vel(i,j  ,k,0)*zero_jhi)
@@ -1326,14 +1340,10 @@ void mlndlap_crse_resid (int i, int j, int k, Array4<Real> const& resid,
                          GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi,
                          bool neumann_doubling) noexcept
 {
-    if ((msk(i-1,j-1,k  ) == 0 ||
+    if ( msk(i-1,j-1,k  ) == 0 ||
          msk(i  ,j-1,k  ) == 0 ||
          msk(i-1,j  ,k  ) == 0 ||
-         msk(i  ,j  ,k  ) == 0) &&
-        (msk(i-1,j-1,k  ) == 0 ||
-         msk(i  ,j-1,k  ) == 0 ||
-         msk(i-1,j  ,k  ) == 0 ||
-         msk(i  ,j  ,k  ) == 0))
+         msk(i  ,j  ,k  ) == 0 )
     {
         Real fac = Real(1.0);
         if (neumann_doubling) {
@@ -1982,9 +1992,9 @@ void mlndlap_set_connection (int i, int j, int, Array4<Real> const& conn,
                              Array4<EBCellFlag const> const& flag) noexcept
 {
     if (flag(i,j,0).isCovered()) {
-        for (int n = 0; n < 6; ++n) conn(i,j,0,n) = Real(0.);
+        for (int n = 0; n < 6; ++n) { conn(i,j,0,n) = Real(0.); }
     } else if (flag(i,j,0).isRegular() || vol(i,j,0) >= almostone) {
-        for (int n = 0; n < 6; ++n) conn(i,j,0,n) = Real(1.);
+        for (int n = 0; n < 6; ++n) { conn(i,j,0,n) = Real(1.); }
     } else {
         // Note that these are normalized so that they equal 1 in the case of a regular cell
 
@@ -2038,13 +2048,25 @@ void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
         // The nodal divergence operator should not see the tangential velocity
         //     at an inflow face
         if ((bclo[0] == LinOpBCType::Neumann || bclo[0] == LinOpBCType::inflow)
-            && i == domlo.x) zero_ilo = Real(0.0);
+            && i == domlo.x)
+        {
+            zero_ilo = Real(0.0);
+        }
         if ((bchi[0] == LinOpBCType::Neumann || bchi[0] == LinOpBCType::inflow)
-            && i == domhi.x) zero_ihi = Real(0.0);
+            && i == domhi.x)
+        {
+            zero_ihi = Real(0.0);
+        }
         if ((bclo[1] == LinOpBCType::Neumann || bclo[1] == LinOpBCType::inflow)
-            && j == domlo.y) zero_jlo = Real(0.0);
+            && j == domlo.y)
+        {
+            zero_jlo = Real(0.0);
+        }
         if ((bchi[1] == LinOpBCType::Neumann || bchi[1] == LinOpBCType::inflow)
-            && j == domhi.y) zero_jhi = Real(0.0);
+            && j == domhi.y)
+        {
+            zero_jhi = Real(0.0);
+        }
 
         rhs(i,j,0) = facx*(-vel(i-1,j-1,0,0)*(vfrac(i-1,j-1,0)+Real(2.)*intg(i-1,j-1,0,1))*zero_jlo
                            +vel(i  ,j-1,0,0)*(vfrac(i  ,j-1,0)+Real(2.)*intg(i  ,j-1,0,1))*zero_jlo
@@ -2905,7 +2927,7 @@ void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const i
                 }
                 ++nelems;
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 2 || offset == 0) {
@@ -2916,7 +2938,7 @@ void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const i
                 }
                 ++nelems;
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 3 || offset == 0) {
@@ -2927,7 +2949,7 @@ void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const i
                 }
                 ++nelems;
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 4 || offset == 0) {
@@ -2938,7 +2960,7 @@ void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const i
                 }
                 ++nelems;
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 5 || offset == 0) {
@@ -2949,7 +2971,7 @@ void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const i
                 }
                 ++nelems;
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 6 || offset == 0) {
@@ -2960,7 +2982,7 @@ void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const i
                 }
                 ++nelems;
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 7 || offset == 0) {
@@ -2971,7 +2993,7 @@ void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const i
                 }
                 ++nelems;
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 8 || offset == 0) {
@@ -2982,7 +3004,7 @@ void mlndlap_fillijmat_sten_gpu (const int ps, const int i, const int j, const i
                 }
                 ++nelems;
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         // Only offset == 0 could get this far.
@@ -3038,7 +3060,7 @@ void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 2 || offset == 0) {
@@ -3059,7 +3081,7 @@ void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 3 || offset == 0) {
@@ -3074,7 +3096,7 @@ void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 4 || offset == 0) {
@@ -3095,7 +3117,7 @@ void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 5 || offset == 0) {
@@ -3116,7 +3138,7 @@ void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 6 || offset == 0) {
@@ -3131,7 +3153,7 @@ void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 7 || offset == 0) {
@@ -3152,7 +3174,7 @@ void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 8 || offset == 0) {
@@ -3167,7 +3189,7 @@ void mlndlap_fillijmat_aa_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         // Only offset == 0 could get this far.
@@ -3221,7 +3243,7 @@ void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 2 || offset == 0) {
@@ -3244,7 +3266,7 @@ void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 3 || offset == 0) {
@@ -3259,7 +3281,7 @@ void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 4 || offset == 0) {
@@ -3282,7 +3304,7 @@ void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 5 || offset == 0) {
@@ -3305,7 +3327,7 @@ void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 6 || offset == 0) {
@@ -3320,7 +3342,7 @@ void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 7 || offset == 0) {
@@ -3343,7 +3365,7 @@ void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 8 || offset == 0) {
@@ -3358,7 +3380,7 @@ void mlndlap_fillijmat_ha_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         // Only offset == 0 could get this far.
@@ -3414,7 +3436,7 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 2 || offset == 0) {
@@ -3435,7 +3457,7 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 3 || offset == 0) {
@@ -3450,7 +3472,7 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 4 || offset == 0) {
@@ -3471,7 +3493,7 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 5 || offset == 0) {
@@ -3492,7 +3514,7 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 6 || offset == 0) {
@@ -3507,7 +3529,7 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 7 || offset == 0) {
@@ -3528,7 +3550,7 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         if (offset == 8 || offset == 0) {
@@ -3543,7 +3565,7 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
                     ++nelems;
                 }
             }
-            if (offset != 0) return;
+            if (offset != 0) { return; }
         }
 
         // Only offset == 0 could get this far.
