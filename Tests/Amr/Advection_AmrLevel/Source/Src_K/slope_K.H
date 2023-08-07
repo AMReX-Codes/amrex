@@ -1,8 +1,9 @@
 #ifndef slope_K_H_
 #define slope_K_H_
 
+#include <AMReX_Array4.H>
 #include <AMReX_Box.H>
-#include <AMReX_Geometry.H>
+#include <AMReX_REAL.H>
 #include <AMReX_Math.H>
 
 AMREX_GPU_DEVICE
@@ -11,7 +12,7 @@ void slopex2(amrex::Box const& bx,
              amrex::Array4<amrex::Real> const& dq,
              amrex::Array4<amrex::Real const> const& q)
 {
-    using namespace amrex;
+    using amrex::Real;
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -39,7 +40,7 @@ void slopex4(amrex::Box const& bx,
              amrex::Array4<amrex::Real const> const& q,
              amrex::Array4<amrex::Real const> const& dq)
 {
-    using namespace amrex;
+    using amrex::Real;
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -69,7 +70,7 @@ void slopey2(amrex::Box const& bx,
              amrex::Array4<amrex::Real> const& dq,
              amrex::Array4<amrex::Real const> const& q)
 {
-    using namespace amrex;
+    using amrex::Real;
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -97,7 +98,7 @@ void slopey4(amrex::Box const& bx,
              amrex::Array4<amrex::Real const> const& q,
              amrex::Array4<amrex::Real const> const& dq)
 {
-    using namespace amrex;
+    using amrex::Real;
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -128,7 +129,7 @@ void slopez2(amrex::Box const& bx,
              amrex::Array4<amrex::Real> const& dq,
              amrex::Array4<amrex::Real const> const& q)
 {
-    using namespace amrex;
+    using amrex::Real;
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -156,7 +157,7 @@ void slopez4(amrex::Box const& bx,
              amrex::Array4<amrex::Real const> const& q,
              amrex::Array4<amrex::Real const> const& dq)
 {
-    using namespace amrex;
+    using amrex::Real;
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);

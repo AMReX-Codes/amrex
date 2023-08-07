@@ -13,7 +13,7 @@ void BlockMutex::init_states (state_t* state, int N) noexcept {
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int i = threadIdx.x + blockIdx.x*blockDim.x;
-        if (i < N) state[i] = FreeState();
+        if (i < N) { state[i] = FreeState(); }
     });
 #endif
 }

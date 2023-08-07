@@ -1313,7 +1313,7 @@ OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Period
     BL_PROFILE("OverrideSync_nowait()");
     AMREX_ASSERT_WITH_MESSAGE(!fa.os_temp, "OverrideSync_nowait() called when already in progress.");
 
-    if (fa.ixType().cellCentered()) return;
+    if (fa.ixType().cellCentered()) { return; }
 
     const int ncomp = fa.nComp();
 
@@ -1324,7 +1324,7 @@ OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Period
         ParallelFor(fa, IntVect(0), ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
-            if (!ifabarr[box_no](i,j,k)) fabarr[box_no](i,j,k,n) = 0;
+            if (!ifabarr[box_no](i,j,k)) { fabarr[box_no](i,j,k,n) = 0; }
         });
         if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
@@ -1342,7 +1342,7 @@ OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Period
             auto const ifab = msk.array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
             {
-                if (!ifab(i,j,k)) fab(i,j,k,n) = 0;
+                if (!ifab(i,j,k)) { fab(i,j,k,n) = 0; }
             });
         }
     }
@@ -1359,7 +1359,7 @@ OverrideSync_finish (FabArray<FAB> & fa)
 {
     BL_PROFILE("OverrideSync_finish()");
 
-    if (fa.ixType().cellCentered()) return;
+    if (fa.ixType().cellCentered()) { return; }
 
     fa.os_temp->ParallelCopy_finish();
     amrex::Copy(fa, *(fa.os_temp), 0, 0, fa.nComp(), 0);
@@ -1485,7 +1485,9 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 auto const& fab = mf.const_array(mfi);
                 AMREX_LOOP_3D(bx, i, j, k,
                 {
-                    if (fab(i,j,k,comp) == value) priv_loc = IntVect(AMREX_D_DECL(i,j,k));
+                    if (fab(i,j,k,comp) == value) {
+                        priv_loc = IntVect(AMREX_D_DECL(i,j,k));
+                    }
                 });
             }
 
@@ -1504,7 +1506,7 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                     f = true;
                 }
 
-                if (old == false) loc = priv_loc;
+                if (old == false) { loc = priv_loc; }
             }
         }
     }

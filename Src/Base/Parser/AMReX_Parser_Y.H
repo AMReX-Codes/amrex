@@ -154,7 +154,7 @@ static constexpr std::string_view parser_node_s[] =
 struct parser_node {
     enum parser_node_t type;
     enum parser_node_t padding;
-    struct parser_node* l;
+    struct parser_node* l; // NOLINT(misc-confusable-identifiers)
     struct parser_node* r;
     struct parser_node* padding2;
 };
@@ -173,7 +173,7 @@ struct alignas(parser_node) parser_symbol {
 struct alignas(parser_node) parser_f1 {  /* Builtin functions with one argument */
     enum parser_node_t type;
     enum parser_f1_t ftype;
-    struct parser_node* l;
+    struct parser_node* l; // NOLINT(misc-confusable-identifiers)
     struct parser_node* padding1;
     struct parser_node* padding2;
 };
@@ -181,7 +181,7 @@ struct alignas(parser_node) parser_f1 {  /* Builtin functions with one argument 
 struct alignas(parser_node) parser_f2 {  /* Builtin functions with two arguments */
     enum parser_node_t type;
     enum parser_f2_t ftype;
-    struct parser_node* l;
+    struct parser_node* l; // NOLINT(misc-confusable-identifiers)
     struct parser_node* r;
     struct parser_node* padding;
 };

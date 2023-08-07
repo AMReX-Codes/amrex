@@ -631,7 +631,7 @@ namespace {
 
 bool parser_node_equal (struct parser_node* a, struct parser_node* b)
 {
-    if (a->type != b->type) return false;
+    if (a->type != b->type) { return false; }
     switch (a->type)
     {
     case PARSER_NUMBER:

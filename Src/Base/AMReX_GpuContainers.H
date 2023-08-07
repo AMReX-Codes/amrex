@@ -129,7 +129,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 #ifdef AMREX_USE_GPU
         htod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -166,7 +166,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 #ifdef AMREX_USE_GPU
         dtoh_memcpy(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -203,7 +203,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 #ifdef AMREX_USE_GPU
         dtod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -241,7 +241,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 #ifdef AMREX_USE_GPU
         htod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -279,7 +279,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 #ifdef AMREX_USE_GPU
         dtoh_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -317,7 +317,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 #ifdef AMREX_USE_GPU
         dtod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -339,7 +339,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 
 #ifdef AMREX_USE_GPU
         // Currently only implemented for CUDA.
@@ -370,7 +370,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 
 #ifdef AMREX_USE_GPU
         // Currently only implemented for CUDA.
@@ -411,7 +411,7 @@ namespace amrex::Gpu {
     void fillAsync (IT first, IT last, F&& f) noexcept
     {
         auto N = static_cast<Long>(std::distance(first, last));
-        if (N <= 0) return;
+        if (N <= 0) { return; }
         auto p = &(*first);
 #ifndef AMREX_USE_GPU
         for (Long i = 0; i < N; ++i) {
