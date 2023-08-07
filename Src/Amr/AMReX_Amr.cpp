@@ -1934,8 +1934,8 @@ Amr::timeStep (int  level,
     amr_level[level]->setPostStepRegrid(0);
 
     if(max_level==0 && force_regrid_level_zero){
-		regrid_level_0_on_restart();
-	}
+        regrid_level_0_on_restart();
+    }
 
     //
     // Allow regridding of level 0 calculation on restart.
@@ -2588,8 +2588,8 @@ Amr::regrid (int  lbase,
         && ( loadbalance_with_workestimates || (new_grid_places[0] != amr_level[0]->boxArray()));
 
     if(lbase==0 && force_regrid_level_zero){
-		regrid_level_zero = true;
-	}
+        regrid_level_zero = true;
+    }
 
     const int start = regrid_level_zero ? 0 : lbase+1;
 
