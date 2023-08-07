@@ -62,10 +62,10 @@ MakeStateRedistUtils ( Box const& bx,
     const Box domain = lev_geom.Domain();
 
     Box domain_per_grown = domain;
-    if (is_periodic_x) domain_per_grown.grow(0,2);
-    if (is_periodic_y) domain_per_grown.grow(1,2);
+    if (is_periodic_x) { domain_per_grown.grow(0,2); }
+    if (is_periodic_y) { domain_per_grown.grow(1,2); }
 #if (AMREX_SPACEDIM == 3)
-    if (is_periodic_z) domain_per_grown.grow(2,2);
+    if (is_periodic_z) { domain_per_grown.grow(2,2); }
 #endif
 
     amrex::ParallelFor(bxg3,
@@ -114,8 +114,9 @@ MakeStateRedistUtils ( Box const& bx,
                 vol_of_nbors += vfrac(r,s,t);
             }
 
-            if (itracker(i,j,k,0) > 0)
+            if (itracker(i,j,k,0) > 0) {
                 alpha(i,j,k,1) = (target_vol - vfrac(i,j,k)) / vol_of_nbors;
+            }
 
         } else {
             nbhd_vol(i,j,k) = 0.;

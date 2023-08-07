@@ -78,10 +78,10 @@ StateRedistribute ( Box const& bx, int ncomp,
     Box const& bxg3 = amrex::grow(bx,3);
 
     Box domain_per_grown = domain;
-    if (is_periodic_x) domain_per_grown.grow(0,2);
-    if (is_periodic_y) domain_per_grown.grow(1,2);
+    if (is_periodic_x) { domain_per_grown.grow(0,2); }
+    if (is_periodic_y) { domain_per_grown.grow(1,2); }
 #if (AMREX_SPACEDIM == 3)
-    if (is_periodic_z) domain_per_grown.grow(2,2);
+    if (is_periodic_z) { domain_per_grown.grow(2,2); }
 #endif
 
     // Solution at the centroid of my nbhd
@@ -96,15 +96,17 @@ StateRedistribute ( Box const& bx, int ncomp,
     amrex::ParallelFor(bxg3,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        for (int n = 0; n < ncomp; n++)
+        for (int n = 0; n < ncomp; n++) {
             soln_hat(i,j,k,n) = U_in(i,j,k,n);
+        }
 
         if (vfrac(i,j,k) > 0.0 && bxg2.contains(IntVect(AMREX_D_DECL(i,j,k)))
                                && domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
 
             // Start with U_in(i,j,k) itself
-            for (int n = 0; n < ncomp; n++)
+            for (int n = 0; n < ncomp; n++) {
                 soln_hat(i,j,k,n) = U_in(i,j,k,n) * alpha(i,j,k,0) * vfrac(i,j,k);
+            }
 
             // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
             for (int i_nbor = 1; i_nbor <= itracker(i,j,k,0); i_nbor++)
@@ -115,12 +117,14 @@ StateRedistribute ( Box const& bx, int ncomp,
 
                 if (domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))))
                 {
-                    for (int n = 0; n < ncomp; n++)
+                    for (int n = 0; n < ncomp; n++) {
                         soln_hat(i,j,k,n) += U_in(r,s,t,n) * alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t);
+                    }
                 }
             }
-            for (int n = 0; n < ncomp; n++)
+            for (int n = 0; n < ncomp; n++) {
                 soln_hat(i,j,k,n) /= nbhd_vol(i,j,k);
+            }
         }
     });
 
@@ -135,8 +139,9 @@ StateRedistribute ( Box const& bx, int ncomp,
             {
                 if (bx.contains(IntVect(AMREX_D_DECL(i,j,k))))
                 {
-                    for (int n = 0; n < ncomp; n++)
+                    for (int n = 0; n < ncomp; n++) {
                         amrex::Gpu::Atomic::Add(&U_out(i,j,k,n),alpha(i,j,k,0)*nrs(i,j,k)*soln_hat(i,j,k,n));
+                    }
                 }
 
             } else {
@@ -170,11 +175,10 @@ StateRedistribute ( Box const& bx, int ncomp,
 #if (AMREX_SPACEDIM == 2)
                     int kk = 0;
 #elif (AMREX_SPACEDIM == 3)
-                    for(int kk(-1); kk<=1; kk++)
+                    for(int kk(-1); kk<=1; kk++) {
 #endif
-                    {
-                     for(int jj(-1); jj<=1; jj++)
-                      for(int ii(-1); ii<=1; ii++)
+                    for(int jj(-1); jj<=1; jj++) {
+                    for(int ii(-1); ii<=1; ii++) {
                         if (flag(i,j,k).isConnected(ii,jj,kk))
                         {
                             int r = i+ii; int s = j+jj; int t = k+kk;
@@ -188,13 +192,13 @@ StateRedistribute ( Box const& bx, int ncomp,
                             z_min = amrex::min(z_min, cent_hat(r,s,t,2)+static_cast<Real>(kk));
 #endif
                         }
-                    }
+                    AMREX_D_TERM(},},})
                     // If we need to grow the stencil, we let it be -nx:nx in the x-direction,
                     //    for example.   Note that nx,ny,nz are either 1 or 2
-                    if ( (x_max-x_min) < slope_stencil_min_width ) nx = 2;
-                    if ( (y_max-y_min) < slope_stencil_min_width ) ny = 2;
+                    if ( (x_max-x_min) < slope_stencil_min_width ) { nx = 2; }
+                    if ( (y_max-y_min) < slope_stencil_min_width ) { ny = 2; }
 #if (AMREX_SPACEDIM == 3)
-                    if ( (z_max-z_min) < slope_stencil_min_width ) nz = 2;
+                    if ( (z_max-z_min) < slope_stencil_min_width ) { nz = 2; }
 #endif
 
                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;

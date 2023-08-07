@@ -84,6 +84,7 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
           $<${_genex}:
           --expt-relaxed-constexpr --expt-extended-lambda
           "SHELL:-Xcudafe --diag_suppress=esa_on_defaulted_function_ignored"
+          "SHELL:-Xcudafe --diag_suppress=implicit_return_from_non_void_function"
           -maxrregcount=${AMReX_CUDA_MAXREGCOUNT}
           "SHELL:-Xcudafe --display_error_number"
           $<$<STREQUAL:$<PLATFORM_ID>,Windows>:-m64> >

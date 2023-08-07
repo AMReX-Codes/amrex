@@ -91,29 +91,30 @@ void ApplyRedistribution ( Box const& bx, int ncomp,
         Array4<Real const> cent_hat_const = cent_hat_fab.const_array();
 
         Box domain_per_grown = lev_geom.Domain();
-        AMREX_D_TERM(if (lev_geom.isPeriodic(0)) domain_per_grown.grow(0,1);,
-                     if (lev_geom.isPeriodic(1)) domain_per_grown.grow(1,1);,
-                     if (lev_geom.isPeriodic(2)) domain_per_grown.grow(2,1););
+        AMREX_D_TERM(if (lev_geom.isPeriodic(0)) { domain_per_grown.grow(0,1); },
+                     if (lev_geom.isPeriodic(1)) { domain_per_grown.grow(1,1); },
+                     if (lev_geom.isPeriodic(2)) { domain_per_grown.grow(2,1); })
 
         // At any external Dirichlet domain boundaries we need to set dUdt_in to 0
         //    in the cells just outside the domain because those values will be used
         //    in the slope computation in state redistribution.  We assume here that
         //    the ext_dir values of U_in itself have already been set.
-        if (!domain_per_grown.contains(bxg1))
+        if (!domain_per_grown.contains(bxg1)) {
             amrex::ParallelFor(bxg1,ncomp,
             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-                {
-                    if (!domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k))))
-                        dUdt_in(i,j,k,n) = 0.;
-                });
+            {
+                if (!domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                    dUdt_in(i,j,k,n) = 0.;
+                }
+            });
+        }
 
         amrex::ParallelFor(Box(scratch), ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                const Real scale = (srd_update_scale) ? srd_update_scale(i,j,k) : Real(1.0);
-                scratch(i,j,k,n) = U_in(i,j,k,n) + dt * dUdt_in(i,j,k,n) / scale;
-            }
-        );
+        {
+            const Real scale = (srd_update_scale) ? srd_update_scale(i,j,k) : Real(1.0);
+            scratch(i,j,k,n) = U_in(i,j,k,n) + dt * dUdt_in(i,j,k,n) / scale;
+        });
 
         MakeITracker(bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, lev_geom, target_volfrac);
 
@@ -127,40 +128,38 @@ void ApplyRedistribution ( Box const& bx, int ncomp,
 
         amrex::ParallelFor(bx, ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            // Only update the values which actually changed -- this makes
+            // the results insensitive to tiling -- otherwise cells that aren't
+            // changed but are in a tile on which StateRedistribute gets called
+            // will have precision-level changes due to adding/subtracting U_in
+            // and multiplying/dividing by dt.   Here we test on whether (i,j,k)
+            // has at least one neighbor and/or whether (i,j,k) is in the
+            // neighborhood of another cell -- if either of those is true the
+            // value may have changed
+
+            if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1.)
             {
-                // Only update the values which actually changed -- this makes
-                // the results insensitive to tiling -- otherwise cells that aren't
-                // changed but are in a tile on which StateRedistribute gets called
-                // will have precision-level changes due to adding/subtracting U_in
-                // and multiplying/dividing by dt.   Here we test on whether (i,j,k)
-                // has at least one neighbor and/or whether (i,j,k) is in the
-                // neighborhood of another cell -- if either of those is true the
-                // value may have changed
+                const Real scale = (srd_update_scale) ? srd_update_scale(i,j,k) : Real(1.0);
 
-                if (itr(i,j,k,0) > 0 || nrs(i,j,k) > 1.)
-                {
-                   const Real scale = (srd_update_scale) ? srd_update_scale(i,j,k) : Real(1.0);
+                dUdt_out(i,j,k,n) = scale * (dUdt_out(i,j,k,n) - U_in(i,j,k,n)) / dt;
 
-                   dUdt_out(i,j,k,n) = scale * (dUdt_out(i,j,k,n) - U_in(i,j,k,n)) / dt;
-
-                }
-                else
-                {
-                   dUdt_out(i,j,k,n) = dUdt_in(i,j,k,n);
-                }
             }
-        );
+            else
+            {
+                dUdt_out(i,j,k,n) = dUdt_in(i,j,k,n);
+            }
+        });
 
     } else if (redistribution_type == "NoRedist") {
         amrex::ParallelFor(bx, ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                dUdt_out(i,j,k,n) = dUdt_in(i,j,k,n);
-            }
-        );
+        {
+            dUdt_out(i,j,k,n) = dUdt_in(i,j,k,n);
+        });
 
     } else {
-       amrex::Error("Not a legit redist_type");
+        amrex::Error("Not a legit redist_type");
     }
 }
 
@@ -238,7 +237,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
         );
 
     } else {
-       amrex::Error("Not a legit redist_type in ApplyML");
+        amrex::Error("Not a legit redist_type in ApplyML");
     }
 }
 

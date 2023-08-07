@@ -426,7 +426,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
             // Test convergence on the fine amr level
             computeResidual(finest_amr_lev);
 
-            if (is_nsolve) continue;
+            if (is_nsolve) { continue; }
 
             RT fine_norminf = ResNormInf(finest_amr_lev);
             m_iter_fine_resnorm0.push_back(fine_norminf);
@@ -916,7 +916,7 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
 #endif
 
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        if (cf_strategy == CFStrategy::ghostnodes)  nghost = linop.getNGrow(alev);
+        if (cf_strategy == CFStrategy::ghostnodes) { nghost = linop.getNGrow(alev); }
         out[alev]->negate(nghost);
     }
 }
@@ -1417,7 +1417,7 @@ MLMGT<MF>::actualBottomSolve ()
 {
     BL_PROFILE("MLMG::actualBottomSolve()");
 
-    if (!linop.isBottomActive()) return;
+    if (!linop.isBottomActive()) { return; }
 
     auto bottom_start_time = amrex::second();
 
@@ -1572,7 +1572,9 @@ MLMGT<MF>::computeResWithCrseSolFineCor (int calev, int falev)
     BL_PROFILE("MLMG::computeResWithCrseSolFineCor()");
 
     IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = IntVect(std::min(linop.getNGrow(falev),linop.getNGrow(calev)));
+    if (cf_strategy == CFStrategy::ghostnodes) {
+        nghost = IntVect(std::min(linop.getNGrow(falev),linop.getNGrow(calev)));
+    }
 
     MF&       crse_sol = sol[calev];
     const MF& crse_rhs = rhs[calev];
@@ -1603,7 +1605,9 @@ MLMGT<MF>::computeResWithCrseCorFineCor (int falev)
     BL_PROFILE("MLMG::computeResWithCrseCorFineCor()");
 
     IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = IntVect(linop.getNGrow(falev));
+    if (cf_strategy == CFStrategy::ghostnodes) {
+        nghost = IntVect(linop.getNGrow(falev));
+    }
 
     const MF& crse_cor = cor[falev-1][0];
 
@@ -1625,7 +1629,9 @@ MLMGT<MF>::interpCorrection (int alev)
     BL_PROFILE("MLMG::interpCorrection_1");
 
     IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = IntVect(linop.getNGrow(alev));
+    if (cf_strategy == CFStrategy::ghostnodes) {
+        nghost = IntVect(linop.getNGrow(alev));
+    }
 
     MF const& crse_cor = cor[alev-1][0];
     MF      & fine_cor = cor[alev  ][0];
@@ -1724,7 +1730,7 @@ MLMGT<MF>::MLResNormInf (int alevmax, bool local) -> RT
     {
         r = std::max(r, ResNormInf(alev,true));
     }
-    if (!local) ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub());
+    if (!local) { ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub()); }
     return r;
 }
 
@@ -1739,7 +1745,7 @@ MLMGT<MF>::MLRhsNormInf (bool local) -> RT
         auto t = linop.normInf(alev, rhs[alev], true);
         r = std::max(r, t);
     }
-    if (!local) ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub());
+    if (!local) { ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub()); }
     return r;
 }
 

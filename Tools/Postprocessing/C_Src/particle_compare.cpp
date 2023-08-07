@@ -302,8 +302,8 @@ int sort_particles_ascending(const void *p, const void *q)
     std::memcpy(&cpu1, iptr1, sizeof(int));
     std::memcpy(&cpu2, iptr2, sizeof(int));
 
-    if (cpu1 != cpu2) return (cpu1 - cpu2);
-    if (id1  != id2 ) return (id1  - id2 );
+    if (cpu1 != cpu2) { return (cpu1 - cpu2); }
+    if (id1  != id2 ) { return (id1  - id2 ); }
     return 0;
 }
 
@@ -312,7 +312,7 @@ void compare_particle_chunk(const ParticleHeader& header1,
                             std::vector<double>&  norms,
                             int level, int file_num, int np, int offset) {
 
-    if (np == 0) return;
+    if (np == 0) { return; }
 
     std::string read_file1 = getDataFileName(header1.par_file_name, level, file_num);
     std::string read_file2 = getDataFileName(header2.par_file_name, level, file_num);

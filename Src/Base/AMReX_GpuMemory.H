@@ -22,7 +22,7 @@ struct Managed {
 
     void operator delete (void *ptr)
     {
-        if (ptr) The_Managed_Arena()->free(ptr);
+        if (ptr) { The_Managed_Arena()->free(ptr); }
     }
 
 #endif
@@ -39,7 +39,7 @@ struct Pinned {
 
     void operator delete (void *ptr)
     {
-        if (ptr) The_Pinned_Arena()->free(ptr);
+        if (ptr) { The_Pinned_Arena()->free(ptr); }
     }
 
 #endif

@@ -186,7 +186,7 @@ public:
 
     template <class U> friend class BaseFab;
 
-    typedef T         value_type;
+    using value_type = T;
 
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
     BaseFab () noexcept = default;
@@ -1769,8 +1769,9 @@ BaseFab<T>::getVal  (T*             data,
     AMREX_ASSERT(!(this->dptr == nullptr));
     AMREX_ASSERT(n >= 0 && n + numcomp <= this->nvar);
 
-    for (int k = 0; k < numcomp; k++)
+    for (int k = 0; k < numcomp; k++) {
         data[k] = this->dptr[loc+(n+k)*sz];
+    }
 }
 
 template <class T>
@@ -1895,7 +1896,7 @@ BaseFab<T>::define ()
     AMREX_ASSERT(this->dptr == nullptr);
     AMREX_ASSERT(this->domain.numPts() > 0);
     AMREX_ASSERT(this->nvar >= 0);
-    if (this->nvar == 0) return;
+    if (this->nvar == 0) { return; }
     AMREX_ASSERT(std::numeric_limits<Long>::max()/this->nvar > this->domain.numPts());
 
     this->truesize  = this->nvar*this->domain.numPts();
@@ -1923,7 +1924,7 @@ template <class T>
 BaseFab<T>::BaseFab (const Box& bx, int n, bool alloc, bool shared, Arena* ar)
     : DataAllocator{ar}, domain(bx), nvar(n), shared_memory(shared)
 {
-    if (!this->shared_memory && alloc) define();
+    if (!this->shared_memory && alloc) { define(); }
 }
 
 template <class T>
@@ -2054,16 +2055,18 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
     }
     else if (this->dptr == nullptr || !this->ptr_owner)
     {
-        if (this->shared_memory)
+        if (this->shared_memory) {
             amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
+        }
 
         this->dptr = nullptr;
         define();
     }
     else if (this->nvar*this->domain.numPts() > this->truesize)
     {
-        if (this->shared_memory)
+        if (this->shared_memory) {
             amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
+        }
 
         clear();
 
@@ -2590,7 +2593,7 @@ BaseFab<T>::indexFromValue (Box const& subbox, int comp, T const& value) const n
     {
         AMREX_LOOP_3D(subbox, i, j, k,
         {
-            if (a(i,j,k) == value) return IntVect(AMREX_D_DECL(i,j,k));
+            if (a(i,j,k) == value) { return IntVect(AMREX_D_DECL(i,j,k)); }
         });
         return IntVect::TheMinVector();
     }

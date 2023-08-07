@@ -43,10 +43,12 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::initializeCommComps () {
-    for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal + this->NumRealComps(); ++ii)
+    for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal + this->NumRealComps(); ++ii) {
         ghost_real_comp.push_back(1);
-    for (int ii = 0; ii < 2 + NStructInt + this->NumIntComps(); ++ii)
+    }
+    for (int ii = 0; ii < 2 + NStructInt + this->NumIntComps(); ++ii) {
         ghost_int_comp.push_back(1);
+    }
     calcCommSize();
 }
 
@@ -81,7 +83,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             comm_size += sizeof(int);
         }
     }
-    if ( enableInverse() ) comm_size += 4*sizeof(int);
+    if ( enableInverse() ) { comm_size += 4*sizeof(int); }
     cdata_size = comm_size;
 }
 
@@ -150,8 +152,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     BL_PROFILE("NeighborParticleContainer::BuildMasks");
 
-    if (this->numLevels() == 1) use_mask = true;
-    else use_mask = false;
+    if (this->numLevels() == 1) { use_mask = true; }
+    else                        { use_mask = false; }
 
     resizeContainers(this->numLevels());
 
@@ -208,8 +210,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     const int proc = ParallelContext::global_to_local_rank(global_proc);
                     NeighborCommTag comm_tag(proc, level, grid, tile);
                     local_neighbors.push_back(comm_tag);
-                    if (proc != ParallelContext::MyProcSub())
+                    if (proc != ParallelContext::MyProcSub()) {
                         neighbor_procs.push_back(proc);
+                    }
                 }
             }
         }
@@ -225,8 +228,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 GetCommTagsBox(comm_tags, lev, box);
                 for (auto const& tag : comm_tags) {
                     local_neighbors.push_back(tag);
-                    if (tag.proc_id != ParallelContext::MyProcSub())
+                    if (tag.proc_id != ParallelContext::MyProcSub()) {
                         neighbor_procs.push_back(tag.proc_id);
+                    }
                 }
             }
         }
@@ -373,7 +377,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     for (int j = 0; j < static_cast<int>(tags.size()); ++j) {
                         NeighborCopyTag& tag = tags[j];
                         PairIndex dst_index(tag.grid, tag.tile);
-                        if (tag.grid < 0) continue;
+                        if (tag.grid < 0) { continue; }
 
                         tag.src_index = i;
                         const int cache_index = cache.size();
@@ -482,14 +486,14 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     for (const auto& kv: remote_map) {
-        if (kv.first.proc_id == MyProc) continue;
+        if (kv.first.proc_id == MyProc) { continue; }
         Vector<char>& buffer = send_data[kv.first.proc_id];
         buffer.resize(sizeof(int));
-        std::memcpy(&buffer[0], &tile_counts[kv.first.proc_id], sizeof(int));
+        std::memcpy(buffer.data(), &tile_counts[kv.first.proc_id], sizeof(int));
     }
 
     for (auto& kv : remote_map) {
-        if (kv.first.proc_id == MyProc) continue;
+        if (kv.first.proc_id == MyProc) { continue; }
         int np = kv.second.size();
         int data_size = np * cdata_size;
         Vector<char>& buffer = send_data[kv.first.proc_id];
@@ -550,7 +554,7 @@ getNeighborTags (Vector<NeighborCopyTag>& tags, const ParticleType& p,
 
         const int lev = 0;
         const IntVect& iv = this->Index(p, lev);
-        if (shrink_box.contains(iv)) return;
+        if (shrink_box.contains(iv)) { return; }
 
         const Periodicity& periodicity = this->Geom(lev).periodicity();
         const Box& domain = this->Geom(lev).Domain();
@@ -562,7 +566,7 @@ getNeighborTags (Vector<NeighborCopyTag>& tags, const ParticleType& p,
                  for (int ii = -nGrow[0]; ii < nGrow[0] + 1; ii += nGrow[0]) {,
                      for (int jj = -nGrow[1]; jj < nGrow[1] + 1; jj += nGrow[1]) {,
                          for (int kk = -nGrow[2]; kk < nGrow[2] + 1; kk += nGrow[2]) {)
-                             if (AMREX_D_TERM((ii == 0), && (jj == 0), && (kk == 0))) continue;
+                             if (AMREX_D_TERM((ii == 0), && (jj == 0), && (kk == 0))) { continue; }
                              IntVect shift(AMREX_D_DECL(ii, jj, kk));
                              IntVect neighbor_cell = iv + shift;
 
@@ -572,15 +576,16 @@ getNeighborTags (Vector<NeighborCopyTag>& tags, const ParticleType& p,
                              tag.level = mask(neighbor_cell, MaskComps::level);
                              if (periodicity.isAnyPeriodic()) {
                                  for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                                     if (! periodicity.isPeriodic(dir)) continue;
-                                     if (neighbor_cell[dir] < lo[dir])
+                                     if (! periodicity.isPeriodic(dir)) { continue; }
+                                     if (neighbor_cell[dir] < lo[dir]) {
                                          tag.periodic_shift[dir] = -1;
-                                     else if (neighbor_cell[dir] > hi[dir])
+                                     } else if (neighbor_cell[dir] > hi[dir]) {
                                          tag.periodic_shift[dir] =  1;
+                                     }
                                  }
                              }
 
-                             if (tag != src_tag) tags.push_back(tag);
+                             if (tag != src_tag) { tags.push_back(tag); }
 
                              AMREX_D_TERM(
                                           },
@@ -610,12 +615,12 @@ getNeighborTags (Vector<NeighborCopyTag>& tags, const ParticleType& p,
                 {
                     const Box& grid_box = ba[isec.first];
                     for (IntVect cell = pbox.smallEnd(); cell <= pbox.bigEnd(); pbox.next(cell)) {
-                        if ( !grid_box.contains(cell) ) continue;
+                        if ( !grid_box.contains(cell) ) { continue; }
                         int tile = getTileIndex(cell, grid_box,
                                                 this->do_tiling, this->tile_size, tbx);
                         auto nbor = NeighborCopyTag(lev, isec.first, tile);
                         nbor.periodic_shift = -pshift;
-                        if (src_tag != nbor) tags.push_back(nbor);
+                        if (src_tag != nbor) { tags.push_back(nbor); }
                     }
                 }
             }
@@ -724,7 +729,7 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
 
             auto& ptile = plev[index];
 
-            if (ptile.numParticles() == 0) continue;
+            if (ptile.numParticles() == 0) { continue; }
 
             Box bx = pti.tilebox();
             int ng = computeRefFac(0, lev).max()*m_num_neighbor_cells;
@@ -809,7 +814,7 @@ buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
 
             const auto& ptile = plev[index];
             auto& other_ptile = other.ParticlesAt(lev, pti);
-            if (ptile.numParticles() == 0) continue;
+            if (ptile.numParticles() == 0) { continue; }
 
             Box bx = pti.tilebox();
             int ng = computeRefFac(0, lev).max()*m_num_neighbor_cells;
@@ -844,7 +849,7 @@ buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
 {
     AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
 
-    if (num_bin_types == 1) AMREX_ASSERT(ref_ratio[0] == 1);
+    if (num_bin_types == 1) { AMREX_ASSERT(ref_ratio[0] == 1); }
 
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
 
@@ -880,7 +885,7 @@ buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
             auto index  = std::make_pair(gid, tid);
             auto& ptile = plev[index];
 
-            if (ptile.numParticles() == 0) continue;
+            if (ptile.numParticles() == 0) { continue; }
 
             Box bx = pti.tilebox();
             int ng = 1;
@@ -1057,10 +1062,10 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                 for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx); ++ii) {
                     for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny); ++jj) {
                         for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz); ++kk) {
-                            if (isActualNeighbor) break;
+                            if (isActualNeighbor) { break; }
                             int nbr_cell_id = (ii * ny + jj) * nz + kk;
                             for (auto p = poffset[nbr_cell_id]; p < poffset[nbr_cell_id+1]; ++p) {
-                                if (pperm[p] == i) continue;
+                                if (pperm[p] == i) { continue; }
                                 if (call_check_pair(check_pair, ptile_data, ptile_data, i, pperm[p])) {
                                     IntVect cell_ijk = getParticleCell(pstruct[pperm[p]], plo, dxi, domain);
                                     if (!box.contains(cell_ijk)) {
@@ -1116,7 +1121,7 @@ resizeContainers (int num_levels)
         mask_ptr.resize(num_levels);
         buffer_tag_cache.resize(num_levels);
         local_neighbor_sizes.resize(num_levels);
-        if ( enableInverse() ) inverse_tags.resize(num_levels);
+        if ( enableInverse() ) { inverse_tags.resize(num_levels); }
     }
 
     AMREX_ASSERT((neighbors.size() == m_neighbor_list.size()) &&

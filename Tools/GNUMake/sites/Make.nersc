@@ -165,8 +165,7 @@ ifeq ($(which_computer),$(filter $(which_computer),cgpu))
     else
       CUDA_ARCH = 70
     endif
-    GPUS_PER_NODE = 8
-    GPUS_PER_SOCKET = 4
+
   endif
 
   ifeq ($(USE_SENSEI_INSITU),TRUE)

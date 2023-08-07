@@ -97,8 +97,8 @@ void main_main()
 
     // make sure we have valid options set
     if (do_log) {
-        if (ldef_mx && def_mx < 0.) amrex::Abort("ERROR: log plot specified with negative maximum");
-        if (ldef_mn && def_mn < 0.) amrex::Abort("ERROR: log plot specified with negative minimum");
+        if (ldef_mx && def_mx < 0.) { amrex::Abort("ERROR: log plot specified with negative maximum"); }
+        if (ldef_mn && def_mn < 0.) { amrex::Abort("ERROR: log plot specified with negative minimum"); }
     }
 
     // get the palette
@@ -291,7 +291,7 @@ void main_main()
             int jj = (idir == 2) ? height - 1 - j : j;  // flip the data in second image direction
             int kk = (idir == 2) ? k : height - 1 - k;
             Real rd = realarr(i,jj,kk);
-            if (do_log) rd = std::log10(rd);
+            if (do_log) { rd = std::log10(rd); }
             int id = std::max(0,std::min(255,static_cast<int>((rd-gmn)*fac)));
             auto c = static_cast<unsigned char>(id);
             constexpr auto cmn = static_cast<unsigned char>(1);  // avoid zero

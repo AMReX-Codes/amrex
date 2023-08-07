@@ -61,8 +61,9 @@ operator>> (std::istream& is, IntVect& iv)
         amrex::Error("operator>>(istream&,IntVect&): expected \'(\'");
     }
 
-    if (is.fail())
+    if (is.fail()) {
         amrex::Error("operator>>(istream&,IntVect&) failed");
+    }
 
     return is;
 }

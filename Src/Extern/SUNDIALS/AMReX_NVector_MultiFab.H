@@ -36,7 +36,7 @@ struct N_VectorContent_MultiFab_notptr {
   amrex::MultiFab *mf;   /* wrapped MultiFab        */
 };
 
-typedef struct N_VectorContent_MultiFab_notptr *N_VectorContent_MultiFab;
+using N_VectorContent_MultiFab = N_VectorContent_MultiFab_notptr*;
 
 /* -----------------------------------------------------------------
  * Exported functions

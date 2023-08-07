@@ -28,21 +28,21 @@ amrex_first_order_extrap_cpu(amrex::Box const& bx,
       {  // y-dir edges
          int j = lo.y-1;
          for (int i = lo.x-1; i <= hi.x+1; ++i) {
-            if (mask(i,j,k) == crsecell) data(i,j,k,n) = Real(0.0);
+            if (mask(i,j,k) == crsecell) { data(i,j,k,n) = Real(0.0); }
          }
          j = hi.y+1;
          for (int i = lo.x-1; i <= hi.x+1; ++i) {
-            if (mask(i,j,k) == crsecell) data(i,j,k,n) = Real(0.0);
+            if (mask(i,j,k) == crsecell) { data(i,j,k,n) = Real(0.0); }
          }
       }
       {  // x-dir edges
          int i = lo.x-1;
          for (int j = lo.y-1; j <= hi.y+1; ++j) {
-            if (mask(i,j,k) == crsecell) data(i,j,k,n) = Real(0.0);
+            if (mask(i,j,k) == crsecell) { data(i,j,k,n) = Real(0.0); }
          }
          i = hi.x+1;
          for (int j = lo.y-1; j <= hi.y+1; ++j) {
-            if (mask(i,j,k) == crsecell) data(i,j,k,n) = Real(0.0);
+            if (mask(i,j,k) == crsecell) { data(i,j,k,n) = Real(0.0); }
          }
       }
 

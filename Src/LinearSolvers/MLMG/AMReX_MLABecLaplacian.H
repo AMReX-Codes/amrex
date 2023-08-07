@@ -478,7 +478,7 @@ template <typename MF>
 void
 MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
 {
-    if (!(this->hasRobinBC())) return;
+    if (!(this->hasRobinBC())) { return; }
 
     const int ncomp = this->getNComp();
     bool reset_alpha = false;
@@ -500,7 +500,7 @@ MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
         }
 
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -515,7 +515,7 @@ MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
                 const Box& bhi = amrex::adjCellHi(vbx,idim);
                 bool outside_domain_lo = !(domain.contains(blo));
                 bool outside_domain_hi = !(domain.contains(bhi));
-                if ((!outside_domain_lo) && (!outside_domain_hi)) continue;
+                if ((!outside_domain_lo) && (!outside_domain_hi)) { continue; }
                 for (int icomp = 0; icomp < ncomp; ++icomp) {
                     auto const& rbc = (*(this->m_robin_bcval[amrlev]))[mfi].const_array(icomp*3);
                     if (this->m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
@@ -914,7 +914,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 #endif
     {
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1166,7 +1166,7 @@ template <typename MF>
 std::unique_ptr<MLLinOpT<MF>>
 MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
 {
-    if (this->m_overset_mask[0][0] == nullptr) return nullptr;
+    if (this->m_overset_mask[0][0] == nullptr) { return nullptr; }
 
     const Geometry& geom = this->m_geom[0].back();
     const BoxArray& ba = this->m_grids[0].back();
@@ -1265,7 +1265,7 @@ template <typename MF>
 void
 MLABecLaplacianT<MF>::copyNSolveSolution (MF& dst, MF const& src) const
 {
-    if (this->m_overset_mask[0].back() == nullptr) return;
+    if (this->m_overset_mask[0].back() == nullptr) { return; }
 
     const int ncomp = dst.nComp();
 

@@ -112,7 +112,7 @@ public:
         m_geom = geom;
         int num_boxes = static_cast<int>(ba.size());
         m_host_boxes.resize(0);
-        for (int i = 0; i < num_boxes; ++i) m_host_boxes.push_back(ba[i]);
+        for (int i = 0; i < num_boxes; ++i) { m_host_boxes.push_back(ba[i]); }
 
         m_device_boxes.resize(num_boxes);
         Gpu::copyAsync(Gpu::hostToDevice, m_host_boxes.begin(), m_host_boxes.end(), m_device_boxes.begin());
@@ -178,7 +178,7 @@ public:
 
     bool isValid (const BoxArray& ba) const noexcept
     {
-        if (m_defined) return BoxArray::SameRefs(m_ba, ba);
+        if (m_defined) { return BoxArray::SameRefs(m_ba, ba); }
         return false;
     }
 
@@ -220,13 +220,13 @@ struct AmrAssignGrid
         for (int lev = lev_max; lev >= lev_min; --lev)
         {
             int grid = m_funcs[lev](p);
-            if (grid >= 0) return makeTuple(grid, lev);
+            if (grid >= 0) { return makeTuple(grid, lev); }
         }
 
         for (int lev = lev_min; lev >= lev_min; --lev)
         {
             int grid = m_funcs[lev](p, nGrow);
-            if (grid >= 0) return makeTuple(grid, lev);
+            if (grid >= 0) { return makeTuple(grid, lev); }
         }
 
         return makeTuple(-1, -1);
@@ -301,11 +301,12 @@ public:
     [[nodiscard]] bool isValid (const Vector<BoxArray>& a_ba) const
     {
         if ( !m_defined || (m_locators.empty()) ||
-             (m_locators.size() != a_ba.size()) ) return false;
+             (m_locators.size() != a_ba.size()) ) { return false; }
         bool all_valid = true;
         int num_levels = m_locators.size();
-        for (int lev = 0; lev < num_levels; ++lev)
+        for (int lev = 0; lev < num_levels; ++lev) {
             all_valid = all_valid && m_locators[lev].isValid(a_ba[lev]);
+        }
         return all_valid;
     }
 
@@ -313,8 +314,9 @@ public:
     {
         Vector<BoxArray> ba;
         int num_levels = a_gdb->finestLevel()+1;
-        for (int lev = 0; lev < num_levels; ++lev)
+        for (int lev = 0; lev < num_levels; ++lev) {
             ba.push_back(a_gdb->ParticleBoxArray(lev));
+        }
         return this->isValid(ba);
     }
 
