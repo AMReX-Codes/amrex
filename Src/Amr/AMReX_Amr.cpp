@@ -81,7 +81,7 @@ namespace
     bool plot_files_output;
     int  checkpoint_nfiles;
     int  regrid_on_restart;
-	int  force_regrid_level_zero;
+    int  force_regrid_level_zero;
     int  use_efficient_regrid;
     int  plotfile_on_restart;
     int  insitu_on_restart;
@@ -118,7 +118,7 @@ Amr::Initialize ()
     plot_files_output        = true;
     checkpoint_nfiles        = 64;
     regrid_on_restart        = 0;
-	force_regrid_level_zero  = 0;
+    force_regrid_level_zero  = 0;
     use_efficient_regrid     = 0;
     plotfile_on_restart      = 0;
     insitu_on_restart        = 0;
@@ -1933,7 +1933,7 @@ Amr::timeStep (int  level,
     // Update so that by default, we don't force a post-step regrid.
     amr_level[level]->setPostStepRegrid(0);
 
-	if(max_level==0 && force_regrid_level_zero)regrid_level_0_on_restart();
+    if(max_level==0 && force_regrid_level_zero)regrid_level_0_on_restart();
 
     //
     // Allow regridding of level 0 calculation on restart.
@@ -2585,7 +2585,7 @@ Amr::regrid (int  lbase,
     bool regrid_level_zero = (!initial) && (lbase == 0)
         && ( loadbalance_with_workestimates || (new_grid_places[0] != amr_level[0]->boxArray()));
 
-	if(lbase==0 && force_regrid_level_zero)regrid_level_zero = true;
+    if(lbase==0 && force_regrid_level_zero)regrid_level_zero = true;
 
     const int start = regrid_level_zero ? 0 : lbase+1;
 
