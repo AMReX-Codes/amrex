@@ -106,7 +106,7 @@ ForEach (TypeList<Ts...>, F&& f)
                  return false;
              }
          });
-         if (!r) amrex::Abort("Unsupported types");
+         if (!r) { amrex::Abort("Unsupported types"); }
      }
  \endverbatim
  */

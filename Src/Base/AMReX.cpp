@@ -364,7 +364,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::exename += argv[0];
 
         for (int i = 0; i < argc; ++i) {
-            if (i != 0) command_line.append(" ");
+            if (i != 0) { command_line.append(" "); }
             command_line.append(argv[i]);
             command_arguments.emplace_back(argv[i]);
         }
@@ -412,7 +412,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 // the rest get ingored.
                 int ppargc = 1;
                 for (; ppargc < argc; ++ppargc) {
-                    if (std::strcmp(argv[ppargc], "--") == 0) break;
+                    if (std::strcmp(argv[ppargc], "--") == 0) { break; }
                 }
                 if (ppargc > 1)
                 {
@@ -549,9 +549,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
 #if defined(__linux__)
                 curr_fpe_excepts = 0;
-                if (invalid)   curr_fpe_excepts |= FE_INVALID;
-                if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
-                if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
+                if (invalid)   { curr_fpe_excepts |= FE_INVALID;   }
+                if (divbyzero) { curr_fpe_excepts |= FE_DIVBYZERO; }
+                if (overflow)  { curr_fpe_excepts |= FE_OVERFLOW;  }
                 prev_fpe_excepts = fegetexcept();
                 if (curr_fpe_excepts != 0) {
                     feenableexcept(curr_fpe_excepts);  // trap floating point exceptions
@@ -561,9 +561,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #elif defined(__APPLE__) && defined(__x86_64__)
                 prev_fpe_mask = _MM_GET_EXCEPTION_MASK();
                 curr_fpe_excepts = 0u;
-                if (invalid)   curr_fpe_excepts |= _MM_MASK_INVALID;
-                if (divbyzero) curr_fpe_excepts |= _MM_MASK_DIV_ZERO;
-                if (overflow)  curr_fpe_excepts |= _MM_MASK_OVERFLOW;
+                if (invalid)   { curr_fpe_excepts |= _MM_MASK_INVALID;  }
+                if (divbyzero) { curr_fpe_excepts |= _MM_MASK_DIV_ZERO; }
+                if (overflow)  { curr_fpe_excepts |= _MM_MASK_OVERFLOW; }
                 if (curr_fpe_excepts != 0u) {
                     _MM_SET_EXCEPTION_MASK(prev_fpe_mask & ~curr_fpe_excepts);
                     prev_handler_sigfpe = std::signal(SIGFPE,  BLBackTrace::handler);
@@ -582,9 +582,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
                 fenv_t env;
                 fegetenv(&env);
-                if (invalid)   env.__fpcr |= __fpcr_trap_invalid;
-                if (divbyzero) env.__fpcr |= __fpcr_trap_divbyzero;
-                if (overflow)  env.__fpcr |= __fpcr_trap_overflow;
+                if (invalid)   { env.__fpcr |= __fpcr_trap_invalid;   }
+                if (divbyzero) { env.__fpcr |= __fpcr_trap_divbyzero; }
+                if (overflow)  { env.__fpcr |= __fpcr_trap_overflow;  }
                 fesetenv(&env);
                 // SIGILL ref: https://developer.apple.com/forums/thread/689159
 #endif
@@ -708,7 +708,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
     AMReX::erase(pamrex);
 
 #ifdef AMREX_USE_HYPRE
-    if (init_hypre) HYPRE_Finalize();
+    if (init_hypre) { HYPRE_Finalize(); }
 #endif
 
     BL_TINY_PROFILE_FINALIZE();
@@ -781,12 +781,12 @@ amrex::Finalize (amrex::AMReX* pamrex)
 #ifndef BL_AMRPROF
     if (system::signal_handling)
     {
-        if (prev_handler_sigsegv != SIG_ERR) std::signal(SIGSEGV, prev_handler_sigsegv); // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigterm != SIG_ERR) std::signal(SIGTERM, prev_handler_sigterm); // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigint  != SIG_ERR) std::signal(SIGINT , prev_handler_sigint);  // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigabrt != SIG_ERR) std::signal(SIGABRT, prev_handler_sigabrt); // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigfpe  != SIG_ERR) std::signal(SIGFPE , prev_handler_sigfpe);  // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigill  != SIG_ERR) std::signal(SIGILL , prev_handler_sigill);  // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigsegv != SIG_ERR) { std::signal(SIGSEGV, prev_handler_sigsegv); } // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigterm != SIG_ERR) { std::signal(SIGTERM, prev_handler_sigterm); } // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigint  != SIG_ERR) { std::signal(SIGINT , prev_handler_sigint);  } // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigabrt != SIG_ERR) { std::signal(SIGABRT, prev_handler_sigabrt); } // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigfpe  != SIG_ERR) { std::signal(SIGFPE , prev_handler_sigfpe);  } // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigill  != SIG_ERR) { std::signal(SIGILL , prev_handler_sigill);  } // NOLINT(performance-no-int-to-ptr)
 #if defined(__linux__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {

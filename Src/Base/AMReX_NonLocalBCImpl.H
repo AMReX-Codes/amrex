@@ -188,7 +188,7 @@ std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabPro
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos, Proj const& proj) noexcept {
     const auto N_locs = static_cast<int>(local_tags.size());
-    if (N_locs == 0) return;
+    if (N_locs == 0) { return; }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
@@ -218,7 +218,7 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
     amrex::ignore_unused(recv_size);
 
     const auto N_rcvs = static_cast<int>(recv_cctc.size());
-    if (N_rcvs == 0) return;
+    if (N_rcvs == 0) { return; }
 
     using T = typename FAB::value_type;
 #ifdef AMREX_USE_OMP
@@ -256,7 +256,7 @@ std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabPro
 local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos, Proj const& proj) noexcept {
     int N_locs = local_tags.size();
-    if (N_locs == 0) return;
+    if (N_locs == 0) { return; }
 
     using T = typename FAB::value_type;
     Vector<Array4Array4Box<T> > loc_copy_tags;
@@ -284,7 +284,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
     amrex::ignore_unused(recv_size);
 
     const int N_rcvs = recv_cctc.size();
-    if (N_rcvs == 0) return;
+    if (N_rcvs == 0) { return; }
 
     char* pbuffer = recv_data[0];
 #if 0
@@ -484,7 +484,7 @@ void
 Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData const& cmd,
              CommHandler handler, DTOS const& dtos, Proj const& proj)
 {
-    if (ParallelContext::NProcsSub() == 1) return;
+    if (ParallelContext::NProcsSub() == 1) { return; }
 
     const auto N_rcvs = static_cast<int>(cmd.m_RcvTags->size());
     if (N_rcvs > 0)
@@ -535,7 +535,7 @@ Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box co
     AMREX_ASSERT(scomp < mf.nComp() && scomp+ncomp <= mf.nComp());
     AMREX_ASSERT(nghost.allLE(mf.nGrowVect()) && nghost[0] == nghost[1]);
 
-    if (nghost[0] <= 0) return;
+    if (nghost[0] <= 0) { return; }
 
     const FabArrayBase::RB90& TheRB90 = mf.getRB90(nghost, domain);
 
@@ -585,7 +585,7 @@ Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
     AMREX_ASSERT(scomp < mf.nComp() && scomp+ncomp <= mf.nComp());
     AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
 
-    if (nghost[0] <= 0) return;
+    if (nghost[0] <= 0) { return; }
 
     const FabArrayBase::RB180& TheRB180 = mf.getRB180(nghost, domain);
 
@@ -620,7 +620,7 @@ FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
     AMREX_ASSERT(scomp < mf.nComp() && scomp+ncomp <= mf.nComp());
     AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
 
-    if (nghost[0] <= 0) return;
+    if (nghost[0] <= 0) { return; }
 
     const FabArrayBase::PolarB& ThePolarB = mf.getPolarB(nghost, domain);
 
@@ -727,10 +727,10 @@ get_src_dst_boxes (DTOS const& dtos, Box const& dstbox, Box const& domain)
     r.reserve(AMREX_D_TERM(nboxes[0],*nboxes[1],*nboxes[2]));
 
 #if (AMREX_SPACEDIM == 3)
-    for (int kbox = 0; kbox < nboxes[2]; ++kbox)
+    for (int kbox = 0; kbox < nboxes[2]; ++kbox) {
 #endif
 #if (AMREX_SPACEDIM >=2 )
-    for (int jbox = 0; jbox < nboxes[1]; ++jbox)
+    for (int jbox = 0; jbox < nboxes[1]; ++jbox) {
 #endif
     for (int ibox = 0; ibox < nboxes[0]; ++ibox)
     {
@@ -750,9 +750,9 @@ get_src_dst_boxes (DTOS const& dtos, Box const& dstbox, Box const& domain)
                                                 dst_ends[1][div[1]].second,
                                                 dst_ends[2][div[2]].second)),
                            dtype));
-    }
+    AMREX_D_TERM(},},})
 
-    return r; // NOLINT(readability-misleading-indentation,-warnings-as-errors)
+    return r;
 }
 
 template <typename DTOS>
