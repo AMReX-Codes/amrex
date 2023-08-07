@@ -257,7 +257,7 @@ template <typename MF>
 void
 MLALaplacianT<MF>::update ()
 {
-    if (MLCellABecLapT<MF>::needsUpdate()) MLCellABecLapT<MF>::update();
+    if (MLCellABecLapT<MF>::needsUpdate()) { MLCellABecLapT<MF>::update(); }
     averageDownCoeffs();
     updateSingularFlag();
     m_needs_update = false;
@@ -453,7 +453,7 @@ MLALaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int r
     const RT alpha = m_a_scalar;
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
