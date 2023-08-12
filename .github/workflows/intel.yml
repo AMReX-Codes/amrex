@@ -102,7 +102,7 @@ jobs:
     - name: Dependencies
       if: ${{ env.CODEPLAYTOKEN != '' }}
       run: |
-        .github/workflows/dependencies/dependencies_nvcc12.sh
+        .github/workflows/dependencies/dependencies_nvcc.sh
         .github/workflows/dependencies/dependencies_dpcpp.sh
         .github/workflows/dependencies/dependencies_codeplay.sh ${{ env.CODEPLAYTOKEN }}
         .github/workflows/dependencies/dependencies_ccache.sh
