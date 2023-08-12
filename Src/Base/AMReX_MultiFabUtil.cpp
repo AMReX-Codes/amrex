@@ -1,5 +1,6 @@
 
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_Random.H>
 #include <sstream>
 #include <iostream>
 
@@ -1183,5 +1184,31 @@ namespace amrex
         }
 
         cmf.ParallelCopy(tmp, 0, scomp, ncomp);
+    }
+
+    void FillRandom (MultiFab& mf, int scomp, int ncomp)
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            auto* p = mf[mfi].dataPtr(scomp);
+            Long npts = mf[mfi].box().numPts() * ncomp;
+            FillRandom(p, npts);
+        }
+    }
+
+    void FillRandomNormal (MultiFab& mf, int scomp, int ncomp, Real mean, Real stddev)
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            auto* p = mf[mfi].dataPtr(scomp);
+            Long npts = mf[mfi].box().numPts() * ncomp;
+            FillRandomNormal(p, npts, mean, stddev);
+        }
     }
 }

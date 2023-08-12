@@ -15,6 +15,7 @@
 #include <curand_kernel.h>
 #elif defined(AMREX_USE_SYCL)
 #include <sycl/sycl.hpp>
+#include <oneapi/mkl/rng.hpp>
 #include <oneapi/mkl/rng/device.hpp>
 namespace mkl = oneapi::mkl;
 #endif
@@ -42,8 +43,10 @@ namespace amrex
 
 #ifdef AMREX_USE_HIP
     using randState_t = hiprandState_t;
+    using randGenerator_t = hiprandGenerator_t;
 #else
     using randState_t = curandState_t;
+    using randGenerator_t = curandGenerator_t;
 #endif
 
     extern randState_t* gpu_rand_state;
