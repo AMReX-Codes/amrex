@@ -30,14 +30,10 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
                         conduit::Node &res,
                         const std::string &topology_name)
 {
-    int num_particles = ptile.GetArrayOfStructs().size();
-    int struct_size   = ParticleType::is_soa_particle ? 0 : sizeof(ParticleType);
+    int num_particles = ptile.size();
 
     // knowing the above, we can zero copy the x,y,z positions + id, cpu
     // and any user fields in the AOS
-
-    // get the first particle's struct
-    const auto &pstruct = ptile.GetArrayOfStructs();
 
     // setup a blueprint description for the particle mesh
     // create a coordinate set
@@ -63,28 +59,55 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
     // point locations from from aos
     //----------------------------------//
 
-    const char* pbuf_const = reinterpret_cast<const char*>(pstruct.data());
-    char* pbuf = const_cast<char*>(pbuf_const);
+    if constexpr(ParticleType::is_soa_particle)
+    {
+        const auto &soa = ptile.GetStructOfArrays();
 
-    ParticleReal* xp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
-    n_coords["values/x"].set_external(xp,
-                                      num_particles,
-                                      0,
-                                      struct_size);
+        // for soa entries, we can use standard strides,
+        // since these are contiguous arrays
+
+        // array real fields
+        for (int i = 0; i < NArrayReal; i++)
+        {
+            n_coords["values/x"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(0)[0])
+                                              num_particles);
 #if AMREX_SPACEDIM > 1
-    ParticleReal* yp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
-    n_coords["values/y"].set_external(yp,
-                                      num_particles,
-                                      0,
-                                      struct_size);
+            n_coords["values/y"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(1)[0])
+                                              num_particles);
 #endif
 #if AMREX_SPACEDIM > 2
-    ParticleReal* zp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
-    n_coords["values/z"].set_external(zp,
-                                      num_particles,
-                                      0,
-                                      struct_size);
+            n_coords["values/z"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(2)[0])
+                                              num_particles);
 #endif
+    } else
+    {
+        // get the first particle's struct
+        const auto &pstruct = ptile.GetArrayOfStructs();
+        const int struct_size = sizeof(ParticleType);
+
+        const char* pbuf_const = reinterpret_cast<const char*>(pstruct.data());
+        char* pbuf = const_cast<char*>(pbuf_const);
+
+        ParticleReal* xp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
+        n_coords["values/x"].set_external(xp,
+                                          num_particles,
+                                          0,
+                                          struct_size);
+#if AMREX_SPACEDIM > 1
+        ParticleReal* yp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
+        n_coords["values/y"].set_external(yp,
+                                          num_particles,
+                                          0,
+                                          struct_size);
+#endif
+#if AMREX_SPACEDIM > 2
+        ParticleReal* zp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
+        n_coords["values/z"].set_external(zp,
+                                          num_particles,
+                                          0,
+                                          struct_size);
+#endif
+    }
 
     // fields
     conduit::Node &n_fields = res["fields"];
@@ -94,20 +117,24 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
     // -----------------------------
 
     int vname_real_idx = 0;
-    // struct real fields, the first set are always the particle positions
-    // which we wrap above
-    for (int i = 0; i < NStructReal; i++)
+    if constexpr(!ParticleType::is_soa_particle)
     {
-        ParticleReal* val = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
-        conduit::Node &n_f = n_fields[real_comp_names.at(vname_real_idx)];
-        n_f["topology"] = topology_name;
-        n_f["association"] = "element";
-        n_f["values"].set_external(val,
-                                   num_particles,
-                                   0,
-                                   struct_size);
+        const int struct_size = sizeof(ParticleType);
+        // struct real fields, the first set are always the particle positions
+        // which we wrap above
+        for (int i = 0; i < NStructReal; i++)
+        {
+            ParticleReal* val = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
+            conduit::Node &n_f = n_fields[real_comp_names.at(vname_real_idx)];
+            n_f["topology"] = topology_name;
+            n_f["association"] = "element";
+            n_f["values"].set_external(val,
+                                       num_particles,
+                                       0,
+                                       struct_size);
 
-        vname_real_idx++;
+            vname_real_idx++;
+        }
     }
 
     //----------------------------------//
@@ -115,44 +142,54 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
     // (id, cpu)
     //----------------------------------//
 
-    // id is the first int entry
-    int* id = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
-    conduit::Node &n_f_id = n_fields[topology_name + "_id"];
+    if constexpr(!ParticleType::is_soa_particle)
+    {
+        const int struct_size = sizeof(ParticleType);
 
-    n_f_id["topology"] = topology_name;
-    n_f_id["association"] = "element";
-    n_f_id["values"].set_external(id,
-                                  num_particles,
-                                  0,
-                                  struct_size);
+        // id is the first int entry
+        int* id = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
+        conduit::Node &n_f_id = n_fields[topology_name + "_id"];
 
-    // cpu is the second int entry
-    int* cpu = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
-    conduit::Node &n_f_cpu = n_fields[topology_name + "_cpu"];
+        n_f_id["topology"] = topology_name;
+        n_f_id["association"] = "element";
+        n_f_id["values"].set_external(id,
+                                      num_particles,
+                                      0,
+                                      struct_size);
 
-    n_f_cpu["topology"] = topology_name;
-    n_f_cpu["association"] = "element";
-    n_f_cpu["values"].set_external(cpu,
-                                   num_particles,
-                                   0,
-                                   struct_size);
+        // cpu is the second int entry
+        int* cpu = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
+        conduit::Node &n_f_cpu = n_fields[topology_name + "_cpu"];
+
+        n_f_cpu["topology"] = topology_name;
+        n_f_cpu["association"] = "element";
+        n_f_cpu["values"].set_external(cpu,
+                                       num_particles,
+                                       0,
+                                       struct_size);
+    }
 
     // --------------------------------
     // user defined, integer aos fields
     // --------------------------------
 
     int vname_int_idx = 0;
-    for (int i = 0; i < NStructInt; i++)
+    if constexpr(!ParticleType::is_soa_particle)
     {
-        int* val = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
-        conduit::Node &n_f = n_fields[int_comp_names.at(vname_int_idx)];
-        n_f["topology"] = topology_name;
-        n_f["association"] = "element";
-        n_f["values"].set_external(val,
-                                   num_particles,
-                                   0,
-                                   struct_size);
-        vname_int_idx++;
+        const int struct_size = sizeof(ParticleType);
+
+        for (int i = 0; i < NStructInt; i++)
+        {
+            int* val = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
+            conduit::Node &n_f = n_fields[int_comp_names.at(vname_int_idx)];
+            n_f["topology"] = topology_name;
+            n_f["association"] = "element";
+            n_f["values"].set_external(val,
+                                       num_particles,
+                                       0,
+                                       struct_size);
+            vname_int_idx++;
+        }
     }
 
     // -------------------------
@@ -207,8 +244,13 @@ ParticleContainerToBlueprint(const ParticleContainer<ParticleType,
     // validate varnames, which are used to provide field names
     // for user defined aos and soa values.
 
-    BL_ASSERT(real_comp_names.size() == (NStructReal + NArrayReal) );
-    BL_ASSERT(int_comp_names.size()  == (NStructInt + NArrayInt) );
+    if constexpr(ParticleType::is_soa_particle) {
+        BL_ASSERT(real_comp_names.size() == NArrayReal);
+        BL_ASSERT(int_comp_names.size()  == NArrayInt);
+    } else {
+        BL_ASSERT(real_comp_names.size() == (NStructReal + NArrayReal) );
+        BL_ASSERT(int_comp_names.size()  == (NStructInt + NArrayInt) );
+    }
 
     int num_levels = pc.maxLevel() + 1;
     int num_domains = 0;
