@@ -272,6 +272,15 @@ if (AMReX_HIP)
           )
        endforeach()
    endif()
+   
+   # Debug issues with -O0: internal compiler errors
+   # work-around for
+   #   https://github.com/AMReX-Codes/amrex/pull/3311
+   foreach(D IN LISTS AMReX_SPACEDIM)
+      target_compile_options(amrex_${D}d PUBLIC
+         "$<$<CONFIG:Debug>:-O1>"
+      )
+   endforeach()
 
    # Link to hiprand -- must include rocrand too
    find_package(rocrand REQUIRED CONFIG)
