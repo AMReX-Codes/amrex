@@ -207,32 +207,31 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 #if (AMREX_SPACEDIM == 2)
                     int kk = 0;
 #elif (AMREX_SPACEDIM == 3)
-                    for(int kk(-1); kk<=1; kk++)
+                    for(int kk(-1); kk<=1; kk++) {
 #endif
-                    {
-                     for(int jj(-1); jj<=1; jj++)
-                      for(int ii(-1); ii<=1; ii++)
-                        if (flag(i,j,k).isConnected(ii,jj,kk))
-                        {
-                            int rr = i+ii; int ss = j+jj; int tt = k+kk;
+                    for(int jj(-1); jj<=1; jj++) {
+                    for(int ii(-1); ii<=1; ii++) {
+                         if (flag(i,j,k).isConnected(ii,jj,kk))
+                         {
+                             int rr = i+ii; int ss = j+jj; int tt = k+kk;
 
-                            x_max = amrex::max(x_max, cent_hat(rr,ss,tt,0)+static_cast<Real>(ii));
-                            x_min = amrex::min(x_min, cent_hat(rr,ss,tt,0)+static_cast<Real>(ii));
-                            y_max = amrex::max(y_max, cent_hat(rr,ss,tt,1)+static_cast<Real>(jj));
-                            y_min = amrex::min(y_min, cent_hat(rr,ss,tt,1)+static_cast<Real>(jj));
+                                x_max = amrex::max(x_max, cent_hat(rr,ss,tt,0)+static_cast<Real>(ii));
+                                x_min = amrex::min(x_min, cent_hat(rr,ss,tt,0)+static_cast<Real>(ii));
+                                y_max = amrex::max(y_max, cent_hat(rr,ss,tt,1)+static_cast<Real>(jj));
+                                y_min = amrex::min(y_min, cent_hat(rr,ss,tt,1)+static_cast<Real>(jj));
 #if (AMREX_SPACEDIM == 3)
-                            z_max = amrex::max(z_max, cent_hat(rr,ss,tt,2)+static_cast<Real>(kk));
-                            z_min = amrex::min(z_min, cent_hat(rr,ss,tt,2)+static_cast<Real>(kk));
+                                z_max = amrex::max(z_max, cent_hat(rr,ss,tt,2)+static_cast<Real>(kk));
+                                z_min = amrex::min(z_min, cent_hat(rr,ss,tt,2)+static_cast<Real>(kk));
 #endif
-                        }
-                    }
+                         }
+                    AMREX_D_TERM(},},})
 
                     // If we need to grow the stencil, we let it be -nx:nx in the x-direction,
                     //    for example.   Note that nx,ny,nz are either 1 or 2
-                    if ( (x_max-x_min) < slope_stencil_min_width ) nx = 2;
-                    if ( (y_max-y_min) < slope_stencil_min_width ) ny = 2;
+                    if ( (x_max-x_min) < slope_stencil_min_width ) { nx = 2; }
+                    if ( (y_max-y_min) < slope_stencil_min_width ) { ny = 2; }
 #if (AMREX_SPACEDIM == 3)
-                    if ( (z_max-z_min) < slope_stencil_min_width ) nz = 2;
+                    if ( (z_max-z_min) < slope_stencil_min_width ) { nz = 2; }
 #endif
                     // Compute slopes of Qhat (which is the sum of the qt's) then use
                     //  that for each qt separately
