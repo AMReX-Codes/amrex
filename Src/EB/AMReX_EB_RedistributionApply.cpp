@@ -107,7 +107,6 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
     } else if (redistribution_type == "StateRedist") {
 
         Box const& bxg1 = grow(bx,1);
-        Box const& bxg2 = grow(bx,2);
         Box const& bxg3 = grow(bx,3);
         Box const& bxg4 = grow(bx,4);
 
@@ -252,7 +251,6 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
 
     // amrex::Print() <<" Redistribution::ApplyInitial " << redistribution_type << std::endl;
 
-    Box const& bxg2 = grow(bx,2);
     Box const& bxg3 = grow(bx,3);
     Box const& bxg4 = grow(bx,4);
 
