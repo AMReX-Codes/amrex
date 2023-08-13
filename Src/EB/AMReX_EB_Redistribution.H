@@ -162,12 +162,12 @@ namespace amrex {
                                amrex::Array4<amrex::Real const> const& cent_hat,
                                amrex::Geometry const& geom,
                                int as_crse,
-                               Array4<Real            > const& rr_drho_crse,
-                               Array4<int        const> const& rr_flag_crse,
+                               Array4<Real            > const& drho_as_crse,
+                               Array4<int        const> const& flag_as_crse,
                                int as_fine,
                                Array4<Real            > const& dm_as_fine,
                                Array4<int        const> const& levmsk,
-                               int level_mask_not_covered,
+                               int is_ghost_cell,
                                amrex::Real fac_for_deltaR,
                                int max_order = 2);
 
