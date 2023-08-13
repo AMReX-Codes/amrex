@@ -160,8 +160,9 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
             amrex::ParallelFor(bxg1,ncomp,
             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    if (!domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k))))
+                    if (!domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
                         dUdt_in(i,j,k,n) = 0.;
+                    }
                 });
         }
 

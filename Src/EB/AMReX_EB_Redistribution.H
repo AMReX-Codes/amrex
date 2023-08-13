@@ -82,7 +82,7 @@ namespace amrex {
         amrex::Array4<amrex::Real      > const& dUdt_out,
         amrex::Array4<amrex::Real      > const& dUdt_in,
         amrex::Array4<amrex::Real const> const& U_in,
-        amrex::Array4<amrex::Real      > const& wt,
+        amrex::Array4<amrex::Real      > const& scratch,
         amrex::Array4<amrex::EBCellFlag const> const& flag,
         AMREX_D_DECL(amrex::Array4<amrex::Real const> const& apx,
                      amrex::Array4<amrex::Real const> const& apy,
