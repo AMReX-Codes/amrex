@@ -203,25 +203,25 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                                  Real y_max = -Real(1.e30); Real y_min = Real(1.e30);,
                                  Real z_max = -Real(1.e30); Real z_min = Real(1.e30););
 
-                    Real slope_stencil_min_width = 0.5;
+                    Real slope_stencil_min_width = Real(0.5);
 #if (AMREX_SPACEDIM == 2)
-                    int kk = 0;
+                    int kkk = 0;
 #elif (AMREX_SPACEDIM == 3)
-                    for(int kk(-1); kk<=1; kk++) {
+                    for(int kkk(-1); kkk<=1; kkk++) {
 #endif
-                    for(int jj(-1); jj<=1; jj++) {
-                    for(int ii(-1); ii<=1; ii++) {
-                         if (flag(i,j,k).isConnected(ii,jj,kk))
+                    for(int jjj(-1); jjj<=1; jjj++) {
+                    for(int iii(-1); iii<=1; iii++) {
+                         if (flag(i,j,k).isConnected(iii,jjj,kkk))
                          {
-                             int rr = i+ii; int ss = j+jj; int tt = k+kk;
+                             int rr = i+iii; int ss = j+jjj; int tt = k+kkk;
 
-                                x_max = amrex::max(x_max, cent_hat(rr,ss,tt,0)+static_cast<Real>(ii));
-                                x_min = amrex::min(x_min, cent_hat(rr,ss,tt,0)+static_cast<Real>(ii));
-                                y_max = amrex::max(y_max, cent_hat(rr,ss,tt,1)+static_cast<Real>(jj));
-                                y_min = amrex::min(y_min, cent_hat(rr,ss,tt,1)+static_cast<Real>(jj));
+                                x_max = amrex::max(x_max, cent_hat(rr,ss,tt,0)+static_cast<Real>(iii));
+                                x_min = amrex::min(x_min, cent_hat(rr,ss,tt,0)+static_cast<Real>(iii));
+                                y_max = amrex::max(y_max, cent_hat(rr,ss,tt,1)+static_cast<Real>(jjj));
+                                y_min = amrex::min(y_min, cent_hat(rr,ss,tt,1)+static_cast<Real>(jjj));
 #if (AMREX_SPACEDIM == 3)
-                                z_max = amrex::max(z_max, cent_hat(rr,ss,tt,2)+static_cast<Real>(kk));
-                                z_min = amrex::min(z_min, cent_hat(rr,ss,tt,2)+static_cast<Real>(kk));
+                                z_max = amrex::max(z_max, cent_hat(rr,ss,tt,2)+static_cast<Real>(kkk));
+                                z_min = amrex::min(z_min, cent_hat(rr,ss,tt,2)+static_cast<Real>(kkk));
 #endif
                          }
                     AMREX_D_TERM(},},})
