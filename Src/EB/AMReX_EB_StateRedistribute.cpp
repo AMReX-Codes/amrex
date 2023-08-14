@@ -116,24 +116,6 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 
     for (int n = 0; n < ncomp; n++)
     {
-        bool extdir_ilo = (d_bcrec_ptr[n].lo(0) == amrex::BCType::ext_dir ||
-                           d_bcrec_ptr[n].lo(0) == amrex::BCType::hoextrap);
-        bool extdir_ihi = (d_bcrec_ptr[n].hi(0) == amrex::BCType::ext_dir ||
-                           d_bcrec_ptr[n].hi(0) == amrex::BCType::hoextrap);
-        bool extdir_jlo = (d_bcrec_ptr[n].lo(1) == amrex::BCType::ext_dir ||
-                           d_bcrec_ptr[n].lo(1) == amrex::BCType::hoextrap);
-        bool extdir_jhi = (d_bcrec_ptr[n].hi(1) == amrex::BCType::ext_dir ||
-                           d_bcrec_ptr[n].hi(1) == amrex::BCType::hoextrap);
-#if (AMREX_SPACEDIM == 3)
-        bool extdir_klo = (d_bcrec_ptr[n].lo(2) == amrex::BCType::ext_dir ||
-                           d_bcrec_ptr[n].lo(2) == amrex::BCType::hoextrap);
-        bool extdir_khi = (d_bcrec_ptr[n].hi(2) == amrex::BCType::ext_dir ||
-                           d_bcrec_ptr[n].hi(2) == amrex::BCType::hoextrap);
-#endif
-
-    //
-    // ****************************************************************************************
-    //
 
     // Define Qhat (from Berger and Guliani)
     // Here we initialize Qhat to equal U_in on all cells in bxg3 so that
@@ -233,9 +215,23 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 #if (AMREX_SPACEDIM == 3)
                     if ( (z_max-z_min) < slope_stencil_min_width ) { nz = 2; }
 #endif
+                    bool extdir_ilo = (d_bcrec_ptr[n].lo(0) == amrex::BCType::ext_dir ||
+                                       d_bcrec_ptr[n].lo(0) == amrex::BCType::hoextrap);
+                    bool extdir_ihi = (d_bcrec_ptr[n].hi(0) == amrex::BCType::ext_dir ||
+                                       d_bcrec_ptr[n].hi(0) == amrex::BCType::hoextrap);
+                    bool extdir_jlo = (d_bcrec_ptr[n].lo(1) == amrex::BCType::ext_dir ||
+                                       d_bcrec_ptr[n].lo(1) == amrex::BCType::hoextrap);
+                    bool extdir_jhi = (d_bcrec_ptr[n].hi(1) == amrex::BCType::ext_dir ||
+                                       d_bcrec_ptr[n].hi(1) == amrex::BCType::hoextrap);
+#if (AMREX_SPACEDIM == 3)
+                    bool extdir_klo = (d_bcrec_ptr[n].lo(2) == amrex::BCType::ext_dir ||
+                                       d_bcrec_ptr[n].lo(2) == amrex::BCType::hoextrap);
+                    bool extdir_khi = (d_bcrec_ptr[n].hi(2) == amrex::BCType::ext_dir ||
+                                       d_bcrec_ptr[n].hi(2) == amrex::BCType::hoextrap);
+#endif
+
                     // Compute slopes of Qhat (which is the sum of the qt's) then use
                     //  that for each qt separately
-
                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes_eb;
                     if (nx*ny*nz == 1) {
                         // Compute slope using 3x3x3 stencil
