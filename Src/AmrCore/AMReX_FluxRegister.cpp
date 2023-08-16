@@ -1013,7 +1013,7 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
 
     Box cdomain = crse_geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (crse_geom.isPeriodic(idim)) cdomain.grow(idim, 1);
+        if (crse_geom.isPeriodic(idim)) { cdomain.grow(idim, 1); }
     }
 
     bool run_on_gpu = Gpu::inLaunchRegion();

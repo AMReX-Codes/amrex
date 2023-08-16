@@ -159,7 +159,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
                 }
             }
             ifs.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            if (nfound == npstat) break;
+            if (nfound == npstat) { break; }
         }
     }
 
@@ -201,23 +201,23 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 #endif
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
-    ParallelDescriptor::ReduceLongMin(&cur_min[0], cur_min.size(), IOProc);
-    ParallelDescriptor::ReduceLongMax(&cur_max[0], cur_max.size(), IOProc);
-    ParallelDescriptor::ReduceLongMin(&hwm_min[0], hwm_min.size(), IOProc);
-    ParallelDescriptor::ReduceLongMax(&hwm_max[0], hwm_max.size(), IOProc);
-    ParallelDescriptor::ReduceLongMin(&mymin[0], N, IOProc);
-    ParallelDescriptor::ReduceLongMax(&mymax[0], N, IOProc);
+    ParallelDescriptor::ReduceLongMin(cur_min.data(), cur_min.size(), IOProc);
+    ParallelDescriptor::ReduceLongMax(cur_max.data(), cur_max.size(), IOProc);
+    ParallelDescriptor::ReduceLongMin(hwm_min.data(), hwm_min.size(), IOProc);
+    ParallelDescriptor::ReduceLongMax(hwm_max.data(), hwm_max.size(), IOProc);
+    ParallelDescriptor::ReduceLongMin(mymin.data(), N, IOProc);
+    ParallelDescriptor::ReduceLongMax(mymax.data(), N, IOProc);
 
-    ParallelDescriptor::ReduceIntMin (&num_builds_min[0], num_builds_min.size(), IOProc);
-    ParallelDescriptor::ReduceIntMax (&num_builds_max[0], num_builds_max.size(), IOProc);
-    ParallelDescriptor::ReduceIntMin (&hwm_builds_min[0], hwm_builds_min.size(), IOProc);
-    ParallelDescriptor::ReduceIntMax (&hwm_builds_max[0], hwm_builds_max.size(), IOProc);
+    ParallelDescriptor::ReduceIntMin (num_builds_min.data(), num_builds_min.size(), IOProc);
+    ParallelDescriptor::ReduceIntMax (num_builds_max.data(), num_builds_max.size(), IOProc);
+    ParallelDescriptor::ReduceIntMin (hwm_builds_min.data(), hwm_builds_min.size(), IOProc);
+    ParallelDescriptor::ReduceIntMax (hwm_builds_max.data(), hwm_builds_max.size(), IOProc);
 
     if (ParallelDescriptor::IOProcessor()) {
 
         std::ofstream memlog(memory_log_name.c_str(),
                              std::ofstream::out|std::ofstream::app);
-        if (!memlog.good()) return;
+        if (!memlog.good()) { return; }
 
         static int width_name = 0;
         if (width_name == 0) {

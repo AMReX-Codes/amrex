@@ -47,11 +47,7 @@ namespace {
     Long the_pinned_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_comms_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_async_arena_release_threshold = std::numeric_limits<Long>::max();
-#ifdef AMREX_USE_HIP
-    bool the_arena_is_managed = false; // xxxxx HIP FIX HERE
-#else
-    bool the_arena_is_managed = true;
-#endif
+    bool the_arena_is_managed = false;
     bool abort_on_out_of_gpu_memory = false;
 }
 
@@ -145,7 +141,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-        if (p && (nbytes > 0) && arena_info.device_use_hostalloc) mlock(p, nbytes);
+        if (p && (nbytes > 0) && arena_info.device_use_hostalloc) { mlock(p, nbytes); }
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
@@ -205,13 +201,13 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-    if (p && (nbytes > 0) && arena_info.device_use_hostalloc) mlock(p, nbytes);
+    if (p && (nbytes > 0) && arena_info.device_use_hostalloc) { mlock(p, nbytes); }
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 #endif
 #endif
-    if (p == nullptr) amrex::Abort("Sorry, malloc failed");
+    if (p == nullptr) { amrex::Abort("Sorry, malloc failed"); }
     return p;
 }
 
@@ -221,7 +217,7 @@ Arena::deallocate_system (void* p, std::size_t nbytes) // NOLINT(readability-mak
 #ifdef AMREX_USE_GPU
     if (arena_info.use_cpu_memory)
     {
-        if (p && arena_info.device_use_hostalloc) AMREX_MUNLOCK(p, nbytes);
+        if (p && arena_info.device_use_hostalloc) { AMREX_MUNLOCK(p, nbytes); }
         std::free(p);
     }
     else if (arena_info.device_use_hostalloc)
@@ -239,7 +235,7 @@ Arena::deallocate_system (void* p, std::size_t nbytes) // NOLINT(readability-mak
              sycl::free(p,Gpu::Device::syclContext()));
     }
 #else
-    if (p && arena_info.device_use_hostalloc) AMREX_MUNLOCK(p, nbytes);
+    if (p && arena_info.device_use_hostalloc) { AMREX_MUNLOCK(p, nbytes); }
     std::free(p);
 #endif
 }
@@ -269,7 +265,7 @@ namespace {
 void
 Arena::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
     initialized = true;
 
     // see reason on allowed reuse of the default CPU BArena in Arena::Finalize
@@ -282,13 +278,11 @@ Arena::Initialize ()
     BL_ASSERT(the_comms_arena == nullptr || the_comms_arena == The_BArena());
 
 #ifdef AMREX_USE_GPU
-#ifdef AMREX_USE_SYCL
-    the_arena_init_size = 1024L*1024L*1024L; // xxxxx SYCL: todo
-#else
     the_arena_init_size = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 4L * 3L;
+#ifdef AMREX_USE_SYCL
+    the_arena_init_size = std::min(the_arena_init_size, Gpu::Device::maxMemAllocSize());
 #endif
-
-    the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem();
+    the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 2L;
 #endif
 
     ParmParse pp("amrex");

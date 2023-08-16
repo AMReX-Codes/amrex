@@ -293,7 +293,7 @@ CNS::printTotal () const
 void
 CNS::post_init (Real)
 {
-    if (level > 0) return;
+    if (level > 0) { return; }
     for (int k = parent->finestLevel()-1; k >= 0; --k) {
         getLevel(k).avgDown();
     }
@@ -462,7 +462,7 @@ CNS::avgDown ()
 {
     BL_PROFILE("CNS::avgDown()");
 
-    if (level == parent->finestLevel()) return;
+    if (level == parent->finestLevel()) { return; }
 
     auto& fine_lev = getLevel(level+1);
 

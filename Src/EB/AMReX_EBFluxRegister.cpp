@@ -166,7 +166,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 
     const int li = mfi.LocalIndex();
     Vector<FArrayBox*>& cfp_fabs = m_cfp_fab[li];
-    if (cfp_fabs.empty()) return;
+    if (cfp_fabs.empty()) { return; }
 
     const Box& tbx = mfi.tilebox();
     BL_ASSERT(tbx.cellCentered());
@@ -340,7 +340,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
         const Box& gdomain = m_crse_geom.growPeriodicDomain(1);
 
         MFItInfo info;
-        if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

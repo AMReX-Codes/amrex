@@ -36,8 +36,8 @@ Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
             {
                 Box box = src_box;
                 const IntVect& ref_fac = computeRefFac(a_gdb, src_lev, lev);
-                if (ref_fac < IntVect::TheZeroVector()) box.coarsen(-1*ref_fac);
-                else if (ref_fac > IntVect::TheZeroVector()) box.refine(ref_fac);
+                if (ref_fac < IntVect::TheZeroVector()) { box.coarsen(-1*ref_fac); }
+                else if (ref_fac > IntVect::TheZeroVector()) { box.refine(ref_fac); }
                 box.grow(computeRefFac(a_gdb, 0, src_lev)*ngrow);
 
                 const Periodicity& periodicity = a_gdb->Geom(lev).periodicity();

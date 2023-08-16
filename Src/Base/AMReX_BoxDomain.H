@@ -70,7 +70,8 @@ class BoxDomain
 public:
     friend class ClusterList;
 
-    typedef BoxList::const_iterator const_iterator;
+    using const_iterator = BoxList::const_iterator;
+
     //! Construct an empty BoxDomain of IndexType::TheCellType().
     BoxDomain ();
 

@@ -42,8 +42,9 @@ void test_assign_density(TestParams& parms)
 
     // Define the refinement ratio
     Vector<int> rr(nlevs-1);
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         rr[lev-1] = 2;
+    }
 
     // This sets the boundary conditions to be doubly or triply periodic
     int is_per[] = {AMREX_D_DECL(1,1,1)};
@@ -87,7 +88,7 @@ void test_assign_density(TestParams& parms)
         acceleration[lev]->setVal(5.0, 1);
     }
 
-    typedef AmrParticleContainer<1> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<1>;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
 
@@ -147,8 +148,9 @@ int main(int argc, char* argv[])
   pp.get("max_grid_size", parms.max_grid_size);
   pp.get("nlevs", parms.nlevs);
   pp.get("nppc", parms.nppc);
-  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
+  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
+  }
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);

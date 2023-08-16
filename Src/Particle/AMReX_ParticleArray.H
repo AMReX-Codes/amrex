@@ -42,7 +42,7 @@ struct ParticleArrayAccessor;
 template <class T>
 class ref_wrapper {
 public:
-    typedef T type;
+    using type = T;
 
     AMREX_GPU_HOST_DEVICE
     ref_wrapper(T& ref) noexcept : _ptr(&ref) {}
@@ -83,7 +83,7 @@ struct DataLayoutPolicy<ContainerType, ParticleType<Types...>, DataLayout::AoS>
 
     static constexpr raw_type get_raw_data (container_type& a_container)
     {
-        return raw_type(static_cast<ParticleType<Types...>*>(&a_container[0]));
+        return raw_type(static_cast<ParticleType<Types...>*>(a_container.data()));
     }
 
     static constexpr void resize (container_type& a_container, std::size_t a_size)

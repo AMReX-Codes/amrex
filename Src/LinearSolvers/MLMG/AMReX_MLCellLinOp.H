@@ -504,7 +504,7 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
 
     MF zero;
     IntVect ng(1);
-    if (this->hasHiddenDimension()) ng[this->hiddenDirection()] = 0;
+    if (this->hasHiddenDimension()) { ng[this->hiddenDirection()] = 0; }
     if (a_levelbcdata == nullptr) {
         zero.define(this->m_grids[amrlev][0], this->m_dmap[amrlev][0], ncomp, ng);
         zero.setVal(RT(0.0));
@@ -574,7 +574,7 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
                                                      ncomp*3, 1);
         const Box& domain = this->m_geom[amrlev][0].Domain();
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -588,7 +588,7 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
                 const Box& bhi = amrex::adjCellHi(vbx, idim);
                 bool outside_domain_lo = !(domain.contains(blo));
                 bool outside_domain_hi = !(domain.contains(bhi));
-                if ((!outside_domain_lo) && (!outside_domain_hi)) continue;
+                if ((!outside_domain_lo) && (!outside_domain_hi)) { continue; }
                 for (int icomp = 0; icomp < ncomp; ++icomp) {
                     Array4<RT> const& rbc = (*m_robin_bcval[amrlev])[mfi].array(icomp*3);
                     if (this->m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
@@ -619,7 +619,7 @@ template <typename MF>
 void
 MLCellLinOpT<MF>::update ()
 {
-    if (MLLinOpT<MF>::needsUpdate()) MLLinOpT<MF>::update();
+    if (MLLinOpT<MF>::needsUpdate()) { MLLinOpT<MF>::update(); }
 }
 
 template <typename MF>
@@ -681,7 +681,7 @@ MLCellLinOpT<MF>::applyBC (int amrlev, int mglev, MF& in, BCMode bc_mode, StateM
     const auto& foo = foofab.const_array();
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cross || tensorop || Gpu::notInLaunchRegion(),
                                      "non-cross stencil not support for gpu");
@@ -775,7 +775,7 @@ MLCellLinOpT<MF>::applyBC (int amrlev, int mglev, MF& in, BCMode bc_mode, StateM
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
-                if (hidden_direction == idim) continue;
+                if (hidden_direction == idim) { continue; }
                 const Orientation olo(idim,Orientation::low);
                 const Orientation ohi(idim,Orientation::high);
                 const Box blo = amrex::adjCellLo(vbx, idim);
@@ -1005,7 +1005,7 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
 #endif
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1075,7 +1075,7 @@ MLCellLinOpT<MF>::interpolationAmr (int famrlev, MF& fine, const MF& crse,
 #endif
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1253,15 +1253,15 @@ MLCellLinOpT<MF>::reflux (int crse_amrlev, MF& res, const MF& crse_sol, const MF
             m_bndry_sol[fine_amrlev].get());
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         Array<FAB,AMREX_SPACEDIM> flux;
-        Array<FAB*,AMREX_SPACEDIM> pflux {{ AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) }};
-        Array<FAB const*,AMREX_SPACEDIM> cpflux {{ AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) }};
+        Array<FAB*,AMREX_SPACEDIM> pflux {{ AMREX_D_DECL(flux.data(), flux.data()+1, flux.data()+2) }};
+        Array<FAB const*,AMREX_SPACEDIM> cpflux {{ AMREX_D_DECL(flux.data(), flux.data()+1, flux.data()+2) }};
 
         for (MFIter mfi(crse_sol, mfi_info);  mfi.isValid(); ++mfi)
         {
@@ -1317,14 +1317,14 @@ MLCellLinOpT<MF>::compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
             m_bndry_sol[amrlev].get());
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         Array<FAB,AMREX_SPACEDIM> flux;
-        Array<FAB*,AMREX_SPACEDIM> pflux {{ AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) }};
+        Array<FAB*,AMREX_SPACEDIM> pflux {{ AMREX_D_DECL(flux.data(), flux.data()+1, flux.data()+2) }};
         for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
@@ -1408,7 +1408,7 @@ MLCellLinOpT<MF>::applyMetricTerm (int amrlev, int mglev, MF& rhs) const
 {
     amrex::ignore_unused(amrlev,mglev,rhs);
 #if (AMREX_SPACEDIM != 3)
-    if (!m_has_metric_term) return;
+    if (!m_has_metric_term) { return; }
 
     const int ncomp = rhs.nComp();
 
@@ -1464,7 +1464,7 @@ MLCellLinOpT<MF>::unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const
 {
     amrex::ignore_unused(amrlev,mglev,rhs);
 #if (AMREX_SPACEDIM != 3)
-    if (!m_has_metric_term) return;
+    if (!m_has_metric_term) { return; }
 
     const int ncomp = rhs.nComp();
 
@@ -1808,7 +1808,7 @@ MLCellLinOpT<MF>::prepareForSolve ()
 #endif
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                     {
-                        if (idim == hidden_direction) continue;
+                        if (idim == hidden_direction) { continue; }
                         const Orientation olo(idim,Orientation::low);
                         const Orientation ohi(idim,Orientation::high);
                         const Box blo = amrex::adjCellLo(vbx, idim);
@@ -1904,7 +1904,7 @@ template <typename MF>
 void
 MLCellLinOpT<MF>::computeVolInv () const
 {
-    if (!m_volinv.empty()) return;
+    if (!m_volinv.empty()) { return; }
 
     m_volinv.resize(this->m_num_amr_levels);
     for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
@@ -2051,7 +2051,7 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
         }
     }
 
-    if (!local) ParallelAllReduce::Max(norm, ParallelContext::CommunicatorSub());
+    if (!local) { ParallelAllReduce::Max(norm, ParallelContext::CommunicatorSub()); }
     return norm;
 }
 

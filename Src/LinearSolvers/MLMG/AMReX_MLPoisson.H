@@ -299,7 +299,7 @@ MLPoissonT<MF>::normalize (int amrlev, int mglev, MF& mf) const
 #if (AMREX_SPACEDIM != 3)
     BL_PROFILE("MLPoisson::normalize()");
 
-    if (!this->m_has_metric_term) return;
+    if (!this->m_has_metric_term) { return; }
 
     const Real* dxinv = this->m_geom[amrlev][mglev].InvCellSize();
     AMREX_D_TERM(const RT dhx = RT(dxinv[0]*dxinv[0]);,
@@ -393,7 +393,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 #endif
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && sol.isFusingCandidate()
@@ -865,9 +865,9 @@ bool
 MLPoissonT<MF>::supportNSolve () const
 {
     bool support = true;
-    if (this->m_domain_covered[0]) support = false;
-    if (this->doAgglomeration()) support = false;
-    if (AMREX_SPACEDIM != 3) support = false;
+    if (this->m_domain_covered[0]) { support = false; }
+    if (this->doAgglomeration()) { support = false; }
+    if (AMREX_SPACEDIM != 3) { support = false; }
     return support;
 }
 

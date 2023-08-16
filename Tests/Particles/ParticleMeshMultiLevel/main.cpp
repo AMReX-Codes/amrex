@@ -25,8 +25,9 @@ struct TestParams {
 void testParticleMesh (TestParams& parms)
 {
     Vector<IntVect> rr(parms.nlevs-1);
-    for (int lev = 1; lev < parms.nlevs; lev++)
+    for (int lev = 1; lev < parms.nlevs; lev++) {
         rr[lev-1] = IntVect(AMREX_D_DECL(2,2,2));
+    }
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
@@ -161,8 +162,9 @@ int main(int argc, char* argv[])
   pp.get("max_grid_size", parms.max_grid_size);
   pp.get("nppc", parms.nppc);
   pp.get("nlevs", parms.nlevs);
-  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
+  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
+  }
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);

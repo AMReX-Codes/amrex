@@ -21,7 +21,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
     BL_PROFILE("ParticleContainer::AssignDensity()");
 
-    if (rho_index != 0) amrex::Abort("AssignDensity only works if rho_index = 0");
+    if (rho_index != 0) { amrex::Abort("AssignDensity only works if rho_index = 0"); }
 
     BL_ASSERT(NStructReal >= 1);
     BL_ASSERT(NStructReal >= ncomp);

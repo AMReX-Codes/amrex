@@ -94,8 +94,8 @@ namespace amrex::MFUtil {
             int nc = mf_in.nComp();
 
             mf_out.define(ba, dm, nc, ng);
-            if (regrid_ghost)  SymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
-            else              AsymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
+            if (regrid_ghost) { SymmetricGhost<T>::copy(mf_out, mf_in, nc, ng); }
+            else              { AsymmetricGhost<T>::copy(mf_out, mf_in, nc, ng); }
         }
 
 
@@ -112,8 +112,8 @@ namespace amrex::MFUtil {
             int nc = mf_in.nComp();
 
             mf_out.define(ba, dm, nc, ng, MFInfo(), eb_factory);
-            if (regrid_ghost)  SymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
-            else              AsymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
+            if (regrid_ghost) {  SymmetricGhost<T>::copy(mf_out, mf_in, nc, ng); }
+            else              { AsymmetricGhost<T>::copy(mf_out, mf_in, nc, ng); }
         }
 
 }

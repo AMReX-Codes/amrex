@@ -24,15 +24,16 @@ sudo apt-get install -y \
     pkg-config          \
     wget
 
-curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb
+VERSION_DOTTED=${1-12.0} && VERSION_DASHED=$(sed 's/\./-/' <<< $VERSION_DOTTED)
+curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb
 sudo dpkg -i cuda-keyring_1.0-1_all.deb
 sudo apt-get update
 sudo apt-get install -y \
-    cuda-command-line-tools-12-0 \
-    cuda-compiler-12-0           \
-    cuda-cupti-dev-12-0          \
-    cuda-minimal-build-12-0      \
-    cuda-nvml-dev-12-0           \
-    cuda-nvtx-12-0               \
-    libcurand-dev-12-0
-sudo ln -s cuda-12.0 /usr/local/cuda
+    cuda-command-line-tools-$VERSION_DASHED \
+    cuda-compiler-$VERSION_DASHED           \
+    cuda-cupti-dev-$VERSION_DASHED          \
+    cuda-minimal-build-$VERSION_DASHED      \
+    cuda-nvml-dev-$VERSION_DASHED           \
+    cuda-nvtx-$VERSION_DASHED               \
+    libcurand-dev-$VERSION_DASHED
+sudo ln -s cuda-$VERSION_DOTTED /usr/local/cuda

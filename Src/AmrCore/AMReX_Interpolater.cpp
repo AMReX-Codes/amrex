@@ -478,7 +478,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
     Elixir cceli;
-    if (run_on_gpu) cceli = ccfab.elixir();
+    if (run_on_gpu) { cceli = ccfab.elixir(); }
 #else
     BCRec const* bcrp = bcr.data();
 #endif
@@ -631,7 +631,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
     Elixir seli;
-    if (run_on_gpu) seli = sfab.elixir();
+    if (run_on_gpu) { seli = sfab.elixir(); }
 #else
     BCRec const* bcrp = bcr.data();
 #endif
@@ -1077,7 +1077,7 @@ CellQuartic::interp (const FArrayBox& crse,
     FArrayBox tmpz(bz, ncomp);
 #ifdef AMREX_USE_GPU
     Elixir tmpz_eli;
-    if (run_on_gpu) tmpz_eli = tmpz.elixir();
+    if (run_on_gpu) { tmpz_eli = tmpz.elixir(); }
 #endif
     Array4<Real> const& tmpzarr = tmpz.array();
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, bz, ncomp, i, j, k, n,
@@ -1092,7 +1092,7 @@ CellQuartic::interp (const FArrayBox& crse,
     FArrayBox tmpy(by, ncomp);
 #ifdef AMREX_USE_GPU
     Elixir tmpy_eli;
-    if (run_on_gpu) tmpy_eli = tmpy.elixir();
+    if (run_on_gpu) { tmpy_eli = tmpy.elixir(); }
 #endif
     Array4<Real> const& tmpyarr = tmpy.array();
 #if (AMREX_SPACEDIM == 2)

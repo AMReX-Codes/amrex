@@ -34,7 +34,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         // There can only be local work to do.
         //
         int N_locs = (*TheFB.m_LocTags).size();
-        if (N_locs == 0) return;
+        if (N_locs == 0) { return; }
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
@@ -647,7 +647,7 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
     send_reqs.clear();
     send_cctc.clear();
     const auto N_snds = SndTags.size();
-    if (N_snds == 0) return;
+    if (N_snds == 0) { return; }
     send_data.reserve(N_snds);
     send_size.reserve(N_snds);
     send_rank.reserve(N_snds);
@@ -843,7 +843,7 @@ template <class TagT>
 void fbv_copy (Vector<TagT> const& tags)
 {
     const int N = tags.size();
-    if (N == 0) return;
+    if (N == 0) { return; }
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         ParallelFor(tags, 1,
@@ -941,7 +941,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
     int SeqNum = ParallelDescriptor::SeqNum();
     MPI_Comm comm = ParallelContext::CommunicatorSub();
 
-    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0) return; // No work to do
+    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0) { return; } // No work to do
 
     char* the_recv_data = nullptr;
     Vector<int> recv_from;

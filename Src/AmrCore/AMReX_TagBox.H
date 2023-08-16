@@ -28,7 +28,7 @@ class TagBox final
 public:
 
     //! The type of each tag.
-    typedef char TagType;
+    using TagType = char;
 
     //! Possible values for each cell.
     enum TagVal { CLEAR=0, BUF, SET };
@@ -153,7 +153,7 @@ class TagBoxArray
 public:
 
     //! The type of each tag.
-    typedef TagBox::TagType TagType;
+    using TagType = TagBox::TagType;
 
     /**
     * \brief The constructor.
