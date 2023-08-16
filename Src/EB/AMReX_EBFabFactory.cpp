@@ -109,6 +109,12 @@ EBFArrayBoxFactory::boxArray () const noexcept
     return m_ebdc->getMultiEBCellFlagFab().boxArray();
 }
 
+bool
+EBFArrayBoxFactory::hasEBInfo () const noexcept
+{
+    return m_parent->hasEBInfo();
+}
+
 std::unique_ptr<EBFArrayBoxFactory>
 makeEBFabFactory (const Geometry& a_geom,
                   const BoxArray& a_ba,

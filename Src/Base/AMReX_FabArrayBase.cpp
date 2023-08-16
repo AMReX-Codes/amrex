@@ -88,14 +88,13 @@ std::vector<std::string>                    FabArrayBase::m_region_tag;
 
 namespace
 {
-    Arena* the_fa_arena = nullptr;
     bool initialized = false;
 }
 
 void
 FabArrayBase::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
     initialized = true;
 
     //
@@ -109,12 +108,12 @@ FabArrayBase::Initialize ()
 
     if (pp.queryarr("mfiter_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
-        for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
+        for (int i=0; i<AMREX_SPACEDIM; i++) { FabArrayBase::mfiter_tile_size[i] = tilesize[i]; }
     }
 
     if (pp.queryarr("comm_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
-        for (int i=0; i<AMREX_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = tilesize[i];
+        for (int i=0; i<AMREX_SPACEDIM; i++) { FabArrayBase::comm_tile_size[i] = tilesize[i]; }
     }
 
     pp.queryAdd("maxcomp",             FabArrayBase::MaxComp);
@@ -122,16 +121,6 @@ FabArrayBase::Initialize ()
     if (MaxComp < 1) {
         MaxComp = 1;
     }
-
-#ifdef AMREX_USE_GPU
-    if (ParallelDescriptor::UseGpuAwareMpi()) {
-        the_fa_arena = The_Arena();
-    } else {
-        the_fa_arena = The_Pinned_Arena();
-    }
-#else
-    the_fa_arena = The_Cpu_Arena();
-#endif
 
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
@@ -157,12 +146,6 @@ FabArrayBase::Initialize ()
                          return {m_CFinfo_stats.bytes, m_CFinfo_stats.bytes_hwm};
                      }));
 #endif
-}
-
-Arena*
-The_FA_Arena ()
-{
-    return the_fa_arena;
 }
 
 FabArrayBase::FabArrayBase (const BoxArray&            bxs,
@@ -245,14 +228,17 @@ FabArrayBase::CPC::bytes () const
 {
     Long cnt = sizeof(FabArrayBase::CPC);
 
-    if (m_LocTags)
+    if (m_LocTags) {
         cnt += amrex::bytesOf(*m_LocTags);
+    }
 
-    if (m_SndTags)
+    if (m_SndTags) {
         cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_SndTags);
+    }
 
-    if (m_RcvTags)
+    if (m_RcvTags) {
         cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvTags);
+    }
 
     return cnt;
 }
@@ -262,14 +248,17 @@ FabArrayBase::FB::bytes () const
 {
     Long cnt = static_cast<Long>(sizeof(FabArrayBase::FB));
 
-    if (m_LocTags)
+    if (m_LocTags) {
         cnt += amrex::bytesOf(*m_LocTags);
+    }
 
-    if (m_SndTags)
+    if (m_SndTags) {
         cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_SndTags);
+    }
 
-    if (m_RcvTags)
+    if (m_RcvTags) {
         cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvTags);
+    }
 
     return cnt;
 }
@@ -532,8 +521,9 @@ FabArrayBase::flushCPC (bool no_assertion) const
             std::pair<CPCacheIter,CPCacheIter> o_er_it = m_TheCPCache.equal_range(otherkey);
             for (auto oit = o_er_it.first; oit != o_er_it.second; ++oit)
             {
-                if (it->second == oit->second)
+                if (it->second == oit->second) {
                     others.push_back(oit);
+                }
             }
         }
 
@@ -915,7 +905,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
         Box bxsnd = amrex::grow(ba[ksnd],ng);
         bxsnd &= pdomain; // source must be inside the periodic domain.
 
-        if (!bxsnd.ok()) continue;
+        if (!bxsnd.ok()) { continue; }
 
         for (auto const& pit : pshifts)
         {
@@ -970,7 +960,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
         const Box& vbx   = ba[krcv];
         const Box& bxrcv = amrex::grow(vbx, ng);
 
-        if (pdomain.contains(bxrcv)) continue;
+        if (pdomain.contains(bxrcv)) { continue; }
 
         for (auto const& pit : pshifts)
         {
@@ -1854,7 +1844,7 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
         amrex::AllGatherBoxes(bl.data());
     }
 
-    if (bl.isEmpty()) return;
+    if (bl.isEmpty()) { return; }
 
     Long ncells_total = 0L;
     Long ncells_max = 0L;
@@ -2027,8 +2017,9 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
     m_FPinfo_stats.recordUse();
 
     m_TheFillPatchCache.insert(er_it.second, FPinfoCache::value_type(dstkey,new_fpc));
-    if (srckey != dstkey)
+    if (srckey != dstkey) {
         m_TheFillPatchCache.insert(          FPinfoCache::value_type(srckey,new_fpc));
+    }
 
     return *new_fpc;
 }
@@ -2057,8 +2048,9 @@ FabArrayBase::flushFPinfo (bool no_assertion) const
 
             for (auto oit = o_er_it.first; oit != o_er_it.second; ++oit)
             {
-                if (it->second == oit->second)
+                if (it->second == oit->second) {
                     others.push_back(oit);
+                }
             }
         }
 
@@ -2244,8 +2236,6 @@ FabArrayBase::Finalize ()
     m_BD_count.clear();
 
     m_FA_stats = FabArrayStats();
-
-    the_fa_arena = nullptr;
 
     initialized = false;
 }

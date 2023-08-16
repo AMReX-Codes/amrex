@@ -16,7 +16,7 @@ MLNodeTensorLaplacian::MLNodeTensorLaplacian (const Vector<Geometry>& a_geom,
 void
 MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 {
-    for (int i = 0; i < nelems; ++i) m_sigma[i] = a_sigma[i];
+    for (int i = 0; i < nelems; ++i) { m_sigma[i] = a_sigma[i]; }
 }
 
 void

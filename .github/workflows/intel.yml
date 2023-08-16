@@ -24,9 +24,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has missing braces in array-array initalization
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare -Wno-missing-braces"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -69,9 +67,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has missing braces in array-array initalization
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare -Wno-missing-braces"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -90,6 +86,105 @@ jobs:
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build --parallel 2
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  tests-oneapi-sycl-eb-nvidia:
+    name: oneAPI SYCL for Nvidia GPUs [tests w/ EB]
+    runs-on: ubuntu-latest
+    env:
+      CODEPLAYTOKEN: ${{ secrets.CODEPLAYTOKEN }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      if: ${{ env.CODEPLAYTOKEN != '' }}
+      run: |
+        .github/workflows/dependencies/dependencies_nvcc.sh
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        .github/workflows/dependencies/dependencies_codeplay.sh ${{ env.CODEPLAYTOKEN }}
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      if: ${{ env.CODEPLAYTOKEN != '' }}
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      if: ${{ env.CODEPLAYTOKEN != '' }}
+      # clang currently supports CUDA up to version 11.5 and a warning is issued with newer versions
+      env: {CXXFLAGS: "-fsycl -fsycl-targets=nvptx64-nvidia-cuda -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-unknown-cuda-version"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=55M
+        export CCACHE_DEPEND=1
+        ccache -z
+
+        set +e
+        source /opt/intel/oneapi/setvars.sh --include-intel-llvm
+        set -e
+        cmake -S . -B build                                \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_EB=ON                                  \
+            -DAMReX_ENABLE_TESTS=ON                        \
+            -DAMReX_TEST_TYPE=Small                        \
+            -DAMReX_GPU_BACKEND=SYCL                       \
+            -DCMAKE_C_COMPILER=$(which icx)                \
+            -DCMAKE_CXX_COMPILER=$(which clang++)          \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build --parallel 2
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  no-tests-oneapi-sycl-amd:
+    name: oneAPI SYCL for AMD GPUs
+    runs-on: ubuntu-20.04
+    env:
+      CODEPLAYTOKEN: ${{ secrets.CODEPLAYTOKEN }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      if: ${{ env.CODEPLAYTOKEN != '' }}
+      run: |
+        .github/workflows/dependencies/dependencies_hip.sh 5.4.6
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        .github/workflows/dependencies/dependencies_codeplay.sh ${{ env.CODEPLAYTOKEN }}
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      if: ${{ env.CODEPLAYTOKEN != '' }}
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      if: ${{ env.CODEPLAYTOKEN != '' }}
+      env: {CXXFLAGS: "-fsycl -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx90a -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=55M
+        export CCACHE_DEPEND=1
+        ccache -z
+
+        set +e
+        source /opt/intel/oneapi/setvars.sh --include-intel-llvm
+        set -e
+        cmake -S . -B build                                \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_EB=OFF                                 \
+            -DAMReX_ENABLE_TESTS=OFF                       \
+            -DAMReX_GPU_BACKEND=SYCL                       \
+            -DAMReX_SYCL_SUB_GROUP_SIZE=64                 \
+            -DCMAKE_C_COMPILER=$(which icx)                \
+            -DCMAKE_CXX_COMPILER=$(which clang++)          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --parallel 2
 

@@ -109,7 +109,7 @@ void amrex_mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max
 
 void amrex_real_array_init (Real* p, size_t nelems)
 {
-    if (init_snan) amrex_array_init_snan(p, nelems);
+    if (init_snan) { amrex_array_init_snan(p, nelems); }
 }
 
 void amrex_array_init_snan (Real* p, size_t nelems)

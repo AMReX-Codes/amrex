@@ -15,8 +15,9 @@ template <typename T_PC,template<class> class Allocator=DefaultAllocator>
 void addParticles ()
 {
     int is_per[AMREX_SPACEDIM];
-    for (int & d : is_per)
+    for (int & d : is_per) {
         d = 1;
+    }
 
     RealBox real_box;
     for (int n = 0; n < AMREX_SPACEDIM; n++)
@@ -49,8 +50,9 @@ void addParticles ()
 
     for (int i = 0; i < add_num_particles; ++i)
     {
-        for (int d = 0; d < AMREX_SPACEDIM; d++)
+        for (int d = 0; d < AMREX_SPACEDIM; d++) {
             ptile1.pos(i, d) = 12.0;
+        }
         ptile1.getParticleTileData().rdata(AMREX_SPACEDIM)[i] = 1.2;  // w
 
         ptile1.push_back_int(0, ParticleType::NextID());
@@ -184,7 +186,3 @@ int main(int argc, char* argv[])
     }
     amrex::Finalize();
  }
-
-
-
-

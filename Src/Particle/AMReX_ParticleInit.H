@@ -75,15 +75,16 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
     IntVect lNrep(AMREX_D_DECL(1,1,1));
 
-    if (Nrep != nullptr)
+    if (Nrep != nullptr) {
         lNrep = *Nrep;
+    }
 
     Long how_many      = 0;
     Long how_many_read = 0;
 
     Gpu::HostVector<ParticleType> nparticles;
     Vector<Gpu::HostVector<Real> > nreals(0);
-    if (extradata > NStructReal) nreals.resize(extradata - NStructReal);
+    if (extradata > NStructReal) { nreals.resize(extradata - NStructReal); }
 
     if (MyProc < NReaders)
     {
@@ -108,7 +109,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
         ParticleType p, p_rep;
         Vector<Real> r;
 
-        if (extradata > NStructReal) r.resize(extradata - NStructReal);
+        if (extradata > NStructReal) { r.resize(extradata - NStructReal); }
 
         const int Chunk = cnt / NReaders;
 
@@ -183,11 +184,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
             p.cpu() = MyProc;
 
             nparticles.push_back(p);
-            if(nreals.size() > extradata - NStructReal)
+            if(nreals.size() > extradata - NStructReal) {
                 for (int n = NStructReal; n < extradata; n++)
                 {
                     nreals[n-NStructReal].push_back(r[n-NStructReal]);
                 }
+            }
 
             how_many++;
             how_many_read++;
@@ -242,11 +244,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
                             nparticles.push_back(p_rep);
 
-                            if (nreals.size() > extradata - NStructReal)
+                            if (nreals.size() > extradata - NStructReal) {
                                 for (int n = NStructReal; n < extradata; n++)
                                 {
                                     nreals[n-NStructReal].push_back(r[n-NStructReal]);
                                 }
+                            }
 
                             how_many++;
                         }
@@ -333,13 +336,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                 Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                                dst_tile.GetArrayOfStructs().begin() + old_size);
 
-                if((host_real_attribs[lev][std::make_pair(grid, tile)]).size() > (long unsigned int) NArrayReal)
-                  for (int i = 0; i < NArrayReal; ++i) {
-                    Gpu::copyAsync(Gpu::hostToDevice,
-                                   host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
-                                   host_real_attribs[lev][std::make_pair(grid,tile)][i].end(),
-                                   dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
-                  }
+                if((host_real_attribs[lev][std::make_pair(grid, tile)]).size() > (long unsigned int) NArrayReal) {
+                    for (int i = 0; i < NArrayReal; ++i) {
+                        Gpu::copyAsync(Gpu::hostToDevice,
+                                       host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
+                                       host_real_attribs[lev][std::make_pair(grid,tile)][i].end(),
+                                       dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+                    }
+                }
             }
         }
         Gpu::streamSynchronize();
@@ -373,20 +377,22 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                 Where(p, pld);
 
                 host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-                if((host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]).size() > (long unsigned int) (extradata - NStructReal))
+                if((host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]).size() > (long unsigned int) (extradata - NStructReal)) {
                     for (int n = NStructReal; n < extradata; n++)
                     {
                         Real rdata = nreals[n-NStructReal].back();
                         host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][n-NStructReal].push_back(rdata);
                     }
+                }
 
                 nparticles.pop_back();
 
-                if (nreals.size() > extradata - NStructReal)
+                if (nreals.size() > extradata - NStructReal) {
                     for (int n = NStructReal; n < extradata; n++)
                     {
                         nreals[n-NStructReal].pop_back();
                     }
+                }
             }
         }
 
@@ -539,8 +545,9 @@ InitFromBinaryFile (const std::string& file,
         //
         // Just set'm.
         //
-        for (int i = 0; i < NProcs; i++)
+        for (int i = 0; i < NProcs; i++) {
             rprocs[i] = i;
+        }
     }
     else
     {
@@ -604,8 +611,9 @@ InitFromBinaryFile (const std::string& file,
 
         ifs.open(file.c_str(), std::ios::in|std::ios::binary);
 
-        if (!ifs.good())
+        if (!ifs.good()) {
             amrex::FileOpenFailed(file);
+        }
 
         ifs.read((char*)&NP, sizeof(NP));
         ifs.read((char*)&DM, sizeof(DM));
@@ -613,23 +621,27 @@ InitFromBinaryFile (const std::string& file,
         //
         // NP MUST be positive!
         //
-        if (NP <= 0)
+        if (NP <= 0) {
             amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): NP <= 0");
+        }
         //
         // DM must equal AMREX_SPACEDIM.
         //
-        if (DM != AMREX_SPACEDIM)
+        if (DM != AMREX_SPACEDIM) {
             amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): DM != AMREX_SPACEDIM");
+        }
         //
         // NX MUST be in [0,N].
         //
-        if (NX < 0 || NX > NStructReal)
+        if (NX < 0 || NX > NStructReal) {
             amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): NX < 0 || NX > N");
+        }
         //
         // Can't ask for more data than exists in the file!
         //
-        if (extradata > NX)
+        if (extradata > NX) {
             amrex::Abort("ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>::InitFromBinaryFile(): extradata > NX");
+        }
         //
         // Figure out whether we're dealing with floats or doubles.
         //
@@ -656,9 +668,11 @@ InitFromBinaryFile (const std::string& file,
         // Skip to our place in the file.
         //
         int id = 0;
-        for ( ; id < NReaders; id++)
-            if (rprocs[id] == MyProc)
+        for ( ; id < NReaders; id++) {
+            if (rprocs[id] == MyProc) {
                 break;
+            }
+        }
 
         AMREX_ASSERT(id >= 0 && id < NReaders);
 
@@ -686,15 +700,16 @@ InitFromBinaryFile (const std::string& file,
     //
     Long MyCnt = NP / NReaders;
 
-    if (MyProc == rprocs[0])
+    if (MyProc == rprocs[0]) {
         //
         // Give any remainder to the first reader.
         //
         MyCnt += NP % NReaders;
+    }
 
     Long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
 
-    if (NP % (NPartPerRedist*NReaders)) how_many_redists++;
+    if (NP % (NPartPerRedist*NReaders)) { how_many_redists++; }
 
     Vector<float>  fxtra, fignore;
     Vector<double> dxtra, dignore;
@@ -763,17 +778,19 @@ InitFromBinaryFile (const std::string& file,
                 {
                     if (RealSizeInFile == sizeof(float))
                     {
-                        ifs.read((char*)&fxtra[0], std::streamsize(extradata*sizeof(float)));
+                        ifs.read((char*)fxtra.data(), std::streamsize(extradata*sizeof(float)));
 
-                        for (int ii = 0; ii < extradata; ii++)
+                        for (int ii = 0; ii < extradata; ii++) {
                             p.rdata(ii) = static_cast<ParticleReal>(fxtra[ii]);
+                        }
                     }
                     else if (RealSizeInFile == sizeof(double))
                     {
-                        ifs.read((char*)&dxtra[0], std::streamsize(extradata*sizeof(double)));
+                        ifs.read((char*)dxtra.data(), std::streamsize(extradata*sizeof(double)));
 
-                        for (int ii = 0; ii < extradata; ii++)
+                        for (int ii = 0; ii < extradata; ii++) {
                             p.rdata(ii) = static_cast<ParticleReal>(dxtra[ii]);
+                        }
                     }
                 }
                 //
@@ -783,11 +800,11 @@ InitFromBinaryFile (const std::string& file,
                 {
                     if (RealSizeInFile == sizeof(float))
                     {
-                        ifs.read((char*)&fignore[0], std::streamsize((NX-extradata)*sizeof(float)));
+                        ifs.read((char*)fignore.data(), std::streamsize((NX-extradata)*sizeof(float)));
                     }
                     else if (RealSizeInFile == sizeof(double))
                     {
-                        ifs.read((char*)&dignore[0], std::streamsize((NX-extradata)*sizeof(double)));
+                        ifs.read((char*)dignore.data(), std::streamsize((NX-extradata)*sizeof(double)));
                     }
                 }
 
@@ -923,10 +940,11 @@ InitFromBinaryMetaFile (const std::string& metafile,
     {
         std::getline(ifs,file);
 
-        if (!ifs.good()) break;
+        if (!ifs.good()) { break; }
 
-        if (m_verbose > 1)
+        if (m_verbose > 1) {
             amrex::Print() << "InitFromBinaryMetaFile: processing file: " << file << '\n';
+        }
 
         InitFromBinaryFile(file, extradata);
     }
@@ -971,7 +989,7 @@ InitRandom (Long                    icount,
 
     // We will enforce that the particles are within the containing_bx.
     // If containing_bx is not passed in, it defaults to the full domain.
-    if (!containing_bx.ok()) containing_bx = geom.ProbDomain();
+    if (!containing_bx.ok()) { containing_bx = geom.ProbDomain(); }
 
     // containing_bx is assumed to lie within the domain.
     if (!geom.ProbDomain().contains(containing_bx))
@@ -1366,8 +1384,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
             p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (dist(mt) + double(jcnt)) / double(icount_per_box) * grid_box.length(1));
             p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (dist(mt) + double(kcnt)) / double(icount_per_box) * grid_box.length(2));
 
-            for (int i = 0; i < AMREX_SPACEDIM; i++)
+            for (int i = 0; i < AMREX_SPACEDIM; i++) {
                 AMREX_ASSERT(p.pos(i) < grid_box.hi(i));
+            }
 
             // the real struct data
             for (int i = 0; i < NStructReal; i++) {
@@ -1518,8 +1537,9 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 
     resizeData();
 
-    for (int lev = 0; lev < m_particles.size(); lev++)
+    for (int lev = 0; lev < m_particles.size(); lev++) {
         AMREX_ASSERT(m_particles[lev].empty());
+    }
 
     ParticleLocData pld;
     ParticleType p;
@@ -1555,7 +1575,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
                     while (iter < max_iter) {
                         r = amrex::Random();
                         p.pos(i) = static_cast<ParticleReal>(grid_box.lo(i) + (r + Real(cell[i]-beg[i]))*dx[i]);
-                        if (p.pos(i) < grid_box.hi(i)) break;
+                        if (p.pos(i) < grid_box.hi(i)) { break; }
                         iter++;
                     }
                     AMREX_ASSERT(p.pos(i) < grid_box.hi(i));

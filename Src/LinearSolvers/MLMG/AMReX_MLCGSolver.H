@@ -182,7 +182,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
                            << rnorm/(rnorm0) << '\n';
         }
 
-        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
+        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
         sh.LocalCopy(s,0,0,ncomp,nghost);
         Lp.apply(amrlev, mglev, t, sh, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
@@ -219,7 +219,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
                            << rnorm/(rnorm0) << '\n';
         }
 
-        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
+        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
         if ( omega == 0 )
         {
@@ -238,8 +238,9 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( ret == 0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
     {
-        if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
+        if ( verbose > 0 && ParallelDescriptor::IOProcessor() ) {
             amrex::Warning("MLCGSolver_BiCGStab:: failed to converge!");
+        }
         ret = 8;
     }
 
@@ -355,7 +356,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
                            << rnorm/(rnorm0) << '\n';
         }
 
-        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
+        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
         rho_1 = rho;
     }
@@ -370,8 +371,9 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( ret == 0 &&  rnorm > eps_rel*rnorm0 && rnorm > eps_abs )
     {
-        if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
+        if ( verbose > 0 && ParallelDescriptor::IOProcessor() ) {
             amrex::Warning("MLCGSolver_cg: failed to converge!");
+        }
         ret = 8;
     }
 

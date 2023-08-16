@@ -100,10 +100,12 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 p.idata(0) = mfi.index();
 
                 host_particles.push_back(p);
-                for (int i = 0; i < NumRealComps(); ++i)
+                for (int i = 0; i < NumRealComps(); ++i) {
                     host_real[i].push_back(ParticleReal(mfi.index()));
-                for (int i = 0; i < NumIntComps(); ++i)
+                }
+                for (int i = 0; i < NumIntComps(); ++i) {
                     host_int[i].push_back(mfi.index());
+                }
             }
         }
 
@@ -212,7 +214,7 @@ void MDParticleContainer::moveParticles(amrex::ParticleReal dx)
 
         auto& ptile = plev[std::make_pair(gid, tid)];
         auto& aos   = ptile.GetArrayOfStructs();
-        ParticleType* pstruct = &(aos[0]);
+        ParticleType* pstruct = aos.data();
 
         const size_t np = aos.numParticles();
 
@@ -251,7 +253,7 @@ void MDParticleContainer::checkNeighborParticles()
     {
         int gid = mfi.index();
 
-        if (gid != 0) continue;
+        if (gid != 0) { continue; }
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
 
@@ -320,7 +322,7 @@ void MDParticleContainer::checkNeighborList()
             for (int j = 0; j < np_total; j++)
             {
                 // Don't be your own neighbor.
-                if ( i == j ) continue;
+                if ( i == j ) { continue; }
 
                 ParticleType& p2 = h_pstruct[j];
                 AMREX_D_TERM(Real dx = p1.pos(0) - p2.pos(0);,

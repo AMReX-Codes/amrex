@@ -71,8 +71,9 @@ private:
             os << nim.dst_level << " " << nim.dst_grid << " " << nim.dst_tile << " " << nim.dst_index
                << nim.src_level << " " << nim.src_grid << " " << nim.src_tile << " " << nim.src_index
                << nim.thread_num;
-            if (!os.good())
+            if (!os.good()) {
                 amrex::Error("operator<<(ostream&, const NeighborIndexMap& nim) failed");
+            }
             return os;
         }
 
@@ -93,9 +94,9 @@ private:
             {}
 
         bool operator< (const NeighborCopyTag& other) const {
-            if (level != other.level) return level < other.level;
-            if (grid != other.grid) return grid < other.grid;
-            if (tile != other.tile) return tile < other.tile;
+            if (level != other.level) { return level < other.level; }
+            if (grid != other.grid) { return grid < other.grid; }
+            if (tile != other.tile) { return tile < other.tile; }
             AMREX_D_TERM(
             if (periodic_shift[0] != other.periodic_shift[0])
                 return periodic_shift[0] < other.periodic_shift[0];,
@@ -124,8 +125,9 @@ private:
         friend std::ostream& operator<< (std::ostream& os, const NeighborCopyTag& tag)
         {
             os << tag.level << " " << tag.grid << " " << tag.tile << " " << tag.periodic_shift;
-            if (!os.good())
+            if (!os.good()) {
                 amrex::Error("operator<<(ostream&, const NeighborCopyTag&) failed");
+            }
             return os;
         }
     };
@@ -141,8 +143,9 @@ private:
     friend std::ostream& operator<< (std::ostream& os, const InverseCopyTag& tag)
     {
         os << tag.src_level << " " << tag.src_grid << " " << tag.src_tile << " " << tag.src_index;
-        if (!os.good())
+        if (!os.good()) {
             amrex::Error("operator<<(ostream&, const InverseCopyTag&) failed");
+        }
         return os;
     }
 
@@ -180,8 +183,9 @@ private:
         friend std::ostream& operator<< (std::ostream& os, const NeighborCommTag& tag)
         {
             os << tag.proc_id << " " << tag.level_id << " " << tag.grid_id << " " << tag.tile_id;
-            if (!os.good())
+            if (!os.good()) {
                 amrex::Error("operator<<(ostream&, const NeighborCommTag&) failed");
+            }
             return os;
         }
     };
@@ -195,7 +199,6 @@ public:
     using ParticleVector = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleVector;
     using ParticleTile = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleTileType;
     using IntVector  = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IntVector;
-    using SendBuffer = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SendBuffer;
 
     NeighborParticleContainer (ParGDBBase* gdb, int ncells);
 
@@ -434,15 +437,15 @@ protected:
             : grid_id(a_grid_id), box(a_box), periodic_shift(a_periodic_shift) {}
 
         bool operator<(const NeighborTask& other) const {
-            if (grid_id != other.grid_id) return grid_id < other.grid_id;
-            if (box     != other.box    ) return box < other.box;
+            if (grid_id != other.grid_id) { return grid_id < other.grid_id; }
+            if (box     != other.box    ) { return box < other.box; }
             AMREX_D_TERM(
             if (periodic_shift[0] != other.periodic_shift[0])
-                return periodic_shift[0] < other.periodic_shift[0];,
+                { return periodic_shift[0] < other.periodic_shift[0]; },
             if (periodic_shift[1] != other.periodic_shift[1])
-                return periodic_shift[1] < other.periodic_shift[1];,
+                { return periodic_shift[1] < other.periodic_shift[1]; },
             if (periodic_shift[2] != other.periodic_shift[2])
-                return periodic_shift[2] < other.periodic_shift[2];
+                { return periodic_shift[2] < other.periodic_shift[2]; }
                 )
             return false;
         }

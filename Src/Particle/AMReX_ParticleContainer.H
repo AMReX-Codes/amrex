@@ -76,11 +76,11 @@ namespace amrex {
 */
 struct ParticleCommData
 {
-  typedef ParticleReal RealType;
-  int     m_lev;
-  int     m_grid;
-  IntVect m_cell;
-  RealType m_data[1 + AMREX_SPACEDIM];
+    using RealType = ParticleReal;
+    int     m_lev;
+    int     m_grid;
+    IntVect m_cell;
+    RealType m_data[1 + AMREX_SPACEDIM];
 };
 
 /**
@@ -88,13 +88,13 @@ struct ParticleCommData
 */
 struct ParticleLocData
 {
-  int     m_lev  = -1;
-  int     m_grid = -1;
-  int     m_tile = -1;
-  IntVect m_cell {AMREX_D_DECL(-1,-1,-1)};
-  Box     m_gridbox;
-  Box     m_tilebox;
-  Box     m_grown_gridbox;
+    int     m_lev  = -1;
+    int     m_grid = -1;
+    int     m_tile = -1;
+    IntVect m_cell {AMREX_D_DECL(-1,-1,-1)};
+    Box     m_gridbox;
+    Box     m_tilebox;
+    Box     m_grown_gridbox;
 };
 
 /**
@@ -189,7 +189,6 @@ public:
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
     using CharVector       = Gpu::DeviceVector<char>;
-    using SendBuffer       = Gpu::PolymorphicVector<char>;
     using ParIterType      = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParConstIterType = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
 

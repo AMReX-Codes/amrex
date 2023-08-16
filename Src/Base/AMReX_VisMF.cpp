@@ -772,7 +772,7 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
 
     BL_ASSERT(ioffset == nmtags[ParallelDescriptor::MyProc(comm)]);
 
-    Vector<Real> recvdata(mf.size()*2*m_ncomp);
+    Vector<Real> recvdata(std::size_t(mf.size())*2*m_ncomp);
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(Real),
                     ParallelDescriptor::MyProc(comm), BLProfiler::BeforeCall());
@@ -1535,7 +1535,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     // This allows us to read in an empty MultiFab without an error -- but only if explicitly told to
     if (allow_empty_mf > 0)
     {
-        if (hdr.m_ba.empty()) return;
+        if (hdr.m_ba.empty()) { return; }
     } else {
         if (hdr.m_ba.empty())
         {
@@ -1860,7 +1860,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     int doneTag(ParallelDescriptor::SeqNum());
 
     if(myProc == coordinatorProc) {  // manage the file locks
-      int reqsPending(0), iopFileIndex;
+      int reqsPending(0), iopFileIndex(0);
       std::deque<int> iopReads;
       MPI_Status status;
       int doneFlag;
@@ -2273,7 +2273,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     RealDescriptor const& whichRD = FPC::NativeRealDescriptor();
 
     auto hdr = std::make_shared<VisMF::Header>(mf, VisMF::NFiles, VisMF::Header::Version_v1, false);
-    if (valid_cells_only) hdr->m_ngrow = IntVect(0);
+    if (valid_cells_only) { hdr->m_ngrow = IntVect(0); }
 
     constexpr int sizeof_int64_over_real = sizeof(int64_t) / sizeof(Real);
     const int n_local_fabs = mf.local_size();
@@ -2475,7 +2475,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
             ofs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
             ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
                                                           : (std::ios::binary | std::ios::app));
-            if (!ofs.good()) amrex::FileOpenFailed(file_name);
+            if (!ofs.good()) { amrex::FileOpenFailed(file_name); }
             for (auto const& fab : *myfabs) {
                 fabio->write_header(ofs, fab, fab.nComp());
                 fabio->write(ofs, fab, 0, fab.nComp());

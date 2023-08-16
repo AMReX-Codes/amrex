@@ -45,11 +45,11 @@ namespace {
             boxes.push_back(is.second);
             slice_to_full_ba_map.push_back(is.first);
         }
-        BoxArray slice_ba(&boxes[0], static_cast<int>(boxes.size()));
+        BoxArray slice_ba(boxes.data(), static_cast<int>(boxes.size()));
         DistributionMapping slice_dmap(std::move(procs));
-        std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, ncomp, 0,
-                                                     MFInfo(), cell_centered_data.Factory()));
-        return slice;
+
+        return std::make_unique<MultiFab>(slice_ba, slice_dmap, ncomp, 0,
+                                          MFInfo(), FArrayBoxFactory());
     }
 }
 
@@ -442,7 +442,7 @@ namespace amrex
     }
 
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
-    //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
+    //! This routine does NOT assume that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_edges (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
                              const IntVect& ratio, int ngcrse)
     {
@@ -470,7 +470,7 @@ namespace amrex
         const auto type = fine.ixType();
         int dir;
         for (dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-            if (type.cellCentered(dir)) break;
+            if (type.cellCentered(dir)) { break; }
         }
         auto tmptype = type;
         tmptype.set(dir);

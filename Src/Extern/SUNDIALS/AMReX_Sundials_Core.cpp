@@ -22,7 +22,7 @@ void Initialize(int nthreads)
         std::fill(the_sundials_context.begin(), the_sundials_context.end(), nullptr);
     }
     for (int i = 0; i < nthreads; i++) {
-        if (initialized[i]) continue;
+        if (initialized[i]) { continue; }
         initialized[i] = 1;
         BL_ASSERT(the_sundials_context[i] == nullptr);
         the_sundials_context[i] = new ::sundials::Context();

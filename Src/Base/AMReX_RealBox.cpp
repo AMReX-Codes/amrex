@@ -32,8 +32,9 @@ std::ostream&
 operator << (std::ostream &os, const RealBox& b)
 {
     os << "(RealBox ";
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         os << b.lo(i) << ' ' << b.hi(i) << ' ';
+    }
     os << ')';
     return os;
 }
@@ -68,8 +69,9 @@ operator >> (std::istream &is, RealBox& b)
         hi[i] = static_cast<Real>(dhitemp);
     }
 #else
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         is >> lo[i] >> hi[i];
+    }
 #endif
 
     is.ignore(BL_IGNORE_MAX, ')');

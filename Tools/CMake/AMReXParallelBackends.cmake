@@ -84,6 +84,7 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
           $<${_genex}:
           --expt-relaxed-constexpr --expt-extended-lambda
           "SHELL:-Xcudafe --diag_suppress=esa_on_defaulted_function_ignored"
+          "SHELL:-Xcudafe --diag_suppress=implicit_return_from_non_void_function"
           -maxrregcount=${AMReX_CUDA_MAXREGCOUNT}
           "SHELL:-Xcudafe --display_error_number"
           $<$<STREQUAL:$<PLATFORM_ID>,Windows>:-m64> >
@@ -271,6 +272,15 @@ if (AMReX_HIP)
           )
        endforeach()
    endif()
+   
+   # Debug issues with -O0: internal compiler errors
+   # work-around for
+   #   https://github.com/AMReX-Codes/amrex/pull/3311
+   foreach(D IN LISTS AMReX_SPACEDIM)
+      target_compile_options(amrex_${D}d PUBLIC
+         "$<$<CONFIG:Debug>:-O1>"
+      )
+   endforeach()
 
    # Link to hiprand -- must include rocrand too
    find_package(rocrand REQUIRED CONFIG)
@@ -331,6 +341,11 @@ if (AMReX_HIP)
        # ROCm 4.5: use unsafe floating point atomics, otherwise atomicAdd is much slower
        # 
        target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-munsafe-fp-atomics>)
+
+       # ROCm 5.5: forgets to enforce C++17 (default seems lower)
+       # https://github.com/AMReX-Codes/amrex/issues/3337
+       #
+       target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
    endforeach()
 
    # Equivalently, relocatable-device-code (RDC) flags are needed for `extern`

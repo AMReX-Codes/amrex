@@ -55,8 +55,8 @@ public:
 
     friend class BoxDomain;
 
-    typedef Vector<Box>::iterator       iterator;
-    typedef Vector<Box>::const_iterator const_iterator;
+    using       iterator = Vector<Box>::iterator;
+    using const_iterator = Vector<Box>::const_iterator;
 
     //! Construct an empty BoxList with IndexType::TheCellType().
     BoxList ();

@@ -246,12 +246,14 @@ void EBToPVD::reorder_polygon(const std::vector<std::array<Real,3>>& lpoints,
 
    int longest = 2;
    if(std::abs(lnormal[0]) > std::abs(lnormal[1])) {
-      if(std::abs(lnormal[0]) > std::abs(lnormal[2]))
+      if(std::abs(lnormal[0]) > std::abs(lnormal[2])) {
          longest = 0;
+      }
    }
    else {
-      if(std::abs(lnormal[1]) > std::abs(lnormal[2]))
+      if(std::abs(lnormal[1]) > std::abs(lnormal[2])) {
          longest = 1;
+      }
    }
 
    for(int i = 1; i <= lconnect[0]; ++i) {
@@ -436,14 +438,15 @@ void EBToPVD::EBGridCoverage(const int myID, const Real* problo, const Real* dx,
       for(int j = lo.y; j <= hi.y; ++j) {
          for(int i = lo.x; i <= hi.x; ++i)
          {
-            if(flag(i,j,k).isSingleValued())
+            if(flag(i,j,k).isSingleValued()) {
                lc1 = lc1 + 1;
+            }
          }
       }
    };
 
    ++m_grid;
-   if(lc1 == 0) return;
+   if(lc1 == 0) { return; }
 
    std::stringstream ss;
    ss << std::setw(4) << std::setfill('0') << myID;

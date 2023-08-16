@@ -51,7 +51,7 @@ void PrepareCommBuffers(CommData& comm,
     comm.stats.clear();
 
     const auto N_comms = static_cast<int>(cctc.size());
-    if (N_comms == 0) return;
+    if (N_comms == 0) { return; }
     // reserve for upcominf push_backs
     comm.data.reserve(N_comms);
     comm.size.reserve(N_comms);
@@ -95,7 +95,7 @@ void PrepareCommBuffers(CommData& comm,
     }
     else
     {
-        comm.the_data.reset(static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume)));
+        comm.the_data.reset(static_cast<char*>(amrex::The_Comms_Arena()->alloc(total_volume)));
         for (int i = 0; i < N_comms; ++i) {
             comm.data[i] = comm.the_data.get() + comm.offset[i];
         }

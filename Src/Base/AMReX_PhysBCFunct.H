@@ -15,17 +15,17 @@ namespace amrex {
 
 extern "C"
 {
-    typedef void (*BndryFuncDefault)(Real* data, AMREX_ARLIM_P(lo), AMREX_ARLIM_P(hi),
-                                     const int* dom_lo, const int* dom_hi,
-                                     const Real* dx, const Real* grd_lo,
-                                     const Real* time, const int* bc);
-    typedef void (*BndryFunc3DDefault)(Real* data, const int* lo, const int* hi,
-                                       const int* dom_lo, const int* dom_hi,
-                                       const Real* dx, const Real* grd_lo,
-                                       const Real* time, const int* bc);
+    using BndryFuncDefault = void (*)(Real* data, AMREX_ARLIM_P(lo), AMREX_ARLIM_P(hi),
+                                      const int* dom_lo, const int* dom_hi,
+                                      const Real* dx, const Real* grd_lo,
+                                      const Real* time, const int* bc);
+    using BndryFunc3DDefault = void (*)(Real* data, const int* lo, const int* hi,
+                                        const int* dom_lo, const int* dom_hi,
+                                        const Real* dx, const Real* grd_lo,
+                                        const Real* time, const int* bc);
 }
 
-typedef void (*UserFillBox) (Box const& bx, Array4<Real> const& dest,
+using UserFillBox = void (*)(Box const& bx, Array4<Real> const& dest,
                              int dcomp, int numcomp,
                              GeometryData const& geom, Real time,
                              const BCRec* bcr, int bcomp,
@@ -90,6 +90,15 @@ protected:
     F m_user_f;
 };
 
+struct FabFillNoOp
+{
+    AMREX_GPU_DEVICE
+    void operator() (const amrex::IntVect&, amrex::Array4<amrex::Real> const&,
+                     int, int, amrex::GeometryData const&, amrex::Real,
+                     const amrex::BCRec*, int, int) const
+    {}
+};
+
 //! This cpu version calls function working on FArrayBox
 class CpuBndryFuncFab
 {
@@ -140,7 +149,7 @@ public:
     void operator() (MultiFab& mf, int icomp, int ncomp, IntVect const& nghost,
                      Real time, int bccomp)
     {
-        if (m_geom.isAllPeriodic()) return;
+        if (m_geom.isAllPeriodic()) { return; }
 
         BL_PROFILE("PhysBCFunct::()");
 
@@ -179,9 +188,10 @@ public:
     }
 
     // For backward compatibility
-    void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
+    void FillBoundary (MultiFab& mf, int icomp, int ncomp, IntVect const& nghost,
                        Real time, int bccomp) {
-        this->operator()(mf,dcomp,ncomp,nghost,time,bccomp);
+        // NOLINTNEXTLINE(readability-suspicious-call-argument)
+        this->operator()(mf,icomp,ncomp,nghost,time,bccomp);
     }
 
 private:
@@ -233,7 +243,7 @@ GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
         }
     }
 
-    if (gdomain.contains(bx)) return;
+    if (gdomain.contains(bx)) { return; }
 
     Array4<Real> const& fab = dest.array();
     const auto geomdata = geom.data();
@@ -358,7 +368,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
         }
     }
 
-    if (gdomain.contains(bx)) return;
+    if (gdomain.contains(bx)) { return; }
 
     Array4<Real> const& fab = dest.array();
     const auto geomdata = geom.data();
@@ -382,7 +392,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
         Vector<Box> face_boxes;
         for (const Box& b : dom_face_boxes) {
             Box tmp = b & bx;
-            if (tmp.ok()) face_boxes.push_back(tmp);
+            if (tmp.ok()) { face_boxes.push_back(tmp); }
         }
         const int n_face_boxes = face_boxes.size();
         if (n_face_boxes == 1) {
@@ -442,7 +452,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
         Vector<Box> edge_boxes;
         for (const Box& b : dom_edge_boxes) {
             Box tmp = b & bx;
-            if (tmp.ok()) edge_boxes.push_back(tmp);
+            if (tmp.ok()) { edge_boxes.push_back(tmp); }
         }
         const int n_edge_boxes = edge_boxes.size();
         if (n_edge_boxes == 1) {
@@ -490,7 +500,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
         Vector<Box> corner_boxes;
         for (const Box& b : dom_corner_boxes) {
             Box tmp = b & bx;
-            if (tmp.ok()) corner_boxes.push_back(tmp);
+            if (tmp.ok()) { corner_boxes.push_back(tmp); }
         }
         const int n_corner_boxes = corner_boxes.size();
         if (n_corner_boxes == 1) {

@@ -50,7 +50,7 @@ void mllinop_apply_bc_x (int side, Box const& box, int blen,
         const int NX = amrex::min(blen+1, maxorder);
         GpuArray<T,4> x{{-bcl * dxinv, T(0.5), T(1.5), T(2.5)}};
         GpuArray<T,4> coef{};
-        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+        poly_interp_coeff(-T(0.5), x.data(), NX, coef.data());
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
                 if (mask(i,j,k) > 0) {
@@ -98,7 +98,7 @@ void mllinop_apply_bc_x (int side, int i, int j, int k, int blen,
             const int NX = amrex::min(blen+1, maxorder);
             GpuArray<T,4> x{{-bcl * dxinv, T(0.5), T(1.5), T(2.5)}};
             GpuArray<T,4> coef{};
-            poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+            poly_interp_coeff(-T(0.5), x.data(), NX, coef.data());
             T tmp = T(0.0);
             for (int m = 1; m < NX; ++m) {
                 tmp += phi(i+m*s,j,k,icomp) * coef[m];
@@ -155,7 +155,7 @@ void mllinop_apply_bc_y (int side, Box const& box, int blen,
         const int NX = amrex::min(blen+1, maxorder);
         GpuArray<T,4> x{{-bcl * dyinv, T(0.5), T(1.5), T(2.5)}};
         GpuArray<T,4> coef{};
-        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+        poly_interp_coeff(-T(0.5), x.data(), NX, coef.data());
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (mask(i,j,k) > 0) {
@@ -203,7 +203,7 @@ void mllinop_apply_bc_y (int side, int i, int j, int k, int blen,
             const int NX = amrex::min(blen+1, maxorder);
             GpuArray<T,4> x{{-bcl * dyinv, T(0.5), T(1.5), T(2.5)}};
             GpuArray<T,4> coef{};
-            poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+            poly_interp_coeff(-T(0.5), x.data(), NX, coef.data());
             T tmp = T(0.0);
             for (int m = 1; m < NX; ++m) {
                 tmp += phi(i,j+m*s,k,icomp) * coef[m];
@@ -260,7 +260,7 @@ void mllinop_apply_bc_z (int side, Box const& box, int blen,
         const int NX = amrex::min(blen+1, maxorder);
         GpuArray<T,4> x{{-bcl * dzinv, T(0.5), T(1.5), T(2.5)}};
         GpuArray<T,4> coef{};
-        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+        poly_interp_coeff(-T(0.5), x.data(), NX, coef.data());
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (mask(i,j,k) > 0) {
@@ -308,7 +308,7 @@ void mllinop_apply_bc_z (int side, int i, int j, int k, int blen,
             const int NX = amrex::min(blen+1, maxorder);
             GpuArray<T,4> x{{-bcl * dzinv, T(0.5), T(1.5), T(2.5)}};
             GpuArray<T,4> coef{};
-            poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+            poly_interp_coeff(-T(0.5), x.data(), NX, coef.data());
             T tmp = T(0.0);
             for (int m = 1; m < NX; ++m) {
                 tmp += phi(i,j,k+m*s,icomp) * coef[m];
@@ -360,7 +360,7 @@ void mllinop_comp_interp_coef0_x (int side, Box const& box, int blen,
         const int NX = amrex::min(blen+1, maxorder);
         GpuArray<T,4> x{{-bcl * dxinv, T(0.5), T(1.5), T(2.5)}};
         GpuArray<T,4> coef{};
-        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+        poly_interp_coeff(-T(0.5), x.data(), NX, coef.data());
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
                 f(ii,j,k,icomp) = (mask(ib,j,k) > 0) ? coef[1] : T(0.0);
@@ -397,7 +397,7 @@ void mllinop_comp_interp_coef0_x (int side, int i, int j, int k, int blen,
         const int NX = amrex::min(blen+1, maxorder);
         GpuArray<T,4> x{{-bcl * dxinv, T(0.5), T(1.5), T(2.5)}};
         GpuArray<T,4> coef{};
-        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+        poly_interp_coeff(-T(0.5), x.data(), NX, coef.data());
         f(ii,j,k,icomp) = (mask(i,j,k) > 0) ? coef[1] : T(0.0);
         break;
     }
@@ -441,7 +441,7 @@ void mllinop_comp_interp_coef0_y (int side, Box const& box, int blen,
         const int NX = amrex::min(blen+1, maxorder);
         GpuArray<T,4> x{{-bcl * dyinv, T(0.5), T(1.5), T(2.5)}};
         GpuArray<T,4> coef{};
-        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+        poly_interp_coeff(-T(0.5), x.data(), NX, coef.data());
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 f(i,ji,k,icomp) = (mask(i,jb,k) > 0) ? coef[1] : T(0.0);
@@ -478,7 +478,7 @@ void mllinop_comp_interp_coef0_y (int side, int i, int j, int k, int blen,
         const int NX = amrex::min(blen+1, maxorder);
         GpuArray<T,4> x{{-bcl * dyinv, T(0.5), T(1.5), T(2.5)}};
         GpuArray<T,4> coef{};
-        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+        poly_interp_coeff(-T(0.5), x.data(), NX, coef.data());
         f(i,ji,k,icomp) = (mask(i,j,k) > 0) ? coef[1] : T(0.0);
         break;
     }
@@ -522,7 +522,7 @@ void mllinop_comp_interp_coef0_z (int side, Box const& box, int blen,
         const int NX = amrex::min(blen+1, maxorder);
         GpuArray<T,4> x{{-bcl * dzinv, T(0.5), T(1.5), T(2.5)}};
         GpuArray<T,4> coef{};
-        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+        poly_interp_coeff(-T(0.5), x.data(), NX, coef.data());
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 f(i,j,ki,icomp) = (mask(i,j,kb) > 0) ? coef[1] : T(0.0);
@@ -559,7 +559,7 @@ void mllinop_comp_interp_coef0_z (int side, int i, int j, int k, int blen,
         const int NX = amrex::min(blen+1, maxorder);
         GpuArray<T,4> x{{-bcl * dzinv, T(0.5), T(1.5), T(2.5)}};
         GpuArray<T,4> coef{};
-        poly_interp_coeff(-T(0.5), &x[0], NX, &coef[0]);
+        poly_interp_coeff(-T(0.5), x.data(), NX, coef.data());
         f(i,j,ki,icomp) = (mask(i,j,k) > 0) ? coef[1] : T(0.0);
         break;
     }
@@ -607,7 +607,7 @@ void mllinop_comp_interp_coef0_x_eb (int side, Box const& box, int blen,
         GpuArray<Real,4> x{{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)}};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+2, &coef(0,r));
+            poly_interp_coeff(-Real(0.5), x.data(), r+2, &coef(0,r));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
@@ -625,7 +625,7 @@ void mllinop_comp_interp_coef0_x_eb (int side, Box const& box, int blen,
                             break;
                         }
                     }
-                    if (has_cutfaces) order = amrex::min(2,order);
+                    if (has_cutfaces) { order = amrex::min(2,order); }
                 }
                 f(ii,j,k,icomp) = (order==1) ? Real(0.0) : coef(1,order-2);
             }
@@ -663,7 +663,7 @@ void mllinop_comp_interp_coef0_x_eb (int side, int i, int j, int k, int blen,
         GpuArray<Real,4> x{{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)}};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+2, &coef(0,r));
+            poly_interp_coeff(-Real(0.5), x.data(), r+2, &coef(0,r));
         }
         int order = 1;
         if (mask(i,j,k) > 0) {
@@ -679,7 +679,7 @@ void mllinop_comp_interp_coef0_x_eb (int side, int i, int j, int k, int blen,
                     break;
                 }
             }
-            if (has_cutfaces) order = amrex::min(2,order);
+            if (has_cutfaces) { order = amrex::min(2,order); }
         }
         f(ii,j,k,icomp) = (order==1) ? Real(0.0) : coef(1,order-2);
         break;
@@ -726,7 +726,7 @@ void mllinop_comp_interp_coef0_y_eb (int side, Box const& box, int blen,
         GpuArray<Real,4> x{{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)}};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+2, &coef(0,r));
+            poly_interp_coeff(-Real(0.5), x.data(), r+2, &coef(0,r));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
@@ -744,7 +744,7 @@ void mllinop_comp_interp_coef0_y_eb (int side, Box const& box, int blen,
                             break;
                         }
                     }
-                    if (has_cutfaces) order = amrex::min(2,order);
+                    if (has_cutfaces) { order = amrex::min(2,order); }
                 }
                 f(i,ji,k,icomp) = (order==1) ? Real(0.0) : coef(1,order-2);
             }
@@ -782,7 +782,7 @@ void mllinop_comp_interp_coef0_y_eb (int side, int i, int j, int k, int blen,
         GpuArray<Real,4> x{{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)}};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+2, &coef(0,r));
+            poly_interp_coeff(-Real(0.5), x.data(), r+2, &coef(0,r));
         }
         int order = 1;
         if (mask(i,j,k) > 0) {
@@ -798,7 +798,7 @@ void mllinop_comp_interp_coef0_y_eb (int side, int i, int j, int k, int blen,
                     break;
                 }
             }
-            if (has_cutfaces) order = amrex::min(2,order);
+            if (has_cutfaces) { order = amrex::min(2,order); }
         }
         f(i,ji,k,icomp) = (order==1) ? Real(0.0) : coef(1,order-2);
         break;
@@ -845,7 +845,7 @@ void mllinop_comp_interp_coef0_z_eb (int side, Box const& box, int blen,
         GpuArray<Real,4> x{{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)}};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+2, &coef(0,r));
+            poly_interp_coeff(-Real(0.5), x.data(), r+2, &coef(0,r));
         }
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
@@ -863,7 +863,7 @@ void mllinop_comp_interp_coef0_z_eb (int side, Box const& box, int blen,
                             break;
                         }
                     }
-                    if (has_cutfaces) order = amrex::min(2,order);
+                    if (has_cutfaces) { order = amrex::min(2,order); }
                 }
                 f(i,j,ki,icomp) = (order==1) ? Real(0.0) : coef(1,order-2);
             }
@@ -901,7 +901,7 @@ void mllinop_comp_interp_coef0_z_eb (int side, int i, int j, int k, int blen,
         GpuArray<Real,4> x{{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)}};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+2, &coef(0,r));
+            poly_interp_coeff(-Real(0.5), x.data(), r+2, &coef(0,r));
         }
         int order = 1;
         if (mask(i,j,k) > 0) {
@@ -917,7 +917,7 @@ void mllinop_comp_interp_coef0_z_eb (int side, int i, int j, int k, int blen,
                     break;
                 }
             }
-            if (has_cutfaces) order = amrex::min(2,order);
+            if (has_cutfaces) { order = amrex::min(2,order); }
         }
         f(i,j,ki,icomp) = (order==1) ? Real(0.0) : coef(1,order-2);
         break;

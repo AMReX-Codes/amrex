@@ -205,18 +205,23 @@ struct ParticleTileData
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             sp.pos(i) = m_aos[index].pos(i);
-        for (int i = 0; i < NStructReal; ++i)
+        }
+        for (int i = 0; i < NStructReal; ++i) {
             sp.rdata(i) = m_aos[index].rdata(i);
-        for (int i = 0; i < NAR; ++i)
+        }
+        for (int i = 0; i < NAR; ++i) {
             sp.rdata(NStructReal+i) = m_rdata[i][index];
+        }
         sp.id() = m_aos[index].id();
         sp.cpu() = m_aos[index].cpu();
-        for (int i = 0; i < NStructInt; ++i)
+        for (int i = 0; i < NStructInt; ++i) {
             sp.idata(i) = m_aos[index].idata(i);
-        for (int i = 0; i < NAI; ++i)
+        }
+        for (int i = 0; i < NAI; ++i) {
             sp.idata(NStructInt+i) = m_idata[i][index];
+        }
         return sp;
     }
 
@@ -229,10 +234,12 @@ struct ParticleTileData
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {sp.pos(i) = m_rdata[i][index];}
         sp.id()  = m_idata[0][index];
         sp.cpu() = m_idata[1][index];
-        for (int i = 0; i < NAR; ++i)
+        for (int i = 0; i < NAR; ++i) {
             sp.rdata(i) = m_rdata[i][index];
-        for (int i = 0; i < NAI; ++i)
+        }
+        for (int i = 0; i < NAI; ++i) {
             sp.idata(i) = m_idata[i][index];
+        }
         return sp;
     }
 
@@ -240,28 +247,35 @@ struct ParticleTileData
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
     {
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             m_aos[index].pos(i) = sp.pos(i);
-        for (int i = 0; i < NStructReal; ++i)
+        }
+        for (int i = 0; i < NStructReal; ++i) {
             m_aos[index].rdata(i) = sp.rdata(i);
-        for (int i = 0; i < NAR; ++i)
+        }
+        for (int i = 0; i < NAR; ++i) {
             m_rdata[i][index] = sp.rdata(NStructReal+i);
+        }
         m_aos[index].id() = sp.id();
         m_aos[index].cpu() = sp.cpu();
-        for (int i = 0; i < NStructInt; ++i)
+        for (int i = 0; i < NStructInt; ++i) {
             m_aos[index].idata(i) = sp.idata(i);
-        for (int i = 0; i < NAI; ++i)
+        }
+        for (int i = 0; i < NAI; ++i) {
             m_idata[i][index] = sp.idata(NStructInt+i);
+        }
     }
 
     template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
     {
-        for (int i = 0; i < NAR; ++i)
+        for (int i = 0; i < NAR; ++i) {
             m_rdata[i][index] = sp.rdata(i);
-        for (int i = 0; i < NAI; ++i)
+        }
+        for (int i = 0; i < NAI; ++i) {
             m_idata[i][index] = sp.idata(i);
+        }
     }
 };
 
@@ -421,8 +435,9 @@ SoAParticle<NArrayReal, NArrayInt>::NextID ()
 #endif
     next = the_next_id++;
 
-    if (next > IntParticleIds::LastParticleID)
+    if (next > IntParticleIds::LastParticleID) {
         amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
+    }
 
     return int(next);
 }
@@ -432,8 +447,9 @@ int
 SoAParticle<NArrayReal, NArrayInt>::UnprotectedNextID ()
 {
     int next = the_next_id++;
-    if (next > IntParticleIds::LastParticleID)
+    if (next > IntParticleIds::LastParticleID) {
         amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
+    }
     return next;
 }
 
@@ -575,20 +591,27 @@ struct ConstParticleTileData
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             sp.pos(i) = m_aos[index].pos(i);
-        for (int i = 0; i < NStructReal; ++i)
+        }
+        for (int i = 0; i < NStructReal; ++i) {
             sp.rdata(i) = m_aos[index].rdata(i);
-        if constexpr(NArrayReal > 0)
-            for (int i = 0; i < NArrayReal; ++i)
+        }
+        if constexpr(NArrayReal > 0) {
+            for (int i = 0; i < NArrayReal; ++i) {
                 sp.rdata(NStructReal+i) = m_rdata[i][index];
+            }
+        }
         sp.id() = m_aos[index].id();
         sp.cpu() = m_aos[index].cpu();
-        for (int i = 0; i < NStructInt; ++i)
+        for (int i = 0; i < NStructInt; ++i) {
             sp.idata(i) = m_aos[index].idata(i);
-        if constexpr(NArrayInt > 0)
-            for (int i = 0; i < NArrayInt; ++i)
+        }
+        if constexpr(NArrayInt > 0) {
+            for (int i = 0; i < NArrayInt; ++i) {
                 sp.idata(NStructInt+i) = m_idata[i][index];
+            }
+        }
         return sp;
     }
 
@@ -601,10 +624,12 @@ struct ConstParticleTileData
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {sp.pos(i) = m_rdata[i][index];}
         sp.id()  = m_idata[0][index];
         sp.cpu() = m_idata[1][index];
-        for (int i = 0; i < NAR; ++i)
+        for (int i = 0; i < NAR; ++i) {
             sp.rdata(i) = m_rdata[i][index];
-        for (int i = 0; i < NAI; ++i)
+        }
+        for (int i = 0; i < NAI; ++i) {
             sp.idata(i) = m_idata[i][index];
+        }
         return sp;
     }
 };
@@ -825,24 +850,29 @@ struct ParticleTile
 
         if constexpr (!ParticleType::is_soa_particle) {
             m_aos_tile.resize(np+1);
-            for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            for (int i = 0; i < AMREX_SPACEDIM; ++i) {
                 m_aos_tile[np].pos(i) = sp.pos(i);
-            for (int i = 0; i < NStructReal; ++i)
+            }
+            for (int i = 0; i < NStructReal; ++i) {
                 m_aos_tile[np].rdata(i) = sp.rdata(i);
+            }
             m_aos_tile[np].id() = sp.id();
             m_aos_tile[np].cpu() = sp.cpu();
-            for (int i = 0; i < NStructInt; ++i)
+            for (int i = 0; i < NStructInt; ++i) {
                 m_aos_tile[np].idata(i) = sp.idata(i);
+            }
         }
 
         m_soa_tile.resize(np+1);
 
         auto& arr_rdata = m_soa_tile.GetRealData();
         auto& arr_idata = m_soa_tile.GetIntData();
-        for (int i = 0; i < NArrayReal; ++i)
+        for (int i = 0; i < NArrayReal; ++i) {
             arr_rdata[i][np] = sp.rdata(NStructReal+i);
-        for (int i = 0; i < NArrayInt; ++i)
+        }
+        for (int i = 0; i < NArrayInt; ++i) {
             arr_idata[i][np] = sp.idata(NStructInt+i);
+        }
     }
 
     ///
@@ -1053,12 +1083,16 @@ struct ParticleTile
         } else {
             ptd.m_aos = nullptr;
         }
-        if constexpr(NArrayReal > 0)
-            for (int i = 0; i < NArrayReal; ++i)
+        if constexpr(NArrayReal > 0) {
+            for (int i = 0; i < NArrayReal; ++i) {
                 ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
-        if constexpr(NArrayInt > 0)
-            for (int i = 0; i < NArrayInt; ++i)
+            }
+        }
+        if constexpr(NArrayInt > 0) {
+            for (int i = 0; i < NArrayInt; ++i) {
                 ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
+            }
+        }
         ptd.m_size = size();
         ptd.m_num_runtime_real = m_runtime_r_ptrs.size();
         ptd.m_num_runtime_int = m_runtime_i_ptrs.size();
@@ -1114,12 +1148,16 @@ struct ParticleTile
         } else {
             ptd.m_aos = nullptr;
         }
-        if constexpr(NArrayReal > 0)
-            for (int i = 0; i < NArrayReal; ++i)
+        if constexpr(NArrayReal > 0) {
+            for (int i = 0; i < NArrayReal; ++i) {
                 ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
-        if constexpr(NArrayInt > 0)
-            for (int i = 0; i < NArrayInt; ++i)
+            }
+        }
+        if constexpr(NArrayInt > 0) {
+            for (int i = 0; i < NArrayInt; ++i) {
                 ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
+            }
+        }
         ptd.m_size = size();
         ptd.m_num_runtime_real = m_runtime_r_cptrs.size();
         ptd.m_num_runtime_int = m_runtime_i_cptrs.size();

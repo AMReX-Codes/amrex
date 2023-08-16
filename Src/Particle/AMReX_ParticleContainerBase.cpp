@@ -53,7 +53,7 @@ void ParticleContainerBase::resizeData ()
 
 void ParticleContainerBase::RedefineDummyMF (int lev)
 {
-    if (lev > m_dummy_mf.size()-1) m_dummy_mf.resize(lev+1);
+    if (lev > m_dummy_mf.size()-1) { m_dummy_mf.resize(lev+1); }
 
     if (m_dummy_mf[lev] == nullptr ||
         ! BoxArray::SameRefs(m_dummy_mf[lev]->boxArray(),
@@ -319,8 +319,9 @@ void ParticleContainerBase::BuildRedistributeMask (int lev, int nghost) const
                 {
                     const int global_rank = this->ParticleDistributionMap(lev)[grid];
                     const int rank = ParallelContext::global_to_local_rank(global_rank);
-                    if (rank != ParallelContext::MyProcSub())
+                    if (rank != ParallelContext::MyProcSub()) {
                         neighbor_procs.push_back(rank);
+                    }
                 }
             }
         }

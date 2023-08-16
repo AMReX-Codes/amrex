@@ -56,7 +56,7 @@ TinyProfiler::TinyProfiler (std::string funcname) noexcept
 TinyProfiler::TinyProfiler (std::string funcname, bool start_, bool useCUPTI) noexcept
     : fname(std::move(funcname)), uCUPTI(useCUPTI)
 {
-    if (start_) start();
+    if (start_) { start(); }
 }
 
 TinyProfiler::TinyProfiler (const char* funcname) noexcept
@@ -68,7 +68,7 @@ TinyProfiler::TinyProfiler (const char* funcname) noexcept
 TinyProfiler::TinyProfiler (const char* funcname, bool start_, bool useCUPTI) noexcept
     : fname(funcname), uCUPTI(useCUPTI)
 {
-    if (start_) start();
+    if (start_) { start(); }
 }
 
 TinyProfiler::~TinyProfiler ()
@@ -543,7 +543,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
         }
     }
 
-    if (regstats.empty()) return;
+    if (regstats.empty()) { return; }
 
     int nprocs = ParallelDescriptor::NProcs();
     int ioproc = ParallelDescriptor::IOProcessorNumber();
@@ -568,8 +568,8 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
             dtdt[1] = dts[1];
         } else
         {
-            ParallelDescriptor::Gather(&n, 1, &ncalls[0], 1, ioproc);
-            ParallelDescriptor::Gather(dts, 2, &dtdt[0], 2, ioproc);
+            ParallelDescriptor::Gather(&n, 1, ncalls.data(), 1, ioproc);
+            ParallelDescriptor::Gather(dts, 2, dtdt.data(), 2, ioproc);
         }
 
         if (ParallelDescriptor::IOProcessor()) {
@@ -742,7 +742,7 @@ TinyProfiler::PrintMemStats(std::map<std::string, MemStat>& memstats,
         }
     }
 
-    if (memstats.empty()) return;
+    if (memstats.empty()) { return; }
 
     const int nprocs = ParallelDescriptor::NProcs();
     const int ioproc = ParallelDescriptor::IOProcessorNumber();
@@ -772,10 +772,10 @@ TinyProfiler::PrintMemStats(std::map<std::string, MemStat>& memstats,
             maxmem_vec[0] = maxmem;
         } else
         {
-            ParallelDescriptor::Gather(&nalloc, 1, &nalloc_vec[0], 1, ioproc);
-            ParallelDescriptor::Gather(&nfree, 1, &nfree_vec[0], 1, ioproc);
-            ParallelDescriptor::Gather(&maxmem, 1, &maxmem_vec[0], 1, ioproc);
-            ParallelDescriptor::Gather(&avgmem, 1, &avgmem_vec[0], 1, ioproc);
+            ParallelDescriptor::Gather(&nalloc, 1, nalloc_vec.data(), 1, ioproc);
+            ParallelDescriptor::Gather(&nfree , 1,  nfree_vec.data(), 1, ioproc);
+            ParallelDescriptor::Gather(&maxmem, 1, maxmem_vec.data(), 1, ioproc);
+            ParallelDescriptor::Gather(&avgmem, 1, avgmem_vec.data(), 1, ioproc);
         }
 
         if (ParallelDescriptor::IOProcessor()) {
@@ -864,7 +864,7 @@ TinyProfiler::PrintMemStats(std::map<std::string, MemStat>& memstats,
         maxlen[i] += 2;
     }
 
-    if (allstatsstr.size() == 1) return;
+    if (allstatsstr.size() == 1) { return; }
 
     int lenhline = 0;
     for (auto i : maxlen) {
