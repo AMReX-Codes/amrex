@@ -388,7 +388,7 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
 // commented out
         else
         {
-std::cout<<"THIS SHOULD NEVER PRINT!\n";
+std::cout<<"THIS SHOULD NEVER PRINT! Src/AmrCore/AMReX_FluxRegister.cpp\n";
 /*
             FabSet fs( bndry[face].boxArray(), bndry[face].DistributionMap(),
                        nComp );
