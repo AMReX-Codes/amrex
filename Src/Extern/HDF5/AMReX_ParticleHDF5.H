@@ -18,7 +18,7 @@
 #endif
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::CheckpointHDF5 (const std::string& dir,
@@ -71,7 +71,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::CheckpointHDF5 (const std::string& dir, const std::string& name,
@@ -107,7 +107,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
@@ -143,7 +143,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
@@ -171,7 +171,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
@@ -205,7 +205,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFileHDF5 (const std::string& dir,
@@ -243,9 +243,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                    const Vector<int>& write_real_comp,
                    const Vector<int>& write_int_comp,
@@ -266,7 +266,7 @@ WritePlotFileHDF5 (const std::string& dir, const std::string& name,
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
@@ -299,7 +299,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
@@ -324,7 +324,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
@@ -355,7 +355,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
@@ -390,10 +390,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                    const Vector<int>& write_real_comp,
                    const Vector<int>& write_int_comp,
@@ -410,7 +410,7 @@ WritePlotFileHDF5 (const std::string& dir, const std::string& name,
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
@@ -438,7 +438,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::CheckpointPreHDF5 ()
@@ -495,7 +495,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::CheckpointPostHDF5 ()
@@ -551,7 +551,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFilePreHDF5 ()
@@ -561,7 +561,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WritePlotFilePostHDF5 ()
@@ -571,7 +571,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::WriteParticlesHDF5 (int lev, hid_t grp,
@@ -973,7 +973,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 } // End WriteParticlesHDF5
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::RestartHDF5 (const std::string& dir, const std::string& file, bool /*is_checkpoint*/)
@@ -982,7 +982,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 ::RestartHDF5 (const std::string& dir, const std::string& file)
@@ -1351,7 +1351,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 // Read a batch of particles from the checkpoint file
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class RTYPE>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>

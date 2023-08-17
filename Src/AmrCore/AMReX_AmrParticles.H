@@ -11,9 +11,9 @@
 namespace amrex {
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::AssignDensity (int rho_index,
                  Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled,
                  int lev_min, int ncomp, int finest_level, int ngrow) const
@@ -250,9 +250,9 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
 }
 
 template <typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
-          template<class> class Allocator=DefaultAllocator>
+          template<class> class Allocator=DefaultAllocator, class CellAssignor=getParticleCell>
 class AmrParticleContainer_impl // NOLINT(cppcoreguidelines-virtual-class-destructor)
-    : public ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator>
+    : public ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 {
 
 public:
@@ -260,12 +260,12 @@ public:
     using ParticleType = T_ParticleType;
 
     AmrParticleContainer_impl ()
-        : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>()
+        : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>()
     {
     }
 
     AmrParticleContainer_impl (AmrCore* amr_core)
-        : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>(amr_core->GetParGDB())
+        : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>(amr_core->GetParGDB())
     {
     }
 
@@ -273,7 +273,7 @@ public:
                                const Vector<DistributionMapping> & dmap,
                                const Vector<BoxArray>            & ba,
                                const Vector<int>                 & rr)
-        : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>(geom, dmap, ba, rr)
+        : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>(geom, dmap, ba, rr)
     {
     }
 
@@ -287,8 +287,8 @@ public:
 };
 
 template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
-          template<class> class Allocator=DefaultAllocator>
-using AmrParticleContainer = AmrParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator>;
+          template<class> class Allocator=DefaultAllocator, class CellAssignor=getParticleCell>
+using AmrParticleContainer = AmrParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 class AmrTracerParticleContainer
     : public TracerParticleContainer

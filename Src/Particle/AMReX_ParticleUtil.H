@@ -376,6 +376,20 @@ IntVect getParticleCell (P const& p,
     return iv;
 }
 
+struct DefaultAssignor
+{
+
+    template <typename P>
+    AMREX_GPU_HOST_DEVICE
+    IntVect operator() (P const& p,
+                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                        const Box& domain) noexcept
+    {
+        return getParticleCell(p, plo, dxi, domain);
+    }
+};
+
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
