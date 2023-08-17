@@ -39,13 +39,15 @@ extern "C"
     }
 
     void amrex_fi_fluxregister_fineadd_dg
-      ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[], int nFields )
+      ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[],
+        int nFields, Real FaceRatio )
     {
         for (int iDimX = 0; iDimX < BL_SPACEDIM; ++iDimX)
         {
             BL_ASSERT( flux_reg->nComp() == SurfaceFluxes[iDimX]->nComp() );
 
-            flux_reg->FineAdd_DG( *SurfaceFluxes[iDimX], iDimX, nFields );
+            flux_reg->FineAdd_DG
+              ( *SurfaceFluxes[iDimX], iDimX, nFields, FaceRatio );
         }
     } /* END void amrex_fi_fluxregister_fineadd_dg */
 

@@ -50,6 +50,7 @@ fluxreg_fineadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
 * dimension. These Gaussian points are defined on the interval [-0.5,+0.5].
 * LX_X are the Lagrange polynomials evaluated at the quadrature points in the
 * AMREX_SPACDIM-1 dimensions on the interface in the iDimX dimension.
+* FaceRatio is the ratio of a fine face to a coarse face
 * ratio is the refinement ratio. ratio must be 2.
 *
 * \param CrseBox
@@ -59,6 +60,7 @@ fluxreg_fineadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
 * \param nDOFX_X
 * \param WeightsX_X
 * \param LX_X
+* \param FaceRatio
 * \param ratio
 */
 AMREX_GPU_HOST_DEVICE inline void
@@ -70,6 +72,7 @@ fluxreg_fineadd_dg( Box const&                CrseBox,
                     int                       nDOFX_X,
                     const Real *              WeightsX_X,
                     Real ***                  LX_X,
+                    Real                      FaceRatio,
                     Dim3 const&               ratio ) noexcept
 {
     const auto lo   = amrex::lbound(CrseBox);
@@ -86,7 +89,7 @@ fluxreg_fineadd_dg( Box const&                CrseBox,
                   += WeightsX_X[iNX_F]
                        * SurfaceFluxes_Fine(iFineF,0,0,iNX_F+iField*nDOFX_X)
                        * LX_X[iNX_C][0][iNX_F]
-                       * amrex::DG::FaceRatio;
+                       * FaceRatio;
             } /* iField */
         } /* iNX_F */
     } /* iNX_C */

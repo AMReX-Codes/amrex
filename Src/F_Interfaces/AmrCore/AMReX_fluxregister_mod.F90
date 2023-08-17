@@ -68,12 +68,13 @@ module amrex_fluxregister_module
      end subroutine amrex_fi_fluxregister_fineadd_1fab_1dir
 
      subroutine amrex_fi_fluxregister_fineadd_dg &
-       ( FluxRegister, SurfaceFluxes, nFields ) bind(c)
+       ( FluxRegister, SurfaceFluxes, nFields, FaceRatio ) bind(c)
        import
        implicit none
        type(c_ptr)     , value      :: FluxRegister
        type(c_ptr)     , intent(in) :: SurfaceFluxes(*)
        integer         , value      :: nFields
+       real(amrex_real), value      :: FaceRatio
      end subroutine amrex_fi_fluxregister_fineadd_dg
 
      subroutine amrex_fi_fluxregister_crseinit (fr, flxs, scale) bind(c)
@@ -203,16 +204,17 @@ contains
   end subroutine amrex_fluxregister_fineadd_1fab
 
   subroutine amrex_fluxregister_fineadd_dg &
-    ( this, SurfaceFluxes, nFields )
+    ( this, SurfaceFluxes, nFields, FaceRatio )
     class(amrex_fluxregister), intent(inout) :: this
     type(amrex_multifab)     , intent(in)    :: SurfaceFluxes(amrex_spacedim)
     integer                  , intent(in)    :: nFields
+    real(amrex_real)         , intent(in)    :: FaceRatio
     integer :: dim
     type(c_ptr) :: mf(amrex_spacedim)
     do dim = 1, amrex_spacedim
        mf(dim) = SurfaceFluxes(dim)%p
     end do
-    call amrex_fi_fluxregister_fineadd_dg( this%p, mf, nFields )
+    call amrex_fi_fluxregister_fineadd_dg( this%p, mf, nFields, FaceRatio )
   end subroutine amrex_fluxregister_fineadd_dg
 
   subroutine amrex_fluxregister_crseinit (this, fluxes, scale)

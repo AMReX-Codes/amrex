@@ -513,7 +513,8 @@ FluxRegister::FineAdd (const MultiFab& mflx,
 void
 FluxRegister::FineAdd_DG (const MultiFab& SurfaceFluxes,
                           int             iDimX,
-                          int             nFields)
+                          int             nFields,
+                          Real            FaceRatio)
 {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -521,7 +522,8 @@ FluxRegister::FineAdd_DG (const MultiFab& SurfaceFluxes,
     for (MFIter mfi(SurfaceFluxes); mfi.isValid(); ++mfi)
     {
         const int k = mfi.index();
-        FineAdd_DG( SurfaceFluxes[mfi], iDimX, nFields, k, RunOn::Gpu);
+        FineAdd_DG( SurfaceFluxes[mfi], iDimX, nFields,
+                    FaceRatio, k, RunOn::Gpu);
     }
 } /* END void FluxRegister::FineAdd_DG */
 
@@ -595,6 +597,7 @@ void
 FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
                           int              iDimX,
                           int              nFields,
+                          Real             FaceRatio,
                           int              BoxNumber,
                           RunOn            runon) noexcept
 {
@@ -639,12 +642,14 @@ FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
           {
               fluxreg_fineadd_dg( tlobx, loarr, farr,
                                   iDimX, nFields, nDOFX_X, WeightsX_X, LX_X,
+                                  FaceRatio,
                                   local_ratio );
           },
           hibox, thibx,
           {
               fluxreg_fineadd_dg( thibx, hiarr, farr,
                                   iDimX, nFields, nDOFX_X, WeightsX_X, LX_X,
+                                  FaceRatio,
                                   local_ratio );
           }
         );
@@ -653,9 +658,11 @@ FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
     {
         fluxreg_fineadd_dg( lobox, loarr, farr,
                             iDimX, nFields, nDOFX_X, WeightsX_X, LX_X,
+                            FaceRatio,
                             local_ratio );
         fluxreg_fineadd_dg( hibox, hiarr, farr,
                             iDimX, nFields, nDOFX_X, WeightsX_X, LX_X,
+                            FaceRatio,
                             local_ratio );
     }
 
