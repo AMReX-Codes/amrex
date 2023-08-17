@@ -125,6 +125,10 @@ endif
 
 LDFLAGS += -fsycl-device-lib=libc,libm-fp32,libm-fp64
 
+ifdef SYCL_PARALLEL_LINK_JOBS
+LDFLAGS += -fsycl-max-parallel-link-jobs=$(SYCL_PARALLEL_LINK_JOBS)
+endif
+
 ifeq ($(SYCL_AOT),TRUE)
   ifndef AMREX_INTEL_ARCH
     ifdef INTEL_ARCH
