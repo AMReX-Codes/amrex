@@ -786,17 +786,35 @@ void
 FluxRegister::Reflux_DG ( MultiFab&       MF_G,
                           MultiFab&       MF_dU,
                           const Geometry& geom,
-                          int             nComp, /* nDOFX_X * nFields */
+                          int             nDOFX,
+                          int             nDOFX_X1,
+                          int             nDOFX_X2,
+                          int             nDOFX_X3,
                           int             nFields,
-                          Real            dX1[],
-                          Real            dX2[],
-                          Real            dX3[] )
+                          int             iGF_SqrtGm,
+                          Array4<int>     NodeNumberTableX,
+                          Array4<int>     NodeNumberTableX_X1,
+                          Array4<int>     NodeNumberTableX_X2,
+                          Array4<int>     NodeNumberTableX_X3,
+                          Array4<Real>    WeightsX_q,
+                          Array4<Real>    LX_X1_Up,
+                          Array4<Real>    LX_X1_Dn,
+                          Array4<Real>    LX_X2_Up,
+                          Array4<Real>    LX_X2_Dn,
+                          Array4<Real>    LX_X3_Up,
+                          Array4<Real>    LX_X3_Dn )
 {
     for( OrientationIter fi; fi; ++fi )
     {
         const Orientation& face = fi();
-        Reflux_DG( MF_G, MF_dU, geom, nComp, nFields,
-                   dX1, dX2, dX3, face );
+        Reflux_DG( MF_G, MF_dU, geom,
+                   nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, nFields, iGF_SqrtGm,
+                   NodeNumberTableX   , NodeNumberTableX_X1,
+                   NodeNumberTableX_X2, NodeNumberTableX_X3, WeightsX_q,
+                   LX_X1_Up, LX_X1_Dn,
+                   LX_X2_Up, LX_X2_Dn,
+                   LX_X3_Up, LX_X3_Dn,
+                   face );
     }
 } /* END void FluxRegister::Reflux_DG */
 
@@ -888,14 +906,34 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
 }
 
 void
-FluxRegister::Reflux_DG
-  ( MultiFab& MF_G, MultiFab& MF_dU, const Geometry& geom,
-    int nComp, int nFields, Real dX1[], Real dX2[], Real dX3[],
-    Orientation face )
+FluxRegister::Reflux_DG ( MultiFab&       MF_G,
+                          MultiFab&       MF_dU,
+                          const Geometry& geom,
+                          int             nDOFX,
+                          int             nDOFX_X1,
+                          int             nDOFX_X2,
+                          int             nDOFX_X3,
+                          int             nFields,
+                          int             iGF_SqrtGm,
+                          Array4<int>     NodeNumberTableX,
+                          Array4<int>     NodeNumberTableX_X1,
+                          Array4<int>     NodeNumberTableX_X2,
+                          Array4<int>     NodeNumberTableX_X3,
+                          Array4<Real>    WeightsX_q,
+                          Array4<Real>    LX_X1_Up,
+                          Array4<Real>    LX_X1_Dn,
+                          Array4<Real>    LX_X2_Up,
+                          Array4<Real>    LX_X2_Dn,
+                          Array4<Real>    LX_X3_Up,
+                          Array4<Real>    LX_X3_Dn,
+                          Orientation     face )
 {
     BL_PROFILE("FluxRegister::Reflux_DG()");
 
+    int nComp = nDOFX_X1 * nFields;
     int iDimX = face.coordDir();
+
+    const Real* dX = geom.CellSize();
 
     MultiFab MF_dF( amrex::convert( MF_dU.boxArray(),
                                    IntVect::TheDimensionVector(iDimX) ),
@@ -916,7 +954,12 @@ FluxRegister::Reflux_DG
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
         {
             fluxreg_reflux_dg
-              ( tbx, G, dU, dF, nFields, dX1, dX2, dX3, face );
+              ( tbx, G, dU, dF, nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, nFields,
+                iGF_SqrtGm,
+                NodeNumberTableX   , NodeNumberTableX_X1,
+                NodeNumberTableX_X2, NodeNumberTableX_X3, WeightsX_q,
+                LX_X1_Up, LX_X1_Dn, LX_X2_Up, LX_X2_Dn,
+                LX_X3_Up, LX_X3_Dn, dX[0], dX[1], dX[2], face );
         });
     }
 } /* END void FluxRegister::Reflux_DG */

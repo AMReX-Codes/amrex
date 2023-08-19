@@ -3,7 +3,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_FArrayBox.H>
-#include <AMReX_DG.H>
 
 namespace amrex {
 
@@ -161,7 +160,7 @@ fluxreg_fineadd_dg( Box const&                CrseBox,
                                            (iFineV,jFineF,0,
                                             jNX_F+iField*nDOFX_X)
                                        * LX_X[jNX_C][jFn][jNX_F]
-                                       * amrex::DG::FaceRatio;
+                                       * FaceRatio;
                             } /* iField */
                         } /* jNX_F */
                     } /* Fine cells */
@@ -282,20 +281,64 @@ fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
 * \brief Replace coarse flux with fine flux (DG).
 * CrseBox is a box defined on the coarse level.
 * G is the array of geometry fields, in paricular the square root of the
-*   spatial three-metric determinant
-* dU is the increment for each DOF within an element.
-* dF is a coarse grid edge based object.
+*   spatial three-metric determinant.
+* dU is the increment for each degree of freedom of each fluid field
+*   within an element.
+* dF is a coarse grid edge based object that holds the flux correction.
+* nDOFX is the number of degrees of freedom per element, per field
+* nDOFX_X1 is the number of degrees of freedom per element X1-face, per field.
+* nDOFX_X2 is the number of degrees of freedom per element X2-face, per field.
+* nDOFX_X3 is the number of degrees of freedom per element X3-face, per field.
 * nFields is the number of fields in the grid based objects.
-* dX1 is the width of the coarse element in the X1-dimension.
-* dX2 is the width of the coarse element in the X2-dimension.
-* dX3 is the width of the coarse element in the X3-dimension.
+* iGF_SqrtGm is index of G corresponding the the square root of the spatial
+*   three-metric determinant.
+* NodeNumberTableX is the table that maps degrees of freedom within an
+*   element to degrees of freedom in a particular dimension.
+* NodeNumberTableX_X1 is the table that maps degrees of freedom within an
+*   element to degrees of freedom on the X1 interface.
+* NodeNumberTableX_X2 is the table that maps degrees of freedom within an
+*   element to degrees of freedom on the X2 interface.
+* NodeNumberTableX_X3 is the table that maps degrees of freedom within an
+*   element to degrees of freedom on the X3 interface.
+* WeightsX_q are the Gauss--Legendre quadrature weights within an element.
+* LX_X1_Up are the Lagrange polynomials interpolated to the upper side of
+*   an element in the X1 dimension.
+* LX_X1_Dn are the Lagrange polynomials interpolated to the lower side of
+*   an element in the X1 dimension.
+* LX_X2_Up are the Lagrange polynomials interpolated to the upper side of
+*   an element in the X2 dimension.
+* LX_X2_Dn are the Lagrange polynomials interpolated to the lower side of
+*   an element in the X2 dimension.
+* LX_X3_Up are the Lagrange polynomials interpolated to the upper side of
+*   an element in the X3 dimension.
+* LX_X3_Dn are the Lagrange polynomials interpolated to the lower side of
+*   an element in the X3 dimension.
+* dX1 is the mesh width in the X1 dimension.
+* dX2 is the mesh width in the X2 dimension.
+* dX3 is the mesh width in the X3 dimension.
 * face is ...
 *
 * \param CrseBox
 * \param G
 * \param dU
 * \param dF
+* \param nDOFX
+* \param nDOFX_X1
+* \param nDOFX_X2
+* \param nDOFX_X3
 * \param nFields
+* \param iGF_SqrtGm
+* \param NodeNumberTableX
+* \param NodeNumberTableX_X1
+* \param NodeNumberTableX_X2
+* \param NodeNumberTableX_X3
+* \param WeightsX_q
+* \param LX_X1_Up
+* \param LX_X1_Dn
+* \param LX_X2_Up
+* \param LX_X2_Dn
+* \param LX_X3_Up
+* \param LX_X3_Dn
 * \param dX1
 * \param dX2
 * \param dX3
@@ -303,17 +346,32 @@ fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
 */
 AMREX_GPU_HOST_DEVICE inline void
 fluxreg_reflux_dg
-  ( Box const& CrseBox,
-    Array4<Real> const& G,
-    Array4<Real> const& dU,
+  ( Box                const& CrseBox,
+    Array4<Real>       const& G,
+    Array4<Real>       const& dU,
     Array4<Real const> const& dF,
-    int nFields,
-    const Real dX1[],
-    const Real dX2[],
-    const Real dX3[],
-    const Orientation face ) noexcept
+    int                       nDOFX,
+    int                       nDOFX_X1,
+    int                       nDOFX_X2,
+    int                       /*nDOFX_X3*/,
+    int                       nFields,
+    int                       iGF_SqrtGm,
+    Array4<int>               NodeNumberTableX,
+    Array4<int>               NodeNumberTableX_X1,
+    Array4<int>               NodeNumberTableX_X2,
+    Array4<int>               /*NodeNumberTableX_X3*/,
+    Array4<Real>              WeightsX_q,
+    Array4<Real>              LX_X1_Up,
+    Array4<Real>              LX_X1_Dn,
+    Array4<Real>              LX_X2_Up,
+    Array4<Real>              LX_X2_Dn,
+    Array4<Real>              /*LX_X3_Up*/,
+    Array4<Real>              /*LX_X3_Dn*/,
+    Real                      dX1,
+    Real                      dX2,
+    Real                      /*dX3*/,
+    const Orientation         face ) noexcept
 {
-    amrex::ignore_unused( dX3 );
 
     const auto CrseLo  = amrex::lbound(CrseBox);
     const auto CrseHi  = amrex::ubound(CrseBox);
@@ -333,21 +391,20 @@ fluxreg_reflux_dg
             {
                 for( int jCrse = CrseLo.y; jCrse <= CrseHi.y; ++jCrse ) {
                 for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
-                    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
+                    for( int iNX = 0; iNX < nDOFX; iNX++ )
                     {
-                        iNX1   = amrex::DG::NodeNumberTableX[0][iNX];
-                        iNX_X1 = amrex::DG::NodeNumberTableX_X1[iNX];
+                        iNX1   = NodeNumberTableX   (iDimX,iNX,0,0);
+                        iNX_X1 = NodeNumberTableX_X1(iNX  ,0  ,0,0);
                         for( int iField = 0; iField < nFields; iField++ )
                         {
-                            dU(iCrse,jCrse,0,iNX+iField*amrex::DG::nDOFX)
+                            dU(iCrse,jCrse,0,iNX+iField*nDOFX)
                               += -dF(iCrse+1,jCrse,0,
-                                     iNX_X1+iField*amrex::DG::nDOFX_X1)
-                                   * amrex::DG::LX_X1_Up[iNX1]
-                                   / ( amrex::DG::WeightsX_q[iNX]
+                                     iNX_X1+iField*nDOFX_X1)
+                                   * LX_X1_Up(iNX1,iNX,0,0)
+                                   / ( WeightsX_q(iNX,0,0,0)
                                          * G(iCrse,jCrse,0,
-                                             (amrex::DG::iGF_SqrtGm-1)
-                                                *amrex::DG::nDOFX+iNX)
-                                         * dX1[iCrse] );
+                                             (iGF_SqrtGm-1)*nDOFX+iNX)
+                                         * dX1 );
                         } /* iField */
                     } /* iNX */
                 }} /* Coarse cells */
@@ -357,21 +414,20 @@ fluxreg_reflux_dg
             {
                 for( int jCrse = CrseLo.y; jCrse <= CrseHi.y; ++jCrse ) {
                 for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
-                    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
+                    for( int iNX = 0; iNX < nDOFX; iNX++ )
                     {
-                        iNX2   = amrex::DG::NodeNumberTableX[1][iNX];
-                        iNX_X2 = amrex::DG::NodeNumberTableX_X2[iNX];
+                        iNX2   = NodeNumberTableX   (iDimX,iNX,0,0);
+                        iNX_X2 = NodeNumberTableX_X2(iNX  ,0  ,0,0);
                         for( int iField = 0; iField < nFields; iField++ )
                         {
-                            dU(iCrse,jCrse,0,iNX+iField*amrex::DG::nDOFX)
+                            dU(iCrse,jCrse,0,iNX+iField*nDOFX)
                               += -dF(iCrse,jCrse+1,0,
-                                     iNX_X2+iField*amrex::DG::nDOFX_X2)
-                                   * amrex::DG::LX_X2_Up[iNX2]
-                                   / ( amrex::DG::WeightsX_q[iNX]
+                                     iNX_X2+iField*nDOFX_X2)
+                                   * LX_X2_Up(iNX2,iNX,0,0)
+                                   / ( WeightsX_q(iNX,0,0,0)
                                          * G(iCrse,jCrse,0,
-                                             (amrex::DG::iGF_SqrtGm-1)
-                                                *amrex::DG::nDOFX+iNX)
-                                         * dX2[jCrse] );
+                                             (iGF_SqrtGm-1)*nDOFX+iNX)
+                                         * dX2 );
                         } /* iField */
                     } /* iNX */
                 }} /* Coarse cells */
@@ -387,21 +443,20 @@ fluxreg_reflux_dg
             {
                 for( int jCrse = CrseLo.y; jCrse <= CrseHi.y; ++jCrse ) {
                 for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
-                    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
+                    for( int iNX = 0; iNX < nDOFX; iNX++ )
                     {
-                        iNX1   = amrex::DG::NodeNumberTableX[0][iNX];
-                        iNX_X1 = amrex::DG::NodeNumberTableX_X1[iNX];
+                        iNX1   = NodeNumberTableX   (iDimX,iNX,0,0);
+                        iNX_X1 = NodeNumberTableX_X1(iNX  ,0  ,0,0);
                         for( int iField = 0; iField < nFields; iField++ )
                         {
-                            dU(iCrse,jCrse,0,iNX+iField*amrex::DG::nDOFX)
+                            dU(iCrse,jCrse,0,iNX+iField*nDOFX)
                               += dF(iCrse,jCrse,0,
-                                    iNX_X1+iField*amrex::DG::nDOFX_X1)
-                                   * amrex::DG::LX_X1_Dn[iNX1]
-                                   / ( amrex::DG::WeightsX_q[iNX]
+                                    iNX_X1+iField*nDOFX_X1)
+                                   * LX_X1_Dn(iNX1,iNX,0,0)
+                                   / ( WeightsX_q(iNX,0,0,0)
                                          * G(iCrse,jCrse,0,
-                                             (amrex::DG::iGF_SqrtGm-1)
-                                                *amrex::DG::nDOFX+iNX)
-                                         * dX1[iCrse] );
+                                             (iGF_SqrtGm-1)*nDOFX+iNX)
+                                         * dX1 );
                         } /* iField */
                     } /* iNX */
                 }} /* Coarse cells */
@@ -411,21 +466,20 @@ fluxreg_reflux_dg
             {
                 for( int jCrse = CrseLo.y; jCrse <= CrseHi.y; ++jCrse ) {
                 for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
-                    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
+                    for( int iNX = 0; iNX < nDOFX; iNX++ )
                     {
-                        iNX2   = amrex::DG::NodeNumberTableX[1][iNX];
-                        iNX_X2 = amrex::DG::NodeNumberTableX_X2[iNX];
+                        iNX2   = NodeNumberTableX   (iDimX,iNX,0,0);
+                        iNX_X2 = NodeNumberTableX_X2(iNX  ,0  ,0,0);
                         for( int iField = 0; iField < nFields; iField++ )
                         {
-                            dU(iCrse,jCrse,0,iNX+iField*amrex::DG::nDOFX)
+                            dU(iCrse,jCrse,0,iNX+iField*nDOFX)
                               += dF(iCrse,jCrse,0,
-                                     iNX_X2+iField*amrex::DG::nDOFX_X2)
-                                   * amrex::DG::LX_X2_Dn[iNX2]
-                                   / ( amrex::DG::WeightsX_q[iNX]
+                                     iNX_X2+iField*nDOFX_X2)
+                                   * LX_X2_Dn(iNX2,iNX,0,0)
+                                   / ( WeightsX_q(iNX,0,0,0)
                                          * G(iCrse,jCrse,0,
-                                             (amrex::DG::iGF_SqrtGm-1)
-                                                *amrex::DG::nDOFX+iNX)
-                                         * dX2[jCrse] );
+                                             (iGF_SqrtGm-1)*nDOFX+iNX)
+                                         * dX2 );
                         } /* iField */
                     } /* iNX */
                 }} /* Coarse elements */

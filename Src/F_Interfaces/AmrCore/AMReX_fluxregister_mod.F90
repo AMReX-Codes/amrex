@@ -117,12 +117,25 @@ module amrex_fluxregister_module
      end subroutine amrex_fi_fluxregister_reflux
 
      subroutine amrex_fi_fluxregister_reflux_dg &
-       ( FluxRegister, MF_G, MF_dU, geom, nFields, dX1, dX2, dX3 ) bind(c)
+       ( FluxRegister, MF_G, MF_dU, geom, &
+         nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, &
+         nFields, iGF_SqrtGm, &
+         NodeNumberTableX   , NodeNumberTableX_X1, &
+         NodeNumberTableX_X2, NodeNumberTableX_X3, WeightsX_q, &
+         LX_X1_Up, LX_X1_Dn, &
+         LX_X2_Up, LX_X2_Dn, &
+         LX_X3_Up, LX_X3_Dn ) bind(c)
        import
        implicit none
-       type(c_ptr)     , value :: FluxRegister, MF_G, MF_dU, geom
-       integer         , value :: nFields
-       real(amrex_real)        :: dX1(*), dX2(*), dX3(*)
+       type(c_ptr)     , value :: FluxRegister, MF_G, MF_dU, geom, &
+                                  NodeNumberTableX   , NodeNumberTableX_X1, &
+                                  NodeNumberTableX_X2, NodeNumberTableX_X3, &
+                                  WeightsX_q, &
+                                  LX_X1_Up, LX_X1_Dn, &
+                                  LX_X2_Up, LX_X2_Dn, &
+                                  LX_X3_Up, LX_X3_Dn
+       integer         , value :: nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, &
+                                  nFields, iGF_SqrtGm
      end subroutine amrex_fi_fluxregister_reflux_dg
 
      subroutine amrex_fi_fluxregister_overwrite (fr, flxs, scale, geom) bind(c)
@@ -271,16 +284,31 @@ contains
   end subroutine amrex_fluxregister_reflux
 
   subroutine amrex_fluxregister_reflux_dg &
-    ( this, MF_G, MF_dU, nFields, dX1, dX2, dX3 )
+    ( this, MF_G, MF_dU, &
+      nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, &
+      nFields, iGF_SqrtGm, &
+      pNodeNumberTableX, &
+      pNodeNumberTableX_X1, pNodeNumberTableX_X2, pNodeNumberTableX_X3, &
+      pWeightsX_q, &
+      pLX_X1_Up, pLX_X1_Dn, pLX_X2_Up, pLX_X2_Dn, pLX_X3_Up, pLX_X3_Dn )
     use amrex_amrcore_module, only : amrex_geom
     class(amrex_fluxregister), intent(inout) :: this
     type(amrex_multifab)     , intent(in)    :: MF_G
     type(amrex_multifab)     , intent(in)    :: MF_dU
-    integer                  , intent(in)    :: nFields
-    real(amrex_real)         , intent(in)    :: dX1(*), dX2(*), dX3(*)
+    integer                  , intent(in)    :: &
+      nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, nFields, iGF_SqrtGm
+    type(c_ptr), intent(in) :: &
+      pNodeNumberTableX, pNodeNumberTableX_X1, &
+      pNodeNumberTableX_X2, pNodeNumberTableX_X3, pWeightsX_q, &
+      pLX_X1_Up, pLX_X1_Dn, pLX_X2_Up, pLX_X2_Dn, pLX_X3_Up, pLX_X3_Dn
+
     call amrex_fi_fluxregister_reflux_dg &
            ( this%p, MF_G%p, MF_dU%p, amrex_geom(this%flev-1)%p, &
-             nFields, dX1, dX2, dX3 )
+             nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, nFields, iGF_SqrtGm, &
+             pNodeNumberTableX, &
+             pNodeNumberTableX_X1, pNodeNumberTableX_X2, pNodeNumberTableX_X3, &
+             pWeightsX_q, &
+             pLX_X1_Up, pLX_X1_Dn, pLX_X2_Up, pLX_X2_Dn, pLX_X3_Up, pLX_X3_Dn )
   end subroutine amrex_fluxregister_reflux_dg
 
   subroutine amrex_fluxregister_overwrite (this, fluxes, scale)
