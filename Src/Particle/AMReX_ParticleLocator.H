@@ -48,7 +48,7 @@ struct AssignGrid
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator() (const P& p, int nGrow=0, Assignor&& assignor = DefaultAssignor{}) const noexcept
     {
-        const auto iv = assignor(p, m_plo, m_dxi, m_domain, std::forward<Assignor>(assignor));
+        const auto iv = assignor(p, m_plo, m_dxi, m_domain);
         return this->operator()(iv, nGrow);
     }
 

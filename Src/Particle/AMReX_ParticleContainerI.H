@@ -1323,7 +1323,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 }
                 else
                 {
-                    const auto tup = assign_grid(p, lev_min, lev_max, nGrow);
+                    const auto tup = assign_grid(p, lev_min, lev_max, nGrow,
+                                                 std::forward<CellAssignor>(CellAssignor{}));
                     p_boxes[i] = amrex::get<0>(tup);
                     p_levs[i]  = amrex::get<1>(tup);
                 }

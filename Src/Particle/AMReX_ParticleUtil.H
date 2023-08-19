@@ -384,7 +384,7 @@ struct DefaultAssignor
     IntVect operator() (P const& p,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-                        const Box& domain) noexcept
+                        const Box& domain) const noexcept
     {
         return getParticleCell(p, plo, dxi, domain);
     }
@@ -443,7 +443,7 @@ bool enforcePeriodic (P& p,
 
 #if defined(AMREX_USE_GPU)
 
-template <typename PTile, typename PLocator>
+template <typename PTile, typename PLocator, typename CellAssignor>
 int
 partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& assignor,
                           const ParticleBufferMap& pmap,
@@ -511,7 +511,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& ass
                       AMREX_D_TERM(p_prime.pos(0) = src_data.pos(0, i+this_offset);,
                                    p_prime.pos(1) = src_data.pos(1, i+this_offset);,
                                    p_prime.pos(2) = src_data.pos(2, i+this_offset););
-                      auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
+                      auto tup = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
                       assigned_grid = amrex::get<0>(tup);
                       assigned_lev  = amrex::get<1>(tup);
                     }
