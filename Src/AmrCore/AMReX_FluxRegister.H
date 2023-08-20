@@ -376,8 +376,6 @@ public:
     * nFields is the number of distinct fluid fields (density, velocity, etc.).
     * iGF_SqrtGm is the index of MF_G that contains the square root of the
     * spatial three-metric determinant.
-    * NodeNumberTableX is a 2D array that maps degrees of freedom on an
-    * element to degrees of freedom in a specific spatial dimension.
     * NodeNumberTableX_X1 is a 1D array that maps degrees of freedom on an
     * element to degrees of freedom on an interface in the X1-direction.
     * NodeNumberTableX_X2 is a 1D array that maps degrees of freedom on an
@@ -408,7 +406,6 @@ public:
     * \param nDOFX_X3
     * \param nFields
     * \param iGF_SqrtGm
-    * \param NodeNumberTableX
     * \param NodeNumberTableX_X1
     * \param NodeNumberTableX_X2
     * \param NodeNumberTableX_X3
@@ -429,7 +426,6 @@ public:
                     int             nDOFX_X3,
                     int             nFields,
                     int             iGF_SqrtGm,
-                    Array4<int>     NodeNumberTableX,
                     Array4<int>     NodeNumberTableX_X1,
                     Array4<int>     NodeNumberTableX_X2,
                     Array4<int>     NodeNumberTableX_X3,
@@ -517,7 +513,6 @@ public:
                     int             nDOFX_X3,
                     int             nFields,
                     int             iGF_SqrtGm,
-                    Array4<int>     NodeNumberTableX,
                     Array4<int>     NodeNumberTableX_X1,
                     Array4<int>     NodeNumberTableX_X2,
                     Array4<int>     NodeNumberTableX_X3,

@@ -106,7 +106,6 @@ extern "C"
         int             nDOFX_X3,
         int             nFields,
         int             iGF_SqrtGm,
-        void          * vpNodeNumberTableX,
         void          * vpNodeNumberTableX_X1,
         void          * vpNodeNumberTableX_X2,
         void          * vpNodeNumberTableX_X3,
@@ -118,11 +117,6 @@ extern "C"
         void          * vpLX_X3_Up,
         void          * vpLX_X3_Dn )
     {
-
-        auto *pNodeNumberTableX
-               = reinterpret_cast<int*>(vpNodeNumberTableX);
-        Array4<int> NodeNumberTableX
-                      ( pNodeNumberTableX, {0,0,0}, {3,nDOFX,1}, 1 );
 
         auto *pNodeNumberTableX_X1
                = reinterpret_cast<int*>(vpNodeNumberTableX_X1);
@@ -177,7 +171,6 @@ extern "C"
         FluxReg->Reflux_DG( *MF_G, *MF_dU, *geom,
                             nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3,
                             nFields, iGF_SqrtGm,
-                            NodeNumberTableX,
                             NodeNumberTableX_X1,
                             NodeNumberTableX_X2,
                             NodeNumberTableX_X3,

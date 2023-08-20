@@ -410,8 +410,6 @@ fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
 * nFields is the number of fields in the grid based objects.
 * iGF_SqrtGm is index of G corresponding the the square root of the spatial
 *   three-metric determinant.
-* NodeNumberTableX is the table that maps degrees of freedom within an
-*   element to degrees of freedom in a particular dimension.
 * NodeNumberTableX_X1 is the table that maps degrees of freedom within an
 *   element to degrees of freedom on the X1 interface.
 * NodeNumberTableX_X2 is the table that maps degrees of freedom within an
@@ -446,7 +444,6 @@ fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
 * \param nDOFX_X3
 * \param nFields
 * \param iGF_SqrtGm
-* \param NodeNumberTableX
 * \param NodeNumberTableX_X1
 * \param NodeNumberTableX_X2
 * \param NodeNumberTableX_X3
@@ -474,7 +471,6 @@ fluxreg_reflux_dg
     int                       nDOFX_X3,
     int                       nFields,
     int                       iGF_SqrtGm,
-    Array4<int>               NodeNumberTableX,
     Array4<int>               NodeNumberTableX_X1,
     Array4<int>               NodeNumberTableX_X2,
     Array4<int>               NodeNumberTableX_X3,
@@ -495,9 +491,7 @@ fluxreg_reflux_dg
 
     const int iDimX = face.coordDir();
 
-    int iNX1, iNX_X1;
-    int iNX2, iNX_X2;
-    int iNX3, iNX_X3;
+    int iNX_X1, iNX_X2, iNX_X3;
 
     /* face.isLow(): face is on lower side of fine patch */
 
@@ -512,14 +506,13 @@ fluxreg_reflux_dg
                 for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
                     for( int iNX = 0; iNX < nDOFX; iNX++ )
                     {
-                        iNX1   = NodeNumberTableX   (iDimX,iNX,0,0);
-                        iNX_X1 = NodeNumberTableX_X1(iNX  ,0  ,0,0);
+                        iNX_X1 = NodeNumberTableX_X1(iNX,0,0,0);
                         for( int iField = 0; iField < nFields; iField++ )
                         {
                             dU(iCrse,jCrse,kCrse,iNX+iField*nDOFX)
                               += -dF(iCrse+1,jCrse,kCrse,
                                      iNX_X1+iField*nDOFX_X1)
-                                   * LX_X1_Up(iNX1,iNX,0,0)
+                                   * LX_X1_Up(iNX_X1,iNX,0,0)
                                    / ( WeightsX_q(iNX,0,0,0)
                                          * G(iCrse,jCrse,kCrse,
                                              (iGF_SqrtGm-1)*nDOFX+iNX)
@@ -536,14 +529,13 @@ fluxreg_reflux_dg
                 for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
                     for( int iNX = 0; iNX < nDOFX; iNX++ )
                     {
-                        iNX2   = NodeNumberTableX   (iDimX,iNX,0,0);
-                        iNX_X2 = NodeNumberTableX_X2(iNX  ,0  ,0,0);
+                        iNX_X2 = NodeNumberTableX_X2(iNX,0,0,0);
                         for( int iField = 0; iField < nFields; iField++ )
                         {
                             dU(iCrse,jCrse,kCrse,iNX+iField*nDOFX)
                               += -dF(iCrse,jCrse+1,kCrse,
                                      iNX_X2+iField*nDOFX_X2)
-                                   * LX_X2_Up(iNX2,iNX,0,0)
+                                   * LX_X2_Up(iNX_X2,iNX,0,0)
                                    / ( WeightsX_q(iNX,0,0,0)
                                          * G(iCrse,jCrse,kCrse,
                                              (iGF_SqrtGm-1)*nDOFX+iNX)
@@ -560,14 +552,13 @@ fluxreg_reflux_dg
                 for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
                     for( int iNX = 0; iNX < nDOFX; iNX++ )
                     {
-                        iNX3   = NodeNumberTableX   (iDimX,iNX,0,0);
-                        iNX_X3 = NodeNumberTableX_X3(iNX  ,0  ,0,0);
+                        iNX_X3 = NodeNumberTableX_X3(iNX,0,0,0);
                         for( int iField = 0; iField < nFields; iField++ )
                         {
                             dU(iCrse,jCrse,kCrse,iNX+iField*nDOFX)
                               += -dF(iCrse,jCrse,kCrse+1,
                                      iNX_X3+iField*nDOFX_X3)
-                                   * LX_X3_Up(iNX3,iNX,0,0)
+                                   * LX_X3_Up(iNX_X3,iNX,0,0)
                                    / ( WeightsX_q(iNX,0,0,0)
                                          * G(iCrse,jCrse,kCrse,
                                              (iGF_SqrtGm-1)*nDOFX+iNX)
@@ -590,14 +581,13 @@ fluxreg_reflux_dg
                 for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
                     for( int iNX = 0; iNX < nDOFX; iNX++ )
                     {
-                        iNX1   = NodeNumberTableX   (iDimX,iNX,0,0);
-                        iNX_X1 = NodeNumberTableX_X1(iNX  ,0  ,0,0);
+                        iNX_X1 = NodeNumberTableX_X1(iNX,0,0,0);
                         for( int iField = 0; iField < nFields; iField++ )
                         {
                             dU(iCrse,jCrse,kCrse,iNX+iField*nDOFX)
                               += dF(iCrse,jCrse,kCrse,
                                     iNX_X1+iField*nDOFX_X1)
-                                   * LX_X1_Dn(iNX1,iNX,0,0)
+                                   * LX_X1_Dn(iNX_X1,iNX,0,0)
                                    / ( WeightsX_q(iNX,0,0,0)
                                          * G(iCrse,jCrse,kCrse,
                                              (iGF_SqrtGm-1)*nDOFX+iNX)
@@ -614,14 +604,13 @@ fluxreg_reflux_dg
                 for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
                     for( int iNX = 0; iNX < nDOFX; iNX++ )
                     {
-                        iNX2   = NodeNumberTableX   (iDimX,iNX,0,0);
-                        iNX_X2 = NodeNumberTableX_X2(iNX  ,0  ,0,0);
+                        iNX_X2 = NodeNumberTableX_X2(iNX,0,0,0);
                         for( int iField = 0; iField < nFields; iField++ )
                         {
                             dU(iCrse,jCrse,kCrse,iNX+iField*nDOFX)
                               += dF(iCrse,jCrse,kCrse,
                                      iNX_X2+iField*nDOFX_X2)
-                                   * LX_X2_Dn(iNX2,iNX,0,0)
+                                   * LX_X2_Dn(iNX_X2,iNX,0,0)
                                    / ( WeightsX_q(iNX,0,0,0)
                                          * G(iCrse,jCrse,kCrse,
                                              (iGF_SqrtGm-1)*nDOFX+iNX)
@@ -638,14 +627,13 @@ fluxreg_reflux_dg
                 for( int iCrse = CrseLo.x; iCrse <= CrseHi.x; ++iCrse ) {
                     for( int iNX = 0; iNX < nDOFX; iNX++ )
                     {
-                        iNX3   = NodeNumberTableX   (iDimX,iNX,0,0);
-                        iNX_X3 = NodeNumberTableX_X3(iNX  ,0  ,0,0);
+                        iNX_X3 = NodeNumberTableX_X3(iNX,0,0,0);
                         for( int iField = 0; iField < nFields; iField++ )
                         {
                             dU(iCrse,jCrse,kCrse,iNX+iField*nDOFX)
                               += dF(iCrse,jCrse,kCrse,
                                      iNX_X3+iField*nDOFX_X3)
-                                   * LX_X3_Dn(iNX3,iNX,0,0)
+                                   * LX_X3_Dn(iNX_X3,iNX,0,0)
                                    / ( WeightsX_q(iNX,0,0,0)
                                          * G(iCrse,jCrse,kCrse,
                                              (iGF_SqrtGm-1)*nDOFX+iNX)

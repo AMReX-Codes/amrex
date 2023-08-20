@@ -120,16 +120,16 @@ module amrex_fluxregister_module
        ( FluxRegister, MF_G, MF_dU, geom, &
          nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, &
          nFields, iGF_SqrtGm, &
-         NodeNumberTableX   , NodeNumberTableX_X1, &
-         NodeNumberTableX_X2, NodeNumberTableX_X3, WeightsX_q, &
+         NodeNumberTableX_X1, NodeNumberTableX_X2, NodeNumberTableX_X3, &
+         WeightsX_q, &
          LX_X1_Up, LX_X1_Dn, &
          LX_X2_Up, LX_X2_Dn, &
          LX_X3_Up, LX_X3_Dn ) bind(c)
        import
        implicit none
        type(c_ptr)     , value :: FluxRegister, MF_G, MF_dU, geom, &
-                                  NodeNumberTableX   , NodeNumberTableX_X1, &
-                                  NodeNumberTableX_X2, NodeNumberTableX_X3, &
+                                  NodeNumberTableX_X1, NodeNumberTableX_X2, &
+                                  NodeNumberTableX_X3, &
                                   WeightsX_q, &
                                   LX_X1_Up, LX_X1_Dn, &
                                   LX_X2_Up, LX_X2_Dn, &
@@ -287,7 +287,6 @@ contains
     ( this, MF_G, MF_dU, &
       nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, &
       nFields, iGF_SqrtGm, &
-      pNodeNumberTableX, &
       pNodeNumberTableX_X1, pNodeNumberTableX_X2, pNodeNumberTableX_X3, &
       pWeightsX_q, &
       pLX_X1_Up, pLX_X1_Dn, pLX_X2_Up, pLX_X2_Dn, pLX_X3_Up, pLX_X3_Dn )
@@ -298,14 +297,13 @@ contains
     integer                  , intent(in)    :: &
       nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, nFields, iGF_SqrtGm
     type(c_ptr), intent(in) :: &
-      pNodeNumberTableX, pNodeNumberTableX_X1, &
-      pNodeNumberTableX_X2, pNodeNumberTableX_X3, pWeightsX_q, &
+      pNodeNumberTableX_X1, pNodeNumberTableX_X2, pNodeNumberTableX_X3, &
+      pWeightsX_q, &
       pLX_X1_Up, pLX_X1_Dn, pLX_X2_Up, pLX_X2_Dn, pLX_X3_Up, pLX_X3_Dn
 
     call amrex_fi_fluxregister_reflux_dg &
            ( this%p, MF_G%p, MF_dU%p, amrex_geom(this%flev-1)%p, &
              nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, nFields, iGF_SqrtGm, &
-             pNodeNumberTableX, &
              pNodeNumberTableX_X1, pNodeNumberTableX_X2, pNodeNumberTableX_X3, &
              pWeightsX_q, &
              pLX_X1_Up, pLX_X1_Dn, pLX_X2_Up, pLX_X2_Dn, pLX_X3_Up, pLX_X3_Dn )
