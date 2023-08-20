@@ -7,7 +7,6 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IArrayBox.H>
 #include <cmath>
-#include <AMReX_DG.H>
 
 namespace amrex {
 
@@ -254,10 +253,14 @@ void amrex_avgdown_dg
        ( int iCrse, int, int, int nComp,
          Array4<Real> const& crse,
          Array4<Real const> const& fine,
-         IntVect const& ratio ) noexcept
+         IntVect const& ratio,
+         int nDOFX,
+         Real VolumeRatio,
+         Array4<Real> ProjectionMatrix_T,
+         Array4<Real> WeightsX_q ) noexcept
 {
   // Number of fields in MultiFab
-  int nFields = nComp / amrex::DG::nDOFX;
+  int nFields = nComp / nDOFX;
 
   int iRefRatio = ratio[0];
 
@@ -271,10 +274,10 @@ void amrex_avgdown_dg
   for( int iField = 0; iField < nFields; iField++ )
   {
     // Loop over DOF of coarse element
-    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
+    for( int iNX = 0; iNX < nDOFX; iNX++ )
     {
       // Initialize coarse data to zero
-      crse(iCrse,0,0,amrex::DG::nDOFX*iField+iNX) = amrex::DG::Zero;
+      crse(iCrse,0,0,nDOFX*iField+iNX) = (Real)0.0;
 
       iProj = -1;
 
@@ -284,16 +287,16 @@ void amrex_avgdown_dg
         iProj += 1;
 
         // Project fine data onto coarse data
-        for( int jNX = 0; jNX < amrex::DG::nDOFX; jNX++ )
+        for( int jNX = 0; jNX < nDOFX; jNX++ )
         {
-          crse(iCrse,0,0,amrex::DG::nDOFX*iField+iNX)
-            += amrex::DG::ProjectionMatrix_T[iProj][iNX][jNX]
-                 * fine(iFine+iFn,0,0,amrex::DG::nDOFX*iField+jNX);
+          crse(iCrse,0,0,nDOFX*iField+iNX)
+            += ProjectionMatrix_T(iProj,iNX,jNX,0)
+                 * fine(iFine+iFn,0,0,nDOFX*iField+jNX);
         } // jNX
-      } // Fine cell
+      } // iFn
 
-      crse(iCrse,0,0,amrex::DG::nDOFX*iField+iNX)
-        *= amrex::DG::VolumeRatio / amrex::DG::WeightsX_q[iNX];
+      crse(iCrse,0,0,nDOFX*iField+iNX)
+        *= VolumeRatio / WeightsX_q(iNX,0,0,0);
 
     } // iNX
   } // iField

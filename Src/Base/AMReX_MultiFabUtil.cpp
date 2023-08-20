@@ -396,16 +396,22 @@ namespace amrex
     void average_down_dg
            ( const MultiFab& S_fine, MultiFab& S_crse,
              const Geometry& fgeom, const Geometry& cgeom,
-             int scomp, int ncomp, int rr )
+             int scomp, int ncomp, int rr,
+             int nDOFX, Real VolumeRatio, Array4<Real> ProjectionMatrix_T,
+             Array4<Real> WeightsX_q )
     {
          average_down_dg
-           (S_fine,S_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector());
+           ( S_fine, S_crse, fgeom, cgeom, scomp, ncomp,
+             rr*IntVect::TheUnitVector(),
+             nDOFX, VolumeRatio, ProjectionMatrix_T, WeightsX_q );
     }
 
     void average_down_dg
            ( const MultiFab& S_fine, MultiFab& S_crse,
              const Geometry& fgeom, const Geometry& cgeom,
-             int scomp, int ncomp, const IntVect& ratio)
+             int scomp, int ncomp, const IntVect& ratio,
+             int nDOFX, Real VolumeRatio, Array4<Real> ProjectionMatrix_T,
+             Array4<Real> WeightsX_q )
     {
         amrex::ignore_unused(fgeom,cgeom);
 
@@ -441,7 +447,9 @@ namespace amrex
             ParallelFor(crse_S_fine, IntVect(0), ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
-                amrex_avgdown_dg(i,j,k,n,crsema[box_no],finema[box_no],ratio);
+                amrex_avgdown_dg
+                  ( i, j, k, n, crsema[box_no], finema[box_no], ratio,
+                    nDOFX, VolumeRatio, ProjectionMatrix_T, WeightsX_q );
             });
             Gpu::streamSynchronize();
         } else
@@ -458,7 +466,9 @@ namespace amrex
                 Array4<Real const> const& finearr = S_fine.const_array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                 {
-                    amrex_avgdown_dg(i,j,k,ncomp,crsearr,finearr,ratio);
+                    amrex_avgdown_dg
+                      ( i, j, k, ncomp, crsearr, finearr, ratio,
+                        nDOFX, VolumeRatio, ProjectionMatrix_T, WeightsX_q );
                 });
             }
         }
