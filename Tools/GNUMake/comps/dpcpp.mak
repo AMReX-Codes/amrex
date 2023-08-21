@@ -32,10 +32,10 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -gline-tables-only -fdebug-info-for-profiling -O2 # // xxxx SYCL: todo -g in beta6 causes a lot of warning messages
-  CFLAGS   += -gline-tables-only -fdebug-info-for-profiling -O2 #                       and makes linking much slower
-  FFLAGS   += -g -O2
-  F90FLAGS += -g -O2
+  CXXFLAGS += -gline-tables-only -fdebug-info-for-profiling -O3 # // xxxx SYCL: todo -g in beta6 causes a lot of warning messages
+  CFLAGS   += -gline-tables-only -fdebug-info-for-profiling -O3 #                       and makes linking much slower
+  FFLAGS   += -g -O3
+  F90FLAGS += -g -O3
 
 endif
 
