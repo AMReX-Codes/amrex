@@ -217,7 +217,7 @@ variables to configure the build
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | SYCL_SUB_GROUP_SIZE          | Specify subgroup size                           | 32          | 64, 32, 16      |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | SYCL_MAX_PARALLEL_LINK_JOBS  | Number of parallel AOT device compilations      | 1           | 1, 2, 3, etc.   |
+   | SYCL_MAX_PARALLEL_LINK_JOBS  | Number of parallel jobs in device link          | 1           | 1, 2, 3, etc.   |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
