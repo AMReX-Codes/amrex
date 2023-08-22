@@ -899,8 +899,8 @@ struct AssignGridFilter
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int src_i) const noexcept
     {
-        const auto tup_min = (m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow);
-        const auto tup_max = (m_assign_grid)(src.m_aos[src_i], m_lev_max, m_lev_max, m_nGrow);
+        const auto tup_min = (m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow, DefaultAssignor{});
+        const auto tup_max = (m_assign_grid)(src.m_aos[src_i], m_lev_max, m_lev_max, m_nGrow, DefaultAssignor{});
         const auto p_boxes = amrex::get<0>(tup_min);
         const auto p_boxes_max = amrex::get<0>(tup_max);
         const auto p_levs_max  = amrex::get<1>(tup_max);
