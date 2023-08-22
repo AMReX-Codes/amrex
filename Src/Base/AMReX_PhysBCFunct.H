@@ -90,6 +90,15 @@ protected:
     F m_user_f;
 };
 
+struct FabFillNoOp
+{
+    AMREX_GPU_DEVICE
+    void operator() (const amrex::IntVect&, amrex::Array4<amrex::Real> const&,
+                     int, int, amrex::GeometryData const&, amrex::Real,
+                     const amrex::BCRec*, int, int) const
+    {}
+};
+
 //! This cpu version calls function working on FArrayBox
 class CpuBndryFuncFab
 {

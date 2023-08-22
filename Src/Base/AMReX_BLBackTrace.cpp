@@ -239,10 +239,12 @@ BLBackTrace::print_backtrace_info (FILE* f)
             std::fprintf(f, "%2d: %s\n", i, strings[i]);
 
 #if !defined(AMREX_USE_OMP) || !defined(__INTEL_COMPILER)
+            const bool stack_ptr_not_null = (bt_buffer[i] != nullptr);
+
             std::string addr2line_result;
             bool try_addr2line = false;
             if (amrex::system::call_addr2line && have_eu_addr2line) {
-                if (bt_buffer[i] != nullptr) {
+                if (stack_ptr_not_null) {
                     char print_buff[32];
                     std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
                     const std::string full_cmd = eu_cmd + " " + print_buff;
@@ -255,7 +257,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
                 try_addr2line = true;
             }
             if (try_addr2line && amrex::system::call_addr2line && have_addr2line &&
-                !amrex::system::exename.empty())
+                !amrex::system::exename.empty() && stack_ptr_not_null)
             {
                 addr2line_result.clear();
                 const std::string line = strings[i];
@@ -307,10 +309,11 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
     for (int i = 0; i < nentries; ++i) {
         Dl_info info;
+        const bool stack_ptr_not_null = (bt_buffer[i] != nullptr);
         if (dladdr(bt_buffer[i], &info))
         {
             std::string line;
-            if (amrex::system::call_addr2line && have_atos) {
+            if (amrex::system::call_addr2line && have_atos && stack_ptr_not_null) {
                 char print_buff[32];
                 std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
                 const std::string full_cmd = cmd + " " + print_buff;

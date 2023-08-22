@@ -7,7 +7,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Build libamrex and all tests with CUDA 11.0.2 (recent supported)
+  # Build libamrex and all tests with CUDA 11.2
   tests-cuda11:
     name: CUDA@11.2 GNU@9.3.0 C++17 Release [tests]
     runs-on: ubuntu-20.04
@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc11.sh
+        .github/workflows/dependencies/dependencies_nvcc.sh 11.2
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
@@ -74,7 +74,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_llvm_cuda11_ubuntu22.sh
+        .github/workflows/dependencies/dependencies_llvm_cuda11_clang15.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
@@ -177,7 +177,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc11.sh
+        .github/workflows/dependencies/dependencies_nvcc.sh 11.2
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3

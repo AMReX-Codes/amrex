@@ -86,13 +86,12 @@ public:
                                                         amrex_asyncarray_delete, p));
 #endif
 #elif defined(AMREX_USE_SYCL)
-#ifdef AMREX_USE_CODEPLAY_HOST_TASK
                 auto* pd = d_data;
                 auto* ph = h_data;
                 auto& q = *(Gpu::gpuStream().queue);
                 try {
                     q.submit([&] (sycl::handler& h) {
-                        h.codeplay_host_task([=] () {
+                        h.host_task([=] () {
                             The_Arena()->free(pd);
                             The_Pinned_Arena()->free(ph);
                         });
@@ -100,12 +99,6 @@ public:
                 } catch (sycl::exception const& ex) {
                     amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
                 }
-#else
-                // xxxxx SYCL todo
-                Gpu::streamSynchronize();
-                The_Arena()->free(d_data);
-                The_Pinned_Arena()->free(h_data);
-#endif
 #endif
             }
         }

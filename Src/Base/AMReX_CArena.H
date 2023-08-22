@@ -48,6 +48,18 @@ public:
     [[nodiscard]] void* alloc (std::size_t nbytes) final;
 
     /**
+     * Try to allocate in-place by extending the capacity of given pointer.
+     */
+    [[nodiscard]] std::pair<void*,std::size_t>
+    alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax) final;
+
+    /**
+     * Try to shrink in-place
+     */
+    [[nodiscard]] void*
+    shrink_in_place (void* pt, std::size_t sz) final;
+
+    /**
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
     * into largest possible chunk.
     */
@@ -86,6 +98,8 @@ public:
     constexpr static std::size_t DefaultHunkSize = 1024*1024*8;
 
 protected:
+
+    void* alloc_protected (std::size_t nbytes);
 
     std::size_t freeUnused_protected () final;
 
@@ -129,6 +143,9 @@ protected:
 
         //! Get the MemStat object of the function where this block was allocated.
         [[nodiscard]] MemStat* mem_stat () const { return m_stat; }
+
+        //! Set MemStat
+        void mem_stat (MemStat* a_stat) noexcept { m_stat = a_stat; }
 
         struct hash {
             std::size_t operator() (const Node& n) const noexcept {

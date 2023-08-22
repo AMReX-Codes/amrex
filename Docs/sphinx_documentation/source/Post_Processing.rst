@@ -316,3 +316,22 @@ Typing ``./faverage.gnu.ex`` without inputs will bring up usage and options.
 
 will compute the average density as a function of height, outputting a data file
 ``plt0000000.slice``.
+
+fgradient
+---------
+
+Compute the gradient of variables in a plotfile.
+
+**How to build and run**
+
+In ``amrex/Tools/Plotfile``, type ``make programs=fgradient`` and then ``./fgradient.gnu.ex`` to run.
+Typing ``./fgradient.gnu.ex`` without inputs will bring up usage and options.
+
+**Example**
+
+.. code-block:: console
+
+    user@:~/AMReX/amrex/Tools/Plotfile$ ./fgradient.gnu.ex -v density plt0000000
+
+will compute the gradient of density as a function of height, outputting a
+new plotfile ``grad.plt0000000``.
