@@ -2,7 +2,7 @@ name: CleanUpCache
 
 on:
   workflow_run:
-    workflows: [LinuxClang, cuda, LinuxGcc, hip, Hypre, intel, macos, PETSc, SUNDIALS, windows]
+    workflows: [LinuxClang, cuda, LinuxGcc, hip, Hypre, intel, macos, PETSc, SUNDIALS, windows, CodeQL, smoke, apps]
     types:
       - completed
 
@@ -23,18 +23,18 @@ jobs:
 
           REPO=${{ github.repository }}
 
-          # push or pull_request
+          # push or pull_request or schedule or ...
           EVENT=${{ github.event.workflow_run.event }}
 
           # Triggering workflow run name (e.g., LinuxClang)
           WORKFLOW_NAME=${{ github.event.workflow_run.name }}
 
-          if [[ $EVENT == "push" ]]; then
-            BRANCH=refs/heads/${{ github.event.workflow_run.head_branch }}
-          else
+          if [[ $EVENT == "pull_request" ]]; then
             gh run download ${{ github.event.workflow_run.id }} -n pr_number
             pr_number=`cat pr_number.txt`
             BRANCH=refs/pull/${pr_number}/merge
+          else
+            BRANCH=refs/heads/${{ github.event.workflow_run.head_branch }}
           fi
 
           # Setting this to not fail the workflow while deleting cache keys.

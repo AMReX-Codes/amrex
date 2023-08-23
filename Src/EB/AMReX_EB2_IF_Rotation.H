@@ -25,7 +25,7 @@ public:
 
 // Note that angle is measured in radians
 #if (AMREX_SPACEDIM==2)
-    inline Real operator() (const RealArray& p) const noexcept
+    [[nodiscard]] inline Real operator() (const RealArray& p) const noexcept
     {
         Real x =  p[0]*m_cos_angle + p[1]*m_sin_angle;
         Real y = -p[0]*m_sin_angle + p[1]*m_cos_angle;
@@ -33,7 +33,7 @@ public:
     }
 
     template <class U=F, typename std::enable_if<IsGPUable<U>::value,int>::type = 0>
-    AMREX_GPU_HOST_DEVICE inline
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real operator() (Real x, Real y) const noexcept
     {
         return m_f( x*m_cos_angle + y*m_sin_angle,
@@ -42,7 +42,7 @@ public:
 #endif
 
 #if (AMREX_SPACEDIM==3)
-    inline Real operator() (const RealArray& p) const noexcept
+    [[nodiscard]] inline Real operator() (const RealArray& p) const noexcept
     {
         switch(m_dir) {
         case(0):
@@ -67,7 +67,7 @@ public:
     }
 
     template <class U=F, typename std::enable_if<IsGPUable<U>::value,int>::type = 0>
-    AMREX_GPU_HOST_DEVICE inline
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real operator() (Real x, Real y, Real z) const noexcept
     {
         switch(m_dir) {

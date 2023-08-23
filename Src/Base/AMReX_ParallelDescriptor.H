@@ -57,18 +57,14 @@ namespace ParallelDescriptor
     {
     public:
 
-        Message () :
-            m_finished(true),
-            m_type(MPI_DATATYPE_NULL),
-            m_req(MPI_REQUEST_NULL) {}
+        Message () = default;
         Message (MPI_Request req_, MPI_Datatype type_) :
             m_finished(false),
             m_type(type_),
             m_req(req_) {}
         Message (MPI_Status stat_, MPI_Datatype type_) :
-            m_finished(true),
             m_type(type_),
-            m_req(MPI_REQUEST_NULL), m_stat(stat_) {}
+            m_stat(stat_) {}
         void wait ();
         bool test ();
         size_t count () const;
@@ -80,10 +76,10 @@ namespace ParallelDescriptor
 
     private:
 
-        bool               m_finished; // NOLINT(modernize-use-default-member-init)
-        MPI_Datatype       m_type;
-        MPI_Request        m_req;
-        mutable MPI_Status m_stat;
+        bool               m_finished = true;
+        MPI_Datatype       m_type = MPI_DATATYPE_NULL;
+        MPI_Request        m_req  = MPI_REQUEST_NULL;
+        mutable MPI_Status m_stat{};
     };
 
 #ifdef BL_USE_MPI
@@ -146,7 +142,7 @@ while ( false )
     //! Provide functionalities needed to construct a team of processes to perform a particular job
     struct ProcessTeam
     {
-        typedef MPI_Comm team_t;
+        using team_t = MPI_Comm;
 
         //! synchronize processes within the team
         void Barrier () const {
@@ -181,7 +177,7 @@ while ( false )
 #if defined(BL_USE_MPI3)
             if (m_size > 1) {
                 MPI_Comm_free(&m_team_comm);
-                if (m_rankInTeam==0) MPI_Comm_free(&m_lead_comm);
+                if (m_rankInTeam==0) { MPI_Comm_free(&m_lead_comm); }
             }
 #endif
         }
@@ -214,9 +210,28 @@ while ( false )
     inline MPI_Comm Communicator () noexcept { return m_comm; }
 
     extern AMREX_EXPORT int m_nprocs_per_node;
-    //! Return the number of MPI ranks per node.  This may not be correct if
-    //! MPI_COMM_TYPE_SHARED groups processes across nodes.
+    //! Return the number of MPI ranks per node as defined by
+    //! MPI_COMM_TYPE_SHARED. This might be the same or different from
+    //! NProcsPerProcessor based on MPI_Get_processor_name.
     inline int NProcsPerNode () noexcept { return m_nprocs_per_node; }
+
+    extern AMREX_EXPORT int m_rank_in_node;
+    //! Return the rank in a node defined by MPI_COMM_TYPE_SHARED. This
+    //! might be the same or different from MyRankInProcessor based on
+    //! MPI_Get_processor_name.
+    inline int MyRankInNode () noexcept { return m_rank_in_node; }
+
+    extern AMREX_EXPORT int m_nprocs_per_processor;
+    //! Return the number of MPI ranks per node as defined by
+    //! MPI_Get_processor_name. This might be the same or different from
+    //! NProcsPerNode based on MPI_COMM_TYPE_SHARED.
+    inline int NProcsPerProcessor () noexcept { return m_nprocs_per_processor; }
+
+    extern AMREX_EXPORT int m_rank_in_processor;
+    //! Return the rank in a node defined by MPI_Get_processor_name. This
+    //! might be the same or different from MyRankInNode based on
+    //! MPI_COMM_TYPE_SHARED.
+    inline int MyRankInProcessor () noexcept { return m_rank_in_processor; }
 
 #ifdef AMREX_USE_MPI
     extern Vector<MPI_Datatype*> m_mpi_types;
@@ -340,8 +355,8 @@ while ( false )
     {
         int rb, re;
         {
-            if (rit < 0) rit = ParallelDescriptor::MyRankInTeam();
-            if (nworkers == 0) nworkers = ParallelDescriptor::TeamSize();
+            if (rit < 0) { rit = ParallelDescriptor::MyRankInTeam(); }
+            if (nworkers == 0) { nworkers = ParallelDescriptor::TeamSize(); }
             BL_ASSERT(rit<nworkers);
             if (nworkers == 1) {
                 rb = begin;
@@ -883,8 +898,7 @@ ParallelDescriptor::Bcast (T*     t,
 #ifdef BL_LAZY
     int r;
     MPI_Comm_compare(comm, Communicator(), &r);
-    if (r == MPI_IDENT)
-        Lazy::EvalReduction();
+    if (r == MPI_IDENT) { Lazy::EvalReduction(); }
 #endif
 
     BL_ASSERT(n < static_cast<size_t>(std::numeric_limits<int>::max()));
@@ -933,7 +947,7 @@ ParallelDescriptor::Gather (const T& t, int root)
     BL_COMM_PROFILE(BLProfiler::GatherTi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     std::vector<T> resl;
-    if ( root == MyProc() ) resl.resize(NProcs());
+    if ( root == MyProc() ) { resl.resize(NProcs()); }
     BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(&t),
                                1,
                                Mpi_typemap<T>::type(),
@@ -956,7 +970,7 @@ ParallelDescriptor::Gatherv (const T* send, int sc,
     BL_COMM_PROFILE(BLProfiler::Gatherv,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     MPI_Gatherv(send, sc, ParallelDescriptor::Mpi_typemap<T>::type(),
-                recv, &rc[0], &disp[0], ParallelDescriptor::Mpi_typemap<T>::type(),
+                recv, rc.data(), disp.data(), ParallelDescriptor::Mpi_typemap<T>::type(),
                 root, Communicator());
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, std::accumulate(rc.begin(),rc.end(),0)*sizeof(T), root, BLProfiler::NoTag());
@@ -1013,7 +1027,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     }
 
     Vector<int> disp(nprocs);
-    if (!disp.empty()) disp[0] = 0;
+    if (!disp.empty()) { disp[0] = 0; }
     std::partial_sum(recvcount.begin(), recvcount.end()-1, disp.begin()+1);
     Vector<T> new_index_to_T(sendbuf.size());
 

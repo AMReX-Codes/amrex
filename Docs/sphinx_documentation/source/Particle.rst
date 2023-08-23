@@ -88,25 +88,26 @@ tracked as the particle positions change. To do this, we provide the
 
       ParticleContainer<3, 2, 4, 4> mypc;
 
-Arrays-of-Structs and Structs-of-Arrays
----------------------------------------
-
 Like the :cpp:`Particle` class itself, the :cpp:`ParticleContainer`
 class is templated. The first two template parameters have the same meaning as
 before: they define the number of each type of variables that the particles in
 this container will store. Particles added to the container are stored in the
-Array-of-Structs (AoS) style. In addition, there are two more optional template
+Array-of-Structs style. In addition, there are two more optional template
 parameters that allow the user to specify additional particle variables that
-will be stored in Struct-of-Array (SoA) form. The difference between
-Array-of-Struct and Struct-of-Array data is in how the data is laid out in
-memory. For the AoS data, all the variables associated with particle 1 are next
-to each other in memory, followed by all the variables associated with particle
-2, and so on. For variables stored in SoA style, all the particle data for a
-given component is next to each other in memory, and each component is stored
-in a separate array. For convenience, we (arbitrarily) refer to the components
-in the particle struct as particle *data*, and components stored in the
-Struct-of-Arrays as particle *attributes*. See the figure
-:ref:`below<fig:particles:particle_arrays>` for an illustration.
+will be stored in Struct-of-Arrays form.
+
+Arrays-of-Structs and Structs-of-Arrays
+---------------------------------------
+
+The difference between Array-of-Structs (AoS) and Struct-of-Arrays (SoA) data
+is in how the data is laid out in memory. For the AoS data, all the variables
+associated with particle 1 are next to each other in memory, followed by all
+the variables associated with particle 2, and so on. For variables stored in
+SoA style, all the particle data for a given component is next to each other in
+memory, and each component is stored in a separate array. For convenience, we
+(arbitrarily) refer to the components in the particle struct as particle
+*data*, and components stored in the Struct-of-Arrays as particle *attributes*.
+See the figure :ref:`below<fig:particles:particle_arrays>` for an illustration.
 
 .. raw:: latex
 

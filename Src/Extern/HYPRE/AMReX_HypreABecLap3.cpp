@@ -115,7 +115,7 @@ HypreABecLap3::prepareSolver ()
 
 #ifdef AMREX_USE_EB
 
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
+    auto const* ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_overset_mask == nullptr || ebfactory == nullptr,
                                      "Cannot have both EB and overset");
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
@@ -124,8 +124,8 @@ HypreABecLap3::prepareSolver ()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (ebfactory) ? ebfactory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    auto barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr;
-    auto bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr;
+    auto const* barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr;
+    auto const* bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr;
 
     if (ebfactory)
     {
@@ -188,8 +188,8 @@ HypreABecLap3::prepareSolver ()
                 else
                 {
                     Long npts = bx.numPts();
-                    ncells_grid[mfi] = npts;
-                    ncells_proc += npts;
+                    ncells_grid[mfi] = static_cast<int>(npts);
+                    ncells_proc += static_cast<HYPRE_Int>(npts);
 
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D(gbx, i, j, k,
                     {
@@ -208,8 +208,8 @@ HypreABecLap3::prepareSolver ()
     {
         for (MFIter mfi(cell_id); mfi.isValid(); ++mfi) {
             Long npts = mfi.validbox().numPts();
-            ncells_grid[mfi] = npts;
-            ncells_proc += npts;
+            ncells_grid[mfi] = static_cast<int>(npts);
+            ncells_proc += static_cast<HYPRE_Int>(npts);
         }
 
 #ifdef AMREX_USE_GPU
@@ -513,7 +513,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
     BL_PROFILE("HypreABecLap3::loadVectors()");
 
 #ifdef AMREX_USE_EB
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
+    auto const* ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
 #endif
 

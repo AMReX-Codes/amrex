@@ -216,7 +216,7 @@ Build (const Geometry& geom, int required_coarsening_level,
         pp.queryAdd("stl_center", stl_center);
         int stl_reverse_normal = 0;
         pp.queryAdd("stl_reverse_normal", stl_reverse_normal);
-        IndexSpace::push(new IndexSpaceSTL(stl_file, stl_scale,
+        IndexSpace::push(new IndexSpaceSTL(stl_file, stl_scale, // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
                                            {stl_center[0], stl_center[1], stl_center[2]},
                                            stl_reverse_normal,
                                            geom, required_coarsening_level,
@@ -240,6 +240,14 @@ void addFineLevels (int num_new_fine_levels)
     }
 }
 
+void addRegularCoarseLevels (int num_new_coarse_levels)
+{
+    auto *p = const_cast<IndexSpace*>(TopIndexSpace());
+    if (p) {
+        p->addRegularCoarseLevels(num_new_coarse_levels);
+    }
+}
+
 void
 BuildFromChkptFile (std::string const& fname,
                     const Geometry& geom, int required_coarsening_level,
@@ -247,7 +255,7 @@ BuildFromChkptFile (std::string const& fname,
                     bool a_extend_domain_face)
 {
     ChkptFile chkpt_file(fname);
-    IndexSpace::push(new IndexSpaceChkptFile(chkpt_file,
+    IndexSpace::push(new IndexSpaceChkptFile(chkpt_file, // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
                      geom, required_coarsening_level,
                      max_coarsening_level, ngrow,
                      build_coarse_level_by_coarsening,
@@ -259,10 +267,10 @@ int comp_max_crse_level (Box cdomain, const Box& domain)
 {
     int ilev;
     for (ilev = 0; ilev < 30; ++ilev) {
-        if (cdomain.contains(domain)) break;
+        if (cdomain.contains(domain)) { break; }
         cdomain.refine(2);
     }
-    if (cdomain != domain) ilev = -1;
+    if (cdomain != domain) { ilev = -1; }
     return ilev;
 }
 }

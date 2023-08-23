@@ -42,8 +42,8 @@ struct IntegratorOps<T, typename std::enable_if<std::is_base_of<amrex::ParticleC
     static void Saxpy (T& Y, const amrex::Real a, T& X)
     {
         // Calculate Y += a * X using a particle-level saxpy function supplied by the particle container T
-        typedef amrex::ParIter<T::NStructReal, T::NStructInt, T::NArrayReal, T::NArrayInt> TParIter;
-        typedef amrex::Particle<T::NStructReal, T::NStructInt> ParticleType;
+        using TParIter = amrex::ParIter<T::NStructReal, T::NStructInt, T::NArrayReal, T::NArrayInt>;
+        using ParticleType = amrex::Particle<T::NStructReal, T::NStructInt>;
 
         int lev = 0;
         TParIter pty(Y, lev);

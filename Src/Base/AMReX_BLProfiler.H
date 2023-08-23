@@ -289,7 +289,7 @@ class BLProfiler
     static int prevCallStackDepth;
 
   public:
-    typedef std::pair<Real, int> RIpair;
+    using RIpair = std::pair<Real, int>;
     struct fTTComp {
       bool operator()(const RIpair &lhs, const RIpair &rhs) const {
         return lhs.first > rhs.first;

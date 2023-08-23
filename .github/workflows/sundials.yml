@@ -10,6 +10,10 @@ jobs:
   sundials-cpu:
     name: GCC SUNDIALS@6.5.0
     runs-on: ubuntu-22.04
+    env:
+       CCACHE_COMPRESS: 1
+       CCACHE_COMPRESSLEVEL: 10
+       CCACHE_MAXSIZE: 20M
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
@@ -19,15 +23,12 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build SUNDIALS
       run: |
-        export CCACHE_COMPRESS=1
-        export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=12M
         ccache -z
 
         wget -q https://github.com/LLNL/sundials/archive/refs/tags/v6.5.0.tar.gz
@@ -47,9 +48,6 @@ jobs:
       run: |
         .github/workflows/dependencies/dependencies_clang-tidy.sh 14
         export CXXFLAGS="-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"
-        export CCACHE_COMPRESS=1
-        export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=125M
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         cmake -S . -B build             \
@@ -67,28 +65,30 @@ jobs:
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   sundials-cuda:
     name: CUDA SUNDIALS@6.5.0
     runs-on: ubuntu-22.04
+    env:
+       CCACHE_COMPRESS: 1
+       CCACHE_COMPRESSLEVEL: 10
+       CCACHE_MAXSIZE: 75M
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc12.sh
+        .github/workflows/dependencies/dependencies_nvcc.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build SUNDIALS
       run: |
-        export CCACHE_COMPRESS=1
-        export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=72M
         ccache -z
 
         # sundials requirement
@@ -120,10 +120,6 @@ jobs:
         export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         which nvcc || echo "nvcc not in PATH!"
 
-        export CCACHE_COMPRESS=1
-        export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=250M
-
         cmake -S . -B build             \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DUSE_XSDK_DEFAULTS=ON      \
@@ -136,6 +132,7 @@ jobs:
         cmake --build build -j 2
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   save_pr_number:
     if: github.event_name == 'pull_request'

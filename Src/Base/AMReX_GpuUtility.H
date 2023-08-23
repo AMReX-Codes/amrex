@@ -51,11 +51,8 @@ namespace Gpu {
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && is_managed;
 #elif defined(AMREX_USE_SYCL)
-        amrex::ignore_unused(p);
-        // xxxxx SYCL todo: get_pointer_type
-//        auto const info = sycl::get_pointer_info(p);
-//        auto type = sycl::get_pointer_type(p,Device::syclContext());
-        return false;
+        auto type = sycl::get_pointer_type(p,Device::syclContext());
+        return type == sycl::usm::alloc::shared;
 #else
         amrex::ignore_unused(p);
         return false;
@@ -74,9 +71,8 @@ namespace Gpu {
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_DEVICE;
 #elif defined(AMREX_USE_SYCL)
-        amrex::ignore_unused(p);
-        // xxxxx SYCL todo: get_pointer_type
-        return false;
+        auto type = sycl::get_pointer_type(p,Device::syclContext());
+        return type == sycl::usm::alloc::device;
 #else
         amrex::ignore_unused(p);
         return false;
@@ -95,9 +91,8 @@ namespace Gpu {
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_HOST;
 #elif defined(AMREX_USE_SYCL)
-        amrex::ignore_unused(p);
-        // xxxxx SYCL todo: get_pointer_type
-        return false;
+        auto type = sycl::get_pointer_type(p,Device::syclContext());
+        return type == sycl::usm::alloc::host;
 #else
         amrex::ignore_unused(p);
         return false;
@@ -126,9 +121,8 @@ namespace Gpu {
              mem_type == CU_MEMORYTYPE_ARRAY  ||
              mem_type == CU_MEMORYTYPE_UNIFIED);
 #elif defined(AMREX_USE_SYCL)
-        amrex::ignore_unused(p);
-        // xxxxx SYCL todo: get_pointer_type
-        return false;
+        auto type = sycl::get_pointer_type(p,Device::syclContext());
+        return type != sycl::usm::alloc::unknown;
 #else
         amrex::ignore_unused(p);
         return false;
@@ -171,8 +165,8 @@ namespace Gpu {
     class StreamIter
     {
     public:
-        StreamIter (const int n, bool is_thread_safe=true) noexcept;
-        StreamIter (const int n, const StreamItInfo& info, bool is_thread_safe=true) noexcept;
+        StreamIter (int n, bool is_thread_safe=true) noexcept;
+        StreamIter (int n, const StreamItInfo& info, bool is_thread_safe=true) noexcept;
 
         ~StreamIter ();
 
@@ -183,7 +177,7 @@ namespace Gpu {
 
         int operator() () const noexcept { return m_i; }
 
-        bool isValid () const noexcept { return m_i < m_n; }
+        [[nodiscard]] bool isValid () const noexcept { return m_i < m_n; }
 
 #if !defined(AMREX_USE_GPU)
         void operator++ () noexcept { ++m_i; }

@@ -1,5 +1,5 @@
-#ifndef _AmrLevelAdv_H_
-#define _AmrLevelAdv_H_
+#ifndef AmrLevelAdv_H_
+#define AmrLevelAdv_H_
 
 #include <AMReX_AmrLevel.H>
 #include <AMReX_FluxRegister.H>
@@ -208,7 +208,7 @@ protected:
      * See Adv.cpp for implementation.
      */
     AMREX_GPU_HOST
-    static void advect (const amrex::Real /*time*/,
+    static void advect (amrex::Real /*time*/,
                         const amrex::Box& bx,
                         amrex::GpuArray<amrex::Box,BL_SPACEDIM> nbx,
                         const amrex::FArrayBox& statein,
@@ -219,8 +219,8 @@ protected:
                         AMREX_D_DECL(amrex::FArrayBox& fx,
                                      amrex::FArrayBox& fy,
                                      amrex::FArrayBox& fz),
-                        amrex::GpuArray<amrex::Real,BL_SPACEDIM> dx,
-                        const amrex::Real dt);
+                        amrex::GpuArray<amrex::Real,BL_SPACEDIM> const& dx,
+                        amrex::Real dt);
 
     // inline functions implemented below
     AmrLevelAdv& getLevel (int lev);
@@ -258,22 +258,10 @@ protected:
  * See bc_nullfill.cpp for implementation.
  */
 void nullfill (amrex::Box const& bx, amrex::FArrayBox& data,
-               const int dcomp, const int numcomp,
-               amrex::Geometry const& geom, const amrex::Real time,
-               const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
-               const int scomp);
-
-/**
- * Problem-dependent function that computes Godunov velocities for each face.
- * See face_velocity_?D_K.H under Exec directory for implementation.
- */
-AMREX_GPU_HOST
-AMREX_FORCE_INLINE
-void get_face_velocity(const amrex::Real time,
-                       amrex::FArrayBox& vx,
-                       amrex::FArrayBox& vy,
-                       amrex::GpuArray<amrex::Real,BL_SPACEDIM> dx,
-                       amrex::GpuArray<amrex::Real,BL_SPACEDIM> prob_lo);
+               int dcomp, int numcomp,
+               amrex::Geometry const& geom, amrex::Real time,
+               const amrex::Vector<amrex::BCRec>& bcr, int bcomp,
+               int scomp);
 
 /*
  * Inlines.

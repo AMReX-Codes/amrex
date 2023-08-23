@@ -20,7 +20,7 @@ namespace amrex {
 struct amrex_KSP
 {
     amrex_KSP () = default;
-    ~amrex_KSP () { if (a) KSPDestroy(&a); }
+    ~amrex_KSP () { if (a) { KSPDestroy(&a); } }
     amrex_KSP (amrex_KSP const&) = delete;
     amrex_KSP (amrex_KSP &&) = delete;
     amrex_KSP& operator= (amrex_KSP const&) = delete;
@@ -31,7 +31,7 @@ struct amrex_KSP
 struct amrex_Mat
 {
     amrex_Mat () = default;
-    ~amrex_Mat () { if (a) MatDestroy(&a); }
+    ~amrex_Mat () { if (a) { MatDestroy(&a); } }
     amrex_Mat (amrex_Mat const&) = delete;
     amrex_Mat (amrex_Mat &&) = delete;
     amrex_Mat& operator= (amrex_Mat const&) = delete;
@@ -42,7 +42,7 @@ struct amrex_Mat
 struct amrex_Vec
 {
     amrex_Vec () = default;
-    ~amrex_Vec () { if (a) VecDestroy(&a); }
+    ~amrex_Vec () { if (a) { VecDestroy(&a); } }
     amrex_Vec (amrex_Vec const&) = delete;
     amrex_Vec (amrex_Vec &&) = delete;
     amrex_Vec& operator= (amrex_Vec const&) = delete;
@@ -237,7 +237,7 @@ PETScABecLap::prepareSolver ()
             Gpu::DeviceVector<int> dv_is_covered(hv_is_covered.size());
             Gpu::copyAsync(Gpu::hostToDevice, hv_is_covered.begin(), hv_is_covered.end(),
                            dv_is_covered.begin());
-            auto pc = dv_is_covered.data();
+            auto const* pc = dv_is_covered.data();
             auto const& cell_id_ma = cell_id.arrays();
             ParallelFor(cell_id, IntVect(1),
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
@@ -361,7 +361,7 @@ PETScABecLap::prepareSolver ()
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && cell_id.isFusingCandidate()) {
         Gpu::Buffer<PetscInt> offset_buf(offset.data(), offset.local_size());
-        auto poffset = offset_buf.data();
+        auto const* poffset = offset_buf.data();
         auto const& cell_id_ma = cell_id.arrays();
         auto const& cell_id_vec_ma = cell_id_vec.arrays();
         ParallelFor(cell_id,

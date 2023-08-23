@@ -177,7 +177,7 @@ operator>> (std::istream&            is,
     Long i(0), N;
 
     is >> N;
-    BL_ASSERT(N >= 0);
+    BL_ASSERT(N >= 0 && N < std::numeric_limits<Long>::max());
 
     fa.resize(N);
 
@@ -230,10 +230,10 @@ operator>> (std::istream&         is,
 
     is >> N >> ch >> M;
 
-    if( N < 0 ) {
+    if( N < 0 || N > std::numeric_limits<Long>::max()/2 ) {
       amrex::Error("Expected a positive integer, N, got something else");
     }
-    if( M < 0 ) {
+    if( M < 0 || M > std::numeric_limits<Long>::max()/2 ) {
       amrex::Error("Expected a positive integer, M, got something else");
     }
     if( ch != ',' ) {
@@ -385,6 +385,7 @@ operator>> (std::istream  &is,
 
     if(hd.m_vers == VisMF::Header::NoFabHeaderFAMinMax_v1) {
       char ch;
+      AMREX_ASSERT(hd.m_ncomp >= 0 && hd.m_ncomp < std::numeric_limits<int>::max());
       hd.m_famin.resize(hd.m_ncomp);
       hd.m_famax.resize(hd.m_ncomp);
       for(int i(0); i < hd.m_famin.size(); ++i) {
@@ -659,6 +660,7 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
 
     bool run_on_device = Gpu::inLaunchRegion()
         && (mf.arena()->isManaged() || mf.arena()->isDevice());
+    amrex::ignore_unused(run_on_device);
 
     if(version == NoFabHeaderFAMinMax_v1) {
       // ---- calculate FabArray min max values only
@@ -670,8 +672,12 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
       for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const int idx = mfi.index();
         for(int i(0); i < m_ncomp; ++i) {
+#ifdef AMREX_USE_GPU
             auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(m_ba[idx],i)
                                       : mf[mfi].minmax<RunOn::Host  >(m_ba[idx],i);
+#else
+            auto mm = mf[mfi].minmax<RunOn::Host>(m_ba[idx],i);
+#endif
             m_famin[i] = std::min(m_famin[i], mm.first);
             m_famax[i] = std::max(m_famax[i], mm.second);
         }
@@ -700,6 +706,7 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
 
     bool run_on_device = Gpu::inLaunchRegion()
         && (mf.arena()->isManaged() || mf.arena()->isDevice());
+    amrex::ignore_unused(run_on_device);
 
 #ifdef BL_USE_MPI
     //
@@ -714,8 +721,12 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
         for(int j(0); j < m_ncomp; ++j) {
+#ifdef AMREX_USE_GPU
             auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(m_ba[idx],j)
                                       : mf[mfi].minmax<RunOn::Host  >(m_ba[idx],j);
+#else
+            auto mm = mf[mfi].minmax<RunOn::Host>(m_ba[idx],j);
+#endif
             m_min[idx][j] = mm.first;
             m_max[idx][j] = mm.second;
         }
@@ -761,7 +772,7 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
 
     BL_ASSERT(ioffset == nmtags[ParallelDescriptor::MyProc(comm)]);
 
-    Vector<Real> recvdata(mf.size()*2*m_ncomp);
+    Vector<Real> recvdata(std::size_t(mf.size())*2*m_ncomp);
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(Real),
                     ParallelDescriptor::MyProc(comm), BLProfiler::BeforeCall());
@@ -808,8 +819,12 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
         for(int j(0); j < m_ncomp; ++j) {
+#ifdef AMREX_USE_GPU
             auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(m_ba[idx],j)
                                       : mf[mfi].minmax<RunOn::Host  >(m_ba[idx],j);
+#else
+            auto mm = mf[mfi].minmax<RunOn::Host>(m_ba[idx],j);
+#endif
             m_min[idx][j] = mm.first;
             m_max[idx][j] = mm.second;
         }
@@ -932,17 +947,22 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
         bool run_on_device = Gpu::inLaunchRegion()
             && (mf.arena()->isManaged() || mf.arena()->isDevice());
+        amrex::ignore_unused(run_on_device);
 
         for(MFIter mfi(*the_mf); mfi.isValid(); ++mfi) {
             const int idx(mfi.index());
 
             for(int j(0); j < mf.nComp(); ++j) {
-                auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(mf.box(idx),j)
-                                          : mf[mfi].minmax<RunOn::Host  >(mf.box(idx),j);
-                const Real val = (mm.first + mm.second) / 2.0_rt;
+#ifdef AMREX_USE_GPU
                 if (run_on_device) {
+                    auto mm = mf[mfi].minmax<RunOn::Device>(mf.box(idx),j);
+                    const Real val = (mm.first + mm.second) / 2.0_rt;
                     the_mf->get(mfi).setComplement<RunOn::Device>(val, mf.box(idx), j, 1);
-                } else {
+                } else
+#endif
+                {
+                    auto mm = mf[mfi].minmax<RunOn::Host>(mf.box(idx),j);
+                    const Real val = (mm.first + mm.second) / 2.0_rt;
                     the_mf->get(mfi).setComplement<RunOn::Host>(val, mf.box(idx), j, 1);
                 }
             }
@@ -1347,6 +1367,7 @@ VisMF::VisMF (std::string fafab_name)
 
     infs >> m_hdr;
 
+    AMREX_ASSERT(m_hdr.m_ncomp >= 0 && m_hdr.m_ncomp < std::numeric_limits<int>::max());
     m_pa.resize(m_hdr.m_ncomp);
 
     for(int n(0); n < m_pa.size(); ++n) {
@@ -1514,7 +1535,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     // This allows us to read in an empty MultiFab without an error -- but only if explicitly told to
     if (allow_empty_mf > 0)
     {
-        if (hdr.m_ba.empty()) return;
+        if (hdr.m_ba.empty()) { return; }
     } else {
         if (hdr.m_ba.empty())
         {
@@ -1651,7 +1672,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           frcIter = FileReadChains.find(fileName);
           BL_ASSERT(frcIter != FileReadChains.end());
           Vector<FabReadLink> &frc = frcIter->second;
-          for(NFilesIter nfi(fullFileName, readRanks); nfi.ReadyToRead(); ++nfi) {
+          for(NFilesIter nfi(std::move(fullFileName), readRanks); nfi.ReadyToRead(); ++nfi) {
 
               // ---- confirm the data is contiguous in the stream
               Long firstOffset(-1);
@@ -1679,6 +1700,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                   }
                 }
               }
+              AMREX_ASSERT(bytesToRead >= 0 && bytesToRead < std::numeric_limits<Long>::max());
               char *allFabData;
               bool canCombineFABs(false);
               if(nFABs > 1 && dataIsContiguous && VisMF::useSingleRead) {
@@ -1709,11 +1731,14 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                     }
 #endif
                     Long readDataItems(fab.box().numPts() * fab.nComp());
+                    AMREX_ASSERT(readDataItems >= 0 && readDataItems < std::numeric_limits<Long>::max());
                     if(doConvert) {
                       RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
                                                             afPtr, hdr.m_writtenRD);
                     } else {
-                      std::memcpy(fabdata, afPtr, fab.nBytes());
+                      auto nbytes = fab.nBytes();
+                      AMREX_ASSERT(bytesToRead > currentOffset && nbytes <= std::size_t(bytesToRead - currentOffset));
+                      std::memcpy(fabdata, afPtr, nbytes);
                     }
                     currentOffset += readDataItems * hdr.m_writtenRD.numBytes();
 #ifdef AMREX_USE_GPU
@@ -1743,12 +1768,15 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                         fabdata = hostfab->dataPtr();
                     }
 #endif
-                    Long readDataItems(fab.box().numPts() * fab.nComp());
                     if(doConvert) {
+                      Long readDataItems(fab.box().numPts() * fab.nComp());
+                      AMREX_ASSERT(readDataItems >= 0 && readDataItems < std::numeric_limits<Long>::max());
                       RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
                                                             nfi.Stream(), hdr.m_writtenRD);
                     } else {
-                      nfi.Stream().read((char *) fabdata, static_cast<std::streamsize>(fab.nBytes()));
+                      auto nbytes = static_cast<std::streamsize>(fab.nBytes());
+                      AMREX_ASSERT(nbytes >= 0 && nbytes < std::numeric_limits<std::streamsize>::max());
+                      nfi.Stream().read((char *) fabdata, nbytes);
                     }
 #ifdef AMREX_USE_GPU
                     if (hostfab) {
@@ -1819,7 +1847,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         std::string fname(hdr.m_fod[i].m_name);
         fileNamesIter = fileNames.find(fname);
         if(fileNamesIter != fileNames.end()) {
-          int findex(fileNames.find(fname)->second);
+          int findex = fileNamesIter->second;
           allReads[findex][whichProc].insert(std::pair<Long, int>(iSeekPos, i));
         } else {
             amrex::ErrorStream() << "**** Error:  filename not found = " << fname << std::endl;
@@ -1832,7 +1860,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     int doneTag(ParallelDescriptor::SeqNum());
 
     if(myProc == coordinatorProc) {  // manage the file locks
-      int reqsPending(0), iopFileIndex;
+      int reqsPending(0), iopFileIndex(0);
       std::deque<int> iopReads;
       MPI_Status status;
       int doneFlag;
@@ -1910,8 +1938,14 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           --reqsPending;
           busyProcs.erase(procDone);
           std::string fname(hdr.m_fod[index].m_name);
-          int fileIndex(fileNames.find(fname)->second);
-          availableFiles.insert(fileIndex);
+          auto fit = fileNames.find(fname);
+          if (fit != fileNames.end()) {
+            int fileIndex = fit->second;
+            availableFiles.insert(fileIndex);
+          } else {
+            amrex::ErrorStream() << "**** Error:  filename not found = " << fname << std::endl;
+            amrex::Abort("**** Error in VisMF::Read");
+          }
         }
 
       }  // end while(totalIOReqs...)
@@ -2239,7 +2273,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     RealDescriptor const& whichRD = FPC::NativeRealDescriptor();
 
     auto hdr = std::make_shared<VisMF::Header>(mf, VisMF::NFiles, VisMF::Header::Version_v1, false);
-    if (valid_cells_only) hdr->m_ngrow = IntVect(0);
+    if (valid_cells_only) { hdr->m_ngrow = IntVect(0); }
 
     constexpr int sizeof_int64_over_real = sizeof(int64_t) / sizeof(Real);
     const int n_local_fabs = mf.local_size();
@@ -2253,6 +2287,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 
     bool data_on_device = mf.arena()->isManaged() || mf.arena()->isDevice();
     bool run_on_device = data_on_device && Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_device);
 
     bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;
 
@@ -2277,8 +2312,12 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 
             // compute min and max
             for (int icomp = 0; icomp < ncomp; ++icomp) {
+#ifdef AMREX_USE_GPU
                 auto mm = (run_on_device) ? fab.minmax<RunOn::Device>(bx,icomp)
                                           : fab.minmax<RunOn::Host  >(bx,icomp);
+#else
+                auto mm = fab.minmax<RunOn::Host>(bx,icomp);
+#endif
                 std::memcpy(pld, &(mm.first), sizeof(Real));
                 pld += sizeof(Real);
                 std::memcpy(pld, &(mm.second), sizeof(Real));
@@ -2436,7 +2475,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
             ofs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
             ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
                                                           : (std::ios::binary | std::ios::app));
-            if (!ofs.good()) amrex::FileOpenFailed(file_name);
+            if (!ofs.good()) { amrex::FileOpenFailed(file_name); }
             for (auto const& fab : *myfabs) {
                 fabio->write_header(ofs, fab, fab.nComp());
                 fabio->write(ofs, fab, 0, fab.nComp());

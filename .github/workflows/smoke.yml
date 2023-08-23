@@ -1,0 +1,80 @@
+name: smoke
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-smoke
+  cancel-in-progress: true
+
+jobs:
+  multid:
+    name: GNU Multi-D
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 15
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=40M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
+        mkdir build
+        cd build
+        cmake ..                                  \
+            -DCMAKE_VERBOSE_MAKEFILE=ON           \
+            -DAMReX_SPACEDIM="1;2;3"              \
+            -DAMReX_EB=ON                         \
+            -DCMAKE_CXX_STANDARD=17               \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        make -j 2
+        make install
+        make test_install
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-15 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+
+        mkdir ../Tests/SpackSmokeTest/build
+        cd ../Tests/SpackSmokeTest/build
+        cmake .. \
+            -DCMAKE_VERBOSE_MAKEFILE=ON           \
+            -DAMReX_ROOT=../../../installdir      \
+            -DCMAKE_CXX_STANDARD=17               \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        make -j 2
+        mpiexec -n 2 ./install_test ../../Amr/Advection_AmrCore/Exec/inputs-ci
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

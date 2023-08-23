@@ -7,21 +7,15 @@
 
 namespace amrex {
 
-ErrorRec::ErrorFunc::ErrorFunc ()
-    :
-    m_func(nullptr),
-    m_func3D(nullptr)
-{}
+ErrorRec::ErrorFunc::ErrorFunc () = default;
 
 ErrorRec::ErrorFunc::ErrorFunc (ErrorFuncDefault inFunc)
     :
-    m_func(inFunc),
-    m_func3D(nullptr)
+    m_func(inFunc)
 {}
 
 ErrorRec::ErrorFunc::ErrorFunc (ErrorFunc3DDefault inFunc)
     :
-    m_func(nullptr),
     m_func3D(inFunc)
 {}
 
@@ -71,10 +65,7 @@ ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi,
 }
 // \endcond
 
-ErrorRec::ErrorFunc2::ErrorFunc2 ()
-    :
-    m_func(nullptr)
-{}
+ErrorRec::ErrorFunc2::ErrorFunc2 () = default;
 
 ErrorRec::ErrorFunc2::ErrorFunc2 (ErrorFunc2Default inFunc)
     :
@@ -469,13 +460,15 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         });
                     } else
 #endif
-                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                     {
-                        Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
+                        ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                        {
+                            Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
                             if (datma[bi](i,j,k) * vol >= threshold) {
                                 tagma[bi](i,j,k) = tag_update;
                             }
-                    });
+                        });
+                    }
                 }
                 else if (m_test == VORT)
                 {

@@ -13,16 +13,19 @@ class svtkPolyData;
 namespace amrex
 {
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template<typename ParticleType, int NArrayReal, int NArrayInt>
 class ParticleDataAdaptor : public sensei::DataAdaptor
 {
 public:
+  static constexpr int NStructReal = ParticleType::NReal;
+  static constexpr int NStructInt  = ParticleType::NInt;
+
   static ParticleDataAdaptor* New();
   senseiTypeMacro(ParticleDataAdaptor, sensei::DataAdaptor);
 
   // set the source of the simulation data
   int SetDataSource(
-    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
+    amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt> * particles,
     const std::map<std::string, std::vector<int>> & rStructs = {},
     const std::map<std::string, int> & iStructs = {},
     const std::map<std::string, std::vector<int>> & rArrays = {},
@@ -83,7 +86,7 @@ private:
 
   const std::string m_particlesName = "particles";
 
-  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>* m_particles;
+  amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>* m_particles;
 
   using RealDataMapType = std::map<std::string, std::vector<int>>;
   using IntDataMapType = std::map<std::string, int>;

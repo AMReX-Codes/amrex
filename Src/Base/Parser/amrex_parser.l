@@ -48,12 +48,18 @@ EXP	([Ee][-+]?[0-9]+)
 "sinh"        { amrex_parserlval.f1 = amrex::PARSER_SINH;      return F1; }
 "cosh"        { amrex_parserlval.f1 = amrex::PARSER_COSH;      return F1; }
 "tanh"        { amrex_parserlval.f1 = amrex::PARSER_TANH;      return F1; }
+"asinh"       { amrex_parserlval.f1 = amrex::PARSER_ASINH;     return F1; }
+"acosh"       { amrex_parserlval.f1 = amrex::PARSER_ACOSH;     return F1; }
+"atanh"       { amrex_parserlval.f1 = amrex::PARSER_ATANH;     return F1; }
 "abs"         { amrex_parserlval.f1 = amrex::PARSER_ABS;       return F1; }
 "fabs"        { amrex_parserlval.f1 = amrex::PARSER_ABS;       return F1; }
 "floor"       { amrex_parserlval.f1 = amrex::PARSER_FLOOR;     return F1; }
 "ceil"        { amrex_parserlval.f1 = amrex::PARSER_CEIL;      return F1; }
+"comp_ellint_1" { amrex_parserlval.f1 = amrex::PARSER_COMP_ELLINT_1; return F1; }
+"comp_ellint_2" { amrex_parserlval.f1 = amrex::PARSER_COMP_ELLINT_2; return F1; }
 "**"          { amrex_parserlval.f2 = amrex::PARSER_POW;       return POW;}
 "^"           { amrex_parserlval.f2 = amrex::PARSER_POW;       return POW;}
+"atan2"       { amrex_parserlval.f2 = amrex::PARSER_ATAN2;     return F2; }
 ">="          { amrex_parserlval.f2 = amrex::PARSER_GEQ;       return GEQ;}
 "<="          { amrex_parserlval.f2 = amrex::PARSER_LEQ;       return LEQ;}
 "=="          { amrex_parserlval.f2 = amrex::PARSER_EQ;        return EQ;}

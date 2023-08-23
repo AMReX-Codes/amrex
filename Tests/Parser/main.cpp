@@ -322,7 +322,8 @@ int main (int argc, char* argv[])
                         [=] (Real z) -> Real {
                             Real lramp=8.e-3, pi=3.14, dens=1.e23;
                             if (z < lramp) {
-                                return 0.5*(1-std::cos(pi*z/lramp))*dens;
+                                //return 0.5*(1-std::cos(pi*z/lramp))*dens;
+                                return 0.5*dens-0.5*dens*std::cos(pi*z/lramp);
                             } else {
                                 return dens;
                             }

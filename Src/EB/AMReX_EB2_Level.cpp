@@ -7,7 +7,7 @@
 namespace amrex::EB2 {
 
 void
-Level::prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect ngrow)
+Level::prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect const& ngrow)
 {
     BoxArray all_grids(amrex::grow(m_geom.Domain(),ngrow));
     all_grids.maxSize(max_grid_size);
@@ -162,7 +162,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
         ParallelDescriptor::ReduceBoolOr(b);
         mvmc_error = b;
     }
-    if (mvmc_error) return mvmc_error;
+    if (mvmc_error) { return mvmc_error; }
 
     const int ng = 2;
     m_cellflag.define(m_grids, m_dmap, 1, ng);
@@ -241,9 +241,9 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
                                     vfrac(i,j,k) = 0.0;
                                     cflag(i,j,k) = EBCellFlag::TheCoveredCell();
                                 }
-                                AMREX_D_TERM(if (xbx.contains(cell)) apx(i,j,k) = 0.0;,
-                                             if (ybx.contains(cell)) apy(i,j,k) = 0.0;,
-                                             if (zbx.contains(cell)) apz(i,j,k) = 0.0;);
+                                AMREX_D_TERM(if (xbx.contains(cell)) { apx(i,j,k) = 0.0; },
+                                             if (ybx.contains(cell)) { apy(i,j,k) = 0.0; },
+                                             if (zbx.contains(cell)) { apz(i,j,k) = 0.0; })
                             });
                         }
                     }
@@ -483,7 +483,7 @@ void
 Level::fillVolFrac (MultiFab& vfrac, const Geometry& geom) const
 {
     vfrac.setVal(1.0);
-    if (isAllRegular()) return;
+    if (isAllRegular()) { return; }
 
     vfrac.ParallelCopy(m_volfrac,0,0,1,0,vfrac.nGrow(),geom.periodicity());
 
@@ -715,7 +715,7 @@ Level::fillAreaFrac (Array<MultiFab*,AMREX_SPACEDIM> const& a_areafrac, const Ge
         a_areafrac[idim]->setVal(1.0);
     }
 
-    if (isAllRegular()) return;
+    if (isAllRegular()) { return; }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
@@ -918,6 +918,15 @@ Level::fillLevelSet (MultiFab& levelset, const Geometry& geom) const
 }
 
 void
+Level::fillCutCellMask (iMultiFab& cutcellmask, const Geometry&) const
+{
+    if (!m_has_eb_info) {
+        cutcellmask.setVal(0);
+        cutcellmask.ParallelCopy(m_cutcellmask);
+    }
+}
+
+void
 Level::write_to_chkpt_file (const std::string& fname, bool extend_domain_face, int max_grid_size) const
 {
     ChkptFile chkptFile(fname);
@@ -925,6 +934,87 @@ Level::write_to_chkpt_file (const std::string& fname, bool extend_domain_face, i
                                   m_volfrac, m_centroid, m_bndryarea, m_bndrycent,
                                   m_bndrynorm, m_areafrac, m_facecent, m_edgecent, m_levelset,
                                   m_geom, m_ngrow, extend_domain_face, max_grid_size);
+}
+
+void
+Level::buildCutCellMask (Level const& fine_level)
+{
+    AMREX_ALWAYS_ASSERT(!m_has_eb_info);
+
+    MFInfo mf_info;
+    mf_info.SetTag("EB2::Level");
+
+    m_dmap = fine_level.m_dmap;
+    const BoxArray& fine_grids = fine_level.m_grids;
+    if (fine_level.hasEBInfo())
+    {
+        AMREX_ALWAYS_ASSERT(fine_grids.coarsenable(2));
+        m_grids = amrex::coarsen(fine_grids,2);
+        m_cutcellmask.define(m_grids,m_dmap,1,0,mf_info);
+
+        auto const& farrs = fine_level.m_cellflag.const_arrays();
+        auto const& carrs = m_cutcellmask.arrays();
+        ParallelFor(m_cutcellmask,
+        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+        {
+            auto const& fa = farrs[bno];
+#if (AMREX_SPACEDIM == 3)
+            int k3d = 1;
+#else
+            int k3d = 0;
+#endif
+            bool cut = false;
+            for (int kk = k*2; kk <= k*2+k3d; ++kk) {
+            for (int jj = j*2; jj <= j*2+1  ; ++jj) {
+            for (int ii = i*2; ii <= i*2+1  ; ++ii) {
+                if (fa(ii,jj,kk).isSingleValued()) { cut = true; }
+            }}}
+            carrs[bno](i,j,k) = int(cut);
+        });
+        Gpu::streamSynchronize();
+    }
+    else
+    {
+        iMultiFab raii;
+        iMultiFab const* fine_mask;
+        if (fine_grids.coarsenable(2))
+        {
+            fine_mask = &(fine_level.m_cutcellmask);
+        }
+        else
+        {
+            BoxList bl;
+            int nboxes = int(fine_grids.size());
+            bl.reserve(nboxes);
+            for (int ibox = 0; ibox < nboxes; ++ibox) {
+                bl.push_back(amrex::refine(amrex::coarsen(fine_grids[ibox],8),8));
+            }
+            raii.define(BoxArray(std::move(bl)), fine_level.m_dmap, 1, 0);
+            raii.setVal(0);
+            raii.ParallelCopy(fine_level.m_cutcellmask);
+            fine_mask = &raii;
+        }
+
+        m_grids = amrex::coarsen(fine_mask->boxArray(),2);
+        m_cutcellmask.define(m_grids,m_dmap,1,0,mf_info);
+
+        auto const& farrs = fine_mask->const_arrays();
+        auto const& carrs = m_cutcellmask.arrays();
+        ParallelFor(m_cutcellmask,
+        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+        {
+            auto const& fa = farrs[bno];
+            constexpr int k3d = (AMREX_SPACEDIM == 3) ? 1 : 0;
+            bool cut = false;
+            for (int kk = k*2; kk <= k*2+k3d; ++kk) {
+            for (int jj = j*2; jj <= j*2+1  ; ++jj) {
+            for (int ii = i*2; ii <= i*2+1  ; ++ii) {
+                if (fa(ii,jj,kk)) { cut = true; }
+            }}}
+            carrs[bno](i,j,k) = int(cut);
+        });
+        Gpu::streamSynchronize();
+    }
 }
 
 }

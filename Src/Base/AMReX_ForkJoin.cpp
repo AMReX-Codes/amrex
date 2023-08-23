@@ -353,7 +353,9 @@ void ForkJoin::create_task_output_dir ()
             Print() << "Creating task_output_dir: " << task_output_dir << std::endl;
         }
         if (ParallelContext::IOProcessorSub()) {
-            amrex::UtilCreateDirectory(task_output_dir, 0755, flag_verbose);
+            if (! amrex::UtilCreateDirectory(task_output_dir, 0755, flag_verbose)) {
+                amrex::Abort("ForkJoin:create_task_output_dir: failed to create directory");
+            }
         }
     }
 }

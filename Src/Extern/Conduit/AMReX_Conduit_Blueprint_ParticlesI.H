@@ -22,8 +22,8 @@ namespace amrex
 //---------------------------------------------------------------------------//
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleTileToBlueprint(const ParticleTile<NStructReal,
-                                           NStructInt,
+ParticleTileToBlueprint(const ParticleTile<amrex::Particle<NStructReal,
+                                                           NStructInt>,
                                            NArrayReal,
                                            NArrayInt> &ptile,
                         const Vector<std::string> &real_comp_names,

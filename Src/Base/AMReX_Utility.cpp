@@ -86,11 +86,12 @@ amrex::Tokenize (const std::string& instr,
 
     char* token = nullptr;
 
-    if (!((token = std::strtok(line, separators.c_str())) == nullptr))
+    if (!((token = std::strtok(line, separators.c_str())) == nullptr)) // NOLINT(bugprone-assignment-in-if-condition)
     {
         ptr.push_back(token);
-        while (!((token = std::strtok(nullptr, separators.c_str())) == nullptr))
+        while (!((token = std::strtok(nullptr, separators.c_str())) == nullptr)) { // NOLINT(bugprone-assignment-in-if-condition)
             ptr.push_back(token);
+        }
     }
 
     tokens.resize(ptr.size());
@@ -132,7 +133,7 @@ std::string
 amrex::trim(std::string s, std::string const& space)
 {
     const auto sbegin = s.find_first_not_of(space);
-    if (sbegin == std::string::npos) return std::string{};
+    if (sbegin == std::string::npos) { return std::string{}; }
     const auto send = s.find_last_not_of(space);
     s = s.substr(sbegin, send-sbegin+1);
     return s;
@@ -198,7 +199,9 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
           amrex::Print() << "amrex::UtilCreateCleanDirectory():  " << path
                          << " exists.  Renaming to:  " << newoldname << std::endl;
       }
-      std::rename(path.c_str(), newoldname.c_str());
+      if (std::rename(path.c_str(), newoldname.c_str())) {
+          amrex::Abort("UtilCreateCleanDirectory:: std::rename failed");
+      }
     }
     if( ! amrex::UtilCreateDirectory(path, 0755)) {
       amrex::CreateDirectoryFailed(path);
@@ -246,7 +249,9 @@ amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
           amrex::Print() << "amrex::UtilRenameDirectoryToOld():  " << path
                          << " exists.  Renaming to:  " << newoldname << std::endl;
       }
-      std::rename(path.c_str(), newoldname.c_str());
+      if (std::rename(path.c_str(), newoldname.c_str())) {
+          amrex::Abort("UtilRenameDirectoryToOld: std::rename failed");
+      }
     }
   }
   if(callbarrier) {
@@ -298,8 +303,9 @@ int amrex::CRRBetweenLevels(int fromlevel, int tolevel,
 double
 amrex::InvNormDist (double p)
 {
-    if (p <= 0 || p >= 1)
+    if (p <= 0 || p >= 1) {
         amrex::Error("amrex::InvNormDist(): p MUST be in (0,1)");
+    }
     //
     // Coefficients in rational approximations.
     //
@@ -470,8 +476,9 @@ amrex::InvNormDistBest (double p)
 
   double r, value;
 
-  if (p <= 0 || p >= 1)
+  if (p <= 0 || p >= 1) {
       amrex::Error("InvNormDistBest(): p MUST be in (0,1)");
+  }
 
   double q = p - 0.5;
 
@@ -524,7 +531,7 @@ amrex::InvNormDistBest (double p)
           value = num / den;
       }
 
-      if ( q < 0.0 ) value = -value;
+      if ( q < 0.0 ) { value = -value; }
   }
 
   return value;
@@ -543,7 +550,7 @@ amrex::operator>>(std::istream& is, const expect& exp)
     {
         char c;
         is >> c;
-        if ( !is ) break;
+        if ( !is ) { break; }
         if ( c != exp.istr[n++] )
         {
             is.putback(c);
@@ -588,14 +595,13 @@ amrex::expect::the_string () const
 int amrex::StreamRetry::nStreamErrors = 0;
 
 amrex::StreamRetry::StreamRetry(std::ostream &a_os, std::string a_suffix,
-                                 const int a_maxtries)
+                                int a_maxtries)
     : tries(0), maxTries(a_maxtries), sros(a_os), spos(a_os.tellp()), suffix(std::move(a_suffix))
 {
 }
 
-amrex::StreamRetry::StreamRetry (std::string filename,
-                                 const bool abortonretryfailure,
-                                 const int maxtries)
+amrex::StreamRetry::StreamRetry (std::string filename, bool abortonretryfailure,
+                                 int maxtries)
     : tries(0), maxTries(maxtries),
       abortOnRetryFailure(abortonretryfailure),
       fileName(std::move(filename)),
@@ -676,7 +682,9 @@ bool amrex::StreamRetry::TryFileOutput()
               amrex::Print() << nWriteErrors << " STREAMERRORS : Renaming file from "
                              << fileName << "  to  " << badFileName << std::endl;
           }
-          std::rename(fileName.c_str(), badFileName.c_str());
+          if (std::rename(fileName.c_str(), badFileName.c_str())) {
+              amrex::Abort("StreamRetry::TryFileOutput: std::rename failed");
+          }
         }
         ParallelDescriptor::Barrier("StreamRetry::TryFileOutput");  // wait for file rename
 

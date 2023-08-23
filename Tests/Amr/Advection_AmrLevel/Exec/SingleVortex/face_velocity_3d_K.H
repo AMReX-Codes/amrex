@@ -7,14 +7,14 @@
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void get_face_velocity_psi(amrex::Box const& bx,
-                           const amrex::Real time,
+                           amrex::Real time,
                            amrex::Array4<amrex::Real> const& psi,
-                           amrex::Real const dx,
-                           amrex::Real const dy,
-                           amrex::Real const /*dz*/,
-                           amrex::Real const prob_lo_x,
-                           amrex::Real const prob_lo_y,
-                           amrex::Real const /*prob_lo_z*/)
+                           amrex::Real dx,
+                           amrex::Real dy,
+                           amrex::Real /*dz*/,
+                           amrex::Real prob_lo_x,
+                           amrex::Real prob_lo_y,
+                           amrex::Real /*prob_lo_z*/)
 {
     using namespace amrex;
     constexpr Real PI = 3.141592653589793238462643383279502884197;
@@ -42,7 +42,7 @@ AMREX_FORCE_INLINE
 void get_face_velocity_x(int i, int j, int k,
                          amrex::Array4<amrex::Real>       const& vx,
                          amrex::Array4<const amrex::Real> const& psi,
-                         const amrex::Real dy)
+                         amrex::Real dy)
 {
     vx(i,j,k) = -( (psi(i,j+1,0)+psi(i-1,j+1,0)) - (psi(i,j-1,0)+psi(i-1,j-1,0)) ) * (0.25/dy);
 }
@@ -52,7 +52,7 @@ AMREX_FORCE_INLINE
 void get_face_velocity_y(int i, int j, int k,
                          amrex::Array4<amrex::Real>       const& vy,
                          amrex::Array4<const amrex::Real> const& psi,
-                         const amrex::Real dx)
+                         amrex::Real dx)
 {
     vy(i,j,k) =  ( (psi(i+1,j,0)+psi(i+1,j-1,0)) - (psi(i-1,j,0)+psi(i-1,j-1,0)) ) * (0.25/dx);
 }
@@ -67,12 +67,12 @@ void get_face_velocity_z(int i, int j, int k,
 
 AMREX_GPU_HOST
 AMREX_FORCE_INLINE
-void get_face_velocity(const amrex::Real time,
+void get_face_velocity(amrex::Real time,
                        amrex::FArrayBox& vx,
                        amrex::FArrayBox& vy,
                        amrex::FArrayBox& vz,
-                       amrex::GpuArray<amrex::Real,3> dx,
-                       amrex::GpuArray<amrex::Real,3> prob_lo)
+                       amrex::GpuArray<amrex::Real,3> const& dx,
+                       amrex::GpuArray<amrex::Real,3> const& prob_lo)
 {
     using namespace amrex;
 

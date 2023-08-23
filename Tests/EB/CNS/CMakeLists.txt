@@ -1,4 +1,4 @@
-if (NOT (AMReX_SPACEDIM EQUAL 3) OR NOT CMAKE_Fortran_COMPILER_LOADED)
+if (NOT (3 IN_LIST AMReX_SPACEDIM) OR NOT CMAKE_Fortran_COMPILER_LOADED)
    return()
 endif ()
 
@@ -33,7 +33,7 @@ unset(_hydro_sources)
 set(_sod_sources Exec/Sod/cns_prob.F90 ${_sources})
 set(_input_files Exec/Sod/inputs-ci)
 
-setup_test(_sod_sources _input_files
+setup_test(3 _sod_sources _input_files
    HAS_FORTRAN_MODULES
    BASE_NAME CNS_Sod
    RUNTIME_SUBDIR Sod)

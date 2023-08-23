@@ -49,7 +49,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
             faces.clear();
             for (OrientationIter orit; orit.isValid(); ++orit) {
                 const Orientation ori = orit();
-                faces.emplace_back(std::make_pair(ori,amrex::bdryNode(ndbx,ori)));
+                faces.emplace_back(ori,amrex::bdryNode(ndbx,ori));
             }
             for (auto const& shift : pshifts) {
                 if (!faces.empty()) {
@@ -68,7 +68,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 bl[dir].push_back(amrex::coarsen(amrex::bdryNode(ccbx,face.first),
                                                  ref_ratio));
                 procmap[dir].push_back(fdm[i]);
-                if (fdm[i] == myproc) my_global_indices[dir].push_back(i);
+                if (fdm[i] == myproc) { my_global_indices[dir].push_back(i); }
             }
         }
 
@@ -113,7 +113,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
             crsefine_faces.clear();
             for (OrientationIter orit; orit.isValid(); ++orit) {
                 const Orientation ori = orit();
-                cell_faces.emplace_back(std::make_pair(ori,amrex::adjCell(ccbx,ori)));
+                cell_faces.emplace_back(ori,amrex::adjCell(ccbx,ori));
             }
             for (auto const& shift : pshifts) {
                 if (!cell_faces.empty()) {
@@ -140,7 +140,7 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 const int dir = face.coordDir();
                 bl[dir].push_back(amrex::bdryNode(ccbx,face));
                 procmap[dir].push_back(cdm[i]);
-                if (cdm[i] == myproc) my_global_indices[dir].push_back(i);
+                if (cdm[i] == myproc) { my_global_indices[dir].push_back(i); }
             }
         }
 

@@ -47,7 +47,7 @@ void checkAnswer (const amrex::DenseBins<int>& bins)
     for (int i = 0; i < bins.numBins(); ++i) {
         auto start = offsets[i  ];
         auto stop  = offsets[i+1];
-        if (start == stop) continue;
+        if (start == stop) { continue; }
         for (auto j = start+1; j < stop; ++j)
         {
             AMREX_ALWAYS_ASSERT(bins_ptr[perm[start]] == bins_ptr[perm[j]]);

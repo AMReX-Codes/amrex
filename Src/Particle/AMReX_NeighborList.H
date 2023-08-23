@@ -114,10 +114,10 @@ struct Neighbors
         AMREX_GPU_HOST_DEVICE
         bool operator!= (iterator const& /*rhs*/) const { return m_index < m_stop; }
 
-        AMREX_GPU_HOST_DEVICE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE
         ParticleType& operator* () const { return m_pstruct[m_nbor_list_ptr[m_index]];  }
 
-        AMREX_GPU_HOST_DEVICE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE
         unsigned int index () const { return m_nbor_list_ptr[m_index]; }
 
     private:
@@ -140,10 +140,10 @@ struct Neighbors
         AMREX_GPU_HOST_DEVICE
         bool operator!= (const_iterator const& /*rhs*/) const { return m_index < m_stop; }
 
-        AMREX_GPU_HOST_DEVICE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE
         const ParticleType& operator* () const { return m_pstruct[m_nbor_list_ptr[m_index]];  }
 
-        AMREX_GPU_HOST_DEVICE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE
         unsigned int index () const { return m_nbor_list_ptr[m_index]; }
 
     private:
@@ -153,37 +153,37 @@ struct Neighbors
         const ParticleType* m_pstruct;
     };
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     iterator begin () noexcept {
         return iterator(m_nbor_offsets_ptr[m_i], m_nbor_offsets_ptr[m_i+1],
                         m_nbor_list_ptr, m_pstruct);
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     iterator end () noexcept {
         return iterator(m_nbor_offsets_ptr[m_i+1], m_nbor_offsets_ptr[m_i+1],
                         m_nbor_list_ptr, m_pstruct);
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     const_iterator begin () const noexcept {
         return const_iterator(m_nbor_offsets_ptr[m_i], m_nbor_offsets_ptr[m_i+1],
                               m_nbor_list_ptr, m_pstruct);
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     const_iterator end () const noexcept {
         return const_iterator(m_nbor_offsets_ptr[m_i+1], m_nbor_offsets_ptr[m_i+1],
                               m_nbor_list_ptr, m_pstruct);
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     const_iterator cbegin () const noexcept {
         return const_iterator(m_nbor_offsets_ptr[m_i], m_nbor_offsets_ptr[m_i+1],
                               m_nbor_list_ptr, m_pstruct);
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     const_iterator cend () const noexcept {
         return const_iterator(m_nbor_offsets_ptr[m_i+1], m_nbor_offsets_ptr[m_i+1],
                               m_nbor_list_ptr, m_pstruct);
@@ -217,7 +217,7 @@ struct NeighborData
           m_pstruct(pstruct)
     {}
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     amrex::Neighbors<ParticleType> getNeighbors (int i) const
     { return Neighbors<ParticleType>(i, m_nbor_offsets_ptr, m_nbor_list_ptr, m_pstruct); }
 
@@ -258,7 +258,7 @@ public:
         Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> dxi_v;
         Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>> plo_v;
         off_bins_v.push_back(0);
-        off_bins_v.push_back(bx.numPts());
+        off_bins_v.push_back(int(bx.numPts()));
         lo_v.push_back(lbound(bx));
         hi_v.push_back(ubound(bx));
         dxi_v.push_back(geom.InvCellSizeArray());
@@ -308,16 +308,16 @@ public:
         const auto dst_ptile_data = target_tile.getConstParticleTileData();
 
         m_pstruct = aos().dataPtr();
-        const auto pstruct_ptr = aos().dataPtr();
+        auto* const pstruct_ptr = aos().dataPtr();
 
         const size_t np_total = aos.size();
         const size_t np_real  = src_tile.numRealParticles();
 
-        auto off_bins_p = off_bins_v.data();
-        auto dxi_p      = dxi_v.data();
-        auto plo_p      = plo_v.data();
-        auto  lo_p      =  lo_v.data();
-        auto  hi_p      =  hi_v.data();
+        auto const* off_bins_p = off_bins_v.data();
+        auto const* dxi_p      = dxi_v.data();
+        auto const* plo_p      = plo_v.data();
+        auto const*  lo_p      =  lo_v.data();
+        auto const*  hi_p      =  hi_v.data();
         BinMapper bm(off_bins_p, dxi_p, plo_p, lo_p, hi_p, bin_type_array);
 
         // Get tot bin count on host
@@ -337,14 +337,14 @@ public:
         m_nbor_counts.resize( np_size+1, 0);
         m_nbor_offsets.resize(np_size+1);
 
-        auto pnbor_counts = m_nbor_counts.dataPtr();
-        auto pnbor_offset = m_nbor_offsets.dataPtr();
+        auto* pnbor_counts = m_nbor_counts.dataPtr();
+        auto* pnbor_offset = m_nbor_offsets.dataPtr();
 
         auto pperm   = m_bins.permutationPtr();
         auto poffset = m_bins.offsetsPtr();
 
         const auto src_ptile_data  = src_tile.getConstParticleTileData();
-        const auto src_pstruct_ptr = src_tile.GetArrayOfStructs()().dataPtr();
+        const auto* src_pstruct_ptr = src_tile.GetArrayOfStructs()().dataPtr();
 
         AMREX_FOR_1D ( np_size, i,
         {
@@ -375,7 +375,7 @@ public:
                     for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                       const auto& pid = pperm[p];
                       bool  ghost_pid = (pid >= np_real);
-                      if (is_same && (pid == i)) continue;
+                      if (is_same && (pid == i)) { continue; }
                       if (call_check_pair(check_pair,
                                           src_ptile_data, dst_ptile_data,
                                           i, pid, type, ghost_i, ghost_pid)) {
@@ -404,7 +404,7 @@ public:
 #endif
 
         m_nbor_list.resize(total_nbors);
-        auto pm_nbor_list = m_nbor_list.dataPtr();
+        auto* pm_nbor_list = m_nbor_list.dataPtr();
 
         AMREX_FOR_1D ( np_size, i,
         {
@@ -435,7 +435,7 @@ public:
                   for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                     const auto& pid = pperm[p];
                     bool  ghost_pid = (pid >= np_real);
-                    if (is_same && (pid == i)) continue;
+                    if (is_same && (pid == i)) { continue; }
                     if (call_check_pair(check_pair,
                                         src_ptile_data, dst_ptile_data,
                                         i, pid, type, ghost_i, ghost_pid)) {
@@ -456,16 +456,16 @@ public:
         return NeighborData<ParticleType>(m_nbor_offsets, m_nbor_list, m_pstruct);
     }
 
-    int numParticles () { return m_nbor_offsets.size() - 1; }
+    [[nodiscard]] int numParticles () const { return m_nbor_offsets.size() - 1; }
 
-    Gpu::DeviceVector<unsigned int>&       GetOffsets ()       { return m_nbor_offsets; }
-    const Gpu::DeviceVector<unsigned int>& GetOffsets () const { return m_nbor_offsets; }
+    [[nodiscard]] Gpu::DeviceVector<unsigned int>&       GetOffsets ()       { return m_nbor_offsets; }
+    [[nodiscard]] const Gpu::DeviceVector<unsigned int>& GetOffsets () const { return m_nbor_offsets; }
 
-    Gpu::DeviceVector<unsigned int>&       GetCounts ()       { return m_nbor_counts; }
-    const Gpu::DeviceVector<unsigned int>& GetCounts () const { return m_nbor_counts; }
+    [[nodiscard]] Gpu::DeviceVector<unsigned int>&       GetCounts ()       { return m_nbor_counts; }
+    [[nodiscard]] const Gpu::DeviceVector<unsigned int>& GetCounts () const { return m_nbor_counts; }
 
-    Gpu::DeviceVector<unsigned int>&       GetList ()       { return m_nbor_list; }
-    const Gpu::DeviceVector<unsigned int>& GetList () const { return m_nbor_list; }
+    [[nodiscard]] Gpu::DeviceVector<unsigned int>&       GetList ()       { return m_nbor_list; }
+    [[nodiscard]] const Gpu::DeviceVector<unsigned int>& GetList () const { return m_nbor_list; }
 
     void print ()
     {

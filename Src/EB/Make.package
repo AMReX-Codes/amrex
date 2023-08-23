@@ -39,6 +39,17 @@ CEXE_sources += AMReX_EB_utils.cpp
 CEXE_headers += AMReX_algoim.H AMReX_algoim_K.H
 CEXE_sources += AMReX_algoim.cpp
 
+CEXE_headers += AMReX_EB_Redistribution.H
+CEXE_sources += AMReX_EB_Redistribution.cpp
+CEXE_sources += AMReX_EB_RedistributionApply.cpp
+CEXE_sources += AMReX_EB_FluxRedistribute.cpp
+CEXE_sources += AMReX_EB_StateRedistribute.cpp
+CEXE_sources += AMReX_EB_StateRedistUtils.cpp
+CEXE_sources += AMReX_EB_StateRedistItracker.cpp
+CEXE_headers += AMReX_EB_StateRedistSlopeLimiter_K.H
+CEXE_headers += AMReX_EB_Slopes_$(DIM)D_K.H
+CEXE_headers += AMReX_EB_Slopes_K.H
+
 CEXE_headers += AMReX_EB2_IF_AllRegular.H
 CEXE_headers += AMReX_EB2_IF_Box.H
 CEXE_headers += AMReX_EB2_IF_Cylinder.H

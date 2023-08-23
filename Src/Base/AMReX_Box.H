@@ -636,10 +636,11 @@ public:
     AMREX_GPU_HOST_DEVICE
     Box& grow (Orientation face, int n_cell = 1) noexcept {
         int idir = face.coordDir();
-        if (face.isLow())
+        if (face.isLow()) {
             smallend.shift(idir, -n_cell);
-        else
+        } else {
             bigend.shift(idir,n_cell);
+        }
         return *this;
     }
 
@@ -800,9 +801,11 @@ Box::coarsen (const IntVect& ref_ratio) noexcept
             IntVect off(0);
             for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
             {
-                if (btype[dir])
-                    if (bigend[dir]%ref_ratio[dir])
+                if (btype[dir]) {
+                    if (bigend[dir]%ref_ratio[dir]) {
                         off.setVal(dir,1);
+                    }
+                }
             }
             bigend.coarsen(ref_ratio);
             bigend += off;
@@ -911,10 +914,10 @@ Box::index (const IntVect& v) const noexcept
 {
     Long result = v[0]-smallend[0];
 #if   AMREX_SPACEDIM==2
-    result += length(0)*(v[1]-smallend[1]);
+    result += length(0)*Long(v[1]-smallend[1]);
 #elif AMREX_SPACEDIM==3
-    result += length(0)*(v[1]-smallend[1]
-                         +(v[2]-smallend[2])*length(1));
+    result += length(0)*((v[1]-smallend[1])
+                         +Long(v[2]-smallend[2])*length(1));
 #endif
     return result;
 }

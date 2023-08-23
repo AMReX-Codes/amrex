@@ -23,7 +23,12 @@ class LevelBld
 {
 public:
 
-    virtual ~LevelBld () {}
+    virtual ~LevelBld () = default;
+    LevelBld () noexcept = default;
+    LevelBld (LevelBld const&) = default;
+    LevelBld (LevelBld &&) noexcept = default;
+    LevelBld& operator= (LevelBld const&) = default;
+    LevelBld& operator= (LevelBld &&) noexcept = default;
 
     /**
     * \brief Perform any problem-dependent setup such as physical

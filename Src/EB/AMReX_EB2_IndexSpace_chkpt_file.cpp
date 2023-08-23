@@ -83,4 +83,10 @@ IndexSpaceChkptFile::addFineLevels (int /*num_new_fine_levels*/)
     amrex::Abort("IndexSpaceChkptFile::addFineLevels: not supported");
 }
 
+void
+IndexSpaceChkptFile::addRegularCoarseLevels (int /*num_new_coarse_levels*/)
+{
+    amrex::Abort("IndexSpaceChkptFile::addRegularCoarseLevels: not supported");
+}
+
 }

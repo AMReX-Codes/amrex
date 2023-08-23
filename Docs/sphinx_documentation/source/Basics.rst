@@ -380,7 +380,7 @@ They are briefly introduced in the table below.
    |                                           |        | after the executable.                     |
    +-------------------------------------------+--------+-------------------------------------------+
    | ``amrex:get_command_argument(int n)``     | String | Returns the n-th argument after           |
-   |                                           |        | the exectuable.                           |
+   |                                           |        | the executable.                           |
    +-------------------------------------------+--------+-------------------------------------------+
 
 
@@ -394,13 +394,15 @@ Parser
 AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to evaluate mathematical
 expressions given in the form of string.  It supports ``+``, ``-``, ``*``,
 ``/``, ``**`` (power), ``^`` (power), ``sqrt``, ``exp``, ``log``, ``log10``,
-``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``sinh``, ``cosh``,
-``tanh``, ``abs``, ``floor``, ``ceil`` and ``fmod``.  The minimum and maximum of two
+``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``atan2``, ``sinh``, ``cosh``,
+``tanh``, ``asinh``, ``acosh``, ``atanh``, ``abs``, ``floor``, ``ceil`` and ``fmod``.
+The minimum and maximum of two
 numbers can be computed with ``min`` and ``max``, respectively.  It supports
 the Heaviside step function, ``heaviside(x1,x2)`` that gives ``0``, ``x2``,
 ``1``, for ``x1 < 0``, ``x1 = 0`` and ``x1 > 0``, respectively.
-It also supports the Bessel function of the first kind of order ``n``
-``jn(n,x)``.
+It supports the Bessel function of the first kind of order ``n``
+``jn(n,x)``. Complete elliptic integrals of the first and second kind, ``comp_ellint_1`` and ``comp_ellint_2``,
+are supported only for gcc and CPUs.
 There is ``if(a,b,c)`` that gives ``b`` or ``c`` depending on the value of
 ``a``.  A number of comparison operators are supported, including ``<``,
 ``>``, ``==``, ``!=``, ``<=``, and ``>=``.  The Boolean results from
@@ -2029,8 +2031,8 @@ multi-threaded codes race conditions could occur.
    |                        |e|                          |                        |f|                           |
    +-----------------------------------------------------+------------------------------------------------------+
    | | Example of cell-centered grown tile boxes. As     | | Example of face type grown tile boxes. As          |
-   | | indicated by symbols, there are 8 tiles and four  | | indicated by symbols, there are 8 tiles and four   |
-   | | in each grid in this example. Tiles from the      | | in each grid in this example. Tiles from the       |
+   | | indicated by symbols and colors, there are 4      | | indicated by symbols and colors, there are 4 tiles |
+   | | tiles per grid in this example. Tiles from the    | | per grid in this example. Tiles from the           |
    | | same grid do not overlap. But tiles from          | | same grid do not overlap even though they          |
    | | different grids may overlap.                      | | have face index type.                              |
    |                                                     |                                                      |

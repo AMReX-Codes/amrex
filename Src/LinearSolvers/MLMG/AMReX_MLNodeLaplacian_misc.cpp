@@ -18,7 +18,7 @@ MLNodeLaplacian::averageDownCoeffs ()
 {
     BL_PROFILE("MLNodeLaplacian::averageDownCoeffs()");
 
-    if (m_sigma[0][0][0] == nullptr) return;
+    if (m_sigma[0][0][0] == nullptr) { return; }
 
     if (m_coarsening_strategy == CoarseningStrategy::Sigma)
     {
@@ -85,7 +85,7 @@ MLNodeLaplacian::averageDownCoeffs ()
 void
 MLNodeLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
 {
-    if (m_sigma[0][0][0] == nullptr) return;
+    if (m_sigma[0][0][0] == nullptr) { return; }
 
     const int mglev = 0;
     const int idim = 0;  // other dimensions are just aliases
@@ -101,9 +101,9 @@ MLNodeLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
 void
 MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 {
-    if (m_sigma[0][0][0] == nullptr) return;
+    if (m_sigma[0][0][0] == nullptr) { return; }
 
-    if (m_coarsening_strategy != CoarseningStrategy::Sigma) return;
+    if (m_coarsening_strategy != CoarseningStrategy::Sigma) { return; }
 
 #if (AMREX_SPACEDIM == 1)
     const int nsigma = 1;
@@ -421,7 +421,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         }
 
         Gpu::streamSynchronize();
-        if (m_smooth_num_sweeps > 1) nodalSync(amrlev, mglev, sol);
+        if (m_smooth_num_sweeps > 1) { nodalSync(amrlev, mglev, sol); }
     }
     else // cpu
 #endif
@@ -584,7 +584,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 }
             }
             else if ( (m_use_harmonic_average && mglev > 0) || m_use_mapped )
-            { // NOLINT(bugprone-branch-clone)
+            {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
@@ -904,11 +904,11 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
     BL_PROFILE("MLNodeLaplacian::compRHS()");
 
-    if (!m_masks_built) buildMasks();
+    if (!m_masks_built) { buildMasks(); }
 
 #ifdef AMREX_USE_EB
-    if (!m_integral_built) buildIntegral();
-    if (m_build_surface_integral && !m_surface_integral_built) buildSurfaceIntegral();
+    if (!m_integral_built) { buildIntegral(); }
+    if (m_build_surface_integral && !m_surface_integral_built) { buildSurfaceIntegral(); }
 #endif
 
 #if (AMREX_SPACEDIM == 2)
@@ -1002,7 +1002,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 #endif
 
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1125,7 +1125,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const iMultiFab& fdmsk = *m_dirichlet_mask[ilev+1][0];
 
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1239,7 +1239,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const auto& has_fine_bndry = *m_has_fine_bndry[ilev];
 
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

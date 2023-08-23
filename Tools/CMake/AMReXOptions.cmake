@@ -23,11 +23,13 @@ endmacro ()
 #
 set(AMReX_SPACEDIM_VALUES 1 2 3)
 set(AMReX_SPACEDIM 3 CACHE STRING "Dimension of AMReX build: <1,2,3>")
-set_property(CACHE AMReX_SPACEDIM PROPERTY STRINGS ${AMReX_SPACEDIM_VALUES})
-if(NOT AMReX_SPACEDIM IN_LIST AMReX_SPACEDIM_VALUES)
-   message(FATAL_ERROR "AMReX_SPACEDIM=${AMReX_SPACEDIM} is not allowed."
-      " Must be one of ${AMReX_SPACEDIM_VALUES}")
-endif()
+list(REMOVE_DUPLICATES AMReX_SPACEDIM)
+foreach(D IN LISTS AMReX_SPACEDIM)
+    if(NOT D IN_LIST AMReX_SPACEDIM_VALUES)
+       message(FATAL_ERROR "AMReX_SPACEDIM=${D} is not allowed."
+          " Must be one of ${AMReX_SPACEDIM_VALUES}")
+    endif()
+endforeach()
 message( STATUS "Building AMReX with AMReX_SPACEDIM = ${AMReX_SPACEDIM}")
 
 #
@@ -167,7 +169,7 @@ if (AMReX_SYCL)
    unset(_valid_sycl_compiler_ids)
 
    set(AMReX_SYCL_SUB_GROUP_SIZE_DEFAULT 32)
-   set(AMReX_SYCL_SUB_GROUP_SIZE_VALUES 16 32)
+   set(AMReX_SYCL_SUB_GROUP_SIZE_VALUES 16 32 64)
    set(AMReX_SYCL_SUB_GROUP_SIZE ${AMReX_SYCL_SUB_GROUP_SIZE_DEFAULT} CACHE STRING
        "SYCL sub-group size")
    if (NOT AMReX_SYCL_SUB_GROUP_SIZE IN_LIST AMReX_SYCL_SUB_GROUP_SIZE_VALUES)
@@ -228,14 +230,6 @@ if (AMReX_HIP)
    endif ()
 endif ()
 
-if (AMReX_CUDA OR AMReX_HIP)
-   set(GPUS_PER_SOCKET "IGNORE" CACHE STRING "Number of GPUs per socket" )
-   print_option(GPUS_PER_SOCKET)
-
-   set(GPUS_PER_NODE "IGNORE" CACHE STRING "Number of GPUs per node" )
-   print_option(GPUS_PER_NODE)
-endif ()
-
 #
 # GPU RDC support
 #
@@ -270,8 +264,7 @@ print_option( AMReX_OMP )
 option( AMReX_AMRLEVEL  "Build AmrLevel class" ON )
 print_option( AMReX_AMRLEVEL )
 
-cmake_dependent_option( AMReX_EB "Build with Embedded Boundary support" OFF
-   "NOT AMReX_SPACEDIM EQUAL 1" OFF )
+option( AMReX_EB "Build with Embedded Boundary support" OFF)
 print_option(AMReX_EB)
 
 cmake_dependent_option( AMReX_FORTRAN_INTERFACES "Build Fortran API" OFF
@@ -285,7 +278,7 @@ cmake_dependent_option( AMReX_AMRDATA "Build data services" OFF
    "AMReX_FORTRAN" OFF )
 print_option( AMReX_AMRDATA )
 
-option( AMReX_PARTICLES "Build particle classes" OFF)
+option( AMReX_PARTICLES "Build particle classes" ON)
 print_option( AMReX_PARTICLES )
 
 if (AMReX_PARTICLES)
@@ -325,12 +318,12 @@ print_option( AMReX_ASCENT )
 
 # Hypre
 cmake_dependent_option(AMReX_HYPRE "Enable Hypre interfaces" OFF
-   "AMReX_LINEAR_SOLVERS;NOT AMReX_SPACEDIM EQUAL 1" OFF)
+   "AMReX_LINEAR_SOLVERS" OFF)
 print_option(AMReX_HYPRE)
 
 # PETSc
 cmake_dependent_option(AMReX_PETSC "Enable PETSc interfaces" OFF
-   "AMReX_LINEAR_SOLVERS;NOT AMReX_SPACEDIM EQUAL 1" OFF )
+   "AMReX_LINEAR_SOLVERS" OFF )
 print_option(AMReX_PETSC)
 
 # HDF5
@@ -462,3 +455,20 @@ print_option(AMReX_CLANG_TIDY)
 cmake_dependent_option(AMReX_CLANG_TIDY_WERROR "Treat clang-tidy warnings as errors" OFF
    "AMReX_CLANG_TIDY" OFF)
 print_option(AMReX_CLANG_TIDY_WERROR)
+
+#
+# Tests  =============================================================
+#
+option(AMReX_ENABLE_TESTS "Enable CTest suite for AMReX" NO)
+print_option(AMReX_ENABLE_TESTS)
+set(AMReX_TEST_TYPE_VALUES "All;Small")
+set(AMReX_TEST_TYPE All CACHE STRING "Type of AMReX Tests: <All,Small>")
+set_property(CACHE AMReX_TEST_TYPE PROPERTY STRINGS ${AMReX_TEST_TYPE_VALUES})
+if (NOT AMReX_TEST_TYPE IN_LIST AMReX_TEST_TYPE_VALUES)
+   message(FATAL_ERROR "AMReX_TEST_TYPE=${AMReX_TEST_TYPE} is not allowed."
+                       " Must be one of ${AMReX_TEST_TYPE_VALUES}.")
+endif()
+if (AMReX_ENABLE_TESTS)
+   message(STATUS "   AMReX_TEST_TYPE = ${AMReX_TEST_TYPE}")
+endif()
+

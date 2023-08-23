@@ -4,8 +4,7 @@
 
 #include <AMReX_Vector.H>
 
-namespace amrex {
-namespace machine {
+namespace amrex::machine {
 
 void Initialize (); //!< called in amrex::Initialize()
 
@@ -18,6 +17,6 @@ void Finalize ();
 Vector<int> find_best_nbh (int rank_n, bool flag_local_ranks = false);
 #endif
 
-}}
+}
 
 #endif

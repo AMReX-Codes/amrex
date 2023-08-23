@@ -31,7 +31,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=125M
+        export CCACHE_MAXSIZE=30M
         ccache -z
 
         cmake -S . -B build             \
@@ -41,9 +41,8 @@ jobs:
             -DAMReX_EB=ON               \
             -DAMReX_MPI=OFF             \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --parallel 2
+        cmake --build build --parallel 3
 
         ctest --test-dir build --output-on-failure
 
@@ -71,7 +70,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=250M
+        export CCACHE_MAXSIZE=160M
         ccache -z
 
         cmake -S . -B build             \
@@ -79,9 +78,8 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --parallel 2
+        cmake --build build --parallel 3
         cmake --build build --target install
 
         ctest --test-dir build --output-on-failure

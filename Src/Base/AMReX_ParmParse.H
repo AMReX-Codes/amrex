@@ -32,18 +32,24 @@ class IntVect;
 //
 // Comments in an input file include all text from a '#' character to the
 // end of the line.  Here is an example input file:
-//
-//   niter = 100                # niter is an integer
-//   title = "Double Wammy"     # example of a string with spaces
-//   cell_size = 0.5 0.75       # cell spacing in each dimension
-//   plot.var = Density 1 10    # a list of values
-//   plot.var = Energy  5 12    # another list of values
-//   bigarray = 1 2 3 4 5 6 7 8 # first part of array
-//              9 10 11 12      # continuation of bigarray
-//   test = apple "boy blue" 10 20 30 40
-//   FILE = prob_file           # insert contents of this "prob_file" here
-//
-// The "FILE = <filename>" definition is special.  Rather than just
+/*
+   niter = 100                # niter is an integer
+   title = "Double Wammy"     # example of a string with spaces
+   cell_size = 0.5 0.75       # cell spacing in each dimension
+   plot.var = Density 1 10    # a list of values
+   plot.var = Energy  5 12    # another list of values
+   bigarray = 1 2 3 4 5 6 7 8 \
+              9 10 11 12      # continuation of bigarray
+   multi_line_string = "This is a
+                        multi-line string."
+   test = apple "boy blue" 10 20 30 40
+   FILE = prob_file           # insert contents of this "prob_file" here
+*/
+// For values spanning multiple lines, one must use '\' at the end of a line
+// for continuation, otherwise it's a runtime error. Note that there must be
+// at least one space before the continuation character `\`.  Multiple lines
+// inside a pair of double quotes are considered a single string containing
+// '\n's. The "FILE = <filename>" definition is special.  Rather than just
 // adding this entry to the database, it reads the contents of <filename>
 // into the database.
 //
@@ -229,9 +235,11 @@ class IntVect;
 *
 *     plot.var = Energy  5 12
 *
-*     bigarray = 1 2 3 4 5 6 7 8
-*
+*     bigarray = 1 2 3 4 5 6 7 8 \
 *                9 10 11 12
+*
+*     multi_line_string = "This is a
+*                          multi-line string."
 *
 *     aBox    = ((0,0) (5,5))
 *
