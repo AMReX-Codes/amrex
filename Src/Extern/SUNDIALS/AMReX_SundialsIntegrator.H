@@ -342,7 +342,10 @@ public:
         }
 
         // Clean up allocated memory
-        N_VDestroyVectorArray(nv_many_arr, NVar);
+        for (int i = 0; i < Nvar; ++i) {
+            N_VDestroy(nv_many_arr[i]);
+        }
+        delete[] nv_many_arr;
         N_VDestroy(nv_S);
         N_VDestroy(nv_stage_data);
 
@@ -623,7 +626,10 @@ public:
         }
 
         // Clean up allocated memory
-        N_VDestroyVectorArray(nv_many_arr, NVar);
+        for (int i = 0; i < Nvar; ++i) {
+            N_VDestroy(nv_many_arr[i]);
+        }
+        delete[] nv_many_arr;
         N_VDestroy(nv_S);
         N_VDestroy(nv_stage_data);
 

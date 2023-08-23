@@ -302,17 +302,19 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 
                         if (as_crse) {
 
-                           // Covered to uncovered
-                           if (flag_as_crse( r, s, t) == amrex_yafluxreg_crse_fine_boundary_cell &&
-                               flag_as_crse(ii,jj,kk) == amrex_yafluxreg_fine_cell &&
-                               bx.contains(IntVect(AMREX_D_DECL(r,s,t)))) {
+                           // Covered (by fine) to uncovered (by fine)
+                           if ( bx.contains(IntVect(AMREX_D_DECL(r,s,t))) &&
+                                flag_as_crse( r, s, t) == amrex_yafluxreg_crse_fine_boundary_cell &&
+                                flag_as_crse(ii,jj,kk) == amrex_yafluxreg_fine_cell )
+                           {
                                drho_as_crse(r,s,t,n) -= fac*update/nrs(r,s,t) * fac_for_deltaR;
                            }
 
-                           // Uncovered to covered
-                           if (flag_as_crse( r, s, t) == amrex_yafluxreg_fine_cell  &&
-                               flag_as_crse(ii,jj,kk) == amrex_yafluxreg_crse_fine_boundary_cell &&
-                               bx.contains(IntVect(AMREX_D_DECL(ii,jj,kk)))) {
+                           // Uncovered (by fine) to covered (by fine)
+                           if ( bx.contains(IntVect(AMREX_D_DECL(ii,jj,kk))) &&
+                                flag_as_crse( r, s, t) == amrex_yafluxreg_fine_cell  &&
+                                flag_as_crse(ii,jj,kk) == amrex_yafluxreg_crse_fine_boundary_cell )
+                           {
                                drho_as_crse(ii,jj,kk,n) += fac * update / nrs(r,s,t) *
                                                            (vfrac(r,s,t) / vfrac(ii,jj,kk)) * fac_for_deltaR;
                            }
