@@ -5,6 +5,7 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_Interp_C.H>
 #include <AMReX_MFInterp_C.H>
+#include <AMReX_DG.H>
 
 #include <climits>
 
@@ -765,13 +766,23 @@ DGInterp::interp (const FArrayBox& crse,
 {
     BL_PROFILE("DGInterp::interp()");
 
+    int          nDOFX;
+    Real *** ProjectionMatrix;
+    Real *  WeightsX_q;
+
+    nDOFX = amrex::DG::nDOFX;
+
+    ProjectionMatrix = amrex::DG::ProjectionMatrix;
+    WeightsX_q = amrex::DG::WeightsX_q;
+
     Array4<Real const> const& crsearr = crse.const_array();
     Array4<Real> const& finearr = fine.array();;
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, fine_region, tbx,
     {
         amrex::dginterp_interp
-          (tbx,finearr,fine_comp,ncomp,crsearr,crse_comp,ratio);
+          ( tbx, finearr, fine_comp, ncomp, crsearr, crse_comp, ratio,
+            nDOFX, ProjectionMatrix, WeightsX_q );
     });
 }
 

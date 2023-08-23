@@ -7,7 +7,6 @@
 #include <AMReX_Vector.H>
 #include <AMReX_Array.H>
 #include <cmath>
-#include <AMReX_DG.H>
 
 namespace amrex {
 
@@ -34,16 +33,19 @@ dginterp_interp
   ( Box const& bx,
     Array4<Real> const& fine, const int fcomp, const int ncomp,
     Array4<Real const> const& crse, const int ccomp,
-    IntVect const& ratio) noexcept
+    IntVect const& ratio,
+    int nDOFX, Real *** ProjectionMatrix, Real * WeightsX_q ) noexcept
 {
   amrex::ignore_unused( fcomp, ccomp );
+
+  const Real Zero = 0.0;
 
   // Get bounds on fine grid
   const auto loFine = amrex::lbound(bx);
   const auto hiFine = amrex::ubound(bx);
 
   // Number of fields in MultiFab
-  int nFields = ncomp / amrex::DG::nDOFX;
+  int nFields = ncomp / nDOFX;
 
   // Index for projection matrix
   int iProj;
@@ -61,21 +63,21 @@ dginterp_interp
       else                 { iProj = 1; }
 
       // Loop over DOF of fine element
-      for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ )
+      for( int iNX = 0; iNX < nDOFX; iNX++ )
       {
         // Initialize fine data to zero
-        fine(iFine,0,0,amrex::DG::nDOFX*iField+iNX) = amrex::DG::Zero;
+        fine(iFine,0,0,nDOFX*iField+iNX) = Zero;
 
         // Project coarse data onto fine data
-        for( int jNX = 0; jNX < amrex::DG::nDOFX; jNX++ )
+        for( int jNX = 0; jNX < nDOFX; jNX++ )
         {
-          fine(iFine,0,0,amrex::DG::nDOFX*iField+iNX)
-            += amrex::DG::ProjectionMatrix[iProj][iNX][jNX]
-                 * crse(iCrse,0,0,amrex::DG::nDOFX*iField+jNX);
+          fine(iFine,0,0,nDOFX*iField+iNX)
+            += ProjectionMatrix[iProj][iNX][jNX]
+                 * crse(iCrse,0,0,nDOFX*iField+jNX);
         } // jNX
 
-        fine(iFine,0,0,amrex::DG::nDOFX*iField+iNX)
-          /= amrex::DG::WeightsX_q[iNX];
+        fine(iFine,0,0,nDOFX*iField+iNX)
+          /= WeightsX_q[iNX];
 
       } // iNX
     } // iFine
