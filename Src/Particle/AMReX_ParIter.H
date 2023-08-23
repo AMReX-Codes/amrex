@@ -18,6 +18,8 @@ struct Particle;
 template <int NArrayReal, int NArrayInt>
 struct SoAParticle;
 
+struct DefaultAssignor;
+
 // for backwards compatibility
 template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
           template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
