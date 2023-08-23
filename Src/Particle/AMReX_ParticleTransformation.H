@@ -403,16 +403,19 @@ Index filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
     auto* p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
 
-    amrex::ParallelForRNG(n,
-    [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
-    {
-        amrex::ignore_unused(p, p_mask, src_data, src_start, engine);
-        if constexpr (IsCallable<Pred,decltype(src_data),Index,RandomEngine>::value) {
+    if constexpr (IsCallable<Pred,decltype(src_data),Index,RandomEngine>::value) {
+        amrex::ParallelForRNG(n,
+        [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+        {
             p_mask[i] = p(src_data, src_start+i, engine);
-        } else {
+        });
+    } else {
+        amrex::ParallelFor(n,
+        [=] AMREX_GPU_DEVICE (int i) noexcept
+        {
             p_mask[i] = p(src_data, src_start+i);
-        }
-    });
+        });
+    }
     return filterParticles(dst, src, mask.dataPtr(), src_start, dst_start, n);
 }
 
