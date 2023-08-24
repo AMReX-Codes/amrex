@@ -1,7 +1,9 @@
 #include <AMReX_Bittree.H>
 #include <AMReX_ParallelDescriptor.H>
-
+#include <AMReX_MFIter.H>
 #include <functional>
+
+#define MFITER_APPROACH 1
 
 using namespace bittree;
 
@@ -30,7 +32,9 @@ The functions here are called in the BT version of MakeNewGrids which has three 
   * This makes use of BT library functions and as well as routines adapted
   * from Flash-X that enforce Octree nesting.
   */
-int btUnit::btRefine( BittreeAmr* const mesh, std::vector<int>& btTags, MPI_Comm comm) {
+int btUnit::btRefine( BittreeAmr* const mesh, std::vector<int>& btTags,
+                      int max_crse, int lbase,
+                      Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap, MPI_Comm comm) {
 
     BL_PROFILE("Bittree-btRefine");
 
@@ -50,7 +54,7 @@ int btUnit::btRefine( BittreeAmr* const mesh, std::vector<int>& btTags, MPI_Comm
     mesh->refine_reduce(comm);
     mesh->refine_update();
 
-    btCheckRefine(mesh,btTags,comm);
+    btCheckRefine(mesh, btTags, max_crse, lbase, grids, dmap, comm);
 
 //--Mark derefinement (parents who will nodetype change to leaf)
     for( unsigned id = id0; id < id1; ++id) {
@@ -63,7 +67,7 @@ int btUnit::btRefine( BittreeAmr* const mesh, std::vector<int>& btTags, MPI_Comm
     mesh->refine_reduce(comm);
     mesh->refine_update();
 
-    btCheckDerefine(mesh,btTags,comm);
+    btCheckDerefine(mesh, btTags, max_crse, lbase, grids, dmap, comm);
 
     // return delta count
     return static_cast<int>( mesh->delta_count() );
@@ -144,7 +148,9 @@ int btUnit::getIndex(BittreeAmr* const mesh, bool updated,
   * to a strict octree structure with no more than one level difference
   * between surrounding leaf blocks.
   */
-void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI_Comm comm ) {
+void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags,
+                           int max_crse, int lbase,
+                           Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap, MPI_Comm comm) {
 
     BL_PROFILE("Bittree-btCheckRefine");
 
@@ -163,6 +169,22 @@ void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI
         // Clear out ref_test
         std::fill(ref_test.begin(),ref_test.end(),0);
 
+#ifdef MFITER_APPROACH
+        for (int lev=max_crse; lev>=lbase; --lev) {
+            for (MFIter mfi(grids[lev], dmap[lev]); mfi.isValid(); ++mfi) {
+                int id = getBitid(mesh,false,lev,mfi.index());
+                auto b = tree0->locate(id);
+                if( !b.is_parent && btTags[id]!=1 ) {
+                    bool needsTag = checkNeighborsRefine( mesh, b);
+                    //amrex::Print() << "needsTag for " << id << " : " << needsTag <<std::endl;
+                    if(needsTag) {
+                        ref_test[id] = 1;
+                    }
+                }
+            }
+        }
+         
+#else
 //------Check neighbors - if any adjacent child of a neighbor is either a parent
 //------or marked for refinement, this block needs to be refined.
 // TODO: Loop over levels and use MFIter to get
@@ -178,6 +200,7 @@ void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI
                 }
             }
         }
+#endif
 
 // BEGIN-DEVNOTE: Previous implementation that lead to high computational time
         //for( unsigned id = id0; id < id1; ++id) {
@@ -219,7 +242,9 @@ void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI
   * to a strict octree structure with no more than one level difference
   * between surrounding leaf blocks.
   */
-void btUnit::btCheckDerefine(BittreeAmr* const mesh, std::vector<int>& btTags, MPI_Comm comm ) {
+void btUnit::btCheckDerefine(BittreeAmr* const mesh, std::vector<int>& btTags,
+                             int max_crse, int lbase,
+                             Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap, MPI_Comm comm) {
 
     BL_PROFILE("Bittree-btCheckDerefine");
 
@@ -238,6 +263,36 @@ void btUnit::btCheckDerefine(BittreeAmr* const mesh, std::vector<int>& btTags, M
         //Turn deref_test to default 0 if block can't be derefined
         deref_test = btTags;
 
+#ifdef MFITER_APPROACH
+        for (int lev=max_crse; lev>=lbase; --lev) {
+            for (MFIter mfi(grids[lev], dmap[lev]); mfi.isValid(); ++mfi) {
+                int id = getBitid(mesh,false,lev,mfi.index());
+                auto b = tree0->locate(id);
+                if( btTags[id]==-1 ) {
+                    bool cantDeref = checkNeighborsRefine( mesh, b);
+                    if(cantDeref) {
+                        deref_test[id] = 0;
+                    }
+                }
+            }
+        }
+
+        repeat = false;
+        for (int lev=max_crse; lev>=lbase; --lev) {
+            for (MFIter mfi(grids[lev], dmap[lev]); mfi.isValid(); ++mfi) {
+                int id = getBitid(mesh,false,lev,mfi.index());
+                if( deref_test[id]==0 && btTags[id]==-1 ) {
+                    repeat = true;
+                    btTags[id] = 0;
+
+                    // Unmark for derefinement
+                    mesh->refine_mark(id, false);
+                }
+            }
+        }
+ 
+#else
+
 //------Check neighbors - if any adjacent child of neighbor is either a parent
 //------or marked for refinement, do not derefine.
         for( unsigned id = id0; id < id1; ++id) {
@@ -250,6 +305,7 @@ void btUnit::btCheckDerefine(BittreeAmr* const mesh, std::vector<int>& btTags, M
             }
         }
 
+
 //------Unmark any blocks who cannot derefine (as per above check).
         repeat = false;
         for( unsigned id = id0; id < id1; ++id) {
@@ -261,7 +317,7 @@ void btUnit::btCheckDerefine(BittreeAmr* const mesh, std::vector<int>& btTags, M
                 mesh->refine_mark(id, false);
             }
         }
-
+#endif
 
         // If only processing local blocks, check all processors to see if
         // a repeat is necessary, then reduce bittree to update on all ranks.

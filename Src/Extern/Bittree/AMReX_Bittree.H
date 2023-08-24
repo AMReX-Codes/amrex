@@ -4,7 +4,6 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
-
 #include <Bittree_BittreeAmr.h>
 
 namespace amrex {
@@ -28,6 +27,8 @@ class btUnit {
   public:
     static int  btRefine(bittree::BittreeAmr* const mesh,
                          std::vector<int>& btTags,
+                         int max_crse, int lbase, 
+                         Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap,
                          MPI_Comm comm);
     static void btCalculateGrids(bittree::BittreeAmr* const mesh,
                                  int lbase,
@@ -49,9 +50,14 @@ class btUnit {
   private:
     static void btCheckRefine(bittree::BittreeAmr* const mesh,
                               std::vector<int>& btTags,
+                              int max_crse, int lbase, 
+                              Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap,
                               MPI_Comm comm);
+
     static void btCheckDerefine(bittree::BittreeAmr* const mesh,
                                 std::vector<int>& btTags,
+                                int max_crse, int lbase, 
+                                Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap,
                                 MPI_Comm comm);
 
     // Utility Functions

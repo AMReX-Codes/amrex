@@ -825,7 +825,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
         // [2] btRefine - check for proper octree nesting and update bitmap
         MPI_Comm comm = ParallelContext::CommunicatorSub();
-        int changed = btUnit::btRefine(btmesh.get(), btTags, comm);
+        int changed = btUnit::btRefine(btmesh.get(), btTags, max_crse, lbase, grids, dmap, comm);
 
         // [3] btCalculateGrids - use new bitmap to generate new grids
         if (changed>0) {
