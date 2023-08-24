@@ -138,10 +138,10 @@ FaceLinear::interp (const FArrayBox&  crse,
                     int               ncomp,
                     const Box&        fine_region,
                     const IntVect&    ratio,
-                    const Geometry&   crse_geom ,
-                    const Geometry&   fine_geom ,
-                    Vector<BCRec> const& bcr,
-                    int               actual_comp,
+                    const Geometry& /* crse_geom */,
+                    const Geometry& /* fine_geom */,
+                    Vector<BCRec> const& /*bcr*/,
+                    int              /* actual_comp*/,
                     int               /*actual_state*/,
                     RunOn             runon)
 {
@@ -150,9 +150,36 @@ FaceLinear::interp (const FArrayBox&  crse,
     //
     BL_PROFILE("FaceLinear::interp()");
 
-    // pass unallocated IArrayBox for solve_mask, so all fine values get filled.
-    interp_face(crse, crse_comp, fine, fine_comp, ncomp, fine_region,
-                ratio, IArrayBox(), crse_geom, fine_geom, bcr, actual_comp, runon);
+    AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
+
+    Array4<Real> const& fine_arr = fine.array(fine_comp);
+    Array4<Real const> const& crse_arr = crse.const_array(crse_comp);
+
+    if (fine_region.type(0) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_interp_x(i,j,k,n,fine_arr,crse_arr,ratio);
+        });
+    }
+#if (AMREX_SPACEDIM >= 2)
+    else if (fine_region.type(1) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_interp_y(i,j,k,n,fine_arr,crse_arr,ratio);
+        });
+    }
+#if (AMREX_SPACEDIM == 3)
+    else
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_interp_z(i,j,k,n,fine_arr,crse_arr,ratio);
+        });
+    }
+#endif
+#endif
 }
 
 void

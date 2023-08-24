@@ -187,6 +187,43 @@ can run it and that will generate results like:
    [The  Pinned Arena] space (MB): 8
    AMReX (19.06-404-g0455b168b69c-dirty) finalized
 
+SYCL configuration variables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When building with ``USE_SYCL=TRUE``, one can set the following makefile
+variables to configure the build
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _tab:gnumakesyclvar:
+
+.. table:: AMReX SYCL-specific GNU Make build options
+
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | Variable Name                | Description                                     | Default     | Possible values |
+   +==============================+=================================================+=============+=================+
+   | SYCL_AOT                     | Enable SYCL ahead-of-time compilation           | FALSE       | TRUE, FALSE     |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | SYCL_AOT_GRF_MODE            | Specify AOT register file mode                  | Default     | Default, Large, |
+   |                              |                                                 |             | AutoLarge       |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | None        | pvc, etc.       |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | SYCL_SPLIT_KERNEL            | Enable SYCL kernel splitting                    | FALSE       | TRUE, FALSE     |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | USE_ONEDPL                   | Enable SYCL's oneDPL algorithms                 | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | SYCL_SUB_GROUP_SIZE          | Specify subgroup size                           | 32          | 64, 32, 16      |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | SYCL_MAX_PARALLEL_LINK_JOBS  | Number of parallel jobs in device link          | 1           | 1, 2, 3, etc.   |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+.. raw:: latex
+
+   \end{center}
+
+
 Building with CMake
 -------------------
 
