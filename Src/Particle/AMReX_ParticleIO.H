@@ -5,9 +5,9 @@
 #include <AMReX_WriteBinaryParticleData.H>
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WriteParticleRealData (void* data, size_t size, std::ostream& os) const
 {
     if (sizeof(typename ParticleType::RealType) == 4) {
@@ -19,9 +19,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::ReadParticleRealData (void* data, size_t size, std::istream& is)
 {
     if (sizeof(typename ParticleType::RealType) == 4) {
@@ -33,9 +33,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::Checkpoint (const std::string& dir,
               const std::string& name, bool /*is_checkpoint*/,
               const Vector<std::string>& real_comp_names,
@@ -84,9 +84,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir, const std::string& name) const
 {
     Vector<int> write_real_comp;
@@ -118,9 +118,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir, const std::string& name,
                  const Vector<std::string>& real_comp_names,
                  const Vector<std::string>& int_comp_names) const
@@ -148,9 +148,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir, const std::string& name,
                  const Vector<std::string>& real_comp_names) const
 {
@@ -184,9 +184,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir,
                  const std::string& name,
                  const Vector<int>& write_real_comp,
@@ -220,9 +220,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 WritePlotFile (const std::string& dir, const std::string& name,
                const Vector<int>& write_real_comp,
                const Vector<int>& write_int_comp,
@@ -241,10 +241,10 @@ WritePlotFile (const std::string& dir, const std::string& name,
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>&>::value>::type*>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir, const std::string& name, F&& f) const
 {
     Vector<int> write_real_comp;
@@ -273,10 +273,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir, const std::string& name,
                  const Vector<std::string>& real_comp_names,
                  const Vector<std::string>& int_comp_names, F&& f) const
@@ -301,10 +301,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir, const std::string& name,
                  const Vector<std::string>& real_comp_names, F&& f) const
 {
@@ -335,10 +335,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir,
                  const std::string& name,
                  const Vector<int>& write_real_comp,
@@ -369,10 +369,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 WritePlotFile (const std::string& dir, const std::string& name,
                const Vector<int>& write_real_comp,
                const Vector<int>& write_int_comp,
@@ -389,10 +389,10 @@ WritePlotFile (const std::string& dir, const std::string& name,
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WriteBinaryParticleData (const std::string& dir, const std::string& name,
                            const Vector<int>& write_real_comp,
                            const Vector<int>& write_int_comp,
@@ -414,9 +414,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::CheckpointPre ()
 {
     if( ! usePrePost) {
@@ -471,9 +471,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::CheckpointPost ()
 {
     if( ! usePrePost) {
@@ -527,9 +527,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFilePre ()
 {
     CheckpointPre();
@@ -537,9 +537,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFilePost ()
 {
     CheckpointPost();
@@ -547,9 +547,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WriteParticles (int lev, std::ofstream& ofs, int fnum,
                   Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                   const Vector<int>& write_real_comp,
@@ -602,18 +602,18 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::Restart (const std::string& dir, const std::string& file, bool /*is_checkpoint*/)
 {
     Restart(dir, file);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::Restart (const std::string& dir, const std::string& file)
 {
     BL_PROFILE("ParticleContainer::Restart()");
@@ -920,10 +920,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 // Read a batch of particles from the checkpoint file
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class RTYPE>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs,
                  int finest_level_in_file, bool convert_ids)
 {
@@ -1093,9 +1093,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WriteAsciiFile (const std::string& filename)
 {
     BL_PROFILE("ParticleContainer::WriteAsciiFile()");

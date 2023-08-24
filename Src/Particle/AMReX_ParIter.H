@@ -9,7 +9,7 @@ namespace amrex
 {
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 class ParticleContainer_impl;
 
 template <int T_NReal, int T_NInt>
@@ -18,10 +18,12 @@ struct Particle;
 template <int NArrayReal, int NArrayInt>
 struct SoAParticle;
 
+struct DefaultAssignor;
+
 // for backwards compatibility
 template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
-          template<class> class Allocator=DefaultAllocator>
-using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator>;
+          template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 template <bool is_const, typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
           template<class> class Allocator=DefaultAllocator>
@@ -32,7 +34,7 @@ class ParIterBase_impl
 
 private:
 
-    using PCType = ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using PCType = ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,DefaultAssignor>;
     using ContainerRef    = typename std::conditional<is_const, PCType const&, PCType&>::type;
     using ParticleTileRef = typename std::conditional
         <is_const, typename PCType::ParticleTileType const&, typename PCType::ParticleTileType &>::type;
@@ -45,7 +47,7 @@ private:
 
 public:
 
-    using ContainerType    = ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ContainerType    = ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, DefaultAssignor>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
@@ -120,7 +122,7 @@ public:
     static constexpr int NStructReal = ParticleType::NReal;
     static constexpr int NStructInt = ParticleType::NInt;
 
-    using ContainerType    = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ContainerType    = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, DefaultAssignor>;
     using ConstParticleType = typename ContainerType::ConstParticleType;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
@@ -145,7 +147,7 @@ class ParConstIter_impl
 public:
 
     using ParticleType     = T_ParticleType;
-    using ContainerType    = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ContainerType    = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, DefaultAssignor>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;

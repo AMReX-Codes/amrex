@@ -376,6 +376,20 @@ IntVect getParticleCell (P const& p,
     return iv;
 }
 
+struct DefaultAssignor
+{
+
+    template <typename P>
+    AMREX_GPU_HOST_DEVICE
+    IntVect operator() (P const& p,
+                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                        const Box& domain) const noexcept
+    {
+        return getParticleCell(p, plo, dxi, domain);
+    }
+};
+
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
@@ -429,9 +443,10 @@ bool enforcePeriodic (P& p,
 
 #if defined(AMREX_USE_GPU)
 
-template <typename PTile, typename PLocator>
+template <typename PTile, typename PLocator, typename CellAssignor>
 int
-partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
+partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& assignor,
+                          const ParticleBufferMap& pmap,
                           const GpuArray<Real,AMREX_SPACEDIM>& plo,
                           const GpuArray<Real,AMREX_SPACEDIM>& phi,
                           const GpuArray<ParticleReal,AMREX_SPACEDIM>& rlo,
@@ -482,7 +497,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                                  p_prime.pos(2) = src_data.pos(2, i+this_offset););
 
                     enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
-                    auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow);
+                    auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
                     assigned_grid = amrex::get<0>(tup_prime);
                     assigned_lev  = amrex::get<1>(tup_prime);
                     if (assigned_grid >= 0)
@@ -496,7 +511,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                       AMREX_D_TERM(p_prime.pos(0) = src_data.pos(0, i+this_offset);,
                                    p_prime.pos(1) = src_data.pos(1, i+this_offset);,
                                    p_prime.pos(2) = src_data.pos(2, i+this_offset););
-                      auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
+                      auto tup = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
                       assigned_grid = amrex::get<0>(tup);
                       assigned_lev  = amrex::get<1>(tup);
                     }
