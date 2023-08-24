@@ -413,18 +413,6 @@ Index filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
             p_mask[i] = p(src_data, src_start+i);
         }
     });
-        amrex::ParallelForRNG(n,
-        [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
-        {
-            p_mask[i] = p(src_data, src_start+i, engine);
-        });
-    } else {
-        amrex::ParallelFor(n,
-        [=] AMREX_GPU_DEVICE (int i) noexcept
-        {
-            p_mask[i] = p(src_data, src_start+i);
-        });
-    }
     return filterParticles(dst, src, mask.dataPtr(), src_start, dst_start, n);
 }
 
