@@ -26,6 +26,7 @@ Real * WeightsX_X2 = nullptr;
 Real * WeightsX_X3 = nullptr;
 Real * WeightsX_q  = nullptr;
 
+Real *   ProjectionMatrix1D = nullptr;
 Real *** ProjectionMatrix   = nullptr;
 Real *** ProjectionMatrix_T = nullptr;
 
@@ -87,6 +88,7 @@ void InitializeMeshRefinement_DG
     AllocateArray( nDOFX_X3, WeightsX_X3 );
     AllocateArray( nDOFX, WeightsX_q );
 
+    AllocateArray( nFineV*nDOFX*nDOFX, ProjectionMatrix1D   );
     AllocateArray( nFineV, nDOFX, nDOFX, ProjectionMatrix   );
     AllocateArray( nFineV, nDOFX, nDOFX, ProjectionMatrix_T );
 
@@ -143,6 +145,7 @@ void InitializeMeshRefinement_DG
         k += 1;
         ProjectionMatrix  [iFine][iNX][jNX] = ProjMatrix[k];
         ProjectionMatrix_T[iFine][jNX][iNX] = ProjMatrix[k];
+        ProjectionMatrix1D[k] = ProjMatrix[k];
     }}}
 
     k = -1;
@@ -329,6 +332,7 @@ void FinalizeMeshRefinement_DG()
     DeallocateArray( nDOFX_X1, nFineF, LX_X1 );
     DeallocateArray( nFineV, nDOFX, ProjectionMatrix_T );
     DeallocateArray( nFineV, nDOFX, ProjectionMatrix   );
+    DeallocateArray( ProjectionMatrix1D );
     DeallocateArray( WeightsX_q );
     DeallocateArray( WeightsX_X3 );
     DeallocateArray( WeightsX_X2 );

@@ -766,14 +766,27 @@ DGInterp::interp (const FArrayBox& crse,
 {
     BL_PROFILE("DGInterp::interp()");
 
-    int          nDOFX;
-    Real *** ProjectionMatrix;
-    Real *  WeightsX_q;
+    int nDOFX = amrex::DG::nDOFX;
+    int nFine = amrex::DG::nFineV;
 
-    nDOFX = amrex::DG::nDOFX;
+    auto *pProjectionMatrix
+           = reinterpret_cast<Real*>(amrex::DG::ProjectionMatrix1D);
+    Array4<Real> ProjectionMatrix
+                   ( pProjectionMatrix, {0,0,0}, {nFine,nDOFX,nDOFX}, 1 );
 
-    ProjectionMatrix = amrex::DG::ProjectionMatrix;
-    WeightsX_q = amrex::DG::WeightsX_q;
+    for( int iFine = 0; iFine < nFine; iFine++ ) {
+    for( int iNX   = 0; iNX   < nDOFX; iNX++   ) {
+    for( int jNX   = 0; jNX   < nDOFX; jNX++   ) {
+        ProjectionMatrix(iFine,iNX,jNX,0)
+          = amrex::DG::ProjectionMatrix[iFine][iNX][jNX];
+    }}}
+
+    auto *pWeightsX_q
+           = reinterpret_cast<Real*>(amrex::DG::WeightsX_q);
+    Array4<Real> WeightsX_q( pWeightsX_q, {0,0,0}, {nDOFX,1,1}, 1 );
+    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ ) {
+      WeightsX_q(iNX,0,0,0) = amrex::DG::WeightsX_q[iNX];
+    }
 
     Array4<Real const> const& crsearr = crse.const_array();
     Array4<Real> const& finearr = fine.array();;

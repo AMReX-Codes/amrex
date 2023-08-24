@@ -26,6 +26,7 @@ extern Real * WeightsX_X2;
 extern Real * WeightsX_X3;
 extern Real * WeightsX_q;
 
+extern Real *   ProjectionMatrix1D;
 extern Real *** ProjectionMatrix;
 extern Real *** ProjectionMatrix_T;
 

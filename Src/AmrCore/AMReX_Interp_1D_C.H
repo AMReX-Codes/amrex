@@ -34,7 +34,8 @@ dginterp_interp
     Array4<Real> const& fine, const int fcomp, const int ncomp,
     Array4<Real const> const& crse, const int ccomp,
     IntVect const& ratio,
-    int nDOFX, Real *** ProjectionMatrix, Real * WeightsX_q ) noexcept
+    int nDOFX, Array4<Real> ProjectionMatrix,
+    Array4<Real> WeightsX_q ) noexcept
 {
   amrex::ignore_unused( fcomp, ccomp );
 
@@ -72,12 +73,12 @@ dginterp_interp
         for( int jNX = 0; jNX < nDOFX; jNX++ )
         {
           fine(iFine,0,0,nDOFX*iField+iNX)
-            += ProjectionMatrix[iProj][iNX][jNX]
+            += ProjectionMatrix(iProj,iNX,jNX,0)
                  * crse(iCrse,0,0,nDOFX*iField+jNX);
         } // jNX
 
         fine(iFine,0,0,nDOFX*iField+iNX)
-          /= WeightsX_q[iNX];
+          /= WeightsX_q(iNX,0,0,0);
 
       } // iNX
     } // iFine
