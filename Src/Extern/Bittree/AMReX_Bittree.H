@@ -27,7 +27,7 @@ class btUnit {
   public:
     static int  btRefine(bittree::BittreeAmr* const mesh,
                          std::vector<int>& btTags,
-                         int max_crse, int lbase, 
+                         int max_crse, int lbase,
                          Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap,
                          MPI_Comm comm);
     static void btCalculateGrids(bittree::BittreeAmr* const mesh,
@@ -50,13 +50,13 @@ class btUnit {
   private:
     static void btCheckRefine(bittree::BittreeAmr* const mesh,
                               std::vector<int>& btTags,
-                              int max_crse, int lbase, 
+                              int max_crse, int lbase,
                               Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap,
                               MPI_Comm comm);
 
     static void btCheckDerefine(bittree::BittreeAmr* const mesh,
                                 std::vector<int>& btTags,
-                                int max_crse, int lbase, 
+                                int max_crse, int lbase,
                                 Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap,
                                 MPI_Comm comm);
 
