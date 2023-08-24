@@ -251,7 +251,7 @@ void transformParticles (PC& pc, F&& f)
             ParticleTileType ptile_tmp;
             ptile_tmp.resize(ptile.size());
 
-            amrex::transformParticles(ptile_tmp, ptile, std::forward<F>(f));
+            amrex::transformParticles(ptile_tmp, ptile, f);
             ptile.swap(ptile_tmp);
         }
     }
@@ -275,7 +275,7 @@ void twoWayTransformParticles (PC& dst1, PC& dst2, const PC& src, F&& f)
             ptile_dst1.resize(ptile_src.size());
             ptile_dst2.resize(ptile_src.size());
 
-            amrex::transformParticles(ptile_dst1, ptile_dst2, ptile_src, std::forward<F>(f));
+            amrex::transformParticles(ptile_dst1, ptile_dst2, ptile_src, f);
         }
     }
 }
@@ -331,7 +331,7 @@ void filterParticles (PC& pc, F&& f)
             ParticleTileType ptile_tmp;
             ptile_tmp.resize(ptile.size());
 
-            auto num_output = amrex::filterParticles(ptile_tmp, ptile, std::forward<F>(f));
+            auto num_output = amrex::filterParticles(ptile_tmp, ptile, f);
 
             ptile.swap(ptile_tmp);
             ptile.resize(num_output);
@@ -356,7 +356,7 @@ void filterAndTransformParticles (PC& pc, Pred&& p, F&& f)
             ParticleTileType ptile_tmp;
             ptile_tmp.resize(ptile.size());
 
-            auto num_output = amrex::filterAndTransformParticles(ptile_tmp, ptile, std::forward<Pred>(p), std::forward<F>(f));
+            auto num_output = amrex::filterAndTransformParticles(ptile_tmp, ptile, p, f);
 
             ptile.swap(ptile_tmp);
             ptile.resize(num_output);
@@ -384,8 +384,8 @@ void twoWayFilterAndTransformParticles (PC& dst1, PC& dst2, const PC& src, Pred&
             auto num_output = amrex::filterAndTransformParticles(ptile_dst1,
                                                                  ptile_dst2,
                                                                  ptile_src,
-                                                                 std::forward<Pred>(p),
-                                                                 std::forward<F>(f));
+                                                                 p,
+                                                                 f);
 
             ptile_dst1.resize(num_output);
             ptile_dst2.resize(num_output);

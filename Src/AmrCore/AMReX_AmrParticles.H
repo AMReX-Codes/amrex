@@ -207,7 +207,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
 
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
-        ParticleToMesh(pc, mf_part[lev], lev, std::forward<F>(f), zero_out_input);
+        ParticleToMesh(pc, mf_part[lev], lev, f, zero_out_input);
         if (vol_weight) {
             const Real* dx = pc.Geom(lev).CellSize();
             const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);

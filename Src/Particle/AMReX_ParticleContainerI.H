@@ -1050,7 +1050,7 @@ addParticles (const PCType& other, F&& f, bool local)
             auto dst_index = ptile.numParticles();
             ptile.resize(dst_index + np);
 
-            auto count = amrex::filterParticles(ptile, ptile_other, std::forward<F>(f), 0, dst_index, np);
+            auto count = amrex::filterParticles(ptile, ptile_other, f, 0, dst_index, np);
 
             ptile.resize(dst_index + count);
         }
