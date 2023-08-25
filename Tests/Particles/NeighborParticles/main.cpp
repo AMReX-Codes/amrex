@@ -17,6 +17,8 @@ struct TestParams
     int max_grid_size;
     int num_ppc;
     int is_periodic;
+    int do_plotfile;
+    int check_answer;
 };
 
 void testNeighborParticles();
@@ -43,6 +45,12 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("max_grid_size", params.max_grid_size);
     pp.get("num_ppc", params.num_ppc);
     pp.get("is_periodic", params.is_periodic);
+
+    params.do_plotfile = true;
+    pp.query("do_plotfile", params.do_plotfile);
+
+    params.check_answer = true;
+    pp.query("check_answer", params.check_answer);
 }
 
 void testNeighborParticles ()
@@ -63,9 +71,9 @@ void testNeighborParticles ()
     const Box domain(domain_lo, domain_hi);
 
     int coord = 0;
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = params.is_periodic;
+    int is_per[] = {AMREX_D_DECL(params.is_periodic,
+                                 params.is_periodic,
+                                 params.is_periodic)};
     Geometry geom(domain, &real_box, coord, is_per);
 
     BoxArray ba(domain);
@@ -75,44 +83,51 @@ void testNeighborParticles ()
     const int ncells = 1;
     MDParticleContainer pc(geom, dm, ba, ncells);
 
-    int npc = params.num_ppc;
-    IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
+    IntVect nppc(params.num_ppc);
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "About to initialize particles \n";
+    }
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Check neighbors after init ... \n";
+    }
     pc.checkNeighborParticles();
 
     pc.fillNeighbors();
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Check neighbors after fill ... \n";
+    }
     pc.checkNeighborParticles();
 
     pc.updateNeighbors();
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Check neighbors after update ... \n";
+    }
     pc.checkNeighborParticles();
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Now resetting the particle test_id values  \n";
+    }
     pc.reset_test_id();
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Check neighbors after reset ... \n";
+    }
     pc.checkNeighborParticles();
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Now updateNeighbors again ...  \n";
+    }
     pc.updateNeighbors();
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Check neighbors after update ... \n";
+    }
     pc.checkNeighborParticles();
 
     ParallelDescriptor::Barrier();
@@ -161,9 +176,9 @@ void testNeighborList ()
     const Box domain(domain_lo, domain_hi);
 
     int coord = 0;
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = params.is_periodic;
+    int is_per[] = {AMREX_D_DECL(params.is_periodic,
+                                 params.is_periodic,
+                                 params.is_periodic)};
     Geometry geom(domain, &real_box, coord, is_per);
 
     BoxArray ba(domain);
@@ -173,8 +188,7 @@ void testNeighborList ()
     const int ncells = 1;
     MDParticleContainer pc(geom, dm, ba, ncells);
 
-    int npc = params.num_ppc;
-    IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
+    IntVect nppc(params.num_ppc);
 
     amrex::PrintToFile("neighbor_test") << "About to initialize particles" << std::endl;
 
@@ -183,11 +197,26 @@ void testNeighborList ()
 
     pc.buildNeighborList(CheckPair());
 
-    pc.checkNeighborList();
+    if (params.check_answer) {
+        pc.checkNeighborList();
+    }
 
-    MultiFab dummy_mf(ba, dm, 1, 0);
-    dummy_mf.setVal(0.0);
-    WriteSingleLevelPlotfile("NeighborParticles_plt00001", dummy_mf,
-                             {"dummy"}, geom, 0.0, 0);
-    pc.WritePlotFile("NeighborParticles_plt00001", "neighbors");
+#ifdef AMREX_USE_GPU
+    pc.clearNeighbors();
+    pc.fillNeighbors();
+    pc.selectActualNeighbors(CheckPair());
+    pc.updateNeighbors();
+    pc.buildNeighborList(CheckPair());
+    if (params.check_answer) {
+        pc.checkNeighborList();
+    }
+#endif
+
+    if (params.do_plotfile) {
+        MultiFab dummy_mf(ba, dm, 1, 0);
+        dummy_mf.setVal(0.0);
+        WriteSingleLevelPlotfile("NeighborParticles_plt00001", dummy_mf,
+                                 {"dummy"}, geom, 0.0, 0);
+        pc.WritePlotFile("NeighborParticles_plt00001", "neighbors");
+    }
 }

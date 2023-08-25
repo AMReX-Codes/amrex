@@ -10,8 +10,7 @@
 #include <initializer_list>
 #include <memory>
 
-namespace amrex {
-namespace Gpu {
+namespace amrex::Gpu {
 
 template <typename T, std::enable_if_t<std::is_trivially_copyable<T>::value,int> = 0>
 class Buffer
@@ -21,7 +20,7 @@ public:
     Buffer (std::initializer_list<T> init)
         : m_size(init.size())
     {
-        if (m_size == 0) return;
+        if (m_size == 0) { return; }
 #ifdef AMREX_USE_GPU
         h_data = static_cast<T*>(The_Pinned_Arena()->alloc(m_size*sizeof(T)));
 #else
@@ -40,7 +39,7 @@ public:
     Buffer (T const* h_p, const std::size_t n)
         : m_size(n)
     {
-        if (m_size == 0) return;
+        if (m_size == 0) { return; }
 #ifdef AMREX_USE_GPU
         h_data = static_cast<T*>(The_Pinned_Arena()->alloc(m_size*sizeof(T)));
 #else
@@ -63,19 +62,19 @@ public:
     void operator= (Buffer const&) = delete;
     void operator= (Buffer &&) = delete;
 
-    T const* data () const noexcept { return (d_data != nullptr) ? d_data : h_data; }
-    T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
+    [[nodiscard]] T const* data () const noexcept { return (d_data != nullptr) ? d_data : h_data; }
+    [[nodiscard]] T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
 
-    T const* hostData () const noexcept { return h_data; }
-    T* hostData () noexcept { return h_data; }
+    [[nodiscard]] T const* hostData () const noexcept { return h_data; }
+    [[nodiscard]] T* hostData () noexcept { return h_data; }
 
-    std::size_t size () const noexcept { return m_size; }
+    [[nodiscard]] std::size_t size () const noexcept { return m_size; }
 
     void clear ()
     {
 #ifdef AMREX_USE_GPU
-        if (d_data) The_Arena()->free(d_data);
-        if (h_data) The_Pinned_Arena()->free(h_data);
+        if (d_data) { The_Arena()->free(d_data); }
+        if (h_data) { The_Pinned_Arena()->free(h_data); }
 #else
         std::free(h_data);
 #endif
@@ -101,7 +100,6 @@ private:
     T* h_data = nullptr;
 };
 
-}
 }
 
 #endif

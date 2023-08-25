@@ -10,27 +10,32 @@
 namespace amrex
 {
 
-class HypreABecLap2
+class HypreABecLap2 final
     : public Hypre
 {
 public:
 
     HypreABecLap2 (const BoxArray& grids, const DistributionMapping& dmap,
                    const Geometry& geom_, MPI_Comm comm_);
-    virtual ~HypreABecLap2 ();
+    ~HypreABecLap2 () override;
 
-    virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
-                        int max_iter, const BndryData& bndry, int max_bndry_order) final;
+    HypreABecLap2 (HypreABecLap2 const&) = delete;
+    HypreABecLap2 (HypreABecLap2 &&) = delete;
+    HypreABecLap2& operator= (HypreABecLap2 const&) = delete;
+    HypreABecLap2& operator= (HypreABecLap2 &&) = delete;
+
+    void solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol,
+                int maxiter, const BndryData& bndry, int max_bndry_order) override;
 
 private :
 
-    HYPRE_SStructGrid     hgrid = NULL;
-    HYPRE_SStructStencil  stencil = NULL;
-    HYPRE_SStructGraph    graph = NULL;
-    HYPRE_SStructMatrix   A = NULL;
-    HYPRE_SStructVector   b = NULL;
-    HYPRE_SStructVector   x = NULL;
-    HYPRE_Solver          solver = NULL;
+    HYPRE_SStructGrid     hgrid = nullptr;
+    HYPRE_SStructStencil  stencil = nullptr;
+    HYPRE_SStructGraph    graph = nullptr;
+    HYPRE_SStructMatrix   A = nullptr;
+    HYPRE_SStructVector   b = nullptr;
+    HYPRE_SStructVector   x = nullptr;
+    HYPRE_Solver          solver = nullptr;
 
     void getSolution (MultiFab& soln);
 

@@ -22,7 +22,7 @@ print_usage (int,
              char* argv[])
 {
   std::cerr << "usage:\n";
-  std::cerr << argv[0] << " infile=<plotfilename> varName=v1 v2 ... \n";
+  std::cerr << argv[0] << " infile=<plotfilename> varNames=v1 v2 ... \n";
   exit(1);
 }
 

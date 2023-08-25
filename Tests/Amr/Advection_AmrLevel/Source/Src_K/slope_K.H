@@ -1,8 +1,9 @@
 #ifndef slope_K_H_
 #define slope_K_H_
 
+#include <AMReX_Array4.H>
 #include <AMReX_Box.H>
-#include <AMReX_Geometry.H>
+#include <AMReX_REAL.H>
 #include <AMReX_Math.H>
 
 AMREX_GPU_DEVICE
@@ -11,7 +12,7 @@ void slopex2(amrex::Box const& bx,
              amrex::Array4<amrex::Real> const& dq,
              amrex::Array4<amrex::Real const> const& q)
 {
-    using namespace amrex;
+    using amrex::Real;
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -22,11 +23,11 @@ void slopex2(amrex::Box const& bx,
                 Real dlft = q(i,j,k) - q(i-1,j,k);
                 Real drgt = q(i+1,j,k) - q(i,j,k);
                 Real dcen = Real(0.5)*(dlft+drgt);
-                Real dsgn = amrex::Math::copysign(Real(1.0), dcen);
-                Real dslop = Real(2.0) * ((amrex::Math::abs(dlft) < amrex::Math::abs(drgt)) ?
-                                           amrex::Math::abs(dlft) : amrex::Math::abs(drgt));
+                Real dsgn = std::copysign(Real(1.0), dcen);
+                Real dslop = Real(2.0) * ((std::abs(dlft) < std::abs(drgt)) ?
+                                           std::abs(dlft) : std::abs(drgt));
                 Real dlim = (dlft*drgt >= Real(0.0)) ? dslop : Real(0.0);
-                dq(i,j,k) = dsgn*amrex::min(dlim, amrex::Math::abs(dcen));
+                dq(i,j,k) = dsgn*amrex::min(dlim, std::abs(dcen));
             }
         }
     }
@@ -39,7 +40,7 @@ void slopex4(amrex::Box const& bx,
              amrex::Array4<amrex::Real const> const& q,
              amrex::Array4<amrex::Real const> const& dq)
 {
-    using namespace amrex;
+    using amrex::Real;
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -50,12 +51,12 @@ void slopex4(amrex::Box const& bx,
                 Real dlft = q(i,j,k) - q(i-1,j,k);
                 Real drgt = q(i+1,j,k) - q(i,j,k);
                 Real dcen = Real(0.5)*(dlft+drgt);
-                Real dsgn = amrex::Math::copysign(Real(1.0), dcen);
-                Real dslop = Real(2.0) * ((amrex::Math::abs(dlft) < amrex::Math::abs(drgt)) ?
-                                           amrex::Math::abs(dlft) : amrex::Math::abs(drgt));
+                Real dsgn = std::copysign(Real(1.0), dcen);
+                Real dslop = Real(2.0) * ((std::abs(dlft) < std::abs(drgt)) ?
+                                           std::abs(dlft) : std::abs(drgt));
                 Real dlim = (dlft*drgt >= Real(0.0)) ? dslop : Real(0.0);
                 Real dq1 = Real(4.0/3.0)*dcen - Real(1.0/6.0)*(dq(i+1,j,k) + dq(i-1,j,k));
-                dq4(i,j,k) = dsgn*amrex::min(dlim, amrex::Math::abs(dq1));
+                dq4(i,j,k) = dsgn*amrex::min(dlim, std::abs(dq1));
             }
         }
     }
@@ -69,7 +70,7 @@ void slopey2(amrex::Box const& bx,
              amrex::Array4<amrex::Real> const& dq,
              amrex::Array4<amrex::Real const> const& q)
 {
-    using namespace amrex;
+    using amrex::Real;
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -80,11 +81,11 @@ void slopey2(amrex::Box const& bx,
                 Real dlft = q(i,j,k) - q(i,j-1,k);
                 Real drgt = q(i,j+1,k) - q(i,j,k);
                 Real dcen = Real(0.5)*(dlft+drgt);
-                Real dsgn = amrex::Math::copysign(Real(1.0), dcen);
-                Real dslop = Real(2.0) * ((amrex::Math::abs(dlft) < amrex::Math::abs(drgt)) ?
-                                           amrex::Math::abs(dlft) : amrex::Math::abs(drgt));
+                Real dsgn = std::copysign(Real(1.0), dcen);
+                Real dslop = Real(2.0) * ((std::abs(dlft) < std::abs(drgt)) ?
+                                           std::abs(dlft) : std::abs(drgt));
                 Real dlim = (dlft*drgt >= Real(0.0)) ? dslop : Real(0.0);
-                dq(i,j,k) = dsgn*amrex::min(dlim, amrex::Math::abs(dcen));
+                dq(i,j,k) = dsgn*amrex::min(dlim, std::abs(dcen));
             }
         }
     }
@@ -97,7 +98,7 @@ void slopey4(amrex::Box const& bx,
              amrex::Array4<amrex::Real const> const& q,
              amrex::Array4<amrex::Real const> const& dq)
 {
-    using namespace amrex;
+    using amrex::Real;
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -108,12 +109,12 @@ void slopey4(amrex::Box const& bx,
                 Real dlft = q(i,j,k) - q(i,j-1,k);
                 Real drgt = q(i,j+1,k) - q(i,j,k);
                 Real dcen = Real(0.5)*(dlft+drgt);
-                Real dsgn = amrex::Math::copysign(Real(1.0), dcen);
-                Real dslop = Real(2.0) * ((amrex::Math::abs(dlft) < amrex::Math::abs(drgt)) ?
-                                           amrex::Math::abs(dlft) : amrex::Math::abs(drgt));
+                Real dsgn = std::copysign(Real(1.0), dcen);
+                Real dslop = Real(2.0) * ((std::abs(dlft) < std::abs(drgt)) ?
+                                           std::abs(dlft) : std::abs(drgt));
                 Real dlim = (dlft*drgt >= Real(0.0)) ? dslop : Real(0.0);
                 Real dq1 = Real(4.0/3.0)*dcen - Real(1.0/6.0)*(dq(i,j+1,k) + dq(i,j-1,k));
-                dq4(i,j,k) = dsgn*amrex::min(dlim, amrex::Math::abs(dq1));
+                dq4(i,j,k) = dsgn*amrex::min(dlim, std::abs(dq1));
             }
         }
     }
@@ -128,7 +129,7 @@ void slopez2(amrex::Box const& bx,
              amrex::Array4<amrex::Real> const& dq,
              amrex::Array4<amrex::Real const> const& q)
 {
-    using namespace amrex;
+    using amrex::Real;
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -139,11 +140,11 @@ void slopez2(amrex::Box const& bx,
                 Real dlft = q(i,j,k) - q(i,j,k-1);
                 Real drgt = q(i,j,k+1) - q(i,j,k);
                 Real dcen = Real(0.5)*(dlft+drgt);
-                Real dsgn = amrex::Math::copysign(Real(1.0), dcen);
-                Real dslop = Real(2.0) * ((amrex::Math::abs(dlft) < amrex::Math::abs(drgt)) ?
-                                           amrex::Math::abs(dlft) : amrex::Math::abs(drgt));
+                Real dsgn = std::copysign(Real(1.0), dcen);
+                Real dslop = Real(2.0) * ((std::abs(dlft) < std::abs(drgt)) ?
+                                           std::abs(dlft) : std::abs(drgt));
                 Real dlim = (dlft*drgt >= Real(0.0)) ? dslop : Real(0.0);
-                dq(i,j,k) = dsgn*amrex::min(dlim, amrex::Math::abs(dcen));
+                dq(i,j,k) = dsgn*amrex::min(dlim, std::abs(dcen));
             }
         }
     }
@@ -156,7 +157,7 @@ void slopez4(amrex::Box const& bx,
              amrex::Array4<amrex::Real const> const& q,
              amrex::Array4<amrex::Real const> const& dq)
 {
-    using namespace amrex;
+    using amrex::Real;
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -167,12 +168,12 @@ void slopez4(amrex::Box const& bx,
                 Real dlft = q(i,j,k) - q(i,j,k-1);
                 Real drgt = q(i,j,k+1) - q(i,j,k);
                 Real dcen = Real(0.5)*(dlft+drgt);
-                Real dsgn = amrex::Math::copysign(Real(1.0), dcen);
-                Real dslop = Real(2.0) * ((amrex::Math::abs(dlft) < amrex::Math::abs(drgt)) ?
-                                           amrex::Math::abs(dlft) : amrex::Math::abs(drgt));
+                Real dsgn = std::copysign(Real(1.0), dcen);
+                Real dslop = Real(2.0) * ((std::abs(dlft) < std::abs(drgt)) ?
+                                           std::abs(dlft) : std::abs(drgt));
                 Real dlim = (dlft*drgt >= Real(0.0)) ? dslop : Real(0.0);
                 Real dq1 = Real(4.0/3.0)*dcen - Real(1.0/6.0)*(dq(i,j,k+1) + dq(i,j,k-1));
-                dq4(i,j,k) = dsgn*amrex::min(dlim, amrex::Math::abs(dq1));
+                dq4(i,j,k) = dsgn*amrex::min(dlim, std::abs(dq1));
             }
         }
     }

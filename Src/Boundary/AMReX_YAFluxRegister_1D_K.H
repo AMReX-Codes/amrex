@@ -2,13 +2,14 @@
 #define AMREX_YAFLUXREGISTER_1D_K_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_FArrayBox.H>
+#include <AMReX_BaseFab.H>
 
 namespace amrex {
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void yafluxreg_crseadd (Box const& bx, Array4<Real> const& d, Array4<int const> const& flag,
-                        Array4<Real const> const& fx, Real dtdx, int nc) noexcept
+void yafluxreg_crseadd (Box const& bx, Array4<T> const& d, Array4<int const> const& flag,
+                        Array4<T const> const& fx, T dtdx, int nc) noexcept
 {
     auto const lo = amrex::lbound(bx);
     auto const hi = amrex::ubound(bx);
@@ -30,9 +31,10 @@ void yafluxreg_crseadd (Box const& bx, Array4<Real> const& d, Array4<int const> 
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void yafluxreg_fineadd (Box const& bx, Array4<Real> const& d, Array4<Real const> const& f,
-                        Real dtdx, int nc, int dirside, Dim3 const& rr) noexcept
+void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const& f,
+                        T dtdx, int nc, int dirside, Dim3 const& rr) noexcept
 {
     const auto lo = amrex::lbound(bx);
 
@@ -42,8 +44,8 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real> const& d, Array4<Real const>
         for (int n = 0; n < nc; ++n) {
             const int i = lo.x;
             const int ii = (i+1)*rr.x;
-            Real* AMREX_RESTRICT dp = &(d(i,0,0,n));
-            Real tmp = -dtdx*f(ii,0,0,n);
+            T* AMREX_RESTRICT dp = &(d(i,0,0,n));
+            T tmp = -dtdx*f(ii,0,0,n);
             HostDevice::Atomic::Add(dp, tmp);
         }
         break;
@@ -53,8 +55,8 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real> const& d, Array4<Real const>
         for (int n = 0; n < nc; ++n) {
             const int i = lo.x;
             const int ii = i*rr.x;
-            Real* AMREX_RESTRICT dp = &(d(i,0,0,n));
-            Real tmp = dtdx*f(ii,0,0,n);
+            T* AMREX_RESTRICT dp = &(d(i,0,0,n));
+            T tmp = dtdx*f(ii,0,0,n);
             HostDevice::Atomic::Add(dp, tmp);
         }
     }

@@ -55,8 +55,8 @@ public:
 
     friend class BoxDomain;
 
-    typedef Vector<Box>::iterator       iterator;
-    typedef Vector<Box>::const_iterator const_iterator;
+    using       iterator = Vector<Box>::iterator;
+    using const_iterator = Vector<Box>::const_iterator;
 
     //! Construct an empty BoxList with IndexType::TheCellType().
     BoxList ();
@@ -64,8 +64,8 @@ public:
     //! Make a boxList consisting of a single Box
     explicit BoxList (const Box& bx);
 
-    //! Construct an empty BoxList with IndexType btyp
-    explicit BoxList (IndexType btyp);
+    //! Construct an empty BoxList with IndexType _btype
+    explicit BoxList (IndexType _btype);
 
     //!  Construct a BoxList from a BoxArray.
     explicit BoxList (const BoxArray& ba);
@@ -82,6 +82,7 @@ public:
     //! Make a BoxList consisting of nboxes Boxes chopped in dir-direction from a single Box
     BoxList (const Box& bx, int nboxes, Direction dir);
 
+    ~BoxList () = default;
     BoxList (const BoxList& rhs) = default;
     BoxList (BoxList&& rhs) = default;
     BoxList& operator= (const BoxList& rhs) = default;
@@ -92,9 +93,9 @@ public:
     //! Append a Box to this BoxList.
     void push_back (const Box& bn) { BL_ASSERT(ixType() == bn.ixType()); m_lbox.push_back(bn); }
 
-    Box& front () noexcept { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
+    [[nodiscard]] Box& front () noexcept { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
 
-    const Box& front () const noexcept { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
+    [[nodiscard]] const Box& front () const noexcept { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
 
     //! Join the BoxList to ourselves.
     void join (const BoxList& blist);
@@ -106,33 +107,35 @@ public:
     //! Remove all Boxes from this BoxList.
     void clear ();
     //! The number of Boxes in this BoxList.
-    Long size () const noexcept { return m_lbox.size(); }
+    [[nodiscard]] Long size () const noexcept { return m_lbox.size(); }
 
-    std::size_t capacity () const noexcept { return m_lbox.capacity(); }
+    [[nodiscard]] std::size_t capacity () const noexcept { return m_lbox.capacity(); }
 
-    iterator begin () noexcept { return m_lbox.begin(); }
-    const_iterator begin () const noexcept { return m_lbox.begin(); }
+    [[nodiscard]] iterator begin () noexcept { return m_lbox.begin(); }
+    [[nodiscard]] const_iterator begin () const noexcept { return m_lbox.cbegin(); }
+    [[nodiscard]] const_iterator cbegin () const noexcept { return m_lbox.cbegin(); }
 
-    iterator end () noexcept { return m_lbox.end(); }
-    const_iterator end () const noexcept { return m_lbox.end(); }
+    [[nodiscard]] iterator end () noexcept { return m_lbox.end(); }
+    [[nodiscard]] const_iterator end () const noexcept { return m_lbox.cend(); }
+    [[nodiscard]] const_iterator cend () const noexcept { return m_lbox.cend(); }
     /**
     * \brief True if this BoxList is valid; i.e. all the Boxes are
     * valid and they all have the same IndexType.  Also returns
     * true if the BoxList is empty.
     */
-    bool ok () const noexcept;
+    [[nodiscard]] bool ok () const noexcept;
     //! Is this BoxList equal to rhs?
     bool operator== (const BoxList& rhs) const;
     //! Is this BoxList notequal to rhs?
     bool operator!= (const BoxList& rhs) const;
     //! Is this BoxList empty?
-    bool isEmpty () const noexcept { return m_lbox.empty(); }
+    [[nodiscard]] bool isEmpty () const noexcept { return m_lbox.empty(); }
     //! Is this BoxList not empty?
-    bool isNotEmpty () const noexcept { return !m_lbox.empty(); }
+    [[nodiscard]] bool isNotEmpty () const noexcept { return !m_lbox.empty(); }
     //! True if the set of intersecting Boxes is empty.
-    bool isDisjoint () const;
+    [[nodiscard]] bool isDisjoint () const;
     //! True if all Boxes in bl are contained in this BoxList.
-    bool contains (const BoxList& bl) const;
+    [[nodiscard]] bool contains (const BoxList& bl) const;
     //! Modify this BoxList to contain only its intersection with Box b.
     BoxList& intersect (const Box& b);
     //! Modify this BoxList to contain only its intersection with BoxList bl.
@@ -183,9 +186,9 @@ public:
     //! Forces each Box in the BoxList to have dimth side of length <= chunk[dim].
     BoxList& maxSize (const IntVect& chunk);
     //! Returns smallest Box that contains all Boxes in this BoxList.
-    Box minimalBox () const;
+    [[nodiscard]] Box minimalBox () const;
     //! Returns the IndexType of Boxes in this BoxList.
-    IndexType ixType () const noexcept { return btype; }
+    [[nodiscard]] IndexType ixType () const noexcept { return btype; }
     //! Set the type of the BoxList.  It's an error if the BoxList isn't empty.
     void set (IndexType ixtyp) noexcept { BL_ASSERT(m_lbox.empty()); btype = ixtyp; }
     /**
@@ -206,9 +209,9 @@ public:
     BoxList& convert (IndexType typ) noexcept;
 
     //! Returns a reference to the Vector<Box>.
-    Vector<Box>& data() noexcept { return m_lbox; }
+    [[nodiscard]] Vector<Box>& data () noexcept { return m_lbox; }
     //! Returns a constant reference to the Vector<Box>.
-    const Vector<Box>& data() const noexcept { return m_lbox; }
+    [[nodiscard]] const Vector<Box>& data () const noexcept { return m_lbox; }
 
     void swap (BoxList& rhs) {
         std::swap(m_lbox, rhs.m_lbox);

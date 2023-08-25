@@ -1,13 +1,13 @@
 #include "Profiler.h"
 #include "Error.h"
-#include "VTKUtils.h"
+#include "SVTKUtils.h"
 #include "MeshMetadata.h"
-// vtk includes
-#include <vtkPolyData.h>
-#include <vtkDataSetAttributes.h>
-#include <vtkCellData.h>
-#include <vtkPointData.h>
-#include <vtkMultiBlockDataSet.h>
+// svtk includes
+#include <svtkPolyData.h>
+#include <svtkDataSetAttributes.h>
+#include <svtkCellData.h>
+#include <svtkPointData.h>
+#include <svtkMultiBlockDataSet.h>
 
 
 
@@ -18,20 +18,20 @@
 namespace amrex
 {
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>*
-ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New()
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>*
+ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::New()
 {
-  auto result = new ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  auto result = new ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>;
   result->InitializeObjectBase();
   return result;
 }
-// senseiNewMacro(ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>);
+// senseiNewMacro(ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>);
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetDataSource(
-    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::SetDataSource(
+    amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt> * particles,
     const std::map<std::string, std::vector<int>> & rStructs,
     const std::map<std::string, int> & iStructs,
     const std::map<std::string, std::vector<int>> & rArrays,
@@ -52,21 +52,21 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetData
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetArrayNames(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::SetArrayNames(
   const std::map<std::string, std::vector<int>> & rStructs,
   const std::map<std::string, int> & iStructs,
   const std::map<std::string, std::vector<int>> & rArrays,
   const std::map<std::string, int> & iArrays)
 {
-    if(rStructs.size() <= NStructReal)
+    if(rStructs.size() <= ParticleType::NReal)
   {
     // check that no indices from the rStructs map exceed allowable value
     for(auto s : rStructs)
     {
       for(auto i : s.second)
       {
-        if(i >= NStructReal)
+        if(i >= ParticleType::NReal)
         {
           SENSEI_ERROR("rStruct index exceeds internal storage size");
           return -1;
@@ -81,12 +81,12 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetArra
     return -1;
   }
 
-  if(iStructs.size() <= NStructInt)
+  if(iStructs.size() <= ParticleType::NInt)
   {
     // check that no indices from the iStructs map exceed allowable value
     for(auto s : iStructs)
     {
-      if(s.second >= NStructInt)
+      if(s.second >= ParticleType::NInt)
         {
           SENSEI_ERROR("iStructs index exceeds internal storage size");
           return -1;
@@ -143,8 +143,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetArra
   return 0;
 }
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetNumberOfMeshes(unsigned int &numMeshes)
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetNumberOfMeshes(unsigned int &numMeshes)
 {
   numMeshes = 1;
   return 0;
@@ -152,8 +152,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetNumb
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshName(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshName(
   unsigned int id, std::string &meshName)
 {
   meshName = m_particlesName;
@@ -163,8 +163,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshHasGhostNodes(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshHasGhostNodes(
   const std::string &meshName,
   int &nLayers)
 {
@@ -175,8 +175,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshHasGhostCells(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshHasGhostCells(
   const std::string &meshName,
   int &nLayers)
 {
@@ -187,14 +187,14 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetNumberOfArrays(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetNumberOfArrays(
   const std::string &meshName,
   int association,
   unsigned int &numberOfArrays)
 {
   numberOfArrays = 0;
-  if(association == vtkDataObject::POINT)
+  if(association == svtkDataObject::POINT)
   {
     numberOfArrays = m_realStructs.size()
                    + m_intStructs.size()
@@ -206,14 +206,14 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetNumb
 #endif
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetArrayName(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetArrayName(
   const std::string &meshName,
   int association,
   unsigned int index,
   std::string &arrayName)
 {
-  if(association == vtkDataObject::POINT)
+  if(association == svtkDataObject::POINT)
   {
     if(index < m_realStructs.size())
     {
@@ -249,11 +249,11 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetArra
 #endif
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMesh(
   const std::string &meshName,
   bool structureOnly,
-  vtkDataObject *&mesh)
+  svtkDataObject *&mesh)
 {
   mesh = nullptr;
   int nprocs = 1;
@@ -266,7 +266,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
     SENSEI_ERROR("No mesh named \"" << meshName << "\"")
     return -1;
   }
-  vtkMultiBlockDataSet* mb = vtkMultiBlockDataSet::New();
+  svtkMultiBlockDataSet* mb = svtkMultiBlockDataSet::New();
 
   if (structureOnly)
   {
@@ -275,7 +275,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
   }
 
   mb->SetNumberOfBlocks(nprocs);
-  vtkPolyData *pd = BuildParticles();
+  svtkPolyData *pd = BuildParticles();
   mb->SetBlock(rank, pd);
   pd->Delete();
   mesh = mb;
@@ -284,9 +284,9 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhostNodesArray(
-  vtkDataObject*,
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddGhostNodesArray(
+  svtkDataObject*,
   const std::string &meshName)
 {
   if (meshName != m_particlesName)
@@ -298,9 +298,9 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhos
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhostCellsArray(
-  vtkDataObject*,
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddGhostCellsArray(
+  svtkDataObject*,
   const std::string &meshName)
 {
   if (meshName != m_particlesName)
@@ -312,9 +312,9 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhos
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddArray(
-  vtkDataObject* mesh,
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddArray(
+  svtkDataObject* mesh,
   const std::string &meshName,
   int association,
   const std::string &arrayName)
@@ -325,7 +325,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddArra
     return -1;
   }
 
-  if (association != vtkDataObject::POINT)
+  if (association != svtkDataObject::POINT)
   {
     SENSEI_ERROR("Invalid association " << association);
     return -1;
@@ -356,8 +356,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddArra
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReleaseData()
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::ReleaseData()
 {
   this->m_particles = nullptr;
   return 0;
@@ -365,8 +365,8 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::Release
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR >= 3
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshMetadata(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshMetadata(
   unsigned int id,
   sensei::MeshMetadataPtr &metadata)
 {
@@ -393,10 +393,10 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
   metadata->MeshName = m_particlesName;
 
   // container mesh type (all)
-  metadata->MeshType = VTK_MULTIBLOCK_DATA_SET;
+  metadata->MeshType = SVTK_MULTIBLOCK_DATA_SET;
 
   // block mesh type (all)
-  metadata->BlockType = VTK_POLY_DATA;
+  metadata->BlockType = SVTK_POLY_DATA;
 
   // global number of blocks (all)
   metadata->NumBlocks = nprocs;
@@ -412,9 +412,9 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 
   // type enum of point data (unstructured, optional)
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-  metadata->CoordinateType = VTK_FLOAT;
+  metadata->CoordinateType = SVTK_FLOAT;
 #else
-  metadata->CoordinateType = VTK_DOUBLE;
+  metadata->CoordinateType = SVTK_DOUBLE;
 #endif
 
   // total number of points in all blocks (all, optional)
@@ -467,19 +467,19 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
   metadata->ArrayCentering = {};
   for(auto s : m_realStructs)
   {
-    metadata->ArrayCentering.push_back(vtkDataObject::POINT);
+    metadata->ArrayCentering.push_back(svtkDataObject::POINT);
   }
   for(auto s : m_intStructs)
   {
-    metadata->ArrayCentering.push_back(vtkDataObject::POINT);
+    metadata->ArrayCentering.push_back(svtkDataObject::POINT);
   }
   for(auto s : m_realArrays)
   {
-    metadata->ArrayCentering.push_back(vtkDataObject::POINT);
+    metadata->ArrayCentering.push_back(svtkDataObject::POINT);
   }
   for(auto s : m_intArrays)
   {
-    metadata->ArrayCentering.push_back(vtkDataObject::POINT);
+    metadata->ArrayCentering.push_back(svtkDataObject::POINT);
   }
 
   // number of components of each array (all)
@@ -506,26 +506,26 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
   for(auto s : m_realStructs)
   {
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-    metadata->ArrayType.push_back(VTK_FLOAT);
+    metadata->ArrayType.push_back(SVTK_FLOAT);
 #else
-    metadata->ArrayType.push_back(VTK_DOUBLE);
+    metadata->ArrayType.push_back(SVTK_DOUBLE);
 #endif
   }
   for(auto s : m_intStructs)
   {
-    metadata->ArrayType.push_back(VTK_INT);
+    metadata->ArrayType.push_back(SVTK_INT);
   }
   for(auto s : m_realArrays)
   {
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-    metadata->ArrayType.push_back(VTK_FLOAT);
+    metadata->ArrayType.push_back(SVTK_FLOAT);
 #else
-    metadata->ArrayType.push_back(VTK_DOUBLE);
+    metadata->ArrayType.push_back(SVTK_DOUBLE);
 #endif
   }
   for(auto s : m_intArrays)
   {
-    metadata->ArrayType.push_back(VTK_INT);
+    metadata->ArrayType.push_back(SVTK_INT);
   }
 
   // global min,max of each array (all, optional)
@@ -645,20 +645,20 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh
 #endif
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-vtkPolyData* ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::BuildParticles()
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+svtkPolyData* ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::BuildParticles()
 {
   // return particle data pd
-  vtkPolyData* pd  = vtkPolyData::New();
+  svtkPolyData* pd  = svtkPolyData::New();
 
   const auto& particles = this->m_particles->GetParticles();
   long long numParticles = this->m_particles->TotalNumberOfParticles(true, true);
 
   // allocate vertex storage for particles
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-  vtkNew<vtkFloatArray> coords;
+  svtkNew<svtkFloatArray> coords;
 #else
-  vtkNew<vtkDoubleArray> coords;
+  svtkNew<svtkDoubleArray> coords;
 #endif
   coords->SetName("coords");
   coords->SetNumberOfComponents(3);
@@ -669,12 +669,12 @@ vtkPolyData* ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>
   double *pCoords = coords->GetPointer(0);
 #endif
 
-  // use this to index into the VTK array as we copy level by level and tile by
+  // use this to index into the SVTK array as we copy level by level and tile by
   // tile
   long long ptId = 0;
 
   // allocate connectivity array for particles
-  vtkNew<vtkCellArray> vertex;
+  svtkNew<svtkCellArray> vertex;
   vertex->AllocateExact(numParticles, 1);
 
   // points->SetNumberOfPoints(numParticles);
@@ -682,21 +682,21 @@ vtkPolyData* ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>
   // loop over levels in the particle container
   for (int lev = 0; lev < particles.size();  lev++)
   {
-    using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
     for (MyParIter pti(*this->m_particles, lev); pti.isValid(); ++pti)
     {
-      auto& aos = pti.GetArrayOfStructs();
+      auto ptd = pti.GetParticleTile().getParticleTileData();
       auto numReal = pti.numParticles();
 
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = aos[i];
+        const auto& part = make_particle<ParticleType>{}(ptd, i);
         if (part.id() > 0)
         {
           // add a vertex type cell
           vertex->InsertNextCell(1);
           vertex->InsertCellPoint(ptId);
-          // copy the partilce coordinates
+          // copy the particle coordinates
 #if (AMREX_SPACEDIM == 1)
           pCoords[0] = part.pos(0);
           pCoords[1] = amrex_particle_real(0);
@@ -717,8 +717,8 @@ vtkPolyData* ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
   }
 
-  // pass the particle coordinates into VTK's point data structure.
-  vtkNew<vtkPoints> points;
+  // pass the particle coordinates into SVTK's point data structure.
+  svtkNew<svtkPoints> points;
   points->SetData(coords);
 
   // add point and vertex data to output mesh
@@ -729,16 +729,16 @@ vtkPolyData* ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesIDArray(
-  vtkDataObject* mesh)
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesIDArray(
+  svtkDataObject* mesh)
 {
-  auto vtk_particles = dynamic_cast<vtkPolyData*>(mesh);
+  auto svtk_particles = dynamic_cast<svtkPolyData*>(mesh);
   const auto& particles = this->m_particles->GetParticles();
   auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
 
- // allocate a VTK array for the data
-  vtkNew<vtkIntArray> idArray;
+ // allocate a SVTK array for the data
+  svtkNew<svtkIntArray> idArray;
   idArray->SetName("id");
   idArray->SetNumberOfComponents(1);
   idArray->SetNumberOfValues(nptsOnProc);
@@ -747,17 +747,17 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   int *partIds = idArray->GetPointer(0);
 
   // loop over particles and append their cpu value to the list
-  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
   long ptId = 0;
   for (int level = 0; level < particles.size(); ++level)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      auto& aos = pti.GetArrayOfStructs();
+      auto ptd = pti.GetParticleTile().getParticleTileData();
       auto numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = aos[i];
+        const auto &part = make_particle<ParticleType>{}(ptd, i);
         if (part.id() > 0)
         {
           partIds[i] = part.id();
@@ -767,23 +767,23 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
     }
   }
 
-  // the association for this array is vtkDataObject::POINT
-  vtk_particles->GetPointData()->AddArray(idArray);
+  // the association for this array is svtkDataObject::POINT
+  svtk_particles->GetPointData()->AddArray(idArray);
 
   return 0;
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesCPUArray(
-  vtkDataObject* mesh)
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesCPUArray(
+  svtkDataObject* mesh)
 {
-  auto vtk_particles = dynamic_cast<vtkPolyData*>(mesh);
+  auto svtk_particles = dynamic_cast<svtkPolyData*>(mesh);
   const auto& particles = this->m_particles->GetParticles();
   auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
 
-  // allocate a VTK array for the data
-  vtkNew<vtkIntArray> cpuArray;
+  // allocate a SVTK array for the data
+  svtkNew<svtkIntArray> cpuArray;
   cpuArray->SetName("cpu");
   cpuArray->SetNumberOfComponents(1);
   cpuArray->SetNumberOfValues(nptsOnProc);
@@ -792,16 +792,16 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   int* partCpu = cpuArray->GetPointer(0);
 
   // loop over particles and append their cpu value to the list
-  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level < particles.size(); ++level)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
-      auto& aos = pti.GetArrayOfStructs();
+      auto ptd = pti.GetParticleTile().getParticleTileData();
       auto numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = aos[i];
+        const auto &part = make_particle<ParticleType>{}(ptd, i);
         if (part.id() > 0)
         {
           partCpu[i] = part.cpu();
@@ -811,17 +811,17 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
     }
   }
 
-  // the association for this array is vtkDataObject::POINT
-  vtk_particles->GetPointData()->AddArray(cpuArray);
+  // the association for this array is svtkDataObject::POINT
+  svtk_particles->GetPointData()->AddArray(cpuArray);
 
   return 0;
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesSOARealArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOARealArray(
   const std::string &arrayName,
-  vtkDataObject* mesh)
+  svtkDataObject* mesh)
 {
   const long nParticles = this->m_particles->TotalNumberOfParticles(true, true);
 
@@ -847,11 +847,11 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
     }
   }
 
-  // allocate the vtkArray
+  // allocate the svtkArray
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-  vtkNew<vtkFloatArray> data;
+  svtkNew<svtkFloatArray> data;
 #else
-  vtkNew<vtkDoubleArray> data;
+  svtkNew<svtkDoubleArray> data;
 #endif
   data->SetName(arrayName.c_str());
   data->SetNumberOfComponents(nComps);
@@ -863,7 +863,7 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   double* pData = data->GetPointer(0);
 #endif
 
-  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level < this->m_particles->numLevels(); ++level)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
@@ -896,19 +896,19 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   int rank = 0;
   MPI_Comm_rank(this->GetCommunicator(), &rank);
 
-  auto blocks = dynamic_cast<vtkMultiBlockDataSet*>(mesh);
+  auto blocks = dynamic_cast<svtkMultiBlockDataSet*>(mesh);
 
-  auto block = dynamic_cast<vtkPolyData*>(blocks->GetBlock(rank));
+  auto block = dynamic_cast<svtkPolyData*>(blocks->GetBlock(rank));
   block->GetPointData()->AddArray(data);
 
   return 0;
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesSOAIntArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOAIntArray(
   const std::string &arrayName,
-  vtkDataObject* mesh)
+  svtkDataObject* mesh)
 {
   // get the particles from the particle container
   auto nptsOnProc = this->m_particles->TotalNumberOfParticles(true, true);
@@ -931,14 +931,14 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
     return -1;
   }
 
-  vtkNew<vtkIntArray> data;
+  svtkNew<svtkIntArray> data;
   data->SetName(arrayName.c_str());
   data->SetNumberOfComponents(1);
   data->SetNumberOfValues(nptsOnProc);
   int* pData = data->GetPointer(0);
 
   // fill array
-  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level< this->m_particles->numLevels(); level++)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
@@ -967,19 +967,19 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   int rank = 0;
   MPI_Comm_rank(this->GetCommunicator(), &rank);
 
-  auto blocks = dynamic_cast<vtkMultiBlockDataSet*>(mesh);
+  auto blocks = dynamic_cast<svtkMultiBlockDataSet*>(mesh);
 
-  auto block = dynamic_cast<vtkPolyData*>(blocks->GetBlock(rank));
+  auto block = dynamic_cast<svtkPolyData*>(blocks->GetBlock(rank));
   block->GetPointData()->AddArray(data);
 
   return 0;
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesAOSRealArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSRealArray(
   const std::string &arrayName,
-  vtkDataObject* mesh)
+  svtkDataObject* mesh)
 {
   // get the particles from the particle container
   const auto& particles = this->m_particles->GetParticles();
@@ -1000,18 +1000,18 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   // check that the indices are within the templated storage spec
   for (auto i : indices)
   {
-    if (i >= NStructReal)
+    if (i >= ParticleType::NReal)
     {
       SENSEI_ERROR("Index out of bounds for real AOS named \"" << arrayName << "\"");
       return -1;
     }
   }
 
-  // allocate the vtk array
+  // allocate the svtk array
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-  vtkNew<vtkFloatArray> data;
+  svtkNew<svtkFloatArray> data;
 #else
-  vtkNew<vtkDoubleArray> data;
+  svtkNew<svtkDoubleArray> data;
 #endif
 
   data->SetName(arrayName.c_str());
@@ -1024,8 +1024,10 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   double *pData = data->GetPointer(0);
 #endif
 
+  if constexpr(!ParticleType::is_soa_particle) {
+
   // copy the data from each level
-  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level<particles.size();level++)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
@@ -1053,19 +1055,21 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   int rank = 0;
   MPI_Comm_rank(this->GetCommunicator(), &rank);
 
-  auto blocks = dynamic_cast<vtkMultiBlockDataSet*>(mesh);
+  auto blocks = dynamic_cast<svtkMultiBlockDataSet*>(mesh);
 
-  auto block = dynamic_cast<vtkPolyData*>(blocks->GetBlock(rank));
+  auto block = dynamic_cast<svtkPolyData*>(blocks->GetBlock(rank));
   block->GetPointData()->AddArray(data);
+
+  }
 
   return 0;
 }
 
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddParticlesAOSIntArray(
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSIntArray(
   const std::string &arrayName,
-  vtkDataObject* mesh)
+  svtkDataObject* mesh)
 {
   // get the particles from the particle container
   const auto& particles = this->m_particles->GetParticles();
@@ -1084,20 +1088,22 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   int index = ait->second;
 
   // check that the index are within the templated storage spec
-  if(index >= NStructInt)
+  if(index >= ParticleType::NInt)
   {
     SENSEI_ERROR("Index out of bounds for int AOS named \"" << arrayName << "\"");
     return -1;
   }
 
-  // allocate vtkArray
-  vtkNew<vtkIntArray> data;
+  if constexpr(!ParticleType::is_soa_particle) {
+
+  // allocate svtkArray
+  svtkNew<svtkIntArray> data;
   data->SetName(arrayName.c_str());
   data->SetNumberOfComponents(1);
   data->SetNumberOfValues(nptsOnProc);
   int* pData = data->GetPointer(0);
 
-  using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
   for (int level = 0; level<particles.size(); ++level)
   {
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
@@ -1121,11 +1127,12 @@ int ParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddPart
   int rank = 0;
   MPI_Comm_rank(this->GetCommunicator(), &rank);
 
-  auto blocks = dynamic_cast<vtkMultiBlockDataSet*>(mesh);
+  auto blocks = dynamic_cast<svtkMultiBlockDataSet*>(mesh);
 
-  auto block = dynamic_cast<vtkPolyData*>(blocks->GetBlock(rank));
+  auto block = dynamic_cast<svtkPolyData*>(blocks->GetBlock(rank));
   block->GetPointData()->AddArray(data);
 
+  }
 
   return 0;
 }

@@ -17,11 +17,6 @@ struct StructOfArrays {
     using RealVector = amrex::PODVector<ParticleReal, Allocator<ParticleReal> >;
     using IntVector = amrex::PODVector<int, Allocator<int> >;
 
-    StructOfArrays()
-        : m_num_neighbor_particles(0),
-          m_defined(false)
-        {}
-
     void define (int a_num_runtime_real, int a_num_runtime_int)
     {
         m_defined = true;
@@ -29,49 +24,92 @@ struct StructOfArrays {
         m_runtime_idata.resize(a_num_runtime_int );
     }
 
-    int NumRealComps () const noexcept { return NReal + m_runtime_rdata.size(); }
+    [[nodiscard]] int NumRealComps () const noexcept { return NReal + m_runtime_rdata.size(); }
 
-    int NumIntComps () const noexcept { return NInt + m_runtime_idata.size(); }
+    [[nodiscard]] int NumIntComps () const noexcept { return NInt + m_runtime_idata.size(); }
 
-    std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
-    std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }
+    [[nodiscard]] std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
+    [[nodiscard]] std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }
 
-    const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
-    const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
+    /** Get access to the particle Real Arrays (only compile-time components) */
+    [[nodiscard]] const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
+    /** Get access to the particle Int Arrays (only compile-time components) */
+    [[nodiscard]] const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
 
-    RealVector& GetRealData (const int index) {
+    /** Get access to a particle Real component Array (compile-time and runtime component)
+     *
+     * @param index component with 0...NReal-1 compile-time and NReal... runtime arguments
+     */
+    [[nodiscard]] RealVector& GetRealData (const int index) {
         AMREX_ASSERT(index >= 0 && index < NReal + static_cast<int>(m_runtime_rdata.size()));
-        if (index >= 0 && index < NReal) return m_rdata[index];
-        else {
+        if constexpr (NReal == 0) {
             AMREX_ASSERT(m_defined);
-            return m_runtime_rdata[index - NReal];
+            return m_runtime_rdata[index];
+        } else {
+            if (index < NReal) {
+                return m_rdata[index];
+            } else {
+                AMREX_ASSERT(m_defined);
+                return m_runtime_rdata[index - NReal];
+            }
         }
     }
 
-    const RealVector& GetRealData (const int index) const {
+    /** Get access to a particle Real component Array (compile-time and runtime component)
+     *
+     * @param index component with 0...NReal-1 compile-time and NReal... runtime arguments
+     */
+    [[nodiscard]] const RealVector& GetRealData (const int index) const {
         AMREX_ASSERT(index >= 0 && index < NReal + static_cast<int>(m_runtime_rdata.size()));
-        if (index >= 0 && index < NReal) return m_rdata[index];
-        else {
+        if constexpr (NReal == 0) {
             AMREX_ASSERT(m_defined);
-            return m_runtime_rdata[index - NReal];
+            return m_runtime_rdata[index];
+        } else {
+            if (index < NReal) {
+                return m_rdata[index];
+            } else {
+                AMREX_ASSERT(m_defined);
+                return m_runtime_rdata[index - NReal];
+            }
         }
     }
 
-    IntVector& GetIntData (const int index) {
+    /** Get access to a particle Int component Array (compile-time and runtime component)
+     *
+     * @param index component with 0...NInt-1 compile-time and NInt... runtime arguments
+     */
+    [[nodiscard]] IntVector& GetIntData (const int index) {
         AMREX_ASSERT(index >= 0 && index < NInt + static_cast<int>(m_runtime_idata.size()));
-        if (index >= 0 && index < NInt) return m_idata[index];
-        else {
+        if constexpr (NInt == 0) {
             AMREX_ASSERT(m_defined);
-            return m_runtime_idata[index - NInt];
+            return m_runtime_idata[index];
+        } else {
+            if (index < NInt) {
+                return m_idata[index];
+            } else {
+                AMREX_ASSERT(m_defined);
+                return m_runtime_idata[index - NInt];
+            }
         }
    }
 
-    const IntVector& GetIntData (const int index) const {
+   /** Get access to a particle Int component Array (compile-time and runtime component)
+    *
+    * @param index component with 0...NInt-1 compile-time and NInt... runtime arguments
+    * @return
+    */
+   [[nodiscard]] const IntVector& GetIntData (const int index) const {
         AMREX_ASSERT(index >= 0 && index < NInt + static_cast<int>(m_runtime_idata.size()));
-        if (index >= 0 && index < NInt) return m_idata[index];
-        else {
+        if constexpr (NInt == 0) {
             AMREX_ASSERT(m_defined);
-            return m_runtime_idata[index - NInt];
+            return m_runtime_idata[index];
+        } else {
+            if (index < NInt) {
+                return m_idata[index];
+            } else {
+                AMREX_ASSERT(m_defined);
+                return m_runtime_idata[index - NInt];
+            }
         }
     }
 
@@ -79,43 +117,52 @@ struct StructOfArrays {
     * \brief Returns the total number of particles (real and neighbor)
     *
     */
-    std::size_t size () const
+    [[nodiscard]] std::size_t size () const
     {
-        if (NReal > 0)
+        if constexpr (NReal > 0) {
             return m_rdata[0].size();
-        else if (NInt > 0)
+        } else if constexpr (NInt > 0) {
             return m_idata[0].size();
-        else if (m_runtime_rdata.size() > 0)
-            return m_runtime_rdata[0].size();
-        else if (m_runtime_idata.size() > 0)
-            return m_runtime_idata[0].size();
-        else
-            return 0;
+        } else {
+            if (!m_runtime_rdata.empty()) {
+                return m_runtime_rdata[0].size();
+            } else if (!m_runtime_idata.empty()) {
+                return m_runtime_idata[0].size();
+            } else {
+                return 0;
+            }
+        }
     }
 
     /**
-    * \brief Returns the number of real particles (excluding neighbors)
+    * \brief Returns whether the SoA is empty (i.e. has size() == 0)
     *
     */
-    int numParticles () const { return numRealParticles(); }
+    [[nodiscard]] bool empty () const { return this->size() == 0; }
 
     /**
     * \brief Returns the number of real particles (excluding neighbors)
     *
     */
-    int numRealParticles () const { return numTotalParticles()-m_num_neighbor_particles; }
+    [[nodiscard]] int numParticles () const { return numRealParticles(); }
+
+    /**
+    * \brief Returns the number of real particles (excluding neighbors)
+    *
+    */
+    [[nodiscard]] int numRealParticles () const { return numTotalParticles()-m_num_neighbor_particles; }
 
     /**
     * \brief Returns the number of neighbor particles (excluding reals)
     *
     */
-    int numNeighborParticles () const { return m_num_neighbor_particles; }
+    [[nodiscard]] int numNeighborParticles () const { return m_num_neighbor_particles; }
 
     /**
     * \brief Returns the total number of particles (real and neighbor)
     *
     */
-    int numTotalParticles () const { return size(); }
+    [[nodiscard]] int numTotalParticles () const { return size(); }
 
     void setNumNeighbors (int num_neighbors)
     {
@@ -124,17 +171,21 @@ struct StructOfArrays {
         resize(nrp + num_neighbors);
     }
 
-    int getNumNeighbors () { return m_num_neighbor_particles; }
+    [[nodiscard]] int getNumNeighbors () const { return m_num_neighbor_particles; }
 
     void resize (size_t count)
     {
-        for (int i = 0; i < NReal; ++i) m_rdata[i].resize(count);
-        for (int i = 0; i < NInt;  ++i) m_idata[i].resize(count);
-        for (int i = 0; i < int(m_runtime_rdata.size()); ++i) m_runtime_rdata[i].resize(count);
-        for (int i = 0; i < int(m_runtime_idata.size()); ++i) m_runtime_idata[i].resize(count);
+        if constexpr (NReal > 0) {
+            for (int i = 0; i < NReal; ++i) { m_rdata[i].resize(count); }
+        }
+        if constexpr (NInt > 0) {
+            for (int i = 0; i < NInt;  ++i) { m_idata[i].resize(count); }
+        }
+        for (int i = 0; i < int(m_runtime_rdata.size()); ++i) { m_runtime_rdata[i].resize(count); }
+        for (int i = 0; i < int(m_runtime_idata.size()); ++i) { m_runtime_idata[i].resize(count); }
     }
 
-    GpuArray<ParticleReal*, NReal> realarray ()
+    [[nodiscard]] GpuArray<ParticleReal*, NReal> realarray ()
     {
         GpuArray<Real*, NReal> arr;
         for (int i = 0; i < NReal; ++i)
@@ -144,7 +195,7 @@ struct StructOfArrays {
         return arr;
     }
 
-    GpuArray<int*, NInt> intarray ()
+    [[nodiscard]] GpuArray<int*, NInt> intarray ()
     {
         GpuArray<int*, NInt> arr;
         for (int i = 0; i < NInt; ++i)
@@ -154,7 +205,7 @@ struct StructOfArrays {
         return arr;
     }
 
-    int m_num_neighbor_particles;
+    int m_num_neighbor_particles{0};
 
 private:
     std::array<RealVector, NReal> m_rdata;
@@ -163,7 +214,7 @@ private:
     std::vector<RealVector> m_runtime_rdata;
     std::vector<IntVector > m_runtime_idata;
 
-    bool m_defined;
+    bool m_defined{false};
 };
 
 } // namespace amrex

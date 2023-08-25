@@ -37,6 +37,10 @@ class BLBTer
 {
 public:
     BLBTer(const std::string& s, const char* file, int line);
+    BLBTer (BLBTer const&) = delete;
+    BLBTer (BLBTer &&) = delete;
+    BLBTer& operator= (BLBTer const&) = delete;
+    BLBTer& operator= (BLBTer &&) = delete;
     ~BLBTer();
 private:
     std::string line_file;

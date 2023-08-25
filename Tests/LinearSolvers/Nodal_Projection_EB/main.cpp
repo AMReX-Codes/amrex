@@ -57,12 +57,14 @@ int main (int argc, char* argv[])
         }
 
 #ifndef AMREX_USE_HYPRE
-        if (use_hypre == 1)
-           amrex::Abort("Cant use hypre if we dont build with USE_HYPRE=TRUE");
+        if (use_hypre == 1) {
+            amrex::Abort("Cant use hypre if we dont build with USE_HYPRE=TRUE");
+        }
 #endif
 
-        if (n_cell%8 != 0)
-           amrex::Abort("n_cell must be a multiple of 8");
+        if (n_cell%8 != 0) {
+            amrex::Abort("n_cell must be a multiple of 8");
+        }
 
         int n_cell_y =   n_cell;
         int n_cell_x = 2*n_cell;

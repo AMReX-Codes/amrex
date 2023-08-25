@@ -61,6 +61,7 @@ ghost cells are filled when the right hand side function is called on that solut
    // integrate forward one step from `time` by `dt` to fill S_new
    integrator.advance(Sborder, S_new, time, dt);
 
+.. _sec:time_int:sundials:
 
 Using SUNDIALS
 ^^^^^^^^^^^^^^
@@ -247,7 +248,7 @@ The full set of integrator options are detailed as follows:
 
   ## *** Parameters Needed For SUNDIALS ARKODE Integrator ***
   ## integration.sundials.strategy specifies which ARKODE strategy to use.
-  ## The available options are (without the quoatations):
+  ## The available options are (without the quotations):
   ## "ERK" = Explicit Runge Kutta
   ## "MRI" = Multirate Integrator
   ## "MRITEST" = Tests the Multirate Integrator by setting a zero-valued fast RHS function

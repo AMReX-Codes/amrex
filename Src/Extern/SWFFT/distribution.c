@@ -62,6 +62,8 @@
 
 #include "distribution_c.h"
 
+#include "verbosity.h"
+
 #ifndef USE_SLAB_WORKAROUND
 #define USE_SLAB_WORKAROUND 0
 #endif
@@ -151,10 +153,10 @@ void Rank_x_pencils(int * myrank,
 {
   int num_pen_in_cube_col=d->process_topology_2_x.nproc[1]/d->process_topology_3.nproc[1];
   int num_pen_in_cube_row=d->process_topology_2_x.nproc[2]/d->process_topology_3.nproc[2];
-  if(num_pen_in_cube_col == 0)
+  if(num_pen_in_cube_col == 0 && verbosity() > 2)
     fprintf(stderr,"num_cube_col%d ",
             d->process_topology_2_x.nproc[1]/d->process_topology_3.nproc[1]);
-  if(num_pen_in_cube_row ==0)
+  if(num_pen_in_cube_row == 0 && verbosity() > 2)
     fprintf(stderr,"num_cube_row%d ", d->process_topology_3.nproc[2]);
   assert(num_pen_in_cube_col !=0 && num_pen_in_cube_row !=0);
   int alpha = coord[1]%num_pen_in_cube_col;
@@ -226,10 +228,10 @@ void Rank_z_pencils(int * myrank,
   int num_pen_in_cube_col = d->process_topology_2_z.nproc[1]/d->process_topology_3.nproc[1];
   int num_pen_in_cube_row = d->process_topology_2_z.nproc[0]/d->process_topology_3.nproc[0];
   int num_pen_in_cube = d->process_topology_3.nproc[2];
-  if(num_pen_in_cube_col == 0)
+  if(num_pen_in_cube_col == 0 && verbosity() > 2)
     fprintf(stderr,"num_cube_col%d ",
             d->process_topology_2_z.nproc[1]/d->process_topology_3.nproc[1]);
-  if(num_pen_in_cube_row == 0)
+  if(num_pen_in_cube_row == 0 && verbosity() > 2)
     fprintf(stderr,"num_cube_row%d ", d->process_topology_3.nproc[2]);
   assert(num_pen_in_cube_col !=0 && num_pen_in_cube_row !=0);
   int alpha = coord[1]%num_pen_in_cube_col;
@@ -306,7 +308,7 @@ void distribution_init(MPI_Comm comm,
   // Map this rank to the correct grid
   self = d->gridmap[self];
 
-  if (!self)
+  if (!self && verbosity() > 2)
     printf("Initializing redistribution using a %s layout on %d ranks.\n",
 #ifdef PENCIL
            "pencil"
@@ -327,7 +329,7 @@ void distribution_init(MPI_Comm comm,
   //process_topology_1.nproc is filled with number of processors in each dim
   MPI_Dims_create(nproc, ndim, d->process_topology_1.nproc);
 
-  if(self == 0) {
+  if(self == 0 && verbosity() > 2) {
     printf("distribution 1D: [%d:%d:%d]\n",
            d->process_topology_1.nproc[0],
            d->process_topology_1.nproc[1],
@@ -335,7 +337,7 @@ void distribution_init(MPI_Comm comm,
     fflush(stdout);
   }
 
-  if (d->debug && 0 == self) {
+  if (d->debug && 0 == self && verbosity() > 2) {
     fprintf(stderr, "Process grids:\n");
     fprintf(stderr, "  1d: ");
     for (int i = 0; i < ndim; ++i) {
@@ -365,7 +367,7 @@ void distribution_init(MPI_Comm comm,
   period[0] = period[1] = period[2] = 1;
   Custom3D_Dims_create(Ndims, nproc, ndim, d->process_topology_3.nproc);
 
-  if(self == 0) {
+  if(self == 0 && verbosity() > 2) {
     printf("distribution 3D: [%d:%d:%d]\n",
            d->process_topology_3.nproc[0],
            d->process_topology_3.nproc[1],
@@ -373,7 +375,7 @@ void distribution_init(MPI_Comm comm,
     fflush(stdout);
   }
 
-  if (d->debug && 0 == self) {
+  if(d->debug && 0 == self && verbosity() > 2) {
     fprintf(stderr, "  3d: ");
     for (int i = 0; i < ndim; ++i) {
       fprintf(stderr, "%d%s",
@@ -440,7 +442,7 @@ void distribution_init(MPI_Comm comm,
       && (n[0] % (d->process_topology_2_z.nproc[0]) == 0)
       && (n[0] % (d->process_topology_2_z.nproc[1]) == 0);
 
-    if(self==0 && debug && !check_z_dims)
+    if(self==0 && debug && !check_z_dims && verbosity() > 2)
       fprintf(stderr,"Need to fix Z PENCILS z_procs(%d,%d,%d) 3d.ns(%d,%d,%d) 2d_z.ns(%d,%d,%d).... \n",
               d->process_topology_2_z.nproc[0],
               d->process_topology_2_z.nproc[1],
@@ -459,7 +461,7 @@ void distribution_init(MPI_Comm comm,
        && ((d->process_topology_3.n[1]) % (d->process_topology_2_z.n[0]) == 0))
     {
 
-      if(self==0 && debug)
+      if(self==0 && debug && verbosity() > 2)
         fprintf(stderr,"Swapping Z pencils in initialization  (%d,%d,%d).... \n",
                 d->process_topology_2_z.nproc[0],
                 d->process_topology_2_z.nproc[1],
@@ -487,7 +489,7 @@ void distribution_init(MPI_Comm comm,
     dimensions
   */
   if(!check_z_dims){
-    if(self==0 && debug)
+    if(self==0 && debug && verbosity() > 2)
       fprintf(stderr,"MAKING Z PENCILS FIT zprocs(%d,%d,%d) z.ns(%d,%d,%d).... \n",
               d->process_topology_2_z.nproc[0],
               d->process_topology_2_z.nproc[1],
@@ -520,7 +522,7 @@ void distribution_init(MPI_Comm comm,
     d->process_topology_2_z.n[0] = n[0] / d->process_topology_2_z.nproc[0];
     d->process_topology_2_z.n[1] = n[1] / d->process_topology_2_z.nproc[1];
     d->process_topology_2_z.n[2] = n[2] / d->process_topology_2_z.nproc[2];
-    if(self==0 && debug)
+    if(self==0 && debug && verbosity() > 2)
       fprintf(stderr,"MAKING Z PENCILS FIT AFTER zprocs(%d,%d,%d) z.ns(%d,%d,%d)...\n",
               d->process_topology_2_z.nproc[0],
               d->process_topology_2_z.nproc[1],
@@ -541,7 +543,7 @@ void distribution_init(MPI_Comm comm,
     }
   }
 
-  if (d->debug && 0 == self) {
+  if (d->debug && 0 == self && verbosity() > 2) {
     fprintf(stderr, "  2d_z: ");
     for (int i = 0; i < ndim; ++i) {
       fprintf(stderr, "%d%s",
@@ -580,7 +582,7 @@ void distribution_init(MPI_Comm comm,
   //find the cartesian coord of the current rank (for the z_pencil)
   Coord_z_pencils(self,d->process_topology_2_z.self,d);
 
-  if(self == 0) {
+  if(self == 0 && verbosity() > 2) {
     printf("distribution 2z: [%d:%d:%d]\n",
            d->process_topology_2_z.nproc[0],
            d->process_topology_2_z.nproc[1],
@@ -610,7 +612,7 @@ void distribution_init(MPI_Comm comm,
       && ((d->process_topology_3.n[1]) % (d->process_topology_2_x.n[1]) == 0)
       && (n[0] % (d->process_topology_2_x.nproc[2]) == 0)
       && (n[0] % (d->process_topology_2_x.nproc[1]) == 0);
-    if(self==0 && debug && !check_x_dims)
+    if(self==0 && debug && !check_x_dims && verbosity() > 2)
       fprintf(stderr,"Need to fix X PENCILS x_procs(%d,%d,%d) 3d.ns(%d,%d,%d) 2d_x.ns(%d,%d,%d)...\n",
               d->process_topology_2_x.nproc[0],
               d->process_topology_2_x.nproc[1],
@@ -628,7 +630,7 @@ void distribution_init(MPI_Comm comm,
        && ((d->process_topology_3.n[2]) % (d->process_topology_2_x.n[1]) == 0)
        && ((d->process_topology_3.n[1]) % (d->process_topology_2_x.n[2]) == 0))
     {
-      if(self==0 && debug)
+      if(self==0 && debug && verbosity() > 2)
         fprintf(stderr,"Swapping X pencils in initialization .... \n");
       d->process_topology_2_x.nproc[0] = d->process_topology_2_x.nproc[0];
       int temp = d->process_topology_2_x.nproc[1];
@@ -652,7 +654,7 @@ void distribution_init(MPI_Comm comm,
     (1,np2*np1,np3) depending on the most even distribution it can.
   */
   if(!check_x_dims){
-    if(self==0 && debug)
+    if(self==0 && debug && verbosity() > 2)
       fprintf(stderr,"MAKING X PENCILS FIT xprocs(%d,%d,%d) x.ns(%d,%d,%d)...\n",
               d->process_topology_2_x.nproc[0],
               d->process_topology_2_x.nproc[1],
@@ -686,7 +688,7 @@ void distribution_init(MPI_Comm comm,
     d->process_topology_2_x.n[0] = n[0] / d->process_topology_2_x.nproc[0];
     d->process_topology_2_x.n[1] = n[1] / d->process_topology_2_x.nproc[1];
     d->process_topology_2_x.n[2] = n[2] / d->process_topology_2_x.nproc[2];
-    if(self==0 && debug)
+    if(self==0 && debug && verbosity() > 2)
       fprintf(stderr,"MAKING X PENCILS FIT AFTER xprocs(%d,%d,%d) x.ns(%d,%d,%d)...\n",
               d->process_topology_2_x.nproc[0],
               d->process_topology_2_x.nproc[1],
@@ -707,7 +709,7 @@ void distribution_init(MPI_Comm comm,
     }
   }
 
-  if (d->debug && 0 == self) {
+  if (d->debug && 0 == self && verbosity() > 2) {
     fprintf(stderr, "  2d_x: ");
     for (int i = 0; i < ndim; ++i) {
       fprintf(stderr, "%d%s",
@@ -716,7 +718,7 @@ void distribution_init(MPI_Comm comm,
     }
     fprintf(stderr, "\n");
   }
-  if(!check_x_dims && debug && (self==0)){
+  if(!check_x_dims && debug && (self==0) && verbosity() > 2){
     FILE * outfile;
     outfile= fopen("error.data","a");
     fprintf(outfile,"X DIMS FAILS:(%d,%d,%d) (%d,%d,%d) \n",
@@ -745,7 +747,7 @@ void distribution_init(MPI_Comm comm,
                   &d->process_topology_2_x.cart);
   Coord_x_pencils(self, d->process_topology_2_x.self, d);
 
-  if(self == 0) {
+  if(self == 0 && verbosity() > 2) {
     printf("distribution 2x: [%d:%d:%d]\n",
            d->process_topology_2_x.nproc[0],
            d->process_topology_2_x.nproc[1],
@@ -775,7 +777,7 @@ void distribution_init(MPI_Comm comm,
                     && ((d->process_topology_3.n[0]) % (d->process_topology_2_y.n[0]) == 0)
                     && (n[0] % (d->process_topology_2_y.nproc[2]) == 0)
                     && (n[0] % (d->process_topology_2_y.nproc[0]) == 0));
-    if(self==0 && debug && !check_y_dims)
+    if(self==0 && debug && !check_y_dims && verbosity() > 2)
       fprintf(stderr,"Need to fix Y PENCILS y_procs(%d,%d,%d) 3d.ns(%d,%d,%d) 2d_y.ns(%d,%d,%d)...\n",
               d->process_topology_2_y.nproc[0],
               d->process_topology_2_y.nproc[1],
@@ -792,7 +794,7 @@ void distribution_init(MPI_Comm comm,
        && ((d->process_topology_3.n[2]) % (d->process_topology_2_y.n[0]) == 0)
        && ((d->process_topology_3.n[0]) % (d->process_topology_2_y.n[2]) == 0))
     {
-      if(self==0 && debug)
+      if(self==0 && debug && verbosity() > 2)
         fprintf(stderr,"Swapping Y pencils in initialization .... \n");
 
       int temp = d->process_topology_2_y.nproc[0];
@@ -817,7 +819,7 @@ void distribution_init(MPI_Comm comm,
   (np1*np2,1,np3) depending on the most even distribution it can.
 */
   if(!check_y_dims){
-    if(self==0 && debug)
+    if(self==0 && debug && verbosity() > 2)
       fprintf(stderr,"MAKING Y PENCILS FIT yprocs(%d,%d,%d) y.ns(%d,%d,%d)...\n",
               d->process_topology_2_y.nproc[0],
               d->process_topology_2_y.nproc[1],
@@ -851,7 +853,7 @@ void distribution_init(MPI_Comm comm,
     d->process_topology_2_y.n[0] = n[0] / d->process_topology_2_y.nproc[0];
     d->process_topology_2_y.n[1] = n[1] / d->process_topology_2_y.nproc[1];
     d->process_topology_2_y.n[2] = n[2] / d->process_topology_2_y.nproc[2];
-    if(self==0 && debug)
+    if(self==0 && debug && verbosity() > 2)
       fprintf(stderr,"MAKING Y PENCILS FIT AFTER yprocs(%d,%d,%d) y.ns(%d,%d,%d)...\n",
               d->process_topology_2_y.nproc[0],
               d->process_topology_2_y.nproc[1],
@@ -871,7 +873,7 @@ void distribution_init(MPI_Comm comm,
     }
   }
 
-  if (d->debug && 0 == self) {
+  if (d->debug && 0 == self && verbosity() > 2) {
     fprintf(stderr, "  2d_y: ");
     for (int i = 0; i < ndim; ++i) {
       fprintf(stderr, "%d%s",
@@ -880,7 +882,7 @@ void distribution_init(MPI_Comm comm,
     }
     fprintf(stderr, "\n");
   }
-  if(!check_y_dims && debug && (self==0)){
+  if(!check_y_dims && debug && (self==0) && verbosity() > 2){
     FILE * outfile;
     outfile = fopen("error.data","a");
     fprintf(outfile,"Y DIMS FAILS:(%d,%d,%d) (%d,%d,%d) \n",
@@ -910,7 +912,7 @@ void distribution_init(MPI_Comm comm,
   //find the cartesian coord of the current rank (for the y_pencil)
   Coord_y_pencils(self,d->process_topology_2_y.self,d);
 
-  if(self == 0) {
+  if(self == 0 && verbosity() > 2) {
     printf("distribution 2y: [%d:%d:%d]\n",
            d->process_topology_2_y.nproc[0],
            d->process_topology_2_y.nproc[1],
@@ -934,12 +936,12 @@ void distribution_init(MPI_Comm comm,
        || myrank_x != self
        || myrank_cube != self)
       abort(); //means ranks were calculated wrong.
-    if (0 == self) {
+    if (0 == self && verbosity() > 2) {
       fprintf(stderr, "Process map:\n");
     }
     for (int p = 0; p < nproc; ++p) {
       MPI_Barrier(comm);
-      if (p == self) {
+      if (p == self && verbosity() > 2) {
         fprintf(stderr, "  %d: 1d = (%d, %d, %d), 2d_x = (%d, %d, %d) rank is= %d,2d_y = (%d, %d, %d) rank is= %d,2d_z = (%d, %d, %d) rank is= %d, 3d = (%d, %d, %d). rank is= %d\n",
                 self,
                 d->process_topology_1.self[0],
@@ -1022,7 +1024,7 @@ void distribution_init_explicit(MPI_Comm comm,
   MPI_Comm_rank(comm, &self);
   MPI_Comm_size(comm, &nproc);
 
-  if (!self) printf("Initializing redistribution using a %s layout on %d ranks.\n",
+  if (!self && verbosity() > 2) printf("Initializing redistribution using a %s layout on %d ranks.\n",
 #ifdef PENCIL
                     "pencil"
 #else
@@ -1057,7 +1059,7 @@ void distribution_init_explicit(MPI_Comm comm,
   d->process_topology_1.n[0] = n[0] / d->process_topology_1.nproc[0];
   d->process_topology_1.n[1] = n[1] / d->process_topology_1.nproc[1];
   d->process_topology_1.n[2] = n[2] / d->process_topology_1.nproc[2];
-  if (d->debug && 0 == self) {
+  if (d->debug && 0 == self && verbosity() > 2) {
     fprintf(stderr, "Process grids:\n");
     fprintf(stderr, "  1d: ");
     for (int i = 0; i < ndim; ++i) {
@@ -1070,7 +1072,7 @@ void distribution_init_explicit(MPI_Comm comm,
   period[0] = period[1] = period[2] = 1;
   MPI_Cart_create(comm, ndim, nproc_3d, period, 0, &d->process_topology_3.cart);
   Coord_cube(self,d->process_topology_3.self,d);
-  if (d->debug && 0 == self) {
+  if (d->debug && 0 == self && verbosity() > 2) {
     fprintf(stderr, "  3d: ");
     for (int i = 0; i < ndim; ++i) {
       fprintf(stderr, "%d%s", d->process_topology_3.nproc[i], separator(i, ndim));
@@ -1112,7 +1114,7 @@ void distribution_init_explicit(MPI_Comm comm,
   //in that dimension, otherwise, this error will happen).
   Coord_x_pencils(self,d->process_topology_2_x.self,d);
 
-  if (d->debug && 0 == self) {
+  if (d->debug && 0 == self && verbosity() > 2) {
     fprintf(stderr, "  2d_x: ");
     for (int i = 0; i < ndim; ++i) {
       fprintf(stderr, "%d%s", d->process_topology_2_x.nproc[i], separator(i, ndim));
@@ -1142,7 +1144,7 @@ void distribution_init_explicit(MPI_Comm comm,
   //in that dimension, otherwise, this error will happen).
   Coord_y_pencils(self,d->process_topology_2_y.self,d);
 
-  if (d->debug && 0 == self) {
+  if (d->debug && 0 == self && verbosity() > 2) {
     fprintf(stderr, "  2d_y: ");
     for (int i = 0; i < ndim; ++i) {
       fprintf(stderr, "%d%s", d->process_topology_2_y.nproc[i], separator(i, ndim));
@@ -1172,7 +1174,7 @@ void distribution_init_explicit(MPI_Comm comm,
   //in that dimension, otherwise, this error will happen).
   Coord_z_pencils(self,d->process_topology_2_z.self,d);
 
-  if (d->debug && 0 == self) {
+  if (d->debug && 0 == self && verbosity() > 2) {
     fprintf(stderr, "  2d_z: ");
     for (int i = 0; i < ndim; ++i) {
       fprintf(stderr, "%d%s", d->process_topology_2_z.nproc[i], separator(i, ndim));
@@ -1191,12 +1193,12 @@ void distribution_init_explicit(MPI_Comm comm,
     int myrank_x;
     Rank_x_pencils(&myrank_x,d->process_topology_2_x.self,d);
     if(myrank_z != self || myrank_y != self || myrank_x != self || myrank_cube != self)abort(); //means ranks were calculated wrong.
-    if (0 == self) {
+    if (0 == self && verbosity() > 2) {
       fprintf(stderr, "Process map:\n");
     }
     for (int p = 0; p < nproc; ++p) {
       MPI_Barrier(comm);
-      if (p == self) {
+      if (p == self && verbosity() > 2) {
         fprintf(stderr,
                 "  %d: 1d = (%d, %d, %d), 2d_x = (%d, %d, %d) rank (%d), 2d_y = (%d, %d, %d) rank (%d), 2d_z = (%d, %d, %d) rank (%d), 3d = (%d, %d, %d) rank (%d).\n",
                 self,
@@ -1538,11 +1540,11 @@ static void redistribute_2_and_3(const complex_t *a,
   //x_dim, y_dim and z_dim are the dimensions of the x,y,z axis of the pencil with respect to the original axis(where index 2 is into the grid, 1 is vertical translation and 0 is horizontal).
   switch(z_dim){
     case 0: x_dim=1; y_dim=2;
-      if((self == me) && print_me)fprintf(stderr, "DOING X PENCILS!...\n"); break;
+      if((self == me) && print_me && verbosity() > 2) fprintf(stderr, "DOING X PENCILS!...\n"); break;
     case 1: x_dim=2; y_dim=0;
-      if((self == me && print_me))fprintf(stderr, "DOING Y PENCILS!...\n"); break;
+      if((self == me && print_me && verbosity() > 2)) fprintf(stderr, "DOING Y PENCILS!...\n"); break;
     case 2: x_dim=0; y_dim=1;
-      if((self == me && print_me))fprintf(stderr, "DOING Z PENCILS!...\n"); break;
+      if((self == me && print_me && verbosity() > 2)) fprintf(stderr, "DOING Z PENCILS!...\n"); break;
     default: assert("incorrect inputted dimension");
   }
 
@@ -1630,11 +1632,11 @@ static void redistribute_2_and_3(const complex_t *a,
     pencil_dims[2]=d->process_topology_2_x.n[0];
   }
 
-  if((self == me) && print_me)fprintf(stderr, "%d, %d, %d, %d Dimensions!...\n", x_dim,y_dim,z_dim, p1max);
+  if((self == me) && print_me && verbosity() > 2) fprintf(stderr, "%d, %d, %d, %d Dimensions!...\n", x_dim,y_dim,z_dim, p1max);
 
   // communicate with our peers
   for (int p = 0; p < npeers; ++p) {
-    if((self == me) && print_me)fprintf(stderr, "%d, %d, %d Made it beg-for!...\n", self,p, npeers);
+    if((self == me) && print_me && verbosity() > 2) fprintf(stderr, "%d, %d, %d Made it beg-for!...\n", self,p, npeers);
 
     int d2_coord[3];
     int d2_peer;
@@ -1658,7 +1660,7 @@ static void redistribute_2_and_3(const complex_t *a,
     d2_coord[z_dim] += p * d->process_topology_3.n[z_dim];
 
 
-    if((self == me) && print_me)fprintf(stderr, "%d, %d, %d Coord!...\n", d2_coord[0],d2_coord[1],d2_coord[2]);
+    if((self == me) && print_me && verbosity() > 2) fprintf(stderr, "%d, %d, %d Coord!...\n", d2_coord[0],d2_coord[1],d2_coord[2]);
 
 
     //d2_array_start is the starting index of the chunk in the pencils local coordinates.
@@ -1666,7 +1668,7 @@ static void redistribute_2_and_3(const complex_t *a,
     d2_array_start[1] = d2_coord[y_dim] % pencil_sizes[y_dim];
     d2_array_start[2] = d2_coord[z_dim] % pencil_sizes[z_dim];
 
-    if (DEBUG_CONDITION || ((self== me) && print_me)) {
+    if ((DEBUG_CONDITION || ((self== me) && print_me)) && verbosity() > 2) {
       fprintf(stderr,
               "%d: pencil_sizes=(%d,%d,%d), cube_sizes=(%d,%d,%d), subsizes=(%d,%d,%d),d2_coord=(%d,%d,%d), d2_array_start=(%d,%d,%d) \n",
               self,
@@ -1695,22 +1697,22 @@ static void redistribute_2_and_3(const complex_t *a,
         }
       }
 
-      if((self == me) && print_me)fprintf(stderr, "%d, %d, %d, pencil_dims!...\n", pencil_dims[0],pencil_dims[1],pencil_dims[2]);
+      if((self == me) && print_me && verbosity() > 2) fprintf(stderr, "%d, %d, %d, pencil_dims!...\n", pencil_dims[0],pencil_dims[1],pencil_dims[2]);
     }
 
     // what peer in the 3d distribution owns this subarray?
     for (int i = 0; i < 3; ++i) {
       d3_peer_coord[i] = d2_coord[i] / d->process_topology_3.n[i];
     }
-    if((self == me) && print_me)fprintf(stderr, "%d, %d, %d Cube that hits pencil coord!...\n",d3_peer_coord[0],d3_peer_coord[1],d3_peer_coord[2]);
+    if((self == me) && print_me && verbosity() > 2) fprintf(stderr, "%d, %d, %d Cube that hits pencil coord!...\n",d3_peer_coord[0],d3_peer_coord[1],d3_peer_coord[2]);
     //find the rank of this peer.
     switch(z_dim){
       case 0: MPI_Cart_rank(d->process_topology_3.cart, d3_peer_coord, &d3_peer); break;
       case 1: MPI_Cart_rank(d->process_topology_3.cart, d3_peer_coord, &d3_peer); break;
       case 2: MPI_Cart_rank(d->process_topology_3.cart, d3_peer_coord, &d3_peer); break;
     }
-    if((self == me) && print_me)fprintf(stderr, "%d, %d, Made it half way!...\n", self,p);
-    if((self == me) && print_me)fprintf(stderr, "%d, %d, PEER!...\n", self,d3_peer);
+    if((self == me) && print_me && verbosity() > 2) fprintf(stderr, "%d, %d, Made it half way!...\n", self,p);
+    if((self == me) && print_me && verbosity() > 2) fprintf(stderr, "%d, %d, PEER!...\n", self,d3_peer);
 
     //By here in the for loop, we have broken the pencil into a chunk and found which cuboid it resides; over every iteration, the for-loop will break up the pencil in the z_dimension.
     //From here on we do the opposite. We divide the cuboid into chunks (that are the same size as the ones in the pencil), and determine which pencils own these chunks.
@@ -1768,7 +1770,7 @@ static void redistribute_2_and_3(const complex_t *a,
     if(z_dim==0 || z_dim ==1){
       d3_array_start[2]=d3_array_start[2]+subsizes[2]-1;
     }
-    if(print_me && (self==me))fprintf(stderr,"D3_array_start is (%d,%d,%d) and subsizes is (%d,%d,%d) \n",d3_array_start[0],d3_array_start[1],d3_array_start[2],subsizes[0],subsizes[1],subsizes[2]);
+    if(print_me && (self==me) && verbosity() > 2) fprintf(stderr,"D3_array_start is (%d,%d,%d) and subsizes is (%d,%d,%d) \n",d3_array_start[0],d3_array_start[1],d3_array_start[2],subsizes[0],subsizes[1],subsizes[2]);
 
 
     //If sending cube chunks to pencils, need to fill those chunks with data here. The chunks are filled in the order
@@ -1778,7 +1780,7 @@ static void redistribute_2_and_3(const complex_t *a,
     if(direction == REDISTRIBUTE_3_TO_2){
       int64_t ch_indx=0;
       int dims_size=cube_sizes[0]*cube_sizes[1]*cube_sizes[2];
-      if((self == me) && print_me)fprintf(stderr, "%d, %d, MAKE 3D Chunk...\n", self,d3_peer);
+      if((self == me) && print_me && verbosity() > 2) fprintf(stderr, "%d, %d, MAKE 3D Chunk...\n", self,d3_peer);
       switch(z_dim){
         case 0:
           for(int i2=d3_array_start[y_dim];i2>d3_array_start[y_dim]-subsizes[y_dim];i2--){//perhaps y_dim
@@ -1824,7 +1826,7 @@ static void redistribute_2_and_3(const complex_t *a,
       }
     }
 
-    if (DEBUG_CONDITION || ((self == me) && print_me)) {
+    if ((DEBUG_CONDITION || ((self == me) && print_me)) && verbosity() > 2) {
       fprintf(stderr,
               "%d: pencil_sizes=(%d,%d,%d), cube_sizes=(%d,%d,%d), subsizes=(%d,%d,%d), d3_coord=(%d,%d,%d), d3_array_start=(%d,%d,%d) \n",
               self,
@@ -1850,7 +1852,7 @@ static void redistribute_2_and_3(const complex_t *a,
       }
     }
     d2_peer_coord[z_dim] = 0;//since these are pencils, there is no two pencils in this direction.
-    if((self == me) && print_me)fprintf(stderr, "%d, %d, %d PENCIL that hits chunk!...\n",d2_peer_coord[0],d2_peer_coord[1],d2_peer_coord[2]);
+    if((self == me) && print_me && verbosity() > 2) fprintf(stderr, "%d, %d, %d PENCIL that hits chunk!...\n",d2_peer_coord[0],d2_peer_coord[1],d2_peer_coord[2]);
     switch(z_dim){
       //find its rank
       case 0:
@@ -1863,7 +1865,7 @@ static void redistribute_2_and_3(const complex_t *a,
         Rank_z_pencils(&d2_peer,d2_peer_coord,d);
         break;
     }
-    if((self == me) && print_me)fprintf(stderr, "%d, %d, %d Made it before comm!...\n", self,p, npeers);
+    if((self == me) && print_me && verbosity() > 2) fprintf(stderr, "%d, %d, %d Made it before comm!...\n", self,p, npeers);
 
     // record the communication to be done in a schedule. Make sure to map each grid to the correct rank
     if (direction == REDISTRIBUTE_3_TO_2) {
@@ -1881,27 +1883,27 @@ static void redistribute_2_and_3(const complex_t *a,
 
     if(direction == REDISTRIBUTE_3_TO_2){
 
-      if((self == me) && print_mess)fprintf(stderr, " I am %d, making request to receive from %d...\n", self,recv_peer);
+      if((self == me) && print_mess && verbosity() > 2) fprintf(stderr, " I am %d, making request to receive from %d...\n", self,recv_peer);
       if(!print_mess)MPI_Irecv((void *) d->d2_chunk, chunk_size, MPI_DOUBLE_COMPLEX, recv_peer, 0, d->process_topology_1.cart, &req1);
 
-      if((self == me) && print_mess)fprintf(stderr, " I am %d, making request to send to %d...\n", self,send_peer);
+      if((self == me) && print_mess && verbosity() > 2) fprintf(stderr, " I am %d, making request to send to %d...\n", self,send_peer);
       if(!print_mess)MPI_Isend((void *) d->d3_chunk, chunk_size, MPI_DOUBLE_COMPLEX, send_peer, 0, d->process_topology_1.cart, &req2);
 
-      if((self == me) && print_mess)fprintf(stderr, " I am %d, waiting to receive from %d...\n", self,recv_peer);
+      if((self == me) && print_mess && verbosity() > 2) fprintf(stderr, " I am %d, waiting to receive from %d...\n", self,recv_peer);
       //fprintf(stderr, " I am %d, waiting to receive from %d...\n", self,recv_peer);
       if(!print_mess)MPI_Wait(&req1,MPI_STATUS_IGNORE);
 
       //if((self == me || self == 1 || self == 2 || self == 3) && print_me)fprintf(stderr, " I am %d, waiting to send to %d...\n", self,send_peer);
       //fprintf(stderr, " I am %d, waiting to send to %d...\n", self,send_peer);
-      if(self==me && print_mess)fprintf(stderr, " I am %d, waiting to send to %d...\n", self,send_peer);
+      if(self==me && print_mess && verbosity() > 2) fprintf(stderr, " I am %d, waiting to send to %d...\n", self,send_peer);
       if(!print_mess)MPI_Wait(&req2,MPI_STATUS_IGNORE);
 
       //fill the local array with the received chunk.
       int64_t ch_indx=0;
       int dims_size=pencil_dims[0]*pencil_dims[1]*pencil_dims[2];
-      if(self==me && print_me)fprintf(stderr,"REAL SUBSIZES (%d,%d,%d)\n",subsizes[x_dim],subsizes[y_dim],subsizes[z_dim]);
-      if(self==me && print_me)fprintf(stderr,"PENCIL DIMENSION VS. local sizes (%d,%d,%d) vs (%d,%d,%d)\n",pencil_dims[0],pencil_dims[1],pencil_dims[2],local_sizes[0],local_sizes[1],local_sizes[2]);
-      if(self==me && print_me)fprintf(stderr,"DIM_2_ARRAY_START (%d,%d,%d) \n",d2_array_start[0],d2_array_start[1],d2_array_start[2]);
+      if(self==me && print_me && verbosity() > 2) fprintf(stderr,"REAL SUBSIZES (%d,%d,%d)\n",subsizes[x_dim],subsizes[y_dim],subsizes[z_dim]);
+      if(self==me && print_me && verbosity() > 2) fprintf(stderr,"PENCIL DIMENSION VS. local sizes (%d,%d,%d) vs (%d,%d,%d)\n",pencil_dims[0],pencil_dims[1],pencil_dims[2],local_sizes[0],local_sizes[1],local_sizes[2]);
+      if(self==me && print_me && verbosity() > 2) fprintf(stderr,"DIM_2_ARRAY_START (%d,%d,%d) \n",d2_array_start[0],d2_array_start[1],d2_array_start[2]);
       for(int i0=d2_array_start[0];i0<d2_array_start[0]+local_sizes[0];i0++){
         for(int i1=d2_array_start[1];i1<d2_array_start[1]+local_sizes[1];i1++){
           for(int i2=d2_array_start[2];i2<d2_array_start[2]+local_sizes[2];i2++){
@@ -1921,16 +1923,16 @@ static void redistribute_2_and_3(const complex_t *a,
     }
     else if (direction == REDISTRIBUTE_2_TO_3) {
 
-      if((self == me) && print_mess)fprintf(stderr, " I am %d, making request to receive from %d...\n", self,recv_peer);
+      if((self == me) && print_mess && verbosity() > 2) fprintf(stderr, " I am %d, making request to receive from %d...\n", self,recv_peer);
       if(!print_mess)MPI_Irecv((void *) d->d3_chunk, chunk_size, MPI_DOUBLE_COMPLEX, recv_peer, 0, d->process_topology_1.cart, &req1);
 
-      if((self == me) && print_mess)fprintf(stderr, " I am %d, making request to send to %d...\n", self,send_peer);
+      if((self == me) && print_mess && verbosity() > 2) fprintf(stderr, " I am %d, making request to send to %d...\n", self,send_peer);
       if(!print_mess)MPI_Isend((void *) d->d2_chunk, chunk_size, MPI_DOUBLE_COMPLEX, send_peer, 0, d->process_topology_1.cart, &req2);
 
-      if((self == me) && print_mess)fprintf(stderr, " I am %d, waiting to receive from %d...\n", self,recv_peer);
+      if((self == me) && print_mess && verbosity() > 2) fprintf(stderr, " I am %d, waiting to receive from %d...\n", self,recv_peer);
       if(!print_mess)MPI_Wait(&req1,MPI_STATUS_IGNORE);
 
-      if((self == me) && print_mess)fprintf(stderr, " I am %d, waiting to send to %d...\n", self,send_peer);
+      if((self == me) && print_mess && verbosity() > 2) fprintf(stderr, " I am %d, waiting to send to %d...\n", self,send_peer);
       if(!print_mess)MPI_Wait(&req2,MPI_STATUS_IGNORE);
       int64_t ch_indx=0;
       int dims_size=(d->process_topology_3.n[2])*(d->process_topology_3.n[1])*(d->process_topology_3.n[0]);
@@ -1987,7 +1989,7 @@ static void redistribute_2_and_3(const complex_t *a,
       }
     }
 
-    if (DEBUG_CONDITION) {
+    if (DEBUG_CONDITION && verbosity() > 2) {
       fprintf(stderr,
               "%d: npeers,p,p0,p1,p1max=(%d,%d,%d,%d,%d), "
               "d3_coord=(%d,%d,%d), d2_peer_coord=(%d,%d,%d), "
@@ -2002,7 +2004,7 @@ static void redistribute_2_and_3(const complex_t *a,
               recv_peer, send_peer);
     }
 
-    if((self == me) && print_me)fprintf(stderr, "%d, %d, %d Made it end-for!...\n", self,p, npeers);
+    if((self == me) && print_me && verbosity() > 2) fprintf(stderr, "%d, %d, %d Made it end-for!...\n", self,p, npeers);
   }
 
   //if((self == me) && print_me)fprintf(outfile, "   Made it all the way! for z_dim =(%d) and num_proc = (%d)...\n", z_dim, d->process_topology_1.nproc[0]);

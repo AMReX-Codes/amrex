@@ -8,21 +8,24 @@
 #include <AMReX_MultiFab.H>
 
 #include <DataAdaptor.h>
-class vtkPolyData;
+class svtkPolyData;
 
 namespace amrex
 {
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template<typename ParticleType, int NArrayReal, int NArrayInt>
 class ParticleDataAdaptor : public sensei::DataAdaptor
 {
 public:
+  static constexpr int NStructReal = ParticleType::NReal;
+  static constexpr int NStructInt  = ParticleType::NInt;
+
   static ParticleDataAdaptor* New();
   senseiTypeMacro(ParticleDataAdaptor, sensei::DataAdaptor);
 
   // set the source of the simulation data
   int SetDataSource(
-    amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
+    amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt> * particles,
     const std::map<std::string, std::vector<int>> & rStructs = {},
     const std::map<std::string, int> & iStructs = {},
     const std::map<std::string, std::vector<int>> & rArrays = {},
@@ -40,22 +43,22 @@ public:
   void SetPinMesh(int val);
 
   // get particle id numbers
-  int AddParticlesIDArray(vtkDataObject* mesh);
+  int AddParticlesIDArray(svtkDataObject* mesh);
 
   // get particle cpu numbers (process each particle was generated on)
-  int AddParticlesCPUArray(vtkDataObject* mesh);
+  int AddParticlesCPUArray(svtkDataObject* mesh);
 
   // get particle integer arrays in Structs of Arrays format
-  int AddParticlesSOAIntArray(const std::string &arrayName, vtkDataObject* mesh);
+  int AddParticlesSOAIntArray(const std::string &arrayName, svtkDataObject* mesh);
 
   // get particle real arrays in Structs of Arrays format
-  int AddParticlesSOARealArray(const std::string &arrayName, vtkDataObject* mesh);
+  int AddParticlesSOARealArray(const std::string &arrayName, svtkDataObject* mesh);
 
   // get particle integer arrays in Array Of Structs format
-  int AddParticlesAOSIntArray(const std::string &arrayName, vtkDataObject* mesh);
+  int AddParticlesAOSIntArray(const std::string &arrayName, svtkDataObject* mesh);
 
   // get particle real arrays in Array Of Structs format
-  int AddParticlesAOSRealArray(const std::string &arrayName, vtkDataObject* mesh);
+  int AddParticlesAOSRealArray(const std::string &arrayName, svtkDataObject* mesh);
 
   // SENSEI API
 #if SENSEI_VERSION_MAJOR >= 3
@@ -68,10 +71,10 @@ public:
   int GetArrayName(const std::string &meshName, int association, unsigned int index, std::string &arrayName) override;
 #endif
   int GetNumberOfMeshes(unsigned int &numMeshes) override;
-  int GetMesh(const std::string &meshName, bool structureOnly, vtkDataObject *&mesh) override;
-  int AddGhostNodesArray(vtkDataObject* mesh, const std::string &meshName) override;
-  int AddGhostCellsArray(vtkDataObject* mesh, const std::string &meshName) override;
-  int AddArray(vtkDataObject* mesh, const std::string &meshName, int association, const std::string &arrayName) override;
+  int GetMesh(const std::string &meshName, bool structureOnly, svtkDataObject *&mesh) override;
+  int AddGhostNodesArray(svtkDataObject* mesh, const std::string &meshName) override;
+  int AddGhostCellsArray(svtkDataObject* mesh, const std::string &meshName) override;
+  int AddArray(svtkDataObject* mesh, const std::string &meshName, int association, const std::string &arrayName) override;
   int ReleaseData() override;
 
 protected:
@@ -79,11 +82,11 @@ protected:
   ~ParticleDataAdaptor() = default;
 
 private:
-  vtkPolyData* BuildParticles();
+  svtkPolyData* BuildParticles();
 
   const std::string m_particlesName = "particles";
 
-  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>* m_particles;
+  amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt>* m_particles;
 
   using RealDataMapType = std::map<std::string, std::vector<int>>;
   using IntDataMapType = std::map<std::string, int>;

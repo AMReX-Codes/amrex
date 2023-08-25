@@ -121,7 +121,7 @@ template <typename HypreInt, typename AtomicInt>
 void mlndtslap_fill_ijmatrix_cpu (Box const& ndbx,
                                   Array4<AtomicInt const> const& gid,
                                   Array4<int const> const& lid,
-                                  HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                                  HypreInt* const ncols, HypreInt* const cols, Real* const mat, // NOLINT(readability-non-const-parameter)
                                   GpuArray<Real,3> const& s) noexcept
 {
     constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();

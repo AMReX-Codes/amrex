@@ -17,10 +17,12 @@ ifeq ($(strip $(programs)),)
   programs += fcompare
   programs += fextract
   programs += fextrema
+  programs += fgradient
   programs += fnan
   programs += fsnapshot
   programs += ftime
   programs += fvarnames
+  programs += fvolumesum
 endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
@@ -30,6 +32,8 @@ default: $(multiple_executables)
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 

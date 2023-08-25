@@ -45,7 +45,7 @@ void fill (BaseFab<STRUCT>& aos_fab, F && f)
         int nblocks = (ntotcells+nthreads_per_block-1)/nthreads_per_block;
         std::size_t shared_mem_bytes = nthreads_per_block * sizeof(STRUCT);
         T* p = (T*)aos_fab.dataPtr();
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& handler) noexcept
         {

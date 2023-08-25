@@ -8,11 +8,11 @@
 
 namespace amrex {
 
-template <int NReal, int NInt,
+template <typename T_ParticleType,
           template<class> class Allocator=DefaultAllocator>
 class ArrayOfStructs {
 public:
-    using ParticleType  = Particle<NReal, NInt>;
+    using ParticleType  = T_ParticleType;
     using RealType      = typename ParticleType::RealType;
 
     using ParticleVector = amrex::PODVector<ParticleType, Allocator<ParticleType> >;
@@ -22,41 +22,38 @@ public:
 
     static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
 
-    ArrayOfStructs()
-        : m_num_neighbor_particles(0) {}
-
-    const ParticleVector& operator() () const { return m_data; }
-    ParticleVector& operator() ()       { return m_data; }
+    [[nodiscard]] const ParticleVector& operator() () const { return m_data; }
+    [[nodiscard]]       ParticleVector& operator() ()       { return m_data; }
 
     /**
     * \brief Returns the total number of particles (real and neighbor)
     *
     */
-    std::size_t size () const { return m_data.size(); }
+    [[nodiscard]] std::size_t size () const { return m_data.size(); }
 
     /**
     * \brief Returns the number of real particles (excluding neighbors)
     *
     */
-    int numParticles () const { return numRealParticles(); }
+    [[nodiscard]] int numParticles () const { return numRealParticles(); }
 
     /**
     * \brief Returns the number of real particles (excluding neighbors)
     *
     */
-    int numRealParticles () const { return numTotalParticles()-m_num_neighbor_particles; }
+    [[nodiscard]] int numRealParticles () const { return numTotalParticles()-m_num_neighbor_particles; }
 
     /**
     * \brief Returns the number of neighbor particles (excluding reals)
     *
     */
-    int numNeighborParticles () const { return m_num_neighbor_particles; }
+    [[nodiscard]] int numNeighborParticles () const { return m_num_neighbor_particles; }
 
     /**
     * \brief Returns the total number of particles (real and neighbor)
     *
     */
-    int numTotalParticles () const { return m_data.size(); }
+    [[nodiscard]] int numTotalParticles () const { return m_data.size(); }
 
     void setNumNeighbors (int num_neighbors)
     {
@@ -65,31 +62,31 @@ public:
         resize(nrp + num_neighbors);
     }
 
-    int getNumNeighbors () { return m_num_neighbor_particles; }
+    [[nodiscard]] int getNumNeighbors () const { return m_num_neighbor_particles; }
 
-    bool empty () const { return m_data.empty(); }
+    [[nodiscard]] bool empty () const { return m_data.empty(); }
 
-    const RealType* data () const { return &(m_data[0].m_pos[0]); }
-    RealType* data () { return &(m_data[0].pos(0)); }
+    [[nodiscard]] const ParticleType* data () const { return m_data.data(); }
+    [[nodiscard]]       ParticleType* data ()       { return m_data.data(); }
 
-    const RealType* dataPtr () const { return data(); }
-    RealType*       dataPtr ()       { return data(); }
+    [[nodiscard]] const ParticleType* dataPtr () const { return data(); }
+    [[nodiscard]]       ParticleType* dataPtr ()       { return data(); }
 
-    std::pair<int,int> dataShape () const {
+    [[nodiscard]] std::pair<int,int> dataShape () const {
         return std::make_pair(SizeInReal, static_cast<int>(m_data.size()));
     }
 
     void push_back (const ParticleType& p) { return m_data.push_back(p); }
     void pop_back() {m_data.pop_back(); }
-    bool empty() {return m_data.empty(); }
+    [[nodiscard]] bool empty() {return m_data.empty(); }
 
-    const ParticleType& back() const {return m_data.back(); }
-    ParticleType      & back()       {return m_data.back(); }
+    [[nodiscard]] const ParticleType& back() const {return m_data.back(); }
+    [[nodiscard]]       ParticleType& back()       {return m_data.back(); }
 
-    const ParticleType& operator[] (int i) const { return m_data[i]; }
-    ParticleType      & operator[] (int i)       { return m_data[i]; }
+    [[nodiscard]] const ParticleType& operator[] (int i) const { return m_data[i]; }
+    [[nodiscard]]       ParticleType& operator[] (int i)       { return m_data[i]; }
 
-    void swap (ArrayOfStructs<NReal, NInt>& other)
+    void swap (ArrayOfStructs& other)
     {
         m_data.swap(other.m_data);
     }
@@ -101,24 +98,24 @@ public:
     template< class InputIt >
     void insert ( Iterator pos, InputIt first, InputIt last ) { m_data.insert(pos, first, last); }
 
-    typename ParticleVector::iterator begin () { return m_data.begin(); }
-    typename ParticleVector::const_iterator begin () const { return m_data.begin(); }
-    typename ParticleVector::const_iterator cbegin () const { return m_data.cbegin(); }
+    [[nodiscard]] typename ParticleVector::iterator begin () { return m_data.begin(); }
+    [[nodiscard]] typename ParticleVector::const_iterator begin () const { return m_data.begin(); }
+    [[nodiscard]] typename ParticleVector::const_iterator cbegin () const { return m_data.cbegin(); }
 
-    typename ParticleVector::iterator end () { return m_data.end(); }
-    typename ParticleVector::const_iterator end () const { return m_data.end(); }
-    typename ParticleVector::const_iterator cend () const { return m_data.cend(); }
+    [[nodiscard]] typename ParticleVector::iterator end () { return m_data.end(); }
+    [[nodiscard]] typename ParticleVector::const_iterator end () const { return m_data.end(); }
+    [[nodiscard]] typename ParticleVector::const_iterator cend () const { return m_data.cend(); }
 
-    int m_num_neighbor_particles;
+    int m_num_neighbor_particles{0};
 
 private:
     ParticleVector m_data;
 };
 
 #if __cplusplus < 201703L
-template <int NReal, int NInt,
+template <typename ParticleType,
           template<class> class Allocator>
-constexpr int ArrayOfStructs<NReal, NInt, Allocator>::SizeInReal;
+constexpr int ArrayOfStructs<ParticleType, Allocator>::SizeInReal;
 #endif
 
 } // namespace amrex

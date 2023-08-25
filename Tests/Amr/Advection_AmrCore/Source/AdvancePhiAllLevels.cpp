@@ -35,7 +35,8 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
 
         // State with ghost cells
         MultiFab Sborder(grids[lev], dmap[lev], phi_new[lev].nComp(), num_grow);
-        FillPatch(lev, time, Sborder, 0, Sborder.nComp());
+        FillPatch(lev, time, Sborder, 0, Sborder.nComp(),
+                  FillPatchType::fillpatch_function);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -99,7 +100,7 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
                 // y -------------------------
                 Array4<Real> phiy = tmpfab.array(itmp);
                 Array4<Real const> phiy_c = phiy;
-                itmp += 1;
+                itmp += 1; // NOLINT(clang-analyzer-deadcode.DeadStores)
 
                 amrex::launch(amrex::grow(gbx,Direction::y,1),
                 [=] AMREX_GPU_DEVICE (const Box& tbx)
@@ -226,7 +227,7 @@ AmrCoreAdv::AdvancePhiAllLevels (Real time, Real dt_lev, int /*iteration*/)
                 // zy --------------------
                 Array4<Real> phiz_y = tmpfab.array(itmp);
                 Array4<Real const> phiz_y_c = phiz_y;
-                itmp += 1;
+                itmp += 1; // NOLINT(clang-analyzer-deadcode.DeadStores)
 
                 b = bx;
                 amrex::ParallelFor(b.grow(Direction::x,1).surroundingNodes(Direction::z),

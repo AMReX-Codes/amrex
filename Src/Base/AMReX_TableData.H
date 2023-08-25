@@ -77,8 +77,8 @@ struct Table2D
 {
     T* AMREX_RESTRICT p = nullptr;
     Long jstride = 0;
-    GpuArray<int,2> begin{1,1};
-    GpuArray<int,2> end{0,0};
+    GpuArray<int,2> begin{{1,1}};
+    GpuArray<int,2> end{{0,0}};
 
     AMREX_GPU_HOST_DEVICE
     constexpr Table2D () noexcept {}
@@ -142,8 +142,8 @@ struct Table3D
     T* AMREX_RESTRICT p = nullptr;
     Long jstride = 0;
     Long kstride = 0;
-    GpuArray<int,3> begin{1,1,1};
-    GpuArray<int,3> end{0,0,0};
+    GpuArray<int,3> begin{{1,1,1}};
+    GpuArray<int,3> end{{0,0,0}};
 
     AMREX_GPU_HOST_DEVICE
     constexpr Table3D () noexcept {}
@@ -213,8 +213,8 @@ struct Table4D
     Long jstride = 0;
     Long kstride = 0;
     Long nstride = 0;
-    GpuArray<int,4> begin{1,1,1,1};
-    GpuArray<int,4> end{0,0,0,0};
+    GpuArray<int,4> begin{{1,1,1,1}};
+    GpuArray<int,4> end{{0,0,0,0}};
 
     AMREX_GPU_HOST_DEVICE
     constexpr Table4D () noexcept {}
@@ -418,7 +418,9 @@ TableData<T,N>::operator= (TableData<T,N> && rhs) noexcept
 template <typename T, int N>
 TableData<T,N>::~TableData () noexcept
 {
-    static_assert(std::is_arithmetic<T>::value, "TableData<T,N>: T must be an arithmetic type");
+    static_assert(std::is_trivially_copyable<T>() &&
+                  std::is_trivially_destructible<T>(),
+                  "TableData<T,N>: T must be trivially copyable and trivially destructible");
     static_assert(N>=1 && N <=4, "TableData<T,N>: N must be in the range of [1,4]");
     clear();
 }

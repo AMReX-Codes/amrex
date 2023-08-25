@@ -19,11 +19,28 @@ namespace amrex {
 //
 //  P(xInt) = sum_(i=1)^(N) y[i]*c[i]
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void poly_interp_coeff (Real xInt, Real const* AMREX_RESTRICT x, int N, Real* AMREX_RESTRICT c) noexcept
+void poly_interp_coeff (T xInt, T const* AMREX_RESTRICT x, int N, T* AMREX_RESTRICT c) noexcept
 {
     for (int j = 0; j < N; ++j) {
-        Real num = 1.0, den = 1.0;
+        T num = T(1.0), den = T(1.0);
+        for (int i = 0; i < N; ++i) {
+            if (i != j) {
+                num *= xInt-x[i];
+                den *= x[j]-x[i];
+            }
+        }
+        c[j] = num / den;
+    }
+}
+
+template <int N, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void poly_interp_coeff (T xInt, T const* AMREX_RESTRICT x, T* AMREX_RESTRICT c) noexcept
+{
+    for (int j = 0; j < N; ++j) {
+        T num = T(1.0), den = T(1.0);
         for (int i = 0; i < N; ++i) {
             if (i != j) {
                 num *= xInt-x[i];

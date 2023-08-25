@@ -4,6 +4,31 @@
 
 namespace amrex {
 
+namespace detail {
+
+template <typename F, typename MF>
+auto call_interp_hook (F const& f, MF& mf, int icomp, int ncomp)
+    -> decltype(f(mf[0],Box(),icomp,ncomp))
+{
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        auto& dfab = mf[mfi];
+        const Box& dbx = dfab.box();
+        f(dfab, dbx, icomp, ncomp);
+    }
+}
+
+template <typename F, typename MF>
+auto call_interp_hook (F const& f, MF& mf, int icomp, int ncomp)
+    -> decltype(f(mf,icomp,ncomp))
+{
+    f(mf, icomp, ncomp);
+}
+
+}
+
 template <typename Interp>
 bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, int ngrow,
                      const IndexType& boxType, Interp* mapper)
@@ -56,7 +81,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
     AMREX_ASSERT(scomp+ncomp <= smf[0]->nComp());
     AMREX_ASSERT(dcomp+ncomp <= mf.nComp());
     AMREX_ASSERT(smf.size() == stime.size());
-    AMREX_ASSERT(smf.size() != 0);
+    AMREX_ASSERT(!smf.empty());
     AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
 
     if (smf.size() == 1)
@@ -217,8 +242,8 @@ FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccom
 template <typename MF, typename iMF, typename Interp>
 std::enable_if_t<IsFabArray<MF>::value  && !std::is_same<Interp,MFInterpolater>::value>
 InterpFace (Interp *interp,
-            MF const& mf_crse_patch,    const int crse_comp,
-            MF&       mf_refined_patch, const int fine_comp,
+            MF const& mf_crse_patch,    int crse_comp,
+            MF&       mf_refined_patch, int fine_comp,
             int ncomp, const IntVect&   ratio,
             const iMF& solve_mask, const Geometry&  crse_geom, const Geometry&  fine_geom,
             int bcscomp, RunOn gpu_or_cpu,
@@ -243,8 +268,8 @@ InterpFace (Interp *interp,
 template <typename MF, typename iMF>
 std::enable_if_t<IsFabArray<MF>::value>
 InterpFace (InterpBase *interp,
-            MF const& mf_crse_patch,    const int crse_comp,
-            MF&       mf_refined_patch, const int fine_comp,
+            MF const& mf_crse_patch,    int crse_comp,
+            MF&       mf_refined_patch, int fine_comp,
             int ncomp, const IntVect&   ratio,
             const iMF& solve_mask, const Geometry&  crse_geom, const Geometry&  fine_geom,
             int bccomp, RunOn gpu_or_cpu,
@@ -459,16 +484,13 @@ namespace {
 
                 if ( ! fpc.ba_crse_patch.empty())
                 {
-
-                    using FAB = typename MF::FABType::value_type;
-
                     MF mf_crse_patch     = make_mf_crse_patch<MF>      (fpc, ncomp, mf.boxArray().ixType());
                     // Must make sure fine exists under needed coarse faces.
                     // It stores values for the final (interior) interpolation,
                     // which is done from this fine MF that's been partially filled
                     // (with only faces overlying coarse having valid data).
                     MF mf_refined_patch  = make_mf_refined_patch<MF>   (fpc, ncomp, mf.boxArray().ixType(), ratio);
-                    iMultiFab solve_mask = make_mf_crse_mask<iMultiFab>(fpc, ncomp, mf.boxArray().ixType(), ratio);
+                    auto solve_mask = make_mf_crse_mask<iMultiFab>(fpc, ncomp, mf.boxArray().ixType(), ratio);
 
                     mf_set_domain_bndry(mf_crse_patch, cgeom);
                     FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp,
@@ -491,20 +513,12 @@ namespace {
                     solve_mask.setVal(1);                   // Values to solve.
                     solve_mask.setVal(0, mask_cpc, 0, 1);   // Known values.
 
-                    for (MFIter mfi(mf_refined_patch); mfi.isValid(); ++mfi)
-                    {
-                        FAB& sfab = mf_crse_patch[mfi];
-                        pre_interp(sfab, sfab.box(), 0, ncomp);
-                    }
+                    detail::call_interp_hook(pre_interp, mf_crse_patch, 0, ncomp);
 
                     InterpFace(mapper, mf_crse_patch, 0, mf_refined_patch, 0, ncomp,
                                ratio, solve_mask, cgeom, fgeom, bcscomp, RunOn::Gpu, bcs);
 
-                    for (MFIter mfi(mf_refined_patch); mfi.isValid(); ++mfi)
-                    {
-                        FAB& dfab = mf_refined_patch[mfi];
-                        post_interp(dfab, dfab.box(), 0, ncomp);
-                    }
+                    detail::call_interp_hook(post_interp, mf_refined_patch, 0, ncomp);
 
                     bool aliasing = false;
                     for (auto const& fmf_a : fmf) {
@@ -538,30 +552,14 @@ namespace {
 
                     MF mf_fine_patch = make_mf_fine_patch<MF>(fpc, ncomp);
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-                    for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
-                    {
-                        auto& sfab = mf_crse_patch[mfi];
-                        const Box& sbx = sfab.box();
-                        pre_interp(sfab, sbx, 0, ncomp);
-                    }
+                    detail::call_interp_hook(pre_interp, mf_crse_patch, 0, ncomp);
 
                     FillPatchInterp(mf_fine_patch, 0, mf_crse_patch, 0,
                                     ncomp, IntVect(0), cgeom, fgeom,
                                     amrex::grow(amrex::convert(fgeom.Domain(),mf.ixType()),nghost),
                                     ratio, mapper, bcs, bcscomp);
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-                    for (MFIter mfi(mf_fine_patch); mfi.isValid(); ++mfi)
-                    {
-                        auto& dfab = mf_fine_patch[mfi];
-                        const Box& dbx = dfab.box();
-                        post_interp(dfab, dbx, 0, ncomp);
-                    }
+                    detail::call_interp_hook(post_interp, mf_fine_patch, 0, ncomp);
 
                     mf.ParallelCopy(mf_fine_patch, 0, dcomp, ncomp, IntVect{0}, nghost);
                 }
@@ -579,11 +577,11 @@ namespace {
                              const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                              int scomp, int dcomp, int ncomp,
                              const Geometry& cgeom, const Geometry& fgeom,
-                             Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
-                             Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
+                             Array<BC, AMREX_SPACEDIM>& cbc, const Array<int, AMREX_SPACEDIM>& cbccomp,
+                             Array<BC, AMREX_SPACEDIM>& fbc, const Array<int, AMREX_SPACEDIM>& fbccomp,
                              const IntVect& ratio,
                              Interp* mapper,
-                             const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
+                             const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, const Array<int, AMREX_SPACEDIM>& bcscomp,
                              const PreInterpHook& pre_interp,
                              const PostInterpHook& post_interp,
                              EB2::IndexSpace const* index_space)
@@ -645,7 +643,7 @@ namespace {
                         { cmf_time.push_back(mfab[d]); }
 
                     FillPatchSingleLevel(mf_crse_patch[d], time, cmf_time, ct, scomp, 0, ncomp,
-                                         cgeom, cbc[d], cbccomp);
+                                         cgeom, cbc[d], cbccomp[d]);
 
                     mf_set_domain_bndry(mf_refined_patch[d], fgeom);
                     Vector<MF*> fmf_time;
@@ -653,7 +651,7 @@ namespace {
                         { fmf_time.push_back(mfab[d]); }
 
                     FillPatchSingleLevel(mf_refined_patch[d], time, fmf_time, ft, scomp, 0, ncomp,
-                                         fgeom, fbc[d], fbccomp);
+                                         fgeom, fbc[d], fbccomp[d]);
 
 
                     // Aliased MFs, used to allow CPC caching.
@@ -698,7 +696,7 @@ namespace {
                             Vector<BCRec> bcr_d(ncomp);
 
                             amrex::setBC(sfab[d]->box(), amrex::convert(cgeom.Domain(), mf[d]->ixType()),
-                                         bcscomp,0,ncomp,bcs[d],bcr_d);
+                                         bcscomp[d],0,ncomp,bcs[d],bcr_d);
 
                             for (int n=0; n<ncomp; ++n)
                                 { bcr[n][d] = bcr_d[n]; }
@@ -737,7 +735,7 @@ namespace {
                  { fmf_time.push_back(ffab[d]); }
 
             FillPatchSingleLevel(*mf[d], nghost, time, fmf_time, ft, scomp, dcomp, ncomp,
-                                 fgeom, fbc[d], fbccomp);
+                                 fgeom, fbc[d], fbccomp[d]);
         }
     }
 
@@ -803,6 +801,33 @@ FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
                     const Geometry& cgeom, const Geometry& fgeom,
+                    Array<BC, AMREX_SPACEDIM>& cbc, const Array<int, AMREX_SPACEDIM>& cbccomp,
+                    Array<BC, AMREX_SPACEDIM>& fbc, const Array<int, AMREX_SPACEDIM>& fbccomp,
+                    const IntVect& ratio,
+                    Interp* mapper,
+                    const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, const Array<int, AMREX_SPACEDIM>& bcscomp,
+                    const PreInterpHook& pre_interp,
+                    const PostInterpHook& post_interp)
+{
+#ifdef AMREX_USE_EB
+    EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
+#else
+    EB2::IndexSpace const* index_space = nullptr;
+#endif
+
+    FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
+                            scomp,dcomp,ncomp,cgeom,fgeom,
+                            cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
+                            pre_interp,post_interp,index_space);
+}
+
+template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
+std::enable_if_t<IsFabArray<MF>::value>
+FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+                    const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+                    const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
+                    int scomp, int dcomp, int ncomp,
+                    const Geometry& cgeom, const Geometry& fgeom,
                     Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
                     Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
                     const IntVect& ratio,
@@ -817,9 +842,13 @@ FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost,
     EB2::IndexSpace const* index_space = nullptr;
 #endif
 
+    Array<int, AMREX_SPACEDIM> cbccomp_arr = {AMREX_D_DECL(cbccomp,cbccomp,cbccomp)};
+    Array<int, AMREX_SPACEDIM> fbccomp_arr = {AMREX_D_DECL(fbccomp,fbccomp,fbccomp)};
+    Array<int, AMREX_SPACEDIM> bcscomp_arr = {AMREX_D_DECL(bcscomp,bcscomp,bcscomp)};
+
     FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
-                            cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
+                            cbc,cbccomp_arr,fbc,fbccomp_arr,ratio,mapper,bcs,bcscomp_arr,
                             pre_interp,post_interp,index_space);
 }
 
@@ -844,9 +873,13 @@ FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
     EB2::IndexSpace const* index_space = nullptr;
 #endif
 
+    Array<int, AMREX_SPACEDIM> cbccomp_arr = {AMREX_D_DECL(cbccomp,cbccomp,cbccomp)};
+    Array<int, AMREX_SPACEDIM> fbccomp_arr = {AMREX_D_DECL(fbccomp,fbccomp,fbccomp)};
+    Array<int, AMREX_SPACEDIM> bcscomp_arr = {AMREX_D_DECL(bcscomp,bcscomp,bcscomp)};
+
     FillPatchTwoLevels_doit(mf,mf[0]->nGrowVect(),time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
-                            cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
+                            cbc,cbccomp_arr,fbc,fbccomp_arr,ratio,mapper,bcs,bcscomp_arr,
                             pre_interp,post_interp,index_space);
 }
 
@@ -989,14 +1022,7 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
 
     cbc(mf_crse_patch, 0, ncomp, mf_crse_patch.nGrowVect(), time, cbccomp);
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
-    {
-        FAB& sfab   = mf_crse_patch[mfi];
-        pre_interp(sfab, sfab.box(), 0, ncomp);
-    }
+    detail::call_interp_hook(pre_interp, mf_crse_patch, 0, ncomp);
 
     FillPatchInterp(mf, dcomp, mf_crse_patch, 0, ncomp, nghost, cgeom, fgeom, fdomain_g,
                     ratio, mapper, bcs, bcscomp);

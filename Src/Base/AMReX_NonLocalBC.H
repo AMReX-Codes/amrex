@@ -5,7 +5,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
 
-namespace amrex { namespace NonLocalBC {
+namespace amrex::NonLocalBC {
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                            [concept.IndexMapping]
@@ -48,7 +48,7 @@ struct MultiBlockIndexMapping {
     //! \param[in] i  The index that lives in the destination space.
     //!
     //! \return Returns an index in the source space that is given by this affine transformation.
-    AMREX_GPU_HOST_DEVICE Dim3 operator()(Dim3 i) const noexcept {
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE Dim3 operator()(Dim3 i) const noexcept {
         int iv[3]{i.x, i.y, i.z};
         int iv_new[3]{};
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
@@ -63,7 +63,7 @@ struct MultiBlockIndexMapping {
     //!
     //! \return Returns an index in the destination space that is given by this affine
     //! transformation.
-    AMREX_GPU_HOST_DEVICE Dim3 Inverse(Dim3 i) const noexcept {
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE Dim3 Inverse(Dim3 i) const noexcept {
         int iv_new[3]{i.x, i.y, i.z};
         int iv[3]{};
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
@@ -73,11 +73,11 @@ struct MultiBlockIndexMapping {
         return {iv[0], iv[1], iv[2]};
     }
 
-    IndexType operator()(IndexType it) const noexcept {
+    [[nodiscard]] IndexType operator()(IndexType it) const noexcept {
         return IndexType{IntVect{AMREX_D_DECL(it[permutation[0]], it[permutation[1]], it[permutation[2]])}};
     }
 
-    IndexType Inverse(IndexType it) const noexcept {
+    [[nodiscard]] IndexType Inverse(IndexType it) const noexcept {
         IntVect inverse_permutation;
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             inverse_permutation[permutation[i]] = i;
@@ -99,7 +99,7 @@ struct MultiBlockIndexMapping {
 //! \return Returns IntVect{dtos(Dim3{iv})}
 template <typename DTOS>
 std::enable_if_t<IsCallableR<Dim3, DTOS, Dim3>::value, IntVect>
-Apply(DTOS dtos, const IntVect& iv)
+Apply(DTOS const& dtos, const IntVect& iv)
 {
     Dim3 i = dtos(iv.dim3());
     return IntVect{AMREX_D_DECL(i.x, i.y, i.z)};
@@ -115,7 +115,7 @@ Apply(DTOS dtos, const IntVect& iv)
 //! Apply(dtos, box.smallEnd()) and Apply(dtos, box.bigEnd()).
 template <typename DTOS>
 std::enable_if_t<IsCallableR<Dim3, DTOS, Dim3>::value && !IsCallableR<IndexType, DTOS, IndexType>::value, Box>
-Image(DTOS dtos, const Box& box)
+Image (DTOS const& dtos, const Box& box)
 {
     IntVect mapped_smallEnd = Apply(dtos, box.smallEnd());
     IntVect mapped_bigEnd = Apply(dtos, box.bigEnd());
@@ -138,7 +138,7 @@ Image(DTOS dtos, const Box& box)
 //! Apply(dtos, box.smallEnd()) and Apply(dtos, box.bigEnd()).
 template <typename DTOS>
 std::enable_if_t<IsCallableR<Dim3, DTOS, Dim3>::value && IsCallableR<IndexType, DTOS, IndexType>::value, Box>
-Image(DTOS dtos, const Box& box)
+Image (DTOS const& dtos, const Box& box)
 {
     // "Forget" the index type mapping and invoke Image without changing the index type.
     Box srcbox = Image([&dtos](Dim3 d) { return dtos(d); }, box);
@@ -160,7 +160,7 @@ Image(DTOS dtos, const Box& box)
 //! \return Returns IntVect{dtos.Inverse(Dim3{iv})}
 template <typename DTOS>
 std::enable_if_t<HasInverseMemFn<DTOS>::value, IntVect>
-ApplyInverse(DTOS dtos, const IntVect& iv)
+ApplyInverse(DTOS const& dtos, const IntVect& iv)
 {
     return Apply([&dtos](Dim3 i) { return dtos.Inverse(i); }, iv);
 }
@@ -175,7 +175,7 @@ ApplyInverse(DTOS dtos, const IntVect& iv)
 //! ApplyInverse(box.smallEnd()) and ApplyInverse(box.bigEnd()).
 template <typename DTOS>
 std::enable_if_t<HasInverseMemFn<DTOS>::value && !IsCallableR<IndexType, DTOS, IndexType>::value, Box>
-InverseImage(DTOS dtos, const Box& box)
+InverseImage (DTOS const& dtos, const Box& box)
 {
     return Image([&dtos](Dim3 i) { return dtos.Inverse(i); }, box);
 }
@@ -190,13 +190,13 @@ InverseImage(DTOS dtos, const Box& box)
 //! ApplyInverse(box.smallEnd()) and ApplyInverse(box.bigEnd()).
 template <typename DTOS>
 std::enable_if_t<HasInverseMemFn<DTOS>::value && IsCallableR<IndexType, DTOS, IndexType>::value, Box>
-InverseImage(DTOS dtos, const Box& box)
+InverseImage (DTOS const& dtos, const Box& box)
 {
     return Image([&dtos](auto&& i) { return dtos.Inverse(i); }, box);
 }
 
 //! \brief This is the index mapping based on the DTOS MultiBlockDestToSrc.
-static_assert(IsIndexMapping<MultiBlockIndexMapping>(),
+static_assert(IsIndexMapping<MultiBlockIndexMapping>(), // NOLINT(bugprone-throw-keyword-missing)
               "MultiBlockIndexMapping is expected to satisfy IndexMapping");
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -216,7 +216,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     template <typename DTOS,
               typename = std::enable_if_t<IsIndexMapping<DTOS>::value>>
     MultiBlockCommMetaData(const FabArrayBase& dst, const Box& dstbox, const FabArrayBase& src,
-                           const IntVect& ngrow, DTOS dtos);
+                           const IntVect& ngrow, DTOS const& dtos);
 
     //! \brief Build global meta data by calling the define() member function.
     //!
@@ -225,7 +225,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
               typename = std::enable_if_t<IsIndexMapping<DTOS>::value>>
     MultiBlockCommMetaData(const BoxArray& dstba, const DistributionMapping& dstdm,
                            const Box& dstbox, const BoxArray& srcba,
-                           const DistributionMapping& srcdm, const IntVect& ngrow, DTOS dtos);
+                           const DistributionMapping& srcdm, const IntVect& ngrow, DTOS const& dtos);
 
     //! \name Manipulators
 
@@ -257,7 +257,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     std::enable_if_t<IsIndexMapping<DTOS>::value>
     define(const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
            const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
-           DTOS dtos);
+           DTOS const& dtos);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -281,7 +281,7 @@ struct Identity  {
     //! The identity function for Dim3
     constexpr Dim3 operator()(Dim3 i) const noexcept { return i; }
     //! The identity function for Dim3
-    constexpr Dim3 Inverse(Dim3 i) const noexcept { return i; }
+    [[nodiscard]] static constexpr Dim3 Inverse(Dim3 i) noexcept { return i; }
 
     //! \return Returns array(i.x,i.y,i.z,comp)
     template <typename T>
@@ -295,12 +295,12 @@ struct Identity  {
 };
 static constexpr Identity identity{};
 
-static_assert(sizeof(Identity) == 1, "");
-static_assert(std::is_trivially_default_constructible<Identity>::value, "");
-static_assert(std::is_trivially_copy_assignable<Identity>::value, "");
-static_assert(std::is_trivially_copy_constructible<Identity>::value, "");
-static_assert(IsIndexMapping<Identity>(), "");
-static_assert(IsFabProjection<Identity, FArrayBox>(), "");
+static_assert(sizeof(Identity) == 1 );
+static_assert(std::is_trivially_default_constructible<Identity>::value );
+static_assert(std::is_trivially_copy_assignable<Identity>::value );
+static_assert(std::is_trivially_copy_constructible<Identity>::value );
+static_assert(IsIndexMapping<Identity>() ); // NOLINT(bugprone-throw-keyword-missing)
+static_assert(IsFabProjection<Identity, FArrayBox>() ); // NOLINT(bugprone-throw-keyword-missing)
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                     [FabProjection.MapComponents]
@@ -330,9 +330,9 @@ template <typename Base, typename Map = Identity> struct MapComponents {
     }
 };
 
-static_assert(std::is_trivially_copy_assignable<MapComponents<Identity>>(), "");
-static_assert(std::is_trivially_copy_constructible<MapComponents<Identity>>(), "");
-static_assert(IsFabProjection<MapComponents<Identity>, FArrayBox>(), "");
+static_assert(std::is_trivially_copy_assignable<MapComponents<Identity>>() ); // NOLINT(bugprone-throw-keyword-missing)
+static_assert(std::is_trivially_copy_constructible<MapComponents<Identity>>() ); // NOLINT(bugprone-throw-keyword-missing)
+static_assert(IsFabProjection<MapComponents<Identity>, FArrayBox>() ); // NOLINT(bugprone-throw-keyword-missing)
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                      [FabProjection.MapComponents.SwapComponents]
@@ -387,21 +387,21 @@ using DynamicSwapComponents = SwapComponents<-1, -1>;
 
 template <int I, int J> static constexpr SwapComponents<I, J> swap_indices{};
 
-static_assert(sizeof(SwapComponents<0, 1>) == 1, "");
-static_assert(sizeof(DynamicSwapComponents) == 2 * sizeof(int), "");
-static_assert(sizeof(SwapComponents<0, -1>) == sizeof(int), "");
-static_assert(sizeof(SwapComponents<-1, 1>) == sizeof(int), "");
-static_assert(std::is_trivially_default_constructible<MapComponents<Identity, SwapComponents<0, 1>>>(), "");
-static_assert(std::is_trivially_copy_assignable<MapComponents<Identity, SwapComponents<0, 1>>>(), "");
-static_assert(std::is_trivially_copy_constructible<MapComponents<Identity, SwapComponents<0, 1>>>(), "");
-static_assert(IsFabProjection<MapComponents<Identity, SwapComponents<0, 1>>, FArrayBox>(), "");
+static_assert(sizeof(SwapComponents<0, 1>) == 1 );
+static_assert(sizeof(DynamicSwapComponents) == 2 * sizeof(int) );
+static_assert(sizeof(SwapComponents<0, -1>) == sizeof(int) );
+static_assert(sizeof(SwapComponents<-1, 1>) == sizeof(int) );
+static_assert(std::is_trivially_default_constructible<MapComponents<Identity, SwapComponents<0, 1>>>() ); // NOLINT(bugprone-throw-keyword-missing)
+static_assert(std::is_trivially_copy_assignable<MapComponents<Identity, SwapComponents<0, 1>>>() ); // NOLINT(bugprone-throw-keyword-missing)
+static_assert(std::is_trivially_copy_constructible<MapComponents<Identity, SwapComponents<0, 1>>>() ); // NOLINT(bugprone-throw-keyword-missing)
+static_assert(IsFabProjection<MapComponents<Identity, SwapComponents<0, 1>>, FArrayBox>() ); // NOLINT(bugprone-throw-keyword-missing)
 
-static_assert(swap_indices<0, 1>(0) == 1, "");
-static_assert(swap_indices<0, 1>(1) == 0, "");
-static_assert(swap_indices<0, 1>(2) == 2, "");
-static_assert(DynamicSwapComponents{0, 1}(0) == 1, "");
-static_assert(DynamicSwapComponents{0, 1}(1) == 0, "");
-static_assert(DynamicSwapComponents{0, 1}(2) == 2, "");
+static_assert(swap_indices<0, 1>(0) == 1 );
+static_assert(swap_indices<0, 1>(1) == 0 );
+static_assert(swap_indices<0, 1>(2) == 2 );
+static_assert(DynamicSwapComponents{0, 1}(0) == 1 );
+static_assert(DynamicSwapComponents{0, 1}(1) == 0 );
+static_assert(DynamicSwapComponents{0, 1}(2) == 2 );
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                                  [class.CommData]
@@ -439,10 +439,10 @@ void PrepareCommBuffers(CommData& comm, const FabArrayBase::MapOfCopyComTagConta
                         int n_components, std::size_t object_size, std::size_t align);
 
 //! \brief Initiate all recvieves with MPI_Irecv calls associated with tag mpi_tag.
-void PostRecvs(CommData& comm, int mpi_tag);
+void PostRecvs(CommData& recv, int mpi_tag);
 
 //! \brief Initiate all sends with MPI_Isend calls associated with tag mpi_tag.
-void PostSends(CommData& comm, int mpi_tag);
+void PostSends(CommData& send, int mpi_tag);
 #endif
 
 
@@ -491,22 +491,22 @@ struct IsDataPacking :
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
-                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos = DTOS{},
-                Proj proj = Proj{}) noexcept;
+                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos = DTOS{},
+                Proj const& proj = Proj{}) noexcept;
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
-                        DTOS dtos = DTOS{}, Proj proj = Proj{}) noexcept;
+                        DTOS const& dtos = DTOS{}, Proj const& proj = Proj{}) noexcept;
 
 #ifdef AMREX_USE_GPU
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
-                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS dtos = DTOS{},
-                Proj proj = Proj{}) noexcept;
+                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos = DTOS{},
+                Proj const& proj = Proj{}) noexcept;
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
@@ -514,7 +514,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                         Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
-                        DTOS dtos = DTOS{}, Proj proj = Proj{});
+                        DTOS const& dtos = DTOS{}, Proj const& proj = Proj{});
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -602,7 +602,7 @@ UnpackRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const 
 }
 #endif // AMREX_USE_MPI
 
-static_assert(IsDataPacking<PackComponents, FArrayBox>(),
+static_assert(IsDataPacking<PackComponents, FArrayBox>(), // NOLINT(bugprone-throw-keyword-missing)
               "PackComponents is expected to satisfy the concept DataPacking.");
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -663,7 +663,7 @@ UnpackRecvBuffers (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packin
 }
 #endif // AMREX_USE_MPI
 
-static_assert(IsDataPacking<ApplyDtosAndProjectionOnReciever<>, FArrayBox>(),
+static_assert(IsDataPacking<ApplyDtosAndProjectionOnReciever<>, FArrayBox>(), // NOLINT(bugprone-throw-keyword-missing)
               "ApplyDtosAndProjectionOnReciever<> is expected to satisfy the DataPacking concept.");
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -710,14 +710,12 @@ ParallelCopy_nowait (NoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src,
     //
     handler.mpi_tag = ParallelDescriptor::SeqNum();
 
-    const int N_rcvs = cmd.m_RcvTags ? cmd.m_RcvTags->size() : 0;
-    if (N_rcvs > 0) {
+    if (cmd.m_RcvTags && !(cmd.m_RcvTags->empty())) {
         PrepareRecvBuffers(data_packing, dest, src, handler.recv, *cmd.m_RcvTags);
         PostRecvs(handler.recv, handler.mpi_tag);
     }
 
-    const int N_snds = cmd.m_SndTags ? cmd.m_SndTags->size() : 0;
-    if (N_snds > 0) {
+    if (cmd.m_SndTags && !(cmd.m_SndTags->empty())) {
         PrepareSendBuffers(data_packing, dest, src, handler.send, *cmd.m_SndTags);
         PackSendBuffers(data_packing, src, handler.send);
         PostSends(handler.send, handler.mpi_tag);
@@ -763,7 +761,7 @@ ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     CommHandler comm = ParallelCopy_nowait(no_local_copy, dest, src, cmd, data_packing);
     // Eagerly do the local work and hope for some overlap with communication
-    if (cmd.m_LocTags && cmd.m_LocTags->size() > 0) {
+    if (cmd.m_LocTags && !cmd.m_LocTags->empty()) {
         LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
     }
     return comm;
@@ -795,7 +793,7 @@ std::enable_if_t<IsBaseFab<FAB>() && IsDataPacking<DataPacking, FAB>()>
 ParallelCopy_finish (FabArray<FAB>& dest, CommHandler handler,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     // If any FabArray is empty we have nothing to do.
-    if (dest.size() == 0) {
+    if (dest.empty()) {
         return;
     }
     // Return if nothing do
@@ -803,8 +801,7 @@ ParallelCopy_finish (FabArray<FAB>& dest, CommHandler handler,
         return;
     }
     // Unpack receives
-    const int N_rcvs = cmd.m_RcvTags ? cmd.m_RcvTags->size() : 0;
-    if (N_rcvs > 0) {
+    if (cmd.m_RcvTags && !(cmd.m_RcvTags->empty())) {
         ParallelDescriptor::Waitall(handler.recv.request, handler.recv.stats);
 #ifdef AMREX_DEBUG
         if (!CheckRcvStats(handler.recv.stats, handler.recv.size, handler.mpi_tag)) {
@@ -815,8 +812,7 @@ ParallelCopy_finish (FabArray<FAB>& dest, CommHandler handler,
     }
 
     // Wait for all sends to be done
-    const int N_snds = cmd.m_SndTags ? cmd.m_SndTags->size() : 0;
-    if (N_snds > 0) {
+    if (cmd.m_SndTags && !(cmd.m_SndTags->empty())) {
         ParallelDescriptor::Waitall(handler.send.request, handler.send.stats);
     }
 }
@@ -848,10 +844,10 @@ std::enable_if_t<IsBaseFab<FAB>() && IsDataPacking<DataPacking, FAB>()>
 ParallelCopy_finish (DoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing) {
     // Eagerly do the local work and hope for some overlap with communication
-    if (cmd.m_LocTags && cmd.m_LocTags->size() > 0) {
+    if (cmd.m_LocTags && !cmd.m_LocTags->empty()) {
         LocalCopy(data_packing, dest, src, *cmd.m_LocTags);
     }
-    ParallelCopy_finish(dest, std::move(handler), cmd, data_packing);
+    ParallelCopy_finish(dest, std::move(handler), cmd, data_packing); // NOLINT
 }
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish, strong typed version.
@@ -881,14 +877,14 @@ ParallelCopy_finish (DoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src,
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase::CommMetaData& cmd,
-              SrcComp srccomp, DestComp destcomp, NumComps numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+              SrcComp srccomp, DestComp destcomp, NumComps numcomp, DTOS const& dtos = DTOS{}, Proj const& proj = Proj{}) {
     PackComponents components{};
     components.dest_component = destcomp.i;
     components.src_component = srccomp.i;
     components.n_components = numcomp.n;
-    ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{components, std::move(dtos), std::move(proj)};
+    ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{components, dtos, proj};
     CommHandler handler = ParallelCopy_nowait(dest, src, cmd, packing);
-    ParallelCopy_finish(dest, std::move(handler), cmd, packing);
+    ParallelCopy_finish(dest, std::move(handler), cmd, packing); // NOLINT
 }
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish.
@@ -918,8 +914,8 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
 template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase::CommMetaData& cmd,
-              int srccomp, int destcomp, int numcomp, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
-    ParallelCopy(dest, src, cmd, SrcComp(srccomp), DestComp(destcomp), NumComps(numcomp), std::move(dtos), std::move(proj));
+              int srccomp, int destcomp, int numcomp, DTOS const& dtos = DTOS{}, Proj const& proj = Proj{}) {
+    ParallelCopy(dest, src, cmd, SrcComp(srccomp), DestComp(destcomp), NumComps(numcomp), dtos, proj);
 }
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish, strong typed version.
@@ -955,9 +951,9 @@ template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>(),
 MultiBlockCommMetaData>
 ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, SrcComp srccomp,
-              DestComp destcomp, NumComps numcomp, const IntVect& ngrow, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
+              DestComp destcomp, NumComps numcomp, const IntVect& ngrow, DTOS const& dtos = DTOS{}, Proj const& proj = Proj{}) {
     MultiBlockCommMetaData cmd(dest, destbox, src, ngrow, dtos);
-    ParallelCopy(dest, src, cmd, srccomp, destcomp, numcomp, std::move(dtos), std::move(proj));
+    ParallelCopy(dest, src, cmd, srccomp, destcomp, numcomp, dtos, proj);
     return cmd;
 }
 
@@ -994,8 +990,8 @@ template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsIndexMapping<DTOS>() && IsFabProjection<Proj, FAB>(),
 MultiBlockCommMetaData>
 ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int srccomp,
-              int destcomp, int numcomp, const IntVect& ngrow, DTOS dtos = DTOS{}, Proj proj = Proj{}) {
-    return ParallelCopy(dest, destbox, src, SrcComp(srccomp), DestComp(destcomp), NumComps(numcomp), ngrow, std::move(dtos), std::move(proj));
+              int destcomp, int numcomp, const IntVect& ngrow, DTOS const& dtos = DTOS{}, Proj const& proj = Proj{}) {
+    return ParallelCopy(dest, destbox, src, SrcComp(srccomp), DestComp(destcomp), NumComps(numcomp), ngrow, dtos, proj);
 }
 
 // Rotate90 fills the lo-x and lo-y boundary regions by rotating the data
@@ -1034,8 +1030,177 @@ template <class FAB>
 std::enable_if_t<IsBaseFab<FAB>::value>
 FillPolar (FabArray<FAB>& mf, Box const& domain);
 
-}}
+/**
+ * \brief Start communication to fill boundary
+ *
+ * This starts communication to fill ghost cells of a FabArray. This
+ * function is supposed to be used together with FillBoundary_finish and
+ * makeFillBoundaryMetaData as follows.
+\verbatim
+    auto cmd = makeFillBoundaryMetaData(mf, mf.nGrowVect, geom, dtos);
+    // The metadata cmd can be cached and reused on a MultiFab/FabArray with
+    // the same BoxArray and DistributionMapping.
+    auto handler = FillBoundary_nowait(mf, cmd, scomp, ncomp, dtos, proj);
+    // Independent computation can be performed.
+    FillBoundary_finish(std::move(handler), mf, cmd, scomp, ncomp, dtos, proj);
+\endverbatim
+ *
+ * The FillBoundary capability here is more flexible than FabArray's
+ * FillBoundary member functions, which only fill ghost cells inside the
+ * domain and ghost cells at periodic boundaries. The FillBoundary here can
+ * be used to fill non-local domain boundaries (e.g., in spherical and
+ * cylindrical coordinates) given appropriate index and component mappings.
+ *
+ * \tparam FAB  MultiFab/FabArray type
+ * \tparam DTOS Index mapping from destination from source. See
+ *              SphThetaPhiRIndexMapping for an example.
+ * \tparam Proj Component mapping from source to destination. See
+ *              SphThetaPhiRComponentMapping for an example.
+ *
+ * \param mf    FabArray/MultiFab whose ghost cells need to be filled.
+ * \param cmd   communication metadata.
+ * \param scomp starting component.
+ * \param ncomp number of components.
+ * \param dtos  index mapping.
+ * \param proj  component mapping.
+ *
+ * \return      a CommHandler object needed for calling FillBoundary_finish.
+ */
+template <typename FAB, typename DTOS, typename Proj = Identity>
+[[nodiscard]]
+std::enable_if_t<IsBaseFab<FAB>() &&
+                 IsCallableR<Dim3,DTOS,Dim3>() &&
+                 IsFabProjection<Proj,FAB>(),
+                 CommHandler>
+FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
+                     int scomp, int ncomp, DTOS const& dtos,
+                     Proj const& proj = Proj{});
+
+/**
+ * \brief Finish communication started by FillBoundary_nowait
+ *
+ * This finishes the communication to fill ghost cells of a FabArray. This
+ * function is supposed to be used together with FillBoundary_nowait and
+ * makeFillBoundaryMetaData as follows.
+\verbatim
+    auto cmd = makeFillBoundaryMetaData(mf, mf.nGrowVect, geom, dtos);
+    // The metadata cmd can be cached and reused on a MultiFab/FabArray with
+    // the same BoxArray and DistributionMapping.
+    auto handler = FillBoundary_nowait(mf, cmd, scomp, ncomp, dtos, proj);
+    // Independent computation can be performed.
+    FillBoundary_finish(std::move(handler), mf, cmd, scomp, ncomp, dtos, proj);
+\endverbatim
+ *
+ * The FillBoundary capability here is more flexible than FabArray's
+ * FillBoundary member functions, which only fill ghost cells inside the
+ * domain and ghost cells at periodic boundaries. The FillBoundary here can
+ * be used to fill non-local domain boundaries (e.g., in spherical and
+ * cylindrical coordinates) given appropriate index and component mappings.
+ *
+ * \tparam FAB  MultiFab/FabArray type
+ * \tparam DTOS Index mapping from destination from source. See
+ *              SphThetaPhiRIndexMapping for an example.
+ * \tparam Proj Component mapping from source to destination. See
+ *              SphThetaPhiRComponentMapping for an example.
+ *
+ * \param handler CommHandler returned by FillBoundary_nowait.
+ * \param mf      FabArray/MultiFab whose ghost cells need to be filled.
+ * \param cmd     communication metadata.
+ * \param scomp   starting component.
+ * \param ncomp   number of components.
+ * \param dtos    index mapping
+ * \param proj    component mapping
+ */
+template <typename FAB, typename DTOS, typename Proj = Identity>
+std::enable_if_t<IsBaseFab<FAB>() &&
+                 IsCallableR<Dim3,DTOS,Dim3>() &&
+                 IsFabProjection<Proj,FAB>()>
+FillBoundary_finish (CommHandler handler,
+                     FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
+                     int scomp, int ncomp, DTOS const& dtos,
+                     Proj const& proj = Proj{});
+
+/**
+ * \brief Fill ghost cells for FabArray/MultiFab
+ *
+ * This fills ghost cells of a FabArray. This function is supposed to be
+ * used together with makeFillBoundaryMetaData as follows.
+\verbatim
+    auto cmd = makeFillBoundaryMetaData(mf, mf.nGrowVect, geom, dtos);
+    // The metadata cmd can be cached and reused on a MultiFab/FabArray with
+    // the same BoxArray and DistributionMapping.
+    FillBoundary_finish(mf, cmd, scomp, ncomp, dtos, proj);
+\endverbatim
+ *
+ * The FillBoundary capability here is more flexible than FabArray's
+ * FillBoundary member functions, which only fill ghost cells inside the
+ * domain and ghost cells at periodic boundaries. The FillBoundary here can
+ * be used to fill non-local domain boundaries (e.g., in spherical and
+ * cylindrical coordinates) given appropriate index and component mappings.
+ *
+ * \tparam FAB  MultiFab/FabArray type
+ * \tparam DTOS Index mapping from destination from source. See
+ *              SphThetaPhiRIndexMapping for an example.
+ * \tparam Proj Component mapping from source to destination. See
+ *              SphThetaPhiRComponentMapping for an example.
+ *
+ * \param mf    FabArray/MultiFab whose ghost cells need to be filled.
+ * \param cmd   communication metadata.
+ * \param scomp starting component.
+ * \param ncomp number of components.
+ * \param dtos  index mapping.
+ * \param proj  component mapping.
+ */
+template <typename FAB, typename DTOS, typename Proj = Identity>
+std::enable_if_t<IsBaseFab<FAB>() &&
+                 IsCallableR<Dim3,DTOS,Dim3>() &&
+                 IsFabProjection<Proj,FAB>()>
+FillBoundary (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
+              int scomp, int ncomp, DTOS const& dtos, Proj const& proj = Proj{})
+{
+    BL_PROFILE("FillBoundary(cmd)");
+    auto handler = FillBoundary_nowait(mf, cmd, scomp, ncomp, dtos, proj);
+    FillBoundary_finish(std::move(handler), mf, cmd, scomp, ncomp, dtos, proj);
+}
+
+/**
+ * \brief Make metadata for FillBoundary
+ *
+ * \tparam FAB  MultiFab/FabArray type
+ * \tparam DTOS Index mapping from destination from source. See
+ *              SphThetaPhiRIndexMapping for an example.
+ *
+ * \param mf     FabArray/MultiFab whose ghost cells need to be filled.
+ * \param nghost number of ghost cells to be filled.
+ * \param geom   a Geometry object that contains the domain information.
+ * \param dtos   index mapping.
+ *
+ * \return      communication metadata
+ */
+template <typename FAB, typename DTOS>
+[[nodiscard]]
+std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3,DTOS,Dim3>(),
+                 FabArrayBase::CommMetaData>
+makeFillBoundaryMetaData (FabArray<FAB>& mf, IntVect const& nghost,
+                          Geometry const& geom, DTOS const& dtos);
+
+}
 
 #include <AMReX_NonLocalBCImpl.H>
+
+namespace amrex {
+    using NonLocalBC::FillBoundary;
+    using NonLocalBC::FillBoundary_nowait;
+    using NonLocalBC::FillBoundary_finish;
+    using NonLocalBC::makeFillBoundaryMetaData;
+    using NonLocalBC::SphThetaPhiRIndexMapping;
+    using NonLocalBC::SphThetaPhiRComponentMapping;
+    using NonLocalBC::ParallelCopy;
+    using NonLocalBC::ParallelCopy_nowait;
+    using NonLocalBC::ParallelCopy_finish;
+    using NonLocalBC::MultiBlockIndexMapping;
+    using NonLocalBC::MultiBlockCommMetaData;
+    using NonLocalBC::CommHandler;
+}
 
 #endif

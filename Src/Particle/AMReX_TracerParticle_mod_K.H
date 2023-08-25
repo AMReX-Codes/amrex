@@ -1,7 +1,7 @@
 #ifndef AMREX_TRACERPARTICLE_MOD_K_H
 #define AMREX_TRACERPARTICLE_MOD_K_H
 #include <AMReX_Config.H>
-#include <AMReX_TracerParticles.H>
+
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Box.H>
 #include <AMReX_Gpu.H>
@@ -30,7 +30,7 @@ void cic_interpolate (const P& p,
 
     int const i = static_cast<int>(amrex::Math::floor(lx)); //cell
 
-    amrex::Real xint = lx - i; //frac
+    amrex::Real xint = lx - static_cast<Real>(i); //frac
 
     amrex::Real sx[] = {Real(1.0) - xint, xint};
 
@@ -52,8 +52,8 @@ void cic_interpolate (const P& p,
     int const i = static_cast<int>(amrex::Math::floor(lx));
     int const j = static_cast<int>(amrex::Math::floor(ly));
 
-    amrex::Real xint = lx - i;
-    amrex::Real yint = ly - j;
+    amrex::Real xint = lx - static_cast<Real>(i);
+    amrex::Real yint = ly - static_cast<Real>(j);
 
     amrex::Real sx[] = {Real(1.0) - xint, xint};
     amrex::Real sy[] = {Real(1.0) - yint, yint};
@@ -80,9 +80,9 @@ void cic_interpolate (const P& p,
     int const j = static_cast<int>(amrex::Math::floor(ly));
     int const k = static_cast<int>(amrex::Math::floor(lz));
 
-    amrex::Real const xint = lx - i;
-    amrex::Real const yint = ly - j;
-    amrex::Real const zint = lz - k;
+    amrex::Real const xint = lx - static_cast<Real>(i);
+    amrex::Real const yint = ly - static_cast<Real>(j);
+    amrex::Real const zint = lz - static_cast<Real>(k);
 
     amrex::Real sx[] = {Real(1.0) - xint, xint};
     amrex::Real sy[] = {Real(1.0) - yint, yint};
@@ -128,11 +128,11 @@ void mac_interpolate (const P& p,
 #if (AMREX_SPACEDIM == 1)
     for (int d=0; d < AMREX_SPACEDIM; ++d)
     {
-        amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - (d != 0)*Real(0.5);
+        amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - static_cast<Real>(d != 0)*Real(0.5);
 
         int const i = static_cast<int>(amrex::Math::floor(lx));
 
-        amrex::Real const xint = lx - i;
+        amrex::Real const xint = lx - static_cast<Real>(i);
 
         amrex::Real sx[] = {Real(1.0) - xint, xint};
 
@@ -147,14 +147,14 @@ void mac_interpolate (const P& p,
 
   for (int d=0; d < AMREX_SPACEDIM; ++d)
   {
-      amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - (d != 0)*Real(0.5);
-      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - (d != 1)*Real(0.5);
+      amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - static_cast<Real>(d != 0)*Real(0.5);
+      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - static_cast<Real>(d != 1)*Real(0.5);
 
       int const i = static_cast<int>(amrex::Math::floor(lx));
       int const j = static_cast<int>(amrex::Math::floor(ly));
 
-      amrex::Real const xint = lx - i;
-      amrex::Real const yint = ly - j;
+      amrex::Real const xint = lx - static_cast<Real>(i);
+      amrex::Real const yint = ly - static_cast<Real>(j);
 
       amrex::Real sx[] = {Real(1.0) - xint, xint};
       amrex::Real sy[] = {Real(1.0) - yint, yint};
@@ -174,17 +174,17 @@ void mac_interpolate (const P& p,
 
   for (int d=0; d < AMREX_SPACEDIM; ++d)
   {
-      amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - (d != 0)*Real(0.5);
-      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - (d != 1)*Real(0.5);
-      amrex::Real lz = (Real(p.pos(2))-plo[2])*dxi[2] - (d != 2)*Real(0.5);
+      amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - static_cast<Real>(d != 0)*Real(0.5);
+      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - static_cast<Real>(d != 1)*Real(0.5);
+      amrex::Real lz = (Real(p.pos(2))-plo[2])*dxi[2] - static_cast<Real>(d != 2)*Real(0.5);
 
       int const i = static_cast<int>(amrex::Math::floor(lx));
       int const j = static_cast<int>(amrex::Math::floor(ly));
       int const k = static_cast<int>(amrex::Math::floor(lz));
 
-      amrex::Real const xint = lx - i;
-      amrex::Real const yint = ly - j;
-      amrex::Real const zint = lz - k;
+      amrex::Real const xint = lx - static_cast<Real>(i);
+      amrex::Real const yint = ly - static_cast<Real>(j);
+      amrex::Real const zint = lz - static_cast<Real>(k);
 
       amrex::Real sx[] = {Real(1.0) - xint, xint};
       amrex::Real sy[] = {Real(1.0) - yint, yint};

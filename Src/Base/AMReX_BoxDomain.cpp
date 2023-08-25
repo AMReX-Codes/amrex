@@ -101,9 +101,9 @@ BoxDomain::BoxDomain ()
     BoxList(IndexType::TheCellType())
 {}
 
-BoxDomain::BoxDomain (IndexType _ctype)
+BoxDomain::BoxDomain (IndexType itype)
     :
-    BoxList(_ctype)
+    BoxList(itype)
 {}
 
 BoxDomain::BoxDomain (const Box& bx)
@@ -188,9 +188,9 @@ BoxDomain::ok () const
         //
         // Now check to see that boxes are disjoint.
         //
-        for (const_iterator bli = begin(); bli != end(); ++bli)
+        for (auto bli = begin(); bli != end(); ++bli)
         {
-            const_iterator blii = bli; ++blii;
+            auto blii = bli; ++blii;
             for ( ; blii != end(); ++blii)
             {
                 if (bli->intersects(*blii))
@@ -231,8 +231,9 @@ operator<< (std::ostream&    os,
             const BoxDomain& bd)
 {
     os << "(BoxDomain " << bd.boxList() << ")" << std::flush;
-    if (os.fail())
+    if (os.fail()) {
         amrex::Error("operator<<(ostream&,BoxDomain&) failed");
+    }
     return os;
 }
 

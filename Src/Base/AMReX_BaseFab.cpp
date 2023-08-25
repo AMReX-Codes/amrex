@@ -21,7 +21,7 @@ Long private_total_cells_allocated_in_fabs_hwm = 0L;
 
 namespace
 {
-    static bool basefab_initialized = false;
+    bool basefab_initialized = false;
 }
 
 void
@@ -146,7 +146,7 @@ update_fab_stats (Long n, Long s, size_t szt) noexcept
 #ifdef AMREX_USE_OMP
     if (omp_in_parallel())
     {
-        Long tst = s*szt;
+        Long tst = s * static_cast<Long>(szt);
         amrex::private_total_bytes_allocated_in_fabs += tst;
         amrex::private_total_bytes_allocated_in_fabs_hwm
             = std::max(amrex::private_total_bytes_allocated_in_fabs_hwm,
@@ -161,7 +161,7 @@ update_fab_stats (Long n, Long s, size_t szt) noexcept
     } else
 #endif
     {
-        Long tst = s*szt;
+        Long tst = s * static_cast<Long>(szt);
         Long old_bytes = amrex::atomic_total_bytes_allocated_in_fabs.fetch_add
             (tst,std::memory_order_relaxed);
         Long new_bytes = old_bytes + tst;

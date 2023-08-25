@@ -23,7 +23,6 @@ USE_MPI       = FALSE
 USE_OMP       = FALSE
 EBASE         = amrprofparser
 BL_NO_FORT    = FALSE
-USE_CXX11     = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 include $(AMREX_HOME)/Src/Base/Make.package

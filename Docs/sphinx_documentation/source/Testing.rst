@@ -18,13 +18,14 @@ application codes that use it as a framework. We use an in-house test runner scr
 operation, originally developed by Michael Zingale for the Castro code, and later expanded to other
 application codes as well. The results for each night are collected and stored on a web page; see
 https://ccse.lbl.gov/pub/RegressionTesting/ for the latest set of results.
+The runtime option ``amrex.abort_on_unused_inputs`` (``0`` or ``1``; default is ``0`` for false) is useful for making sure that tests always stay up to date with API changes as it will abort the application after the test run if any unused input parameters were detected.
 
 Running the test suite locally
 ==============================
 
 The test suite is mostly used internally by AMReX developers. However,
 if you are making a pull request to AMReX, it can be useful to run the test suite
-on your local machine to reduce the liklihood that your changes break some existing functionality.
+on your local machine to reduce the likelihood that your changes break some existing functionality.
 To run the test suite locally, you must first obtain a copy of the test runner source, available
 on Github here: https://github.com/AMReX-Codes/regression_testing. The test runner requires Python
 version 2.7 or greater. Additional information on the test suite software can be found at,
@@ -73,7 +74,7 @@ re-run the script without the :cpp:`--make_benchmarks` option:
 
 ::
 
-   python regtest.py --make_benchmarks 'generating initial benchmarks' AMReX-tests.ini
+   python regtest.py AMReX-tests.ini
 
 The script will generate a set of html pages in the directory specified in your :cpp:`AMReX-tests.ini`
 file that you can examine using the browser of your choice.

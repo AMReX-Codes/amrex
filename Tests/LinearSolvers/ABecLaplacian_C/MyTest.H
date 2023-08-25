@@ -16,7 +16,7 @@ public:
     void solve ();
     void writePlotfile () const;
 
-public: // make these public for cuda
+// make these public for cuda
     void initProbPoisson ();
     void initProbABecLaplacian ();
     void initProbABecLaplacianInhomNeumann ();

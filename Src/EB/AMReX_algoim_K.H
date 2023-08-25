@@ -18,7 +18,7 @@
 #include <limits>
 #include <cfloat>
 
-namespace amrex { namespace algoim {
+namespace amrex::algoim {
 
 struct EBPlane
 {
@@ -39,20 +39,20 @@ struct EBPlane
         : cent{cx,cy,cz}, norm{nx,ny,nz}
         {}
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (Real x, Real y, Real z) const noexcept
     {
         return (x-cent[0])*norm[0] + (y-cent[1])*norm[1] + (z-cent[2])*norm[2];
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (GpuArray<Real,3> const& p) const noexcept
     {
         return (p[0]-cent[0])*norm[0] + (p[1]-cent[1])*norm[1]
             +  (p[2]-cent[2])*norm[2];
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real grad (int d) const noexcept
     {
         return norm[d];
@@ -69,7 +69,7 @@ struct QuadratureRule
     GpuArray<Node,256> nodes;
 
     template<typename F>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real
     operator() (const F& f) const noexcept
     {
@@ -81,7 +81,7 @@ struct QuadratureRule
     }
 
     template<typename F>
-    AMREX_GPU_HOST AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST AMREX_FORCE_INLINE
     Real
     eval (const F& f) const noexcept
     {
@@ -171,7 +171,7 @@ struct PsiCode
     unsigned char bits = 0;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
-    PsiCode () noexcept {}
+    PsiCode () noexcept = default;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     PsiCode (const GpuArray<int,N>& sides, int sign) noexcept
@@ -210,13 +210,13 @@ struct PsiCode
         }
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int side (int dim) const noexcept
     {
         return bits & (1 << dim);
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int sign () const noexcept
     {
         return (bits & (1 << N)) ? 0 : ((bits & (1 << (N+1))) ? 1 : -1);
@@ -245,7 +245,7 @@ struct BoundingBox
 
 struct Interval
 {
-    Real alpha;
+    Real alpha = std::numeric_limits<Real>::lowest();
 };
 
 // M-dimensional integral of an N-dimensional function restricted to
@@ -259,7 +259,7 @@ struct ImplicitIntegral
     GpuArray<PsiCode<N>,1 << (N - 1)> psi;
     int psiCount;
     const BoundingBox<N> xrange;
-    int e0;
+    int e0 = -1;
     GpuArray<Interval,N> xint;
     static constexpr int p = 4;
 
@@ -281,7 +281,7 @@ struct ImplicitIntegral
             Real dphi_max = 0.0_rt;
             for (int dim = 0; dim < N; ++dim) {
                 if (free[dim]) {
-                    dphi_max += amrex::Math::abs(phi.grad(dim));
+                    dphi_max += std::abs(phi.grad(dim));
                 } else {
                     mid[dim] = xrange(psi[i].side(dim),dim);
                 }
@@ -401,7 +401,7 @@ struct ImplicitIntegral
                     mag += phi.grad(dim)*phi.grad(dim);
                 }
                 mag = std::sqrt(mag);
-                f.evalIntegrand(x, (mag/amrex::Math::abs(phi.grad(e0)))*w);
+                f.evalIntegrand(x, (mag/std::abs(phi.grad(e0)))*w);
             }
 
             return;
@@ -442,7 +442,7 @@ struct ImplicitIntegral
         // Loop over segments of divided interval
         for (int i = 0; i < nroots - 1; ++i)
         {
-            if (roots[i+1] - roots[i] < tol) continue;
+            if (roots[i+1] - roots[i] < tol) { continue; }
 
             // Evaluate sign of phi within segment and check for consistency with psi
             bool okay = true;
@@ -457,7 +457,7 @@ struct ImplicitIntegral
                 bool new_ok = (phi(x) > 0.0) ? (psi[j].sign() >= 0) : (psi[j].sign() <= 0);
                 okay = okay && new_ok;
             }
-            if (!okay) continue;
+            if (!okay) { continue; }
 
             for (int j = 0; j < p; ++j)
             {
@@ -521,8 +521,9 @@ struct ImplicitIntegral
         // integral domain is the entire hyperrectangle.
         if (psiCount == 0)
         {
-            if (!S)
+            if (!S) {
                 tensorProductIntegral();
+            }
             return;
         }
 
@@ -537,8 +538,8 @@ struct ImplicitIntegral
         {
             Real gmax = -1.;
             for (int dim = 0; dim < N; ++dim) {
-                if (free[dim] && amrex::Math::abs(phi.grad(dim)) > gmax) {
-                    gmax = amrex::Math::abs(phi.grad(dim));
+                if (free[dim] && std::abs(phi.grad(dim)) > gmax) {
+                    gmax = std::abs(phi.grad(dim));
                     e0 = dim;
                 }
             }
@@ -646,6 +647,6 @@ void set_regular_surface (int i, int j, int k, Array4<Real> const& sintg) noexce
     sintg(i,j,k,i_B_xyz  ) = 0.0_rt;
 }
 
-}}
+}
 
 #endif

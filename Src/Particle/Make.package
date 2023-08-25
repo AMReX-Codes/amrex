@@ -1,6 +1,7 @@
 
 CEXE_headers += AMReX_Particle.H
 CEXE_headers += AMReX_Particles.H
+CEXE_headers += AMReX_ParticleContainer.H
 CEXE_headers += AMReX_ParGDB.H
 CEXE_headers += AMReX_ParticleContainerI.H
 CEXE_headers += AMReX_ParticleInit.H
@@ -12,6 +13,7 @@ CEXE_headers += AMReX_ParIter.H
 CEXE_headers += AMReX_StructOfArrays.H
 CEXE_headers += AMReX_ArrayOfStructs.H
 CEXE_headers += AMReX_ParticleTile.H
+CEXE_headers += AMReX_MakeParticle.H
 
 CEXE_headers += AMReX_NeighborParticles.H
 CEXE_headers += AMReX_NeighborParticlesI.H

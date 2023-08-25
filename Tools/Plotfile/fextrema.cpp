@@ -101,8 +101,8 @@ void main_main()
             }
         }
 
-        ParallelDescriptor::ReduceRealMin(vvmin.data(), vvmin.size());
-        ParallelDescriptor::ReduceRealMax(vvmax.data(), vvmax.size());
+        ParallelDescriptor::ReduceRealMin(vvmin.data(), static_cast<int>(vvmin.size()));
+        ParallelDescriptor::ReduceRealMax(vvmax.data(), static_cast<int>(vvmax.size()));
 
         if (ntime == 1) {
             amrex::Print() << " plotfile = " << filename << "\n"

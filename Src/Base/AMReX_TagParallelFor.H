@@ -17,7 +17,7 @@ struct Array4PairTag {
     Array4<T const> sfab;
     Box dbox;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
@@ -28,7 +28,7 @@ struct Array4CopyTag {
     Box dbox;
     Dim3 offset; // sbox.smallEnd() - dbox.smallEnd()
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
@@ -40,7 +40,7 @@ struct Array4MaskCopyTag {
     Box dbox;
     Dim3 offset; // sbox.smallEnd() - dbox.smallEnd()
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
@@ -48,7 +48,7 @@ template <class T>
 struct Array4Tag {
     Array4<T> dfab;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box box () const noexcept { return Box(dfab); }
 };
 
@@ -57,7 +57,7 @@ struct Array4BoxTag {
     Array4<T> dfab;
     Box       dbox;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
@@ -67,7 +67,7 @@ struct Array4BoxValTag {
     Box       dbox;
     T          val;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
@@ -76,7 +76,7 @@ struct VectorTag {
     T* p;
     int m_size;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int size () const noexcept { return m_size; }
 };
 
@@ -106,7 +106,7 @@ template <typename T, typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::enable_if_t<std::is_same<std::decay_t<decltype(std::declval<T>().box())>, Box>::value>
 tagparfor_call_f (
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     sycl::nd_item<1> const& item,
 #endif
     int icell, T const& tag, F&& f) noexcept
@@ -120,7 +120,7 @@ tagparfor_call_f (
     i += lo.x;
     j += lo.y;
     k += lo.z;
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     f(item, icell, ncells, i, j, k, tag);
 #else
     f(      icell, ncells, i, j, k, tag);
@@ -131,13 +131,13 @@ template <typename T, typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::enable_if_t<std::is_integral<std::decay_t<decltype(std::declval<T>().size())> >::value>
 tagparfor_call_f (
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     sycl::nd_item<1> const& item,
 #endif
     int i, T const& tag, F&& f) noexcept
 {
     int N = tag.size();
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     f(item, i, N, tag);
 #else
     f(      i, N, tag);
@@ -149,7 +149,7 @@ void
 ParallelFor_doit (Vector<TagType> const& tags, F && f)
 {
     const int ntags = tags.size();
-    if (ntags == 0) return;
+    if (ntags == 0) { return; }
 
     int ntotwarps = 0;
     Vector<int> nwarps;
@@ -183,32 +183,33 @@ ParallelFor_doit (Vector<TagType> const& tags, F && f)
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 
     amrex::launch(nblocks, nthreads, Gpu::gpuStream(),
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
-    AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+    [[sycl::reqd_work_group_size(1,1,nthreads)]]
+    [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
 #else
     [=] AMREX_GPU_DEVICE () noexcept
 #endif
     {
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         int g_tid = item.get_global_id(0);
 #else
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
 #endif
         int g_wid = g_tid / Gpu::Device::warp_size;
-        if (g_wid >= ntotwarps) return;
+        if (g_wid >= ntotwarps) { return; }
 
         int tag_id = amrex::bisect(d_nwarps, 0, ntags, g_wid);
 
         int b_wid = g_wid - d_nwarps[tag_id]; // b_wid'th warp on this box
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         int lane = item.get_local_id(0) % Gpu::Device::warp_size;
 #else
         int lane = threadIdx.x % Gpu::Device::warp_size;
 #endif
         int icell = b_wid*Gpu::Device::warp_size + lane;
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         tagparfor_call_f(item, icell, d_tags[tag_id], f);
 #else
         tagparfor_call_f(      icell, d_tags[tag_id], f);
@@ -229,7 +230,7 @@ ParallelFor (Vector<TagType> const& tags, int ncomp, F && f)
 {
     detail::ParallelFor_doit(tags,
         [=] AMREX_GPU_DEVICE (
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
             sycl::nd_item<1> const& /*item*/,
 #endif
             int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
@@ -248,7 +249,7 @@ ParallelFor (Vector<TagType> const& tags, F && f)
 {
     detail::ParallelFor_doit(tags,
         [=] AMREX_GPU_DEVICE (
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
             sycl::nd_item<1> const& /*item*/,
 #endif
             int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
@@ -265,7 +266,7 @@ ParallelFor (Vector<TagType> const& tags, F && f)
 {
     detail::ParallelFor_doit(tags,
         [=] AMREX_GPU_DEVICE (
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
             sycl::nd_item<1> const& /*item*/,
 #endif
             int icell, int ncells, TagType const& tag) noexcept

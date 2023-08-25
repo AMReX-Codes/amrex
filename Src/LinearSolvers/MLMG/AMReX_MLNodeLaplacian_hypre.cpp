@@ -11,9 +11,9 @@ void
 MLNodeLaplacian::fillIJMatrix (MFIter const& mfi,
                                Array4<HypreNodeLap::AtomicInt const> const& gid,
                                Array4<int const> const& lid,
-                               HypreNodeLap::Int* const ncols,
-                               HypreNodeLap::Int* const cols,
-                               Real* const mat) const
+                               HypreNodeLap::Int* ncols,
+                               HypreNodeLap::Int* cols,
+                               Real* mat) const
 {
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
@@ -31,9 +31,9 @@ void
 MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
                                    Array4<HypreNodeLap::AtomicInt const> const& gid,
                                    Array4<int const> const& lid,
-                                   HypreNodeLap::Int* const ncols,
-                                   HypreNodeLap::Int* const cols,
-                                   Real* const mat) const
+                                   HypreNodeLap::Int* ncols,
+                                   HypreNodeLap::Int* cols,
+                                   Real* mat) const
 {
     const int amrlev = 0;
     const int mglev  = m_num_mg_levels[amrlev]-1;
@@ -171,9 +171,9 @@ void
 MLNodeLaplacian::fillIJMatrix_cpu (MFIter const& mfi,
                                    Array4<HypreNodeLap::AtomicInt const> const& gid,
                                    Array4<int const> const& lid,
-                                   HypreNodeLap::Int* const ncols,
-                                   HypreNodeLap::Int* const cols,
-                                   Real* const mat) const
+                                   HypreNodeLap::Int* ncols,
+                                   HypreNodeLap::Int* cols,
+                                   Real* mat) const
 {
     const int amrlev = 0;
     const int mglev  = m_num_mg_levels[amrlev]-1;
@@ -230,7 +230,7 @@ MLNodeLaplacian::fillIJMatrix_cpu (MFIter const& mfi,
 
 void
 MLNodeLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
-                          Real* const rhs, Array4<Real const> const& bfab) const
+                          Real* rhs, Array4<Real const> const& bfab) const
 {
     const int amrlev = 0;
     const int mglev  = m_num_mg_levels[amrlev]-1;

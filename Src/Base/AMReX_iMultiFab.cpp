@@ -148,7 +148,7 @@ iMultiFab::negate (const Box& region, int nghost)
 void
 iMultiFab::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
 
     amrex::ExecOnFinalize(iMultiFab::Finalize);
 
@@ -160,8 +160,6 @@ iMultiFab::Finalize ()
 {
     initialized = false;
 }
-
-iMultiFab::iMultiFab () noexcept {}
 
 iMultiFab::iMultiFab (Arena* a) noexcept
     : FabArray<IArrayBox>(a)
@@ -194,14 +192,11 @@ iMultiFab::iMultiFab (const iMultiFab& rhs, MakeType maketype, int scomp, int nc
 {
 }
 
-iMultiFab::~iMultiFab()
-{
-}
-
-void
+iMultiFab&
 iMultiFab::operator= (int r)
 {
     setVal(r);
+    return *this;
 }
 
 void
@@ -439,7 +434,7 @@ iMultiFab::sum (int comp, int nghost, bool local) const
 
 namespace {
 
-static IntVect
+IntVect
 indexFromValue (iMultiFab const& mf, int comp, int nghost, int value, MPI_Op mmloc)
 {
     IntVect loc = indexFromValue(mf, comp, IntVect{nghost}, value);
@@ -611,6 +606,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngr
     Vector<Array4BoxTag<int> > tags;
 
     bool run_on_gpu = Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_gpu, tags);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
@@ -637,9 +633,12 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngr
                     const Box& obx = is.second-iv;
                     if ((oi < idx) || (oi == idx && iv < IntVect::TheZeroVector()))
                     {
+#ifdef AMREX_USE_GPU
                         if (run_on_gpu) {
                             tags.push_back({arr,obx});
-                        } else {
+                        } else
+#endif
+                        {
                             // cannot use amrex::Loop because of a gcc bug.
                             const auto lo = amrex::lbound(obx);
                             const auto hi = amrex::ubound(obx);

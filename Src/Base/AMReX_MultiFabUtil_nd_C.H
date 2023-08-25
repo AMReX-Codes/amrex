@@ -24,8 +24,8 @@ void amrex_fill_slice_interp (Box const& bx, Array4<Real> slice,
     int ihi = 0, jhi = 0, khi = 0;
 
     Real weight = (coord - gd.ProbLo(dir)) / gd.CellSize(dir);
-    int dirhi = static_cast<int>(amrex::Math::floor(weight + Real(0.5)));
-    int dirlo = dirhi-1;
+    auto dirhi = std::floor(weight + Real(0.5));
+    auto dirlo = dirhi-Real(1.);
     weight -= dirlo+Real(0.5);
 
     if (weight < 0.5) {

@@ -6,8 +6,6 @@ InterpolaterBoxCoarsener::InterpolaterBoxCoarsener (InterpBase* mapper_, const I
     : mapper(mapper_), ratio(ratio_)
 {}
 
-InterpolaterBoxCoarsener::~InterpolaterBoxCoarsener () {}
-
 Box
 InterpolaterBoxCoarsener::doit (const Box& fine) const
 {

@@ -1,8 +1,3 @@
-# Check python version
-my_python_version := $(word 2, $(shell python --version 2>&1))
-ifneq ($(firstword $(sort 2.7 $(my_python_version))), 2.7)
-  $(error Python >= 2.7 required! Your version is $(my_python_version))
-endif
 
 ifneq (,$(findstring ~,$(AMREX_HOME)))
   $(warning *** AMREX_HOME string constains ~ and make will not like it. So it is replaced.)
@@ -28,15 +23,20 @@ else
   USE_GPU := FALSE
 endif
 
-ifdef USE_DPCPP
-  USE_DPCPP := $(strip $(USE_DPCPP))
+ifdef USE_SYCL
+  USE_SYCL := $(strip $(USE_SYCL))
+else ifdef USE_DPCPP
+  $(warning *** USE_DPCPP has been deprecated. Use USE_SYCL instead.)
+  USE_SYCL := $(strip $(USE_DPCPP))
 else
-  USE_DPCPP := FALSE
+  USE_SYCL := FALSE
 endif
 
-ifeq ($(USE_DPCPP),TRUE)
-  override COMP = dpcpp
-  DEFINES += -DAMREX_USE_DPCPP
+ifeq ($(USE_SYCL),TRUE)
+  override COMP = sycl
+  DEFINES += -DAMREX_USE_SYCL -DAMREX_USE_DPCPP
+  SYCL_SUB_GROUP_SIZE ?= 32
+  DEFINES += -DAMREX_SYCL_SUB_GROUP_SIZE=$(SYCL_SUB_GROUP_SIZE)
   USE_GPU := TRUE
   USE_CUDA := FALSE
   USE_HIP := FALSE
@@ -56,7 +56,6 @@ else
 endif
 
 ifeq ($(USE_HIP),TRUE)
-  DEBUG := FALSE  # Currently there is a compiler bug for DEBUG=TRUE.
   USE_CUDA := FALSE
   override COMP = hip
   ifneq ($(NO_CONFIG_CHECKING),TRUE)
@@ -257,12 +256,13 @@ else
   USE_CUPTI := FALSE
 endif
 
+# Maximum number of GPU threads per block.
+CUDA_MAX_THREADS ?= 256
+GPU_MAX_THREADS ?= $(CUDA_MAX_THREADS)
+
 ifeq ($(USE_CUDA),TRUE)
   # Set the default CUDA architecture version.
   CUDA_ARCH ?= 70
-
-  # Maximum number of CUDA threads per block.
-  CUDA_MAX_THREADS ?= 256
 
   # Limit the maximum number of registers available.
   CUDA_MAXREGCOUNT ?= 255
@@ -457,8 +457,12 @@ ifdef AMREX_CCOMP
     AMREX_CCOMP = gnu
   else ifeq ($(lowercase_amrex_ccomp),intel)
     AMREX_CCOMP = intel
-  else ifeq ($(lowercase_amrex_ccomp),dpcpp)
-    AMREX_CCOMP = dpcpp
+  else ifeq ($(lowercase_amrex_ccomp),intel-llvm)
+    AMREX_CCOMP = intel-llvm
+  else ifeq ($(lowercase_amrex_ccomp),intel-classic)
+    AMREX_CCOMP = intel-classic
+  else ifeq ($(lowercase_amrex_ccomp),sycl)
+    AMREX_CCOMP = sycl
   else ifeq ($(lowercase_amrex_ccomp),cray)
     AMREX_CCOMP = cray
   else ifeq ($(lowercase_amrex_ccomp),pgi)
@@ -478,7 +482,7 @@ ifdef AMREX_CCOMP
   else ifeq ($(lowercase_amrex_ccomp),armclang)
     AMREX_CCOMP = armclang
   else
-    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, nvhpc, ibm, llvm, nag, nec, and armclang)
+    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, intel-llvm, intel-classic, sycl, cray, pgi, nvhpc, ibm, llvm, nag, nec, and armclang)
   endif
 endif
 
@@ -495,9 +499,19 @@ else ifeq ($(lowercase_comp),intel)
   AMREX_CCOMP ?= intel
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak
-else ifeq ($(lowercase_comp),dpcpp)
+else ifeq ($(lowercase_comp),intel-llvm)
+  AMREX_FCOMP ?= intel-llvm
+  AMREX_CCOMP ?= intel-llvm
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel-llvm.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/intel-llvm.mak
+else ifeq ($(lowercase_comp),intel-classic)
+  AMREX_FCOMP ?= intel-classic
+  AMREX_CCOMP ?= intel-classic
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel-classic.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/intel-classic.mak
+else ifeq ($(lowercase_comp),sycl)
   AMREX_FCOMP ?= none
-  AMREX_CCOMP ?= dpcpp
+  AMREX_CCOMP ?= sycl
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/dpcpp.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/dpcpp.mak
 else ifeq ($(lowercase_comp),cray)
@@ -553,7 +567,7 @@ else ifeq ($(lowercase_comp),hip)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, nvhpc, ibm, llvm, nag, and nec)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, intel-llvm, intel-classic, sycl, cray, pgi, nvhpc, ibm, llvm, nag, and nec)
 endif
 
 CXXFLAGS += $(XTRA_CXXFLAGS)
@@ -762,6 +776,7 @@ else ifeq ($(USE_CUDA),TRUE)
         LINK_WITH_FORTRAN_COMPILER=TRUE
     endif
 
+    $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak...)
     include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
 
     ifeq ($(USE_MPI),TRUE)
@@ -794,13 +809,15 @@ else
 endif
 
 ifeq ($(USE_GPU),TRUE)
-    DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
+    DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS -DAMREX_GPU_MAX_THREADS=$(GPU_MAX_THREADS)
     ifeq ($(GPU_ERROR_CHECK),FALSE)
         DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
     endif
     ifeq ($(USE_GPU_RDC),TRUE)
         DEFINES += -DAMREX_USE_GPU_RDC
     endif
+else
+    DEFINES += -DAMREX_GPU_MAX_THREADS=0
 endif
 
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
@@ -918,12 +935,14 @@ optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
-TmpBuildDir     = tmp_build_dir
-srcTempDir      = $(TmpBuildDir)/s/$(optionsSuffix).EXE
-depEXETempDir	= $(TmpBuildDir)/d/$(optionsSuffix).EXE
-objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
-f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
-tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
+TMP_BUILD_DIR     ?= tmp_build_dir
+# backwards compatibility: alias the old name so codes don't break
+TmpBuildDir := $(TMP_BUILD_DIR)
+srcTempDir      = $(TMP_BUILD_DIR)/s/$(optionsSuffix).EXE
+depEXETempDir	= $(TMP_BUILD_DIR)/d/$(optionsSuffix).EXE
+objEXETempDir   = $(TMP_BUILD_DIR)/o/$(optionsSuffix).EXE
+f77EXETempDir	= $(TMP_BUILD_DIR)/f/$(optionsSuffix).EXE
+tmpEXETempDir	= $(TMP_BUILD_DIR)/t/$(optionsSuffix).EXE
 
 includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS)) $(addprefix -isystem , $(SYSTEM_INCLUDE_LOCATIONS))
 ifeq ($(lowercase_comp),pgi)
@@ -942,7 +961,7 @@ fmoddir         = $(objEXETempDir)
 
 amrexlib = $(objEXETempDir)/libamrex.a
 
-AMREX_INSTALL_DIR ?= tmp_build_dir
+AMREX_INSTALL_DIR ?= $(TMP_BUILD_DIR)
 amrexLibDir = $(AMREX_INSTALL_DIR)/lib
 amrexIncludeDir = $(AMREX_INSTALL_DIR)/include
 # Do different compilers have different name convention for mod files?
@@ -967,21 +986,30 @@ else
   CCACHE =
 endif
 
+ifeq ($(USE_CLANG_TIDY),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.clang-tidy)
+  include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.clang-tidy
+endif
+
+ifeq ($(USE_COVERITY),TRUE)
+  DEFINES += -DAMREX_USE_COVERITY
+endif
+
 # place holder
 F90CACHE =
 
 ifeq ($(TP_PROFILING),VTUNE)
-  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
 endif
 
 ifeq ($(TP_PROFILING),CRAYPAT)
-  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
 endif
 
 ifeq ($(TP_PROFILING),FORGE)
-  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
 endif
 
@@ -1046,7 +1074,7 @@ endif
 
 FINAL_LIBS = $(libraries)
 
-ifeq ($(USE_DPCPP),TRUE)
+ifeq ($(USE_SYCL),TRUE)
 
 else ifeq ($(USE_HIP),TRUE)
 
@@ -1058,11 +1086,11 @@ else ifeq ($(USE_HIP),TRUE)
     endif
 
     ifeq ($(HIP_SAVE_TEMPS),TRUE)
+      ifeq ($(USE_GPU_RDC),TRUE)
+        $(warning *** HIP_SAVE_TEMPS requires USE_GPU_RDC=FALSE to obtain the assembly files for AMD GPU kernels.)
+      endif
       # Issue: hipcc does not seem to respect the arg to --save-temps
       CXXFLAGS += --save-temps=$(objEXETempDir)
-      ifeq ($(DEBUG),TRUE) # --save-temps does not like AMREX_GPU_EXTERNAL
-        CPPFLAGS += -DNDEBUG
-      endif
     endif
 
 else ifeq ($(USE_CUDA),TRUE)
@@ -1085,7 +1113,7 @@ else ifeq ($(USE_CUDA),TRUE)
         MAKE_CUDA_PATH := $(SYSTEM_CUDA_PATH)
     endif
 
-    LIBRARIES += -lcuda
+    LIBRARIES += -lcuda -lcurand
 
     ifneq ($(MAKE_CUDA_PATH),)
         LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64
@@ -1121,20 +1149,6 @@ else ifeq ($(USE_CUDA),TRUE)
        DEFINES += -DAMREX_USE_NVML
 
     endif
-
-    # Provide system configuration, if available.
-
-    ifdef GPUS_PER_SOCKET
-       DEFINES += -DAMREX_GPUS_PER_SOCKET=$(GPUS_PER_SOCKET)
-    endif
-
-    ifdef GPUS_PER_NODE
-       DEFINES += -DAMREX_GPUS_PER_NODE=$(GPUS_PER_NODE)
-    endif
-
-    # Set the CUDA threads define in case the user updated it.
-
-    DEFINES += -DAMREX_GPU_MAX_THREADS=$(CUDA_MAX_THREADS)
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
       LINKFLAGS = $(NVCC_FLAGS) $(CXXFLAGS_FROM_HOST)

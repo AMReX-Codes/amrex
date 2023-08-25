@@ -1,12 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-from __future__ import print_function
-
-import sys, re
-
-if sys.version_info < (2, 7):
-    sys.exit("ERROR: need python 2.7 or later for mkversionheader.py")
-
+import re
 import argparse
 
 def doit(code, defines):

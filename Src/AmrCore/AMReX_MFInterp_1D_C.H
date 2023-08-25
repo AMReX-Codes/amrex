@@ -4,9 +4,9 @@
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mf_cell_cons_lin_interp_llslope (int i, int, int, Array4<Real> const& slope,
+void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int, int, Array4<Real> const& slope,
                                       Array4<Real const> const& u, int scomp, int ncomp,
-                                      Box const& domain, BCRec const* bc) noexcept
+                                      Box const& domain, IntVect const& ratio, BCRec const* bc) noexcept
 {
     Real sfx = Real(1.0);
 
@@ -17,8 +17,40 @@ void mf_cell_cons_lin_interp_llslope (int i, int, int, Array4<Real> const& slope
         Real dc = mf_compute_slopes_x(i, 0, 0, u, nu, domain, bc[ns]);
         Real df = Real(2.0) * (u(i+1,0,0,nu) - u(i  ,0,0,nu));
         Real db = Real(2.0) * (u(i  ,0,0,nu) - u(i-1,0,0,nu));
-        Real sx = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
-        sx = amrex::Math::copysign(Real(1.),dc)*amrex::min(sx,amrex::Math::abs(dc));
+        Real sx = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
+        sx = std::copysign(Real(1.),dc)*amrex::min(sx,std::abs(dc));
+        slope(i,0,0,ns) = dc;
+
+        // additional limiting is unnecessary in 1D
+
+        if (dc != Real(0.0)) {
+            sfx = amrex::min(sfx, sx / dc);
+        }
+    }
+
+    for (int ns = 0; ns < ncomp; ++ns) {
+        slope(i,0,0,ns) *= sfx;
+    }
+
+    amrex::ignore_unused(ratio);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_cons_lin_interp_llslope (int i, int, int, Array4<Real> const& slope,
+                                      Array4<Real const> const& u, int scomp, int ncomp,
+                                      Box const& domain, IntVect const& /*ratio*/, BCRec const* bc) noexcept
+{
+    Real sfx = Real(1.0);
+
+    for (int ns = 0; ns < ncomp; ++ns) {
+        int nu = ns + scomp;
+
+        // x-direction
+        Real dc = mf_compute_slopes_x(i, 0, 0, u, nu, domain, bc[ns]);
+        Real df = Real(2.0) * (u(i+1,0,0,nu) - u(i  ,0,0,nu));
+        Real db = Real(2.0) * (u(i  ,0,0,nu) - u(i-1,0,0,nu));
+        Real sx = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
+        sx = std::copysign(Real(1.),dc)*amrex::min(sx,std::abs(dc));
         if (dc != Real(0.0)) {
             sfx = amrex::min(sfx, sx / dc);
         }
@@ -43,12 +75,12 @@ void mf_cell_cons_lin_interp_mcslope (int i, int /*j*/, int /*k*/, int ns,
     Real dc = mf_compute_slopes_x(i, 0, 0, u, nu, domain, bc[ns]);
     Real df = Real(2.0) * (u(i+1,0,0,nu) - u(i  ,0,0,nu));
     Real db = Real(2.0) * (u(i  ,0,0,nu) - u(i-1,0,0,nu));
-    Real sx = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
-    sx = amrex::Math::copysign(Real(1.),dc)*amrex::min(sx,amrex::Math::abs(dc));
+    Real sx = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
+    sx = std::copysign(Real(1.),dc)*amrex::min(sx,std::abs(dc));
 
     Real alpha = Real(1.0);
     if (sx != Real(0.0)) {
-        Real dumax = amrex::Math::abs(sx) * Real(ratio[0]-1)/Real(2*ratio[0]);
+        Real dumax = std::abs(sx) * Real(ratio[0]-1)/Real(2*ratio[0]);
         Real umax = u(i,0,0,nu);
         Real umin = u(i,0,0,nu);
         for (int ioff = -1; ioff <= 1; ++ioff) {
@@ -73,7 +105,7 @@ void mf_cell_cons_lin_interp (int i, int /*j*/, int /*k*/, int ns,
                               int ccomp, int /*ncomp*/, IntVect const& ratio) noexcept
 {
     const int ic = amrex::coarsen(i, ratio[0]);
-    const Real xoff = (i - ic*ratio[0] + Real(0.5)) / Real(ratio[0]) - Real(0.5);
+    const Real xoff = (static_cast<Real>(i - ic*ratio[0]) + Real(0.5)) / Real(ratio[0]) - Real(0.5);
     fine(i,0,0,fcomp+ns) = crse(ic,0,0,ccomp+ns)
         + xoff * slope(ic,0,0,ns);
 }
@@ -90,8 +122,8 @@ void mf_cell_cons_lin_interp_mcslope_sph (int i, int ns, Array4<Real> const& slo
     Real dc = mf_compute_slopes_x(i, 0, 0, u, nu, domain, bc[ns]);
     Real df = Real(2.0) * (u(i+1,0,0,nu) - u(i  ,0,0,nu));
     Real db = Real(2.0) * (u(i  ,0,0,nu) - u(i-1,0,0,nu));
-    Real sx = (df*db >= Real(0.0)) ? amrex::min(amrex::Math::abs(df),amrex::Math::abs(db)) : Real(0.);
-    sx = amrex::Math::copysign(Real(1.),dc)*amrex::min(sx,amrex::Math::abs(dc));
+    Real sx = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
+    sx = std::copysign(Real(1.),dc)*amrex::min(sx,std::abs(dc));
 
     Real alpha = Real(1.0);
     if (sx != Real(0.0)) {
@@ -149,9 +181,10 @@ void mf_cell_cons_lin_interp_sph (int i, int ns, Array4<Real> const& fine, int f
         + xoff * slope(ic,0,0,ns);
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mf_cell_bilin_interp (int i, int, int, int n, Array4<Real> const& fine, int fcomp,
-                           Array4<Real const> const& crse, int ccomp, IntVect const& ratio) noexcept
+void mf_cell_bilin_interp (int i, int, int, int n, Array4<T> const& fine, int fcomp,
+                           Array4<T const> const& crse, int ccomp, IntVect const& ratio) noexcept
 {
     int ic = amrex::coarsen(i,ratio[0]);
     int ioff = i - ic*ratio[0];
@@ -177,8 +210,8 @@ void mf_nodebilin_interp (int i, int, int, int n, Array4<Real> const& fine, int 
     int ioff = i - ic*ratio[0];
     if (ioff != 0) {
         Real rxinv = Real(1.0) / Real(ratio[0]);
-        fine(i,0,0,n+fcomp) = rxinv*((ratio[0]-ioff)*crse(ic  ,0,0,n+ccomp) +
-                                     (         ioff)*crse(ic+1,0,0,n+ccomp));
+        fine(i,0,0,n+fcomp) = rxinv*(static_cast<Real>(ratio[0]-ioff)*crse(ic  ,0,0,n+ccomp) +
+                                     static_cast<Real>(         ioff)*crse(ic+1,0,0,n+ccomp));
     } else {
         fine(i,0,0,n+fcomp) = crse(ic,0,0,n+ccomp);
     }

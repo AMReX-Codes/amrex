@@ -38,23 +38,25 @@ ifeq ($(EXPORT_DYNAMIC),TRUE)
   GENERIC_GNU_FLAGS += -rdynamic -fno-omit-frame-pointer
 endif
 
-gcc_major_ge_5 = $(shell expr $(gcc_major_version) \>= 5)
-gcc_major_ge_6 = $(shell expr $(gcc_major_version) \>= 6)
-gcc_major_ge_7 = $(shell expr $(gcc_major_version) \>= 7)
 gcc_major_ge_8 = $(shell expr $(gcc_major_version) \>= 8)
 gcc_major_ge_9 = $(shell expr $(gcc_major_version) \>= 9)
 gcc_major_ge_10 = $(shell expr $(gcc_major_version) \>= 10)
 gcc_major_ge_11 = $(shell expr $(gcc_major_version) \>= 11)
+gcc_major_ge_12 = $(shell expr $(gcc_major_version) \>= 12)
+
+ifneq ($(NO_CONFIG_CHECKING),TRUE)
+ifneq ($(gcc_major_ge_8),1)
+  $(error GCC < 8 not supported)
+endif
+endif
 
 ifeq ($(THREAD_SANITIZER),TRUE)
   GENERIC_GNU_FLAGS += -fsanitize=thread
 endif
 ifeq ($(FSANITIZER),TRUE)
   GENERIC_GNU_FLAGS += -fsanitize=address -fsanitize=undefined
-  ifeq ($(gcc_major_ge_8),1)
-    GENERIC_GNU_FLAGS += -fsanitize=pointer-compare -fsanitize=pointer-subtract
-    GENERIC_GNU_FLAGS += -fsanitize=builtin -fsanitize=pointer-overflow
-  endif
+  GENERIC_GNU_FLAGS += -fsanitize=pointer-compare -fsanitize=pointer-subtract
+  GENERIC_GNU_FLAGS += -fsanitize=builtin -fsanitize=pointer-overflow
 endif
 
 ifeq ($(USE_OMP),TRUE)
@@ -97,7 +99,7 @@ else
 endif
 
 ifeq ($(WARN_ALL),TRUE)
-  warning_flags = -Wall -Wextra
+  warning_flags = -Wall -Wextra -Wlogical-op -Wfloat-conversion -Wnull-dereference -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs
 
   ifeq ($(WARN_SIGN_COMPARE),FALSE)
     warning_flags += -Wno-sign-compare
@@ -108,27 +110,15 @@ ifeq ($(WARN_ALL),TRUE)
     warning_flags += -Wpedantic
   endif
 
-  ifeq ($(gcc_major_ge_6),1)
-    warning_flags += -Wnull-dereference
-  endif
-
-  ifeq ($(gcc_major_ge_5),1)
-    warning_flags += -Wfloat-conversion
-  endif
-
   ifneq ($(WARN_SHADOW),FALSE)
     warning_flags += -Wshadow
-  endif
-
-  ifeq ($(gcc_major_version),7)
-    warning_flags += -Wno-array-bounds
   endif
 
   ifeq ($(gcc_major_ge10),1)
     warning_flags += -Wextra-semi
   endif
 
-  CXXFLAGS += $(warning_flags) -Woverloaded-virtual
+  CXXFLAGS += $(warning_flags) -Woverloaded-virtual -Wnon-virtual-dtor
   CFLAGS += $(warning_flags)
 endif
 
@@ -157,21 +147,12 @@ endif
 
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
-  ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-    ifneq ($(NO_CONFIG_CHECKING),TRUE)
-      ifeq ($(CXXSTD),c++14)
-        $(error C++14 support requires GCC 5 or newer.)
-      endif
-    endif
-  endif
   CXXFLAGS += -std=$(CXXSTD)
 else
-  ifeq ($(gcc_major_version),5)
-    CXXFLAGS += -std=c++14
-  endif
+  CXXFLAGS += -std=c++17
 endif
 
-CFLAGS   += -std=gnu99
+CFLAGS   += -std=c11
 
 ########################################################################
 
@@ -243,7 +224,16 @@ else
   LIBRARY_LOCATIONS += $(dir $(gfortran_libso))
 endif
 
-override XTRALIBS += -lgfortran -lquadmath
+override XTRALIBS += -lgfortran
+
+quadmath_liba  = $(shell $(F90) -print-file-name=libquadmath.a)
+quadmath_libso = $(shell $(F90) -print-file-name=libquadmath.so)
+
+ifneq ($(quadmath_liba),libquadmath.a)
+  override XTRALIBS += -lquadmath
+else ifneq ($(quadmath_libso),libquadmath.so)
+  override XTRALIBS += -lquadmath
+endif
 
 FFLAGS   += $(GENERIC_GNU_FLAGS)
 F90FLAGS += $(GENERIC_GNU_FLAGS)

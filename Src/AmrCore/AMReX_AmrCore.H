@@ -40,16 +40,16 @@ public:
 
     AmrCore (Geometry const& level_0_geom, AmrInfo const& amr_info);
 
-    AmrCore (AmrCore&& rhs);
-    AmrCore& operator= (AmrCore&& rhs);
+    AmrCore (AmrCore&& rhs) noexcept;
+    AmrCore& operator= (AmrCore&& rhs) noexcept;
 
     AmrCore (const AmrCore& rhs) = delete;
     AmrCore& operator= (const AmrCore& rhs) = delete;
 
-    virtual ~AmrCore ();
+    ~AmrCore () override;
 
 #ifdef AMREX_PARTICLES
-    AmrParGDB* GetParGDB () const noexcept { return m_gdb.get(); }
+    [[nodiscard]] AmrParGDB* GetParGDB () const noexcept { return m_gdb.get(); }
 #endif
 
     /**
@@ -68,11 +68,11 @@ public:
 protected:
 
     //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
-    virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) override = 0;
+    void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) override = 0;
 
     //! Make a new level from scratch using provided BoxArray and DistributionMapping.
     //! Only used during initialization.
-    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override = 0;
+    void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override = 0;
 
     //! Make a new level using provided BoxArray and DistributionMapping and fill with interpolated coarse level data.
     virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) = 0;

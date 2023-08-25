@@ -5,6 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 int amrex_parserlex (void);
+/* Bison seems to have a bug. yyalloc etc. do not have the api.prefix. */
+#ifndef yyalloc
+#  define yyalloc amrex_parseralloc
+#endif
+#ifndef yysymbol_kind_t
+#  define yysymbol_kind_t amrex_parsersymbol_kind_t
+#endif
 %}
 
 /* We do not need to make this reentrant safe, because we use flex and
@@ -93,7 +100,7 @@ exp:
 | exp NEQ exp                { $$ = amrex::parser_newf2(amrex::PARSER_NEQ, $1, $3); }
 | exp AND exp                { $$ = amrex::parser_newf2(amrex::PARSER_AND, $1, $3); }
 | exp OR exp                 { $$ = amrex::parser_newf2(amrex::PARSER_OR, $1, $3); }
-| '-'exp %prec NEG           { $$ = amrex::parser_newnode(amrex::PARSER_NEG, $2, nullptr); }
+| '-'exp %prec NEG           { $$ = amrex::parser_newneg($2); }
 | '+'exp %prec UPLUS         { $$ = $2; }
 | exp POW exp                { $$ = amrex::parser_newf2(amrex::PARSER_POW, $1, $3); }
 | F1 '(' exp ')'             { $$ = amrex::parser_newf1($1, $3); }

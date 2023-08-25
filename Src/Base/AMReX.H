@@ -30,8 +30,8 @@ namespace amrex
 {
     class AMReX;
 
-    typedef void (*PTR_TO_VOID_FUNC)(void);
-    typedef void (*ErrorHandler) (const char* msg);
+    using PTR_TO_VOID_FUNC = void (*)();
+    using ErrorHandler = void (*)(const char*);
 
     namespace system
     {
@@ -48,6 +48,12 @@ namespace amrex
         extern AMREX_EXPORT int verbose;
 
         extern AMREX_EXPORT int signal_handling;
+        extern AMREX_EXPORT int handle_sigsegv;
+        extern AMREX_EXPORT int handle_sigterm;
+        extern AMREX_EXPORT int handle_sigint;
+        extern AMREX_EXPORT int handle_sigabrt;
+        extern AMREX_EXPORT int handle_sigfpe;
+
         extern AMREX_EXPORT int call_addr2line;
         extern AMREX_EXPORT int throw_exception;
 
@@ -61,7 +67,7 @@ namespace amrex
     }
 
     /** the AMReX "git describe" version */
-    std::string Version ();
+    [[nodiscard]] std::string Version ();
 
     // The returned AMReX* is non-owning! To delete it, call Finalize(AMReX*).
     AMReX* Initialize (MPI_Comm mpi_comm,
@@ -75,14 +81,14 @@ namespace amrex
                        const std::function<void()>& func_parm_parse = {},
                        std::ostream& a_osout = std::cout,
                        std::ostream& a_oserr = std::cerr,
-                       ErrorHandler a_errorhandler = nullptr);
+                       ErrorHandler a_errhandler = nullptr);
 
     /**
        \brief Returns true if there are any currently-active and initialized
        AMReX instances (i.e. one for which amrex::Initialize has been called,
        and amrex::Finalize has not). Otherwise false.
      */
-    bool Initialized ();
+    [[nodiscard]] bool Initialized ();
 
     void Finalize (AMReX* pamrex);
     void Finalize (); // Finalize the current top
@@ -103,19 +109,19 @@ namespace amrex
     //! Print out message to cerr and exit via amrex::Abort().
     void Error (const std::string& msg);
 
-    void Error_host (const char* msg);
+    void Error_host (const char* type, const char* msg);
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void Error (const char* msg = 0) {
+    void Error (const char* msg = nullptr) {
 #if AMREX_DEVICE_COMPILE
 #if defined(NDEBUG)
         amrex::ignore_unused(msg);
 #else
-        if (msg) AMREX_DEVICE_PRINTF("Error %s\n", msg);
+        if (msg) { AMREX_DEVICE_PRINTF("Error %s\n", msg); }
         AMREX_DEVICE_ASSERT(0);
 #endif
 #else
-        Error_host(msg);
+        Error_host("Error", msg);
 #endif
     }
 
@@ -130,7 +136,7 @@ namespace amrex
 #if defined(NDEBUG)
         amrex::ignore_unused(msg);
 #else
-        if (msg) AMREX_DEVICE_PRINTF("Warning %s\n", msg);
+        if (msg) { AMREX_DEVICE_PRINTF("Warning %s\n", msg); }
 #endif
 #else
         Warning_host(msg);
@@ -140,19 +146,17 @@ namespace amrex
     //! Print out message to cerr and exit via abort().
     void Abort (const std::string& msg);
 
-    void Abort_host (const char * msg);
-
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void Abort (const char * msg = 0) {
+    void Abort (const char * msg = nullptr) {
 #if AMREX_DEVICE_COMPILE
 #if defined(NDEBUG)
         amrex::ignore_unused(msg);
 #else
-        if (msg) AMREX_DEVICE_PRINTF("Abort %s\n", msg);
+        if (msg) { AMREX_DEVICE_PRINTF("Abort %s\n", msg); }
         AMREX_DEVICE_ASSERT(0);
 #endif
 #else
-        Abort_host(msg);
+        Error_host("Abort", msg);
 #endif
     }
 
@@ -191,26 +195,26 @@ namespace amrex
     */
     void write_to_stderr_without_buffering (const char* str);
 
-    void SetErrorHandler (ErrorHandler errhandler);
+    void SetErrorHandler (ErrorHandler f);
 
     std::ostream& OutStream ();
     std::ostream& ErrorStream ();
 
-    int Verbose () noexcept;
+    [[nodiscard]] int Verbose () noexcept;
     void SetVerbose (int v) noexcept;
 
     // ! Get the entire command line including the executable
-    std::string get_command ();
+    [[nodiscard]] std::string get_command ();
 
     // ! Get number of command line arguments after the executable
-    int command_argument_count ();
+    [[nodiscard]] int command_argument_count ();
 
     /**
     * \brief Get command line arguments. The executable name is the
     * zero-th argument.  Return empty string if there are not that
     * many arguments.  std::string
     */
-    std::string get_command_argument (int number);
+    [[nodiscard]] std::string get_command_argument (int number);
 
 #ifndef _MSC_VER
     inline void GccPlacater ()
@@ -251,10 +255,14 @@ namespace amrex
     public:
         AMReX ();
         ~AMReX ();
+        AMReX (AMReX const&) = delete;
+        AMReX (AMReX &&) = delete;
+        AMReX& operator= (AMReX const&) = delete;
+        AMReX& operator= (AMReX &&) = delete;
 
         static bool empty () noexcept { return m_instance.empty(); }
 
-        static int size () noexcept { return m_instance.size(); }
+        static int size () noexcept { return static_cast<int>(m_instance.size()); }
 
         static AMReX* top () noexcept { return m_instance.back().get(); }
 
@@ -267,11 +275,11 @@ namespace amrex
         // This erases `pamrex` from the stack.
         static void erase (AMReX* pamrex);
 
-        Geometry* getDefaultGeometry () noexcept { return m_geom; }
+        [[nodiscard]] Geometry* getDefaultGeometry () noexcept { return m_geom; }
 
     private:
 
-        static std::vector<std::unique_ptr<AMReX> > m_instance;
+        static AMREX_EXPORT std::vector<std::unique_ptr<AMReX> > m_instance;
 
         Geometry* m_geom = nullptr;
     };

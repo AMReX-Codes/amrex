@@ -1,10 +1,9 @@
 
 // Used by EB_LSCore only.  Might be removed in the future.  So don't use.
 
-namespace amrex {
+namespace amrex::MFUtil {
 
     //! General collection of MultiFab utilities
-    namespace MFUtil {
 
         //! Template class defining a copy operation where source and target are
         //! grown by ng. Template parameter T must be either MultiFab or
@@ -95,8 +94,8 @@ namespace amrex {
             int nc = mf_in.nComp();
 
             mf_out.define(ba, dm, nc, ng);
-            if (regrid_ghost)  SymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
-            else              AsymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
+            if (regrid_ghost) { SymmetricGhost<T>::copy(mf_out, mf_in, nc, ng); }
+            else              { AsymmetricGhost<T>::copy(mf_out, mf_in, nc, ng); }
         }
 
 
@@ -113,10 +112,8 @@ namespace amrex {
             int nc = mf_in.nComp();
 
             mf_out.define(ba, dm, nc, ng, MFInfo(), eb_factory);
-            if (regrid_ghost)  SymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
-            else              AsymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
+            if (regrid_ghost) {  SymmetricGhost<T>::copy(mf_out, mf_in, nc, ng); }
+            else              { AsymmetricGhost<T>::copy(mf_out, mf_in, nc, ng); }
         }
-
-    }
 
 }

@@ -15,8 +15,9 @@ operator<< (std::ostream&    os,
                   << ',' << (it.test(1)?'N':'C'),
                   << ',' << (it.test(2)?'N':'C')) << ')' << std::flush;
 
-    if (os.fail())
+    if (os.fail()) {
         amrex::Error("operator<<(ostream&,IndexType&) failed");
+    }
 
     return os;
 }
@@ -41,8 +42,9 @@ operator>> (std::istream& is,
         BL_ASSERT(t1 == 'C' || t1 == 'N'); t1=='N'?it.set(1):it.unset(1); ,
         BL_ASSERT(t2 == 'C' || t2 == 'N'); t2=='N'?it.set(2):it.unset(2));
 
-    if (is.fail())
+    if (is.fail()) {
         amrex::Error("operator>>(ostream&,IndexType&) failed");
+    }
 
     return is;
 }

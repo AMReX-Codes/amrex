@@ -2,10 +2,9 @@
 
 #ifndef AMREX_USE_MPI
 
-namespace amrex {
-namespace machine {
+namespace amrex::machine {
     void Initialize () {}
-}}
+}
 
 #else
 
@@ -99,7 +98,7 @@ std::string to_str (const Array<T, N> & a)
     oss << "(";
     bool first = true;
     for (auto const& item : a) {
-        if (!first) oss << ",";
+        if (!first) { oss << ","; }
         oss << item;
         first = false;
     }
@@ -114,7 +113,7 @@ std::string to_str (const Vector<T> & v)
     oss << "(";
     bool first = true;
     for (auto const& item : v) {
-        if (!first) oss << ",";
+        if (!first) { oss << ","; }
         oss << item;
         first = false;
     }
@@ -200,7 +199,7 @@ class NeighborhoodCache
 
     // result is dependent on both the current set of ranks
     // and the size of the neighborhood desired
-    uint64_t hash (const Vector<int> & cur_ranks, int nbh_rank_n) {
+    static uint64_t hash (const Vector<int> & cur_ranks, int nbh_rank_n) {
         auto result = hash_vector(cur_ranks);
         hash_combine(result, nbh_rank_n);
         return result;
@@ -232,7 +231,7 @@ class Machine
         }
 
         Vector<int> result;
-        auto key = nbh_cache.hash(sg_g_ranks, nbh_rank_n);
+        auto key = NeighborhoodCache::hash(sg_g_ranks, nbh_rank_n);
         if (nbh_cache.get(key, result)) {
             if (flag_verbose) {
                 Print() << "Machine::find_best_nbh(): found neighborhood in cache" << std::endl;
@@ -280,10 +279,10 @@ class Machine
             int    winner_rank  = min_score_with_id.i;
 
             // broadcast the best hood from winner rank to everyone
-            int local_nbh_size = local_nbh.size();
+            auto local_nbh_size = static_cast<int>(local_nbh.size());
             MPI_Bcast(&local_nbh_size, 1, MPI_INT, winner_rank, ParallelContext::CommunicatorSub());
             local_nbh.resize(local_nbh_size);
-            MPI_Bcast(local_nbh.data(), local_nbh.size(), MPI_INT, winner_rank, ParallelContext::CommunicatorSub());
+            MPI_Bcast(local_nbh.data(), local_nbh_size, MPI_INT, winner_rank, ParallelContext::CommunicatorSub());
 
             std::sort(local_nbh.begin(), local_nbh.end());
             if (flag_verbose) {
@@ -333,10 +332,10 @@ class Machine
         pp.queryAdd("very_verbose", flag_very_verbose);
     }
 
-    std::string get_env_str (std::string env_key)
+    static std::string get_env_str (const std::string& env_key)
     {
         std::string result;
-        auto val_c_str = std::getenv(env_key.c_str());
+        auto *val_c_str = std::getenv(env_key.c_str());
         if (val_c_str) {
             result = std::string(val_c_str);
         }
@@ -383,8 +382,9 @@ class Machine
                     Print() << "Got node ID from SLURM_TOPOLOGY_ADDR: " << result << std::endl;
                 }
             } else {
-                if (cluster_name == "escori")
+                if (cluster_name == "escori") {
                     tag = "cgpu";
+                }
                 auto mpi_proc_name = get_mpi_processor_name();
                 Print() << "MPI_Get_processor_name: " << mpi_proc_name << std::endl;
                 pos = mpi_proc_name.find(tag);
@@ -433,9 +433,9 @@ class Machine
 
     // do a local search starting at current node
     std::pair<Vector<int>, double>
-    baseline_score(const Vector<int> & sg_node_ids, int nbh_rank_n)
+    baseline_score(const Vector<int> & sg_node_ids, int nbh_rank_n) const
     {
-        AMREX_ASSERT(sg_node_ids.size() > 0 && nbh_rank_n > 0 &&
+        AMREX_ASSERT(!sg_node_ids.empty() && nbh_rank_n > 0 &&
                      nbh_rank_n <= sg_node_ids.size());
 
         // construct map of node candidates to select
@@ -453,7 +453,7 @@ class Machine
         int idx = 0;
         for (auto & p : cand_map) {
             result[idx] = p.second.id;
-            candidates[idx++] = std::move(p.second);
+            candidates[idx++] = p.second;
         }
 
         int sum_dist = 0;
@@ -477,7 +477,7 @@ class Machine
 
     // do a local search starting at current node
     std::pair<Vector<int>, double>
-    search_local_nbh(int rank_me, const Vector<int> & sg_node_ids, int nbh_rank_n)
+    search_local_nbh(int rank_me, const Vector<int> & sg_node_ids, int nbh_rank_n) const
     {
         BL_PROFILE("Machine::search_local_nbh()");
 
@@ -506,7 +506,7 @@ class Machine
         }
 
         AMREX_ASSERT(rank_me >= 0 && rank_me < sg_node_ids.size());
-        Candidate cur_node = std::move(candidates.at(sg_node_ids[rank_me]));
+        Candidate cur_node = candidates.at(sg_node_ids[rank_me]);
         candidates.erase(cur_node.id);
 
         // add source_node
@@ -551,7 +551,7 @@ class Machine
             }
 
             if (next_node) {
-                cur_node = std::move(*next_node);
+                cur_node = *next_node;
                 next_node = nullptr;
                 candidates.erase(cur_node.id);
 
@@ -578,8 +578,7 @@ std::unique_ptr<Machine> the_machine;
 
 }
 
-namespace amrex {
-namespace machine {
+namespace amrex::machine {
 
 void Initialize () {
     the_machine = std::make_unique<Machine>();
@@ -595,6 +594,6 @@ Vector<int> find_best_nbh (int rank_n, bool flag_local_ranks) {
     return the_machine->find_best_nbh(rank_n, flag_local_ranks);
 }
 
-}}
+}
 
 #endif

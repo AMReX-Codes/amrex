@@ -88,25 +88,26 @@ tracked as the particle positions change. To do this, we provide the
 
       ParticleContainer<3, 2, 4, 4> mypc;
 
-Arrays-of-Structs and Structs-of-Arrays
----------------------------------------
-
 Like the :cpp:`Particle` class itself, the :cpp:`ParticleContainer`
 class is templated. The first two template parameters have the same meaning as
 before: they define the number of each type of variables that the particles in
 this container will store. Particles added to the container are stored in the
-Array-of-Structs (AoS) style. In addition, there are two more optional template
+Array-of-Structs style. In addition, there are two more optional template
 parameters that allow the user to specify additional particle variables that
-will be stored in Struct-of-Array (SoA) form. The difference between
-Array-of-Struct and Struct-of-Array data is in how the data is laid out in
-memory. For the AoS data, all the variables associated with particle 1 are next
-to each other in memory, followed by all the variables associated with particle
-2, and so on. For variables stored in SoA style, all the particle data for a
-given component is next to each other in memory, and each component is stored
-in a separate array. For convenience, we (arbitrarily) refer to the components
-in the particle struct as particle *data*, and components stored in the
-Struct-of-Arrays as particle *attributes*. See the figure
-:ref:`below<fig:particles:particle_arrays>` for an illustration.
+will be stored in Struct-of-Arrays form.
+
+Arrays-of-Structs and Structs-of-Arrays
+---------------------------------------
+
+The difference between Array-of-Structs (AoS) and Struct-of-Arrays (SoA) data
+is in how the data is laid out in memory. For the AoS data, all the variables
+associated with particle 1 are next to each other in memory, followed by all
+the variables associated with particle 2, and so on. For variables stored in
+SoA style, all the particle data for a given component is next to each other in
+memory, and each component is stored in a separate array. For convenience, we
+(arbitrarily) refer to the components in the particle struct as particle
+*data*, and components stored in the Struct-of-Arrays as particle *attributes*.
+See the figure :ref:`below<fig:particles:particle_arrays>` for an illustration.
 
 .. raw:: latex
 
@@ -117,16 +118,16 @@ Struct-of-Arrays as particle *attributes*. See the figure
 .. figure:: ./Particle/particle_arrays.png
 
    An illustration of how the particle data for a single tile is arranged in
-   memory. This particle container has been defined with :cpp:`NStructReal =
-   1`, :cpp:`NStructInt = 2`, :cpp:`NArrayReal = 2`, and :cpp:`NArrayInt = 2`.
+   memory. This particle container has been defined with ``NStructReal =
+   1``, ``NStructInt = 2``, ``NArrayReal = 2``, and ``NArrayInt = 2``.
    In this case, each tile in the particle container has five arrays: one with
    the particle struct data, two additional real arrays, and two additional
    integer arrays.  In the tile shown, there are only 2 particles. We have
    labelled the extra real data member of the particle struct to be
-   :cpp:`mass`, while the extra integer members of the particle struct are
-   labeled :cpp:`p`, and :cpp:`s`, for "phase" and "state". The variables in
-   the real and integer arrays are labelled :cpp:`foo`, :cpp:`bar`, :cpp:`l`,
-   and :cpp:`n`, respectively. We have assumed that the particles are double
+   ``mass``, while the extra integer members of the particle struct are
+   labeled ``p``, and ``s``, for "phase" and "state". The variables in
+   the real and integer arrays are labelled ``foo``, ``bar``, ``l``,
+   and ``n``, respectively. We have assumed that the particles are double
    precision.
 
 .. raw:: latex

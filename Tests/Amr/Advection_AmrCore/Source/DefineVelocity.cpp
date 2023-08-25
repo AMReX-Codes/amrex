@@ -8,8 +8,9 @@ using namespace amrex;
 void
 AmrCoreAdv::DefineVelocityAllLevels (Real time)
 {
-    for (int lev = 0; lev <= finest_level; ++lev)
+    for (int lev = 0; lev <= finest_level; ++lev) {
         DefineVelocityAtLevel(lev,time);
+    }
 }
 
 void
@@ -39,7 +40,7 @@ AmrCoreAdv::DefineVelocityAtLevel (int lev, Real time)
                                                                       facevel[lev][2].array(mfi)) };
 
             const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(ngbxx.smallEnd(0)-1, ngbxy.smallEnd(0)-1),
-                                                         std::min(ngbxx.smallEnd(1)-1, ngbxy.smallEnd(0)-1),
+                                                         std::min(ngbxx.smallEnd(1)-1, ngbxy.smallEnd(1)-1),
                                                          0)),
                                     IntVect(AMREX_D_DECL(std::max(ngbxx.bigEnd(0),   ngbxy.bigEnd(0)+1),
                                                          std::max(ngbxx.bigEnd(1)+1, ngbxy.bigEnd(1)),

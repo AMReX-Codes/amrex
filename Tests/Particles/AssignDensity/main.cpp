@@ -31,9 +31,7 @@ void test_assign_density(TestParams& parms)
   const Box domain(domain_lo, domain_hi);
 
   // This sets the boundary conditions to be doubly or triply periodic
-  int is_per[BL_SPACEDIM];
-  for (int i = 0; i < BL_SPACEDIM; i++)
-    is_per[i] = 1;
+  int is_per[] = {AMREX_D_DECL(1,1,1)};
   Geometry geom(domain, &real_box, CoordSys::cartesian, is_per);
 
   BoxArray ba(domain);
@@ -53,13 +51,14 @@ void test_assign_density(TestParams& parms)
   MultiFab partMF(ba, dmap, 1 + BL_SPACEDIM, 1);
   partMF.setVal(0.0);
 
-  typedef ParticleContainer<1 + BL_SPACEDIM> MyParticleContainer;
+  using MyParticleContainer = ParticleContainer<1 + BL_SPACEDIM>;
   MyParticleContainer myPC(geom, dmap, ba);
   myPC.SetVerbose(false);
 
   int num_particles = parms.nppc * parms.nx * parms.ny * parms.nz;
-  if (ParallelDescriptor::IOProcessor())
+  if (ParallelDescriptor::IOProcessor()) {
     std::cout << "Total number of particles    : " << num_particles << '\n' << '\n';
+  }
 
   bool serialize = true;
   int iseed = 451;
@@ -95,8 +94,9 @@ int main(int argc, char* argv[])
   pp.get("nz", parms.nz);
   pp.get("max_grid_size", parms.max_grid_size);
   pp.get("nppc", parms.nppc);
-  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
+  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
+  }
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);
