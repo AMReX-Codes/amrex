@@ -120,8 +120,7 @@ struct ParticleInitType
 };
 
 template <bool is_const, typename T_ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-
+          template<class> class Allocator, class CellAssignor>
 class ParIterBase_impl;
 
 /**
@@ -159,8 +158,8 @@ public:
         //! \brief The type of the "Particle"
 
 private:
-    friend class ParIterBase_impl<true,ParticleType, NArrayReal, NArrayInt, Allocator>;
-    friend class ParIterBase_impl<false,ParticleType, NArrayReal, NArrayInt, Allocator>;
+    friend class ParIterBase_impl<true,ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
+    friend class ParIterBase_impl<false,ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
 
 public:
     //! \brief The memory allocator in use.
@@ -177,7 +176,7 @@ public:
     RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
 #endif
 
-    using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
     using ParticleTileType = ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -191,8 +190,8 @@ public:
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
     using CharVector       = Gpu::DeviceVector<char>;
-    using ParIterType      = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
-    using ParConstIterType = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ParIterType      = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
+    using ParConstIterType = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
 
     //! \brief Default constructor - construct an empty particle container that has no concept
     //!  of a level hierarchy. Must be properly initialized later.
