@@ -123,7 +123,7 @@ ifneq ($(BL_NO_FORT),TRUE)
   endif
 endif
 
-LDFLAGS += -fsycl-device-lib=libc,libm-fp32,libm-fp64
+LDFLAGS += -qmkl=sequential -fsycl-device-lib=libc,libm-fp32,libm-fp64
 
 ifdef SYCL_PARALLEL_LINK_JOBS
 LDFLAGS += -fsycl-max-parallel-link-jobs=$(SYCL_PARALLEL_LINK_JOBS)
