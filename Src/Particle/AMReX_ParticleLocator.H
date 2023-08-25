@@ -44,9 +44,9 @@ struct AssignGrid
             m_num_bins.z = amrex::max(m_num_bins.z, 1);
         }
 
-    template <typename P, typename Assignor>
+    template <typename P, typename Assignor = DefaultAssignor>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int operator() (const P& p, int nGrow=0, Assignor&& assignor = DefaultAssignor{}) const noexcept
+    int operator() (const P& p, int nGrow=0, Assignor&& assignor = Assignor{}) const noexcept
     {
         const auto iv = assignor(p, m_plo, m_dxi, m_domain);
         return this->operator()(iv, nGrow);
@@ -210,10 +210,10 @@ struct AmrAssignGrid
         : m_funcs(a_funcs), m_size(a_size)
         {}
 
-    template <typename P, typename Assignor>
+    template <typename P, typename Assignor = DefaultAssignor>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     GpuTuple<int, int> operator() (const P& p, int lev_min=-1, int lev_max=-1, int nGrow=0,
-                                   Assignor&& assignor = DefaultAssignor{}) const noexcept
+                                   Assignor&& assignor = {}) const noexcept
     {
         lev_min = (lev_min == -1) ? 0 : lev_min;
         lev_max = (lev_max == -1) ? m_size - 1 : lev_max;
