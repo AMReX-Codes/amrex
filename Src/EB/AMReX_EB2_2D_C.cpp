@@ -171,13 +171,13 @@ bool set_eb_cell (int i, int j, Array4<EBCellFlag> const& cell,
 
 int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                  Array4<Type_t> const& fx, Array4<Type_t> const& fy,
-                 Array4<Real const> const& levset,
+                 Array4<Real> const& levset,
                  Array4<Real const> const& interx, Array4<Real const> const& intery,
                  Array4<Real> const& apx, Array4<Real> const& apy,
                  Array4<Real> const& fcx, Array4<Real> const& fcy,
                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                  GpuArray<Real,AMREX_SPACEDIM> const& problo,
-                 bool cover_multiple_cuts) noexcept
+                 bool cover_multiple_cuts, int& nsmallfaces) noexcept
 {
 #ifdef AMREX_USE_FLOAT
     constexpr Real small = 1.e-5_rt;
@@ -256,7 +256,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
         }}
     });
 
-    Gpu::Buffer<int> nmulticuts = {0};
+    Gpu::Buffer<int> nmulticuts = {0, 0};
     int* hp = nmulticuts.hostData();
     int* dp = nmulticuts.data();
 
@@ -278,10 +278,10 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             else
             {
                 int ncuts = 0;
-                if (fx(i  ,j  ,0) == Type::irregular) ++ncuts;
-                if (fx(i+1,j  ,0) == Type::irregular) ++ncuts;
-                if (fy(i  ,j  ,0) == Type::irregular) ++ncuts;
-                if (fy(i  ,j+1,0) == Type::irregular) ++ncuts;
+                if (fx(i  ,j  ,0) == Type::irregular) { ++ncuts; }
+                if (fx(i+1,j  ,0) == Type::irregular) { ++ncuts; }
+                if (fy(i  ,j  ,0) == Type::irregular) { ++ncuts; }
+                if (fy(i  ,j+1,0) == Type::irregular) { ++ncuts; }
                 if (ncuts > 2) {
                     Gpu::Atomic::Add(dp,1);
                 }
@@ -289,7 +289,31 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
         }
     });
 
+    const Box& nbxg1 = amrex::surroundingNodes(bxg1);
+    const Box& bxg1x = amrex::surroundingNodes(bxg1,0);
+    const Box& bxg1y = amrex::surroundingNodes(bxg1,1);
+    AMREX_HOST_DEVICE_FOR_3D ( nbxg1, i, j, k,
+    {
+        amrex::ignore_unused(k);
+        if (levset(i,j,0) < Real(0.0)) {
+            if ((bxg1x.contains(i  ,j-1,0)
+                 &&          fx(i  ,j-1,0) == Type::covered) ||
+                (bxg1x.contains(i  ,j  ,0)
+                 &&          fx(i  ,j  ,0) == Type::covered) ||
+                (bxg1y.contains(i-1,j  ,0)
+                 &&          fy(i-1,j  ,0) == Type::covered) ||
+                (bxg1y.contains(i  ,j  ,0)
+                 &&          fy(i  ,j  ,0) == Type::covered))
+            {
+                levset(i,j,k) = Real(0.0);
+                Gpu::Atomic::Add(dp+1,1);
+            }
+        }
+    });
+
     nmulticuts.copyToHost();
+
+    nsmallfaces += *(hp+1);
 
     if (*hp > 0 && !cover_multiple_cuts) {
         amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
@@ -413,10 +437,10 @@ void set_connection_flags (Box const& bxg1,
 
         auto flg = cell(i,j,0);
 
-        if (fx(i  ,j  ,0) == Type::covered) flg.setDisconnected(IntVect(-1, 0));
-        if (fx(i+1,j  ,0) == Type::covered) flg.setDisconnected(IntVect( 1, 0));
-        if (fy(i  ,j  ,0) == Type::covered) flg.setDisconnected(IntVect( 0,-1));
-        if (fy(i  ,j+1,0) == Type::covered) flg.setDisconnected(IntVect( 0, 1));
+        if (fx(i  ,j  ,0) == Type::covered) { flg.setDisconnected(IntVect(-1, 0)); }
+        if (fx(i+1,j  ,0) == Type::covered) { flg.setDisconnected(IntVect( 1, 0)); }
+        if (fy(i  ,j  ,0) == Type::covered) { flg.setDisconnected(IntVect( 0,-1)); }
+        if (fy(i  ,j+1,0) == Type::covered) { flg.setDisconnected(IntVect( 0, 1)); }
 
         if (((fx(i,j,0) == Type::covered) || fy(i-1,j,0) == Type::covered) &&
             ((fx(i,j-1,0) == Type::covered) || fy(i,j,0) == Type::covered))

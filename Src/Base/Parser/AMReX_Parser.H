@@ -93,6 +93,7 @@ public:
     void registerVariables (Vector<std::string> const& vars);
 
     void print () const;
+    void printExe () const;
 
     [[nodiscard]] int depth () const;
     [[nodiscard]] int maxStackSize () const;
@@ -119,6 +120,7 @@ private:
 #endif
         mutable int m_max_stack_size = 0;
         mutable int m_exe_size = 0;
+        mutable Vector<char const*> m_locals;
         Data () = default;
         ~Data ();
         Data (Data const&) = delete;
@@ -128,6 +130,7 @@ private:
     };
 
     std::shared_ptr<Data> m_data;
+    Vector<std::string> m_vars;
 };
 
 template <int N>
@@ -156,7 +159,8 @@ Parser::compileHost () const
             m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(m_data->m_exe_size);
 
             try {
-                parser_compile(m_data->m_parser, m_data->m_host_executor);
+                m_data->m_locals = parser_compile(m_data->m_parser,
+                                                  m_data->m_host_executor);
             } catch (const std::runtime_error& e) {
                 throw std::runtime_error(std::string(e.what()) + " in Parser expression \""
                                          + m_data->m_expression + "\"");

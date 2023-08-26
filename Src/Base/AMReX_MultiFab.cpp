@@ -452,7 +452,7 @@ MultiFab::negate (const Box& region, int nghost)
 void
 MultiFab::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
     initialized = true;
 
     amrex::ExecOnFinalize(MultiFab::Finalize);
@@ -506,7 +506,7 @@ MultiFab::MultiFab (const BoxArray&            bxs,
     :
     FabArray<FArrayBox>(bxs,dm,ncomp,ngrow,info,factory)
 {
-    if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
+    if (SharedMemory() && info.alloc) { initVal(); } // else already done in FArrayBox
 #ifdef AMREX_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
@@ -555,7 +555,7 @@ MultiFab::define (const BoxArray&            bxs,
                   const FabFactory<FArrayBox>& factory)
 {
     define(bxs, dm, nvar, IntVect(ngrow), info, factory);
-    if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
+    if (SharedMemory() && info.alloc) { initVal(); } // else already done in FArrayBox
 }
 
 void
@@ -567,7 +567,7 @@ MultiFab::define (const BoxArray&            bxs,
                   const FabFactory<FArrayBox>& factory)
 {
     this->FabArray<FArrayBox>::define(bxs,dm,nvar,ngrow,info,factory);
-    if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
+    if (SharedMemory() && info.alloc) { initVal(); } // else already done in FArrayBox
 }
 
 void
@@ -1112,8 +1112,9 @@ MultiFab::norm1 (int comp, const Periodicity& period, bool ignore_covered ) cons
     MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
 
 #ifdef AMREX_USE_EB
-    if ( this -> hasEBFabFactory() && ignore_covered )
+    if ( this -> hasEBFabFactory() && ignore_covered ) {
         EB_set_covered( tmpmf, Real(0.0) );
+    }
 #endif
 
     auto mask = OverlapMask(period);
@@ -1173,8 +1174,9 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
         nm1.push_back(this->norm1(comp, ngrow, true));
     }
 
-    if (!local)
+    if (!local) {
         ParallelAllReduce::Sum(nm1.dataPtr(), n, ParallelContext::CommunicatorSub());
+    }
 
     return nm1;
 }
@@ -1193,8 +1195,9 @@ MultiFab::sum_unique (int comp,
     BL_PROFILE("MultiFab::sum_unique()");
 
     // no duplicatly distributed points if cell centered
-    if (ixType().cellCentered())
+    if (ixType().cellCentered()) {
         return this->sum(comp, local);
+    }
 
     // Owner is the grid with the lowest grid number containing the data
     std::unique_ptr<iMultiFab> owner_mask = OwnerMask(period);
@@ -1349,6 +1352,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     Vector<Array4BoxTag<Real> > tags;
 
     bool run_on_gpu = Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_gpu, tags);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
@@ -1371,9 +1375,12 @@ MultiFab::OverlapMask (const Periodicity& period) const
                 for (const auto& is : isects)
                 {
                     Box const& b = is.second-iv;
+#ifdef AMREX_USE_GPU
                     if (run_on_gpu) {
                         tags.push_back({arr,b});
-                    } else {
+                    } else
+#endif
+                    {
                         amrex::LoopConcurrentOnCpu(b, [=] (int i, int j, int k) noexcept
                         {
                             arr(i,j,k) += Real(1.0);
@@ -1407,7 +1414,7 @@ MultiFab::AverageSync (const Periodicity& period)
 {
     BL_PROFILE("MultiFab::AverageSync()");
 
-    if (ixType().cellCentered()) return;
+    if (ixType().cellCentered()) { return; }
     auto wgt = this->OverlapMask(period);
     wgt->invert(1.0, 0, 1);
     this->WeightedSync(*wgt, period);
@@ -1418,7 +1425,7 @@ MultiFab::WeightedSync (const MultiFab& wgt, const Periodicity& period)
 {
     BL_PROFILE("MultiFab::WeightedSync()");
 
-    if (ixType().cellCentered()) return;
+    if (ixType().cellCentered()) { return; }
 
     const int ncomp = nComp();
     for (int comp = 0; comp < ncomp; ++comp)

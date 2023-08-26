@@ -74,13 +74,14 @@ detailed throughout the rest of this chapter:
   portability while making the code as understandable as possible to
   science-focused code teams.
 
-- AMReX utilizes GPU managed memory to automatically handle memory
+- AMReX can utilize GPU managed memory to automatically handle memory
   movement for mesh and particle data.  Simple data structures, such
   as :cpp:`IntVect`\s can be passed by value and complex data structures, such as
   :cpp:`FArrayBox`\es, have specialized AMReX classes to handle the
   data movement for the user.  Tests have shown CUDA managed memory
   to be efficient and reliable, especially when applications remove
-  any unnecessary data accesses.
+  any unnecessary data accesses. However, managed memory is not used by
+  :cpp:`FArrayBox` and :cpp:`MultiFab` by default.
 
 - Application teams should strive to keep mesh and particle data structures
   on the GPU for as long as possible, minimizing movement back to the CPU.
@@ -185,6 +186,43 @@ can run it and that will generate results like:
    [The Managed Arena] space (MB): 8
    [The  Pinned Arena] space (MB): 8
    AMReX (19.06-404-g0455b168b69c-dirty) finalized
+
+SYCL configuration variables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When building with ``USE_SYCL=TRUE``, one can set the following makefile
+variables to configure the build
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _tab:gnumakesyclvar:
+
+.. table:: AMReX SYCL-specific GNU Make build options
+
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | Variable Name                | Description                                     | Default     | Possible values |
+   +==============================+=================================================+=============+=================+
+   | SYCL_AOT                     | Enable SYCL ahead-of-time compilation           | FALSE       | TRUE, FALSE     |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | SYCL_AOT_GRF_MODE            | Specify AOT register file mode                  | Default     | Default, Large, |
+   |                              |                                                 |             | AutoLarge       |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | None        | pvc, etc.       |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | SYCL_SPLIT_KERNEL            | Enable SYCL kernel splitting                    | FALSE       | TRUE, FALSE     |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | USE_ONEDPL                   | Enable SYCL's oneDPL algorithms                 | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | SYCL_SUB_GROUP_SIZE          | Specify subgroup size                           | 32          | 64, 32, 16      |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | SYCL_MAX_PARALLEL_LINK_JOBS  | Number of parallel jobs in device link          | 1           | 1, 2, 3, etc.   |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+.. raw:: latex
+
+   \end{center}
+
 
 Building with CMake
 -------------------
@@ -404,7 +442,7 @@ Below is an example configuration for SYCL:
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_SYCL_ONEDPL            | Enable SYCL's oneDPL algorithms                 | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_SYCL_SUB_GROUP_SIZE    | Specify subgroup size                           | 32          | 32, 16          |
+   | AMReX_SYCL_SUB_GROUP_SIZE    | Specify subgroup size                           | 32          | 64, 32, 16      |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
@@ -505,10 +543,10 @@ to two functions:
    void free (void* p);
 
 :cpp:`The_Arena()` is used for memory allocation of data in
-:cpp:`BaseFab`.  By default, it allocates managed memory.  This can be changed with
-a boolean runtime parameter ``amrex.the_arena_is_managed``.
-Therefore the data in a :cpp:`MultiFab` is placed in
-managed memory by default and is accessible from both CPU host and GPU device.
+:cpp:`BaseFab`.  By default, it allocates device memory.  This can be changed with
+a boolean runtime parameter ``amrex.the_arena_is_managed=1``.
+When managed memory is enabled, the data in a :cpp:`MultiFab` is placed in
+device memory by default and is accessible from both CPU host and GPU device.
 This allows application codes to develop their GPU capability
 gradually. The behavior of :cpp:`The_Managed_Arena()` likewise depends on the
 ``amrex.the_arena_is_managed`` parameter. If ``amrex.the_arena_is_managed=0``,
@@ -539,7 +577,7 @@ a separate arena, the behavior of :cpp:`The_Device_Area()` or
 :cpp:`The_Managed_Arena()` can be changed with
 ``amrex.the_device_arena_release_threshold`` or
 ``amrex.the_managed_arena_release_threshold``.  Note that the units for all
-the parameter discussed above are bytes.  All these areans also have a
+the parameter discussed above are bytes.  All these arenas also have a
 member function :cpp:`freeUnused()` that can be used to manually release
 unused memory back to the system.
 
@@ -693,13 +731,13 @@ allocations and deallocations when (for example) resizing vectors.
 
     \end{center}
 
-These classes behave identically to an
+These classes behave almost identically to an
 :cpp:`amrex::Vector`, (see :ref:`sec:basics:vecandarr`), except that they
 can only hold "plain-old-data" objects (e.g. Reals, integers, amrex Particles,
 etc... ). If you want a resizable vector that doesn't use a memory Arena,
 simply use :cpp:`amrex::Vector`.
 
-Note that, even if the data in the vector is  managed and available on GPUs,
+Note that, even if the data in the vector is managed and available on GPUs,
 the member functions of e.g. :cpp:`Gpu::ManagedVector` are not.
 To use the data on the GPU, it is necessary to pass the underlying data pointer
 in to the GPU kernels. The managed data pointer can be accessed using the :cpp:`data()`
@@ -828,8 +866,8 @@ include :cpp:`array`, :cpp:`dataPtr`, :cpp:`box`, :cpp:`nComp`, and
 
 All :cpp:`BaseFab<T>` objects in :cpp:`FabArray<FAB>` are allocated in
 CPU memory, including :cpp:`IArrayBox` and :cpp:`FArrayBox`, which are
-derived from :cpp:`BaseFab`, although the array data contained are
-allocated in managed memory.  We cannot pass a :cpp:`BaseFab` object by
+derived from :cpp:`BaseFab`, and the array data contained are
+allocated in either device or managed memory.  We cannot pass a :cpp:`BaseFab` object by
 value because they do not have copy constructor.  However, we can make
 an :cpp:`Array4` using member function :cpp:`BaseFab::array()`, and pass it
 by value to GPU kernels. In GPU device code, we can use :cpp:`Array4`
@@ -1113,7 +1151,7 @@ An example of a 1D function launch is given here:
     }
 
 Instead of passing an :cpp:`Array4`, :cpp:`FArrayBox::dataPtr()` is called to obtain a
-CUDA managed pointer to the :cpp:`FArrayBox` data.  This is an alternative way to access
+pointer to the :cpp:`FArrayBox` data.  This is an alternative way to access
 the :cpp:`FArrayBox` data on the GPU. Instead of passing a :cpp:`Box` to define the loop
 bounds, a :cpp:`long` or :cpp:`int` number of elements is passed to bound the single
 :cpp:`for` loop.  This construct can be used to work on any contiguous set of memory by
@@ -1125,7 +1163,7 @@ GPU block size
 
 By default, :cpp:`ParallelFor` launches ``AMREX_GPU_MAX_THREADS`` threads
 per GPU block, where ``AMREX_GPU_MAX_THREADS`` is a compile-time constant
-with a default value of 256.  The users can also explcitly specify the
+with a default value of 256.  The users can also explicitly specify the
 number of threads per block by :cpp:`ParallelFor<MY_BLOCK_SIZE>(...)`, where
 ``MY_BLOCK_SIZE`` is a multiple of the warp size (e.g., 128).  This allows
 the users to do performance tuning for individual kernels.
@@ -1201,7 +1239,7 @@ a Fortran function is given here:
 The function ``plusone_acc`` is a CPU host function.  The
 :cpp:`FArrayBox` reference
 from :cpp:`operator[]` is a reference to a :cpp:`FArrayBox` in host
-memory with data that has been placed in managed CUDA memory.
+memory with data that has been placed in GPU memory.
 ``BL_TO_FORTRAN_BOX`` and ``BL_TO_FORTRAN_ANYD`` behave identically
 to implementations used on the CPU.  These macros return the
 individual components of the AMReX C++ objects to allow passing to
@@ -1213,7 +1251,7 @@ The corresponding OpenACC labelled loop in ``plusone_acc`` is:
 
 ::
 
-    !dat = pointer to fab's managed data
+    !dat = pointer to fab's GPU data
 
     !$acc kernels deviceptr(dat)
     do       k = lo(3), hi(3)
@@ -1226,7 +1264,7 @@ The corresponding OpenACC labelled loop in ``plusone_acc`` is:
     !$acc end kernels
 
 Since the data pointer passed to ``plusone_acc`` points to
-unified memory, OpenACC can be told the data is available on the
+device memory, OpenACC can be told the data is available on the
 device using the ``deviceptr`` construct.  For further details
 about OpenACC programming, consult the OpenACC user's guide.
 
@@ -1238,7 +1276,7 @@ OpenMP labelled version of this loop is:
 
 ::
 
-    !dat = pointer to fab's managed data
+    !dat = pointer to fab's GPU data
 
     !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(dat)
     do       k = lo(3), hi(3)
@@ -1297,7 +1335,7 @@ not work as intended.  For example,
     class MyClass {
     public:
         Box bx;
-        int m;                           // Unmanaged integer created on the host.
+        int m;                           // integer created on the host.
         void f () {
             amrex::launch(bx,
             [=] AMREX_GPU_DEVICE (Box const& tbx)
@@ -1548,8 +1586,8 @@ Particle Support
 .. _sec:gpu:particle:
 
 As with ``MultiFab``, particle data stored in AMReX ``ParticleContainer`` classes are
-stored in unified memory when AMReX is compiled with ``USE_CUDA=TRUE``. This means that the :cpp:`dataPtr` associated with particles
-is managed and can be passed into GPU kernels. These kernels can be launched with a variety of approaches,
+stored in GPU memory when AMReX is compiled with ``USE_CUDA=TRUE``. This means that the :cpp:`dataPtr` associated with particles
+can be passed into GPU kernels. These kernels can be launched with a variety of approaches,
 including Cuda C / Fortran and OpenACC. An example Fortran particle subroutine offloaded via OpenACC might
 look like the following:
 
@@ -1583,7 +1621,7 @@ look like the following:
    end subroutine push_position_boris
 
 Note the use of the :fortran:`!$acc parallel deviceptr` clause to specify which data has been placed
-in managed memory. This instructs OpenACC to treat those variables as if they already live on
+in device memory. This instructs OpenACC to treat those variables as if they already live on
 the device, bypassing the usual copies. For complete examples of a particle code that has been ported
 to GPUs using Cuda, OpenACC, and OpenMP, please see the tutorial `Electromagnetic PIC`_.
 
@@ -1684,14 +1722,7 @@ AMReX for GPUs:
   AMReX will attempt to do the best job it can assigning MPI ranks to GPUs by
   doing round robin assignment. This may be suboptimal because this assignment
   scheme would not be aware of locality benefits that come from having an MPI
-  rank be on the same socket as the GPU it is managing. If you know the hardware
-  layout of the system you're running on, specifically the number of GPUs per
-  socket (`M`) and number of GPUs per node (`N`), you can set the preprocessor
-  defines `-DAMREX_GPUS_PER_SOCKET=M` and `-DAMREX_GPUS_PER_NODE=N`, which are
-  exposed in the GNU Make system through the variables `GPUS_PER_SOCKET` and
-  `GPUS_PER_NODE` respectively (see an example in `Tools/GNUMake/sites/Make.olcf`).
-  Then AMReX can ensure that each MPI rank selects a GPU on the same socket as
-  that rank (assuming your MPI implementation supports MPI 3.)
+  rank be on the same socket as the GPU it is managing.
 
 
 .. ===================================================================
@@ -1704,18 +1735,17 @@ Inputs Parameters
 The following inputs parameters control the behavior of amrex when running on GPUs. They should be prefaced
 by "amrex" in your :cpp:`inputs` file.
 
-+----------------------------+-----------------------------------------------------------------------+-------------+------------------+
-|                            | Description                                                           |   Type      | Default          |
-+============================+=======================================================================+=============+==================+
-| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | False            |
-|                            | If true, the buffers will use device memory. If false, they will use  |             |                  |
-|                            | pinned memory. In practice, we find it is usually not worth it to use |             |                  |
-|                            | GPU aware MPI.                                                        |             |                  |
-+----------------------------+-----------------------------------------------------------------------+-------------+------------------+
-| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | False            |
-|                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |                  |
-|                            | describing how much free memory there is and what was requested.      |             |                  |
-+----------------------------+-----------------------------------------------------------------------+-------------+------------------+
-| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | True (CUDA/SYCL) |
-|                            |                                                                       |             | False (HIP)      |
-+----------------------------+-----------------------------------------------------------------------+-------------+------------------+
++----------------------------+-----------------------------------------------------------------------+-------------+----------+
+|                            | Description                                                           |   Type      | Default  |
++============================+=======================================================================+=============+==========+
+| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | False    |
+|                            | If true, the buffers will use device memory. If false, they will use  |             |          |
+|                            | pinned memory. In practice, we find it is usually not worth it to use |             |          |
+|                            | GPU aware MPI.                                                        |             |          |
++----------------------------+-----------------------------------------------------------------------+-------------+----------+
+| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | False    |
+|                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |          |
+|                            | describing how much free memory there is and what was requested.      |             |          |
++----------------------------+-----------------------------------------------------------------------+-------------+----------+
+| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | False    |
++----------------------------+-----------------------------------------------------------------------+-------------+----------+

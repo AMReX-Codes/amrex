@@ -239,7 +239,7 @@ done using the command:
 
 ::
 
-    ~/amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C> ls -1 plt*/Header | tee movie.visit
+    ~/amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C> ls -1v plt*/Header | tee movie.visit
     plt00000/Header
     plt01000/Header
     plt02000/Header
@@ -1025,4 +1025,3 @@ simulation will periodically write images during the run.
    salloc -C haswell -N 1 -t 00:30:00 -q debug
    cd $SCRATCH/amrex-tutorials/ExampleCodes/Amr/Advection_AmrLevel/Exec/SingleVortex
    ./main2d.gnu.haswell.MPI.ex inputs
-

@@ -37,7 +37,7 @@ namespace {
     {
         SUNMemory mem = SUNMemoryNewEmpty();
 
-        if (mem == nullptr) return -1;
+        if (mem == nullptr) { return -1; }
         mem->ptr = nullptr;
         mem->own = SUNTRUE;
         mem->type = mem_type;
@@ -48,7 +48,7 @@ namespace {
             return 0;
         }
         else {
-            free(mem);
+            std::free(mem);
             memptr = nullptr;
             return -1;
         }
@@ -59,22 +59,22 @@ namespace {
     int Dealloc(SUNMemoryHelper, SUNMemory mem, void* /*queue*/)
     {
 
-        if (mem == nullptr) return 0;
+        if (mem == nullptr) { return 0; }
         auto* arena = getArena(mem->type);
         if (arena) {
             if(mem->own)
             {
                 arena->free(mem->ptr);
-                free(mem);
+                std::free(mem);
                 return 0;
             }
         }
         else {
-            free(mem);
+            std::free(mem);
             return -1;
         }
 
-        free(mem);
+        std::free(mem);
         return 0;
     }
 
@@ -93,8 +93,8 @@ namespace {
 
     void ActuallyDestroySUNMemoryHelper(SUNMemoryHelper helper)
     {
-        if (helper->ops) free(helper->ops);
-        free(helper);
+        if (helper->ops) { std::free(helper->ops); }
+        std::free(helper);
     }
 
     SUNMemoryHelper CreateMemoryHelper(::sundials::Context* sunctx)
@@ -173,7 +173,7 @@ void MemoryHelper::Initialize(int nthreads)
         std::fill(the_sunmemory_helper.begin(), the_sunmemory_helper.end(), nullptr);
     }
     for (int i = 0; i < nthreads; i++) {
-        if (initialized[i]) continue;
+        if (initialized[i]) { continue; }
         initialized[i] = 1;
         BL_ASSERT(the_sunmemory_helper[i] == nullptr);
         the_sunmemory_helper[i] = new MemoryHelper(The_Sundials_Context(i));

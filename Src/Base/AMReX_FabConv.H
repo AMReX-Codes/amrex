@@ -49,9 +49,9 @@ public:
     IntDescriptor (Long     nb,
                    Ordering ordering = NormalOrder);
     //! Returns the ordering.
-    Ordering order () const;
+    [[nodiscard]] Ordering order () const;
     //! Returns the number of bytes.
-    int numBytes () const;
+    [[nodiscard]] int numBytes () const;
     //! The equality operator.
     bool operator== (const IntDescriptor& id) const;
     //! The inequality operator.
@@ -122,23 +122,23 @@ public:
     */
     RealDescriptor (const Long* fr_, const int* ord_, int ordl_);
     //! Returns the format array as a const Long*
-    const Long* format () const&;
+    [[nodiscard]] const Long* format () const&;
     const Long* format () && = delete;
 
     //! Returns const Vector<Long> reference to the format array.
-    const Vector<Long>& formatarray () const&;
+    [[nodiscard]] const Vector<Long>& formatarray () const&;
     const Vector<Long>& formatarray () && = delete;
 
     //! Returns the order array as a const int*
-    const int* order () const&;
+    [[nodiscard]] const int* order () const&;
     const int* order () && = delete;
 
     //! Returns const Vector<int> reference to the order array.
-    const Vector<int>& orderarray () const&;
-
+    [[nodiscard]] const Vector<int>& orderarray () const&;
     const Vector<int>& orderarray () && = delete;
+
     //! Returns the number of bytes in the Real.
-    int numBytes () const;
+    [[nodiscard]] int numBytes () const;
 
     //! The equality operator.
     bool operator== (const RealDescriptor& rd) const;
@@ -157,7 +157,7 @@ public:
     * \brief Returns a copy of this RealDescriptor on the heap.
     * The user is responsible for deletion.
     */
-    RealDescriptor* clone () const;
+    [[nodiscard]] RealDescriptor* clone () const;
 
     /**
     * \brief Returns a RealDescriptor on the heap detailing requested

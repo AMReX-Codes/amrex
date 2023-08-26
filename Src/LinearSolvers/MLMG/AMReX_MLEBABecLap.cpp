@@ -211,7 +211,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -257,8 +257,9 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
         }
     }
 
-    if (phi_on_centroid)
-      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    if (phi_on_centroid) {
+        m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    }
 }
 
 void
@@ -287,7 +288,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -319,8 +320,9 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
         }
     }
 
-    if (phi_on_centroid)
-      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    if (phi_on_centroid) {
+        m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    }
 }
 
 void
@@ -353,7 +355,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const
     Real const* beta = dv_beta.data();
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -385,8 +387,9 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const
         }
     }
 
-    if (phi_on_centroid)
-      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    if (phi_on_centroid) {
+        m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    }
 }
 
 void
@@ -417,7 +420,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -461,8 +464,9 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
         }
     }
 
-    if (phi_on_centroid)
-      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    if (phi_on_centroid) {
+        m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    }
 }
 
 void
@@ -491,7 +495,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -523,8 +527,9 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
         }
     }
 
-    if (phi_on_centroid)
-      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    if (phi_on_centroid) {
+        m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    }
 }
 
 void
@@ -557,7 +562,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
     Real const* beta = dv_beta.data();
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -589,8 +594,9 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
         }
     }
 
-    if (phi_on_centroid)
-      m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    if (phi_on_centroid) {
+        m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
+    }
 }
 
 void
@@ -740,7 +746,7 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
         Array<const MultiCutFab*, AMREX_SPACEDIM>{AMREX_D_DECL(nullptr, nullptr, nullptr)};
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -796,7 +802,7 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
 
             bool phi_on_centroid = (m_phi_loc == Location::CellCentroid);
 
-            if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
+            if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
                 fbx, txbx,
@@ -837,6 +843,8 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
             );
         }
     }
+
+    addInhomogNeumannFlux(amrlev, grad, sol, false);
 }
 
 void
@@ -875,7 +883,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
     const int ncomp = getNComp();
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling();
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling(); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1037,7 +1045,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     const auto& foo = foofab.array();
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1173,7 +1181,7 @@ MLEBABecLap::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode b
 void
 MLEBABecLap::update ()
 {
-    if (MLCellABecLap::needsUpdate()) MLCellABecLap::update();
+    if (MLCellABecLap::needsUpdate()) { MLCellABecLap::update(); }
 
     averageDownCoeffs();
 
@@ -1235,7 +1243,7 @@ MLEBABecLap::getEBFluxes (const Vector<MultiFab*>& a_flux, const Vector<MultiFab
             Array4<Real const> foo;
 
             MFItInfo mfi_info;
-            if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+            if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1259,9 +1267,9 @@ MLEBABecLap::getEBFluxes (const Vector<MultiFab*>& a_flux, const Vector<MultiFab
                                  Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
                                  Array4<Real const> const& apzfab = area[2]->const_array(mfi););
                     Array4<Real const> const& bcfab = bcent->const_array(mfi);
-                    Array4<Real const> const& bebfab = (is_eb_dirichlet)
-                        ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
-                    Array4<Real const> const& phiebfab = (is_eb_dirichlet && m_is_eb_inhomog)
+                    // is_eb_dirichlet is true
+                    Array4<Real const> const& bebfab = m_eb_b_coeffs[amrlev][mglev]->const_array(mfi);
+                    Array4<Real const> const& phiebfab = (m_is_eb_inhomog)
                         ? m_eb_phi[amrlev]->const_array(mfi) : foo;
 
                     AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
@@ -1282,7 +1290,7 @@ std::unique_ptr<Hypre>
 MLEBABecLap::makeHypre (Hypre::Interface hypre_interface) const
 {
     auto hypre_solver = MLCellABecLap::makeHypre(hypre_interface);
-    auto ijmatrix_solver = dynamic_cast<HypreABecLap3*>(hypre_solver.get());
+    auto* ijmatrix_solver = dynamic_cast<HypreABecLap3*>(hypre_solver.get());
     ijmatrix_solver->setEBDirichlet(m_eb_b_coeffs[0].back().get());
     return hypre_solver;
 }

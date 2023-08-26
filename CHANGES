@@ -1,3 +1,202 @@
+# 23.08
+
+  -- Fix a bug in AmrMesh::ChopGrids (#3460)
+
+  -- Remove use of managed memory from TracerParticleContainer::TimeStamp (#3457)
+
+  -- Mac Arm64 Architecture fpe handling (#3447)
+
+  -- SYCL: Remove Workaround no longer needed (#3455)
+
+  -- SENSEI: SoA Particle Support (#3349)
+
+  -- Warn if USE_GPU_RDC=TRUE when HIP_SAVE_TEMPS=TRUE (#3454)
+
+  -- SYCL: Allocate 3/4 of total global memory by default (#3431)
+
+  -- GPU Assignment (#3382)
+
+  -- call_f refactor (#3452)
+
+  -- HDF5 bug fix for vol-async and compression (#3451)
+
+  -- Add second template parameter to other AoS for swap (#3450)
+
+  -- Refactor call_f in ParticleTransformation and WriteBinaryParticleData
+     to use constexpr if (#3448)
+
+  -- Fix this version of WritePlotFile to use SuperParticle, as expected by
+     WriteBinaryParticleData (#3449)
+
+  -- PODVector: Add a Missing STL Include (#3445)
+
+  -- Disable Managed Memory for The_Arena by default. (#3438)
+
+  -- SYCL RelWithDebInfo Build: Add -g1 (#3429)
+
+  -- Clang Tidy: +modernize-use-using (#3420)
+
+  -- Intel CI: Update Warning Flags (#3443)
+
+  -- In MLEBABecLap::compGrad, add missing call to addInhomogNeumannFlux (#3441)
+
+  -- Doxygen: SoA Get[Real/Int]Data (#3439)
+
+  -- ParmParse: Line Continuation (#3437)
+
+  -- SYCL: Get Pointer Type (#3434)
+
+  -- SYCL: UUID (#3432)
+
+  -- Re-Enable FPE Trap for SYCL (#3430)
+
+  -- Memory Efficient AoS Particle Sorting (#3427)
+
+  -- Use MPI_IN_PLACE (#3428)
+
+  -- PODVector Updates (#3425)
+
+  -- generalize interpolaters to not need or use extra values in a direction
+     for which the refinement ratio is 1 (#3415)
+
+  -- Fix Fortran module installation (#3411)
+
+  -- Fix allocateSlice for EB (#3391)
+
+  -- Update Intel compiler installation (#3423)
+
+  -- Improve comments and documentation on FaceDivFree Interpolater. (#3422)
+
+  -- Add the option to throw an exception on MLMG failure rather than aborting (#3424)
+
+  -- Make ReduceData::value safer (#3421)
+
+  -- Use atomic load in SYCL version of the single-pass scan (#3419)
+
+  -- GPU: Add Device::deviceVendor() function and fix #3416 (#3418)
+
+  -- New feature in EB: Add regular coarse levels (#3414)
+
+  -- add access function for EBFactory (moved out of IAMR) (#3417)
+
+  -- DataServices: Qualify math functions with `std::` namespace specifier (#3406)
+
+  -- Update CleanUpCache workflow (#3403)
+
+  -- Add some profilers to AmrLevel and FillPatcher (#3402)
+
+  -- Update the clang-tidy/ccache script (#3399)
+
+  -- Update Git workflow in CONTRIBUTING.md (#3397)
+
+  -- move redist into amrex (#3378)
+
+  -- Amr: Add printing of simulation time (#3392)
+
+  -- Add function for setting growth factor (#3394)
+
+  -- Updates Ascent Github Actions CI to use 0.9.2 (latest release)
+
+# 23.07
+
+  -- Allow users to change the default vector growth stategy (#3389)
+
+  -- Communications arena implementation (#3388)
+
+  -- CI: oneAPI SYCL for AMD GPUs (#3341)
+
+  -- GPU: Always deallocate gpu_rand_state in Finalize() (#3384)
+
+  -- Hypre ILU options (#3381)
+
+  -- Amr Class: Synchronization of StateData's Time (#3375)
+
+  -- EB 2D: Fix levelset on nodes adjacent to covered edges (#3370)
+
+  -- Add workflow for oneAPI SYCL on Nvidia GPUs (#3360)
+
+  -- CMake: Enforce >= C++17 for ROCm (#3355)
+
+  -- Use device arena for the_fa_arena when activating GPU-aware MPI (#3362)
+
+  -- Coverity Scan (#3361)
+
+  -- CMake: AMReX_TEST_TYPE (#3357)
+
+  -- CMake: Enable AMReX_PARTICLES by default (#3358)
+
+  -- Add AMReX Apps to CI (#3348)
+
+  -- Make sure amrex::Long is wider than int. (#3345)
+
+  -- Particle Ids: Add int Constants (#3338)
+
+  -- CI: Clang CUDA (#3184)
+
+  -- Reinforce __CUDACC__ conditionals w/ AMREX_USE_CUDA (#3331)
+
+  -- CMake: Link option when HIP is a language (#3335)
+
+# 23.06
+
+  -- Implement Checkpoint, Restart, and Plotfile for pure SOA (#3332)
+
+  -- Clang: -Wno-null-conversion for Lexer (#3333)
+
+  -- Fix Pure SOA RedistributeGPU: size from ptile, not the AoS (#3330)
+
+  -- cleaning and fixes for PureSoA ParticleTile (#3327)
+
+  -- RealBox: Accept RealVect Setters (#3328)
+
+  -- Port InitRandom for pure SoA (#3325)
+
+  -- FillBoundary for Spherical Coordinates (#3286)
+
+  -- Fix: AMReXConfig.cmake Multi-Dim (#3324)
+
+  -- HypreSolver: a new interface for Hypre (#3269)
+
+  -- Fix Tests/EB_CNS in 2D (#3323)
+
+  -- Fix CodeQL warnings (#3318)
+
+  -- Add get/set of AMRErrorTagInfo in AMRErrorTag (#3317)
+
+  -- GNU Make: allow skipping paths when running clang-tidy (#3316)
+
+  -- Multi-Dim Buildsystem Support (#3309)
+
+  -- GNU Make: use CLANG_TIDY_CONFIG_FILE if it's set (#3315)
+
+  -- Refactor Parser (#3265)
+
+  -- Enable binning for ParticleTileData (#3307)
+
+  -- ParticleTile: More SoA Updates (#3305)
+
+  -- HIP Debug Build (#3311)
+
+  -- Run PODVector::push_back on GPU (#3308)
+
+  -- ParticleInit: Implicit Int Float Conversion (#3304)
+
+  -- More constexpr if for pure soa in RedistributeCPU (#3299)
+
+  -- MLEBNodeFDLaplacian: Implement the alpha term (#3301)
+
+  -- Fixing the ParIter numParticles functions for pure SOA (#3303)
+
+  -- Add .mailmap (#3295)
+
+  -- Implement StructOfArray::empty() and ParticleTile::empty() for pure SoA (#3296)
+
+  -- port the old BoxLib faverage tool to AMReX (#3293)
+
+  -- GNU Make: add -pthread for HIP (#3294)
+
+  -- Github Cache: Path and Hypre (#3288)
+
 # 23.05
 
   -- Support SoA-Only Particles (#2878)

@@ -34,13 +34,15 @@ if (AMReX_HDF5)
        message(FATAL_ERROR "\nMPI enabled in HDF5 but not in AMReX, which will likely fail to build")
     endif ()
 
-    if (TARGET hdf5::hdf5)  # CMake >= 3.19
-       target_link_libraries(amrex PUBLIC hdf5::hdf5)
-    else ()  # CMake < 3.19 -- Remove when minimum cmake version is bumped up
-       target_include_directories(amrex PUBLIC ${HDF5_INCLUDE_DIRS})
-       target_compile_definitions(amrex PUBLIC ${HDF5_DEFINITIONS})
-       target_link_libraries(amrex PUBLIC ${HDF5_LIBRARIES})
-    endif ()
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        if (TARGET hdf5::hdf5)  # CMake >= 3.19
+           target_link_libraries(amrex_${D}d PUBLIC hdf5::hdf5)
+        else ()  # CMake < 3.19 -- Remove when minimum cmake version is bumped up
+           target_include_directories(amrex_${D}d PUBLIC ${HDF5_INCLUDE_DIRS})
+           target_compile_definitions(amrex_${D}d PUBLIC ${HDF5_DEFINITIONS})
+           target_link_libraries(amrex_${D}d PUBLIC ${HDF5_LIBRARIES})
+        endif ()
+    endforeach()
 
 endif ()
 
@@ -54,12 +56,14 @@ if (AMReX_HDF5_ZFP)
       message(FATAL_ERROR "\nHDF5 must be enabled for ZFP support in HDF5")
    endif ()
 
-   if (TARGET h5z_zfp::h5z_zfp)  # CMake >= 3.19
-      target_link_libraries(amrex PUBLIC h5z_zfp::h5z_zfp)
-   else ()  # CMake < 3.19 -- Remove when minimum cmake version is bumped up
-      target_include_directories(amrex PUBLIC ${H5Z_ZFP_INCLUDE_DIR})
-      target_link_libraries(amrex PUBLIC ${H5Z_ZFP_LIBRARY})
-   endif ()
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       if (TARGET h5z_zfp::h5z_zfp)  # CMake >= 3.19
+          target_link_libraries(amrex_${D}d PUBLIC h5z_zfp::h5z_zfp)
+       else ()  # CMake < 3.19 -- Remove when minimum cmake version is bumped up
+          target_include_directories(amrex_${D}d PUBLIC ${H5Z_ZFP_INCLUDE_DIR})
+          target_link_libraries(amrex_${D}d PUBLIC ${H5Z_ZFP_LIBRARY})
+       endif ()
+   endforeach()
 endif ()
 
 #
@@ -67,7 +71,9 @@ endif ()
 #
 if (AMReX_SENSEI)
     find_package( SENSEI 4.0.0 REQUIRED )
-    target_link_libraries( amrex PUBLIC sensei )
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        target_link_libraries(amrex_${D}d PUBLIC sensei)
+    endforeach()
 endif ()
 
 #
@@ -75,11 +81,13 @@ endif ()
 #
 if (AMReX_ASCENT) # Ascent will find conduit, so check for Ascent first
     find_package(Ascent REQUIRED)
-    if (AMReX_MPI)
-        target_link_libraries( amrex PUBLIC ascent::ascent_mpi )
-    else ()
-        target_link_libraries( amrex PUBLIC ascent::ascent )
-    endif ()
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        if (AMReX_MPI)
+            target_link_libraries(amrex_${D}d PUBLIC ascent::ascent_mpi)
+        else ()
+            target_link_libraries(amrex_${D}d PUBLIC ascent::ascent)
+        endif ()
+    endforeach()
 endif ()
 
 
@@ -88,11 +96,13 @@ endif ()
 #
 if (AMReX_CONDUIT)
     find_package(Conduit REQUIRED)
-    if (AMReX_MPI)
-        target_link_libraries( amrex PUBLIC conduit::conduit_mpi )
-    else ()
-        target_link_libraries( amrex PUBLIC conduit::conduit )
-    endif ()
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        if (AMReX_MPI)
+            target_link_libraries(amrex_${D}d PUBLIC conduit::conduit_mpi)
+        else ()
+            target_link_libraries(amrex_${D}d PUBLIC conduit::conduit)
+        endif ()
+    endforeach()
 endif ()
 
 
@@ -105,9 +115,13 @@ if (AMReX_HYPRE)
         find_package(CUDAToolkit REQUIRED)
 
         # mandatory CUDA dependencies: cuSPARSE, cuRAND
-        target_link_libraries(amrex PUBLIC CUDA::cusparse CUDA::curand)
+        foreach(D IN LISTS AMReX_SPACEDIM)
+            target_link_libraries(amrex_${D}d PUBLIC CUDA::cusparse CUDA::curand)
+        endforeach()
     endif()
-    target_link_libraries( amrex PUBLIC HYPRE )
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        target_link_libraries(amrex_${D}d PUBLIC HYPRE)
+    endforeach()
 endif ()
 
 
@@ -116,7 +130,9 @@ endif ()
 #
 if (AMReX_PETSC)
     find_package(PETSc 2.13 REQUIRED)
-    target_link_libraries( amrex PUBLIC PETSC )
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        target_link_libraries(amrex_${D}d PUBLIC PETSC)
+    endforeach()
 endif ()
 
 #
@@ -129,13 +145,15 @@ if (AMReX_SUNDIALS)
        set(SUNDIALS_MINIMUM_VERSION 6.0.0 CACHE INTERNAL "Minimum required SUNDIALS version")
        find_package(SUNDIALS ${SUNDIALS_MINIMUM_VERSION} CONFIG QUIET )
     endif ()
-    if (AMReX_GPU_BACKEND STREQUAL "CUDA")
-       target_link_libraries( amrex PUBLIC SUNDIALS::nveccuda)
-    elseif (AMReX_GPU_BACKEND STREQUAL "HIP")
-       target_link_libraries( amrex PUBLIC SUNDIALS::nvechip)
-    elseif (AMReX_GPU_BACKEND STREQUAL "SYCL")
-       target_link_libraries( amrex PUBLIC SUNDIALS::nvecsycl)
-    else ()
-       target_link_libraries( amrex PUBLIC SUNDIALS::nvecserial)
-    endif ()
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        if (AMReX_GPU_BACKEND STREQUAL "CUDA")
+           target_link_libraries(amrex_${D}d PUBLIC SUNDIALS::nveccuda)
+        elseif (AMReX_GPU_BACKEND STREQUAL "HIP")
+           target_link_libraries(amrex_${D}d PUBLIC SUNDIALS::nvechip)
+        elseif (AMReX_GPU_BACKEND STREQUAL "SYCL")
+           target_link_libraries(amrex_${D}d PUBLIC SUNDIALS::nvecsycl)
+        else ()
+           target_link_libraries(amrex_${D}d PUBLIC SUNDIALS::nvecserial)
+        endif ()
+    endforeach()
 endif ()

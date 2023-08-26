@@ -17,215 +17,7 @@
 
 #include <limits>
 
-namespace amrex
-{
-
-namespace particle_detail {
-
-template <typename F, typename P>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, P const& p, amrex::RandomEngine const& engine) noexcept
-    -> decltype(f(P{},RandomEngine{}))
-{
-    return f(p,engine);
-}
-
-template <typename F, typename P>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, P const& p, amrex::RandomEngine const&) noexcept
-    -> decltype(f(P{}))
-{
-    return f(p);
-}
-
-template <typename F, typename SrcData, typename N>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const& engine) noexcept
-    -> decltype(f(SrcData{},N{},RandomEngine{}))
-{
-    return f(src,i,engine);
-}
-
-template <typename F, typename SrcData, typename N>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, SrcData const& src, N i, amrex::RandomEngine const&) noexcept
-    -> decltype(f(SrcData{},N{}))
-{
-    return f(src,i);
-}
-
-// The next several functions are used by ParticleReduce
-
-// Lambda takes a Particle
-template <typename F, typename T_ParticleType, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i) noexcept
-    -> decltype(f(p.m_aos[i]))
-{
-    return f(p.m_aos[i]);
-}
-
-// Lambda takes a SuperParticle
-template <typename F, typename T_ParticleType, int NAR, int NAI,
-          typename std::enable_if<NAR != 0 || NAI != 0, int>::type = 0>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i) noexcept
-    -> decltype(f(p.getSuperParticle(i)))
-{
-    return f(p.getSuperParticle(i));
-}
-
-// Lambda takes a ConstParticleTileData
-template <typename F, typename T_ParticleType, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i) noexcept
-    -> decltype(f(p, i))
-{
-    return f(p, i);
-}
-
-// These next several functions are used by ParticleToMesh and MeshToParticle
-
-// Lambda takes a Particle
-template <typename F, typename T, typename T_ParticleType, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i, Array4<T> const& fabarr,
-             GpuArray<Real,AMREX_SPACEDIM> const& plo,
-             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
-    -> decltype(f(p.m_aos[i], fabarr, plo, dxi))
-{
-    return f(p.m_aos[i], fabarr, plo, dxi);
-}
-
-// Lambda takes a Particle
-template <typename F, typename T, typename T_ParticleType, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i, Array4<T> const& fabarr,
-             GpuArray<Real,AMREX_SPACEDIM> const&,
-             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
-    -> decltype(f(p.m_aos[i], fabarr))
-{
-    return f(p.m_aos[i], fabarr);
-}
-
-// Lambda takes a Particle
-template <typename F, typename T, typename T_ParticleType, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i, Array4<const T> const& fabarr,
-             GpuArray<Real,AMREX_SPACEDIM> const& plo,
-             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
-    -> decltype(f(p.m_aos[i], fabarr, plo, dxi))
-{
-    return f(p.m_aos[i], fabarr, plo, dxi);
-}
-
-// Lambda takes a Particle
-template <typename F, typename T, typename T_ParticleType, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i, Array4<const T> const& fabarr,
-             GpuArray<Real,AMREX_SPACEDIM> const&,
-             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
-    -> decltype(f(p.m_aos[i], fabarr))
-{
-    return f(p.m_aos[i], fabarr);
-}
-
-// Lambda takes a SuperParticle
-template <typename F, typename T, typename T_ParticleType, int NAR, int NAI,
-          typename std::enable_if<(NAR != 0) || (NAI != 0), int>::type = 0>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i, Array4<T> const& fabarr,
-             GpuArray<Real,AMREX_SPACEDIM> const& plo,
-             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
-    -> decltype(f(p.getSuperParticle(i), fabarr, plo, dxi))
-{
-    return f(p.getSuperParticle(i), fabarr, plo, dxi);
-}
-
-// Lambda takes a SuperParticle
-template <typename F, typename T, typename T_ParticleType, int NAR, int NAI,
-          typename std::enable_if<(NAR != 0) || (NAI != 0), int>::type = 0>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i, Array4<T> const& fabarr,
-             GpuArray<Real,AMREX_SPACEDIM> const&,
-             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
-    -> decltype(f(p.getSuperParticle(i), fabarr))
-{
-    return f(p.getSuperParticle(i), fabarr);
-}
-
-// Lambda takes a ConstParticleTileData
-template <typename F, typename T, typename T_ParticleType, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i, Array4<T> const& fabarr,
-             GpuArray<Real,AMREX_SPACEDIM> const&,
-             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
-    -> decltype(f(p, i, fabarr))
-{
-    return f(p, i, fabarr);
-}
-
-// Lambda takes a ConstParticleTileData
-template <typename F, typename T, typename T_ParticleType, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i, Array4<T> const& fabarr,
-             GpuArray<Real,AMREX_SPACEDIM> const& plo,
-             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
-    -> decltype(f(p, i, fabarr, plo, dxi))
-{
-    return f(p, i, fabarr, plo, dxi);
-}
-
-// Lambda takes a ParticleTileData
-template <typename F, typename T, typename T_ParticleType, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i, Array4<const T> const& fabarr,
-             GpuArray<Real,AMREX_SPACEDIM> const& plo,
-             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
-    -> decltype(f(p, i, fabarr, plo, dxi))
-{
-    return f(p, i, fabarr, plo, dxi);
-}
-
-// Lambda takes a ParticleTileData
-template <typename F, typename T, typename T_ParticleType, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f,
-             const ParticleTileData<T_ParticleType, NAR, NAI>& p,
-             const int i, Array4<const T> const& fabarr,
-             GpuArray<Real,AMREX_SPACEDIM> const&,
-             GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
-    -> decltype(f(p, i, fabarr))
-{
-    return f(p, i, fabarr);
-}
-
-
-}
+namespace amrex {
 
 /**
  * \brief Returns the number of particles that are more than nGrow cells
@@ -282,7 +74,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
     {
         auto p = make_particle<ParticleType>{}(ptd,i);
-        if ((p.id() < 0)) return false;
+        if ((p.id() < 0)) { return false; }
         IntVect iv(
             AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
                          int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
@@ -518,8 +310,9 @@ struct BinMapper
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE
-    unsigned int operator() (const T& p, int i) const
+    unsigned int operator() (const T& ptd, int i) const
     {
+        auto p = ptd[i];
         int type   = (m_bin_type_array) ? m_bin_type_array[i] : 0;
         int offset = m_off_bins_p[type];
 
@@ -583,6 +376,20 @@ IntVect getParticleCell (P const& p,
     return iv;
 }
 
+struct DefaultAssignor
+{
+
+    template <typename P>
+    AMREX_GPU_HOST_DEVICE
+    IntVect operator() (P const& p,
+                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                        const Box& domain) const noexcept
+    {
+        return getParticleCell(p, plo, dxi, domain);
+    }
+};
+
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
@@ -590,7 +397,7 @@ int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
                      const Box& domain) noexcept
 {
-    if (p.id() < 0) return -1;
+    if (p.id() < 0) { return -1; }
     IntVect iv = getParticleCell(p, plo, dxi, domain);
     return mask(iv);
 }
@@ -607,7 +414,7 @@ bool enforcePeriodic (P& p,
     bool shifted = false;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (! is_per[idim]) continue;
+        if (! is_per[idim]) { continue; }
         if (p.pos(idim) > rhi[idim]) {
             while (p.pos(idim) > rhi[idim]) {
                 p.pos(idim) -= static_cast<ParticleReal>(phi[idim] - plo[idim]);
@@ -636,9 +443,10 @@ bool enforcePeriodic (P& p,
 
 #if defined(AMREX_USE_GPU)
 
-template <typename PTile, typename PLocator>
+template <typename PTile, typename PLocator, typename CellAssignor>
 int
-partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
+partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& assignor,
+                          const ParticleBufferMap& pmap,
                           const GpuArray<Real,AMREX_SPACEDIM>& plo,
                           const GpuArray<Real,AMREX_SPACEDIM>& phi,
                           const GpuArray<ParticleReal,AMREX_SPACEDIM>& rlo,
@@ -648,7 +456,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                           int lev_min, int lev_max, int nGrow, bool remove_negative)
 {
     const int np = ptile.numParticles();
-    if (np == 0) return 0;
+    if (np == 0) { return 0; }
 
     auto getPID = pmap.getPIDFunctor();
 
@@ -689,7 +497,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                                  p_prime.pos(2) = src_data.pos(2, i+this_offset););
 
                     enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
-                    auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow);
+                    auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
                     assigned_grid = amrex::get<0>(tup_prime);
                     assigned_lev  = amrex::get<1>(tup_prime);
                     if (assigned_grid >= 0)
@@ -703,7 +511,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                       AMREX_D_TERM(p_prime.pos(0) = src_data.pos(0, i+this_offset);,
                                    p_prime.pos(1) = src_data.pos(1, i+this_offset);,
                                    p_prime.pos(2) = src_data.pos(2, i+this_offset););
-                      auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
+                      auto tup = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
                       assigned_grid = amrex::get<0>(tup);
                       assigned_lev  = amrex::get<1>(tup);
                     }

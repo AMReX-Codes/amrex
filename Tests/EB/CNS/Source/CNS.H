@@ -5,7 +5,6 @@
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_EBFluxRegister.H>
 
-using namespace amrex;
 class CNS
     :
     public amrex::AmrLevel

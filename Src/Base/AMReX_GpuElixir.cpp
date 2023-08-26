@@ -48,27 +48,19 @@ Elixir::clear () noexcept
                                                     amrex_elixir_delete, (void*)p));
 #endif
 #elif defined(AMREX_USE_SYCL)
-#ifdef AMREX_USE_CODEPLAY_HOST_TASK
-            auto lpa = std::move(m_pa);
-            auto& q = *(Gpu::gpuStream().queue);
-            try {
-                q.submit([&] (sycl::handler& h) {
-                    h.codeplay_host_task([=] () {
-                        for (auto const& pa : lpa) {
-                            pa.second->free(pa.first);
-                        }
-                    });
+        auto lpa = std::move(m_pa);
+        auto& q = *(Gpu::gpuStream().queue);
+        try {
+            q.submit([&] (sycl::handler& h) {
+                h.host_task([=] () {
+                    for (auto const& pa : lpa) {
+                        pa.second->free(pa.first);
+                    }
                 });
-            } catch (sycl::exception const& ex) {
-                amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
-            }
-#else
-            // xxxxx SYCL todo
-            Gpu::streamSynchronize();
-            for (auto const& pa : m_pa) {
-                pa.second->free(pa.first);
-            }
-#endif
+            });
+        } catch (sycl::exception const& ex) {
+            amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
+        }
 #endif
         }
     }

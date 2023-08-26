@@ -19,7 +19,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -38,7 +38,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=45M
+        export CCACHE_MAXSIZE=100M
         ccache -z
 
         source /etc/profile.d/rocm.sh
@@ -56,7 +56,6 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
             -DAMReX_EB=ON                                 \
             -DAMReX_ENABLE_TESTS=ON                       \
-            -DAMReX_PARTICLES=ON                          \
             -DAMReX_FORTRAN=ON                            \
             -DAMReX_LINEAR_SOLVERS=ON                     \
             -DAMReX_GPU_BACKEND=HIP                       \
@@ -70,6 +69,7 @@ jobs:
         cmake --build build -j 2
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   tests-hip-wrapper:
     name: HIP ROCm GFortran@9.3 C++17 [tests-hipcc]
@@ -83,7 +83,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -117,7 +117,6 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
             -DAMReX_EB=OFF                                \
             -DAMReX_ENABLE_TESTS=ON                       \
-            -DAMReX_PARTICLES=ON                          \
             -DAMReX_FORTRAN=ON                            \
             -DAMReX_GPU_RDC=OFF                           \
             -DAMReX_LINEAR_SOLVERS=ON                     \
@@ -132,6 +131,7 @@ jobs:
         cmake --build build_full_legacywrapper -j 2
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build 2D libamrex hip build with configure
   configure-2d-single-hip:
@@ -146,7 +146,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -158,10 +158,41 @@ jobs:
         ccache -z
 
         ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes --with-mpi no --with-omp no --single-precision yes --single-precision-particles yes
-        make -j2 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names" CCACHE=ccache
+        make -j2 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names" AMD_ARCH=gfx90a CCACHE=ccache
         make install
 
         ccache -s
+        du -hs ~/.cache/ccache
+
+  # Build 3D EB hip with gnu make
+  hip-3d-eb-gmake:
+    name: HIP EB 3D GMake
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies_hip.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=120M
+        ccache -z
+
+        cd Tests/LinearSolvers/NodeEB
+        make -j2 USE_HIP=TRUE USE_MPI=FALSE BL_NO_FORT=TRUE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names AMD_ARCH=gfx90a CCACHE=ccache
+
+        ccache -s
+        du -hs ~/.cache/ccache
 
   save_pr_number:
     if: github.event_name == 'pull_request'

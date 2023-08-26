@@ -58,6 +58,9 @@ BLBackTrace::handler(int s)
     case SIGFPE:
         amrex::ErrorStream() << "Erroneous arithmetic operation\n";
         break;
+    case SIGILL:
+        amrex::ErrorStream() << "SIGILL Invalid, privileged, or ill-formed instruction\n";
+        break;
     case SIGTERM:
         amrex::ErrorStream() << "SIGTERM\n";
         break;
@@ -236,10 +239,12 @@ BLBackTrace::print_backtrace_info (FILE* f)
             std::fprintf(f, "%2d: %s\n", i, strings[i]);
 
 #if !defined(AMREX_USE_OMP) || !defined(__INTEL_COMPILER)
+            const bool stack_ptr_not_null = (bt_buffer[i] != nullptr);
+
             std::string addr2line_result;
             bool try_addr2line = false;
             if (amrex::system::call_addr2line && have_eu_addr2line) {
-                if (bt_buffer[i] != nullptr) {
+                if (stack_ptr_not_null) {
                     char print_buff[32];
                     std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
                     const std::string full_cmd = eu_cmd + " " + print_buff;
@@ -277,7 +282,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
                             addr2line_result.clear();
                         }
                     }
-                    if (addr2line_result.empty()) {
+                    if (addr2line_result.empty() && stack_ptr_not_null) {
                         char print_buff[32];
                         std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
                         std::string full_cmd = cmd;
@@ -304,27 +309,30 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
     for (int i = 0; i < nentries; ++i) {
         Dl_info info;
-        if (dladdr(bt_buffer[i], &info))
+        if (bt_buffer[i] != nullptr)
         {
-            std::string line;
-            if (amrex::system::call_addr2line && have_atos) {
-                char print_buff[32];
-                std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
-                const std::string full_cmd = cmd + " " + print_buff;
-                line = run_command(full_cmd);
-            }
-            if (line.empty()) {
-                int status;
-                char * demangled_name = abi::__cxa_demangle(info.dli_sname, nullptr, 0, &status);
-                if (status == 0) {
-                    line += demangled_name;
-                } else {
-                    line += info.dli_fname;
+            if (dladdr(bt_buffer[i], &info))
+            {
+                std::string line;
+                if (amrex::system::call_addr2line && have_atos) {
+                    char print_buff[32];
+                    std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
+                    const std::string full_cmd = cmd + " " + print_buff;
+                    line = run_command(full_cmd);
                 }
-                line += '\n';
-                std::free(demangled_name);
+                if (line.empty()) {
+                    int status;
+                    char * demangled_name = abi::__cxa_demangle(info.dli_sname, nullptr, 0, &status);
+                    if (status == 0) {
+                        line += demangled_name;
+                    } else {
+                        line += info.dli_fname;
+                    }
+                    line += '\n';
+                    std::free(demangled_name);
+                }
+                std::fprintf(f, "%2d: %s\n", i, line.c_str());
             }
-            std::fprintf(f, "%2d: %s\n", i, line.c_str());
         }
     }
 

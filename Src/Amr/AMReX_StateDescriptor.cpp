@@ -21,7 +21,7 @@ StateDescriptor::bf_thread_safety (const int* /*lo*/,const int* /*hi*/,
         for (int i=0; i<2*AMREX_SPACEDIM*ng && !has_ext_dir; ++i) {
             has_ext_dir = bc[i]==BCType::ext_dir;
         }
-        if (has_ext_dir) thread_safe = false;
+        if (has_ext_dir) { thread_safe = false; }
     }
     return thread_safe;
 }
@@ -417,7 +417,7 @@ StateDescriptor::setUpMaps (int&                use_default_map,
     // First, count number of interpolaters needed and allocate.
     //
     InterpBase* map = mapper_comp[start_comp];
-    if (!map) map = (InterpBase*) default_map;
+    if (!map) { map = (InterpBase*) default_map; }
     nmaps = 1;
     int icomp = start_comp+1;
 
@@ -441,7 +441,7 @@ StateDescriptor::setUpMaps (int&                use_default_map,
         icomp++;
     }
 
-    if (use_default_map) return;
+    if (use_default_map) { return; }
 
     maps           = new InterpBase*[nmaps];
     map_start_comp = new int[nmaps];
@@ -472,8 +472,9 @@ StateDescriptor::setUpMaps (int&                use_default_map,
     {
         InterpBase* mapper_icomp = mapper_comp[icomp];
 
-        if (!mapper_icomp)
+        if (!mapper_icomp) {
             mapper_icomp = (InterpBase *) default_map;
+        }
 
         if (maps[imap] != mapper_icomp)
         {
@@ -521,9 +522,11 @@ StateDescriptor::identicalInterps (int a_scomp,
 
     InterpBase* map = interp(a_scomp);
 
-    for (int i = a_scomp+1; i < a_scomp+a_ncomp; i++)
-        if (!(map == interp(i)))
+    for (int i = a_scomp+1; i < a_scomp+a_ncomp; i++) {
+        if (!(map == interp(i))) {
             return false;
+        }
+    }
 
     return true;
 }

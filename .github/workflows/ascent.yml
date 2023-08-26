@@ -16,7 +16,7 @@ jobs:
       CC: gcc
       CMAKE_PREFIX_PATH: /ascent/install/lib/cmake/
     container:
-      image: alpinedav/ascent:0.9.1
+      image: alpinedav/ascent:0.9.2
     steps:
     - uses: actions/checkout@v3
     - name: Configure
@@ -26,7 +26,6 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug \
             -DAMReX_ENABLE_TESTS=ON  \
             -DAMReX_FORTRAN=OFF      \
-            -DAMReX_PARTICLES=ON     \
             -DAMReX_ASCENT=ON
     - name: Build
       run: |

@@ -1,6 +1,7 @@
 Checks: >
     '-*,
      bugprone-*,
+       -bugprone-branch-clone,
        -bugprone-easily-swappable-parameters,
        -bugprone-exception-escape,
        -bugprone-implicit-widening-of-multiplication-result,
@@ -9,7 +10,6 @@ Checks: >
      clang-diagnostic-*,
      cppcoreguidelines-*,
        -cppcoreguidelines-avoid-c-arrays,
-       -cppcoreguidelines-avoid-goto,
        -cppcoreguidelines-avoid-magic-numbers,
        -cppcoreguidelines-avoid-non-const-global-variables,
        -cppcoreguidelines-init-variables,
@@ -19,15 +19,21 @@ Checks: >
        -cppcoreguidelines-non-private-member-variables-in-classes,
        -cppcoreguidelines-owning-memory,
        -cppcoreguidelines-pro-*,
+     google-build-explicit-make-pair,
+     google-build-namespaces,
+     google-global-names-in-headers,
+     misc-*,
+       -misc-const-correctness,
+       -misc-non-private-member-variables-in-classes,
+       -misc-no-recursion,
      modernize-*,
        -modernize-avoid-c-arrays,
+       -modernize-macro-to-enum,
        -modernize-return-braced-init-list,
        -modernize-use-trailing-return-type,
-       -modernize-use-using,
      performance-*,
+     portability-*,
      readability-*,
-       -readability-braces-around-statements,
-       -readability-container-data-pointer,
        -readability-else-after-return,
        -readability-function-cognitive-complexity,
        -readability-function-size,
@@ -40,4 +46,5 @@ Checks: >
      mpi-*
     '
 
-HeaderFilterRegex: '[^n][^o][^l][^i][^n][^t]\.H$'
+# Files not ending with nolint.H will be filtered in.
+HeaderFilterRegex: '([^n].....|[^o]....|[^l]...|[^i]..|[^n].|[^t])\.H$'

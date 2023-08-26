@@ -38,7 +38,7 @@ void test_init_ascii (TestParams& parms)
 
     DistributionMapping dmap(ba);
 
-    typedef ParticleContainer<4, 0> MyParticleContainer;
+    using MyParticleContainer = ParticleContainer<4, 0>;
     MyParticleContainer myPC(geom, dmap, ba);
 
     myPC.InitFromAsciiFile("particles.txt", 1 + AMREX_SPACEDIM);

@@ -9,7 +9,7 @@ concurrency:
 jobs:
   tests-oneapi-sycl:
     name: oneAPI SYCL [tests]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
@@ -19,14 +19,12 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has missing braces in array-array initalization
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare -Wno-missing-braces"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -42,7 +40,6 @@ jobs:
             -DAMReX_EB=OFF                                 \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=ON                             \
-            -DAMReX_PARTICLES=ON                           \
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
@@ -51,10 +48,11 @@ jobs:
         cmake --build build --parallel 2
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   tests-oneapi-sycl-eb:
     name: oneAPI SYCL [tests w/ EB]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
@@ -64,14 +62,12 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has missing braces in array-array initalization
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare -Wno-missing-braces"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -87,7 +83,6 @@ jobs:
             -DAMReX_EB=ON                                  \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=OFF                            \
-            -DAMReX_PARTICLES=ON                           \
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
@@ -95,34 +90,126 @@ jobs:
         cmake --build build --parallel 2
 
         ccache -s
+        du -hs ~/.cache/ccache
 
-# "Classic" EDG Intel Compiler
-# Ref.: https://github.com/rscohn2/oneapi-ci
-# intel-basekit intel-hpckit are too large in size
-  tests-icc:
-    name: ICC [tests]
-    runs-on: ubuntu-20.04
+  tests-oneapi-sycl-eb-nvidia:
+    name: oneAPI SYCL for Nvidia GPUs [tests w/ EB]
+    runs-on: ubuntu-latest
+    env:
+      CODEPLAYTOKEN: ${{ secrets.CODEPLAYTOKEN }}
     steps:
     - uses: actions/checkout@v3
-    - name: install dependencies
+    - name: Dependencies
+      if: ${{ env.CODEPLAYTOKEN != '' }}
       run: |
-        export DEBIAN_FRONTEND=noninteractive
-        sudo apt-get -qqq update
-        sudo apt-get install -y wget build-essential pkg-config cmake ca-certificates gnupg
-        sudo wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-        sudo apt-get update
-        sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-compiler-fortran intel-oneapi-mpi-devel
+        .github/workflows/dependencies/dependencies_nvcc.sh
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        .github/workflows/dependencies/dependencies_codeplay.sh ${{ env.CODEPLAYTOKEN }}
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      if: ${{ env.CODEPLAYTOKEN != '' }}
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      if: ${{ env.CODEPLAYTOKEN != '' }}
+      # clang currently supports CUDA up to version 11.5 and a warning is issued with newer versions
+      env: {CXXFLAGS: "-fsycl -fsycl-targets=nvptx64-nvidia-cuda -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-unknown-cuda-version"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=55M
+        export CCACHE_DEPEND=1
+        ccache -z
+
+        set +e
+        source /opt/intel/oneapi/setvars.sh --include-intel-llvm
+        set -e
+        cmake -S . -B build                                \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_EB=ON                                  \
+            -DAMReX_ENABLE_TESTS=ON                        \
+            -DAMReX_TEST_TYPE=Small                        \
+            -DAMReX_GPU_BACKEND=SYCL                       \
+            -DCMAKE_C_COMPILER=$(which icx)                \
+            -DCMAKE_CXX_COMPILER=$(which clang++)          \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build --parallel 2
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  no-tests-oneapi-sycl-amd:
+    name: oneAPI SYCL for AMD GPUs
+    runs-on: ubuntu-20.04
+    env:
+      CODEPLAYTOKEN: ${{ secrets.CODEPLAYTOKEN }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      if: ${{ env.CODEPLAYTOKEN != '' }}
+      run: |
+        .github/workflows/dependencies/dependencies_hip.sh 5.4.6
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        .github/workflows/dependencies/dependencies_codeplay.sh ${{ env.CODEPLAYTOKEN }}
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      if: ${{ env.CODEPLAYTOKEN != '' }}
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      if: ${{ env.CODEPLAYTOKEN != '' }}
+      env: {CXXFLAGS: "-fsycl -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx90a -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=55M
+        export CCACHE_DEPEND=1
+        ccache -z
+
+        set +e
+        source /opt/intel/oneapi/setvars.sh --include-intel-llvm
+        set -e
+        cmake -S . -B build                                \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_EB=OFF                                 \
+            -DAMReX_ENABLE_TESTS=OFF                       \
+            -DAMReX_GPU_BACKEND=SYCL                       \
+            -DAMReX_SYCL_SUB_GROUP_SIZE=64                 \
+            -DCMAKE_C_COMPILER=$(which icx)                \
+            -DCMAKE_CXX_COMPILER=$(which clang++)          \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build --parallel 2
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+# "Classic" EDG Intel Compiler
+  tests-icc:
+    name: ICC [tests]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
-    - name: build
+    - name: Build & Install
       env: {CXXFLAGS: "-Werror"}
       run: |
         export CCACHE_COMPRESS=1
@@ -133,22 +220,21 @@ jobs:
         set +e
         source /opt/intel/oneapi/setvars.sh
         set -e
-        export CXX=$(which icpc)
-        export CC=$(which icc)
-        export FC=$(which ifort)
-
         cmake -S . -B build                                \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_EB=ON                                  \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=ON                             \
-            -DAMReX_PARTICLES=ON                           \
+            -DCMAKE_C_COMPILER=$(which icc)                \
+            -DCMAKE_CXX_COMPILER=$(which icpc)             \
+            -DCMAKE_Fortran_COMPILER=$(which ifort)        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --parallel 2
         cmake --build build --target install
         cmake --build build --target test_install
 
         ccache -s
+        du -hs ~/.cache/ccache
 
     - name: Run tests
       run: |

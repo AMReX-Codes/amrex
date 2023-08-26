@@ -150,7 +150,7 @@ void test ()
     constexpr int NArrayReal  = 8;
     constexpr int NArrayInt   = 3;
 
-    typedef ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> MyPC;
+    using MyPC = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     MyPC myPC(geom, dmap, ba, ref_ratio);
     myPC.SetVerbose(false);
 

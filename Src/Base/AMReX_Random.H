@@ -144,6 +144,13 @@ namespace amrex
     */
     ULong Random_long (ULong n); // [0,n-1]
 
+    //! Fill random numbers from uniform distribution.  The range is [0,1)
+    //! for CPU and SYCl, and (0,1] for CUADA and HIP.
+    void FillRandom (Real* p, Long N);
+
+    //! Fill random numbers from normal distribution
+    void FillRandomNormal (Real* p, Long N, Real mean, Real stddev);
+
     namespace detail {
         inline ULong DefaultGpuSeed () {
             return ParallelDescriptor::MyProc()*1234567ULL + 12345ULL;

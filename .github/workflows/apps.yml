@@ -1,0 +1,118 @@
+name: apps
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-apps
+  cancel-in-progress: true
+
+jobs:
+  castro:
+    name: Castro
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Get Latest Release Tag
+      run: |
+        CASTRO_TAG=$(wget https://github.com/AMReX-Astro/Castro/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
+        echo "CASTRO_TAG=$CASTRO_TAG" >> $GITHUB_ENV
+        MICROPHYSICS_TAG=$(wget https://github.com/AMReX-Astro/Microphysics/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
+        echo "MICROPHYSICS_TAG=$MICROPHYSICS_TAG" >> $GITHUB_ENV
+    - name: Download Castro
+      uses: actions/checkout@v3
+      with:
+        repository: 'AMReX-Astro/Castro'
+        ref: ${{env.CASTRO_TAG}}
+        path: 'Castro'
+    - name: Download Microphysics
+      uses: actions/checkout@v3
+      with:
+        repository: 'AMReX-Astro/Microphysics'
+        ref: ${{env.MICROPHYSICS_TAG}}
+        path: 'Microphysics'
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=75M
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
+        export AMREX_HOME=${PWD}
+        export MICROPHYSICS_HOME=${PWD}/Microphysics
+        cd Castro/Exec/hydro_tests/Sedov/
+        make -j2 CCACHE=ccache USE_MPI=FALSE
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  warpx:
+    name: WarpX
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Get Latest Release Tag
+      run: |
+        WARPX_TAG=$(wget https://github.com/ECP-WarpX/WarpX/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
+        echo "WARPX_TAG=$WARPX_TAG" >> $GITHUB_ENV
+    - name: Download WarpX
+      uses: actions/checkout@v3
+      with:
+        repository: 'ECP-WarpX/WarpX'
+        ref: ${{env.WARPX_TAG}}
+        path: 'WarpX'
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=40M
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
+        cmake -S WarpX -B WarpX/build             \
+            -DWarpX_amrex_src=${PWD}              \
+            -DWarpX_QED=OFF                       \
+            -DWarpX_OPENPMD=OFF                   \
+            -DCMAKE_VERBOSE_MAKEFILE=ON           \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build WarpX/build -j 2
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

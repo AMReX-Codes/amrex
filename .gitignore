@@ -62,3 +62,9 @@ Tutorials/EB/Donut/Exec/ls_plt*
 # local config
 Tools/GNUMake/Make.local
 Tools/GNUMake/Make.local-pre
+
+# profparser
+BLProfParser.lex.yy.cpp
+BLProfParser.tab.H
+BLProfParser.tab.cpp
+BLProfParserNC.y

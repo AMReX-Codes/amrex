@@ -38,7 +38,7 @@ void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int, int, Array4<Real>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mf_cell_cons_lin_interp_llslope (int i, int, int, Array4<Real> const& slope,
                                       Array4<Real const> const& u, int scomp, int ncomp,
-                                      Box const& domain, BCRec const* bc) noexcept
+                                      Box const& domain, IntVect const& /*ratio*/, BCRec const* bc) noexcept
 {
     Real sfx = Real(1.0);
 

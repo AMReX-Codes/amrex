@@ -123,7 +123,7 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
             }
 
             //  Check whether in bounds
-            if (p > 0) q = -q;
+            if (p > 0) { q = -q; }
 
             p = std::abs(p);
 
@@ -158,8 +158,8 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
         }
         else
         {
-            if (xm < 0) bPt[rangedir] = bPt[rangedir] - tol1;
-            else        bPt[rangedir] = bPt[rangedir] + tol1;
+            if (xm < 0) { bPt[rangedir] = bPt[rangedir] - tol1; }
+            else        { bPt[rangedir] = bPt[rangedir] + tol1; }
         }
 
         fb = IF_f(f, bPt);
@@ -220,7 +220,7 @@ public:
                     } else {
                         ++nfluid;
                     }
-                    if (nbody > 0 && nfluid > 0) return mixedcells;
+                    if (nbody > 0 && nfluid > 0) { return mixedcells; }
                 }
             }
         }

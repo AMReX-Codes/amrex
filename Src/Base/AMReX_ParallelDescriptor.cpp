@@ -28,6 +28,7 @@
 #include <cstdio>
 #include <cstddef>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -66,6 +67,10 @@ namespace amrex::ParallelDescriptor {
     MPI_Comm m_comm = MPI_COMM_NULL;    // communicator for all ranks, probably MPI_COMM_WORLD
 
     int m_nprocs_per_node = 1;
+    int m_rank_in_node = 0;
+
+    int m_nprocs_per_processor = 1;
+    int m_rank_in_processor = 0;
 
 #ifdef AMREX_USE_MPI
     Vector<MPI_Datatype*> m_mpi_types;
@@ -206,6 +211,7 @@ MPI_Error (const char* file, int line, const char* str, int rc)
     amrex::Error(the_message_string(file, line, str, rc));
 }
 
+// coverity[+kill]
 void
 Abort (int errorcode, bool backtrace)
 {
@@ -257,22 +263,22 @@ Message::test ()
 int
 Message::tag () const
 {
-    if ( !m_finished ) amrex::Error("Message::tag: Not Finished!");
+    if ( !m_finished ) { amrex::Error("Message::tag: Not Finished!"); }
     return m_stat.MPI_TAG;
 }
 
 int
 Message::pid () const
 {
-    if ( !m_finished ) amrex::Error("Message::pid: Not Finished!");
+    if ( !m_finished ) { amrex::Error("Message::pid: Not Finished!"); }
     return m_stat.MPI_SOURCE;
 }
 
 size_t
 Message::count () const
 {
-    if ( m_type == MPI_DATATYPE_NULL ) amrex::Error("Message::count: Bad Type!");
-    if ( !m_finished ) amrex::Error("Message::count: Not Finished!");
+    if ( m_type == MPI_DATATYPE_NULL ) { amrex::Error("Message::count: Bad Type!"); }
+    if ( !m_finished ) { amrex::Error("Message::count: Not Finished!"); }
     int cnt;
     BL_MPI_REQUIRE( MPI_Get_count(&m_stat, m_type, &cnt) );
     return cnt;
@@ -325,15 +331,47 @@ StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
 
     ParallelContext::push(m_comm);
 
+    if (ParallelDescriptor::NProcs() > 1)
+    {
 #if defined(OPEN_MPI)
-    int split_type = OMPI_COMM_TYPE_NODE;
+        int split_type = OMPI_COMM_TYPE_NODE;
 #else
-    int split_type = MPI_COMM_TYPE_SHARED;
+        int split_type = MPI_COMM_TYPE_SHARED;
 #endif
-    MPI_Comm node_comm;
-    MPI_Comm_split_type(m_comm, split_type, 0, MPI_INFO_NULL, &node_comm);
-    MPI_Comm_size(node_comm, &m_nprocs_per_node);
-    MPI_Comm_free(&node_comm);
+        MPI_Comm node_comm;
+        MPI_Comm_split_type(m_comm, split_type, 0, MPI_INFO_NULL, &node_comm);
+        MPI_Comm_size(node_comm, &m_nprocs_per_node);
+        MPI_Comm_rank(node_comm, &m_rank_in_node);
+        MPI_Comm_free(&node_comm);
+
+        char procname[MPI_MAX_PROCESSOR_NAME];
+        int lenname;
+        BL_MPI_REQUIRE(MPI_Get_processor_name(procname, &lenname));
+        procname[lenname++] = '\0';
+        const int nranks = ParallelDescriptor::NProcs();
+        Vector<int> lenvec(nranks);
+        MPI_Allgather(&lenname, 1, MPI_INT, lenvec.data(), 1, MPI_INT, m_comm);
+        Vector<int> offset(nranks,0);
+        Long len_tot = lenvec[0];
+        for (int i = 1; i < nranks; ++i) {
+            offset[i] = offset[i-1] + lenvec[i-1];
+            len_tot += lenvec[i];
+        }
+        AMREX_ALWAYS_ASSERT(len_tot <= static_cast<Long>(std::numeric_limits<int>::max()));
+        Vector<char> recv_buffer(len_tot);
+        MPI_Allgatherv(procname, lenname, MPI_CHAR,
+                       recv_buffer.data(), lenvec.data(), offset.data(), MPI_CHAR, m_comm);
+        m_nprocs_per_processor = 0;
+        for (int i = 0; i < nranks; ++i) {
+            if (lenname == lenvec[i] && std::strcmp(procname, recv_buffer.data()+offset[i]) == 0) {
+                if (i == ParallelDescriptor::MyProc()) {
+                    m_rank_in_processor = m_nprocs_per_processor;
+                }
+                ++m_nprocs_per_processor;
+            }
+        }
+        AMREX_ASSERT(m_nprocs_per_processor > 0);
+    }
 
     // Create these types outside OMP parallel region
     auto t1 = Mpi_typemap<IntVect>::type(); // NOLINT
@@ -356,7 +394,7 @@ StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
 #ifdef BL_USE_MPI3
     int mpi_version, mpi_subversion;
     BL_MPI_REQUIRE( MPI_Get_version(&mpi_version, &mpi_subversion) );
-    if (mpi_version < 3) amrex::Abort("MPI 3 is needed because USE_MPI3=TRUE");
+    if (mpi_version < 3) { amrex::Abort("MPI 3 is needed because USE_MPI3=TRUE"); }
 #endif
 
     // Wait until all other processes are properly started.
@@ -433,8 +471,7 @@ Barrier (const MPI_Comm &comm, const std::string &message)
 #ifdef BL_LAZY
     int r;
     MPI_Comm_compare(comm, Communicator(), &r);
-    if (r == MPI_IDENT)
-        Lazy::EvalReduction();
+    if (r == MPI_IDENT) { Lazy::EvalReduction(); }
 #endif
 
     BL_PROFILE_S("ParallelDescriptor::Barrier(comm)");
@@ -566,8 +603,9 @@ ReduceBoolAnd (bool& r, int cpu)
 
     detail::DoReduce<int>(&src,MPI_SUM,1,cpu);
 
-    if (ParallelDescriptor::MyProc() == cpu)
+    if (ParallelDescriptor::MyProc() == cpu) {
         r = (src == ParallelDescriptor::NProcs()) ? true : false;
+    }
 }
 
 void
@@ -587,8 +625,9 @@ ReduceBoolOr (bool& r, int cpu)
 
     detail::DoReduce<int>(&src,MPI_SUM,1,cpu);
 
-    if (ParallelDescriptor::MyProc() == cpu)
+    if (ParallelDescriptor::MyProc() == cpu) {
         r = (src == 0) ? false : true;
+    }
 }
 
 void
@@ -1090,8 +1129,7 @@ Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm)
 #ifdef BL_LAZY
     int r;
     MPI_Comm_compare(comm, Communicator(), &r);
-    if (r == MPI_IDENT)
-        Lazy::EvalReduction();
+    if (r == MPI_IDENT) { Lazy::EvalReduction(); }
 #endif
 
     BL_PROFILE_S("ParallelDescriptor::Bcast(viMiM)");
@@ -1127,8 +1165,9 @@ Gather (Real const* sendbuf, int nsend, Real* recvbuf, int root)
     BL_ASSERT(!(sendbuf == nullptr));
     BL_ASSERT(!(recvbuf == nullptr));
 
-    for (int i = 0; i < nsend; ++i)
+    for (int i = 0; i < nsend; ++i) {
         recvbuf[i] = sendbuf[i];
+    }
 }
 
 void
@@ -1147,6 +1186,7 @@ EndParallel ()
     ParallelContext::pop();
 }
 
+// coverity[+kill]
 void
 Abort (int errorcode, bool backtrace)
 {
@@ -1422,9 +1462,9 @@ ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
     enum { IO_Buffer_Size = 262144 * 8 };
 
 #ifdef BL_SETBUF_SIGNED_CHAR
-    typedef signed char Setbuf_Char_Type;
+    using Setbuf_Char_Type = signed char;
 #else
-    typedef char Setbuf_Char_Type;
+    using Setbuf_Char_Type = char;
 #endif
 
     Vector<Setbuf_Char_Type> io_buffer(IO_Buffer_Size);
@@ -1490,6 +1530,9 @@ Finalize ()
 void
 StartTeams ()
 {
+    int nprocs = ParallelDescriptor::NProcs();
+    int rank   = ParallelDescriptor::MyProc();
+
     int team_size = 1;
     int do_team_reduce = 0;
 
@@ -1497,13 +1540,10 @@ StartTeams ()
     ParmParse pp("team");
     pp.queryAdd("size", team_size);
     pp.queryAdd("reduce", do_team_reduce);
-#endif
-
-    int nprocs = ParallelDescriptor::NProcs();
-    int rank   = ParallelDescriptor::MyProc();
-
-    if (nprocs % team_size != 0)
+    if (nprocs % team_size != 0) {
         amrex::Abort("Number of processes not divisible by team size");
+    }
+#endif
 
     m_Team.m_numTeams    = nprocs / team_size;
     m_Team.m_size        = team_size;
@@ -1529,7 +1569,7 @@ StartTeams ()
         for (int i = 0; i < lead_ranks.size(); ++i) {
             lead_ranks[i] = i * team_size;
         }
-        BL_MPI_REQUIRE( MPI_Group_incl(grp, lead_ranks.size(), &lead_ranks[0], &lead_grp) );
+        BL_MPI_REQUIRE( MPI_Group_incl(grp, lead_ranks.size(), lead_ranks.data(), &lead_grp) );
         BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
                                         lead_grp, &m_Team.m_lead_comm) );
 
@@ -1552,14 +1592,15 @@ mpi_level_to_string (int mtlev)
 {
     amrex::ignore_unused(mtlev);
 #ifdef AMREX_USE_MPI
-    if (mtlev == MPI_THREAD_SINGLE)
+    if (mtlev == MPI_THREAD_SINGLE) {
         return std::string("MPI_THREAD_SINGLE");
-    if (mtlev == MPI_THREAD_FUNNELED)
+    } else if (mtlev == MPI_THREAD_FUNNELED) {
         return std::string("MPI_THREAD_FUNNELED");
-    if (mtlev == MPI_THREAD_SERIALIZED)
+    } else if (mtlev == MPI_THREAD_SERIALIZED) {
         return std::string("MPI_THREAD_SERIALIZED");
-    if (mtlev == MPI_THREAD_MULTIPLE)
+    } else if (mtlev == MPI_THREAD_MULTIPLE) {
         return std::string("MPI_THREAD_MULTIPLE");
+    }
 #endif
     return std::string("UNKNOWN");
 }
@@ -1600,7 +1641,7 @@ alignof_comm_data (std::size_t nbytes)
         return sizeof(ParallelDescriptor::lull_t);
     } else {
         amrex::Abort("TODO: message size is too big");
-        return 0;
+        return 1;
     }
 }
 

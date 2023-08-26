@@ -1,53 +1,23 @@
 #
-# List of subdirectories to search for CMakeLists.
-#
-set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Reinit Amr CLZ Parser CTOParFor RoundoffDomain)
-
-if (AMReX_PARTICLES)
-   list(APPEND AMREX_TESTS_SUBDIRS Particles)
-endif ()
-
-if (AMReX_EB)
-   list(APPEND AMREX_TESTS_SUBDIRS EB)
-endif ()
-
-if (AMReX_LINEAR_SOLVERS)
-   list(APPEND AMREX_TESTS_SUBDIRS LinearSolvers)
-endif ()
-
-if (AMReX_HDF5)
-   list(APPEND AMREX_TESTS_SUBDIRS HDF5Benchmark)
-endif ()
-
-if (AMReX_FORTRAN_INTERFACES)
-   list(APPEND AMREX_TESTS_SUBDIRS FortranInterface)
-endif ()
-
-if (AMReX_CUDA)
-   list(APPEND AMREX_TESTS_SUBDIRS GPU)
-endif ()
-
-list(TRANSFORM AMREX_TESTS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
-
-#
 # Function to setup the tutorials
 #
-function (setup_test _srcs  _inputs)
+function (setup_test _dim _srcs  _inputs)
 
    cmake_parse_arguments( "" "HAS_FORTRAN_MODULES"
       "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS;CMDLINE_PARAMS;NTASKS;NTHREADS" "" ${ARGN} )
 
    if (_BASE_NAME)
-      set(_base_name ${_BASE_NAME})
+      set(_base_name ${_BASE_NAME}_${_dim}d)
    else ()
       string(REGEX REPLACE ".*Tests/" "" _base_name ${CMAKE_CURRENT_LIST_DIR})
       string(REPLACE "/" "_" _base_name ${_base_name})
+      set(_base_name ${_base_name}_${_dim}d)
    endif()
 
    if (_RUNTIME_SUBDIR)
-      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${_RUNTIME_SUBDIR})
+      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${_RUNTIME_SUBDIR}_${_dim}d)
    else ()
-      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR})
+      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${_dim}d)
    endif ()
 
    set( _exe_name  Test_${_base_name} )
@@ -72,14 +42,14 @@ function (setup_test _srcs  _inputs)
    if (_HAS_FORTRAN_MODULES)
       target_include_directories(${_exe_name}
          PRIVATE
-         ${CMAKE_CURRENT_BINARY_DIR}/${_exe_name}_mod_files)
+         ${CMAKE_CURRENT_BINARY_DIR}/${_exe_name}_mod_files_${_dim}d)
       set_target_properties( ${_exe_name}
          PROPERTIES
          Fortran_MODULE_DIRECTORY
-         ${CMAKE_CURRENT_BINARY_DIR}/${_exe_name}_mod_files )
+         ${CMAKE_CURRENT_BINARY_DIR}/${_exe_name}_mod_files_${_dim}d)
    endif ()
 
-   target_link_libraries( ${_exe_name} AMReX::amrex )
+   target_link_libraries( ${_exe_name} AMReX::amrex_${_dim}d )
 
    if (AMReX_CUDA)
       setup_target_for_cuda_compilation( ${_exe_name} )
@@ -127,17 +97,65 @@ function (setup_test _srcs  _inputs)
 
 endfunction ()
 
+if (AMReX_TEST_TYPE STREQUAL "Small")
 
-#
-# Loop over subdirs and add to the build those containing CMakeLists.txt
-#
-foreach (_subdir IN LISTS AMREX_TESTS_SUBDIRS)
+   add_subdirectory("Amr/Advection_AmrCore")
 
-   file( GLOB_RECURSE _tests "${_subdir}/*CMakeLists.txt" )
+   if (AMReX_PARTICLES)
+      add_subdirectory("Particles/Redistribute")
+   endif ()
 
-   foreach ( _item  IN LISTS _tests)
-      get_filename_component(_dir ${_item} DIRECTORY )
-      add_subdirectory(${_dir})
+   if (AMReX_EB)
+      add_subdirectory("EB/CNS")
+   endif()
+
+   if (AMReX_LINEAR_SOLVERS)
+      add_subdirectory("LinearSolvers/ABecLaplacian_C")
+   endif()
+
+else()
+   #
+   # List of subdirectories to search for CMakeLists.
+   #
+   set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Reinit Amr CLZ Parser Parser2 CTOParFor RoundoffDomain)
+
+   if (AMReX_PARTICLES)
+     list(APPEND AMREX_TESTS_SUBDIRS Particles)
+   endif ()
+
+   if (AMReX_EB)
+      list(APPEND AMREX_TESTS_SUBDIRS EB)
+   endif ()
+
+   if (AMReX_LINEAR_SOLVERS)
+      list(APPEND AMREX_TESTS_SUBDIRS LinearSolvers)
+   endif ()
+
+   if (AMReX_HDF5)
+      list(APPEND AMREX_TESTS_SUBDIRS HDF5Benchmark)
+   endif ()
+
+   if (AMReX_FORTRAN_INTERFACES)
+      list(APPEND AMREX_TESTS_SUBDIRS FortranInterface)
+   endif ()
+
+   if (AMReX_CUDA)
+      list(APPEND AMREX_TESTS_SUBDIRS GPU)
+   endif ()
+
+   list(TRANSFORM AMREX_TESTS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")
+
+   #
+   # Loop over subdirs and add to the build those containing CMakeLists.txt
+   #
+   foreach (_subdir IN LISTS AMREX_TESTS_SUBDIRS)
+
+      file( GLOB_RECURSE _tests "${_subdir}/*CMakeLists.txt" )
+
+      foreach ( _item  IN LISTS _tests)
+         get_filename_component(_dir ${_item} DIRECTORY )
+         add_subdirectory(${_dir})
+      endforeach ()
+
    endforeach ()
-
-endforeach ()
+endif()

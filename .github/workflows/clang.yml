@@ -24,7 +24,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -47,7 +47,6 @@ jobs:
             -DAMReX_EB=ON                             \
             -DAMReX_FORTRAN=ON                        \
             -DAMReX_MPI=OFF                           \
-            -DAMReX_PARTICLES=ON                      \
             -DAMReX_PLOTFILE_TOOLS=ON                 \
             -DAMReX_PRECISION=SINGLE                  \
             -DAMReX_PARTICLES_PRECISION=SINGLE        \
@@ -70,6 +69,7 @@ jobs:
         ctest --output-on-failure
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   tests_clang:
     name: Clang@14.0 C++17 SP Particles DP Mesh Debug [tests]
@@ -84,7 +84,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -94,7 +94,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=100M
+        export CCACHE_MAXSIZE=200M
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
@@ -108,7 +108,6 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON                   \
             -DAMReX_FORTRAN=ON                        \
             -DAMReX_MPI=OFF                           \
-            -DAMReX_PARTICLES=ON                      \
             -DAMReX_PRECISION=DOUBLE                  \
             -DAMReX_PARTICLES_PRECISION=SINGLE        \
             -DCMAKE_C_COMPILER=$(which clang-14)      \
@@ -125,6 +124,7 @@ jobs:
         ctest --output-on-failure
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build 2D libamrex with configure
   configure-2d:
@@ -140,7 +140,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -164,6 +164,7 @@ jobs:
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   save_pr_number:
     if: github.event_name == 'pull_request'

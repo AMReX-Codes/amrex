@@ -38,6 +38,9 @@ endif
 # amd gpu target
 HIPCC_FLAGS += --offload-arch=$(AMD_ARCH)
 
+# pthread
+HIPCC_FLAGS += -pthread
+
 CXXFLAGS += $(HIPCC_FLAGS)
 
 # add fopenmp targetting the gnu library
@@ -80,8 +83,8 @@ endif  # BL_NO_FORT
 ifeq ($(HIP_COMPILER),clang)
 
   ifeq ($(DEBUG),TRUE)
-    CXXFLAGS += -g -O0 #-ftrapv
-    CFLAGS   += -g -O0 #-ftrapv
+    CXXFLAGS += -g -O1 -munsafe-fp-atomics
+    CFLAGS   += -g -O0
 
     FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
     F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv

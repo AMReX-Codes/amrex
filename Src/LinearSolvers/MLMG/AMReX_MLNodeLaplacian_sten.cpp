@@ -25,7 +25,7 @@ MLNodeLaplacian::buildStencil ()
         m_s0_norm0[amrlev].resize(m_num_mg_levels[amrlev],0.0);
     }
 
-    if (m_coarsening_strategy != CoarseningStrategy::RAP) return;
+    if (m_coarsening_strategy != CoarseningStrategy::RAP) { return; }
 
     const int ncomp_s = (AMREX_SPACEDIM == 2) ? 5 : 9;
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM != 1,
@@ -64,7 +64,7 @@ MLNodeLaplacian::buildStencil ()
 #endif
 
             MFItInfo mfi_info;
-            if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+            if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

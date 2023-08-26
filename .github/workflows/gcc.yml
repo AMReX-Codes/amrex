@@ -25,7 +25,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -65,6 +65,7 @@ jobs:
         ctest --output-on-failure
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build libamrex and all tests
   tests_build_3D:
@@ -80,7 +81,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -101,7 +102,6 @@ jobs:
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
-            -DAMReX_PARTICLES=ON        \
             -DAMReX_SPACEDIM=3          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 2
@@ -114,6 +114,7 @@ jobs:
         ctest --test-dir build --output-on-failure
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   tests_build_2D:
     name: GNU@9.3 C++17 2D Debug Fortran [tests]
@@ -128,7 +129,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -149,7 +150,6 @@ jobs:
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
-            -DAMReX_PARTICLES=ON        \
             -DAMReX_SPACEDIM=2          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 2
@@ -162,6 +162,7 @@ jobs:
         ctest --test-dir build --output-on-failure
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   tests_build_1D:
     name: GNU@9.3 C++17 1D Debug Fortran [tests]
@@ -176,7 +177,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -198,7 +199,6 @@ jobs:
             -DAMReX_EB=OFF              \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
-            -DAMReX_PARTICLES=ON        \
             -DAMReX_SPACEDIM=1          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 2
@@ -211,6 +211,7 @@ jobs:
         ctest --test-dir build --output-on-failure
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build libamrex and all tests
   tests_cxx20:
@@ -226,7 +227,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -253,7 +254,6 @@ jobs:
             -DAMReX_FPE=ON              \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_OMP=ON              \
-            -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_C_COMPILER=$(which gcc-10)              \
             -DCMAKE_CXX_COMPILER=$(which g++-10)            \
@@ -270,6 +270,7 @@ jobs:
         ctest --output-on-failure
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build libamrex and all tests w/o MPI
   tests-nonmpi:
@@ -285,7 +286,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -312,7 +313,6 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_MPI=OFF             \
-            -DAMReX_PARTICLES=ON        \
             -DCMAKE_C_COMPILER=$(which gcc-8)     \
             -DCMAKE_CXX_COMPILER=$(which g++-8)   \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-8) \
@@ -327,6 +327,7 @@ jobs:
         ctest --output-on-failure
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build libamrex and all tests
   tests-nofortran:
@@ -342,7 +343,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -375,7 +376,6 @@ jobs:
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=OFF         \
-            -DAMReX_PARTICLES=ON        \
             -DAMReX_FORTRAN=OFF         \
             -DCMAKE_C_COMPILER=$(which gcc-12)     \
             -DCMAKE_CXX_COMPILER=$(which g++-12)   \
@@ -391,6 +391,7 @@ jobs:
         ctest --output-on-failure
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build 1D libamrex with configure
   configure-1d:
@@ -406,7 +407,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -430,6 +431,7 @@ jobs:
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build 3D libamrex with configure
   configure-3d:
@@ -440,12 +442,12 @@ jobs:
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
-        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 15
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -465,10 +467,11 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j2 -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-12 \
+            CLANG_TIDY=clang-tidy-15 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build 3D libamrex with single precision and tiny profiler
   configure-3d-single-tprof:
@@ -484,7 +487,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -508,6 +511,7 @@ jobs:
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build 3D libamrex debug omp build with configure
   configure-3d-omp-debug:
@@ -523,7 +527,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -547,6 +551,7 @@ jobs:
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build Tools/Plotfile
   plotfile-tools:
@@ -562,7 +567,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -585,6 +590,7 @@ jobs:
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build libamrex and run all tests
   tests_run:
@@ -600,7 +606,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -620,7 +626,6 @@ jobs:
             -DAMReX_OMP=ON              \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 2
 
@@ -630,6 +635,7 @@ jobs:
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
+        du -hs ~/.cache/ccache
 
     - name: Run tests
       run: |

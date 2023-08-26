@@ -11,6 +11,7 @@ set(_exe_names
    fcompare
    fextract
    fextrema
+   fgradient
    fnan
    fsnapshot
    ftime

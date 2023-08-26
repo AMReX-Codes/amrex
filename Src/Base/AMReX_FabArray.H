@@ -144,7 +144,7 @@ struct MFInfo {
 struct TheFaArenaDeleter {
     using pointer = char*;
     void operator()(pointer p) const noexcept {
-        The_FA_Arena()->free(p);
+        The_Comms_Arena()->free(p);
     }
 };
 using TheFaArenaPointer = std::unique_ptr<char, TheFaArenaDeleter>;
@@ -325,7 +325,7 @@ class FabArray
 public:
 
     struct FABType {
-        typedef FAB value_type;
+        using value_type = FAB;
     };
 
     /*
@@ -1255,7 +1255,7 @@ protected:
 
         ~ShMem () { // NOLINT
 #if defined(BL_USE_MPI3)
-            if (win != MPI_WIN_NULL) MPI_Win_free(&win);
+            if (win != MPI_WIN_NULL) { MPI_Win_free(&win); }
 #endif
 #ifdef BL_USE_TEAM
             if (alloc) {
@@ -1301,7 +1301,7 @@ protected:
     bool SharedMemory () const noexcept { return shmem.alloc; }
 
 private:
-    typedef typename std::vector<FAB*>::iterator    Iterator;
+    using Iterator = typename std::vector<FAB*>::iterator;
 
     void AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
                     const Vector<std::string>& tags);
@@ -1653,8 +1653,13 @@ FabArray<FAB>::build_arrays () const
         m_hp_arrays = (void*)std::malloc(n*2*sizeof(A));
 #endif
         for (int li = 0; li < n; ++li) {
-            new ((A*)m_hp_arrays+li) A(m_fabs_v[li]->array());
-            new ((AC*)m_hp_arrays+li+n) AC(m_fabs_v[li]->const_array());
+            if (m_fabs_v[li]) {
+                new ((A*)m_hp_arrays+li) A(m_fabs_v[li]->array());
+                new ((AC*)m_hp_arrays+li+n) AC(m_fabs_v[li]->const_array());
+            } else {
+                new ((A*)m_hp_arrays+li) A{};
+                new ((AC*)m_hp_arrays+li+n) AC{};
+            }
         }
         m_arrays.hp = (A*)m_hp_arrays;
         m_const_arrays.hp = (AC*)m_hp_arrays + n;
@@ -1932,7 +1937,7 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
-    if (!define_function_called) return false;
+    if (!define_function_called) { return false; }
 
     int isok = 1;
 
@@ -3237,7 +3242,7 @@ FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngho
 {
     BL_PROFILE("FabArray<FAB>::SumBoundary_nowait()");
 
-    if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) return;
+    if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) { return; }
 
     AMREX_ASSERT(src_nghost <= n_grow);
 
@@ -3257,7 +3262,7 @@ FabArray<FAB>::SumBoundary_finish ()
     BL_PROFILE("FabArray<FAB>::SumBoundary_finish()");
 
     // If pcd doesn't exist, ParallelCopy was all local and operation was fully completed in "SumBoundary_nowait".
-    if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) return;
+    if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) { return; }
 
     auto* tmp = const_cast<FabArray<FAB>*> (this->pcd->src);
     this->ParallelCopy_finish();
@@ -3399,6 +3404,7 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
     else
 #endif
     {
+        AMREX_ASSERT(thecmd.m_LocTags && thecmd.m_RcvTags);
         const CopyComTagsContainer&      LocTags = *(thecmd.m_LocTags);
         const MapOfCopyComTagContainers& RcvTags = *(thecmd.m_RcvTags);
         auto N_locs = static_cast<int>(LocTags.size());

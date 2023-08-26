@@ -238,7 +238,7 @@ Within AMReX_Interpolater.cpp/H are the derived classes:
 
 -  :cpp:`FaceLinear`
 
--  :cpp:`FaceDivFree`
+-  :cpp:`FaceDivFree`: This is more accurately a divergence-preserving interpolation on face centered data, i.e., it ensures the divergence of the fine ghost cells match the value of the divergence of the underlying coarse cell. All fine cells overlying a given coarse cell will have the same divergence, even when the coarse grid divergence is spatially varying. Note that when using this with :cpp:`FillPatch` for time sub-cycling, the coarse grid times may not match the fine grid time, in which case :cpp:`FillPatch` will create coarse values at the fine time before calling this interpolation and the result of the :cpp:`FillPatch` is *not* garanteed to preserve the original divergence.
 
 These Interpolaters can be executed on CPU or GPU, with certain limitations:
 

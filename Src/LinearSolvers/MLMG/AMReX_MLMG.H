@@ -12,6 +12,13 @@ class MLMGT
 {
 public:
 
+    class error
+        : public std::runtime_error
+    {
+    public :
+        using std::runtime_error::runtime_error;
+    };
+
     template <typename T> friend class MLCGSolverT;
 
     using FAB = typename MF::fab_type;
@@ -104,6 +111,7 @@ public:
     */
     void apply (const Vector<MF*>& out, const Vector<MF*>& in);
 
+    void setThrowException (bool t) noexcept { throw_exception = t; }
     void setVerbose (int v) noexcept { verbose = v; }
     void setMaxIter (int n) noexcept { max_iters = n; }
     void setMaxFmgIter (int n) noexcept { max_fmg_iters = n; }
@@ -188,10 +196,12 @@ public:
     void makeSolvable (int amrlev, int mglev, MF& mf);
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+    template <class TMF=MF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int> = 0>
     void bottomSolveWithHypre (MF& x, const MF& b);
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
+    template <class TMF=MF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int> = 0>
     void bottomSolveWithPETSc (MF& x, const MF& b);
 #endif
 
@@ -209,7 +219,9 @@ public:
 
 private:
 
+    bool throw_exception = false;
     int verbose = 1;
+
     int max_iters = 200;
     int do_fixed_number_of_iters = 0;
 
@@ -414,7 +426,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
             // Test convergence on the fine amr level
             computeResidual(finest_amr_lev);
 
-            if (is_nsolve) continue;
+            if (is_nsolve) { continue; }
 
             RT fine_norminf = ResNormInf(finest_amr_lev);
             m_iter_fine_resnorm0.push_back(fine_norminf);
@@ -451,16 +463,21 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 }
                 break;
             } else {
-              if (composite_norminf > RT(1.e20)*max_norm)
-              {
-                  if (verbose > 0) {
-                      amrex::Print() << "MLMG: Failing to converge after " << iter+1 << " iterations."
-                                     << " resid, resid/" << norm_name << " = "
-                                     << composite_norminf << ", "
-                                     << composite_norminf/max_norm << "\n";
-                  }
-                  amrex::Abort("MLMG failing so lets stop here");
-              }
+                if (composite_norminf > RT(1.e20)*max_norm)
+                {
+                    if (verbose > 0) {
+                        amrex::Print() << "MLMG: Failing to converge after " << iter+1 << " iterations."
+                                       << " resid, resid/" << norm_name << " = "
+                                       << composite_norminf << ", "
+                                       << composite_norminf/max_norm << "\n";
+                    }
+
+                    if ( throw_exception ) {
+                        throw error("MLMG blew up.");
+                    } else {
+                        amrex::Abort("MLMG failing so lets stop here");
+                    }
+                }
             }
         }
 
@@ -471,7 +488,12 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                                << composite_norminf << ", "
                                << composite_norminf/max_norm << "\n";
             }
-            amrex::Abort("MLMG failed");
+
+            if ( throw_exception ) {
+                throw error("MLMG failed to converge.");
+            } else {
+                amrex::Abort("MLMG failed.");
+            }
         }
         timer[iter_time] = amrex::second() - iter_start_time;
     }
@@ -894,7 +916,7 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
 #endif
 
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        if (cf_strategy == CFStrategy::ghostnodes)  nghost = linop.getNGrow(alev);
+        if (cf_strategy == CFStrategy::ghostnodes) { nghost = linop.getNGrow(alev); }
         out[alev]->negate(nghost);
     }
 }
@@ -1395,7 +1417,7 @@ MLMGT<MF>::actualBottomSolve ()
 {
     BL_PROFILE("MLMG::actualBottomSolve()");
 
-    if (!linop.isBottomActive()) return;
+    if (!linop.isBottomActive()) { return; }
 
     auto bottom_start_time = amrex::second();
 
@@ -1431,16 +1453,26 @@ MLMGT<MF>::actualBottomSolve ()
         }
 
         if (bottom_solver == BottomSolver::hypre)
-        { // NOLINT(bugprone-branch-clone)
+        {
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-            bottomSolveWithHypre(x, *bottom_b);
+            if constexpr (std::is_same<MF,MultiFab>()) {
+                bottomSolveWithHypre(x, *bottom_b);
+            } else
 #endif
+            {
+                amrex::Abort("Using Hypre as bottom solver not supported in this case");
+            }
         }
         else if (bottom_solver == BottomSolver::petsc)
         {
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-            bottomSolveWithPETSc(x, *bottom_b);
+            if constexpr (std::is_same<MF,MultiFab>()) {
+                bottomSolveWithPETSc(x, *bottom_b);
+            } else
 #endif
+            {
+                amrex::Abort("Using PETSc as bottom solver not supported in this case");
+            }
         }
         else
         {
@@ -1540,7 +1572,9 @@ MLMGT<MF>::computeResWithCrseSolFineCor (int calev, int falev)
     BL_PROFILE("MLMG::computeResWithCrseSolFineCor()");
 
     IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = IntVect(std::min(linop.getNGrow(falev),linop.getNGrow(calev)));
+    if (cf_strategy == CFStrategy::ghostnodes) {
+        nghost = IntVect(std::min(linop.getNGrow(falev),linop.getNGrow(calev)));
+    }
 
     MF&       crse_sol = sol[calev];
     const MF& crse_rhs = rhs[calev];
@@ -1571,7 +1605,9 @@ MLMGT<MF>::computeResWithCrseCorFineCor (int falev)
     BL_PROFILE("MLMG::computeResWithCrseCorFineCor()");
 
     IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = IntVect(linop.getNGrow(falev));
+    if (cf_strategy == CFStrategy::ghostnodes) {
+        nghost = IntVect(linop.getNGrow(falev));
+    }
 
     const MF& crse_cor = cor[falev-1][0];
 
@@ -1593,7 +1629,9 @@ MLMGT<MF>::interpCorrection (int alev)
     BL_PROFILE("MLMG::interpCorrection_1");
 
     IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = IntVect(linop.getNGrow(alev));
+    if (cf_strategy == CFStrategy::ghostnodes) {
+        nghost = IntVect(linop.getNGrow(alev));
+    }
 
     MF const& crse_cor = cor[alev-1][0];
     MF      & fine_cor = cor[alev  ][0];
@@ -1692,7 +1730,7 @@ MLMGT<MF>::MLResNormInf (int alevmax, bool local) -> RT
     {
         r = std::max(r, ResNormInf(alev,true));
     }
-    if (!local) ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub());
+    if (!local) { ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub()); }
     return r;
 }
 
@@ -1707,7 +1745,7 @@ MLMGT<MF>::MLRhsNormInf (bool local) -> RT
         auto t = linop.normInf(alev, rhs[alev], true);
         r = std::max(r, t);
     }
-    if (!local) ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub());
+    if (!local) { ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub()); }
     return r;
 }
 
@@ -1744,6 +1782,7 @@ MLMGT<MF>::makeSolvable (int amrlev, int mglev, MF& mf)
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 template <typename MF>
+template <class TMF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int>>
 void
 MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
 {
@@ -1773,7 +1812,7 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
             const DistributionMapping& dm = linop.m_dmap[amrlev].back();
             const Geometry& geom = linop.m_geom[amrlev].back();
 
-            hypre_bndry = std::make_unique<MLMGBndry>(ba, dm, ncomp, geom);
+            hypre_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
             hypre_bndry->setHomogValues();
             const Real* dx = linop.m_geom[0][0].CellSize();
             int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
@@ -1812,6 +1851,7 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
 template <typename MF>
+template <class TMF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int>>
 void
 MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
 {
@@ -1826,7 +1866,7 @@ MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
 
-        petsc_bndry = std::make_unique<MLMGBndry>(ba, dm, ncomp, geom);
+        petsc_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
         petsc_bndry->setHomogValues();
         const Real* dx = linop.m_geom[0][0].CellSize();
         int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;

@@ -7,7 +7,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Build libamrex and all tests with CUDA 11.0.2 (recent supported)
+  # Build libamrex and all tests with CUDA 11.2
   tests-cuda11:
     name: CUDA@11.2 GNU@9.3.0 C++17 Release [tests]
     runs-on: ubuntu-20.04
@@ -15,12 +15,12 @@ jobs:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc11.sh
+        .github/workflows/dependencies/dependencies_nvcc.sh 11.2
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -41,7 +41,6 @@ jobs:
             -DAMReX_EB=ON                                \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_FORTRAN=OFF                          \
-            -DAMReX_PARTICLES=ON                         \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which gcc)              \
             -DCMAKE_CXX_COMPILER=$(which g++)            \
@@ -56,6 +55,59 @@ jobs:
         cmake --build build -j 2
 
         ccache -s
+        du -hs ~/.cache/ccache
+
+  # Build libamrex and all tests for CUDA with LLVM Clang + libc++ + CTK 11.7
+  tests-cuda11-clang:
+    name: Clang@15 CUDA@11.7 C++17 Release [tests]
+    runs-on: ubuntu-22.04
+    env:
+      CC: clang-15
+      CXX: clang++-15
+      CUDACXX: clang++-15
+      CUDAHOSTCXX: clang++-15
+      CUDAFLAGS: "-stdlib=libc++"
+      LDFLAGS: "-stdlib=libc++"
+      CUDAARCHS: 70
+      AMReX_CUDA_ARCH: 7.0
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies_llvm_cuda11_clang15.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=60M
+        export CCACHE_DEPEND=1
+        ccache -z
+
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+
+        cmake -S . -B build                              \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+            -DAMReX_MPI=OFF                              \
+            -DAMReX_EB=ON                                \
+            -DAMReX_ENABLE_TESTS=ON                      \
+            -DAMReX_FORTRAN=OFF                          \
+            -DAMReX_GPU_BACKEND=CUDA                     \
+            -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+        cmake --build build -j 2
+
+        ccache -s
+        du -hs ~/.cache/ccache
 
   # Build libamrex and all tests with NVHPC (recent supported)
   tests-nvhpc-nvcc:
@@ -70,7 +122,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -99,7 +151,7 @@ jobs:
         cmake -S . -B build                              \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_ENABLE_TESTS=ON                      \
-            -DAMReX_PARTICLES=ON                         \
+            -DAMReX_TEST_TYPE=Small                      \
             -DAMReX_FORTRAN=ON                           \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which nvc)              \
@@ -115,6 +167,7 @@ jobs:
         cmake --build build -j 2
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   # Build 3D libamrex cuda build with configure
   configure-3d-cuda:
@@ -124,12 +177,12 @@ jobs:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc11.sh
+        .github/workflows/dependencies/dependencies_nvcc.sh 11.2
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -150,6 +203,7 @@ jobs:
         make install
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   save_pr_number:
     if: github.event_name == 'pull_request'

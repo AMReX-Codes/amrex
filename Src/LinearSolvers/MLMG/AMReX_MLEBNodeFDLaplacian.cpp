@@ -356,7 +356,6 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
     const auto dx1 = m_geom[amrlev][mglev].CellSize(1)/std::sqrt(m_sigma[1]);
     const auto xlo = m_geom[amrlev][mglev].ProbLo(0);
     const auto alpha = m_rz_alpha;
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(alpha == 0._rt, "alpha != 0 not implemented yet");
 #endif
     AMREX_D_TERM(const Real bx = m_sigma[0]*dxinv[0]*dxinv[0];,
                  const Real by = m_sigma[1]*dxinv[1]*dxinv[1];,
@@ -394,7 +393,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,levset,dmarr,ecx,ecy,
-                                                phiebarr, sig0, dx0, dx1, xlo);
+                                                phiebarr, sig0, dx0, dx1, xlo, alpha);
                     });
                 } else
 #endif
@@ -411,7 +410,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,levset,dmarr,ecx,ecy,
-                                                phieb, sig0, dx0, dx1, xlo);
+                                                phieb, sig0, dx0, dx1, xlo, alpha);
                     });
                 } else
 #endif
@@ -430,7 +429,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
             if (m_rz) {
                 AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                 {
-                    mlebndfdlap_adotx_rz(i,j,k,yarr,xarr,dmarr,sig0,dx0,dx1,xlo);
+                    mlebndfdlap_adotx_rz(i,j,k,yarr,xarr,dmarr,sig0,dx0,dx1,xlo,alpha);
                 });
             } else
 #endif
@@ -456,7 +455,6 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
     const auto dx1 = m_geom[amrlev][mglev].CellSize(1)/std::sqrt(m_sigma[1]);
     const auto xlo = m_geom[amrlev][mglev].ProbLo(0);
     const auto alpha = m_rz_alpha;
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(alpha == 0._rt, "alpha != 0 not implemented yet");
 #endif
     AMREX_D_TERM(const Real bx = m_sigma[0]*dxinv[0]*dxinv[0];,
                  const Real by = m_sigma[1]*dxinv[1]*dxinv[1];,
@@ -496,7 +494,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_gsrb_rz_eb(i,j,k,solarr,rhsarr,levset,dmskarr,ecx,ecy,
-                                               sig0, dx0, dx1, xlo, redblack);
+                                               sig0, dx0, dx1, xlo, redblack, alpha);
                     });
                 } else
 #endif
@@ -515,7 +513,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_gsrb_rz(i,j,k,solarr,rhsarr,dmskarr,
-                                            sig0, dx0, dx1, xlo, redblack);
+                                            sig0, dx0, dx1, xlo, redblack, alpha);
                     });
                 } else
 #endif
@@ -641,16 +639,16 @@ void
 MLEBNodeFDLaplacian::fillIJMatrix (MFIter const& /*mfi*/,
                                    Array4<HypreNodeLap::AtomicInt const> const& /*gid*/,
                                    Array4<int const> const& /*lid*/,
-                                   HypreNodeLap::Int* const /*ncols*/,
-                                   HypreNodeLap::Int* const /*cols*/,
-                                   Real* const /*mat*/) const
+                                   HypreNodeLap::Int* /*ncols*/,
+                                   HypreNodeLap::Int* /*cols*/,
+                                   Real* /*mat*/) const
 {
     amrex::Abort("MLEBNodeFDLaplacian::fillIJMatrix: todo");
 }
 
 void
 MLEBNodeFDLaplacian::fillRHS (MFIter const& /*mfi*/, Array4<int const> const& /*lid*/,
-                              Real* const /*rhs*/, Array4<Real const> const& /*bfab*/) const
+                              Real* /*rhs*/, Array4<Real const> const& /*bfab*/) const
 {
     amrex::Abort("MLEBNodeFDLaplacian::fillRHS: todo");
 }

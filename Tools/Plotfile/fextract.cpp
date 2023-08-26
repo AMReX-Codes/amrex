@@ -200,7 +200,7 @@ void main_main()
 
     const IntVect ivloc{AMREX_D_DECL(iloc,jloc,kloc)};
 
-    if (fine_level < 0) fine_level = pf.finestLevel();
+    if (fine_level < 0) { fine_level = pf.finestLevel(); }
     // sanity check on valid selected levels
     if (fine_level > pf.finestLevel() || coarse_level < 0 || coarse_level > fine_level) {
         amrex::Abort("Invalid level selection");
@@ -373,7 +373,7 @@ void main_main()
            for (int i = 0; i < posidx.size(); ++i) {
              ofs << std::setw(25) << std::right << std::setprecision(precision) << posidx[i].first;
              for (int j = 0; j < var_names.size(); ++j) {
-               if (std::abs(data[j][posidx[i].second])< tolerance ) data[j][posidx[i].second] = 0.;
+               if (std::abs(data[j][posidx[i].second])< tolerance ) { data[j][posidx[i].second] = 0.; }
                ofs << std::setw(25) << std::right << std::setprecision(precision) << data[j][posidx[i].second];
              }
              ofs << "\n";

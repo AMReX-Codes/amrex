@@ -81,6 +81,7 @@ namespace
     bool plot_files_output;
     int  checkpoint_nfiles;
     int  regrid_on_restart;
+    int  force_regrid_level_zero;
     int  use_efficient_regrid;
     int  plotfile_on_restart;
     int  insitu_on_restart;
@@ -103,7 +104,7 @@ Amr::UsingPrecreateDirectories () noexcept
 void
 Amr::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
     //
     // Set all defaults here!!!
     //
@@ -117,6 +118,7 @@ Amr::Initialize ()
     plot_files_output        = true;
     checkpoint_nfiles        = 64;
     regrid_on_restart        = 0;
+    force_regrid_level_zero  = 0;
     use_efficient_regrid     = 0;
     plotfile_on_restart      = 0;
     insitu_on_restart        = 0;
@@ -171,8 +173,9 @@ Amr::RegridOnRestart () noexcept
 void
 Amr::setDtMin (const Vector<Real>& dt_min_in) noexcept
 {
-    for (int i = 0; i <= finest_level; i++)
+    for (int i = 0; i <= finest_level; i++) {
         dt_min[i] = dt_min_in[i];
+    }
 }
 
 Vector<std::unique_ptr<AmrLevel> >&
@@ -253,6 +256,7 @@ Amr::InitAmr ()
     // Check for command line flags.
     //
     pp.queryAdd("regrid_on_restart",regrid_on_restart);
+    pp.queryAdd("force_regrid_level_zero",force_regrid_level_zero);
     pp.queryAdd("use_efficient_regrid",use_efficient_regrid);
     pp.queryAdd("plotfile_on_restart",plotfile_on_restart);
     pp.queryAdd("insitu_on_restart",insitu_on_restart);
@@ -295,12 +299,13 @@ Amr::InitAmr ()
 
     if (pp.contains("data_log"))
     {
-      int num_datalogs = pp.countval("data_log");
-      datalog.resize(num_datalogs);
-      datalogname.resize(num_datalogs);
-      pp.queryarr("data_log",datalogname,0,num_datalogs);
-      for (int i = 0; i < num_datalogs; i++)
-        setRecordDataInfo(i,datalogname[i]);
+        int num_datalogs = pp.countval("data_log");
+        datalog.resize(num_datalogs);
+        datalogname.resize(num_datalogs);
+        pp.queryarr("data_log",datalogname,0,num_datalogs);
+        for (int i = 0; i < num_datalogs; i++) {
+            setRecordDataInfo(i,datalogname[i]);
+        }
     }
 
 #ifndef AMREX_NO_PROBINIT
@@ -349,8 +354,9 @@ Amr::InitAmr ()
     if (max_level > 0)
     {
        regrid_int.resize(max_level);
-       for (int i = 0; i < max_level; i++)
+       for (int i = 0; i < max_level; i++) {
            regrid_int[i]  = 1;
+       }
     }
 
     //
@@ -401,7 +407,8 @@ Amr::InitAmr ()
            //
            // Otherwise we expect a vector of max_level values
            //
-           pp.queryarr("regrid_int",regrid_int,0,max_level);
+           auto status = pp.queryarr("regrid_int",regrid_int,0,max_level);
+           amrex::ignore_unused(status);
        }
     }
 
@@ -410,24 +417,28 @@ Amr::InitAmr ()
 #define STRIP while( is.get() != '\n' ) {}
         std::ifstream is(initial_grids_file.c_str(),std::ios::in);
 
-        if (!is.good())
+        if (!is.good()) {
             amrex::FileOpenFailed(initial_grids_file);
+        }
 
         int in_finest,ngrid;
 
         is >> in_finest;
+        AMREX_ASSERT(in_finest >= 0 && in_finest < std::numeric_limits<int>::max());
         STRIP;
         initial_ba.resize(in_finest);
 
         use_fixed_upto_level = in_finest;
-        if (in_finest > max_level)
+        if (in_finest > max_level) {
            amrex::Error("You have fewer levels in your inputs file then in your grids file!");
+        }
 
         for (int lev = 1; lev <= in_finest; lev++)
         {
             BoxList bl;
             is >> ngrid;
             STRIP;
+            AMREX_ASSERT(ngrid >= 0 && ngrid < std::numeric_limits<int>::max());
             for (int i = 0; i < ngrid; i++)
             {
                 Box bx;
@@ -451,18 +462,21 @@ Amr::InitAmr ()
 #define STRIP while( is.get() != '\n' ) {}
         std::ifstream is(regrid_grids_file.c_str(),std::ios::in);
 
-        if (!is.good())
+        if (!is.good()) {
             amrex::FileOpenFailed(regrid_grids_file);
+        }
 
         int in_finest,ngrid;
 
         is >> in_finest;
         STRIP;
+        AMREX_ASSERT(in_finest >= 0  && in_finest < std::numeric_limits<int>::max());
         regrid_ba.resize(in_finest);
         for (int lev = 1; lev <= in_finest; lev++)
         {
             BoxList bl;
             is >> ngrid;
+            AMREX_ASSERT(ngrid >= 0 && ngrid < std::numeric_limits<int>::max());
             STRIP;
             for (int i = 0; i < ngrid; i++)
             {
@@ -605,8 +619,9 @@ Amr::addStatePlotVar (const std::string& name)
 void
 Amr::addStateSmallPlotVar (const std::string& name)
 {
-    if (!isStateSmallPlotVar(name))
+    if (!isStateSmallPlotVar(name)) {
         state_small_plot_vars.push_back(name);
+    }
 }
 
 void
@@ -1007,7 +1022,9 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
             ParallelDescriptor::Barrier("Amr::writePlotFile::end");
             if(ParallelDescriptor::IOProcessor()) {
                 HeaderFile.close();
-                std::rename(pltfileTemp.c_str(), pltfile.c_str());
+                if (std::rename(pltfileTemp.c_str(), pltfile.c_str())) {
+                    amrex::Abort("Amr::writePlotFileDoit: std::rename failed");
+                }
             }
             ParallelDescriptor::Barrier("Renaming temporary plotfile.");
             //
@@ -1193,8 +1210,9 @@ Amr::readProbinFile (int& a_init)
             const int iBuff     = 0;
             const int wakeUpPID = (MyProc + nAtOnce);
             const int tag       = (MyProc % nAtOnce);
-            if (wakeUpPID < NProcs)
+            if (wakeUpPID < NProcs) {
                 ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+            }
         }
         if (MySet == (iSet + 1))
         {
@@ -1221,8 +1239,9 @@ Amr::readProbinFile (int& a_init)
                        << "amrex_probinit total time = " << piTotalAll << '\n';
     }
 
-    if (verbose > 0)
+    if (verbose > 0) {
         amrex::Print() << "Successfully run amrex_probinit\n";
+    }
 }
 #endif
 
@@ -1252,7 +1271,7 @@ Amr::InitializeInit(Real              strt_time,
 {
     BL_PROFILE("Amr::InitializeInit()");
     BL_COMM_PROFILE_NAMETAG("Amr::InitializeInit TOP");
-    if (check_input) checkInput();
+    if (check_input) { checkInput(); }
     //
     // Generate internal values from user-supplied values.
     //
@@ -1297,8 +1316,9 @@ Amr::FinalizeInit (Real              strt_time,
     dt_min[0]  = dt_level[0];
     n_cycle[0] = 1;
 
-    if (max_level > 0)
+    if (max_level > 0) {
         bldFineLevels(strt_time);
+    }
 
     for (int lev = 1; lev <= finest_level; lev++)
     {
@@ -1307,11 +1327,13 @@ Amr::FinalizeInit (Real              strt_time,
         dt_min[lev]    = dt_level[lev];
     }
 
-    for (int lev = 0; lev <= finest_level; lev++)
+    for (int lev = 0; lev <= finest_level; lev++) {
         amr_level[lev]->setTimeLevel(strt_time,dt_level[lev],dt_level[lev]);
+    }
 
-    for (int lev = 0; lev <= finest_level; lev++)
+    for (int lev = 0; lev <= finest_level; lev++) {
         amr_level[lev]->post_regrid(0,finest_level);
+    }
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
@@ -1323,21 +1345,21 @@ Amr::FinalizeInit (Real              strt_time,
     // Perform any special post_initialization operations.
     //
     for(int lev(0); lev <= finest_level; ++lev) {
-      amr_level[lev]->post_init(stop_time);
+        amr_level[lev]->post_init(stop_time);
     }
 
     if (ParallelDescriptor::IOProcessor())
     {
-       if (verbose > 1)
-       {
-           amrex::Print() << "INITIAL GRIDS \n";
-           printGridInfo(amrex::OutStream(),0,finest_level);
-       }
-       else if (verbose > 0)
-       {
-           amrex::Print() << "INITIAL GRIDS \n";
-           printGridSummary(amrex::OutStream(),0,finest_level);
-       }
+        if (verbose > 1)
+        {
+            amrex::Print() << "INITIAL GRIDS \n";
+            printGridInfo(amrex::OutStream(),0,finest_level);
+        }
+        else if (verbose > 0)
+        {
+            amrex::Print() << "INITIAL GRIDS \n";
+            printGridSummary(amrex::OutStream(),0,finest_level);
+        }
     }
 
     if (record_grid_info && ParallelDescriptor::IOProcessor())
@@ -1459,6 +1481,9 @@ Amr::restart (const std::string& filename)
     int mx_lev;
     is >> mx_lev;
     is >> finest_level;
+
+    AMREX_ASSERT(mx_lev >= 0 && mx_lev < 1000 &&
+                 finest_level >= 0 && finest_level < 1000);
 
     Vector<Box> inputs_domain(max_level+1);
     for (int lev = 0; lev <= max_level; ++lev)
@@ -1837,7 +1862,9 @@ Amr::checkPoint ()
         ParallelDescriptor::Barrier("Amr::checkPoint::end");
         if(ParallelDescriptor::IOProcessor()) {
             HeaderFile.close();
-            std::rename(ckfileTemp.c_str(), ckfile.c_str());
+            if (std::rename(ckfileTemp.c_str(), ckfile.c_str())) {
+                amrex::Abort("Amr::checkPoint: std::rename failed");
+            }
         }
         ParallelDescriptor::Barrier("Renaming temporary checkPoint file.");
     }
@@ -1873,14 +1900,17 @@ Amr::RegridOnly (Real time, bool do_io)
 
     if (do_io) {
 
-        if (plotfile_on_restart)
+        if (plotfile_on_restart) {
             writePlotFile();
+        }
 
-        if (checkpoint_on_restart)
+        if (checkpoint_on_restart) {
             checkPoint();
+        }
 
-        if (insitu_on_restart)
+        if (insitu_on_restart) {
             updateInSitu();
+        }
 
     }
 }
@@ -1902,6 +1932,10 @@ Amr::timeStep (int  level,
 
     // Update so that by default, we don't force a post-step regrid.
     amr_level[level]->setPostStepRegrid(0);
+
+    if(max_level==0 && force_regrid_level_zero){
+        regrid_level_0_on_restart();
+    }
 
     //
     // Allow regridding of level 0 calculation on restart.
@@ -1981,7 +2015,8 @@ Amr::timeStep (int  level,
     if (verbose > 0)
     {
         amrex::Print() << "[Level " << level << " step " << level_steps[level]+1 << "] "
-                       << "ADVANCE with dt = " << dt_level[level] << "\n";
+                       << "ADVANCE at time " << time
+                       << " with dt = " << dt_level[level] << "\n";
     }
 
     Real dt_new = amr_level[level]->advance(time,dt_level[level],iteration,niter);
@@ -2030,8 +2065,9 @@ Amr::timeStep (int  level,
             const int ncycle = n_cycle[lev_fine];
 
             BL_COMM_PROFILE_NAMETAG("Amr::timeStep timeStep subcycle");
-            for (int i = 1; i <= ncycle; i++)
+            for (int i = 1; i <= ncycle; i++) {
                 timeStep(lev_fine,time+static_cast<Real>(i-1)*dt_level[lev_fine],i,ncycle,stop_time);
+            }
         }
         else
         {
@@ -2096,8 +2132,15 @@ Amr::coarseTimeStep (Real stop_time)
 
     cumtime += dt_level[0];
 
-    amr_level[0]->postCoarseTimeStep(cumtime);
+    // sync up statedata time
+    for (int lev = 0; lev <= finestLevel(); ++lev) {
+        AmrLevel& amrlevel = getLevel(lev);
+        for (auto& statedata : amrlevel.state) {
+            statedata.syncNewTimeLevel(cumtime);
+        }
+    }
 
+    amr_level[0]->postCoarseTimeStep(cumtime);
 
     if (verbose > 0)
     {
@@ -2161,8 +2204,9 @@ Amr::coarseTimeStep (Real stop_time)
                << " TIME = " << cumtime
                << " DT = "   << dt_level[0] << '\n';
     }
-    if (record_run_info_terse && ParallelDescriptor::IOProcessor())
+    if (record_run_info_terse && ParallelDescriptor::IOProcessor()) {
         runlog_terse << level_steps[0] << " " << cumtime << " " << dt_level[0] << '\n';
+    }
 
     int check_test = 0;
 
@@ -2213,36 +2257,41 @@ Amr::coarseTimeStep (Real stop_time)
         if (ParallelDescriptor::IOProcessor())
         {
             FILE *fp;
-            if ((fp=fopen("dump_and_continue","r")) != nullptr)
+            if ((fp=fopen("dump_and_continue","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
-                remove("dump_and_continue");
+                auto status = remove("dump_and_continue");
+                amrex::ignore_unused(status);
                 to_checkpoint = 1;
                 fclose(fp);
             }
-            else if ((fp=fopen("stop_run","r")) != nullptr)
+            else if ((fp=fopen("stop_run","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
-                remove("stop_run");
+                auto status = remove("stop_run");
+                amrex::ignore_unused(status);
                 to_stop = 1;
                 fclose(fp);
             }
-            else if ((fp=fopen("dump_and_stop","r")) != nullptr)
+            else if ((fp=fopen("dump_and_stop","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
-                remove("dump_and_stop");
+                auto status = remove("dump_and_stop");
+                amrex::ignore_unused(status);
                 to_checkpoint = 1;
                 to_stop = 1;
                 fclose(fp);
             }
 
-            if ((fp=fopen("plot_and_continue","r")) != nullptr)
+            if ((fp=fopen("plot_and_continue","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
-                remove("plot_and_continue");
+                auto status = remove("plot_and_continue");
+                amrex::ignore_unused(status);
                 to_plot = 1;
                 fclose(fp);
             }
 
-            if ((fp=fopen("small_plot_and_continue","r")) != nullptr)
+            if ((fp=fopen("small_plot_and_continue","r")) != nullptr) // NOLINT(bugprone-assignment-in-if-condition)
             {
-                remove("small_plot_and_continue");
+                auto status = remove("small_plot_and_continue");
+                amrex::ignore_unused(status);
                 to_small_plot = 1;
                 fclose(fp);
             }
@@ -2469,9 +2518,11 @@ Amr::defBaseLevel (Real              strt_time,
     const Box& domain   = Geom(0).Domain();
     const IntVect& d_len = domain.size();
 
-    for (int idir = 0; idir < AMREX_SPACEDIM; idir++)
-        if (d_len[idir]%2 != 0)
+    for (int idir = 0; idir < AMREX_SPACEDIM; idir++) {
+        if (d_len[idir]%2 != 0) {
             amrex::Error("defBaseLevel: must have even number of cells");
+        }
+    }
 
     BoxArray lev0;
 
@@ -2480,10 +2531,12 @@ Amr::defBaseLevel (Real              strt_time,
         BL_ASSERT(pmap != nullptr);
 
         BoxArray domain_ba(domain);
-        if (!domain_ba.contains(*lev0_grids))
+        if (!domain_ba.contains(*lev0_grids)) {
             amrex::Error("defBaseLevel: domain does not contain lev0_grids!");
-        if (!lev0_grids->contains(domain_ba))
+        }
+        if (!lev0_grids->contains(domain_ba)) {
             amrex::Error("defBaseLevel: lev0_grids does not contain domain");
+        }
 
         lev0 = *lev0_grids;
 
@@ -2516,10 +2569,11 @@ Amr::regrid (int  lbase,
 {
     BL_PROFILE("Amr::regrid()");
 
-    if (lbase > std::min(finest_level,max_level-1)) return;
+    if (lbase > std::min(finest_level,max_level-1)) { return; }
 
-    if (verbose > 0)
+    if (verbose > 0) {
         amrex::Print() << "Now regridding at level lbase = " << lbase << "\n";
+    }
 
     //
     // Compute positions of new grids.
@@ -2532,6 +2586,10 @@ Amr::regrid (int  lbase,
 
     bool regrid_level_zero = (!initial) && (lbase == 0)
         && ( loadbalance_with_workestimates || (new_grid_places[0] != amr_level[0]->boxArray()));
+
+    if(lbase==0 && force_regrid_level_zero){
+        regrid_level_zero = true;
+    }
 
     const int start = regrid_level_zero ? 0 : lbase+1;
 
@@ -2623,8 +2681,9 @@ Amr::regrid (int  lbase,
         {
             a->init();
             amr_level[lev].reset(a);
-            if (lev > 0)
+            if (lev > 0) {
                 level_steps[lev] = level_steps[lev-1] * n_cycle[lev-1];
+            }
             this->SetBoxArray(lev, amr_level[lev]->boxArray());
             this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
         }
@@ -2652,8 +2711,9 @@ Amr::regrid (int  lbase,
 
     if (record_grid_info && ParallelDescriptor::IOProcessor())
     {
-        if (lbase == 0)
+        if (lbase == 0) {
             gridlog << "STEP = " << level_steps[0] << ' ';
+        }
 
         gridlog << "TIME = "
                 << time
@@ -2803,13 +2863,15 @@ Amr::regrid_level_0_on_restart()
             }
         }
 
-        if (record_grid_info && ParallelDescriptor::IOProcessor())
+        if (record_grid_info && ParallelDescriptor::IOProcessor()) {
             printGridInfo(gridlog,0,finest_level);
+        }
     }
     else
     {
-        if (verbose > 0)
+        if (verbose > 0) {
             amrex::Print() << "Regridding at level 0 but grids unchanged \n";
+        }
     }
 }
 
@@ -2845,8 +2907,9 @@ Amr::printGridInfo (std::ostream& os,
 
             os << ' ' << lev << ": " << b << "   ";
 
-            for (int i = 0; i < AMREX_SPACEDIM; i++)
+            for (int i = 0; i < AMREX_SPACEDIM; i++) {
                 os << b.length(i) << ' ';
+            }
 
             os << ":: " << map[k] << '\n';
         }
@@ -2883,11 +2946,13 @@ Amr::grid_places (int              lbase,
             for (int i = 0; i < ngrid; i++)
             {
                 Box bx(initial_ba[lev-1][i]);
-                if (lev > lbase)
+                if (lev > lbase) {
                     bl.push_back(bx);
+                }
             }
-            if (lev > lbase)
+            if (lev > lbase) {
                 new_grids[lev].define(bl);
+            }
         }
         return;
     }
@@ -2906,12 +2971,13 @@ Amr::grid_places (int              lbase,
             {
                 Box bx(initial_ba[lev-1][i]);
 
-                if (lev > lbase)
+                if (lev > lbase) {
                     bl.push_back(bx);
-
+                }
             }
-            if (lev > lbase)
+            if (lev > lbase) {
                 new_grids[lev].define(bl);
+            }
             new_grids[lev].maxSize(max_grid_size[lev]);
         }
     }
@@ -2926,11 +2992,13 @@ Amr::grid_places (int              lbase,
             for (int i = 0; i < ngrid; i++)
             {
                 Box bx(regrid_ba[lev-1][i]);
-                if (lev > lbase)
+                if (lev > lbase) {
                     bl.push_back(bx);
+                }
             }
-            if (lev > lbase)
+            if (lev > lbase) {
                 new_grids[lev].define(bl);
+            }
         }
         return;
     }
@@ -2986,7 +3054,7 @@ Amr::bldFineLevels (Real strt_time)
 
         grid_places(finest_level,strt_time,new_finest,new_grids);
 
-        if (new_finest <= finest_level) break;
+        if (new_finest <= finest_level) { break; }
         //
         // Create a new level and link with others.
         //
@@ -3056,10 +3124,11 @@ Amr::initSubcycle ()
         }
         int nosub;
         pp.query("nosub",nosub);
-        if (nosub > 0)
+        if (nosub > 0) {
             sub_cycle = false;
-        else
+        } else {
             amrex::Error("nosub <= 0 not allowed.\n");
+        }
         subcycling_mode = "None";
     }
     else
@@ -3112,10 +3181,12 @@ Amr::initSubcycle ()
         }
         for (int i = 1; i <= max_level; i++)
         {
-            if (n_cycle[i] > MaxRefRatio(i-1))
+            if (n_cycle[i] > MaxRefRatio(i-1)) {
                 amrex::Error("subcycling iterations must always be <= ref_ratio");
-            if (n_cycle[i] <= 0)
+            }
+            if (n_cycle[i] <= 0) {
                 amrex::Error("subcycling iterations must always be > 0");
+            }
         }
     }
     else if (subcycling_mode == "Auto")
@@ -3156,8 +3227,8 @@ Amr::initPltAndChk ()
     //
     // -1 ==> use ParallelDescriptor::NProcs().
     //
-    if (plot_nfiles       == -1) plot_nfiles       = ParallelDescriptor::NProcs();
-    if (checkpoint_nfiles == -1) checkpoint_nfiles = ParallelDescriptor::NProcs();
+    if (plot_nfiles       == -1) { plot_nfiles       = ParallelDescriptor::NProcs(); }
+    if (checkpoint_nfiles == -1) { checkpoint_nfiles = ParallelDescriptor::NProcs(); }
 
     check_file_root = "chk";
     pp.queryAdd("check_file",check_file_root);
@@ -3170,8 +3241,9 @@ Amr::initPltAndChk ()
 
     if (check_int > 0 && check_per > 0)
     {
-        if (ParallelDescriptor::IOProcessor())
+        if (ParallelDescriptor::IOProcessor()) {
             amrex::Warning("Warning: both amr.check_int and amr.check_per are > 0.");
+        }
     }
 
     plot_file_root = "plt";
@@ -3188,8 +3260,9 @@ Amr::initPltAndChk ()
 
     if (plot_int > 0 && plot_per > 0)
     {
-        if (ParallelDescriptor::IOProcessor())
+        if (ParallelDescriptor::IOProcessor()) {
             amrex::Warning("Warning: both amr.plot_int and amr.plot_per are > 0.");
+        }
     }
 
     small_plot_file_root = "smallplt";
@@ -3206,8 +3279,9 @@ Amr::initPltAndChk ()
 
     if (small_plot_int > 0 && small_plot_per > 0)
     {
-        if (ParallelDescriptor::IOProcessor())
+        if (ParallelDescriptor::IOProcessor()) {
             amrex::Warning("Warning: both amr.small_plot_int and amr.small_plot_per are > 0.");
+        }
     }
 
     write_plotfile_with_checkpoint = 1;
@@ -3226,11 +3300,11 @@ Amr::initPltAndChk ()
     int phvInt(plot_headerversion), chvInt(checkpoint_headerversion);
     pp.queryAdd("plot_headerversion", phvInt);
     if(phvInt != plot_headerversion) {
-      plot_headerversion = static_cast<VisMF::Header::Version> (phvInt);
+        plot_headerversion = static_cast<VisMF::Header::Version> (phvInt);
     }
     pp.queryAdd("checkpoint_headerversion", chvInt);
     if(chvInt != checkpoint_headerversion) {
-      checkpoint_headerversion = static_cast<VisMF::Header::Version> (chvInt);
+        checkpoint_headerversion = static_cast<VisMF::Header::Version> (chvInt);
     }
 }
 
@@ -3238,10 +3312,11 @@ Amr::initPltAndChk ()
 bool
 Amr::okToRegrid(int level) noexcept
 {
-    if (regrid_int[level] < 0)
+    if (regrid_int[level] < 0) {
         return false;
-    else
+    } else {
         return level_count[level] >= regrid_int[level] && amr_level[level]->okToRegrid();
+    }
 }
 
 Real
@@ -3262,8 +3337,9 @@ Amr::computeOptimalSubcycling(int n, int* best, const Real* dt_max, const Real* 
     Real work;
     int limit = 1;
     // This provides a memory efficient way to test all candidates
-    for (int i = 1; i < n; i++)
+    for (int i = 1; i < n; i++) {
         limit *= cycle_max[i];
+    }
     for (int candidate = 0; candidate < limit; candidate++)
     {
         int temp_cand = candidate;
@@ -3281,8 +3357,9 @@ Amr::computeOptimalSubcycling(int n, int* best, const Real* dt_max, const Real* 
         ratio = work/dt;
         if (ratio < best_ratio)
         {
-            for (int i  = 0; i < n; i++)
+            for (int i  = 0; i < n; i++) {
                 best[i] = cycles[i];
+            }
             best_ratio = ratio;
             best_dt = dt;
         }
@@ -3290,8 +3367,9 @@ Amr::computeOptimalSubcycling(int n, int* best, const Real* dt_max, const Real* 
     //
     // Now we convert best back to n_cycles format
     //
-    for (int i = n-1; i > 0; i--)
+    for (int i = n-1; i > 0; i--) {
         best[i] /= best[i-1];
+    }
     return best_dt;
 }
 

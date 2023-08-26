@@ -181,7 +181,7 @@ HypreNodeLap::fill_local_node_id_gpu ()
         AMREX_ASSERT(ndbx.numPts() < static_cast<Long>(std::numeric_limits<int>::max()));
         const int npts = ndbx.numPts();
         int nnodes_box = amrex::Scan::PrefixSum<int>(npts,
-            [=] AMREX_GPU_DEVICE (int offset) noexcept
+            [=] AMREX_GPU_DEVICE (int offset) noexcept -> int
             {
                 int valid_node = 1;
                 const Dim3 cell = ndbx.atOffset(offset).dim3();

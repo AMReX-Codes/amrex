@@ -506,7 +506,7 @@ protected:
 
     bool enforceSingularSolvable = true;
 
-    int m_num_amr_levels;
+    int m_num_amr_levels = 0;
     Vector<int> m_amr_ref_ratio;
 
     Vector<int> m_num_mg_levels;
@@ -538,7 +538,7 @@ protected:
         void operator= (CommContainer&&) = delete;
         ~CommContainer () { // NOLINT(modernize-use-equals-default)
 #ifdef BL_USE_MPI
-            if (comm != MPI_COMM_NULL) MPI_Comm_free(&comm);
+            if (comm != MPI_COMM_NULL) { MPI_Comm_free(&comm); }
 #endif
         }
     };
@@ -555,7 +555,7 @@ protected:
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_lo {{AMREX_D_DECL(0._rt,0._rt,0._rt)}};
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_hi {{AMREX_D_DECL(0._rt,0._rt,0._rt)}};
 
-    bool m_needs_coarse_data_for_bc;
+    bool m_needs_coarse_data_for_bc = false;
     int m_coarse_data_crse_ratio = -1;
     RealVect m_coarse_bc_loc;
     const MF* m_coarse_data_for_bc = nullptr;
@@ -704,14 +704,14 @@ MLLinOpT<MF>::define (const Vector<Geometry>& a_geom,
 #ifdef AMREX_USE_GPU
     if (Gpu::notInLaunchRegion())
     {
-        if (info.agg_grid_size <= 0) info.agg_grid_size = AMREX_D_PICK(32, 16, 8);
-        if (info.con_grid_size <= 0) info.con_grid_size = AMREX_D_PICK(32, 16, 8);
+        if (info.agg_grid_size <= 0) { info.agg_grid_size = AMREX_D_PICK(32, 16, 8); }
+        if (info.con_grid_size <= 0) { info.con_grid_size = AMREX_D_PICK(32, 16, 8); }
     }
     else
 #endif
     {
-        if (info.agg_grid_size <= 0) info.agg_grid_size = LPInfo::getDefaultAgglomerationGridSize();
-        if (info.con_grid_size <= 0) info.con_grid_size = LPInfo::getDefaultConsolidationGridSize();
+        if (info.agg_grid_size <= 0) { info.agg_grid_size = LPInfo::getDefaultAgglomerationGridSize(); }
+        if (info.con_grid_size <= 0) { info.con_grid_size = LPInfo::getDefaultConsolidationGridSize(); }
     }
 
 #ifdef AMREX_USE_EB
@@ -785,10 +785,10 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
         const Box& dom = a_geom[amrlev].Domain();
         for (int i = 0; i < 2; ++i)
         {
-            if (!dom.coarsenable(rr)) amrex::Abort("MLLinOp: Uncoarsenable domain");
+            if (!dom.coarsenable(rr)) { amrex::Abort("MLLinOp: Uncoarsenable domain"); }
 
             const Box& cdom = amrex::coarsen(dom,rr);
-            if (cdom == a_geom[amrlev-1].Domain()) break;
+            if (cdom == a_geom[amrlev-1].Domain()) { break; }
 
             ++(m_num_mg_levels[amrlev]);
 
@@ -803,9 +803,12 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
             rr *= mg_coarsen_ratio_v;
         }
 
+#if (AMREX_SPACEDIM > 1)
         if (hasHiddenDimension()) {
             m_amr_ref_ratio[amrlev-1] = rr[AMREX_SPACEDIM-info.hidden_direction];
-        } else {
+        } else
+#endif
+        {
             m_amr_ref_ratio[amrlev-1] = rr[0];
         }
     }
@@ -826,7 +829,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
     m_domain_covered[0] = (npts0 == compactify(m_geom[0][0].Domain()).numPts());
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
     {
-        if (!m_domain_covered[amrlev-1]) break;
+        if (!m_domain_covered[amrlev-1]) { break; }
         m_domain_covered[amrlev] = (m_grids[amrlev][0].numPts() ==
                                     compactify(m_geom[amrlev][0].Domain()).numPts());
     }

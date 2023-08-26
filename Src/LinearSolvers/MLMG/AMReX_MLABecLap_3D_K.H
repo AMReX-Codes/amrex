@@ -339,7 +339,7 @@ void tridiagonal_solve (Array1D<T,0,31>& a_ls, Array1D<T,0,31>& b_ls, Array1D<T,
     for (int i = 1; i <= ilen - 1; i++) {
         gam(i) = c_ls(i-1) / bet;
         bet = b_ls(i) - a_ls(i)*gam(i);
-        if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
+        if (bet == 0) { amrex::Abort(">>>TRIDIAG FAILED"); }
         u_ls(i) = (r_ls(i)-a_ls(i)*u_ls(i-1)) / bet;
     }
     for (int i = ilen-2; i >= 0; i--) {
@@ -388,7 +388,7 @@ void abec_gsrb_with_line_solve (
     }
 
     // This assertion should be moved outside the kernel for performance!
-    if (ilen > 32) amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32");
+    if (ilen > 32) { amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32"); }
 
     Array1D<T,0,31> a_ls;
     Array1D<T,0,31> b_ls;
@@ -435,14 +435,18 @@ void abec_gsrb_with_line_solve (
                                    +       bY(i,j+1,k,n)*phi(i,j+1,k,n) );
 
                             // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
-                            if (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+                            if (i == vlo.x && m0(vlo.x-1,j,k) > 0) {
                                 rho -= dhx*bX(i  ,j,k,n)*phi(i-1,j,k,n);
-                            if (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+                            }
+                            if (i == vhi.x && m3(vhi.x+1,j,k) > 0) {
                                 rho -= dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
-                            if (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+                            }
+                            if (j == vlo.y && m1(i,vlo.y-1,k) > 0) {
                                 rho -= dhy*bY(i,j  ,k,n)*phi(i,j-1,k,n);
-                            if (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+                            }
+                            if (j == vhi.y && m4(i,vhi.y+1,k) > 0) {
                                 rho -= dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
+                            }
 
                             a_ls(k-lo.z) = -dhz*bZ(i,j,k,n);
                             b_ls(k-lo.z) =  g_m_d;
@@ -454,12 +458,12 @@ void abec_gsrb_with_line_solve (
                             if (k == lo.z)
                             {
                                 a_ls(k-lo.z) = T(0.);
-                                if (!(m2(i,j,vlo.z-1) > 0)) r_ls(k-lo.z) += dhz*bZ(i,j,k,n)*phi(i,j,k-1,n);
+                                if (!(m2(i,j,vlo.z-1) > 0)) { r_ls(k-lo.z) += dhz*bZ(i,j,k,n)*phi(i,j,k-1,n); }
                             }
                             if (k == hi.z)
                             {
                                 c_ls(k-lo.z) = T(0.);
-                                if (!(m5(i,j,vhi.z+1) > 0)) r_ls(k-lo.z) += dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
+                                if (!(m5(i,j,vhi.z+1) > 0)) { r_ls(k-lo.z) += dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n); }
                             }
                         }
 
@@ -511,14 +515,18 @@ void abec_gsrb_with_line_solve (
                                    +       bZ(i,j,k+1,n)*phi(i,j,k+1,n) );
 
                             // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
-                            if (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+                            if (i == vlo.x && m0(vlo.x-1,j,k) > 0) {
                                 rho -= dhx*bX(i  ,j,k,n)*phi(i-1,j,k,n);
-                            if (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+                            }
+                            if (i == vhi.x && m3(vhi.x+1,j,k) > 0) {
                                 rho -= dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
-                            if (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+                            }
+                            if (k == vlo.z && m2(i,j,vlo.z-1) > 0) {
                                 rho -= dhz*bZ(i,j  ,k,n)*phi(i,j,k-1,n);
-                            if (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+                            }
+                            if (k == vhi.z && m5(i,j,vhi.z+1) > 0) {
                                 rho -= dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
+                            }
 
                             a_ls(j-lo.y) = -dhy*bY(i,j,k,n);
                             b_ls(j-lo.y) =  g_m_d;
@@ -529,12 +537,12 @@ void abec_gsrb_with_line_solve (
                             if (j == lo.y)
                             {
                                 a_ls(j-lo.y) = T(0.);
-                                if (!(m1(i,vlo.y-1,k) > 0)) r_ls(j-lo.y) += dhy*bY(i,j,k,n)*phi(i,j-1,k,n);
+                                if (!(m1(i,vlo.y-1,k) > 0)) { r_ls(j-lo.y) += dhy*bY(i,j,k,n)*phi(i,j-1,k,n); }
                             }
                             if (j == hi.y)
                             {
                                 c_ls(j-lo.y) = T(0.);
-                                if (!(m4(i,vhi.y+1,k) > 0)) r_ls(j-lo.y) += dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
+                                if (!(m4(i,vhi.y+1,k) > 0)) { r_ls(j-lo.y) += dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n); }
                             }
                         }
 
@@ -586,14 +594,18 @@ void abec_gsrb_with_line_solve (
                                    +       bZ(i,j,k+1,n)*phi(i,j,k+1,n) );
 
                             // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
-                            if (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+                            if (j == vlo.y && m1(i,vlo.y-1,k) > 0) {
                                 rho -= dhy*bY(i,j  ,k,n)*phi(i,j-1,k,n);
-                            if (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+                            }
+                            if (j == vhi.y && m4(i,vhi.y+1,k) > 0) {
                                 rho -= dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
-                            if (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+                            }
+                            if (k == vlo.z && m2(i,j,vlo.z-1) > 0) {
                                 rho -= dhz*bZ(i,j  ,k,n)*phi(i,j,k-1,n);
-                            if (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+                            }
+                            if (k == vhi.z && m5(i,j,vhi.z+1) > 0) {
                                 rho -= dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
+                            }
 
                             a_ls(i-lo.x) = -dhx*bX(i,j,k,n);
                             b_ls(i-lo.x) =  g_m_d;
@@ -604,12 +616,12 @@ void abec_gsrb_with_line_solve (
                             if (i == lo.x)
                             {
                                 a_ls(i-lo.x) = T(0.);
-                                if (!(m0(vlo.x-1,j,k) > 0)) r_ls(i-lo.x) += dhx*bX(i,j,k,n)*phi(i-1,j,k,n);
+                                if (!(m0(vlo.x-1,j,k) > 0)) { r_ls(i-lo.x) += dhx*bX(i,j,k,n)*phi(i-1,j,k,n); }
                             }
                             if (i == hi.x)
                             {
                                 c_ls(i-lo.x) = T(0.);
-                                if (!(m3(vhi.x+1,j,k) > 0)) r_ls(i-lo.x) += dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
+                                if (!(m3(vhi.x+1,j,k) > 0)) { r_ls(i-lo.x) += dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n); }
                             }
                         }
 

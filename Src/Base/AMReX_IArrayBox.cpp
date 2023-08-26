@@ -31,7 +31,7 @@ namespace
 void
 IArrayBox::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
 //    ParmParse pp("iab");
 
     ifabio = std::make_unique<IFABio>();
@@ -131,6 +131,7 @@ IArrayBox::readFrom (std::istream& is)
     int tmp_ncomp;
     is >> tmp_box;
     is >> tmp_ncomp;
+    AMREX_ASSERT(tmp_ncomp >= 0 && tmp_ncomp < std::numeric_limits<int>::max());
     is.ignore(99999, '\n');
 
     if (this->box() != tmp_box || this->nComp() != tmp_ncomp) {

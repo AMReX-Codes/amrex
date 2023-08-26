@@ -99,18 +99,18 @@ class DistributionMapping
     * ProcessorMap()[i] is an integer in the interval [0, NCPU) where
     * NCPU is the number of CPUs being used.
     */
-    const Vector<int>& ProcessorMap () const noexcept;
+    [[nodiscard]] const Vector<int>& ProcessorMap () const noexcept;
 
     //! Length of the underlying processor map.
-    Long size () const noexcept { return m_ref->m_pmap.size(); }
-    Long capacity () const noexcept { return m_ref->m_pmap.capacity(); }
-    bool empty () const noexcept { return m_ref->m_pmap.empty(); }
+    [[nodiscard]] Long size () const noexcept { return Long(m_ref->m_pmap.size()); }
+    [[nodiscard]] Long capacity () const noexcept { return Long(m_ref->m_pmap.capacity()); }
+    [[nodiscard]] bool empty () const noexcept { return m_ref->m_pmap.empty(); }
 
     //! Number of references to this DistributionMapping
-    Long linkCount () const noexcept { return m_ref.use_count(); }
+    [[nodiscard]] Long linkCount () const noexcept { return m_ref.use_count(); }
 
     //! Equivalent to ProcessorMap()[index].
-    int operator[] (int index) const noexcept { return m_ref->m_pmap[index]; }
+    [[nodiscard]] int operator[] (int index) const noexcept { return m_ref->m_pmap[index]; }
 
     std::istream& readFrom (std::istream& is);
 
@@ -137,7 +137,7 @@ class DistributionMapping
     void SFCProcessorMap (const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
                           Real& efficiency, bool sort=true);
     void KnapSackProcessorMap (const std::vector<Long>& wgts, int nprocs,
-                               Real* efficiency=0,
+                               Real* efficiency=nullptr,
                                bool do_full_knapsack=true,
                                int nmax=std::numeric_limits<int>::max(),
                                bool sort=true);
@@ -246,7 +246,7 @@ class DistributionMapping
     */
     static std::vector<std::vector<int> > makeSFC (const BoxArray& ba,
                                                    bool use_box_vol=true,
-                                                   const int nprocs=ParallelContext::NProcsSub() );
+                                                   int nprocs=ParallelContext::NProcsSub() );
 
     /** \brief Computes the average cost per MPI rank given a distribution mapping
      * global cost vector.
@@ -295,7 +295,7 @@ private:
 
     void RoundRobinDoIt (int                  nboxes,
                          int                  nprocs,
-                         std::vector<LIpair>* LIpairV = 0,
+                         std::vector<LIpair>* LIpairV = nullptr,
                          bool                 sort = true);
 
     void KnapSackDoIt (const std::vector<Long>& wgts,
@@ -323,7 +323,7 @@ private:
     static void LeastUsedTeams (Vector<int>& rteam, Vector<Vector<int> >& rworker, int nteams, int nworkers);
 
     //! A useful typedef.
-    typedef void (DistributionMapping::*PVMF)(const BoxArray &, int);
+    using PVMF = void (DistributionMapping::*)(const BoxArray &, int);
 
     //! Everyone uses the same Strategy -- defaults to SFC.
     static Strategy m_Strategy;
@@ -338,7 +338,7 @@ private:
         friend class DistributionMapping;
 
         //! Constructors to match those in DistributionMapping ....
-        Ref () noexcept {}
+        Ref () = default;
 
         explicit Ref (int len) : m_pmap(len) {}
 
@@ -360,20 +360,20 @@ private:
 
 public:
     struct RefID {
-        RefID () noexcept : data(nullptr) {}
+        constexpr RefID () noexcept {} // =default does not work due to a clang bug // NOLINT
         explicit RefID (Ref* data_) noexcept : data(data_) {}
-        bool operator<  (const RefID& rhs) const noexcept { return std::less<Ref*>()(data,rhs.data); }
+        bool operator<  (const RefID& rhs) const noexcept { return std::less<>{}(data,rhs.data); }
         bool operator== (const RefID& rhs) const noexcept { return data == rhs.data; }
         bool operator!= (const RefID& rhs) const noexcept { return data != rhs.data; }
-        const Ref *dataPtr() const noexcept { return data; }
+        [[nodiscard]] const Ref *dataPtr() const noexcept { return data; }
         void PrintPtr(std::ostream &os) const { os << data << '\n'; }
         friend std::ostream& operator<< (std::ostream& os, const RefID& id);
    private:
-        Ref* data;
+        Ref* data = nullptr;
     };
 
     //! This gives a unique ID of the reference, which is different from dmID above.
-    RefID getRefID () const noexcept { return RefID { m_ref.get() }; }
+    [[nodiscard]] RefID getRefID () const noexcept { return RefID { m_ref.get() }; }
 };
 
 //! Our output operator.
@@ -420,8 +420,8 @@ void DistributionMapping::ComputeDistributionMappingEfficiency (
     const int nprocs = ParallelDescriptor::NProcs();
     Vector<T> wgts(nprocs, T(0));
 
-    const Long nboxes = dm.size();
-    for (Long ibox = 0; ibox < nboxes; ++ibox) {
+    const auto nboxes = int(dm.size());
+    for (int ibox = 0; ibox < nboxes; ++ibox) {
         wgts[dm[ibox]] += cost[ibox];
     }
 

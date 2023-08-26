@@ -62,16 +62,6 @@ namespace amrex::Gpu {
     using HostVector = PinnedVector<T>;
 
     /**
-     * \brief The behavior of PolymorphicVector changes depending on
-     * the amrex.use_gpu_aware_mpi runtime flag. If the flag is true,
-     * this vector will use device memory. If it is false, this Vector
-     * will use pinned memory.
-     *
-     */
-    template <class T>
-    using PolymorphicVector = PODVector<T, PolymorphicAllocator<T> >;
-
-    /**
      * \brief This is identical to ManagedVector<T>. The ManagedDeviceVector
      * form is deprecated and will be removed in a future release.
      *
@@ -101,9 +91,6 @@ namespace amrex::Gpu {
 
     template <class T>
     using AsyncVector = PODVector<T>;
-
-    template <class T>
-    using PolymorphicVector = PODVector<T>;
 #endif
 
     struct HostToDevice {};
@@ -142,7 +129,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 #ifdef AMREX_USE_GPU
         htod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -179,7 +166,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 #ifdef AMREX_USE_GPU
         dtoh_memcpy(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -216,7 +203,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 #ifdef AMREX_USE_GPU
         dtod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -254,7 +241,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 #ifdef AMREX_USE_GPU
         htod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -292,7 +279,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 #ifdef AMREX_USE_GPU
         dtoh_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -330,7 +317,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 #ifdef AMREX_USE_GPU
         dtod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
 #else
@@ -352,7 +339,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 
 #ifdef AMREX_USE_GPU
         // Currently only implemented for CUDA.
@@ -383,7 +370,7 @@ namespace amrex::Gpu {
                       "Can only copy trivially copyable types");
 
         auto size = std::distance(begin, end);
-        if (size == 0) return;
+        if (size == 0) { return; }
 
 #ifdef AMREX_USE_GPU
         // Currently only implemented for CUDA.
@@ -424,7 +411,7 @@ namespace amrex::Gpu {
     void fillAsync (IT first, IT last, F&& f) noexcept
     {
         auto N = static_cast<Long>(std::distance(first, last));
-        if (N <= 0) return;
+        if (N <= 0) { return; }
         auto p = &(*first);
 #ifndef AMREX_USE_GPU
         for (Long i = 0; i < N; ++i) {

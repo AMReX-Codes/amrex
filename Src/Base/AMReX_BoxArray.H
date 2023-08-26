@@ -96,7 +96,7 @@ struct BARef
 
     mutable IntVect crsn;
 
-    typedef std::unordered_map< IntVect, std::vector<int>, IntVect::shift_hasher > HashType;
+    using HashType = std::unordered_map< IntVect, std::vector<int>, IntVect::shift_hasher > ;
     //using HashType = std::map< IntVect,std::vector<int> >;
 
     mutable HashType hash;
