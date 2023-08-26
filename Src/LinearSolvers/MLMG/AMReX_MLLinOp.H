@@ -738,7 +738,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 
     m_num_amr_levels = 0;
     for (int amrlev = 0; amrlev < a_geom.size(); amrlev++) {
-        if (a_grids[amrlev].size()) {
+        if (!a_grids[amrlev].empty()) {
             m_num_amr_levels++;
         }
     }
