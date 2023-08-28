@@ -424,7 +424,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         for (const auto& kv : pmap)
         {
             auto& flags = particle_io_flags[lev][kv.first];
-            particle_detail::fillFlags(flags, kv.second, std::forward<F>(f));
+            particle_detail::fillFlags(flags, kv.second, f);
         }
     }
 

@@ -32,8 +32,8 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -g1 -O3 # // xxxx SYCL: todo -g in beta6 causes a lot of warning messages
-  CFLAGS   += -g1 -O3 #                       and makes linking much slower
+  CXXFLAGS += -gline-tables-only -fdebug-info-for-profiling -O3 # // xxxx SYCL: todo -g in beta6 causes a lot of warning messages
+  CFLAGS   += -gline-tables-only -fdebug-info-for-profiling -O3 #                       and makes linking much slower
   FFLAGS   += -g -O3
   F90FLAGS += -g -O3
 
@@ -124,6 +124,10 @@ ifneq ($(BL_NO_FORT),TRUE)
 endif
 
 LDFLAGS += -fsycl-device-lib=libc,libm-fp32,libm-fp64
+
+ifdef SYCL_PARALLEL_LINK_JOBS
+LDFLAGS += -fsycl-max-parallel-link-jobs=$(SYCL_PARALLEL_LINK_JOBS)
+endif
 
 ifeq ($(SYCL_AOT),TRUE)
   ifndef AMREX_INTEL_ARCH

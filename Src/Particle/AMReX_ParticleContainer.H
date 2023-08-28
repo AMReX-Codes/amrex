@@ -120,8 +120,7 @@ struct ParticleInitType
 };
 
 template <bool is_const, typename T_ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-
+          template<class> class Allocator, class CellAssignor>
 class ParIterBase_impl;
 
 /**
@@ -138,13 +137,15 @@ class ParIterBase_impl;
  *
  */
 template <typename T_ParticleType, int T_NArrayReal, int T_NArrayInt,
-          template<class> class Allocator=DefaultAllocator>
+          template<class> class Allocator=DefaultAllocator,
+          class T_CellAssignor=DefaultAssignor>
 
 class ParticleContainer_impl : public ParticleContainerBase
 {
 public:
     using ParticleType = T_ParticleType;
     using ConstParticleType = typename ParticleType::ConstType;
+    using CellAssignor = T_CellAssignor;
 
     //! \brief Number of extra Real components in the particle struct
     static constexpr int NStructReal = ParticleType::NReal;
@@ -157,8 +158,8 @@ public:
         //! \brief The type of the "Particle"
 
 private:
-    friend class ParIterBase_impl<true,ParticleType, NArrayReal, NArrayInt, Allocator>;
-    friend class ParIterBase_impl<false,ParticleType, NArrayReal, NArrayInt, Allocator>;
+    friend class ParIterBase_impl<true,ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
+    friend class ParIterBase_impl<false,ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
 
 public:
     //! \brief The memory allocator in use.
@@ -175,7 +176,7 @@ public:
     RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
 #endif
 
-    using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
     using ParticleTileType = ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -189,8 +190,8 @@ public:
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
     using CharVector       = Gpu::DeviceVector<char>;
-    using ParIterType      = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
-    using ParConstIterType = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ParIterType      = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
+    using ParConstIterType = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
 
     //! \brief Default constructor - construct an empty particle container that has no concept
     //!  of a level hierarchy. Must be properly initialized later.
@@ -1393,11 +1394,11 @@ private:
     Vector<ParticleLevel> m_particles;
 };
 
-template <int T_NStructReal, int T_NStructInt, int T_NArrayReal, int T_NArrayInt, template<class> class Allocator>
-using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator>;
+template <int T_NStructReal, int T_NStructInt, int T_NArrayReal, int T_NArrayInt, template<class> class Allocator, class CellAssignor>
+using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
-template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator>
-using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator>;
+template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 
 #include "AMReX_ParticleInit.H"

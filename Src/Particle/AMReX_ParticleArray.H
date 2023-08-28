@@ -178,7 +178,7 @@ private:
     {
         using expander = int[];
         (void) expander{ 0, (std::get<Is>(a_container).push_back(
-                                 std::get<Is>(std::forward<ValueType>(a_value))), 0)... };
+                                 std::get<Is>(a_value)), 0)... };
     }
 };
 

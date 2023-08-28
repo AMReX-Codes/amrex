@@ -134,5 +134,7 @@ endif
 endif
 
 ifeq ($(FSANITIZER),TRUE)
-  override XTRALIBS += -lubsan
+  ifneq ($(shell uname),Darwin)
+    override XTRALIBS += -lubsan
+  endif
 endif
