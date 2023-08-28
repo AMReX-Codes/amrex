@@ -183,10 +183,17 @@ amrex::FileExists(const std::string &filename)
 std::string
 amrex::UniqueString()
 {
-  std::stringstream tempstring;
-  tempstring << std::setprecision(11) << std::fixed << ParallelDescriptor::second();
-  auto const tsl = tempstring.str().length();
-  return(tempstring.str().substr(tsl/2, tsl));
+    constexpr int len = 7;
+    static const auto n = std::max
+        (len,
+         static_cast<int>(
+             std::round(std::log10(double(MaxResSteadyClock::period::den)
+                                   /double(MaxResSteadyClock::period::num)))));
+    std::stringstream tempstring;
+    tempstring << std::setprecision(n) << std::fixed << amrex::second();
+    auto const ts = tempstring.str();
+    auto const tsl = ts.length();
+    return ts.substr(tsl-len,tsl); // tsl-len >= 0 becaues n >= len
 }
 
 void
