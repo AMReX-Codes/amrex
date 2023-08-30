@@ -366,7 +366,7 @@ if __name__ == "__main__":
             elif keyword == "NUM_MODULES":
                 num_modules = len(MODULES)
                 indent = index
-                fout.write("{}int num_modules = {};\n".format(
+                fout.write("{}int const num_modules = {};\n".format(
                     indent*" ", num_modules))
 
             elif keyword == "MNAME_DECLS":
