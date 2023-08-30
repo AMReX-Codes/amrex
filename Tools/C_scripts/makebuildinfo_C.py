@@ -110,7 +110,7 @@ const char* buildInfoGetAux(int i) {
 }
 
 int buildInfoGetNumModules() {
-  // int num_modules = X;
+  // int const num_modules = X;
   @@NUM_MODULES@@
   return num_modules;
 }
@@ -366,7 +366,7 @@ if __name__ == "__main__":
             elif keyword == "NUM_MODULES":
                 num_modules = len(MODULES)
                 indent = index
-                fout.write("{}int num_modules = {};\n".format(
+                fout.write("{}int const num_modules = {};\n".format(
                     indent*" ", num_modules))
 
             elif keyword == "MNAME_DECLS":
