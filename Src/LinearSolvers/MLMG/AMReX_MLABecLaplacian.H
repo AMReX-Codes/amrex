@@ -736,7 +736,7 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
     const int ncomp = this->getNComp();
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && out.isFusingCandidate()) {
+    if (Gpu::inLaunchRegion()) {
         const auto& xma = in.const_arrays();
         const auto& yma = out.arrays();
         const auto& ama = acoef.arrays();
@@ -846,7 +846,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
     const RT alpha = m_a_scalar;
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && sol.isFusingCandidate()
+    if (Gpu::inLaunchRegion()
         && (this->m_overset_mask[amrlev][mglev] || regular_coarsening))
     {
         const auto& m0ma = mm0.const_arrays();
@@ -1108,7 +1108,7 @@ MLABecLaplacianT<MF>::normalize (int amrlev, int mglev, MF& mf) const
     const int ncomp = getNComp();
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && mf.isFusingCandidate()) {
+    if (Gpu::inLaunchRegion()) {
         const auto& ma = mf.arrays();
         const auto& ama = acoef.const_arrays();
         AMREX_D_TERM(const auto& bxma = bxcoef.const_arrays();,
