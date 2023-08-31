@@ -145,7 +145,7 @@ function (generate_buildinfo _target _git_dir)
    set(LIBRARIES "${_CXX_link_line}")
 
    # Number of modules -- set to zero for now
-   set(NUM_MODULES "int num_modules = 0;")
+   set(NUM_MODULES "int const num_modules = 0;")
 
    #
    # Git hashes for both app code and AMReX if available
