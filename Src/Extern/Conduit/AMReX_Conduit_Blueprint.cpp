@@ -362,7 +362,7 @@ MultiLevelToBlueprint (int n_levels,
     // get global domains already present in node
     long domain_offset = (long)res.number_of_children();
     ParallelDescriptor::ReduceLongSum(domain_offset);
-    
+
     Vector<const BoxArray*> box_arrays;
     Vector<int> box_offsets;
 
