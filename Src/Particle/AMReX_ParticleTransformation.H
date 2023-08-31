@@ -36,16 +36,22 @@ void copyParticle (const      ParticleTileData<T_ParticleType, NAR, NAI>& dst,
     AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
 
     dst.m_aos[dst_i] = src.m_aos[src_i];
-    if constexpr(NAR > 0)
-        for (int j = 0; j < NAR; ++j)
+    if constexpr(NAR > 0) {
+        for (int j = 0; j < NAR; ++j) {
             dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
-    for (int j = 0; j < dst.m_num_runtime_real; ++j)
+        }
+    }
+    for (int j = 0; j < dst.m_num_runtime_real; ++j) {
         dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
-    if constexpr(NAI > 0)
-        for (int j = 0; j < NAI; ++j)
+    }
+    if constexpr(NAI > 0) {
+        for (int j = 0; j < NAI; ++j) {
             dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
-    for (int j = 0; j < dst.m_num_runtime_int; ++j)
+        }
+    }
+    for (int j = 0; j < dst.m_num_runtime_int; ++j) {
         dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+    }
 }
 
 /**
@@ -72,14 +78,18 @@ void copyParticle (const ParticleTileData<T_ParticleType, NAR, NAI>& dst,
     AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
 
     dst.m_aos[dst_i] = src.m_aos[src_i];
-    for (int j = 0; j < NAR; ++j)
+    for (int j = 0; j < NAR; ++j) {
         dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
-    for (int j = 0; j < dst.m_num_runtime_real; ++j)
+    }
+    for (int j = 0; j < dst.m_num_runtime_real; ++j) {
         dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
-    for (int j = 0; j < NAI; ++j)
+    }
+    for (int j = 0; j < NAI; ++j) {
         dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
-    for (int j = 0; j < dst.m_num_runtime_int; ++j)
+    }
+    for (int j = 0; j < dst.m_num_runtime_int; ++j) {
         dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+    }
 }
 
 /**
@@ -106,14 +116,18 @@ void swapParticle (const ParticleTileData<T_ParticleType, NAR, NAI>& dst,
     AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
 
     amrex::Swap(src.m_aos[src_i], dst.m_aos[dst_i]);
-    for (int j = 0; j < NAR; ++j)
+    for (int j = 0; j < NAR; ++j) {
         amrex::Swap(dst.m_rdata[j][dst_i], src.m_rdata[j][src_i]);
-    for (int j = 0; j < dst.m_num_runtime_real; ++j)
+    }
+    for (int j = 0; j < dst.m_num_runtime_real; ++j) {
         amrex::Swap(dst.m_runtime_rdata[j][dst_i], src.m_runtime_rdata[j][src_i]);
-    for (int j = 0; j < NAI; ++j)
+    }
+    for (int j = 0; j < NAI; ++j) {
         amrex::Swap(dst.m_idata[j][dst_i], src.m_idata[j][src_i]);
-    for (int j = 0; j < dst.m_num_runtime_int; ++j)
+    }
+    for (int j = 0; j < dst.m_num_runtime_int; ++j) {
         amrex::Swap(dst.m_runtime_idata[j][dst_i], src.m_runtime_idata[j][src_i]);
+    }
 }
 
 /**
@@ -337,7 +351,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
 
     AMREX_HOST_DEVICE_FOR_1D( n, i,
     {
-        if (mask[i]) copyParticle(dst_data, src_data, src_start+i, dst_start+p_offsets[i]);
+        if (mask[i]) { copyParticle(dst_data, src_data, src_start+i, dst_start+p_offsets[i]); }
     });
 
     Gpu::streamSynchronize();
@@ -379,10 +393,10 @@ int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
  * \param n the number of particles to apply the operation to
  *
  */
-template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N>
-auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
-                      Index src_start, Index dst_start, N n) noexcept
-    -> decltype(Index(particle_detail::call_f(p, typename SrcTile::ConstParticleTileDataType(), int{}, RandomEngine{})))
+template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N,
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> nvccfoo = 0>
+Index filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
+                       Index src_start, Index dst_start, N n) noexcept
 {
     Gpu::DeviceVector<Index> mask(n);
 
@@ -390,9 +404,14 @@ auto filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
     const auto src_data = src.getConstParticleTileData();
 
     amrex::ParallelForRNG(n,
-    [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+    [p, p_mask, src_data, src_start] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
+        amrex::ignore_unused(p, p_mask, src_data, src_start, engine);
+        if constexpr (IsCallable<Pred,decltype(src_data),Index,RandomEngine>::value) {
+            p_mask[i] = p(src_data, src_start+i, engine);
+        } else {
+            p_mask[i] = p(src_data, src_start+i);
+        }
     });
     return filterParticles(dst, src, mask.dataPtr(), src_start, dst_start, n);
 }
@@ -432,8 +451,10 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
 
     AMREX_HOST_DEVICE_FOR_1D( np, i,
     {
-        if (mask[i]) f(dst_data, src_data, src_start+i,
-                                           dst_start+p_offsets[src_start+i]);
+        if (mask[i]) {
+            f(dst_data, src_data, src_start+i,
+              dst_start+p_offsets[src_start+i]);
+        }
     });
 
     Gpu::streamSynchronize();
@@ -521,7 +542,7 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
 
     AMREX_HOST_DEVICE_FOR_1D( np, i,
     {
-        if (mask[i]) f(dst_data1, dst_data2, src_data, i, p_offsets[i], p_offsets[i]);
+        if (mask[i]) { f(dst_data1, dst_data2, src_data, i, p_offsets[i], p_offsets[i]); }
     });
 
     Gpu::streamSynchronize();
@@ -556,9 +577,14 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
     const auto src_data = src.getConstParticleTileData();
 
     amrex::ParallelForRNG(np,
-    [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+    [p, p_mask, src_data] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = particle_detail::call_f(p, src_data, i, engine);
+        amrex::ignore_unused(p, p_mask, src_data, engine);
+        if constexpr (IsCallable<Pred,decltype(src_data),int,RandomEngine>::value) {
+            p_mask[i] = p(src_data, i, engine);
+        } else {
+            p_mask[i] = p(src_data, i);
+        }
     });
     return filterAndTransformParticles(dst1, dst2, src, mask.dataPtr(), std::forward<F>(f));
 }
@@ -582,10 +608,10 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
  *
  */
 
-template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index>
-auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f,
-                      Index src_start, Index dst_start) noexcept
-    -> decltype(Index(particle_detail::call_f(p, typename SrcTile::ConstParticleTileDataType(), int{}, RandomEngine{})))
+template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index,
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> nvccfoo = 0>
+Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f,
+                                   Index src_start, Index dst_start) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> mask(np);
@@ -594,9 +620,14 @@ auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&
     const auto src_data = src.getConstParticleTileData();
 
     amrex::ParallelForRNG(np,
-    [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+    [p, p_mask, src_data, src_start] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
     {
-        p_mask[i] = particle_detail::call_f(p, src_data, src_start+i, engine);
+        amrex::ignore_unused(p, p_mask, src_data, src_start, engine);
+        if constexpr (IsCallable<Pred,decltype(src_data),Index,RandomEngine>::value) {
+            p_mask[i] = p(src_data, src_start+i, engine);
+        } else {
+            p_mask[i] = p(src_data, src_start+i);
+        }
     });
     return filterAndTransformParticles(dst, src, mask.dataPtr(), std::forward<F>(f), src_start, dst_start);
 }

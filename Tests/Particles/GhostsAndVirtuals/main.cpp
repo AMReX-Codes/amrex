@@ -43,13 +43,15 @@ void test_ghosts_and_virtuals (TestParams& parms)
 
     // Define the refinement ratio
     Vector<int> rr(nlevs);
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         rr.at(lev-1) = 2;
+    }
 
     // This sets the boundary conditions to be doubly or triply periodic
     std::array<int, BL_SPACEDIM> is_per;
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < BL_SPACEDIM; i++) {
         is_per.at(i) = 1;
+    }
 
     // This defines a Geometry object which is useful for writing the plotfiles
     Vector<Geometry> geom(nlevs);
@@ -83,7 +85,7 @@ void test_ghosts_and_virtuals (TestParams& parms)
         dmap.at(lev) = DistributionMapping{ba.at(lev)};
     }
 
-    typedef AmrParticleContainer<1, 0, 0, 1> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<1, 0, 0, 1>;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(parms.verbose);
 
@@ -135,13 +137,15 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     // Define the refinement ratio
     Vector<int> rr(nlevs);
     rr[0] = 2;
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         rr.at(lev) = 2;
+    }
 
     // This sets the boundary conditions to be doubly or triply periodic
     std::array<int, BL_SPACEDIM> is_per;
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < BL_SPACEDIM; i++) {
         is_per[i] = 1;
+    }
 
     // This defines a Geometry object which is useful for writing the plotfiles
     Vector<Geometry> geom(nlevs);
@@ -162,8 +166,9 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
 #define STRIP while( is.get() != '\n' ) {}
         std::ifstream is(regrid_grids_file.c_str(),std::ios::in);
 
-        if (!is.good())
+        if (!is.good()) {
             amrex::FileOpenFailed(regrid_grids_file);
+        }
 
         int in_finest,ngrid;
 
@@ -218,7 +223,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         dmap_orig.at(lev) = DistributionMapping{ba_orig.at(lev)};
     }
 
-    typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<4, 0, 0, 0>;
     using PType = typename MyParticleContainer::SuperParticleType;
     MyParticleContainer myPC(geom, dmap_orig, ba_orig, rr);
 
@@ -373,13 +378,15 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
 
     // Define the refinement ratio
     Vector<int> rr(nlevs);
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         rr.at(lev-1) = 2;
+    }
 
     // This sets the boundary conditions to be doubly or triply periodic
     std::array<int, BL_SPACEDIM> is_per;
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < BL_SPACEDIM; i++) {
         is_per.at(i) = 1;
+    }
 
     // This defines a Geometry object which is useful for writing the plotfiles
     Vector<Geometry> geom(nlevs);
@@ -413,7 +420,7 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
         dmap.at(lev) = DistributionMapping{ba.at(lev)};
     }
 
-    typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<4, 0, 0, 0>;
     using PType = typename MyParticleContainer::SuperParticleType;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
@@ -566,13 +573,15 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
 
     // Define the refinement ratio
     Vector<int> rr(nlevs);
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         rr.at(lev-1) = 2;
+    }
 
     // This sets the boundary conditions to be doubly or triply periodic
     std::array<int, BL_SPACEDIM> is_per;
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < BL_SPACEDIM; i++) {
         is_per.at(i) = 1;
+    }
 
     // This defines a Geometry object which is useful for writing the plotfiles
     Vector<Geometry> geom(nlevs);
@@ -606,7 +615,7 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
         dmap.at(lev) = DistributionMapping{ba.at(lev)};
     }
 
-    typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<4, 0, 0, 0>;
     using PType = typename MyParticleContainer::SuperParticleType;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
@@ -740,8 +749,9 @@ int main(int argc, char* argv[])
   pp.get("max_grid_size", parms.max_grid_size);
   pp.get("nlevs", parms.nlevs);
   pp.get("nppc", parms.nppc);
-  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
+  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
+  }
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);

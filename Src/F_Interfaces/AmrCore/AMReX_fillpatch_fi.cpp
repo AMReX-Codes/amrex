@@ -22,11 +22,11 @@ namespace
 
 namespace {
 
-    typedef void (*INTERP_HOOK) (const int* lo, const int*hi,
-                                 Real* d, const int* dlo, const int* dhi, const int nd,
-                                 const int icomp, const int ncomp);
+    using INTERP_HOOK = void (*)(const int* lo, const int*hi,
+                                 Real* d, const int* dlo, const int* dhi, int nd,
+                                 int icomp, int ncomp);
 
-    typedef void (*INTERP_HOOK_ARR) (const int* lo, const int*hi,
+    using INTERP_HOOK_ARR = void (*)(const int* lo, const int*hi,
                                      Real* dx, const int* dxlo, const int* dxhi,
 #if AMREX_SPACEDIM>=2
                                      Real* dy, const int* dylo, const int* dyhi,
@@ -34,7 +34,7 @@ namespace {
                                      Real* dz, const int* dzlo, const int* dzhi,
 #endif
 #endif
-                                     const int nd, const int icomp, const int ncomp);
+                                     int nd, int icomp, int ncomp);
 
     class FIInterpHook
     {

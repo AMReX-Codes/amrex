@@ -134,10 +134,10 @@ FaceLinear::interp (const FArrayBox&  crse,
                     int               ncomp,
                     const Box&        fine_region,
                     const IntVect&    ratio,
-                    const Geometry&   crse_geom ,
-                    const Geometry&   fine_geom ,
-                    Vector<BCRec> const& bcr,
-                    int               actual_comp,
+                    const Geometry& /* crse_geom */,
+                    const Geometry& /* fine_geom */,
+                    Vector<BCRec> const& /*bcr*/,
+                    int              /* actual_comp*/,
                     int               /*actual_state*/,
                     RunOn             runon)
 {
@@ -146,9 +146,36 @@ FaceLinear::interp (const FArrayBox&  crse,
     //
     BL_PROFILE("FaceLinear::interp()");
 
-    // pass unallocated IArrayBox for solve_mask, so all fine values get filled.
-    interp_face(crse, crse_comp, fine, fine_comp, ncomp, fine_region,
-                ratio, IArrayBox(), crse_geom, fine_geom, bcr, actual_comp, runon);
+    AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
+
+    Array4<Real> const& fine_arr = fine.array(fine_comp);
+    Array4<Real const> const& crse_arr = crse.const_array(crse_comp);
+
+    if (fine_region.type(0) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_interp_x(i,j,k,n,fine_arr,crse_arr,ratio);
+        });
+    }
+#if (AMREX_SPACEDIM >= 2)
+    else if (fine_region.type(1) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_interp_y(i,j,k,n,fine_arr,crse_arr,ratio);
+        });
+    }
+#if (AMREX_SPACEDIM == 3)
+    else
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_interp_z(i,j,k,n,fine_arr,crse_arr,ratio);
+        });
+    }
+#endif
+#endif
 }
 
 void
@@ -475,7 +502,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
     Elixir cceli;
-    if (run_on_gpu) cceli = ccfab.elixir();
+    if (run_on_gpu) { cceli = ccfab.elixir(); }
 #else
     BCRec const* bcrp = bcr.data();
 #endif
@@ -628,7 +655,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     BCRec const* bcrp = (run_on_gpu) ? async_bcr.data() : bcr.data();
 
     Elixir seli;
-    if (run_on_gpu) seli = sfab.elixir();
+    if (run_on_gpu) { seli = sfab.elixir(); }
 #else
     BCRec const* bcrp = bcr.data();
 #endif
@@ -1033,7 +1060,7 @@ CellQuartic::interp (const FArrayBox& crse,
     FArrayBox tmpz(bz, ncomp);
 #ifdef AMREX_USE_GPU
     Elixir tmpz_eli;
-    if (run_on_gpu) tmpz_eli = tmpz.elixir();
+    if (run_on_gpu) { tmpz_eli = tmpz.elixir(); }
 #endif
     Array4<Real> const& tmpzarr = tmpz.array();
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, bz, ncomp, i, j, k, n,
@@ -1048,7 +1075,7 @@ CellQuartic::interp (const FArrayBox& crse,
     FArrayBox tmpy(by, ncomp);
 #ifdef AMREX_USE_GPU
     Elixir tmpy_eli;
-    if (run_on_gpu) tmpy_eli = tmpy.elixir();
+    if (run_on_gpu) { tmpy_eli = tmpy.elixir(); }
 #endif
     Array4<Real> const& tmpyarr = tmpy.array();
 #if (AMREX_SPACEDIM == 2)

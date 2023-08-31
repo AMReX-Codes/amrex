@@ -11,7 +11,7 @@ template<class T>
 class FEIntegrator : public IntegratorBase<T>
 {
 private:
-    typedef IntegratorBase<T> BaseT;
+    using BaseT = IntegratorBase<T>;
 
     amrex::Vector<std::unique_ptr<T> > F_nodes;
 

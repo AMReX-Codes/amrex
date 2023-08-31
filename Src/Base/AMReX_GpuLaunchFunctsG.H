@@ -114,7 +114,7 @@ void launch (int nblocks, gpuStream_t stream, L&& f) noexcept
 template<int MT, typename T, typename L>
 void launch (T const& n, L&& f) noexcept
 {
-    if (amrex::isEmpty(n)) return;
+    if (amrex::isEmpty(n)) { return; }
     const auto ec = Gpu::makeExecutionConfig<MT>(n);
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
@@ -190,7 +190,7 @@ namespace detail {
 template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
-    if (amrex::isEmpty(n)) return;
+    if (amrex::isEmpty(n)) { return; }
     const auto ec = Gpu::makeExecutionConfig<MT>(n);
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * ec.numBlocks.x;
@@ -238,7 +238,7 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 template <int MT, typename L>
 void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
 {
-    if (amrex::isEmpty(box)) return;
+    if (amrex::isEmpty(box)) { return; }
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
@@ -303,7 +303,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
 template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexcept
 {
-    if (amrex::isEmpty(box)) return;
+    if (amrex::isEmpty(box)) { return; }
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
@@ -369,7 +369,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void ParallelForRNG (T n, L&& f) noexcept
 {
-    if (amrex::isEmpty(n)) return;
+    if (amrex::isEmpty(n)) { return; }
     const auto ec = Gpu::ExecutionConfig(n);
     int nthreads_per_block = ec.numThreads.x;
     int nthreads_total = nthreads_per_block * amrex::min(ec.numBlocks.x,Gpu::Device::maxBlocksPerLaunch());
@@ -402,7 +402,7 @@ void ParallelForRNG (T n, L&& f) noexcept
 template <typename L>
 void ParallelForRNG (Box const& box, L&& f) noexcept
 {
-    if (amrex::isEmpty(box)) return;
+    if (amrex::isEmpty(box)) { return; }
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
@@ -447,7 +447,7 @@ void ParallelForRNG (Box const& box, L&& f) noexcept
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
 {
-    if (amrex::isEmpty(box)) return;
+    if (amrex::isEmpty(box)) { return; }
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
@@ -494,7 +494,7 @@ void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
 template <int MT, typename L1, typename L2>
 void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
-    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) { return; }
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -551,7 +551,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   Box const& box1, Box const& box2, Box const& box3,
                   L1&& f1, L2&& f2, L3&& f3) noexcept
 {
-    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) { return; }
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -624,7 +624,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   Box const& box1, T1 ncomp1, L1&& f1,
                   Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
-    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) { return; }
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -689,7 +689,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   Box const& box2, T2 ncomp2, L2&& f2,
                   Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
-    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) { return; }
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -808,7 +808,7 @@ void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L&& f) noe
 template<int MT, typename T, typename L>
 void launch (T const& n, L&& f) noexcept
 {
-    if (amrex::isEmpty(n)) return;
+    if (amrex::isEmpty(n)) { return; }
     const auto ec = Gpu::makeExecutionConfig<MT>(n);
     AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
@@ -873,7 +873,7 @@ template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_in
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
 {
-    if (amrex::isEmpty(n)) return;
+    if (amrex::isEmpty(n)) { return; }
     const auto ec = Gpu::makeExecutionConfig<MT>(n);
     AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
@@ -889,7 +889,7 @@ template <int MT, typename L>
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const&, Box const& box, L&& f) noexcept
 {
-    if (amrex::isEmpty(box)) return;
+    if (amrex::isEmpty(box)) { return; }
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
@@ -917,7 +917,7 @@ template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_in
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const&, Box const& box, T ncomp, L&& f) noexcept
 {
-    if (amrex::isEmpty(box)) return;
+    if (amrex::isEmpty(box)) { return; }
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
@@ -944,7 +944,7 @@ template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelForRNG (T n, L&& f) noexcept
 {
-    if (amrex::isEmpty(n)) return;
+    if (amrex::isEmpty(n)) { return; }
     randState_t* rand_state = getRandState();
     const auto ec = Gpu::ExecutionConfig(n);
     AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS,
@@ -965,7 +965,7 @@ template <typename L>
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelForRNG (Box const& box, L&& f) noexcept
 {
-    if (amrex::isEmpty(box)) return;
+    if (amrex::isEmpty(box)) { return; }
     randState_t* rand_state = getRandState();
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
@@ -997,7 +997,7 @@ template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
 {
-    if (amrex::isEmpty(box)) return;
+    if (amrex::isEmpty(box)) { return; }
     randState_t* rand_state = getRandState();
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
@@ -1032,7 +1032,7 @@ std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::valu
 ParallelFor (Gpu::KernelInfo const&,
              Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
-    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) { return; }
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -1078,7 +1078,7 @@ ParallelFor (Gpu::KernelInfo const&,
              Box const& box1, Box const& box2, Box const& box3,
              L1&& f1, L2&& f2, L3&& f3) noexcept
 {
-    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) { return; }
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -1140,7 +1140,7 @@ ParallelFor (Gpu::KernelInfo const&,
              Box const& box1, T1 ncomp1, L1&& f1,
              Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
-    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) { return; }
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -1194,7 +1194,7 @@ ParallelFor (Gpu::KernelInfo const&,
              Box const& box2, T2 ncomp2, L2&& f2,
              Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
-    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) { return; }
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();

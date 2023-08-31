@@ -1,8 +1,8 @@
 #include <AMReX.H>
 #include <cmath>
 
+// This is intentional. Cannot have std:: in amrex::Parser expressions.
 using std::sin;
-using std::cos;
 using std::atan2;
 using std::pow;
 

@@ -98,7 +98,7 @@ std::string to_str (const Array<T, N> & a)
     oss << "(";
     bool first = true;
     for (auto const& item : a) {
-        if (!first) oss << ",";
+        if (!first) { oss << ","; }
         oss << item;
         first = false;
     }
@@ -113,7 +113,7 @@ std::string to_str (const Vector<T> & v)
     oss << "(";
     bool first = true;
     for (auto const& item : v) {
-        if (!first) oss << ",";
+        if (!first) { oss << ","; }
         oss << item;
         first = false;
     }
@@ -382,8 +382,9 @@ class Machine
                     Print() << "Got node ID from SLURM_TOPOLOGY_ADDR: " << result << std::endl;
                 }
             } else {
-                if (cluster_name == "escori")
+                if (cluster_name == "escori") {
                     tag = "cgpu";
+                }
                 auto mpi_proc_name = get_mpi_processor_name();
                 Print() << "MPI_Get_processor_name: " << mpi_proc_name << std::endl;
                 pos = mpi_proc_name.find(tag);

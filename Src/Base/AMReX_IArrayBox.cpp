@@ -31,7 +31,7 @@ namespace
 void
 IArrayBox::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
 //    ParmParse pp("iab");
 
     ifabio = std::make_unique<IFABio>();

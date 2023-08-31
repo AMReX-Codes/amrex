@@ -150,7 +150,7 @@ MLNodeLaplacian::unimposeNeumannBC (int amrlev, MultiFab& rhs) const
         const auto hibc = HiBC();
 
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -383,14 +383,16 @@ MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
     if (a_sigma.nComp() > 1)
     {
         AMREX_ALWAYS_ASSERT(a_sigma.nComp() == AMREX_SPACEDIM);
-        for (int idim = 1; idim < AMREX_SPACEDIM; idim++)
+        for (int idim = 1; idim < AMREX_SPACEDIM; idim++) {
             m_sigma[amrlev][0][idim] = std::make_unique<MultiFab>(m_grids[amrlev][0],
                                                                   m_dmap[amrlev][0],
                                                                   1, 1, MFInfo());
+        }
         setMapped(true);
 
-        for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
+        for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
             MultiFab::Copy(*m_sigma[amrlev][0][idim], a_sigma, idim, 0, 1, 0);
+        }
 
     } else {
         MultiFab::Copy(*m_sigma[amrlev][0][0], a_sigma, 0, 0, 1, 0);
@@ -411,7 +413,7 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
         const auto hibc = HiBC();
 
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -426,7 +428,7 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
 void
 MLNodeLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
 {
-    if (!m_masks_built) buildMasks();
+    if (!m_masks_built) { buildMasks(); }
 
     const iMultiFab& cfmask = *m_nd_fine_mask[amrlev];
 
@@ -440,7 +442,7 @@ MLNodeLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
         Array4<int const> const& fmsk = cfmask.const_array(mfi);
         AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
         {
-            if (fmsk(i,j,k) == crse_fine_node) rmsk(i,j,k) = 1;
+            if (fmsk(i,j,k) == crse_fine_node) { rmsk(i,j,k) = 1; }
         });
     }
 }
@@ -458,7 +460,7 @@ MLNodeLaplacian::prepareForSolve ()
 
 #ifdef AMREX_USE_EB
     buildIntegral();
-    if (m_build_surface_integral) buildSurfaceIntegral();
+    if (m_build_surface_integral) { buildSurfaceIntegral(); }
 #endif
 
     buildStencil();
@@ -813,7 +815,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     const auto& has_fine_bndry = *m_has_fine_bndry[camrlev];
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -827,7 +829,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
             Array4<int const> const& mfab = c_nd_mask.const_array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
             {
-                if (mfab(i,j,k) == fine_node) dfab(i,j,k) = sfab(i,j,k);
+                if (mfab(i,j,k) == fine_node) { dfab(i,j,k) = sfab(i,j,k); }
             });
         }
     }
@@ -838,7 +840,7 @@ MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
     BL_PROFILE("MLNodeLaplacian::normalize()");
 
-    if (m_sigma[0][0][0] == nullptr) return;
+    if (m_sigma[0][0][0] == nullptr) { return; }
 
     const auto& sigma = m_sigma[amrlev][mglev];
     const auto& stencil = m_stencil[amrlev][mglev];
@@ -1031,7 +1033,7 @@ MLNodeLaplacian::setEBInflowVelocity (int amrlev, const MultiFab& eb_vel)
     const auto *ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

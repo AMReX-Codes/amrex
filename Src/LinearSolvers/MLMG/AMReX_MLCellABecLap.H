@@ -237,7 +237,7 @@ template <typename MF>
 void
 MLCellABecLapT<MF>::update ()
 {
-    if (MLCellLinOpT<MF>::needsUpdate()) MLCellLinOpT<MF>::update();
+    if (MLCellLinOpT<MF>::needsUpdate()) { MLCellLinOpT<MF>::update(); }
 }
 
 template <typename MF>
@@ -277,7 +277,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
     bool has_inhomog_neumann = this->hasInhomogNeumannBC();
     bool has_robin = this->hasRobinBC();
 
-    if (!has_inhomog_neumann && !has_robin) return;
+    if (!has_inhomog_neumann && !has_robin) { return; }
 
     int ncomp = this->getNComp();
     const int mglev = 0;
@@ -302,7 +302,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
     const auto& bndry = *(this->m_bndry_sol[amrlev]);
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -329,7 +329,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
             const auto& bvhi = bndry.bndryValues(ohi).array(mfi);
             bool outside_domain_lo = !(domain.contains(blo));
             bool outside_domain_hi = !(domain.contains(bhi));
-            if ((!outside_domain_lo) && (!outside_domain_hi)) continue;
+            if ((!outside_domain_lo) && (!outside_domain_hi)) { continue; }
             for (int icomp = 0; icomp < ncomp; ++icomp) {
                 const BoundCond bctlo = bdcv[icomp][olo];
                 const BoundCond bcthi = bdcv[icomp][ohi];
@@ -509,7 +509,7 @@ MLCellABecLapT<MF>::addInhomogNeumannFlux (
     bool has_inhomog_neumann = this->hasInhomogNeumannBC();
     bool has_robin = this->hasRobinBC();
 
-    if (!has_inhomog_neumann && !has_robin) return;
+    if (!has_inhomog_neumann && !has_robin) { return; }
 
     int ncomp = this->getNComp();
     const int mglev = 0;
@@ -525,7 +525,7 @@ MLCellABecLapT<MF>::addInhomogNeumannFlux (
     const auto& bndry = *this->m_bndry_sol[amrlev];
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -633,7 +633,7 @@ MLCellABecLapT<MF>::applyOverset (int amrlev, MF& rhs) const
                 auto const& osm = m_overset_mask[amrlev][0]->const_array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
                 {
-                    if (osm(i,j,k) == 0) rfab(i,j,k,n) = RT(0.0);
+                    if (osm(i,j,k) == 0) { rfab(i,j,k,n) = RT(0.0); }
                 });
             }
         }

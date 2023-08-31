@@ -16,7 +16,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc11.sh
+        .github/workflows/dependencies/dependencies_nvcc.sh 11.2
         sudo apt-get install -y libcublas-dev-11-2 libcusparse-dev-11-2
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache

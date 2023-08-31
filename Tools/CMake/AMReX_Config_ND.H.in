@@ -53,8 +53,6 @@
 #cmakedefine AMREX_USE_ACC
 #cmakedefine AMREX_USE_GPU
 #cmakedefine BL_COALESCE_FABS
-#cmakedefine AMREX_GPUS_PER_SOCKET @AMREX_GPUS_PER_SOCKET@
-#cmakedefine AMREX_GPUS_PER_NODE   @AMREX_GPUS_PER_NODE@
 #cmakedefine AMREX_USE_GPU_RDC
 #cmakedefine AMREX_PARTICLES
 #cmakedefine AMREX_USE_HDF5

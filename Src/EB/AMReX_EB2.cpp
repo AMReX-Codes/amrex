@@ -267,10 +267,10 @@ int comp_max_crse_level (Box cdomain, const Box& domain)
 {
     int ilev;
     for (ilev = 0; ilev < 30; ++ilev) {
-        if (cdomain.contains(domain)) break;
+        if (cdomain.contains(domain)) { break; }
         cdomain.refine(2);
     }
-    if (cdomain != domain) ilev = -1;
+    if (cdomain != domain) { ilev = -1; }
     return ilev;
 }
 }

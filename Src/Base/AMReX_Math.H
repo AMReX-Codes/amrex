@@ -188,19 +188,20 @@ template <int Power, typename T,
 AMREX_FORCE_INLINE
 constexpr T powi (T x) noexcept
 {
-    if constexpr (Power < 0)
+    if constexpr (Power < 0) {
         return T(1)/powi<-Power>(x);
-    else if constexpr (Power == 0)
+    } else if constexpr (Power == 0) {
         //note: 0^0 is implementation-defined, but most compilers return 1
         return T(1);
-    else if constexpr (Power == 1)
+    } else if constexpr (Power == 1) {
         return x;
-    else if constexpr (Power == 2)
+    } else if constexpr (Power == 2) {
         return x*x;
-    else if constexpr (Power%2 == 0)
+    } else if constexpr (Power%2 == 0) {
         return powi<2>(powi<Power/2>(x));
-    else
+    } else {
         return x*powi<Power-1>(x);
+    }
 }
 
 }

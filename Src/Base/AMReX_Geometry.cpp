@@ -48,7 +48,7 @@ operator>> (std::istream& is,
 
 Geometry::Geometry () noexcept
 {
-    if (!AMReX::empty()) *this = DefaultGeometry();
+    if (!AMReX::empty()) { *this = DefaultGeometry(); }
 }
 
 Geometry::Geometry (const Box& dom, const RealBox* rb, int coord,
@@ -111,7 +111,7 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
 {
     Geometry* gg = AMReX::top()->getDefaultGeometry();
 
-    if (gg->ok) return;
+    if (gg->ok) { return; }
 
     AMREX_ASSERT(!OpenMP::in_parallel());
 
@@ -146,8 +146,9 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
 
         if (read_prob_extent)
         {
-            for (int i = 0; i < AMREX_SPACEDIM; i++)
+            for (int i = 0; i < AMREX_SPACEDIM; i++) {
                 prob_hi[i] = prob_lo[i] + prob_extent[i];
+            }
         }
 
         gg->prob_domain.setLo(prob_lo);
@@ -395,10 +396,12 @@ Geometry::periodicShift (const Box&      target,
     int ri,rj,rk;
     for (ri = nist; ri <= niend; ri++)
     {
-        if (ri != 0 && !is_periodic[0])
+        if (ri != 0 && !is_periodic[0]) {
             continue;
-        if (ri != 0 && is_periodic[0])
+        }
+        if (ri != 0 && is_periodic[0]) {
             locsrc.shift(0,ri*domain.length(0));
+        }
 
         for (rj = njst; rj <= njend; rj++)
         {
@@ -438,8 +441,9 @@ Geometry::periodicShift (const Box&      target,
                     locsrc.shift(2,rk*domain.length(2));
                 }
 
-                if (ri == 0 && rj == 0 && rk == 0)
+                if (ri == 0 && rj == 0 && rk == 0) {
                     continue;
+                }
                 //
                 // If losrc intersects target, then add to "out".
                 //
@@ -467,8 +471,9 @@ Geometry::periodicShift (const Box&      target,
                 locsrc.shift(1,-rj*domain.length(1));
             }
         }
-        if (ri != 0 && is_periodic[0])
+        if (ri != 0 && is_periodic[0]) {
             locsrc.shift(0,-ri*domain.length(0));
+        }
     }
 }
 

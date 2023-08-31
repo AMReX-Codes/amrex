@@ -38,10 +38,11 @@ void decomp_chol_np6(Array2D<Real,0,5,0,5>& aa)
                      p[ii] = std::sqrt(sum1);
                  }
             } else {
-                if (ising == 0)
+                if (ising == 0) {
                    aa(jj,ii) = sum1 / p[ii];
-                else
+                } else {
                    aa(jj,ii) = 0.0;
+                }
             }
         }
     }
@@ -66,9 +67,11 @@ void  cholsol_np6(Array2D<Real,0,11,0,5>& Amatrix, Array1D<Real,0,5>& b)
 
     Array2D<Real,0,5,0,5> AtA;
 
-    for (int irow = 0; irow < neq; irow++)
-        for (int icol = 0; icol < neq; icol++)
+    for (int irow = 0; irow < neq; irow++) {
+        for (int icol = 0; icol < neq; icol++) {
             AtA(irow,icol) =  0.0;
+        }
+    }
 
     for (int irow = 0; irow < 12; irow++)
     {
@@ -95,50 +98,56 @@ void  cholsol_np6(Array2D<Real,0,11,0,5>& Amatrix, Array1D<Real,0,5>& b)
          AtA(5,5) += Amatrix(irow,5)*Amatrix(irow,5); // (y^2)^T (y^2)
     }
 
-    for (int irow = 0; irow < neq-1; irow++)
-        for (int icol = irow+1; icol < neq; icol++)
+    for (int irow = 0; irow < neq-1; irow++) {
+        for (int icol = irow+1; icol < neq; icol++) {
            AtA(icol,irow) = AtA(irow,icol);
+        }
+    }
 
     decomp_chol_np6(AtA);
 
-    if (AtA(0,0) > 0.)
-       b(0) = b(0) / AtA(0,0);
-    else
-       b(0) = 0.;
+    if (AtA(0,0) > 0.) {
+        b(0) = b(0) / AtA(0,0);
+    } else {
+        b(0) = 0.;
+    }
 
     for (int ii = 1; ii < neq; ii++)
     {
-       if (AtA(ii,ii) > 0.)
-       {
-          for (int jj = 0; jj < ii; jj++)
-            b(ii) = b(ii) - AtA(ii,jj)*b(jj);
+        if (AtA(ii,ii) > 0.)
+        {
+            for (int jj = 0; jj < ii; jj++) {
+                b(ii) = b(ii) - AtA(ii,jj)*b(jj);
+            }
 
-          b(ii) = b(ii) / AtA(ii,ii);
-       }
-       else
-       {
-          b(ii) = 0.0;
-       }
+            b(ii) = b(ii) / AtA(ii,ii);
+        }
+        else
+        {
+            b(ii) = 0.0;
+        }
     }
 
-    if (AtA(neq-1,neq-1) > 0.)
-       b(neq-1) = b(neq-1) / AtA(neq-1,neq-1);
-    else
-       b(neq-1) = 0.0;
+    if (AtA(neq-1,neq-1) > 0.) {
+        b(neq-1) = b(neq-1) / AtA(neq-1,neq-1);
+    } else {
+        b(neq-1) = 0.0;
+    }
 
     for (int ii = neq-2; ii >= 0; ii--)
     {
-       if (AtA(ii,ii) > 0.)
-       {
-          for (int jj = ii+1; jj < neq; jj++)
-            b(ii) = b(ii) - AtA(ii,jj)*b(jj);
+        if (AtA(ii,ii) > 0.)
+        {
+            for (int jj = ii+1; jj < neq; jj++) {
+                b(ii) = b(ii) - AtA(ii,jj)*b(jj);
+            }
 
-          b(ii) = b(ii) / AtA(ii,ii);
-       }
-       else
-       {
-          b(ii) = 0.0;
-       }
+            b(ii) = b(ii) / AtA(ii,ii);
+        }
+        else
+        {
+            b(ii) = 0.0;
+        }
     }
 }
 
@@ -149,9 +158,11 @@ void  cholsol_for_eb(Array2D<Real,0,17,0,5>& Amatrix, Array1D<Real,0,5>& b)
 
     Array2D<Real,0,5,0,5> AtA;
 
-    for (int irow = 0; irow < neq; irow++)
-        for (int icol = 0; icol < neq; icol++)
+    for (int irow = 0; irow < neq; irow++) {
+        for (int icol = 0; icol < neq; icol++) {
             AtA(irow,icol) =  0.0;
+        }
+    }
 
     for (int irow = 0; irow < 18; irow++)
     {
@@ -178,50 +189,56 @@ void  cholsol_for_eb(Array2D<Real,0,17,0,5>& Amatrix, Array1D<Real,0,5>& b)
          AtA(5,5) += Amatrix(irow,5)*Amatrix(irow,5); // (y^2)^T (y^2)
     }
 
-    for (int irow = 0; irow < neq-1; irow++)
-        for (int icol = irow+1; icol < neq; icol++)
-           AtA(icol,irow) = AtA(irow,icol);
+    for (int irow = 0; irow < neq-1; irow++) {
+        for (int icol = irow+1; icol < neq; icol++) {
+            AtA(icol,irow) = AtA(irow,icol);
+        }
+    }
 
     decomp_chol_np6(AtA);
 
-    if (AtA(0,0) > 0.)
-       b(0) = b(0) / AtA(0,0);
-    else
-       b(0) = 0.;
+    if (AtA(0,0) > 0.) {
+        b(0) = b(0) / AtA(0,0);
+    } else {
+        b(0) = 0.;
+    }
 
     for (int ii = 1; ii < neq; ii++)
     {
-       if (AtA(ii,ii) > 0.)
-       {
-          for (int jj = 0; jj < ii; jj++)
-            b(ii) = b(ii) - AtA(ii,jj)*b(jj);
+        if (AtA(ii,ii) > 0.)
+        {
+            for (int jj = 0; jj < ii; jj++) {
+                b(ii) = b(ii) - AtA(ii,jj)*b(jj);
+            }
 
-          b(ii) = b(ii) / AtA(ii,ii);
-       }
-       else
-       {
-          b(ii) = 0.0;
-       }
+            b(ii) = b(ii) / AtA(ii,ii);
+        }
+        else
+        {
+            b(ii) = 0.0;
+        }
     }
 
-    if (AtA(neq-1,neq-1) > 0.)
-       b(neq-1) = b(neq-1) / AtA(neq-1,neq-1);
-    else
-       b(neq-1) = 0.0;
+    if (AtA(neq-1,neq-1) > 0.) {
+        b(neq-1) = b(neq-1) / AtA(neq-1,neq-1);
+    } else {
+        b(neq-1) = 0.0;
+    }
 
     for (int ii = neq-2; ii >= 0; ii--)
     {
-       if (AtA(ii,ii) > 0.)
-       {
-          for (int jj = ii+1; jj < neq; jj++)
-            b(ii) = b(ii) - AtA(ii,jj)*b(jj);
+        if (AtA(ii,ii) > 0.)
+        {
+            for (int jj = ii+1; jj < neq; jj++) {
+                b(ii) = b(ii) - AtA(ii,jj)*b(jj);
+            }
 
-          b(ii) = b(ii) / AtA(ii,ii);
-       }
-       else
-       {
-          b(ii) = 0.0;
-       }
+            b(ii) = b(ii) / AtA(ii,ii);
+        }
+        else
+        {
+            b(ii) = 0.0;
+        }
     }
 }
 
@@ -242,12 +259,14 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
     // Order of column -- first  six are cell centroids: (i,j-1) (i,j) (i,j+1) (i-1,j-1) (i-1,j) (i-1,j+1)
     // Order of column -- second six are   EB centroids: (i,j-1) (i,j) (i,j+1) (i-1,j-1) (i-1,j) (i-1,j+1)
 
-    for (int irow = 0; irow < 12; irow++)
-        for (int icol = 0; icol < 6; icol++)
+    for (int irow = 0; irow < 12; irow++) {
+        for (int icol = 0; icol < 6; icol++) {
             Amatrix(irow,icol) =  0.0;
+        }
+    }
 
     // Columns: [e x y x*x x*y y*y]
-    for (int ii = i-1; ii <= i; ii++) // Normal to face
+    for (int ii = i-1; ii <= i; ii++) { // Normal to face
         for (int jj = j-1; jj <= j+1; jj++)  // Tangential to face
         {
             if (!flag(ii,jj,k).isCovered())
@@ -279,13 +298,14 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
                 }
             }
         }
+    }
 
     // Make the RHS = A^T v
     for (int irow = 0; irow < 6; irow++)
     {
         rhs(irow) = 0.; // Only non-zero when inhomogeneous Dirichlet
 
-        for (int ii = i-1; ii <= i; ii++)  // Normal to face
+        for (int ii = i-1; ii <= i; ii++) {  // Normal to face
             for (int jj = j-1; jj <= j+1; jj++)  // Tangential to face
             {
                 if (!flag(ii,jj,k).isCovered())
@@ -294,10 +314,12 @@ Real grad_x_of_phi_on_centroids(int i,int j,int k,int n,
                     rhs(irow) += Amatrix(a_ind  ,irow)*  phi(ii,jj,k,n);
 
                     if (flag(ii,jj,k).isSingleValued() &&
-                        is_eb_dirichlet && is_eb_inhomog)
+                        is_eb_dirichlet && is_eb_inhomog) {
                             rhs(irow) += Amatrix(a_ind+6,irow)*phieb(ii,jj,k,n);
+                    }
                 }
             }
+        }
     }
 
     cholsol_np6(Amatrix, rhs);
@@ -322,12 +344,14 @@ Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
     // Order of column -- first  six are cell centroids: (i-1,j) (i,j) (i+1,j) (i-1,j-1) (i,j-1) (i+1,j-1)
     // Order of column -- second six are   EB centroids: (i-1,j) (i,j) (i+1,j) (i-1,j-1) (i,j-1) (i+1,j-1)
 
-    for (int irow = 0; irow < 12; irow++)
-        for (int icol = 0; icol < 6; icol++)
+    for (int irow = 0; irow < 12; irow++) {
+        for (int icol = 0; icol < 6; icol++) {
             Amatrix(irow,icol) =  0.0;
+        }
+    }
 
     // Columns: [e x y x*x x*y y*y]
-    for (int jj = j-1; jj <= j; jj++) // Normal to face
+    for (int jj = j-1; jj <= j; jj++) { // Normal to face
         for (int ii = i-1; ii <= i+1; ii++)  // Tangential to face
         {
             if (!flag(ii,jj,k).isCovered())
@@ -356,23 +380,27 @@ Real grad_y_of_phi_on_centroids(int i,int j,int k,int n,
                 }
             }
         }
+    }
 
     // Make the RHS = A^T v
     for (int irow = 0; irow < 6; irow++)
     {
         rhs(irow) = 0.; // Only non-zero when inhomogeneous Dirichlet
 
-        for (int jj = j-1; jj <= j; jj++) // Normal to face
-            for (int ii = i-1; ii <= i+1; ii++) // Tangential to face
+        for (int jj = j-1; jj <= j; jj++) { // Normal to face
+            for (int ii = i-1; ii <= i+1; ii++) { // Tangential to face
                 if (!flag(ii,jj,k).isCovered())
                 {
                     int a_ind  = (ii-(i-1)) + 3*(jj-(j-1));
                     rhs(irow) += Amatrix(a_ind  ,irow)*  phi(ii,jj,k,n);
 
                     if (flag(ii,jj,k).isSingleValued() &&
-                        is_eb_dirichlet && is_eb_inhomog)
+                        is_eb_dirichlet && is_eb_inhomog) {
                             rhs(irow) += Amatrix(a_ind+6,irow)*phieb(ii,jj,k,n);
+                    }
                 }
+            }
+        }
     }
 
     cholsol_np6(Amatrix, rhs);
@@ -395,12 +423,14 @@ Real grad_eb_of_phi_on_centroids(int i,int j,int k,int n,
 
     // Order of column -- first 9 are cell centroids, next 9 are EB centroids
 
-    for (int irow = 0; irow < 18; irow++)
-        for (int icol = 0; icol < 6; icol++)
+    for (int irow = 0; irow < 18; irow++) {
+        for (int icol = 0; icol < 6; icol++) {
             Amatrix(irow,icol) =  0.0;
+        }
+    }
 
     //  Column 0-2: [e x y]
-    for (int ii = i-1; ii <= i+1; ii++)
+    for (int ii = i-1; ii <= i+1; ii++) {
         for (int jj = j-1; jj <= j+1; jj++)
         {
             if (!flag(ii,jj,k).isCovered())
@@ -425,6 +455,7 @@ Real grad_eb_of_phi_on_centroids(int i,int j,int k,int n,
                 }
             }
         }
+    }
 
     // Columns 3 : [x*x  x*y  y*y]
 
@@ -440,15 +471,18 @@ Real grad_eb_of_phi_on_centroids(int i,int j,int k,int n,
     {
         rhs(irow) = 0.;
 
-        for (int ii = i-1; ii <= i+1; ii++)
-            for (int jj = j-1; jj <= j+1; jj++)
+        for (int ii = i-1; ii <= i+1; ii++) {
+            for (int jj = j-1; jj <= j+1; jj++) {
                 if (!flag(ii,jj,k).isCovered())
                 {
                     int a_ind  = (jj-(j-1)) + 3*(ii-(i-1));
                     rhs(irow) += Amatrix(a_ind,irow) * phi(ii,jj,k,n);
-                    if (flag(ii,jj,k).isSingleValued() && is_eb_inhomog)
+                    if (flag(ii,jj,k).isSingleValued() && is_eb_inhomog) {
                         rhs(irow) += Amatrix(a_ind+9,irow)*phieb(ii,jj,k,n);
+                    }
                 }
+            }
+        }
     }
 
     cholsol_for_eb(Amatrix, rhs);
@@ -477,15 +511,17 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
     // Order of column -- first  six are cell centroids: (i,j-1) (i,j) (i,j+1) (i-1,j-1) (i-1,j) (i-1,j+1)
     // Order of column -- second six are   EB centroids: (i,j-1) (i,j) (i,j+1) (i-1,j-1) (i-1,j) (i-1,j+1)
 
-    for (int irow = 0; irow < 18; irow++)
-        for (int icol = 0; icol < 6; icol++)
+    for (int irow = 0; irow < 18; irow++) {
+        for (int icol = 0; icol < 6; icol++) {
             Amatrix(irow,icol) =  0.0;
+        }
+    }
 
     const int im = (i > domhi_x) ? 2 : 1;
     const int ip = 2 - im;
 
     // Columns: [e x y x*x x*y y*y]
-    for (int ii = i-im; ii <= i+ip; ii++) // Normal to face
+    for (int ii = i-im; ii <= i+ip; ii++) { // Normal to face
         for (int jj = j-1; jj <= j+1; jj++)  // Tangential to face
         {
 
@@ -498,8 +534,9 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
               continue;
             }
 
-            if ( !phi.contains(ii,jj,k) )
+            if ( !phi.contains(ii,jj,k) ) {
                continue;
+            }
 
             if (!flag(ii,jj,k).isCovered())
             {
@@ -513,17 +550,21 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j);
 
                 if(on_x_face){
-                    if (ii < domlo_x && (vfrac(ii+1,jj,k) != 1.0 || vfrac(ii+2,jj,k) != 1.0) )
+                    if (ii < domlo_x && (vfrac(ii+1,jj,k) != 1.0 || vfrac(ii+2,jj,k) != 1.0) ) {
                         continue;
-                    if (ii > domhi_x && (vfrac(ii-1,jj,k) != 1.0 || vfrac(ii-2,jj,k) != 1.0))
+                    }
+                    if (ii > domhi_x && (vfrac(ii-1,jj,k) != 1.0 || vfrac(ii-2,jj,k) != 1.0)) {
                         continue;
+                    }
                 }
 
                 if(on_y_face){
-                    if (jj < domlo_y && (vfrac(ii,jj+1,k) != 1.0 || vfrac(ii,jj+2,k) != 1.0) )
+                    if (jj < domlo_y && (vfrac(ii,jj+1,k) != 1.0 || vfrac(ii,jj+2,k) != 1.0) ) {
                         continue;
-                    if (jj > domhi_y && (vfrac(ii,jj-1,k) != 1.0 || vfrac(ii,jj-2,k) != 1.0) )
+                    }
+                    if (jj > domhi_y && (vfrac(ii,jj-1,k) != 1.0 || vfrac(ii,jj-2,k) != 1.0) ) {
                         continue;
+                    }
                 }
 
                 Amatrix(a_ind,0) = 1.0;
@@ -551,16 +592,18 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 }
             }
         }
+    }
 
     for (int irow = 0; irow < 6; irow++)
     {
         rhs(irow) = 0.; // Only non-zero when inhomogeneous Dirichlet
 
-        for (int ii = i-im; ii <= i+ip; ii++)  // Normal to face
+        for (int ii = i-im; ii <= i+ip; ii++) {  // Normal to face
             for (int jj = j-1; jj <= j+1; jj++)  // Tangential to face
             {
-                if ( !phi.contains(ii,jj,k) )
+                if ( !phi.contains(ii,jj,k) ) {
                    continue;
+                }
 
                 if (!flag(ii,jj,k).isCovered())
                 {
@@ -572,10 +615,12 @@ Real grad_x_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                     rhs(irow) += Amatrix(a_ind  ,irow)*phi_val;
 
                     if (flag(ii,jj,k).isSingleValued() &&
-                        is_eb_dirichlet && is_eb_inhomog && Amatrix(a_ind+9,irow) != 0.0)
+                        is_eb_dirichlet && is_eb_inhomog && Amatrix(a_ind+9,irow) != 0.0) {
                             rhs(irow) += Amatrix(a_ind+9,irow)*phieb(ii,jj,k,n);
+                    }
                 }
             }
+        }
     }
 
     cholsol_for_eb(Amatrix, rhs);
@@ -603,15 +648,17 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
     // Order of column -- first  six are cell centroids: (i-1,j) (i,j) (i+1,j) (i-1,j-1) (i,j-1) (i+1,j-1)
     // Order of column -- second six are   EB centroids: (i-1,j) (i,j) (i+1,j) (i-1,j-1) (i,j-1) (i+1,j-1)
 
-    for (int irow = 0; irow < 18; irow++)
-        for (int icol = 0; icol < 6; icol++)
+    for (int irow = 0; irow < 18; irow++) {
+        for (int icol = 0; icol < 6; icol++) {
             Amatrix(irow,icol) =  0.0;
+        }
+    }
 
     const int jm = (j > domhi_y) ? 2 : 1;
     const int jp = 2 - jm;
 
     // Columns: [e x y x*x x*y y*y]
-    for (int jj = j-jm; jj <= j+jp; jj++) // Normal to face
+    for (int jj = j-jm; jj <= j+jp; jj++) { // Normal to face
         for (int ii = i-1; ii <= i+1; ii++)  // Tangential to face
         {
 
@@ -620,11 +667,12 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 ((on_x_face && ii > domhi_x) && (on_y_face && jj > domhi_y)) ||
                 ((on_x_face && ii < domlo_x) && (on_y_face && jj > domhi_y)) ||
                 ((on_x_face && ii > domhi_x) && (on_y_face && jj < domlo_y))) {
-              continue;
+                continue;
             }
 
-            if ( !phi.contains(ii,jj,k) )
-               continue;
+            if ( !phi.contains(ii,jj,k) ) {
+                continue;
+            }
 
             if (!flag(ii,jj,k).isCovered())
             {
@@ -635,17 +683,21 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j) + 0.5;
 
                 if(on_x_face){
-                    if (ii < domlo_x && (vfrac(ii+1,jj,k) != 1.0 || vfrac(ii+2,jj,k) != 1.0) )
+                    if (ii < domlo_x && (vfrac(ii+1,jj,k) != 1.0 || vfrac(ii+2,jj,k) != 1.0) ) {
                         continue;
-                    if (ii > domhi_x && (vfrac(ii-1,jj,k) != 1.0 || vfrac(ii-2,jj,k) != 1.0))
+                    }
+                    if (ii > domhi_x && (vfrac(ii-1,jj,k) != 1.0 || vfrac(ii-2,jj,k) != 1.0)) {
                         continue;
+                    }
                 }
 
                 if(on_y_face){
-                    if (jj < domlo_y && (vfrac(ii,jj+1,k) != 1.0 || vfrac(ii,jj+2,k) != 1.0) )
+                    if (jj < domlo_y && (vfrac(ii,jj+1,k) != 1.0 || vfrac(ii,jj+2,k) != 1.0) ) {
                         continue;
-                    if (jj > domhi_y && (vfrac(ii,jj-1,k) != 1.0 || vfrac(ii,jj-2,k) != 1.0) )
+                    }
+                    if (jj > domhi_y && (vfrac(ii,jj-1,k) != 1.0 || vfrac(ii,jj-2,k) != 1.0) ) {
                         continue;
+                    }
                 }
 
                 Amatrix(a_ind,0) = 1.0;
@@ -672,6 +724,7 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 }
             }
         }
+    }
 
 
     // Make the RHS = A^T v
@@ -679,10 +732,11 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
     {
         rhs(irow) = 0.; // Only non-zero when inhomogeneous Dirichlet
 
-        for (int jj = j-jm; jj <= j+jp; jj++) // Normal to face
+        for (int jj = j-jm; jj <= j+jp; jj++) { // Normal to face
             for (int ii = i-1; ii <= i+1; ii++) {// Tangential to face
-                if ( !phi.contains(ii,jj,k) )
+                if ( !phi.contains(ii,jj,k) ) {
                    continue;
+                }
                 if (!flag(ii,jj,k).isCovered())
                 {
                     int a_ind  = (ii-(i-1)) + 3*(jj-(j-jm));
@@ -694,10 +748,11 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                     if (flag(ii,jj,k).isSingleValued() &&
                         is_eb_dirichlet && is_eb_inhomog && Amatrix(a_ind+9,irow) != Real(0.0)){
-                      rhs(irow) += Amatrix(a_ind+9,irow)*phieb(ii,jj,k,n);
+                        rhs(irow) += Amatrix(a_ind+9,irow)*phieb(ii,jj,k,n);
                     }
                 }
             }
+        }
 
     }
 
@@ -724,12 +779,14 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
     // Order of column -- first 9 are cell centroids, next 9 are EB centroids
 
-    for (int irow = 0; irow < 18; irow++)
-        for (int icol = 0; icol < 6; icol++)
+    for (int irow = 0; irow < 18; irow++) {
+        for (int icol = 0; icol < 6; icol++) {
             Amatrix(irow,icol) =  0.0;
+        }
+    }
 
     //  Column 0-2: [e x y]
-    for (int ii = i-1; ii <= i+1; ii++)
+    for (int ii = i-1; ii <= i+1; ii++) {
         for (int jj = j-1; jj <= j+1; jj++)
         {
 
@@ -738,7 +795,7 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
             // by removing the on_?_face restrictions.
             if (((on_x_face && ii < domlo_x) && (on_y_face && jj < domlo_y)) ||
                 ((on_x_face && ii > domhi_x) && (on_y_face && jj > domhi_y))){
-              continue;
+                continue;
             }
 
 
@@ -750,17 +807,21 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 Real y_off = static_cast<Real>(jj-j);
 
                 if(on_x_face){
-                    if (ii < domlo_x && (vfrac(ii+1,jj,k) != 1.0 || vfrac(ii+2,jj,k) != 1.0) )
+                    if (ii < domlo_x && (vfrac(ii+1,jj,k) != 1.0 || vfrac(ii+2,jj,k) != 1.0) ) {
                         continue;
-                    if (ii > domhi_x && (vfrac(ii-1,jj,k) != 1.0 || vfrac(ii-2,jj,k) != 1.0))
+                    }
+                    if (ii > domhi_x && (vfrac(ii-1,jj,k) != 1.0 || vfrac(ii-2,jj,k) != 1.0)) {
                         continue;
+                    }
                 }
 
                 if(on_y_face){
-                    if (jj < domlo_y && (vfrac(ii,jj+1,k) != 1.0 || vfrac(ii,jj+2,k) != 1.0) )
+                    if (jj < domlo_y && (vfrac(ii,jj+1,k) != 1.0 || vfrac(ii,jj+2,k) != 1.0) ) {
                         continue;
-                    if (jj > domhi_y && (vfrac(ii,jj-1,k) != 1.0 || vfrac(ii,jj-2,k) != 1.0) )
+                    }
+                    if (jj > domhi_y && (vfrac(ii,jj-1,k) != 1.0 || vfrac(ii,jj-2,k) != 1.0) ) {
                         continue;
+                    }
                 }
 
 
@@ -781,14 +842,15 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 }
             }
         }
+    }
 
     // Columns 3 : [x*x  x*y  y*y]
 
     for (int irow = 0; irow < 18; irow++)
     {
-       Amatrix(irow,3) =  Amatrix(irow,1) * Amatrix(irow,1);
-       Amatrix(irow,4) =  Amatrix(irow,1) * Amatrix(irow,2);
-       Amatrix(irow,5) =  Amatrix(irow,2) * Amatrix(irow,2);
+        Amatrix(irow,3) =  Amatrix(irow,1) * Amatrix(irow,1);
+        Amatrix(irow,4) =  Amatrix(irow,1) * Amatrix(irow,2);
+        Amatrix(irow,5) =  Amatrix(irow,2) * Amatrix(irow,2);
     }
 
     // Make the RHS = A^T v
@@ -796,10 +858,11 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
     {
         rhs(irow) = 0.;
 
-        for (int ii = i-1; ii <= i+1; ii++)
+        for (int ii = i-1; ii <= i+1; ii++) {
             for (int jj = j-1; jj <= j+1; jj++) {
-                if ( !phi.contains(ii,jj,k) )
+                if ( !phi.contains(ii,jj,k) ) {
                    continue;
+                }
                 if (!flag(ii,jj,k).isCovered())
                 {
                     int a_ind  = (jj-(j-1)) + 3*(ii-(i-1));
@@ -810,10 +873,12 @@ Real grad_eb_of_phi_on_centroids_extdir(int i,int j,int k,int n,
 
                     rhs(irow) += Amatrix(a_ind,irow) * phi_val;
 
-                    if (flag(ii,jj,k).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+9,irow) != 0.0)
+                    if (flag(ii,jj,k).isSingleValued() && is_eb_inhomog && Amatrix(a_ind+9,irow) != 0.0) {
                         rhs(irow) += Amatrix(a_ind+9,irow)*phieb(ii,jj,k,n);
+                    }
                 }
             }
+        }
     }
 
     cholsol_for_eb(Amatrix, rhs);

@@ -21,7 +21,7 @@ template<class T>
 class RKIntegrator : public IntegratorBase<T>
 {
 private:
-    typedef IntegratorBase<T> BaseT;
+    using BaseT = IntegratorBase<T>;
 
     ButcherTableauTypes tableau_type;
     int number_nodes;

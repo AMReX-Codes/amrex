@@ -29,7 +29,7 @@ N_Vector N_VNewEmpty_MultiFab(sunindextype length, ::sundials::Context* sunctx)
 {
     /* Create vector */
     N_Vector v = N_VNewEmpty(*sunctx);
-    if (v == nullptr) return(nullptr);
+    if (v == nullptr) { return(nullptr); }
 
     v->ops->nvclone      = N_VClone_MultiFab;
     v->ops->nvcloneempty = N_VCloneEmpty_MultiFab;
@@ -85,7 +85,7 @@ N_Vector N_VNew_MultiFab(sunindextype length,
                          ::sundials::Context* sunctx)
 {
     N_Vector v = N_VNewEmpty_MultiFab(length, sunctx);
-    if (v == nullptr) return(nullptr);
+    if (v == nullptr) { return(nullptr); }
 
     // Create and attach new MultiFab
     if (length > 0)
@@ -107,7 +107,7 @@ N_Vector N_VMake_MultiFab(sunindextype length, amrex::MultiFab *v_mf,
                           ::sundials::Context* sunctx)
 {
     N_Vector v = N_VNewEmpty_MultiFab(length, sunctx);
-    if (v == nullptr) return(nullptr);
+    if (v == nullptr) { return(nullptr); }
 
     if (length > 0)
     {
@@ -157,11 +157,11 @@ int N_VGetOwnMF_MultiFab(N_Vector v)
 
 N_Vector N_VCloneEmpty_MultiFab(N_Vector w)
 {
-    if (w == nullptr) return(nullptr);
+    if (w == nullptr) { return(nullptr); }
 
     /* Create vector and copy operations */
     N_Vector v = N_VNewEmpty(w->sunctx);
-    if (v == nullptr) return(nullptr);
+    if (v == nullptr) { return(nullptr); }
     N_VCopyOps(w, v);
 
     /* Create content */
@@ -182,7 +182,7 @@ N_Vector N_VCloneEmpty_MultiFab(N_Vector w)
 N_Vector N_VClone_MultiFab(N_Vector w)
 {
     N_Vector v = N_VCloneEmpty_MultiFab(w);
-    if (v == nullptr) return(nullptr);
+    if (v == nullptr) { return(nullptr); }
 
     sunindextype length = amrex::sundials::N_VGetLength_MultiFab(w);
 

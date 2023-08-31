@@ -111,7 +111,7 @@ namespace amrex
   inline
   void BoxIterator::begin () noexcept
   {
-    if (m_boxLo <= m_boxHi)  m_current = m_boxLo;
+    if (m_boxLo <= m_boxHi) { m_current = m_boxLo; }
   }
 
   inline

@@ -169,7 +169,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
     if (max_order==3 || max_order==1)
     {
         MFItInfo info;
-        if (Gpu::notInLaunchRegion()) info.SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

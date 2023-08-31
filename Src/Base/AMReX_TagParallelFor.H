@@ -149,7 +149,7 @@ void
 ParallelFor_doit (Vector<TagType> const& tags, F && f)
 {
     const int ntags = tags.size();
-    if (ntags == 0) return;
+    if (ntags == 0) { return; }
 
     int ntotwarps = 0;
     Vector<int> nwarps;
@@ -197,7 +197,7 @@ ParallelFor_doit (Vector<TagType> const& tags, F && f)
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
 #endif
         int g_wid = g_tid / Gpu::Device::warp_size;
-        if (g_wid >= ntotwarps) return;
+        if (g_wid >= ntotwarps) { return; }
 
         int tag_id = amrex::bisect(d_nwarps, 0, ntags, g_wid);
 

@@ -81,7 +81,7 @@ public :
     void setMapped (bool flag) noexcept { m_use_mapped = flag; }
 
     void setCoarseningStrategy (CoarseningStrategy cs) noexcept {
-        if (m_const_sigma == Real(0.0)) m_coarsening_strategy = cs;
+        if (m_const_sigma == Real(0.0)) { m_coarsening_strategy = cs; }
     }
 
     void setSmoothNumSweeps (int nsweeps) noexcept {

@@ -148,7 +148,7 @@ iMultiFab::negate (const Box& region, int nghost)
 void
 iMultiFab::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
 
     amrex::ExecOnFinalize(iMultiFab::Finalize);
 

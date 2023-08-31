@@ -426,7 +426,7 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
     //
     const int li = mfi.LocalIndex();
     Vector<FAB*>& cfp_fabs = m_cfp_fab[li];
-    if (cfp_fabs.empty()) return;
+    if (cfp_fabs.empty()) { return; }
 
     const Box& tbx = mfi.tilebox();
     const Box& bx = amrex::coarsen(tbx, m_ratio);
