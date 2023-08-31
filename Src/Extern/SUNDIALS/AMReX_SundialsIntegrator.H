@@ -162,8 +162,8 @@ private:
         mristep_mem = nullptr;    /* empty ARKode memory structure */
 
         // Arbitrary tolerances
-        reltol          = 1e-6;
-        abstol          = 1e-6;
+        reltol          = 1e-4;
+        abstol          = 1e-4;
     }
 
 public:
@@ -763,7 +763,10 @@ public:
         }
 
         // Clean up allocated memory
-        N_VDestroyVectorArray(nv_many_arr, NVar);
+        for (int i = 0; i < Nvar; ++i) {
+            N_VDestroy(nv_many_arr[i]);
+        }
+        delete[] nv_many_arr;
         N_VDestroy(nv_S);
         N_VDestroy(nv_stage_data);
 
