@@ -37,3 +37,11 @@ if (AMReX_CUDA)
    set_source_files_properties(AMReX_PPMUtil.cpp PROPERTIES LANGUAGE CUDA)
    target_compile_features(fsnapshot PUBLIC cxx_std_17)
 endif()
+
+# fgradient uses std::filesystem and GCC < 9 needs special treatment for std::filesystem
+if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.0.0"))
+   find_package(Filesystem)
+   if (CXX_FILESYSTEM_HAVE_FS)
+      target_link_libraries(fgradient PRIVATE std::filesystem)
+   endif()
+endif()
