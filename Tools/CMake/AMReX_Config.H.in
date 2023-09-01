@@ -1,70 +1,21 @@
 #ifndef AMREX_CONFIG_H_
 #define AMREX_CONFIG_H_
 
-#cmakedefine AMREX_XSDK
-#cmakedefine AMREX_DEBUG
-#cmakedefine AMREX_PROFILING
-#cmakedefine BL_PROFILING
-#cmakedefine AMREX_TRACE_PROFILING
-#cmakedefine BL_TRACE_PROFILING
-#cmakedefine AMREX_COMM_PROFILING
-#cmakedefine BL_COMM_PROFILING
-#cmakedefine AMREX_TINY_PROFILING
-#cmakedefine AMREX_USE_ROCTX
-#cmakedefine AMREX_MEM_PROFILING
-#cmakedefine AMREX_TESTING
-#cmakedefine AMREX_USE_MPI
-#cmakedefine BL_USE_MPI
-#cmakedefine AMREX_MPI_THREAD_MULTIPLE
-#cmakedefine AMREX_USE_OMP
-#cmakedefine BL_USE_OMP
-#cmakedefine AMREX_USE_DPCPP
-#cmakedefine AMREX_USE_ONEDPL
-#cmakedefine AMREX_USE_FLOAT
-#cmakedefine AMREX_SINGLE_PRECISION_PARTICLES
-#cmakedefine BL_USE_FLOAT
-#cmakedefine AMREX_SPACEDIM @AMREX_SPACEDIM@
-#cmakedefine BL_SPACEDIM @BL_SPACEDIM@
-#cmakedefine AMREX_USE_ASSERTION
-#cmakedefine AMREX_BOUND_CHECK
-#cmakedefine AMREX_EXPORT_DYNAMIC
-#cmakedefine BL_FORT_USE_UNDERSCORE
-#cmakedefine BL_FORT_USE_LOWERCASE
-#cmakedefine BL_FORT_USE_UPPERCASE
-#cmakedefine BL_NO_FORT
-#cmakedefine AMREX_USE_SENSEI_INSITU
-#cmakedefine AMREX_NO_SENSEI_AMR_INST
-#cmakedefine AMREX_USE_CONDUIT
-#cmakedefine AMREX_USE_ASCENT
-#cmakedefine AMREX_USE_EB
-#cmakedefine AMREX_USE_CUDA
-#cmakedefine AMREX_USE_HIP
-#cmakedefine AMREX_USE_NVML
-#cmakedefine AMREX_GPU_MAX_THREADS @AMREX_GPU_MAX_THREADS@
-#cmakedefine AMREX_USE_ACC
-#cmakedefine AMREX_USE_GPU
-#cmakedefine BL_COALESCE_FABS
-#cmakedefine AMREX_GPUS_PER_SOCKET @AMREX_GPUS_PER_SOCKET@
-#cmakedefine AMREX_GPUS_PER_NODE   @AMREX_GPUS_PER_NODE@
-#cmakedefine AMREX_USE_GPU_RDC
-#cmakedefine AMREX_PARTICLES
-#cmakedefine AMREX_USE_HDF5
-#cmakedefine AMREX_USE_HDF5_ASYNC
-#cmakedefine AMREX_USE_HDF5_ZFP
-#cmakedefine AMREX_USE_HYPRE
-#cmakedefine AMREX_USE_PETSC
-#cmakedefine AMREX_USE_SUNDIALS
-#cmakedefine AMREX_NO_PROBINIT
-#cmakedefine AMREX_IS_DLL
-#ifdef __cplusplus@COMP_DECLS@
-@OMP_DECLS@
+#ifndef AMREX_SPACEDIM
+#  cmakedefine AMREX_SPACEDIM @AMReX_SPACEDIM_LAST@
+#  define BL_SPACEDIM @AMReX_SPACEDIM_LAST@
+#else
+#  define BL_SPACEDIM AMREX_SPACEDIM
 #endif
-/*
-  hipcc does not necessarily set the _OPENMP macro
-  https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP-FAQ.html?highlight=_openmp#openmp-is-undefined-when-compiling-with-fopenmp
- */
-#if defined(AMREX_USE_OMP) && !defined(_OPENMP) && !defined(AMREX_USE_HIP)
-#error "libamrex was built with OpenMP, so the downstream project must activate it, too"
+
+#if AMREX_SPACEDIM==1
+#  include "AMReX_Config_1D.H"
+#elif AMREX_SPACEDIM==2
+#  include "AMReX_Config_2D.H"
+#elif AMREX_SPACEDIM==3
+#  include "AMReX_Config_3D.H"
+#else
+#  error "AMREX_SPACEDIM not 1, 2 or 3"
 #endif
 
 #endif /* AMREX_CONFIG_H_ */

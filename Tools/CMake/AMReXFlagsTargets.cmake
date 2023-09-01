@@ -21,7 +21,7 @@ include_guard(GLOBAL)
 # for every combination of
 #
 #     <lang> = cxx,fortran
-#     <id>   = gnu,intel,pgi,cray,clang,appleclang,msvc
+#     <id>   = gnu,intel,pgi,cray,clang,appleclang,intelllvm,msvc
 #
 if (CMAKE_VERSION VERSION_LESS 3.20)
    foreach (_language CXX Fortran )
@@ -82,15 +82,15 @@ target_compile_options( Flags_CXX
    $<${_cxx_cray_dbg}:-O0>
    $<${_cxx_cray_rwdbg}:>
    $<${_cxx_cray_rel}:>
-   $<${_cxx_clang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-pass-failed>
-   $<${_cxx_clang_rwdbg}:-Wno-pass-failed>
-   $<${_cxx_clang_rel}:-Wno-pass-failed>
-   $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-pass-failed>
-   $<${_cxx_appleclang_rwdbg}:-Wno-pass-failed>
-   $<${_cxx_appleclang_rel}:-Wno-pass-failed>
-   $<${_cxx_intelllvm_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-pass-failed>
-   $<${_cxx_intelllvm_rwdbg}:-Wno-pass-failed>
-   $<${_cxx_intelllvm_rel}:-Wno-pass-failed>
+   $<${_cxx_clang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
+   $<${_cxx_clang_rwdbg}:>
+   $<${_cxx_clang_rel}:>
+   $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
+   $<${_cxx_appleclang_rwdbg}:>
+   $<${_cxx_appleclang_rel}:>
+   $<${_cxx_intelllvm_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
+   $<${_cxx_intelllvm_rwdbg}:-g1>
+   $<${_cxx_intelllvm_rel}:>
    )
 
 #
@@ -131,6 +131,7 @@ target_compile_options ( Flags_FPE
    $<${_cxx_cray}:-K trap=fp>
    $<${_fortran_clang}:>
    $<${_cxx_clang}:-ftrapv>
+   $<${_cxx_appleclang}:-ftrapv>	
    )
 
 #

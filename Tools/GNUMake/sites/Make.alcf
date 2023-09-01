@@ -8,3 +8,72 @@ ifeq ($(which_computer),theta)
     LIBRARIES += -lmpichf90
   endif
 endif
+
+ifeq ($(which_computer),$(filter $(which_computer),polaris))
+
+  ifdef PE_ENV
+    ifneq ($(USE_GPU),TRUE)
+      lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
+      ifneq ($(lowercase_peenv),$(lowercase_comp))
+        has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
+      endif
+      ifeq ($(MAKECMDGOALS),)
+        ifeq ($(lowercase_peenv),nvidia)
+          $(error PrgEnv-nvidia cannot be used with CPU-only builds. Try PrgEnv-gnu instead.)
+        endif
+      endif
+    endif
+  endif
+
+  ifeq ($(USE_CUDA),TRUE)
+    CFLAGS += -Xcompiler='$(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))'
+    CXXFLAGS += -Xcompiler='$(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))'
+  else ifeq ($(USE_MPI),FALSE)
+    CFLAGS += $(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))
+    CXXFLAGS += $(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))
+  endif
+
+  ifeq ($(USE_MPI),TRUE)
+    ifneq ($(USE_CUDA),TRUE)
+      CC  = cc
+      CXX = CC
+      FC  = ftn
+      F90 = ftn
+      LIBRARIES += -lmpichf90
+    endif
+
+    includes += $(shell CC --cray-print-opts=cflags)
+  endif
+
+  ifeq ($(USE_CUDA),TRUE)
+    CUDA_ARCH = 80
+
+    ifeq ($(USE_MPI), FALSE)
+      includes += $(CRAY_CUDATOOLKIT_INCLUDE_OPTS)
+    endif
+
+    comm := ,
+    ifneq ($(BL_NO_FORT),TRUE)
+      LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell ftn --cray-print-opts=libs))
+    else
+      LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell CC --cray-print-opts=libs))
+    endif
+
+    ifneq ($(CUDA_ROOT),)
+        SYSTEM_CUDA_PATH := $(CUDA_ROOT)
+        COMPILE_CUDA_PATH := $(CUDA_ROOT)
+    else ifneq ($(CUDA_HOME),)
+        SYSTEM_CUDA_PATH := $(CUDA_HOME)
+        COMPILE_CUDA_PATH := $(CUDA_HOME)
+    else ifneq ($(CUDA_PATH),)
+        SYSTEM_CUDA_PATH := $(CUDA_PATH)
+        COMPILE_CUDA_PATH := $(CUDA_PATH)
+    else ifneq ($(NVIDIA_PATH),)
+        SYSTEM_CUDA_PATH := $(NVIDIA_PATH)/cuda
+        COMPILE_CUDA_PATH := $(NVIDIA_PATH)/cuda
+    else
+        $(error No CUDA_ROOT nor CUDA_HOME nor CUDA_PATH found. Please load a cuda module.)
+    endif
+  endif
+
+endif

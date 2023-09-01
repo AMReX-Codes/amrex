@@ -39,11 +39,11 @@ void main_main()
         } else if (name == "-v" || name == "--variable") {
             varnames_arg = amrex::get_command_argument(++farg);
         } else if (name == "-x") {
-            xcoord = std::stod(amrex::get_command_argument(++farg));
+            xcoord = Real(std::stod(amrex::get_command_argument(++farg)));
         } else if (name == "-y") {
-            ycoord = std::stod(amrex::get_command_argument(++farg));
+            ycoord = Real(std::stod(amrex::get_command_argument(++farg)));
         } else if (name == "-z") {
-            zcoord = std::stod(amrex::get_command_argument(++farg));
+            zcoord = Real(std::stod(amrex::get_command_argument(++farg)));
         } else if (name == "-l" || name == "--lower_left") {
             center = false;
         } else if (name == "-c" || name == "--coarse_level") {
@@ -57,7 +57,7 @@ void main_main()
         } else if (name == "-p" || name == "--precision") {
             precision = std::stoi(amrex::get_command_argument(++farg));
         } else if (name == "-t" || name == "--tolerance") {
-            tolerance = std::stod(amrex::get_command_argument(++farg));
+            tolerance = Real(std::stod(amrex::get_command_argument(++farg)));
         } else if (name == "-i" || name == "--info") {
             print_info = true;
         } else {
@@ -152,7 +152,7 @@ void main_main()
         // we specified the x value to pass through
         iloc = hi0.x;
         for (int i = lo0.x; i <= hi0.x; ++i) {
-            amrex::Real xc = problo[0] + (i+0.5)*dx0[0];
+            amrex::Real xc = problo[0] + (Real(i)+Real(0.5))*dx0[0];
             if (xc > xcoord) {
                 iloc = i;
                 break;
@@ -164,7 +164,7 @@ void main_main()
         // we specified the y value to pass through
         jloc = hi0.y;
         for (int j = lo0.y; j <= hi0.y; ++j) {
-            amrex::Real yc = problo[1] + (j+0.5)*dx0[1];
+            amrex::Real yc = problo[1] + (Real(j)+Real(0.5))*dx0[1];
             if (yc > ycoord) {
                 jloc = j;
                 break;
@@ -176,7 +176,7 @@ void main_main()
         // we specified the z value to pass through
         kloc = hi0.z;
         for (int k = lo0.z; k <= hi0.z; ++k) {
-            amrex::Real zc = problo[2] + (k+0.5)*dx0[2];
+            amrex::Real zc = problo[2] + (Real(k)+Real(0.5))*dx0[2];
             if (zc > zcoord) {
                 kloc = k;
                 break;
@@ -200,7 +200,7 @@ void main_main()
 
     const IntVect ivloc{AMREX_D_DECL(iloc,jloc,kloc)};
 
-    if (fine_level < 0) fine_level = pf.finestLevel();
+    if (fine_level < 0) { fine_level = pf.finestLevel(); }
     // sanity check on valid selected levels
     if (fine_level > pf.finestLevel() || coarse_level < 0 || coarse_level > fine_level) {
         amrex::Abort("Invalid level selection");
@@ -284,7 +284,7 @@ void main_main()
 
 #ifdef BL_USE_MPI
     {
-        const int numpts = pos.size();
+        const auto numpts = int(pos.size());
         auto numpts_vec = ParallelDescriptor::Gather(numpts,
                                                      ParallelDescriptor::IOProcessorNumber());
         Vector<int> recvcnt, disp;
@@ -295,7 +295,7 @@ void main_main()
             disp.resize(numpts_vec.size());
             int ntot = 0;
             disp[0] = 0;
-            for (int i = 0, N = numpts_vec.size(); i < N; ++i) {
+            for (int i = 0, N = int(numpts_vec.size()); i < N; ++i) {
                 ntot += numpts_vec[i];
                 recvcnt[i] = numpts_vec[i];
                 if (i+1 < N) {
@@ -373,7 +373,7 @@ void main_main()
            for (int i = 0; i < posidx.size(); ++i) {
              ofs << std::setw(25) << std::right << std::setprecision(precision) << posidx[i].first;
              for (int j = 0; j < var_names.size(); ++j) {
-               if (std::abs(data[j][posidx[i].second])< tolerance ) data[j][posidx[i].second] = 0.;
+               if (std::abs(data[j][posidx[i].second])< tolerance ) { data[j][posidx[i].second] = 0.; }
                ofs << std::setw(25) << std::right << std::setprecision(precision) << data[j][posidx[i].second];
              }
              ofs << "\n";

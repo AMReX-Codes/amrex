@@ -13,8 +13,6 @@
 
 namespace amrex {
 
-TagBox::TagBox () noexcept {}
-
 TagBox::TagBox (Arena* ar) noexcept
     : BaseFab<TagBox::TagType>(ar)
 {}
@@ -55,7 +53,7 @@ TagBox::coarsen (const IntVect& ratio, const Box& cbox) noexcept
                 for (int ioff = 0; ioff < r.x; ++ioff) {
                     int ii = i*r.x + ioff;
                     if (fdomain.contains(IntVect(AMREX_D_DECL(ii,jj,kk)))) {
-                        t = t || farr(ii,jj,kk);
+                        t = std::max(t, farr(ii,jj,kk));
                     }
                 }
             }
@@ -100,9 +98,9 @@ TagBox::buffer (const IntVect& a_nbuff, const IntVect& a_nwid) noexcept
                 for (int kk = kmin; kk <= kmax && !to_buf; ++kk) {
                 for (int jj = jmin; jj <= jmax && !to_buf; ++jj) {
                 for (int ii = imin; ii <= imax && !to_buf; ++ii) {
-                    if (a(ii,jj,kk) == TagBox::SET) to_buf = true;
+                    if (a(ii,jj,kk) == TagBox::SET) { to_buf = true; }
                 }}}
-                if (to_buf) a(i,j,k) = TagBox::BUF;
+                if (to_buf) { a(i,j,k) = TagBox::BUF; }
             }
         });
     } else
@@ -132,8 +130,9 @@ TagBox::tags () const noexcept
 
     for (int i = 0; i < ar.size(); i++, cptr++, iptr++)
     {
-        if (*cptr)
-            *iptr = *cptr;
+        if (*cptr) {
+            *iptr = *cptr; // NOLINT
+        }
     }
 
     return ar;
@@ -150,10 +149,8 @@ TagBox::tags (const Vector<int>& ar) noexcept
     TagType*   cptr = dataPtr();
     const int* iptr = ar.dataPtr();
 
-    for (int i = 0; i < ar.size(); i++, cptr++, iptr++)
-    {
-        if (*iptr)
-            *cptr = *iptr;
+    for (int i = 0; i < ar.size(); i++, cptr++, iptr++) {
+        if (*iptr) { *cptr = *iptr; } // NOLINT
     }
 }
 
@@ -171,7 +168,7 @@ TagBox::tags_and_untags (const Vector<int>& ar) noexcept
     // This clears as well as sets tags.
     for (int i = 0; i < ar.size(); i++, cptr++, iptr++)
     {
-        *cptr = *iptr;
+        *cptr = *iptr; // NOLINT
     }
 }
 
@@ -198,7 +195,7 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
         stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
     }
 
-    if (ar.size() < Ntb) ar.resize(Ntb);
+    if (ar.size() < Ntb) { ar.resize(Ntb); }
 
     const TagType* const p0   = dataPtr() + stb;  // +stb to the lower corner of tilebox
     int*                 iptr = ar.dataPtr();
@@ -208,7 +205,7 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
             const TagType* cptr = p0 + j*stride[1] + k*stride[2];
             for (int i=0; i<Ltb[0]; i++, cptr++, iptr++) {
                 if (*cptr) {
-                    *iptr = *cptr;
+                    *iptr = *cptr; // NOLINT
                 }
                 else {
                     *iptr = TagBox::CLEAR;
@@ -246,7 +243,7 @@ TagBox::tags (const Vector<int>& ar, const Box& tilebx) noexcept
         for (int j=0; j<Ltb[1]; j++) {
             TagType* cptr = p0 + j*stride[1] + k*stride[2];
             for (int i=0; i<Ltb[0]; i++, cptr++, iptr++) {
-                if (*iptr) *cptr = *iptr;
+                if (*iptr) *cptr = *iptr; // NOLINT
             }
         }
     }
@@ -280,7 +277,7 @@ TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept
         for (int j=0; j<Ltb[1]; j++) {
             TagType* cptr = p0 + j*stride[1] + k*stride[2];
             for (int i=0; i<Ltb[0]; i++, cptr++, iptr++) {
-                *cptr = *iptr;
+                *cptr = *iptr; // NOLINT
             }
         }
     }
@@ -328,7 +325,7 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
     if (Gpu::inLaunchRegion())
     {
         // There is not atomicAdd for char.  So we have to use int.
-        iMultiFab itag = amrex::cast<iMultiFab>(*this);
+        auto itag = amrex::cast<iMultiFab>(*this);
         iMultiFab tmp(boxArray(),DistributionMap(),1,nGrowVect());
         tmp.setVal(0);
         tmp.ParallelAdd(itag, 0, 0, 1, nGrowVect(), nGrowVect(), geom.periodicity());
@@ -367,7 +364,7 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
             Array4<int const> const& msk = owner_mask->const_array(mfi);
             AMREX_LOOP_3D(box, i, j, k,
             {
-                if (!msk(i,j,k)) tag(i,j,k) = TagBox::CLEAR;
+                if (!msk(i,j,k)) { tag(i,j,k) = TagBox::CLEAR; }
             });
         }
 
@@ -378,7 +375,7 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
 void
 TagBoxArray::local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const
 {
-    if (this->local_size() == 0) return;
+    if (this->local_size() == 0) { return; }
 
     Vector<int> count(this->local_size());
 #ifdef AMREX_USE_OMP
@@ -391,7 +388,7 @@ TagBoxArray::local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const
         int c = 0;
         AMREX_LOOP_3D(bx,i,j,k,
         {
-            if (arr(i,j,k) != TagBox::CLEAR) ++c;
+            if (arr(i,j,k) != TagBox::CLEAR) { ++c; }
         });
         count[fai.LocalIndex()] = c;
     }
@@ -401,7 +398,7 @@ TagBoxArray::local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const
 
     v.resize(offset.back());
 
-    if (v.empty()) return;
+    if (v.empty()) { return; }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -428,7 +425,7 @@ void
 TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
 {
     const int nfabs = this->local_size();
-    if (nfabs == 0) return;
+    if (nfabs == 0) { return; }
 
     constexpr int block_size = 128;
     Vector<int> nblocks(nfabs);
@@ -441,7 +438,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
     std::partial_sum(nblocks.begin(), nblocks.end(), blockoffset.begin()+1);
     int ntotblocks = blockoffset.back();
 
-    PODVector<int,DeviceArenaAllocator<int> > dv_ntags(ntotblocks);
+    Gpu::NonManagedDeviceVector<int> dv_ntags(ntotblocks);
 
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
@@ -449,7 +446,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
         int* ntags = dv_ntags.data() + blockoffset[li];
         const int ncells = fai.fabbox().numPts();
         const char* tags = (*this)[fai].dataPtr();
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
         amrex::launch(nblocks[li], block_size, sizeof(int)*Gpu::Device::warp_size,
                       Gpu::Device::gpuStream(),
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
@@ -491,21 +488,21 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
 #endif
     }
 
-    PODVector<int,PinnedArenaAllocator<int> > hv_ntags(ntotblocks);
+    Gpu::PinnedVector<int> hv_ntags(ntotblocks);
     Gpu::dtoh_memcpy(hv_ntags.data(), dv_ntags.data(), ntotblocks*sizeof(int));
 
-    PODVector<int,PinnedArenaAllocator<int> > hv_tags_offset(ntotblocks+1);
-    hv_tags_offset[0] = 0;
+    Gpu::PinnedVector<int> hv_tags_offset(ntotblocks+1);
+    if (! hv_tags_offset.empty()) { hv_tags_offset[0] = 0; }
     std::partial_sum(hv_ntags.begin(), hv_ntags.end(), hv_tags_offset.begin()+1);
     int ntotaltags = hv_tags_offset.back();
 
-    if (ntotaltags == 0) return;
+    if (ntotaltags == 0) { return; }
 
-    PODVector<int,DeviceArenaAllocator<int> > dv_tags_offset(ntotblocks);
+    Gpu::NonManagedDeviceVector<int> dv_tags_offset(ntotblocks);
     int* dp_tags_offset = dv_tags_offset.data();
     Gpu::htod_memcpy_async(dp_tags_offset, hv_tags_offset.data(), ntotblocks*sizeof(int));
 
-    PODVector<IntVect,DeviceArenaAllocator<IntVect> > dv_tags(ntotaltags);
+    Gpu::NonManagedDeviceVector<IntVect> dv_tags(ntotaltags);
     IntVect* dp_tags = dv_tags.data();
 
     int iblock = 0;
@@ -527,7 +524,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
             const auto lenx  = len.x;
             const int ncells = bx.numPts();
             const char* tags = (*this)[fai].dataPtr();
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
             amrex::launch(nblocks[li], block_size, sizeof(unsigned int), Gpu::Device::gpuStream(),
             [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
             {
@@ -542,8 +539,9 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
                 h.item->barrier(sycl::access::fence_space::local_space);
 
                 if (icell < ncells && tags[icell] != TagBox::CLEAR) {
-                    unsigned int itag = Gpu::Atomic::Inc<sycl::access::address_space::local_space>
-                        (shared_counter, 20480u);
+                    unsigned int itag = Gpu::Atomic::Add<unsigned int,
+                                                         sycl::access::address_space::local_space>
+                        (shared_counter, 1u);
                     IntVect* p = dp_tags + dp_tags_offset[iblock_begin+bid];
                     int k =  icell /   lenxy;
                     int j = (icell - k*lenxy) /   lenx;
@@ -570,7 +568,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
                 __syncthreads();
 
                 if (icell < ncells && tags[icell] != TagBox::CLEAR) {
-                    unsigned int itag = Gpu::Atomic::Inc(shared_counter, blockDim.x);
+                    unsigned int itag = Gpu::Atomic::Add(shared_counter, 1u);
                     IntVect* p = dp_tags + dp_tags_offset[iblock_begin+bid];
                     int k =  icell /   lenxy;
                     int j = (icell - k*lenxy) /   lenx;
@@ -605,7 +603,7 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
         local_collate_cpu(TheLocalCollateSpace);
     }
 
-    Long count = TheLocalCollateSpace.size();
+    Long count = static_cast<Long>(TheLocalCollateSpace.size());
 
     //
     // The total number of tags system wide that must be collated.
@@ -640,7 +638,7 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
                                                                   IOProcNumber);
     std::vector<int> offset(countvec.size(),0);
     if (ParallelDescriptor::IOProcessor()) {
-        for (int i = 1, N = offset.size(); i < N; i++) {
+        for (std::size_t i = 1, N = offset.size(); i < N; i++) {
             offset[i] = offset[i-1] + countvec[i-1];
         }
     }
@@ -650,11 +648,11 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
     const IntVect* psend = (count > 0) ? TheLocalCollateSpace.data() : nullptr;
     IntVect* precv = TheGlobalCollateSpace.data();
 
-    //Issues have been observed with the following call at very large scale when using
-    //FujitsuMPI. The issue seems to be related to the use of MPI_Datatype. We can
-    //bypasses the issue by exchanging simpler integer arrays.
-#ifndef __FUJITSU
-    ParallelDescriptor::Gatherv(psend, count, precv, countvec, offset, IOProcNumber);
+    // Issues have been observed with the following call at very large scale when using
+    // FujitsuMPI. The issue seems to be related to the use of MPI_Datatype. We can
+    // bypasses the issue by exchanging simpler integer arrays.
+#if !(defined(__FUJITSU) || defined(__CLANG_FUJITSU))
+    ParallelDescriptor::Gatherv(psend, static_cast<int>(count), precv, countvec, offset, IOProcNumber);
 #else
     const int* psend_int = psend->begin();
     int* precv_int = precv->begin();
@@ -678,6 +676,7 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
 {
     Vector<Array4BoxTag<char> > tags;
     bool run_on_gpu = Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_gpu,tags);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
@@ -686,13 +685,18 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
         {
             TagBox& fab = (*this)[mfi];
+#ifdef AMREX_USE_GPU
             Array4<char> const& arr = this->array(mfi);
+#endif
             ba.intersections(mfi.fabbox(), isects);
             for (const auto& is : isects) {
                 Box const& b = is.second;
+#ifdef AMREX_USE_GPU
                 if (run_on_gpu) {
                     tags.push_back({arr,b});
-                } else {
+                } else
+#endif
+                {
                    fab.setVal<RunOn::Host>(val,b);
                 }
             }

@@ -65,7 +65,7 @@ public:
 
     AmrMesh (const RealBox& rb, int max_level_in,
              const Vector<int>& n_cell_in, int coord,
-             Vector<IntVect> const& ref_ratios,
+             Vector<IntVect> const& a_refrat,
              Array<int,AMREX_SPACEDIM> const& is_per);
 
     AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info);
@@ -78,32 +78,32 @@ public:
 
     virtual ~AmrMesh () = default;
 
-    int Verbose () const noexcept { return verbose; }
+    [[nodiscard]] int Verbose () const noexcept { return verbose; }
 
     //! Return the max level
-    int maxLevel () const noexcept { return max_level; }
+    [[nodiscard]] int maxLevel () const noexcept { return max_level; }
 
     //! Return the finest level
-    int finestLevel () const noexcept { return finest_level; }
+    [[nodiscard]] int finestLevel () const noexcept { return finest_level; }
 
     //! Return the refinement ratio for level lev
-    IntVect refRatio (int lev) const noexcept { return ref_ratio[lev]; }
+    [[nodiscard]] IntVect refRatio (int lev) const noexcept { return ref_ratio[lev]; }
 
     //! Return the maximum refinement ratio in any direction.
-    int MaxRefRatio (int lev) const noexcept;
+    [[nodiscard]] int MaxRefRatio (int lev) const noexcept;
 
     //! Return refinement ratios between all levels.
-    const Vector<IntVect>& refRatio () const noexcept { return ref_ratio; }
+    [[nodiscard]] const Vector<IntVect>& refRatio () const noexcept { return ref_ratio; }
 
-    const Vector<Geometry>& Geom () const noexcept { return geom; }
-    const Vector<DistributionMapping>& DistributionMap () const noexcept { return dmap; }
-    const Vector<BoxArray>& boxArray () const noexcept { return grids; }
+    [[nodiscard]] const Vector<Geometry>& Geom () const noexcept { return geom; }
+    [[nodiscard]] const Vector<DistributionMapping>& DistributionMap () const noexcept { return dmap; }
+    [[nodiscard]] const Vector<BoxArray>& boxArray () const noexcept { return grids; }
 
-    const Geometry& Geom (int lev) const noexcept { return geom[lev]; }
-    const DistributionMapping& DistributionMap (int lev) const noexcept { return dmap[lev]; }
-    const BoxArray& boxArray (int lev) const noexcept { return grids[lev]; }
+    [[nodiscard]] const Geometry& Geom (int lev) const noexcept { return geom[lev]; }
+    [[nodiscard]] const DistributionMapping& DistributionMap (int lev) const noexcept { return dmap[lev]; }
+    [[nodiscard]] const BoxArray& boxArray (int lev) const noexcept { return grids[lev]; }
 
-    Vector<Geometry> Geom (int a_coarsest_lev, int a_finest_lev) const noexcept {
+    [[nodiscard]] Vector<Geometry> Geom (int a_coarsest_lev, int a_finest_lev) const noexcept {
         Vector<Geometry> r;
         r.reserve(a_finest_lev-a_coarsest_lev+1);
         for (int lev = a_coarsest_lev; lev <= a_finest_lev; ++lev) {
@@ -111,7 +111,7 @@ public:
         }
         return r;
     }
-    Vector<BoxArray> boxArray (int a_coarsest_lev, int a_finest_lev) const noexcept {
+    [[nodiscard]] Vector<BoxArray> boxArray (int a_coarsest_lev, int a_finest_lev) const noexcept {
         Vector<BoxArray> r;
         r.reserve(a_finest_lev-a_coarsest_lev+1);
         for (int lev = a_coarsest_lev; lev <= a_finest_lev; ++lev) {
@@ -119,7 +119,7 @@ public:
         }
         return r;
     }
-    Vector<DistributionMapping> DistributionMap (int a_coarsest_lev, int a_finest_lev) const noexcept {
+    [[nodiscard]] Vector<DistributionMapping> DistributionMap (int a_coarsest_lev, int a_finest_lev) const noexcept {
         Vector<DistributionMapping> r;
         r.reserve(a_finest_lev-a_coarsest_lev+1);
         for (int lev = a_coarsest_lev; lev <= a_finest_lev; ++lev) {
@@ -180,36 +180,36 @@ public:
     void ClearBoxArray (int lev) noexcept;
 
     //! Return the number of buffer cells (as a single integer) in error estimator.
-    int nErrorBuf (int lev, int direction = 0) const noexcept { return n_error_buf[lev][direction]; }
+    [[nodiscard]] int nErrorBuf (int lev, int direction = 0) const noexcept { return n_error_buf[lev][direction]; }
 
     //! Return the number of buffer cells (as an IntVect) in error estimator.
-    const IntVect& nErrorBufVect (int lev) const noexcept { return n_error_buf[lev]; }
+    [[nodiscard]] const IntVect& nErrorBufVect (int lev) const noexcept { return n_error_buf[lev]; }
 
     //! Return the minimum allowable grid efficiency.
-    Real gridEff () const noexcept { return grid_eff; }
+    [[nodiscard]] Real gridEff () const noexcept { return grid_eff; }
 
     //! Return the number of cells to define proper nesting
-    int nProper () const noexcept { return n_proper; }
+    [[nodiscard]] int nProper () const noexcept { return n_proper; }
 
     //! Return the blocking factor at level lev
-    const IntVect& blockingFactor (int lev) const noexcept { return blocking_factor[lev]; }
+    [[nodiscard]] const IntVect& blockingFactor (int lev) const noexcept { return blocking_factor[lev]; }
 
     //! Return the largest allowable grid.
-    const IntVect& maxGridSize (int lev) const noexcept { return max_grid_size[lev]; }
+    [[nodiscard]] const IntVect& maxGridSize (int lev) const noexcept { return max_grid_size[lev]; }
 
-    bool LevelDefined (int lev) noexcept;
+    [[nodiscard]] bool LevelDefined (int lev) noexcept;
 
     //! Should we keep the coarser grids fixed (and not regrid those levels) at all?
-    bool useFixedCoarseGrids () const noexcept { return use_fixed_coarse_grids; }
+    [[nodiscard]] bool useFixedCoarseGrids () const noexcept { return use_fixed_coarse_grids; }
 
     //! Up to what level should we keep the coarser grids fixed (and not regrid those levels)?
-    int useFixedUpToLevel () const noexcept { return use_fixed_upto_level; }
+    [[nodiscard]] int useFixedUpToLevel () const noexcept { return use_fixed_upto_level; }
 
     //! "Try" to chop up grids so that the number of boxes in the BoxArray is greater than the target_size.
     void ChopGrids (int lev, BoxArray& ba, int target_size) const;
 
     //! Make a level 0 grids covering the whole domain.  It does NOT install the new grids.
-    BoxArray MakeBaseGrids () const;
+    [[nodiscard]] BoxArray MakeBaseGrids () const;
 
     /**
     * \brief Make new grids based on error estimates.  This function
@@ -249,9 +249,9 @@ public:
     //! For example, use this function if you want to remove covered grids on the coarsest refinement level.
     virtual void PostProcessBaseGrids(BoxArray& /*box_array*/) const {}
 
-    virtual BoxArray GetAreaNotToTag (int /*lev*/) { return BoxArray(); }
+    [[nodiscard]] virtual BoxArray GetAreaNotToTag (int /*lev*/) { return BoxArray(); }
 
-    long CountCells (int lev) noexcept;
+    [[nodiscard]] long CountCells (int lev) noexcept;
 
 protected:
 
@@ -274,7 +274,7 @@ private:
                       const RealBox* rb = nullptr, int coord = -1,
                       const int* is_per = nullptr);
 
-    static void ProjPeriodic (BoxList& bd, const Box& domain,
+    static void ProjPeriodic (BoxList& blout, const Box& domain,
                               Array<int,AMREX_SPACEDIM> const& is_per);
 };
 

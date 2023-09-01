@@ -5,13 +5,13 @@
 os_type := $(shell uname)
 
 ifeq ($(USE_MPI),TRUE)
-ifeq ($(USE_DPCPP),TRUE)
+ifeq ($(USE_SYCL),TRUE)
    ifeq ($(shell mpiicpc -show > /dev/null 2>&1; echo $$?), 0)
       CC  := mpiicc
       CXX := mpiicpc
       FC  := mpiifort
       F90 := mpiifort
-      CXXFLAGS += -cxx=dpcpp
+      CXXFLAGS += -cxx=icpx
       NO_MPI_CHECKING = TRUE
    endif
 endif
@@ -43,9 +43,11 @@ ifeq ($(USE_MPI),TRUE)
   ifeq ($(code_sml), 0)
      mpi_link_flags  := $(shell $(MPI_OTHER_COMP) -showme:link)
      mpicxx_link_libs := $(filter -l%,$(shell mpicxx -showme:link))
+     mpicxx_include_dirs := $(addprefix -isystem ,$(shell mpicxx -showme:incdirs))
   else ifeq ($(code_li), 0)
      mpi_link_flags  := $(shell $(MPI_OTHER_COMP) -link_info)
      mpicxx_link_libs := $(filter -l%,$(shell mpicxx -link_info))
+     mpicxx_include_dirs := $(subst -I,-isystem ,$(filter -I%,$(shell mpicxx -compile_info)))
   else
      $(error Unknown mpi wrapper.  You can try setting MPI stuff in amrex/Tools/GNUMake/Make.local and then compile with NO_MPI_CHECKING=TRUE.)
   endif

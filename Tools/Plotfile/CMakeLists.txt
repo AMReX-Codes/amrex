@@ -11,6 +11,7 @@ set(_exe_names
    fcompare
    fextract
    fextrema
+   fgradient
    fnan
    fsnapshot
    ftime
@@ -34,5 +35,5 @@ target_include_directories(fsnapshot PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_sources(fsnapshot PRIVATE AMReX_PPMUtil.H AMReX_PPMUtil.cpp)
 if (AMReX_CUDA)
    set_source_files_properties(AMReX_PPMUtil.cpp PROPERTIES LANGUAGE CUDA)
-   target_compile_features(fsnapshot PUBLIC cxx_std_14)
+   target_compile_features(fsnapshot PUBLIC cxx_std_17)
 endif()

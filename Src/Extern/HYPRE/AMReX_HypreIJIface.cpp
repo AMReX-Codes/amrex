@@ -98,8 +98,28 @@ HypreIJIface::~HypreIJIface ()
     }
 }
 
+void HypreIJIface::run_hypre_setup ()
+{
+    if (m_need_setup || m_recompute_preconditioner) {
+        BL_PROFILE("HypreIJIface::run_hypre_setup()");
+        if (m_has_preconditioner) {
+            m_solverPrecondPtr(
+                m_solver, m_precondSolvePtr, m_precondSetupPtr, m_precond);
+        }
+
+        m_solverSetupPtr(m_solver, m_parA, m_parRhs, m_parSln);
+        m_need_setup = false;
+    }
+}
+
+void HypreIJIface::run_hypre_solve ()
+{
+    BL_PROFILE("HypreIJIface::run_hypre_solve()");
+    m_solverSolvePtr(m_solver, m_parA, m_parRhs, m_parSln);
+}
+
 void HypreIJIface::solve (
-    const HypreRealType rel_tol, const HypreRealType abs_tol, const HypreIntType max_iter)
+    HypreRealType rel_tol, HypreRealType abs_tol, HypreIntType max_iter)
 {
     // Assuming that Matrix/rhs etc. has been assembled by calling code
 
@@ -109,30 +129,24 @@ void HypreIJIface::solve (
 
     if (m_write_files) {
         const std::string matfile = amrex::Concatenate(
-            m_file_prefix + "_A", m_write_counter) + ".out";
+            m_file_prefix + "_A", static_cast<int>(m_write_counter)) + ".out";
         const std::string rhsfile = amrex::Concatenate(
-            m_file_prefix + "_b", m_write_counter) + ".out";
+            m_file_prefix + "_b", static_cast<int>(m_write_counter)) + ".out";
         HYPRE_IJMatrixPrint(m_mat, matfile.c_str());
         HYPRE_IJVectorPrint(m_rhs, rhsfile.c_str());
     }
 
     m_solverSetTolPtr(m_solver, rel_tol);
     m_solverSetMaxIterPtr(m_solver, max_iter);
-    if ((abs_tol > 0.0) && (m_solverSetAbsTolPtr != nullptr))
+    if ((abs_tol > 0.0) && (m_solverSetAbsTolPtr != nullptr)) {
         m_solverSetAbsTolPtr(m_solver, abs_tol);
-
-    // setup
-    if (m_need_setup || m_recompute_preconditioner) {
-        if (m_has_preconditioner)
-            m_solverPrecondPtr(
-                m_solver, m_precondSolvePtr, m_precondSetupPtr, m_precond);
-
-        m_solverSetupPtr(m_solver, m_parA, m_parRhs, m_parSln);
-        m_need_setup = false;
     }
 
+    // setup
+    run_hypre_setup();
+
     // solve
-    m_solverSolvePtr(m_solver, m_parA, m_parRhs, m_parSln);
+    run_hypre_solve();
 
     // diagnostics
     m_solverNumItersPtr(m_solver, &m_num_iterations);
@@ -140,18 +154,19 @@ void HypreIJIface::solve (
 
     if (m_write_files) {
         const std::string slnfile = amrex::Concatenate(
-            m_file_prefix + "_x", m_write_counter) + ".out";
+            m_file_prefix + "_x", static_cast<int>(m_write_counter)) + ".out";
         HYPRE_IJVectorPrint(m_sln, slnfile.c_str());
 
         // Increment counter if the user has requested output of multiple solves
-        if (!m_overwrite_files) ++m_write_counter;
+        if (!m_overwrite_files) { ++m_write_counter; }
     }
 
-    if (m_verbose > 1)
+    if (m_verbose > 1) {
         amrex::Print() << "HYPRE " << m_solver_name
                        << ": Num. iterations = " << m_num_iterations
                        << "; Relative residual = " << m_final_res_norm
                        << std::endl;
+    }
 }
 
 void HypreIJIface::parse_inputs (const std::string& prefix)
@@ -165,10 +180,11 @@ void HypreIJIface::parse_inputs (const std::string& prefix)
     pp.queryAdd("overwrite_existing_matrix_files", m_overwrite_files);
     pp.queryAdd("adjust_singular_matrix", m_adjust_singular_matrix);
 
-    if (m_verbose > 2)
+    if (m_verbose > 2) {
         amrex::Print() << "HYPRE: solver = " << m_solver_name
                        << "; preconditioner = " << m_preconditioner_name
                        << std::endl;
+    }
 
     if (m_preconditioner_name == "none") {
         m_has_preconditioner = false;
@@ -218,8 +234,9 @@ void HypreIJIface::init_solver (
 
 void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
 {
-    if (m_verbose > 2)
+    if (m_verbose > 2) {
         amrex::Print() << "Creating BoomerAMG preconditioner" << std::endl;
+    }
     HYPRE_BoomerAMGCreate(&m_precond);
 
     // Setup the pointers
@@ -275,18 +292,20 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
 
         if (hpp.pp.contains("bamg_non_galerkin_level_tols")) {
             std::vector<int> levels;
-            std::vector<double> tols;
+            std::vector<amrex::Real> tols;
             hpp.pp.getarr("bamg_non_galerkin_level_levels", levels);
             hpp.pp.getarr("bamg_non_galerkin_level_tols", tols);
 
-            if (levels.size() != tols.size())
+            if (levels.size() != tols.size()) {
                 amrex::Abort(
                     "HypreIJIface: Invalid sizes for non-Galerkin level "
                     "tolerances");
+            }
 
-            for (size_t i = 0; i < levels.size(); ++i)
+            for (size_t i = 0; i < levels.size(); ++i) {
                 HYPRE_BoomerAMGSetLevelNonGalerkinTol(
                     m_precond, tols[i], levels[i]);
+            }
         }
     }
 
@@ -304,6 +323,12 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
             hpp("bamg_ilu_type", HYPRE_BoomerAMGSetILUType);
             hpp("bamg_ilu_level", HYPRE_BoomerAMGSetILULevel);
             hpp("bamg_ilu_max_iter", HYPRE_BoomerAMGSetILUMaxIter);
+#if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22900)
+            hpp("bamg_ilu_reordering_type", HYPRE_BoomerAMGSetILULocalReordering);
+            hpp("bamg_ilu_tri_solve", HYPRE_BoomerAMGSetILUTriSolve);
+            hpp("bamg_ilu_lower_jacobi_iters", HYPRE_BoomerAMGSetILULowerJacobiIters);
+            hpp("bamg_ilu_upper_jacobi_iters", HYPRE_BoomerAMGSetILUUpperJacobiIters);
+#endif
         }
         else if (smooth_type == 7) { // Pilut
             hpp("bamg_smooth_num_sweeps", HYPRE_BoomerAMGSetSmoothNumSweeps);
@@ -400,14 +425,16 @@ void HypreIJIface::boomeramg_solver_configure (const std::string& prefix)
 
     bool use_old_default = true;
     hpp.pp.queryAdd("bamg_use_old_default", use_old_default);
-    if (use_old_default)
+    if (use_old_default) {
         HYPRE_BoomerAMGSetOldDefault(m_solver);
+    }
 }
 
 void HypreIJIface::gmres_solver_configure (const std::string& prefix)
 {
-    if (m_verbose > 2)
+    if (m_verbose > 2) {
         amrex::Print() << "Creating GMRES solver" << std::endl;
+    }
     HYPRE_ParCSRGMRESCreate(m_comm, &m_solver);
 
     // Setup pointers

@@ -11,7 +11,7 @@ concurrency:
 jobs:
   test_sensei:
     name: SENSEI Adaptor [test]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       CXX: clang++
       CC: clang
@@ -21,7 +21,7 @@ jobs:
     container:
       image: senseiinsitu/ci:fedora35-amrex-20220613
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup
       run: mkdir build
     - name: Configure
@@ -31,9 +31,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug \
             -DAMReX_ENABLE_TESTS=ON  \
             -DAMReX_FORTRAN=OFF      \
-            -DAMReX_PARTICLES=ON     \
-            -DAMReX_SENSEI=ON        \
-            -DCMAKE_CXX_STANDARD=14
+            -DAMReX_SENSEI=ON
     - name: Build
       run: |
         cd build

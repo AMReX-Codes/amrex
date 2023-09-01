@@ -34,10 +34,7 @@ public:
     //! In each dimension a face is either low or high.
     enum Side { low = 0, high = 1 };
     //! The default constructor.
-    AMREX_GPU_HOST_DEVICE
-    constexpr Orientation () noexcept
-        :
-        val(-1) {}
+    constexpr Orientation () noexcept = default;
     //! Set the orientation of a side.
     AMREX_GPU_HOST_DEVICE
     Orientation (int dir, Side side) noexcept
@@ -75,27 +72,51 @@ public:
     * according to the above ordering.
     */
     AMREX_GPU_HOST_DEVICE
-    operator int () const noexcept { return val; }
+    constexpr operator int () const noexcept { return val; }
     //! Return opposite orientation.
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Orientation flip () const noexcept
     {
         return Orientation(val < AMREX_SPACEDIM ? val+AMREX_SPACEDIM : val-AMREX_SPACEDIM);
     }
     //! Returns the coordinate direction.
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     int coordDir () const noexcept { return val%AMREX_SPACEDIM; }
     //! Returns the orientation of the face -- low or high.
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Side faceDir () const noexcept { return Side(val/AMREX_SPACEDIM); }
     //! Returns true if Orientation is low.
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool isLow () const noexcept { return val < AMREX_SPACEDIM; }
     //! Returns true if Orientation is high.
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool isHigh () const noexcept { return val >= AMREX_SPACEDIM; }
     //! Read from an istream.
-    friend std::istream& operator>> (std::istream& os, Orientation& o);
+    friend std::istream& operator>> (std::istream& is, Orientation& o);
+
+    //! Int value of the x-lo-face
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int xlo () noexcept { return 0; }
+
+    //! Int value of the x-hi-face
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int xhi () noexcept { return AMREX_SPACEDIM; }
+
+    //! Int value of the y-lo-face
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int ylo () noexcept { return 1; }
+
+    //! Int value of the y-hi-face
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int yhi () noexcept { return 1+AMREX_SPACEDIM; }
+
+    //! Int value of the z-lo-face
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int zlo () noexcept { return 2; }
+
+    //! Int value of the z-hi-face
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int zhi () noexcept { return 2+AMREX_SPACEDIM; }
 
 private:
     //! Used internally.
@@ -103,7 +124,7 @@ private:
     Orientation (int v) noexcept : val(v) {}
     //
     //! The data.
-    int val;
+    int val = -1;
 };
 
 //! Write to an ostream in ASCII format.
@@ -116,10 +137,7 @@ class OrientationIter
 
 public:
     //! The default constructor.
-    AMREX_GPU_HOST_DEVICE
-    constexpr OrientationIter () noexcept
-        :
-        face(0) {}
+    constexpr OrientationIter () noexcept = default;
     //! Construct an iterator on the Orientation.
     AMREX_GPU_HOST_DEVICE
     OrientationIter (const Orientation& _face) noexcept
@@ -133,9 +151,9 @@ public:
     Orientation operator() () const noexcept { BL_ASSERT(isValid()); return Orientation(face); }
     //! Cast to void*.  Used to test if iterator is valid.
     AMREX_GPU_HOST_DEVICE
-    operator void* () noexcept { return 0 <= face && face < 2*AMREX_SPACEDIM ? this : 0; }
+    operator void* () noexcept { return 0 <= face && face < 2*AMREX_SPACEDIM ? this : nullptr; }
     //! Is the iterator valid?
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool isValid () const noexcept { return 0 <= face && face < 2*AMREX_SPACEDIM; }
     //! Pre-decrement.
     AMREX_GPU_HOST_DEVICE
@@ -170,7 +188,7 @@ public:
 
 private:
 
-    int face;
+    int face = 0;
     //! Construct an iterator on the face.
     AMREX_GPU_HOST_DEVICE
     OrientationIter (int _face) noexcept : face(_face) {}

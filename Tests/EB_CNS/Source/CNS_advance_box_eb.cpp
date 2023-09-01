@@ -6,6 +6,7 @@
 #include <CNS_diffusion_eb_K.H>
 
 #include <AMReX_EBFArrayBox.H>
+#include <AMReX_EB_Redistribution.H>
 #include <AMReX_MultiCutFab.H>
 
 #if (AMREX_SPACEDIM == 2)
@@ -18,8 +19,8 @@ using namespace amrex;
 
 void
 CNS::compute_dSdt_box_eb (const Box& bx,
-                          Array4<Real const> const& sfab,
-                          Array4<Real      > const& dsdtfab,
+                          Array4<Real const> const& s_arr,
+                          Array4<Real      > const& dsdt_arr,
                           std::array<FArrayBox*, AMREX_SPACEDIM> const& flux,
                           Array4<EBCellFlag const> const& flag,
                           Array4<Real       const> const& vfrac,
@@ -51,16 +52,12 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     const auto dxinv = geom.InvCellSizeArray();
 
     // Quantities for redistribution
-    FArrayBox divc,optmp,redistwgt,delta_m;
+    FArrayBox divc,redistwgt;
     divc.resize(bxg2,NEQNS);
-    optmp.resize(bxg2,NEQNS);
-    delta_m.resize(bxg1,NEQNS);
     redistwgt.resize(bxg2,1);
 
     // Set to zero just in case
     divc.setVal<RunOn::Device>(0.0);
-    optmp.setVal<RunOn::Device>(0.0);
-    delta_m.setVal<RunOn::Device>(0.0);
     redistwgt.setVal<RunOn::Device>(0.0);
 
     // Primitive variables
@@ -86,9 +83,9 @@ CNS::compute_dSdt_box_eb (const Box& bx,
 
     Parm const* lparm = d_parm;
 
-    AMREX_D_TERM(auto const& fxfab = flux_tmp[0].array();,
-                 auto const& fyfab = flux_tmp[1].array();,
-                 auto const& fzfab = flux_tmp[2].array(););
+    AMREX_D_TERM(auto const& fx_arr = flux_tmp[0].array();,
+                 auto const& fy_arr = flux_tmp[1].array();,
+                 auto const& fz_arr = flux_tmp[2].array(););
 
     auto const& q = qtmp.array();
 
@@ -110,7 +107,7 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     amrex::ParallelFor(bxg5,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        cns_ctoprim(i, j, k, sfab, q, *lparm);
+        cns_ctoprim(i, j, k, s_arr, q, *lparm);
     });
 
     if (do_visc == 1)
@@ -149,8 +146,8 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     amrex::ParallelFor(xflxbx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        cns_riemann_x(i, j, k, fxfab, slope, q, *lparm);
-        for (int n = NEQNS; n < NCONS; ++n) fxfab(i,j,k,n) = Real(0.0);
+        cns_riemann_x(i, j, k, fx_arr, slope, q, *lparm);
+        for (int n = NEQNS; n < NCONS; ++n) fx_arr(i,j,k,n) = Real(0.0);
     });
 
 
@@ -160,7 +157,7 @@ CNS::compute_dSdt_box_eb (const Box& bx,
         amrex::ParallelFor(xflxbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_diff_eb_x(i, j, k, q, coefs, flag, dxinv, weights, fxfab);
+            cns_diff_eb_x(i, j, k, q, coefs, flag, dxinv, weights, fx_arr);
         });
     }
 
@@ -178,8 +175,8 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     amrex::ParallelFor(yflxbx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        cns_riemann_y(i, j, k, fyfab, slope, q, *lparm);
-        for (int n = NEQNS; n < NCONS; ++n) fyfab(i,j,k,n) = Real(0.0);
+        cns_riemann_y(i, j, k, fy_arr, slope, q, *lparm);
+        for (int n = NEQNS; n < NCONS; ++n) fy_arr(i,j,k,n) = Real(0.0);
     });
 
     if(do_visc == 1)
@@ -188,7 +185,7 @@ CNS::compute_dSdt_box_eb (const Box& bx,
        amrex::ParallelFor(yflxbx,
        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
        {
-           cns_diff_eb_y(i, j, k, q, coefs, flag, dxinv, weights, fyfab);
+           cns_diff_eb_y(i, j, k, q, coefs, flag, dxinv, weights, fy_arr);
        });
     }
 
@@ -206,8 +203,8 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     amrex::ParallelFor(zflxbx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        cns_riemann_z(i, j, k, fzfab, slope, q, *lparm);
-        for (int n = NEQNS; n < NCONS; ++n) fzfab(i,j,k,n) = Real(0.0);
+        cns_riemann_z(i, j, k, fz_arr, slope, q, *lparm);
+        for (int n = NEQNS; n < NCONS; ++n) fz_arr(i,j,k,n) = Real(0.0);
     });
 
     if(do_visc == 1)
@@ -216,7 +213,7 @@ CNS::compute_dSdt_box_eb (const Box& bx,
        amrex::ParallelFor(zflxbx,
        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
        {
-           cns_diff_eb_z(i, j, k, q, coefs, flag, dxinv, weights, fzfab);
+           cns_diff_eb_z(i, j, k, q, coefs, flag, dxinv, weights, fz_arr);
        });
     }
 #endif
@@ -236,7 +233,7 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     auto const& bhi = bx.bigEnd();
 
     // Because we are going to redistribute, we put the divergence into divc
-    //    rather than directly into dsdtfab
+    //    rather than directly into dsdt_arr
     auto const& divc_arr = divc.array();
 
     bool l_do_visc = do_visc;
@@ -258,12 +255,16 @@ CNS::compute_dSdt_box_eb (const Box& bx,
                       AMREX_D_DECL(fcx, fcy, fcz), dxinv, *lparm, l_eb_weights_type, l_do_visc);
     });
 
-    auto const& optmp_arr = optmp.array();
-    auto const& del_m_arr = delta_m.array();
-
     // Now do redistribution
-    cns_flux_redistribute(bx,dsdtfab,divc_arr,optmp_arr,del_m_arr,redistwgt_arr,vfrac,flag,
-                          as_crse, drho_as_crse, rrflag_as_crse, as_fine, dm_as_fine, lev_mask, dt);
+    int icomp = 0;
+    int ncomp = NEQNS;
+    int level_mask_not_covered = Parm::level_mask_notcovered;
+    bool use_wts_in_divnc = false;
+    amrex_flux_redistribute(bx, dsdt_arr, divc_arr, redistwgt_arr, vfrac, flag,
+                            as_crse, drho_as_crse, rrflag_as_crse,
+                            as_fine, dm_as_fine, lev_mask, geom, use_wts_in_divnc,
+                            level_mask_not_covered, icomp, ncomp, dt);
+    // apply_flux_redistribution(bx, dsdt_arr, divc_arr, redistwgt_arr, icomp, ncomp, flag, vfrac, geom);
 
     if (gravity != Real(0.0))
     {
@@ -278,8 +279,8 @@ CNS::compute_dSdt_box_eb (const Box& bx,
         amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            dsdtfab(i,j,k,imz  ) += g * sfab(i,j,k,irho);
-            dsdtfab(i,j,k,irhoE) += g * sfab(i,j,k,imz);
+            dsdt_arr(i,j,k,imz  ) += g * s_arr(i,j,k,irho);
+            dsdt_arr(i,j,k,irhoE) += g * s_arr(i,j,k,imz);
         });
     }
 

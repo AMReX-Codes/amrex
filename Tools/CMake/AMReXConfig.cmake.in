@@ -60,12 +60,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${AMReX_MODULE_PATH})
 #
 
 # General options
-set(AMReX_@AMReX_SPACEDIM@D_FOUND   ON)
 set(AMReX_MPI_FOUND                 @AMReX_MPI@)
 set(AMReX_MPI_THREAD_MULTIPLE_FOUND @AMReX_MPI_THREAD_MULTIPLE@)
 set(AMReX_OMP_FOUND                 @AMReX_OMP@)
 set(AMReX_CUDA_FOUND                @AMReX_CUDA@)
-set(AMReX_SYCL_FOUND                @AMReX_DPCPP@)
+set(AMReX_SYCL_FOUND                @AMReX_SYCL@)
 set(AMReX_HIP_FOUND                 @AMReX_HIP@)
 set(AMReX_@AMReX_PRECISION@_FOUND   ON)
 set(AMReX_FORTRAN_FOUND             @AMReX_FORTRAN@)
@@ -107,11 +106,14 @@ set(AMReX_PFTOOLS_FOUND             @AMReX_PLOTFILE_TOOLS@)
 # export the actual values as well.
 # General options
 set(AMReX_SPACEDIM                  @AMReX_SPACEDIM@)
+foreach(D IN LISTS AMReX_SPACEDIM)
+    set(AMReX_${D}D_FOUND   ON)
+endforeach()
 set(AMReX_MPI                       @AMReX_MPI@)
 set(AMReX_MPI_THREAD_MULTIPLE       @AMReX_MPI_THREAD_MULTIPLE@)
 set(AMReX_OMP                       @AMReX_OMP@)
 set(AMReX_CUDA                      @AMReX_CUDA@)
-set(AMReX_SYCL                      @AMReX_DPCPP@)
+set(AMReX_SYCL                      @AMReX_SYCL@)
 set(AMReX_HIP                       @AMReX_HIP@)
 set(AMReX_GPU_BACKEND               @AMReX_GPU_BACKEND@)
 set(AMReX_GPU_RDC                   @AMReX_GPU_RDC@)
@@ -231,14 +233,26 @@ if (@AMReX_CUDA@)
     endif ()
 endif ()
 
+# CMake targets
 include( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )
 
-if (@CMAKE_VERSION@ VERSION_GREATER_EQUAL 3.20 AND  @AMReX_CUDA@ )
-   # CUDA architectures amrex was built for -- should we make
-   set(AMREX_CUDA_ARCHS @AMREX_CUDA_ARCHS@ CACHE INTERNAL "CUDA archs AMReX is built for")
-   set_target_properties(AMReX::amrex
-      PROPERTIES
-      CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS})
+# CMake targets aliase: last dimension built will be our legacy target
+if (NOT TARGET AMReX::amrex)  # protection in case of multiple inclusions
+    list(LENGTH AMReX_SPACEDIM list_len)
+    math(EXPR list_last "${list_len} - 1")
+    list(GET AMReX_SPACEDIM ${list_last} AMReX_SPACEDIM_LAST)
+    add_library(AMReX::amrex ALIAS AMReX::amrex_${AMReX_SPACEDIM_LAST}d)
+endif()
+
+# More Modern CUDA CMake
+if (@CMAKE_VERSION@ VERSION_GREATER_EQUAL 3.20 AND @AMReX_CUDA@)
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        # CUDA architectures amrex was built for -- should we make
+        set(AMREX_CUDA_ARCHS @AMREX_CUDA_ARCHS@ CACHE INTERNAL "CUDA archs AMReX is built for")
+        set_target_properties(AMReX::amrex_${D}d
+          PROPERTIES
+            CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS})
+    endforeach()
 endif ()
 
 #

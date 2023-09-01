@@ -20,11 +20,11 @@
 
 namespace amrex {
 
-  typedef std::function<void(Box const& bx, FArrayBox& data,
-                             const int dcomp, const int numcomp,
-                             Geometry const& geom, const Real time,
-                             const Vector<BCRec>& bcr, const int bcomp,
-                             const int scomp)> BndryFuncFabDefault;
+    using BndryFuncFabDefault = std::function<void(Box const& bx, FArrayBox& data,
+                                                   int dcomp, int numcomp,
+                                                   Geometry const& geom, Real time,
+                                                   const Vector<BCRec>& bcr, int bcomp,
+                                                   int scomp)>;
 
 /**
 * \brief Attributes of StateData.
@@ -51,7 +51,7 @@ public:
         /**
         * \brief Bogus constructor.
         */
-        BndryFunc () noexcept {}
+        BndryFunc () noexcept = default;
 
         /**
         * \brief A Constructor.
@@ -60,7 +60,7 @@ public:
 
         BndryFunc (BndryFunc3DDefault inFunc) noexcept : m_func3D(inFunc) {}
 
-        BndryFunc (BndryFuncFabDefault inFunc) noexcept : m_funcfab(inFunc) {}
+        BndryFunc (BndryFuncFabDefault inFunc) noexcept : m_funcfab(std::move(inFunc)) {}
 
         /**
         * \brief Another Constructor.
@@ -75,17 +75,6 @@ public:
             : m_func3D(inFunc), m_gfunc3D(gFunc) {}
 
         /**
-        * \brief Return a ptr to a clone of this object.
-        * It is the responsibility of the caller to delete the result.
-        */
-        virtual BndryFunc* clone () const;
-
-        /**
-        * \brief Destructor.
-        */
-        virtual ~BndryFunc ();
-
-        /**
         * Fill boundary cells using "regular" function.
         *
         * \param data
@@ -98,10 +87,10 @@ public:
         * \param time
         * \param bc
         */
-        virtual void operator () (Real* data, const int* lo, const int* hi,
-                                  const int* dom_lo, const int* dom_hi,
-                                  const Real* dx, const Real* grd_lo,
-                                  const Real* time, const int* bc) const;
+        void operator () (Real* data, const int* lo, const int* hi,
+                          const int* dom_lo, const int* dom_hi,
+                          const Real* dx, const Real* grd_lo,
+                          const Real* time, const int* bc) const;
 
         /**
         * \brief Fill boundary cells using "group" function.
@@ -117,22 +106,22 @@ public:
         * \param bc
         * \param ng
         */
-        virtual void operator () (Real* data, const int* lo, const int* hi,
-                                  const int* dom_lo, const int* dom_hi,
-                                  const Real* dx, const Real* grd_lo,
-                                  const Real* time, const int* bc, int ng) const;
+        void operator () (Real* data, const int* lo, const int* hi,
+                          const int* dom_lo, const int* dom_hi,
+                          const Real* dx, const Real* grd_lo,
+                          const Real* time, const int* bc, int ng) const;
 
-        virtual void operator () (Box const& bx, FArrayBox& data,
-                                  const int dcomp, const int numcomp,
-                                  Geometry const& geom, const Real time,
-                                  const Vector<BCRec>& bcr, const int bcomp,
-                                  const int scomp) const;
+        void operator () (Box const& bx, FArrayBox& data,
+                          int dcomp, int numcomp,
+                          Geometry const& geom, Real time,
+                          const Vector<BCRec>& bcr, int bcomp,
+                          int scomp) const;
 
-        virtual bool RunOnGPU () const noexcept { return m_run_on_gpu; }
+        [[nodiscard]] bool RunOnGPU () const noexcept { return m_run_on_gpu; }
 
         void setRunOnGPU (bool b) noexcept { m_run_on_gpu = b; }
 
-        virtual bool hasFabVersion () const noexcept { return m_funcfab != nullptr; }
+        [[nodiscard]] bool hasFabVersion () const noexcept { return m_funcfab != nullptr; }
 
     private:
 
@@ -147,7 +136,7 @@ public:
     /**
     * \brief The default constructor.
     */
-    StateDescriptor () noexcept;
+    StateDescriptor () noexcept {} // NOLINT /* = default does not work with old clang */
 
     /**
     * \brief Constructor that sets all data members.
@@ -169,11 +158,6 @@ public:
                      InterpBase*   interp,
                      bool          extrap = false,
                      bool          store_in_checkpoint = true);
-
-    /**
-    * \brief The destructor.
-    */
-    ~StateDescriptor ();
 
     /**
     * \brief Define the data members if constructed with default constructor.
@@ -211,7 +195,7 @@ public:
                        const std::string& nm,
                        const BCRec&       bc,
                        const BndryFunc&   func,
-                       InterpBase*        interp = 0,
+                       InterpBase*        interp = nullptr,
                        int                max_map_start_comp = -1,
                        int                min_map_end_comp   = -1);
 
@@ -231,7 +215,7 @@ public:
                        const BCRec&       bc,
                        const BndryFunc&   func,
                        InterpBase*        interp,
-                       bool               primary_or_secondary,
+                       bool               a_primary,
                        int                groupsize);
 
     /**
@@ -279,11 +263,11 @@ public:
     * \param max_start_comp
     * \param min_end_comp
     */
-    void cleanUpMaps (InterpBase**&   maps,
+    static void cleanUpMaps (InterpBase**&   maps,
                       int*&           map_start_comp,
                       int*&           map_num_comp,
                       int*&           max_start_comp,
-                      int*&           min_end_comp) const;
+                      int*&           min_end_comp) ;
 
     /**
     * \brief Output names of components.
@@ -299,60 +283,60 @@ public:
     /**
     * \brief Returns the IndexType.
     */
-    IndexType getType () const noexcept;
+    [[nodiscard]] IndexType getType () const noexcept;
 
     /**
     * \brief Returns StateDescriptor::TimeCenter.
     */
-    StateDescriptor::TimeCenter timeType () const noexcept;
+    [[nodiscard]] StateDescriptor::TimeCenter timeType () const noexcept;
 
     /**
     * \brief Returns number of components.
     */
-    int nComp () const noexcept;
+    [[nodiscard]] int nComp () const noexcept;
 
     /**
     * \brief Returns the grow factor.
     */
-    int nExtra () const noexcept;
+    [[nodiscard]] int nExtra () const noexcept;
 
     /**
     * \brief Returns the interpolater.
     */
-    InterpBase* interp () const noexcept;
+    [[nodiscard]] InterpBase* interp () const noexcept;
 
     /**
     * \brief Returns the interpolater of specified component.
     *
     * \param i
     */
-    InterpBase* interp (int i) const noexcept;
+    [[nodiscard]] InterpBase* interp (int i) const noexcept;
 
     /**
     * \brief Returns the name of specified component.
     *
     * \param i
     */
-    const std::string& name (int i) const noexcept;
+    [[nodiscard]] const std::string& name (int i) const noexcept;
 
     /**
     * \brief Returns the BCRec of specified component.
     *
     * \param i
     */
-    const BCRec& getBC (int i) const noexcept;
+    [[nodiscard]] const BCRec& getBC (int i) const noexcept;
 
     /**
     * \brief Returns all BCRecs.
     */
-    const Vector<BCRec>& getBCs () const noexcept;
+    [[nodiscard]] const Vector<BCRec>& getBCs () const noexcept;
 
     /**
     * \brief Returns the BndryFunc of specified component.
     *
     * \param i
     */
-    const BndryFunc& bndryFill (int i) const noexcept;
+    [[nodiscard]] const BndryFunc& bndryFill (int i) const noexcept;
 
     /**
     * \brief Is sc\>=0 \&\& sc+nc\<=ncomp ?
@@ -360,7 +344,7 @@ public:
     * \param sc
     * \param nc
     */
-    int inRange (int sc, int nc) const noexcept;
+    [[nodiscard]] int inRange (int sc, int nc) const noexcept;
 
     /**
     * \brief Are the interpolaters in the specified range identical?
@@ -368,36 +352,36 @@ public:
     * \param scomp
     * \param ncomp
     */
-    bool identicalInterps (int scomp, int ncomp) const noexcept;
+    [[nodiscard]] bool identicalInterps (int scomp, int ncomp) const noexcept;
     //
     // Returns contiguous ranges of comps with identical interpolaters.
     //
-    std::vector< std::pair<int,int> > sameInterps (int scomp, int ncomp) const;
+    [[nodiscard]] std::vector< std::pair<int,int> > sameInterps (int scomp, int ncomp) const;
 
     /**
     * \brief Can extrapolate in time.
     */
-    bool extrap () const noexcept;
+    [[nodiscard]] bool extrap () const noexcept;
 
     /**
     * \brief Should store this StateData in the checkpoint file
     */
-    bool store_in_checkpoint () const noexcept;
+    [[nodiscard]] bool store_in_checkpoint () const noexcept;
 
-    bool primary (int i) const noexcept { return m_primary[i]; }
+    [[nodiscard]] bool primary (int i) const noexcept { return m_primary[i]; }
 
-    int groupsize (int i) const noexcept { return m_groupsize[i]; }
+    [[nodiscard]] int groupsize (int i) const noexcept { return m_groupsize[i]; }
 
 
     /**
     * \brief will it run on gpu?
     */
-    bool RunOnGPU () const noexcept { return bc_func[0]->RunOnGPU(); }
+    [[nodiscard]] bool RunOnGPU () const noexcept { return bc_func[0]->RunOnGPU(); }
 
     /**
     * \brief has new fab version of BndryFunc?
     */
-    bool hasBndryFuncFab () const noexcept { return bc_func[0]->hasFabVersion(); }
+    [[nodiscard]] bool hasBndryFuncFab () const noexcept { return bc_func[0]->hasFabVersion(); }
 
     static void setBndryFuncThreadSafety (int ext_dir_safe) noexcept {
         bf_ext_dir_threadsafe = ext_dir_safe;
@@ -405,19 +389,19 @@ public:
 
 private:
 
-    IndexType          type;         //!< Cell centered, node centered ...
-    TimeCenter         t_type;       //!< Temporal centering
-    int                id;           //!< Unique id
-    int                ncomp;        //!< Number of components
-    int                ngrow;        //!< Grow factor
-    InterpBase*        mapper;       //!< Default interpolator
-    bool               m_extrap;     //!< Can extrapolate in time?
-    bool               m_store_in_checkpoint;     //!< Should store this in the checkpoint file?
-    Vector<std::string> names;        //!< Printable names of components
-    Vector<BCRec>       bc;           //!< Array of bndry types for entire level
-    Vector<std::unique_ptr<BndryFunc> >  bc_func;      //!< Array of pointers to bndry fill functions
+    IndexType           type;            //!< Cell centered, node centered ...
+    TimeCenter          t_type{Point};   //!< Temporal centering
+    int                 id{-1};          //!< Unique id
+    int                 ncomp{0};        //!< Number of components
+    int                 ngrow{0};        //!< Grow factor
+    InterpBase*         mapper{nullptr}; //!< Default interpolator
+    bool                m_extrap{false}; //!< Can extrapolate in time?
+    bool                m_store_in_checkpoint{true}; //!< Should store this in the checkpoint file?
+    Vector<std::string> names;         //!< Printable names of components
+    Vector<BCRec>       bc;            //!< Array of bndry types for entire level
+    Vector<std::unique_ptr<BndryFunc> >  bc_func; //!< Array of pointers to bndry fill functions
     Vector<int>         m_primary;     //!< Are we a primary or secondary? (true or false)
-    Vector<int>         m_groupsize;     //!< Groupsize if we're a primary
+    Vector<int>         m_groupsize;   //!< Groupsize if we're a primary
 
     /**
     * \brief If mapper_comp[icomp] != 0, that map is used instead of mapper
@@ -456,14 +440,6 @@ class DescriptorList
 public:
 
     /**
-    * \brief The constructor.
-    */
-    DescriptorList () noexcept;
-
-    DescriptorList (const DescriptorList&) = delete;
-    DescriptorList& operator= (const DescriptorList&) = delete;
-
-    /**
     * \brief Set the list to its default state.
     */
     void clear ();
@@ -471,7 +447,7 @@ public:
     /**
     * \brief Returns number of elements in the list.
     */
-    int size () const noexcept;
+    [[nodiscard]] int size () const noexcept;
 
     /**
     * \brief Adds new StateDescriptor at index indx to list.
@@ -524,7 +500,7 @@ public:
                        const std::string&                nm,
                        const BCRec&                      bc,
                        const StateDescriptor::BndryFunc& func,
-                       InterpBase*                       interp = 0,
+                       InterpBase*                       interp = nullptr,
                        int                               max_map_start_comp = -1,
                        int                               min_map_end_comp   = -1);
 
@@ -543,7 +519,7 @@ public:
                        const Vector<std::string>&         nm,
                        const Vector<BCRec>&               bc,
                        const StateDescriptor::BndryFunc& func,
-                       InterpBase*                       interp = 0);
+                       InterpBase*                       interp = nullptr);
     /**
     * Returns StateDescriptor at index k.
     */

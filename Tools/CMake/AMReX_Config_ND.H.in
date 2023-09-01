@@ -1,0 +1,77 @@
+#ifndef AMREX_CONFIG_@D@D_H_
+#define AMREX_CONFIG_@D@D_H_
+
+#cmakedefine AMREX_XSDK
+#cmakedefine AMREX_DEBUG
+#cmakedefine AMREX_PROFILING
+#cmakedefine BL_PROFILING
+#cmakedefine AMREX_TRACE_PROFILING
+#cmakedefine BL_TRACE_PROFILING
+#cmakedefine AMREX_COMM_PROFILING
+#cmakedefine BL_COMM_PROFILING
+#cmakedefine AMREX_TINY_PROFILING
+#cmakedefine AMREX_USE_ROCTX
+#cmakedefine AMREX_MEM_PROFILING
+#cmakedefine AMREX_TESTING
+#cmakedefine AMREX_USE_MPI
+#cmakedefine BL_USE_MPI
+#cmakedefine AMREX_MPI_THREAD_MULTIPLE
+#cmakedefine AMREX_USE_OMP
+#cmakedefine BL_USE_OMP
+#cmakedefine AMREX_USE_SYCL
+#cmakedefine AMREX_USE_DPCPP
+#cmakedefine AMREX_SYCL_SUB_GROUP_SIZE @AMREX_SYCL_SUB_GROUP_SIZE@
+#cmakedefine AMREX_USE_ONEDPL
+#cmakedefine AMREX_USE_FLOAT
+#cmakedefine AMREX_SINGLE_PRECISION_PARTICLES
+#cmakedefine BL_USE_FLOAT
+#ifndef AMREX_SPACEDIM
+#cmakedefine AMREX_SPACEDIM @D@
+#endif
+#ifndef BL_SPACEDIM
+#cmakedefine BL_SPACEDIM @D@
+#endif
+#cmakedefine AMREX_USE_ASSERTION
+#cmakedefine AMREX_BOUND_CHECK
+#cmakedefine AMREX_EXPORT_DYNAMIC
+#cmakedefine BL_FORT_USE_UNDERSCORE
+#cmakedefine BL_FORT_USE_LOWERCASE
+#cmakedefine BL_FORT_USE_UPPERCASE
+#cmakedefine BL_NO_FORT
+#cmakedefine AMREX_USE_SENSEI_INSITU
+#cmakedefine AMREX_NO_SENSEI_AMR_INST
+#cmakedefine AMREX_USE_CONDUIT
+#cmakedefine AMREX_USE_ASCENT
+#cmakedefine AMREX_USE_EB
+#cmakedefine AMREX_USE_CUDA
+#cmakedefine AMREX_USE_HIP
+#cmakedefine AMREX_USE_NVML
+#cmakedefine AMREX_GPU_MAX_THREADS @AMREX_GPU_MAX_THREADS@
+#ifndef AMREX_GPU_MAX_THREADS
+#define AMREX_GPU_MAX_THREADS 0
+#endif
+#cmakedefine AMREX_USE_ACC
+#cmakedefine AMREX_USE_GPU
+#cmakedefine BL_COALESCE_FABS
+#cmakedefine AMREX_USE_GPU_RDC
+#cmakedefine AMREX_PARTICLES
+#cmakedefine AMREX_USE_HDF5
+#cmakedefine AMREX_USE_HDF5_ASYNC
+#cmakedefine AMREX_USE_HDF5_ZFP
+#cmakedefine AMREX_USE_HYPRE
+#cmakedefine AMREX_USE_PETSC
+#cmakedefine AMREX_USE_SUNDIALS
+#cmakedefine AMREX_NO_PROBINIT
+#cmakedefine AMREX_IS_DLL
+#ifdef __cplusplus@COMP_DECLS@
+@OMP_DECLS@
+#endif
+/*
+  hipcc does not necessarily set the _OPENMP macro
+  https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP-FAQ.html?highlight=_openmp#openmp-is-undefined-when-compiling-with-fopenmp
+ */
+#if defined(AMREX_USE_OMP) && !defined(_OPENMP) && !defined(AMREX_USE_HIP)
+#error "libamrex was built with OpenMP, so the downstream project must activate it, too"
+#endif
+
+#endif /* AMREX_CONFIG_@D@D_H_ */

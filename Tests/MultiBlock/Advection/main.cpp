@@ -168,13 +168,13 @@ struct OnesidedMultiBlockBoundaryFn {
 
   void FillBoundary_do_local_copy() const {
     AMREX_ASSERT(cmd && cached_dest_bd_key == dest->mass.getBDKey() && cached_src_bd_key == src->mass.getBDKey());
-    if (cmd->m_LocTags && cmd->m_LocTags->size() > 0) {
+    if (cmd->m_LocTags && !cmd->m_LocTags->empty()) {
         LocalCopy(packing, dest->mass, src->mass, *cmd->m_LocTags);
     }
   }
 
   void FillBoundary_finish(CommHandler handler) const {
-    ParallelCopy_finish(dest->mass, std::move(handler), *cmd, packing);
+    ParallelCopy_finish(dest->mass, std::move(handler), *cmd, packing); // NOLINT(performance-move-const-arg)
   }
 };
 
@@ -194,7 +194,7 @@ struct FillBoundaryFn {
         }
         const std::size_t n_boundaries = boundaries.size();
         for (std::size_t i = 0; i < n_boundaries; ++i) {
-            boundaries[i].FillBoundary_finish(std::move(comms[i]));
+            boundaries[i].FillBoundary_finish(std::move(comms[i])); // NOLINT(performance-move-const-arg)
         }
         AMREX_ASSERT(!core_x.mass.contains_nan());
     }

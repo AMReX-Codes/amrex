@@ -4,6 +4,9 @@
 
 #include <AMReX_GpuQualifiers.H>
 
+// Note that since C++14, std::functional class's operator() is constexpr.
+// So we don't need to use the classes here except for Minimum and Maximum.
+
 namespace amrex {
 
 template <typename T>
@@ -25,7 +28,7 @@ struct Minus
 };
 
 template <typename T>
-struct Less
+struct Minimum
 {
     constexpr T operator() (const T & lhs, const T & rhs) const
     {
@@ -34,7 +37,7 @@ struct Less
 };
 
 template <typename T>
-struct Greater
+struct Maximum
 {
     constexpr T operator() (const T & lhs, const T & rhs) const
     {

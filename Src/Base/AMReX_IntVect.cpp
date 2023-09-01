@@ -13,22 +13,21 @@ const IntVect IntVect::Zero = IntVect::TheZeroVector();
 const IntVect IntVect::Unit = IntVect::TheUnitVector();
 
 std::ostream&
-operator<< (std::ostream&  os,
-            const IntVect& p)
+operator<< (std::ostream& os, const IntVect& iv)
 {
-    os << AMREX_D_TERM( '(' << p[0] , <<
-                  ',' << p[1] , <<
-                  ',' << p[2])  << ')';
-    if (os.fail())
+    os << AMREX_D_TERM( '(' << iv[0] , <<
+                  ',' << iv[1] , <<
+                  ',' << iv[2])  << ')';
+    if (os.fail()) {
         amrex::Error("operator<<(ostream&,IntVect&) failed");
+    }
     return os;
 }
 
 #define BL_IGNORE_MAX 100000
 
 std::istream&
-operator>> (std::istream& is,
-            IntVect&      iv)
+operator>> (std::istream& is, IntVect& iv)
 {
     is >> std::ws;
     char c;
@@ -62,8 +61,9 @@ operator>> (std::istream& is,
         amrex::Error("operator>>(istream&,IntVect&): expected \'(\'");
     }
 
-    if (is.fail())
+    if (is.fail()) {
         amrex::Error("operator>>(istream&,IntVect&) failed");
+    }
 
     return is;
 }

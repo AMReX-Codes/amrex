@@ -35,10 +35,10 @@ MyTest::solvePoisson ()
     info.setConsolidation(consolidation);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    const Real tol_rel = 1.e-10;
-    const Real tol_abs = 0.0;
+    const auto tol_rel = Real(1.e-10);
+    const auto tol_abs = Real(0.0);
 
-    const int nlevels = geom.size();
+    const auto nlevels = static_cast<int>(geom.size());
 
     if (composite_solve)
     {
@@ -133,10 +133,10 @@ MyTest::solveABecLaplacian ()
     info.setMaxCoarseningLevel(max_coarsening_level);
     info.setMaxSemicoarseningLevel(max_semicoarsening_level);
 
-    const Real tol_rel = 1.e-10;
-    const Real tol_abs = 0.0;
+    const auto tol_rel = Real(1.e-10);
+    const auto tol_abs = Real(0.0);
 
-    const int nlevels = geom.size();
+    const auto nlevels = static_cast<int>(geom.size());
 
     if (composite_solve)
     {
@@ -275,10 +275,10 @@ MyTest::solveABecLaplacianInhomNeumann ()
     info.setConsolidation(consolidation);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    const Real tol_rel = 1.e-10;
-    const Real tol_abs = 0.0;
+    const auto tol_rel = Real(1.e-10);
+    const auto tol_abs = Real(0.0);
 
-    const int nlevels = geom.size();
+    const auto nlevels = static_cast<int>(geom.size());
 
     if (composite_solve)
     {
@@ -510,4 +510,3 @@ MyTest::initData ()
         amrex::Abort("Unknown prob_type "+std::to_string(prob_type));
     }
 }
-

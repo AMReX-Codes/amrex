@@ -8,6 +8,7 @@
 #include <AMReX_GpuDevice.H>
 #include <AMReX_TypeTraits.H>
 
+#include <iterator>
 #include <type_traits>
 #include <utility>
 #include <memory>
@@ -17,198 +18,198 @@ namespace amrex
 {
     namespace detail
     {
-        template <typename T, typename U, typename Size, typename Value>
-        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
-        uninitializedFillNImpl (U* data, Size count, const Value& value, T& /*allocator*/)
+        template <typename T, typename Size, template<class> class Allocator>
+        FatPtr<T> allocate_in_place ([[maybe_unused]] T* p, [[maybe_unused]] Size nmin, Size nmax,
+                                     Allocator<T>& allocator)
         {
-            amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
-                data[i] = value;
-            });
-            Gpu::Device::streamSynchronize();
-        }
-
-        template <typename T, typename U, typename Size, typename Value>
-        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
-        uninitializedFillNImpl (U* data, Size count, const Value& value, T& /*allocator*/)
-        {
-            std::uninitialized_fill_n<U*, Size, Value>(data, count, value);
-        }
-
-        template <typename T, typename U, typename Size, typename Value>
-        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
-        uninitializedFillNImpl (U* data, Size count, const Value& value, T& allocator)
-        {
-#ifdef AMREX_USE_GPU
-            if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
-                amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
-                                              data[i] = value;
-                                          });
-                Gpu::Device::streamSynchronize();
-            } else
-#endif
-            {
-                amrex::ignore_unused(allocator);
-                std::uninitialized_fill_n<U*, Size, Value>(data, count, value);
+            if constexpr (IsArenaAllocator<Allocator<T>>::value) {
+                return allocator.allocate_in_place(p, nmin, nmax);
+            } else {
+                T* pnew = allocator.allocate(nmax);
+                return {pnew, nmax};
             }
         }
 
-        template <typename T, typename U, typename Size>
-        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
-        fillValuesImpl (U* dst, const U* src, Size count, T& /*allocator*/)
+        template <typename T, typename Size, template<class> class Allocator>
+        T* shrink_in_place ([[maybe_unused]] T* p, Size n, Allocator<T>& allocator)
         {
-            amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
-                dst[i] = src[i];
-            });
-            Gpu::Device::streamSynchronize();
-        }
-
-        template <typename T, typename U, typename Size>
-        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
-        fillValuesImpl (U* dst, const U* src, Size count, T& /*allocator*/)
-        {
-            for (Size i = 0; i < count; ++i) { dst[i] = src[i];}
-        }
-
-        template <typename T, typename U, typename Size>
-        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
-        fillValuesImpl (U* dst, const U* src, Size count, T& allocator)
-        {
-#ifdef AMREX_USE_GPU
-            if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
-                amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
-                                              dst[i] = src[i];
-                                          });
-                Gpu::Device::streamSynchronize();
-            } else
-#endif
-            {
-                amrex::ignore_unused(allocator);
-                for (Size i = 0; i < count; ++i) { dst[i] = src[i];}
+            if constexpr (IsArenaAllocator<Allocator<T>>::value) {
+                return allocator.shrink_in_place(p, n);
+            } else {
+                return allocator.allocate(n);
             }
         }
 
-        template <typename T>
-        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
-        memCopyImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
+        template <typename T, typename Size, template<class> class Allocator>
+        void uninitializedFillNImpl (T* data, Size count, const T& value,
+                                     [[maybe_unused]] Allocator<T> const& allocator)
         {
 #ifdef AMREX_USE_GPU
-            Gpu::dtod_memcpy_async(dst, src, count);
+            if constexpr (RunOnGpu<Allocator<T>>::value)
+            {
+                amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
+                    data[i] = value;
+                });
+                Gpu::streamSynchronize();
+                return;
+            }
+            else if constexpr (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+            {
+                if (allocator.arena()->isManaged() ||
+                    allocator.arena()->isDevice())
+                {
+                    amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept
+                    {
+                        data[i] = value;
+                    });
+                    Gpu::streamSynchronize();
+                    return;
+                }
+            }
+#endif
+            std::uninitialized_fill_n(data, count, value);
+        }
+
+        template <typename T, template<class> class Allocator>
+        void initFromListImpl (T* data, std::initializer_list<T> const& list,
+                               [[maybe_unused]] Allocator<T> const & allocator)
+        {
+            auto count = list.size() * sizeof(T);
+#ifdef AMREX_USE_GPU
+            if constexpr (RunOnGpu<Allocator<T>>::value)
+            {
+                Gpu::htod_memcpy_async(data, std::data(list), count);
+                Gpu::streamSynchronize();
+                return;
+            }
+            else if constexpr (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+            {
+                if (allocator.arena()->isManaged() ||
+                    allocator.arena()->isDevice())
+                {
+                    Gpu::htod_memcpy_async(data, std::data(list), count);
+                    Gpu::streamSynchronize();
+                    return;
+                }
+            }
+#endif
+            std::memcpy(data, std::data(list), count);
+        }
+
+        template <typename T, typename Size, template<class> class Allocator>
+        void fillValuesImpl (T* dst, T const* src, Size count,
+                             [[maybe_unused]] Allocator<T> const& allocator)
+        {
+#ifdef AMREX_USE_GPU
+            if constexpr (RunOnGpu<Allocator<T>>::value)
+            {
+                amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
+                    dst[i] = src[i];
+                });
+                Gpu::Device::streamSynchronize();
+                return;
+            }
+            else if constexpr (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+            {
+                if (allocator.arena()->isManaged() ||
+                    allocator.arena()->isDevice())
+                {
+                    amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept
+                    {
+                        dst[i] = src[i];
+                    });
+                    Gpu::streamSynchronize();
+                    return;
+                }
+            }
 #else
-            std::memcpy(dst, src, count);
+            static_assert(RunOnGpu<Allocator<T>>::value == false);
 #endif
+            if constexpr (! RunOnGpu<Allocator<T>>::value) {
+                for (Size i = 0; i < count; ++i) { dst[i] = src[i]; }
+            }
         }
 
-        template <typename T>
-        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
-        memCopyImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
-        {
-            std::memcpy(dst, src, count);
-        }
-
-        template <typename T>
-        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
-        memCopyImpl (void* dst, const void* src, std::size_t count, T& allocator)
+        template <typename Allocator>
+        void memCopyImpl (void* dst, const void* src, std::size_t count,
+                          [[maybe_unused]] Allocator const& dst_allocator,
+                          [[maybe_unused]] Allocator const& src_allocator,
+                          [[maybe_unused]] bool sync = true)
         {
 #ifdef AMREX_USE_GPU
-            if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
+            if constexpr (RunOnGpu<Allocator>::value)
+            {
                 Gpu::dtod_memcpy_async(dst, src, count);
-            } else
-#endif
-            {
-                amrex::ignore_unused(allocator);
-                std::memcpy(dst, src, count);
+                if (sync) { Gpu::streamSynchronize(); }
+                return;
             }
-        }
-
-        template <typename T>
-        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
-        memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
-        {
-            if (count == 0) { return; }
-#ifdef AMREX_USE_GPU
-            AMREX_ASSERT(count % sizeof(typename T::value_type) == 0);
-
-            auto N = count / sizeof(typename T::value_type);
-            auto tmp = allocator.allocate(N);
-
-            Gpu::dtod_memcpy_async(tmp, src, count);
-            Gpu::dtod_memcpy_async(dst, tmp, count);
-
-            Gpu::Device::streamSynchronize();
-
-            allocator.deallocate(tmp, N);
-#else
-            amrex::ignore_unused(allocator);
-            std::memmove(dst, src, count);
+            else if constexpr (IsPolymorphicArenaAllocator<Allocator>::value)
+            {
+                bool dst_on_device = dst_allocator.arena()->isManaged() ||
+                                     dst_allocator.arena()->isDevice();
+                bool src_on_device = src_allocator.arena()->isManaged() ||
+                                     src_allocator.arena()->isDevice();
+                if (dst_on_device || src_on_device)
+                {
+                    if (dst_on_device && src_on_device) {
+                        Gpu::dtod_memcpy_async(dst, src, count);
+                    } else if (dst_on_device) {
+                        Gpu::htod_memcpy_async(dst, src, count);
+                    } else {
+                        Gpu::dtoh_memcpy_async(dst, src, count);
+                    }
+                    if (sync) { Gpu::streamSynchronize(); }
+                    return;
+                }
+            }
 #endif
+            std::memcpy(dst, src, count);
         }
 
-        template <typename T>
-        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
- memMoveImpl (void* dst, const void* src, std::size_t count, T& /*allocator*/)
-        {
-            std::memmove(dst, src, count);
-        }
-
-        template <typename T>
-        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
-        memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
+        template <typename Allocator>
+        void memMoveImpl (void* dst, const void* src, std::size_t count,
+                          [[maybe_unused]] Allocator const& allocator)
         {
 #ifdef AMREX_USE_GPU
-            if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
-                if (count == 0) { return; }
-
-                AMREX_ASSERT(count % sizeof(typename T::value_type) == 0);
-
-                auto N = count / sizeof(typename T::value_type);
-                auto tmp = allocator.allocate(N);
-
+            if constexpr (RunOnGpu<Allocator>::value)
+            {
+                auto* tmp = The_Arena()->alloc(count);
                 Gpu::dtod_memcpy_async(tmp, src, count);
                 Gpu::dtod_memcpy_async(dst, tmp, count);
-
-                Gpu::Device::streamSynchronize();
-
-                allocator.deallocate(tmp, N);
-            } else
-#endif
+                Gpu::streamSynchronize();
+                The_Arena()->free(tmp);
+                return;
+            }
+            else if constexpr (IsPolymorphicArenaAllocator<Allocator>::value)
             {
-            amrex::ignore_unused(allocator);
+                if (allocator.arena()->isManaged() ||
+                    allocator.arena()->isDevice())
+                {
+                    auto* tmp = The_Arena()->alloc(count);
+                    Gpu::dtod_memcpy_async(tmp, src, count);
+                    Gpu::dtod_memcpy_async(dst, tmp, count);
+                    Gpu::streamSynchronize();
+                    The_Arena()->free(tmp);
+                    return;
+                }
+            }
+#endif
             std::memmove(dst, src, count);
-            }
+        }
+    }
+
+    namespace VectorGrowthStrategy
+    {
+        extern AMREX_EXPORT Real growth_factor;
+        inline Real GetGrowthFactor () { return growth_factor; }
+        inline void SetGrowthFactor (Real a_factor);
+
+        namespace detail
+        {
+            void ValidateUserInput ();
         }
 
-        template <typename T, typename U>
-        typename std::enable_if<RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
-        initFromListImpl (U* data, std::initializer_list<U> list, T& /*allocator*/)
-        {
-#ifdef AMREX_USE_GPU
-            Gpu::htod_memcpy_async(data, &(*list.begin()), list.size() * sizeof(U));
-#else
-            std::memcpy(data, &(*list.begin()), list.size() * sizeof(U));
-#endif
-        }
-
-        template <typename T, typename U>
-        typename std::enable_if<!RunOnGpu<T>::value && !IsPolymorphicArenaAllocator<T>::value>::type
-        initFromListImpl (U* data, std::initializer_list<U> list, T& /*allocator*/)
-        {
-            for (const auto& value : list) { *(data++) = value; }
-        }
-
-        template <typename T, typename U>
-        typename std::enable_if<IsPolymorphicArenaAllocator<T>::value>::type
-        initFromListImpl (U* data, std::initializer_list<U> list, T& allocator)
-        {
-#ifdef AMREX_USE_GPU
-            if (allocator.arena()->isManaged() || allocator.arena()->isDevice()) {
-                Gpu::htod_memcpy_async(data, &(*list.begin()), list.size() * sizeof(U));
-            } else
-#endif
-            {
-                amrex::ignore_unused(allocator);
-                for (const auto& value : list) { *(data++) = value; }
-            }
-        }
+        void Initialize ();
     }
 
     template <class T, class Allocator = std::allocator<T> >
@@ -218,77 +219,83 @@ namespace amrex
         static_assert(std::is_trivially_copyable<T>(), "PODVector can only hold trivially copyable types");
         //        static_assert(std::is_trivially_default_constructible<T>(), "PODVector can only hold trivial dc types");
 
-
         using Allocator::allocate;
         using Allocator::deallocate;
 
     public:
-        typedef T value_type;
-        typedef Allocator allocator_type;
-        typedef std::size_t size_t;
-        typedef std::size_t size_type;
-        typedef std::ptrdiff_t difference_type;
+        using value_type      = T;
+        using allocator_type  = Allocator;
+        using size_type       = std::size_t;
+        using difference_type = std::ptrdiff_t;
 
-        typedef T& reference;
-        typedef T* pointer;
-        typedef T* iterator;
-        typedef std::reverse_iterator<iterator> reverse_iterator;
+        using reference        = T&;
+        using pointer          = T*;
+        using iterator         = T*;
+        using reverse_iterator = std::reverse_iterator<iterator>;
 
-        typedef const T& const_reference;
-        typedef const T* const_pointer;
-        typedef const T* const_iterator;
-        typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+        using const_reference        = const T&;
+        using const_pointer          = const T*;
+        using const_iterator         = const T*;
+        using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
     private:
-        pointer m_data;
-        size_type m_size, m_capacity;
+        pointer m_data = nullptr;
+        size_type m_size{0}, m_capacity{0};
 
     public:
-        explicit PODVector () noexcept :
-        Allocator(), m_data(nullptr), m_size(0), m_capacity(0)
+        constexpr PODVector () noexcept = default;
+
+        constexpr explicit PODVector (const allocator_type& a_allocator) noexcept
+            : Allocator(a_allocator)
         {}
 
-        explicit PODVector (const allocator_type& a_allocator) noexcept
-            : Allocator(a_allocator), m_data(nullptr), m_size(0), m_capacity(0)
-        {}
-
-        explicit PODVector (size_type a_size) noexcept
-            : m_data(nullptr), m_size(0), m_capacity(0)
+        explicit PODVector (size_type a_size)
+            : m_size(a_size), m_capacity(a_size)
         {
-            AllocateBuffer(GetNewCapacity(a_size));
-            m_size = a_size;
+            if (a_size != 0) {
+                m_data = allocate(m_size);
+            }
         }
 
         PODVector (size_type a_size, const value_type& a_value,
-                   const allocator_type& a_allocator = Allocator()) noexcept
-            : Allocator(a_allocator), m_data(nullptr), m_size(0), m_capacity(0)
+                   const allocator_type& a_allocator = Allocator())
+            : Allocator(a_allocator), m_size(a_size), m_capacity(a_size)
         {
-            AllocateBuffer(GetNewCapacity(a_size));
-            m_size = a_size;
-            detail::uninitializedFillNImpl<Allocator>(m_data, a_size, a_value, *this);
+            if (a_size != 0) {
+                m_data = allocate(m_size);
+                detail::uninitializedFillNImpl(m_data, a_size, a_value,
+                                               (Allocator const&)(*this));
+            }
         }
 
         PODVector (std::initializer_list<T> a_initializer_list,
-                   const allocator_type& a_allocator = Allocator()) noexcept
-            : Allocator(a_allocator), m_data(nullptr), m_size(0), m_capacity(0)
+                   const allocator_type& a_allocator = Allocator())
+            : Allocator(a_allocator),
+              m_size    (a_initializer_list.size()),
+              m_capacity(a_initializer_list.size())
         {
-            size_type size = a_initializer_list.size();
-            AllocateBuffer(GetNewCapacity(size));
-            m_size = size;
-            detail::initFromListImpl<Allocator>(m_data, a_initializer_list, *this);
+            if (a_initializer_list.size() != 0) {
+                m_data = allocate(m_size);
+                detail::initFromListImpl(m_data, a_initializer_list,
+                                         (Allocator const&)(*this));
+            }
         }
 
-        PODVector (const PODVector<T, Allocator>& a_vector) noexcept
-            : Allocator(a_vector), m_data(nullptr), m_size(0), m_capacity(0)
+        PODVector (const PODVector<T, Allocator>& a_vector)
+            : Allocator(a_vector),
+              m_size    (a_vector.size()),
+              m_capacity(a_vector.size())
         {
-            using namespace detail;
-            AllocateBuffer(a_vector.capacity());
-            m_size = a_vector.size();
-            memCopyImpl<Allocator>(m_data, a_vector.m_data, a_vector.size() * sizeof(T), *this);
+            if (a_vector.size() != 0) {
+                m_data = allocate(m_size);
+                detail::memCopyImpl(m_data, a_vector.m_data, a_vector.nBytes(),
+                                    (Allocator const&)(*this),
+                                    (Allocator const&)a_vector);
+            }
         }
 
         PODVector (PODVector<T, Allocator>&& a_vector) noexcept
-            : Allocator(std::move(a_vector)),
+            : Allocator(static_cast<Allocator&&>(a_vector)),
               m_data(a_vector.m_data),
               m_size(a_vector.m_size),
               m_capacity(a_vector.m_capacity)
@@ -298,281 +305,331 @@ namespace amrex
             a_vector.m_capacity = 0;
         }
 
-        PODVector (PODVector<T, Allocator>&& a_vector, const allocator_type& a_allocator) noexcept
-            : Allocator(a_allocator),
-              m_data(a_vector.m_data),
-              m_size(a_vector.m_size),
-              m_capacity(a_vector.m_capacity)
+        ~PODVector ()
         {
-            a_vector.m_data = nullptr;
-            a_vector.m_size = 0;
-            a_vector.m_capacity = 0;
+            // let's not worry about other allocators
+            static_assert(std::is_same<Allocator,std::allocator<T>>::value ||
+                          IsArenaAllocator<Allocator>::value);
+            if (m_data != nullptr) {
+                deallocate(m_data, capacity());
+            }
         }
 
-        ~PODVector () noexcept { if (m_data != nullptr) { deallocate(m_data, capacity()); }}
-
-        PODVector& operator= (const PODVector<T, Allocator>& a_vector) noexcept
+        PODVector& operator= (const PODVector<T, Allocator>& a_vector)
         {
-            return CopyAssignmentDoIt(a_vector, typename std::allocator_traits<Allocator>::
-                                      propagate_on_container_copy_assignment());
+            if (this == &a_vector) { return *this; }
+
+            if ((Allocator const&)(*this) != (Allocator const&)a_vector) {
+                if (m_data != nullptr) {
+                    deallocate(m_data, m_capacity);
+                    m_data = nullptr;
+                    m_size = 0;
+                    m_capacity = 0;
+                }
+                (Allocator&)(*this) = (Allocator const&)a_vector;
+            }
+
+            const auto other_size = a_vector.size();
+            if ( other_size > m_capacity ) {
+                clear();
+                reserve(other_size);
+            }
+
+            m_size = other_size;
+            if (m_size > 0) {
+                detail::memCopyImpl(m_data, a_vector.m_data, nBytes(),
+                                    (Allocator const&)(*this),
+                                    (Allocator const&)a_vector);
+            }
+            return *this;
         }
 
         PODVector& operator= (PODVector<T, Allocator>&& a_vector) noexcept
-            (std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value)
         {
-            return MoveAssignmentDoIt(std::move(a_vector), typename std::allocator_traits<Allocator>::
-                                      propagate_on_container_move_assignment());
+            if (this == &a_vector) { return *this; }
+
+            if (static_cast<Allocator const&>(a_vector) ==
+                static_cast<Allocator const&>(*this))
+            {
+                if (m_data != nullptr) {
+                    deallocate(m_data, m_capacity);
+                }
+
+                m_data = a_vector.m_data;
+                m_size = a_vector.m_size;
+                m_capacity = a_vector.m_capacity;
+
+                a_vector.m_data = nullptr;
+                a_vector.m_size = 0;
+                a_vector.m_capacity = 0;
+            }
+            else
+            {
+                // if the allocators are not the same we give up and copy
+                *this = a_vector;
+            }
+
+            return *this;
         }
 
-        iterator erase (const_iterator a_pos) noexcept
+        iterator erase (const_iterator a_pos)
         {
+            auto* pos = const_cast<iterator>(a_pos);
             --m_size;
-            detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos), a_pos+1, (end() - a_pos)*sizeof(T), *this);
-            return const_cast<iterator>(a_pos);
+            detail::memMoveImpl(pos, a_pos+1, (end() - pos)*sizeof(T),
+                                (Allocator const&)(*this));
+            return pos;
         }
 
-        iterator erase (const_iterator a_first, const_iterator a_last) noexcept
+        iterator erase (const_iterator a_first, const_iterator a_last)
         {
             size_type num_to_erase = a_last - a_first;
-            if (num_to_erase == 0) return const_cast<iterator>(a_first);
-            m_size -= num_to_erase;
-            detail::memMoveImpl<Allocator>(const_cast<iterator>(a_first), a_first+num_to_erase, (end() - a_first)*sizeof(T), *this);
-            return const_cast<iterator>(a_first);
+            auto* first = const_cast<iterator>(a_first);
+            if (num_to_erase > 0) {
+                m_size -= num_to_erase;
+                detail::memMoveImpl(first, a_last, (end() - first)*sizeof(T),
+                                    (Allocator const&)(*this));
+            }
+            return first;
         }
 
-        iterator insert (const_iterator a_pos, const T& a_item) noexcept
+        iterator insert (const_iterator a_pos, const T& a_item)
         {
-            if(m_size == m_capacity)
-            {
-                size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
-                AllocateBufferForInsert(GetNewCapacity(1), insert_index, 1);
-                a_pos = m_data;
-                std::advance(a_pos, insert_index);
-            }
-            else
-            {
-                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T), *this);
-                ++m_size;
-            }
-
-            *const_cast<iterator>(a_pos) = a_item;
-
-            return const_cast<iterator>(a_pos);
+            return insert(a_pos, 1, a_item);
         }
 
-        iterator insert (const_iterator a_pos, size_type a_count, const T& a_value) noexcept
+        iterator insert (const_iterator a_pos, size_type a_count, const T& a_value)
         {
-            if (a_count == 0) return const_cast<iterator>(a_pos);
-            if( capacity() < size() + a_count)
-            {
-                size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
-                AllocateBufferForInsert(GetNewCapacity(a_count), insert_index, a_count);
-                a_pos = m_data;
-                std::advance(a_pos, insert_index);
+            auto* pos = const_cast<iterator>(a_pos);
+            if (a_count > 0) {
+                if (m_capacity < m_size + a_count)
+                {
+                    std::size_t insert_index = std::distance(m_data, pos);
+                    AllocateBufferForInsert(insert_index, a_count);
+                    pos = m_data + insert_index;
+                }
+                else
+                {
+                    detail::memMoveImpl(pos+a_count, a_pos, (end() - pos) * sizeof(T),
+                                        (Allocator const&)(*this));
+                    m_size += a_count;
+                }
+                detail::uninitializedFillNImpl(pos, a_count, a_value,
+                                               (Allocator const&)(*this));
             }
-            else
-            {
-                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+a_count, a_pos, (end() - a_pos) * sizeof(T), *this);
-                m_size += a_count;
-            }
-
-            detail::uninitializedFillNImpl<Allocator>(const_cast<iterator>(a_pos), a_count, a_value, *this);
-
-            return const_cast<iterator>(a_pos);
+            return pos;
         }
 
-        iterator insert (const_iterator a_pos, T&& a_item) noexcept
+        iterator insert (const_iterator a_pos, T&& a_item)
         {
-            if(m_size == m_capacity)
-            {
-                size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
-                AllocateBufferForInsert(GetNewCapacity(1), insert_index, 1);
-                a_pos = m_data;
-                std::advance(a_pos, insert_index);
-            }
-            else
-            {
-                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T), *this);
-                ++m_size;
-            }
-
-            detail::uninitializedFillNImpl<Allocator>(const_cast<iterator>(a_pos), 1, a_item, *this);
-            return const_cast<iterator>(a_pos);
+            // This is *POD* vector afterall
+            return insert(a_pos, 1, a_item);
         }
 
-        iterator insert (const_iterator a_pos, std::initializer_list<T> a_initializer_list) noexcept
+        iterator insert (const_iterator a_pos,
+                         std::initializer_list<T> a_initializer_list)
         {
+            auto* pos = const_cast<iterator>(a_pos);
             size_type count = a_initializer_list.size();
-            if( capacity() < size() + count)
-            {
-                size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
-                AllocateBufferForInsert(GetNewCapacity(count), insert_index, count);
-                a_pos = m_data;
-                std::advance(a_pos, insert_index);
+            if (count > 0) {
+                if (m_capacity < m_size + count)
+                {
+                    std::size_t insert_index = std::distance(m_data, pos);
+                    AllocateBufferForInsert(insert_index, count);
+                    pos = m_data + insert_index;
+                }
+                else
+                {
+                    detail::memMoveImpl(pos+count, a_pos, (end() - pos) * sizeof(T),
+                                        (Allocator const&)(*this));
+                    m_size += count;
+                }
+                detail::initFromListImpl(pos, a_initializer_list,
+                                         (Allocator const&)(*this));
             }
-            else
-            {
-                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T), *this);
-                m_size += count;
-            }
-            detail::initFromListImpl<Allocator>(const_cast<iterator>(a_pos), a_initializer_list, *this);
-            return const_cast<iterator>(a_pos);
+            return pos;
         }
 
         template <class InputIt, class bar = typename std::iterator_traits<InputIt>::difference_type>
-        iterator insert (const_iterator a_pos, InputIt a_first, InputIt a_last) noexcept
+        iterator insert (const_iterator a_pos, InputIt a_first, InputIt a_last)
         {
+            auto* pos = const_cast<iterator>(a_pos);
             size_type count = std::distance(a_first, a_last);
-            if (count == 0) return const_cast<iterator>(a_pos);
-            if( capacity() < size() + count)
-            {
-                size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
-                AllocateBufferForInsert(GetNewCapacity(count), insert_index, count);
-                a_pos = m_data;
-                std::advance(a_pos, insert_index);
+            if (count > 0) {
+                if (m_capacity < m_size + count)
+                {
+                    std::size_t insert_index = std::distance(m_data, pos);
+                    AllocateBufferForInsert(insert_index, count);
+                    pos = m_data + insert_index;
+                }
+                else
+                {
+                    detail::memMoveImpl(pos+count, a_pos, (end() - pos) * sizeof(T),
+                                        (Allocator const&)(*this));
+                    m_size += count;
+                }
+                // Unfortunately we don't know whether InputIt points
+                // GPU or CPU memory. We will assume it's the same as
+                // the vector.
+                detail::fillValuesImpl(pos, a_first, count,
+                                       (Allocator const&)(*this));
             }
-            else
-            {
-                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T), *this);
-                m_size += count;
-            }        pointer dst = const_cast<iterator>(a_pos);
-            detail::fillValuesImpl<Allocator>(dst, a_first, count, *this);
-            return const_cast<iterator>(a_pos);
+            return pos;
         }
 
-        void assign (size_type a_count, const T& a_value) noexcept
+        void assign (size_type a_count, const T& a_value)
         {
-            if ( a_count > capacity() ) AllocateBuffer(GetNewCapacity(a_count));
+            if ( a_count > m_capacity ) {
+                clear();
+                reserve(a_count);
+            }
             m_size = a_count;
-            detail::uninitializedFillNImpl<Allocator>(m_data, a_count, a_value, *this);
+            detail::uninitializedFillNImpl(m_data, a_count, a_value,
+                                           (Allocator const&)(*this));
         }
 
-        void assign (std::initializer_list<T> a_initializer_list) noexcept
+        void assign (std::initializer_list<T> a_initializer_list)
         {
-            if(a_initializer_list.size() > capacity())
-                AllocateBuffer(GetNewCapacity(a_initializer_list.size()));
+            if (a_initializer_list.size() > m_capacity) {
+                clear();
+                reserve(a_initializer_list.size());
+            }
             m_size = a_initializer_list.size();
-            detail::initFromListImpl<Allocator>(const_cast<iterator>(m_data), a_initializer_list, *this);
+            detail::initFromListImpl(m_data, a_initializer_list,
+                                     (Allocator const&)(*this));
         }
 
         template <class InputIt, class bar = typename std::iterator_traits<InputIt>::difference_type>
-        void assign (InputIt a_first, InputIt a_last) noexcept
+        void assign (InputIt a_first, InputIt a_last)
         {
-            size_t count = std::distance(a_first, a_last);
-            if (count > capacity()) AllocateBuffer(GetNewCapacity(count));
-            m_size = count;        pointer dst = const_cast<iterator>(m_data);
-            detail::fillValuesImpl<Allocator>(dst, a_first, count, *this);
+            std::size_t count = std::distance(a_first, a_last);
+            if (count > m_capacity) {
+                clear();
+                reserve(count);
+            }
+            m_size = count;
+            detail::fillValuesImpl(m_data, a_first, count,
+                                   (Allocator const&)(*this));
         }
 
-        // don't have the emplace methods, but not sure how often we use those.
-        allocator_type get_allocator () const noexcept { return *this; }
+        [[nodiscard]] allocator_type get_allocator () const noexcept { return *this; }
 
-        void push_back (const T& a_value) noexcept
+        void push_back (const T& a_value)
         {
-            if (m_size == m_capacity) AllocateBuffer(GetNewCapacity(1));
-            m_data[m_size] = a_value;
+            if (m_size == m_capacity) {
+                auto new_capacity = GetNewCapacityForPush();
+                AllocateBufferForPush(new_capacity);
+            }
+            detail::uninitializedFillNImpl(m_data+m_size, 1, a_value,
+                                           (Allocator const&)(*this));
             ++m_size;
         }
 
-        void push_back (T&& a_value) noexcept
-        {
-            if (m_size == m_capacity) AllocateBuffer(GetNewCapacity(1));
-            detail::uninitializedFillNImpl<Allocator>(m_data+m_size, 1, a_value, *this);
-            ++m_size;
-        }
+        // Because T is trivial, there is no need for push_back(T&&)
+
+        // Don't have the emplace methods, but not sure how often we use those.
 
         void pop_back () noexcept { --m_size; }
 
         void clear () noexcept { m_size = 0; }
 
-        size_type size () const noexcept { return m_size; }
+        [[nodiscard]] size_type size () const noexcept { return m_size; }
 
-        size_type max_size () const noexcept { return Allocator::max_size(); }
+        [[nodiscard]] size_type capacity () const noexcept { return m_capacity; }
 
-        size_type capacity () const noexcept { return m_capacity; }
+        [[nodiscard]] bool empty () const noexcept { return m_size == 0; }
 
-        bool empty () const noexcept { return m_size == 0; }
+        [[nodiscard]] T& operator[] (size_type a_index) noexcept { return m_data[a_index]; }
 
-        T& operator[] (size_type a_index) noexcept { return m_data[a_index]; }
+        [[nodiscard]] const T& operator[] (size_type a_index) const noexcept { return m_data[a_index]; }
 
-        const T& operator[] (size_type a_index) const noexcept { return m_data[a_index]; }
+        [[nodiscard]] T& front () noexcept { return *m_data; }
 
-        T& front () noexcept { return *m_data; }
+        [[nodiscard]] const T& front () const noexcept { return *m_data; }
 
-        const T& front () const noexcept { return *m_data; }
+        [[nodiscard]] T& back () noexcept { return *(m_data + m_size - 1); }
 
-        T& back () noexcept { return *(m_data + m_size - 1); }
+        [[nodiscard]] const T& back () const noexcept { return *(m_data + m_size - 1); }
 
-        const T& back () const noexcept { return *(m_data + m_size - 1); }
+        [[nodiscard]] T* data () noexcept { return m_data; }
 
-        T* data () noexcept { return m_data; }
+        [[nodiscard]] const T* data () const noexcept { return m_data; }
 
-        const T* data () const noexcept { return m_data; }
+        [[nodiscard]] T* dataPtr () noexcept { return m_data; }
 
-        T* dataPtr () noexcept { return m_data; }
+        [[nodiscard]] const T* dataPtr () const noexcept { return m_data; }
 
-        const T* dataPtr () const noexcept { return m_data; }
+        [[nodiscard]] iterator begin () noexcept { return m_data; }
 
-        iterator begin () noexcept { return m_data; }
+        [[nodiscard]] const_iterator begin () const noexcept { return m_data; }
 
-        const_iterator begin () const noexcept { return m_data; }
+        [[nodiscard]] iterator end () noexcept { return m_data + m_size; }
 
-        iterator end () noexcept { return m_data + m_size; }
+        [[nodiscard]] const_iterator end () const noexcept { return m_data + m_size; }
 
-        const_iterator end () const noexcept { return m_data + m_size; }
+        [[nodiscard]] reverse_iterator rbegin () noexcept { return reverse_iterator(end()); }
 
-        reverse_iterator rbegin () noexcept { return reverse_iterator(end()); }
+        [[nodiscard]] const_reverse_iterator rbegin () const noexcept { return const_reverse_iterator(end()); }
 
-        const_reverse_iterator rbegin () const noexcept { return const_reverse_iterator(end()); }
+        [[nodiscard]] reverse_iterator rend () noexcept { return reverse_iterator(begin()); }
 
-        reverse_iterator rend () noexcept { return reverse_iterator(begin()); }
+        [[nodiscard]] const_reverse_iterator rend () const noexcept { return const_reverse_iterator(begin()); }
 
-        const_reverse_iterator rend () const noexcept { return const_reverse_iterator(begin()); }
+        [[nodiscard]] const_iterator cbegin () const noexcept { return m_data; }
 
-        const_iterator cbegin () const noexcept { return m_data; }
+        [[nodiscard]] const_iterator cend () const noexcept { return m_data + m_size; }
 
-        const_iterator cend () const noexcept { return m_data + m_size; }
+        [[nodiscard]] const_reverse_iterator crbegin () const noexcept { return const_reverse_iterator(end()); }
 
-        const_reverse_iterator crbegin () const noexcept { return const_reverse_iterator(end()); }
+        [[nodiscard]] const_reverse_iterator crend () const noexcept { return const_reverse_iterator(begin()); }
 
-        const_reverse_iterator crend () const noexcept { return const_reverse_iterator(begin()); }
-
-        void resize (size_type a_new_size) noexcept
+        void resize (size_type a_new_size)
         {
-            if (capacity() < a_new_size) AllocateBuffer(GetNewCapacity(a_new_size - capacity()));
+            if (m_capacity < a_new_size) {
+                reserve(a_new_size);
+            }
             m_size = a_new_size;
         }
 
-        void resize (size_type a_new_size, const T& a_val) noexcept
+        void resize (size_type a_new_size, const T& a_val)
         {
-            size_type old_size = size();
+            size_type old_size = m_size;
             resize(a_new_size);
             if (old_size < a_new_size)
             {
-                detail::uninitializedFillNImpl<Allocator>(m_data + old_size,
-                                                          size() - old_size,
-                                                          a_val, *this);
+                detail::uninitializedFillNImpl(m_data + old_size,
+                                               m_size - old_size, a_val,
+                                               (Allocator const&)(*this));
             }
         }
 
-        void reserve (size_type a_capacity) noexcept
+        void reserve (size_type a_capacity)
         {
-            if(capacity() < a_capacity) AllocateBuffer(a_capacity);
+            if (m_capacity < a_capacity) {
+                auto fp = detail::allocate_in_place(m_data, a_capacity, a_capacity,
+                                                    (Allocator&)(*this));
+                UpdateDataPtr(fp);
+            }
         }
 
-        void shrink_to_fit () noexcept
+        void shrink_to_fit ()
         {
-            const size_type current_size = size();
-            if ( current_size == 0 )
-            {
-                deallocate(m_data, capacity());
-                m_data = nullptr;
-                m_size = 0;
-                m_capacity = 0;
-            }
-            else if ( current_size < capacity() )
-            {
-                AllocateBuffer(current_size);
+            if (m_data != nullptr) {
+                if (m_size == 0) {
+                    deallocate(m_data, m_capacity);
+                    m_data = nullptr;
+                    m_capacity = 0;
+                } else if (m_size < m_capacity) {
+                    auto* new_data = detail::shrink_in_place(m_data, m_size,
+                                                             (Allocator&)(*this));
+                    if (new_data != m_data) {
+                        detail::memCopyImpl(new_data, m_data, nBytes(),
+                                            (Allocator const&)(*this),
+                                            (Allocator const&)(*this));
+                        deallocate(m_data, m_capacity);
+                    }
+                    m_capacity = m_size;
+                }
             }
         }
 
@@ -586,115 +643,91 @@ namespace amrex
 
     private:
 
-        // this is where we would change the growth strategy
-        size_type GetNewCapacity (size_type a_num_to_be_added) const noexcept
+        [[nodiscard]] size_type nBytes () const noexcept
         {
-            size_type new_capacity = capacity();
-
-            if (capacity() == 0)
-            {
-                new_capacity = std::max(64 / sizeof(T), size_type(1));
-            }
-
-            while (new_capacity < (capacity() + a_num_to_be_added))
-            {
-                new_capacity = (3 * new_capacity + 1)/2;
-            }
-
-            return new_capacity;
+            return m_size*sizeof(T);
         }
 
-        // this is where we would play games with the allocator
-        void AllocateBuffer (size_type a_capacity) noexcept
+        // this is where we would change the growth strategy for push_back
+        [[nodiscard]] size_type GetNewCapacityForPush () const noexcept
         {
-            pointer new_data = allocate(a_capacity);
-            if (m_data) detail::memCopyImpl<Allocator>(new_data, m_data, size() * sizeof(T), *this);
-            deallocate(m_data, capacity());
-            m_data = new_data;
-            m_capacity = a_capacity;
-        }
-
-        // need to have this version too
-        void AllocateBufferForInsert (size_type a_capacity, size_type a_index, size_type a_count) noexcept
-        {
-            using namespace detail;
-            pointer new_data = allocate(a_capacity);
-            if (m_data)
-            {
-         memCopyImpl<Allocator>(new_data, m_data, a_index * sizeof(T), *this);
-                memCopyImpl<Allocator>(new_data + a_index + a_count, m_data + a_index,
-                                       (size() - a_index)*sizeof(T), *this);
-            }
-            deallocate(m_data, capacity());
-            m_data = new_data;
-            m_size = size() + a_count;
-            m_capacity = a_capacity;
-        }
-
-        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::true_type) noexcept
-        {
-            const size_t other_size = a_vector.size();
-            if ( other_size > capacity() ) { AllocateBuffer(other_size); }
-            m_size = other_size;
-            detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T), *this);
-            return *this;
-        }
-
-        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::false_type) noexcept
-        {
-            if (static_cast<Allocator const&>(a_vector) == static_cast<Allocator&>(*this))
-            {
-                return CopyAssignmentDoIt(a_vector, std::true_type());
-            }
-            else
-            {
-                const size_t other_size = a_vector.size();
-                if ( other_size > capacity() ) { AllocateBuffer(other_size); }
-                m_size = other_size;
-                detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T), *this);
-                Allocator::operator=(static_cast<Allocator const&>(a_vector));
-                return *this;
+            if (m_capacity == 0) {
+                return std::max(64/sizeof(T), size_type(1));
+            } else {
+                Real const gf = VectorGrowthStrategy::GetGrowthFactor();
+                if (amrex::almostEqual(gf, Real(1.5))) {
+                    return (m_capacity*3+1)/2;
+                } else {
+                    return size_type(gf*Real(m_capacity+1));
+                }
             }
         }
 
-        PODVector& MoveAssignmentDoIt (PODVector<T, Allocator>&& a_vector, std::false_type) noexcept
+        void UpdateDataPtr (FatPtr<T> const& fp)
         {
-            if(static_cast<Allocator&>(a_vector) == static_cast<Allocator&>(*this))
-            {
+            auto* new_data = fp.ptr();
+            auto new_capacity = fp.size();
+            if (m_data != nullptr && m_data != new_data) {
+                if (m_size > 0) {
+                    detail::memCopyImpl(new_data, m_data, nBytes(),
+                                        (Allocator const&)(*this),
+                                        (Allocator const&)(*this));
+                }
                 deallocate(m_data, capacity());
-
-                m_data = a_vector.m_data;
-                m_size = a_vector.m_size;
-                m_capacity = a_vector.m_capacity;
-
-                a_vector.m_data = nullptr;
-                a_vector.m_size = 0;
-                a_vector.m_capacity = 0;
             }
-            else
-            {
-                // if the allocators are not the same we give up and copy
-                CopyAssignmentDoIt(a_vector, std::false_type());
-            }
-
-            return *this;
+            m_data = new_data;
+            m_capacity = new_capacity;
         }
 
-        PODVector& MoveAssignmentDoIt (PODVector<T, Allocator>&& a_vector, std::true_type) noexcept
+        // This is where we play games with the allocator. This function
+        // updates m_data and m_capacity, but not m_size.
+        void AllocateBufferForPush (size_type target_capacity)
         {
-            deallocate(m_data, capacity());
+            auto fp = detail::allocate_in_place(m_data, m_size+1, target_capacity,
+                                                (Allocator&)(*this));
+            UpdateDataPtr(fp);
+        }
 
-            Allocator::operator=(std::move(static_cast<Allocator const&>(a_vector)));
+        // This is where we play games with the allocator and the growth
+        // strategy for insert. This function updates m_data, m_size and
+        // m_capacity.
+        void AllocateBufferForInsert (size_type a_index, size_type a_count)
+        {
+            size_type new_size = m_size + a_count;
+            size_type new_capacity = std::max(new_size, GetNewCapacityForPush());
+            auto fp = detail::allocate_in_place(m_data, new_size, new_capacity,
+                                                (Allocator&)(*this));
+            auto* new_data = fp.ptr();
+            new_capacity = fp.size();
 
-            m_data = a_vector.m_data;
-            m_size = a_vector.m_size;
-            m_capacity = a_vector.m_capacity;
-
-            a_vector.m_data = nullptr;
-            a_vector.m_size = 0;
-            a_vector.m_capacity = 0;
-
-            return *this;
+            if (m_data != nullptr) {
+                if (m_data == new_data) {
+                    if (m_size > a_index) {
+                        detail::memMoveImpl(m_data+a_index+a_count, m_data+a_index,
+                                            (m_size-a_index)*sizeof(T),
+                                            (Allocator const&)(*this));
+                    }
+                } else {
+                    if (m_size > 0) {
+                        if (a_index > 0) {
+                            detail::memCopyImpl(new_data, m_data, a_index*sizeof(T),
+                                                (Allocator const&)(*this),
+                                                (Allocator const&)(*this), false);
+                        }
+                        if (m_size > a_index) {
+                            detail::memCopyImpl(new_data+a_index+a_count, m_data+a_index,
+                                                (m_size-a_index)*sizeof(T),
+                                                (Allocator const&)(*this),
+                                                (Allocator const&)(*this), false);
+                        }
+                        Gpu::streamSynchronize();
+                    }
+                    deallocate(m_data, m_capacity);
+                }
+            }
+            m_data = new_data;
+            m_size = new_size;
+            m_capacity = new_capacity;
         }
     };
 }

@@ -10,7 +10,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             bool enforce_periodicity_only,
                             bool override_sync)
 {
-    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: FB");
     BL_PROFILE("FillBoundary_nowait()");
 
     AMREX_ASSERT_WITH_MESSAGE(!fbd, "FillBoundary_nowait() called when comm operation already in progress.");
@@ -34,11 +34,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         // There can only be local work to do.
         //
         int N_locs = (*TheFB.m_LocTags).size();
-        if (N_locs == 0) return;
+        if (N_locs == 0) { return; }
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
             if (Gpu::inGraphRegion())
             {
                 FB_local_copy_cuda_graph_1(TheFB, scomp, ncomp);
@@ -110,7 +110,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
             if (Gpu::inGraphRegion()) {
                 FB_pack_send_buffer_cuda_graph(TheFB, scomp, ncomp, send_data, send_size, send_cctc);
             }
@@ -140,7 +140,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
             if (Gpu::inGraphRegion()) {
                 FB_local_copy_cuda_graph_n(TheFB, scomp, ncomp);
             }
@@ -175,7 +175,7 @@ FabArray<FAB>::FillBoundary_finish ()
     if (!fbd) { n_filled = IntVect::TheZeroVector(); return; }
 
     const FB* TheFB = fbd->fb;
-    const int N_rcvs = TheFB->m_RcvTags->size();
+    const auto N_rcvs = static_cast<int>(TheFB->m_RcvTags->size());
     if (N_rcvs > 0)
     {
         Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
@@ -205,7 +205,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
             if (Gpu::inGraphRegion())
             {
                 FB_unpack_recv_buffer_cuda_graph(*TheFB, fbd->scomp, fbd->ncomp,
@@ -228,16 +228,16 @@ FabArray<FAB>::FillBoundary_finish ()
 
         if (fbd->the_recv_data)
         {
-            amrex::The_FA_Arena()->free(fbd->the_recv_data);
+            amrex::The_Comms_Arena()->free(fbd->the_recv_data);
             fbd->the_recv_data = nullptr;
         }
     }
 
-    const int N_snds = TheFB->m_SndTags->size();
+    const auto N_snds = static_cast<int>(TheFB->m_SndTags->size());
     if (N_snds > 0) {
         Vector<MPI_Status> stats(fbd->send_reqs.size());
         ParallelDescriptor::Waitall(fbd->send_reqs, stats);
-        amrex::The_FA_Arena()->free(fbd->the_send_data);
+        amrex::The_Comms_Arena()->free(fbd->the_send_data);
         fbd->the_send_data = nullptr;
     }
 
@@ -246,6 +246,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif
 }
 
+// \cond CODEGEN
 template <class FAB>
 void
 FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
@@ -316,12 +317,12 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     const FabArrayBase::CPC * a_cpc,
                                     bool                 to_ghost_cells_only)
 {
-    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms");
+    BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: PC");
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
 
     AMREX_ASSERT_WITH_MESSAGE(!pcd, "ParallelCopy_nowait() called when comm operation already in progress.");
 
-    if (size() == 0 || src.size() == 0) {
+    if (empty() || src.empty()) {
         return;
     }
 
@@ -504,8 +505,8 @@ FabArray<FAB>::ParallelCopy_finish ()
 
     const CPC* thecpc = pcd->cpc;
 
-    const int N_snds = thecpc->m_SndTags->size();
-    const int N_rcvs = thecpc->m_RcvTags->size();
+    const auto N_snds = static_cast<int>(thecpc->m_SndTags->size());
+    const auto N_rcvs = static_cast<int>(thecpc->m_RcvTags->size());
 
     if (N_rcvs > 0)
     {
@@ -547,7 +548,7 @@ FabArray<FAB>::ParallelCopy_finish ()
 
         if (pcd->the_recv_data)
         {
-            amrex::The_FA_Arena()->free(pcd->the_recv_data);
+            amrex::The_Comms_Arena()->free(pcd->the_recv_data);
             pcd->the_recv_data = nullptr;
         }
     }
@@ -557,7 +558,7 @@ FabArray<FAB>::ParallelCopy_finish ()
             Vector<MPI_Status> stats(pcd->send_reqs.size());
             ParallelDescriptor::Waitall(pcd->send_reqs, stats);
         }
-        amrex::The_FA_Arena()->free(pcd->the_send_data);
+        amrex::The_Comms_Arena()->free(pcd->the_send_data);
         pcd->the_send_data = nullptr;
     }
 
@@ -610,7 +611,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
     }
 #endif
 }
-
+// \endcond
 #ifdef BL_USE_MPI
 template <class FAB>
 template <typename BUF>
@@ -645,8 +646,8 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
     send_rank.clear();
     send_reqs.clear();
     send_cctc.clear();
-    const int N_snds = SndTags.size();
-    if (N_snds == 0) return;
+    const auto N_snds = SndTags.size();
+    if (N_snds == 0) { return; }
     send_data.reserve(N_snds);
     send_size.reserve(N_snds);
     send_rank.reserve(N_snds);
@@ -684,8 +685,8 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
 
     if (total_volume > 0)
     {
-        the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
-        for (int i = 0, N = send_size.size(); i < N; ++i) {
+        the_send_data = static_cast<char*>(amrex::The_Comms_Arena()->alloc(total_volume));
+        for (int i = 0, N = static_cast<int>(send_size.size()); i < N; ++i) {
             send_data[i] = the_send_data + offset[i];
         }
     } else {
@@ -703,7 +704,7 @@ FabArray<FAB>::PostSnds (Vector<char*> const&       send_data,
 {
     MPI_Comm comm = ParallelContext::CommunicatorSub();
 
-    const int N_snds = send_reqs.size();
+    const auto N_snds = static_cast<int>(send_reqs.size());
     for (int j = 0; j < N_snds; ++j)
     {
         if (send_size[j] > 0) {
@@ -772,7 +773,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  RcvTags,
         recv_reqs.push_back(MPI_REQUEST_NULL);
     }
 
-    const int nrecv = recv_from.size();
+    const auto nrecv = static_cast<int>(recv_from.size());
 
     MPI_Comm comm = ParallelContext::CommunicatorSub();
 
@@ -782,7 +783,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  RcvTags,
     }
     else
     {
-        the_recv_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume));
+        the_recv_data = static_cast<char*>(amrex::The_Comms_Arena()->alloc(TotalRcvsVolume));
 
         for (int i = 0; i < nrecv; ++i)
         {
@@ -842,7 +843,7 @@ template <class TagT>
 void fbv_copy (Vector<TagT> const& tags)
 {
     const int N = tags.size();
-    if (N == 0) return;
+    if (N == 0) { return; }
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         ParallelFor(tags, 1,
@@ -940,7 +941,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
     int SeqNum = ParallelDescriptor::SeqNum();
     MPI_Comm comm = ParallelContext::CommunicatorSub();
 
-    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0) return; // No work to do
+    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0) { return; } // No work to do
 
     char* the_recv_data = nullptr;
     Vector<int> recv_from;
@@ -1003,7 +1004,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
             recv_size.push_back(nbytes);
         }
 
-        the_recv_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume));
+        the_recv_data = static_cast<char*>(amrex::The_Comms_Arena()->alloc(TotalRcvsVolume));
 
         int k = 0;
         for (int i = 0; i < nrecv; ++i) {
@@ -1076,7 +1077,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
             send_size.push_back(nbytes);
         }
 
-        the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalSndsVolume));
+        the_send_data = static_cast<char*>(amrex::The_Comms_Arena()->alloc(TotalSndsVolume));
         int k = 0;
         for (int i = 0; i < nsend; ++i) {
             send_data[i] = the_send_data + offset[i];
@@ -1112,13 +1113,13 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
 
         detail::fbv_copy(recv_tags);
 
-        amrex::The_FA_Arena()->free(the_recv_data);
+        amrex::The_Comms_Arena()->free(the_recv_data);
     }
 
     if (N_snds > 0) {
         Vector<MPI_Status> stats(send_reqs.size());
         ParallelDescriptor::Waitall(send_reqs, stats);
-        amrex::The_FA_Arena()->free(the_send_data);
+        amrex::The_Comms_Arena()->free(the_send_data);
     }
 
 #endif  // #ifdef AMREX_USE_MPI

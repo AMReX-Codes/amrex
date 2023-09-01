@@ -289,7 +289,7 @@ class BLProfiler
     static int prevCallStackDepth;
 
   public:
-    typedef std::pair<Real, int> RIpair;
+    using RIpair = std::pair<Real, int>;
     struct fTTComp {
       bool operator()(const RIpair &lhs, const RIpair &rhs) const {
         return lhs.first > rhs.first;
@@ -394,6 +394,9 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_TINY_PROFILE_INITIALIZE()
 #define BL_TINY_PROFILE_FINALIZE()
 
+#define BL_TINY_PROFILE_MEMORYINITIALIZE()
+#define BL_TINY_PROFILE_MEMORYFINALIZE()
+
 #define BL_PROFILE(fname) amrex::BLProfiler bl_profiler_((fname));
 #define BL_PROFILE_T(fname, T) amrex::BLProfiler bl_profiler_((std::string(fname) + typeid(T).name()));
 #ifdef BL_PROFILING_SPECIAL
@@ -478,6 +481,9 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize(); amrex::BLProfileSync::InitParams()
 #define BL_TINY_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize()
 
+#define BL_TINY_PROFILE_MEMORYINITIALIZE()  amrex::TinyProfiler::MemoryInitialize()
+#define BL_TINY_PROFILE_MEMORYFINALIZE()    amrex::TinyProfiler::MemoryFinalize()
+
 #define BL_PROFILE(fname) BL_PROFILE_IMPL(fname, __COUNTER__)
 #define BL_PROFILE_IMPL(funame, counter)  amrex::TinyProfiler BL_PROFILE_PASTE(tiny_profiler_, counter)((funame)); \
     amrex::ignore_unused(BL_PROFILE_PASTE(tiny_profiler_, counter));
@@ -508,7 +514,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_REGION_VAR(fname, rvname)
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
-#define BL_PROFILE_TINY_FLUSH() amrex::TinyProfiler::Finalize(true)
+#define BL_PROFILE_TINY_FLUSH() amrex::TinyProfiler::Finalize(true); TinyProfiler::MemoryFinalize(true)
 #define BL_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)
@@ -545,6 +551,9 @@ class BLProfiler
 
 #define BL_TINY_PROFILE_INITIALIZE()
 #define BL_TINY_PROFILE_FINALIZE()
+
+#define BL_TINY_PROFILE_MEMORYINITIALIZE()
+#define BL_TINY_PROFILE_MEMORYFINALIZE()
 
 #define BL_PROFILE(a)
 #define BL_PROFILE_T(a, T)

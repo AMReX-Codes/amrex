@@ -32,13 +32,13 @@ pcinterp_interp (Box const& bx,
 }
 
 namespace {
-    static constexpr int ix   = 0;
-    static constexpr int iy   = 1;
-    static constexpr int iz   = 2;
-    static constexpr int ixy  = 3;
-    static constexpr int ixz  = 4;
-    static constexpr int iyz  = 5;
-    static constexpr int ixyz = 6;
+    constexpr int ix   = 0;
+    constexpr int iy   = 1;
+    constexpr int iz   = 2;
+    constexpr int ixy  = 3;
+    constexpr int ixz  = 4;
+    constexpr int iyz  = 5;
+    constexpr int ixyz = 6;
 }
 
 // Let's keep these nodal functions even though amrex is no longer using
@@ -52,9 +52,9 @@ nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    const Real rx = Real(1.)/ratio[0];
-    const Real ry = Real(1.)/ratio[1];
-    const Real rz = Real(1.)/ratio[2];
+    const Real rx = Real(1.)/Real(ratio[0]);
+    const Real ry = Real(1.)/Real(ratio[1]);
+    const Real rz = Real(1.)/Real(ratio[2]);
 
     for (int n = 0; n < ncomp; ++n) {
         const int nu = n + icomp;
@@ -332,6 +332,54 @@ facediv_int (int ci, int cj, int ck, int nf,
                                   +                dz3/(8*dy*zspxs)*(v000+v021-v001-v020);
 }
 
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_linear_interp_x (int i, int j, int k, int n, Array4<T> const& fine,
+                      Array4<T const> const& crse, IntVect const& ratio) noexcept
+{
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    const int kk = amrex::coarsen(k,ratio[2]);
+    if (i-ii*ratio[0] == 0) {
+        fine(i,j,k,n) = crse(ii,jj,kk,n);
+    } else {
+        Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/Real(ratio[0]));
+        fine(i,j,k,n) = (Real(1.)-w) * crse(ii,jj,kk,n) + w * crse(ii+1,jj,kk,n);
+    }
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_linear_interp_y (int i, int j, int k, int n, Array4<T> const& fine,
+                      Array4<T const> const& crse, IntVect const& ratio) noexcept
+{
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    const int kk = amrex::coarsen(k,ratio[2]);
+    if (j-jj*ratio[1] == 0) {
+        fine(i,j,k,n) = crse(ii,jj,kk,n);
+    } else {
+        Real const w = static_cast<Real>(j-jj*ratio[1]) * (Real(1.)/Real(ratio[1]));
+        fine(i,j,k,n) = (Real(1.)-w) * crse(ii,jj,kk,n) + w * crse(ii,jj+1,kk,n);
+    }
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_linear_interp_z (int i, int j, int k, int n, Array4<T> const& fine,
+                      Array4<T const> const& crse, IntVect const& ratio) noexcept
+{
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    const int kk = amrex::coarsen(k,ratio[2]);
+    if (k-kk*ratio[2] == 0) {
+        fine(i,j,k,n) = crse(ii,jj,kk,n);
+    } else {
+        Real const w = static_cast<Real>(k-kk*ratio[2]) * (Real(1.)/Real(ratio[2]));
+        fine(i,j,k,n) = (Real(1.)-w) * crse(ii,jj,kk,n) + w * crse(ii,jj,kk+1,n);
+    }
+}
+
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ccprotect_3d (int ic, int jc, int kc, int nvar,
@@ -405,7 +453,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                 }
             }
 
-            if ( (crseTot > 0) && (crseTot > Math::abs(SumN)) ) {
+            if ( (crseTot > 0) && (crseTot > std::abs(SumN)) ) {
 
                 /*
                  * Special case 1:
@@ -429,11 +477,11 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                             // Then, add the remaining positive proportionally.
                             if (SumP > 0.0) {
                                 if (fine_state(i,j,k,n) > 0.0) {
-                                    Real alpha = (crseTot - Math::abs(SumN)) / SumP;
+                                    Real alpha = (crseTot - std::abs(SumN)) / SumP;
                                     fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
                                 }
                             } else { /* (SumP < 0) */
-                                Real posVal = (crseTot - Math::abs(SumN)) / (Real)numFineCells;
+                                Real posVal = (crseTot - std::abs(SumN)) / (Real)numFineCells;
                                 fine(i,j,k,n) += posVal;
                             }
 
@@ -441,7 +489,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     }
                 }
 
-            } else if ( (crseTot > 0) && (crseTot < Math::abs(SumN)) ) {
+            } else if ( (crseTot > 0) && (crseTot < std::abs(SumN)) ) {
 
                 /*
                  * Special case 2:
@@ -456,10 +504,10 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                 for         (int k = klo; k <= khi; ++k) {
                     for     (int j = jlo; j <= jhi; ++j) {
                         for (int i = ilo; i <= ihi; ++i) {
-                            Real alpha = crseTot / Math::abs(SumN);
+                            Real alpha = crseTot / std::abs(SumN);
                             if (fine_state(i,j,k,n) < 0.0) {
                                 // Add correction to negative cells proportionally.
-                                fine(i,j,k,n) = alpha * Math::abs(fine_state(i,j,k,n));
+                                fine(i,j,k,n) = alpha * std::abs(fine_state(i,j,k,n));
                             } else {
                                 // Don't touch the positive states.
                                 fine(i,j,k,n) = 0.0;
@@ -469,7 +517,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     }
                 }
 
-            } else if ( (crseTot < 0) && (Math::abs(crseTot) > SumP) ) {
+            } else if ( (crseTot < 0) && (std::abs(crseTot) > SumP) ) {
 
                 /*
                  * Special case 3:
@@ -492,7 +540,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     }
                 }
 
-            } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+            } else if ( (crseTot < 0) && (std::abs(crseTot) < SumP) &&
                         ((SumP+SumN+crseTot) > 0.0) )  {
 
                 /*
@@ -520,7 +568,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     }
                 }
 
-            } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+            } else if ( (crseTot < 0) && (std::abs(crseTot) < SumP) &&
                         ((SumP+SumN+crseTot) < 0.0) )  {
                 /*
                  * Special case 5:

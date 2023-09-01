@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <limits>
+#include <utility>
 
 namespace amrex {
 
@@ -31,6 +32,7 @@ Arena* The_Async_Arena ();
 Arena* The_Device_Arena ();
 Arena* The_Managed_Arena ();
 Arena* The_Pinned_Arena ();
+Arena* The_Comms_Arena ();
 Arena* The_Cpu_Arena ();
 
 struct ArenaInfo
@@ -85,13 +87,40 @@ class Arena
 {
 public:
 
-    virtual ~Arena ();
+    virtual ~Arena () = default;
+    Arena () noexcept = default;
+
+    Arena (const Arena& rhs) = delete;
+    Arena (Arena&& rhs) = delete;
+    Arena& operator= (const Arena& rhs) = delete;
+    Arena& operator= (Arena&& rhs) = delete;
+
     /**
     * Allocate a dynamic memory arena
     * \param sz size of the memory request
     * \return a pointer to the allocated memory
     */
-    virtual void* alloc (std::size_t sz) = 0;
+    [[nodiscard]] virtual void* alloc (std::size_t sz) = 0;
+
+    /**
+     * Try to allocate in-place by extending the capacity of given pointer.
+     */
+    [[nodiscard]] virtual std::pair<void*,std::size_t>
+    alloc_in_place (void* /*pt*/, std::size_t /*szmin*/, std::size_t szmax)
+    {
+        auto* p = alloc(szmax);
+        return std::make_pair(p, szmax);
+    }
+
+    /**
+     * Try to shrink in-place
+     */
+    [[nodiscard]] virtual void*
+    shrink_in_place (void* /*pt*/, std::size_t sz)
+    {
+        return alloc(sz);
+    }
+
     /**
     * \brief A pure virtual function for deleting the arena pointed to by pt
     */
@@ -104,15 +133,15 @@ public:
     virtual std::size_t freeUnused () { return 0; }
 
     // isDeviceAccessible and isHostAccessible can both be true.
-    virtual bool isDeviceAccessible () const;
-    virtual bool isHostAccessible () const;
+    [[nodiscard]] virtual bool isDeviceAccessible () const;
+    [[nodiscard]] virtual bool isHostAccessible () const;
 
     // Note that isManaged, isDevice and isPinned are mutually exclusive.
     // For memory allocated by cudaMalloc* etc., one of them returns true.
     // Otherwise, neither is true.
-    virtual bool isManaged () const;
-    virtual bool isDevice () const;
-    virtual bool isPinned () const;
+    [[nodiscard]] virtual bool isManaged () const;
+    [[nodiscard]] virtual bool isDevice () const;
+    [[nodiscard]] virtual bool isPinned () const;
 
     /**
      * \brief Does the device have enough free memory for allocating this
@@ -120,7 +149,13 @@ public:
      * const funciton because it may attempt to release memory back to the
      * system.
      */
-    virtual bool hasFreeDeviceMemory (std::size_t sz);
+    [[nodiscard]] virtual bool hasFreeDeviceMemory (std::size_t sz);
+
+    /**
+     * \brief Add this Arena to the list of Arenas that are profiled by TinyProfiler.
+     * \param memory_name The name of this arena in the TinyProfiler output.
+     */
+    virtual void registerForProfiling (const std::string& memory_name);
 
     /**
     * \brief Given a minimum required arena size of sz bytes, this returns
@@ -149,7 +184,7 @@ public:
     /**
      *  \brief Return the ArenaInfo object for querying
      */
-    const ArenaInfo& arenaInfo () const { return arena_info; }
+    [[nodiscard]] const ArenaInfo& arenaInfo () const { return arena_info; }
 
 protected:
 

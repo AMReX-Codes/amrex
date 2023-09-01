@@ -44,14 +44,14 @@ public:
     * IntDescriptor in order to be able to read in a specific
     * one from an istream.
     */
-    IntDescriptor ();
+    IntDescriptor () = default;
     //! Construct a specific IntDescriptor.
     IntDescriptor (Long     nb,
                    Ordering ordering = NormalOrder);
     //! Returns the ordering.
-    Ordering order () const;
+    [[nodiscard]] Ordering order () const;
     //! Returns the number of bytes.
-    int numBytes () const;
+    [[nodiscard]] int numBytes () const;
     //! The equality operator.
     bool operator== (const IntDescriptor& id) const;
     //! The inequality operator.
@@ -114,34 +114,31 @@ public:
     * build a generic RealDescriptor in order to be able to read
     * in a specific one from an istream.
     */
-    RealDescriptor ();
+    RealDescriptor () = default;
     /**
     * \brief Construct a specific RealDescriptor, passing in the format
     * of the Real, the order of the Real, and the length of the
     * array detailing the ordering.
     */
-    RealDescriptor (const Long* format,
-                    const int*  order,
-                    int         order_length);
+    RealDescriptor (const Long* fr_, const int* ord_, int ordl_);
     //! Returns the format array as a const Long*
-    const Long* format () const&;
-
+    [[nodiscard]] const Long* format () const&;
     const Long* format () && = delete;
 
     //! Returns const Vector<Long> reference to the format array.
-    const Vector<Long>& formatarray () const&;
+    [[nodiscard]] const Vector<Long>& formatarray () const&;
     const Vector<Long>& formatarray () && = delete;
 
     //! Returns the order array as a const int*
-    const int* order () const&;
+    [[nodiscard]] const int* order () const&;
     const int* order () && = delete;
 
     //! Returns const Vector<int> reference to the order array.
-    const Vector<int>& orderarray () const&;
-
+    [[nodiscard]] const Vector<int>& orderarray () const&;
     const Vector<int>& orderarray () && = delete;
+
     //! Returns the number of bytes in the Real.
-    int numBytes () const;
+    [[nodiscard]] int numBytes () const;
 
     //! The equality operator.
     bool operator== (const RealDescriptor& rd) const;
@@ -160,7 +157,7 @@ public:
     * \brief Returns a copy of this RealDescriptor on the heap.
     * The user is responsible for deletion.
     */
-    RealDescriptor* clone () const;
+    [[nodiscard]] RealDescriptor* clone () const;
 
     /**
     * \brief Returns a RealDescriptor on the heap detailing requested
@@ -168,10 +165,8 @@ public:
     * correspond to the enumerations in FABio.  This is here to
     * support reading "old" FABs.  Do NOT use it in new code.
     */
-    static RealDescriptor* newRealDescriptor (int         format,
-                                              int         precision,
-                                              const char* systype,
-                                              int         ordering);
+    static RealDescriptor* newRealDescriptor (int fmt, int prec, const char* systype,
+                                              int ordering);
     /**
     * \brief Convert nitems in RealDescriptor format to native Real format.
     * The out array is assumed to be large enough to hold the
@@ -260,11 +255,11 @@ private:
 //!
 //! Write out an RealDescriptor to an ostream in ASCII.
 //!
-std::ostream& operator<< (std::ostream& os, const amrex::RealDescriptor& id);
+std::ostream& operator<< (std::ostream& os, const amrex::RealDescriptor& rd);
 //!
 //! Read in a RealDescriptor from an istream.
 //!
-std::istream& operator>> (std::istream& is, amrex::RealDescriptor& id);
+std::istream& operator>> (std::istream& is, amrex::RealDescriptor& rd);
 
 }
 

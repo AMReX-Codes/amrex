@@ -33,8 +33,8 @@ def configure(argv):
                         help="Use HIP [default=no]",
                         choices=["yes","no"],
                         default="no")
-    parser.add_argument("--with-dpcpp",
-                        help="Use DPCPP [default=no]",
+    parser.add_argument("--with-sycl",
+                        help="Use SYCL [default=no]",
                         choices=["yes","no"],
                         default="no")
     parser.add_argument("--with-acc",
@@ -43,7 +43,7 @@ def configure(argv):
                         default="no")
     parser.add_argument("--comp",
                         help="Compiler [default=gnu]",
-                        choices=["gnu","intel","cray","pgi","llvm","nag","nec","ibm","armclang"],
+                        choices=["gnu","intel","intel-llvm","intel-classic","cray","pgi","llvm","nag","nec","ibm","armclang"],
                         default="gnu")
     parser.add_argument("--debug",
                         help="Debug build [default=no]",
@@ -133,7 +133,7 @@ def configure(argv):
     f.write("USE_OMP = {}\n".format("FALSE" if args.with_omp == "no" else "TRUE"))
     f.write("USE_CUDA = {}\n".format("FALSE" if args.with_cuda == "no" else "TRUE"))
     f.write("USE_HIP = {}\n".format("FALSE" if args.with_hip == "no" else "TRUE"))
-    f.write("USE_DPCPP = {}\n".format("FALSE" if args.with_dpcpp == "no" else "TRUE"))
+    f.write("USE_SYCL = {}\n".format("FALSE" if args.with_sycl == "no" else "TRUE"))
     f.write("USE_ACC = {}\n".format("FALSE" if args.with_acc == "no" else "TRUE"))
     f.write("COMP = " + args.comp.strip() + "\n")
     f.write("DEBUG = {}\n".format("TRUE" if args.debug == "yes" else "FALSE"))

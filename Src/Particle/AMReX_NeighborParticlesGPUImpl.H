@@ -4,7 +4,7 @@
 
 namespace detail
 {
-    inline Vector<Box> getBoundaryBoxes(const Box& box, const int ncells)
+    inline Vector<Box> getBoundaryBoxes(const Box& box, int ncells)
     {
         AMREX_ASSERT_WITH_MESSAGE(box.size() > 2*IntVect(AMREX_D_DECL(ncells, ncells, ncells)),
                                   "Too many cells requested in getBoundaryBoxes");
@@ -21,7 +21,7 @@ namespace detail
             face_boxes.push_back(lo_face_box); bl.push_back(lo_face_box);
             for (auto face_box : face_boxes) {
                 for (int j = 0; j < AMREX_SPACEDIM; ++j) {
-                    if (i == j) continue;
+                    if (i == j) { continue; }
                     BoxList edge_boxes;
                     Box hi_edge_box = adjCellHi(face_box, j, ncells);
                     Box lo_edge_box = adjCellLo(face_box, j, ncells);
@@ -29,7 +29,7 @@ namespace detail
                     edge_boxes.push_back(lo_edge_box); bl.push_back(lo_edge_box);
                     for (auto edge_box : edge_boxes) {
                         for (int k = 0; k < AMREX_SPACEDIM; ++k) {
-                            if ((j == k) || (i == k)) continue;
+                            if ((j == k) || (i == k)) { continue; }
                             Box hi_corner_box = adjCellHi(edge_box, k, ncells);
                             Box lo_corner_box = adjCellLo(edge_box, k, ncells);
                             bl.push_back(hi_corner_box);
@@ -57,7 +57,7 @@ buildNeighborMask ()
     const BoxArray& ba = this->ParticleBoxArray(lev);
     const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
 
-    if (ba.size() == 1 && (! geom.isAnyPeriodic()) ) return;
+    if (ba.size() == 1 && (! geom.isAnyPeriodic()) ) { return; }
 
     if (m_neighbor_mask_ptr == nullptr ||
         ! BoxArray::SameRefs(m_neighbor_mask_ptr->boxArray(), ba) ||
@@ -71,9 +71,9 @@ buildNeighborMask ()
             int grid = mfi.index();
 
             std::set<NeighborTask> neighbor_grids;
-            for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
+            for (auto pshift : pshifts)
             {
-                const Box box = ba[mfi] + *pit;
+                const Box box = ba[mfi] + pshift;
 
                 const bool first_only = false;
                 auto isecs = ba.intersections(box, first_only, m_num_neighbor_cells);
@@ -81,9 +81,9 @@ buildNeighborMask ()
                 for (auto& isec : isecs)
                 {
                     int nbor_grid = isec.first;
-                    const Box isec_box = isec.second - *pit;
-                    if ( (grid == nbor_grid) && (*pit == IntVect(AMREX_D_DECL(0, 0, 0)))) continue;
-                    neighbor_grids.insert(NeighborTask(nbor_grid, isec_box, *pit));
+                    const Box isec_box = isec.second - pshift;
+                    if ( (grid == nbor_grid) && (pshift == 0)) { continue; }
+                    neighbor_grids.insert(NeighborTask(nbor_grid, isec_box, pshift));
                     const int global_rank = dmap[nbor_grid];
                     neighbor_procs.push_back(ParallelContext::global_to_local_rank(global_rank));
                 }
@@ -131,7 +131,7 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
     auto& plev  = this->GetParticles(lev);
     auto& ba = this->ParticleBoxArray(lev);
 
-    if (ba.size() == 1 && (! geom.isAnyPeriodic()) ) return;
+    if (ba.size() == 1 && (! geom.isAnyPeriodic()) ) { return; }
 
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -159,7 +159,7 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
         auto p_counts = counts.dataPtr();
         auto p_offsets = offsets.dataPtr();
 
-        ParticleType* p_ptr = &(aos[0]);
+        ParticleType* p_ptr = aos.data();
         auto p_code_array   = m_code_array[gid].dataPtr();
         auto p_isec_boxes   = m_isec_boxes[gid].dataPtr();
         const int nisec_box = m_isec_boxes[gid].size();

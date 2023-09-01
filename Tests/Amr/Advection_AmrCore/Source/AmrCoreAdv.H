@@ -10,6 +10,7 @@
 #include <AMReX_AmrCore.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_FluxRegister.H>
+#include <AMReX_FillPatcher.H>
 
 #ifdef AMREX_USE_OMP
 #   include <omp.h>
@@ -31,7 +32,13 @@ public:
     // constructor - reads in parameters from inputs file
     //             - sizes multilevel arrays and data structures
     AmrCoreAdv ();
-    virtual ~AmrCoreAdv();
+    ~AmrCoreAdv () override;
+
+    AmrCoreAdv (AmrCoreAdv&& rhs) noexcept = default;
+    AmrCoreAdv& operator= (AmrCoreAdv&& rhs) noexcept = default;
+
+    AmrCoreAdv (const AmrCoreAdv& rhs) = delete;
+    AmrCoreAdv& operator= (const AmrCoreAdv& rhs) = delete;
 
     // advance solution to final time
     void Evolve ();
@@ -42,28 +49,28 @@ public:
     // Make a new level using provided BoxArray and DistributionMapping and
     // fill with interpolated coarse level data.
     // overrides the pure virtual function in AmrCore
-    virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
-                                         const amrex::DistributionMapping& dm) override;
+    void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
+                                 const amrex::DistributionMapping& dm) override;
 
     // Remake an existing level using provided BoxArray and DistributionMapping and
     // fill with existing fine and coarse data.
     // overrides the pure virtual function in AmrCore
-    virtual void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba,
-                              const amrex::DistributionMapping& dm) override;
+    void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba,
+                      const amrex::DistributionMapping& dm) override;
 
     // Delete level data
     // overrides the pure virtual function in AmrCore
-    virtual void ClearLevel (int lev) override;
+    void ClearLevel (int lev) override;
 
     // Make a new level from scratch using provided BoxArray and DistributionMapping.
     // Only used during initialization.
     // overrides the pure virtual function in AmrCore
-    virtual void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba,
-                                          const amrex::DistributionMapping& dm) override;
+    void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba,
+                                  const amrex::DistributionMapping& dm) override;
 
     // tag all cells for refinement
     // overrides the pure virtual function in AmrCore
-    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
+    void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
 
     // Advance phi at a single level for a single time step, update flux registers
     void AdvancePhiAtLevel (int lev, amrex::Real time, amrex::Real dt_lev, int iteration, int ncycle);
@@ -98,15 +105,18 @@ private:
     // more flexible version of AverageDown() that lets you average down across multiple levels
     void AverageDownTo (int crse_lev);
 
+    enum class FillPatchType { fillpatch_class, fillpatch_function };
+
     // compute a new multifab by coping in phi from valid region and filling ghost cells
     // works for single level and 2-level cases (fill fine grid ghost by interpolating from coarse)
-    void FillPatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp, int ncomp);
+    void FillPatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp,
+                    int ncomp, FillPatchType fptype);
 
     // fill an entire multifab by interpolating from the coarser level
     // this comes into play when a new level of refinement appears
     void FillCoarsePatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp, int ncomp);
 
-    // utility to copy in data from phi_old and/or phi_new into another multifab
+    // Pack pointers to phi_old and/or phi_new and associated times.
     void GetData (int lev, amrex::Real time, amrex::Vector<amrex::MultiFab*>& data,
                   amrex::Vector<amrex::Real>& datatime);
 
@@ -120,13 +130,13 @@ private:
     void ComputeDt ();
 
     // get plotfile name
-    std::string PlotFileName (int lev) const;
+    [[nodiscard]] std::string PlotFileName (int lev) const;
 
     // put together an array of multifabs for writing
-    amrex::Vector<const amrex::MultiFab*> PlotFileMF () const;
+    [[nodiscard]] amrex::Vector<const amrex::MultiFab*> PlotFileMF () const;
 
     // set plotfile variables names
-    amrex::Vector<std::string> PlotFileVarNames () const;
+    [[nodiscard]] static amrex::Vector<std::string> PlotFileVarNames ();
 
     // write plotfile to disk
     void WritePlotFile () const;
@@ -165,6 +175,9 @@ private:
     // used in the reflux operation
     amrex::Vector<std::unique_ptr<amrex::FluxRegister> > flux_reg;
 
+    // This is for fillpatch during timestepping, but not for regridding.
+    amrex::Vector<std::unique_ptr<amrex::FillPatcher<amrex::MultiFab>>> fillpatcher;
+
     // Velocity on all faces at all levels
     amrex::Vector< amrex::Array<amrex::MultiFab, AMREX_SPACEDIM> > facevel;
 
@@ -176,7 +189,7 @@ private:
     amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();
 
     // if >= 0 we restart from a checkpoint
-    std::string restart_chkfile = "";
+    std::string restart_chkfile;
 
     // advective cfl number - dt = cfl*dx/umax
     amrex::Real cfl = 0.7;

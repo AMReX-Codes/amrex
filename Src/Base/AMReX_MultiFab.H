@@ -8,6 +8,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_Periodicity.H>
+#include <AMReX_NonLocalBC.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
@@ -17,6 +18,8 @@
 
 namespace amrex
 {
+
+using fMultiFab = FabArray<BaseFab<float> >;
 
 class iMultiFab;
 
@@ -67,7 +70,7 @@ public:
     * not allocating memory, then no FArrayBoxes are allocated at
     * this time but can be defined later.
     */
-    MultiFab (const BoxArray&            bs,
+    MultiFab (const BoxArray&            bxs,
               const DistributionMapping& dm,
               int                        ncomp,
               int                        ngrow,
@@ -79,7 +82,7 @@ public:
               const FabFactory<FArrayBox>& factory = FArrayBoxFactory());
 #endif
 
-    MultiFab (const BoxArray&            bs,
+    MultiFab (const BoxArray&            bxs,
               const DistributionMapping& dm,
               int                        ncomp,
               const IntVect&             ngrow,
@@ -99,7 +102,7 @@ public:
      */
     MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp);
 
-    virtual ~MultiFab () override;
+    ~MultiFab ();
 
     MultiFab (MultiFab&& rhs) noexcept;
     MultiFab& operator= (MultiFab&& rhs) noexcept = default;
@@ -107,31 +110,31 @@ public:
     MultiFab (const MultiFab& rhs) = delete;
     MultiFab& operator= (const MultiFab& rhs) = delete;
 
-    virtual void define (const BoxArray&            bxs,
-                         const DistributionMapping& dm,
-                         int                        nvar,
-                         int                        ngrow,
+    void define (const BoxArray&            bxs,
+                 const DistributionMapping& dm,
+                 int                        nvar,
+                 int                        ngrow,
 #ifdef AMREX_STRICT_MODE
-                         const MFInfo&              info,
-                         const FabFactory<FArrayBox>& factory) override;
+                 const MFInfo&              info,
+                 const FabFactory<FArrayBox>& factory);
 #else
-                         const MFInfo&              info = MFInfo(),
-                         const FabFactory<FArrayBox>& factory = FArrayBoxFactory()) override;
+                 const MFInfo&              info = MFInfo(),
+                 const FabFactory<FArrayBox>& factory = FArrayBoxFactory());
 #endif
 
-    virtual void define (const BoxArray&            bxs,
-                         const DistributionMapping& dm,
-                         int                        nvar,
-                         const IntVect&             ngrow,
+    void define (const BoxArray&            bxs,
+                 const DistributionMapping& dm,
+                 int                        nvar,
+                 const IntVect&             ngrow,
 #ifdef AMREX_STRICT_MODE
-                         const MFInfo&              info,
-                         const FabFactory<FArrayBox>& factory) override;
+                 const MFInfo&              info,
+                 const FabFactory<FArrayBox>& factory);
 #else
-                         const MFInfo&              info = MFInfo(),
-                         const FabFactory<FArrayBox>& factory = FArrayBoxFactory()) override;
+                 const MFInfo&              info = MFInfo(),
+                 const FabFactory<FArrayBox>& factory = FArrayBoxFactory());
 #endif
 
-    void operator= (Real r);
+    MultiFab& operator= (Real r);
     //
     /**
     * \brief Returns the minimum value contained in component comp of the
@@ -139,14 +142,14 @@ public:
     * boundary cells to search for the minimum.  The default is to
     * search only the valid regions of the FArrayBoxes.
     */
-    Real min (int comp,
+    [[nodiscard]] Real min (int comp,
               int nghost = 0,
               bool local = false) const;
     /**
     * \brief Identical to min() function, but confines its
     * search to intersection of Box b and the MultiFab.
     */
-    Real min (const Box& b,
+    [[nodiscard]] Real min (const Box& region,
               int        comp,
               int        nghost = 0,
               bool       local = false) const;
@@ -156,14 +159,14 @@ public:
     * boundary cells to search for the maximum.  The default is to
     * search only the valid regions of the FArrayBoxes.
     */
-    Real max (int comp,
+    [[nodiscard]] Real max (int comp,
               int nghost = 0,
               bool local = false) const;
     /**
     * \brief Identical to the previous max() function, but confines its
     * search to intersection of Box b and the MultiFab.
     */
-    Real max (const Box& b,
+    [[nodiscard]] Real max (const Box& region,
               int        comp,
               int        nghost = 0,
               bool       local = false) const;
@@ -171,29 +174,27 @@ public:
     * \brief Returns the maximum *absolute* value contained in
     * component comp of the MultiFab.
     */
-    Real norm0 (int comp = 0, int nghost = 0, bool local = false, bool ignore_covered = false ) const;
-    Real norminf (int comp = 0, int nghost = 0, bool local = false, bool ignore_covered = false ) const {
+    [[nodiscard]] Real norm0 (int comp = 0, int nghost = 0, bool local = false, bool ignore_covered = false ) const;
+    [[nodiscard]] Real norminf (int comp = 0, int nghost = 0, bool local = false, bool ignore_covered = false ) const {
         return norm0(comp,nghost,local,ignore_covered);
     }
 
-    Real norm0 (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const;
-    Real norminf (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const {
+    [[nodiscard]] Real norm0 (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const;
+    [[nodiscard]] Real norminf (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const {
         return norm0(mask,comp,nghost,local);
     }
 
-    Real norm0 (int comp, int ncomp, IntVect const& nghost, bool local = false,
+    [[nodiscard]] Real norm0 (int comp, int ncomp, IntVect const& nghost, bool local = false,
                 bool ignore_covered = false) const;
-    Real norminf (int comp, int ncomp, IntVect const& nghost, bool local = false,
-                  bool ignore_covered = false) const {
-        return norm0(comp, ncomp, nghost, local, ignore_covered);
-    }
+
+    using FabArray<FArrayBox>::norminf;
 
     /**
     * \brief Returns the maximum *absolute* values contained in
-    * each component of "comps" of the MultiFab.  No ghost cells are used.
+    * each component of "comps" of the MultiFab.  "nghost" ghost cells are used.
     */
-    Vector<Real> norm0 (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false ) const;
-    Vector<Real> norminf (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false) const {
+    [[nodiscard]] Vector<Real> norm0 (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false ) const;
+    [[nodiscard]] Vector<Real> norminf (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false) const {
         return norm0(comps,nghost,local,ignore_covered);
     }
 
@@ -201,36 +202,46 @@ public:
     * \brief Returns the L1 norm of component "comp" over the MultiFab.
     * No ghost cells are used.  This version has no double counting for nodal data.
     */
-    Real norm1 (int comp, const Periodicity& period, bool ignore_covered = false) const;
+    [[nodiscard]] Real norm1 (int comp, const Periodicity& period, bool ignore_covered = false) const;
     /**
     * \brief Returns the L1 norm of component "comp" over the MultiFab.
     * ngrow ghost cells are used.
     */
-    Real norm1 (int comp = 0, int ngrow = 0, bool local = false) const;
+    [[nodiscard]] Real norm1 (int comp = 0, int ngrow = 0, bool local = false) const;
     /**
     * \brief Returns the L1 norm of each component of "comps" over the MultiFab.
     * ngrow ghost cells are used.
     */
-    Vector<Real> norm1 (const Vector<int>& comps, int ngrow = 0, bool local = false) const;
+    [[nodiscard]] Vector<Real> norm1 (const Vector<int>& comps, int ngrow = 0, bool local = false) const;
     /**
     * \brief Returns the L2 norm of component "comp" over the MultiFab.
     * No ghost cells are used.
     */
-    Real norm2 (int comp = 0) const;
+    [[nodiscard]] Real norm2 (int comp = 0) const;
     /**
     * \brief Returns the L2 norm of component "comp" over the MultiFab.
     * No ghost cells are used. This version has no double counting for nodal data.
     */
-    Real norm2 (int comp, const Periodicity& period) const;
+    [[nodiscard]] Real norm2 (int comp, const Periodicity& period) const;
     /**
     * \brief Returns the L2 norm of each component of "comps" over the MultiFab.
     * No ghost cells are used.
     */
-    Vector<Real> norm2 (const Vector<int>& comps) const;
+    [[nodiscard]] Vector<Real> norm2 (const Vector<int>& comps) const;
     /**
     * \brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
     */
-    Real sum (int comp = 0, bool local = false) const;
+    [[nodiscard]] Real sum (int comp = 0, bool local = false) const;
+
+    using FabArray<FArrayBox>::sum;
+
+    /**
+    * \brief Same as sum with local=false, but for non-cell-centered data, this
+    *        skips non-unique points that are owned by multiple boxes.
+    */
+    [[nodiscard]] Real sum_unique (int comp = 0,
+                     bool local = false,
+                     const Periodicity& period = Periodicity::NonPeriodic()) const;
     /**
     * \brief Adds the scalar value val to the value of each cell in the
     * specified subregion of the MultiFab.  The subregion consists
@@ -389,10 +400,10 @@ public:
     void negate (const Box& region,
                  int        nghost = 0);
 
-    IntVect minIndex (int comp,
+    [[nodiscard]] IntVect minIndex (int comp,
                       int nghost = 0) const;
 
-    IntVect maxIndex (int comp,
+    [[nodiscard]] IntVect maxIndex (int comp,
                       int nghost = 0) const;
     /**
     * \brief This function adds the values of the cells in mf to the corresponding
@@ -439,18 +450,18 @@ public:
     */
     static Real Dot (const MultiFab& x, int xcomp,
                      const MultiFab& y, int ycomp,
-                     int num_comp, int nghost, bool local = false);
+                     int numcomp, int nghost, bool local = false);
 
     /**
     * \brief Returns the dot product of a MultiFab with itself.
     */
     static Real Dot (const MultiFab& x, int xcomp,
-                     int num_comp, int nghost, bool local = false);
+                     int numcomp, int nghost, bool local = false);
 
     static Real Dot (const iMultiFab& mask,
                      const MultiFab& x, int xcomp,
                      const MultiFab& y, int ycomp,
-                     int num_comp, int nghost, bool local = false);
+                     int numcomp, int nghost, bool local = false);
     /**
     * \brief Add src to dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
@@ -568,13 +579,7 @@ public:
                        int             numcomp,
                        int             nghost);
 
-    static void Saxpy (MultiFab&       dst,
-                       Real            a,
-                       const MultiFab& src,
-                       int             srccomp,
-                       int             dstcomp,
-                       int             numcomp,
-                       const IntVect&  nghost);
+    using FabArray<FArrayBox>::Saxpy;
 
     /**
     * \brief dst = src + a*dst
@@ -587,13 +592,8 @@ public:
                       int             numcomp,
                       int             nghost);
 
-    static void Xpay (MultiFab&       dst,
-                      Real            a,
-                      const MultiFab& src,
-                      int             srccomp,
-                      int             dstcomp,
-                      int             numcomp,
-                      const IntVect&  nghost);
+    using FabArray<FArrayBox>::Xpay;
+
     /**
     * \brief dst = a*x + b*y
     */
@@ -608,16 +608,7 @@ public:
                          int             numcomp,
                          int             nghost);
 
-    static void LinComb (MultiFab&       dst,
-                         Real            a,
-                         const MultiFab& x,
-                         int             xcomp,
-                         Real            b,
-                         const MultiFab& y,
-                         int             ycomp,
-                         int             dstcomp,
-                         int             numcomp,
-                         const IntVect&  nghost);
+    using FabArray<FArrayBox>::LinComb;
 
     /**
     * \brief dst += src1*src2
@@ -647,25 +638,25 @@ public:
     *
     * This version checks all components and grow cells.
     */
-    bool contains_nan (bool local=false) const;
-    bool contains_nan (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
-    bool contains_nan (int scomp, int ncomp, const IntVect& ngrow, bool local=false) const;
+    [[nodiscard]] bool contains_nan (bool local=false) const;
+    [[nodiscard]] bool contains_nan (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
+    [[nodiscard]] bool contains_nan (int scomp, int ncomp, const IntVect& ngrow, bool local=false) const;
     /**
     * \brief Are there any Infs in the MF?
     * This may return false, even if the MF contains Infs, if the machine
     * doesn't support the appropriate Inf testing functions.
     * This version checks all components and grow cells.
     */
-    bool contains_inf (bool local=false) const;
-    bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
-    bool contains_inf (int scomp, int ncomp, const IntVect& ngrow, bool local=false) const;
+    [[nodiscard]] bool contains_inf (bool local=false) const;
+    [[nodiscard]] bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
+    [[nodiscard]] bool contains_inf (int scomp, int ncomp, const IntVect& ngrow, bool local=false) const;
 
     /**
      * \brief Return a mask indicating how many duplicates are in each point.
      */
-    std::unique_ptr<MultiFab> OverlapMask (const Periodicity& period = Periodicity::NonPeriodic()) const;
+    [[nodiscard]] std::unique_ptr<MultiFab> OverlapMask (const Periodicity& period = Periodicity::NonPeriodic()) const;
     //! Owner is the grid with the lowest grid number containing the data.
-    std::unique_ptr<iMultiFab> OwnerMask (const Periodicity& period = Periodicity::NonPeriodic()) const;
+    [[nodiscard]] std::unique_ptr<iMultiFab> OwnerMask (const Periodicity& period = Periodicity::NonPeriodic()) const;
 
     //! Sync up nodal data via averaging
     void AverageSync (const Periodicity& period = Periodicity::NonPeriodic());
@@ -682,8 +673,8 @@ public:
 private:
     //
     //! Some useful typedefs.
-    typedef FabArrayBase::CopyComTagsContainer CopyComTagsContainer;
-    typedef FabArrayBase::MapOfCopyComTagContainers MapOfCopyComTagContainers;
+    using CopyComTagsContainer = FabArrayBase::CopyComTagsContainer;
+    using MapOfCopyComTagContainers = FabArrayBase::MapOfCopyComTagContainers;
 
     void initVal ();
 };

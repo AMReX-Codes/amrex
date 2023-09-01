@@ -44,6 +44,14 @@ endif
 CXXDEPFLAGS = $(LEGACY_DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(includes)
 CDEPFLAGS = $(LEGACY_DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
 
+ifneq ($(CCACHE),)
+  ifneq ($(AMREX_CCACHE_ENV),)
+    CCACHE_COMMAND = $(AMREX_CCACHE_ENV) $(CCACHE)
+  else
+    CCACHE_COMMAND = $(CCACHE)
+  endif
+endif
+
 #
 # Rules for building executable.
 #
@@ -75,7 +83,10 @@ else
 
 # multiple executables
 %.$(machineSuffix).ex:%.cpp $(objForExecs)
-	$(SILENT) $(CCACHE) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
+ifeq ($(USE_CLANG_TIDY),TRUE)
+	$(SILENT) $(CLANG_TIDY) $(CLANG_TIDY_ARGS) $< -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
+endif
+	$(SILENT) $(CCACHE_COMMAND) $(CCACHEFLAGS) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
 	@echo "Linking $@ ..."
 	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(FINAL_LIBS)
 
@@ -215,7 +226,7 @@ cleanconfig::
 clean:: cleanconfig
 	@echo Cleaning ...
 	$(SILENT) $(RM) TAGS tags
-	$(SILENT) $(RM) -r $(TmpBuildDir) *~
+	$(SILENT) $(RM) -r $(TMP_BUILD_DIR) *~
 	$(SILENT) $(RM) *.ex *.o
 	$(SILENT) $(RM) *.mod
 	$(SILENT) $(RM) *.ptx
@@ -238,15 +249,9 @@ TAGS:	$(allSources)
 	@echo etags $< ...
 	$(SILENT) etags $(abspath $^)
 
-clang-analyze: $(CEXE_sources)
-	clang++ --analyze --analyzer-output html $(CXXFLAGS) $(CPPFLAGS) $(includes) $^
-
-clang-tidy: $(CEXE_sources)
-	clang-tidy $^ -checks=clang-diagnostic-*,performance-*,mpi-* -- $(CXXFLAGS) $(CPPFLAGS) $(includes)
-
 FORCE:
 
-.PHONY:	all cleanconfig clean realclean file_locations tags TAGS clang-analyze clang-tidy install_lib install_headers install_fortran_modules install_pkg_config
+.PHONY:	all cleanconfig clean realclean file_locations tags TAGS install_lib install_headers install_fortran_modules install_pkg_config
 
 #
 # Rules for objects.
@@ -258,7 +263,12 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
 endif
-	$(SILENT) $(CCACHE) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+ifeq ($(USE_CLANG_TIDY),TRUE)
+# for each word in CLANG_TIDY_IGNORE_SOURCES, check if that word is in the absolute path of the source file
+# if any word matches, the result will be non-empty after stripping whitespace, so clang-tidy won't be run
+	$(if $(strip $(foreach pat,$(CLANG_TIDY_IGNORE_SOURCES),$(findstring $(pat),$(abspath $<)))),,$(SILENT) $(CLANG_TIDY) $(CLANG_TIDY_ARGS) $< -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs))
+endif
+	$(SILENT) $(CCACHE_COMMAND) $(CCACHEFLAGS) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs) -c $< $(EXE_OUTPUT_OPTION)
 ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
@@ -270,7 +280,7 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
 endif
-	$(SILENT) $(CCACHE) $(CC) $(DEPFLAGS) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE_COMMAND) $(CCACHEFLAGS) $(CC) $(DEPFLAGS) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
 ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
@@ -332,7 +342,7 @@ endif
 $(depEXETempDir)/%.d: %.cpp $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-ifeq ($(USE_DPCPP),TRUE)
+ifeq ($(USE_SYCL),TRUE)
         # Use > $@2 to filter out unnecessary messages
 	$(CXX) $(CXXDEPFLAGS) $< -o $@ > $@2
 else ifeq ($(USE_HIP),TRUE)
@@ -345,7 +355,7 @@ endif
 $(depEXETempDir)/%.d: %.c $(srcTempDir)/AMReX_Config.H $(srcTempDir)/AMReX_Version.H $(AUTO_BUILD_SOURCES)
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-ifeq ($(USE_DPCPP),TRUE)
+ifeq ($(USE_SYCL),TRUE)
 	$(CC) $(CDEPFLAGS) $< -o $@
 else ifeq ($(USE_HIP),TRUE)
 	$(CC) $(CDEPFLAGS) $< -o $@
@@ -441,7 +451,7 @@ $(tmpEXETempDir)/%.F.orig: %.F
 # & --> *
 $(tmpEXETempDir)/%-cppd.h: %.H
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(CC) $(CPPFLAGS) -DAMREX_TYPECHECK $(includes) -E -P -x c -std=c99 $< -o $@
+	$(SILENT) $(CC) $(CPPFLAGS) -DAMREX_TYPECHECK $(includes) -E -P -x c -std=c11 $< -o $@
 	@$(SHELL) -ec 'sed -i -e '\''s/amrex::Real/$(amrex_real)/g'\'' $@ ; \
 	               sed -i -e '\''s/amrex_real/$(amrex_real)/g'\''  $@ ; \
 	               sed -i -e '\''s/amrex_particle_real/$(amrex_particle_real)/g'\''  $@ ; \

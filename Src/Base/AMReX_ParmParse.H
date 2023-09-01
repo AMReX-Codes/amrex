@@ -32,18 +32,24 @@ class IntVect;
 //
 // Comments in an input file include all text from a '#' character to the
 // end of the line.  Here is an example input file:
-//
-//   niter = 100                # niter is an integer
-//   title = "Double Wammy"     # example of a string with spaces
-//   cell_size = 0.5 0.75       # cell spacing in each dimension
-//   plot.var = Density 1 10    # a list of values
-//   plot.var = Energy  5 12    # another list of values
-//   bigarray = 1 2 3 4 5 6 7 8 # first part of array
-//              9 10 11 12      # continuation of bigarray
-//   test = apple "boy blue" 10 20 30 40
-//   FILE = prob_file           # insert contents of this "prob_file" here
-//
-// The "FILE = <filename>" definition is special.  Rather than just
+/*
+   niter = 100                # niter is an integer
+   title = "Double Wammy"     # example of a string with spaces
+   cell_size = 0.5 0.75       # cell spacing in each dimension
+   plot.var = Density 1 10    # a list of values
+   plot.var = Energy  5 12    # another list of values
+   bigarray = 1 2 3 4 5 6 7 8 \
+              9 10 11 12      # continuation of bigarray
+   multi_line_string = "This is a
+                        multi-line string."
+   test = apple "boy blue" 10 20 30 40
+   FILE = prob_file           # insert contents of this "prob_file" here
+*/
+// For values spanning multiple lines, one must use '\' at the end of a line
+// for continuation, otherwise it's a runtime error. Note that there must be
+// at least one space before the continuation character `\`.  Multiple lines
+// inside a pair of double quotes are considered a single string containing
+// '\n's. The "FILE = <filename>" definition is special.  Rather than just
 // adding this entry to the database, it reads the contents of <filename>
 // into the database.
 //
@@ -229,9 +235,11 @@ class IntVect;
 *
 *     plot.var = Energy  5 12
 *
-*     bigarray = 1 2 3 4 5 6 7 8
-*
+*     bigarray = 1 2 3 4 5 6 7 8 \
 *                9 10 11 12
+*
+*     multi_line_string = "This is a
+*                          multi-line string."
 *
 *     aBox    = ((0,0) (5,5))
 *
@@ -275,32 +283,33 @@ public:
     */
     explicit ParmParse (const std::string& prefix = std::string());
 
-    // To avoid error: definition of implicit copy constructor for
-    // 'ParmParse' is deprecated because it has a user-declared copy
-    // assignment operator.
     ParmParse (ParmParse const& rhs) = default;
+    ~ParmParse () = default;
+
+    ParmParse (ParmParse && rhs) = delete;
+    ParmParse& operator= (const ParmParse& rhs) = delete;
+    ParmParse& operator= (ParmParse&& rhs) = delete;
 
     //! Returns true if name is in table.
-    bool contains (const char* name) const;
+    [[nodiscard]] bool contains (const char* name) const;
     /**
     * \brief Returns the number of values associated with nth occurrence of
     * name (prepended with the prefix) in the table.  n == -1 implies
     * the last occurrence.
     */
-    int countval (const char* name,
-                  int         n = LAST) const;
+    [[nodiscard]] int countval (const char* name, int n = LAST) const;
     /**
     * \brief Returns the number of times the given name (prepended with
     * prefix) appears in the table.
     */
-    int countname (const std::string& name) const;
+    [[nodiscard]] int countname (const std::string& name) const;
     /**
     * \brief Returns the number of records of the given name (prepended with prefix) appears
     * in the table
     */
-    int countRecords (const std::string& name) const;
+    [[nodiscard]] int countRecords (const std::string& name) const;
     //! Returns the nth record of the given name, or zero if none found.
-    Record getRecord (const std::string& name, int n = LAST) const;
+    [[nodiscard]] Record getRecord (const std::string& name, int n = LAST) const;
     //! Write the contents of the table in ASCII to the ostream.
     static void dumpTable (std::ostream& os, bool prettyPrint = false);
     /**
@@ -316,11 +325,11 @@ public:
     */
     void getkth (const char* name,
                  int         k,
-                 bool&        ref,
+                 bool&       ref,
                  int         ival = FIRST) const;
     //! Same as getkth() but searches for the last occurrence of name.
     void get (const char* name,
-              bool&        ref,
+              bool&       ref,
               int         ival = FIRST) const;
     /**
     * \brief Similar to getkth() but returns 0 if there is no kth occurrence
@@ -338,8 +347,7 @@ public:
                bool&        ref,
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name,
-              const bool  val);
+    void add (const char* name, bool val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to an int and stored
@@ -375,7 +383,7 @@ public:
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
-              const int  val);
+              int  val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to an int and stored
@@ -410,7 +418,7 @@ public:
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
-              const long  val);
+              long  val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to an int and stored
@@ -445,7 +453,7 @@ public:
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
-              const long long  val);
+              long long  val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a float and stored
@@ -480,7 +488,7 @@ public:
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
-              const float  val);
+              float  val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a double and stored
@@ -515,7 +523,7 @@ public:
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
-              const double  val);
+              double  val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a std::string and stored
@@ -554,10 +562,10 @@ public:
               const std::string&  val);
 
     //! keyword for files to load
-    static std::string FileKeyword;
+    static std::string const FileKeyword;
 
     //! Add keys and values from a file to the end of the PP table.
-    static void addfile (std::string const filename);
+    static void addfile (std::string const& filename);
 
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
@@ -662,9 +670,8 @@ public:
                   std::vector<int>& ref,
                   int         start_ix = FIRST,
                   int         num_val = ALL) const;
-    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    void addarr (const char* name,
-                const std::vector<int>&  ptr);
+    //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
+    void addarr (const char* name, const std::vector<int>& ref);
 
     /**
     * \brief Gets an std::vector\<long\> of num_val values from kth occurrence of
@@ -699,9 +706,9 @@ public:
                   std::vector<long>& ref,
                   int         start_ix = FIRST,
                   int         num_val = ALL) const;
-    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
+    //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
     void addarr (const char* name,
-                const std::vector<long>&  ptr);
+                const std::vector<long>& ref);
 
     /**
     * \brief Gets an std::vector\<long long\> of num_val values from kth occurrence of
@@ -736,9 +743,8 @@ public:
                   std::vector<long long>& ref,
                   int         start_ix = FIRST,
                   int         num_val = ALL) const;
-    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    void addarr (const char* name,
-                const std::vector<long long>&  ptr);
+    //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
+    void addarr (const char* name, const std::vector<long long>& ref);
 
     /**
     * \brief Gets an std::vector\<float\> of num_val values from kth occurrence of
@@ -773,9 +779,8 @@ public:
                   std::vector<float>& ref,
                   int           start_ix = FIRST,
                   int           num_val = ALL) const;
-    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    void addarr (const char* name,
-                const std::vector<float>&  ptr);
+    //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
+    void addarr (const char* name, const std::vector<float>& ref);
     /**
     * \brief Gets an std::vector\<double\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to a double
@@ -809,9 +814,8 @@ public:
                   std::vector<double>& ref,
                   int            start_ix = FIRST,
                   int            num_val = ALL) const;
-    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    void addarr (const char* name,
-                const std::vector<double>&  ptr);
+    //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
+    void addarr (const char* name, const std::vector<double>& ref);
     /**
     * \brief Gets an std::vector<std::string> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an
@@ -845,9 +849,8 @@ public:
                   std::vector<std::string>& ref,
                   int             start_ix = FIRST,
                   int             num_val = ALL) const;
-    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    void addarr (const char* name,
-                const std::vector<std::string>&  ptr);
+    //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
+    void addarr (const char* name, const std::vector<std::string>& ref);
     /**
     * \brief Gets an std::vector\<IntVect\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an
@@ -881,9 +884,8 @@ public:
                   std::vector<IntVect>& ref,
                   int             start_ix = FIRST,
                   int             num_val = ALL) const;
-    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    void addarr (const char* name,
-                const std::vector<IntVect>&  ptr);
+    //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
+    void addarr (const char* name, const std::vector<IntVect>& ref);
     /**
     * \brief Gets an std::vector\<Box\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an
@@ -917,9 +919,8 @@ public:
                   std::vector<Box>& ref,
                   int             start_ix = FIRST,
                   int             num_val = ALL) const;
-    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    void addarr (const char* name,
-                const std::vector<Box>&  ptr);
+    //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
+    void addarr (const char* name, const std::vector<Box>& refd);
 
     template <typename T, std::size_t N>
     void get (const char* name, std::array<T,N>& ref) const {
@@ -972,10 +973,17 @@ public:
      * be stored in the `ref` argument.  If not, the value in `ref` will be
      * added to the ParmParse database.  The return value indicates if it
      * existed previously.
+     *
+     * If `name` is found, then the ref argument will be reallocated
+     * (and resized) according to the number of values in the inputs.
      */
     template <typename T>
     int queryAdd (const char* name, std::vector<T>& ref) {
-        int exist = this->queryarr(name, ref);
+        std::vector<T> empty;
+        int exist = this->queryarr(name, empty);
+        if (exist) {
+            ref = std::move(empty);
+        }
         if (!exist && !ref.empty()) {
             this->addarr(name, ref);
         }
@@ -1044,43 +1052,32 @@ public:
     static bool QueryUnusedInputs ();
 
     //! Any unused [prefix.]* parameters?
-    static bool hasUnusedInputs (const std::string& prefix = std::string());
+    [[nodiscard]] static bool hasUnusedInputs (const std::string& prefix = std::string());
 
     //! Returns unused [prefix.]* parameters.
-    static std::vector<std::string> getUnusedInputs (const std::string& prefix = std::string());
+    [[nodiscard]] static std::vector<std::string> getUnusedInputs (const std::string& prefix = std::string());
 
     //! Returns [prefix.]* parameters.
-    static std::set<std::string> getEntries (const std::string& prefix = std::string());
+    [[nodiscard]] static std::set<std::string> getEntries (const std::string& prefix = std::string());
 
     struct PP_entry;
     using Table = std::list<PP_entry>;
     static void appendTable(ParmParse::Table& tab);
-    const Table& table() const {return m_table;}
+    [[nodiscard]] const Table& table() const {return m_table;}
 
 protected:
-    //
-    // Don't allow one ParmParse object to be assigned to another.
-    // Given that we use a const reference for "m_table" there's
-    // really no way to make assignment work.  It really doesn't make
-    // much sense anyway.  There's really only one "table" used by ParmParse,
-    // a copy of which is maintained by each MPI process.  I'm adding this
-    // solely so that the error message the compiler generates is a little
-    // clearer than the one generated by the default compiler-generated
-    // assignment operator.
-    //
-    ParmParse& operator= (const ParmParse& rhs) = delete;
 
     friend class Frame;
     friend class Record;
 
-    explicit ParmParse (Table& tbl);
+    explicit ParmParse (Table& a_table);
     //
     //! Set/Get the prefix.
-    std::string getPrefix() const;
+    [[nodiscard]] std::string getPrefix() const;
     std::string setPrefix(const std::string& str);
     void pushPrefix(const std::string& str);
     void popPrefix();
-    std::string prefixedName (const std::string& str) const;
+    [[nodiscard]] std::string prefixedName (const std::string& str) const;
     //
     //! Prefix used in keyword search.
     std::stack<std::string> m_pstack;
@@ -1089,16 +1086,15 @@ protected:
 
 struct ParmParse::PP_entry
 {
-    PP_entry (const std::string&            name,
-              const std::list<std::string>& vals);
-    PP_entry (const std::string& name,
-              const std::string& vals);
-    PP_entry (const std::string& name,
-              const Table& table);
+    PP_entry (std::string name, const std::list<std::string>& vals);
+    PP_entry (std::string name, const std::string& vals);
+    PP_entry (std::string name, const std::list<PP_entry>& table);
     PP_entry (const PP_entry& pe);
     PP_entry& operator= (const PP_entry& pe);
+    PP_entry (PP_entry&&) = delete;
+    PP_entry& operator= (PP_entry&&) = delete;
     ~PP_entry ();
-    std::string print() const;
+    [[nodiscard]] std::string print() const;
 
     std::string              m_name;
     std::vector<std::string> m_vals;
@@ -1110,21 +1106,25 @@ struct ParmParse::PP_entry
 class ParmParse::Frame
 {
 public:
-    Frame (ParmParse& pp, const std::string& str);
+    Frame (ParmParse& pp, const std::string& pfix);
     ~Frame ();
+    Frame (Frame const&) = default;
+    Frame (Frame&&) = delete;
+    Frame& operator= (Frame const&) = delete;
+    Frame& operator= (Frame &&) = delete;
     void push(const std::string& str);
     void pop();
-    std::string getPrefix() const;
+    [[nodiscard]] std::string getPrefix() const;
 private:
     ParmParse& m_pp;
-    int        m_np;
+    int        m_np{0};
 };
 
 class ParmParse::Record
 {
 public:
-    const ParmParse* operator->() const;
-    const ParmParse& operator* () const;
+    [[nodiscard]] const ParmParse* operator->() const;
+    [[nodiscard]] const ParmParse& operator* () const;
 private:
     friend class ParmParse;
     explicit Record (const ParmParse& pp);

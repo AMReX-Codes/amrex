@@ -250,7 +250,7 @@ function( add_typecheck_target _target)
       add_custom_command(
          OUTPUT  ${_cppd_file}
          COMMAND ${CMAKE_C_COMPILER}
-         ARGS    ${_cxx_defines} ${_includes} -E -P -x c -std=c99 ${_fullname} > ${_cppd_file}
+         ARGS    ${_cxx_defines} ${_includes} -E -P -x c -std=c11 ${_fullname} > ${_cppd_file}
          COMMAND sed
          ARGS -i -e 's/amrex::Real/${AMREX_REAL}/g' ${_cppd_file}
          COMMAND sed

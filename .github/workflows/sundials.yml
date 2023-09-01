@@ -1,0 +1,150 @@
+name: SUNDIALS
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-sundials
+  cancel-in-progress: true
+
+jobs:
+  sundials-cpu:
+    name: GCC SUNDIALS@6.5.0
+    runs-on: ubuntu-22.04
+    env:
+       CCACHE_COMPRESS: 1
+       CCACHE_COMPRESSLEVEL: 10
+       CCACHE_MAXSIZE: 20M
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build SUNDIALS
+      run: |
+        ccache -z
+
+        wget -q https://github.com/LLNL/sundials/archive/refs/tags/v6.5.0.tar.gz
+        tar xfz v6.5.0.tar.gz
+        cd sundials-6.5.0
+        mkdir instdir builddir
+        cd builddir
+        cmake .. \
+            -DCMAKE_INSTALL_PREFIX=${PWD}/../instdir \
+            -DCMAKE_CXX_STANDARD=17                  \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache     \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache
+        make -j2
+        make install
+        cd ../..
+    - name: Compile Test
+      run: |
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 14
+        export CXXFLAGS="-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        cmake -S . -B build             \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DUSE_XSDK_DEFAULTS=ON      \
+            -DAMReX_SUNDIALS=ON         \
+            -DSUNDIALS_ROOT=${PWD}/sundials-6.5.0/instdir \
+            -DCMAKE_CXX_STANDARD=17     \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build -j 2
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j2 -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  sundials-cuda:
+    name: CUDA SUNDIALS@6.5.0
+    runs-on: ubuntu-22.04
+    env:
+       CCACHE_COMPRESS: 1
+       CCACHE_COMPRESSLEVEL: 10
+       CCACHE_MAXSIZE: 75M
+    steps:
+    - uses: actions/checkout@v3
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies_nvcc.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build SUNDIALS
+      run: |
+        ccache -z
+
+        # sundials requirement
+        sudo apt-get install -y libcusolver-dev-12-0 libcusparse-dev-12-0 libcublas-dev-12-0
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+        which nvcc || echo "nvcc not in PATH!"
+
+        wget -q https://github.com/LLNL/sundials/archive/refs/tags/v6.5.0.tar.gz
+        tar xfz v6.5.0.tar.gz
+        cd sundials-6.5.0
+        mkdir instdir builddir
+        cd builddir
+        cmake ..                                     \
+            -DENABLE_CUDA=ON                         \
+            -DCMAKE_INSTALL_PREFIX=${PWD}/../instdir \
+            -DCMAKE_CUDA_ARCHITECTURES=80            \
+            -DCMAKE_CXX_STANDARD=17                  \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache     \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache       \
+            -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache
+        make -j2
+        make install
+        cd ../..
+    - name: Compile Test
+      run: |
+        export CXXFLAGS="-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+        which nvcc || echo "nvcc not in PATH!"
+
+        cmake -S . -B build             \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DUSE_XSDK_DEFAULTS=ON      \
+            -DAMReX_GPU_BACKEND=CUDA    \
+            -DAMReX_CUDA_ARCH=8.0       \
+            -DAMReX_SUNDIALS=ON         \
+            -DSUNDIALS_ROOT=${PWD}/sundials-6.5.0/instdir \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache  \
+            -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache
+        cmake --build build -j 2
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

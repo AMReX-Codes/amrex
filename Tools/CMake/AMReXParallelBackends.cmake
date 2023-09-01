@@ -5,7 +5,9 @@
 #
 set( THREADS_PREFER_PTHREAD_FLAG on )
 find_package( Threads REQUIRED )
-target_link_libraries( amrex PUBLIC Threads::Threads )
+foreach(D IN LISTS AMReX_SPACEDIM)
+    target_link_libraries( amrex_${D}d PUBLIC Threads::Threads )
+endforeach()
 
 
 #
@@ -20,7 +22,9 @@ if (AMReX_MPI)
    endif ()
    find_package(MPI REQUIRED ${_mpi_comps})
    list(TRANSFORM _mpi_comps PREPEND "MPI::MPI_")
-   target_link_libraries(amrex PUBLIC ${_mpi_comps})
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       target_link_libraries(amrex_${D}d PUBLIC ${_mpi_comps})
+   endforeach()
    unset(_mpi_comps)
 endif ()
 
@@ -36,12 +40,16 @@ if (AMReX_OMP)
    endif ()
    find_package(OpenMP REQUIRED ${_omp_comps})
    list(TRANSFORM _omp_comps PREPEND "OpenMP::OpenMP_")
-   target_link_libraries(amrex PUBLIC ${_omp_comps})
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       target_link_libraries(amrex_${D}d PUBLIC ${_omp_comps})
+   endforeach()
    unset(_omp_comps)
 else ()
-   target_compile_options( amrex
-      PUBLIC
-      $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       target_compile_options(amrex_${D}d
+          PUBLIC
+          $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )
+   endforeach()
 endif ()
 
 #
@@ -55,12 +63,14 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
       CMAKE_VERSION VERSION_GREATER_EQUAL 3.20 )
 
    find_package(CUDAToolkit REQUIRED)
-   target_link_libraries(amrex PUBLIC CUDA::curand)
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       target_link_libraries(amrex_${D}d PUBLIC CUDA::curand)
 
-    # nvToolsExt: if tiny profiler or base profiler are on.
-    if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
-        target_link_libraries(amrex PUBLIC CUDA::nvToolsExt)
-    endif ()
+        # nvToolsExt: if tiny profiler or base profiler are on.
+        if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
+            target_link_libraries(amrex_${D}d PUBLIC CUDA::nvToolsExt)
+        endif ()
+   endforeach()
 
    # Check cuda compiler and host compiler
    set_mininum_compiler_version(CUDA NVIDIA 9.0)
@@ -68,22 +78,27 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
 
    # Required CUDA flags
    set(_genex "$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>")
-   target_compile_options( amrex
-      PUBLIC
-      $<${_genex}:
-      --expt-relaxed-constexpr --expt-extended-lambda
-      "SHELL:-Xcudafe --diag_suppress=esa_on_defaulted_function_ignored"
-      -maxrregcount=${AMReX_CUDA_MAXREGCOUNT}
-      "SHELL:-Xcudafe --display_error_number"
-      $<$<STREQUAL:$<PLATFORM_ID>,Windows>:-m64> >
-      )
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       target_compile_options(amrex_${D}d
+          PUBLIC
+          $<${_genex}:
+          --expt-relaxed-constexpr --expt-extended-lambda
+          "SHELL:-Xcudafe --diag_suppress=esa_on_defaulted_function_ignored"
+          "SHELL:-Xcudafe --diag_suppress=implicit_return_from_non_void_function"
+          -maxrregcount=${AMReX_CUDA_MAXREGCOUNT}
+          "SHELL:-Xcudafe --display_error_number"
+          $<$<STREQUAL:$<PLATFORM_ID>,Windows>:-m64> >
+          )
+  endforeach()
 
    # Take care of cuda archs
    set_cuda_architectures(AMReX_CUDA_ARCH)
-   set_target_properties( amrex
-      PROPERTIES
-      CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
-      )
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       set_target_properties(amrex_${D}d
+          PROPERTIES
+          CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
+          )
+   endforeach()
 
    #
    # CUDA specific warnings
@@ -162,18 +177,24 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
       list(APPEND _cuda_flag --display-error-number "SHELL:--diag-error 20092")
    endif ()
 
-   target_compile_options( amrex PUBLIC $<${_genex}:${_cuda_flags}> )
+   foreach(D IN LISTS AMReX_SPACEDIM)
+      target_compile_options(amrex_${D}d PUBLIC $<${_genex}:${_cuda_flags}> )
+   endforeach()
 
+   unset(_genex)
+   # _cuda_flags will be used later in AMReX_Config.cmake
 endif ()
 
 #
 #
-#  SYCL/DPCPP
+#  SYCL
 #
 #
-if (AMReX_DPCPP)
+if (AMReX_SYCL)
    include(AMReXSYCL)
-   target_link_libraries(amrex PUBLIC SYCL)
+   foreach(D IN LISTS AMReX_SPACEDIM)
+      target_link_libraries(amrex_${D}d PUBLIC SYCL)
+   endforeach()
 endif ()
 
 
@@ -198,10 +219,12 @@ if (AMReX_HIP)
    unset(_valid_hip_compilers)
 
    if(NOT DEFINED HIP_PATH)
-      if(NOT DEFINED ENV{HIP_PATH})
-         set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
-      else()
+      if(DEFINED ENV{HIP_PATH})
          set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
+      elseif(DEFINED ENV{ROCM_PATH})
+         set(HIP_PATH "$ENV{ROCM_PATH}/hip" CACHE PATH "Path to which HIP has been installed")
+      else()
+         set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
       endif()
    endif()
 
@@ -238,27 +261,48 @@ if (AMReX_HIP)
    # AMD's or mainline clang++ with support for "-x hip"
    # Cray's CC wrapper that points to AMD's clang++ underneath
    if(NOT ${_this_comp} STREQUAL hipcc)
-       target_link_libraries(amrex PUBLIC hip::device)
+       foreach(D IN LISTS AMReX_SPACEDIM)
+          target_link_libraries(amrex_${D}d PUBLIC hip::device)
 
-       # work-around for
-       #   https://github.com/ROCm-Developer-Tools/hipamd/issues/12
-       # not being added for Cray CC
-       target_compile_options(amrex PUBLIC
-          "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-mllvm;-amdgpu-early-inline-all=true;-mllvm;-amdgpu-function-calls=false>"
-       )
+          # work-around for
+          #   https://github.com/ROCm-Developer-Tools/hipamd/issues/12
+          # not being added for Cray CC
+          target_compile_options(amrex_${D}d PUBLIC
+             "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-mllvm;-amdgpu-early-inline-all=true;-mllvm;-amdgpu-function-calls=false>"
+          )
+       endforeach()
    endif()
+   
+   # Debug issues with -O0: internal compiler errors
+   # work-around for
+   #   https://github.com/AMReX-Codes/amrex/pull/3311
+   foreach(D IN LISTS AMReX_SPACEDIM)
+      target_compile_options(amrex_${D}d PUBLIC
+         "$<$<CONFIG:Debug>:-O1>"
+      )
+   endforeach()
 
    # Link to hiprand -- must include rocrand too
    find_package(rocrand REQUIRED CONFIG)
    find_package(rocprim REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
    if(AMReX_ROCTX)
-       # To be modernized in the future, please see:
-       # https://github.com/ROCm-Developer-Tools/roctracer/issues/56
-       target_include_directories(amrex PUBLIC ${HIP_PATH}/../roctracer/include ${HIP_PATH}/../rocprofiler/include)
-       target_link_libraries(amrex PUBLIC "-L${HIP_PATH}/../roctracer/lib/ -lroctracer64" "-L${HIP_PATH}/../roctracer/lib -lroctx64")
-   endif ()
-   target_link_libraries(amrex PUBLIC hip::hiprand roc::rocrand roc::rocprim)
+       foreach(D IN LISTS AMReX_SPACEDIM)
+          # To be modernized in the future, please see:
+          # https://github.com/ROCm-Developer-Tools/roctracer/issues/56
+          target_include_directories(amrex_${D}d SYSTEM PUBLIC
+              ${HIP_PATH}/../roctracer/include
+              ${HIP_PATH}/../rocprofiler/include
+          )
+          target_link_libraries(amrex_${D}d PUBLIC
+              "-L${HIP_PATH}/../roctracer/lib -lroctracer64"
+              "-L${HIP_PATH}/../roctracer/lib -lroctx64"
+          )
+      endforeach()
+   endif()
+   foreach(D IN LISTS AMReX_SPACEDIM)
+      target_link_libraries(amrex_${D}d PUBLIC hip::hiprand roc::rocrand roc::rocprim)
+   endforeach()
 
    # avoid forcing the rocm LLVM flags on a gfortran
    # https://github.com/ROCm-Developer-Tools/HIP/issues/2275
@@ -266,34 +310,60 @@ if (AMReX_HIP)
        # hipcc expects a comma-separated list
        string(REPLACE ";" "," AMReX_AMD_ARCH_HIPCC "${AMReX_AMD_ARCH}")
 
-       target_link_libraries(amrex PUBLIC ${HIP_LIBRARIES})
-       # ARCH flags -- these must be PUBLIC for all downstream targets to use,
-       # else there will be a runtime issue (cannot find
-       # missing gpu devices)
-       target_compile_options(amrex PUBLIC
-          $<$<COMPILE_LANGUAGE:CXX>:--amdgpu-target=${AMReX_AMD_ARCH_HIPCC} -Wno-pass-failed>)
+       foreach(D IN LISTS AMReX_SPACEDIM)
+           target_link_libraries(amrex_${D}d PUBLIC ${HIP_LIBRARIES})
+           # ARCH flags -- these must be PUBLIC for all downstream targets to use,
+           # else there will be a runtime issue (cannot find
+           # missing gpu devices)
+           target_compile_options(amrex_${D}d PUBLIC
+              $<$<COMPILE_LANGUAGE:CXX>:--offload-arch=${AMReX_AMD_ARCH_HIPCC}>)
+       endforeach()
    endif()
 
-   target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)
+   # ROCm 5.5: hipcc now relies on clang to offload code objects from (.a) archive files,
+   # so we need to tell the offload-linker to include all code objects in archives.
+   include(CheckLinkerFlag)
+   check_linker_flag(
+       CXX
+       "SHELL:-Xoffload-linker --whole-archive"
+       LINKER_HAS_WHOLE_ARCHIVE_OFFLOAD)
+   if(LINKER_HAS_WHOLE_ARCHIVE_OFFLOAD)
+       foreach(D IN LISTS AMReX_SPACEDIM)
+           target_link_options(amrex_${D}d PUBLIC
+               "$<$<LINK_LANGUAGE:HIP>:SHELL:-Xoffload-linker --whole-archive>"
+               "$<$<LINK_LANGUAGE:CXX>:SHELL:-Xoffload-linker --whole-archive>")
+       endforeach()
+   endif()
 
-   # ROCm 4.5: use unsafe floating point atomics, otherwise atomicAdd is much slower
-   # 
-   target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-munsafe-fp-atomics>)
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)
+
+       # ROCm 4.5: use unsafe floating point atomics, otherwise atomicAdd is much slower
+       # 
+       target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-munsafe-fp-atomics>)
+
+       # ROCm 5.5: forgets to enforce C++17 (default seems lower)
+       # https://github.com/AMReX-Codes/amrex/issues/3337
+       #
+       target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
+   endforeach()
 
    # Equivalently, relocatable-device-code (RDC) flags are needed for `extern`
    # device variable support (for codes that use global variables on device)
    # as well as our kernel fusion in AMReX, e.g. happening likely in amr regrid
    # As of ROCm 4.1, we cannot enable this with hipcc, as it looks...
    if(AMReX_GPU_RDC)
-       target_compile_options(amrex PUBLIC
-          $<$<COMPILE_LANGUAGE:CXX>:-fgpu-rdc> )
-       if(CMAKE_VERSION VERSION_LESS 3.18)
-           target_link_options(amrex PUBLIC
-              -fgpu-rdc)
-       else()
-           target_link_options(amrex PUBLIC
-              "$<$<LINK_LANGUAGE:CXX>:-fgpu-rdc>")
-       endif()
+       foreach(D IN LISTS AMReX_SPACEDIM)
+           target_compile_options(amrex_${D}d PUBLIC
+              $<$<COMPILE_LANGUAGE:CXX>:-fgpu-rdc> )
+           if(CMAKE_VERSION VERSION_LESS 3.18)
+               target_link_options(amrex_${D}d PUBLIC
+                  -fgpu-rdc)
+           else()
+               target_link_options(amrex_${D}d PUBLIC
+                  "$<$<LINK_LANGUAGE:HIP>:-fgpu-rdc>"
+                  "$<$<LINK_LANGUAGE:CXX>:-fgpu-rdc>")
+           endif()
+       endforeach()
    endif()
-
 endif ()

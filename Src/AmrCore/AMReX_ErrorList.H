@@ -41,21 +41,21 @@ extern "C"
     * \param time
     * \param level
     */
-    typedef void (*ErrorFuncDefault)(int* tag, AMREX_ARLIM_P(tlo), AMREX_ARLIM_P(thi),
-                                     const int* tagval, const int* clearval,
-                                     amrex::Real* data, AMREX_ARLIM_P(data_lo), AMREX_ARLIM_P(data_hi),
-                                     const int* lo, const int * hi, const int* nvar,
-                                     const int* domain_lo, const int* domain_hi,
-                                     const amrex::Real* dx, const amrex::Real* xlo,
-                                     const amrex::Real* prob_lo, const amrex::Real* time,
-                                     const int* level);
-
-    typedef void (*ErrorFunc2Default)(int* tag, AMREX_ARLIM_P(tlo), AMREX_ARLIM_P(thi),
+    using ErrorFuncDefault = void (*)(int* tag, AMREX_ARLIM_P(tlo), AMREX_ARLIM_P(thi),
                                       const int* tagval, const int* clearval,
                                       amrex::Real* data, AMREX_ARLIM_P(data_lo), AMREX_ARLIM_P(data_hi),
                                       const int* lo, const int * hi, const int* nvar,
                                       const int* domain_lo, const int* domain_hi,
-                                      const amrex::Real* dx, const int* level, const amrex::Real* avg);
+                                      const amrex::Real* dx, const amrex::Real* xlo,
+                                      const amrex::Real* prob_lo, const amrex::Real* time,
+                                      const int* level);
+
+    using ErrorFunc2Default = void (*)(int* tag, AMREX_ARLIM_P(tlo), AMREX_ARLIM_P(thi),
+                                       const int* tagval, const int* clearval,
+                                       amrex::Real* data, AMREX_ARLIM_P(data_lo), AMREX_ARLIM_P(data_hi),
+                                       const int* lo, const int * hi, const int* nvar,
+                                       const int* domain_lo, const int* domain_hi,
+                                       const amrex::Real* dx, const int* level, const amrex::Real* avg);
 
 
     /**
@@ -81,14 +81,14 @@ extern "C"
     * \param time
     * \param level
     */
-    typedef void (*ErrorFunc3DDefault)(int* tag, const int* tlo, const int* thi,
-                                       const int* tagval, const int* clearval,
-                                       amrex::Real* data, const int* data_lo, const int* data_hi,
-                                       const int* lo, const int * hi, const int* nvar,
-                                       const int* domain_lo, const int* domain_hi,
-                                       const amrex::Real* dx, const amrex::Real* xlo,
-                                       const amrex::Real* prob_lo, const amrex::Real* time,
-                                       const int* level);
+    using ErrorFunc3DDefault = void (*)(int* tag, const int* tlo, const int* thi,
+                                        const int* tagval, const int* clearval,
+                                        amrex::Real* data, const int* data_lo, const int* data_hi,
+                                        const int* lo, const int * hi, const int* nvar,
+                                        const int* domain_lo, const int* domain_hi,
+                                        const amrex::Real* dx, const amrex::Real* xlo,
+                                        const amrex::Real* prob_lo, const amrex::Real* time,
+                                        const int* level);
 
 }
 
@@ -142,12 +142,17 @@ public:
         * \brief Return a ptr to a clone of this object.
         * It is the responsibility of the caller to delete the result.
         */
-        virtual ErrorFunc* clone () const;
+        [[nodiscard]] virtual ErrorFunc* clone () const;
 
         /**
         * \brief Destructor.
         */
-        virtual ~ErrorFunc ();
+        virtual ~ErrorFunc () = default;
+
+        ErrorFunc (ErrorFunc const&) = default;
+        ErrorFunc (ErrorFunc &&) = delete;
+        ErrorFunc& operator= (ErrorFunc const&) = default;
+        ErrorFunc& operator= (ErrorFunc &&) = delete;
 
         /**
         * \brief Tag cells using "regular" function.
@@ -204,7 +209,7 @@ public:
         */
         virtual void operator () (int* tag, const int* tlo, const int* thi,
                                   const int* tagval, const int* clearval,
-                                  Real* data, const int* data_lo, const int* data_hi,
+                                  Real* data, const int* dlo, const int* dhi,
                                   const int* lo, const int * hi, const int* nvar,
                                   const int* domain_lo, const int* domain_hi,
                                   const Real* dx, const Real* xlo,
@@ -212,8 +217,8 @@ public:
                                   const int* level) const;
     protected:
 
-        ErrorFuncDefault   m_func;
-        ErrorFunc3DDefault m_func3D;
+        ErrorFuncDefault   m_func{nullptr};
+        ErrorFunc3DDefault m_func3D{nullptr};
     };
     class ErrorFunc2
     {
@@ -236,12 +241,17 @@ public:
         * \brief Return a ptr to a clone of this object.
         * It is the responsibility of the caller to delete the result.
         */
-        virtual ErrorFunc2* clone () const;
+        [[nodiscard]] virtual ErrorFunc2* clone () const;
 
         /**
         * \brief Destructor.
         */
-        virtual ~ErrorFunc2 ();
+        virtual ~ErrorFunc2 () = default;
+
+        ErrorFunc2 (ErrorFunc2 const&) = default;
+        ErrorFunc2 (ErrorFunc2 &&) = delete;
+        ErrorFunc2& operator= (ErrorFunc2 const&) = default;
+        ErrorFunc2& operator= (ErrorFunc2 &&) = delete;
 
         /**
         * \brief Tag cells cells using "v2" interface
@@ -271,7 +281,7 @@ public:
                                   const Real* dx, const int* level, const Real* avg) const;
     protected:
 
-        ErrorFunc2Default  m_func;
+        ErrorFunc2Default  m_func{nullptr};
     };
 
     /**
@@ -282,37 +292,39 @@ public:
     * \param etyp
     * \param f2
     */
-    ErrorRec (const std::string&          nm,
-              int                         ng,
-              ErrorType                   etyp,
+    ErrorRec (std::string nm, int ng, ErrorType etyp,
               const ErrorRec::ErrorFunc2& f2);
 
-    ErrorRec (const std::string&         nm,
-              int                        ng,
-              ErrorType                  etyp,
+    ErrorRec (std::string nm, int ng, ErrorType etyp,
               const ErrorRec::ErrorFunc& f);
-    virtual ~ErrorRec();
+
+    virtual ~ErrorRec ();
+
+    ErrorRec (ErrorRec const&) = delete;
+    ErrorRec (ErrorRec &&) = delete;
+    ErrorRec& operator= (ErrorRec const&) = delete;
+    ErrorRec& operator= (ErrorRec &&) = delete;
 
     /**
     * \brief The name of the quantity to derive.
     */
-    const std::string& name () const noexcept;
+    [[nodiscard]] const std::string& name () const noexcept;
 
     /**
     * \brief The number of extra zones needed for derivation.
     */
-    int nGrow () const noexcept;
+    [[nodiscard]] int nGrow () const noexcept;
 
     /**
     * \brief The type of the error tagging.
     */
-    ErrorType errType () const noexcept;
+    [[nodiscard]] ErrorType errType () const noexcept;
 
     /**
     * \brief The extern "C" functions to do the error tagging.
     */
-    virtual const ErrorRec::ErrorFunc&  errFunc () const;
-    virtual const ErrorRec::ErrorFunc2& errFunc2() const;
+    [[nodiscard]] virtual const ErrorRec::ErrorFunc&  errFunc () const;
+    [[nodiscard]] virtual const ErrorRec::ErrorFunc2& errFunc2() const;
 
 private:
 
@@ -340,12 +352,12 @@ private:
 class ErrorList
 {
 public:
-    ErrorList() noexcept {}
+    ErrorList() noexcept = default;
 
     /**
     * \brief The number of ErrorRecs in the list.
     */
-    int size () const noexcept;
+    [[nodiscard]] int size () const noexcept;
 
     /**
     * \brief Append a new ErrorRec to the list.
@@ -366,7 +378,7 @@ public:
               const ErrorRec::ErrorFunc2&   func);
 
     //! The kth ErrorRec.
-    const ErrorRec& operator[] (int k) const noexcept;
+    [[nodiscard]] const ErrorRec& operator[] (int k) const noexcept;
 
     void clear (bool rs0 = false) { vec.clear(); if(rs0) { vec.resize(0); } }
 
@@ -420,6 +432,13 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
 
     struct UserFunc
     {
+      virtual ~UserFunc () = default;
+
+      UserFunc (UserFunc const&) = default;
+      UserFunc (UserFunc &&) = default;
+      UserFunc& operator= (UserFunc const&) = default;
+      UserFunc& operator= (UserFunc &&) = default;
+
       virtual void operator() (const amrex::Box&                       bx,
                                amrex::Array4<const amrex::Real> const& dat,
                                amrex::Array4<char> const&              tag,
@@ -430,13 +449,13 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
     };
 
     explicit AMRErrorTag (const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
-      : m_test(BOX), m_field(std::string()), m_info(info) {m_ngrow = SetNGrow();}
+      : m_info(info), m_ngrow(SetNGrow()) {}
 
     AMRErrorTag (amrex::Real            value,
                  AMRErrorTag::TEST      test,
-                 const std::string&     field,
+                 std::string            field,
                  const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
-      : m_test(test), m_field(field), m_info(info)
+      : m_test(test), m_field(std::move(field)), m_info(info)
       {
           m_value.resize(info.m_max_level);
           for (int i = 0; i < m_value.size(); ++i) {
@@ -447,45 +466,49 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
 
     AMRErrorTag (amrex::Vector<amrex::Real>  value,
                  AMRErrorTag::TEST           test,
-                 const std::string&          field,
+                 std::string                 field,
                  const AMRErrorTagInfo&      info = AMRErrorTagInfo()) noexcept
-      : m_test(test), m_field(field), m_info(info)
+      : m_test(test), m_field(std::move(field)), m_info(info)
       {
-          AMREX_ASSERT(value.size() > 0);
+          AMREX_ASSERT(!value.empty());
           m_value.resize(info.m_max_level);
           for (int i = 0; i < m_value.size() && i < value.size(); ++i) {
               m_value[i] = value[i];
           }
           // If the user didn't provided a value for every level,
           // assume the last value holds for all higher levels.
-          for (int i = value.size(); i < m_value.size(); ++i) {
+          for (auto i = int(value.size()); i < m_value.size(); ++i) {
               m_value[i] = value[value.size()-1];
           }
           m_ngrow = SetNGrow();
       }
 
     AMRErrorTag (AMRErrorTag::UserFunc* userfunc,
-                 const std::string&     field,
+                 std::string            field,
                  int                    ngrow,
                  const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
-      : m_userfunc(userfunc), m_field(field), m_info(info), m_ngrow(ngrow) {}
+      : m_userfunc(userfunc), m_field(std::move(field)), m_info(info), m_ngrow(ngrow) {}
 
-    virtual void operator() (amrex::TagBoxArray&    tb,
-                             const amrex::MultiFab* mf,
-                             char                   clearval,
-                             char                   tagval,
-                             amrex::Real            time,
-                             int                    level,
-                             const amrex::Geometry& geom) const noexcept;
+    void operator() (amrex::TagBoxArray&    tb,
+                     const amrex::MultiFab* mf,
+                     char                   clearval,
+                     char                   tagval,
+                     amrex::Real            time,
+                     int                    level,
+                     const amrex::Geometry& geom) const noexcept;
 
-    int NGrow() const noexcept {return m_ngrow;}
-    const std::string& Field () const noexcept {return m_field;}
+    [[nodiscard]] int NGrow() const noexcept {return m_ngrow;}
+    [[nodiscard]] const std::string& Field () const noexcept {return m_field;}
+
+    [[nodiscard]] AMRErrorTagInfo& GetInfo () noexcept {return m_info;}
+    [[nodiscard]] AMRErrorTagInfo const& GetInfo () const noexcept {return m_info;}
+    void SetInfo (AMRErrorTagInfo const& info) noexcept {m_info = info;}
 
   protected:
-    int SetNGrow () const noexcept;
+    [[nodiscard]] int SetNGrow () const noexcept;
 
     Vector<Real> m_value;
-    TEST m_test;
+    TEST m_test{BOX};
     UserFunc* m_userfunc = nullptr;
     std::string m_field;
     AMRErrorTagInfo m_info;

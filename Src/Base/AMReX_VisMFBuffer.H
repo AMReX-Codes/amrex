@@ -16,12 +16,12 @@ public:
     enum { IO_Buffer_Size = 262144 * 8 };
     //! The type of a char buffer required by [p]setbuf().
 #ifdef BL_SETBUF_SIGNED_CHAR
-    typedef signed char Setbuf_Char_Type;
+    using Setbuf_Char_Type = signed char;
 #else
-    typedef char Setbuf_Char_Type;
+    using Setbuf_Char_Type = char;
 #endif
     //! A simple character buffer for setbuf() usage.
-    typedef Vector<Setbuf_Char_Type> IO_Buffer;
+    using IO_Buffer = Vector<Setbuf_Char_Type>;
 
     static Long GetIOBufferSize () { return ioBufferSize; }
     static void SetIOBufferSize (Long iobuffersize) {

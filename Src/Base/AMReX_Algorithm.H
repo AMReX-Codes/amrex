@@ -94,9 +94,9 @@ namespace amrex
     {
         // the machine epsilon has to be scaled to the magnitude of the values used
         // and multiplied by the desired precision in ULPs (units in the last place)
-        return amrex::Math::abs(x-y) <= std::numeric_limits<T>::epsilon() * amrex::Math::abs(x+y) * ulp
+        return std::abs(x-y) <= std::numeric_limits<T>::epsilon() * std::abs(x+y) * ulp
         // unless the result is subnormal
-        || amrex::Math::abs(x-y) < std::numeric_limits<T>::min();
+        || std::abs(x-y) < std::numeric_limits<T>::min();
     }
 
     template <class T, class F,
@@ -110,8 +110,8 @@ namespace amrex
         T flo = f(lo);
         T fhi = f(hi);
 
-        if (flo == T(0)) return flo;
-        if (fhi == T(0)) return fhi;
+        if (flo == T(0)) { return flo; }
+        if (fhi == T(0)) { return fhi; }
 
         AMREX_ASSERT_WITH_MESSAGE(flo * fhi <= T(0),
             "Error - calling bisect but lo and hi don't bracket a root.");
@@ -121,10 +121,10 @@ namespace amrex
         int n = 1;
         while (n <= max_iter)
         {
-            if (hi - lo < tol || almostEqual(lo,hi)) break;
+            if (hi - lo < tol || almostEqual(lo,hi)) { break; }
             mi = (lo + hi) / T(2);
             fmi = f(mi);
-            if (fmi == T(0)) break;
+            if (fmi == T(0)) { break; }
             fmi*flo < T(0) ? hi = mi : lo = mi;
             flo = f(lo);
             fhi = f(hi);
@@ -145,7 +145,7 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     I bisect (T const* d, I lo, I hi, T const& v) {
         while (lo <= hi) {
-            int mid = (lo+hi)/2;
+            int mid = lo + (hi-lo)/2;
             if (v >= d[mid] && v < d[mid+1]) {
                 return mid;
             } else if (v < d[mid]) {
@@ -155,6 +155,57 @@ namespace amrex
             }
         };
         return hi;
+    }
+
+    template<typename ItType, typename ValType>
+    AMREX_GPU_HOST_DEVICE
+    ItType upper_bound (ItType first, ItType last, const ValType& val)
+    {
+#if AMREX_DEVICE_COMPILE
+        std::ptrdiff_t count = last-first;
+        while(count>0){
+            auto it = first;
+            const auto step = count/2;
+            it += step;
+            if (!(val < *it)){
+                first = ++it;
+                count -= step + 1;
+            }
+            else{
+                count = step;
+            }
+        }
+
+        return first;
+#else
+        return std::upper_bound(first, last, val);
+#endif
+    }
+
+    template<typename ItType, typename ValType>
+    AMREX_GPU_HOST_DEVICE
+    ItType lower_bound (ItType first, ItType last, const ValType& val)
+    {
+#ifdef AMREX_DEVICE_COMPILE
+        std::ptrdiff_t count = last-first;
+        while(count>0)
+        {
+            auto it = first;
+            const auto step = count/2;
+            it += step;
+            if (*it < val){
+                first = ++it;
+                count -= step + 1;
+            }
+            else{
+                count = step;
+            }
+        }
+
+        return first;
+#else
+        return std::lower_bound(first, last, val);
+#endif
     }
 
 namespace detail {
@@ -169,23 +220,23 @@ struct clz_tag : clzl_tag {};
 // these tags and overloads select the smallest version of __builtin_clz that will hold the input type
 template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned int)>::type>
 AMREX_FORCE_INLINE
-unsigned builtin_clz_wrapper (clz_tag, T x) noexcept
+int builtin_clz_wrapper (clz_tag, T x) noexcept
 {
-    return __builtin_clz(x) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+    return static_cast<int>(__builtin_clz(x) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
 
 template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned long)>::type>
 AMREX_FORCE_INLINE
-unsigned builtin_clz_wrapper (clzl_tag, T x) noexcept
+int builtin_clz_wrapper (clzl_tag, T x) noexcept
 {
-    return __builtin_clzl(x) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+    return static_cast<int>(__builtin_clzl(x) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
 
 template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned long long)>::type>
 AMREX_FORCE_INLINE
-unsigned builtin_clz_wrapper (clzll_tag, T x) noexcept
+int builtin_clz_wrapper (clzll_tag, T x) noexcept
 {
-    return __builtin_clzll(x) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+    return static_cast<int>(__builtin_clzll(x) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
 
 #ifdef AMREX_USE_CUDA
@@ -216,7 +267,7 @@ int clz (std::uint8_t x) noexcept
 #elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
     return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
 #else
-    static constexpr std::uint8_t clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+    static constexpr int clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
     auto upper = x >> 4;
     auto lower = x & 0xF;
     return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];

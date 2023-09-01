@@ -6,8 +6,33 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParticleUtil.H>
 
-namespace amrex
+namespace amrex {
+
+namespace particle_detail {
+
+template <typename F, typename T, typename T_ParticleType, template<class, int, int> class PTDType, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const PTDType<T_ParticleType, NAR, NAI>& p,
+             const int i, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const& plo,
+             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
 {
+    if constexpr (IsCallable<F, decltype(p.m_aos[i]), decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
+        return f(p.m_aos[i], fabarr, plo, dxi);
+    } else if constexpr (IsCallable<F, decltype(p.m_aos[i]), decltype(fabarr)>::value) {
+        return f(p.m_aos[i], fabarr);
+    } else if constexpr (IsCallable<F, decltype(p.getSuperParticle(i)), decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
+        return f(p.getSuperParticle(i), fabarr, plo, dxi);
+    } else if constexpr (IsCallable<F, decltype(p.getSuperParticle(i)), decltype(fabarr)>::value) {
+        return f(p.getSuperParticle(i), fabarr);
+    } else if constexpr (IsCallable<F, decltype(p), int, decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
+        return f(p, i, fabarr, plo, dxi);
+    } else {
+        return f(p, i, fabarr);
+    }
+}
+}
 
 template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void
@@ -105,7 +130,7 @@ MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
                                       pc.ParticleDistributionMap(lev),
                                       mf.nComp(), mf.nGrowVect());
 
-    if (mf_pointer != &mf) mf_pointer->ParallelCopy(mf,0,0,mf.nComp(),mf.nGrowVect(),mf.nGrowVect());
+    if (mf_pointer != &mf) {mf_pointer->ParallelCopy(mf,0,0,mf.nComp(),mf.nGrowVect(),mf.nGrowVect()); }
 
     const auto plo = pc.Geom(lev).ProbLoArray();
     const auto dxi = pc.Geom(lev).InvCellSizeArray();
@@ -129,7 +154,7 @@ MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
         });
     }
 
-    if (mf_pointer != &mf) delete mf_pointer;
+    if (mf_pointer != &mf) { delete mf_pointer; }
 }
 
 }

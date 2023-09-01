@@ -104,12 +104,12 @@ void main_main()
                 const Long nboxes = plotfile.boxArray(ilev).size();
                 const Long ncells = plotfile.boxArray(ilev).numPts();
                 const Box prob_domain = plotfile.probDomain(ilev);
-                const Real ncells_domain = prob_domain.d_numPts();
+                const auto ncells_domain = prob_domain.d_numPts();
                 amrex::Print() << " level " << std::setw(3) << ilev
                                << ": number of boxes = " << std::setw(6) << nboxes
                                << ", volume = "
                                << std::fixed << std::setw(6) << std::setprecision(2)
-                               << 100.*(ncells/ncells_domain) << "%\n";
+                               << 100.*static_cast<double>(ncells)/ncells_domain << "%\n";
                 if (dim == 1) {
                     amrex::Print() << "          maximum zones =   "
                                    << std::setw(7) << prob_domain.length(0) << "\n";
@@ -134,8 +134,8 @@ void main_main()
             for (int ilev = 0; ilev < nlevels; ++ilev) {
                 amrex::Print() << "\n  level " << ilev << "\n";
                 const BoxArray& ba = plotfile.boxArray(ilev);
-                const Long nboxes = ba.size();
-                for (Long ibox = 0; ibox < nboxes; ++ibox) {
+                const auto nboxes = static_cast<int>(ba.size());
+                for (int ibox = 0; ibox < nboxes; ++ibox) {
                     const Box& b = ba[ibox];
                     if (dim == 1) {
                         amrex::Print() << "   box " << std::setw(5) << ibox

@@ -210,7 +210,8 @@ template <typename HypreInt, typename AtomicInt>
 void mlndtslap_fill_ijmatrix_cpu (Box const& ndbx,
                                   Array4<AtomicInt const> const& gid,
                                   Array4<int const> const& lid,
-                                  HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                                  HypreInt* const ncols, HypreInt* const cols,
+                                  Real* const mat, // NOLINT(readability-non-const-parameter)
                                   GpuArray<Real,6> const& s) noexcept
 {
     constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
@@ -346,7 +347,8 @@ void mlndtslap_fill_ijmatrix_gpu (const int ps, const int i, const int j, const 
                                   const int offset, Box const& ndbx,
                                   Array4<AtomicInt const> const& gid,
                                   Array4<int const> const& lid,
-                                  HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                                  HypreInt* const ncols, HypreInt* const cols,
+                                  Real* const mat, // NOLINT(readability-non-const-parameter)
                                   GpuArray<Real,6> const& s) noexcept
 {
     if (lid(i,j,k) >= 0)

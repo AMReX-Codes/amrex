@@ -4,6 +4,7 @@
 
 #include <AMReX_ParallelContext.H>
 #include <AMReX_MultiFab.H>
+#include <utility>
 
 namespace amrex {
 
@@ -23,7 +24,7 @@ class ForkJoin
         //! for now, just support contiguous range of components
         //! only requires a single MultiFab::Copy() per task this way
         //! in the future, consider changing this to a true set for arbitrary components
-        ComponentSet() {}
+        ComponentSet() = default;
         ComponentSet(int lo_, int hi_) : lo(lo_), hi(hi_) {}
         int lo; //!< inclusive bound
         int hi; //!< exclusive bound
@@ -36,7 +37,7 @@ class ForkJoin
     ForkJoin (int ntasks)
         : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks) ) { }
 
-    int NTasks () const { return split_bounds.size() - 1; }
+    int NTasks () const { return static_cast<int>(split_bounds.size() - 1); }
 
     int MyTask () const { return task_me; }
 
@@ -99,7 +100,7 @@ class ForkJoin
     //! modify how the multifab is split along components across the tasks
     void modify_split (const std::string &name, int idx, Vector<ComponentSet> comp_split);
     void modify_split (const std::string &name, Vector<ComponentSet> comp_split) {
-        modify_split(name, 0, comp_split);
+        modify_split(name, 0, std::move(comp_split));
     }
 
     // TODO: may want to de-register MFs if they change across invocations
@@ -112,7 +113,7 @@ class ForkJoin
 
     //! vector of pointers to all MFs under a name
     Vector<MultiFab *> get_mf_vec (const std::string &name) {
-        int dim = data.at(name).size();
+        int dim = static_cast<int>(data.at(name).size());
         Vector<MultiFab *> result(dim);
         for (int idx = 0; idx < dim; ++idx) {
             result[idx] = &get_mf(name, idx);
@@ -161,6 +162,7 @@ class ForkJoin
         Vector<MultiFab> forked; //!< holds new multifab for each task in fork
 
         MFFork () = default;
+        ~MFFork () = default;
         MFFork (const MFFork&) = delete;
         MFFork& operator= (const MFFork&) = delete;
         MFFork (MFFork&&) = default;
@@ -170,7 +172,7 @@ class ForkJoin
                 Vector<ComponentSet> cs)
             : orig(omf), strategy(s), intent(i), owner_task(own), ngrow(ng), comp_split(std::move(cs)) {}
 
-        bool empty() const { return orig == nullptr; }
+        [[nodiscard]] bool empty() const { return orig == nullptr; }
     };
 
     bool flag_verbose = false; //!< for debugging
@@ -179,7 +181,7 @@ class ForkJoin
     int task_me = -1; //!< which forked task the rank belongs to
     std::map<BoxArray::RefID, Vector<std::unique_ptr<DistributionMapping>>> dms; //!< DM cache
     std::unordered_map<std::string, Vector<MFFork>> data;
-    std::string task_output_dir = ""; //!< where to write task output
+    std::string task_output_dir; //!< where to write task output
 
     void init(const Vector<int> &task_rank_n);
 

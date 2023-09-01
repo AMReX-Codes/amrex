@@ -65,7 +65,7 @@ class SundialsIntegrator : public IntegratorBase<T>
 {
 private:
     amrex::Real timestep;
-    typedef IntegratorBase<T> BaseT;
+    using BaseT = IntegratorBase<T>;
 
     bool use_erk_strategy;
     bool use_mri_strategy;
@@ -342,7 +342,10 @@ public:
         }
 
         // Clean up allocated memory
-        N_VDestroyVectorArray(nv_many_arr, NVar);
+        for (int i = 0; i < Nvar; ++i) {
+            N_VDestroy(nv_many_arr[i]);
+        }
+        delete[] nv_many_arr;
         N_VDestroy(nv_S);
         N_VDestroy(nv_stage_data);
 
@@ -493,17 +496,19 @@ public:
 
         if(use_mri_strategy_test)
         {
-            if(use_erk3)
+            if(use_erk3) {
                 inner_mem = ARKStepCreate(SundialsUserFun::f0, nullptr, time, nv_S, sunctx); // explicit bc (explicit f, implicit f, time, data)
-            else
+            } else {
                 inner_mem = ARKStepCreate(nullptr, SundialsUserFun::f0, time, nv_S, sunctx); // implicit
+            }
         }
         else
         {
-            if(use_erk3)
+            if(use_erk3) {
                 inner_mem = ARKStepCreate(SundialsUserFun::f_fast, nullptr, time, nv_S, sunctx);
-            else
+            } else {
                 inner_mem = ARKStepCreate(nullptr, SundialsUserFun::f_fast, time, nv_S, sunctx);
+            }
         }
 
         ARKStepSetFixedStep(inner_mem, hfixed_mri);            // Specify fixed time step size
@@ -549,8 +554,9 @@ public:
                 B->b[0] = 1.0;
                 B->q=1;
                 B->p=0;
-            } else
+            } else {
                 amrex::Error("MRI method not implemented");
+            }
             return B;
         };
 
@@ -592,11 +598,12 @@ public:
         LS = SUNLinSol_SPGMR(nv_S, PREC_NONE, 10, sunctx);
         NLS = SUNNonlinSol_FixedPoint(nv_S, 50, sunctx);
 
-        if (use_implicit_inner) ARKStepSetNonlinearSolver(inner_mem, NLS);
-        if(use_linear)
+        if (use_implicit_inner) { ARKStepSetNonlinearSolver(inner_mem, NLS); }
+        if(use_linear) {
             MRIStepSetLinearSolver(mristep_mem, LS, nullptr);
-        else
+        } else {
             MRIStepSetNonlinearSolver(mristep_mem, NLS);
+        }
 
         MRIStepSetUserData(mristep_mem, &udata);  /* Pass udata to user functions */
         MRIStepSetPostprocessStageFn(mristep_mem, SundialsUserFun::ProcessStage);
@@ -619,7 +626,10 @@ public:
         }
 
         // Clean up allocated memory
-        N_VDestroyVectorArray(nv_many_arr, NVar);
+        for (int i = 0; i < Nvar; ++i) {
+            N_VDestroy(nv_many_arr[i]);
+        }
+        delete[] nv_many_arr;
         N_VDestroy(nv_S);
         N_VDestroy(nv_stage_data);
 

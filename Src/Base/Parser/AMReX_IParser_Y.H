@@ -142,7 +142,7 @@ struct iparser_node* iparser_newf2 (enum iparser_f2_t ftype, struct iparser_node
 struct iparser_node* iparser_newf3 (enum iparser_f3_t ftype, struct iparser_node* n1,
                                     struct iparser_node* n2, struct iparser_node* n3);
 struct iparser_node* iparser_newassign (struct iparser_symbol* s, struct iparser_node* v);
-struct iparser_node* iparser_newlist (struct iparser_node* n1, struct iparser_node* n2);
+struct iparser_node* iparser_newlist (struct iparser_node* nl, struct iparser_node* nr);
 
 /*******************************************************************/
 
@@ -161,7 +161,7 @@ struct amrex_iparser* amrex_iparser_new ();
 void amrex_iparser_delete (struct amrex_iparser* iparser);
 
 struct amrex_iparser* iparser_dup (struct amrex_iparser* source);
-struct iparser_node* iparser_ast_dup (struct amrex_iparser* iparser, struct iparser_node* src, int move);
+struct iparser_node* iparser_ast_dup (struct amrex_iparser* iparser, struct iparser_node* node, int move);
 
 void iparser_regvar (struct amrex_iparser* iparser, char const* name, int i);
 void iparser_setconst (struct amrex_iparser* iparser, char const* name, int c);
@@ -185,7 +185,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int
 iparser_call_f1 (enum iparser_f1_t /*type*/, int a)
 {
     /// There is only one type for now
-    return amrex::Math::abs(a);
+    return std::abs(a);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int
