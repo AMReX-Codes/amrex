@@ -1,3 +1,112 @@
+# 23.09
+
+  -- Fix InitRandomPerBox for 1D & 2D (#3527)
+
+  -- Add ability for GCC 8 in CMake to build fgradient which uses std::filesystem (#3523)
+
+  -- Fix: Include Guard 1D for MLPoisson (#3528)
+
+  -- Workaround for Intel compiler classic (#3526)
+
+  -- Constness in buildInfo: num_modules (#3522)
+
+  -- MLABecLaplacian: Tweak kernel fusing (#3521)
+
+  -- UniqueString tweak (#3520)
+
+  -- faverage fix (#3519)
+
+  -- Empty level fix (#3517)
+
+  -- Simplify filterParticles Kernel (#3510)
+
+  -- Generatize particle-to-cell assignment function (#3499)
+     Follow-on to 3499 (#3514)
+     ParticleLocator: Make Assignor optional template parameter (#3515)
+
+  -- GPU Launch Min Blocks (#3503)
+
+  -- Remove unsafe std::forward (#3513)
+
+  -- Fix Bug in FaceLinear Interpolater (#3483)
+
+  -- Add test on whether we are in the valid box when updating drho_as_crs… (#3506)
+
+  -- Fix backtrace nullptrs (#3505)
+
+  -- Skip ubsan lib on OSX (#3504)
+
+  -- SYCL: Add table of GNU Make config vars to docs (#3400)
+
+  -- Fix: Backtraces will NULL Addresses (#3502)
+
+  -- Update gpu elixir and async array synchronization for sycl (#3498)
+
+  -- SundialsIntegrator: Fix memory deallocation (#3501)
+
+  -- FillRandom & FillRandomNormal (#3500)
+
+  -- Update position in 2nd pass for tracer advect with Ucc. (#3496)
+
+  -- Move use of bcrec back onto GPU (#3494)
+
+  -- fix bug in StateRedist and add multi-level functionality for FluxRedi… (#3491)
+
+  -- fgradient: A new plotfile tool for computing gradient (#3490)
+
+  -- CI: Remove redundancy in nvcc dependencies files (#3387)
+
+  -- CMake: HIP Debug with -O1 (#3487)
+
+  -- Fix overflow in ParallelFor(Long n, ...) (#3489)
+
+  -- Adjust build for upstream Mpich and OpenMPI modules on Perlmutter. (#3486)
+
+  -- CArena: Implement alloc_in_place (#3426)
+
+  -- Clang-Tidy: Add more checks (#3466)
+     Fix a bug in #3466 (#3485)
+
+  -- Option to force regrid level zero (#3484)
+
+  -- Fix typo introduced in PR 3452 (#3482)
+
+  -- Clang-Tidy changes in Src/LinearSolvers (#3475)
+
+  -- Update FluxRedist and comments for StateItracker (#3481)
+
+  -- Clang-Tidy changes in Src/EB (#3473)
+
+  -- Clang-Tidy changes in Src/Boundary (#3471)
+
+  -- Clang-Tidy changes in Src/F_Interfaces (#3474)
+
+  -- Clang-Tidy changes in Src/Particle (#3476)
+
+  -- Clang-Tidy changes in Src/Extern (#3472)
+
+  -- Clang-Tidy changes in Tests (#3477)
+
+  -- Clang-Tidy changes in Tools (#3478)
+
+  -- Change the default value of The_Pinned_Arena release threshold (#3479)
+
+  -- Handle ThetaGPU in GNU make system (#3469)
+
+  -- Clang-Tidy changes in Src/AmrCore (#3468)
+
+  -- Clang-Tidy changes in Src/Amr (#3467)
+
+  -- Fix a bug in EB tensor solver's cross term (#3465)
+
+  -- Add misc-misplaced-const check to clang-tidy CI test (#3464)
+
+  -- Suppress implicit return warnings with nvcc (#3463)
+
+  -- Silence "unreachable loop" warning for GPU builds (#3462)
+
+  -- PlotFileUtil: Add Direct Includes (#3446)
+
 # 23.08
 
   -- Fix a bug in AmrMesh::ChopGrids (#3460)
