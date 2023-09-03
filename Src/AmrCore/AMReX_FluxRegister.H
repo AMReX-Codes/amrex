@@ -396,6 +396,9 @@ public:
     * to the upper side of an element in the X3-direction.
     * LX_X3_Dn is a 1D array containing the Lagrange polynomials interpolated
     * to the lower side of an element in the X3-direction.
+    * dX1 is the mesh width of the coarse level in the X1 direction
+    * dX2 is the mesh width of the coarse level in the X2 direction
+    * dX3 is the mesh width of the coarse level in the X3 direction
     *
     * \param MF_G
     * \param MF_dU
@@ -416,6 +419,9 @@ public:
     * \param LX_X2_Dn
     * \param LX_X3_Up
     * \param LX_X3_Dn
+    * \param dX1
+    * \param dX2
+    * \param dX3
     */
     void Reflux_DG( MultiFab&       MF_G,
                     MultiFab&       MF_dU,
@@ -435,7 +441,10 @@ public:
                     Array4<Real>    LX_X2_Up,
                     Array4<Real>    LX_X2_Dn,
                     Array4<Real>    LX_X3_Up,
-                    Array4<Real>    LX_X3_Dn );
+                    Array4<Real>    LX_X3_Dn,
+                    Real            dX1,
+                    Real            dX2,
+                    Real            dX3 );
 
     /**
     * \brief Constant volume version of Reflux().  Note that this takes the coarse Geometry.
@@ -523,6 +532,9 @@ public:
                     Array4<Real>    LX_X2_Dn,
                     Array4<Real>    LX_X3_Up,
                     Array4<Real>    LX_X3_Dn,
+                    Real            dX1,
+                    Real            dX2,
+                    Real            dX3,
                     Orientation     face );
 
 private:

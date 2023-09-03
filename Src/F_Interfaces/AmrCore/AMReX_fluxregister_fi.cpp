@@ -115,7 +115,10 @@ extern "C"
         void          * vpLX_X2_Up,
         void          * vpLX_X2_Dn,
         void          * vpLX_X3_Up,
-        void          * vpLX_X3_Dn )
+        void          * vpLX_X3_Dn,
+        Real          dX1,
+        Real          dX2,
+        Real          dX3 )
     {
 
         auto *pNodeNumberTableX_X1
@@ -177,7 +180,8 @@ extern "C"
                             WeightsX_q,
                             LX_X1_Up, LX_X1_Dn,
                             LX_X2_Up, LX_X2_Dn,
-                            LX_X3_Up, LX_X3_Dn );
+                            LX_X3_Up, LX_X3_Dn,
+                            dX1, dX2, dX3 );
     }
 
     void amrex_fi_fluxregister_overwrite (FluxRegister* flux_reg, MultiFab* crse_flxs[],

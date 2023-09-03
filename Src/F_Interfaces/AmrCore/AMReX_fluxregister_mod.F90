@@ -124,7 +124,8 @@ module amrex_fluxregister_module
          WeightsX_q, &
          LX_X1_Up, LX_X1_Dn, &
          LX_X2_Up, LX_X2_Dn, &
-         LX_X3_Up, LX_X3_Dn ) bind(c)
+         LX_X3_Up, LX_X3_Dn, &
+         dX1, dX2, dX3 ) bind(c)
        import
        implicit none
        type(c_ptr)     , value :: FluxRegister, MF_G, MF_dU, geom, &
@@ -136,6 +137,7 @@ module amrex_fluxregister_module
                                   LX_X3_Up, LX_X3_Dn
        integer         , value :: nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, &
                                   nFields, iGF_SqrtGm
+       real(amrex_real), value :: dX1, dX2, dX3
      end subroutine amrex_fi_fluxregister_reflux_dg
 
      subroutine amrex_fi_fluxregister_overwrite (fr, flxs, scale, geom) bind(c)
@@ -289,24 +291,27 @@ contains
       nFields, iGF_SqrtGm, &
       pNodeNumberTableX_X1, pNodeNumberTableX_X2, pNodeNumberTableX_X3, &
       pWeightsX_q, &
-      pLX_X1_Up, pLX_X1_Dn, pLX_X2_Up, pLX_X2_Dn, pLX_X3_Up, pLX_X3_Dn )
+      pLX_X1_Up, pLX_X1_Dn, pLX_X2_Up, pLX_X2_Dn, pLX_X3_Up, pLX_X3_Dn, &
+      dX1, dX2, dX3 )
     use amrex_amrcore_module, only : amrex_geom
     class(amrex_fluxregister), intent(inout) :: this
     type(amrex_multifab)     , intent(in)    :: MF_G
     type(amrex_multifab)     , intent(in)    :: MF_dU
     integer                  , intent(in)    :: &
       nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, nFields, iGF_SqrtGm
-    type(c_ptr), intent(in) :: &
+    type(c_ptr)              , intent(in)    :: &
       pNodeNumberTableX_X1, pNodeNumberTableX_X2, pNodeNumberTableX_X3, &
       pWeightsX_q, &
       pLX_X1_Up, pLX_X1_Dn, pLX_X2_Up, pLX_X2_Dn, pLX_X3_Up, pLX_X3_Dn
+    real(amrex_real)         , intent(in)    :: dX1, dX2, dX3
 
     call amrex_fi_fluxregister_reflux_dg &
            ( this%p, MF_G%p, MF_dU%p, amrex_geom(this%flev-1)%p, &
              nDOFX, nDOFX_X1, nDOFX_X2, nDOFX_X3, nFields, iGF_SqrtGm, &
              pNodeNumberTableX_X1, pNodeNumberTableX_X2, pNodeNumberTableX_X3, &
              pWeightsX_q, &
-             pLX_X1_Up, pLX_X1_Dn, pLX_X2_Up, pLX_X2_Dn, pLX_X3_Up, pLX_X3_Dn )
+             pLX_X1_Up, pLX_X1_Dn, pLX_X2_Up, pLX_X2_Dn, pLX_X3_Up, pLX_X3_Dn, &
+             dX1, dX2, dX3 )
   end subroutine amrex_fluxregister_reflux_dg
 
   subroutine amrex_fluxregister_overwrite (this, fluxes, scale)

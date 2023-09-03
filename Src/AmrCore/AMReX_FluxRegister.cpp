@@ -801,7 +801,10 @@ FluxRegister::Reflux_DG ( MultiFab&       MF_G,
                           Array4<Real>    LX_X2_Up,
                           Array4<Real>    LX_X2_Dn,
                           Array4<Real>    LX_X3_Up,
-                          Array4<Real>    LX_X3_Dn )
+                          Array4<Real>    LX_X3_Dn,
+                          Real            dX1,
+                          Real            dX2,
+                          Real            dX3 )
 {
     for( OrientationIter fi; fi; ++fi )
     {
@@ -813,6 +816,7 @@ FluxRegister::Reflux_DG ( MultiFab&       MF_G,
                    LX_X1_Up, LX_X1_Dn,
                    LX_X2_Up, LX_X2_Dn,
                    LX_X3_Up, LX_X3_Dn,
+                   dX1, dX2, dX3,
                    face );
     }
 } /* END void FluxRegister::Reflux_DG */
@@ -924,14 +928,15 @@ FluxRegister::Reflux_DG ( MultiFab&       MF_G,
                           Array4<Real>    LX_X2_Dn,
                           Array4<Real>    LX_X3_Up,
                           Array4<Real>    LX_X3_Dn,
+                          Real            dX1,
+                          Real            dX2,
+                          Real            dX3,
                           Orientation     face )
 {
     BL_PROFILE("FluxRegister::Reflux_DG()");
 
     int nComp = nDOFX_X1 * nFields;
     int iDimX = face.coordDir();
-
-    const Real* dX = geom.CellSize();
 
     MultiFab MF_dF( amrex::convert( MF_dU.boxArray(),
                                    IntVect::TheDimensionVector(iDimX) ),
@@ -957,7 +962,7 @@ FluxRegister::Reflux_DG ( MultiFab&       MF_G,
                 NodeNumberTableX_X1, NodeNumberTableX_X2, NodeNumberTableX_X3,
                 WeightsX_q,
                 LX_X1_Up, LX_X1_Dn, LX_X2_Up, LX_X2_Dn,
-                LX_X3_Up, LX_X3_Dn, dX[0], dX[1], dX[2], face );
+                LX_X3_Up, LX_X3_Dn, dX1, dX2, dX3, face );
         });
     }
 } /* END void FluxRegister::Reflux_DG */
