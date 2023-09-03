@@ -117,7 +117,7 @@ module amrex_boxarray_module
        type(c_ptr), value, intent(in) :: ba
        integer, intent(in) :: lo(*), hi(*)
      end function amrex_fi_boxarray_intersects_box
-     
+
      pure logical function amrex_fi_boxarray_issame (baa, bab) bind(c)
        import
        implicit none

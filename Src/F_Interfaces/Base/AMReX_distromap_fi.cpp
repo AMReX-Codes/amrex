@@ -41,7 +41,7 @@ extern "C" {
     {
         AllPrint() << *dm;
     }
-    
+
     bool amrex_fi_distromap_issame (const DistributionMapping& dma, const DistributionMapping& dmb)
     {
         return dma==dmb;
