@@ -96,8 +96,8 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     MF ph(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
     MF sh(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
-    ph.setVal(RT(0.0));
-    sh.setVal(RT(0.0));
+    // ph.setVal(RT(0.0));
+    // sh.setVal(RT(0.0));
 
     MF sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
     MF p    (ba, dm, ncomp, nghost, MFInfo(), factory);
@@ -107,13 +107,15 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     MF v    (ba, dm, ncomp, nghost, MFInfo(), factory);
     MF t    (ba, dm, ncomp, nghost, MFInfo(), factory);
 
+    // Compute residual r
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
-
     // Then normalize
     Lp.normalize(amrlev, mglev, r);
 
     sorig.LocalCopy(sol,0,0,ncomp,nghost);
     rh.LocalCopy   (r  ,0,0,ncomp,nghost);
+
+    // sol.setVal(RT(0.0)); // why set to 0?
 
     RT rnorm = norm_inf(r);
     const RT rnorm0 = rnorm;
@@ -264,12 +266,13 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        // sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
     }
     else
     {
-        sol.setVal(RT(0.0));
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        // sol.setVal(RT(0.0));
+        // sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        sol.LocalCopy(sorig, 0, 0, ncomp, nghost);
     }
 
     return ret;
@@ -299,6 +302,8 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
 
+    // sol.setVal(RT(0.0)); why set to zero?
+
     RT       rnorm    = norm_inf(r);
     const RT rnorm0   = rnorm;
 
@@ -317,7 +322,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
                            << ", rnorm = " << rnorm
                            << ", eps_abs = " << eps_abs << std::endl;
         }
-        sol.setVal(RT(0.0)); // Not sure why we do this
+        sol.setVal(RT(0.0)); // Not sure why we do this in this case
         return ret;
     }
 
@@ -394,7 +399,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
                        << rnorm/(rnorm0) << '\n';
     }
 
-    if ( ret == 0 &&  rnorm > eps_rel*rnorm0 && rnorm > eps_abs )
+    if ( ret == 0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs )
     {
         if ( verbose > 0 && ParallelDescriptor::IOProcessor() ) {
             amrex::Warning("MLCGSolver_cg: failed to converge!");
