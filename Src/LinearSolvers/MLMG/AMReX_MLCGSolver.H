@@ -264,15 +264,19 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         ret = 8;
     }
 
-    if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
+    // if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
+    // {
+    //     // sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+    // }
+    // else
+    // {
+    //     // sol.setVal(RT(0.0));
+    //     // sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+    //     sol.LocalCopy(sorig, 0, 0, ncomp, nghost);
+    // }
+    if ( ( ret != 0 && ret != 8 ) || (rnorm > rnorm0) )
     {
-        // sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
-    }
-    else
-    {
-        // sol.setVal(RT(0.0));
-        // sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
-        sol.LocalCopy(sorig, 0, 0, ncomp, nghost);
+        sol.LocalCopy(sorig,0,0,ncomp,nghost);
     }
 
     return ret;
