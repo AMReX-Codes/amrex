@@ -215,6 +215,10 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
     int num_levels = pc.maxLevel() + 1;
     int num_domains = 0;
 
+    // get global domains already present in node
+    long domain_offset = (long)res.number_of_children();
+    ParallelDescriptor::ReduceLongSum(domain_offset);
+
     // loop over levels
 
     int rank   = ParallelDescriptor::MyProc();
@@ -288,7 +292,7 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
         for (MyParConstIter pti(pc, lev); pti.isValid(); ++pti)
         {
             // this will give us a unique id across levels for each tile
-            int domain_id = lvl_offset + num_lvl_local_tiles;
+            int domain_id = lvl_offset + num_lvl_local_tiles + domain_offset;
 
             const auto& ptile = pti.GetParticleTile();
             const std::string& patch_name = amrex::Concatenate("domain_",
