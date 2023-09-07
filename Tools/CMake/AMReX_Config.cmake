@@ -10,14 +10,14 @@
 # Date  : June 26, 2018
 #
 #
-function (configure_amrex)
+function (configure_amrex AMREX_TARGET)
 
    #
    # Check if target "amrex" has been defined before
    # calling this macro
    #
-   if (NOT TARGET amrex)
-      message (FATAL_ERROR "Target 'amrex' must be defined before calling function 'configure_amrex'" )
+   if (NOT TARGET ${AMREX_TARGET})
+      message (FATAL_ERROR "Target '${AMREX_TARGET}' must be defined before calling function 'configure_amrex'" )
    endif ()
 
    #
@@ -37,22 +37,18 @@ function (configure_amrex)
    #
    # Setup compilers
    #
-   # Set C++ standard and disable compiler-specific extensions, like "-std=gnu++14" for GNU
+   # Set C++ standard and disable compiler-specific extensions, like "-std=gnu++17" for GNU
    # This will also enforce the same standard with the CUDA compiler
    # Moreover, it will also enforce such standard on all the consuming targets
    #
-   set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF)
-   # minimum: C++14 on Linux, C++17 on Windows, C++17 for dpc++ and hip
-   if (AMReX_DPCPP OR AMReX_HIP)
-      target_compile_features(amrex PUBLIC cxx_std_17)
-   else ()
-      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_14>)
-   endif ()
+   set_target_properties(${AMREX_TARGET} PROPERTIES CXX_EXTENSIONS OFF)
+   # minimum: C++17
+   target_compile_features(${AMREX_TARGET} PUBLIC cxx_std_17)
 
    if (AMReX_CUDA)
-      set_target_properties(amrex PROPERTIES CUDA_EXTENSIONS OFF)
-      # minimum: C++14 on Linux, C++17 on Windows
-      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cuda_std_17,cuda_std_14>)
+      set_target_properties(${AMREX_TARGET} PROPERTIES CUDA_EXTENSIONS OFF)
+      # minimum: C++17
+      target_compile_features(${AMREX_TARGET} PUBLIC cuda_std_17)
    endif()
 
    #
@@ -60,18 +56,18 @@ function (configure_amrex)
    #
    set(_cxx_msvc   "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>")
 
-   target_compile_options( amrex PRIVATE $<${_cxx_msvc}:/bigobj> )
-   target_compile_options( amrex PRIVATE $<${_cxx_msvc}:-wd4244;-wd4267;-wd4996> )
+   target_compile_options(${AMREX_TARGET} PRIVATE $<${_cxx_msvc}:/bigobj> )
+   target_compile_options(${AMREX_TARGET} PRIVATE $<${_cxx_msvc}:-wd4244;-wd4267;-wd4996> )
 
    # modern preprocessor
    set(_condition  "$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.26>")
-   target_compile_options( amrex PUBLIC
+   target_compile_options(${AMREX_TARGET} PUBLIC
       $<${_cxx_msvc}:$<IF:${_condition},/experimental:preprocessor,/Zc:preprocessor>>
    )
    # proper __cplusplus macro:
    #   https://docs.microsoft.com/en-us/cpp/build/reference/zc-cplusplus?view=msvc-160
    set(_condition  "$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,19.14>")
-   target_compile_options( amrex PUBLIC
+   target_compile_options(${AMREX_TARGET} PUBLIC
       $<${_cxx_msvc}:$<${_condition}:/Zc:__cplusplus>>
    )
 
@@ -91,11 +87,11 @@ function (configure_amrex)
 
          eval_genex(_omp_flags CXX ${_comp} INTERFACE BUILD STRING )
 
-         target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_omp_flags}>)
+         target_compile_options(${AMREX_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_omp_flags}>)
       endif ()
 
    else ()
-      target_compile_options( amrex
+      target_compile_options(${AMREX_TARGET}
          PUBLIC
          $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )
    endif ()
@@ -107,7 +103,7 @@ function (configure_amrex)
       # I haven't find a way to set host compiler flags for all the
       # possible configurations.
       #
-      get_target_property( _amrex_flags_1 amrex COMPILE_OPTIONS)
+      get_target_property( _amrex_flags_1 ${AMREX_TARGET} COMPILE_OPTIONS)
 
       if (NOT CMAKE_CXX_FLAGS)
          get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
@@ -128,13 +124,13 @@ function (configure_amrex)
          STRING )
 
       if (_amrex_flags)
-         target_compile_options(amrex PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_flags}>)
+         target_compile_options(${AMREX_TARGET} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_flags}>)
       endif ()
 
    endif ()
 
-   if ( AMReX_PIC OR BUILD_SHARED_LIBS )
-      set_target_properties ( amrex PROPERTIES
+   if ( AMReX_PIC OR AMReX_BUILD_SHARED_LIBS )
+      set_target_properties (${AMREX_TARGET} PROPERTIES
         POSITION_INDEPENDENT_CODE ON
         WINDOWS_EXPORT_ALL_SYMBOLS ON )
    endif ()
@@ -144,7 +140,7 @@ function (configure_amrex)
       include(CheckIPOSupported)
       check_ipo_supported(RESULT is_IPO_available)
       if(is_IPO_available)
-          set_target_properties(amrex PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+          set_target_properties(${AMREX_TARGET} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
       else()
           message(FATAL_ERROR "Interprocedural optimization is not available, set AMReX_IPO=OFF")
       endif()
@@ -153,7 +149,7 @@ function (configure_amrex)
    #
    # Setup third-party profilers
    #
-   set_amrex_profilers()
+   set_amrex_profilers(${AMREX_TARGET})
 
 endfunction ()
 

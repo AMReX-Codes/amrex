@@ -37,7 +37,7 @@ public:
     * time using the define member functions inherited
     * from FabArray.
     */
-    iMultiFab () noexcept;
+    iMultiFab () noexcept = default;
 
     /**
     * \brief Constructs an empty iMultiFab.  Data can be defined at a later
@@ -52,7 +52,7 @@ public:
     * \brief Constructs a iMultiFab with a valid region defined by bxs and
     * a region of definition defined by the grow factor ngrow.
     */
-    iMultiFab (const BoxArray&            bs,
+    iMultiFab (const BoxArray&            bxs,
                const DistributionMapping& dm,
                int                        ncomp,
                int                        ngrow,
@@ -64,7 +64,7 @@ public:
                const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>());
 #endif
 
-    iMultiFab (const BoxArray&            bs,
+    iMultiFab (const BoxArray&            bxs,
                const DistributionMapping& dm,
                int                        ncomp,
                const IntVect&             ngrow,
@@ -89,7 +89,7 @@ public:
     */
     iMultiFab (const iMultiFab& rhs, MakeType maketype, int scomp, int ncomp);
 
-    virtual ~iMultiFab () override;
+    ~iMultiFab () = default;
 
     iMultiFab (iMultiFab&& rhs) noexcept = default;
     iMultiFab& operator= (iMultiFab&& rhs) noexcept = default;
@@ -97,7 +97,7 @@ public:
     iMultiFab (const iMultiFab& rhs) = delete;
     iMultiFab& operator= (const iMultiFab& rhs) = delete;
 
-    void operator= (int r);
+    iMultiFab& operator= (int r);
 
     /**
     * \brief Returns the minimum value contained in component comp of the
@@ -109,7 +109,7 @@ public:
     * \param nghost
     * \param local
     */
-    int min (int comp,
+    [[nodiscard]] int min (int comp,
              int nghost = 0,
              bool local = false) const;
 
@@ -122,7 +122,7 @@ public:
     * \param nghost
     * \param local
     */
-    int min (const Box& b,
+    [[nodiscard]] int min (const Box& region,
              int        comp,
              int        nghost = 0,
              bool       local = false) const;
@@ -137,7 +137,7 @@ public:
     * \param nghost
     * \param local
     */
-    int max (int comp,
+    [[nodiscard]] int max (int comp,
              int nghost = 0,
              bool local = false) const;
 
@@ -150,7 +150,7 @@ public:
     * \param nghost
     * \param local
     */
-    int max (const Box& b,
+    [[nodiscard]] int max (const Box& region,
              int        comp,
              int        nghost = 0,
              bool       local = false) const;
@@ -162,7 +162,7 @@ public:
     * \param nghost
     * \param local
     */
-    Long sum (int comp, int nghost = 0, bool local = false) const;
+    [[nodiscard]] Long sum (int comp, int nghost = 0, bool local = false) const;
 
     /**
     * \brief Adds the scalar value val to the value of each cell in the
@@ -341,10 +341,10 @@ public:
     void negate (const Box& region,
                  int        nghost = 0);
 
-    IntVect minIndex (int comp,
+    [[nodiscard]] IntVect minIndex (int comp,
                       int nghost = 0) const;
 
-    IntVect maxIndex (int comp,
+    [[nodiscard]] IntVect maxIndex (int comp,
                       int nghost = 0) const;
 
     /**
@@ -502,35 +502,35 @@ public:
                         int             numcomp,
                         int             nghost);
 
-    virtual void define (const BoxArray&            bxs,
-                         const DistributionMapping& dm,
-                         int                        nvar,
-                         const IntVect&             ngrow,
+    void define (const BoxArray&            bxs,
+                 const DistributionMapping& dm,
+                 int                        nvar,
+                 const IntVect&             ngrow,
 #ifdef AMREX_STRICT_MODE
-                         const MFInfo&              info,
-                         const FabFactory<IArrayBox>& factory) override;
+                 const MFInfo&              info,
+                 const FabFactory<IArrayBox>& factory);
 #else
-                         const MFInfo&              info = MFInfo(),
-                         const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>()) override;
+                 const MFInfo&              info = MFInfo(),
+                 const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>());
 #endif
 
-    virtual void define (const BoxArray&            bxs,
-                         const DistributionMapping& dm,
-                         int                        nvar,
-                         int                        ngrow,
+    void define (const BoxArray&            bxs,
+                 const DistributionMapping& dm,
+                 int                        nvar,
+                 int                        ngrow,
 #ifdef AMREX_STRICT_MODE
-                         const MFInfo&              info,
-                         const FabFactory<IArrayBox>& factory) override;
+                 const MFInfo&              info,
+                 const FabFactory<IArrayBox>& factory);
 #else
-                         const MFInfo&              info = MFInfo(),
-                         const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>()) override;
+                 const MFInfo&              info = MFInfo(),
+                 const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>());
 #endif
 
     static void Initialize ();
     static void Finalize ();
 };
 
-// ngrow = IntVect{0} is a special case that should not be used in normal cases,
+// ngrow != IntVect{0} is a special case that should not be used in normal cases,
 // because it may mark valid cells as non-owner and ghost cells as owners.
 std::unique_ptr<iMultiFab>
 OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngrow=IntVect{0});

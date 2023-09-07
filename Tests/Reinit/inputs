@@ -1,0 +1,5 @@
+amrex.abort_on_out_of_gpu_memory=1
+amrex.signal_handling=0
+amrex.the_arena_is_managed = 0
+amrex.throw_exception=1
+amrex.verbose=2

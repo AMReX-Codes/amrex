@@ -82,9 +82,9 @@ int main_main()
         } else if (fname == "-a" || fname == "--allow_diff_grids") {
             allow_diff_grids = true;
         } else if (fname == "-r" || fname == "--rel_tol") {
-            rtol = std::stod(amrex::get_command_argument(++farg));
+            rtol = Real(std::stod(amrex::get_command_argument(++farg)));
         } else if (fname == "--abs_tol") {
-            atol = std::stod(amrex::get_command_argument(++farg));
+            atol = Real(std::stod(amrex::get_command_argument(++farg)));
         } else if (fname == "--abort_if_not_all_found") {
             abort_if_not_all_found = true;
         } else {
@@ -137,7 +137,7 @@ int main_main()
             amrex::Print() << " WARNING: variable " << names_a[n_a] << " not found in plotfile 2\n";
             all_variables_found = false;
         } else {
-            ivar_b[n_a] = std::distance(std::begin(names_b), r);
+            ivar_b[n_a] = static_cast<int>(std::distance(std::begin(names_b), r));
         }
 
         if (names_a[n_a] == diffvar) {
@@ -248,7 +248,7 @@ int main_main()
                     for (int idim = 0; idim < dm; ++idim) {
                         dv *= dx[idim];
                     }
-                    aerror[icomp_a] *= std::pow(dv,1./static_cast<Real>(norm));
+                    aerror[icomp_a] *= std::pow(dv,Real(1.)/static_cast<Real>(norm));
                     rerror[icomp_a] = rerror[icomp_a]/rerror_denom[icomp_a];
                 }
 
@@ -366,7 +366,7 @@ int main_main()
 
     if (! all_variables_found) {
         amrex::Print() << " WARNING: not all variables present in both files\n";
-        if (abort_if_not_all_found) return EXIT_FAILURE;
+        if (abort_if_not_all_found) { return EXIT_FAILURE; }
     }
 
     if (any_nans) {

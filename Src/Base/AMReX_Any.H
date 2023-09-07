@@ -4,23 +4,20 @@
 
 #include <memory>
 #include <typeinfo>
+#include <type_traits>
 
 namespace amrex {
 
 /**
- * This class is similar to std::any.  However, amrex::Any is for storing
+ * This class is similar to std::any.  However, amrex::Any can store
  * move-only types (e.g., amrex::MultiFab), whereas std::any is for copy
- * constructible types.  An object of this class is non-copyable.
+ * constructible types only.  An object of this class is non-copyable.
  */
 class Any
 {
 public:
 
-    //! Default constructor.  By default it stores an int.
-    Any ()
-        : m_ptr(std::make_unique<innards<int> >(0))
-        {}
-
+    Any () = default;
     ~Any () = default;
 
     Any (Any const& rhs) = delete;
@@ -30,25 +27,32 @@ public:
     Any& operator= (Any && rhs) = default;
 
     //! Constructs by moving the given object.
-    template <typename MF>
-    Any (MF && mf)
+    template <typename MF,
+              std::enable_if_t<!std::is_same_v<Any,std::decay_t<MF>>,int> = 0>
+    Any (MF && mf) // NOLINT(bugprone-forwarding-reference-overload)
         : m_ptr(std::make_unique<innards<MF> >(std::forward<MF>(mf)))
         {}
 
     //! Assigns by moving the given object.
-    template <typename MF>
-    void operator= (MF && mf) {
+    template <typename MF,
+              std::enable_if_t<!std::is_same_v<Any,std::decay_t<MF>>,int> = 0>
+    Any& operator= (MF && mf) {
         m_ptr = std::make_unique<innards<MF> >(std::forward<MF>(mf));
+        return *this;
     }
 
     //! Returns the contained type.
-    const std::type_info& Type () const {
-        return m_ptr->Type();
+    [[nodiscard]] const std::type_info& Type () const {
+        if (m_ptr) {
+            return m_ptr->Type();
+        } else {
+            return typeid(void);
+        }
     }
 
     //! Returns a reference to the contained object.
     template <typename MF>
-    MF& get () {
+    [[nodiscard]] MF& get () {
         if (auto p0 = dynamic_cast<innards<MF>*>(m_ptr.get())) {
             return p0->m_mf;
         } else {
@@ -58,7 +62,7 @@ public:
 
     //! Returns a const reference to the contained object.
     template <typename MF>
-    MF const& get () const {
+    [[nodiscard]] MF const& get () const {
         if (auto p0 = dynamic_cast<innards<MF>*>(m_ptr.get())) {
             return p0->m_mf;
         } else if (auto p1 = dynamic_cast<innards<MF&>*>(m_ptr.get())) {
@@ -69,24 +73,27 @@ public:
     }
 
     template <typename MF>
-    bool is () const { return m_ptr->Type() == typeid(MF); }
+    [[nodiscard]] bool is () const { return Type() == typeid(MF); }
+
+    [[nodiscard]] bool hasValue () const { return m_ptr != nullptr; }
 
 private:
-    struct innards_base {
-        virtual const std::type_info& Type () const = 0;
+    struct innards_base // NOLINT(cppcoreguidelines-special-member-functions)
+    {
+        [[nodiscard]] virtual const std::type_info& Type () const = 0;
         virtual ~innards_base () = default;
     };
 
     template <typename MF>
-    struct innards : innards_base
+    struct innards final : innards_base // NOLINT(cppcoreguidelines-special-member-functions)
     {
         innards (MF && mf)
             : m_mf(std::forward<MF>(mf))
             {}
 
-        virtual ~innards () = default;
+        ~innards () final = default;
 
-        virtual const std::type_info& Type () const override {
+        [[nodiscard]] const std::type_info& Type () const final {
             return typeid(MF);
         }
 

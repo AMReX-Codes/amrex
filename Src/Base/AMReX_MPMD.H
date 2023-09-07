@@ -8,7 +8,7 @@
 
 #include <mpi.h>
 
-namespace amrex { namespace MPMD {
+namespace amrex::MPMD {
 
 MPI_Comm Initialize (int argc, char* argv[]);
 
@@ -26,10 +26,10 @@ public:
     Copier (BoxArray const& ba, DistributionMapping const& dm);
 
     template <typename FAB>
-    void send (FabArray<FAB> const& fa, int icomp, int ncomp) const;
+    void send (FabArray<FAB> const& mf, int icomp, int ncomp) const;
 
     template <typename FAB>
-    void recv (FabArray<FAB>& fa, int icomp, int ncomp) const;
+    void recv (FabArray<FAB>& mf, int icomp, int ncomp) const;
 
 private:
     std::map<int,FabArrayBase::CopyComTagsContainer> m_SndTags;
@@ -39,9 +39,9 @@ private:
 template <typename FAB>
 void Copier::send (FabArray<FAB> const& mf, int icomp, int ncomp) const
 {
-    const int N_snds = m_SndTags.size();
+    const auto N_snds = static_cast<int>(m_SndTags.size());
 
-    if (N_snds == 0) return;
+    if (N_snds == 0) { return; }
 
     // Prepare buffer
 
@@ -106,9 +106,9 @@ void Copier::send (FabArray<FAB> const& mf, int icomp, int ncomp) const
 template <typename FAB>
 void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
 {
-    const int N_rcvs = m_RcvTags.size();
+    const auto N_rcvs = static_cast<int>(m_RcvTags.size());
 
-    if (N_rcvs == 0) return;
+    if (N_rcvs == 0) { return; }
 
     // Prepare buffer
 
@@ -172,7 +172,7 @@ void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
     }
 }
 
-}}
+}
 
 #endif
 #endif

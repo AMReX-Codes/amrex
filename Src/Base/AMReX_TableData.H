@@ -418,7 +418,9 @@ TableData<T,N>::operator= (TableData<T,N> && rhs) noexcept
 template <typename T, int N>
 TableData<T,N>::~TableData () noexcept
 {
-    static_assert(std::is_arithmetic<T>::value, "TableData<T,N>: T must be an arithmetic type");
+    static_assert(std::is_trivially_copyable<T>() &&
+                  std::is_trivially_destructible<T>(),
+                  "TableData<T,N>: T must be trivially copyable and trivially destructible");
     static_assert(N>=1 && N <=4, "TableData<T,N>: N must be in the range of [1,4]");
     clear();
 }

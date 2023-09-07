@@ -15,7 +15,7 @@ namespace openbc {
 
     struct Moments
     {
-        typedef GpuArray<Real,(M+2)*(M+1)/2> array_type;
+        using array_type = GpuArray<Real,(M+2)*(M+1)/2>;
         array_type mom;
         Real x, y, z;
         Orientation face;
@@ -58,14 +58,14 @@ struct Gpu::SharedMemory<openbc::Moments::array_type>
 class OpenBCSolver
 {
 public:
-    OpenBCSolver ();
+    OpenBCSolver () = default;
 
     OpenBCSolver (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
                   const Vector<DistributionMapping>& a_dmap,
                   const LPInfo& a_info = LPInfo());
 
-    ~OpenBCSolver ();
+    ~OpenBCSolver () = default;
 
     OpenBCSolver (const OpenBCSolver&) = delete;
     OpenBCSolver (OpenBCSolver&&) = delete;
@@ -78,11 +78,14 @@ public:
                  const LPInfo& a_info = LPInfo());
 
     void setVerbose (int v) noexcept;
+    void setBottomVerbose (int v) noexcept;
+
+    void useHypre (bool use_hypre) noexcept;
 
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
                 Real a_tol_rel, Real a_tol_abs);
 
-public: // public for cuda
+// public for cuda
 
     void compute_moments (Gpu::DeviceVector<openbc::Moments>& moments);
     void compute_potential (Gpu::DeviceVector<openbc::Moments> const& moments);
@@ -95,6 +98,7 @@ private:
 #endif
 
     int m_verbose = 0;
+    int m_bottom_verbose = 0;
     Vector<Geometry> m_geom;
     Vector<BoxArray> m_grids;
     Vector<DistributionMapping> m_dmap;
@@ -103,6 +107,7 @@ private:
     std::unique_ptr<MLPoisson> m_poisson_2;
     std::unique_ptr<MLMG> m_mlmg_1;
     std::unique_ptr<MLMG> m_mlmg_2;
+    BottomSolver m_bottom_solver_type = BottomSolver::bicgstab;
 
     int m_coarsen_ratio = 0;
     Array<MultiFab,AMREX_SPACEDIM> m_dpdn;
@@ -126,9 +131,10 @@ private:
     MultiFab m_phind;
     BoxArray m_bag;
 
-    BoxArray m_ba_all;
-    DistributionMapping m_dm_all;
-    Geometry m_geom_all;
+    Vector<IntVect> m_box_offset;
+    Vector<BoxArray> m_ba_all;
+    Vector<DistributionMapping> m_dm_all;
+    Vector<Geometry> m_geom_all;
 };
 
 }

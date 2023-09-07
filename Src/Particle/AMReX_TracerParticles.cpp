@@ -1,5 +1,3 @@
-#include <AMReX_TracerParticle_mod_K.H>
-#include <AMReX_TracerParticles.H>
 #include <AMReX_TracerParticles.H>
 #include <AMReX_TracerParticle_mod_K.H>
 #include <AMReX_Print.H>
@@ -60,7 +58,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
             auto& ptile = ParticlesAt(lev, pti);
             auto& aos  = ptile.GetArrayOfStructs();
             const int n = aos.numParticles();
-            auto p_pbox = aos().data();
+            auto *p_pbox = aos().data();
             const FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
                                                                   &((*umac_pointer[1])[grid]),
                                                                   &((*umac_pointer[2])[grid])) };
@@ -75,7 +73,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                                [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p = p_pbox[i];
-                if (p.id() <= 0) return;
+                if (p.id() <= 0) { return; }
                 ParticleReal v[AMREX_SPACEDIM];
                 mac_interpolate(p, plo, dxi, umacarr, v);
                 if (ipass == 0)
@@ -147,13 +145,13 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
             const int n          = aos.numParticles();
             const FArrayBox& fab = Ucc[grid];
             const auto uccarr = fab.array();
-            auto  p_pbox = aos().data();
+            auto *  p_pbox = aos().data();
 
             amrex::ParallelFor(n,
                                [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p  = p_pbox[i];
-                if (p.id() <= 0) return;
+                if (p.id() <= 0) { return; }
                 ParticleReal v[AMREX_SPACEDIM];
 
                 cic_interpolate(p, plo, dxi, uccarr, v);
@@ -170,7 +168,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                 {
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                        p.rdata(dim) = p.rdata(dim) + static_cast<ParticleReal>(dt*v[dim]);
+                        p.pos(dim) = p.rdata(dim) + static_cast<ParticleReal>(dt*v[dim]);
                         p.rdata(dim) = v[dim];
                     }
                 }
@@ -240,21 +238,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             //
             // Do we have any particles at this level that need writing?
             //
-            bool gotwork = false;
-
-            const auto& pmap = GetParticles(lev);
-            for (auto& kv : pmap) {
-              const auto& pbox = kv.second.GetArrayOfStructs();
-              for (int k = 0; k < pbox.numParticles(); ++k)
-              {
-                const ParticleType& p = pbox[k];
-                if (p.id() > 0) {
-                  gotwork = true;
-                  break;
-                }
-              }
-              if (gotwork) break;
-            }
+            bool gotwork = NumberOfParticlesAtLevel(lev, true, true) > 0;
 
             if (gotwork)
               {
@@ -274,30 +258,53 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                 TimeStampFile.seekp(0, std::ios::end);
 
-                if (!TimeStampFile.good())
+                if (!TimeStampFile.good()) {
                     amrex::FileOpenFailed(FileName);
+                }
 
-                const int       M  = indices.size();
+                const auto M  = static_cast<int>(indices.size());
                 const BoxArray& ba = mf.boxArray();
 
                 std::vector<ParticleReal> vals(M);
 
-                for (auto& kv : pmap) {
+                const auto& pmap = GetParticles(lev);
+                for (const auto& kv : pmap) {
+                  using PinnedTile = amrex::ParticleTile<Particle<AMREX_SPACEDIM, 0>, 0, 0,
+                                                         amrex::PinnedArenaAllocator>;
+                  PinnedTile pinned_tile;
+                  pinned_tile.define(NumRuntimeRealComps(), NumRuntimeIntComps());
+                  pinned_tile.resize(kv.second.numParticles());
+                  amrex::copyParticles(pinned_tile, kv.second);
+
                   int grid = kv.first.first;
-                  const auto& pbox = kv.second.GetArrayOfStructs();
+                  const auto& pbox = pinned_tile.GetArrayOfStructs();
                   const Box&       bx   = ba[grid];
                   const FArrayBox& fab  = mf[grid];
-                  const auto uccarr = fab.array();
+                  auto uccarr = fab.array();
+
+                  amrex::Array4<amrex::Real const>* uccarr_ptr = &uccarr;
+#ifdef AMREX_USE_GPU
+                  std::unique_ptr<FArrayBox> hostfab;
+                  {
+                      hostfab = std::make_unique<FArrayBox>(fab.box(), fab.nComp(),
+                                                            The_Pinned_Arena());
+                      Gpu::dtoh_memcpy_async(hostfab->dataPtr(), fab.dataPtr(),
+                                             fab.size()*sizeof(Real));
+                      Gpu::streamSynchronize();
+                      auto hostarr = hostfab->const_array();
+                      uccarr_ptr = &hostarr;
+                  }
+#endif
 
                   for (int k = 0; k < pbox.numParticles(); ++k)
                     {
                       const ParticleType& p = pbox[k];
 
-                      if (p.id() <= 0) continue;
+                      if (p.id() <= 0) { continue; }
 
                       const IntVect& iv = Index(p,lev);
 
-                      if (!bx.contains(iv) && !ba.contains(iv)) continue;
+                      if (!bx.contains(iv) && !ba.contains(iv)) { continue; }
 
                       TimeStampFile << p.id()  << ' ' << p.cpu() << ' ';
 
@@ -315,7 +322,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                       if (M > 0)
                         {
-                          cic_interpolate(p, plo, dxi, uccarr, &vals[0], M);
+                          cic_interpolate(p, plo, dxi, *uccarr_ptr, vals.data(), M);
 
                           for (int i = 0; i < M; i++)
                             {
@@ -335,8 +342,9 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             const int wakeUpPID = (MyProc + nOutFiles);
             const int tag       = (MyProc % nOutFiles);
 
-            if (wakeUpPID < NProcs)
+            if (wakeUpPID < NProcs) {
                 ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+            }
         }
         if (mySet == (iSet + 1))
         {
@@ -363,6 +371,6 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 #ifdef AMREX_LAZY
         });
 #endif
-    }
+   }
 }
 }

@@ -19,6 +19,7 @@ int       CNS::verbose = 0;
 IntVect   CNS::hydro_tile_size {AMREX_D_DECL(1024,16,16)};
 Real      CNS::cfl       = 0.3;
 int       CNS::do_reflux = 1;
+int       CNS::rk_order = 2;
 int       CNS::refine_max_dengrad_lev   = -1;
 Real      CNS::refine_dengrad           = 1.0e10;
 
@@ -241,6 +242,9 @@ CNS::post_timestep (int /*iteration*/)
 
     if (level < parent->finestLevel()) {
         avgDown();
+        // fillpatcher on level+1 needs to be reset because data on this
+        // level have changed.
+        getLevel(level+1).resetFillPatcher();
     }
 }
 
@@ -280,7 +284,7 @@ CNS::printTotal () const
 void
 CNS::post_init (Real)
 {
-    if (level > 0) return;
+    if (level > 0) { return; }
     for (int k = parent->finestLevel()-1; k >= 0; --k) {
         getLevel(k).avgDown();
     }
@@ -354,6 +358,7 @@ CNS::read_params ()
     }
 
     pp.query("do_reflux", do_reflux);
+    pp.query("rk_order", rk_order);
 
     pp.query("do_visc", do_visc);
 
@@ -396,7 +401,7 @@ CNS::avgDown ()
 {
     BL_PROFILE("CNS::avgDown()");
 
-    if (level == parent->finestLevel()) return;
+    if (level == parent->finestLevel()) { return; }
 
     auto& fine_lev = getLevel(level+1);
 

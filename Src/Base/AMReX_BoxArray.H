@@ -18,39 +18,39 @@ namespace amrex
     class BoxArray;
 
     //! Make a BoxArray from the the complement of b2 in b1in.
-    BoxArray boxComplement (const Box& b1in, const Box& b2);
+    [[nodiscard]] BoxArray boxComplement (const Box& b1in, const Box& b2);
 
     //! Make a BoxArray from the complement of BoxArray ba in Box b.
-    BoxArray complementIn (const Box& b, const BoxArray& ba);
+    [[nodiscard]] BoxArray complementIn (const Box& b, const BoxArray& ba);
 
     //! Make a BoxArray from the intersection of Box b and BoxArray(+ghostcells).
-    BoxArray intersect (const BoxArray& ba, const Box& b, int ng = 0);
+    [[nodiscard]] BoxArray intersect (const BoxArray& ba, const Box& b, int ng = 0);
 
-    BoxArray intersect (const BoxArray& ba, const Box& b, const IntVect& ng);
+    [[nodiscard]] BoxArray intersect (const BoxArray& ba, const Box& b, const IntVect& ng);
 
     //! Make a BoxArray from the intersection of two BoxArrays.
-    BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
+    [[nodiscard]] BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
 
     //! Make a BoxList from the intersection of BoxArray and BoxList.
-    BoxList intersect (const BoxArray& ba, const BoxList& bl);
+    [[nodiscard]] BoxList intersect (const BoxArray& ba, const BoxList& bl);
 
-    BoxArray convert (const BoxArray& ba, IndexType typ);
-    BoxArray convert (const BoxArray& ba, const IntVect& typ);
+    [[nodiscard]] BoxArray convert (const BoxArray& ba, IndexType typ);
+    [[nodiscard]] BoxArray convert (const BoxArray& ba, const IntVect& typ);
 
-    BoxArray coarsen (const BoxArray& ba, int ratio);
-    BoxArray coarsen (const BoxArray& ba, const IntVect& ratio);
+    [[nodiscard]] BoxArray coarsen (const BoxArray& ba, int ratio);
+    [[nodiscard]] BoxArray coarsen (const BoxArray& ba, const IntVect& ratio);
 
-    BoxArray refine  (const BoxArray& ba, int ratio);
-    BoxArray refine  (const BoxArray& ba, const IntVect& ratio);
+    [[nodiscard]] BoxArray refine  (const BoxArray& ba, int ratio);
+    [[nodiscard]] BoxArray refine  (const BoxArray& ba, const IntVect& ratio);
 
     //! Find the ghost cells of a given BoxArray.
-    BoxList GetBndryCells (const BoxArray& ba, int ngrow);
+    [[nodiscard]] BoxList GetBndryCells (const BoxArray& ba, int ngrow);
 
     //! Read a BoxArray from a stream.  If b is true, read in a special way
     void readBoxArray (BoxArray& ba, std::istream& s, bool b = false);
 
     //! Note that two BoxArrays that match are not necessarily equal.
-    bool match (const BoxArray& x, const BoxArray& y);
+    [[nodiscard]] bool match (const BoxArray& x, const BoxArray& y);
 
 struct BARef
 {
@@ -61,7 +61,9 @@ struct BARef
     explicit BARef (BoxList&& bl) noexcept;
     explicit BARef (std::istream& is);
     BARef (const BARef& rhs);
+    BARef (BARef&& rhs) = delete;
     BARef& operator= (const BARef& rhs) = delete;
+    BARef& operator= (BARef&& rhs) = delete;
 
     ~BARef ();
 
@@ -76,7 +78,7 @@ struct BARef
     void updateMemoryUsage_hash (int s);
 #endif
 
-    inline bool HasHashMap () const {
+    [[nodiscard]] inline bool HasHashMap () const {
         bool r;
 #ifdef AMREX_USE_OMP
 #pragma omp atomic read
@@ -94,7 +96,7 @@ struct BARef
 
     mutable IntVect crsn;
 
-    typedef std::unordered_map< IntVect, std::vector<int>, IntVect::shift_hasher > HashType;
+    using HashType = std::unordered_map< IntVect, std::vector<int>, IntVect::shift_hasher > ;
     //using HashType = std::map< IntVect,std::vector<int> >;
 
     mutable HashType hash;
@@ -115,35 +117,35 @@ struct BARef
 
 struct BATnull
 {
-    constexpr Box operator() (const Box& bx) const noexcept { return bx; }
-    constexpr Box coarsen (Box const& a_box) const noexcept { return a_box; }
-    constexpr IntVect doiLo () const noexcept { return IntVect::TheZeroVector(); }
-    constexpr IntVect doiHi () const noexcept { return IntVect::TheZeroVector(); }
-    constexpr IndexType index_type () const noexcept { return IndexType(); }
-    constexpr IntVect coarsen_ratio () const noexcept { return IntVect::TheUnitVector(); }
+    [[nodiscard]] Box operator() (const Box& bx) const noexcept { return bx; }
+    [[nodiscard]] static constexpr Box coarsen (Box const& a_box) { return a_box; }
+    [[nodiscard]] static constexpr IntVect doiLo () { return IntVect::TheZeroVector(); }
+    [[nodiscard]] static constexpr IntVect doiHi () { return IntVect::TheZeroVector(); }
+    [[nodiscard]] static constexpr IndexType index_type () { return IndexType(); }
+    [[nodiscard]] static constexpr IntVect coarsen_ratio () { return IntVect::TheUnitVector(); }
 };
 
 struct BATindexType
 {
     explicit BATindexType (IndexType a_typ) : m_typ(a_typ) {}
-    Box operator() (const Box& bx) const noexcept { return amrex::convert(bx,m_typ); }
-    Box coarsen (Box const& a_box) const noexcept { return a_box; }
-    IntVect doiLo () const noexcept { return IntVect::TheZeroVector(); }
-    IntVect doiHi () const noexcept { return m_typ.ixType(); }
-    IndexType index_type () const noexcept { return m_typ; }
-    IntVect coarsen_ratio () const noexcept { return IntVect::TheUnitVector(); }
+    [[nodiscard]] Box operator() (const Box& bx) const noexcept { return amrex::convert(bx,m_typ); }
+    [[nodiscard]] static Box coarsen (Box const& a_box) noexcept { return a_box; }
+    [[nodiscard]] static constexpr IntVect doiLo () { return IntVect::TheZeroVector(); }
+    [[nodiscard]] IntVect doiHi () const noexcept { return m_typ.ixType(); }
+    [[nodiscard]] IndexType index_type () const noexcept { return m_typ; }
+    [[nodiscard]] static constexpr IntVect coarsen_ratio () { return IntVect::TheUnitVector(); }
     IndexType m_typ;
 };
 
 struct BATcoarsenRatio
 {
     explicit BATcoarsenRatio (IntVect const& a_crse_ratio) : m_crse_ratio(a_crse_ratio) {}
-    Box operator() (const Box& bx) const noexcept { return amrex::coarsen(bx,m_crse_ratio); }
-    Box coarsen (Box const& a_box) const noexcept { return amrex::coarsen(a_box,m_crse_ratio); }
-    IntVect doiLo () const noexcept { return IntVect::TheZeroVector(); }
-    IntVect doiHi () const noexcept { return IntVect::TheZeroVector(); }
-    IndexType index_type () const noexcept { return IndexType(); }
-    IntVect coarsen_ratio () const noexcept { return m_crse_ratio; }
+    [[nodiscard]] Box operator() (const Box& bx) const noexcept { return amrex::coarsen(bx,m_crse_ratio); }
+    [[nodiscard]] Box coarsen (Box const& a_box) const noexcept { return amrex::coarsen(a_box,m_crse_ratio); }
+    [[nodiscard]] static constexpr IntVect doiLo () { return IntVect::TheZeroVector(); }
+    [[nodiscard]] static constexpr IntVect doiHi () { return IntVect::TheZeroVector(); }
+    [[nodiscard]] static constexpr IndexType index_type () { return IndexType(); }
+    [[nodiscard]] IntVect coarsen_ratio () const noexcept { return m_crse_ratio; }
     IntVect m_crse_ratio;
 };
 
@@ -152,17 +154,17 @@ struct BATindexType_coarsenRatio
     BATindexType_coarsenRatio (IndexType a_typ, IntVect const& a_crse_ratio)
         : m_typ(a_typ), m_crse_ratio(a_crse_ratio) {}
 
-    Box operator() (const Box& bx) const noexcept {
+    [[nodiscard]] Box operator() (const Box& bx) const noexcept {
         return amrex::convert(amrex::coarsen(bx,m_crse_ratio),m_typ);
     }
 
-    Box coarsen (Box const& a_box) const noexcept { return amrex::coarsen(a_box,m_crse_ratio); }
+    [[nodiscard]] Box coarsen (Box const& a_box) const noexcept { return amrex::coarsen(a_box,m_crse_ratio); }
 
-    IntVect doiLo () const noexcept { return IntVect::TheZeroVector(); }
-    IntVect doiHi () const noexcept { return m_typ.ixType(); }
+    [[nodiscard]] static constexpr IntVect doiLo () { return IntVect::TheZeroVector(); }
+    [[nodiscard]] IntVect doiHi () const noexcept { return m_typ.ixType(); }
 
-    IndexType index_type () const noexcept { return m_typ; }
-    IntVect coarsen_ratio () const noexcept { return m_crse_ratio; }
+    [[nodiscard]] IndexType index_type () const noexcept { return m_typ; }
+    [[nodiscard]] IntVect coarsen_ratio () const noexcept { return m_crse_ratio; }
 
     IndexType m_typ;
     IntVect m_crse_ratio;
@@ -212,7 +214,7 @@ struct BATbndryReg
         }
     }
 
-    Box operator() (const Box& a_bx) const noexcept {
+    [[nodiscard]] Box operator() (const Box& a_bx) const noexcept {
         IntVect lo = amrex::coarsen(a_bx.smallEnd(), m_crse_ratio);
         IntVect hi = amrex::coarsen(a_bx.bigEnd(), m_crse_ratio);
         const int d = m_face.coordDir();
@@ -226,13 +228,13 @@ struct BATbndryReg
         return Box(lo,hi,m_typ);
     }
 
-    Box coarsen (Box const& a_box) const noexcept { return amrex::coarsen(a_box,m_crse_ratio); }
+    [[nodiscard]] Box coarsen (Box const& a_box) const noexcept { return amrex::coarsen(a_box,m_crse_ratio); }
 
-    IntVect doiLo () const noexcept { return m_doilo; }
-    IntVect doiHi () const noexcept { return m_doihi; }
+    [[nodiscard]] IntVect doiLo () const noexcept { return m_doilo; }
+    [[nodiscard]] IntVect doiHi () const noexcept { return m_doihi; }
 
-    IndexType index_type () const noexcept { return m_typ; }
-    IntVect coarsen_ratio () const noexcept { return m_crse_ratio; }
+    [[nodiscard]] IndexType index_type () const noexcept { return m_typ; }
+    [[nodiscard]] IntVect coarsen_ratio () const noexcept { return m_crse_ratio; }
 
     friend bool operator== (BATbndryReg const& a, BATbndryReg const& b) noexcept {
         return a.m_face == b.m_face && a.m_typ == b.m_typ && a.m_crse_ratio == b.m_crse_ratio
@@ -271,8 +273,7 @@ struct BATransformer
         BATbndryReg m_bndryReg;
     };
 
-    BATransformer ()
-        : m_bat_type(BATType::null), m_op() {}
+    BATransformer () = default;
 
     BATransformer (IndexType t)
         : m_bat_type(t.cellCentered() ? BATType::null : BATType::indexType),
@@ -282,7 +283,7 @@ struct BATransformer
         : m_bat_type(BATType::bndryReg),
           m_op(f,t,in_rad,out_rad,extent_rad) {}
 
-    Box operator() (Box const& ab) const noexcept {
+    [[nodiscard]] Box operator() (Box const& ab) const noexcept {
         switch (m_bat_type)
         {
         case     BATType::null:
@@ -298,13 +299,13 @@ struct BATransformer
         }
     }
 
-    Box coarsen (Box const& a_box) const noexcept  {
+    [[nodiscard]] Box coarsen (Box const& a_box) const noexcept  {
         switch (m_bat_type)
         {
         case     BATType::null:
-            return m_op.m_null.coarsen(a_box);
+            return amrex::BATnull::coarsen(a_box);
         case     BATType::indexType:
-            return m_op.m_indexType.coarsen(a_box);
+            return amrex::BATindexType::coarsen(a_box);
         case     BATType::coarsenRatio:
             return m_op.m_coarsenRatio.coarsen(a_box);
         case     BATType::indexType_coarsenRatio:
@@ -314,31 +315,31 @@ struct BATransformer
         }
     }
 
-    IntVect doiLo () const noexcept  {
+    [[nodiscard]] IntVect doiLo () const noexcept  {
         switch (m_bat_type)
         {
         case     BATType::null:
-            return m_op.m_null.doiLo();
+            return amrex::BATnull::doiLo();
         case     BATType::indexType:
-            return m_op.m_indexType.doiLo();
+            return amrex::BATindexType::doiLo();
         case     BATType::coarsenRatio:
-            return m_op.m_coarsenRatio.doiLo();
+            return amrex::BATcoarsenRatio::doiLo();
         case     BATType::indexType_coarsenRatio:
-            return m_op.m_indexType_coarsenRatio.doiLo();
+            return amrex::BATindexType_coarsenRatio::doiLo();
         default:
             return m_op.m_bndryReg.doiLo();
         }
     }
 
-    IntVect doiHi () const noexcept  {
+    [[nodiscard]] IntVect doiHi () const noexcept  {
         switch (m_bat_type)
         {
         case     BATType::null:
-            return m_op.m_null.doiHi();
+            return amrex::BATnull::doiHi();
         case     BATType::indexType:
             return m_op.m_indexType.doiHi();
         case     BATType::coarsenRatio:
-            return m_op.m_coarsenRatio.doiHi();
+            return amrex::BATcoarsenRatio::doiHi();
         case     BATType::indexType_coarsenRatio:
             return m_op.m_indexType_coarsenRatio.doiHi();
         default:
@@ -346,15 +347,15 @@ struct BATransformer
         }
     }
 
-    IndexType index_type () const noexcept  {
+    [[nodiscard]] IndexType index_type () const noexcept  {
         switch (m_bat_type)
         {
         case     BATType::null:
-            return m_op.m_null.index_type();
+            return amrex::BATnull::index_type();
         case     BATType::indexType:
             return m_op.m_indexType.index_type();
         case     BATType::coarsenRatio:
-            return m_op.m_coarsenRatio.index_type();
+            return amrex::BATcoarsenRatio::index_type();
         case     BATType::indexType_coarsenRatio:
             return m_op.m_indexType_coarsenRatio.index_type();
         default:
@@ -362,13 +363,13 @@ struct BATransformer
         }
     }
 
-    IntVect coarsen_ratio () const noexcept  {
+    [[nodiscard]] IntVect coarsen_ratio () const noexcept  {
         switch (m_bat_type)
         {
         case     BATType::null:
-            return m_op.m_null.coarsen_ratio();
+            return amrex::BATnull::coarsen_ratio();
         case     BATType::indexType:
-            return m_op.m_indexType.coarsen_ratio();
+            return amrex::BATindexType::coarsen_ratio();
         case     BATType::coarsenRatio:
             return m_op.m_coarsenRatio.coarsen_ratio();
         case     BATType::indexType_coarsenRatio:
@@ -378,11 +379,11 @@ struct BATransformer
         }
     }
 
-    bool is_null () const noexcept {
+    [[nodiscard]] bool is_null () const noexcept {
         return m_bat_type == BATType::null;
     }
 
-    bool is_simple () const noexcept {
+    [[nodiscard]] bool is_simple () const noexcept {
         return m_bat_type != BATType::bndryReg;
     }
 
@@ -507,7 +508,7 @@ struct BATransformer
         }
     }
 
-    BATType m_bat_type;
+    BATType m_bat_type{BATType::null};
     BATOp m_op;
 };
 
@@ -527,27 +528,19 @@ class FabArrayBase;
 class BoxArray
 {
 public:
-    //! Construct an empty BoxArray.
-    BoxArray ();
 
-    //! The copy constructor.
-    BoxArray (const BoxArray& rhs);
-
-    //! The move constructor.
+    BoxArray () noexcept;
+    BoxArray (const BoxArray& rhs) = default;
     BoxArray (BoxArray&& rhs) noexcept = default;
-
-    //! The move assignment operator.
-    BoxArray& operator= (BoxArray const& rhs) noexcept = default;
+    BoxArray& operator= (BoxArray const& rhs) = default;
     BoxArray& operator= (BoxArray&& rhs) noexcept = default;
-
-    //! The destructor.
     ~BoxArray() noexcept = default;
 
     //! Make a boxarray out of a single box
     explicit BoxArray (const Box& bx);
 
     //! Construct a BoxArray of the specified size.
-    explicit BoxArray (size_t size);
+    explicit BoxArray (size_t n);
 
     //! Construct a BoxArray from an array of Boxes of size nbox.
     BoxArray (const Box* bxvec,
@@ -580,19 +573,19 @@ public:
     void resize (Long len);
 
     //! Return the number of boxes in the BoxArray.
-    Long size () const noexcept { return m_ref->m_abox.size(); }
+    [[nodiscard]] Long size () const noexcept { return m_ref->m_abox.size(); }
 
     //! Return the number of boxes that can be held in the current allocated storage
-    Long capacity () const noexcept { return m_ref->m_abox.capacity(); }
+    [[nodiscard]] Long capacity () const noexcept { return static_cast<Long>(m_ref->m_abox.capacity()); }
 
     //! Return whether the BoxArray is empty
-    bool empty () const noexcept { return m_ref->m_abox.empty(); }
+    [[nodiscard]] bool empty () const noexcept { return m_ref->m_abox.empty(); }
 
     //! Returns the total number of cells contained in all boxes in the BoxArray.
-    Long numPts() const noexcept;
+    [[nodiscard]] Long numPts() const noexcept;
 
     //! Returns the total number of cells (in double type) contained in all boxes in the BoxArray.
-    double d_numPts () const noexcept;
+    [[nodiscard]] double d_numPts () const noexcept;
     /**
     * \brief Initialize the BoxArray from the supplied istream.
     * It is an error if the BoxArray has already been initialized.
@@ -605,16 +598,16 @@ public:
     std::ostream& writeOn (std::ostream&) const;
 
     //! Are the BoxArrays equal?
-    bool operator== (const BoxArray& rhs) const noexcept;
+    [[nodiscard]] bool operator== (const BoxArray& rhs) const noexcept;
 
     //! Are the BoxArrays not equal?
-    bool operator!= (const BoxArray& rhs) const noexcept;
+    [[nodiscard]] bool operator!= (const BoxArray& rhs) const noexcept;
 
-    bool operator== (const Vector<Box>& bv) const noexcept;
-    bool operator!= (const Vector<Box>& bv) const noexcept;
+    [[nodiscard]] bool operator== (const Vector<Box>& bv) const noexcept;
+    [[nodiscard]] bool operator!= (const Vector<Box>& bv) const noexcept;
 
     //!  Are the BoxArrays equal after conversion to cell-centered
-    bool CellEqual (const BoxArray& rhs) const noexcept;
+    [[nodiscard]] bool CellEqual (const BoxArray& rhs) const noexcept;
 
     //! Forces each Box in BoxArray to have sides <= block_size.
     BoxArray& maxSize (int block_size);
@@ -625,22 +618,22 @@ public:
     BoxArray& refine (int refinement_ratio);
 
     //! Refine each Box in the BoxArray to the specified ratio.
-    BoxArray& refine (const IntVect& refinement_ratio);
+    BoxArray& refine (const IntVect& iv);
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (int refinement_ratio);
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
-    bool coarsenable (int refinement_ratio, int min_width=1) const;
-    bool coarsenable (const IntVect& refinement_ratio, int min_width=1) const;
-    bool coarsenable (const IntVect& refinement_ratio, const IntVect& min_width) const;
+    [[nodiscard]] bool coarsenable (int refinement_ratio, int min_width=1) const;
+    [[nodiscard]] bool coarsenable (const IntVect& refinement_ratio, int min_width=1) const;
+    [[nodiscard]] bool coarsenable (const IntVect& refinement_ratio, const IntVect& min_width) const;
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
-    BoxArray& coarsen (const IntVect& refinement_ratio);
+    BoxArray& coarsen (const IntVect& iv);
 
     //! Grow and then coarsen each Box in the BoxArray.
-    BoxArray& growcoarsen (int n, const IntVect& refinement_ratio);
-    BoxArray& growcoarsen (IntVect const& ngrow, const IntVect& refinement_ratio);
+    BoxArray& growcoarsen (int n, const IntVect& iv);
+    BoxArray& growcoarsen (IntVect const& ngrow, const IntVect& iv);
 
     //! Grow each Box in the BoxArray by the specified amount.
     BoxArray& grow (int n);
@@ -682,7 +675,7 @@ public:
     //! Apply Box::convert(IndexType) to each Box in the BoxArray.
     BoxArray& convert (IndexType typ);
 
-    BoxArray& convert (const IntVect& typ);
+    BoxArray& convert (const IntVect& iv);
 
     //! Apply function (*fp)(Box) to each Box in the BoxArray.
     BoxArray& convert (Box (*fp)(const Box&));
@@ -697,18 +690,18 @@ public:
     void set (int i, const Box& ibox);
 
     //! Return element index of this BoxArray.
-    Box operator[] (int index) const noexcept {
+    [[nodiscard]] Box operator[] (int index) const noexcept {
         return m_bat(m_ref->m_abox[index]);
     }
 
     //! Return element index of this BoxArray.
-    Box operator[] (const MFIter& mfi) const noexcept;
+    [[nodiscard]] Box operator[] (const MFIter& mfi) const noexcept;
 
     //! Return element index of this BoxArray.
-    Box get (int index) const noexcept { return operator[](index); }
+    [[nodiscard]] Box get (int index) const noexcept { return operator[](index); }
 
     //! Return cell-centered box at element index of this BoxArray.
-    Box getCellCenteredBox (int index) const noexcept {
+    [[nodiscard]] Box getCellCenteredBox (int index) const noexcept {
         return m_bat.coarsen(m_ref->m_abox[index]);
     }
 
@@ -716,48 +709,55 @@ public:
     * \brief Return true if Box is valid and they all have the same
     * IndexType.  Is true by default if the BoxArray is empty.
     */
-    bool ok () const;
+    [[nodiscard]] bool ok () const;
 
     //! Return true if set of intersecting Boxes in BoxArray is null.
-    bool isDisjoint () const;
+    [[nodiscard]] bool isDisjoint () const;
 
     //! Create a BoxList from this BoxArray.
-    BoxList boxList () const;
+    [[nodiscard]] BoxList boxList () const;
 
     //! True if the IntVect is within any of the Boxes in this BoxArray.
-    bool contains (const IntVect& v) const;
+    [[nodiscard]] bool contains (const IntVect& v) const;
 
     /**
     * \brief True if the Box is contained in this BoxArray(+ng).
     * The Box must also have the same IndexType as those in this BoxArray.
     */
+    [[nodiscard]]
     bool contains (const Box& b, bool assume_disjoint_ba = false,
                    const IntVect& ng = IntVect(0)) const;
 
     /**
      * \brief True if all Boxes in ba are contained in this BoxArray(+ng).
      */
+    [[nodiscard]]
     bool contains (const BoxArray& ba, bool assume_disjoint_ba = false,
                    const IntVect& ng = IntVect(0)) const;
 
     //! Return smallest Box that contains all Boxes in this BoxArray.
-    Box minimalBox () const;
-    Box minimalBox (Long& npts_avg_box) const;
+    [[nodiscard]] Box minimalBox () const;
+    [[nodiscard]] Box minimalBox (Long& npts_avg_box) const;
 
     /**
     * \brief True if the Box intersects with this BoxArray(+ghostcells).
     * The Box must have the same IndexType as those in this BoxArray.
     */
+    [[nodiscard]]
     bool intersects (const Box& b, int ng = 0) const;
 
+    [[nodiscard]]
     bool intersects (const Box& b, const IntVect& ng) const;
 
     //! Return intersections of Box and BoxArray
+    [[nodiscard]]
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
 
     //! Return intersections of Box and BoxArray(+ghostcells).
+    [[nodiscard]]
     std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only, int ng) const;
 
+    [[nodiscard]]
     std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only, const IntVect& ng) const;
 
     //! intersect Box and BoxArray, then store the result in isects
@@ -771,7 +771,7 @@ public:
                         bool first_only, const IntVect& ng) const;
 
     //! Return box - boxarray
-    BoxList complementIn (const Box& b) const;
+    [[nodiscard]] BoxList complementIn (const Box& b) const;
     void complementIn (BoxList& bl, const Box& b) const;
 
     //! Clear out the internal hash table used by intersections.
@@ -781,27 +781,27 @@ public:
     void removeOverlap (bool simplify=true);
 
     //! whether two BoxArrays share the same data
-    static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
+    [[nodiscard]] static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
 
     struct RefID {
-        RefID () noexcept : data(nullptr) {}
+        RefID () noexcept  = default;
         explicit RefID (BARef* data_) noexcept : data(data_) {}
-        bool operator<  (const RefID& rhs) const noexcept { return std::less<BARef*>()(data,rhs.data); }
+        bool operator<  (const RefID& rhs) const noexcept { return std::less<>()(data,rhs.data); }
         bool operator== (const RefID& rhs) const noexcept { return data == rhs.data; }
         bool operator!= (const RefID& rhs) const noexcept { return data != rhs.data; }
         friend std::ostream& operator<< (std::ostream& os, const RefID& id);
     private:
-        BARef* data;
+        BARef* data{nullptr};
     };
 
     //! Return a unique ID of the reference
-    RefID getRefID () const noexcept { return RefID { m_ref.get() }; }
+    [[nodiscard]] RefID getRefID () const noexcept { return RefID { m_ref.get() }; }
 
     //! Return index type of this BoxArray
-    IndexType ixType () const noexcept { return m_bat.index_type(); }
+    [[nodiscard]] IndexType ixType () const noexcept { return m_bat.index_type(); }
 
     //! Return crse ratio of this BoxArray
-    IntVect crseRatio () const noexcept { return m_bat.coarsen_ratio(); }
+    [[nodiscard]] IntVect crseRatio () const noexcept { return m_bat.coarsen_ratio(); }
 
     static void Initialize ();
     static void Finalize ();
@@ -810,10 +810,10 @@ public:
     //! Make ourselves unique.
     void uniqify ();
 
-    BoxList const& simplified_list () const; // For regular AMR grids only!!!
-    BoxArray simplified () const; // For regular AMR grids only!!!
+    [[nodiscard]] BoxList const& simplified_list () const; // For regular AMR grids only!!!
+    [[nodiscard]] BoxArray simplified () const; // For regular AMR grids only!!!
 
-    BATransformer const& transformer () const;
+    [[nodiscard]] BATransformer const& transformer () const;
 
     friend class AmrMesh;
     friend class FabArrayBase;
@@ -822,10 +822,10 @@ private:
     //!  Update BoxArray index type according the box type, and then convert boxes to cell-centered.
     void type_update ();
 
-    BARef::HashType& getHashMap () const;
+    [[nodiscard]] BARef::HashType& getHashMap () const;
 
-    IntVect getDoiLo () const noexcept;
-    IntVect getDoiHi () const noexcept;
+    [[nodiscard]] IntVect getDoiLo () const noexcept;
+    [[nodiscard]] IntVect getDoiHi () const noexcept;
 
     BATransformer m_bat;
     //! The data -- a reference-counted pointer to a Ref.

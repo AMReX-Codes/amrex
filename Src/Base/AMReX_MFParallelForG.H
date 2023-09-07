@@ -53,8 +53,7 @@ void destroy_par_for_nblocks (char* hp, char* dp)
 }
 }
 
-namespace experimental {
-namespace detail {
+namespace experimental::detail {
 
 namespace parfor_mf_detail {
     template <typename F>
@@ -112,9 +111,9 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, boo
                      icell = (blockIdx.x-ibox*block_0_size)*MT + threadIdx.x;
                  }
 
-#elif defined(AMREX_USE_DPCPP)
+#elif defined(AMREX_USE_SYCL)
 
-        amrex::launch(nblocks, MT, Gpu::gpuStream(),
+        amrex::launch<MT>(nblocks, Gpu::gpuStream(),
              [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
              {
                  int ibox, icell;
@@ -162,7 +161,7 @@ ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynami
 }
 
 }
-}
+
 }
 
 #endif

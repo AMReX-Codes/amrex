@@ -25,6 +25,22 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
   endif
 
   ifeq ($(USE_CUDA),TRUE)
+    ifdef MPICH_ROOT
+      CFLAGS += -Xcompiler='$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null)))'
+      CXXFLAGS += -Xcompiler='$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicxx -show 2> /dev/null)))'
+    else ifdef OPENMPI_ROOT
+      CFLAGS += -Xcompiler='$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null)))'
+      CXXFLAGS += -Xcompiler='$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicxx -show 2> /dev/null)))'
+    else
+      CFLAGS += -Xcompiler='$(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))'
+      CXXFLAGS += -Xcompiler='$(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))'
+    endif
+  else ifeq ($(USE_MPI),FALSE)
+    CFLAGS += $(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))
+    CXXFLAGS += $(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))
+  endif
+
+  ifeq ($(USE_CUDA),TRUE)
     ifdef NPE_VERSION
       CFLAGS += -Xcompiler='$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null)))'
       CXXFLAGS += -Xcompiler='$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicxx -show 2> /dev/null)))'
@@ -64,13 +80,20 @@ ifeq ($(which_computer),$(filter $(which_computer),perlmutter))
 
     comm := ,
     ifneq ($(BL_NO_FORT),TRUE)
-      ifdef NPE_VERSION
+      ifdef MPICH_ROOT
+#       Set to mpicxx to avoid this warning:
+#       cc1plus: warning: command-line option '-fallow-argument-mismatch' is valid for Fortran but not for C++
+#       Can just be filtered out, or is cxx fine?
+        LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(wordlist 2,1024,$(shell mpicxx -show)))
+      else ifdef OPENMPI_ROOT
         LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(wordlist 2,1024,$(shell mpifort -show)))
       else
         LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell ftn --cray-print-opts=libs))
       endif
     else
-      ifdef NPE_VERSION
+      ifdef MPICH_ROOT
+        LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(wordlist 2,1024,$(shell mpicxx -show)))
+      else ifdef OPENMPI_ROOT
         LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(wordlist 2,1024,$(shell mpicxx -show)))
       else
         LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell CC --cray-print-opts=libs))
@@ -165,8 +188,7 @@ ifeq ($(which_computer),$(filter $(which_computer),cgpu))
     else
       CUDA_ARCH = 70
     endif
-    GPUS_PER_NODE = 8
-    GPUS_PER_SOCKET = 4
+
   endif
 
   ifeq ($(USE_SENSEI_INSITU),TRUE)

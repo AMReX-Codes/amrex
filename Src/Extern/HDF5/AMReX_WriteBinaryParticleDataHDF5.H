@@ -76,13 +76,13 @@ static int ReadHDF5Attr(hid_t loc, const char *name, void *data, hid_t dtype)
     return 1;
 }
 
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
 static void SetHDF5fapl(hid_t fapl, MPI_Comm comm)
 #else
 static void SetHDF5fapl(hid_t fapl)
 #endif
 {
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
 
     // Alignment and metadata block size
@@ -147,7 +147,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 #endif
 
     std::string pdir = dir;
-    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') pdir += '/';
+    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') { pdir += '/'; }
     pdir += name;
 
     if ( ! pc.GetLevelDirectoriesCreated()) {
@@ -197,7 +197,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         for (const auto& kv : pmap)
         {
             auto& flags = particle_io_flags[lev][kv.first];
-            particle_detail::fillFlags(flags, kv.second, std::forward<F>(f));
+            particle_detail::fillFlags(flags, kv.second, f);
         }
     }
 
@@ -244,13 +244,13 @@ void WriteHDF5ParticleDataSync (PC const& pc,
             set_stripe = 1;
         }
         if (set_stripe == 1) {
-            sprintf(setstripe, "lfs setstripe -c %d -S %dm %s", stripe_count, stripe_size, pdir.c_str());
+            snprintf(setstripe, sizeof setstripe, "lfs setstripe -c %d -S %dm %s", stripe_count, stripe_size, pdir.c_str());
             std::cout << "Setting stripe parameters for HDF5 output: " << setstripe << std::endl;
             amrex::ignore_unused(std::system(setstripe));
         }
 
         fid = H5Fcreate(HDF5FileName.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-        if (fid < 0) amrex::FileOpenFailed(HDF5FileName.c_str());
+        if (fid < 0) { amrex::FileOpenFailed(HDF5FileName.c_str()); }
 
         //
         // First thing written is our Checkpoint/Restart version string.
@@ -259,20 +259,23 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         // particles so that we can Restart from the checkpoint files.
         //
         std::string versionName = is_checkpoint ? PC::CheckpointVersion() : PC::PlotfileVersion();
-        if (sizeof(typename PC::ParticleType::RealType) == 4)
+        if (sizeof(typename PC::ParticleType::RealType) == 4) {
             versionName += "_single";
-        else
+        } else {
             versionName += "_double";
+        }
 
         CreateWriteHDF5AttrString(fid, "version_name", versionName.c_str());
 
         int num_output_real = 0;
-        for (int i = 0; i < pc.NumRealComps() + NStructReal; ++i)
-            if (write_real_comp[i]) ++num_output_real;
+        for (int i = 0; i < pc.NumRealComps() + NStructReal; ++i) {
+            if (write_real_comp[i]) { ++num_output_real; }
+        }
 
         int num_output_int = 0;
-        for (int i = 0; i < pc.NumIntComps() + NStructInt; ++i)
-            if (write_int_comp[i]) ++num_output_int;
+        for (int i = 0; i < pc.NumIntComps() + NStructInt; ++i) {
+            if (write_int_comp[i]) { ++num_output_int; }
+        }
 
         // AMREX_SPACEDIM and N for sanity checking.
         int ndim = AMREX_SPACEDIM;
@@ -290,7 +293,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         for (int i = 0; i < NStructReal + pc.NumRealComps(); ++i ) {
             if (write_real_comp[i]) {
                 /* HdrFile << real_comp_names[i] << '\n'; */
-                sprintf(comp_name, "real_component_%d", i);
+                snprintf(comp_name, sizeof comp_name, "real_component_%d", i);
                 CreateWriteHDF5AttrString(fid, comp_name, real_comp_names[i].c_str());
             }
         }
@@ -301,7 +304,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         // int component names
         for (int i = 0; i < NStructInt + pc.NumIntComps(); ++i ) {
             if (write_int_comp[i]) {
-                sprintf(comp_name, "int_component_%d", i);
+                snprintf(comp_name, sizeof comp_name, "int_component_%d", i);
                 CreateWriteHDF5AttrString(fid, comp_name, int_comp_names[i].c_str());
             }
         }
@@ -323,7 +326,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
 
         for (int lev = 0; lev <= finest_level; ++lev) {
-            sprintf(level_name, "level_%d", lev);
+            snprintf(level_name, sizeof level_name, "level_%d", lev);
 
             grp = H5Gcreate(fid, level_name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
             if (grp < 0) {
@@ -381,7 +384,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
     pc.nOutFilesPrePost = nOutFiles;
 
     fapl = H5Pcreate (H5P_FILE_ACCESS);
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
 #else
     SetHDF5fapl(fapl);
@@ -392,13 +395,14 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 #else
     fid = H5Fopen(HDF5FileName.c_str(), H5F_ACC_RDWR, fapl);
 #endif
-    if (fid < 0)
+    if (fid < 0) {
         FileOpenFailed(HDF5FileName.c_str());
+    }
 
     char level_name[64];
     for (int lev = 0; lev <= pc.finestLevel(); lev++)
     {
-        sprintf(level_name, "level_%d", lev);
+        snprintf(level_name, sizeof level_name, "level_%d", lev);
 #ifdef AMREX_USE_HDF5_ASYNC
         grp = H5Gopen_async(fid, level_name, H5P_DEFAULT, es_par_g);
 #else
@@ -406,10 +410,11 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 #endif
 
         bool gotsome;
-        if(pc.usePrePost)
+        if(pc.usePrePost) {
             gotsome = (pc.nParticlesAtLevelPrePost[lev] > 0);
-        else
+        } else {
             gotsome = (pc.NumberOfParticlesAtLevel(lev) > 0);
+        }
 
         MFInfo info;
         info.SetAlloc(false);
@@ -423,8 +428,9 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         Vector<int > count(state.size(),0);
         Vector<Long> where(state.size(),0);
 
-        if(pc.usePrePost)
+        if(pc.usePrePost) {
             pc.filePrefixPrePost[lev] = HDF5FileName;
+        }
 
         if (gotsome)
         {

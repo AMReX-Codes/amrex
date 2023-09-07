@@ -28,12 +28,17 @@
 namespace amrex
 {
 
-    template <typename FAB>
+    template <typename MFFAB>
     struct NullInterpHook
     {
-        void operator() (FAB& /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
+        template <class F=MFFAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+        void operator() (MFFAB& /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
 
-        void operator() (Array<FAB*, AMREX_SPACEDIM> /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
+        template <class F=MFFAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+        void operator() (Array<MFFAB*, AMREX_SPACEDIM> /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
+
+        template <class F=MFFAB, std::enable_if_t<IsFabArray<F>::value,int> = 0>
+        void operator() (MFFAB& /*mf*/, int /*icomp*/, int /*ncomp*/) const {}
     };
 
     template <typename Interp>

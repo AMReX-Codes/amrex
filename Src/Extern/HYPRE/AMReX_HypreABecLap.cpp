@@ -9,8 +9,8 @@
 
 namespace amrex {
 
-HypreABecLap::HypreABecLap(const BoxArray& grids, const DistributionMapping& dmap,
-                           const Geometry& geom_, MPI_Comm comm_)
+HypreABecLap::HypreABecLap (const BoxArray& grids, const DistributionMapping& dmap,
+                            const Geometry& geom_, MPI_Comm comm_)
     : Hypre(grids, dmap, geom_, comm_)
 {
 }
@@ -18,22 +18,22 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const DistributionMapping& dma
 HypreABecLap::~HypreABecLap ()
 {
     HYPRE_StructPFMGDestroy(solver);
-    solver = NULL;
+    solver = nullptr;
     HYPRE_StructMatrixDestroy(A);
-    A = NULL;
+    A = nullptr;
 //    HYPRE_StructVectorDestroy(b);
-//    b = NULL;
+//    b = nullptr;
 //    HYPRE_StructVectorDestroy(x);
-//    x = NULL;
+//    x = nullptr;
     HYPRE_StructGridDestroy(grid);
-    grid = NULL;
+    grid = nullptr;
 }
 
 void
-HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol,
-                    int maxiter, const BndryData& bndry, int max_bndry_order)
+HypreABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol,
+                     int maxiter, const BndryData& bndry, int max_bndry_order)
 {
-    if (solver == NULL || m_bndry != &bndry || m_maxorder != max_bndry_order)
+    if (solver == nullptr || m_bndry != &bndry || m_maxorder != max_bndry_order)
     {
         m_bndry = &bndry;
         m_maxorder = max_bndry_order;
@@ -93,9 +93,9 @@ HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real reltol, Real absto
 
     // do this repeatedly to avoid memory leak
     HYPRE_StructVectorDestroy(b);
-    b = NULL;
+    b = nullptr;
     HYPRE_StructVectorDestroy(x);
-    x = NULL;
+    x = nullptr;
 }
 
 void
@@ -246,9 +246,9 @@ HypreABecLap::prepareSolver ()
     HYPRE_StructPFMGSetup(solver, A, b, x);
 
     HYPRE_StructVectorDestroy(b);
-    b = NULL;
+    b = nullptr;
     HYPRE_StructVectorDestroy(x);
-    x = NULL;
+    x = nullptr;
 }
 
 

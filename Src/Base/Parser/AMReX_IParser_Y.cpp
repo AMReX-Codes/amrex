@@ -31,7 +31,7 @@ iparser_defexpr (struct iparser_node* body)
 struct iparser_symbol*
 iparser_makesymbol (char* name)
 {
-    auto symbol = (struct iparser_symbol*) std::malloc(sizeof(struct iparser_symbol));
+    auto *symbol = (struct iparser_symbol*) std::malloc(sizeof(struct iparser_symbol));
     symbol->type = IPARSER_SYMBOL;
     symbol->name = strdup(name);
     symbol->ip = -1;
@@ -41,7 +41,7 @@ iparser_makesymbol (char* name)
 struct iparser_node*
 iparser_newnode (enum iparser_node_t type, struct iparser_node* l, struct iparser_node* r)
 {
-    auto tmp = (struct iparser_node*) std::malloc(sizeof(struct iparser_node));
+    auto *tmp = (struct iparser_node*) std::malloc(sizeof(struct iparser_node));
     tmp->type = type;
     tmp->l = l;
     tmp->r = r;
@@ -51,7 +51,7 @@ iparser_newnode (enum iparser_node_t type, struct iparser_node* l, struct iparse
 struct iparser_node*
 iparser_newnumber (int d)
 {
-    auto r = (struct iparser_number*) std::malloc(sizeof(struct iparser_number));
+    auto *r = (struct iparser_number*) std::malloc(sizeof(struct iparser_number));
     r->type = IPARSER_NUMBER;
     r->value = d;
     return (struct iparser_node*) r;
@@ -66,7 +66,7 @@ iparser_newsymbol (struct iparser_symbol* symbol)
 struct iparser_node*
 iparser_newf1 (enum iparser_f1_t ftype, struct iparser_node* l)
 {
-    auto tmp = (struct iparser_f1*) std::malloc(sizeof(struct iparser_f1));
+    auto *tmp = (struct iparser_f1*) std::malloc(sizeof(struct iparser_f1));
     tmp->type = IPARSER_F1;
     tmp->l = l;
     tmp->ftype = ftype;
@@ -76,7 +76,7 @@ iparser_newf1 (enum iparser_f1_t ftype, struct iparser_node* l)
 struct iparser_node*
 iparser_newf2 (enum iparser_f2_t ftype, struct iparser_node* l, struct iparser_node* r)
 {
-    auto tmp = (struct iparser_f2*) std::malloc(sizeof(struct iparser_f2));
+    auto *tmp = (struct iparser_f2*) std::malloc(sizeof(struct iparser_f2));
     tmp->type = IPARSER_F2;
     tmp->l = l;
     tmp->r = r;
@@ -88,7 +88,7 @@ struct iparser_node*
 iparser_newf3 (enum iparser_f3_t ftype, struct iparser_node* n1, struct iparser_node* n2,
                struct iparser_node* n3)
 {
-    auto tmp = (struct iparser_f3*) std::malloc(sizeof(struct iparser_f3));
+    auto *tmp = (struct iparser_f3*) std::malloc(sizeof(struct iparser_f3));
     tmp->type = IPARSER_F3;
     tmp->n1 = n1;
     tmp->n2 = n2;
@@ -100,7 +100,7 @@ iparser_newf3 (enum iparser_f3_t ftype, struct iparser_node* n1, struct iparser_
 struct iparser_node*
 iparser_newassign (struct iparser_symbol* sym, struct iparser_node* v)
 {
-    auto r = (struct iparser_assign*) std::malloc(sizeof(struct iparser_assign));
+    auto *r = (struct iparser_assign*) std::malloc(sizeof(struct iparser_assign));
     r->type = IPARSER_ASSIGN;
     r->s = sym;
     r->v = v;
@@ -113,7 +113,7 @@ iparser_newlist (struct iparser_node* nl, struct iparser_node* nr)
     if (nr == nullptr) {
         return nl;
     } else {
-        auto r = (struct iparser_node*) std::malloc(sizeof(struct iparser_node));
+        auto *r = (struct iparser_node*) std::malloc(sizeof(struct iparser_node));
         r->type = IPARSER_LIST;
         r->l = nl;
         r->r = nr;
@@ -126,7 +126,7 @@ iparser_newlist (struct iparser_node* nl, struct iparser_node* nr)
 struct amrex_iparser*
 amrex_iparser_new ()
 {
-    auto my_iparser = (struct amrex_iparser*) std::malloc(sizeof(struct amrex_iparser));
+    auto *my_iparser = (struct amrex_iparser*) std::malloc(sizeof(struct amrex_iparser));
 
     my_iparser->sz_mempool = iparser_ast_size(iparser_root);
     my_iparser->p_root = std::malloc(my_iparser->sz_mempool);
@@ -172,7 +172,7 @@ iparser_allocate (struct amrex_iparser* my_iparser, std::size_t N)
 struct amrex_iparser*
 iparser_dup (struct amrex_iparser* source)
 {
-    struct amrex_iparser* dest = (struct amrex_iparser*) std::malloc(sizeof(struct amrex_iparser));
+    auto *dest = (struct amrex_iparser*) std::malloc(sizeof(struct amrex_iparser));
     dest->sz_mempool = source->sz_mempool;
     dest->p_root = std::malloc(dest->sz_mempool);
     dest->p_free = dest->p_root;
@@ -263,13 +263,16 @@ iparser_ast_dup (struct amrex_iparser* my_iparser, struct iparser_node* node, in
         std::memcpy(result, node            , sizeof(struct iparser_number));
         break;
     case IPARSER_SYMBOL:
+    {
         result = iparser_allocate(my_iparser, sizeof(struct iparser_symbol));
         std::memcpy(result, node            , sizeof(struct iparser_symbol));
+        const auto len = std::strlen(((struct iparser_symbol*)node)->name)+1;
         ((struct iparser_symbol*)result)->name = (char*) iparser_allocate
-            (my_iparser, std::strlen(((struct iparser_symbol*)node)->name)+1);
-        std::strcpy(((struct iparser_symbol*)result)->name,
-                    ((struct iparser_symbol*)node  )->name);
+            (my_iparser, len);
+        std::strncpy(((struct iparser_symbol*)result)->name,
+                     ((struct iparser_symbol*)node  )->name, len);
         break;
+    }
     case IPARSER_ADD:
     case IPARSER_SUB:
     case IPARSER_MUL:
@@ -354,24 +357,24 @@ iparser_ast_dup (struct amrex_iparser* my_iparser, struct iparser_node* node, in
 }
 
 #define IPARSER_MOVEUP_R(node, v) \
-    struct iparser_node* n = node->r->r; \
-    int ip = node->r->rip; \
-    node->r = n; \
-    node->lvp.v = v; \
-    node->rip   = ip;
+    struct iparser_node* n = (node)->r->r; \
+    int ip = (node)->r->rip; \
+    (node)->r = n; \
+    (node)->lvp.v = v; \
+    (node)->rip   = ip;
 #define IPARSER_MOVEUP_L(node, v) \
-    struct iparser_node* n = node->l->r; \
-    int ip = node->l->rip; \
-    node->r = n; \
-    node->lvp.v = v; \
-    node->rip   = ip;
-#define IPARSER_EVAL_R(node) node->r->lvp.v
-#define IPARSER_EVAL_L(node) node->l->lvp.v
+    struct iparser_node* n = (node)->l->r; \
+    int ip = (node)->l->rip; \
+    (node)->r = n; \
+    (node)->lvp.v = v; \
+    (node)->rip   = ip;
+#define IPARSER_EVAL_R(node) (node)->r->lvp.v
+#define IPARSER_EVAL_L(node) (node)->l->lvp.v
 
 #define IPARSER_NEG_MOVEUP(node) \
-    node->r = node->l->r; \
-    node->lvp.v = -node->l->lvp.v; \
-    node->rip = node->l->rip;
+    (node)->r = (node)->l->r; \
+    (node)->lvp.v = -(node)->l->lvp.v; \
+    (node)->rip = (node)->l->rip;
 
 void
 iparser_ast_optimize (struct iparser_node* node)

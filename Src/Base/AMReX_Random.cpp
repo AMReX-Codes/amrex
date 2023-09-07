@@ -17,10 +17,12 @@ namespace
 
 #ifdef AMREX_USE_GPU
 namespace amrex {
-#ifdef AMREX_USE_DPCPP
-    dpcpp_rng_descr* rand_engine_descr = nullptr;
+#ifdef AMREX_USE_SYCL
+    sycl_rng_descr* rand_engine_descr = nullptr;
+//xxxxx    oneapi::mkl::rng::philox4x32x10* gpu_rand_generator = nullptr;
 #else
     amrex::randState_t* gpu_rand_state = nullptr;
+    amrex::randGenerator_t gpu_rand_generator = nullptr;
 #endif
 }
 #endif
@@ -37,10 +39,13 @@ void ResizeRandomSeed (amrex::ULong gpu_seed)
 
     const int N = Gpu::Device::maxBlocksPerLaunch() * AMREX_GPU_MAX_THREADS;
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 
-    rand_engine_descr = new dpcpp_rng_descr
+    rand_engine_descr = new sycl_rng_descr
         (Gpu::Device::streamQueue(), sycl::range<1>(N), gpu_seed, 1);
+
+//xxxxx    gpu_rand_generator = new std::remove_pointer_t<decltype(gpu_rand_generator)>
+//        (Gpu::Device::streamQueue(), gpu_seed+1234ULL);
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
@@ -52,72 +57,93 @@ void ResizeRandomSeed (amrex::ULong gpu_seed)
         AMREX_HIP_OR_CUDA( hiprand_init(gpu_seed, seqstart, 0, &gpu_rand_state_local[idx]);,
                             curand_init(gpu_seed, seqstart, 0, &gpu_rand_state_local[idx]); )
     });
+
+#if defined(AMREX_USE_CUDA)
+    AMREX_CURAND_SAFE_CALL(curandCreateGenerator
+                           (&gpu_rand_generator, CURAND_RNG_PSEUDO_DEFAULT));
+    AMREX_CURAND_SAFE_CALL(curandSetPseudoRandomGeneratorSeed
+                           (gpu_rand_generator, gpu_seed+1234ULL));
+#else
+    AMREX_HIPRAND_SAFE_CALL(hiprandCreateGenerator
+                            (&gpu_rand_generator, HIPRAND_RNG_PSEUDO_DEFAULT));
+    AMREX_HIPRAND_SAFE_CALL(hiprandSetPseudoRandomGeneratorSeed
+                            (gpu_rand_generator, gpu_seed+1234ULL));
 #endif
 
-    Gpu::streamSynchronize();
+#endif
+
+    Gpu::synchronize();
 }
 }
 #endif
+
+namespace amrex {
 
 void
-amrex::InitRandom (amrex::ULong cpu_seed, int nprocs, amrex::ULong gpu_seed)
+InitRandom (ULong cpu_seed, int nprocs, ULong gpu_seed)
 {
     nthreads = OpenMP::get_max_threads();
     generators.resize(nthreads);
+
+#ifdef AMREX_USE_OMP
+    if (omp_in_parallel()) {
+        amrex::Abort("It is not safe to call amrex::InitRandom inside a threaded region.");
+    }
+#endif
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
     {
         int tid = OpenMP::get_thread_num();
-        amrex::ULong init_seed = cpu_seed + tid*nprocs;
+        ULong init_seed = cpu_seed + tid*nprocs;
         generators[tid].seed(init_seed);
     }
 
 #ifdef AMREX_USE_GPU
     ResizeRandomSeed(gpu_seed);
 #else
-    amrex::ignore_unused(gpu_seed);
+    ignore_unused(gpu_seed);
 #endif
 }
 
-amrex::Real amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
+Real RandomNormal (Real mean, Real stddev)
 {
-    std::normal_distribution<amrex::Real> distribution(mean, stddev);
+    std::normal_distribution<Real> distribution(mean, stddev);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
 
-amrex::Real amrex::Random ()
+Real Random ()
 {
-    std::uniform_real_distribution<amrex::Real> distribution(0.0, 1.0);
+    std::uniform_real_distribution<Real> distribution(0.0, 1.0);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
 
-unsigned int amrex::RandomPoisson (amrex::Real lambda)
+unsigned int RandomPoisson (Real lambda)
 {
     std::poisson_distribution<unsigned int> distribution(lambda);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
 
-unsigned int amrex::Random_int (unsigned int n)
+unsigned int Random_int (unsigned int n)
 {
     std::uniform_int_distribution<unsigned int> distribution(0, n-1);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
 
-amrex::ULong amrex::Random_long (amrex::ULong n)
+ULong Random_long (ULong n)
 {
-    std::uniform_int_distribution<amrex::ULong> distribution(0, n-1);
+    std::uniform_int_distribution<ULong> distribution(0, n-1);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
 }
 
 void
-amrex::SaveRandomState (std::ostream& os)
+SaveRandomState (std::ostream& os)
 {
     for (int i = 0; i < nthreads; i++) {
         os << generators[i] << "\n";
@@ -125,18 +151,19 @@ amrex::SaveRandomState (std::ostream& os)
 }
 
 void
-amrex::RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
+RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
 {
     int N = std::min(nthreads, nthreads_old);
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++) {
         is >> generators[i];
+    }
     if (nthreads > nthreads_old) {
         const int NProcs = ParallelDescriptor::NProcs();
         const int MyProc = ParallelDescriptor::MyProc();
         for (int i = nthreads_old; i < nthreads; i++) {
-            amrex::ULong seed = MyProc+1 + i*NProcs;
-            if (std::numeric_limits<amrex::ULong>::max()/(amrex::ULong)(nstep_old+1)
-                > static_cast<amrex::ULong>(nthreads*NProcs)) // avoid overflow
+            ULong seed = MyProc+1 + i*NProcs;
+            if (std::numeric_limits<ULong>::max()/static_cast<ULong>(nstep_old+1)
+                > static_cast<ULong>(nthreads)*static_cast<ULong>(NProcs)) // avoid overflow
             {
                 seed += nstep_old*nthreads*NProcs;
             }
@@ -147,16 +174,16 @@ amrex::RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
 }
 
 void
-amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
-                           bool printSet)
+UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
+                    bool printSet)
 {
   if(setSize > poolSize) {
-    amrex::Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
+    Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
   }
   std::set<int> copySet;
   Vector<int> uSetTemp;
   while(static_cast<int>(copySet.size()) < setSize) {
-    int r(amrex::Random_int(poolSize));
+    int r = static_cast<int>(Random_int(poolSize));
     if(copySet.find(r) == copySet.end()) {
       copySet.insert(r);
       uSetTemp.push_back(r);
@@ -165,61 +192,135 @@ amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   uSet = uSetTemp;
   if(printSet) {
     for(int i(0); i < uSet.size(); ++i) {
-        amrex::AllPrint() << "uSet[" << i << "]  = " << uSet[i] << std::endl;
+        AllPrint() << "uSet[" << i << "]  = " << uSet[i] << std::endl;
     }
   }
 }
 
-void amrex::ResetRandomSeed (amrex::ULong cpu_seed, amrex::ULong gpu_seed)
+void ResetRandomSeed (ULong cpu_seed, ULong gpu_seed)
 {
     InitRandom(cpu_seed, ParallelDescriptor::NProcs(), gpu_seed);
 }
 
 void
-amrex::DeallocateRandomSeedDevArray ()
+DeallocateRandomSeedDevArray ()
 {
 #ifdef AMREX_USE_GPU
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     if (rand_engine_descr) {
         delete rand_engine_descr;
         Gpu::streamSynchronize();
         rand_engine_descr = nullptr;
     }
+//xxxxx    if (gpu_rand_generator != nullptr) {
+//        delete gpu_rand_generator;
+//        Gpu::streamSynchronize();
+//        gpu_rand_generator = nullptr;
+//    }
 #else
     if (gpu_rand_state != nullptr)
     {
         The_Arena()->free(gpu_rand_state);
         gpu_rand_state = nullptr;
     }
+    if (gpu_rand_generator != nullptr)
+    {
+#if defined(AMREX_USE_CUDA)
+        AMREX_CURAND_SAFE_CALL(curandDestroyGenerator(gpu_rand_generator));
+#else
+        AMREX_HIPRAND_SAFE_CALL(hiprandDestroyGenerator(gpu_rand_generator));
+#endif
+        gpu_rand_generator = nullptr;
+    }
 #endif
 #endif
 }
 
-void
-amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
+void FillRandom (Real* p, Long N)
 {
-  if(binCounts.size() == 0) {
-    return;
-  }
-  bool verbose(false);
-  int countForAll(totalItems / binCounts.size());
-  int remainder(totalItems % binCounts.size());
-  if(verbose) {
-      amrex::Print() << "amrex::NItemsPerBin:  countForAll remainder = " << countForAll
-                     << "  " << remainder << std::endl;
-  }
-  for(int i(0); i < binCounts.size(); ++i) {
-    binCounts[i] = countForAll;
-  }
-  for(int i(0); i < remainder; ++i) {
-    ++binCounts[i];
-  }
-  for(int i(0); i < binCounts.size(); ++i) {
-    if(verbose) {
-        amrex::Print() << "amrex::NItemsPerBin::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
+#ifdef AMREX_USE_CUDA
+
+#  ifdef BL_USE_FLOAT
+    AMREX_CURAND_SAFE_CALL(curandGenerateUniform(gpu_rand_generator, p, N));
+#  else
+    AMREX_CURAND_SAFE_CALL(curandGenerateUniformDouble(gpu_rand_generator, p, N));
+#  endif
+    Gpu::synchronize();
+
+#elif defined(AMREX_USE_HIP)
+
+#  ifdef BL_USE_FLOAT
+    AMREX_HIPRAND_SAFE_CALL(hiprandGenerateUniform(gpu_rand_generator, p, N));
+#  else
+    AMREX_HIPRAND_SAFE_CALL(hiprandGenerateUniformDouble(gpu_rand_generator, p, N));
+#  endif
+    Gpu::synchronize();
+
+#elif defined(AMREX_USE_SYCL)
+
+//xxxxx    oneapi::mkl::rng::uniform<Real> distr;
+//    auto event = oneapi::mkl::rng::generate(distr, gpu_rand_generator, N, p);
+//    event.wait();
+
+    amrex::ParallelForRNG(N, [=] AMREX_GPU_DEVICE (Long i, RandomEngine const& eng)
+    {
+        p[i] = Random(eng);
+    });
+    Gpu::streamSynchronize();
+
+#else
+    std::uniform_real_distribution<Real> distribution(Real(0.0), Real(1.0));
+    auto& gen = generators[OpenMP::get_thread_num()];
+    for (Long i = 0; i < N; ++i) {
+        p[i] = distribution(gen);
     }
-  }
+#endif
 }
+
+void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
+{
+#if defined(AMREX_USE_CUDA)
+
+#  ifdef BL_USE_FLOAT
+    AMREX_CURAND_SAFE_CALL(curandGenerateNormal(gpu_rand_generator, p, N, mean, stddev));
+#  else
+    AMREX_CURAND_SAFE_CALL(curandGenerateNormalDouble(gpu_rand_generator, p, N, mean, stddev));
+#  endif
+    Gpu::synchronize();
+
+#elif defined(AMREX_USE_HIP)
+
+#  ifdef BL_USE_FLOAT
+    AMREX_HIPRAND_SAFE_CALL(hiprandGenerateNormal(gpu_rand_generator, p, N, mean, stddev));
+#  else
+    AMREX_HIPRAND_SAFE_CALL(hiprandGenerateNormalDouble(gpu_rand_generator, p, N, mean, stddev));
+#  endif
+    Gpu::synchronize();
+
+#elif defined(AMREX_USE_SYCL)
+
+//xxxxx    oneapi::mkl::rng::gaussian<Real> distr(mean, stddev);
+//    auto event = oneapi::mkl::rng::generate(distr, gpu_rand_generator, N, p);
+//    event.wait();
+
+    amrex::ParallelForRNG(N, [=] AMREX_GPU_DEVICE (Long i, RandomEngine const& eng)
+    {
+        p[i] = RandomNormal(mean, stddev, eng);
+    });
+    Gpu::streamSynchronize();
+
+#else
+
+    std::normal_distribution<Real> distribution(mean, stddev);
+    auto& gen = generators[OpenMP::get_thread_num()];
+    for (Long i = 0; i < N; ++i) {
+        p[i] = distribution(gen);
+    }
+
+#endif
+}
+
+} // namespace amrex
 
 
 //

@@ -18,7 +18,7 @@ template <int N>
 struct ParserExecutor
 {
     template <int M=N, typename std::enable_if_t<M==0,int> = 0>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     double operator() () const noexcept
     {
 #if AMREX_DEVICE_COMPILE
@@ -29,7 +29,7 @@ struct ParserExecutor
     }
 
     template <typename... Ts>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value, double>
     operator() (Ts... var) const noexcept
     {
@@ -42,7 +42,7 @@ struct ParserExecutor
     }
 
     template <typename... Ts>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<sizeof...(Ts) == N &&  amrex::Same<float,Ts...>::value, float>
     operator() (Ts... var) const noexcept
     {
@@ -54,7 +54,7 @@ struct ParserExecutor
 #endif
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     double operator() (GpuArray<double,N> const& var) const noexcept
     {
 #if AMREX_DEVICE_COMPILE
@@ -84,7 +84,6 @@ class Parser
 public:
     Parser (std::string const& func_body);
     Parser () = default;
-    ~Parser ();
     void define (std::string const& func_body);
 
     explicit operator bool () const;
@@ -94,19 +93,20 @@ public:
     void registerVariables (Vector<std::string> const& vars);
 
     void print () const;
+    void printExe () const;
 
-    int depth () const;
-    int maxStackSize () const;
+    [[nodiscard]] int depth () const;
+    [[nodiscard]] int maxStackSize () const;
 
-    std::string expr () const;
+    [[nodiscard]] std::string expr () const;
 
-    std::set<std::string> symbols () const;
+    [[nodiscard]] std::set<std::string> symbols () const;
 
     //! This compiles for both GPU and CPU
-    template <int N> ParserExecutor<N> compile () const;
+    template <int N> [[nodiscard]] ParserExecutor<N> compile () const;
 
     //! This compiles for CPU only
-    template <int N> ParserExecutor<N> compileHost () const;
+    template <int N> [[nodiscard]] ParserExecutor<N> compileHost () const;
 
 private:
 
@@ -120,10 +120,17 @@ private:
 #endif
         mutable int m_max_stack_size = 0;
         mutable int m_exe_size = 0;
+        mutable Vector<char const*> m_locals;
+        Data () = default;
         ~Data ();
+        Data (Data const&) = delete;
+        Data (Data &&) = delete;
+        Data& operator= (Data const&) = delete;
+        Data& operator= (Data &&) = delete;
     };
 
     std::shared_ptr<Data> m_data;
+    Vector<std::string> m_vars;
 };
 
 template <int N>
@@ -135,8 +142,9 @@ Parser::compileHost () const
 
         if (!(m_data->m_host_executor)) {
             int stack_size;
-            m_data->m_exe_size = parser_exe_size(m_data->m_parser, m_data->m_max_stack_size,
-                                                 stack_size);
+            m_data->m_exe_size = static_cast<int>
+                (parser_exe_size(m_data->m_parser, m_data->m_max_stack_size,
+                                 stack_size));
 
             if (m_data->m_max_stack_size > AMREX_PARSER_STACK_SIZE) {
                 amrex::Abort("amrex::Parser: AMREX_PARSER_STACK_SIZE, "
@@ -151,7 +159,8 @@ Parser::compileHost () const
             m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(m_data->m_exe_size);
 
             try {
-                parser_compile(m_data->m_parser, m_data->m_host_executor);
+                m_data->m_locals = parser_compile(m_data->m_parser,
+                                                  m_data->m_host_executor);
             } catch (const std::runtime_error& e) {
                 throw std::runtime_error(std::string(e.what()) + " in Parser expression \""
                                          + m_data->m_expression + "\"");

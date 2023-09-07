@@ -18,7 +18,7 @@ Development generally follows the following ideas:
          details on how this process works.
 
          In general we squash commits upon merge to have a clean history.
-         *Please ensure that your PR title and first post are descriptive,
+         *Please ensure that your PR title and description are descriptive,
          since these will be used for a squashed commit message.*
 
          Please note the following:
@@ -51,60 +51,59 @@ your fork.
 `development` on the main AMReX repository.
 
 First, let us setup your local git repo. To make your own fork of the main
-(`upstream`) repository, press the fork button on the [AMReX Github page](https://github.com/AMReX-Codes/amrex).
+repository, press the fork button on the [AMReX Github page](https://github.com/AMReX-Codes/amrex).
 
 > Note: If you already had a fork of AMReX prior to 4/17/2020, we recommend deleting it and re-forking.
 > This is due to a history re-write on the main repository. Note that you will lose any branches
 > on your fork that haven't been merged into main development yet.
 
-Then, clone your fork on your local computer. If you plan on doing a lot of amrex development,
+Then, clone amrex on your local computer. If you plan on doing a lot of amrex development,
 we recommend configuring your clone to use ssh access so you won't have to enter your Github
 password every time, which you can do using these commands:
 
 ```
-git clone --branch development git@github.com:<myGithubUsername>/amrex.git
-
-# Then, navigate into your repo, add a new remote for the main AMReX repo, and fetch it:
+git clone git@github.com:AMReX-Codes/amrex.git
 cd amrex
-git remote add upstream https://github.com/AMReX-Codes/amrex
-git remote set-url --push upstream git@github.com:<myGithubUsername>/amrex.git
-git fetch upstream
 
-# We recommend setting your development branch to track the upstream one instead of your fork:
-git branch -u upstream/development
+# Add your own fork.
+# Here <Jane> is the name you give to your fork. It does not need to be your github name.
+# <myGithubUsername> is your GitHub name.
+git remote add <Jane> git@github.com:<myGithubUsername>/amrex.git
+git fetch <Jane>
+
+# Don't push to the main repo. Instead pushes go to your fork.
+git remote set-url --push origin git@github.com:<myGithubUsername>/amrex.git
 ```
 
-For instructions on setting up SSH access to your Github account on a new machine, see [here.](https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh)
+For instructions on setting up SSH access to your Github account on a new
+machine, see
+[here.](https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh)
 
 If you instead prefer to use HTTPS authentication, configure your local clone as follows:
 
 ```
-git clone --branch development https://github.com/<myGithubUsername>/amrex.git
-
-# Navigate into your repo, add a new remote for the main AMReX repo, and fetch it
+git clone https://github.com/AMReX-Codes/amrex.git
 cd amrex
-git remote add upstream https://github.com/AMReX-Codes/amrex
-git remote set-url --push upstream https://github.com/<myGithubUsername>/amrex.git
-git fetch upstream
 
-# We recommend setting your development branch to track the upstream one instead of your fork:
-git branch -u upstream/development
+# Add your own fork.
+# Here <Jane> is the name you give to your fork. It does not need to be your github name.
+# <myGithubUsername> is your GitHub name.
+git remote add <Jane> https://github.com/<myGithubUsername>/amrex.git
+git fetch <Jane>
+
+# Don't push to the main repo. Instead pushes go to your fork.
+git remote set-url --push origin https://github.com/<myGithubUsername>/amrex.git
 ```
 
 Now you are free to play with your fork (for additional information, you can visit the
 [Github fork help page](https://help.github.com/en/articles/fork-a-repo)).
 
 > Note: you do not have to re-do the setup above every time.
-> Instead, in the future, you need to update the `development` branch
-> on your fork with
-> ```
-> git checkout development
-> git pull
-> ```
 
 Make sure you are on the `development` branch with
 ```
 git checkout development
+git pull
 ```
 in the AMReX directory.
 
@@ -131,14 +130,15 @@ follow the developments and identify bugs.
 For the moment, commits are on your local repo only. You can push them to
 your fork with
 ```
-git push -u origin <branch_name>
+git push -u <Jane> <branch_name>
 ```
 
 If you want to synchronize your branch with the `development` branch (this is useful
 when `development` is being modified while you are working on
 `<branch_name>`), you can use
 ```
-git pull upstream development
+# merge amrex main repo's development into current branch
+git pull origin development
 ```
 and fix any conflicts that may occur.
 
@@ -183,7 +183,7 @@ git branch -D <branch_name>
 
 and you can delete the remote one on your fork with
 ```
-git push origin --delete <branch_name>
+git push <Jane> --delete <branch_name>
 ```
 
 Generally speaking, you want to follow the following rules.
@@ -194,49 +194,18 @@ Generally speaking, you want to follow the following rules.
 
   * Do not commit in your `development` branch that tracks AMReX `development` branch.
 
-  * Always create a new branch based off `development` branch for each pull request, unless you are
-    going to use git to fix it later.
+  * Always create a new branch based off the latest `development` branch for
+    each pull request, unless you are going to use git to fix it later.
 
 If you have accidentally committed in `development` branch, you can fix it as follows,
 ```
-git checkout -b new_branch
+git checkout -b new_branch # save your changes in a branch
 git checkout development
-git reset HEAD~2  # Here 2 is the number of commits you have accidentally committed in development
-git checkout .
+git fetch origin
+git reset --hard origin/development
 ```
 After this, the local `development` should be in sync with AMReX `development` and your recent
 commits have been saved in `new_branch` branch.
-
-If for some reason your PR branch has diverged from AMReX, you can try to fix it as follows.  Before
-you try it, you should back up your code in case things might go wrong.
-```
-git fetch upstream   # assuming upstream is the remote name for the official amrex repo
-git checkout -b xxx upstream/development  # replace xxx with whatever name you like
-git branch -D development
-git checkout -b development upstream/development
-git checkout xxx
-git merge yyy  # here yyy is your PR branch with unclean history
-git rebase -i upstream/development
-```
-You will see something like below in your editor,
-```
-pick 7451d9d commit message a
-pick c4c2459 commit message b
-pick 6fj3g90 commit message c
-```
-This now requires a bit of knowledge on what those commits are, which commits have been merged,
-which commits are actually new.  However, you should only see your only commits.  So it should be
-easy to figure out which commits have already been merged.  Assuming the first two commits have been
-merged, you can drop them by replace `pick` with `drop`,
-```
-drop 7451d9d commit message a
-drop c4c2459 commit message b
-pick 6fj3g90 commit message c
-```
-After saving and then exiting the editor, `git log` should show a clean history based on top of
-`development` branch.  You can also do `git diff yyy..xxx` to make sure nothing new was dropped.  If
-all goes well, you can submit a PR using `xxx` branch.
-Don't worry, if something goes wrong during the rebase, you an always `git rebase --abort` and start over.
 
 ## AMReX Coding Style Guide
 
@@ -264,9 +233,8 @@ AMReX developers should adhere to the following coding guidelines:
        for (int n=0; n<10; ++n)
           Print() << "Not like this.";
 ```
-  * Add a space after the function name and before the
-parenthesis of the parameter list (but
-not when simply calling the function). For example:
+  * When declaring and defining a function, add a space after the function name and before the
+parenthesis of the parameter list (but not when simply calling the function). For example:
 ```cpp
         void CorrectFunctionDec (int input)
 ```

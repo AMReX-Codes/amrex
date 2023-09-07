@@ -48,7 +48,7 @@ operator>> (std::istream& is,
 
 Geometry::Geometry () noexcept
 {
-    if (!AMReX::empty()) *this = DefaultGeometry();
+    if (!AMReX::empty()) { *this = DefaultGeometry(); }
 }
 
 Geometry::Geometry (const Box& dom, const RealBox* rb, int coord,
@@ -111,7 +111,7 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
 {
     Geometry* gg = AMReX::top()->getDefaultGeometry();
 
-    if (gg->ok) return;
+    if (gg->ok) { return; }
 
     AMREX_ASSERT(!OpenMP::in_parallel());
 
@@ -146,8 +146,9 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
 
         if (read_prob_extent)
         {
-            for (int i = 0; i < AMREX_SPACEDIM; i++)
+            for (int i = 0; i < AMREX_SPACEDIM; i++) {
                 prob_hi[i] = prob_lo[i] + prob_extent[i];
+            }
         }
 
         gg->prob_domain.setLo(prob_lo);
@@ -395,10 +396,12 @@ Geometry::periodicShift (const Box&      target,
     int ri,rj,rk;
     for (ri = nist; ri <= niend; ri++)
     {
-        if (ri != 0 && !is_periodic[0])
+        if (ri != 0 && !is_periodic[0]) {
             continue;
-        if (ri != 0 && is_periodic[0])
+        }
+        if (ri != 0 && is_periodic[0]) {
             locsrc.shift(0,ri*domain.length(0));
+        }
 
         for (rj = njst; rj <= njend; rj++)
         {
@@ -438,8 +441,9 @@ Geometry::periodicShift (const Box&      target,
                     locsrc.shift(2,rk*domain.length(2));
                 }
 
-                if (ri == 0 && rj == 0 && rk == 0)
+                if (ri == 0 && rj == 0 && rk == 0) {
                     continue;
+                }
                 //
                 // If losrc intersects target, then add to "out".
                 //
@@ -467,33 +471,46 @@ Geometry::periodicShift (const Box&      target,
                 locsrc.shift(1,-rj*domain.length(1));
             }
         }
-        if (ri != 0 && is_periodic[0])
+        if (ri != 0 && is_periodic[0]) {
             locsrc.shift(0,-ri*domain.length(0));
+        }
     }
+}
+
+Box
+Geometry::growNonPeriodicDomain (IntVect const& ngrow) const noexcept
+{
+    Box b = Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (!isPeriodic(idim)) {
+            b.grow(idim,ngrow[idim]);
+        }
+    }
+    return b;
+}
+
+Box
+Geometry::growPeriodicDomain (IntVect const& ngrow) const noexcept
+{
+    Box b = Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (isPeriodic(idim)) {
+            b.grow(idim,ngrow[idim]);
+        }
+    }
+    return b;
 }
 
 Box
 Geometry::growNonPeriodicDomain (int ngrow) const noexcept
 {
-    Box b = Domain();
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (!isPeriodic(idim)) {
-            b.grow(idim,ngrow);
-        }
-    }
-    return b;
+    return growNonPeriodicDomain(IntVect(ngrow));
 }
 
 Box
 Geometry::growPeriodicDomain (int ngrow) const noexcept
 {
-    Box b = Domain();
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (isPeriodic(idim)) {
-            b.grow(idim,ngrow);
-        }
-    }
-    return b;
+    return growPeriodicDomain(IntVect(ngrow));
 }
 
 void
@@ -506,41 +523,178 @@ Geometry::computeRoundoffDomain ()
         inv_dx[k] = 1.0_rt/dx[k];
     }
 
+    constexpr int maxiters = 200;
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         int ilo = Domain().smallEnd(idim);
         int ihi = Domain().bigEnd(idim);
+        int ncells = ihi-ilo+1;
         Real plo = ProbLo(idim);
         Real phi = ProbHi(idim);
-        Real idx = InvCellSize(idim);
-        Real deltax = CellSize(idim);
+        Real dxinv = InvCellSize(idim);
 
-        Real ftol = std::max(1.e-4_rt*deltax, 2.e-7_rt*phi);
-        Real dtol = std::max(1.e-8_rt*deltax, 1.e-14_rt*phi);
+        // Check that the grid is well formed and that deltax > roundoff
+        AMREX_ASSERT((plo + ihi*CellSize(idim)) < (plo + (ihi + 1)*CellSize(idim)));
 
-        roundoff_hi_f[idim] = detail::bisect_prob_hi<float> (plo, phi, idx, ilo, ihi, ftol);
-        roundoff_hi_d[idim] = detail::bisect_prob_hi<double>(plo, phi, idx, ilo, ihi, dtol);
+        // roundoff_lo will be the lowest value that will be inside the domain
+        // roundoff_hi will be the highest value that will be inside the domain
+        roundoff_lo[idim] = static_cast<ParticleReal>(plo);
+        roundoff_hi[idim] = static_cast<ParticleReal>(phi);
+        auto& rlo = roundoff_lo[idim];
+        auto& rhi = roundoff_hi[idim];
+
+        auto is_outside = [=] (auto x) -> bool
+        {
+            auto idx = int(std::floor((x - plo)*dxinv));
+            return (idx < 0) || (idx >= ncells);
+        };
+
+        auto is_inside = [=] (auto x) -> bool
+        {
+            return !is_outside(x);
+        };
+
+        ParticleReal rlo_out;
+        if (is_inside(rlo))
+        {
+            auto eps = std::numeric_limits<ParticleReal>::epsilon() * (rhi-rlo);
+            int iters = 0;
+            rlo_out = rlo - eps;
+            while (is_inside(rlo_out) && iters < maxiters) {
+                eps *= ParticleReal(2.);
+                rlo_out = rlo - eps;
+                ++iters;
+            }
+            // The assertion on rlo_out makes sure the compiler cannot optimize it away.
+            AMREX_ALWAYS_ASSERT(rlo_out > std::numeric_limits<ParticleReal>::lowest()
+                                && iters < maxiters);
+        }
+        else
+        {
+            auto eps = std::numeric_limits<ParticleReal>::epsilon() * (rhi-rlo);
+            int iters = 0;
+            auto rtmp = rlo + eps;
+            while (is_outside(rtmp) && iters < maxiters) {
+                eps *= ParticleReal(2.);
+                rtmp = rlo + eps;
+                ++iters;
+            }
+            rlo_out = rlo;
+            rlo = rtmp;
+            // The assertion on rtmp makes sure the compiler cannot optimize it away.
+            AMREX_ALWAYS_ASSERT(rtmp > std::numeric_limits<ParticleReal>::lowest()
+                                && iters < maxiters);
+        }
+
+        {
+            // rlo_out is outside
+            // rlo     is inside
+            int iters = 0;
+            auto epsilon = std::numeric_limits<ParticleReal>::epsilon()
+                * std::max(ParticleReal(CellSize(idim)),std::abs(rlo))
+                * ParticleReal(2.0);
+            auto rlo_minus = rlo-epsilon;
+            bool rlo_minus_is_inside = is_inside(rlo_minus);
+            while (rlo_minus_is_inside && iters < maxiters) {
+                auto rmid = ParticleReal(0.5)*(rlo_out+rlo);
+                if (rmid == rlo_out || rmid == rlo) {
+                    break;
+                }
+                if (is_inside(rmid)) {
+                    rlo = rmid;
+                    epsilon = std::numeric_limits<ParticleReal>::epsilon()
+                        * std::max(ParticleReal(CellSize(idim)),std::abs(rlo))
+                        * ParticleReal(2.0);
+                    rlo_minus = rlo - epsilon;
+                    rlo_minus_is_inside = is_inside(rlo_minus);
+                } else {
+                    rlo_out = rmid;
+                }
+                ++iters;
+            }
+            // The assertion on rlo_minus makes sure the compiler cannot optimize it away.
+            AMREX_ALWAYS_ASSERT(rlo_minus > std::numeric_limits<ParticleReal>::lowest()
+                                && iters < maxiters);
+        }
+
+        ParticleReal rhi_out;
+        if (is_inside(rhi))
+        {
+            auto eps = std::numeric_limits<ParticleReal>::epsilon() * (rhi-rlo);
+            int iters = 0;
+            rhi_out = rhi + eps;
+            while (is_inside(rhi_out) && iters < maxiters) {
+                eps *= ParticleReal(2.);
+                rhi_out = rhi + eps;
+                ++iters;
+            }
+            // The assertion on rhi_out makes sure the compiler cannot optimize it away.
+            AMREX_ALWAYS_ASSERT(rhi_out > std::numeric_limits<ParticleReal>::lowest()
+                                && iters < maxiters);
+        }
+        else
+        {
+            auto eps = std::numeric_limits<ParticleReal>::epsilon() * (rhi-rlo);
+            int iters = 0;
+            // Yes, we have to write it this way for Intel compiler.
+            // is_outside(rhi-eps) could be different from is_outside(rtmp),
+            // where rtmp = rhs-eps.
+            auto rtmp = rhi - eps;
+            while (is_outside(rtmp) && iters < maxiters) {
+                eps *= ParticleReal(2.);
+                rtmp = rhi - eps;
+                ++iters;
+            }
+            rhi_out = rhi;
+            rhi = rtmp;
+            // The assertion on rtmp makes sure the compiler cannot optimize it away.
+            AMREX_ALWAYS_ASSERT(rtmp > std::numeric_limits<ParticleReal>::lowest()
+                                && iters < maxiters);
+        }
+
+        {
+            // rhi     is inside
+            // rhi_out is outside
+            int iters = 0;
+            auto epsilon = std::numeric_limits<ParticleReal>::epsilon()
+                * std::max(ParticleReal(CellSize(idim)),std::abs(rhi))
+                * ParticleReal(2.0);
+            auto rhi_plus = rhi+epsilon;
+            bool rhi_plus_is_inside = is_inside(rhi_plus);
+            while (rhi_plus_is_inside && iters < maxiters) {
+                auto rmid = ParticleReal(0.5)*(rhi+rhi_out);
+                if (rmid == rhi || rmid == rhi_out) {
+                    break;
+                }
+                if (is_inside(rmid)) {
+                    rhi = rmid;
+                    epsilon = std::numeric_limits<ParticleReal>::epsilon()
+                        * std::max(ParticleReal(CellSize(idim)),std::abs(rhi))
+                        * ParticleReal(2.0);
+                    rhi_plus = rhi + epsilon;
+                    rhi_plus_is_inside = is_inside(rhi_plus);
+                } else {
+                    rhi_out = rmid;
+                }
+                ++iters;
+            }
+            // The assertion on rhi_plus makes sure the compiler cannot optimize it away.
+            AMREX_ALWAYS_ASSERT(rhi_plus > std::numeric_limits<ParticleReal>::lowest()
+                                && iters < maxiters);
+        }
     }
 }
 
 bool
 Geometry::outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
 {
-#ifdef AMREX_SINGLE_PRECISION_PARTICLES
-    bool outside = AMREX_D_TERM(x <  prob_domain.lo(0)
-                             || x >= roundoff_hi_f[0],
-                             || y <  prob_domain.lo(1)
-                             || y >= roundoff_hi_f[1],
-                             || z <  prob_domain.lo(2)
-                             || z >= roundoff_hi_f[2]);
-#else
-    bool outside = AMREX_D_TERM(x <  prob_domain.lo(0)
-                             || x >= roundoff_hi_d[0],
-                             || y <  prob_domain.lo(1)
-                             || y >= roundoff_hi_d[1],
-                             || z <  prob_domain.lo(2)
-                             || z >= roundoff_hi_d[2]);
-#endif
+    bool outside = AMREX_D_TERM(x < roundoff_lo[0]
+                             || x > roundoff_hi[0],
+                             || y < roundoff_lo[1]
+                             || y > roundoff_hi[1],
+                             || z < roundoff_lo[2]
+                             || z > roundoff_hi[2]);
     return outside;
 }
 

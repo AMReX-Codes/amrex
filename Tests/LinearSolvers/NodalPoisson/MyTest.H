@@ -20,8 +20,8 @@ public:
 
     void initData ();
 
-    int getNumTrials() { return num_trials; }
-    int getDoPlots() { return do_plots; }
+    [[nodiscard]] int getNumTrials () const { return num_trials; }
+    [[nodiscard]] int getDoPlots () const { return do_plots; }
 
 private:
 

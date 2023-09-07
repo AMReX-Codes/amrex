@@ -7,12 +7,15 @@
 #include <cstddef>
 #include <set>
 #include <vector>
+#include <map>
 #include <mutex>
 #include <unordered_set>
 #include <functional>
 #include <string>
 
 namespace amrex {
+
+struct MemStat;
 
 /**
 * \brief A Concrete Class for Dynamic Memory Management using first fit.
@@ -34,21 +37,35 @@ public:
     CArena (std::size_t hunk_size = 0, ArenaInfo info = ArenaInfo());
 
     CArena (const CArena& rhs) = delete;
+    CArena (CArena&& rhs) = delete;
     CArena& operator= (const CArena& rhs) = delete;
+    CArena& operator= (CArena&& rhs) = delete;
 
     //! The destructor.
-    virtual ~CArena () override;
+    ~CArena () override;
 
     //! Allocate some memory.
-    virtual void* alloc (std::size_t nbytes) override final;
+    [[nodiscard]] void* alloc (std::size_t nbytes) final;
+
+    /**
+     * Try to allocate in-place by extending the capacity of given pointer.
+     */
+    [[nodiscard]] std::pair<void*,std::size_t>
+    alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax) final;
+
+    /**
+     * Try to shrink in-place
+     */
+    [[nodiscard]] void*
+    shrink_in_place (void* pt, std::size_t sz) final;
 
     /**
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
     * into largest possible chunk.
     */
-    virtual void free (void* ap) override final;
+    void free (void* vp) final;
 
-    virtual std::size_t freeUnused () override final;
+    std::size_t freeUnused () final;
 
     /**
      * \brief Does the device have enough free memory for allocating this
@@ -56,7 +73,13 @@ public:
      * const funciton because it may attempt to release memory back to the
      * system.
      */
-    virtual bool hasFreeDeviceMemory (std::size_t sz) override;
+    [[nodiscard]] bool hasFreeDeviceMemory (std::size_t sz) final;
+
+    /**
+     * \brief Add this Arena to the list of Arenas that are profiled by TinyProfiler.
+     * \param memory_name The name of this arena in the TinyProfiler output.
+     */
+    void registerForProfiling (const std::string& memory_name) final;
 
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
@@ -76,20 +99,22 @@ public:
 
 protected:
 
-    virtual std::size_t freeUnused_protected () override final;
+    void* alloc_protected (std::size_t nbytes);
+
+    std::size_t freeUnused_protected () final;
 
     //! The nodes in our free list and block list.
     class Node
     {
     public:
-        Node (void* a_block, void* a_owner, std::size_t a_size) noexcept
+        Node (void* a_block, void* a_owner, std::size_t a_size, MemStat* a_stat=nullptr) noexcept
             :
-            m_block(a_block), m_owner(a_owner), m_size(a_size) {}
+            m_block(a_block), m_owner(a_owner), m_size(a_size), m_stat(a_stat) {}
 
         //! The "less-than" operator.
         bool operator< (const Node& rhs) const noexcept
         {
-            return m_block < rhs.m_block;
+            return std::less<>{}(m_block, rhs.m_block);
         }
 
         //! The equality operator.
@@ -99,22 +124,28 @@ protected:
         }
 
         //! The block address.
-        void* block () const noexcept { return m_block; }
+        [[nodiscard]] void* block () const noexcept { return m_block; }
 
         //! Set block address.
         void block (void* blk) noexcept { m_block = blk; }
 
         //! The size of the memory block.
-        std::size_t size () const noexcept { return m_size; }
+        [[nodiscard]] std::size_t size () const noexcept { return m_size; }
 
         //! Set size.
         void size (std::size_t sz) noexcept { m_size = sz; }
 
-        void* owner () const noexcept { return m_owner; }
+        [[nodiscard]] void* owner () const noexcept { return m_owner; }
 
-        bool coalescable (const Node& rhs) const noexcept {
+        [[nodiscard]] bool coalescable (const Node& rhs) const noexcept {
             return m_owner == rhs.m_owner;
         }
+
+        //! Get the MemStat object of the function where this block was allocated.
+        [[nodiscard]] MemStat* mem_stat () const { return m_stat; }
+
+        //! Set MemStat
+        void mem_stat (MemStat* a_stat) noexcept { m_stat = a_stat; }
 
         struct hash {
             std::size_t operator() (const Node& n) const noexcept {
@@ -129,13 +160,15 @@ protected:
         void* m_owner;
         //! The size of the block we represent.
         std::size_t m_size;
+        //! Used for profiling if this Node represents a user allocated block of memory.
+        MemStat* m_stat;
     };
 
     /**
     * \brief The type of our freelist and blocklist.
     * We use a set sorted from lo to hi memory addresses.
     */
-    typedef std::set<Node> NL;
+    using NL = std::set<Node>;
 
     //! The list of blocks allocated via ::operator new().
     std::vector<std::pair<void*,std::size_t> > m_alloc;
@@ -155,9 +188,14 @@ protected:
     //! The minimal size of hunks to request from system
     std::size_t m_hunk;
     //! The amount of heap space currently allocated.
-    std::size_t m_used;
+    std::size_t m_used{0};
     //! The amount of memory given out via alloc().
-    std::size_t m_actually_used;
+    std::size_t m_actually_used{0};
+    //! If this arena is profiled by TinyProfiler
+    bool m_do_profiling = false;
+    //! Data structure used for profiling with TinyProfiler
+    std::map<std::string, MemStat> m_profiling_stats;
+
 
     std::mutex carena_mutex;
 };

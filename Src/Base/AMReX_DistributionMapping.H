@@ -49,7 +49,7 @@ class DistributionMapping
     enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, RRSFC };
 
     //! The default constructor.
-    DistributionMapping ();
+    DistributionMapping () noexcept;
 
     //! The copy constructor.
     DistributionMapping (const DistributionMapping& rhs) = default;
@@ -99,18 +99,18 @@ class DistributionMapping
     * ProcessorMap()[i] is an integer in the interval [0, NCPU) where
     * NCPU is the number of CPUs being used.
     */
-    const Vector<int>& ProcessorMap () const noexcept;
+    [[nodiscard]] const Vector<int>& ProcessorMap () const noexcept;
 
     //! Length of the underlying processor map.
-    Long size () const noexcept { return m_ref->m_pmap.size(); }
-    Long capacity () const noexcept { return m_ref->m_pmap.capacity(); }
-    bool empty () const noexcept { return m_ref->m_pmap.empty(); }
+    [[nodiscard]] Long size () const noexcept { return Long(m_ref->m_pmap.size()); }
+    [[nodiscard]] Long capacity () const noexcept { return Long(m_ref->m_pmap.capacity()); }
+    [[nodiscard]] bool empty () const noexcept { return m_ref->m_pmap.empty(); }
 
     //! Number of references to this DistributionMapping
-    Long linkCount () const noexcept { return m_ref.use_count(); }
+    [[nodiscard]] Long linkCount () const noexcept { return m_ref.use_count(); }
 
     //! Equivalent to ProcessorMap()[index].
-    int operator[] (int index) const noexcept { return m_ref->m_pmap[index]; }
+    [[nodiscard]] int operator[] (int index) const noexcept { return m_ref->m_pmap[index]; }
 
     std::istream& readFrom (std::istream& is);
 
@@ -132,17 +132,21 @@ class DistributionMapping
     //! Are the distributions different?
     bool operator!= (const DistributionMapping& rhs) const noexcept;
 
-    void SFCProcessorMap(const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
-                         bool sort=true);
-    void SFCProcessorMap(const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
-                         Real& efficiency, bool sort=true);
-    void KnapSackProcessorMap(const std::vector<Long>& wgts, int nprocs,
-                              Real* efficiency=0,
-                              bool do_full_knapsack=true,
-                              int nmax=std::numeric_limits<int>::max(),
-                              bool sort=true);
-    void RoundRobinProcessorMap(int nboxes, int nprocs, bool sort=true);
-    void RoundRobinProcessorMap(const std::vector<Long>& wgts, int nprocs, bool sort=true);
+    void SFCProcessorMap (const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
+                          bool sort=true);
+    void SFCProcessorMap (const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
+                          Real& efficiency, bool sort=true);
+    void KnapSackProcessorMap (const std::vector<Long>& wgts, int nprocs,
+                               Real* efficiency=nullptr,
+                               bool do_full_knapsack=true,
+                               int nmax=std::numeric_limits<int>::max(),
+                               bool sort=true);
+    void KnapSackProcessorMap (const DistributionMapping& olddm,
+                               const std::vector<Long>& wgts, Real keep_ratio,
+                               Real& old_efficiency, Real& new_efficiency,
+                               int nmax=std::numeric_limits<int>::max());
+    void RoundRobinProcessorMap (int nboxes, int nprocs, bool sort=true);
+    void RoundRobinProcessorMap (const std::vector<Long>& wgts, int nprocs, bool sort=true);
 
     /**
     * \brief Initializes distribution strategy from ParmParse.
@@ -192,13 +196,16 @@ class DistributionMapping
      *            mapping
      * @param[in] root which process to collect the local costs from others and
      *            compute the proposed distribution mapping
+     * @param[in] keep_ratio controls the fraction of load that should be kept on
+     *            the original process.
      * @return the proposed load-balanced distribution mapping
      */
     static DistributionMapping makeKnapSack (const LayoutData<Real>& rcost_local,
                                              Real& currentEfficiency, Real& proposedEfficiency,
                                              int nmax=std::numeric_limits<int>::max(),
                                              bool broadcastToAll=true,
-                                             int root=ParallelDescriptor::IOProcessorNumber());
+                                             int root=ParallelDescriptor::IOProcessorNumber(),
+                                             Real keep_ratio = Real(0.0));
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC (const MultiFab& weight, bool sort=true);
@@ -239,7 +246,7 @@ class DistributionMapping
     */
     static std::vector<std::vector<int> > makeSFC (const BoxArray& ba,
                                                    bool use_box_vol=true,
-                                                   const int nprocs=ParallelContext::NProcsSub() );
+                                                   int nprocs=ParallelContext::NProcsSub() );
 
     /** \brief Computes the average cost per MPI rank given a distribution mapping
      * global cost vector.
@@ -248,8 +255,9 @@ class DistributionMapping
      * @param[in,out] efficiency average cost per MPI process, as computed from
      *                the given distribution mapping and cost
      */
+    template <typename T>
     static void ComputeDistributionMappingEfficiency (const DistributionMapping& dm,
-                                                      const Vector<Real>& cost,
+                                                      const std::vector<T>& cost,
                                                       Real* efficiency);
 
 private:
@@ -287,7 +295,7 @@ private:
 
     void RoundRobinDoIt (int                  nboxes,
                          int                  nprocs,
-                         std::vector<LIpair>* LIpairV = 0,
+                         std::vector<LIpair>* LIpairV = nullptr,
                          bool                 sort = true);
 
     void KnapSackDoIt (const std::vector<Long>& wgts,
@@ -307,15 +315,15 @@ private:
                               int                      nprocs);
 
     //! Least used ordering of CPUs (by # of bytes of FAB data).
-    void LeastUsedCPUs (int nprocs, Vector<int>& result);
+    static void LeastUsedCPUs (int nprocs, Vector<int>& result);
     /**
     * \brief rteam: Least used ordering of Teams
     * rworker[i]: Least used ordering of team workers for Team i
     */
-    void LeastUsedTeams (Vector<int>& rteam, Vector<Vector<int> >& rworker, int nteams, int nworkers);
+    static void LeastUsedTeams (Vector<int>& rteam, Vector<Vector<int> >& rworker, int nteams, int nworkers);
 
     //! A useful typedef.
-    typedef void (DistributionMapping::*PVMF)(const BoxArray &, int);
+    using PVMF = void (DistributionMapping::*)(const BoxArray &, int);
 
     //! Everyone uses the same Strategy -- defaults to SFC.
     static Strategy m_Strategy;
@@ -330,7 +338,7 @@ private:
         friend class DistributionMapping;
 
         //! Constructors to match those in DistributionMapping ....
-        Ref () noexcept {}
+        Ref () = default;
 
         explicit Ref (int len) : m_pmap(len) {}
 
@@ -352,20 +360,20 @@ private:
 
 public:
     struct RefID {
-        RefID () noexcept : data(nullptr) {}
+        constexpr RefID () noexcept {} // =default does not work due to a clang bug // NOLINT
         explicit RefID (Ref* data_) noexcept : data(data_) {}
-        bool operator<  (const RefID& rhs) const noexcept { return std::less<Ref*>()(data,rhs.data); }
+        bool operator<  (const RefID& rhs) const noexcept { return std::less<>{}(data,rhs.data); }
         bool operator== (const RefID& rhs) const noexcept { return data == rhs.data; }
         bool operator!= (const RefID& rhs) const noexcept { return data != rhs.data; }
-        const Ref *dataPtr() const noexcept { return data; }
+        [[nodiscard]] const Ref *dataPtr() const noexcept { return data; }
         void PrintPtr(std::ostream &os) const { os << data << '\n'; }
         friend std::ostream& operator<< (std::ostream& os, const RefID& id);
    private:
-        Ref* data;
+        Ref* data = nullptr;
     };
 
     //! This gives a unique ID of the reference, which is different from dmID above.
-    RefID getRefID () const noexcept { return RefID { m_ref.get() }; }
+    [[nodiscard]] RefID getRefID () const noexcept { return RefID { m_ref.get() }; }
 };
 
 //! Our output operator.
@@ -404,6 +412,30 @@ DistributionMapping MakeSimilarDM (const BoxArray& ba, const MultiFab& mf, const
  */
 DistributionMapping MakeSimilarDM (const BoxArray& ba, const BoxArray& src_ba,
                                    const DistributionMapping& src_dm, const IntVect& ng);
+
+template <typename T>
+void DistributionMapping::ComputeDistributionMappingEfficiency (
+    const DistributionMapping& dm, const std::vector<T>& cost, Real* efficiency)
+{
+    const int nprocs = ParallelDescriptor::NProcs();
+    Vector<T> wgts(nprocs, T(0));
+
+    const auto nboxes = int(dm.size());
+    for (int ibox = 0; ibox < nboxes; ++ibox) {
+        wgts[dm[ibox]] += cost[ibox];
+    }
+
+    T max_weight = 0;
+    T sum_weight = 0;
+    for (auto const& w : wgts) {
+        max_weight = std::max(w, max_weight);
+        sum_weight += w;
+    }
+
+    *efficiency = static_cast<Real>(sum_weight) /
+        (static_cast<Real>(nprocs) * static_cast<Real>(max_weight));
+}
+
 }
 
 #endif /*BL_DISTRIBUTIONMAPPING_H*/

@@ -9,8 +9,7 @@
 
 #include <cstdint>
 
-namespace amrex {
-namespace Morton {
+namespace amrex::Morton {
 
 /**
  * \brief
@@ -97,7 +96,7 @@ std::uint32_t makeSpace (std::uint32_t x) noexcept {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint32_t toUInt10 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
     AMREX_ASSERT(x >= xmin && x < xmax);
-    constexpr std::uint32_t code_offset = (1u << 10);
+    constexpr std::uint32_t code_offset = (1U << 10);
     return (std::uint32_t)(((x - xmin)/(xmax - xmin)) * code_offset);
 }
 
@@ -117,7 +116,7 @@ std::uint32_t toUInt10 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexc
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint32_t toUInt16 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
     AMREX_ASSERT(x >= xmin && x < xmax);
-    constexpr std::uint32_t code_offset = (1u << 16);
+    constexpr std::uint32_t code_offset = (1U << 16);
     return (std::uint32_t)(((x - xmin)/(xmax - xmin)) * code_offset);
 }
 
@@ -135,8 +134,8 @@ std::uint32_t toUInt16 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexc
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint32_t toUInt32 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexcept {
     AMREX_ASSERT(x >= xmin && x < xmax);
-    constexpr unsigned long long code_offset = (1ull << 32);
-    return (std::uint32_t)(((x - xmin)/(xmax - xmin)) * code_offset);
+    constexpr unsigned long long code_offset = (1ULL << 32);
+    return (std::uint32_t)(((x - xmin)/(xmax - xmin)) * Real(code_offset));
 }
 
 /**
@@ -192,6 +191,5 @@ std::uint32_t get32BitCode (const XDim3& p,
 }
 #endif
 
-}
 }
 #endif

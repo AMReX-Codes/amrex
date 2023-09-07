@@ -5,10 +5,10 @@ namespace amrex {
 
 void
 BndryFuncArray::operator () (Box const& /*bx*/, FArrayBox& dest,
-                             const int dcomp, const int numcomp,
-                             Geometry const& geom, const Real time,
-                             const Vector<BCRec>& bcr, const int bcomp, // BCRec for this box
-                             const int /*orig_comp*/)
+                             int dcomp, int numcomp,
+                             Geometry const& geom, Real time,
+                             const Vector<BCRec>& bcr, int bcomp, // BCRec for this box
+                             int /*orig_comp*/)
 {
     BL_ASSERT(m_func != nullptr || m_func3D != nullptr);
 
@@ -23,7 +23,7 @@ BndryFuncArray::operator () (Box const& /*bx*/, FArrayBox& dest,
     const Real* problo = geom.ProbLo();
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-        grd_lo[i] = problo[i] + dx[i]*(lo[i]-dom_lo[i]);
+        grd_lo[i] = problo[i] + dx[i]*static_cast<Real>(lo[i]-dom_lo[i]);
     }
 
     static_assert(sizeof(BCRec) == 2*AMREX_SPACEDIM*sizeof(int),
@@ -46,10 +46,10 @@ BndryFuncArray::operator () (Box const& /*bx*/, FArrayBox& dest,
 
 void
 CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
-                             const int dcomp, const int numcomp,
-                             Geometry const& geom, const Real time,
-                             const Vector<BCRec>& bcr, const int bcomp,
-                             const int orig_comp)
+                             int dcomp, int numcomp,
+                             Geometry const& geom, Real time,
+                             const Vector<BCRec>& bcr, int bcomp,
+                             int orig_comp)
 {
     const int* lo = dest.loVect();
     const Box& domain = amrex::convert(geom.Domain(),bx.ixType());
@@ -59,7 +59,7 @@ CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
     Real xlo[AMREX_SPACEDIM];
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-        xlo[i] = problo[i] + dx[i]*(lo[i]-dom_lo[i]);
+        xlo[i] = problo[i] + dx[i]*static_cast<Real>(lo[i]-dom_lo[i]);
     }
     if (bx.ixType().cellCentered()) {
         fab_filcc(bx, dest.array(dcomp), numcomp, domain, dx, xlo, &(bcr[bcomp]));

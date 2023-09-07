@@ -16,8 +16,8 @@ find . -type d \( -name .git \
                   -o -name "*.tex" \
                   -o -name "*.txt" \
                   -o -name "*.yml" \) \
-                 -a \( ! -name "*.tab.h" -a ! -name "*.tab.cpp" \
-                    -a ! -name "*.lex.h" -a ! -name "*.lex.cpp" \) \
+                 -a \( ! -name "*.tab.h" -a ! -name "*.tab.nolint.H" \
+                    -a ! -name "*.lex.h" -a ! -name "*.lex.nolint.H" \) \
                \) \
     -exec grep -Iq . {} \; \
     -exec sed -i 's/\t/\ \ \ \ /g' {} +

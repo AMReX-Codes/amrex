@@ -73,7 +73,10 @@ enum mathematicalBndryTypes : int {
     foextrap     =  2,
     ext_dir      =  3,
     hoextrap     =  4,
-    hoextrapcc   =  5
+    hoextrapcc   =  5,
+    user_1       = 1001,
+    user_2       = 1002,
+    user_3       = 1003
 };
 }
 
@@ -82,9 +85,9 @@ enum mathematicalBndryTypes : int {
 
 #ifndef AMREX_XSDK
 
-#define BOGUS_BC -666
+#define BOGUS_BC (-666)
 
-#define REFLECT_ODD -1
+#define REFLECT_ODD (-1)
 #define INT_DIR 0
 #define REFLECT_EVEN 1
 #define FOEXTRAP  2
@@ -102,4 +105,3 @@ enum mathematicalBndryTypes : int {
 #endif
 
 #endif
-

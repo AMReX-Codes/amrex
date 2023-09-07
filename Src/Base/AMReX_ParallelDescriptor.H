@@ -10,8 +10,10 @@
 #include <AMReX_Extension.H>
 #include <AMReX_INT.H>
 #include <AMReX_REAL.H>
+#include <AMReX_GpuComplex.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+#include <AMReX_ValLocPair.H>
 
 #ifndef BL_AMRPROF
 #include <AMReX_Box.H>
@@ -55,18 +57,14 @@ namespace ParallelDescriptor
     {
     public:
 
-        Message () :
-            m_finished(true),
-            m_type(MPI_DATATYPE_NULL),
-            m_req(MPI_REQUEST_NULL) {}
+        Message () = default;
         Message (MPI_Request req_, MPI_Datatype type_) :
             m_finished(false),
             m_type(type_),
             m_req(req_) {}
         Message (MPI_Status stat_, MPI_Datatype type_) :
-            m_finished(true),
             m_type(type_),
-            m_req(MPI_REQUEST_NULL), m_stat(stat_) {}
+            m_stat(stat_) {}
         void wait ();
         bool test ();
         size_t count () const;
@@ -78,14 +76,14 @@ namespace ParallelDescriptor
 
     private:
 
-        bool               m_finished;
-        MPI_Datatype       m_type;
-        MPI_Request        m_req;
-        mutable MPI_Status m_stat;
+        bool               m_finished = true;
+        MPI_Datatype       m_type = MPI_DATATYPE_NULL;
+        MPI_Request        m_req  = MPI_REQUEST_NULL;
+        mutable MPI_Status m_stat{};
     };
 
 #ifdef BL_USE_MPI
-    void MPI_Error(const char* file, int line, const char* msg, int rc);
+    void MPI_Error(const char* file, int line, const char* str, int rc);
 
 #define BL_MPI_REQUIRE(x)                                                \
 do                                                                        \
@@ -102,8 +100,8 @@ while ( false )
     * \brief Perform any needed parallel initialization.  This MUST be the
     * first routine in this class called from within a program.
     */
-    void StartParallel (int*    argc = 0,
-                        char*** argv = 0,
+    void StartParallel (int*    argc = nullptr,
+                        char*** argv = nullptr,
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
     void Initialize ();
@@ -144,7 +142,7 @@ while ( false )
     //! Provide functionalities needed to construct a team of processes to perform a particular job
     struct ProcessTeam
     {
-        typedef MPI_Comm team_t;
+        using team_t = MPI_Comm;
 
         //! synchronize processes within the team
         void Barrier () const {
@@ -179,17 +177,17 @@ while ( false )
 #if defined(BL_USE_MPI3)
             if (m_size > 1) {
                 MPI_Comm_free(&m_team_comm);
-                if (m_rankInTeam==0) MPI_Comm_free(&m_lead_comm);
+                if (m_rankInTeam==0) { MPI_Comm_free(&m_lead_comm); }
             }
 #endif
         }
 
-        const team_t& get() const {
+        [[nodiscard]] const team_t& get() const {
             return m_team_comm;
         }
         //! return the communicator
-        const MPI_Comm& get_team_comm() const { return m_team_comm; }
-        const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
+        [[nodiscard]] const MPI_Comm& get_team_comm() const { return m_team_comm; }
+        [[nodiscard]] const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
 
         int    m_numTeams;
         int    m_size;
@@ -210,6 +208,35 @@ while ( false )
 
     extern AMREX_EXPORT MPI_Comm m_comm;
     inline MPI_Comm Communicator () noexcept { return m_comm; }
+
+    extern AMREX_EXPORT int m_nprocs_per_node;
+    //! Return the number of MPI ranks per node as defined by
+    //! MPI_COMM_TYPE_SHARED. This might be the same or different from
+    //! NProcsPerProcessor based on MPI_Get_processor_name.
+    inline int NProcsPerNode () noexcept { return m_nprocs_per_node; }
+
+    extern AMREX_EXPORT int m_rank_in_node;
+    //! Return the rank in a node defined by MPI_COMM_TYPE_SHARED. This
+    //! might be the same or different from MyRankInProcessor based on
+    //! MPI_Get_processor_name.
+    inline int MyRankInNode () noexcept { return m_rank_in_node; }
+
+    extern AMREX_EXPORT int m_nprocs_per_processor;
+    //! Return the number of MPI ranks per node as defined by
+    //! MPI_Get_processor_name. This might be the same or different from
+    //! NProcsPerNode based on MPI_COMM_TYPE_SHARED.
+    inline int NProcsPerProcessor () noexcept { return m_nprocs_per_processor; }
+
+    extern AMREX_EXPORT int m_rank_in_processor;
+    //! Return the rank in a node defined by MPI_Get_processor_name. This
+    //! might be the same or different from MyRankInNode based on
+    //! MPI_COMM_TYPE_SHARED.
+    inline int MyRankInProcessor () noexcept { return m_rank_in_processor; }
+
+#ifdef AMREX_USE_MPI
+    extern Vector<MPI_Datatype*> m_mpi_types;
+    extern Vector<MPI_Op*> m_mpi_ops;
+#endif
 
     //! return the number of MPI ranks local to the current Parallel Context
     inline int
@@ -328,8 +355,8 @@ while ( false )
     {
         int rb, re;
         {
-            if (rit < 0) rit = ParallelDescriptor::MyRankInTeam();
-            if (nworkers == 0) nworkers = ParallelDescriptor::TeamSize();
+            if (rit < 0) { rit = ParallelDescriptor::MyRankInTeam(); }
+            if (nworkers == 0) { nworkers = ParallelDescriptor::TeamSize(); }
             BL_ASSERT(rit<nworkers);
             if (nworkers == 1) {
                 rb = begin;
@@ -404,7 +431,7 @@ while ( false )
     //! Abort with specified error code.
     void Abort (int errorcode = SIGABRT, bool backtrace = true);
     //! ErrorString return string associated with error internal error condition
-    const char* ErrorString (int errcode);
+    const char* ErrorString (int errorcode);
     //! Returns wall-clock seconds since start of execution.
     double second () noexcept;
 
@@ -578,10 +605,7 @@ while ( false )
     void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
 
     //! Parallel gather.
-    void Gather (Real* sendbuf,
-                 int   sendcount,
-                 Real* recvbuf,
-                 int   root);
+    void Gather (Real const* sendbuf, int nsend, Real* recvbuf, int root);
     /**
     * \brief Returns sequential message sequence numbers, usually used as
     * tags for send/recv.
@@ -602,7 +626,7 @@ while ( false )
 
     template <class T> Message Recv(T*, size_t n, int pid, int tag);
     template <class T> Message Recv(T*, size_t n, int pid, int tag, MPI_Comm comm);
-    template <class T> Message Recv(std::vector<T>& t, int pid, int tag);
+    template <class T> Message Recv(std::vector<T>& buf, int pid, int tag);
 
     template <class T> void Bcast(T*, size_t n, int root = 0);
     template <class T> void Bcast(T*, size_t n, int root, const MPI_Comm &comm);
@@ -658,6 +682,7 @@ while ( false )
 namespace amrex {
 
 #ifdef BL_USE_MPI
+
 template <class T>
 ParallelDescriptor::Message
 ParallelDescriptor::Asend (const T* buf, size_t n, int dst_pid, int tag)
@@ -873,8 +898,7 @@ ParallelDescriptor::Bcast (T*     t,
 #ifdef BL_LAZY
     int r;
     MPI_Comm_compare(comm, Communicator(), &r);
-    if (r == MPI_IDENT)
-        Lazy::EvalReduction();
+    if (r == MPI_IDENT) { Lazy::EvalReduction(); }
 #endif
 
     BL_ASSERT(n < static_cast<size_t>(std::numeric_limits<int>::max()));
@@ -923,7 +947,7 @@ ParallelDescriptor::Gather (const T& t, int root)
     BL_COMM_PROFILE(BLProfiler::GatherTi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     std::vector<T> resl;
-    if ( root == MyProc() ) resl.resize(NProcs());
+    if ( root == MyProc() ) { resl.resize(NProcs()); }
     BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(&t),
                                1,
                                Mpi_typemap<T>::type(),
@@ -946,7 +970,7 @@ ParallelDescriptor::Gatherv (const T* send, int sc,
     BL_COMM_PROFILE(BLProfiler::Gatherv,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     MPI_Gatherv(send, sc, ParallelDescriptor::Mpi_typemap<T>::type(),
-                recv, &rc[0], &disp[0], ParallelDescriptor::Mpi_typemap<T>::type(),
+                recv, rc.data(), disp.data(), ParallelDescriptor::Mpi_typemap<T>::type(),
                 root, Communicator());
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, std::accumulate(rc.begin(),rc.end(),0)*sizeof(T), root, BLProfiler::NoTag());
@@ -960,7 +984,6 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     BL_PROFILE_T_S("ParallelDescriptor::GatherLayoutData(Ti)", T);
 
     // Gather prelims
-    Vector<int> index_to_send = sendbuf.IndexArray();
     Vector<T> T_to_send;
     T_to_send.reserve(sendbuf.local_size());
 
@@ -994,7 +1017,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     new_index_to_old_index.reserve(old_pmap.size());
     for (const Vector<int>& v : new_ind_to_old_ind)
     {
-        if (v.size()>0)
+        if (!v.empty())
         {
             for (int el : v)
             {
@@ -1004,7 +1027,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     }
 
     Vector<int> disp(nprocs);
-    if (!disp.empty()) disp[0] = 0;
+    if (!disp.empty()) { disp[0] = 0; }
     std::partial_sum(recvcount.begin(), recvcount.end()-1, disp.begin()+1);
     Vector<T> new_index_to_T(sendbuf.size());
 
@@ -1161,7 +1184,7 @@ Gather (const T* t, size_t n, T1* t1, size_t n1, int /*root*/)
     BL_ASSERT(n == n1);
     amrex::ignore_unused(n1);
 
-    int const sc = n;
+    int const sc = static_cast<int>(n);
     for (int j=0; j<sc; ++j) { t1[j] = t[j]; }
 }
 
@@ -1478,6 +1501,89 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
 #endif
 }
+
+#ifdef AMREX_USE_MPI
+namespace ParallelDescriptor {
+
+template <class T>
+struct Mpi_typemap<GpuComplex<T>>
+{
+    static MPI_Datatype type ()
+    {
+        static_assert(std::is_same<T,double>() ||
+                      std::is_same<T,float >(),
+                      "Unsupported type T for GpuComplex");
+        if constexpr (std::is_same<T,double>()) {
+            return MPI_C_DOUBLE_COMPLEX;
+        } else {
+            return MPI_C_FLOAT_COMPLEX;
+        }
+    }
+};
+
+template<typename TV, typename TI>
+struct Mpi_typemap<ValLocPair<TV,TI>>
+{
+    static MPI_Datatype type ()
+    {
+        static MPI_Datatype mpi_type = MPI_DATATYPE_NULL;
+        if (mpi_type == MPI_DATATYPE_NULL) {
+            using T = ValLocPair<TV,TI>;
+            static_assert(std::is_trivially_copyable<T>::value,
+                          "To communicate with MPI, ValLocPair must be trivially copyable.");
+            static_assert(std::is_standard_layout<T>::value,
+                          "To communicate with MPI, ValLocPair must be standard layout");
+
+            T vlp[2];
+            MPI_Datatype types[] = {
+                Mpi_typemap<TV>::type(),
+                Mpi_typemap<TI>::type(),
+            };
+            int blocklens[] = { 1, 1 };
+            MPI_Aint disp[2];
+            BL_MPI_REQUIRE( MPI_Get_address(&vlp[0].value, &disp[0]) );
+            BL_MPI_REQUIRE( MPI_Get_address(&vlp[0].index, &disp[1]) );
+            disp[1] -= disp[0];
+            disp[0] = 0;
+            BL_MPI_REQUIRE( MPI_Type_create_struct(2, blocklens, disp, types,
+                                               &mpi_type) );
+            MPI_Aint lb, extent;
+            BL_MPI_REQUIRE( MPI_Type_get_extent(mpi_type, &lb, &extent) );
+            if (extent != sizeof(T)) {
+                MPI_Datatype tmp = mpi_type;
+                BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(vlp[0]), &mpi_type) );
+                BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
+            }
+            BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type ) );
+
+            m_mpi_types.push_back(&mpi_type);
+        }
+        return mpi_type;
+    }
+};
+
+template <typename T, typename F>
+MPI_Op Mpi_op ()
+{
+    static MPI_Op mpi_op = MPI_OP_NULL;
+    if (mpi_op == MPI_OP_NULL) {
+        static auto user_fn = [] (void *invec, void *inoutvec, int* len, // NOLINT
+                                  MPI_Datatype * /*datatype*/)
+        {
+            auto in = static_cast<T const*>(invec);
+            auto out = static_cast<T*>(inoutvec);
+            for (int i = 0; i < *len; ++i) {
+                out[i] = F()(in[i],out[i]);
+            }
+        };
+        BL_MPI_REQUIRE( MPI_Op_create(user_fn, 1, &mpi_op) );
+        m_mpi_ops.push_back(&mpi_op);
+    }
+    return mpi_op;
+}
+
+}
+#endif
 
 }
 

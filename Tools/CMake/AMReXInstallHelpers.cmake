@@ -62,10 +62,26 @@ function (install_amrex_targets)
           NAMESPACE AMReX::
           DESTINATION lib/cmake/AMReX )
 
+       #
+       # alias: last element will be legacy target
+       #
+       list(LENGTH AMReX_SPACEDIM list_len)
+       math(EXPR list_last "${list_len} - 1")
+       list(GET AMReX_SPACEDIM ${list_last} AMReX_SPACEDIM_LAST)
+
+       # legacy symlink for: libamrex.[so|a] / amrex.[dll.lib]
+       #   escape spaces for generated cmake_install.cmake file
+       file(TO_CMAKE_PATH "${CMAKE_INSTALL_PREFIX}/lib" ABS_INSTALL_LIB_DIR)
+       install(CODE "file(CREATE_LINK
+           $<TARGET_FILE_NAME:amrex_${AMReX_SPACEDIM_LAST}d>
+           \"${ABS_INSTALL_LIB_DIR}/$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}d>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}d>\"
+           COPY_ON_ERROR SYMBOLIC)"
+       )
+
        # Install fortran modules if Fortran is enabled
        get_property(_lang GLOBAL PROPERTY ENABLED_LANGUAGES)
-       if ("Fortran" IN_LIST _lang AND "amrex" IN_LIST _targets)
-          get_target_property(_mod_dir amrex Fortran_MODULE_DIRECTORY )
+       if ("Fortran" IN_LIST _lang AND "amrex_${AMReX_SPACEDIM_LAST}d" IN_LIST _targets)
+          get_target_property(_mod_dir "amrex_${AMReX_SPACEDIM_LAST}d" Fortran_MODULE_DIRECTORY )
           install( DIRECTORY ${_mod_dir}/ DESTINATION include ) # Trailing backslash is crucial here!
        endif ()
 

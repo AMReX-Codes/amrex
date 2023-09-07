@@ -42,8 +42,8 @@ struct IntegratorOps<T, typename std::enable_if<std::is_base_of<amrex::ParticleC
     static void Saxpy (T& Y, const amrex::Real a, T& X)
     {
         // Calculate Y += a * X using a particle-level saxpy function supplied by the particle container T
-        typedef amrex::ParIter<T::NStructReal, T::NStructInt, T::NArrayReal, T::NArrayInt> TParIter;
-        typedef amrex::Particle<T::NStructReal, T::NStructInt> ParticleType;
+        using TParIter = amrex::ParIter<T::NStructReal, T::NStructInt, T::NArrayReal, T::NArrayInt>;
+        using ParticleType = amrex::Particle<T::NStructReal, T::NStructInt>;
 
         int lev = 0;
         TParIter pty(Y, lev);
@@ -97,11 +97,11 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::Vector<amrex
         }
     }
 
-    static void Copy (T& Y, const T& Other, const Vector<int> scomp={}, const Vector<int> ncomp={}, bool Grow = true)
+    static void Copy (T& Y, const T& Other, const Vector<int>& scomp={}, const Vector<int>& ncomp={}, bool Grow = true)
     {
         // Copy the contents of Other into Y
         const int size = Y.size();
-        bool specify_components = scomp.size() > 0 && ncomp.size() == scomp.size();
+        bool specify_components = !scomp.empty() && ncomp.size() == scomp.size();
         for (int i = 0; i < size; ++i) {
             IntVect nGrow = Grow ? Other[i].nGrowVect() : IntVect(0);
             const int iscomp = specify_components ? scomp[i] : 0;
@@ -112,11 +112,11 @@ struct IntegratorOps<T, typename std::enable_if<std::is_same<amrex::Vector<amrex
         }
     }
 
-    static void Saxpy (T& Y, const amrex::Real a, const T& X, const Vector<int> scomp={}, const Vector<int> ncomp={}, bool Grow = false)
+    static void Saxpy (T& Y, const amrex::Real a, const T& X, const Vector<int>& scomp={}, const Vector<int>& ncomp={}, bool Grow = false)
     {
         // Calculate Y += a * X
         const int size = Y.size();
-        bool specify_components = scomp.size() > 0 && ncomp.size() == scomp.size();
+        bool specify_components = !scomp.empty() && ncomp.size() == scomp.size();
         for (int i = 0; i < size; ++i) {
             IntVect nGrow = Grow ? X[i].nGrowVect() : IntVect(0);
             const int iscomp = specify_components ? scomp[i] : 0;
@@ -194,11 +194,11 @@ protected:
     std::function<void (T&, amrex::Real)> post_update;
 
 public:
-    IntegratorBase () {}
+    IntegratorBase () = default;
 
     IntegratorBase (const T& /* S_data */) {}
 
-    virtual ~IntegratorBase () {}
+    virtual ~IntegratorBase () = default;
 
     virtual void initialize (const T& S_data) = 0;
 
@@ -262,7 +262,7 @@ public:
         FastFun(S_rhs, S_extra, S_data, time);
     }
 
-    virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) = 0;
+    virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time, amrex::Real dt) = 0;
 
     virtual void time_interpolate (const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data) = 0;
 
