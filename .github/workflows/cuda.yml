@@ -46,7 +46,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which g++)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
-            -DAMReX_CUDA_ARCH="7.0 7.2"                  \
+            -DAMReX_CUDA_ARCH="7.0"                      \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
             -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON           \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
@@ -68,8 +68,8 @@ jobs:
       CUDAHOSTCXX: clang++-15
       CUDAFLAGS: "-stdlib=libc++"
       LDFLAGS: "-stdlib=libc++"
-      CUDAARCHS: "70 72"
-      AMReX_CUDA_ARCH: "7.0 7.2"
+      CUDAARCHS: "70"
+      AMReX_CUDA_ARCH: "7.0"
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
