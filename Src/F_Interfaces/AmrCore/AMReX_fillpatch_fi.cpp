@@ -147,11 +147,11 @@ extern "C"
         Vector<Array<MultiFab*, AMREX_SPACEDIM> > va_fmf(nf);
         for (int i = 0; i < nc; ++i) {
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                { va_cmf[i][d] = cmf[i+d*AMREX_SPACEDIM]; }
+                { va_cmf[i][d] = cmf[i*AMREX_SPACEDIM+d]; }
         }
         for (int i = 0; i < nf; ++i) {
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                { va_fmf[i][d] = fmf[i+d*AMREX_SPACEDIM]; }
+                { va_fmf[i][d] = fmf[i*AMREX_SPACEDIM+d]; }
         }
 
         Array<FPhysBC, AMREX_SPACEDIM> cbc{ AMREX_D_DECL( FPhysBC(cfill[0], cgeom),
