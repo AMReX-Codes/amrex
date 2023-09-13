@@ -97,12 +97,12 @@ contains
     type(c_ptr) :: smf(2)
     integer :: ns
 
-    teps = 1.e-4_amrex_real * (tnew - told)
-    if (abs(time-tnew) .lt. teps) then
+    teps = 1.e-4_amrex_real * abs(tnew - told)
+    if (abs(time-tnew) .le. teps) then
        ns = 1
        smf  (1) = mfnew%p
        stime(1) =  tnew
-    else if (abs(time-told) .lt. teps) then
+    else if (abs(time-told) .le. teps) then
        ns = 1
        smf  (1) = mfold%p
        stime(1) =  told
@@ -142,12 +142,12 @@ contains
     integer :: ncrse, nfine, i
 
     ! coarse level
-    teps = 1.e-4_amrex_real * (tnew_c - told_c)
-    if (abs(time-tnew_c) .lt. teps) then
+    teps = 1.e-4_amrex_real * abs(tnew_c - told_c)
+    if (abs(time-tnew_c) .le. teps) then
        ncrse= 1
        c_mf  (1) = mfnew_c%p
        c_time(1) =  tnew_c
-    else if (abs(time-told_c) .lt. teps) then
+    else if (abs(time-told_c) .le. teps) then
        ncrse= 1
        c_mf  (1) = mfold_c%p
        c_time(1) =  told_c
@@ -160,12 +160,12 @@ contains
     end if
 
     ! fine level
-    teps = 1.e-4_amrex_real * (tnew_f - told_f)
-    if (abs(time-tnew_f) .lt. teps) then
+    teps = 1.e-4_amrex_real * abs(tnew_f - told_f)
+    if (abs(time-tnew_f) .le. teps) then
        nfine= 1
        f_mf  (1) = mfnew_f%p
        f_time(1) =  tnew_f
-    else if (abs(time-told_f) .lt. teps) then
+    else if (abs(time-told_f) .le. teps) then
        nfine= 1
        f_mf  (1) = mfold_f%p
        f_time(1) =  told_f
@@ -256,14 +256,14 @@ contains
     end do
 
     ! coarse level
-    teps = 1.e-4_amrex_real * (tnew_c - told_c)
-    if (abs(time-tnew_c) .lt. teps) then
+    teps = 1.e-4_amrex_real * abs(tnew_c - told_c)
+    if (abs(time-tnew_c) .le. teps) then
        ncrse= 1
        c_time(1) =  tnew_c
        do dim = 1, amrex_spacedim
           c_mf(dim) = mfnew_c(dim)%p
        end do
-    else if (abs(time-told_c) .lt. teps) then
+    else if (abs(time-told_c) .le. teps) then
        ncrse= 1
        c_time(1) =  told_c
        do dim = 1, amrex_spacedim
@@ -280,14 +280,14 @@ contains
     end if
 
     ! fine level
-    teps = 1.e-4_amrex_real * (tnew_f - told_f)
-    if (abs(time-tnew_f) .lt. teps) then
+    teps = 1.e-4_amrex_real * abs(tnew_f - told_f)
+    if (abs(time-tnew_f) .le. teps) then
        nfine= 1
        f_time(1) =  tnew_f
        do dim = 1, amrex_spacedim
           f_mf(dim) = mfnew_f(dim)%p
        enddo
-    else if (abs(time-told_f) .lt. teps) then
+    else if (abs(time-told_f) .le. teps) then
        nfine= 1
        f_time(1) =  told_f
        do dim = 1, amrex_spacedim
@@ -353,10 +353,10 @@ contains
     integer :: i
 
     ! coarse level
-    teps = 1.e-4_amrex_real * (tnew_c - told_c)
-    if (abs(time-tnew_c) .lt. teps) then
+    teps = 1.e-4_amrex_real * abs(tnew_c - told_c)
+    if (abs(time-tnew_c) .le. teps) then
        c_mf = mfnew_c%p
-    else if (abs(time-told_c) .lt. teps) then
+    else if (abs(time-told_c) .le. teps) then
        c_mf = mfold_c%p
     else
        call amrex_abort("amrex_fillcoarsepatch: how did this happen?")
