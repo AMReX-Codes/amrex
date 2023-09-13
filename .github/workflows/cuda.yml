@@ -46,7 +46,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=$(which g++)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
-            -DAMReX_CUDA_ARCH=7.0                        \
+            -DAMReX_CUDA_ARCH="7.0"                      \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
             -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON           \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
@@ -68,8 +68,8 @@ jobs:
       CUDAHOSTCXX: clang++-15
       CUDAFLAGS: "-stdlib=libc++"
       LDFLAGS: "-stdlib=libc++"
-      CUDAARCHS: 70
-      AMReX_CUDA_ARCH: 7.0
+      CUDAARCHS: "70"
+      AMReX_CUDA_ARCH: "7.0"
     steps:
     - uses: actions/checkout@v3
     - name: Dependencies
@@ -199,7 +199,7 @@ jobs:
         # /home/runner/work/amrex/amrex/Src/Base/AMReX_GpuLaunchGlobal.H:16:41: error: unused parameter ‘f0’ [-Werror=unused-parameter]
         #    16 |     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
         #
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-unused-parameter" CCACHE=ccache
+        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-unused-parameter" CCACHE=ccache CUDA_ARCH="7.0 7.2"
         make install
 
         ccache -s
