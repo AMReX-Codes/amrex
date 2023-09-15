@@ -447,6 +447,12 @@ AmrMesh::LevelDefined (int lev) noexcept
     return lev <= max_level && !grids[lev].empty() && !dmap[lev].empty();
 }
 
+DistributionMapping
+AmrMesh::MakeDistributionMap (int lev, BoxArray const& ba)
+{
+    return DistributionMapping(ba);
+}
+
 void
 AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 {
@@ -872,7 +878,7 @@ AmrMesh::MakeNewGrids (Real time)
         if(!use_bittree) {
 #endif
             ba = MakeBaseGrids();
-            dm = DistributionMapping(ba);
+            dm = MakeDistributionMap(0, ba);
 
 #ifdef AMREX_USE_BITTREE
         }
@@ -902,7 +908,7 @@ AmrMesh::MakeNewGrids (Real time)
             // Use Bittree to make coarsest level (don't need MakeBaseGrids)
             // Need to use Bittree, so the indices of grids[lev] will be compatible with BT.
             btUnit::btCalculateLevel(btmesh.get(),0,ba,max_grid_size[0]);
-            dm = DistributionMapping(ba);
+            dm = MakeDistributionMap(0, ba);
         }
 #endif
         MakeNewLevelFromScratch(0, time, ba, dm);
@@ -929,7 +935,7 @@ AmrMesh::MakeNewGrids (Real time)
             if (new_finest <= finest_level) { break; }
             finest_level = new_finest;
 
-            DistributionMapping dm(new_grids[new_finest]);
+            DistributionMapping dm = MakeDistributionMap(new_finest, new_grids[new_finest]);
             const auto old_num_setdm = num_setdm;
 
             MakeNewLevelFromScratch(new_finest, time, new_grids[finest_level], dm);
@@ -960,7 +966,7 @@ AmrMesh::MakeNewGrids (Real time)
                 for (int lev = 1; lev <= new_finest; ++lev) {
                     if (new_grids[lev] != grids[lev]) {
                         grids_the_same = false;
-                        DistributionMapping dm(new_grids[lev]);
+                        DistributionMapping dm = MakeDistributionMap(lev, new_grids[lev]);
                         const auto old_num_setdm = num_setdm;
 
                         MakeNewLevelFromScratch(lev, time, new_grids[lev], dm);

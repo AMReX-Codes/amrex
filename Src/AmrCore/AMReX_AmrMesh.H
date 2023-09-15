@@ -257,6 +257,8 @@ public:
 
     [[nodiscard]] long CountCells (int lev) noexcept;
 
+    [[nodiscard]] virtual DistributionMapping MakeDistributionMap (int lev, BoxArray const& ba);
+
 protected:
 
     int finest_level;    //!< Current finest level.
