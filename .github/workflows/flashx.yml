@@ -1,0 +1,18 @@
+# -Wextra-semi: GCC < 10 does not have this.
+# -Wunreachable-code: GCC no longer has this option.
+
+name: Flash-X
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc
+  cancel-in-progress: true
+
+jobs:
+  bittree-test-suite:
+    name: GNU@9.3 C++17 2D Debug Fortran [tests]
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: Lab-Notebooks/AMReX-Bittree-Performance/.github/actions/tests@main
+    
