@@ -258,6 +258,7 @@ public:
                                                     * m_max_blocks * sizeof(Type)))),
           m_fn_value([&reduce_op,this] () -> Type { return this->value(reduce_op); })
     {
+        reduce_op.resetResultReadiness();
         static_assert(std::is_trivially_copyable<Type>(),
                       "ReduceData::Type must be trivially copyable");
         static_assert(std::is_trivially_destructible<Type>(),
@@ -750,6 +751,9 @@ public:
 
 private:
     bool m_result_is_ready = false;
+
+public:
+    void resetResultReadiness () { m_result_is_ready = false; }
 };
 
 namespace Reduce {
@@ -993,6 +997,7 @@ public:
         : m_tuple(OpenMP::in_parallel() ? 1 : OpenMP::get_max_threads()),
           m_fn_value([&reduce_op,this] () -> Type { return this->value(reduce_op); })
     {
+        reduce_op.resetResultReadiness();
         for (auto& t : m_tuple) {
             Reduce::detail::for_each_init<0, Type, Ps...>(t);
         }
@@ -1158,6 +1163,8 @@ public:
     }
 
     bool m_result_is_ready = false;
+
+    void resetResultReadiness () { m_result_is_ready = false; }
 };
 
 namespace Reduce {
