@@ -3,7 +3,8 @@
 
 name: Flash-X
 
-on: [push, pull_request]
+on:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc
