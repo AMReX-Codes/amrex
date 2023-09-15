@@ -15,5 +15,5 @@ jobs:
     name: GNU@9.3 C++17 2D Debug Fortran [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: Lab-Notebooks/AMReX-Bittree-Performance/.github/actions/tests@main
+    - uses: Flash-X/Actions/AMReX@main
 
