@@ -478,10 +478,10 @@ contains
 
     cfill(1) = c_funloc(fill_physbc_cx)
     ffill(1) = c_funloc(fill_physbc_fx)
-#if AMREX_SPACEDIM>=2
+#if (AMREX_SPACEDIM >= 2)
     cfill(2) = c_funloc(fill_physbc_cy)
     ffill(2) = c_funloc(fill_physbc_fy)
-#if AMREX_SPACEDIM>=3
+#if (AMREX_SPACEDIM >= 3)
     cfill(3) = c_funloc(fill_physbc_cz)
     ffill(3) = c_funloc(fill_physbc_fz)
 #endif
@@ -492,12 +492,12 @@ contains
     end do
 
     ! coarse level
-    teps = 1.e-4_amrex_real * (tnew_c - told_c)
-    if (abs(time-tnew_c) .lt. teps) then
+    teps = 1.e-4_amrex_real * abs(tnew_c - told_c)
+    if (abs(time-tnew_c) .le. teps) then
        do dim = 1, amrex_spacedim
           c_mf(dim) = mfnew_c(dim)%p
        end do
-    else if (abs(time-told_c) .lt. teps) then
+    else if (abs(time-told_c) .le. teps) then
        do dim = 1, amrex_spacedim
           c_mf(dim) = mfold_c(dim)%p
        end do

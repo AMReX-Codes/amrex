@@ -211,7 +211,7 @@ extern "C"
         Array<Vector<BCRec>, AMREX_SPACEDIM> bcs;
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
-            bcs[d].resize(ncomp);
+
             for (int i = 0; i < ncomp; ++i)
                 { bcs[d].emplace_back(lo_bc[d*(scomp+ncomp)+i+scomp],
                                       hi_bc[d*(scomp+ncomp)+i+scomp]); }
