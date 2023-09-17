@@ -78,7 +78,9 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
         a_level.fillCutCellMask(*m_cutcellmask, m_geom);
     }
 
-    extendDataOutsideDomain(a_level.nGrowVect());
+    if (! a_level.isAllRegular()) {
+        extendDataOutsideDomain(a_level.nGrowVect());
+    }
 }
 
 void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
