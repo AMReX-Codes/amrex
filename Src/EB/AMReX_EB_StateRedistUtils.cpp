@@ -55,44 +55,33 @@ MakeStateRedistUtils ( Box const& bx,
                  const auto& is_periodic_y = lev_geom.isPeriodic(1);,
                  const auto& is_periodic_z = lev_geom.isPeriodic(2););
 
-    Box const& bxg2 = amrex::grow(bx,2);
     Box const& bxg3 = amrex::grow(bx,3);
     Box const& bxg4 = amrex::grow(bx,4);
+    Box const& bxg5 = amrex::grow(bx,5);
 
     const Box domain = lev_geom.Domain();
 
     Box domain_per_grown = domain;
-    if (is_periodic_x) { domain_per_grown.grow(0,2); }
-    if (is_periodic_y) { domain_per_grown.grow(1,2); }
+    if (is_periodic_x) { domain_per_grown.grow(0,5); }
+    if (is_periodic_y) { domain_per_grown.grow(1,5); }
 #if (AMREX_SPACEDIM == 3)
-    if (is_periodic_z) { domain_per_grown.grow(2,2); }
+    if (is_periodic_z) { domain_per_grown.grow(2,5); }
 #endif
 
+    // ****************************************************************************************
+    // DEFINING NRS
+    // ****************************************************************************************
     //
-    // Need nrs in bxg4 in order to compute nbhd_vol in bxg3
+    // Need nrs in bxg5 in order to compute alpha in bxg4
+    // nrs captures how many neighborhoods (r,s,t) is in
     //
-    amrex::ParallelFor(bxg4,
+    amrex::ParallelFor(bxg5,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
         // Everyone is in their own neighborhood at least
         nrs(i,j,k) = 1.;
     });
-
-    //
-    // Need alpha in bxg3 in order to compute nbhd_vol in bxg3
-    //
-    amrex::ParallelFor(bxg3,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        alpha(i,j,k,0) = 1.;
-        alpha(i,j,k,1) = 1.;
-    });
-
-    //
-    // Need nrs in bxg4 in order to compute nbhd_vol in bxg3
-    // nrs captures how many neighborhoods (r,s,t) is in
-    //
-    amrex::ParallelFor(bxg4,
+    amrex::ParallelFor(bxg5,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
         // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
@@ -102,24 +91,32 @@ MakeStateRedistUtils ( Box const& bx,
             int s = j+jmap[itracker(i,j,k,i_nbor)];
             int t = k+kmap[itracker(i,j,k,i_nbor)];
             if ( domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))) &&
-                 bxg4.contains(IntVect(AMREX_D_DECL(r,s,t))) )
+                 bxg5.contains(IntVect(AMREX_D_DECL(r,s,t))) )
             {
                 amrex::Gpu::Atomic::Add(&nrs(r,s,t),1.0_rt);
             }
         }
     });
+    //
 
+    // ****************************************************************************************
+    // DEFINING ALPHA
+    // ****************************************************************************************
     //
-    // Need nbhd_vol in bxg3 in order to use it to define cent_hat in bxg2
-    // (which allows us to compute slopes in bxg1)
+    // Need alpha in bxg4 in order to define cent_hat in bxg3
+    // (which allows us to compute slopes in bxg1 because some slopes go out by 2)
     //
-    amrex::ParallelFor(bxg3,
+    amrex::ParallelFor(bxg4,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+        alpha(i,j,k,0) = 1.;
+        alpha(i,j,k,1) = 1.;
+    });
+    amrex::ParallelFor(bxg4,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
         if (!flag(i,j,k).isCovered())
         {
-            // Start with the vfrac of (i,j,k)
-            nbhd_vol(i,j,k) = vfrac(i,j,k) / nrs(i,j,k);
             Real vol_of_nbors = 0.;
 
             // This loops over the neighbors of (i,j,k), and doesn't include (i,j,k) itself
@@ -128,7 +125,6 @@ MakeStateRedistUtils ( Box const& bx,
                 int r = i+imap[itracker(i,j,k,i_nbor)];
                 int s = j+jmap[itracker(i,j,k,i_nbor)];
                 int t = k+kmap[itracker(i,j,k,i_nbor)];
-                amrex::Gpu::Atomic::Add(&nbhd_vol(i,j,k),vfrac(r,s,t) / nrs(r,s,t));
                 vol_of_nbors += vfrac(r,s,t);
             }
 
@@ -137,16 +133,15 @@ MakeStateRedistUtils ( Box const& bx,
             }
 
         } else {
-            nbhd_vol(i,j,k) = 0.;
             alpha(i,j,k,0) = 0.;
             alpha(i,j,k,1) = 0.;
         }
     });
 
     //
-    // Need alpha in bxg3 in order to use it to define nbhd_vol in bxg2
+    // Must loop over (i,j,k) in bxg5 in order to define alpha(r,s,t) in bxg4
     //
-    amrex::ParallelFor(bxg3,
+    amrex::ParallelFor(bxg5,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
         if (!flag(i,j,k).isCovered())
@@ -157,15 +152,18 @@ MakeStateRedistUtils ( Box const& bx,
                 int r = i+imap[itracker(i,j,k,i_nbor)];
                 int s = j+jmap[itracker(i,j,k,i_nbor)];
                 int t = k+kmap[itracker(i,j,k,i_nbor)];
-                if ( bxg3.contains(IntVect(AMREX_D_DECL(r,s,t))) ) {
+                if ( bxg4.contains(IntVect(AMREX_D_DECL(r,s,t))) ) {
                     amrex::Gpu::Atomic::Add(&alpha(r,s,t,0),-(alpha(i,j,k,1)/nrs(r,s,t)));
                 }
             }
         }
     });
 
+    // ****************************************************************************************
+    // DEFINING NBHD_VOL
+    // ****************************************************************************************
     //
-    // Redefine nbhd_vol in bxg3 in order to use it to define cent_hat in bxg2
+    // Redefine nbhd_vol in bxg3 in order to use it to define cent_hat in bxg3
     // (which allows us to compute slopes in bxg1)
     // To define nbhd_vol in bxg3 we also need alpha(i,j,k,0/1) in bxg3,
     //    and vfrac and nrs in bxg4
@@ -185,13 +183,18 @@ MakeStateRedistUtils ( Box const& bx,
                 int t = k+kmap[itracker(i,j,k,i_nbor)];
                 amrex::Gpu::Atomic::Add(&nbhd_vol(i,j,k),alpha(i,j,k,1) * vfrac(r,s,t) / nrs(r,s,t));
             }
+        } else {
+            nbhd_vol(i,j,k) = 0.;
         }
     });
 
+    // ****************************************************************************************
+    // DEFINING CENT_HAT
+    // ****************************************************************************************
     //
-    // Need cent_hat(xhat,yhat,zhat) in bxg2 to compute slopes in bxg1
+    // Need cent_hat(xhat,yhat,zhat) in bxg3 to compute slopes in bxg1
     //
-    amrex::ParallelFor(bxg2,
+    amrex::ParallelFor(bxg3,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
         if (vfrac(i,j,k) > 0.0)
@@ -201,9 +204,8 @@ MakeStateRedistUtils ( Box const& bx,
                          cent_hat(i,j,k,2) = ccent(i,j,k,2););
 
             if ( itracker(i,j,k,0) > 0 &&
-                 domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k))) &&
-                             bxg2.contains(IntVect(AMREX_D_DECL(i,j,k))) ) {
-
+                 domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k))) )
+            {
                 AMREX_D_TERM(cent_hat(i,j,k,0) = ccent(i,j,k,0) * alpha(i,j,k,0) *vfrac(i,j,k);,
                              cent_hat(i,j,k,1) = ccent(i,j,k,1) * alpha(i,j,k,0) *vfrac(i,j,k);,
                              cent_hat(i,j,k,2) = ccent(i,j,k,2) * alpha(i,j,k,0) *vfrac(i,j,k););
