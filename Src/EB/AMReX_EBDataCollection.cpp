@@ -111,6 +111,11 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*m_cellflags); mfi.isValid(); ++mfi) {
+        auto const current_type = (*m_cellflags)[mfi].getType();
+        // Because the default value for EBCellFlagFab is regular cell, we
+        // can skip a regular fab.
+        if (current_type == FabType::regular) { continue; }
+
         Box const& bx = mfi.fabbox();
         if (! level_domain.contains(bx)) {
             Box const& nbx = amrex::surroundingNodes(bx);
@@ -217,6 +222,12 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
                         }
                     });
                 }
+            }
+
+            if ((*m_cellflags)[mfi].getType(mfi.validbox()) != FabType::singlevalued) {
+                // If it's already a cut fab in the valid region, the change in
+                // ghost cells will not change the fab types.
+                (*m_cellflags)[mfi].resetType(ngrow);
             }
         }
     }
