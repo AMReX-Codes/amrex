@@ -42,6 +42,9 @@ public:
     [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getEdgeCent () const;
     [[nodiscard]] const iMultiFab* getCutCellMask () const;
 
+    // public for cuda
+    void extendDataOutsideDomain (IntVect const& level_ng);
+
 private:
 
     Vector<int> m_ngrow;

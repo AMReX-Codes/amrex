@@ -62,6 +62,8 @@ public:
     const Geometry& Geom () const noexcept { return m_geom; }
     IndexSpace const* getEBIndexSpace () const noexcept { return m_parent; }
 
+    IntVect const& nGrowVect () const noexcept { return m_ngrow; }
+
     void write_to_chkpt_file (const std::string& fname, bool extend_domain_face, int max_grid_size) const;
 
     bool hasEBInfo () const noexcept { return m_has_eb_info; }
