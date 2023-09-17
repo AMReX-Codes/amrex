@@ -78,7 +78,9 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
         a_level.fillCutCellMask(*m_cutcellmask, m_geom);
     }
 
-    extendDataOutsideDomain(a_level.nGrowVect());
+    if (! a_level.isAllRegular()) {
+        extendDataOutsideDomain(a_level.nGrowVect());
+    }
 }
 
 void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
@@ -192,7 +194,7 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
             });
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if (m_areafrac[idim]) {
+                if (m_areafrac[idim] && m_areafrac[idim]->ok(mfi)) {
                     auto const& ap = m_areafrac[idim]->array(mfi);
                     Box apbx = Box(ap);
                     if (apbx.smallEnd(idim) == nbx.smallEnd(idim)) {
