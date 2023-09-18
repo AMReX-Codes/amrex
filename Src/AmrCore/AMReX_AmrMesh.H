@@ -11,6 +11,10 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_TagBox.H>
 
+#ifdef AMREX_USE_BITTREE
+#include <Bittree_BittreeAmr.h>
+#endif
+
 namespace amrex {
 
 struct AmrInfo {
@@ -253,12 +257,19 @@ public:
 
     [[nodiscard]] long CountCells (int lev) noexcept;
 
+    [[nodiscard]] virtual DistributionMapping MakeDistributionMap (int lev, BoxArray const& ba);
+
 protected:
 
     int finest_level;    //!< Current finest level.
     Vector<Geometry>            geom;
     Vector<DistributionMapping> dmap;
     Vector<BoxArray>            grids;
+
+#ifdef AMREX_USE_BITTREE
+    bool use_bittree;
+    std::shared_ptr<bittree::BittreeAmr> btmesh;
+#endif
 
     unsigned int num_setdm = 0;
     unsigned int num_setba = 0;
