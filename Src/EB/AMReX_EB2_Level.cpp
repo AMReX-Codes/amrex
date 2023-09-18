@@ -468,13 +468,7 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
             }
 
             // fix type for each fab
-            fab.setType(FabType::undefined);
-            auto typ = fab.getType(bx);
-            fab.setType(typ);
-            for (int nshrink = 1; nshrink < ng; ++nshrink) {
-                const Box& b = amrex::grow(bx,-nshrink);
-                fab.getType(b);
-            }
+            fab.resetType(ng);
         }
     }
 }
