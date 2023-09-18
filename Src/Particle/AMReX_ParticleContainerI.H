@@ -2043,16 +2043,17 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             {
                 char* pbuf = ((char*) &recvdata[offset]) + i*superparticle_size;
 
-                Particle<0, 0> p;
-                ParticleReal pos[AMREX_SPACEDIM];
-                std::memcpy(&pos[0], pbuf, AMREX_SPACEDIM*sizeof(ParticleReal));
-                AMREX_D_TERM(p.pos(0) = pos[0];,
-                             p.pos(1) = pos[1];,
-                             p.pos(2) = pos[2]);
+                Particle<NStructReal, NStructInt> p;
 
                 if constexpr (!ParticleType::is_soa_particle) {
-                    std::memcpy(&(p.m_idcpu), pbuf + NumRealComps()*sizeof(ParticleReal), sizeof(uint64_t));
+                   std::memcpy(&p, pbuf, sizeof(ParticleType));
                 } else {
+                    ParticleReal pos[AMREX_SPACEDIM];
+                    std::memcpy(&pos[0], pbuf, AMREX_SPACEDIM*sizeof(ParticleReal));
+                    AMREX_D_TERM(p.pos(0) = pos[0];,
+                                 p.pos(1) = pos[1];,
+                                 p.pos(2) = pos[2]);
+
                     int idcpu[2];
                     std::memcpy(&idcpu[0], pbuf + NumRealComps()*sizeof(ParticleReal), 2*sizeof(int));
 
