@@ -201,7 +201,7 @@ public:
         } else if (use_cvode_strategy) {
             return advance_cvode(S_old, S_new, time, time_step);
         }else {
-            Error("SUNDIALS integrator backend not specified (ERK or MRI).");
+            Error("SUNDIALS integrator backend not specified (ERK, MRI, or CVODE).");
         }
 
         return 0;
@@ -736,10 +736,6 @@ public:
         CVodeInit(cvode_mem, SundialsUserFun::f, time, nv_S);
         CVodeSStolerances(cvode_mem, reltol, abstol);
         CVodeSetMaxNumSteps(cvode_mem, 100000);
-        // CVodeSetMaxOrd(cvode_mem, 1);
-        
-        // ERKStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::ProcessStage);
-        /* Specify tolerances */
 
         for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
         {
@@ -749,7 +745,6 @@ public:
 
         // Set up and assign the linear solver (GMRES)
         LS = SUNLinSol_SPGMR(nv_S, SUN_PREC_NONE, 0, sunctx);
-        // LS = SUNLinSol_SPFGMR(nv_S, SUN_PREC_NONE, 0, sunctx);
         CVodeSetLinearSolver(cvode_mem, LS, nullptr);
 
         // Use CVode to evolve state_old data (wrapped in nv_S) from t to tout=t+dt
