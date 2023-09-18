@@ -1188,7 +1188,7 @@ public:
     void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
                                        int ncomp=1, int particle_lvl_offset = 0) const;
 
-    template <typename P>
+    template <typename P, typename Assignor=CellAssignor>
     IntVect Index (const P& p, int lev) const;
 
     /**
