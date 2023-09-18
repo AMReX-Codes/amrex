@@ -75,11 +75,9 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     {
         auto p = make_particle<ParticleType>{}(ptd,i);
         if ((p.id() < 0)) { return false; }
-        IntVect iv(
-            AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
-                         int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
-                         int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
-        iv += domain.smallEnd();
+        using AssignorType = typename Iterator::CellAssignor;
+        AssignorType assignor;
+        IntVect iv = assignor(p, plo, dxi, domain);
         return !box.contains(iv);
     });
     int hv = amrex::get<0>(reduce_data.value(reduce_op));
@@ -113,11 +111,9 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     {
         ParticleType p(tile_data,i);
         if ((p.id() < 0)) { return false; }
-        auto iv = IntVect(
-            AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
-                         int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
-                         int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
-        iv += domain.smallEnd();
+        using AssignorType = typename Iterator::CellAssignor;
+        AssignorType assignor;
+        IntVect iv = assignor(p, plo, dxi, domain);
         return !box.contains(iv);
     });
     int hv = amrex::get<0>(reduce_data.value(reduce_op));
