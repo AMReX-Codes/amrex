@@ -210,7 +210,7 @@ Device::Initialize ()
 #if defined(HIP_VERSION_MAJOR) && defined(HIP_VERSION_MINOR) && ((HIP_VERSION_MAJOR < 5) || ((HIP_VERSION_MAJOR == 5) && (HIP_VERSION_MINOR < 2)))
 
         // hip < 5.2: uuid not supported
-        num_device_partners = 1;
+        num_device_partners = HIP_NUM_DEVICE_PARTNERS;
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
