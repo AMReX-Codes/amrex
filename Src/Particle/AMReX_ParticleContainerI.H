@@ -1653,8 +1653,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 if (npart != 0) {
                     Long last = npart - 1;
                     Long pindex = 0;
+                    auto ptd = particle_tile->getParticleTileData();
                     while (pindex <= last) {
-                        auto ptd = particle_tile->getParticleTileData();
                         ParticleType p(ptd,pindex);
 
                         if ((remove_negative == false) && (p.id() < 0)) {
@@ -1669,7 +1669,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             for (int comp = 0; comp < NumIntComps(); comp++) {
                                 soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
                             }
-                            correctCellVectors(last, pindex, grid, aos[pindex]);
+                            correctCellVectors(last, pindex, grid, ptd[pindex]);
                             --last;
                             continue;
                         }
@@ -1685,7 +1685,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             for (int comp = 0; comp < NumIntComps(); comp++) {
                                 soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
                             }
-                            correctCellVectors(last, pindex, grid, aos[pindex]);
+                            correctCellVectors(last, pindex, grid, ptd[pindex]));
                             --last;
                             continue;
                         }
@@ -1739,7 +1739,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             for (int comp = 0; comp < NumIntComps(); comp++) {
                                 soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
                             }
-                            correctCellVectors(last, pindex, grid, aos[pindex]);
+                            correctCellVectors(last, pindex, grid, ptd[pindex]));
                             --last;
                             continue;
                         }
