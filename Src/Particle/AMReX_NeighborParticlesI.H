@@ -749,7 +749,7 @@ buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
             plo_v.push_back(geom.ProbLoArray());
 
             m_neighbor_list[lev][index].build(ptile,
-                                              std::forward<CheckPair>(check_pair),
+                                              check_pair,
                                               off_bins_v, dxi_v, plo_v, lo_v, hi_v, ng);
 
 #ifndef AMREX_USE_GPU
@@ -834,7 +834,7 @@ buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
             plo_v.push_back(geom.ProbLoArray());
 
             neighbor_lists[lev][index].build(ptile, other_ptile,
-                                             std::forward<CheckPair>(check_pair),
+                                             check_pair,
                                              off_bins_v, dxi_v, plo_v, lo_v, hi_v, ng);
         }
     }
@@ -951,7 +951,7 @@ buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
             Gpu::exclusive_scan(nbins_v.begin(), nbins_v.end(), off_bins_v.begin());
 
             m_neighbor_list[lev][index].build(ptile,
-                                              std::forward<CheckPair>(check_pair),
+                                              check_pair,
                                               off_bins_v, dxi_v, plo_v, lo_v, hi_v,
                                               ng, num_bin_types, bin_type_array);
 

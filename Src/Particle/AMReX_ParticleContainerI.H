@@ -2,9 +2,9 @@
 #include <AMReX_MakeParticle.H>
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SetParticleSize ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::SetParticleSize ()
 {
     num_real_comm_comps  = 0;
     int comm_comps_start = AMREX_SPACEDIM + NStructReal;
@@ -28,9 +28,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SetParti
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator> :: Initialize ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor> :: Initialize ()
 {
     levelDirectoriesCreated = false;
     usePrePost = false;
@@ -65,28 +65,24 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator> :: Initia
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-template <typename P>
+          template<class> class Allocator, class CellAssignor>
+template <typename P, typename Assignor>
 IntVect
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::Index (const P& p, int lev) const
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::Index (const P& p, int lev) const
 {
-    IntVect iv;
     const Geometry& geom = Geom(lev);
+    const auto domain = geom.Domain();
+    const auto plo = geom.ProbLoArray();
+    const auto dxi = geom.InvCellSizeArray();
 
-    AMREX_D_TERM(iv[0]=static_cast<int>(std::floor((p.pos(0)-geom.ProbLo(0))*geom.InvCellSize(0)));,
-                 iv[1]=static_cast<int>(std::floor((p.pos(1)-geom.ProbLo(1))*geom.InvCellSize(1)));,
-                 iv[2]=static_cast<int>(std::floor((p.pos(2)-geom.ProbLo(2))*geom.InvCellSize(2))););
-
-    iv += geom.Domain().smallEnd();
-
-    return iv;
+    return Assignor{}(p, plo, dxi, domain);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <typename P>
 bool
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::Where (const P& p,
          ParticleLocData&    pld,
          int                 lev_min,
@@ -164,10 +160,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <typename P>
 bool
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::EnforcePeriodicWhere (P&               p,
                         ParticleLocData& pld,
                         int              lev_min,
@@ -200,11 +196,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
             AMREX_ASSERT(ba.ixType().cellCentered());
 
             if (local_grid < 0) {
-                iv = Index(p_prime, lev);
+                iv = Index<amrex::Particle<0, 0>, DefaultAssignor>(p_prime, lev);
                 ba.intersections(Box(iv, iv), isects, true, 0);
                 grid = isects.empty() ? -1 : isects[0].first;
             } else {
-                iv = Index(p_prime, lev);
+                iv = Index<amrex::Particle<0, 0>, DefaultAssignor>(p_prime, lev);
                 if (ba[local_grid].contains(iv))
                 {
                     grid = local_grid;
@@ -243,10 +239,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <typename P>
 bool
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::PeriodicShift (P& p) const
 {
     const auto& geom = Geom(0);
@@ -260,9 +256,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 ParticleLocData
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 Reset (ParticleType& p,
        bool          /*update*/,
        bool          verbose,
@@ -295,18 +291,18 @@ Reset (ParticleType& p,
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::reserveData ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::reserveData ()
 {
     this->ParticleContainerBase::reserveData();
     m_particles.reserve(maxLevel()+1);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::resizeData ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::resizeData ()
 {
     this->ParticleContainerBase::resizeData();
     int nlevs = std::max(0, finestLevel()+1);
@@ -314,10 +310,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::resizeDa
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <typename P>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::locateParticle (P& p, ParticleLocData& pld,
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::locateParticle (P& p, ParticleLocData& pld,
                                                                                         int lev_min, int lev_max, int nGrow, int local_grid) const
 {
     bool success;
@@ -350,9 +346,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::locatePa
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 Long
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::TotalNumberOfParticles (bool only_valid, bool only_local) const
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::TotalNumberOfParticles (bool only_valid, bool only_local) const
 {
     Long nparticles = 0;
     for (int lev = 0; lev <= finestLevel(); lev++) {
@@ -365,9 +361,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::TotalNum
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 Vector<Long>
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
 {
     AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
@@ -421,8 +417,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOf
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::NumberOfParticlesAtLevel (int level, bool only_valid, bool only_local) const
+          template<class> class Allocator, class CellAssignor>
+Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::NumberOfParticlesAtLevel (int level, bool only_valid, bool only_local) const
 {
     Long nparticles = 0;
 
@@ -465,9 +461,9 @@ Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::Num
 //
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 std::array<Long, 3>
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::ByteSpread () const
 {
     Long cnt = 0;
@@ -509,9 +505,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 std::array<Long, 3>
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::PrintCapacity () const
 {
     Long cnt = 0;
@@ -550,9 +546,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::ShrinkToFit ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::ShrinkToFit ()
 {
     for (unsigned lev = 0; lev < m_particles.size(); lev++) {
         auto& pmap = m_particles[lev];
@@ -570,9 +566,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::ShrinkTo
 
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::Increment (MultiFab& mf, int lev)
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::Increment (MultiFab& mf, int lev)
 {
     BL_PROFILE("ParticleContainer::Increment");
 
@@ -590,15 +586,16 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::Incremen
                               amrex::Array4<amrex::Real> const& count)
         {
             const auto& p = make_particle<ConstParticleType>{}(ptd, ip);
-            auto iv = getParticleCell(p, plo, dxi, domain);
+            CellAssignor assignor;
+            IntVect iv = assignor(p, plo, dxi, domain);
             amrex::Gpu::Atomic::AddNoRet(&count(iv), 1.0_rt);
         }, false);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 Long
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::IncrementWithTotal (MultiFab& mf, int lev, bool local)
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::IncrementWithTotal (MultiFab& mf, int lev, bool local)
 {
     BL_PROFILE("ParticleContainer::IncrementWithTotal(lev)");
     Increment(mf, lev);
@@ -606,9 +603,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::Incremen
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::RemoveParticlesAtLevel (int level)
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::RemoveParticlesAtLevel (int level)
 {
     BL_PROFILE("ParticleContainer::RemoveParticlesAtLevel()");
     if (level >= int(this->m_particles.size())) { return; }
@@ -620,9 +617,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::RemovePa
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::RemoveParticlesNotAtFinestLevel ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::RemoveParticlesNotAtFinestLevel ()
 {
   BL_PROFILE("ParticleContainer::RemoveParticlesNotAtFinestLevel()");
   AMREX_ASSERT(this->finestLevel()+1 == int(this->m_particles.size()));
@@ -686,9 +683,9 @@ struct TransformerVirt
 
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::CreateVirtualParticles (int level, AoS& virts) const
 {
     ParticleTileType ptile;
@@ -697,9 +694,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::CreateVirtualParticles (int level, ParticleTileType& virts) const
 {
     BL_PROFILE("ParticleContainer::CreateVirtualParticles()");
@@ -903,8 +900,8 @@ struct AssignGridFilter
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int src_i) const noexcept
     {
-        const auto tup_min = (m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow);
-        const auto tup_max = (m_assign_grid)(src.m_aos[src_i], m_lev_max, m_lev_max, m_nGrow);
+        const auto tup_min = (m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow, DefaultAssignor{});
+        const auto tup_max = (m_assign_grid)(src.m_aos[src_i], m_lev_max, m_lev_max, m_nGrow, DefaultAssignor{});
         const auto p_boxes = amrex::get<0>(tup_min);
         const auto p_boxes_max = amrex::get<0>(tup_max);
         const auto p_levs_max  = amrex::get<1>(tup_max);
@@ -928,9 +925,9 @@ struct TransformerGhost
 };
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::CreateGhostParticles (int level, int nGrow, AoS& ghosts) const
 {
     ParticleTileType ptile;
@@ -939,9 +936,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::CreateGhostParticles (int level, int nGrow, ParticleTileType& ghosts) const
 {
     BL_PROFILE("ParticleContainer::CreateGhostParticles()");
@@ -973,9 +970,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 clearParticles ()
 {
     BL_PROFILE("ParticleContainer::clearParticles()");
@@ -988,34 +985,34 @@ clearParticles ()
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class PCType, std::enable_if_t<IsParticleContainer<PCType>::value, int> foo>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 copyParticles (const PCType& other, bool local)
 {
     using PData = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
-    copyParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
+    copyParticles(other, [] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class PCType, std::enable_if_t<IsParticleContainer<PCType>::value, int> foo>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 addParticles (const PCType& other, bool local)
 {
     using PData = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
-    addParticles(other, [=] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
+    addParticles(other, [] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F, class PCType,
           std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
           std::enable_if_t<! std::is_integral<F>::value, int> bar>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 copyParticles (const PCType& other, F&& f, bool local)
 {
     BL_PROFILE("ParticleContainer::copyParticles");
@@ -1024,12 +1021,12 @@ copyParticles (const PCType& other, F&& f, bool local)
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class F, class PCType,
           std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
           std::enable_if_t<! std::is_integral<F>::value, int> bar>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 addParticles (const PCType& other, F&& f, bool local)
 {
     BL_PROFILE("ParticleContainer::addParticles");
@@ -1050,7 +1047,7 @@ addParticles (const PCType& other, F&& f, bool local)
             auto dst_index = ptile.numParticles();
             ptile.resize(dst_index + np);
 
-            auto count = amrex::filterParticles(ptile, ptile_other, std::forward<F>(f), 0, dst_index, np);
+            auto count = amrex::filterParticles(ptile, ptile_other, f, 0, dst_index, np);
 
             ptile.resize(dst_index + count);
         }
@@ -1063,9 +1060,9 @@ addParticles (const PCType& other, F&& f, bool local)
 // This redistributes valid particles and discards invalid ones.
 //
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::Redistribute (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: Redist");
@@ -1087,10 +1084,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 template <class index_type>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::ReorderParticles (int lev, const MFIter& mfi, const index_type* permutations)
 {
     auto& ptile           = ParticlesAt(lev, mfi);
@@ -1162,17 +1159,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::SortParticlesByCell ()
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::SortParticlesByCell ()
 {
     SortParticlesByBin(IntVect(AMREX_D_DECL(1, 1, 1)));
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::SortParticlesByBin (IntVect bin_size)
 {
     BL_PROFILE("ParticleContainer::SortParticlesByBin()");
@@ -1203,9 +1200,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::SortParticlesForDeposition (IntVect idx_type)
 {
     BL_PROFILE("ParticleContainer::SortParticlesForDeposition()");
@@ -1233,9 +1230,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 // The GPU implementation of Redistribute
 //
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::RedistributeGPU (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
 #ifdef AMREX_USE_GPU
@@ -1300,7 +1297,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
             auto& src_tile = plev[index];
             const size_t np = src_tile.numParticles();
 
-            int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(),
+            int num_stay = partitionParticlesByDest(src_tile, assign_grid,
+                                                    std::forward<CellAssignor>(CellAssignor{}),
+                                                    BufferMap(),
                                                     plo, phi, rlo, rhi, is_per, lev, gid, tid,
                                                     lev_min, lev_max, nGrow, remove_negative);
 
@@ -1325,7 +1324,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
                 }
                 else
                 {
-                    const auto tup = assign_grid(p, lev_min, lev_max, nGrow);
+                    const auto tup = assign_grid(p, lev_min, lev_max, nGrow,
+                                                 std::forward<CellAssignor>(CellAssignor{}));
                     p_boxes[i] = amrex::get<0>(tup);
                     p_levs[i]  = amrex::get<1>(tup);
                 }
@@ -1420,9 +1420,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 // The CPU implementation of Redistribute
 //
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::RedistributeCPU (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
     BL_PROFILE("ParticleContainer::RedistributeCPU()");
@@ -1913,9 +1913,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                  int lev_min, int lev_max, int nGrow, int local)
 {
@@ -2043,16 +2043,17 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             {
                 char* pbuf = ((char*) &recvdata[offset]) + i*superparticle_size;
 
-                Particle<0, 0> p;
-                ParticleReal pos[AMREX_SPACEDIM];
-                std::memcpy(&pos[0], pbuf, AMREX_SPACEDIM*sizeof(ParticleReal));
-                AMREX_D_TERM(p.pos(0) = pos[0];,
-                             p.pos(1) = pos[1];,
-                             p.pos(2) = pos[2]);
+                Particle<NStructReal, NStructInt> p;
 
                 if constexpr (!ParticleType::is_soa_particle) {
-                    std::memcpy(&(p.m_idcpu), pbuf + NumRealComps()*sizeof(ParticleReal), sizeof(uint64_t));
+                   std::memcpy(&p, pbuf, sizeof(ParticleType));
                 } else {
+                    ParticleReal pos[AMREX_SPACEDIM];
+                    std::memcpy(&pos[0], pbuf, AMREX_SPACEDIM*sizeof(ParticleReal));
+                    AMREX_D_TERM(p.pos(0) = pos[0];,
+                                 p.pos(1) = pos[1];,
+                                 p.pos(2) = pos[2]);
+
                     int idcpu[2];
                     std::memcpy(&idcpu[0], pbuf + NumRealComps()*sizeof(ParticleReal), 2*sizeof(int));
 
@@ -2240,9 +2241,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 bool
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::OK (int lev_min, int lev_max, int nGrow) const
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::OK (int lev_min, int lev_max, int nGrow) const
 {
     BL_PROFILE("ParticleContainer::OK()");
 
@@ -2254,9 +2255,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::OK (int 
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::AddParticlesAtLevel (AoS& particles, int level, int nGrow)
 {
     ParticleTileType ptile;
@@ -2265,9 +2266,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::AddParticlesAtLevel (ParticleTileType& particles, int level, int nGrow)
 {
     BL_PROFILE("ParticleContainer::AddParticlesAtLevel()");
@@ -2300,9 +2301,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 
 // This is the single-level version for cell-centered density
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 AssignCellDensitySingleLevel (int rho_index,
                               MultiFab& mf_to_be_filled,
                               int       lev,
@@ -2440,9 +2441,9 @@ AssignCellDensitySingleLevel (int rho_index,
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data,
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data,
                                                                                 int lev_min, int lev_max)
 {
     BL_PROFILE("ParticleContainer::Interpolate()");
@@ -2452,9 +2453,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::Interpol
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 InterpolateSingleLevel (MultiFab& mesh_data, int lev)
 {
     BL_PROFILE("ParticleContainer::InterpolateSingleLevel()");
@@ -2490,9 +2491,9 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 ResizeRuntimeRealComp (int new_size, bool communicate)
 {
     int old_size = m_num_runtime_real;
@@ -2516,9 +2517,9 @@ ResizeRuntimeRealComp (int new_size, bool communicate)
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 ResizeRuntimeIntComp (int new_size, bool communicate)
 {
     int old_size = m_num_runtime_int;

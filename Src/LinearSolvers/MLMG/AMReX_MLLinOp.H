@@ -736,7 +736,12 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLLinOp::defineGrids()");
 
-    m_num_amr_levels = static_cast<int>(a_geom.size());
+    m_num_amr_levels = 0;
+    for (int amrlev = 0; amrlev < a_geom.size(); amrlev++) {
+        if (!a_grids[amrlev].empty()) {
+            m_num_amr_levels++;
+        }
+    }
 
     m_amr_ref_ratio.resize(m_num_amr_levels);
     m_num_mg_levels.resize(m_num_amr_levels);

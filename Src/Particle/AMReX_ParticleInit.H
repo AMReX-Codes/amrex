@@ -31,9 +31,9 @@
                 them. By default particles are not replicated.
  */
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitFromAsciiFile()");
@@ -477,9 +477,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 // They're packed into the binary file like sardines.
 //
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 InitFromBinaryFile (const std::string& file,
                     int                extradata)
 {
@@ -923,9 +923,9 @@ InitFromBinaryFile (const std::string& file,
 //
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 InitFromBinaryMetaFile (const std::string& metafile,
                         int                extradata)
 {
@@ -962,9 +962,9 @@ InitFromBinaryMetaFile (const std::string& metafile,
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 InitRandom (Long                    icount,
             ULong                   iseed,
             const ParticleInitData& pdata,
@@ -1336,9 +1336,9 @@ InitRandom (Long                    icount,
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::InitRandomPerBox (Long                    icount_per_box,
                     ULong                   iseed,
                     const ParticleInitData& pdata)
@@ -1380,9 +1380,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
         for (Long jcnt = 0; jcnt < icount_per_box; jcnt++) {
         for (Long kcnt = 0; kcnt < icount_per_box; kcnt++)
         {
-            p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (dist(mt) + double(icnt)) / double(icount_per_box) * grid_box.length(0));
-            p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (dist(mt) + double(jcnt)) / double(icount_per_box) * grid_box.length(1));
-            p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (dist(mt) + double(kcnt)) / double(icount_per_box) * grid_box.length(2));
+            AMREX_D_TERM(
+                p.pos(0) = static_cast<ParticleReal>(grid_box.lo(0) + (dist(mt) + double(icnt)) / double(icount_per_box) * grid_box.length(0));,
+                p.pos(1) = static_cast<ParticleReal>(grid_box.lo(1) + (dist(mt) + double(jcnt)) / double(icount_per_box) * grid_box.length(1));,
+                p.pos(2) = static_cast<ParticleReal>(grid_box.lo(2) + (dist(mt) + double(kcnt)) / double(icount_per_box) * grid_box.length(2));
+            );
 
             for (int i = 0; i < AMREX_SPACEDIM; i++) {
                 AMREX_ASSERT(p.pos(i) < grid_box.hi(i));
@@ -1435,9 +1437,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdata)
 {
     amrex::ignore_unused(y_off,z_off);
@@ -1519,9 +1521,9 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>::
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitNRandomPerCell()");

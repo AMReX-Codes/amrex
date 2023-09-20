@@ -109,22 +109,23 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
         Box const& bxg1 = grow(bx,1);
         Box const& bxg3 = grow(bx,3);
         Box const& bxg4 = grow(bx,4);
+        Box const& bxg5 = grow(bx,5);
 
 #if (AMREX_SPACEDIM == 2)
         // We assume that in 2D a cell will only need at most 3 neighbors to merge with, and we
         //    use the first component of this for the number of neighbors
 
         // itracker(i,j,n) holds the identifier for (r,s), the nth neighbor of (i,j)
-        IArrayBox itracker(bxg4,4,The_Async_Arena());
+        IArrayBox itracker(bxg5,4,The_Async_Arena());
 #else
         // We assume that in 3D a cell will only need at most 7 neighbors to merge with, and we
         //    use the first component of this for the number of neighbors
 
         // itracker(i,j,k,n) holds the identifier for (r,s,t), the nth neighbor of (i,j,k)
-        IArrayBox itracker(bxg4,8,The_Async_Arena());
+        IArrayBox itracker(bxg5,8,The_Async_Arena());
 #endif
-        FArrayBox nrs_fab(bxg4,1,The_Async_Arena());
-        FArrayBox alpha_fab(bxg3,2,The_Async_Arena());
+        FArrayBox nrs_fab(bxg5,1,The_Async_Arena());
+        FArrayBox alpha_fab(bxg4,2,The_Async_Arena());
 
         // Total volume of all cells in my nbhd
         FArrayBox nbhd_vol_fab(bxg3,1,The_Async_Arena());
@@ -254,22 +255,23 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
 
     Box const& bxg3 = grow(bx,3);
     Box const& bxg4 = grow(bx,4);
+    Box const& bxg5 = grow(bx,5);
 
 #if (AMREX_SPACEDIM == 2)
         // We assume that in 2D a cell will only need at most 3 neighbors to merge with, and we
         //    use the first component of this for the number of neighbors
 
         // itracker(i,j,n) holds the identifier for (r,s), the nth neighbor of (i,j)
-        IArrayBox itracker(bxg4,4,The_Async_Arena());
+        IArrayBox itracker(bxg5,4,The_Async_Arena());
 #else
         // We assume that in 3D a cell will only need at most 7 neighbors to merge with, and we
         //    use the first component of this for the number of neighbors
 
         // itracker(i,j,k,n) holds the identifier for (r,s,t), the nth neighbor of (i,j,k)
-        IArrayBox itracker(bxg4,8,The_Async_Arena());
+        IArrayBox itracker(bxg5,8,The_Async_Arena());
 #endif
-    FArrayBox nrs_fab(bxg4,1,The_Async_Arena());
-    FArrayBox alpha_fab(bxg3,2,The_Async_Arena());
+    FArrayBox nrs_fab(bxg5,1,The_Async_Arena());
+    FArrayBox alpha_fab(bxg4,2,The_Async_Arena());
 
     // Total volume of all cells in my nbhd
     FArrayBox nbhd_vol_fab(bxg3,1,The_Async_Arena());

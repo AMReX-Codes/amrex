@@ -2,6 +2,7 @@
 #define AMREX_GPUCOMPLEX_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Algorithm.H>
 #include <AMReX_Math.H>
 #include <cmath>
 #include <iostream>

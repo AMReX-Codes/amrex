@@ -1,3 +1,10 @@
+/**
+ * \file AMReX_HypreSolver.H
+ *
+ * \addtogroup HYPRE
+ *  @{
+ */
+
 #ifndef AMREX_HYPRE_SOLVER_H_
 #define AMREX_HYPRE_SOLVER_H_
 
@@ -14,11 +21,45 @@
 namespace amrex
 {
 
+/**
+ * @brief Solve Ax = b using HYPRE's generic IJ matrix format where A is a sparse matrix
+ * specified using the compressed sparse row (CSR) format.
+ *
+ * An example of using HypreSolver to solve Poisson's equation is located in
+ * Tests/LinearSolvers/Hypre
+ *
+ */
 template <int MSS>
 class HypreSolver
 {
 public:
 
+/**
+ * Constructor
+ *
+ * \param [in]      a_index_type        nodality of the data
+ * \param [in]      a_nghost            number of ghosts cells
+ * \param [in]      a_geom              Geometry of problem domain
+ * \param [in]      a_grids             BoxArray of computational grids
+ * \param [in]      a_dmap              DistributionMapping
+ * \param [in]      a_marker            functor that returns whether the variable n at (i,j,k) in Box boxno (local index) is valid
+ *                                      (i.e., not exactly on Dirichlet boundary). function signature:
+ *                                      \code
+ *                                          (int boxno, int i, int j, int k, int n) -> bool
+ *                                      \endcode
+ * \param [in]      a_filler            functor that fills the row in the matrix A for variable n at (i,j,k) in Box boxno (local index)
+ *                                      using the CSR format. function signature:
+ *                                      \code
+ *                                          // [in ] gid    gid[n] is the id for variable n at (i,j,k)
+ *                                          // [out] ncols  # of non-zero columns in this row.
+ *                                          // [out] cols   array of indices of columns with a non-zero matrix element in this row.
+ *                                          // [out] mat    array of (non-zero) matrix elements in this row.
+ *                                          (int boxno, int i, int j, int k, int n, Array4<HYPRE_Int const> const* gid, HYPRE_Int& ncols, HYPRE_Int* cols, HYPRE_Real* mat)
+ *                                      \endcode
+ * \param [in]      a_verbose           HYPRE verbosity (default 0)
+ * \param [in]      a_options_namespace namespace to use when parsing runtime input parameters (default "hypre")
+ *
+ */
     template <class Marker, class Filler>
     HypreSolver (Vector<IndexType>   const& a_index_type,
                  IntVect             const& a_nghost,
@@ -33,6 +74,16 @@ public:
     template <class MF, std::enable_if_t<IsFabArray<MF>::value &&
                                          std::is_same_v<typename MF::value_type,
                                                         HYPRE_Real>, int> = 0>
+/**
+ * Solve Ax=b
+ *
+ * \param [out]      a_soln        the solution (i.e. x)
+ * \param [in]       a_rhs         the right-hand side (i.e. b)
+ * \param [in]       rel_tol       relative convergence tolerance
+ * \param [in]       abs_tol       absolute convergence tolerance
+ * \param [in]       max_iter      maximum number of iterations
+ *
+ */
     void solve (Vector<MF      *> const& a_soln,
                 Vector<MF const*> const& a_rhs,
                 HYPRE_Real rel_tol, HYPRE_Real abs_tol, int max_iter);
@@ -663,3 +714,4 @@ HypreSolver<MSS>::get_solution (Vector<MF*> const& a_soln)
 }
 
 #endif
+/** @} */

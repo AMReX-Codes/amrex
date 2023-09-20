@@ -75,11 +75,9 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     {
         auto p = make_particle<ParticleType>{}(ptd,i);
         if ((p.id() < 0)) { return false; }
-        IntVect iv(
-            AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
-                         int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
-                         int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
-        iv += domain.smallEnd();
+        using AssignorType = typename Iterator::CellAssignor;
+        AssignorType assignor;
+        IntVect iv = assignor(p, plo, dxi, domain);
         return !box.contains(iv);
     });
     int hv = amrex::get<0>(reduce_data.value(reduce_op));
@@ -113,11 +111,9 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     {
         ParticleType p(tile_data,i);
         if ((p.id() < 0)) { return false; }
-        auto iv = IntVect(
-            AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
-                         int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
-                         int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
-        iv += domain.smallEnd();
+        using AssignorType = typename Iterator::CellAssignor;
+        AssignorType assignor;
+        IntVect iv = assignor(p, plo, dxi, domain);
         return !box.contains(iv);
     });
     int hv = amrex::get<0>(reduce_data.value(reduce_op));
@@ -376,6 +372,20 @@ IntVect getParticleCell (P const& p,
     return iv;
 }
 
+struct DefaultAssignor
+{
+
+    template <typename P>
+    AMREX_GPU_HOST_DEVICE
+    IntVect operator() (P const& p,
+                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                        const Box& domain) const noexcept
+    {
+        return getParticleCell(p, plo, dxi, domain);
+    }
+};
+
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
@@ -429,9 +439,10 @@ bool enforcePeriodic (P& p,
 
 #if defined(AMREX_USE_GPU)
 
-template <typename PTile, typename PLocator>
+template <typename PTile, typename PLocator, typename CellAssignor>
 int
-partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
+partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& assignor,
+                          const ParticleBufferMap& pmap,
                           const GpuArray<Real,AMREX_SPACEDIM>& plo,
                           const GpuArray<Real,AMREX_SPACEDIM>& phi,
                           const GpuArray<ParticleReal,AMREX_SPACEDIM>& rlo,
@@ -482,7 +493,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                                  p_prime.pos(2) = src_data.pos(2, i+this_offset););
 
                     enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
-                    auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow);
+                    auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
                     assigned_grid = amrex::get<0>(tup_prime);
                     assigned_lev  = amrex::get<1>(tup_prime);
                     if (assigned_grid >= 0)
@@ -496,7 +507,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                       AMREX_D_TERM(p_prime.pos(0) = src_data.pos(0, i+this_offset);,
                                    p_prime.pos(1) = src_data.pos(1, i+this_offset);,
                                    p_prime.pos(2) = src_data.pos(2, i+this_offset););
-                      auto tup = ploc(p_prime, lev_min, lev_max, nGrow);
+                      auto tup = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
                       assigned_grid = amrex::get<0>(tup);
                       assigned_lev  = amrex::get<1>(tup);
                     }

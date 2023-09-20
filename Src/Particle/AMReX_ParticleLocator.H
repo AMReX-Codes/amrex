@@ -44,11 +44,11 @@ struct AssignGrid
             m_num_bins.z = amrex::max(m_num_bins.z, 1);
         }
 
-    template <typename P>
+    template <typename P, typename Assignor = DefaultAssignor>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int operator() (const P& p, int nGrow=0) const noexcept
+    int operator() (const P& p, int nGrow=0, Assignor&& assignor = Assignor{}) const noexcept
     {
-        const auto iv = getParticleCell(p, m_plo, m_dxi, m_domain);
+        const auto iv = assignor(p, m_plo, m_dxi, m_domain);
         return this->operator()(iv, nGrow);
     }
 
@@ -210,22 +210,23 @@ struct AmrAssignGrid
         : m_funcs(a_funcs), m_size(a_size)
         {}
 
-    template <typename P>
+    template <typename P, typename Assignor = DefaultAssignor>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    GpuTuple<int, int> operator() (const P& p, int lev_min=-1, int lev_max=-1, int nGrow=0) const noexcept
+    GpuTuple<int, int> operator() (const P& p, int lev_min=-1, int lev_max=-1, int nGrow=0,
+                                   Assignor&& assignor = {}) const noexcept
     {
         lev_min = (lev_min == -1) ? 0 : lev_min;
         lev_max = (lev_max == -1) ? m_size - 1 : lev_max;
 
         for (int lev = lev_max; lev >= lev_min; --lev)
         {
-            int grid = m_funcs[lev](p);
+            int grid = m_funcs[lev](p, 0, std::forward<Assignor>(assignor));
             if (grid >= 0) { return makeTuple(grid, lev); }
         }
 
         for (int lev = lev_min; lev >= lev_min; --lev)
         {
-            int grid = m_funcs[lev](p, nGrow);
+            int grid = m_funcs[lev](p, nGrow, std::forward<Assignor>(assignor));
             if (grid >= 0) { return makeTuple(grid, lev); }
         }
 
