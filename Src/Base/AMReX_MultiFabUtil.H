@@ -361,6 +361,31 @@ namespace amrex
     void FourthOrderInterpFromFineToCoarse (MultiFab& cmf, int scomp, int ncomp,
                                             MultiFab const& fmf,
                                             IntVect const& ratio);
+
+    /**
+     * \brief Fill MultiFab with random numbers from uniform distribution
+     *
+     * The uniform distribution range is [0.0, 1.0) for CPU and SYCL, it's
+     * (0,1] for CUDA and HIP. All cells including ghost cells are filled.
+     *
+     * \param mf    MultiFab
+     * \param scomp starting component
+     * \param ncomp number of component
+     */
+    void FillRandom (MultiFab& mf, int scomp, int ncomp);
+
+    /**
+     * \brief Fill MultiFab with random numbers from nornmal distribution
+     *
+     * All cells including ghost cells are filled.
+     *
+     * \param mf     MultiFab
+     * \param scomp  starting component
+     * \param ncomp  number of component
+     * \param mean   mean of normal distribution
+     * \param stddev standard deviation of normal distribution
+     */
+    void FillRandomNormal (MultiFab& mf, int scomp, int ncomp, Real mean, Real stddev);
 }
 
 namespace amrex {
@@ -844,7 +869,7 @@ void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
     const auto type = fine.ixType();
     int dir;
     for (dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-        if (type.nodeCentered(dir)) break;
+        if (type.nodeCentered(dir)) { break; }
     }
     auto tmptype = type;
     tmptype.unset(dir);

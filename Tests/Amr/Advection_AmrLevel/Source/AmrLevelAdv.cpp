@@ -368,8 +368,9 @@ AmrLevelAdv::advance (Real time,
 
 #ifndef AMREX_USE_GPU
             if (do_reflux) {
-                for (int i = 0; i < BL_SPACEDIM ; i++)
+                for (int i = 0; i < BL_SPACEDIM ; i++) {
                     fluxes[i][mfi].copy(*flux[i],mfi.nodaltilebox(i));
+                }
             }
 #endif
         }
@@ -378,12 +379,14 @@ AmrLevelAdv::advance (Real time,
 
     if (do_reflux) {
         if (current) {
-            for (int i = 0; i < BL_SPACEDIM ; i++)
+            for (int i = 0; i < BL_SPACEDIM ; i++) {
                 current->FineAdd(fluxes[i],i,0,0,NUM_STATE,1.);
+            }
         }
         if (fine) {
-            for (int i = 0; i < BL_SPACEDIM ; i++)
+            for (int i = 0; i < BL_SPACEDIM ; i++) {
                 fine->CrseInit(fluxes[i],i,0,0,NUM_STATE,-1.);
+            }
         }
     }
 
@@ -477,8 +480,9 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
     //
     // Grids have been constructed, compute dt for all levels.
     //
-    if (level > 0)
+    if (level > 0) {
         return;
+    }
 
     Real dt_0 = 1.0e+100;
     int n_factor = 1;
@@ -495,8 +499,9 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
     const Real eps = 0.001*dt_0;
     Real cur_time  = state[Phi_Type].curTime();
     if (stop_time >= 0.0) {
-        if ((cur_time + dt_0) > (stop_time - eps))
+        if ((cur_time + dt_0) > (stop_time - eps)) {
             dt_0 = stop_time - cur_time;
+        }
     }
 
     n_factor = 1;
@@ -524,8 +529,9 @@ AmrLevelAdv::computeNewDt (int                   finest_level,
     // We are at the end of a coarse grid timecycle.
     // Compute the timesteps for the next iteration.
     //
-    if (level > 0)
+    if (level > 0) {
         return;
+    }
 
     for (int i = 0; i <= finest_level; i++)
     {
@@ -572,8 +578,9 @@ AmrLevelAdv::computeNewDt (int                   finest_level,
     const Real eps = 0.001*dt_0;
     Real cur_time  = state[Phi_Type].curTime();
     if (stop_time >= 0.0) {
-        if ((cur_time + dt_0) > (stop_time - eps))
+        if ((cur_time + dt_0) > (stop_time - eps)) {
             dt_0 = stop_time - cur_time;
+        }
     }
 
     n_factor = 1;
@@ -660,15 +667,17 @@ AmrLevelAdv::post_restart()
 void
 AmrLevelAdv::post_init (Real /*stop_time*/)
 {
-    if (level > 0)
+    if (level > 0) {
         return;
+    }
     //
     // Average data down from finer levels
     // so that conserved data is consistent between levels.
     //
     int finest_level = parent->finestLevel();
-    for (int k = finest_level-1; k>= 0; k--)
+    for (int k = finest_level-1; k>= 0; k--) {
         getLevel(k).avgDown();
+    }
 }
 
 /**
@@ -737,7 +746,7 @@ AmrLevelAdv::read_params ()
 {
     static bool done = false;
 
-    if (done) return;
+    if (done) { return; }
 
     done = true;
 
@@ -793,14 +802,14 @@ AmrLevelAdv::reflux ()
 void
 AmrLevelAdv::avgDown ()
 {
-    if (level == parent->finestLevel()) return;
+    if (level == parent->finestLevel()) { return; }
     avgDown(Phi_Type);
 }
 
 void
 AmrLevelAdv::avgDown (int state_indx)
 {
-    if (level == parent->finestLevel()) return;
+    if (level == parent->finestLevel()) { return; }
 
     AmrLevelAdv& fine_lev = getLevel(level+1);
     MultiFab&  S_fine   = fine_lev.get_new_data(state_indx);

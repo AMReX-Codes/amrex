@@ -366,7 +366,7 @@ int main_main()
 
     if (! all_variables_found) {
         amrex::Print() << " WARNING: not all variables present in both files\n";
-        if (abort_if_not_all_found) return EXIT_FAILURE;
+        if (abort_if_not_all_found) { return EXIT_FAILURE; }
     }
 
     if (any_nans) {

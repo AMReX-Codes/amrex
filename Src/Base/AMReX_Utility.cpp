@@ -89,8 +89,9 @@ amrex::Tokenize (const std::string& instr,
     if (!((token = std::strtok(line, separators.c_str())) == nullptr)) // NOLINT(bugprone-assignment-in-if-condition)
     {
         ptr.push_back(token);
-        while (!((token = std::strtok(nullptr, separators.c_str())) == nullptr)) // NOLINT(bugprone-assignment-in-if-condition)
+        while (!((token = std::strtok(nullptr, separators.c_str())) == nullptr)) { // NOLINT(bugprone-assignment-in-if-condition)
             ptr.push_back(token);
+        }
     }
 
     tokens.resize(ptr.size());
@@ -132,7 +133,7 @@ std::string
 amrex::trim(std::string s, std::string const& space)
 {
     const auto sbegin = s.find_first_not_of(space);
-    if (sbegin == std::string::npos) return std::string{};
+    if (sbegin == std::string::npos) { return std::string{}; }
     const auto send = s.find_last_not_of(space);
     s = s.substr(sbegin, send-sbegin+1);
     return s;
@@ -182,10 +183,17 @@ amrex::FileExists(const std::string &filename)
 std::string
 amrex::UniqueString()
 {
-  std::stringstream tempstring;
-  tempstring << std::setprecision(11) << std::fixed << ParallelDescriptor::second();
-  auto const tsl = tempstring.str().length();
-  return(tempstring.str().substr(tsl/2, tsl));
+    constexpr int len = 7;
+    static const auto n = std::max
+        (len,
+         static_cast<int>(
+             std::round(std::log10(double(MaxResSteadyClock::period::den)
+                                   /double(MaxResSteadyClock::period::num)))));
+    std::stringstream tempstring;
+    tempstring << std::setprecision(n) << std::fixed << amrex::second();
+    auto const ts = tempstring.str();
+    auto const tsl = ts.length();
+    return ts.substr(tsl-len,tsl); // tsl-len >= 0 becaues n >= len
 }
 
 void
@@ -302,8 +310,9 @@ int amrex::CRRBetweenLevels(int fromlevel, int tolevel,
 double
 amrex::InvNormDist (double p)
 {
-    if (p <= 0 || p >= 1)
+    if (p <= 0 || p >= 1) {
         amrex::Error("amrex::InvNormDist(): p MUST be in (0,1)");
+    }
     //
     // Coefficients in rational approximations.
     //
@@ -474,8 +483,9 @@ amrex::InvNormDistBest (double p)
 
   double r, value;
 
-  if (p <= 0 || p >= 1)
+  if (p <= 0 || p >= 1) {
       amrex::Error("InvNormDistBest(): p MUST be in (0,1)");
+  }
 
   double q = p - 0.5;
 
@@ -528,7 +538,7 @@ amrex::InvNormDistBest (double p)
           value = num / den;
       }
 
-      if ( q < 0.0 ) value = -value;
+      if ( q < 0.0 ) { value = -value; }
   }
 
   return value;
@@ -547,7 +557,7 @@ amrex::operator>>(std::istream& is, const expect& exp)
     {
         char c;
         is >> c;
-        if ( !is ) break;
+        if ( !is ) { break; }
         if ( c != exp.istr[n++] )
         {
             is.putback(c);

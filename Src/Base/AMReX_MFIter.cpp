@@ -216,7 +216,7 @@ void
 MFIter::Finalize ()
 {
     // avoid double finalize
-    if (finalized) return;
+    if (finalized) { return; }
     finalized = true;
 
     // mark as invalid
@@ -462,7 +462,7 @@ MFIter::growntilebox (int a_ng) const noexcept
 {
     Box bx = tilebox();
     IntVect ngv{a_ng};
-    if (a_ng < -100) ngv = fabArray.nGrowVect();
+    if (a_ng < -100) { ngv = fabArray.nGrowVect(); }
     const Box& vbx = validbox();
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         if (bx.smallEnd(d) == vbx.smallEnd(d)) {
@@ -495,7 +495,7 @@ Box
 MFIter::grownnodaltilebox (int dir, int a_ng) const noexcept
 {
     IntVect ngv(a_ng);
-    if (a_ng < -100) ngv = fabArray.nGrowVect();
+    if (a_ng < -100) { ngv = fabArray.nGrowVect(); }
     return grownnodaltilebox(dir, ngv);
 }
 
@@ -503,7 +503,7 @@ Box
 MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const noexcept
 {
     BL_ASSERT(dir < AMREX_SPACEDIM);
-    if (dir < 0) return tilebox(IntVect::TheNodeVector(), a_ng);
+    if (dir < 0) { return tilebox(IntVect::TheNodeVector(), a_ng); }
     return tilebox(IntVect::TheDimensionVector(dir), a_ng);
 }
 

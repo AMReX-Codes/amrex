@@ -34,7 +34,7 @@ class AmrInSituBridge;
 class Amr
     : public AmrCore
 {
-  typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
+    using BoundaryPointList = std::multimap< std::pair<int, int>, double >;
 
 public:
     //! The constructor.

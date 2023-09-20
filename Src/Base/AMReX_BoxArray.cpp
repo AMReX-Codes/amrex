@@ -496,8 +496,9 @@ BoxArray::writeOn (std::ostream& os) const
 
     os << ')';
 
-    if (os.fail())
+    if (os.fail()) {
         amrex::Error("BoxArray::writeOn(ostream&) failed");
+    }
 
     return os;
 }
@@ -518,9 +519,9 @@ BoxArray::operator!= (const BoxArray& rhs) const noexcept
 bool
 BoxArray::operator== (const Vector<Box>& bv) const noexcept
 {
-    if (size() != bv.size()) return false;
+    if (size() != bv.size()) { return false; }
     for (int i = 0; i < static_cast<int>(size()); ++i) {
-        if (this->operator[](i) != bv[i]) return false;
+        if (this->operator[](i) != bv[i]) { return false; }
     }
     return true;
 }
@@ -601,11 +602,11 @@ bool
 BoxArray::coarsenable (const IntVect& refinement_ratio, const IntVect& min_width) const
 {
     const Long sz = size();
-    if(size() == 0) return false;
+    if(size() == 0) { return false; }
 
     const Box& first = (*this)[0];
     bool res = first.coarsenable(refinement_ratio,min_width);
-    if (res == false) return false;
+    if (res == false) { return false; }
 
     auto const& bxs = this->m_ref->m_abox;
     if (m_bat.is_null()) {
@@ -873,17 +874,17 @@ BoxArray::ok () const
         auto const& bxs = this->m_ref->m_abox;
         if (m_bat.is_null()) {
             for (int i = 0; i < N; ++i) {
-                if (! bxs[i].ok()) return false;
+                if (! bxs[i].ok()) { return false; }
             }
         } else if (m_bat.is_simple()) {
             IndexType t = ixType();
             IntVect cr = crseRatio();
             for (int i = 0; i < N; ++i) {
-                if (! amrex::convert(amrex::coarsen(bxs[i],cr),t).ok()) return false;
+                if (! amrex::convert(amrex::coarsen(bxs[i],cr),t).ok()) { return false; }
             }
         } else {
             for (int i = 0; i < N; ++i) {
-                if (! m_bat.m_op.m_bndryReg(bxs[i]).ok()) return false;
+                if (! m_bat.m_op.m_bndryReg(bxs[i]).ok()) { return false; }
             }
         }
     }
@@ -900,19 +901,19 @@ BoxArray::isDisjoint () const
     if (m_bat.is_null()) {
         for (int i = 0; i < N; ++i) {
             intersections(bxs[i],isects);
-            if ( isects.size() > 1 ) return false;
+            if ( isects.size() > 1 ) { return false; }
         }
     } else if (m_bat.is_simple()) {
         IndexType t = ixType();
         IntVect cr = crseRatio();
         for (int i = 0; i < N; ++i) {
             intersections(amrex::convert(amrex::coarsen(bxs[i],cr),t), isects);
-            if ( isects.size() > 1 ) return false;
+            if ( isects.size() > 1 ) { return false; }
         }
     } else {
         for (int i = 0; i < N; ++i) {
             intersections(m_bat.m_op.m_bndryReg(bxs[i]), isects);
-            if ( isects.size() > 1 ) return false;
+            if ( isects.size() > 1 ) { return false; }
         }
     }
 
@@ -996,9 +997,9 @@ BoxArray::contains (const Box& b, bool assume_disjoint_ba, const IntVect& ng) co
 bool
 BoxArray::contains (const BoxArray& ba, bool assume_disjoint_ba, const IntVect& ng) const
 {
-    if (size() == 0) return false;
+    if (size() == 0) { return false; }
 
-    if (!minimalBox().grow(ng).contains(ba.minimalBox())) return false;
+    if (!minimalBox().grow(ng).contains(ba.minimalBox())) { return false; }
 
     for (int i = 0, N = static_cast<int>(ba.size()); i < N; ++i) {
         if (!contains(ba[i],assume_disjoint_ba, ng)) {
@@ -1200,7 +1201,7 @@ BoxArray::intersections (const Box&                         bx,
         Box cbx(sm,bg);
         cbx.normalize();
 
-        if (!cbx.intersects(m_ref->bbox)) return;
+        if (!cbx.intersects(m_ref->bbox)) { return; }
 
         auto TheEnd = BoxHashMap.cend();
 
@@ -1221,7 +1222,7 @@ BoxArray::intersections (const Box&                         bx,
                         if (isect.ok())
                         {
                             isects.emplace_back(index,isect);
-                            if (first_only) return;
+                            if (first_only) { return; }
                         }
                     }
                 } else if (m_bat.is_simple()) {
@@ -1235,7 +1236,7 @@ BoxArray::intersections (const Box&                         bx,
                         if (isect.ok())
                         {
                             isects.emplace_back(index,isect);
-                            if (first_only) return;
+                            if (first_only) { return; }
                         }
                     }
                 } else {
@@ -1247,7 +1248,7 @@ BoxArray::intersections (const Box&                         bx,
                         if (isect.ok())
                         {
                             isects.emplace_back(index,isect);
-                            if (first_only) return;
+                            if (first_only) { return; }
                         }
                     }
                 }
@@ -1271,7 +1272,7 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
     bl.set(bx.ixType());
     bl.push_back(bx);
 
-    if (empty()) return;
+    if (empty()) { return; }
 
     BARef::HashType& BoxHashMap = getHashMap();
 
@@ -1293,7 +1294,7 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
     Box cbx(sm,bg);
     cbx.normalize();
 
-    if (!cbx.intersects(m_ref->bbox)) return;
+    if (!cbx.intersects(m_ref->bbox)) { return; }
 
     auto TheEnd = BoxHashMap.cend();
 
@@ -1408,7 +1409,7 @@ BoxArray::removeOverlap (bool simplify)
 
             for (auto const& is: isects)
             {
-                if (is.first == i) continue;
+                if (is.first == i) { continue; }
 
                 Box& bx = m_ref->m_abox[is.first];
 
@@ -1481,7 +1482,7 @@ BoxArray::getHashMap () const
 {
     BARef::HashType& BoxHashMap = m_ref->hash;
 
-    if (m_ref->HasHashMap()) return BoxHashMap;
+    if (m_ref->HasHashMap()) { return BoxHashMap; }
 
 #ifdef AMREX_USE_OMP
 #pragma omp critical(intersections_lock)
@@ -1589,13 +1590,15 @@ operator<< (std::ostream&   os,
        << 0
        << ")\n       ";
 
-    for (int i = 0, N = static_cast<int>(ba.size()); i < N; ++i)
+    for (int i = 0, N = static_cast<int>(ba.size()); i < N; ++i) {
         os << ba[i] << ' ';
+    }
 
     os << ")\n";
 
-    if (os.fail())
+    if (os.fail()) {
         amrex::Error("operator<<(ostream& os,const BoxArray&) failed");
+    }
 
     return os;
 }
@@ -1669,7 +1672,7 @@ intersect (const BoxArray& ba,
 BoxArray
 intersect (const BoxArray& lhs, const BoxArray& rhs)
 {
-    if (lhs.empty() || rhs.empty()) return BoxArray();
+    if (lhs.empty() || rhs.empty()) { return BoxArray(); }
     BoxList bl(lhs[0].ixType());
     for (int i = 0, Nl = static_cast<int>(lhs.size()); i < Nl; ++i)
     {

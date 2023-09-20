@@ -142,8 +142,9 @@ CNS::computeInitialDt (int                    finest_level,
   const Real eps = 0.001*dt_0;
   Real cur_time  = state[State_Type].curTime();
   if (stop_time >= 0.0) {
-    if ((cur_time + dt_0) > (stop_time - eps))
+    if ((cur_time + dt_0) > (stop_time - eps)) {
       dt_0 = stop_time - cur_time;
+    }
   }
 
   n_factor = 1;
@@ -286,7 +287,7 @@ CNS::printTotal () const
 void
 CNS::post_init (Real)
 {
-    if (level > 0) return;
+    if (level > 0) { return; }
     for (int k = parent->finestLevel()-1; k >= 0; --k) {
         getLevel(k).avgDown();
     }
@@ -382,7 +383,7 @@ CNS::read_params ()
     Vector<int> tilesize(AMREX_SPACEDIM);
     if (pp.queryarr("hydro_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
-        for (int i=0; i<AMREX_SPACEDIM; i++) hydro_tile_size[i] = tilesize[i];
+        for (int i=0; i<AMREX_SPACEDIM; i++) { hydro_tile_size[i] = tilesize[i]; }
     }
 
     pp.query("cfl", cfl);
@@ -417,7 +418,7 @@ CNS::avgDown ()
 {
     BL_PROFILE("CNS::avgDown()");
 
-    if (level == parent->finestLevel()) return;
+    if (level == parent->finestLevel()) { return; }
 
     auto& fine_lev = getLevel(level+1);
 

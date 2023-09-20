@@ -27,30 +27,26 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
     amrex::Real du[dim_a];
 
     int ll=0;
-    for(int kk(-1); kk<=1; kk++)
-    {
-        for(int jj(-1); jj<=1; jj++){
-          for(int ii(-1); ii<=1; ii++){
-
-            if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
-            {
-              du[ll] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
-            } else {
-              du[ll] = amrex::Real(0.0);
-            }
-            ll++;
-          }
+    for(int kk(-1); kk<=1; kk++) {
+    for(int jj(-1); jj<=1; jj++){
+    for(int ii(-1); ii<=1; ii++){
+        if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
+        {
+            du[ll] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
+        } else {
+            du[ll] = amrex::Real(0.0);
         }
-    }
+        ll++;
+    }}}
 
     amrex::Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM];
     amrex::Real Atb[AMREX_SPACEDIM];
 
     for(int jj(0); jj<AMREX_SPACEDIM; ++jj){
-      for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
-        AtA[jj][ii] = amrex::Real(0.0);
-      }
-      Atb[jj] = amrex::Real(0.0);
+        for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
+            AtA[jj][ii] = amrex::Real(0.0);
+        }
+        Atb[jj] = amrex::Real(0.0);
     }
 
     for(int lc(0); lc < 27; ++lc)
@@ -296,23 +292,23 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
     amrex::Real A[dim_a][AMREX_SPACEDIM];
 
     int lc=0;
-    for(int kk(-1); kk<=1; kk++)
-        for(int jj(-1); jj<=1; jj++)
-          for(int ii(-1); ii<=1; ii++)
-          {
+    for(int kk(-1); kk<=1; kk++) {
+    for(int jj(-1); jj<=1; jj++) {
+    for(int ii(-1); ii<=1; ii++)
+    {
+        if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
+        {
+            A[lc][0] = amrex::Real(ii) + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
+            A[lc][1] = amrex::Real(jj) + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
+            A[lc][2] = amrex::Real(kk) + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
+        } else {
+            A[lc][0] = amrex::Real(0.0);
+            A[lc][1] = amrex::Real(0.0);
+            A[lc][2] = amrex::Real(0.0);
+        }
+        lc++;
+    }}}
 
-            if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
-            {
-              A[lc][0] = amrex::Real(ii) + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
-              A[lc][1] = amrex::Real(jj) + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
-              A[lc][2] = amrex::Real(kk) + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
-            } else {
-              A[lc][0] = amrex::Real(0.0);
-              A[lc][1] = amrex::Real(0.0);
-              A[lc][2] = amrex::Real(0.0);
-            }
-            lc++;
-          } // ii
     //
     // These slopes use the EB stencil without testing whether it is actually needed
     //
@@ -355,29 +351,29 @@ amrex_calc_slopes_eb_grown (int i, int j, int k, int n, int nx, int ny, int nz,
 
     // Make sure to zero all the entries in A (since the loop below may not cover all 125)
     int lc=0;
-    for(int kk(-2); kk<=2; kk++)
-     for(int jj(-2); jj<=2; jj++)
-      for(int ii(-2); ii<=2; ii++)
-      {
-          A[lc][0] = amrex::Real(0.0);
-          A[lc][1] = amrex::Real(0.0);
+    for(int kk(-2); kk<=2; kk++) {
+    for(int jj(-2); jj<=2; jj++) {
+    for(int ii(-2); ii<=2; ii++)
+    {
+        A[lc][0] = amrex::Real(0.0);
+        A[lc][1] = amrex::Real(0.0);
           A[lc][2] = amrex::Real(0.0);
           lc++;
-      }
+    }}}
 
     lc=0;
-    for(int kk(-nz); kk<=nz; kk++)
-        for(int jj(-ny); jj<=ny; jj++)
-          for(int ii(-nx); ii<=nx; ii++)
-          {
-            if (!flag(i+ii,j+jj,k+kk).isCovered() && !(ii==0 && jj==0 && kk==0))
-            {
-              A[lc][0] = amrex::Real(ii) + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
-              A[lc][1] = amrex::Real(jj) + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
-              A[lc][2] = amrex::Real(kk) + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
-            }
-            lc++;
-          } // ii
+    for(int kk(-nz); kk<=nz; kk++) {
+    for(int jj(-ny); jj<=ny; jj++) {
+    for(int ii(-nx); ii<=nx; ii++)
+    {
+        if (!flag(i+ii,j+jj,k+kk).isCovered() && !(ii==0 && jj==0 && kk==0))
+        {
+            A[lc][0] = amrex::Real(ii) + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);
+            A[lc][1] = amrex::Real(jj) + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);
+            A[lc][2] = amrex::Real(kk) + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2);
+        }
+        lc++;
+    }}}
     //
     // These slopes use the EB stencil without testing whether it is actually needed
     //
@@ -522,111 +518,109 @@ amrex_calc_slopes_extdir_eb (int i, int j, int k, int n,
 
     } else {
 
-    amrex::Real A[dim_a][AMREX_SPACEDIM];
+        amrex::Real A[dim_a][AMREX_SPACEDIM];
 
-    int lc=0;
-    for(int kk(-1); kk<=1; kk++)
-    {
-        for(int jj(-1); jj<=1; jj++)
-          for(int ii(-1); ii<=1; ii++)
-          {
-              if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
-              {
-                    bool ilo_test = ( edlo_x && (i == domlo_x) && ii == -1);
-                    bool ihi_test = ( edhi_x && (i == domhi_x) && ii ==  1);
+        int lc=0;
+        for(int kk(-1); kk<=1; kk++) {
+        for(int jj(-1); jj<=1; jj++) {
+        for(int ii(-1); ii<=1; ii++)
+        {
+            if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
+            {
+                bool ilo_test = ( edlo_x && (i == domlo_x) && ii == -1);
+                bool ihi_test = ( edhi_x && (i == domhi_x) && ii ==  1);
 
-                    bool jlo_test = ( edlo_y && (j == domlo_y) && jj == -1);
-                    bool jhi_test = ( edhi_y && (j == domhi_y) && jj ==  1);
+                bool jlo_test = ( edlo_y && (j == domlo_y) && jj == -1);
+                bool jhi_test = ( edhi_y && (j == domhi_y) && jj ==  1);
 
-                    bool klo_test = ( edlo_z && (k == domlo_z) && kk == -1);
-                    bool khi_test = ( edhi_z && (k == domhi_z) && kk ==  1);
+                bool klo_test = ( edlo_z && (k == domlo_z) && kk == -1);
+                bool khi_test = ( edhi_z && (k == domhi_z) && kk ==  1);
 
-                    // These are the default values if no physical boundary
-                    A[lc][0] = amrex::Real(ii) + ccent(i+ii,j+jj,k+kk,0);
-                    A[lc][1] = amrex::Real(jj) + ccent(i+ii,j+jj,k+kk,1);
-                    A[lc][2] = amrex::Real(kk) + ccent(i+ii,j+jj,k+kk,2);
-                   // Do corrections for entire x-face
-                   if (ilo_test)
-                   {
-                        if (!jlo_test && !jhi_test && !klo_test && !khi_test)
-                        {
-                            A[lc][1] = amrex::Real(jj) + fcx(i   ,j+jj,k+kk,0);
-                            A[lc][2] = amrex::Real(kk) + fcx(i   ,j+jj,k+kk,1);
-                        }
-                        A[lc][0] = -amrex::Real(0.5);
-                    } else if (ihi_test) {
-
-                        if (!jlo_test && !jhi_test && !klo_test && !khi_test)
-                        {
-                            A[lc][1] = amrex::Real(jj) + fcx(i+ii,j+jj,k+kk,0);
-                            A[lc][2] = amrex::Real(kk) + fcx(i+ii,j+jj,k+kk,1);
-                        }
-                        A[lc][0] = amrex::Real(0.5);
-                   }
-
-                   // Do corrections for entire y-face
-                   if (jlo_test)
-                   {
-                        if (!ilo_test && !ihi_test && !klo_test && !khi_test)
-                        {
-                            A[lc][0] = amrex::Real(ii) + fcy(i+ii,j   ,k+kk,0);
-                            A[lc][2] = amrex::Real(kk) + fcy(i+ii,j   ,k+kk,1);
-                        }
-                        A[lc][1] = -amrex::Real(0.5);
-
-                   } else if (jhi_test) {
-
-                        if (!ilo_test && !ihi_test && !klo_test && !khi_test)
-                        {
-                            A[lc][0] = amrex::Real(ii) + fcy(i+ii,j+jj,k+kk,0);
-                            A[lc][2] = amrex::Real(kk) + fcy(i+ii,j+jj,k+kk,1);
-                        }
-                        A[lc][1] = amrex::Real(0.5);
+                // These are the default values if no physical boundary
+                A[lc][0] = amrex::Real(ii) + ccent(i+ii,j+jj,k+kk,0);
+                A[lc][1] = amrex::Real(jj) + ccent(i+ii,j+jj,k+kk,1);
+                A[lc][2] = amrex::Real(kk) + ccent(i+ii,j+jj,k+kk,2);
+                // Do corrections for entire x-face
+                if (ilo_test)
+                {
+                    if (!jlo_test && !jhi_test && !klo_test && !khi_test)
+                    {
+                        A[lc][1] = amrex::Real(jj) + fcx(i   ,j+jj,k+kk,0);
+                        A[lc][2] = amrex::Real(kk) + fcx(i   ,j+jj,k+kk,1);
                     }
+                    A[lc][0] = -amrex::Real(0.5);
+                } else if (ihi_test) {
 
-                   // Do corrections for entire z-face
-                   if (klo_test)
-                   {
-                        if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
-                        {
-                            A[lc][0] = amrex::Real(ii) + fcz(i+ii,j+jj,k   ,0);
-                            A[lc][1] = amrex::Real(jj) + fcz(i+ii,j+jj,k   ,1);
-                        }
-                        A[lc][2] = -amrex::Real(0.5);
+                    if (!jlo_test && !jhi_test && !klo_test && !khi_test)
+                    {
+                        A[lc][1] = amrex::Real(jj) + fcx(i+ii,j+jj,k+kk,0);
+                        A[lc][2] = amrex::Real(kk) + fcx(i+ii,j+jj,k+kk,1);
+                    }
+                    A[lc][0] = amrex::Real(0.5);
+                }
 
-                   } else if (khi_test) {
-                        if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
-                        {
-                            A[lc][0] = amrex::Real(ii) + fcz(i+ii,j+jj,k+kk,0);
-                            A[lc][1] = amrex::Real(jj) + fcz(i+ii,j+jj,k+kk,1);
-                        }
-                        A[lc][2] = amrex::Real(0.5);
-                   }
+                // Do corrections for entire y-face
+                if (jlo_test)
+                {
+                    if (!ilo_test && !ihi_test && !klo_test && !khi_test)
+                    {
+                        A[lc][0] = amrex::Real(ii) + fcy(i+ii,j   ,k+kk,0);
+                        A[lc][2] = amrex::Real(kk) + fcy(i+ii,j   ,k+kk,1);
+                    }
+                    A[lc][1] = -amrex::Real(0.5);
 
-                   A[lc][0] -= ccent(i,j,k,0);
-                   A[lc][1] -= ccent(i,j,k,1);
-                   A[lc][2] -= ccent(i,j,k,2);
+                } else if (jhi_test) {
 
-              } else {
+                    if (!ilo_test && !ihi_test && !klo_test && !khi_test)
+                    {
+                        A[lc][0] = amrex::Real(ii) + fcy(i+ii,j+jj,k+kk,0);
+                        A[lc][2] = amrex::Real(kk) + fcy(i+ii,j+jj,k+kk,1);
+                    }
+                    A[lc][1] = amrex::Real(0.5);
+                }
 
-                    A[lc][0] = amrex::Real(0.0);
-                    A[lc][1] = amrex::Real(0.0);
-                    A[lc][2] = amrex::Real(0.0);
-              }
-              lc++;
-            } // i,j
-    } // k
+                // Do corrections for entire z-face
+                if (klo_test)
+                {
+                    if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
+                    {
+                        A[lc][0] = amrex::Real(ii) + fcz(i+ii,j+jj,k   ,0);
+                        A[lc][1] = amrex::Real(jj) + fcz(i+ii,j+jj,k   ,1);
+                    }
+                    A[lc][2] = -amrex::Real(0.5);
 
-    const auto& slopes = amrex_calc_slopes_eb_given_A (i,j,k,n,A,state,flag);
-    xslope = slopes[0];
-    yslope = slopes[1];
-    zslope = slopes[2];
+                } else if (khi_test) {
+                    if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
+                    {
+                        A[lc][0] = amrex::Real(ii) + fcz(i+ii,j+jj,k+kk,0);
+                        A[lc][1] = amrex::Real(jj) + fcz(i+ii,j+jj,k+kk,1);
+                    }
+                    A[lc][2] = amrex::Real(0.5);
+                }
 
-    // This will over-write the values of xslope and yslope if appropriate
-    amrex_overwrite_with_regular_slopes_extdir(i,j,k,n,xslope,yslope,zslope,state,vfrac,
-                                               edlo_x,edlo_y,edlo_z,edhi_x,edhi_y,edhi_z,
-                                               domlo_x,domlo_y,domlo_z,domhi_x,domhi_y,domhi_z,
-                                               max_order);
+                A[lc][0] -= ccent(i,j,k,0);
+                A[lc][1] -= ccent(i,j,k,1);
+                A[lc][2] -= ccent(i,j,k,2);
+
+            } else {
+
+                A[lc][0] = amrex::Real(0.0);
+                A[lc][1] = amrex::Real(0.0);
+                A[lc][2] = amrex::Real(0.0);
+            }
+            lc++;
+        }}}
+
+        const auto& slopes = amrex_calc_slopes_eb_given_A (i,j,k,n,A,state,flag);
+        xslope = slopes[0];
+        yslope = slopes[1];
+        zslope = slopes[2];
+
+        // This will over-write the values of xslope and yslope if appropriate
+        amrex_overwrite_with_regular_slopes_extdir(i,j,k,n,xslope,yslope,zslope,state,vfrac,
+                                                   edlo_x,edlo_y,edlo_z,edhi_x,edhi_y,edhi_z,
+                                                   domlo_x,domlo_y,domlo_z,domhi_x,domhi_y,domhi_z,
+                                                   max_order);
 
     } // end of needs_bndry_stencil
 
@@ -691,110 +685,108 @@ amrex_calc_slopes_extdir_eb_grown (int i, int j, int k, int n,
 
     } else {
 
-    amrex::Real A[dim_a][AMREX_SPACEDIM];
+        amrex::Real A[dim_a][AMREX_SPACEDIM];
 
-    int lc=0;
-    for(int kk(-nz); kk<=nz; kk++)
-    {
-        for(int jj(-ny); jj<=ny; jj++)
-          for(int ii(-nx); ii<=nx; ii++)
-          {
-              if (!flag(i+ii,j+jj,k+kk).isCovered() && !(ii==0 && jj==0 && kk==0))
-              {
-                    bool ilo_test = ( edlo_x && (i == domlo_x) && ii == -1);
-                    bool ihi_test = ( edhi_x && (i == domhi_x) && ii ==  1);
+        int lc=0;
+        for(int kk(-nz); kk<=nz; kk++) {
+        for(int jj(-ny); jj<=ny; jj++) {
+        for(int ii(-nx); ii<=nx; ii++)
+        {
+            if (!flag(i+ii,j+jj,k+kk).isCovered() && !(ii==0 && jj==0 && kk==0))
+            {
+                bool ilo_test = ( edlo_x && (i == domlo_x) && ii == -1);
+                bool ihi_test = ( edhi_x && (i == domhi_x) && ii ==  1);
 
-                    bool jlo_test = ( edlo_y && (j == domlo_y) && jj == -1);
-                    bool jhi_test = ( edhi_y && (j == domhi_y) && jj ==  1);
+                bool jlo_test = ( edlo_y && (j == domlo_y) && jj == -1);
+                bool jhi_test = ( edhi_y && (j == domhi_y) && jj ==  1);
 
-                    bool klo_test = ( edlo_z && (k == domlo_z) && kk == -1);
-                    bool khi_test = ( edhi_z && (k == domhi_z) && kk ==  1);
+                bool klo_test = ( edlo_z && (k == domlo_z) && kk == -1);
+                bool khi_test = ( edhi_z && (k == domhi_z) && kk ==  1);
 
-                    // These are the default values if no physical boundary
-                    A[lc][0] = amrex::Real(ii) + ccent(i+ii,j+jj,k+kk,0);
-                    A[lc][1] = amrex::Real(jj) + ccent(i+ii,j+jj,k+kk,1);
-                    A[lc][2] = amrex::Real(kk) + ccent(i+ii,j+jj,k+kk,2);
-                   // Do corrections for entire x-face
-                   if (ilo_test)
-                   {
-                        if (!jlo_test && !jhi_test && !klo_test && !khi_test)
-                        {
-                            A[lc][1] = amrex::Real(jj) + fcx(i   ,j+jj,k+kk,0);
+                // These are the default values if no physical boundary
+                A[lc][0] = amrex::Real(ii) + ccent(i+ii,j+jj,k+kk,0);
+                A[lc][1] = amrex::Real(jj) + ccent(i+ii,j+jj,k+kk,1);
+                A[lc][2] = amrex::Real(kk) + ccent(i+ii,j+jj,k+kk,2);
+                // Do corrections for entire x-face
+                if (ilo_test)
+                {
+                    if (!jlo_test && !jhi_test && !klo_test && !khi_test)
+                    {
+                        A[lc][1] = amrex::Real(jj) + fcx(i   ,j+jj,k+kk,0);
                             A[lc][2] = amrex::Real(kk) + fcx(i   ,j+jj,k+kk,1);
-                        }
-                        A[lc][0] = -amrex::Real(0.5);
-                    } else if (ihi_test) {
-
-                        if (!jlo_test && !jhi_test && !klo_test && !khi_test)
-                        {
-                            A[lc][1] = amrex::Real(jj) + fcx(i+ii,j+jj,k+kk,0);
-                            A[lc][2] = amrex::Real(kk) + fcx(i+ii,j+jj,k+kk,1);
-                        }
-                        A[lc][0] = amrex::Real(0.5);
-                   }
-
-                   // Do corrections for entire y-face
-                   if (jlo_test)
-                   {
-                        if (!ilo_test && !ihi_test && !klo_test && !khi_test)
-                        {
-                            A[lc][0] = amrex::Real(ii) + fcy(i+ii,j   ,k+kk,0);
-                            A[lc][2] = amrex::Real(kk) + fcy(i+ii,j   ,k+kk,1);
-                        }
-                        A[lc][1] = -amrex::Real(0.5);
-
-                   } else if (jhi_test) {
-
-                        if (!ilo_test && !ihi_test && !klo_test && !khi_test)
-                        {
-                            A[lc][0] = amrex::Real(ii) + fcy(i+ii,j+jj,k+kk,0);
-                            A[lc][2] = amrex::Real(kk) + fcy(i+ii,j+jj,k+kk,1);
-                        }
-                        A[lc][1] = amrex::Real(0.5);
                     }
+                    A[lc][0] = -amrex::Real(0.5);
+                } else if (ihi_test) {
 
-                   // Do corrections for entire z-face
-                   if (klo_test)
-                   {
-                        if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
-                        {
-                            A[lc][0] = amrex::Real(ii) + fcz(i+ii,j+jj,k   ,0);
-                            A[lc][1] = amrex::Real(jj) + fcz(i+ii,j+jj,k   ,1);
-                        }
-                        A[lc][2] = -amrex::Real(0.5);
+                    if (!jlo_test && !jhi_test && !klo_test && !khi_test)
+                    {
+                        A[lc][1] = amrex::Real(jj) + fcx(i+ii,j+jj,k+kk,0);
+                        A[lc][2] = amrex::Real(kk) + fcx(i+ii,j+jj,k+kk,1);
+                    }
+                    A[lc][0] = amrex::Real(0.5);
+                }
 
-                   } else if (khi_test) {
-                        if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
-                        {
-                            A[lc][0] = amrex::Real(ii) + fcz(i+ii,j+jj,k+kk,0);
-                            A[lc][1] = amrex::Real(jj) + fcz(i+ii,j+jj,k+kk,1);
-                        }
-                        A[lc][2] = amrex::Real(0.5);
-                   }
+                // Do corrections for entire y-face
+                if (jlo_test)
+                {
+                    if (!ilo_test && !ihi_test && !klo_test && !khi_test)
+                    {
+                        A[lc][0] = amrex::Real(ii) + fcy(i+ii,j   ,k+kk,0);
+                        A[lc][2] = amrex::Real(kk) + fcy(i+ii,j   ,k+kk,1);
+                    }
+                    A[lc][1] = -amrex::Real(0.5);
 
-                   A[lc][0] -= ccent(i,j,k,0);
-                   A[lc][1] -= ccent(i,j,k,1);
-                   A[lc][2] -= ccent(i,j,k,2);
+                } else if (jhi_test) {
 
-              } else {
-                  A[lc][0] = amrex::Real(0.0);
-                  A[lc][1] = amrex::Real(0.0);
-                  A[lc][2] = amrex::Real(0.0);
-              }
-              lc++;
-          } // i,j
-    } // k
+                    if (!ilo_test && !ihi_test && !klo_test && !khi_test)
+                    {
+                        A[lc][0] = amrex::Real(ii) + fcy(i+ii,j+jj,k+kk,0);
+                        A[lc][2] = amrex::Real(kk) + fcy(i+ii,j+jj,k+kk,1);
+                    }
+                    A[lc][1] = amrex::Real(0.5);
+                }
 
-    const auto& slopes = amrex_calc_slopes_eb_given_A_grown (i,j,k,n,nx,ny,nz,A,state,flag);
-    xslope = slopes[0];
-    yslope = slopes[1];
-    zslope = slopes[2];
+                // Do corrections for entire z-face
+                if (klo_test)
+                {
+                    if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
+                    {
+                        A[lc][0] = amrex::Real(ii) + fcz(i+ii,j+jj,k   ,0);
+                        A[lc][1] = amrex::Real(jj) + fcz(i+ii,j+jj,k   ,1);
+                    }
+                    A[lc][2] = -amrex::Real(0.5);
 
-    // This will over-write the values of xslope and yslope if appropriate
-    amrex_overwrite_with_regular_slopes_extdir(i,j,k,n,xslope,yslope,zslope,state,vfrac,
-                                               edlo_x,edlo_y,edlo_z,edhi_x,edhi_y,edhi_z,
-                                               domlo_x,domlo_y,domlo_z,domhi_x,domhi_y,domhi_z,
-                                               max_order);
+                } else if (khi_test) {
+                    if (!ilo_test && !ihi_test && !jlo_test && !jhi_test)
+                    {
+                        A[lc][0] = amrex::Real(ii) + fcz(i+ii,j+jj,k+kk,0);
+                        A[lc][1] = amrex::Real(jj) + fcz(i+ii,j+jj,k+kk,1);
+                    }
+                    A[lc][2] = amrex::Real(0.5);
+                }
+
+                A[lc][0] -= ccent(i,j,k,0);
+                A[lc][1] -= ccent(i,j,k,1);
+                A[lc][2] -= ccent(i,j,k,2);
+
+            } else {
+                A[lc][0] = amrex::Real(0.0);
+                A[lc][1] = amrex::Real(0.0);
+                A[lc][2] = amrex::Real(0.0);
+            }
+            lc++;
+        }}}
+
+        const auto& slopes = amrex_calc_slopes_eb_given_A_grown (i,j,k,n,nx,ny,nz,A,state,flag);
+        xslope = slopes[0];
+        yslope = slopes[1];
+        zslope = slopes[2];
+
+        // This will over-write the values of xslope and yslope if appropriate
+        amrex_overwrite_with_regular_slopes_extdir(i,j,k,n,xslope,yslope,zslope,state,vfrac,
+                                                   edlo_x,edlo_y,edlo_z,edhi_x,edhi_y,edhi_z,
+                                                   domlo_x,domlo_y,domlo_z,domhi_x,domhi_y,domhi_z,
+                                                   max_order);
 
     } // end of needs_bndry_stencil
 
@@ -852,9 +844,9 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
           for(int ii(-1); ii<=1; ii++){
             if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
             {
-                if ((ii==-1 || ii==1) && jj==0 && kk==0) cuts_x++;
-                if ((jj==-1 || jj==1) && ii==0 && kk==0) cuts_y++;
-                if ((kk==-1 || kk==1) && ii==0 && jj==0) cuts_z++;
+                if ((ii==-1 || ii==1) && jj==0 && kk==0) { cuts_x++; }
+                if ((jj==-1 || jj==1) && ii==0 && kk==0) { cuts_y++; }
+                if ((kk==-1 || kk==1) && ii==0 && jj==0) { cuts_z++; }
             }
           }
         }
@@ -867,169 +859,169 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
 
     //Reconstruct values at the face centroids and compute the limiter
     if (flag(i,j,k).isConnected(0,1,0)) {
-           amrex::Real xf = fcy(i,j+1,k,0); // local (x,z) of centroid of y-face we are extrapolating to
-           amrex::Real zf = fcy(i,j+1,k,1); // local (x,z) of centroid of y-face we are extrapolating to
+        amrex::Real xf = fcy(i,j+1,k,0); // local (x,z) of centroid of y-face we are extrapolating to
+        amrex::Real zf = fcy(i,j+1,k,1); // local (x,z) of centroid of y-face we are extrapolating to
 
-           amrex::Real delta_x = xf  - xc;
-           amrex::Real delta_y = amrex::Real(0.5) - yc;
-           amrex::Real delta_z = zf  - zc;
+        amrex::Real delta_x = xf  - xc;
+        amrex::Real delta_y = amrex::Real(0.5) - yc;
+        amrex::Real delta_z = zf  - zc;
 
-           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
-                                              + delta_y * slopes[1]
-                                              + delta_z * slopes[2];
+        amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                           + delta_y * slopes[1]
+                                           + delta_z * slopes[2];
 
-           // Compute max and min values in a 3x2x3 stencil
-           amrex::Real q_min = state(i,j,k,n);
-           amrex::Real q_max = state(i,j,k,n);
-           for(int kk(-1); kk<=1; kk++) {
-               for(int jj(0); jj<=1; jj++){
-                 for(int ii(-1); ii<=1; ii++){
-                   if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
-                       if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
-                       if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
-                   }
-                 }
-               }
-           }
+        // Compute max and min values in a 3x2x3 stencil
+        amrex::Real q_min = state(i,j,k,n);
+        amrex::Real q_max = state(i,j,k,n);
+        for(int kk(-1); kk<=1; kk++) {
+            for(int jj(0); jj<=1; jj++){
+                for(int ii(-1); ii<=1; ii++){
+                    if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    }
+                }
+            }
+        }
 
-           alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if (flag(i,j,k).isConnected(0,-1,0)){
-           amrex::Real xf = fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
-           amrex::Real zf = fcy(i,j,k,1); // local (x,z) of centroid of y-face we are extrapolating to
+        amrex::Real xf = fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
+        amrex::Real zf = fcy(i,j,k,1); // local (x,z) of centroid of y-face we are extrapolating to
 
-           amrex::Real delta_x = xf  - xc;
-           amrex::Real delta_y = amrex::Real(0.5) + yc;
-           amrex::Real delta_z = zf  - zc;
+        amrex::Real delta_x = xf  - xc;
+        amrex::Real delta_y = amrex::Real(0.5) + yc;
+        amrex::Real delta_z = zf  - zc;
 
-           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
-                                              - delta_y * slopes[1]
-                                              + delta_z * slopes[2];
+        amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                           - delta_y * slopes[1]
+                                           + delta_z * slopes[2];
 
-           // Compute max and min values in a 3x2x3 stencil
-           amrex::Real q_min = state(i,j,k,n);
-           amrex::Real q_max = state(i,j,k,n);
-           for(int kk(-1); kk<=1; kk++) {
-               for(int jj(-1); jj<=0; jj++){
-                 for(int ii(-1); ii<=1; ii++){
-                   if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
-                       if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
-                       if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
-                   }
-                 }
-               }
-           }
+        // Compute max and min values in a 3x2x3 stencil
+        amrex::Real q_min = state(i,j,k,n);
+        amrex::Real q_max = state(i,j,k,n);
+        for(int kk(-1); kk<=1; kk++) {
+            for(int jj(-1); jj<=0; jj++){
+                for(int ii(-1); ii<=1; ii++){
+                    if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    }
+                }
+            }
+        }
 
-           alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if (flag(i,j,k).isConnected(1,0,0)) {
-           amrex::Real yf = fcx(i+1,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
-           amrex::Real zf = fcx(i+1,j,k,1); // local (y,z) of centroid of x-face we are extrapolating to
+        amrex::Real yf = fcx(i+1,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
+        amrex::Real zf = fcx(i+1,j,k,1); // local (y,z) of centroid of x-face we are extrapolating to
 
-           amrex::Real delta_x = amrex::Real(0.5) - xc;
-           amrex::Real delta_y = yf  - yc;
-           amrex::Real delta_z = zf  - zc;
+        amrex::Real delta_x = amrex::Real(0.5) - xc;
+        amrex::Real delta_y = yf  - yc;
+        amrex::Real delta_z = zf  - zc;
 
-           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
-                                              + delta_y * slopes[1]
-                                              + delta_z * slopes[2];
+        amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                           + delta_y * slopes[1]
+                                           + delta_z * slopes[2];
 
-           // Compute max and min values in a 2x3x3 stencil
-           amrex::Real q_min = state(i,j,k,n);
-           amrex::Real q_max = state(i,j,k,n);
-           for(int kk(-1); kk<=1; kk++) {
-               for(int jj(-1); jj<=1; jj++){
-                 for(int ii(0); ii<=1; ii++){
-                   if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
-                       if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
-                       if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
-                   }
-                 }
-               }
-           }
+        // Compute max and min values in a 2x3x3 stencil
+        amrex::Real q_min = state(i,j,k,n);
+        amrex::Real q_max = state(i,j,k,n);
+        for(int kk(-1); kk<=1; kk++) {
+            for(int jj(-1); jj<=1; jj++){
+                for(int ii(0); ii<=1; ii++){
+                    if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    }
+                }
+            }
+        }
 
-           alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if (flag(i,j,k).isConnected(-1,0,0)) {
-           amrex::Real yf = fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
-           amrex::Real zf = fcx(i,j,k,1); // local (y,z) of centroid of x-face we are extrapolating to
+        amrex::Real yf = fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
+        amrex::Real zf = fcx(i,j,k,1); // local (y,z) of centroid of x-face we are extrapolating to
 
-           amrex::Real delta_x = amrex::Real(0.5) + xc;
-           amrex::Real delta_y = yf  - yc;
-           amrex::Real delta_z = zf  - zc;
+        amrex::Real delta_x = amrex::Real(0.5) + xc;
+        amrex::Real delta_y = yf  - yc;
+        amrex::Real delta_z = zf  - zc;
 
-           amrex::Real q_hat = state(i,j,k,n) - delta_x * slopes[0]
-                                              + delta_y * slopes[1]
-                                              + delta_z * slopes[2];
+        amrex::Real q_hat = state(i,j,k,n) - delta_x * slopes[0]
+                                           + delta_y * slopes[1]
+                                           + delta_z * slopes[2];
 
-           // Compute max and min values in a 3x2x3 stencil
-           amrex::Real q_min = state(i,j,k,n);
-           amrex::Real q_max = state(i,j,k,n);
-           for(int kk(-1); kk<=1; kk++) {
-               for(int jj(-1); jj<=1; jj++){
-                 for(int ii(-1); ii<=0; ii++){
-                   if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
-                       if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
-                       if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
-                   }
-                 }
-               }
-           }
-           alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        // Compute max and min values in a 3x2x3 stencil
+        amrex::Real q_min = state(i,j,k,n);
+        amrex::Real q_max = state(i,j,k,n);
+        for(int kk(-1); kk<=1; kk++) {
+            for(int jj(-1); jj<=1; jj++){
+                for(int ii(-1); ii<=0; ii++){
+                    if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    }
+                }
+            }
+        }
+        alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if (flag(i,j,k).isConnected(0,0,1)) {
-           amrex::Real xf = fcz(i,j,k+1,0); // local (x,y) of centroid of z-face we are extrapolating to
-           amrex::Real yf = fcz(i,j,k+1,1); // local (x,y) of centroid of z-face we are extrapolating to
+        amrex::Real xf = fcz(i,j,k+1,0); // local (x,y) of centroid of z-face we are extrapolating to
+        amrex::Real yf = fcz(i,j,k+1,1); // local (x,y) of centroid of z-face we are extrapolating to
 
-           amrex::Real delta_x = xf  - xc;
-           amrex::Real delta_y = yf  - yc;
-           amrex::Real delta_z = amrex::Real(0.5) - zc;
+        amrex::Real delta_x = xf  - xc;
+        amrex::Real delta_y = yf  - yc;
+        amrex::Real delta_z = amrex::Real(0.5) - zc;
 
-           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
-                                              + delta_y * slopes[1]
-                                              + delta_z * slopes[2];
+        amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                           + delta_y * slopes[1]
+                                           + delta_z * slopes[2];
 
-           // Compute max and min values in a 3x3x2 stencil
-           amrex::Real q_min = state(i,j,k,n);
-           amrex::Real q_max = state(i,j,k,n);
-           for(int kk(0); kk<=1; kk++) {
-               for(int jj(-1); jj<=1; jj++){
-                 for(int ii(-1); ii<=1; ii++){
-                   if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
-                       if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
-                       if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
-                   }
-                 }
-               }
-           }
-           alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        // Compute max and min values in a 3x3x2 stencil
+        amrex::Real q_min = state(i,j,k,n);
+        amrex::Real q_max = state(i,j,k,n);
+        for(int kk(0); kk<=1; kk++) {
+            for(int jj(-1); jj<=1; jj++){
+                for(int ii(-1); ii<=1; ii++){
+                    if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    }
+                }
+            }
+        }
+        alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
     if (flag(i,j,k).isConnected(0,0,-1)) {
-           amrex::Real xf = fcz(i,j,k,0); // local (x,y) of centroid of z-face we are extrapolating to
-           amrex::Real yf = fcz(i,j,k,1); // local (x,y) of centroid of z-face we are extrapolating to
+        amrex::Real xf = fcz(i,j,k,0); // local (x,y) of centroid of z-face we are extrapolating to
+        amrex::Real yf = fcz(i,j,k,1); // local (x,y) of centroid of z-face we are extrapolating to
 
-           amrex::Real delta_x = xf  - xc;
-           amrex::Real delta_y = yf  - yc;
-           amrex::Real delta_z = amrex::Real(0.5) + zc;
+        amrex::Real delta_x = xf  - xc;
+        amrex::Real delta_y = yf  - yc;
+        amrex::Real delta_z = amrex::Real(0.5) + zc;
 
-           amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
-                                              + delta_y * slopes[1]
-                                              - delta_z * slopes[2];
+        amrex::Real q_hat = state(i,j,k,n) + delta_x * slopes[0]
+                                           + delta_y * slopes[1]
+                                           - delta_z * slopes[2];
 
-           // Compute max and min values in a 3x2x3 stencil
-           amrex::Real q_min = state(i,j,k,n);
-           amrex::Real q_max = state(i,j,k,n);
-           for(int kk(-1); kk<=0; kk++) {
-               for(int jj(-1); jj<=1; jj++){
-                 for(int ii(-1); ii<=1; ii++){
-                   if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
-                       if (state(i+ii,j+jj,k+kk,n) > q_max) q_max = state(i+ii,j+jj,k+kk,n);
-                       if (state(i+ii,j+jj,k+kk,n) < q_min) q_min = state(i+ii,j+jj,k+kk,n);
-                   }
-                 }
-               }
-           }
-           alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
+        // Compute max and min values in a 3x2x3 stencil
+        amrex::Real q_min = state(i,j,k,n);
+        amrex::Real q_max = state(i,j,k,n);
+        for(int kk(-1); kk<=0; kk++) {
+            for(int jj(-1); jj<=1; jj++){
+                for(int ii(-1); ii<=1; ii++){
+                    if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    }
+                }
+            }
+        }
+        alpha = amrex_calc_alpha_stencil(q_hat, q_max, q_min, state(i,j,k,n), alpha);
     }
 
     amrex::Real xalpha = alpha;
@@ -1037,9 +1029,9 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
     amrex::Real zalpha = alpha;
 
     //Zeroing out the slopes in the direction where a covered face exists.
-    if (cuts_x<2) xalpha = 0;
-    if (cuts_y<2) yalpha = 0;
-    if (cuts_z<2) zalpha = 0;
+    if (cuts_x<2) { xalpha = 0; }
+    if (cuts_y<2) { yalpha = 0; }
+    if (cuts_z<2) { zalpha = 0; }
 
     return {xalpha,yalpha,zalpha};
 }
@@ -1068,14 +1060,17 @@ amrex_lim_slopes_eb (int i, int j, int k, int n,
 
     // Setting limiter to 1 for stencils that just consists of non-EB cells because
     // amrex_calc_slopes_eb routine will call the slope routine for non-EB stencils that has already a limiter
-    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.)
-      alpha_lim[0] = 1.0;
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.) {
+        alpha_lim[0] = 1.0;
+    }
 
-    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.)
-      alpha_lim[1] = 1.0;
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.) {
+        alpha_lim[1] = 1.0;
+    }
 
-    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.)
-      alpha_lim[2] = 1.0;
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.) {
+        alpha_lim[2] = 1.0;
+    }
 
     return {alpha_lim[0]*slopes[0],alpha_lim[1]*slopes[1],alpha_lim[2]*slopes[2]};
 }
@@ -1109,14 +1104,17 @@ amrex_lim_slopes_extdir_eb (int i, int j, int k, int n,
 
     // Setting limiter to 1 for stencils that just consists of non-EB cells because
     // amrex_calc_slopes_extdir_eb routine will call the slope routine for non-EB stencils that has already a limiter
-    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.)
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.) {
         alpha_lim[0] = 1.0;
+    }
 
-    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.)
-      alpha_lim[1] = 1.0;
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.) {
+        alpha_lim[1] = 1.0;
+    }
 
-    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.)
-      alpha_lim[2] = 1.0;
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.) {
+        alpha_lim[2] = 1.0;
+    }
 
     return {alpha_lim[0]*slopes[0],alpha_lim[1]*slopes[1],alpha_lim[2]*slopes[2]};
 }

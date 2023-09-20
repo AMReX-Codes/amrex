@@ -26,7 +26,7 @@ namespace amrex {
                      Vector<Long>& Snds, Vector<Long>& Rcvs)
     {
         Long NumSnds = CountSnds(not_ours, Snds);
-        if (NumSnds == 0) return NumSnds;
+        if (NumSnds == 0) { return NumSnds; }
 
         BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(Long),
                         ParallelContext::MyProcSub(), BLProfiler::BeforeCall());

@@ -43,12 +43,12 @@ namespace amrex::ParallelDescriptor
 
 #else
 
-typedef int MPI_Op;
-typedef int MPI_Comm;
-typedef int MPI_Group;
-typedef int MPI_Datatype;
+using MPI_Op       = int;
+using MPI_Comm     = int;
+using MPI_Group    = int;
+using MPI_Datatype = int;
+using MPI_Request  = int;
 struct MPI_Status {};
-typedef int MPI_Request;
 static constexpr int MPI_DATATYPE_NULL = 0;
 static constexpr int MPI_REQUEST_NULL  = 0;
 static constexpr int MPI_COMM_WORLD    = 0;

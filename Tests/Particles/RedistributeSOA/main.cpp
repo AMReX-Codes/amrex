@@ -116,14 +116,18 @@ public:
                     host_real[2].push_back(static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]));
 #endif
 
-                    for (int i = AMREX_SPACEDIM; i < NR; ++i)
+                    for (int i = AMREX_SPACEDIM; i < NR; ++i) {
                         host_real[i].push_back(static_cast<ParticleReal>(id));
-                    for (int i = 2; i < NI; ++i)
+                    }
+                    for (int i = 2; i < NI; ++i) {
                         host_int[i].push_back(static_cast<int>(id));
-                    for (int i = 0; i < NumRuntimeRealComps(); ++i)
+                    }
+                    for (int i = 0; i < NumRuntimeRealComps(); ++i) {
                         host_runtime_real[i].push_back(static_cast<ParticleReal>(id));
-                    for (int i = 0; i < NumRuntimeIntComps(); ++i)
+                    }
+                    for (int i = 0; i < NumRuntimeIntComps(); ++i) {
                         host_runtime_int[i].push_back(static_cast<int>(id));
+                    }
                 }
             }
 
@@ -345,12 +349,14 @@ void testRedistribute ()
     get_test_params(params, "redistribute");
 
     int is_per[BL_SPACEDIM];
-    for (int & d : is_per)
+    for (int & d : is_per) {
         d = params.is_periodic;
+    }
 
     Vector<IntVect> rr(params.nlevs-1);
-    for (int lev = 1; lev < params.nlevs; lev++)
+    for (int lev = 1; lev < params.nlevs; lev++) {
         rr[lev-1] = IntVect(AMREX_D_DECL(2,2,2));
+    }
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
@@ -396,7 +402,7 @@ void testRedistribute ()
 
     auto np_old = pc.TotalNumberOfParticles();
 
-    if (params.sort) pc.SortParticlesByCell();
+    if (params.sort) { pc.SortParticlesByCell(); }
 
     for (int i = 0; i < params.nsteps; ++i)
     {
@@ -410,7 +416,7 @@ void testRedistribute ()
             pc.negateEven();
         }
         pc.RedistributeLocal();
-        if (params.sort) pc.SortParticlesByCell();
+        if (params.sort) { pc.SortParticlesByCell(); }
         pc.checkAnswer();
     }
 
@@ -422,7 +428,7 @@ void testRedistribute ()
             {
                 DistributionMapping new_dm;
                 Vector<int> pmap;
-                for (int i = 0; i < ba[lev].size(); ++i) pmap.push_back(i % NProcs);
+                for (int i = 0; i < ba[lev].size(); ++i) { pmap.push_back(i % NProcs); }
                 new_dm.define(pmap);
                 pc.SetParticleDistributionMap(lev, new_dm);
             }
@@ -442,7 +448,7 @@ void testRedistribute ()
             {
                 DistributionMapping new_dm;
                 Vector<int> pmap;
-                for (int i = 0; i < ba[lev].size(); ++i) pmap.push_back((i+1) % NProcs);
+                for (int i = 0; i < ba[lev].size(); ++i) { pmap.push_back((i+1) % NProcs); }
                 new_dm.define(pmap);
                 pc.SetParticleDistributionMap(lev, new_dm);
             }

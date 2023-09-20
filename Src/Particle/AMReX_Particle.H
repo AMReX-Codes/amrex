@@ -55,7 +55,7 @@ struct ParticleIDWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper& operator= (const ParticleIDWrapper& pidw) noexcept
     {
-        return this->operator=(Long(pidw)); // NOLINT(cppcoreguidelines-c-copy-assignment-signature)
+        return this->operator=(Long(pidw)); // NOLINT
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -123,7 +123,7 @@ struct ParticleCPUWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper& operator= (const ParticleCPUWrapper& pcpuw) noexcept
     {
-        return this->operator=(int(pcpuw));  // NOLINT(cppcoreguidelines-c-copy-assignment-signature)
+        return this->operator=(int(pcpuw));  // NOLINT
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -441,8 +441,9 @@ Particle<NReal, NInt>::NextID ()
 #endif
     next = the_next_id++;
 
-    if (next > LongParticleIds::LastParticleID)
+    if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
+    }
 
     return next;
 }
@@ -452,8 +453,9 @@ Long
 Particle<NReal, NInt>::UnprotectedNextID ()
 {
     Long next = the_next_id++;
-    if (next > LongParticleIds::LastParticleID)
+    if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
+    }
     return next;
 }
 
@@ -471,17 +473,21 @@ operator<< (std::ostream& os, const Particle<NReal, NInt>& p)
     os << p.id()   << ' '
        << p.cpu()  << ' ';
 
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         os << p.pos(i) << ' ';
+    }
 
-    for (int i = 0; i < NReal; i++)
+    for (int i = 0; i < NReal; i++) {
         os << p.rdata(i) << ' ';
+    }
 
-    for (int i = 0; i < NInt; i++)
+    for (int i = 0; i < NInt; i++) {
         os << p.idata(i) << ' ';
+    }
 
-    if (!os.good())
+    if (!os.good()) {
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+    }
 
     return os;
 }
@@ -493,14 +499,17 @@ operator<< (std::ostream& os, const Particle<NReal, 0>& p)
     os << p.id()   << ' '
        << p.cpu()  << ' ';
 
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         os << p.pos(i) << ' ';
+    }
 
-    for (int i = 0; i < NReal; i++)
+    for (int i = 0; i < NReal; i++) {
         os << p.rdata(i) << ' ';
+    }
 
-    if (!os.good())
+    if (!os.good()) {
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+    }
 
     return os;
 }
@@ -512,14 +521,17 @@ operator<< (std::ostream& os, const Particle<0, NInt>& p)
     os << p.id()   << ' '
        << p.cpu()  << ' ';
 
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         os << p.pos(i) << ' ';
+    }
 
-    for (int i = 0; i < NInt; i++)
+    for (int i = 0; i < NInt; i++) {
         os << p.idata(i) << ' ';
+    }
 
-    if (!os.good())
+    if (!os.good()) {
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+    }
 
     return os;
 }
@@ -531,11 +543,13 @@ operator<< (std::ostream& os, const Particle<0, 0>& p)
     os << p.id()   << ' '
        << p.cpu()  << ' ';
 
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         os << p.pos(i) << ' ';
+    }
 
-    if (!os.good())
+    if (!os.good()) {
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+    }
 
     return os;
 }

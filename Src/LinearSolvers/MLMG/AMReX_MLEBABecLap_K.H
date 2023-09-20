@@ -66,7 +66,7 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
         GpuArray<Real,4> x{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+2, &(coef(0,r)));
+            poly_interp_coeff(-Real(0.5), x.data(), r+2, &(coef(0,r)));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
@@ -84,7 +84,7 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
                             break;
                         }
                     }
-                    if (has_cutfaces) order = amrex::min(2,order);
+                    if (has_cutfaces) { order = amrex::min(2,order); }
                     if (order == 1) {
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
@@ -152,7 +152,7 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
         GpuArray<Real,4> x{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+2, &(coef(0,r)));
+            poly_interp_coeff(-Real(0.5), x.data(), r+2, &(coef(0,r)));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
@@ -170,7 +170,7 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
                             break;
                         }
                     }
-                    if (has_cutfaces) order = amrex::min(2,order);
+                    if (has_cutfaces) { order = amrex::min(2,order); }
                     if (order == 1) {
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
@@ -238,7 +238,7 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
         GpuArray<Real,4> x{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)};
         Array2D<Real, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), &x[0], r+2, &(coef(0,r)));
+            poly_interp_coeff(-Real(0.5), x.data(), r+2, &(coef(0,r)));
         }
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
@@ -256,7 +256,7 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
                             break;
                         }
                     }
-                    if (has_cutfaces) order = amrex::min(2,order);
+                    if (has_cutfaces) { order = amrex::min(2,order); }
                     if (order == 1) {
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
@@ -285,4 +285,3 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
 }
 
 #endif
-

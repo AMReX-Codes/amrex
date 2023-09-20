@@ -442,7 +442,7 @@ struct ImplicitIntegral
         // Loop over segments of divided interval
         for (int i = 0; i < nroots - 1; ++i)
         {
-            if (roots[i+1] - roots[i] < tol) continue;
+            if (roots[i+1] - roots[i] < tol) { continue; }
 
             // Evaluate sign of phi within segment and check for consistency with psi
             bool okay = true;
@@ -457,7 +457,7 @@ struct ImplicitIntegral
                 bool new_ok = (phi(x) > 0.0) ? (psi[j].sign() >= 0) : (psi[j].sign() <= 0);
                 okay = okay && new_ok;
             }
-            if (!okay) continue;
+            if (!okay) { continue; }
 
             for (int j = 0; j < p; ++j)
             {
@@ -521,8 +521,9 @@ struct ImplicitIntegral
         // integral domain is the entire hyperrectangle.
         if (psiCount == 0)
         {
-            if (!S)
+            if (!S) {
                 tensorProductIntegral();
+            }
             return;
         }
 
@@ -571,19 +572,6 @@ struct ImplicitIntegral
         new_free[e0] = false;
         ImplicitIntegral<M-1,N,Phi,ImplicitIntegral<M,N,Phi,F,S>,false>
             (phi, *this, new_free, newPsi, newPsiCount);
-
-#if defined(AMREX_USE_SYCL)
-#if AMREX_DEVICE_COMPILE
-        if constexpr (std::is_same<F,QuadratureRule>()) {
-            if (&f != &f_) {
-                // xxxxx SYCL todo The only purpose of the following
-                // statement is to work around a compiler bug.  Nothing will
-                // actually be printed because &f == &f_.
-                AMREX_DEVICE_PRINTF("Work around compiler bug. %p %p\n", &f, &f_);
-            }
-        }
-#endif
-#endif
     }
 };
 

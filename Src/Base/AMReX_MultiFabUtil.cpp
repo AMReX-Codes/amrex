@@ -1,5 +1,6 @@
 
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_Random.H>
 #include <sstream>
 #include <iostream>
 
@@ -45,7 +46,7 @@ namespace {
             boxes.push_back(is.second);
             slice_to_full_ba_map.push_back(is.first);
         }
-        BoxArray slice_ba(&boxes[0], static_cast<int>(boxes.size()));
+        BoxArray slice_ba(boxes.data(), static_cast<int>(boxes.size()));
         DistributionMapping slice_dmap(std::move(procs));
 
         return std::make_unique<MultiFab>(slice_ba, slice_dmap, ncomp, 0,
@@ -442,7 +443,7 @@ namespace amrex
     }
 
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
-    //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
+    //! This routine does NOT assume that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_edges (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
                              const IntVect& ratio, int ngcrse)
     {
@@ -470,7 +471,7 @@ namespace amrex
         const auto type = fine.ixType();
         int dir;
         for (dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-            if (type.cellCentered(dir)) break;
+            if (type.cellCentered(dir)) { break; }
         }
         auto tmptype = type;
         tmptype.set(dir);
@@ -1183,5 +1184,31 @@ namespace amrex
         }
 
         cmf.ParallelCopy(tmp, 0, scomp, ncomp);
+    }
+
+    void FillRandom (MultiFab& mf, int scomp, int ncomp)
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            auto* p = mf[mfi].dataPtr(scomp);
+            Long npts = mf[mfi].box().numPts() * ncomp;
+            FillRandom(p, npts);
+        }
+    }
+
+    void FillRandomNormal (MultiFab& mf, int scomp, int ncomp, Real mean, Real stddev)
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            auto* p = mf[mfi].dataPtr(scomp);
+            Long npts = mf[mfi].box().numPts() * ncomp;
+            FillRandomNormal(p, npts, mean, stddev);
+        }
     }
 }

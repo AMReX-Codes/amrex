@@ -207,7 +207,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     MLABecLaplacian::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
 
-    if (mglev >= m_kappa[amrlev].size()) return;
+    if (mglev >= m_kappa[amrlev].size()) { return; }
 
     applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
 
@@ -353,7 +353,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel, // NOLINT(reada
     const auto dhi = amrex::ubound(domain);
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

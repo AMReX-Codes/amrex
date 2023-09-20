@@ -162,7 +162,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
         ParallelDescriptor::ReduceBoolOr(b);
         mvmc_error = b;
     }
-    if (mvmc_error) return mvmc_error;
+    if (mvmc_error) { return mvmc_error; }
 
     const int ng = 2;
     m_cellflag.define(m_grids, m_dmap, 1, ng);
@@ -241,9 +241,9 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
                                     vfrac(i,j,k) = 0.0;
                                     cflag(i,j,k) = EBCellFlag::TheCoveredCell();
                                 }
-                                AMREX_D_TERM(if (xbx.contains(cell)) apx(i,j,k) = 0.0;,
-                                             if (ybx.contains(cell)) apy(i,j,k) = 0.0;,
-                                             if (zbx.contains(cell)) apz(i,j,k) = 0.0;);
+                                AMREX_D_TERM(if (xbx.contains(cell)) { apx(i,j,k) = 0.0; },
+                                             if (ybx.contains(cell)) { apy(i,j,k) = 0.0; },
+                                             if (zbx.contains(cell)) { apz(i,j,k) = 0.0; })
                             });
                         }
                     }
@@ -468,13 +468,7 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
             }
 
             // fix type for each fab
-            fab.setType(FabType::undefined);
-            auto typ = fab.getType(bx);
-            fab.setType(typ);
-            for (int nshrink = 1; nshrink < ng; ++nshrink) {
-                const Box& b = amrex::grow(bx,-nshrink);
-                fab.getType(b);
-            }
+            fab.resetType(ng);
         }
     }
 }
@@ -483,7 +477,7 @@ void
 Level::fillVolFrac (MultiFab& vfrac, const Geometry& geom) const
 {
     vfrac.setVal(1.0);
-    if (isAllRegular()) return;
+    if (isAllRegular()) { return; }
 
     vfrac.ParallelCopy(m_volfrac,0,0,1,0,vfrac.nGrow(),geom.periodicity());
 
@@ -715,7 +709,7 @@ Level::fillAreaFrac (Array<MultiFab*,AMREX_SPACEDIM> const& a_areafrac, const Ge
         a_areafrac[idim]->setVal(1.0);
     }
 
-    if (isAllRegular()) return;
+    if (isAllRegular()) { return; }
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {

@@ -442,7 +442,7 @@ StateData::FillBoundary (FArrayBox&     dest,
     BL_PROFILE("StateData::FillBoundary(dx)");
     BL_ASSERT(dest.box().ixType() == desc->getType());
 
-    if (domain.contains(dest.box())) return;
+    if (domain.contains(dest.box())) { return; }
 
     const Box& bx  = dest.box();
     const int* dlo = dest.loVect();
@@ -487,8 +487,9 @@ StateData::FillBoundary (FArrayBox&     dest,
 
                     const int* bc = bcr.vect();
 
-                    for (int k = 0; k < 2*AMREX_SPACEDIM; k++)
+                    for (int k = 0; k < 2*AMREX_SPACEDIM; k++) {
                         bci[k] = bc[k];
+                    }
 
                     bci += 2*AMREX_SPACEDIM;
                 }
@@ -531,7 +532,7 @@ StateData::FillBoundary (Box const&      bx,
 {
     BL_PROFILE("StateData::FillBoundary(geom)");
 
-    if (domain.contains(convert(bx,domain.ixType()))) return;
+    if (domain.contains(convert(bx,domain.ixType()))) { return; }
 
     Vector<BCRec> bcr(num_comp);
 
@@ -925,14 +926,14 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                         {
                             const int lo = domainlo[dir] - bx.smallEnd(dir);
                             const int hi = bx.bigEnd(dir) - domainhi[dir];
-                            if (lo > 0) GrownDomain.growLo(dir,lo);
-                            if (hi > 0) GrownDomain.growHi(dir,hi);
+                            if (lo > 0) { GrownDomain.growLo(dir,lo); }
+                            if (hi > 0) { GrownDomain.growHi(dir,hi); }
                         }
                     }
 
                     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                     {
-                        if (!geom.isPeriodic(dir)) continue;
+                        if (!geom.isPeriodic(dir)) { continue; }
 
                         Box lo_slab = bx;
                         Box hi_slab = bx;

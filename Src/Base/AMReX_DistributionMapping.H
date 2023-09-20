@@ -323,7 +323,7 @@ private:
     static void LeastUsedTeams (Vector<int>& rteam, Vector<Vector<int> >& rworker, int nteams, int nworkers);
 
     //! A useful typedef.
-    typedef void (DistributionMapping::*PVMF)(const BoxArray &, int);
+    using PVMF = void (DistributionMapping::*)(const BoxArray &, int);
 
     //! Everyone uses the same Strategy -- defaults to SFC.
     static Strategy m_Strategy;

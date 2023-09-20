@@ -54,6 +54,9 @@ string(APPEND CMAKE_CUDA_FLAGS " -maxrregcount=${AMReX_CUDA_MAXREGCOUNT}")
 # This is to work around a bug with nvcc, see: https://github.com/kokkos/kokkos/issues/1473
 string(APPEND CMAKE_CUDA_FLAGS " -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored")
 
+# and another bug related to implicit returns with if constexpr, see: https://stackoverflow.com/questions/64523302/cuda-missing-return-statement-at-end-of-non-void-function-in-constexpr-if-fun
+string(APPEND CMAKE_CUDA_FLAGS " -Xcudafe --diag_suppress=implicit_return_from_non_void_function")
+
 if (AMReX_CUDA_FASTMATH)
    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math")
 endif ()

@@ -24,9 +24,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has missing braces in array-array initalization
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare -Wno-missing-braces"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -69,9 +67,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has missing braces in array-array initalization
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare -Wno-missing-braces"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -106,7 +102,7 @@ jobs:
     - name: Dependencies
       if: ${{ env.CODEPLAYTOKEN != '' }}
       run: |
-        .github/workflows/dependencies/dependencies_nvcc12.sh
+        .github/workflows/dependencies/dependencies_nvcc.sh
         .github/workflows/dependencies/dependencies_dpcpp.sh
         .github/workflows/dependencies/dependencies_codeplay.sh ${{ env.CODEPLAYTOKEN }}
         .github/workflows/dependencies/dependencies_ccache.sh
@@ -120,10 +116,8 @@ jobs:
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       if: ${{ env.CODEPLAYTOKEN != '' }}
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has missing braces in array-array initalization
       # clang currently supports CUDA up to version 11.5 and a warning is issued with newer versions
-      env: {CXXFLAGS: "-fsycl -fsycl-targets=nvptx64-nvidia-cuda -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare -Wno-missing-braces -Wno-unknown-cuda-version"}
+      env: {CXXFLAGS: "-fsycl -fsycl-targets=nvptx64-nvidia-cuda -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-unknown-cuda-version"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -172,9 +166,7 @@ jobs:
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       if: ${{ env.CODEPLAYTOKEN != '' }}
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-      # mkl/rng/device/detail/mrg32k3a_impl.hpp has missing braces in array-array initalization
-      env: {CXXFLAGS: "-fsycl -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx90a -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare -Wno-missing-braces"}
+      env: {CXXFLAGS: "-fsycl -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx90a -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10

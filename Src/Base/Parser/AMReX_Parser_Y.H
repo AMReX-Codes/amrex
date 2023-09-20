@@ -45,7 +45,13 @@ enum parser_f1_t {  // Built-in functions with one argument
     PARSER_COMP_ELLINT_2
 };
 
-static constexpr std::string_view parser_f1_s[] =
+static
+#if defined(__INTEL_COMPILER) && defined(__EDG__)
+    const
+#else
+    constexpr
+#endif
+std::string_view parser_f1_s[] =
 {
     "sqrt",
     "exp",
@@ -88,7 +94,13 @@ enum parser_f2_t {  // Built-in functions with two arguments
     PARSER_FMOD
 };
 
-static constexpr std::string_view parser_f2_s[] =
+static
+#if defined(__INTEL_COMPILER) && defined(__EDG__)
+    const
+#else
+    constexpr
+#endif
+std::string_view parser_f2_s[] =
 {
     "pow",
     "atan2",
@@ -111,7 +123,13 @@ enum parser_f3_t { // functions with three arguments
     PARSER_IF
 };
 
-static constexpr std::string_view parser_f3_s[] =
+static
+#if defined(__INTEL_COMPILER) && defined(__EDG__)
+    const
+#else
+    constexpr
+#endif
+std::string_view parser_f3_s[] =
 {
     "if"
 };
@@ -130,7 +148,13 @@ enum parser_node_t {
     PARSER_LIST
 };
 
-static constexpr std::string_view parser_node_s[] =
+static
+#if defined(__INTEL_COMPILER) && defined(__EDG__)
+    const
+#else
+    constexpr
+#endif
+std::string_view parser_node_s[] =
 {
     "number",
     "symbol",
@@ -154,7 +178,7 @@ static constexpr std::string_view parser_node_s[] =
 struct parser_node {
     enum parser_node_t type;
     enum parser_node_t padding;
-    struct parser_node* l;
+    struct parser_node* l; // NOLINT(misc-confusable-identifiers)
     struct parser_node* r;
     struct parser_node* padding2;
 };
@@ -173,7 +197,7 @@ struct alignas(parser_node) parser_symbol {
 struct alignas(parser_node) parser_f1 {  /* Builtin functions with one argument */
     enum parser_node_t type;
     enum parser_f1_t ftype;
-    struct parser_node* l;
+    struct parser_node* l; // NOLINT(misc-confusable-identifiers)
     struct parser_node* padding1;
     struct parser_node* padding2;
 };
@@ -181,7 +205,7 @@ struct alignas(parser_node) parser_f1 {  /* Builtin functions with one argument 
 struct alignas(parser_node) parser_f2 {  /* Builtin functions with two arguments */
     enum parser_node_t type;
     enum parser_f2_t ftype;
-    struct parser_node* l;
+    struct parser_node* l; // NOLINT(misc-confusable-identifiers)
     struct parser_node* r;
     struct parser_node* padding;
 };

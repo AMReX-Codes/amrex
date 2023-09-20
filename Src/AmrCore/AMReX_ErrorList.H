@@ -41,21 +41,21 @@ extern "C"
     * \param time
     * \param level
     */
-    typedef void (*ErrorFuncDefault)(int* tag, AMREX_ARLIM_P(tlo), AMREX_ARLIM_P(thi),
-                                     const int* tagval, const int* clearval,
-                                     amrex::Real* data, AMREX_ARLIM_P(data_lo), AMREX_ARLIM_P(data_hi),
-                                     const int* lo, const int * hi, const int* nvar,
-                                     const int* domain_lo, const int* domain_hi,
-                                     const amrex::Real* dx, const amrex::Real* xlo,
-                                     const amrex::Real* prob_lo, const amrex::Real* time,
-                                     const int* level);
-
-    typedef void (*ErrorFunc2Default)(int* tag, AMREX_ARLIM_P(tlo), AMREX_ARLIM_P(thi),
+    using ErrorFuncDefault = void (*)(int* tag, AMREX_ARLIM_P(tlo), AMREX_ARLIM_P(thi),
                                       const int* tagval, const int* clearval,
                                       amrex::Real* data, AMREX_ARLIM_P(data_lo), AMREX_ARLIM_P(data_hi),
                                       const int* lo, const int * hi, const int* nvar,
                                       const int* domain_lo, const int* domain_hi,
-                                      const amrex::Real* dx, const int* level, const amrex::Real* avg);
+                                      const amrex::Real* dx, const amrex::Real* xlo,
+                                      const amrex::Real* prob_lo, const amrex::Real* time,
+                                      const int* level);
+
+    using ErrorFunc2Default = void (*)(int* tag, AMREX_ARLIM_P(tlo), AMREX_ARLIM_P(thi),
+                                       const int* tagval, const int* clearval,
+                                       amrex::Real* data, AMREX_ARLIM_P(data_lo), AMREX_ARLIM_P(data_hi),
+                                       const int* lo, const int * hi, const int* nvar,
+                                       const int* domain_lo, const int* domain_hi,
+                                       const amrex::Real* dx, const int* level, const amrex::Real* avg);
 
 
     /**
@@ -81,14 +81,14 @@ extern "C"
     * \param time
     * \param level
     */
-    typedef void (*ErrorFunc3DDefault)(int* tag, const int* tlo, const int* thi,
-                                       const int* tagval, const int* clearval,
-                                       amrex::Real* data, const int* data_lo, const int* data_hi,
-                                       const int* lo, const int * hi, const int* nvar,
-                                       const int* domain_lo, const int* domain_hi,
-                                       const amrex::Real* dx, const amrex::Real* xlo,
-                                       const amrex::Real* prob_lo, const amrex::Real* time,
-                                       const int* level);
+    using ErrorFunc3DDefault = void (*)(int* tag, const int* tlo, const int* thi,
+                                        const int* tagval, const int* clearval,
+                                        amrex::Real* data, const int* data_lo, const int* data_hi,
+                                        const int* lo, const int * hi, const int* nvar,
+                                        const int* domain_lo, const int* domain_hi,
+                                        const amrex::Real* dx, const amrex::Real* xlo,
+                                        const amrex::Real* prob_lo, const amrex::Real* time,
+                                        const int* level);
 
 }
 

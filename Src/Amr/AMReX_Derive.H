@@ -40,16 +40,16 @@ extern "C"
     * \param level
     * \param grid_no
     */
-    typedef void (*DeriveFunc)(amrex::Real* data, AMREX_ARLIM_P(dlo), AMREX_ARLIM_P(dhi),
-                               const int* nvar, const amrex::Real* compdat,
-                               AMREX_ARLIM_P(compdat_lo), AMREX_ARLIM_P(compdat_hi),
-                               const int* ncomp,
-                               const int* lo, const int* hi,
-                               const int* domain_lo, const int* domain_hi,
-                               const amrex::Real* delta, const amrex::Real* xlo,
-                               const amrex::Real* time, const amrex::Real* dt,
-                               const int* bcrec,
-                               const int* level, const int* grid_no) ;
+    using DeriveFunc = void (*)(amrex::Real* data, AMREX_ARLIM_P(dlo), AMREX_ARLIM_P(dhi),
+                                const int* nvar, const amrex::Real* compdat,
+                                AMREX_ARLIM_P(compdat_lo), AMREX_ARLIM_P(compdat_hi),
+                                const int* ncomp,
+                                const int* lo, const int* hi,
+                                const int* domain_lo, const int* domain_hi,
+                                const amrex::Real* delta, const amrex::Real* xlo,
+                                const amrex::Real* time, const amrex::Real* dt,
+                                const int* bcrec,
+                                const int* level, const int* grid_no) ;
 
     /**
     * \brief This is dimension agnostic.  For example, dlo always has three elements.
@@ -74,19 +74,19 @@ extern "C"
     * \param level
     * \param grid_no
     */
-    typedef void (*DeriveFunc3D)(amrex::Real* data, const int* dlo, const int* dhi, const int* nvar,
-                                 const amrex::Real* compdat, const int* clo, const int* chi, const int* ncomp,
-                                 const int* lo, const int* hi,
-                                 const int* domain_lo, const int* domain_hi,
-                                 const amrex::Real* delta, const amrex::Real* xlo,
-                                 const amrex::Real* time, const amrex::Real* dt,
-                                 const int* bcrec,
-                                 const int* level, const int* grid_no) ;
+    using DeriveFunc3D = void (*)(amrex::Real* data, const int* dlo, const int* dhi, const int* nvar,
+                                  const amrex::Real* compdat, const int* clo, const int* chi, const int* ncomp,
+                                  const int* lo, const int* hi,
+                                  const int* domain_lo, const int* domain_hi,
+                                  const amrex::Real* delta, const amrex::Real* xlo,
+                                  const amrex::Real* time, const amrex::Real* dt,
+                                  const int* bcrec,
+                                  const int* level, const int* grid_no) ;
 }
 
-  typedef std::function<void(const amrex::Box& bx, amrex::FArrayBox& derfab, int dcomp, int ncomp,
-                 const amrex::FArrayBox& datafab, const amrex::Geometry& geomdata,
-                 amrex::Real time, const int* bcrec, int level)> DeriveFuncFab;
+using DeriveFuncFab = std::function<void(const amrex::Box& bx, amrex::FArrayBox& derfab, int dcomp, int ncomp,
+                                         const amrex::FArrayBox& datafab, const amrex::Geometry& geomdata,
+                                         amrex::Real time, const int* bcrec, int level)>;
 
 class DescriptorList;
 
@@ -111,7 +111,7 @@ public:
     * \brief A pointer to function taking and returning a Box.
     *
     */
-    typedef std::function<Box(const Box&)> DeriveBoxMap;
+    using DeriveBoxMap = std::function<Box(const Box&)>;
 
     static Box TheSameBox (const Box& box) noexcept;
 

@@ -89,7 +89,7 @@ target_compile_options( Flags_CXX
    $<${_cxx_appleclang_rwdbg}:>
    $<${_cxx_appleclang_rel}:>
    $<${_cxx_intelllvm_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
-   $<${_cxx_intelllvm_rwdbg}:>
+   $<${_cxx_intelllvm_rwdbg}:-g1>
    $<${_cxx_intelllvm_rel}:>
    )
 
@@ -131,6 +131,7 @@ target_compile_options ( Flags_FPE
    $<${_cxx_cray}:-K trap=fp>
    $<${_fortran_clang}:>
    $<${_cxx_clang}:-ftrapv>
+   $<${_cxx_appleclang}:-ftrapv>	
    )
 
 #

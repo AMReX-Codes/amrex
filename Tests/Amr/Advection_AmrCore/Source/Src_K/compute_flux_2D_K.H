@@ -1,9 +1,8 @@
 #ifndef compute_flux_2d_H_
 #define compute_flux_2d_H_
 
-#include <AMReX_BLFort.H>
-#include <AMReX_Box.H>
-#include <AMReX_Geometry.H>
+#include <AMReX_Array4.H>
+#include <AMReX_REAL.H>
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE

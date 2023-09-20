@@ -258,6 +258,7 @@ public:
                                                     * m_max_blocks * sizeof(Type)))),
           m_fn_value([&reduce_op,this] () -> Type { return this->value(reduce_op); })
     {
+        reduce_op.resetResultReadiness();
         static_assert(std::is_trivially_copyable<Type>(),
                       "ReduceData::Type must be trivially copyable");
         static_assert(std::is_trivially_destructible<Type>(),
@@ -618,7 +619,7 @@ public:
               typename M=std::enable_if_t<std::is_integral<N>::value> >
     void eval (N n, D & reduce_data, F&& f)
     {
-        if (n <= 0) return;
+        if (n <= 0) { return; }
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
         auto dp = reduce_data.devicePtr(stream);
@@ -750,6 +751,9 @@ public:
 
 private:
     bool m_result_is_ready = false;
+
+public:
+    void resetResultReadiness () { m_result_is_ready = false; }
 };
 
 namespace Reduce {
@@ -887,7 +891,7 @@ bool AnyOf (N n, T const* v, P&& pred)
     amrex::launch<AMREX_GPU_MAX_THREADS>(ec.numBlocks.x, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
-        if (threadIdx.x == 0) has_any = *dp;
+        if (threadIdx.x == 0) { has_any = *dp; }
         __syncthreads();
 
         if (!has_any)
@@ -953,7 +957,7 @@ bool AnyOf (Box const& box, P&& pred)
                         Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
-        if (threadIdx.x == 0) has_any = *dp;
+        if (threadIdx.x == 0) { has_any = *dp; }
         __syncthreads();
 
         if (!has_any)
@@ -993,6 +997,7 @@ public:
         : m_tuple(OpenMP::in_parallel() ? 1 : OpenMP::get_max_threads()),
           m_fn_value([&reduce_op,this] () -> Type { return this->value(reduce_op); })
     {
+        reduce_op.resetResultReadiness();
         for (auto& t : m_tuple) {
             Reduce::detail::for_each_init<0, Type, Ps...>(t);
         }
@@ -1158,6 +1163,8 @@ public:
     }
 
     bool m_result_is_ready = false;
+
+    void resetResultReadiness () { m_result_is_ready = false; }
 };
 
 namespace Reduce {
@@ -1259,7 +1266,7 @@ bool AnyOf (Box const& box, P&&pred)
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        if (pred(i,j,k)) return true;
+        if (pred(i,j,k)) { return true; }
     }}}
     return false;
 }

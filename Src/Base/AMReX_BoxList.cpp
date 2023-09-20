@@ -251,9 +251,9 @@ BoxList::isDisjoint () const
 }
 
 bool
-BoxList::contains (const BoxList&  bl) const
+BoxList::contains (const BoxList& bl) const
 {
-    if (isEmpty() || bl.isEmpty()) return false;
+    if (isEmpty() || bl.isEmpty()) { return false; }
 
     BL_ASSERT(ixType() == bl.ixType());
 

@@ -123,7 +123,7 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     int hi_x = static_cast<int>(amrex::Math::floor(hx));
 
     for (int i = lo_x; i <= hi_x; ++i) {
-        if (i < rho.begin.x || i >= rho.end.x) continue;
+        if (i < rho.begin.x || i >= rho.end.x) { continue; }
         amrex::Real wx = amrex::min(hx - static_cast<Real>(i), amrex::Real(1.0)) - amrex::max(lx - static_cast<Real>(i), amrex::Real(0.0));
         amrex::Real weight = wx*factor;
         amrex::Gpu::Atomic::AddNoRet(&rho(i, 0, 0, 0), static_cast<Real>(weight*p.rdata(0)));
@@ -132,7 +132,7 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     for (int comp = 1; comp < nc; ++comp)
     {
         for (int i = lo_x; i <= hi_x; ++i) {
-            if (i < rho.begin.x || i >= rho.end.x) continue;
+            if (i < rho.begin.x || i >= rho.end.x) { continue; }
             amrex::Real wx = amrex::min(hx - static_cast<Real>(i), amrex::Real(1.0)) - amrex::max(lx - static_cast<Real>(i), amrex::Real(0.0));
             amrex::Real weight = wx*factor;
             amrex::Gpu::Atomic::AddNoRet(&rho(i, 0, 0, comp), static_cast<Real>(weight*p.rdata(0)*p.rdata(comp)));
@@ -155,10 +155,10 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     int hi_y = static_cast<int>(amrex::Math::floor(hy));
 
     for (int j = lo_y; j <= hi_y; ++j) {
-        if (j < rho.begin.y || j >= rho.end.y) continue;
+        if (j < rho.begin.y || j >= rho.end.y) { continue; }
         amrex::Real wy = amrex::min(hy - static_cast<Real>(j), amrex::Real(1.0)) - amrex::max(ly - static_cast<Real>(j), amrex::Real(0.0));
         for (int i = lo_x; i <= hi_x; ++i) {
-            if (i < rho.begin.x || i >= rho.end.x) continue;
+            if (i < rho.begin.x || i >= rho.end.x) { continue; }
             amrex::Real wx = amrex::min(hx - static_cast<Real>(i), amrex::Real(1.0)) - amrex::max(lx - static_cast<Real>(i), amrex::Real(0.0));
             amrex::Real weight = wx*wy*factor;
             amrex::Gpu::Atomic::AddNoRet(&rho(i, j, 0, 0), static_cast<Real>(weight*p.rdata(0)));
@@ -167,10 +167,10 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
 
     for (int comp = 1; comp < nc; ++comp) {
         for (int j = lo_y; j <= hi_y; ++j) {
-            if (j < rho.begin.y || j >= rho.end.y) continue;
+            if (j < rho.begin.y || j >= rho.end.y) { continue; }
             amrex::Real wy = amrex::min(hy - static_cast<Real>(j), amrex::Real(1.0)) - amrex::max(ly - static_cast<Real>(j), amrex::Real(0.0));
             for (int i = lo_x; i <= hi_x; ++i) {
-                if (i < rho.begin.x || i >= rho.end.x) continue;
+                if (i < rho.begin.x || i >= rho.end.x) { continue; }
                 amrex::Real wx = amrex::min(hx - static_cast<Real>(i), amrex::Real(1.0)) - amrex::max(lx - static_cast<Real>(i), amrex::Real(0.0));
                 amrex::Real weight = wx*wy*factor;
                 amrex::Gpu::Atomic::AddNoRet(&rho(i, j, 0, comp), static_cast<Real>(weight*p.rdata(0)*p.rdata(comp)));
@@ -198,13 +198,13 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     int hi_z = static_cast<int>(amrex::Math::floor(hz));
 
     for (int k = lo_z; k <= hi_z; ++k) {
-        if (k < rho.begin.z || k >= rho.end.z) continue;
+        if (k < rho.begin.z || k >= rho.end.z) { continue; }
         amrex::Real wz = amrex::min(hz - static_cast<Real>(k), amrex::Real(1.0)) - amrex::max(lz - static_cast<Real>(k), amrex::Real(0.0));
         for (int j = lo_y; j <= hi_y; ++j) {
-            if (j < rho.begin.y || j >= rho.end.y) continue;
+            if (j < rho.begin.y || j >= rho.end.y) { continue; }
             amrex::Real wy = amrex::min(hy - static_cast<Real>(j), amrex::Real(1.0)) - amrex::max(ly - static_cast<Real>(j), amrex::Real(0.0));
             for (int i = lo_x; i <= hi_x; ++i) {
-                if (i < rho.begin.x || i >= rho.end.x) continue;
+                if (i < rho.begin.x || i >= rho.end.x) { continue; }
                 amrex::Real wx = amrex::min(hx - static_cast<Real>(i), amrex::Real(1.0)) - amrex::max(lx - static_cast<Real>(i), amrex::Real(0.0));
                 amrex::Real weight = wx*wy*wz*factor;
                 amrex::Gpu::Atomic::AddNoRet(&rho(i, j, k, 0), static_cast<Real>(weight*p.rdata(0)));
@@ -214,13 +214,13 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
 
     for (int comp = 1; comp < nc; ++comp) {
         for (int k = lo_z; k <= hi_z; ++k) {
-            if (k < rho.begin.z || k >= rho.end.z) continue;
+            if (k < rho.begin.z || k >= rho.end.z) { continue; }
             amrex::Real wz = amrex::min(hz - static_cast<Real>(k), amrex::Real(1.0)) - amrex::max(lz - static_cast<Real>(k), amrex::Real(0.0));
             for (int j = lo_y; j <= hi_y; ++j) {
-                if (j < rho.begin.y || j >= rho.end.y) continue;
+                if (j < rho.begin.y || j >= rho.end.y) { continue; }
                 amrex::Real wy = amrex::min(hy - static_cast<Real>(j), amrex::Real(1.0)) - amrex::max(ly - static_cast<Real>(j), amrex::Real(0.0));
                 for (int i = lo_x; i <= hi_x; ++i) {
-                    if (i < rho.begin.x || i >= rho.end.x) continue;
+                    if (i < rho.begin.x || i >= rho.end.x) { continue; }
                     amrex::Real wx = amrex::min(hx - static_cast<Real>(i), amrex::Real(1.0)) - amrex::max(lx - static_cast<Real>(i), amrex::Real(0.0));
                     amrex::Real weight = wx*wy*wz*factor;
                     amrex::Gpu::Atomic::AddNoRet(&rho(i, j, k, comp), static_cast<Real>(weight*p.rdata(0)*p.rdata(comp)));

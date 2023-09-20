@@ -478,7 +478,7 @@ template <typename MF>
 void
 MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
 {
-    if (!(this->hasRobinBC())) return;
+    if (!(this->hasRobinBC())) { return; }
 
     const int ncomp = this->getNComp();
     bool reset_alpha = false;
@@ -500,7 +500,7 @@ MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
         }
 
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -515,7 +515,7 @@ MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
                 const Box& bhi = amrex::adjCellHi(vbx,idim);
                 bool outside_domain_lo = !(domain.contains(blo));
                 bool outside_domain_hi = !(domain.contains(bhi));
-                if ((!outside_domain_lo) && (!outside_domain_hi)) continue;
+                if ((!outside_domain_lo) && (!outside_domain_hi)) { continue; }
                 for (int icomp = 0; icomp < ncomp; ++icomp) {
                     auto const& rbc = (*(this->m_robin_bcval[amrlev]))[mfi].const_array(icomp*3);
                     if (this->m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
@@ -736,7 +736,7 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
     const int ncomp = this->getNComp();
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && out.isFusingCandidate()) {
+    if (Gpu::inLaunchRegion()) {
         const auto& xma = in.const_arrays();
         const auto& yma = out.arrays();
         const auto& ama = acoef.arrays();
@@ -846,7 +846,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
     const RT alpha = m_a_scalar;
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && sol.isFusingCandidate()
+    if (Gpu::inLaunchRegion()
         && (this->m_overset_mask[amrlev][mglev] || regular_coarsening))
     {
         const auto& m0ma = mm0.const_arrays();
@@ -914,7 +914,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 #endif
     {
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1108,7 +1108,7 @@ MLABecLaplacianT<MF>::normalize (int amrlev, int mglev, MF& mf) const
     const int ncomp = getNComp();
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && mf.isFusingCandidate()) {
+    if (Gpu::inLaunchRegion()) {
         const auto& ma = mf.arrays();
         const auto& ama = acoef.const_arrays();
         AMREX_D_TERM(const auto& bxma = bxcoef.const_arrays();,
@@ -1166,7 +1166,7 @@ template <typename MF>
 std::unique_ptr<MLLinOpT<MF>>
 MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
 {
-    if (this->m_overset_mask[0][0] == nullptr) return nullptr;
+    if (this->m_overset_mask[0][0] == nullptr) { return nullptr; }
 
     const Geometry& geom = this->m_geom[0].back();
     const BoxArray& ba = this->m_grids[0].back();
@@ -1265,7 +1265,7 @@ template <typename MF>
 void
 MLABecLaplacianT<MF>::copyNSolveSolution (MF& dst, MF const& src) const
 {
-    if (this->m_overset_mask[0].back() == nullptr) return;
+    if (this->m_overset_mask[0].back() == nullptr) { return; }
 
     const int ncomp = dst.nComp();
 
