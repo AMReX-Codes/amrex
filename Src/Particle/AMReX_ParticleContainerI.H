@@ -1685,7 +1685,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             for (int comp = 0; comp < NumIntComps(); comp++) {
                                 soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
                             }
-                            correctCellVectors(last, pindex, grid, ptd[pindex]));
+                            correctCellVectors(last, pindex, grid, ptd[pindex]);
                             --last;
                             continue;
                         }
@@ -1739,7 +1739,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             for (int comp = 0; comp < NumIntComps(); comp++) {
                                 soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
                             }
-                            correctCellVectors(last, pindex, grid, ptd[pindex]));
+                            correctCellVectors(last, pindex, grid, ptd[pindex]);
                             --last;
                             continue;
                         }
