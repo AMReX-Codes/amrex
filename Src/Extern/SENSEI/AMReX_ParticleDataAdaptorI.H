@@ -582,7 +582,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshMetadata(
       {
         // loop over particles in ParticleTile
         auto& particle_tile = kv.second;
-        auto ptd = particle_tile.getParticleTileData();
+        auto ptd = particle_tile.getConstParticleTileData();
 
         // visit only the "real" particles, skip the "neighbor" particles.
         long long numReal = particle_tile.numRealParticles();
@@ -869,7 +869,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOARea
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
       auto& particle_attributes = pti.GetStructOfArrays();
-      auto ptd = pti.getParticleTileData();
+      auto ptd = pti.GetParticleTile().getParticleTileData();
 
       auto numReal = pti.numParticles();
       // shuffle from the AMReX component order
@@ -944,7 +944,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOAInt
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
       auto& particle_attributes = pti.GetStructOfArrays();
-      auto ptd = pti.getParticleTileData();
+      auto ptd = pti.GetParticleTile().getParticleTileData();
 
       auto numReal = pti.numParticles();
       // shuffle from the AMReX component order
