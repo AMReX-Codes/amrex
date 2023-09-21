@@ -33,6 +33,10 @@ public:
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
                  int a_eb_limit_coarsening = -1);
 
+    void setSmoothNumSweeps (int nsweeps) noexcept {
+        m_smooth_num_sweeps = nsweeps;
+    }
+
     void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/,
                              const MultiFab* = nullptr, const MultiFab* = nullptr,
                              const MultiFab* = nullptr) final {}
