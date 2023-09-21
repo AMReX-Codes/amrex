@@ -69,6 +69,9 @@ endif ()
 
 # Dimensionality
 add_amrex_define( AMREX_SPACEDIM=${AMReX_SPACEDIM} )
+foreach(D IN LISTS AMReX_SPACEDIM)
+    target_compile_definitions(amrex_${D}d PUBLIC AMREX_SPACEDIM=${D})
+endforeach()
 
 # System -- not used anywhere in the source code
 add_amrex_define( AMREX_${CMAKE_SYSTEM_NAME} )
@@ -86,9 +89,11 @@ if (AMReX_FORTRAN)
 
    # Fortran-specific defines, BL_LANG_FORT and AMREX_LANG_FORT do not get
    # stored in AMReX_Config.H
-   target_compile_definitions( amrex PRIVATE
-      $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT AMREX_LANG_FORT>
-      )
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       target_compile_definitions(amrex_${D}d PRIVATE
+          $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT AMREX_LANG_FORT>
+          )
+   endforeach()
 
    #
    # Fortran/C mangling scheme
@@ -152,12 +157,6 @@ if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
 endif()
 
 if (AMReX_CUDA OR AMReX_HIP)
-   add_amrex_define( AMREX_GPUS_PER_SOCKET=${GPUS_PER_SOCKET}
-      NO_LEGACY IF GPUS_PER_SOCKET)
-
-   add_amrex_define( AMREX_GPUS_PER_NODE=${GPUS_PER_NODE}
-      NO_LEGACY IF GPUS_PER_NODE)
-
    add_amrex_define( AMREX_USE_GPU_RDC NO_LEGACY IF AMReX_GPU_RDC )
 endif ()
 
@@ -184,6 +183,8 @@ add_amrex_define( AMREX_NO_PROBINIT NO_LEGACY IF_NOT AMReX_PROBINIT)
 # https://stackoverflow.com/questions/54560832/cmake-windows-export-all-symbols-does-not-cover-global-variables/54568678#54568678
 #
 if(WIN32 AND AMReX_BUILD_SHARED_LIBS)
-  add_amrex_define(AMREX_IS_DLL NO_LEGACY)
-  target_compile_definitions( amrex PRIVATE AMREX_IS_DLL_BUILDING)
+    add_amrex_define(AMREX_IS_DLL NO_LEGACY)
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        target_compile_definitions(amrex_${D}d PRIVATE AMREX_IS_DLL_BUILDING)
+    endforeach()
 endif()

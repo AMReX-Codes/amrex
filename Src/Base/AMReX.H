@@ -30,8 +30,8 @@ namespace amrex
 {
     class AMReX;
 
-    typedef void (*PTR_TO_VOID_FUNC)();
-    typedef void (*ErrorHandler) (const char* msg);
+    using PTR_TO_VOID_FUNC = void (*)();
+    using ErrorHandler = void (*)(const char*);
 
     namespace system
     {
@@ -109,7 +109,7 @@ namespace amrex
     //! Print out message to cerr and exit via amrex::Abort().
     void Error (const std::string& msg);
 
-    void Error_host (const char* msg);
+    void Error_host (const char* type, const char* msg);
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Error (const char* msg = nullptr) {
@@ -117,11 +117,11 @@ namespace amrex
 #if defined(NDEBUG)
         amrex::ignore_unused(msg);
 #else
-        if (msg) AMREX_DEVICE_PRINTF("Error %s\n", msg);
+        if (msg) { AMREX_DEVICE_PRINTF("Error %s\n", msg); }
         AMREX_DEVICE_ASSERT(0);
 #endif
 #else
-        Error_host(msg);
+        Error_host("Error", msg);
 #endif
     }
 
@@ -136,7 +136,7 @@ namespace amrex
 #if defined(NDEBUG)
         amrex::ignore_unused(msg);
 #else
-        if (msg) AMREX_DEVICE_PRINTF("Warning %s\n", msg);
+        if (msg) { AMREX_DEVICE_PRINTF("Warning %s\n", msg); }
 #endif
 #else
         Warning_host(msg);
@@ -146,19 +146,17 @@ namespace amrex
     //! Print out message to cerr and exit via abort().
     void Abort (const std::string& msg);
 
-    void Abort_host (const char * msg);
-
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Abort (const char * msg = nullptr) {
 #if AMREX_DEVICE_COMPILE
 #if defined(NDEBUG)
         amrex::ignore_unused(msg);
 #else
-        if (msg) AMREX_DEVICE_PRINTF("Abort %s\n", msg);
+        if (msg) { AMREX_DEVICE_PRINTF("Abort %s\n", msg); }
         AMREX_DEVICE_ASSERT(0);
 #endif
 #else
-        Abort_host(msg);
+        Error_host("Abort", msg);
 #endif
     }
 

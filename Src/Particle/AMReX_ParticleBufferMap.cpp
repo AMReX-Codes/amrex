@@ -57,15 +57,15 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
               {
                   int pid_a = std::get<2>(a);
                   int pid_b = std::get<2>(b);
-                  if (pid_a != pid_b) return pid_a < pid_b;
+                  if (pid_a != pid_b) { return pid_a < pid_b; }
 
                   int lev_a = std::get<1>(a);
                   int lev_b = std::get<1>(b);
-                  if (lev_a != lev_b) return lev_a < lev_b;
+                  if (lev_a != lev_b) { return lev_a < lev_b; }
 
                   int gid_a = std::get<0>(a);
                   int gid_b = std::get<0>(b);
-                  if (gid_a != gid_b) return gid_a < gid_b;
+                  if (gid_a != gid_b) { return gid_a < gid_b; }
 
                   return false;
               });
@@ -93,8 +93,9 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
 
     m_proc_box_offsets.resize(0);
     m_proc_box_offsets.push_back(0);
-    for (auto count : m_proc_box_counts)
+    for (auto count : m_proc_box_counts) {
         m_proc_box_offsets.push_back(m_proc_box_offsets.back() + count);
+    }
 
     d_bucket_to_pid.resize(0);
     d_bucket_to_pid.resize(num_buckets);
@@ -113,10 +114,10 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
 
 bool ParticleBufferMap::isValid (const ParGDBBase* a_gdb) const
 {
-    if (!m_defined) return false;
+    if (!m_defined) { return false; }
 
     int num_levs = a_gdb->finestLevel() + 1;
-    if (num_levs != m_ba.size()) return false;
+    if (num_levs != m_ba.size()) { return false; }
 
     bool valid = true;
     for (int lev = 0; lev < num_levs; ++lev)

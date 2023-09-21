@@ -83,6 +83,12 @@ public:
     [[nodiscard]] const BoxArray& boxArray () const noexcept;
     [[nodiscard]] const Geometry& Geom () const noexcept { return m_geom; }
 
+    [[nodiscard]] bool hasEBInfo() const noexcept;
+
+    //! Returns nullptr unless this level is built by EB2::addRegularCoarseLevels.
+    //! One should use getMultiEBCellFlagFab for normal levels.
+    [[nodiscard]] iMultiFab const* getCutCellMask () const noexcept { return m_ebdc->getCutCellMask(); }
+
 private:
 
     EBSupport m_support;

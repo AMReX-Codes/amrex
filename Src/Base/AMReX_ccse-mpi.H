@@ -43,22 +43,22 @@ namespace amrex::ParallelDescriptor
 
 #else
 
-typedef int MPI_Op;
-typedef int MPI_Comm;
-typedef int MPI_Group;
-typedef int MPI_Datatype;
+using MPI_Op       = int;
+using MPI_Comm     = int;
+using MPI_Group    = int;
+using MPI_Datatype = int;
+using MPI_Request  = int;
 struct MPI_Status {};
-typedef int MPI_Request;
-const int MPI_DATATYPE_NULL = 0;
-const int MPI_REQUEST_NULL  = 0;
-const int MPI_COMM_WORLD    = 0;
-const int MPI_COMM_NULL     = 0;
-const int MPI_GROUP_NULL    = 0;
-const int MPI_PROC_NULL     = 0;
-const int MPI_MAX_PROCESSOR_NAME = 64;
+static constexpr int MPI_DATATYPE_NULL = 0;
+static constexpr int MPI_REQUEST_NULL  = 0;
+static constexpr int MPI_COMM_WORLD    = 0;
+static constexpr int MPI_COMM_NULL     = 0;
+static constexpr int MPI_GROUP_NULL    = 0;
+static constexpr int MPI_PROC_NULL     = 0;
+static constexpr int MPI_MAX_PROCESSOR_NAME = 64;
 
-const int MPI_MINLOC = 0;
-const int MPI_MAXLOC = 0;
+static constexpr int MPI_MINLOC = 0;
+static constexpr int MPI_MAXLOC = 0;
 
 namespace amrex::ParallelDescriptor
 {

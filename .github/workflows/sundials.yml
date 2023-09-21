@@ -23,7 +23,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -65,6 +65,7 @@ jobs:
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   sundials-cuda:
     name: CUDA SUNDIALS@6.5.0
@@ -77,12 +78,12 @@ jobs:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc12.sh
+        .github/workflows/dependencies/dependencies_nvcc.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v3
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -131,6 +132,7 @@ jobs:
         cmake --build build -j 2
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   save_pr_number:
     if: github.event_name == 'pull_request'

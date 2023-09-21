@@ -14,7 +14,7 @@ namespace amrex {
 void
 MLNodeLaplacian::buildIntegral ()
 {
-    if (m_integral_built) return;
+    if (m_integral_built) { return; }
 
     BL_PROFILE("MLNodeLaplacian::buildIntegral()");
 
@@ -35,7 +35,7 @@ MLNodeLaplacian::buildIntegral ()
             const auto& bcent = factory->getBndryCent();
 
             MFItInfo mfi_info;
-            if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+            if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -83,7 +83,7 @@ MLNodeLaplacian::buildIntegral ()
 void
 MLNodeLaplacian::buildSurfaceIntegral ()
 {
-    if (m_surface_integral_built) return;
+    if (m_surface_integral_built) { return; }
 
     BL_PROFILE("MLNodeLaplacian::buildSurfaceIntegral()");
 
@@ -105,7 +105,7 @@ MLNodeLaplacian::buildSurfaceIntegral ()
             const auto& barea = factory->getBndryArea();
 
             MFItInfo mfi_info;
-            if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+            if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

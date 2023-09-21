@@ -15,37 +15,37 @@ namespace amrex {
 
 extern "C"
 {
-    typedef void (*BndryFuncDefault)(Real* data, AMREX_ARLIM_P(lo), AMREX_ARLIM_P(hi),
-                                     const int* dom_lo, const int* dom_hi,
-                                     const Real* dx, const Real* grd_lo,
-                                     const Real* time, const int* bc);
-    typedef void (*BndryFunc3DDefault)(Real* data, const int* lo, const int* hi,
-                                       const int* dom_lo, const int* dom_hi,
-                                       const Real* dx, const Real* grd_lo,
-                                       const Real* time, const int* bc);
+    using BndryFuncDefault = void (*)(Real* data, AMREX_ARLIM_P(lo), AMREX_ARLIM_P(hi),
+                                      const int* dom_lo, const int* dom_hi,
+                                      const Real* dx, const Real* grd_lo,
+                                      const Real* time, const int* bc);
+    using BndryFunc3DDefault = void (*)(Real* data, const int* lo, const int* hi,
+                                        const int* dom_lo, const int* dom_hi,
+                                        const Real* dx, const Real* grd_lo,
+                                        const Real* time, const int* bc);
 }
 
-typedef void (*UserFillBox) (Box const& bx, Array4<Real> const& dest,
-                             const int dcomp, const int numcomp,
-                             GeometryData const& geom, const Real time,
-                             const BCRec* bcr, const int bcomp,
-                             const int orig_comp);
+using UserFillBox = void (*)(Box const& bx, Array4<Real> const& dest,
+                             int dcomp, int numcomp,
+                             GeometryData const& geom, Real time,
+                             const BCRec* bcr, int bcomp,
+                             int orig_comp);
 
 //! This version calls function working on array
 class BndryFuncArray
 {
 public:
-    BndryFuncArray () noexcept {}
+    BndryFuncArray () noexcept = default;
     BndryFuncArray (BndryFuncDefault inFunc) noexcept : m_func(inFunc) {}
     BndryFuncArray (BndryFunc3DDefault inFunc) noexcept : m_func3D(inFunc) {}
 
     void operator() (Box const& bx, FArrayBox& dest,
-                     const int dcomp, const int numcomp,
-                     Geometry const& geom, const Real time,
-                     const Vector<BCRec>& bcr, const int bcomp,
-                     const int orig_comp);
+                     int dcomp, int numcomp,
+                     Geometry const& geom, Real time,
+                     const Vector<BCRec>& bcr, int bcomp,
+                     int orig_comp);
 
-    bool RunOnGPU () const noexcept { return m_run_on_gpu; }
+    [[nodiscard]] bool RunOnGPU () const noexcept { return m_run_on_gpu; }
 //    void setRunOnGPU (bool b) noexcept { m_run_on_gpu = b; }
 
 protected:
@@ -68,26 +68,35 @@ public:
     GpuBndryFuncFab (F&& a_f) : m_user_f(std::move(a_f)) {}
 
     void operator() (Box const& bx, FArrayBox& dest,
-                     const int dcomp, const int numcomp,
-                     Geometry const& geom, const Real time,
-                     const Vector<BCRec>& bcr, const int bcomp,
-                     const int orig_comp);
+                     int dcomp, int numcomp,
+                     Geometry const& geom, Real time,
+                     const Vector<BCRec>& bcr, int bcomp,
+                     int orig_comp);
 
     template <class FF>
     void ccfcdoit (Box const& bx, FArrayBox& dest,
-                   const int dcomp, const int numcomp,
-                   Geometry const& geom, const Real time,
-                   const Vector<BCRec>& bcr, const int bcomp,
-                   const int orig_comp, FF&& ff);
+                   int dcomp, int numcomp,
+                   Geometry const& geom, Real time,
+                   const Vector<BCRec>& bcr, int bcomp,
+                   int orig_comp, FF&& fillfunc);
 
     void nddoit (Box const& bx, FArrayBox& dest,
-                 const int dcomp, const int numcomp,
-                 Geometry const& geom, const Real time,
-                 const Vector<BCRec>& bcr, const int bcomp,
-                 const int orig_comp);
+                 int dcomp, int numcomp,
+                 Geometry const& geom, Real time,
+                 const Vector<BCRec>& bcr, int bcomp,
+                 int orig_comp);
 
 protected:
     F m_user_f;
+};
+
+struct FabFillNoOp
+{
+    AMREX_GPU_DEVICE
+    void operator() (const amrex::IntVect&, amrex::Array4<amrex::Real> const&,
+                     int, int, amrex::GeometryData const&, amrex::Real,
+                     const amrex::BCRec*, int, int) const
+    {}
 };
 
 //! This cpu version calls function working on FArrayBox
@@ -98,10 +107,10 @@ public:
     CpuBndryFuncFab (UserFillBox a_f) : f_user(a_f) {}
 
     void operator() (Box const& bx, FArrayBox& dest,
-                     const int dcomp, const int numcomp,
-                     Geometry const& geom, const Real time,
-                     const Vector<BCRec>& bcr, const int bcomp,
-                     const int orig_comp);
+                     int dcomp, int numcomp,
+                     Geometry const& geom, Real time,
+                     const Vector<BCRec>& bcr, int bcomp,
+                     int orig_comp);
 
 protected:
     UserFillBox f_user = nullptr;
@@ -119,7 +128,7 @@ template <class F>
 class PhysBCFunct
 {
 public:
-    PhysBCFunct () {}
+    PhysBCFunct () = default;
 
     PhysBCFunct (const Geometry& geom, const Vector<BCRec>& bcr, F const& f)
         : m_geom(geom), m_bcr(bcr), m_f(f)
@@ -128,8 +137,6 @@ public:
     PhysBCFunct (const Geometry& geom, const Vector<BCRec>& bcr, F&& f)
         : m_geom(geom), m_bcr(bcr), m_f(std::move(f))
         {}
-
-    ~PhysBCFunct () {}
 
     void define (const Geometry& geom, const Vector<BCRec>& bcr, F const& f) {
         m_geom = geom; m_bcr = bcr; m_f = f;
@@ -142,7 +149,7 @@ public:
     void operator() (MultiFab& mf, int icomp, int ncomp, IntVect const& nghost,
                      Real time, int bccomp)
     {
-        if (m_geom.isAllPeriodic()) return;
+        if (m_geom.isAllPeriodic()) { return; }
 
         BL_PROFILE("PhysBCFunct::()");
 
@@ -181,9 +188,10 @@ public:
     }
 
     // For backward compatibility
-    void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
+    void FillBoundary (MultiFab& mf, int icomp, int ncomp, IntVect const& nghost,
                        Real time, int bccomp) {
-        this->operator()(mf,dcomp,ncomp,nghost,time,bccomp);
+        // NOLINTNEXTLINE(readability-suspicious-call-argument)
+        this->operator()(mf,icomp,ncomp,nghost,time,bccomp);
     }
 
 private:
@@ -195,10 +203,10 @@ private:
 template <class F>
 void
 GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
-                                const int dcomp, const int numcomp,
-                                Geometry const& geom, const Real time,
-                                const Vector<BCRec>& bcr, const int bcomp,
-                                const int orig_comp)
+                                int dcomp, int numcomp,
+                                Geometry const& geom, Real time,
+                                const Vector<BCRec>& bcr, int bcomp,
+                                int orig_comp)
 {
 #if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ == 6)
     // The compiler is allowed to always reject static_assert(false,..) even
@@ -220,10 +228,10 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
 template <class F>
 void
 GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
-                            const int dcomp, const int numcomp,
-                            Geometry const& geom, const Real time,
-                            const Vector<BCRec>& bcr, const int bcomp,
-                            const int orig_comp)
+                            int dcomp, int numcomp,
+                            Geometry const& geom, Real time,
+                            const Vector<BCRec>& bcr, int bcomp,
+                            int orig_comp)
 {
     const IntVect& len = bx.length();
 
@@ -235,7 +243,7 @@ GpuBndryFuncFab<F>::nddoit (Box const& bx, FArrayBox& dest,
         }
     }
 
-    if (gdomain.contains(bx)) return;
+    if (gdomain.contains(bx)) { return; }
 
     Array4<Real> const& fab = dest.array();
     const auto geomdata = geom.data();
@@ -344,10 +352,10 @@ template <class F>
 template <class FF>
 void
 GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
-                              const int dcomp, const int numcomp,
-                              Geometry const& geom, const Real time,
-                              const Vector<BCRec>& bcr, const int bcomp,
-                              const int orig_comp, FF&& fillfunc)
+                              int dcomp, int numcomp,
+                              Geometry const& geom, Real time,
+                              const Vector<BCRec>& bcr, int bcomp,
+                              int orig_comp, FF&& fillfunc)
 {
     const IntVect& len = bx.length();
 
@@ -360,7 +368,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
         }
     }
 
-    if (gdomain.contains(bx)) return;
+    if (gdomain.contains(bx)) { return; }
 
     Array4<Real> const& fab = dest.array();
     const auto geomdata = geom.data();
@@ -384,7 +392,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
         Vector<Box> face_boxes;
         for (const Box& b : dom_face_boxes) {
             Box tmp = b & bx;
-            if (tmp.ok()) face_boxes.push_back(tmp);
+            if (tmp.ok()) { face_boxes.push_back(tmp); }
         }
         const int n_face_boxes = face_boxes.size();
         if (n_face_boxes == 1) {
@@ -444,7 +452,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
         Vector<Box> edge_boxes;
         for (const Box& b : dom_edge_boxes) {
             Box tmp = b & bx;
-            if (tmp.ok()) edge_boxes.push_back(tmp);
+            if (tmp.ok()) { edge_boxes.push_back(tmp); }
         }
         const int n_edge_boxes = edge_boxes.size();
         if (n_edge_boxes == 1) {
@@ -492,7 +500,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
         Vector<Box> corner_boxes;
         for (const Box& b : dom_corner_boxes) {
             Box tmp = b & bx;
-            if (tmp.ok()) corner_boxes.push_back(tmp);
+            if (tmp.ok()) { corner_boxes.push_back(tmp); }
         }
         const int n_corner_boxes = corner_boxes.size();
         if (n_corner_boxes == 1) {

@@ -101,18 +101,35 @@ public:
                     p.pos(2) = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
 #endif
 
-                    for (int i = 0; i < NSR; ++i) p.rdata(i) = ParticleReal(p.id());
-                    for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
+                    if constexpr (NSR > 0) {
+                        for (int i = 0; i < NSR; ++i) {
+                            p.rdata(i) = ParticleReal(p.id());
+                        }
+                    }
+                    if constexpr (NSI > 0) {
+                        for (int i = 0; i < NSI; ++i) {
+                            p.idata(i) = p.id();
+                        }
+                    }
 
                     host_particles.push_back(p);
-                    for (int i = 0; i < NAR; ++i)
-                        host_real[i].push_back(ParticleReal(p.id()));
-                    for (int i = 0; i < NAI; ++i)
-                        host_int[i].push_back(int(p.id()));
-                    for (int i = 0; i < NumRuntimeRealComps(); ++i)
+
+                    if constexpr (NAR > 0) {
+                        for (int i = 0; i < NAR; ++i) {
+                            host_real[i].push_back(ParticleReal(p.id()));
+                        }
+                    }
+                    if constexpr (NAI > 0) {
+                        for (int i = 0; i < NAI; ++i) {
+                            host_int[i].push_back(int(p.id()));
+                        }
+                    }
+                    for (int i = 0; i < NumRuntimeRealComps(); ++i) {
                         host_runtime_real[i].push_back(ParticleReal(p.id()));
-                    for (int i = 0; i < NumRuntimeIntComps(); ++i)
+                    }
+                    for (int i = 0; i < NumRuntimeIntComps(); ++i) {
                         host_runtime_int[i].push_back(int(p.id()));
+                    }
                 }
             }
 
@@ -188,8 +205,9 @@ void test_async_io(TestParams& parms)
 
     // Define the refinement ratio
     Vector<IntVect> rr(nlevs-1);
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         rr[lev-1] = IntVect(AMREX_D_DECL(2, 2, 2));
+    }
 
     // This sets the boundary conditions to be doubly or triply periodic
     int is_per[] = {AMREX_D_DECL(1,1,1)};
@@ -290,8 +308,9 @@ int main(int argc, char* argv[])
   pp.get("max_grid_size", parms.max_grid_size);
   pp.get("nlevs", parms.nlevs);
   pp.get("nppc", parms.nppc);
-  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
+  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
+  }
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);

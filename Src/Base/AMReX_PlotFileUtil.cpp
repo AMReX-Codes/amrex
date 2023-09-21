@@ -202,7 +202,7 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
             HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
                                                     std::ofstream::trunc |
                                                     std::ofstream::binary);
-            if( ! HeaderFile.good()) FileOpenFailed(HeaderFileName);
+            if( ! HeaderFile.good()) { FileOpenFailed(HeaderFileName); }
             WriteGenericPlotfileHeader(HeaderFile, nlevels, boxArrays, varnames,
                                        geom, time, level_steps, ref_ratio, versionName,
                                        levelPrefix, mfPrefix);

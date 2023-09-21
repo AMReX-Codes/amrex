@@ -437,7 +437,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | CMAKE_CXX_STANDARD           |  C++ standard                                   | compiler/17             | 17, 20                |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_SPACEDIM               |  Dimension of AMReX build                       | 3                       | 1, 2, 3               |
+   | AMReX_SPACEDIM               |  Dimension of AMReX build                       | 3 ``;``-separated list  | "1;2;3"               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | USE_XSDK_DEFAULTS            |  Use xSDK defaults settings                     | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -469,7 +469,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_EB                     |  Build Embedded Boundary support                | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_PARTICLES              |  Build particle classes                         | NO                      | YES, NO               |
+   | AMReX_PARTICLES              |  Build particle classes                         | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PARTICLES_PRECISION    |  Set reals precision in particle classes        | Same as AMReX_PRECISION | DOUBLE, SINGLE        |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -523,6 +523,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_PLOTFILE_TOOLS         |  Build and install plotfile postprocessing tools| NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_ENABLE_TESTS           |  Enable CTest suite                             | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_TEST_TYPE              |  Test type -- affects the number of tests       | All                     | All, Small            |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_DIFFERENT_COMPILER     |  Allow an app to use a different compiler       | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -589,7 +591,6 @@ the following line in the appropriate CMakeLists.txt file:
 
     target_link_libraries( <your-target-name> PUBLIC AMReX::<amrex-target-name> )
 
-
 In the above snippet, ``<amrex-target-name>`` is any of the targets listed in the table below.
 
 .. raw:: latex
@@ -603,7 +604,13 @@ In the above snippet, ``<amrex-target-name>`` is any of the targets listed in th
    +-----------------------+-------------------------------------------------+
    | Target name           | Description                                     |
    +=======================+=================================================+
-   | amrex                 |  AMReX library                                  |
+   | amrex_1d              |  AMReX library in 1D                            |
+   +-----------------------+-------------------------------------------------+
+   | amrex_2d              |  AMReX library in 2D                            |
+   +-----------------------+-------------------------------------------------+
+   | amrex_3d              |  AMReX library in 3D                            |
+   +-----------------------+-------------------------------------------------+
+   | amrex                 |  AMReX library (alias, points to last dim)      |
    +-----------------------+-------------------------------------------------+
    | Flags_CXX             |  C++ flags preset (interface)                   |
    +-----------------------+-------------------------------------------------+
@@ -712,7 +719,7 @@ As an example, consider the following CMake code:
 ::
 
     find_package(AMReX REQUIRED 3D EB)
-    target_link_libraries( Foo PUBLIC AMReX::amrex )
+    target_link_libraries(Foo PUBLIC AMReX::amrex_3d)
 
 The code in the snippet above checks whether an AMReX installation with 3D and Embedded Boundary support
 is available on the system. If so, AMReX is linked to target ``Foo`` and AMReX flags preset is used

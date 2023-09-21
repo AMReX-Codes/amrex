@@ -117,11 +117,11 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                      dx, &dt,&level);
 
                     if (fr_as_crse) {
-                        fr_as_crse->CrseAdd(mfi,{&flux[0],&flux[1],&flux[2]},dx,dt,RunOn::Cpu);
+                        fr_as_crse->CrseAdd(mfi,{flux.data(),flux.data()+1,flux.data()+2},dx,dt,RunOn::Cpu);
                     }
 
                     if (fr_as_fine) {
-                        fr_as_fine->FineAdd(mfi,{&flux[0],&flux[1],&flux[2]},dx,dt,RunOn::Cpu);
+                        fr_as_fine->FineAdd(mfi,{flux.data(),flux.data()+1,flux.data()+2},dx,dt,RunOn::Cpu);
                     }
                 }
                 else
@@ -159,7 +159,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                         dx, &dt,&level);
 
                     if (fr_as_crse) {
-                        fr_as_crse->CrseAdd(mfi, {&flux[0],&flux[1],&flux[2]}, dx,dt,
+                        fr_as_crse->CrseAdd(mfi, {flux.data(),flux.data()+1,flux.data()+2}, dx,dt,
                                             (*volfrac)[mfi],
                                             {&((*areafrac[0])[mfi]),
                                              &((*areafrac[1])[mfi]),
@@ -168,7 +168,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                     }
 
                     if (fr_as_fine) {
-                        fr_as_fine->FineAdd(mfi, {&flux[0],&flux[1],&flux[2]}, dx,dt,
+                        fr_as_fine->FineAdd(mfi, {flux.data(),flux.data()+1,flux.data()+2}, dx,dt,
                                             (*volfrac)[mfi],
                                             {&((*areafrac[0])[mfi]),
                                              &((*areafrac[1])[mfi]),

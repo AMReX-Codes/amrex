@@ -2,10 +2,10 @@
 #define AMREX_MLPOISSON_2D_K_H_
 #include <AMReX_Config.H>
 
+#if (AMREX_SPACEDIM == 2)
 namespace amrex {
-
-#if (AMREX_SPACEDIM != 2)
-namespace TwoD {
+#else
+namespace amrex::TwoD {
 #endif
 
 template <typename T>
@@ -315,10 +315,6 @@ void mlpoisson_normalize (int i, int j, int, Array4<T> const& x,
     T rc = probxlo + (i+T(0.5))*dx;
     x(i,j,0) /= (-dhx*(rel+rer) - dhy*rc*T(2.0));
 }
-
-#if (AMREX_SPACEDIM != 2)
-}
-#endif
 
 }
 

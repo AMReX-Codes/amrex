@@ -1,5 +1,39 @@
 #include "AMReX_NonLocalBC.H"
 
+namespace amrex::NonLocalBC::detail {
+void split_boxes (BoxList& bl, Box const& domain)
+{
+    BoxList bltmp(bl.ixType());
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        for (auto& b : bl) {
+            if (b.smallEnd(idim) < domain.smallEnd(idim) &&
+                b.bigEnd(idim) >= domain.smallEnd(idim))
+            {
+                auto btmp = b;
+                b.setBig(idim,domain.smallEnd(idim)-1);
+                btmp.setSmall(idim,domain.smallEnd(idim));
+                bltmp.push_back(btmp);
+            }
+        }
+        bl.join(bltmp);
+        bltmp.clear();
+
+        for (auto& b : bl) {
+            if (b.smallEnd(idim) <= domain.bigEnd(idim) &&
+                b.bigEnd(idim) > domain.bigEnd(idim))
+            {
+                auto btmp = b;
+                b.setBig(idim,domain.bigEnd(idim));
+                btmp.setSmall(idim,domain.bigEnd(idim)+1);
+                bltmp.push_back(btmp);
+            }
+        }
+        bl.join(bltmp);
+        bltmp.clear();
+    }
+}
+}
+
 namespace amrex::NonLocalBC {
 
 #ifdef AMREX_USE_MPI
@@ -17,7 +51,7 @@ void PrepareCommBuffers(CommData& comm,
     comm.stats.clear();
 
     const auto N_comms = static_cast<int>(cctc.size());
-    if (N_comms == 0) return;
+    if (N_comms == 0) { return; }
     // reserve for upcominf push_backs
     comm.data.reserve(N_comms);
     comm.size.reserve(N_comms);
@@ -61,7 +95,7 @@ void PrepareCommBuffers(CommData& comm,
     }
     else
     {
-        comm.the_data.reset(static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume)));
+        comm.the_data.reset(static_cast<char*>(amrex::The_Comms_Arena()->alloc(total_volume)));
         for (int i = 0; i < N_comms; ++i) {
             comm.data[i] = comm.the_data.get() + comm.offset[i];
         }
@@ -104,6 +138,6 @@ void PostSends(CommData& send, int mpi_tag) {
 template MultiBlockCommMetaData ParallelCopy(FabArray<FArrayBox>& dest, const Box& destbox,
                                              const FabArray<FArrayBox>& src, int destcomp,
                                              int srccomp, int numcomp, const IntVect& ngrow,
-                                             MultiBlockIndexMapping, Identity);
+                                             MultiBlockIndexMapping const&, Identity const&);
 
 }

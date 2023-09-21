@@ -1,0 +1,10 @@
+insitu.size = (32, 64, 64)
+insitu.max_grid_size = 32
+insitu.is_periodic = 1
+insitu.num_ppc = 1
+insitu.nlevs = 1
+
+insitu.num_runtime_real = 0
+insitu.num_runtime_int = 0
+
+particles.do_tiling=1

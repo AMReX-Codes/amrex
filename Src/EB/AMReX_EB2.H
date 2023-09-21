@@ -56,6 +56,7 @@ public:
     [[nodiscard]] virtual const Geometry& getGeometry (const Box& domain) const = 0;
     [[nodiscard]] virtual const Box& coarsestDomain () const = 0;
     virtual void addFineLevels (int num_new_fine_levels) = 0;
+    virtual void addRegularCoarseLevels (int num_new_coarse_levels) = 0;
 
 protected:
     static AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > m_instance;
@@ -88,6 +89,7 @@ public:
         return m_geom.back().Domain();
     }
     void addFineLevels (int num_new_fine_levels) final;
+    void addRegularCoarseLevels (int num_new_coarse_levels) final;
 
     using F = typename G::FunctionType;
 
@@ -124,7 +126,7 @@ Build (const G& gshop, const Geometry& geom,
                                           ngrow, build_coarse_level_by_coarsening,
                                           extend_domain_face,
                                           num_coarsen_opt));
-}
+} // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 
 void Build (const Geometry& geom,
             int required_coarsening_level,
@@ -146,6 +148,8 @@ int maxCoarseningLevel (const Geometry& geom);
 int maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom);
 
 void addFineLevels (int num_new_fine_levels);
+
+void addRegularCoarseLevels (int num_new_coarse_levels);
 
 }
 

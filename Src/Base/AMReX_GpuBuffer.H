@@ -20,7 +20,7 @@ public:
     Buffer (std::initializer_list<T> init)
         : m_size(init.size())
     {
-        if (m_size == 0) return;
+        if (m_size == 0) { return; }
 #ifdef AMREX_USE_GPU
         h_data = static_cast<T*>(The_Pinned_Arena()->alloc(m_size*sizeof(T)));
 #else
@@ -39,7 +39,7 @@ public:
     Buffer (T const* h_p, const std::size_t n)
         : m_size(n)
     {
-        if (m_size == 0) return;
+        if (m_size == 0) { return; }
 #ifdef AMREX_USE_GPU
         h_data = static_cast<T*>(The_Pinned_Arena()->alloc(m_size*sizeof(T)));
 #else
@@ -73,8 +73,8 @@ public:
     void clear ()
     {
 #ifdef AMREX_USE_GPU
-        if (d_data) The_Arena()->free(d_data);
-        if (h_data) The_Pinned_Arena()->free(h_data);
+        if (d_data) { The_Arena()->free(d_data); }
+        if (h_data) { The_Pinned_Arena()->free(h_data); }
 #else
         std::free(h_data);
 #endif

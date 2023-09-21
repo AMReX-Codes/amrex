@@ -40,16 +40,16 @@ extern "C"
     * \param level
     * \param grid_no
     */
-    typedef void (*DeriveFunc)(amrex::Real* data, AMREX_ARLIM_P(dlo), AMREX_ARLIM_P(dhi),
-                               const int* nvar, const amrex::Real* compdat,
-                               AMREX_ARLIM_P(compdat_lo), AMREX_ARLIM_P(compdat_hi),
-                               const int* ncomp,
-                               const int* lo, const int* hi,
-                               const int* domain_lo, const int* domain_hi,
-                               const amrex::Real* delta, const amrex::Real* xlo,
-                               const amrex::Real* time, const amrex::Real* dt,
-                               const int* bcrec,
-                               const int* level, const int* grid_no) ;
+    using DeriveFunc = void (*)(amrex::Real* data, AMREX_ARLIM_P(dlo), AMREX_ARLIM_P(dhi),
+                                const int* nvar, const amrex::Real* compdat,
+                                AMREX_ARLIM_P(compdat_lo), AMREX_ARLIM_P(compdat_hi),
+                                const int* ncomp,
+                                const int* lo, const int* hi,
+                                const int* domain_lo, const int* domain_hi,
+                                const amrex::Real* delta, const amrex::Real* xlo,
+                                const amrex::Real* time, const amrex::Real* dt,
+                                const int* bcrec,
+                                const int* level, const int* grid_no) ;
 
     /**
     * \brief This is dimension agnostic.  For example, dlo always has three elements.
@@ -74,19 +74,19 @@ extern "C"
     * \param level
     * \param grid_no
     */
-    typedef void (*DeriveFunc3D)(amrex::Real* data, const int* dlo, const int* dhi, const int* nvar,
-                                 const amrex::Real* compdat, const int* clo, const int* chi, const int* ncomp,
-                                 const int* lo, const int* hi,
-                                 const int* domain_lo, const int* domain_hi,
-                                 const amrex::Real* delta, const amrex::Real* xlo,
-                                 const amrex::Real* time, const amrex::Real* dt,
-                                 const int* bcrec,
-                                 const int* level, const int* grid_no) ;
+    using DeriveFunc3D = void (*)(amrex::Real* data, const int* dlo, const int* dhi, const int* nvar,
+                                  const amrex::Real* compdat, const int* clo, const int* chi, const int* ncomp,
+                                  const int* lo, const int* hi,
+                                  const int* domain_lo, const int* domain_hi,
+                                  const amrex::Real* delta, const amrex::Real* xlo,
+                                  const amrex::Real* time, const amrex::Real* dt,
+                                  const int* bcrec,
+                                  const int* level, const int* grid_no) ;
 }
 
-  typedef std::function<void(const amrex::Box& bx, amrex::FArrayBox& derfab, int dcomp, int ncomp,
-                 const amrex::FArrayBox& datafab, const amrex::Geometry& geomdata,
-                 amrex::Real time, const int* bcrec, int level)> DeriveFuncFab;
+using DeriveFuncFab = std::function<void(const amrex::Box& bx, amrex::FArrayBox& derfab, int dcomp, int ncomp,
+                                         const amrex::FArrayBox& datafab, const amrex::Geometry& geomdata,
+                                         amrex::Real time, const int* bcrec, int level)>;
 
 class DescriptorList;
 
@@ -111,7 +111,7 @@ public:
     * \brief A pointer to function taking and returning a Box.
     *
     */
-    typedef std::function<Box(const Box&)> DeriveBoxMap;
+    using DeriveBoxMap = std::function<Box(const Box&)>;
 
     static Box TheSameBox (const Box& box) noexcept;
 
@@ -122,60 +122,65 @@ public:
     */
     ~DeriveRec ();
 
+    DeriveRec (DeriveRec const&) = delete;
+    DeriveRec (DeriveRec &&) = delete;
+    DeriveRec& operator= (DeriveRec const&) = delete;
+    DeriveRec& operator= (DeriveRec &&) = delete;
+
     /**
     * \brief The name of the derived type.
     */
-    const std::string& name () const noexcept;
+    [[nodiscard]] const std::string& name () const noexcept;
 
     /**
     * \brief The names of components
     *
     * \param comp
     */
-    const std::string& variableName (int comp) const noexcept;
+    [[nodiscard]] const std::string& variableName (int comp) const noexcept;
 
     /**
     * \brief The IndexType of the derived type.
     */
-    IndexType deriveType () const noexcept;
+    [[nodiscard]] IndexType deriveType () const noexcept;
 
     /**
     * \brief The DeriveFunc used to calculate the derived type.
     */
-    DeriveFunc    derFunc    () const noexcept;
-    DeriveFunc3D  derFunc3D  () const noexcept;
-    DeriveFuncFab derFuncFab () const noexcept;
+    [[nodiscard]] DeriveFunc    derFunc    () const noexcept;
+    [[nodiscard]] DeriveFunc3D  derFunc3D  () const noexcept;
+    [[nodiscard]] DeriveFuncFab derFuncFab () const noexcept;
 
     /**
     * \brief Maps state data box to derived data box.
     */
-    DeriveBoxMap boxMap () const noexcept;
+    [[nodiscard]] DeriveBoxMap boxMap () const noexcept;
 
     /**
     * \brief Type of interpolater to use in computing derived type.
     */
-    Interpolater* interp () const noexcept;
+    [[nodiscard]] Interpolater* interp () const noexcept;
 
     /**
     * \brief Number of components in the derived type.
     */
-    int numDerive () const noexcept;
+    [[nodiscard]] int numDerive () const noexcept;
 
     /**
     * \brief Number of different chunks of state data needed for derived type.
     */
-    int numRange () const noexcept;
+    [[nodiscard]] int numRange () const noexcept;
 
     /**
     * \brief Total number of state variables needed for derived type.
     */
-    int numState () const noexcept;
+    [[nodiscard]] int numState () const noexcept;
 
     /**
     * \brief The boundary conditions.
     */
-    const int* getBC () const noexcept;
-    const int* getBC3D () const noexcept;
+    [[nodiscard]] const int* getBC () const noexcept;
+    [[nodiscard]] const int* getBC3D () const noexcept;
 
     /**
     * \brief Sets state_indx, src_comp and num_comp for the kth
@@ -344,22 +349,25 @@ public:
     */
     DeriveList () = default;
 
+    ~DeriveList () = default;
     DeriveList (const DeriveList&) = delete;
+    DeriveList (DeriveList &&) = delete;
     DeriveList& operator= (const DeriveList&) = delete;
+    DeriveList& operator= (DeriveList &&) = delete;
 
     /**
     * \brief Determines whether quantity identified by \<name\> is in the registry.
     *
     * \param name
     */
-    bool canDerive (const std::string& name) const;
+    [[nodiscard]] bool canDerive (const std::string& name) const;
 
     /**
     * \brief Access the particular record in registry.
     *
     * \param name
     */
-    const DeriveRec* get (const std::string& name) const;
+    [[nodiscard]] const DeriveRec* get (const std::string& name) const;
 
     /**
     * \brief Adds another entry to the registry.
@@ -456,7 +464,7 @@ public:
                        int                   s_comp,
                        int                   n_comp);
 
-    std::list<DeriveRec>& dlist ();
+    [[nodiscard]] std::list<DeriveRec>& dlist ();
 
     void clear () { lst.clear(); }
 

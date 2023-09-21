@@ -10,7 +10,7 @@ namespace amrex {
 
 class MultiFabCopyDescriptor;
 
-typedef FabArrayId MultiFabId;
+using MultiFabId = FabArrayId;
 
 void InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
                    BoxList*                returnUnfilledBoxes,

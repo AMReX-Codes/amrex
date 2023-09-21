@@ -76,8 +76,10 @@ endif
 
 ifeq ($(findstring alcf.anl.gov, $(host_name)),alcf.anl.gov)
   ifeq ($(findstring theta, $(host_name)), theta)
+  ifneq ($(findstring thetagpu, $(host_name)), thetagpu)
     which_site := alcf
     which_computer := theta
+  endif
   endif
   ifeq ($(findstring polaris, $(host_name)), polaris)
     which_site := alcf
@@ -125,13 +127,13 @@ ifeq ($(findstring aurora, $(host_name)), aurora)
   which_computer := aurora
 endif
 
+ifeq ($(findstring kestrel, $(NREL_CLUSTER)), kestrel)
+  which_site := nrel
+  which_computer := kestrel
+endif
 ifeq ($(findstring eagle, $(NREL_CLUSTER)), eagle)
   which_site := nrel
   which_computer := eagle
-endif
-ifeq ($(findstring rhodes, $(NREL_CLUSTER)), rhodes)
-  which_site := nrel
-  which_computer := rhodes
 endif
 
 ifeq ($(findstring daint, $(host_name)), daint)

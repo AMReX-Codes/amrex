@@ -56,7 +56,6 @@ else
 endif
 
 ifeq ($(USE_HIP),TRUE)
-  DEBUG := FALSE  # Currently there is a compiler bug for DEBUG=TRUE.
   USE_CUDA := FALSE
   override COMP = hip
   ifneq ($(NO_CONFIG_CHECKING),TRUE)
@@ -992,6 +991,10 @@ ifeq ($(USE_CLANG_TIDY),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.clang-tidy
 endif
 
+ifeq ($(USE_COVERITY),TRUE)
+  DEFINES += -DAMREX_USE_COVERITY
+endif
+
 # place holder
 F90CACHE =
 
@@ -1083,11 +1086,11 @@ else ifeq ($(USE_HIP),TRUE)
     endif
 
     ifeq ($(HIP_SAVE_TEMPS),TRUE)
+      ifeq ($(USE_GPU_RDC),TRUE)
+        $(warning *** HIP_SAVE_TEMPS requires USE_GPU_RDC=FALSE to obtain the assembly files for AMD GPU kernels.)
+      endif
       # Issue: hipcc does not seem to respect the arg to --save-temps
       CXXFLAGS += --save-temps=$(objEXETempDir)
-      ifeq ($(DEBUG),TRUE) # --save-temps does not like AMREX_GPU_EXTERNAL
-        CPPFLAGS += -DNDEBUG
-      endif
     endif
 
 else ifeq ($(USE_CUDA),TRUE)
@@ -1110,7 +1113,7 @@ else ifeq ($(USE_CUDA),TRUE)
         MAKE_CUDA_PATH := $(SYSTEM_CUDA_PATH)
     endif
 
-    LIBRARIES += -lcuda
+    LIBRARIES += -lcuda -lcurand
 
     ifneq ($(MAKE_CUDA_PATH),)
         LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64
@@ -1145,16 +1148,6 @@ else ifeq ($(USE_CUDA),TRUE)
        LIBRARY_LOCATIONS += $(MAKE_NVML_PATH)
        DEFINES += -DAMREX_USE_NVML
 
-    endif
-
-    # Provide system configuration, if available.
-
-    ifdef GPUS_PER_SOCKET
-       DEFINES += -DAMREX_GPUS_PER_SOCKET=$(GPUS_PER_SOCKET)
-    endif
-
-    ifdef GPUS_PER_NODE
-       DEFINES += -DAMREX_GPUS_PER_NODE=$(GPUS_PER_NODE)
     endif
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)

@@ -34,7 +34,7 @@ class AmrInSituBridge;
 class Amr
     : public AmrCore
 {
-  typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
+    using BoundaryPointList = std::multimap< std::pair<int, int>, double >;
 
 public:
     //! The constructor.
@@ -407,8 +407,8 @@ protected:
     std::string      regrid_grids_file;   //!< Grids file that will bypass regridding.
     std::string      initial_grids_file;  //!< Grids file that will bypass regridding only at initialization.
     Vector<std::unique_ptr<AmrLevel> > amr_level;    //!< Vector of levels
-    Real             cumtime;      //!< Physical time variable.
-    Real             start_time;   //!< Physical time this simulation started.
+    Real             cumtime = std::numeric_limits<Real>::lowest();      //!< Physical time variable.
+    Real             start_time = std::numeric_limits<Real>::lowest();   //!< Physical time this simulation started.
     Vector<Real>      dt_level;     //!< Timestep at this level.
     Vector<int>       level_steps;  //!< Number of time steps at this level.
     Vector<int>       level_count;
@@ -434,7 +434,7 @@ protected:
     std::string      plot_file_root;  //!< Root name of plotfile.
     std::string      small_plot_file_root;  //!< Root name of small plotfile.
 
-    int              which_level_being_advanced; //!< Only >=0 if we are in Amr::timeStep(level,...)
+    int              which_level_being_advanced = -1; //!< Only >=0 if we are in Amr::timeStep(level,...)
 
     int              record_grid_info;
     int              record_run_info;

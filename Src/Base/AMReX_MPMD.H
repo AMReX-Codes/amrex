@@ -41,7 +41,7 @@ void Copier::send (FabArray<FAB> const& mf, int icomp, int ncomp) const
 {
     const auto N_snds = static_cast<int>(m_SndTags.size());
 
-    if (N_snds == 0) return;
+    if (N_snds == 0) { return; }
 
     // Prepare buffer
 
@@ -108,7 +108,7 @@ void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
 {
     const auto N_rcvs = static_cast<int>(m_RcvTags.size());
 
-    if (N_rcvs == 0) return;
+    if (N_rcvs == 0) { return; }
 
     // Prepare buffer
 

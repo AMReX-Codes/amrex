@@ -51,7 +51,7 @@ namespace {
                                               Real dlevset)
     {
         if ((dlevset > 0._rt && norm.x > 0._rt) || (dlevset < 0._rt && norm.x < 0._rt))
-        { // This triangle has the wrong direction // NOLINT(bugprone-branch-clone)
+        { // This triangle has the wrong direction
             return std::make_pair(false,0.0_rt);
         }
         else if (x1 > amrex::max(v1.x,v2.x,v3.x) ||
@@ -140,6 +140,7 @@ STLtools::read_binary_stl_file (std::string const& fname, Real scale,
 
         uint32_t numtris; // uint32 - Number of triangles - 4 bytes
         amrex::readIntData<uint32_t,uint32_t>(&numtris, 1, is, uint32_descr);
+        AMREX_ASSERT(numtris < uint32_t(std::numeric_limits<int>::max()));
         m_num_tri = static_cast<int>(numtris);
         m_tri_pts_h.resize(m_num_tri);
 

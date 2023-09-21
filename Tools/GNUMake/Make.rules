@@ -264,7 +264,9 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
 endif
 ifeq ($(USE_CLANG_TIDY),TRUE)
-	$(SILENT) $(CLANG_TIDY) $(CLANG_TIDY_ARGS) $< -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
+# for each word in CLANG_TIDY_IGNORE_SOURCES, check if that word is in the absolute path of the source file
+# if any word matches, the result will be non-empty after stripping whitespace, so clang-tidy won't be run
+	$(if $(strip $(foreach pat,$(CLANG_TIDY_IGNORE_SOURCES),$(findstring $(pat),$(abspath $<)))),,$(SILENT) $(CLANG_TIDY) $(CLANG_TIDY_ARGS) $< -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs))
 endif
 	$(SILENT) $(CCACHE_COMMAND) $(CCACHEFLAGS) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs) -c $< $(EXE_OUTPUT_OPTION)
 ifeq ($(LOG_BUILD_TIME),TRUE)

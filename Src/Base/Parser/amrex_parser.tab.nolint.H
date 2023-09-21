@@ -1241,7 +1241,7 @@ yyreduce:
     break;
 
   case 19: /* exp: '-' exp  */
-                             { (yyval.n) = amrex::parser_newnode(amrex::PARSER_NEG, (yyvsp[0].n), nullptr); }
+                             { (yyval.n) = amrex::parser_newneg((yyvsp[0].n)); }
     break;
 
   case 20: /* exp: '+' exp  */
