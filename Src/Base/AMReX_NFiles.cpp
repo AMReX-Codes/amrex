@@ -346,8 +346,6 @@ NFilesIter &NFilesIter::operator++() {
 
 #ifdef BL_USE_MPI
 
-  ParallelDescriptor::Message rmess;
-
   if(isReading) {
     fileStream.close();
 
@@ -451,7 +449,7 @@ NFilesIter &NFilesIter::operator++() {
 
             ParallelDescriptor::Send(&nextFileNumberToWrite, 1, nextProcToWrite, writeTag);
 
-            rmess = ParallelDescriptor::Recv(&nextFileNumberAvailable, 1, MPI_ANY_SOURCE, doneTag);
+            ParallelDescriptor::Recv(&nextFileNumberAvailable, 1, MPI_ANY_SOURCE, doneTag);
             availableFileNumbers.insert(nextFileNumberAvailable);
             --remainingWriters;
             }

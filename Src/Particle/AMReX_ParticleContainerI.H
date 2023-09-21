@@ -66,7 +66,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <typename P>
+template <typename P, typename Assignor>
 IntVect
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::Index (const P& p, int lev) const
 {
@@ -75,7 +75,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     const auto plo = geom.ProbLoArray();
     const auto dxi = geom.InvCellSizeArray();
 
-    return CellAssignor{}(p, plo, dxi, domain);
+    return Assignor{}(p, plo, dxi, domain);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -196,11 +196,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             AMREX_ASSERT(ba.ixType().cellCentered());
 
             if (local_grid < 0) {
-                iv = Index(p_prime, lev);
+                iv = Index<amrex::Particle<0, 0>, DefaultAssignor>(p_prime, lev);
                 ba.intersections(Box(iv, iv), isects, true, 0);
                 grid = isects.empty() ? -1 : isects[0].first;
             } else {
-                iv = Index(p_prime, lev);
+                iv = Index<amrex::Particle<0, 0>, DefaultAssignor>(p_prime, lev);
                 if (ba[local_grid].contains(iv))
                 {
                     grid = local_grid;
@@ -586,7 +586,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                               amrex::Array4<amrex::Real> const& count)
         {
             const auto& p = make_particle<ConstParticleType>{}(ptd, ip);
-            auto iv = getParticleCell(p, plo, dxi, domain);
+            CellAssignor assignor;
+            IntVect iv = assignor(p, plo, dxi, domain);
             amrex::Gpu::Atomic::AddNoRet(&count(iv), 1.0_rt);
         }, false);
 }
@@ -2042,16 +2043,17 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             {
                 char* pbuf = ((char*) &recvdata[offset]) + i*superparticle_size;
 
-                Particle<0, 0> p;
-                ParticleReal pos[AMREX_SPACEDIM];
-                std::memcpy(&pos[0], pbuf, AMREX_SPACEDIM*sizeof(ParticleReal));
-                AMREX_D_TERM(p.pos(0) = pos[0];,
-                             p.pos(1) = pos[1];,
-                             p.pos(2) = pos[2]);
+                Particle<NStructReal, NStructInt> p;
 
                 if constexpr (!ParticleType::is_soa_particle) {
-                    std::memcpy(&(p.m_idcpu), pbuf + NumRealComps()*sizeof(ParticleReal), sizeof(uint64_t));
+                   std::memcpy(&p, pbuf, sizeof(ParticleType));
                 } else {
+                    ParticleReal pos[AMREX_SPACEDIM];
+                    std::memcpy(&pos[0], pbuf, AMREX_SPACEDIM*sizeof(ParticleReal));
+                    AMREX_D_TERM(p.pos(0) = pos[0];,
+                                 p.pos(1) = pos[1];,
+                                 p.pos(2) = pos[2]);
+
                     int idcpu[2];
                     std::memcpy(&idcpu[0], pbuf + NumRealComps()*sizeof(ParticleReal), 2*sizeof(int));
 
