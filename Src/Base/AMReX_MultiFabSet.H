@@ -4,6 +4,7 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
+#include <AMReX_BaseFabArraySet.H>
 
 namespace amrex {
 
@@ -26,10 +27,10 @@ namespace amrex {
  * 
  * \tparam N The number of MultiFabs in the set.
  */
-// class MultiFabSet : public Array<MultiFab&, N>
-
 template <std::size_t N>
 class MultiFabSet
+    :
+    public BaseMultiFabSet<MultiFab>
 {
 public:
 
@@ -45,13 +46,33 @@ public:
 
     /**
      * \brief Make an alias MultiFabSet. maketype must be
-     * amrex::make_alias.  scomp is the starting component of the
-     * alias and ncomp is the number of components in the new aliasing
-     * MultiFabSet.
+     * 
+     * \param mfs Starting MultiFabSet
+     * \param maketype maketype must be amrex::make_alias
+     * \param scompMF The starting MultiFab component index of the alias
+     * \param ncompMF The number of components in each MultiFab the alias
      */
-    MultiFabSet (const MultiFabSet<N>& mfs, MakeType maketype, int scomp, int ncomp);
+    MultiFabSet (const MultiFabSet<N>& mfs, MakeType maketype, int scompMF = 0, int ncompMF = 1);
 
-    MultiFabSet (const BoxArray& bxs, const DM& dm, int ncomp, const IntVect& ngrow,
+    /**
+     * \brief Construct a new MultiFabSet<N>
+     * 
+     * \param ncompMF Number of components that each MultiFab element has
+     * \param ngrow 
+     * \param info 
+     * \param factory
+     * \param ncompSet Number of components in the 
+     * \param ix_type_array If not null, overrides ngrow for each MF element of the MultiFabSet.
+     */
+    MultiFabSet (const BoxArray& bxs, const DM& dm, int ncompMF, const IntVect& ngrow,
+#ifdef AMREX_STRICT_MODE
+                 const MFInfo& info, const FABFactory& factory,
+#else
+                 const MFInfo& info = MFInfo(), const FABFactory& factory = FArrayBoxFactory(),
+#endif
+                 const Array<IntVect,N>* ix_type_array = nullptr);
+
+    MultiFabSet (const BoxArray& bxs, const DM& dm, int ncompMF, const Array<IntVect,N>& ngrowSet,
 #ifdef AMREX_STRICT_MODE
                  const MFInfo& info, const FABFactory& factory,
 #else
@@ -62,7 +83,28 @@ public:
     /**
      * \brief Generate MultiFabSet from Array<MultiFab,N>
      */
-    MultiFabSet (Array<MF,N> mfarray);
+    MultiFabSet (const Array<const MF&,N>& mfarray);
+
+    
+    MF& operator[] (int i) noexcept { return *m_mf_array[i]; }
+    const MF& operator[] (int i) const noexcept { return *m_mf_array[i]; }
+
+    MF& getElem (int i) noexcept { return *m_mf_array[i]; }
+    const MF& getElem (int i) const noexcept { return *m_mf_array[i]; }
+
+    MF* getElemPtr (int i) noexcept { return m_mf_array[i]; }
+    MF const* getElemPtr (int i) const noexcept { return m_mf_array[i]; }
+    
+    // void setElem (int i, MF* mfptr) { m_mf_array[i] = mfptr; }
+    // void setElem (int i, const MF* mfptr) { m_mf_array[i] = mfptr; }
+    // void setElem (int i, MF& mf) { m_mf_array[i] = &mf; }
+    // void setElem (int i, const MF& mf) { m_mf_array[i] = &mf; }
+
+    void setElem (int i, MF *mfptr) { m_mf_array[i] = *mfptr; }
+    void setElem (int i, const MF *mfptr) { m_mf_array[i] = *mfptr; }
+    void setElem (int i, MF &mf) { m_mf_array[i] = mf; }
+    void setElem (int i, const MF &mf) { m_mf_array[i] = mf; }
+
 
     /**
      * \brief Set constant value for selected Multifabs
@@ -102,16 +144,15 @@ public:
      */
     void clear ();
 
-    MF* getPtr (int i) { return m_mf_array[i]; }
+    
+    int nComp() { return N; } //Could also return nComp of the first component...
 
-    void setPtr(int i, MF* mfptr) { m_mf_array[i] = mfptr}
-
-    MF getElem (int i) { return *m_mf_array[i]; }
-
-    void setElem(int i, MF mf) { m_mf_array[i] = *mf; }
+    bool isAllRegular() const noexcept;
 
 private:
-    Array<MF*, N> m_mf_array;
+    // Array<MF*,N> m_mf_array;
+
+    MF* m_mf_array;
 
 };
 

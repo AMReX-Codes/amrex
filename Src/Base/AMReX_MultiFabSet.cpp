@@ -25,7 +25,7 @@ using RT = Real;
 template <std::size_t N>
 MultiFabSet<N>::MultiFabSet (const MultiFabSet<N>& src, MakeType maketype, int scomp, int ncomp) {
     for (int i = 0; i < N; ++i) {
-        this->setPtr(*MultiFab(src.getElem(i), maketype, scomp, ncomp))
+        (*this).setPtr(MultiFab(src.getElem(i), maketype, scomp, ncomp));
         // (*this).setElem(i, MultiFab(src.getElem(i), maketype, scomp, ncomp));
     }
 }
@@ -33,29 +33,25 @@ MultiFabSet<N>::MultiFabSet (const MultiFabSet<N>& src, MakeType maketype, int s
 template <std::size_t N>
 MultiFabSet<N>::MultiFabSet (const BoxArray& bxs, const DM& dm, int ncomp, const IntVect& ngrow, 
                              const MFInfo& info, const FABFactory& factory, const Array<IntVect,N>* ix_type_array) {
-    // Vector<const IntVect&> test_iv_vec;
-    // Vector<IntVect> test_iv_vec;
-    // Array<IntVect,3> test_iv_vec;
-    // Array<IntVect,N> test_iv_vec;
-    // const IntVect& test_iv;
-    const Array<IntVect,3>* ix_type_array_2;
-    Array<const IntVect&,3>* ix_type_array_3;
     if (ix_type_array) {
         for (int i = 0; i < N; ++i) {
             BoxArray bxs_tmp = bxs;
-            bxs_tmp.convert((*ix_type_array_2)[i]);
-            this->setPtr(*MultiFab(bxs_tmp, dm, ncomp, ngrow, info, factory));
+            bxs_tmp.convert((*ix_type_array)[i]);
+            (*this).setPtr(*MultiFab(bxs_tmp, dm, ncomp, ngrow, info, factory));
         }
-    } else {
+    }
+    else {
         for (int i = 0; i < N; ++i) {
-            this->setPtr(*MultiFab(bxs, dm, ncomp, ngrow, info, factory));
+            (*this).setElem(i, MF(bxs, dm, ncomp, ngrow, info, factory));
         }
     }
 }
 
 template <std::size_t N>
-MultiFabSet<N>::MultiFabSet (Array<MF,N> mfarray){
-
+MultiFabSet<N>::MultiFabSet (const Array<const MF&,N>& mfarray) {
+    for (int i = 0; i < N; ++i) {
+        (*this).setElem(i, mfarray[i]);
+    }
 }
 
 template <std::size_t N>
@@ -68,19 +64,18 @@ MultiFabSet<N>::setVal (RT val, int start_index, int num_of_MF) {
 
 template <std::size_t N>
 RT
-MultiFabSet<N>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
+MultiFabSet<N>::norminf (int compSet, int ncompSet, IntVect const& nghost, bool local,
                         [[maybe_unused]] bool ignore_covered) const {
     RT result = RT(0);
-    for (int i = comp; i < comp + ncomp; ++i) {
-        // const MF& mf = (*this)[i];
+    for (int i = compSet; i < compSet + ncompSet; ++i) {
         const auto& mf = (*this).getElem(i);
-        result = std::max(result, mf.norminf(0, mf.nComp(), nghost, local, nghost));
+        result = std::max(result, mf.norminf(0, mf.nComp(), nghost, local, ignore_covered));
     }
     return result;
 }
 
 template<std::size_t N>
-void 
+void
 MultiFabSet<N>::LocalCopy (const MultiFabSet<N>& src, int scomp, int dcomp, int ncomp,
                            IntVect const& nghost, bool use_nGrowVect = false) {
     // Define common variables:
@@ -109,6 +104,24 @@ MultiFabSet<N>::LocalCopy (const MultiFabSet<N>& src, int scomp, int dcomp, int 
     }
 }
 
+template<std::size_t N>
+void
+MultiFabSet<N>::clear() {
+    for (int i; i < N; ++i) {
+        (*this).getElem(i).clear();
+        (*this).setPtr(i, nullptr);
+    }
+}
+
+bool
+MultiFabSet<N>::isAllRegular() const noexcept {
+    for (MF* mfptr : m_mf_array) {
+        if (!(mfptr->isAllRegular())) {
+            return false;
+        }
+    }
+    return true;
+}
 
 
 
