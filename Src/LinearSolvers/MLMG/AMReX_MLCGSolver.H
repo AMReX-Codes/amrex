@@ -194,6 +194,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
         // sh.LocalCopy(s,0,0,ncomp,nghost); // s is not needed
+        
         sh.LocalCopy(r,0,0,ncomp,nghost);
         Lp.apply(amrlev, mglev, t, sh, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, t);
@@ -202,8 +203,8 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         // in the following two dotxy()s.  We do that by calculating the "local"
         // values and then reducing the two local values at the same time.
         //
-        // RT tvals[2] = { dotxy(t,t,true), dotxy(t,s,true) }; // s is not needed
         RT tvals[2] = { dotxy(t,t,true), dotxy(t,r,true) };
+        // RT tvals[2] = { dotxy(t,t,true), dotxy(t,s,true) }; // s is not needed
 
         BL_PROFILE_VAR("MLCGSolver::ParallelAllReduce", blp_par);
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());

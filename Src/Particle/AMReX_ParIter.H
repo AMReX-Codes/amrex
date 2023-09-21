@@ -111,13 +111,14 @@ protected:
 };
 
 template <typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
-          template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+          template<class> class Allocator=DefaultAllocator, class T_CellAssignor=DefaultAssignor>
 class ParIter_impl
-    : public ParIterBase_impl<false, T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
+    : public ParIterBase_impl<false, T_ParticleType, NArrayReal, NArrayInt, Allocator, T_CellAssignor>
 {
 public:
 
     using ParticleType=T_ParticleType;
+    using CellAssignor=T_CellAssignor;
     static constexpr int NStructReal = ParticleType::NReal;
     static constexpr int NStructInt = ParticleType::NInt;
 
@@ -139,13 +140,14 @@ public:
 };
 
 template <typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
-          template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+          template<class> class Allocator=DefaultAllocator, class T_CellAssignor=DefaultAssignor>
 class ParConstIter_impl
-    : public ParIterBase_impl<true,T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
+    : public ParIterBase_impl<true,T_ParticleType, NArrayReal, NArrayInt, Allocator, T_CellAssignor>
 {
 public:
 
     using ParticleType     = T_ParticleType;
+    using CellAssignor     = T_CellAssignor;
     using ContainerType    = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;

@@ -17,6 +17,7 @@
 #include <list>
 #include <numeric>
 #include <regex>
+#include <stdexcept>
 #include <set>
 #include <sstream>
 #include <string>
@@ -538,6 +539,13 @@ read_file (const char* fname, std::list<ParmParse::PP_entry>& tab)
     //
     if ( fname != nullptr && fname[0] != 0 )
     {
+#ifdef AMREX_USE_MPI
+        if (ParallelDescriptor::Communicator() == MPI_COMM_NULL)
+        {
+            throw std::runtime_error("read_file: AMReX must be initialized");
+        }
+#endif
+
         Vector<char> fileCharPtr;
         std::string filename = fname;
         ParallelDescriptor::ReadAndBcastFile(filename, fileCharPtr);
@@ -1069,6 +1077,13 @@ ParmParse::prefixedName (const std::string& str) const
 
 void
 ParmParse::addfile (std::string const& filename) {
+#ifdef AMREX_USE_MPI
+    if (ParallelDescriptor::Communicator() == MPI_COMM_NULL)
+    {
+        throw std::runtime_error("ParmParse::addfile: AMReX must be initialized");
+    }
+#endif
+
     auto l = std::list<std::string>{filename};
     auto file = FileKeyword;
     addDefn(file,

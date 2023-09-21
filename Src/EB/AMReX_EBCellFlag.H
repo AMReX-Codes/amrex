@@ -318,6 +318,11 @@ public:
     FabType getType (const Box& bx) const noexcept;
 
     /**
+     * \brief Reset FabType
+     */
+    void resetType (int ng);
+
+    /**
      * \brief Returns the number of regular cells in the given Box.
      */
     int getNumRegularCells (const Box& bx) const noexcept;

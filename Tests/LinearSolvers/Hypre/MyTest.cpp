@@ -129,10 +129,10 @@ MyTest::solve ()
 
         // For variable n at (i,j,k) in Box boxno (local index), fill its row in
         // the matrix.
-        // [in ] gid : gid[n] is the id for variable n at (i,j,k)
-        // [out] ncols: # of columns in this row.
-        // [out] cols: column indices in this row.
-        // [out] mat : matrix elemens in this row.
+        // [in ] gid    gid[n] is the id for variable n at (i,j,k)
+        // [out] ncols  # of non-zero columns in this row.
+        // [out] cols   array of indices of columns with a non-zero matrix element in this row.
+        // [out] mat    array of (non-zero) matrix elements in this row.
         auto filler = [=] AMREX_GPU_DEVICE (int boxno, int i, int j, int k, int n,
                                             Array4<HYPRE_Int const> const* gid,
                                             HYPRE_Int& ncols, HYPRE_Int* cols,
