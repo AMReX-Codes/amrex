@@ -2206,13 +2206,15 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
               const auto& src_tile = kv.second;
 
               auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
-              auto old_size = dst_tile.GetArrayOfStructs().size();
+              auto old_size = dst_tile.size();
               auto new_size = old_size + src_tile.size();
               dst_tile.resize(new_size);
 
-              Gpu::copyAsync(Gpu::hostToDevice,
-                             src_tile.begin(), src_tile.end(),
-                             dst_tile.GetArrayOfStructs().begin() + old_size);
+              if constexpr(! ParticleType::is_soa_particle) {
+                  Gpu::copyAsync(Gpu::hostToDevice,
+                                 src_tile.begin(), src_tile.end(),
+                                 dst_tile.GetArrayOfStructs().begin() + old_size);
+              }
 
               for (int i = 0; i < NumRealComps(); ++i) {
                   Gpu::copyAsync(Gpu::hostToDevice,
