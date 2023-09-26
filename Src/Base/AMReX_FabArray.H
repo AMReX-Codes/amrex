@@ -723,7 +723,7 @@ public:
     *
     * \param comp   component
     * \param nghost number of ghost cells
-    * \param local  If true, MPI communciation is skipped.
+    * \param local  If true, MPI communication is skipped.
     */
     template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
     typename F::value_type
@@ -1205,7 +1205,7 @@ public:
      * \param comp           starting component
      * \param ncomp          number of components
      * \param nghost         number of ghost cells
-     * \param local          If true, MPI communciation is skipped.
+     * \param local          If true, MPI communication is skipped.
      * \param ignore_covered ignore covered cells. Only relevant for cell-centered EB data.
      */
     template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
@@ -1220,7 +1220,7 @@ public:
      * \param comp   starting component
      * \param ncomp  number of components
      * \param nghost number of ghost cells
-     * \param local  If true, MPI communciation is skipped.
+     * \param local  If true, MPI communication is skipped.
      */
     template <typename IFAB, typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
     typename F::value_type

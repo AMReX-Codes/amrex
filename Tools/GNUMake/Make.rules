@@ -527,7 +527,7 @@ print-%:
 	@echo '     value = $(subst ','"'"',$(value  $*))'
 # We need to use subst on the result of $(value) because it contains single
 # quotes.  Shell command echo does not like things like 'x'$(filiter-out)'y',
-# because what it sees is 'x', $(filter-out), and 'y'.  With the substition, it
+# because what it sees is 'x', $(filter-out), and 'y'.  With the substitution, it
 # will see 'x', "'", '$(filter-out)', "'", and 'y', with $(filter-out) inside a
 # pair of single quotes.
 

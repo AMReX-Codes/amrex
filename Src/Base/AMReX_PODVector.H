@@ -422,7 +422,7 @@ namespace amrex
 
         iterator insert (const_iterator a_pos, T&& a_item)
         {
-            // This is *POD* vector afterall
+            // This is *POD* vector after all
             return insert(a_pos, 1, a_item);
         }
 

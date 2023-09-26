@@ -25,7 +25,7 @@ MyTest::MyTest ()
 void
 MyTest::solve ()
 {
-    // In this example, we assume the domain boundary is homegeneous Dirichlet.
+    // In this example, we assume the domain boundary is homogeneous Dirichlet.
 
     auto const& nddom = amrex::surroundingNodes(geom.Domain());
     const auto dxi = geom.InvCellSizeArray();
@@ -51,7 +51,7 @@ MyTest::solve ()
         // [in ] gid : gid[n] is the id for variable n at (i,j,k)
         // [out] ncols: # of columns in this row.
         // [out] cols: column indices in this row.
-        // [out] mat : matrix elemens in this row.
+        // [out] mat : matrix elements in this row.
         auto filler = [=] AMREX_GPU_DEVICE (int /*boxno*/, int i, int j, int k, int n,
                                             Array4<HYPRE_Int const> const* gid,
                                             HYPRE_Int& ncols, HYPRE_Int* cols,

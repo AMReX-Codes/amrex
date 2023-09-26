@@ -408,8 +408,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             else
             {
                 // This counts command line arguments before a "--"
-                // and only sends the preceeding arguments to ParmParse;
-                // the rest get ingored.
+                // and only sends the preceding arguments to ParmParse;
+                // the rest get ignored.
                 int ppargc = 1;
                 for (; ppargc < argc; ++ppargc) {
                     if (std::strcmp(argv[ppargc], "--") == 0) { break; }
@@ -514,7 +514,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             pp.queryAdd("handle_sigfpe" , system::handle_sigfpe );
             pp.queryAdd("handle_sigill" , system::handle_sigill );
 
-            // We save the singal handlers and restore them in Finalize.
+            // We save the signal handlers and restore them in Finalize.
             if (system::handle_sigsegv) {
                 prev_handler_sigsegv = std::signal(SIGSEGV, BLBackTrace::handler);
             } else {

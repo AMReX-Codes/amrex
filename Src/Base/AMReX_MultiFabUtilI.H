@@ -64,7 +64,7 @@ namespace amrex::MFUtil {
 
 
         //! Regrid (by duplication) class T (which must be either of type
-        //! MultiFab or iMultiFab) usign the new BoxArray and
+        //! MultiFab or iMultiFab) using the new BoxArray and
         //! DistributionMapping. The boolean flag `regrid_ghost` switched
         //! between the SymmetricGhost and AsymmetricGhost copy functions.
         template<typename T>
