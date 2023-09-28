@@ -384,7 +384,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     finest_level = -1;
 
 #ifdef AMREX_USE_BITTREE
-    pp.get("use_bittree",use_bittree);
+    pp.queryAdd("use_bittree",use_bittree);
 #endif
 
     if (check_input) { checkInput(); }
