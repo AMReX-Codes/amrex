@@ -81,7 +81,7 @@ extern "C" {
             np = particle_tile.numParticles();
             if (np > 0) {
                 auto& aos = particle_tile.GetArrayOfStructs();
-                dp = reinterpret_cast<FParticleContainer::ParticleType*>(aos.data());
+                dp = aos.data();
             } else {
                 dp = nullptr;
             }
@@ -127,7 +127,7 @@ extern "C" {
             np = particle_tile.numParticles();
             if (np > 0) {
                 auto& aos = particle_tile.GetArrayOfStructs();
-                dp = reinterpret_cast<FParticleContainer::ParticleType*>(aos.data());
+                dp = aos.data();
             } else {
                 dp = nullptr;
             }
