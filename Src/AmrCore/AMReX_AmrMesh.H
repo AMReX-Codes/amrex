@@ -268,7 +268,7 @@ protected:
 
 #ifdef AMREX_USE_BITTREE
     bool use_bittree = false;
-    std::shared_ptr<bittree::BittreeAmr> btmesh;
+    std::unique_ptr<bittree::BittreeAmr> btmesh;
 #endif
 
     unsigned int num_setdm = 0;
