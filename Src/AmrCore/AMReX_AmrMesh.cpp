@@ -927,7 +927,7 @@ AmrMesh::MakeNewGrids (Real time)
             int ngrids = AMREX_D_TERM(top[0],*top[1],*top[2]);
             std::vector<int> includes(ngrids,1);
 
-            btmesh = std::make_shared<bittree::BittreeAmr>(top.data(),includes.data());
+            btmesh = std::make_unique<bittree::BittreeAmr>(top.data(),includes.data());
 
             // Set BCs
             for(int d=0; d<AMREX_SPACEDIM; ++d) {
