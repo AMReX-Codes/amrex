@@ -336,7 +336,7 @@ bool btUnit::checkNeighborsRefine(BittreeAmr* const mesh, MortonTree::Block b) {
     return false;
 }
 
-/** Calculate integer coordinates of neighbors, taking into acount BCs.
+/** Calculate integer coordinates of neighbors, taking into account BCs.
   * Currently assuming Periodic in all directions.
   */
 std::vector<int> btUnit::neighIntCoords(BittreeAmr* const mesh,
