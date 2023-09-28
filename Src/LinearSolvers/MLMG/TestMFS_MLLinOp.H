@@ -1,5 +1,3 @@
-#ifndef AMREX_ML_LINOP_H_
-#define AMREX_ML_LINOP_H_
 #include <AMReX_Config.H>
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
@@ -24,81 +22,32 @@
 #include <string>
 
 // TEST additons:
-#include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabSet.H>
 #include <AMReX_MLLinOp.H>
 
 namespace amrex {
 
-using MF = typename amrex::MultiFab;
+using MFSet = typename amrex::MultiFabSet;
 
-enum class BottomSolver : int {
-    Default, smoother, bicgstab, cg, bicgcg, cgbicg, hypre, petsc
-};
-
-struct LPInfo
-{
-    bool do_agglomeration = true;
-    bool do_consolidation = true;
-    bool do_semicoarsening = false;
-    int agg_grid_size = -1;
-    int con_grid_size = -1;
-    int con_ratio = 2;
-    int con_strategy = 3;
-    bool has_metric_term = true;
-    int max_coarsening_level = 30;
-    int max_semicoarsening_level = 0;
-    int semicoarsening_direction = -1;
-    int hidden_direction = -1;
-
-    LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
-    LPInfo& setConsolidation (bool x) noexcept { do_consolidation = x; return *this; }
-    LPInfo& setSemicoarsening (bool x) noexcept { do_semicoarsening = x; return *this; }
-    LPInfo& setAgglomerationGridSize (int x) noexcept { agg_grid_size = x; return *this; }
-    LPInfo& setConsolidationGridSize (int x) noexcept { con_grid_size = x; return *this; }
-    LPInfo& setConsolidationRatio (int x) noexcept { con_ratio = x; return *this; }
-    LPInfo& setConsolidationStrategy (int x) noexcept { con_strategy = x; return *this; }
-    LPInfo& setMetricTerm (bool x) noexcept { has_metric_term = x; return *this; }
-    LPInfo& setMaxCoarseningLevel (int n) noexcept { max_coarsening_level = n; return *this; }
-    LPInfo& setMaxSemicoarseningLevel (int n) noexcept { max_semicoarsening_level = n; return *this; }
-    LPInfo& setSemicoarseningDirection (int n) noexcept { semicoarsening_direction = n; return *this; }
-    LPInfo& setHiddenDirection (int n) noexcept { hidden_direction = n; return *this; }
-
-    [[nodiscard]] bool hasHiddenDimension () const noexcept {
-        return hidden_direction >=0 && hidden_direction < AMREX_SPACEDIM;
-    }
-
-    static constexpr int getDefaultAgglomerationGridSize () {
-#ifdef AMREX_USE_GPU
-        return 32;
-#else
-        return AMREX_D_PICK(32, 16, 8);
-#endif
-    }
-
-    static constexpr int getDefaultConsolidationGridSize () {
-#ifdef AMREX_USE_GPU
-        return 32;
-#else
-        return AMREX_D_PICK(32, 16, 8);
-#endif
-    }
-};
-
-struct LinOpEnumType
-{
-    enum struct BCMode { Homogeneous, Inhomogeneous };
-    enum struct StateMode { Solution, Correction };
-    enum struct Location { FaceCenter, FaceCentroid, CellCenter, CellCentroid };
-};
-
-// template <typename MF>
-class MLLinOpTest
+// template <typename MFSet>
+class MLLinOp_Test
 {
 public:
-    using MF = typename amrex::MultiFab;
-    using AMF = typename amrex::MultiFab;
-    using FAB = typename MF::fab_type;
-    using RT  = typename MF::value_type;
+
+    // template <typename T> friend class MLMGT;
+    // template <typename T> friend class MLCGSolverT;
+    // template <typename T> friend class MLPoissonT;
+    // template <typename T> friend class MLABecLaplacianT;
+    friend class MLMG_Test;
+    friend class MLCGSolverMFSet_Test;
+    friend class MLPoissonMFSet_Test;
+    friend class MLABecLaplacianMFSet_Test;
+
+    using MFSet = typename amrex::MultiFabSet;
+    using AMFSet = typename amrex::MultiFabSet;
+    
+    using FAB = typename MFSet::fab_type;
+    using RT  = typename MFSet::value_type;
     
 
     using BCType = LinOpBCType;
@@ -106,13 +55,13 @@ public:
     using StateMode = LinOpEnumType::StateMode;
     using Location  = LinOpEnumType::Location;
 
-    MLLinOpTest () = default;
-    virtual ~MLLinOpTest () = default;
+    MLLinOp_Test () = default;
+    virtual ~MLLinOp_Test () = default;
 
-    MLLinOpTest (const MLLinOpTest&) = delete;
-    MLLinOpTest (MLLinOpTest&&) = delete;
-    MLLinOpTest& operator= (const MLLinOpTest&) = delete;
-    MLLinOpTest& operator= (MLLinOpTest&&) = delete;
+    MLLinOp_Test (const MLLinOp_Test&) = delete;
+    MLLinOp_Test (MLLinOp_Test&&) = delete;
+    MLLinOp_Test& operator= (const MLLinOp_Test&) = delete;
+    MLLinOp_Test& operator= (MLLinOp_Test&&) = delete;
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
@@ -187,10 +136,10 @@ public:
     * \param crse       the coarse AMR level data
     * \param crse_ratio the coarsening ratio between fine and coarse AMR levels.
     */
-    void setCoarseFineBC (const MF* crse, int crse_ratio) noexcept;
+    void setCoarseFineBC (const MFSet* crse, int crse_ratio) noexcept;
 
-    // template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int> = 0>
-    void setCoarseFineBC (const AMF* crse, int crse_ratio) noexcept;
+    // template <typename AMFSet, std::enable_if_t<!std::is_same_v<MFSet,AMFSet>,int> = 0>
+    void setCoarseFineBC (const AMFSet* crse, int crse_ratio) noexcept;
 
     /**
     * \brief Set boundary conditions for given level. For cell-centered
@@ -210,16 +159,16 @@ public:
     * at the lower boundary, for Robin BC. However, for inhomogeneous
     * Neumann BC, the value in leveldata is assumed to be `d./dx`.
     */
-    virtual void setLevelBC (int /*amrlev*/, const MF* /*levelbcdata*/,
-                             const MF* /*robinbc_a*/ = nullptr,
-                             const MF* /*robinbc_b*/ = nullptr,
-                             const MF* /*robinbc_f*/ = nullptr) = 0;
+    virtual void setLevelBC (int /*amrlev*/, const MFSet* /*levelbcdata*/,
+                             const MFSet* /*robinbc_a*/ = nullptr,
+                             const MFSet* /*robinbc_b*/ = nullptr,
+                             const MFSet* /*robinbc_f*/ = nullptr) = 0;
 
-    // template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int> = 0>
-    void setLevelBC (int amrlev, const AMF* levelbcdata,
-                     const AMF* robinbc_a = nullptr,
-                     const AMF* robinbc_b = nullptr,
-                     const AMF* robinbc_f = nullptr);
+    // template <typename AMFSet, std::enable_if_t<!std::is_same_v<MFSet,AMFSet>,int> = 0>
+    void setLevelBC (int amrlev, const AMFSet* levelbcdata,
+                     const AMFSet* robinbc_a = nullptr,
+                     const AMFSet* robinbc_b = nullptr,
+                     const AMFSet* robinbc_f = nullptr);
 
     //! Set verbosity
     void setVerbose (int v) noexcept { verbose = v; }
@@ -257,17 +206,17 @@ public:
      * \param fine   fine data. This is the input. Some operators might need to fill ghost cells.
      *               This is why it's not a const reference.
      */
-    virtual void restriction (int amrlev, int cmglev, MF& crse, MF& fine) const = 0;
+    virtual void restriction (int amrlev, int cmglev, MFSet& crse, MFSet& fine) const = 0;
 
     /**
-     * \brief Add interpolated coarse MG levle data to fine MG level data
+     * \brief Add interpolated coarse MG level data to fine MG level data
      *
      * \param amrlev AMR level
      * \param fmglev fine MG level
      * \param crse   coarse data.
      * \param fine   fine data.
      */
-    virtual void interpolation (int amrlev, int fmglev, MF& fine, const MF& crse) const = 0;
+    virtual void interpolation (int amrlev, int fmglev, MFSet& fine, const MFSet& crse) const = 0;
 
     /**
      * \brief Overwrite fine MG level data with interpolated coarse data.
@@ -277,7 +226,7 @@ public:
      * \param fine   fine MG level data
      * \param crse   coarse MG level data
      */
-    virtual void interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const = 0;
+    virtual void interpAssign (int amrlev, int fmglev, MFSet& fine, MFSet& crse) const = 0;
 
     /**
      * \brief Interpolation between AMR levels
@@ -287,7 +236,7 @@ public:
      * \param crse    coarse level data
      * \parame nghost number of ghost cells
      */
-    virtual void interpolationAmr (int famrlev, MF& fine, const MF& crse,
+    virtual void interpolationAmr (int famrlev, MFSet& fine, const MFSet& crse,
                                    IntVect const& nghost) const = 0;
 
     /**
@@ -299,8 +248,8 @@ public:
      * \param fine_sol solution on fine AMR level
      * \param fine_rhs RHS on fine AMR level
      */
-    virtual void averageDownSolutionRHS (int camrlev, MF& crse_sol, MF& crse_rhs,
-                                         const MF& fine_sol, const MF& fine_rhs) = 0;
+    virtual void averageDownSolutionRHS (int camrlev, MFSet& crse_sol, MFSet& crse_rhs,
+                                         const MFSet& fine_sol, const MFSet& fine_rhs) = 0;
 
     /**
      * \brief Apply the linear operator, out = L(in)
@@ -313,8 +262,8 @@ public:
      * \param s_mode  Are data data solution or correction?
      * \param bndry   object for handling coarse/fine and physical boundaries
      */
-    virtual void apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
-                        StateMode s_mode, const MLMGBndryT<MF>* bndry=nullptr) const = 0;
+    virtual void apply (int amrlev, int mglev, MFSet& out, MFSet& in, BCMode bc_mode,
+                        StateMode s_mode, const MLMGBndryT<MFSet>* bndry=nullptr) const = 0;
 
     /**
      * \brief Smooth
@@ -325,12 +274,12 @@ public:
      * \param rhs               RHS
      * \param skip_fillboundary flag controlling whether ghost cell filling can be skipped.
      */
-    virtual void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
+    virtual void smooth (int amrlev, int mglev, MFSet& sol, const MFSet& rhs,
                          bool skip_fillboundary=false) const = 0;
 
-    //! Divide mf by the diagonal component of the operator. Used by bicgstab.
-    virtual void normalize (int amrlev, int mglev, MF& mf) const {
-        amrex::ignore_unused(amrlev, mglev, mf);
+    //! Divide MFSet by the diagonal component of the operator. Used by bicgstab.
+    virtual void normalize (int amrlev, int mglev, MFSet& MFSet) const {
+        amrex::ignore_unused(amrlev, mglev, MFSet);
     }
 
     /**
@@ -342,8 +291,8 @@ public:
      * \param b            RHS
      * \param crse_bc_data optional argument providing BC at coarse/fine boundary.
      */
-    virtual void solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
-                                   const MF* crse_bcdata=nullptr) = 0;
+    virtual void solutionResidual (int amrlev, MFSet& resid, MFSet& x, const MFSet& b,
+                                   const MFSet* crse_bcdata=nullptr) = 0;
 
     /**
      * \brief Compute residual for the residual-correction form, resid = b - L(x)
@@ -356,8 +305,8 @@ public:
      * \param bc_mode      Is the BC homegeneous or inhomogeneous?
      * \param crse_bc_data optional argument providing BC at coarse/fine boundary.
      */
-    virtual void correctionResidual (int amrlev, int mglev, MF& resid, MF& x, const MF& b,
-                                     BCMode bc_mode, const MF* crse_bcdata=nullptr) = 0;
+    virtual void correctionResidual (int amrlev, int mglev, MFSet& resid, MFSet& x, const MFSet& b,
+                                     BCMode bc_mode, const MFSet* crse_bcdata=nullptr) = 0;
 
     /**
      * \brief Reflux at AMR coarse/fine boundary
@@ -371,8 +320,8 @@ public:
      * \param fine_rhs    fine level RHS
      */
     virtual void reflux (int crse_amrlev,
-                         MF& res, const MF& crse_sol, const MF& crse_rhs,
-                         MF& fine_res, MF& fine_sol, const MF& fine_rhs) const = 0;
+                         MFSet& res, const MFSet& crse_sol, const MFSet& crse_rhs,
+                         MFSet& fine_res, MFSet& fine_sol, const MFSet& fine_rhs) const = 0;
 
     /**
      * \brief Compute fluxes
@@ -382,8 +331,8 @@ public:
      * \param sol    solution
      * \param loc    location of the fluxes
      */
-    virtual void compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
-                           MF& sol, Location loc) const = 0;
+    virtual void compFlux (int amrlev, const Array<MFSet*,AMREX_SPACEDIM>& fluxes,
+                           MFSet& sol, Location loc) const = 0;
 
     /**
      * \brief Compute gradients of the solution
@@ -393,32 +342,32 @@ public:
      * \param sol    solution
      * \param loc    location of the gradients
      */
-    virtual void compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
-                           MF& sol, Location loc) const = 0;
+    virtual void compGrad (int amrlev, const Array<MFSet*,AMREX_SPACEDIM>& grad,
+                           MFSet& sol, Location loc) const = 0;
 
     //! apply metric terms if there are any
-    virtual void applyMetricTerm (int amrlev, int mglev, MF& rhs) const = 0;
+    virtual void applyMetricTerm (int amrlev, int mglev, MFSet& rhs) const = 0;
     //! unapply metric terms if there are any
-    virtual void unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const = 0;
+    virtual void unapplyMetricTerm (int amrlev, int mglev, MFSet& rhs) const = 0;
 
     //! This is needed for our nodal projection solver
-    virtual void unimposeNeumannBC (int /*amrlev*/, MF& /*rhs*/) const {}
+    virtual void unimposeNeumannBC (int /*amrlev*/, MFSet& /*rhs*/) const {}
 
     //! Extra terms introduced when we treate inhomogeneous Nuemann BC as homogeneous.
-    virtual void applyInhomogNeumannTerm (int /*amrlev*/, MF& /*rhs*/) const {}
+    virtual void applyInhomogNeumannTerm (int /*amrlev*/, MFSet& /*rhs*/) const {}
 
     //! for overset solver only
-    virtual void applyOverset (int /*amlev*/, MF& /*rhs*/) const {}
+    virtual void applyOverset (int /*amlev*/, MFSet& /*rhs*/) const {}
 
     //! scale RHS to fix solvability
-    virtual void scaleRHS (int /*amrlev*/, MF& /*rhs*/) const {}
+    virtual void scaleRHS (int /*amrlev*/, MFSet& /*rhs*/) const {}
 
     //! get offset for fixing solvability
     virtual Vector<RT> getSolvabilityOffset (int /*amrlev*/, int /*mglev*/,
-                                               MF const& /*rhs*/) const { return {}; }
+                                               MFSet const& /*rhs*/) const { return {}; }
 
     //! fix solvability by subtracting offset from RHS
-    virtual void fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MF& /*rhs*/,
+    virtual void fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MFSet& /*rhs*/,
                                          Vector<RT> const& /*offset*/) const {}
 
     virtual void prepareForSolve () = 0;
@@ -429,23 +378,23 @@ public:
     [[nodiscard]] virtual bool isBottomSingular () const = 0;
 
     //! x dot y, used by the bottom solver
-    virtual RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const = 0;
+    virtual RT xdoty (int amrlev, int mglev, const MFSet& x, const MFSet& y, bool local) const = 0;
 
-    virtual std::unique_ptr<MLLinOpTest> makeNLinOp (int grid_size) const = 0;
+    virtual std::unique_ptr<MLLinOp_Test> makeNLinOp (int grid_size) const = 0;
 
-    virtual void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& /*a_flux*/,
-                            const Vector<MF*>& /*a_sol*/,
+    virtual void getFluxes (const Vector<Array<MFSet*,AMREX_SPACEDIM> >& /*a_flux*/,
+                            const Vector<MFSet*>& /*a_sol*/,
                             Location /*a_loc*/) const {
         amrex::Abort("MLLinOp::getFluxes: How did we get here?");
     }
-    virtual void getFluxes (const Vector<MF*>& /*a_flux*/,
-                            const Vector<MF*>& /*a_sol*/) const {
+    virtual void getFluxes (const Vector<MFSet*>& /*a_flux*/,
+                            const Vector<MFSet*>& /*a_sol*/) const {
         amrex::Abort("MLLinOp::getFluxes: How did we get here?");
     }
 
 #ifdef AMREX_USE_EB
-    virtual void getEBFluxes (const Vector<MF*>& /*a_flux*/,
-                              const Vector<MF*>& /*a_sol*/) const {
+    virtual void getEBFluxes (const Vector<MFSet*>& /*a_flux*/,
+                              const Vector<MFSet*>& /*a_sol*/) const {
         amrex::Abort("MLLinOp::getEBFluxes: How did we get here?");
     }
 #endif
@@ -473,18 +422,18 @@ public:
 
     [[nodiscard]] virtual bool supportNSolve () const { return false; }
 
-    virtual void copyNSolveSolution (MF&, MF const&) const {}
+    virtual void copyNSolveSolution (MFSet&, MFSet const&) const {}
 
-    virtual void postSolve (Vector<MF>& /*sol*/) const {}
+    virtual void postSolve (Vector<MFSet>& /*sol*/) const {}
 
-    [[nodiscard]] virtual RT normInf (int amrlev, MF const& mf, bool local) const = 0;
+    [[nodiscard]] virtual RT normInf (int amrlev, MFSet const& MFSet, bool local) const = 0;
 
-    virtual void averageDownAndSync (Vector<MF>& sol) const = 0;
+    virtual void averageDownAndSync (Vector<MFSet>& sol) const = 0;
 
-    virtual void avgDownResAmr (int clev, MF& cres, MF const& fres) const = 0;
-    virtual void avgDownResMG (int clev, MF& cres, MF const& fres) const;
+    virtual void avgDownResAmr (int clev, MFSet& cres, MFSet const& fres) const = 0;
+    virtual void avgDownResMG (int clev, MFSet& cres, MFSet const& fres) const;
 
-    [[nodiscard]] bool isMFIterSafe (int amrlev, int mglev1, int mglev2) const;
+    [[nodiscard]] bool isMFSetIterSafe (int amrlev, int mglev1, int mglev2) const;
 
 protected:
 
@@ -508,7 +457,7 @@ protected:
     Vector<int> m_amr_ref_ratio;
 
     Vector<int> m_num_mg_levels;
-    const MLLinOpTest* m_parent = nullptr;
+    const MLLinOp_Test* m_parent = nullptr;
 
     IntVect m_ixtype;
 
@@ -556,8 +505,8 @@ protected:
     bool m_needs_coarse_data_for_bc;
     int m_coarse_data_crse_ratio = -1;
     RealVect m_coarse_bc_loc;
-    const MF* m_coarse_data_for_bc = nullptr;
-    MF m_coarse_data_for_bc_raii;
+    const MFSet* m_coarse_data_for_bc = nullptr;
+    MFSet m_coarse_data_for_bc_raii;
 
     //! Return the number of AMR levels
     [[nodiscard]] int NAMRLevels () const noexcept { return m_num_amr_levels; }
@@ -611,15 +560,15 @@ protected:
 
     [[nodiscard]] bool isCellCentered () const noexcept { return m_ixtype == 0; }
 
-    virtual void make (Vector<Vector<MF> >& mf, IntVect const& ng) const;
+    virtual void make (Vector<Vector<MFSet> >& MFSet, IntVect const& ng) const;
 
-    [[nodiscard]] virtual MF make (int amrlev, int mglev, IntVect const& ng) const;
+    [[nodiscard]] virtual MFSet make (int amrlev, int mglev, IntVect const& ng) const;
 
-    [[nodiscard]] virtual MF makeAlias (MF const& mf) const;
+    [[nodiscard]] virtual MFSet makeAlias (MFSet const& MFSet) const;
 
-    [[nodiscard]] virtual MF makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const;
+    [[nodiscard]] virtual MFSet makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const;
 
-    [[nodiscard]] virtual MF makeCoarseAmr (int famrlev, IntVect const& ng) const;
+    [[nodiscard]] virtual MFSet makeCoarseAmr (int famrlev, IntVect const& ng) const;
 
     [[nodiscard]] virtual std::unique_ptr<FabFactory<FAB> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
         return std::make_unique<DefaultFabFactory<FAB>>();
@@ -681,15 +630,15 @@ private:
         amrex::Abort("MLLinOp:checkPoint: not implemented");
     }
 
-    Vector<std::unique_ptr<MF>> levelbc_raii;
-    Vector<std::unique_ptr<MF>> robin_a_raii;
-    Vector<std::unique_ptr<MF>> robin_b_raii;
-    Vector<std::unique_ptr<MF>> robin_f_raii;
+    Vector<std::unique_ptr<MFSet>> levelbc_raii;
+    Vector<std::unique_ptr<MFSet>> robin_a_raii;
+    Vector<std::unique_ptr<MFSet>> robin_b_raii;
+    Vector<std::unique_ptr<MFSet>> robin_f_raii;
 };
 
-// template <typename MF>
+// template <typename MFSet>
 void
-MLLinOpTest::define (const Vector<Geometry>& a_geom,
+MLLinOp_Test::define (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
                       const LPInfo& a_info,
@@ -725,9 +674,9 @@ MLLinOpTest::define (const Vector<Geometry>& a_geom,
     defineBC();
 }
 
-// template <typename MF>
+// template <typename MFSet>
 void
-MLLinOpTest::defineGrids (const Vector<Geometry>& a_geom,
+MLLinOp_Test::defineGrids (const Vector<Geometry>& a_geom,
                            const Vector<BoxArray>& a_grids,
                            const Vector<DistributionMapping>& a_dmap,
                            const Vector<FabFactory<FAB> const*>& a_factory)
@@ -1082,9 +1031,9 @@ MLLinOpTest::defineGrids (const Vector<Geometry>& a_geom,
     }
 }
 
-// template <typename MF>
+// template <typename MFSet>
 void
-MLLinOpTest::defineBC ()
+MLLinOp_Test::defineBC ()
 {
     m_needs_coarse_data_for_bc = !m_domain_covered[0];
 
@@ -1094,9 +1043,9 @@ MLLinOpTest::defineBC ()
     robin_f_raii.resize(m_num_amr_levels);
 }
 
-// template <typename MF>
+// template <typename MFSet>
 void
-MLLinOpTest::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
+MLLinOp_Test::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
                            const Array<BCType,AMREX_SPACEDIM>& a_hibc) noexcept
 {
     const int ncomp = getNComp();
@@ -1104,9 +1053,9 @@ MLLinOpTest::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
                 Vector<Array<BCType,AMREX_SPACEDIM> >(ncomp,a_hibc));
 }
 
-// template <typename MF>
+// template <typename MFSet>
 void
-MLLinOpTest::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
+MLLinOp_Test::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
                            const Vector<Array<BCType,AMREX_SPACEDIM> >& a_hibc) noexcept
 {
     const int ncomp = getNComp();
@@ -1156,9 +1105,9 @@ MLLinOpTest::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
     }
 }
 
-// template <typename MF>
+// template <typename MFSet>
 bool
-MLLinOpTest::hasBC (BCType bct) const noexcept
+MLLinOp_Test::hasBC (BCType bct) const noexcept
 {
     int ncomp = m_lobc_orig.size();
     for (int n = 0; n < ncomp; ++n) {
@@ -1171,23 +1120,23 @@ MLLinOpTest::hasBC (BCType bct) const noexcept
     return false;
 }
 
-// template <typename MF>
+// template <typename MFSet>
 bool
-MLLinOpTest::hasInhomogNeumannBC () const noexcept
+MLLinOp_Test::hasInhomogNeumannBC () const noexcept
 {
     return hasBC(BCType::inhomogNeumann);
 }
 
-// template <typename MF>
+// template <typename MFSet>
 bool
-MLLinOpTest::hasRobinBC () const noexcept
+MLLinOp_Test::hasRobinBC () const noexcept
 {
     return hasBC(BCType::Robin);
 }
 
-// template <typename MF>
+// template <typename MFSet>
 Box
-MLLinOpTest::compactify (Box const& b) const noexcept
+MLLinOp_Test::compactify (Box const& b) const noexcept
 {
 #if (AMREX_SPACEDIM == 3)
     if (info.hasHiddenDimension()) {
@@ -1207,9 +1156,9 @@ MLLinOpTest::compactify (Box const& b) const noexcept
     }
 }
 
-// template <typename MF>
+// template <typename MFSet>
 void
-MLLinOpTest::makeAgglomeratedDMap (const Vector<BoxArray>& ba,
+MLLinOp_Test::makeAgglomeratedDMap (const Vector<BoxArray>& ba,
                                     Vector<DistributionMapping>& dm)
 {
     BL_PROFILE("MLLinOp::makeAgglomeratedDMap");
@@ -1236,9 +1185,9 @@ MLLinOpTest::makeAgglomeratedDMap (const Vector<BoxArray>& ba,
     }
 }
 
-// template <typename MF>
+// template <typename MFSet>
 void
-MLLinOpTest::makeConsolidatedDMap (const Vector<BoxArray>& ba,
+MLLinOp_Test::makeConsolidatedDMap (const Vector<BoxArray>& ba,
                                     Vector<DistributionMapping>& dm,
                                     int ratio, int strategy)
 {
@@ -1292,9 +1241,9 @@ MLLinOpTest::makeConsolidatedDMap (const Vector<BoxArray>& ba,
     }
 }
 
-// template <typename MF>
+// template <typename MFSet>
 MPI_Comm
-MLLinOpTest::makeSubCommunicator (const DistributionMapping& dm)
+MLLinOp_Test::makeSubCommunicator (const DistributionMapping& dm)
 {
     BL_PROFILE("MLLinOp::makeSubCommunicator()");
 
@@ -1331,30 +1280,30 @@ MLLinOpTest::makeSubCommunicator (const DistributionMapping& dm)
 #endif
 }
 
-// template <typename MF>
+// template <typename MFSet>
 void
-MLLinOpTest::setDomainBCLoc (const Array<Real,AMREX_SPACEDIM>& lo_bcloc,
+MLLinOp_Test::setDomainBCLoc (const Array<Real,AMREX_SPACEDIM>& lo_bcloc,
                               const Array<Real,AMREX_SPACEDIM>& hi_bcloc) noexcept
 {
     m_domain_bloc_lo = lo_bcloc;
     m_domain_bloc_hi = hi_bcloc;
 }
 
-// template <typename MF>
+// template <typename MFSet>
 void
-MLLinOpTest::setCoarseFineBC (const MF* crse, int crse_ratio) noexcept
+MLLinOp_Test::setCoarseFineBC (const MFSet* crse, int crse_ratio) noexcept
 {
     m_coarse_data_for_bc = crse;
     m_coarse_data_crse_ratio = crse_ratio;
 }
 
-// template <typename MF>
-// template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int>>
-// MFS: Will need to override this
+// template <typename MFSet>
+// template <typename AMFSet, std::enable_if_t<!std::is_same_v<MFSet,AMFSet>,int>>
+// MFSet: Will need to override this
 void
-MLLinOpTest::setCoarseFineBC (const AMF* crse, int crse_ratio) noexcept
+MLLinOp_Test::setCoarseFineBC (const AMFSet* crse, int crse_ratio) noexcept
 {
-    m_coarse_data_for_bc_raii = MF(crse->boxArray(), crse->DistributionMap(),
+    m_coarse_data_for_bc_raii = MFSet(crse->boxArray(), crse->DistributionMap(),
                                    crse->nComp(), crse->nGrowVect());
     m_coarse_data_for_bc_raii.LocalCopy(*crse, 0, 0, crse->nComp(),
                                         crse->nGrowVect());
@@ -1362,63 +1311,66 @@ MLLinOpTest::setCoarseFineBC (const AMF* crse, int crse_ratio) noexcept
     m_coarse_data_crse_ratio = crse_ratio;
 }
 
-// template <typename MF>
+// template <typename MFSet>
 void
-MLLinOpTest::make (Vector<Vector<MF> >& mf, IntVect const& ng) const
+MLLinOp_Test::make (Vector<Vector<MFSet> >& MFSet, IntVect const& ng) const
 {
-    mf.clear();
-    mf.resize(m_num_amr_levels);
+    MFSet.clear();
+    MFSet.resize(m_num_amr_levels);
     for (int alev = 0; alev < m_num_amr_levels; ++alev) {
-        mf[alev].resize(m_num_mg_levels[alev]);
+        MFSet[alev].resize(m_num_mg_levels[alev]);
         for (int mlev = 0; mlev < m_num_mg_levels[alev]; ++mlev) {
-            mf[alev][mlev] = make(alev, mlev, ng);
+            MFSet[alev][mlev] = make(alev, mlev, ng);
         }
     }
 }
 
 
-// template <typename MF>
-// MFS: Will need to override this
-MF
-MLLinOpTest::make (int amrlev, int mglev, IntVect const& ng) const
+// template <typename MFSet>
+// MFSet: Will need to override this
+MFSet
+MLLinOp_Test::make (int amrlev, int mglev, IntVect const& ng) const
 {
-    return MF(amrex::convert(m_grids[amrlev][mglev], m_ixtype),
+    return MFSet(amrex::convert(m_grids[amrlev][mglev], m_ixtype),
               m_dmap[amrlev][mglev], getNComp(), ng, MFInfo(),
               *m_factory[amrlev][mglev]);
 }
 
-// template <typename MF>
-MF
-MLLinOpTest::makeAlias (MF const& mf) const
+// template <typename MFSet>
+// MFS: might need to override this
+MFSet
+MLLinOp_Test::makeAlias (MFSet const& mfs) const
 {
-    return MF(mf, amrex::make_alias, 0, mf.nComp());
+    return MFSet(mfs, amrex::make_alias, 0, mfs.nComp());
 }
 
-// template <typename MF>
-MF
-MLLinOpTest::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
+// template <typename MFSet>
+// MFSet: Will need to override this
+MFSet
+MLLinOp_Test::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
 {
     BoxArray cba = m_grids[amrlev][mglev];
     IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev];
     cba.coarsen(ratio);
-    cba.convert(m_ixtype); // MFS: Will need to override this
-    return MF(cba, m_dmap[amrlev][mglev], getNComp(), ng);
+    cba.convert(m_ixtype); // MFSet: Will need to override this
+    return MFSet(cba, m_dmap[amrlev][mglev], getNComp(), ng);
 }
 
-// template <typename MF>
-MF
-MLLinOpTest::makeCoarseAmr (int famrlev, IntVect const& ng) const
+// template <typename MFSet>
+// MFSet: Will need to override this
+MFSet
+MLLinOp_Test::makeCoarseAmr (int famrlev, IntVect const& ng) const
 {
     BoxArray cba = m_grids[famrlev][0];
     IntVect ratio(AMRRefRatio(famrlev-1));
     cba.coarsen(ratio);
-    cba.convert(m_ixtype); // MFS: Will need to override this
-    return MF(cba, m_dmap[famrlev][0], getNComp(), ng);
+    cba.convert(m_ixtype); // MFSet: Will need to override this
+    return MFSet(cba, m_dmap[famrlev][0], getNComp(), ng);
 }
 
-// template <typename MF>
+// template <typename MFSet>
 void
-MLLinOpTest::resizeMultiGrid (int new_size)
+MLLinOp_Test::resizeMultiGrid (int new_size)
 {
     if (new_size <= 0 || new_size >= m_num_mg_levels[0]) { return; }
 
@@ -1434,19 +1386,20 @@ MLLinOpTest::resizeMultiGrid (int new_size)
     }
 }
 
-// template <typename MF>
+// template <typename MFSet>
+// MFSet: will need to override this
 void
-MLLinOpTest::avgDownResMG (int clev, MF& cres, MF const& fres) const
+MLLinOp_Test::avgDownResMG (int clev, MFSet& cres, MFSet const& fres) const
 {
     const int ncomp = this->getNComp();
-    if constexpr (amrex::IsFabArray<MF>::value) {
+    if constexpr (amrex::IsFabArray<MFSet>::value) {
 #ifdef AMREX_USE_EB
         if (!fres.isAllRegular()) {
-            if constexpr (std::is_same<MF,MultiFab>()) {
+            if constexpr (std::is_same<MFSet,MultiFabSet>()) {
                 amrex::EB_average_down(fres, cres, 0, ncomp,
                                        mg_coarsen_ratio_vec[clev-1]);
             } else {
-                amrex::Abort("EB_average_down only works with MultiFab");
+                amrex::Abort("EB_average_down only works with MultiFabSet");
             }
         } else
 #endif
@@ -1454,28 +1407,29 @@ MLLinOpTest::avgDownResMG (int clev, MF& cres, MF const& fres) const
             amrex::average_down(fres, cres, 0, ncomp, mg_coarsen_ratio_vec[clev-1]);
         }
     } else {
-        amrex::Abort("For non-FabArray, MLLinOpTest::avgDownResMG should be overridden.");
+        amrex::Abort("For non-FabArray, MLLinOp_Test::avgDownResMG should be overridden.");
     }
 }
 
-// template <typename MF>
+// template <typename MFSet>
 bool
-MLLinOpTest::isMFIterSafe (int amrlev, int mglev1, int mglev2) const
+MLLinOp_Test::isMFSetIterSafe (int amrlev, int mglev1, int mglev2) const
 {
     return m_dmap[amrlev][mglev1] == m_dmap[amrlev][mglev2]
         && BoxArray::SameRefs(m_grids[amrlev][mglev1], m_grids[amrlev][mglev2]);
 }
 
-// template <typename MF>
-// template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int>>
+// template <typename MFSet>
+// template <typename AMFSet, std::enable_if_t<!std::is_same_v<MFSet,AMFSet>,int>>
+// MFSet: might need to override this
 void
-MLLinOpTest::setLevelBC (int amrlev, const AMF* levelbcdata,
-                          const AMF* robinbc_a, const AMF* robinbc_b,
-                          const AMF* robinbc_f)
+MLLinOp_Test::setLevelBC (int amrlev, const AMFSet* levelbcdata,
+                          const AMFSet* robinbc_a, const AMFSet* robinbc_b,
+                          const AMFSet* robinbc_f)
 {
     const int ncomp = this->getNComp();
     if (levelbcdata) {
-        levelbc_raii[amrlev] = std::make_unique<MF>(levelbcdata->boxArray(),
+        levelbc_raii[amrlev] = std::make_unique<MFSet>(levelbcdata->boxArray(),
                                                     levelbcdata->DistributionMap(),
                                                     ncomp, levelbcdata->nGrowVect());
         levelbc_raii[amrlev]->LocalCopy(*levelbcdata, 0, 0, ncomp,
@@ -1485,7 +1439,7 @@ MLLinOpTest::setLevelBC (int amrlev, const AMF* levelbcdata,
     }
 
     if (robinbc_a) {
-        robin_a_raii[amrlev] = std::make_unique<MF>(robinbc_a->boxArray(),
+        robin_a_raii[amrlev] = std::make_unique<MFSet>(robinbc_a->boxArray(),
                                                     robinbc_a->DistributionMap(),
                                                     ncomp, robinbc_a->nGrowVect());
         robin_a_raii[amrlev]->LocalCopy(*robinbc_a, 0, 0, ncomp,
@@ -1495,7 +1449,7 @@ MLLinOpTest::setLevelBC (int amrlev, const AMF* levelbcdata,
     }
 
     if (robinbc_b) {
-        robin_b_raii[amrlev] = std::make_unique<MF>(robinbc_b->boxArray(),
+        robin_b_raii[amrlev] = std::make_unique<MFSet>(robinbc_b->boxArray(),
                                                     robinbc_b->DistributionMap(),
                                                     ncomp, robinbc_b->nGrowVect());
         robin_b_raii[amrlev]->LocalCopy(*robinbc_b, 0, 0, ncomp,
@@ -1505,7 +1459,7 @@ MLLinOpTest::setLevelBC (int amrlev, const AMF* levelbcdata,
     }
 
     if (robinbc_f) {
-        robin_f_raii[amrlev] = std::make_unique<MF>(robinbc_f->boxArray(),
+        robin_f_raii[amrlev] = std::make_unique<MFSet>(robinbc_f->boxArray(),
                                                     robinbc_f->DistributionMap(),
                                                     ncomp, robinbc_f->nGrowVect());
         robin_f_raii[amrlev]->LocalCopy(*robinbc_f, 0, 0, ncomp,
@@ -1518,10 +1472,10 @@ MLLinOpTest::setLevelBC (int amrlev, const AMF* levelbcdata,
                      robin_b_raii[amrlev].get(), robin_f_raii[amrlev].get());
 }
 
-// extern // template class MLLinOpTest<MultiFab>;
+// extern // template class MLLinOp_Test<MultiFab>;
 
-// using MLLinOp = MLLinOpTest<MultiFab>;
+// using MLLinOp = MLLinOp_Test<MultiFab>;
 
 }
 
-#endif
+// #endif

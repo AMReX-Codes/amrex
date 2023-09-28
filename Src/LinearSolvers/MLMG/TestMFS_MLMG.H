@@ -2,13 +2,16 @@
 #define AMREX_ML_MG_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_MLLinOp.H>
-#include <AMReX_MLCGSolver.H>
+// #include <AMReX_MLLinOP.H>
+// #include <AMReX_MLCGSolver.H>
+
+#include <TestMFS_MLLinOp.H>
+#include <TestMFS_MLCGSolver.H>
 
 namespace amrex {
 
-template <typename MF>
-class MLMGT
+// // template <typename MFSet>
+class MLMG_Test
 {
 public:
 
@@ -19,89 +22,94 @@ public:
         using std::runtime_error::runtime_error;
     };
 
-    template <typename T> friend class MLCGSolverT;
+    // template <typename T> friend class MLCGSolverT;
+    // friend class MLLinOp_Test;
+    friend class MLCGSolver_Test;
 
-    using FAB = typename MF::fab_type;
-    using RT  = typename MF::value_type;
+    using MFSet = typename amrex::MultiFabSet;
+    using AMFSet = typename amrex::MultiFabSet;
+    
+    using FAB = typename MFSet::fab_type;
+    using RT  = typename MFSet::value_type;
 
-    using BCMode   = typename MLLinOpT<MF>::BCMode;
-    using Location = typename MLLinOpT<MF>::Location;
+    using BCMode   = typename amrex::MLLinOp_Test::BCMode;
+    using Location = typename MLLinOp_Test::Location;
 
     using BottomSolver = amrex::BottomSolver;
     enum class CFStrategy : int {none,ghostnodes};
 
-    MLMGT (MLLinOpT<MF>& a_lp);
-    ~MLMGT ();
+    MLMG_Test (MLLinOp_Test& a_lp);
+    ~MLMG_Test ();
 
-    MLMGT (MLMGT<MF> const&) = delete;
-    MLMGT (MLMGT<MF> &&) = delete;
-    MLMGT<MF>& operator= (MLMGT<MF> const&) = delete;
-    MLMGT<MF>& operator= (MLMGT<MF> &&) = delete;
+    MLMG_Test (MLMG_Test const&) = delete;
+    MLMG_Test (MLMG_Test &&) = delete;
+    MLMG_Test& operator= (MLMG_Test const&) = delete;
+    MLMG_Test& operator= (MLMG_Test &&) = delete;
 
     // Optional argument checkpoint_file is for debugging only.
-    template <typename AMF>
-    RT solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
+    // template <typename AMFSet>
+    RT solve (const Vector<AMFSet*>& a_sol, const Vector<AMFSet const*>& a_rhs,
               RT a_tol_rel, RT a_tol_abs, const char* checkpoint_file = nullptr);
 
-    template <typename AMF>
-    RT solve (std::initializer_list<AMF*> a_sol,
-              std::initializer_list<AMF const*> a_rhs,
+    // template <typename AMFSet>
+    RT solve (std::initializer_list<AMFSet*> a_sol,
+              std::initializer_list<AMFSet const*> a_rhs,
               RT a_tol_rel, RT a_tol_abs, const char* checkpoint_file = nullptr);
 
-    template <typename AMF>
-    void getGradSolution (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_grad_sol,
+    // template <typename AMFSet>
+    void getGradSolution (const Vector<Array<AMFSet*,AMREX_SPACEDIM> >& a_grad_sol,
                           Location a_loc = Location::FaceCenter);
 
-    template <typename AMF>
-    void getGradSolution (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_grad_sol,
+    // template <typename AMFSet>
+    void getGradSolution (std::initializer_list<Array<AMFSet*,AMREX_SPACEDIM>> a_grad_sol,
                           Location a_loc = Location::FaceCenter);
 
     /**
     * \brief For ``(alpha * a - beta * (del dot b grad)) phi = rhs``, flux means ``-b grad phi``
     */
-    template <typename AMF>
-    void getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
+    // template <typename AMFSet>
+    void getFluxes (const Vector<Array<AMFSet*,AMREX_SPACEDIM> >& a_flux,
                     Location a_loc = Location::FaceCenter);
 
-    template <typename AMF>
-    void getFluxes (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_flux,
+    // template <typename AMFSet>
+    void getFluxes (std::initializer_list<Array<AMFSet*,AMREX_SPACEDIM>> a_flux,
                     Location a_loc = Location::FaceCenter);
 
-    template <typename AMF>
-    void getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
-                    const Vector<AMF*> & a_sol,
+    // template <typename AMFSet>
+    void getFluxes (const Vector<Array<AMFSet*,AMREX_SPACEDIM> >& a_flux,
+                    const Vector<AMFSet*> & a_sol,
                     Location a_loc = Location::FaceCenter);
 
-    template <typename AMF>
-    void getFluxes (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_flux,
-                    std::initializer_list<AMF*>  a_sol,
+    // template <typename AMFSet>
+    void getFluxes (std::initializer_list<Array<AMFSet*,AMREX_SPACEDIM>> a_flux,
+                    std::initializer_list<AMFSet*>  a_sol,
                     Location a_loc = Location::FaceCenter);
 
-    template <typename AMF>
-    void getFluxes (const Vector<AMF*> & a_flux,
+    // template <typename AMFSet>
+    void getFluxes (const Vector<AMFSet*> & a_flux,
                     Location a_loc = Location::CellCenter);
 
-    template <typename AMF>
-    void getFluxes (std::initializer_list<AMF*> a_flux,
+    // template <typename AMFSet>
+    void getFluxes (std::initializer_list<AMFSet*> a_flux,
                     Location a_loc = Location::CellCenter);
 
-    template <typename AMF>
-    void getFluxes (const Vector<AMF*> & a_flux,
-                    const Vector<AMF*> & a_sol,
+    // template <typename AMFSet>
+    void getFluxes (const Vector<AMFSet*> & a_flux,
+                    const Vector<AMFSet*> & a_sol,
                     Location a_loc = Location::CellCenter);
 
-    template <typename AMF>
-    void getFluxes (std::initializer_list<AMF*> a_flux,
-                    std::initializer_list<AMF*> a_sol,
+    // template <typename AMFSet>
+    void getFluxes (std::initializer_list<AMFSet*> a_flux,
+                    std::initializer_list<AMFSet*> a_sol,
                     Location a_loc = Location::CellCenter);
 
-    void compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
-                       const Vector<MF const*>& a_rhs);
+    void compResidual (const Vector<MFSet*>& a_res, const Vector<MFSet*>& a_sol,
+                       const Vector<MFSet const*>& a_rhs);
 
 #ifdef AMREX_USE_EB
     // Flux into the EB wall
-    void getEBFluxes (const Vector<MF*>& a_eb_flux);
-    void getEBFluxes (const Vector<MF*>& a_eb_flux, const Vector<MF*> & a_sol);
+    void getEBFluxes (const Vector<MFSet*>& a_eb_flux);
+    void getEBFluxes (const Vector<MFSet*>& a_eb_flux, const Vector<MFSet*> & a_sol);
 #endif
 
     /**
@@ -109,7 +117,7 @@ public:
     * turn off multigrid coarsening by constructing a MLLinOp object
     * with an appropriate LPInfo object (e.g., with LPInfo().setMaxCoarseningLevel(0)).
     */
-    void apply (const Vector<MF*>& out, const Vector<MF*>& in);
+    void apply (const Vector<MFSet*>& out, const Vector<MFSet*>& in);
 
     void setThrowException (bool t) noexcept { throw_exception = t; }
     void setVerbose (int v) noexcept { verbose = v; }
@@ -162,8 +170,8 @@ public:
     void setHypreStrongThreshold (Real t) noexcept {hypre_strong_threshold = t;}
 #endif
 
-    template <typename AMF>
-    void prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const& a_rhs);
+    // template <typename AMFSet>
+    void prepareForSolve (Vector<AMFSet*> const& a_sol, Vector<AMFSet const*> const& a_rhs);
 
     void prepareForNSolve ();
 
@@ -175,7 +183,7 @@ public:
     void mgFcycle ();
 
     void bottomSolve ();
-    void NSolve (MLMGT<MF>& a_solver, MF& a_sol, MF& a_rhs);
+    void NSolve (MLMG_Test& a_solver, MFSet& a_sol, MFSet& a_rhs);
     void actualBottomSolve ();
 
     void computeMLResidual (int amrlevmax);
@@ -193,19 +201,19 @@ public:
     RT MLRhsNormInf (bool local = false);
 
     void makeSolvable ();
-    void makeSolvable (int amrlev, int mglev, MF& mf);
+    void makeSolvable (int amrlev, int mglev, MFSet& MFSet);
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    template <class TMF=MF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int> = 0>
-    void bottomSolveWithHypre (MF& x, const MF& b);
+    // template <class TMFSet=MFSet,std::enable_if_t<std::is_same_v<TMFSet,MultiFabSet>,int> = 0>
+    void bottomSolveWithHypre (MFSet& x, const MFSet& b);
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-    template <class TMF=MF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int> = 0>
-    void bottomSolveWithPETSc (MF& x, const MF& b);
+    // template <class TMFSet=MFSet,std::enable_if_t<std::is_same_v<TMFSet,MultiFabSet>,int> = 0>
+    void bottomSolveWithPETSc (MFSet& x, const MFSet& b);
 #endif
 
-    int bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type type);
+    int bottomSolveWithCG (MFSet& x, const MFSet& b, typename MLCGSolver_Test::Type type);
 
     [[nodiscard]] RT getInitRHS () const noexcept { return m_rhsnorm0; }
     // Initial composite residual
@@ -243,7 +251,7 @@ private:
 
     int final_fill_bc = 0;
 
-    MLLinOpT<MF>& linop;
+    MLLinOp_Test& linop;
     int ncomp;
     int namrlevs;
     int finest_amr_lev;
@@ -254,10 +262,10 @@ private:
     //! N Solve
     int do_nsolve = false;
     int nsolve_grid_size = 16;
-    std::unique_ptr<MLLinOpT<MF>> ns_linop;
-    std::unique_ptr<MLMGT<MF>> ns_mlmg;
-    std::unique_ptr<MF> ns_sol;
-    std::unique_ptr<MF> ns_rhs;
+    std::unique_ptr<MLLinOp_Test> ns_linop;
+    std::unique_ptr<MLMG_Test> ns_mlmg;
+    std::unique_ptr<MFSet> ns_sol;
+    std::unique_ptr<MFSet> ns_rhs;
 
     //! Hypre
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
@@ -266,7 +274,7 @@ private:
     Hypre::Interface hypre_interface = Hypre::Interface::ij;
 
     std::unique_ptr<Hypre> hypre_solver;
-    std::unique_ptr<MLMGBndryT<MF>> hypre_bndry;
+    std::unique_ptr<MLMGBndryT<MFSet>> hypre_bndry;
     std::unique_ptr<HypreNodeLap> hypre_node_solver;
 
     std::string hypre_options_namespace = "hypre";
@@ -280,15 +288,15 @@ private:
     //! PETSc
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
     std::unique_ptr<PETScABecLap> petsc_solver;
-    std::unique_ptr<MLMGBndryT<MF>> petsc_bndry;
+    std::unique_ptr<MLMGBndryT<MFSet>> petsc_bndry;
 #endif
 
     /**
     * \brief To avoid confusion, terms like sol, cor, rhs, res, ... etc. are
     * in the frame of the original equation, not the correction form
     */
-    Vector<MF> sol;      //!< Might be alias to argument a_sol
-    Vector<MF> rhs;      //!< Copy of original rhs
+    Vector<MFSet> sol;      //!< Might be alias to argument a_sol
+    Vector<MFSet> rhs;      //!< Copy of original rhs
                          //! L(sol) = rhs
 
     Vector<int> sol_is_alias;
@@ -297,10 +305,10 @@ private:
     * \brief First Vector: Amr levels.  0 is the coarest level
     * Second Vector: MG levels.  0 is the finest level
     */
-    Vector<Vector<MF> > res;     //! = rhs - L(sol)
-    Vector<Vector<MF> > cor;     //!< L(cor) = res
-    Vector<Vector<MF> > cor_hold;
-    Vector<Vector<MF> > rescor;  //!< = res - L(cor)
+    Vector<Vector<MFSet> > res;     //! = rhs - L(sol)
+    Vector<Vector<MFSet> > cor;     //!< L(cor) = res
+    Vector<Vector<MFSet> > cor_hold;
+    Vector<Vector<MFSet> > rescor;  //!< = res - L(cor)
                                  //!  Residual of the correction form
 
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
@@ -312,41 +320,41 @@ private:
     Vector<int> m_niters_cg;
     Vector<RT> m_iter_fine_resnorm0; // Residual for each iteration at the finest level
 
-    void checkPoint (const Vector<MultiFab*>& a_sol,
-                     const Vector<MultiFab const*>& a_rhs,
+    void checkPoint (const Vector<MultiFabSet*>& a_sol,
+                     const Vector<MultiFabSet const*>& a_rhs,
                      RT a_tol_rel, RT a_tol_abs, const char* a_file_name) const;
 
 };
 
-template <typename MF>
-MLMGT<MF>::MLMGT (MLLinOpT<MF>& a_lp)
+// template <typename MFSet>
+MLMG_Test::MLMG_Test (MLLinOp_Test& a_lp)
     : linop(a_lp), ncomp(a_lp.getNComp()), namrlevs(a_lp.NAMRLevels()),
       finest_amr_lev(a_lp.NAMRLevels()-1)
 {}
 
-template <typename MF> MLMGT<MF>::~MLMGT () = default;
+// template <typename MFSet> MLMG_Test::~MLMG_Test () = default;
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
 auto
-MLMGT<MF>::solve (std::initializer_list<AMF*> a_sol,
-                  std::initializer_list<AMF const*> a_rhs,
+MLMG_Test::solve (std::initializer_list<AMFSet*> a_sol,
+                  std::initializer_list<AMFSet const*> a_rhs,
                   RT a_tol_rel, RT a_tol_abs, const char* checkpoint_file) -> RT
 {
-    return solve(Vector<AMF*>(std::move(a_sol)),
-                 Vector<AMF const*>(std::move(a_rhs)),
+    return solve(Vector<AMFSet*>(std::move(a_sol)),
+                 Vector<AMFSet const*>(std::move(a_rhs)),
                  a_tol_rel, a_tol_abs, checkpoint_file);
 }
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
 auto
-MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
+MLMG_Test::solve (const Vector<AMFSet*>& a_sol, const Vector<AMFSet const*>& a_rhs,
                   RT a_tol_rel, RT a_tol_abs, const char* checkpoint_file) -> RT
 {
     BL_PROFILE("MLMG::solve()");
 
-    if constexpr (std::is_same<AMF,MultiFab>()) {
+    if constexpr (std::is_same<AMFSet,MultiFabSet>()) {
         if (checkpoint_file != nullptr) {
             checkPoint(a_sol, a_rhs, a_tol_rel, a_tol_abs, checkpoint_file);
         }
@@ -528,20 +536,22 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     return composite_norminf;
 }
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
+// MFS: might delete this
 void
-MLMGT<MF>::getGradSolution (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_grad_sol, Location a_loc)
+MLMG_Test::getGradSolution (const Vector<Array<AMFSet*,AMREX_SPACEDIM> >& a_grad_sol, Location a_loc)
 {
     BL_PROFILE("MLMG::getGradSolution()");
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        if constexpr (std::is_same<AMF,MF>()) {
+        if constexpr (std::is_same<AMFSet,MFSet>()) {
             linop.compGrad(alev, a_grad_sol[alev], sol[alev], a_loc);
         } else {
-            Array<MF,AMREX_SPACEDIM> grad_sol;
+            Array<MFSet,AMREX_SPACEDIM> grad_sol;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                auto const& amf = *(a_grad_sol[alev][idim]);
-                grad_sol[idim].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+                auto const& aMFSet = *(a_grad_sol[alev][idim]);
+                grad_sol[idim].define(aMFSet.boxArray(), aMFSet.DistributionMap(), ncomp, 0);
+                grad_sol[idim].getElem(i).define()
             }
             linop.compGrad(alev, GetArrOfPtrs(grad_sol), sol[alev], a_loc);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -551,18 +561,18 @@ MLMGT<MF>::getGradSolution (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_grad_so
     }
 }
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
 void
-MLMGT<MF>::getGradSolution (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_grad_sol, Location a_loc)
+MLMG_Test::getGradSolution (std::initializer_list<Array<AMFSet*,AMREX_SPACEDIM>> a_grad_sol, Location a_loc)
 {
-    getGradSolution(Vector<Array<AMF*,AMREX_SPACEDIM>>(std::move(a_grad_sol)), a_loc);
+    getGradSolution(Vector<Array<AMFSet*,AMREX_SPACEDIM>>(std::move(a_grad_sol)), a_loc);
 }
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
 void
-MLMGT<MF>::getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
+MLMG_Test::getFluxes (const Vector<Array<AMFSet*,AMREX_SPACEDIM> >& a_flux,
                       Location a_loc)
 {
     if (!linop.isCellCentered()) {
@@ -571,14 +581,16 @@ MLMGT<MF>::getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
 
     AMREX_ASSERT(sol.size() == a_flux.size());
 
-    if constexpr (std::is_same<AMF,MF>()) {
+    if constexpr (std::is_same<AMFSet,MFSet>()) {
         getFluxes(a_flux, GetVecOfPtrs(sol), a_loc);
     } else {
-        Vector<Array<MF,AMREX_SPACEDIM>> fluxes(namrlevs);
+        MultiFab mf;
+        MultiFabSet mfs;
+        Vector<Array<MFSet,AMREX_SPACEDIM>> fluxes(namrlevs);
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                auto const& amf = *(a_flux[ilev][idim]);
-                fluxes[ilev][idim].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+                auto const& aMFSet = *(a_flux[ilev][idim]);
+                fluxes[ilev][idim].define(aMFSet.boxArray(), aMFSet.DistributionMap(), ncomp, 0);
             }
         }
         getFluxes(GetVecOfArrOfPtrs(fluxes), GetVecOfPtrs(sol), a_loc);
@@ -590,20 +602,20 @@ MLMGT<MF>::getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
     }
 }
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
 void
-MLMGT<MF>::getFluxes (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_flux,
+MLMG_Test::getFluxes (std::initializer_list<Array<AMFSet*,AMREX_SPACEDIM>> a_flux,
                       Location a_loc)
 {
-    getFluxes(Vector<Array<AMF*,AMREX_SPACEDIM>>(std::move(a_flux)), a_loc);
+    getFluxes(Vector<Array<AMFSet*,AMREX_SPACEDIM>>(std::move(a_flux)), a_loc);
 }
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
 void
-MLMGT<MF>::getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
-                      const Vector<AMF*>& a_sol, Location a_loc)
+MLMG_Test::getFluxes (const Vector<Array<AMFSet*,AMREX_SPACEDIM> >& a_flux,
+                      const Vector<AMFSet*>& a_sol, Location a_loc)
 {
     BL_PROFILE("MLMG::getFluxes()");
 
@@ -611,14 +623,14 @@ MLMGT<MF>::getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
        amrex::Abort("Calling wrong getFluxes for nodal solver");
     }
 
-    if constexpr (std::is_same<AMF,MF>()) {
+    if constexpr (std::is_same<AMFSet,MFSet>()) {
         linop.getFluxes(a_flux, a_sol, a_loc);
     } else {
-        Vector<Array<MF,AMREX_SPACEDIM>> fluxes(namrlevs);
+        Vector<Array<MFSet,AMREX_SPACEDIM>> fluxes(namrlevs);
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                auto const& amf = *(a_flux[ilev][idim]);
-                fluxes[ilev][idim].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+                auto const& aMFSet = *(a_flux[ilev][idim]);
+                fluxes[ilev][idim].define(aMFSet.boxArray(), aMFSet.DistributionMap(), ncomp, 0);
             }
             sol[ilev].LocalCopy(*a_sol[ilev], 0, 0, ncomp, sol[ilev].nGrowVect());
         }
@@ -631,29 +643,29 @@ MLMGT<MF>::getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
     }
 }
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
 void
-MLMGT<MF>::getFluxes (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_flux,
-                      std::initializer_list<AMF*> a_sol, Location a_loc)
+MLMG_Test::getFluxes (std::initializer_list<Array<AMFSet*,AMREX_SPACEDIM>> a_flux,
+                      std::initializer_list<AMFSet*> a_sol, Location a_loc)
 {
-    getFluxes(Vector<Array<AMF*,AMREX_SPACEDIM>>(std::move(a_flux)),
-              Vector<AMF*>(std::move(a_sol)), a_loc);
+    getFluxes(Vector<Array<AMFSet*,AMREX_SPACEDIM>>(std::move(a_flux)),
+              Vector<AMFSet*>(std::move(a_sol)), a_loc);
 }
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
 void
-MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux, Location a_loc)
+MLMG_Test::getFluxes (const Vector<AMFSet*> & a_flux, Location a_loc)
 {
     AMREX_ASSERT(sol.size() == a_flux.size());
-    if constexpr (std::is_same<AMF,MF>()) {
+    if constexpr (std::is_same<AMFSet,MFSet>()) {
         getFluxes(a_flux, GetVecOfPtrs(sol), a_loc);
     } else {
-        Vector<MF> fluxes(namrlevs);
+        Vector<MFSet> fluxes(namrlevs);
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
-            auto const& amf = *a_flux[ilev];
-            fluxes[ilev].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+            auto const& aMFSet = *a_flux[ilev];
+            fluxes[ilev].define(aMFSet.boxArray(), aMFSet.DistributionMap(), ncomp, 0);
         }
         getFluxes(GetVecOfPtrs(fluxes), GetVecOfPtrs(sol), a_loc);
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
@@ -662,23 +674,23 @@ MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux, Location a_loc)
     }
 }
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
 void
-MLMGT<MF>::getFluxes (std::initializer_list<AMF*> a_flux, Location a_loc)
+MLMG_Test::getFluxes (std::initializer_list<AMFSet*> a_flux, Location a_loc)
 {
-    getFluxes(Vector<AMF*>(std::move(a_flux)), a_loc);
+    getFluxes(Vector<AMFSet*>(std::move(a_flux)), a_loc);
 }
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
 void
-MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux,
-                      const Vector<AMF*>& a_sol, Location /*a_loc*/)
+MLMG_Test::getFluxes (const Vector<AMFSet*> & a_flux,
+                      const Vector<AMFSet*>& a_sol, Location /*a_loc*/)
 {
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
 
-    if constexpr (! std::is_same<AMF,MF>()) {
+    if constexpr (! std::is_same<AMFSet,MFSet>()) {
         for (int alev = 0; alev < namrlevs; ++alev) {
             sol[alev].LocalCopy(*a_sol[alev], 0, 0, ncomp, sol[alev].nGrowVect());
         }
@@ -686,7 +698,7 @@ MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux,
 
     if (linop.isCellCentered())
     {
-        Vector<Array<MF,AMREX_SPACEDIM> > ffluxes(namrlevs);
+        Vector<Array<MFSet,AMREX_SPACEDIM> > ffluxes(namrlevs);
         for (int alev = 0; alev < namrlevs; ++alev) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const int mglev = 0;
@@ -698,7 +710,7 @@ MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux,
                                            *linop.m_factory[alev][mglev]);
             }
         }
-        if constexpr (std::is_same<AMF,MF>()) {
+        if constexpr (std::is_same<AMFSet,MFSet>()) {
             getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), a_sol, Location::FaceCenter);
         } else {
             getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), GetVecOfPtrs(sol), Location::FaceCenter);
@@ -712,13 +724,13 @@ MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux,
         }
 
     } else {
-        if constexpr (std::is_same<AMF,MF>()) {
+        if constexpr (std::is_same<AMFSet,MFSet>()) {
             linop.getFluxes(a_flux, a_sol);
         } else {
-            Vector<MF> fluxes(namrlevs);
+            Vector<MFSet> fluxes(namrlevs);
             for (int ilev = 0; ilev < namrlevs; ++ilev) {
-                auto const& amf = *a_flux[ilev];
-                fluxes[ilev].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+                auto const& aMFSet = *a_flux[ilev];
+                fluxes[ilev].define(aMFSet.boxArray(), aMFSet.DistributionMap(), ncomp, 0);
             }
             linop.getFluxes(GetVecOfPtrs(fluxes), GetVecOfPtrs(sol));
             for (int ilev = 0; ilev < namrlevs; ++ilev) {
@@ -728,20 +740,20 @@ MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux,
     }
 }
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
 void
-MLMGT<MF>::getFluxes (std::initializer_list<AMF*> a_flux,
-                      std::initializer_list<AMF*> a_sol, Location a_loc)
+MLMG_Test::getFluxes (std::initializer_list<AMFSet*> a_flux,
+                      std::initializer_list<AMFSet*> a_sol, Location a_loc)
 {
-    getFluxes(Vector<AMF*>(std::move(a_flux)),
-              Vector<AMF*>(std::move(a_sol)), a_loc);
+    getFluxes(Vector<AMFSet*>(std::move(a_flux)),
+              Vector<AMFSet*>(std::move(a_sol)), a_loc);
 }
 
 #ifdef AMREX_USE_EB
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::getEBFluxes (const Vector<MF*>& a_eb_flux)
+MLMG_Test::getEBFluxes (const Vector<MFSet*>& a_eb_flux)
 {
     if (!linop.isCellCentered()) {
        amrex::Abort("getEBFluxes is for cell-centered only");
@@ -751,9 +763,9 @@ MLMGT<MF>::getEBFluxes (const Vector<MF*>& a_eb_flux)
     getEBFluxes(a_eb_flux, GetVecOfPtrs(sol));
 }
 
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::getEBFluxes (const Vector<MF*>& a_eb_flux, const Vector<MF*>& a_sol)
+MLMG_Test::getEBFluxes (const Vector<MFSet*>& a_eb_flux, const Vector<MFSet*>& a_sol)
 {
     BL_PROFILE("MLMG::getEBFluxes()");
 
@@ -765,10 +777,10 @@ MLMGT<MF>::getEBFluxes (const Vector<MF*>& a_eb_flux, const Vector<MF*>& a_sol)
 }
 #endif
 
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
-                         const Vector<MF const*>& a_rhs)
+MLMG_Test::compResidual (const Vector<MFSet*>& a_res, const Vector<MFSet*>& a_sol,
+                         const Vector<MFSet const*>& a_rhs)
 {
     BL_PROFILE("MLMG::compResidual()");
 
@@ -804,11 +816,11 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
     const auto& amrrr = linop.AMRRefRatio();
 
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
-        const MF* crse_bcdata = (alev > 0) ? &(sol[alev-1]) : nullptr;
-        const MF* prhs = a_rhs[alev];
+        const MFSet* crse_bcdata = (alev > 0) ? &(sol[alev-1]) : nullptr;
+        const MFSet* prhs = a_rhs[alev];
 #if (AMREX_SPACEDIM != 3)
         int nghost = (cf_strategy == CFStrategy::ghostnodes) ? linop.getNGrow(alev) : 0;
-        MF rhstmp(prhs->boxArray(), prhs->DistributionMap(), ncomp, nghost,
+        MFSet rhstmp(prhs->boxArray(), prhs->DistributionMap(), ncomp, nghost,
                   MFInfo(), *linop.Factory(alev));
         rhstmp.LocalCopy(*prhs, 0, 0, ncomp, IntVect(nghost));
         linop.applyMetricTerm(alev, 0, rhstmp);
@@ -838,15 +850,15 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
 #endif
 }
 
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
+MLMG_Test::apply (const Vector<MFSet*>& out, const Vector<MFSet*>& a_in)
 {
     BL_PROFILE("MLMG::apply()");
 
-    Vector<MF*> in(namrlevs);
-    Vector<MF> in_raii(namrlevs);
-    Vector<MF> rh(namrlevs);
+    Vector<MFSet*> in(namrlevs);
+    Vector<MFSet> in_raii(namrlevs);
+    Vector<MFSet> rh(namrlevs);
     int nghost = 0;
     IntVect ng_sol(1);
     if (linop.hasHiddenDimension()) { ng_sol[linop.hiddenDirection()] = 0; }
@@ -894,7 +906,7 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
     const auto& amrrr = linop.AMRRefRatio();
 
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
-        const MF* crse_bcdata = (alev > 0) ? in[alev-1] : nullptr;
+        const MFSet* crse_bcdata = (alev > 0) ? in[alev-1] : nullptr;
         linop.solutionResidual(alev, *out[alev], *in[alev], rh[alev], crse_bcdata);
         if (alev < finest_amr_lev) {
             linop.reflux(alev, *out[alev], *in[alev], rh[alev],
@@ -921,10 +933,10 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
     }
 }
 
-template <typename MF>
-template <typename AMF>
+// template <typename MFSet>
+// template <typename AMFSet>
 void
-MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const& a_rhs)
+MLMG_Test::prepareForSolve (Vector<AMFSet*> const& a_sol, Vector<AMFSet const*> const& a_rhs)
 {
     BL_PROFILE("MLMG::prepareForSolve()");
 
@@ -961,7 +973,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
     {
         if (cf_strategy == CFStrategy::ghostnodes)
         {
-            if constexpr (std::is_same<AMF,MF>()) {
+            if constexpr (std::is_same<AMFSet,MFSet>()) {
                 sol[alev] = linop.makeAlias(*a_sol[alev]);
                 sol_is_alias[alev] = true;
             } else {
@@ -971,7 +983,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         else
         {
             if (a_sol[alev]->nGrowVect() == ng_sol) {
-                if constexpr (std::is_same<AMF,MF>()) {
+                if constexpr (std::is_same<AMFSet,MFSet>()) {
                     sol[alev] = linop.makeAlias(*a_sol[alev]);
                     sol[alev].setBndry(RT(0.0), 0, ncomp);
                     sol_is_alias[alev] = true;
@@ -1004,11 +1016,11 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
 #ifdef AMREX_USE_EB
         const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
         if (factory && !factory->isAllRegular()) {
-            if constexpr (std::is_same<MF,MultiFab>()) {
+            if constexpr (std::is_same<MFSet,MultiFabSet>()) {
                 EB_set_covered(rhs[alev], 0, ncomp, 0, RT(0.0));
                 EB_set_covered(sol[alev], 0, ncomp, 0, RT(0.0));
             } else {
-                amrex::Abort("TODO: MLMG with EB only works with MultiFab");
+                amrex::Abort("TODO: MLMG with EB only works with MultiFabSet");
             }
         }
 #endif
@@ -1106,9 +1118,9 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
     }
 }
 
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::prepareForNSolve ()
+MLMG_Test::prepareForNSolve ()
 {
     ns_linop = linop.makeNLinOp(nsolve_grid_size);
 
@@ -1120,16 +1132,16 @@ MLMGT<MF>::prepareForNSolve ()
 
     int ng = 1;
     if (cf_strategy == CFStrategy::ghostnodes) { ng = nghost; }
-    ns_sol = std::make_unique<MF>(ba, dm, ncomp, ng, MFInfo(), *(ns_linop->Factory(0,0)));
+    ns_sol = std::make_unique<MFSet>(ba, dm, ncomp, ng, MFInfo(), *(ns_linop->Factory(0,0)));
     ng = 0;
     if (cf_strategy == CFStrategy::ghostnodes) { ng = nghost; }
-    ns_rhs = std::make_unique<MF>(ba, dm, ncomp, ng, MFInfo(), *(ns_linop->Factory(0,0)));
+    ns_rhs = std::make_unique<MFSet>(ba, dm, ncomp, ng, MFInfo(), *(ns_linop->Factory(0,0)));
     ns_sol->setVal(RT(0.0));
     ns_rhs->setVal(RT(0.0));
 
     ns_linop->setLevelBC(0, ns_sol.get());
 
-    ns_mlmg = std::make_unique<MLMGT<MF>>(*ns_linop);
+    ns_mlmg = std::make_unique<MLMG_Test>(*ns_linop);
     ns_mlmg->setVerbose(0);
     ns_mlmg->setFixedIter(1);
     ns_mlmg->setMaxFmgIter(20);
@@ -1138,8 +1150,8 @@ MLMGT<MF>::prepareForNSolve ()
 
 // in  : Residual (res) on the finest AMR level
 // out : sol on all AMR levels
-template <typename MF>
-void MLMGT<MF>::oneIter (int iter)
+// template <typename MFSet>
+void MLMG_Test::oneIter (int iter)
 {
     BL_PROFILE("MLMG::oneIter()");
 
@@ -1206,9 +1218,9 @@ void MLMGT<MF>::oneIter (int iter)
     linop.averageDownAndSync(sol);
 }
 
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::miniCycle (int amrlev)
+MLMG_Test::miniCycle (int amrlev)
 {
     BL_PROFILE("MLMG::miniCycle()");
     const int mglev = 0;
@@ -1217,9 +1229,9 @@ MLMGT<MF>::miniCycle (int amrlev)
 
 // in   : Residual (res)
 // out  : Correction (cor) from bottom to this function's local top
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
+MLMG_Test::mgVcycle (int amrlev, int mglev_top)
 {
     BL_PROFILE("MLMG::mgVcycle()");
 
@@ -1331,9 +1343,9 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
 // FMG cycle on the coarsest AMR level.
 // in:  Residual on the top MG level (i.e., 0)
 // out: Correction (cor) on all MG levels
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::mgFcycle ()
+MLMG_Test::mgFcycle ()
 {
     BL_PROFILE("MLMG::mgFcycle()");
 
@@ -1373,9 +1385,9 @@ MLMGT<MF>::mgFcycle ()
 // At the true bottom of the coarset AMR level.
 // in  : Residual (res) as b
 // out : Correction (cor) as x
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::bottomSolve ()
+MLMG_Test::bottomSolve ()
 {
     if (do_nsolve)
     {
@@ -1387,15 +1399,15 @@ MLMGT<MF>::bottomSolve ()
     }
 }
 
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::NSolve (MLMGT<MF>& a_solver, MF& a_sol, MF& a_rhs)
+MLMG_Test::NSolve (MLMG_Test& a_solver, MFSet& a_sol, MFSet& a_rhs)
 {
     BL_PROFILE("MLMG::NSolve()");
 
     a_sol.setVal(RT(0.0));
 
-    MF const& res_bottom = res[0].back();
+    MFSet const& res_bottom = res[0].back();
     if (BoxArray::SameRefs(a_rhs.boxArray(),res_bottom.boxArray()) &&
         DistributionMapping::SameRefs(a_rhs.DistributionMap(),res_bottom.DistributionMap()))
     {
@@ -1405,15 +1417,15 @@ MLMGT<MF>::NSolve (MLMGT<MF>& a_solver, MF& a_sol, MF& a_rhs)
         a_rhs.ParallelCopy(res_bottom);
     }
 
-    a_solver.solve(Vector<MF*>{&a_sol}, Vector<MF const*>{&a_rhs},
+    a_solver.solve(Vector<MFSet*>{&a_sol}, Vector<MFSet const*>{&a_rhs},
                    RT(-1.0), RT(-1.0));
 
     linop.copyNSolveSolution(cor[0].back(), a_sol);
 }
 
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::actualBottomSolve ()
+MLMG_Test::actualBottomSolve ()
 {
     BL_PROFILE("MLMG::actualBottomSolve()");
 
@@ -1440,8 +1452,8 @@ MLMGT<MF>::actualBottomSolve ()
     }
     else
     {
-        MF* bottom_b = &b;
-        MF raii_b;
+        MFSet* bottom_b = &b;
+        MFSet raii_b;
         if (linop.isBottomSingular() && linop.getEnforceSingularSolvable())
         {
             const IntVect ng = b.nGrowVect();
@@ -1455,7 +1467,7 @@ MLMGT<MF>::actualBottomSolve ()
         if (bottom_solver == BottomSolver::hypre)
         {
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-            if constexpr (std::is_same<MF,MultiFab>()) {
+            if constexpr (std::is_same<MFSet,MultiFabSet>()) {
                 bottomSolveWithHypre(x, *bottom_b);
             } else
 #endif
@@ -1466,7 +1478,7 @@ MLMGT<MF>::actualBottomSolve ()
         else if (bottom_solver == BottomSolver::petsc)
         {
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-            if constexpr (std::is_same<MF,MultiFab>()) {
+            if constexpr (std::is_same<MFSet,MultiFabSet>()) {
                 bottomSolveWithPETSc(x, *bottom_b);
             } else
 #endif
@@ -1476,12 +1488,12 @@ MLMGT<MF>::actualBottomSolve ()
         }
         else
         {
-            typename MLCGSolverT<MF>::Type cg_type;
+            typename MLCGSolver_Test::Type cg_type;
             if (bottom_solver == BottomSolver::cg ||
                 bottom_solver == BottomSolver::cgbicg) {
-                cg_type = MLCGSolverT<MF>::Type::CG;
+                cg_type = MLCGSolver_Test::Type::CG;
             } else {
-                cg_type = MLCGSolverT<MF>::Type::BiCGStab;
+                cg_type = MLCGSolver_Test::Type::BiCGStab;
             }
             int ret = bottomSolveWithCG(x, *bottom_b, cg_type);
             // If the MLMG solve failed then set the correction to zero
@@ -1490,15 +1502,15 @@ MLMGT<MF>::actualBottomSolve ()
                 if (bottom_solver == BottomSolver::cgbicg ||
                     bottom_solver == BottomSolver::bicgcg) {
                     if (bottom_solver == BottomSolver::cgbicg) {
-                        cg_type = MLCGSolverT<MF>::Type::BiCGStab; // switch to bicg
+                        cg_type = MLCGSolver_Test::Type::BiCGStab; // switch to bicg
                     } else {
-                        cg_type = MLCGSolverT<MF>::Type::CG; // switch to cg
+                        cg_type = MLCGSolver_Test::Type::CG; // switch to cg
                     }
                     ret = bottomSolveWithCG(x, *bottom_b, cg_type);
                     if (ret != 0) {
                         cor[amrlev][mglev].setVal(RT(0.0));
                     } else { // switch permanently
-                        if (cg_type == MLCGSolverT<MF>::Type::CG) {
+                        if (cg_type == MLCGSolver_Test::Type::CG) {
                             bottom_solver = BottomSolver::cg;
                         } else {
                             bottom_solver = BottomSolver::bicgstab;
@@ -1518,11 +1530,11 @@ MLMGT<MF>::actualBottomSolve ()
     timer[bottom_time] += amrex::second() - bottom_start_time;
 }
 
-template <typename MF>
+// template <typename MFSet>
 int
-MLMGT<MF>::bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type type)
+MLMG_Test::bottomSolveWithCG (MFSet& x, const MFSet& b, typename MLCGSolver_Test::Type type)
 {
-    MLCGSolverT<MF> cg_solver(linop);
+    MLCGSolver_Test cg_solver(linop);
     cg_solver.setSolver(type);
     cg_solver.setVerbose(bottom_verbose);
     cg_solver.setMaxIter(bottom_maxiter);
@@ -1537,15 +1549,15 @@ MLMGT<MF>::bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type
 }
 
 // Compute multi-level Residual (res) up to amrlevmax.
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::computeMLResidual (int amrlevmax)
+MLMG_Test::computeMLResidual (int amrlevmax)
 {
     BL_PROFILE("MLMG::computeMLResidual()");
 
     const int mglev = 0;
     for (int alev = amrlevmax; alev >= 0; --alev) {
-        const MF* crse_bcdata = (alev > 0) ? &(sol[alev-1]) : nullptr;
+        const MFSet* crse_bcdata = (alev > 0) ? &(sol[alev-1]) : nullptr;
         linop.solutionResidual(alev, res[alev][mglev], sol[alev], rhs[alev], crse_bcdata);
         if (alev < finest_amr_lev) {
             linop.reflux(alev, res[alev][mglev], sol[alev], rhs[alev],
@@ -1555,19 +1567,19 @@ MLMGT<MF>::computeMLResidual (int amrlevmax)
 }
 
 // Compute single AMR level residual without masking.
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::computeResidual (int alev)
+MLMG_Test::computeResidual (int alev)
 {
     BL_PROFILE("MLMG::computeResidual()");
-    const MF* crse_bcdata = (alev > 0) ? &(sol[alev-1]) : nullptr;
+    const MFSet* crse_bcdata = (alev > 0) ? &(sol[alev-1]) : nullptr;
     linop.solutionResidual(alev, res[alev][0], sol[alev], rhs[alev], crse_bcdata);
 }
 
 // Compute coarse AMR level composite residual with coarse solution and fine correction
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::computeResWithCrseSolFineCor (int calev, int falev)
+MLMG_Test::computeResWithCrseSolFineCor (int calev, int falev)
 {
     BL_PROFILE("MLMG::computeResWithCrseSolFineCor()");
 
@@ -1576,17 +1588,17 @@ MLMGT<MF>::computeResWithCrseSolFineCor (int calev, int falev)
         nghost = IntVect(std::min(linop.getNGrow(falev),linop.getNGrow(calev)));
     }
 
-    MF&       crse_sol = sol[calev];
-    const MF& crse_rhs = rhs[calev];
-    MF&       crse_res = res[calev][0];
+    MFSet&       crse_sol = sol[calev];
+    const MFSet& crse_rhs = rhs[calev];
+    MFSet&       crse_res = res[calev][0];
 
-    MF&       fine_sol = sol[falev];
-    const MF& fine_rhs = rhs[falev];
-    MF&       fine_cor = cor[falev][0];
-    MF&       fine_res = res[falev][0];
-    MF&    fine_rescor = rescor[falev][0];
+    MFSet&       fine_sol = sol[falev];
+    const MFSet& fine_rhs = rhs[falev];
+    MFSet&       fine_cor = cor[falev][0];
+    MFSet&       fine_res = res[falev][0];
+    MFSet&    fine_rescor = rescor[falev][0];
 
-    const MF* crse_bcdata = (calev > 0) ? &(sol[calev-1]) : nullptr;
+    const MFSet* crse_bcdata = (calev > 0) ? &(sol[calev-1]) : nullptr;
     linop.solutionResidual(calev, crse_res, crse_sol, crse_rhs, crse_bcdata);
 
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
@@ -1598,9 +1610,9 @@ MLMGT<MF>::computeResWithCrseSolFineCor (int calev, int falev)
 }
 
 // Compute fine AMR level residual fine_res = fine_res - L(fine_cor) with coarse providing BC.
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::computeResWithCrseCorFineCor (int falev)
+MLMG_Test::computeResWithCrseCorFineCor (int falev)
 {
     BL_PROFILE("MLMG::computeResWithCrseCorFineCor()");
 
@@ -1609,11 +1621,11 @@ MLMGT<MF>::computeResWithCrseCorFineCor (int falev)
         nghost = IntVect(linop.getNGrow(falev));
     }
 
-    const MF& crse_cor = cor[falev-1][0];
+    const MFSet& crse_cor = cor[falev-1][0];
 
-    MF& fine_cor    = cor   [falev][0];
-    MF& fine_res    = res   [falev][0];
-    MF& fine_rescor = rescor[falev][0];
+    MFSet& fine_cor    = cor   [falev][0];
+    MFSet& fine_res    = res   [falev][0];
+    MFSet& fine_rescor = rescor[falev][0];
 
     // fine_rescor = fine_res - L(fine_cor)
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res,
@@ -1622,9 +1634,9 @@ MLMGT<MF>::computeResWithCrseCorFineCor (int falev)
 }
 
 // Interpolate correction from coarse to fine AMR level.
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::interpCorrection (int alev)
+MLMG_Test::interpCorrection (int alev)
 {
     BL_PROFILE("MLMG::interpCorrection_1");
 
@@ -1633,8 +1645,8 @@ MLMGT<MF>::interpCorrection (int alev)
         nghost = IntVect(linop.getNGrow(alev));
     }
 
-    MF const& crse_cor = cor[alev-1][0];
-    MF      & fine_cor = cor[alev  ][0];
+    MFSet const& crse_cor = cor[alev-1][0];
+    MFSet      & fine_cor = cor[alev  ][0];
 
     const Geometry& crse_geom = linop.Geom(alev-1,0);
 
@@ -1646,7 +1658,7 @@ MLMGT<MF>::interpCorrection (int alev)
         ng_dst = linop.getNGrow(alev-1);
     }
 
-    MF cfine = linop.makeCoarseAmr(alev, IntVect(ng_dst));
+    MFSet cfine = linop.makeCoarseAmr(alev, IntVect(ng_dst));
     cfine.setVal(RT(0.0));
     cfine.ParallelCopy(crse_cor, 0, 0, ncomp,  IntVect(ng_src), IntVect(ng_dst),
                        crse_geom.periodicity());
@@ -1657,72 +1669,72 @@ MLMGT<MF>::interpCorrection (int alev)
 // Interpolate correction between MG levels
 // inout: Correction (cor) on coarse MG lev.  (out due to FillBoundary)
 // out  : Correction (cor) on fine MG lev.
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::interpCorrection (int alev, int mglev)
+MLMG_Test::interpCorrection (int alev, int mglev)
 {
     BL_PROFILE("MLMG::interpCorrection_2");
 
-    MF& crse_cor = cor[alev][mglev+1];
-    MF& fine_cor = cor[alev][mglev  ];
+    MFSet& crse_cor = cor[alev][mglev+1];
+    MFSet& fine_cor = cor[alev][mglev  ];
     linop.interpAssign(alev, mglev, fine_cor, crse_cor);
 }
 
 // (Fine MG level correction) += I(Coarse MG level correction)
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::addInterpCorrection (int alev, int mglev)
+MLMG_Test::addInterpCorrection (int alev, int mglev)
 {
     BL_PROFILE("MLMG::addInterpCorrection()");
 
-    const MF& crse_cor = cor[alev][mglev+1];
-    MF&       fine_cor = cor[alev][mglev  ];
+    const MFSet& crse_cor = cor[alev][mglev+1];
+    MFSet&       fine_cor = cor[alev][mglev  ];
 
-    MF cfine;
-    const MF* cmf;
+    MFSet cfine;
+    const MFSet* cMFSet;
 
-    if (linop.isMFIterSafe(alev, mglev, mglev+1))
+    if (linop.isMFSetIterSafe(alev, mglev, mglev+1))
     {
-        cmf = &crse_cor;
+        cMFSet = &crse_cor;
     }
     else
     {
         cfine = linop.makeCoarseMG(alev, mglev, IntVect(0));
         cfine.ParallelCopy(crse_cor,0,0,ncomp,IntVect(0),IntVect(0));
-        cmf = &cfine;
+        cMFSet = &cfine;
     }
 
-    linop.interpolation(alev, mglev, fine_cor, *cmf);
+    linop.interpolation(alev, mglev, fine_cor, *cMFSet);
 }
 
 // Compute rescor = res - L(cor)
 // in   : res
 // inout: cor (out due to FillBoundary in linop.correctionResidual)
 // out  : rescor
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::computeResOfCorrection (int amrlev, int mglev)
+MLMG_Test::computeResOfCorrection (int amrlev, int mglev)
 {
     BL_PROFILE("MLMG:computeResOfCorrection()");
-    MF      & x =    cor[amrlev][mglev];
-    const MF& b =    res[amrlev][mglev];
-    MF      & r = rescor[amrlev][mglev];
+    MFSet      & x =    cor[amrlev][mglev];
+    const MFSet& b =    res[amrlev][mglev];
+    MFSet      & r = rescor[amrlev][mglev];
     linop.correctionResidual(amrlev, mglev, r, x, b, BCMode::Homogeneous);
 }
 
 // Compute single-level masked inf-norm of Residual (res).
-template <typename MF>
+// template <typename MFSet>
 auto
-MLMGT<MF>::ResNormInf (int alev, bool local) -> RT
+MLMG_Test::ResNormInf (int alev, bool local) -> RT
 {
     BL_PROFILE("MLMG::ResNormInf()");
     return linop.normInf(alev, res[alev][0], local);
 }
 
 // Computes multi-level masked inf-norm of Residual (res).
-template <typename MF>
+// template <typename MFSet>
 auto
-MLMGT<MF>::MLResNormInf (int alevmax, bool local) -> RT
+MLMG_Test::MLResNormInf (int alevmax, bool local) -> RT
 {
     BL_PROFILE("MLMG::MLResNormInf()");
     RT r = RT(0.0);
@@ -1735,9 +1747,9 @@ MLMGT<MF>::MLResNormInf (int alevmax, bool local) -> RT
 }
 
 // Compute multi-level masked inf-norm of RHS (rhs).
-template <typename MF>
+// template <typename MFSet>
 auto
-MLMGT<MF>::MLRhsNormInf (bool local) -> RT
+MLMG_Test::MLRhsNormInf (bool local) -> RT
 {
     BL_PROFILE("MLMG::MLRhsNormInf()");
     RT r = RT(0.0);
@@ -1749,9 +1761,9 @@ MLMGT<MF>::MLRhsNormInf (bool local) -> RT
     return r;
 }
 
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::makeSolvable ()
+MLMG_Test::makeSolvable ()
 {
     auto const& offset = linop.getSolvabilityOffset(0, 0, rhs[0]);
     if (verbose >= 4) {
@@ -1765,26 +1777,26 @@ MLMGT<MF>::makeSolvable ()
     }
 }
 
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::makeSolvable (int amrlev, int mglev, MF& mf)
+MLMG_Test::makeSolvable (int amrlev, int mglev, MFSet& MFSet)
 {
-    auto const& offset = linop.getSolvabilityOffset(amrlev, mglev, mf);
+    auto const& offset = linop.getSolvabilityOffset(amrlev, mglev, MFSet);
     if (verbose >= 4) {
         for (int c = 0; c < ncomp; ++c) {
             amrex::Print() << "MLMG: Subtracting " << offset[c]
-                           << " from mf component c = " << c
+                           << " from MFSet component c = " << c
                            << " on level (" << amrlev << ", " << mglev << ")\n";
         }
     }
-    linop.fixSolvabilityByOffset(amrlev, mglev, mf, offset);
+    linop.fixSolvabilityByOffset(amrlev, mglev, MFSet, offset);
 }
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-template <typename MF>
-template <class TMF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int>>
+// template <typename MFSet>
+// template <class TMFSet,std::enable_if_t<std::is_same_v<TMFSet,MultiFabSet>,int>>
 void
-MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
+MLMG_Test::bottomSolveWithHypre (MFSet& x, const MFSet& b)
 {
     const int amrlev = 0;
     const int mglev  = linop.NMGLevels(amrlev) - 1;
@@ -1812,7 +1824,7 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
             const DistributionMapping& dm = linop.m_dmap[amrlev].back();
             const Geometry& geom = linop.m_geom[amrlev].back();
 
-            hypre_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
+            hypre_bndry = std::make_unique<MLMGBndryT<MFSet>>(ba, dm, ncomp, geom);
             hypre_bndry->setHomogValues();
             const Real* dx = linop.m_geom[0][0].CellSize();
             int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
@@ -1850,10 +1862,10 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-template <typename MF>
-template <class TMF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int>>
+// template <typename MFSet>
+// template <class TMFSet,std::enable_if_t<std::is_same_v<TMFSet,MultiFabSet>,int>>
 void
-MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
+MLMG_Test::bottomSolveWithPETSc (MFSet& x, const MFSet& b)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "bottomSolveWithPETSc doesn't work with ncomp > 1");
 
@@ -1866,7 +1878,7 @@ MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
 
-        petsc_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
+        petsc_bndry = std::make_unique<MLMGBndryT<MFSet>>(ba, dm, ncomp, geom);
         petsc_bndry->setHomogValues();
         const Real* dx = linop.m_geom[0][0].CellSize();
         int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
@@ -1880,10 +1892,10 @@ MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
 }
 #endif
 
-template <typename MF>
+// template <typename MFSet>
 void
-MLMGT<MF>::checkPoint (const Vector<MultiFab*>& a_sol,
-                       const Vector<MultiFab const*>& a_rhs,
+MLMG_Test::checkPoint (const Vector<MultiFabSet*>& a_sol,
+                       const Vector<MultiFabSet const*>& a_rhs,
                        RT a_tol_rel, RT a_tol_abs, const char* a_file_name) const
 {
     std::string file_name(a_file_name);
@@ -1937,9 +1949,9 @@ MLMGT<MF>::checkPoint (const Vector<MultiFab*>& a_sol,
     linop.checkPoint(file_name+"/linop");
 }
 
-extern template class MLMGT<MultiFab>;
+// extern // template class MLMG_Test<MultiFabSet>;
 
-using MLMG = MLMGT<MultiFab>;
+// using MLMG = MLMG_Test<MultiFabSet>;
 
 }
 

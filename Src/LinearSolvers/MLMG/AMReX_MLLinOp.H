@@ -262,7 +262,7 @@ public:
     virtual void restriction (int amrlev, int cmglev, MF& crse, MF& fine) const = 0;
 
     /**
-     * \brief Add interpolated coarse MG levle data to fine MG level data
+     * \brief Add interpolated coarse MG level data to fine MG level data
      *
      * \param amrlev AMR level
      * \param fmglev fine MG level
@@ -287,7 +287,7 @@ public:
      * \param famrlev fine AMR level
      * \param fine    fine level data
      * \param crse    coarse level data
-     * \parame nghost number of ghost cells
+     * \param nghost number of ghost cells
      */
     virtual void interpolationAmr (int famrlev, MF& fine, const MF& crse,
                                    IntVect const& nghost) const = 0;
@@ -406,7 +406,8 @@ public:
     //! This is needed for our nodal projection solver
     virtual void unimposeNeumannBC (int /*amrlev*/, MF& /*rhs*/) const {}
 
-    //! Extra terms introduced when we treate inhomogeneous Nuemann BC as homogeneous.
+    //! Extra terms introduced when we treat
+     inhomogeneous Nuemann BC as homogeneous.
     virtual void applyInhomogNeumannTerm (int /*amrlev*/, MF& /*rhs*/) const {}
 
     //! for overset solver only
