@@ -19,7 +19,7 @@ namespace amrex {
   };
 
 ///
-/// This is a container for particles that undergo short-range interations.
+/// This is a container for particles that undergo short-range interactions.
 /// In addition to the normal ParticleContainer methods, each tile contains a "neighbor
 /// buffer" that is filled with data corresponding to the particles within 1 neighbor cell of
 /// the tile boundaries. This allows the N^2 search over each pair of particles to proceed

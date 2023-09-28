@@ -236,7 +236,7 @@ endif ()
 # CMake targets
 include( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )
 
-# CMake targets aliase: last dimension built will be our legacy target
+# CMake targets aliases: last dimension built will be our legacy target
 if (NOT TARGET AMReX::amrex)  # protection in case of multiple inclusions
     list(LENGTH AMReX_SPACEDIM list_len)
     math(EXPR list_last "${list_len} - 1")

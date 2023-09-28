@@ -53,7 +53,7 @@ int main (int argc, char* argv[])
                         failed_tests.push_back(std::make_pair(icase,expr));
                     }
                 } else {
-                    amrex::Abort("How did this happend? No line after case.");
+                    amrex::Abort("How did this happen? No line after case.");
                 }
             }
         }

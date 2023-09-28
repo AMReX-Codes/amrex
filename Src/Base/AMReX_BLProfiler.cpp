@@ -1281,7 +1281,7 @@ void BLProfiler::WriteCommStats(bool bFlushing, bool memCheck)
       nfiHeader.Stream() << "CommProfProc  " << myProc
                          << "  nCommStats  " << vCommStats.size()
                          << "  datafile  " << localDFileName
-                         << "  seekpos  " << nfiDatafile.SeekPos()    // ---- data file seek posotion
+                         << "  seekpos  " << nfiDatafile.SeekPos()    // ---- data file seek position
                          << "  " << procName << '\n';
       for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
           int seekindex(CommStats::barrierNames[ib].second);
