@@ -545,7 +545,7 @@ void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
  * fully defined, the BoxArray on the disk must match the BoxArray in the
  * given iMultiFab/FabArray<IArrayBox> object.  If it is only constructed
  * with the default constructor, the BoxArray on the disk will be used and a
- * new DistributionMapping will be made.  When this funciton is used to
+ * new DistributionMapping will be made.  When this function is used to
  * restart a calculation from checkpoint files, one should use a fully
  * defined iMultiFab/FabArray<IArrayBox> except for the first one in a
  * series of iMultiFab/MultiFab objects that share the same

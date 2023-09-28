@@ -230,7 +230,7 @@ MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rh
                 if (m_lobc[0][idim] != LinOpBCType::Neumann &&
                     m_lobc[0][idim] != LinOpBCType::inflow)
                 {
-                    nddom.growLo(idim, 10); // so that the test in ParReduce will faill
+                    nddom.growLo(idim, 10); // so that the test in ParReduce will fail
                 }
                 if (m_hibc[0][idim] != LinOpBCType::Neumann &&
                     m_hibc[0][idim] != LinOpBCType::inflow)
@@ -334,7 +334,7 @@ MLNodeLaplacian::fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs,
                 if (m_lobc[0][idim] != LinOpBCType::Neumann &&
                     m_lobc[0][idim] != LinOpBCType::inflow)
                 {
-                    nddom.growLo(idim, 10); // so that the test in ParReduce will faill
+                    nddom.growLo(idim, 10); // so that the test in ParReduce will fail
                 }
                 if (m_hibc[0][idim] != LinOpBCType::Neumann &&
                     m_hibc[0][idim] != LinOpBCType::inflow)

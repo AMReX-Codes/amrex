@@ -84,7 +84,7 @@ public:
         crse_cell = 0, crse_fine_boundary_cell, fine_cell
     };
 
-    //! For curvilinear cooordinates only. In that case, the flux passed to
+    //! For curvilinear coordinates only. In that case, the flux passed to
     //! YAFluxRegister is assumed to have been multiplied by area. Note that
     //! YAFluxRegister does NOT make a copy of the volume data. So the
     //! coarse volume MF must be alive during the life time of

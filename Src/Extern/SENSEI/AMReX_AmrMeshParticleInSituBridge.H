@@ -21,7 +21,7 @@
 namespace amrex
 {
 
-/// SENSEI bridge code for simulations proccessing both amrex::Amr and amrex::ParticleContainer
+/// SENSEI bridge code for simulations processing both amrex::Amr and amrex::ParticleContainer
 class AmrMeshParticleInSituBridge : public InSituBridge
 {
 public:

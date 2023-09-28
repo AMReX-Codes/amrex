@@ -108,7 +108,7 @@ public:
 
     /**
     * \brief Construct an IntVect from an Vector<int>.  It is an error if
-    * the Vector<int> doesn' t have the same dimension as this
+    * the Vector<int> doesn't have the same dimension as this
     * IntVect.
     */
     explicit IntVect (const Vector<int>& a) noexcept : vect{AMREX_D_DECL(a[0],a[1],a[2])} {
