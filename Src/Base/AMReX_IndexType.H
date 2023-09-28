@@ -19,10 +19,10 @@ namespace amrex {
 * enumerated type CellIndex to be either CELL or NODE; i.e. each of the
 * AMREX_SPACEDIM dimensions must be either CELL or NODE.
 */
-
 class IndexType
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IndexType>::type();
+    friend class IndexTypeSet;
 
 public:
     //! The cell index type: one of CELL or NODE.
@@ -142,6 +142,47 @@ private:
 std::ostream& operator<< (std::ostream& os, const IndexType& itype);
 //! Read an IndexType from an istream.
 std::istream& operator>> (std::istream& is, IndexType& itype);
+
+class IndexTypeSet {
+public:
+
+    IndexTypeSet (unsigned long a_EncodedLong);
+
+    IndexTypeSet (Vector<IndexType> a_IxTypes);
+
+    IndexTypeSet (Vector<IntVect> a_IntVects);
+
+    Vector<IndexType> IndexTypeList ();
+
+    Vector<IntVect> IntVectList ();
+
+    unsigned long getEncodedLong () { return m_EncodedLong; };
+
+    std::size_t getSetSize () { return m_n; };
+
+    static unsigned long ConvertToEncodedLong (Vector<IndexType> a_IxTypes);
+
+    static unsigned long ConvertToEncodedLong (Vector<IntVect> a_IntVects);
+
+    static Vector<IndexType> ConvertToIxTypes (unsigned long a_EncodedLong);
+
+    static Vector<IndexType> ConvertToIxTypes (Vector<IntVect> a_IntVects);
+
+    static Vector<IntVect> ConvertToIntVects (unsigned long a_EncodedLong);
+
+    static Vector<IntVect> ConvertToIntVects (Vector<IndexType> a_IxTypes);
+
+private:
+
+    void define (Vector<IndexType> a_IxTypes);
+
+    unsigned long m_EncodedLong{0};
+
+    std::size_t m_n{0};
+
+    static constexpr int const_NumBitsForSize = 5;
+
+};
 
 }
 
