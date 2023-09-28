@@ -17,10 +17,7 @@ LIBRARIES += -lbittree
 
 Include in inputs:
 amr.use_bittree = true
-amr.bt_derefine = true
-amr.infer_bt_grids = false
-
- */
+*/
 
 class btUnit {
   // Functions used in AmrMesh
