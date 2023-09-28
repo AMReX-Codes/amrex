@@ -99,10 +99,9 @@ MLNodeLaplacian::buildSurfaceIntegral ()
         {
             const int ncomp = sintg->nComp();
             const auto& flags = factory->getMultiEBCellFlagFab();
-            const auto& vfrac = factory->getVolFrac();
-            const auto& area = factory->getAreaFrac();
             const auto& bcent = factory->getBndryCent();
             const auto& barea = factory->getBndryArea();
+            const auto& bnorm = factory->getBndryNormal();
 
             MFItInfo mfi_info;
             if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
@@ -128,14 +127,12 @@ MLNodeLaplacian::buildSurfaceIntegral ()
                     });
                 } else {
                     Array4<EBCellFlag const> const& flagarr = flags.const_array(mfi);
-                    Array4<Real const> const& vfracarr = vfrac.const_array(mfi);
-                    Array4<Real const> const& axarr = area[0]->const_array(mfi);
-                    Array4<Real const> const& ayarr = area[1]->const_array(mfi);
                     Array4<Real const> const& bcarr = bcent.const_array(mfi);
                     Array4<Real const> const& baarr = barea.const_array(mfi);
+                    Array4<Real const> const& bnarr = bnorm.const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                     {
-                        mlndlap_set_surface_integral_eb(i,j,k,garr,flagarr,vfracarr,axarr,ayarr,bcarr,baarr);
+                        mlndlap_set_surface_integral_eb(i,j,k,garr,flagarr,bcarr,baarr,bnarr);
                     });
                 }
             }
