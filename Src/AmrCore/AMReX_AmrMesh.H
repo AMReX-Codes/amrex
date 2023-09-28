@@ -267,7 +267,7 @@ protected:
     Vector<BoxArray>            grids;
 
 #ifdef AMREX_USE_BITTREE
-    bool use_bittree;
+    bool use_bittree = false;
     std::shared_ptr<bittree::BittreeAmr> btmesh;
 #endif
 
