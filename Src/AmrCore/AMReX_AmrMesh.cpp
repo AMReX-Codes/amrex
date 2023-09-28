@@ -454,8 +454,9 @@ AmrMesh::MakeDistributionMap (int lev, BoxArray const& ba)
 
     BL_PROFILE("AmrMesh::MakeDistributionMap()");
 
-    // useful print statement to notify that a new distribution map is being created at lev
-    amrex::Print() << "creating new distribution map on level: " << lev + 1 << "\n";
+    if (verbose) {
+        amrex::Print() << "Creating new distribution map on level: " << lev << "\n";
+    }
 
     // initialize new distribution mapping
     DistributionMapping dm;
