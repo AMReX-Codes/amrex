@@ -458,30 +458,14 @@ AmrMesh::MakeDistributionMap (int lev, BoxArray const& ba)
         amrex::Print() << "Creating new distribution map on level: " << lev << "\n";
     }
 
-    // initialize new distribution mapping
-    DistributionMapping dm;
-
 #ifdef AMREX_USE_BITTREE
-    if(!use_bittree)
+    // if (use_bittree) {
+    //     return DistributionMapping(ba);
+    // } else
+#endif
     {
-#endif
-        // create distribution mapping using boxarray
-        dm.define(ba);
-
-#ifdef AMREX_USE_BITTREE
+        return DistributionMapping(ba);
     }
-#endif
-
-#ifdef AMREX_USE_BITTREE
-    // Bittree version
-    if(use_bittree)
-    {
-        // create distribution mapping
-        dm.define(ba);
-    }
-#endif
-
-    return dm;
 }
 
 void
