@@ -1,6 +1,6 @@
 
 ifneq (,$(findstring ~,$(AMREX_HOME)))
-  $(warning *** AMREX_HOME string constains ~ and make will not like it. So it is replaced.)
+  $(warning *** AMREX_HOME string contains ~ and make will not like it. So it is replaced.)
   AMREX_HOME := $(shell echo $(AMREX_HOME))
 endif
 

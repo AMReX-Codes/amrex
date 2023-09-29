@@ -421,7 +421,7 @@ public:
     /**
     * \brief
     * This initializes the particle container with one particle per cell,
-    * where the other particle data and attributes are all contant. The
+    * where the other particle data and attributes are all constant. The
     * coarsest level is used to generate the particle positions. The particle
     * variable values are passed in through the pdata struct. The parameters
     * x_off, y_off, and z_off represent offsets between 0 and 1 that show
@@ -750,7 +750,7 @@ public:
     /**
      * \brief Writes a particle checkpoint to file, suitable for restarting.
      *        This version allows the particle component names to be passed in.
-     *        This overload exists for backwards comptability. The is_checkpoint parameter is ignored.
+     *        This overload exists for backwards compatibility. The is_checkpoint parameter is ignored.
      */
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
@@ -968,13 +968,13 @@ public:
     void WriteAsciiFile (const std::string& file);
 
     /**
-     * \brief Return the underyling Vector (over AMR levels) of ParticleLevels.
+     * \brief Return the underlying Vector (over AMR levels) of ParticleLevels.
      *        Const version.
      */
     const Vector<ParticleLevel>& GetParticles () const { return m_particles; }
 
     /**
-     * \brief Return the underyling Vector (over AMR levels) of ParticleLevels.
+     * \brief Return the underlying Vector (over AMR levels) of ParticleLevels.
      *        Non-const version.
      */
     Vector      <ParticleLevel>& GetParticles ()       { return m_particles; }

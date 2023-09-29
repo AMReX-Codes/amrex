@@ -427,7 +427,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
                             small_volfrac, geom, extend_domain_face, cover_multiple_cuts,
                             nsm, nmc);
 
-                // Becasue it is used in a synchronous reduction kernel in
+                // Because it is used in a synchronous reduction kernel in
                 // build_cells, we do not need to worry about M2's lifetime.
                 // But we still need to use Elixir to extend the life of
                 // cellflagtmp.

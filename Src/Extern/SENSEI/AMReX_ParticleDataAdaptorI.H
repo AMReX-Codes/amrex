@@ -581,14 +581,14 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshMetadata(
       for (const auto& kv : pmap)
       {
         // loop over particles in ParticleTile
-        const auto& aos = kv.second.GetArrayOfStructs();
-        const auto &parts = aos();
+        auto& particle_tile = kv.second;
+        auto ptd = particle_tile.getConstParticleTileData();
 
         // visit only the "real" particles, skip the "neighbor" particles.
-        long long numReal = aos.numRealParticles();
+        long long numReal = particle_tile.numRealParticles();
         for (long long i = 0; i < numReal; ++i)
         {
-          const auto &part = parts[i];
+          const auto &part = ptd[i];
           if (part.id() > 0)
           {
 #if (AMREX_SPACEDIM == 1)
@@ -869,7 +869,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOARea
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
       auto& particle_attributes = pti.GetStructOfArrays();
-      auto& aos = pti.GetArrayOfStructs();
+      auto ptd = pti.GetParticleTile().getParticleTileData();
 
       auto numReal = pti.numParticles();
       // shuffle from the AMReX component order
@@ -881,7 +881,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOARea
 
         for (long long i = 0; i < numReal; ++i)
         {
-          const auto &part = aos[i];
+          const auto &part = ptd[i];
           if (part.id() > 0)
           {
             pData[i*nComps + j] = realData[i];
@@ -944,7 +944,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOAInt
     for (MyParIter pti(*this->m_particles, level); pti.isValid(); ++pti)
     {
       auto& particle_attributes = pti.GetStructOfArrays();
-      auto& aos = pti.GetArrayOfStructs();
+      auto ptd = pti.GetParticleTile().getParticleTileData();
 
       auto numReal = pti.numParticles();
       // shuffle from the AMReX component order
@@ -953,7 +953,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOAInt
 
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = aos[i];
+        const auto &part = ptd[i];
         if (part.id() > 0)
         {
           pData[i] = intData[i];
