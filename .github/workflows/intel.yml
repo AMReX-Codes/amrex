@@ -152,6 +152,7 @@ jobs:
     - name: Dependencies
       if: ${{ env.CODEPLAYTOKEN != '' }}
       run: |
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_hip.sh 5.4.6
         .github/workflows/dependencies/dependencies_dpcpp.sh
         .github/workflows/dependencies/dependencies_codeplay.sh ${{ env.CODEPLAYTOKEN }}
