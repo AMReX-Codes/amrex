@@ -21,7 +21,7 @@ MLNodeABecLaplacian::define (const Vector<Geometry>& a_geom,
                              const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
 #ifdef AMREX_USE_EB
-    amrex::Abort("MLNodeABecLaplacian does not suport EB");
+    amrex::Abort("MLNodeABecLaplacian does not support EB");
 #endif
 
     BL_PROFILE("MLNodeABecLaplacian::define()");

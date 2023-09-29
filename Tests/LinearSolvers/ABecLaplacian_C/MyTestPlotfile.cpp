@@ -16,7 +16,7 @@ MyTest::writePlotfile () const
             MultiFab::Copy(errmf, solution[ilev], 0, 0, 1, 0);
             MultiFab::Subtract(errmf, exact_solution[ilev], 0, 0, 1, 0);
             auto error = errmf.norminf();
-            amrex::Print() << "Leve " << ilev << " max-norm error: " << error << std::endl;
+            amrex::Print() << "Level " << ilev << " max-norm error: " << error << std::endl;
         }
         return;
     }
