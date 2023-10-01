@@ -143,7 +143,13 @@ std::ostream& operator<< (std::ostream& os, const IndexType& itype);
 //! Read an IndexType from an istream.
 std::istream& operator>> (std::istream& is, IndexType& itype);
 
+/**
+ * \brief IndexTypeSet encodes a vector of IndexTypes into a single long integer.
+ * Could be useful for creating template classes of MultiFabSet where each set element
+ * can have a distinct IndexType.
+ */
 class IndexTypeSet {
+
 public:
 
     IndexTypeSet (unsigned long a_EncodedLong);

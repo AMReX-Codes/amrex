@@ -204,12 +204,12 @@ public:
     void makeSolvable (int amrlev, int mglev, MFSet& MFSet);
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    // template <class TMFSet=MFSet,std::enable_if_t<std::is_same_v<TMFSet,MultiFabSet>,int> = 0>
+    // template <class TMFSet=MFSet,std::enable_if_t<std::is_same_v<TMFSet,MultiFab>,int> = 0>
     void bottomSolveWithHypre (MFSet& x, const MFSet& b);
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-    // template <class TMFSet=MFSet,std::enable_if_t<std::is_same_v<TMFSet,MultiFabSet>,int> = 0>
+    // template <class TMFSet=MFSet,std::enable_if_t<std::is_same_v<TMFSet,MultiFab>,int> = 0>
     void bottomSolveWithPETSc (MFSet& x, const MFSet& b);
 #endif
 
@@ -320,8 +320,8 @@ private:
     Vector<int> m_niters_cg;
     Vector<RT> m_iter_fine_resnorm0; // Residual for each iteration at the finest level
 
-    void checkPoint (const Vector<MultiFabSet*>& a_sol,
-                     const Vector<MultiFabSet const*>& a_rhs,
+    void checkPoint (const Vector<MultiFab*>& a_sol,
+                     const Vector<MultiFab const*>& a_rhs,
                      RT a_tol_rel, RT a_tol_abs, const char* a_file_name) const;
 
 };
@@ -354,7 +354,7 @@ MLMG_Test::solve (const Vector<AMFSet*>& a_sol, const Vector<AMFSet const*>& a_r
 {
     BL_PROFILE("MLMG::solve()");
 
-    if constexpr (std::is_same<AMFSet,MultiFabSet>()) {
+    if constexpr (std::is_same<AMFSet,MultiFab>()) {
         if (checkpoint_file != nullptr) {
             checkPoint(a_sol, a_rhs, a_tol_rel, a_tol_abs, checkpoint_file);
         }
@@ -584,8 +584,6 @@ MLMG_Test::getFluxes (const Vector<Array<AMFSet*,AMREX_SPACEDIM> >& a_flux,
     if constexpr (std::is_same<AMFSet,MFSet>()) {
         getFluxes(a_flux, GetVecOfPtrs(sol), a_loc);
     } else {
-        MultiFab mf;
-        MultiFabSet mfs;
         Vector<Array<MFSet,AMREX_SPACEDIM>> fluxes(namrlevs);
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -1016,11 +1014,11 @@ MLMG_Test::prepareForSolve (Vector<AMFSet*> const& a_sol, Vector<AMFSet const*> 
 #ifdef AMREX_USE_EB
         const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
         if (factory && !factory->isAllRegular()) {
-            if constexpr (std::is_same<MFSet,MultiFabSet>()) {
+            if constexpr (std::is_same<MFSet,MultiFab>()) {
                 EB_set_covered(rhs[alev], 0, ncomp, 0, RT(0.0));
                 EB_set_covered(sol[alev], 0, ncomp, 0, RT(0.0));
             } else {
-                amrex::Abort("TODO: MLMG with EB only works with MultiFabSet");
+                amrex::Abort("TODO: MLMG with EB only works with MultiFab");
             }
         }
 #endif
@@ -1467,7 +1465,7 @@ MLMG_Test::actualBottomSolve ()
         if (bottom_solver == BottomSolver::hypre)
         {
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-            if constexpr (std::is_same<MFSet,MultiFabSet>()) {
+            if constexpr (std::is_same<MFSet,MultiFab>()) {
                 bottomSolveWithHypre(x, *bottom_b);
             } else
 #endif
@@ -1478,7 +1476,7 @@ MLMG_Test::actualBottomSolve ()
         else if (bottom_solver == BottomSolver::petsc)
         {
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-            if constexpr (std::is_same<MFSet,MultiFabSet>()) {
+            if constexpr (std::is_same<MFSet,MultiFab>()) {
                 bottomSolveWithPETSc(x, *bottom_b);
             } else
 #endif
@@ -1794,7 +1792,7 @@ MLMG_Test::makeSolvable (int amrlev, int mglev, MFSet& MFSet)
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 // template <typename MFSet>
-// template <class TMFSet,std::enable_if_t<std::is_same_v<TMFSet,MultiFabSet>,int>>
+// template <class TMFSet,std::enable_if_t<std::is_same_v<TMFSet,MultiFab>,int>>
 void
 MLMG_Test::bottomSolveWithHypre (MFSet& x, const MFSet& b)
 {
@@ -1863,7 +1861,7 @@ MLMG_Test::bottomSolveWithHypre (MFSet& x, const MFSet& b)
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
 // template <typename MFSet>
-// template <class TMFSet,std::enable_if_t<std::is_same_v<TMFSet,MultiFabSet>,int>>
+// template <class TMFSet,std::enable_if_t<std::is_same_v<TMFSet,MultiFab>,int>>
 void
 MLMG_Test::bottomSolveWithPETSc (MFSet& x, const MFSet& b)
 {
@@ -1894,8 +1892,8 @@ MLMG_Test::bottomSolveWithPETSc (MFSet& x, const MFSet& b)
 
 // template <typename MFSet>
 void
-MLMG_Test::checkPoint (const Vector<MultiFabSet*>& a_sol,
-                       const Vector<MultiFabSet const*>& a_rhs,
+MLMG_Test::checkPoint (const Vector<MultiFab*>& a_sol,
+                       const Vector<MultiFab const*>& a_rhs,
                        RT a_tol_rel, RT a_tol_abs, const char* a_file_name) const
 {
     std::string file_name(a_file_name);

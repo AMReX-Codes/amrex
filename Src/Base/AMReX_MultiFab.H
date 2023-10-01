@@ -33,7 +33,6 @@ class iMultiFab;
  * Additional member functions are defined for I/O and simple arithmetic operations on these aggregate objects.
  * This class does NOT provide a copy constructor or assignment operator.
  */
-
 class MultiFab
     :
     public FabArray<FArrayBox>
@@ -59,7 +58,7 @@ public:
     /**
     * \brief
     * Constructs a MultiFab
-    * \param bs a valid region
+    * \param bxs a valid region
     * \param dm a DistribuionMapping
     * \param ncomp number of components
     * \param ngrow number of cells the region grows

@@ -4,7 +4,7 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
-#include <AMReX_BaseMultiFabSet.H>
+#include <AMReX_FabArraySet.H>
 
 namespace amrex {
 
@@ -25,25 +25,31 @@ namespace amrex {
  * represented thus far, which is a collection of single component MultiFab's that live on slightly different FAB's 
  * with distinct IndexType's (nodal flags).
  */
-class MultiFabSet : public BaseMultiFabSet<MultiFab>
+// template <unsigned long encodedIxTypes>
+// class MultiFabSet<encodedIxTypes> : public FabArraySet<MultiFab,encodedIxTypes>
+class MultiFabSet : public FabArraySet
 {
 public:
     using MF = typename amrex::MultiFab;
-    using RT = typename MF::value_type;
+    using RT = typename FabArraySet::value_type;
     using FABFactory = typename amrex::FabFactory<fab_type>;
     using DM = typename amrex::DistributionMapping;
 
+    /**
+    * \brief Constructs an empty MultiFabSet.  Data can be defined at a later
+    * time using the define member functions inherited
+    * from FabArraySet.
+    */
     MultiFabSet () noexcept;
 
     /**
-     * \brief Make an alias MultiFabSet. maketype must be amrex::make_alias
-     * 
-     * \param mfs Starting MultiFabSet
-     * \param maketype maketype must be amrex::make_alias
-     * \param scomp The starting MultiFab component index of the alias
-     * \param ncomp The number of components in each MultiFab the alias
-     */
-    MultiFabSet (const MultiFabSet& mfs, MakeType maketype, int scomp, int ncomp);
+    * \brief Constructs an empty MultiFabSet.  Data can be defined at a later
+    * time using the define member functions inherited from FabArraySet.  If
+    * `define` is called later with a nulltpr as MFInfo's arena, the default
+    * Arena `a` will be used.  If the arena in MFInfo is not a nullptr, the
+    * MFInfo's arena will be used.
+    */
+    explicit MultiFabSet (Arena* a) noexcept;
 
     /**
      * \brief Construct a new MultiFabSet object
@@ -57,99 +63,74 @@ public:
      */
     MultiFabSet (const BoxArray& bxs, const DM& dm, int ncomp, const IntVect& ngrow,
 #ifdef AMREX_STRICT_MODE
-                 const MFInfo& info, const FABFactory& factory,
+                 const MFInfo& info, const FABFactory& factory);
 #else
-                 const MFInfo& info = MFInfo(), const FABFactory& factory = FArrayBoxFactory(),
+                 const MFInfo& info = MFInfo(), const FABFactory& factory = FArrayBoxFactory());
 #endif
-                 const Vector<IndexType>* ixtype_array = nullptr);
 
-
-
-    /**
-     * \brief Generate MultiFabSet from Array<MF,N>
-     */
+    //! Generate MultiFabSet from Array<MF,N>
     template <std::size_t N>
     MultiFabSet (Array<MF*,N>& mfarray);
-
+    //! Generate MultiFabSet from const Array<MF,N>
     template <std::size_t N>
     MultiFabSet (const Array<MF*,N>& mfarray);
 
-    MF& operator[] (int i) noexcept { return *m_mfptr_set[i]; }
-    const MF& operator[] (int i) const noexcept { return *m_mfptr_set[i]; }
-
-    MF& getElem (int i) noexcept { return *m_mfptr_set[i]; }
-    const MF& getElem (int i) const noexcept { return *m_mfptr_set[i]; }
-    
-    MF* getElemPtr (int i) noexcept { return m_mfptr_set[i]; }
-    MF const* getElemPtr (int i) const noexcept { return m_mfptr_set[i]; }
-
-    void setElem (int i, MF& mf) { this->m_mfptr_set[i] = &mf; }
-    void setElem (int i, MF* mfptr) { this->m_mfptr_set[i] = mfptr; }
-    
-    void setVal (RT val);
-
-    /**
-     * \brief Set constant value for selected Multifabs
-     *
-     * \param val The value to be set
-     * \param start_index The starting index in the MultiFabSet
-     * \param num_of_MF The number of MultiFabs affected starting from `start_index`
+     /**
+     * \brief Make an alias MultiFabSet.
+     * \param mfs Starting MultiFabSet
+     * \param maketype must be amrex::make_alias
+     * \param scomp The starting component of the alias
+     * \param ncomp The number of components in the new aliasing MultiFabs.
      */
-    void setVal (RT val, int start_index, int num_of_MF);
-    
-    /**
-     * \brief Return the largest infinity norm amongst the selected MultiFabs
-     *
-     * \param comp           The starting index in the MultiFabSet
-     * \param ncomp          The number of MultiFabs affected starting from `start_index`
-     * \param nghost         number of ghost cells
-     * \param local          If true, MPI communciation is skipped.
-     * \param ignore_covered Ignore covered cells. Only relevant for cell-centered EB data.
-     */
-    RT norminf (int comp, int ncomp, IntVect const& nghost = IntVect(0), bool local = false,
-             [[maybe_unused]] bool ignore_covered = false) const;
-    /**
-     * \brief Perform local copy of MultiFabSet data.
-     *
-     * \param src source MultiFabSet
-     * \param scomp starting component of source
-     * \param dcomp starting component of this MultiFabSet
-     * \param ncomp number of components
-     * \param nghost number of ghost cells
-     * \param use_nGrowVect Use nGrowVect from each MultiFab instead of nghost
-     */
-    void LocalCopy (const MultiFabSet& src, int scomp = 0, int dcomp = 0, int ncomp = -1,
-                    IntVect const& nghost = IntVect(0), bool use_nGrowVect = false);
+    MultiFabSet (const MultiFabSet& mfs, MakeType maketype, int scomp, int ncomp);
 
-    /**
-     * \brief Used in MLLinOpT<MF>::make
-     */
-    void clear ();
+    ~MultiFabSet ();
 
-    BoxArray boxArray () const;
+    MultiFabSet (MultiFabSet&& rhs) noexcept;
+    MultiFabSet& operator= (MultiFabSet&& rhs) noexcept = default;
 
-    DistributionMapping DistributionMap() const;
-
-    IntVect nGrowVect() const;
-
-    // int nComp() { return N; } //Could also return nComp of the first component...
-
-    bool isAllRegular () const noexcept;
-
+    MultiFabSet (const MultiFabSet& rhs) = delete;
+    MultiFabSet& operator= (const MultiFabSet& rhs) = delete;
 
 };
 
+MultiFabSet::MultiFabSet (const MultiFabSet& src, MakeType maketype, int scomp, int ncomp)
+{
+    if (m_ncompRefersToMFComps) {
+        for (int i = 0; i < nSet(); ++i) {
+            setElem(i, new MF(src.getElem(i), maketype, scomp, ncomp));
+        }
+    } else {
+        for (int i = 0; i < ncomp; ++i) {
+            const MF& srcmf = src.getElem(scomp+i);
+            setElem(i, new MF(srcmf, maketype, 0, srcmf.nComp()));
+        }
+    }
+}
 
+MultiFabSet::MultiFabSet (const BoxArray& bxs, const DM& dm, int ncomp, const IntVect& ngrow, 
+                             const MFInfo& info, const FABFactory& factory)
+{
+    for (int i = 0; i < nSet(); ++i) {
+        BoxArray bxs_tmp = bxs;
+        setElem(i, new MF(amrex::convert(bxs, m_ixtype_set[i]), dm, ncomp, ngrow, info, factory));
+    }
+}
 
+template <std::size_t N>
+MultiFabSet::MultiFabSet (Array<MF*,N>& mfarray) 
+{
+    for (int i = 0; i < nSet(); ++i) {
+        setElem(i, mfarray[i]);
+    }
+}
 
+template <std::size_t N>
+MultiFabSet::MultiFabSet (const Array<MF*,N>& mfarray)
+{
+    for (int i = 0; i < nSet(); ++i) {
+        setElem(i, mfarray[i]);
+    }
+}
 
 }
-    // MultiFabSet (const MultiFabSet&, MFInfo&, int, IntVect);
-    // MultiFabSet (const MultiFabSet&, MFInfo, int, IxTypes);
-    // MultiFabSet (const MultiFabSet&, MFInfo&, int, FabFactory<FArrayBox>&);
-    // MultiFabSet (const MultiFabSet&, MFInfo, IntVect, IxTypes);
-    // MultiFabSet (const MultiFabSet&, MFInfo&, IntVect, FabFactory<FArrayBox>&);
-    // MultiFabSet (const MultiFabSet&, MFInfo, IntVect, IxTypes);
-    // MultiFabSet (const MultiFabSet&, MFInfo);
-    // MultiFabSet (const MultiFabSet&, MFInfo, FabFactory);
-    // MultiFabSet (const MultiFabSet&, MFInfo, IntVect, FabFactory);

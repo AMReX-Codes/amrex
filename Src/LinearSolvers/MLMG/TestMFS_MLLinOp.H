@@ -433,7 +433,7 @@ public:
     virtual void avgDownResAmr (int clev, MFSet& cres, MFSet const& fres) const = 0;
     virtual void avgDownResMG (int clev, MFSet& cres, MFSet const& fres) const;
 
-    [[nodiscard]] bool isMFSetIterSafe (int amrlev, int mglev1, int mglev2) const;
+    [[nodiscard]] bool isMFIterSafe (int amrlev, int mglev1, int mglev2) const;
 
 protected:
 
@@ -1413,7 +1413,7 @@ MLLinOp_Test::avgDownResMG (int clev, MFSet& cres, MFSet const& fres) const
 
 // template <typename MFSet>
 bool
-MLLinOp_Test::isMFSetIterSafe (int amrlev, int mglev1, int mglev2) const
+MLLinOp_Test::isMFIterSafe (int amrlev, int mglev1, int mglev2) const
 {
     return m_dmap[amrlev][mglev1] == m_dmap[amrlev][mglev2]
         && BoxArray::SameRefs(m_grids[amrlev][mglev1], m_grids[amrlev][mglev2]);
