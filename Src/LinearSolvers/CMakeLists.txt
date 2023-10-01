@@ -49,6 +49,10 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLEBNodeFDLaplacian.cpp
        MLMG/AMReX_MLEBNodeFDLap_K.H
        MLMG/AMReX_MLEBNodeFDLap_${D}D_K.H
+       MLMG/AMReX_MLNodeABecLaplacian.H
+       MLMG/AMReX_MLNodeABecLaplacian.cpp
+       MLMG/AMReX_MLNodeABecLap_K.H
+       MLMG/AMReX_MLNodeABecLap_${D}D_K.H
        )
 
     if (D EQUAL 3)
