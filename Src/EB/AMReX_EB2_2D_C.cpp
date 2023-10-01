@@ -9,7 +9,7 @@ void set_eb_data (const int i, const int j,
                   GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm) noexcept
+                  Array4<Real> const& bnorm, Array4<Real> const& levset) noexcept
 {
 #ifdef AMREX_USE_FLOAT
     constexpr Real almostone = 1.0_rt-1.e-6_rt;
@@ -37,7 +37,20 @@ void set_eb_data (const int i, const int j,
     const Real nyabs = std::abs(ny);
 
     Real x_ym, x_yp, y_xm, y_xp;
-    if (nx > 0.0_rt) {
+    if (nx == 0.0_rt) {
+        if (apx(i,j,0) == 1.0_rt && apx(i+1,j,0) == 1.0_rt) {
+            if (levset(i,j,0) > 0.0_rt || levset(i,j+1,0) > 0.0_rt) {
+                x_ym = 0.5_rt*dx[0] - aym;
+                x_yp = 0.5_rt*dx[0] - ayp;
+            } else {
+                x_ym = -0.5_rt*dx[0] + aym;
+                x_yp = -0.5_rt*dx[0] + ayp;
+            }
+        } else {
+            x_ym = 0.0_rt;
+            x_yp = 0.0_rt;
+        }
+    } else if (nx > 0.0_rt) {
         x_ym = -0.5_rt*dx[0] + aym;
         x_yp = -0.5_rt*dx[0] + ayp;
     } else {
@@ -45,7 +58,20 @@ void set_eb_data (const int i, const int j,
         x_yp = 0.5_rt*dx[0] - ayp;
     }
 
-    if (ny > 0.0_rt) {
+    if (ny == 0.0_rt) {
+        if (apy(i,j,0) == 1.0_rt && apy(i,j+1,0) == 1.0_rt) {
+            if (levset(i,j,0) > 0.0_rt || levset(i+1,j,0) > 0.0_rt) {
+                y_xm = 0.5_rt*dx[1] - axm;
+                y_xp = 0.5_rt*dx[1] - axp;
+            } else {
+                y_xm = -0.5_rt*dx[1] + axm;
+                y_xp = -0.5_rt*dx[1] + axp;
+            }
+        } else {
+            y_xm = 0.0_rt;
+            y_xp = 0.0_rt;
+        }
+    } else if (ny > 0.0_rt) {
         y_xm = -0.5_rt*dx[1] + axm;
         y_xp = -0.5_rt*dx[1] + axp;
     } else {
@@ -135,7 +161,8 @@ bool set_eb_cell (int i, int j, Array4<EBCellFlag> const& cell,
                   GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm, Real small_volfrac) noexcept
+                  Array4<Real> const& bnorm, Array4<Real> const& levset,
+                  Real small_volfrac) noexcept
 {
     bool is_small_cell = false;
     if (cell(i,j,0).isRegular()) {
@@ -157,7 +184,7 @@ bool set_eb_cell (int i, int j, Array4<EBCellFlag> const& cell,
         bnorm(i,j,0,0) = 0.0_rt;
         bnorm(i,j,0,1) = 0.0_rt;
     } else {
-        set_eb_data(i,j,apx,apy,dx,vfrac,vcent,barea,bcent,bnorm);
+        set_eb_data(i,j,apx,apy,dx,vfrac,vcent,barea,bcent,bnorm,levset);
         // remove small cells
         if (vfrac(i,j,0) < small_volfrac) {
             set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
@@ -341,7 +368,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     {
         amrex::ignore_unused(k);
         bool is_small = set_eb_cell(i, j, cell, apx, apy, dx, vfrac, vcent, barea, bcent,
-                                    bnorm, small_volfrac);
+                                    bnorm, levset, small_volfrac);
         if (is_small) {
             Gpu::Atomic::Add(dp, 1);
         }
