@@ -6,9 +6,9 @@
 using namespace bittree;
 
 namespace amrex {
-static constexpr int K1D = unsigned(AMREX_SPACEDIM>=1);
-static constexpr int K2D = unsigned(AMREX_SPACEDIM>=2);
-static constexpr int K3D = unsigned(AMREX_SPACEDIM>=3);
+static constexpr auto K1D = int(AMREX_SPACEDIM>=1);
+static constexpr auto K2D = int(AMREX_SPACEDIM>=2);
+static constexpr auto K3D = int(AMREX_SPACEDIM>=3);
 
 
 bool btUnit::bcPeriodic[AMREX_SPACEDIM];
@@ -30,10 +30,10 @@ The functions here are called in the BT version of MakeNewGrids which has three 
   * This makes use of BT library functions and as well as routines adapted
   * from Flash-X that enforce Octree nesting.
   */
-int btUnit::btRefine( BittreeAmr* const mesh, std::vector<int>& btTags,
+int btUnit::btRefine (BittreeAmr* const mesh, std::vector<int>& btTags,
                       int max_crse, int lbase,
-                      Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap, MPI_Comm comm) {
-
+                      Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap, MPI_Comm comm)
+{
     BL_PROFILE("Bittree-btRefine");
 
     // Tree before refinement. With only one rank, lnblocks = nblocks.
@@ -79,15 +79,16 @@ int btUnit::btRefine( BittreeAmr* const mesh, std::vector<int>& btTags,
 
 /** Creates new box arrays to match the new Bittree mesh.
   */
-void btUnit::btCalculateGrids(BittreeAmr* const mesh, int lbase,
-                            int& new_finest,
-                            Vector<BoxArray>& new_grids,
-                            Vector<IntVect> const& max_grid_size) {
+void btUnit::btCalculateGrids (BittreeAmr* const mesh, int lbase,
+                               int& new_finest,
+                               Vector<BoxArray>& new_grids,
+                               Vector<IntVect> const& max_grid_size)
+{
     BL_PROFILE("Bittree-btCalculateGrids");
 
     auto tree1 = mesh->getTree(true);
-    int nlevs = tree1->levels();
-    new_finest = nlevs - 1;
+    auto nlevs = tree1->levels();
+    new_finest = int(nlevs - 1);
 
 //--Calculate the new grid layout and distribution map based on Bittree
     for(int lev=lbase; lev<=new_finest; ++lev) {
@@ -98,21 +99,22 @@ void btUnit::btCalculateGrids(BittreeAmr* const mesh, int lbase,
 
 /** Creates a box array based on Bittree.
   */
-void btUnit::btCalculateLevel(BittreeAmr* const mesh, int lev,
-                            BoxArray& ba,
-                            IntVect const& max_grid_size) {
+void btUnit::btCalculateLevel (BittreeAmr* const mesh, int lev,
+                               BoxArray& ba,
+                               IntVect const& max_grid_size)
+{
     auto tree1 = mesh->getTree(true);
 
     //Bittree has its own indices for blocks which I call bitid; get
     //the range of bitids for the level being made. Bitid range is
     //contiguous for each level.
-    int id0 = tree1->level_id0(lev);
-    int id1 = tree1->level_id1(lev);
-    int nblocks = tree1->level_blocks(lev);
+    auto id0 = tree1->level_id0(lev);
+    auto id1 = tree1->level_id1(lev);
+    // int nblocks = tree1->level_blocks(lev);
 
     BoxList bl;
 
-    for(int i=id0; i<id1; ++i) {
+    for(auto i=id0; i<id1; ++i) {
       //Get coordinates and morton index.
       auto b = tree1->locate(i);
 
@@ -132,14 +134,16 @@ void btUnit::btCalculateLevel(BittreeAmr* const mesh, int lev,
     ba = BoxArray(bl);
 }
 
-int btUnit::getBitid(BittreeAmr* const mesh, bool updated,
-             int lev, int idx_on_lev) {
-    return idx_on_lev + mesh->getTree(updated)->level_id0(lev);
+int btUnit::getBitid (BittreeAmr* const mesh, bool updated,
+                      int lev, int idx_on_lev)
+{
+    return idx_on_lev + int(mesh->getTree(updated)->level_id0(lev));
 }
 
-int btUnit::getIndex(BittreeAmr* const mesh, bool updated,
-             int lev, int bitid) {
-    return bitid - mesh->getTree(updated)->level_id0(lev);
+int btUnit::getIndex (BittreeAmr* const mesh, bool updated,
+                      int lev, int bitid)
+{
+    return bitid - int(mesh->getTree(updated)->level_id0(lev));
 }
 
 
@@ -152,10 +156,11 @@ int btUnit::getIndex(BittreeAmr* const mesh, bool updated,
   * to a strict octree structure with no more than one level difference
   * between surrounding leaf blocks.
   */
-void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags,
-                           int max_crse, int lbase,
-                           Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap, MPI_Comm comm) {
-
+void btUnit::btCheckRefine (BittreeAmr* const mesh, std::vector<int>& btTags,
+                            int max_crse, int lbase,
+                            Vector<BoxArray>& grids,
+                            Vector<DistributionMapping>& dmap, MPI_Comm comm)
+{
     BL_PROFILE("Bittree-btCheckRefine");
 
     // Tree before refinement.
@@ -217,10 +222,11 @@ void btUnit::btCheckRefine(BittreeAmr* const mesh, std::vector<int>& btTags,
   * to a strict octree structure with no more than one level difference
   * between surrounding leaf blocks.
   */
-void btUnit::btCheckDerefine(BittreeAmr* const mesh, std::vector<int>& btTags,
-                             int max_crse, int lbase,
-                             Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap, MPI_Comm comm) {
-
+void btUnit::btCheckDerefine (BittreeAmr* const mesh, std::vector<int>& btTags,
+                              int max_crse, int lbase,
+                              Vector<BoxArray>& grids,
+                              Vector<DistributionMapping>& dmap, MPI_Comm comm)
+{
     BL_PROFILE("Bittree-btCheckDerefine");
 
     // Tree before refinement. With only one rank, lnblocks = nblocks.
@@ -280,8 +286,8 @@ void btUnit::btCheckDerefine(BittreeAmr* const mesh, std::vector<int>& btTags,
 
 
 // Check all neighbors to see if their adjacent children are parents or marked for refinement.
-bool btUnit::checkNeighborsRefine(BittreeAmr* const mesh, MortonTree::Block b) {
-
+bool btUnit::checkNeighborsRefine (BittreeAmr* const mesh, MortonTree::Block b)
+{
     BL_PROFILE("Bittree-checkNeighborsRefine");
 
     auto tree0 = mesh->getTree();
@@ -339,36 +345,41 @@ bool btUnit::checkNeighborsRefine(BittreeAmr* const mesh, MortonTree::Block b) {
 /** Calculate integer coordinates of neighbors, taking into account BCs.
   * Currently assuming Periodic in all directions.
   */
-std::vector<int> btUnit::neighIntCoords(BittreeAmr* const mesh,
-                                   unsigned lev, unsigned* lcoord, int* gCell) {
+std::vector<int> btUnit::neighIntCoords (BittreeAmr* const mesh,
+                                         unsigned lev, unsigned const* lcoord,
+                                         int const* gCell)
+{
     auto tree = mesh->getTree();
 
     std::vector<int> neighCoord(AMREX_SPACEDIM);
 
 //--Calculate integer coordinates of neighbor in direction
-    for(unsigned d=0;d<AMREX_SPACEDIM;++d)
-      neighCoord[d] = static_cast<int>(lcoord[d]) + gCell[d];
+    for(unsigned d=0;d<AMREX_SPACEDIM;++d) {
+        neighCoord[d] = static_cast<int>(lcoord[d]) + gCell[d];
+    }
 
 //--Make sure not out-of-bounds. If periodic BCs, apply modulo
     std::vector<int> maxcoord(AMREX_SPACEDIM);
-    for(unsigned d=0;d<AMREX_SPACEDIM;++d)
-      maxcoord[d] = static_cast<int>(tree->top_size(d)) << lev;
+    for(unsigned d=0;d<AMREX_SPACEDIM;++d) {
+        maxcoord[d] = static_cast<int>(tree->top_size(d)) << lev;
+    }
 
     for(unsigned d=0;d<AMREX_SPACEDIM;++d) {
-      if (neighCoord[d] < 0 ) {
-        if ( bcPeriodic[d] == true )
-          neighCoord[d] = neighCoord[d] + maxcoord[d];
-        else
-          neighCoord[d] = -1;
-      }
+        if (neighCoord[d] < 0 ) {
+            if ( bcPeriodic[d] == true ) {
+                neighCoord[d] = neighCoord[d] + maxcoord[d];
+            } else {
+                neighCoord[d] = -1;
+            }
+        }
 
-      if (neighCoord[d] >= maxcoord[d]) {
-        if ( bcPeriodic[d] == true )
-          neighCoord[d] = neighCoord[d] - maxcoord[d];
-        else
-          neighCoord[d] = -1;
-      }
-
+        if (neighCoord[d] >= maxcoord[d]) {
+            if ( bcPeriodic[d] == true ) {
+                neighCoord[d] = neighCoord[d] - maxcoord[d];
+            } else {
+                neighCoord[d] = -1;
+            }
+        }
     }
 
     return neighCoord;
