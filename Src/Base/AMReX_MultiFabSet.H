@@ -29,6 +29,8 @@ namespace amrex {
 // class MultiFabSet<encodedIxTypes> : public FabArraySet<MultiFab,encodedIxTypes>
 class MultiFabSet : public FabArraySet
 {
+    //! debug parameter
+    static constexpr int N = 10;
 public:
     using MF = typename amrex::MultiFab;
     using RT = typename FabArraySet::value_type;
@@ -69,10 +71,10 @@ public:
 #endif
 
     //! Generate MultiFabSet from Array<MF,N>
-    template <std::size_t N>
+    // template <std::size_t N>
     MultiFabSet (Array<MF*,N>& mfarray);
     //! Generate MultiFabSet from const Array<MF,N>
-    template <std::size_t N>
+    // template <std::size_t N>
     MultiFabSet (const Array<MF*,N>& mfarray);
 
      /**
@@ -92,32 +94,33 @@ public:
     MultiFabSet (const MultiFabSet& rhs) = delete;
     MultiFabSet& operator= (const MultiFabSet& rhs) = delete;
 
+    /**
+    * \brief Negates the value of each cell in the valid region of
+    * the MultiFab.  The value of nghost specifies the number of
+    * cells in the boundary region that should be modified.
+    */
+    void negate (int nghost = 0);
+
 };
 
 MultiFabSet::MultiFabSet (const MultiFabSet& src, MakeType maketype, int scomp, int ncomp)
 {
-    if (m_ncompRefersToMFComps) {
-        for (int i = 0; i < nSet(); ++i) {
-            setElem(i, new MF(src.getElem(i), maketype, scomp, ncomp));
-        }
-    } else {
-        for (int i = 0; i < ncomp; ++i) {
-            const MF& srcmf = src.getElem(scomp+i);
-            setElem(i, new MF(srcmf, maketype, 0, srcmf.nComp()));
-        }
+    for (int i = 0; i < nSet(); ++i) {
+        setElem(i, new MF(src.getElem(i), maketype, scomp, ncomp));
     }
+    m_NeedToDelete = true;
 }
 
 MultiFabSet::MultiFabSet (const BoxArray& bxs, const DM& dm, int ncomp, const IntVect& ngrow, 
                              const MFInfo& info, const FABFactory& factory)
 {
     for (int i = 0; i < nSet(); ++i) {
-        BoxArray bxs_tmp = bxs;
         setElem(i, new MF(amrex::convert(bxs, m_ixtype_set[i]), dm, ncomp, ngrow, info, factory));
     }
+    m_NeedToDelete = true;
 }
 
-template <std::size_t N>
+// template <std::size_t N>
 MultiFabSet::MultiFabSet (Array<MF*,N>& mfarray) 
 {
     for (int i = 0; i < nSet(); ++i) {
@@ -125,7 +128,7 @@ MultiFabSet::MultiFabSet (Array<MF*,N>& mfarray)
     }
 }
 
-template <std::size_t N>
+// template <std::size_t N>
 MultiFabSet::MultiFabSet (const Array<MF*,N>& mfarray)
 {
     for (int i = 0; i < nSet(); ++i) {

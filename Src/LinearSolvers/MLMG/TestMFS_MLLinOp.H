@@ -39,9 +39,9 @@ public:
     // template <typename T> friend class MLPoissonT;
     // template <typename T> friend class MLABecLaplacianT;
     friend class MLMG_Test;
-    friend class MLCGSolverMFSet_Test;
-    friend class MLPoissonMFSet_Test;
-    friend class MLABecLaplacianMFSet_Test;
+    friend class MLCGSolver_Test;
+    friend class MLPoisson_Test;
+    friend class MLABecLaplacian_Test;
 
     using MFSet = typename amrex::MultiFabSet;
     using AMFSet = typename amrex::MultiFabSet;

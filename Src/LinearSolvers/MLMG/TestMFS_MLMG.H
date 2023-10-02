@@ -30,7 +30,8 @@ public:
     using AMFSet = typename amrex::MultiFabSet;
     
     using FAB = typename MFSet::fab_type;
-    using RT  = typename MFSet::value_type;
+    // using RT  = typename MFSet::value_type;
+    using RT = typename amrex::Real;
 
     using BCMode   = typename amrex::MLLinOp_Test::BCMode;
     using Location = typename MLLinOp_Test::Location;
@@ -551,7 +552,6 @@ MLMG_Test::getGradSolution (const Vector<Array<AMFSet*,AMREX_SPACEDIM> >& a_grad
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 auto const& aMFSet = *(a_grad_sol[alev][idim]);
                 grad_sol[idim].define(aMFSet.boxArray(), aMFSet.DistributionMap(), ncomp, 0);
-                grad_sol[idim].getElem(i).define()
             }
             linop.compGrad(alev, GetArrOfPtrs(grad_sol), sol[alev], a_loc);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -1015,7 +1015,7 @@ MLMG_Test::prepareForSolve (Vector<AMFSet*> const& a_sol, Vector<AMFSet const*> 
         const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
         if (factory && !factory->isAllRegular()) {
             if constexpr (std::is_same<MFSet,MultiFab>()) {
-                EB_set_covered(rhs[alev], 0, ncomp, 0, RT(0.0));
+                amrex::EB_set_covered(rhs[alev], 0, ncomp, 0, RT(0.0));
                 EB_set_covered(sol[alev], 0, ncomp, 0, RT(0.0));
             } else {
                 amrex::Abort("TODO: MLMG with EB only works with MultiFab");
@@ -1691,7 +1691,7 @@ MLMG_Test::addInterpCorrection (int alev, int mglev)
     MFSet cfine;
     const MFSet* cMFSet;
 
-    if (linop.isMFSetIterSafe(alev, mglev, mglev+1))
+    if (linop.isMFIterSafe(alev, mglev, mglev+1))
     {
         cMFSet = &crse_cor;
     }

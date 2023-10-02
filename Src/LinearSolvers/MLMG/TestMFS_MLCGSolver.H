@@ -416,7 +416,7 @@ MLCGSolver_Test::norm_inf (const MFSet& res, bool local) -> RT
     return result;
 }
 
-using MLCGSolver = MLCGSolver_Test<MultiFab>;
+// using MLCGSolver = MLCGSolver_Test<MultiFab>;
 
 }
 

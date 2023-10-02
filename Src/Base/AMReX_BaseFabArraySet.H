@@ -13,6 +13,9 @@ class BaseFabArraySet {
     
 public:
 
+    BaseFabArraySet () = default;
+    ~BaseFabArraySet () = default;
+
     BaseFabArraySet (BaseFabArraySet&& rhs) noexcept = default;
     BaseFabArraySet (const BaseFabArraySet& rhs) = default;
     BaseFabArraySet& operator= (const BaseFabArraySet& rhs) = default;
