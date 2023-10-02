@@ -1067,6 +1067,12 @@ ifeq ($(USE_HDF5),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hdf5
 endif
 
+ifeq ($(USE_BITTREE),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.bittree...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.bittree
+endif
+
+
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local

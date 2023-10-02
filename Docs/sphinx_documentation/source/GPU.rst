@@ -1738,14 +1738,14 @@ by "amrex" in your :cpp:`inputs` file.
 +----------------------------+-----------------------------------------------------------------------+-------------+----------+
 |                            | Description                                                           |   Type      | Default  |
 +============================+=======================================================================+=============+==========+
-| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | False    |
-|                            | If true, the buffers will use device memory. If false, they will use  |             |          |
-|                            | pinned memory. In practice, we find it is usually not worth it to use |             |          |
-|                            | GPU aware MPI.                                                        |             |          |
+| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | 0        |
+|                            | If true, the buffers will use device memory. If false (i.e., 0), they |             |          |
+|                            | will use pinned memory. In practice, we find it is not always worth   |             |          |
+|                            | it to use GPU aware MPI.                                              |             |          |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------+
-| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | False    |
+| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0        |
 |                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |          |
 |                            | describing how much free memory there is and what was requested.      |             |          |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------+
-| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | False    |
+| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | 0        |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------+
