@@ -189,7 +189,7 @@ function (generate_buildinfo _target _git_dir)
    configure_file( ${AMREX_BUILDINFO_IFILE}
       ${PROJECT_BINARY_DIR}/${_target}/AMReX_buildInfo.cpp @ONLY)
 
-   # add a re-usable target
+   # add a reusable target
    add_library(buildInfo${_target} STATIC)
    add_library(buildInfo::${_target} ALIAS buildInfo${_target})
 
