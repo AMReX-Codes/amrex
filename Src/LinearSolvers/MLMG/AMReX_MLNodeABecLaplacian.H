@@ -65,11 +65,17 @@ public:
 
     void prepareForSolve () final;
 
+    [[nodiscard]] bool needsUpdate () const final { return m_needs_update; }
+
+    void update () final;
+
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
     void averageDownCoeffsSameAmrLevel (int amrlev);
 
 private:
+
+    bool m_needs_update = true;
 
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
     Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
