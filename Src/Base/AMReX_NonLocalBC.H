@@ -264,7 +264,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
 //                                                           [concept.FabProjection]
 //
 
-//! \brief This type trait tests if a type P is a projetion for FAB.
+//! \brief This type trait tests if a type P is a projection for FAB.
 template <typename P, typename FAB>
 struct IsFabProjection
     : IsCallableR<typename FAB::value_type, P, Array4<const typename FAB::value_type>, Dim3, int>

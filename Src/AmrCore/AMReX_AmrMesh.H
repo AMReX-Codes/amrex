@@ -170,7 +170,7 @@ public:
     void SetGridEff (Real eff) noexcept { grid_eff = eff; }
     void SetNProper (int n) noexcept { n_proper = n; }
 
-    //! Set ref_ratio would require rebuiling Geometry objects.
+    //! Set ref_ratio would require rebuilding Geometry objects.
 
     void SetFinestLevel (int new_finest_level) noexcept { finest_level = new_finest_level; }
     void SetDistributionMap (int lev, const DistributionMapping& dmap_in) noexcept;
