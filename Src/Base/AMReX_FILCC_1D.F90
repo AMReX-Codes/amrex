@@ -14,7 +14,7 @@
 !!                        corner of q array
 !! \param bc           => array of boundary flags bc(SPACEDIM,lo:hi)
 !!
-!! NOTE: all corner as well as edge data is filled if not EXT_DIR
+!! NOTE: all corner as well as edge data is filled if not EXT_DIR/EXT_DIR_CC
 ! -----------------------------------------------------------
 
 #ifndef AMREX_XSDK

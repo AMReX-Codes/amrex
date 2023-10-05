@@ -14,7 +14,7 @@ struct CnsFillExtDir
                      const BCRec* /*bcr*/, const int /*bcomp*/,
                      const int /*orig_comp*/) const
         {
-            // do something for external Dirichlet (BCType::ext_dir)
+            // do something for external Dirichlet (BCType::ext_dir/BCType::ext_dir_cc)
         }
 };
 
