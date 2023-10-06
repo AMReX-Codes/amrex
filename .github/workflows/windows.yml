@@ -29,6 +29,7 @@ jobs:
       run: |
         $ccachepath = Join-Path $pwd "ccache-4.8-windows-x86_64"
         $Env:PATH = "$ccachepath;" + $Env:PATH
+        Add-Content $env:GITHUB_PATH "$ccachepath"
         $ccachecachedir = Join-Path $HOME ".ccache"
         $Env:CCACHE_DIR="$ccachecachedir"
         $Env:CCACHE_DIR
@@ -73,6 +74,7 @@ jobs:
       run: |
         $ccachepath = Join-Path $pwd "ccache-4.8-windows-x86_64"
         $Env:PATH = "$ccachepath;" + $Env:PATH
+        Add-Content $env:GITHUB_PATH "$ccachepath"
         $ccachecachedir = Join-Path $HOME ".ccache"
         $Env:CCACHE_DIR="$ccachecachedir"
         $Env:CCACHE_COMPRESS='1'
