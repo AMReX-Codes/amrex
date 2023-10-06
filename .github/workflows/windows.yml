@@ -28,7 +28,7 @@ jobs:
     - name: Build & Install
       run: |
         $ccachepath = Join-Path $pwd "ccache-4.8-windows-x86_64"
-        $Env:PATH += ";$ccachepath"
+        $Env:PATH = "$ccachepath;" + $Env:PATH
         $ccachecachedir = Join-Path $HOME ".ccache"
         $Env:CCACHE_DIR="$ccachecachedir"
         $Env:CCACHE_DIR
@@ -72,7 +72,7 @@ jobs:
     - name: Build & Install
       run: |
         $ccachepath = Join-Path $pwd "ccache-4.8-windows-x86_64"
-        $Env:PATH += ";$ccachepath"
+        $Env:PATH = "$ccachepath;" + $Env:PATH
         $ccachecachedir = Join-Path $HOME ".ccache"
         $Env:CCACHE_DIR="$ccachecachedir"
         $Env:CCACHE_COMPRESS='1'
