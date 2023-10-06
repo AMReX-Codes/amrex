@@ -26,8 +26,8 @@ public:
     // friend class MLLinOp_Test;
     friend class MLCGSolver_Test;
 
-    using MFSet = typename amrex::MultiFabSet;
-    using AMFSet = typename amrex::MultiFabSet;
+    using MFSet = typename amrex::FabArraySet;
+    using AMFSet = typename amrex::FabArraySet;
     
     using FAB = typename MFSet::fab_type;
     // using RT  = typename MFSet::value_type;
@@ -1003,7 +1003,7 @@ MLMG_Test::prepareForSolve (Vector<AMFSet*> const& a_sol, Vector<AMFSet const*> 
         if (cf_strategy == CFStrategy::ghostnodes) { ng_rhs = IntVect(linop.getNGrow(alev)); }
         if (!solve_called) {
             rhs[alev] = linop.make(alev, 0, ng_rhs);
-        }
+                    }
         rhs[alev].LocalCopy(*a_rhs[alev], 0, 0, ncomp, ng_rhs);
         linop.applyMetricTerm(alev, 0, rhs[alev]);
         linop.unimposeNeumannBC(alev, rhs[alev]);

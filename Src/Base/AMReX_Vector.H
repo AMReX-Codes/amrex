@@ -58,7 +58,8 @@ namespace amrex
 {
     /////////////////////////////////////////////////////////////
 
-    template <class T, typename = typename T::FABType>
+    // template <class T, typename = typename T::FABType>
+    template <class T>
     [[nodiscard]] Vector<T*> GetVecOfPtrs (Vector<T>& a)
     {
         Vector<T*> r;

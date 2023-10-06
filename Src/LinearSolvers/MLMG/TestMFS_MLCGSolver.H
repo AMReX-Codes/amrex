@@ -14,7 +14,7 @@ class MLCGSolver_Test
 {
 public:
 
-    using MFSet = typename amrex::MultiFabSet;
+    using MFSet = typename amrex::FabArraySet;
     using FAB = typename MFSet::fab_type;
     using RT  = typename MFSet::value_type;
 

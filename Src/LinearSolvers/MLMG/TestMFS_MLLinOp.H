@@ -27,7 +27,7 @@
 
 namespace amrex {
 
-using MFSet = typename amrex::MultiFabSet;
+// using MFSet = typename amrex::FabArraySet;
 
 // template <typename MFSet>
 class MLLinOp_Test
@@ -43,8 +43,8 @@ public:
     friend class MLPoisson_Test;
     friend class MLABecLaplacian_Test;
 
-    using MFSet = typename amrex::MultiFabSet;
-    using AMFSet = typename amrex::MultiFabSet;
+    using MFSet = typename amrex::FabArraySet;
+    using AMFSet = typename amrex::FabArraySet;
     
     using FAB = typename MFSet::fab_type;
     using RT  = typename MFSet::value_type;
@@ -353,7 +353,7 @@ public:
     //! This is needed for our nodal projection solver
     virtual void unimposeNeumannBC (int /*amrlev*/, MFSet& /*rhs*/) const {}
 
-    //! Extra terms introduced when we treate inhomogeneous Nuemann BC as homogeneous.
+    //! Extra terms introduced when we treat inhomogeneous Nuemann BC as homogeneous.
     virtual void applyInhomogNeumannTerm (int /*amrlev*/, MFSet& /*rhs*/) const {}
 
     //! for overset solver only
@@ -1328,7 +1328,7 @@ MLLinOp_Test::make (Vector<Vector<MFSet> >& MFSet, IntVect const& ng) const
 
 // template <typename MFSet>
 // MFSet: Will need to override this
-MFSet
+MLLinOp_Test::MFSet
 MLLinOp_Test::make (int amrlev, int mglev, IntVect const& ng) const
 {
     return MFSet(amrex::convert(m_grids[amrlev][mglev], m_ixtype),
@@ -1338,7 +1338,7 @@ MLLinOp_Test::make (int amrlev, int mglev, IntVect const& ng) const
 
 // template <typename MFSet>
 // MFS: might need to override this
-MFSet
+MLLinOp_Test::MFSet
 MLLinOp_Test::makeAlias (MFSet const& mfs) const
 {
     return MFSet(mfs, amrex::make_alias, 0, mfs.nComp());
@@ -1346,7 +1346,7 @@ MLLinOp_Test::makeAlias (MFSet const& mfs) const
 
 // template <typename MFSet>
 // MFSet: Will need to override this
-MFSet
+MLLinOp_Test::MFSet
 MLLinOp_Test::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
 {
     BoxArray cba = m_grids[amrlev][mglev];
@@ -1358,7 +1358,7 @@ MLLinOp_Test::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
 
 // template <typename MFSet>
 // MFSet: Will need to override this
-MFSet
+MLLinOp_Test::MFSet
 MLLinOp_Test::makeCoarseAmr (int famrlev, IntVect const& ng) const
 {
     BoxArray cba = m_grids[famrlev][0];
@@ -1395,11 +1395,11 @@ MLLinOp_Test::avgDownResMG (int clev, MFSet& cres, MFSet const& fres) const
     if constexpr (amrex::IsFabArray<MFSet>::value) {
 #ifdef AMREX_USE_EB
         if (!fres.isAllRegular()) {
-            if constexpr (std::is_same<MFSet,MultiFabSet>()) {
+            if constexpr (std::is_same<MFSet,MultiFab>()) {
                 amrex::EB_average_down(fres, cres, 0, ncomp,
                                        mg_coarsen_ratio_vec[clev-1]);
             } else {
-                amrex::Abort("EB_average_down only works with MultiFabSet");
+                amrex::Abort("EB_average_down only works with MultiFab");
             }
         } else
 #endif

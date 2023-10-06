@@ -406,8 +406,7 @@ public:
     //! This is needed for our nodal projection solver
     virtual void unimposeNeumannBC (int /*amrlev*/, MF& /*rhs*/) const {}
 
-    //! Extra terms introduced when we treat
-     inhomogeneous Nuemann BC as homogeneous.
+    //! Extra terms introduced when we treat inhomogeneous Nuemann BC as homogeneous.
     virtual void applyInhomogNeumannTerm (int /*amrlev*/, MF& /*rhs*/) const {}
 
     //! for overset solver only
