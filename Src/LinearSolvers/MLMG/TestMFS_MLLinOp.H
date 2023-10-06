@@ -1395,11 +1395,11 @@ MLLinOp_Test::avgDownResMG (int clev, MFSet& cres, MFSet const& fres) const
     if constexpr (amrex::IsFabArray<MFSet>::value) {
 #ifdef AMREX_USE_EB
         if (!fres.isAllRegular()) {
-            if constexpr (std::is_same<MFSet,MultiFabSet>()) {
+            if constexpr (std::is_same<MFSet,MultiFab>()) {
                 amrex::EB_average_down(fres, cres, 0, ncomp,
                                        mg_coarsen_ratio_vec[clev-1]);
             } else {
-                amrex::Abort("EB_average_down only works with MultiFabSet");
+                amrex::Abort("EB_average_down only works with MultiFab");
             }
         } else
 #endif

@@ -49,96 +49,106 @@ operator>> (std::istream& is,
     return is;
 }
 
-IndexTypeSet::IndexTypeSet (unsigned long a_iTypeSet) : m_EncodedLong(a_iTypeSet) {};
+// IndexTypeSet::IndexTypeSet (unsigned long a_iTypeSet) : m_EncodedLong(a_iTypeSet) {};
 
-IndexTypeSet::IndexTypeSet (Vector<IndexType> a_IxTypes)
+// IndexTypeSet::IndexTypeSet (Vector<IndexType> a_IxTypes)
+// {
+//     define(a_IxTypes);
+// }
+
+// IndexTypeSet::IndexTypeSet (Vector<IntVect> a_IntVects)
+// {
+//     define(ConvertToIxTypes(a_IntVects));
+// }
+
+// void
+// IndexTypeSet::define(Vector<IndexType> a_IxTypes)
+// {
+//     m_n = a_IxTypes.size();
+//     m_EncodedLong = ConvertToEncodedLong(a_IxTypes);
+// }
+
+// Vector<IndexType>
+// IndexTypeSet::IndexTypeList ()
+// {
+//     return ConvertToIxTypes(m_EncodedLong);
+// }
+
+// Vector<IntVect>
+// IndexTypeSet::IntVectList ()
+// {
+//     return ConvertToIntVects(m_EncodedLong);
+// }
+
+constexpr std::size_t
+IndexTypeSet::GetSize (unsigned long a_EncodedLong)
 {
-    define(a_IxTypes);
+    return 1UL + (a_EncodedLong & (IndexTypeSet::MAX_SIZE - 1UL));
 }
 
-IndexTypeSet::IndexTypeSet (Vector<IntVect> a_IntVects)
-{
-    define(ConvertToIxTypes(a_IntVects));
-}
-
-void
-IndexTypeSet::define(Vector<IndexType> a_IxTypes)
-{
-    m_n = a_IxTypes.size();
-    m_EncodedLong = ConvertToEncodedLong(a_IxTypes);
-}
-
-Vector<IndexType>
-IndexTypeSet::IndexTypeList ()
-{
-    return ConvertToIxTypes(m_EncodedLong);
-}
-
-Vector<IntVect>
-IndexTypeSet::IntVectList ()
-{
-    return ConvertToIntVects(m_EncodedLong);
-}
-
-unsigned long
-IndexTypeSet::ConvertToEncodedLong (Vector<IndexType> a_IxTypes)
-{
-    unsigned int o_EncodedLong = 0;
-    for (IndexType ixtype : a_IxTypes) {
-        o_EncodedLong = o_EncodedLong << AMREX_SPACEDIM;
-        o_EncodedLong += ixtype.itype;
-    }
-    o_EncodedLong = o_EncodedLong << IndexTypeSet::const_NumBitsForSize;
-    o_EncodedLong += a_IxTypes.size() % (2 << IndexTypeSet::const_NumBitsForSize);
-    return o_EncodedLong;
-}
-
-unsigned long
-IndexTypeSet::ConvertToEncodedLong (Vector<IntVect> a_IntVects)
-{
-    return ConvertToEncodedLong(ConvertToIxTypes(a_IntVects));
-}
-
-Vector<IndexType>
+template <std::size_t N>
+constexpr Array<IndexType,N>
 IndexTypeSet::ConvertToIxTypes (unsigned long a_EncodedLong)
-{
-    int tmp, size, i;
-    tmp = a_EncodedLong;
-    size = tmp % (2 << IndexTypeSet::const_NumBitsForSize);
-    tmp = tmp >> IndexTypeSet::const_NumBitsForSize;
-    Vector<IndexType> o_IxTypes(size);
-
-    for (i = size-1; i >= 0; i++) {
+{   
+    BL_ASSERT(N == IndexTypeSet::GetSize(a_EncodedLong));
+    Array<IndexType,N> o_IxTypes;
+    auto tmp = a_EncodedLong >> IndexTypeSet::NUM_BITS_FOR_SIZE;
+    for (int i = N-1; i >= 0; ++i) {
         IndexType ixtype = IndexType();
-        ixtype.itype = tmp % (2 << AMREX_SPACEDIM);
+        ixtype.itype = tmp & (1 << AMREX_SPACEDIM);
         o_IxTypes[i] = ixtype;
         tmp = tmp >> AMREX_SPACEDIM;
     }
     return o_IxTypes;
 }
 
-Vector<IndexType>
-IndexTypeSet::ConvertToIxTypes (Vector<IntVect> a_IntVects)
-{
-    Vector<IndexType> o_IxTypes;
-    for (IntVect iv : a_IntVects) {
-        o_IxTypes.push_back(IndexType(iv));
-    }
-    return o_IxTypes;
-}
-
-Vector<IntVect>
+template <std::size_t N>
+constexpr Array<IntVect,N>
 IndexTypeSet::ConvertToIntVects (unsigned long a_EncodedLong)
 {
     return ConvertToIntVects(ConvertToIxTypes(a_EncodedLong));
 }
 
-Vector<IntVect>
-IndexTypeSet::ConvertToIntVects (Vector<IndexType> a_IxTypes)
+template <std::size_t N>
+constexpr unsigned long
+IndexTypeSet::ConvertToEncodedLong (Array<IndexType,N> a_IxTypes)
 {
-    Vector<IntVect> o_IntVects;
+    BL_ASSERT(N <= IndexTypeSet::MAX_SIZE);
+    unsigned long o_EncodedLong = 0;
     for (IndexType ixtype : a_IxTypes) {
-        o_IntVects.push_back(ixtype.toIntVect());
+        o_EncodedLong = o_EncodedLong << AMREX_SPACEDIM;
+        o_EncodedLong += ixtype.itype;
+    }
+    o_EncodedLong = o_EncodedLong << IndexTypeSet::NUM_BITS_FOR_SIZE;
+    o_EncodedLong += N;
+    return o_EncodedLong;
+}
+
+template <std::size_t N>
+constexpr unsigned long
+IndexTypeSet::ConvertToEncodedLong (Array<IntVect,N> a_IntVects)
+{
+    return ConvertToEncodedLong(ConvertToIxTypes(a_IntVects));
+}
+
+template <std::size_t N>
+constexpr Array<IndexType,N>
+IndexTypeSet::ConvertToIxTypes (Array<IntVect,N> a_IntVects)
+{
+    Array<IndexType,N> o_IxTypes;
+    for (int i = 0; i < N; ++i) {
+        o_IxTypes[i] = IndexType(a_IntVects[i]);
+    }
+    return o_IxTypes;
+}
+
+template <std::size_t N>
+constexpr Array<IntVect,N>
+IndexTypeSet::ConvertToIntVects (Array<IndexType,N> a_IxTypes)
+{
+    Array<IntVect,N> o_IntVects;
+    for (int i = 0; i < N; ++i) {
+        o_IntVects[i] = a_IxTypes[i].toIntVect();
     }
     return o_IntVects;
 }

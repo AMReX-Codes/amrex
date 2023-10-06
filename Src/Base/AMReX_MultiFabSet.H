@@ -70,13 +70,6 @@ public:
                  const MFInfo& info = MFInfo(), const FABFactory& factory = FArrayBoxFactory());
 #endif
 
-    //! Generate MultiFabSet from Array<MF,N>
-    // template <std::size_t N>
-    MultiFabSet (Array<MF*,N>& mfarray);
-    //! Generate MultiFabSet from const Array<MF,N>
-    // template <std::size_t N>
-    MultiFabSet (const Array<MF*,N>& mfarray);
-
      /**
      * \brief Make an alias MultiFabSet.
      * \param mfs Starting MultiFabSet
@@ -85,14 +78,8 @@ public:
      * \param ncomp The number of components in the new aliasing MultiFabs.
      */
     MultiFabSet (const MultiFabSet& mfs, MakeType maketype, int scomp, int ncomp);
-
-    ~MultiFabSet ();
-
     MultiFabSet (MultiFabSet&& rhs) noexcept;
-    MultiFabSet& operator= (MultiFabSet&& rhs) noexcept = default;
-
     MultiFabSet (const MultiFabSet& rhs) = delete;
-    MultiFabSet& operator= (const MultiFabSet& rhs) = delete;
 
     /**
     * \brief Negates the value of each cell in the valid region of
@@ -103,36 +90,47 @@ public:
 
 };
 
+MultiFabSet::MultiFabSet () noexcept
+{
+    for (int i = 0; i < nSet(); ++i) {
+        m_mf_set[i] = std::make_unique<MF>();;
+    }
+}
+
+explicit MultiFabSet::MultiFabSet (Arena* a) noexcept
+{
+    for (int i = 0; i < nSet(); ++i) {
+        m_mf_set[i] = std::make_unique<MF>(a);;
+    }
+}
+
 MultiFabSet::MultiFabSet (const MultiFabSet& src, MakeType maketype, int scomp, int ncomp)
 {
     for (int i = 0; i < nSet(); ++i) {
-        setElem(i, new MF(src.getElem(i), maketype, scomp, ncomp));
+        m_mf_set[i] = std::make_unique<MF>(src.getElem(i), maketype, scomp, ncomp);;
     }
-    m_NeedToDelete = true;
 }
 
 MultiFabSet::MultiFabSet (const BoxArray& bxs, const DM& dm, int ncomp, const IntVect& ngrow, 
-                             const MFInfo& info, const FABFactory& factory)
+                          const MFInfo& info, const FABFactory& factory)
 {
     for (int i = 0; i < nSet(); ++i) {
-        setElem(i, new MF(amrex::convert(bxs, m_ixtype_set[i]), dm, ncomp, ngrow, info, factory));
-    }
-    m_NeedToDelete = true;
-}
-
-// template <std::size_t N>
-MultiFabSet::MultiFabSet (Array<MF*,N>& mfarray) 
-{
-    for (int i = 0; i < nSet(); ++i) {
-        setElem(i, mfarray[i]);
+        m_mf_set[i] = std::make_unique<MF>(MakeElemBoxArray(bxs,i), dm, ncomp, ngrow, info, factory);
     }
 }
 
-// template <std::size_t N>
-MultiFabSet::MultiFabSet (const Array<MF*,N>& mfarray)
+MultiFabSet::MultiFabSet (MultiFabSet&& rhs) noexcept
 {
     for (int i = 0; i < nSet(); ++i) {
-        setElem(i, mfarray[i]);
+        m_mf_set[i] = std::make_unique<MF>(std::move(rhs[i]));
+    }
+}
+
+void
+MultiFabSet::negate (int nghost = 0)
+{
+    for (int i = 0; i < nSet(); ++i) {
+        getElem(i).negate(nghost);
     }
 }
 

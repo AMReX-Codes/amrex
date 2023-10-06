@@ -152,42 +152,42 @@ class IndexTypeSet {
 
 public:
 
-    IndexTypeSet (unsigned long a_EncodedLong);
+    static constexpr int NUM_BITS_FOR_SIZE = 5;
 
-    IndexTypeSet (Vector<IndexType> a_IxTypes);
+    static constexpr std::size_t MAX_SIZE = 1 << NUM_BITS_FOR_SIZE;
 
-    IndexTypeSet (Vector<IntVect> a_IntVects);
+    // IndexTypeSet (unsigned long a_EncodedLong);
+    // IndexTypeSet (Vector<IndexType> a_IxTypes);
+    // IndexTypeSet (Vector<IntVect> a_IntVects);
+    // Vector<IndexType> IndexTypeList ();
+    // Vector<IntVect> IntVectList ();
+    // unsigned long getEncodedLong () { return m_EncodedLong; };
+    // std::size_t getSetSize () { return m_n; };
 
-    Vector<IndexType> IndexTypeList ();
+    static constexpr std::size_t GetSize (unsigned long a_EncodedLong);
 
-    Vector<IntVect> IntVectList ();
+    template <std::size_t N>
+    static constexpr Array<IndexType,N> ConvertToIxTypes (unsigned long a_EncodedLong);
 
-    unsigned long getEncodedLong () { return m_EncodedLong; };
+    template <std::size_t N>
+    static constexpr Array<IntVect,N> ConvertToIntVects (unsigned long a_EncodedLong);
 
-    std::size_t getSetSize () { return m_n; };
+    template <std::size_t N>
+    static constexpr unsigned long ConvertToEncodedLong (Array<IndexType,N> a_IxTypes);
 
-    static unsigned long ConvertToEncodedLong (Vector<IndexType> a_IxTypes);
+    template <std::size_t N>
+    static constexpr unsigned long ConvertToEncodedLong (Array<IntVect,N> a_IntVects);
 
-    static unsigned long ConvertToEncodedLong (Vector<IntVect> a_IntVects);
+    template <std::size_t N>
+    static constexpr Array<IndexType,N> ConvertToIxTypes (Array<IntVect,N> a_IntVects);
 
-    static Vector<IndexType> ConvertToIxTypes (unsigned long a_EncodedLong);
-
-    static Vector<IndexType> ConvertToIxTypes (Vector<IntVect> a_IntVects);
-
-    static Vector<IntVect> ConvertToIntVects (unsigned long a_EncodedLong);
-
-    static Vector<IntVect> ConvertToIntVects (Vector<IndexType> a_IxTypes);
+    template <std::size_t N>
+    static constexpr Array<IntVect,N> ConvertToIntVects (Array<IndexType,N> a_IxTypes);
 
 private:
-
-    void define (Vector<IndexType> a_IxTypes);
-
-    unsigned long m_EncodedLong{0};
-
-    std::size_t m_n{0};
-
-    static constexpr int const_NumBitsForSize = 5;
-
+    // void define (Vector<IndexType> a_IxTypes);
+    // unsigned long m_EncodedLong{0};
+    // std::size_t m_n{0};
 };
 
 }
