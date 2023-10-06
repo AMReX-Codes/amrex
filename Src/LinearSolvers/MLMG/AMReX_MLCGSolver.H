@@ -96,13 +96,10 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     MF ph(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
     MF sh(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
-    // ph.setVal(RT(0.0));
-    // sh.setVal(RT(0.0));
 
     MF sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
     MF p    (ba, dm, ncomp, nghost, MFInfo(), factory);
     MF r    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    // MF s    (ba, dm, ncomp, nghost, MFInfo(), factory); // Not needed
     MF rh   (ba, dm, ncomp, nghost, MFInfo(), factory);
     MF v    (ba, dm, ncomp, nghost, MFInfo(), factory);
     MF t    (ba, dm, ncomp, nghost, MFInfo(), factory);
@@ -115,8 +112,6 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     sorig.LocalCopy(sol,0,0,ncomp,nghost);
     rh.LocalCopy   (r  ,0,0,ncomp,nghost);
 
-    // sol.setVal(RT(0.0)); // why set to 0?
-
     RT rnorm = norm_inf(r);
     const RT rnorm0 = rnorm;
 
@@ -126,8 +121,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     }
     int ret = 0;
     iter = 1;
-    // RT rho_1 = 0, alpha = 0, omega = 0; // rho_1 not needed
-    RT alpha, beta, omega;
+    RT alpha, beta, omega, rho, rhTv;
 
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
@@ -141,9 +135,9 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         return ret;
     }
 
-    RT rho = dotxy(rh,r); // Move this to here to elminate usage of rho_1
+    rho = dotxy(rh,r); // Move this to here to elminate usage of rho_1
 
-    p.LocalCopy(r,0,0,ncomp,nghost); // This is the true initialization. Move this to here to avoid bool check every iteration
+    p.LocalCopy(r,0,0,ncomp,nghost); // This is the true initialization. Move this to here to avoid iter==1 check every iteration
 
     for (; iter <= maxiter; ++iter)
     {
@@ -151,22 +145,11 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 1; break;
         }
-        // Eliminate check on iter == 1:
-        // if ( iter == 1 )
-        // {
-        //     p.LocalCopy(r,0,0,ncomp,nghost);
-        // }
-        // else
-        // {
-        //     const RT beta = (rho/rho_1)*(alpha/omega);
-        //     MF::Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
-        //     MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
-        // }
         ph.LocalCopy(p,0,0,ncomp,nghost);
         Lp.apply(amrlev, mglev, v, ph, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
-        RT rhTv = dotxy(rh,v);
+        rhTv = dotxy(rh,v);
         if ( rhTv != RT(0.0) )
         {
             alpha = rho/rhTv;
@@ -176,11 +159,9 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
             ret = 2; break;
         }
 
-        MF::Saxpy(sol,  alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
-        MF::Saxpy(r  , -alpha, v , 0, 0, ncomp, nghost); //   r -= alpha * ph
-        // MF::LinComb(s, RT(1.0), r, 0, -alpha, v, 0, 0, ncomp, nghost); // s = r - alpha * v // s is not needed
+        MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
+        MF::Saxpy(r, -alpha, v, 0, 0, ncomp, nghost); // r -= alpha * v
         
-        // rnorm = norm_inf(s);
         rnorm = norm_inf(r);
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
@@ -193,8 +174,6 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
-        // sh.LocalCopy(s,0,0,ncomp,nghost); // s is not needed
-        
         sh.LocalCopy(r,0,0,ncomp,nghost);
         Lp.apply(amrlev, mglev, t, sh, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, t);
@@ -204,7 +183,6 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         // values and then reducing the two local values at the same time.
         //
         RT tvals[2] = { dotxy(t,t,true), dotxy(t,r,true) };
-        // RT tvals[2] = { dotxy(t,t,true), dotxy(t,s,true) }; // s is not needed
 
         BL_PROFILE_VAR("MLCGSolver::ParallelAllReduce", blp_par);
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
@@ -219,8 +197,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
             ret = 3; break;
         }
         MF::Saxpy(sol, omega, sh, 0, 0, ncomp, nghost); // sol += omega * sh
-        MF::Saxpy(r, -omega, t , 0, 0, ncomp, nghost); // r -= omega * t
-        // MF::LinComb(r, RT(1.0), s, 0, -omega, t, 0, 0, ncomp, nghost); // r = s - omega * t
+        MF::Saxpy(r, -omega, t, 0, 0, ncomp, nghost); // r -= omega * t
 
         rnorm = norm_inf(r);
 
@@ -242,7 +219,6 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         rho = dotxy(rh,r);
 
-        // const RT beta = (rho/rho_1)*(alpha*omega);
         beta = rho / (rhTv * omega); // This is a result of alpha = rho_1 / rhTv
 
         MF::Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
@@ -265,16 +241,6 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         ret = 8;
     }
 
-    // if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
-    // {
-    //     // sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
-    // }
-    // else
-    // {
-    //     // sol.setVal(RT(0.0));
-    //     // sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
-    //     sol.LocalCopy(sorig, 0, 0, ncomp, nghost);
-    // }
     if ( ( ret != 0 && ret != 8 ) || (rnorm > rnorm0) )
     {
         sol.LocalCopy(sorig,0,0,ncomp,nghost);
@@ -296,18 +262,14 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     const auto& factory = sol.Factory();
 
     MF p(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
-    // p.setVal(RT(0.0)); // no need to do this. p0 = r0
 
     MF sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
     MF r    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    // MF z    (ba, dm, ncomp, nghost, MFInfo(), factory); // z is not needed
     MF q    (ba, dm, ncomp, nghost, MFInfo(), factory);
 
     sorig.LocalCopy(sol,0,0,ncomp,nghost);
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
-
-    // sol.setVal(RT(0.0)); why set to zero?
 
     RT       rnorm    = norm_inf(r);
     const RT rnorm0   = rnorm;
@@ -331,27 +293,13 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         return ret;
     }
 
-    RT alpha, beta, omega, rho_1, pw;
+    RT alpha, beta, omega, rho, rho_1, pw;
 
-    RT rho = dotxy(r,r);
+    rho = dotxy(r,r);
     p.LocalCopy(r,0,0,ncomp,nghost);
 
     for (; iter <= maxiter; ++iter)
     {
-        // z.LocalCopy(r,0,0,ncomp,nghost); // why is z needed?
-
-        // RT rho = dotxy(z,r);
-
-        // No need for the following bool check every iteration:
-        // if (iter == 1)
-        // {
-        //     p.LocalCopy(z,0,0,ncomp,nghost);
-        // }
-        // else
-        // {
-        //     RT beta = rho/rho_1;
-        //     MF::Xpay(p, beta, z, 0, 0, ncomp, nghost); // p = z + beta * p
-        // }
         Lp.apply(amrlev, mglev, q, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
 
         pw = dotxy(p,q);
@@ -413,16 +361,6 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         ret = 8;
     }
 
-    // if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
-    // {
-    //     // sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
-    // }
-    // else
-    // {
-    //     // sol.setVal(RT(0.0));
-    //     // sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
-    //     sol.LocalCopy(sorig,0,0,ncomp,nghost);
-    // }
     if ( ( ret != 0 && ret != 8 ) || (rnorm > rnorm0) )
     {
         sol.LocalCopy(sorig,0,0,ncomp,nghost);
