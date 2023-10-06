@@ -342,10 +342,6 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         // RT rho = dotxy(z,r);
 
-        if ( rho == 0 )
-        {
-            ret = 1; break;
-        }
         // No need for the following bool check every iteration:
         // if (iter == 1)
         // {
@@ -388,6 +384,11 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
+
+        if ( rho == 0 )
+        {
+            ret = 1; break;
+        }
 
         rho_1 = rho;
         rho = dotxy(r,r);
