@@ -35,7 +35,7 @@ jobs:
         $Env:CCACHE_COMPRESS='1'
         $Env:CCACHE_COMPRESSLEVEL='10'
         $Env:CCACHE_MAXSIZE='105M'
-        ccache -z
+        ccache.exe -z
 
         cmake -S . -B build   `
               -G "Ninja"      `
@@ -46,10 +46,10 @@ jobs:
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF               `
-              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache.exe
         cmake --build build --config Debug -j 2
 
-        ccache -s
+        ccache.exe -s
 
   # Build libamrex and all test (static)
   test_msvc_static:
@@ -78,7 +78,7 @@ jobs:
         $Env:CCACHE_COMPRESS='1'
         $Env:CCACHE_COMPRESSLEVEL='10'
         $Env:CCACHE_MAXSIZE='135M'
-        ccache -z
+        ccache.exe -z
 
         cmake -S . -B build   `
               -G "Ninja"      `
@@ -88,10 +88,10 @@ jobs:
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF               `
-              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache.exe
         cmake --build build --config RelWithDebInfo -j 2
 
-        ccache -s
+        ccache.exe -s
 
   # Build libamrex and all tests
   tests_clang:
