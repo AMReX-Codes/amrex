@@ -2537,11 +2537,26 @@ The basic idea behind physical boundary conditions is as follows:
 
        ext_dir
            "External Dirichlet". It is the user's responsibility to write a routine
-           to fill ghost cells (more details below).
+           to fill ghost cells (more details below). The boundary location
+           is on the domain face even when the data inside the domain are
+           cell-centered.
+
+       ext_dir_cc
+           "External Dirichlet". It is the user's responsibility to write a routine
+           to fill ghost cells (more details below). The boundary location
+           is at the cell center of ghost cells outside the domain.
 
        foextrap
            "First Order Extrapolation"
            First order extrapolation from last cell in interior.
+
+       hoextrap
+           "High Order Extrapolation". The boundary location is on the domain
+           face even when the data inside the domain are cell-centered.
+
+       hoextrapcc
+           "High Order Extrapolation" The boundary location is at the cell
+           center of ghost cells outside the domain.
 
        reflect_even
            Reflection from interior cells with sign
