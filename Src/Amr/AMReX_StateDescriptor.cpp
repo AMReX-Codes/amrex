@@ -19,7 +19,7 @@ StateDescriptor::bf_thread_safety (const int* /*lo*/,const int* /*hi*/,
     if (!bf_ext_dir_threadsafe) {
         bool has_ext_dir = false;
         for (int i=0; i<2*AMREX_SPACEDIM*ng && !has_ext_dir; ++i) {
-            has_ext_dir = bc[i]==BCType::ext_dir;
+            has_ext_dir = ((bc[i]==BCType::ext_dir) || (bc[i]==BCType::ext_dir_cc));
         }
         if (has_ext_dir) { thread_safe = false; }
     }

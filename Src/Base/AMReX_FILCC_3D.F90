@@ -6,7 +6,7 @@
 !> This routine is intended to be a generic fill function
 !! for cell centered data.  It knows how to exrapolate,
 !! and reflect data and can be used to supplement problem
-!! specific fill functions (ie. EXT_DIR).
+!! specific fill functions (ie. EXT_DIR/EXT_DIR_CC).
 !!
 !! \param q        <=  array to fill
 !! \param q_l1,q_l2,q_l3,q_h1,q_h2,q_h3   => index extent of q array

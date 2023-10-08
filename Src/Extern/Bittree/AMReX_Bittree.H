@@ -22,47 +22,46 @@ amr.use_bittree = true
 class btUnit {
   // Functions used in AmrMesh
   public:
-    static int  btRefine(bittree::BittreeAmr* const mesh,
-                         std::vector<int>& btTags,
-                         int max_crse, int lbase,
-                         Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap,
-                         MPI_Comm comm);
-    static void btCalculateGrids(bittree::BittreeAmr* const mesh,
-                                 int lbase,
-                                 int& new_finest,
-                                 Vector<BoxArray>& new_grids,
-                                 Vector<IntVect> const& max_grid_size);
-    static void btCalculateLevel(bittree::BittreeAmr* const mesh,
-                                 int lev,
-                                 BoxArray& ba,
-                                 IntVect const& max_grid_size);
+    static int  btRefine (bittree::BittreeAmr* mesh,
+                          std::vector<int>& btTags,
+                          int max_crse, int lbase,
+                          Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap,
+                          MPI_Comm comm);
+    static void btCalculateGrids (bittree::BittreeAmr* mesh,
+                                  int lbase,
+                                  int& new_finest,
+                                  Vector<BoxArray>& new_grids,
+                                  Vector<IntVect> const& max_grid_size);
+    static void btCalculateLevel (bittree::BittreeAmr* mesh,
+                                  int lev,
+                                  BoxArray& ba,
+                                  IntVect const& max_grid_size);
   // Utils
-  public:
-    static int getBitid(bittree::BittreeAmr* const mesh, bool updated,
-                        int lev, int idx_on_lev);
-    static int getIndex(bittree::BittreeAmr* const mesh, bool updated,
-                        int lev, int bitid);
+    static int getBitid (bittree::BittreeAmr* mesh, bool updated,
+                         int lev, int idx_on_lev);
+    static int getIndex (bittree::BittreeAmr* mesh, bool updated,
+                         int lev, int bitid);
 
   // Functions to implement strict octree logic
   private:
-    static void btCheckRefine(bittree::BittreeAmr* const mesh,
-                              std::vector<int>& btTags,
-                              int max_crse, int lbase,
-                              Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap,
-                              MPI_Comm comm);
+    static void btCheckRefine (bittree::BittreeAmr* mesh,
+                               std::vector<int>& btTags,
+                               int max_crse, int lbase,
+                               Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap,
+                               MPI_Comm comm);
 
-    static void btCheckDerefine(bittree::BittreeAmr* const mesh,
-                                std::vector<int>& btTags,
-                                int max_crse, int lbase,
-                                Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap,
-                                MPI_Comm comm);
+    static void btCheckDerefine (bittree::BittreeAmr* mesh,
+                                 std::vector<int>& btTags,
+                                 int max_crse, int lbase,
+                                 Vector<BoxArray>& grids, Vector<DistributionMapping>& dmap,
+                                 MPI_Comm comm);
 
     // Utility Functions
-    static bool checkNeighborsRefine(bittree::BittreeAmr* const mesh,
-                                     bittree::MortonTree::Block b);
-    static std::vector<int> neighIntCoords(bittree::BittreeAmr* const mesh,
-                                           unsigned lev, unsigned* lcoord,
-                                           int* gCell);
+    static bool checkNeighborsRefine (bittree::BittreeAmr* mesh,
+                                      bittree::MortonTree::Block b);
+    static std::vector<int> neighIntCoords (bittree::BittreeAmr* mesh,
+                                            unsigned lev, unsigned const* lcoord,
+                                            int const* gCell);
 
   public:
     // Represents whether domain has periodic BC in each direction

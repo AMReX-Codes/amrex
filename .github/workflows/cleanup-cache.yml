@@ -2,7 +2,7 @@ name: CleanUpCache
 
 on:
   workflow_run:
-    workflows: [LinuxClang, cuda, LinuxGcc, hip, Hypre, intel, macos, PETSc, SUNDIALS, CodeQL, smoke, apps]
+    workflows: [bittree, LinuxClang, cuda, LinuxGcc, hip, Hypre, intel, macos, PETSc, SUNDIALS, CodeQL, smoke, apps]
     types:
       - completed
 

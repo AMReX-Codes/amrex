@@ -165,7 +165,7 @@ contains
           imin = lo(1)
           imax = ilo-1
 
-          if (bc(1,1,n) .eq. amrex_bc_ext_dir) then
+          if (bc(1,1,n) .eq. amrex_bc_ext_dir .or. bc(1,1,n) .eq. amrex_bc_ext_dir_cc) then
 
              ! Do nothing.
 
@@ -237,7 +237,7 @@ contains
           imin = ihi+1
           imax = hi(1)
 
-          if (bc(1,2,n) .eq. amrex_bc_ext_dir) then
+          if (bc(1,2,n) .eq. amrex_bc_ext_dir .or. bc(1,2,n) .eq. amrex_bc_ext_dir_cc) then
 
              ! Do nothing.
 
@@ -311,7 +311,7 @@ contains
           jmin = lo(2)
           jmax = jlo-1
 
-          if (bc(2,1,n) .eq. amrex_bc_ext_dir) then
+          if (bc(2,1,n) .eq. amrex_bc_ext_dir .or. bc(2,1,n) .eq. amrex_bc_ext_dir_cc) then
 
              ! Do nothing.
 
@@ -383,7 +383,7 @@ contains
           jmin = jhi+1
           jmax = hi(2)
 
-          if (bc(2,2,n) .eq. amrex_bc_ext_dir) then
+          if (bc(2,2,n) .eq. amrex_bc_ext_dir .or. bc(2,2,n) .eq. amrex_bc_ext_dir_cc) then
 
              ! Do nothing.
 
@@ -461,7 +461,7 @@ contains
           kmin = lo(3)
           kmax = klo-1
 
-          if (bc(3,1,n) .eq. amrex_bc_ext_dir) then
+          if (bc(3,1,n) .eq. amrex_bc_ext_dir .or. bc(3,1,n) .eq. amrex_bc_ext_dir_cc) then
 
              ! Do nothing.
 
@@ -533,7 +533,7 @@ contains
           kmin = khi+1
           kmax = hi(3)
 
-          if (bc(3,2,n) .eq. amrex_bc_ext_dir) then
+          if (bc(3,2,n) .eq. amrex_bc_ext_dir .or. bc(3,2,n) .eq. amrex_bc_ext_dir_cc) then
 
              ! Do nothing.
 

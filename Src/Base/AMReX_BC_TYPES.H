@@ -44,10 +44,8 @@ SYMMETRY       |  Un REFLECT_ODD |  REFLECT_EVEN    | REFLECT_EVEN   |
 
 
 INT_DIR      : data taken from other grids or interpolated
-EXT_DIR      : data specified on EDGE (FACE) of bndry for the linear solvers
-               for application codes, the location of the EXT_DIR data will
-               depend on how they do reconstruction, and may be edge or
-               cell-centered.
+EXT_DIR      : data specified on EDGE (FACE)
+EXT_DIR_CC   : data specified at cell center
 HOEXTRAP     : higher order extrapolation to EDGE of bndry
 HOEXTRAPCC   : linear extrapolation to CELL of bndry
 FOEXTRAP     : first order extrapolation from last cell in interior
@@ -74,6 +72,7 @@ enum mathematicalBndryTypes : int {
     ext_dir      =  3,
     hoextrap     =  4,
     hoextrapcc   =  5,
+    ext_dir_cc   =  6,
     user_1       = 1001,
     user_2       = 1002,
     user_3       = 1003
@@ -94,6 +93,7 @@ enum mathematicalBndryTypes : int {
 #define EXT_DIR 3
 #define HOEXTRAP 4
 #define HOEXTRAPCC 5
+#define EXT_DIR_CC 6
 
 #define Interior 0
 #define Inflow 1
