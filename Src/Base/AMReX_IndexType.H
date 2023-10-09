@@ -152,6 +152,17 @@ class IndexTypeSet {
 
 public:
 
+    // static constexpr size_t N = 4;
+
+    static constexpr IndexType Edge1 = IndexType(AMREX_D_DECL(IndexType::CELL,IndexType::NODE,IndexType::NODE));
+    static constexpr IndexType Edge2 = IndexType(AMREX_D_DECL(IndexType::NODE,IndexType::CELL,IndexType::NODE));
+    static constexpr IndexType Edge3 = IndexType(AMREX_D_DECL(IndexType::NODE,IndexType::NODE,IndexType::CELL));
+    static constexpr IndexType Face12 = IndexType(AMREX_D_DECL(IndexType::CELL,IndexType::CELL,IndexType::NODE));
+    static constexpr IndexType Face13 = IndexType(AMREX_D_DECL(IndexType::CELL,IndexType::NODE,IndexType::CELL));
+    static constexpr IndexType Face23 = IndexType(AMREX_D_DECL(IndexType::NODE,IndexType::CELL,IndexType::CELL));
+
+
+
     static constexpr int NUM_BITS_FOR_SIZE = 5;
 
     static constexpr std::size_t MAX_SIZE = 1 << NUM_BITS_FOR_SIZE;
@@ -164,27 +175,91 @@ public:
     // unsigned long getEncodedLong () { return m_EncodedLong; };
     // std::size_t getSetSize () { return m_n; };
 
-    static constexpr std::size_t GetSize (unsigned long a_EncodedLong);
+    static constexpr std::size_t GetSize (unsigned long a_EncodedLong)
+    {
+        return 1UL + (a_EncodedLong & (IndexTypeSet::MAX_SIZE - 1UL));
+    }
 
     template <std::size_t N>
-    static constexpr Array<IndexType,N> ConvertToIxTypes (unsigned long a_EncodedLong);
+    static constexpr Array<IndexType,N> IxTypesFromEncodedLong (unsigned long a_EncodedLong)
+    {
+        // static_assert(N == IndexTypeSet::GetSize(a_EncodedLong),"Size mismatch in ConvertToIxTypes");
+        BL_ASSERT(N==GetSize(a_EncodedLong));
+        Array<IndexType,N> o_IxTypes;
+        auto tmp = a_EncodedLong >> IndexTypeSet::NUM_BITS_FOR_SIZE;
+        for (int i = N-1; i >= 0; --i) {
+            IndexType ixtype = IndexType();
+            ixtype.itype = tmp & ((1 << AMREX_SPACEDIM)-1);
+            o_IxTypes[i] = ixtype;
+            tmp = tmp >> AMREX_SPACEDIM;
+        }
+        return o_IxTypes;
+    }
 
     template <std::size_t N>
-    static constexpr Array<IntVect,N> ConvertToIntVects (unsigned long a_EncodedLong);
+    static constexpr unsigned long EncodedLongFromIxTypes (const Array<IndexType,N> a_IxTypes)
+    {
+        BL_ASSERT(N < IndexTypeSet::MAX_SIZE);
+        unsigned long o_EncodedLong = 0;
+        for (IndexType ixtype : a_IxTypes) {
+            o_EncodedLong = o_EncodedLong << AMREX_SPACEDIM;
+            o_EncodedLong += ixtype.itype;
+        }
+        o_EncodedLong = o_EncodedLong << IndexTypeSet::NUM_BITS_FOR_SIZE;
+        o_EncodedLong += N - 1;
+        return o_EncodedLong;
+    }
 
     template <std::size_t N>
-    static constexpr unsigned long ConvertToEncodedLong (Array<IndexType,N> a_IxTypes);
+    static constexpr Array<IntVect,N> IntVectsFromEncodedLong (unsigned long a_EncodedLong)
+    {
+        return IntVectsFromIxTypes(IxTypesFromEncodedLong(a_EncodedLong));
+    }
 
     template <std::size_t N>
-    static constexpr unsigned long ConvertToEncodedLong (Array<IntVect,N> a_IntVects);
+    static constexpr unsigned long EncodedLongFromIntVects (const Array<IntVect,N> a_IntVects)
+    {
+        return EncodedLongFromIxTypes(IxTypesFromIntVects(a_IntVects));
+    }
 
     template <std::size_t N>
-    static constexpr Array<IndexType,N> ConvertToIxTypes (Array<IntVect,N> a_IntVects);
+    static constexpr Array<IndexType,N> IxTypesFromIntVects (const Array<IntVect,N> a_IntVects)
+    {
+        Array<IndexType,N> o_IxTypes;
+        for (int i = 0; i < N; ++i) {
+            o_IxTypes[i] = ConstExprIxTypeFromIntVect(a_IntVects[i]);
+        }
+        return o_IxTypes;
+    }
 
     template <std::size_t N>
-    static constexpr Array<IntVect,N> ConvertToIntVects (Array<IndexType,N> a_IxTypes);
+    static constexpr Array<IntVect,N> IntVectsFromIxTypes (const Array<IndexType,N> a_IxTypes)
+    {
+        Array<IntVect,N> o_IntVects;
+        for (int i = 0; i < N; ++i) {
+            o_IntVects[i] = ConstExprIntVectFromIxType(a_IxTypes[i]);
+        }
+        return o_IntVects;
+    }
+
+    static constexpr IndexType ConstExprIxTypeFromIntVect (IntVect iv)
+    {
+        AMREX_D_TERM(const auto i1 = static_cast<IndexType::CellIndex>(static_cast<bool>(iv[0]));,
+                     const auto i2 = static_cast<IndexType::CellIndex>(static_cast<bool>(iv[1]));,
+                     const auto i3 = static_cast<IndexType::CellIndex>(static_cast<bool>(iv[2]));)
+        return IndexType(AMREX_D_DECL(i1, i2, i3));
+    }
+
+    static constexpr IntVect ConstExprIntVectFromIxType (IndexType ix)
+    {
+        int itype = ix.itype;
+        return IntVect(AMREX_D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1));
+    }
+
 
 private:
+
+    
     // void define (Vector<IndexType> a_IxTypes);
     // unsigned long m_EncodedLong{0};
     // std::size_t m_n{0};

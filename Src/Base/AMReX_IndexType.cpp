@@ -80,77 +80,7 @@ operator>> (std::istream& is,
 //     return ConvertToIntVects(m_EncodedLong);
 // }
 
-constexpr std::size_t
-IndexTypeSet::GetSize (unsigned long a_EncodedLong)
-{
-    return 1UL + (a_EncodedLong & (IndexTypeSet::MAX_SIZE - 1UL));
-}
 
-template <std::size_t N>
-constexpr Array<IndexType,N>
-IndexTypeSet::ConvertToIxTypes (unsigned long a_EncodedLong)
-{   
-    BL_ASSERT(N == IndexTypeSet::GetSize(a_EncodedLong));
-    Array<IndexType,N> o_IxTypes;
-    auto tmp = a_EncodedLong >> IndexTypeSet::NUM_BITS_FOR_SIZE;
-    for (int i = N-1; i >= 0; ++i) {
-        IndexType ixtype = IndexType();
-        ixtype.itype = tmp & (1 << AMREX_SPACEDIM);
-        o_IxTypes[i] = ixtype;
-        tmp = tmp >> AMREX_SPACEDIM;
-    }
-    return o_IxTypes;
-}
 
-template <std::size_t N>
-constexpr Array<IntVect,N>
-IndexTypeSet::ConvertToIntVects (unsigned long a_EncodedLong)
-{
-    return ConvertToIntVects(ConvertToIxTypes(a_EncodedLong));
-}
-
-template <std::size_t N>
-constexpr unsigned long
-IndexTypeSet::ConvertToEncodedLong (Array<IndexType,N> a_IxTypes)
-{
-    BL_ASSERT(N <= IndexTypeSet::MAX_SIZE);
-    unsigned long o_EncodedLong = 0;
-    for (IndexType ixtype : a_IxTypes) {
-        o_EncodedLong = o_EncodedLong << AMREX_SPACEDIM;
-        o_EncodedLong += ixtype.itype;
-    }
-    o_EncodedLong = o_EncodedLong << IndexTypeSet::NUM_BITS_FOR_SIZE;
-    o_EncodedLong += N;
-    return o_EncodedLong;
-}
-
-template <std::size_t N>
-constexpr unsigned long
-IndexTypeSet::ConvertToEncodedLong (Array<IntVect,N> a_IntVects)
-{
-    return ConvertToEncodedLong(ConvertToIxTypes(a_IntVects));
-}
-
-template <std::size_t N>
-constexpr Array<IndexType,N>
-IndexTypeSet::ConvertToIxTypes (Array<IntVect,N> a_IntVects)
-{
-    Array<IndexType,N> o_IxTypes;
-    for (int i = 0; i < N; ++i) {
-        o_IxTypes[i] = IndexType(a_IntVects[i]);
-    }
-    return o_IxTypes;
-}
-
-template <std::size_t N>
-constexpr Array<IntVect,N>
-IndexTypeSet::ConvertToIntVects (Array<IndexType,N> a_IxTypes)
-{
-    Array<IntVect,N> o_IntVects;
-    for (int i = 0; i < N; ++i) {
-        o_IntVects[i] = a_IxTypes[i].toIntVect();
-    }
-    return o_IntVects;
-}
 
 }

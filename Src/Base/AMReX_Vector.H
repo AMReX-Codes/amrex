@@ -57,16 +57,15 @@ public:
 namespace amrex
 {
     /////////////////////////////////////////////////////////////
-
-    // template <class T, typename = typename T::FABType>
-    template <class T>
-    [[nodiscard]] Vector<T*> GetVecOfPtrs (Vector<T>& a)
-    {
-        Vector<T*> r;
-        r.reserve(a.size());
-        for (auto& x : a) { r.push_back(&x); }
-        return r;
-    }
+    // template <class T>
+    // // template <class T, typename = typename T::FABType>
+    // [[nodiscard]] Vector<T*> GetVecOfPtrs (Vector<T>& a)
+    // {
+    //     Vector<T*> r;
+    //     r.reserve(a.size());
+    //     for (auto& x : a) { r.push_back(&x); }
+    //     return r;
+    // }
 
     template <class T>
     [[nodiscard]] Vector<T*> GetVecOfPtrs (const Vector<std::unique_ptr<T> >& a)

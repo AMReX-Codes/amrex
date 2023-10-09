@@ -4,11 +4,26 @@
 
 namespace amrex {
 
-static constexpr std::size_t
-amrex::GetSetSizeFromEncodedLong (unsigned long a_EncodedLong)
-{
-    return 1UL + (a_EncodedLong & (IndexTypeSet::MAX_SIZE - 1UL));
-}
+// static constexpr std::size_t
+// amrex::GetSetSizeFromEncodedLong (unsigned long a_encodedLong)
+// {
+//     return 1UL + (a_encodedLong & (IndexTypeSet::MAX_SIZE - 1UL));
+// }
+
+// template <std::size_t N>
+// static constexpr Array<IndexType, N>
+// amrex::TestThisOut(unsigned long a_EncodedLong)
+// {
+//     Array<IndexType,N> o_IxTypes;
+//     auto tmp = a_EncodedLong >> IndexTypeSet::NUM_BITS_FOR_SIZE;
+//     for (int i = N-1; i >= 0; ++i) {
+//         // IndexType ixtype = IndexType();
+//         // ixtype.itype = tmp & ((1 << AMREX_SPACEDIM)-1);
+//         // o_IxTypes[i] = ixtype;
+//         // tmp = tmp >> AMREX_SPACEDIM;
+//     }
+//     return o_IxTypes;
+// }
 
 /**
  * \brief FabArraySet
@@ -22,22 +37,36 @@ amrex::GetSetSizeFromEncodedLong (unsigned long a_EncodedLong)
 class FabArraySet
 {
 public:
+
+    static constexpr IndexType ix0 = IndexType(AMREX_D_DECL(IndexType::NODE,IndexType::NODE,IndexType::NODE));
+    static constexpr IndexType ix1 = IndexType(IndexType::CELL,IndexType::NODE,IndexType::NODE);
+    static constexpr IndexType ix2 = IndexType(IndexType::NODE,IndexType::CELL,IndexType::NODE);
+    static constexpr IndexType ix3 = IndexType(IndexType::NODE,IndexType::NODE,IndexType::CELL);
     //! debug variable
-    static constexpr unsigned long encodedIxTypes = 40UL;
+    static constexpr Array<IndexType,4> arr2 = {ix0, ix1, ix2, ix3};
+    //! debug variable
+    static constexpr unsigned long encodedIxTypes = IndexTypeSet::EncodedLongFromIxTypes(arr2);
     //! debug variable
     using MF = typename amrex::MultiFab;
     // using MF = typename amrex::FabArray<FArrayBox>;
 
 protected:
 
-    static constexpr std::size_t m_nSet = amrex::GetSetSizeFromEncodedLong(encodedIxTypes);
-    static constexpr Array<IndexType, m_nSet> m_ixtype_set;
+    static constexpr std::size_t m_nSet = IndexTypeSet::GetSize(encodedIxTypes);
+    static constexpr Array<IndexType, m_nSet> m_ixtype_set = IndexTypeSet::IxTypesFromEncodedLong<m_nSet>(encodedIxTypes);
+
+    // static const Array<IndexType, m_nSet> m_ixtype_set;
+    // static constexpr Array<IndexType, m_nSet> m_ixtype_set = TestThisOut<m_nSet>(encodedIxTypes);
 
 public:
 
-    using value_type = typename MF::value_type;
-    using fab_type = typename MF::fab_type;
-    using FAB = typename MF::fab_type;
+    // using value_type = typename MF::value_type;
+    // using fab_type = typename MF::fab_type;
+    // using FAB = typename MF::fab_type;
+
+    using value_type = typename amrex::Real;
+    using fab_type = typename amrex::FArrayBox;
+    using FAB = typename amrex::FArrayBox;
 
     //! Constructs an empty FabArraySet.
     FabArraySet () noexcept;
@@ -86,9 +115,8 @@ public:
 
     FabArraySet (FabArraySet&& rhs) noexcept;
     FabArraySet& operator= (FabArraySet&& rhs) noexcept;
-
     FabArraySet (const FabArraySet& rhs) = delete;
-    FabArraySet& operator= (const FabArray<FAB>& rhs) = delete;
+    FabArraySet& operator= (const FabArraySet& rhs) = delete;
 
     /**
     * \brief Define this FabArraySet identically to that performed by
@@ -129,7 +157,7 @@ public:
     //! get a const reference to element of index i
     const MF& getElem (int i) const noexcept { return *m_mf_set[i]; }
 
-    void setElem (int i, std::unique_ptr<MF>&& a_mf_ptr) { m_mf_set[i] = std::move(a_mf_ptr); };
+    // void setElem (int i, std::unique_ptr<MF>&& a_mf_ptr) { m_mf_set[i] = std::move(a_mf_ptr); };
 
     IndexType getElemType (int i) { return m_ixtype_set[i]; }
 
@@ -305,7 +333,9 @@ protected:
 };
 
 // template <class MF, unsigned long encodedIxTypes>
-// constexpr Vector<IndexType> FabArraySet::m_ixtype_set = IndexTypeSet::ConvertToIxTypes(FabArraySet::encodedIxTypes);
+// constexpr Vector<IndexType> FabArraySet::m_ixtype_set = amrex::IndexTypeSet::ConvertToIxTypes<FabArraySet::m_nSet>(FabArraySet::encodedIxTypes);
+
+const Array<IndexType,FabArraySet::m_nSet> FabArraySet::m_ixtype_set = amrex::IndexTypeSet::ConvertToIxTypes<FabArraySet::m_nSet>(FabArraySet::encodedIxTypes);
 
 // template <class MF, unsigned long encodedIxTypes>
 // constexpr int FabArraySet::m_nSet = IndexTypeSet::ConvertToIxTypes(FabArraySet::encodedIxTypes).size();
