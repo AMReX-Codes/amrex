@@ -293,7 +293,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         return ret;
     }
 
-    RT alpha, beta, omega, rho, rho_1, pw;
+    RT alpha, beta, rho, rho_1, pw;
 
     rho = dotxy(r,r);
     p.LocalCopy(r,0,0,ncomp,nghost);
