@@ -195,17 +195,18 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Add (T* sum, T value) noexcept
     {
-#if AMREX_DEVICE_COMPILE
+        AMREX_IF_ON_DEVICE(
 #ifdef AMREX_USE_SYCL
-        return Add_device<T,AS>(sum, value);
+            return Add_device<T,AS>(sum, value);
 #else
-        return Add_device(sum, value);
+            return Add_device(sum, value);
 #endif
-#else
-        auto old = *sum;
-        *sum += value;
-        return old;
-#endif
+        )
+        AMREX_IF_ON_HOST(
+            auto old = *sum;
+            *sum += value;
+            return old;
+        )
     }
 
 ////////////////////////////////////////////////////////////////////////
@@ -252,18 +253,19 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool If (T* const add, T const value, Op&& op, Cond&& cond) noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        return If_device(add, value, std::forward<Op>(op), std::forward<Cond>(cond));
-#else
-        T old = *add;
-        T const tmp = op(old, value);
-        if (cond(tmp)) {
-            *add = tmp;
-            return true;
-        } else {
-            return false;
-        }
-#endif
+        AMREX_IF_ON_DEVICE(
+            return If_device(add, value, std::forward<Op>(op), std::forward<Cond>(cond));
+        )
+        AMREX_IF_ON_HOST(
+            T old = *add;
+            T const tmp = op(old, value);
+            if (cond(tmp)) {
+                *add = tmp;
+                return true;
+            } else {
+                return false;
+            }
+        )
     }
 
 ////////////////////////////////////////////////////////////////////////
@@ -278,29 +280,31 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void AddNoRet (T* sum, T value) noexcept
     {
-#if AMREX_DEVICE_COMPILE
+        AMREX_IF_ON_DEVICE(
 #ifdef AMREX_USE_SYCL
-        Add_device<T,AS>(sum, value);
+            Add_device<T,AS>(sum, value);
 #else
-        Add_device(sum, value);
+            Add_device(sum, value);
 #endif
-#else
-        *sum += value;
-#endif
+        )
+        AMREX_IF_ON_HOST(
+            *sum += value;
+        )
     }
 
 #if defined(AMREX_USE_HIP) && defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 5)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void AddNoRet (float* const sum, float const value) noexcept
     {
-#if AMREX_DEVICE_COMPILE
+        AMREX_IF_ON_DEVICE(
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        atomicAddNoRet(sum, value);
+            atomicAddNoRet(sum, value);
 #pragma clang diagnostic pop
-#else
-        *sum += value;
-#endif
+        )
+        AMREX_IF_ON_HOST(
+            *sum += value;
+        )
     }
 #endif
 
@@ -357,13 +361,14 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Min (T* const m, T const value) noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        return Min_device(m, value);
-#else
-        auto const old = *m;
-        *m = (*m) < value ? (*m) : value;
-        return old;
-#endif
+        AMREX_IF_ON_DEVICE(
+            return Min_device(m, value);
+        )
+        AMREX_IF_ON_HOST(
+            auto const old = *m;
+            *m = (*m) < value ? (*m) : value;
+            return old;
+        )
     }
 
 ////////////////////////////////////////////////////////////////////////
@@ -419,13 +424,14 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Max (T* const m, T const value) noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        return Max_device(m, value);
-#else
-        auto const old = *m;
-        *m = (*m) > value ? (*m) : value;
-        return old;
-#endif
+        AMREX_IF_ON_DEVICE(
+            return Max_device(m, value);
+        )
+        AMREX_IF_ON_HOST(
+            auto const old = *m;
+            *m = (*m) > value ? (*m) : value;
+            return old;
+        )
     }
 
 ////////////////////////////////////////////////////////////////////////
@@ -530,14 +536,15 @@ namespace HostDevice::Atomic {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Add (T* const sum, T const value) noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        Gpu::Atomic::AddNoRet(sum,value);
-#else
+        AMREX_IF_ON_DEVICE(
+            Gpu::Atomic::AddNoRet(sum,value);
+        )
+        AMREX_IF_ON_HOST(
 #ifdef AMREX_USE_OMP
 #pragma omp atomic update
 #endif
-        *sum += value;
-#endif
+            *sum += value;
+        )
     }
 
 }

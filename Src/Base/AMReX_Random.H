@@ -116,23 +116,24 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int Random_int (unsigned int n, RandomEngine const& random_engine)
     {
-#if AMREX_DEVICE_COMPILE
+        AMREX_IF_ON_DEVICE(
 #if defined(__SYCL_DEVICE_ONLY__)
-        mkl::rng::device::uniform<unsigned int> distr(0,n);
-        return mkl::rng::device::generate(distr, *random_engine.engine);
+                mkl::rng::device::uniform<unsigned int> distr(0,n);
+                return mkl::rng::device::generate(distr, *random_engine.engine);
 #else
-        unsigned int rand;
-        constexpr unsigned int RAND_M = 4294967295; // 2**32-1
-        do {
-            AMREX_HIP_OR_CUDA( rand = hiprand(random_engine.rand_state);,
-                               rand =  curand(random_engine.rand_state) );
-        } while (rand > (RAND_M - RAND_M % n));
-        return rand % n;
+                unsigned int rand;
+                constexpr unsigned int RAND_M = 4294967295; // 2**32-1
+                do {
+                AMREX_HIP_OR_CUDA( rand = hiprand(random_engine.rand_state);,
+                                rand =  curand(random_engine.rand_state) );
+                } while (rand > (RAND_M - RAND_M % n));
+                return rand % n;
 #endif
-#else
-        amrex::ignore_unused(random_engine);
-        return Random_int(n);
-#endif
+        )
+        AMREX_IF_ON_HOST(
+                amrex::ignore_unused(random_engine);
+                return Random_int(n);
+        )
     }
 
     /**

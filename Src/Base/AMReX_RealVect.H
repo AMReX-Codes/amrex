@@ -521,13 +521,13 @@ public:
   /**
      This is a RealVect all of whose components are equal to zero.
   */
-  static AMREX_EXPORT const RealVect Zero;
+  static const RealVect Zero;
 
   ///
   /**
      This is a RealVect all of whose components are equal to one.
   */
-  static AMREX_EXPORT const RealVect Unit;
+  static const RealVect Unit;
 
   /*@}*/
 

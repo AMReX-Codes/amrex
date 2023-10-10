@@ -32,31 +32,33 @@ Long at (T const& /*b*/, Long offset) noexcept { return offset; }
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE Long size (Box const& b) noexcept
 {
-#if AMREX_DEVICE_COMPILE
-    return b.numPts();
-#else
-    amrex::ignore_unused(b);
-    return 1;
-#endif
+    AMREX_IF_ON_DEVICE(
+        return b.numPts();
+    )
+    AMREX_IF_ON_HOST(
+        amrex::ignore_unused(b);
+        return 1;
+    )
 }
 
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE Box at (Box const& b, Long offset) noexcept
 {
-#if AMREX_DEVICE_COMPILE
-    auto len = b.length3d();
-    Long k = offset / (len[0]*len[1]);
-    Long j = (offset - k*(len[0]*len[1])) / len[0];
-    Long i = (offset - k*(len[0]*len[1])) - j*len[0];
-    IntVect iv{AMREX_D_DECL(static_cast<int>(i),
-                            static_cast<int>(j),
-                            static_cast<int>(k))};
-    iv += b.smallEnd();
-    return Box(iv,iv,b.type());
-#else
-    amrex::ignore_unused(offset);
-    return b;
-#endif
+    AMREX_IF_ON_DEVICE(
+        auto len = b.length3d();
+        Long k = offset / (len[0]*len[1]);
+        Long j = (offset - k*(len[0]*len[1])) / len[0];
+        Long i = (offset - k*(len[0]*len[1])) - j*len[0];
+        IntVect iv{AMREX_D_DECL(static_cast<int>(i),
+                                static_cast<int>(j),
+                                static_cast<int>(k))};
+        iv += b.smallEnd();
+        return Box(iv,iv,b.type());
+    )
+    AMREX_IF_ON_HOST(
+        amrex::ignore_unused(offset);
+        return b;
+    )
 }
 
 template <typename T>
