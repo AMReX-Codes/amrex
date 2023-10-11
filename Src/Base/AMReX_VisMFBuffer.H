@@ -29,6 +29,10 @@ public:
         ioBufferSize = iobuffersize;
     }
 
+    static void ClearBuffer (IO_Buffer& buf) {
+        IO_Buffer().swap(buf);
+    }
+
 protected:
 
     static AMREX_EXPORT Long ioBufferSize;   //!< ---- the settable buffer size
