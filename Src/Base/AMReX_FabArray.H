@@ -178,6 +178,10 @@ template <class DFAB, class SFAB,
 void
 Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost));
+
     BL_PROFILE("amrex::Copy()");
 
     using DT = typename DFAB::value_type;
@@ -227,6 +231,9 @@ template <class FAB,
 void
 Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
     BL_PROFILE("amrex::Add()");
 
 #ifdef AMREX_USE_GPU
@@ -1454,9 +1461,9 @@ template <class FAB>
 FAB*
 FabArray<FAB>::fabPtr (const MFIter& mfi) noexcept
 {
-    BL_ASSERT(mfi.LocalIndex() < indexArray.size());
-    BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     int li = mfi.LocalIndex();
+    BL_ASSERT(li < indexArray.size());
+    BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     return m_fabs_v[li];
 }
 
@@ -1464,9 +1471,9 @@ template <class FAB>
 FAB const*
 FabArray<FAB>::fabPtr (const MFIter& mfi) const noexcept
 {
-    BL_ASSERT(mfi.LocalIndex() < indexArray.size());
-    BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     int li = mfi.LocalIndex();
+    BL_ASSERT(li < indexArray.size());
+    BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     return m_fabs_v[li];
 }
 

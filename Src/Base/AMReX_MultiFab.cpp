@@ -158,12 +158,7 @@ void
 MultiFab::Add (MultiFab& dst, const MultiFab& src,
                int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
-    BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
-
     BL_PROFILE("MultiFab::Add()");
-
     amrex::Add(dst, src, srccomp, dstcomp, numcomp, nghost);
 }
 
@@ -178,12 +173,7 @@ void
 MultiFab::Copy (MultiFab& dst, const MultiFab& src,
                 int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
-// don't have to BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost));
-
     BL_PROFILE("MultiFab::Copy()");
-
     amrex::Copy(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
@@ -263,19 +253,14 @@ void
 MultiFab::Subtract (MultiFab& dst, const MultiFab& src,
                     int srccomp, int dstcomp, int numcomp, int nghost)
 {
-    Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    amrex::Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 void
 MultiFab::Subtract (MultiFab& dst, const MultiFab& src,
                     int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
-    BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
-
     BL_PROFILE("MultiFab::Subtract()");
-
     amrex::Subtract(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
@@ -290,12 +275,7 @@ void
 MultiFab::Multiply (MultiFab& dst, const MultiFab& src,
                     int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
-    BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
-
     BL_PROFILE("MultiFab::Multiply()");
-
     amrex::Multiply(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
@@ -310,12 +290,7 @@ void
 MultiFab::Divide (MultiFab& dst, const MultiFab& src,
                   int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
-    BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
-
     BL_PROFILE("MultiFab::Divide()");
-
     amrex::Divide(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 

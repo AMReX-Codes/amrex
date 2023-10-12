@@ -43,9 +43,11 @@ public:
     friend class MLPoisson_Test;
     friend class MLABecLaplacian_Test;
 
-    using MFSet = typename amrex::FabArraySet;
-    using AMFSet = typename amrex::FabArraySet;
-    
+    // using MFSet = typename amrex::FabArraySet;
+    // using AMFSet = typename amrex::FabArraySet;
+    using MFSet = typename amrex::MultiFabSet;
+    using AMFSet = typename amrex::MultiFabSet;
+
     using FAB = typename MFSet::fab_type;
     using RT  = typename MFSet::value_type;
     
@@ -459,7 +461,8 @@ protected:
     Vector<int> m_num_mg_levels;
     const MLLinOp_Test* m_parent = nullptr;
 
-    IntVect m_ixtype;
+    // IntVect m_ixtype;
+    Vector<IndexType> m_ixtype_set;
 
     bool m_do_agglomeration = false;
     bool m_do_consolidation = false;
@@ -1331,7 +1334,10 @@ MLLinOp_Test::make (Vector<Vector<MFSet> >& MFSet, IntVect const& ng) const
 MLLinOp_Test::MFSet
 MLLinOp_Test::make (int amrlev, int mglev, IntVect const& ng) const
 {
-    return MFSet(amrex::convert(m_grids[amrlev][mglev], m_ixtype),
+    // return MFSet(amrex::convert(m_grids[amrlev][mglev], m_ixtype),
+    //           m_dmap[amrlev][mglev], getNComp(), ng, MFInfo(),
+    //           *m_factory[amrlev][mglev]);
+    return MFSet(m_grids[amrlev][mglev], m_ixtype_set,
               m_dmap[amrlev][mglev], getNComp(), ng, MFInfo(),
               *m_factory[amrlev][mglev]);
 }

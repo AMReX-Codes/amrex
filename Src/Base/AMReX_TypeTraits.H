@@ -14,6 +14,8 @@ namespace amrex
 {
     template <class T> class BaseFab;
     template <class FAB> class FabArray;
+    class MultiFab;
+    class iMultiFab;
 
     template <class A, class Enable = void> struct IsBaseFab : std::false_type {};
     //
@@ -36,6 +38,18 @@ namespace amrex
     //
     template <class A>
     inline constexpr bool IsFabArray_v = IsFabArray<A>::value;
+
+    template <class A, class Enable = void>
+    struct IsMultiFab : std::false_type {};
+    //
+    template <class A>
+    struct IsMultiFab<A, typename std::enable_if<std::is_base_of<MultiFab,A>::value>::type> : std::true_type {};
+
+    template <class A, class Enable = void>
+    struct IsiMultiFab : std::false_type {};
+    //
+    template <class A>
+    struct IsiMultiFab<A, typename std::enable_if<std::is_base_of<iMultiFab,A>::value>::type> : std::true_type {};
 
     template <bool B, class T = void>
     using EnableIf_t = typename std::enable_if<B,T>::type;
