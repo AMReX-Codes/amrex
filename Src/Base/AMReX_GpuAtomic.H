@@ -204,7 +204,6 @@ namespace detail {
             return Add_device(sum, value);
         )
 #endif
-        )
         AMREX_IF_ON_HOST(
             auto old = *sum;
             *sum += value;
@@ -292,7 +291,6 @@ namespace detail {
             Add_device(sum, value);
         )
 #endif
-        )
         AMREX_IF_ON_HOST(
             *sum += value;
         )
