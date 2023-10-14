@@ -489,11 +489,10 @@ GPU support.
 When AMReX is compiled with ``USE_OMP_OFFLOAD=TRUE``,
 ``AMREX_USE_OMP_OFFLOAD`` is defined.
 
-In addition to AMReX's preprocessor macros, CUDA provides the
-``__CUDA_ARCH__`` macro which is only defined when in device code.
-HIP and Sycl provide similar macros.
-``AMREX_DEVICE_COMPILE`` should be used when a ``__host__ __device__``
-function requires separate code for the CPU and GPU implementations.
+The macros ``AMREX_IF_ON_DEVICE((code_for_device))`` and
+``AMREX_IF_ON_HOST((code_for_host))`` should be used when a
+``__host__ __device__`` function requires separate code for the
+CPU and GPU implementations.
 
 .. ===================================================================
 
