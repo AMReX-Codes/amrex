@@ -32,19 +32,17 @@ Long at (T const& /*b*/, Long offset) noexcept { return offset; }
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE Long size (Box const& b) noexcept
 {
-    AMREX_IF_ON_DEVICE(
-        return b.numPts();
-    )
-    AMREX_IF_ON_HOST(
+    AMREX_IF_ON_DEVICE((return b.numPts();))
+    AMREX_IF_ON_HOST((
         amrex::ignore_unused(b);
         return 1;
-    )
+    ))
 }
 
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE Box at (Box const& b, Long offset) noexcept
 {
-    AMREX_IF_ON_DEVICE(
+    AMREX_IF_ON_DEVICE((
         auto len = b.length3d();
         Long k = offset / (len[0]*len[1]);
         Long j = (offset - k*(len[0]*len[1])) / len[0];
@@ -54,11 +52,11 @@ AMREX_FORCE_INLINE Box at (Box const& b, Long offset) noexcept
                                 static_cast<int>(k))};
         iv += b.smallEnd();
         return Box(iv,iv,b.type());
-    )
-    AMREX_IF_ON_HOST(
+    ))
+    AMREX_IF_ON_HOST((
         amrex::ignore_unused(offset);
         return b;
-    )
+    ))
 }
 
 template <typename T>

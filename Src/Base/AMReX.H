@@ -114,18 +114,14 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Error (const char* msg = nullptr) {
 #if defined(NDEBUG)
-        AMREX_IF_ON_DEVICE(
-                amrex::ignore_unused(msg);
-        )
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(msg);))
 #else
-        AMREX_IF_ON_DEVICE(
+        AMREX_IF_ON_DEVICE((
                 if (msg) { AMREX_DEVICE_PRINTF("Error %s\n", msg); }
                 AMREX_DEVICE_ASSERT(0);
-        )
+        ))
 #endif
-        AMREX_IF_ON_HOST(
-                Error_host("Error", msg);
-        )
+        AMREX_IF_ON_HOST((Error_host("Error", msg);))
     }
 
     //! Print out warning message to cerr.
@@ -136,17 +132,11 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Warning (const char * msg) {
 #if defined(NDEBUG)
-        AMREX_IF_ON_DEVICE(
-                amrex::ignore_unused(msg);
-        )
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(msg);))
 #else
-        AMREX_IF_ON_DEVICE(
-                if (msg) { AMREX_DEVICE_PRINTF("Warning %s\n", msg); }
-        )
+        AMREX_IF_ON_DEVICE((if (msg) { AMREX_DEVICE_PRINTF("Warning %s\n", msg); }))
 #endif
-        AMREX_IF_ON_HOST(
-                Warning_host(msg);
-        )
+        AMREX_IF_ON_HOST((Warning_host(msg);))
     }
 
     //! Print out message to cerr and exit via abort().
@@ -155,18 +145,14 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Abort (const char * msg = nullptr) {
 #if defined(NDEBUG)
-        AMREX_IF_ON_DEVICE(
-                amrex::ignore_unused(msg);
-        )
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(msg);))
 #else
-        AMREX_IF_ON_DEVICE(
+        AMREX_IF_ON_DEVICE((
                 if (msg) { AMREX_DEVICE_PRINTF("Abort %s\n", msg); }
                 AMREX_DEVICE_ASSERT(0);
-        )
+        ))
 #endif
-        AMREX_IF_ON_HOST(
-                Error_host("Abort", msg);
-        )
+        AMREX_IF_ON_HOST((Error_host("Abort", msg);))
     }
 
     /**
@@ -180,11 +166,9 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line, const char* msg = nullptr) {
 #if defined(NDEBUG)
-        AMREX_IF_ON_DEVICE(
-                amrex::ignore_unused(EX,file,line,msg);
-        )
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(EX,file,line,msg);))
 #else
-        AMREX_IF_ON_DEVICE(
+        AMREX_IF_ON_DEVICE((
                 if (msg) {
                 AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
                                         EX, file, line, msg);
@@ -193,11 +177,9 @@ namespace amrex
                                         EX, file, line);
                 }
                 AMREX_DEVICE_ASSERT(0);
-        )
+        ))
 #endif
-        AMREX_IF_ON_HOST(
-                Assert_host(EX,file,line,msg);
-        )
+        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg);))
     }
 
     /**

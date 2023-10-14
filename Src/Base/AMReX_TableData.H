@@ -57,17 +57,17 @@ struct Table1D
     void index_assert (int i) const
     {
         if (i < begin || i >= end) {
-            AMREX_IF_ON_DEVICE(
+            AMREX_IF_ON_DEVICE((
                 AMREX_DEVICE_PRINTF(" (%d) is out of bound (%d:%d)\n",
                                     i, begin, end-1);
                 amrex::Abort();
-            )
-            AMREX_IF_ON_HOST(
+            ))
+            AMREX_IF_ON_HOST((
                 std::stringstream ss;
                 ss << " (" << i << ") is out of bound ("
                 << begin << ":" << end-1 << ")";
                 amrex::Abort(ss.str());
-            )
+            ))
         }
     }
 #endif
@@ -121,18 +121,18 @@ struct Table2D
     {
         if (i < begin[0] || i >= end[0] ||
             j < begin[1] || j >= end[1]) {
-            AMREX_IF_ON_DEVICE(
+            AMREX_IF_ON_DEVICE((
                 AMREX_DEVICE_PRINTF(" (%d,%d) is out of bound (%d:%d,%d:%d)\n",
                                     i, j, begin[0], end[0]-1, begin[1], end[1]-1);
                 amrex::Abort();
-            )
-            AMREX_IF_ON_HOST(
+            ))
+            AMREX_IF_ON_HOST((
                 std::stringstream ss;
                 ss << " (" << i << "," << j << ") is out of bound ("
                 << begin[0] << ":" << end[0]-1
                 << "," << begin[1] << ":" << end[1]-1 << ")";
                 amrex::Abort(ss.str());
-            )
+            ))
         }
     }
 #endif
@@ -190,20 +190,20 @@ struct Table3D
         if (i < begin[0] || i >= end[0] ||
             j < begin[1] || j >= end[1] ||
             k < begin[2] || k >= end[2]) {
-            AMREX_IF_ON_DEVICE(
+            AMREX_IF_ON_DEVICE((
                 AMREX_DEVICE_PRINTF(" (%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d)\n",
                                     i, j, k, begin[0], end[0]-1, begin[1], end[1]-1,
                                     begin[2], end[2]-1);
                 amrex::Abort();
-            )
-            AMREX_IF_ON_HOST(
+            ))
+            AMREX_IF_ON_HOST((
                 std::stringstream ss;
                 ss << " (" << i << "," << j << "," << k << ") is out of bound ("
                 << begin[0] << ":" << end[0]-1
                 << "," << begin[1] << ":" << end[1]-1
                 << "," << begin[2] << ":" << end[2]-1 << ")";
                 amrex::Abort(ss.str());
-            )
+            ))
         }
     }
 #endif
@@ -265,13 +265,13 @@ struct Table4D
             j < begin[1] || j >= end[1] ||
             k < begin[2] || k >= end[2] ||
             n < begin[3] || n >= end[3]) {
-            AMREX_IF_ON_DEVICE(
+            AMREX_IF_ON_DEVICE((
                 AMREX_DEVICE_PRINTF(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,%d:%d)\n",
                                     i, j, k, n, begin[0], end[0]-1, begin[1], end[1]-1,
                                     begin[2], end[2]-1, begin[3], end[3]-1);
                 amrex::Abort();
-            )
-            AMREX_IF_ON_HOST(
+            ))
+            AMREX_IF_ON_HOST((
                 std::stringstream ss;
                 ss << " (" << i << "," << j << "," << k << "," << n << ") is out of bound ("
                 << begin[0] << ":" << end[0]-1
@@ -279,7 +279,7 @@ struct Table4D
                 << "," << begin[2] << ":" << end[2]-1
                 << "," << begin[3] << ":" << end[3]-1 << ")";
                 amrex::Abort(ss.str());
-            )
+            ))
         }
     }
 #endif

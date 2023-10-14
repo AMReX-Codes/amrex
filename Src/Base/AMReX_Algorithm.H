@@ -161,7 +161,7 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE
     ItType upper_bound (ItType first, ItType last, const ValType& val)
     {
-        AMREX_IF_ON_DEVICE(
+        AMREX_IF_ON_DEVICE((
             std::ptrdiff_t count = last-first;
             while(count>0){
                 auto it = first;
@@ -176,17 +176,17 @@ namespace amrex
                 }
             }
             return first;
-        )
-        AMREX_IF_ON_HOST(
+        ))
+        AMREX_IF_ON_HOST((
             return std::upper_bound(first, last, val);
-        )
+        ))
     }
 
     template<typename ItType, typename ValType>
     AMREX_GPU_HOST_DEVICE
     ItType lower_bound (ItType first, ItType last, const ValType& val)
     {
-        AMREX_IF_ON_DEVICE(
+        AMREX_IF_ON_DEVICE((
             std::ptrdiff_t count = last-first;
             while(count>0)
             {
@@ -203,10 +203,10 @@ namespace amrex
             }
 
             return first;
-        )
-        AMREX_IF_ON_HOST(
+        ))
+        AMREX_IF_ON_HOST((
             return std::lower_bound(first, last, val);
-        )
+        ))
     }
 
 namespace detail {

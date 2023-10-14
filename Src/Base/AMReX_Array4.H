@@ -42,14 +42,14 @@ namespace amrex {
         U& operator[] (int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             if (n < 0 || n >= ncomp) {
-                AMREX_IF_ON_DEVICE(
+                AMREX_IF_ON_DEVICE((
                     AMREX_DEVICE_PRINTF(" %d is out of bound (0:%d)", n, ncomp-1);
-                )
-                AMREX_IF_ON_HOST(
+                ))
+                AMREX_IF_ON_HOST((
                     std::stringstream ss;
                     ss << " " << n << " is out of bound: (0:" << ncomp-1 << ")";
                     amrex::Abort(ss.str());
-                )
+                ))
             }
 #endif
             return p[n*stride];
@@ -234,13 +234,13 @@ namespace amrex {
         {
             if (i<begin.x || i>=end.x || j<begin.y || j>=end.y || k<begin.z || k>=end.z
                 || n < 0 || n >= ncomp) {
-                AMREX_IF_ON_DEVICE(
+                AMREX_IF_ON_DEVICE((
                     AMREX_DEVICE_PRINTF(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,0:%d)\n",
                                         i, j, k, n, begin.x, end.x-1, begin.y, end.y-1,
                                         begin.z, end.z-1, ncomp-1);
                     amrex::Abort();
-                )
-                AMREX_IF_ON_HOST(
+                ))
+                AMREX_IF_ON_HOST((
                     std::stringstream ss;
                     ss << " (" << i << "," << j << "," << k << "," <<  n
                     << ") is out of bound ("
@@ -249,7 +249,7 @@ namespace amrex {
                     << begin.z << ":" << end.z-1 << ","
                     << "0:" << ncomp-1 << ")";
                     amrex::Abort(ss.str());
-                )
+                ))
             }
         }
 #endif

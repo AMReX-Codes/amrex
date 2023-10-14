@@ -117,12 +117,12 @@ namespace amrex
     unsigned int Random_int (unsigned int n, RandomEngine const& random_engine)
     {
 #if defined(__SYCL_DEVICE_ONLY__)
-        AMREX_IF_ON_DEVICE(
+        AMREX_IF_ON_DEVICE((
                 mkl::rng::device::uniform<unsigned int> distr(0,n);
                 return mkl::rng::device::generate(distr, *random_engine.engine);
-        )
+        ))
 #else
-        AMREX_IF_ON_DEVICE(
+        AMREX_IF_ON_DEVICE((
                 unsigned int rand;
                 constexpr unsigned int RAND_M = 4294967295; // 2**32-1
                 do {
@@ -130,12 +130,12 @@ namespace amrex
                                 rand =  curand(random_engine.rand_state) );
                 } while (rand > (RAND_M - RAND_M % n));
                 return rand % n;
-        )
+        ))
 #endif
-        AMREX_IF_ON_HOST(
+        AMREX_IF_ON_HOST((
                 amrex::ignore_unused(random_engine);
                 return Random_int(n);
-        )
+        ))
     }
 
     /**

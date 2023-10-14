@@ -198,12 +198,8 @@ struct MultiArray4
 {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Array4<T> const& operator[] (int li) const noexcept {
-        AMREX_IF_ON_DEVICE(
-            return dp[li];
-        )
-        AMREX_IF_ON_HOST(
-            return hp[li];
-        )
+        AMREX_IF_ON_DEVICE((return dp[li];))
+        AMREX_IF_ON_HOST((return hp[li];))
     }
 
 #ifdef AMREX_USE_GPU
