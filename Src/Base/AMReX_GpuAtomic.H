@@ -195,11 +195,14 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Add (T* sum, T value) noexcept
     {
-        AMREX_IF_ON_DEVICE(
 #ifdef AMREX_USE_SYCL
+        AMREX_IF_ON_DEVICE(
             return Add_device<T,AS>(sum, value);
+        )
 #else
+        AMREX_IF_ON_DEVICE(
             return Add_device(sum, value);
+        )
 #endif
         )
         AMREX_IF_ON_HOST(
@@ -280,11 +283,14 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void AddNoRet (T* sum, T value) noexcept
     {
-        AMREX_IF_ON_DEVICE(
 #ifdef AMREX_USE_SYCL
+        AMREX_IF_ON_DEVICE(
             Add_device<T,AS>(sum, value);
+        )
 #else
+        AMREX_IF_ON_DEVICE(
             Add_device(sum, value);
+        )
 #endif
         )
         AMREX_IF_ON_HOST(
@@ -296,12 +302,12 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void AddNoRet (float* const sum, float const value) noexcept
     {
-        AMREX_IF_ON_DEVICE(
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        AMREX_IF_ON_DEVICE(
             atomicAddNoRet(sum, value);
-#pragma clang diagnostic pop
         )
+#pragma clang diagnostic pop
         AMREX_IF_ON_HOST(
             *sum += value;
         )
@@ -539,10 +545,10 @@ namespace HostDevice::Atomic {
         AMREX_IF_ON_DEVICE(
             Gpu::Atomic::AddNoRet(sum,value);
         )
-        AMREX_IF_ON_HOST(
 #ifdef AMREX_USE_OMP
 #pragma omp atomic update
 #endif
+        AMREX_IF_ON_HOST(
             *sum += value;
         )
     }
