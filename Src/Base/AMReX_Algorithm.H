@@ -261,18 +261,34 @@ int clz_wrapper (clzll_tag, T x) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint8_t x) noexcept
+int clz_generic (std::uint8_t x) noexcept
 {
-#if defined(AMREX_USE_CUDA) // all supported cuda versions have __clz
-    AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
-#elif AMREX_HAS_BUILTIN_CLZ
-    AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
-#else
     static constexpr int clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
     auto upper = x >> 4;
     auto lower = x & 0xF;
     return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (std::uint8_t x) noexcept
+{
+#if defined(AMREX_USE_CUDA) // all supported cuda versions have __clz
+    AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
+    AMREX_IF_ON_HOST((return clz_generic(x);))
+#elif AMREX_HAS_BUILTIN_CLZ
+    AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
+    AMREX_IF_ON_DEVICE((return clz_generic(x);))
+#else
+    return clz_generic(x);
 #endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz_generic (std::uint16_t x) noexcept
+{
+    auto upper = std::uint8_t(x >> 8);
+    auto lower = std::uint8_t(x & 0xFF);
+    return upper ? clz(upper) : 8 + clz(lower);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -280,13 +296,21 @@ int clz (std::uint16_t x) noexcept
 {
 #if defined(AMREX_USE_CUDA) // all supported cuda versions have __clz
     AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
+    AMREX_IF_ON_HOST((return clz_generic(x);))
 #elif AMREX_HAS_BUILTIN_CLZ
     AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
+    AMREX_IF_ON_DEVICE((return clz_generic(x);))
 #else
-    auto upper = std::uint8_t(x >> 8);
-    auto lower = std::uint8_t(x & 0xFF);
-    return upper ? clz(upper) : 8 + clz(lower);
+    return clz_generic(x);
 #endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz_generic (std::uint32_t x) noexcept
+{
+    auto upper = std::uint16_t(x >> 16);
+    auto lower = std::uint16_t(x & 0xFFFF);
+    return upper ? clz(upper) : 16 + clz(lower);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -294,13 +318,21 @@ int clz (std::uint32_t x) noexcept
 {
 #if defined(AMREX_USE_CUDA) // all supported cuda versions have __clz
     AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
+    AMREX_IF_ON_HOST((return clz_generic(x);))
 #elif AMREX_HAS_BUILTIN_CLZ
     AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
+    AMREX_IF_ON_DEVICE((return clz_generic(x);))
 #else
-    auto upper = std::uint16_t(x >> 16);
-    auto lower = std::uint16_t(x & 0xFFFF);
-    return upper ? clz(upper) : 16 + clz(lower);
+    return clz_generic(x);
 #endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz_generic (std::uint64_t x) noexcept
+{
+    auto upper = std::uint32_t(x >> 32);
+    auto lower = std::uint32_t(x & 0xFFFFFFFF);
+    return upper ? clz(upper) : 32 + clz(lower);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -308,12 +340,12 @@ int clz (std::uint64_t x) noexcept
 {
 #if defined(AMREX_USE_CUDA) // all supported cuda versions have __clz
     AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
+    AMREX_IF_ON_HOST((return clz_generic(x);))
 #elif AMREX_HAS_BUILTIN_CLZ
     AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
+    AMREX_IF_ON_DEVICE((return clz_generic(x);))
 #else
-    auto upper = std::uint32_t(x >> 32);
-    auto lower = std::uint32_t(x & 0xFFFFFFFF);
-    return upper ? clz(upper) : 32 + clz(lower);
+    return clz_generic(x);
 #endif
 }
 
