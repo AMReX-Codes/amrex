@@ -523,14 +523,21 @@ namespace detail {
 namespace HostDevice::Atomic {
 
     template <class T>
+    AMREX_FORCE_INLINE
+    void Add_Host (T* const sum, T const value) noexcept
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp atomic update
+#endif
+        *sum += value;
+    }
+
+    template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Add (T* const sum, T const value) noexcept
     {
         AMREX_IF_ON_DEVICE((Gpu::Atomic::AddNoRet(sum,value);))
-#ifdef AMREX_USE_OMP
-#pragma omp atomic update
-#endif
-        AMREX_IF_ON_HOST((*sum += value;))
+        AMREX_IF_ON_HOST((Add_Host(sum,value);))
     }
 
 }
