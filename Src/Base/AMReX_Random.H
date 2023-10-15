@@ -45,7 +45,7 @@ namespace amrex
         ))
 #else
         AMREX_IF_ON_DEVICE((
-                return 1.0 - curand_uniform_double(random_engine.rand_state);                
+                return 1.0 - curand_uniform_double(random_engine.rand_state);
         ))
 #endif
         AMREX_IF_ON_HOST((
