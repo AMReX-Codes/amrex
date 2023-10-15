@@ -263,7 +263,7 @@ int clz_wrapper (clzll_tag, T x) noexcept
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz_generic (std::uint8_t x) noexcept
 {
-    static constexpr int clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+    constexpr int clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
     auto upper = x >> 4;
     auto lower = x & 0xF;
     return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
