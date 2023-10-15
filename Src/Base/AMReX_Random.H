@@ -39,8 +39,19 @@ namespace amrex
         mkl::rng::device::uniform<Real> distr;
         return mkl::rng::device::generate(distr, *random_engine.engine);
 #else
-        amrex::ignore_unused(random_engine);
-        return Random();
+#ifdef BL_USE_FLOAT
+        AMREX_IF_ON_DEVICE((
+                return 1.0f - curand_uniform(random_engine.rand_state);
+        ))
+#else
+        AMREX_IF_ON_DEVICE((
+                return 1.0 - curand_uniform_double(random_engine.rand_state);                
+        ))
+#endif
+        AMREX_IF_ON_HOST((
+                amrex::ignore_unused(random_engine);
+                return Random();
+        ))
 #endif
     }
 
@@ -72,8 +83,19 @@ namespace amrex
         mkl::rng::device::gaussian<Real> distr(mean, stddev);
         return mkl::rng::device::generate(distr, *random_engine.engine);
 #else
-        amrex::ignore_unused(random_engine);
-        return RandomNormal(mean, stddev);
+#ifdef BL_USE_FLOAT
+        AMREX_IF_ON_DEVICE((
+                return stddev * curand_normal(random_engine.rand_state) + mean;
+        ))
+#else
+        AMREX_IF_ON_DEVICE((
+                return stddev * curand_normal_double(random_engine.rand_state) + mean;
+        ))
+#endif
+        AMREX_IF_ON_HOST((
+                amrex::ignore_unused(random_engine);
+                return RandomNormal(mean, stddev);
+        ))
 #endif
     }
 
@@ -99,8 +121,13 @@ namespace amrex
         mkl::rng::device::poisson<unsigned int> distr(lambda);
         return mkl::rng::device::generate(distr, *random_engine.engine);
 #else
-        amrex::ignore_unused(random_engine);
-        return RandomPoisson(lambda);
+        AMREX_IF_ON_DEVICE((
+                return curand_poisson(random_engine.rand_state, lambda);
+        ))
+        AMREX_IF_ON_HOST((
+                amrex::ignore_unused(random_engine);
+                return RandomPoisson(lambda);
+        ))
 #endif
     }
 

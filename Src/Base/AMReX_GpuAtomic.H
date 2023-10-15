@@ -141,8 +141,11 @@ namespace detail {
         sycl::atomic_ref<T,mo,ms,AS> a{*sum};
         return a.fetch_add(value);
 #else
-        amrex::ignore_unused(sum, value);
-        return T(); // should never get here, but have to return something
+        AMREX_IF_ON_DEVICE(( return atomicAdd(sum, value); ))
+        AMREX_IF_ON_HOST((
+            amrex::ignore_unused(sum, value);
+            return T(); // should never get here, but have to return something
+        ))
 #endif
     }
 
@@ -318,8 +321,11 @@ namespace detail {
         sycl::atomic_ref<T,mo,ms,as> a{*m};
         return a.fetch_min(value);
 #else
-        amrex::ignore_unused(m,value);
-        return T(); // should never get here, but have to return something
+        AMREX_IF_ON_DEVICE(( return atomicMin(m, value); ))
+        AMREX_IF_ON_HOST((
+            amrex::ignore_unused(m,value);
+            return T(); // should never get here, but have to return something
+        ))
 #endif
     }
 
@@ -381,8 +387,11 @@ namespace detail {
         sycl::atomic_ref<T,mo,ms,as> a{*m};
         return a.fetch_max(value);
 #else
-        amrex::ignore_unused(m,value);
-        return T(); // should never get here, but have to return something
+        AMREX_IF_ON_DEVICE(( return atomixMax(m, value); ))
+        AMREX_IF_ON_HOST((
+            amrex::ignore_unused(m,value);
+            return T(); // should never get here, but have to return something
+        ))
 #endif
     }
 
@@ -441,9 +450,14 @@ namespace detail {
         sycl::atomic_ref<int,mo,ms,as> a{*m};
         return a.fetch_or(value);
 #else
-        int const old = *m;
-        *m = (*m) || value;
-        return old;
+        AMREX_IF_ON_DEVICE((
+            return atomicOr(m, value);
+        ))
+        AMREX_IF_ON_HOST((
+            int const old = *m;
+            *m = (*m) || value;
+            return old;
+        ))
 #endif
     }
 
@@ -464,9 +478,14 @@ namespace detail {
         sycl::atomic_ref<int,mo,ms,as> a{*m};
         return a.fetch_and(value ? ~0x0 : 0);
 #else
-        int const old = *m;
-        *m = (*m) && value;
-        return old;
+        AMREX_IF_ON_DEVICE((
+            return atomicAnd(m, value ? ~0x0 : 0);
+        ))
+        AMREX_IF_ON_HOST((
+            int const old = *m;
+            *m = (*m) && value;
+            return old;
+        ))
 #endif
     }
 
@@ -488,9 +507,14 @@ namespace detail {
         sycl::atomic_ref<T,mo,ms,as> a{*address};
         return a.exchange(val);
 #else
-        auto const old = *address;
-        *address = val;
-        return old;
+        AMREX_IF_ON_DEVICE((
+            return atomicExch(address, val);
+        ))
+        AMREX_IF_ON_HOST((
+            auto const old = *address;
+            *address = val;
+            return old;
+        ))
 #endif
     }
 
@@ -513,9 +537,14 @@ namespace detail {
         a.compare_exchange_strong(compare, val);
         return compare;
 #else
-        auto const old = *address;
-        *address = (old == compare ? val : old);
-        return old;
+        AMREX_IF_ON_DEVICE((
+            return atomicCAS(address, compare, val);
+        ))
+        AMREX_IF_ON_HOST((
+            auto const old = *address;
+            *address = (old == compare ? val : old);
+            return old;
+        ))
 #endif
     }
 }

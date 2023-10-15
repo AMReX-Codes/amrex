@@ -98,7 +98,12 @@ struct range_impl
 #elif defined (__SYCL_DEVICE_ONLY__)
         return iterator(m_b, m_gid, m_grange);
 #else
-        return iterator(m_b,0,1);
+        AMREX_IF_ON_DEVICE((
+            return iterator(m_b, blockDim.x*blockIdx.x+threadIdx.x, blockDim.x*gridDim.x);
+        ))
+        AMREX_IF_ON_HOST((
+            return iterator(m_b,0,1);
+        ))
 #endif
     }
 
