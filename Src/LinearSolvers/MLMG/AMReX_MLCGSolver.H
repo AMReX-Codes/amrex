@@ -135,7 +135,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         return ret;
     }
 
-    rho = dotxy(rh,r); // Move this to here to elminate usage of rho_1
+    rho = dotxy(rh,r); // Move this to here to eliminate usage of rho_1
 
     p.LocalCopy(r,0,0,ncomp,nghost); // This is the true initialization. Move this to here to avoid iter==1 check every iteration
 
