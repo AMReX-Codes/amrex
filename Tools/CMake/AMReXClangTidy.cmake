@@ -9,7 +9,7 @@ macro(setup_clang_tidy)
       if (_tmp MATCHES "LLVM version ([0-9\.]+)")
          message(STATUS "Found clang-tidy ${CMAKE_MATCH_1}")
          if ("${CMAKE_MATCH_1}" VERSION_GREATER_EQUAL 12.0.0)
-            # Cofig file not supported in earlier versions
+            # Config file not supported in earlier versions
             set(AMReX_CLANG_TIDY_CONFIG_FILE_NAME ${PROJECT_SOURCE_DIR}/.clang-tidy)
          endif()
       endif()

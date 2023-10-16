@@ -132,7 +132,7 @@ public:
             }
 
             auto& particle_tile = DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
-            auto old_size = particle_tile.GetArrayOfStructs().size();
+            auto old_size = particle_tile.size();
             auto new_size = old_size + host_real[0].size();
             particle_tile.resize(new_size);
 

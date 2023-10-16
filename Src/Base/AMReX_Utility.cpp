@@ -193,7 +193,7 @@ amrex::UniqueString()
     tempstring << std::setprecision(n) << std::fixed << amrex::second();
     auto const ts = tempstring.str();
     auto const tsl = ts.length();
-    return ts.substr(tsl-len,tsl); // tsl-len >= 0 becaues n >= len
+    return ts.substr(tsl-len,tsl); // tsl-len >= 0 because n >= len
 }
 
 void

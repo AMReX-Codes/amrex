@@ -237,7 +237,7 @@ private:
     //
     // Snds - a Vector with the number of bytes that is process will send to each proc.
     // Rcvs - a Vector that, after calling this method, will contain the
-    //        number of bytes this process will reveive from each proc.
+    //        number of bytes this process will receive from each proc.
     //
     void doHandShake (const Vector<Long>& Snds, Vector<Long>& Rcvs) const;
 

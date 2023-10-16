@@ -232,7 +232,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     //Initialize particles from ascii file with extradata=4
     myPC.InitFromAsciiFile("particle_file.init", 4);
 
-    //Regrid to the more compilcated BoxArray similar to NeighborParticleContainer Regrid
+    //Regrid to the more complicated BoxArray similar to NeighborParticleContainer Regrid
     for (int lev = 0; lev < nlevs; lev++) {
         myPC.SetParticleBoxArray(lev, ba.at(lev));
         myPC.SetParticleDistributionMap(lev, dmap.at(lev));

@@ -152,6 +152,7 @@ jobs:
     - name: Dependencies
       if: ${{ env.CODEPLAYTOKEN != '' }}
       run: |
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_hip.sh 5.4.6
         .github/workflows/dependencies/dependencies_dpcpp.sh
         .github/workflows/dependencies/dependencies_codeplay.sh ${{ env.CODEPLAYTOKEN }}
@@ -199,6 +200,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Dependencies
       run: |
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_dpcpp.sh
         sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
         .github/workflows/dependencies/dependencies_ccache.sh

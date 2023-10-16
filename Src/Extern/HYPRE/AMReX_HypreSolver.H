@@ -220,7 +220,7 @@ HypreSolver<MSS>::HypreSolver (Vector<IndexType>   const& a_index_type,
     fill_local_id(a_marker);
 
     // At this point, m_local_id stores the ids local to each box.
-    // m_nrows_grid stroes the number of unique points in each box.
+    // m_nrows_grid stores the number of unique points in each box.
     // m_nrows_proc is the number of rowss for all variables on this MPI
     // process.  If a point is invalid, its id is invalid (i.e., a very
     // negative number).  Note that the data type of local_node_id is int,

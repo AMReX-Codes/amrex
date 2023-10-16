@@ -20,6 +20,7 @@ public:
     void initProbPoisson ();
     void initProbABecLaplacian ();
     void initProbABecLaplacianInhomNeumann ();
+    void initProbNodeABecLaplacian ();
 
 private:
 
@@ -28,6 +29,7 @@ private:
     void solvePoisson ();
     void solveABecLaplacian ();
     void solveABecLaplacianInhomNeumann ();
+    void solveNodeABecLaplacian ();
 
     int max_level = 1;
     int ref_ratio = 2;
@@ -36,7 +38,9 @@ private:
 
     bool composite_solve = true;
 
-    int prob_type = 1;  // 1. Poisson,  2. ABecLaplacian
+    // 1. Poisson,  2. ABecLaplacian, 3. ABecLaplacian w/ inhomNeumann
+    // 4. NodeABecLaplacian
+    int prob_type = 1;
 
     // For MLMG solver
     int verbose = 2;

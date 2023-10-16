@@ -1,3 +1,48 @@
+# 23.10
+
+  -- Bugfix typo in AMReX_SundialsIntegrator.H Nvar vs NVar, the
+     declared/used variable is NVar (#3573)
+
+  -- Code Spell (#3563)
+
+  -- Add Fortran interface for average_down_faces (#3553)
+
+  -- PureSoA: Disable AoS Access (#3290)
+
+  -- Another terrain fix for MPI (#3557)
+     Fix Increment, OK, and EnforcePeriodicWhere for terrain-fitted particles. (#3556)
+
+  -- Added cvode functionality to SUNDIALS integrator (#3436)
+
+  -- ParmParse::addfile needs Init (#3440)
+
+  -- Make the same changes to ApplyInitialRedistribution as to ApplyMLRedistribution (#3554)
+
+  -- Reset EB Fab Type (#3552)
+     EB Data outside domain (#3549)
+
+  -- We weren't defining cent_hat out far enough (#3548)
+
+  -- Add Fortran inteface for FillCoarsePatch for face variables (#3542)
+
+  -- print_state/printCell: Make it work without managed memory (#3543)
+
+  -- FillPatch Fortran Interface: Fix incorrect size of Vector<BCRec> (#3546)
+
+  -- ReduceOps: reset result readiness flag (#3545)
+
+  -- Fix Fortran interface for FillPatch for face variables (#3541)
+
+  -- Support multiple CUDA architectures at compilation (#3535)
+
+  -- Add Kestrel machine and remove Rhodes machine from Make.nrel (#3533)
+
+  -- Explicitly flush when writing to the terse run log (#3532)
+
+  -- Missing header in AMReX_GpuComplex.H (#3531)
+
+  -- Add global domain id offset to conduit wrapper (#3524)
+
 # 23.09
 
   -- Fix InitRandomPerBox for 1D & 2D (#3527)

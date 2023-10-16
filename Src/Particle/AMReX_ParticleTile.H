@@ -634,6 +634,12 @@ struct ConstParticleTileData
     }
 };
 
+struct ThisParticleTileHasNoParticleVector {};
+
+struct ThisParticleTileHasNoAoS {
+    using ParticleVector = ThisParticleTileHasNoParticleVector;
+};
+
 template <typename T_ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator=DefaultAllocator>
 struct ParticleTile
@@ -651,7 +657,10 @@ struct ParticleTile
 
     using SuperParticleType = Particle<NStructReal + NArrayReal, NStructInt + NArrayInt>;
 
-    using AoS = ArrayOfStructs<ParticleType, Allocator>;
+    using AoS = typename std::conditional<
+        ParticleType::is_soa_particle,
+        ThisParticleTileHasNoAoS,
+        ArrayOfStructs<ParticleType, Allocator>>::type;
     //using ParticleVector = typename AoS::ParticleVector;
 
     using SoA = StructOfArrays<NArrayReal, NArrayInt, Allocator>;
