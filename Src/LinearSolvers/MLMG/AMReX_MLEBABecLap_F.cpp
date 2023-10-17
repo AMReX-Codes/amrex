@@ -67,10 +67,10 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         const Box& bx = mfi.tilebox();
         Array4<Real const> const& xfab = in.const_array(mfi);
         Array4<Real> const& yfab = out.array(mfi);
-        Array4<Real const> const& afab = acoef.const_array(mfi);
-        AMREX_D_TERM(Array4<Real const> const& bxfab = bxcoef.const_array(mfi);,
-                     Array4<Real const> const& byfab = bycoef.const_array(mfi);,
-                     Array4<Real const> const& bzfab = bzcoef.const_array(mfi););
+        Array4<Real const> const& alphafab = acoef.const_array(mfi);
+        AMREX_D_TERM(Array4<Real const> const& betaxfab = bxcoef.const_array(mfi);,
+                     Array4<Real const> const& betayfab = bycoef.const_array(mfi);,
+                     Array4<Real const> const& betazfab = bzcoef.const_array(mfi););
 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
 
@@ -82,8 +82,8 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         } else if (fabtyp == FabType::regular) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
             {
-                mlabeclap_adotx(i,j,k,n, yfab, xfab, afab,
-                                AMREX_D_DECL(bxfab,byfab,bzfab),
+                mlabeclap_adotx(i,j,k,n, yfab, xfab, alphafab,
+                                AMREX_D_DECL(betaxfab,betayfab,betazfab),
                                 dxinvarr, ascalar, bscalar);
             });
         } else {
@@ -99,7 +99,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
             Array4<Real const> const& bafab = barea->const_array(mfi);
             Array4<Real const> const& bcfab = bcent->const_array(mfi);
             Array4<Real const> const& ccfab = ccent->const_array(mfi);
-            Array4<Real const> const& bebfab = (is_eb_dirichlet)
+            Array4<Real const> const& betaebfab = (is_eb_dirichlet)
                 ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
             Array4<Real const> const& phiebfab = (is_eb_dirichlet && is_eb_inhomog)
                 ? m_eb_phi[amrlev]->const_array(mfi) : foo;
@@ -123,11 +123,11 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 #else
                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                {
-                   mlebabeclap_adotx_centroid(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                   mlebabeclap_adotx_centroid(tbx, yfab, xfab, alphafab, AMREX_D_DECL(betaxfab,betayfab,betazfab),
                                      flagfab, vfracfab,
                                      AMREX_D_DECL(apxfab,apyfab,apzfab),
                                      AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                     ccfab, bafab, bcfab, bebfab, phiebfab,
+                                     ccfab, bafab, bcfab, betaebfab, phiebfab,
                                      AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
                                      AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
                                      AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
@@ -138,11 +138,11 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
             } else {
                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                {
-                   mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                   mlebabeclap_adotx(tbx, yfab, xfab, alphafab, AMREX_D_DECL(betaxfab,betayfab,betazfab),
                                      ccmfab, flagfab, vfracfab,
                                      AMREX_D_DECL(apxfab,apyfab,apzfab),
                                      AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                     bafab, bcfab, bebfab,
+                                     bafab, bcfab, betaebfab,
                                      is_eb_dirichlet,
                                      phiebfab,
                                      is_eb_inhomog, dxinvarr,
@@ -199,7 +199,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 #if (AMREX_SPACEDIM == 2)
     const Real dh = m_b_scalar/(AMREX_D_TERM(h[0],*h[1],*h[2]));
 #endif
-    const Real alpha = m_a_scalar;
+    const Real scalarA = m_a_scalar;
 
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -236,11 +236,11 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         const Box& vbx = mfi.validbox();
         const auto& solnfab = sol.array(mfi);
         const auto& rhsfab  = rhs.const_array(mfi);
-        const auto& afab    = acoef.const_array(mfi);
+        const auto& alphafab    = acoef.const_array(mfi);
 
-        AMREX_D_TERM(const auto& bxfab = bxcoef.const_array(mfi);,
-                     const auto& byfab = bycoef.const_array(mfi);,
-                     const auto& bzfab = bzcoef.const_array(mfi););
+        AMREX_D_TERM(const auto& betaxfab = bxcoef.const_array(mfi);,
+                     const auto& betayfab = bycoef.const_array(mfi);,
+                     const auto& betazfab = bzcoef.const_array(mfi););
 
         const auto& f0fab = f0.const_array(mfi);
         const auto& f1fab = f1.const_array(mfi);
@@ -266,9 +266,9 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
             {
-                abec_gsrb(i,j,k,n, solnfab, rhsfab, alpha, afab,
+                abec_gsrb(i,j,k,n, solnfab, rhsfab, scalarA, alphafab,
                           AMREX_D_DECL(dhx, dhy, dhz),
-                          AMREX_D_DECL(bxfab, byfab, bzfab),
+                          AMREX_D_DECL(betaxfab, betayfab, betazfab),
                           AMREX_D_DECL(m0,m2,m4),
                           AMREX_D_DECL(m1,m3,m5),
                           AMREX_D_DECL(f0fab,f2fab,f4fab),
@@ -289,7 +289,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                          Array4<Real const> const& fczfab = fcent[2]->const_array(mfi););
             Array4<Real const> const& bafab = barea->const_array(mfi);
             Array4<Real const> const& bcfab = bcent->const_array(mfi);
-            Array4<Real const> const& bebfab = (is_eb_dirichlet)
+            Array4<Real const> const& betaebfab = (is_eb_dirichlet)
                 ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
 
             bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
@@ -299,10 +299,10 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
-                mlebabeclap_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
+                mlebabeclap_gsrb(thread_box, solnfab, rhsfab, scalarA, alphafab,
                                  AMREX_D_DECL(dhx, dhy, dhz),
                                  AMREX_2D_ONLY_ARGS(dh,h)
-                                 AMREX_D_DECL(bxfab,byfab,bzfab),
+                                 AMREX_D_DECL(betaxfab,betayfab,betazfab),
                                  AMREX_D_DECL(m0,m2,m4),
                                  AMREX_D_DECL(m1,m3,m5),
                                  AMREX_D_DECL(f0fab,f2fab,f4fab),
@@ -310,7 +310,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                  ccmfab, flagfab, vfracfab,
                                  AMREX_D_DECL(apxfab,apyfab,apzfab),
                                  AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                 bafab, bcfab, bebfab,
+                                 bafab, bcfab, betaebfab,
                                  is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
                                  vbx, redblack, nc);
             });

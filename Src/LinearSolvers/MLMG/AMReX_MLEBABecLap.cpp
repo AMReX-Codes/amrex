@@ -625,22 +625,22 @@ MLEBABecLap::averageDownCoeffs ()
 }
 
 void
-MLEBABecLap::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
+MLEBABecLap::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& alpha,
                                             Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,
                                             const Vector<MultiFab*>& b_eb)
 {
-    auto nmglevs = static_cast<int>(a.size());
+    auto nmglevs = static_cast<int>(alpha.size());
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
         IntVect ratio = (amrlev > 0) ? IntVect(mg_coarsen_ratio) : mg_coarsen_ratio_vec[mglev-1];
 
         if (m_a_scalar == 0.0)
         {
-            a[mglev].setVal(0.0);
+            alpha[mglev].setVal(0.0);
         }
         else
         {
-            amrex::EB_average_down(a[mglev-1], a[mglev], 0, 1, ratio);
+            amrex::EB_average_down(alpha[mglev-1], alpha[mglev], 0, 1, ratio);
         }
 
         amrex::EB_average_down_faces(amrex::GetArrOfConstPtrs(b[mglev-1]),

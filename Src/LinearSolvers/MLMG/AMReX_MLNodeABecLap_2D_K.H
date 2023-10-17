@@ -6,9 +6,9 @@ namespace amrex {
 inline void
 mlndabeclap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
                              Array4<Real const> const& rhs,
-                             Real alpha, Real beta,
-                             Array4<Real const> const& acf,
-                             Array4<Real const> const& bcf,
+                             Real scalarA, Real scalarB,
+                             Array4<Real const> const& alphacf,
+                             Array4<Real const> const& betacf,
                              Array4<int const> const& msk,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
@@ -23,19 +23,19 @@ mlndabeclap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
         if (msk(i,j,k)) {
             sol(i,j,k) = Real(0.0);
         } else {
-            Real s0 = (-Real(2.0))*fxy*(bcf(i-1,j-1,k)+bcf(i,j-1,k)+bcf(i-1,j,k)+bcf(i,j,k));
-            Real lap =  sol(i-1,j-1,k)*fxy*bcf(i-1,j-1,k)
-                      + sol(i+1,j-1,k)*fxy*bcf(i  ,j-1,k)
-                      + sol(i-1,j+1,k)*fxy*bcf(i-1,j  ,k)
-                      + sol(i+1,j+1,k)*fxy*bcf(i  ,j  ,k)
-                      + sol(i-1,j,k)*f2xmy*(bcf(i-1,j-1,k)+bcf(i-1,j,k))
-                      + sol(i+1,j,k)*f2xmy*(bcf(i  ,j-1,k)+bcf(i  ,j,k))
-                      + sol(i,j-1,k)*fmx2y*(bcf(i-1,j-1,k)+bcf(i,j-1,k))
-                      + sol(i,j+1,k)*fmx2y*(bcf(i-1,j  ,k)+bcf(i,j  ,k))
+            Real s0 = (-Real(2.0))*fxy*(betacf(i-1,j-1,k)+betacf(i,j-1,k)+betacf(i-1,j,k)+betacf(i,j,k));
+            Real lap =  sol(i-1,j-1,k)*fxy*betacf(i-1,j-1,k)
+                      + sol(i+1,j-1,k)*fxy*betacf(i  ,j-1,k)
+                      + sol(i-1,j+1,k)*fxy*betacf(i-1,j  ,k)
+                      + sol(i+1,j+1,k)*fxy*betacf(i  ,j  ,k)
+                      + sol(i-1,j,k)*f2xmy*(betacf(i-1,j-1,k)+betacf(i-1,j,k))
+                      + sol(i+1,j,k)*f2xmy*(betacf(i  ,j-1,k)+betacf(i  ,j,k))
+                      + sol(i,j-1,k)*fmx2y*(betacf(i-1,j-1,k)+betacf(i,j-1,k))
+                      + sol(i,j+1,k)*fmx2y*(betacf(i-1,j  ,k)+betacf(i,j  ,k))
                       + sol(i,j,k)*s0;
-            Real Ax = alpha*acf(i,j,k)*sol(i,j,k) - beta*lap;
+            Real Ax = scalarA*alphacf(i,j,k)*sol(i,j,k) - scalarB*lap;
 
-            sol(i,j,k) += (rhs(i,j,k) - Ax) / (alpha*acf(i,j,k)-beta*s0);
+            sol(i,j,k) += (rhs(i,j,k) - Ax) / (scalarA*alphacf(i,j,k)-scalarB*s0);
         }
     });
 }
@@ -43,9 +43,9 @@ mlndabeclap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 mlndabeclap_jacobi_aa (int i, int j, int k, Array4<Real> const& sol,
                        Real lap, Array4<Real const> const& rhs,
-                       Real alpha, Real beta,
-                       Array4<Real const> const& acf,
-                       Array4<Real const> const& bcf,
+                       Real scalarA, Real scalarB,
+                       Array4<Real const> const& alphacf,
+                       Array4<Real const> const& betacf,
                        Array4<int const> const& msk,
                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
@@ -53,11 +53,11 @@ mlndabeclap_jacobi_aa (int i, int j, int k, Array4<Real> const& sol,
         sol(i,j,k) = Real(0.0);
     } else {
         Real fac = -Real(2.0/6.0)*(dxinv[0]*dxinv[0] + dxinv[1]*dxinv[1]);
-        Real s0 = fac*(bcf(i-1,j-1,k)+bcf(i,j-1,k)+bcf(i-1,j,k)+bcf(i,j,k));
-        Real Ax = alpha*acf(i,j,k)*sol(i,j,k) - beta*lap;
+        Real s0 = fac*(betacf(i-1,j-1,k)+betacf(i,j-1,k)+betacf(i-1,j,k)+betacf(i,j,k));
+        Real Ax = scalarA*alphacf(i,j,k)*sol(i,j,k) - scalarB*lap;
 
         sol(i,j,k) += Real(2.0/3.0) * (rhs(i,j,k) - Ax)
-            / (alpha*acf(i,j,k)-beta*s0);
+            / (scalarA*alphacf(i,j,k)-scalarB*s0);
     }
 
 }

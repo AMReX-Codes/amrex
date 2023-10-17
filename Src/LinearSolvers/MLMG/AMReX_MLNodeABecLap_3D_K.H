@@ -6,9 +6,9 @@ namespace amrex {
 inline void
 mlndabeclap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
                              Array4<Real const> const& rhs,
-                             Real alpha, Real beta,
-                             Array4<Real const> const& acf,
-                             Array4<Real const> const& bcf,
+                             Real scalarA, Real scalarB,
+                             Array4<Real const> const& alphacf,
+                             Array4<Real const> const& betacf,
                              Array4<int const> const& msk,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
@@ -28,38 +28,38 @@ mlndabeclap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
         if (msk(i,j,k)) {
             sol(i,j,k) = Real(0.0);
         } else {
-            Real s0 = Real(-4.0)*fxyz*(bcf(i-1,j-1,k-1)+bcf(i,j-1,k-1)+bcf(i-1,j,k-1)+bcf(i,j,k-1)
-                                      +bcf(i-1,j-1,k  )+bcf(i,j-1,k  )+bcf(i-1,j,k  )+bcf(i,j,k  ));
+            Real s0 = Real(-4.0)*fxyz*(betacf(i-1,j-1,k-1)+betacf(i,j-1,k-1)+betacf(i-1,j,k-1)+betacf(i,j,k-1)
+                                      +betacf(i-1,j-1,k  )+betacf(i,j-1,k  )+betacf(i-1,j,k  )+betacf(i,j,k  ));
             Real lap = sol(i,j,k)*s0
-                + fxyz*(sol(i-1,j-1,k-1)*bcf(i-1,j-1,k-1)
-                      + sol(i+1,j-1,k-1)*bcf(i  ,j-1,k-1)
-                      + sol(i-1,j+1,k-1)*bcf(i-1,j  ,k-1)
-                      + sol(i+1,j+1,k-1)*bcf(i  ,j  ,k-1)
-                      + sol(i-1,j-1,k+1)*bcf(i-1,j-1,k  )
-                      + sol(i+1,j-1,k+1)*bcf(i  ,j-1,k  )
-                      + sol(i-1,j+1,k+1)*bcf(i-1,j  ,k  )
-                      + sol(i+1,j+1,k+1)*bcf(i  ,j  ,k  ))
-                + fmx2y2z*(sol(i  ,j-1,k-1)*(bcf(i-1,j-1,k-1)+bcf(i,j-1,k-1))
-                         + sol(i  ,j+1,k-1)*(bcf(i-1,j  ,k-1)+bcf(i,j  ,k-1))
-                         + sol(i  ,j-1,k+1)*(bcf(i-1,j-1,k  )+bcf(i,j-1,k  ))
-                         + sol(i  ,j+1,k+1)*(bcf(i-1,j  ,k  )+bcf(i,j  ,k  )))
-                + f2xmy2z*(sol(i-1,j  ,k-1)*(bcf(i-1,j-1,k-1)+bcf(i-1,j,k-1))
-                         + sol(i+1,j  ,k-1)*(bcf(i  ,j-1,k-1)+bcf(i  ,j,k-1))
-                         + sol(i-1,j  ,k+1)*(bcf(i-1,j-1,k  )+bcf(i-1,j,k  ))
-                         + sol(i+1,j  ,k+1)*(bcf(i  ,j-1,k  )+bcf(i  ,j,k  )))
-                + f2x2ymz*(sol(i-1,j-1,k  )*(bcf(i-1,j-1,k-1)+bcf(i-1,j-1,k))
-                         + sol(i+1,j-1,k  )*(bcf(i  ,j-1,k-1)+bcf(i  ,j-1,k))
-                         + sol(i-1,j+1,k  )*(bcf(i-1,j  ,k-1)+bcf(i-1,j  ,k))
-                         + sol(i+1,j+1,k  )*(bcf(i  ,j  ,k-1)+bcf(i  ,j  ,k)))
-                + f4xm2ym2z*(sol(i-1,j,k)*(bcf(i-1,j-1,k-1)+bcf(i-1,j,k-1)+bcf(i-1,j-1,k)+bcf(i-1,j,k))
-                           + sol(i+1,j,k)*(bcf(i  ,j-1,k-1)+bcf(i  ,j,k-1)+bcf(i  ,j-1,k)+bcf(i  ,j,k)))
-                + fm2x4ym2z*(sol(i,j-1,k)*(bcf(i-1,j-1,k-1)+bcf(i,j-1,k-1)+bcf(i-1,j-1,k)+bcf(i,j-1,k))
-                           + sol(i,j+1,k)*(bcf(i-1,j  ,k-1)+bcf(i,j  ,k-1)+bcf(i-1,j  ,k)+bcf(i,j  ,k)))
-                + fm2xm2y4z*(sol(i,j,k-1)*(bcf(i-1,j-1,k-1)+bcf(i,j-1,k-1)+bcf(i-1,j,k-1)+bcf(i,j,k-1))
-                           + sol(i,j,k+1)*(bcf(i-1,j-1,k  )+bcf(i,j-1,k  )+bcf(i-1,j,k  )+bcf(i,j,k  )));
-            Real Ax = alpha*acf(i,j,k)*sol(i,j,k) - beta*lap;
+                + fxyz*(sol(i-1,j-1,k-1)*betacf(i-1,j-1,k-1)
+                      + sol(i+1,j-1,k-1)*betacf(i  ,j-1,k-1)
+                      + sol(i-1,j+1,k-1)*betacf(i-1,j  ,k-1)
+                      + sol(i+1,j+1,k-1)*betacf(i  ,j  ,k-1)
+                      + sol(i-1,j-1,k+1)*betacf(i-1,j-1,k  )
+                      + sol(i+1,j-1,k+1)*betacf(i  ,j-1,k  )
+                      + sol(i-1,j+1,k+1)*betacf(i-1,j  ,k  )
+                      + sol(i+1,j+1,k+1)*betacf(i  ,j  ,k  ))
+                + fmx2y2z*(sol(i  ,j-1,k-1)*(betacf(i-1,j-1,k-1)+betacf(i,j-1,k-1))
+                         + sol(i  ,j+1,k-1)*(betacf(i-1,j  ,k-1)+betacf(i,j  ,k-1))
+                         + sol(i  ,j-1,k+1)*(betacf(i-1,j-1,k  )+betacf(i,j-1,k  ))
+                         + sol(i  ,j+1,k+1)*(betacf(i-1,j  ,k  )+betacf(i,j  ,k  )))
+                + f2xmy2z*(sol(i-1,j  ,k-1)*(betacf(i-1,j-1,k-1)+betacf(i-1,j,k-1))
+                         + sol(i+1,j  ,k-1)*(betacf(i  ,j-1,k-1)+betacf(i  ,j,k-1))
+                         + sol(i-1,j  ,k+1)*(betacf(i-1,j-1,k  )+betacf(i-1,j,k  ))
+                         + sol(i+1,j  ,k+1)*(betacf(i  ,j-1,k  )+betacf(i  ,j,k  )))
+                + f2x2ymz*(sol(i-1,j-1,k  )*(betacf(i-1,j-1,k-1)+betacf(i-1,j-1,k))
+                         + sol(i+1,j-1,k  )*(betacf(i  ,j-1,k-1)+betacf(i  ,j-1,k))
+                         + sol(i-1,j+1,k  )*(betacf(i-1,j  ,k-1)+betacf(i-1,j  ,k))
+                         + sol(i+1,j+1,k  )*(betacf(i  ,j  ,k-1)+betacf(i  ,j  ,k)))
+                + f4xm2ym2z*(sol(i-1,j,k)*(betacf(i-1,j-1,k-1)+betacf(i-1,j,k-1)+betacf(i-1,j-1,k)+betacf(i-1,j,k))
+                           + sol(i+1,j,k)*(betacf(i  ,j-1,k-1)+betacf(i  ,j,k-1)+betacf(i  ,j-1,k)+betacf(i  ,j,k)))
+                + fm2x4ym2z*(sol(i,j-1,k)*(betacf(i-1,j-1,k-1)+betacf(i,j-1,k-1)+betacf(i-1,j-1,k)+betacf(i,j-1,k))
+                           + sol(i,j+1,k)*(betacf(i-1,j  ,k-1)+betacf(i,j  ,k-1)+betacf(i-1,j  ,k)+betacf(i,j  ,k)))
+                + fm2xm2y4z*(sol(i,j,k-1)*(betacf(i-1,j-1,k-1)+betacf(i,j-1,k-1)+betacf(i-1,j,k-1)+betacf(i,j,k-1))
+                           + sol(i,j,k+1)*(betacf(i-1,j-1,k  )+betacf(i,j-1,k  )+betacf(i-1,j,k  )+betacf(i,j,k  )));
+            Real Ax = scalarA*alphacf(i,j,k)*sol(i,j,k) - scalarB*lap;
 
-            sol(i,j,k) += (rhs(i,j,k) - Ax) / (alpha*acf(i,j,k)-beta*s0);
+            sol(i,j,k) += (rhs(i,j,k) - Ax) / (scalarA*alphacf(i,j,k)-scalarB*s0);
         }
     });
 }
@@ -67,9 +67,9 @@ mlndabeclap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 mlndabeclap_jacobi_aa (int i, int j, int k, Array4<Real> const& sol,
                        Real lap, Array4<Real const> const& rhs,
-                       Real alpha, Real beta,
-                       Array4<Real const> const& acf,
-                       Array4<Real const> const& bcf,
+                       Real scalarA, Real scalarB,
+                       Array4<Real const> const& alphacf,
+                       Array4<Real const> const& betacf,
                        Array4<int const> const& msk,
                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
@@ -79,12 +79,12 @@ mlndabeclap_jacobi_aa (int i, int j, int k, Array4<Real> const& sol,
         Real fxyz = Real(-4.0 / 36.0)*(dxinv[0]*dxinv[0] +
                                        dxinv[1]*dxinv[1] +
                                        dxinv[2]*dxinv[2]);
-        Real s0 = fxyz*(bcf(i-1,j-1,k-1)+bcf(i,j-1,k-1)+bcf(i-1,j,k-1)+bcf(i,j,k-1)
-                       +bcf(i-1,j-1,k  )+bcf(i,j-1,k  )+bcf(i-1,j,k  )+bcf(i,j,k));
-        Real Ax = alpha*acf(i,j,k)*sol(i,j,k) - beta*lap;
+        Real s0 = fxyz*(betacf(i-1,j-1,k-1)+betacf(i,j-1,k-1)+betacf(i-1,j,k-1)+betacf(i,j,k-1)
+                       +betacf(i-1,j-1,k  )+betacf(i,j-1,k  )+betacf(i-1,j,k  )+betacf(i,j,k));
+        Real Ax = scalarA*alphacf(i,j,k)*sol(i,j,k) - scalarB*lap;
 
         sol(i,j,k) += Real(2.0/3.0) * (rhs(i,j,k) - Ax)
-            / (alpha*acf(i,j,k)-beta*s0);
+            / (scalarA*alphacf(i,j,k)-scalarB*s0);
     }
 }
 

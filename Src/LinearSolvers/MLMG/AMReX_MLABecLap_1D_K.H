@@ -8,47 +8,47 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_adotx (int i, int, int, int n, Array4<T> const& y,
                       Array4<T const> const& x,
-                      Array4<T const> const& a,
-                      Array4<T const> const& bX,
+                      Array4<T const> const& alpha,
+                      Array4<T const> const& betaX,
                       GpuArray<T,AMREX_SPACEDIM> const& dxinv,
-                      T alpha, T beta) noexcept
+                      T scalarA, T scalarB) noexcept
 {
-    const T dhx = beta*dxinv[0]*dxinv[0];
-    y(i,0,0,n) = alpha*a(i,0,0)*x(i,0,0,n)
-        - dhx * (bX(i+1,0,0,n)*(x(i+1,0,0,n) - x(i  ,0,0,n))
-               - bX(i  ,0,0,n)*(x(i  ,0,0,n) - x(i-1,0,0,n)));
+    const T dhx = scalarB*dxinv[0]*dxinv[0];
+    y(i,0,0,n) = scalarA*alpha(i,0,0)*x(i,0,0,n)
+        - dhx * (betaX(i+1,0,0,n)*(x(i+1,0,0,n) - x(i  ,0,0,n))
+               - betaX(i  ,0,0,n)*(x(i  ,0,0,n) - x(i-1,0,0,n)));
 }
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_adotx_os (int i, int, int, int n, Array4<T> const& y,
                          Array4<T const> const& x,
-                         Array4<T const> const& a,
-                         Array4<T const> const& bX,
+                         Array4<T const> const& alpha,
+                         Array4<T const> const& betaX,
                          Array4<int const> const& osm,
                          GpuArray<T,AMREX_SPACEDIM> const& dxinv,
-                         T alpha, T beta) noexcept
+                         T scalarA, T scalarB) noexcept
 {
-    const T dhx = beta*dxinv[0]*dxinv[0];
+    const T dhx = scalarB*dxinv[0]*dxinv[0];
     if (osm(i,0,0) == 0) {
         y(i,0,0,n) = T(0.0);
     } else {
-        y(i,0,0,n) = alpha*a(i,0,0)*x(i,0,0,n)
-            - dhx * (bX(i+1,0,0,n)*(x(i+1,0,0,n) - x(i  ,0,0,n))
-                   - bX(i  ,0,0,n)*(x(i  ,0,0,n) - x(i-1,0,0,n)));
+        y(i,0,0,n) = scalarA*alpha(i,0,0)*x(i,0,0,n)
+            - dhx * (betaX(i+1,0,0,n)*(x(i+1,0,0,n) - x(i  ,0,0,n))
+                   - betaX(i  ,0,0,n)*(x(i  ,0,0,n) - x(i-1,0,0,n)));
     }
 }
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_normalize (int i, int, int, int n, Array4<T> const& x,
-                          Array4<T const> const& a,
-                          Array4<T const> const& bX,
+                          Array4<T const> const& alpha,
+                          Array4<T const> const& betaX,
                           GpuArray<T,AMREX_SPACEDIM> const& dxinv,
-                          T alpha, T beta) noexcept
+                          T scalarA, T scalarB) noexcept
 {
-    const T dhx = beta*dxinv[0]*dxinv[0];
-    x(i,0,0,n) /= alpha*a(i,0,0) + dhx*(bX(i,0,0,n)+bX(i+1,0,0,n));
+    const T dhx = scalarB*dxinv[0]*dxinv[0];
+    x(i,0,0,n) /= scalarA*alpha(i,0,0) + dhx*(betaX(i,0,0,n)+betaX(i+1,0,0,n));
 }
 
 template <typename T>
@@ -85,9 +85,9 @@ void mlabeclap_flux_xface (Box const& box, Array4<T> const& fx, Array4<T const> 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb (int i, int, int, int n, Array4<T> const& phi, Array4<T const> const& rhs,
-                T alpha, Array4<T const> const& a,
+                T scalarA, Array4<T const> const& alpha,
                 T dhx,
-                Array4<T const> const& bX,
+                Array4<T const> const& betaX,
                 Array4<int const> const& m0,
                 Array4<int const> const& m1,
                 Array4<T const> const& f0,
@@ -103,13 +103,13 @@ void abec_gsrb (int i, int, int, int n, Array4<T> const& phi, Array4<T const> co
         T cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
             ? f1(vhi.x,0,0,n) : T(0.0);
 
-        T delta = dhx*(bX(i,0,0,n)*cf0 + bX(i+1,0,0,n)*cf1);
+        T delta = dhx*(betaX(i,0,0,n)*cf0 + betaX(i+1,0,0,n)*cf1);
 
-        T gamma = alpha*a(i,0,0)
-            +   dhx*( bX(i,0,0,n) + bX(i+1,0,0,n) );
+        T gamma = scalarA*alpha(i,0,0)
+            +   dhx*( betaX(i,0,0,n) + betaX(i+1,0,0,n) );
 
-        T rho = dhx*(bX(i  ,0  ,0,n)*phi(i-1,0  ,0,n)
-                        + bX(i+1,0  ,0,n)*phi(i+1,0  ,0,n));
+        T rho = dhx*(betaX(i  ,0  ,0,n)*phi(i-1,0  ,0,n)
+                        + betaX(i+1,0  ,0,n)*phi(i+1,0  ,0,n));
 
         phi(i,0,0,n) = (rhs(i,0,0,n) + rho - phi(i,0,0,n)*delta)
             / (gamma - delta);
@@ -119,9 +119,9 @@ void abec_gsrb (int i, int, int, int n, Array4<T> const& phi, Array4<T const> co
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb_os (int i, int, int, int n, Array4<T> const& phi, Array4<T const> const& rhs,
-                   T alpha, Array4<T const> const& a,
+                   T scalarA, Array4<T const> const& alpha,
                    T dhx,
-                   Array4<T const> const& bX,
+                   Array4<T const> const& betaX,
                    Array4<int const> const& m0,
                    Array4<int const> const& m1,
                    Array4<T const> const& f0,
@@ -141,13 +141,13 @@ void abec_gsrb_os (int i, int, int, int n, Array4<T> const& phi, Array4<T const>
             T cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
                 ? f1(vhi.x,0,0,n) : T(0.0);
 
-            T delta = dhx*(bX(i,0,0,n)*cf0 + bX(i+1,0,0,n)*cf1);
+            T delta = dhx*(betaX(i,0,0,n)*cf0 + betaX(i+1,0,0,n)*cf1);
 
-            T gamma = alpha*a(i,0,0)
-                +   dhx*( bX(i,0,0,n) + bX(i+1,0,0,n) );
+            T gamma = scalarA*alpha(i,0,0)
+                +   dhx*( betaX(i,0,0,n) + betaX(i+1,0,0,n) );
 
-            T rho = dhx*(bX(i  ,0  ,0,n)*phi(i-1,0  ,0,n)
-                            + bX(i+1,0  ,0,n)*phi(i+1,0  ,0,n));
+            T rho = dhx*(betaX(i  ,0  ,0,n)*phi(i-1,0  ,0,n)
+                            + betaX(i+1,0  ,0,n)*phi(i+1,0  ,0,n));
 
             phi(i,0,0,n) = (rhs(i,0,0,n) + rho - phi(i,0,0,n)*delta)
                 / (gamma - delta);
@@ -159,9 +159,9 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb_with_line_solve (
                 Box const& /*box*/, Array4<T> const& /*phi*/, Array4<T const> const& /*rhs*/,
-                T /*alpha*/, Array4<T const> const& /*a*/,
+                T /*scalarA*/, Array4<T const> const& /*alpha*/,
                 T /*dhx*/,
-                Array4<T const> const& /*bX*/,
+                Array4<T const> const& /*betaX*/,
                 Array4<int const> const& /*m0*/,
                 Array4<int const> const& /*m1*/,
                 Array4<T const> const& /*f0*/,
@@ -173,7 +173,7 @@ void abec_gsrb_with_line_solve (
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void overset_rescale_bcoef_x (Box const& box, Array4<T> const& bX, Array4<int const> const& osm,
+void overset_rescale_bcoef_x (Box const& box, Array4<T> const& betaX, Array4<int const> const& osm,
                               int ncomp, T osfac) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -181,7 +181,7 @@ void overset_rescale_bcoef_x (Box const& box, Array4<T> const& bX, Array4<int co
     for (int n = 0; n < ncomp; ++n) {
         for (int i = lo.x; i <= hi.x; ++i) {
             if ((osm(i-1,0,0)+osm(i,0,0)) == 1) {
-                bX(i,0,0,n) *= osfac;
+                betaX(i,0,0,n) *= osfac;
             }
         }
     }

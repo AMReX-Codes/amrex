@@ -88,8 +88,8 @@ MLNodeABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
 
     AMREX_ALWAYS_ASSERT(getNComp() == 1);
 
-    auto const alpha = m_a_scalar;
-    auto const beta  = m_b_scalar;
+    auto const scalarA = m_a_scalar;
+    auto const scalarB  = m_b_scalar;
     const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
 
     auto const& acoef_ma = m_a_coeffs[amrlev][mglev].const_arrays();
@@ -107,7 +107,7 @@ MLNodeABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
 #endif
                                     dxinvarr);
         yarr_ma[box_no](i,j,k) = (dmskarr_ma[box_no](i,j,k)) ? Real(0.0)
-            : alpha*acoef_ma[box_no](i,j,k)*xarr_ma[box_no](i,j,k) - beta*lap;
+            : scalarA*acoef_ma[box_no](i,j,k)*xarr_ma[box_no](i,j,k) - scalarB*lap;
     });
     Gpu::streamSynchronize();
 }
@@ -117,8 +117,8 @@ MLNodeABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
 {
     BL_PROFILE("MLNodeABecLaplacian::Fsmooth()");
 
-    auto const alpha = m_a_scalar;
-    auto const beta  = m_b_scalar;
+    auto const scalarA = m_a_scalar;
+    auto const scalarB  = m_b_scalar;
     const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
 
     auto const& acoef = m_a_coeffs[amrlev][mglev];
@@ -141,7 +141,7 @@ MLNodeABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
                                         false,
 #endif
                                         dxinvarr);
-            mlndabeclap_jacobi_aa(i,j,k, solarr_ma[box_no], lap, rhsarr_ma[box_no], alpha, beta,
+            mlndabeclap_jacobi_aa(i,j,k, solarr_ma[box_no], lap, rhsarr_ma[box_no], scalarA, scalarB,
                                   acoef_ma[box_no], bcoef_ma[box_no],
                                   dmskarr_ma[box_no], dxinvarr);
         });
@@ -161,7 +161,7 @@ MLNodeABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
         Array4<Real const> const& rhsarr = rhs.const_array(mfi);
         Array4<int const> const& dmskarr = dmsk.const_array(mfi);
         for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
-            mlndabeclap_gauss_seidel_aa(bx, solarr, rhsarr, alpha, beta,
+            mlndabeclap_gauss_seidel_aa(bx, solarr, rhsarr, scalarA, scalarB,
                                         aarr, barr, dmskarr, dxinvarr);
         }
     }

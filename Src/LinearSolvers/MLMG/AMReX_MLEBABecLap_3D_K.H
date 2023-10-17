@@ -9,9 +9,9 @@ namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
-                        Array4<Real const> const& x, Array4<Real const> const& a,
-                        Array4<Real const> const& bX, Array4<Real const> const& bY,
-                        Array4<Real const> const& bZ,
+                        Array4<Real const> const& x, Array4<Real const> const& alpha,
+                        Array4<Real const> const& betaX, Array4<Real const> const& betaY,
+                        Array4<Real const> const& betaZ,
                         Array4<EBCellFlag const> const& flag,
                         Array4<Real const> const& vfrc, Array4<Real const> const& apx,
                         Array4<Real const> const& apy, Array4<Real const> const& apz,
@@ -25,11 +25,11 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                         const bool& on_x_face, const bool& on_y_face, const bool& on_z_face,
                         bool is_eb_dirichlet, bool is_eb_inhomog,
                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                        Real alpha, Real beta, int ncomp) noexcept
+                        Real scalarA, Real scalarB, int ncomp) noexcept
 {
-    Real dhx = beta*dxinv[0]*dxinv[0];
-    Real dhy = beta*dxinv[1]*dxinv[1];
-    Real dhz = beta*dxinv[2]*dxinv[2];
+    Real dhx = scalarB*dxinv[0]*dxinv[0];
+    Real dhy = scalarB*dxinv[1]*dxinv[1];
+    Real dhz = scalarB*dxinv[2]*dxinv[2];
 
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
@@ -42,13 +42,13 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                   flag(i  ,j-1,k  ).isRegular() && flag(i  ,j+1,k  ).isRegular() &&
                   flag(i  ,j  ,k-1).isRegular() && flag(i  ,j  ,k+1).isRegular()) ))
         {
-            y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n)
-                - dhx * (bX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i  ,j,k,n))
-                        -bX(i  ,j,k,n)*(x(i  ,j,k,n) - x(i-1,j,k,n)))
-                - dhy * (bY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j  ,k,n))
-                        -bY(i,j  ,k,n)*(x(i,j  ,k,n) - x(i,j-1,k,n)))
-                - dhz * (bZ(i,j,k+1,n)*(x(i,j,k+1,n) - x(i,j,k  ,n))
-                        -bZ(i,j,k  ,n)*(x(i,j,k  ,n) - x(i,j,k-1,n)));
+            y(i,j,k,n) = scalarA*alpha(i,j,k)*x(i,j,k,n)
+                - dhx * (betaX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i  ,j,k,n))
+                        -betaX(i  ,j,k,n)*(x(i  ,j,k,n) - x(i-1,j,k,n)))
+                - dhy * (betaY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j  ,k,n))
+                        -betaY(i,j  ,k,n)*(x(i,j  ,k,n) - x(i,j-1,k,n)))
+                - dhz * (betaZ(i,j,k+1,n)*(x(i,j,k+1,n) - x(i,j,k  ,n))
+                        -betaZ(i,j,k  ,n)*(x(i,j,k  ,n) - x(i,j,k-1,n)));
         }
         else
         {
@@ -65,7 +65,7 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                                       (j <= domlo_y) || (j >= domhi_y) ||
                                       (k <= domlo_z) || (k >= domhi_z);
 
-            Real fxm = bX(i,j,k,n)*(x(i,j,k,n) - x(i-1,j,k,n));
+            Real fxm = betaX(i,j,k,n)*(x(i,j,k,n) - x(i-1,j,k,n));
             if ( (apxm != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i-1,j,k) != Real(1.0) || vfrc(i+1,j,k) != Real(1.0)) ) {
                 Real yloc_on_xface = fcx(i,j,k,0);
                 Real zloc_on_xface = fcx(i,j,k,1);
@@ -82,10 +82,10 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                                                  yloc_on_xface,zloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
                 }
 
-                fxm *= bX(i,j,k,n);
+                fxm *= betaX(i,j,k,n);
             }
 
-            Real fxp = bX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i,j,k,n));
+            Real fxp = betaX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i,j,k,n));
             if ( (apxp != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i+1,j,k) != Real(1.0) || vfrc(i-1,j,k) != Real(1.0)) ) {
                 Real yloc_on_xface = fcx(i+1,j,k,0);
                 Real zloc_on_xface = fcx(i+1,j,k,1);
@@ -102,10 +102,10 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                                                  yloc_on_xface,zloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
                 }
 
-                fxp *= bX(i+1,j,k,n);
+                fxp *= betaX(i+1,j,k,n);
             }
 
-            Real fym = bY(i,j,k,n)*(x(i,j,k,n) - x(i,j-1,k,n));
+            Real fym = betaY(i,j,k,n)*(x(i,j,k,n) - x(i,j-1,k,n));
             if ( (apym != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i,j-1,k) != Real(1.0) || vfrc(i,j+1,k) != Real(1.0)) ) {
                 Real xloc_on_yface = fcy(i,j,k,0);
                 Real zloc_on_yface = fcy(i,j,k,1);
@@ -122,10 +122,10 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                                                  xloc_on_yface,zloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
                 }
 
-                fym *= bY(i,j,k,n);
+                fym *= betaY(i,j,k,n);
             }
 
-            Real fyp = bY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j,k,n));
+            Real fyp = betaY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j,k,n));
             if ( (apyp != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i,j+1,k) != Real(1.0) || vfrc(i,j-1,k) != Real(1.0)) ) {
                 Real xloc_on_yface = fcy(i,j+1,k,0);
                 Real zloc_on_yface = fcy(i,j+1,k,1);
@@ -142,10 +142,10 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                                                  xloc_on_yface,zloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
                 }
 
-                fyp *= bY(i,j+1,k,n);
+                fyp *= betaY(i,j+1,k,n);
             }
 
-            Real fzm = bZ(i,j,k,n)*(x(i,j,k,n) - x(i,j,k-1,n));
+            Real fzm = betaZ(i,j,k,n)*(x(i,j,k,n) - x(i,j,k-1,n));
             if ( (apzm != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i,j,k-1) != Real(1.0) || vfrc(i,j,k+1) != Real(1.0)) ) {
                 Real xloc_on_zface = fcz(i,j,k,0);
                 Real yloc_on_zface = fcz(i,j,k,1);
@@ -162,10 +162,10 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                                                  xloc_on_zface,yloc_on_zface,is_eb_dirichlet,is_eb_inhomog);
                 }
 
-                fzm *= bZ(i,j,k,n);
+                fzm *= betaZ(i,j,k,n);
             }
 
-            Real fzp = bZ(i,j,k+1,n)*(x(i,j,k+1,n) - x(i,j,k,n));
+            Real fzp = betaZ(i,j,k+1,n)*(x(i,j,k+1,n) - x(i,j,k,n));
             if ( (apzp != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i,j,k+1) != Real(1.0)  || vfrc(i,j,k-1) != Real(1.0)) ) {
                 Real xloc_on_zface = fcz(i,j,k+1,0);
                 Real yloc_on_zface = fcz(i,j,k+1,1);
@@ -182,7 +182,7 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                                                  xloc_on_zface,yloc_on_zface,is_eb_dirichlet,is_eb_inhomog);
                 }
 
-                fzp *= bZ(i,j,k+1,n);
+                fzp *= betaZ(i,j,k+1,n);
             }
 
             Real feb = Real(0.0);
@@ -204,7 +204,7 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                 feb *= ba(i,j,k) * beb(i,j,k,n);
             }
 
-            y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
+            y(i,j,k,n) = scalarA*alpha(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
                 (dhx*(apxm*fxm - apxp*fxp) +
                  dhy*(apym*fym - apyp*fyp) +
                  dhz*(apzm*fzm - apzp*fzp) - dhx*feb);
@@ -214,9 +214,9 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
-                        Array4<Real const> const& x, Array4<Real const> const& a,
-                        Array4<Real const> const& bX, Array4<Real const> const& bY,
-                        Array4<Real const> const& bZ, Array4<const int> const& ccm,
+                        Array4<Real const> const& x, Array4<Real const> const& alpha,
+                        Array4<Real const> const& betaX, Array4<Real const> const& betaY,
+                        Array4<Real const> const& betaZ, Array4<const int> const& ccm,
                         Array4<EBCellFlag const> const& flag,
                         Array4<Real const> const& vfrc, Array4<Real const> const& apx,
                         Array4<Real const> const& apy, Array4<Real const> const& apz,
@@ -225,12 +225,12 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                         Array4<Real const> const& bc, Array4<Real const> const& beb,
                         bool is_dirichlet, Array4<Real const> const& phieb,
                         bool is_inhomog, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                        Real alpha, Real beta, int ncomp,
+                        Real scalarA, Real scalarB, int ncomp,
                         bool beta_on_centroid, bool phi_on_centroid) noexcept
 {
-    Real dhx = beta*dxinv[0]*dxinv[0];
-    Real dhy = beta*dxinv[1]*dxinv[1];
-    Real dhz = beta*dxinv[2]*dxinv[2];
+    Real dhx = scalarB*dxinv[0]*dxinv[0];
+    Real dhy = scalarB*dxinv[1]*dxinv[1];
+    Real dhz = scalarB*dxinv[2]*dxinv[2];
 
     bool beta_on_center = !(beta_on_centroid);
     bool  phi_on_center = !( phi_on_centroid);
@@ -243,13 +243,13 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
         }
         else if (flag(i,j,k).isRegular())
         {
-            y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n)
-                - dhx * (bX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i  ,j,k,n))
-                        -bX(i  ,j,k,n)*(x(i  ,j,k,n) - x(i-1,j,k,n)))
-                - dhy * (bY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j  ,k,n))
-                        -bY(i,j  ,k,n)*(x(i,j  ,k,n) - x(i,j-1,k,n)))
-                - dhz * (bZ(i,j,k+1,n)*(x(i,j,k+1,n) - x(i,j,k  ,n))
-                        -bZ(i,j,k  ,n)*(x(i,j,k  ,n) - x(i,j,k-1,n)));
+            y(i,j,k,n) = scalarA*alpha(i,j,k)*x(i,j,k,n)
+                - dhx * (betaX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i  ,j,k,n))
+                        -betaX(i  ,j,k,n)*(x(i  ,j,k,n) - x(i-1,j,k,n)))
+                - dhy * (betaY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j  ,k,n))
+                        -betaY(i,j  ,k,n)*(x(i,j  ,k,n) - x(i,j-1,k,n)))
+                - dhz * (betaZ(i,j,k+1,n)*(x(i,j,k+1,n) - x(i,j,k  ,n))
+                        -betaZ(i,j,k  ,n)*(x(i,j,k  ,n) - x(i,j,k-1,n)));
         }
         else
         {
@@ -261,7 +261,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
             Real apzm = apz(i,j,k);
             Real apzp = apz(i,j,k+1);
 
-            Real fxm = bX(i,j,k,n)*(x(i,j,k,n) - x(i-1,j,k,n));
+            Real fxm = betaX(i,j,k,n)*(x(i,j,k,n) - x(i-1,j,k,n));
             if (apxm != Real(0.0) && apxm != Real(1.0)) {
                 int jj = j + static_cast<int>(std::copysign(Real(1.0), fcx(i,j,k,0)));
                 int kk = k + static_cast<int>(std::copysign(Real(1.0), fcx(i,j,k,1)));
@@ -270,9 +270,9 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 if (beta_on_center && phi_on_center)
                 {
                     fxm = (Real(1.0)-fracy)*(Real(1.0)-fracz)*fxm +
-                        fracy*(Real(1.0)-fracz)*bX(i,jj,k ,n)*(x(i,jj,k ,n)-x(i-1,jj,k ,n)) +
-                        fracz*(Real(1.0)-fracy)*bX(i,j ,kk,n)*(x(i,j ,kk,n)-x(i-1,j ,kk,n)) +
-                        fracy*     fracz *bX(i,jj,kk,n)*(x(i,jj,kk,n)-x(i-1,jj,kk,n));
+                        fracy*(Real(1.0)-fracz)*betaX(i,jj,k ,n)*(x(i,jj,k ,n)-x(i-1,jj,k ,n)) +
+                        fracz*(Real(1.0)-fracy)*betaX(i,j ,kk,n)*(x(i,j ,kk,n)-x(i-1,j ,kk,n)) +
+                        fracy*     fracz *betaX(i,jj,kk,n)*(x(i,jj,kk,n)-x(i-1,jj,kk,n));
                 }
                 else if (beta_on_centroid && phi_on_center)
                 {
@@ -280,11 +280,11 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                                fracy *(Real(1.0)-fracz)*(x(i,jj, k,n)-x(i-1,jj, k,n)) +
                                fracz *(Real(1.0)-fracy)*(x(i, j,kk,n)-x(i-1, j,kk,n)) +
                                fracy *     fracz *(x(i,jj,kk,n)-x(i-1,jj,kk,n));
-                    fxm *= bX(i,j,k,n);
+                    fxm *= betaX(i,j,k,n);
                 }
             }
 
-            Real fxp = bX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i,j,k,n));
+            Real fxp = betaX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i,j,k,n));
             if (apxp != Real(0.0) && apxp != Real(1.0)) {
                 int jj = j + static_cast<int>(std::copysign(Real(1.0),fcx(i+1,j,k,0)));
                 int kk = k + static_cast<int>(std::copysign(Real(1.0),fcx(i+1,j,k,1)));
@@ -293,9 +293,9 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 if (beta_on_center && phi_on_center)
                 {
                     fxp = (Real(1.0)-fracy)*(Real(1.0)-fracz)*fxp +
-                        fracy*(Real(1.0)-fracz)*bX(i+1,jj,k ,n)*(x(i+1,jj,k ,n)-x(i,jj,k ,n)) +
-                        fracz*(Real(1.0)-fracy)*bX(i+1,j ,kk,n)*(x(i+1,j ,kk,n)-x(i,j ,kk,n)) +
-                        fracy*     fracz *bX(i+1,jj,kk,n)*(x(i+1,jj,kk,n)-x(i,jj,kk,n));
+                        fracy*(Real(1.0)-fracz)*betaX(i+1,jj,k ,n)*(x(i+1,jj,k ,n)-x(i,jj,k ,n)) +
+                        fracz*(Real(1.0)-fracy)*betaX(i+1,j ,kk,n)*(x(i+1,j ,kk,n)-x(i,j ,kk,n)) +
+                        fracy*     fracz *betaX(i+1,jj,kk,n)*(x(i+1,jj,kk,n)-x(i,jj,kk,n));
                 }
                 else if (beta_on_centroid && phi_on_center)
                 {
@@ -303,12 +303,12 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                                fracy *(Real(1.0)-fracz)*(x(i+1,jj, k,n)-x(i,jj, k,n)) +
                                fracz *(Real(1.0)-fracy)*(x(i+1, j,kk,n)-x(i, j,kk,n)) +
                                fracy *     fracz *(x(i+1,jj,kk,n)-x(i,jj,kk,n));
-                    fxp *= bX(i+1,j,k,n);
+                    fxp *= betaX(i+1,j,k,n);
 
                 }
             }
 
-            Real fym = bY(i,j,k,n)*(x(i,j,k,n) - x(i,j-1,k,n));
+            Real fym = betaY(i,j,k,n)*(x(i,j,k,n) - x(i,j-1,k,n));
             if (apym != Real(0.0) && apym != Real(1.0)) {
                 int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy(i,j,k,0)));
                 int kk = k + static_cast<int>(std::copysign(Real(1.0),fcy(i,j,k,1)));
@@ -317,9 +317,9 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 if (beta_on_center && phi_on_center)
                 {
                     fym = (Real(1.0)-fracx)*(Real(1.0)-fracz)*fym +
-                        fracx*(Real(1.0)-fracz)*bY(ii,j,k ,n)*(x(ii,j,k ,n)-x(ii,j-1,k ,n)) +
-                        fracz*(Real(1.0)-fracx)*bY(i ,j,kk,n)*(x(i ,j,kk,n)-x(i ,j-1,kk,n)) +
-                        fracx*     fracz *bY(ii,j,kk,n)*(x(ii,j,kk,n)-x(ii,j-1,kk,n));
+                        fracx*(Real(1.0)-fracz)*betaY(ii,j,k ,n)*(x(ii,j,k ,n)-x(ii,j-1,k ,n)) +
+                        fracz*(Real(1.0)-fracx)*betaY(i ,j,kk,n)*(x(i ,j,kk,n)-x(i ,j-1,kk,n)) +
+                        fracx*     fracz *betaY(ii,j,kk,n)*(x(ii,j,kk,n)-x(ii,j-1,kk,n));
                 }
                 else if (beta_on_centroid && phi_on_center)
                 {
@@ -327,12 +327,12 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                                fracx *(Real(1.0)-fracz)*(x(ii,j, k,n)-x(ii,j-1, k,n)) +
                                fracz *(Real(1.0)-fracx)*(x(i ,j,kk,n)-x( i,j-1,kk,n)) +
                                fracx *     fracz *(x(ii,j,kk,n)-x(ii,j-1,kk,n));
-                    fym *= bY(i,j,k,n);
+                    fym *= betaY(i,j,k,n);
 
                 }
             }
 
-            Real fyp = bY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j,k,n));
+            Real fyp = betaY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j,k,n));
             if (apyp != Real(0.0) && apyp != Real(1.0)) {
                 int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy(i,j+1,k,0)));
                 int kk = k + static_cast<int>(std::copysign(Real(1.0),fcy(i,j+1,k,1)));
@@ -341,9 +341,9 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 if (beta_on_center && phi_on_center)
                 {
                     fyp = (Real(1.0)-fracx)*(Real(1.0)-fracz)*fyp +
-                        fracx*(Real(1.0)-fracz)*bY(ii,j+1,k ,n)*(x(ii,j+1,k ,n)-x(ii,j,k ,n)) +
-                        fracz*(Real(1.0)-fracx)*bY(i ,j+1,kk,n)*(x(i ,j+1,kk,n)-x(i ,j,kk,n)) +
-                        fracx*     fracz *bY(ii,j+1,kk,n)*(x(ii,j+1,kk,n)-x(ii,j,kk,n));
+                        fracx*(Real(1.0)-fracz)*betaY(ii,j+1,k ,n)*(x(ii,j+1,k ,n)-x(ii,j,k ,n)) +
+                        fracz*(Real(1.0)-fracx)*betaY(i ,j+1,kk,n)*(x(i ,j+1,kk,n)-x(i ,j,kk,n)) +
+                        fracx*     fracz *betaY(ii,j+1,kk,n)*(x(ii,j+1,kk,n)-x(ii,j,kk,n));
                 }
                 else if (beta_on_centroid && phi_on_center)
                 {
@@ -351,12 +351,12 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                                fracx *(Real(1.0)-fracz)*(x(ii,j+1, k,n)-x(ii,j, k,n)) +
                                fracz *(Real(1.0)-fracx)*(x( i,j+1,kk,n)-x( i,j,kk,n)) +
                                fracx *     fracz *(x(ii,j+1,kk,n)-x(ii,j,kk,n));
-                    fyp *= bY(i,j+1,k,n);
+                    fyp *= betaY(i,j+1,k,n);
 
                 }
             }
 
-            Real fzm = bZ(i,j,k,n)*(x(i,j,k,n) - x(i,j,k-1,n));
+            Real fzm = betaZ(i,j,k,n)*(x(i,j,k,n) - x(i,j,k-1,n));
             if (apzm != Real(0.0) && apzm != Real(1.0)) {
                 int ii = i + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k,0)));
                 int jj = j + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k,1)));
@@ -365,9 +365,9 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 if (beta_on_center && phi_on_center)
                 {
                     fzm = (Real(1.0)-fracx)*(Real(1.0)-fracy)*fzm +
-                        fracx*(Real(1.0)-fracy)*bZ(ii,j ,k,n)*(x(ii,j ,k,n)-x(ii,j ,k-1,n)) +
-                        fracy*(Real(1.0)-fracx)*bZ(i ,jj,k,n)*(x(i ,jj,k,n)-x(i ,jj,k-1,n)) +
-                        fracx*     fracy *bZ(ii,jj,k,n)*(x(ii,jj,k,n)-x(ii,jj,k-1,n));
+                        fracx*(Real(1.0)-fracy)*betaZ(ii,j ,k,n)*(x(ii,j ,k,n)-x(ii,j ,k-1,n)) +
+                        fracy*(Real(1.0)-fracx)*betaZ(i ,jj,k,n)*(x(i ,jj,k,n)-x(i ,jj,k-1,n)) +
+                        fracx*     fracy *betaZ(ii,jj,k,n)*(x(ii,jj,k,n)-x(ii,jj,k-1,n));
                 }
                 else if (beta_on_centroid && phi_on_center)
                 {
@@ -375,12 +375,12 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                                fracx *(Real(1.0)-fracy)*(x(ii, j,k,n)-x(ii, j,k-1,n)) +
                                fracy *(Real(1.0)-fracx)*(x( i,jj,k,n)-x( i,jj,k-1,n)) +
                                fracx *     fracy *(x(ii,jj,k,n)-x(ii,jj,k-1,n));
-                    fzm *= bZ(i,j,k,n);
+                    fzm *= betaZ(i,j,k,n);
 
                 }
             }
 
-            Real fzp = bZ(i,j,k+1,n)*(x(i,j,k+1,n) - x(i,j,k,n));
+            Real fzp = betaZ(i,j,k+1,n)*(x(i,j,k+1,n) - x(i,j,k,n));
             if (apzp != Real(0.0) && apzp != Real(1.0)) {
                 int ii = i + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k+1,0)));
                 int jj = j + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k+1,1)));
@@ -389,9 +389,9 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 if (beta_on_center && phi_on_center)
                 {
                     fzp = (Real(1.0)-fracx)*(Real(1.0)-fracy)*fzp +
-                        fracx*(Real(1.0)-fracy)*bZ(ii,j ,k+1,n)*(x(ii,j ,k+1,n)-x(ii,j ,k,n)) +
-                        fracy*(Real(1.0)-fracx)*bZ(i ,jj,k+1,n)*(x(i ,jj,k+1,n)-x(i ,jj,k,n)) +
-                        fracx*     fracy *bZ(ii,jj,k+1,n)*(x(ii,jj,k+1,n)-x(ii,jj,k,n));
+                        fracx*(Real(1.0)-fracy)*betaZ(ii,j ,k+1,n)*(x(ii,j ,k+1,n)-x(ii,j ,k,n)) +
+                        fracy*(Real(1.0)-fracx)*betaZ(i ,jj,k+1,n)*(x(i ,jj,k+1,n)-x(i ,jj,k,n)) +
+                        fracx*     fracy *betaZ(ii,jj,k+1,n)*(x(ii,jj,k+1,n)-x(ii,jj,k,n));
                 }
                 else if (beta_on_centroid && phi_on_center)
                 {
@@ -399,7 +399,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                                fracx *(Real(1.0)-fracy)*(x(ii, j,k+1,n)-x(ii, j,k,n)) +
                                fracy *(Real(1.0)-fracx)*(x( i,jj,k+1,n)-x( i,jj,k,n)) +
                                fracx *     fracy *(x(ii,jj,k+1,n)-x(ii,jj,k,n));
-                    fzp *= bZ(i,j,k+1,n);
+                    fzp *= betaZ(i,j,k+1,n);
 
                 }
             }
@@ -455,7 +455,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 feb = dphidn * ba(i,j,k) * beb(i,j,k,n);
             }
 
-            y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
+            y(i,j,k,n) = scalarA*alpha(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
                 (dhx*(apxm*fxm - apxp*fxp) +
                  dhy*(apym*fym - apyp*fyp) +
                  dhz*(apzm*fzm - apzp*fzp) - dhx*feb);
@@ -545,10 +545,10 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_gsrb (Box const& box,
                        Array4<Real> const& phi, Array4<Real const> const& rhs,
-                       Real alpha, Array4<Real const> const& a,
+                       Real scalarA, Array4<Real const> const& alpha,
                        Real dhx, Real dhy, Real dhz,
-                       Array4<Real const> const& bX, Array4<Real const> const& bY,
-                       Array4<Real const> const& bZ,
+                       Array4<Real const> const& betaX, Array4<Real const> const& betaY,
+                       Array4<Real const> const& betaZ,
                        Array4<int const> const& m0, Array4<int const> const& m2,
                        Array4<int const> const& m4,
                        Array4<int const> const& m1, Array4<int const> const& m3,
@@ -605,21 +605,21 @@ void mlebabeclap_gsrb (Box const& box,
 
                 if (flag(i,j,k).isRegular())
                 {
-                    Real gamma = alpha*a(i,j,k)
-                        + dhx*(bX(i+1,j,k,n) + bX(i,j,k,n))
-                        + dhy*(bY(i,j+1,k,n) + bY(i,j,k,n))
-                        + dhz*(bZ(i,j,k+1,n) + bZ(i,j,k,n));
+                    Real gamma = scalarA*alpha(i,j,k)
+                        + dhx*(betaX(i+1,j,k,n) + betaX(i,j,k,n))
+                        + dhy*(betaY(i,j+1,k,n) + betaY(i,j,k,n))
+                        + dhz*(betaZ(i,j,k+1,n) + betaZ(i,j,k,n));
 
-                    Real rho = dhx*(bX(i+1,j  ,k  ,n)*phi(i+1,j  ,k  ,n) +
-                                    bX(i  ,j  ,k  ,n)*phi(i-1,j  ,k  ,n))
-                        +      dhy*(bY(i  ,j+1,k  ,n)*phi(i  ,j+1,k  ,n) +
-                                    bY(i  ,j  ,k  ,n)*phi(i  ,j-1,k  ,n))
-                        +      dhz*(bZ(i  ,j  ,k+1,n)*phi(i  ,j  ,k+1,n) +
-                                    bZ(i  ,j  ,k  ,n)*phi(i  ,j  ,k-1,n));
+                    Real rho = dhx*(betaX(i+1,j  ,k  ,n)*phi(i+1,j  ,k  ,n) +
+                                    betaX(i  ,j  ,k  ,n)*phi(i-1,j  ,k  ,n))
+                        +      dhy*(betaY(i  ,j+1,k  ,n)*phi(i  ,j+1,k  ,n) +
+                                    betaY(i  ,j  ,k  ,n)*phi(i  ,j-1,k  ,n))
+                        +      dhz*(betaZ(i  ,j  ,k+1,n)*phi(i  ,j  ,k+1,n) +
+                                    betaZ(i  ,j  ,k  ,n)*phi(i  ,j  ,k-1,n));
 
-                    Real delta = dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
-                        +        dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
-                        +        dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5);
+                    Real delta = dhx*(betaX(i,j,k,n)*cf0 + betaX(i+1,j,k,n)*cf3)
+                        +        dhy*(betaY(i,j,k,n)*cf1 + betaY(i,j+1,k,n)*cf4)
+                        +        dhz*(betaZ(i,j,k,n)*cf2 + betaZ(i,j,k+1,n)*cf5);
 
                     Real res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
                     phi(i,j,k,n) += omega*res/(gamma-delta);
@@ -634,9 +634,9 @@ void mlebabeclap_gsrb (Box const& box,
                     Real apzm = apz(i,j,k);
                     Real apzp = apz(i,j,k+1);
 
-                    Real fxm = -bX(i,j,k,n)*phi(i-1,j,k,n);
-                    Real oxm = -bX(i,j,k,n)*cf0;
-                    Real sxm =  bX(i,j,k,n);
+                    Real fxm = -betaX(i,j,k,n)*phi(i-1,j,k,n);
+                    Real oxm = -betaX(i,j,k,n)*cf0;
+                    Real sxm =  betaX(i,j,k,n);
                     if (apxm != Real(0.0) && apxm != Real(1.0)) {
                         int jj = j + static_cast<int>(std::copysign(Real(1.0), fcx(i,j,k,0)));
                         int kk = k + static_cast<int>(std::copysign(Real(1.0), fcx(i,j,k,1)));
@@ -647,9 +647,9 @@ void mlebabeclap_gsrb (Box const& box,
                         if (!beta_on_centroid && !phi_on_centroid)
                         {
                             fxm = (Real(1.0)-fracy)*(Real(1.0)-fracz)*fxm
-                                 +     fracy *(Real(1.0)-fracz)*bX(i,jj,k ,n)*(phi(i,jj,k ,n)-phi(i-1,jj,k ,n))
-                                 +(Real(1.0)-fracy)*     fracz *bX(i,j ,kk,n)*(phi(i,j ,kk,n)-phi(i-1,j ,kk,n))
-                                 +     fracy *     fracz *bX(i,jj,kk,n)*(phi(i,jj,kk,n)-phi(i-1,jj,kk,n));
+                                 +     fracy *(Real(1.0)-fracz)*betaX(i,jj,k ,n)*(phi(i,jj,k ,n)-phi(i-1,jj,k ,n))
+                                 +(Real(1.0)-fracy)*     fracz *betaX(i,j ,kk,n)*(phi(i,j ,kk,n)-phi(i-1,j ,kk,n))
+                                 +     fracy *     fracz *betaX(i,jj,kk,n)*(phi(i,jj,kk,n)-phi(i-1,jj,kk,n));
                         }
                         else if (beta_on_centroid && !phi_on_centroid)
                         {
@@ -657,16 +657,16 @@ void mlebabeclap_gsrb (Box const& box,
                                  +     fracy *(Real(1.0)-fracz)*(phi(i,jj,k ,n)-phi(i-1,jj, k,n))
                                  +(Real(1.0)-fracy)*     fracz *(phi(i,j ,kk,n)-phi(i-1, j,kk,n))
                                  +     fracy *     fracz *(phi(i,jj,kk,n)-phi(i-1,jj,kk,n));
-                            fxm *= bX(i,j,k,n);
+                            fxm *= betaX(i,j,k,n);
 
                         }
                         oxm = Real(0.0);
                         sxm = (Real(1.0)-fracy)*(Real(1.0)-fracz)*sxm;
                     }
 
-                    Real fxp =  bX(i+1,j,k,n)*phi(i+1,j,k,n);
-                    Real oxp =  bX(i+1,j,k,n)*cf3;
-                    Real sxp = -bX(i+1,j,k,n);
+                    Real fxp =  betaX(i+1,j,k,n)*phi(i+1,j,k,n);
+                    Real oxp =  betaX(i+1,j,k,n)*cf3;
+                    Real sxp = -betaX(i+1,j,k,n);
                     if (apxp != Real(0.0) && apxp != Real(1.0)) {
                         int jj = j + static_cast<int>(std::copysign(Real(1.0),fcx(i+1,j,k,0)));
                         int kk = k + static_cast<int>(std::copysign(Real(1.0),fcx(i+1,j,k,1)));
@@ -677,9 +677,9 @@ void mlebabeclap_gsrb (Box const& box,
                         if (!beta_on_centroid && !phi_on_centroid)
                         {
                             fxp = (Real(1.0)-fracy)*(Real(1.0)-fracz)*fxp
-                                  +    fracy *(Real(1.0)-fracz)*bX(i+1,jj,k ,n)*(phi(i+1,jj,k ,n)-phi(i,jj,k ,n))
-                                 +(Real(1.0)-fracy)*     fracz *bX(i+1,j ,kk,n)*(phi(i+1,j ,kk,n)-phi(i,j ,kk,n))
-                                 +     fracy *     fracz *bX(i+1,jj,kk,n)*(phi(i+1,jj,kk,n)-phi(i,jj,kk,n));
+                                  +    fracy *(Real(1.0)-fracz)*betaX(i+1,jj,k ,n)*(phi(i+1,jj,k ,n)-phi(i,jj,k ,n))
+                                 +(Real(1.0)-fracy)*     fracz *betaX(i+1,j ,kk,n)*(phi(i+1,j ,kk,n)-phi(i,j ,kk,n))
+                                 +     fracy *     fracz *betaX(i+1,jj,kk,n)*(phi(i+1,jj,kk,n)-phi(i,jj,kk,n));
                         }
                         else if (beta_on_centroid && !phi_on_centroid)
                         {
@@ -687,7 +687,7 @@ void mlebabeclap_gsrb (Box const& box,
                                        fracy *(Real(1.0)-fracz)*(phi(i+1,jj, k,n)-phi(i,jj, k,n)) +
                                        fracz *(Real(1.0)-fracy)*(phi(i+1, j,kk,n)-phi(i, j,kk,n)) +
                                        fracy *     fracz *(phi(i+1,jj,kk,n)-phi(i,jj,kk,n));
-                            fxp *= bX(i+1,j,k,n);
+                            fxp *= betaX(i+1,j,k,n);
 
                         }
 
@@ -695,9 +695,9 @@ void mlebabeclap_gsrb (Box const& box,
                         sxp = (Real(1.0)-fracy)*(Real(1.0)-fracz)*sxp;
                     }
 
-                    Real fym = -bY(i,j,k,n)*phi(i,j-1,k,n);
-                    Real oym = -bY(i,j,k,n)*cf1;
-                    Real sym =  bY(i,j,k,n);
+                    Real fym = -betaY(i,j,k,n)*phi(i,j-1,k,n);
+                    Real oym = -betaY(i,j,k,n)*cf1;
+                    Real sym =  betaY(i,j,k,n);
                     if (apym != Real(0.0) && apym != Real(1.0)) {
                         int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy(i,j,k,0)));
                         int kk = k + static_cast<int>(std::copysign(Real(1.0),fcy(i,j,k,1)));
@@ -708,9 +708,9 @@ void mlebabeclap_gsrb (Box const& box,
                         if (!beta_on_centroid && !phi_on_centroid)
                         {
                             fym = (Real(1.0)-fracx)*(Real(1.0)-fracz)*fym
-                                +      fracx *(Real(1.0)-fracz)*bY(ii,j,k ,n)*(phi(ii,j,k ,n)-phi(ii,j-1,k ,n))
-                                + (Real(1.0)-fracx)*     fracz *bY(i ,j,kk,n)*(phi(i ,j,kk,n)-phi(i ,j-1,kk,n))
-                                +      fracx *     fracz *bY(ii,j,kk,n)*(phi(ii,j,kk,n)-phi(ii,j-1,kk,n));
+                                +      fracx *(Real(1.0)-fracz)*betaY(ii,j,k ,n)*(phi(ii,j,k ,n)-phi(ii,j-1,k ,n))
+                                + (Real(1.0)-fracx)*     fracz *betaY(i ,j,kk,n)*(phi(i ,j,kk,n)-phi(i ,j-1,kk,n))
+                                +      fracx *     fracz *betaY(ii,j,kk,n)*(phi(ii,j,kk,n)-phi(ii,j-1,kk,n));
                         }
                         else if (beta_on_centroid && !phi_on_centroid)
                         {
@@ -718,16 +718,16 @@ void mlebabeclap_gsrb (Box const& box,
                                 +      fracx *(Real(1.0)-fracz)*(phi(ii,j,k ,n)-phi(ii,j-1, k,n))
                                 + (Real(1.0)-fracx)*     fracz *(phi(i ,j,kk,n)-phi( i,j-1,kk,n))
                                 +      fracx *     fracz *(phi(ii,j,kk,n)-phi(ii,j-1,kk,n));
-                            fym *= bY(i,j,k,n);
+                            fym *= betaY(i,j,k,n);
 
                         }
                         oym = Real(0.0);
                         sym = (Real(1.0)-fracx)*(Real(1.0)-fracz)*sym;
                     }
 
-                    Real fyp =  bY(i,j+1,k,n)*phi(i,j+1,k,n);
-                    Real oyp =  bY(i,j+1,k,n)*cf4;
-                    Real syp = -bY(i,j+1,k,n);
+                    Real fyp =  betaY(i,j+1,k,n)*phi(i,j+1,k,n);
+                    Real oyp =  betaY(i,j+1,k,n)*cf4;
+                    Real syp = -betaY(i,j+1,k,n);
                     if (apyp != Real(0.0) && apyp != Real(1.0)) {
                         int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy(i,j+1,k,0)));
                         int kk = k + static_cast<int>(std::copysign(Real(1.0),fcy(i,j+1,k,1)));
@@ -738,9 +738,9 @@ void mlebabeclap_gsrb (Box const& box,
                         if (!beta_on_centroid && !phi_on_centroid)
                         {
                             fyp = (Real(1.0)-fracx)*(Real(1.0)-fracz)*fyp
-                                +      fracx *(Real(1.0)-fracz)*bY(ii,j+1,k ,n)*(phi(ii,j+1,k ,n)-phi(ii,j,k ,n))
-                                + (Real(1.0)-fracx)*     fracz *bY(i ,j+1,kk,n)*(phi(i ,j+1,kk,n)-phi(i ,j,kk,n))
-                                +      fracx *     fracz *bY(ii,j+1,kk,n)*(phi(ii,j+1,kk,n)-phi(ii,j,kk,n));
+                                +      fracx *(Real(1.0)-fracz)*betaY(ii,j+1,k ,n)*(phi(ii,j+1,k ,n)-phi(ii,j,k ,n))
+                                + (Real(1.0)-fracx)*     fracz *betaY(i ,j+1,kk,n)*(phi(i ,j+1,kk,n)-phi(i ,j,kk,n))
+                                +      fracx *     fracz *betaY(ii,j+1,kk,n)*(phi(ii,j+1,kk,n)-phi(ii,j,kk,n));
                         }
                         else if (beta_on_centroid && !phi_on_centroid)
                         {
@@ -748,16 +748,16 @@ void mlebabeclap_gsrb (Box const& box,
                                 +      fracx *(Real(1.0)-fracz)*(phi(ii,j+1, k,n)-phi(ii,j, k,n))
                                 + (Real(1.0)-fracx)*     fracz *(phi( i,j+1,kk,n)-phi( i,j,kk,n))
                                 +      fracx *     fracz *(phi(ii,j+1,kk,n)-phi(ii,j,kk,n));
-                            fyp *= bY(i,j+1,k,n);
+                            fyp *= betaY(i,j+1,k,n);
 
                         }
                         oyp = Real(0.0);
                         syp = (Real(1.0)-fracx)*(Real(1.0)-fracz)*syp;
                     }
 
-                    Real fzm = -bZ(i,j,k,n)*phi(i,j,k-1,n);
-                    Real ozm = -bZ(i,j,k,n)*cf2;
-                    Real szm =  bZ(i,j,k,n);
+                    Real fzm = -betaZ(i,j,k,n)*phi(i,j,k-1,n);
+                    Real ozm = -betaZ(i,j,k,n)*cf2;
+                    Real szm =  betaZ(i,j,k,n);
                     if (apzm != Real(0.0) && apzm != Real(1.0)) {
                         int ii = i + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k,0)));
                         int jj = j + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k,1)));
@@ -768,9 +768,9 @@ void mlebabeclap_gsrb (Box const& box,
                         if (!beta_on_centroid && !phi_on_centroid)
                         {
                             fzm = (Real(1.0)-fracx)*(Real(1.0)-fracy)*fzm
-                                 +     fracx *(Real(1.0)-fracy)*bZ(ii, j,k,n)*(phi(ii, j,k,n)-phi(ii, j,k-1,n))
-                                 +(Real(1.0)-fracx)*     fracy *bZ( i,jj,k,n)*(phi( i,jj,k,n)-phi( i,jj,k-1,n))
-                                 +     fracx *     fracy *bZ(ii,jj,k,n)*(phi(ii,jj,k,n)-phi(ii,jj,k-1,n));
+                                 +     fracx *(Real(1.0)-fracy)*betaZ(ii, j,k,n)*(phi(ii, j,k,n)-phi(ii, j,k-1,n))
+                                 +(Real(1.0)-fracx)*     fracy *betaZ( i,jj,k,n)*(phi( i,jj,k,n)-phi( i,jj,k-1,n))
+                                 +     fracx *     fracy *betaZ(ii,jj,k,n)*(phi(ii,jj,k,n)-phi(ii,jj,k-1,n));
                         }
                         else if (beta_on_centroid && !phi_on_centroid)
                         {
@@ -778,16 +778,16 @@ void mlebabeclap_gsrb (Box const& box,
                                 +      fracx *(Real(1.0)-fracy)*(phi(ii, j,k,n)-phi(ii, j,k-1,n))
                                 + (Real(1.0)-fracx)*     fracy *(phi( i,jj,k,n)-phi(i ,jj,k-1,n))
                                 +      fracx *     fracy *(phi(ii,jj,k,n)-phi(ii,jj,k-1,n));
-                            fzm *= bZ(i,j,k,n);
+                            fzm *= betaZ(i,j,k,n);
 
                         }
                         ozm = Real(0.0);
                         szm = (Real(1.0)-fracx)*(Real(1.0)-fracy)*szm;
                     }
 
-                    Real fzp =  bZ(i,j,k+1,n)*phi(i,j,k+1,n);
-                    Real ozp =  bZ(i,j,k+1,n)*cf5;
-                    Real szp = -bZ(i,j,k+1,n);
+                    Real fzp =  betaZ(i,j,k+1,n)*phi(i,j,k+1,n);
+                    Real ozp =  betaZ(i,j,k+1,n)*cf5;
+                    Real szp = -betaZ(i,j,k+1,n);
                     if (apzp != Real(0.0) && apzp != Real(1.0)) {
                         int ii = i + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k+1,0)));
                         int jj = j + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k+1,1)));
@@ -798,9 +798,9 @@ void mlebabeclap_gsrb (Box const& box,
                         if (!beta_on_centroid && !phi_on_centroid)
                         {
                             fzp = (Real(1.0)-fracx)*(Real(1.0)-fracy)*fzp
-                                +      fracx *(Real(1.0)-fracy)*bZ(ii,j ,k+1,n)*(phi(ii,j ,k+1,n)-phi(ii,j ,k,n))
-                                + (Real(1.0)-fracx)*     fracy *bZ(i ,jj,k+1,n)*(phi(i ,jj,k+1,n)-phi(i ,jj,k,n))
-                                +      fracx *     fracy *bZ(ii,jj,k+1,n)*(phi(ii,jj,k+1,n)-phi(ii,jj,k,n));
+                                +      fracx *(Real(1.0)-fracy)*betaZ(ii,j ,k+1,n)*(phi(ii,j ,k+1,n)-phi(ii,j ,k,n))
+                                + (Real(1.0)-fracx)*     fracy *betaZ(i ,jj,k+1,n)*(phi(i ,jj,k+1,n)-phi(i ,jj,k,n))
+                                +      fracx *     fracy *betaZ(ii,jj,k+1,n)*(phi(ii,jj,k+1,n)-phi(ii,jj,k,n));
                         }
                         else if (beta_on_centroid && !phi_on_centroid)
                         {
@@ -808,7 +808,7 @@ void mlebabeclap_gsrb (Box const& box,
                                 +      fracx *(Real(1.0)-fracy)*(phi(ii, j,k+1,n)-phi(ii, j,k,n))
                                 + (Real(1.0)-fracx)*     fracy *(phi( i,jj,k+1,n)-phi( i,jj,k,n))
                                 +      fracx *     fracy *(phi(ii,jj,k+1,n)-phi(ii,jj,k,n));
-                            fzp *= bZ(i,j,k+1,n);
+                            fzp *= betaZ(i,j,k+1,n);
 
                         }
                         ozp = Real(0.0);
@@ -816,7 +816,7 @@ void mlebabeclap_gsrb (Box const& box,
                     }
 
                     Real vfrcinv = Real(1.0)/kappa;
-                    Real gamma = alpha*a(i,j,k) + vfrcinv *
+                    Real gamma = scalarA*alpha(i,j,k) + vfrcinv *
                         (dhx*(apxm*sxm-apxp*sxp) +
                          dhy*(apym*sym-apyp*syp) +
                          dhz*(apzm*szm-apzp*szp));
@@ -893,7 +893,7 @@ void mlebabeclap_gsrb (Box const& box,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const> const& apx,
                          Array4<Real const> const& fcx, Array4<Real const> const& sol,
-                         Array4<Real const> const& bX, Array4<int const> const& ccm,
+                         Array4<Real const> const& betaX, Array4<int const> const& ccm,
                          Real dhx, int face_only, int ncomp, Box const& xbox,
                          bool beta_on_centroid, bool phi_on_centroid) noexcept
 {
@@ -905,9 +905,9 @@ void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real con
             if (apx(i,j,k) == Real(0.0)) {
                 fx(i,j,k,n) = Real(0.0);
             } else if (apx(i,j,k) == Real(1.0)) {
-                fx(i,j,k,n) = -dhx*bX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
+                fx(i,j,k,n) = -dhx*betaX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
             } else {
-                Real fxm = bX(i,j,k,n)*(sol(i,j,k,n) - sol(i-1,j,k,n));
+                Real fxm = betaX(i,j,k,n)*(sol(i,j,k,n) - sol(i-1,j,k,n));
                 int jj = j + static_cast<int>(std::copysign(Real(1.0), fcx(i,j,k,0)));
                 int kk = k + static_cast<int>(std::copysign(Real(1.0), fcx(i,j,k,1)));
                 Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx(i,j,k,0)) : Real(0.0);
@@ -915,9 +915,9 @@ void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real con
                 if (!beta_on_centroid && !phi_on_centroid)
                 {
                     fxm = (Real(1.0)-fracy)*(Real(1.0)-fracz)*fxm +
-                               fracy *(Real(1.0)-fracz)*bX(i,jj,k ,n)*(sol(i,jj,k ,n)-sol(i-1,jj,k ,n)) +
-                               fracz *(Real(1.0)-fracy)*bX(i,j ,kk,n)*(sol(i,j ,kk,n)-sol(i-1,j ,kk,n)) +
-                               fracy*      fracz *bX(i,jj,kk,n)*(sol(i,jj,kk,n)-sol(i-1,jj,kk,n));
+                               fracy *(Real(1.0)-fracz)*betaX(i,jj,k ,n)*(sol(i,jj,k ,n)-sol(i-1,jj,k ,n)) +
+                               fracz *(Real(1.0)-fracy)*betaX(i,j ,kk,n)*(sol(i,j ,kk,n)-sol(i-1,j ,kk,n)) +
+                               fracy*      fracz *betaX(i,jj,kk,n)*(sol(i,jj,kk,n)-sol(i-1,jj,kk,n));
                 }
                 else if (beta_on_centroid && !phi_on_centroid)
                 {
@@ -925,7 +925,7 @@ void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real con
                                fracy *(Real(1.0)-fracz)*(sol(i,jj, k,n)-sol(i-1,jj, k,n)) +
                                fracz *(Real(1.0)-fracy)*(sol(i, j,kk,n)-sol(i-1, j,kk,n)) +
                                fracy*      fracz *(sol(i,jj,kk,n)-sol(i-1,jj,kk,n));
-                    fxm *= bX(i,j,k,n);
+                    fxm *= betaX(i,j,k,n);
 
                 }
                 fx(i,j,k,n) = -dhx*fxm;
@@ -937,7 +937,7 @@ void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real con
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const> const& apy,
                          Array4<Real const> const& fcy, Array4<Real const> const& sol,
-                         Array4<Real const> const& bY, Array4<int const> const& ccm,
+                         Array4<Real const> const& betaY, Array4<int const> const& ccm,
                          Real dhy, int face_only, int ncomp, Box const& ybox,
                          bool beta_on_centroid, bool phi_on_centroid) noexcept
 {
@@ -949,9 +949,9 @@ void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real con
             if (apy(i,j,k) == Real(0.0)) {
                 fy(i,j,k,n) = Real(0.0);
             } else if (apy(i,j,k) == Real(1.0)) {
-                fy(i,j,k,n) = -dhy*bY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
+                fy(i,j,k,n) = -dhy*betaY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
             } else {
-                Real fym = bY(i,j,k,n)*(sol(i,j,k,n) - sol(i,j-1,k,n));
+                Real fym = betaY(i,j,k,n)*(sol(i,j,k,n) - sol(i,j-1,k,n));
                 int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy(i,j,k,0)));
                 int kk = k + static_cast<int>(std::copysign(Real(1.0),fcy(i,j,k,1)));
                 Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy(i,j,k,0)) : Real(0.0);
@@ -959,9 +959,9 @@ void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real con
                 if (!beta_on_centroid && !phi_on_centroid)
                 {
                     fym = (Real(1.0)-fracx)*(Real(1.0)-fracz)*fym +
-                               fracx *(Real(1.0)-fracz)*bY(ii,j,k ,n)*(sol(ii,j,k ,n)-sol(ii,j-1,k ,n)) +
-                               fracz *(Real(1.0)-fracx)*bY(i ,j,kk,n)*(sol(i ,j,kk,n)-sol(i ,j-1,kk,n)) +
-                               fracx *     fracz *bY(ii,j,kk,n)*(sol(ii,j,kk,n)-sol(ii,j-1,kk,n));
+                               fracx *(Real(1.0)-fracz)*betaY(ii,j,k ,n)*(sol(ii,j,k ,n)-sol(ii,j-1,k ,n)) +
+                               fracz *(Real(1.0)-fracx)*betaY(i ,j,kk,n)*(sol(i ,j,kk,n)-sol(i ,j-1,kk,n)) +
+                               fracx *     fracz *betaY(ii,j,kk,n)*(sol(ii,j,kk,n)-sol(ii,j-1,kk,n));
                 }
                 else if (beta_on_centroid && !phi_on_centroid)
                 {
@@ -969,7 +969,7 @@ void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real con
                                fracx *(Real(1.0)-fracz)*(sol(ii,j, k,n)-sol(ii,j-1, k,n)) +
                                fracz *(Real(1.0)-fracx)*(sol( i,j,kk,n)-sol( i,j-1,kk,n)) +
                                fracx *     fracz *(sol(ii,j,kk,n)-sol(ii,j-1,kk,n));
-                    fym *= bY(i,j,k,n);
+                    fym *= betaY(i,j,k,n);
                 }
 
                 fy(i,j,k,n) = -dhy*fym;
@@ -981,7 +981,7 @@ void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real con
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real const> const& apz,
                          Array4<Real const> const& fcz, Array4<Real const> const& sol,
-                         Array4<Real const> const& bZ, Array4<int const> const& ccm,
+                         Array4<Real const> const& betaZ, Array4<int const> const& ccm,
                          Real dhz, int face_only, int ncomp, Box const& zbox,
                          bool beta_on_centroid, bool phi_on_centroid) noexcept
 {
@@ -993,9 +993,9 @@ void mlebabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real con
             if (apz(i,j,k) == Real(0.0)) {
                 fz(i,j,k,n) = Real(0.0);
             } else if (apz(i,j,k) == Real(1.0)) {
-                fz(i,j,k,n) = -dhz*bZ(i,j,k,n)*(sol(i,j,k,n)-sol(i,j,k-1,n));
+                fz(i,j,k,n) = -dhz*betaZ(i,j,k,n)*(sol(i,j,k,n)-sol(i,j,k-1,n));
             } else {
-                Real fzm = bZ(i,j,k,n)*(sol(i,j,k,n) - sol(i,j,k-1,n));
+                Real fzm = betaZ(i,j,k,n)*(sol(i,j,k,n) - sol(i,j,k-1,n));
                 int ii = i + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k,0)));
                 int jj = j + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k,1)));
                 Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? std::abs(fcz(i,j,k,0)) : Real(0.0);
@@ -1003,9 +1003,9 @@ void mlebabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real con
                 if (!beta_on_centroid && !phi_on_centroid)
                 {
                     fzm = (Real(1.0)-fracx)*(Real(1.0)-fracy)*fzm +
-                        fracx*(Real(1.0)-fracy)*bZ(ii,j ,k,n)*(sol(ii,j ,k,n)-sol(ii,j ,k-1,n)) +
-                        fracy*(Real(1.0)-fracx)*bZ(i ,jj,k,n)*(sol(i ,jj,k,n)-sol(i ,jj,k-1,n)) +
-                        fracx*     fracy *bZ(ii,jj,k,n)*(sol(ii,jj,k,n)-sol(ii,jj,k-1,n));
+                        fracx*(Real(1.0)-fracy)*betaZ(ii,j ,k,n)*(sol(ii,j ,k,n)-sol(ii,j ,k-1,n)) +
+                        fracy*(Real(1.0)-fracx)*betaZ(i ,jj,k,n)*(sol(i ,jj,k,n)-sol(i ,jj,k-1,n)) +
+                        fracx*     fracy *betaZ(ii,jj,k,n)*(sol(ii,jj,k,n)-sol(ii,jj,k-1,n));
                 }
                 else if (beta_on_centroid && !phi_on_centroid)
                 {
@@ -1013,7 +1013,7 @@ void mlebabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real con
                                fracx *(Real(1.0)-fracy)*(sol(ii, j,k,n)-sol(ii, j,k-1,n)) +
                                fracy *(Real(1.0)-fracx)*(sol( i,jj,k,n)-sol( i,jj,k-1,n)) +
                                fracx *     fracy *(sol(ii,jj,k,n)-sol(ii,jj,k-1,n));
-                    fzm *= bZ(i,j,k,n);
+                    fzm *= betaZ(i,j,k,n);
 
                 }
 
@@ -1025,7 +1025,7 @@ void mlebabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real con
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_flux_x_0 (Box const& box, Array4<Real> const& fx, Array4<Real const> const& apx,
-                           Array4<Real const> const& sol, Array4<Real const> const& bX,
+                           Array4<Real const> const& sol, Array4<Real const> const& betaX,
                            Real dhx, int face_only, int ncomp, Box const& xbox) noexcept
 {
     int lof = xbox.smallEnd(0);
@@ -1036,7 +1036,7 @@ void mlebabeclap_flux_x_0 (Box const& box, Array4<Real> const& fx, Array4<Real c
             if (apx(i,j,k) == Real(0.0)) {
                 fx(i,j,k,n) = Real(0.0);
             } else {
-                fx(i,j,k,n) = -dhx*bX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
+                fx(i,j,k,n) = -dhx*betaX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
             }
         }
     });
@@ -1044,7 +1044,7 @@ void mlebabeclap_flux_x_0 (Box const& box, Array4<Real> const& fx, Array4<Real c
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_flux_y_0 (Box const& box, Array4<Real> const& fy, Array4<Real const> const& apy,
-                           Array4<Real const> const& sol, Array4<Real const> const& bY,
+                           Array4<Real const> const& sol, Array4<Real const> const& betaY,
                            Real dhy, int face_only, int ncomp, Box const& ybox) noexcept
 {
     int lof = ybox.smallEnd(1);
@@ -1055,7 +1055,7 @@ void mlebabeclap_flux_y_0 (Box const& box, Array4<Real> const& fy, Array4<Real c
             if (apy(i,j,k) == Real(0.0)) {
                 fy(i,j,k,n) = Real(0.0);
             } else {
-                fy(i,j,k,n) = -dhy*bY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
+                fy(i,j,k,n) = -dhy*betaY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
             }
         }
     });
@@ -1063,7 +1063,7 @@ void mlebabeclap_flux_y_0 (Box const& box, Array4<Real> const& fy, Array4<Real c
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_flux_z_0 (Box const& box, Array4<Real> const& fz, Array4<Real const> const& apz,
-                           Array4<Real const> const& sol, Array4<Real const> const& bZ,
+                           Array4<Real const> const& sol, Array4<Real const> const& betaZ,
                            Real dhz, int face_only, int ncomp, Box const& zbox) noexcept
 {
     int lof = zbox.smallEnd(2);
@@ -1074,7 +1074,7 @@ void mlebabeclap_flux_z_0 (Box const& box, Array4<Real> const& fz, Array4<Real c
             if (apz(i,j,k) == Real(0.0)) {
                 fz(i,j,k,n) = Real(0.0);
             } else {
-                fz(i,j,k,n) = -dhz*bZ(i,j,k,n)*(sol(i,j,k,n)-sol(i,j,k-1,n));
+                fz(i,j,k,n) = -dhz*betaZ(i,j,k,n)*(sol(i,j,k,n)-sol(i,j,k-1,n));
             }
         }
     });
@@ -1214,10 +1214,10 @@ void mlebabeclap_grad_z_0 (Box const& box, Array4<Real> const& gz, Array4<Real c
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
-                            Real alpha, Array4<Real const> const& a,
+                            Real scalarA, Array4<Real const> const& alpha,
                             Real dhx, Real dhy, Real dhz,
-                            Array4<Real const> const& bX, Array4<Real const> const& bY,
-                            Array4<Real const> const& bZ,
+                            Array4<Real const> const& betaX, Array4<Real const> const& betaY,
+                            Array4<Real const> const& betaZ,
                             Array4<const int> const& ccm, Array4<EBCellFlag const> const& flag,
                             Array4<Real const> const& vfrc,
                             Array4<Real const> const& apx, Array4<Real const> const& apy,
@@ -1232,9 +1232,9 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
     {
         if (flag(i,j,k).isRegular())
         {
-            phi(i,j,k,n) /= alpha*a(i,j,k) + dhx*(bX(i,j,k,n) + bX(i+1,j,k,n))
-                                           + dhy*(bY(i,j,k,n) + bY(i,j+1,k,n))
-                                           + dhz*(bZ(i,j,k,n) + bZ(i,j,k+1,n));
+            phi(i,j,k,n) /= scalarA*alpha(i,j,k) + dhx*(betaX(i,j,k,n) + betaX(i+1,j,k,n))
+                                           + dhy*(betaY(i,j,k,n) + betaY(i,j+1,k,n))
+                                           + dhz*(betaZ(i,j,k,n) + betaZ(i,j,k+1,n));
         }
         else if (flag(i,j,k).isSingleValued())
         {
@@ -1246,7 +1246,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
             Real apzm = apz(i,j,k);
             Real apzp = apz(i,j,k+1);
 
-            Real sxm =  bX(i,j,k,n);
+            Real sxm =  betaX(i,j,k,n);
             if (apxm != Real(0.0) && apxm != Real(1.0) && !beta_on_centroid) {
                 int jj = j + static_cast<int>(std::copysign(Real(1.0), fcx(i,j,k,0)));
                 int kk = k + static_cast<int>(std::copysign(Real(1.0), fcx(i,j,k,1)));
@@ -1257,7 +1257,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 sxm = (Real(1.0)-fracy)*(Real(1.0)-fracz)*sxm;
             }
 
-            Real sxp = -bX(i+1,j,k,n);
+            Real sxp = -betaX(i+1,j,k,n);
             if (apxp != Real(0.0) && apxp != Real(1.0) && !beta_on_centroid) {
                 int jj = j + static_cast<int>(std::copysign(Real(1.0),fcx(i+1,j,k,0)));
                 int kk = k + static_cast<int>(std::copysign(Real(1.0),fcx(i+1,j,k,1)));
@@ -1268,7 +1268,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 sxp = (Real(1.0)-fracy)*(Real(1.0)-fracz)*sxp;
             }
 
-            Real sym =  bY(i,j,k,n);
+            Real sym =  betaY(i,j,k,n);
             if (apym != Real(0.0) && apym != Real(1.0) && !beta_on_centroid) {
                 int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy(i,j,k,0)));
                 int kk = k + static_cast<int>(std::copysign(Real(1.0),fcy(i,j,k,1)));
@@ -1279,7 +1279,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 sym = (Real(1.0)-fracx)*(Real(1.0)-fracz)*sym;
             }
 
-            Real syp = -bY(i,j+1,k,n);
+            Real syp = -betaY(i,j+1,k,n);
             if (apyp != Real(0.0) && apyp != Real(1.0) && !beta_on_centroid) {
                 int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy(i,j+1,k,0)));
                 int kk = k + static_cast<int>(std::copysign(Real(1.0),fcy(i,j+1,k,1)));
@@ -1290,7 +1290,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 syp = (Real(1.0)-fracx)*(Real(1.0)-fracz)*syp;
             }
 
-            Real szm =  bZ(i,j,k,n);
+            Real szm =  betaZ(i,j,k,n);
             if (apzm != Real(0.0) && apzm != Real(1.0) && !beta_on_centroid) {
                 int ii = i + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k,0)));
                 int jj = j + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k,1)));
@@ -1301,7 +1301,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 szm = (Real(1.0)-fracx)*(Real(1.0)-fracy)*szm;
             }
 
-            Real szp = -bZ(i,j,k+1,n);
+            Real szp = -betaZ(i,j,k+1,n);
             if (apzp != Real(0.0) && apzp != Real(1.0) && !beta_on_centroid) {
                 int ii = i + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k+1,0)));
                 int jj = j + static_cast<int>(std::copysign(Real(1.0),fcz(i,j,k+1,1)));
@@ -1313,7 +1313,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
             }
 
             Real vfrcinv = Real(1.0)/kappa;
-            Real gamma = alpha*a(i,j,k) + vfrcinv *
+            Real gamma = scalarA*alpha(i,j,k) + vfrcinv *
                 (dhx*(apxm*sxm-apxp*sxp) +
                  dhy*(apym*sym-apyp*syp) +
                  dhz*(apzm*szm-apzp*szp));

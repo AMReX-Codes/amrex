@@ -57,7 +57,7 @@ public:
                           Location a_loc = Location::FaceCenter);
 
     /**
-    * \brief For ``(alpha * a - beta * (del dot b grad)) phi = rhs``, flux means ``-b grad phi``
+    * \brief For ``(A * alpha - B * (del dot beta grad)) phi = rhs``, flux means ``-beta grad phi``
     */
     template <typename AMF>
     void getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
