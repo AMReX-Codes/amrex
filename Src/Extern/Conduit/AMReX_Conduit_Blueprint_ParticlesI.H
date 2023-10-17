@@ -66,18 +66,15 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
         // for soa entries, we can use standard strides,
         // since these are contiguous arrays
 
-        // array real fields
-        for (int i = 0; i < NArrayReal; i++)
-        {
-            n_coords["values/x"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(0)[0])
-                                              num_particles);
+        n_coords["values/x"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(0)[0]),
+                                          num_particles);
 #if AMREX_SPACEDIM > 1
-            n_coords["values/y"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(1)[0])
-                                              num_particles);
+        n_coords["values/y"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(1)[0]),
+                                          num_particles);
 #endif
 #if AMREX_SPACEDIM > 2
-            n_coords["values/z"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(2)[0])
-                                              num_particles);
+        n_coords["values/z"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(2)[0]),
+                                          num_particles);
 #endif
     } else
     {
@@ -167,6 +164,28 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
                                        num_particles,
                                        0,
                                        struct_size);
+    } else {
+        const auto &soa = ptile.GetStructOfArrays();
+
+        // for soa entries, we can use standard strides,
+        // since these are contiguous arrays
+
+        // id is the first int entry
+        conduit::Node &n_f_id = n_fields[topology_name + "_id"];
+
+        n_f_id["topology"] = topology_name;
+        n_f_id["association"] = "element";
+        n_f_id["values"].set_external(const_cast<int*>(&soa.GetIntData(0)[0]),
+                                      num_particles);
+
+        // cpu is the second int entry
+        conduit::Node &n_f_cpu = n_fields[topology_name + "_cpu"];
+
+        n_f_cpu["topology"] = topology_name;
+        n_f_cpu["association"] = "element";
+        n_f_cpu["values"].set_external(const_cast<int*>(&soa.GetIntData(0)[0]),
+                                       num_particles);
+
     }
 
     // --------------------------------
