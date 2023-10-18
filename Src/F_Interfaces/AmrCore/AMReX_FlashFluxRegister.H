@@ -42,6 +42,18 @@ public:
     void store (int fine_global_index, int dir, FArrayBox const& fine_flux, FArrayBox const& area,
                 const int* isFluxDensity, Real sf);
 
+    // flux_in_register += scaling_factor * \sum{fine_flux} / (ref_ratio[0]*ref_ratio[1]*ref_ratio[2])
+    void add (int fine_global_index, int dir, FArrayBox const& fine_flux, Real sf);
+
+    // flux_in_register += scaling_factor * \sum{fine_flux * area}
+    void add (int fine_global_index, int dir, FArrayBox const& fine_flux, FArrayBox const& area,
+                Real sf);
+
+    // flux_in_register += scaling_factor * \sum{fine_flux * area}, if the component is flux density
+    //                     scaling_factor * \sum{fine_flux}       , otherwise
+    void add (int fine_global_index, int dir, FArrayBox const& fine_flux, FArrayBox const& area,
+                const int* isFluxDensity, Real sf);
+
     void communicate ();
 
     // crse_flux = flux_in_register * scaling_factor
