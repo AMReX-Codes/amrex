@@ -27,6 +27,11 @@ foreach( _exe IN LISTS _exe_names)
    if (AMReX_CUDA)
       set_source_files_properties(${_exe}.cpp PROPERTIES LANGUAGE CUDA)
    endif()
+
+    # Add prefix to each tool's name to make them unique when installed.
+    # This avoids potential collisions of names on user systems, e.g., in
+    # software packages (Spack/Conda/Debian/...).
+    set_target_properties(${_exe} PROPERTIES OUTPUT_NAME "amrex_${_exe}")
 endforeach()
 
 
