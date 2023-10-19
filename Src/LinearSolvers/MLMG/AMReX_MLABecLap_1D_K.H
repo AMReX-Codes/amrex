@@ -54,7 +54,7 @@ void mlabeclap_normalize (int i, int, int, int n, Array4<T> const& x,
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_x (Box const& box, Array4<T> const& fx, Array4<T const> const& sol,
-                       Array4<T const> const& bx, T fac, int ncomp) noexcept
+                       Array4<T const> const& betaX, T fac, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -62,7 +62,7 @@ void mlabeclap_flux_x (Box const& box, Array4<T> const& fx, Array4<T const> cons
     for (int n = 0; n < ncomp; ++n) {
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        fx(i,0,0,n) = -fac*bx(i,0,0,n)*(sol(i,0,0,n)-sol(i-1,0,0,n));
+        fx(i,0,0,n) = -fac*betaX(i,0,0,n)*(sol(i,0,0,n)-sol(i-1,0,0,n));
     }
     }
 }
@@ -70,15 +70,15 @@ void mlabeclap_flux_x (Box const& box, Array4<T> const& fx, Array4<T const> cons
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_xface (Box const& box, Array4<T> const& fx, Array4<T const> const& sol,
-                           Array4<T const> const& bx, T fac, int xlen, int ncomp) noexcept
+                           Array4<T const> const& betaX, T fac, int xlen, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
 
     for (int n = 0; n < ncomp; ++n) {
     int i = lo.x;
-    fx(i,0,0,n) = -fac*bx(i,0,0,n)*(sol(i,0,0,n)-sol(i-1,0,0,n));
+    fx(i,0,0,n) = -fac*betaX(i,0,0,n)*(sol(i,0,0,n)-sol(i-1,0,0,n));
     i += xlen;
-    fx(i,0,0,n) = -fac*bx(i,0,0,n)*(sol(i,0,0,n)-sol(i-1,0,0,n));
+    fx(i,0,0,n) = -fac*betaX(i,0,0,n)*(sol(i,0,0,n)-sol(i-1,0,0,n));
     }
 }
 

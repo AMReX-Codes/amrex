@@ -175,7 +175,7 @@ public:
 
     void copyNSolveSolution (MF& dst, MF const& src) const final;
 
-    void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a,
+    void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& alpha,
                                         Vector<Array<MF,AMREX_SPACEDIM> >& b);
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
@@ -599,29 +599,29 @@ MLABecLaplacianT<MF>::averageDownCoeffs ()
 
 template <typename MF>
 void
-MLABecLaplacianT<MF>::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a,
-                                                     Vector<Array<MF,AMREX_SPACEDIM> >& b)
+MLABecLaplacianT<MF>::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& alpha,
+                                                     Vector<Array<MF,AMREX_SPACEDIM> >& beta)
 {
-    int nmglevs = a.size();
+    int nmglevs = alpha.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
         IntVect ratio = (amrlev > 0) ? IntVect(this->mg_coarsen_ratio) : this->mg_coarsen_ratio_vec[mglev-1];
 
         if (m_a_scalar == 0.0)
         {
-            a[mglev].setVal(RT(0.0));
+            alpha[mglev].setVal(RT(0.0));
         }
         else
         {
-            amrex::average_down(a[mglev-1], a[mglev], 0, 1, ratio);
+            amrex::average_down(alpha[mglev-1], alpha[mglev], 0, 1, ratio);
         }
 
-        Vector<const MF*> fine {AMREX_D_DECL(&(b[mglev-1][0]),
-                                             &(b[mglev-1][1]),
-                                             &(b[mglev-1][2]))};
-        Vector<MF*> crse {AMREX_D_DECL(&(b[mglev][0]),
-                                       &(b[mglev][1]),
-                                       &(b[mglev][2]))};
+        Vector<const MF*> fine {AMREX_D_DECL(&(beta[mglev-1][0]),
+                                             &(beta[mglev-1][1]),
+                                             &(beta[mglev-1][2]))};
+        Vector<MF*> crse {AMREX_D_DECL(&(beta[mglev][0]),
+                                       &(beta[mglev][1]),
+                                       &(beta[mglev][2]))};
 
         amrex::average_down_faces(fine, crse, ratio, 0);
     }
@@ -635,27 +635,27 @@ MLABecLaplacianT<MF>::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a,
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(a[mglev],TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            for (MFIter mfi(alpha[mglev],TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 AMREX_D_TERM(Box const& xbx = mfi.nodaltilebox(0);,
                              Box const& ybx = mfi.nodaltilebox(1);,
                              Box const& zbx = mfi.nodaltilebox(2));
-                AMREX_D_TERM(auto const& bx = b[mglev][0].array(mfi);,
-                             auto const& by = b[mglev][1].array(mfi);,
-                             auto const& bz = b[mglev][2].array(mfi));
+                AMREX_D_TERM(auto const& betaX = beta[mglev][0].array(mfi);,
+                             auto const& betaY = beta[mglev][1].array(mfi);,
+                             auto const& betaZ = beta[mglev][2].array(mfi));
                 auto const& osm = this->m_overset_mask[amrlev][mglev]->const_array(mfi);
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
                     (xbx, t_xbx,
                      {
-                         overset_rescale_bcoef_x(t_xbx, bx, osm, ncomp, osfac);
+                         overset_rescale_bcoef_x(t_xbx, betaX, osm, ncomp, osfac);
                      },
                      ybx, t_ybx,
                      {
-                         overset_rescale_bcoef_y(t_ybx, by, osm, ncomp, osfac);
+                         overset_rescale_bcoef_y(t_ybx, betaY, osm, ncomp, osfac);
                      },
                      zbx, t_zbx,
                      {
-                         overset_rescale_bcoef_z(t_zbx, bz, osm, ncomp, osfac);
+                         overset_rescale_bcoef_z(t_zbx, betaZ, osm, ncomp, osfac);
                      });
             }
         }
@@ -1022,9 +1022,9 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
                              Array<FAB*,AMREX_SPACEDIM> const& flux,
                              FAB const& sol, int face_only, int ncomp)
 {
-    AMREX_D_TERM(const auto bx = bcoef[0]->const_array();,
-                 const auto by = bcoef[1]->const_array();,
-                 const auto bz = bcoef[2]->const_array(););
+    AMREX_D_TERM(const auto betaX = bcoef[0]->const_array();,
+                 const auto betaY = bcoef[1]->const_array();,
+                 const auto betaZ = bcoef[2]->const_array(););
     AMREX_D_TERM(const auto& fxarr = flux[0]->array();,
                  const auto& fyarr = flux[1]->array();,
                  const auto& fzarr = flux[2]->array(););
@@ -1037,7 +1037,7 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
         int blen = box.length(0);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
         {
-            mlabeclap_flux_xface(tbox, fxarr, solarr, bx, fac, blen, ncomp);
+            mlabeclap_flux_xface(tbox, fxarr, solarr, betaX, fac, blen, ncomp);
         });
 #if (AMREX_SPACEDIM >= 2)
         fac = bscalar*static_cast<RT>(dxinv[1]);
@@ -1045,7 +1045,7 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
         blen = box.length(1);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
         {
-            mlabeclap_flux_yface(tbox, fyarr, solarr, by, fac, blen, ncomp);
+            mlabeclap_flux_yface(tbox, fyarr, solarr, betaY, fac, blen, ncomp);
         });
 #endif
 #if (AMREX_SPACEDIM == 3)
@@ -1054,7 +1054,7 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
         blen = box.length(2);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
         {
-            mlabeclap_flux_zface(tbox, fzarr, solarr, bz, fac, blen, ncomp);
+            mlabeclap_flux_zface(tbox, fzarr, solarr, betaZ, fac, blen, ncomp);
         });
 #endif
     }
@@ -1064,14 +1064,14 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
         Box bflux = amrex::surroundingNodes(box, 0);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
         {
-            mlabeclap_flux_x(tbox, fxarr, solarr, bx, fac, ncomp);
+            mlabeclap_flux_x(tbox, fxarr, solarr, betaX, fac, ncomp);
         });
 #if (AMREX_SPACEDIM >= 2)
         fac = bscalar*static_cast<RT>(dxinv[1]);
         bflux = amrex::surroundingNodes(box, 1);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
         {
-            mlabeclap_flux_y(tbox, fyarr, solarr, by, fac, ncomp);
+            mlabeclap_flux_y(tbox, fyarr, solarr, betaY, fac, ncomp);
         });
 #endif
 #if (AMREX_SPACEDIM == 3)
@@ -1079,7 +1079,7 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
         bflux = amrex::surroundingNodes(box, 2);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
         {
-            mlabeclap_flux_z(tbox, fzarr, solarr, bz, fac, ncomp);
+            mlabeclap_flux_z(tbox, fzarr, solarr, betaZ, fac, ncomp);
         });
 #endif
     }

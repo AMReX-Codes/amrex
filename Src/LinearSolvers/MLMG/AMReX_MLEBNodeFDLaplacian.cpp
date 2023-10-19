@@ -357,9 +357,9 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
     const auto xlo = m_geom[amrlev][mglev].ProbLo(0);
     const auto alpha = m_rz_alpha;
 #endif
-    AMREX_D_TERM(const Real bx = m_sigma[0]*dxinv[0]*dxinv[0];,
-                 const Real by = m_sigma[1]*dxinv[1]*dxinv[1];,
-                 const Real bz = m_sigma[2]*dxinv[2]*dxinv[2];)
+    AMREX_D_TERM(const Real sigdxi2x = m_sigma[0]*dxinv[0]*dxinv[0];,
+                 const Real sigdxi2y = m_sigma[1]*dxinv[1]*dxinv[1];,
+                 const Real sigdxi2z = m_sigma[2]*dxinv[2]*dxinv[2];)
 
     auto const& dmask = *m_dirichlet_mask[amrlev][mglev];
 
@@ -401,7 +401,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_adotx_eb(i,j,k,yarr,xarr,levset,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
-                                             phiebarr, AMREX_D_DECL(bx,by,bz));
+                                             phiebarr, AMREX_D_DECL(sigdxi2x,sigdxi2y,sigdxi2z));
                     });
                 }
             } else {
@@ -418,7 +418,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_adotx_eb(i,j,k,yarr,xarr,levset,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
-                                             phieb, AMREX_D_DECL(bx,by,bz));
+                                             phieb, AMREX_D_DECL(sigdxi2x,sigdxi2y,sigdxi2z));
                     });
                 }
             }
@@ -436,7 +436,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
             {
                 AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                 {
-                    mlebndfdlap_adotx(i,j,k,yarr,xarr,dmarr,AMREX_D_DECL(bx,by,bz));
+                    mlebndfdlap_adotx(i,j,k,yarr,xarr,dmarr,AMREX_D_DECL(sigdxi2x,sigdxi2y,sigdxi2z));
                 });
             }
         }
@@ -456,9 +456,9 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
     const auto xlo = m_geom[amrlev][mglev].ProbLo(0);
     const auto alpha = m_rz_alpha;
 #endif
-    AMREX_D_TERM(const Real bx = m_sigma[0]*dxinv[0]*dxinv[0];,
-                 const Real by = m_sigma[1]*dxinv[1]*dxinv[1];,
-                 const Real bz = m_sigma[2]*dxinv[2]*dxinv[2];)
+    AMREX_D_TERM(const Real sigdxi2x = m_sigma[0]*dxinv[0]*dxinv[0];,
+                 const Real sigdxi2y = m_sigma[1]*dxinv[1]*dxinv[1];,
+                 const Real sigdxi2z = m_sigma[2]*dxinv[2]*dxinv[2];)
 
     auto const& dmask = *m_dirichlet_mask[amrlev][mglev];
 
@@ -502,7 +502,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_gsrb_eb(i,j,k,solarr,rhsarr,levset,dmskarr,AMREX_D_DECL(ecx,ecy,ecz),
-                                            AMREX_D_DECL(bx,by,bz), redblack);
+                                            AMREX_D_DECL(sigdxi2x,sigdxi2y,sigdxi2z), redblack);
                     });
                 }
             } else
@@ -521,7 +521,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_gsrb(i,j,k,solarr,rhsarr,dmskarr,
-                                         AMREX_D_DECL(bx,by,bz), redblack);
+                                         AMREX_D_DECL(sigdxi2x,sigdxi2y,sigdxi2z), redblack);
                     });
                 }
             }

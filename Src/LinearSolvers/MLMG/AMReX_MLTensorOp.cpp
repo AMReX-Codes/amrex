@@ -173,22 +173,22 @@ MLTensorOp::prepareForSolve ()
                     AMREX_D_TERM(Box const& xbx = mfi.nodaltilebox(0);,
                                  Box const& ybx = mfi.nodaltilebox(1);,
                                  Box const& zbx = mfi.nodaltilebox(2));
-                    AMREX_D_TERM(Array4<Real> const& bx = m_kappa[amrlev][mglev][0].array(mfi);,
-                                 Array4<Real> const& by = m_kappa[amrlev][mglev][1].array(mfi);,
-                                 Array4<Real> const& bz = m_kappa[amrlev][mglev][2].array(mfi));
+                    AMREX_D_TERM(Array4<Real> const& kappaX = m_kappa[amrlev][mglev][0].array(mfi);,
+                                 Array4<Real> const& kappaY = m_kappa[amrlev][mglev][1].array(mfi);,
+                                 Array4<Real> const& kappaZ = m_kappa[amrlev][mglev][2].array(mfi));
                     Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
                         (xbx, t_xbx,
                          {
-                             overset_rescale_bcoef_x(t_xbx, bx, osm, 1, osfac);
+                             overset_rescale_bcoef_x(t_xbx, kappaX, osm, 1, osfac);
                          },
                          ybx, t_ybx,
                          {
-                             overset_rescale_bcoef_y(t_ybx, by, osm, 1, osfac);
+                             overset_rescale_bcoef_y(t_ybx, kappaY, osm, 1, osfac);
                          },
                          zbx, t_zbx,
                          {
-                             overset_rescale_bcoef_z(t_zbx, bz, osm, 1, osfac);
+                             overset_rescale_bcoef_z(t_zbx, kappaZ, osm, 1, osfac);
                          });
                 }
             }

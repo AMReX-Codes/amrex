@@ -332,9 +332,9 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
-    AMREX_D_TERM(const auto& bx = m_b_coeffs[amrlev][mglev][0][mfi];,
-                 const auto& by = m_b_coeffs[amrlev][mglev][1][mfi];,
-                 const auto& bz = m_b_coeffs[amrlev][mglev][2][mfi];);
+    AMREX_D_TERM(const auto& betaX = m_b_coeffs[amrlev][mglev][0][mfi];,
+                 const auto& betaY = m_b_coeffs[amrlev][mglev][1][mfi];,
+                 const auto& betaZ = m_b_coeffs[amrlev][mglev][2][mfi];);
     const iMultiFab& ccmask = m_cc_mask[amrlev][mglev];
 
     AMREX_D_TERM(Box const& xbx = amrex::surroundingNodes(box,0);,
@@ -362,7 +362,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
 #endif
     } else if (fabtyp == FabType::regular) {
         MLABecLaplacian::FFlux(box, dxinv, m_b_scalar,
-                               Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&bx,&by,&bz)},
+                               Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&betaX,&betaY,&betaZ)},
                                flux, sol, face_only, ncomp);
     } else if (compute_flux_at_centroid) {
         const auto& area = factory->getAreaFrac();
@@ -374,9 +374,9 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                      Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
                      Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
         Array4<Real const> const& phi = sol.const_array();
-        AMREX_D_TERM(Array4<Real const> const& bxcoef = bx.const_array();,
-                     Array4<Real const> const& bycoef = by.const_array();,
-                     Array4<Real const> const& bzcoef = bz.const_array(););
+        AMREX_D_TERM(Array4<Real const> const& bxcoef = betaX.const_array();,
+                     Array4<Real const> const& bycoef = betaY.const_array();,
+                     Array4<Real const> const& bzcoef = betaZ.const_array(););
         Array4<int const> const& msk = ccmask.const_array(mfi);
         AMREX_D_TERM(Real dhx = m_b_scalar*dxinv[0];,
                      Real dhy = m_b_scalar*dxinv[1];,
@@ -410,9 +410,9 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                      Array4<Real const> const& apy = area[1]->const_array(mfi);,
                      Array4<Real const> const& apz = area[2]->const_array(mfi););
         Array4<Real const> const& phi = sol.const_array();
-        AMREX_D_TERM(Array4<Real const> const& bxcoef = bx.const_array();,
-                     Array4<Real const> const& bycoef = by.const_array();,
-                     Array4<Real const> const& bzcoef = bz.const_array(););
+        AMREX_D_TERM(Array4<Real const> const& bxcoef = betaX.const_array();,
+                     Array4<Real const> const& bycoef = betaY.const_array();,
+                     Array4<Real const> const& bzcoef = betaZ.const_array(););
         AMREX_D_TERM(Real dhx = m_b_scalar*dxinv[0];,
                      Real dhy = m_b_scalar*dxinv[1];,
                      Real dhz = m_b_scalar*dxinv[2];);

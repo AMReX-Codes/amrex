@@ -77,7 +77,7 @@ void mlabeclap_normalize (int i, int j, int k, int n, Array4<T> const& x,
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_x (Box const& box, Array4<T> const& fx, Array4<T const> const& sol,
-                       Array4<T const> const& bx, T fac, int ncomp) noexcept
+                       Array4<T const> const& betaX, T fac, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -87,7 +87,7 @@ void mlabeclap_flux_x (Box const& box, Array4<T> const& fx, Array4<T const> cons
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                fx(i,j,k,n) = -fac*bx(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
+                fx(i,j,k,n) = -fac*betaX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
             }
         }
     }
@@ -97,7 +97,7 @@ void mlabeclap_flux_x (Box const& box, Array4<T> const& fx, Array4<T const> cons
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_xface (Box const& box, Array4<T> const& fx, Array4<T const> const& sol,
-                           Array4<T const> const& bx, T fac, int xlen, int ncomp) noexcept
+                           Array4<T const> const& betaX, T fac, int xlen, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -106,9 +106,9 @@ void mlabeclap_flux_xface (Box const& box, Array4<T> const& fx, Array4<T const> 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             int i = lo.x;
-            fx(i,j,k,n) = -fac*bx(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
+            fx(i,j,k,n) = -fac*betaX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
             i += xlen;
-            fx(i,j,k,n) = -fac*bx(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
+            fx(i,j,k,n) = -fac*betaX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
         }
     }
     }
@@ -117,7 +117,7 @@ void mlabeclap_flux_xface (Box const& box, Array4<T> const& fx, Array4<T const> 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_y (Box const& box, Array4<T> const& fy, Array4<T const> const& sol,
-                       Array4<T const> const& by, T fac, int ncomp) noexcept
+                       Array4<T const> const& betaY, T fac, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -127,7 +127,7 @@ void mlabeclap_flux_y (Box const& box, Array4<T> const& fy, Array4<T const> cons
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                fy(i,j,k,n) = -fac*by(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
+                fy(i,j,k,n) = -fac*betaY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
             }
         }
     }
@@ -137,7 +137,7 @@ void mlabeclap_flux_y (Box const& box, Array4<T> const& fy, Array4<T const> cons
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_yface (Box const& box, Array4<T> const& fy, Array4<T const> const& sol,
-                           Array4<T const> const& by, T fac, int ylen, int ncomp) noexcept
+                           Array4<T const> const& betaY, T fac, int ylen, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -147,12 +147,12 @@ void mlabeclap_flux_yface (Box const& box, Array4<T> const& fy, Array4<T const> 
         int j = lo.y;
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            fy(i,j,k,n) = -fac*by(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
+            fy(i,j,k,n) = -fac*betaY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
         }
         j += ylen;
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            fy(i,j,k,n) = -fac*by(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
+            fy(i,j,k,n) = -fac*betaY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
         }
     }
     }
@@ -161,7 +161,7 @@ void mlabeclap_flux_yface (Box const& box, Array4<T> const& fy, Array4<T const> 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_z (Box const& box, Array4<T> const& fz, Array4<T const> const& sol,
-                       Array4<T const> const& bz, T fac, int ncomp) noexcept
+                       Array4<T const> const& betaZ, T fac, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -171,7 +171,7 @@ void mlabeclap_flux_z (Box const& box, Array4<T> const& fz, Array4<T const> cons
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                fz(i,j,k,n) = -fac*bz(i,j,k,n)*(sol(i,j,k,n)-sol(i,j,k-1,n));
+                fz(i,j,k,n) = -fac*betaZ(i,j,k,n)*(sol(i,j,k,n)-sol(i,j,k-1,n));
             }
         }
     }
@@ -181,7 +181,7 @@ void mlabeclap_flux_z (Box const& box, Array4<T> const& fz, Array4<T const> cons
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_zface (Box const& box, Array4<T> const& fz, Array4<T const> const& sol,
-                           Array4<T const> const& bz, T fac, int zlen, int ncomp) noexcept
+                           Array4<T const> const& betaZ, T fac, int zlen, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -191,7 +191,7 @@ void mlabeclap_flux_zface (Box const& box, Array4<T> const& fz, Array4<T const> 
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            fz(i,j,k,n) = -fac*bz(i,j,k,n)*(sol(i,j,k,n)-sol(i,j,k-1,n));
+            fz(i,j,k,n) = -fac*betaZ(i,j,k,n)*(sol(i,j,k,n)-sol(i,j,k-1,n));
         }
     }
 
@@ -199,7 +199,7 @@ void mlabeclap_flux_zface (Box const& box, Array4<T> const& fz, Array4<T const> 
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            fz(i,j,k,n) = -fac*bz(i,j,k,n)*(sol(i,j,k,n)-sol(i,j,k-1,n));
+            fz(i,j,k,n) = -fac*betaZ(i,j,k,n)*(sol(i,j,k,n)-sol(i,j,k-1,n));
         }
     }
     }
