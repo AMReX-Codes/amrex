@@ -54,7 +54,7 @@ void mlalap_adotx_m (Box const& box, Array4<RT> const& y,
 }
 
 template <typename RT>
-// AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_normalize (Box const& box, Array4<RT> const& x,
                        Array4<RT const> const& alpha,
                        GpuArray<RT,AMREX_SPACEDIM> const& dxinv,
@@ -74,7 +74,7 @@ void mlalap_normalize (Box const& box, Array4<RT> const& x,
 }
 
 template <typename RT>
-// AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_normalize_m (Box const& box, Array4<RT> const& x,
                          Array4<RT const> const& alpha,
                          GpuArray<RT,AMREX_SPACEDIM> const& dxinv,
@@ -97,7 +97,7 @@ void mlalap_normalize_m (Box const& box, Array4<RT> const& x,
 }
 
 template <typename RT>
-// AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_flux_x (Box const& box, Array4<RT> const& fx,
                     Array4<RT const> const& sol, RT fac, int ncomp) noexcept
 {
@@ -113,7 +113,7 @@ void mlalap_flux_x (Box const& box, Array4<RT> const& fx,
 }
 
 template <typename RT>
-// AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_flux_x_m (Box const& box, Array4<RT> const& fx,
                       Array4<RT const> const& sol, RT fac,
                       RT dx, RT probxlo, int ncomp) noexcept
@@ -131,7 +131,7 @@ void mlalap_flux_x_m (Box const& box, Array4<RT> const& fx,
 }
 
 template <typename RT>
-// AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_flux_xface (Box const& box, Array4<RT> const& fx,
                         Array4<RT const> const& sol, RT fac, int xlen, int ncomp) noexcept
 {
@@ -146,7 +146,7 @@ void mlalap_flux_xface (Box const& box, Array4<RT> const& fx,
 }
 
 template <typename RT>
-// AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_flux_xface_m (Box const& box, Array4<RT> const& fx,
                           Array4<RT const> const& sol, RT fac, int xlen,
                           RT dx, RT probxlo, int ncomp) noexcept
@@ -164,7 +164,7 @@ void mlalap_flux_xface_m (Box const& box, Array4<RT> const& fx,
 }
 
 template <typename RT>
-// AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_gsrb (Box const& box, Array4<RT> const& phi,
                   Array4<RT const> const& rhs, RT scalarA,
                   RT dhx, Array4<RT const> const& alpha,
@@ -200,7 +200,7 @@ void mlalap_gsrb (Box const& box, Array4<RT> const& phi,
 }
 
 template <typename RT>
-// AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_gsrb_m (Box const& box, Array4<RT> const& phi,
                     Array4<RT const> const& rhs, RT scalarA,
                     RT dhx, Array4<RT const> const& alpha,
