@@ -1553,9 +1553,13 @@ Assertions and Error Checking
 To help debugging, we often use :cpp:`amrex::Assert` and
 :cpp:`amrex::Abort`.  These functions are GPU safe and can be used in
 GPU kernels.  However, implementing these functions requires additional
-GPU registers, which will reduce overall performance.  Therefore, it
-is preferred to implement such calls in debug mode only by wrapping the
-calls using ``#ifdef AMREX_DEBUG``.
+GPU registers, which will reduce overall performance.  Therefore, by
+default these functions and the macro ``AMREX_ALWAYS_ASSERT`` are no-ops
+for optimized builds (e.g., ``DEBUG=FALSE`` using the GNU Make build
+system) when called from kernels run on GPU. Calls to these functions from
+GPU kernels are active for debug builds and can optionally be activated
+at compile time for optimized builds (e.g., ``DEBUG=FALSE`` and
+``USE_ASSERTION=TRUE`` using the GNU Make build system).
 
 In CPU code, :cpp:`AMREX_GPU_ERROR_CHECK()` can be called
 to check the health of previous GPU launches.  This call
