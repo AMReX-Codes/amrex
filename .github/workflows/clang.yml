@@ -64,7 +64,7 @@ jobs:
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         export PATH=/tmp/my-amrex/bin:$PATH
-        which fcompare
+        which amrex_fcompare
 
         ctest --output-on-failure
 
