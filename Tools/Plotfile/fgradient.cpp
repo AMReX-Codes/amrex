@@ -6,7 +6,6 @@
 #include <AMReX_Vector.H>
 #include <cstdlib>
 #include <iterator>
-#include <filesystem>
 #include <sstream>
 #include <string>
 
@@ -129,7 +128,7 @@ void main_main()
     }
 
     if (outfile.empty()) {
-        outfile = "grad."+std::filesystem::path(pltfile).filename().string();
+        outfile = "grad."+VisMF::BaseName(pltfile);
     }
 
     PlotFileData pf(pltfile);
