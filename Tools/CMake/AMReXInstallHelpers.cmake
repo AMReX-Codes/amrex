@@ -26,7 +26,7 @@ function (install_amrex_targets)
    else()
        set(CMAKE_FILES_DIR   lib/cmake/AMReX)
    endif()
-   set(MODULE_PATH       Tools/CMake)       # Relative path to top level installation/build-tree
+   set(MODULE_PATH       ${CMAKE_FILES_DIR}/AMReXCMakeModules)       # Relative path to top level installation/build-tree
 
    # Write Config file -- this is designed to work for both install and build trees
    configure_package_config_file(${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
@@ -60,7 +60,7 @@ function (install_amrex_targets)
 
        install( EXPORT AMReXTargets
           NAMESPACE AMReX::
-          DESTINATION lib/cmake/AMReX )
+          DESTINATION ${CMAKE_FILES_DIR} )
 
        #
        # alias: last element will be legacy target
@@ -88,11 +88,17 @@ function (install_amrex_targets)
        # Install Tools directory
        install(
           DIRECTORY
-          ${PROJECT_SOURCE_DIR}/Tools/CMake
-          ${PROJECT_SOURCE_DIR}/Tools/C_scripts
-          ${PROJECT_SOURCE_DIR}/Tools/typechecker
+            ${PROJECT_SOURCE_DIR}/Tools/C_scripts
+            ${PROJECT_SOURCE_DIR}/Tools/typechecker
           DESTINATION
-          Tools
+            share/amrex
+          USE_SOURCE_PERMISSIONS
+          )
+       install(
+          DIRECTORY
+            ${PROJECT_SOURCE_DIR}/Tools/CMake/
+          DESTINATION
+            ${MODULE_PATH}
           USE_SOURCE_PERMISSIONS
           )
    endif()
@@ -106,11 +112,16 @@ function (install_amrex_targets)
    # Copy Tools directory to build tree
    file(
       COPY
-      ${PROJECT_SOURCE_DIR}/Tools/CMake
-      ${PROJECT_SOURCE_DIR}/Tools/C_scripts
-      ${PROJECT_SOURCE_DIR}/Tools/typechecker
+        ${PROJECT_SOURCE_DIR}/Tools/C_scripts
+        ${PROJECT_SOURCE_DIR}/Tools/typechecker
       DESTINATION
-      ${PROJECT_BINARY_DIR}/Tools
+        ${PROJECT_BINARY_DIR}/share/amrex
+      )
+   file(
+      COPY
+        ${PROJECT_SOURCE_DIR}/Tools/CMake/
+      DESTINATION
+        ${PROJECT_BINARY_DIR}/${MODULE_PATH}
       )
 
 
