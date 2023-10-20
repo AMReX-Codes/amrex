@@ -40,8 +40,15 @@ include(AMReXTargetHelpers)
 #
 if (AMReX_FOUND)
    # AMReX is pre-installed and used as a library
-   string(REPLACE "/lib/cmake/AMReX/AMReXCMakeModules" "" AMREX_TOP_DIR_DEFAULT
-          ${CMAKE_CURRENT_LIST_DIR})
+   if (WIN32)  # see AMReXInstallHelpers.cmake
+       string(REPLACE "/cmake/AMReXCMakeModules" ""
+              AMREX_TOP_DIR_DEFAULT
+              ${CMAKE_CURRENT_LIST_DIR})
+   else ()
+       string(REPLACE "/lib/cmake/AMReX/AMReXCMakeModules" ""
+              AMREX_TOP_DIR_DEFAULT
+              ${CMAKE_CURRENT_LIST_DIR})
+   endif ()
 else ()
    # this is a superbuild
    string(REPLACE "/Tools/CMake" "" AMREX_TOP_DIR_DEFAULT
