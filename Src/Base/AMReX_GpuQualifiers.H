@@ -8,7 +8,7 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#if defined(AMREX_USE_CUDA) && defined(AMREX_CXX_PGI)
+#if defined(AMREX_USE_CUDA) && (defined(AMREX_CXX_PGI) || defined(AMREX_CXX_NVHPC))
 #include <nv/target>
 #define AMREX_IF_ON_DEVICE(CODE) NV_IF_TARGET(NV_IS_DEVICE, CODE)
 #define AMREX_IF_ON_HOST(CODE) NV_IF_TARGET(NV_IS_HOST, CODE)
