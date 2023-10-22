@@ -521,7 +521,7 @@ public:
   /**
      This is a RealVect all of whose components are equal to zero.
   */
-  static const RealVect Zero;
+  static AMREX_EXPORT const RealVect Zero;
 
   ///
   /**
