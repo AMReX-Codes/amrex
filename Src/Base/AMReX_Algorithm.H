@@ -269,19 +269,32 @@ int clz_generic (std::uint8_t x) noexcept
     return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
 }
 
+#if defined AMREX_USE_CUDA
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (std::uint8_t x) noexcept
 {
-#if defined(AMREX_USE_CUDA) // all supported cuda versions have __clz
     AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
-    AMREX_IF_ON_HOST((return clz_generic(x);))
-#elif AMREX_HAS_BUILTIN_CLZ
+#if AMREX_HAS_BUILTIN_CLZ
     AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
-    AMREX_IF_ON_DEVICE((return clz_generic(x);))
+#else
+    AMREX_IF_ON_HOST((return clz_generic(x);))
+#endif
+}
+
+#else // !defined AMREX_USE_CUDA
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (std::uint8_t x) noexcept
+{
+#if (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
+    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
 #else
     return clz_generic(x);
 #endif
 }
+
+#endif // defined AMREX_USE_CUDA
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz_generic (std::uint16_t x) noexcept
@@ -291,19 +304,32 @@ int clz_generic (std::uint16_t x) noexcept
     return upper ? clz(upper) : 8 + clz(lower);
 }
 
+#if defined AMREX_USE_CUDA
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (std::uint16_t x) noexcept
 {
-#if defined(AMREX_USE_CUDA) // all supported cuda versions have __clz
     AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
-    AMREX_IF_ON_HOST((return clz_generic(x);))
-#elif AMREX_HAS_BUILTIN_CLZ
+#if AMREX_HAS_BUILTIN_CLZ
     AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
-    AMREX_IF_ON_DEVICE((return clz_generic(x);))
+#else
+    AMREX_IF_ON_HOST((return clz_generic(x);))
+#endif
+}
+
+#else // !defined AMREX_USE_CUDA
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (std::uint16_t x) noexcept
+{
+#if (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
+    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
 #else
     return clz_generic(x);
 #endif
 }
+
+#endif // defined AMREX_USE_CUDA
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz_generic (std::uint32_t x) noexcept
@@ -313,19 +339,32 @@ int clz_generic (std::uint32_t x) noexcept
     return upper ? clz(upper) : 16 + clz(lower);
 }
 
+#if defined AMREX_USE_CUDA
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (std::uint32_t x) noexcept
 {
-#if defined(AMREX_USE_CUDA) // all supported cuda versions have __clz
     AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
-    AMREX_IF_ON_HOST((return clz_generic(x);))
-#elif AMREX_HAS_BUILTIN_CLZ
+#if AMREX_HAS_BUILTIN_CLZ
     AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
-    AMREX_IF_ON_DEVICE((return clz_generic(x);))
+#else
+    AMREX_IF_ON_HOST((return clz_generic(x);))
+#endif
+}
+
+#else // !defined AMREX_USE_CUDA
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (std::uint32_t x) noexcept
+{
+#if (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
+    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
 #else
     return clz_generic(x);
 #endif
 }
+
+#endif // defined AMREX_USE_CUDA
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz_generic (std::uint64_t x) noexcept
@@ -335,19 +374,32 @@ int clz_generic (std::uint64_t x) noexcept
     return upper ? clz(upper) : 32 + clz(lower);
 }
 
+#if defined AMREX_USE_CUDA
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (std::uint64_t x) noexcept
 {
-#if defined(AMREX_USE_CUDA) // all supported cuda versions have __clz
     AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
-    AMREX_IF_ON_HOST((return clz_generic(x);))
-#elif AMREX_HAS_BUILTIN_CLZ
+#if AMREX_HAS_BUILTIN_CLZ
     AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
-    AMREX_IF_ON_DEVICE((return clz_generic(x);))
+#else
+    AMREX_IF_ON_HOST((return clz_generic(x);))
+#endif
+}
+
+#else // !defined AMREX_USE_CUDA
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (std::uint64_t x) noexcept
+{
+#if (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
+    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
 #else
     return clz_generic(x);
 #endif
 }
+
+#endif // defined AMREX_USE_CUDA
 
 }
 
