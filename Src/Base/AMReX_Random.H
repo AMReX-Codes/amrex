@@ -107,7 +107,7 @@ namespace amrex
 #else
         AMREX_IF_ON_DEVICE((
                 AMREX_HIP_OR_CUDA(
-                        return hiprand_poisson(random_engine.rand_state, lambda); ,  
+                        return hiprand_poisson(random_engine.rand_state, lambda); ,
                         return curand_poisson(random_engine.rand_state, lambda);
                 )
         ))
