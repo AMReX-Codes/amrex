@@ -66,13 +66,11 @@ constexpr std::enable_if_t<std::is_floating_point<T>::value,T> pi ()
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double cospi (double x)
 {
-#if defined(AMREX_USE_SYCL)
+#if defined(__SYCL_DEVICE_ONLY__)
     return sycl::cospi(x);
-#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
-      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
-    return ::cospi(x);
 #else
-    return std::cos(pi<double>()*x);
+    AMREX_IF_ON_DEVICE(( return ::cospi(x); ))
+    AMREX_IF_ON_HOST(( return std::cos(pi<double>()*x); ))
 #endif
 }
 
@@ -80,13 +78,11 @@ double cospi (double x)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 float cospi (float x)
 {
-#if defined(AMREX_USE_SYCL)
+#if defined(__SYCL_DEVICE_ONLY__)
     return sycl::cospi(x);
-#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
-      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
-    return ::cospif(x);
 #else
-    return std::cos(pi<float>()*x);
+    AMREX_IF_ON_DEVICE(( return ::cospif(x); ))
+    AMREX_IF_ON_HOST(( return std::cos(pi<float>()*x); ))
 #endif
 }
 
@@ -94,13 +90,11 @@ float cospi (float x)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double sinpi (double x)
 {
-#if defined(AMREX_USE_SYCL)
+#if defined(__SYCL_DEVICE_ONLY__)
     return sycl::sinpi(x);
-#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
-      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
-    return ::sinpi(x);
 #else
-    return std::sin(pi<double>()*x);
+    AMREX_IF_ON_DEVICE(( return ::sinpi(x); ))
+    AMREX_IF_ON_HOST(( return std::sin(pi<double>()*x); ))
 #endif
 }
 
@@ -108,13 +102,11 @@ double sinpi (double x)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 float sinpi (float x)
 {
-#if defined(AMREX_USE_SYCL)
+#if defined(__SYCL_DEVICE_ONLY__)
     return sycl::sinpi(x);
-#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
-      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
-    return ::sinpif(x);
 #else
-    return std::sin(pi<float>()*x);
+    AMREX_IF_ON_DEVICE(( return ::sinpif(x); ))
+    AMREX_IF_ON_HOST(( return std::sin(pi<float>()*x); ))
 #endif
 }
 
@@ -123,15 +115,14 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincos (double x)
 {
     std::pair<double,double> r;
-#if defined(AMREX_USE_SYCL)
+#if defined(__SYCL_DEVICE_ONLY__)
     r.first = sycl::sincos(x, sycl::private_ptr<double>(&r.second));
-#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
-      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP) || \
-      (defined(_GNU_SOURCE) && !defined(__APPLE__))
-    ::sincos(x, &r.first, &r.second);
 #else
-    r.first  = std::sin(x);
-    r.second = std::cos(x);
+    AMREX_IF_ON_DEVICE(( ::sincos(x, &r.first, &r.second); ))
+    AMREX_IF_ON_HOST((
+        r.first  = std::sin(x);
+        r.second = std::cos(x);
+    ))
 #endif
     return r;
 }
@@ -141,15 +132,14 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincos (float x)
 {
     std::pair<float,float> r;
-#if defined(AMREX_USE_SYCL)
+#if defined(__SYCL_DEVICE_ONLY__)
     r.first = sycl::sincos(x, sycl::private_ptr<float>(&r.second));
-#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
-      defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP) || \
-      (defined(_GNU_SOURCE) && !defined(__APPLE__))
-    ::sincosf(x, &r.first, &r.second);
 #else
-    r.first  = std::sin(x);
-    r.second = std::cos(x);
+    AMREX_IF_ON_DEVICE(( ::sincosf(x, &r.first, &r.second); ))
+    AMREX_IF_ON_HOST((
+        r.first  = std::sin(x);
+        r.second = std::cos(x);
+    ))
 #endif
     return r;
 }
@@ -159,11 +149,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincospi (double x)
 {
     std::pair<double,double> r;
-#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
-    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
-    ::sincospi(x, &r.first, &r.second);
-#else
+#if defined(__SYCL_DEVICE_ONLY__)
     r = sincos(pi<double>()*x);
+#else
+    AMREX_IF_ON_DEVICE(( ::sincospi(x, &r.first, &r.second); ))
+    AMREX_IF_ON_HOST(( r = sincos(pi<double>()*x); ))
 #endif
     return r;
 }
@@ -173,11 +163,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincospi (float x)
 {
     std::pair<float,float> r;
-#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA) || \
-    defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
-    ::sincospif(x, &r.first, &r.second);
-#else
+#if defined(__SYCL_DEVICE_ONLY__)
     r = sincos(pi<float>()*x);
+#else
+    AMREX_IF_ON_DEVICE(( ::sincospif(x, &r.first, &r.second); ))
+    AMREX_IF_ON_HOST(( r = sincos(pi<float>()*x); ))
 #endif
     return r;
 }
