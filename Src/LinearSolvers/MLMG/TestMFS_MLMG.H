@@ -23,11 +23,12 @@ public:
     };
 
     // template <typename T> friend class MLCGSolverT;
-    // friend class MLLinOp_Test;
     friend class MLCGSolver_Test;
 
-    using MFSet = typename amrex::FabArraySet;
-    using AMFSet = typename amrex::FabArraySet;
+    // using MFSet = typename amrex::FabArraySet;
+    // using AMFSet = typename amrex::FabArraySet;
+    using MFSet = typename amrex::MultiFabSet;
+    using AMFSet = typename amrex::MultiFabSet;
     
     using FAB = typename MFSet::fab_type;
     // using RT  = typename MFSet::value_type;

@@ -10,6 +10,8 @@
 
 namespace amrex {
 
+template <class FAB> class FabArray;
+
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
@@ -1111,6 +1113,9 @@ template <class FAB,
 void
 Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
         auto const& dstfa = dst.arrays();
@@ -1159,6 +1164,9 @@ template <class FAB,
 void
 Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
         auto const& dstfa = dst.arrays();
@@ -1207,6 +1215,9 @@ template <class FAB,
 void
 Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
         auto const& dstfa = dst.arrays();

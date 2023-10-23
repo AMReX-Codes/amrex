@@ -49,38 +49,4 @@ operator>> (std::istream& is,
     return is;
 }
 
-// IndexTypeSet::IndexTypeSet (unsigned long a_iTypeSet) : m_EncodedLong(a_iTypeSet) {};
-
-// IndexTypeSet::IndexTypeSet (Vector<IndexType> a_IxTypes)
-// {
-//     define(a_IxTypes);
-// }
-
-// IndexTypeSet::IndexTypeSet (Vector<IntVect> a_IntVects)
-// {
-//     define(ConvertToIxTypes(a_IntVects));
-// }
-
-// void
-// IndexTypeSet::define(Vector<IndexType> a_IxTypes)
-// {
-//     m_n = a_IxTypes.size();
-//     m_EncodedLong = ConvertToEncodedLong(a_IxTypes);
-// }
-
-// Vector<IndexType>
-// IndexTypeSet::IndexTypeList ()
-// {
-//     return ConvertToIxTypes(m_EncodedLong);
-// }
-
-// Vector<IntVect>
-// IndexTypeSet::IntVectList ()
-// {
-//     return ConvertToIntVects(m_EncodedLong);
-// }
-
-
-
-
 }
