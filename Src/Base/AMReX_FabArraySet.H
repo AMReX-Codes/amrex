@@ -92,6 +92,22 @@ public:
     */
     void define (const BoxArray&            bxs,
                  const Vector<IndexType>    ixtypes,
+<<<<<<< HEAD
+=======
+                 const DistributionMapping& dm,
+                 int                        nvar,
+                 int                        ngrow,
+#ifdef AMREX_STRICT_MODE
+                 const MFInfo&              info,
+                 const FabFactory<FAB>&     factory);
+#else
+                 const MFInfo&              info = MFInfo(),
+                 const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
+#endif
+
+    void define (const BoxArray&            bxs,
+                 const Vector<IndexType>    ixtypes,
+>>>>>>> 6c1f74744aee54f2bdd4b38491c83ee3ff7d39c8
                  const DistributionMapping& dm,
                  int                        nvar,
                  const IntVect&             ngrow,
