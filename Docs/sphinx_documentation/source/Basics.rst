@@ -2812,3 +2812,6 @@ Backtrace files are produced by AMReX signal handler by default when
 segfault occurs or ``Abort`` is called.  If the application does not
 want AMReX to handle this, ``ParmParse`` parameter
 `amrex.signal_handling=0` can be used to disable it.
+
+See :ref:`sec:gpu:assertion` for considerations on using these functions in
+GPU-enabled code.
