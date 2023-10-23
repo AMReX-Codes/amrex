@@ -443,6 +443,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.queryAdd("verbose", system::verbose);
     }
 
+    if (system::verbose > 0) {
+        amrex::Print() << "Initializing AMReX (" << amrex::Version() << ")...\n";
+    }
+
 #ifdef AMREX_USE_MPI
     if (system::verbose > 0) {
         amrex::Print() << "MPI initialized with "

@@ -344,7 +344,7 @@ MLNodeLaplacian::buildStencil ()
         });
     }
 
-    if (m_is_bottom_singular)
+    if (isBottomSingular())
     {
         int amrlev = 0;
         int mglev = 0;
