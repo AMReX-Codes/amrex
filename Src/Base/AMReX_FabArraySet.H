@@ -48,7 +48,7 @@ public:
      * \brief Constructs a new FabArraySet<MF>
      *
      * The size of the FArrayBox is given by the Box modified by \p ixtypes
-     * and grown by \p `ngrow`. The number of components for each MF is given 
+     * and grown by \p `ngrow`. The number of components for each MF is given
      * by \p `ncomp` . If info is set to
      * not allocating memory, then no FArrayBoxes are allocated at
      * this time but can be defined later.
