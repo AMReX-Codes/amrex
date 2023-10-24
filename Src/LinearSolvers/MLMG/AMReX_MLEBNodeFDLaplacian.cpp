@@ -284,20 +284,7 @@ MLEBNodeFDLaplacian::prepareForSolve ()
         });
     }
 
-    if (m_is_bottom_singular)
-    {
-        int amrlev = 0;
-        int mglev = 0;
-        auto const& dotmasks = m_coarse_dot_mask.arrays();
-        auto const& dirmasks = m_dirichlet_mask[amrlev][mglev]->const_arrays();
-        amrex::ParallelFor(m_coarse_dot_mask,
-        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-        {
-            if (dirmasks[box_no](i,j,k)) {
-                dotmasks[box_no](i,j,k) = Real(0.);
-            }
-        });
-    }
+    AMREX_ASSERT(!isBottomSingular());
 
     Gpu::streamSynchronize();
 
