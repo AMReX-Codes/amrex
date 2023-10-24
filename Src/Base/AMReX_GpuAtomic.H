@@ -175,7 +175,7 @@ namespace detail {
 
 #endif
 
-#if defined(AMREX_USE_CUDA) && (__CUDA_ARCH__ < 600)
+#if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     double Add_device (double* const sum, double const value) noexcept
