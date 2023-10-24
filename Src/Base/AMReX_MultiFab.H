@@ -69,7 +69,7 @@ public:
      * the number of components is given by ncomp. If info is set to
      * not allocating memory, then no FArrayBoxes are allocated at
      * this time but can be defined later.
-    */
+     */
     MultiFab (const BoxArray&            bxs,
               const DistributionMapping& dm,
               int                        ncomp,

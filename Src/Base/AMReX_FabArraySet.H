@@ -39,7 +39,7 @@ public:
     // explicit FabArraySet (Arena* a) noexcept;
 
     /**
-     * \brief Construct a FabArraySet with a valid region defined by bxs
+     * \brief Construct a FabArraySet with a valid region defined by \p bxs
      * and a region of definition defined by IndexType's \p ixtypes,
      * grow factor \p ngrow, and the number of components per MF \p nvar.
      */
@@ -47,19 +47,19 @@ public:
     /**
      * \brief Constructs a new FabArraySet<MF>
      *
-     * The size of the FArrayBox is given by the Box modified by \p ixtypes
-     * and grown by \p `ngrow`. The number of components for each MF is given
-     * by \p `ncomp` . If info is set to
-     * not allocating memory, then no FArrayBoxes are allocated at
-     * this time but can be defined later.
+     * The size of the MFs is given by the Box Array \p bxs modified by the IndexType's 
+     * \p ixtypes and grown by \p ngrow . The number of components for each MF is given
+     * by \p ncomp , and the size of \p ixtypes deteremins number of MFs in the set.
+     * If \p info is set to not allocating memory, then no FABs are allocated at this 
+     * time but can be defined later.
      *
      * \param bxs a valid region
-     * \param ixTypes IndexType for each MF in the set. ixTypes.size() specifies the number of MFs in the set
+     * \param ixtypes IndexType for each MF in the set. ixTypes.size() specifies the number of MFs in the set
      * \param dm a DistribuionMapping
      * \param ncomp number of components for each MF (different from number of MFs in the set)
      * \param ngrow number of cells the region grows
      * \param info MFInfo
-     *
+     * \param factory FabFactory
      */
     FabArraySet (const BoxArray&            bxs,
                  const Vector<IndexType>    ixtypes,
@@ -74,6 +74,14 @@ public:
                  const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 #endif
 
+    /**
+     * \brief Make an alias FabArraySet<MF>.
+     * 
+     * \param rhs Make an alias of rhs
+     * \param maketype must be amrex::make_alias
+     * \param scomp starting component in the MFs of the alias
+     * \param ncomp number of components in the MFs in the new aliasing FabArraySet
+     */
     FabArraySet (const FabArraySet& rhs, MakeType maketype, int scomp, int ncomp);
 
     //! The destructor -- deletes all FabArrays in the set.
@@ -85,29 +93,13 @@ public:
     FabArraySet& operator= (const FabArraySet& rhs) = delete;
 
     /**
-    * \brief Define this FabArraySet identically to that performed by
-    * the constructor having an analogous function signature.
-    * This is only valid if this FabArraySet was defined using
-    * the default constructor.
-    */
+     * \brief Define this FabArraySet identically to that performed by
+     * the constructor having an analogous function signature.
+     * This is only valid if this FabArraySet was defined using
+     * the default constructor.
+     */
     void define (const BoxArray&            bxs,
                  const Vector<IndexType>    ixtypes,
-<<<<<<< HEAD
-=======
-                 const DistributionMapping& dm,
-                 int                        nvar,
-                 int                        ngrow,
-#ifdef AMREX_STRICT_MODE
-                 const MFInfo&              info,
-                 const FabFactory<FAB>&     factory);
-#else
-                 const MFInfo&              info = MFInfo(),
-                 const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
-#endif
-
-    void define (const BoxArray&            bxs,
-                 const Vector<IndexType>    ixtypes,
->>>>>>> 6c1f74744aee54f2bdd4b38491c83ee3ff7d39c8
                  const DistributionMapping& dm,
                  int                        nvar,
                  const IntVect&             ngrow,
@@ -118,23 +110,23 @@ public:
                  const MFInfo&              info = MFInfo(),
                  const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 #endif
-    //! get a reference to element of index i
-    MF& operator[] (int i) noexcept { return *m_mf_set[i]; }
-    //! get a const reference to element of index i
-    const MF& operator[] (int i) const noexcept { return *m_mf_set[i]; }
+    //! get a reference to set element of index \p iSet
+    MF& operator[] (int iSet) noexcept { return *m_mf_set[iSet]; }
+    //! get a const reference to set element of index \p iSet
+    const MF& operator[] (int iSet) const noexcept { return *m_mf_set[iSet]; }
 
-    //! get a reference to element of index i
-    MF& getElem (int i) noexcept { return *m_mf_set[i]; }
+    //! get a reference to element of index \p iSet
+    MF& getElem (int iSet) noexcept { return *m_mf_set[iSet]; }
     //! get a const reference to element of index i
-    const MF& getElem (int i) const noexcept { return *m_mf_set[i]; }
+    const MF& getElem (int iSet) const noexcept { return *m_mf_set[iSet]; }
 
     [[nodiscard]] IntVect nGrowVect (int i = 0) const noexcept { return getElem(i).nGrowVect(); }
 
-    //! Return the grow factor that defines the region of definition for i-th element
-    [[nodiscard]] int nGrow (int direction = 0, int i = 0) const noexcept { return getElem(i).nGrow(direction); }
+    //! Return the grow factor that defines the region of definition for element of index `iSet`
+    [[nodiscard]] int nGrow (int direction = 0, int iSet = 0) const noexcept { return getElem(iSet).nGrow(direction); }
 
-    //! Return number of variables (aka components) associated with each point for i-th element
-    [[nodiscard]] int nComp (int i = 0) const noexcept { return getElem(i).nComp(); }
+    //! Return number of variables (aka components) associated with each point for `iSet` element
+    [[nodiscard]] int nComp (int iSet = 0) const noexcept { return getElem(iSet).nComp(); }
 
     //Return whether every element of this FabArraySet is empty
     [[nodiscard]] bool empty () const noexcept;
@@ -207,7 +199,7 @@ public:
     void setBndry (value_type val, int strt_comp, int ncomp);
 
     /**
-     * \brief Return the largest infinity norm of the MultiFabs
+     * \brief Return the largest infinity norm of the MF's in the FabArraySet
      *
      * \param comp           starting component
      * \param ncomp          number of components
@@ -310,29 +302,13 @@ FabArraySet::FabArraySet () noexcept
     // }
 }
 
-/**
-* \brief Construct a FabArray<FAB> with a valid region defined by bxs
-* and a region of definition defined by the grow factor ngrow
-* and the number of components nvar.
-*/
 FabArraySet::FabArraySet (const BoxArray& bxs, const Vector<IndexType> ixTypes, const DistributionMapping& dm,
-                          int nvar, int ngrow, const MFInfo& info, const FabFactory<FAB>& factory)
+                          int nvar, const IntVect& ngrow, const MFInfo& info, const FabFactory<FAB>& factory)
 {
     m_mf_set = Vector<std::unique_ptr<MF>>(ixTypes.size());
     // m_mf_set_2 = new std::unique_ptr<MF>();
     // m_mf_set_3 = new MF[ixTypes.size()];
     // m_mf_set_4 = (MF*)std::malloc(sizeof(MF)*ixTypes.size());
-
-    for (int i = 0; i < ixTypes.size(); ++i) {
-        m_mf_set[i] = std::make_unique<MF>(amrex::convert(bxs,ixTypes[i]),dm,nvar,ngrow,info,factory);
-    }
-}
-
-
-FabArraySet::FabArraySet (const BoxArray& bxs, const Vector<IndexType> ixTypes, const DistributionMapping& dm,
-                          int nvar, const IntVect& ngrow, const MFInfo& info, const FabFactory<FAB>& factory)
-{
-    m_mf_set = Vector<std::unique_ptr<MF>>(ixTypes.size());
     for (int i = 0; i < ixTypes.size(); ++i) {
         m_mf_set[i] = std::make_unique<MF>(amrex::convert(bxs,ixTypes[i]),dm,nvar,ngrow,info,factory);
     }
@@ -361,19 +337,9 @@ FabArraySet::operator= (FabArraySet&& rhs) noexcept
     for (int i = 0; i < rhs.nSet(); ++i) {
         *m_mf_set[i] = std::move(rhs[i]);
         // getElem(i).operator=(std::move(rhs[i]));
-        getElem(i) = std::move(rhs[i]);
+        // getElem(i) = std::move(rhs[i]);
     }
     return *this;
-}
-
-void
-FabArraySet::define (const BoxArray& bxs, const Vector<IndexType> ixTypes, const DistributionMapping& dm,
-                     int nvar, int ngrow, const MFInfo& info, const FabFactory<FAB>& factory)
-{
-    m_mf_set = Vector<std::unique_ptr<MF>>(ixTypes.size());
-    for (int i = 0; i < ixTypes.size(); ++i) {
-        getElem(i).define(amrex::convert(bxs,ixTypes[i]),dm,nvar,ngrow,info,factory);
-    }
 }
 
 void
