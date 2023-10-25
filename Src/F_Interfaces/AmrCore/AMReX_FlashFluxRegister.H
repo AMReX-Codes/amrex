@@ -130,7 +130,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
 #if (AMREX_SPACEDIM == 1)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-                    amrex::ignore_unused(j,k);
+                    amrex::ignore_unused(j,k,dest);
                     auto rhs = src(2*i,0,0,n)*sf;
                     if constexpr (op == OpType::Store) {
                         dest(i,0,0,n) = rhs;
@@ -142,7 +142,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
 #if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-                    amrex::ignore_unused(k);
+                    amrex::ignore_unused(k,dest);
                     auto rhs = (src(2*i,2*j  ,0,n) +
                                 src(2*i,2*j+1,0,n)) * (Real(0.5)*sf);
                     if constexpr (op == OpType::Store) {
@@ -159,6 +159,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
                                 src(2*i,2*j+1,2*k  ,n) +
                                 src(2*i,2*j  ,2*k+1,n) +
                                 src(2*i,2*j+1,2*k+1,n)) * (Real(0.25)*sf);
+                    amrex::ignore_unused(dest); // for cuda
                     if constexpr (op == OpType::Store) {
                         dest(i,j,k,n) = rhs;
                     } else {
@@ -172,7 +173,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
 #if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-                    amrex::ignore_unused(k);
+                    amrex::ignore_unused(k,dest);
                     auto rhs = (src(2*i  ,2*j,0,n) +
                                 src(2*i+1,2*j,0,n)) * (Real(0.5)*sf);
                     if constexpr (op == OpType::Store) {
@@ -189,6 +190,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
                                 src(2*i+1,2*j,2*k  ,n) +
                                 src(2*i  ,2*j,2*k+1,n) +
                                 src(2*i+1,2*j,2*k+1,n)) * (Real(0.25)*sf);
+                    amrex::ignore_unused(dest); // for cuda
                     if constexpr (op == OpType::Store) {
                         dest(i,j,k,n) = rhs;
                     } else {
@@ -205,6 +207,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
                                 src(2*i+1,2*j  ,2*k,n) +
                                 src(2*i  ,2*j+1,2*k,n) +
                                 src(2*i+1,2*j+1,2*k,n)) * (Real(0.25)*sf);
+                    amrex::ignore_unused(dest); // for cuda
                     if constexpr (op == OpType::Store) {
                         dest(i,j,k,n) = rhs;
                     } else {
@@ -237,7 +240,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
 #if (AMREX_SPACEDIM == 1)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-                    amrex::ignore_unused(j,k);
+                    amrex::ignore_unused(j,k,dest);
                     auto rhs = src(2*i,0,0,n)*area(2*i,0,0)*sf;
                     if constexpr (op == OpType::Store) {
                         dest(i,0,0,n) = rhs;
@@ -249,7 +252,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
 #if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-                    amrex::ignore_unused(k);
+                    amrex::ignore_unused(k,dest);
                     auto rhs = (src(2*i,2*j  ,0,n)*area(2*i,2*j  ,0) +
                                 src(2*i,2*j+1,0,n)*area(2*i,2*j+1,0)) * sf;
                     if constexpr (op == OpType::Store) {
@@ -266,6 +269,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
                                 src(2*i,2*j+1,2*k  ,n)*area(2*i,2*j+1,2*k  ) +
                                 src(2*i,2*j  ,2*k+1,n)*area(2*i,2*j  ,2*k+1) +
                                 src(2*i,2*j+1,2*k+1,n)*area(2*i,2*j+1,2*k+1)) * sf;
+                    amrex::ignore_unused(dest); // for cuda
                     if constexpr (op == OpType::Store) {
                         dest(i,j,k,n) = rhs;
                     } else {
@@ -279,7 +283,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
 #if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-                    amrex::ignore_unused(k);
+                    amrex::ignore_unused(k,dest);
                     auto rhs = (src(2*i  ,2*j,0,n)*area(2*i  ,2*j,0) +
                                 src(2*i+1,2*j,0,n)*area(2*i+1,2*j,0)) * sf;
                     if constexpr (op == OpType::Store) {
@@ -296,6 +300,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
                                 src(2*i+1,2*j,2*k  ,n)*area(2*i+1,2*j,2*k  ) +
                                 src(2*i  ,2*j,2*k+1,n)*area(2*i  ,2*j,2*k+1) +
                                 src(2*i+1,2*j,2*k+1,n)*area(2*i+1,2*j,2*k+1)) * sf;
+                    amrex::ignore_unused(dest); // for cuda
                     if constexpr (op == OpType::Store) {
                         dest(i,j,k,n) = rhs;
                     } else {
@@ -312,6 +317,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
                                 src(2*i+1,2*j  ,2*k,n)*area(2*i+1,2*j  ,2*k) +
                                 src(2*i  ,2*j+1,2*k,n)*area(2*i  ,2*j+1,2*k) +
                                 src(2*i+1,2*j+1,2*k,n)*area(2*i+1,2*j+1,2*k)) * sf;
+                    amrex::ignore_unused(dest); // for cuda
                     if constexpr (op == OpType::Store) {
                         dest(i,j,k,n) = rhs;
                     } else {
@@ -364,7 +370,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
 #if (AMREX_SPACEDIM == 1)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-                    amrex::ignore_unused(j,k);
+                    amrex::ignore_unused(j,k,dest);
                     Real rhs;
                     if (ifd[n]) {
                         rhs = src(2*i,0,0,n)*area(2*i,0,0)*sf;
@@ -381,7 +387,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
 #if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-                    amrex::ignore_unused(k);
+                    amrex::ignore_unused(k,dest);
                     Real rhs;
                     if (ifd[n]) {
                         rhs = (src(2*i,2*j  ,0,n)*area(2*i,2*j  ,0) +
@@ -412,6 +418,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
                                src(2*i,2*j  ,2*k+1,n) +
                                src(2*i,2*j+1,2*k+1,n)) * sf;
                     }
+                    amrex::ignore_unused(dest); // for cuda
                     if constexpr (op == OpType::Store) {
                         dest(i,j,k,n) = rhs;
                     } else {
@@ -425,7 +432,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
 #if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
                 {
-                    amrex::ignore_unused(k);
+                    amrex::ignore_unused(k,dest);
                     Real rhs;
                     if (ifd[n]) {
                         rhs = (src(2*i  ,2*j,0,n)*area(2*i  ,2*j,0) +
@@ -456,6 +463,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
                                src(2*i  ,2*j,2*k+1,n) +
                                src(2*i+1,2*j,2*k+1,n)) * sf;
                     }
+                    amrex::ignore_unused(dest); // for cuda
                     if constexpr (op == OpType::Store) {
                         dest(i,j,k,n) = rhs;
                     } else {
@@ -480,6 +488,7 @@ void FlashFluxRegister::store_or_add (int fine_global_index, int dir,
                                src(2*i  ,2*j+1,2*k,n) +
                                src(2*i+1,2*j+1,2*k,n)) * sf;
                     }
+                    amrex::ignore_unused(dest); // for cuda
                     if constexpr (op == OpType::Store) {
                         dest(i,j,k,n) = rhs;
                     } else {
