@@ -21,6 +21,7 @@ public:
 
     template <typename T> friend class MLCGSolverT;
 
+    using MFType = MF;
     using FAB = typename MLLinOpT<MF>::FAB;
     using RT  = typename MLLinOpT<MF>::RT;
 
@@ -167,6 +168,8 @@ public:
 
     void prepareForNSolve ();
 
+    void prepareLinOp ();
+
     void oneIter (int iter);
 
     void miniCycle (int amrlev);
@@ -216,6 +219,8 @@ public:
     [[nodiscard]] Vector<RT> const& getResidualHistory () const noexcept { return m_iter_fine_resnorm0; }
     [[nodiscard]] int getNumIters () const noexcept { return m_iter_fine_resnorm0.size(); }
     [[nodiscard]] Vector<int> const& getNumCGIters () const noexcept { return m_niters_cg; }
+
+    MLLinOpT<MF>& getLinOp () { return linop; }
 
 private:
 
@@ -794,12 +799,7 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
         }
     }
 
-    if (!linop_prepared) {
-        linop.prepareForSolve();
-        linop_prepared = true;
-    } else if (linop.needsUpdate()) {
-        linop.update();
-    }
+    prepareLinOp();
 
     const auto& amrrr = linop.AMRRefRatio();
 
@@ -880,12 +880,7 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
         setVal(rh[alev], RT(0.0));
     }
 
-    if (!linop_prepared) {
-        linop.prepareForSolve();
-        linop_prepared = true;
-    } else if (linop.needsUpdate()) {
-        linop.update();
-    }
+    prepareLinOp();
 
     for (int alev = 0; alev < namrlevs; ++alev) {
         linop.applyInhomogNeumannTerm(alev, rh[alev]);
@@ -1103,6 +1098,18 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
             amrex::Print() << "      # of MG levels in N-Solve: " << ns_linop->NMGLevels(0) << "\n"
                            << "      # of grids in N-Solve: " << ns_linop->m_grids[0][0].size() << "\n";
         }
+    }
+}
+
+template <typename MF>
+void
+MLMGT<MF>::prepareLinOp ()
+{
+    if (!linop_prepared) {
+        linop.prepareForSolve();
+        linop_prepared = true;
+    } else if (linop.needsUpdate()) {
+        linop.update();
     }
 }
 

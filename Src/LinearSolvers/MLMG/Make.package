@@ -1,3 +1,5 @@
+ifndef AMREX_MLMG_MAKE
+       AMREX_MLMG_MAKE := 1
 
 CEXE_sources += AMReX_MLMG.cpp
 
@@ -87,3 +89,5 @@ endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
+
+endif

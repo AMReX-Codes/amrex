@@ -98,6 +98,7 @@ template <typename T> class MLMGT;
 template <typename T> class MLCGSolverT;
 template <typename T> class MLPoissonT;
 template <typename T> class MLABecLaplacianT;
+template <typename T> class GMRESMLMGT;
 
 template <typename MF>
 class MLLinOpT
@@ -108,7 +109,9 @@ public:
     template <typename T> friend class MLCGSolverT;
     template <typename T> friend class MLPoissonT;
     template <typename T> friend class MLABecLaplacianT;
+    template <typename T> friend class GMRESMLMGT;
 
+    using MFType = MF;
     using FAB = typename LinOpData<MF>::fab_type;
     using RT  = typename LinOpData<MF>::value_type;
 

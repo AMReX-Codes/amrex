@@ -1,5 +1,7 @@
 #include "MyTest.H"
 
+#include <AMReX_GMRES.H>
+#include <AMReX_GMRES_MLMG.H>
 #include <AMReX_MLNodeABecLaplacian.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLPoisson.H>
@@ -20,7 +22,11 @@ MyTest::solve ()
     if (prob_type == 1) {
         solvePoisson();
     } else if (prob_type == 2) {
-        solveABecLaplacian();
+        if (use_gmres) {
+            solveABecLaplacianGMRES();
+        } else {
+            solveABecLaplacian();
+        }
     } else if (prob_type == 3) {
         solveABecLaplacianInhomNeumann();
     } else if (prob_type == 4) {
@@ -461,6 +467,86 @@ MyTest::solveNodeABecLaplacian ()
 }
 
 void
+MyTest::solveABecLaplacianGMRES ()
+{
+    LPInfo info;
+    info.setMaxCoarseningLevel(0);
+
+    const auto tol_rel = Real(1.e-6);
+    const auto tol_abs = Real(0.0);
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(composite_solve == false,
+       "solveABecLaplacianGMRES does not support composite solve");
+
+    const auto nlevels = static_cast<int>(geom.size());
+
+    for (int ilev = 0; ilev < nlevels; ++ilev)
+    {
+        MLABecLaplacian mlabec({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
+
+        mlabec.setMaxOrder(linop_maxorder);
+
+        // This is a 3d problem with homogeneous Neumann BC
+        mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
+                                         LinOpBCType::Neumann,
+                                         LinOpBCType::Neumann)},
+            {AMREX_D_DECL(LinOpBCType::Neumann,
+                          LinOpBCType::Neumann,
+                          LinOpBCType::Neumann)});
+
+        if (ilev > 0) {
+            mlabec.setCoarseFineBC(&solution[ilev-1], ref_ratio);
+        }
+
+        // for problem with pure homogeneous Neumann BC, we could pass a nullptr
+        mlabec.setLevelBC(0, nullptr);
+
+        mlabec.setScalars(ascalar, bscalar);
+
+        mlabec.setACoeffs(0, acoef[ilev]);
+
+        Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            const BoxArray& ba = amrex::convert(bcoef[ilev].boxArray(),
+                                                IntVect::TheDimensionVector(idim));
+            face_bcoef[idim].define(ba, bcoef[ilev].DistributionMap(), 1, 0);
+        }
+        amrex::average_cellcenter_to_face(GetArrOfPtrs(face_bcoef),
+                                          bcoef[ilev], geom[ilev]);
+        mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
+
+        MultiFab res(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
+
+        MLMG mlmg(mlabec);
+        mlmg.setVerbose(verbose);
+        mlmg.apply({&res}, {&solution[ilev]}); // res = L(sol)
+
+        MultiFab::Subtract(res, rhs[ilev], 0, 0, 1, 0); // now res = L(sol) - rhs
+
+        MultiFab cor(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
+
+        using M = GMRESMLMG;
+        M mat(mlmg);
+        mat.usePrecond(true);
+
+        GMRES<MultiFab,M> gmres;
+        gmres.setVerbose(verbose);
+        gmres.define(mat);
+        gmres.solve(cor, res, tol_rel, tol_abs); // solve L(cor) = res
+
+        MultiFab::Subtract(solution[ilev], cor, 0, 0, 1, 0);
+
+        mlmg.apply({&res}, {&solution[ilev]}); // res = L(sol)
+        MultiFab::Subtract(res, rhs[ilev], 0, 0, 1, 0); // now res = L(sol) - rhs
+        if (verbose) {
+            amrex::Print() << "Final residual = " << res.norminf(0)
+                           << " " << res.norm1(0) << " " << res.norm2(0) << std::endl;
+        }
+    }
+}
+
+void
 MyTest::readParameters ()
 {
     ParmParse pp;
@@ -483,6 +569,9 @@ MyTest::readParameters ()
     pp.query("semicoarsening", semicoarsening);
     pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("max_semicoarsening_level", max_semicoarsening_level);
+
+    pp.query("use_gmres", use_gmres);
+    AMREX_ALWAYS_ASSERT(use_gmres == false || prob_type == 2);
 
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);

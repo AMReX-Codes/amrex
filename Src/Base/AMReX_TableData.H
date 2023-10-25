@@ -22,8 +22,7 @@ struct Table1D
     int begin = 1;
     int end = 0;
 
-    AMREX_GPU_HOST_DEVICE
-    constexpr Table1D () noexcept {}
+    constexpr Table1D () noexcept = default;
 
     template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
     AMREX_GPU_HOST_DEVICE
@@ -81,8 +80,7 @@ struct Table2D
     GpuArray<int,2> begin{{1,1}};
     GpuArray<int,2> end{{0,0}};
 
-    AMREX_GPU_HOST_DEVICE
-    constexpr Table2D () noexcept {}
+    constexpr Table2D () noexcept = default;
 
     template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
     AMREX_GPU_HOST_DEVICE
@@ -147,8 +145,7 @@ struct Table3D
     GpuArray<int,3> begin{{1,1,1}};
     GpuArray<int,3> end{{0,0,0}};
 
-    AMREX_GPU_HOST_DEVICE
-    constexpr Table3D () noexcept {}
+    constexpr Table3D () noexcept = default;
 
     template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
     AMREX_GPU_HOST_DEVICE
@@ -219,8 +216,7 @@ struct Table4D
     GpuArray<int,4> begin{{1,1,1,1}};
     GpuArray<int,4> end{{0,0,0,0}};
 
-    AMREX_GPU_HOST_DEVICE
-    constexpr Table4D () noexcept {}
+    constexpr Table4D () noexcept = default;
 
     template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
     AMREX_GPU_HOST_DEVICE
@@ -337,7 +333,7 @@ public:
                              std::conditional_t<N==3, Table3D<T const>,
                                                       Table4D<T const> > > >;
 
-    TableData () noexcept;
+    TableData () noexcept = default;
 
     explicit TableData (Arena* ar) noexcept;
 
@@ -351,11 +347,11 @@ public:
 
     ~TableData () noexcept;
 
-    constexpr int dim () const noexcept { return N; }
+    [[nodiscard]] constexpr int dim () const noexcept { return N; }
 
     void resize (Array<int,N> const& lo, Array<int,N> const& hi, Arena* ar = nullptr);
 
-    Long size () const noexcept;
+    [[nodiscard]] Long size () const noexcept;
 
     Array<int,N> const& lo () const noexcept { return m_lo; }
 
@@ -379,9 +375,6 @@ private:
     Long m_truesize = 0L;
     bool m_ptr_owner = false;
 };
-
-template <typename T, int N>
-TableData<T,N>::TableData () noexcept {}
 
 template <typename T, int N>
 TableData<T,N>::TableData (Array<int,N> const& lo, Array<int,N> const& hi, Arena* ar)
