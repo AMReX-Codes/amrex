@@ -565,7 +565,7 @@ The following parameter should be set to True if the problem to be solved has a 
 In this case, the solution is only defined to within a constant.  Setting this parameter to True
 replaces one row in the matrix sent to hypre from AMReX by a row that sets the value at one cell to 0.
 
-- :cpp:`hypre.adjust_singular_matrix`:   Default is False.
+- :cpp:`hypre.adjust_singular_matrix`:   Default is false.
 
 
 The following parameters can be set in the inputs file to control the choice of preconditioner and smoother:

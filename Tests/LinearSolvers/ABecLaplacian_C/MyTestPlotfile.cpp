@@ -8,6 +8,19 @@ using namespace amrex;
 void
 MyTest::writePlotfile () const
 {
+    if (prob_type == 4) {
+        for (int ilev = 0; ilev <= max_level; ++ilev) {
+            VisMF::Write(solution[ilev], "solution-lev"+std::to_string(ilev));
+            MultiFab errmf(solution[ilev].boxArray(),
+                           solution[ilev].DistributionMap(), 1, 1);
+            MultiFab::Copy(errmf, solution[ilev], 0, 0, 1, 0);
+            MultiFab::Subtract(errmf, exact_solution[ilev], 0, 0, 1, 0);
+            auto error = errmf.norminf();
+            amrex::Print() << "Level " << ilev << " max-norm error: " << error << std::endl;
+        }
+        return;
+    }
+
     ParmParse pp;
     bool gpu_regtest = false;
 #ifdef AMREX_USE_GPU

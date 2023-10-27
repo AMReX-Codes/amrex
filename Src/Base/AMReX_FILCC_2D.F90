@@ -16,7 +16,7 @@
 !!                        corner of q array
 !! \param bc           => array of boundary flags bc(SPACEDIM,lo:hi)
 !!
-!! NOTE: all corner as well as edge data is filled if not EXT_DIR
+!! NOTE: all corner as well as edge data is filled if not EXT_DIR/EXT_DIR_CC
 ! -----------------------------------------------------------
 
 subroutine filcc(q,q_l1,q_l2,q_h1,q_h2,domlo,domhi,dx,xlo,bc)

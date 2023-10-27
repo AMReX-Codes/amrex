@@ -172,3 +172,40 @@ MyTest::initProbABecLaplacianInhomNeumann ()
         solution[ilev].setVal(0.0,0,1,0); // set interior to 0
     }
 }
+
+void
+MyTest::initProbNodeABecLaplacian ()
+{
+    for (int ilev = 0; ilev <= max_level; ++ilev)
+    {
+        solution[ilev].setVal(0.0);
+
+        const auto prob_lo = geom[ilev].ProbLoArray();
+        const auto prob_hi = geom[ilev].ProbHiArray();
+        const auto dx      = geom[ilev].CellSizeArray();
+        auto a = ascalar;
+        auto b = bscalar;
+        Box const& nddom = amrex::surroundingNodes(geom[ilev].Domain());
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(rhs[ilev]); mfi.isValid(); ++mfi)
+        {
+            const Box& ndbx = mfi.validbox();
+
+            auto rhsfab = rhs[ilev].array(mfi);
+            auto exactfab = exact_solution[ilev].array(mfi);
+            auto solfab   = solution[ilev].array(mfi);
+            auto acoeffab = acoef[ilev].array(mfi);
+            auto bcoeffab = bcoef[ilev].array(mfi);
+
+            amrex::ParallelFor(ndbx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                actual_init_nodeabeclap(i,j,k,rhsfab,exactfab,solfab,
+                                        acoeffab,bcoeffab,a,b,
+                                        nddom,prob_lo,prob_hi,dx);
+            });
+        }
+    }
+}

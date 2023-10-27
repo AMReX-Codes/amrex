@@ -30,7 +30,7 @@ namespace amrex {
  * (1) This class is for filling data during time stepping, not during
  * regrid.  The fine level data passed as input must have the same BoxArray
  * and DistributionMapping as the destination.  It's OK they are the same
- * MultiFab.  For AmrLevel based codes, AmrLevel::FillPatcherFill wil try to
+ * MultiFab.  For AmrLevel based codes, AmrLevel::FillPatcherFill will try to
  * use FillPatcher if it can, and AmrLevel::FillPatch will use the fillpatch
  * functions.
  *
@@ -64,7 +64,7 @@ namespace amrex {
  * AMR levels.  This operation at the coarse/fine boundary is non-trivial
  * for RK orders higher than 2.  Note that it is expected that time stepping
  * on the coarse level is perform before any fine level time stepping, and
- * it's the user's reponsibility to properly create and destroy this object.
+ * it's the user's responsibility to properly create and destroy this object.
  * See AmrLevel::RK for an example of using the RungeKutta functions and
  * FillPatcher together.
  */
@@ -419,7 +419,7 @@ void FillPatcher<MF>::storeRKCoarseData (Real /*time*/, Real dt, MF const& S_old
     auto const& fpc = getFPinfo();
 
     for (auto& tmf : m_cf_crse_data) {
-        tmf.first = std::numeric_limits<Real>::lowest(); // because we dont' need it
+        tmf.first = std::numeric_limits<Real>::lowest(); // because we don't need it
         tmf.second = std::make_unique<MF>(make_mf_crse_patch<MF>(fpc, m_ncomp));
     }
     m_cf_crse_data[0].second->ParallelCopy(S_old, m_cgeom.periodicity());

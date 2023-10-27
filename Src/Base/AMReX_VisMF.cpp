@@ -2202,7 +2202,7 @@ void VisMF::CloseStream(const std::string &fileName, bool forceClose)
     pifs.pstr = nullptr;
     pifs.isOpen = false;
   }
-  pifs.ioBuffer.clear();
+  VisMFBuffer::ClearBuffer(pifs.ioBuffer);
 }
 
 

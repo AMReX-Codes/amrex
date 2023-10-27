@@ -130,7 +130,7 @@ public:
      *
      * This functions must be called, and must be called before other bc
      * functions. This version is for single-component solve or when all the
-     * compoents have the same BC types.
+     * components have the same BC types.
      *
      * \param lobc lower boundaries
      * \param hibc upper boundaries
@@ -355,7 +355,7 @@ public:
      * \param resid        residual
      * \param x            unknown in the residual-correction form
      * \param b            RHS in the residual-correction form
-     * \param bc_mode      Is the BC homegeneous or inhomogeneous?
+     * \param bc_mode      Is the BC homogeneous or inhomogeneous?
      * \param crse_bc_data optional argument providing BC at coarse/fine boundary.
      */
     virtual void correctionResidual (int amrlev, int mglev, MF& resid, MF& x, const MF& b,

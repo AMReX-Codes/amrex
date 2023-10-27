@@ -2,13 +2,13 @@ name: CleanUpCache
 
 on:
   workflow_run:
-    workflows: [LinuxClang, cuda, LinuxGcc, hip, Hypre, intel, macos, PETSc, SUNDIALS, windows, CodeQL, smoke, apps]
+    workflows: [bittree, LinuxClang, cuda, LinuxGcc, hip, Hypre, intel, macos, PETSc, SUNDIALS, CodeQL, smoke, apps]
     types:
       - completed
 
 jobs:
   CleanUpCcacheCache:
-    name: Clean Up Ccahe Cache for ${{ github.event.workflow_run.name }}
+    name: Clean Up Ccache Cache for ${{ github.event.workflow_run.name }}
     runs-on: ubuntu-latest
     permissions:
       actions: write
@@ -17,7 +17,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
-      - name: Clean up ccahe
+      - name: Clean up ccache
         run: |
           gh extension install actions/gh-actions-cache
 

@@ -14,7 +14,7 @@ void Initialize(int nthreads)
 {
     amrex::Print() << "Initializing SUNDIALS with " << nthreads << " threads...\n";
 
-    // Initalize the sundials context
+    // Initialize the sundials context
     if (initialized.empty()) {
         initialized.resize(nthreads);
         std::fill(initialized.begin(), initialized.end(), 0);

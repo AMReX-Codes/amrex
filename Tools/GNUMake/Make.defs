@@ -1,6 +1,6 @@
 
 ifneq (,$(findstring ~,$(AMREX_HOME)))
-  $(warning *** AMREX_HOME string constains ~ and make will not like it. So it is replaced.)
+  $(warning *** AMREX_HOME string contains ~ and make will not like it. So it is replaced.)
   AMREX_HOME := $(shell echo $(AMREX_HOME))
 endif
 
@@ -1066,6 +1066,12 @@ ifeq ($(USE_HDF5),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hdf5...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hdf5
 endif
+
+ifeq ($(USE_BITTREE),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.bittree...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.bittree
+endif
+
 
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local...)

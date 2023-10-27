@@ -38,14 +38,36 @@ include(AMReXTargetHelpers)
 #
 # Set paths
 #
-string(REPLACE "/Tools/CMake" "" AMREX_TOP_DIR ${CMAKE_CURRENT_LIST_DIR})
-set( AMREX_TOP_DIR ${AMREX_TOP_DIR} CACHE INTERNAL "Top level AMReX directory")
+if (AMReX_DIR)
+   # AMReX is pre-installed and used as a library
+   if (WIN32)  # see AMReXInstallHelpers.cmake
+       string(REPLACE "/cmake/AMReXCMakeModules" ""
+              AMREX_TOP_DIR_DEFAULT
+              ${CMAKE_CURRENT_LIST_DIR})
+   else ()
+       string(REPLACE "/lib/cmake/AMReX/AMReXCMakeModules" ""
+              AMREX_TOP_DIR_DEFAULT
+              ${CMAKE_CURRENT_LIST_DIR})
+   endif ()
+else ()
+   # this is a superbuild
+   string(REPLACE "/Tools/CMake" "" AMREX_TOP_DIR_DEFAULT
+          ${CMAKE_CURRENT_LIST_DIR})
+endif ()
+set(AMREX_TOP_DIR "${AMREX_TOP_DIR_DEFAULT}" CACHE INTERNAL "Top level AMReX directory")
 
-set( AMREX_BUILDINFO_IFILE ${CMAKE_CURRENT_LIST_DIR}/AMReX_buildInfo.cpp.in
+if (AMReX_DIR)
+   # AMReX is pre-installed and used as a library
+   set(AMREX_C_SCRIPTS_DIR "${AMREX_TOP_DIR}/share/amrex/C_scripts"
+       CACHE INTERNAL "Path to AMReX' C_scripts dir")
+else ()
+   # this is a superbuild
+   set(AMREX_C_SCRIPTS_DIR "${AMREX_TOP_DIR}/Tools/C_scripts"
+       CACHE INTERNAL "Path to AMReX' C_scripts dir")
+endif ()
+
+set(AMREX_BUILDINFO_IFILE ${CMAKE_CURRENT_LIST_DIR}/AMReX_buildInfo.cpp.in
    CACHE INTERNAL "Full path and name of AMReX_buildInfo.cpp.in")
-
-set( AMREX_C_SCRIPTS_DIR "${AMREX_TOP_DIR}/Tools/C_scripts"
-   CACHE INTERNAL "Path to AMReX' C_scripts dir")
 
 set(AMREX_BUILD_DATETIME "" CACHE STRING
    "User defined build date and time. Set ONLY for reproducibly built binary distributions")
@@ -189,7 +211,7 @@ function (generate_buildinfo _target _git_dir)
    configure_file( ${AMREX_BUILDINFO_IFILE}
       ${PROJECT_BINARY_DIR}/${_target}/AMReX_buildInfo.cpp @ONLY)
 
-   # add a re-usable target
+   # add a reusable target
    add_library(buildInfo${_target} STATIC)
    add_library(buildInfo::${_target} ALIAS buildInfo${_target})
 

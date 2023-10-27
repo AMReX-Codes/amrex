@@ -43,7 +43,7 @@ HIPCC_FLAGS += -pthread
 
 CXXFLAGS += $(HIPCC_FLAGS)
 
-# add fopenmp targetting the gnu library
+# add fopenmp targeting the gnu library
 ifeq ($(USE_OMP),TRUE)
   CXXFLAGS += -fopenmp=libgomp
   CFLAGS   += -fopenmp=libgomp

@@ -150,7 +150,7 @@ namespace Gpu {
     }
 
     /**
-     * This struct provides a RAII-style mechansim for changing the number
+     * This struct provides a RAII-style mechanism for changing the number
      * of streams returned by Gpu::numStreams() to a single stream.
      */
     struct [[nodiscard]] SingleStreamRegion
@@ -166,7 +166,7 @@ namespace Gpu {
     };
 
     /**
-     * This struct provides a RAII-style mechansim for disabling GPU
+     * This struct provides a RAII-style mechanism for disabling GPU
      * synchronization in MFITer by default.  Note that explicit calls to
      * Gpu::steramSynchronize and Gpu::deviceSynchronize still work.
      */

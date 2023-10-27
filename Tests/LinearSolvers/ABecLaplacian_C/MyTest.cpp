@@ -1,5 +1,6 @@
 #include "MyTest.H"
 
+#include <AMReX_MLNodeABecLaplacian.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLPoisson.H>
 #include <AMReX_ParmParse.H>
@@ -22,6 +23,8 @@ MyTest::solve ()
         solveABecLaplacian();
     } else if (prob_type == 3) {
         solveABecLaplacianInhomNeumann();
+    } else if (prob_type == 4) {
+        solveNodeABecLaplacian();
     } else {
         amrex::Abort("Unknown prob_type");
     }
@@ -410,6 +413,54 @@ MyTest::solveABecLaplacianInhomNeumann ()
 }
 
 void
+MyTest::solveNodeABecLaplacian ()
+{
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+    info.setMaxCoarseningLevel(max_coarsening_level);
+
+    const auto tol_rel = Real(1.e-10);
+    const auto tol_abs = Real(0.0);
+
+    const auto nlevels = static_cast<int>(geom.size());
+
+    if (composite_solve && nlevels > 1)
+    {
+        amrex::Abort("solveNodeABecLaplacian: TODO composite_solve");
+    }
+    else
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nlevels == 1, "solveNodeABecLaplacian: nlevels > 1 TODO");
+        for (int ilev = 0; ilev < nlevels; ++ilev)
+        {
+            MLNodeABecLaplacian mlndabec({geom[ilev]}, {grids[ilev]}, {dmap[ilev]},
+                                         info);
+
+            mlndabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                               LinOpBCType::Neumann,
+                                               LinOpBCType::Dirichlet)},
+                                 {AMREX_D_DECL(LinOpBCType::Neumann,
+                                               LinOpBCType::Dirichlet,
+                                               LinOpBCType::Dirichlet)});
+
+            mlndabec.setScalars(ascalar, bscalar);
+
+            mlndabec.setACoeffs(0, acoef[ilev]);
+            mlndabec.setBCoeffs(0, bcoef[ilev]);
+
+            MLMG mlmg(mlndabec);
+            mlmg.setMaxIter(max_iter);
+            mlmg.setMaxFmgIter(max_fmg_iter);
+            mlmg.setVerbose(verbose);
+            mlmg.setBottomVerbose(bottom_verbose);
+
+            mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
+        }
+    }
+}
+
+void
 MyTest::readParameters ()
 {
     ParmParse pp;
@@ -463,7 +514,7 @@ MyTest::initData ()
     rhs.resize(nlevels);
     exact_solution.resize(nlevels);
 
-    if (prob_type == 2 || prob_type == 3) {
+    if (prob_type == 2 || prob_type == 3 || prob_type == 4) {
         acoef.resize(nlevels);
         bcoef.resize(nlevels);
     }
@@ -491,12 +542,17 @@ MyTest::initData ()
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
         dmap[ilev].define(grids[ilev]);
-        solution      [ilev].define(grids[ilev], dmap[ilev], 1, 1);
-        rhs           [ilev].define(grids[ilev], dmap[ilev], 1, 0);
-        exact_solution[ilev].define(grids[ilev], dmap[ilev], 1, 0);
+        BoxArray ba = grids[ilev];
+        if (prob_type == 4) {
+            ba.surroundingNodes();
+        }
+        solution      [ilev].define(ba, dmap[ilev], 1, 1);
+        rhs           [ilev].define(ba, dmap[ilev], 1, 0);
+        exact_solution[ilev].define(ba, dmap[ilev], 1, 0);
         if (!acoef.empty()) {
-            acoef[ilev].define(grids[ilev], dmap[ilev], 1, 0);
-            bcoef[ilev].define(grids[ilev], dmap[ilev], 1, 1);
+            acoef[ilev].define(ba         , dmap[ilev], 1, 0);
+            const int ngb = (prob_type == 4) ? 0 : 1;
+            bcoef[ilev].define(grids[ilev], dmap[ilev], 1, ngb);
         }
     }
 
@@ -506,6 +562,8 @@ MyTest::initData ()
         initProbABecLaplacian();
     } else if (prob_type == 3) {
         initProbABecLaplacianInhomNeumann();
+    } else if (prob_type == 4) {
+        initProbNodeABecLaplacian();
     } else {
         amrex::Abort("Unknown prob_type "+std::to_string(prob_type));
     }

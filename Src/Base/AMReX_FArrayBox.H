@@ -23,7 +23,7 @@ class FArrayBox;
 * only want to write out 32 bit FABs.
 *
 * With the exception of the enumeration constants, this class is
-* primarily for FArrayBox implementors; i.e. user's shouldn't
+* primarily for FArrayBox implementers; i.e. user's shouldn't
 * call any of the member functions in this class directly.
 */
 
@@ -241,7 +241,7 @@ public:
 
     /**
     * \brief Construct an initial FAB with the data space allocated but
-    * not inititialized. ncomp is the number of components
+    * not initialized. ncomp is the number of components
     * (variables) at each data point in the Box.
     */
     explicit FArrayBox (const Box& b,
@@ -409,7 +409,7 @@ public:
     /**
     * \brief Set the FABio::Format in the program.
     * This is the preferred way to set the output format
-    * in "new" FABs.  When desiging new programs, this should
+    * in "new" FABs.  When designing new programs, this should
     * be the only function that needs to be called in order
     * to set the format.
     */

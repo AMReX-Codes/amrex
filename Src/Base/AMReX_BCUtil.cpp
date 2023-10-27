@@ -15,7 +15,7 @@ void dummy_cpu_fill_extdir (Box const& /*bx*/, Array4<Real> const& /*dest*/,
                             const BCRec* /*bcr*/, const int /*bcomp*/,
                             const int /*orig_comp*/)
 {
-    // do something for external Dirichlet (BCType::ext_dir) if there are
+    // do something for external Dirichlet (BCType::ext_dir or BCType::ext_dir_cc) if there are
 }
 
 struct dummy_gpu_fill_extdir
@@ -27,7 +27,7 @@ struct dummy_gpu_fill_extdir
                      const BCRec* /*bcr*/, const int /*bcomp*/,
                      const int /*orig_comp*/) const
         {
-            // do something for external Dirichlet (BCType::ext_dir) if there are
+            // do something for external Dirichlet (BCType::ext_dir or BCType::ext_dir_cc) if there are
         }
 };
 
