@@ -1,50 +1,58 @@
-#include <AMReX_MultiFabSet.H>
+#include <AMReX_FabArraySet.H>
 #include <AMReX_MLLinOp.H>
 
 using namespace amrex;
 
-class MLLinOpSet : public MLLinOpT<MultiFabSet> 
+class MLLinOpSet : public MLLinOpT<MultiFabSet>
 {
 public:
 
-    using MFSet = typename amrex::MultiFabSet;
+    using MFSet = amrex::MultiFabSet;
 
-    MultiFabSet make (int amrlev, int mglev, IntVect const& ng) const;
+    MFSet make (int amrlev, int mglev, IntVect const& ng) const;
 
     MFSet makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const;
 
+    MFSet makeCoarseAmr (int famrlev, IntVect const& ng) const;
+
+    int getNSet () const { return m_ixtype_set.size(); }
+
+    int getNComp () const { return m_NComp; }
+
 protected:
-    Vector<MLLinOp> m_linop_set;
-    Vector<IntVect> m_ixtype_set;
+
+    Vector<IndexType> m_ixtype_set;
+
+    int m_NComp;
 };
 
-MultiFabSet
+using MFSet = amrex::MultiFabSet;
+
+MFSet
 MLLinOpSet::make (int amrlev, int mglev, IntVect const& ng) const
 {
-
-    auto dm = m_dmap[amrlev][mglev];
     auto bxa = m_grids[amrlev][mglev];
+    const DistributionMapping& dm = m_dmap[amrlev][mglev];
     auto fact = *m_factory[amrlev][mglev];
-    return MultiFabSet(bxa, dm, getNComp(), ng, MFInfo(), fact);
-    // MultiFabSet<N> result;
-    //                       getNComp(), ng, MFInfo(),
-
-
-
-
-    // for (int i = 0; i < N; ++i) {
-    //     result[i] = FAB(amrex::convert(bxa, m_ixtype_set[i]),
-    //                    m_dmap[amrlev][mglev], getNComp(), ng, MFInfo(),
-    //                    *m_factory[amrlev][mglev]);
-    // }
-    // return result;
+    return MFSet(bxa, m_ixtype_set, dm, getNComp(), ng, MFInfo(), fact);
 }
 
-MultiFabSet
+// template <typename MFSet>
+MFSet
 MLLinOpSet::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
 {
-    MultiFabSet mfs;
-    for (int i = 0; i < getNComp(); i++) {
-        mfs.setElem(i, &m_linop_set[i].makeCoarseMG(amrlev, mglev, ng));
-    }
+    BoxArray cba = m_grids[amrlev][mglev];
+    IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev];
+    cba.coarsen(ratio);
+    return MFSet(cba, m_ixtype_set, m_dmap[amrlev][mglev], getNComp(), ng);
+}
+
+// template <typename MFSet>
+MFSet
+MLLinOpSet::makeCoarseAmr (int famrlev, IntVect const& ng) const
+{
+    BoxArray cba = m_grids[famrlev][0];
+    IntVect ratio(AMRRefRatio(famrlev-1));
+    cba.coarsen(ratio);
+    return MFSet(cba, m_ixtype_set, m_dmap[famrlev][0], getNComp(), ng);
 }

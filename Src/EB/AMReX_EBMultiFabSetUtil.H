@@ -1,5 +1,5 @@
 #include <AMReX_EBMultiFabUtil.H>
-#include <AMReX_MultiFabSet.H>
+#include <AMReX_FabArraySet.H>
 
 namespace amrex
 {

@@ -15,6 +15,8 @@ namespace amrex {
  * Intended for use as a single object to use as input/output in a linear solver
  * class that inherits from MLLinOpT<FabArraySet< \p MF >>.
  *
+ * Not to be confused with FabSet.
+ *
  * \tparam MF FabArray or derived class
  */
 template <class MF>
