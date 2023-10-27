@@ -7,10 +7,10 @@
 namespace amrex {
 
 /**
- * \brief A set of FabArray objects with distinct IndexType's
+ * \brief A set of FabArray's with distinct IndexType's living on the same mesh.
  *
  * Intended for use as a single object to use as input/output in a linear solver
- * class that inherits from MLLinOpT<FabArraySet<MF>>.
+ * class that inherits from MLLinOpT<FabArraySet< \p MF >>.
  *
  * \tparam MF FabArray or derived class
  */
@@ -41,24 +41,18 @@ public:
     // explicit FabArraySet (Arena* a) noexcept;
 
     /**
-     * \brief Construct a FabArraySet with a valid region defined by \p bxs
-     * and a region of definition defined by IndexType's \p ixtypes,
-     * grow factor \p ngrow, and the number of components per MF \p nvar.
-     */
-
-    /**
-     * \brief Constructs a new FabArraySet<MF>
+     * \brief Constructs a new FabArraySet.
      *
-     * The size of the MFs is given by the Box Array \p bxs modified by the IndexType's
-     * \p ixtypes and grown by \p ngrow . The number of components for each MF is given
-     * by \p ncomp , and the size of \p ixtypes determines number of MFs in the set.
-     * If \p info is set to not allocating memory, then no FABs are allocated at this
-     * time but can be defined later.
+     * The size of the each FabArray ( \p MF ) element is given by the BoxArray
+     * \p bxs modified by the IndexType's \p ixtypes and grown by \p ngrow.
+     * Each \p MF has \p ncomp components, and the size of \p ixtypes determines
+     * the number of \p MFs in the set. If \p info is set to not allocating memory,
+     * then no FABs are allocated at this time but can be defined later.
      *
      * \param bxs a valid region
-     * \param ixtypes IndexType for each MF. The number of MFs in the set will be the size of \p ixTypes
+     * \param ixtypes IndexType for each \p MF. Its size determines the number of \p MFs in the set.
      * \param dm a DistribuionMapping
-     * \param ncomp number of components for each MF (different from number of MFs in the set)
+     * \param ncomp number of components for each MF (not to be confused with the number of \p MFs in the set)
      * \param ngrow number of cells the region grows
      * \param info MFInfo
      * \param factory FabFactory
@@ -78,7 +72,7 @@ public:
 
     /**
      * \brief Make an alias FabArraySet<MF>.
-     * 
+     *
      * \param rhs Make an alias of rhs
      * \param maketype must be amrex::make_alias
      * \param scomp starting component in the MFs of the alias
@@ -122,7 +116,7 @@ public:
     //! get a const reference to element of index i
     const MF& getElem (int iSet) const noexcept { return *m_mf_set[iSet]; }
 
-    [[nodiscard]] IntVect nGrowVect (int i = 0) const noexcept { return getElem(i).nGrowVect(); }
+    [[nodiscard]] IntVect nGrowVect (int iSet = 0) const noexcept { return getElem(iSet).nGrowVect(); }
 
     //! Return the grow factor that defines the region of definition for element of index `iSet`
     [[nodiscard]] int nGrow (int direction = 0, int iSet = 0) const noexcept { return getElem(iSet).nGrow(direction); }
@@ -137,10 +131,10 @@ public:
     * \brief Return a constant reference to the nodal BoxArray that defines the
     * valid region associated with this FabArraySet.
     */
-    [[nodiscard]] const BoxArray& boxArray (int i = 0) const noexcept { return getElem(i).boxArray(); }
+    [[nodiscard]] const BoxArray& boxArray (int iSet = 0) const noexcept { return getElem(iSet).boxArray(); }
 
     //! Return constant reference to associated DistributionMapping.
-    [[nodiscard]] const DistributionMapping& DistributionMap (int i = 0) const noexcept { return getElem(i).DistributionMap(); }
+    [[nodiscard]] const DistributionMapping& DistributionMap (int iSet = 0) const noexcept { return getElem(iSet).DistributionMap(); }
 
     //! number of MF elements in the set
     [[nodiscard]] std::size_t nSet () const noexcept { return m_mf_set.size(); }
@@ -172,7 +166,7 @@ public:
     //               IsFabArray<DFA>, IsFabArray<SFA>,
     //               std::is_convertible<typename SFA::value_type,
     //                                   typename DFA::value_type>>, int> = 0>
-    void LocalCopy (const FabArraySet& src, int scomp, int dcomp, int ncomp,
+    void LocalCopy (const FabArraySet<MF>& src, int scomp, int dcomp, int ncomp,
                     IntVect const& nghost);
 
     /**
@@ -188,7 +182,7 @@ public:
      * \param nghost number of ghost cells
      */
     // template <class F=FA, std::enable_if_t<IsFabArray<F>::value,int> = 0>
-    void LocalAdd (FabArraySet const& src, int scomp, int dcomp, int ncomp,
+    void LocalAdd (FabArraySet<MF> const& src, int scomp, int dcomp, int ncomp,
                    IntVect const& nghost);
 
     bool isAllRegular () const noexcept;
@@ -240,7 +234,7 @@ public:
      * \param nghost number of ghost cells
      */
     // template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    static void Saxpy (FabArraySet& y, value_type a, FabArraySet const& x,
+    static void Saxpy (FabArraySet& y, value_type a, FabArraySet<MF> const& x,
                        int xcomp, int ycomp, int ncomp, IntVect const& nghost);
 
     /**
@@ -255,7 +249,7 @@ public:
      * \param nghost number of ghost cells
      */
     // template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    static void Xpay (FabArraySet& y, value_type a, FabArraySet const& x,
+    static void Xpay (FabArraySet& y, value_type a, FabArraySet<MF> const& x,
                       int xcomp, int ycomp, int ncomp, IntVect const& nghost);
 
     /**
@@ -423,7 +417,7 @@ FabArraySet<MF>::LocalCopy (const FabArraySet& src, int scomp, int dcomp, int nc
 
 template <class MF>
 void
-FabArraySet<MF>::LocalAdd (FabArraySet const& src, int scomp, int dcomp, int ncomp,
+FabArraySet<MF>::LocalAdd (FabArraySet<MF> const& src, int scomp, int dcomp, int ncomp,
                        IntVect const& nghost)
 {
     for (int i = 0; i < nSet(); ++i) {
@@ -501,9 +495,9 @@ FabArraySet<MF>::Xpay (FabArraySet<MF>& y, value_type a, const FabArraySet<MF>& 
 template <class MF>
 void
 FabArraySet<MF>::LinComb (FabArraySet<MF>& dst,
-                         value_type a, const FabArraySet<MF>& x, int xcomp,
-                         value_type b, const FabArraySet<MF>& y, int ycomp,
-                         int dstcomp, int numcomp, const IntVect& nghost)
+                          value_type a, const FabArraySet<MF>& x, int xcomp,
+                          value_type b, const FabArraySet<MF>& y, int ycomp,
+                          int dstcomp, int numcomp, const IntVect& nghost)
 {
     for (int i = 0; i < y.nSet(); ++i) {
         MF::LinComb(dst[i],a,x[i],xcomp,b,y[i],ycomp,dstcomp,numcomp,nghost);
