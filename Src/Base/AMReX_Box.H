@@ -836,27 +836,14 @@ AMREX_FORCE_INLINE
 Box&
 Box::convert (IndexType t) noexcept
 {
-    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
-    {
-        const auto typ = t.test(dir);
-        const auto bitval = btype.test(dir);
-        if (typ) {
-            if (!bitval) {
-                bigend.shift(dir,1);
-            }
-        }
-        else {
-            if (bitval) {
-                bigend.shift(dir,-1);
-            }
-        }
-        // const auto typ = t[dir];
-        // const auto bitval = btype[dir];
-        // const int off = typ - bitval;
-        // bigend.shift(dir,off);
-        // btype.setType(dir, (IndexType::CellIndex) typ);
+   for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+   {
+      const auto typ = t[dir];
+      const auto bitval = btype[dir];
+      const int off = typ - bitval;
+      bigend.shift(dir,off);
+      btype.setType(dir, (IndexType::CellIndex) typ);
    }
-   btype = t;
    return *this;
 }
 

@@ -21,14 +21,14 @@ protected:
 MultiFabSet
 MLLinOpSet::make (int amrlev, int mglev, IntVect const& ng) const
 {
-    
+
     auto dm = m_dmap[amrlev][mglev];
     auto bxa = m_grids[amrlev][mglev];
     auto fact = *m_factory[amrlev][mglev];
     return MultiFabSet(bxa, dm, getNComp(), ng, MFInfo(), fact);
     // MultiFabSet<N> result;
     //                       getNComp(), ng, MFInfo(),
-    
+
 
 
 

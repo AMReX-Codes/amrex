@@ -33,6 +33,7 @@ class iMultiFab;
  * Additional member functions are defined for I/O and simple arithmetic operations on these aggregate objects.
  * This class does NOT provide a copy constructor or assignment operator.
  */
+
 class MultiFab
     :
     public FabArray<FArrayBox>
@@ -49,27 +50,26 @@ public:
     /**
     * \brief Constructs an empty MultiFab.  Data can be defined at a later
     * time using the define member functions inherited from FabArray.  If
-    * `define` is called later with a nullptr as MFInfo's arena, the default
+    * `define` is called later with a nulltpr as MFInfo's arena, the default
     * Arena `a` will be used.  If the arena in MFInfo is not a nullptr, the
     * MFInfo's arena will be used.
     */
     explicit MultiFab (Arena* a) noexcept;
 
     /**
-     * \brief Constructs a MultiFab
-     *
-     * \param bxs a valid region
-     * \param dm a DistribuionMapping
-     * \param ncomp number of components
-     * \param ngrow number of cells the region grows
-     * \param info MFInfo
-     * \param factory FabFactory
-     *
-     * The size of the FArrayBox is given by the Box grown by ngrow, and
-     * the number of components is given by ncomp. If info is set to
-     * not allocating memory, then no FArrayBoxes are allocated at
-     * this time but can be defined later.
-     */
+    * \brief
+    * Constructs a MultiFab
+    * \param bs a valid region
+    * \param dm a DistribuionMapping
+    * \param ncomp number of components
+    * \param ngrow number of cells the region grows
+    * \param info MFInfo
+
+    * The size of the FArrayBox is given by the Box grown by ngrow, and
+    * the number of components is given by ncomp. If info is set to
+    * not allocating memory, then no FArrayBoxes are allocated at
+    * this time but can be defined later.
+    */
     MultiFab (const BoxArray&            bxs,
               const DistributionMapping& dm,
               int                        ncomp,
