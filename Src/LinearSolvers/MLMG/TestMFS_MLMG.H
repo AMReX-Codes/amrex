@@ -1,5 +1,3 @@
-#ifndef AMREX_ML_MG_H_
-#define AMREX_ML_MG_H_
 #include <AMReX_Config.H>
 
 // #include <AMReX_MLLinOP.H>
@@ -29,7 +27,7 @@ public:
     // using AMFSet = typename amrex::FabArraySet;
     using MFSet = typename amrex::MultiFabSet;
     using AMFSet = typename amrex::MultiFabSet;
-    
+
     using FAB = typename MFSet::fab_type;
     // using RT  = typename MFSet::value_type;
     using RT = typename amrex::Real;
@@ -1953,5 +1951,3 @@ MLMG_Test::checkPoint (const Vector<MultiFab*>& a_sol,
 // using MLMG = MLMG_Test<MultiFabSet>;
 
 }
-
-#endif

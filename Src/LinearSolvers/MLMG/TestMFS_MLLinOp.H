@@ -21,8 +21,8 @@
 #include <algorithm>
 #include <string>
 
-// TEST additons:
-#include <AMReX_MultiFabSet.H>
+// TEST additions:
+#include <AMReX_FabArraySet.H>
 #include <AMReX_MLLinOp.H>
 
 namespace amrex {
@@ -43,14 +43,12 @@ public:
     friend class MLPoisson_Test;
     friend class MLABecLaplacian_Test;
 
-    // using MFSet = typename amrex::FabArraySet;
-    // using AMFSet = typename amrex::FabArraySet;
     using MFSet = typename amrex::MultiFabSet;
     using AMFSet = typename amrex::MultiFabSet;
 
     using FAB = typename MFSet::fab_type;
     using RT  = typename MFSet::value_type;
-    
+
 
     using BCType = LinOpBCType;
     using BCMode    = LinOpEnumType::BCMode;

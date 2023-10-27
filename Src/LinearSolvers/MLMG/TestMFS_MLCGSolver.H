@@ -1,6 +1,3 @@
-
-#ifndef AMREX_MLCGSOLVER_H_
-#define AMREX_MLCGSOLVER_H_
 #include <AMReX_Config.H>
 
 #include <AMReX_MLLinOp.H>
@@ -14,7 +11,6 @@ class MLCGSolver_Test
 {
 public:
 
-    // using MFSet = typename amrex::FabArraySet;
     using MFSet = typename amrex::MultiFabSet;
     using FAB = typename MFSet::fab_type;
     using RT  = typename MFSet::value_type;
@@ -420,5 +416,3 @@ MLCGSolver_Test::norm_inf (const MFSet& res, bool local) -> RT
 // using MLCGSolver = MLCGSolver_Test<MultiFab>;
 
 }
-
-#endif /*_CGSOLVER_H_*/
