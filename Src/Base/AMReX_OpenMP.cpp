@@ -22,7 +22,7 @@
 #include <vector>
 
 
-namespace amrex::OpenMP
+namespace amrex
 {
     int
     numUniquePhysicalCores ()
@@ -131,8 +131,11 @@ namespace amrex::OpenMP
 #endif
         return ncores;
     }
+} // namespace amrex
 
 #ifdef AMREX_USE_OMP
+namespace amrex::OpenMP
+{
     void init_threads ()
     {
         amrex::ParmParse pp("amrex");
@@ -171,5 +174,5 @@ namespace amrex::OpenMP
             }
         }
     }
-#endif // AMREX_USE_OMP
 } // namespace amrex::OpenMP
+#endif // AMREX_USE_OMP
