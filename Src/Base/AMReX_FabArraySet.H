@@ -105,11 +105,13 @@ public:
 #endif
     //! get a reference to set element of index \p iSet
     MF& operator[] (int iSet) noexcept { return *m_mf_set[iSet]; }
+
     //! get a const reference to set element of index \p iSet
     const MF& operator[] (int iSet) const noexcept { return *m_mf_set[iSet]; }
 
     //! get a reference to element of index \p iSet
     MF& getElem (int iSet) noexcept { return *m_mf_set[iSet]; }
+
     //! get a const reference to element of index iSet
     const MF& getElem (int iSet) const noexcept { return *m_mf_set[iSet]; }
 

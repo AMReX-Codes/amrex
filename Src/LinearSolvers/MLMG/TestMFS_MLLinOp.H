@@ -24,6 +24,8 @@
 // TEST additions:
 #include <AMReX_FabArraySet.H>
 #include <AMReX_MLLinOp.H>
+#include <AMReX_MultiFabSetUtil.H>
+#include <AMReX_EBMultiFabSetUtil.H>
 
 namespace amrex {
 
@@ -77,7 +79,7 @@ public:
      *
      * This functions must be called, and must be called before other bc
      * functions. This version is for single-component solve or when all the
-     * compoents have the same BC types.
+     * components have the same BC types.
      *
      * \param lobc lower boundaries
      * \param hibc upper boundaries
@@ -138,7 +140,7 @@ public:
     */
     void setCoarseFineBC (const MFSet* crse, int crse_ratio) noexcept;
 
-    // template <typename AMFSet, std::enable_if_t<!std::is_same_v<MFSet,AMFSet>,int> = 0>
+    template <typename AMFSet, std::enable_if_t<!std::is_same_v<MFSet,AMFSet>,int> = 0>
     void setCoarseFineBC (const AMFSet* crse, int crse_ratio) noexcept;
 
     /**
@@ -164,7 +166,7 @@ public:
                              const MFSet* /*robinbc_b*/ = nullptr,
                              const MFSet* /*robinbc_f*/ = nullptr) = 0;
 
-    // template <typename AMFSet, std::enable_if_t<!std::is_same_v<MFSet,AMFSet>,int> = 0>
+    template <typename AMFSet, std::enable_if_t<!std::is_same_v<MFSet,AMFSet>,int> = 0>
     void setLevelBC (int amrlev, const AMFSet* levelbcdata,
                      const AMFSet* robinbc_a = nullptr,
                      const AMFSet* robinbc_b = nullptr,
@@ -243,7 +245,7 @@ public:
      * \brief Average-down data from fine AMR level to coarse AMR level.
      *
      * \param camrlev  coarse AMR level
-     * \param crse_sol solutoin on coarse AMR level
+     * \param crse_sol solution on coarse AMR level
      * \param crse_rhs RHS on coarse AMR level
      * \param fine_sol solution on fine AMR level
      * \param fine_rhs RHS on fine AMR level
@@ -1298,9 +1300,9 @@ MLLinOp_Test::setCoarseFineBC (const MFSet* crse, int crse_ratio) noexcept
     m_coarse_data_crse_ratio = crse_ratio;
 }
 
-// template <typename MFSet>
-// template <typename AMFSet, std::enable_if_t<!std::is_same_v<MFSet,AMFSet>,int>>
 // MFSet: Will need to override this
+// template <typename MFSet>
+template <typename AMFSet, std::enable_if_t<!std::is_same_v<MLLinOp_Test::MFSet,AMFSet>,int>>
 void
 MLLinOp_Test::setCoarseFineBC (const AMFSet* crse, int crse_ratio) noexcept
 {

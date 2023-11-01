@@ -284,7 +284,7 @@ public:
                           int       state_idx,
                           int       scomp,
                           int       ncomp,
-                          int       nghost = 0);
+                          IntVect   nghost = IntVect(0));
     //! Function to set physical boundary conditions.
     virtual void setPhysBoundaryValues (FArrayBox& dest,
                                         int        state_indx,
@@ -300,7 +300,7 @@ public:
     */
     virtual std::unique_ptr<MultiFab> derive (const std::string& name,
                                               Real               time,
-                                              int                ngrow);
+                                              IntVect            ngrow);
     /**
     * \brief This version of derive() fills the dcomp'th component of mf
     * with the derived quantity.
@@ -393,12 +393,12 @@ public:
      * \param state_index StateData index
      * \param scomp  starting component in the StateData
      */
-    void FillPatcherFill (amrex::MultiFab& mf, int dcomp, int ncomp, int nghost,
+    void FillPatcherFill (amrex::MultiFab& mf, int dcomp, int ncomp, IntVect nghost,
                           amrex::Real time, int state_index, int scomp);
 
     static void FillPatch (AmrLevel& amrlevel,
                            MultiFab& leveldata,
-                           int       boxGrow,
+                           IntVect   boxGrow,
                            Real      time,
                            int       index,
                            int       scomp,
@@ -407,7 +407,7 @@ public:
 
     static void FillPatchAdd (AmrLevel& amrlevel,
                               MultiFab& leveldata,
-                              int       boxGrow,
+                              IntVect   boxGrow,
                               Real      time,
                               int       index,
                               int       scomp,
@@ -453,7 +453,7 @@ public:
 #endif
 
     //! Recommendation of a proper blocking factor
-    static IntVect ProperBlockingFactor (AmrLevel const& amr_level, int boxGrow,
+    static IntVect ProperBlockingFactor (AmrLevel const& amr_level, IntVect boxGrow,
                                          IndexType const& boxType,
                                          StateDescriptor const& desc, int SComp);
 
@@ -528,17 +528,17 @@ class FillPatchIterator
 
     FillPatchIterator (AmrLevel& amrlevel,
                        MultiFab& leveldata,
-                       int       boxGrow,
+                       IntVect   boxGrow,
                        Real      time,
                        int       idx,
                        int       scomp,
                        int       ncomp);
 
-    void Initialize (int  boxGrow,
-                     Real time,
-                     int  idx,
-                     int  scomp,
-                     int  ncomp);
+    void Initialize (IntVect boxGrow,
+                     Real    time,
+                     int     idx,
+                     int     scomp,
+                     int     ncomp);
 
     FArrayBox& operator() () noexcept { return m_fabs[MFIter::index()]; }
 
@@ -572,14 +572,14 @@ public:
 
     FillPatchIteratorHelper (AmrLevel&     amrlevel,
                              MultiFab&     leveldata,
-                             int           boxGrow,
+                             IntVect       boxGrow,
                              Real          time,
                              int           index,
                              int           scomp,
                              int           ncomp,
                              InterpBase*   mapper);
 
-    void Initialize (int           boxGrow,
+    void Initialize (IntVect       boxGrow,
                      Real          time,
                      int           idx,
                      int           scomp,
@@ -599,7 +599,7 @@ private:
     Interpolater*              m_map = nullptr;
     std::map<int,Box>          m_ba;
     Real                       m_time = std::numeric_limits<Real>::lowest();
-    int                        m_growsize = std::numeric_limits<int>::lowest();
+    IntVect                    m_growsize = IntVect::TheMinVector();
     int                        m_index = -1;
     int                        m_scomp = -1;
     int                        m_ncomp = -1;
@@ -627,7 +627,7 @@ void AmrLevel::RK (int order, int state_type, Real time, Real dt, int iteration,
     if (order == 2) {
         RungeKutta::RK2(S_old, S_new, time, dt, std::forward<F>(f),
                         [&] (int /*stage*/, MultiFab& mf, Real t) {
-                            FillPatcherFill(mf, 0, mf.nComp(), mf.nGrow(), t,
+                            FillPatcherFill(mf, 0, mf.nComp(), mf.nGrowVect(), t,
                                             state_type, 0); },
                         std::forward<P>(p));
     } else if (order == 3) {

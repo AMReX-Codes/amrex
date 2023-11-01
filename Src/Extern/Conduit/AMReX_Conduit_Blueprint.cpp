@@ -396,7 +396,7 @@ MultiLevelToBlueprint (int n_levels,
         const MultiFab &mf = *mfs[i];
 
         // ngrow tells us how many layers of ghosts
-        int ngrow = mf.nGrow();
+        auto ngrow = mf.nGrowVect();
 
         // mfiter allows us to iterate over local patches
         for(MFIter mfi(mf); mfi.isValid(); ++mfi)
@@ -432,7 +432,7 @@ MultiLevelToBlueprint (int n_levels,
             FabToBlueprintFields(fab,varnames,patch);
 
             // add ghost indicator if the fab has ghost cells
-            if(ngrow > 0)
+            if(ngrow.allGE(0))
             {
                 AddFabGhostIndicatorField(fab,ngrow,patch);
             }

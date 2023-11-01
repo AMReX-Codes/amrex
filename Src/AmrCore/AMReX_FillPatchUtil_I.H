@@ -30,7 +30,7 @@ auto call_interp_hook (F const& f, MF& mf, int icomp, int ncomp)
 }
 
 template <typename Interp>
-bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, int ngrow,
+bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, IntVect ngrow,
                      const IndexType& boxType, Interp* mapper)
 {
     int ratio_max = ratio[0];

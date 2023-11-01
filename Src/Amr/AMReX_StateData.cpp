@@ -140,10 +140,10 @@ StateData::copyOld (const StateData& state)
     const MultiFab& MF = state.oldData();
 
     int nc = MF.nComp();
-    int ng = MF.nGrow();
+    auto ng = MF.nGrowVect();
 
     BL_ASSERT(nc == (*old_data).nComp());
-    BL_ASSERT(ng == (*old_data).nGrow());
+    BL_ASSERT(ng == (*old_data).nGrowVect());
 
     MultiFab::Copy(*old_data, state.oldData(), 0, 0, nc, ng);
 
@@ -156,10 +156,10 @@ StateData::copyNew (const StateData& state)
     const MultiFab& MF = state.newData();
 
     int nc = MF.nComp();
-    int ng = MF.nGrow();
+    auto ng = MF.nGrowVect();
 
     BL_ASSERT(nc == (*new_data).nComp());
-    BL_ASSERT(ng == (*new_data).nGrow());
+    BL_ASSERT(ng == (*new_data).nGrowVect());
 
     MultiFab::Copy(*new_data, state.newData(), 0, 0, nc, ng);
 

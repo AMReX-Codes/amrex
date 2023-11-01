@@ -2777,7 +2777,7 @@ Amr::makeLoadBalanceDistributionMap (int lev, Real time, const BoxArray& ba) con
         }
 
         MultiFab workest(ba, dmtmp, 1, 0, MFInfo(), FArrayBoxFactory());
-        AmrLevel::FillPatch(*amr_level[lev], workest, 0, time, work_est_type, 0, 1, 0);
+        AmrLevel::FillPatch(*amr_level[lev], workest, IntVect(0), time, work_est_type, 0, 1, 0);
 
         Real navg = static_cast<Real>(ba.size()) / static_cast<Real>(ParallelDescriptor::NProcs());
         int nmax = static_cast<int>(std::max(std::round(loadbalance_max_fac*navg), std::ceil(navg)));

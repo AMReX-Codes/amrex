@@ -92,7 +92,7 @@ writePlotFile (const std::string&        dir,
     const int Coord = 0;
     BoxArray tba = BoxArray(&tmpb,1);
     DistributionMapping dm {tba};
-    MultiFab level0_dat(tba,dm,mf.nComp(),mf.nGrow());
+    MultiFab level0_dat(tba,dm,mf.nComp(),mf.nGrowVect());
     for (int j=0; j<mf.nComp(); ++j)
         level0_dat.setVal(0.5*(mf.min(j)+mf.max(j)),j,1);
     //level0_dat.setVal(bgVal);

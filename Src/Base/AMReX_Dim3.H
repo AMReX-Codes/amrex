@@ -9,7 +9,11 @@
 
 namespace amrex {
 
-struct Dim3 { int x; int y; int z; };
+struct Dim3 {
+    int x; int y; int z;
+    int& operator[] (int d) { return d==0 ? x : d==1 ? y : z; }
+    const int& operator[] (int d) const { return d==0 ? x : d==1 ? y : z; }
+};
 struct XDim3 { Real x; Real y; Real z; };
 
 template <typename T,

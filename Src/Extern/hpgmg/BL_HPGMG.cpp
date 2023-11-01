@@ -445,7 +445,7 @@ void ConvertToHPGMGLevel (const MultiFab& mf,
       const int   dim_i = level->my_boxes[box].dim;
       const int   dim_j = level->my_boxes[box].dim;
       const int   dim_k = level->my_boxes[box].dim;
-      const int BoxLib_ghosts = mf.nGrow();
+      const auto BoxLib_ghosts = mf.nGrowVect().dim3();
 
       #ifdef AMREX_USE_OMP
       #pragma omp parallel for private(k,j,i) collapse(3)
@@ -458,7 +458,7 @@ void ConvertToHPGMGLevel (const MultiFab& mf,
         // SIMD-ization, so they are different than the BoxLib strides.
 
         const int ijk_HPGMG = (i+ghosts) + (j+ghosts)*jStride + (k+ghosts)*kStride;
-        const int ijk_BoxLib = (i+BoxLib_ghosts) + (j+BoxLib_ghosts)*BL_jStride + (k+BoxLib_ghosts)*BL_kStride;
+        const int ijk_BoxLib = (i+BoxLib_ghosts.x) + (j+BoxLib_ghosts.y)*BL_jStride + (k+BoxLib_ghosts.z)*BL_kStride;
 
         level->my_boxes[box].vectors[component_id][ijk_HPGMG] = fab_data[ijk_BoxLib];
 
@@ -496,7 +496,7 @@ void ConvertFromHPGMGLevel(MultiFab& mf,
       const int ghosts = level->my_boxes[box].ghosts;
       const int jStride = level->my_boxes[box].jStride;
       const int kStride = level->my_boxes[box].kStride;
-      const int BoxLib_ghosts = mf.nGrow();
+      const auto BoxLib_ghosts = mf.nGrowVect().dim3();
 
       int i, j, k;
       #ifdef AMREX_USE_OMP
@@ -513,7 +513,7 @@ void ConvertFromHPGMGLevel(MultiFab& mf,
         // over the components in the outermost loop (outside of k).
         const int BL_jStride = fabbox.length(0);
         const int BL_kStride = fabbox.length(0) * fabbox.length(1);
-        const int ijk_BoxLib = (i+BoxLib_ghosts) + (j+BoxLib_ghosts)*BL_jStride + (k+BoxLib_ghosts)*BL_kStride;
+        const int ijk_BoxLib = (i+BoxLib_ghosts.x) + (j+BoxLib_ghosts.y)*BL_jStride + (k+BoxLib_ghosts.z)*BL_kStride;
 
         fab_data[ijk_BoxLib] = level->my_boxes[box].vectors[VECTOR_U][ijk_HPGMG];
       }}}

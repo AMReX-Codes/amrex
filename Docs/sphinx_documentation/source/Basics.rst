@@ -2792,7 +2792,7 @@ For example,
 
 ::
 
-      AMREX_ASSERT(mf.nGrow() > 0 && mf.nComp() == mf2.nComp());
+      AMREX_ASSERT(mf.nGrowVect().allGT(IntVect(0)) && mf.nComp() == mf2.nComp());
 
 Here for debug build we like to assert that :cpp:`MultiFab mf` has ghost cells
 and it also has the same number of components as :cpp:`MultiFab mf2`. If we

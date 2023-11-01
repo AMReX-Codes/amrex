@@ -125,7 +125,7 @@ AuxBoundaryData::copyTo (MultiFab& mf,
 
     if (!m_empty && !mf.empty())
     {
-        mf.ParallelCopy(m_fabs,src_comp,dst_comp,num_comp,0,mf.nGrow());
+        mf.ParallelCopy(m_fabs,src_comp,dst_comp,num_comp,IntVect(0),mf.nGrowVect());
     }
 }
 
