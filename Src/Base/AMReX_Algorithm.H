@@ -304,7 +304,7 @@ namespace detail {
 template <class T, typename std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
                                              std::is_same_v<std::decay_t<T>,std::uint16_t> ||
                                              std::is_same_v<std::decay_t<T>,std::uint32_t> ||
-                                             std::is_same_v<std::decay_t<T>,std::uint64_t>, int> = 0>
+                                             std::is_same_v<std::decay_t<T>,std::uint64_t>, int> >
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (T x) noexcept
 {
@@ -321,7 +321,7 @@ int clz (T x) noexcept
 template <class T, typename std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
                                              std::is_same_v<std::decay_t<T>,std::uint16_t> ||
                                              std::is_same_v<std::decay_t<T>,std::uint32_t> ||
-                                             std::is_same_v<std::decay_t<T>,std::uint64_t>, int> = 0>
+                                             std::is_same_v<std::decay_t<T>,std::uint64_t>, int> >
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (T x) noexcept
 {
