@@ -515,8 +515,8 @@ void average_down_matching (const FabArray<FAB>& S_fine, FabArray<FAB>& S_crse,
     using value_type = typename FAB::value_type;
     IndexType ixType = S_fine.ixType();
 
-    GpuArray<int,3>& ratio3{0,0,0};
-    GpuArray<int,3>& range3{1,1,1};
+    Dim3 ratio3{0,0,0};
+    Dim3 range3{1,1,1};
     int denomInt = 1;
 
     for (int dir = 0; dir < AMREX_SPACEDIM; dir++) {
