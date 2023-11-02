@@ -106,8 +106,6 @@ namespace amrex
         else {
             std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer(length / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
             if (!GetLogicalProcessorInformation(&buffer[0], &length)) {
-                std::cerr << "Failed to get logical processor information." << std::endl;
-                return -1;
                 if (system::verbose > 0) {
                     amrex::Print() << "numUniquePhysicalCores(): Failed to get logical processor information! "
                                    << "Defaulting to visible cores.\n";
