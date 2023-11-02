@@ -240,24 +240,6 @@ int builtin_clz_wrapper (clzll_tag, T x) noexcept
     return static_cast<int>(__builtin_clzll(x) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
 
-#ifdef AMREX_USE_CUDA
-
-// likewise with CUDA, there are __clz functions that take (signed) int and long long int
-template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(int)>::type>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-int clz_wrapper (clz_tag, T x) noexcept
-{
-    return __clz((int) x) - (sizeof(int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
-}
-
-template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(long long int)>::type>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-int clz_wrapper (clzll_tag, T x) noexcept
-{
-    return __clzll((long long int) x) - (sizeof(long long int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
-}
-#endif
-
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -269,33 +251,6 @@ int clz_generic (std::uint8_t x) noexcept
     return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
 }
 
-#if defined AMREX_USE_CUDA
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint8_t x) noexcept
-{
-    AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
-#if AMREX_HAS_BUILTIN_CLZ
-    AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
-#else
-    AMREX_IF_ON_HOST((return clz_generic(x);))
-#endif
-}
-
-#else // !defined AMREX_USE_CUDA
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint8_t x) noexcept
-{
-#if (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
-    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
-#else
-    return clz_generic(x);
-#endif
-}
-
-#endif // defined AMREX_USE_CUDA
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz_generic (std::uint16_t x) noexcept
 {
@@ -304,33 +259,6 @@ int clz_generic (std::uint16_t x) noexcept
     return upper ? clz(upper) : 8 + clz(lower);
 }
 
-#if defined AMREX_USE_CUDA
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint16_t x) noexcept
-{
-    AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
-#if AMREX_HAS_BUILTIN_CLZ
-    AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
-#else
-    AMREX_IF_ON_HOST((return clz_generic(x);))
-#endif
-}
-
-#else // !defined AMREX_USE_CUDA
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint16_t x) noexcept
-{
-#if (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
-    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
-#else
-    return clz_generic(x);
-#endif
-}
-
-#endif // defined AMREX_USE_CUDA
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz_generic (std::uint32_t x) noexcept
 {
@@ -338,33 +266,6 @@ int clz_generic (std::uint32_t x) noexcept
     auto lower = std::uint16_t(x & 0xFFFF);
     return upper ? clz(upper) : 16 + clz(lower);
 }
-
-#if defined AMREX_USE_CUDA
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint32_t x) noexcept
-{
-    AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
-#if AMREX_HAS_BUILTIN_CLZ
-    AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
-#else
-    AMREX_IF_ON_HOST((return clz_generic(x);))
-#endif
-}
-
-#else // !defined AMREX_USE_CUDA
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint32_t x) noexcept
-{
-#if (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
-    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
-#else
-    return clz_generic(x);
-#endif
-}
-
-#endif // defined AMREX_USE_CUDA
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz_generic (std::uint64_t x) noexcept
@@ -376,8 +277,29 @@ int clz_generic (std::uint64_t x) noexcept
 
 #if defined AMREX_USE_CUDA
 
+namespace detail {
+    // likewise with CUDA, there are __clz functions that take (signed) int and long long int
+    template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(int)>::type>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    int clz_wrapper (clz_tag, T x) noexcept
+    {
+        return __clz((int) x) - (sizeof(int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+    }
+
+    template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(long long int)>::type>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    int clz_wrapper (clzll_tag, T x) noexcept
+    {
+        return __clzll((long long int) x) - (sizeof(long long int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+    }
+}
+
+template <class T, typename std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
+                                             std::is_same_v<std::decay_t<T>,std::uint16_t> ||
+                                             std::is_same_v<std::decay_t<T>,std::uint32_t> ||
+                                             std::is_same_v<std::decay_t<T>,std::uint64_t>, int> = 0>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint64_t x) noexcept
+int clz (T x) noexcept
 {
     AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
 #if AMREX_HAS_BUILTIN_CLZ
@@ -390,7 +312,7 @@ int clz (std::uint64_t x) noexcept
 #else // !defined AMREX_USE_CUDA
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint64_t x) noexcept
+int clz (T x) noexcept
 {
 #if (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
     return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
