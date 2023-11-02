@@ -10,10 +10,22 @@
 namespace amrex {
 
 /**
- * \brief A set of FabArray's with distinct IndexType's living on the same mesh.
+ * \brief A set of FabArray objects with distinct IndexTypes living on the mesh.
  *
- * Intended for use as a single object to use as input/output in a linear solver
- * class that inherits from MLLinOpT<FabArraySet< \p MF >>.
+ * FabArraySet is intended for use as input/output into linear operators acting on multi-component fields.
+ * It also can be used to represent fields based on a staggered grid as a single object. An example is the
+ * Yee grid, where the E-field is edge-centered, and the B-field is face-centered.
+ *
+ * While the FabArray class allows for multiple components, each must share the same BoxArray and thus
+ * IndexType due to the structure of Array4. Unfortunately, differential forms such as 1-forms (vectors)
+ * and 2-forms (pseudovectors) are ideally used by finite difference methods when each field component has
+ * a distinct IndexType, e.g., the Yee Grid. This requires each component to have a slightly different
+ * BoxArray and associated Array4. In the language of differential forms, 0-forms are nodal, 1-forms are
+ * edge-centered, 2-forms are face-centered, and 3-forms are cell-centered.
+ *
+ * In summary, FabArraySet is intended to be an extension of how edge- and face-centered fields have been
+ * represented thus far, which is a collection of FabArray objects with each having a distinct IndexType.
+ * Each BoxArray of a FabArray element is intended to be the same as the others up to IndexType conversions.
  *
  * Not to be confused with FabSet.
  *
