@@ -150,15 +150,11 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         Lp.normalize(amrlev, mglev, v);
 
         rhTv = dotxy(rh,v);
-        if ( rhTv != RT(0.0) )
-        {
-            alpha = rho/rhTv;
-        }
-        else
+        if ( rhTv == RT(0.0) )
         {
             ret = 2; break;
         }
-
+        alpha = rho/rhTv;
         MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
         MF::Saxpy(r, -alpha, v, 0, 0, ncomp, nghost); // r -= alpha * v
 
@@ -188,14 +184,11 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
         BL_PROFILE_VAR_STOP(blp_par);
 
-        if ( tvals[0] != RT(0.0) )
-        {
-            omega = tvals[1]/tvals[0];
-        }
-        else
+        if ( tvals[0] == RT(0.0) )
         {
             ret = 3; break;
         }
+        omega = tvals[1]/tvals[0];
         MF::Saxpy(sol, omega, sh, 0, 0, ncomp, nghost); // sol += omega * sh
         MF::Saxpy(r, -omega, t, 0, 0, ncomp, nghost); // r -= omega * t
 
@@ -303,14 +296,11 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         Lp.apply(amrlev, mglev, q, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
 
         pw = dotxy(p,q);
-        if ( pw != RT(0.0))
-        {
-            alpha = rho/pw;
-        }
-        else
+        if ( pw == RT(0.0))
         {
             ret = 1; break;
         }
+        alpha = rho/pw;
 
         if ( verbose > 2 )
         {
