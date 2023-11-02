@@ -38,6 +38,7 @@ C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_INT.H AMReX_CONSTANTS.H AMReX_SPACE
 C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
 C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H
 C$(AMREX_BASE)_headers += AMReX_OpenMP.H
+C$(AMREX_BASE)_sources += AMReX_OpenMP.cpp
 
 C$(AMREX_BASE)_headers += AMReX_ParallelReduce.H
 
