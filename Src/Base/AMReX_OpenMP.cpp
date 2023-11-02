@@ -12,6 +12,7 @@
 #include <windows.h>
 #endif
 
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <optional>
