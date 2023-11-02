@@ -63,7 +63,11 @@ namespace Gpu {
 #if defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
         hipError_t r = hipPointerGetAttributes(&attrib, p);
+#if defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
         return r == hipSuccess && attrib.memoryType == hipMemoryTypeDevice;
+#else
+        return r == hipSuccess && attrib.type == hipMemoryTypeDevice;
+#endif // (HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
 #elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
         CUmemorytype mem_type = static_cast<CUmemorytype>(0);
@@ -83,7 +87,11 @@ namespace Gpu {
 #if defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
         hipError_t r = hipPointerGetAttributes(&attrib, p);
+#if defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
         return r == hipSuccess && attrib.memoryType == hipMemoryTypeHost;
+#else
+        return r == hipSuccess && attrib.type == hipMemoryTypeHost;
+#endif // (HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
 #elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
         CUmemorytype mem_type = static_cast<CUmemorytype>(0);
@@ -106,9 +114,15 @@ namespace Gpu {
         } else {
             hipPointerAttribute_t attrib;
             hipError_t r = hipPointerGetAttributes(&attrib, p);
+#if defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
             return r == hipSuccess &&
                 (attrib.memoryType == hipMemoryTypeHost   ||
                  attrib.memoryType == hipMemoryTypeDevice);
+#else
+            return r == hipSuccess &&
+                (attrib.type == hipMemoryTypeHost   ||
+                 attrib.type == hipMemoryTypeDevice);
+#endif // (HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
         }
 #elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;

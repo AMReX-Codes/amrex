@@ -1,3 +1,52 @@
+# 23.11
+
+  -- Give FlashFluxRegisters ways to accumulate data in registers (#3597)
+
+  -- `AMReXBuildInfo.cmake`: AMReX_DIR (#3609)
+
+  -- update doc for amrex::Abort on GPU (#3605)
+
+  -- Add runtime particle components to HDF5 wrapper (#3596)
+
+  -- Windows: Fix Installed AMReXBuildInfo.cmake (#3606)
+
+  -- Print AMReX version at the beginning of Initialize (#3604)
+
+  -- Install Move Tools to `shared/amrex` (#3599)
+
+  -- Revert "Add ability for GCC 8 in CMake to build fgradient which uses std::filesystem" (#3601)
+
+  -- Avoid std::filesystem (#3602)
+
+  -- Fix Assertion in MLEBNodeFDLaplacian (#3594)
+
+  -- Fix a memory "leak" in VisMF's persistent streams (#3592)
+
+  -- RealVect Static: Export (#3589)
+
+  -- change MaxCnt from 4 to max(4,max_level+1) for how many iterations we… (#3588)
+     … allow in creation of the initial grid hierarchy
+
+  -- Add Bittree CI (#3577)
+
+  -- BCType::ext_dir_cc (#3581)
+
+  -- Disable CCache in Windows CIs (#3566)
+
+  -- Fix ICC CI by Freeing up Disk Space (#3583)
+
+  -- Docs: Link pyAMReX (#3582)
+
+  -- NodeABecLaplacian: Reuse (#3579)
+
+  -- simplify how 2d surface integrals are computed (#3571)
+
+  -- Adding bittree interface to improve regridding performance in octree mode (#3555)
+
+  -- MLNodeABecLaplacian (#3559)
+
+  -- Fix Boundary Centroid in a Corner Case in 2D (#3568)
+
 # 23.10
 
   -- Bugfix typo in AMReX_SundialsIntegrator.H Nvar vs NVar, the
