@@ -1249,6 +1249,18 @@ public:
         m_num_runtime_real++;
         h_redistribute_real_comp.push_back(communicate);
         SetParticleSize();
+
+        // resize runtime SoA
+        for (int lev = 0; lev < numLevels(); ++lev) {
+            for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
+                auto& tile = DefineAndReturnParticleTile(lev, pti);
+                auto np = tile.numParticles();
+                if (np > 0) {
+                    auto& soa = tile.GetStructOfArrays();
+                    soa.resize(np);
+                }
+            }
+        }
     }
 
     template <typename T,
@@ -1259,6 +1271,18 @@ public:
         m_num_runtime_int++;
         h_redistribute_int_comp.push_back(communicate);
         SetParticleSize();
+
+        // resize runtime SoA
+        for (int lev = 0; lev < numLevels(); ++lev) {
+            for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
+                auto& tile = DefineAndReturnParticleTile(lev, pti);
+                auto np = tile.numParticles();
+                if (np > 0) {
+                    auto& soa = tile.GetStructOfArrays();
+                    soa.resize(np);
+                }
+            }
+        }
     }
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
@@ -1267,7 +1291,18 @@ public:
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
+    /** Resize the Real runtime components (SoA)
+     *
+     * @param new_size new number of Real runtime components
+     * @param communicate participate this component in redistribute
+     */
     void ResizeRuntimeRealComp (int new_size, bool communicate);
+
+    /** Resize the Int runtime components (SoA)
+     *
+     * @param new_size new number of integer runtime components
+     * @param communicate participate this component in redistribute
+     */
     void ResizeRuntimeIntComp (int new_size, bool communicate);
 
     /** type trait to translate one particle container to another, with changed allocator */
