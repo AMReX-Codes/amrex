@@ -66,7 +66,7 @@ constexpr std::enable_if_t<std::is_floating_point<T>::value,T> pi ()
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double cospi (double x)
 {
-#if defined(__SYCL_DEVICE_ONLY__)
+#if defined(AMREX_USE_SYCL)
     return sycl::cospi(x);
 #else
     AMREX_IF_ON_DEVICE(( return ::cospi(x); ))
@@ -78,7 +78,7 @@ double cospi (double x)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 float cospi (float x)
 {
-#if defined(__SYCL_DEVICE_ONLY__)
+#if defined(AMREX_USE_SYCL)
     return sycl::cospi(x);
 #else
     AMREX_IF_ON_DEVICE(( return ::cospif(x); ))
@@ -90,7 +90,7 @@ float cospi (float x)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double sinpi (double x)
 {
-#if defined(__SYCL_DEVICE_ONLY__)
+#if defined(AMREX_USE_SYCL)
     return sycl::sinpi(x);
 #else
     AMREX_IF_ON_DEVICE(( return ::sinpi(x); ))
@@ -102,7 +102,7 @@ double sinpi (double x)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 float sinpi (float x)
 {
-#if defined(__SYCL_DEVICE_ONLY__)
+#if defined(AMREX_USE_SYCL)
     return sycl::sinpi(x);
 #else
     AMREX_IF_ON_DEVICE(( return ::sinpif(x); ))
@@ -115,7 +115,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincos (double x)
 {
     std::pair<double,double> r;
-#if defined(__SYCL_DEVICE_ONLY__)
+#if defined(AMREX_USE_SYCL)
     r.first = sycl::sincos(x, sycl::private_ptr<double>(&r.second));
 #else
     AMREX_IF_ON_DEVICE(( ::sincos(x, &r.first, &r.second); ))
@@ -132,7 +132,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincos (float x)
 {
     std::pair<float,float> r;
-#if defined(__SYCL_DEVICE_ONLY__)
+#if defined(AMREX_USE_SYCL)
     r.first = sycl::sincos(x, sycl::private_ptr<float>(&r.second));
 #else
     AMREX_IF_ON_DEVICE(( ::sincosf(x, &r.first, &r.second); ))
@@ -149,7 +149,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincospi (double x)
 {
     std::pair<double,double> r;
-#if defined(__SYCL_DEVICE_ONLY__)
+#if defined(AMREX_USE_SYCL)
     r = sincos(pi<double>()*x);
 #else
     AMREX_IF_ON_DEVICE(( ::sincospi(x, &r.first, &r.second); ))
@@ -163,7 +163,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincospi (float x)
 {
     std::pair<float,float> r;
-#if defined(__SYCL_DEVICE_ONLY__)
+#if defined(AMREX_USE_SYCL)
     r = sincos(pi<float>()*x);
 #else
     AMREX_IF_ON_DEVICE(( ::sincospif(x, &r.first, &r.second); ))
