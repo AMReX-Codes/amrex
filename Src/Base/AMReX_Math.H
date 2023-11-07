@@ -110,6 +110,26 @@ float sinpi (float x)
 #endif
 }
 
+namespace detail {
+    AMREX_FORCE_INLINE void sincos (double x, double* sinx, double* cosx) {
+#if defined(_GNU_SOURCE) && !defined(__APPLE__)
+        ::sincos(x, sinx, cosx);
+#else
+        *sinx = std::sin(x);
+        *cosx = std::cos(x);
+#endif
+    }
+
+    AMREX_FORCE_INLINE void sincosf (float x, float* sinx, float* cosx) {
+#if defined(_GNU_SOURCE) && !defined(__APPLE__)
+        ::sincosf(x, sinx, cosx);
+#else
+        *sinx = std::sin(x);
+        *cosx = std::cos(x);
+#endif
+    }
+}
+
 //! Return sine and cosine of given number
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincos (double x)
@@ -119,10 +139,7 @@ std::pair<double,double> sincos (double x)
     r.first = sycl::sincos(x, sycl::private_ptr<double>(&r.second));
 #else
     AMREX_IF_ON_DEVICE(( ::sincos(x, &r.first, &r.second); ))
-    AMREX_IF_ON_HOST((
-        r.first  = std::sin(x);
-        r.second = std::cos(x);
-    ))
+    AMREX_IF_ON_HOST(( detail::sincos(x, &r.first, &r.second); ))
 #endif
     return r;
 }
@@ -136,10 +153,7 @@ std::pair<float,float> sincos (float x)
     r.first = sycl::sincos(x, sycl::private_ptr<float>(&r.second));
 #else
     AMREX_IF_ON_DEVICE(( ::sincosf(x, &r.first, &r.second); ))
-    AMREX_IF_ON_HOST((
-        r.first  = std::sin(x);
-        r.second = std::cos(x);
-    ))
+    AMREX_IF_ON_HOST(( detail::sincosf(x, &r.first, &r.second); ))
 #endif
     return r;
 }
