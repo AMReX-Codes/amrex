@@ -527,7 +527,7 @@ public:
   /**
      This is a RealVect all of whose components are equal to one.
   */
-  static const RealVect Unit;
+  static AMREX_EXPORT const RealVect Unit;
 
   /*@}*/
 

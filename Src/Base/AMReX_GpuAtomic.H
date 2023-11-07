@@ -378,7 +378,7 @@ namespace detail {
         sycl::atomic_ref<T,mo,ms,as> a{*m};
         return a.fetch_max(value);
 #else
-        AMREX_IF_ON_DEVICE(( return atomixMax(m, value); ))
+        AMREX_IF_ON_DEVICE(( return atomicMax(m, value); ))
         AMREX_IF_ON_HOST((
             amrex::ignore_unused(m,value);
             return T(); // should never get here, but have to return something
