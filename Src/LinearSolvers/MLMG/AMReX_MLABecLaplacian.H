@@ -190,14 +190,14 @@ public:
                        Array<FAB*,AMREX_SPACEDIM> const& flux,
                        FAB const& sol, int face_only, int ncomp);
 
-protected:
-
-    bool m_needs_update = true;
-
     RT m_a_scalar = std::numeric_limits<RT>::quiet_NaN();
     RT m_b_scalar = std::numeric_limits<RT>::quiet_NaN();
     Vector<Vector<MF> > m_a_coeffs;
     Vector<Vector<Array<MF,AMREX_SPACEDIM> > > m_b_coeffs;
+
+protected:
+
+    bool m_needs_update = true;
 
     Vector<int> m_is_singular;
 
@@ -474,29 +474,29 @@ MLABecLaplacianT<MF>::applyMetricTermsCoeffs ()
 //    \tilde{alpha}_i = alpha_i + (1-B) beta_{i+1/2} / h^2
 //    \tilde{rhs}_i = rhs_i + A beta_{i+1/2} / h^2
 //
-template <typename MF>
-void
-MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
+namespace detail {
+template <typename LP>
+void applyRobinBCTermsCoeffs (LP& linop)
 {
-    if (!(this->hasRobinBC())) { return; }
+    using RT = typename LP::RT;
 
-    const int ncomp = this->getNComp();
+    const int ncomp = linop.getNComp();
     bool reset_alpha = false;
-    if (m_a_scalar == RT(0.0)) {
-        m_a_scalar = RT(1.0);
+    if (linop.m_a_scalar == RT(0.0)) {
+        linop.m_a_scalar = RT(1.0);
         reset_alpha = true;
     }
-    const RT bovera = m_b_scalar/m_a_scalar;
+    const RT bovera = linop.m_b_scalar/linop.m_a_scalar;
 
-    for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
+    for (int amrlev = 0; amrlev < linop.NAMRLevels(); ++amrlev) {
         const int mglev = 0;
-        const Box& domain = this->m_geom[amrlev][mglev].Domain();
-        const RT dxi = static_cast<RT>(this->m_geom[amrlev][mglev].InvCellSize(0));
-        const RT dyi = static_cast<RT>((AMREX_SPACEDIM >= 2) ? this->m_geom[amrlev][mglev].InvCellSize(1) : Real(1.0));
-        const RT dzi = static_cast<RT>((AMREX_SPACEDIM == 3) ? this->m_geom[amrlev][mglev].InvCellSize(2) : Real(1.0));
+        const Box& domain = linop.Geom(amrlev,mglev).Domain();
+        const RT dxi = static_cast<RT>(linop.Geom(amrlev,mglev).InvCellSize(0));
+        const RT dyi = static_cast<RT>((AMREX_SPACEDIM >= 2) ? linop.Geom(amrlev,mglev).InvCellSize(1) : Real(1.0));
+        const RT dzi = static_cast<RT>((AMREX_SPACEDIM == 3) ? linop.Geom(amrlev,mglev).InvCellSize(2) : Real(1.0));
 
         if (reset_alpha) {
-            m_a_coeffs[amrlev][mglev].setVal(RT(0.0));
+            linop.m_a_coeffs[amrlev][mglev].setVal(RT(0.0));
         }
 
         MFItInfo mfi_info;
@@ -505,20 +505,20 @@ MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(m_a_coeffs[amrlev][mglev], mfi_info); mfi.isValid(); ++mfi)
+        for (MFIter mfi(linop.m_a_coeffs[amrlev][mglev], mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& vbx = mfi.validbox();
-            auto const& afab = m_a_coeffs[amrlev][mglev].array(mfi);
+            auto const& afab = linop.m_a_coeffs[amrlev][mglev].array(mfi);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                auto const& bfab = m_b_coeffs[amrlev][mglev][idim].const_array(mfi);
+                auto const& bfab = linop.m_b_coeffs[amrlev][mglev][idim].const_array(mfi);
                 const Box& blo = amrex::adjCellLo(vbx,idim);
                 const Box& bhi = amrex::adjCellHi(vbx,idim);
                 bool outside_domain_lo = !(domain.contains(blo));
                 bool outside_domain_hi = !(domain.contains(bhi));
                 if ((!outside_domain_lo) && (!outside_domain_hi)) { continue; }
                 for (int icomp = 0; icomp < ncomp; ++icomp) {
-                    auto const& rbc = (*(this->m_robin_bcval[amrlev]))[mfi].const_array(icomp*3);
-                    if (this->m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
+                    auto const& rbc = (*(linop.m_robin_bcval[amrlev]))[mfi].const_array(icomp*3);
+                    if (linop.m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
                     {
                         if (idim == 0) {
                             RT fac = bovera*dxi*dxi;
@@ -546,7 +546,7 @@ MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
                             });
                         }
                     }
-                    if (this->m_hibc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_hi)
+                    if (linop.m_hibc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_hi)
                     {
                         if (idim == 0) {
                             RT fac = bovera*dxi*dxi;
@@ -577,6 +577,16 @@ MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
                 }
             }
         }
+    }
+}
+} // namespace detail
+
+template <typename MF>
+void
+MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
+{
+    if (this->hasRobinBC()) {
+        detail::applyRobinBCTermsCoeffs(*this);
     }
 }
 
