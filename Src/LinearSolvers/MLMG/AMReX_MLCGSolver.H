@@ -96,6 +96,8 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     MF ph(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
     MF sh(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
+    ph.setVal(RT(0.0));
+    sh.setVal(RT(0.0));
 
     MF sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
     MF p    (ba, dm, ncomp, nghost, MFInfo(), factory);
