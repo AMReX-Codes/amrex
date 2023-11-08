@@ -103,20 +103,21 @@ namespace Gpu {
     inline
     Box getThreadBox (const Box& bx, Long offset) noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        const auto len = bx.length3d();
-        Long k = offset / (len[0]*len[1]);
-        Long j = (offset - k*(len[0]*len[1])) / len[0];
-        Long i = (offset - k*(len[0]*len[1])) - j*len[0];
-        IntVect iv{AMREX_D_DECL(static_cast<int>(i),
-                                static_cast<int>(j),
-                                static_cast<int>(k))};
-        iv += bx.smallEnd();
-        return (bx & Box(iv,iv,bx.type()));
-#else
-        amrex::ignore_unused(offset);
-        return bx;
-#endif
+        AMREX_IF_ON_DEVICE((
+            const auto len = bx.length3d();
+            Long k = offset / (len[0]*len[1]);
+            Long j = (offset - k*(len[0]*len[1])) / len[0];
+            Long i = (offset - k*(len[0]*len[1])) - j*len[0];
+            IntVect iv{AMREX_D_DECL(static_cast<int>(i),
+                                    static_cast<int>(j),
+                                    static_cast<int>(k))};
+            iv += bx.smallEnd();
+            return (bx & Box(iv,iv,bx.type()));
+        ))
+        AMREX_IF_ON_HOST((
+            amrex::ignore_unused(offset);
+            return bx;
+        ))
     }
 
 // ************************************************
