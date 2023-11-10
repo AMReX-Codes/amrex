@@ -5,13 +5,14 @@
 #include <AMReX_Arena.H>
 
 #include <cstddef>
-#include <set>
-#include <vector>
+#include <functional>
+#include <iosfwd>
 #include <map>
 #include <mutex>
-#include <unordered_set>
-#include <functional>
+#include <set>
 #include <string>
+#include <unordered_set>
+#include <vector>
 
 namespace amrex {
 
@@ -57,7 +58,7 @@ public:
      * Try to shrink in-place
      */
     [[nodiscard]] void*
-    shrink_in_place (void* pt, std::size_t sz) final;
+    shrink_in_place (void* pt, std::size_t new_size) final;
 
     /**
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
@@ -164,14 +165,14 @@ protected:
         MemStat* m_stat;
     };
 
+    //! The list of blocks allocated via ::operator new().
+    std::vector<std::pair<void*,std::size_t> > m_alloc;
+
     /**
     * \brief The type of our freelist and blocklist.
     * We use a set sorted from lo to hi memory addresses.
     */
     using NL = std::set<Node>;
-
-    //! The list of blocks allocated via ::operator new().
-    std::vector<std::pair<void*,std::size_t> > m_alloc;
 
     /**
     * \brief The free list of allocated but not currently used blocks.
@@ -198,6 +199,8 @@ protected:
 
 
     std::mutex carena_mutex;
+
+    friend std::ostream& operator<< (std::ostream& os, const CArena& arena);
 };
 
 }
