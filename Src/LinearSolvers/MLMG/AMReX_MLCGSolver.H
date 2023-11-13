@@ -90,14 +90,15 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     const int ncomp = sol.nComp();
 
-    MF ph = Lp.make(amrlev, mglev, sol.nGrowVect());
-    MF sh = Lp.make(amrlev, mglev, sol.nGrowVect());
-    ph.setVal(RT(0.0));
-    sh.setVal(RT(0.0));
+    MF p  = Lp.make(amrlev, mglev, sol.nGrowVect());
+    MF s = Lp.make(amrlev, mglev, sol.nGrowVect());
+    p.setVal(RT(0.0));
+    s.setVal(RT(0.0));
 
     MF sorig = Lp.make(amrlev, mglev, nghost);
-    MF p     = Lp.make(amrlev, mglev, nghost);
     MF r     = Lp.make(amrlev, mglev, nghost);
+
+
     MF rh    = Lp.make(amrlev, mglev, nghost);
     MF v     = Lp.make(amrlev, mglev, nghost);
     MF t     = Lp.make(amrlev, mglev, nghost);
@@ -119,7 +120,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     }
     int ret = 0;
     iter = 1;
-    RT alpha, beta, omega, rho, rhTv;
+    RT rho = dotxy(rh,r);
 
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
@@ -133,26 +134,24 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         return ret;
     }
 
-    rho = dotxy(rh,r); // Move this to here to eliminate usage of rho_1
-
     p.LocalCopy(r,0,0,ncomp,nghost); // This is the true initialization. Move this to here to avoid iter==1 check every iteration
 
     for (; iter <= maxiter; ++iter)
     {
-        if ( rho == 0 )
+        if ( rho == RT(0.0) )
         {
             ret = 1; break;
         }
-        ph.LocalCopy(p,0,0,ncomp,nghost);
+        // ph.LocalCopy(p,0,0,ncomp,nghost);
         Lp.apply(amrlev, mglev, v, ph, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
-        rhTv = dotxy(rh,v);
+        const RT rhTv = dotxy(rh,v);
         if ( rhTv == RT(0.0) )
         {
             ret = 2; break;
         }
-        alpha = rho/rhTv;
+        const RT alpha = rho/rhTv;
         MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
         MF::Saxpy(r, -alpha, v, 0, 0, ncomp, nghost); // r -= alpha * v
 
@@ -168,8 +167,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
-        sh.LocalCopy(r,0,0,ncomp,nghost);
-        Lp.apply(amrlev, mglev, t, sh, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
+        Lp.apply(amrlev, mglev, t, r, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, t);
         //
         // This is a little funky.  I want to elide one of the reductions
@@ -186,8 +184,8 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 3; break;
         }
-        omega = tvals[1]/tvals[0];
-        MF::Saxpy(sol, omega, sh, 0, 0, ncomp, nghost); // sol += omega * sh
+        const RT omega = tvals[1]/tvals[0];
+        MF::Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
         MF::Saxpy(r, -omega, t, 0, 0, ncomp, nghost); // r -= omega * t
 
         rnorm = norm_inf(r);
@@ -202,15 +200,13 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
-        if ( omega == 0 )
+        if ( omega == RT(0.0) )
         {
             ret = 4; break;
         }
-        // rho_1 = rho; // no need to save old rho since we only need rhTv to compute beta
 
         rho = dotxy(rh,r);
-
-        beta = rho / (rhTv * omega); // This is a result of alpha = rho_1 / rhTv
+        const RT beta = rho / (rhTv * omega); // This is a result of alpha = rho_1 / rhTv
 
         MF::Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
         MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
@@ -234,7 +230,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( ( ret != 0 && ret != 8 ) || (rnorm > rnorm0) )
     {
-        sol.LocalCopy(sorig,0,0,ncomp,nghost);
+        sol.LocalCopy(sorig, 0, 0, ncomp, nghost);
     }
 
     return ret;
@@ -253,6 +249,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     const auto& factory = sol.Factory();
 
     MF p = Lp.make(amrlev, mglev, sol.nGrowVect());
+    p.setVal(RT(0.0));
 
     MF sorig = Lp.make(amrlev, mglev, nghost);
     MF r     = Lp.make(amrlev, mglev, nghost);
@@ -284,21 +281,19 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         return ret;
     }
 
-    RT alpha, beta, rho, rho_1, pw;
-
-    rho = dotxy(r,r);
+    RT rho = dotxy(r,r);
     p.LocalCopy(r,0,0,ncomp,nghost);
 
     for (; iter <= maxiter; ++iter)
     {
         Lp.apply(amrlev, mglev, q, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
 
-        pw = dotxy(p,q);
+        const RT pw = dotxy(p,q);
         if ( pw == RT(0.0))
         {
             ret = 1; break;
         }
-        alpha = rho/pw;
+        const RT alpha = rho/pw;
 
         if ( verbose > 2 )
         {
@@ -323,13 +318,13 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         if ( rho == RT(0.0) )
         {
-            ret = 1; break;
+            ret = 2; break;
         }
 
-        rho_1 = rho;
+        const RT rho_1 = rho;
         rho = dotxy(r,r);
 
-        beta = rho/rho_1;
+        const RT beta = rho/rho_1;
         MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta * p
     }
 
@@ -349,10 +344,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         ret = 8;
     }
 
-    if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
-    {
-    }
-    else
+    if ( ( ret != 0 && ret != 8 ) || (rnorm >= rnorm0) )
     {
         sol.LocalCopy(sorig, 0, 0, ncomp, nghost);
     }
