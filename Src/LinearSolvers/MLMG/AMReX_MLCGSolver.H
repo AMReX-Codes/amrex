@@ -126,7 +126,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     }
     int ret = 0;
     iter = 1;
-    RT rho_1 = 0, alpha = 0, omega = 0;
+    RT rhTv = RT(0.0), alpha = RT(0.0), omega = RT(0.0);
 
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
@@ -152,7 +152,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         else
         {
-            const RT beta = (rho/rho_1)*(alpha/omega);
+            const RT beta = rho/(rhTv*omega);
             MF::Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
             MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
         }
@@ -160,7 +160,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         Lp.apply(amrlev, mglev, v, ph, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
-        RT rhTv = dotxy(rh,v);
+        rhTv = dotxy(rh,v);
         if ( rhTv != RT(0.0) )
         {
             alpha = rho/rhTv;
@@ -225,7 +225,6 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 4; break;
         }
-        rho_1 = rho;
     }
 
     if ( verbose > 0 )
