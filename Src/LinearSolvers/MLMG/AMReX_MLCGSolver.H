@@ -90,10 +90,6 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     const int ncomp = sol.nComp();
 
-    const BoxArray& ba = sol.boxArray();
-    const DistributionMapping& dm = sol.DistributionMap();
-    const auto& factory = sol.Factory();
-
     MF ph = Lp.make(amrlev, mglev, sol.nGrowVect());
     MF sh = Lp.make(amrlev, mglev, sol.nGrowVect());
     ph.setVal(RT(0.0));
