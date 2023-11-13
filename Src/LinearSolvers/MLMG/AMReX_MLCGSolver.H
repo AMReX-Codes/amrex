@@ -126,9 +126,9 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     }
     int ret = 0;
     iter = 1;
-    RT rho_1 = 0, alpha = 0, omega = 0;
+    RT rho_1 = RT(0.0), alpha = RT(0.0), omega = RT(0.0);
 
-    if ( rnorm0 == 0 || rnorm0 < eps_abs )
+    if ( rnorm0 == RT(0.0) || rnorm0 < eps_abs )
     {
         if ( verbose > 0 )
         {
@@ -142,7 +142,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     for (; iter <= maxiter; ++iter)
     {
         const RT rho = dotxy(rh,r);
-        if ( rho == 0 )
+        if ( rho == RT(0.0) )
         {
             ret = 1; break;
         }
@@ -161,14 +161,12 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         Lp.normalize(amrlev, mglev, v);
 
         RT rhTv = dotxy(rh,v);
-        if ( rhTv != RT(0.0) )
-        {
-            alpha = rho/rhTv;
-        }
-        else
+        if ( rhTv == RT(0.0) )
         {
             ret = 2; break;
         }
+        alpha = rho/rhTv;
+
         MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
         MF::LinComb(s, RT(1.0), r, 0, -alpha, v, 0, 0, ncomp, nghost); // s = r - alpha * v
 
@@ -198,14 +196,11 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
         BL_PROFILE_VAR_STOP(blp_par);
 
-        if ( tvals[0] != RT(0.0) )
-        {
-            omega = tvals[1]/tvals[0];
-        }
-        else
+        if ( tvals[0] == RT(0.0) )
         {
             ret = 3; break;
         }
+        omega = tvals[1]/tvals[0];
         MF::Saxpy(sol, omega, sh, 0, 0, ncomp, nghost); // sol += omega * sh
         MF::LinComb(r, RT(1.0), s, 0, -omega, t, 0, 0, ncomp, nghost); // r = s - omega * t
 
@@ -221,7 +216,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
-        if ( omega == 0 )
+        if ( omega == RT(0.0) )
         {
             ret = 4; break;
         }
