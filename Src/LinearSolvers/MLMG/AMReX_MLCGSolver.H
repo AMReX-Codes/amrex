@@ -126,7 +126,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     }
     int ret = 0;
     iter = 1;
-    RT rho_1 = 0, alpha = 0, omega = 0;
+    RT rho = dotxy(r,r);
 
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
@@ -139,7 +139,6 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         return ret;
     }
 
-    RT rho = dotxy(rh,r);
     p.LocalCopy(r,0,0,ncomp,nghost);
 
     for (; iter <= maxiter; ++iter)
@@ -152,15 +151,12 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         Lp.apply(amrlev, mglev, v, ph, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
-        RT rhTv = dotxy(rh,v);
-        if ( rhTv != RT(0.0) )
-        {
-            alpha = rho/rhTv;
-        }
-        else
+        const RT rhTv = dotxy(rh,v);
+        if ( rhTv == RT(0.0) )
         {
             ret = 2; break;
         }
+        const RT alpha = rho/rhTv;
         MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
         MF::LinComb(s, RT(1.0), r, 0, -alpha, v, 0, 0, ncomp, nghost); // s = r - alpha * v
 
@@ -190,14 +186,11 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
         BL_PROFILE_VAR_STOP(blp_par);
 
-        if ( tvals[0] != RT(0.0) )
-        {
-            omega = tvals[1]/tvals[0];
-        }
-        else
+        if ( tvals[0] == RT(0.0) )
         {
             ret = 3; break;
         }
+        const RT omega = tvals[1]/tvals[0];
         MF::Saxpy(sol, omega, sh, 0, 0, ncomp, nghost); // sol += omega * sh
         MF::LinComb(r, RT(1.0), s, 0, -omega, t, 0, 0, ncomp, nghost); // r = s - omega * t
 
@@ -217,7 +210,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 4; break;
         }
-        rho_1 = rho;
+        const RT rho_1 = rho;
         rho = dotxy(rh,r);
         const RT beta = (rho/rho_1)*(alpha/omega);
 
