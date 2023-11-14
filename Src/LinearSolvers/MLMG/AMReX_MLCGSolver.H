@@ -306,7 +306,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     for (; iter <= maxiter; ++iter)
     {
-        RT rho = dotxy(z,r);
+        RT rho = dotxy(r,r);
 
         if ( rho == 0 )
         {
