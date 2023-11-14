@@ -14,6 +14,7 @@ namespace amrex {
 
 #include <utility>
 #include <cstring>
+#include <iostream>
 
 namespace amrex {
 
@@ -203,9 +204,61 @@ CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
 }
 
 void*
-CArena::shrink_in_place (void* /*pt*/, std::size_t sz)
+CArena::shrink_in_place (void* pt, std::size_t new_size)
 {
-    return alloc(sz); // xxxxx TODO
+    if ((pt == nullptr) || (new_size == 0)) { return nullptr; }
+
+    new_size = Arena::align(new_size);
+
+    std::lock_guard<std::mutex> lock(carena_mutex);
+
+    auto busy_it = m_busylist.find(Node(pt,nullptr,0));
+    if (busy_it == m_busylist.end()) {
+        amrex::Abort("CArena::shrink_in_place: unknown pointer");
+        return nullptr;
+    }
+    AMREX_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
+
+    auto const old_size = busy_it->size();
+
+    if (new_size > old_size) {
+        amrex::Abort("CArena::shrink_in_place: wrong size. Cannot shrink to a larger size.");
+        return nullptr;
+    } else if (new_size == old_size) {
+        return pt;
+    } else {
+        auto const leftover_size = old_size - new_size;
+
+        void* pt2 = static_cast<char*>(pt) + new_size;
+        Node new_free_node(pt2, busy_it->owner(), leftover_size);
+
+        void* pt_end = static_cast<char*>(pt) + old_size;
+        auto free_it = m_freelist.find(Node(pt_end,nullptr,0));
+        if ((free_it == m_freelist.end()) || ! new_free_node.coalescable(*free_it)) {
+            m_freelist.insert(free_it, new_free_node);
+        } else {
+            auto& node = const_cast<Node&>(*free_it);
+            // This is safe because the free list is std::set and the
+            // modification of `block` does not change the order of elements
+            // in the container, even though Node's operator< uses block.
+            node.block(pt2);
+            node.size(leftover_size + node.size());
+        }
+
+        const_cast<Node&>(*busy_it).size(new_size);
+
+        m_actually_used -= leftover_size;
+
+#ifdef AMREX_TINY_PROFILING
+        if (m_do_profiling) {
+            TinyProfiler::memory_free(old_size, busy_it->mem_stat());
+            auto* stat = TinyProfiler::memory_alloc(new_size, m_profiling_stats);
+            const_cast<Node&>(*busy_it).mem_stat(stat);
+        }
+#endif
+
+        return pt;
+    }
 }
 
 void
@@ -437,6 +490,45 @@ CArena::PrintUsage (std::ostream& os, std::string const& name, std::string const
     os << space << "[" << name << "] space used      (MB): " << actual_megabytes << "\n";
     os << space << "[" << name << "]: " << m_alloc.size() << " allocs, "
        << m_busylist.size() << " busy blocks, " << m_freelist.size() << " free blocks\n";
+}
+
+std::ostream& operator<< (std::ostream& os, const CArena& arena)
+{
+    os << "CArea:\n"
+       << "    Hunk size: " << arena.m_hunk << "\n"
+       << "    Memory allocated: " << arena.m_used << "\n"
+       << "    Memory actually used: " << arena.m_actually_used << "\n";
+
+    if (arena.m_alloc.empty()) {
+        os << "    No memory allocations\n";
+    } else {
+        os << "    List of memory alloations: (address, size)\n";
+        for (auto const& a : arena.m_alloc) {
+            os << "        " << a.first << ", " << a.second << "\n";
+        }
+    }
+
+    if (arena.m_freelist.empty()) {
+        os << "    No free nodes\n";
+    } else {
+        os << "    List of free nodes: (address, owner, size)\n";
+        for (auto const& a : arena.m_freelist) {
+            os << "        " << a.block() << ", " << a.owner() << ", "
+               << a.size() << "\n";
+        }
+    }
+
+    if (arena.m_busylist.empty()) {
+        os << "    No busy nodes\n";
+    } else {
+        os << "    List of busy nodes: (address, owner, size)\n";
+        for (auto const& a : arena.m_busylist) {
+            os << "        " << a.block() << ", " << a.owner() << ", "
+               << a.size() << "\n";
+        }
+    }
+
+    return os;
 }
 
 }
