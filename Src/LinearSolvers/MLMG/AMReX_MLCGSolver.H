@@ -90,32 +90,15 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     const int ncomp = sol.nComp();
 
-    // MF ph = Lp.make(amrlev, mglev, sol.nGrowVect());
-    // MF sh = Lp.make(amrlev, mglev, sol.nGrowVect());
-    // ph.setVal(RT(0.0));
-    // sh.setVal(RT(0.0));
-
-    IntVect ng_sol   = sol.nGrowVect();
-
-    IntVect ng_sorig = nghost;
-    IntVect ng_p     = ng_sol;
-    IntVect ng_r     = nghost;
-    IntVect ng_s     = ng_sol;
-    IntVect ng_rh    = nghost;
-    IntVect ng_v     = nghost;
-    IntVect ng_t     = nghost;
-
-
-    MF sorig = Lp.make(amrlev, mglev, ng_sorig);
-    MF p     = Lp.make(amrlev, mglev, ng_p    );
-    MF r     = Lp.make(amrlev, mglev, ng_r    );
-    MF s     = Lp.make(amrlev, mglev, ng_s    );
-    MF rh    = Lp.make(amrlev, mglev, ng_rh   );
-    MF v     = Lp.make(amrlev, mglev, ng_v    );
-    MF t     = Lp.make(amrlev, mglev, ng_t    );
-
+    MF p = Lp.make(amrlev, mglev, sol.nGrowVect());
+    MF r = Lp.make(amrlev, mglev, sol.nGrowVect());
     p.setVal(RT(0.0));
-    s.setVal(RT(0.0));
+    r.setVal(RT(0.0));
+
+    MF sorig = Lp.make(amrlev, mglev, nghost);
+    MF rh    = Lp.make(amrlev, mglev, nghost);
+    MF v     = Lp.make(amrlev, mglev, nghost);
+    MF t     = Lp.make(amrlev, mglev, nghost);
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
 
