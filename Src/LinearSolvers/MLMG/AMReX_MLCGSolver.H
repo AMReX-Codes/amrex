@@ -46,7 +46,7 @@ public:
     [[nodiscard]] int getNGhost() {return nghost[0];}
 
     [[nodiscard]] RT dotxy (const MF& r, const MF& z, bool local = false);
-    [[nodiscard]] RT norm_inf (const MF& res, bool local = false);
+    [[nodiscard]] RT norm_inf (const MF& res, const IntVect& nghost = IntVect(0), bool local = false);
     int solve_bicgstab (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
     int solve_cg (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
 
@@ -90,18 +90,32 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     const int ncomp = sol.nComp();
 
-    MF ph = Lp.make(amrlev, mglev, sol.nGrowVect());
-    MF sh = Lp.make(amrlev, mglev, sol.nGrowVect());
-    ph.setVal(RT(0.0));
-    sh.setVal(RT(0.0));
+    // MF ph = Lp.make(amrlev, mglev, sol.nGrowVect());
+    // MF sh = Lp.make(amrlev, mglev, sol.nGrowVect());
+    // ph.setVal(RT(0.0));
+    // sh.setVal(RT(0.0));
 
-    MF sorig = Lp.make(amrlev, mglev, nghost);
-    MF p     = Lp.make(amrlev, mglev, nghost);
-    MF r     = Lp.make(amrlev, mglev, nghost);
-    MF s     = Lp.make(amrlev, mglev, nghost);
-    MF rh    = Lp.make(amrlev, mglev, nghost);
-    MF v     = Lp.make(amrlev, mglev, nghost);
-    MF t     = Lp.make(amrlev, mglev, nghost);
+    IntVect ng_sol   = sol.nGrowVect();
+
+    IntVect ng_sorig = nghost;
+    IntVect ng_p     = ng_sol;
+    IntVect ng_r     = nghost;
+    IntVect ng_s     = ng_sol;
+    IntVect ng_rh    = nghost;
+    IntVect ng_v     = nghost;
+    IntVect ng_t     = nghost;
+
+
+    MF sorig = Lp.make(amrlev, mglev, ng_sorig);
+    MF p     = Lp.make(amrlev, mglev, ng_p    );
+    MF r     = Lp.make(amrlev, mglev, ng_r    );
+    MF s     = Lp.make(amrlev, mglev, ng_s    );
+    MF rh    = Lp.make(amrlev, mglev, ng_rh   );
+    MF v     = Lp.make(amrlev, mglev, ng_v    );
+    MF t     = Lp.make(amrlev, mglev, ng_t    );
+
+    p.setVal(RT(0.0));
+    s.setVal(RT(0.0));
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
 
@@ -113,7 +127,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     sol.setVal(RT(0.0));
 
-    RT rnorm = norm_inf(r);
+    RT rnorm = norm_inf(r,nghost);
     const RT rnorm0 = rnorm;
 
     if ( verbose > 0 )
@@ -152,8 +166,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
             MF::Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
             MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
         }
-        ph.LocalCopy(p,0,0,ncomp,nghost);
-        Lp.apply(amrlev, mglev, v, ph, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
+        Lp.apply(amrlev, mglev, v, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
         RT rhTv = dotxy(rh,v);
@@ -165,10 +178,10 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 2; break;
         }
-        MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
-        MF::LinComb(s, RT(1.0), r, 0, -alpha, v, 0, 0, ncomp, nghost); // s = r - alpha * v
+        MF::Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
+        MF::Saxpy(r,  -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
 
-        rnorm = norm_inf(s);
+        rnorm = norm_inf(r,nghost);
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
@@ -180,15 +193,15 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
-        sh.LocalCopy(s,0,0,ncomp,nghost);
-        Lp.apply(amrlev, mglev, t, sh, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
+        s.LocalCopy(r,0,0,ncomp,nghost);
+        Lp.apply(amrlev, mglev, t, s, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, t);
         //
         // This is a little funky.  I want to elide one of the reductions
         // in the following two dotxy()s.  We do that by calculating the "local"
         // values and then reducing the two local values at the same time.
         //
-        RT tvals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
+        RT tvals[2] = { dotxy(t,t,true), dotxy(t,r,true) };
 
         BL_PROFILE_VAR("MLCGSolver::ParallelAllReduce", blp_par);
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
@@ -202,10 +215,10 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 3; break;
         }
-        MF::Saxpy(sol, omega, sh, 0, 0, ncomp, nghost); // sol += omega * sh
-        MF::LinComb(r, RT(1.0), s, 0, -omega, t, 0, 0, ncomp, nghost); // r = s - omega * t
+        MF::Saxpy(sol, omega, s, 0, 0, ncomp, nghost); // sol += omega * s
+        MF::Saxpy(r,  -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
 
-        rnorm = norm_inf(r);
+        rnorm = norm_inf(r,nghost);
 
         if ( verbose > 2 )
         {
@@ -395,10 +408,10 @@ MLCGSolverT<MF>::dotxy (const MF& r, const MF& z, bool local) -> RT
 
 template <typename MF>
 auto
-MLCGSolverT<MF>::norm_inf (const MF& res, bool local) -> RT
+MLCGSolverT<MF>::norm_inf (const MF& res, const IntVect& nghost, bool local) -> RT
 {
     int ncomp = res.nComp();
-    RT result = res.norminf(0,ncomp,IntVect(0),true);
+    RT result = res.norminf(0,ncomp,nghost,true);
     if (!local) {
         BL_PROFILE("MLCGSolver::ParallelAllReduce");
         ParallelAllReduce::Max(result, Lp.BottomCommunicator());
