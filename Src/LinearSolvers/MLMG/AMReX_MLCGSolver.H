@@ -46,7 +46,7 @@ public:
     [[nodiscard]] int getNGhost() {return nghost[0];}
 
     [[nodiscard]] RT dotxy (const MF& r, const MF& z, bool local = false);
-    [[nodiscard]] RT norm_inf (const MF& res, const IntVect& nghost = IntVect(0), bool local = false);
+    [[nodiscard]] RT norm_inf (const MF& res, bool local = false);
     int solve_bicgstab (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
     int solve_cg (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
 
@@ -62,7 +62,10 @@ private:
     int maxiter   = 100;
     IntVect nghost = IntVect(0);
     int iter = -1;
+
 };
+
+static bool bicgstab_title_has_printed = false;
 
 template <typename MF>
 MLCGSolverT<MF>::MLCGSolverT (MLLinOpT<MF>& _lp, Type _typ)
@@ -87,6 +90,10 @@ int
 MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 {
     BL_PROFILE("MLCGSolver::bicgstab");
+    if (!bicgstab_title_has_printed) {
+        amrex::Print() << "solve_bicgstab-cut-ph-and-sh" << "\n";
+        bicgstab_title_has_printed = true;
+    }
 
     const int ncomp = sol.nComp();
 
@@ -110,7 +117,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     sol.setVal(RT(0.0));
 
-    RT rnorm = norm_inf(r,nghost);
+    RT rnorm = norm_inf(r);
     const RT rnorm0 = rnorm;
 
     if ( verbose > 0 )
@@ -164,7 +171,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         MF::Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
         MF::Saxpy(r,  -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
 
-        rnorm = norm_inf(r,nghost);
+        rnorm = norm_inf(r);
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
@@ -176,8 +183,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
-        s.LocalCopy(r,0,0,ncomp,nghost);
-        Lp.apply(amrlev, mglev, t, s, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
+        Lp.apply(amrlev, mglev, t, r, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, t);
         //
         // This is a little funky.  I want to elide one of the reductions
@@ -198,10 +204,10 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 3; break;
         }
-        MF::Saxpy(sol, omega, s, 0, 0, ncomp, nghost); // sol += omega * s
+        MF::Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
         MF::Saxpy(r,  -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
 
-        rnorm = norm_inf(r,nghost);
+        rnorm = norm_inf(r);
 
         if ( verbose > 2 )
         {
@@ -391,10 +397,10 @@ MLCGSolverT<MF>::dotxy (const MF& r, const MF& z, bool local) -> RT
 
 template <typename MF>
 auto
-MLCGSolverT<MF>::norm_inf (const MF& res, const IntVect& nghost, bool local) -> RT
+MLCGSolverT<MF>::norm_inf (const MF& res, bool local) -> RT
 {
     int ncomp = res.nComp();
-    RT result = res.norminf(0,ncomp,nghost,true);
+    RT result = res.norminf(0,ncomp,IntVect(0),true);
     if (!local) {
         BL_PROFILE("MLCGSolver::ParallelAllReduce");
         ParallelAllReduce::Max(result, Lp.BottomCommunicator());
