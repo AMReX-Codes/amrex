@@ -6,7 +6,7 @@
 #include <AMReX_Sundials_Core.H>
 #include <AMReX_SUNMemory.H>
 
-static_assert(std::is_same<amrex::Real,realtype>::value,
-              "amrex::Real must be the same as SUNDIALS realtype");
+static_assert(std::is_same<amrex::Real,sunrealtype>::value,
+              "amrex::Real must be the same as SUNDIALS sunrealtype");
 
 #endif
