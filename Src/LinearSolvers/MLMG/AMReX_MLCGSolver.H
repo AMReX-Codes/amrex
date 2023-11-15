@@ -165,7 +165,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
             ret = 2; break;
         }
         MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
-        MF::Saxpy(r,  -alpha, v,  0, 0, ncomp, nghost); // r -= alpha * v
+        MF::Saxpy(r,  -alpha, v,  0, 0, ncomp, nghost); // r += -alpha * v
 
         rnorm = norm_inf(r);
 
@@ -202,7 +202,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
             ret = 3; break;
         }
         MF::Saxpy(sol, omega, sh, 0, 0, ncomp, nghost); // sol += omega * sh
-        MF::Saxpy(r,  -omega, t,  0, 0, ncomp, nghost); // r -= omega * t
+        MF::Saxpy(r,  -omega, t,  0, 0, ncomp, nghost); // r += -omega * t
 
         rnorm = norm_inf(r);
 
