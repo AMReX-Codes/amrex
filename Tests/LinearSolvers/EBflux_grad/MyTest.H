@@ -45,6 +45,7 @@ private:
     amrex::Vector<amrex::MultiFab> phi;
     amrex::Vector<amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>> flux;
     amrex::Vector<amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>> grad;
+    amrex::Vector<amrex::Array<amrex::iMultiFab, AMREX_SPACEDIM>> igrad;
     amrex::Vector<amrex::MultiFab> rhs;
     amrex::Vector<amrex::MultiFab> acoef;
     amrex::Vector<amrex::Array<amrex::MultiFab,AMREX_SPACEDIM> > bcoef;
