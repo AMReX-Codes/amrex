@@ -1,0 +1,22 @@
+Initializing AMReX (23.11-14-gb7dae90344ed-dirty)...
+MPI initialized with 4 MPI processes
+MPI initialized with thread support level 0
+AMReX (23.11-14-gb7dae90344ed-dirty) initialized
+MLMG: # of AMR levels: 1
+      # of MG levels on the coarsest AMR level: 7
+MLMG: Initial rhs               = 11962.15146
+MLMG: Initial residual (resid0) = 11962.15146
+solve_bicgstab-cut-ph-and-sh
+MLMG: Iteration   1 Fine resid/bnorm = 0.2276909123
+MLMG: Iteration   2 Fine resid/bnorm = 0.01193602707
+MLMG: Iteration   3 Fine resid/bnorm = 0.0007063973521
+MLMG: Iteration   4 Fine resid/bnorm = 4.363889852e-05
+MLMG: Iteration   5 Fine resid/bnorm = 2.802699898e-06
+MLMG: Iteration   6 Fine resid/bnorm = 1.816328821e-07
+MLMG: Iteration   7 Fine resid/bnorm = 1.20890735e-08
+MLMG: Iteration   8 Fine resid/bnorm = 8.36330814e-10
+MLMG: Iteration   9 Fine resid/bnorm = 5.835769107e-11
+MLMG: Final Iter. 9 resid, resid/bnorm = 6.980835394e-07, 5.835769107e-11
+MLMG: Timers: Solve = 3.369356104 Iter = 3.281207174 Bottom = 0.006085243
+Level 0 max-norm error: 0.0004050014695 1-norm error: 8.538281501e-05
+AMReX (23.11-14-gb7dae90344ed-dirty) finalized
