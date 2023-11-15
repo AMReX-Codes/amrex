@@ -122,7 +122,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     }
     int ret = 0;
     iter = 1;
-    RT rhTv = RT(0.0), alpha = RT(0.0), omega = RT(0.0);
+    RT rhTv = RT(0.0), omega = RT(0.0);
 
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
@@ -157,14 +157,11 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         Lp.normalize(amrlev, mglev, v);
 
         rhTv = dotxy(rh,v);
-        if ( rhTv != RT(0.0) )
-        {
-            alpha = rho/rhTv;
-        }
-        else
+        if ( rhTv == RT(0.0) )
         {
             ret = 2; break;
         }
+        const RT alpha = rho/rhTv;
         MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
         MF::LinComb(s, RT(1.0), r, 0, -alpha, v, 0, 0, ncomp, nghost); // s = r - alpha * v
 
