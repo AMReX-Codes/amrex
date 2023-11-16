@@ -120,7 +120,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     iter = 1;
     RT rho_1 = dotxy(rh,r);
 
-    if ( rnorm0 == 0 || rnorm0 < eps_abs )
+    if ( rnorm0 == RT(0.0) || rnorm0 < eps_abs )
     {
         if ( verbose > 0 )
         {
@@ -140,7 +140,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 1; break;
         }
-        Lp.apply(amrlev, mglev, v, ph, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
+        Lp.apply(amrlev, mglev, v, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
         const RT rhTv = dotxy(rh,v);
@@ -301,7 +301,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             amrex::Print() << "MLCGSolver_cg:"
                            << " iter " << iter
-                           << " rho " << rho
+                           << " rho " << rho_1
                            << " alpha " << alpha << '\n';
         }
         MF::Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
