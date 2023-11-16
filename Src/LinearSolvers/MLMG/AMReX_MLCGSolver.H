@@ -90,19 +90,19 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     const int ncomp = sol.nComp();
 
-    MF p  = Lp.make(amrlev, mglev, sol.nGrowVect());
-    MF s = Lp.make(amrlev, mglev, sol.nGrowVect());
-    p.setVal(RT(0.0));
-    s.setVal(RT(0.0));
+    MF p = Lp.make(amrlev, mglev, sol.nGrowVect());
+    MF r = Lp.make(amrlev, mglev, sol.nGrowVect());
+    p.setVal(RT(0.0)); // Initialize to avoid errors from nGrowVect cells
+    r.setVal(RT(0.0));
 
     MF sorig = Lp.make(amrlev, mglev, nghost);
-    MF r     = Lp.make(amrlev, mglev, nghost);
     MF rh    = Lp.make(amrlev, mglev, nghost);
     MF v     = Lp.make(amrlev, mglev, nghost);
     MF t     = Lp.make(amrlev, mglev, nghost);
 
     // Compute residual r
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
+
     // Then normalize
     Lp.normalize(amrlev, mglev, r);
 
@@ -118,7 +118,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     }
     int ret = 0;
     iter = 1;
-    RT rho = dotxy(rh,r);
+    RT rho_1 = dotxy(rh,r);
 
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
@@ -136,11 +136,10 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     for (; iter <= maxiter; ++iter)
     {
-        if ( rho == RT(0.0) )
+        if ( rho_1 == RT(0.0) )
         {
             ret = 1; break;
         }
-        // ph.LocalCopy(p,0,0,ncomp,nghost);
         Lp.apply(amrlev, mglev, v, ph, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
@@ -149,9 +148,9 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 2; break;
         }
-        const RT alpha = rho/rhTv;
-        MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
-        MF::Saxpy(r, -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
+        const RT alpha = rho_1/rhTv;
+        MF::Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
+        MF::Saxpy(r,  -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
 
         rnorm = norm_inf(r);
 
@@ -184,7 +183,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         const RT omega = tvals[1]/tvals[0];
         MF::Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
-        MF::Saxpy(r, -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
+        MF::Saxpy(r,  -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
 
         rnorm = norm_inf(r);
 
@@ -202,12 +201,12 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 4; break;
         }
-
-        rho = dotxy(rh,r);
-        const RT beta = rho / (rhTv * omega); // This is a result of alpha = rho_1 / rhTv
+        const RT rho = dotxy(rh,r);
+        const RT beta = (rho/rho_1)*(alpha/omega);
 
         MF::Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
         MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
+        rho_1 = rho;
     }
 
     if ( verbose > 0 )
@@ -226,9 +225,14 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         ret = 8;
     }
 
-    if ( ( ret != 0 && ret != 8 ) || (rnorm > rnorm0) )
+    if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.LocalCopy(sorig, 0, 0, ncomp, nghost);
+        // Keep solution
+    }
+    else
+    {
+        sol.setVal(RT(0.0));
+        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
     }
 
     return ret;
@@ -242,17 +246,12 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     const int ncomp = sol.nComp();
 
-    const BoxArray& ba = sol.boxArray();
-    const DistributionMapping& dm = sol.DistributionMap();
-    const auto& factory = sol.Factory();
-
-    MF p(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
+    MF p = Lp.make(amrlev, mglev, sol.nGrowVect());
     p.setVal(RT(0.0));
 
-    MF sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF r    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF z    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF q    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MF sorig = Lp.make(amrlev, mglev, nghost);
+    MF r     = Lp.make(amrlev, mglev, nghost);
+    MF q     = Lp.make(amrlev, mglev, nghost);
 
     sorig.LocalCopy(sol,0,0,ncomp,nghost);
 
@@ -280,11 +279,15 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         return ret;
     }
 
-    RT rho = dotxy(r,r);
+    RT rho_1 = dotxy(r,r);
     p.LocalCopy(r,0,0,ncomp,nghost);
 
     for (; iter <= maxiter; ++iter)
     {
+        if ( rho_1 == RT(0.0) )
+        {
+            ret = 1; break;
+        }
         Lp.apply(amrlev, mglev, q, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
 
         const RT pw = dotxy(p,q);
@@ -292,7 +295,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 1; break;
         }
-        const RT alpha = rho/pw;
+        const RT alpha = rho_1/pw;
 
         if ( verbose > 2 )
         {
@@ -315,16 +318,10 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
-        if ( rho == RT(0.0) )
-        {
-            ret = 2; break;
-        }
-
-        const RT rho_1 = rho;
-        rho = dotxy(r,r);
-
+        const RT rho = dotxy(r,r);
         const RT beta = rho/rho_1;
         MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta * p
+        rho_1 = rho;
     }
 
     if ( verbose > 0 )
@@ -343,9 +340,14 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         ret = 8;
     }
 
-    if ( ( ret != 0 && ret != 8 ) || (rnorm >= rnorm0) )
+    if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.LocalCopy(sorig, 0, 0, ncomp, nghost);
+        // Keep solution
+    }
+    else
+    {
+        sol.setVal(RT(0.0));
+        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
     }
 
     return ret;
