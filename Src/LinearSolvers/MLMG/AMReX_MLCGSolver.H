@@ -208,10 +208,10 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         const RT rho = dotxy(rh,r);
         const RT beta = (rho/rho_1)*(alpha/omega);
-        rho_1 = rho;
-
         MF::Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
         MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
+
+        rho_1 = rho;
     }
 
     if ( verbose > 0 )
