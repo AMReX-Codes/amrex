@@ -339,7 +339,7 @@ public:
 
     /**
      * \brief Construct an empty FabArray<FAB> that has a default Arena.  If
-     * `define` is called later with a nulltpr as MFInfo's arena, the
+     * `define` is called later with a nullptr as MFInfo's arena, the
      * default Arena `a` will be used.  If the arena in MFInfo is not a
      * nullptr, the MFInfo's arena will be used.
      */
@@ -2827,7 +2827,7 @@ template <class FAB>
 void
 FabArray<FAB>::shift (const IntVect& v)
 {
-    clearThisBD();  // The new boxarry will have a different ID.
+    clearThisBD();  // The new boxarray will have a different ID.
     boxarray.shift(v);
     addThisBD();
 #ifdef AMREX_USE_OMP

@@ -118,7 +118,7 @@ public:
      * \param fbc         for filling fine level physical BC
      * \param fbccomp     starting component of the fine level BC functor
      * \param bcs         BCRec specifying physical boundary types
-     * \parame bcscomp    starting component of the BCRec Vector.
+     * \param bcscomp    starting component of the BCRec Vector.
      * \param pre_interp  optional pre-interpolation hook for modifying the coarse data
      * \param post_interp optional post-interpolation hook for modifying the fine data
      */

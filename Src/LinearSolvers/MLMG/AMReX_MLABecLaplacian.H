@@ -72,7 +72,7 @@ public:
 
     /**
      * Sets alpha as a scalar field to values from a single component
-     * mutlifab.
+     * multifab.
      *
      * \param [in] amrlev The level of the multifab for the solver, with
      *                    \p amrlev = 0 always being the lowest level in the
@@ -88,12 +88,12 @@ public:
 
     /**
      * Sets alpha as a single scalar constant value across
-     * the mutlifab.
+     * the multifab.
      *
      * \param [in] amrlev The level of the multifab for the solver, with
      *                    \p amrlev = 0 always being the lowest level in the
      *                    AMR hierarchy represented in the solve.
-     * \param [in] alpha  Single scalar value to populate across mutlifab.
+     * \param [in] alpha  Single scalar value to populate across multifab.
      */
     template <typename T,
               std::enable_if_t<std::is_convertible_v<T,typename MF::value_type>,
@@ -118,12 +118,12 @@ public:
 
     /**
      * Sets beta as a single scalar constant value across
-     * the mutlifabs (one for each dimension).
+     * the multifabs (one for each dimension).
      *
      * \param [in] amrlev The level of the multifab for the solver, with
      *                    \p amrlev = 0 always being the lowest level in the
      *                    AMR hierarchy represented in the solve.
-     * \param [in] beta   Single scalar value to populate across mutlifabs.
+     * \param [in] beta   Single scalar value to populate across multifabs.
      */
     template <typename T,
               std::enable_if_t<std::is_convertible_v<T,typename MF::value_type>,
