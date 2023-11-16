@@ -62,10 +62,7 @@ private:
     int maxiter   = 100;
     IntVect nghost = IntVect(0);
     int iter = -1;
-
 };
-
-static bool bicgstab_title_has_printed = false;
 
 template <typename MF>
 MLCGSolverT<MF>::MLCGSolverT (MLLinOpT<MF>& _lp, Type _typ)
@@ -90,16 +87,12 @@ int
 MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 {
     BL_PROFILE("MLCGSolver::bicgstab");
-    if (!bicgstab_title_has_printed) {
-        amrex::Print() << "solve_bicgstab-cut-ph-and-sh" << "\n";
-        bicgstab_title_has_printed = true;
-    }
 
     const int ncomp = sol.nComp();
 
     MF p = Lp.make(amrlev, mglev, sol.nGrowVect());
     MF r = Lp.make(amrlev, mglev, sol.nGrowVect());
-    p.setVal(RT(0.0));
+    p.setVal(RT(0.0)); // Make sure all entries are initialized to avoid errors
     r.setVal(RT(0.0));
 
     MF sorig = Lp.make(amrlev, mglev, nghost);
