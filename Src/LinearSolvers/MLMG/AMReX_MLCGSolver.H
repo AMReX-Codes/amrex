@@ -247,7 +247,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     const int ncomp = sol.nComp();
 
     MF p = Lp.make(amrlev, mglev, sol.nGrowVect());
-    p.setVal(RT(0.0));
+    p.setVal(RT(0.0)); // Initialize to avoid errors from nGrowVect cells
 
     MF sorig = Lp.make(amrlev, mglev, nghost);
     MF r     = Lp.make(amrlev, mglev, nghost);
