@@ -90,54 +90,6 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
     return Array4<T>{p, amrex::begin(bx), amrex::end(bx), ncomp};
 }
 
-/**
-*  \brief A Fortran Array-like Object
-*  BaseFab emulates the Fortran array concept.
-*  Useful operations can be performed upon
-*  BaseFabs in C++, and they provide a convenient interface to
-*  Fortran when it is necessary to retreat into that language.
-
-*  BaseFab is a template class.  Through use of the
-*  template, a BaseFab may be based upon any class.  So far at least,
-*  most applications have been based upon simple types like integers,
-*  real*4s, or real*8s.  Most applications do not use BaseFabs
-*  directly, but utilize specialized classes derived from BaseFab.
-
-*  Classes derived from BaseFab include FArrayBox, IArrayBox, TagBox,
-*  Mask, EBFArrayBox, EBCellFlag and CutFab.
-
-*  BaseFab objects depend on the dimensionality of space
-*  (indirectly through the DOMAIN Box member).  It is
-*  typical to define the macro SPACEDIM to be 1, 2, or 3 to indicate
-*  the dimension of space.  See the discussion of class Box for more
-*  information.  A BaseFab contains a Box DOMAIN, which indicates the
-*  integer indexing space over which the array is defined.  A BaseFab
-*  also has NVAR components.  By components, we mean that for each
-*  point in the rectangular indexing space, there are NVAR values
-*  associated with that point.  A Fortran array corresponding to a
-*  BaseFab would have (SPACEDIM+1) dimensions.
-
-*  By design, the array layout in a BaseFab mirrors that of a
-*  Fortran array.  The first index (x direction for example) varies
-*  most rapidly, the next index (y direction), if any, varies next
-*  fastest. The component index varies last, after all the spatial
-*  indices.
-
-*  It is sometimes convenient to be able to treat a sub-array within an
-*  existing BaseFab as a BaseFab in its own right.  This is often
-*  referred to as aliasing the BaseFab.  Note that when aliasing is
-*  used, the BaseFabs domain will not, in general, be the same as the
-*  parent BaseFabs domain, nor will the number of components.
-*  BaseFab is a dimension dependent class, so SPACEDIM must be
-*  defined as either 1, 2, or 3 when compiling.
-
-*  This is NOT a polymorphic class.
-
-*  It does NOT provide a copy constructor or assignment operator.
-
-*  T MUST have a default constructor and an assignment operator.
-*/
-
 template <typename T>
 typename std::enable_if<std::is_arithmetic<T>::value>::type
 placementNew (T* const /*ptr*/, Long /*n*/)
@@ -178,6 +130,54 @@ placementDelete (T* const ptr, Long n)
     });
 }
 
+/**
+ * \brief A FortranArrayBox(FAB)-like object
+ *
+ * BaseFab emulates the Fortran array concept.
+ * Useful operations can be performed upon
+ * BaseFabs in C++, and they provide a convenient interface to
+ * Fortran when it is necessary to retreat into that language.
+ *
+ * BaseFab is a template class.  Through use of the
+ * template, a BaseFab may be based upon any class.  So far at least,
+ * most applications have been based upon simple types like integers,
+ * real*4s, or real*8s.  Most applications do not use BaseFabs
+ * directly, but utilize specialized classes derived from BaseFab.
+ *
+ * Classes derived from BaseFab include FArrayBox, IArrayBox, TagBox,
+ * Mask, EBFArrayBox, EBCellFlag and CutFab.
+ *
+ * BaseFab objects depend on the dimensionality of space
+ * (indirectly through the DOMAIN Box member).  It is
+ * typical to define the macro SPACEDIM to be 1, 2, or 3 to indicate
+ * the dimension of space.  See the discussion of class Box for more
+ * information.  A BaseFab contains a Box DOMAIN, which indicates the
+ * integer indexing space over which the array is defined.  A BaseFab
+ * also has NVAR components.  By components, we mean that for each
+ * point in the rectangular indexing space, there are NVAR values
+ * associated with that point.  A Fortran array corresponding to a
+ * BaseFab would have (SPACEDIM+1) dimensions.
+ *
+ * By design, the array layout in a BaseFab mirrors that of a
+ * Fortran array.  The first index (x direction for example) varies
+ * most rapidly, the next index (y direction), if any, varies next
+ * fastest. The component index varies last, after all the spatial
+ * indices.
+ *
+ * It is sometimes convenient to be able to treat a sub-array within an
+ * existing BaseFab as a BaseFab in its own right.  This is often
+ * referred to as aliasing the BaseFab.  Note that when aliasing is
+ * used, the BaseFabs domain will not, in general, be the same as the
+ * parent BaseFabs domain, nor will the number of components.
+ * BaseFab is a dimension dependent class, so SPACEDIM must be
+ * defined as either 1, 2, or 3 when compiling.
+ *
+ * This is NOT a polymorphic class.
+ *
+ * It does NOT provide a copy constructor or assignment operator.
+ *
+ * \tparam T MUST have a default constructor and an assignment operator.
+ */
 template <class T>
 class BaseFab
     : public DataAllocator
