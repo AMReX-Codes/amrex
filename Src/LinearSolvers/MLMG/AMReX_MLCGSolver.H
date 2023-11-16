@@ -97,8 +97,6 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     MF sorig = Lp.make(amrlev, mglev, nghost);
     MF r     = Lp.make(amrlev, mglev, nghost);
-
-
     MF rh    = Lp.make(amrlev, mglev, nghost);
     MF v     = Lp.make(amrlev, mglev, nghost);
     MF t     = Lp.make(amrlev, mglev, nghost);
@@ -134,7 +132,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         return ret;
     }
 
-    p.LocalCopy(r,0,0,ncomp,nghost); // This is the true initialization. Move this to here to avoid iter==1 check every iteration
+    p.LocalCopy(r,0,0,ncomp,nghost);
 
     for (; iter <= maxiter; ++iter)
     {
@@ -153,7 +151,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         const RT alpha = rho/rhTv;
         MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
-        MF::Saxpy(r, -alpha, v, 0, 0, ncomp, nghost); // r -= alpha * v
+        MF::Saxpy(r, -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
 
         rnorm = norm_inf(r);
 
@@ -186,7 +184,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         const RT omega = tvals[1]/tvals[0];
         MF::Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
-        MF::Saxpy(r, -omega, t, 0, 0, ncomp, nghost); // r -= omega * t
+        MF::Saxpy(r, -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
 
         rnorm = norm_inf(r);
 
