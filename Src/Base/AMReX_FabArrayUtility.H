@@ -1103,7 +1103,7 @@ template <class FAB,
 void
 Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
-    Subtract(dst,src,srccomp,dstcomp,numcomp,nghost);
+    Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 template <class FAB,
