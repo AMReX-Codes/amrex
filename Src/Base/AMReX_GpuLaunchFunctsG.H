@@ -36,7 +36,7 @@ void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
             [=] (sycl::nd_item<1> item)
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
-                f(Gpu::Handler{&item,shared_data.get_pointer()});
+                f(Gpu::Handler{&item,shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()});
             });
         });
     } catch (sycl::exception const& ex) {
@@ -82,7 +82,7 @@ void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
             [[sycl::reqd_work_group_size(1,1,MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
-                f(Gpu::Handler{&item,shared_data.get_pointer()});
+                f(Gpu::Handler{&item,shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()});
             });
         });
     } catch (sycl::exception const& ex) {
@@ -210,7 +210,7 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
                          i < n; i += stride) {
                         int n_active_threads = amrex::min(n-i+(T)item.get_local_id(0),
                                                           (T)item.get_local_range(0));
-                        detail::call_f(f, i, Gpu::Handler{&item, shared_data.get_pointer(),
+                        detail::call_f(f, i, Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
                                                           n_active_threads});
                     }
                 });
@@ -269,7 +269,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
                         k += lo.z;
                         int n_active_threads = amrex::min(ncells-icell+(int)item.get_local_id(0),
                                                           (int)item.get_local_range(0));
-                        detail::call_f(f, i, j, k, Gpu::Handler{&item, shared_data.get_pointer(),
+                        detail::call_f(f, i, j, k, Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
                                                                 n_active_threads});
                     }
                 });
@@ -335,7 +335,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
                         int n_active_threads = amrex::min(ncells-icell+(int)item.get_local_id(0),
                                                           (int)item.get_local_range(0));
                         detail::call_f(f, i, j, k, ncomp,
-                                       Gpu::Handler{&item, shared_data.get_pointer(),
+                                       Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
                                                     n_active_threads});
                     }
                 });

@@ -226,10 +226,9 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_EB=ON                                  \
             -DAMReX_ENABLE_TESTS=ON                        \
-            -DAMReX_FORTRAN=ON                             \
+            -DAMReX_FORTRAN=OFF                            \
             -DCMAKE_C_COMPILER=$(which icc)                \
             -DCMAKE_CXX_COMPILER=$(which icpc)             \
-            -DCMAKE_Fortran_COMPILER=$(which ifort)        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --parallel 2
         cmake --build build --target install

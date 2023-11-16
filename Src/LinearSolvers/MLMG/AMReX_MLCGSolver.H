@@ -246,12 +246,13 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     const DistributionMapping& dm = sol.DistributionMap();
     const auto& factory = sol.Factory();
 
-    MF p = Lp.make(amrlev, mglev, sol.nGrowVect());
+    MF p(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
     p.setVal(RT(0.0));
 
-    MF sorig = Lp.make(amrlev, mglev, nghost);
-    MF r     = Lp.make(amrlev, mglev, nghost);
-    MF q     = Lp.make(amrlev, mglev, nghost);
+    MF sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
+    MF r    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MF z    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MF q    (ba, dm, ncomp, nghost, MFInfo(), factory);
 
     sorig.LocalCopy(sol,0,0,ncomp,nghost);
 
