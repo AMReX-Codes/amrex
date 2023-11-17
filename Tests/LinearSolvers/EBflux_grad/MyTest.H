@@ -45,6 +45,7 @@ private:
     amrex::Vector<amrex::MultiFab> phi;
     amrex::Vector<amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>> flux;
     amrex::Vector<amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>> grad;
+    amrex::Vector<amrex::Array<amrex::fMultiFab, AMREX_SPACEDIM>> fgrad; // Used to test getGradSolution when MF is different from AMF
     amrex::Vector<amrex::MultiFab> rhs;
     amrex::Vector<amrex::MultiFab> acoef;
     amrex::Vector<amrex::Array<amrex::MultiFab,AMREX_SPACEDIM> > bcoef;
