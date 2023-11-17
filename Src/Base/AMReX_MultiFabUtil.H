@@ -375,7 +375,7 @@ namespace amrex
     void FillRandom (MultiFab& mf, int scomp, int ncomp);
 
     /**
-     * \brief Fill MultiFab with random numbers from nornmal distribution
+     * \brief Fill MultiFab with random numbers from normal distribution
      *
      * All cells including ghost cells are filled.
      *
