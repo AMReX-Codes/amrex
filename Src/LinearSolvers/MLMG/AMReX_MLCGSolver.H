@@ -90,22 +90,17 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     const int ncomp = sol.nComp();
 
-    const BoxArray& ba = sol.boxArray();
-    const DistributionMapping& dm = sol.DistributionMap();
-    const auto& factory = sol.Factory();
-
-    MF ph(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
-    MF sh(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
+    MF ph = Lp.make(amrlev, mglev, sol.nGrowVect());
+    MF sh = Lp.make(amrlev, mglev, sol.nGrowVect());
     ph.setVal(RT(0.0));
     sh.setVal(RT(0.0));
 
-    MF sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF p    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF r    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF s    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF rh   (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF v    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF t    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MF sorig = Lp.make(amrlev, mglev, nghost);
+    MF p     = Lp.make(amrlev, mglev, nghost);
+    MF r     = Lp.make(amrlev, mglev, nghost);
+    MF rh    = Lp.make(amrlev, mglev, nghost);
+    MF v     = Lp.make(amrlev, mglev, nghost);
+    MF t     = Lp.make(amrlev, mglev, nghost);
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
 
@@ -170,9 +165,9 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
             ret = 2; break;
         }
         MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
-        MF::LinComb(s, RT(1.0), r, 0, -alpha, v, 0, 0, ncomp, nghost); // s = r - alpha * v
+        MF::Saxpy(r,  -alpha, v,  0, 0, ncomp, nghost); // r += -alpha * v
 
-        rnorm = norm_inf(s);
+        rnorm = norm_inf(r);
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
@@ -184,7 +179,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
-        sh.LocalCopy(s,0,0,ncomp,nghost);
+        sh.LocalCopy(r,0,0,ncomp,nghost);
         Lp.apply(amrlev, mglev, t, sh, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, t);
         //
@@ -192,7 +187,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         // in the following two dotxy()s.  We do that by calculating the "local"
         // values and then reducing the two local values at the same time.
         //
-        RT tvals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
+        RT tvals[2] = { dotxy(t,t,true), dotxy(t,r,true) };
 
         BL_PROFILE_VAR("MLCGSolver::ParallelAllReduce", blp_par);
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
@@ -207,7 +202,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
             ret = 3; break;
         }
         MF::Saxpy(sol, omega, sh, 0, 0, ncomp, nghost); // sol += omega * sh
-        MF::LinComb(r, RT(1.0), s, 0, -omega, t, 0, 0, ncomp, nghost); // r = s - omega * t
+        MF::Saxpy(r,  -omega, t,  0, 0, ncomp, nghost); // r += -omega * t
 
         rnorm = norm_inf(r);
 
@@ -265,17 +260,13 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     const int ncomp = sol.nComp();
 
-    const BoxArray& ba = sol.boxArray();
-    const DistributionMapping& dm = sol.DistributionMap();
-    const auto& factory = sol.Factory();
-
-    MF p(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
+    MF p = Lp.make(amrlev, mglev, sol.nGrowVect());
     p.setVal(RT(0.0));
 
-    MF sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF r    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF z    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF q    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MF sorig = Lp.make(amrlev, mglev, nghost);
+    MF r     = Lp.make(amrlev, mglev, nghost);
+    MF z     = Lp.make(amrlev, mglev, nghost);
+    MF q     = Lp.make(amrlev, mglev, nghost);
 
     sorig.LocalCopy(sol,0,0,ncomp,nghost);
 
