@@ -319,7 +319,7 @@ AmrLevel::writePlotFile (const std::string& dir,
     // We combine all of the multifabs -- state, derived, etc -- into one
     // multifab -- plotMF.
     int       cnt   = 0;
-    const auto nGrow = IntVect(0);
+    const int nGrow = 0;
     MultiFab  plotMF(grids,dmap,n_data_items,nGrow,MFInfo(),Factory());
     MultiFab* this_dat = nullptr;
     //
@@ -679,9 +679,30 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     MFIter::depth = 0;
 }
 
+FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel&     amrlevel,
+                                                  MultiFab&     leveldata,
+                                                  int           boxGrow,
+                                                  Real          time,
+                                                  int           index,
+                                                  int           scomp,
+                                                  int           ncomp,
+                                                  InterpBase*   mapper)
+    :
+    m_amrlevel(amrlevel),
+    m_leveldata(leveldata),
+    m_mfid(m_amrlevel.level+1),
+    m_time(time),
+    m_growsize(boxGrow),
+    m_index(index),
+    m_scomp(scomp),
+    m_ncomp(ncomp)
+{
+    Initialize(boxGrow,time,index,scomp,ncomp,mapper);
+}
+
 FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
                                       MultiFab& leveldata,
-                                      IntVect   boxGrow,
+                                      int       boxGrow,
                                       Real      time,
                                       int       idx,
                                       int       scomp,
@@ -713,7 +734,7 @@ NeedToTouchUpPhysCorners (const Geometry& geom)
 }
 
 void
-FillPatchIteratorHelper::Initialize (IntVect       boxGrow,
+FillPatchIteratorHelper::Initialize (int           boxGrow,
                                      Real          time,
                                      int           idx,
                                      int           scomp,
@@ -961,11 +982,11 @@ FillPatchIteratorHelper::Initialize (IntVect       boxGrow,
 }
 
 void
-FillPatchIterator::Initialize (IntVect boxGrow,
-                               Real    time,
-                               int     idx,
-                               int     scomp,
-                               int     ncomp)
+FillPatchIterator::Initialize (int  boxGrow,
+                               Real time,
+                               int  idx,
+                               int  scomp,
+                               int  ncomp)
 {
     BL_PROFILE("FillPatchIterator::Initialize");
 
@@ -1490,18 +1511,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     }
 }
 
-// void
-// AmrLevel::FillCoarsePatch (MultiFab& mf,
-//                            int       dcomp,
-//                            Real      time,
-//                            int       idx,
-//                            int       scomp,
-//                            int       ncomp,
-//                            int       nghost)
-// {
-//     FillCoarsePatch(mf, dcomp, time, idx, scomp, ncomp, IntVect(nghost));
-// }
-
 void
 AmrLevel::FillCoarsePatch (MultiFab& mf,
                            int       dcomp,
@@ -1509,7 +1518,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
                            int       idx,
                            int       scomp,
                            int       ncomp,
-                           IntVect   nghost)
+                           int       nghost)
 {
     BL_PROFILE("AmrLevel::FillCoarsePatch()");
 
@@ -1518,7 +1527,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     //
     BL_ASSERT(level != 0);
     BL_ASSERT(ncomp <= (mf.nComp()-dcomp));
-    BL_ASSERT(nghost.allLE(mf.nGrowVect()));
+    BL_ASSERT(nghost <= mf.nGrow());
     BL_ASSERT(0 <= idx && idx < desc_lst.size());
 
     int                     DComp   = dcomp;
@@ -1532,7 +1541,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     Box domain_g = pdomain;
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         if (geom.isPeriodic(i)) {
-            domain_g.grow(i,nghost[i]);
+            domain_g.grow(i,nghost);
         }
     }
 
@@ -1583,13 +1592,13 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         }
         else
         {
-            FillPatch(clev,crseMF,IntVect(0),time,idx,SComp,NComp,0);
+            FillPatch(clev,crseMF,0,time,idx,SComp,NComp,0);
         }
 
         FillPatchInterp(mf, DComp, crseMF, 0, NComp, IntVect(nghost), cgeom, geom, domain_g,
                         crse_ratio, mapper, desc.getBCs(), SComp);
 
-        if (nghost.allGE(0)) {
+        if (nghost > 0) {
             StateDataPhysBCFunct physbcf(state[idx],SComp,geom);
             physbcf.FillBoundary(mf, DComp, NComp, mf.nGrowVect(), time, SComp);
         }
@@ -1599,10 +1608,10 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 }
 
 std::unique_ptr<MultiFab>
-AmrLevel::derive (const std::string& name, Real time, IntVect ngrow)
+AmrLevel::derive (const std::string& name, Real time, int ngrow)
 {
     BL_PROFILE("AmrLevel::derive()");
-    BL_ASSERT(ngrow.allGE(0));
+    BL_ASSERT(ngrow >= 0);
 
     std::unique_ptr<MultiFab> mf;
 
@@ -1622,11 +1631,11 @@ AmrLevel::derive (const std::string& name, Real time, IntVect ngrow)
         BoxArray dstBA(srcBA);
         dstBA.convert(rec->deriveType());
 
-        auto ngrow_src = ngrow;
+        int ngrow_src = ngrow;
         {
             Box bx0 = srcBA[0];
             Box bx1 = rec->boxMap()(bx0);
-            auto g = bx0.smallEnd() - bx1.smallEnd();
+            int g = bx0.smallEnd(0) - bx1.smallEnd(0);
             ngrow_src += g;
         }
 
@@ -1721,7 +1730,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
     BL_PROFILE("AmrLevel::derive()");
     BL_ASSERT(dcomp < mf.nComp());
 
-    const auto ngrow = mf.nGrowVect();
+    const int ngrow = mf.nGrow();
 
     int index, scomp, ncomp;
 
@@ -1735,11 +1744,11 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 
         const BoxArray& srcBA = state[index].boxArray();
 
-        auto ngrow_src = ngrow;
+        int ngrow_src = ngrow;
         {
             Box bx0 = srcBA[0];
             Box bx1 = rec->boxMap()(bx0);
-            auto g = bx0.smallEnd() - bx1.smallEnd();
+            int g = bx0.smallEnd(0) - bx1.smallEnd(0);
             ngrow_src += g;
         }
 
@@ -2105,7 +2114,7 @@ AmrLevel::resetFillPatcher ()
 }
 
 void
-AmrLevel::FillPatcherFill (MultiFab& mf, int dcomp, int ncomp, IntVect nghost,
+AmrLevel::FillPatcherFill (MultiFab& mf, int dcomp, int ncomp, int nghost,
                            Real time, int state_index, int scomp)
 {
     BL_PROFILE("AmrLevel::FillPatcherFill()");
@@ -2161,23 +2170,10 @@ AmrLevel::FillPatcherFill (MultiFab& mf, int dcomp, int ncomp, IntVect nghost,
     }
 }
 
-// void
-// AmrLevel::FillPatch (AmrLevel& amrlevel,
-//                      MultiFab& leveldata,
-//                      int       boxGrow,
-//                      Real      time,
-//                      int       index,
-//                      int       scomp,
-//                      int       ncomp,
-//                      int       dcomp)
-// {
-//     FillPatch(amrlevel,leveldata,IntVect(boxGrow),time,index,scomp,ncomp,dcomp);
-// }
-
 void
 AmrLevel::FillPatch (AmrLevel& amrlevel,
                      MultiFab& leveldata,
-                     IntVect   boxGrow,
+                     int       boxGrow,
                      Real      time,
                      int       index,
                      int       scomp,
@@ -2186,7 +2182,7 @@ AmrLevel::FillPatch (AmrLevel& amrlevel,
 {
     BL_PROFILE("AmrLevel::FillPatch()");
     BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
-    BL_ASSERT(leveldata.nGrowVect().allGE(boxGrow));
+    BL_ASSERT(boxGrow <= leveldata.nGrow());
     FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
     const MultiFab& mf_fillpatched = fpi.get_mf();
     MultiFab::Copy(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
@@ -2195,7 +2191,7 @@ AmrLevel::FillPatch (AmrLevel& amrlevel,
 void
 AmrLevel::FillPatchAdd (AmrLevel& amrlevel,
                         MultiFab& leveldata,
-                        IntVect   boxGrow,
+                        int       boxGrow,
                         Real      time,
                         int       index,
                         int       scomp,
@@ -2204,7 +2200,7 @@ AmrLevel::FillPatchAdd (AmrLevel& amrlevel,
 {
     BL_PROFILE("AmrLevel::FillPatchAdd()");
     BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
-    BL_ASSERT(boxGrow.allLE(leveldata.nGrowVect()));
+    BL_ASSERT(boxGrow <= leveldata.nGrow());
     FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
     const MultiFab& mf_fillpatched = fpi.get_mf();
     MultiFab::Add(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
@@ -2264,7 +2260,7 @@ AmrLevel::FillRKPatch (int state_index, MultiFab& S, Real time,
 }
 
 IntVect
-AmrLevel::ProperBlockingFactor (AmrLevel const& amr_level, IntVect boxGrow,
+AmrLevel::ProperBlockingFactor (AmrLevel const& amr_level, int boxGrow,
                                 IndexType const& boxType,
                                 StateDescriptor const& desc, int SComp)
 {
