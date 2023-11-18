@@ -6,11 +6,13 @@ CEXE_headers   += AMReX_MLMG_K.H AMReX_MLMG_$(DIM)D_K.H
 ifeq ($(DIM),3)
 CEXE_headers   += AMReX_MLMG_2D_K.H
 endif
+CEXE_headers   += AMReX_MLMG_Set.H
 
 CEXE_headers   += AMReX_MLMGBndry.H
 
 CEXE_headers   += AMReX_MLLinOp.H
 CEXE_headers   += AMReX_MLLinOp_K.H
+CEXE_headers   += AMReX_MLLinOp_Set.H
 
 CEXE_headers   += AMReX_MLCellLinOp.H
 

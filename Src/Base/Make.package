@@ -166,6 +166,7 @@ C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
 
 C$(AMREX_BASE)_sources += AMReX_FabArrayBase.cpp AMReX_MFIter.cpp
 C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayBase.H AMReX_MFIter.H
+C$(AMREX_BASE)_headers += AMReX_FabArraySet.H
 C$(AMREX_BASE)_headers += AMReX_FabArrayCommI.H AMReX_FBI.H AMReX_PCI.H AMReX_FabArrayUtility.H
 C$(AMREX_BASE)_headers += AMReX_LayoutData.H
 
@@ -178,9 +179,11 @@ C$(AMREX_BASE)_headers += AMReX_CoordSys.H AMReX_Geometry.H AMReX_COORDSYS_C.H A
 C$(AMREX_BASE)_headers += AMReX_MultiFabUtil.H AMReX_MultiFabUtil_C.H AMReX_MultiFabUtil_$(DIM)D_C.H AMReX_MultiFabUtil_nd_C.H
 C$(AMREX_BASE)_sources += AMReX_MultiFabUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_MultiFabUtilI.H
+C$(AMREX_BASE)_headers += AMReX_MultiFabSetUtil.H
+C$(AMREX_BASE)_sources += AMReX_MultiFabSetUtil.cpp
 
 #
-# Boundary-related 
+# Boundary-related
 #
 C$(AMREX_BASE)_sources += AMReX_BCRec.cpp
 C$(AMREX_BASE)_headers += AMReX_BCRec.H AMReX_BC_TYPES.H

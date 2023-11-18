@@ -1,10 +1,10 @@
-#ifndef AMREX_MLLINOP_MFSET_H_
-#define AMREX_MLLINOP_MFSET_H_
+#ifndef AMREX_ML_LIN_OP_SET_H_
+#define AMREX_ML_LIN_OP_SET_H_
 
 #include <AMReX_FabArraySet.H>
 #include <AMReX_MLLinOp.H>
 
-using namespace amrex;
+namespace amrex {
 
 class MLLinOpMFSet
     : public MLLinOpT<MultiFabSet>
@@ -22,34 +22,34 @@ public:
     MLLinOpMFSet& operator= (const MLLinOpMFSet&) = delete;
     MLLinOpMFSet& operator= (MLLinOpMFSet&&) = delete;
 
-    /* Start public overrides from MLLinOpT */
-    void setCoarseFineBC (const MFSet* crse, int crse_ratio) noexcept;
+    /**** Start public overrides from MLLinOpT ****/
+    // void setCoarseFineBC (const MFSet* crse, int crse_ratio) noexcept;
     [[nodiscard]] int getNComp () const override;
     // [[nodiscard]] virtual int getNGrow (int amrlev = 0, int mglev = 0) const { return 0; }
-    void restriction (int amrlev, int cmglev, MFSet& crse, MFSet& fine) const;
-    void interpolation (int amrlev, int fmglev, MFSet& fine, const MFSet& crse) const;
-    void interpAssign (int amrlev, int fmglev, MFSet& fine, MFSet& crse) const;
-    void interpolationAmr (int famrlev, MFSet& fine, const MFSet& crse, const IntVect& nghost) const;
-    void averageDownSolutionRHS (int camrlev, MFSet& crse_sol, MFSet& crse_rhs,
-                                 const MFSet& fine_sol, const MFSet& fine_rhs);
-    virtual void reflux (int crse_amrlev,
-                 MFSet& res, const MFSet& crse_sol, const MFSet& crse_rhs,
-                 MFSet& fine_res, MFSet& fine_sol, const MFSet& fine_rhs) const;
-    RT xdoty (int amrlev, int mglev, const MFSet& x, const MFSet& y, bool local) const;
-    [[nodiscard]] virtual RT normInf (int amrlev, MFSet const& MFSet, bool local) const;
-    virtual void averageDownAndSync (Vector<MFSet>& sol) const;
-    virtual void avgDownResAmr (int clev, MFSet& cres, MFSet const& fres) const;
-    virtual void avgDownResMG (int clev, MFSet& cres, MFSet const& fres) const;
-    /* End public overrides from MLLinOpT*/
+    // void restriction (int amrlev, int cmglev, MFSet& crse, MFSet& fine) const;
+    // void interpolation (int amrlev, int fmglev, MFSet& fine, const MFSet& crse) const;
+    // void interpAssign (int amrlev, int fmglev, MFSet& fine, MFSet& crse) const;
+    // void interpolationAmr (int famrlev, MFSet& fine, const MFSet& crse, const IntVect& nghost) const;
+    // void averageDownSolutionRHS (int camrlev, MFSet& crse_sol, MFSet& crse_rhs,
+    //                              const MFSet& fine_sol, const MFSet& fine_rhs);
+    // virtual void reflux (int crse_amrlev,
+    //              MFSet& res, const MFSet& crse_sol, const MFSet& crse_rhs,
+    //              MFSet& fine_res, MFSet& fine_sol, const MFSet& fine_rhs) const;
+    // RT xdoty (int amrlev, int mglev, const MFSet& x, const MFSet& y, bool local) const;
+    // [[nodiscard]] virtual RT normInf (int amrlev, MFSet const& MFSet, bool local) const;
+    // virtual void averageDownAndSync (Vector<MFSet>& sol) const;
+    // virtual void avgDownResAmr (int clev, MFSet& cres, MFSet const& fres) const;
+    // virtual void avgDownResMG (int clev, MFSet& cres, MFSet const& fres) const;
+    /**** End public overrides from MLLinOpT ****/
 
-    /* Start methods inspired by MLCellLinOp and MLNodeLinOp */
-    virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode, StateMode state_mode,
-                          bool skip_fillboundary=false) const;
-    /* End methods inspired by MLCellLinOp and MLNodeLinOp */
+    /**** Start methods inspired by MLCellLinOp and MLNodeLinOp ****/
+    // virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode, StateMode state_mode,
+    //                       bool skip_fillboundary=false) const;
+    /**** End methods inspired by MLCellLinOp and MLNodeLinOp ****/
 
-    /* Start new methods */
+    /**** Start new methods ****/
     int getNSet () const { return m_ixtype_set.size(); }
-    /* End new methods*/
+    /**** End new methods ****/
 
 protected:
 
@@ -73,19 +73,19 @@ MLLinOpMFSet::getNComp () const {
     return m_ncomp;
 }
 
-void
-MLLinOpMFSet::avgDownResMG (int clev, MFSet& cres, MFSet const& fres) const
-{
+// void
+// MLLinOpMFSet::avgDownResMG (int clev, MFSet& cres, MFSet const& fres) const
+// {
 
-#ifdef AMREX_USE_EB
-    if (!fres.isAllRegular()) {
-        amrex::EB_average_down(fres, cres, mg_coarsen_ratio_vec[clev-1]);
-    } else
-#endif
-    {
-        amrex::average_down(fres, cres, mg_coarsen_ratio_vec[clev-1]);
-    }
-}
+// #ifdef AMREX_USE_EB
+//     if (!fres.isAllRegular()) {
+//         amrex::EB_average_down(fres, cres, mg_coarsen_ratio_vec[clev-1]);
+//     } else
+// #endif
+//     {
+//         amrex::average_down(fres, cres, mg_coarsen_ratio_vec[clev-1]);
+//     }
+// }
 
 MFSet
 MLLinOpMFSet::make (int amrlev, int mglev, IntVect const& ng) const
@@ -116,4 +116,6 @@ MLLinOpMFSet::makeCoarseAmr (int famrlev, IntVect const& ng) const
     return MFSet(cba, m_ixtype_set, m_dmap[famrlev][0], getNComp(), ng);
 }
 
-#endif /* AMREX_MLLINOP_MFSET_H_ */
+}
+
+#endif /* AMREX_ML_LIN_OP_SET_H_ */
