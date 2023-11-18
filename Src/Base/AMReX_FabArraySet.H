@@ -203,7 +203,7 @@ public:
      * \param comp           starting component
      * \param ncomp          number of components
      * \param nghost         number of ghost cells
-     * \param local          If true, MPI communciation is skipped.
+     * \param local          If true, MPI communication is skipped.
      * \param ignore_covered ignore covered cells. Only relevant for cell-centered EB data.
      */
     // template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
@@ -388,7 +388,7 @@ FabArraySet<MF>::setBndry (value_type val, int strt_comp, int ncomp)
 }
 
 template <class MF>
-FabArraySet<MF>::value_type
+typename FabArraySet<MF>::value_type
 FabArraySet<MF>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
                           [[maybe_unused]] bool ignore_covered) const
 {
