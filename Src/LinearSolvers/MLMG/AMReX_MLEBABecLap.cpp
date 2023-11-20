@@ -626,8 +626,8 @@ MLEBABecLap::averageDownCoeffs ()
 
 void
 MLEBABecLap::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& alpha,
-                                            Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,
-                                            const Vector<MultiFab*>& b_eb)
+                                            Vector<Array<MultiFab,AMREX_SPACEDIM> >& beta,
+                                            const Vector<MultiFab*>& beta_eb)
 {
     auto nmglevs = static_cast<int>(alpha.size());
     for (int mglev = 1; mglev < nmglevs; ++mglev)
@@ -643,13 +643,13 @@ MLEBABecLap::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& alpha,
             amrex::EB_average_down(alpha[mglev-1], alpha[mglev], 0, 1, ratio);
         }
 
-        amrex::EB_average_down_faces(amrex::GetArrOfConstPtrs(b[mglev-1]),
-                                     amrex::GetArrOfPtrs(b[mglev]),
+        amrex::EB_average_down_faces(amrex::GetArrOfConstPtrs(beta[mglev-1]),
+                                     amrex::GetArrOfPtrs(beta[mglev]),
                                      ratio, 0);
 
-        if (b_eb[mglev])
+        if (beta_eb[mglev])
         {
-            amrex::EB_average_down_boundaries(*b_eb[mglev-1], *b_eb[mglev],
+            amrex::EB_average_down_boundaries(*beta_eb[mglev-1], *beta_eb[mglev],
                                               ratio, 0);
         }
     }

@@ -5,13 +5,13 @@
 #include <AMReX_MLEBNodeFDLaplacian.H>
 #include <AMReX_LO_BCTYPES.H>
 
-// #if (AMREX_SPACEDIM == 1)
+#if (AMREX_SPACEDIM == 1)
 #include <AMReX_MLEBNodeFDLap_1D_K.H>
-// #elif (AMREX_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
 #include <AMReX_MLEBNodeFDLap_2D_K.H>
-// #else
+#else
 #include <AMReX_MLEBNodeFDLap_3D_K.H>
-// #endif
+#endif
 
 namespace amrex {
 

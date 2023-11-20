@@ -148,9 +148,9 @@ protected:
     //
     bool isEBDirichlet   () const noexcept { return m_eb_phi[0] != nullptr; }
 
-    void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
-                                        Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,
-                                        const Vector<MultiFab*>& b_eb);
+    void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& alpha,
+                                        Vector<Array<MultiFab,AMREX_SPACEDIM> >& beta,
+                                        const Vector<MultiFab*>& beta_eb);
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 };
