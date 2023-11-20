@@ -97,7 +97,7 @@ namespace amrex
     //  This allows you to use unique names to wrap multiple particle containers
     //  into a single blueprint tree.
     template <typename ParticleType, int NArrayReal, int NArrayInt>
-    void ParticleContainerToBlueprint (const ParticleContainer<ParticleType,
+    void ParticleContainerToBlueprint (const ParticleContainer_impl<ParticleType,
                                                                NArrayReal,
                                                                NArrayInt> &pc,
                                        const Vector<std::string> &real_comp_names,

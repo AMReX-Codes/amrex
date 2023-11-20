@@ -58,9 +58,12 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
     //----------------------------------//
     // point locations from from aos
     //----------------------------------//
+    char* pbuf = nullptr;
 
     if constexpr(ParticleType::is_soa_particle)
     {
+        amrex::ignore_unused(pbuf);
+
         const auto &soa = ptile.GetStructOfArrays();
 
         // for soa entries, we can use standard strides,
@@ -83,7 +86,7 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
         const int struct_size = sizeof(ParticleType);
 
         const char* pbuf_const = reinterpret_cast<const char*>(pstruct.data());
-        char* pbuf = const_cast<char*>(pbuf_const);
+        pbuf = const_cast<char*>(pbuf_const);
 
         ParticleReal* xp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
         n_coords["values/x"].set_external(xp,
@@ -116,7 +119,9 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
     int vname_real_idx = 0;
     if constexpr(!ParticleType::is_soa_particle)
     {
-        const int struct_size = sizeof(ParticleType);
+        constexpr int struct_size = sizeof(ParticleType);
+        constexpr int NStructReal = ParticleType::NReal;
+
         // struct real fields, the first set are always the particle positions
         // which we wrap above
         for (int i = 0; i < NStructReal; i++)
@@ -195,7 +200,8 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
     int vname_int_idx = 0;
     if constexpr(!ParticleType::is_soa_particle)
     {
-        const int struct_size = sizeof(ParticleType);
+        constexpr int struct_size = sizeof(ParticleType);
+        constexpr int NStructInt = ParticleType::NInt;
 
         for (int i = 0; i < NStructInt; i++)
         {
@@ -250,7 +256,7 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
 //---------------------------------------------------------------------------//
 template <typename ParticleType, int NArrayReal, int NArrayInt>
 void
-ParticleContainerToBlueprint(const ParticleContainer<ParticleType,
+ParticleContainerToBlueprint(const ParticleContainer_impl<ParticleType,
                                                      NArrayReal,
                                                      NArrayInt> &pc,
                              const Vector<std::string> &real_comp_names,
@@ -283,7 +289,7 @@ ParticleContainerToBlueprint(const ParticleContainer<ParticleType,
     int rank   = ParallelDescriptor::MyProc();
     int nprocs = ParallelDescriptor::NProcs();
 
-    using MyParConstIter = ParConstIter<ParticleType, NArrayReal, NArrayInt>;
+    using MyParConstIter = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt>;
 
     //
     // blueprint expects unique ids for each domain published
