@@ -23,11 +23,11 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                         const bool& on_x_face, const bool& on_y_face,
                         bool is_eb_dirichlet, bool is_eb_inhomog,
                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                        Real scalarA, Real scalarB, int ncomp) noexcept
+                        Real ascalar, Real bscalar, int ncomp) noexcept
 {
-    Real dhx = scalarB*dxinv[0]*dxinv[0];
-    Real dhy = scalarB*dxinv[1]*dxinv[1];
-    Real dh  = scalarB*dxinv[0]*dxinv[1];
+    Real dhx = bscalar*dxinv[0]*dxinv[0];
+    Real dhy = bscalar*dxinv[1]*dxinv[1];
+    Real dh  = bscalar*dxinv[0]*dxinv[1];
 
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
@@ -39,7 +39,7 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
                 ((flag(i-1,j  ,k).isRegular() && flag(i+1,j  ,k).isRegular() &&
                  flag(i  ,j-1,k).isRegular() && flag(i  ,j+1,k).isRegular()) ))
         {
-            y(i,j,k,n) = scalarA*alpha(i,j,k)*x(i,j,k,n)
+            y(i,j,k,n) = ascalar*alpha(i,j,k)*x(i,j,k,n)
                 - dhx * (betaX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i  ,j,k,n))
                        - betaX(i  ,j,k,n)*(x(i  ,j,k,n) - x(i-1,j,k,n)))
                 - dhy * (betaY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j  ,k,n))
@@ -156,7 +156,7 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
             }
 
 
-            y(i,j,k,n) = scalarA*alpha(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
+            y(i,j,k,n) = ascalar*alpha(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
                 (dhx*(apxm*fxm-apxp*fxp) + dhy*(apym*fym-apyp*fyp) - dh*feb);
         }
     });
@@ -173,12 +173,12 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                         Array4<Real const> const& bc, Array4<Real const> const& betaeb,
                         bool is_dirichlet, Array4<Real const> const& phieb,
                         bool is_inhomog, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                        Real scalarA, Real scalarB, int ncomp,
+                        Real ascalar, Real bscalar, int ncomp,
                         bool beta_on_centroid, bool phi_on_centroid) noexcept
 {
-    Real dhx = scalarB*dxinv[0]*dxinv[0];
-    Real dhy = scalarB*dxinv[1]*dxinv[1];
-    Real dh  = scalarB*dxinv[0]*dxinv[1];
+    Real dhx = bscalar*dxinv[0]*dxinv[0];
+    Real dhy = bscalar*dxinv[1]*dxinv[1];
+    Real dh  = bscalar*dxinv[0]*dxinv[1];
 
 
     bool beta_on_center = !(beta_on_centroid);
@@ -192,7 +192,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
         }
         else if (flag(i,j,k).isRegular())
         {
-            y(i,j,k,n) = scalarA*alpha(i,j,k)*x(i,j,k,n)
+            y(i,j,k,n) = ascalar*alpha(i,j,k)*x(i,j,k,n)
                 - dhx * (betaX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i  ,j,k,n))
                        - betaX(i  ,j,k,n)*(x(i  ,j,k,n) - x(i-1,j,k,n)))
                 - dhy * (betaY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j  ,k,n))
@@ -293,7 +293,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 feb = dphidn * ba(i,j,k) * betaeb(i,j,k,n);
             }
 
-            y(i,j,k,n) = scalarA*alpha(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
+            y(i,j,k,n) = ascalar*alpha(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
                 (dhx*(apxm*fxm-apxp*fxp) +
                  dhy*(apym*fym-apyp*fyp) - dh*feb);
         }
@@ -370,7 +370,7 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_gsrb (Box const& box,
                        Array4<Real> const& phi, Array4<Real const> const& rhs,
-                       Real scalarA, Array4<Real const> const& alpha,
+                       Real ascalar, Array4<Real const> const& alpha,
                        Real dhx, Real dhy, Real dh,
                        GpuArray<Real,AMREX_SPACEDIM> const& dx,
                        Array4<Real const> const& betaX, Array4<Real const> const& betaY,
@@ -411,7 +411,7 @@ void mlebabeclap_gsrb (Box const& box,
 
                 if (flag(i,j,k).isRegular())
                 {
-                    Real gamma = scalarA*alpha(i,j,k)
+                    Real gamma = ascalar*alpha(i,j,k)
                         + dhx * (betaX(i+1,j,k,n) + betaX(i,j,k,n))
                         + dhy * (betaY(i,j+1,k,n) + betaY(i,j,k,n));
 
@@ -524,7 +524,7 @@ void mlebabeclap_gsrb (Box const& box,
                     }
 
                     Real vfrcinv = (Real(1.0)/kappa);
-                    Real gamma = scalarA*alpha(i,j,k) + vfrcinv *
+                    Real gamma = ascalar*alpha(i,j,k) + vfrcinv *
                         (dhx*(apxm*sxm-apxp*sxp) +
                          dhy*(apym*sym-apyp*syp));
                     Real rho = -vfrcinv *
@@ -766,7 +766,7 @@ void mlebabeclap_grad_y_0 (Box const& box, Array4<Real> const& gy, Array4<Real c
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
-                            Real scalarA, Array4<Real const> const& alpha,
+                            Real ascalar, Array4<Real const> const& alpha,
                             Real dhx, Real dhy, Real dh,
                             const amrex::GpuArray<Real, AMREX_SPACEDIM>& dx,
                             Array4<Real const> const& betaX, Array4<Real const> const& betaY,
@@ -782,7 +782,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
     {
         if (flag(i,j,k).isRegular())
         {
-            phi(i,j,k,n) /= scalarA*alpha(i,j,k) + dhx*(betaX(i,j,k,n) + betaX(i+1,j,k,n))
+            phi(i,j,k,n) /= ascalar*alpha(i,j,k) + dhx*(betaX(i,j,k,n) + betaX(i+1,j,k,n))
                                            + dhy*(betaY(i,j,k,n) + betaY(i,j+1,k,n));
         }
         else if (flag(i,j,k).isSingleValued())
@@ -826,7 +826,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
             }
 
             Real vfrcinv = (Real(1.0)/kappa);
-            Real gamma = scalarA*alpha(i,j,k) + vfrcinv *
+            Real gamma = ascalar*alpha(i,j,k) + vfrcinv *
                 (dhx*(apxm*sxm-apxp*sxp) +
                  dhy*(apym*sym-apyp*syp));
 

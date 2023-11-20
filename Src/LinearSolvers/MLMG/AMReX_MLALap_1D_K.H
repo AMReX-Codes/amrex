@@ -10,9 +10,9 @@ void mlalap_adotx (Box const& box, Array4<RT> const& y,
                    Array4<RT const> const& x,
                    Array4<RT const> const& alpha,
                    GpuArray<RT,AMREX_SPACEDIM> const& dxinv,
-                   RT scalarA, RT scalarB, int ncomp) noexcept
+                   RT ascalar, RT bscalar, int ncomp) noexcept
 {
-    const RT dhx = scalarB*dxinv[0]*dxinv[0];
+    const RT dhx = bscalar*dxinv[0]*dxinv[0];
 
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -20,7 +20,7 @@ void mlalap_adotx (Box const& box, Array4<RT> const& y,
     for (int n = 0; n < ncomp; ++n) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            y(i,0,0,n) = scalarA*alpha(i,0,0,n)*x(i,0,0,n)
+            y(i,0,0,n) = ascalar*alpha(i,0,0,n)*x(i,0,0,n)
                 - dhx * (x(i+1,0,0,n) - RT(2.)*x(i,0,0,n) + x(i-1,0,0,n));
         }
     }
@@ -32,10 +32,10 @@ void mlalap_adotx_m (Box const& box, Array4<RT> const& y,
                      Array4<RT const> const& x,
                      Array4<RT const> const& alpha,
                      GpuArray<RT,AMREX_SPACEDIM> const& dxinv,
-                     RT scalarA, RT scalarB,
+                     RT ascalar, RT bscalar,
                      RT dx, RT probxlo, int ncomp) noexcept
 {
-    const RT dhx = scalarB*dxinv[0]*dxinv[0];
+    const RT dhx = bscalar*dxinv[0]*dxinv[0];
 
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -46,7 +46,7 @@ void mlalap_adotx_m (Box const& box, Array4<RT> const& y,
             RT rel = (probxlo + i   *dx) * (probxlo + i   *dx);
             RT rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
             RT rc  = (probxlo +(i+RT(.5))*dx) * (probxlo +(i+RT(.5))*dx);
-            y(i,0,0,n) = scalarA*alpha(i,0,0,n)*x(i,0,0,n)*rc
+            y(i,0,0,n) = ascalar*alpha(i,0,0,n)*x(i,0,0,n)*rc
                 - dhx * (rer*(x(i+1,0,0,n) - x(i  ,0,0,n))
                        - rel*(x(i  ,0,0,n) - x(i-1,0,0,n)));
         }
@@ -58,9 +58,9 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_normalize (Box const& box, Array4<RT> const& x,
                        Array4<RT const> const& alpha,
                        GpuArray<RT,AMREX_SPACEDIM> const& dxinv,
-                       RT scalarA, RT scalarB, int ncomp) noexcept
+                       RT ascalar, RT bscalar, int ncomp) noexcept
 {
-    const RT dhx = scalarB*dxinv[0]*dxinv[0];
+    const RT dhx = bscalar*dxinv[0]*dxinv[0];
 
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -68,7 +68,7 @@ void mlalap_normalize (Box const& box, Array4<RT> const& x,
     for (int n = 0; n < ncomp; ++n) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            x(i,0,0,n) /= scalarA*alpha(i,0,0,n) + dhx*RT(2.0);
+            x(i,0,0,n) /= ascalar*alpha(i,0,0,n) + dhx*RT(2.0);
         }
     }
 }
@@ -78,9 +78,9 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_normalize_m (Box const& box, Array4<RT> const& x,
                          Array4<RT const> const& alpha,
                          GpuArray<RT,AMREX_SPACEDIM> const& dxinv,
-                         RT scalarA, RT scalarB, RT dx, RT probxlo, int ncomp) noexcept
+                         RT ascalar, RT bscalar, RT dx, RT probxlo, int ncomp) noexcept
 {
-    const RT dhx = scalarB*dxinv[0]*dxinv[0];
+    const RT dhx = bscalar*dxinv[0]*dxinv[0];
 
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -91,7 +91,7 @@ void mlalap_normalize_m (Box const& box, Array4<RT> const& x,
             RT rel = (probxlo + i   *dx) * (probxlo + i   *dx);
             RT rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
             RT rc  = (probxlo +(i+RT(.5))*dx) * (probxlo +(i+RT(.5))*dx);
-            x(i,0,0,n) /= scalarA*alpha(i,0,0,n)*rc + dhx*(rel+rer);
+            x(i,0,0,n) /= ascalar*alpha(i,0,0,n)*rc + dhx*(rel+rer);
         }
     }
 }
@@ -166,7 +166,7 @@ void mlalap_flux_xface_m (Box const& box, Array4<RT> const& fx,
 template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_gsrb (Box const& box, Array4<RT> const& phi,
-                  Array4<RT const> const& rhs, RT scalarA,
+                  Array4<RT const> const& rhs, RT ascalar,
                   RT dhx, Array4<RT const> const& alpha,
                   Array4<RT const> const& f0, Array4<int const> const& m0,
                   Array4<RT const> const& f1, Array4<int const> const& m1,
@@ -188,7 +188,7 @@ void mlalap_gsrb (Box const& box, Array4<RT> const& phi,
 
                 RT delta = dhx*(cf0+cf1);
 
-                RT gamma = scalarA*alpha(i,0,0,n) + dhx*RT(2.0);
+                RT gamma = ascalar*alpha(i,0,0,n) + dhx*RT(2.0);
 
                 RT rho = dhx*(phi(i-1,0,0,n) + phi(i+1,0,0,n));
 
@@ -202,7 +202,7 @@ void mlalap_gsrb (Box const& box, Array4<RT> const& phi,
 template <typename RT>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_gsrb_m (Box const& box, Array4<RT> const& phi,
-                    Array4<RT const> const& rhs, RT scalarA,
+                    Array4<RT const> const& rhs, RT ascalar,
                     RT dhx, Array4<RT const> const& alpha,
                     Array4<RT const> const& f0, Array4<int const> const& m0,
                     Array4<RT const> const& f1, Array4<int const> const& m1,
@@ -229,7 +229,7 @@ void mlalap_gsrb_m (Box const& box, Array4<RT> const& phi,
 
                 RT delta = dhx*(rel*cf0 + rer*cf1);
 
-                RT gamma = scalarA*alpha(i,0,0,n)*rc + dhx*(rel+rer);
+                RT gamma = ascalar*alpha(i,0,0,n)*rc + dhx*(rel+rer);
 
                 RT rho = dhx*(rel*phi(i-1,0,0,n) + rer*phi(i+1,0,0,n));
 

@@ -199,7 +199,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 #if (AMREX_SPACEDIM == 2)
     const Real dh = m_b_scalar/(AMREX_D_TERM(h[0],*h[1],*h[2]));
 #endif
-    const Real scalarA = m_a_scalar;
+    const Real ascalar = m_a_scalar;
 
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -266,7 +266,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
             {
-                abec_gsrb(i,j,k,n, solnfab, rhsfab, scalarA, alphafab,
+                abec_gsrb(i,j,k,n, solnfab, rhsfab, ascalar, alphafab,
                           AMREX_D_DECL(dhx, dhy, dhz),
                           AMREX_D_DECL(betaxfab, betayfab, betazfab),
                           AMREX_D_DECL(m0,m2,m4),
@@ -299,7 +299,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
-                mlebabeclap_gsrb(thread_box, solnfab, rhsfab, scalarA, alphafab,
+                mlebabeclap_gsrb(thread_box, solnfab, rhsfab, ascalar, alphafab,
                                  AMREX_D_DECL(dhx, dhy, dhz),
                                  AMREX_2D_ONLY_ARGS(dh,h)
                                  AMREX_D_DECL(betaxfab,betayfab,betazfab),

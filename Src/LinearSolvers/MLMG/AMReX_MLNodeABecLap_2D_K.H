@@ -6,7 +6,7 @@ namespace amrex {
 inline void
 mlndabeclap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
                              Array4<Real const> const& rhs,
-                             Real scalarA, Real scalarB,
+                             Real ascalar, Real bscalar,
                              Array4<Real const> const& alphacf,
                              Array4<Real const> const& betacf,
                              Array4<int const> const& msk,
@@ -33,9 +33,9 @@ mlndabeclap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
                       + sol(i,j-1,k)*fmx2y*(betacf(i-1,j-1,k)+betacf(i,j-1,k))
                       + sol(i,j+1,k)*fmx2y*(betacf(i-1,j  ,k)+betacf(i,j  ,k))
                       + sol(i,j,k)*s0;
-            Real Ax = scalarA*alphacf(i,j,k)*sol(i,j,k) - scalarB*lap;
+            Real Ax = ascalar*alphacf(i,j,k)*sol(i,j,k) - bscalar*lap;
 
-            sol(i,j,k) += (rhs(i,j,k) - Ax) / (scalarA*alphacf(i,j,k)-scalarB*s0);
+            sol(i,j,k) += (rhs(i,j,k) - Ax) / (ascalar*alphacf(i,j,k)-bscalar*s0);
         }
     });
 }
@@ -43,7 +43,7 @@ mlndabeclap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 mlndabeclap_jacobi_aa (int i, int j, int k, Array4<Real> const& sol,
                        Real lap, Array4<Real const> const& rhs,
-                       Real scalarA, Real scalarB,
+                       Real ascalar, Real bscalar,
                        Array4<Real const> const& alphacf,
                        Array4<Real const> const& betacf,
                        Array4<int const> const& msk,
@@ -54,10 +54,10 @@ mlndabeclap_jacobi_aa (int i, int j, int k, Array4<Real> const& sol,
     } else {
         Real fac = -Real(2.0/6.0)*(dxinv[0]*dxinv[0] + dxinv[1]*dxinv[1]);
         Real s0 = fac*(betacf(i-1,j-1,k)+betacf(i,j-1,k)+betacf(i-1,j,k)+betacf(i,j,k));
-        Real Ax = scalarA*alphacf(i,j,k)*sol(i,j,k) - scalarB*lap;
+        Real Ax = ascalar*alphacf(i,j,k)*sol(i,j,k) - bscalar*lap;
 
         sol(i,j,k) += Real(2.0/3.0) * (rhs(i,j,k) - Ax)
-            / (scalarA*alphacf(i,j,k)-scalarB*s0);
+            / (ascalar*alphacf(i,j,k)-bscalar*s0);
     }
 
 }
