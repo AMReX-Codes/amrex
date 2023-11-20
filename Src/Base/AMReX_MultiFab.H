@@ -60,7 +60,7 @@ public:
     * \brief
     * Constructs a MultiFab
     * \param bs a valid region
-    * \param dm a DistribuionMapping
+    * \param dm a DistributionMapping
     * \param ncomp number of components
     * \param ngrow number of cells the region grows
     * \param info MFInfo
