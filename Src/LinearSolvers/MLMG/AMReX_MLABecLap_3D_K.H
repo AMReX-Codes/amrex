@@ -13,12 +13,12 @@ void mlabeclap_adotx (int i, int j, int k, int n, Array4<T> const& y,
                       Array4<T const> const& bY,
                       Array4<T const> const& bZ,
                       GpuArray<T,AMREX_SPACEDIM> const& dxinv,
-                      T scalarA, T scalarB) noexcept
+                      T ascalar, T bscalar) noexcept
 {
-    const T dhx = scalarB*dxinv[0]*dxinv[0];
-    const T dhy = scalarB*dxinv[1]*dxinv[1];
-    const T dhz = scalarB*dxinv[2]*dxinv[2];
-    y(i,j,k,n) = scalarA*a(i,j,k)*x(i,j,k,n)
+    const T dhx = bscalar*dxinv[0]*dxinv[0];
+    const T dhy = bscalar*dxinv[1]*dxinv[1];
+    const T dhz = bscalar*dxinv[2]*dxinv[2];
+    y(i,j,k,n) = ascalar*a(i,j,k)*x(i,j,k,n)
         - dhx * (bX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i  ,j,k,n))
                - bX(i  ,j,k,n)*(x(i  ,j,k,n) - x(i-1,j,k,n)))
         - dhy * (bY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j  ,k,n))
@@ -37,15 +37,15 @@ void mlabeclap_adotx_os (int i, int j, int k, int n, Array4<T> const& y,
                          Array4<T const> const& bZ,
                          Array4<int const> const& osm,
                          GpuArray<T,AMREX_SPACEDIM> const& dxinv,
-                         T scalarA, T scalarB) noexcept
+                         T ascalar, T bscalar) noexcept
 {
-    const T dhx = scalarB*dxinv[0]*dxinv[0];
-    const T dhy = scalarB*dxinv[1]*dxinv[1];
-    const T dhz = scalarB*dxinv[2]*dxinv[2];
+    const T dhx = bscalar*dxinv[0]*dxinv[0];
+    const T dhy = bscalar*dxinv[1]*dxinv[1];
+    const T dhz = bscalar*dxinv[2]*dxinv[2];
     if (osm(i,j,k) == 0) {
         y(i,j,k,n) = T(0.0);
     } else {
-        y(i,j,k,n) = scalarA*a(i,j,k)*x(i,j,k,n)
+        y(i,j,k,n) = ascalar*a(i,j,k)*x(i,j,k,n)
             - dhx * (bX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i  ,j,k,n))
                    - bX(i  ,j,k,n)*(x(i  ,j,k,n) - x(i-1,j,k,n)))
             - dhy * (bY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j  ,k,n))
@@ -63,12 +63,12 @@ void mlabeclap_normalize (int i, int j, int k, int n, Array4<T> const& x,
                           Array4<T const> const& bY,
                           Array4<T const> const& bZ,
                           GpuArray<T,AMREX_SPACEDIM> const& dxinv,
-                          T scalarA, T scalarB) noexcept
+                          T ascalar, T bscalar) noexcept
 {
-    const T dhx = scalarB*dxinv[0]*dxinv[0];
-    const T dhy = scalarB*dxinv[1]*dxinv[1];
-    const T dhz = scalarB*dxinv[2]*dxinv[2];
-    x(i,j,k,n) /= scalarA*a(i,j,k)
+    const T dhx = bscalar*dxinv[0]*dxinv[0];
+    const T dhy = bscalar*dxinv[1]*dxinv[1];
+    const T dhz = bscalar*dxinv[2]*dxinv[2];
+    x(i,j,k,n) /= ascalar*a(i,j,k)
         + dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
         + dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
         + dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
@@ -208,7 +208,7 @@ void mlabeclap_flux_zface (Box const& box, Array4<T> const& fz, Array4<T const> 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb (int i, int j, int k, int n, Array4<T> const& phi, Array4<T const> const& rhs,
-                T scalarA, Array4<T const> const& a,
+                T ascalar, Array4<T const> const& a,
                 T dhx, T dhy, T dhz,
                 Array4<T const> const& bX, Array4<T const> const& bY,
                 Array4<T const> const& bZ,
@@ -241,7 +241,7 @@ void abec_gsrb (int i, int j, int k, int n, Array4<T> const& phi, Array4<T const
         T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
             ? f5(i,j,vhi.z,n) : T(0.0);
 
-        T gamma = scalarA*a(i,j,k)
+        T gamma = ascalar*a(i,j,k)
             +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
             +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
             +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
@@ -267,7 +267,7 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb_os (int i, int j, int k, int n,
                    Array4<T> const& phi, Array4<T const> const& rhs,
-                   T scalarA, Array4<T const> const& a,
+                   T ascalar, Array4<T const> const& a,
                    T dhx, T dhy, T dhz,
                    Array4<T const> const& bX, Array4<T const> const& bY,
                    Array4<T const> const& bZ,
@@ -304,7 +304,7 @@ void abec_gsrb_os (int i, int j, int k, int n,
             T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
                 ? f5(i,j,vhi.z,n) : T(0.0);
 
-            T gamma = scalarA*a(i,j,k)
+            T gamma = ascalar*a(i,j,k)
                 +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
                 +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
                 +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
@@ -351,7 +351,7 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb_with_line_solve (
                 Box const& box, Array4<T> const& phi, Array4<T const> const& rhs,
-                T scalarA, Array4<T const> const& a,
+                T ascalar, Array4<T const> const& a,
                 T dhx, T dhy, T dhz,
                 Array4<T const> const& bX, Array4<T const> const& bY,
                 Array4<T const> const& bZ,
@@ -406,7 +406,7 @@ void abec_gsrb_with_line_solve (
 
                         for (int k = lo.z; k <= hi.z; ++k)
                         {
-                            T gamma = scalarA*a(i,j,k)
+                            T gamma = ascalar*a(i,j,k)
                                 +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
                                 +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
                                 +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
@@ -486,7 +486,7 @@ void abec_gsrb_with_line_solve (
 
                         for (int j = lo.y; j <= hi.y; ++j)
                         {
-                            T gamma = scalarA*a(i,j,k)
+                            T gamma = ascalar*a(i,j,k)
                                 +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
                                 +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
                                 +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
@@ -565,7 +565,7 @@ void abec_gsrb_with_line_solve (
 
                         for (int i = lo.x; i <= hi.x; ++i)
                         {
-                            T gamma = scalarA*a(i,j,k)
+                            T gamma = ascalar*a(i,j,k)
                                 +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
                                 +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
                                 +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
