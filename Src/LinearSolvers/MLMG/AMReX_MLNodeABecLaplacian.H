@@ -7,7 +7,7 @@
 namespace amrex {
 
 // (A * alpha - B * (del dot beta grad)) phi = rhs
-// a, phi and rhs are nodal. b is cell-centered.
+// alpha, phi and rhs are nodal. beta is cell-centered.
 class MLNodeABecLaplacian
     : public MLNodeLinOp
 {

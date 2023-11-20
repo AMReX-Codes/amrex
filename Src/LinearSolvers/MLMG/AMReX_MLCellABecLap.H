@@ -256,14 +256,14 @@ MLCellABecLapT<MF>::getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
     BL_PROFILE("MLMG::getFluxes()");
 
     const int ncomp = this->getNComp();
-    const RT betainv = RT(1.0) / getBScalar();
+    const RT bscalarinv = RT(1.0) / getBScalar();
     const int nlevs = this->NAMRLevels();
     for (int alev = 0; alev < nlevs; ++alev) {
         this->compFlux(alev, a_flux[alev], *a_sol[alev], a_loc);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             this->unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
-            if (betainv != RT(1.0)) {
-                a_flux[alev][idim]->mult(betainv, 0, ncomp);
+            if (bscalarinv != RT(1.0)) {
+                a_flux[alev][idim]->mult(bscalarinv, 0, ncomp);
             }
         }
         this->addInhomogNeumannFlux(alev, a_flux[alev], *a_sol[alev], true);
@@ -292,7 +292,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
     const RT dx = static_cast<RT>(this->m_geom[amrlev][mglev].CellSize(0));
     const Box& domain = this->m_geom[amrlev][mglev].Domain();
 
-    const RT beta = getBScalar();
+    const RT bscalar = getBScalar();
     Array<MF const*, AMREX_SPACEDIM> const& bcoef = getBCoeffs(amrlev,mglev);
     FAB foo(Box(IntVect(0),IntVect(1)));
     bool has_bcoef = (bcoef[0] != nullptr);
@@ -338,7 +338,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
                 if (this->m_lobc_orig[icomp][idim] == LinOpBCType::inhomogNeumann && outside_domain_lo)
                 {
                     if (idim == 0) {
-                        RT fac = beta*dxi;
+                        RT fac = bscalar*dxi;
                         if (this->m_has_metric_term && !has_bcoef) {
 #if (AMREX_SPACEDIM == 1)
                             fac *= static_cast<RT>(problo[0]*problo[0]);
@@ -353,7 +353,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
                                                    fac, has_bcoef, icomp);
                         });
                     } else if (idim == 1) {
-                        RT fac = beta*dyi;
+                        RT fac = bscalar*dyi;
                         if (this->m_has_metric_term && !has_bcoef) {
                             AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
                             {
@@ -371,7 +371,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
                             });
                         }
                     } else {
-                        RT fac = beta*dzi;
+                        RT fac = bscalar*dzi;
                         AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
                         {
                             mllinop_apply_innu_zlo(i,j,k, rhsfab, mlo, bfab,
@@ -383,7 +383,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
                 if (this->m_hibc_orig[icomp][idim] == LinOpBCType::inhomogNeumann && outside_domain_hi)
                 {
                     if (idim == 0) {
-                        RT fac = beta*dxi;
+                        RT fac = bscalar*dxi;
                         if (this->m_has_metric_term && !has_bcoef) {
 #if (AMREX_SPACEDIM == 1)
                             fac *= static_cast<RT>(probhi[0]*probhi[0]);
@@ -398,7 +398,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
                                                    fac, has_bcoef, icomp);
                         });
                     } else if (idim == 1) {
-                        RT fac = beta*dyi;
+                        RT fac = bscalar*dyi;
                         if (this->m_has_metric_term && !has_bcoef) {
                             AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
                             {
@@ -415,7 +415,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
                             });
                         }
                     } else {
-                        RT fac = beta*dzi;
+                        RT fac = bscalar*dzi;
                         AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
                         {
                             mllinop_apply_innu_zhi(i,j,k, rhsfab, mhi, bfab,
@@ -432,7 +432,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
                     if (this->m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
                     {
                         if (idim == 0) {
-                            RT fac = beta*dxi*dxi;
+                            RT fac = bscalar*dxi*dxi;
                             AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
                             {
                                 RT A = rbc(i,j,k,2)
@@ -440,7 +440,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
                                 rhsfab(i+1,j,k,icomp) += fac*bfab(i+1,j,k,icomp)*A;
                             });
                         } else if (idim == 1) {
-                            RT fac = beta*dyi*dyi;
+                            RT fac = bscalar*dyi*dyi;
                             AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
                             {
                                 RT A = rbc(i,j,k,2)
@@ -448,7 +448,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
                                 rhsfab(i,j+1,k,icomp) += fac*bfab(i,j+1,k,icomp)*A;
                             });
                         } else {
-                            RT fac = beta*dzi*dzi;
+                            RT fac = bscalar*dzi*dzi;
                             AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
                             {
                                 RT A = rbc(i,j,k,2)
@@ -460,7 +460,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
                     if (this->m_hibc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_hi)
                     {
                         if (idim == 0) {
-                            RT fac = beta*dxi*dxi;
+                            RT fac = bscalar*dxi*dxi;
                             AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
                             {
                                 RT A = rbc(i,j,k,2)
@@ -468,7 +468,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
                                 rhsfab(i-1,j,k,icomp) += fac*bfab(i,j,k,icomp)*A;
                             });
                         } else if (idim == 1) {
-                            RT fac = beta*dyi*dyi;
+                            RT fac = bscalar*dyi*dyi;
                             AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
                             {
                                 RT A = rbc(i,j,k,2)
@@ -476,7 +476,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
                                 rhsfab(i,j-1,k,icomp) += fac*bfab(i,j,k,icomp)*A;
                             });
                         } else {
-                            RT fac = beta*dzi*dzi;
+                            RT fac = bscalar*dzi*dzi;
                             AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
                             {
                                 RT A = rbc(i,j,k,2)
