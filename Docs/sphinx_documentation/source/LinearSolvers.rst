@@ -690,7 +690,7 @@ viscous term `divtau` explicitly:
    // Note we call LPInfo().setMaxCoarseningLevel(0) because we are only applying the operator,
    //      not doing an implicit solve
    //
-   //       (alpha * a - beta * (del dot b grad)) sol
+   //       (A * alpha - B * (del dot beta grad)) sol
    //
    // LPInfo                       info;
    MLEBTensorOp ebtensorop(geom, grids, dmap, LPInfo().setMaxCoarseningLevel(0),

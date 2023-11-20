@@ -11,10 +11,10 @@ void mlabeclap_adotx (int i, int, int, int n, Array4<T> const& y,
                       Array4<T const> const& a,
                       Array4<T const> const& bX,
                       GpuArray<T,AMREX_SPACEDIM> const& dxinv,
-                      T alpha, T beta) noexcept
+                      T scalarA, T scalarB) noexcept
 {
-    const T dhx = beta*dxinv[0]*dxinv[0];
-    y(i,0,0,n) = alpha*a(i,0,0)*x(i,0,0,n)
+    const T dhx = scalarB*dxinv[0]*dxinv[0];
+    y(i,0,0,n) = scalarA*a(i,0,0)*x(i,0,0,n)
         - dhx * (bX(i+1,0,0,n)*(x(i+1,0,0,n) - x(i  ,0,0,n))
                - bX(i  ,0,0,n)*(x(i  ,0,0,n) - x(i-1,0,0,n)));
 }
@@ -27,13 +27,13 @@ void mlabeclap_adotx_os (int i, int, int, int n, Array4<T> const& y,
                          Array4<T const> const& bX,
                          Array4<int const> const& osm,
                          GpuArray<T,AMREX_SPACEDIM> const& dxinv,
-                         T alpha, T beta) noexcept
+                         T scalarA, T scalarB) noexcept
 {
-    const T dhx = beta*dxinv[0]*dxinv[0];
+    const T dhx = scalarB*dxinv[0]*dxinv[0];
     if (osm(i,0,0) == 0) {
         y(i,0,0,n) = T(0.0);
     } else {
-        y(i,0,0,n) = alpha*a(i,0,0)*x(i,0,0,n)
+        y(i,0,0,n) = scalarA*a(i,0,0)*x(i,0,0,n)
             - dhx * (bX(i+1,0,0,n)*(x(i+1,0,0,n) - x(i  ,0,0,n))
                    - bX(i  ,0,0,n)*(x(i  ,0,0,n) - x(i-1,0,0,n)));
     }
@@ -45,10 +45,10 @@ void mlabeclap_normalize (int i, int, int, int n, Array4<T> const& x,
                           Array4<T const> const& a,
                           Array4<T const> const& bX,
                           GpuArray<T,AMREX_SPACEDIM> const& dxinv,
-                          T alpha, T beta) noexcept
+                          T scalarA, T scalarB) noexcept
 {
-    const T dhx = beta*dxinv[0]*dxinv[0];
-    x(i,0,0,n) /= alpha*a(i,0,0) + dhx*(bX(i,0,0,n)+bX(i+1,0,0,n));
+    const T dhx = scalarB*dxinv[0]*dxinv[0];
+    x(i,0,0,n) /= scalarA*a(i,0,0) + dhx*(bX(i,0,0,n)+bX(i+1,0,0,n));
 }
 
 template <typename T>
@@ -85,7 +85,7 @@ void mlabeclap_flux_xface (Box const& box, Array4<T> const& fx, Array4<T const> 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb (int i, int, int, int n, Array4<T> const& phi, Array4<T const> const& rhs,
-                T alpha, Array4<T const> const& a,
+                T scalarA, Array4<T const> const& a,
                 T dhx,
                 Array4<T const> const& bX,
                 Array4<int const> const& m0,
@@ -105,7 +105,7 @@ void abec_gsrb (int i, int, int, int n, Array4<T> const& phi, Array4<T const> co
 
         T delta = dhx*(bX(i,0,0,n)*cf0 + bX(i+1,0,0,n)*cf1);
 
-        T gamma = alpha*a(i,0,0)
+        T gamma = scalarA*a(i,0,0)
             +   dhx*( bX(i,0,0,n) + bX(i+1,0,0,n) );
 
         T rho = dhx*(bX(i  ,0  ,0,n)*phi(i-1,0  ,0,n)
@@ -119,7 +119,7 @@ void abec_gsrb (int i, int, int, int n, Array4<T> const& phi, Array4<T const> co
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb_os (int i, int, int, int n, Array4<T> const& phi, Array4<T const> const& rhs,
-                   T alpha, Array4<T const> const& a,
+                   T scalarA, Array4<T const> const& a,
                    T dhx,
                    Array4<T const> const& bX,
                    Array4<int const> const& m0,
@@ -143,7 +143,7 @@ void abec_gsrb_os (int i, int, int, int n, Array4<T> const& phi, Array4<T const>
 
             T delta = dhx*(bX(i,0,0,n)*cf0 + bX(i+1,0,0,n)*cf1);
 
-            T gamma = alpha*a(i,0,0)
+            T gamma = scalarA*a(i,0,0)
                 +   dhx*( bX(i,0,0,n) + bX(i+1,0,0,n) );
 
             T rho = dhx*(bX(i  ,0  ,0,n)*phi(i-1,0  ,0,n)
@@ -159,7 +159,7 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb_with_line_solve (
                 Box const& /*box*/, Array4<T> const& /*phi*/, Array4<T const> const& /*rhs*/,
-                T /*alpha*/, Array4<T const> const& /*a*/,
+                T /*scalarA*/, Array4<T const> const& /*a*/,
                 T /*dhx*/,
                 Array4<T const> const& /*bX*/,
                 Array4<int const> const& /*m0*/,
