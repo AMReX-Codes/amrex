@@ -89,7 +89,7 @@ MLNodeABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
     AMREX_ALWAYS_ASSERT(getNComp() == 1);
 
     auto const ascalar = m_a_scalar;
-    auto const bscalar  = m_b_scalar;
+    auto const bscalar = m_b_scalar;
     const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
 
     auto const& acoef_ma = m_a_coeffs[amrlev][mglev].const_arrays();
@@ -118,7 +118,7 @@ MLNodeABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
     BL_PROFILE("MLNodeABecLaplacian::Fsmooth()");
 
     auto const ascalar = m_a_scalar;
-    auto const bscalar  = m_b_scalar;
+    auto const bscalar = m_b_scalar;
     const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
 
     auto const& acoef = m_a_coeffs[amrlev][mglev];
