@@ -273,8 +273,8 @@ ParticleContainerToBlueprint(const ParticleContainer_impl<ParticleType,
         BL_ASSERT(real_comp_names.size() == NArrayReal);
         BL_ASSERT(int_comp_names.size()  == NArrayInt);
     } else {
-        BL_ASSERT(real_comp_names.size() == (NStructReal + NArrayReal) );
-        BL_ASSERT(int_comp_names.size()  == (NStructInt + NArrayInt) );
+        BL_ASSERT(real_comp_names.size() == (ParticleType::NReal + NArrayReal) );
+        BL_ASSERT(int_comp_names.size()  == (ParticleType::NInt + NArrayInt) );
     }
 
     int num_levels = pc.maxLevel() + 1;
