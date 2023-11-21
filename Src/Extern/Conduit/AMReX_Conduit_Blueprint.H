@@ -96,9 +96,8 @@ namespace amrex
     //  coordset and fields used to represent the passed particle container.
     //  This allows you to use unique names to wrap multiple particle containers
     //  into a single blueprint tree.
-    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-    void ParticleContainerToBlueprint (const ParticleContainer<NStructReal,
-                                                               NStructInt,
+    template <typename ParticleType, int NArrayReal, int NArrayInt>
+    void ParticleContainerToBlueprint (const ParticleContainer_impl<ParticleType,
                                                                NArrayReal,
                                                                NArrayInt> &pc,
                                        const Vector<std::string> &real_comp_names,
