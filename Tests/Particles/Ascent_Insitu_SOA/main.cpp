@@ -1,6 +1,5 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_MultiFab.H>
 #include <AMReX_Particles.H>
 
 #if !defined(AMREX_PARTICLES) || !defined(AMREX_USE_CONDUIT)
@@ -10,6 +9,9 @@
 #include <AMReX_Conduit_Blueprint.H>
 
 #include <ascent.hpp>
+
+#include <string>
+
 
 using namespace amrex;
 
@@ -118,7 +120,7 @@ public:
             }
 
             auto& particle_tile = DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
-            auto old_size = particle_tile.GetArrayOfStructs().size();
+            auto old_size = particle_tile.size();
             auto new_size = old_size + host_real[0].size();
             particle_tile.resize(new_size);
 
@@ -170,19 +172,19 @@ struct TestParams
     int nlevs;
 };
 
-void testRedistribute();
+void testAscent ();
 
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
     amrex::Print() << "Running redistribute test \n";
-    testRedistribute();
+    testAscent();
 
     amrex::Finalize();
 }
 
-void get_test_params(TestParams& params, const std::string& prefix)
+void get_test_params (TestParams& params, const std::string& prefix)
 {
     ParmParse pp(prefix);
     pp.get("size", params.size);
@@ -194,7 +196,7 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.query("num_runtime_int", num_runtime_int);
 }
 
-void testRedistribute ()
+void testAscent ()
 {
     BL_PROFILE("testAscent");
     TestParams params;
@@ -250,6 +252,7 @@ void testRedistribute ()
 
     {
         conduit::Node bp_mesh;
+        /* TODO
         amrex::MultiLevelToBlueprint(
             nlev,
             amrex::GetVecOfConstPtrs(mf),
@@ -260,14 +263,25 @@ void testRedistribute ()
             warpx.refRatio(),
             bp_mesh
         );
+        */
 
         // wrap pc for current species into a blueprint topology
-        amrex::ParticleContainerToBlueprint(*pc,
+        std::string const prefix = "particle";
+        Vector<std::string> particle_varnames;
+        for (int i = 0; i < pc.NumRealComps(); ++i) {
+            particle_varnames.push_back(prefix + "_real_" + std::to_string(i));
+        }
+        Vector<std::string> particle_int_varnames;
+        for (int i = 0; i < pc.NumIntComps(); ++i) {
+            particle_int_varnames.push_back(prefix + "_int_" + std::to_string(i));
+        }
+
+        amrex::ParticleContainerToBlueprint(pc,
                                             particle_varnames,
                                             particle_int_varnames,
-                                            a_bp_mesh,
+                                            bp_mesh,
                                             prefix);
-        // mesh
+        // publish
         ascent::Ascent ascent;
         conduit::Node opts;
         opts["exceptions"] = "catch";
@@ -278,7 +292,7 @@ void testRedistribute ()
         // If you want to save blueprint HDF5 files w/o using an Ascent
         // extract, you can call the following AMReX helper:
         // const auto step = istep[0];
-        // WriteBlueprintFiles(bp_mesh,"bp_export",step,"hdf5");
+        // amrex::WriteBlueprintFiles(bp_mesh, "bp_export", step, "hdf5");
 
         // render
         conduit::Node actions;
