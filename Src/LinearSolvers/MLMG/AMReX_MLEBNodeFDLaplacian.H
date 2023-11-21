@@ -20,6 +20,7 @@ namespace amrex {
 //
 // del dot (sigma grad phi) - alpha/r^2 phi = rhs, for RZ where alpha is a
 // scalar constant that is zero by default.
+
 class MLEBNodeFDLaplacian
     : public MLNodeLinOp
 {
