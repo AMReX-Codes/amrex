@@ -103,20 +103,21 @@ namespace Gpu {
     inline
     Box getThreadBox (const Box& bx, Long offset) noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        const auto len = bx.length3d();
-        Long k = offset / (len[0]*len[1]);
-        Long j = (offset - k*(len[0]*len[1])) / len[0];
-        Long i = (offset - k*(len[0]*len[1])) - j*len[0];
-        IntVect iv{AMREX_D_DECL(static_cast<int>(i),
-                                static_cast<int>(j),
-                                static_cast<int>(k))};
-        iv += bx.smallEnd();
-        return (bx & Box(iv,iv,bx.type()));
-#else
-        amrex::ignore_unused(offset);
-        return bx;
-#endif
+        AMREX_IF_ON_DEVICE((
+            const auto len = bx.length3d();
+            Long k = offset / (len[0]*len[1]);
+            Long j = (offset - k*(len[0]*len[1])) / len[0];
+            Long i = (offset - k*(len[0]*len[1])) - j*len[0];
+            IntVect iv{AMREX_D_DECL(static_cast<int>(i),
+                                    static_cast<int>(j),
+                                    static_cast<int>(k))};
+            iv += bx.smallEnd();
+            return (bx & Box(iv,iv,bx.type()));
+        ))
+        AMREX_IF_ON_HOST((
+            amrex::ignore_unused(offset);
+            return bx;
+        ))
     }
 
 // ************************************************
@@ -157,7 +158,12 @@ namespace Gpu {
     makeExecutionConfig (Long N) noexcept
     {
         ExecutionConfig ec(dim3{}, dim3{});
-        ec.numBlocks.x = (std::max(N,Long(1)) + MT - 1) / MT;
+        Long numBlocks = (std::max(N,Long(1)) + MT - 1) / MT;
+        // ensure that blockDim.x*gridDim.x does not overflow
+        numBlocks = std::min(numBlocks, Long(std::numeric_limits<unsigned int>::max()/MT));
+        // ensure that the maximum grid size of 2^31-1 won't be exceeded
+        numBlocks = std::min(numBlocks, Long(std::numeric_limits<int>::max()));
+        ec.numBlocks.x = numBlocks;
         ec.numThreads.x = MT;
         AMREX_ASSERT(MT % Gpu::Device::warp_size == 0);
         return ec;
@@ -167,11 +173,7 @@ namespace Gpu {
     ExecutionConfig
     makeExecutionConfig (const Box& box) noexcept
     {
-        ExecutionConfig ec(dim3{}, dim3{});
-        ec.numBlocks.x = (std::max(box.numPts(),Long(1)) + MT - 1) / MT;
-        ec.numThreads.x = MT;
-        AMREX_ASSERT(MT % Gpu::Device::warp_size == 0);
-        return ec;
+        return makeExecutionConfig<MT>(box.numPts());
     }
 #endif
 

@@ -76,11 +76,11 @@ namespace amrex {
 */
 struct ParticleCommData
 {
-  typedef ParticleReal RealType;
-  int     m_lev;
-  int     m_grid;
-  IntVect m_cell;
-  RealType m_data[1 + AMREX_SPACEDIM];
+    using RealType = ParticleReal;
+    int     m_lev;
+    int     m_grid;
+    IntVect m_cell;
+    RealType m_data[1 + AMREX_SPACEDIM];
 };
 
 /**
@@ -88,13 +88,13 @@ struct ParticleCommData
 */
 struct ParticleLocData
 {
-  int     m_lev  = -1;
-  int     m_grid = -1;
-  int     m_tile = -1;
-  IntVect m_cell {AMREX_D_DECL(-1,-1,-1)};
-  Box     m_gridbox;
-  Box     m_tilebox;
-  Box     m_grown_gridbox;
+    int     m_lev  = -1;
+    int     m_grid = -1;
+    int     m_tile = -1;
+    IntVect m_cell {AMREX_D_DECL(-1,-1,-1)};
+    Box     m_gridbox;
+    Box     m_tilebox;
+    Box     m_grown_gridbox;
 };
 
 /**
@@ -120,8 +120,7 @@ struct ParticleInitType
 };
 
 template <bool is_const, typename T_ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-
+          template<class> class Allocator, class CellAssignor>
 class ParIterBase_impl;
 
 /**
@@ -138,13 +137,15 @@ class ParIterBase_impl;
  *
  */
 template <typename T_ParticleType, int T_NArrayReal, int T_NArrayInt,
-          template<class> class Allocator=DefaultAllocator>
+          template<class> class Allocator=DefaultAllocator,
+          class T_CellAssignor=DefaultAssignor>
 
 class ParticleContainer_impl : public ParticleContainerBase
 {
 public:
     using ParticleType = T_ParticleType;
     using ConstParticleType = typename ParticleType::ConstType;
+    using CellAssignor = T_CellAssignor;
 
     //! \brief Number of extra Real components in the particle struct
     static constexpr int NStructReal = ParticleType::NReal;
@@ -157,8 +158,8 @@ public:
         //! \brief The type of the "Particle"
 
 private:
-    friend class ParIterBase_impl<true,ParticleType, NArrayReal, NArrayInt, Allocator>;
-    friend class ParIterBase_impl<false,ParticleType, NArrayReal, NArrayInt, Allocator>;
+    friend class ParIterBase_impl<true,ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
+    friend class ParIterBase_impl<false,ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
 
 public:
     //! \brief The memory allocator in use.
@@ -175,7 +176,7 @@ public:
     RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
 #endif
 
-    using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
     using ParticleTileType = ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -189,9 +190,8 @@ public:
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
     using CharVector       = Gpu::DeviceVector<char>;
-    using SendBuffer       = Gpu::PolymorphicVector<char>;
-    using ParIterType      = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
-    using ParConstIterType = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ParIterType      = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
+    using ParConstIterType = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
 
     //! \brief Default constructor - construct an empty particle container that has no concept
     //!  of a level hierarchy. Must be properly initialized later.
@@ -421,7 +421,7 @@ public:
     /**
     * \brief
     * This initializes the particle container with one particle per cell,
-    * where the other particle data and attributes are all contant. The
+    * where the other particle data and attributes are all constant. The
     * coarsest level is used to generate the particle positions. The particle
     * variable values are passed in through the pdata struct. The parameters
     * x_off, y_off, and z_off represent offsets between 0 and 1 that show
@@ -750,7 +750,7 @@ public:
     /**
      * \brief Writes a particle checkpoint to file, suitable for restarting.
      *        This version allows the particle component names to be passed in.
-     *        This overload exists for backwards comptability. The is_checkpoint parameter is ignored.
+     *        This overload exists for backwards compatibility. The is_checkpoint parameter is ignored.
      */
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
@@ -968,13 +968,13 @@ public:
     void WriteAsciiFile (const std::string& file);
 
     /**
-     * \brief Return the underyling Vector (over AMR levels) of ParticleLevels.
+     * \brief Return the underlying Vector (over AMR levels) of ParticleLevels.
      *        Const version.
      */
     const Vector<ParticleLevel>& GetParticles () const { return m_particles; }
 
     /**
-     * \brief Return the underyling Vector (over AMR levels) of ParticleLevels.
+     * \brief Return the underlying Vector (over AMR levels) of ParticleLevels.
      *        Non-const version.
      */
     Vector      <ParticleLevel>& GetParticles ()       { return m_particles; }
@@ -1188,7 +1188,7 @@ public:
     void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
                                        int ncomp=1, int particle_lvl_offset = 0) const;
 
-    template <typename P>
+    template <typename P, typename Assignor=CellAssignor>
     IntVect Index (const P& p, int lev) const;
 
     /**
@@ -1394,11 +1394,11 @@ private:
     Vector<ParticleLevel> m_particles;
 };
 
-template <int T_NStructReal, int T_NStructInt, int T_NArrayReal, int T_NArrayInt, template<class> class Allocator>
-using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator>;
+template <int T_NStructReal, int T_NStructInt, int T_NArrayReal, int T_NArrayInt, template<class> class Allocator, class CellAssignor>
+using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
-template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator>
-using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator>;
+template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 
 #include "AMReX_ParticleInit.H"

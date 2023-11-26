@@ -8,6 +8,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_RealVect.H>
+#include <AMReX_SPACE.H>
 
 #include <iosfwd>
 #include <array>
@@ -92,7 +93,7 @@ public:
     //! it's volume is considered to be zero.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Real volume () const noexcept {
-        if (ok()) return AMREX_D_TERM(length(0), *length(1), *length(2));
+        if (ok()) { return AMREX_D_TERM(length(0), *length(1), *length(2)); }
         return 0.0;
     }
 

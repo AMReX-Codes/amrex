@@ -130,7 +130,7 @@ public:
      *
      * This functions must be called, and must be called before other bc
      * functions. This version is for single-component solve or when all the
-     * compoents have the same BC types.
+     * components have the same BC types.
      *
      * \param lobc lower boundaries
      * \param hibc upper boundaries
@@ -262,7 +262,7 @@ public:
     virtual void restriction (int amrlev, int cmglev, MF& crse, MF& fine) const = 0;
 
     /**
-     * \brief Add interpolated coarse MG levle data to fine MG level data
+     * \brief Add interpolated coarse MG level data to fine MG level data
      *
      * \param amrlev AMR level
      * \param fmglev fine MG level
@@ -355,7 +355,7 @@ public:
      * \param resid        residual
      * \param x            unknown in the residual-correction form
      * \param b            RHS in the residual-correction form
-     * \param bc_mode      Is the BC homegeneous or inhomogeneous?
+     * \param bc_mode      Is the BC homogeneous or inhomogeneous?
      * \param crse_bc_data optional argument providing BC at coarse/fine boundary.
      */
     virtual void correctionResidual (int amrlev, int mglev, MF& resid, MF& x, const MF& b,
@@ -406,7 +406,7 @@ public:
     //! This is needed for our nodal projection solver
     virtual void unimposeNeumannBC (int /*amrlev*/, MF& /*rhs*/) const {}
 
-    //! Extra terms introduced when we treate inhomogeneous Nuemann BC as homogeneous.
+    //! Extra terms introduced when we treat inhomogeneous Nuemann BC as homogeneous.
     virtual void applyInhomogNeumannTerm (int /*amrlev*/, MF& /*rhs*/) const {}
 
     //! for overset solver only
@@ -538,7 +538,7 @@ protected:
         void operator= (CommContainer&&) = delete;
         ~CommContainer () { // NOLINT(modernize-use-equals-default)
 #ifdef BL_USE_MPI
-            if (comm != MPI_COMM_NULL) MPI_Comm_free(&comm);
+            if (comm != MPI_COMM_NULL) { MPI_Comm_free(&comm); }
 #endif
         }
     };
@@ -704,14 +704,14 @@ MLLinOpT<MF>::define (const Vector<Geometry>& a_geom,
 #ifdef AMREX_USE_GPU
     if (Gpu::notInLaunchRegion())
     {
-        if (info.agg_grid_size <= 0) info.agg_grid_size = AMREX_D_PICK(32, 16, 8);
-        if (info.con_grid_size <= 0) info.con_grid_size = AMREX_D_PICK(32, 16, 8);
+        if (info.agg_grid_size <= 0) { info.agg_grid_size = AMREX_D_PICK(32, 16, 8); }
+        if (info.con_grid_size <= 0) { info.con_grid_size = AMREX_D_PICK(32, 16, 8); }
     }
     else
 #endif
     {
-        if (info.agg_grid_size <= 0) info.agg_grid_size = LPInfo::getDefaultAgglomerationGridSize();
-        if (info.con_grid_size <= 0) info.con_grid_size = LPInfo::getDefaultConsolidationGridSize();
+        if (info.agg_grid_size <= 0) { info.agg_grid_size = LPInfo::getDefaultAgglomerationGridSize(); }
+        if (info.con_grid_size <= 0) { info.con_grid_size = LPInfo::getDefaultConsolidationGridSize(); }
     }
 
 #ifdef AMREX_USE_EB
@@ -736,7 +736,12 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLLinOp::defineGrids()");
 
-    m_num_amr_levels = static_cast<int>(a_geom.size());
+    m_num_amr_levels = 0;
+    for (int amrlev = 0; amrlev < a_geom.size(); amrlev++) {
+        if (!a_grids[amrlev].empty()) {
+            m_num_amr_levels++;
+        }
+    }
 
     m_amr_ref_ratio.resize(m_num_amr_levels);
     m_num_mg_levels.resize(m_num_amr_levels);
@@ -780,10 +785,10 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
         const Box& dom = a_geom[amrlev].Domain();
         for (int i = 0; i < 2; ++i)
         {
-            if (!dom.coarsenable(rr)) amrex::Abort("MLLinOp: Uncoarsenable domain");
+            if (!dom.coarsenable(rr)) { amrex::Abort("MLLinOp: Uncoarsenable domain"); }
 
             const Box& cdom = amrex::coarsen(dom,rr);
-            if (cdom == a_geom[amrlev-1].Domain()) break;
+            if (cdom == a_geom[amrlev-1].Domain()) { break; }
 
             ++(m_num_mg_levels[amrlev]);
 
@@ -824,7 +829,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
     m_domain_covered[0] = (npts0 == compactify(m_geom[0][0].Domain()).numPts());
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
     {
-        if (!m_domain_covered[amrlev-1]) break;
+        if (!m_domain_covered[amrlev-1]) { break; }
         m_domain_covered[amrlev] = (m_grids[amrlev][0].numPts() ==
                                     compactify(m_geom[amrlev][0].Domain()).numPts());
     }

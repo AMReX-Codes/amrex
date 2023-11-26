@@ -172,7 +172,7 @@ public:
 
     /**
      * \brief This version of WritePlotFile assigns component names, but allows the user to pass
-     * in a vector of ints that toggle on / off the writing of specfic components.
+     * in a vector of ints that toggle on / off the writing of specific components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -187,7 +187,7 @@ public:
 
     /**
      * \brief This version of WritePlotFile assigns component names, but allows the user to pass
-     * in a vector of ints that toggle on / off the writing of specfic components.
+     * in a vector of ints that toggle on / off the writing of specific components.
      *
      * This version also lets you pass in a functor to toggle whether each particle gets output.
      *

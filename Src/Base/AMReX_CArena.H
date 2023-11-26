@@ -5,13 +5,14 @@
 #include <AMReX_Arena.H>
 
 #include <cstddef>
-#include <set>
-#include <vector>
+#include <functional>
+#include <iosfwd>
 #include <map>
 #include <mutex>
-#include <unordered_set>
-#include <functional>
+#include <set>
 #include <string>
+#include <unordered_set>
+#include <vector>
 
 namespace amrex {
 
@@ -48,6 +49,18 @@ public:
     [[nodiscard]] void* alloc (std::size_t nbytes) final;
 
     /**
+     * Try to allocate in-place by extending the capacity of given pointer.
+     */
+    [[nodiscard]] std::pair<void*,std::size_t>
+    alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax) final;
+
+    /**
+     * Try to shrink in-place
+     */
+    [[nodiscard]] void*
+    shrink_in_place (void* pt, std::size_t new_size) final;
+
+    /**
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
     * into largest possible chunk.
     */
@@ -58,7 +71,7 @@ public:
     /**
      * \brief Does the device have enough free memory for allocating this
      * much memory?  For CPU builds, this always return true.  This is not a
-     * const funciton because it may attempt to release memory back to the
+     * const function because it may attempt to release memory back to the
      * system.
      */
     [[nodiscard]] bool hasFreeDeviceMemory (std::size_t sz) final;
@@ -86,6 +99,8 @@ public:
     constexpr static std::size_t DefaultHunkSize = 1024*1024*8;
 
 protected:
+
+    void* alloc_protected (std::size_t nbytes);
 
     std::size_t freeUnused_protected () final;
 
@@ -130,6 +145,9 @@ protected:
         //! Get the MemStat object of the function where this block was allocated.
         [[nodiscard]] MemStat* mem_stat () const { return m_stat; }
 
+        //! Set MemStat
+        void mem_stat (MemStat* a_stat) noexcept { m_stat = a_stat; }
+
         struct hash {
             std::size_t operator() (const Node& n) const noexcept {
                 return std::hash<void*>{}(n.m_block);
@@ -147,14 +165,14 @@ protected:
         MemStat* m_stat;
     };
 
+    //! The list of blocks allocated via ::operator new().
+    std::vector<std::pair<void*,std::size_t> > m_alloc;
+
     /**
     * \brief The type of our freelist and blocklist.
     * We use a set sorted from lo to hi memory addresses.
     */
-    typedef std::set<Node> NL;
-
-    //! The list of blocks allocated via ::operator new().
-    std::vector<std::pair<void*,std::size_t> > m_alloc;
+    using NL = std::set<Node>;
 
     /**
     * \brief The free list of allocated but not currently used blocks.
@@ -181,6 +199,8 @@ protected:
 
 
     std::mutex carena_mutex;
+
+    friend std::ostream& operator<< (std::ostream& os, const CArena& arena);
 };
 
 }

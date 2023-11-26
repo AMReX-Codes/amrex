@@ -25,6 +25,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Exception.H
        AMReX_Extension.H
        AMReX_PODVector.H
+       AMReX_PODVector.cpp
        AMReX_ParmParse.cpp
        AMReX_parmparse_fi.cpp
        AMReX_ParmParse.H
@@ -52,6 +53,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_ParallelDescriptor.H
        AMReX_ParallelDescriptor.cpp
        AMReX_OpenMP.H
+       AMReX_OpenMP.cpp
        AMReX_ParallelReduce.H
        AMReX_ForkJoin.H
        AMReX_ForkJoin.cpp
@@ -267,6 +269,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        Parser/amrex_iparser.tab.cpp
        Parser/amrex_iparser.tab.nolint.H
        Parser/amrex_iparser.tab.h
+       # AMReX Hydro -----------------------------------------------------
+       AMReX_Slopes_K.H
        # Forward declaration -----------------------------------------------------
        AMReX_BaseFwd.H
        )

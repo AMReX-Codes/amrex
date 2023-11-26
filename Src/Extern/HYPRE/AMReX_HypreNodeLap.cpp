@@ -47,7 +47,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     Int nnodes_proc = fill_local_node_id();
 
     // At this point, local_node_id stores the ids local to each box.
-    // nnodes_grid stroes the number of nodes in each box.  nnodes_proc is
+    // nnodes_grid stores the number of nodes in each box.  nnodes_proc is
     // the number of nodes on this MPI process.  If a nodal is invalid, its
     // id is invalid (i.e., a very negative number).  Note that the data
     // type of local_node_id is int, not HYPRE_Int for performance on GPU.

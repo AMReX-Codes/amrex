@@ -13,7 +13,7 @@ using namespace amrex;
 
 std::string inputs_name = "";
 
-void PrintHelp ();
+void PrintUsage ();
 
 
 int main(int argc, char* argv[])
@@ -46,15 +46,8 @@ int main(int argc, char* argv[])
         }
 
         if (farg > narg) {
-            amrex::Print() << "\n"
-                           << " Report the extrema (min/max) for each variable in a plotfile\n"
-                           << " usage: \n"
-                           << "    faverage {[-v|--variable] name} {[-f|--favre]} plotfile\n"
-                           << "\n"
-                           << "   -v name    : variable to average (default: density)\n"
-                           << "   -f         : do Favre (density-weighted) average\n"
-                           << std::endl;
-            amrex::Error();
+            PrintUsage();
+            return -1;
         }
 
         const std::string& pltfile = amrex::get_command_argument(farg);
@@ -95,7 +88,7 @@ int main(int argc, char* argv[])
                                       std::find(var_names_pf.cbegin(), var_names_pf.cend(), "rho"));
         }
 
-        if (dens_comp == var_names_pf.size()) {
+        if (dens_comp == var_names_pf.size() && do_favre) {
             amrex::Error("density not found");
         }
 
@@ -276,14 +269,14 @@ int main(int argc, char* argv[])
 //
 // Print usage info
 //
-void PrintHelp ()
+void PrintUsage ()
 {
-    Print() << "\nusage: executable_name args"
-            << "\nargs [-p|--pltfile]     plotfile : plot file directory (required)"
-            << "\n     [-s|--slicefile] slice file : slice file          (required)"
-#if AMREX_SPACEDIM >= 2
-            << "\n     [--sphr]          spherical : spherical problem"
-#endif
-            << "\n\n" << std::endl;
-
+    amrex::Print() << "\n"
+                   << " Horizontally average a variable\n"
+                   << " Usage: \n"
+                   << "     faverage {[-v|--variable] name} {[-f|--favre]} plotfile\n"
+                   << "\n"
+                   << "    -v name    : variable to average (default: density)\n"
+                   << "    -f         : do Favre (density-weighted) average\n"
+                   << std::endl;
 }

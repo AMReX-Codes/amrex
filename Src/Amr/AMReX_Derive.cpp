@@ -328,8 +328,9 @@ const
 std::string&
 DeriveRec::variableName(int comp) const noexcept
 {
-  if (comp < variable_names.size())
+  if (comp < variable_names.size()) {
      return variable_names[comp];
+  }
 
   return derive_name;
 }
@@ -426,12 +427,14 @@ DeriveList::canDerive (const std::string& name) const
     {
         // Can be either a component name ...
         for (int i = 0; i < li.numDerive(); i++) {
-           if (li.variableName(i) == name)
+           if (li.variableName(i) == name) {
                return true;
+           }
         }
         // ... or a derive name
-        if (li.derive_name == name)
+        if (li.derive_name == name) {
             return true;
+        }
     }
     return false;
 }
@@ -443,12 +446,14 @@ DeriveList::get (const std::string& name) const
     {
         // Can be either a component name ...
         for (int i = 0; i < li.numDerive(); i++) {
-           if (li.variableName(i) == name)
+           if (li.variableName(i) == name) {
                return &(li);
+           }
         }
         // ... or a derive name
-        if (li.derive_name == name)
+        if (li.derive_name == name) {
             return &(li);
+        }
     }
     return nullptr;
 }

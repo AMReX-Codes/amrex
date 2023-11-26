@@ -59,7 +59,7 @@ print_option( USE_XSDK_DEFAULTS )
 # Defaults:
 #   CMake: static
 #   xSDK: shared
-# Precendence of user options:
+# Precedence of user options:
 #   AMReX_BUILD_SHARED_LIBS > BUILD_SHARED_LIBS > USE_XSDK_DEFAULTS
 #   default:    unset              unset               OFF
 #
@@ -169,7 +169,7 @@ if (AMReX_SYCL)
    unset(_valid_sycl_compiler_ids)
 
    set(AMReX_SYCL_SUB_GROUP_SIZE_DEFAULT 32)
-   set(AMReX_SYCL_SUB_GROUP_SIZE_VALUES 16 32)
+   set(AMReX_SYCL_SUB_GROUP_SIZE_VALUES 16 32 64)
    set(AMReX_SYCL_SUB_GROUP_SIZE ${AMReX_SYCL_SUB_GROUP_SIZE_DEFAULT} CACHE STRING
        "SYCL sub-group size")
    if (NOT AMReX_SYCL_SUB_GROUP_SIZE IN_LIST AMReX_SYCL_SUB_GROUP_SIZE_VALUES)
@@ -228,14 +228,6 @@ if (AMReX_HIP)
    if (NOT AMReX_AMD_ARCH)
       message(FATAL_ERROR "\nMust specify AMReX_AMD_ARCH if AMReX_GPU_BACKEND=HIP\n")
    endif ()
-endif ()
-
-if (AMReX_CUDA OR AMReX_HIP)
-   set(GPUS_PER_SOCKET "IGNORE" CACHE STRING "Number of GPUs per socket" )
-   print_option(GPUS_PER_SOCKET)
-
-   set(GPUS_PER_NODE "IGNORE" CACHE STRING "Number of GPUs per node" )
-   print_option(GPUS_PER_NODE)
 endif ()
 
 #

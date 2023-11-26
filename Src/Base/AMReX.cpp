@@ -52,6 +52,7 @@
 #endif
 
 #ifdef AMREX_USE_OMP
+#include <AMReX_OpenMP.H>
 #include <omp.h>
 #endif
 
@@ -72,7 +73,9 @@
 #include <iostream>
 #include <iomanip>
 #include <new>
+#include <optional>
 #include <stack>
+#include <string>
 #include <thread>
 #include <limits>
 #include <vector>
@@ -102,6 +105,7 @@ namespace system
     int handle_sigint;
     int handle_sigabrt;
     int handle_sigfpe;
+    int handle_sigill;
     int call_addr2line;
     int throw_exception;
     int regtest_reduction;
@@ -121,12 +125,13 @@ namespace {
     std::streamsize  prev_out_precision;
     std::streamsize  prev_err_precision;
     std::new_handler prev_new_handler;
-    typedef void (*SignalHandler)(int);
+    using SignalHandler = void (*)(int);
     SignalHandler prev_handler_sigsegv = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
     SignalHandler prev_handler_sigterm = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
     SignalHandler prev_handler_sigint  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
     SignalHandler prev_handler_sigabrt = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
     SignalHandler prev_handler_sigfpe  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
+    SignalHandler prev_handler_sigill  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
 #if defined(__linux__)
     int           prev_fpe_excepts = 0;
     int           curr_fpe_excepts = 0;
@@ -329,6 +334,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::handle_sigint  = 1;
     system::handle_sigabrt = 1;
     system::handle_sigfpe  = 1;
+    system::handle_sigill  = 1;
     system::call_addr2line = 1;
     system::throw_exception = 0;
     system::osout = &a_osout;
@@ -361,7 +367,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::exename += argv[0];
 
         for (int i = 0; i < argc; ++i) {
-            if (i != 0) command_line.append(" ");
+            if (i != 0) { command_line.append(" "); }
             command_line.append(argv[i]);
             command_arguments.emplace_back(argv[i]);
         }
@@ -405,11 +411,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             else
             {
                 // This counts command line arguments before a "--"
-                // and only sends the preceeding arguments to ParmParse;
-                // the rest get ingored.
+                // and only sends the preceding arguments to ParmParse;
+                // the rest get ignored.
                 int ppargc = 1;
                 for (; ppargc < argc; ++ppargc) {
-                    if (std::strcmp(argv[ppargc], "--") == 0) break;
+                    if (std::strcmp(argv[ppargc], "--") == 0) { break; }
                 }
                 if (ppargc > 1)
                 {
@@ -440,6 +446,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.queryAdd("verbose", system::verbose);
     }
 
+    if (system::verbose > 0) {
+        amrex::Print() << "Initializing AMReX (" << amrex::Version() << ")...\n";
+    }
+
 #ifdef AMREX_USE_MPI
     if (system::verbose > 0) {
         amrex::Print() << "MPI initialized with "
@@ -452,15 +462,17 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
 
 #ifdef AMREX_USE_OMP
+    amrex::OpenMP::init_threads();
+
+    // status output
     if (system::verbose > 0) {
 //    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
         amrex::Print() << "OMP initialized with "
                        << omp_get_max_threads()
                        << " OMP threads\n";
     }
-#endif
 
-#if defined(AMREX_USE_MPI) && defined(AMREX_USE_OMP)
+    // warn if over-subscription is detected
     if (system::verbose > 0) {
         auto ncores = int(std::thread::hardware_concurrency());
         if (ncores != 0 && // It might be zero according to the C++ standard.
@@ -469,8 +481,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             amrex::Print(amrex::ErrorStream())
                 << "AMReX Warning: You might be oversubscribing CPU cores with OMP threads.\n"
                 << "               There are " << ncores << " cores per node.\n"
-                << "               There are " << ParallelDescriptor::NProcsPerNode() << " MPI ranks per node.\n"
-                << "               But OMP is initialized with " << omp_get_max_threads() << " threads per rank.\n"
+#if defined(AMREX_USE_MPI)
+                << "               There are " << ParallelDescriptor::NProcsPerNode() << " MPI ranks (processes) per node.\n"
+#endif
+                << "               But OMP is initialized with " << omp_get_max_threads() << " threads per process.\n"
                 << "               You should consider setting OMP_NUM_THREADS="
                 << ncores/ParallelDescriptor::NProcsPerNode() << " or less in the environment.\n";
         }
@@ -494,11 +508,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.queryAdd("abort_on_unused_inputs", system::abort_on_unused_inputs);
 
 #ifdef AMREX_USE_SYCL
-        // Disable SIGSEGV handling by default for certain Intel GPUs,
-        // because it is currently used by their managed memory
-        // implementation.
-        if (Gpu::Device::deviceName().find("[0x0bd6]") != std::string::npos || // PVC
-            Gpu::Device::deviceName().find("[0x020f]") != std::string::npos) { // ATS
+        // Disable SIGSEGV handling by default for Intel GPUs, because it is
+        // currently used by their managed memory implementation with discrete
+        // GPUs
+        if (Gpu::Device::deviceVendor().find("Intel") != std::string::npos) {
             system::handle_sigsegv = 0;
         }
 #endif
@@ -510,8 +523,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             pp.queryAdd("handle_sigint" , system::handle_sigint );
             pp.queryAdd("handle_sigabrt", system::handle_sigabrt);
             pp.queryAdd("handle_sigfpe" , system::handle_sigfpe );
+            pp.queryAdd("handle_sigill" , system::handle_sigill );
 
-            // We save the singal handlers and restore them in Finalize.
+            // We save the signal handlers and restore them in Finalize.
             if (system::handle_sigsegv) {
                 prev_handler_sigsegv = std::signal(SIGSEGV, BLBackTrace::handler);
             } else {
@@ -546,29 +560,46 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
 #if defined(__linux__)
                 curr_fpe_excepts = 0;
-                if (invalid)   curr_fpe_excepts |= FE_INVALID;
-                if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
-                if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
-#if !defined(AMREX_USE_SYCL) && (!defined(__PGI) || (__PGIC__ >= 16))
-                // xxxxx SYCL todo: fpe trap
+                if (invalid)   { curr_fpe_excepts |= FE_INVALID;   }
+                if (divbyzero) { curr_fpe_excepts |= FE_DIVBYZERO; }
+                if (overflow)  { curr_fpe_excepts |= FE_OVERFLOW;  }
                 prev_fpe_excepts = fegetexcept();
                 if (curr_fpe_excepts != 0) {
                     feenableexcept(curr_fpe_excepts);  // trap floating point exceptions
                     prev_handler_sigfpe = std::signal(SIGFPE,  BLBackTrace::handler);
                 }
-#endif
 
 #elif defined(__APPLE__) && defined(__x86_64__)
                 prev_fpe_mask = _MM_GET_EXCEPTION_MASK();
                 curr_fpe_excepts = 0u;
-                if (invalid)   curr_fpe_excepts |= _MM_MASK_INVALID;
-                if (divbyzero) curr_fpe_excepts |= _MM_MASK_DIV_ZERO;
-                if (overflow)  curr_fpe_excepts |= _MM_MASK_OVERFLOW;
+                if (invalid)   { curr_fpe_excepts |= _MM_MASK_INVALID;  }
+                if (divbyzero) { curr_fpe_excepts |= _MM_MASK_DIV_ZERO; }
+                if (overflow)  { curr_fpe_excepts |= _MM_MASK_OVERFLOW; }
                 if (curr_fpe_excepts != 0u) {
                     _MM_SET_EXCEPTION_MASK(prev_fpe_mask & ~curr_fpe_excepts);
                     prev_handler_sigfpe = std::signal(SIGFPE,  BLBackTrace::handler);
                 }
 #endif
+            }
+
+            prev_handler_sigill = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
+            if (system::handle_sigill)
+            {
+#if defined(__APPLE__) && defined(__aarch64__)
+                int invalid = 0, divbyzero=0, overflow=0;
+                pp.queryAdd("fpe_trap_invalid", invalid);
+                pp.queryAdd("fpe_trap_zero", divbyzero);
+                pp.queryAdd("fpe_trap_overflow", overflow);
+
+                fenv_t env;
+                fegetenv(&env);
+                if (invalid)   { env.__fpcr |= __fpcr_trap_invalid;   }
+                if (divbyzero) { env.__fpcr |= __fpcr_trap_divbyzero; }
+                if (overflow)  { env.__fpcr |= __fpcr_trap_overflow;  }
+                fesetenv(&env);
+                // SIGILL ref: https://developer.apple.com/forums/thread/689159
+#endif
+                prev_handler_sigill = std::signal(SIGILL,  BLBackTrace::handler);
             }
         }
 
@@ -604,6 +635,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     iMultiFab::Initialize();
     VisMF::Initialize();
     AsyncOut::Initialize();
+    VectorGrowthStrategy::Initialize();
 
 #ifdef AMREX_USE_EB
     EB2::Initialize();
@@ -661,7 +693,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     BL_TINY_PROFILE_INITIALIZE();
 
-    AMReX::push(new AMReX());
+    AMReX::push(new AMReX()); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
     return AMReX::top(); // NOLINT
 }
 
@@ -687,13 +719,13 @@ amrex::Finalize (amrex::AMReX* pamrex)
     AMReX::erase(pamrex);
 
 #ifdef AMREX_USE_HYPRE
-    if (init_hypre) HYPRE_Finalize();
+    if (init_hypre) { HYPRE_Finalize(); }
 #endif
 
     BL_TINY_PROFILE_FINALIZE();
     BL_PROFILE_FINALIZE();
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     amrex::DeallocateRandomSeedDevArray();
 #endif
 
@@ -760,11 +792,12 @@ amrex::Finalize (amrex::AMReX* pamrex)
 #ifndef BL_AMRPROF
     if (system::signal_handling)
     {
-        if (prev_handler_sigsegv != SIG_ERR) std::signal(SIGSEGV, prev_handler_sigsegv); // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigterm != SIG_ERR) std::signal(SIGTERM, prev_handler_sigterm); // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigint  != SIG_ERR) std::signal(SIGINT , prev_handler_sigint);  // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigabrt != SIG_ERR) std::signal(SIGABRT, prev_handler_sigabrt); // NOLINT(performance-no-int-to-ptr)
-        if (prev_handler_sigfpe  != SIG_ERR) std::signal(SIGFPE , prev_handler_sigfpe);  // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigsegv != SIG_ERR) { std::signal(SIGSEGV, prev_handler_sigsegv); } // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigterm != SIG_ERR) { std::signal(SIGTERM, prev_handler_sigterm); } // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigint  != SIG_ERR) { std::signal(SIGINT , prev_handler_sigint);  } // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigabrt != SIG_ERR) { std::signal(SIGABRT, prev_handler_sigabrt); } // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigfpe  != SIG_ERR) { std::signal(SIGFPE , prev_handler_sigfpe);  } // NOLINT(performance-no-int-to-ptr)
+        if (prev_handler_sigill  != SIG_ERR) { std::signal(SIGILL , prev_handler_sigill);  } // NOLINT(performance-no-int-to-ptr)
 #if defined(__linux__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {

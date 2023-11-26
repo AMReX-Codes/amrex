@@ -17,6 +17,7 @@ C$(AMREX_BASE)_headers += AMReX_Demangle.H AMReX_Extension.H
 C$(AMREX_BASE)_headers += AMReX_GpuComplex.H
 
 C$(AMREX_BASE)_headers += AMReX_PODVector.H
+C$(AMREX_BASE)_sources += AMReX_PODVector.cpp
 
 C$(AMREX_BASE)_headers += AMReX_BlockMutex.H
 C$(AMREX_BASE)_sources += AMReX_BlockMutex.cpp
@@ -37,6 +38,7 @@ C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_INT.H AMReX_CONSTANTS.H AMReX_SPACE
 C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
 C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H
 C$(AMREX_BASE)_headers += AMReX_OpenMP.H
+C$(AMREX_BASE)_sources += AMReX_OpenMP.cpp
 
 C$(AMREX_BASE)_headers += AMReX_ParallelReduce.H
 
@@ -211,6 +213,11 @@ C$(AMREX_BASE)_headers += AMReX_IntegratorBase.H
 C$(AMREX_BASE)_headers += AMReX_RKIntegrator.H
 C$(AMREX_BASE)_headers += AMReX_TimeIntegrator.H
 C$(AMREX_BASE)_headers += AMReX_RungeKutta.H
+
+#
+# Slopes
+#
+C$(AMREX_BASE)_headers += AMReX_Slopes_K.H
 
 #
 # Fortran interface routines.

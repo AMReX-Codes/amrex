@@ -323,7 +323,7 @@ private:
     static void LeastUsedTeams (Vector<int>& rteam, Vector<Vector<int> >& rworker, int nteams, int nworkers);
 
     //! A useful typedef.
-    typedef void (DistributionMapping::*PVMF)(const BoxArray &, int);
+    using PVMF = void (DistributionMapping::*)(const BoxArray &, int);
 
     //! Everyone uses the same Strategy -- defaults to SFC.
     static Strategy m_Strategy;
@@ -405,7 +405,7 @@ DistributionMapping MakeSimilarDM (const BoxArray& ba, const MultiFab& mf, const
  *  of overlap with.
  *
  *  @param[in] ba The BoxArray we want to generate a DistributionMapping for.
- *  @param[in] src_ba The BoxArray associatied with the src DistributionMapping.
+ *  @param[in] src_ba The BoxArray associated with the src DistributionMapping.
  *  @param[in] src_dm The input DistributionMapping we want the output to be similar to.
  *  @param[in] ng The number of grow cells to use when computing intersection / overlap
  *  @return The computed DistributionMapping.

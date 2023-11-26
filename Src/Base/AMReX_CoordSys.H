@@ -54,7 +54,7 @@ public:
         BL_ASSERT(c_sys != undef); return (c_sys == RZ);
     }
 
-    //! Is CoordType == cartesion?
+    //! Is CoordType == cartesian?
     [[nodiscard]] bool IsCartesian () const noexcept {
         BL_ASSERT(c_sys != undef); return (c_sys == cartesian);
     }

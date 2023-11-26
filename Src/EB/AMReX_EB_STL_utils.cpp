@@ -699,7 +699,7 @@ STLtools::updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                     {
                         // interp might still be quiet_nan because lst that
                         // was set to zero has been changed by FillBoundary
-                        // at periodic bounadries.
+                        // at periodic boundaries.
                         inter(i,j,k) = problo[0] + static_cast<Real>(i)*dx[0];
                     }
                     else if (lst(i+1,j,k) == Real(0.0) ||

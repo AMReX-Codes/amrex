@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <limits>
+#include <utility>
 
 namespace amrex {
 
@@ -31,6 +32,7 @@ Arena* The_Async_Arena ();
 Arena* The_Device_Arena ();
 Arena* The_Managed_Arena ();
 Arena* The_Pinned_Arena ();
+Arena* The_Comms_Arena ();
 Arena* The_Cpu_Arena ();
 
 struct ArenaInfo
@@ -99,6 +101,26 @@ public:
     * \return a pointer to the allocated memory
     */
     [[nodiscard]] virtual void* alloc (std::size_t sz) = 0;
+
+    /**
+     * Try to allocate in-place by extending the capacity of given pointer.
+     */
+    [[nodiscard]] virtual std::pair<void*,std::size_t>
+    alloc_in_place (void* /*pt*/, std::size_t /*szmin*/, std::size_t szmax)
+    {
+        auto* p = alloc(szmax);
+        return std::make_pair(p, szmax);
+    }
+
+    /**
+     * Try to shrink in-place
+     */
+    [[nodiscard]] virtual void*
+    shrink_in_place (void* /*pt*/, std::size_t sz)
+    {
+        return alloc(sz);
+    }
+
     /**
     * \brief A pure virtual function for deleting the arena pointed to by pt
     */
@@ -124,7 +146,7 @@ public:
     /**
      * \brief Does the device have enough free memory for allocating this
      * much memory?  For CPU builds, this always return true.  This is not a
-     * const funciton because it may attempt to release memory back to the
+     * const function because it may attempt to release memory back to the
      * system.
      */
     [[nodiscard]] virtual bool hasFreeDeviceMemory (std::size_t sz);

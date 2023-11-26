@@ -1055,18 +1055,42 @@ printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
     {
         const Box& bx = amrex::grow(mfi.validbox(), ng);
         if (bx.contains(cell)) {
+            int n = (comp >= 0) ? 1 : mf.nComp();
+            auto const& fab = mf.const_array(mfi);
+            Gpu::PinnedVector<typename FAB::value_type> pv(n);
+            auto* dp = pv.data();
+            auto f = [=] AMREX_GPU_HOST_DEVICE ()
+                {
+                    if (comp >= 0) {
+                        *dp = fab(cell, comp);
+                    } else {
+                        for (int i = 0; i < n; ++i) {
+                            dp[i] = fab(cell,i);
+                        }
+                    }
+                };
+
+#ifdef AMREX_USE_GPU
+            if (mf.arena()->isManaged() || mf.arena()->isDevice()) {
+                amrex::single_task(f);
+                Gpu::streamSynchronize();
+            } else
+#endif
+            {
+                f();
+            }
+
             if (comp >= 0) {
                 amrex::AllPrint().SetPrecision(17) << " At cell " << cell << " in Box " << bx
-                                                   << ": " << mf[mfi](cell, comp) << std::endl;
+                                                   << ": " << *dp << std::endl;
             } else {
                 std::ostringstream ss;
                 ss.precision(17);
-                const int ncomp = mf.nComp();
-                for (int i = 0; i < ncomp-1; ++i)
+                for (int i = 0; i < n-1; ++i)
                 {
-                    ss << mf[mfi](cell,i) << ", ";
+                    ss << dp[i] << ", ";
                 }
-                ss << mf[mfi](cell,ncomp-1);
+                ss << dp[n-1];
                 amrex::AllPrint() << " At cell " << cell << " in Box " << bx
                                   << ": " << ss.str() << std::endl;
             }
@@ -1079,7 +1103,7 @@ template <class FAB,
 void
 Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
-    Subtract(dst,src,srccomp,dstcomp,numcomp,nghost);
+    Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 template <class FAB,
@@ -1313,7 +1337,7 @@ OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Period
     BL_PROFILE("OverrideSync_nowait()");
     AMREX_ASSERT_WITH_MESSAGE(!fa.os_temp, "OverrideSync_nowait() called when already in progress.");
 
-    if (fa.ixType().cellCentered()) return;
+    if (fa.ixType().cellCentered()) { return; }
 
     const int ncomp = fa.nComp();
 
@@ -1324,7 +1348,7 @@ OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Period
         ParallelFor(fa, IntVect(0), ncomp,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
-            if (!ifabarr[box_no](i,j,k)) fabarr[box_no](i,j,k,n) = 0;
+            if (!ifabarr[box_no](i,j,k)) { fabarr[box_no](i,j,k,n) = 0; }
         });
         if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
@@ -1342,7 +1366,7 @@ OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Period
             auto const ifab = msk.array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
             {
-                if (!ifab(i,j,k)) fab(i,j,k,n) = 0;
+                if (!ifab(i,j,k)) { fab(i,j,k,n) = 0; }
             });
         }
     }
@@ -1359,7 +1383,7 @@ OverrideSync_finish (FabArray<FAB> & fa)
 {
     BL_PROFILE("OverrideSync_finish()");
 
-    if (fa.ixType().cellCentered()) return;
+    if (fa.ixType().cellCentered()) { return; }
 
     fa.os_temp->ParallelCopy_finish();
     amrex::Copy(fa, *(fa.os_temp), 0, 0, fa.nComp(), 0);
@@ -1485,7 +1509,9 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 auto const& fab = mf.const_array(mfi);
                 AMREX_LOOP_3D(bx, i, j, k,
                 {
-                    if (fab(i,j,k,comp) == value) priv_loc = IntVect(AMREX_D_DECL(i,j,k));
+                    if (fab(i,j,k,comp) == value) {
+                        priv_loc = IntVect(AMREX_D_DECL(i,j,k));
+                    }
                 });
             }
 
@@ -1504,7 +1530,7 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                     f = true;
                 }
 
-                if (old == false) loc = priv_loc;
+                if (old == false) { loc = priv_loc; }
             }
         }
     }
@@ -1521,7 +1547,7 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
  * \param ycomp  starting component of y
  * \param ncomp  number of components
  * \param nghost number of ghost cells
- * \param local  If true, MPI communciation is skipped.
+ * \param local  If true, MPI communication is skipped.
  */
 template <typename FAB, std::enable_if_t<IsBaseFab<FAB>::value,int> FOO = 0>
 typename FAB::value_type

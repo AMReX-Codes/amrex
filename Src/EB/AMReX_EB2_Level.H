@@ -5,6 +5,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_Array.H>
@@ -26,6 +27,7 @@
 namespace amrex::EB2 {
 
 class IndexSpace;
+template <typename G> class GShopLevel;
 
 class Level
 {
@@ -55,16 +57,22 @@ public:
     const DistributionMapping& DistributionMap () const noexcept { return m_dmap; }
 
     Level (IndexSpace const* is, const Geometry& geom) : m_geom(geom), m_parent(is) {}
-    void prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect ngrow);
+    void prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect const& ngrow);
 
     const Geometry& Geom () const noexcept { return m_geom; }
     IndexSpace const* getEBIndexSpace () const noexcept { return m_parent; }
 
+    IntVect const& nGrowVect () const noexcept { return m_ngrow; }
+
     void write_to_chkpt_file (const std::string& fname, bool extend_domain_face, int max_grid_size) const;
+
+    bool hasEBInfo () const noexcept { return m_has_eb_info; }
+    void fillCutCellMask (iMultiFab& cutcellmask, const Geometry& geom) const;
 
 // public: // for cuda
     int coarsenFromFine (Level& fineLevel, bool fill_boundary);
     void buildCellFlag ();
+    void buildCutCellMask (Level const& fine_level);
 
 protected:
 
@@ -84,9 +92,21 @@ protected:
     Array<MultiFab,AMREX_SPACEDIM> m_areafrac;
     Array<MultiFab,AMREX_SPACEDIM> m_facecent;
     Array<MultiFab,AMREX_SPACEDIM> m_edgecent;
+    iMultiFab m_cutcellmask;
     bool m_allregular = false;
     bool m_ok = false;
+    bool m_has_eb_info = true;
     IndexSpace const* m_parent;
+
+private:
+    template <typename G> friend class GShopLevel;
+
+    // Need this function to work around a gcc bug.
+    void setRegularLevel () {
+        m_allregular = true;
+        m_ok = true;
+        m_has_eb_info = false;
+    }
 };
 
 template <typename G>
@@ -101,6 +121,14 @@ public:
     GShopLevel (IndexSpace const* is, const Geometry& geom);
     void define_fine (G const& gshop, const Geometry& geom,
                       int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
+
+    static GShopLevel<G>
+    makeAllRegular(IndexSpace const* is, const Geometry& geom)
+    {
+        GShopLevel<G> r(is, geom);
+        r.setRegularLevel();
+        return r;
+    }
 };
 
 template <typename G>
@@ -399,7 +427,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
                             small_volfrac, geom, extend_domain_face, cover_multiple_cuts,
                             nsm, nmc);
 
-                // Becasue it is used in a synchronous reduction kernel in
+                // Because it is used in a synchronous reduction kernel in
                 // build_cells, we do not need to worry about M2's lifetime.
                 // But we still need to use Elixir to extend the life of
                 // cellflagtmp.

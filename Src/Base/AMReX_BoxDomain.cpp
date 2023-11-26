@@ -231,8 +231,9 @@ operator<< (std::ostream&    os,
             const BoxDomain& bd)
 {
     os << "(BoxDomain " << bd.boxList() << ")" << std::flush;
-    if (os.fail())
+    if (os.fail()) {
         amrex::Error("operator<<(ostream&,BoxDomain&) failed");
+    }
     return os;
 }
 

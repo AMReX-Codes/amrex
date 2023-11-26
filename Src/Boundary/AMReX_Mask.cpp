@@ -36,8 +36,9 @@ operator<< (std::ostream& os,
     for (IntVect p = sm; p <= bg; m.box().next(p))
     {
         os << p;
-        for (int k = 0; k < ncomp; k++)
+        for (int k = 0; k < ncomp; k++) {
             os << "  " << m(p,k);
+        }
         os << "\n";
     }
     os << ")\n";
@@ -65,7 +66,7 @@ operator>> (std::istream& is,
     {
         is >> q;
         BL_ASSERT( p == q);
-        for( int k=0; k<ncomp; k++ ) is >> m(p,k);
+        for( int k=0; k<ncomp; k++ ) { is >> m(p,k); }
         is.ignore(BL_IGNORE_MAX, '\n');
     }
     is.ignore(BL_IGNORE_MAX,'\n');

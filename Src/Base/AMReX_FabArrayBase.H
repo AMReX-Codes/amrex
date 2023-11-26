@@ -200,15 +200,15 @@ public:
         //
         // Some typedefs & helper functions used throughout the code.
         //
-        typedef std::vector<CopyComTag> CopyComTagsContainer;
+        using CopyComTagsContainer = std::vector<CopyComTag>;
 
-        typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+        using MapOfCopyComTagContainers = std::map<int,CopyComTagsContainer>;
     };
     //
     // Some useful typedefs.
     //
-    typedef CopyComTag::CopyComTagsContainer CopyComTagsContainer;
-    typedef CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
+    using CopyComTagsContainer = CopyComTag::CopyComTagsContainer;
+    using MapOfCopyComTagContainers = CopyComTag::MapOfCopyComTagContainers;
     //
     static Long bytesOfMapOfCopyComTagContainers (const MapOfCopyComTagContainers&);
 
@@ -319,8 +319,8 @@ public:
         Long                m_nuse{0};
     };
 
-    typedef std::multimap<BDKey,FabArrayBase::FPinfo*> FPinfoCache;
-    typedef FPinfoCache::iterator FPinfoCacheIter;
+    using FPinfoCache = std::multimap<BDKey,FabArrayBase::FPinfo*>;
+    using FPinfoCacheIter = FPinfoCache::iterator;
 
     static FPinfoCache m_TheFillPatchCache;
 
@@ -409,7 +409,7 @@ public:
         RegionTag (RegionTag && rhs) noexcept : tagged(rhs.tagged) { rhs.tagged = false; }
         RegionTag& operator= (RegionTag const&) = delete;
         RegionTag& operator= (RegionTag &&) = delete;
-        ~RegionTag () { if (tagged) popRegionTag(); }
+        ~RegionTag () { if (tagged) { popRegionTag(); } }
     private:
         bool tagged = false;
     };
@@ -507,8 +507,8 @@ public:
                           bool build_recv_tag);
     };
     //
-    typedef std::multimap<BDKey,FabArrayBase::FB*> FBCache;
-    typedef FBCache::iterator FBCacheIter;
+    using FBCache = std::multimap<BDKey,FabArrayBase::FB*>;
+    using FBCacheIter = FBCache::iterator;
     //
     static FBCache    m_TheFBCache;
     static CacheStats m_FBC_stats;
@@ -558,8 +558,8 @@ public:
     };
 
     //
-    typedef std::multimap<BDKey,FabArrayBase::CPC*> CPCache;
-    typedef CPCache::iterator CPCacheIter;
+    using CPCache = std::multimap<BDKey,FabArrayBase::CPC*>;
+    using CPCacheIter = CPCache::iterator;
     //
     static CPCache    m_TheCPCache;
     static CacheStats m_CPC_stats;
@@ -582,8 +582,8 @@ public:
         void define (const FabArrayBase& fa);
     };
     //
-    typedef std::multimap<BDKey,FabArrayBase::RB90*> RB90Cache;
-    typedef RB90Cache::iterator RB90CacheIter;
+    using RB90Cache = std::multimap<BDKey,FabArrayBase::RB90*>;
+    using RB90CacheIter = RB90Cache::iterator;
     //
     static RB90Cache m_TheRB90Cache;
     //
@@ -604,8 +604,8 @@ public:
         void define (const FabArrayBase& fa);
     };
     //
-    typedef std::multimap<BDKey,FabArrayBase::RB180*> RB180Cache;
-    typedef RB180Cache::iterator RB180CacheIter;
+    using RB180Cache = std::multimap<BDKey,FabArrayBase::RB180*>;
+    using RB180CacheIter = RB180Cache::iterator;
     //
     static RB180Cache m_TheRB180Cache;
     //
@@ -626,8 +626,8 @@ public:
         void define (const FabArrayBase& fa);
     };
     //
-    typedef std::multimap<BDKey,FabArrayBase::PolarB*> PolarBCache;
-    typedef PolarBCache::iterator PolarBCacheIter;
+    using PolarBCache = std::multimap<BDKey,FabArrayBase::PolarB*>;
+    using PolarBCacheIter = PolarBCache::iterator;
     //
     static PolarBCache m_ThePolarBCache;
     //
@@ -720,8 +720,6 @@ bool CheckRcvStats (Vector<MPI_Status>& recv_stats, const Vector<std::size_t>& r
 #endif
 
 std::ostream& operator<< (std::ostream& os, const FabArrayBase::BDKey& id);
-
-Arena* The_FA_Arena ();
 
 }
 

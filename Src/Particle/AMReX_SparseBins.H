@@ -39,18 +39,18 @@ struct SparseBinIteratorFactory
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     index_type getIndex (const index_type bin_number) const noexcept
     {
-        if (m_num_bins == 1) return 0;
+        if (m_num_bins == 1) { return 0; }
 
         index_type lo = 0;
         index_type hi = m_num_bins - 1;
 
         while (lo < hi) {
-            if (m_bins_ptr[lo] == bin_number) return lo;
-            if (m_bins_ptr[hi] == bin_number) return hi;
+            if (m_bins_ptr[lo] == bin_number) { return lo; }
+            if (m_bins_ptr[hi] == bin_number) { return hi; }
 
             index_type mid = (lo + hi) / 2;
             index_type mid_value = m_bins_ptr[mid];
-            if (mid_value == bin_number) return mid;
+            if (mid_value == bin_number) { return mid; }
 
             mid_value < bin_number ? lo = mid+1 : hi = mid;
         }

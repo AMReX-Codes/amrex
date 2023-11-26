@@ -82,14 +82,16 @@ public:
                                  p.pos(1) = y;,
                                  p.pos(2) = z;)
 
-                    for (int i = 0; i < NSR; ++i) p.rdata(i) = ParticleReal(i);
-                    for (int i = 0; i < NSI; ++i) p.idata(i) = i;
+                    for (int i = 0; i < NSR; ++i) { p.rdata(i) = ParticleReal(i); }
+                    for (int i = 0; i < NSI; ++i) { p.idata(i) = i; }
 
                     host_particles.push_back(p);
-                    for (int i = 0; i < NAR; ++i)
+                    for (int i = 0; i < NAR; ++i) {
                         host_real[i].push_back(ParticleReal(i));
-                    for (int i = 0; i < NAI; ++i)
+                    }
+                    for (int i = 0; i < NAI; ++i) {
                         host_int[i].push_back(i);
+                    }
                 }
             }
 
@@ -176,8 +178,9 @@ void testReduce ()
 
     IntVect nppc(params.num_ppc);
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::Print() << "About to initialize particles \n";
+    }
 
     pc.InitParticles(nppc);
 

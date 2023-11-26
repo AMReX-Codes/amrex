@@ -103,7 +103,7 @@ namespace amrex {
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void fill ( const T& value ) noexcept
-        { for (unsigned int i = 0; i < N; ++i) arr[i] = value; }
+        { for (unsigned int i = 0; i < N; ++i) { arr[i] = value; } }
 
         /**
          * Returns the sum of all elements in the GpuArray object.
@@ -853,7 +853,7 @@ namespace amrex
     template <class T, typename = typename T::FABType>
     std::array<T*,AMREX_SPACEDIM> GetArrOfPtrs (std::array<T,AMREX_SPACEDIM>& a) noexcept
     {
-        return {{AMREX_D_DECL(&a[0], &a[1], &a[2])}};
+        return {{AMREX_D_DECL(a.data(), a.data()+1, a.data()+2)}};
     }
 
     template <class T>
@@ -865,7 +865,7 @@ namespace amrex
     template <class T>
     std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<T,AMREX_SPACEDIM>& a) noexcept
     {
-        return {{AMREX_D_DECL(&a[0], &a[1], &a[2])}};
+        return {{AMREX_D_DECL(a.data(), a.data()+1, a.data()+2)}};
     }
 
     template <class T>
@@ -897,4 +897,3 @@ namespace amrex
 }
 
 #endif
-

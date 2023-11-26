@@ -93,18 +93,12 @@ private:
 
     template <typename F, typename I>
     AMREX_GPU_HOST_DEVICE
-    static auto call_f(F const& f, const_pointer_input_type v, I& index)
-        noexcept -> decltype(f(v,index))
-    {
-        return f(v,index);
-    }
-
-    template <typename F, typename I>
-    AMREX_GPU_HOST_DEVICE
-    static auto call_f(F const& f, const_pointer_input_type v, I& index)
-        noexcept -> decltype(f(v[index]))
-    {
-        return f(v[index]);
+    static auto call_f (F const& f, const_pointer_input_type v, I& index) {
+        if constexpr (IsCallable<F, decltype(v), I>::value) {
+            return f(v, index);
+        } else {
+            return f(v[index]);
+        }
     }
 
 public:
@@ -117,7 +111,7 @@ public:
      * Finally, the set of partial sums is incremented in parallel using atomicInc,
      * which results in a permutation array that places the items in bin-sorted order.
      *
-     * This version uses a 3D box to specificy the index space over which the bins
+     * This version uses a 3D box to specify the index space over which the bins
      * are defined.
      *
      * This overload uses the "default" parallelization strategy. If AMReX has been
@@ -172,7 +166,7 @@ public:
      * Finally, the set of partial sums is incremented in parallel using atomicInc,
      * which results in a permutation array that places the items in bin-sorted order.
      *
-     * This version uses a 3D box to specificy the index space over which the bins
+     * This version uses a 3D box to specify the index space over which the bins
      * are defined.
      *
      * This overload uses the "GPU" parallelization strategy. If AMReX has been
@@ -275,11 +269,11 @@ public:
      * Finally, the set of partial sums is incremented in parallel using atomicInc,
      * which results in a permutation array that places the items in bin-sorted order.
      *
-     * This version uses a 3D box to specificy the index space over which the bins
+     * This version uses a 3D box to specify the index space over which the bins
      * are defined.
      *
      * This overload uses the "OpenMP" parallelization strategy and always runs on the
-     * host. If AMReX has been compiled with OpenMP support, the executation will be
+     * host. If AMReX has been compiled with OpenMP support, the execution will be
      * parallelized, otherwise it will be serial.
      *
      * \tparam N the 'size' type that can enumerate all the items
@@ -321,7 +315,7 @@ public:
      * This version uses a 1D index space for the set of bins.
      *
      * This overload uses the "OpenMP" parallelization strategy and always runs on the
-     * host. If AMReX has been compiled with OpenMP support, the executation will be
+     * host. If AMReX has been compiled with OpenMP support, the execution will be
      * parallelized, otherwise it will be serial.
      *
      * \tparam N the 'size' type that can enumerate all the items
@@ -414,7 +408,7 @@ public:
      * Finally, the set of partial sums is incremented in parallel using atomicInc,
      * which results in a permutation array that places the items in bin-sorted order.
      *
-     * This version uses a 3D box to specificy the index space over which the bins
+     * This version uses a 3D box to specify the index space over which the bins
      * are defined.
      *
      * This overload uses the "Serial" parallelization strategy. It always runs in
