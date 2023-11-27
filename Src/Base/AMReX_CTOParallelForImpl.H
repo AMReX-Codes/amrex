@@ -180,7 +180,7 @@ ParallelFor (TypeList<CTOs...> /*list_of_compile_time_options*/,
  *
  * \param ctos   list of all possible values of the parameters.
  * \param option the run time parameters.
- * \param N      an interger specifying the 1D for loop's range.
+ * \param N      an integer specifying the 1D for loop's range.
  * \param f      a callable object taking an integer and working on that iteration.
  */
 template <typename T, class F, typename... CTOs>

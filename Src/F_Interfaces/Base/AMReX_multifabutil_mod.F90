@@ -8,7 +8,7 @@ module amrex_multifabutil_module
   implicit none
   private
 
-  public :: amrex_average_down, amrex_average_cellcenter_to_face
+  public :: amrex_average_down, amrex_average_down_faces, amrex_average_cellcenter_to_face
 
   public :: amrex_average_down_dg
 
@@ -31,6 +31,14 @@ module amrex_multifabutil_module
        real(amrex_real), value :: VolumeRatio
      end subroutine amrex_fi_average_down_dg
 
+     subroutine amrex_fi_average_down_faces (fmf, cmf, cgeom, scomp, ncomp, rr) bind(c)
+       import
+       implicit none
+       type(c_ptr), intent(in) :: fmf(*), cmf(*)
+       type(c_ptr), value :: cgeom
+       integer(c_int), value :: scomp, ncomp, rr
+     end subroutine amrex_fi_average_down_faces
+
      subroutine amrex_fi_average_cellcenter_to_face (facemf, ccmf, geom) bind(c)
        import
        implicit none
@@ -50,7 +58,6 @@ contains
     call amrex_fi_average_down(fmf%p, cmf%p, fgeom%p, cgeom%p, scomp-1, ncomp, rr)
   end subroutine amrex_average_down
 
-
   subroutine amrex_average_down_dg &
     ( fmf, cmf, fgeom, cgeom, scomp, ncomp, rr, nDOFX, nFine, VolumeRatio, &
       ProjectionMatrix_T, WeightsX_q)
@@ -65,6 +72,19 @@ contains
              nDOFX, nFine, VolumeRatio, ProjectionMatrix_T, WeightsX_q )
   end subroutine amrex_average_down_dg
 
+  subroutine amrex_average_down_faces (fmf, cmf, cgeom, scomp, ncomp, rr)
+    type(amrex_multifab), intent(in   ) :: fmf(amrex_spacedim)
+    type(amrex_multifab), intent(inout) :: cmf(amrex_spacedim)
+    type(amrex_geometry), intent(in) :: cgeom ! coarse level geometry
+    integer, intent(in) :: scomp, ncomp, rr
+    type(c_ptr) :: cp(amrex_spacedim), fp(amrex_spacedim)
+    integer :: idim
+    do idim = 1, amrex_spacedim
+       fp(idim) = fmf(idim)%p
+       cp(idim) = cmf(idim)%p
+    end do
+    call amrex_fi_average_down_faces(fp, cp, cgeom%p, scomp-1, ncomp, rr)
+  end subroutine amrex_average_down_faces
 
   subroutine amrex_average_cellcenter_to_face (facemf, ccmf, geom)
     type(amrex_multifab), intent(inout) :: facemf(amrex_spacedim)

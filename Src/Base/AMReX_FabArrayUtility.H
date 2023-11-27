@@ -1103,7 +1103,7 @@ template <class FAB,
 void
 Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
-    Subtract(dst,src,srccomp,dstcomp,numcomp,nghost);
+    Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 template <class FAB,
@@ -1547,7 +1547,7 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
  * \param ycomp  starting component of y
  * \param ncomp  number of components
  * \param nghost number of ghost cells
- * \param local  If true, MPI communciation is skipped.
+ * \param local  If true, MPI communication is skipped.
  */
 template <typename FAB, std::enable_if_t<IsBaseFab<FAB>::value,int> FOO = 0>
 typename FAB::value_type

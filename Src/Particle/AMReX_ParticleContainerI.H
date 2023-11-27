@@ -1653,8 +1653,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 if (npart != 0) {
                     Long last = npart - 1;
                     Long pindex = 0;
+                    auto ptd = particle_tile->getParticleTileData();
                     while (pindex <= last) {
-                        auto ptd = particle_tile->getParticleTileData();
                         ParticleType p(ptd,pindex);
 
                         if ((remove_negative == false) && (p.id() < 0)) {
@@ -1669,7 +1669,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             for (int comp = 0; comp < NumIntComps(); comp++) {
                                 soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
                             }
-                            correctCellVectors(last, pindex, grid, aos[pindex]);
+                            correctCellVectors(last, pindex, grid, ptd[pindex]);
                             --last;
                             continue;
                         }
@@ -1685,7 +1685,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             for (int comp = 0; comp < NumIntComps(); comp++) {
                                 soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
                             }
-                            correctCellVectors(last, pindex, grid, aos[pindex]);
+                            correctCellVectors(last, pindex, grid, ptd[pindex]);
                             --last;
                             continue;
                         }
@@ -1739,7 +1739,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             for (int comp = 0; comp < NumIntComps(); comp++) {
                                 soa.GetIntData(comp)[pindex] = soa.GetIntData(comp)[last];
                             }
-                            correctCellVectors(last, pindex, grid, aos[pindex]);
+                            correctCellVectors(last, pindex, grid, ptd[pindex]);
                             --last;
                             continue;
                         }
@@ -2206,13 +2206,15 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
               const auto& src_tile = kv.second;
 
               auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
-              auto old_size = dst_tile.GetArrayOfStructs().size();
+              auto old_size = dst_tile.size();
               auto new_size = old_size + src_tile.size();
               dst_tile.resize(new_size);
 
-              Gpu::copyAsync(Gpu::hostToDevice,
-                             src_tile.begin(), src_tile.end(),
-                             dst_tile.GetArrayOfStructs().begin() + old_size);
+              if constexpr(! ParticleType::is_soa_particle) {
+                  Gpu::copyAsync(Gpu::hostToDevice,
+                                 src_tile.begin(), src_tile.end(),
+                                 dst_tile.GetArrayOfStructs().begin() + old_size);
+              }
 
               for (int i = 0; i < NumRealComps(); ++i) {
                   Gpu::copyAsync(Gpu::hostToDevice,

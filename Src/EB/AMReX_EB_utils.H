@@ -50,9 +50,9 @@ namespace amrex {
      * that the distance is valid only if it's within a few cells to the EB.
      *
      * \param mf is a nodal MultiFab.
-     * \param ls_lev is an EB2::Level obejct with an implicit function. This
+     * \param ls_lev is an EB2::Level object with an implicit function. This
      *               is at the same level as mf.
-     * \param eb_fac is an EBFArrayBoxFactory object containing EB informaiton.
+     * \param eb_fac is an EBFArrayBoxFactory object containing EB information.
      * \param refratio is the refinement ratio of mf to eb_fac.
      * \param fluid_has_positive_sign determines the sign of the fluid.
      */

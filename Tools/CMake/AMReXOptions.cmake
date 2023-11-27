@@ -59,7 +59,7 @@ print_option( USE_XSDK_DEFAULTS )
 # Defaults:
 #   CMake: static
 #   xSDK: shared
-# Precendence of user options:
+# Precedence of user options:
 #   AMReX_BUILD_SHARED_LIBS > BUILD_SHARED_LIBS > USE_XSDK_DEFAULTS
 #   default:    unset              unset               OFF
 #

@@ -28,13 +28,12 @@ AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
 {
-#if AMREX_DEVICE_COMPILE
-    amrex::ignore_unused(f,p);
-    amrex::Error("EB2::GeometryShop: how did this happen?");
-    return 0.0;
-#else
-    return f({AMREX_D_DECL(p[0],p[1],p[2])});
-#endif
+    AMREX_IF_ON_DEVICE((
+        amrex::ignore_unused(f,p);
+        amrex::Error("EB2::GeometryShop: how did this happen?");
+        return 0.0;
+    ))
+    AMREX_IF_ON_HOST((return f({AMREX_D_DECL(p[0],p[1],p[2])});))
 }
 
 template <class F>
@@ -476,7 +475,7 @@ public:
                         {
                             // interp might still be quiet_nan because lst that
                             // was set to zero has been changed by FillBoundary
-                            // at periodic bounadries.
+                            // at periodic boundaries.
                             inter(i,j,k) = problo[0] + i*dx[0];
                         }
                         else if (lst(i+1,j,k) == Real(0.0) ||

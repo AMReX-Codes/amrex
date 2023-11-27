@@ -698,7 +698,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         amrex::The_Arena()->free(md_recv_data);
     }
 
-    // Wait and upack data
+    // Wait and unpack data
     if (N_rcvs > 0)
     {
         Vector<MPI_Status> stats(N_rcvs);

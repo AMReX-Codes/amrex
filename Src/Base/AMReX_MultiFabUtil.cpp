@@ -335,7 +335,8 @@ namespace amrex
         amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
 #else
 
-        AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
+        AMREX_ASSERT(S_crse.nComp() == S_fine.nComp() &&
+                     S_fine.is_cell_centered() && S_crse.is_cell_centered());
 
         //
         // Coarsen() the fine stuff on processors owning the fine data.

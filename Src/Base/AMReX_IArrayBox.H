@@ -58,7 +58,7 @@ public:
 
     /**
     * \brief Construct an initial FAB with the data space allocated but
-    * not inititialized. ncomp is the number of components
+    * not initialized. ncomp is the number of components
     * (variables) at each data point in the Box.
     */
     explicit IArrayBox (const Box& b,

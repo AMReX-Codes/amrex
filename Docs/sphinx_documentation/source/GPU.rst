@@ -489,11 +489,10 @@ GPU support.
 When AMReX is compiled with ``USE_OMP_OFFLOAD=TRUE``,
 ``AMREX_USE_OMP_OFFLOAD`` is defined.
 
-In addition to AMReX's preprocessor macros, CUDA provides the
-``__CUDA_ARCH__`` macro which is only defined when in device code.
-HIP and Sycl provide similar macros.
-``AMREX_DEVICE_COMPILE`` should be used when a ``__host__ __device__``
-function requires separate code for the CPU and GPU implementations.
+The macros ``AMREX_IF_ON_DEVICE((code_for_device))`` and
+``AMREX_IF_ON_HOST((code_for_host))`` should be used when a
+``__host__ __device__`` function requires separate code for the
+CPU and GPU implementations.
 
 .. ===================================================================
 
@@ -1553,9 +1552,13 @@ Assertions and Error Checking
 To help debugging, we often use :cpp:`amrex::Assert` and
 :cpp:`amrex::Abort`.  These functions are GPU safe and can be used in
 GPU kernels.  However, implementing these functions requires additional
-GPU registers, which will reduce overall performance.  Therefore, it
-is preferred to implement such calls in debug mode only by wrapping the
-calls using ``#ifdef AMREX_DEBUG``.
+GPU registers, which will reduce overall performance.  Therefore, by
+default these functions and the macro ``AMREX_ALWAYS_ASSERT`` are no-ops
+for optimized builds (e.g., ``DEBUG=FALSE`` using the GNU Make build
+system) when called from kernels run on GPU. Calls to these functions from
+GPU kernels are active for debug builds and can optionally be activated
+at compile time for optimized builds (e.g., ``DEBUG=FALSE`` and
+``USE_ASSERTION=TRUE`` using the GNU Make build system).
 
 In CPU code, :cpp:`AMREX_GPU_ERROR_CHECK()` can be called
 to check the health of previous GPU launches.  This call
@@ -1738,14 +1741,14 @@ by "amrex" in your :cpp:`inputs` file.
 +----------------------------+-----------------------------------------------------------------------+-------------+----------+
 |                            | Description                                                           |   Type      | Default  |
 +============================+=======================================================================+=============+==========+
-| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | False    |
-|                            | If true, the buffers will use device memory. If false, they will use  |             |          |
-|                            | pinned memory. In practice, we find it is usually not worth it to use |             |          |
-|                            | GPU aware MPI.                                                        |             |          |
+| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | 0        |
+|                            | If true, the buffers will use device memory. If false (i.e., 0), they |             |          |
+|                            | will use pinned memory. In practice, we find it is not always worth   |             |          |
+|                            | it to use GPU aware MPI.                                              |             |          |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------+
-| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | False    |
+| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0        |
 |                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |          |
 |                            | describing how much free memory there is and what was requested.      |             |          |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------+
-| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | False    |
+| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | 0        |
 +----------------------------+-----------------------------------------------------------------------+-------------+----------+

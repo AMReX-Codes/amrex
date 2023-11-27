@@ -26,7 +26,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug \
             -DAMReX_ENABLE_TESTS=ON  \
             -DAMReX_FORTRAN=OFF      \
-            -DAMReX_ASCENT=ON
+            -DAMReX_ASCENT=ON        \
+            -DAMReX_CONDUIT=ON
     - name: Build
       run: |
         . /ascent_docker_setup_env.sh

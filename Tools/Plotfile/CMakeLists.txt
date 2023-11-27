@@ -27,6 +27,11 @@ foreach( _exe IN LISTS _exe_names)
    if (AMReX_CUDA)
       set_source_files_properties(${_exe}.cpp PROPERTIES LANGUAGE CUDA)
    endif()
+
+    # Add prefix to each tool's name to make them unique when installed.
+    # This avoids potential collisions of names on user systems, e.g., in
+    # software packages (Spack/Conda/Debian/...).
+    set_target_properties(${_exe} PROPERTIES OUTPUT_NAME "amrex_${_exe}")
 endforeach()
 
 
@@ -36,12 +41,4 @@ target_sources(fsnapshot PRIVATE AMReX_PPMUtil.H AMReX_PPMUtil.cpp)
 if (AMReX_CUDA)
    set_source_files_properties(AMReX_PPMUtil.cpp PROPERTIES LANGUAGE CUDA)
    target_compile_features(fsnapshot PUBLIC cxx_std_17)
-endif()
-
-# fgradient uses std::filesystem and GCC < 9 needs special treatment for std::filesystem
-if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.0.0"))
-   find_package(Filesystem)
-   if (CXX_FILESYSTEM_HAVE_FS)
-      target_link_libraries(fgradient PRIVATE std::filesystem)
-   endif()
 endif()

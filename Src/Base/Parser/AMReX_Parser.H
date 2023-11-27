@@ -21,11 +21,8 @@ struct ParserExecutor
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     double operator() () const noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        return parser_exe_eval(m_device_executor, nullptr);
-#else
-        return parser_exe_eval(m_host_executor, nullptr);
-#endif
+        AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, nullptr);))
+        AMREX_IF_ON_HOST((return parser_exe_eval(m_host_executor, nullptr);))
     }
 
     template <typename... Ts>
@@ -34,11 +31,8 @@ struct ParserExecutor
     operator() (Ts... var) const noexcept
     {
         amrex::GpuArray<double,N> l_var{var...};
-#if AMREX_DEVICE_COMPILE
-        return parser_exe_eval(m_device_executor, l_var.data());
-#else
-        return parser_exe_eval(m_host_executor, l_var.data());
-#endif
+        AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, l_var.data());))
+        AMREX_IF_ON_HOST((return parser_exe_eval(m_host_executor, l_var.data());))
     }
 
     template <typename... Ts>
@@ -47,30 +41,21 @@ struct ParserExecutor
     operator() (Ts... var) const noexcept
     {
         amrex::GpuArray<double,N> l_var{var...};
-#if AMREX_DEVICE_COMPILE
-        return static_cast<float>(parser_exe_eval(m_device_executor, l_var.data()));
-#else
-        return static_cast<float>(parser_exe_eval(m_host_executor, l_var.data()));
-#endif
+        AMREX_IF_ON_DEVICE((return static_cast<float>(parser_exe_eval(m_device_executor, l_var.data()));))
+        AMREX_IF_ON_HOST((return static_cast<float>(parser_exe_eval(m_host_executor, l_var.data()));))
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     double operator() (GpuArray<double,N> const& var) const noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        return parser_exe_eval(m_device_executor, var.data());
-#else
-        return parser_exe_eval(m_host_executor, var.data());
-#endif
+        AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, var.data());))
+        AMREX_IF_ON_HOST((return parser_exe_eval(m_host_executor, var.data());))
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     explicit operator bool () const {
-#if AMREX_DEVICE_COMPILE
-        return m_device_executor != nullptr;
-#else
-        return m_host_executor != nullptr;
-#endif
+        AMREX_IF_ON_DEVICE((return m_device_executor != nullptr;))
+        AMREX_IF_ON_HOST((return m_host_executor != nullptr;))
     }
 
     char* m_host_executor = nullptr;

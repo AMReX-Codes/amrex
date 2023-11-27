@@ -1143,7 +1143,7 @@ InitRandom (Long                    icount,
                 const auto& src_tile = kv.second;
 
                 auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
-                auto old_size = dst_tile.GetArrayOfStructs().size();
+                auto old_size = dst_tile.size();
                 auto new_size = old_size;
                 if constexpr(!ParticleType::is_soa_particle)
                 {
@@ -1286,7 +1286,7 @@ InitRandom (Long                    icount,
                 const auto& src_tile = kv.second;
 
                 auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
-                auto old_size = dst_tile.GetArrayOfStructs().size();
+                auto old_size = dst_tile.size();
                 auto new_size = old_size;
                 if constexpr(!ParticleType::is_soa_particle)
                 {
