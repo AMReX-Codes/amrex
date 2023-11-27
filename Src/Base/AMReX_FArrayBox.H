@@ -116,7 +116,7 @@ public:
     * \brief Pure virtual function.  Derived classes MUST override this
     * function to skip over the next FAB f in the istream, under the
     * assumption that the header for the FAB f has already been
-    * skpped over.
+    * skipped over.
     */
     virtual void skip (std::istream& is,
                        FArrayBox&    f) const = 0;

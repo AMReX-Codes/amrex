@@ -234,7 +234,7 @@ void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geome
     Box nddomain = amrex::surroundingNodes(geom.Domain());
 
     if (strategy != MLNodeLinOp::CoarseningStrategy::Sigma) {
-        nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
+        nddomain.grow(1000); // hack to avoid masks being modified at Neumann boundary
     }
 
 #ifdef AMREX_USE_OMP

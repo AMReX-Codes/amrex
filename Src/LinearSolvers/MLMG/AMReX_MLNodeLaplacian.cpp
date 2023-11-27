@@ -947,7 +947,7 @@ MLNodeLaplacian::checkPoint (std::string const& file_name) const
 
             HeaderFile.precision(17);
 
-            // MLLinop stuff
+            // MLLinOp stuff
             HeaderFile << "verbose = " << verbose << "\n"
                        << "nlevs = " << NAMRLevels() << "\n"
                        << "do_agglomeration = " << info.do_agglomeration << "\n"

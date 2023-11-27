@@ -287,7 +287,7 @@ public:
      * \param famrlev fine AMR level
      * \param fine    fine level data
      * \param crse    coarse level data
-     * \parame nghost number of ghost cells
+     * \param nghost number of ghost cells
      */
     virtual void interpolationAmr (int famrlev, MF& fine, const MF& crse,
                                    IntVect const& nghost) const = 0;

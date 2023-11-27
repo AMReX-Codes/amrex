@@ -18,7 +18,7 @@ namespace amrex {
 // where phi and rhs are nodal multifab, and sigma is a tensor constant
 // with only diagonal components.  The EB is assumed to be Dirichlet.
 //
-// del dot (simga grad phi) - alpha/r^2 phi = rhs, for RZ where alpha is a
+// del dot (sigma grad phi) - alpha/r^2 phi = rhs, for RZ where alpha is a
 // scalar constant that is zero by default.
 
 class MLEBNodeFDLaplacian

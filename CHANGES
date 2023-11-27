@@ -72,7 +72,7 @@
 
   -- We weren't defining cent_hat out far enough (#3548)
 
-  -- Add Fortran inteface for FillCoarsePatch for face variables (#3542)
+  -- Add Fortran interface for FillCoarsePatch for face variables (#3542)
 
   -- print_state/printCell: Make it work without managed memory (#3543)
 
@@ -114,7 +114,7 @@
 
   -- Simplify filterParticles Kernel (#3510)
 
-  -- Generatize particle-to-cell assignment function (#3499)
+  -- Generalize particle-to-cell assignment function (#3499)
      Follow-on to 3499 (#3514)
      ParticleLocator: Make Assignor optional template parameter (#3515)
 
@@ -302,7 +302,7 @@
 
 # 23.07
 
-  -- Allow users to change the default vector growth stategy (#3389)
+  -- Allow users to change the default vector growth strategy (#3389)
 
   -- Communications arena implementation (#3388)
 
