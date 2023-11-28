@@ -474,7 +474,7 @@ namespace amrex
         auto tmptype = type;
         tmptype.set(dir);
         if (dir >= AMREX_SPACEDIM || !tmptype.nodeCentered()) {
-            amrex::Abort("average_down_edges: not face index type");
+            amrex::Abort("average_down_edges: not edge index type");
         }
         const int ncomp = crse.nComp();
         if (isMFIterSafe(fine, crse))
