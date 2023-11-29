@@ -50,7 +50,7 @@ public:
     /**
     * \brief Constructs an empty MultiFab.  Data can be defined at a later
     * time using the define member functions inherited from FabArray.  If
-    * `define` is called later with a nulltpr as MFInfo's arena, the default
+    * `define` is called later with a nullptr as MFInfo's arena, the default
     * Arena `a` will be used.  If the arena in MFInfo is not a nullptr, the
     * MFInfo's arena will be used.
     */
@@ -60,7 +60,7 @@ public:
     * \brief
     * Constructs a MultiFab
     * \param bs a valid region
-    * \param dm a DistribuionMapping
+    * \param dm a DistributionMapping
     * \param ncomp number of components
     * \param ngrow number of cells the region grows
     * \param info MFInfo

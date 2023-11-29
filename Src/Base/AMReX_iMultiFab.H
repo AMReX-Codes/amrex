@@ -24,7 +24,7 @@ namespace amrex {
 * member functions are defined for I/O and simple arithmetic operations on
 * these aggregate objects.
 *
-8 This class does NOT provide a copy constructor or assignment operator.
+* This class does NOT provide a copy constructor or assignment operator.
 */
 class iMultiFab
     :
@@ -42,7 +42,7 @@ public:
     /**
     * \brief Constructs an empty iMultiFab.  Data can be defined at a later
     * time using the define member functions inherited from FabArray.  If
-    * `define` is called later with a nulltpr as MFInfo's arena, the default
+    * `define` is called later with a nullptr as MFInfo's arena, the default
     * Arena `a` will be used.  If the arena in MFInfo is not a nullptr, the
     * MFInfo's arena will be used.
     */

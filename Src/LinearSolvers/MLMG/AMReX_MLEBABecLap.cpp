@@ -685,6 +685,8 @@ MLEBABecLap::prepareForSolve ()
 
     MLCellABecLap::prepareForSolve();
 
+    applyRobinBCTermsCoeffs();
+
     averageDownCoeffs();
 
     if (m_eb_phi[0]) {
@@ -1282,6 +1284,14 @@ MLEBABecLap::getEBFluxes (const Vector<MultiFab*>& a_flux, const Vector<MultiFab
                 }
             }
         }
+    }
+}
+
+void
+MLEBABecLap::applyRobinBCTermsCoeffs ()
+{
+    if (this->hasRobinBC()) {
+        detail::applyRobinBCTermsCoeffs(*this);
     }
 }
 
