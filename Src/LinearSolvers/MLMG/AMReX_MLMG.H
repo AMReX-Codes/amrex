@@ -1370,7 +1370,7 @@ MLMGT<MF>::mgFcycle ()
     }
 }
 
-// At the true bottom of the coarset AMR level.
+// At the true bottom of the coarsest AMR level.
 // in  : Residual (res) as b
 // out : Correction (cor) as x
 template <typename MF>
