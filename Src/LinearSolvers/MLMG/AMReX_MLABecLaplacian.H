@@ -7,7 +7,8 @@
 
 namespace amrex {
 
-// (A * alpha - B * (del dot beta grad)) phi
+// (alpha * a - beta * (del dot b grad)) phi
+
 template <typename MF>
 class MLABecLaplacianT
     : public MLCellABecLapT<MF>
