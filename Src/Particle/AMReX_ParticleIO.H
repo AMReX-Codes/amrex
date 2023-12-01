@@ -37,8 +37,8 @@ struct FilterPositiveID {
     AMREX_GPU_HOST_DEVICE
     int operator() (const P& p) const {
         return p.id() > 0;
-    };
-}
+    }
+};
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
