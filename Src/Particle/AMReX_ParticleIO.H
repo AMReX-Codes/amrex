@@ -32,6 +32,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 }
 
+struct FilterPositiveID {
+    template <typename P>
+    AMREX_GPU_HOST_DEVICE
+    int operator() (const P& p) const {
+        return p.id() > 0;
+    };
+};
+
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
@@ -77,10 +85,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             tmp_real_comp_names, tmp_int_comp_names,
-                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> int
-                            {
-                                return p.id() > 0;
-                            }, true);
+                            FilterPositiveID{}, true);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -111,10 +116,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
-                            {
-                                return p.id() > 0;
-                            });
+                            FilterPositiveID{});
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -141,10 +143,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
-                            {
-                                return p.id() > 0;
-                            });
+                            FilterPositiveID{});
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -177,10 +176,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
-                            {
-                                return p.id() > 0;
-                            });
+                            FilterPositiveID{});
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -213,10 +209,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
-                            {
-                                return p.id() > 0;
-                            });
+                            FilterPositiveID{});
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -234,10 +227,7 @@ WritePlotFile (const std::string& dir, const std::string& name,
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
-                            {
-                                return p.id() > 0;
-                            });
+                            FilterPositiveID{});
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
