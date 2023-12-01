@@ -484,7 +484,7 @@ To set homogeneous Dirichlet boundary conditions, call
 
 where coeff can be a real number (i.e. the value is the same at every cell)
 or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
-In other words, coeff is :math:`/beta` in the canonical form given in equation :ref:`eqn::abeclap`
+In other words, coeff is :math:`\beta` in the canonical form given in equation :eq:`eqn::abeclap`
 located at the EB surface centroid.
 
 To set inhomogeneous Dirichlet boundary conditions, call
@@ -498,7 +498,7 @@ To set inhomogeneous Dirichlet boundary conditions, call
 where phi_on_eb is the MultiFab holding the Dirichlet values in every cut cell,
 and coeff again is a real number
 or a MultiFab holding the coefficient of the gradient at each cell with an EB face,
-i.e. :math:`/beta` in equation :ref:`eqn::abeclap` located at the EB surface centroid.
+i.e. :math:`\beta` in equation :eq:`eqn::abeclap` located at the EB surface centroid.
 
 Currently there are options to define the face-based coefficients on
 face centers vs face centroids, and to interpret the solution variable
