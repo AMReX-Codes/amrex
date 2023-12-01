@@ -152,12 +152,13 @@ namespace amrex::OpenMP
             // default or OMP_NUM_THREADS environment variable
         } else if (omp_threads == "nosmt") {
             char const *env_omp_num_threads = std::getenv("OMP_NUM_THREADS");
-            if (env_omp_num_threads != nullptr && amrex::system::verbose > 1) {
+            if (env_omp_num_threads == nullptr) {
+                omp_set_num_threads(numUniquePhysicalCores());
+            }
+            else if (amrex::system::verbose > 1) {
                 amrex::Print() << "amrex.omp_threads was set to nosmt,"
                                << "but OMP_NUM_THREADS was set. Will keep "
                                << "OMP_NUM_THREADS=" << env_omp_num_threads << ".\n";
-            } else {
-                omp_set_num_threads(numUniquePhysicalCores());
             }
         } else {
             std::optional<int> num_omp_threads = to_int(omp_threads);
