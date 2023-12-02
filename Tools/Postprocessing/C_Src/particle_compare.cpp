@@ -445,7 +445,7 @@ int main_main()
         const std::string fname = amrex::get_command_argument(farg);
         if (fname == "-r" || fname == "--rel_tol") {
             rtol = std::stod(amrex::get_command_argument(++farg));
-	} else if (fname == "--abs_tol") {
+    } else if (fname == "--abs_tol") {
             atol = std::stod(amrex::get_command_argument(++farg));
         } else {
             break;
@@ -567,17 +567,17 @@ int main_main()
     {
         if (atol > 0.) {
             amrex::Print() << " PARTICLES AGREE to relative tolerance " << rtol << " and/or absolute tolerance " << atol << "\n";
-	} else {
+    } else {
             amrex::Print() << " PARTICLES AGREE to relative tolerance " << rtol << "\n";
-	}
+    }
     }
     else
     {
         if (atol > 0.) {
             amrex::Print() << " PARTICLES DISAGREE to relative tolerance " << rtol << " and/or absolute tolerance " << atol << "\n";
-	} else {
+    } else {
             amrex::Print() << " PARTICLES DISAGREE to relative tolerance " << rtol << "\n";
-	}
+    }
     }
 
     return exit_code;
