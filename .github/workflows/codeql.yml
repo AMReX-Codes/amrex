@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   analyze:
+    if: ${{ github.repository == 'AMReX-Codes/amrex' || github.event_name != 'schedule' }}
     name: Analyze
     runs-on: ubuntu-latest
     permissions:
