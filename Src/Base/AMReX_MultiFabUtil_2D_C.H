@@ -400,6 +400,31 @@ void amrex_avgdown_dg
   } // iField
 } // END void amrex_avgdown_dg
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void amrex_avgdown_cg
+       ( int iCrse, int jCrse, int, int nComp,
+         Array4<Real> const& crse,
+         Array4<Real const> const& fine,
+         IntVect const& ratio,
+         int nDOFX,
+         int nFine,
+         Array4<Real> G2L,
+         Array4<Real> L2G,
+         Array4<Real> F2C ) noexcept
+{
+  amrex::ignore_unused
+  ( iCrse, jCrse, nComp,
+    crse,
+    fine,
+    ratio,
+    nDOFX,
+    nFine,
+    G2L,
+    L2G,
+    F2C );
+  amrex::Abort( "Src/Base/AMReX_MultiFabUtil_2D_C.H: amrex_avgdown_cg not implemented. Calling amrex::Abort()" );
+} // END void amrex_avgdown_cg
+
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_compute_divergence (Box const& bx, Array4<Real> const& divu,

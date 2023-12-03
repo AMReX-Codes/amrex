@@ -302,6 +302,102 @@ void amrex_avgdown_dg
   } // iField
 } // END void amrex_avgdown_dg
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void amrex_avgdown_cg
+       ( int iCrse, int, int, int nComp,
+         Array4<Real> const& crse,
+         Array4<Real const> const& fine,
+         IntVect const& ratio,
+         int nDOFX,
+         int nFine,
+         Array4<Real> G2L,
+         Array4<Real> L2G,
+         Array4<Real> F2C ) noexcept
+{
+
+  const Real Zero = 0.0;
+
+  // Corresponding fine element
+  int iRefRatio = ratio[0];
+  const int iFine = iCrse * iRefRatio;
+
+  // Number of fields in MultiFab
+  const int nGF = nComp / nDOFX;
+
+  Real * GhG = new Real[nDOFX];
+  Real * GhL = new Real[nDOFX];
+
+  Real ** ghG = new Real*[nFine];
+  Real ** ghL = new Real*[nFine];
+  for( int iFn = 0; iFn < nFine; iFn++ )
+  {
+    ghG[iFn] = new Real[nDOFX];
+    ghL[iFn] = new Real[nDOFX];
+  }
+
+  for( int iGF = 0; iGF < nGF; iGF++ )
+  {
+
+    for( int iFn = 0; iFn < nFine; iFn++ )
+    {
+      for( int iNX = 0; iNX < nDOFX; iNX++ )
+      {
+        ghG[iFn][iNX] = fine(iFine+iFn,0,0,nDOFX*iGF+iNX);
+      }
+    }
+
+    for( int iFn = 0; iFn < nFine; iFn++ )
+    {
+      for( int iNX = 0; iNX < nDOFX; iNX++ )
+      {
+        ghL[iFn][iNX] = Zero;
+        for( int jNX = 0; jNX < nDOFX; jNX++ )
+        {
+          ghL[iFn][iNX] += G2L(0,0,iNX,jNX) * ghG[iFn][jNX];
+        }
+      }
+    }
+
+    for( int i = 0; i < nDOFX; i++ )
+    {
+      GhL[i] = Zero;
+      for( int iFn = 0; iFn < nFine; iFn++ )
+      {
+        for( int k = 0; k < nDOFX; k++ )
+        {
+          GhL[i] += F2C(0,i,iFn,k) * ghL[iFn][k];
+        }
+      }
+    }
+
+    for( int iNX = 0; iNX < nDOFX; iNX++ )
+    {
+      GhG[iNX] = Zero;
+      for( int jNX = 0; jNX < nDOFX; jNX++ )
+      {
+        GhG[iNX] += L2G(0,0,iNX,jNX) * GhL[jNX];
+      }
+    }
+
+    for( int iNX = 0; iNX < nDOFX; iNX++ )
+    {
+      crse(iCrse,0,0,nDOFX*iGF+iNX) = GhG[iNX];
+    }
+
+  } // iGF
+
+  for( int iFn = 0; iFn < nFine; iFn++ )
+  {
+    delete[] ghL[iFn];
+    delete[] ghG[iFn];
+  }
+  delete[] ghL;
+  delete[] ghG;
+  delete[] GhL;
+  delete[] GhG;
+
+} // END void amrex_avgdown_cg
+
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void amrex_avgdown_nodes (Box const& bx, Array4<T> const& crse,

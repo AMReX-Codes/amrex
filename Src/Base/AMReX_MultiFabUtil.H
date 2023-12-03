@@ -127,7 +127,7 @@ namespace amrex
                        const Geometry& fgeom, const Geometry& cgeom,
                        int scomp, int ncomp, int rr);
 
-    //! Average fine DG-based MultiFab onto crse DG-centered MultiFab.
+    //! Average fine DG-based MultiFab onto crse DG-based MultiFab.
     //! This routine DOES NOT assume that the crse BoxArray is
     //! a coarsened version of the fine BoxArray.
     void average_down_dg( const MultiFab& S_fine, MultiFab& S_crse,
@@ -142,6 +142,25 @@ namespace amrex
                           int nDOFX, Real VolumeRatio,
                           Array4<Real> ProjectionMatrix_T,
                           Array4<Real> WeightsX_q );
+
+    //! Average fine DG-based MultiFab onto crse DG-based MultiFab.
+    //! Enforce continuity across element interfaces.
+    //! This routine DOES NOT assume that the crse BoxArray is
+    //! a coarsened version of the fine BoxArray.
+    void average_down_cg( const MultiFab& S_fine, MultiFab& S_crse,
+                          const Geometry& fgeom, const Geometry& cgeom,
+                          int scomp, int ncomp, const IntVect& ratio,
+                          int nDOFX, int nFine,
+                          Array4<Real> G2L,
+                          Array4<Real> L2G,
+                          Array4<Real> F2C );
+    void average_down_cg( const MultiFab& S_fine, MultiFab& S_crse,
+                          const Geometry& fgeom, const Geometry& cgeom,
+                          int scomp, int ncomp, int rr,
+                          int nDOFX, int nFine,
+                          Array4<Real> G2L,
+                          Array4<Real> L2G,
+                          Array4<Real> F2C );
 
     //! Average MultiFab onto crse MultiFab without volume weighting. This
     //! routine DOES NOT assume that the crse BoxArray is a coarsened version of

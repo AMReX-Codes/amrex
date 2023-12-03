@@ -83,7 +83,26 @@ dginterp_interp
       } // iNX
     } // iFine
   } // iField
-} // END void dginterp_interp
+} // end void dginterp_interp
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+cginterp_interp
+  ( Box const& bx,
+    Array4<Real> const& fine, const int fcomp, const int ncomp,
+    Array4<Real const> const& crse, const int ccomp,
+    IntVect const& ratio,
+    int nDOFX, Array4<Real> ProjectionMatrix,
+    Array4<Real> WeightsX_q ) noexcept
+{
+  amrex::ignore_unused
+  ( bx,
+    fine, fcomp, ncomp,
+    crse, ccomp,
+    ratio,
+    nDOFX, ProjectionMatrix,
+    WeightsX_q );
+  amrex::Abort( "Src/AmrCore/AMReX_Interp_1D_C.H: cginterp_interp not implemented. Calling amrex::Abort()" );
+} // end void cginterp_interp
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void

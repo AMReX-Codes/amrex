@@ -33,6 +33,34 @@ extern "C"
           ( *S_fine, *S_crse, *fgeom, *cgeom, scomp, ncomp, rr,
             nDOFX, VolumeRatio, ProjectionMatrix_T, WeightsX_q );
     }
+    void amrex_fi_average_down_cg
+           ( const MultiFab* S_fine, MultiFab* S_crse,
+             const Geometry* fgeom, const Geometry* cgeom,
+             int scomp, int ncomp, int rr,
+             int nDOFX, int nFine,
+             void* vpG2L,
+             void* vpL2G,
+             void* vpF2C )
+    {
+        auto *pG2L
+               = reinterpret_cast<Real*>(vpG2L);
+        Array4<Real> G2L
+                       ( pG2L, {0,0,0}, {1,1,nDOFX}, nDOFX );
+
+        auto *pL2G
+               = reinterpret_cast<Real*>(vpL2G);
+        Array4<Real> L2G
+                       ( pL2G, {0,0,0}, {1,1,nDOFX}, nDOFX );
+
+        auto *pF2C
+               = reinterpret_cast<Real*>(vpF2C);
+        Array4<Real> F2C
+                       ( pF2C, {0,0,0}, {1,nDOFX,nFine}, nDOFX );
+
+        amrex::average_down_cg
+          ( *S_fine, *S_crse, *fgeom, *cgeom, scomp, ncomp, rr,
+            nDOFX, nFine, G2L, L2G, F2C );
+    }
     void amrex_fi_average_down_faces (MultiFab const* fmf[], MultiFab* cmf[],
                                       Geometry const* cgeom, int scomp, int ncomp,
                                       int rr)

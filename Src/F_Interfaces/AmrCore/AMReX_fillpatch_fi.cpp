@@ -17,7 +17,8 @@ namespace
         &amrex::quartic_interp,          // 7
         &amrex::face_divfree_interp,     // 8
         &amrex::face_linear_interp,      // 9
-        &amrex::dg_interp                // 10
+        &amrex::dg_interp,               // 10
+        &amrex::cg_interp                // 11
     };
 }
 
