@@ -131,6 +131,8 @@ public:
         RT location;
     };
 
+    Vector<std::unique_ptr<MF> > m_robin_bcval;
+
 protected:
 
     bool m_has_metric_term = false;
@@ -181,8 +183,6 @@ protected:
         int m_ncomp;
     };
     Vector<Vector<std::unique_ptr<BndryCondLoc> > > m_bcondloc;
-
-    Vector<std::unique_ptr<MF> > m_robin_bcval;
 
     // used to save interpolation coefficients of the first interior cells
     mutable Vector<Vector<BndryRegisterT<MF>> > m_undrrelxr;
