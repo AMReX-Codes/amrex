@@ -123,8 +123,10 @@ ifeq ($(findstring asterix, $(host_name)), asterix)
 endif
 
 ifeq ($(findstring aurora, $(host_name)), aurora)
+ifneq ($(findstring alcf.anl.gov, $(host_name)),alcf.anl.gov)
   which_site := hs
   which_computer := aurora
+endif
 endif
 
 ifeq ($(findstring kestrel, $(NREL_CLUSTER)), kestrel)
