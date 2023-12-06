@@ -56,64 +56,11 @@ Long nBytesOwned (T const&) noexcept { return 0; }
 template <typename T>
 Long nBytesOwned (BaseFab<T> const& fab) noexcept { return fab.nBytesOwned(); }
 
-/*
-  A Collection of Fortran Array-like Objects
-
-
-  The FabArray<FAB> class implements a collection (stored as an array) of
-  Fortran array-like objects.  The parameterized type FAB is intended to be
-  any class derived from BaseFab<T>.  For example, FAB may be a BaseFab of
-  integers, so we could write:
-
-    FabArray<BaseFab<int> > int_fabs;
-
-  Then int_fabs is a FabArray that can hold a collection of BaseFab<int>
-  objects.
-
-  FabArray is not just a general container class for Fortran arrays.  It is
-  intended to hold "grid" data for use in finite difference calculations in
-  which the data is defined on a union of (usually disjoint) rectangular
-  regions embedded in a uniform index space.  This region, called the valid
-  region, is represented by a BoxArray.  For the purposes of this discussion,
-  the Kth Box in the BoxArray represents the interior region of the Kth grid.
-
-  Since the intent is to be used with finite difference calculations a
-  FabArray also includes the notion of a boundary region for each grid.  The
-  boundary region is specified by the ngrow parameter which tells the FabArray
-  to allocate each FAB to be ngrow cells larger in all directions than the
-  underlying Box.  The larger region covered by the union of all the FABs is
-  called the region of definition.  The underlying notion is that the valid
-  region contains the grid interior data and the region of definition includes
-  the interior region plus the boundary areas.
-
-  Operations are available to copy data from the valid regions into these
-  boundary areas where the two overlap.  The number of components, that is,
-  the number of values that can be stored in each cell of a FAB, is either
-  given as an argument to the constructor or is inherent in the definition of
-  the underlying FAB.  Each FAB in the FabArray will have the same number of
-  components.
-
-  In summary, a FabArray is an array of FABs.  The Kth element contains a FAB
-  that holds the data for the Kth grid, a Box that defines the valid region
-  of the Kth grid.
-
-  A typical use for a FabArray would be to hold the solution vector or
-  right-hand-side when solving a linear system of equations on a union of
-  rectangular grids.  The copy operations would be used to copy data from the
-  valid regions of neighboring grids into the boundary regions after each
-  relaxation step of the iterative method.  If a multigrid method is used, a
-  FabArray could be used to hold the data at each level in the multigrid
-  hierarchy.
-
-  This class is a concrete class not a polymorphic one.
-
-  This class does NOT provide a copy constructor or assignment operator.
-*/
-
-//
-// alloc: allocate memory or not
-//
+/**
+ * \brief FabArray memory allocation information
+ */
 struct MFInfo {
+    // alloc: allocate memory or not
     bool    alloc = true;
     Arena*  arena = nullptr;
     Vector<std::string> tags;
@@ -314,6 +261,60 @@ Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
     }
 }
 
+/**
+ * \brief An Array of FortranArrayBox(FAB)-like Objects
+ *
+ * The FabArray<FAB> class implements a collection (stored as an array) of
+ * Fortran array box-like ( \p FAB ) objects.  The parameterized type \p FAB is intended to be
+ * any class derived from BaseFab<T>.  For example, \p FAB may be a BaseFab of
+ * integers, so we could write:
+ *
+ *   FabArray<BaseFab<int> > int_fabs;
+ *
+ * Then int_fabs is a FabArray that can hold a collection of BaseFab<int>
+ * objects.
+ *
+ * FabArray is not just a general container class for Fortran arrays.  It is
+ * intended to hold "grid" data for use in finite difference calculations in
+ * which the data is defined on a union of (usually disjoint) rectangular
+ * regions embedded in a uniform index space.  This region, called the valid
+ * region, is represented by a BoxArray.  For the purposes of this discussion,
+ * the Kth Box in the BoxArray represents the interior region of the Kth grid.
+ *
+ * Since the intent is to be used with finite difference calculations a
+ * FabArray also includes the notion of a boundary region for each grid.  The
+ * boundary region is specified by the ngrow parameter which tells the FabArray
+ * to allocate each \p FAB to be ngrow cells larger in all directions than the
+ * underlying Box.  The larger region covered by the union of all the \p FABs is
+ * called the region of definition.  The underlying notion is that the valid
+ * region contains the grid interior data and the region of definition includes
+ * the interior region plus the boundary areas.
+ *
+ * Operations are available to copy data from the valid regions into these
+ * boundary areas where the two overlap.  The number of components, that is,
+ * the number of values that can be stored in each cell of a \p FAB, is either
+ * given as an argument to the constructor or is inherent in the definition of
+ * the underlying \p FAB.  Each \p FAB in the FabArray will have the same number of
+ * components.
+ *
+ * In summary, a FabArray is an array of \p FABs.  The Kth element contains a \p FAB
+ * that holds the data for the Kth grid, a Box that defines the valid region
+ * of the Kth grid.
+ *
+ * A typical use for a FabArray would be to hold the solution vector or
+ * right-hand-side when solving a linear system of equations on a union of
+ * rectangular grids.  The copy operations would be used to copy data from the
+ * valid regions of neighboring grids into the boundary regions after each
+ * relaxation step of the iterative method.  If a multigrid method is used, a
+ * FabArray could be used to hold the data at each level in the multigrid
+ * hierarchy.
+ *
+ * This class is a concrete class not a polymorphic one.
+ *
+ * This class does NOT provide a copy constructor or assignment operator.
+ *
+ * \tparam FAB FortranArrayBox-like object. Typically a derived class of BaseFab. Not to be confused with FabArrayBase.
+ */
 template <class FAB>
 class FabArray
     :
@@ -338,8 +339,9 @@ public:
     FabArray () noexcept;
 
     /**
-     * \brief Construct an empty FabArray<FAB> that has a default Arena.  If
-     * `define` is called later with a nulltpr as MFInfo's arena, the
+     * \brief Construct an empty FabArray<FAB> that has a default Arena.
+     *
+     * If `define` is called later with a nullptr as MFInfo's arena, the
      * default Arena `a` will be used.  If the arena in MFInfo is not a
      * nullptr, the MFInfo's arena will be used.
      */
@@ -2827,7 +2829,7 @@ template <class FAB>
 void
 FabArray<FAB>::shift (const IntVect& v)
 {
-    clearThisBD();  // The new boxarry will have a different ID.
+    clearThisBD();  // The new boxarray will have a different ID.
     boxarray.shift(v);
     addThisBD();
 #ifdef AMREX_USE_OMP

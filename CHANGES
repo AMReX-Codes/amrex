@@ -1,3 +1,44 @@
+# 23.12
+
+  -- solve_cg: avoid use of MF `z` (#3637)
+
+  -- Fix: nosmt OMP Threads Default (#3647)
+     `amrex.omp_threads`: Can Avoid SMT (#3607)
+
+  -- When checking for periodic outs on GPU, copy full particle data (#3646)
+
+  -- MLEBABecLap: Support Robin BC at Domain Boundaries (#3617)
+
+  -- Ascent: SoA Particle Support (#3350)
+
+  -- solve_bicgstab: use fewer MFs (#3635)
+
+  -- solve_bicgstab: cut use of `s` (#3629)
+
+  -- Bug fix for amrex::Subtract when called with interger nghost (#3634)
+
+  -- Fix typo in `MLMGT<MF>::getGradSolution` when `MF` is different from `AMF` (#3631)
+
+  -- SUNDIALS: Use sunrealtype instead of realtype (#3632)
+
+  -- SYCL: Use get_multi_ptr instead of get_pointer (#3630)
+
+  -- Plotfile Tools: GPU support (#3626)
+
+  -- solve_cg: use linop.make instead of MF constructor (#3627)
+
+  -- CArena: shrink_in_place and operator<< (#3621)
+
+  -- solve_bicgstab: use linop.make instead of MF constructor (#3619)
+
+  -- replace AMREX_DEVICE_COMPILE with AMREX_IF_ON_DEVICE and AMREX_IF_ON_HOST (#3591)
+
+  -- [Breaking] Prefix `amrex_` to each plotfile Tool (#3600)
+
+  -- FillRandom: Use MKL host API (#3536)
+
+  -- use hipPointerAttribute_t.type as HIP is removing hipPointerAttribute_t.memoryType (#3610)
+
 # 23.11
 
   -- Give FlashFluxRegisters ways to accumulate data in registers (#3597)
@@ -72,7 +113,7 @@
 
   -- We weren't defining cent_hat out far enough (#3548)
 
-  -- Add Fortran inteface for FillCoarsePatch for face variables (#3542)
+  -- Add Fortran interface for FillCoarsePatch for face variables (#3542)
 
   -- print_state/printCell: Make it work without managed memory (#3543)
 
@@ -114,7 +155,7 @@
 
   -- Simplify filterParticles Kernel (#3510)
 
-  -- Generatize particle-to-cell assignment function (#3499)
+  -- Generalize particle-to-cell assignment function (#3499)
      Follow-on to 3499 (#3514)
      ParticleLocator: Make Assignor optional template parameter (#3515)
 
@@ -302,7 +343,7 @@
 
 # 23.07
 
-  -- Allow users to change the default vector growth stategy (#3389)
+  -- Allow users to change the default vector growth strategy (#3389)
 
   -- Communications arena implementation (#3388)
 

@@ -28,6 +28,12 @@ template <typename FAB> class FabArray;
 
 namespace EB2 { class IndexSpace; }
 
+/**
+ * \brief Base class for FabArray.
+ *
+ * Not to be confused with FArrayBox or `FAB` shorthands.
+ * Can be read as FArrayBox-like Array Base.
+ */
 class FabArrayBase
 {
     friend class MFIter;
