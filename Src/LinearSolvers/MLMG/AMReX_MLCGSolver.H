@@ -312,7 +312,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         Lp.apply(amrlev, mglev, q, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
 
         const RT pw = dotxy(p,q);
-        if ( pw == RT(0.0))
+        if ( pw == RT(0.0) )
         {
             ret = 1; break;
         }
