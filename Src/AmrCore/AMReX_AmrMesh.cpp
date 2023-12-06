@@ -1082,7 +1082,7 @@ AmrMesh::checkInput ()
     for (int i = 0; i < max_level; i++)
     {
         if (MaxRefRatio(i) < 2) {
-            amrex::Error("Amr::checkInput: bad ref_ratios");
+            amrex::Warning("Amr::checkInput: ref_ratios all equal to one!");
         }
     }
 

@@ -262,7 +262,6 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     MF sorig = Lp.make(amrlev, mglev, nghost);
     MF r     = Lp.make(amrlev, mglev, nghost);
-    MF z     = Lp.make(amrlev, mglev, nghost);
     MF q     = Lp.make(amrlev, mglev, nghost);
 
     sorig.LocalCopy(sol,0,0,ncomp,nghost);
@@ -295,9 +294,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     for (; iter <= maxiter; ++iter)
     {
-        z.LocalCopy(r,0,0,ncomp,nghost);
-
-        RT rho = dotxy(z,r);
+        RT rho = dotxy(r,r);
 
         if ( rho == 0 )
         {
@@ -305,12 +302,12 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         if (iter == 1)
         {
-            p.LocalCopy(z,0,0,ncomp,nghost);
+            p.LocalCopy(r,0,0,ncomp,nghost);
         }
         else
         {
             RT beta = rho/rho_1;
-            MF::Xpay(p, beta, z, 0, 0, ncomp, nghost); // p = z + beta * p
+            MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta * p
         }
         Lp.apply(amrlev, mglev, q, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
 

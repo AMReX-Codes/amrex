@@ -26,7 +26,6 @@ class FArrayBox;
 * primarily for FArrayBox implementers; i.e. user's shouldn't
 * call any of the member functions in this class directly.
 */
-
 class FABio // NOLINT(cppcoreguidelines-special-member-functions)
 {
 public:
@@ -224,7 +223,6 @@ private:
 *  This class does NOT provide a copy constructor or assignment operator,
 *  but it has a move constructor.
 */
-
 class FArrayBox
     :
     public BaseFab<Real>
