@@ -152,7 +152,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         Lp.apply(amrlev, mglev, v, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
-        RT rhTv = dotxy(rh,v);
+        const RT rhTv = dotxy(rh,v);
         if ( rhTv == RT(0.0) )
         {
             ret = 2; break;
