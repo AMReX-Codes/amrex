@@ -306,17 +306,17 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         else
         {
-            RT beta = rho/rho_1;
+            const RT beta = rho/rho_1;
             MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta * p
         }
         Lp.apply(amrlev, mglev, q, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
 
-        RT pw = dotxy(p,q);
+        const RT pw = dotxy(p,q);
         if ( pw == RT(0.0))
         {
             ret = 1; break;
         }
-        RT alpha = rho/pw;
+        const RT alpha = rho/pw;
 
         if ( verbose > 2 )
         {
