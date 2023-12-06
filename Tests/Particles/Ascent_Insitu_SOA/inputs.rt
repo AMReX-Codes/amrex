@@ -1,0 +1,10 @@
+ascent.size = (32, 64, 64)
+ascent.max_grid_size = 32
+ascent.is_periodic = 1
+ascent.num_ppc = 1
+ascent.nlevs = 1
+
+ascent.num_runtime_real = 0
+ascent.num_runtime_int = 0
+
+particles.do_tiling = 1

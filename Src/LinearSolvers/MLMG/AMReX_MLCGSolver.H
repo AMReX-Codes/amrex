@@ -90,14 +90,12 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     const int ncomp = sol.nComp();
 
-    MF ph = Lp.make(amrlev, mglev, sol.nGrowVect());
-    MF sh = Lp.make(amrlev, mglev, sol.nGrowVect());
-    ph.setVal(RT(0.0));
-    sh.setVal(RT(0.0));
+    MF p = Lp.make(amrlev, mglev, sol.nGrowVect());
+    MF r = Lp.make(amrlev, mglev, sol.nGrowVect());
+    p.setVal(RT(0.0)); // Make sure all entries are initialized to avoid errors
+    r.setVal(RT(0.0));
 
     MF sorig = Lp.make(amrlev, mglev, nghost);
-    MF p     = Lp.make(amrlev, mglev, nghost);
-    MF r     = Lp.make(amrlev, mglev, nghost);
     MF rh    = Lp.make(amrlev, mglev, nghost);
     MF v     = Lp.make(amrlev, mglev, nghost);
     MF t     = Lp.make(amrlev, mglev, nghost);
@@ -151,8 +149,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
             MF::Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
             MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
         }
-        ph.LocalCopy(p,0,0,ncomp,nghost);
-        Lp.apply(amrlev, mglev, v, ph, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
+        Lp.apply(amrlev, mglev, v, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
         RT rhTv = dotxy(rh,v);
@@ -162,9 +159,10 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         alpha = rho/rhTv;
 
-        MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
-        MF::Saxpy(r,  -alpha, v,  0, 0, ncomp, nghost); // r += -alpha * v
+        MF::Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
+        MF::Saxpy(r,  -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
 
+        rnorm = norm_inf(r);
         rnorm = norm_inf(r);
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
@@ -177,8 +175,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
-        sh.LocalCopy(r,0,0,ncomp,nghost);
-        Lp.apply(amrlev, mglev, t, sh, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
+        Lp.apply(amrlev, mglev, t, r, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, t);
         //
         // This is a little funky.  I want to elide one of the reductions
@@ -196,8 +193,8 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
             ret = 3; break;
         }
         omega = tvals[1]/tvals[0];
-        MF::Saxpy(sol, omega, sh, 0, 0, ncomp, nghost); // sol += omega * sh
-        MF::Saxpy(r,  -omega, t,  0, 0, ncomp, nghost); // r += -omega * t
+        MF::Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
+        MF::Saxpy(r,  -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
 
         rnorm = norm_inf(r);
 
@@ -260,7 +257,6 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     MF sorig = Lp.make(amrlev, mglev, nghost);
     MF r     = Lp.make(amrlev, mglev, nghost);
-    MF z     = Lp.make(amrlev, mglev, nghost);
     MF q     = Lp.make(amrlev, mglev, nghost);
 
     sorig.LocalCopy(sol,0,0,ncomp,nghost);
@@ -293,9 +289,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     for (; iter <= maxiter; ++iter)
     {
-        z.LocalCopy(r,0,0,ncomp,nghost);
-
-        RT rho = dotxy(z,r);
+        RT rho = dotxy(r,r);
 
         if ( rho == 0 )
         {
@@ -303,12 +297,12 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         if (iter == 1)
         {
-            p.LocalCopy(z,0,0,ncomp,nghost);
+            p.LocalCopy(r,0,0,ncomp,nghost);
         }
         else
         {
             RT beta = rho/rho_1;
-            MF::Xpay(p, beta, z, 0, 0, ncomp, nghost); // p = z + beta * p
+            MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta * p
         }
         Lp.apply(amrlev, mglev, q, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
 
