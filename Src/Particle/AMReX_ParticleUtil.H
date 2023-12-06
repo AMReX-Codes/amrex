@@ -487,11 +487,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& ass
                 }
                 else
                 {
-                    amrex::Particle<0> p_prime;
-                    AMREX_D_TERM(p_prime.pos(0) = src_data.pos(0, i+this_offset);,
-                                 p_prime.pos(1) = src_data.pos(1, i+this_offset);,
-                                 p_prime.pos(2) = src_data.pos(2, i+this_offset););
-
+                    auto p_prime = src_data.getSuperParticle(i+this_offset);
                     enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
                     auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
                     assigned_grid = amrex::get<0>(tup_prime);
