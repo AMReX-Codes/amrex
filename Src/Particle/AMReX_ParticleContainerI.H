@@ -21,7 +21,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     if constexpr(!ParticleType::is_soa_particle) {
         particle_size = sizeof(ParticleType);
     } else {
-        particle_size = 0;
+        particle_size = sizeof(uint64_t);
     }
     superparticle_size = particle_size +
         num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);
@@ -1663,6 +1663,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                         }
 
                         if (p.id() < 0){
+                            soa.GetIdCPUData()[pindex] = soa.GetIdCPUData()[last];
                             for (int comp = 0; comp < NumRealComps(); comp++) {
                                 soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                             }
@@ -1679,6 +1680,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                         particlePostLocate(p, pld, lev);
 
                         if (p.id() < 0) {
+                            soa.GetIdCPUData()[pindex] = soa.GetIdCPUData()[last];
                             for (int comp = 0; comp < NumRealComps(); comp++) {
                                 soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                             }
@@ -1696,6 +1698,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                 // We own it but must shift it to another place.
                                 auto index = std::make_pair(pld.m_grid, pld.m_tile);
                                 AMREX_ASSERT(soa_local[pld.m_lev][index].size() == num_threads);
+                                {
+                                    auto& arr = soa_local[pld.m_lev][index][thread_num].GetIdCPUData();
+                                    arr.push_back(soa.GetIdCPUData()[pindex]);
+                                }
                                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                                     RealVector& arr = soa_local[pld.m_lev][index][thread_num].GetRealData(comp);
                                     arr.push_back(soa.GetRealData(comp)[pindex]);
@@ -1715,6 +1721,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             particles_to_send.resize(new_size);
 
                             char* dst = &particles_to_send[old_size];
+                            {
+                                std::memcpy(dst, &soa.GetIdCPUData()[pindex], sizeof(uint64_t));
+                                dst += sizeof(uint64_t);
+                            }
                             int array_comp_start = AMREX_SPACEDIM + NStructReal;
                             for (int comp = 0; comp < NumRealComps(); comp++) {
                                 if (h_redistribute_real_comp[array_comp_start + comp]) {
@@ -1733,6 +1743,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                         }
 
                         if (p.id() < 0){
+                            soa.GetIdCPUData()[pindex] = soa.GetIdCPUData()[last];
                             for (int comp = 0; comp < NumRealComps(); comp++) {
                                 soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
                             }
@@ -1747,6 +1758,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                         ++pindex;
                     }
 
+                    {
+                        auto& iddata = soa.GetIdCPUData();
+                        iddata.erase(iddata.begin() + last + 1, iddata.begin() + npart);
+                    }
                     for (int comp = 0; comp < NumRealComps(); comp++) {
                         RealVector& rdata = soa.GetRealData(comp);
                         rdata.erase(rdata.begin() + last + 1, rdata.begin() + npart);
@@ -1828,6 +1843,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 auto& soa = ptile.GetStructOfArrays();
                 auto& soa_tmp = soa_local[lev][index];
                 for (int i = 0; i < num_threads; ++i) {
+                    {
+                        auto& arr = soa.GetIdCPUData();
+                        auto& tmp = soa_tmp[i].GetIdCPUData();
+                        arr.insert(arr.end(), tmp.begin(), tmp.end());
+                        tmp.erase(tmp.begin(), tmp.end());
+                    }
                     for (int comp = 0; comp < NumRealComps(); ++comp) {
                         RealVector& arr = soa.GetRealData(comp);
                         RealVector& tmp = soa_tmp[i].GetRealData(comp);
@@ -2048,17 +2069,13 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 if constexpr (!ParticleType::is_soa_particle) {
                    std::memcpy(&p, pbuf, sizeof(ParticleType));
                 } else {
+                    std::memcpy(&p.m_idcpu, pbuf, sizeof(uint64_t));
+
                     ParticleReal pos[AMREX_SPACEDIM];
-                    std::memcpy(&pos[0], pbuf, AMREX_SPACEDIM*sizeof(ParticleReal));
+                    std::memcpy(&pos[0], pbuf + sizeof(uint64_t), AMREX_SPACEDIM*sizeof(ParticleReal));
                     AMREX_D_TERM(p.pos(0) = pos[0];,
                                  p.pos(1) = pos[1];,
                                  p.pos(2) = pos[2]);
-
-                    int idcpu[2];
-                    std::memcpy(&idcpu[0], pbuf + NumRealComps()*sizeof(ParticleReal), 2*sizeof(int));
-
-                    p.id() = idcpu[0];
-                    p.cpu() = idcpu[1];
                 }
 
                 bool success = Where(p, pld, lev_min, lev_max, 0);
@@ -2102,6 +2119,11 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                     std::memcpy(&p, pbuf, sizeof(ParticleType));
                     pbuf += sizeof(ParticleType);
                     ptile.push_back(p);
+                } else {
+                    uint64_t idcpudata;
+                    std::memcpy(&idcpudata, pbuf, sizeof(uint64_t));
+                    pbuf += sizeof(uint64_t);
+                    ptile.GetStructOfArrays().GetIdCPUData().push_back(idcpudata);
                 }
 
                 int array_comp_start = AMREX_SPACEDIM + NStructReal;
@@ -2146,6 +2168,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         host_int_attribs.reserve(15);
         host_int_attribs.resize(finestLevel()+1);
 
+        Vector<std::map<std::pair<int, int>, Gpu::HostVector<uint64_t> > > host_idcpu;
+        host_idcpu.reserve(15);
+        host_idcpu.resize(finestLevel()+1);
+
         ipart = 0;
         for (int i = 0; i < nrcvs; ++i)
         {
@@ -2159,11 +2185,19 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
                 char* pbuf = ((char*) &recvdata[offset]) + j*superparticle_size;
 
+                host_real_attribs[lev][ind].resize(NumRealComps());
+                host_int_attribs[lev][ind].resize(NumIntComps());
+
                 if constexpr(! ParticleType::is_soa_particle) {
                     ParticleType p;
                     std::memcpy(&p, pbuf, sizeof(ParticleType));
                     pbuf += sizeof(ParticleType);
                     host_particles[lev][ind].push_back(p);
+                } else {
+                    uint64_t idcpudata;
+                    std::memcpy(&idcpudata, pbuf, sizeof(uint64_t));
+                    pbuf += sizeof(uint64_t);
+                    host_idcpu[lev][ind].push_back(idcpudata);
                 }
 
                 host_real_attribs[lev][ind].resize(NumRealComps());
@@ -2214,6 +2248,11 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                   Gpu::copyAsync(Gpu::hostToDevice,
                                  src_tile.begin(), src_tile.end(),
                                  dst_tile.GetArrayOfStructs().begin() + old_size);
+              } else {
+                  Gpu::copyAsync(Gpu::hostToDevice,
+                                 host_idcpu[host_lev][std::make_pair(grid,tile)].begin(),
+                                 host_idcpu[host_lev][std::make_pair(grid,tile)].end(),
+                                 dst_tile.GetStructOfArrays().GetIdCPUData().begin() + old_size);
               }
 
               for (int i = 0; i < NumRealComps(); ++i) {
