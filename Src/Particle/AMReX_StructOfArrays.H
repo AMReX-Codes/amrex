@@ -124,7 +124,6 @@ struct StructOfArrays {
     */
     [[nodiscard]] std::size_t size () const
     {
-        // TODO: if pure SoA:
         if constexpr (use64BitIdCpu == true) {
             return m_idcpu.size();
         } else if constexpr (NReal > 0) {
