@@ -702,7 +702,7 @@ struct ParticleTile
     using SoA = typename std::conditional<
         ParticleType::is_soa_particle,
         StructOfArrays<NArrayReal, NArrayInt, Allocator, true>,
-        StructOfArrays<NArrayReal, NArrayInt, Allocator, true>>::type;
+        StructOfArrays<NArrayReal, NArrayInt, Allocator, false>>::type;
     using RealVector = typename SoA::RealVector;
     using IntVector = typename SoA::IntVector;
     using StorageParticleType = typename ParticleType::StorageParticleType;
