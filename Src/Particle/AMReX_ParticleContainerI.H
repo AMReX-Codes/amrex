@@ -18,10 +18,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         if (h_redistribute_int_comp[i]) {++num_int_comm_comps;}
     }
 
-    if constexpr(!ParticleType::is_soa_particle) {
-        particle_size = sizeof(ParticleType);
+    if constexpr (ParticleType::is_soa_particle) {
+        particle_size = sizeof(uint64_t);  // idcpu
     } else {
-        particle_size = sizeof(uint64_t);
+        particle_size = sizeof(ParticleType);
     }
     superparticle_size = particle_size +
         num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);
@@ -1095,7 +1095,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     const size_t np_total = np + ptile.numNeighborParticles();
 
     if (memEfficientSort) {
-        if constexpr(!ParticleType::is_soa_particle) {
+        if constexpr (!ParticleType::is_soa_particle) {
             static_assert(sizeof(ParticleType)%4 == 0 && sizeof(uint32_t) == 4);
             using tmp_t = std::conditional_t<sizeof(ParticleType)%8 == 0,
                                              uint64_t, uint32_t>;
@@ -1530,7 +1530,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             unsigned npart = ptile_ptrs[pmap_it]->numParticles();
             ParticleLocData pld;
 
-            if constexpr(!ParticleType::is_soa_particle){
+            if constexpr (!ParticleType::is_soa_particle){
 
                 if (npart != 0) {
                     Long last = npart - 1;
@@ -1647,7 +1647,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     }
                 }
 
-            } else{ // soa particle
+            } else { // soa particle
 
                 auto particle_tile = ptile_ptrs[pmap_it];
                 if (npart != 0) {
@@ -2066,9 +2066,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
                 Particle<NStructReal, NStructInt> p;
 
-                if constexpr (!ParticleType::is_soa_particle) {
-                   std::memcpy(&p, pbuf, sizeof(ParticleType));
-                } else {
+                if constexpr (ParticleType::is_soa_particle) {
                     std::memcpy(&p.m_idcpu, pbuf, sizeof(uint64_t));
 
                     ParticleReal pos[AMREX_SPACEDIM];
@@ -2076,6 +2074,8 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                     AMREX_D_TERM(p.pos(0) = pos[0];,
                                  p.pos(1) = pos[1];,
                                  p.pos(2) = pos[2]);
+                } else {
+                   std::memcpy(&p, pbuf, sizeof(ParticleType));
                 }
 
                 bool success = Where(p, pld, lev_min, lev_max, 0);
@@ -2114,16 +2114,16 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                                                                           rcv_tile[ipart])];
                 char* pbuf = ((char*) &recvdata[offset]) + j*superparticle_size;
 
-                if constexpr(! ParticleType::is_soa_particle) {
-                    ParticleType p;
-                    std::memcpy(&p, pbuf, sizeof(ParticleType));
-                    pbuf += sizeof(ParticleType);
-                    ptile.push_back(p);
-                } else {
+                if constexpr (ParticleType::is_soa_particle) {
                     uint64_t idcpudata;
                     std::memcpy(&idcpudata, pbuf, sizeof(uint64_t));
                     pbuf += sizeof(uint64_t);
                     ptile.GetStructOfArrays().GetIdCPUData().push_back(idcpudata);
+                } else {
+                    ParticleType p;
+                    std::memcpy(&p, pbuf, sizeof(ParticleType));
+                    pbuf += sizeof(ParticleType);
+                    ptile.push_back(p);
                 }
 
                 int array_comp_start = AMREX_SPACEDIM + NStructReal;
@@ -2188,16 +2188,16 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 host_real_attribs[lev][ind].resize(NumRealComps());
                 host_int_attribs[lev][ind].resize(NumIntComps());
 
-                if constexpr(! ParticleType::is_soa_particle) {
-                    ParticleType p;
-                    std::memcpy(&p, pbuf, sizeof(ParticleType));
-                    pbuf += sizeof(ParticleType);
-                    host_particles[lev][ind].push_back(p);
-                } else {
+                if constexpr (ParticleType::is_soa_particle) {
                     uint64_t idcpudata;
                     std::memcpy(&idcpudata, pbuf, sizeof(uint64_t));
                     pbuf += sizeof(uint64_t);
                     host_idcpu[lev][ind].push_back(idcpudata);
+                } else {
+                    ParticleType p;
+                    std::memcpy(&p, pbuf, sizeof(ParticleType));
+                    pbuf += sizeof(ParticleType);
+                    host_particles[lev][ind].push_back(p);
                 }
 
                 host_real_attribs[lev][ind].resize(NumRealComps());
@@ -2244,15 +2244,15 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
               auto new_size = old_size + src_tile.size();
               dst_tile.resize(new_size);
 
-              if constexpr(! ParticleType::is_soa_particle) {
-                  Gpu::copyAsync(Gpu::hostToDevice,
-                                 src_tile.begin(), src_tile.end(),
-                                 dst_tile.GetArrayOfStructs().begin() + old_size);
-              } else {
+              if constexpr (ParticleType::is_soa_particle) {
                   Gpu::copyAsync(Gpu::hostToDevice,
                                  host_idcpu[host_lev][std::make_pair(grid,tile)].begin(),
                                  host_idcpu[host_lev][std::make_pair(grid,tile)].end(),
                                  dst_tile.GetStructOfArrays().GetIdCPUData().begin() + old_size);
+              } else {
+                  Gpu::copyAsync(Gpu::hostToDevice,
+                                 src_tile.begin(), src_tile.end(),
+                                 dst_tile.GetArrayOfStructs().begin() + old_size);
               }
 
               for (int i = 0; i < NumRealComps(); ++i) {
