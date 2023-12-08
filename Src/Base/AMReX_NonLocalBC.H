@@ -1129,7 +1129,7 @@ FillBoundary_finish (CommHandler handler,
     auto cmd = makeFillBoundaryMetaData(mf, mf.nGrowVect, geom, dtos);
     // The metadata cmd can be cached and reused on a MultiFab/FabArray with
     // the same BoxArray and DistributionMapping.
-    FillBoundary_finish(mf, cmd, scomp, ncomp, dtos, proj);
+    FillBoundary(mf, cmd, scomp, ncomp, dtos, proj);
 \endverbatim
  *
  * The FillBoundary capability here is more flexible than FabArray's
