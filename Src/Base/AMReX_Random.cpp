@@ -19,9 +19,15 @@ namespace
 namespace amrex {
 #ifdef AMREX_USE_SYCL
     sycl_rng_descr* rand_engine_descr = nullptr;
-    oneapi::mkl::rng::philox4x32x10* gpu_rand_generator = nullptr;
 #else
     amrex::randState_t* gpu_rand_state = nullptr;
+#endif
+}
+
+namespace {
+#ifdef AMREX_USE_SYCL
+    oneapi::mkl::rng::philox4x32x10* gpu_rand_generator = nullptr;
+#else
     amrex::randGenerator_t gpu_rand_generator = nullptr;
 #endif
 }
