@@ -280,7 +280,7 @@ fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
 /**
 * \brief Replace coarse flux with fine flux (DG).
 * CrseBox is a box defined on the coarse level.
-* G is the array of geometry fields, in paricular the square root of the
+* G is the array of geometry fields, in particular the square root of the
 *   spatial three-metric determinant.
 * dU is the increment for each degree of freedom of each fluid field
 *   within an element.
