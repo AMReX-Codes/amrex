@@ -161,7 +161,7 @@ namespace amrex
     void average_down_dg_pointwise
            ( const MultiFab & FineMF, MultiFab & CrseMF,
              int nComp, const IntVect & RefRatio, int nDOFX,
-             Array4<Real> CoarseToFineProjectionMatrix );
+             Array4<Real> FineToCoarseProjectionMatrix );
     void average_down_dg_pointwise
            ( const MultiFab & FineMF, MultiFab & CrseMF,
              int nComp, int RefRatio, int nDOFX,
