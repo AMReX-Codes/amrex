@@ -100,7 +100,6 @@ endforeach()
 add_subdirectory(Base)
 add_subdirectory(Boundary)
 add_subdirectory(AmrCore)
-add_subdirectory(DG)
 
 #
 # Optional components
