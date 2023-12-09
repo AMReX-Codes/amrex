@@ -249,20 +249,22 @@ void amrex_avgdown_with_vol (int i, int, int, int n, Array4<T> const& crse,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void amrex_avgdown_dg
+void amrex_avgdown_dg_conservative
        ( int iCrse, int, int, int nComp,
-         Array4<Real> const& crse,
-         Array4<Real const> const& fine,
-         IntVect const& ratio,
+         Array4<Real>       const & CrseArr,
+         Array4<Real const> const & FineArr,
+         Array4<Real const> const & CrseArrG,
+         Array4<Real const> const & FineArrG,
+         IntVect const & RefRatio,
          int nDOFX,
-         Real VolumeRatio,
-         Array4<Real> ProjectionMatrix_T,
-         Array4<Real> WeightsX_q ) noexcept
+         Array4<Real> FineToCoarseProjectionMatrix ) noexcept
 {
+  const Real Zero = 0.0;
+
   // Number of fields in MultiFab
   int nFields = nComp / nDOFX;
 
-  int iRefRatio = ratio[0];
+  int iRefRatio = RefRatio[0];
 
   // Corresponding fine element
   const int iFine = iCrse * iRefRatio;
@@ -277,7 +279,7 @@ void amrex_avgdown_dg
     for( int iNX = 0; iNX < nDOFX; iNX++ )
     {
       // Initialize coarse data to zero
-      crse(iCrse,0,0,nDOFX*iField+iNX) = (Real)0.0;
+      CrseArr(iCrse,0,0,nDOFX*iField+iNX) = Zero;
 
       iProj = -1;
 
@@ -289,36 +291,86 @@ void amrex_avgdown_dg
         // Project fine data onto coarse data
         for( int jNX = 0; jNX < nDOFX; jNX++ )
         {
-          crse(iCrse,0,0,nDOFX*iField+iNX)
-            += ProjectionMatrix_T(iProj,iNX,jNX,0)
-                 * fine(iFine+iFn,0,0,nDOFX*iField+jNX);
+          CrseArr(iCrse,0,0,nDOFX*iField+iNX)
+            += FineToCoarseProjectionMatrix(0,iProj,iNX,jNX)
+                 * FineArr (iFine+iFn,0,0,nDOFX*iField+jNX)
+                 * FineArrG(iFine+iFn,0,0,jNX);
         } // jNX
-      } // iFn
+      } // Fine cells
 
-      crse(iCrse,0,0,nDOFX*iField+iNX)
-        *= VolumeRatio / WeightsX_q(iNX,0,0,0);
+      CrseArr(iCrse,0,0,nDOFX*iField+iNX)
+        /= CrseArrG(iCrse,0,0,iNX);
 
     } // iNX
   } // iField
-} // END void amrex_avgdown_dg
+} // END void amrex_avgdown_dg_conservative
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void amrex_avgdown_dg_pointwise
+       ( int iCrse, int, int, int nComp,
+         Array4<Real>       const & CrseArr,
+         Array4<Real const> const & FineArr,
+         IntVect const & RefRatio,
+         int nDOFX,
+         Array4<Real> FineToCoarseProjectionMatrix ) noexcept
+{
+  const Real Zero = 0.0;
+
+  // Number of fields in MultiFab
+  int nFields = nComp / nDOFX;
+
+  int iRefRatio = RefRatio[0];
+
+  // Corresponding fine element
+  const int iFine = iCrse * iRefRatio;
+
+  // Index for projection matrix
+  int iProj;
+
+  // Loop over fields
+  for( int iField = 0; iField < nFields; iField++ )
+  {
+    // Loop over DOF of coarse element
+    for( int iNX = 0; iNX < nDOFX; iNX++ )
+    {
+      // Initialize coarse data to zero
+      CrseArr(iCrse,0,0,nDOFX*iField+iNX) = Zero;
+
+      iProj = -1;
+
+      // Loop over fine cells
+      for( int iFn = 0; iFn < iRefRatio; iFn++ ) {
+
+        iProj += 1;
+
+        // Project fine data onto coarse data
+        for( int jNX = 0; jNX < nDOFX; jNX++ )
+        {
+          CrseArr(iCrse,0,0,nDOFX*iField+iNX)
+            += FineToCoarseProjectionMatrix(0,iProj,iNX,jNX)
+                 * FineArr(iFine+iFn,0,0,nDOFX*iField+jNX);
+        } // jNX
+      } // Fine cells
+    } // iNX
+  } // iField
+} // END void amrex_avgdown_dg_pointwise
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void amrex_avgdown_cg
        ( int iCrse, int, int, int nComp,
-         Array4<Real> const& crse,
-         Array4<Real const> const& fine,
-         IntVect const& ratio,
+         Array4<Real>       const & CrseArr,
+         Array4<Real const> const & FineArr,
+         IntVect const & RefRatio,
          int nDOFX,
          int nFine,
          Array4<Real> G2L,
          Array4<Real> L2G,
          Array4<Real> F2C ) noexcept
 {
-
   const Real Zero = 0.0;
 
   // Corresponding fine element
-  int iRefRatio = ratio[0];
+  int iRefRatio = RefRatio[0];
   const int iFine = iCrse * iRefRatio;
 
   // Number of fields in MultiFab
@@ -342,7 +394,7 @@ void amrex_avgdown_cg
     {
       for( int iNX = 0; iNX < nDOFX; iNX++ )
       {
-        ghG[iFn][iNX] = fine(iFine+iFn,0,0,nDOFX*iGF+iNX);
+        ghG[iFn][iNX] = FineArr(iFine+iFn,0,0,nDOFX*iGF+iNX);
       }
     }
 
@@ -381,7 +433,7 @@ void amrex_avgdown_cg
 
     for( int iNX = 0; iNX < nDOFX; iNX++ )
     {
-      crse(iCrse,0,0,nDOFX*iGF+iNX) = GhG[iNX];
+      CrseArr(iCrse,0,0,nDOFX*iGF+iNX) = GhG[iNX];
     }
 
   } // iGF
@@ -395,7 +447,6 @@ void amrex_avgdown_cg
   delete[] ghG;
   delete[] GhL;
   delete[] GhG;
-
 } // END void amrex_avgdown_cg
 
 template <typename T>

@@ -10,7 +10,9 @@ module amrex_multifabutil_module
 
   public :: amrex_average_down, amrex_average_down_faces, amrex_average_cellcenter_to_face
 
-  public :: amrex_average_down_dg, amrex_average_down_cg
+  public :: amrex_average_down_dg_conservative, &
+            amrex_average_down_dg_pointwise, &
+            amrex_average_down_cg
 
   interface
      subroutine amrex_fi_average_down (fmf, cmf, fgeom, cgeom, scomp, ncomp, rr) bind(c)
@@ -20,26 +22,35 @@ module amrex_multifabutil_module
        integer(c_int), value :: scomp, ncomp, rr
      end subroutine amrex_fi_average_down
 
-     subroutine amrex_fi_average_down_dg &
-       ( fmf, cmf, fgeom, cgeom, scomp, ncomp, rr, nDOFX, nFine, VolumeRatio, &
-         ProjectionMatrix_T, WeightsX_q ) bind(c)
-       import
-       implicit none
-       type(c_ptr)     , value :: &
-         fmf, cmf, fgeom, cgeom, ProjectionMatrix_T, WeightsX_q
-       integer(c_int)  , value :: scomp, ncomp, rr, nDOFX, nFine
-       real(amrex_real), value :: VolumeRatio
-     end subroutine amrex_fi_average_down_dg
+     SUBROUTINE amrex_fi_average_down_dg_conservative &
+       ( FineMF, CrseMF, FineMF_G, CrseMF_G, nComp, RefRatio, &
+         nDOFX, nFine, vpFineToCoarseProjectionMatrix ) BIND(c)
+       IMPORT
+       IMPLICIT NONE
+       TYPE(C_PTR)     , VALUE :: &
+         FineMF, CrseMF, FineMF_G, CrseMF_G, vpFineToCoarseProjectionMatrix
+       INTEGER(C_INT)  , VALUE :: nComp, RefRatio, nDOFX, nFine
+     END SUBROUTINE amrex_fi_average_down_dg_conservative
 
-     subroutine amrex_fi_average_down_cg &
-       ( fmf, cmf, fgeom, cgeom, scomp, ncomp, rr, nDOFX, nFine, &
-         G2L, L2G, F2C ) bind(c)
-       import
-       implicit none
-       type(c_ptr)     , value :: &
-         fmf, cmf, fgeom, cgeom, G2L, L2G, F2C
-       integer(c_int)  , value :: scomp, ncomp, rr, nDOFX, nFine
-     end subroutine amrex_fi_average_down_cg
+     SUBROUTINE amrex_fi_average_down_dg_pointwise &
+       ( FineMF, CrseMF, nComp, RefRatio, &
+         nDOFX, nFine, vpFineToCoarseProjectionMatrix ) BIND(c)
+       IMPORT
+       IMPLICIT NONE
+       TYPE(C_PTR)     , VALUE :: &
+         FineMF, CrseMF, vpFineToCoarseProjectionMatrix
+       INTEGER(C_INT)  , VALUE :: nComp, RefRatio, nDOFX, nFine
+     END SUBROUTINE amrex_fi_average_down_dg_pointwise
+
+     SUBROUTINE amrex_fi_average_down_cg &
+       ( FineMF, CrseMF, nComp, RefRatio, &
+         nDOFX, nFine, G2L, L2G, F2C ) BIND(c)
+       IMPORT
+       IMPLICIT NONE
+       TYPE(C_PTR)     , VALUE :: &
+         FineMF, CrseMF, G2L, L2G, F2C
+       INTEGER(C_INT)  , VALUE :: nComp, RefRatio, nDOFX, nFine
+     END SUBROUTINE amrex_fi_average_down_cg
 
      subroutine amrex_fi_average_down_faces (fmf, cmf, cgeom, scomp, ncomp, rr) bind(c)
        import
@@ -68,32 +79,50 @@ contains
     call amrex_fi_average_down(fmf%p, cmf%p, fgeom%p, cgeom%p, scomp-1, ncomp, rr)
   end subroutine amrex_average_down
 
-  subroutine amrex_average_down_dg &
-    ( fmf, cmf, fgeom, cgeom, scomp, ncomp, rr, nDOFX, nFine, VolumeRatio, &
-      ProjectionMatrix_T, WeightsX_q)
-    type(amrex_multifab), intent(in   ) :: fmf
-    type(amrex_multifab), intent(inout) :: cmf
-    type(amrex_geometry), intent(in) :: fgeom, cgeom
-    integer             , intent(in) :: scomp, ncomp, rr, nDOFX, nFine
-    real(amrex_real)    , intent(in) :: VolumeRatio
-    type(c_ptr)         , intent(in) :: ProjectionMatrix_T, WeightsX_q
-    call amrex_fi_average_down_dg &
-           ( fmf%p, cmf%p, fgeom%p, cgeom%p, scomp-1, ncomp, rr, &
-             nDOFX, nFine, VolumeRatio, ProjectionMatrix_T, WeightsX_q )
-  end subroutine amrex_average_down_dg
+  SUBROUTINE amrex_average_down_dg_conservative &
+    ( FineMF, CrseMF, FineMF_G, CrseMF_G, nComp, RefRatio, &
+      nDOFX, nFine, vpFineToCoarseProjectionMatrix )
 
-  subroutine amrex_average_down_cg &
-    ( fmf, cmf, fgeom, cgeom, scomp, ncomp, rr, nDOFX, nFine, &
-      G2L, L2G, F2C )
-    type(amrex_multifab), intent(in   ) :: fmf
-    type(amrex_multifab), intent(inout) :: cmf
-    type(amrex_geometry), intent(in) :: fgeom, cgeom
-    integer             , intent(in) :: scomp, ncomp, rr, nDOFX, nFine
-    type(c_ptr)         , intent(in) :: G2L, L2G, F2C
-    call amrex_fi_average_down_cg &
-           ( fmf%p, cmf%p, fgeom%p, cgeom%p, scomp-1, ncomp, rr, &
+    TYPE(amrex_multifab), INTENT(in)    :: FineMF, FineMF_G, CrseMF_G
+    TYPE(amrex_multifab), INTENT(inout) :: CrseMF
+    INTEGER             , INTENT(in)    :: nComp, RefRatio, nDOFX, nFine
+    TYPE(C_PTR)         , INTENT(in)    :: vpFineToCoarseProjectionMatrix
+
+    CALL amrex_fi_average_down_dg_conservative &
+           ( FineMF % p, CrseMF % p, FineMF_G % p, CrseMF_G % p, &
+             nComp, RefRatio, nDOFX, nFine, vpFineToCoarseProjectionMatrix )
+
+  END SUBROUTINE amrex_average_down_dg_conservative
+
+  SUBROUTINE amrex_average_down_dg_pointwise &
+    ( FineMF, CrseMF, nComp, RefRatio, &
+      nDOFX, nFine, vpFineToCoarseProjectionMatrix )
+
+    TYPE(amrex_multifab), INTENT(in)    :: FineMF
+    TYPE(amrex_multifab), INTENT(inout) :: CrseMF
+    INTEGER             , INTENT(in)    :: nComp, RefRatio, nDOFX, nFine
+    TYPE(C_PTR)         , INTENT(in)    :: vpFineToCoarseProjectionMatrix
+
+    CALL amrex_fi_average_down_dg_pointwise &
+           ( FineMF % p, CrseMF % p, nComp, RefRatio, &
+             nDOFX, nFine, vpFineToCoarseProjectionMatrix )
+
+  END SUBROUTINE amrex_average_down_dg_pointwise
+
+  SUBROUTINE amrex_average_down_cg &
+    ( FineMF, CrseMF, nComp, RefRatio, &
+      nDOFX, nFine, G2L, L2G, F2C )
+
+    TYPE(amrex_multifab), INTENT(in)    :: FineMF
+    TYPE(amrex_multifab), INTENT(inout) :: CrseMF
+    INTEGER             , INTENT(in)    :: nComp, RefRatio, nDOFX, nFine
+    TYPE(C_PTR)         , INTENT(in)    :: G2L, L2G, F2C
+
+    CALL amrex_fi_average_down_cg &
+           ( FineMF % p, CrseMF % p, nComp, RefRatio, &
              nDOFX, nFine, G2L, L2G, F2C )
-  end subroutine amrex_average_down_cg
+
+  END SUBROUTINE amrex_average_down_cg
 
   subroutine amrex_average_down_faces (fmf, cmf, cgeom, scomp, ncomp, rr)
     type(amrex_multifab), intent(in   ) :: fmf(amrex_spacedim)

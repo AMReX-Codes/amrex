@@ -22,6 +22,7 @@ class Interpolater
     : public InterpBase
 {
 public:
+
     /**
     * \brief Coarse to fine interpolation in space.
     * This is a pure virtual function and hence MUST
@@ -53,6 +54,56 @@ public:
                          int              actual_comp,
                          int              actual_state,
                          RunOn            runon) = 0;
+
+    /**
+    * \brief Coarse to fine interpolation in space.
+    *
+    * \param CrseFab
+    * \param CrseFab_G
+    * \param FineFab
+    * \param FineFab_G
+    * \param nComp
+    * \param fine_region
+    * \param RefRatio
+    * \param nDOFX
+    * \param CoarseToFineProjectionMatrix
+    * \param runon
+    */
+    virtual void interpConservative
+      ( const FArrayBox & CrseFab,
+        const FArrayBox & CrseFab_G,
+        FArrayBox       & FineFab,
+        const FArrayBox & FineFab_G,
+        int               nComp,
+        const Box       & fine_region,
+        const IntVect   & RefRatio,
+        int               nDOFX,
+        Array4<Real>      CoarseToFineProjectionMatrix,
+        RunOn             runon ){}
+
+    /**
+    * \brief Coarse to fine interpolation in space.
+    *
+    * \param CrseFab
+    * \param CrseFab_G
+    * \param FineFab
+    * \param FineFab_G
+    * \param nComp
+    * \param fine_region
+    * \param RefRatio
+    * \param nDOFX
+    * \param CoarseToFineProjectionMatrix
+    * \param runon
+    */
+    virtual void interpPointWise
+      ( const FArrayBox & CrseFab,
+        FArrayBox       & FineFab,
+        int               nComp,
+        const Box       & fine_region,
+        const IntVect   & RefRatio,
+        int               nDOFX,
+        Array4<Real>      CoarseToFineProjectionMatrix,
+        RunOn             runon ){}
 
     /**
     * \brief Coarse to fine interpolation in space for face-based data.
@@ -899,6 +950,54 @@ public:
                  int              actual_comp,
                  int              actual_state,
                  RunOn            runon) override;
+
+    /**
+    * \brief Coarse to fine interpolation in space.
+    *
+    * \param CrseFab
+    * \param CrseFab_G
+    * \param FineFab
+    * \param FineFab_G
+    * \param nComp
+    * \param fine_region
+    * \param RefRatio
+    * \param nDOFX
+    * \param CoarseToFineProjectionMatrix
+    * \param runon
+    */
+    void interpConservative
+           ( const FArrayBox & CrseFab,
+             const FArrayBox & CrseFab_G,
+             FArrayBox       & FineFab,
+             const FArrayBox & FineFab_G,
+             int               nComp,
+             const Box       & fine_region,
+             const IntVect   & RefRatio,
+             int               nDOFX,
+             Array4<Real>      CoarseToFineProjectionMatrix,
+             RunOn             runon );
+
+    /**
+    * \brief Coarse to fine interpolation in space.
+    *
+    * \param CrseFab
+    * \param FineFab
+    * \param nComp
+    * \param fine_region
+    * \param RefRatio
+    * \param nDOFX
+    * \param CoarseToFineProjectionMatrix
+    * \param runon
+    */
+    void interpPointWise
+           ( const FArrayBox & CrseFab,
+             FArrayBox       & FineFab,
+             int               nComp,
+             const Box       & fine_region,
+             const IntVect   & RefRatio,
+             int               nDOFX,
+             Array4<Real>      CoarseToFineProjectionMatrix,
+             RunOn             runon );
 };
 /**
 * \brief CG interpolation on nodal data with cell.
