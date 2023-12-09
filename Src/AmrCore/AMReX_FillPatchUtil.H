@@ -112,7 +112,7 @@ namespace amrex
         const IntVect & RefRatio,
         Interp * mapper,
         const Vector<BCRec> & bcs, int bcscomp,
-        int nDOFX, Array4<Real const> const CoarseToFineProjectionMatrix,
+        int nDOFX, Array4<Real const> CoarseToFineProjectionMatrix,
         const PreInterpHook  & pre_interp  = {},
         const PostInterpHook & post_interp = {} );
 
@@ -133,7 +133,7 @@ namespace amrex
         const IntVect & RefRatio,
         Interp * mapper,
         const Vector<BCRec> & bcs, int bcscomp,
-        int nDOFX, Array4<Real const> const CoarseToFineProjectionMatrix,
+        int nDOFX, Array4<Real const> CoarseToFineProjectionMatrix,
         const PreInterpHook  & pre_interp  = {},
         const PostInterpHook & post_interp = {} );
 
