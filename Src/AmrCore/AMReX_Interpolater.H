@@ -79,7 +79,7 @@ public:
         const IntVect   & /* RefRatio                     */ ,
         int               /* nDOFX                        */ ,
         Array4<Real>      /* CoarseToFineProjectionMatrix */ ,
-        RunOn             /* runon                        */  ){};
+        RunOn             /* runon                        */  ){}
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -103,7 +103,7 @@ public:
         const IntVect   & /* RefRatio                     */ ,
         int               /* nDOFX                        */ ,
         Array4<Real>      /* CoarseToFineProjectionMatrix */ ,
-        RunOn             /* runon                        */  ){};
+        RunOn             /* runon                        */  ){}
 
     /**
     * \brief Coarse to fine interpolation in space for face-based data.
