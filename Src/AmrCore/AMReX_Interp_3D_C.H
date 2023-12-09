@@ -32,24 +32,25 @@ pcinterp_interp (Box const& bx,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-dginterp_interp
-  ( Box const& bx,
-    Array4<Real> const& fine, const int fcomp, const int ncomp,
-    Array4<Real const> const& crse, const int ccomp,
-    IntVect const& ratio,
-    int nDOFX, Array4<Real> ProjectionMatrix,
-    Array4<Real> WeightsX_q ) noexcept
+dginterpConservative_interp
+  ( Box                const & FineBox,
+    Array4<Real>       const & FineArr,
+    Array4<Real const> const & FineArrG,
+    int                const   nComp,
+    Array4<Real const> const & CrseArr,
+    Array4<Real const> const & CrseArrG,
+    IntVect            const & RefRatio,
+    int                        nDOFX,
+    Array4<Real>               CoarseToFineProjectionMatrix ) noexcept
 {
-  amrex::ignore_unused( fcomp, ccomp );
-
   const Real Zero = 0.0;
 
   // Get bounds on fine grid
-  const auto loFine = amrex::lbound(bx);
-  const auto hiFine = amrex::ubound(bx);
+  const auto loFine = amrex::lbound( FineBox );
+  const auto hiFine = amrex::ubound( FineBox );
 
   // Number of fields in MultiFab
-  int nFields = ncomp / nDOFX;
+  int nFields = nComp / nDOFX;
 
   // Index for projection matrix
   int iProj;
@@ -61,19 +62,19 @@ dginterp_interp
     for( int kFine = loFine.z; kFine <= hiFine.z; kFine++ )
     {
       // Get coarse element corresponding to fine element kFine
-      const int kCrse = amrex::coarsen(kFine,ratio[2]);
+      const int kCrse = amrex::coarsen( kFine, RefRatio[2] );
 
       // Loop over fine cells in y-direction
       for( int jFine = loFine.y; jFine <= hiFine.y; jFine++ )
       {
         // Get coarse element corresponding to fine element jFine
-        const int jCrse = amrex::coarsen(jFine,ratio[1]);
+        const int jCrse = amrex::coarsen( jFine, RefRatio[1] );
 
         // Loop over fine cells in x-direction
         for( int iFine = loFine.x; iFine <= hiFine.x; iFine++ )
         {
           // Get coarse element corresponding to fine element iFine
-          const int iCrse = amrex::coarsen(iFine,ratio[0]);
+          const int iCrse = amrex::coarsen( iFine, RefRatio[0] );
 
           if     ( ( iFine % 2 == 0 ) &
                    ( jFine % 2 == 0 ) &
@@ -102,26 +103,112 @@ dginterp_interp
           for( int iNX = 0; iNX < nDOFX; iNX++ )
           {
             // Initialize fine data to zero
-            fine(iFine,jFine,kFine,nDOFX*iField+iNX)
-              = Zero;
+            FineArr(iFine,jFine,kFine,nDOFX*iField+iNX) = Zero;
 
             // Project coarse data onto fine data
             for( int jNX = 0; jNX < nDOFX; jNX++ )
             {
-              fine(iFine,jFine,kFine,nDOFX*iField+iNX)
-                += ProjectionMatrix(iProj,iNX,jNX,0)
-                     * crse(iCrse,jCrse,kCrse,nDOFX*iField+jNX);
+              FineArr(iFine,jFine,kFine,nDOFX*iField+iNX)
+                += CoarseToFineProjectionMatrix(0,iProj,iNX,jNX)
+                     * CrseArr (iCrse,jCrse,kCrse,nDOFX*iField+jNX)
+                     * CrseArrG(iCrse,jCrse,kCrse,jNX);
             } // jNX
 
-            fine(iFine,jFine,kFine,nDOFX*iField+iNX)
-              /= WeightsX_q(iNX,0,0,0);
+            FineArr(iFine,jFine,kFine,nDOFX*iField+iNX)
+              /= FineArrG(iFine,jFine,kFine,iNX);
 
           } // iNX
         } // iFine
       } // jFine
     } // kFine
   } // iField
-} // end void dginterp_interp
+} // end void dginterpConservative_interp
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+dginterpPointWise_interp
+  ( Box                const & FineBox,
+    Array4<Real>       const & FineArr,
+    int                const   nComp,
+    Array4<Real const> const & CrseArr,
+    IntVect            const & RefRatio,
+    int                        nDOFX,
+    Array4<Real>               CoarseToFineProjectionMatrix ) noexcept
+{
+  const Real Zero = 0.0;
+
+  // Get bounds on fine grid
+  const auto loFine = amrex::lbound( FineBox );
+  const auto hiFine = amrex::ubound( FineBox );
+
+  // Number of fields in MultiFab
+  int nFields = nComp / nDOFX;
+
+  // Index for projection matrix
+  int iProj;
+
+  // Loop over fields
+  for( int iField = 0; iField < nFields; iField++ )
+  {
+    // Loop over fine cells in z-direction
+    for( int kFine = loFine.z; kFine <= hiFine.z; kFine++ )
+    {
+      // Get coarse element corresponding to fine element kFine
+      const int kCrse = amrex::coarsen( kFine, RefRatio[2] );
+
+      // Loop over fine cells in y-direction
+      for( int jFine = loFine.y; jFine <= hiFine.y; jFine++ )
+      {
+        // Get coarse element corresponding to fine element jFine
+        const int jCrse = amrex::coarsen( jFine, RefRatio[1] );
+
+        // Loop over fine cells in x-direction
+        for( int iFine = loFine.x; iFine <= hiFine.x; iFine++ )
+        {
+          // Get coarse element corresponding to fine element iFine
+          const int iCrse = amrex::coarsen( iFine, RefRatio[0] );
+
+          if     ( ( iFine % 2 == 0 ) &
+                   ( jFine % 2 == 0 ) &
+                   ( kFine % 2 == 0 ) ) { iProj = 0; }
+          else if( ( iFine % 2 != 0 ) &
+                   ( jFine % 2 == 0 ) &
+                   ( kFine % 2 == 0 ) ) { iProj = 1; }
+          else if( ( iFine % 2 == 0 ) &
+                   ( jFine % 2 != 0 ) &
+                   ( kFine % 2 == 0 ) ) { iProj = 2; }
+          else if( ( iFine % 2 != 0 ) &
+                   ( jFine % 2 != 0 ) &
+                   ( kFine % 2 == 0 ) ) { iProj = 3; }
+          else if( ( iFine % 2 == 0 ) &
+                   ( jFine % 2 == 0 ) &
+                   ( kFine % 2 != 0 ) ) { iProj = 4; }
+          else if( ( iFine % 2 != 0 ) &
+                   ( jFine % 2 == 0 ) &
+                   ( kFine % 2 != 0 ) ) { iProj = 5; }
+          else if( ( iFine % 2 == 0 ) &
+                   ( jFine % 2 != 0 ) &
+                   ( kFine % 2 != 0 ) ) { iProj = 6; }
+          else                          { iProj = 7; }
+
+          // Loop over DOF of fine element
+          for( int iNX = 0; iNX < nDOFX; iNX++ )
+          {
+            // Initialize fine data to zero
+            FineArr(iFine,jFine,kFine,nDOFX*iField+iNX) = Zero;
+
+            // Project coarse data onto fine data
+            for( int jNX = 0; jNX < nDOFX; jNX++ )
+            {
+              FineArr(iFine,jFine,kFine,nDOFX*iField+iNX)
+                += CoarseToFineProjectionMatrix(0,iProj,iNX,jNX)
+                     * CrseArr(iCrse,jCrse,kCrse,nDOFX*iField+jNX);
+            } // jNX
+          } // iNX
+        } // iFine
+      } // jFine
+    } // kFine
+  } // iField
+} // end void dginterpPointWise_interp
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 cginterp_interp

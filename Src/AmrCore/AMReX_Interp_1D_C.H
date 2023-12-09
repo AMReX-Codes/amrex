@@ -32,10 +32,10 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 dginterpConservative_interp
   ( Box                const & FineBox,
     Array4<Real>       const & FineArr,
-    Array4<Real const> const & FineArr_G,
+    Array4<Real const> const & FineArrG,
     int                const   nComp,
     Array4<Real const> const & CrseArr,
-    Array4<Real const> const & CrseArr_G,
+    Array4<Real const> const & CrseArrG,
     IntVect            const & RefRatio,
     int                        nDOFX,
     Array4<Real>               CoarseToFineProjectionMatrix ) noexcept
@@ -75,12 +75,12 @@ dginterpConservative_interp
         {
           FineArr(iFine,0,0,nDOFX*iField+iNX)
             += CoarseToFineProjectionMatrix(0,iProj,iNX,jNX)
-                 * CrseArr  (iCrse,0,0,nDOFX*iField+jNX)
-                 * CrseArr_G(iCrse,0,0,jNX);
+                 * CrseArr (iCrse,0,0,nDOFX*iField+jNX)
+                 * CrseArrG(iCrse,0,0,jNX);
         } // jNX
 
         FineArr(iFine,0,0,nDOFX*iField+iNX)
-          /= FineArr_G(iFine,0,0,iNX);
+          /= FineArrG(iFine,0,0,iNX);
 
       } // iNX
     } // iFine
