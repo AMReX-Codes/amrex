@@ -780,33 +780,35 @@ DGInterp::CoarseBox (const Box&     fine,
 }
 
 void
-DGInterp::interp (const FArrayBox& crse,
-                        int              crse_comp,
-                        FArrayBox&       fine,
-                        int              fine_comp,
-                        int              ncomp,
-                        const Box&       fine_region,
-                        const IntVect&   ratio,
-                        const Geometry& /*crse_geom*/,
-                        const Geometry& /*fine_geom*/,
-                        Vector<BCRec> const& /*bcr*/,
-                        int               /*actual_comp*/,
-                        int               /*actual_state*/,
-                        RunOn             runon)
+DGInterp::interp
+  ( const FArrayBox     & /*crse        */,
+    int                   /*crse_comp   */,
+    FArrayBox           & /*fine        */,
+    int                   /*fine_comp   */,
+    int                   /*ncomp       */,
+    const Box           & /*fine_region */,
+    const IntVect       & /*ratio       */,
+    const Geometry      & /*crse_geom   */,
+    const Geometry      & /*fine_geom   */,
+    Vector<BCRec> const & /*bcr         */,
+    int                   /*actual_comp */,
+    int                   /*actual_state*/,
+    RunOn                 /*runon       */ )
 {
     BL_PROFILE("DGInterp::interp()");
 }
 void
-DGInterp::interpConservative( const FArrayBox & CrseFab,
-                              const FArrayBox & CrseFab_G,
-                              FArrayBox       & FineFab,
-                              const FArrayBox & FineFab_G,
-                              int               nComp,
-                              const Box       & fine_region,
-                              const IntVect   & RefRatio,
-                              int               nDOFX,
-                              Array4<Real>      CoarseToFineProjectionMatrix,
-                              RunOn             runon )
+DGInterp::interpConservative
+  ( const FArrayBox & CrseFab                     ,
+    const FArrayBox & CrseFab_G                   ,
+    FArrayBox       & FineFab                     ,
+    const FArrayBox & FineFab_G                   ,
+    int               nComp                       ,
+    const Box       & fine_region                 ,
+    const IntVect   & RefRatio                    ,
+    int               nDOFX                       ,
+    Array4<Real>      CoarseToFineProjectionMatrix,
+    RunOn             runon                        )
 {
     BL_PROFILE("DGInterp::interpConservative()");
 
@@ -824,14 +826,15 @@ DGInterp::interpConservative( const FArrayBox & CrseFab,
 }
 
 void
-DGInterp::interpPointWise( const FArrayBox & CrseFab,
-                           FArrayBox       & FineFab,
-                           int               nComp,
-                           const Box       & fine_region,
-                           const IntVect   & RefRatio,
-                           int               nDOFX,
-                           Array4<Real>      CoarseToFineProjectionMatrix,
-                           RunOn             runon )
+DGInterp::interpPointWise
+  ( const FArrayBox & CrseFab                     ,
+    FArrayBox       & FineFab                     ,
+    int               nComp                       ,
+    const Box       & fine_region                 ,
+    const IntVect   & RefRatio                    ,
+    int               nDOFX                       ,
+    Array4<Real>      CoarseToFineProjectionMatrix,
+    RunOn             runon                        )
 {
     BL_PROFILE("DGInterp::interpPointWise()");
 
@@ -861,53 +864,55 @@ CGInterp::CoarseBox (const Box&     fine,
 }
 
 void
-CGInterp::interp (const FArrayBox& crse,
-                        int              crse_comp,
-                        FArrayBox&       fine,
-                        int              fine_comp,
-                        int              ncomp,
-                        const Box&       fine_region,
-                        const IntVect&   ratio,
-                        const Geometry& /*crse_geom*/,
-                        const Geometry& /*fine_geom*/,
-                        Vector<BCRec> const& /*bcr*/,
-                        int               /*actual_comp*/,
-                        int               /*actual_state*/,
-                        RunOn             runon)
+CGInterp::interp
+  ( const FArrayBox     & /*crse        */,
+    int                   /*crse_comp   */,
+    FArrayBox           & /*fine        */,
+    int                   /*fine_comp   */,
+    int                   /*ncomp       */,
+    const Box           & /*fine_region */,
+    const IntVect       & /*ratio       */,
+    const Geometry      & /*crse_geom   */,
+    const Geometry      & /*fine_geom   */,
+    Vector<BCRec> const & /*bcr         */,
+    int                   /*actual_comp */,
+    int                   /*actual_state*/,
+    RunOn                 /*runon       */ )
 {
     BL_PROFILE("CGInterp::interp()");
-//
-//    int nDOFX = amrex::DG::nDOFX;
-//    int nFine = amrex::DG::nFineV;
-//
-//    auto *pProjectionMatrix
-//           = reinterpret_cast<Real*>(amrex::DG::ProjectionMatrix1D);
-//    Array4<Real> ProjectionMatrix
-//                   ( pProjectionMatrix, {0,0,0}, {nFine,nDOFX,nDOFX}, 1 );
-//
-//    for( int iFine = 0; iFine < nFine; iFine++ ) {
-//    for( int iNX   = 0; iNX   < nDOFX; iNX++   ) {
-//    for( int jNX   = 0; jNX   < nDOFX; jNX++   ) {
-//        ProjectionMatrix(iFine,iNX,jNX,0)
-//          = amrex::DG::ProjectionMatrix[iFine][iNX][jNX];
-//    }}}
-//
-//    auto *pWeightsX_q
-//           = reinterpret_cast<Real*>(amrex::DG::WeightsX_q);
-//    Array4<Real> WeightsX_q( pWeightsX_q, {0,0,0}, {nDOFX,1,1}, 1 );
-//    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ ) {
-//      WeightsX_q(iNX,0,0,0) = amrex::DG::WeightsX_q[iNX];
-//    }
-//
-//    Array4<Real const> const& crsearr = crse.const_array();
-//    Array4<Real> const& finearr = fine.array();;
-//
-//    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, fine_region, tbx,
-//    {
-//        amrex::cginterp_interp
-//          ( tbx, finearr, fine_comp, ncomp, crsearr, crse_comp, ratio,
-//            nDOFX, ProjectionMatrix, WeightsX_q );
-//    });
+/*
+    int nDOFX = amrex::DG::nDOFX;
+    int nFine = amrex::DG::nFineV;
+
+    auto *pProjectionMatrix
+           = reinterpret_cast<Real*>(amrex::DG::ProjectionMatrix1D);
+    Array4<Real> ProjectionMatrix
+                   ( pProjectionMatrix, {0,0,0}, {nFine,nDOFX,nDOFX}, 1 );
+
+    for( int iFine = 0; iFine < nFine; iFine++ ) {
+    for( int iNX   = 0; iNX   < nDOFX; iNX++   ) {
+    for( int jNX   = 0; jNX   < nDOFX; jNX++   ) {
+        ProjectionMatrix(iFine,iNX,jNX,0)
+          = amrex::DG::ProjectionMatrix[iFine][iNX][jNX];
+    }}}
+
+    auto *pWeightsX_q
+           = reinterpret_cast<Real*>(amrex::DG::WeightsX_q);
+    Array4<Real> WeightsX_q( pWeightsX_q, {0,0,0}, {nDOFX,1,1}, 1 );
+    for( int iNX = 0; iNX < amrex::DG::nDOFX; iNX++ ) {
+      WeightsX_q(iNX,0,0,0) = amrex::DG::WeightsX_q[iNX];
+    }
+
+    Array4<Real const> const& crsearr = crse.const_array();
+    Array4<Real> const& finearr = fine.array();;
+
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, fine_region, tbx,
+    {
+        amrex::cginterp_interp
+          ( tbx, finearr, fine_comp, ncomp, crsearr, crse_comp, ratio,
+            nDOFX, ProjectionMatrix, WeightsX_q );
+    });
+*/
 }
 
 CellConservativeProtected::CellConservativeProtected ()

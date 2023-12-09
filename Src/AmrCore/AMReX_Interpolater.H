@@ -70,16 +70,16 @@ public:
     * \param runon
     */
     virtual void interpConservative
-      ( const FArrayBox & CrseFab,
-        const FArrayBox & CrseFab_G,
-        FArrayBox       & FineFab,
-        const FArrayBox & FineFab_G,
-        int               nComp,
-        const Box       & fine_region,
-        const IntVect   & RefRatio,
-        int               nDOFX,
-        Array4<Real>      CoarseToFineProjectionMatrix,
-        RunOn             runon ){}
+      ( const FArrayBox & /* CrseFab                      */ ,
+        const FArrayBox & /* CrseFab_G                    */ ,
+        FArrayBox       & /* FineFab                      */ ,
+        const FArrayBox & /* FineFab_G                    */ ,
+        int               /* nComp                        */ ,
+        const Box       & /* fine_region                  */ ,
+        const IntVect   & /* RefRatio                     */ ,
+        int               /* nDOFX                        */ ,
+        Array4<Real>      /* CoarseToFineProjectionMatrix */ ,
+        RunOn             /* runon                        */  ){};
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -96,14 +96,14 @@ public:
     * \param runon
     */
     virtual void interpPointWise
-      ( const FArrayBox & CrseFab,
-        FArrayBox       & FineFab,
-        int               nComp,
-        const Box       & fine_region,
-        const IntVect   & RefRatio,
-        int               nDOFX,
-        Array4<Real>      CoarseToFineProjectionMatrix,
-        RunOn             runon ){}
+      ( const FArrayBox & /* CrseFab                      */ ,
+        FArrayBox       & /* FineFab                      */ ,
+        int               /* nComp                        */ ,
+        const Box       & /* fine_region                  */ ,
+        const IntVect   & /* RefRatio                     */ ,
+        int               /* nDOFX                        */ ,
+        Array4<Real>      /* CoarseToFineProjectionMatrix */ ,
+        RunOn             /* runon                        */  ){};
 
     /**
     * \brief Coarse to fine interpolation in space for face-based data.
@@ -937,19 +937,20 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    void interp (const FArrayBox& crse,
-                 int              crse_comp,
-                 FArrayBox&       fine,
-                 int              fine_comp,
-                 int              ncomp,
-                 const Box&       fine_region,
-                 const IntVect&   ratio,
-                 const Geometry&  crse_geom,
-                 const Geometry&  fine_geom,
-                 Vector<BCRec> const&  bcr,
-                 int              actual_comp,
-                 int              actual_state,
-                 RunOn            runon) override;
+    void interp
+           ( const FArrayBox     & crse        ,
+             int                   crse_comp   ,
+             FArrayBox           & fine        ,
+             int                   fine_comp   ,
+             int                   ncomp       ,
+             const Box           & fine_region ,
+             const IntVect       & ratio       ,
+             const Geometry      & crse_geom   ,
+             const Geometry      & fine_geom   ,
+             Vector<BCRec> const & bcr         ,
+             int                   actual_comp ,
+             int                   actual_state,
+             RunOn                 runon        ) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -966,16 +967,16 @@ public:
     * \param runon
     */
     void interpConservative
-           ( const FArrayBox & CrseFab,
-             const FArrayBox & CrseFab_G,
-             FArrayBox       & FineFab,
-             const FArrayBox & FineFab_G,
-             int               nComp,
-             const Box       & fine_region,
-             const IntVect   & RefRatio,
-             int               nDOFX,
+           ( const FArrayBox & CrseFab                     ,
+             const FArrayBox & CrseFab_G                   ,
+             FArrayBox       & FineFab                     ,
+             const FArrayBox & FineFab_G                   ,
+             int               nComp                       ,
+             const Box       & fine_region                 ,
+             const IntVect   & RefRatio                    ,
+             int               nDOFX                       ,
              Array4<Real>      CoarseToFineProjectionMatrix,
-             RunOn             runon );
+             RunOn             runon                        ) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -990,14 +991,14 @@ public:
     * \param runon
     */
     void interpPointWise
-           ( const FArrayBox & CrseFab,
-             FArrayBox       & FineFab,
-             int               nComp,
-             const Box       & fine_region,
-             const IntVect   & RefRatio,
-             int               nDOFX,
+           ( const FArrayBox & CrseFab                     ,
+             FArrayBox       & FineFab                     ,
+             int               nComp                       ,
+             const Box       & fine_region                 ,
+             const IntVect   & RefRatio                    ,
+             int               nDOFX                       ,
              Array4<Real>      CoarseToFineProjectionMatrix,
-             RunOn             runon );
+             RunOn             runon                        ) override;
 };
 /**
 * \brief CG interpolation on nodal data with cell.
@@ -1043,19 +1044,20 @@ public:
     * \param actual_comp
     * \param actual_state
     */
-    void interp (const FArrayBox& crse,
-                 int              crse_comp,
-                 FArrayBox&       fine,
-                 int              fine_comp,
-                 int              ncomp,
-                 const Box&       fine_region,
-                 const IntVect&   ratio,
-                 const Geometry&  crse_geom,
-                 const Geometry&  fine_geom,
-                 Vector<BCRec> const&  bcr,
-                 int              actual_comp,
-                 int              actual_state,
-                 RunOn            runon) override;
+    void interp
+           ( const FArrayBox     & crse        ,
+             int                   crse_comp   ,
+             FArrayBox           & fine        ,
+             int                   fine_comp   ,
+             int                   ncomp       ,
+             const Box           & fine_region ,
+             const IntVect       & ratio       ,
+             const Geometry      & crse_geom   ,
+             const Geometry      & fine_geom   ,
+             Vector<BCRec> const & bcr         ,
+             int                   actual_comp ,
+             int                   actual_state,
+             RunOn                 runon        ) override;
 };
 
 //! CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
