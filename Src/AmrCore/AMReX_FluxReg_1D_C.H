@@ -70,11 +70,11 @@ fluxreg_fineadd_dg( Box const&                CrseBox,
                     const int                 nFields,
                     int                       nDOFX_X,
                     const Real *              WeightsX_X,
-                    Real ***                  LX_X,
+                    Array4<Real const>        LX_X,
                     Real                      FaceRatio,
                     Dim3 const&               ratio ) noexcept
 {
-    const auto lo   = amrex::lbound(CrseBox);
+    const auto lo    = amrex::lbound(CrseBox);
     const int iCrseF = lo.x;
     const int iFineF = iCrseF*ratio.x;
 
@@ -87,7 +87,7 @@ fluxreg_fineadd_dg( Box const&                CrseBox,
                 reg(iCrseF,0,0,iNX_C+iField*nDOFX_X)
                   += WeightsX_X[iNX_F]
                        * SurfaceFluxes_Fine(iFineF,0,0,iNX_F+iField*nDOFX_X)
-                       * LX_X[iNX_C][0][iNX_F]
+                       * LX_X(0,iNX_C,0,iNX_F)
                        * FaceRatio;
             } /* iField */
         } /* iNX_F */

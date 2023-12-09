@@ -19,9 +19,9 @@ extern "C"
     {
         auto * pFineToCoarseProjectionMatrix
                = reinterpret_cast<Real*>(vpFineToCoarseProjectionMatrix);
-        Array4<Real> FineToCoarseProjectionMatrix
-                       ( pFineToCoarseProjectionMatrix,
-                         {0,0,0}, {1,nFine,nDOFX}, nDOFX );
+        Array4<Real const> FineToCoarseProjectionMatrix
+                             ( pFineToCoarseProjectionMatrix,
+                               {0,0,0}, {1,nFine,nDOFX}, nDOFX );
 
         amrex::average_down_dg_conservative
           ( *FineMF, *CrseMF, *FineMF_G, *CrseMF_G,
@@ -34,9 +34,9 @@ extern "C"
     {
         auto * pFineToCoarseProjectionMatrix
                = reinterpret_cast<Real*>(vpFineToCoarseProjectionMatrix);
-        Array4<Real> FineToCoarseProjectionMatrix
-                       ( pFineToCoarseProjectionMatrix,
-                         {0,0,0}, {1,nFine,nDOFX}, nDOFX );
+        Array4<Real const> FineToCoarseProjectionMatrix
+                             ( pFineToCoarseProjectionMatrix,
+                               {0,0,0}, {1,nFine,nDOFX}, nDOFX );
 
         amrex::average_down_dg_pointwise
           ( *FineMF, *CrseMF, nComp, RefRatio, nDOFX,

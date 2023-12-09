@@ -226,7 +226,7 @@ FillPatchInterp( MF       & FineMF, MF const & FineMF_G,
                  int nComp, IntVect const & swX, const Geometry & CrseGeom,
                  Box const & FineBox, const IntVect & RefRatio,
                  Interp * mapper, const Vector<BCRec>& bcs, int bcscomp,
-                 int nDOFX, Array4<Real> CoarseToFineProjectionMatrix )
+                 int nDOFX, Array4<Real const> CoarseToFineProjectionMatrix )
 {
     BL_PROFILE("FillPatchInterp(Fab)");
 
@@ -265,7 +265,7 @@ FillPatchInterp( MF       & FineMF,
                  int nComp, IntVect const & swX, const Geometry & CrseGeom,
                  Box const & FineBox, const IntVect & RefRatio,
                  Interp * mapper, const Vector<BCRec>& bcs, int bcscomp,
-                 int nDOFX, Array4<Real> CoarseToFineProjectionMatrix )
+                 int nDOFX, Array4<Real const> CoarseToFineProjectionMatrix )
 {
     BL_PROFILE("FillPatchInterp(Fab)");
 
@@ -661,7 +661,7 @@ namespace {
         const IntVect & RefRatio,
         Interp * mapper,
         const Vector<BCRec> & bcs, int bcscomp,
-        int nDOFX, Array4<Real> CoarseToFineProjectionMatrix,
+        int nDOFX, Array4<Real const> CoarseToFineProjectionMatrix,
         const PreInterpHook  & pre_interp,
         const PostInterpHook & post_interp,
         EB2::IndexSpace const* index_space )
@@ -844,7 +844,7 @@ namespace {
         const IntVect & RefRatio,
         Interp * mapper,
         const Vector<BCRec> & bcs, int bcscomp,
-        int nDOFX, Array4<Real> CoarseToFineProjectionMatrix,
+        int nDOFX, Array4<Real const> CoarseToFineProjectionMatrix,
         const PreInterpHook  & pre_interp,
         const PostInterpHook & post_interp,
         EB2::IndexSpace const* index_space )
@@ -1236,7 +1236,7 @@ FillPatchTwoLevels
     const IntVect & RefRatio,
     Interp * mapper,
     const Vector<BCRec> & bcs, int bcscomp,
-    int nDOFX, Array4<Real> CoarseToFineProjectionMatrix,
+    int nDOFX, Array4<Real const> CoarseToFineProjectionMatrix,
     const PreInterpHook  & pre_interp,
     const PostInterpHook & post_interp )
 {
@@ -1271,7 +1271,7 @@ FillPatchTwoLevels
     const IntVect & RefRatio,
     Interp * mapper,
     const Vector<BCRec> & bcs, int bcscomp,
-    int nDOFX, Array4<Real> CoarseToFineProjectionMatrix,
+    int nDOFX, Array4<Real const> CoarseToFineProjectionMatrix,
     const PreInterpHook  & pre_interp,
     const PostInterpHook & post_interp )
 {
@@ -1457,7 +1457,7 @@ InterpFromCoarseLevel
     Interp * mapper,
     const Vector<BCRec> & bcs, int bcscomp,
     int nDOFX,
-    Array4<Real> CoarseToFineProjectionMatrix,
+    Array4<Real const> CoarseToFineProjectionMatrix,
     const PreInterpHook  & pre_interp,
     const PostInterpHook & post_interp )
 {
@@ -1485,7 +1485,7 @@ InterpFromCoarseLevel
     Interp * mapper,
     const Vector<BCRec> & bcs, int bcscomp,
     int nDOFX,
-    Array4<Real> CoarseToFineProjectionMatrix,
+    Array4<Real const> CoarseToFineProjectionMatrix,
     const PreInterpHook  & pre_interp,
     const PostInterpHook & post_interp )
 {
@@ -1580,7 +1580,7 @@ InterpFromCoarseLevel
     Interp * mapper,
     const Vector<BCRec> & bcs, int bcscomp,
     int nDOFX,
-    Array4<Real> CoarseToFineProjectionMatrix,
+    Array4<Real const> CoarseToFineProjectionMatrix,
     const PreInterpHook  & pre_interp,
     const PostInterpHook & post_interp )
 {
@@ -1608,7 +1608,7 @@ InterpFromCoarseLevel
     Interp * mapper,
     const Vector<BCRec> & bcs, int bcscomp,
     int nDOFX,
-    Array4<Real> CoarseToFineProjectionMatrix,
+    Array4<Real const> CoarseToFineProjectionMatrix,
     const PreInterpHook  & pre_interp,
     const PostInterpHook & post_interp )
 {

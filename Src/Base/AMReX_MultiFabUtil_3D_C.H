@@ -457,7 +457,7 @@ void amrex_avgdown_dg_conservative
          Array4<Real const> const & FineArrG,
          IntVect const & RefRatio,
          int nDOFX,
-         Array4<Real> FineToCoarseProjectionMatrix ) noexcept
+         Array4<Real const> FineToCoarseProjectionMatrix ) noexcept
 {
   const Real Zero = 0.0;
 
@@ -518,7 +518,7 @@ void amrex_avgdown_dg_pointwise
          Array4<Real const> const & FineArr,
          IntVect const & RefRatio,
          int nDOFX,
-         Array4<Real> FineToCoarseProjectionMatrix ) noexcept
+         Array4<Real const> FineToCoarseProjectionMatrix ) noexcept
 {
   const Real Zero = 0.0;
 

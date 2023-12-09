@@ -799,16 +799,16 @@ DGInterp::interp
 }
 void
 DGInterp::interpConservative
-  ( const FArrayBox & CrseFab                     ,
-    const FArrayBox & CrseFab_G                   ,
-    FArrayBox       & FineFab                     ,
-    const FArrayBox & FineFab_G                   ,
-    int               nComp                       ,
-    const Box       & fine_region                 ,
-    const IntVect   & RefRatio                    ,
-    int               nDOFX                       ,
-    Array4<Real>      CoarseToFineProjectionMatrix,
-    RunOn             runon                        )
+  ( const FArrayBox &  CrseFab                     ,
+    const FArrayBox &  CrseFab_G                   ,
+    FArrayBox       &  FineFab                     ,
+    const FArrayBox &  FineFab_G                   ,
+    int                nComp                       ,
+    const Box       &  fine_region                 ,
+    const IntVect   &  RefRatio                    ,
+    int                nDOFX                       ,
+    Array4<Real const> CoarseToFineProjectionMatrix,
+    RunOn              runon                        )
 {
     BL_PROFILE("DGInterp::interpConservative()");
 
@@ -827,14 +827,14 @@ DGInterp::interpConservative
 
 void
 DGInterp::interpPointWise
-  ( const FArrayBox & CrseFab                     ,
-    FArrayBox       & FineFab                     ,
-    int               nComp                       ,
-    const Box       & fine_region                 ,
-    const IntVect   & RefRatio                    ,
-    int               nDOFX                       ,
-    Array4<Real>      CoarseToFineProjectionMatrix,
-    RunOn             runon                        )
+  ( const FArrayBox &  CrseFab                     ,
+    FArrayBox       &  FineFab                     ,
+    int                nComp                       ,
+    const Box       &  fine_region                 ,
+    const IntVect   &  RefRatio                    ,
+    int                nDOFX                       ,
+    Array4<Real const> CoarseToFineProjectionMatrix,
+    RunOn              runon                        )
 {
     BL_PROFILE("DGInterp::interpPointWise()");
 

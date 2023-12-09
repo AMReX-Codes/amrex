@@ -67,15 +67,25 @@ module amrex_fluxregister_module
        real(amrex_real), value :: scale
      end subroutine amrex_fi_fluxregister_fineadd_1fab_1dir
 
-     subroutine amrex_fi_fluxregister_fineadd_dg &
-       ( FluxRegister, SurfaceFluxes, nFields, FaceRatio ) bind(c)
-       import
-       implicit none
-       type(c_ptr)     , value      :: FluxRegister
-       type(c_ptr)     , intent(in) :: SurfaceFluxes(*)
-       integer         , value      :: nFields
-       real(amrex_real), value      :: FaceRatio
-     end subroutine amrex_fi_fluxregister_fineadd_dg
+     SUBROUTINE amrex_fi_fluxregister_fineadd_dg &
+       ( FluxRegister, SurfaceFluxes, nFields, FaceRatio, &
+         nDOFX_X1, nDOFX_X2, nDOFX_X3, &
+         nFineX_X1, nFineX_X2, nFineX_X3, &
+         WeightsX_X1, WeightsX_X2, WeightsX_X3, &
+         vpLX_X1_Refined, vpLX_X2_Refined, vpLX_X3_Refined ) BIND(c)
+       IMPORT
+       IMPLICIT NONE
+       TYPE(C_PTR)     , VALUE      :: &
+         FluxRegister, vpLX_X1_Refined, vpLX_X2_Refined, vpLX_X3_Refined
+       TYPE(C_PTR)     , INTENT(in) :: SurfaceFluxes(*)
+       INTEGER         , VALUE      :: &
+         nFields, &
+         nDOFX_X1, nDOFX_X2, nDOFX_X3, &
+         nFineX_X1, nFineX_X2, nFineX_X3
+       REAL(amrex_real), VALUE      :: FaceRatio
+       REAL(amrex_real), INTENT(in) :: &
+         WeightsX_X1(*), WeightsX_X2(*), WeightsX_X3(*)
+     END SUBROUTINE amrex_fi_fluxregister_fineadd_dg
 
      subroutine amrex_fi_fluxregister_crseinit (fr, flxs, scale) bind(c)
        import
@@ -85,14 +95,21 @@ module amrex_fluxregister_module
        real(amrex_real), value :: scale
      end subroutine amrex_fi_fluxregister_crseinit
 
-     subroutine amrex_fi_fluxregister_crseinit_dg &
-       ( FluxRegister, SurfaceFluxes, nFields ) bind(c)
-       import
-       implicit none
-       type(c_ptr)     , value             :: FluxRegister
-       type(c_ptr)     ,        intent(in) :: SurfaceFluxes(*)
-       integer         , value, intent(in) :: nFields
-     end subroutine amrex_fi_fluxregister_crseinit_dg
+     SUBROUTINE amrex_fi_fluxregister_crseinit_dg &
+       ( FluxRegister, SurfaceFluxes, nFields, &
+         nDOFX_X1, nDOFX_X2, nDOFX_X3, &
+         WeightsX_X1, WeightsX_X2, WeightsX_X3 ) BIND(c)
+       IMPORT
+       IMPLICIT NONE
+       TYPE(C_PTR), VALUE             :: &
+         FluxRegister
+       TYPE(C_PTR),        INTENT(in) :: &
+         SurfaceFluxes(*)
+       INTEGER    , VALUE, INTENT(in) :: &
+         nFields, nDOFX_X1, nDOFX_X2, nDOFX_X3
+      REAL(amrex_real)   , INTENT(in) :: &
+         WeightsX_X1(*), WeightsX_X2(*), WeightsX_X3(*)
+     END SUBROUTINE amrex_fi_fluxregister_crseinit_dg
 
      subroutine amrex_fi_fluxregister_crseadd (fr, flxs, scale, geom) bind(c)
        import
@@ -218,19 +235,45 @@ contains
     end do
   end subroutine amrex_fluxregister_fineadd_1fab
 
-  subroutine amrex_fluxregister_fineadd_dg &
-    ( this, SurfaceFluxes, nFields, FaceRatio )
-    class(amrex_fluxregister), intent(inout) :: this
-    type(amrex_multifab)     , intent(in)    :: SurfaceFluxes(amrex_spacedim)
-    integer                  , intent(in)    :: nFields
-    real(amrex_real)         , intent(in)    :: FaceRatio
-    integer :: dim
-    type(c_ptr) :: mf(amrex_spacedim)
-    do dim = 1, amrex_spacedim
-       mf(dim) = SurfaceFluxes(dim)%p
-    end do
-    call amrex_fi_fluxregister_fineadd_dg( this%p, mf, nFields, FaceRatio )
-  end subroutine amrex_fluxregister_fineadd_dg
+  SUBROUTINE amrex_fluxregister_fineadd_dg &
+    ( this, SurfaceFluxes, nFields, FaceRatio, &
+      nDOFX_X1, nDOFX_X2, nDOFX_X3, &
+      nFineX_X1, nFineX_X2, nFineX_X3, &
+      WeightsX_X1, WeightsX_X2, WeightsX_X3, &
+      vpLX_X1_Refined, vpLX_X2_Refined, vpLX_X3_Refined )
+
+    CLASS(amrex_fluxregister), INTENT(inout) :: &
+      this
+    TYPE(amrex_multifab)     , INTENT(in)    :: &
+      SurfaceFluxes(amrex_spacedim)
+    INTEGER                  , INTENT(in)    :: &
+      nFields, &
+      nDOFX_X1, nDOFX_X2, nDOFX_X3, &
+      nFineX_X1, nFineX_X2, nFineX_X3
+    REAL(amrex_real)         , INTENT(in)    :: &
+      FaceRatio
+    REAL(amrex_real)         , INTENT(in)    :: &
+      WeightsX_X1(*), WeightsX_X2(*), WeightsX_X3(*)
+    TYPE(c_ptr)              , INTENT(in)     :: &
+      vpLX_X1_Refined, vpLX_X2_Refined, vpLX_X3_Refined
+
+    INTEGER     :: iDimX
+    TYPE(C_PTR) :: MF(amrex_spacedim)
+
+    DO iDimX = 1, amrex_spacedim
+
+       MF(iDimX) = SurfaceFluxes(iDimX) % p
+
+    END DO
+
+    CALL amrex_fi_fluxregister_fineadd_dg &
+           ( this%p, mf, nFields, FaceRatio, &
+             nDOFX_X1, nDOFX_X2, nDOFX_X3, &
+             nFineX_X1, nFineX_X2, nFineX_X3, &
+             WeightsX_X1, WeightsX_X2, WeightsX_X3, &
+             vpLX_X1_Refined, vpLX_X2_Refined, vpLX_X3_Refined )
+
+  END SUBROUTINE amrex_fluxregister_fineadd_dg
 
   subroutine amrex_fluxregister_crseinit (this, fluxes, scale)
     class(amrex_fluxregister), intent(inout) :: this
@@ -244,19 +287,34 @@ contains
     call amrex_fi_fluxregister_crseinit(this%p, mf, scale)
   end subroutine amrex_fluxregister_crseinit
 
-  subroutine amrex_fluxregister_crseinit_dg &
-    ( this, SurfaceFluxes, nFields )
-    class(amrex_fluxregister), intent(inout) :: this
-    type(amrex_multifab)     , intent(in)    :: SurfaceFluxes(amrex_spacedim)
-    integer                  , intent(in)    :: nFields
+  SUBROUTINE amrex_fluxregister_crseinit_dg &
+    ( this, SurfaceFluxes, nFields, &
+      nDOFX_X1, nDOFX_X2, nDOFX_X3, &
+      WeightsX_X1, WeightsX_X2, WeightsX_X3 )
 
-    integer :: dim
-    type(c_ptr) :: mf(amrex_spacedim)
-    do dim = 1, amrex_spacedim
-       mf(dim) = SurfaceFluxes(dim)%p
-    end do
-    call amrex_fi_fluxregister_crseinit_dg( this%p, mf, nFields )
-  end subroutine amrex_fluxregister_crseinit_dg
+    CLASS(amrex_fluxregister), INTENT(inout) :: &
+      this
+    TYPE(amrex_multifab)     , INTENT(in)    :: &
+      SurfaceFluxes(amrex_spacedim)
+    INTEGER                  , INTENT(in)    :: &
+      nFields, nDOFX_X1, nDOFX_X2, nDOFX_X3
+    REAL(amrex_real)         , INTENT(in)    :: &
+      WeightsX_X1(*), WeightsX_X2(*), WeightsX_X3(*)
+
+    INTEGER     :: iDimX
+    TYPE(C_PTR) :: MF(amrex_spacedim)
+
+    DO iDimX = 1, amrex_spacedim
+
+       MF(iDimX) = SurfaceFluxes(iDimX) % p
+
+    END DO
+
+    CALL amrex_fi_fluxregister_crseinit_dg &
+           ( this % p, MF, nFields, nDOFX_X1, nDOFX_X2, nDOFX_X3, &
+             WeightsX_X1, WeightsX_X2, WeightsX_X3 )
+
+  END SUBROUTINE amrex_fluxregister_crseinit_dg
 
   subroutine amrex_fluxregister_crseadd (this, fluxes, scale)
     use amrex_amrcore_module, only : amrex_geom

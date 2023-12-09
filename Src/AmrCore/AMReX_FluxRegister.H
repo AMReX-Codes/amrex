@@ -152,12 +152,26 @@ public:
     * \param SurfaceFlux
     * \param iDimX
     * \param nFields
+    * \param nFields
+    * \param nDOFX_X1
+    * \param nDOFX_X2
+    * \param nDOFX_X3
+    * \param WeightsX_X1
+    * \param WeightsX_X2
+    * \param WeightsX_X3
     * \param op
     */
-    void CrseInit_DG (const MultiFab& SurfaceFlux,
-                      int             iDimX,
-                      int             nFields,
-                      FrOp            op = FluxRegister::COPY);
+    void CrseInit_DG
+           ( const MultiFab & SurfaceFlux,
+             int              iDimX,
+             int              nFields,
+             int              nDOFX_X1,
+             int              nDOFX_X2,
+             int              nDOFX_X3,
+             Real           * WeightsX_X1,
+             Real           * WeightsX_X2,
+             Real           * WeightsX_X3,
+             FrOp            op = FluxRegister::COPY );
 
     /**
     * \brief Add coarse fluxes to the flux register.
@@ -228,11 +242,33 @@ public:
     * \param iDimX
     * \param nFields
     * \param FaceRatio
+    * \param nDOFX_X1
+    * \param nDOFX_X2
+    * \param nDOFX_X3
+    * \param nFineX_X1
+    * \param nFineX_X2
+    * \param nFineX_X3
+    * \param WeightsX_X1
+    * \param WeightsX_X2
+    * \param WeightsX_X3
     */
-    void FineAdd_DG (const MultiFab& SurfaceFluxes,
-                     int             iDimX,
-                     int             nFields,
-                     Real            FaceRatio);
+    void FineAdd_DG
+           ( const MultiFab & SurfaceFluxes,
+             int              iDimX,
+             int              nFields,
+             Real             FaceRatio,
+             int              nDOFX_X1,
+             int              nDOFX_X2,
+             int              nDOFX_X3,
+             int              nFineX_X1,
+             int              nFineX_X2,
+             int              nFineX_X3,
+             Real           * WeightsX_X1,
+             Real           * WeightsX_X2,
+             Real           * WeightsX_X3,
+             void           * vpLX_X1_Refined,
+             void           * vpLX_X2_Refined,
+             void           * vpLX_X3_Refined );
 
     /**
     * \brief Increment flux correction with fine data.
@@ -283,14 +319,34 @@ public:
     * \param nFields
     * \param FaceRatio
     * \param BoxNumber
-    * \param gpu_or_cpu
+    * \param BoxNumber
+    * \param nDOFX_X1
+    * \param nDOFX_X2
+    * \param nDOFX_X3
+    * \param nFineX_X1
+    * \param nFineX_X2
+    * \param nFineX_X3
+    * \param WeightsX_X1
+    * \param WeightsX_X2
+    * \param WeightsX_X3
+    * \param runon
     */
-    void FineAdd_DG (const FArrayBox& SurfaceFluxes,
-                     int              iDimX,
-                     int              nFields,
-                     Real             FaceRatio,
-                     int              BoxNumber,
-                     RunOn            runon) noexcept;
+    void FineAdd_DG
+           ( const FArrayBox    & SurfaceFluxes,
+             int                  iDimX,
+             int                  nFields,
+             Real                 FaceRatio,
+             int                  nDOFX_X1,
+             int                  nDOFX_X2,
+             int                  nDOFX_X3,
+             Real               * WeightsX_X1,
+             Real               * WeightsX_X2,
+             Real               * WeightsX_X3,
+             Array4<Real const>   LX_X1_Refined,
+             Array4<Real const>   LX_X2_Refined,
+             Array4<Real const>   LX_X3_Refined,
+             int                  BoxNumber,
+             RunOn                runon ) noexcept;
 
     /**
     * \brief Increment flux correction with fine data.

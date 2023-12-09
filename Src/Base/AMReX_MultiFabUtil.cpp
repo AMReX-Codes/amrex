@@ -396,7 +396,7 @@ namespace amrex
            ( const MultiFab & FineMF,         MultiFab & CrseMF,
              const MultiFab & FineMF_G, const MultiFab & CrseMF_G,
              int nComp, int RefRatio, int nDOFX,
-             Array4<Real> FineToCoarseProjectionMatrix )
+             Array4<Real const> FineToCoarseProjectionMatrix )
     {
          average_down_dg_conservative
            ( FineMF, CrseMF, FineMF_G, CrseMF_G, nComp,
@@ -408,7 +408,7 @@ namespace amrex
            ( const MultiFab & FineMF  ,       MultiFab & CrseMF,
              const MultiFab & FineMF_G, const MultiFab & CrseMF_G,
              int nComp, const IntVect & RefRatio, int nDOFX,
-             Array4<Real> FineToCoarseProjectionMatrix )
+             Array4<Real const> FineToCoarseProjectionMatrix )
     {
 
         BL_PROFILE("amrex::average_down_dg_conservative");
@@ -492,7 +492,7 @@ namespace amrex
     void average_down_dg_pointwise
            ( const MultiFab & FineMF, MultiFab & CrseMF,
              int nComp, int RefRatio, int nDOFX,
-             Array4<Real> FineToCoarseProjectionMatrix )
+             Array4<Real const> FineToCoarseProjectionMatrix )
     {
          average_down_dg_pointwise
            ( FineMF, CrseMF, nComp,
@@ -503,7 +503,7 @@ namespace amrex
     void average_down_dg_pointwise
            ( const MultiFab & FineMF, MultiFab & CrseMF,
              int nComp, const IntVect & RefRatio, int nDOFX,
-             Array4<Real> FineToCoarseProjectionMatrix )
+             Array4<Real const> FineToCoarseProjectionMatrix )
     {
 
         BL_PROFILE("amrex::average_down_dg_pointwise");

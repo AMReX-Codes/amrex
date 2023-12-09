@@ -126,7 +126,7 @@ fluxreg_fineadd_dg( Box const&                CrseBox,
                     const int                 nFields,
                     int                       nDOFX_X,
                     const Real *              WeightsX_X,
-                    Real ***                  LX_X,
+                    Array4<Real const>        LX_X,
                     Real                      FaceRatio,
                     Dim3 const&               ratio ) noexcept
 {
@@ -161,7 +161,7 @@ fluxreg_fineadd_dg( Box const&                CrseBox,
                                        * SurfaceFluxes_Fine
                                            (iFineF,jFineV,kFineV,
                                             iNX_F+iField*nDOFX_X)
-                                       * LX_X[iNX_C][iFn][iNX_F]
+                                       * LX_X(0,iNX_C,iFn,iNX_F)
                                        * FaceRatio;
                             } /* iField */
                         } /* iNX_F */
@@ -196,7 +196,7 @@ fluxreg_fineadd_dg( Box const&                CrseBox,
                                        * SurfaceFluxes_Fine
                                            (iFineV,jFineF,kFineV,
                                             jNX_F+iField*nDOFX_X)
-                                       * LX_X[jNX_C][jFn][jNX_F]
+                                       * LX_X(0,jNX_C,jFn,jNX_F)
                                        * FaceRatio;
                             } /* iField */
                         } /* jNX_F */
@@ -231,7 +231,7 @@ fluxreg_fineadd_dg( Box const&                CrseBox,
                                        * SurfaceFluxes_Fine
                                            (iFineV,jFineV,kFineF,
                                             kNX_F+iField*nDOFX_X)
-                                       * LX_X[kNX_C][kFn][kNX_F]
+                                       * LX_X(0,kNX_C,kFn,kNX_F)
                                        * FaceRatio;
                             } /* iField */
                         } /* kNX_F */

@@ -70,16 +70,16 @@ public:
     * \param runon
     */
     virtual void interpConservative
-      ( const FArrayBox & /* CrseFab                      */ ,
-        const FArrayBox & /* CrseFab_G                    */ ,
-        FArrayBox       & /* FineFab                      */ ,
-        const FArrayBox & /* FineFab_G                    */ ,
-        int               /* nComp                        */ ,
-        const Box       & /* fine_region                  */ ,
-        const IntVect   & /* RefRatio                     */ ,
-        int               /* nDOFX                        */ ,
-        Array4<Real>      /* CoarseToFineProjectionMatrix */ ,
-        RunOn             /* runon                        */  ){}
+      ( const FArrayBox &  /* CrseFab                      */ ,
+        const FArrayBox &  /* CrseFab_G                    */ ,
+        FArrayBox       &  /* FineFab                      */ ,
+        const FArrayBox &  /* FineFab_G                    */ ,
+        int                /* nComp                        */ ,
+        const Box       &  /* fine_region                  */ ,
+        const IntVect   &  /* RefRatio                     */ ,
+        int                /* nDOFX                        */ ,
+        Array4<Real const> /* CoarseToFineProjectionMatrix */ ,
+        RunOn              /* runon                        */  ){}
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -96,14 +96,14 @@ public:
     * \param runon
     */
     virtual void interpPointWise
-      ( const FArrayBox & /* CrseFab                      */ ,
-        FArrayBox       & /* FineFab                      */ ,
-        int               /* nComp                        */ ,
-        const Box       & /* fine_region                  */ ,
-        const IntVect   & /* RefRatio                     */ ,
-        int               /* nDOFX                        */ ,
-        Array4<Real>      /* CoarseToFineProjectionMatrix */ ,
-        RunOn             /* runon                        */  ){}
+      ( const FArrayBox &  /* CrseFab                      */ ,
+        FArrayBox       &  /* FineFab                      */ ,
+        int                /* nComp                        */ ,
+        const Box       &  /* fine_region                  */ ,
+        const IntVect   &  /* RefRatio                     */ ,
+        int                /* nDOFX                        */ ,
+        Array4<Real const> /* CoarseToFineProjectionMatrix */ ,
+        RunOn              /* runon                        */  ){}
 
     /**
     * \brief Coarse to fine interpolation in space for face-based data.
@@ -967,16 +967,16 @@ public:
     * \param runon
     */
     void interpConservative
-           ( const FArrayBox & CrseFab                     ,
-             const FArrayBox & CrseFab_G                   ,
-             FArrayBox       & FineFab                     ,
-             const FArrayBox & FineFab_G                   ,
-             int               nComp                       ,
-             const Box       & fine_region                 ,
-             const IntVect   & RefRatio                    ,
-             int               nDOFX                       ,
-             Array4<Real>      CoarseToFineProjectionMatrix,
-             RunOn             runon                        ) override;
+           ( const FArrayBox &  CrseFab                     ,
+             const FArrayBox &  CrseFab_G                   ,
+             FArrayBox       &  FineFab                     ,
+             const FArrayBox &  FineFab_G                   ,
+             int                nComp                       ,
+             const Box       &  fine_region                 ,
+             const IntVect   &  RefRatio                    ,
+             int                nDOFX                       ,
+             Array4<Real const> CoarseToFineProjectionMatrix,
+             RunOn              runon                        ) override;
 
     /**
     * \brief Coarse to fine interpolation in space.
@@ -991,14 +991,14 @@ public:
     * \param runon
     */
     void interpPointWise
-           ( const FArrayBox & CrseFab                     ,
-             FArrayBox       & FineFab                     ,
-             int               nComp                       ,
-             const Box       & fine_region                 ,
-             const IntVect   & RefRatio                    ,
-             int               nDOFX                       ,
-             Array4<Real>      CoarseToFineProjectionMatrix,
-             RunOn             runon                        ) override;
+           ( const FArrayBox &  CrseFab                     ,
+             FArrayBox       &  FineFab                     ,
+             int                nComp                       ,
+             const Box       &  fine_region                 ,
+             const IntVect   &  RefRatio                    ,
+             int                nDOFX                       ,
+             Array4<Real const> CoarseToFineProjectionMatrix,
+             RunOn              runon                        ) override;
 };
 /**
 * \brief CG interpolation on nodal data with cell.

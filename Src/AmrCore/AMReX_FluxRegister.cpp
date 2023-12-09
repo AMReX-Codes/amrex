@@ -5,7 +5,6 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_DG.H>
 
 namespace amrex {
 
@@ -282,10 +281,17 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
 
 void
-FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
-                            int             iDimX,
-                            int             nFields,
-                            FrOp            op)
+FluxRegister::CrseInit_DG
+  ( const MultiFab & SurfaceFlux,
+    int              iDimX,
+    int              nFields,
+    int              nDOFX_X1,
+    int              nDOFX_X2,
+    int              nDOFX_X3,
+    Real           * WeightsX_X1,
+    Real           * WeightsX_X2,
+    Real           * WeightsX_X3,
+    FrOp             op )
 {
 
     Real * WeightsX_X = nullptr;
@@ -293,18 +299,18 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
 
     if( iDimX == 0 )
     {
-        WeightsX_X = amrex::DG::WeightsX_X1;
-        nDOFX_X    = amrex::DG::nDOFX_X1;
+        WeightsX_X = WeightsX_X1;
+        nDOFX_X    = nDOFX_X1;
     }
     else if( iDimX == 1 )
     {
-        WeightsX_X = amrex::DG::WeightsX_X2;
-        nDOFX_X    = amrex::DG::nDOFX_X2;
+        WeightsX_X = WeightsX_X2;
+        nDOFX_X    = nDOFX_X2;
     }
     else
     {
-        WeightsX_X = amrex::DG::WeightsX_X3;
-        nDOFX_X    = amrex::DG::nDOFX_X3;
+        WeightsX_X = WeightsX_X3;
+        nDOFX_X    = nDOFX_X3;
     }
 
     int nComp = nDOFX_X * nFields;
@@ -312,7 +318,7 @@ FluxRegister::CrseInit_DG ( const MultiFab& SurfaceFlux,
     /* Define MultiFab for FluxRegister */
     MultiFab mf_reg( SurfaceFlux.boxArray(), SurfaceFlux.DistributionMap(),
                      nComp, 0, MFInfo(), SurfaceFlux.Factory() );
-    mf_reg.setVal( amrex::DG::Zero );
+    mf_reg.setVal( (Real)0.0 );
 
     int iX_B0[3];
     int iX_E0[3];
@@ -511,19 +517,51 @@ FluxRegister::FineAdd (const MultiFab& mflx,
 }
 
 void
-FluxRegister::FineAdd_DG (const MultiFab& SurfaceFluxes,
-                          int             iDimX,
-                          int             nFields,
-                          Real            FaceRatio)
+FluxRegister::FineAdd_DG
+  ( const MultiFab & SurfaceFluxes,
+    int              iDimX,
+    int              nFields,
+    Real             FaceRatio,
+    int              nDOFX_X1,
+    int              nDOFX_X2,
+    int              nDOFX_X3,
+    int              nFineX_X1,
+    int              nFineX_X2,
+    int              nFineX_X3,
+    Real           * WeightsX_X1,
+    Real           * WeightsX_X2,
+    Real           * WeightsX_X3,
+    void           * vpLX_X1_Refined,
+    void           * vpLX_X2_Refined,
+    void           * vpLX_X3_Refined )
 {
+    auto *pLX_X1_Refined
+           = reinterpret_cast<Real*>(vpLX_X1_Refined);
+    Array4<Real> LX_X1_Refined
+                   ( pLX_X1_Refined,
+                     {0,0,0}, {1,nDOFX_X1,nFineX_X1}, nDOFX_X1 );
+    auto *pLX_X2_Refined
+           = reinterpret_cast<Real*>(vpLX_X2_Refined);
+    Array4<Real> LX_X2_Refined
+                   ( pLX_X2_Refined,
+                     {0,0,0}, {1,nDOFX_X2,nFineX_X2}, nDOFX_X2 );
+    auto *pLX_X3_Refined
+           = reinterpret_cast<Real*>(vpLX_X3_Refined);
+    Array4<Real> LX_X3_Refined
+                   ( pLX_X3_Refined,
+                     {0,0,0}, {1,nDOFX_X3,nFineX_X3}, nDOFX_X3 );
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(SurfaceFluxes); mfi.isValid(); ++mfi)
+    for ( MFIter mfi(SurfaceFluxes); mfi.isValid(); ++mfi )
     {
         const int k = mfi.index();
         FineAdd_DG( SurfaceFluxes[mfi], iDimX, nFields,
-                    FaceRatio, k, RunOn::Gpu);
+                    FaceRatio, nDOFX_X1, nDOFX_X2, nDOFX_X3,
+                    WeightsX_X1, WeightsX_X2, WeightsX_X3,
+                    LX_X1_Refined, LX_X2_Refined, LX_X3_Refined,
+                    k, RunOn::Gpu );
     }
 } /* END void FluxRegister::FineAdd_DG */
 
@@ -594,35 +632,49 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 }
 
 void
-FluxRegister::FineAdd_DG (const FArrayBox& SurfaceFluxes,
-                          int              iDimX,
-                          int              nFields,
-                          Real             FaceRatio,
-                          int              BoxNumber,
-                          RunOn            runon) noexcept
+FluxRegister::FineAdd_DG
+  ( const FArrayBox    & SurfaceFluxes,
+    int                  iDimX,
+    int                  nFields,
+    Real                 FaceRatio,
+    int                  nDOFX_X1,
+    int                  nDOFX_X2,
+    int                  nDOFX_X3,
+    Real               * WeightsX_X1,
+    Real               * WeightsX_X2,
+    Real               * WeightsX_X3,
+    Array4<Real const>   LX_X1_Refined,
+    Array4<Real const>   LX_X2_Refined,
+    Array4<Real const>   LX_X3_Refined,
+    int                  BoxNumber,
+    RunOn                runon) noexcept
 {
-
+    Array4<Real const> LX_X;
     Real * WeightsX_X = nullptr;
-    Real *** LX_X     = nullptr;
     int nDOFX_X       = -1;
+
 
     if( iDimX == 0 )
     {
-        WeightsX_X = amrex::DG::WeightsX_X1;
-        LX_X       = amrex::DG::LX_X1;
-        nDOFX_X    = amrex::DG::nDOFX_X1;
+        WeightsX_X = WeightsX_X1;
+        LX_X       = LX_X1_Refined;
+        nDOFX_X    = nDOFX_X1;
     }
-    if( iDimX == 1 )
+    else if( iDimX == 1 )
     {
-        WeightsX_X = amrex::DG::WeightsX_X2;
-        LX_X       = amrex::DG::LX_X2;
-        nDOFX_X    = amrex::DG::nDOFX_X2;
+        WeightsX_X = WeightsX_X2;
+        LX_X       = LX_X2_Refined;
+        nDOFX_X    = nDOFX_X2;
     }
-    if( iDimX == 2 )
+    else if( iDimX == 2 )
     {
-        WeightsX_X = amrex::DG::WeightsX_X3;
-        LX_X       = amrex::DG::LX_X3;
-        nDOFX_X    = amrex::DG::nDOFX_X3;
+        WeightsX_X = WeightsX_X3;
+        LX_X       = LX_X3_Refined;
+        nDOFX_X    = nDOFX_X3;
+    }
+    else
+    {
+        amrex::Abort( "Invalid value for iDimX" );
     }
 
     FArrayBox& loreg = bndry[Orientation(iDimX,Orientation::low)][BoxNumber];
@@ -942,7 +994,7 @@ FluxRegister::Reflux_DG ( MultiFab&       MF_G,
                                    IntVect::TheDimensionVector(iDimX) ),
                    MF_dU.DistributionMap(), nComp, 0,
                    MFInfo(), MF_dU.Factory() );
-    MF_dF.setVal( amrex::DG::Zero );
+    MF_dF.setVal( (Real)0.0 );
     bndry[face].copyTo( MF_dF, 0, 0, 0, nComp, geom.periodicity() );
 
 #ifdef AMREX_USE_OMP

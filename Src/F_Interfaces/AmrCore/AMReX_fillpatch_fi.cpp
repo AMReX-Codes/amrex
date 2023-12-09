@@ -155,9 +155,9 @@ extern "C"
 
         auto *pCoarseToFineProjectionMatrix
                = reinterpret_cast<Real*>(vpCoarseToFineProjectionMatrix);
-        Array4<Real> CoarseToFineProjectionMatrix
-                       ( pCoarseToFineProjectionMatrix,
-                         {0,0,0}, {1,nFineV,nDOFX}, nDOFX );
+        Array4<Real const> CoarseToFineProjectionMatrix
+                             ( pCoarseToFineProjectionMatrix,
+                               {0,0,0}, {1,nFineV,nDOFX}, nDOFX );
 
         amrex::FillPatchTwoLevels
                  ( *MF, *MF_G, Time,
@@ -202,9 +202,9 @@ extern "C"
 
         auto *pCoarseToFineProjectionMatrix
                = reinterpret_cast<Real*>(vpCoarseToFineProjectionMatrix);
-        Array4<Real> CoarseToFineProjectionMatrix
-                       ( pCoarseToFineProjectionMatrix,
-                         {0,0,0}, {1,nFineV,nDOFX}, nDOFX );
+        Array4<Real const> CoarseToFineProjectionMatrix
+                             ( pCoarseToFineProjectionMatrix,
+                               {0,0,0}, {1,nFineV,nDOFX}, nDOFX );
 
         amrex::FillPatchTwoLevels
                  ( *MF, Time,
@@ -323,9 +323,9 @@ extern "C"
 
         auto *pCoarseToFineProjectionMatrix
                = reinterpret_cast<Real*>(vpCoarseToFineProjectionMatrix);
-        Array4<Real> CoarseToFineProjectionMatrix
-                       ( pCoarseToFineProjectionMatrix,
-                         {0,0,0}, {1,nFineV,nDOFX}, nDOFX );
+        Array4<Real const> CoarseToFineProjectionMatrix
+                             ( pCoarseToFineProjectionMatrix,
+                               {0,0,0}, {1,nFineV,nDOFX}, nDOFX );
 
         amrex::InterpFromCoarseLevel
                  ( *MF, *MF_G, Time, *pCrseMF, *pCrseMF_G,
@@ -361,9 +361,9 @@ extern "C"
 
         auto *pCoarseToFineProjectionMatrix
                = reinterpret_cast<Real*>(vpCoarseToFineProjectionMatrix);
-        Array4<Real> CoarseToFineProjectionMatrix
-                       ( pCoarseToFineProjectionMatrix,
-                         {0,0,0}, {1,nFineV,nDOFX}, nDOFX );
+        Array4<Real const> CoarseToFineProjectionMatrix
+                             ( pCoarseToFineProjectionMatrix,
+                               {0,0,0}, {1,nFineV,nDOFX}, nDOFX );
 
         amrex::InterpFromCoarseLevel
                  ( *MF, Time, *pCrseMF,

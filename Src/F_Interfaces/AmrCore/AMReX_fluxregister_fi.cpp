@@ -39,15 +39,26 @@ extern "C"
     }
 
     void amrex_fi_fluxregister_fineadd_dg
-      ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[],
-        int nFields, Real FaceRatio )
+           ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[],
+             int nFields, Real FaceRatio,
+             int nDOFX_X1, int nDOFX_X2, int nDOFX_X3,
+             int nFineX_X1, int nFineX_X2, int nFineX_X3,
+             Real * WeightsX_X1, Real * WeightsX_X2, Real * WeightsX_X3,
+             void * vpLX_X1_Refined,
+             void * vpLX_X2_Refined,
+             void * vpLX_X3_Refined )
+
     {
-        for (int iDimX = 0; iDimX < BL_SPACEDIM; ++iDimX)
+        for ( int iDimX = 0; iDimX < BL_SPACEDIM; ++iDimX )
         {
             BL_ASSERT( flux_reg->nComp() == SurfaceFluxes[iDimX]->nComp() );
 
             flux_reg->FineAdd_DG
-              ( *SurfaceFluxes[iDimX], iDimX, nFields, FaceRatio );
+              ( *SurfaceFluxes[iDimX], iDimX, nFields, FaceRatio,
+                nDOFX_X1, nDOFX_X2, nDOFX_X3,
+                nFineX_X1, nFineX_X2, nFineX_X3,
+                WeightsX_X1, WeightsX_X2, WeightsX_X3,
+                vpLX_X1_Refined, vpLX_X2_Refined, vpLX_X3_Refined );
         }
     } /* END void amrex_fi_fluxregister_fineadd_dg */
 
@@ -60,14 +71,19 @@ extern "C"
     }
 
     void amrex_fi_fluxregister_crseinit_dg
-           ( FluxRegister* flux_reg, MultiFab* SurfaceFluxes[], int nFields )
+           ( FluxRegister * flux_reg, MultiFab * SurfaceFluxes[], int nFields,
+             int nDOFX_X1, int nDOFX_X2, int nDOFX_X3,
+             Real * WeightsX_X1, Real * WeightsX_X2, Real * WeightsX_X3 )
     {
 
         for ( int iDimX = 0; iDimX < BL_SPACEDIM; ++iDimX )
         {
             BL_ASSERT( flux_reg->nComp() == SurfaceFluxes[iDimX]->nComp() );
 
-            flux_reg->CrseInit_DG( *SurfaceFluxes[iDimX], iDimX, nFields );
+            flux_reg->CrseInit_DG
+                        ( *SurfaceFluxes[iDimX], iDimX, nFields,
+                          nDOFX_X1, nDOFX_X2, nDOFX_X3,
+                          WeightsX_X1, WeightsX_X2, WeightsX_X3 );
         }
     }
 

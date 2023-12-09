@@ -41,7 +41,7 @@ dginterpConservative_interp
     Array4<Real const> const & CrseArrG,
     IntVect            const & RefRatio,
     int                        nDOFX,
-    Array4<Real>               CoarseToFineProjectionMatrix ) noexcept
+    Array4<Real const>         CoarseToFineProjectionMatrix ) noexcept
 {
   const Real Zero = 0.0;
 
@@ -132,7 +132,7 @@ dginterpPointWise_interp
     Array4<Real const> const & CrseArr,
     IntVect            const & RefRatio,
     int                        nDOFX,
-    Array4<Real>               CoarseToFineProjectionMatrix ) noexcept
+    Array4<Real const>         CoarseToFineProjectionMatrix ) noexcept
 {
   const Real Zero = 0.0;
 
