@@ -367,6 +367,9 @@ void amrex_avgdown_cg
          Array4<Real> L2G,
          Array4<Real> F2C ) noexcept
 {
+amrex::ignore_unused
+  ( iCrse, nComp, CrseArr, FineArr, RefRatio, nDOFX, nFine, G2L, L2G, F2C );
+/*
   const Real Zero = 0.0;
 
   // Corresponding fine element
@@ -376,15 +379,15 @@ void amrex_avgdown_cg
   // Number of fields in MultiFab
   const int nGF = nComp / nDOFX;
 
-  Real * GhG = new Real[nDOFX];
-  Real * GhL = new Real[nDOFX];
+  Real * GhG = new(std::nothrow) Real[nDOFX];
+  Real * GhL = new(std::nothrow) Real[nDOFX];
 
-  Real ** ghG = new Real*[nFine];
-  Real ** ghL = new Real*[nFine];
+  Real ** ghG = new(std::nothrow) Real*[nFine];
+  Real ** ghL = new(std::nothrow) Real*[nFine];
   for( int iFn = 0; iFn < nFine; iFn++ )
   {
-    ghG[iFn] = new Real[nDOFX];
-    ghL[iFn] = new Real[nDOFX];
+    ghG[iFn] = new(std::nothrow) Real[nDOFX];
+    ghL[iFn] = new(std::nothrow) Real[nDOFX];
   }
 
   for( int iGF = 0; iGF < nGF; iGF++ )
@@ -447,6 +450,7 @@ void amrex_avgdown_cg
   delete[] ghG;
   delete[] GhL;
   delete[] GhG;
+*/
 } // END void amrex_avgdown_cg
 
 template <typename T>
