@@ -35,7 +35,11 @@ void copyParticle (const      ParticleTileData<T_ParticleType, NAR, NAI>& dst,
     AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
     AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
 
-    dst.m_aos[dst_i] = src.m_aos[src_i];
+    if constexpr(!T_ParticleType::is_soa_particle) {
+        dst.m_aos[dst_i] = src.m_aos[src_i];
+    } else {
+        dst.m_idcpu[dst_i] = src.m_idcpu[src_i];
+    }
     if constexpr(NAR > 0) {
         for (int j = 0; j < NAR; ++j) {
             dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
