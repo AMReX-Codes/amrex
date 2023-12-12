@@ -912,7 +912,7 @@ struct ParticleTile
         }
 
         m_soa_tile.resize(np+1);
-        if constexpr (!ParticleType::is_soa_particle) {
+        if constexpr (ParticleType::is_soa_particle) {
             m_soa_tile.GetIdCPUData()[np] = sp.m_idcpu;
         }
         auto& arr_rdata = m_soa_tile.GetRealData();
