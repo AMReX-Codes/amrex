@@ -40,7 +40,7 @@ public:
 
 #ifdef AMREX_USE_GPU
     //! Is this CUDA stream ordered memory allocator?
-    [[nodiscard]] virtual bool isStreamOrderedArena () const final { return true; }
+    [[nodiscard]] bool isStreamOrderedArena () const final { return true; }
 #endif
 
 #ifdef AMREX_CUDA_GE_11_2
