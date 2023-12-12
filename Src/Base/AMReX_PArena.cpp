@@ -180,16 +180,4 @@ PArena::isPinned () const
 #endif
 }
 
-#ifdef AMREX_USE_CUDA
-bool
-PArena::isStreamOrderedArena () const
-{
-#ifdef AMREX_CUDA_GE_11_2
-    return static_cast<bool>(Gpu::Device::memoryPoolsSupported());
-#else
-    return false;
-#endif
-}
-#endif
-
 }

@@ -157,8 +157,8 @@ public:
      */
     virtual void registerForProfiling (const std::string& memory_name);
 
-#ifdef AMREX_USE_CUDA
-    //! Is this CUDA stream ordered memory allocator?
+#ifdef AMREX_USE_GPU
+    //! Is this GPU stream ordered memory allocator?
     [[nodiscard]] virtual bool isStreamOrderedArena () const { return false; }
 #endif
 

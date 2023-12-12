@@ -1631,8 +1631,8 @@ protected:
     Long truesize = 0L;         //!< nvar*numpts that was allocated on heap.
     bool ptr_owner = false;     //!< Owner of T*?
     bool shared_memory = false; //!< Is the memory allocated in shared memory?
-#ifdef AMREX_USE_CUDA
-    gpuStream_t alloc_stream = nullptr;
+#ifdef AMREX_USE_GPU
+    gpuStream_t alloc_stream{};
 #endif
 };
 
@@ -1905,7 +1905,7 @@ BaseFab<T>::define ()
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;
     this->dptr = static_cast<T*>(this->alloc(this->truesize*sizeof(T)));
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     this->alloc_stream = Gpu::gpuStream();
 #endif
 
@@ -2009,7 +2009,7 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
       dptr(rhs.dptr), domain(rhs.domain),
       nvar(rhs.nvar), truesize(rhs.truesize),
       ptr_owner(rhs.ptr_owner), shared_memory(rhs.shared_memory)
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
       , alloc_stream(rhs.alloc_stream)
 #endif
 {
@@ -2030,7 +2030,7 @@ BaseFab<T>::operator= (BaseFab<T>&& rhs) noexcept
         truesize = rhs.truesize;
         ptr_owner = rhs.ptr_owner;
         shared_memory = rhs.shared_memory;
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
         alloc_stream = rhs.alloc_stream;
 #endif
 
@@ -2075,7 +2075,7 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
         define();
     }
     else if (this->nvar*this->domain.numPts() > this->truesize
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
              || (arena()->isStreamOrderedArena() && alloc_stream != Gpu::gpuStream())
 #endif
              )
@@ -2130,12 +2130,12 @@ BaseFab<T>::clear () noexcept
 
             placementDelete(this->dptr, this->truesize);
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
             auto current_stream = Gpu::Device::gpuStream();
             Gpu::Device::setStream(alloc_stream);
 #endif
             this->free(this->dptr);
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
             Gpu::Device::setStream(current_stream);
 #endif
 
