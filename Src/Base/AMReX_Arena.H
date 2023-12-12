@@ -157,6 +157,11 @@ public:
      */
     virtual void registerForProfiling (const std::string& memory_name);
 
+#ifdef AMREX_USE_CUDA
+    //! Is this CUDA stream ordered memory allocator?
+    [[nodiscard]] virtual bool isStreamOrderedArena () const { return false; }
+#endif
+
     /**
     * \brief Given a minimum required arena size of sz bytes, this returns
     * the next largest arena size that will align to align_size bytes

@@ -38,6 +38,11 @@ public:
     [[nodiscard]] bool isDevice () const final;
     [[nodiscard]] bool isPinned () const final;
 
+#ifdef AMREX_USE_CUDA
+    //! Is this CUDA stream ordered memory allocator?
+    [[nodiscard]] virtual bool isStreamOrderedArena () const final;
+#endif
+
 #ifdef AMREX_CUDA_GE_11_2
 private:
     cudaMemPool_t m_pool;
