@@ -29,6 +29,7 @@ struct Dim1 {
 struct gpuStream_t {
     sycl::queue* queue = nullptr;
     bool operator== (gpuStream_t const& rhs) noexcept { return queue == rhs.queue; }
+    bool operator!= (gpuStream_t const& rhs) noexcept { return queue != rhs.queue; }
 };
 
 #endif
