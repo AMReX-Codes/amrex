@@ -111,7 +111,7 @@ running on 4 MPI processes.
     MLPoisson::Fapply()                             114     0.1103      0.113     0.1167   8.48%
     FabArray::Xpay()                                109        0.1     0.1013     0.1038   7.54%
 
-In this test, there are 16 boxes even distributed among 4 MPI processes. The
+In this test, there are 16 boxes evenly distributed among 4 MPI processes. The
 output above shows that the load is perfectly balanced. However, if the load
 is not balanced, the results can be very different and sometimes
 misleading. For example, if we put 2, 2, 6 and 6 boxes on processes 0, 1, 2
