@@ -16,6 +16,10 @@
 #include <string>
 #include <memory>
 
+#ifdef AMREX_USE_OPENPMD_API
+#include <AMReX_PlotFileUtilOPENPMD.H>
+#endif
+
 namespace amrex
 {
     //!  return the name of the level directory,  e.g., Level_5

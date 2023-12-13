@@ -342,6 +342,10 @@ cmake_dependent_option(AMReX_HDF5_ZFP "Enable ZFP compression in HDF5-based IO" 
    "AMReX_HDF5" OFF )
 print_option(AMReX_HDF5_ZFP)
 
+# openPMD-api
+option(AMReX_OPENPMD_API "Enable I/O through openPMD-api" OFF)
+print_option(AMReX_OPENPMD_API)
+
 # SUNDIALS
 option( AMReX_SUNDIALS "Enable SUNDIALS interfaces" OFF )
 print_option( AMReX_SUNDIALS )
