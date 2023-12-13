@@ -675,6 +675,7 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
             }
         });
 #else
+    amrex::ignore_unused(pperm, pglobal_idx);
     Abort("Not implemented");
 #endif
 
