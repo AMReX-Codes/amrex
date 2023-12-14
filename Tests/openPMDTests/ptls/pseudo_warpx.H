@@ -44,7 +44,7 @@ namespace WarpX
       Yee = 1,
       CKC = 2,
       PSATD = 3,
-      ECT = 4
+      Other = 4
     };
   };
 

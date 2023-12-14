@@ -238,7 +238,7 @@ namespace amrex
                              const amrex::Vector<const amrex::MultiFab*>& mf,
                              const amrex::Vector<amrex::Geometry>& geom,
                              //const Vector<int> &iteration,
-                             //const int iteration, /* note:  all levels are outputing the same step */
+                             //const int iteration, /* note:  all levels are outputting the same step */
                              const double time ) const;
 
       template<class PC>

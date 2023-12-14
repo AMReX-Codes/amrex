@@ -250,7 +250,7 @@ namespace amrex
        }
 
       //
-      // used by both setup/saverealproperty so better be here than a lamda function
+      // used by both setup/saverealproperty so better be here than a lambda function
       //
       inline
       auto  getComponentRecord (openPMD::ParticleSpecies& currSpecies,
@@ -280,7 +280,7 @@ namespace amrex
       auto const numParticleOnTile = pti.numParticles();
       uint64_t const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
 
-      // first we concatinate the AoS into contiguous arrays
+      // first we concatenate the AoS into contiguous arrays
       {
         for( auto idx=0; idx<PIt::ContainerType::NStructReal; idx++ )
           {
@@ -316,7 +316,7 @@ namespace amrex
       auto const numParticleOnTile = pti.numParticles();
       uint64_t const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
 
-      // first we concatinate the AoS into contiguous arrays
+      // first we concatenate the AoS into contiguous arrays
       {
         for( auto idx=0; idx<PIt::ContainerType::NStructInt; idx++ )   // lgtm [cpp/constant-comparison]
           {

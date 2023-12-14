@@ -278,7 +278,7 @@ namespace amrex {
 
     ////////////////////////////////////////
     //
-    // Classs AMReX_openPMDWriter
+    // Class AMReX_openPMDWriter
     //
     ////////////////////////////////////////
     AMReX_openPMDWriter::AMReX_openPMDWriter ()

@@ -28,7 +28,7 @@ public:
   {};
 
   //
-  //  fields related  funcitons
+  //  fields related funcitions
   //
   void SetupMeshComp (openPMD::Mesh& mesh,
                       const amrex::Geometry& full_geom,
@@ -276,7 +276,7 @@ void AMReX_warpxWriter::SetConstantMassCharge(openPMD::ParticleSpecies& currSpec
 void AMReX_warpxWriter::SetParticleSpecieAttributes(openPMD::ParticleSpecies& currSpecies) const
   {
 
-    // ED-PIC extention
+    // ED-PIC extension
     currSpecies["id"].setAttribute( "macroWeighted", 0u );
     currSpecies["id"].setAttribute( "weightingPower", 0.0 );
     currSpecies["position"].setAttribute( "macroWeighted", 0u );

@@ -359,7 +359,7 @@ void testBTD (TestParams& parms, int nghost)
 
     int nsteps = 4;
     //
-    // mimicing  BTD behavior. Total is 2 actual steps, each steps is written twice
+    // mimicking  BTD behavior. Total is 2 actual steps, each steps is written twice
     // step writing order is 0 1 0 1, the last two writes are the final flushes
     // To make things simple, at the end of the second write, we should see double the ptls.
     // AsssignPtlOffsets(num_ptls) makes sure the second write starts off correctly
