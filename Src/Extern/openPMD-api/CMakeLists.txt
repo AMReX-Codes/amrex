@@ -1,3 +1,5 @@
+add_amrex_define(AMREX_USE_OPENPMD_API NO_LEGACY IF AMReX_OPENPMD_API)
+
 foreach(D IN LISTS AMReX_SPACEDIM)
 
   target_include_directories( amrex_${D}d
