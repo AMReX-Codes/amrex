@@ -458,7 +458,7 @@ SoAParticle<NArrayReal, NArrayInt>::NextID ()
 #endif
     next = the_next_id++;
 
-    if (next > IntParticleIds::LastParticleID) {
+    if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
     }
 
@@ -470,7 +470,7 @@ int
 SoAParticle<NArrayReal, NArrayInt>::UnprotectedNextID ()
 {
     int next = the_next_id++;
-    if (next > IntParticleIds::LastParticleID) {
+    if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
     }
     return next;
@@ -1039,7 +1039,9 @@ struct ParticleTile
 
     void shrink_to_fit ()
     {
-        if constexpr (!ParticleType::is_soa_particle) {
+        if constexpr (ParticleType::is_soa_particle) {
+            GetStructOfArrays().GetIdCPUData().shrink_to_fit();
+        } else {
             m_aos_tile().shrink_to_fit();
         }
         for (int j = 0; j < NumRealComps(); ++j)
@@ -1058,7 +1060,9 @@ struct ParticleTile
     Long capacity () const
     {
         Long nbytes = 0;
-        if constexpr (!ParticleType::is_soa_particle) {
+        if constexpr (ParticleType::is_soa_particle) {
+            nbytes += GetStructOfArrays().GetIdCPUData().capacity() * sizeof(uint64_t);
+        } else {
             nbytes += m_aos_tile().capacity() * sizeof(ParticleType);
         }
         for (int j = 0; j < NumRealComps(); ++j)
@@ -1077,7 +1081,9 @@ struct ParticleTile
 
     void swap (ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>& other)
     {
-        if constexpr (!ParticleType::is_soa_particle) {
+        if constexpr (ParticleType::is_soa_particle) {
+            GetStructOfArrays().GetIdCPUData().swap(other.GetStructOfArrays().GetIdCPUData());
+        } else {
             m_aos_tile().swap(other.GetArrayOfStructs()());
         }
         for (int j = 0; j < NumRealComps(); ++j)

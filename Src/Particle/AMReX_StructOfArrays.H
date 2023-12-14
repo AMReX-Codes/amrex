@@ -195,13 +195,12 @@ struct StructOfArrays {
         for (int i = 0; i < int(m_runtime_idata.size()); ++i) { m_runtime_idata[i].resize(count); }
     }
 
-    [[nodiscard]] IdCPU* idcpuarray () {
+    [[nodiscard]] uint64_t* idcpuarray () {
         if constexpr (use64BitIdCpu == true) {
             return m_idcpu.dataPtr();
         } else {
             return nullptr;
         }
-
     }
 
     [[nodiscard]] GpuArray<ParticleReal*, NReal> realarray ()
