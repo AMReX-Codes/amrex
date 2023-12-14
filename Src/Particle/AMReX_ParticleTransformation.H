@@ -608,7 +608,6 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
  * \param p predicate function - particles will be copied if p returns true
  * \param src_start the offset at which to start reading particles from src
  * \param dst_start the offset at which to start writing particles to dst
- * \param n the number of particles to apply the operation to
  *
  */
 template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index,

@@ -723,6 +723,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
 }
 
 #endif /* __CUDACC__ */
+
 template <class FAB>
 template <typename BUF>
 void
@@ -892,6 +893,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 }
 
 #endif /* AMREX_USE_GPU */
+
 template <class FAB>
 template <typename BUF>
 void
