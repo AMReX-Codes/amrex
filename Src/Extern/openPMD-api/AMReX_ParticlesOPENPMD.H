@@ -1,6 +1,13 @@
 #ifndef AMREX_PTL_OPENPMD_API_H
 #define AMREX_PTL_OPENPMD_API_H
 
+/** 
+*   This file is included from AMReX_ParticleCounter.H
+*   and belongs to the class ParticleContainer_impl.
+*   The namespace amrex was already declared.
+*
+*   Therefore all the definitions in this file belongs to namespace amrex
+*/
 
 struct AMReX_PtlCounter
 {
