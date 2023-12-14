@@ -52,7 +52,7 @@ jobs:
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs_bittree amr.plot_int=1000
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-15 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -104,7 +104,7 @@ jobs:
         mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs_bittree max_step=10
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-15 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
