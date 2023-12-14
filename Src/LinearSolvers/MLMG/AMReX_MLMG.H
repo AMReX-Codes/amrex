@@ -545,7 +545,7 @@ MLMGT<MF>::getGradSolution (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_grad_so
             }
             linop.compGrad(alev, GetArrOfPtrs(grad_sol), sol[alev], a_loc);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                a_grad_sol[alev][idim]->LocalCopy(grad_sol, 0, 0, ncomp, IntVect(0));
+                a_grad_sol[alev][idim]->LocalCopy(grad_sol[idim], 0, 0, ncomp, IntVect(0));
             }
         }
     }
@@ -1370,7 +1370,7 @@ MLMGT<MF>::mgFcycle ()
     }
 }
 
-// At the true bottom of the coarset AMR level.
+// At the true bottom of the coarsest AMR level.
 // in  : Residual (res) as b
 // out : Correction (cor) as x
 template <typename MF>

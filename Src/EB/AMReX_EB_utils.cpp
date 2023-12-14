@@ -31,7 +31,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
                    RealVect const& eb_normal, RealVect const& eb_p0,
                    GpuArray<Real,AMREX_SPACEDIM> const& dx)
 {
-    // Enumerate the possible EB facet edges invovlved.
+    // Enumerate the possible EB facet edges involved.
     int n_facets = 0;
     IntVect ind_facets {AMREX_D_DECL(0, 0, 0)};
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {

@@ -90,54 +90,6 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
     return Array4<T>{p, amrex::begin(bx), amrex::end(bx), ncomp};
 }
 
-/**
-*  \brief A Fortran Array-like Object
-*  BaseFab emulates the Fortran array concept.
-*  Useful operations can be performed upon
-*  BaseFabs in C++, and they provide a convenient interface to
-*  Fortran when it is necessary to retreat into that language.
-
-*  BaseFab is a template class.  Through use of the
-*  template, a BaseFab may be based upon any class.  So far at least,
-*  most applications have been based upon simple types like integers,
-*  real*4s, or real*8s.  Most applications do not use BaseFabs
-*  directly, but utilize specialized classes derived from BaseFab.
-
-*  Classes derived from BaseFab include FArrayBox, IArrayBox, TagBox,
-*  Mask, EBFArrayBox, EBCellFlag and CutFab.
-
-*  BaseFab objects depend on the dimensionality of space
-*  (indirectly through the DOMAIN Box member).  It is
-*  typical to define the macro SPACEDIM to be 1, 2, or 3 to indicate
-*  the dimension of space.  See the discussion of class Box for more
-*  information.  A BaseFab contains a Box DOMAIN, which indicates the
-*  integer indexing space over which the array is defined.  A BaseFab
-*  also has NVAR components.  By components, we mean that for each
-*  point in the rectangular indexing space, there are NVAR values
-*  associated with that point.  A Fortran array corresponding to a
-*  BaseFab would have (SPACEDIM+1) dimensions.
-
-*  By design, the array layout in a BaseFab mirrors that of a
-*  Fortran array.  The first index (x direction for example) varies
-*  most rapidly, the next index (y direction), if any, varies next
-*  fastest. The component index varies last, after all the spatial
-*  indices.
-
-*  It is sometimes convenient to be able to treat a sub-array within an
-*  existing BaseFab as a BaseFab in its own right.  This is often
-*  referred to as aliasing the BaseFab.  Note that when aliasing is
-*  used, the BaseFabs domain will not, in general, be the same as the
-*  parent BaseFabs domain, nor will the number of components.
-*  BaseFab is a dimension dependent class, so SPACEDIM must be
-*  defined as either 1, 2, or 3 when compiling.
-
-*  This is NOT a polymorphic class.
-
-*  It does NOT provide a copy constructor or assignment operator.
-
-*  T MUST have a default constructor and an assignment operator.
-*/
-
 template <typename T>
 typename std::enable_if<std::is_arithmetic<T>::value>::type
 placementNew (T* const /*ptr*/, Long /*n*/)
@@ -178,6 +130,54 @@ placementDelete (T* const ptr, Long n)
     });
 }
 
+/**
+ * \brief A FortranArrayBox(FAB)-like object
+ *
+ * BaseFab emulates the Fortran array concept.
+ * Useful operations can be performed upon
+ * BaseFabs in C++, and they provide a convenient interface to
+ * Fortran when it is necessary to retreat into that language.
+ *
+ * BaseFab is a template class.  Through use of the
+ * template, a BaseFab may be based upon any class.  So far at least,
+ * most applications have been based upon simple types like integers,
+ * real*4s, or real*8s.  Most applications do not use BaseFabs
+ * directly, but utilize specialized classes derived from BaseFab.
+ *
+ * Classes derived from BaseFab include FArrayBox, IArrayBox, TagBox,
+ * Mask, EBFArrayBox, EBCellFlag and CutFab.
+ *
+ * BaseFab objects depend on the dimensionality of space
+ * (indirectly through the DOMAIN Box member).  It is
+ * typical to define the macro SPACEDIM to be 1, 2, or 3 to indicate
+ * the dimension of space.  See the discussion of class Box for more
+ * information.  A BaseFab contains a Box DOMAIN, which indicates the
+ * integer indexing space over which the array is defined.  A BaseFab
+ * also has NVAR components.  By components, we mean that for each
+ * point in the rectangular indexing space, there are NVAR values
+ * associated with that point.  A Fortran array corresponding to a
+ * BaseFab would have (SPACEDIM+1) dimensions.
+ *
+ * By design, the array layout in a BaseFab mirrors that of a
+ * Fortran array.  The first index (x direction for example) varies
+ * most rapidly, the next index (y direction), if any, varies next
+ * fastest. The component index varies last, after all the spatial
+ * indices.
+ *
+ * It is sometimes convenient to be able to treat a sub-array within an
+ * existing BaseFab as a BaseFab in its own right.  This is often
+ * referred to as aliasing the BaseFab.  Note that when aliasing is
+ * used, the BaseFabs domain will not, in general, be the same as the
+ * parent BaseFabs domain, nor will the number of components.
+ * BaseFab is a dimension dependent class, so SPACEDIM must be
+ * defined as either 1, 2, or 3 when compiling.
+ *
+ * This is NOT a polymorphic class.
+ *
+ * It does NOT provide a copy constructor or assignment operator.
+ *
+ * \tparam T MUST have a default constructor and an assignment operator.
+ */
 template <class T>
 class BaseFab
     : public DataAllocator
@@ -1631,6 +1631,9 @@ protected:
     Long truesize = 0L;         //!< nvar*numpts that was allocated on heap.
     bool ptr_owner = false;     //!< Owner of T*?
     bool shared_memory = false; //!< Is the memory allocated in shared memory?
+#ifdef AMREX_USE_GPU
+    gpuStream_t alloc_stream{};
+#endif
 };
 
 template <class T>
@@ -1902,6 +1905,9 @@ BaseFab<T>::define ()
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;
     this->dptr = static_cast<T*>(this->alloc(this->truesize*sizeof(T)));
+#ifdef AMREX_USE_GPU
+    this->alloc_stream = Gpu::gpuStream();
+#endif
 
     placementNew(this->dptr, this->truesize);
 
@@ -2003,6 +2009,9 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
       dptr(rhs.dptr), domain(rhs.domain),
       nvar(rhs.nvar), truesize(rhs.truesize),
       ptr_owner(rhs.ptr_owner), shared_memory(rhs.shared_memory)
+#ifdef AMREX_USE_GPU
+      , alloc_stream(rhs.alloc_stream)
+#endif
 {
     rhs.dptr = nullptr;
     rhs.ptr_owner = false;
@@ -2021,6 +2030,9 @@ BaseFab<T>::operator= (BaseFab<T>&& rhs) noexcept
         truesize = rhs.truesize;
         ptr_owner = rhs.ptr_owner;
         shared_memory = rhs.shared_memory;
+#ifdef AMREX_USE_GPU
+        alloc_stream = rhs.alloc_stream;
+#endif
 
         rhs.dptr = nullptr;
         rhs.ptr_owner = false;
@@ -2062,7 +2074,11 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
         this->dptr = nullptr;
         define();
     }
-    else if (this->nvar*this->domain.numPts() > this->truesize)
+    else if (this->nvar*this->domain.numPts() > this->truesize
+#ifdef AMREX_USE_GPU
+             || (arena()->isStreamOrderedArena() && alloc_stream != Gpu::gpuStream())
+#endif
+             )
     {
         if (this->shared_memory) {
             amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
@@ -2114,7 +2130,14 @@ BaseFab<T>::clear () noexcept
 
             placementDelete(this->dptr, this->truesize);
 
+#ifdef AMREX_USE_GPU
+            auto current_stream = Gpu::Device::gpuStream();
+            Gpu::Device::setStream(alloc_stream);
+#endif
             this->free(this->dptr);
+#ifdef AMREX_USE_GPU
+            Gpu::Device::setStream(current_stream);
+#endif
 
             if (this->nvar > 1) {
                 amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));

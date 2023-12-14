@@ -438,12 +438,15 @@ int main_main()
     std::string fn2;
     std::string pt;
     Real rtol = 0.0;
+    Real atol = 0.0;
 
     int farg=1;
     while (farg <= narg) {
         const std::string fname = amrex::get_command_argument(farg);
         if (fname == "-r" || fname == "--rel_tol") {
             rtol = std::stod(amrex::get_command_argument(++farg));
+    } else if (fname == "--abs_tol") {
+            atol = std::stod(amrex::get_command_argument(++farg));
         } else {
             break;
         }
@@ -472,6 +475,7 @@ int main_main()
             << "\n"
             << " optional arguments:\n"
             << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
+            << "       --abs_tol atol     : absolute tolerance (default is 0)\n"
             << std::endl;
         return EXIT_SUCCESS;
     }
@@ -555,16 +559,25 @@ int main_main()
 
     int exit_code = 0;
     for (int i = 0; i < header1.num_comp; ++i) {
-        if (global_norms[i+header1.num_comp] > rtol) exit_code = 1;
+        if (global_norms[i                 ] > atol &&
+            global_norms[i+header1.num_comp] > rtol) exit_code = 1;
     }
 
     if (exit_code == 0)
     {
-        amrex::Print() << " PARTICLES AGREE to relative tolerance " << rtol << "\n";
+        if (atol > 0.) {
+            amrex::Print() << " PARTICLES AGREE to relative tolerance " << rtol << " and/or absolute tolerance " << atol << "\n";
+    } else {
+            amrex::Print() << " PARTICLES AGREE to relative tolerance " << rtol << "\n";
+    }
     }
     else
     {
-        amrex::Print() << " PARTICLES DISAGREE to relative tolerance " << rtol << "\n";
+        if (atol > 0.) {
+            amrex::Print() << " PARTICLES DISAGREE to relative tolerance " << rtol << " and/or absolute tolerance " << atol << "\n";
+    } else {
+            amrex::Print() << " PARTICLES DISAGREE to relative tolerance " << rtol << "\n";
+    }
     }
 
     return exit_code;
