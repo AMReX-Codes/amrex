@@ -267,7 +267,6 @@ class IntVect;
 *    #endif
 *
 */
-
 class ParmParse
 {
 public:

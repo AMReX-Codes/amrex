@@ -48,7 +48,6 @@ namespace amrex
 * IndexType.  This class implements operations for sets of Boxes.
 * This is a concrete class, not a polymorphic one.
 */
-
 class BoxList
 {
 public:

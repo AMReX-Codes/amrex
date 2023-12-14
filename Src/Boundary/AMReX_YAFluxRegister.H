@@ -23,7 +23,6 @@ namespace amrex {
   `Reflux` is called to update the coarse cells next to the
   coarse/fine boundary.
 */
-
 template <typename MF>
 class YAFluxRegisterT
 {

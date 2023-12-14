@@ -40,7 +40,6 @@ namespace amrex {
         FabSets are used primarily as a data storage mechanism, and are
         manipulated by more sophisticated control classes.
 */
-
 template <typename MF>
 class FabSetT
 {
