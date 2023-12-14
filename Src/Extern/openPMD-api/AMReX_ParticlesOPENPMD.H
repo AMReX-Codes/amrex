@@ -1,8 +1,6 @@
 #ifndef AMREX_PTL_OPENPMD_API_H
 #define AMREX_PTL_OPENPMD_API_H
 
-//#include <openPMD/openpmd.hpp>
-
 
 struct AMReX_PtlCounter
 {

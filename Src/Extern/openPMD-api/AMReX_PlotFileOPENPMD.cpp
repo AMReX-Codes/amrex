@@ -12,8 +12,8 @@
 #include <AMReX_EBFabFactory.H>
 #endif
 
-#include <openPMD/openPMD.hpp>
 #include <AMReX_PlotFileUtilOPENPMD.H>
+#include <openPMD/openPMD.hpp>
 #include <regex>
 
 namespace amrex {

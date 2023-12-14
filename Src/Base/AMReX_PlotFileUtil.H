@@ -12,13 +12,13 @@
 #include <AMReX_PlotFileUtilHDF5.H>
 #endif
 
-#include <ostream>
-#include <string>
-#include <memory>
-
 #ifdef AMREX_USE_OPENPMD_API
 #include <AMReX_PlotFileUtilOPENPMD.H>
 #endif
+
+#include <ostream>
+#include <string>
+#include <memory>
 
 namespace amrex
 {

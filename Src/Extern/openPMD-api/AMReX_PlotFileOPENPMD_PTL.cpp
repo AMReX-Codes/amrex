@@ -5,16 +5,18 @@
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_ParmParse.H>
 
-#include <fstream>
-#include <iomanip>
-
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
 #endif
 
-#include <openPMD/openPMD.hpp>
 #include <AMReX_PlotFileUtilOPENPMD.H>
+#include <openPMD/openPMD.hpp>
+
 #include <regex>
+#include <fstream>
+#include <iomanip>
+
+
 namespace amrex {
   namespace openpmd_api {
 

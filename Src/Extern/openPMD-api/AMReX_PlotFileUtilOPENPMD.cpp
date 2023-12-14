@@ -5,14 +5,14 @@
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_ParmParse.H>
 
-#include <fstream>
-#include <iomanip>
-
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
 #endif
 
 #include <AMReX_PlotFileUtilOPENPMD.H>
+
+#include <fstream>
+#include <iomanip>
 
 namespace amrex
 {

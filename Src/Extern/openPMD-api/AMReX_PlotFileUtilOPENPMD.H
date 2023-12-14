@@ -10,12 +10,12 @@
 #include <AMReX_ParIter.H>
 #include <AMReX_Particles.H>
 
-#include <string>
-#include <memory>
-
 #ifdef AMREX_USE_OPENPMD_API
 #include <openPMD/openPMD.hpp>
 #endif
+
+#include <string>
+#include <memory>
 
 namespace amrex
 {
