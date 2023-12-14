@@ -100,7 +100,6 @@ class DescriptorList;
 * from the state data contained in AmrLevel and its derivatives. Some
 * examples might be kinetic energy, vorticity, concentration gradients ...
 */
-
 class DeriveRec
 {
    friend class DeriveList;
@@ -339,7 +338,6 @@ private:
 *
 * DeriveList manages and provides access to the list of DeriveRecs.
 */
-
 class DeriveList
 {
 public:

@@ -18,7 +18,6 @@ LIBRARIES += -lbittree
 Include in inputs:
 amr.use_bittree = true
 */
-
 class btUnit {
   // Functions used in AmrMesh
   public:

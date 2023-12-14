@@ -643,7 +643,6 @@ void average_down (const FabArray<FAB>& S_fine, FabArray<FAB>& S_crse,
     * The function f is applied elementwise as f(x(i,j,k,n),y(i,j,k,n))
     * inside the summation (subject to a valid mask entry pf(mask(i,j,k,n)
     */
-
 template <typename F>
 Real
 NormHelper (const MultiFab& x, int xcomp,
@@ -703,7 +702,6 @@ NormHelper (const MultiFab& x, int xcomp,
     * The function f is applied elementwise as f(x(i,j,k,n),y(i,j,k,n))
     * inside the summation (subject to a valid mask entry pf(mask(i,j,k,n)
     */
-
 template <typename MMF, typename Pred, typename F>
 Real
 NormHelper (const MMF& mask,

@@ -11,7 +11,6 @@ namespace amrex {
 * This is the simplest dynamic memory management class derived from Arena.
 * Makes calls to std::malloc and std::free.
 */
-
 class BArena
     :
     public Arena

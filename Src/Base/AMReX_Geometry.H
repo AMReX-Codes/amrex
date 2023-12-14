@@ -24,7 +24,6 @@ namespace amrex {
 * RECTANGULAR problem domains.  Since the problem domain is RECTANGULAR,
 * periodicity is meaningful.
 */
-
 class MultiFab;
 class DistributionMapping;
 class BoxArray;

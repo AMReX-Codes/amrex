@@ -30,7 +30,6 @@ class AmrInSituBridge;
 * not belong on a single level, like establishing and updating the hierarchy
 * of levels, global timestepping, and managing the different AmrLevels
 */
-
 class Amr
     : public AmrCore
 {
