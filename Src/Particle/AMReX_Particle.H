@@ -24,15 +24,6 @@ namespace
         constexpr Long NoSplitParticleID = GhostParticleID - 4;
     }
 
-    /** Used for 32bit int particle Ids, as in pure SoA layout */
-    namespace IntParticleIds {
-        constexpr int GhostParticleID = 2147483647; // 2**31-1
-        constexpr int VirtualParticleID = GhostParticleID - 1;
-        constexpr int LastParticleID = GhostParticleID - 2;
-        constexpr int DoSplitParticleID = GhostParticleID - 3;
-        constexpr int NoSplitParticleID = GhostParticleID - 4;
-    }
-
     using namespace LongParticleIds;
 }
 
