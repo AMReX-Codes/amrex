@@ -149,6 +149,7 @@ C$(AMREX_BASE)_headers += AMReX_IArrayBox.H
 
 C$(AMREX_BASE)_headers += AMReX_MakeType.H
 C$(AMREX_BASE)_headers += AMReX_TypeTraits.H
+C$(AMREX_BASE)_headers += AMReX_FabDataType.H
 
 C$(AMREX_BASE)_headers += AMReX_Array4.H
 C$(AMREX_BASE)_sources += AMReX_BaseFab.cpp

@@ -17,6 +17,7 @@
 
 #include <AMReX_Any.H>
 #include <AMReX_BndryRegister.H>
+#include <AMReX_FabDataType.H>
 #include <AMReX_MLMGBndry.H>
 #include <AMReX_MultiFabUtil.H>
 
@@ -85,15 +86,6 @@ struct LinOpEnumType
     enum struct Location { FaceCenter, FaceCentroid, CellCenter, CellCentroid };
 };
 
-template <typename T, class Enable = void> struct LinOpData {};
-//
-template <typename T>
-struct LinOpData <T, std::enable_if_t<IsMultiFabLike_v<T> > >
-{
-    using   fab_type = typename T::fab_type;
-    using value_type = typename T::value_type;
-};
-
 template <typename T> class MLMGT;
 template <typename T> class MLCGSolverT;
 template <typename T> class MLPoissonT;
@@ -112,8 +104,8 @@ public:
     template <typename T> friend class GMRESMLMGT;
 
     using MFType = MF;
-    using FAB = typename LinOpData<MF>::fab_type;
-    using RT  = typename LinOpData<MF>::value_type;
+    using FAB = typename FabDataType<MF>::fab_type;
+    using RT  = typename FabDataType<MF>::value_type;
 
     using BCType = LinOpBCType;
     using BCMode    = LinOpEnumType::BCMode;
@@ -624,6 +616,10 @@ protected:
     [[nodiscard]] bool doSemicoarsening () const noexcept { return m_do_semicoarsening; }
 
     [[nodiscard]] bool isCellCentered () const noexcept { return m_ixtype == 0; }
+
+    [[nodiscard]] virtual IntVect getNGrowVectRestriction () const {
+        return isCellCentered() ? IntVect(0) : IntVect(1);
+    }
 
     virtual void make (Vector<Vector<MF> >& mf, IntVect const& ng) const;
 
@@ -1387,18 +1383,13 @@ template <typename MF>
 void
 MLLinOpT<MF>::make (Vector<Vector<MF> >& mf, IntVect const& ng) const
 {
-    if constexpr (IsMultiFabLike_v<MF>) {
-        mf.clear();
-        mf.resize(m_num_amr_levels);
-        for (int alev = 0; alev < m_num_amr_levels; ++alev) {
-            mf[alev].resize(m_num_mg_levels[alev]);
-            for (int mlev = 0; mlev < m_num_mg_levels[alev]; ++mlev) {
-                mf[alev][mlev] = make(alev, mlev, ng);
-            }
+    mf.clear();
+    mf.resize(m_num_amr_levels);
+    for (int alev = 0; alev < m_num_amr_levels; ++alev) {
+        mf[alev].resize(m_num_mg_levels[alev]);
+        for (int mlev = 0; mlev < m_num_mg_levels[alev]; ++mlev) {
+            mf[alev][mlev] = make(alev, mlev, ng);
         }
-    } else {
-        amrex::ignore_unused(mf, ng);
-        amrex::Abort("MLLinOpT::make: how did we get here?");
     }
 }
 
@@ -1486,8 +1477,8 @@ template <typename MF>
 void
 MLLinOpT<MF>::avgDownResMG (int clev, MF& cres, MF const& fres) const
 {
-    const int ncomp = this->getNComp();
     if constexpr (amrex::IsFabArray<MF>::value) {
+        const int ncomp = this->getNComp();
 #ifdef AMREX_USE_EB
         if (!fres.isAllRegular()) {
             if constexpr (std::is_same<MF,MultiFab>()) {
