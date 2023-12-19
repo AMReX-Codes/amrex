@@ -53,7 +53,7 @@ void cic_interpolate (const P& p,
             for (int jj = 0; jj <= 1; ++jj) {
 #endif
                 for (int ii = 0; ii <= 1; ++ii) {
-                    val[d] += static_cast<ParticleReal>(AMREX_D_TERM(sx[ii],*sy[jj],*sz[kk])*uccarr(AMREX_D_DECL(i+ii,j+jj,k+kk),d));
+                    val[d] += static_cast<ParticleReal>(AMREX_D_TERM(sx[ii],*sy[jj],*sz[kk])*uccarr(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk)),d));
     AMREX_D_TERM(},},});
     }
 }
@@ -98,7 +98,7 @@ void mac_interpolate (const P& p,
           for (int jj = 0; jj <= 1; ++jj) {
 #endif
               for (int ii = 0; ii <= 1; ++ii) {
-                  val[d] += static_cast<ParticleReal>((p_uccarr[d])(AMREX_D_DECL(i+ii, j+jj, k+kk), 0)*AMREX_D_TERM(sx[ii],*sy[jj],*sz[kk]));
+                  val[d] += static_cast<ParticleReal>((p_uccarr[d])(IntVect(AMREX_D_DECL(i+ii, j+jj, k+kk)), 0)*AMREX_D_TERM(sx[ii],*sy[jj],*sz[kk]));
     AMREX_D_TERM(},},});
     }
 }
