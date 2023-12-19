@@ -871,7 +871,7 @@ Amr::writePlotFile ()
         runlog << "PLOTFILE: file = " << pltfile << '\n';
     }
 
-    writePlotFileDoit(pltfile, true);
+    writePlotFileDoit(pltfile, true, std::min(plot_max_level, finest_level));
 
     BL_PROFILE_REGION_STOP("Amr::writePlotFile()");
 }
@@ -910,15 +910,17 @@ Amr::writeSmallPlotFile ()
         runlog << "SMALL PLOTFILE: file = " << pltfile << '\n';
     }
 
-    writePlotFileDoit(pltfile, false);
+    writePlotFileDoit(pltfile, false, std::min(small_plot_max_level, finest_level));
 
     BL_PROFILE_REGION_STOP("Amr::writeSmallPlotFile()");
 }
 
 void
-Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
+Amr::writePlotFileDoit (std::string const& pltfile, bool regular, int max_level_to_plot)
 {
     auto dPlotFileTime0 = amrex::second();
+
+    AMREX_ALWAYS_ASSERT(max_level_to_plot <= finest_level);
 
     VisMF::SetNOutFiles(plot_nfiles);
     VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
@@ -941,7 +943,7 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
         if (precreateDirectories) {    // ---- make all directories at once
             amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
             amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
-            for(int i(0); i <= finest_level; ++i) {
+            for(int i(0); i <= max_level_to_plot; ++i) {
                 amr_level[i]->CreateLevelDirectory(pltfileTemp);
             }
             ParallelDescriptor::Barrier("Amr::writePlotFile:PCD");
@@ -973,17 +975,17 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
         }
 
         if (regular) {
-            for (int k(0); k <= finest_level; ++k) {
+            for (int k(0); k <= max_level_to_plot; ++k) {
                 amr_level[k]->writePlotFilePre(pltfileTemp, HeaderFile);
             }
-            for (int k(0); k <= finest_level; ++k) {
+            for (int k(0); k <= max_level_to_plot; ++k) {
                 amr_level[k]->writePlotFile(pltfileTemp, HeaderFile);
             }
-            for (int k(0); k <= finest_level; ++k) {
+            for (int k(0); k <= max_level_to_plot; ++k) {
                 amr_level[k]->writePlotFilePost(pltfileTemp, HeaderFile);
             }
         } else {
-            for (int k(0); k <= finest_level; ++k) {
+            for (int k(0); k <= max_level_to_plot; ++k) {
                 amr_level[k]->writeSmallPlotFile(pltfileTemp, HeaderFile);
             }
         }
@@ -3266,6 +3268,9 @@ Amr::initPltAndChk ()
         }
     }
 
+    plot_max_level = max_level;
+    pp.queryAdd("plot_max_level",plot_max_level);
+
     small_plot_file_root = "smallplt";
     pp.queryAdd("small_plot_file",small_plot_file_root);
 
@@ -3284,6 +3289,9 @@ Amr::initPltAndChk ()
             amrex::Warning("Warning: both amr.small_plot_int and amr.small_plot_per are > 0.");
         }
     }
+
+    small_plot_max_level = max_level;
+    pp.queryAdd("small_plot_max_level",small_plot_max_level);
 
     write_plotfile_with_checkpoint = 1;
     pp.queryAdd("write_plotfile_with_checkpoint",write_plotfile_with_checkpoint);
