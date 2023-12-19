@@ -278,11 +278,11 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         amrex::Print() << "MLCGSolver_CG: Initial error (error0) :        " << rnorm0 << '\n';
     }
 
-    RT rho_1 = 0;
+    RT rho_1 = RT(0.0);
     int  ret = 0;
     iter = 1;
 
-    if ( rnorm0 == 0 || rnorm0 < eps_abs )
+    if ( rnorm0 == RT(0.0) || rnorm0 < eps_abs )
     {
         if ( verbose > 0 ) {
             amrex::Print() << "MLCGSolver_CG: niter = 0,"
@@ -294,9 +294,9 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     for (; iter <= maxiter; ++iter)
     {
-        RT rho = dotxy(r,r);
+        const RT rho = dotxy(r,r);
 
-        if ( rho == 0 )
+        if ( rho == RT(0.0) )
         {
             ret = 1; break;
         }
@@ -306,21 +306,17 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         else
         {
-            RT beta = rho/rho_1;
+            const RT beta = rho/rho_1;
             MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta * p
         }
         Lp.apply(amrlev, mglev, q, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
 
-        RT alpha;
-        RT pw = dotxy(p,q);
-        if ( pw != RT(0.0))
-        {
-            alpha = rho/pw;
-        }
-        else
+        const RT pw = dotxy(p,q);
+        if ( pw == RT(0.0) )
         {
             ret = 1; break;
         }
+        const RT alpha = rho/pw;
 
         if ( verbose > 2 )
         {
