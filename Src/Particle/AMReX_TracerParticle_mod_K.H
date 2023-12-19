@@ -66,85 +66,42 @@ void mac_interpolate (const P& p,
                       amrex::GpuArray<amrex::Array4<amrex::Real const>,AMREX_SPACEDIM> const& p_uccarr,
                       amrex::ParticleReal * val)
 {
+    AMREX_ASSERT(val != nullptr);
 
-#if (AMREX_SPACEDIM == 1)
-    for (int d=0; d < AMREX_SPACEDIM; ++d)
-    {
-        amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - static_cast<Real>(d != 0)*Real(0.5);
+    for (int d=0; d < AMREX_SPACEDIM; ++d) {
 
-        int const i = static_cast<int>(amrex::Math::floor(lx));
+        AMREX_D_TERM(amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - static_cast<Real>(d != 0)*Real(0.5);,
+                     amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - static_cast<Real>(d != 1)*Real(0.5);,
+                     amrex::Real lz = (Real(p.pos(2))-plo[2])*dxi[2] - static_cast<Real>(d != 2)*Real(0.5));
 
-        amrex::Real const xint = lx - static_cast<Real>(i);
+        AMREX_D_TERM(int const i = static_cast<int>(amrex::Math::floor(lx));,
+                     int const j = static_cast<int>(amrex::Math::floor(ly));,
+                     int const k = static_cast<int>(amrex::Math::floor(lz)));
 
-        amrex::Real sx[] = {Real(1.0) - xint, xint};
+        AMREX_D_TERM(amrex::Real const xint = lx - static_cast<Real>(i);,
+                     amrex::Real const yint = ly - static_cast<Real>(j);,
+                     amrex::Real const zint = lz - static_cast<Real>(k));
 
-        val[d] = ParticleReal(0.0);
-        for (int ii = 0; ii <= 1; ++ii)
-        {
-            val[d] += static_cast<ParticleReal>((p_uccarr[d])(i+ii, 0, 0, 0)*sx[ii]);
-        }
+#if AMREX_SPACEDIM > 2
+        amrex::Real sz[] = {Real(1.0) - zint, zint};
+#endif
+#if AMREX_SPACEDIM > 1
+      amrex::Real sy[] = {Real(1.0) - yint, yint};
+#endif
+      amrex::Real sx[] = {Real(1.0) - xint, xint};
+
+      val[d] = ParticleReal(0.0);
+#if AMREX_SPACEDIM > 2
+      for (int kk = 0; kk <=1; ++kk) {
+#endif
+#if AMREX_SPACEDIM > 1
+          for (int jj = 0; jj <= 1; ++jj) {
+#endif
+              for (int ii = 0; ii <= 1; ++ii) {
+                  val[d] += static_cast<ParticleReal>((p_uccarr[d])(AMREX_D_DECL(i+ii, j+jj, k+kk), 0)*AMREX_D_TERM(sx[ii],*sy[jj],*sz[kk]));
+    AMREX_D_TERM(},},});
     }
-
-#elif (AMREX_SPACEDIM == 2)
-
-  for (int d=0; d < AMREX_SPACEDIM; ++d)
-  {
-      amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - static_cast<Real>(d != 0)*Real(0.5);
-      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - static_cast<Real>(d != 1)*Real(0.5);
-
-      int const i = static_cast<int>(amrex::Math::floor(lx));
-      int const j = static_cast<int>(amrex::Math::floor(ly));
-
-      amrex::Real const xint = lx - static_cast<Real>(i);
-      amrex::Real const yint = ly - static_cast<Real>(j);
-
-      amrex::Real sx[] = {Real(1.0) - xint, xint};
-      amrex::Real sy[] = {Real(1.0) - yint, yint};
-
-      val[d] = ParticleReal(0.0);
-      for (int jj = 0; jj <= 1; ++jj)
-      {
-          for (int ii = 0; ii <= 1; ++ii)
-          {
-              val[d] += static_cast<ParticleReal>((p_uccarr[d])(i+ii, j+jj, 0, 0)*sx[ii]*sy[jj]);
-          }
-      }
-  }
-
-
-#elif (AMREX_SPACEDIM == 3)
-
-  for (int d=0; d < AMREX_SPACEDIM; ++d)
-  {
-      amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - static_cast<Real>(d != 0)*Real(0.5);
-      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - static_cast<Real>(d != 1)*Real(0.5);
-      amrex::Real lz = (Real(p.pos(2))-plo[2])*dxi[2] - static_cast<Real>(d != 2)*Real(0.5);
-
-      int const i = static_cast<int>(amrex::Math::floor(lx));
-      int const j = static_cast<int>(amrex::Math::floor(ly));
-      int const k = static_cast<int>(amrex::Math::floor(lz));
-
-      amrex::Real const xint = lx - static_cast<Real>(i);
-      amrex::Real const yint = ly - static_cast<Real>(j);
-      amrex::Real const zint = lz - static_cast<Real>(k);
-
-      amrex::Real sx[] = {Real(1.0) - xint, xint};
-      amrex::Real sy[] = {Real(1.0) - yint, yint};
-      amrex::Real sz[] = {Real(1.0) - zint, zint};
-
-      val[d] = ParticleReal(0.0);
-      for (int kk = 0; kk <=1; ++kk)
-      {
-          for (int jj = 0; jj <= 1; ++jj)
-          {
-              for (int ii = 0; ii <= 1; ++ii)
-              {
-                  val[d] += static_cast<ParticleReal>((p_uccarr[d])(i+ii, j+jj, k+kk ,0)*sx[ii]*sy[jj]*sz[kk]);
-              }
-          }
-      }
-  }
-#endif
 }
-}
-#endif
+
+}  // namespace amrex
+#endif  // include guard
