@@ -223,9 +223,7 @@ void LoopConcurrentOnCpu (Box const& bx, int ncomp, F&& f) noexcept
 // The mechanism is recursive: we evaluate f(i) at the current
 // i and then call the for loop at i+1. f() is a lambda function
 // that provides the body of the loop and takes only an integer
-// i as its argument. It is assumed that at the loop call site
-// the lambda is declared [&] so that it can operate on the data
-// that it needs.
+// i as its argument.
 
 template<auto I, auto N, class F>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
