@@ -42,6 +42,16 @@ public:
     void setMaxIter (int _maxiter) { maxiter = _maxiter; }
     [[nodiscard]] int getMaxIter () const { return maxiter; }
 
+
+    /**
+    * Is the initial guess provided to the solver zero ?
+    * If so, set this to true.
+    * The solver will avoid a few operations if this is true.
+    * Default is false.
+    */
+    void setInitSolnZeroed (bool _sol_zeroed) { initial_vec_zeroed = _sol_zeroed; }
+    [[nodiscard]] bool getInitSolnZeroed () const { return initial_vec_zeroed; }
+
     void setNGhost(int _nghost) {nghost = IntVect(_nghost);}
     [[nodiscard]] int getNGhost() {return nghost[0];}
 
@@ -62,6 +72,7 @@ private:
     int maxiter   = 100;
     IntVect nghost = IntVect(0);
     int iter = -1;
+    bool initial_vec_zeroed = false;
 };
 
 template <typename MF>
@@ -95,20 +106,27 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     p.setVal(RT(0.0)); // Make sure all entries are initialized to avoid errors
     r.setVal(RT(0.0));
 
-    MF sorig = Lp.make(amrlev, mglev, nghost);
     MF rh    = Lp.make(amrlev, mglev, nghost);
     MF v     = Lp.make(amrlev, mglev, nghost);
     MF t     = Lp.make(amrlev, mglev, nghost);
 
-    Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
+
+    MF sorig;
+
+    if ( initial_vec_zeroed ) {
+        r.LocalCopy(rhs,0,0,ncomp,nghost);
+    } else {
+        sorig = Lp.make(amrlev, mglev, nghost);
+
+        Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
+
+        sorig.LocalCopy(sol,0,0,ncomp,nghost);
+        sol.setVal(RT(0.0));
+    }
 
     // Then normalize
     Lp.normalize(amrlev, mglev, r);
-
-    sorig.LocalCopy(sol,0,0,ncomp,nghost);
     rh.LocalCopy   (r  ,0,0,ncomp,nghost);
-
-    sol.setVal(RT(0.0));
 
     RT rnorm = norm_inf(r);
     const RT rnorm0 = rnorm;
@@ -238,12 +256,16 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        if ( !initial_vec_zeroed ) {
+            sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        }
     }
     else
     {
         sol.setVal(RT(0.0));
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        if ( !initial_vec_zeroed ) {
+            sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        }
     }
 
     return ret;
@@ -260,15 +282,21 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     MF p = Lp.make(amrlev, mglev, sol.nGrowVect());
     p.setVal(RT(0.0));
 
-    MF sorig = Lp.make(amrlev, mglev, nghost);
     MF r     = Lp.make(amrlev, mglev, nghost);
     MF q     = Lp.make(amrlev, mglev, nghost);
 
-    sorig.LocalCopy(sol,0,0,ncomp,nghost);
+    MF sorig;
 
-    Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
+    if ( initial_vec_zeroed ) {
+        r.LocalCopy(rhs,0,0,ncomp,nghost);
+    } else {
+        sorig = Lp.make(amrlev, mglev, nghost);
 
-    sol.setVal(RT(0.0));
+        Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
+
+        sorig.LocalCopy(sol,0,0,ncomp,nghost);
+        sol.setVal(RT(0.0));
+    }
 
     RT       rnorm    = norm_inf(r);
     const RT rnorm0   = rnorm;
@@ -364,12 +392,16 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        if ( !initial_vec_zeroed ) {
+            sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        }
     }
     else
     {
         sol.setVal(RT(0.0));
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        if ( !initial_vec_zeroed ) {
+            sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        }
     }
 
     return ret;

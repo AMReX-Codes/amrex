@@ -1526,6 +1526,7 @@ MLMGT<MF>::bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type
     cg_solver.setSolver(type);
     cg_solver.setVerbose(bottom_verbose);
     cg_solver.setMaxIter(bottom_maxiter);
+    cg_solver.setInitSolnZeroed(true);
     if (cf_strategy == CFStrategy::ghostnodes) { cg_solver.setNGhost(linop.getNGrow()); }
 
     int ret = cg_solver.solve(x, b, bottom_reltol, bottom_abstol);
