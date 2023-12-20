@@ -37,6 +37,18 @@ namespace amrex
     template <class A>
     inline constexpr bool IsFabArray_v = IsFabArray<A>::value;
 
+    template <class M, class Enable = void>
+    struct IsMultiFabLike : std::false_type {};
+    //
+    template <class M>
+    struct IsMultiFabLike<M, std::enable_if_t<IsFabArray_v<M> &&
+                                              IsBaseFab_v<typename M::fab_type> > >
+        : std::true_type {};
+    //
+    template <class M>
+    inline constexpr bool IsMultiFabLike_v = IsMultiFabLike<M>::value;
+
+
     template <bool B, class T = void>
     using EnableIf_t = typename std::enable_if<B,T>::type;
 
