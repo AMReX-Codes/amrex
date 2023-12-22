@@ -60,6 +60,57 @@ void cic_interpolate (const P& p,
 
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void cic_interpolate_mapped_z (const P& p,
+                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                               const amrex::Array4<amrex::Real const>&  uccarr,
+                               const amrex::Array4<amrex::Real const>&  zheight,
+                               bool use_terrain, amrex::ParticleReal* val, int M = AMREX_SPACEDIM)
+{
+    AMREX_ASSERT(val != nullptr);
+
+    // handle x and y normally
+    amrex::Real lx = (Real(p.pos(0)) - plo[0]) * dxi[0] - Real(0.5);
+    amrex::Real ly = (Real(p.pos(1)) - plo[1]) * dxi[1] - Real(0.5);
+
+    int const i = static_cast<int>(amrex::Math::floor(lx));
+    int const j = static_cast<int>(amrex::Math::floor(ly));
+
+    amrex::Real const xint = lx - static_cast<Real>(i);
+    amrex::Real const yint = ly - static_cast<Real>(j);
+
+    amrex::Real sy[] = {Real(1.0) - yint, yint};
+    amrex::Real sx[] = {Real(1.0) - xint, xint};
+
+    // handle mapped z if in use
+    int const k = p.idata(0);
+    ParticleReal zlo, zhi;
+    if (use_terrain) {
+        zlo = zheight(i, j, k  );
+        zhi = zheight(i, j, k+1);
+    } else {
+        zlo =  k    / dxi[2];
+        zhi = (k+1) / dxi[2];
+    }
+
+    amrex::Real lz = Real((p.pos(2) - zlo) / (zhi - zlo)) - Real(0.5);
+    amrex::Real const zint = lz;
+    amrex::Real sz[] = {Real(1.0) - zint, zint};
+
+    for (int d=0; d < M; ++d) {
+        val[d] = ParticleReal(0.0);
+        for (int kk = 0; kk<=1; ++kk) {
+            for (int jj = 0; jj <= 1; ++jj) {
+                for (int ii = 0; ii <= 1; ++ii) {
+                    val[d] += static_cast<ParticleReal>(sx[ii]*sy[jj]*sz[kk]*uccarr(i+ii,j+jj,k+kk),d);
+                }
+            }
+        }
+    }
+}
+
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mac_interpolate (const P& p,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
