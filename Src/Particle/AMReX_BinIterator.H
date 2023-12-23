@@ -22,7 +22,7 @@ constexpr bool IsParticleTileData (Args...) {
 template <typename T>
 struct BinIterator
 {
-    using index_type = unsigned int;
+    using index_type = int;
 
     using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
         T,

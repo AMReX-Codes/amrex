@@ -29,7 +29,7 @@ namespace BinPolicy
 template <typename T>
 struct DenseBinIteratorFactory
 {
-    using index_type = unsigned int;
+    using index_type = int;
 
     using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
         T,
@@ -77,7 +77,7 @@ class DenseBins
 public:
 
     using BinIteratorFactory = DenseBinIteratorFactory<T>;
-    using index_type = unsigned int;
+    using index_type = int;
 
     using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
         T,
