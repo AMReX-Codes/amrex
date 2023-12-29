@@ -513,8 +513,7 @@ Geometry::growPeriodicDomain (int ngrow) const noexcept
     return growPeriodicDomain(IntVect(ngrow));
 }
 
-void
-Geometry::computeRoundoffDomain ()
+void Geometry::computeCellSize ()
 {
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -522,6 +521,29 @@ Geometry::computeRoundoffDomain ()
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
         inv_dx[k] = 1.0_rt/dx[k];
     }
+}
+
+void Geometry::assertRoundoffDomain () const
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        auto const idxlo = int(std::floor((roundoff_lo[idim]-ProbLo(idim)) * InvCellSize(idim)));
+        auto const idxhi = int(std::floor((roundoff_hi[idim]-ProbLo(idim)) * InvCellSize(idim)));
+        AMREX_ALWAYS_ASSERT(idxlo == 0 && idxhi == domain.length(idim)-1);
+    }
+}
+
+#if defined(__clang__)
+[[clang::optnone]]
+#elif defined(__GNUC__)
+__attribute__ ((optimize(0)))
+#elif defined(_WIN32)
+#define AMREX_WIN32_OPTIMIZE_OFF
+#pragma optimize("", off)
+#endif
+void
+Geometry::computeRoundoffDomain ()
+{
+    computeCellSize();
 
     constexpr int maxiters = 200;
 
@@ -684,24 +706,11 @@ Geometry::computeRoundoffDomain ()
                                 && iters < maxiters);
         }
     }
-}
 
-bool
-Geometry::outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
-{
-    bool outside = AMREX_D_TERM(x < roundoff_lo[0]
-                             || x > roundoff_hi[0],
-                             || y < roundoff_lo[1]
-                             || y > roundoff_hi[1],
-                             || z < roundoff_lo[2]
-                             || z > roundoff_hi[2]);
-    return outside;
+    assertRoundoffDomain();
 }
-
-bool
-Geometry::insideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
-{
-    return !outsideRoundoffDomain(AMREX_D_DECL(x, y, z));
-}
+#if defined(AMREX_WIN32_OPTIMIZE_OFF)
+#pragma optimize("", on)
+#endif
 
 }

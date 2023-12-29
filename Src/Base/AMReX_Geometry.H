@@ -408,7 +408,16 @@ public:
     *        are sure to be mapped to cells inside the Domain() box. Note that
     *        the same need not be true for all points inside ProbDomain().
     */
-    [[nodiscard]] bool outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const;
+    [[nodiscard]] bool outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
+    {
+        bool outside = AMREX_D_TERM(x < roundoff_lo[0]
+                                 || x > roundoff_hi[0],
+                                 || y < roundoff_lo[1]
+                                 || y > roundoff_hi[1],
+                                 || z < roundoff_lo[2]
+                                 || z > roundoff_hi[2]);
+        return outside;
+    }
 
     /**
     * \brief Returns true if a point is inside the roundoff domain.
@@ -416,7 +425,10 @@ public:
     *        are sure to be mapped to cells inside the Domain() box. Note that
     *        the same need not be true for all points inside ProbDomain().
     */
-    [[nodiscard]] bool insideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const;
+    [[nodiscard]] bool insideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const
+    {
+        return !outsideRoundoffDomain(AMREX_D_DECL(x, y, z));
+    }
 
     /**
     * \brief Compute the roundoff domain. Public because it contains an
@@ -426,6 +438,8 @@ public:
 
 private:
     void read_params ();
+    void computeCellSize ();
+    void assertRoundoffDomain () const;
 
     // is_periodic and RealBox used to be static
     bool    is_periodic[AMREX_SPACEDIM] = {AMREX_D_DECL(false,false,false)};
