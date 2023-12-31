@@ -92,6 +92,7 @@ public:
         {
             const Box& tile_box  = mfi.tilebox();
 
+            Gpu::HostVector<uint64_t> host_idcpu;
             std::array<Gpu::HostVector<ParticleReal>, NR> host_real;
             std::array<Gpu::HostVector<int>, NI> host_int;
 
@@ -105,6 +106,10 @@ public:
                     get_position_unit_cell(r, a_num_particles_per_cell, i_part);
 
                     amrex::Long id = ParticleType::NextID();
+
+                    host_idcpu.push_back(0);
+                    ParticleIDWrapper(host_idcpu.back()) = id;
+                    ParticleCPUWrapper(host_idcpu.back()) = ParallelDescriptor::MyProc();
 
                     host_int[0].push_back(static_cast<int>(id));
                     host_int[1].push_back(ParallelDescriptor::MyProc());
@@ -137,6 +142,13 @@ public:
             particle_tile.resize(new_size);
 
             auto& soa = particle_tile.GetStructOfArrays();
+            {
+                Gpu::copyAsync(Gpu::hostToDevice,
+                               host_idcpu.begin(),
+                               host_idcpu.end(),
+                               soa.GetIdCPUData().begin() + old_size);
+
+            }
             for (int i = 0; i < NR; ++i)
             {
                 Gpu::copyAsync(Gpu::hostToDevice,

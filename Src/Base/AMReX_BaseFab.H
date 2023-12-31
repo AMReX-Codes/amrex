@@ -1631,6 +1631,9 @@ protected:
     Long truesize = 0L;         //!< nvar*numpts that was allocated on heap.
     bool ptr_owner = false;     //!< Owner of T*?
     bool shared_memory = false; //!< Is the memory allocated in shared memory?
+#ifdef AMREX_USE_GPU
+    gpuStream_t alloc_stream{};
+#endif
 };
 
 template <class T>
@@ -1902,6 +1905,9 @@ BaseFab<T>::define ()
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;
     this->dptr = static_cast<T*>(this->alloc(this->truesize*sizeof(T)));
+#ifdef AMREX_USE_GPU
+    this->alloc_stream = Gpu::gpuStream();
+#endif
 
     placementNew(this->dptr, this->truesize);
 
@@ -2003,6 +2009,9 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
       dptr(rhs.dptr), domain(rhs.domain),
       nvar(rhs.nvar), truesize(rhs.truesize),
       ptr_owner(rhs.ptr_owner), shared_memory(rhs.shared_memory)
+#ifdef AMREX_USE_GPU
+      , alloc_stream(rhs.alloc_stream)
+#endif
 {
     rhs.dptr = nullptr;
     rhs.ptr_owner = false;
@@ -2021,6 +2030,9 @@ BaseFab<T>::operator= (BaseFab<T>&& rhs) noexcept
         truesize = rhs.truesize;
         ptr_owner = rhs.ptr_owner;
         shared_memory = rhs.shared_memory;
+#ifdef AMREX_USE_GPU
+        alloc_stream = rhs.alloc_stream;
+#endif
 
         rhs.dptr = nullptr;
         rhs.ptr_owner = false;
@@ -2062,7 +2074,11 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
         this->dptr = nullptr;
         define();
     }
-    else if (this->nvar*this->domain.numPts() > this->truesize)
+    else if (this->nvar*this->domain.numPts() > this->truesize
+#ifdef AMREX_USE_GPU
+             || (arena()->isStreamOrderedArena() && alloc_stream != Gpu::gpuStream())
+#endif
+             )
     {
         if (this->shared_memory) {
             amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
@@ -2114,7 +2130,14 @@ BaseFab<T>::clear () noexcept
 
             placementDelete(this->dptr, this->truesize);
 
+#ifdef AMREX_USE_GPU
+            auto current_stream = Gpu::Device::gpuStream();
+            Gpu::Device::setStream(alloc_stream);
+#endif
             this->free(this->dptr);
+#ifdef AMREX_USE_GPU
+            Gpu::Device::setStream(current_stream);
+#endif
 
             if (this->nvar > 1) {
                 amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
@@ -3505,7 +3528,6 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& srcbox, const Bo
 * and stored in component comp of this FAB.
 * This fab is returned as a reference for chaining.
 */
-
 template <class T>
 template <RunOn run_on>
 BaseFab<T>&

@@ -55,7 +55,7 @@ jobs:
         make test_install
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-12 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -107,7 +107,7 @@ jobs:
         cmake --build build -j 2
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-12 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -155,7 +155,7 @@ jobs:
         cmake --build build -j 2
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-12 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -204,7 +204,7 @@ jobs:
         cmake --build build -j 2
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-12 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -263,7 +263,7 @@ jobs:
 
         # Let's not use clang-tidy for this test because it wants to use C++20.
         # ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        # make -j2 -f clang-tidy-ccache-misses.mak \
+        # make -j2 -k -f clang-tidy-ccache-misses.mak \
         #     CLANG_TIDY=clang-tidy-12 \
         #     CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -320,7 +320,7 @@ jobs:
         make -j 2
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-12 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -384,7 +384,7 @@ jobs:
         make -j 2
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-14 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -426,7 +426,7 @@ jobs:
         make install
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-12 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -466,7 +466,7 @@ jobs:
         make install
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-15 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -506,7 +506,7 @@ jobs:
         make install
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-12 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -546,7 +546,7 @@ jobs:
         make install
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-12 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -585,7 +585,7 @@ jobs:
             CCACHE=ccache
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-12 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -630,7 +630,7 @@ jobs:
         make -j 2
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-12 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 

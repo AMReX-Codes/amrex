@@ -11,9 +11,11 @@
 namespace amrex {
 
 template <int NReal, int NInt,
-          template<class> class Allocator=DefaultAllocator>
+          template<class> class Allocator=DefaultAllocator,
+          bool use64BitIdCpu=false>
 struct StructOfArrays {
 
+    using IdCPU = amrex::PODVector<uint64_t, Allocator<uint64_t> >;
     using RealVector = amrex::PODVector<ParticleReal, Allocator<ParticleReal> >;
     using IntVector = amrex::PODVector<int, Allocator<int> >;
 
@@ -28,9 +30,12 @@ struct StructOfArrays {
 
     [[nodiscard]] int NumIntComps () const noexcept { return NInt + m_runtime_idata.size(); }
 
+    [[nodiscard]] IdCPU& GetIdCPUData () { return m_idcpu; }
     [[nodiscard]] std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
     [[nodiscard]] std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }
 
+    /** Get access to the particle id/cpu Arrays */
+    [[nodiscard]] const IdCPU& GetIdCPUData () const { return m_idcpu; }
     /** Get access to the particle Real Arrays (only compile-time components) */
     [[nodiscard]] const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
     /** Get access to the particle Int Arrays (only compile-time components) */
@@ -119,7 +124,9 @@ struct StructOfArrays {
     */
     [[nodiscard]] std::size_t size () const
     {
-        if constexpr (NReal > 0) {
+        if constexpr (use64BitIdCpu == true) {
+            return m_idcpu.size();
+        } else if constexpr (NReal > 0) {
             return m_rdata[0].size();
         } else if constexpr (NInt > 0) {
             return m_idata[0].size();
@@ -175,6 +182,9 @@ struct StructOfArrays {
 
     void resize (size_t count)
     {
+        if constexpr (use64BitIdCpu == true) {
+            m_idcpu.resize(count);
+        }
         if constexpr (NReal > 0) {
             for (int i = 0; i < NReal; ++i) { m_rdata[i].resize(count); }
         }
@@ -183,6 +193,14 @@ struct StructOfArrays {
         }
         for (int i = 0; i < int(m_runtime_rdata.size()); ++i) { m_runtime_rdata[i].resize(count); }
         for (int i = 0; i < int(m_runtime_idata.size()); ++i) { m_runtime_idata[i].resize(count); }
+    }
+
+    [[nodiscard]] uint64_t* idcpuarray () {
+        if constexpr (use64BitIdCpu == true) {
+            return m_idcpu.dataPtr();
+        } else {
+            return nullptr;
+        }
     }
 
     [[nodiscard]] GpuArray<ParticleReal*, NReal> realarray ()
@@ -208,6 +226,7 @@ struct StructOfArrays {
     int m_num_neighbor_particles{0};
 
 private:
+    IdCPU m_idcpu;
     std::array<RealVector, NReal> m_rdata;
     std::array< IntVector,  NInt> m_idata;
 

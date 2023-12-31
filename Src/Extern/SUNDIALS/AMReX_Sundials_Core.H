@@ -15,7 +15,6 @@ namespace amrex::sundials {
  * This will create the nthreads SUNDIALS context objects that are needed by
  * the SUNDIALS solver and vector objects. Called by amrex::Initialize.
  */
-
 void Initialize(int nthreads);
 
 /**
@@ -23,7 +22,6 @@ void Initialize(int nthreads);
  *
  * Called by amrex::Finalize.
  */
-
 void Finalize();
 
 /**
@@ -33,7 +31,6 @@ void Finalize();
  *
  * A SUNDIALS context should not be used concurrently from different threads.
  */
-
 ::sundials::Context* The_Sundials_Context(int i = amrex::OpenMP::get_thread_num());
 
 }

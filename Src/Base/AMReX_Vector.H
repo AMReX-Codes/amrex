@@ -20,7 +20,6 @@ namespace amrex {
 * Vector::operator[] provides bound checking when compiled with
 * DEBUG=TRUE.
 */
-
 template <class T, class Allocator=std::allocator<T> >
 class Vector
     :

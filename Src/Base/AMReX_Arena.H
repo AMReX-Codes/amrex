@@ -82,7 +82,6 @@ struct ArenaInfo
 * A virtual base class for objects that manage their own dynamic
 * memory allocation.
 */
-
 class Arena
 {
 public:
@@ -156,6 +155,11 @@ public:
      * \param memory_name The name of this arena in the TinyProfiler output.
      */
     virtual void registerForProfiling (const std::string& memory_name);
+
+#ifdef AMREX_USE_GPU
+    //! Is this GPU stream ordered memory allocator?
+    [[nodiscard]] virtual bool isStreamOrderedArena () const { return false; }
+#endif
 
     /**
     * \brief Given a minimum required arena size of sz bytes, this returns

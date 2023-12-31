@@ -44,7 +44,8 @@ jobs:
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
             -DCMAKE_Fortran_COMPILER=$(which ifx)          \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DAMReX_PARALLEL_LINK_JOBS=2
         cmake --build build --parallel 2
 
         ccache -s
@@ -86,7 +87,8 @@ jobs:
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DAMReX_PARALLEL_LINK_JOBS=2
         cmake --build build --parallel 2
 
         ccache -s
@@ -136,7 +138,8 @@ jobs:
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which clang++)          \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DAMReX_PARALLEL_LINK_JOBS=2
         cmake --build build --parallel 2
 
         ccache -s
@@ -186,7 +189,8 @@ jobs:
             -DAMReX_SYCL_SUB_GROUP_SIZE=64                 \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which clang++)          \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DAMReX_PARALLEL_LINK_JOBS=2
         cmake --build build --parallel 2
 
         ccache -s

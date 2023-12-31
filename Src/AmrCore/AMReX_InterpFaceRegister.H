@@ -12,7 +12,6 @@ namespace amrex {
  *  \brief InterpFaceRegister is a coarse/fine boundary register for
  *  interpolation of face data at the coarse/fine boundary.
  */
-
 class InterpFaceRegister
 {
 public:

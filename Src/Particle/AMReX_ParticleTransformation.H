@@ -35,7 +35,11 @@ void copyParticle (const      ParticleTileData<T_ParticleType, NAR, NAI>& dst,
     AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
     AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
 
-    dst.m_aos[dst_i] = src.m_aos[src_i];
+    if constexpr(!T_ParticleType::is_soa_particle) {
+        dst.m_aos[dst_i] = src.m_aos[src_i];
+    } else {
+        dst.m_idcpu[dst_i] = src.m_idcpu[src_i];
+    }
     if constexpr(NAR > 0) {
         for (int j = 0; j < NAR; ++j) {
             dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
@@ -604,10 +608,8 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
  * \param p predicate function - particles will be copied if p returns true
  * \param src_start the offset at which to start reading particles from src
  * \param dst_start the offset at which to start writing particles to dst
- * \param n the number of particles to apply the operation to
  *
  */
-
 template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index,
           std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> nvccfoo = 0>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f,

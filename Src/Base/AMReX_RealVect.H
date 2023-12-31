@@ -28,7 +28,6 @@ namespace amrex
   C++ array.  In addition, the basic arithmetic operators have been overloaded
   to implement scaling and translation operations.
 */
-
 class RealVect
 {
 public:

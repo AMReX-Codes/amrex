@@ -88,4 +88,10 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND "${CMAKE_BUILD_TYPE}" MATCHES "Debug"
       "$<${_cxx_sycl}:-fsycl-link-huge-device-code>" )
 endif ()
 
+if (AMReX_PARALLEL_LINK_JOBS GREATER 1)
+   target_link_options( SYCL
+      INTERFACE
+      $<${_cxx_sycl}:-fsycl-max-parallel-link-jobs=${AMReX_PARALLEL_LINK_JOBS}>)
+endif()
+
 unset(_cxx_sycl)

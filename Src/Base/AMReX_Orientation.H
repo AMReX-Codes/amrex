@@ -25,7 +25,6 @@ class OrientationIter;
 * AMREX_SPACEDIM-1 and then the AMREX_SPACEDIM high sides from direction 0 ..
 * AMREX_SPACEDIM-1.
 */
-
 class Orientation
 {
 public:

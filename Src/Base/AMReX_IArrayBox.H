@@ -41,7 +41,6 @@ public:
 
 *  This class does NOT provide a copy constructor or assignment operator.
 */
-
 class IArrayBox
     :
     public BaseFab<int>

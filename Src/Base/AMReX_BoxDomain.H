@@ -55,14 +55,12 @@ std::ostream& operator<< (std::ostream& os, const BoxDomain& bd);
 
 /**
 * \brief A List of Disjoint Boxes.
+*
 * A BoxDomain is a BoxList with the restriction that Boxes in the list
 * are disjoint.
+* Note that a BoxDomain is NOT a BoxList due to the protected inheritance.
+* This is a concrete class, not a polymorphic one.
 */
-
-//Note that a BoxDomain is NOT a BoxList due to the protected inheritance.
-//This is a concrete class, not a polymorphic one.
-
-
 class BoxDomain
     :
     protected BoxList
