@@ -310,8 +310,8 @@ public:
         m_pstruct = aos().dataPtr();
         auto* const pstruct_ptr = aos().dataPtr();
 
-        const size_t np_total = aos.size();
-        const size_t np_real  = src_tile.numRealParticles();
+        const int np_total = aos.size();
+        const int np_real  = src_tile.numRealParticles();
 
         auto const* off_bins_p = off_bins_v.data();
         auto const* dxi_p      = dxi_v.data();
@@ -333,7 +333,7 @@ public:
 
         // First pass: count the number of neighbors for each particle
         //---------------------------------------------------------------------------------------------------------
-        const size_t np_size  = (num_bin_types > 1) ? np_total : np_real;
+        const int np_size  = (num_bin_types > 1) ? np_total : np_real;
         m_nbor_counts.resize( np_size+1, 0);
         m_nbor_offsets.resize(np_size+1);
 
