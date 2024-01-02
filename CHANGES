@@ -1,3 +1,53 @@
+# 24.01
+
+  -- MLMG: Use free functions instead of MF member functions (#3681)
+
+  -- Add a few free functions for MLMG (#3680)
+
+  -- Eliminating Matrix operations in MLMG CG bottom solver if initial vector is zero (#3668)
+
+  -- Add a for loop that is unrolled at compile time (#3674)
+
+  -- Add PTD version of getParticleCell (#3675)
+
+  -- Improve ParIter docs (#3676)
+
+  -- Fix CI for ROCm 6.0 (#3673)
+
+  -- PureSoA IdCpu fixes (#3671)
+
+  -- CMake: AMReX_PARALLEL_LINK_JOBS (#3628)
+
+  -- Clang-Tidy in CI: Keep Going after Errors (#3667)
+
+  -- Delete empty below comments on classes and functions (#3669)
+
+  -- Documentation for Profiling: Hot Spots and Load Balance (#3622)
+
+  -- Fix warnings in SortParticlesForDeposition (#3664)
+
+  -- Fix Resize Issue of Fab with the Async Arena (#3663)
+
+  -- Fix SuperParticle `push_back` (#3661)
+
+  -- Pure SoA Particle: Separate Array for IdCPU (#3585)
+
+  -- Limit the scope of gpu_rand_generator (#3659)
+
+  -- Fix a typo in doxygen for NonLocalBC::FillBoundary (#3658)
+
+  -- GNU Make: Fix name collision for aurora (#3656)
+
+  -- two separate fixes -- particle_compare and ref_ratio=1 (#3655)
+
+  -- Clarify documentation on setEBDirchlet() and fix link to AMReX-Hydro (#3652)
+
+  -- Robustify the Cache Cleanup Scripts (#3650)
+
+  -- Disable CodeQL scheduled jobs on forks (#3649)
+
+  -- Work around compiler bug in nvcc 12.2 by using functor instead of lambda (#3653)
+
 # 23.12
 
   -- solve_cg: avoid use of MF `z` (#3637)
