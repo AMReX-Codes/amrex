@@ -1065,7 +1065,7 @@ selectActualNeighbors (CheckPair const& check_pair, int num_cells)
                             if (isActualNeighbor) { break; }
                             int nbr_cell_id = (ii * ny + jj) * nz + kk;
                             for (auto p = poffset[nbr_cell_id]; p < poffset[nbr_cell_id+1]; ++p) {
-                                if (pperm[p] == i) { continue; }
+                                if (pperm[p] == int(i)) { continue; }
                                 if (detail::call_check_pair(check_pair, ptile_data, ptile_data, i, pperm[p])) {
                                     IntVect cell_ijk = getParticleCell(pstruct[pperm[p]], plo, dxi, domain);
                                     if (!box.contains(cell_ijk)) {
