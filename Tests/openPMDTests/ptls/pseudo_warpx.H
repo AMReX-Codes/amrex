@@ -48,7 +48,7 @@ namespace WarpX
     };
   };
 
-};
+}
 
 
 #endif

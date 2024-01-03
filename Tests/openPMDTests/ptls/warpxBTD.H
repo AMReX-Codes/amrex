@@ -8,7 +8,6 @@
 #include <AMReX_AmrParticles.H>
 
 #include "warpxWriter.H"
-using namespace amrex;
 
 
 ////////////////////////////
@@ -21,16 +20,13 @@ class AMReX_warpxBTDWriter final : public AMReX_warpxWriter
                        std::string filetype = "default",
                        std::string openpmdOptions = "{}");
 
-  //~AMReX_warpxBTDWriter() override = default;
-  ~AMReX_warpxBTDWriter() override;
-
   // BTD does not support streams
-  openPMD::Iteration GetIteration (int const iteration) const override
+  [[nodiscard]] openPMD::Iteration GetIteration (int const iteration) const override
     {
       return m_Series->iterations[iteration];
     }
 
-  unsigned long long GetGrandOffset() const override
+  [[nodiscard]] unsigned long long GetGrandOffset() const override
   {
     return m_AssignedPtlOffset;
   }
@@ -42,7 +38,7 @@ class AMReX_warpxBTDWriter final : public AMReX_warpxWriter
                              const amrex::Vector<std::string>& real_comp_names,
                              const amrex::Vector<int>& write_int_comp,
                              const amrex::Vector<std::string>& int_comp_names,
-                             const unsigned long long np) const override;
+                             unsigned long long np) const override;
 
 
   void SetupConstant(openPMD::ParticleSpecies& currSpecies,
@@ -63,11 +59,11 @@ class AMReX_warpxBTDWriter final : public AMReX_warpxWriter
                  const amrex::Vector<const amrex::MultiFab*>& mf,
                  const amrex::Vector<amrex::Geometry>& geom,
                  //const int iteration,
-                 const double time ) const override;
+                 double time ) const override;
   // BTD specific:
-  void SetLastFlush() {m_LastFlush = true;};
-  bool IsLastFlush() {return m_LastFlush;}
-  void AssignPtlOffset(unsigned long long m) { m_AssignedPtlOffset = m; };
+  void SetLastFlush() {m_LastFlush = true;}
+  [[nodiscard]] bool IsLastFlush() const {return m_LastFlush;}
+  void AssignPtlOffset(unsigned long long m) { m_AssignedPtlOffset = m; }
 
   template<class PIt>
   void SavePosId_RZ(PIt& pti,
@@ -76,8 +72,8 @@ class AMReX_warpxBTDWriter final : public AMReX_warpxWriter
 
   void SetConstantMassCharge(openPMD::ParticleSpecies& currSpecies,
                              const unsigned long long& np,
-                             amrex::ParticleReal const charge,
-                             amrex::ParticleReal const mass) const override;
+                             amrex::ParticleReal charge,
+                             amrex::ParticleReal mass) const override;
 
  private:
   bool m_LastFlush = false;
@@ -94,7 +90,7 @@ AMReX_warpxBTDWriter::AMReX_warpxBTDWriter(
                                            std::string filetype,
                                            std::string openpmdOptions)
 //  :AMReX_openPMDWriter("{}", ie, filetype, openpmdOptions)
-  :AMReX_warpxWriter(fieldPMLdirections, ie, filetype, openpmdOptions)
+  :AMReX_warpxWriter(std::move(fieldPMLdirections), ie, std::move(filetype), std::move(openpmdOptions))
 {
   m_openPMDDatasetOptions="{ \"resizable\": true }";
 
@@ -105,16 +101,11 @@ AMReX_warpxBTDWriter::AMReX_warpxBTDWriter(
     }
 }
 
-AMReX_warpxBTDWriter::~AMReX_warpxBTDWriter()
-{
-
-}
-
-
 void AMReX_warpxBTDWriter::CloseStep(int ts)
 {
-  if  (!m_LastFlush)
+  if  (!m_LastFlush) {
     return;
+  }
 
   AMReX_openPMDWriter::CloseStep(ts);
   m_LastFlush = false; // this step is over
@@ -149,7 +140,8 @@ bool AMReX_warpxBTDWriter::AllocatePtlProperties(openPMD::ParticleSpecies& currS
     {
       // properties were never allocated
       //AMReX_openPMDWriter::SetupPos(currSpecies, np);
-      AMReX_openPMDWriter::AllocatePtlProperties(currSpecies, write_real_comp, real_comp_names, write_int_comp, int_comp_names, np);
+      auto r = AMReX_openPMDWriter::AllocatePtlProperties(currSpecies, write_real_comp, real_comp_names, write_int_comp, int_comp_names, np);
+      amrex::ignore_unused(r);
     }
   return false;
 }
@@ -265,6 +257,3 @@ AMReX_warpxBTDWriter::SavePosId_RZ(PIt& pti,
   SavePosId(pti, currSpecies, offset);
 #endif
 }
-
-
-

@@ -52,8 +52,6 @@ struct TestField
 {
   TestField(const InputParams& inputs)
   {
-    m_Time = 0.0;
-
     const int nghost = 0;
 
     Vector<Box> domains;
@@ -66,10 +64,8 @@ struct TestField
         real_box.setHi(n, 1.0);
     }
 
-    int is_per[AMREX_SPACEDIM];
     // This sets the boundary conditions to be doubly or triply periodic
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-        is_per[i] = 1;
+    int is_per[AMREX_SPACEDIM] = {AMREX_D_DECL(1,1,1)};
 
     // This defines a Geometry object for each level
     m_Geom.resize(inputs.nlevs);
@@ -83,15 +79,16 @@ struct TestField
 
     m_mf.resize(inputs.nlevs);
     for (int lev = 0; lev < inputs.nlevs; lev++) {
-      std::cout<<ba[lev]<<std::endl;
-      std::cout<<dmap[lev]<<std::endl;
+        std::cout<<ba[lev]<<std::endl;
+        std::cout<<dmap[lev]<<std::endl;
         dmap[lev] = DistributionMapping{ba[lev]};
         m_mf[lev] = std::make_unique<MultiFab>(ba[lev], dmap[lev], inputs.ncomp, nghost);
         m_mf[lev]->setVal(lev);
     }
 
-    for (int i = 0; i < inputs.ncomp; ++i)
+    for (int i = 0; i < inputs.ncomp; ++i) {
       m_Varnames.push_back("component_" + std::to_string(i));
+    }
 
     //Vector<int> level_steps(inputs.nlevs, 0);
     m_Level_steps.assign(inputs.nlevs, 0);
@@ -100,14 +97,14 @@ struct TestField
   Vector<int> m_Level_steps;
 
   Vector<std::string> m_Varnames;
-  Real m_Time;
+  Real m_Time = Real(0.0);
   Vector<IntVect> m_Ref_ratio;
   Vector<Geometry> m_Geom;
   Vector<std::unique_ptr<MultiFab> > m_mf;
 };
 
 
-void saveFile(char* fname,  const InputParams& inputs, const TestField& testField)
+void saveFile(char const* fname, const InputParams& inputs, const TestField& testField)
 {
 #ifdef AMREX_USE_OPENPMD_API
   openpmd_api::InitHandler(fname);
@@ -167,8 +164,9 @@ void set_grids_nested (const InputParams& input,
     domains[0].setBig(domain_hi);
 
     ref_ratio.resize(input.nlevs-1);
-    for (int lev = 1; lev < input.nlevs; lev++)
+    for (int lev = 1; lev < input.nlevs; lev++) {
         ref_ratio[lev-1] = IntVect(AMREX_D_DECL(2, 2, 2));
+    }
 
     grids.resize(input.nlevs);
     grids[0].define(domains[0]);

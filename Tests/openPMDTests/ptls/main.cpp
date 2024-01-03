@@ -33,7 +33,7 @@ void checkMFBox(const TestParams& parms,
 {
       for (int lev=0; lev < parms.nlevs; lev++)
         {
-          auto curr_mf = outputMF[lev];
+          auto const* curr_mf = outputMF[lev];
           int const ncomp = curr_mf->nComp();
           amrex::Print()<<" checking boxes, lev="<<lev<<" ncomp="<<ncomp<<std::endl;
 
@@ -56,8 +56,9 @@ void checkMFBox(const TestParams& parms,
 void testParticleMesh (TestParams& parms, int nghost)
 {
     Vector<IntVect> rr(parms.nlevs-1);
-    for (int lev = 1; lev < parms.nlevs; lev++)
+    for (int lev = 1; lev < parms.nlevs; lev++) {
         rr[lev-1] = IntVect(AMREX_D_DECL(2,2,2));
+    }
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
@@ -70,9 +71,7 @@ void testParticleMesh (TestParams& parms, int nghost)
     const Box base_domain(domain_lo, domain_hi);
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+    int is_per[BL_SPACEDIM] = {AMREX_D_DECL(1,1,1)};
 
     Vector<Geometry> geom(parms.nlevs);
     geom[0].define(base_domain, &real_box, CoordSys::cartesian, is_per);
@@ -111,8 +110,9 @@ void testParticleMesh (TestParams& parms, int nghost)
     myPC.SetVerbose(false);
 
     bool serialize = true;
-    if (ParallelDescriptor::NProcs() > 1)
+    if (ParallelDescriptor::NProcs() > 1) {
         serialize = false;
+    }
 
     amrex::Long num_particles = (amrex::Long)parms.nppc * parms.nx * parms.ny * parms.nz;
     amrex::Print() << serialize<< " Total number of particles   :" << num_particles << '\n';
@@ -183,7 +183,7 @@ void testParticleMesh (TestParams& parms, int nghost)
     // call count ptls to prepare ahead of time
     myPC.CountParticles();
 
-    std::string fname = "";
+    std::string fname;
     openpmd_api::InitHandler(fname);
 
     // one specie per particle container
@@ -205,8 +205,8 @@ void testParticleMesh (TestParams& parms, int nghost)
         if ( 1 == parms.nlevs )
           {
           // example to store coarse level
-          openpmd_api::WriteSingleLevel(*(outputMF1[0]), varnames1, geom[0], 0.0, 0);
-          openpmd_api::WriteSingleLevel(*(outputMF2[0]), varnames2, geom[0], 0.0, 0);
+          openpmd_api::WriteSingleLevel(*(outputMF1[0]), varnames1, geom[0], 0.0);
+          openpmd_api::WriteSingleLevel(*(outputMF2[0]), varnames2, geom[0], 0.0);
           }
         else
           {
@@ -240,8 +240,9 @@ void testParticleMesh (TestParams& parms, int nghost)
 void testBTD (TestParams& parms, int nghost)
 {
     Vector<IntVect> rr(parms.nlevs-1);
-    for (int lev = 1; lev < parms.nlevs; lev++)
+    for (int lev = 1; lev < parms.nlevs; lev++) {
         rr[lev-1] = IntVect(AMREX_D_DECL(2,2,2));
+    }
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
@@ -254,9 +255,7 @@ void testBTD (TestParams& parms, int nghost)
     const Box base_domain(domain_lo, domain_hi);
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+    int is_per[BL_SPACEDIM] = {AMREX_D_DECL(1,1,1)};
 
     Vector<Geometry> geom(parms.nlevs);
     geom[0].define(base_domain, &real_box, CoordSys::cartesian, is_per);
@@ -291,8 +290,9 @@ void testBTD (TestParams& parms, int nghost)
     myPC.SetVerbose(false);
 
     bool serialize = true;
-    if (ParallelDescriptor::NProcs() > 1)
+    if (ParallelDescriptor::NProcs() > 1) {
         serialize = false;
+    }
 
     amrex::Long num_particles = (amrex::Long)parms.nppc * parms.nx * parms.ny * parms.nz;
     amrex::Print() << serialize<< " Total number of particles   :" << num_particles << '\n';
@@ -347,11 +347,11 @@ void testBTD (TestParams& parms, int nghost)
     // call count ptls to prepare ahead of time
     myPC.CountParticles();
 
-    std::string fname = "";
+    std::string fname;
     openpmd_api::InitHandler(fname);
 
     std::vector<bool> warpxPMLs(10);
-    AMReX_warpxBTDWriter* testWriter = new AMReX_warpxBTDWriter(warpxPMLs);
+    auto* testWriter = new AMReX_warpxBTDWriter(warpxPMLs); // xxxxx is there a memory leak?
     amrex::openpmd_api::UseCustomWriter(testWriter);
 
     // one specie per particle container
@@ -375,20 +375,22 @@ void testBTD (TestParams& parms, int nghost)
             testWriter->AssignPtlOffset(num_particles);
             testWriter->SetLastFlush();
           }
+#if 0
         if (0)
           { //  test with default component names
             openpmd_api::WriteParticles(myPC, specieName);
           }
         else
+#endif
           { // test with RZ style pos id
             openpmd_api::WriteParticles(myPC,
                                         specieName,
-                                        [=] (auto& pc, openPMD::ParticleSpecies& currSpecies, unsigned long long localTotal)
+                                        [=] (auto& /*pc*/, openPMD::ParticleSpecies& currSpecies, unsigned long long localTotal)
                                         {
-                                          amrex::ParticleReal charge = 0.01; // warpx: pc->getCharge()
-                                          amrex::ParticleReal mass = 0.5; // warpx: pc->getMass();
+                                          amrex::ParticleReal lcharge = 0.01; // warpx: pc->getCharge()
+                                          amrex::ParticleReal lmass = 0.5; // warpx: pc->getMass();
 
-                                          testWriter->SetConstantMassCharge(currSpecies, localTotal, charge,  mass);
+                                          testWriter->SetConstantMassCharge(currSpecies, localTotal, lcharge,  lmass);
                                         },
                                         [=] (auto& pti, openPMD::ParticleSpecies& currSpecies, unsigned long long offset)
                                         {
@@ -433,8 +435,9 @@ int main(int argc, char* argv[])
   pp.get("nlevs", parms.nlevs);
   //pp.get("nplotfile", parms.nplotfile);
 
-  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
+  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
+  }
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);

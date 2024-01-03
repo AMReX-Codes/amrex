@@ -2,10 +2,8 @@
 #define AMREX_PLOTFILE_OPENPMD_PTLS_API_H
 
 //extern  std::unique_ptr< amrex::openpmd_api::AMReX_openPMDHandler > amrex::openpmd_api::m_OpenPMDHandler;
-namespace amrex
+namespace amrex::openpmd_api
 {
-  namespace openpmd_api
-  {
     extern  std::unique_ptr< amrex::openpmd_api::AMReX_openPMDHandler > m_OpenPMDHandler;
     ////////////////////////////////////////////////////////////////////////
     //
@@ -31,8 +29,9 @@ namespace amrex
       amrex::Print()<<"   Real: "<<pc.NStructReal<<" "<<pc.NumRealComps()<<"\n";
       amrex::Print()<<"   Int:  "<<pc.NStructInt<<" "<<pc.NumIntComps()<<"\n";
 
-      if ((m_OpenPMDHandler == nullptr) || (m_OpenPMDHandler->m_Writer == nullptr))
+      if ((m_OpenPMDHandler == nullptr) || (m_OpenPMDHandler->m_Writer == nullptr)) {
         return;
+      }
 
       AMREX_ASSERT( do_write_real_comp.size() <= real_comp_names.size() );
       AMREX_ASSERT( do_write_int_comp.size()  <= int_comp_names.size()  );
@@ -58,8 +57,9 @@ namespace amrex
       amrex::Print()<<"   Real: "<<pc.NStructReal<<" "<<pc.NumRealComps()<<"\n";
       amrex::Print()<<"   Int:  "<<pc.NStructInt<<" "<<pc.NumIntComps()<<"\n";
 
-      if ((m_OpenPMDHandler == nullptr) || (m_OpenPMDHandler->m_Writer == nullptr))
+      if ((m_OpenPMDHandler == nullptr) || (m_OpenPMDHandler->m_Writer == nullptr)) {
         return;
+      }
 
       AMREX_ASSERT( do_write_real_comp.size() <= real_comp_names.size() );
       AMREX_ASSERT( do_write_int_comp.size()  <= int_comp_names.size()  );
@@ -107,10 +107,11 @@ namespace amrex
           write_real_comp.push_back(1);
 
           std::stringstream ss;
-          if (i < pc.NStructReal)
+          if (i < pc.NStructReal) {
             ss << "aos-r_" << i;
-          else
+          } else {
             ss << "SoA-r" << i;
+          }
 
           real_comp_names.push_back(ss.str());
         }
@@ -122,10 +123,11 @@ namespace amrex
           write_int_comp.push_back(1);
           std::stringstream ss;
 
-          if (i < pc.NStructInt)
+          if (i < pc.NStructInt) {
             ss << "aos-i_" << i;
-          else
+          } else {
             ss << "SoA-i" << i;
+          }
 
           int_comp_names.push_back(ss.str());
         }
@@ -151,10 +153,11 @@ namespace amrex
           write_real_comp.push_back(1);
 
           std::stringstream ss;
-          if (i < pc.NStructReal)
+          if (i < pc.NStructReal) {
             ss << "aos-r_" << i;
-          else
+          } else {
             ss << "SoA-r" << i;
+          }
 
           real_comp_names.push_back(ss.str());
         }
@@ -166,10 +169,11 @@ namespace amrex
           write_int_comp.push_back(1);
           std::stringstream ss;
 
-          if (i < pc.NStructInt)
+          if (i < pc.NStructInt) {
             ss << "aos-i_" << i;
-          else
+          } else {
             ss << "SoA-i" << i;
+          }
           int_comp_names.push_back(ss.str());
         }
 
@@ -188,36 +192,31 @@ namespace amrex
       getUnitDimension ( std::string const & record_name )
       {
 
-        if( record_name == "position" ) return {
-            {openPMD::UnitDimension::L,  1.}
-          };
-        else if( record_name == "positionOffset" ) return {
-            {openPMD::UnitDimension::L,  1.}
-          };
-        else if( record_name == "momentum" ) return {
-            {openPMD::UnitDimension::L,  1.},
-            {openPMD::UnitDimension::M,  1.},
-            {openPMD::UnitDimension::T, -1.}
-          };
-        else if( record_name == "charge" ) return {
-            {openPMD::UnitDimension::T,  1.},
-            {openPMD::UnitDimension::I,  1.}
-          };
-        else if( record_name == "mass" ) return {
-            {openPMD::UnitDimension::M,  1.}
-          };
-        else if( record_name == "E" ) return {
-            {openPMD::UnitDimension::L,  1.},
-            {openPMD::UnitDimension::M,  1.},
-            {openPMD::UnitDimension::T, -3.},
-            {openPMD::UnitDimension::I, -1.},
-          };
-        else if( record_name == "B" ) return {
-            {openPMD::UnitDimension::M,  1.},
-            {openPMD::UnitDimension::I, -1.},
-            {openPMD::UnitDimension::T, -2.}
-          };
-        else return {};
+        if( record_name == "position" ) {
+            return {{openPMD::UnitDimension::L,  1.}};
+        } else if( record_name == "positionOffset" ) {
+            return {{openPMD::UnitDimension::L,  1.}};
+        } else if( record_name == "momentum" ) {
+            return {{openPMD::UnitDimension::L,  1.},
+                    {openPMD::UnitDimension::M,  1.},
+                    {openPMD::UnitDimension::T, -1.}};
+        } else if( record_name == "charge" ) {
+            return {{openPMD::UnitDimension::T,  1.},
+                    {openPMD::UnitDimension::I,  1.}};
+        } else if( record_name == "mass" ) {
+            return {{openPMD::UnitDimension::M,  1.}};
+        } else if( record_name == "E" ) {
+            return {{openPMD::UnitDimension::L,  1.},
+                    {openPMD::UnitDimension::M,  1.},
+                    {openPMD::UnitDimension::T, -3.},
+                    {openPMD::UnitDimension::I, -1.}};
+        } else if( record_name == "B" ) {
+            return {{openPMD::UnitDimension::M,  1.},
+                    {openPMD::UnitDimension::I, -1.},
+                    {openPMD::UnitDimension::T, -2.}};
+        } else {
+            return {};
+        }
       }
 
       //
@@ -227,10 +226,10 @@ namespace amrex
       localIDtoGlobal(int const id, int const cpu)
       {
         // from WarpXUtilIO::localIDtoGlobal
-        static_assert(sizeof(int) * 2u <= sizeof(uint64_t),
+        static_assert(sizeof(int) * 2U <= sizeof(uint64_t),
                       "int size might cause collisions in global IDs");
 
-        return uint64_t(id) | uint64_t(cpu) << 32u;
+        return uint64_t(id) | uint64_t(cpu) << 32U;
       }
 
 
@@ -241,10 +240,10 @@ namespace amrex
          std::string component_name = openPMD::RecordComponent::SCALAR;
 
          // we use "_" as separator in names to group vector records
-         std::size_t startComp = fullName.find_last_of("_");
+         std::size_t startComp = fullName.find_last_of('_');
          if( startComp != std::string::npos ) {  // non-scalar
            record_name = fullName.substr(0, startComp);
-           component_name = fullName.substr(startComp + 1u);
+           component_name = fullName.substr(startComp + 1U);
          }
          return make_pair(record_name, component_name);
        }
@@ -254,12 +253,12 @@ namespace amrex
       //
       inline
       auto  getComponentRecord (openPMD::ParticleSpecies& currSpecies,
-                                std::string const comp_name)
+                                std::string const& comp_name)
       {
         // handle scalar and non-scalar records by name
         const auto [record_name, component_name] = name2openPMD(comp_name);
         return currSpecies[record_name][component_name];
-      };
+      }
 
     } // namespace helper
 
@@ -278,7 +277,7 @@ namespace amrex
     {
       auto const& aos = pti.GetArrayOfStructs();  // size =  numParticlesOnTile
       auto const numParticleOnTile = pti.numParticles();
-      uint64_t const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
+      auto const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
 
       // first we concatenate the AoS into contiguous arrays
       {
@@ -294,8 +293,9 @@ namespace amrex
                                                        [](amrex::ParticleReal const *p){ delete[] p; }
                                                        );
 
-              for( auto kk=0; kk<numParticleOnTile; kk++ )
+              for( auto kk=0; kk<numParticleOnTile; kk++ ) {
                 d.get()[kk] = aos[kk].rdata(idx);
+              }
 
               currRecordComp.storeChunk(d, {offset}, {numParticleOnTile64});
             }
@@ -314,7 +314,7 @@ namespace amrex
     {
       auto const& aos = pti.GetArrayOfStructs();  // size =  numParticlesOnTile
       auto const numParticleOnTile = pti.numParticles();
-      uint64_t const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
+      auto const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
 
       // first we concatenate the AoS into contiguous arrays
       {
@@ -330,8 +330,9 @@ namespace amrex
                                        [](int const *p){ delete[] p; }
                                        );
 
-              for( auto kk=0; kk<numParticleOnTile; kk++ )
+              for( auto kk=0; kk<numParticleOnTile; kk++ ) {
                 d.get()[kk] = aos[kk].idata(idx);
+              }
 
               currRecordComp.storeChunk(d, {offset}, {numParticleOnTile64});
             }
@@ -350,7 +351,7 @@ namespace amrex
     {
       auto const& soa = pti.GetStructOfArrays();
       auto const numParticleOnTile = pti.numParticles();
-      uint64_t const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
+      auto const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
 
       auto const real_counter = std::min(write_real_comp.size(), real_comp_names.size()) - PIt::ContainerType::NStructReal;
 
@@ -378,7 +379,7 @@ namespace amrex
     {
       auto const& soa = pti.GetStructOfArrays();
       auto const numParticleOnTile = pti.numParticles();
-      uint64_t const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
+      auto const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
 
       auto const int_counter = std::min(write_int_comp.size(), int_comp_names.size()) - PIt::ContainerType::NStructInt;
       for (auto idx=0; idx<int_counter; idx++)
@@ -402,7 +403,7 @@ namespace amrex
     {
       BL_PROFILE("amrex::openpmd_api::SavePosId(default..)");
       auto const numParticleOnTile = pti.numParticles();
-      uint64_t const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
+      auto const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
 
       // get position and particle ID from aos
       // note: this implementation iterates the AoS 4x...
@@ -423,7 +424,7 @@ namespace amrex
               //amrex::AllPrint()<<"  i =  "<<i<<" "<<aos[i]<<"\n";
               curr.get()[i] = aos[i].pos(currDim);
             }
-            std::string const positionComponent = positionComponents[currDim];
+            std::string const& positionComponent = positionComponents[currDim];
             currSpecies["position"][positionComponent].storeChunk(curr, {offset + GetGrandOffset()}, {numParticleOnTile64});
           }
       }
@@ -438,7 +439,7 @@ namespace amrex
     {
       BL_PROFILE("amrex::openpmd_api::SaveSpecieId");
       auto const numParticleOnTile = pti.numParticles();
-      uint64_t const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
+      auto const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
 
       // get position and particle ID from aos
       // note: this implementation iterates the AoS 4x...
@@ -453,7 +454,7 @@ namespace amrex
           {
             ids.get()[i] = helper::localIDtoGlobal(aos[i].id(), aos[i].cpu());
           }
-        auto const scalar = openPMD::RecordComponent::SCALAR;
+        auto const * const scalar = openPMD::RecordComponent::SCALAR;
         currSpecies["id"][scalar].storeChunk(ids, {offset + GetGrandOffset()}, {numParticleOnTile64});
       }
     }
@@ -497,7 +498,7 @@ namespace amrex
                                             ) const
     {
       DumpParticles(pc, name, write_real_comp, write_int_comp, real_comp_names, int_comp_names,
-                    [=] (auto& pc, openPMD::ParticleSpecies& currSpecies, unsigned long long size)
+                    [=] (auto& /*pc*/, openPMD::ParticleSpecies& /*currSpecies*/, unsigned long long /*size*/)
                     {
                     }, // no extra pc level info to save
                     [=] (auto& pti, openPMD::ParticleSpecies& currSpecies, unsigned long long offset)
@@ -548,19 +549,19 @@ namespace amrex
       bool emptyPC = true;
       for (auto currentLevel = 0; currentLevel <= pc.finestLevel(); currentLevel++)
         {
-          uint64_t offset = static_cast<uint64_t>( pc.m_PtlCounter.m_ParticleOffsetAtRank[currentLevel] );
+          auto offset = static_cast<uint64_t>( pc.m_PtlCounter.m_ParticleOffsetAtRank[currentLevel] );
           using ParIter = typename PC::ParConstIterType;
 
           //for (WarpXParIter pti(*pc, currentLevel); pti.isValid(); ++pti) {
           for (ParIter pti(pc, currentLevel); pti.isValid(); ++pti)
             {
               auto const numParticleOnTile = pti.numParticles();
-              uint64_t const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
+              auto const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
 
               // Do not call storeChunk() with zero-sized particle tiles:
               //   https://github.com/openPMD/openPMD-api/issues/1147
               //   https://github.com/ECP-WarpX/WarpX/pull/1898#discussion_r745008290
-              if (numParticleOnTile == 0) continue;
+              if (numParticleOnTile == 0) { continue; }
 
               emptyPC = false;
 
@@ -585,13 +586,13 @@ namespace amrex
 
 
     template<class PC>
-    void AMReX_openPMDWriter::SetupRealProperties (PC const& pc,
+    void AMReX_openPMDWriter::SetupRealProperties (PC const& /*pc*/,
                                                    openPMD::ParticleSpecies& currSpecies,
                                                    const amrex::Vector<int>& write_real_comp,
                                                    const amrex::Vector<std::string>& real_comp_names,
                                                    const amrex::Vector<int>& write_int_comp,
                                                    const amrex::Vector<std::string>& int_comp_names,
-                                                   const unsigned long long np) const
+                                                   const unsigned long long /*np*/) const
     {
 
       //AllocateRealProperties(currSpecies, write_real_comp, real_comp_names, write_int_comp, int_comp_names, np);
@@ -615,14 +616,16 @@ namespace amrex
               if( newRecord )
                 {
                   currRecord.setUnitDimension( helper::getUnitDimension(record_name) );
-                  if( record_name == "weighting" )
-                    currRecord.setAttribute( "macroWeighted", 1u );
-                  else
-                    currRecord.setAttribute( "macroWeighted", 0u );
-                  if( record_name == "momentum" || record_name == "weighting" )
+                  if( record_name == "weighting" ) {
+                    currRecord.setAttribute( "macroWeighted", 1U );
+                  } else {
+                    currRecord.setAttribute( "macroWeighted", 0U );
+                  }
+                  if( record_name == "momentum" || record_name == "weighting" ) {
                     currRecord.setAttribute( "weightingPower", 1.0 );
-                  else
+                  } else {
                     currRecord.setAttribute( "weightingPower", 0.0 );
+                  }
                 }
             }
         }
@@ -642,17 +645,17 @@ namespace amrex
               if( newRecord )
                 {
                   currRecord.setUnitDimension( helper::getUnitDimension(record_name) );
-                  currRecord.setAttribute( "macroWeighted", 0u );
-                  if( record_name == "momentum" || record_name == "weighting" )
+                  currRecord.setAttribute( "macroWeighted", 0U );
+                  if( record_name == "momentum" || record_name == "weighting" ) {
                     currRecord.setAttribute( "weightingPower", 1.0 );
-                  else
+                  } else {
                     currRecord.setAttribute( "weightingPower", 0.0 );
+                  }
                 }
             }
         }
     }
 
-  } // namespace openpmd_api
-} // namespace amrex
+} // namespace amrex::openpmd_api
 
 #endif // AMREX_PLOTFILE_OPENPMD_API_H

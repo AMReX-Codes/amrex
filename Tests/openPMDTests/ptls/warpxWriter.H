@@ -13,9 +13,6 @@
 #include "pseudo_warpx.H"
 #include "AMReX_PlotFileUtilOPENPMD.H"
 
-using namespace amrex;
-using namespace WarpX;
-
 class AMReX_warpxWriter: public amrex::openpmd_api::AMReX_openPMDWriter
 {
 public:
@@ -23,9 +20,9 @@ public:
                     openPMD::IterationEncoding ie =  openPMD::IterationEncoding::variableBased,
                     std::string filetype = "default",
                     std::string openpmdOptions = "{}")
-    :AMReX_openPMDWriter("{}", ie, filetype, openpmdOptions),
+    :AMReX_openPMDWriter("{}", ie, std::move(filetype), std::move(openpmdOptions)),
      m_fieldPMLdirections(std::move(fieldPMLdirections))
-  {};
+  {}
 
   //
   //  fields related funcitions
@@ -38,19 +35,19 @@ public:
   void SetupFields (openPMD::Container< openPMD::Mesh >& meshes,
                     amrex::Geometry& full_geom) const override;
 
-  inline std::vector< std::string > getParticlePositionComponentLabels() const override;
+  [[nodiscard]] inline std::vector< std::string > getParticlePositionComponentLabels() const override;
 
   virtual void SetConstantMassCharge(openPMD::ParticleSpecies& currSpecies,
                                      const unsigned long long& np,
-                                     amrex::ParticleReal const charge,
-                                     amrex::ParticleReal const mass) const;
+                                     amrex::ParticleReal charge,
+                                     amrex::ParticleReal mass) const;
 
   void SetParticleSpecieAttributes(openPMD::ParticleSpecies& currSpecies) const override;
 
 private:
   std::vector<bool> m_fieldPMLdirections;
 
-  std::vector< std::string > getFieldAxisLabels ( const amrex::openpmd_api::AMReX_VarNameParser& varName ) const;
+  [[nodiscard]] static std::vector< std::string > getFieldAxisLabels ( const amrex::openpmd_api::AMReX_VarNameParser& varName );
 };
 
 
@@ -120,31 +117,33 @@ void AMReX_warpxWriter::SetupFields (openPMD::Container< openPMD::Mesh >& meshes
   particleBoundary.resize(4);
 #endif
   if (m_fieldPMLdirections.size() >= fieldBoundary.size())
-    {
-      for (auto i = 0u; i < fieldBoundary.size() / 2u; ++i)
-        if (m_fieldPMLdirections.at(i))
-          fieldBoundary.at(i) = "open";
-        }
+  {
+      for (int i = 0; i < int(fieldBoundary.size() / 2); ++i) {
+          if (m_fieldPMLdirections.at(i)) {
+              fieldBoundary.at(i) = "open";
+          }
+      }
+  }
 
-  for (auto i = 0u; i < fieldBoundary.size() / 2u; ++i)
+  for (int i = 0; i < int(fieldBoundary.size() / 2); ++i) {
     if (period.isPeriodic(i)) {
-      fieldBoundary.at(2u * i) = "periodic";
-      fieldBoundary.at(2u * i + 1u) = "periodic";
-      particleBoundary.at(2u * i) = "periodic";
-      particleBoundary.at(2u * i + 1u) = "periodic";
+      fieldBoundary.at(2 * i) = "periodic";
+      fieldBoundary.at(2 * i + 1) = "periodic";
+      particleBoundary.at(2 * i) = "periodic";
+      particleBoundary.at(2 * i + 1) = "periodic";
     }
-
+  }
 
   meshes.setAttribute("fieldSolver", []() {
     switch (WarpX::electromagnetic_solver_id) {
-    case ElectromagneticSolverAlgo::Yee :
-      return "Yee";
-    case ElectromagneticSolverAlgo::CKC :
-      return "CK";
-    case ElectromagneticSolverAlgo::PSATD :
-      return "PSATD";
+    case WarpX::ElectromagneticSolverAlgo::Yee :
+        { return "Yee"; }
+    case WarpX::ElectromagneticSolverAlgo::CKC :
+        { return "CK"; }
+    case WarpX::ElectromagneticSolverAlgo::PSATD :
+        { return "PSATD"; }
     default:
-      return "other";
+        { return "other"; }
     }
   }())
     ;
@@ -153,11 +152,11 @@ void AMReX_warpxWriter::SetupFields (openPMD::Container< openPMD::Mesh >& meshes
   meshes.setAttribute("particleBoundary", particleBoundary);
 
   meshes.setAttribute("currentSmoothing", []() {
-    if (WarpX::use_filter) return "Binomial";
-    else return "none";
+    if (WarpX::use_filter) { return "Binomial"; }
+    else { return "none"; }
   }());
 
-  if (WarpX::use_filter)
+  if (WarpX::use_filter) {
     meshes.setAttribute("currentSmoothingParameters", []() {
       std::stringstream ss;
       ss << "period=1;compensator=false";
@@ -179,19 +178,21 @@ void AMReX_warpxWriter::SetupFields (openPMD::Container< openPMD::Mesh >& meshes
       std::string currentSmoothingParameters = ss.str();
       return currentSmoothingParameters;
     }());
+  }
 
   meshes.setAttribute("chargeCorrection", []() {
-    if (WarpX::do_dive_cleaning) return "hyperbolic"; // TODO or "spectral" or something? double-check
-    else return "none";
+    if (WarpX::do_dive_cleaning) { return "hyperbolic"; } // TODO or "spectral" or something? double-check
+    else { return "none"; }
   }());
 
-  if (WarpX::do_dive_cleaning)
+  if (WarpX::do_dive_cleaning) {
     meshes.setAttribute("chargeCorrectionParameters", "period=1");
+  }
 }
 
 
 
-std::vector< std::string > AMReX_warpxWriter::getFieldAxisLabels ( const amrex::openpmd_api::AMReX_VarNameParser& varName ) const
+std::vector< std::string > AMReX_warpxWriter::getFieldAxisLabels ( const amrex::openpmd_api::AMReX_VarNameParser& /*varName*/ )
   {
     using vs = std::vector< std::string >;
     // Fortran order of the index labels for the AMReX FArrayBox
@@ -223,9 +224,9 @@ AMReX_warpxWriter::getParticlePositionComponentLabels() const
   {
     using vs = std::vector< std::string >;
 #if defined(WARPX_DIM_1D_Z)
-        vs const positionComponents{"z"};
+    vs positionComponents{"z"};
 #elif defined(WARPX_DIM_XZ)
-    vs const positionComponents{"x", "z"};
+    vs positionComponents{"x", "z"};
 #elif defined(WARPX_DIM_RZ)
     // note: although we internally store particle positions
     //       for AMReX in r,z and a theta attribute, we
@@ -233,13 +234,13 @@ AMReX_warpxWriter::getParticlePositionComponentLabels() const
     //       and I/O in Cartesian.
     //       Other attributes like momentum are consequently
     //       stored in x,y,z internally.
-    vs const positionComponents{"x", "y", "z"};
+    vs positionComponents{"x", "y", "z"};
 #elif (WARPX_DIM_3D)
-    vs const positionComponents{"x", "y", "z"};
+    vs positionComponents{"x", "y", "z"};
 #else
     //#   error Unknown WarpX dimensionality.
     // default:
-    vs const positionComponents{"kk", "jj", "ii"};
+    vs positionComponents{"kk", "jj", "ii"};
 #endif
     return positionComponents;
   }
@@ -251,7 +252,7 @@ void AMReX_warpxWriter::SetConstantMassCharge(openPMD::ParticleSpecies& currSpec
                                               amrex::ParticleReal const mass) const
   {
     auto realType = openPMD::Dataset(openPMD::determineDatatype<amrex::ParticleReal>(), {np});
-    auto const scalar = openPMD::RecordComponent::SCALAR;
+    auto const * const scalar = openPMD::RecordComponent::SCALAR;
 
     currSpecies["charge"][scalar].resetDataset( realType );
     currSpecies["mass"][scalar].resetDataset( realType );
@@ -262,9 +263,9 @@ void AMReX_warpxWriter::SetConstantMassCharge(openPMD::ParticleSpecies& currSpec
     currSpecies["charge"].setUnitDimension( amrex::openpmd_api::helper::getUnitDimension("charge") );
     currSpecies["mass"].setUnitDimension( amrex::openpmd_api::helper::getUnitDimension("mass") );
 
-    currSpecies["charge"].setAttribute( "macroWeighted", 0u );
+    currSpecies["charge"].setAttribute( "macroWeighted", 0U );
     currSpecies["charge"].setAttribute( "weightingPower", 1.0 );
-    currSpecies["mass"].setAttribute( "macroWeighted", 0u );
+    currSpecies["mass"].setAttribute( "macroWeighted", 0U );
     currSpecies["mass"].setAttribute( "weightingPower", 1.0 );
   }
 
@@ -277,12 +278,12 @@ void AMReX_warpxWriter::SetParticleSpecieAttributes(openPMD::ParticleSpecies& cu
   {
 
     // ED-PIC extension
-    currSpecies["id"].setAttribute( "macroWeighted", 0u );
+    currSpecies["id"].setAttribute( "macroWeighted", 0U );
     currSpecies["id"].setAttribute( "weightingPower", 0.0 );
-    currSpecies["position"].setAttribute( "macroWeighted", 0u );
+    currSpecies["position"].setAttribute( "macroWeighted", 0U );
     currSpecies["position"].setAttribute( "weightingPower", 0.0 );
 
-    currSpecies["positionOffset"].setAttribute( "macroWeighted", 0u );
+    currSpecies["positionOffset"].setAttribute( "macroWeighted", 0U );
     currSpecies["positionOffset"].setAttribute( "weightingPower", 0.0 );
 
       // meta data for ED-PIC extension
@@ -300,24 +301,24 @@ void AMReX_warpxWriter::SetParticleSpecieAttributes(openPMD::ParticleSpecies& cu
 
       currSpecies.setAttribute( "particlePush", [](){
         switch( WarpX::particle_pusher_algo ) {
-        case ParticlePusherAlgo::Boris : return "Boris";
-        case ParticlePusherAlgo::Vay : return "Vay";
-        case ParticlePusherAlgo::HigueraCary : return "HigueraCary";
-        default: return "other";
+        case WarpX::ParticlePusherAlgo::Boris : { return "Boris"; }
+        case WarpX::ParticlePusherAlgo::Vay : { return "Vay"; }
+        case WarpX::ParticlePusherAlgo::HigueraCary : { return "HigueraCary"; }
+        default: { return "other"; }
         }
       }() );
       currSpecies.setAttribute( "particleInterpolation", [](){
         switch( WarpX::field_gathering_algo ) {
-        case GatheringAlgo::EnergyConserving : return "energyConserving";
-        case GatheringAlgo::MomentumConserving : return "momentumConserving";
-        default: return "other";
+        case WarpX::GatheringAlgo::EnergyConserving : { return "energyConserving"; }
+        case WarpX::GatheringAlgo::MomentumConserving : { return "momentumConserving"; }
+        default: { return "other"; }
         }
       }() );
       currSpecies.setAttribute( "particleSmoothing", "none" );
       currSpecies.setAttribute( "currentDeposition", [](){
         switch( WarpX::current_deposition_algo ) {
-        case CurrentDepositionAlgo::Esirkepov : return "Esirkepov";
-        default: return "directMorseNielson";
+        case WarpX::CurrentDepositionAlgo::Esirkepov : { return "Esirkepov"; }
+        default: { return "directMorseNielson"; }
         }
       }() );
   }

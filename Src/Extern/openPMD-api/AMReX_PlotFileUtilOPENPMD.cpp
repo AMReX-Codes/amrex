@@ -14,17 +14,15 @@
 #include <fstream>
 #include <iomanip>
 
-namespace amrex
+namespace amrex::openpmd_api
 {
-  namespace openpmd_api
-  {
     /* global handler, activate with InitHandler() & deactivate with CloseHandler() */
     std::unique_ptr< AMReX_openPMDHandler > m_OpenPMDHandler = nullptr;
 
     std::unique_ptr<AMReX_openPMDHandler> InitUserHandler(const std::string& prefix)
     {
-      std::string filePath {""};
-      if (prefix.size() == 0)
+      std::string filePath;
+      if (prefix.empty())
         {
           ParmParse pp;
           pp.query("openpmd_directory", filePath);
@@ -33,23 +31,20 @@ namespace amrex
         filePath = prefix;
       }
 
-      std::unique_ptr< AMReX_openPMDHandler > userHandler;
-      userHandler.reset(new AMReX_openPMDHandler(filePath));
-      return userHandler;
+      return std::make_unique<AMReX_openPMDHandler>(filePath);
     }
 
     void CloseUserHandler(std::unique_ptr<AMReX_openPMDHandler>& userHandler)
     {
-      if (userHandler == nullptr)
-        return;
+      if (userHandler == nullptr) { return; }
 
       userHandler.reset(nullptr);
     }
 
     void InitHandler(const std::string& prefix)
     {
-      std::string filePath {""};
-      if (prefix.size() == 0)
+      std::string filePath;
+      if (prefix.empty())
         {
           ParmParse pp;
           pp.query("openpmd_directory", filePath);
@@ -58,11 +53,13 @@ namespace amrex
         filePath = prefix;
       }
 
-      if (m_OpenPMDHandler == nullptr)
-        m_OpenPMDHandler.reset(new AMReX_openPMDHandler(filePath));
-      else if (m_OpenPMDHandler->m_Writer != nullptr)
-        if (m_OpenPMDHandler->m_Writer->m_openPMDPrefix !=  filePath)
-          m_OpenPMDHandler.reset(new AMReX_openPMDHandler(filePath));
+      if (m_OpenPMDHandler == nullptr) {
+        m_OpenPMDHandler = std::make_unique<AMReX_openPMDHandler>(filePath);
+      } else if (m_OpenPMDHandler->m_Writer != nullptr) {
+        if (m_OpenPMDHandler->m_Writer->m_openPMDPrefix !=  filePath) {
+          m_OpenPMDHandler = std::make_unique<AMReX_openPMDHandler>(filePath);
+        }
+      }
       // already using the directory, no action needed
     }
 
@@ -78,24 +75,23 @@ namespace amrex
 
     void CloseHandler()
     {
-      if (m_OpenPMDHandler == nullptr)
-        return;
-
-      m_OpenPMDHandler.reset(nullptr);
+      m_OpenPMDHandler.reset();
     }
 
     void SetStep(int ts)
     {
-      if ((m_OpenPMDHandler == nullptr) || (m_OpenPMDHandler->m_Writer == nullptr))
+      if ((m_OpenPMDHandler == nullptr) || (m_OpenPMDHandler->m_Writer == nullptr)) {
         return;
+      }
 
       m_OpenPMDHandler->m_Writer->SetStep(ts);
     }
 
     void CloseStep(int ts)
     {
-      if ((m_OpenPMDHandler == nullptr) || (m_OpenPMDHandler->m_Writer == nullptr))
+      if ((m_OpenPMDHandler == nullptr) || (m_OpenPMDHandler->m_Writer == nullptr)) {
         return;
+      }
 
       m_OpenPMDHandler->m_Writer->CloseStep(ts);
     }
@@ -126,14 +122,13 @@ namespace amrex
                           const Vector<Geometry> &geom,
                           Real time,
                           //const Vector<int> &level_steps,
-                          const Vector<IntVect> &ref_ratio,
-                          const std::string &versionName,
-                          const std::string &levelPrefix,
-                          const std::string &mfPrefix,
-                          const Vector<std::string>& extra_dirs)
+                          const Vector<IntVect> & /*ref_ratio*/,
+                          const std::string & /*versionName*/,
+                          const std::string & /*levelPrefix*/,
+                          const std::string & /*mfPrefix*/,
+                          const Vector<std::string>& /*extra_dirs*/)
     {
-      if ((m_OpenPMDHandler == nullptr) || (m_OpenPMDHandler->m_Writer == nullptr))
-        return;
+      if ((m_OpenPMDHandler == nullptr) || (m_OpenPMDHandler->m_Writer == nullptr)) { return; }
 
       BL_ASSERT ( geom.size() == mf.size() );
       BL_ASSERT ( mf[0]->nComp() <= varnames.size() );
@@ -144,5 +139,4 @@ namespace amrex
                                             //level_steps[0],
                                             time);
     }
-  } // namespace openpmd_api
-} // namespace amrex
+} // namespace amrex::openpmd_api

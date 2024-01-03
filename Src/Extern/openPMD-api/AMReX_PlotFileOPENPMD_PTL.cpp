@@ -17,8 +17,7 @@
 #include <iomanip>
 
 
-namespace amrex {
-  namespace openpmd_api {
+namespace amrex::openpmd_api {
 
     bool AMReX_openPMDWriter::AllocatePtlProperties(openPMD::ParticleSpecies& currSpecies,
                                                     const amrex::Vector<int>& write_real_comp,
@@ -64,7 +63,7 @@ namespace amrex {
           currSpecies["position"][comp].resetDataset( realType );
         }
 
-      auto const scalar = openPMD::RecordComponent::SCALAR;
+      auto const * const scalar = openPMD::RecordComponent::SCALAR;
       currSpecies["id"][scalar].resetDataset( idType );
     }
 
@@ -100,5 +99,4 @@ namespace amrex {
       SetParticleSpecieAttributes(currSpecies);
     }
 
-  } // namespace
 }

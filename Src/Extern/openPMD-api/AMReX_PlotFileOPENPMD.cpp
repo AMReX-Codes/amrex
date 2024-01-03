@@ -16,8 +16,7 @@
 #include <openPMD/openPMD.hpp>
 #include <regex>
 
-namespace amrex {
-  namespace openpmd_api {
+namespace amrex::openpmd_api {
 
 
     ////////////////////////////////////////
@@ -27,8 +26,8 @@ namespace amrex {
     //
     ////////////////////////////////////////
 
-    AMReX_VarNameParser::AMReX_VarNameParser(std::string varname)
-    :m_CompName(openPMD::MeshRecordComponent::SCALAR)
+    AMReX_VarNameParser::AMReX_VarNameParser(std::string const& varname)
+        :m_CompName(openPMD::MeshRecordComponent::SCALAR)
     {
         //auto [varname_no_mode, mode_index] = GetFieldNameModeInt(varname);
         GetFieldNameModeInt(varname);
@@ -50,36 +49,35 @@ namespace amrex {
       std::regex_match(varname, sm, e_real_imag, std::regex_constants::match_default);
 
       if (sm.size() != 4 )
-        {
+      {
           m_ThetaMode = (m_ModeIndex != -1); // thetaMode or reconstructed Cartesian 2D slice
           m_FieldName = varname;
-        }
+      }
       else
-        {
+      {
           // sm = [varname, field_name, mode, real_imag]
           int mode = std::stoi(sm[2]);
-          if (mode == 0)
-            m_ModeIndex = 0;
-          else
-            {
+          if (mode == 0) {
+              m_ModeIndex = 0;
+          } else {
               if (sm[3] == "imag") {
-                m_ModeIndex += 1;
+                  m_ModeIndex += 1;
               }
               m_ModeIndex += 2 * mode;
-            }
+          }
           m_ThetaMode = (m_ModeIndex != -1); // thetaMode or reconstructed Cartesian 2D slice
           m_FieldName = std::string(sm[1]);
-        }
+      }
     }
 
 
     void AMReX_VarNameParser::GetMeshCompNames (int meshLevel)
     {
       std::string varname = m_FieldName;
-      if (varname.size() >= 2u )
-        {
-          std::string const varname_1st = varname.substr(0u, 1u); // 1st character
-          std::string const varname_2nd = varname.substr(1u, 1u); // 2nd character
+      if (varname.size() >= 2U )
+      {
+          std::string const varname_1st = varname.substr(0U, 1U); // 1st character
+          std::string const varname_2nd = varname.substr(1U, 1U); // 2nd character
 
           // Check if this field is a vector. If so, then extract the field name
 
@@ -87,21 +85,22 @@ namespace amrex {
           std::vector< std::string > const field_components = getFieldComponentLabels();
 
           for( std::string const& vector_field : vector_fields )
-            {
+          {
               for( std::string const& component : field_components )
-                {
-                  if( vector_field.compare( varname_1st ) == 0 && component.compare( varname_2nd ) == 0 )
-                    {
+              {
+                  if( vector_field == varname_1st && component == varname_2nd )
+                  {
                       m_FieldName = varname_1st + varname.substr(2); // Strip component
                       m_CompName  = varname_2nd;
-                    }
-                }
-            }
-        }
+                  }
+              }
+          }
+      }
 
 
-      if ( 0 == meshLevel )
-        return;
+      if ( 0 == meshLevel ) {
+          return;
+      }
 
       m_FieldName += std::string("_lvl").append(std::to_string(meshLevel));
     }
@@ -115,8 +114,9 @@ namespace amrex {
                       std::string const & engine_type,
                       std::map< std::string, std::string > const & engine_parameters)
     {
-      if (operator_type.empty() && engine_type.empty())
+      if (operator_type.empty() && engine_type.empty()) {
         return "{}";
+      }
 
       std::string options;
       std::string top_block;
@@ -126,7 +126,7 @@ namespace amrex {
 
       std::string op_parameters;
       for (const auto& kv : operator_parameters) {
-        if (!op_parameters.empty()) op_parameters.append(",\n");
+        if (!op_parameters.empty()) { op_parameters.append(",\n"); }
         op_parameters.append(std::string(12, ' '))         /* just pretty alignment */
           .append("\"").append(kv.first).append("\": ")    /* key */
           .append("\"").append(kv.second).append("\""); /* value (as string) */
@@ -134,7 +134,7 @@ namespace amrex {
 
       std::string en_parameters;
       for (const auto& kv : engine_parameters) {
-        if (!en_parameters.empty()) en_parameters.append(",\n");
+        if (!en_parameters.empty()) { en_parameters.append(",\n"); }
         en_parameters.append(std::string(12, ' '))         /* just pretty alignment */
           .append("\"").append(kv.first).append("\": ")    /* key */
           .append("\"").append(kv.second).append("\""); /* value (as string) */
@@ -166,8 +166,9 @@ namespace amrex {
       ]
     })END";
 
-        if (!engine_type.empty() || !en_parameters.empty())
+        if (!engine_type.empty() || !en_parameters.empty()) {
           op_block += ",";
+        }
       }
 
       if (!engine_type.empty() || !en_parameters.empty())
@@ -178,8 +179,9 @@ namespace amrex {
             en_block += R"END(
       "type": ")END";
             en_block += engine_type + "\"";
-            if(!en_parameters.empty())
+            if(!en_parameters.empty()) {
               en_block += ",";
+            }
           }
           if (!en_parameters.empty()) {
             en_block += R"END(
@@ -204,19 +206,11 @@ namespace amrex {
     //
     ////////////////////////////////////////
 
-    AMReX_openPMDHandler::AMReX_openPMDHandler(const std::string& prefix) // match to diag_name in warpx
+    AMReX_openPMDHandler::AMReX_openPMDHandler(std::string const& prefix) // NOLINT(modernize-pass-by-value) // match to diag_name in warpx
       :m_Writer(nullptr)
     {
       BL_PROFILE("AMReX_openPMDHandler::()");
       CreateWriter(prefix);
-    }
-
-    AMReX_openPMDHandler::~AMReX_openPMDHandler ()
-    {
-      if( m_Writer)
-      {
-          m_Writer.reset( nullptr );
-      }
     }
 
     void AMReX_openPMDHandler::CreateWriter(const std::string& prefix)
@@ -231,12 +225,13 @@ namespace amrex {
       pp_prefix.query("openpmd_encoding", openpmd_encoding);
       openPMD::IterationEncoding encoding = openPMD::IterationEncoding::groupBased;
 
-      if ( 0 == openpmd_encoding.compare("v") )
+      if ( openpmd_encoding == "v" ) {
         encoding = openPMD::IterationEncoding::variableBased;
-      else if ( 0 == openpmd_encoding.compare("g") )
+      } else if ( openpmd_encoding == "g" ) {
         encoding = openPMD::IterationEncoding::groupBased;
-      else if ( 0 == openpmd_encoding.compare("f") )
+      } else if ( openpmd_encoding == "f" ) {
         encoding = openPMD::IterationEncoding::fileBased;
+      }
 
       auto lf_collect = [&](const char* key,
                             const std::string& parameter_tag,
@@ -247,7 +242,7 @@ namespace amrex {
         pp_prefix.query(key, key_type);
         std::string const key_prefix = prefix + parameter_tag;
         ParmParse pp;
-        auto entr = pp.getEntries(key_prefix);
+        auto entr = ParmParse::getEntries(key_prefix);
 
         auto const prefix_len = key_prefix.size() + 1;
         for (std::string k : entr) {
@@ -281,29 +276,28 @@ namespace amrex {
     // Class AMReX_openPMDWriter
     //
     ////////////////////////////////////////
-    AMReX_openPMDWriter::AMReX_openPMDWriter ()
-    {}
 
-    AMReX_openPMDWriter::AMReX_openPMDWriter (const std::string& prefix,
+    AMReX_openPMDWriter::AMReX_openPMDWriter (std::string prefix,
                                               openPMD::IterationEncoding ie,
                                               std::string filetype,
                                               std::string options)
-      :m_openPMDPrefix(prefix),
+      :m_openPMDPrefix(std::move(prefix)),
        m_openPMDEncoding(ie),
-       m_openPMDFileType(filetype),
-       m_openPMDSeriesOptions(options)
+       m_openPMDFileType(std::move(filetype)),
+       m_openPMDSeriesOptions(std::move(options))
                                               //std::vector<bool> fieldPMLdirections // warpx specific
     {
-if( m_openPMDFileType == "default" )
+        if( m_openPMDFileType == "default" ) {
 #if openPMD_HAVE_ADIOS2==1
-    m_openPMDFileType = "bp";
+            m_openPMDFileType = "bp";
 #elif openPMD_HAVE_ADIOS1==1
-    m_openPMDFileType = "bp";
+            m_openPMDFileType = "bp";
 #elif openPMD_HAVE_HDF5==1
-    m_openPMDFileType = "h5";
+            m_openPMDFileType = "h5";
 #else
-    m_openPMDFileType = "json";
+            m_openPMDFileType = "json";
 #endif
+        }
     }
 
     AMReX_openPMDWriter::~AMReX_openPMDWriter ()
@@ -322,7 +316,7 @@ if( m_openPMDFileType == "default" )
       Init(openPMD::Access::CREATE);
     }
 
-    void AMReX_openPMDWriter::CloseStep(int ts)
+    void AMReX_openPMDWriter::CloseStep(int /*ts*/)
     {
       if (m_Series) {
         GetIteration(m_CurrentStep).close();
@@ -334,10 +328,11 @@ if( m_openPMDFileType == "default" )
       std::string filepath = m_openPMDPrefix;
       GetFileName(filepath);
 
-      if ( m_openPMDEncoding == openPMD::IterationEncoding::fileBased )
-        m_Series = nullptr;
-      else if ( m_Series != nullptr )
-        return;
+      if ( m_openPMDEncoding == openPMD::IterationEncoding::fileBased ) {
+          m_Series = nullptr;
+      } else if ( m_Series != nullptr ) {
+          return;
+      }
 
       if (amrex::ParallelDescriptor::NProcs() > 1)
         {
@@ -361,7 +356,7 @@ if( m_openPMDFileType == "default" )
       m_Series->setMeshesPath( "fields" );
       // conform to ED-PIC extension of openPMD
 
-      uint32_t const openPMD_ED_PIC = 1u;
+      uint32_t const openPMD_ED_PIC = 1U;
       m_Series->setOpenPMDextension( openPMD_ED_PIC );
       // meta info
 
@@ -392,8 +387,9 @@ if( m_openPMDFileType == "default" )
             else
               {
                 auto mesh = meshes[curr.m_FieldName];
-                if ( ! mesh.contains(curr.m_CompName) )
+                if ( ! mesh.contains(curr.m_CompName) ) {
                   SetupMeshComp(  mesh, full_geom, *curr_mf, curr );
+                }
               }
           }
         } // icomp setup loop
@@ -403,7 +399,7 @@ if( m_openPMDFileType == "default" )
                                           openPMD::Container< openPMD::Mesh >& meshes,
                                           amrex::Geometry& full_geom,
                                           const std::vector<std::string>& varnames,
-                                          const amrex::MultiFab* curr_mf) const
+                                          const amrex::MultiFab* curr_mf)
     {
       int const ncomp = curr_mf->nComp();
       amrex::Box const & global_box = full_geom.Domain();
@@ -472,15 +468,16 @@ if( m_openPMDFileType == "default" )
       auto meshes = series_iteration.meshes;
       series_iteration.setTime( time );
 
-      if ( 0 == varnames.size() ) return;
+      if ( varnames.empty() ) { return; }
 
-      int output_levels = geom.size();
+      auto output_levels = int(geom.size());
       for (int lev=0; lev < output_levels; lev++)
         {
           amrex::Geometry full_geom = geom[lev];
 
-          if ( 0 == lev )
+          if ( 0 == lev ) {
             SetupFields(meshes, full_geom);
+          }
 
           CompSetup(lev, meshes, full_geom, varnames, mf[lev]);
           CompStorage(lev, meshes, full_geom, varnames, mf[lev]);
@@ -491,10 +488,11 @@ if( m_openPMDFileType == "default" )
       } // for lev loop
     }
 
-    void AMReX_openPMDWriter::GetFileName(std::string& filepath)
+    void AMReX_openPMDWriter::GetFileName(std::string& filepath) const
     {
-      if (filepath.size() == 0)
+      if (filepath.empty()) {
         filepath.append(".");
+      }
 
       filepath.append("/");
       // transform paths for Windows
@@ -532,13 +530,14 @@ if( m_openPMDFileType == "default" )
       particleBoundary.resize(4);
 #endif
 
-      for (auto i = 0u; i < fieldBoundary.size() / 2u; ++i)
+      for (int i = 0; i < int(fieldBoundary.size() / 2); ++i) {
         if (period.isPeriodic(i)) {
-          fieldBoundary.at(2u * i) = "periodic";
-          fieldBoundary.at(2u * i + 1u) = "periodic";
-          particleBoundary.at(2u * i) = "periodic";
-          particleBoundary.at(2u * i + 1u) = "periodic";
+          fieldBoundary.at(2 * i) = "periodic";
+          fieldBoundary.at(2 * i + 1) = "periodic";
+          particleBoundary.at(2 * i) = "periodic";
+          particleBoundary.at(2 * i + 1) = "periodic";
         }
+      }
 
       meshes.setAttribute("fieldBoundary", fieldBoundary);
       meshes.setAttribute("particleBoundary", particleBoundary);
@@ -589,5 +588,4 @@ if( m_openPMDFileType == "default" )
     }
 
 
-  } // namespace openpmd_api
-} // namespace amrex
+} // namespace amrex::openpmd_api

@@ -7,8 +7,10 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileDataImpl.H>
 
+#ifdef AMREX_PARTICLES
 #include <AMReX_ParIter.H>
 #include <AMReX_Particles.H>
+#endif
 
 #ifdef AMREX_USE_OPENPMD_API
 #include <openPMD/openPMD.hpp>
@@ -17,14 +19,12 @@
 #include <string>
 #include <memory>
 
-namespace amrex
+namespace amrex::openpmd_api
 {
-  namespace openpmd_api
-  {
     namespace helper
     {
       inline void
-      setOpenPMDUnit ( openPMD::Mesh mesh, const std::string field_name )
+      setOpenPMDUnit ( openPMD::Mesh mesh, std::string const& field_name )
       {
         if (field_name[0] == 'E'){
           mesh.setUnitDimension({
@@ -65,8 +65,9 @@ namespace amrex
         // WarpX::do_nodal means: all indices/directions on CellIndex::NODE
         for (int d = 0; d < AMREX_SPACEDIM; d++)
           {
-            if (idx_type.cellCentered(d))
+            if (idx_type.cellCentered(d)) {
               relative_position.at(d) = 0.5;
+            }
           }
         return relative_position;
       }
@@ -121,9 +122,9 @@ namespace amrex
     void UseCustomWriter(AMReX_openPMDWriter* w);
 
     std::unique_ptr<AMReX_openPMDHandler> InitUserHandler(const std::string& prefix);
-    void CloseUserHandler(std::unique_ptr<AMReX_openPMDHandler>& h);
+    void CloseUserHandler(std::unique_ptr<AMReX_openPMDHandler>& userHandler);
 
-    void InitHandler(const std::string& filePath);
+    void InitHandler(const std::string& prefix);
     //void SetCustomizer(AMReX_Optional* f);
 
     void SetStep(int ts);
@@ -158,30 +159,35 @@ namespace amrex
     ////////////////////////////
     struct AMReX_VarNameParser
     {
-      AMReX_VarNameParser(std::string varname);
+      AMReX_VarNameParser(std::string const& varname);
+      virtual ~AMReX_VarNameParser () = default;
+      AMReX_VarNameParser (AMReX_VarNameParser const&) = default;
+      AMReX_VarNameParser (AMReX_VarNameParser &&) = delete;
+      AMReX_VarNameParser& operator= (AMReX_VarNameParser const&) = default;
+      AMReX_VarNameParser& operator= (AMReX_VarNameParser &&) = delete;
 
       void GetFieldNameModeInt(const std::string& varname);
       void GetMeshCompNames (int meshLevel);
 
-      inline std::vector< std::string > getFieldComponentLabels ()
+      [[nodiscard]] std::vector< std::string > getFieldComponentLabels () const
       {
         using vs = std::vector< std::string >;
         if (m_ThetaMode)
           {
             // if we write individual modes
-            vs const fieldComponents{"r", "t", "z"};
+            vs fieldComponents{"r", "t", "z"};
             return fieldComponents;
           }
         else
           {
             // if we just write reconstructed fields at theta=0 or are Cartesian
             // note: 1D3V and 2D3V simulations still have 3 components for the fields
-            vs const fieldComponents{"x", "y", "z"};
+            vs fieldComponents{"x", "y", "z"};
             return fieldComponents;
           }
       }
 
-      virtual  std::vector< std::string >
+      [[nodiscard]] virtual std::vector< std::string >
       getFieldAxisLabels () const
       {
         using vs = std::vector< std::string >;
@@ -216,16 +222,20 @@ namespace amrex
     ////////////////////////////
     class AMReX_openPMDWriter {
     public:
-      AMReX_openPMDWriter(const std::string& prefix,
+      AMReX_openPMDWriter(std::string prefix,
                           openPMD::IterationEncoding ie,
                           std::string filetype,
                           std::string openpmdOptions);
 
-      AMReX_openPMDWriter();
+      AMReX_openPMDWriter() = default;
+      AMReX_openPMDWriter (AMReX_openPMDWriter const&) = delete;
+      AMReX_openPMDWriter (AMReX_openPMDWriter &&) = delete;
+      AMReX_openPMDWriter& operator= (AMReX_openPMDWriter const&) = delete;
+      AMReX_openPMDWriter& operator= (AMReX_openPMDWriter &&) = delete;
 
       virtual ~AMReX_openPMDWriter();
 
-      virtual openPMD::Iteration GetIteration (int const iteration) const
+      [[nodiscard]] virtual openPMD::Iteration GetIteration (int const iteration) const
       {
         return m_Series->writeIterations()[iteration];
       }
@@ -239,7 +249,7 @@ namespace amrex
                              const amrex::Vector<amrex::Geometry>& geom,
                              //const Vector<int> &iteration,
                              //const int iteration, /* note:  all levels are outputting the same step */
-                             const double time ) const;
+                             double time ) const;
 
       template<class PC>
       void DumpParticles(PC const& pc,
@@ -259,36 +269,36 @@ namespace amrex
                          const amrex::Vector<int>& write_int_comp,  // size = NStructInt  + NArrayInt
                          const amrex::Vector<std::string>& real_comp_names,
                          const amrex::Vector<std::string>&  int_comp_names,
-                         FUNC_pc&& pcFunc,
-                         FUNC_pit&& pitFunc
+                         FUNC_pc&& pc_func,
+                         FUNC_pit&& posId_func
                          ) const;
 
-      virtual bool AllocatePtlProperties(openPMD::ParticleSpecies& currSpecies,
+      [[nodiscard]] virtual bool AllocatePtlProperties(openPMD::ParticleSpecies& currSpecies,
                                          const amrex::Vector<int>& write_real_comp,
                                          const amrex::Vector<std::string>& real_comp_names,
                                          const amrex::Vector<int>& write_int_comp,
                                          const amrex::Vector<std::string>& int_comp_names,
-                                         const unsigned long long np) const;
+                                         unsigned long long np) const;
 
-      virtual void SetParticleSpecieAttributes(openPMD::ParticleSpecies& currSpecies) const
+      virtual void SetParticleSpecieAttributes(openPMD::ParticleSpecies& /*currSpecies*/) const
       {}
 
       void SetupPos(openPMD::ParticleSpecies& species, const unsigned long long& np) const;
-      virtual unsigned long long GetGrandOffset() const; // to adjust offset/total with data already flushed,  example use case: BTD
+      [[nodiscard]] virtual unsigned long long GetGrandOffset() const; // to adjust offset/total with data already flushed,  example use case: BTD
 
       // called once because it is constant valued record
       virtual void SetupConstant(openPMD::ParticleSpecies& currSpecies,
                                  const unsigned long long& np) const;
 
-      virtual std::vector< std::string >
+      [[nodiscard]] virtual std::vector< std::string >
       getParticlePositionComponentLabels() const
       {
 #if (AMREX_SPACEDIM == 3)
-        std::vector< std::string > const positionComponents{"x", "y", "z"};
+        std::vector< std::string > positionComponents{"x", "y", "z"};
 #elif (AMREX_SPACEDIM == 2)
-        std::vector< std::string > const positionComponents{"x", "y"};
+        std::vector< std::string > positionComponents{"x", "y"};
 #elif (AMREX_SPACEDIM == 1)
-        std::vector< std::string > const positionComponents{"x"};
+        std::vector< std::string > positionComponents{"x"};
 #else
 #   error Unknown dimensionality.
 #endif
@@ -303,7 +313,7 @@ namespace amrex
                           const amrex::Vector<std::string>& real_comp_names,
                           const amrex::Vector<int>& write_int_comp,
                           const amrex::Vector<std::string>& int_comp_names,
-                          const unsigned long long np) const;
+                          unsigned long long np) const;
       /*
       */
       template<class PIt>
@@ -335,11 +345,11 @@ namespace amrex
                      const std::vector<std::string>& varnames,
                      const amrex::MultiFab* mf) const;
 
-      void CompStorage(int lev,
+      static void CompStorage(int lev,
                        openPMD::Container< openPMD::Mesh >& meshes,
                        amrex::Geometry& full_geom,
                        const std::vector<std::string>& varnames,
-                       const amrex::MultiFab* mf) const;
+                       const amrex::MultiFab* mf);
 
 
       virtual void SetupFields (openPMD::Container< openPMD::Mesh >& meshes,
@@ -350,7 +360,7 @@ namespace amrex
                           amrex::MultiFab const& mf,
                           const AMReX_VarNameParser& varName) const;
 
-      void GetFileName(std::string& filepath);
+      void GetFileName(std::string& filepath) const;
 
       template<class PIt>
       void StoreAoS_Real(PIt& pti,
@@ -404,11 +414,9 @@ namespace amrex
     ////////////////////////////
     class AMReX_openPMDHandler {
     public:
-      AMReX_openPMDHandler(const std::string& prefix = std::string());
+      AMReX_openPMDHandler(std::string const& prefix = std::string());
 
-      ~AMReX_openPMDHandler();
-
-      std::unique_ptr<AMReX_openPMDWriter> m_Writer = nullptr;
+      std::unique_ptr<AMReX_openPMDWriter> m_Writer;
 
     private:
       void CreateWriter(const std::string& prefix = std::string());
@@ -416,8 +424,7 @@ namespace amrex
     }; // class AMReX_openPMDHandler
 
 
-  }// name space openpmd_api
-} // namespace amrex
+} // namespace amrex::openpmd_api
 
 
 #include <AMReX_PlotFileUtilOPENPMD_PTLImpl.H>
