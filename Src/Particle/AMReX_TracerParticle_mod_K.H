@@ -58,18 +58,9 @@ void cic_interpolate (const P& p,
     }
 }
 
-
-// AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-// int compute_particle_weights (amrex::Real* s, amrex::Real x) {
-//     amrex::Real l = (x - plo[0]) * dxi[0] - Real(0.5);
-
-// }
-
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cic_interpolate_mapped (const P& p,
-                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
-                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
                              const amrex::Array4<amrex::Real const>&  ucc_arr,
                              const amrex::Array4<amrex::Real const>&  loc_arr,
                              amrex::ParticleReal* val, int M = AMREX_SPACEDIM)
@@ -84,9 +75,9 @@ void cic_interpolate_mapped (const P& p,
                  amrex::Real ly = amrex::Real(p.pos(1)) - 0.5*(loc_arr(AMREX_D_DECL(i,j-1,k),1) + loc_arr(AMREX_D_DECL(i,j,k),1));,
                  amrex::Real lz = amrex::Real(p.pos(2)) - 0.5*(loc_arr(AMREX_D_DECL(i,j,k-1),2) + loc_arr(AMREX_D_DECL(i,j,k),2)));
 
-    AMREX_D_TERM(int i0 = i + amrex::Math::floor(lx/(loc_arr(AMREX_D_DECL(i+1,j,k),0) - loc_arr(AMREX_D_DECL(i,j,k),0)));,
-                 int j0 = j + amrex::Math::floor(ly/(loc_arr(AMREX_D_DECL(i,j+1,k),1) - loc_arr(AMREX_D_DECL(i,j,k),1)));,
-                 int k0 = k + amrex::Math::floor(lz/(loc_arr(AMREX_D_DECL(i,j,k+1),2) - loc_arr(AMREX_D_DECL(i,j,k),2))));
+    AMREX_D_TERM(int i0 = i + static_cast<int>(amrex::Math::floor(lx/(loc_arr(AMREX_D_DECL(i+1,j,k),0) - loc_arr(AMREX_D_DECL(i,j,k),0))));,
+                 int j0 = j + static_cast<int>(amrex::Math::floor(ly/(loc_arr(AMREX_D_DECL(i,j+1,k),1) - loc_arr(AMREX_D_DECL(i,j,k),1))));,
+                 int k0 = k + static_cast<int>(amrex::Math::floor(lz/(loc_arr(AMREX_D_DECL(i,j,k+1),2) - loc_arr(AMREX_D_DECL(i,j,k),2)))));
 
     AMREX_D_TERM(amrex::Real const xint = 2.0*lx/(loc_arr(AMREX_D_DECL(i0+2,j,k),0) - loc_arr(AMREX_D_DECL(i0,j,k),0));,
                  amrex::Real const yint = 2.0*ly/(loc_arr(AMREX_D_DECL(i,j0+2,k),1) - loc_arr(AMREX_D_DECL(i,j0,k),1));,
