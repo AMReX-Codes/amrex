@@ -15,6 +15,8 @@ PRECISION = DOUBLE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 
+USE_OPENPMD = TRUE
+
 ###################################################
 
 EBASE     = main
@@ -22,9 +24,11 @@ EBASE     = main
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
-include $(AMREX_HOME)/Src/Base/Make.package
-include $(AMREX_HOME)/Src/Boundary/Make.package
-include $(AMREX_HOME)/Src/Particle/Make.package
-include $(AMREX_HOME)/Src/AmrCore/Make.package
+
+Pdirs 	:= Base Boundary Particle AmrCore
+
+Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
+
+include $(Ppack)
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
