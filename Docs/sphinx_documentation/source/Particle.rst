@@ -86,7 +86,8 @@ tracked as the particle positions change. To do this, we provide the
 
 ::
 
-      ParticleContainer<3, 2, 4, 4> mypc;
+      using MyParticleContainer = ParticleContainer<3, 2, 4, 4>;
+      MyParticleContainer mypc;
 
 Like the :cpp:`Particle` class itself, the :cpp:`ParticleContainer`
 class is templated. The first two template parameters have the same meaning as
@@ -375,8 +376,8 @@ example, to iterate over all the AoS data:
 ::
 
 
-    using MyParIter = ConstParIter<2*BL_SPACEDIM>;
-    for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
+    using MyParConstIter = MyParticleContainer::ParConstIterType;
+    for (MyParConstIter pti(pc, lev); pti.isValid(); ++pti) {
         const auto& particles = pti.GetArrayOfStructs();
         for (const auto& p : particles) {
             // do stuff with p...
@@ -392,7 +393,7 @@ skipped. You can also access the SoA data using the :math:`ParIter` as follows:
 ::
 
 
-    using MyParIter = ParIter<0, 0, 2, 2>;
+    using MyParIter = MyParticleContainer::ParIterType;
     for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
         auto& particle_attributes = pti.GetStructOfArrays();
         RealVector& real_comp0 = particle_attributes.GetRealData(0);

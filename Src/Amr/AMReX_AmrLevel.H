@@ -34,7 +34,6 @@ class TagBoxArray;
 * AmrLevel functions both as a container for state data on a level
 * and also manages the advancement of data in time.
 */
-
 class AmrLevel
 {
     friend class Amr;

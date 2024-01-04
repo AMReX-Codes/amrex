@@ -100,7 +100,7 @@ jobs:
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs.hypre
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-14 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -148,7 +148,7 @@ jobs:
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs.2d
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j2 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-14 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 

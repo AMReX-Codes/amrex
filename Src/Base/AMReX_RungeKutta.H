@@ -4,8 +4,6 @@
 
 #include <AMReX_FabArray.H>
 
-namespace amrex::RungeKutta {
-
 /**
  * \brief Functions for Runge-Kutta methods
  *
@@ -48,6 +46,7 @@ namespace amrex::RungeKutta {
  * FillPatcher class can be useful for implementing such a callable.  See
  * AmrLevel::RK for an example.
  */
+namespace amrex::RungeKutta {
 
 struct PostStageNoOp {
     template <typename MF>

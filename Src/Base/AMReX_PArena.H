@@ -15,7 +15,6 @@ namespace amrex {
 * \brief This arena uses CUDA stream-ordered memory allocator if available.
 * If not, use The_Arena().
 */
-
 class PArena
     :
     public Arena

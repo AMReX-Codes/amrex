@@ -24,7 +24,6 @@ struct MemStat;
 * chunks of heap space and apportions it out as requested.  It merges
 * together neighboring chunks on each free().
 */
-
 class CArena
     :
     public Arena

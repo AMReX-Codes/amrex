@@ -47,7 +47,6 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-
 template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value && !Iterator::ContainerType::ParticleType::is_soa_particle, int> foo = 0>
 int
 numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
@@ -372,6 +371,26 @@ IntVect getParticleCell (P const& p,
     return iv;
 }
 
+template <typename PTD>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+IntVect getParticleCell (PTD const& ptd, int i,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                         const Box& domain) noexcept
+{
+    if constexpr (PTD::ParticleType::is_soa_particle)
+    {
+        IntVect iv(
+                   AMREX_D_DECL(int(amrex::Math::floor((ptd.m_rdata[0][i]-plo[0])*dxi[0])),
+                                int(amrex::Math::floor((ptd.m_rdata[1][i]-plo[1])*dxi[1])),
+                                int(amrex::Math::floor((ptd.m_rdata[2][i]-plo[2])*dxi[2]))));
+        iv += domain.smallEnd();
+        return iv;
+    } else {
+        return getParticleCell(ptd.m_aos[i], plo, dxi, domain);;
+    }
+}
+
 struct DefaultAssignor
 {
 
@@ -675,6 +694,7 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
             }
         });
 #else
+    amrex::ignore_unused(pperm, pglobal_idx);
     Abort("Not implemented");
 #endif
 

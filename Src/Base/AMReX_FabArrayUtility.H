@@ -1602,6 +1602,193 @@ Dot (FabArray<FAB> const& x, int xcomp, FabArray<FAB> const& y, int ycomp, int n
     return sm;
 }
 
+//! dst = val
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void setVal (MF& dst, typename MF::value_type val)
+{
+    dst.setVal(val);
+}
+
+//! dst = val in ghost cells.
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void setBndry (MF& dst, typename MF::value_type val, int scomp, int ncomp)
+{
+    dst.setBndry(val, scomp, ncomp);
+}
+
+//! dst = src
+template <class DMF, class SMF,
+          std::enable_if_t<IsMultiFabLike_v<DMF> &&
+                           IsMultiFabLike_v<SMF>, int> = 0>
+void LocalCopy (DMF& dst, SMF const& src, int scomp, int dcomp,
+                int ncomp, IntVect const& nghost)
+{
+    amrex::Copy(dst, src, scomp, dcomp, ncomp, nghost);
+}
+
+//! dst += src
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void LocalAdd (MF& dst, MF const& src, int scomp, int dcomp,
+                int ncomp, IntVect const& nghost)
+{
+    amrex::Add(dst, src, scomp, dcomp, ncomp, nghost);
+}
+
+//! dst += a * src
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void Saxpy (MF& dst, typename MF::value_type a, MF const& src, int scomp, int dcomp,
+            int ncomp, IntVect const& nghost)
+{
+    MF::Saxpy(dst, a, src, scomp, dcomp, ncomp, nghost);
+}
+
+//! dst = src + a * dst
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void Xpay (MF& dst, typename MF::value_type a, MF const& src, int scomp, int dcomp,
+           int ncomp, IntVect const& nghost)
+{
+    MF::Xpay(dst, a, src, scomp, dcomp, ncomp, nghost);
+}
+
+//! dst = src w/ MPI communication
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>, int> = 0>
+void ParallelCopy (MF& dst, MF const& src, int scomp, int dcomp, int ncomp,
+                   IntVect const& ng_src = IntVect(0),
+                   IntVect const& ng_dst = IntVect(0),
+                   Periodicity const& period = Periodicity::NonPeriodic())
+{
+    dst.ParallelCopy(src, scomp, dcomp, ncomp, ng_src, ng_dst, period);
+}
+
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>, int> = 0>
+[[nodiscard]] typename MF::value_type
+norminf (MF const& mf, int scomp, int ncomp, IntVect const& nghost,
+         bool local = false)
+{
+    return mf.norminf(scomp, ncomp, nghost, local);
+}
+
+//! dst = val
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void setVal (Array<MF,N>& dst, typename MF::value_type val)
+{
+    for (auto& mf: dst) {
+        mf.setVal(val);
+    }
+}
+
+//! dst = val in ghost cells.
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void setBndry (Array<MF,N>& dst, typename MF::value_type val, int scomp, int ncomp)
+{
+    for (auto& mf : dst) {
+        mf.setBndry(val, scomp, ncomp);
+    }
+}
+
+//! dst = src
+template <class DMF, class SMF, std::size_t N,
+          std::enable_if_t<IsMultiFabLike_v<DMF> &&
+                           IsMultiFabLike_v<SMF>, int> = 0>
+void LocalCopy (Array<DMF,N>& dst, Array<SMF,N> const& src, int scomp, int dcomp,
+                int ncomp, IntVect const& nghost)
+{
+    for (std::size_t i = 0; i < N; ++i) {
+        amrex::Copy(dst[i], src[i], scomp, dcomp, ncomp, nghost);
+    }
+}
+
+//! dst += src
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void LocalAdd (Array<MF,N>& dst, Array<MF,N> const& src, int scomp, int dcomp,
+               int ncomp, IntVect const& nghost)
+{
+    for (std::size_t i = 0; i < N; ++i) {
+        amrex::Add(dst[i], src[i], scomp, dcomp, ncomp, nghost);
+    }
+}
+
+//! dst += a * src
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void Saxpy (Array<MF,N>& dst, typename MF::value_type a,
+            Array<MF,N> const& src, int scomp, int dcomp, int ncomp,
+            IntVect const& nghost)
+{
+    for (std::size_t i = 0; i < N; ++i) {
+        MF::Saxpy(dst[i], a, src[i], scomp, dcomp, ncomp, nghost);
+    }
+}
+
+//! dst = src + a * dst
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void Xpay (Array<MF,N>& dst, typename MF::value_type a,
+           Array<MF,N> const& src, int scomp, int dcomp, int ncomp,
+           IntVect const& nghost)
+{
+    for (std::size_t i = 0; i < N; ++i) {
+        MF::Xpay(dst[i], a, src[i], scomp, dcomp, ncomp, nghost);
+    }
+}
+
+//! dst = src w/ MPI communication
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF>, int> = 0>
+void ParallelCopy (Array<MF,N>& dst, Array<MF,N> const& src,
+                   int scomp, int dcomp, int ncomp,
+                   IntVect const& ng_src = IntVect(0),
+                   IntVect const& ng_dst = IntVect(0),
+                   Periodicity const& period = Periodicity::NonPeriodic())
+{
+    for (std::size_t i = 0; i < N; ++i) {
+        dst[i].ParallelCopy(src[i], scomp, dcomp, ncomp, ng_src, ng_dst, period);
+    }
+}
+
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF>, int> = 0>
+[[nodiscard]] typename MF::value_type
+norminf (Array<MF,N> const& mf, int scomp, int ncomp, IntVect const& nghost,
+         bool local = false)
+{
+    auto r = typename MF::value_type(0);
+    for (std::size_t i = 0; i < N; ++i) {
+        auto tmp = mf[i].norminf(scomp, ncomp, nghost, true);
+        r = std::max(r,tmp);
+    }
+    if (!local) {
+        ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub());
+    }
+    return r;
+}
+
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF> && (N > 0),
+                                                    int> = 0>
+[[nodiscard]] int nComp (Array<MF,N> const& mf)
+{
+    return mf[0].nComp();
+}
+
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF> && (N > 0),
+                                                    int> = 0>
+[[nodiscard]] IntVect nGrowVect (Array<MF,N> const& mf)
+{
+    return mf[0].nGrowVect();
+}
+
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF> && (N > 0),
+                                                    int> = 0>
+[[nodiscard]] BoxArray const&
+boxArray (Array<MF,N> const& mf)
+{
+    return mf[0].boxArray();
+}
+
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF> && (N > 0),
+                                                    int> = 0>
+[[nodiscard]] DistributionMapping const&
+DistributionMap (Array<MF,N> const& mf)
+{
+    return mf[0].DistributionMap();
+}
+
 }
 
 #endif

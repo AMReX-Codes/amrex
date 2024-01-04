@@ -213,6 +213,16 @@ if (AMReX_SYCL)
       endif()
    endif()
 
+   set(AMReX_PARALLEL_LINK_JOBS_DEFAULT 1)
+   if (DEFINED ENV{AMREX_PARALLEL_LINK_JOBS})
+      set(AMReX_PARALLEL_LINK_JOBS_DEFAULT "$ENV{AMREX_PARALLEL_LINK_JOBS}")
+   endif()
+   set(AMReX_PARALLEL_LINK_JOBS ${AMReX_PARALLEL_LINK_JOBS_DEFAULT}
+       CACHE STRING "SYCL max parallel link jobs")
+   if (NOT AMReX_PARALLEL_LINK_JOBS GREATER_EQUAL 1 OR
+       NOT AMReX_PARALLEL_LINK_JOBS MATCHES "^[1-9][0-9]*$")
+      message(FATAL_ERROR "AMReX_PARALLEL_LINK_JOBS (${AMReX_PARALLEL_LINK_JOBS}) must be a positive integer")
+   endif()
 endif ()
 
 # --- HIP ----

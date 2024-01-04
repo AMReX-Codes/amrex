@@ -68,7 +68,6 @@ namespace amrex {
  * See AmrLevel::RK for an example of using the RungeKutta functions and
  * FillPatcher together.
  */
-
 template <class MF = MultiFab>
 class FillPatcher
 {

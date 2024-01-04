@@ -42,7 +42,6 @@ int coarsen (int i, int ratio) noexcept
 * C++ array.  In addition, the basic arithmetic operators have been overloaded
 * to implement scaling and translation operations.
 */
-
 class IntVect
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type();

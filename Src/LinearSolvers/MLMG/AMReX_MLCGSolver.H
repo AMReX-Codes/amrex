@@ -12,8 +12,8 @@ class MLCGSolverT
 {
 public:
 
-    using FAB = typename MF::fab_type;
-    using RT  = typename MF::value_type;
+    using FAB = typename MLLinOpT<MF>::FAB;
+    using RT  = typename MLLinOpT<MF>::RT;
 
     enum struct Type { BiCGStab, CG };
 
@@ -42,6 +42,16 @@ public:
     void setMaxIter (int _maxiter) { maxiter = _maxiter; }
     [[nodiscard]] int getMaxIter () const { return maxiter; }
 
+
+    /**
+    * Is the initial guess provided to the solver zero ?
+    * If so, set this to true.
+    * The solver will avoid a few operations if this is true.
+    * Default is false.
+    */
+    void setInitSolnZeroed (bool _sol_zeroed) { initial_vec_zeroed = _sol_zeroed; }
+    [[nodiscard]] bool getInitSolnZeroed () const { return initial_vec_zeroed; }
+
     void setNGhost(int _nghost) {nghost = IntVect(_nghost);}
     [[nodiscard]] int getNGhost() {return nghost[0];}
 
@@ -62,6 +72,7 @@ private:
     int maxiter   = 100;
     IntVect nghost = IntVect(0);
     int iter = -1;
+    bool initial_vec_zeroed = false;
 };
 
 template <typename MF>
@@ -88,27 +99,34 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 {
     BL_PROFILE("MLCGSolver::bicgstab");
 
-    const int ncomp = sol.nComp();
+    const int ncomp = nComp(sol);
 
-    MF p = Lp.make(amrlev, mglev, sol.nGrowVect());
-    MF r = Lp.make(amrlev, mglev, sol.nGrowVect());
-    p.setVal(RT(0.0)); // Make sure all entries are initialized to avoid errors
-    r.setVal(RT(0.0));
+    MF p = Lp.make(amrlev, mglev, nGrowVect(sol));
+    MF r = Lp.make(amrlev, mglev, nGrowVect(sol));
+    setVal(p, RT(0.0)); // Make sure all entries are initialized to avoid errors
+    setVal(r, RT(0.0));
 
-    MF sorig = Lp.make(amrlev, mglev, nghost);
     MF rh    = Lp.make(amrlev, mglev, nghost);
     MF v     = Lp.make(amrlev, mglev, nghost);
     MF t     = Lp.make(amrlev, mglev, nghost);
 
-    Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
+
+    MF sorig;
+
+    if ( initial_vec_zeroed ) {
+        LocalCopy(r,rhs,0,0,ncomp,nghost);
+    } else {
+        sorig = Lp.make(amrlev, mglev, nghost);
+
+        Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
+
+        LocalCopy(sorig,sol,0,0,ncomp,nghost);
+        setVal(sol, RT(0.0));
+    }
 
     // Then normalize
     Lp.normalize(amrlev, mglev, r);
-
-    sorig.LocalCopy(sol,0,0,ncomp,nghost);
-    rh.LocalCopy   (r  ,0,0,ncomp,nghost);
-
-    sol.setVal(RT(0.0));
+    LocalCopy(rh, r, 0,0,ncomp,nghost);
 
     RT rnorm = norm_inf(r);
     const RT rnorm0 = rnorm;
@@ -141,13 +159,13 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         if ( iter == 1 )
         {
-            p.LocalCopy(r,0,0,ncomp,nghost);
+            LocalCopy(p,r,0,0,ncomp,nghost);
         }
         else
         {
             const RT beta = (rho/rho_1)*(alpha/omega);
-            MF::Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
-            MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
+            Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
+            Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
         }
         Lp.apply(amrlev, mglev, v, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
@@ -161,8 +179,8 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 2; break;
         }
-        MF::Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
-        MF::Saxpy(r,  -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
+        Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
+        Saxpy(r,  -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
 
         rnorm = norm_inf(r);
         rnorm = norm_inf(r);
@@ -198,8 +216,8 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 3; break;
         }
-        MF::Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
-        MF::Saxpy(r,  -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
+        Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
+        Saxpy(r,  -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
 
         rnorm = norm_inf(r);
 
@@ -238,12 +256,16 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        if ( !initial_vec_zeroed ) {
+            LocalAdd(sol, sorig, 0, 0, ncomp, nghost);
+        }
     }
     else
     {
-        sol.setVal(RT(0.0));
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        setVal(sol, RT(0.0));
+        if ( !initial_vec_zeroed ) {
+            LocalAdd(sol, sorig, 0, 0, ncomp, nghost);
+        }
     }
 
     return ret;
@@ -255,20 +277,26 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 {
     BL_PROFILE("MLCGSolver::cg");
 
-    const int ncomp = sol.nComp();
+    const int ncomp = nComp(sol);
 
-    MF p = Lp.make(amrlev, mglev, sol.nGrowVect());
-    p.setVal(RT(0.0));
+    MF p = Lp.make(amrlev, mglev, nGrowVect(sol));
+    setVal(p, RT(0.0));
 
-    MF sorig = Lp.make(amrlev, mglev, nghost);
     MF r     = Lp.make(amrlev, mglev, nghost);
     MF q     = Lp.make(amrlev, mglev, nghost);
 
-    sorig.LocalCopy(sol,0,0,ncomp,nghost);
+    MF sorig;
 
-    Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
+    if ( initial_vec_zeroed ) {
+        LocalCopy(r,rhs,0,0,ncomp,nghost);
+    } else {
+        sorig = Lp.make(amrlev, mglev, nghost);
 
-    sol.setVal(RT(0.0));
+        Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
+
+        LocalCopy(sorig,sol,0,0,ncomp,nghost);
+        setVal(sol, RT(0.0));
+    }
 
     RT       rnorm    = norm_inf(r);
     const RT rnorm0   = rnorm;
@@ -302,12 +330,12 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         if (iter == 1)
         {
-            p.LocalCopy(r,0,0,ncomp,nghost);
+            LocalCopy(p,r,0,0,ncomp,nghost);
         }
         else
         {
             RT beta = rho/rho_1;
-            MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta * p
+            Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta * p
         }
         Lp.apply(amrlev, mglev, q, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
 
@@ -329,8 +357,8 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
                            << " rho " << rho
                            << " alpha " << alpha << '\n';
         }
-        MF::Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
-        MF::Saxpy(r, -alpha, q, 0, 0, ncomp, nghost); // r += -alpha * q
+        Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
+        Saxpy(r, -alpha, q, 0, 0, ncomp, nghost); // r += -alpha * q
         rnorm = norm_inf(r);
 
         if ( verbose > 2 )
@@ -364,12 +392,16 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        if ( !initial_vec_zeroed ) {
+            LocalAdd(sol, sorig, 0, 0, ncomp, nghost);
+        }
     }
     else
     {
-        sol.setVal(RT(0.0));
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        setVal(sol, RT(0.0));
+        if ( !initial_vec_zeroed ) {
+            LocalAdd(sol, sorig, 0, 0, ncomp, nghost);
+        }
     }
 
     return ret;
@@ -390,8 +422,8 @@ template <typename MF>
 auto
 MLCGSolverT<MF>::norm_inf (const MF& res, bool local) -> RT
 {
-    int ncomp = res.nComp();
-    RT result = res.norminf(0,ncomp,IntVect(0),true);
+    int ncomp = nComp(res);
+    RT result = norminf(res,0,ncomp,IntVect(0),true);
     if (!local) {
         BL_PROFILE("MLCGSolver::ParallelAllReduce");
         ParallelAllReduce::Max(result, Lp.BottomCommunicator());

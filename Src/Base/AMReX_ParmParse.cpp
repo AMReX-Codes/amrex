@@ -450,7 +450,6 @@ ppfound (const std::string& keyword,
 // except if n==-1, return the index of the last occurrence.
 // Return 0 if the specified occurrence does not exist.
 //
-
 const ParmParse::PP_entry*
 ppindex (const ParmParse::Table& table,
          int         n,

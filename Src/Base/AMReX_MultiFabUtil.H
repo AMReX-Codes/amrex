@@ -637,13 +637,13 @@ void average_down (const FabArray<FAB>& S_fine, FabArray<FAB>& S_crse,
 
 
 
-   /**
-    * \brief Returns part of a norm based on two MultiFabs
-    * The MultiFabs MUST have the same underlying BoxArray.
-    * The function f is applied elementwise as f(x(i,j,k,n),y(i,j,k,n))
-    * inside the summation (subject to a valid mask entry pf(mask(i,j,k,n)
-    */
-
+/**
+ * \brief Returns part of a norm based on two MultiFabs.
+ *
+ * The MultiFabs MUST have the same underlying BoxArray.
+ * The function f is applied elementwise as f(x(i,j,k,n),y(i,j,k,n))
+ * inside the summation (subject to a valid mask entry pf(mask(i,j,k,n)
+ */
 template <typename F>
 Real
 NormHelper (const MultiFab& x, int xcomp,
@@ -696,14 +696,14 @@ NormHelper (const MultiFab& x, int xcomp,
     return sm;
 }
 
-   /**
-    * \brief Returns part of a norm based on three MultiFabs
-    * The MultiFabs MUST have the same underlying BoxArray.
-    * The Predicate pf is used to test the mask
-    * The function f is applied elementwise as f(x(i,j,k,n),y(i,j,k,n))
-    * inside the summation (subject to a valid mask entry pf(mask(i,j,k,n)
-    */
-
+/**
+ * \brief Returns part of a norm based on three MultiFabs
+ *
+ * The MultiFabs MUST have the same underlying BoxArray.
+ * The Predicate pf is used to test the mask
+ * The function f is applied elementwise as f(x(i,j,k,n),y(i,j,k,n))
+ * inside the summation (subject to a valid mask entry pf(mask(i,j,k,n)
+ */
 template <typename MMF, typename Pred, typename F>
 Real
 NormHelper (const MMF& mask,

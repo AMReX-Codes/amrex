@@ -3528,7 +3528,6 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& srcbox, const Bo
 * and stored in component comp of this FAB.
 * This fab is returned as a reference for chaining.
 */
-
 template <class T>
 template <RunOn run_on>
 BaseFab<T>&
