@@ -43,8 +43,10 @@ sudo apt-get install -y --no-install-recommends \
     roctracer-dev   \
     rocprofiler-dev \
     rocrand-dev     \
-    rocprim-dev     \
-    hiprand-dev
+    rocprim-dev
+
+# hiprand-dev is a new package that does not exist in old versions
+sudo apt-get install -y --no-install-recommends hiprand-dev || true
 
 # activate
 #
