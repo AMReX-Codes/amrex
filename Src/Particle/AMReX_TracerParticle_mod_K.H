@@ -71,17 +71,17 @@ void cic_interpolate_mapped (const P& p,
                  int j = p.idata(1);,
                  int k = p.idata(2));
 
-    AMREX_D_TERM(amrex::Real lx = amrex::Real(p.pos(0)) - 0.5*(loc_arr(AMREX_D_DECL(i-1,j,k),0) + loc_arr(AMREX_D_DECL(i,j,k),0));,
-                 amrex::Real ly = amrex::Real(p.pos(1)) - 0.5*(loc_arr(AMREX_D_DECL(i,j-1,k),1) + loc_arr(AMREX_D_DECL(i,j,k),1));,
-                 amrex::Real lz = amrex::Real(p.pos(2)) - 0.5*(loc_arr(AMREX_D_DECL(i,j,k-1),2) + loc_arr(AMREX_D_DECL(i,j,k),2)));
+    AMREX_D_TERM(amrex::Real lx = amrex::Real(p.pos(0)) - 0.5*(loc_arr(IntVect(AMREX_D_DECL(i-1,j,k)),0) + loc_arr(IntVect(AMREX_D_DECL(i,j,k)),0));,
+                 amrex::Real ly = amrex::Real(p.pos(1)) - 0.5*(loc_arr(IntVect(AMREX_D_DECL(i,j-1,k)),1) + loc_arr(IntVect(AMREX_D_DECL(i,j,k)),1));,
+                 amrex::Real lz = amrex::Real(p.pos(2)) - 0.5*(loc_arr(IntVect(AMREX_D_DECL(i,j,k-1)),2) + loc_arr(IntVect(AMREX_D_DECL(i,j,k)),2)));
 
-    AMREX_D_TERM(int i0 = i + static_cast<int>(amrex::Math::floor(lx/(loc_arr(AMREX_D_DECL(i+1,j,k),0) - loc_arr(AMREX_D_DECL(i,j,k),0))));,
-                 int j0 = j + static_cast<int>(amrex::Math::floor(ly/(loc_arr(AMREX_D_DECL(i,j+1,k),1) - loc_arr(AMREX_D_DECL(i,j,k),1))));,
-                 int k0 = k + static_cast<int>(amrex::Math::floor(lz/(loc_arr(AMREX_D_DECL(i,j,k+1),2) - loc_arr(AMREX_D_DECL(i,j,k),2)))));
+    AMREX_D_TERM(int i0 = i + static_cast<int>(amrex::Math::floor(lx/(loc_arr(IntVect(AMREX_D_DECL(i+1,j,k)),0) - loc_arr(IntVect(AMREX_D_DECL(i,j,k)),0))));,
+                 int j0 = j + static_cast<int>(amrex::Math::floor(ly/(loc_arr(IntVect(AMREX_D_DECL(i,j+1,k)),1) - loc_arr(IntVect(AMREX_D_DECL(i,j,k)),1))));,
+                 int k0 = k + static_cast<int>(amrex::Math::floor(lz/(loc_arr(IntVect(AMREX_D_DECL(i,j,k+1)),2) - loc_arr(IntVect(AMREX_D_DECL(i,j,k)),2)))));
 
-    AMREX_D_TERM(amrex::Real const xint = 2.0*lx/(loc_arr(AMREX_D_DECL(i0+2,j,k),0) - loc_arr(AMREX_D_DECL(i0,j,k),0));,
-                 amrex::Real const yint = 2.0*ly/(loc_arr(AMREX_D_DECL(i,j0+2,k),1) - loc_arr(AMREX_D_DECL(i,j0,k),1));,
-                 amrex::Real const zint = 2.0*lz/(loc_arr(AMREX_D_DECL(i,j,k0+2),2) - loc_arr(AMREX_D_DECL(i,j,k0),2)));
+    AMREX_D_TERM(amrex::Real const xint = 2.0*lx/(loc_arr(IntVect(AMREX_D_DECL(i0+2,j,k)),0) - loc_arr(IntVect(AMREX_D_DECL(i0,j,k)),0));,
+                 amrex::Real const yint = 2.0*ly/(loc_arr(IntVect(AMREX_D_DECL(i,j0+2,k)),1) - loc_arr(IntVect(AMREX_D_DECL(i,j0,k)),1));,
+                 amrex::Real const zint = 2.0*lz/(loc_arr(IntVect(AMREX_D_DECL(i,j,k0+2)),2) - loc_arr(IntVect(AMREX_D_DECL(i,j,k0)),2)));
 
 #if AMREX_SPACEDIM > 2
     amrex::Real sz[] = {Real(1.0) - zint, zint};
