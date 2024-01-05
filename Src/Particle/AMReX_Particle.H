@@ -15,13 +15,14 @@ namespace amrex {
 
 namespace
 {
-    /** Used for 64bit Long particle Ids as in AoS layout */
+    /** Special flags used for 64-bit Long particle Ids */
     namespace LongParticleIds {
         constexpr Long GhostParticleID = 549755813887L; // 2**39-1
         constexpr Long VirtualParticleID = GhostParticleID - 1;
         constexpr Long LastParticleID = GhostParticleID - 2;
         constexpr Long DoSplitParticleID = GhostParticleID - 3;
         constexpr Long NoSplitParticleID = GhostParticleID - 4;
+        constexpr Long InvalidParticleID = 16777216;
     }
 
     using namespace LongParticleIds;
