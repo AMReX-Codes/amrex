@@ -156,14 +156,18 @@ void mac_interpolate_mapped_z (const P& p,
                                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                                amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
                                amrex::GpuArray<amrex::Array4<amrex::Real const>,AMREX_SPACEDIM> const& umac_arr,
+#if AMREX_SPACEDIM == 3
                                const amrex::Array4<amrex::Real const>&  zloc_arr,
+#endif
                                bool use_terrain, amrex::ParticleReal * val)
 {
     AMREX_ASSERT(val != nullptr);
 
     for (int d=0; d < AMREX_SPACEDIM; ++d) {
 
+#if AMREX_SPACEDIM == 3
         if (use_terrain && d == 2) {continue;}
+#endif
 
         AMREX_D_TERM(amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - static_cast<Real>(d != 0)*Real(0.5);,
                      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - static_cast<Real>(d != 1)*Real(0.5);,
