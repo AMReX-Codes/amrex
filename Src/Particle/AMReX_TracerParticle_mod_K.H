@@ -218,7 +218,7 @@ void mac_interpolate_mapped_z (const P& p,
       for (int kk = 0; kk <=1; ++kk) {
           for (int jj = 0; jj <= 1; ++jj) {
               for (int ii = 0; ii <= 1; ++ii) {
-                  val[2] += static_cast<ParticleReal>((umac_arr[2])(IntVect(i+ii, j+jj, k+kk)), 0)*sx[ii]*sy[jj]*sz[kk];
+                  val[2] += static_cast<ParticleReal>((umac_arr[2])(IntVect(i+ii, j+jj, k+kk), 0)*sx[ii]*sy[jj]*sz[kk]);
               }
           }
       }
