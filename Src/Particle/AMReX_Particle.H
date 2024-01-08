@@ -22,7 +22,6 @@ namespace
         constexpr Long LastParticleID = GhostParticleID - 2;
         constexpr Long DoSplitParticleID = GhostParticleID - 3;
         constexpr Long NoSplitParticleID = GhostParticleID - 4;
-        constexpr Long InvalidParticleID = 16777216;  // corresponds to id = -1, cpu = 0
     }
 
     using namespace LongParticleIds;
