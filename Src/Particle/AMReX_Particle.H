@@ -26,6 +26,13 @@ namespace
     }
 
     using namespace LongParticleIds;
+
+    /** Flags used to set the entire uint64_t idcpu
+        to special values at once.
+     */
+    namespace ParticleIdCpus {
+        constexpr std::uint64_t Invalid = 16777216; // corresponds to id = -1, cpu = 0
+    }
 }
 
 struct ParticleIDWrapper
