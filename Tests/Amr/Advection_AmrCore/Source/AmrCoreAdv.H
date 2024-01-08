@@ -87,7 +87,7 @@ public:
     amrex::Real EstTimeStep (int lev, amrex::Real time);
 
 #ifdef AMREX_PARTICLES
-    static amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC.get(); }
+    amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC.get(); }
 #endif
 
 
@@ -217,8 +217,8 @@ private:
 
 #ifdef AMREX_PARTICLES
     void init_particles ();
-    static int       do_tracers;
-    static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
+    int       do_tracers = 0;
+    std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
 #endif
 };
 

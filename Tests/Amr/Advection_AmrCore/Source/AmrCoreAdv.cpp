@@ -15,14 +15,6 @@
 
 using namespace amrex;
 
-
-
-#ifdef AMREX_PARTICLES
-std::unique_ptr<AmrTracerParticleContainer> AmrCoreAdv::TracerPC =  nullptr;
-int AmrCoreAdv::do_tracers = 0;
-#endif
-
-
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
 //             - initializes BCRec boundary condition object
