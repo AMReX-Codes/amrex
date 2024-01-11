@@ -20,10 +20,8 @@
 #include <AMReX_Reduce.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Math.H>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
+#include <AMReX_OpenMP.H>
+#include <AMReX_MemPool.H>
 
 #include <cmath>
 #include <cstdlib>
@@ -978,6 +976,19 @@ public:
 #endif
     BaseFab<T>& atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                            int srccomp, int destcomp, int numcomp=1) noexcept;
+
+    /**
+    * \brief Atomically add srcbox region of src FAB to destbox region of this FAB.
+    * The srcbox and destbox must be same size. When OMP is on, this uses OMP locks
+    * in the implementation and it's usually faster than atomicAdd.
+    */
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template <RunOn run_on=RunOn::Host>
+#endif
+    BaseFab<T>& lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
+                         int srccomp, int destcomp, int numcomp) noexcept;
 
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
 #if defined(AMREX_USE_GPU)
@@ -3298,6 +3309,98 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& dest
     });
 
     return *this;
+}
+
+template <class T>
+template <RunOn run_on>
+BaseFab<T>&
+BaseFab<T>::lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
+                     int srccomp, int destcomp, int numcomp) noexcept
+{
+#if defined(AMREX_USE_OMP) && (AMREX_SPACEDIM > 1)
+#if defined(AMREX_USE_GPU)
+    if (run_on == RunOn::Host || Gpu::notInLaunchRegion()) {
+#endif
+        BL_ASSERT(destbox.ok());
+        BL_ASSERT(src.box().contains(srcbox));
+        BL_ASSERT(box().contains(destbox));
+        BL_ASSERT(destbox.sameSize(srcbox));
+        BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+        BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
+
+        Array4<T> const& d = this->array();
+        Array4<T const> const& s = src.const_array();
+        auto const& dlo = destbox.smallEnd();
+#if (AMREX_SPACEDIM == 3)
+        auto const& dhi = destbox.bigEnd();
+#endif
+        auto const& slo = srcbox.smallEnd();
+        auto const offset = slo - dlo;
+        auto const lenx = srcbox.length(0);
+
+        auto const nplanes = srcbox.length(AMREX_SPACEDIM-1);
+        auto* mask = (bool*) amrex_mempool_alloc(sizeof(bool)*nplanes);
+        for (int ip = 0; ip < nplanes; ++ip) {
+            mask[ip] = false;
+        }
+
+        int mm = 0;
+        int planes_left = nplanes;
+        while (planes_left > 0) {
+            AMREX_ASSERT(mm < nplanes);
+            auto const m = mm + dlo[AMREX_SPACEDIM-1];
+            int ilock = m % OpenMP::nlocks;
+            if (ilock < 0) { ilock += OpenMP::nlocks; }
+            auto* lock = &(OpenMP::omp_locks[ilock]);
+            if (omp_test_lock(lock))
+            {
+                for (int n = 0; n < numcomp; ++n)
+                {
+#if (AMREX_SPACEDIM == 3)
+                    for (int j = dlo[1]; j <= dhi[1]; ++j)
+                    {
+                        IntVect div(dlo[0], j, m);
+#elif (AMREX_SPACEDIM == 2)
+                    {
+                        IntVect div(dlo[0], m);
+#endif
+                        auto      * pdst = d.ptr(div       ,n+destcomp);
+                        auto const* psrc = s.ptr(div+offset,n+srccomp);
+#pragma omp simd
+                        for (int ii = 0; ii < lenx; ++ii) {
+                            pdst[ii] += psrc[ii];
+                        }
+                    }
+                }
+
+                mask[mm] = true;
+                --planes_left;
+                omp_unset_lock(lock);
+                if (planes_left == 0) { break; }
+            }
+
+            ++mm;
+            for (int ip = 0; ip < nplanes; ++ip) {
+                int new_mm = (mm+ip) % nplanes;
+                if ( ! mask[new_mm] ) {
+                    mm = new_mm;
+                    break;
+                }
+            }
+        }
+
+        amrex_mempool_free(mask);
+
+        return *this;
+
+#if defined(AMREX_USE_GPU)
+    } else {
+        return this->template atomicAdd<run_on>(src, srcbox, destbox, srccomp, destcomp, numcomp);
+    }
+#endif
+#else
+    return this->template atomicAdd<run_on>(src, srcbox, destbox, srccomp, destcomp, numcomp);
+#endif
 }
 
 template <class T>
