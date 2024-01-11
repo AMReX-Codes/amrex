@@ -32,6 +32,8 @@ namespace
     namespace ParticleIdCpus {
         constexpr std::uint64_t Invalid = 16777216; // corresponds to id = -1, cpu = 0
     }
+
+    using namespace ParticleIdCpus;
 }
 
 struct ParticleIDWrapper
