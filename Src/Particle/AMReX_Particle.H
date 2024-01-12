@@ -15,7 +15,7 @@ namespace amrex {
 
 namespace
 {
-    /** Used for 64bit Long particle Ids as in AoS layout */
+    /** Special flags used for 64-bit Long particle Ids */
     namespace LongParticleIds {
         constexpr Long GhostParticleID = 549755813887L; // 2**39-1
         constexpr Long VirtualParticleID = GhostParticleID - 1;
@@ -25,6 +25,15 @@ namespace
     }
 
     using namespace LongParticleIds;
+
+    /** Flags used to set the entire uint64_t idcpu
+        to special values at once.
+     */
+    namespace ParticleIdCpus {
+        constexpr std::uint64_t Invalid = 16777216; // corresponds to id = -1, cpu = 0
+    }
+
+    using namespace ParticleIdCpus;
 }
 
 struct ParticleIDWrapper
