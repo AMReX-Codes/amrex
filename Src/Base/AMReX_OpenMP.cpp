@@ -135,8 +135,19 @@ namespace amrex
 #ifdef AMREX_USE_OMP
 namespace amrex::OpenMP
 {
-    void init_threads ()
+    std::array<omp_lock_t,nlocks> omp_locks;
+
+    namespace {
+        unsigned int initialized = 0;
+    }
+
+    void Initialize ()
     {
+        if (initialized) {
+            ++initialized;
+            return;
+        }
+
         amrex::ParmParse pp("amrex");
         std::string omp_threads = "system";
         pp.queryAdd("omp_threads", omp_threads);
@@ -173,6 +184,25 @@ namespace amrex::OpenMP
                 }
             }
         }
+
+        for (auto& lck : omp_locks) {
+            omp_init_lock(&lck);
+        }
+
+        ++initialized;
     }
+
+    void Finalize ()
+    {
+        if (initialized) {
+            --initialized;
+            if (initialized == 0) {
+                for (auto& lck : omp_locks) {
+                    omp_destroy_lock(&lck);
+                }
+            }
+        }
+    }
+
 } // namespace amrex::OpenMP
 #endif // AMREX_USE_OMP
