@@ -157,8 +157,8 @@ void packParticleIDs (I* idata, const P& p, bool is_checkpoint) noexcept
         std::uint32_t xu, yu;
         xu = (std::uint32_t)((p.m_idcpu & 0xFFFFFFFF00000000LL) >> 32);
         yu = (std::uint32_t)( p.m_idcpu & 0xFFFFFFFFLL);
-        std::memcpy(&xi, &xu, sizeof(xu));
-        std::memcpy(&yi, &yu, sizeof(yu));
+        amrex::Gpu::memcpy(&xi, &xu, sizeof(xu));
+        amrex::Gpu::memcpy(&yi, &yu, sizeof(yu));
         idata[0] = xi;
         idata[1] = yi;
     } else {
