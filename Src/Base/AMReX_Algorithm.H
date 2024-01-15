@@ -208,6 +208,20 @@ namespace amrex
 #endif
     }
 
+    template<typename ItType, typename ValType>
+    AMREX_GPU_HOST_DEVICE
+    void linspace (ItType first, const ItType& last, const ValType& start, const ValType& stop)
+    {
+        const std::ptrdiff_t count = last-first;
+        if (count >= 2){
+            const auto delta = (stop - start)/(count - 1);
+            for (int i = 0; i < count-1; ++i){
+                *(first++) = start + i*delta;
+            }
+            *first = stop;
+        }
+    }
+
 namespace detail {
 
 struct clzll_tag {};
