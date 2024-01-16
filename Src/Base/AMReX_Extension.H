@@ -145,9 +145,6 @@
 #define AMREX_UNROLL_LOOP(n)
 #endif
 
-//#undef AMREX_TO_STRING_HELPER
-//#undef AMREX_TO_STRING
-
 // __attribute__((weak))
 
 #if defined(AMREX_TYPECHECK)
