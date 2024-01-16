@@ -209,7 +209,10 @@ namespace amrex
     }
 
     template<typename ItType, typename ValType,
-        typename std::enable_if<std::is_floating_point<typename ItType::value_type>::value,int>::type = 0,
+        typename std::enable_if<
+            std::is_floating_point<typename std::iterator_traits<ItType>::value_type>::value &&
+            std::is_floating_point<ValType>::value,
+        int>::type = 0>
         typename std::enable_if<std::is_floating_point<ValType>::value,int>::type = 0>
     AMREX_GPU_HOST_DEVICE
     void linspace (ItType first, const ItType& last, const ValType& start, const ValType& stop)
