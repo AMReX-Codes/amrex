@@ -215,7 +215,7 @@ namespace amrex
         const std::ptrdiff_t count = last-first;
         if (count >= 2){
             const auto delta = (stop - start)/(count - 1);
-            for (int i = 0; i < count-1; ++i){
+            for (std::ptrdiff_t i = 0; i < count-1; ++i){
                 *(first++) = start + i*delta;
             }
             *first = stop;
