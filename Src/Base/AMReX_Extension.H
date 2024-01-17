@@ -133,6 +133,18 @@
 #define AMREX_NO_INLINE
 #endif
 
+// unroll loop
+#define AMREX_TO_STRING_HELPER(X)   #X
+#define AMREX_TO_STRING(X)          AMREX_TO_STRING_HELPER(X)
+
+#if defined(__clang__) || defined(__CUDACC__) || defined(__HIP__) || defined(__INTEL_CLANG_COMPILER)
+#define AMREX_UNROLL_LOOP(n)  _Pragma(AMREX_TO_STRING(unroll (n)))
+#elif defined(__GNUC__)
+#define AMREX_UNROLL_LOOP(n)  _Pragma(AMREX_TO_STRING(GCC unroll (n)))
+#else
+#define AMREX_UNROLL_LOOP(n)
+#endif
+
 // __attribute__((weak))
 
 #if defined(AMREX_TYPECHECK)
