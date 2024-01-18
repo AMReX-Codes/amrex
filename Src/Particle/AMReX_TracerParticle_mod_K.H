@@ -25,11 +25,11 @@ void cic_interpolate (const P& p,
                       const amrex::Array4<amrex::Real const>&  uarr,
                       amrex::ParticleReal * val, int M = AMREX_SPACEDIM)
 {
-    int icomp = 0;
+    int start_comp = 0;
     int ncomp_per_array = M;
     int num_arrays = 1;
     IntVect is_nodal = amrex::IntVect::TheZeroVector();
-    linear_interpolate_to_particle (p, plo, dxi, &uarr, val, &is_nodal, icomp, ncomp_per_array, num_arrays);
+    linear_interpolate_to_particle (p, plo, dxi, &uarr, val, &is_nodal, start_comp, ncomp_per_array, num_arrays);
 }
 
 //
@@ -44,11 +44,11 @@ void cic_interpolate_nd (const P& p,
                          const amrex::Array4<amrex::Real const>&  uarr,
                          amrex::ParticleReal * val, int M = AMREX_SPACEDIM)
 {
-    int icomp = 0;
+    int start_comp = 0;
     int ncomp_per_array = M;
     int num_arrays = 1;
     IntVect is_nodal = amrex::IntVect::TheUnitVector();
-    linear_interpolate_to_particle (p, plo, dxi, &uarr, val, &is_nodal, icomp, ncomp_per_array, num_arrays);
+    linear_interpolate_to_particle (p, plo, dxi, &uarr, val, &is_nodal, start_comp, ncomp_per_array, num_arrays);
 }
 
 //
@@ -63,7 +63,7 @@ void mac_interpolate (const P& p,
                       amrex::GpuArray<amrex::Array4<amrex::Real const>,AMREX_SPACEDIM> const& umac_arr,
                       amrex::ParticleReal * val)
 {
-    int icomp = 0;
+    int start_comp = 0;
     int ncomp_per_array = 1;
     int num_arrays = AMREX_SPACEDIM;
     IntVect is_nodal[AMREX_SPACEDIM];
@@ -71,7 +71,7 @@ void mac_interpolate (const P& p,
         is_nodal[d] = amrex::IntVect::TheZeroVector();
         is_nodal[d][d] = 1;
     }
-    linear_interpolate_to_particle (p, plo, dxi, &umac_arr[0], val, &is_nodal[0], icomp, ncomp_per_array, num_arrays);
+    linear_interpolate_to_particle (p, plo, dxi, umac_arr.data(), val, &is_nodal[0], start_comp, ncomp_per_array, num_arrays);
 }
 
 
