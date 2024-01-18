@@ -97,7 +97,7 @@ jobs:
         cd Tests/LinearSolvers/ABecLaplacian_C
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=3 \
             CCACHE=ccache
-        mpiexec -n 4 ./main3d.gnu.MPI.ex inputs.hypre
+        mpiexec -n 2 ./main3d.gnu.MPI.ex inputs.hypre
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
@@ -145,7 +145,7 @@ jobs:
         export AMREX_HYPRE_HOME=${PWD}/hypre-2.28.0/src/hypre
         cd Tests/LinearSolvers/Hypre
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache
-        mpiexec -n 4 ./main2d.gnu.MPI.ex inputs.2d
+        mpiexec -n 2 ./main2d.gnu.MPI.ex inputs.2d
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \

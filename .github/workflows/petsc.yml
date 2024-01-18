@@ -47,7 +47,7 @@ jobs:
         cd Tests/LinearSolvers/CellEB
         make -j4 USE_MPI=TRUE USE_PETSC=TRUE DIM=2 TEST=TRUE \
             CCACHE=ccache
-        mpiexec -n 4 ./main2d.gnu.TEST.MPI.ex inputs.rt.2d.petsc
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.rt.2d.petsc
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \

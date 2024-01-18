@@ -49,7 +49,7 @@ jobs:
         cd ${{ github.workspace }}/Tests/Amr/Advection_AmrCore/Exec
         make -j4 USE_MPI=TRUE USE_BITTREE=TRUE DIM=2 TEST=TRUE \
             CCACHE=ccache
-        mpiexec -n 4 ./main2d.gnu.TEST.MPI.ex inputs_bittree amr.plot_int=1000
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs_bittree amr.plot_int=1000
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
@@ -101,7 +101,7 @@ jobs:
         cd ${{ github.workspace }}/Tests/Amr/Advection_AmrCore/Exec
         make -j4 USE_MPI=TRUE USE_BITTREE=TRUE DIM=3 TEST=TRUE BL_NO_FORT=TRUE\
             CCACHE=ccache
-        mpiexec -n 4 ./main3d.gnu.TEST.MPI.ex inputs_bittree max_step=10
+        mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs_bittree max_step=10
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \

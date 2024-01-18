@@ -59,7 +59,7 @@ jobs:
             -DCMAKE_CXX_STANDARD=17               \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
-        mpiexec -n 4 ./install_test ../../Amr/Advection_AmrCore/Exec/inputs-ci
+        mpiexec -n 2 ./install_test ../../Amr/Advection_AmrCore/Exec/inputs-ci
 
         ccache -s
         du -hs ~/.cache/ccache

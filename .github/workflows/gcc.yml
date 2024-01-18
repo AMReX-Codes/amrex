@@ -660,7 +660,7 @@ jobs:
         cd Tests/HDF5Benchmark
         export OLCF_HDF5_ROOT=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         make -j 4
-        mpirun -np 4 ./main3d.gnu.TPROF.MPI.ex ./inputs
+        mpirun -np 2 ./main3d.gnu.TPROF.MPI.ex ./inputs
         h5dump -d "level_0/data:offsets=0"  -s "1" -c "1" ./plt00000.h5
         h5dump -d "level_0/data:datatype=1" -s "1" -c "1" ./plt00000/particle0/particle0.h5
 
