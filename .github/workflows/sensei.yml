@@ -35,4 +35,4 @@ jobs:
     - name: Build
       run: |
         cd build
-        cmake --build . -j 2
+        cmake --build . -j 4

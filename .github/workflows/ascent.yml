@@ -31,5 +31,5 @@ jobs:
     - name: Build
       run: |
         . /ascent_docker_setup_env.sh
-        cmake --build build -j 2
+        cmake --build build -j 4
 

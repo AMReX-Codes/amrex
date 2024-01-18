@@ -47,7 +47,7 @@ jobs:
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF
               #-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --config Debug -j 2
+        cmake --build build --config Debug -j 4
 
         #ccache -s
 
@@ -89,7 +89,7 @@ jobs:
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF
               #-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --config RelWithDebInfo -j 2
+        cmake --build build --config RelWithDebInfo -j 4
 
         #ccache -s
 
@@ -114,7 +114,7 @@ jobs:
               -DAMReX_FORTRAN=OFF           ^
               -DAMReX_MPI=OFF               ^
               -DAMReX_OMP=ON
-        cmake --build build --config Release -j 2
+        cmake --build build --config Release -j 4
 
   # If we add ccache back, don't forget to update cleanup-cache.yml
   #save_pr_number:

@@ -52,7 +52,7 @@ jobs:
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-        cmake --build build -j 2
+        cmake --build build -j 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -104,7 +104,7 @@ jobs:
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-        cmake --build build -j 2
+        cmake --build build -j 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -165,7 +165,7 @@ jobs:
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-        cmake --build build -j 2
+        cmake --build build -j 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -200,7 +200,7 @@ jobs:
         # /home/runner/work/amrex/amrex/Src/Base/AMReX_GpuLaunchGlobal.H:16:41: error: unused parameter ‘f0’ [-Werror=unused-parameter]
         #    16 |     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
         #
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-unused-parameter" CCACHE=ccache CUDA_ARCH="7.0 7.2"
+        make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-unused-parameter" CCACHE=ccache CUDA_ARCH="7.0 7.2"
         make install
 
         ccache -s
