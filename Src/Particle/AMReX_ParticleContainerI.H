@@ -2484,56 +2484,6 @@ AssignCellDensitySingleLevel (int rho_index,
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data,
-                                                                                int lev_min, int lev_max)
-{
-    BL_PROFILE("ParticleContainer::Interpolate()");
-    for (int lev = lev_min; lev <= lev_max; ++lev) {
-        InterpolateSingleLevel(*mesh_data[lev], lev);
-    }
-}
-
-template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator, class CellAssignor>
-void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
-InterpolateSingleLevel (MultiFab& mesh_data, int lev)
-{
-    BL_PROFILE("ParticleContainer::InterpolateSingleLevel()");
-
-    if (mesh_data.nGrow() < 1) {
-        amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevel");
-    }
-
-    const Geometry& gm = Geom(lev);
-    const auto     plo = gm.ProbLoArray();
-    const auto     dxi = gm.InvCellSizeArray();
-
-    using ParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
-
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (ParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        auto& particles = pti.GetArrayOfStructs();
-        auto ptd = pti.GetParticleTile().getParticleTileData();
-        FArrayBox& fab = mesh_data[pti];
-        const auto fabarr = fab.array();
-        const Long np = particles.numParticles();
-
-        int nComp = fab.nComp();
-        AMREX_FOR_1D( np, i,
-        {
-            auto p = make_particle<ParticleType>{}(ptd,i);
-            amrex_interpolate_cic(p, nComp, fabarr, plo, dxi);
-        });
-    }
-}
-
-template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator, class CellAssignor>
-void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 ResizeRuntimeRealComp (int new_size, bool communicate)
 {
