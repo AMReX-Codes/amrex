@@ -68,10 +68,6 @@ void test_assign_density(TestParams& parms)
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
   myPC.AssignCellDensitySingleLevel(0, partMF, 0, 1 + AMREX_SPACEDIM, 0);
 
-  //  myPC.AssignDensitySingleLevel(0, partMF, 0, 4, 0);
-
-  //  myPC.InterpolateSingleLevel(acceleration, 0);
-
   MultiFab::Copy(density, partMF, 0, 0, 1, 0);
 
   WriteSingleLevelPlotfile("plt00000", partMF,
