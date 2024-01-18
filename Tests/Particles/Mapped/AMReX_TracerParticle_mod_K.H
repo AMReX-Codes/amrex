@@ -16,64 +16,126 @@ namespace amrex {
 //
 // cic_interpolate computes the velocity at the particle by interpolating from velocity
 //   components all co-located at cell centers
-// This version assumes that in 2D: node (i,j)   lives at physical location (i*dx, j*dx)
-//                                  and we can easily calculate the (i,j)   of the cell in which the particle lives
-//                           in 3D: node (i,j,k) lives at physical location (i*dx, j*dy, k*dz)
-//                                  and we can easily calculate the (i,j,k) of the cell in which the particle lives
 //
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cic_interpolate (const P& p,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-                      const amrex::Array4<amrex::Real const> &  uccarr,
+                      const amrex::Array4<amrex::Real const>&  uarr,
                       amrex::ParticleReal * val, int M = AMREX_SPACEDIM)
+{
+    int icomp = 0;
+    int ncomp_per_array = M;
+    int num_arrays = 1;
+    IntVect is_nodal = amrex::IntVect::TheZeroVector();
+    linear_interpolate_to_particle (p, plo, dxi, &uarr, val, &is_nodal, icomp, ncomp_per_array, num_arrays);
+}
+
+//
+// cic_interpolate computes the velocity at the particle by interpolating from velocity
+//   components all co-located at nodes (cell corners)
+//
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void cic_interpolate_nd (const P& p,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                         const amrex::Array4<amrex::Real const>&  uarr,
+                         amrex::ParticleReal * val, int M = AMREX_SPACEDIM)
+{
+    int icomp = 0;
+    int ncomp_per_array = M;
+    int num_arrays = 1;
+    IntVect is_nodal = amrex::IntVect::TheUnitVector();
+    linear_interpolate_to_particle (p, plo, dxi, &uarr, val, &is_nodal, icomp, ncomp_per_array, num_arrays);
+}
+
+//
+// mac_interpolate computes the velocity at the particle by interpolating from normal velocity components
+//   located at the faces of the cell the particle lives in
+//
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mac_interpolate (const P& p,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                      amrex::GpuArray<amrex::Array4<amrex::Real const>,AMREX_SPACEDIM> const& umac_arr,
+                      amrex::ParticleReal * val)
+{
+    int icomp = 0;
+    int ncomp_per_array = 1;
+    int num_arrays = AMREX_SPACEDIM;
+    IntVect is_nodal[AMREX_SPACEDIM];
+    for (int d=0; d < AMREX_SPACEDIM; ++d) {
+        is_nodal[d] = amrex::IntVect::TheZeroVector();
+        is_nodal[d][d] = 1;
+    }
+    linear_interpolate_to_particle (p, plo, dxi, &umac_arr[0], val, &is_nodal[0], icomp, ncomp_per_array, num_arrays);
+}
+
+
+//
+// linear_interpolate computes the data at the particle by interpolating from mesh data
+//
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void linear_interpolate_to_particle (const P& p,
+                                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                                     const Array4<amrex::Real const>* data_arr,
+                                     amrex::ParticleReal * val,
+                                     const IntVect* is_nodal,
+                                     int start_comp, int ncomp, int num_arrays)
 {
     AMREX_ASSERT(val != nullptr);
 
-    // Note we know the particle is in cell (i,j,k), but we need to identify whether we will use,
-    //      e.g., (i) and (i+1) or (i-1) and (i).   (i0,j0,k0) represents the cell on the low side
-    //      of the cube (with corners at cell centers) that we will use for interpolation
+    int ctr = 0;
 
-    AMREX_D_TERM(amrex::Real lx = (Real(p.pos(0)) - plo[0]) * dxi[0] - amrex::Real(0.5);,
-                 amrex::Real ly = (Real(p.pos(1)) - plo[1]) * dxi[1] - amrex::Real(0.5);,
-                 amrex::Real lz = (Real(p.pos(2)) - plo[2]) * dxi[2] - amrex::Real(0.5));
+    for (int d = 0; d < num_arrays; d++)
+    {
+        AMREX_D_TERM(amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - static_cast<Real>(!is_nodal[d][0])*Real(0.5);,
+                     amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - static_cast<Real>(!is_nodal[d][1])*Real(0.5);,
+                     amrex::Real lz = (Real(p.pos(2))-plo[2])*dxi[2] - static_cast<Real>(!is_nodal[d][2])*Real(0.5));
 
-    // (i0,j0,k0) is the lower corner of the box needed for interpolation
-    // i0 = (i-1) if particle is lower  than center of cell i
-    // i0 = (i  ) if particle is higher than center of cell i
-    AMREX_D_TERM(int const i0 = static_cast<int>(amrex::Math::floor(lx));,
-                 int const j0 = static_cast<int>(amrex::Math::floor(ly));,
-                 int const k0 = static_cast<int>(amrex::Math::floor(lz)));
+        // (i0,j0,k0) is the lower corner of the box needed for interpolation
+        // i0 = (i-1) if particle is lower  than center of cell i
+        // i0 = (i  ) if particle is higher than center of cell i
+        AMREX_D_TERM(int const i0 = static_cast<int>(amrex::Math::floor(lx));,
+                     int const j0 = static_cast<int>(amrex::Math::floor(ly));,
+                     int const k0 = static_cast<int>(amrex::Math::floor(lz)));
 
-    AMREX_D_TERM(amrex::Real const xint = lx - static_cast<Real>(i0);,
-                 amrex::Real const yint = ly - static_cast<Real>(j0);,
-                 amrex::Real const zint = lz - static_cast<Real>(k0));
+        AMREX_D_TERM(amrex::Real const xint = lx - static_cast<Real>(i0);,
+                     amrex::Real const yint = ly - static_cast<Real>(j0);,
+                     amrex::Real const zint = lz - static_cast<Real>(k0));
 
-    amrex::Real sx[] = {amrex::Real(1.0) - xint, xint};
-    amrex::Real sy[] = {amrex::Real(1.0) - yint, yint};
-
-    for (int d=0; d < M; ++d) {
-        val[d] = ParticleReal(0.0);
-#if (AMREX_SPACEDIM == 2)
-        for (int jj = 0; jj <= 1; ++jj) {
-            for (int ii = 0; ii <= 1; ++ii) {
-                val[d] += static_cast<ParticleReal>(sx[ii] * sy[jj] * uccarr(IntVect(i0+ii,j0+jj)), d);
-            } // ii
-        } // jj
-#elif (AMREX_SPACEDIM == 3)
+        amrex::Real sx[] = {amrex::Real(1.0) - xint, xint};
+#if (AMREX_SPACEDIM > 1)
+        amrex::Real sy[] = {amrex::Real(1.0) - yint, yint};
+#endif
+#if (AMREX_SPACEDIM > 2)
         amrex::Real sz[] = {amrex::Real(1.0) - zint, zint};
-        for (int kk = 0; kk <= 1; ++kk) {
-            for (int jj = 0; jj <= 1; ++jj) {
-                for (int ii = 0; ii <= 1; ++ii) {
-                    val[d] += static_cast<ParticleReal>(sx[ii] * sy[jj] * sz[kk] * uccarr(IntVect(i0+ii,j0+jj,k0+kk),d));
-                } // ii
-            } // jj
-        } // kk
-#endif // SPACEDIM
+#endif
+
+        for (int comp = start_comp; comp < ncomp; ++comp) {
+            val[ctr] = ParticleReal(0.0);
+#if (AMREX_SPACEDIM > 2)
+            for (int kk = 0; kk <=1; ++kk) {
+#endif
+
+#if (AMREX_SPACEDIM > 1)
+                for (int jj = 0; jj <= 1; ++jj) {
+#endif
+                    for (int ii = 0; ii <= 1; ++ii) {
+                        val[ctr] += static_cast<ParticleReal>((data_arr[d])(IntVect(AMREX_D_DECL(i0+ii, j0+jj, k0+kk)), comp) *
+                                                                                    AMREX_D_TERM(sx[ii],*sy[jj],*sz[kk]));
+            AMREX_D_TERM(},},});
+            ctr++;
+        } // ncomp
     } // d
 }
 
+#if 0
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 amrex::Real
 bilinear_interp_for_2d (amrex::Real x, amrex::Real y,
@@ -145,6 +207,7 @@ bilinear_interp_for_3d (amrex::Real x, amrex::Real y,
     amrex::Real f = b*x + c*y + d*x*y;
     return f;
 }
+#endif
 
 //
 // cic_interpolate_mapped computes the velocity at the particle by interpolating from velocity
@@ -271,67 +334,6 @@ void cic_interpolate_mapped_z (const P& p,
 //
 // mac_interpolate computes the velocity at the particle by interpolating from normal velocity components
 //   located at the faces of the cell the particle lives in
-// This version assumes that node (i,j,k) lives at physical location (i*dx, j*dy, k*dz)
-// This version assumes that in 2D: node (i,j)   lives at physical location (i*dx, j*dx)
-//                                  and we can easily calculate the (i,j)   of the cell in which the particle lives
-//                           in 3D: node (i,j,k) lives at physical location (i*dx, j*dy, k*dz)
-//                                  and we can easily calculate the (i,j,k) of the cell in which the particle lives
-// We use the normal velocity components at the faces of cell (i,j,k) for interpolation
-//
-template <typename P>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mac_interpolate (const P& p,
-                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
-                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-                      amrex::GpuArray<amrex::Array4<amrex::Real const>,AMREX_SPACEDIM> const& umac_arr,
-                      amrex::ParticleReal * val)
-{
-    AMREX_ASSERT(val != nullptr);
-
-    for (int d=0; d < AMREX_SPACEDIM; ++d) {
-
-        AMREX_D_TERM(amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - static_cast<Real>(d != 0)*Real(0.5);,
-                     amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - static_cast<Real>(d != 1)*Real(0.5);,
-                     amrex::Real lz = (Real(p.pos(2))-plo[2])*dxi[2] - static_cast<Real>(d != 2)*Real(0.5));
-
-        // Particle is either in the top    half of cell (i,j,k)
-        //                 or in the bottom half of cell (i,j+1,k) or (i,j,k+1) or (i,j+1,k+1) // (if doing x-vel)
-        //                 or in the bottom half of cell (i+1,j,k) or (i,j,k+1) or (i+1,j,k+1) // (if doing y-vel)
-        //                 or in the bottom half of cell (i+1,j,k) or (i,j+1,k) or (i+1,j+1,k) // (if doing y-vel)
-        // Cell (i,j,k) is the lower of the two cells that will be used for interpolation
-        AMREX_D_TERM(int const i = static_cast<int>(amrex::Math::floor(lx));,
-                     int const j = static_cast<int>(amrex::Math::floor(ly));,
-                     int const k = static_cast<int>(amrex::Math::floor(lz)));
-
-        // (xint,yint,zint) are the weightings for interpolation
-        AMREX_D_TERM(amrex::Real const xint = lx - static_cast<Real>(i);,
-                     amrex::Real const yint = ly - static_cast<Real>(j);,
-                     amrex::Real const zint = lz - static_cast<Real>(k));
-
-        amrex::Real sx[] = {amrex::Real(1.0) - xint, xint};
-        amrex::Real sy[] = {amrex::Real(1.0) - yint, yint};
-
-        val[d] = ParticleReal(0.0);
-
-#if (AMREX_SPACEDIM > 2)
-        amrex::Real sz[] = {amrex::Real(1.0) - zint, zint};
-        for (int kk = 0; kk <=1; ++kk) {
-#endif
-
-#if (AMREX_SPACEDIM > 1)
-            for (int jj = 0; jj <= 1; ++jj) {
-#endif
-
-                for (int ii = 0; ii <= 1; ++ii) {
-                    val[d] += static_cast<ParticleReal>((umac_arr[d])(IntVect(AMREX_D_DECL(i+ii, j+jj, k+kk)), 0) *
-                                                                              AMREX_D_TERM(sx[ii],*sy[jj],*sz[kk]));
-        AMREX_D_TERM(},},});
-    } // d
-}
-
-//
-// mac_interpolate computes the velocity at the particle by interpolating from normal velocity components
-//   located at the faces of the cell the particle lives in
 // This version assumes that in 2D: node (i,j)   lives at physical location (i*dx, height_arr()),
 //                                  and we can easily calculate the "i" of the particle, while
 //                                  "j" is carried in p.idata(0)
@@ -419,10 +421,10 @@ void mac_interpolate_mapped_z (const P& p,
 
     // amrex::Print() << "F " << f1 << " " << f2 << " " << f3 << " " << f4 << std::endl;
 
-    val[1] = bilinear_interp_2d (p.pos(0)-x1, p.pos(1)-y1,
-                                 x2, x3, x4,
-                                 y2, y3, y4,
-                                 f2, f3, f4);
+    // val[1] = bilinear_interp_2d (p.pos(0)-x1, p.pos(1)-y1,
+    //                              x2, x3, x4,
+    //                              y2, y3, y4,
+    //                              f2, f3, f4);
     val[1] += f1;
 
 #elif (AMREX_SPACEDIM == 3)
@@ -504,10 +506,10 @@ void mac_interpolate_mapped_z (const P& p,
 
     amrex::Print() << "F " << f1 << " " << f2 << " " << f3 << " " << f4 << std::endl;
 
-    val[2] = bilinear_interp_2d (p.pos(0)-x1, p.pos(2)-z1,
-                                 x2, x3, x4,
-                                 z2, z3, z4,
-                                 f2, f3, f4);
+    // val[2] = bilinear_interp_2d (p.pos(0)-x1, p.pos(2)-z1,
+    //                              x2, x3, x4,
+    //                              z2, z3, z4,
+    //                              f2, f3, f4);
     val[2] += f1;
 
 #endif // SPACEDIM
