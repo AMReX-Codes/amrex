@@ -41,7 +41,7 @@ jobs:
 
       - name: Set Up Cache
         if: ${{ matrix.language == 'cpp' }}
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/ccache
           key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
