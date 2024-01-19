@@ -27,7 +27,7 @@ jobs:
 
       - name: Deploy
         if: github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex' && github.ref == 'refs/heads/development'
-        uses: JamesIves/github-pages-deploy-action@3.7.1
+        uses: JamesIves/github-pages-deploy-action@v4.5.0
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ACCESS_TOKEN: ${{ secrets.DEPLOY_DOCS }}
