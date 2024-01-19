@@ -49,7 +49,6 @@ void cic_interpolate_nd (const P& p,
     linear_interpolate_to_particle (p, plo, dxi, &data_arr, val, &is_nodal, start_comp, ncomp_per_array, num_arrays);
 }
 
-//
 /**
  \brief Linearly interpolates the mesh data to the particle position from face-centered data.
         The nth component of the data_arr array is nodal in the nth direction, and cell-centered in the others.
