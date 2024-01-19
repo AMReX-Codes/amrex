@@ -59,6 +59,10 @@ ifeq ($(USE_MPI),TRUE)
      mpi_link_flags := $(filter-out $(mpi_filter), $(mpi_link_flags))
   endif
 
+  # Some wrappers include `-fallow-argument-mismatch`, `-g` etc in the link line info.
+  mpi_link_flags := $(filter-out -f%,$(mpi_link_flags))
+  mpi_link_flags := $(filter-out -g%,$(mpi_link_flags))
+
   LIBRARIES += $(mpi_link_flags)
   ifneq ($(MPI_OTHER_COMP),mpicxx)
     LIBRARIES += $(mpicxx_link_libs)
