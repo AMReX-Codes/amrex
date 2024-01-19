@@ -1,0 +1,10 @@
+size = (32, 16, 16)
+max_grid_size = 128
+is_periodic = (1,0)
+num_ppc = 1
+nsteps = 20 
+nlevs = 1
+
+grid_type      = terrain
+advection_type = mac
+prob_type      = stretched
