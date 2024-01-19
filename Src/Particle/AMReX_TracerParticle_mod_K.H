@@ -14,7 +14,7 @@
 namespace amrex {
 
 //
-// cic_interpolate computes the velocity at the particle by interpolating from velocity
+// cic_interpolate computes the mesh data at the particle position by linearly interpolating from data
 //   components all co-located at cell centers
 //
 template <typename P>
@@ -22,18 +22,18 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cic_interpolate (const P& p,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-                      const amrex::Array4<amrex::Real const>&  uarr,
+                      const amrex::Array4<amrex::Real const>&  data_arr,
                       amrex::ParticleReal * val, int M = AMREX_SPACEDIM)
 {
     int start_comp = 0;
     int ncomp_per_array = M;
     int num_arrays = 1;
     IntVect is_nodal = amrex::IntVect::TheZeroVector();
-    linear_interpolate_to_particle (p, plo, dxi, &uarr, val, &is_nodal, start_comp, ncomp_per_array, num_arrays);
+    linear_interpolate_to_particle (p, plo, dxi, &data_arr, val, &is_nodal, start_comp, ncomp_per_array, num_arrays);
 }
 
 //
-// cic_interpolate computes the velocity at the particle by interpolating from velocity
+// cic_interpolate_nd computes the mesh data at the particle position by interpolating from data
 //   components all co-located at nodes (cell corners)
 //
 template <typename P>
@@ -41,26 +41,26 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cic_interpolate_nd (const P& p,
                          amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                          amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-                         const amrex::Array4<amrex::Real const>&  uarr,
+                         const amrex::Array4<amrex::Real const>&  data_arr,
                          amrex::ParticleReal * val, int M = AMREX_SPACEDIM)
 {
     int start_comp = 0;
     int ncomp_per_array = M;
     int num_arrays = 1;
     IntVect is_nodal = amrex::IntVect::TheUnitVector();
-    linear_interpolate_to_particle (p, plo, dxi, &uarr, val, &is_nodal, start_comp, ncomp_per_array, num_arrays);
+    linear_interpolate_to_particle (p, plo, dxi, &data_arr, val, &is_nodal, start_comp, ncomp_per_array, num_arrays);
 }
 
 //
-// mac_interpolate computes the velocity at the particle by interpolating from normal velocity components
-//   located at the faces of the cell the particle lives in
+// mac_interpolate computes the mesh data at the particle position by interpolating from normal data components
+//   located at the face-centers of the cell the particle lives in
 //
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mac_interpolate (const P& p,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-                      amrex::GpuArray<amrex::Array4<amrex::Real const>,AMREX_SPACEDIM> const& umac_arr,
+                      amrex::GpuArray<amrex::Array4<amrex::Real const>,AMREX_SPACEDIM> const& data_arr,
                       amrex::ParticleReal * val)
 {
     int start_comp = 0;
@@ -71,12 +71,12 @@ void mac_interpolate (const P& p,
         is_nodal[d] = amrex::IntVect::TheZeroVector();
         is_nodal[d][d] = 1;
     }
-    linear_interpolate_to_particle (p, plo, dxi, umac_arr.data(), val, &is_nodal[0], start_comp, ncomp_per_array, num_arrays);
+    linear_interpolate_to_particle (p, plo, dxi, data_arr.data(), val, &is_nodal[0], start_comp, ncomp_per_array, num_arrays);
 }
 
 
 //
-// linear_interpolate computes the data at the particle by interpolating from mesh data
+// linear_interpolate_to_particle computes the data at the particle by interpolating from mesh data
 //
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
