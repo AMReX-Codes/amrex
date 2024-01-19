@@ -59,14 +59,14 @@ jobs:
               -DCMAKE_CXX_COMPILER="/usr/local/bin/g++"
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           queries: +security-and-quality
           config-file: ./.github/workflows/codeql/codeql-config.yml
 
       - name: Build (py)
-        uses: github/codeql-action/autobuild@v2
+        uses: github/codeql-action/autobuild@v3
         if: ${{ matrix.language == 'python' }}
 
       - name: Build (C++)
@@ -89,7 +89,7 @@ jobs:
           make -j 2
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
 
