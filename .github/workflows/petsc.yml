@@ -11,7 +11,7 @@ jobs:
     name: GCC 2D EB PETSc@3.18.1
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh

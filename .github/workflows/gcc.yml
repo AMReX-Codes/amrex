@@ -16,7 +16,7 @@ jobs:
     name: GNU@8.4 C++17 Release [lib]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_gcc.sh 8
@@ -72,7 +72,7 @@ jobs:
     name: GNU@9.3 C++17 3D Debug Fortran [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -120,7 +120,7 @@ jobs:
     name: GNU@9.3 C++17 2D Debug Fortran [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -168,7 +168,7 @@ jobs:
     name: GNU@9.3 C++17 1D Debug Fortran [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -218,7 +218,7 @@ jobs:
     name: GNU@10.1 C++20 OMP [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_gcc.sh 10
@@ -277,7 +277,7 @@ jobs:
     name: GNU@8.4 C++17 NOMPI [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_gcc.sh 8
@@ -334,7 +334,7 @@ jobs:
     name: GNU@12 C++17 w/o Fortran [tests]
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_gcc.sh 12
@@ -398,7 +398,7 @@ jobs:
     name: GNU@9.3 Release [configure 1D]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -438,7 +438,7 @@ jobs:
     name: GNU@11.2 Release [configure 3D]
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -478,7 +478,7 @@ jobs:
     name: GNU@9.3 Release [configure 3D]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -518,7 +518,7 @@ jobs:
     name: GNU@9.3 OMP Debug [configure 3D]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -558,7 +558,7 @@ jobs:
     name: GNU Plotfile Tools [tools]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -597,7 +597,7 @@ jobs:
     name: GNU@9.3 C++17 [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -649,7 +649,7 @@ jobs:
       CXX: h5pcc
       CC: h5cc
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh

@@ -12,7 +12,7 @@ jobs:
     name: CUDA@11.2 GNU@9.3.0 C++17 Release [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc.sh 11.2
@@ -71,7 +71,7 @@ jobs:
       CUDAARCHS: "70"
       AMReX_CUDA_ARCH: "7.0"
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_llvm_cuda11_clang15.sh
@@ -114,7 +114,7 @@ jobs:
     name: NVHPC NVCC/NVC++ C++17 Release [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
@@ -175,7 +175,7 @@ jobs:
     name: CUDA@11.2 GNU@9.3.0 [configure 3D]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc.sh 11.2

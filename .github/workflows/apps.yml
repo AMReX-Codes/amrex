@@ -11,7 +11,7 @@ jobs:
     name: Castro
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Get Latest Release Tag
       run: |
         CASTRO_TAG=$(wget https://github.com/AMReX-Astro/Castro/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
@@ -19,13 +19,13 @@ jobs:
         MICROPHYSICS_TAG=$(wget https://github.com/AMReX-Astro/Microphysics/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
         echo "MICROPHYSICS_TAG=$MICROPHYSICS_TAG" >> $GITHUB_ENV
     - name: Download Castro
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: 'AMReX-Astro/Castro'
         ref: ${{env.CASTRO_TAG}}
         path: 'Castro'
     - name: Download Microphysics
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: 'AMReX-Astro/Microphysics'
         ref: ${{env.MICROPHYSICS_TAG}}
@@ -61,13 +61,13 @@ jobs:
     name: WarpX
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Get Latest Release Tag
       run: |
         WARPX_TAG=$(wget https://github.com/ECP-WarpX/WarpX/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
         echo "WARPX_TAG=$WARPX_TAG" >> $GITHUB_ENV
     - name: Download WarpX
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: 'ECP-WarpX/WarpX'
         ref: ${{env.WARPX_TAG}}

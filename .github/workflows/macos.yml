@@ -12,7 +12,7 @@ jobs:
     name: AppleClang Universal w/o MPI [tests-universal]
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_mac.sh
     - name: Set Up Cache
@@ -53,7 +53,7 @@ jobs:
     name: AppleClang@11.0 GFortran@9.3 [tests]
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_mac.sh
     - name: Set Up Cache

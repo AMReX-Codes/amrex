@@ -15,7 +15,7 @@ jobs:
     name: Clang@7.0 C++17 SP NOMPI Debug [lib]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_clang.sh 7
@@ -75,7 +75,7 @@ jobs:
     name: Clang@14.0 C++17 SP Particles DP Mesh Debug [tests]
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_clang.sh 14
@@ -131,7 +131,7 @@ jobs:
     name: Clang NOMPI Release [configure 2D]
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_clang.sh 14
