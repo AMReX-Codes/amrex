@@ -13,10 +13,9 @@
 
 namespace amrex {
 
-//
-// cic_interpolate computes the mesh data at the particle position by linearly interpolating from data
-//   components all co-located at cell centers
-//
+/**
+ \brief Linearly interpolates the mesh data to the particle position from cell-centered data.
+*/
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cic_interpolate (const P& p,
@@ -32,10 +31,9 @@ void cic_interpolate (const P& p,
     linear_interpolate_to_particle (p, plo, dxi, &data_arr, val, &is_nodal, start_comp, ncomp_per_array, num_arrays);
 }
 
-//
-// cic_interpolate_nd computes the mesh data at the particle position by interpolating from data
-//   components all co-located at nodes (cell corners)
-//
+/**
+ \brief Linearly interpolates the mesh data to the particle position from node-centered data.
+*/
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cic_interpolate_nd (const P& p,
@@ -52,9 +50,10 @@ void cic_interpolate_nd (const P& p,
 }
 
 //
-// mac_interpolate computes the mesh data at the particle position by interpolating from normal data components
-//   located at the face-centers of the cell the particle lives in
-//
+/**
+ \brief Linearly interpolates the mesh data to the particle position from face-centered data.
+        The nth component of the data_arr array is nodal in the nth direction, and cell-centered in the others.
+*/
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mac_interpolate (const P& p,
@@ -75,9 +74,11 @@ void mac_interpolate (const P& p,
 }
 
 
-//
-// linear_interpolate_to_particle computes the data at the particle by interpolating from mesh data
-//
+
+/**
+ \brief Linearly interpolates the mesh data to the particle position from mesh data.
+        This general form can handle an arbitrary number of Array4s, each with different staggerings.
+*/
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void linear_interpolate_to_particle (const P& p,
