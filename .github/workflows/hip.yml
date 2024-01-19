@@ -11,7 +11,7 @@ jobs:
     name: HIP ROCm Flang C++17 [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_hip.sh
@@ -75,7 +75,7 @@ jobs:
     name: HIP ROCm GFortran@9.3 C++17 [tests-hipcc]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_hip.sh
@@ -138,7 +138,7 @@ jobs:
     name: HIP EB [configure 2D]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_hip.sh
@@ -169,7 +169,7 @@ jobs:
     name: HIP EB 3D GMake
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_hip.sh
