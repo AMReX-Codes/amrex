@@ -159,88 +159,118 @@ void linear_interpolate_to_particle_z (const P& p,
                      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - static_cast<Real>(!is_nodal[d][1])*Real(0.5);,
                      amrex::Real lz = (Real(p.pos(2))-plo[2])*dxi[2] - static_cast<Real>(!is_nodal[d][2])*Real(0.5));
 
-        int const i0 = static_cast<int>(amrex::Math::floor(lx));,
+        int const i0 = static_cast<int>(amrex::Math::floor(lx));
+        int const j  = static_cast<int>(amrex::Math::floor(ly));
+        int k = 0; // temporary for 2D
+        int k0 = 0; // temporary for 2D
 
-        AMREX_D_TERM(amrex::Real xoff =  static_cast<Real>(!is_nodal[d][0])*Real(0.5);,
-                     amrex::Real yoff =  static_cast<Real>(!is_nodal[d][1])*Real(0.5);,
-                     amrex::Real zoff =  static_cast<Real>(!is_nodal[d][2])*Real(0.5));
+//        AMREX_D_TERM(amrex::Real xoff =  static_cast<Real>(!is_nodal[d][0])*Real(0.5);,
+//                     amrex::Real yoff =  static_cast<Real>(!is_nodal[d][1])*Real(0.5);,
+//                     amrex::Real zoff =  static_cast<Real>(!is_nodal[d][2])*Real(0.5));
+//
 
 #if (AMREX_SPACEDIM == 2)
 
-        amrex::Real height_of_u_lo_iside;
-        amrex::Real height_of_u_hi_iside;
+        amrex::Real hlo_xlo = 0.25 * ( height_arr(i0                       , j                     , k)
+                                   +   height_arr(i0 + (!(is_nodal[d][0])) , j                     , k)
+                                   +   height_arr(i0                       , j + (!is_nodal[d][1]) , k)
+                                   +   height_arr(i0 + (!(is_nodal[d][0])) , j + (!is_nodal[d][1]) , k) );
 
-        // FIX ME -- THIS IS WRONG
-        if (d == 0 && is_nodal[d][1]) {
-            height_of_u_lo_iside = height_arr(i  ,j);
-            height_of_u_hi_iside = height_arr(i+1,j);
-        } else if (d == 0 && !is_nodal[d][1] {
-            height_of_u_lo_iside = 0.5*(height_arr(IntVect(i  ,j)) + height_arr(IntVect(i  ,j+1)));
-            height_of_u_hi_iside = 0.5*(height_arr(IntVect(i+1,j)) + height_arr(IntVect(i+1,j+1)));
-        } else if (d == 1 && is_nodal[d][0]) {
-            height_of_u_lo_iside = height_arr(i  ,j);
-            height_of_u_hi_iside = height_arr(i+1,j);
-        }
+        amrex::Real hlo_xhi = 0.25 * ( height_arr(i0 + 1                       , j                    , k )
+                                   +   height_arr(i0 + 1 + (!(is_nodal[d][0])) , j                    , k )
+                                   +   height_arr(i0 + 1                       , j + (!is_nodal[d][1]), k )
+                                   +   height_arr(i0 + 1 + (!(is_nodal[d][0])) , j + (!is_nodal[d][1]), k ) );
 
-        //
-        // BUT I "THINK" THE CODE FROM HERE DOWN IS CORRECT -- BUT ONLY HERE FOR 2D
-        //
-        amrex::Real height_at_p = xint * height_of_u_lo_iside + (1.0-xint) * height_of_u_hi_iside;
 
-        int const j0 = (amrex::Real(p.pos(1)) >= height_at_p) ? j : j-1;
+        amrex::Real const xint = lx - static_cast<Real>(i0);
+        amrex::Real sx[] = { amrex::Real(1.) - xint, xint};
+        amrex::Real height_at_px = sx[0] * hlo_xlo + sx[1] * hlo_xhi;
 
-        amrex::Real x1 = (static_cast<Real>(i  ) + xoff) * dx[0];
-        amrex::Real x2 = (static_cast<Real>(i  ) + xoff) * dx[0];
-        amrex::Real x3 = (static_cast<Real>(i+1) + xoff) * dx[0];
-        amrex::Real x4 = (static_cast<Real>(i+1) + xoff) * dx[0];
+        int const j0 = (amrex::Real(p.pos(1)) >= height_at_px) ? j : j-1;
 
-        amrex::Real y1 = height_arr(i0  ,j0  ); // FIX ME -- ONLY IF NODAL
-        amrex::Real y2 = height_arr(i0  ,j0+1); // FIX ME -- ONLY IF NODAL
-        amrex::Real y3 = height_arr(i0+1,j0  ); // FIX ME -- ONLY IF NODAL
-        amrex::Real y4 = height_arr(i0+1,j0+1); // FIX ME -- ONLY IF NODAL
+        amrex::Real y1 = 0.25 * ( height_arr(i0                       , j0                    , k )
+                              +   height_arr(i0 + (!(is_nodal[d][0])) , j0                    , k )
+                              +   height_arr(i0                       , j0 + (!is_nodal[d][1]), k )
+                              +   height_arr(i0 + (!(is_nodal[d][0])) , j0 + (!is_nodal[d][1]), k ) );
+
+        amrex::Real y2 = 0.25 * ( height_arr(i0                       , j0 + 1                    , k )
+                              +   height_arr(i0 + (!(is_nodal[d][0])) , j0 + 1                    , k )
+                              +   height_arr(i0                       , j0 + 1 + (!is_nodal[d][1]), k )
+                              +   height_arr(i0 + (!(is_nodal[d][0])) , j0 + 1 + (!is_nodal[d][1]), k ) );
+
+        amrex::Real y3 = 0.25 * ( height_arr(i0 + 1                       , j0                    , k )
+                              +   height_arr(i0 + 1 + (!(is_nodal[d][0])) , j0                    , k )
+                              +   height_arr(i0 + 1                       , j0 + (!is_nodal[d][1]), k )
+                              +   height_arr(i0 + 1 + (!(is_nodal[d][0])) , j0 + (!is_nodal[d][1]), k ) );
+
+        amrex::Real y4 = 0.25 * ( height_arr(i0 + 1                       , j0 + 1                    , k )
+                              +   height_arr(i0 + 1 + (!(is_nodal[d][0])) , j0 + 1                    , k )
+                              +   height_arr(i0 + 1                       , j0 + 1 + (!is_nodal[d][1]), k )
+                              +   height_arr(i0 + 1 + (!(is_nodal[d][0])) , j0 + 1 + (!is_nodal[d][1]), k ) );
+
+        amrex::Real hint_ilo = (p.pos(1) - y1) / (y2 - y1);
+        amrex::Real hint_ihi = (p.pos(1) - y3) / (y4 - y3);
+        amrex::Real sy[] = { amrex::Real(1.) - hint_ilo, hint_ilo,
+                             amrex::Real(1.) - hint_ihi, hint_ihi};
 
 #elif (AMREX_SPACEDIM == 3)
 
-        int const j0 = static_cast<int>(amrex::Math::floor(ly));,
-        int const k0 =
-
-        amrex::Real x1 = (static_cast<Real>(i  ) + xoff) * dx[0];
-        amrex::Real x2 = (static_cast<Real>(i  ) + xoff) * dx[0] - x1;
-        amrex::Real x3 = (static_cast<Real>(i+1) + xoff) * dx[0] - x1;
-        amrex::Real x4 = (static_cast<Real>(i+1) + xoff) * dx[0] - x1;
-
-        amrex::Real y1 = (static_cast<Real>(j  ) + yoff) * dx[1];
-        amrex::Real y2 = (static_cast<Real>(j+1) + yoff) * dx[1] - y1;
-        amrex::Real y3 = (static_cast<Real>(j  ) + yoff) * dx[1] - y1;
-        amrex::Real y4 = (static_cast<Real>(j+1) + yoff) * dx[1] - y1;
-
-        amrex::Real z1 = height_arr(i0  ,j0  ); // ONLY IF NODAL
-        amrex::Real z2 = height_arr(i0  ,j0+1); // ONLY IF NODAL
-        amrex::Real z3 = height_arr(i0+1,j0  ); // ONLY IF NODAL
-        amrex::Real z4 = height_arr(i0+1,j0+1); // ONLY IF NODAL
+//        int const j0 = static_cast<int>(amrex::Math::floor(ly));,
+//        amrex::Real const xint = lx - static_cast<Real>(i0);
+//        amrex::Real const yint = ly - static_cast<Real>(j0);
+//
+//        amrex::Real hlo_xloylo = 
+//        amrex::Real hlo_xloyhi = 
+//        amrex::Real hlo_xhiylo = 
+//        amrex::Real hlo_xhiyhi = 
+//        amrex::Real height_at_pxy = 
+//        int const k0 =
+//
+//        amrex::Real x1 = (static_cast<Real>(i  ) + xoff) * dx[0];
+//        amrex::Real x2 = (static_cast<Real>(i  ) + xoff) * dx[0] - x1;
+//        amrex::Real x3 = (static_cast<Real>(i+1) + xoff) * dx[0] - x1;
+//        amrex::Real x4 = (static_cast<Real>(i+1) + xoff) * dx[0] - x1;
+//
+//        amrex::Real y1 = (static_cast<Real>(j  ) + yoff) * dx[1];
+//        amrex::Real y2 = (static_cast<Real>(j+1) + yoff) * dx[1] - y1;
+//        amrex::Real y3 = (static_cast<Real>(j  ) + yoff) * dx[1] - y1;
+//        amrex::Real y4 = (static_cast<Real>(j+1) + yoff) * dx[1] - y1;
+//
+//        amrex::Real z1 = height_arr(i0  ,j0  ); // ONLY IF NODAL
+//        amrex::Real z2 = height_arr(i0  ,j0+1); // ONLY IF NODAL
+//        amrex::Real z3 = height_arr(i0+1,j0  ); // ONLY IF NODAL
+//        amrex::Real z4 = height_arr(i0+1,j0+1); // ONLY IF NODAL
 #endif
-
-        AMREX_D_TERM(amrex::Real x = p.pos(0) - x1;,
-                     amrex::Real y = p.pos(1) - y1;,
-                     amrex::Real z = p.pos(2) - z1;);
-
+//
+//        AMREX_D_TERM(amrex::Real x = p.pos(0) - x1;,
+//                     amrex::Real y = p.pos(1) - y1;,
+//                     amrex::Real z = p.pos(2) - z1;);
+//
         for (int comp = start_comp; comp < ncomp; ++comp) {
-
+            val[ctr] = amrex::ParticleReal(0.);
 #if (AMREX_SPACEDIM == 2)
-            f1 = data_arr(i0  ,j0  ,k0);
-            f2 = data_arr(i0+1,j0  ,k0) - f1;
-            f3 = data_arr(i0  ,j0+1,k0) - f1;
-            f4 = data_arr(i0+1,j0+1,k0) - f1;
-
-            amrex::Real det = -x3*y2*(y3 - y4);
-
-            amrex::Real b = ( -y2*y3*f4 + y2*y4*f3         ) / det;
-            amrex::Real c = ( -x3*y3*f2 + x3*y4*f2         ) / det;
-            amrex::Real d = ( y3*f2 + y2*f4 - y4*f2 - y2*f3) / det;
-
-            val[ctr] = f1 + b*x + c*y + d*x*y;
-#elif (AMREX_SPACEDIM == 3)
+            // interpolate 4 points in y
+            for (int jj = 0; jj <= 3; ++jj) {
+                for (int ii = 0; ii <=1; ++ii) {
+                    val[ctr] += static_cast<ParticleReal>( (data_arr[d])(i0+ii, j0+jj, k0 ,comp)*sx[ii]*sy[jj]);
+                }
+            }
 #endif
+//#if (AMREX_SPACEDIM == 2)
+//            f1 = data_arr(i0  ,j0  ,k0);
+//            f2 = data_arr(i0+1,j0  ,k0) - f1;
+//            f3 = data_arr(i0  ,j0+1,k0) - f1;
+//            f4 = data_arr(i0+1,j0+1,k0) - f1;
+//
+//            amrex::Real det = -x3*y2*(y3 - y4);
+//
+//            amrex::Real b = ( -y2*y3*f4 + y2*y4*f3         ) / det;
+//            amrex::Real c = ( -x3*y3*f2 + x3*y4*f2         ) / det;
+//            amrex::Real d = ( y3*f2 + y2*f4 - y4*f2 - y2*f3) / det;
+//
+//            val[ctr] = f1 + b*x + c*y + d*x*y;
+//#elif (AMREX_SPACEDIM == 3)
+//#endif
             ctr++;
         } // ncomp
     } // d
