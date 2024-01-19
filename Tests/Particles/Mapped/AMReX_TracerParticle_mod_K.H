@@ -215,16 +215,76 @@ void linear_interpolate_to_particle_z (const P& p,
 
 #elif (AMREX_SPACEDIM == 3)
 
-//        int const j0 = static_cast<int>(amrex::Math::floor(ly));,
-//        amrex::Real const xint = lx - static_cast<Real>(i0);
-//        amrex::Real const yint = ly - static_cast<Real>(j0);
-//
-//        amrex::Real hlo_xloylo = 
-//        amrex::Real hlo_xloyhi = 
-//        amrex::Real hlo_xhiylo = 
+        int const j0 = static_cast<int>(amrex::Math::floor(ly));,
+        amrex::Real const xint = lx - static_cast<Real>(i0);
+        amrex::Real const yint = ly - static_cast<Real>(j0);
+        amrex::Real sx[] = { amrex::Real(1.) - xint, xint};
+        amrex::Real sy[] = { amrex::Real(1.) - yint, yint};
+
+//        amrex::Real hlo_xloylo = 0.125
+//            * ( height_arr(i0                    , j0                    , k                    )
+//            +   height_arr(i0 + (!is_nodal[d][0]), j0                    , k                    )
+//            +   height_arr(i0                    , j0 + (!is_nodal[d][1]), k                    )
+//            +   height_arr(i0 + (!is_nodal[d][0]), j0 + (!is_nodal[d][1]), k                    )
+//            +   height_arr(i0                    , j0                    , k + (!is_nodal[d][2]))
+//            +   height_arr(i0 + (!is_nodal[d][0]), j0                    , k + (!is_nodal[d][2]))
+//            +   height_arr(i0                    , j0 + (!is_nodal[d][1]), k + (!is_nodal[d][2]))
+//            +   height_arr(i0 + (!is_nodal[d][0]), j0 + (!is_nodal[d][1]), k + (!is_nodal[d][2]))
+//            ); 
+//        amrex::Real hlo_xloyhi = 0.125 
+//            * ( height_arr(i0                    , j0 + 1                    , k                    )
+//            +   height_arr(i0 + (!is_nodal[d][0]), j0 + 1                    , k                    )
+//            +   height_arr(i0                    , j0 + 1 + (!is_nodal[d][1]), k                    )
+//            +   height_arr(i0 + (!is_nodal[d][0]), j0 + 1 + (!is_nodal[d][1]), k                    )
+//            +   height_arr(i0                    , j0 + 1                    , k + (!is_nodal[d][2]))
+//            +   height_arr(i0 + (!is_nodal[d][0]), j0 + 1                    , k + (!is_nodal[d][2]))
+//            +   height_arr(i0                    , j0 + 1 + (!is_nodal[d][1]), k + (!is_nodal[d][2]))
+//            +   height_arr(i0 + (!is_nodal[d][0]), j0 + 1 + (!is_nodal[d][1]), k + (!is_nodal[d][2]))
+//            ); 
+//        amrex::Real hlo_xhiylo = 0.125
+//            * ( height_arr(i0 + 1                    , j0                    , k                    )
+//            +   height_arr(i0 + 1 + (!is_nodal[d][0]), j0                    , k                    )
+//            +   height_arr(i0 + 1                    , j0 + (!is_nodal[d][1]), k                    )
+//            +   height_arr(i0 + 1 + (!is_nodal[d][0]), j0 + (!is_nodal[d][1]), k                    )
+//            +   height_arr(i0 + 1                    , j0                    , k + (!is_nodal[d][2]))
+//            +   height_arr(i0 + 1 + (!is_nodal[d][0]), j0                    , k + (!is_nodal[d][2]))
+//            +   height_arr(i0 + 1                    , j0 + (!is_nodal[d][1]), k + (!is_nodal[d][2]))
+//            +   height_arr(i0 + 1 + (!is_nodal[d][0]), j0 + (!is_nodal[d][1]), k + (!is_nodal[d][2]))
+//            ); 
 //        amrex::Real hlo_xhiyhi = 
-//        amrex::Real height_at_pxy = 
-//        int const k0 =
+//            * ( height_arr(i0 + 1                    , j0 + 1                    , k                    )
+//            +   height_arr(i0 + 1 + (!is_nodal[d][0]), j0 + 1                    , k                    )
+//            +   height_arr(i0 + 1                    , j0 + 1 + (!is_nodal[d][1]), k                    )
+//            +   height_arr(i0 + 1 + (!is_nodal[d][0]), j0 + 1 + (!is_nodal[d][1]), k                    )
+//            +   height_arr(i0 + 1                    , j0 + 1                    , k + (!is_nodal[d][2]))
+//            +   height_arr(i0 + 1 + (!is_nodal[d][0]), j0 + 1                    , k + (!is_nodal[d][2]))
+//            +   height_arr(i0 + 1                    , j0 + 1 + (!is_nodal[d][1]), k + (!is_nodal[d][2]))
+//            +   height_arr(i0 + 1 + (!is_nodal[d][0]), j0 + 1 + (!is_nodal[d][1]), k + (!is_nodal[d][2]))
+//            ); 
+//        amrex::Real height_at_pxy = hlo_xloylo * sx[0] * sy[0] + hlo_xloyhi * sx[0] * sy[1]
+//                                  + hlo_xhiylo * sx[1] * sy[0] + hlo_xhiyhi * sx[1] * sy[1]; 
+
+        amrex::Real hlo[4];
+        ilo = 0;
+        amrex::Real height_at_pxy = 0.;
+        for (ii = 0; ii < 2; ++ii) {
+            for (jj = 0; jj < 2; ++jj) {
+                hlo[ilo] = 0.125
+                * ( height_arr(i0 + ii                    , j0 + jj                    , k                    )
+                +   height_arr(i0 + ii + (!is_nodal[d][0]), j0 + jj                    , k                    )
+                +   height_arr(i0 + ii                    , j0 + jj + (!is_nodal[d][1]), k                    )
+                +   height_arr(i0 + ii + (!is_nodal[d][0]), j0 + jj + (!is_nodal[d][1]), k                    )
+                +   height_arr(i0 + ii                    , j0 + jj                    , k + (!is_nodal[d][2]))
+                +   height_arr(i0 + ii + (!is_nodal[d][0]), j0 + jj                    , k + (!is_nodal[d][2]))
+                +   height_arr(i0 + ii                    , j0 + jj + (!is_nodal[d][1]), k + (!is_nodal[d][2]))
+                +   height_arr(i0 + ii + (!is_nodal[d][0]), j0 + jj + (!is_nodal[d][1]), k + (!is_nodal[d][2]))
+                );
+                height_at_pxy += hlo[ilo] * sx[ii] * sy[jj];
+                ++ilo;
+            }
+        }
+
+        int const k0 = (amrex::Real(p.pos(2)) >= height_at_pxy ) ? k : k-1;
 //
 //        amrex::Real x1 = (static_cast<Real>(i  ) + xoff) * dx[0];
 //        amrex::Real x2 = (static_cast<Real>(i  ) + xoff) * dx[0] - x1;
