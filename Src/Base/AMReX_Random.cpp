@@ -316,30 +316,6 @@ void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
 
 } // namespace amrex
 
-
-//
-// Fortran entry points for amrex::Random().
-//
-
-#if !defined(AMREX_XSDK) && !defined(BL_NO_FORT)
-BL_FORT_PROC_DECL(BLUTILINITRAND,blutilinitrand)(const int* sd)
-{
-    amrex::ULong seed = *sd;
-    amrex::InitRandom(seed);
-}
-
-BL_FORT_PROC_DECL(BLINITRAND,blinitrand)(const int* sd)
-{
-    amrex::ULong seed = *sd;
-    amrex::InitRandom(seed);
-}
-
-BL_FORT_PROC_DECL(BLUTILRAND,blutilrand)(amrex::Real* rn)
-{
-    *rn = amrex::Random();
-}
-#endif
-
 extern "C" {
     double amrex_random ()
     {

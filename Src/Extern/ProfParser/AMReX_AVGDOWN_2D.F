@@ -6,15 +6,24 @@
 #undef AMREX_XSDK
 
 #include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
 #include "AMReX_AVGDOWN_F.H"
 #include "AMReX_ArrayLim.H"
+
+#ifdef BL_USE_FLOAT
+#define REAL_T  real
+#define zero    0.0e0
+#define one     1.0e0
+#else
+#define REAL_T  double precision
+#define zero    0.0d0
+#define one     1.0d0
+#endif
 
 #define SDIM 2
 
       subroutine FORT_MAXVAL_AVGDOWN (
-     &     crse,DIMS(crse),nvar,
-     &     fine,DIMS(fine),
+     &     crse,crse_l1,crse_l2,crse_h1,crse_h2,nvar,
+     &     fine,fine_l1,fine_l2,fine_h1,fine_h2,
      &     lo,hi,ratios)
 c     ----------------------------------------------------------
 c     Average the fine grid data onto the coarse
@@ -26,13 +35,14 @@ c     fine      = fine grid data
 c     lo,hi     = index limits of overlap (crse grid)
 c     ratios    = IntVect refinement ratio
 c     ----------------------------------------------------------
-      integer  DIMDEC(crse)
-      integer  DIMDEC(fine)
+      implicit none
+      integer  crse_l1,crse_l2,crse_h1,crse_h2
+      integer  fine_l1,fine_l2,fine_h1,fine_h2
       integer  lo(SDIM), hi(SDIM)
       integer  nvar
       integer  ratios(SDIM)
-      REAL_T   crse(DIMV(crse),nvar)
-      REAL_T   fine(DIMV(fine),nvar)
+      REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
+      REAL_T   fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
 
       integer  i, j, n, ic, jc, ioff, joff
       integer  lratx,lraty
@@ -71,8 +81,8 @@ c
 
 
       subroutine FORT_CV_AVGDOWN (
-     &     crse,DIMS(crse),nvar,
-     &     fine,DIMS(fine),
+     &     crse,crse_l1,crse_l2,crse_h1,crse_h2,nvar,
+     &     fine,fine_l1,fine_l2,fine_h1,fine_h2,
      &     lo,hi,ratios)
 c     ----------------------------------------------------------
 c     Average the fine grid data onto the coarse
@@ -84,13 +94,14 @@ c     fine      = fine grid data
 c     lo,hi     = index limits of overlap (crse grid)
 c     ratios    = IntVect refinement ratio
 c     ----------------------------------------------------------
-      integer  DIMDEC(crse)
-      integer  DIMDEC(fine)
+      implicit none
+      integer  crse_l1,crse_l2,crse_h1,crse_h2
+      integer  fine_l1,fine_l2,fine_h1,fine_h2
       integer  lo(SDIM), hi(SDIM)
       integer  nvar
       integer  ratios(SDIM)
-      REAL_T   crse(DIMV(crse),nvar)
-      REAL_T   fine(DIMV(fine),nvar)
+      REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
+      REAL_T   fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
 
       integer  i, j, n, ic, jc, ioff, joff
       integer  lratx,lraty
@@ -139,8 +150,8 @@ c
 
       subroutine FORT_CV_AVGDOWN_STAG (
      &     nodal_dir,
-     &     crse,DIMS(crse),nvar,
-     &     fine,DIMS(fine),
+     &     crse,crse_l1,crse_l2,crse_h1,crse_h2,nvar,
+     &     fine,fine_l1,fine_l2,fine_h1,fine_h2,
      &     lo,hi,ratios)
 c     ----------------------------------------------------------
 c     Average the fine grid data onto the coarse
@@ -152,14 +163,15 @@ c     fine      = fine grid data
 c     lo,hi     = index limits of overlap (crse grid)
 c     ratios    = IntVect refinement ratio
 c     ----------------------------------------------------------
+      implicit none
       integer  nodal_dir
-      integer  DIMDEC(crse)
-      integer  DIMDEC(fine)
+      integer  crse_l1,crse_l2,crse_h1,crse_h2
+      integer  fine_l1,fine_l2,fine_h1,fine_h2
       integer  lo(SDIM), hi(SDIM)
       integer  nvar
       integer  ratios(SDIM)
-      REAL_T   crse(DIMV(crse),nvar)
-      REAL_T   fine(DIMV(fine),nvar)
+      REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
+      REAL_T   fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
 
       integer  i, j, n, ic, jc, ioff, joff
       integer  lrat
@@ -220,10 +232,10 @@ c
       end
 
       subroutine FORT_AVGDOWN (
-     &     crse,DIMS(crse),nvar,
-     &     fine,DIMS(fine),
-     &     cv,DIMS(cv),
-     &     fv,DIMS(fv),
+     &     crse,crse_l1,crse_l2,crse_h1,crse_h2,nvar,
+     &     fine,fine_l1,fine_l2,fine_h1,fine_h2,
+     &     cv,cv_l1,cv_l2,cv_h1,cv_h2,
+     &     fv,fv_l1,fv_l2,fv_h1,fv_h2,
      &     lo,hi,ratios)
 c     ----------------------------------------------------------
 c     Volume-weight average the fine grid data onto the coarse
@@ -237,17 +249,18 @@ c     fv        = fine grid volume array
 c     lo,hi     = index limits of overlap (crse grid)
 c     ratios    = IntVect refinement ratio
 c     ----------------------------------------------------------
-      integer  DIMDEC(crse)
-      integer  DIMDEC(cv)
-      integer  DIMDEC(fine)
-      integer  DIMDEC(fv)
+      implicit none
+      integer  crse_l1,crse_l2,crse_h1,crse_h2
+      integer  cv_l1,cv_l2,cv_h1,cv_h2
+      integer  fine_l1,fine_l2,fine_h1,fine_h2
+      integer  fv_l1,fv_l2,fv_h1,fv_h2
       integer  lo(SDIM), hi(SDIM)
       integer  nvar
       integer  ratios(SDIM)
-      REAL_T   crse(DIMV(crse),nvar)
-      REAL_T     cv(DIMV(cv))
-      REAL_T   fine(DIMV(fine),nvar)
-      REAL_T     fv(DIMV(fv))
+      REAL_T   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
+      REAL_T     cv(cv_l1:cv_h1,cv_l2:cv_h2)
+      REAL_T   fine(fine_l1:fine_h1,fine_l2:fine_h2,nvar)
+      REAL_T     fv(fv_l1:fv_h1,fv_l2:fv_h2)
 
       integer  i, j, n, ic, jc, ioff, joff
       integer  lratx,lraty

@@ -648,11 +648,11 @@ interface to a Fortran routine that tags cells (in this case, :fortran:`state_er
             const int*  thi     = tilebox.hiVect();
 
                 // tag cells for refinement
-            state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
+            state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
                 BL_TO_FORTRAN_3D(state[mfi]),
                 &tagval, &clearval,
-                ARLIM_3D(tilebox.loVect()), ARLIM_3D(tilebox.hiVect()),
-                ZFILL(dx), ZFILL(prob_lo), &time, &phierr[lev]);
+                AMREX_ARLIM_3D(tilebox.loVect()), AMREX_ARLIM_3D(tilebox.hiVect()),
+                AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &phierr[lev]);
             //
             // Now update the tags in the TagBox in the tilebox region
                 // to be equal to itags
