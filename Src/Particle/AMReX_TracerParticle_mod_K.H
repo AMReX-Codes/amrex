@@ -227,7 +227,7 @@ void mac_interpolate_mapped_z (const P& p,
         is_nodal[d] = amrex::IntVect::TheZeroVector();
         is_nodal[d][d] = 1;
     }
-    linear_interpolate_to_particle_z(p, plo, dxi, &data_arr[0], height_arr,
+    linear_interpolate_to_particle_z(p, plo, dxi, data_arr.data(), height_arr,
                                      val, &is_nodal[0], icomp, ncomp_per_array, num_arrays);
 }
 
