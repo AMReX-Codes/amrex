@@ -254,7 +254,7 @@ void linear_interpolate_to_particle_z (const P& p,
     for (int d = 0; d < num_arrays; d++)
     {
         AMREX_D_TERM(amrex::Real lx = (Real(p.pos(0))-plo[0])*dxi[0] - static_cast<Real>(!is_nodal[d][0])*Real(0.5);,
-                     amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - static_cast<Real>(!is_nodal[d][1])*Real(0.5));
+                     amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - static_cast<Real>(!is_nodal[d][1])*Real(0.5);,);
 
         int const i0 = static_cast<int>(amrex::Math::floor(lx));
         int k = 0; // temporary for 2D
