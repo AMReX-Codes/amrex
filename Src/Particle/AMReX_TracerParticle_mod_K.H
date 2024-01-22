@@ -280,28 +280,20 @@ void linear_interpolate_to_particle_z (const P& p,
 
         int const j0 = (amrex::Real(p.pos(1)) >= height_at_px) ? j : j-1;
 
-        amrex::Real y1 = 0.25 * ( height_arr(i0                       , j0                    , k )
-                              +   height_arr(i0 + (!(is_nodal[d][0])) , j0                    , k )
-                              +   height_arr(i0                       , j0 + (!is_nodal[d][1]), k )
-                              +   height_arr(i0 + (!(is_nodal[d][0])) , j0 + (!is_nodal[d][1]), k ) );
+        int yctr = 0;
+        amrex::Real ht[4];
+        for (int ii=0; ii < 2; ++ii) {
+            for (int jj=0; jj < 2; ++jj) {
+                ht[yctr] = 0.25 * ( height_arr(i0 + ii                       , j0 + jj , k                    )
+                                +   height_arr(i0 + ii + (!(is_nodal[d][0])) , j0 + jj , k                    )
+                                +   height_arr(i0 + ii                       , j0 + jj + (!is_nodal[d][1]), k )
+                                +   height_arr(i0 + ii + (!(is_nodal[d][0])) , j0 + jj + (!is_nodal[d][1]), k ) );
+                ++yctr;
+            }
+        }
+        amrex::Real hint_ilo = (p.pos(1) - ht[0]) / (ht[1] - ht[0]);
+        amrex::Real hint_ihi = (p.pos(1) - ht[2]) / (ht[3] - ht[2]);
 
-        amrex::Real y2 = 0.25 * ( height_arr(i0                       , j0 + 1                    , k )
-                              +   height_arr(i0 + (!(is_nodal[d][0])) , j0 + 1                    , k )
-                              +   height_arr(i0                       , j0 + 1 + (!is_nodal[d][1]), k )
-                              +   height_arr(i0 + (!(is_nodal[d][0])) , j0 + 1 + (!is_nodal[d][1]), k ) );
-
-        amrex::Real y3 = 0.25 * ( height_arr(i0 + 1                       , j0                    , k )
-                              +   height_arr(i0 + 1 + (!(is_nodal[d][0])) , j0                    , k )
-                              +   height_arr(i0 + 1                       , j0 + (!is_nodal[d][1]), k )
-                              +   height_arr(i0 + 1 + (!(is_nodal[d][0])) , j0 + (!is_nodal[d][1]), k ) );
-
-        amrex::Real y4 = 0.25 * ( height_arr(i0 + 1                       , j0 + 1                    , k )
-                              +   height_arr(i0 + 1 + (!(is_nodal[d][0])) , j0 + 1                    , k )
-                              +   height_arr(i0 + 1                       , j0 + 1 + (!is_nodal[d][1]), k )
-                              +   height_arr(i0 + 1 + (!(is_nodal[d][0])) , j0 + 1 + (!is_nodal[d][1]), k ) );
-
-        amrex::Real hint_ilo = (p.pos(1) - y1) / (y2 - y1);
-        amrex::Real hint_ihi = (p.pos(1) - y3) / (y4 - y3);
         amrex::Real sy[] = { amrex::Real(1.) - hint_ilo, amrex::Real(1.) - hint_ihi,
                                                hint_ilo,                   hint_ihi};
 
