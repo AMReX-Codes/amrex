@@ -55,7 +55,7 @@ void CountParticles()
   for (auto currentLevel = 0; currentLevel <= this->finestLevel(); currentLevel++)
     {
       // numParticles in this processor
-      auto numParticles = static_cast<long long>(this->NumberOfParticlesAtLevel(currentLevel, false, false));
+      auto numParticles = static_cast<long long>(this->NumberOfParticlesAtLevel(currentLevel, true, true));
 
       unsigned long long offset=0; // offset of this level
       unsigned long long sum=0; // numParticles in this level (sum from all processors)
