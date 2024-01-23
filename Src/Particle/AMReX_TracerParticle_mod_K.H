@@ -30,6 +30,17 @@ void cic_interpolate (const P& p,
                       const amrex::Array4<amrex::Real const>&  data_arr,
                       amrex::ParticleReal * val, int M = AMREX_SPACEDIM)
 {
+    cic_interpolate_cc(p, plo, dxi, data_arr, val, M);
+}
+
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void cic_interpolate_cc (const P& p,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                         const amrex::Array4<amrex::Real const>&  data_arr,
+                         amrex::ParticleReal * val, int M = AMREX_SPACEDIM)
+{
     int start_comp = 0;
     int ncomp_per_array = M;
     int num_arrays = 1;
@@ -261,18 +272,20 @@ void linear_interpolate_to_particle_z (const P& p,
                      amrex::Real ly = (Real(p.pos(1))-plo[1])*dxi[1] - static_cast<Real>(!is_nodal[d][1])*Real(0.5);,);
 
         int const i0 = static_cast<int>(amrex::Math::floor(lx));
-        int k = 0; // temporary for 2D
+        int k = 0;
 
 #if (AMREX_SPACEDIM == 2)
         amrex::ignore_unused(ly);
         int const j  = p.idata(0);
 
-        amrex::Real hlo_xlo = amrex::Real(0.25) * ( height_arr(i0                       , j                     , k)
+        amrex::Real hlo_xlo = amrex::Real(0.25)
+                                   * ( height_arr(i0                       , j                     , k)
                                    +   height_arr(i0 + (!(is_nodal[d][0])) , j                     , k)
                                    +   height_arr(i0                       , j + (!is_nodal[d][1]) , k)
                                    +   height_arr(i0 + (!(is_nodal[d][0])) , j + (!is_nodal[d][1]) , k) );
 
-        amrex::Real hlo_xhi = 0.25 * ( height_arr(i0 + 1                       , j                    , k )
+        amrex::Real hlo_xhi = amrex::Real(0.25)
+                                   * ( height_arr(i0 + 1                       , j                    , k )
                                    +   height_arr(i0 + 1 + (!(is_nodal[d][0])) , j                    , k )
                                    +   height_arr(i0 + 1                       , j + (!is_nodal[d][1]), k )
                                    +   height_arr(i0 + 1 + (!(is_nodal[d][0])) , j + (!is_nodal[d][1]), k ) );
@@ -288,7 +301,8 @@ void linear_interpolate_to_particle_z (const P& p,
         amrex::Real ht[4];
         for (int ii=0; ii < 2; ++ii) {
             for (int jj=0; jj < 2; ++jj) {
-                ht[yctr] = amrex::Real(0.25) * ( height_arr(i0 + ii                       , j0 + jj , k                    )
+                ht[yctr] = amrex::Real(0.25)
+                                * ( height_arr(i0 + ii                       , j0 + jj , k                    )
                                 +   height_arr(i0 + ii + (!(is_nodal[d][0])) , j0 + jj , k                    )
                                 +   height_arr(i0 + ii                       , j0 + jj + (!is_nodal[d][1]), k )
                                 +   height_arr(i0 + ii + (!(is_nodal[d][0])) , j0 + jj + (!is_nodal[d][1]), k ) );
@@ -332,7 +346,6 @@ void linear_interpolate_to_particle_z (const P& p,
 
         int const k0 = (amrex::Real(p.pos(2)) >= height_at_pxy ) ? k : k-1;
 
-        // to make z0-z7 concise
         int zctr = 0;
         amrex::Real ht[8];
         for (int ii = 0; ii < 2; ++ii) {
@@ -351,24 +364,23 @@ void linear_interpolate_to_particle_z (const P& p,
             ++zctr;
         }}}
 
-          amrex::Real hint_ilojlo = ( p.pos(2) - ht[0] ) / (ht[1] - ht[0]);
-          amrex::Real hint_ilojhi = ( p.pos(2) - ht[2] ) / (ht[3] - ht[2]);
-          amrex::Real hint_ihijlo = ( p.pos(2) - ht[4] ) / (ht[5] - ht[4]);
-          amrex::Real hint_ihijhi = ( p.pos(2) - ht[6] ) / (ht[7] - ht[6]);
+        amrex::Real hint_ilojlo = ( p.pos(2) - ht[0] ) / (ht[1] - ht[0]);
+        amrex::Real hint_ilojhi = ( p.pos(2) - ht[2] ) / (ht[3] - ht[2]);
+        amrex::Real hint_ihijlo = ( p.pos(2) - ht[4] ) / (ht[5] - ht[4]);
+        amrex::Real hint_ihijhi = ( p.pos(2) - ht[6] ) / (ht[7] - ht[6]);
 
-          amrex::Real sz[] = { amrex::Real(1.) - hint_ilojlo,
-                               amrex::Real(1.) - hint_ihijlo,
-                               amrex::Real(1.) - hint_ilojhi,
-                               amrex::Real(1.) - hint_ihijhi,
-                                                 hint_ilojlo,
-                                                 hint_ihijlo,
-                                                 hint_ilojhi,
-                                                 hint_ihijhi};
+        amrex::Real sz[] = { amrex::Real(1.) - hint_ilojlo,
+                             amrex::Real(1.) - hint_ihijlo,
+                             amrex::Real(1.) - hint_ilojhi,
+                             amrex::Real(1.) - hint_ihijhi,
+                                               hint_ilojlo,
+                                               hint_ihijlo,
+                                               hint_ilojhi,
+                                               hint_ihijhi};
 #endif
         for (int comp = start_comp; comp < ncomp; ++comp) {
             val[ctr] = amrex::ParticleReal(0.);
 #if (AMREX_SPACEDIM == 2)
-            // interpolate 4 points in y
             int k0 = 0;
             int sy_ctr = 0;
             for (int jj = 0; jj <= 1; ++jj) {
@@ -378,7 +390,6 @@ void linear_interpolate_to_particle_z (const P& p,
                 }
             }
 #elif (AMREX_SPACEDIM == 3)
-            // not tested yet
             int sz_ctr = 0;
             for (int kk = 0; kk <= 1; ++kk) {
                 for (int jj = 0; jj <= 1; ++jj) {
