@@ -393,6 +393,7 @@ void linear_interpolate_to_particle_z (const P& p,
             ctr++;
         } // ncomp
     } // d
+#endif
 }
 
 
