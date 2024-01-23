@@ -24,6 +24,17 @@ namespace amrex {
 */
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void cic_interpolate (const P& p,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                      const amrex::Array4<amrex::Real const>&  data_arr,
+                      amrex::ParticleReal * val, int M = AMREX_SPACEDIM)
+{
+    cic_interpolate_cc(p, plo, dxi, data_arr, val, M);
+}
+
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cic_interpolate_cc (const P& p,
                          amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                          amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
