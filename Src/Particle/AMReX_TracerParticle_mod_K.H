@@ -261,7 +261,7 @@ void linear_interpolate_to_particle_z (const P& p,
 
 #if (AMREX_SPACEDIM == 2)
 
-        int const j  = static_cast<int>(amrex::Math::floor(ly));
+        int const j  = p.idata(0);
 
         amrex::Real hlo_xlo = 0.25 * ( height_arr(i0                       , j                     , k)
                                    +   height_arr(i0 + (!(is_nodal[d][0])) , j                     , k)
@@ -300,6 +300,7 @@ void linear_interpolate_to_particle_z (const P& p,
 #elif (AMREX_SPACEDIM == 3)
 
         int const j0 = static_cast<int>(amrex::Math::floor(ly));
+        k = p.idata(0);
         amrex::Real const xint = lx - static_cast<Real>(i0);
         amrex::Real const yint = ly - static_cast<Real>(j0);
         amrex::Real sx[] = { amrex::Real(1.) - xint, xint};
