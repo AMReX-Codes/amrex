@@ -250,7 +250,7 @@ void linear_interpolate_to_particle_z (const P& p,
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(p, plo, dxi, data_arr, height_arr, val, is_nodal, start_comp, ncomp, num_arrays);
     amrex::Abort(" Terrain fitted grid interpolation is not supported in 1D\n");
-+#else
+#else
     AMREX_ASSERT(val != nullptr);
 
     int ctr = 0;
