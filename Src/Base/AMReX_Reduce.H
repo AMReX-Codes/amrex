@@ -67,14 +67,14 @@ namespace Reduce::detail {
 
     template <std::size_t I, typename T, typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void for_each_init (T& t)
+    constexpr void for_each_init (T& t)
     {
         P().init(amrex::get<I>(t));
     }
 
     template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void for_each_init (T& t)
+    constexpr void for_each_init (T& t)
     {
         P().init(amrex::get<I>(t));
         for_each_init<I+1,T,P1,Ps...>(t);
@@ -1274,6 +1274,34 @@ bool AnyOf (Box const& box, P&&pred)
 }
 
 #endif
+
+/**
+ * \brief Return a GpuTuple containing the identity element for each operation in ReduceOps.
+ * For example 0, +inf and -inf for ReduceOpSum, ReduceOpMin and ReduceOpMax respectively.
+ */
+template <typename... Ts, typename... Ps>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts...>
+IdentityTuple (GpuTuple<Ts...>, ReduceOps<Ps...>) noexcept
+{
+    GpuTuple<Ts...> r{};
+    Reduce::detail::for_each_init<0, decltype(r), Ps...>(r);
+    return r;
+}
+
+/**
+ * \brief Return a GpuTuple containing the identity element for each ReduceOp in TypeList.
+ * For example 0, +inf and -inf for ReduceOpSum, ReduceOpMin and ReduceOpMax respectively.
+ */
+template <typename... Ts, typename... Ps>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts...>
+IdentityTuple (GpuTuple<Ts...>, TypeList<Ps...>) noexcept
+{
+    GpuTuple<Ts...> r{};
+    Reduce::detail::for_each_init<0, decltype(r), Ps...>(r);
+    return r;
+}
 
 }
 
