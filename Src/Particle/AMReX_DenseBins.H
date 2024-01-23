@@ -481,7 +481,7 @@ public:
         m_offsets.resize(0);
         m_offsets.resize(nbins+1);
 
-        for (int i = 0; i < nitems; ++i) {
+        for (N i = 0; i < nitems; ++i) {
             m_bins[i] = call_f(f,v,i);
             ++m_counts[m_bins[i]];
         }
@@ -490,7 +490,7 @@ public:
 
         Gpu::copy(Gpu::deviceToDevice, m_offsets.begin(), m_offsets.end(), m_counts.begin());
 
-        for (int i = 0; i < nitems; ++i) {
+        for (N i = 0; i < nitems; ++i) {
             index_type index = m_counts[m_bins[i]]++;
             m_perm[index] = i;
         }
