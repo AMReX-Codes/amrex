@@ -247,6 +247,10 @@ void linear_interpolate_to_particle_z (const P& p,
                                        const IntVect* is_nodal,
                                        int start_comp, int ncomp, int num_arrays)
 {
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(p, plo, dxi, data_arr, height_arr, val, is_nodal, start_comp, ncomp, num_arrays);
+    amrex::Abort(" Terrain fitted grid interpolation is not supported in 1D\n");
++#else
     AMREX_ASSERT(val != nullptr);
 
     int ctr = 0;
@@ -260,10 +264,10 @@ void linear_interpolate_to_particle_z (const P& p,
         int k = 0; // temporary for 2D
 
 #if (AMREX_SPACEDIM == 2)
-
+        amrex::ignored_unused(ly);
         int const j  = p.idata(0);
 
-        amrex::Real hlo_xlo = 0.25 * ( height_arr(i0                       , j                     , k)
+        amrex::Real hlo_xlo = amrex::Real(0.25) * ( height_arr(i0                       , j                     , k)
                                    +   height_arr(i0 + (!(is_nodal[d][0])) , j                     , k)
                                    +   height_arr(i0                       , j + (!is_nodal[d][1]) , k)
                                    +   height_arr(i0 + (!(is_nodal[d][0])) , j + (!is_nodal[d][1]) , k) );
@@ -284,7 +288,7 @@ void linear_interpolate_to_particle_z (const P& p,
         amrex::Real ht[4];
         for (int ii=0; ii < 2; ++ii) {
             for (int jj=0; jj < 2; ++jj) {
-                ht[yctr] = 0.25 * ( height_arr(i0 + ii                       , j0 + jj , k                    )
+                ht[yctr] = amrex::Real(0.25) * ( height_arr(i0 + ii                       , j0 + jj , k                    )
                                 +   height_arr(i0 + ii + (!(is_nodal[d][0])) , j0 + jj , k                    )
                                 +   height_arr(i0 + ii                       , j0 + jj + (!is_nodal[d][1]), k )
                                 +   height_arr(i0 + ii + (!(is_nodal[d][0])) , j0 + jj + (!is_nodal[d][1]), k ) );
@@ -311,7 +315,7 @@ void linear_interpolate_to_particle_z (const P& p,
         amrex::Real height_at_pxy = 0.;
         for (int ii = 0; ii < 2; ++ii) {
             for (int jj = 0; jj < 2; ++jj) {
-                hlo[ilo] = 0.125
+                hlo[ilo] = amrex::Real(0.125)
                 * ( height_arr(i0 + ii                    , j0 + jj                    , k                    )
                 +   height_arr(i0 + ii + (!is_nodal[d][0]), j0 + jj                    , k                    )
                 +   height_arr(i0 + ii                    , j0 + jj + (!is_nodal[d][1]), k                    )
@@ -334,7 +338,7 @@ void linear_interpolate_to_particle_z (const P& p,
         for (int ii = 0; ii < 2; ++ii) {
         for (int jj = 0; jj < 2; ++jj) {
         for (int kk = 0; kk < 2; ++kk) {
-            ht[zctr] = 0.125 *
+            ht[zctr] = amrex::Real(0.125) *
              ( height_arr(i0 + ii                    , j0 + jj                    , k0 + kk                    )
              + height_arr(i0 + ii                    , j0 + jj                    , k0 + kk + (!is_nodal[d][2]))
              + height_arr(i0 + ii                    , j0 + jj + (!is_nodal[d][1]), k0 + kk                    )
