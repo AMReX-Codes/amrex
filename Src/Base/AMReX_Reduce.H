@@ -756,6 +756,20 @@ public:
     void resetResultReadiness () { m_result_is_ready = false; }
 };
 
+/**
+ * \brief Return a GpuTuple containing the identity element for each operation in ReduceOps.
+ * For example 0, +inf and -inf for ReduceOpSum, ReduceOpMin and ReduceOpMax respectively.
+ */
+template <typename... Ts, typename... Ps>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts...>
+IdentityTuple(GpuTuple<Ts...>, ReduceOps<Ps...>) noexcept
+{
+    GpuTuple<Ts...> r{};
+    Reduce::detail::for_each_init<0, decltype(r), Ps...>(r);
+    return r;
+}
+
 namespace Reduce {
 
 template <typename T, typename N, typename M=std::enable_if_t<std::is_integral<N>::value> >
