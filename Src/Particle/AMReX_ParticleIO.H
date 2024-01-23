@@ -51,7 +51,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     Vector<int> write_real_comp;
     Vector<std::string> tmp_real_comp_names;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
+    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
+
+    for (int i = 0; i < nrc; ++i )
     {
         write_real_comp.push_back(1);
         if (real_comp_names.empty())
@@ -96,7 +98,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
+    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
+
+    for (int i = 0; i < nrc; ++i )
     {
         write_real_comp.push_back(1);
         std::stringstream ss;
@@ -127,11 +131,16 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                  const Vector<std::string>& real_comp_names,
                  const Vector<std::string>& int_comp_names) const
 {
-    AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
+    if constexpr(ParticleType::is_soa_particle) {
+        AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal - AMREX_SPACEDIM); // pure SoA: skip positions
+    } else {
+        AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
+    }
     AMREX_ASSERT( int_comp_names.size() == NStructInt  + NumIntComps() );
 
     Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i) {
+    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
+    for (int i = 0; i < nrc; ++i) {
         write_real_comp.push_back(1);
     }
 
@@ -153,10 +162,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 ::WritePlotFile (const std::string& dir, const std::string& name,
                  const Vector<std::string>& real_comp_names) const
 {
-    AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
+    if constexpr(ParticleType::is_soa_particle) {
+        AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal - AMREX_SPACEDIM); // pure SoA: skip positions
+    } else {
+        AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
+    }
 
     Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i) {
+    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
+    for (int i = 0; i < nrc; ++i) {
         write_real_comp.push_back(1);
     }
 
@@ -188,11 +202,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                  const Vector<int>& write_real_comp,
                  const Vector<int>& write_int_comp) const
 {
-    AMREX_ASSERT(write_real_comp.size() == NStructReal + NumRealComps());
+
+    if constexpr(ParticleType::is_soa_particle) {
+        AMREX_ALWAYS_ASSERT(write_real_comp.size() == NumRealComps() + NStructReal - AMREX_SPACEDIM); // pure SoA: skip positions
+    } else {
+        AMREX_ALWAYS_ASSERT(write_real_comp.size() == NumRealComps() + NStructReal);
+    }
     AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NArrayInt );
 
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
+    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
+    for (int i = 0; i < nrc; ++i )
     {
         std::stringstream ss;
         ss << "real_comp" << i;
@@ -239,7 +259,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
+    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
+
+    for (int i = 0; i < nrc; ++i )
     {
         write_real_comp.push_back(1);
         std::stringstream ss;
@@ -271,11 +293,16 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                  const Vector<std::string>& real_comp_names,
                  const Vector<std::string>& int_comp_names, F&& f) const
 {
-    AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
+    if constexpr(ParticleType::is_soa_particle) {
+        AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal - AMREX_SPACEDIM); // pure SoA: skip positions
+    } else {
+        AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
+    }
     AMREX_ASSERT( int_comp_names.size() == NStructInt  + NArrayInt );
 
     Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i) {
+    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
+    for (int i = 0; i < nrc; ++i) {
         write_real_comp.push_back(1);
     }
 
@@ -298,10 +325,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 ::WritePlotFile (const std::string& dir, const std::string& name,
                  const Vector<std::string>& real_comp_names, F&& f) const
 {
-    AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
+    if constexpr(ParticleType::is_soa_particle) {
+        AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal - AMREX_SPACEDIM); // pure SoA: skip positions
+    } else {
+        AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
+    }
 
     Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i) {
+    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
+    for (int i = 0; i < nrc; ++i) {
         write_real_comp.push_back(1);
     }
 
@@ -334,11 +366,16 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                  const Vector<int>& write_real_comp,
                  const Vector<int>& write_int_comp, F&& f) const
 {
-    AMREX_ASSERT(write_real_comp.size() == NStructReal + NumRealComps());
+    if constexpr(ParticleType::is_soa_particle) {
+        AMREX_ALWAYS_ASSERT(write_real_comp.size() == NumRealComps() + NStructReal - AMREX_SPACEDIM); // pure SoA: skip positions
+    } else {
+        AMREX_ALWAYS_ASSERT(write_real_comp.size() == NumRealComps() + NStructReal);
+    }
     AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NumIntComps() );
 
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
+    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
+    for (int i = 0; i < nrc; ++i )
     {
         std::stringstream ss;
         ss << "real_comp" << i;
@@ -680,8 +717,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     int nr;
     HdrFile >> nr;
-    if (nr != NStructReal + NumRealComps()) {
-        amrex::Abort("ParticleContainer::Restart(): nr != NStructReal + NumRealComps()");
+    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
+    if (nr != nrc) {
+        amrex::Abort("ParticleContainer::Restart(): nr not the expected value");
     }
 
     std::string comp_name;
@@ -929,7 +967,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     readIntData(istuff.dataPtr(), istuff.size(), ifs, FPC::NativeIntDescriptor());
 
     // Then the real data in binary.
-    const int rChunkSize = AMREX_SPACEDIM + NStructReal + NumRealComps();
+    const int rChunkSize = ParticleType::is_soa_particle ? NStructReal + NumRealComps() : AMREX_SPACEDIM + NStructReal + NumRealComps();
     Vector<RTYPE> rstuff(std::size_t(cnt)*rChunkSize);
     ReadParticleRealData(rstuff.dataPtr(), rstuff.size(), ifs);
 

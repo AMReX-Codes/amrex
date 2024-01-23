@@ -289,7 +289,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     idata.resize(np*iChunkSize);
 
     int num_output_real = 0;
-    for (int i = 0; i < pc.NumRealComps() + PC::NStructReal; ++i) {
+    for (int i = 0; i < (int) write_real_comp.size(); ++i) {
         if (write_real_comp[i]) { ++num_output_real; }
     }
 
@@ -361,7 +361,9 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                 // extra SoA Real components
                 const int real_start_offset = PC::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // pure SoA: skip positions
                 for (int j = real_start_offset; j < pc.NumRealComps(); j++) {
-                    if (write_real_comp[PC::NStructReal+j]) {
+                    const int write_comp_offset = PC::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // pure SoA: skip positions
+                    const int write_comp_index = PC::NStructReal+j-write_comp_offset;
+                    if (write_real_comp[write_comp_index]) {
                         *rptr = (ParticleReal) soa.GetRealData(j)[pindex];
                         ++rptr;
                     }
@@ -393,7 +395,11 @@ void WriteBinaryParticleDataSync (PC const& pc,
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
 
-    AMREX_ALWAYS_ASSERT(real_comp_names.size() == pc.NumRealComps() + NStructReal);
+    if constexpr(PC::ParticleType::is_soa_particle) {
+        AMREX_ALWAYS_ASSERT(real_comp_names.size() == pc.NumRealComps() + NStructReal - AMREX_SPACEDIM); // pure SoA: skip positions
+    } else {
+        AMREX_ALWAYS_ASSERT(real_comp_names.size() == pc.NumRealComps() + NStructReal);
+    }
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == pc.NumIntComps() + NStructInt);
 
     std::string pdir = dir;
@@ -476,7 +482,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         }
 
         int num_output_real = 0;
-        for (int i = 0; i < pc.NumRealComps() + NStructReal; ++i) {
+        for (int i = 0; i < (int) write_real_comp.size(); ++i) {
             if (write_real_comp[i]) { ++num_output_real; }
         }
 
@@ -492,7 +498,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         HdrFile << num_output_real << '\n';
 
         // Real component names
-        for (int i = 0; i < NStructReal + pc.NumRealComps(); ++i ) {
+        for (int i = 0; i < (int) real_comp_names.size(); ++i ) {
             if (write_real_comp[i]) { HdrFile << real_comp_names[i] << '\n'; }
         }
 
@@ -683,7 +689,11 @@ void WriteBinaryParticleDataAsync (PC const& pc,
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProcNumber = NProcs - 1;
 
-    AMREX_ALWAYS_ASSERT(real_comp_names.size() == pc.NumRealComps() + NStructReal);
+    if constexpr(PC::ParticleType::is_soa_particle) {
+        AMREX_ALWAYS_ASSERT(real_comp_names.size() == pc.NumRealComps() + NStructReal - AMREX_SPACEDIM); // pure SoA: skip positions
+    } else {
+        AMREX_ALWAYS_ASSERT(real_comp_names.size() == pc.NumRealComps() + NStructReal);
+    }
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == pc.NumIntComps() + NStructInt);
 
     Vector<LayoutData<Long> > np_per_grid_local(pc.finestLevel()+1);
@@ -847,6 +857,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
     int nrc = pc.NumRealComps();
     int nic = pc.NumIntComps();
+    int rnames_size = (int) real_comp_names.size();
 
     auto RD = pc.ParticleRealDescriptor;
 
@@ -881,7 +892,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             }
 
             int num_output_real = 0;
-            for (int i = 0; i < nrc + NStructReal; ++i) {
+            for (int i = 0; i < rnames_size; ++i) {
                 if (write_real_comp[i]) { ++num_output_real; }
             }
 
@@ -897,7 +908,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             HdrFile << num_output_real << '\n';
 
             // Real component names
-            for (int i = 0; i < NStructReal + nrc; ++i ) {
+            for (int i = 0; i < rnames_size; ++i ) {
                 if (write_real_comp[i]) { HdrFile << real_comp_names[i] << '\n'; }
             }
 
@@ -1047,7 +1058,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
                 // Write the Real data in binary.
                 int num_output_real = 0;
-                for (int i = 0; i < nrc + NStructReal; ++i) {
+                for (int i = 0; i < rnames_size; ++i) {
                     if (write_real_comp[i]) { ++num_output_real; }
                 }
 
@@ -1093,7 +1104,9 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                         const int real_start_offset = PC::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // pure SoA: positions
                         for (int j = real_start_offset; j < nrc; j++)
                         {
-                            if (write_real_comp[NStructReal+j])
+                    const int write_comp_offset = PC::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // pure SoA: skip positions
+                    const int write_comp_index = PC::NStructReal+j-write_comp_offset;
+                            if (write_real_comp[write_comp_index])
                             {
                                 *rptr = (typename PC::ParticleType::RealType) soa.GetRealData(j)[pindex];
                                 ++rptr;
