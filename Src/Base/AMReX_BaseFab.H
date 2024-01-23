@@ -3330,15 +3330,25 @@ BaseFab<T>::lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbo
 
         Array4<T> const& d = this->array();
         Array4<T const> const& s = src.const_array();
-        auto const& dlo = destbox.smallEnd();
-#if (AMREX_SPACEDIM == 3)
-        auto const& dhi = destbox.bigEnd();
-#endif
-        auto const& slo = srcbox.smallEnd();
-        auto const offset = slo - dlo;
-        auto const lenx = srcbox.length(0);
+        auto const& dlo = amrex::lbound(destbox);
+        auto const& dhi = amrex::ubound(destbox);
+        auto const& len = amrex::length(destbox);
+        auto const& slo = amrex::lbound(srcbox);
+        Dim3 const offset{slo.x-dlo.x, slo.y-dlo.y, slo.z-dlo.z};
 
-        auto const nplanes = srcbox.length(AMREX_SPACEDIM-1);
+        int planedim;
+        int nplanes;
+        int plo;
+        if (len.z == 1) {
+            planedim = 1;
+            nplanes = len.y;
+            plo = dlo.y;
+        } else {
+            planedim = 2;
+            nplanes = len.z;
+            plo = dlo.z;
+        }
+
         auto* mask = (bool*) amrex_mempool_alloc(sizeof(bool)*nplanes);
         for (int ip = 0; ip < nplanes; ++ip) {
             mask[ip] = false;
@@ -3348,27 +3358,31 @@ BaseFab<T>::lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbo
         int planes_left = nplanes;
         while (planes_left > 0) {
             AMREX_ASSERT(mm < nplanes);
-            auto const m = mm + dlo[AMREX_SPACEDIM-1];
+            auto const m = mm + plo;
             int ilock = m % OpenMP::nlocks;
             if (ilock < 0) { ilock += OpenMP::nlocks; }
             auto* lock = &(OpenMP::omp_locks[ilock]);
             if (omp_test_lock(lock))
             {
-                for (int n = 0; n < numcomp; ++n)
-                {
-#if (AMREX_SPACEDIM == 3)
-                    for (int j = dlo[1]; j <= dhi[1]; ++j)
-                    {
-                        IntVect div(dlo[0], j, m);
-#elif (AMREX_SPACEDIM == 2)
-                    {
-                        IntVect div(dlo[0], m);
-#endif
-                        auto      * pdst = d.ptr(div       ,n+destcomp);
-                        auto const* psrc = s.ptr(div+offset,n+srccomp);
+                auto lo = dlo;
+                auto hi = dhi;
+                if (planedim == 1) {
+                    lo.y = m;
+                    hi.y = m;
+                } else {
+                    lo.z = m;
+                    hi.z = m;
+                }
+
+                for (int n = 0; n < numcomp; ++n) {
+                    for     (int k = lo.z; k <= hi.z; ++k) {
+                        for (int j = lo.y; j <= hi.y; ++j) {
+                            auto      * pdst = d.ptr(dlo.x,j         ,k         ,n+destcomp);
+                            auto const* psrc = s.ptr(slo.x,j+offset.y,k+offset.z,n+ srccomp);
 #pragma omp simd
-                        for (int ii = 0; ii < lenx; ++ii) {
-                            pdst[ii] += psrc[ii];
+                            for (int ii = 0; ii < len.x; ++ii) {
+                                pdst[ii] += psrc[ii];
+                            }
                         }
                     }
                 }
