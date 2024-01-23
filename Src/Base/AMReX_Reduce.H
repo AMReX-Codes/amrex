@@ -1289,6 +1289,20 @@ IdentityTuple (GpuTuple<Ts...>, ReduceOps<Ps...>) noexcept
     return r;
 }
 
+/**
+ * \brief Return a GpuTuple containing the identity element for each ReduceOp in TypeList.
+ * For example 0, +inf and -inf for ReduceOpSum, ReduceOpMin and ReduceOpMax respectively.
+ */
+template <typename... Ts, typename... Ps>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts...>
+IdentityTuple (GpuTuple<Ts...>, TypeList<Ps...>) noexcept
+{
+    GpuTuple<Ts...> r{};
+    Reduce::detail::for_each_init<0, decltype(r), Ps...>(r);
+    return r;
+}
+
 }
 
 #endif
