@@ -387,7 +387,7 @@ ForwardAsTuple (Ts&&... args) noexcept
 template <typename... Ts>
 AMREX_GPU_HOST_DEVICE
 constexpr GpuTuple<Ts...>
-MakeZeroTuple(GpuTuple<Ts...>) noexcept
+MakeZeroTuple (GpuTuple<Ts...>) noexcept
 {
     return GpuTuple<Ts...>(static_cast<Ts>(0)...);
 }

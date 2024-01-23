@@ -154,7 +154,7 @@ constexpr auto CartesianProduct (Ls...) {
 namespace detail {
     // return TypeList<T, T, T, T, ... (N times)> by using the fast power algorithm
     template <class T, std::size_t N>
-    constexpr auto SingleTypeMultiplier_impl() {
+    constexpr auto SingleTypeMultiplier_impl () {
         if constexpr (N == 0) {
             return TypeList<>{};
         } else if constexpr (N == 1) {
@@ -169,19 +169,19 @@ namespace detail {
     // overload of SingleTypeMultiplier for multiple types:
     // convert T[N] to  T, T, T, T, ... (N times with N >= 1)
     template <class T, std::size_t N>
-    constexpr auto SingleTypeMultiplier(const T (&)[N]) {
+    constexpr auto SingleTypeMultiplier (const T (&)[N]) {
         return SingleTypeMultiplier_impl<T, N>();
     }
 
     // overload of SingleTypeMultiplier for one regular type
     template <class T>
-    constexpr auto SingleTypeMultiplier(T) {
+    constexpr auto SingleTypeMultiplier (T) {
         return TypeList<T>{};
     }
 
     // apply the types of the input TypeList as template arguments to TParam
     template <template <class...> class TParam, class... Args>
-    constexpr auto TApply(TypeList<Args...>) {
+    constexpr auto TApply (TypeList<Args...>) {
         return TypeList<TParam<Args...>>{};
     }
 }

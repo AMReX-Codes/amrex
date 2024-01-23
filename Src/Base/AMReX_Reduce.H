@@ -1282,7 +1282,7 @@ bool AnyOf (Box const& box, P&&pred)
 template <typename... Ts, typename... Ps>
 AMREX_GPU_HOST_DEVICE
 constexpr GpuTuple<Ts...>
-IdentityTuple(GpuTuple<Ts...>, ReduceOps<Ps...>) noexcept
+IdentityTuple (GpuTuple<Ts...>, ReduceOps<Ps...>) noexcept
 {
     GpuTuple<Ts...> r{};
     Reduce::detail::for_each_init<0, decltype(r), Ps...>(r);
