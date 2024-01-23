@@ -264,7 +264,7 @@ void linear_interpolate_to_particle_z (const P& p,
         int k = 0; // temporary for 2D
 
 #if (AMREX_SPACEDIM == 2)
-        amrex::ignored_unused(ly);
+        amrex::ignore_unused(ly);
         int const j  = p.idata(0);
 
         amrex::Real hlo_xlo = amrex::Real(0.25) * ( height_arr(i0                       , j                     , k)
