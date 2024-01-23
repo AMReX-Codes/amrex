@@ -67,14 +67,14 @@ namespace Reduce::detail {
 
     template <std::size_t I, typename T, typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void for_each_init (T& t)
+    constexpr void for_each_init (T& t)
     {
         P().init(amrex::get<I>(t));
     }
 
     template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void for_each_init (T& t)
+    constexpr void for_each_init (T& t)
     {
         P().init(amrex::get<I>(t));
         for_each_init<I+1,T,P1,Ps...>(t);
