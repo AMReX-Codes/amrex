@@ -17,7 +17,7 @@ namespace Gpu::Atomic {
 // For Exch and CAS, the data type is generic.
 // All these functions are non-atomic in host code!!!
 // If one needs them to be atomic in host code, use HostDevice::Atomic::*.  Currently only
-// HostDevice::Atomic is supported.  We could certainly add more.
+// HostDevice::Atomic::Add is supported.  We could certainly add more.
 
 namespace detail {
 
@@ -525,7 +525,54 @@ namespace detail {
             return old;
         ))
 #endif
+
+////////////////////////////////////////////////////////////////////////
+//  Multiply
+////////////////////////////////////////////////////////////////////////
+
+#ifdef AMREX_USE_GPU
+
+    template<class T>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T Multiply_device (T* const prod, T const value) noexcept
+    {
+        amrex::Abort("Gpu::Atomic::Multiply is not implemented for this data type.");
     }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    float Multiply_device (float* const prod, float const value) noexcept
+    {
+        return detail::atomic_op<float,int>(prod,value,amrex::Multiplies<float>());
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    double Multiply_device (double* const prod, double const value) noexcept
+    {
+        return detail::atomic_op<double, unsigned long long int>(prod,value,amrex::Multiplies<double>());
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    Long Multiply_device (Long* const prod, Long const value) noexcept
+    {
+        return detail::atomic_op<Long, unsigned long long int>(prod,value,amrex::Multiplies<Long>());
+    }
+
+#endif
+
+    template<class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T Multiply (T* const prod, T const value) noexcept
+    {
+        AMREX_IF_ON_DEVICE((
+            return Multiply_device(prod, value);
+        ))
+        AMREX_IF_ON_HOST((
+            auto const old = *prod;
+            *prod *= value;
+            return old;
+        ))
+    }
+
 }
 
 namespace HostDevice::Atomic {
