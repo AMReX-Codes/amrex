@@ -535,7 +535,7 @@ namespace detail {
 
     template<class T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T Multiply_device (T* const prod, T const value) noexcept
+    T Multiply_device (T* const /*prod*/, T const /*value*/) noexcept
     {
         amrex::Abort("Gpu::Atomic::Multiply is not implemented for this data type.");
     }
@@ -600,7 +600,7 @@ namespace detail {
 
     template<class T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T Divide_device (T* const quot, T const value) noexcept
+    T Divide_device (T* const /*quot*/, T const /*value*/) noexcept
     {
         amrex::Abort("Gpu::Atomic::Divide is not implemented for this data type.");
     }
