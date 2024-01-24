@@ -525,6 +525,7 @@ namespace detail {
             return old;
         ))
 #endif
+    }
 
 ////////////////////////////////////////////////////////////////////////
 //  Multiply
@@ -572,7 +573,6 @@ namespace detail {
             return old;
         ))
     }
-
 }
 
 namespace HostDevice::Atomic {
