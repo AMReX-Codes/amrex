@@ -271,6 +271,20 @@ namespace amrex::openpmd_api {
     } // CreateWriter()
 
 
+    void AMReX_openPMDHandler::SetWriter(amrex::openpmd_api::AMReX_openPMDWriter* w)
+    {
+       BL_ASSERT ( w != nullptr );
+
+       // assuer that input key/values are inherited
+       // so the openpmd filepath assigned from input file is still in use
+       w->m_openPMDPrefix = m_Writer->m_openPMDPrefix;
+       w->m_openPMDEncoding = m_Writer->m_openPMDEncoding;
+       w->m_openPMDFileType = m_Writer->m_openPMDFileType;
+       w->m_openPMDSeriesOptions = m_Writer->m_openPMDSeriesOptions;
+
+       m_Writer.reset(w);
+    }
+
     ////////////////////////////////////////
     //
     // Class AMReX_openPMDWriter

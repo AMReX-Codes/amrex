@@ -418,6 +418,7 @@ namespace amrex::openpmd_api
 
       std::unique_ptr<AMReX_openPMDWriter> m_Writer;
 
+      void SetWriter(amrex::openpmd_api::AMReX_openPMDWriter* w);
     private:
       void CreateWriter(const std::string& prefix = std::string());
 
