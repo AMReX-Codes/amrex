@@ -12,9 +12,9 @@ namespace amrex {
 
 namespace Gpu::Atomic {
 
-// For Add, Multiply, Divide, Min and Max, we support int, unsigned int, long, unsigned long long, float and double.
-// For Multiply and Divide, we also support user-defined types provided are the same size as int or unsigned long long
-// and have user-defined *= and /= operators.
+// For Add, Min and Max, we support int, unsigned int, long, unsigned long long, float and double.
+// For Multiply and Divide, we support generic types provided they are the same size as int or unsigned long long
+// and have *= and /= operators.
 // For LogicalOr and LogicalAnd, the data type is int.
 // For Exch and CAS, the data type is generic.
 // All these functions are non-atomic in host code!!!
@@ -549,42 +549,6 @@ namespace detail {
         return detail::atomic_op<T, unsigned long long>(prod,value,amrex::Multiplies<T>());
     }
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    float Multiply_device (float* const prod, float const value) noexcept
-    {
-        return detail::atomic_op<float,int>(prod,value,amrex::Multiplies<float>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    double Multiply_device (double* const prod, double const value) noexcept
-    {
-        return detail::atomic_op<double, unsigned long long int>(prod,value,amrex::Multiplies<double>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    int Multiply_device (int* const prod, int const value) noexcept
-    {
-        return detail::atomic_op<int, int>(prod,value,amrex::Multiplies<int>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    unsigned int Multiply_device (unsigned int* const prod, unsigned int const value) noexcept
-    {
-        return detail::atomic_op<unsigned int, int>(prod,value,amrex::Multiplies<unsigned int>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    unsigned long long int Multiply_device (unsigned long long int* const prod, unsigned long long int const value) noexcept
-    {
-        return detail::atomic_op<unsigned long long int, unsigned long long int>(prod,value,amrex::Multiplies<unsigned long long int>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    Long Multiply_device (Long* const prod, Long const value) noexcept
-    {
-        return detail::atomic_op<Long, unsigned long long int>(prod,value,amrex::Multiplies<Long>());
-    }
-
 #endif
 
     template<class T>
@@ -619,42 +583,6 @@ namespace detail {
     T Divides_device (T* const quot, T const value) noexcept
     {
         return detail::atomic_op<T, unsigned long long>(quot,value,amrex::Divides<T>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    float Divide_device (float* const quot, float const value) noexcept
-    {
-        return detail::atomic_op<float,int>(quot,value,amrex::Divides<float>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    double Divide_device (double* const quot, double const value) noexcept
-    {
-        return detail::atomic_op<double, unsigned long long int>(quot,value,amrex::Divides<double>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    int Divide_device (int* const quot, int const value) noexcept
-    {
-        return detail::atomic_op<int, int>(quot,value,amrex::Divides<int>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    unsigned int Divide_device (unsigned int* const quot, unsigned int const value) noexcept
-    {
-        return detail::atomic_op<unsigned int, int>(quot,value,amrex::Divides<unsigned int>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    unsigned long long int Divide_device (unsigned long long int* const quot, unsigned long long int const value) noexcept
-    {
-        return detail::atomic_op<unsigned long long int, unsigned long long int>(quot,value,amrex::Divides<unsigned long long int>());
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    Long Divide_device (Long* const quot, Long const value) noexcept
-    {
-        return detail::atomic_op<Long, unsigned long long int>(quot,value,amrex::Divides<Long>());
     }
 
 #endif
