@@ -580,7 +580,7 @@ namespace detail {
 
     template <typename T, std::enable_if_t<sizeof(T) == sizeof(unsigned long long), int> = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T Divides_device (T* const quot, T const value) noexcept
+    T Divide_device (T* const quot, T const value) noexcept
     {
         return detail::atomic_op<T, unsigned long long>(quot,value,amrex::Divides<T>());
     }
