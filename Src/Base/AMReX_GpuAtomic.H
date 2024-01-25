@@ -13,6 +13,8 @@ namespace amrex {
 namespace Gpu::Atomic {
 
 // For Add, Multiply, Divide, Min and Max, we support int, unsigned int, long, unsigned long long, float and double.
+// For Multiply and Divide, we also support user-defined types provided are the same size as int or unsigned long long
+// and have user-defined *= and /= operators.
 // For LogicalOr and LogicalAnd, the data type is int.
 // For Exch and CAS, the data type is generic.
 // All these functions are non-atomic in host code!!!
@@ -533,11 +535,18 @@ namespace detail {
 
 #ifdef AMREX_USE_GPU
 
-    template<class T>
+    template <typename T, std::enable_if_t<sizeof(T) == sizeof(int), int> = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T Multiply_device (T* const /*prod*/, T const /*value*/) noexcept
+    T Multiply_device (T* const prod, T const value) noexcept
     {
-        amrex::Abort("Gpu::Atomic::Multiply is not implemented for this data type.");
+        return detail::atomic_op<T, int>(prod,value,amrex::Multiplies<T>());
+    }
+
+    template <typename T, std::enable_if_t<sizeof(T) == sizeof(unsigned long long), int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T Multiply_device (T* const prod, T const value) noexcept
+    {
+        return detail::atomic_op<T, unsigned long long>(prod,value,amrex::Multiplies<T>());
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -598,11 +607,18 @@ namespace detail {
 
 #ifdef AMREX_USE_GPU
 
-    template<class T>
+    template <typename T, std::enable_if_t<sizeof(T) == sizeof(int), int> = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T Divide_device (T* const /*quot*/, T const /*value*/) noexcept
+    T Divide_device (T* const quot, T const value) noexcept
     {
-        amrex::Abort("Gpu::Atomic::Divide is not implemented for this data type.");
+        return detail::atomic_op<T, int>(quot,value,amrex::Divides<T>());
+    }
+
+    template <typename T, std::enable_if_t<sizeof(T) == sizeof(unsigned long long), int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T Divides_device (T* const quot, T const value) noexcept
+    {
+        return detail::atomic_op<T, unsigned long long>(quot,value,amrex::Divides<T>());
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
