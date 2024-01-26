@@ -5,7 +5,6 @@
 #include <AMReX_Vector.H>
 #include <AMReX_PODVector.H>
 #include <AMReX_GpuAllocators.H>
-#include <AMReX_Scan.H>
 #include <type_traits>
 
 #include <numeric>

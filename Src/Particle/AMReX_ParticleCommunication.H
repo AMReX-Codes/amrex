@@ -7,6 +7,7 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_Scan.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MakeParticle.H>
 
