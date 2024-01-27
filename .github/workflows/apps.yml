@@ -52,7 +52,7 @@ jobs:
         export AMREX_HOME=${PWD}
         export MICROPHYSICS_HOME=${PWD}/Microphysics
         cd Castro/Exec/hydro_tests/Sedov/
-        make -j2 CCACHE=ccache USE_MPI=FALSE
+        make -j4 CCACHE=ccache USE_MPI=FALSE
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -97,7 +97,7 @@ jobs:
             -DWarpX_OPENPMD=OFF                   \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build WarpX/build -j 2
+        cmake --build WarpX/build -j 4
 
         ccache -s
         du -hs ~/.cache/ccache
