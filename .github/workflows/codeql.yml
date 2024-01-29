@@ -77,7 +77,7 @@ jobs:
           export CCACHE_MAXSIZE=30M
           ccache -z
 
-          cmake --build build -j 2
+          cmake --build build -j 4
 
           ccache -s
           du -hs ~/.cache/ccache
@@ -86,7 +86,7 @@ jobs:
           touch Src/Base/AMReX.cpp
           export CCACHE_DISABLE=1
           cd build
-          make -j 2
+          make -j 4
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

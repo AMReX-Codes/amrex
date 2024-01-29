@@ -31,7 +31,7 @@ jobs:
         cd petsc-3.18.1
         export PETSC_DIR=${PWD}
         ./configure --prefix=${PWD}/petsc
-        make -j 2
+        make -j 4
         make install
         cd ../
     - name: Build and Run Test
@@ -45,12 +45,12 @@ jobs:
 
         export AMREX_PETSC_HOME=${PWD}/petsc-3.18.1/petsc
         cd Tests/LinearSolvers/CellEB
-        make -j2 USE_MPI=TRUE USE_PETSC=TRUE DIM=2 TEST=TRUE \
+        make -j4 USE_MPI=TRUE USE_PETSC=TRUE DIM=2 TEST=TRUE \
             CCACHE=ccache
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.rt.2d.petsc
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -k -f clang-tidy-ccache-misses.mak \
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-14 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
