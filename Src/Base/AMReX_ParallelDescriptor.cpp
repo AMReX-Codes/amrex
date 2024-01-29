@@ -428,7 +428,7 @@ EndParallel ()
         m_mpi_ops.clear();
     }
 
-    if (!call_mpi_finalize) {
+    if (!call_mpi_finalize && m_comm != MPI_COMM_NULL) {
         BL_MPI_REQUIRE( MPI_Comm_free(&m_comm) );
     }
     m_comm = MPI_COMM_NULL;
