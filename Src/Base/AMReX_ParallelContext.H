@@ -105,7 +105,11 @@ inline void set_last_frame_ofs (const std::string & filename) {
     frames.back().set_ofs_name(filename);
 }
 //! Note that it's the user's responsibility to free the MPI_Comm
-inline void pop () { frames.pop_back(); }
+inline void pop () {
+    if (frames.size() > 0u) {
+        frames.pop_back();
+    }
+}
 
 }
 
