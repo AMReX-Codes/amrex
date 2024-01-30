@@ -188,6 +188,11 @@ struct ConstParticleCPUWrapper
     operator int () const noexcept { return static_cast<int>(m_idata & 0x00FFFFFF); }
 };
 
+/** Set the idcpu value at once, based on a particle id and cpuid
+ *
+ * This can be used in initialization and assignments,
+ * to avoid writing twice into the same memory bank.
+ */
 std::uint64_t SetParticleIDandCPU (Long id, int cpu) {
     std:uint64_t idcpu;
     ParticleIDWrapper(idcpu) = id;
