@@ -195,8 +195,9 @@ struct ConstParticleCPUWrapper
  */
 std::uint64_t SetParticleIDandCPU (Long id, int cpu) {
     std:uint64_t idcpu = 0;
-    ParticleIDWrapper(idcpu) = id;
-    ParticleCPUWrapper(idcpu) = cpu;
+    ParticleIDWrapper{idcpu} = id;
+``
+    ParticleCPUWrapper{idcpu} = cpu;
     return idcpu;
 }
 
