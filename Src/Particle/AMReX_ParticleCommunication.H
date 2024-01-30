@@ -91,8 +91,8 @@ struct ParticleCopyPlan
     Vector<int> m_rcv_box_pids;
     Vector<int> m_rcv_box_levs;
 
-    Long m_NumSnds;
-    int m_nrcvs;
+    Long m_NumSnds = 0;
+    int m_nrcvs = 0;
     mutable Vector<MPI_Status> m_build_stats;
     mutable Vector<MPI_Request> m_build_rreqs;
 
