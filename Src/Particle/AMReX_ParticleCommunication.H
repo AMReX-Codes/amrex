@@ -220,9 +220,13 @@ struct ParticleCopyPlan
             if (int_comp_mask[i])  {++num_int_comm_comp;}
         }
 
-        m_superparticle_size = sizeof(typename PC::ParticleType)
-                             + num_real_comm_comp * sizeof(typename PC::ParticleType::RealType)
-                             + num_int_comm_comp  * sizeof(int);
+        if constexpr (PC::ParticleType::is_soa_particle) {
+            m_superparticle_size = sizeof(uint64_t);  // idcpu
+        } else {
+            m_superparticle_size = sizeof(typename PC::ParticleType);
+        }
+        m_superparticle_size += num_real_comm_comp * sizeof(typename PC::ParticleType::RealType)
+                              + num_int_comm_comp  * sizeof(int);
 
         buildMPIStart(pc.BufferMap(), m_superparticle_size);
     }
