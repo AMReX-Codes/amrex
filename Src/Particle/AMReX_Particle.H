@@ -194,7 +194,7 @@ struct ConstParticleCPUWrapper
  * to avoid writing twice into the same memory bank.
  */
 std::uint64_t SetParticleIDandCPU (Long id, int cpu) {
-    std:uint64_t idcpu = 0;
+    std::uint64_t idcpu = 0;
     ParticleIDWrapper{idcpu} = id;
     ParticleCPUWrapper{idcpu} = cpu;
     return idcpu;
