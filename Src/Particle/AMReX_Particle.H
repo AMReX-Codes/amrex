@@ -188,6 +188,12 @@ struct ConstParticleCPUWrapper
     operator int () const noexcept { return static_cast<int>(m_idata & 0x00FFFFFF); }
 };
 
+std::uint64_t SetParticleIDandCPU (Long id, int cpu) {
+    std:uint64_t idcpu;
+    ParticleIDWrapper(idcpu) = id;
+    ParticleCPUWrapper(idcpu) = cpu;
+    return idcpu;
+}
 
 template <typename T, int NReal, int NInt>
 struct ParticleBase
