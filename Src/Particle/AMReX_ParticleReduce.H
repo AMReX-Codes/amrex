@@ -12,6 +12,7 @@
 #include <AMReX_Vector.H>
 
 #include <limits>
+#include <type_traits>
 
 namespace amrex {
 

@@ -5,6 +5,7 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParticleUtil.H>
+#include <type_traits>
 
 namespace amrex {
 
