@@ -26,11 +26,11 @@ namespace
 
     using namespace LongParticleIds;
 
-    /** Flags used to set the entire uint64_t idcpu
+    /** Flags used to set the entire int64_t idcpu
         to special values at once.
      */
     namespace ParticleIdCpus {
-        constexpr std::uint64_t Invalid = 16777216; // corresponds to id = -1, cpu = 0
+        constexpr std::int64_t Invalid = -16777216LL; // corresponds to id = -1, cpu = 0
     }
 
     using namespace ParticleIdCpus;
@@ -38,12 +38,12 @@ namespace
 
 struct ParticleIDWrapper
 {
-    uint64_t& m_idata;
+    int64_t& m_idata;
 
     ~ParticleIDWrapper () noexcept = default;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleIDWrapper (uint64_t& idata) noexcept
+    ParticleIDWrapper (int64_t& idata) noexcept
         : m_idata(idata)
     {}
 
@@ -89,7 +89,7 @@ struct ParticleIDWrapper
     {
         // remove uppermost bit
         // extract next 39 id bits
-        int64_t const val  = (m_idata | uint64_t(1) << 63 ) >> 24;
+        int64_t const val  = (m_idata | int64_t(1) << 63 ) >> 24;
 
         return m_idata > 0 ? val : -val;
     }
@@ -103,7 +103,7 @@ struct ParticleIDWrapper
     void make_invalid () noexcept
     {
         // RHS mask: 1000...
-        m_idata |= uint64_t(1) << 63;
+        m_idata |= int64_t(1) << 63;
     }
 
     /** Mark the particle as valid
@@ -116,7 +116,7 @@ struct ParticleIDWrapper
     {
 
         // RHS mask: 0111...
-        m_idata &= ~(uint64_t(1) << 63);
+        m_idata &= ~(int64_t(1) << 63);
     }
 
     /** Check the particle is valid, via the sign of the id.
@@ -133,12 +133,12 @@ struct ParticleIDWrapper
 
 struct ParticleCPUWrapper
 {
-    uint64_t& m_idata;
+    int64_t& m_idata;
 
     ~ParticleCPUWrapper () noexcept = default;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleCPUWrapper (uint64_t& idata) noexcept
+    ParticleCPUWrapper (int64_t& idata) noexcept
         : m_idata(idata)
     {}
 
@@ -181,10 +181,10 @@ struct ParticleCPUWrapper
 
 struct ConstParticleIDWrapper
 {
-    const uint64_t& m_idata;
+    const int64_t& m_idata;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ConstParticleIDWrapper (const uint64_t& idata) noexcept
+    ConstParticleIDWrapper (const int64_t& idata) noexcept
         : m_idata(idata)
     {}
 
@@ -193,7 +193,7 @@ struct ConstParticleIDWrapper
     {
         // remove uppermost bit
         // extract next 39 id bits
-        int64_t const val  = (m_idata | uint64_t(1) << 63 ) >> 24;
+        int64_t const val  = (m_idata | int64_t(1) << 63 ) >> 24;
 
         return m_idata > 0 ? val : -val;
     }
@@ -212,10 +212,10 @@ struct ConstParticleIDWrapper
 
 struct ConstParticleCPUWrapper
 {
-    const uint64_t& m_idata;
+    const int64_t& m_idata;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ConstParticleCPUWrapper (const uint64_t& idata) noexcept
+    ConstParticleCPUWrapper (const int64_t& idata) noexcept
         : m_idata(idata)
     {}
 
@@ -229,8 +229,8 @@ struct ConstParticleCPUWrapper
  * to avoid writing twice into the same memory bank.
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-std::uint64_t SetParticleIDandCPU (Long id, int cpu) noexcept{
-    std::uint64_t idcpu = 0;
+std::int64_t SetParticleIDandCPU (Long id, int cpu) noexcept{
+    std::int64_t idcpu = 0;
     ParticleIDWrapper{idcpu} = id;
     ParticleCPUWrapper{idcpu} = cpu;
     return idcpu;
@@ -241,7 +241,7 @@ struct ParticleBase
 {
     T m_pos[AMREX_SPACEDIM];
     T m_rdata[NReal];
-    uint64_t m_idcpu = 0;
+    int64_t m_idcpu = 0;
     int m_idata[NInt];
 };
 
@@ -249,7 +249,7 @@ template <typename T, int NInt>
 struct ParticleBase<T,0,NInt>
 {
     T m_pos[AMREX_SPACEDIM];
-    uint64_t m_idcpu = 0;
+    int64_t m_idcpu = 0;
     int m_idata[NInt];
 };
 
@@ -258,14 +258,14 @@ struct ParticleBase<T,NReal,0>
 {
     T m_pos[AMREX_SPACEDIM];
     T m_rdata[NReal];
-    uint64_t m_idcpu = 0;
+    int64_t m_idcpu = 0;
 };
 
 template <typename T>
 struct ParticleBase<T,0,0>
 {
     T m_pos[AMREX_SPACEDIM];
-    uint64_t m_idcpu = 0;
+    int64_t m_idcpu = 0;
 };
 
 
@@ -314,7 +314,7 @@ struct Particle
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void atomicSetID (const Long id) {
-        uint64_t tmp = 0;
+        int64_t tmp = 0;
         ParticleIDWrapper wrapper(tmp);
         wrapper = id;
 #if defined(AMREX_USE_OMP)
@@ -424,7 +424,7 @@ struct Particle
 
     template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    uint64_t& idata (int /*index*/) &
+    int64_t& idata (int /*index*/) &
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->m_idcpu;  //bc we must return something

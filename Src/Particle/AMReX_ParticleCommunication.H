@@ -221,7 +221,7 @@ struct ParticleCopyPlan
         }
 
         if constexpr (PC::ParticleType::is_soa_particle) {
-            m_superparticle_size = sizeof(uint64_t);  // idcpu
+            m_superparticle_size = sizeof(int64_t);  // idcpu
         } else {
             m_superparticle_size = sizeof(typename PC::ParticleType);
         }

@@ -92,7 +92,7 @@ public:
         {
             const Box& tile_box  = mfi.tilebox();
 
-            Gpu::HostVector<uint64_t> host_idcpu;
+            Gpu::HostVector<int64_t> host_idcpu;
             std::array<Gpu::HostVector<ParticleReal>, NR> host_real;
             std::array<Gpu::HostVector<int>, NI> host_int;
 

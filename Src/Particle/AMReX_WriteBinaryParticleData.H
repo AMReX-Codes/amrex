@@ -338,7 +338,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                 else {
                     amrex::ignore_unused(is_checkpoint);
                     // Int: id, cpu
-                    uint64_t idcpu = soa.GetIdCPUData()[pindex];
+                    int64_t idcpu = soa.GetIdCPUData()[pindex];
                     *iptr = (int) ParticleIDWrapper(idcpu);
                     iptr += 1;
                     *iptr = (int) ParticleCPUWrapper(idcpu);
@@ -1033,7 +1033,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                         }
                         else {
                             // Ints: id, cpu
-                            uint64_t idcpu = soa.GetIdCPUData()[pindex];
+                            int64_t idcpu = soa.GetIdCPUData()[pindex];
                             *iptr = (int) ParticleIDWrapper(idcpu);
                             iptr += 1;
                             *iptr = (int) ParticleCPUWrapper(idcpu);

@@ -1062,7 +1062,7 @@ InitRandom (Long                    icount,
         host_int_attribs.reserve(15);
         host_int_attribs.resize(finestLevel()+1);
 
-        Vector<std::map<std::pair<int, int>, Gpu::HostVector<uint64_t> > > host_idcpu;
+        Vector<std::map<std::pair<int, int>, Gpu::HostVector<int64_t> > > host_idcpu;
         host_idcpu.reserve(15);
         host_idcpu.resize(finestLevel()+1);
 
@@ -1211,7 +1211,7 @@ InitRandom (Long                    icount,
         host_int_attribs.reserve(15);
         host_int_attribs.resize(finestLevel()+1);
 
-        Vector<std::map<std::pair<int, int>, Gpu::HostVector<uint64_t> > > host_idcpu;
+        Vector<std::map<std::pair<int, int>, Gpu::HostVector<int64_t> > > host_idcpu;
         host_idcpu.reserve(15);
         host_idcpu.resize(finestLevel()+1);
 

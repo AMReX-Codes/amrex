@@ -992,7 +992,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     host_int_attribs.reserve(15);
     host_int_attribs.resize(finest_level_in_file+1);
 
-    Vector<std::map<std::pair<int, int>, Gpu::HostVector<uint64_t> > > host_idcpu;
+    Vector<std::map<std::pair<int, int>, Gpu::HostVector<int64_t> > > host_idcpu;
     host_idcpu.reserve(15);
     host_idcpu.resize(finestLevel()+1);
 
@@ -1006,7 +1006,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             yi = iptr[1];
             std::memcpy(&xu, &xi, sizeof(xi));
             std::memcpy(&yu, &yi, sizeof(yi));
-            ptemp.m_idcpu = ((std::uint64_t)xu) << 32 | yu;
+            ptemp.m_idcpu = ((std::int64_t)xu) << 32 | yu;
         } else {
             ptemp.id()   = iptr[0];
             ptemp.cpu()  = iptr[1];

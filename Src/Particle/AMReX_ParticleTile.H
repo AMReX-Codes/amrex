@@ -47,7 +47,7 @@ struct ParticleTileData
                                        void * AMREX_RESTRICT, ParticleType * AMREX_RESTRICT>;
     AOS_PTR m_aos;
 
-    uint64_t* m_idcpu;
+    int64_t* m_idcpu;
     GpuArray<ParticleReal*, NAR> m_rdata;
     GpuArray<int*, NAI> m_idata;
 
@@ -128,8 +128,8 @@ struct ParticleTileData
             memcpy(dst, m_aos + src_index, sizeof(ParticleType));
             dst += sizeof(ParticleType);
         } else {
-            memcpy(dst, m_idcpu + src_index, sizeof(uint64_t));
-            dst += sizeof(uint64_t);
+            memcpy(dst, m_idcpu + src_index, sizeof(int64_t));
+            dst += sizeof(int64_t);
         }
         int array_start_index  = AMREX_SPACEDIM + NStructReal;
         for (int i = 0; i < NAR; ++i)
@@ -179,8 +179,8 @@ struct ParticleTileData
             memcpy(m_aos + dst_index, src, sizeof(ParticleType));
             src += sizeof(ParticleType);
         } else {
-            memcpy(m_idcpu + dst_index, src, sizeof(uint64_t));
-            src += sizeof(uint64_t);
+            memcpy(m_idcpu + dst_index, src, sizeof(int64_t));
+            src += sizeof(int64_t);
         }
         int array_start_index  = AMREX_SPACEDIM + NStructReal;
         for (int i = 0; i < NAR; ++i)
@@ -393,7 +393,7 @@ struct SoAParticle : SoAParticleBase
     ParticleIDWrapper id () & { return this->m_particle_tile_data.m_idcpu[m_index]; }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    uint64_t& idcpu () & { return this->m_particle_tile_data.m_idcpu[m_index]; }
+    int64_t& idcpu () & { return this->m_particle_tile_data.m_idcpu[m_index]; }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ConstParticleCPUWrapper cpu () const & { return this->m_particle_tile_data.m_idcpu[m_index]; }
@@ -402,7 +402,7 @@ struct SoAParticle : SoAParticleBase
     ConstParticleIDWrapper id () const & { return this->m_particle_tile_data.m_idcpu[m_index]; }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const uint64_t& idcpu () const & { return this->m_particle_tile_data.m_idcpu[m_index]; }
+    const int64_t& idcpu () const & { return this->m_particle_tile_data.m_idcpu[m_index]; }
 
     //functions to get positions of the particle in the SOA data
 
@@ -508,7 +508,7 @@ struct ConstParticleTileData
                                        void const * AMREX_RESTRICT, ParticleType const * AMREX_RESTRICT>;
     AOS_PTR m_aos;
 
-    const uint64_t* m_idcpu;
+    const int64_t* m_idcpu;
     GpuArray<const ParticleReal*, NArrayReal> m_rdata;
     GpuArray<const int*, NArrayInt > m_idata;
 
@@ -589,8 +589,8 @@ struct ConstParticleTileData
             memcpy(dst, m_aos + src_index, sizeof(ParticleType));
             dst += sizeof(ParticleType);
         } else {
-            memcpy(dst, m_idcpu + src_index, sizeof(uint64_t));
-            dst += sizeof(uint64_t);
+            memcpy(dst, m_idcpu + src_index, sizeof(int64_t));
+            dst += sizeof(int64_t);
         }
         int array_start_index  = AMREX_SPACEDIM + NStructReal;
         for (int i = 0; i < NArrayReal; ++i)
@@ -1069,7 +1069,7 @@ struct ParticleTile
     {
         Long nbytes = 0;
         if constexpr (ParticleType::is_soa_particle) {
-            nbytes += GetStructOfArrays().GetIdCPUData().capacity() * sizeof(uint64_t);
+            nbytes += GetStructOfArrays().GetIdCPUData().capacity() * sizeof(int64_t);
         } else {
             nbytes += m_aos_tile().capacity() * sizeof(ParticleType);
         }

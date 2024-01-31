@@ -15,7 +15,7 @@ template <int NReal, int NInt,
           bool use64BitIdCpu=false>
 struct StructOfArrays {
 
-    using IdCPU = amrex::PODVector<uint64_t, Allocator<uint64_t> >;
+    using IdCPU = amrex::PODVector<int64_t, Allocator<int64_t> >;
     using RealVector = amrex::PODVector<ParticleReal, Allocator<ParticleReal> >;
     using IntVector = amrex::PODVector<int, Allocator<int> >;
 
@@ -195,7 +195,7 @@ struct StructOfArrays {
         for (int i = 0; i < int(m_runtime_idata.size()); ++i) { m_runtime_idata[i].resize(count); }
     }
 
-    [[nodiscard]] uint64_t* idcpuarray () {
+    [[nodiscard]] int64_t* idcpuarray () {
         if constexpr (use64BitIdCpu == true) {
             return m_idcpu.dataPtr();
         } else {
