@@ -188,6 +188,18 @@ struct ConstParticleCPUWrapper
     operator int () const noexcept { return static_cast<int>(m_idata & 0x00FFFFFF); }
 };
 
+/** Set the idcpu value at once, based on a particle id and cpuid
+ *
+ * This can be used in initialization and assignments,
+ * to avoid writing twice into the same memory bank.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::uint64_t SetParticleIDandCPU (Long id, int cpu) noexcept{
+    std::uint64_t idcpu = 0;
+    ParticleIDWrapper{idcpu} = id;
+    ParticleCPUWrapper{idcpu} = cpu;
+    return idcpu;
+}
 
 template <typename T, int NReal, int NInt>
 struct ParticleBase

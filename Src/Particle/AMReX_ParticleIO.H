@@ -1094,6 +1094,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             {
                 new_size += src_tile.size();
             } else {
+                amrex::ignore_unused(src_tile);
                 new_size += host_real_attribs[host_lev][std::make_pair(grid,tile)][0].size();
             }
             dst_tile.resize(new_size);
