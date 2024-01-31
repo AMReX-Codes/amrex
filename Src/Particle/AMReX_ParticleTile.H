@@ -11,6 +11,7 @@
 #include <AMReX_RealVect.H>
 
 #include <array>
+#include <type_traits>
 
 namespace amrex {
 
