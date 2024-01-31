@@ -67,40 +67,31 @@ struct ParticleIDWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper& operator= (const Long id) noexcept
     {
-        // zero out the 40 leftmost bits, which store the sign and the abs of the id;
+        // zero out the 40 leftmost bits, store the id including its sign bit (0: +, 1: -)
         m_idata &= 0x00FFFFFF;
 
-        uint64_t val;
-        uint64_t sign = id >= 0;
-        if (sign)
-        {
-            // 2**39-1, the max value representable in this fashion
-            AMREX_ASSERT(id <= 549755813887L);
-            val = id;
-        }
-        else
-        {
-            // -2**39-1, the min value representable in this fashion
-            AMREX_ASSERT(id >= -549755813887L);
-            val = -id;
-        }
+        // note: although right-shifts of the sign-bit are implementation-
+        //       defined (arightmetic or logical), this operation will give the same result
+        int64_t const sign = (m_idata >> 63) << 63;  // leave only leftmost sign bit
 
-        m_idata |= (sign << 63);  // put the sign in the leftmost bit
-        m_idata |= (val << 24);   // put the val in the next 39
+        // flip to have ownly lowermost bits filled
+        int64_t const abs_id = std::abs(id);
+
+        // +/-2**39-1, the max value representable in this fashion
+        AMREX_ASSERT(abs_id <= 549755813887L);
+
+        m_idata |= sign | (id << 24);   // put the id in the 40 uppermost bits
         return *this;
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     operator Long () const noexcept
     {
-        Long r = 0;
+        // remove uppermost bit
+        // extract next 39 id bits
+        int64_t const val  = (m_idata | uint64_t(1) << 63 ) >> 24;
 
-        uint64_t sign = m_idata >> 63;  // extract leftmost sign bit
-        uint64_t val  = ((m_idata >> 24) & 0x7FFFFFFFFF);  // extract next 39 id bits
-
-        Long lval = static_cast<Long>(val);  // bc we take -
-        r = (sign) ? lval : -lval;
-        return r;
+        return m_idata > 0 ? val : -val;
     }
 
     /** Mark the particle as invalid
@@ -111,8 +102,8 @@ struct ParticleIDWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void make_invalid () noexcept
     {
-        // RHS mask: 0111...
-        m_idata &= ~(uint64_t(1) << 63);
+        // RHS mask: 1000...
+        m_idata |= uint64_t(1) << 63;
     }
 
     /** Mark the particle as valid
@@ -123,8 +114,9 @@ struct ParticleIDWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void make_valid () noexcept
     {
-        // RHS mask: 1000...
-        m_idata |= uint64_t(1) << 63;
+
+        // RHS mask: 0111...
+        m_idata &= ~(uint64_t(1) << 63);
     }
 
     /** Check the particle is valid, via the sign of the id.
@@ -135,7 +127,7 @@ struct ParticleIDWrapper
     bool is_valid () const noexcept
     {
         // the leftmost bit is our id's valid sign
-        return m_idata >> 63;
+        return !(m_idata >> 63);
     }
 };
 
@@ -199,14 +191,11 @@ struct ConstParticleIDWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     operator Long () const noexcept
     {
-        Long r = 0;
+        // remove uppermost bit
+        // extract next 39 id bits
+        int64_t const val  = (m_idata | uint64_t(1) << 63 ) >> 24;
 
-        uint64_t sign = m_idata >> 63;  // extract leftmost sign bit
-        uint64_t val  = ((m_idata >> 24) & 0x7FFFFFFFFF);  // extract next 39 id bits
-
-        Long lval = static_cast<Long>(val);  // bc we take -
-        r = (sign) ? lval : -lval;
-        return r;
+        return m_idata > 0 ? val : -val;
     }
 
     /** Check the sign of the id.
