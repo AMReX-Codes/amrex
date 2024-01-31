@@ -30,6 +30,7 @@ struct ParticleTileData
     static constexpr int NAI = NArrayInt;
 
     using ParticleType = T_ParticleType;
+    using ParticleRefType = T_ParticleType&;
     using Self = ParticleTileData<ParticleType, NAR, NAI>;
 
     static constexpr int NStructReal = ParticleType::NReal;
@@ -41,7 +42,9 @@ struct ParticleTileData
 
     Long m_size;
 
-    ParticleType* AMREX_RESTRICT m_aos;
+    using AOS_PTR = std::conditional_t<T_ParticleType::is_soa_particle,
+                                       void*, ParticleType*>;
+    AOS_PTR AMREX_RESTRICT m_aos;
 
     uint64_t* m_idcpu;
     GpuArray<ParticleReal*, NAR> m_rdata;
@@ -489,6 +492,7 @@ struct ConstParticleTileData
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;
     using ParticleType = T_ParticleType;
+    using ParticleRefType = T_ParticleType const&;
 
     static constexpr int NStructReal = ParticleType::NReal;
     static constexpr int NStructInt = ParticleType::NInt;
@@ -498,7 +502,10 @@ struct ConstParticleTileData
     static constexpr bool is_particle_tile_data = true;
 
     Long m_size;
-    const ParticleType* AMREX_RESTRICT m_aos;
+
+    using AOS_PTR = std::conditional_t<T_ParticleType::is_soa_particle,
+                                       void const*, ParticleType const*>;
+    AOS_PTR AMREX_RESTRICT m_aos;
 
     const uint64_t* m_idcpu;
     GpuArray<const ParticleReal*, NArrayReal> m_rdata;
