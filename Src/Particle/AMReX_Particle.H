@@ -193,7 +193,8 @@ struct ConstParticleCPUWrapper
  * This can be used in initialization and assignments,
  * to avoid writing twice into the same memory bank.
  */
-std::uint64_t SetParticleIDandCPU (Long id, int cpu) {
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::uint64_t SetParticleIDandCPU (Long id, int cpu) noexcept{
     std::uint64_t idcpu = 0;
     ParticleIDWrapper{idcpu} = id;
     ParticleCPUWrapper{idcpu} = cpu;
