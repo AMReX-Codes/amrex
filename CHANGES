@@ -1,3 +1,56 @@
+# 24.02
+
+  -- Disable m_aos for SoA Particle (#3736)
+     Update AoS Restrict (#3738)
+
+  -- Add helper function for setting id and cpu simultaneously. (#3733)
+
+  -- Disable SYCL on Nvidia and AMD CIs (#3726)
+
+  -- ParticleCopyPlan for SoA Particles (#3732)
+
+  -- Do not use std::forward twice on the same object in AmrParticleLocator (#3734)
+
+  -- Particle Copy Plan: Default Vals (#3729)
+
+  -- Fix circular header file dependency (#3725)
+
+  -- Provide portable Gpu::Atomic::Multiply and Gpu::Atomic::Divide implemented with CAS. (#3724)
+
+  -- Plotfile Tools: Add missing option to fcompare usage print (#3722)
+
+  -- Update documentation for STL files (#3723)
+
+  -- Add TypeMultiplier, MakeZeroTuple and IdentityTuple (#3718)
+
+  -- Interpolation routines for tracers with mapped_z. (#3714)
+
+  -- relax constraint that real_comp_names.size() == pc.NumRealComps() + NStructReal for pure SoA plotfiles (#3717)
+
+  -- Fix warnings in DenseBins::build with serial bin policy (#3716)
+
+  -- lockAdd: case of 2D plane in 3D (#3700)
+
+  -- Clean up interpolation routines in AMReX_TracerParticle_mod_K.H and AMReX_Particle_mod_K.H (#3679)
+
+  -- Add macro for loop unrolling across compilers (#3701)
+
+  -- Add a linspace-like function in AMReX_Algorithm.H (#3698)
+
+  -- use amrex::Gpu::memcpy for packParticleIDs (#3699)
+
+  -- BaseFab::lockAdd: Faster version of BaseFab::atomicAdd for OpenMP (#3696)
+
+  -- GMRES (#3648)
+
+  -- Add special named flag for invalid particles (#3688)
+
+  -- Fix BL_PROFILE_TINY_FLUSH (#3695)
+
+  -- Align GpuComplex to its size (#3691)
+
+  -- Fix Advection_AmrCore test (#3690)
+
 # 24.01
 
   -- MLMG: Use free functions instead of MF member functions (#3681)
