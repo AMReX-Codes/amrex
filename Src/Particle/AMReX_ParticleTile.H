@@ -44,8 +44,8 @@ struct ParticleTileData
     Long m_size;
 
     using AOS_PTR = std::conditional_t<T_ParticleType::is_soa_particle,
-                                       void*, ParticleType*>;
-    AOS_PTR AMREX_RESTRICT m_aos;
+                                       void * AMREX_RESTRICT, ParticleType * AMREX_RESTRICT>;
+    AOS_PTR m_aos;
 
     uint64_t* m_idcpu;
     GpuArray<ParticleReal*, NAR> m_rdata;
@@ -505,8 +505,8 @@ struct ConstParticleTileData
     Long m_size;
 
     using AOS_PTR = std::conditional_t<T_ParticleType::is_soa_particle,
-                                       void const*, ParticleType const*>;
-    AOS_PTR AMREX_RESTRICT m_aos;
+                                       void const * AMREX_RESTRICT, ParticleType const * AMREX_RESTRICT>;
+    AOS_PTR m_aos;
 
     const uint64_t* m_idcpu;
     GpuArray<const ParticleReal*, NArrayReal> m_rdata;
