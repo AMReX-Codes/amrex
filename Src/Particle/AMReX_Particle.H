@@ -102,6 +102,41 @@ struct ParticleIDWrapper
         r = (sign) ? lval : -lval;
         return r;
     }
+
+    /** Mark the particle as invalid
+     *
+     * Swaps the is_valid (sign) bit to invalid.
+     * This is NOT identical to id = -id, but it is equally reversible via make_valid().
+     */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_invalid () noexcept
+    {
+        // RHS mask: 0111...
+        m_idata &= ~(uint64_t(1) << 63);
+    }
+
+    /** Mark the particle as valid
+     *
+     * Swaps the is_valid (sign) bit to valid.
+     * This is NOT identical to id = -id, but it is equally reversible via make_invalid().
+     */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_valid () noexcept
+    {
+        // RHS mask: 1000...
+        m_idata |= uint64_t(1) << 63;
+    }
+
+    /** Check the particle is valid, via the sign of the id.
+     *
+     * Returns true if the particle is valid (the id is positive), otherwise false (invalid particle).
+     */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool is_valid () const noexcept
+    {
+        // the leftmost bit is our id's valid sign
+        return m_idata >> 63;
+    }
 };
 
 struct ParticleCPUWrapper
@@ -172,6 +207,17 @@ struct ConstParticleIDWrapper
         Long lval = static_cast<Long>(val);  // bc we take -
         r = (sign) ? lval : -lval;
         return r;
+    }
+
+    /** Check the sign of the id.
+     *
+     * Returns true if the id is positive, otherwise false (invalid particle).
+     */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool is_valid () const noexcept
+    {
+        // the leftmost bit is our id's valid sign
+        return m_idata >> 63;
     }
 };
 
