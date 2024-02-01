@@ -561,7 +561,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& ass
             int assigned_grid;
             int assigned_lev;
 
-            if (ptd.id(i).is_valid())
+            if (!ptd.id(i).is_valid())
             {
                 assigned_grid = -1;
                 assigned_lev  = -1;
