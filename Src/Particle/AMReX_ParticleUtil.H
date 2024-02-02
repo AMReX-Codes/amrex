@@ -555,8 +555,14 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& ass
     auto getPID = pmap.getPIDFunctor();
     int pid = ParallelContext::MyProcSub();
 
-    return partitionParticles(ptile,
-        [=] AMREX_GPU_DEVICE (auto& ptd, int i) -> bool
+    Gpu::DeviceVector<uint8_t> particle_stays(ptile.numParticles());
+    uint8_t * const p_particle_stays = particle_stays.dataPtr();
+    auto ptd = ptile.getParticleTileData();
+
+    // the function for determining if a particle stays on this grid is very slow,
+    // so we cache it in particle_stays to avoid evaluating it multiple times.
+    ParallelFor(ptile.numParticles(),
+        [=] AMREX_GPU_DEVICE (int i)
         {
             int assigned_grid;
             int assigned_lev;
@@ -590,11 +596,14 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& ass
                 }
             }
 
-            if ((remove_negative == false) && (!ptd.id(i).is_valid())) {
-                return true;
-            }
+            p_particle_stays[i] = uint8_t(
+                ((remove_negative == false) && (!ptd.id(i).is_valid())) ||
+                ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid)));
+        });
 
-            return ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid));
+    return partitionParticles(ptile,
+        [=] AMREX_GPU_DEVICE (auto& /* ptd */, int i) -> bool {
+            return p_particle_stays[i];
         });
 }
 
