@@ -20,6 +20,7 @@
 #include <AMReX_GpuLaunchGlobal.H>
 #include <AMReX_RandomEngine.H>
 #include <AMReX_Algorithm.H>
+#include <AMReX_Math.H>
 #include <cstddef>
 #include <limits>
 #include <algorithm>

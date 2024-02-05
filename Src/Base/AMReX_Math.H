@@ -4,6 +4,7 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
+#include <AMReX_INT.H>
 #include <cmath>
 #include <cstdlib>
 #include <type_traits>
@@ -207,6 +208,161 @@ constexpr T powi (T x) noexcept
         return x*powi<Power-1>(x);
     }
 }
+
+#if defined(AMREX_INT128_SUPPORTED)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::uint64_t umulhi (std::uint64_t a, std::uint64_t b)
+{
+#if defined(AMREX_USE_SYCL)
+    return sycl::mul_hi(a,b);
+#else
+    AMREX_IF_ON_DEVICE(( return __umul64hi(a, b); ))
+    AMREX_IF_ON_HOST((
+        auto tmp = amrex::UInt128_t(a) * amrex::UInt128_t(b);
+        return std::uint64_t(tmp >> 64);
+    ))
+#endif
+}
+#endif
+
+/***************************************************************************************************
+ * Copyright (c) 2017 - 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ **************************************************************************************************/
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+/// Object to encapsulate the fast division+modulus operation for 64b integer division.
+///
+/// Example:
+///
+///
+///   uint64_t quotient, remainder, dividend, divisor;
+///
+///   FastDivmodU64 divmod(divisor);
+///
+///   divmod(quotient, remainder, dividend);
+///
+///   // quotient = (dividend / divisor)
+///   // remainder = (dividend % divisor)
+///
+struct FastDivmodU64
+{
+    std::uint64_t divisor;
+
+#ifdef AMREX_INT128_SUPPORTED
+    std::uint64_t multiplier = 1U;
+    unsigned int shift_right = 0;
+    unsigned int round_up = 0;
+
+    //
+    // Static methods
+    //
+
+    /// Computes b, where 2^b is the greatest power of two that is less than or equal to x
+    static std::uint32_t integer_log2 (std::uint64_t x)
+    {
+        std::uint32_t n = 0;
+        while (x >>= 1) {
+            ++n;
+        }
+        return n;
+    }
+
+    /// Construct the FastDivmod object, in host code only
+    ///
+    /// This precomputes some values based on the divisor and is computationally expensive.
+    FastDivmodU64 (std::uint64_t divisor_)
+        : divisor(divisor_)
+    {
+        if (divisor) {
+            shift_right = integer_log2(divisor);
+
+            if ((divisor & (divisor - 1)) == 0) {
+                multiplier = 0;
+            }
+            else {
+                std::uint64_t power_of_two = (std::uint64_t(1) << shift_right);
+                auto n = amrex::UInt128_t(power_of_two) << 64;
+                std::uint64_t multiplier_lo = n / divisor;
+                n += power_of_two;
+                multiplier = n / divisor;
+                round_up = (multiplier_lo == multiplier ? 1 : 0);
+            }
+        }
+    }
+
+#else
+
+    FastDivmodU64 (std::uint64_t divisor_) : divisor(divisor_) {}
+
+#endif
+
+    /// Returns the quotient of floor(dividend / divisor)
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
+    std::uint64_t divide (std::uint64_t dividend) const
+    {
+#if defined(AMREX_INT128_SUPPORTED)
+        auto x = dividend;
+        if (multiplier) {
+            x = amrex::Math::umulhi(dividend + round_up, multiplier);
+        }
+        return (x >> shift_right);
+#else
+        return dividend / divisor;
+#endif
+    }
+
+    /// Computes the remainder given a computed quotient and dividend
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
+    std::uint64_t modulus (std::uint64_t quotient, std::uint64_t dividend) const
+    {
+        return dividend - quotient * divisor;
+    }
+
+    /// Returns the quotient of floor(dividend / divisor) and computes the remainder
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
+    std::uint64_t divmod (std::uint64_t &remainder, std::uint64_t dividend) const
+    {
+        auto quotient = divide(dividend);
+        remainder = modulus(quotient, dividend);
+        return quotient;
+    }
+
+    /// Computes integer division and modulus using precomputed values. This is computationally
+    /// inexpensive.
+    AMREX_GPU_HOST_DEVICE
+    void operator() (std::uint64_t &quotient, std::uint64_t &remainder, std::uint64_t dividend) const
+    {
+        quotient = divmod(remainder, dividend);
+    }
+};
 
 }
 

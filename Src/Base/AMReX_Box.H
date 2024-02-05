@@ -15,6 +15,7 @@
 #include <AMReX_Vector.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
+#include <AMReX_Math.H>
 
 #include <iosfwd>
 
@@ -1834,6 +1835,86 @@ Box makeSingleCellBox (int i, int j, int k, IndexType typ = IndexType::TheCellTy
 #endif
     return Box(IntVect(AMREX_D_DECL(i,j,k)),IntVect(AMREX_D_DECL(i,j,k)),typ);
 }
+
+struct BoxIndexer
+{
+#if (AMREX_SPACEDIM == 3)
+    Math::FastDivmodU64 fdxy;
+    Math::FastDivmodU64 fdx;
+    IntVect lo;
+
+    BoxIndexer (Box const& box)
+        : fdxy(std::uint64_t(box.length(0))*std::uint64_t(box.length(1))),
+          fdx (std::uint64_t(box.length(0))),
+          lo  (box.smallEnd())
+        {}
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 operator() (std::uint64_t icell) const
+    {
+        std::uint64_t x, y, z, rem;
+        fdxy(z, rem, icell);
+        fdx(y, x, rem);
+        return {int(x)+lo[0], int(y)+lo[1], int(z)+lo[2]};
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVect intVect (std::uint64_t icell) const
+    {
+        std::uint64_t x, y, z, rem;
+        fdxy(z, rem, icell);
+        fdx(y, x, rem);
+        return {int(x)+lo[0], int(y)+lo[1], int(z)+lo[2]};
+    }
+
+#elif (AMREX_SPACEDIM == 2)
+
+    Math::FastDivmodU64 fdx;
+    IntVect lo;
+
+    BoxIndexer (Box const& box)
+        : fdx (std::uint64_t(box.length(0))),
+          lo  (box.smallEnd())
+        {}
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 operator() (std::uint64_t icell) const
+    {
+        std::uint64_t x, y;
+        fdx(y, x, icell);
+        return {int(x)+lo[0], int(y)+lo[1], 0};
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVect intVect (std::uint64_t icell) const
+    {
+        std::uint64_t x, y;
+        fdx(y, x, icell);
+        return {int(x)+lo[0], int(y)+lo[1]};
+    }
+
+#elif (AMREX_SPACEDIM == 1)
+
+    int lo;
+
+    BoxIndexer (Box const& box)
+        : lo(box.smallEnd(0))
+        {}
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 operator() (std::uint64_t icell) const
+    {
+        return {int(icell)+lo, 0, 0};
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVect intVect (std::uint64_t icell) const
+    {
+        return IntVect{int(icell)+lo};
+    }
+
+#endif
+};
 
 }
 
