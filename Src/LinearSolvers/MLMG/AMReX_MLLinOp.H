@@ -388,8 +388,11 @@ public:
      * \param sol    solution
      * \param loc    location of the fluxes
      */
-    virtual void compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
-                           MF& sol, Location loc) const = 0;
+    virtual void compFlux (int /*amrlev*/, const Array<MF*,AMREX_SPACEDIM>& /*fluxes*/,
+                           MF& /*sol*/, Location /*loc*/) const
+    {
+        amrex::Abort("AMReX_MLLinOp::compFlux::How did we get here?");
+    }
 
     /**
      * \brief Compute gradients of the solution
@@ -399,13 +402,16 @@ public:
      * \param sol    solution
      * \param loc    location of the gradients
      */
-    virtual void compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
-                           MF& sol, Location loc) const = 0;
+    virtual void compGrad (int /*amrlev*/, const Array<MF*,AMREX_SPACEDIM>& /*grad*/,
+                           MF& /*sol*/, Location /*loc*/) const
+    {
+        amrex::Abort("AMReX_MLLinOp::compGrad::How did we get here?");
+    }
 
     //! apply metric terms if there are any
-    virtual void applyMetricTerm (int amrlev, int mglev, MF& rhs) const = 0;
+    virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MF& /*rhs*/) const {}
     //! unapply metric terms if there are any
-    virtual void unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const = 0;
+    virtual void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MF& /*rhs*/) const {}
 
     //! This is needed for our nodal projection solver
     virtual void unimposeNeumannBC (int /*amrlev*/, MF& /*rhs*/) const {}
@@ -437,7 +443,11 @@ public:
     //! x dot y, used by the bottom solver
     virtual RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const = 0;
 
-    virtual std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int grid_size) const = 0;
+    virtual std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int grid_size) const
+    {
+        amrex::Abort("MLLinOp::makeNLinOp: N-Solve not supported");
+        return nullptr;
+    }
 
     virtual void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& /*a_flux*/,
                             const Vector<MF*>& /*a_sol*/,

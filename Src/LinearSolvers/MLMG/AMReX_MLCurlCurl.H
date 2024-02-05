@@ -77,24 +77,12 @@ public:
                  MF& res, const MF& crse_sol, const MF& crse_rhs,
                  MF& fine_res, MF& fine_sol, const MF& fine_rhs) const override;
 
-    void compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
-                   MF& sol, Location loc) const override;
-
-    void compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
-                   MF& sol, Location loc) const override;
-
-    void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MF& /*rhs*/) const override {}
-
-    void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MF& /*rhs*/) const override {}
-
     void prepareForSolve () override;
 
     [[nodiscard]] bool isSingular (int /*amrlev*/) const override { return false; }
     [[nodiscard]] bool isBottomSingular () const override { return false; }
 
     RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const override;
-
-    std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int /*grid_size*/) const override { return nullptr; }
 
     [[nodiscard]] RT normInf (int amrlev, MF const& mf, bool local) const override;
 

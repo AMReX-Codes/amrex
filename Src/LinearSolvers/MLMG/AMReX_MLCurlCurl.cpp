@@ -320,23 +320,8 @@ void MLCurlCurl::reflux (int crse_amrlev,
     amrex::Abort("MLCurlCurl::reflux: TODO");
 }
 
-void MLCurlCurl::compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
-                           MF& sol, Location loc) const
-{
-    amrex::ignore_unused(amrlev, fluxes, sol, loc);
-    amrex::Abort("MLCurlCurl::compFlux: TODO");
-}
-
-void MLCurlCurl::compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
-                           MF& sol, Location loc) const
-{
-    amrex::ignore_unused(amrlev, grad, sol, loc);
-    amrex::Abort("MLCurlCurl::compGrad: TODO");
-}
-
 void MLCurlCurl::prepareForSolve ()
 {
-    // xxxxx TODO MLCurlCurl::prepareForSolve
 }
 
 Real MLCurlCurl::xdoty (int amrlev, int mglev, const MF& x, const MF& y,

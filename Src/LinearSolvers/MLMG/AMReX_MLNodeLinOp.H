@@ -38,8 +38,8 @@ public:
     }
 
     void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/,
-                             const MultiFab* = nullptr, const MultiFab* = nullptr,
-                             const MultiFab* = nullptr) final {}
+                     const MultiFab* = nullptr, const MultiFab* = nullptr,
+                     const MultiFab* = nullptr) final {}
 
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final;
@@ -51,17 +51,6 @@ public:
                                    const MultiFab* crse_bcdata=nullptr) override;
     void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) override;
-    void compFlux (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*fluxes*/,
-                           MultiFab& /*sol*/, Location /*loc*/) const final {
-        amrex::Abort("AMReX_MLNodeLinOp::compFlux::How did we get here?");
-    }
-    void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
-                           MultiFab& /*sol*/, Location /*loc*/) const override {
-        amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
-    }
-
-    void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final {}
-    void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final {}
 
     Vector<Real> getSolvabilityOffset (int amrlev, int mglev,
                                                MultiFab const& rhs) const override;
@@ -83,11 +72,6 @@ public:
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const = 0;
 
     void nodalSync (int amrlev, int mglev, MultiFab& mf) const;
-
-    std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final {
-        amrex::Abort("MLNodeLinOp::makeNLinOp: N-Solve not supported");
-        return std::unique_ptr<MLLinOp>{};
-    }
 
     static std::unique_ptr<iMultiFab> makeOwnerMask (const BoxArray& ba,
                                                      const DistributionMapping& dm,
