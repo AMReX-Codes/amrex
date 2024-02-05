@@ -1,6 +1,6 @@
+#include "initProb_K.H"
 
 #include "MyTest.H"
-#include "initProb_K.H"
 
 using namespace amrex;
 

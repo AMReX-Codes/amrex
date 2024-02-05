@@ -1,7 +1,7 @@
+#include "MyTest.H"
 
 #include <AMReX.H>
 #include <AMReX_BLProfiler.H>
-#include "MyTest.H"
 
 int main (int argc, char* argv[])
 {
