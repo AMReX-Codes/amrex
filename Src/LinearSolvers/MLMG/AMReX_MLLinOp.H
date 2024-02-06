@@ -301,7 +301,7 @@ public:
                                    IntVect const& nghost) const
     {
         amrex::ignore_unused(famrlev, fine, crse, nghost);
-        amrex::Abort("MLLinOpT::interpolationAmr: Must be implemeted for composite solves across multiple AMR levels");
+        amrex::Abort("MLLinOpT::interpolationAmr: Must be implemented for composite solves across multiple AMR levels");
     }
 
     /**
@@ -317,7 +317,7 @@ public:
                                          const MF& fine_sol, const MF& fine_rhs)
     {
         amrex::ignore_unused(camrlev, crse_sol, crse_rhs, fine_sol, fine_rhs);
-        amrex::Abort("MLLinOpT::averageDownSolutionRHS: Must be implemeted for composite solves across multiple AMR levels");
+        amrex::Abort("MLLinOpT::averageDownSolutionRHS: Must be implemented for composite solves across multiple AMR levels");
     }
 
     /**
@@ -394,7 +394,7 @@ public:
     {
         amrex::ignore_unused(crse_amrlev, res, crse_sol, crse_rhs, fine_res,
                              fine_sol, fine_rhs);
-        amrex::Abort("MLLinOpT::reflux: Must be implemeted for composite solves across multiple AMR levels");
+        amrex::Abort("MLLinOpT::reflux: Must be implemented for composite solves across multiple AMR levels");
     }
 
     /**
@@ -517,7 +517,7 @@ public:
     virtual void avgDownResAmr (int clev, MF& cres, MF const& fres) const
     {
         amrex::ignore_unused(clev, cres, fres);
-        amrex::Abort("MLLinOpT::avgDownResAmr: Must be implemeted for composite solves across multiple AMR levels");
+        amrex::Abort("MLLinOpT::avgDownResAmr: Must be implemented for composite solves across multiple AMR levels");
     }
 
     // This function is needed for FMG cycle, but not V-cycle.
