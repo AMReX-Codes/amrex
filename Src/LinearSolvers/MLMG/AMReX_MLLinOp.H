@@ -17,6 +17,7 @@
 
 #include <AMReX_Any.H>
 #include <AMReX_BndryRegister.H>
+#include <AMReX_FabDataType.H>
 #include <AMReX_MLMGBndry.H>
 #include <AMReX_MultiFabUtil.H>
 
@@ -85,15 +86,6 @@ struct LinOpEnumType
     enum struct Location { FaceCenter, FaceCentroid, CellCenter, CellCentroid };
 };
 
-template <typename T, class Enable = void> struct LinOpData {};
-//
-template <typename T>
-struct LinOpData <T, std::enable_if_t<IsMultiFabLike_v<T> > >
-{
-    using   fab_type = typename T::fab_type;
-    using value_type = typename T::value_type;
-};
-
 template <typename T> class MLMGT;
 template <typename T> class MLCGSolverT;
 template <typename T> class MLPoissonT;
@@ -112,8 +104,8 @@ public:
     template <typename T> friend class GMRESMLMGT;
 
     using MFType = MF;
-    using FAB = typename LinOpData<MF>::fab_type;
-    using RT  = typename LinOpData<MF>::value_type;
+    using FAB = typename FabDataType<MF>::fab_type;
+    using RT  = typename FabDataType<MF>::value_type;
 
     using BCType = LinOpBCType;
     using BCMode    = LinOpEnumType::BCMode;
@@ -291,7 +283,11 @@ public:
      * \param fine   fine MG level data
      * \param crse   coarse MG level data
      */
-    virtual void interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const = 0;
+    virtual void interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const
+    {
+        amrex::ignore_unused(amrlev, fmglev, fine, crse);
+        amrex::Abort("MLLinOpT::interpAssign: Must be implemented for FMG cycle");
+    }
 
     /**
      * \brief Interpolation between AMR levels
@@ -302,7 +298,11 @@ public:
      * \param nghost number of ghost cells
      */
     virtual void interpolationAmr (int famrlev, MF& fine, const MF& crse,
-                                   IntVect const& nghost) const = 0;
+                                   IntVect const& nghost) const
+    {
+        amrex::ignore_unused(famrlev, fine, crse, nghost);
+        amrex::Abort("MLLinOpT::interpolationAmr: Must be implemented for composite solves across multiple AMR levels");
+    }
 
     /**
      * \brief Average-down data from fine AMR level to coarse AMR level.
@@ -314,7 +314,11 @@ public:
      * \param fine_rhs RHS on fine AMR level
      */
     virtual void averageDownSolutionRHS (int camrlev, MF& crse_sol, MF& crse_rhs,
-                                         const MF& fine_sol, const MF& fine_rhs) = 0;
+                                         const MF& fine_sol, const MF& fine_rhs)
+    {
+        amrex::ignore_unused(camrlev, crse_sol, crse_rhs, fine_sol, fine_rhs);
+        amrex::Abort("MLLinOpT::averageDownSolutionRHS: Must be implemented for composite solves across multiple AMR levels");
+    }
 
     /**
      * \brief Apply the linear operator, out = L(in)
@@ -386,7 +390,12 @@ public:
      */
     virtual void reflux (int crse_amrlev,
                          MF& res, const MF& crse_sol, const MF& crse_rhs,
-                         MF& fine_res, MF& fine_sol, const MF& fine_rhs) const = 0;
+                         MF& fine_res, MF& fine_sol, const MF& fine_rhs) const
+    {
+        amrex::ignore_unused(crse_amrlev, res, crse_sol, crse_rhs, fine_res,
+                             fine_sol, fine_rhs);
+        amrex::Abort("MLLinOpT::reflux: Must be implemented for composite solves across multiple AMR levels");
+    }
 
     /**
      * \brief Compute fluxes
@@ -396,8 +405,11 @@ public:
      * \param sol    solution
      * \param loc    location of the fluxes
      */
-    virtual void compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
-                           MF& sol, Location loc) const = 0;
+    virtual void compFlux (int /*amrlev*/, const Array<MF*,AMREX_SPACEDIM>& /*fluxes*/,
+                           MF& /*sol*/, Location /*loc*/) const
+    {
+        amrex::Abort("AMReX_MLLinOp::compFlux::How did we get here?");
+    }
 
     /**
      * \brief Compute gradients of the solution
@@ -407,13 +419,16 @@ public:
      * \param sol    solution
      * \param loc    location of the gradients
      */
-    virtual void compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
-                           MF& sol, Location loc) const = 0;
+    virtual void compGrad (int /*amrlev*/, const Array<MF*,AMREX_SPACEDIM>& /*grad*/,
+                           MF& /*sol*/, Location /*loc*/) const
+    {
+        amrex::Abort("AMReX_MLLinOp::compGrad::How did we get here?");
+    }
 
     //! apply metric terms if there are any
-    virtual void applyMetricTerm (int amrlev, int mglev, MF& rhs) const = 0;
+    virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MF& /*rhs*/) const {}
     //! unapply metric terms if there are any
-    virtual void unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const = 0;
+    virtual void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MF& /*rhs*/) const {}
 
     //! This is needed for our nodal projection solver
     virtual void unimposeNeumannBC (int /*amrlev*/, MF& /*rhs*/) const {}
@@ -445,7 +460,11 @@ public:
     //! x dot y, used by the bottom solver
     virtual RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const = 0;
 
-    virtual std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int grid_size) const = 0;
+    virtual std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int /*grid_size*/) const
+    {
+        amrex::Abort("MLLinOp::makeNLinOp: N-Solve not supported");
+        return nullptr;
+    }
 
     virtual void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& /*a_flux*/,
                             const Vector<MF*>& /*a_sol*/,
@@ -495,7 +514,13 @@ public:
 
     virtual void averageDownAndSync (Vector<MF>& sol) const = 0;
 
-    virtual void avgDownResAmr (int clev, MF& cres, MF const& fres) const = 0;
+    virtual void avgDownResAmr (int clev, MF& cres, MF const& fres) const
+    {
+        amrex::ignore_unused(clev, cres, fres);
+        amrex::Abort("MLLinOpT::avgDownResAmr: Must be implemented for composite solves across multiple AMR levels");
+    }
+
+    // This function is needed for FMG cycle, but not V-cycle.
     virtual void avgDownResMG (int clev, MF& cres, MF const& fres) const;
 
     [[nodiscard]] bool isMFIterSafe (int amrlev, int mglev1, int mglev2) const;
@@ -624,6 +649,10 @@ protected:
     [[nodiscard]] bool doSemicoarsening () const noexcept { return m_do_semicoarsening; }
 
     [[nodiscard]] bool isCellCentered () const noexcept { return m_ixtype == 0; }
+
+    [[nodiscard]] virtual IntVect getNGrowVectRestriction () const {
+        return isCellCentered() ? IntVect(0) : IntVect(1);
+    }
 
     virtual void make (Vector<Vector<MF> >& mf, IntVect const& ng) const;
 
@@ -1387,18 +1416,13 @@ template <typename MF>
 void
 MLLinOpT<MF>::make (Vector<Vector<MF> >& mf, IntVect const& ng) const
 {
-    if constexpr (IsMultiFabLike_v<MF>) {
-        mf.clear();
-        mf.resize(m_num_amr_levels);
-        for (int alev = 0; alev < m_num_amr_levels; ++alev) {
-            mf[alev].resize(m_num_mg_levels[alev]);
-            for (int mlev = 0; mlev < m_num_mg_levels[alev]; ++mlev) {
-                mf[alev][mlev] = make(alev, mlev, ng);
-            }
+    mf.clear();
+    mf.resize(m_num_amr_levels);
+    for (int alev = 0; alev < m_num_amr_levels; ++alev) {
+        mf[alev].resize(m_num_mg_levels[alev]);
+        for (int mlev = 0; mlev < m_num_mg_levels[alev]; ++mlev) {
+            mf[alev][mlev] = make(alev, mlev, ng);
         }
-    } else {
-        amrex::ignore_unused(mf, ng);
-        amrex::Abort("MLLinOpT::make: how did we get here?");
     }
 }
 
@@ -1486,8 +1510,9 @@ template <typename MF>
 void
 MLLinOpT<MF>::avgDownResMG (int clev, MF& cres, MF const& fres) const
 {
-    const int ncomp = this->getNComp();
+    amrex::ignore_unused(clev, cres, fres);
     if constexpr (amrex::IsFabArray<MF>::value) {
+        const int ncomp = this->getNComp();
 #ifdef AMREX_USE_EB
         if (!fres.isAllRegular()) {
             if constexpr (std::is_same<MF,MultiFab>()) {
