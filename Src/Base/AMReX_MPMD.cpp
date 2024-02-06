@@ -17,6 +17,7 @@ namespace {
     MPI_Comm app_comm = MPI_COMM_NULL;
     int myproc;
     int nprocs;
+    int appnum;
 }
 
 namespace {
@@ -46,7 +47,7 @@ MPI_Comm Initialize (int argc, char* argv[])
 
     int* p;
     MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_APPNUM, &p, &flag);
-    int appnum = *p;
+    appnum = *p;
 
     std::vector<int> all_appnum(nprocs);
     MPI_Allgather(&appnum, 1, MPI_INT, all_appnum.data(), 1, MPI_INT, MPI_COMM_WORLD);
@@ -87,6 +88,59 @@ MPI_Comm Initialize (int argc, char* argv[])
     return app_comm;
 }
 
+void Initialize_without_split (int argc, char* argv[])
+{
+    initialized = true;
+    int flag;
+    MPI_Initialized(&flag);
+    if (!flag) {
+        MPI_Init(&argc, &argv);
+        mpi_initialized_by_us = true;
+    }
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
+    MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+
+    int* p;
+    MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_APPNUM, &p, &flag);
+    appnum = *p;
+
+    std::vector<int> all_appnum(nprocs);
+    MPI_Allgather(&appnum, 1, MPI_INT, all_appnum.data(), 1, MPI_INT, MPI_COMM_WORLD);
+    int napps = num_unique_elements(all_appnum);
+
+    // MPI_APPNUM does not appear to work with slurm on some systems.
+    if (napps != 2) {
+        std::vector<int> all_argc(nprocs);
+        MPI_Allgather(&argc, 1, MPI_INT, all_argc.data(), 1, MPI_INT, MPI_COMM_WORLD);
+        napps = num_unique_elements(all_argc);
+        if (napps == 2) {
+            appnum = static_cast<int>(argc != all_argc[0]);
+        }
+    }
+
+    if (napps != 2) {
+        std::string exename;
+        if (argc > 0) {
+            exename = std::string(argv[0]);
+        }
+        unsigned long long hexe = std::hash<std::string>{}(exename);
+        std::vector<unsigned long long> all_hexe(nprocs);
+        MPI_Allgather(&hexe, 1, MPI_UNSIGNED_LONG_LONG,
+                      all_hexe.data(), 1, MPI_UNSIGNED_LONG_LONG, MPI_COMM_WORLD);
+        napps = num_unique_elements(all_hexe);
+        if (napps == 2) {
+            appnum = static_cast<int>(hexe != all_hexe[0]);
+        }
+    }
+
+    if (napps != 2) {
+        std::cout << "amrex::MPMD only supports two programs." << std::endl;
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
+}
+
 void Finalize ()
 {
     MPI_Comm_free(&app_comm);
@@ -107,6 +161,11 @@ int MyProc ()
 int NProcs ()
 {
     return nprocs;
+}
+
+int AppNum ()
+{
+    return appnum;
 }
 
 int MyProgId ()
