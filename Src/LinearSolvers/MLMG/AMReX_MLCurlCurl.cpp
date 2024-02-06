@@ -67,27 +67,6 @@ void MLCurlCurl::interpolation (int amrlev, int fmglev, MF& fine,
 }
 
 void
-MLCurlCurl::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const
-{
-    amrex::ignore_unused(amrlev, fmglev, fine, crse);
-    amrex::Abort("MLCurlCurl::interpAssign: TODO");
-}
-
-void MLCurlCurl::interpolationAmr (int famrlev, MF& fine, const MF& crse,
-                                   IntVect const& nghost) const
-{
-    amrex::ignore_unused(famrlev, fine, crse, nghost);
-    amrex::Abort("MLCurlCurl::interpolationAmr: TODO");
-}
-
-void MLCurlCurl::averageDownSolutionRHS (int camrlev, MF& crse_sol, MF& crse_rhs,
-                                         const MF& fine_sol, const MF& fine_rhs)
-{
-    amrex::ignore_unused(camrlev, crse_sol, crse_rhs, fine_sol, fine_rhs);
-    amrex::Abort("MLCurlCurl::averageDownSolutionRHS: TODO");
-}
-
-void
 MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
                    StateMode /*s_mode*/, const MLMGBndryT<MF>* /*bndry*/) const
 {
@@ -311,15 +290,6 @@ void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
     }
 }
 
-void MLCurlCurl::reflux (int crse_amrlev,
-                         MF& res, const MF& crse_sol, const MF& crse_rhs,
-                         MF& fine_res, MF& fine_sol, const MF& fine_rhs) const
-{
-    amrex::ignore_unused(crse_amrlev, res, crse_sol, crse_rhs, fine_res,
-                         fine_sol, fine_rhs);
-    amrex::Abort("MLCurlCurl::reflux: TODO");
-}
-
 void MLCurlCurl::prepareForSolve ()
 {
 }
@@ -354,18 +324,6 @@ void MLCurlCurl::averageDownAndSync (Vector<MF>& sol) const
         amrex::OverrideSync(sol[amrlev][idim], getDotMask(amrlev,mglev,idim),
                             this->m_geom[amrlev][mglev].periodicity());
     }
-}
-
-void MLCurlCurl::avgDownResAmr (int clev, MF& cres, MF const& fres) const
-{
-    amrex::ignore_unused(clev, cres, fres);
-    amrex::Abort("MLCurlCurl::avgDownResAmr: TODO");
-}
-
-void MLCurlCurl::avgDownResMG (int clev, MF& cres, MF const& fres) const
-{
-    amrex::ignore_unused(clev, cres, fres);
-    amrex::Abort("MLCurlCurl::avgDownResMG: TODO");
 }
 
 void MLCurlCurl::make (Vector<Vector<MF> >& mf, IntVect const& ng) const

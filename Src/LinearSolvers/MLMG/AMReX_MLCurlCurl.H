@@ -52,14 +52,6 @@ public:
 
     void interpolation (int amrlev, int fmglev, MF& fine, const MF& crse) const override;
 
-    void interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const override;
-
-    void interpolationAmr (int famrlev, MF& fine, const MF& crse,
-                           IntVect const& nghost) const override;
-
-    void averageDownSolutionRHS (int camrlev, MF& crse_sol, MF& crse_rhs,
-                                 const MF& fine_sol, const MF& fine_rhs) override;
-
     void apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
                 StateMode s_mode, const MLMGBndryT<MF>* bndry=nullptr) const override;
 
@@ -73,10 +65,6 @@ public:
                              const MF& b, BCMode bc_mode,
                              const MF* crse_bcdata=nullptr) override;
 
-    void reflux (int crse_amrlev,
-                 MF& res, const MF& crse_sol, const MF& crse_rhs,
-                 MF& fine_res, MF& fine_sol, const MF& fine_rhs) const override;
-
     void prepareForSolve () override;
 
     [[nodiscard]] bool isSingular (int /*amrlev*/) const override { return false; }
@@ -87,10 +75,6 @@ public:
     [[nodiscard]] RT normInf (int amrlev, MF const& mf, bool local) const override;
 
     void averageDownAndSync (Vector<MF>& sol) const override;
-
-    void avgDownResAmr (int clev, MF& cres, MF const& fres) const override;
-
-    void avgDownResMG (int clev, MF& cres, MF const& fres) const override;
 
     [[nodiscard]] IntVect getNGrowVectRestriction () const override {
         return IntVect(0);

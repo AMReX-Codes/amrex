@@ -283,7 +283,11 @@ public:
      * \param fine   fine MG level data
      * \param crse   coarse MG level data
      */
-    virtual void interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const = 0;
+    virtual void interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const
+    {
+        amrex::ignore_unused(amrlev, fmglev, fine, crse);
+        amrex::Abort("MLLinOpT::interpAssign: Must be implemented for FMG cycle");
+    }
 
     /**
      * \brief Interpolation between AMR levels
@@ -294,7 +298,11 @@ public:
      * \param nghost number of ghost cells
      */
     virtual void interpolationAmr (int famrlev, MF& fine, const MF& crse,
-                                   IntVect const& nghost) const = 0;
+                                   IntVect const& nghost) const
+    {
+        amrex::ignore_unused(famrlev, fine, crse, nghost);
+        amrex::Abort("MLLinOpT::interpolationAmr: Must be implemeted for composite solves across multiple AMR levels");
+    }
 
     /**
      * \brief Average-down data from fine AMR level to coarse AMR level.
@@ -306,7 +314,11 @@ public:
      * \param fine_rhs RHS on fine AMR level
      */
     virtual void averageDownSolutionRHS (int camrlev, MF& crse_sol, MF& crse_rhs,
-                                         const MF& fine_sol, const MF& fine_rhs) = 0;
+                                         const MF& fine_sol, const MF& fine_rhs)
+    {
+        amrex::ignore_unused(camrlev, crse_sol, crse_rhs, fine_sol, fine_rhs);
+        amrex::Abort("MLLinOpT::averageDownSolutionRHS: Must be implemeted for composite solves across multiple AMR levels");
+    }
 
     /**
      * \brief Apply the linear operator, out = L(in)
@@ -378,7 +390,12 @@ public:
      */
     virtual void reflux (int crse_amrlev,
                          MF& res, const MF& crse_sol, const MF& crse_rhs,
-                         MF& fine_res, MF& fine_sol, const MF& fine_rhs) const = 0;
+                         MF& fine_res, MF& fine_sol, const MF& fine_rhs) const
+    {
+        amrex::ignore_unused(crse_amrlev, res, crse_sol, crse_rhs, fine_res,
+                             fine_sol, fine_rhs);
+        amrex::Abort("MLLinOpT::reflux: Must be implemeted for composite solves across multiple AMR levels");
+    }
 
     /**
      * \brief Compute fluxes
@@ -443,7 +460,7 @@ public:
     //! x dot y, used by the bottom solver
     virtual RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const = 0;
 
-    virtual std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int grid_size) const
+    virtual std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int /*grid_size*/) const
     {
         amrex::Abort("MLLinOp::makeNLinOp: N-Solve not supported");
         return nullptr;
@@ -497,7 +514,13 @@ public:
 
     virtual void averageDownAndSync (Vector<MF>& sol) const = 0;
 
-    virtual void avgDownResAmr (int clev, MF& cres, MF const& fres) const = 0;
+    virtual void avgDownResAmr (int clev, MF& cres, MF const& fres) const
+    {
+        amrex::ignore_unused(clev, cres, fres);
+        amrex::Abort("MLLinOpT::avgDownResAmr: Must be implemeted for composite solves across multiple AMR levels");
+    }
+
+    // This function is needed for FMG cycle, but not V-cycle.
     virtual void avgDownResMG (int clev, MF& cres, MF const& fres) const;
 
     [[nodiscard]] bool isMFIterSafe (int amrlev, int mglev1, int mglev2) const;
@@ -1487,6 +1510,7 @@ template <typename MF>
 void
 MLLinOpT<MF>::avgDownResMG (int clev, MF& cres, MF const& fres) const
 {
+    amrex::ignore_unused(clev, cres, fres);
     if constexpr (amrex::IsFabArray<MF>::value) {
         const int ncomp = this->getNComp();
 #ifdef AMREX_USE_EB
