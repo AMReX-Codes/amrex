@@ -484,15 +484,15 @@ partitionParticles (PTile& ptile, ParFunc&& is_left)
         });
 
     // The ptile will be partitioned into left [0, num_left-1] and right [num_left, np-1].
-    //
-    // Note that currently the number of particles in [0, num_left-1] that should belong to the
-    // right partition is equal to the number of particles in [num_left, np-1] that should belong
-    // in the left partition. We will define num_swaps to be this number. This is the minimum
-    // number of swaps that need to be performed to partition the ptile in-place for any algorithm.
-    //
-    // From this it is easy to see that
-    // max_num_swaps = min(size([0, num_left-1]), size([num_left, np-1]))
-    // is an upper bound for num_swaps.
+    //
+    // Note that currently the number of particles in [0, num_left-1] that should belong to the
+    // right partition is equal to the number of particles in [num_left, np-1] that should belong
+    // in the left partition. We will define num_swaps to be this number. This is the minimum
+    // number of swaps that need to be performed to partition the ptile in place for any algorithm.
+    //
+    // From this it is easy to see that
+    // max_num_swaps = min(size([0, num_left-1]), size([num_left, np-1]))
+    // is an upper bound for num_swaps.
 
     const int max_num_swaps = std::min(num_left, np - num_left);
     if (max_num_swaps == 0) { return num_left; }
@@ -503,18 +503,18 @@ partitionParticles (PTile& ptile, ParFunc&& is_left)
     int * const p_index_right = index_right.dataPtr();
 
     // The num_swaps particles that are in [0, num_left-1] but should be moved to the right
-    // partiton are at the same time the first num_swaps particles for which is_left is false
-    // in all the ptile.
-    // Simularly the num_swaps particles in [num_left, np-1] that should be moved to the left
-    // partiton are the last num_swaps particles of the ptile for which is_left is true.
-    //
-    // The PrefixSum is used to find exactly these particles and store their indexes in
-    // index_left and index_right. Since num_swaps is not known, the first max_num_swaps
-    // particles are stored instead. Here, dst = num_left-1-(i-s) is used to effectively reverse
-    // the PrefixSum to store the last particles for which is_left is true.
-    //
-    // This way, all indexes in index_right are in ascending order, and all indexes in
-    // index_left are in descending order.
+    // partition are at the same time the first num_swaps particles for which is_left is false
+    // in all the ptile.
+    // Similarly, the num_swaps particles in [num_left, np-1] that should be moved to the left
+    // partition are the last num_swaps particles of the ptile for which is_left is true.
+    //
+    // The PrefixSum is used to find exactly these particles and store their indexes in
+    // index_left and index_right. Since num_swaps is not known, the first max_num_swaps
+    // particles are stored instead. Here, dst = num_left-1-(i-s) is used to effectively reverse
+    // the PrefixSum to store the last particles for which is_left is true.
+    //
+    // This way, all indexes in index_right are in ascending order, and all indexes in
+    // index_left are in descending order.
 
     Scan::PrefixSum<int>(np,
         [=] AMREX_GPU_DEVICE (int i) -> int
@@ -537,23 +537,23 @@ partitionParticles (PTile& ptile, ParFunc&& is_left)
         },
         Scan::Type::exclusive, Scan::noRetSum);
 
-    // Finally the particles are swapped. Since max_num_swaps is only an upper bound for num_swaps,
-    // some swaps should not be performed and need to be skipped. This is the case if the index
-    // in index_left[i] is already in the left partition or the index in index_right[i] is already
-    // in the right partition. These two cases coincide for the same i because index_right is in
-    // ascending order and index_left in descending order. This means for both index_left and
-    // index_right the first num_swaps particles need to be swapped, and the particles after that
-    // should be skipped.
-    //
-    // The check right_i < left_i makes sure that the particle going to the right partition is
-    // actually coming from the left partition, which has a lower index than the other particle and
-    // visa-versa.
-    //
-    // Since exactly num_swaps swap operations are performed in the end, which is the smallest
-    // number possible, this algorithm is optimal in the number of swap operations.
-    // This results in good performance in practice if the size of a particle is large enough that
-    // it compensates for the extra kernel launches and evaluations of is_left which this
-    // algorithm needs.
+    // Finally, the particles are swapped. Since max_num_swaps is only an upper bound for num_swaps,
+    // some swaps should not be performed and need to be skipped. This is the case if the index
+    // in index_left[i] is already in the left partition or the index in index_right[i] is already
+    // in the right partition. These two cases coincide for the same i because index_right is in
+    // ascending order and index_left in descending order. This means for both index_left and
+    // index_right the first num_swaps particles need to be swapped, and the particles after that
+    // should be skipped.
+    //
+    // The check right_i < left_i makes sure that the particle going to the right partition is
+    // actually coming from the left partition, which has a lower index than the other particle and
+    // visa-versa.
+    //
+    // Since exactly num_swaps swap operations are performed in the end, which is the smallest
+    // number possible, this algorithm is optimal in the number of swap operations.
+    // This results in good performance in practice if the size of a particle is large enough that
+    // it compensates for the extra kernel launches and evaluations of is_left which this
+    // algorithm needs.
 
     ParallelFor(max_num_swaps,
         [=] AMREX_GPU_DEVICE (int i)
