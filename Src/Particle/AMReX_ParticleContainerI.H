@@ -1297,7 +1297,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             auto& src_tile = plev[index];
             const size_t np = src_tile.numParticles();
 
-            int num_stay = partitionParticlesByDest_new_cache(src_tile, assign_grid,
+            int num_stay = partitionParticlesByDest(src_tile, assign_grid,
                                                     std::forward<CellAssignor>(CellAssignor{}),
                                                     BufferMap(),
                                                     plo, phi, rlo, rhi, is_per, lev, gid, tid,
