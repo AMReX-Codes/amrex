@@ -339,9 +339,10 @@ public:
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Long numPts () const noexcept {
-        return AMREX_D_TERM( static_cast<Long>(length(0)),
-                            *static_cast<Long>(length(1)),
-                            *static_cast<Long>(length(2)));
+        return ok() ? AMREX_D_TERM( static_cast<Long>(length(0)),
+                                   *static_cast<Long>(length(1)),
+                                   *static_cast<Long>(length(2)))
+                    : Long(0);
     }
 
     /**
@@ -350,8 +351,10 @@ public:
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     double d_numPts () const noexcept {
-        BL_ASSERT(ok());
-        return AMREX_D_TERM(double(length(0)), *double(length(1)), *double(length(2)));
+        return ok() ? AMREX_D_TERM( double(length(0)),
+                                   *double(length(1)),
+                                   *double(length(2)))
+                    : 0.0;
     }
 
     /**
@@ -361,9 +364,10 @@ public:
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Long volume () const noexcept {
-        return AMREX_D_TERM( static_cast<Long>(length(0)-btype[0]),
-                            *static_cast<Long>(length(1)-btype[1]),
-                            *static_cast<Long>(length(2)-btype[2]));
+        return ok() ? AMREX_D_TERM( static_cast<Long>(length(0)-btype[0]),
+                                   *static_cast<Long>(length(1)-btype[1]),
+                                   *static_cast<Long>(length(2)-btype[2]))
+                    : Long(0);
     }
 
     /**
