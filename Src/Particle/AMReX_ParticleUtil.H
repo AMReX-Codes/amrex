@@ -542,7 +542,7 @@ removeInvalidParticles (PTile& ptile)
 
 template <typename PTile, typename PLocator, typename CellAssignor>
 int
-partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& assignor,
+partitionParticlesByDest_new_nocache (PTile& ptile, const PLocator& ploc, CellAssignor&& assignor,
                           const ParticleBufferMap& pmap,
                           const GpuArray<Real,AMREX_SPACEDIM>& plo,
                           const GpuArray<Real,AMREX_SPACEDIM>& phi,
@@ -552,6 +552,69 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& ass
                           int lev, int gid, int /*tid*/,
                           int lev_min, int lev_max, int nGrow, bool remove_negative)
 {
+    Gpu::streamSynchronize();
+    BL_PROFILE("partitionParticlesByDest_new_nocache");
+
+    auto getPID = pmap.getPIDFunctor();
+    int pid = ParallelContext::MyProcSub();
+
+    return partitionParticles(ptile,
+        [=] AMREX_GPU_DEVICE (auto& ptd, int i) -> bool {
+            int assigned_grid;
+            int assigned_lev;
+
+            if (!ptd.id(i).is_valid())
+            {
+                assigned_grid = -1;
+                assigned_lev  = -1;
+            }
+            else
+            {
+                auto p_prime = ptd.getSuperParticle(i);
+                enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
+                auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
+                assigned_grid = amrex::get<0>(tup_prime);
+                assigned_lev  = amrex::get<1>(tup_prime);
+                if (assigned_grid >= 0)
+                {
+                    AMREX_D_TERM(ptd.pos(0, i) = p_prime.pos(0);,
+                                 ptd.pos(1, i) = p_prime.pos(1);,
+                                 ptd.pos(2, i) = p_prime.pos(2););
+                }
+                else if (lev_min > 0)
+                {
+                    AMREX_D_TERM(p_prime.pos(0) = ptd.pos(0, i);,
+                                 p_prime.pos(1) = ptd.pos(1, i);,
+                                 p_prime.pos(2) = ptd.pos(2, i););
+                    auto tup = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
+                    assigned_grid = amrex::get<0>(tup);
+                    assigned_lev  = amrex::get<1>(tup);
+                }
+            }
+
+            return (
+                ((remove_negative == false) && (!ptd.id(i).is_valid())) ||
+                ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid)));
+        });
+
+    Gpu::streamSynchronize();
+}
+
+template <typename PTile, typename PLocator, typename CellAssignor>
+int
+partitionParticlesByDest_new_cache (PTile& ptile, const PLocator& ploc, CellAssignor&& assignor,
+                          const ParticleBufferMap& pmap,
+                          const GpuArray<Real,AMREX_SPACEDIM>& plo,
+                          const GpuArray<Real,AMREX_SPACEDIM>& phi,
+                          const GpuArray<ParticleReal,AMREX_SPACEDIM>& rlo,
+                          const GpuArray<ParticleReal,AMREX_SPACEDIM>& rhi,
+                          const GpuArray<int ,AMREX_SPACEDIM>& is_per,
+                          int lev, int gid, int /*tid*/,
+                          int lev_min, int lev_max, int nGrow, bool remove_negative)
+{
+    Gpu::streamSynchronize();
+    BL_PROFILE("partitionParticlesByDest_new_cache");
+
     auto getPID = pmap.getPIDFunctor();
     int pid = ParallelContext::MyProcSub();
 
@@ -605,6 +668,261 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& ass
         [=] AMREX_GPU_DEVICE (auto& /* ptd */, int i) -> bool {
             return p_particle_stays[i];
         });
+
+    Gpu::streamSynchronize();
+}
+
+template <typename PTile, typename PLocator, typename CellAssignor>
+int
+partitionParticlesByDest_old_nocache (PTile& ptile, const PLocator& ploc, CellAssignor&& assignor,
+                          const ParticleBufferMap& pmap,
+                          const GpuArray<Real,AMREX_SPACEDIM>& plo,
+                          const GpuArray<Real,AMREX_SPACEDIM>& phi,
+                          const GpuArray<ParticleReal,AMREX_SPACEDIM>& rlo,
+                          const GpuArray<ParticleReal,AMREX_SPACEDIM>& rhi,
+                          const GpuArray<int ,AMREX_SPACEDIM>& is_per,
+                          int lev, int gid, int /*tid*/,
+                          int lev_min, int lev_max, int nGrow, bool remove_negative)
+{
+    Gpu::streamSynchronize();
+    BL_PROFILE("partitionParticlesByDest_old_nocache");
+
+    const int np = ptile.numParticles();
+    if (np == 0) { return 0; }
+
+    auto getPID = pmap.getPIDFunctor();
+
+    int pid = ParallelContext::MyProcSub();
+    constexpr int chunk_size = 256*256*256;
+    int num_chunks = std::max(1, (np + (chunk_size - 1)) / chunk_size);
+
+    PTile ptile_tmp;
+    ptile_tmp.define(ptile.NumRuntimeRealComps(), ptile.NumRuntimeIntComps());
+    ptile_tmp.resize(std::min(np, chunk_size));
+
+    auto src_data = ptile.getParticleTileData();
+    auto dst_data = ptile_tmp.getParticleTileData();
+
+    int last_offset = 0;
+    for (int ichunk = 0; ichunk < num_chunks; ++ichunk)
+    {
+        int this_offset = ichunk*chunk_size;
+        int this_chunk_size = std::min(chunk_size, np - this_offset);
+
+        int num_stay;
+        {
+            auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
+            {
+                int assigned_grid;
+                int assigned_lev;
+
+                if (src_data.id(i+this_offset) < 0 )
+                {
+                    assigned_grid = -1;
+                    assigned_lev  = -1;
+                }
+                else
+                {
+                    auto p_prime = src_data.getSuperParticle(i+this_offset);
+                    enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
+                    auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
+                    assigned_grid = amrex::get<0>(tup_prime);
+                    assigned_lev  = amrex::get<1>(tup_prime);
+                    if (assigned_grid >= 0)
+                    {
+                      AMREX_D_TERM(src_data.pos(0, i+this_offset) = p_prime.pos(0);,
+                                   src_data.pos(1, i+this_offset) = p_prime.pos(1);,
+                                   src_data.pos(2, i+this_offset) = p_prime.pos(2););
+                    }
+                    else if (lev_min > 0)
+                    {
+                      AMREX_D_TERM(p_prime.pos(0) = src_data.pos(0, i+this_offset);,
+                                   p_prime.pos(1) = src_data.pos(1, i+this_offset);,
+                                   p_prime.pos(2) = src_data.pos(2, i+this_offset););
+                      auto tup = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
+                      assigned_grid = amrex::get<0>(tup);
+                      assigned_lev  = amrex::get<1>(tup);
+                    }
+                }
+
+                if ((remove_negative == false) && (src_data.id(i+this_offset) < 0)) {
+                    return true;
+                }
+
+                return ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid));
+            };
+
+            num_stay = Scan::PrefixSum<int> (this_chunk_size,
+                          [=] AMREX_GPU_DEVICE (int i) -> int
+                          {
+                              return particle_stays(i);
+                          },
+                          [=] AMREX_GPU_DEVICE (int i, int const& s)
+                          {
+                              int src_i = i + this_offset;
+                              int dst_i = particle_stays(i) ? s : this_chunk_size-1-(i-s);
+                              copyParticle(dst_data, src_data, src_i, dst_i);
+                          },
+                          Scan::Type::exclusive);
+        }
+
+        if (num_chunks == 1)
+        {
+            ptile.swap(ptile_tmp);
+        }
+        else
+        {
+            AMREX_FOR_1D(this_chunk_size, i,
+                         {
+                             copyParticle(src_data, dst_data, i, i + this_offset);
+                         });
+        }
+
+        if ( ichunk > 0 )
+        {
+            int num_swap = std::min(this_offset - last_offset, num_stay);
+            AMREX_FOR_1D( num_swap, i,
+            {
+                swapParticle(src_data, src_data, last_offset + i,
+                             this_offset + num_stay - 1 - i);
+            });
+        }
+
+        last_offset += num_stay;
+    }
+
+    Gpu::streamSynchronize();
+
+    return last_offset;
+}
+
+template <typename PTile, typename PLocator, typename CellAssignor>
+int
+partitionParticlesByDest_old_cache (PTile& ptile, const PLocator& ploc, CellAssignor&& assignor,
+                          const ParticleBufferMap& pmap,
+                          const GpuArray<Real,AMREX_SPACEDIM>& plo,
+                          const GpuArray<Real,AMREX_SPACEDIM>& phi,
+                          const GpuArray<ParticleReal,AMREX_SPACEDIM>& rlo,
+                          const GpuArray<ParticleReal,AMREX_SPACEDIM>& rhi,
+                          const GpuArray<int ,AMREX_SPACEDIM>& is_per,
+                          int lev, int gid, int /*tid*/,
+                          int lev_min, int lev_max, int nGrow, bool remove_negative)
+{
+    Gpu::streamSynchronize();
+    BL_PROFILE("partitionParticlesByDest_old_cache");
+
+    const int np = ptile.numParticles();
+    if (np == 0) { return 0; }
+
+    auto getPID = pmap.getPIDFunctor();
+
+    int pid = ParallelContext::MyProcSub();
+    constexpr int chunk_size = 256*256*256;
+    int num_chunks = std::max(1, (np + (chunk_size - 1)) / chunk_size);
+
+    PTile ptile_tmp;
+    ptile_tmp.define(ptile.NumRuntimeRealComps(), ptile.NumRuntimeIntComps());
+    ptile_tmp.resize(std::min(np, chunk_size));
+
+    auto src_data = ptile.getParticleTileData();
+    auto dst_data = ptile_tmp.getParticleTileData();
+
+    Gpu::DeviceVector<uint8_t> particle_stays(ptile.numParticles());
+    uint8_t * const p_particle_stays = particle_stays.dataPtr();
+
+    // the function for determining if a particle stays on this grid is very slow,
+    // so we cache it in particle_stays to avoid evaluating it multiple times.
+    ParallelFor(ptile.numParticles(),
+        [=] AMREX_GPU_DEVICE (int i)
+        {
+            int assigned_grid;
+            int assigned_lev;
+
+            if (!src_data.id(i).is_valid())
+            {
+                assigned_grid = -1;
+                assigned_lev  = -1;
+            }
+            else
+            {
+                auto p_prime = src_data.getSuperParticle(i);
+                enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
+                auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
+                assigned_grid = amrex::get<0>(tup_prime);
+                assigned_lev  = amrex::get<1>(tup_prime);
+                if (assigned_grid >= 0)
+                {
+                    AMREX_D_TERM(src_data.pos(0, i) = p_prime.pos(0);,
+                                 src_data.pos(1, i) = p_prime.pos(1);,
+                                 src_data.pos(2, i) = p_prime.pos(2););
+                }
+                else if (lev_min > 0)
+                {
+                    AMREX_D_TERM(p_prime.pos(0) = src_data.pos(0, i);,
+                                 p_prime.pos(1) = src_data.pos(1, i);,
+                                 p_prime.pos(2) = src_data.pos(2, i););
+                    auto tup = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
+                    assigned_grid = amrex::get<0>(tup);
+                    assigned_lev  = amrex::get<1>(tup);
+                }
+            }
+
+            p_particle_stays[i] = uint8_t(
+                ((remove_negative == false) && (!src_data.id(i).is_valid())) ||
+                ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid)));
+        });
+
+    int last_offset = 0;
+    for (int ichunk = 0; ichunk < num_chunks; ++ichunk)
+    {
+        int this_offset = ichunk*chunk_size;
+        int this_chunk_size = std::min(chunk_size, np - this_offset);
+
+        int num_stay;
+        {
+
+            num_stay = Scan::PrefixSum<int> (this_chunk_size,
+                          [=] AMREX_GPU_DEVICE (int i) -> int
+                          {
+                              return p_particle_stays[i + this_offset];
+                          },
+                          [=] AMREX_GPU_DEVICE (int i, int const& s)
+                          {
+                              int src_i = i + this_offset;
+                              int dst_i = p_particle_stays[i + this_offset] ? s : this_chunk_size-1-(i-s);
+                              copyParticle(dst_data, src_data, src_i, dst_i);
+                          },
+                          Scan::Type::exclusive);
+        }
+
+        if (num_chunks == 1)
+        {
+            ptile.swap(ptile_tmp);
+        }
+        else
+        {
+            AMREX_FOR_1D(this_chunk_size, i,
+                         {
+                             copyParticle(src_data, dst_data, i, i + this_offset);
+                         });
+        }
+
+        if ( ichunk > 0 )
+        {
+            int num_swap = std::min(this_offset - last_offset, num_stay);
+            AMREX_FOR_1D( num_swap, i,
+            {
+                swapParticle(src_data, src_data, last_offset + i,
+                             this_offset + num_stay - 1 - i);
+            });
+        }
+
+        last_offset += num_stay;
+    }
+
+    Gpu::streamSynchronize();
+
+    return last_offset;
 }
 
 #endif
