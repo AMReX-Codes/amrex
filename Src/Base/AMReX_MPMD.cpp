@@ -88,6 +88,14 @@ MPI_Comm Initialize (int argc, char* argv[])
     return app_comm;
 }
 
+/*
+Initialize_without_split function is a duplicate of Initialize
+with a minor change, i.e., MPI_Comm_split function is not called.
+
+This function needs to be used ONLY with pyAMReX (python) so that 
+the communication split can be performed using a python library,
+for example, mpi4py.
+*/
 void Initialize_without_split (int argc, char* argv[])
 {
     initialized = true;
@@ -163,6 +171,11 @@ int NProcs ()
     return nprocs;
 }
 
+/*
+AppNum function is provided so that appnum (color)
+can be passed to python library (mpi4py) to perform
+a pythonic version of MPI_Comm_split.
+*/
 int AppNum ()
 {
     return appnum;
