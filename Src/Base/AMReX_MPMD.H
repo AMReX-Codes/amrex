@@ -10,9 +10,9 @@
 
 namespace amrex::MPMD {
 
-MPI_Comm Initialize (int argc, char* argv[]);
-
 void Initialize_without_split (int argc, char* argv[]);
+
+MPI_Comm Initialize (int argc, char* argv[]);
 
 void Finalize ();
 

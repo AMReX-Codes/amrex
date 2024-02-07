@@ -32,69 +32,14 @@ int num_unique_elements (std::vector<T>& v)
 
 }
 
-MPI_Comm Initialize (int argc, char* argv[])
-{
-    initialized = true;
-    int flag;
-    MPI_Initialized(&flag);
-    if (!flag) {
-        MPI_Init(&argc, &argv);
-        mpi_initialized_by_us = true;
-    }
-
-    MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
-    MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-
-    int* p;
-    MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_APPNUM, &p, &flag);
-    appnum = *p;
-
-    std::vector<int> all_appnum(nprocs);
-    MPI_Allgather(&appnum, 1, MPI_INT, all_appnum.data(), 1, MPI_INT, MPI_COMM_WORLD);
-    int napps = num_unique_elements(all_appnum);
-
-    // MPI_APPNUM does not appear to work with slurm on some systems.
-    if (napps != 2) {
-        std::vector<int> all_argc(nprocs);
-        MPI_Allgather(&argc, 1, MPI_INT, all_argc.data(), 1, MPI_INT, MPI_COMM_WORLD);
-        napps = num_unique_elements(all_argc);
-        if (napps == 2) {
-            appnum = static_cast<int>(argc != all_argc[0]);
-        }
-    }
-
-    if (napps != 2) {
-        std::string exename;
-        if (argc > 0) {
-            exename = std::string(argv[0]);
-        }
-        unsigned long long hexe = std::hash<std::string>{}(exename);
-        std::vector<unsigned long long> all_hexe(nprocs);
-        MPI_Allgather(&hexe, 1, MPI_UNSIGNED_LONG_LONG,
-                      all_hexe.data(), 1, MPI_UNSIGNED_LONG_LONG, MPI_COMM_WORLD);
-        napps = num_unique_elements(all_hexe);
-        if (napps == 2) {
-            appnum = static_cast<int>(hexe != all_hexe[0]);
-        }
-    }
-
-    if (napps == 2) {
-        MPI_Comm_split(MPI_COMM_WORLD, appnum, myproc, &app_comm);
-    } else {
-        std::cout << "amrex::MPMD only supports two programs." << std::endl;
-        MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-
-    return app_comm;
-}
-
 /*
-Initialize_without_split function is a duplicate of Initialize
-with a minor change, i.e., MPI_Comm_split function is not called.
+Initialize_without_split function assigns and checks the required
+AMReX_MPMD variables. This function is internally leveraged by
+Initialize function.
 
-This function needs to be used ONLY with pyAMReX (python) so that 
-the communication split can be performed using a python library,
-for example, mpi4py.
+This function needs to be used EXPLICITLY ONLY with pyAMReX (python)
+so that the communication split can be performed using a python 
+library, for example, mpi4py.
 */
 void Initialize_without_split (int argc, char* argv[])
 {
@@ -147,6 +92,14 @@ void Initialize_without_split (int argc, char* argv[])
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
+}
+
+MPI_Comm Initialize (int argc, char* argv[])
+{
+    Initialize_without_split(argc,argv);
+    MPI_Comm_split(MPI_COMM_WORLD, appnum, myproc, &app_comm);
+
+    return app_comm;
 }
 
 void Finalize ()
