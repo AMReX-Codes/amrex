@@ -15,7 +15,7 @@ namespace amrex {
 
 namespace
 {
-    /** Used for 64bit Long particle Ids as in AoS layout */
+    /** Special flags used for 64-bit Long particle Ids */
     namespace LongParticleIds {
         constexpr Long GhostParticleID = 549755813887L; // 2**39-1
         constexpr Long VirtualParticleID = GhostParticleID - 1;
@@ -25,6 +25,15 @@ namespace
     }
 
     using namespace LongParticleIds;
+
+    /** Flags used to set the entire uint64_t idcpu
+        to special values at once.
+     */
+    namespace ParticleIdCpus {
+        constexpr std::uint64_t Invalid = 16777216; // corresponds to id = -1, cpu = 0
+    }
+
+    using namespace ParticleIdCpus;
 }
 
 struct ParticleIDWrapper
@@ -92,6 +101,41 @@ struct ParticleIDWrapper
         Long lval = static_cast<Long>(val);  // bc we take -
         r = (sign) ? lval : -lval;
         return r;
+    }
+
+    /** Mark the particle as invalid
+     *
+     * Swaps the is_valid (sign) bit to invalid.
+     * This is NOT identical to id = -id, but it is equally reversible via make_valid().
+     */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_invalid () noexcept
+    {
+        // RHS mask: 0111...
+        m_idata &= ~(uint64_t(1) << 63);
+    }
+
+    /** Mark the particle as valid
+     *
+     * Swaps the is_valid (sign) bit to valid.
+     * This is NOT identical to id = -id, but it is equally reversible via make_invalid().
+     */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_valid () noexcept
+    {
+        // RHS mask: 1000...
+        m_idata |= uint64_t(1) << 63;
+    }
+
+    /** Check the particle is valid, via the sign of the id.
+     *
+     * Returns true if the particle is valid (the id is positive), otherwise false (invalid particle).
+     */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool is_valid () const noexcept
+    {
+        // the leftmost bit is our id's valid sign
+        return m_idata >> 63;
     }
 };
 
@@ -164,6 +208,17 @@ struct ConstParticleIDWrapper
         r = (sign) ? lval : -lval;
         return r;
     }
+
+    /** Check the sign of the id.
+     *
+     * Returns true if the id is positive, otherwise false (invalid particle).
+     */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool is_valid () const noexcept
+    {
+        // the leftmost bit is our id's valid sign
+        return m_idata >> 63;
+    }
 };
 
 struct ConstParticleCPUWrapper
@@ -179,6 +234,18 @@ struct ConstParticleCPUWrapper
     operator int () const noexcept { return static_cast<int>(m_idata & 0x00FFFFFF); }
 };
 
+/** Set the idcpu value at once, based on a particle id and cpuid
+ *
+ * This can be used in initialization and assignments,
+ * to avoid writing twice into the same memory bank.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::uint64_t SetParticleIDandCPU (Long id, int cpu) noexcept{
+    std::uint64_t idcpu = 0;
+    ParticleIDWrapper{idcpu} = id;
+    ParticleCPUWrapper{idcpu} = cpu;
+    return idcpu;
+}
 
 template <typename T, int NReal, int NInt>
 struct ParticleBase

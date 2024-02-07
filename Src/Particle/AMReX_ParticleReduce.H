@@ -12,6 +12,7 @@
 #include <AMReX_Vector.H>
 
 #include <limits>
+#include <type_traits>
 
 namespace amrex {
 
@@ -23,7 +24,8 @@ auto call_f (F const& f,
              const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
              const int i) noexcept
 {
-    if constexpr (IsCallable<F, decltype(p.m_aos[i])>::value) {
+    if constexpr ( ! T_ParticleType::is_soa_particle &&
+                   IsCallable<F, T_ParticleType const&>::value) {
         return f(p.m_aos[i]);
     } else if constexpr (IsCallable<F, decltype(p.getSuperParticle(i))>::value) {
         return f(p.getSuperParticle(i));

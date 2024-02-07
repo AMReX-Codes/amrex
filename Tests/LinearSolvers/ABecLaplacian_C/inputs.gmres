@@ -1,0 +1,17 @@
+
+max_level = 0
+ref_ratio = 2
+n_cell = 128
+max_grid_size = 64
+
+composite_solve = 0   # composite solve or level by level?
+
+prob_type = 2
+
+use_gmres = 1
+
+verbose = 2
+
+amrex.fpe_trap_invalid = 1
+amrex.fpe_trap_zero = 1
+amrex.fpe_trap_overflow = 1

@@ -12,13 +12,13 @@ jobs:
     name: CUDA@11.2 GNU@9.3.0 C++17 Release [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc.sh 11.2
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -52,7 +52,7 @@ jobs:
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-        cmake --build build -j 2
+        cmake --build build -j 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -71,13 +71,13 @@ jobs:
       CUDAARCHS: "70"
       AMReX_CUDA_ARCH: "7.0"
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_llvm_cuda11_clang15.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -104,7 +104,7 @@ jobs:
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-        cmake --build build -j 2
+        cmake --build build -j 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -114,14 +114,14 @@ jobs:
     name: NVHPC NVCC/NVC++ C++17 Release [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_nvhpc.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -165,7 +165,7 @@ jobs:
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-        cmake --build build -j 2
+        cmake --build build -j 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -175,13 +175,13 @@ jobs:
     name: CUDA@11.2 GNU@9.3.0 [configure 3D]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc.sh 11.2
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -200,7 +200,7 @@ jobs:
         # /home/runner/work/amrex/amrex/Src/Base/AMReX_GpuLaunchGlobal.H:16:41: error: unused parameter ‘f0’ [-Werror=unused-parameter]
         #    16 |     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
         #
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-unused-parameter" CCACHE=ccache CUDA_ARCH="7.0 7.2"
+        make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-unused-parameter" CCACHE=ccache CUDA_ARCH="7.0 7.2"
         make install
 
         ccache -s
@@ -215,7 +215,7 @@ jobs:
           PR_NUMBER: ${{ github.event.number }}
         run: |
           echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pr_number
           path: pr_number.txt

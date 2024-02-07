@@ -7,6 +7,7 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_Scan.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MakeParticle.H>
 
@@ -90,8 +91,8 @@ struct ParticleCopyPlan
     Vector<int> m_rcv_box_pids;
     Vector<int> m_rcv_box_levs;
 
-    Long m_NumSnds;
-    int m_nrcvs;
+    Long m_NumSnds = 0;
+    int m_nrcvs = 0;
     mutable Vector<MPI_Status> m_build_stats;
     mutable Vector<MPI_Request> m_build_rreqs;
 
@@ -219,9 +220,13 @@ struct ParticleCopyPlan
             if (int_comp_mask[i])  {++num_int_comm_comp;}
         }
 
-        m_superparticle_size = sizeof(typename PC::ParticleType)
-                             + num_real_comm_comp * sizeof(typename PC::ParticleType::RealType)
-                             + num_int_comm_comp  * sizeof(int);
+        if constexpr (PC::ParticleType::is_soa_particle) {
+            m_superparticle_size = sizeof(uint64_t);  // idcpu
+        } else {
+            m_superparticle_size = sizeof(typename PC::ParticleType);
+        }
+        m_superparticle_size += num_real_comm_comp * sizeof(typename PC::ParticleType::RealType)
+                              + num_int_comm_comp  * sizeof(int);
 
         buildMPIStart(pc.BufferMap(), m_superparticle_size);
     }

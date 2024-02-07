@@ -81,7 +81,11 @@ void copyParticle (const ParticleTileData<T_ParticleType, NAR, NAI>& dst,
     AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
     AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
 
-    dst.m_aos[dst_i] = src.m_aos[src_i];
+    if constexpr(T_ParticleType::is_soa_particle) {
+        dst.m_idcpu[dst_i] = src.m_idcpu[src_i];
+    } else {
+        dst.m_aos[dst_i] = src.m_aos[src_i];
+    }
     for (int j = 0; j < NAR; ++j) {
         dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
     }
@@ -119,7 +123,11 @@ void swapParticle (const ParticleTileData<T_ParticleType, NAR, NAI>& dst,
     AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
     AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
 
-    amrex::Swap(src.m_aos[src_i], dst.m_aos[dst_i]);
+    if constexpr(T_ParticleType::is_soa_particle) {
+        amrex::Swap(src.m_idcpu[src_i], dst.m_idcpu[dst_i]);
+    } else {
+        amrex::Swap(src.m_aos[src_i], dst.m_aos[dst_i]);
+    }
     for (int j = 0; j < NAR; ++j) {
         amrex::Swap(dst.m_rdata[j][dst_i], src.m_rdata[j][src_i]);
     }

@@ -1,0 +1,9 @@
+CEXE_headers += AMReX_GMRES.H AMReX_GMRES_MLMG.H
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers
+
+include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
+ifeq ($(DIM),3)
+  include $(AMREX_HOME)/Src/LinearSolvers/OpenBC/Make.package
+endif
