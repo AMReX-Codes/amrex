@@ -10,6 +10,8 @@
 
 namespace amrex::MPMD {
 
+void Initialize_without_split (int argc, char* argv[]);
+
 MPI_Comm Initialize (int argc, char* argv[]);
 
 void Finalize ();
@@ -18,6 +20,7 @@ bool Initialized ();
 
 int MyProc ();   //! Process ID in MPI_COMM_WORLD
 int NProcs ();   //! Number of processes in MPI_COMM_WORLD
+int AppNum ();   //! Get the appnum (color) required for MPI_Comm_split
 int MyProgId (); //! Program ID
 
 class Copier
