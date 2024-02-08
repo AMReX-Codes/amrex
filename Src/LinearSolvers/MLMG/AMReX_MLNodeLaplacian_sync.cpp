@@ -621,7 +621,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     //
     //  Note that the residue we copmute on a coarse/fine node is not a
     //  composite divergence.  It has been restricted so that it is suitable
-    //  as RHS for our geometric mulitgrid solver with a MG hirerachy
+    //  as RHS for our geometric multigrid solver with a MG hirerachy
     //  including multiple AMR levels.
     //
 

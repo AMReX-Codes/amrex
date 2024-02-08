@@ -67,6 +67,15 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           )
     endif ()
 
+    if (NOT D EQUAL 1)
+       target_sources(amrex_${D}d
+          PRIVATE
+          MLMG/AMReX_MLCurlCurl.H
+          MLMG/AMReX_MLCurlCurl.cpp
+          MLMG/AMReX_MLCurlCurl_K.H
+          )
+    endif ()
+
     if (AMReX_EB AND NOT D EQUAL 1)
        target_sources(amrex_${D}d
           PRIVATE

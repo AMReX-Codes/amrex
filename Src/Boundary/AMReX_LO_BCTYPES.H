@@ -20,6 +20,7 @@
 #define AMREX_LO_INFLOW   106
 #define AMREX_LO_INHOMOG_NEUMANN 107
 #define AMREX_LO_ROBIN 108
+#define AMREX_LO_SYMMETRY 109
 #define AMREX_LO_PERIODIC 200
 #define AMREX_LO_BOGUS    1729
 
@@ -38,6 +39,7 @@ namespace amrex {
         inflow           = AMREX_LO_INFLOW,
         inhomogNeumann   = AMREX_LO_INHOMOG_NEUMANN,
         Robin            = AMREX_LO_ROBIN,
+        symmetry         = AMREX_LO_SYMMETRY,
         Periodic         = AMREX_LO_PERIODIC,
         bogus            = AMREX_LO_BOGUS
     };
@@ -48,4 +50,3 @@ namespace amrex {
 #endif
 
 #endif
-
