@@ -3,7 +3,7 @@
 
 #include <AMReX.H>
 #include <AMReX_OpenMP.H>
-#include <sundials/sundials_context.h>
+#include <sundials/sundials_context.hpp>
 
 namespace amrex::sundials {
 

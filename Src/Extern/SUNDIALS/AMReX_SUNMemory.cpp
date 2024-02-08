@@ -1,3 +1,4 @@
+#include "AMReX_Sundials_Core.H"
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_SUNMemory.H>
@@ -35,7 +36,7 @@ namespace {
 
     int Alloc(SUNMemoryHelper, SUNMemory* memptr, size_t memsize, SUNMemoryType mem_type, void* /*queue*/)
     {
-        SUNMemory mem = SUNMemoryNewEmpty();
+        SUNMemory mem = SUNMemoryNewEmpty(*The_Sundials_Context());
 
         if (mem == nullptr) { return -1; }
         mem->ptr = nullptr;
