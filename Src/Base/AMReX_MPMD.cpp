@@ -38,7 +38,7 @@ AMReX_MPMD variables. This function is internally leveraged by
 Initialize function.
 
 This function needs to be used EXPLICITLY ONLY with pyAMReX (python)
-so that the communication split can be performed using a python 
+so that the communication split can be performed using a python
 library, for example, mpi4py.
 */
 void Initialize_without_split (int argc, char* argv[])
