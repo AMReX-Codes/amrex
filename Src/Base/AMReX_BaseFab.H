@@ -542,7 +542,7 @@ public:
                       int numcomp = 1) noexcept;
     /**
     * \brief As above, except that the destination Box is specified,
-    * but the source Box is taken to the equal to the source
+    * but the source Box is taken to the equal to the destination
     * Box, and all components of the destination BaseFab are
     * copied.
     */

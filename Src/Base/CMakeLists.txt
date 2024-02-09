@@ -132,6 +132,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Array4.H
        AMReX_MakeType.H
        AMReX_TypeTraits.H
+       AMReX_FabDataType.H
        AMReX_FabFactory.H
        AMReX_BaseFabUtility.H
        # Fortran data defined on unions of rectangles ----------------------------

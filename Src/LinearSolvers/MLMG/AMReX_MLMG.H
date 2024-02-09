@@ -1020,7 +1020,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         makeSolvable();
     }
 
-    IntVect ng = linop.isCellCentered() ? IntVect(0) : IntVect(1);
+    IntVect ng = linop.getNGrowVectRestriction();
     if (cf_strategy == CFStrategy::ghostnodes) { ng = ng_rhs; }
     if (!solve_called) {
         linop.make(res, ng);

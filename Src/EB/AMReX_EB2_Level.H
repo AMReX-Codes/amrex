@@ -483,7 +483,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
             break;
         } else {
             auto ls = m_mgf.getLevelSet();
-            // This is an alias MulitFab, therefore FillBoundary on it is fine.
+            // This is an alias MultiFab, therefore FillBoundary on it is fine.
             ls.FillBoundary(geom.periodicity());
             if (amrex::Verbose() > 0) {
                 if (nsmallcells) {
