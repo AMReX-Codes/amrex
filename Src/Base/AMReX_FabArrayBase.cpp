@@ -2485,12 +2485,17 @@ CheckRcvStats (Vector<MPI_Status>& recv_stats, const Vector<std::size_t>& recv_s
                               ParallelDescriptor::Mpi_typemap<char>::type(),
                               &tmp_count);
                 count = tmp_count;
-            } else if (comm_data_type == 2) {
+            } else if (comm_data_type == 4) {
+                MPI_Get_count(&recv_stats[i],
+                              ParallelDescriptor::Mpi_typemap<unsigned int>::type(),
+                              &tmp_count);
+                count = sizeof(unsigned int) * tmp_count;
+            } else if (comm_data_type == 8) {
                 MPI_Get_count(&recv_stats[i],
                               ParallelDescriptor::Mpi_typemap<unsigned long long>::type(),
                               &tmp_count);
                 count = sizeof(unsigned long long) * tmp_count;
-            } else if (comm_data_type == 3) {
+            } else if (comm_data_type == 64) {
                 MPI_Get_count(&recv_stats[i],
                               ParallelDescriptor::Mpi_typemap<ParallelDescriptor::lull_t>::type(),
                               &tmp_count);

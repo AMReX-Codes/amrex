@@ -157,6 +157,7 @@ ifeq ($(SYCL_AOT),TRUE)
 endif
 
 ifeq ($(DEBUG),TRUE)
+  # soon --> -flink-huge-device-code
   # This might be needed for linking device code larger than 2GB.
   LDFLAGS += -fsycl-link-huge-device-code
 endif
