@@ -536,14 +536,16 @@ void linear_interpolate_to_particle_mapped (const P& p,
 #else
 
     AMREX_ASSERT(val != nullptr);
-    // Assertion to ensure that only nodal data is supported
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[0][0] == 1),"For general mapped coordinates, interpolation is supported only for node-centered data");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[0][1] == 1),"For general mapped coordinates, interpolation is supported only for node-centered data");
-#if (AMREX_SPACEDIM == 3)
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[0][2] == 1),"For general mapped coordinates, interpolation is supported only for node-centered data");
-#endif
-
     AMREX_ASSERT(num_arrays == 1);
+    for (int d = 0; d < num_arrays; d++)
+    {
+        // Assertion to ensure that only nodal data is supported
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[d][0] == 1),"For general mapped coordinates, interpolation is supported only for node-centered data");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[d][1] == 1),"For general mapped coordinates, interpolation is supported only for node-centered data");
+#if (AMREX_SPACEDIM == 3)
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[d][2] == 1),"For general mapped coordinates, interpolation is supported only for node-centered data");
+#endif
+    }
     int n_of_data = 0;
 
     int i = p.idata(0);
