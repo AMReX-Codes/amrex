@@ -662,5 +662,6 @@ void linear_interpolate_to_particle_mapped (const P& p,
 
     } // comp
 }
+
 }  // namespace amrex
 #endif  // include guard
