@@ -501,21 +501,20 @@ void particle_interp_solve (Array2D<Real,1,7,1,7>& a, Array1D<Real,1,7>& b, Arra
 /**
  \brief Linearly interpolates the mesh data to the particle position from node-centered data on a general mapped grid. 
 */
-template <typename P>             
+template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cic_interpolate_nd_mapped (const P& p,
-                                const amrex::Array4<amrex::Real const>&  data_arr,
+                                const amrex::Array4<amrex::Real const>& data_arr,
                                 const amrex::Array4<amrex::Real const>&  loc_arr,
                                 amrex::ParticleReal * val, int M = AMREX_SPACEDIM)
-{                                      
+{
     int icomp = 0;
-    int ncomp_per_array = M;           
-    int num_arrays = 1;                
+    int ncomp_per_array = M;
+    int num_arrays = 1;
     IntVect is_nodal = amrex::IntVect::TheUnitVector();
     linear_interpolate_to_particle_mapped(p, &data_arr, loc_arr,
                                           val, &is_nodal, icomp, ncomp_per_array, num_arrays);
 }
-
 
 /**
  \brief Linearly interpolates the mesh data to the particle position on a general mapped grid.
@@ -534,7 +533,7 @@ void linear_interpolate_to_particle_mapped (const P& p,
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(p, data_arr, loc_arr, val, is_nodal, start_comp, ncomp, num_arrays);
     amrex::Abort(" General mapped interpolation is not supported in 1D\n");
-#endif
+#else
 
     AMREX_ASSERT(val != nullptr);
     // Assertion to ensure that only nodal data is supported
@@ -656,11 +655,12 @@ void linear_interpolate_to_particle_mapped (const P& p,
         py = p.pos(1) - y1;
         pz = p.pos(2) - z1;
 
-        amrex::Real f = b(1)*px + b(2)*py + b(3)*pz + b(4)*px*py + b(5)*px*pz + b(6)*py*pz + b(7)*px*py*pz;
+        amrex::ParticleReal f = b(1)*px + b(2)*py + b(3)*pz + b(4)*px*py + b(5)*px*pz + b(6)*py*pz + b(7)*px*py*pz;
         val[comp-start_comp] = f + f1;
 #endif
 
     } // comp
+#endif
 }
 
 }  // namespace amrex
