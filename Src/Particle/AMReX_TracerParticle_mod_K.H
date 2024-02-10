@@ -655,8 +655,8 @@ void linear_interpolate_to_particle_mapped (const P& p,
         py = p.pos(1) - y1;
         pz = p.pos(2) - z1;
 
-        amrex::ParticleReal f = b(1)*px + b(2)*py + b(3)*pz + b(4)*px*py + b(5)*px*pz + b(6)*py*pz + b(7)*px*py*pz;
-        val[comp-start_comp] = f + f1;
+        amrex::Real f = b(1)*px + b(2)*py + b(3)*pz + b(4)*px*py + b(5)*px*pz + b(6)*py*pz + b(7)*px*py*pz;
+        val[comp-start_comp] = static_cast<ParticleReal>(f + f1);
 #endif
 
     } // comp
