@@ -499,7 +499,7 @@ void particle_interp_solve (Array2D<Real,1,7,1,7>& a, Array1D<Real,1,7>& b, Arra
 
 
 /**
- \brief Linearly interpolates the mesh data to the particle position from node-centered data on a general mapped grid. 
+ \brief Linearly interpolates the mesh data to the particle position from node-centered data on a general mapped grid.
 */
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
