@@ -123,10 +123,10 @@ main (int   argc,
             FArrayBox exactAvg(domainI,nComp);
 
             FORT_CV_AVGDOWN(exactAvg.dataPtr(),
-                            ARLIM(exactAvg.loVect()),
-                            ARLIM(exactAvg.hiVect()), &nComp,
+                            AMREX_ARLIM(exactAvg.loVect()),
+                            AMREX_ARLIM(exactAvg.hiVect()), &nComp,
                             dataE.dataPtr(),
-                            ARLIM(dataE.loVect()), ARLIM(dataE.hiVect()),
+                            AMREX_ARLIM(dataE.loVect()), AMREX_ARLIM(dataE.hiVect()),
                             domainI.loVect(), domainI.hiVect(),
                             refine_ratio.getVect());
 

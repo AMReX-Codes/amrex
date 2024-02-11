@@ -250,12 +250,12 @@ main (int   argc,
 
                     FORT_CV_AVGDOWN_STAG(&nodal_dir,
                                          data2Coarse.dataPtr(),
-                                         ARLIM(data2Coarse.loVect()),
-                                         ARLIM(data2Coarse.hiVect()),
+                                         AMREX_ARLIM(data2Coarse.loVect()),
+                                         AMREX_ARLIM(data2Coarse.hiVect()),
                                          &ncCoarse,
                                          data2Fine[mfi].dataPtr(),
-                                         ARLIM(data2Fine[mfi].loVect()),
-                                         ARLIM(data2Fine[mfi].hiVect()),
+                                         AMREX_ARLIM(data2Fine[mfi].loVect()),
+                                         AMREX_ARLIM(data2Fine[mfi].hiVect()),
                                          loiv.getVect(),
                                          hiiv.getVect(),
                                          refine_ratio.getVect());
@@ -406,4 +406,3 @@ getRefRatio(const Box& crse,
         ref_ratio = IntVect();
     return ref_ratio;
 }
-

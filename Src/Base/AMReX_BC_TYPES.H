@@ -82,26 +82,4 @@ enum mathematicalBndryTypes : int {
 }
 #endif
 
-#ifndef AMREX_XSDK
-
-#define BOGUS_BC (-666)
-
-#define REFLECT_ODD (-1)
-#define INT_DIR 0
-#define REFLECT_EVEN 1
-#define FOEXTRAP  2
-#define EXT_DIR 3
-#define HOEXTRAP 4
-#define HOEXTRAPCC 5
-#define EXT_DIR_CC 6
-
-#define Interior 0
-#define Inflow 1
-#define Outflow 2
-#define Symmetry 3
-#define SlipWall 4
-#define NoSlipWall 5
-
-#endif
-
 #endif
