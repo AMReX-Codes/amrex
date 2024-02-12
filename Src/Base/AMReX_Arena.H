@@ -22,7 +22,9 @@ inline std::size_t aligned_size (std::size_t align_requirement, std::size_t size
 
 inline bool is_aligned (const void* p, std::size_t alignment) noexcept
 {
-    return (reinterpret_cast<std::size_t>(p) % alignment) == 0;
+    auto* q = const_cast<void*>(p);
+    auto space = alignment;
+    return std::align(alignment, alignment, q, space) == p;
 }
 
 class Arena;

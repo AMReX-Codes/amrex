@@ -127,44 +127,6 @@ inline namespace literals {
 } // namespace amrex
 #endif
 
-#else
-
-#ifndef AMREX_XSDK
-
-/*
-  The REAL_T macro specifies the precision of the floating-point
-  calculations in Fortran code.  It will be either real*4 or
-  real*8 depending upon which of the symbols BL_USE_FLOAT or
-  BL_USE_DOUBLE, respectively, is defined during compilations.  For
-  portability, you should write floating-point code in terms of this
-  macro, instead of using real*4 or real*8 directly.
-
-  Note that exactly one of these macros must be defined
-  when compiling any module that uses floating-point.
-*/
-
-#ifdef BL_USE_FLOAT
-#    define REAL_T REAL
-#if __STDC__==1 || defined(__INTEL_COMPILER)
-#        define BL_REAL(a) a##E0
-#        define BL_REAL_E(a,b) a##E##b
-#else
-#        define BL_REAL(a) a/**/E0
-#        define BL_REAL_E(a,b) a/**/E/**/b
-#endif
-#else
-#    define REAL_T DOUBLE PRECISION
-#if __STDC__==1 || defined(__INTEL_COMPILER)
-#        define BL_REAL(a) a##D0
-#        define BL_REAL_E(a,b) a##D##b
-#else
-#        define BL_REAL(a) a/**/D0
-#        define BL_REAL_E(a,b) a/**/D/**/b
-#endif
-#endif
-
-#endif /* ndef AMREX_XSDK */
-
 #endif /* !BL_LANG_FORT */
 
 #endif /*BL_REAL_H*/
