@@ -666,7 +666,7 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
             nbytes += cct.sbox.numPts() * ncomp * sizeof(BUF);
         }
 
-        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes); // so that bytes are aligned
 
         // Also need to align the offset properly
@@ -757,7 +757,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  RcvTags,
             nbytes += cct.dbox.numPts() * ncomp * sizeof(BUF);
         }
 
-        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
 
         // Also need to align the offset properly
@@ -992,7 +992,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
                 }
             }
 
-            std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+            std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
             nbytes = amrex::aligned_size(acd, nbytes); // so that nbytes are aligned
 
             // Also need to align the offset properly
@@ -1065,7 +1065,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
                 }
             }
 
-            std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+            std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
             nbytes = amrex::aligned_size(acd, nbytes); // so that bytes are aligned
 
             // Also need to align the offset properly

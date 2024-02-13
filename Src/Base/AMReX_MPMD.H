@@ -64,7 +64,7 @@ void Copier::send (FabArray<FAB> const& mf, int icomp, int ncomp) const
             nbytes += cct.sbox.numPts() * ncomp * sizeof(typename FAB::value_type);
         }
 
-        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes); // so that bytes are aligned
 
         // Also need to align the offset properly
@@ -128,7 +128,7 @@ void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
             nbytes += cct.dbox.numPts() * ncomp * sizeof(typename FAB::value_type);
         }
 
-        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes); // so that nbytes are aligned
 
         // Also need to align the offset properly
