@@ -68,9 +68,7 @@ namespace amrex::openpmd_api
       BL_ASSERT ( m_OpenPMDHandler != nullptr );
       BL_ASSERT ( w != nullptr );
 
-      // so the openpmd filepath assigned from input file is still in use
-      w->m_openPMDPrefix = m_OpenPMDHandler->m_Writer->m_openPMDPrefix;
-      m_OpenPMDHandler->m_Writer.reset(w);
+      m_OpenPMDHandler->SetWriter(w);
     }
 
     void CloseHandler()
