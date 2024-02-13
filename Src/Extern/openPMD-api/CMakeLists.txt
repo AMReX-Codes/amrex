@@ -13,5 +13,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
      AMReX_PlotFileOPENPMD.cpp
      AMReX_PlotFileOPENPMD_PTL.cpp
      AMReX_ParticlesOPENPMD.H
+     AMReX_PlotFileUtilOPENPMD_PTLImpl.H
  )
 endforeach()
