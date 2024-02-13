@@ -895,7 +895,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     //
     // Note that div vel we copmute on a coarse/fine nodes is not a
     // composite divergence.  It has been restricted so that it is suitable
-    // as RHS for our geometric mulitgrid solver with a MG hirerachy
+    // as RHS for our geometric multigrid solver with a MG hirerachy
     // including multiple AMR levels.
     //
     // Also note that even for RAP, we do doubling at Nuemann boundary,

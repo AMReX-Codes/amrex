@@ -11,13 +11,13 @@ jobs:
     name: HIP ROCm Flang C++17 [tests]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_hip.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -66,7 +66,7 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which flang)       \
             -DCMAKE_CXX_STANDARD=17                       \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build -j 2
+        cmake --build build -j 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -75,13 +75,13 @@ jobs:
     name: HIP ROCm GFortran@9.3 C++17 [tests-hipcc]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_hip.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -128,7 +128,7 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which gfortran)    \
             -DCMAKE_CXX_STANDARD=17                       \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build_full_legacywrapper -j 2
+        cmake --build build_full_legacywrapper -j 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -138,13 +138,13 @@ jobs:
     name: HIP EB [configure 2D]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_hip.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -158,7 +158,7 @@ jobs:
         ccache -z
 
         ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes --with-mpi no --with-omp no --single-precision yes --single-precision-particles yes
-        make -j2 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names" AMD_ARCH=gfx90a CCACHE=ccache
+        make -j4 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names" AMD_ARCH=gfx90a CCACHE=ccache
         make install
 
         ccache -s
@@ -169,13 +169,13 @@ jobs:
     name: HIP EB 3D GMake
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_hip.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -189,7 +189,7 @@ jobs:
         ccache -z
 
         cd Tests/LinearSolvers/NodeEB
-        make -j2 USE_HIP=TRUE USE_MPI=FALSE BL_NO_FORT=TRUE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names AMD_ARCH=gfx90a CCACHE=ccache
+        make -j4 USE_HIP=TRUE USE_MPI=FALSE BL_NO_FORT=TRUE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names AMD_ARCH=gfx90a CCACHE=ccache
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -203,7 +203,7 @@ jobs:
           PR_NUMBER: ${{ github.event.number }}
         run: |
           echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pr_number
           path: pr_number.txt

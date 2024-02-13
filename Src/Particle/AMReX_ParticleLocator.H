@@ -220,13 +220,13 @@ struct AmrAssignGrid
 
         for (int lev = lev_max; lev >= lev_min; --lev)
         {
-            int grid = m_funcs[lev](p, 0, std::forward<Assignor>(assignor));
+            int grid = m_funcs[lev](p, 0, assignor);
             if (grid >= 0) { return makeTuple(grid, lev); }
         }
 
         for (int lev = lev_min; lev >= lev_min; --lev)
         {
-            int grid = m_funcs[lev](p, nGrow, std::forward<Assignor>(assignor));
+            int grid = m_funcs[lev](p, nGrow, assignor);
             if (grid >= 0) { return makeTuple(grid, lev); }
         }
 

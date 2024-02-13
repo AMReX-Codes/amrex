@@ -462,7 +462,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
 
 #ifdef AMREX_USE_OMP
-    amrex::OpenMP::init_threads();
+    amrex::OpenMP::Initialize();
 
     // status output
     if (system::verbose > 0) {
@@ -815,6 +815,10 @@ amrex::Finalize (amrex::AMReX* pamrex)
 
 #ifdef AMREX_USE_GPU
     Gpu::Device::Finalize();
+#endif
+
+#ifdef AMREX_USE_OMP
+    amrex::OpenMP::Finalize();
 #endif
 
 #if defined(AMREX_USE_UPCXX)

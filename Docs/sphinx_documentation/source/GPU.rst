@@ -796,7 +796,7 @@ As another example, the following function computes the max- and 1-norm of a
 ::
 
     GpuTuple<Real,Real> compute_norms (MultiFab const& mf,
-                                       iMulitiFab const& mask)
+                                       iMultiFab const& mask)
     {
         auto const& data_ma = mf.const_arrays();
         auto const& mask_ma = mask.const_arrays();

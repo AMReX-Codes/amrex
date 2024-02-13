@@ -30,6 +30,7 @@ private:
     void solveABecLaplacian ();
     void solveABecLaplacianInhomNeumann ();
     void solveNodeABecLaplacian ();
+    void solveABecLaplacianGMRES ();
 
     int max_level = 1;
     int ref_ratio = 2;
@@ -55,6 +56,9 @@ private:
     int max_semicoarsening_level = 0;
     bool use_hypre = false;
     bool use_petsc = false;
+
+    // GMRES
+    bool use_gmres = false;
 
 #ifdef AMREX_USE_HYPRE
     int hypre_interface_i = 1;  // 1. structed, 2. semi-structed, 3. ij

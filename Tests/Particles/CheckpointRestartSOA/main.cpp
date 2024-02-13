@@ -120,7 +120,7 @@ void test ()
         amrex::Print() << " done \n";
 
         Vector<std::string> particle_realnames;
-        for (int i = 0; i < NReal; ++i) {
+        for (int i = 0; i < NReal-AMREX_SPACEDIM; ++i) {
             particle_realnames.push_back("particle_real_component_" + std::to_string(i));
         }
 

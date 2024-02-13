@@ -223,24 +223,6 @@ MLEBNodeFDLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
 }
 
 void
-MLEBNodeFDLaplacian::averageDownSolutionRHS (int /*camrlev*/, MultiFab& /*crse_sol*/,
-                                             MultiFab& /*crse_rhs*/,
-                                             const MultiFab& /*fine_sol*/,
-                                             const MultiFab& /*fine_rhs*/)
-{
-    amrex::Abort("MLEBNodeFDLaplacian::averageDownSolutionRHS: todo");
-}
-
-void
-MLEBNodeFDLaplacian::reflux (int /*crse_amrlev*/, MultiFab& /*res*/,
-                             const MultiFab& /*crse_sol*/, const MultiFab& /*crse_rhs*/,
-                             MultiFab& /*fine_res*/, MultiFab& /*fine_sol*/,
-                             const MultiFab& /*fine_rhs*/) const
-{
-    amrex::Abort("MLEBNodeFDLaplacian::reflux: TODO");
-}
-
-void
 MLEBNodeFDLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLEBNodeFDLaplacian::prepareForSolve()");
