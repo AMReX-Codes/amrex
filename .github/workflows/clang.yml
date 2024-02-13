@@ -177,7 +177,7 @@ jobs:
         .github/workflows/dependencies/dependencies_clang-tidy.sh 15
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -196,7 +196,7 @@ jobs:
         mkdir build
         cd build
         cmake .. -DopenPMD_USE_PYTHON=OFF -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        make -j2
+        make -j4
         sudo make install
     - name: Build & Test
       env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
@@ -225,10 +225,10 @@ jobs:
             -DCMAKE_C_COMPILER=$(which clang-15)      \
             -DCMAKE_CXX_COMPILER=$(which clang++-15)  \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        make -j 2
+        make -j 4
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -k -f clang-tidy-ccache-misses.mak \
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-15 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
