@@ -307,7 +307,7 @@ If autodetection fails, a list of "common" architectures is assumed.
 Building for multiple CUDA architectures will generally result in a larger library and longer build times.
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
-CUDA Toolkit version 9.0 or higher.**
+CUDA Toolkit version 11.0 or higher.**
 
 In order to import the CUDA-enabled AMReX library into your CMake project, you need to include
 the following code into the appropriate CMakeLists.txt file:
