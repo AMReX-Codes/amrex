@@ -93,6 +93,12 @@ TinyProfiler::start () noexcept
 #endif
     if (!regionstack.empty()) {
 
+#ifdef AMREX_USE_GPU
+        if (device_synchronize_around_region) {
+            amrex::Gpu::streamSynchronize();
+        }
+#endif
+
 #ifdef AMREX_USE_CUPTI
         if (uCUPTI) {
             cudaDeviceSynchronize();
@@ -109,12 +115,6 @@ TinyProfiler::start () noexcept
         in_parallel_region = omp_in_parallel();
 #else
         in_parallel_region = false;
-#endif
-
-#ifdef AMREX_USE_GPU
-            if (device_synchronize_around_region) {
-                amrex::Gpu::streamSynchronize();
-            }
 #endif
 
 #ifdef AMREX_USE_CUDA
@@ -149,8 +149,14 @@ TinyProfiler::stop () noexcept
 #ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
-    if (!stats.empty())
-    {
+    if (!stats.empty()) {
+
+#ifdef AMREX_USE_GPU
+        if (device_synchronize_around_region) {
+            amrex::Gpu::streamSynchronize();
+        }
+#endif
+
         double t;
         int nKernelCalls = 0;
 #ifdef AMREX_USE_CUPTI
@@ -207,12 +213,6 @@ TinyProfiler::stop () noexcept
                 std::get<1>(parent) += dtin;
             }
 
-#ifdef AMREX_USE_GPU
-            if (device_synchronize_around_region) {
-                amrex::Gpu::streamSynchronize();
-            }
-#endif
-
 #ifdef AMREX_USE_CUDA
             nvtxRangePop();
 #elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
@@ -242,8 +242,12 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
 #ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
-    if (!stats.empty())
-    {
+    if (!stats.empty()) {
+
+        if (device_synchronize_around_region) {
+            amrex::Gpu::streamSynchronize();
+        }
+
         double t;
         cudaDeviceSynchronize();
         cuptiActivityFlushAll(0);
@@ -291,10 +295,6 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
             {
                 std::tuple<double,double,std::string*>& parent = ttstack.back();
                 std::get<1>(parent) += dtin;
-            }
-
-            if (device_synchronize_around_region) {
-                amrex::Gpu::streamSynchronize();
             }
 
 #ifdef AMREX_USE_CUDA
