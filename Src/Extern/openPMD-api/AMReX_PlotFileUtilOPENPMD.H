@@ -23,36 +23,6 @@ namespace amrex::openpmd_api
 {
     namespace helper
     {
-      inline void
-      setOpenPMDUnit ( openPMD::Mesh mesh, std::string const& field_name )
-      {
-        if (field_name[0] == 'E'){
-          mesh.setUnitDimension({
-              {openPMD::UnitDimension::L,  1},
-              {openPMD::UnitDimension::M,  1},
-              {openPMD::UnitDimension::T, -3},
-              {openPMD::UnitDimension::I, -1},
-            });
-        } else if (field_name[0] == 'B'){
-          mesh.setUnitDimension({
-              {openPMD::UnitDimension::M,  1},
-              {openPMD::UnitDimension::I, -1},
-              {openPMD::UnitDimension::T, -2}
-              });
-        }else if (field_name[0] == 'j'){ // current
-          mesh.setUnitDimension({
-              {openPMD::UnitDimension::L, -2},
-              {openPMD::UnitDimension::I,  1},
-            });
-        } else if (field_name.substr(0,3) == "rho"){ // charge density
-          mesh.setUnitDimension({
-              {openPMD::UnitDimension::L, -3},
-              {openPMD::UnitDimension::I,  1},
-              {openPMD::UnitDimension::T,  1},
-            });
-        }
-      } // name space helper
-
       // from warpx Utils/RelativeCellPosition.cpp
       inline std::vector< double >
       getRelativeCellPosition(amrex::MultiFab const& mf)

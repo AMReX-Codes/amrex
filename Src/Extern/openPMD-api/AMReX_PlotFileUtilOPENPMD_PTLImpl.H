@@ -26,9 +26,6 @@ namespace amrex::openpmd_api
     {
       BL_PROFILE("amrex::openpmd_api::WriteParticles()");
 
-      amrex::Print()<<"   Real: "<<pc.NStructReal<<" "<<pc.NumRealComps()<<"\n";
-      amrex::Print()<<"   Int:  "<<pc.NStructInt<<" "<<pc.NumIntComps()<<"\n";
-
       if ((m_OpenPMDHandler == nullptr) || (m_OpenPMDHandler->m_Writer == nullptr)) {
         return;
       }

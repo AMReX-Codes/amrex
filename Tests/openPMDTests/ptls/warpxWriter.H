@@ -94,7 +94,7 @@ void AMReX_warpxWriter::SetupMeshComp (openPMD::Mesh& mesh,
   mesh.setAttribute("fieldSmoothing", "none");
   mesh_comp.resetDataset(dataset);
 
-  amrex::openpmd_api::helper::setOpenPMDUnit( mesh, varName.m_FieldName );
+  //amrex::openpmd_api::helper::setOpenPMDUnit( mesh, varName.m_FieldName ); // removed this function. define in app if needed
 
   auto relative_cell_pos = amrex::openpmd_api::helper::getRelativeCellPosition(mf);     // AMReX Fortran index order
   std::reverse( relative_cell_pos.begin(), relative_cell_pos.end() ); // now in C order
