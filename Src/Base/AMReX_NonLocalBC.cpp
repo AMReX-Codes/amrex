@@ -73,7 +73,7 @@ void PrepareCommBuffers(CommData& comm,
             nbytes += cct.sbox.numPts() * object_size * n_components;
         }
 
-        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
 
         // Also need to align the offset properly
