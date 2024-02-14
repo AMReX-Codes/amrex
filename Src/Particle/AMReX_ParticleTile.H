@@ -1114,7 +1114,7 @@ struct ParticleTile
 #ifdef AMREX_USE_GPU
         bool copy_real = false;
         m_h_runtime_r_ptrs.resize(m_soa_tile.NumRealComps() - NArrayReal);
-        for (int i = 0; i < m_h_runtime_r_ptrs.size(); ++i) {
+        for (std::size_t i = 0; i < m_h_runtime_r_ptrs.size(); ++i) {
             if (m_h_runtime_r_ptrs[i] != m_soa_tile.GetRealData(i + NArrayReal).dataPtr()) {
                 m_h_runtime_r_ptrs[i] = m_soa_tile.GetRealData(i + NArrayReal).dataPtr();
                 copy_real = true;
@@ -1127,7 +1127,7 @@ struct ParticleTile
 
         bool copy_int = false;
         m_h_runtime_i_ptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
-        for (int i = 0; i < m_h_runtime_i_ptrs.size(); ++i) {
+        for (std::size_t i = 0; i < m_h_runtime_i_ptrs.size(); ++i) {
             if (m_h_runtime_i_ptrs[i] != m_soa_tile.GetIntData(i + NArrayInt).dataPtr()) {
                 m_h_runtime_i_ptrs[i] = m_soa_tile.GetIntData(i + NArrayInt).dataPtr();
                 copy_int = true;
@@ -1138,11 +1138,11 @@ struct ParticleTile
                                    m_h_runtime_i_ptrs.size()*sizeof(int*));
         }
 #else
-        for (int i = 0; i < m_runtime_r_ptrs.size(); ++i) {
+        for (std::size_t i = 0; i < m_runtime_r_ptrs.size(); ++i) {
             m_runtime_r_ptrs[i] = m_soa_tile.GetRealData(i + NArrayReal).dataPtr();
         }
 
-        for (int i = 0; i < m_runtime_i_ptrs.size(); ++i) {
+        for (std::size_t i = 0; i < m_runtime_i_ptrs.size(); ++i) {
             m_runtime_i_ptrs[i] = m_soa_tile.GetIntData(i + NArrayInt).dataPtr();
         }
 #endif
@@ -1190,7 +1190,7 @@ struct ParticleTile
 #ifdef AMREX_USE_GPU
         bool copy_real = false;
         m_h_runtime_r_cptrs.resize(m_soa_tile.NumRealComps() - NArrayReal);
-        for (int i = 0; i < m_h_runtime_r_cptrs.size(); ++i) {
+        for (std::size_t i = 0; i < m_h_runtime_r_cptrs.size(); ++i) {
             if (m_h_runtime_r_cptrs[i] != m_soa_tile.GetRealData(i + NArrayReal).dataPtr()) {
                 m_h_runtime_r_cptrs[i] = m_soa_tile.GetRealData(i + NArrayReal).dataPtr();
                 copy_real = true;
@@ -1203,7 +1203,7 @@ struct ParticleTile
 
         bool copy_int = false;
         m_h_runtime_i_cptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
-        for (int i = 0; i < m_h_runtime_i_cptrs.size(); ++i) {
+        for (std::size_t i = 0; i < m_h_runtime_i_cptrs.size(); ++i) {
             if (m_h_runtime_i_cptrs[i] != m_soa_tile.GetIntData(i + NArrayInt).dataPtr()) {
                 m_h_runtime_i_cptrs[i] = m_soa_tile.GetIntData(i + NArrayInt).dataPtr();
                 copy_int = true;
@@ -1214,11 +1214,11 @@ struct ParticleTile
                                    m_h_runtime_i_cptrs.size()*sizeof(int*));
         }
 #else
-        for (int i = 0; i < m_runtime_r_cptrs.size(); ++i) {
+        for (std::size_t i = 0; i < m_runtime_r_cptrs.size(); ++i) {
             m_runtime_r_cptrs[i] = m_soa_tile.GetRealData(i + NArrayReal).dataPtr();
         }
 
-        for (int i = 0; i < m_runtime_i_cptrs.size(); ++i) {
+        for (std::size_t i = 0; i < m_runtime_i_cptrs.size(); ++i) {
             m_runtime_i_cptrs[i] = m_soa_tile.GetIntData(i + NArrayInt).dataPtr();
         }
 #endif
