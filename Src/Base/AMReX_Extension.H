@@ -200,8 +200,8 @@
 #    define AMREX_LIKELY [[likely]]
 #    define AMREX_UNLIKELY [[unlikely]]
 #else
-#    define AMREX_LIKELY ((void)0)
-#    define AMREX_UNLIKELY ((void)0)
+#    define AMREX_LIKELY
+#    define AMREX_UNLIKELY
 #endif
 
 // CI uses -Werror -Wc++17-extension, thus we need to add the __cplusplus clause
