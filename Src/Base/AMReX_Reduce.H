@@ -376,11 +376,12 @@ public:
             const int nblocks = par_for_blocks.first[nboxes];
             const int block_0_size = par_for_blocks.first[1];
             const int* dp_nblocks = par_for_blocks.second;
-            const Box* dp_boxes = parforinfo.getBoxes();
+            const BoxIndexer* dp_boxes = parforinfo.getBoxes();
 
             auto const& stream = Gpu::gpuStream();
             auto pdst = reduce_data.devicePtr(stream);
             int nblocks_ec = std::min(nblocks, reduce_data.maxBlocks());
+            AMREX_ASSERT(Long(nblocks_ec)*2 <= Long(std::numeric_limits<int>::max()));
             reduce_data.nBlocks(stream) = nblocks_ec;
             reduce_data.updateMaxStreamIndex(stream);
 
@@ -405,25 +406,19 @@ public:
                     dst = r;
                 }
                 for (int iblock = blockIdx.x; iblock < nblocks; iblock += nblocks_ec) {
-                    int ibox, icell;
+                    int ibox;
+                    std::uint64_t icell;
                     if (dp_nblocks) {
                         ibox = amrex::bisect(dp_nblocks, 0, nboxes, iblock);
-                        icell = (iblock-dp_nblocks[ibox])*AMREX_GPU_MAX_THREADS + threadIdx.x;
+                        icell = std::uint64_t(iblock-dp_nblocks[ibox])*AMREX_GPU_MAX_THREADS + threadIdx.x;
                     } else {
                         ibox = iblock / block_0_size;
-                        icell = (iblock-ibox*block_0_size)*AMREX_GPU_MAX_THREADS + threadIdx.x;
+                        icell = std::uint64_t(iblock-ibox*block_0_size)*AMREX_GPU_MAX_THREADS + threadIdx.x;
                     }
 
-                    Box const& b = dp_boxes[ibox];
-                    int ncells = b.numPts();
-                    if (icell < ncells) {
-                        const auto len = amrex::length(b);
-                        int k =  icell /   (len.x*len.y);
-                        int j = (icell - k*(len.x*len.y)) /   len.x;
-                        int i = (icell - k*(len.x*len.y)) - j*len.x;
-                        AMREX_D_TERM(i += b.smallEnd(0);,
-                                     j += b.smallEnd(1);,
-                                     k += b.smallEnd(2););
+                    BoxIndexer const& indexer = dp_boxes[ibox];
+                    if (icell < indexer.numPts()) {
+                        auto [i, j, k] = indexer(icell);
                         Reduce::detail::mf_call_f<I, F, ReduceTuple, Ps...>
                             (f, ibox, i, j, k, ncomp, r);
                     }
