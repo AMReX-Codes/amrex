@@ -190,6 +190,20 @@
 #    define AMREX_FALLTHROUGH ((void)0)
 #endif
 
+// Note: following compilers support [[likely]] and [[unlikely]]
+//   - Clang >= 12.0
+//   - GCC >= 9.0
+//   - Intel >= 2021.7
+//   - MSVC >= 19.26
+//   - nvcc >= 12
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(likely) >= 201803L
+#    define AMREX_LIKELY [[likely]]
+#    define AMREX_UNLIKELY [[unlikely]]
+#else
+#    define AMREX_LIKELY
+#    define AMREX_UNLIKELY
+#endif
+
 // CI uses -Werror -Wc++17-extension, thus we need to add the __cplusplus clause
 #if !defined(AMREX_NO_NODISCARD) && defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard) >= 201603L
 #   define AMREX_NODISCARD [[nodiscard]]
