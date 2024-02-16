@@ -1113,7 +1113,7 @@ struct ParticleTile
         m_runtime_i_ptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
 #ifdef AMREX_USE_GPU
         bool copy_real = false;
-        m_h_runtime_r_ptrs.resize(m_soa_tile.NumRealComps() - NArrayReal);
+        m_h_runtime_r_ptrs.resize(m_soa_tile.NumRealComps() - NArrayReal, nullptr);
         for (std::size_t i = 0; i < m_h_runtime_r_ptrs.size(); ++i) {
             if (m_h_runtime_r_ptrs[i] != m_soa_tile.GetRealData(i + NArrayReal).dataPtr()) {
                 m_h_runtime_r_ptrs[i] = m_soa_tile.GetRealData(i + NArrayReal).dataPtr();
@@ -1126,7 +1126,7 @@ struct ParticleTile
         }
 
         bool copy_int = false;
-        m_h_runtime_i_ptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
+        m_h_runtime_i_ptrs.resize(m_soa_tile.NumIntComps() - NArrayInt, nullptr);
         for (std::size_t i = 0; i < m_h_runtime_i_ptrs.size(); ++i) {
             if (m_h_runtime_i_ptrs[i] != m_soa_tile.GetIntData(i + NArrayInt).dataPtr()) {
                 m_h_runtime_i_ptrs[i] = m_soa_tile.GetIntData(i + NArrayInt).dataPtr();
@@ -1189,7 +1189,7 @@ struct ParticleTile
         m_runtime_i_cptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
 #ifdef AMREX_USE_GPU
         bool copy_real = false;
-        m_h_runtime_r_cptrs.resize(m_soa_tile.NumRealComps() - NArrayReal);
+        m_h_runtime_r_cptrs.resize(m_soa_tile.NumRealComps() - NArrayReal, nullptr);
         for (std::size_t i = 0; i < m_h_runtime_r_cptrs.size(); ++i) {
             if (m_h_runtime_r_cptrs[i] != m_soa_tile.GetRealData(i + NArrayReal).dataPtr()) {
                 m_h_runtime_r_cptrs[i] = m_soa_tile.GetRealData(i + NArrayReal).dataPtr();
@@ -1202,7 +1202,7 @@ struct ParticleTile
         }
 
         bool copy_int = false;
-        m_h_runtime_i_cptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
+        m_h_runtime_i_cptrs.resize(m_soa_tile.NumIntComps() - NArrayInt, nullptr);
         for (std::size_t i = 0; i < m_h_runtime_i_cptrs.size(); ++i) {
             if (m_h_runtime_i_cptrs[i] != m_soa_tile.GetIntData(i + NArrayInt).dataPtr()) {
                 m_h_runtime_i_cptrs[i] = m_soa_tile.GetIntData(i + NArrayInt).dataPtr();
