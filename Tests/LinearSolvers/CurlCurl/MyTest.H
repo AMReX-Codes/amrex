@@ -38,7 +38,7 @@ private:
     amrex::Array<amrex::MultiFab,3> exact;
     amrex::Array<amrex::MultiFab,3> rhs;
 
-    amrex::Real alpha_over_dx2 = 1.0;
+    amrex::Real alpha_over_dx2 = 100.0;
     amrex::Real alpha;
     amrex::Real beta = 1.0;
 };

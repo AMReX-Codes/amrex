@@ -39,6 +39,9 @@ MyTest::solve ()
     for (auto& mf : solution) {
         mf.setVal(Real(0));
     }
+    for (auto& mf : rhs) {
+        mf.OverrideSync(geom.periodicity());
+    }
     mlmg.solve({&solution}, {&rhs}, Real(1.0e-10), Real(0));
 
     amrex::Print() << "  Number of cells: " << n_cell << std::endl;
