@@ -227,6 +227,25 @@ namespace amrex
         }
     }
 
+    template<typename ItType, typename ValType,
+        typename std::enable_if<
+            std::is_floating_point<typename std::iterator_traits<ItType>::value_type>::value &&
+            std::is_floating_point<ValType>::value,
+        int>::type = 0>
+    AMREX_GPU_HOST_DEVICE
+    void logspace (ItType first, const ItType& last,
+        const ValType& start, const ValType& stop, const ValType& base)
+    {
+        const std::ptrdiff_t count = last-first;
+        if (count >= 2){
+            const auto delta = (stop - start)/(count - 1);
+            for (std::ptrdiff_t i = 0; i < count-1; ++i){
+                *(first++) = std::pow(base, start + i*delta);
+            }
+            *first = std::pow(base, stop);
+        }
+    }
+
 namespace detail {
 
 struct clzll_tag {};
