@@ -4,6 +4,7 @@ ifneq ($(NO_CONFIG_CHECKING),TRUE)
   nvcc_version       := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}')
   nvcc_major_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$1}')
   nvcc_minor_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$2}')
+  COMP_VERSION = $(nvcc_version)
 else
   nvcc_version       := 99.9
   nvcc_major_version := 99
