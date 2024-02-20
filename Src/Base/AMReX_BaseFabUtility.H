@@ -53,14 +53,14 @@ void fill (BaseFab<STRUCT>& aos_fab, F && f)
             std::uint64_t const threadIdxx = handler.threadIdx();
             std::uint64_t const blockIdxx = handler.blockIdx();
             auto const shared = (T*)handler.sharedMemory();
-            if (icell < ntotcells) {
+            if (icell < indexer.numPts()) {
                 auto ga = new(shared+threadIdxx*STRUCTSIZE) STRUCT;
                 auto [i, j, k] = indexer(icell);
                 f(*ga, i, j, k);
             }
             handler.sharedBarrier();
             for (std::uint64_t m = threadIdxx,
-                     mend = amrex::min<std::uint64_t>(blockDimx, ntotcells-blockDimx*blockIdxx) * STRUCTSIZE;
+                     mend = amrex::min<std::uint64_t>(blockDimx, indexer.numPts()-blockDimx*blockIdxx) * STRUCTSIZE;
                  m < mend; m += blockDimx) {
                 p[blockDimx*blockIdxx*STRUCTSIZE+m] = shared[m];
             }
@@ -72,14 +72,14 @@ void fill (BaseFab<STRUCT>& aos_fab, F && f)
             std::uint64_t const icell = std::uint64_t(blockDim.x)*blockIdx.x+threadIdx.x;
             Gpu::SharedMemory<T> gsm;
             T* const shared = gsm.dataPtr();
-            if (icell < ntotcells) {
+            if (icell < indexer.numPts()) {
                 auto ga = new(shared+std::uint64_t(threadIdx.x)*STRUCTSIZE) STRUCT;
                 auto [i, j, k] = indexer(icell);
                 f(*ga, i, j, k);
             }
             __syncthreads();
             for (std::uint64_t m = threadIdx.x,
-                     mend = amrex::min<std::uint64_t>(blockDim.x, ntotcells-std::uint64_t(blockDim.x)*blockIdx.x) * STRUCTSIZE;
+                     mend = amrex::min<std::uint64_t>(blockDim.x, indexer.numPts()-std::uint64_t(blockDim.x)*blockIdx.x) * STRUCTSIZE;
                  m < mend; m += blockDim.x) {
                 p[std::uint64_t(blockDim.x)*blockIdx.x*STRUCTSIZE+m] = shared[m];
             }
