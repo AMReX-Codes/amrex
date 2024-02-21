@@ -213,7 +213,7 @@
 #if defined(__has_cpp_attribute) && __has_cpp_attribute(assume)
 #   define AMREX_ASSUME(ASSUMPTION) [[assume(ASSUMPTION)]]
 #else
-#   if defined(__CUDACC__) && ( (__CUDACC_VER_MAJOR__ > 11) || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 1)) )
+#   if defined(__CUDA_ARCH__) && defined(__CUDACC__) && ( (__CUDACC_VER_MAJOR__ > 11) || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 1)) )
 #       define AMREX_ASSUME(ASSUMPTION) __builtin_assume(ASSUMPTION)
 #   elif defined(AMREX_CXX_INTEL) || defined(__clang__)
 #       define AMREX_ASSUME(ASSUMPTION) __builtin_assume(ASSUMPTION)
