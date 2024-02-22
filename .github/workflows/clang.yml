@@ -216,7 +216,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                                      \
-            -DAMReX_OPENPMD_API=ON                    \
+            -DAMReX_OPENPMD=ON                        \
             -DCMAKE_VERBOSE_MAKEFILE=ON               \
             -DAMReX_ENABLE_TESTS=ON                   \
             -DAMReX_SPACEDIM=3                        \
