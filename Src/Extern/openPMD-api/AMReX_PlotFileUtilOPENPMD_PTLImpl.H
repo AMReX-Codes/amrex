@@ -1,7 +1,6 @@
 #ifndef AMREX_PLOTFILE_OPENPMD_PTLS_API_H
 #define AMREX_PLOTFILE_OPENPMD_PTLS_API_H
 
-//extern  std::unique_ptr< amrex::openpmd_api::AMReX_openPMDHandler > amrex::openpmd_api::m_OpenPMDHandler;
 namespace amrex::openpmd_api
 {
     extern  std::unique_ptr< amrex::openpmd_api::AMReX_openPMDHandler > m_OpenPMDHandler;
