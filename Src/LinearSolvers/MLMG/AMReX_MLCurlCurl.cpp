@@ -300,7 +300,7 @@ Real MLCurlCurl::xdoty (int amrlev, int mglev, const MF& x, const MF& y,
     auto result = Real(0.0);
     for (int idim = 0; idim < 3; ++idim) {
         auto rtmp = MultiFab::Dot(getDotMask(amrlev,mglev,idim),
-                                  x[idim], 0, y[idim], 0, 1, 0, false);
+                                  x[idim], 0, y[idim], 0, 1, 0, true);
         result += rtmp;
     }
     if (!local) {
