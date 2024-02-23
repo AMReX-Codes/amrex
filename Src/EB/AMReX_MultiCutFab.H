@@ -13,7 +13,7 @@ class CutFab final
 {
 public:
 
-    CutFab () {}
+    CutFab () = default;
 
     explicit CutFab (Arena* ar) : FArrayBox(ar) {}
 
@@ -27,7 +27,7 @@ public:
     CutFab (CutFab const& rhs, MakeType make_type, int scomp, int ncomp)
         : FArrayBox(rhs, make_type, scomp, ncomp) {}
 
-    virtual ~CutFab () noexcept override = default;
+    ~CutFab () noexcept override = default;
 
     CutFab (CutFab&& rhs) noexcept = default;
 
@@ -35,21 +35,21 @@ public:
     CutFab& operator= (const CutFab&) = delete;
     CutFab& operator= (CutFab&&) = delete;
 
-    template <RunOn run_on>
+    template <RunOn run_on, typename BUF = CutFab::value_type>
     std::size_t copyFromMem (const void* src) {
-        return copyFromMem<run_on>(box(), 0, nComp(), src);
+        return copyFromMem<run_on, BUF>(box(), 0, nComp(), src);
     }
 
-    template <RunOn run_on>
+    template <RunOn run_on, typename BUF = CutFab::value_type>
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
                              const void* src)
     {
         if (dptr != nullptr) {
-            return FArrayBox::copyFromMem<run_on>(dstbox, dstcomp, numcomp, src);
+            return FArrayBox::copyFromMem<run_on, BUF>(dstbox, dstcomp, numcomp, src);
         } else {
-            return sizeof(CutFab::value_type)*static_cast<std::size_t>(dstbox.numPts()*numcomp);
+            return sizeof(BUF)*static_cast<std::size_t>(dstbox.numPts()*numcomp);
         }
     }
 
@@ -107,6 +107,18 @@ public:
     Array4<Real const> array (const MFIter& mfi) const noexcept;
     Array4<Real const> const_array (const MFIter& mfi) const noexcept;
 
+    MultiArray4<Real> arrays () noexcept {
+        return m_data.arrays();
+    }
+
+    MultiArray4<Real const> arrays () const noexcept {
+        return m_data.const_arrays();
+    }
+
+    MultiArray4<Real const> const_arrays () const noexcept {
+        return m_data.const_arrays();
+    }
+
     //! Is it OK to call operator[] with this MFIter?
     bool ok (const MFIter& mfi) const noexcept;
 
@@ -131,7 +143,7 @@ public:
 private:
 
     FabArray<CutFab> m_data;
-    const FabArray<EBCellFlagFab>* m_cellflags;
+    const FabArray<EBCellFlagFab>* m_cellflags = nullptr;
 
     void remove ();
 };

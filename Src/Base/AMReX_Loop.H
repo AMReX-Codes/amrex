@@ -211,30 +211,31 @@ void LoopConcurrentOnCpu (Box const& bx, int ncomp, F&& f) noexcept
     }}}}
 }
 
-#define AMREX_LOOP_3D(bx, i, j, k, block) \
-{ \
-    const auto amrex_i_lo = amrex::lbound(bx); \
-    const auto amrex_i_hi = amrex::ubound(bx); \
-    for (int k = amrex_i_lo.z; k <= amrex_i_hi.z; ++k) { \
-    for (int j = amrex_i_lo.y; j <= amrex_i_hi.y; ++j) { \
-    for (int i = amrex_i_lo.x; i <= amrex_i_hi.x; ++i) { \
-        AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0); \
-        block \
-    }}} \
+// Implementation of "constexpr for" based on
+// https://artificial-mind.net/blog/2020/10/31/constexpr-for
+//
+// Approximates what one would get from a compile-time
+// unrolling of the loop
+// for (int i = 0; i < N; ++i) {
+//    f(i);
+// }
+//
+// The mechanism is recursive: we evaluate f(i) at the current
+// i and then call the for loop at i+1. f() is a lambda function
+// that provides the body of the loop and takes only an integer
+// i as its argument.
+
+template<auto I, auto N, class F>
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+constexpr void constexpr_for (F&& f)
+{
+    if constexpr (I < N) {
+        f(std::integral_constant<decltype(I), I>());
+        constexpr_for<I+1, N>(f);
+    }
 }
 
-#define AMREX_LOOP_4D(bx, ncomp, i, j, k, n, block) \
-{ \
-    const auto amrex_i_lo = amrex::lbound(bx); \
-    const auto amrex_i_hi = amrex::ubound(bx); \
-    for (int n = 0; n < ncomp; ++n) { \
-    for (int k = amrex_i_lo.z; k <= amrex_i_hi.z; ++k) { \
-    for (int j = amrex_i_lo.y; j <= amrex_i_hi.y; ++j) { \
-    for (int i = amrex_i_lo.x; i <= amrex_i_hi.x; ++i) { \
-        AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0); \
-        block \
-    }}}} \
-}
+#include <AMReX_Loop.nolint.H>
 
 }
 

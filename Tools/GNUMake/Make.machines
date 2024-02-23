@@ -30,6 +30,17 @@ ifeq ($(NERSC_HOST), perlmutter)
   which_site := nersc
   which_computer := perlmutter
 endif
+
+# Test machines for Perlmutter.
+# Uses "which_computer=perlmutter" to get the same configuration.
+ifeq ($(NERSC_HOST), alvarez)
+  which_site := nersc
+  which_computer := perlmutter
+endif
+ifeq ($(NERSC_HOST), muller)
+  which_site := nersc
+  which_computer := perlmutter
+endif
 endif
 endif
 endif
@@ -46,7 +57,7 @@ ifdef OLCF_MODULEPATH_ROOT
   endif
 endif
 
-ifdef OLCF_ROCM_ROOT
+ifeq ($(LMOD_SITE_NAME),OLCF)
   ifeq ($(findstring spock, $(host_name)), spock)
     which_site := olcf
     which_computer := spock
@@ -56,11 +67,24 @@ ifdef OLCF_ROCM_ROOT
     which_site := olcf
     which_computer := crusher
   endif
+
+  ifeq ($(findstring frontier, $(host_name)), frontier)
+    which_site := olcf
+    which_computer := frontier
+  endif
 endif
 
-ifeq ($(findstring theta, $(host_name)), theta)
-  which_site := alcf
-  which_computer := theta
+ifeq ($(findstring alcf.anl.gov, $(host_name)),alcf.anl.gov)
+  ifeq ($(findstring theta, $(host_name)), theta)
+  ifneq ($(findstring thetagpu, $(host_name)), thetagpu)
+    which_site := alcf
+    which_computer := theta
+  endif
+  endif
+  ifeq ($(findstring polaris, $(host_name)), polaris)
+    which_site := alcf
+    which_computer := polaris
+  endif
 endif
 
 ifeq ($(findstring sierra, $(host_name)), sierra)
@@ -99,17 +123,19 @@ ifeq ($(findstring asterix, $(host_name)), asterix)
 endif
 
 ifeq ($(findstring aurora, $(host_name)), aurora)
+ifneq ($(findstring alcf.anl.gov, $(host_name)),alcf.anl.gov)
   which_site := hs
   which_computer := aurora
 endif
+endif
 
+ifeq ($(findstring kestrel, $(NREL_CLUSTER)), kestrel)
+  which_site := nrel
+  which_computer := kestrel
+endif
 ifeq ($(findstring eagle, $(NREL_CLUSTER)), eagle)
   which_site := nrel
   which_computer := eagle
-endif
-ifeq ($(findstring rhodes, $(NREL_CLUSTER)), rhodes)
-  which_site := nrel
-  which_computer := rhodes
 endif
 
 ifeq ($(findstring daint, $(host_name)), daint)

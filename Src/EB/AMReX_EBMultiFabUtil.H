@@ -15,7 +15,7 @@ namespace amrex
     void EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real>& vals);
 
     void EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val);
-    void EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int scomp, const int ncomp, const Vector<Real>& vals);
+    void EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, int scomp, int ncomp, const Vector<Real>& vals);
 
     void EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_fine,
                           const MultiFab& vfrac_fine, int scomp, int ncomp, const IntVect& ratio);
@@ -45,18 +45,22 @@ namespace amrex
     void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                                const Geometry& geom, bool already_on_centroids);
 
+    void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
+                               const Geometry& geom, bool already_on_centroids,
+                               const MultiFab& vel_eb);
+
     // Cell faces to cell centers
     void EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
                                         const Array<MultiFab const*,AMREX_SPACEDIM>& fmf);
 
     // Cell centers to cell centroids
-    void EB_interp_CC_to_Centroid (MultiFab& cntrd, const MultiFab& cc, int scomp, int dcomp, int ncomp, const Geometry& geom);
+    void EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int scomp, int dcomp, int ncomp, const Geometry& geom);
 
     // Cell centers to face centroids
     void EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
-                                       AMREX_D_DECL( MultiFab& fcx,
-                                                     MultiFab& fcy,
-                                                     MultiFab& fcz),
+                                       AMREX_D_DECL( MultiFab& fc_x,
+                                                     MultiFab& fc_y,
+                                                     MultiFab& fc_z),
                                        int scomp, int dcomp, int nc,
                                        const Geometry& geom,
                                        const amrex::Vector<amrex::BCRec>& a_bcs);

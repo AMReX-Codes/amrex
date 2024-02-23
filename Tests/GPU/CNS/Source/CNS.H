@@ -157,6 +157,8 @@ protected:
 
     static int do_reflux;
 
+    static int rk_order;
+
     static bool do_visc;
     static bool use_const_visc;
 

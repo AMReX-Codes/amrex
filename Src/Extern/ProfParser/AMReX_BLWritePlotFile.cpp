@@ -108,7 +108,7 @@ void WritePlotfile(const std::string         &pfversion,
         const BoxArray &ba = data[iLevel].boxArray();
         int nGrids = ba.size();
         char buf[64];
-        sprintf(buf, "Level_%d", iLevel);
+        snprintf(buf, sizeof buf, "Level_%d", iLevel);
 
         if(ParallelDescriptor::IOProcessor()) {
             os << iLevel << ' ' << nGrids << ' ' << time << '\n';
@@ -441,7 +441,7 @@ void WritePlotfile2DFrom3D(const std::string &pfversion,
         const BoxArray &ba = data[iLevel].boxArray();
         int nGrids = ba.size();
         char buf[64];
-        sprintf(buf, "Level_%d", iLevel);
+        snprintf(buf, sizeof buf, "Level_%d", iLevel);
 
         if(ParallelDescriptor::IOProcessor()) {
             os << iLevel << ' ' << nGrids << ' ' << time << '\n';

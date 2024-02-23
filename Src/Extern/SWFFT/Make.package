@@ -6,3 +6,6 @@ cEXE_headers +=  Error.h
 CEXE_headers += Distribution.H
 CEXE_headers += Dfft.H
 cEXE_sources += distribution.c
+
+cEXE_headers += verbosity.h
+CEXE_sources += verbosity.cpp

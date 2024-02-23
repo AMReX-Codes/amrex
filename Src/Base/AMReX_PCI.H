@@ -6,8 +6,8 @@ void
 FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
                              int scomp, int dcomp, int ncomp, CpOp op)
 {
-    int N_locs = thecpc.m_LocTags->size();
-    if (N_locs == 0) return;
+    auto const N_locs = static_cast<int>(thecpc.m_LocTags->size());
+    if (N_locs == 0) { return; }
     bool is_thread_safe = thecpc.m_threadsafe_loc;
 
     if (is_thread_safe)
@@ -89,10 +89,10 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
                              int scomp, int dcomp, int ncomp, CpOp op)
 {
     int N_locs = thecpc.m_LocTags->size();
-    if (N_locs == 0) return;
+    if (N_locs == 0) { return; }
     bool is_thread_safe = thecpc.m_threadsafe_loc;
 
-    typedef Array4CopyTag<value_type> TagType;
+    using TagType = Array4CopyTag<value_type>;
     Vector<TagType> loc_copy_tags;
     loc_copy_tags.reserve(N_locs);
 
@@ -139,19 +139,21 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     if (op == FabArrayBase::COPY)
     {
         if (is_thread_safe) {
-            detail::fab_to_fab<value_type>(loc_copy_tags, scomp, dcomp, ncomp,
-                                           detail::CellStore<value_type>());
+            detail::fab_to_fab<value_type, value_type>(loc_copy_tags, scomp,
+                dcomp, ncomp, detail::CellStore<value_type, value_type>());
         } else {
-            detail::fab_to_fab_atomic_cpy<value_type>(loc_copy_tags, scomp, dcomp, ncomp, masks);
+            detail::fab_to_fab_atomic_cpy<value_type, value_type>(
+                loc_copy_tags, scomp, dcomp, ncomp, masks);
         }
     }
     else
     {
         if (is_thread_safe) {
-            detail::fab_to_fab<value_type>(loc_copy_tags, scomp, dcomp, ncomp,
-                                           detail::CellAdd<value_type>());
+            detail::fab_to_fab<value_type, value_type>(loc_copy_tags, scomp,
+                dcomp, ncomp, detail::CellAdd<value_type, value_type>());
         } else {
-            detail::fab_to_fab_atomic_add<value_type>(loc_copy_tags, scomp, dcomp, ncomp, masks);
+            detail::fab_to_fab_atomic_add<value_type, value_type>(
+                loc_copy_tags, scomp, dcomp, ncomp, masks);
         }
     }
 }

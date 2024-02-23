@@ -15,9 +15,8 @@ class InterpolaterBoxCoarsener final
 {
 public:
     InterpolaterBoxCoarsener (InterpBase* mapper_, const IntVect& ratio_);
-    virtual ~InterpolaterBoxCoarsener ();
-    virtual Box doit (const Box& fine) const;
-    virtual BoxConverter* clone () const;
+    [[nodiscard]] Box doit (const Box& fine) const override;
+    [[nodiscard]] BoxConverter* clone () const override;
 private:
     InterpBase* mapper;
     IntVect ratio;
@@ -26,7 +25,12 @@ private:
 class InterpBase
 {
 public:
+    InterpBase () = default;
     virtual ~InterpBase () = default;
+    InterpBase (InterpBase const&) noexcept = default;
+    InterpBase (InterpBase &&) noexcept = default;
+    InterpBase& operator= (InterpBase const&) noexcept = default;
+    InterpBase& operator= (InterpBase &&) noexcept = default;
 
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.

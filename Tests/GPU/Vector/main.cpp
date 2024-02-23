@@ -89,12 +89,12 @@ void async_test()
     // Async Vector now out of scope. Still completes correctly.
 
 #ifdef AMREX_USE_GPU
-    amrex::Print() << "Async Synching -- should print first." << std::endl;
+    amrex::Print() << "Async Syncing -- should print first." << std::endl;
 #else
-    amrex::Print() << "Async Synching -- should print second." << std::endl;
+    amrex::Print() << "Async Syncing -- should print second." << std::endl;
 #endif
 
-    Gpu::Device::synchronize();
+    Gpu::Device::streamSynchronize();
 }
 
 int main (int argc, char* argv[])
@@ -113,4 +113,3 @@ int main (int argc, char* argv[])
     }
     amrex::Finalize();
 }
-

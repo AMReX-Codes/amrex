@@ -26,8 +26,8 @@ EB_set_covered (MultiFab& mf, Real val)
 void
 EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, Real val)
 {
-    const auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
-    if (factory == nullptr) return;
+    const auto *const factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
+    if (factory == nullptr) { return; }
     const auto& flags = factory->getMultiEBCellFlagFab();
 
     AMREX_ALWAYS_ASSERT(mf.ixType().cellCentered() || mf.ixType().nodeCentered());
@@ -68,8 +68,8 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, const Vector<Real>& vals)
 void
 EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real>& a_vals)
 {
-    const auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
-    if (factory == nullptr) return;
+    const auto *const factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
+    if (factory == nullptr) { return; }
     const auto& flags = factory->getMultiEBCellFlagFab();
 
     AMREX_ALWAYS_ASSERT(mf.ixType().cellCentered() || mf.ixType().nodeCentered());
@@ -108,8 +108,8 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real
 void
 EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
 {
-    const auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(umac[0]->Factory()));
-    if (factory == nullptr) return;
+    const auto *const factory = dynamic_cast<EBFArrayBoxFactory const*>(&(umac[0]->Factory()));
+    if (factory == nullptr) { return; }
 
     const auto& area = factory->getAreaFrac();
     const auto& flags = factory->getMultiEBCellFlagFab();
@@ -219,8 +219,8 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
 void
 EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int scomp, const int ncomp, const Vector<Real>& a_vals )
 {
-    const auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(umac[0]->Factory()));
-    if (factory == nullptr) return;
+    const auto *const factory = dynamic_cast<EBFArrayBoxFactory const*>(&(umac[0]->Factory()));
+    if (factory == nullptr) { return; }
 
     const auto& area = factory->getAreaFrac();
     const auto& flags = factory->getMultiEBCellFlagFab();
@@ -299,7 +299,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int sco
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
                         for (int i = lo.x; i <= hi.x; ++i) {
-                            if (ax(i,j,k) == 0.0) u(i,j,k,n) = vals[n];
+                            if (ax(i,j,k) == Real(0.0)) { u(i,j,k,n) = vals[n]; }
                         }}}
                     }
                 }
@@ -311,7 +311,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int sco
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
                         for (int i = lo.x; i <= hi.x; ++i) {
-                            if (ay(i,j,k) == 0.0) v(i,j,k,n) = vals[n];
+                            if (ay(i,j,k) == Real(0.0)) { v(i,j,k,n) = vals[n]; }
                         }}}
                     }
                 }
@@ -323,7 +323,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int sco
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
                         for (int i = lo.x; i <= hi.x; ++i) {
-                            if (az(i,j,k) == 0.0) w(i,j,k,n) = vals[n];
+                            if (az(i,j,k) == Real(0.0)) { w(i,j,k,n) = vals[n]; }
                         }}}
                     }
                 }
@@ -410,8 +410,8 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
         const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(S_fine.Factory());
         const auto& vfrac_fine = factory.getVolFrac();
 
-        BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-        BL_ASSERT(S_crse.is_cell_centered() && S_fine.is_cell_centered());
+        AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
+        AMREX_ASSERT(S_crse.is_cell_centered() && S_fine.is_cell_centered());
 
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 
@@ -642,7 +642,7 @@ void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
         if (isMFIterSafe(fine, crse))
         {
             MFItInfo info;
-            if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
+            if (Gpu::notInLaunchRegion()) { info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -712,7 +712,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
 
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
         MFItInfo info;
-        if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -758,6 +758,50 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
     }
 }
 
+void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
+                           const Geometry& geom, bool already_on_centroids,
+                           const MultiFab& vel_eb)
+{
+    AMREX_ASSERT(divu.hasEBFabFactory());
+
+    EB_computeDivergence(divu, umac, geom, already_on_centroids);
+
+    // Add EB flow contribution
+    const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(divu.Factory());
+    const auto& flags = factory.getMultiEBCellFlagFab();
+    const auto& vfrac = factory.getVolFrac();
+    const auto& bnorm = factory.getBndryNormal();
+    const auto& barea = factory.getBndryArea();
+
+    MFItInfo info;
+    if (Gpu::notInLaunchRegion()) { info.EnableTiling().SetDynamic(true); }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(divu,info); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        const auto& flagfab = flags[mfi];
+
+        if (flagfab.getType(bx) == FabType::singlevalued) {
+            const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+
+            Array4<Real> const& divuarr = divu.array(mfi);
+            Array4<Real const> const& vel_eb_arr = vel_eb.const_array(mfi);
+            Array4<Real const> const& vfracarr = vfrac.const_array(mfi);
+            Array4<Real const> const& bnormarr = bnorm.const_array(mfi);
+            Array4<EBCellFlag const> const& flagarr = flagfab.const_array();
+            Array4<Real const> const& bareaarr = barea.const_array(mfi);
+
+            AMREX_HOST_DEVICE_FOR_4D(bx,divu.nComp(),i,j,k,n,
+            {
+                eb_add_divergence_from_flow(i,j,k,n,divuarr,vel_eb_arr,
+                    flagarr,vfracarr,bnormarr,bareaarr,dxinv);
+            });
+        }
+    }
+}
+
 void
 EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
                                const Array<MultiFab const*,AMREX_SPACEDIM>& fmf)
@@ -775,7 +819,7 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
         const auto& area = factory.getAreaFrac();
 
         MFItInfo info;
-        if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -821,7 +865,7 @@ EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int scomp, int dco
     const auto& loc = factory.getCentroid();
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -884,9 +928,9 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
     const int nghost(4);
 
    // Initialize edge state
-    AMREX_D_TERM(fc_x.setVal(1e40,dcomp,ncomp);,
-                 fc_y.setVal(1e40,dcomp,ncomp);,
-                 fc_z.setVal(1e40,dcomp,ncomp));
+    AMREX_D_TERM(fc_x.setVal(1e30_rt,dcomp,ncomp);,
+                 fc_y.setVal(1e30_rt,dcomp,ncomp);,
+                 fc_z.setVal(1e30_rt,dcomp,ncomp));
 
     BCRec const* d_bcs;
 #ifdef AMREX_USE_GPU
@@ -895,7 +939,6 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
     {
         Gpu::copy(Gpu::hostToDevice, a_bcs.begin(), a_bcs.begin()+ncomp, dv_bcs.begin());
         d_bcs = dv_bcs.dataPtr();
-        Gpu::synchronize();
     }
     else
 #endif
@@ -904,7 +947,7 @@ EB_interp_CC_to_FaceCentroid (const MultiFab& cc,
     }
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1034,7 +1077,6 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
     {
         Gpu::copy(Gpu::hostToDevice, a_bcs.begin(), a_bcs.begin()+ncomp, dv_bcs.begin());
         d_bcs = dv_bcs.dataPtr();
-        Gpu::synchronize();
     }
     else
 #endif
@@ -1043,7 +1085,7 @@ EB_interp_CellCentroid_to_FaceCentroid (const MultiFab& phi_centroid,
     }
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

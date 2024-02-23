@@ -24,7 +24,7 @@ struct AssignGrid
     GpuArray<Real, AMREX_SPACEDIM> m_dxi;
 
     AMREX_GPU_HOST_DEVICE
-    AssignGrid () {}
+    AssignGrid () = default;
 
     AssignGrid (BinIteratorFactory a_bif,
                 const IntVect& a_bins_lo, const IntVect& a_bins_hi, const IntVect& a_bin_size,
@@ -44,11 +44,11 @@ struct AssignGrid
             m_num_bins.z = amrex::max(m_num_bins.z, 1);
         }
 
-    template <typename P>
+    template <typename P, typename Assignor = DefaultAssignor>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int operator() (const P& p, int nGrow=0) const noexcept
+    int operator() (const P& p, int nGrow=0, Assignor&& assignor = Assignor{}) const noexcept
     {
-        const auto iv = getParticleCell(p, m_plo, m_dxi, m_domain);
+        const auto iv = assignor(p, m_plo, m_dxi, m_domain);
         return this->operator()(iv, nGrow);
     }
 
@@ -63,21 +63,36 @@ struct AssignGrid
         int ix_hi = amrex::min((lo.x + nGrow - m_lo.x) / m_bin_size.x, m_num_bins.x-1);
         int iy_hi = amrex::min((lo.y + nGrow - m_lo.y) / m_bin_size.y, m_num_bins.y-1);
         int iz_hi = amrex::min((lo.z + nGrow - m_lo.z) / m_bin_size.z, m_num_bins.z-1);
-
+        int loc = -1;
         for (int ii = ix_lo; ii <= ix_hi; ++ii) {
             for (int jj = iy_lo; jj <= iy_hi; ++jj) {
                 for (int kk = iz_lo; kk <= iz_hi; ++kk) {
                     int index = (ii * m_num_bins.y + jj) * m_num_bins.z + kk;
                     for (const auto& nbor : m_bif.getBinIterator(index)) {
                         Box bx = nbor.second;
-                        bx.grow(nGrow);
-                        if (bx.contains(iv)) return nbor.first;
+                        if (bx.contains(iv)) {
+                          return nbor.first;
+                        }
+                        Box gbx = bx;
+                        gbx.grow(nGrow);
+                        if (gbx.contains(iv)) {
+                           if (loc < 0) {
+                             loc = nbor.first;
+                           }
+                           // Prefer particle not in corner ghost cells
+                           for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                               Box gdbx = bx;
+                               gdbx.grow(dir, nGrow);
+                               if (gdbx.contains(iv)) {
+                                  loc = nbor.first;
+                               }
+                           }
+                        }
                     }
                 }
             }
         }
-
-        return -1;
+        return loc;
     }
 };
 
@@ -88,19 +103,19 @@ public:
 
     using BinIteratorFactory = typename Bins::BinIteratorFactory;
 
-    ParticleLocator () : m_defined(false) {}
+    ParticleLocator ()  = default;
 
     void build (const BoxArray& ba, const Geometry& geom)
     {
         m_defined = true;
         m_ba = ba;
         m_geom = geom;
-        int num_boxes = ba.size();
+        int num_boxes = static_cast<int>(ba.size());
         m_host_boxes.resize(0);
-        for (int i = 0; i < num_boxes; ++i) m_host_boxes.push_back(ba[i]);
+        for (int i = 0; i < num_boxes; ++i) { m_host_boxes.push_back(ba[i]); }
 
         m_device_boxes.resize(num_boxes);
-        Gpu::copy(Gpu::hostToDevice, m_host_boxes.begin(), m_host_boxes.end(), m_device_boxes.begin());
+        Gpu::copyAsync(Gpu::hostToDevice, m_host_boxes.begin(), m_host_boxes.end(), m_device_boxes.begin());
 
         // compute the lo, hi and the max box size in each direction
         ReduceOps<AMREX_D_DECL(ReduceOpMin, ReduceOpMin, ReduceOpMin),
@@ -111,7 +126,7 @@ public:
                    AMREX_D_DECL(int, int, int)> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
-        const auto boxes_ptr = m_device_boxes.dataPtr();
+        auto *const boxes_ptr = m_device_boxes.dataPtr();
         reduce_op.eval(num_boxes, reduce_data,
         [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
         {
@@ -163,13 +178,13 @@ public:
 
     bool isValid (const BoxArray& ba) const noexcept
     {
-        if (m_defined) return BoxArray::SameRefs(m_ba, ba);
+        if (m_defined) { return BoxArray::SameRefs(m_ba, ba); }
         return false;
     }
 
 protected:
 
-    bool m_defined;
+    bool m_defined{false};
 
     BoxArray m_ba;
     Geometry m_geom;
@@ -195,23 +210,24 @@ struct AmrAssignGrid
         : m_funcs(a_funcs), m_size(a_size)
         {}
 
-    template <typename P>
+    template <typename P, typename Assignor = DefaultAssignor>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    GpuTuple<int, int> operator() (const P& p, int lev_min=-1, int lev_max=-1, int nGrow=0) const noexcept
+    GpuTuple<int, int> operator() (const P& p, int lev_min=-1, int lev_max=-1, int nGrow=0,
+                                   Assignor&& assignor = {}) const noexcept
     {
         lev_min = (lev_min == -1) ? 0 : lev_min;
         lev_max = (lev_max == -1) ? m_size - 1 : lev_max;
 
         for (int lev = lev_max; lev >= lev_min; --lev)
         {
-            int grid = m_funcs[lev](p);
-            if (grid >= 0) return makeTuple(grid, lev);
+            int grid = m_funcs[lev](p, 0, assignor);
+            if (grid >= 0) { return makeTuple(grid, lev); }
         }
 
         for (int lev = lev_min; lev >= lev_min; --lev)
         {
-            int grid = m_funcs[lev](p, nGrow);
-            if (grid >= 0) return makeTuple(grid, lev);
+            int grid = m_funcs[lev](p, nGrow, assignor);
+            if (grid >= 0) { return makeTuple(grid, lev); }
         }
 
         return makeTuple(-1, -1);
@@ -231,7 +247,7 @@ private:
 
 public:
 
-    AmrParticleLocator() {}
+    AmrParticleLocator() = default;
 
     AmrParticleLocator(const Vector<BoxArray>& a_ba,
                        const Vector<Geometry>& a_geom)
@@ -248,7 +264,7 @@ public:
                 const Vector<Geometry>& a_geom)
     {
         m_defined = true;
-        int num_levels = a_ba.size();
+        int num_levels = static_cast<int>(a_ba.size());
         m_locators.resize(num_levels);
         m_grid_assignors.resize(num_levels);
 #ifdef AMREX_USE_GPU
@@ -258,9 +274,9 @@ public:
             m_locators[lev].build(a_ba[lev], a_geom[lev]);
             h_grid_assignors[lev] = m_locators[lev].getGridAssignor();
         }
-        Gpu::htod_memcpy(m_grid_assignors.data(), h_grid_assignors.data(),
-                         sizeof(AssignGrid<BinIteratorFactory>)*num_levels);
-        Gpu::synchronize();
+        Gpu::htod_memcpy_async(m_grid_assignors.data(), h_grid_assignors.data(),
+                               sizeof(AssignGrid<BinIteratorFactory>)*num_levels);
+        Gpu::streamSynchronize();
 #else
         for (int lev = 0; lev < num_levels; ++lev)
         {
@@ -283,14 +299,15 @@ public:
         build(ba, geom);
     }
 
-    bool isValid (const Vector<BoxArray>& a_ba) const
+    [[nodiscard]] bool isValid (const Vector<BoxArray>& a_ba) const
     {
-        if ( !m_defined || (m_locators.size() == 0) ||
-             (m_locators.size() != a_ba.size()) ) return false;
+        if ( !m_defined || (m_locators.empty()) ||
+             (m_locators.size() != a_ba.size()) ) { return false; }
         bool all_valid = true;
         int num_levels = m_locators.size();
-        for (int lev = 0; lev < num_levels; ++lev)
+        for (int lev = 0; lev < num_levels; ++lev) {
             all_valid = all_valid && m_locators[lev].isValid(a_ba[lev]);
+        }
         return all_valid;
     }
 
@@ -298,8 +315,9 @@ public:
     {
         Vector<BoxArray> ba;
         int num_levels = a_gdb->finestLevel()+1;
-        for (int lev = 0; lev < num_levels; ++lev)
+        for (int lev = 0; lev < num_levels; ++lev) {
             ba.push_back(a_gdb->ParticleBoxArray(lev));
+        }
         return this->isValid(ba);
     }
 
@@ -313,9 +331,9 @@ public:
             m_locators[lev].setGeometry(a_gdb->Geom(lev));
             h_grid_assignors[lev] = m_locators[lev].getGridAssignor();
         }
-        Gpu::htod_memcpy(m_grid_assignors.data(), h_grid_assignors.data(),
-                         sizeof(AssignGrid<BinIteratorFactory>)*num_levels);
-        Gpu::synchronize();
+        Gpu::htod_memcpy_async(m_grid_assignors.data(), h_grid_assignors.data(),
+                               sizeof(AssignGrid<BinIteratorFactory>)*num_levels);
+        Gpu::streamSynchronize();
 #else
         for (int lev = 0; lev < num_levels; ++lev)
         {
@@ -325,7 +343,7 @@ public:
 #endif
     }
 
-    AmrAssignGrid<BinIteratorFactory> getGridAssignor () const noexcept
+    [[nodiscard]] AmrAssignGrid<BinIteratorFactory> getGridAssignor () const noexcept
     {
         AMREX_ASSERT(m_defined);
         return AmrAssignGrid<BinIteratorFactory>(m_grid_assignors.dataPtr(), m_locators.size());

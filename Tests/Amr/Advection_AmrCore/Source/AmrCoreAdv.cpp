@@ -2,7 +2,6 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_FillPatchUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_PhysBCFunct.H>
@@ -53,8 +52,8 @@ AmrCoreAdv::AmrCoreAdv ()
 
 /*
     // walls (Neumann)
-    int bc_lo[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
-    int bc_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
+    int bc_lo[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
+    int bc_hi[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
 */
 
     bcs.resize(1);     // Setup 1-component
@@ -87,11 +86,13 @@ AmrCoreAdv::AmrCoreAdv ()
     // with the lev/lev-1 interface (and has grid spacing associated with lev-1)
     // therefore flux_reg[0] is never actually used in the reflux operation
     flux_reg.resize(nlevs_max+1);
+
+    // fillpatcher[lev] is for filling data on level lev using the data on
+    // lev-1 and lev.
+    fillpatcher.resize(nlevs_max+1);
 }
 
-AmrCoreAdv::~AmrCoreAdv ()
-{
-}
+AmrCoreAdv::~AmrCoreAdv () = default;
 
 // advance solution to final time
 void
@@ -108,10 +109,11 @@ AmrCoreAdv::Evolve ()
 
         int lev = 0;
         int iteration = 1;
-        if (do_subcycle)
+        if (do_subcycle) {
             timeStepWithSubcycling(lev, cur_time, iteration);
-        else
+        } else {
             timeStepNoSubcycling(cur_time, iteration);
+        }
 
         cur_time += dt[0];
 
@@ -143,7 +145,7 @@ AmrCoreAdv::Evolve ()
         }
 #endif
 
-        if (cur_time >= stop_time - 1.e-6*dt[0]) break;
+        if (cur_time >= stop_time - 1.e-6*dt[0]) { break; }
     }
 
     if (plot_int > 0 && istep[0] > last_plot_file_step) {
@@ -155,22 +157,26 @@ AmrCoreAdv::Evolve ()
 void
 AmrCoreAdv::InitData ()
 {
-    if (restart_chkfile == "") {
+    if (restart_chkfile.empty()) {
         // start simulation from the beginning
         const Real time = 0.0;
         InitFromScratch(time);
         AverageDown();
 
+#ifdef AMREX_PARTICLES
+        if (do_tracers) {
+            init_particles();
+        }
+#endif
+
         if (chk_int > 0) {
             WriteCheckpointFile();
         }
-
     }
     else {
         // restart from a checkpoint
         ReadCheckpointFile();
     }
-
     if (plot_int > 0) {
         WritePlotFile();
     }
@@ -184,10 +190,10 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
                                     const DistributionMapping& dm)
 {
     const int ncomp = phi_new[lev-1].nComp();
-    const int nghost = phi_new[lev-1].nGrow();
+    const int ng = phi_new[lev-1].nGrow();
 
-    phi_new[lev].define(ba, dm, ncomp, nghost);
-    phi_old[lev].define(ba, dm, ncomp, nghost);
+    phi_new[lev].define(ba, dm, ncomp, ng);
+    phi_old[lev].define(ba, dm, ncomp, ng);
 
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
@@ -195,7 +201,7 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
     // This clears the old MultiFab and allocates the new one
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
     {
-        facevel[lev][idim] = MultiFab(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, 1);
+        facevel[lev][idim] = MultiFab(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, nghost);
     }
 
     if (lev > 0 && do_reflux) {
@@ -213,12 +219,13 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
                          const DistributionMapping& dm)
 {
     const int ncomp = phi_new[lev].nComp();
-    const int nghost = phi_new[lev].nGrow();
+    const int ng = phi_new[lev].nGrow();
 
-    MultiFab new_state(ba, dm, ncomp, nghost);
-    MultiFab old_state(ba, dm, ncomp, nghost);
+    MultiFab new_state(ba, dm, ncomp, ng);
+    MultiFab old_state(ba, dm, ncomp, ng);
 
-    FillPatch(lev, time, new_state, 0, ncomp);
+    // Must use fillpatch_function
+    FillPatch(lev, time, new_state, 0, ncomp, FillPatchType::fillpatch_function);
 
     std::swap(new_state, phi_new[lev]);
     std::swap(old_state, phi_old[lev]);
@@ -229,7 +236,7 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
     // This clears the old MultiFab and allocates the new one
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
     {
-        facevel[lev][idim] = MultiFab(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, 1);
+        facevel[lev][idim] = MultiFab(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, nghost);
     }
 
     if (lev > 0 && do_reflux) {
@@ -245,6 +252,7 @@ AmrCoreAdv::ClearLevel (int lev)
     phi_new[lev].clear();
     phi_old[lev].clear();
     flux_reg[lev].reset(nullptr);
+    fillpatcher[lev].reset(nullptr);
 }
 
 // Make a new level from scratch using provided BoxArray and DistributionMapping.
@@ -254,10 +262,10 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
                                           const DistributionMapping& dm)
 {
     const int ncomp = 1;
-    const int nghost = 0;
+    const int ng = 0;
 
-    phi_new[lev].define(ba, dm, ncomp, nghost);
-    phi_old[lev].define(ba, dm, ncomp, nghost);
+    phi_new[lev].define(ba, dm, ncomp, ng);
+    phi_old[lev].define(ba, dm, ncomp, ng);
 
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
@@ -265,7 +273,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     // This clears the old MultiFab and allocates the new one
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
     {
-        facevel[lev][idim] = MultiFab(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, 1);
+        facevel[lev][idim] = MultiFab(amrex::convert(ba,IntVect::TheDimensionVector(idim)), dm, 1, nghost);
     }
 
     if (lev > 0 && do_reflux) {
@@ -317,7 +325,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
         }
     }
 
-    if (lev >= phierr.size()) return;
+    if (lev >= phierr.size()) { return; }
 
 //    const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -373,6 +381,13 @@ AmrCoreAdv::ReadParameters ()
         pp.query("do_reflux", do_reflux);
         pp.query("do_subcycle", do_subcycle);
     }
+
+#ifdef AMREX_PARTICLES
+    {
+        ParmParse pp("amr");
+        pp.query("do_tracers", do_tracers);
+    }
+#endif
 }
 
 // set covered coarse cells to be the average of overlying fine cells
@@ -399,7 +414,8 @@ AmrCoreAdv::AverageDownTo (int crse_lev)
 // compute a new multifab by coping in phi from valid region and filling ghost cells
 // works for single level and 2-level cases (fill fine grid ghost by interpolating from coarse)
 void
-AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
+AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp,
+                       FillPatchType fptype)
 {
     if (lev == 0)
     {
@@ -431,16 +447,31 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 
         Interpolater* mapper = &cell_cons_interp;
 
+        if (fptype == FillPatchType::fillpatch_class) {
+            if (fillpatcher[lev] == nullptr) {
+                fillpatcher[lev] = std::make_unique<FillPatcher<MultiFab>>
+                    (boxArray(lev  ), DistributionMap(lev  ), Geom(lev  ),
+                     boxArray(lev-1), DistributionMap(lev-1), Geom(lev-1),
+                     mf.nGrowVect(), mf.nComp(), mapper);
+            }
+        }
+
         if(Gpu::inLaunchRegion())
         {
             GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(AmrCoreFill{});
             PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > cphysbc(geom[lev-1],bcs,gpu_bndry_func);
             PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > fphysbc(geom[lev],bcs,gpu_bndry_func);
 
-            amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
-                                      0, icomp, ncomp, geom[lev-1], geom[lev],
-                                      cphysbc, 0, fphysbc, 0, refRatio(lev-1),
-                                      mapper, bcs, 0);
+            if (fptype == FillPatchType::fillpatch_class) {
+                fillpatcher[lev]->fill(mf, mf.nGrowVect(), time,
+                                       cmf, ctime, fmf, ftime, 0, icomp, ncomp,
+                                       cphysbc, 0, fphysbc, 0, bcs, 0);
+            } else {
+                amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
+                                          0, icomp, ncomp, geom[lev-1], geom[lev],
+                                          cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+                                          mapper, bcs, 0);
+            }
         }
         else
         {
@@ -448,10 +479,16 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
             PhysBCFunct<CpuBndryFuncFab> cphysbc(geom[lev-1],bcs,bndry_func);
             PhysBCFunct<CpuBndryFuncFab> fphysbc(geom[lev],bcs,bndry_func);
 
-            amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
-                                      0, icomp, ncomp, geom[lev-1], geom[lev],
-                                      cphysbc, 0, fphysbc, 0, refRatio(lev-1),
-                                      mapper, bcs, 0);
+            if (fptype == FillPatchType::fillpatch_class) {
+                fillpatcher[lev]->fill(mf, mf.nGrowVect(), time,
+                                       cmf, ctime, fmf, ftime, 0, icomp, ncomp,
+                                       cphysbc, 0, fphysbc, 0, bcs, 0);
+            } else {
+                amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
+                                          0, icomp, ncomp, geom[lev-1], geom[lev],
+                                          cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+                                          mapper, bcs, 0);
+            }
         }
     }
 }
@@ -494,21 +531,18 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
     }
 }
 
-// utility to copy in data from phi_old and/or phi_new into another multifab
 void
 AmrCoreAdv::GetData (int lev, Real time, Vector<MultiFab*>& data, Vector<Real>& datatime)
 {
     data.clear();
     datatime.clear();
 
-    const Real teps = (t_new[lev] - t_old[lev]) * 1.e-3;
-
-    if (time > t_new[lev] - teps && time < t_new[lev] + teps)
+    if (amrex::almostEqual(time, t_new[lev], 5))
     {
         data.push_back(&phi_new[lev]);
         datatime.push_back(t_new[lev]);
     }
-    else if (time > t_old[lev] - teps && time < t_old[lev] + teps)
+    else if (amrex::almostEqual(time, t_old[lev], 5))
     {
         data.push_back(&phi_old[lev]);
         datatime.push_back(t_old[lev]);
@@ -556,6 +590,12 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
                 for (int k = old_finest+1; k <= finest_level; ++k) {
                     dt[k] = dt[k-1] / MaxRefRatio(k-1);
                 }
+
+#ifdef AMREX_PARTICLES
+                if (do_tracers) {
+                    TracerPC->Redistribute(lev);
+                }
+#endif
             }
         }
     }
@@ -575,6 +615,13 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
 
     DefineVelocityAtLevel(lev, t_nph);
     AdvancePhiAtLevel(lev, time, dt[lev], iteration, nsubsteps[lev]);
+
+
+#ifdef AMREX_PARTICLES
+    if (do_tracers) {
+        TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[lev]);
+    }
+#endif
 
     ++istep[lev];
 
@@ -599,7 +646,24 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
         }
 
         AverageDownTo(lev); // average lev+1 down to lev
+
+        fillpatcher[lev+1].reset(); // Because the data on lev have changed.
     }
+
+
+#ifdef AMREX_PARTICLES
+    if (do_tracers) {
+        int redistribute_ngrow = 0;
+        if ((iteration < nsubsteps[lev]) || (lev == 0)){
+            if (lev == 0){
+                redistribute_ngrow = 0;
+            } else {
+                redistribute_ngrow = iteration;
+            }
+            TracerPC->Redistribute(lev, TracerPC->finestLevel(), redistribute_ngrow);
+        }
+    }
+#endif
 
 }
 
@@ -612,6 +676,13 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         if (istep[0] % regrid_int == 0)
         {
             regrid(0, time);
+
+#ifdef AMREX_PARTICLES
+            if (do_tracers)
+            {
+                    TracerPC->Redistribute();
+            }
+#endif
         }
     }
 
@@ -624,14 +695,29 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         }
     }
 
-    DefineVelocityAllLevels(time);
+    DefineVelocityAllLevels(time+0.5_rt*dt[0]);
     AdvancePhiAllLevels (time, dt[0], iteration);
+
+#ifdef AMREX_PARTICLES
+    if (do_tracers) {
+        for (int lev = 0; lev <= finest_level; lev++)
+        {
+            TracerPC->AdvectWithUmac(facevel[lev].data(),lev,dt[0]);
+        }
+        TracerPC->Redistribute();
+    }
+#endif
 
     // Make sure the coarser levels are consistent with the finer levels
     AverageDown ();
 
-    for (int lev = 0; lev <= finest_level; lev++)
+    for (auto& fp : fillpatcher) {
+        fp.reset(); // Because the data have changed.
+    }
+
+    for (int lev = 0; lev <= finest_level; lev++) {
         ++istep[lev];
+    }
 
     if (Verbose())
     {
@@ -641,7 +727,6 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
             amrex::Print() << "Advanced " << CountCells(lev) << " cells" << std::endl;
         }
     }
-
 }
 
 // a wrapper for EstTimeStep
@@ -654,7 +739,7 @@ AmrCoreAdv::ComputeDt ()
     {
         dt_tmp[lev] = EstTimeStep(lev, t_new[lev]);
     }
-    ParallelDescriptor::ReduceRealMin(&dt_tmp[0], dt_tmp.size());
+    ParallelDescriptor::ReduceRealMin(dt_tmp.data(), int(dt_tmp.size()));
 
     constexpr Real change_max = 1.1;
     Real dt_0 = dt_tmp[0];
@@ -690,7 +775,7 @@ AmrCoreAdv::EstTimeStep (int lev, Real time)
 
     const Real* dx  =  geom[lev].CellSize();
 
-    if (time == 0.0) {
+    if (time == Real(0.0)) {
        DefineVelocityAtLevel(lev,time);
     } else {
        Real t_nph_predicted = time + 0.5 * dt[lev];
@@ -728,7 +813,7 @@ AmrCoreAdv::PlotFileMF () const
 
 // set plotfile variable names
 Vector<std::string>
-AmrCoreAdv::PlotFileVarNames () const
+AmrCoreAdv::PlotFileVarNames ()
 {
     return {"phi"};
 }
@@ -745,6 +830,12 @@ AmrCoreAdv::WritePlotFile () const
 
     amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf, varnames,
                                    Geom(), t_new[0], istep, refRatio());
+
+#ifdef AMREX_PARTICLES
+        if (do_tracers) {
+            TracerPC->WritePlotFile(plotfilename, "particles");
+        }
+#endif
 }
 
 void
@@ -826,7 +917,33 @@ AmrCoreAdv::WriteCheckpointFile () const
                     amrex::MultiFabFileFullPrefix(lev, checkpointname, "Level_", "phi"));
    }
 
+#ifdef AMREX_PARTICLES
+            if (do_tracers) {
+                TracerPC->Checkpoint(checkpointname, "particles", true);
+            }
+#endif
+
 }
+
+#ifdef AMREX_PARTICLES
+void
+AmrCoreAdv::init_particles ()
+{
+  if (do_tracers)
+    {
+      BL_ASSERT(TracerPC == nullptr);
+
+      TracerPC = std::make_unique<AmrTracerParticleContainer>(this);
+
+      AmrTracerParticleContainer::ParticleInitData pdata = {{AMREX_D_DECL(0.0, 0.0, 0.0)},{},{},{}};
+
+      TracerPC->SetVerbose(0);
+      TracerPC->InitOnePerCell(0.5, 0.5, 0.5, pdata);
+      TracerPC->Redistribute();
+    }
+}
+#endif
+
 
 namespace {
 // utility to skip to next line in Header
@@ -908,9 +1025,9 @@ AmrCoreAdv::ReadCheckpointFile ()
 
         // build MultiFab and FluxRegister data
         int ncomp = 1;
-        int nghost = 0;
-        phi_old[lev].define(grids[lev], dmap[lev], ncomp, nghost);
-        phi_new[lev].define(grids[lev], dmap[lev], ncomp, nghost);
+        int ng = 0;
+        phi_old[lev].define(grids[lev], dmap[lev], ncomp, ng);
+        phi_new[lev].define(grids[lev], dmap[lev], ncomp, ng);
 
         if (lev > 0 && do_reflux) {
             flux_reg[lev] = std::make_unique<FluxRegister>(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp);
@@ -928,5 +1045,14 @@ AmrCoreAdv::ReadCheckpointFile ()
         VisMF::Read(phi_new[lev],
                     amrex::MultiFabFileFullPrefix(lev, restart_chkfile, "Level_", "phi"));
     }
+
+#ifdef AMREX_PARTICLES
+    if (do_tracers) {
+        BL_ASSERT(TracerPC == nullptr);
+        TracerPC = std::make_unique<AmrTracerParticleContainer>(this);
+        TracerPC->Restart(this->restart_chkfile, "particles");
+    }
+#endif
+
 
 }

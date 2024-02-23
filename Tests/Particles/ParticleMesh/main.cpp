@@ -33,9 +33,7 @@ void testParticleMesh (TestParams& parms)
   const Box domain(domain_lo, domain_hi);
 
   // This sets the boundary conditions to be doubly or triply periodic
-  int is_per[AMREX_SPACEDIM];
-  for (int i = 0; i < AMREX_SPACEDIM; i++)
-    is_per[i] = 1;
+  int is_per[] = {AMREX_D_DECL(1,1,1)};
   Geometry geom(domain, &real_box, CoordSys::cartesian, is_per);
 
   BoxArray ba(domain);
@@ -52,13 +50,14 @@ void testParticleMesh (TestParams& parms)
   iMultiFab partiMF(ba, dmap, 1 + AMREX_SPACEDIM, 1);
   partiMF.setVal(0);
 
-  typedef ParticleContainer<1 + 2*AMREX_SPACEDIM, 1> MyParticleContainer;
+  using MyParticleContainer = ParticleContainer<1 + 2*AMREX_SPACEDIM, 1>;
   MyParticleContainer myPC(geom, dmap, ba);
   myPC.SetVerbose(false);
 
   int num_particles = parms.nppc * parms.nx * parms.ny * parms.nz;
-  if (ParallelDescriptor::IOProcessor())
+  if (ParallelDescriptor::IOProcessor()) {
     std::cout << "Total number of particles    : " << num_particles << '\n' << '\n';
+  }
 
   bool serialize = true;
   int iseed = 451;
@@ -71,9 +70,10 @@ void testParticleMesh (TestParams& parms)
   const auto plo = geom.ProbLoArray();
   const auto dxi = geom.InvCellSizeArray();
   amrex::ParticleToMesh(myPC, partMF, 0,
-      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
-                            amrex::Array4<amrex::Real> const& rho)
+                        [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleTileType::ConstParticleTileDataType& ptd, int i,
+                                              amrex::Array4<amrex::Real> const& rho)
       {
+          auto p = ptd.m_aos[i];
           ParticleInterpolator::Linear interp(p, plo, dxi);
 
           interp.ParticleToMesh(p, rho, 0, 0, 1,
@@ -108,7 +108,7 @@ void testParticleMesh (TestParams& parms)
                   [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& part,
                                         int comp, amrex::Real val)
                   {
-                      part.rdata(comp) += val;
+                      part.rdata(comp) += ParticleReal(val);
                   });
       });
 
@@ -127,9 +127,10 @@ void testParticleMesh (TestParams& parms)
       });
 
   amrex::MeshToParticle(myPC, partiMF, 0,
-      [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& p,
-                            amrex::Array4<const int> const& count)
+                        [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleTileType::ParticleTileDataType& ptd, int ip,
+                                              amrex::Array4<const int> const& count)
       {
+          auto& p = ptd.m_aos[ip];
           ParticleInterpolator::Nearest interp(p, plo, dxi);
 
           interp.MeshToParticle(p, count, 0, 0, 1,
@@ -149,7 +150,7 @@ void testParticleMesh (TestParams& parms)
                            {"density", AMREX_D_DECL("vx", "vy", "vz")},
                            geom, 0.0, 0);
 
-  myPC.Checkpoint("plot", "particle0");
+  myPC.WritePlotFile("plot", "particle0");
 }
 
 int main(int argc, char* argv[])
@@ -165,8 +166,9 @@ int main(int argc, char* argv[])
   pp.get("nz", parms.nz);
   pp.get("max_grid_size", parms.max_grid_size);
   pp.get("nppc", parms.nppc);
-  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
+  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
+  }
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);

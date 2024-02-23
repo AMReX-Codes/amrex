@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.18)
 
 #
 # Allow for MSVC Runtime library controls
@@ -14,6 +14,16 @@ endif()
 #
 if(POLICY CMP0127)
     cmake_policy(SET CMP0127 NEW)
+endif()
+
+#
+# CMake 3.18+: CMAKE_CUDA_ARCHITECTURES
+# https://cmake.org/cmake/help/latest/policy/CMP0104.html
+# We have to migrate there, but maybe the new "native" option (CMake 3.24+)
+# is what we want to wait for:
+# https://cmake.org/cmake/help/v3.24/prop_tgt/CUDA_ARCHITECTURES.html
+if(POLICY CMP0104)
+    cmake_policy(SET CMP0104 OLD)
 endif()
 
 #
@@ -82,8 +92,15 @@ endif()
 # Include options, utilities and other stuff we need
 #
 include( AMReXOptions )
-if (AMReX_GPU_BACKEND STREQUAL "CUDA")
-   include(AMReXCUDAOptions)
+
+#
+# Enable CUDA if requested
+#
+if (AMReX_CUDA)
+    enable_language(CUDA)
+    if(CMAKE_VERSION VERSION_LESS 3.20)
+        include(AMReX_SetupCUDA)
+    endif()
 endif ()
 
 #
@@ -94,21 +111,10 @@ if(AMReX_FORTRAN)
 endif ()
 
 #
-# Enable CUDA if requested
+# Include options specifically for CUDA
 #
-if (AMReX_CUDA)
-    if(CMAKE_VERSION VERSION_LESS 3.20)
-        # CMake 3.18+: CMAKE_CUDA_ARCHITECTURES
-        # https://cmake.org/cmake/help/latest/policy/CMP0104.html
-        if(POLICY CMP0104)
-            cmake_policy(SET CMP0104 OLD)
-        endif()
-    endif()
-
-    enable_language(CUDA)
-    if(CMAKE_VERSION VERSION_LESS 3.20)
-        include(AMReX_SetupCUDA)
-    endif()
+if (AMReX_GPU_BACKEND STREQUAL "CUDA")
+   include(AMReXCUDAOptions)
 endif ()
 
 #
@@ -149,10 +155,10 @@ endif ()
 #
 # Install amrex  -- Export
 #
-if(AMReX_INSTALL)
-    include(AMReXInstallHelpers)
-    install_amrex_targets(${_amrex_targets})
+include(AMReXInstallHelpers)
+install_amrex_targets(${_amrex_targets})
 
+if(AMReX_INSTALL)
     # Add a test_install target to smoke-test
     # the installation
     add_test_install_target(
@@ -163,7 +169,6 @@ endif()
 #
 # Enable CTests
 #
-option(AMReX_ENABLE_TESTS "Enable CTest suite for AMReX"  NO)
 if (AMReX_ENABLE_TESTS)
    enable_testing()
    add_subdirectory(Tests)

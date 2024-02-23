@@ -70,7 +70,7 @@ extern "C" {
         const int finest_level = amrcore->finestLevel();
         const int myproc = ParallelDescriptor::MyProc();
 
-        FAmrCore* famrcore = dynamic_cast<FAmrCore*>(amrcore);
+        auto* famrcore = dynamic_cast<FAmrCore*>(amrcore);
 
         famrcore->octree_leaf_grids.resize(finest_level+1);
         famrcore->octree_leaf_dmap.resize(finest_level+1);
@@ -83,14 +83,14 @@ extern "C" {
 
         for (int lev = 0; lev <= finest_level; ++lev)
         {
-            level_offset[lev] = leaves->size();
+            level_offset[lev] = static_cast<int>(leaves->size());
 
             famrcore->octree_li_full_to_leaf[lev].clear();
             famrcore->octree_li_leaf_to_full[lev].clear();
 
             const BoxArray& ba = amrcore->boxArray(lev);
             const DistributionMapping& dm = amrcore->DistributionMap(lev);
-            const int ngrids = ba.size();
+            const auto ngrids = static_cast<int>(ba.size());
             BL_ASSERT(ba.size() < std::numeric_limits<int>::max());
 
             if (lev == finest_level)
@@ -159,13 +159,13 @@ extern "C" {
                 }
             }
         }
-        level_offset[finest_level+1] = leaves->size();
-        *n = leaves->size();
+        level_offset[finest_level+1] = static_cast<int>(leaves->size());
+        *n = static_cast<int>(leaves->size());
     }
 
     void amrex_fi_copy_octree_leaves (Vector<treenode>* leaves, treenode a_copy[])
     {
-        const int n = leaves->size();
+        const auto n = static_cast<int>(leaves->size());
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
@@ -182,7 +182,7 @@ extern "C" {
                                              MultiFab * const crse,
                                              int scomp, int ncomp)
     {
-        FAmrCore* famrcore = dynamic_cast<FAmrCore*>(amrcore);
+        auto* famrcore = dynamic_cast<FAmrCore*>(amrcore);
         const BoxArray& lba = famrcore->octree_leaf_grids[flev];
         const DistributionMapping& ldm = famrcore->octree_leaf_dmap[flev];
         const Vector<int>& li_leaf_to_full = famrcore->octree_li_leaf_to_full[flev];

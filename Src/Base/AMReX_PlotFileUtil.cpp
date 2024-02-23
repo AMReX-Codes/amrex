@@ -181,7 +181,8 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
     PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
     if (!extra_dirs.empty()) {
         for (const auto& d : extra_dirs) {
-            const std::string ed = plotfilename+"/"+d;
+            std::string ed = plotfilename;
+            ed.append("/").append(d);
             amrex::PreBuildDirectorHierarchy(ed, levelPrefix, nlevels, callBarrier);
         }
     }
@@ -201,7 +202,7 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
             HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
                                                     std::ofstream::trunc |
                                                     std::ofstream::binary);
-            if( ! HeaderFile.good()) FileOpenFailed(HeaderFileName);
+            if( ! HeaderFile.good()) { FileOpenFailed(HeaderFileName); }
             WriteGenericPlotfileHeader(HeaderFile, nlevels, boxArrays, varnames,
                                        geom, time, level_steps, ref_ratio, versionName,
                                        levelPrefix, mfPrefix);
@@ -249,7 +250,7 @@ void WriteMLMF (const std::string &plotfilename,
                 const Vector<const MultiFab*>& mf,
                 const Vector<Geometry> &geom)
 {
-    int nlevs = mf.size();
+    int nlevs = static_cast<int>(mf.size());
     int ncomp = mf[0]->nComp();
 
     // variables names are "Var0", "Var1", etc.
@@ -300,7 +301,8 @@ WriteMultiLevelPlotfileHeaders (const std::string & plotfilename, int nlevels,
     PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
     if (!extra_dirs.empty()) {
         for (const auto& d : extra_dirs) {
-            const std::string ed = plotfilename+"/"+d;
+            std::string ed = plotfilename;
+            ed.append("/").append(d);
             amrex::PreBuildDirectorHierarchy(ed, levelPrefix, nlevels, callBarrier);
         }
     }
@@ -403,7 +405,8 @@ EB_WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
     PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
     if (!extra_dirs.empty()) {
         for (const auto& d : extra_dirs) {
-            const std::string ed = plotfilename+"/"+d;
+            std::string ed = plotfilename;
+            ed.append("/").append(d);
             amrex::PreBuildDirectorHierarchy(ed, levelPrefix, nlevels, callBarrier);
         }
     }

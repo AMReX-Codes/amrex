@@ -20,11 +20,7 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     Real dt = std::numeric_limits<Real>::max();
-#else
-    Real dt = Real(1.e37);
-#endif
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
@@ -40,9 +36,9 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
                 Real vz = mz*rhoinv;
                 Real p = amrex::max((parm.eos_gamma-Real(1.0))*ei, parm.smallp);
                 Real cs = std::sqrt(parm.eos_gamma*p*rhoinv);
-                Real dtx = dx[0]/(amrex::Math::abs(vx)+cs);
-                Real dty = dx[1]/(amrex::Math::abs(vy)+cs);
-                Real dtz = dx[2]/(amrex::Math::abs(vz)+cs);
+                Real dtx = dx[0]/(std::abs(vx)+cs);
+                Real dty = dx[1]/(std::abs(vy)+cs);
+                Real dtz = dx[2]/(std::abs(vz)+cs);
                 dt = amrex::min(dt,amrex::min(dtx,amrex::min(dty,dtz)));
             }
         }

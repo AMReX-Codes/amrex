@@ -8,18 +8,32 @@
 namespace amrex
 {
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-class ParticleContainer;
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+class ParticleContainer_impl;
 
-template <bool is_const, int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0,
-          template<class> class Allocator=DefaultAllocator>
-class ParIterBase
+template <int T_NReal, int T_NInt>
+struct Particle;
+
+template <int NArrayReal, int NArrayInt>
+struct SoAParticle;
+
+struct DefaultAssignor;
+
+// for backwards compatibility
+template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
+
+template <bool is_const, typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+class ParIterBase_impl
     : public MFIter
 {
+
 private:
 
-    using PCType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+    using PCType = ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
     using ContainerRef    = typename std::conditional<is_const, PCType const&, PCType&>::type;
     using ParticleTileRef = typename std::conditional
         <is_const, typename PCType::ParticleTileType const&, typename PCType::ParticleTileType &>::type;
@@ -32,18 +46,20 @@ private:
 
 public:
 
-    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+    using ContainerType    = ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
-    using ParticleType     = typename ContainerType::ParticleType;
+    using ParticleType     = T_ParticleType;
     using RealVector       = typename SoA::RealVector;
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename ContainerType::ParticleVector;
+    static constexpr int NStructReal = ParticleType::NReal;
+    static constexpr int NStructInt = ParticleType::NInt;
 
-    ParIterBase (ContainerRef pc, int level);
+    ParIterBase_impl (ContainerRef pc, int level);
 
-    ParIterBase (ContainerRef pc, int level, MFItInfo& info);
+    ParIterBase_impl (ContainerRef pc, int level, MFItInfo& info);
 
 #ifdef AMREX_USE_OMP
     void operator++ ()
@@ -67,23 +83,23 @@ public:
     }
 #endif
 
-    ParticleTileRef GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
+    [[nodiscard]] ParticleTileRef GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
 
-    AoSRef GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
+    [[nodiscard]] AoSRef GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
 
-    SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
+    [[nodiscard]] SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
-    int numParticles () const { return GetArrayOfStructs().numParticles(); }
+    [[nodiscard]] int numParticles () const { return GetParticleTile().numParticles(); }
 
-    int numRealParticles () const { return GetArrayOfStructs().numRealParticles(); }
+    [[nodiscard]] int numRealParticles () const { return GetParticleTile().numRealParticles(); }
 
-    int numNeighborParticles () const { return GetArrayOfStructs().numNeighborParticles(); }
+    [[nodiscard]] int numNeighborParticles () const { return GetParticleTile().numNeighborParticles(); }
 
-    int GetLevel () const { return m_level; }
+    [[nodiscard]] int GetLevel () const { return m_level; }
 
-    std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
+    [[nodiscard]] std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
 
-    const Geometry& Geom (int lev) const { return m_pc.Geom(lev); }
+    [[nodiscard]] const Geometry& Geom (int lev) const { return m_pc.Geom(lev); }
 
 protected:
 
@@ -94,59 +110,63 @@ protected:
     ContainerRef m_pc;
 };
 
-template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0,
-          template<class> class Allocator=DefaultAllocator>
-class ParIter
-    : public ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt, Allocator>
+template <typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator, class T_CellAssignor=DefaultAssignor>
+class ParIter_impl
+    : public ParIterBase_impl<false, T_ParticleType, NArrayReal, NArrayInt, Allocator, T_CellAssignor>
 {
 public:
 
-    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt,
-                                               Allocator>;
+    using ParticleType=T_ParticleType;
+    using CellAssignor=T_CellAssignor;
+    static constexpr int NStructReal = ParticleType::NReal;
+    static constexpr int NStructInt = ParticleType::NInt;
+
+    using ContainerType    = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
+    using ConstParticleType = typename ContainerType::ConstParticleType;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
-    using ParticleType     = typename ContainerType::ParticleType;
     using RealVector       = typename SoA::RealVector;
     using IntVector        = typename SoA::IntVector;
 
-    ParIter (ContainerType& pc, int level)
-        : ParIterBase<false, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>(pc,level)
+    ParIter_impl (ContainerType& pc, int level)
+        : ParIterBase_impl<false, T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>(pc,level)
         {}
 
-    ParIter (ContainerType& pc, int level, MFItInfo& info)
-        : ParIterBase<false, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>(pc,level,info)
+    ParIter_impl (ContainerType& pc, int level, MFItInfo& info)
+        : ParIterBase_impl<false, T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>(pc,level,info)
         {}
 };
 
-template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0,
-          template<class> class Allocator=DefaultAllocator>
-class ParConstIter
-    : public ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt, Allocator>
+template <typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator, class T_CellAssignor=DefaultAssignor>
+class ParConstIter_impl
+    : public ParIterBase_impl<true,T_ParticleType, NArrayReal, NArrayInt, Allocator, T_CellAssignor>
 {
 public:
 
-    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt,
-                                               Allocator>;
+    using ParticleType     = T_ParticleType;
+    using CellAssignor     = T_CellAssignor;
+    using ContainerType    = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
-    using ParticleType     = typename ContainerType::ParticleType;
     using RealVector       = typename SoA::RealVector;
     using IntVector        = typename SoA::IntVector;
 
-    ParConstIter (ContainerType const& pc, int level)
-        : ParIterBase<true,NStructReal,NStructInt,NArrayReal,NArrayInt,Allocator>(pc,level)
+    ParConstIter_impl (ContainerType const& pc, int level)
+        : ParIterBase_impl<true,ParticleType,NArrayReal,NArrayInt,Allocator,CellAssignor>(pc,level)
         {}
 
-    ParConstIter (ContainerType const& pc, int level, MFItInfo& info)
-        : ParIterBase<true,NStructReal,NStructInt,NArrayReal,NArrayInt,Allocator>(pc,level,info)
+    ParConstIter_impl (ContainerType const& pc, int level, MFItInfo& info)
+        : ParIterBase_impl<true,ParticleType,NArrayReal,NArrayInt,Allocator, CellAssignor>(pc,level,info)
         {}
 };
 
-template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::ParIterBase
+template <bool is_const, typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+ParIterBase_impl<is_const, ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::ParIterBase_impl
   (ContainerRef pc, int level, MFItInfo& info)
     :
       MFIter(*pc.m_dummy_mf[level], pc.do_tiling ? info.EnableTiling(pc.tile_size) : info),
@@ -195,9 +215,9 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
     }
 }
 
-template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
-ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>::ParIterBase
+template <bool is_const, typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+ParIterBase_impl<is_const, T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::ParIterBase_impl
   (ContainerRef pc, int level)
     :
     MFIter(*pc.m_dummy_mf[level],
@@ -231,6 +251,28 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
         m_valid_index.push_back(endIndex);
     }
 }
+
+template <bool is_const, int T_NStructReal, int T_NStructInt, int T_NArrayReal=0, int T_NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+using ParIterBase = ParIterBase_impl<is_const, Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
+
+template <bool is_const, int T_NArrayReal=0, int T_NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+using ParIterBaseSoA = ParIterBase_impl<is_const,SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
+
+template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+using ParConstIter = ParConstIter_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
+
+template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+using ParConstIterSoA = ParConstIter_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
+
+template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+using ParIter = ParIter_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
+
+template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+using ParIterSoA = ParIter_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 }
 

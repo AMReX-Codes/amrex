@@ -1,0 +1,5 @@
+nbor_list.size = (24, 24, 24)
+nbor_list.max_grid_size = 8
+nbor_list.is_periodic = 1
+
+

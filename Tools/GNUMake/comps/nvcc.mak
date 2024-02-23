@@ -4,51 +4,24 @@ ifneq ($(NO_CONFIG_CHECKING),TRUE)
   nvcc_version       := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}')
   nvcc_major_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$1}')
   nvcc_minor_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$2}')
+  COMP_VERSION = $(nvcc_version)
 else
   nvcc_version       := 99.9
   nvcc_major_version := 99
   nvcc_minor_version := 9
 endif
 
-# Disallow CUDA toolkit versions < 8.0.
+# Disallow CUDA toolkit versions < 11
 
-nvcc_major_lt_8 = $(shell expr $(nvcc_major_version) \< 8)
-ifeq ($(nvcc_major_lt_8),1)
-  $(error Your nvcc version is $(nvcc_version). This is unsupported. Please use CUDA toolkit version 8.0 or newer.)
-endif
-
-nvcc_forward_unknowns = 0
-ifeq ($(shell expr $(nvcc_major_version) \= 10),1)
-ifeq ($(shell expr $(nvcc_minor_version) \>= 2),1)
-  nvcc_forward_unknowns = 1
-endif
-endif
-ifeq ($(shell expr $(nvcc_major_version) \>= 11),1)
-  nvcc_forward_unknowns = 1
+nvcc_major_lt_11 = $(shell expr $(nvcc_major_version) \< 11)
+ifeq ($(nvcc_major_lt_11),1)
+  $(error Your nvcc version is $(nvcc_version). This is unsupported. Please use CUDA toolkit version 11.0 or newer.)
 endif
 
 ifeq ($(shell expr $(nvcc_major_version) \= 11),1)
 ifeq ($(shell expr $(nvcc_minor_version) \= 0),1)
   # -MP not supported in 11.0
   DEPFLAGS = -MMD
-endif
-endif
-
-ifeq ($(shell expr $(nvcc_major_version) \< 11),1)
-  # -MMD -MP not supported in < 11
-  USE_LEGACY_DEPFLAGS = TRUE
-  DEPFLAGS =
-endif
-
-ifeq ($(shell expr $(nvcc_major_version) \< 10),1)
-  # -MM not supported in < 10
-  LEGACY_DEPFLAGS = -M
-endif
-
-ifeq ($(shell expr $(nvcc_major_version) \= 10),1)
-ifeq ($(shell expr $(nvcc_minor_version) \= 0),1)
-  # -MM not supported in 10.0
-  LEGACY_DEPFLAGS = -M
 endif
 endif
 
@@ -72,16 +45,14 @@ endif
 
 ifeq ($(lowercase_nvcc_host_comp),gnu)
 
-  ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-    ifneq ($(NO_CONFIG_CHECKING),TRUE)
-      $(error C++14 support requires GCC 5 or newer.)
-    endif
+  ifeq ($(shell expr $(gcc_major_version) \< 8),1)
+    $(error GCC >= 8 required.)
   endif
 
   ifdef CXXSTD
     CXXSTD := $(strip $(CXXSTD))
   else
-    CXXSTD = c++14
+    CXXSTD = c++17
   endif
   CXXFLAGS += -std=$(CXXSTD)
 
@@ -95,27 +66,22 @@ ifeq ($(lowercase_nvcc_host_comp),gnu)
 else ifeq ($(lowercase_nvcc_host_comp),pgi)
   ifdef CXXSTD
     CXXSTD := $(strip $(CXXSTD))
-    ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-      ifeq ($(CXXSTD),c++14)
-        $(error C++14 support requires GCC 5 or newer.)
-      endif
-    endif
   else
-    CXXSTD := c++14
+    CXXSTD := c++17
   endif
 
   CXXFLAGS += -std=$(CXXSTD)
 
   NVCC_CCBIN ?= pgc++
 
-  # In pgi.make, we use gcc_major_version to handle c++14 flag.
+  # In pgi.make, we use gcc_major_version to handle c++17 flag.
   CXXFLAGS_FROM_HOST := -ccbin=$(NVCC_CCBIN) -Xcompiler='$(CXXFLAGS)' --std=$(CXXSTD)
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 else
   ifdef CXXSTD
     CXXSTD := $(strip $(CXXSTD))
   else
-    CXXSTD := c++14
+    CXXSTD := c++17
   endif
 
   NVCC_CCBIN ?= $(CXX)
@@ -124,9 +90,11 @@ else
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 endif
 
-NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT) --expt-relaxed-constexpr --expt-extended-lambda
+NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 $(foreach arch,$(CUDA_ARCH),--generate-code arch=compute_$(arch),code=sm_$(arch)) -maxrregcount=$(CUDA_MAXREGCOUNT) --expt-relaxed-constexpr --expt-extended-lambda --forward-unknown-to-host-compiler
 # This is to work around a bug with nvcc, see: https://github.com/kokkos/kokkos/issues/1473
 NVCC_FLAGS += -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored
+# and another bug related to implicit returns with if constexpr, see: https://stackoverflow.com/questions/64523302/cuda-missing-return-statement-at-end-of-non-void-function-in-constexpr-if-fun
+NVCC_FLAGS += -Xcudafe --diag_suppress=implicit_return_from_non_void_function
 
 ifeq ($(GPU_ERROR_CROSS_EXECUTION_SPACE_CALL),TRUE)
   NVCC_FLAGS += --Werror cross-execution-space-call
@@ -154,17 +122,11 @@ endif
 
 NVCC_FLAGS += $(XTRA_NVCC_FLAGS)
 
-ifeq ($(nvcc_forward_unknowns),1)
-  NVCC_FLAGS += --forward-unknown-to-host-compiler
-endif
-
-ifeq ($(shell expr $(nvcc_major_version) \>= 11),1)
 ifeq ($(GPU_ERROR_CAPTURE_THIS),TRUE)
   NVCC_FLAGS += --Werror ext-lambda-captures-this
 else
 ifeq ($(GPU_WARN_CAPTURE_THIS),TRUE)
   NVCC_FLAGS += --Wext-lambda-captures-this
-endif
 endif
 endif
 
@@ -192,13 +154,6 @@ ifeq ($(USE_GPU_RDC),TRUE)
 else
   CXXFLAGS += -c
   CFLAGS   += -c
-endif
-
-ifeq ($(nvcc_version),9.2)
-  # relaxed constexpr not supported
-  ifeq ($(USE_EB),TRUE)
-    $(error Cuda 9.2 is not supported with USE_EB=TRUE. Use 9.1 or 10.0 instead.)
-  endif
 endif
 
 CXX = nvcc

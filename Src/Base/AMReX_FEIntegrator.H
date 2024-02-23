@@ -11,7 +11,7 @@ template<class T>
 class FEIntegrator : public IntegratorBase<T>
 {
 private:
-    typedef IntegratorBase<T> BaseT;
+    using BaseT = IntegratorBase<T>;
 
     amrex::Vector<std::unique_ptr<T> > F_nodes;
 
@@ -30,12 +30,12 @@ public:
 
     virtual ~FEIntegrator () {}
 
-    void initialize (const T& S_data)
+    void initialize (const T& S_data) override
     {
         initialize_stages(S_data);
     }
 
-    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step)
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step) override
     {
         BaseT::timestep = time_step;
         // Assume before advance() that S_old is valid data at the current time ("time" argument)

@@ -34,10 +34,7 @@ int AmrLevelAdv::do_tracers                       =  0;
 /**
  * Default constructor.  Builds invalid object.
  */
-AmrLevelAdv::AmrLevelAdv ()
-{
-    flux_reg = 0;
-}
+AmrLevelAdv::AmrLevelAdv () = default;
 
 /**
  * The basic constructor.
@@ -51,18 +48,15 @@ AmrLevelAdv::AmrLevelAdv (Amr&            papa,
     :
     AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
-    flux_reg = 0;
-    if (level > 0 && do_reflux)
-        flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
+    if (level > 0 && do_reflux) {
+        flux_reg = std::make_unique<FluxRegister>(grids,dmap,crse_ratio,level,NUM_STATE);
+    }
 }
 
 /**
  * The destructor.
  */
-AmrLevelAdv::~AmrLevelAdv ()
-{
-    delete flux_reg;
-}
+AmrLevelAdv::~AmrLevelAdv () = default;
 
 /**
  * Restart from a checkpoint file.
@@ -74,9 +68,9 @@ AmrLevelAdv::restart (Amr&          papa,
 {
     AmrLevel::restart(papa,is,bReadSpecial);
 
-    BL_ASSERT(flux_reg == 0);
-    if (level > 0 && do_reflux)
-        flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
+    if (level > 0 && do_reflux) {
+        flux_reg = std::make_unique<FluxRegister>(grids,dmap,crse_ratio,level,NUM_STATE);
+    }
 }
 
 /**
@@ -88,11 +82,11 @@ AmrLevelAdv::checkPoint (const std::string& dir,
                          VisMF::How         how,
                          bool               dump_old)
 {
-  AmrLevel::checkPoint(dir, os, how, dump_old);
+    AmrLevel::checkPoint(dir, os, how, dump_old);
 #ifdef AMREX_PARTICLES
-  if (do_tracers && level == 0) {
-    TracerPC->Checkpoint(dir, "Tracer", true);
-  }
+    if (do_tracers && level == 0) {
+        TracerPC->WritePlotFile(dir, "Tracer");
+    }
 #endif
 }
 
@@ -109,7 +103,7 @@ AmrLevelAdv::writePlotFile (const std::string& dir,
 
 #ifdef AMREX_PARTICLES
     if (do_tracers && level == 0) {
-      TracerPC->Checkpoint(dir, "Tracer", true);
+      TracerPC->WritePlotFile(dir, "Tracer");
     }
 #endif
 }
@@ -193,7 +187,7 @@ AmrLevelAdv::initData ()
 void
 AmrLevelAdv::init (AmrLevel &old)
 {
-    AmrLevelAdv* oldlev = (AmrLevelAdv*) &old;
+    auto* oldlev = (AmrLevelAdv*) &old;
 
     //
     // Create new grid data by fillpatching from old.
@@ -257,8 +251,8 @@ AmrLevelAdv::advance (Real time,
     //
     // Get pointers to Flux registers, or set pointer to zero if not there.
     //
-    FluxRegister *fine    = 0;
-    FluxRegister *current = 0;
+    FluxRegister *fine    = nullptr;
+    FluxRegister *current = nullptr;
 
     int finest_level = parent->finestLevel();
 
@@ -285,7 +279,8 @@ AmrLevelAdv::advance (Real time,
 
     // State with ghost cells
     MultiFab Sborder(grids, dmap, NUM_STATE, NUM_GROW);
-    FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
+    // We use FillPatcher to do fillpatch here if we can
+    FillPatcherFill(Sborder, 0, NUM_STATE, NUM_GROW, time, Phi_Type, 0);
 
     // MF to hold the mac velocity
     MultiFab Umac[BL_SPACEDIM];
@@ -373,8 +368,9 @@ AmrLevelAdv::advance (Real time,
 
 #ifndef AMREX_USE_GPU
             if (do_reflux) {
-                for (int i = 0; i < BL_SPACEDIM ; i++)
+                for (int i = 0; i < BL_SPACEDIM ; i++) {
                     fluxes[i][mfi].copy(*flux[i],mfi.nodaltilebox(i));
+                }
             }
 #endif
         }
@@ -383,12 +379,14 @@ AmrLevelAdv::advance (Real time,
 
     if (do_reflux) {
         if (current) {
-            for (int i = 0; i < BL_SPACEDIM ; i++)
+            for (int i = 0; i < BL_SPACEDIM ; i++) {
                 current->FineAdd(fluxes[i],i,0,0,NUM_STATE,1.);
+            }
         }
         if (fine) {
-            for (int i = 0; i < BL_SPACEDIM ; i++)
+            for (int i = 0; i < BL_SPACEDIM ; i++) {
                 fine->CrseInit(fluxes[i],i,0,0,NUM_STATE,-1.);
+            }
         }
     }
 
@@ -414,6 +412,10 @@ AmrLevelAdv::estTimeStep (Real)
     GpuArray<Real,BL_SPACEDIM> prob_lo = geom.ProbLoArray();
     const Real cur_time = state[Phi_Type].curTime();
     const MultiFab& S_new = get_new_data(Phi_Type);
+    Real pred_time = cur_time;
+    if (cur_time > 0._rt) {
+        pred_time += 0.5_rt*parent->dtLevel(level);
+    }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(min:dt_est)
@@ -431,7 +433,7 @@ AmrLevelAdv::estTimeStep (Real)
             // Note: no need to set elixir on uface[i] temporary fabs since
             //       norm<RunOn::Device> kernel launch is blocking.
 
-            get_face_velocity(cur_time,
+            get_face_velocity(pred_time,
                               AMREX_D_DECL(uface[0], uface[1], uface[2]),
                               dx, prob_lo);
 
@@ -478,8 +480,9 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
     //
     // Grids have been constructed, compute dt for all levels.
     //
-    if (level > 0)
+    if (level > 0) {
         return;
+    }
 
     Real dt_0 = 1.0e+100;
     int n_factor = 1;
@@ -496,8 +499,9 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
     const Real eps = 0.001*dt_0;
     Real cur_time  = state[Phi_Type].curTime();
     if (stop_time >= 0.0) {
-        if ((cur_time + dt_0) > (stop_time - eps))
+        if ((cur_time + dt_0) > (stop_time - eps)) {
             dt_0 = stop_time - cur_time;
+        }
     }
 
     n_factor = 1;
@@ -525,8 +529,9 @@ AmrLevelAdv::computeNewDt (int                   finest_level,
     // We are at the end of a coarse grid timecycle.
     // Compute the timesteps for the next iteration.
     //
-    if (level > 0)
+    if (level > 0) {
         return;
+    }
 
     for (int i = 0; i <= finest_level; i++)
     {
@@ -573,8 +578,9 @@ AmrLevelAdv::computeNewDt (int                   finest_level,
     const Real eps = 0.001*dt_0;
     Real cur_time  = state[Phi_Type].curTime();
     if (stop_time >= 0.0) {
-        if ((cur_time + dt_0) > (stop_time - eps))
+        if ((cur_time + dt_0) > (stop_time - eps)) {
             dt_0 = stop_time - cur_time;
+        }
     }
 
     n_factor = 1;
@@ -597,11 +603,19 @@ AmrLevelAdv::post_timestep (int iteration)
     //
     int finest_level = parent->finestLevel();
 
-    if (do_reflux && level < finest_level)
+    if (do_reflux && level < finest_level) {
         reflux();
+    }
 
-    if (level < finest_level)
+    if (level < finest_level) {
         avgDown();
+    }
+
+    if (level < finest_level) {
+        // fillpatcher on level+1 needs to be reset because data on this
+        // level have changed.
+        getLevel(level+1).resetFillPatcher();
+    }
 
 #ifdef AMREX_PARTICLES
     if (TracerPC)
@@ -640,7 +654,7 @@ AmrLevelAdv::post_restart()
 {
 #ifdef AMREX_PARTICLES
     if (do_tracers && level == 0) {
-      BL_ASSERT(TracerPC == 0);
+      BL_ASSERT(TracerPC == nullptr);
       TracerPC = std::make_unique<AmrTracerParticleContainer>(parent);
       TracerPC->Restart(parent->theRestartFile(), "Tracer");
     }
@@ -653,15 +667,17 @@ AmrLevelAdv::post_restart()
 void
 AmrLevelAdv::post_init (Real /*stop_time*/)
 {
-    if (level > 0)
+    if (level > 0) {
         return;
+    }
     //
     // Average data down from finer levels
     // so that conserved data is consistent between levels.
     //
     int finest_level = parent->finestLevel();
-    for (int k = finest_level-1; k>= 0; k--)
+    for (int k = finest_level-1; k>= 0; k--) {
         getLevel(k).avgDown();
+    }
 }
 
 /**
@@ -730,7 +746,7 @@ AmrLevelAdv::read_params ()
 {
     static bool done = false;
 
-    if (done) return;
+    if (done) { return; }
 
     done = true;
 
@@ -786,14 +802,14 @@ AmrLevelAdv::reflux ()
 void
 AmrLevelAdv::avgDown ()
 {
-    if (level == parent->finestLevel()) return;
+    if (level == parent->finestLevel()) { return; }
     avgDown(Phi_Type);
 }
 
 void
 AmrLevelAdv::avgDown (int state_indx)
 {
-    if (level == parent->finestLevel()) return;
+    if (level == parent->finestLevel()) { return; }
 
     AmrLevelAdv& fine_lev = getLevel(level+1);
     MultiFab&  S_fine   = fine_lev.get_new_data(state_indx);

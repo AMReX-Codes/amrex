@@ -26,8 +26,9 @@ namespace Gpu {
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T LDG (Array4<T> const& a, int i, int j, int k) noexcept {
-#ifdef __CUDA_ARCH__
-        return __ldg(a.ptr(i,j,k,n));
+#if defined(AMREX_USE_CUDA)
+        AMREX_IF_ON_DEVICE((return __ldg(a.ptr(i,j,k));))
+        AMREX_IF_ON_HOST((return a(i,j,k);))
 #else
         return a(i,j,k);
 #endif
@@ -36,8 +37,9 @@ namespace Gpu {
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T LDG (Array4<T> const& a, int i, int j, int k, int n) noexcept {
-#ifdef __CUDA_ARCH__
-        return __ldg(a.ptr(i,j,k,n));
+#if defined(AMREX_USE_CUDA)
+        AMREX_IF_ON_DEVICE((return __ldg(a.ptr(i,j,k,n));))
+        AMREX_IF_ON_HOST((return a(i,j,k,n);))
 #else
         return a(i,j,k,n);
 #endif
@@ -50,12 +52,9 @@ namespace Gpu {
         void* data[] = { (void*)(&is_managed) };
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && is_managed;
-#elif defined(AMREX_USE_DPCPP)
-        amrex::ignore_unused(p);
-        // xxxxx DPCPP todo: get_pointer_type
-//        auto const info = sycl::get_pointer_info(p);
-//        auto type = sycl::get_pointer_type(p,Device::syclContext());
-        return false;
+#elif defined(AMREX_USE_SYCL)
+        auto type = sycl::get_pointer_type(p,Device::syclContext());
+        return type == sycl::usm::alloc::shared;
 #else
         amrex::ignore_unused(p);
         return false;
@@ -66,17 +65,20 @@ namespace Gpu {
 #if defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
         hipError_t r = hipPointerGetAttributes(&attrib, p);
+#if defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
         return r == hipSuccess && attrib.memoryType == hipMemoryTypeDevice;
+#else
+        return r == hipSuccess && attrib.type == hipMemoryTypeDevice;
+#endif // (HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
 #elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
         CUmemorytype mem_type = static_cast<CUmemorytype>(0);
         void* data[] = { (void*)(&mem_type) };
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_DEVICE;
-#elif defined(AMREX_USE_DPCPP)
-        amrex::ignore_unused(p);
-        // xxxxx DPCPP todo: get_pointer_type
-        return false;
+#elif defined(AMREX_USE_SYCL)
+        auto type = sycl::get_pointer_type(p,Device::syclContext());
+        return type == sycl::usm::alloc::device;
 #else
         amrex::ignore_unused(p);
         return false;
@@ -87,17 +89,20 @@ namespace Gpu {
 #if defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
         hipError_t r = hipPointerGetAttributes(&attrib, p);
+#if defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
         return r == hipSuccess && attrib.memoryType == hipMemoryTypeHost;
+#else
+        return r == hipSuccess && attrib.type == hipMemoryTypeHost;
+#endif // (HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
 #elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
         CUmemorytype mem_type = static_cast<CUmemorytype>(0);
         void* data[] = { (void*)(&mem_type) };
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_HOST;
-#elif defined(AMREX_USE_DPCPP)
-        amrex::ignore_unused(p);
-        // xxxxx DPCPP todo: get_pointer_type
-        return false;
+#elif defined(AMREX_USE_SYCL)
+        auto type = sycl::get_pointer_type(p,Device::syclContext());
+        return type == sycl::usm::alloc::host;
 #else
         amrex::ignore_unused(p);
         return false;
@@ -111,9 +116,15 @@ namespace Gpu {
         } else {
             hipPointerAttribute_t attrib;
             hipError_t r = hipPointerGetAttributes(&attrib, p);
+#if defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
             return r == hipSuccess &&
                 (attrib.memoryType == hipMemoryTypeHost   ||
                  attrib.memoryType == hipMemoryTypeDevice);
+#else
+            return r == hipSuccess &&
+                (attrib.type == hipMemoryTypeHost   ||
+                 attrib.type == hipMemoryTypeDevice);
+#endif // (HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
         }
 #elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
@@ -125,10 +136,9 @@ namespace Gpu {
              mem_type == CU_MEMORYTYPE_DEVICE ||
              mem_type == CU_MEMORYTYPE_ARRAY  ||
              mem_type == CU_MEMORYTYPE_UNIFIED);
-#elif defined(AMREX_USE_DPCPP)
-        amrex::ignore_unused(p);
-        // xxxxx DPCPP todo: get_pointer_type
-        return false;
+#elif defined(AMREX_USE_SYCL)
+        auto type = sycl::get_pointer_type(p,Device::syclContext());
+        return type != sycl::usm::alloc::unknown;
 #else
         amrex::ignore_unused(p);
         return false;
@@ -139,9 +149,7 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isnan (T m) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        return ::isnan(m);
-#elif defined(__SYCL_DEVICE_ONLY__)
+#if defined(AMREX_USE_SYCL)
         return sycl::isnan(m);
 #else
         return std::isnan(m);
@@ -152,9 +160,7 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isinf (T m) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        return ::isinf(m);
-#elif defined(__SYCL_DEVICE_ONLY__)
+#if defined(AMREX_USE_SYCL)
         return sycl::isinf(m);
 #else
         return std::isinf(m);
@@ -165,7 +171,7 @@ namespace Gpu {
     {
         bool device_sync;
         StreamItInfo () noexcept
-            : device_sync(true) {}
+            : device_sync(!Gpu::inNoSyncRegion()) {}
         StreamItInfo& DisableDeviceSync () noexcept {
             device_sync = false;
             return *this;
@@ -175,8 +181,8 @@ namespace Gpu {
     class StreamIter
     {
     public:
-        StreamIter (const int n, bool is_thread_safe=true) noexcept;
-        StreamIter (const int n, const StreamItInfo& info, bool is_thread_safe=true) noexcept;
+        StreamIter (int n, bool is_thread_safe=true) noexcept;
+        StreamIter (int n, const StreamItInfo& info, bool is_thread_safe=true) noexcept;
 
         ~StreamIter ();
 
@@ -187,7 +193,7 @@ namespace Gpu {
 
         int operator() () const noexcept { return m_i; }
 
-        bool isValid () const noexcept { return m_i < m_n; }
+        [[nodiscard]] bool isValid () const noexcept { return m_i < m_n; }
 
 #if !defined(AMREX_USE_GPU)
         void operator++ () noexcept { ++m_i; }
@@ -196,7 +202,7 @@ namespace Gpu {
 #endif
 
     private:
-        void init() noexcept;
+        void init () noexcept; // NOLINT
 
         int m_n;
         int m_i;
@@ -207,7 +213,7 @@ namespace Gpu {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void* memcpy (void* dest, const void* src, std::size_t count)
 {
-#ifdef __HIP_DEVICE_COMPILE__
+#if defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
     return ::memcpy(dest, src, count);
 #else
     return std::memcpy(dest, src, count);

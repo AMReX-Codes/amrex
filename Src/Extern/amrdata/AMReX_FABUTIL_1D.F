@@ -3,15 +3,28 @@ c ::: SCCS stuff "@(#)FABUTIL_2D.F        3.1\t6/25/93"
 #define   FORT_CINTERP       cinterp1d
 #define   FORT_PCINTERP      pcinterp1d
 
-#undef AMREX_XSDK
-
 #include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
+
+#ifdef BL_USE_FLOAT
+#define REAL_T  real
+#define bigreal 1.0e30
+#define zero    0.0e0
+#define one     1.0e0
+#define half    0.5e0
+#else
+#define REAL_T  double precision
+#define bigreal 1.0d30
+#define zero    0.0d0
+#define one     1.0d0
+#define half    0.5d0
+#endif
 
 c ::: --------------------------------------------------------------
       subroutine FORT_CINTERP (fine,floi1,floi2,fhii1,fhii2, fblo,fbhi,
      $ nvar,lratio, crse,clo,chi,cblo,cbhi,fslo,fshi, cslope,clen,
      $ fslope,fdat,flen,voff)
+
+      implicit none
 
       integer floi1,floi2, fhii1,fhii2
 
@@ -203,6 +216,8 @@ c                         --- break ---
 c ::: --------------------------------------------------------------
       subroutine FORT_PCINTERP (fine,floi1,fhii1,fblo, fbhi,lrat,
      $ nvar, crse,cloi1,chii1,cblo, cbhi,temp,tloi,thii)
+
+      implicit none
 
       integer floi1
       integer fhii1

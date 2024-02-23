@@ -14,6 +14,10 @@ namespace amrex {
     template<int amrex_launch_bounds_max_threads, class L>
     __launch_bounds__(amrex_launch_bounds_max_threads)
     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
+
+    template<int amrex_launch_bounds_max_threads, int min_blocks, class L>
+    __launch_bounds__(amrex_launch_bounds_max_threads, min_blocks)
+    AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
 #endif
 
 }

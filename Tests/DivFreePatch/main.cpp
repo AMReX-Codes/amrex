@@ -463,7 +463,7 @@ void main_main ()
         }
 
         // Make sure coarse & fine are properly setup for the interpolation stencil.
-        amrex::average_down_faces( {AMREX_D_DECL(&f_mf_faces[0], &f_mf_faces[1], &f_mf_faces[2])}, coarse_faces, ratio, 0);
+        amrex::average_down_faces( {AMREX_D_DECL(f_mf_faces.data(), f_mf_faces.data()+1, f_mf_faces.data()+2)}, coarse_faces, ratio, 0);
 
         Vector<Array<MultiFab*, AMREX_SPACEDIM> > fine_v;
         Vector<Array<MultiFab*, AMREX_SPACEDIM> > coarse_v;

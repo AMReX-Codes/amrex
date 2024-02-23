@@ -17,110 +17,168 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                             Array4<Real const> const& bcvalylo,
                             Array4<Real const> const& bcvalxhi,
                             Array4<Real const> const& bcvalyhi,
-                            GpuArray<BoundCond,2*AMREX_SPACEDIM*AMREX_SPACEDIM> const& bct,
-                            GpuArray<Real,2*AMREX_SPACEDIM*AMREX_SPACEDIM> const& bcl,
+                            Array2D<BoundCond,
+                                    0,2*AMREX_SPACEDIM,
+                                    0,AMREX_SPACEDIM> const& bct,
+                            Array2D<Real,
+                                    0,2*AMREX_SPACEDIM,
+                                    0,AMREX_SPACEDIM> const& bcl,
                             int inhomog, int maxorder,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv, Box const& domain) noexcept
+                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                            Dim3 const& dlo, Dim3 const& dhi) noexcept
 {
-    constexpr int oxlo = 0;
-    constexpr int oylo = 1;
-    constexpr int oxhi = 2;
-    constexpr int oyhi = 3;
-    constexpr int xdir = 0;
-    constexpr int ydir = 1;
+    constexpr int k = 0;
     const auto blen = amrex::length(vbox);
     const auto vlo  = amrex::lbound(vbox);
     const auto vhi  = amrex::ubound(vbox);
-    const auto dlo  = amrex::lbound(domain);
-    const auto dhi  = amrex::ubound(domain);
 
-    for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
-        switch (icorner) {
-        case 0: {
-            // xlo & ylo
-            if (mxlo(vlo.x-1,vlo.y-1,0) != BndryData::covered) {
-                Box bx = amrex::adjCellLo(amrex::adjCellLo(vbox,xdir,1),ydir,1);
-                if (vlo.x == dlo.x && vlo.y == dlo.y) {
-                    vel(vlo.x-1,vlo.y-1,0,icomp) = vel(vlo.x-1,vlo.y,0,icomp)
-                        + vel(vlo.x,vlo.y-1,0,icomp) - vel(vlo.x,vlo.y,0,icomp);
-                } else if (vlo.x == dlo.x || mylo(vlo.x,vlo.y-1,0) == BndryData::covered) {
-                    int offset = AMREX_SPACEDIM * oxlo;
-                    mllinop_apply_bc_x(Orientation::low, bx, blen.x,
-                                       vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
-                                       bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-                } else {
-                    int offset = AMREX_SPACEDIM * oylo;
-                    mllinop_apply_bc_y(Orientation::low, bx, blen.y,
-                                       vel, mylo, bct[offset+icomp], bcl[offset+icomp],
-                                       bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
+    if (icorner == 0) { // xlo & ylo
+        int const i = vlo.x-1;
+        int const j = vlo.y-1;
+        if (mxlo(i,j,k) != BndryData::covered && (dlo.x != vlo.x || dlo.y != vlo.y)) {
+            bool x_interior = mylo(i+1,j  ,k) == BndryData::covered; // i+1,j is a valid cell inside domain
+            bool x_exterior = mylo(i+1,j  ,k) == BndryData::not_covered; // i+1,j is a ghost cell inside domain
+            bool y_interior = mxlo(i  ,j+1,k) == BndryData::covered;
+            bool y_exterior = mxlo(i  ,j+1,k) == BndryData::not_covered;
+            if ((x_interior && y_interior) || (x_exterior && y_exterior)) {
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                }
+            } else if (x_interior || dlo.x == vlo.x) {
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                }
+            } else if (y_interior || dlo.y == vlo.y) {
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
                 }
             }
-            break;
         }
-        case 1: {
-            // xhi & ylo
-            if (mxhi(vhi.x+1,vlo.y-1,0) != BndryData::covered) {
-                Box bx = amrex::adjCellLo(amrex::adjCellHi(vbox,xdir,1),ydir,1);
-                if (vhi.x == dhi.x && vlo.y == dlo.y) {
-                    vel(vhi.x+1,vlo.y-1,0,icomp) = vel(vhi.x+1,vlo.y,0,icomp)
-                        + vel(vhi.x,vlo.y-1,0,icomp) - vel(vhi.x,vlo.y,0,icomp);
-                } else if (vhi.x == dhi.x || mylo(vhi.x,vlo.y-1,0) == BndryData::covered) {
-                    int offset = AMREX_SPACEDIM * oxhi;
-                    mllinop_apply_bc_x(Orientation::high, bx, blen.x,
-                                       vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
-                                       bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-                } else {
-                    int offset = AMREX_SPACEDIM * oylo;
-                    mllinop_apply_bc_y(Orientation::low, bx, blen.y,
-                                       vel, mylo, bct[offset+icomp], bcl[offset+icomp],
-                                       bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
+    } else if (icorner == 1) { // xhi & ylo
+        int const i = vhi.x+1;
+        int const j = vlo.y-1;
+        if (mxhi(i,j,k) != BndryData::covered && (dhi.x != vhi.x || dlo.y != vlo.y)) {
+            bool x_interior = mylo(i-1,j  ,k) == BndryData::covered;
+            bool x_exterior = mylo(i-1,j  ,k) == BndryData::not_covered;
+            bool y_interior = mxhi(i  ,j+1,k) == BndryData::covered;
+            bool y_exterior = mxhi(i  ,j+1,k) == BndryData::not_covered;
+            if ((x_interior && y_interior) || (x_exterior && y_exterior)) {
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                }
+            } else if (x_interior || dhi.x == vhi.x) {
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                }
+            } else if (y_interior || dlo.y == vlo.y) {
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    mllinop_apply_bc_y(Orientation::low, i,j,k, blen.y, vel, mylo,
+                                       bct(Orientation::ylo(), icomp),
+                                       bcl(Orientation::ylo(), icomp),
+                                       bcvalylo, maxorder, dxinv[1], inhomog, icomp);
                 }
             }
-            break;
         }
-        case 2: {
-            // xlo & yhi
-            if (mxlo(vlo.x-1,vhi.y+1,0) != BndryData::covered) {
-                Box bx = amrex::adjCellHi(amrex::adjCellLo(vbox,xdir,1),ydir,1);
-                if (vlo.x == dlo.x && vhi.y == dhi.y) {
-                    vel(vlo.x-1,vhi.y+1,0,icomp) = vel(vlo.x-1,vhi.y,0,icomp)
-                        + vel(vlo.x,vhi.y+1,0,icomp) - vel(vlo.x,vhi.y,0,icomp);
-                } else if (vlo.x == dlo.x || myhi(vlo.x,vhi.y+1,0) == BndryData::covered) {
-                    int offset = AMREX_SPACEDIM * oxlo;
-                    mllinop_apply_bc_x(Orientation::low, bx, blen.x,
-                                       vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
-                                       bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-                } else {
-                    int offset = AMREX_SPACEDIM * oyhi;
-                    mllinop_apply_bc_y(Orientation::high, bx, blen.y,
-                                       vel, myhi, bct[offset+icomp], bcl[offset+icomp],
-                                       bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
+    } else if (icorner == 2) { // xlo & yhi
+        int const i = vlo.x-1;
+        int const j = vhi.y+1;
+        if (mxlo(i,j,k) != BndryData::covered && (dlo.x != vlo.x || dhi.y != vhi.y)) {
+            bool x_interior = myhi(i+1,j  ,k) == BndryData::covered;
+            bool x_exterior = myhi(i+1,j  ,k) == BndryData::not_covered;
+            bool y_interior = mxlo(i  ,j-1,k) == BndryData::covered;
+            bool y_exterior = mxlo(i  ,j-1,k) == BndryData::not_covered;
+            if ((x_interior && y_interior) || (x_exterior && y_exterior)) {
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                }
+            } else if (x_interior || dlo.x == vlo.x) {
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    mllinop_apply_bc_x(Orientation::low, i,j,k, blen.x, vel, mxlo,
+                                       bct(Orientation::xlo(), icomp),
+                                       bcl(Orientation::xlo(), icomp),
+                                       bcvalxlo, maxorder, dxinv[0], inhomog, icomp);
+                }
+            } else if (y_interior || dhi.y == vhi.y) {
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
                 }
             }
-            break;
         }
-        case 3: {
-            // xhi & yhi
-            if (mxhi(vhi.x+1,vhi.y+1,0) != BndryData::covered) {
-                Box bx = amrex::adjCellHi(amrex::adjCellHi(vbox,xdir,1),ydir,1);
-                if (vhi.x == dhi.x && vhi.y == dhi.y) {
-                    vel(vhi.x+1,vhi.y+1,0,icomp) = vel(vhi.x+1,vhi.y,0,icomp)
-                        + vel(vhi.x,vhi.y+1,0,icomp) - vel(vhi.x,vhi.y,0,icomp);
-                } else if (vhi.x == dhi.x || myhi(vhi.x,vhi.y+1,0) == BndryData::covered) {
-                    int offset = AMREX_SPACEDIM * oxhi;
-                    mllinop_apply_bc_x(Orientation::high, bx, blen.x,
-                                       vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
-                                       bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-                } else {
-                    int offset = AMREX_SPACEDIM * oyhi;
-                    mllinop_apply_bc_y(Orientation::high, bx, blen.y,
-                                       vel, myhi, bct[offset+icomp], bcl[offset+icomp],
-                                       bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
+    } else if (icorner == 3) { // xhi & yhi
+        int const i = vhi.x+1;
+        int const j = vhi.y+1;
+        if (mxhi(i,j,k) != BndryData::covered && (dhi.x != vhi.x || dhi.y != vhi.y)) {
+            bool x_interior = myhi(i-1,j  ,k) == BndryData::covered;
+            bool x_exterior = myhi(i-1,j  ,k) == BndryData::not_covered;
+            bool y_interior = mxhi(i  ,j-1,k) == BndryData::covered;
+            bool y_exterior = mxhi(i  ,j-1,k) == BndryData::not_covered;
+            if ((x_interior && y_interior) || (x_exterior && y_exterior)) {
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                    Real tmp = vel(i,j,k,icomp);
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
+                    vel(i,j,k,icomp) = 0.5_rt*(tmp+vel(i,j,k,icomp));
+                }
+            } else if (x_interior || dhi.x == vhi.x) {
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    mllinop_apply_bc_x(Orientation::high, i,j,k, blen.x, vel, mxhi,
+                                       bct(Orientation::xhi(), icomp),
+                                       bcl(Orientation::xhi(), icomp),
+                                       bcvalxhi, maxorder, dxinv[0], inhomog, icomp);
+                }
+            } else if (y_interior || dhi.y == vhi.y) {
+                for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                    mllinop_apply_bc_y(Orientation::high, i,j,k, blen.y, vel, myhi,
+                                       bct(Orientation::yhi(), icomp),
+                                       bcl(Orientation::yhi(), icomp),
+                                       bcvalyhi, maxorder, dxinv[1], inhomog, icomp);
                 }
             }
-            break;
-        }
-        default: {}
         }
     }
 }
@@ -137,11 +195,12 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
     const auto hi = amrex::ubound(box);
     constexpr Real twoThirds = Real(2./3.);
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudy = (vel(i,j+1,0,0)+vel(i-1,j+1,0,0)-vel(i,j-1,0,0)-vel(i-1,j-1,0,0))*(Real(0.25)*dyi);
-            Real dvdy = (vel(i,j+1,0,1)+vel(i-1,j+1,0,1)-vel(i,j-1,0,1)-vel(i-1,j-1,0,1))*(Real(0.25)*dyi);
+            Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
+            Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
             Real divu = dvdy;
             Real xif = kapx(i,j,0);
             Real mun = Real(0.75)*(etax(i,j,0,0)-xif);  // restore the original eta
@@ -164,11 +223,80 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     const auto hi = amrex::ubound(box);
     constexpr Real twoThirds = Real(2./3.);
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = (vel(i+1,j,0,0)+vel(i+1,j-1,0,0)-vel(i-1,j,0,0)-vel(i-1,j-1,0,0))*(Real(0.25)*dxi);
-            Real dvdx = (vel(i+1,j,0,1)+vel(i+1,j-1,0,1)-vel(i-1,j,0,1)-vel(i-1,j-1,0,1))*(Real(0.25)*dxi);
+            Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
+            Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
+            Real divu = dudx;
+            Real xif = kapy(i,j,0);
+            Real mun = Real(0.75)*(etay(i,j,0,1)-xif);  // restore the original eta
+            Real mut =             etay(i,j,0,0);
+            fy(i,j,0,0) = -mut*dvdx;
+            fy(i,j,0,1) = -mun*(-twoThirds*divu) - xif*divu;
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
+                              Array4<Real const> const& vel,
+                              Array4<Real const> const& etax,
+                              Array4<Real const> const& kapx,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& bvxlo,
+                              Array4<Real const> const& bvxhi,
+                              Array2D<BoundCond,
+                                      0,2*AMREX_SPACEDIM,
+                                      0,AMREX_SPACEDIM> const& bct,
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dyi = dxinv[1];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    constexpr Real twoThirds = Real(2./3.);
+
+    // Three BC types: reflect odd, neumann, and dirichlet
+
+    int k = 0;
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            Real divu = dvdy;
+            Real xif = kapx(i,j,0);
+            Real mun = Real(0.75)*(etax(i,j,0,0)-xif);  // restore the original eta
+            Real mut =             etax(i,j,0,1);
+            fx(i,j,0,0) = -mun*(-twoThirds*divu) - xif*divu;
+            fx(i,j,0,1) = -mut*dudy;
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
+                              Array4<Real const> const& vel,
+                              Array4<Real const> const& etay,
+                              Array4<Real const> const& kapy,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Array4<Real const> const& bvylo,
+                              Array4<Real const> const& bvyhi,
+                              Array2D<BoundCond,
+                                      0,2*AMREX_SPACEDIM,
+                                      0,AMREX_SPACEDIM> const& bct,
+                              Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    constexpr Real twoThirds = Real(2./3.);
+
+    int k = 0;
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+            Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
             Real divu = dudx;
             Real xif = kapy(i,j,0);
             Real mun = Real(0.75)*(etay(i,j,0,1)-xif);  // restore the original eta
@@ -241,13 +369,14 @@ void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real dudx = (vel(i,j,0,0) - vel(i-1,j,0,0))*dxi;
             Real dvdx = (vel(i,j,0,1) - vel(i-1,j,0,1))*dxi;
-            Real dudy = (vel(i,j+1,0,0)+vel(i-1,j+1,0,0)-vel(i,j-1,0,0)-vel(i-1,j-1,0,0))*(Real(0.25)*dyi);
-            Real dvdy = (vel(i,j+1,0,1)+vel(i-1,j+1,0,1)-vel(i,j-1,0,1)-vel(i-1,j-1,0,1))*(Real(0.25)*dyi);
+            Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi);
+            Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi);
             fx(i,j,0,0) = dudx;
             fx(i,j,0,1) = dvdx;
             fx(i,j,0,2) = dudy;
@@ -266,11 +395,74 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
+    int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = (vel(i+1,j,0,0)+vel(i+1,j-1,0,0)-vel(i-1,j,0,0)-vel(i-1,j-1,0,0))*(Real(0.25)*dxi);
-            Real dvdx = (vel(i+1,j,0,1)+vel(i+1,j-1,0,1)-vel(i-1,j,0,1)-vel(i-1,j-1,0,1))*(Real(0.25)*dxi);
+            Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi);
+            Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi);
+            Real dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
+            Real dvdy = (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
+            fy(i,j,0,0) = dudx;
+            fy(i,j,0,1) = dvdx;
+            fy(i,j,0,2) = dudy;
+            fy(i,j,0,3) = dvdy;
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
+                            Array4<Real const> const& vel,
+                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                            Array4<Real const> const& bvxlo,
+                            Array4<Real const> const& bvxhi,
+                            Array2D<BoundCond,
+                                    0,2*AMREX_SPACEDIM,
+                                    0,AMREX_SPACEDIM> const& bct,
+                            Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    int k = 0;
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            Real dudx = (vel(i,j,0,0) - vel(i-1,j,0,0))*dxi;
+            Real dvdx = (vel(i,j,0,1) - vel(i-1,j,0,1))*dxi;
+            Real dudy = mltensor_dy_on_xface(i,j,k,0,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            Real dvdy = mltensor_dy_on_xface(i,j,k,1,vel,dyi,bvxlo,bvxhi,bct,dlo,dhi);
+            fx(i,j,0,0) = dudx;
+            fx(i,j,0,1) = dvdx;
+            fx(i,j,0,2) = dudy;
+            fx(i,j,0,3) = dvdy;
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
+                            Array4<Real const> const& vel,
+                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                            Array4<Real const> const& bvylo,
+                            Array4<Real const> const& bvyhi,
+                            Array2D<BoundCond,
+                                    0,2*AMREX_SPACEDIM,
+                                    0,AMREX_SPACEDIM> const& bct,
+                            Dim3 const& dlo, Dim3 const& dhi) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    int k = 0;
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            Real dudx = mltensor_dx_on_yface(i,j,k,0,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
+            Real dvdx = mltensor_dx_on_yface(i,j,k,1,vel,dxi,bvylo,bvyhi,bct,dlo,dhi);
             Real dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
             Real dvdy = (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
             fy(i,j,0,0) = dudx;

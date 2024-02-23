@@ -24,17 +24,18 @@ void PrintUsage()
         << " variable.\n"
         << "\n"
         << " usage:\n"
-        << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] [--abs_tol] file1 file2\n"
+        << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] [--abs_tol] [--abort_if_not_all_found] file1 file2\n"
         << "\n"
         << " optional arguments:\n"
-        << "    -n|--norm num         : what norm to use (default is 0 for inf norm)\n"
-        << "    -d|--diffvar var      : output a plotfile showing the differences for\n"
-        << "                            variable var\n"
-        << "    -z|--zone_info var    : output the information for a zone corresponding\n"
-        << "                            to the maximum error for the given variable\n"
-        << "    -a|--allow_diff_grids : allow different BoxArrays covering the same domain\n"
-        << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
-        << "    --abs_tol atol        : absolute tolerance (default is 0)\n"
+        << "    -n|--norm num            : what norm to use (default is 0 for inf norm)\n"
+        << "    -d|--diffvar var         : output a plotfile showing the differences for\n"
+        << "                               variable var\n"
+        << "    -z|--zone_info var       : output the information for a zone corresponding\n"
+        << "                               to the maximum error for the given variable\n"
+        << "    -a|--allow_diff_grids    : allow different BoxArrays covering the same domain\n"
+        << "    -r|--rel_tol rtol        : relative tolerance (default is 0)\n"
+        << "    --abs_tol atol           : absolute tolerance (default is 0)\n"
+        << "    --abort_if_not_all_found : abort if not all variables are present in both files\n"
         << std::endl;
 }
 
@@ -82,9 +83,9 @@ int main_main()
         } else if (fname == "-a" || fname == "--allow_diff_grids") {
             allow_diff_grids = true;
         } else if (fname == "-r" || fname == "--rel_tol") {
-            rtol = std::stod(amrex::get_command_argument(++farg));
+            rtol = Real(std::stod(amrex::get_command_argument(++farg)));
         } else if (fname == "--abs_tol") {
-            atol = std::stod(amrex::get_command_argument(++farg));
+            atol = Real(std::stod(amrex::get_command_argument(++farg)));
         } else if (fname == "--abort_if_not_all_found") {
             abort_if_not_all_found = true;
         } else {
@@ -137,7 +138,7 @@ int main_main()
             amrex::Print() << " WARNING: variable " << names_a[n_a] << " not found in plotfile 2\n";
             all_variables_found = false;
         } else {
-            ivar_b[n_a] = std::distance(std::begin(names_b), r);
+            ivar_b[n_a] = static_cast<int>(std::distance(std::begin(names_b), r));
         }
 
         if (names_a[n_a] == diffvar) {
@@ -248,7 +249,7 @@ int main_main()
                     for (int idim = 0; idim < dm; ++idim) {
                         dv *= dx[idim];
                     }
-                    aerror[icomp_a] *= std::pow(dv,1./static_cast<Real>(norm));
+                    aerror[icomp_a] *= std::pow(dv,Real(1.)/static_cast<Real>(norm));
                     rerror[icomp_a] = rerror[icomp_a]/rerror_denom[icomp_a];
                 }
 
@@ -366,7 +367,7 @@ int main_main()
 
     if (! all_variables_found) {
         amrex::Print() << " WARNING: not all variables present in both files\n";
-        if (abort_if_not_all_found) return EXIT_FAILURE;
+        if (abort_if_not_all_found) { return EXIT_FAILURE; }
     }
 
     if (any_nans) {

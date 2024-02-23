@@ -37,7 +37,7 @@ namespace amrex
        Default constructor.  This constructs an invalid iterator.
        The user must call define before using.
     */
-    BoxIterator() noexcept;
+    BoxIterator () noexcept = default;
 
     ///
     /**
@@ -45,9 +45,9 @@ namespace amrex
        Arguments:
        a_bx (not modified) the Box to iterate over.
     */
-    explicit BoxIterator(const Box& a_bx) noexcept;
+    explicit BoxIterator (const Box& a_bx) noexcept;
 
-    void setBox(const Box& a_bx) noexcept;
+    void setBox (const Box& a_bx) noexcept;
 
     ///
     /**
@@ -55,20 +55,7 @@ namespace amrex
        Arguments:
        a_bx (not modified) the Box to iterate over.
     */
-    void define(const Box& a_bx) noexcept;
-
-    ///
-    /**
-       Copy constructor.
-       Arguments:
-       a_iterIn (not modified) the BoxIterator to copy.
-    */
-    BoxIterator(const BoxIterator& a_iterIn) noexcept;
-
-    ///
-    ~BoxIterator ()
-    {
-    }
+    void define (const Box& a_bx) noexcept;
 
     ///
     /**
@@ -76,7 +63,7 @@ namespace amrex
        definition of the "first" IntVect is
        implementation-dependent.
     */
-    void begin() noexcept;
+    void begin () noexcept;
 
     ///
     /**
@@ -84,7 +71,7 @@ namespace amrex
        definition of the "first" IntVect is
        implementation-dependent.
     */
-    void reset() noexcept;
+    void reset () noexcept;
 
     ///
     /**
@@ -94,57 +81,41 @@ namespace amrex
     */
     void operator ++ () noexcept;
 
-    void next() noexcept;
+    void next () noexcept;
 
     ///
     /**
        Returns the value of the InVect for the current location of this
        BoxIterator.
     */
-    const IntVect& operator () () const noexcept;
+    [[nodiscard]] const IntVect& operator () () const noexcept;
 
     ///
     /**
        Returns true if this BoxIterator's location is within its Box.
     */
-    bool ok() noexcept;
+    [[nodiscard]] bool ok () noexcept;
 
   protected:
-    IntVect m_current;
-    IntVect m_boxLo;
-    IntVect m_boxHi;
+    IntVect m_current = IntVect::TheUnitVector();
+    IntVect m_boxLo   = IntVect::TheUnitVector();
+    IntVect m_boxHi   = IntVect::TheZeroVector();
   };
 
   inline
-  BoxIterator::BoxIterator() noexcept
-  {
-    m_current = IntVect::TheUnitVector();
-    m_boxLo   = IntVect::TheUnitVector();
-    m_boxHi   = IntVect::TheZeroVector();
-  }
-
-  inline
-  BoxIterator::BoxIterator(const Box& a_bx) noexcept
+  BoxIterator::BoxIterator (const Box& a_bx) noexcept
   {
     define(a_bx);
   }
 
   inline
-  BoxIterator::BoxIterator(const BoxIterator& a_iterIn) noexcept
+  void BoxIterator::begin () noexcept
   {
-    m_current = a_iterIn.m_current;
-    m_boxLo =   a_iterIn.m_boxLo;
-    m_boxHi =   a_iterIn.m_boxHi;
+    if (m_boxLo <= m_boxHi) { m_current = m_boxLo; }
   }
 
   inline
-  void BoxIterator::begin() noexcept
-  {
-    if (m_boxLo <= m_boxHi)  m_current = m_boxLo;
-  }
-
-  inline
-  void BoxIterator::reset() noexcept
+  void BoxIterator::reset () noexcept
   {
     begin();
   }
@@ -156,7 +127,7 @@ namespace amrex
   }
 
   inline
-  void BoxIterator::next() noexcept
+  void BoxIterator::next () noexcept
   {
     m_current[0]++;
 #if AMREX_SPACEDIM >= 2
@@ -184,7 +155,7 @@ namespace amrex
   }
 
   inline
-  bool BoxIterator::ok() noexcept
+  bool BoxIterator::ok () noexcept
   {
     return (m_current  <= m_boxHi);
   }

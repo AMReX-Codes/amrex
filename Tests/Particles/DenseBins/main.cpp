@@ -9,9 +9,9 @@ using namespace amrex;
 void checkAnswer (const amrex::DenseBins<int>& bins)
 {
     BL_PROFILE("checkAnswer");
-    const auto perm = bins.permutationPtr();
-    const auto bins_ptr = bins.binsPtr();
-    const auto offsets = bins.offsetsPtr();
+    const auto* const perm = bins.permutationPtr();
+    const auto* const bins_ptr = bins.binsPtr();
+    const auto* const offsets = bins.offsetsPtr();
 
 #ifdef AMREX_USE_GPU
     amrex::ParallelFor(bins.numItems(), [=] AMREX_GPU_DEVICE (int i) noexcept
@@ -47,7 +47,7 @@ void checkAnswer (const amrex::DenseBins<int>& bins)
     for (int i = 0; i < bins.numBins(); ++i) {
         auto start = offsets[i  ];
         auto stop  = offsets[i+1];
-        if (start == stop) continue;
+        if (start == stop) { continue; }
         for (auto j = start+1; j < stop; ++j)
         {
             AMREX_ALWAYS_ASSERT(bins_ptr[perm[start]] == bins_ptr[perm[j]]);
@@ -60,8 +60,8 @@ void testGPU (int nbins, const amrex::Vector<int>& items)
 {
     // copy to device
     Gpu::DeviceVector<int> items_d(items.size());
-    Gpu::copy(Gpu::hostToDevice, items.begin(), items.end(), items_d.begin());
-    Gpu::Device::synchronize();
+    Gpu::copyAsync(Gpu::hostToDevice, items.begin(), items.end(), items_d.begin());
+    Gpu::Device::streamSynchronize();
 
     amrex::DenseBins<int> bins;
     bins.build(BinPolicy::GPU, items_d.size(), items_d.data(), nbins, [=] AMREX_GPU_DEVICE (int j) noexcept -> unsigned int { return j ; });
@@ -89,12 +89,12 @@ void initData (int nbins, amrex::Vector<int>& items)
 {
     BL_PROFILE("init");
 
-    const int nitems = items.size();
+    const auto nitems = int(items.size());
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < nitems; ++i) { items[i] = amrex::Random_int(nbins); }
+    for (int i = 0; i < nitems; ++i) { items[i] = int(amrex::Random_int(nbins)); }
 }
 
 void testDenseBins ()
@@ -109,7 +109,7 @@ void testDenseBins ()
     amrex::Vector<int> items(nitems);
     initData(nbins, items);
 
-#ifndef AMREX_USE_DPCPP
+#ifndef AMREX_USE_SYCL
     testSerial(nbins, items);
 #endif
 #ifdef AMREX_USE_OMP

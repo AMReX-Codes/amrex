@@ -267,12 +267,12 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
         if(bCartGrid) {  // check various permutations of vfrac name
           if(strcmp(plotVarName, "vol_frac") == 0) {
             cout << "+++++++++++++ found bad vfrac name:  " << plotVarName << endl;
-            strcpy(plotVarName, "vfrac");
+            std::strncpy(plotVarName, "vfrac", sizeof(plotVarName));
             cout << "+++++++++++++                  now:  " << plotVarName << endl;
           }
           if(strcmp(plotVarName, "volfrac") == 0) {
             cout << "+++++++++++++ found bad vfrac name:  " << plotVarName << endl;
-            strcpy(plotVarName, "vfrac");
+            std::strncpy(plotVarName, "vfrac", sizeof(plotVarName));
             cout << "+++++++++++++                  now:  " << plotVarName << endl;
           }
           if(strcmp(plotVarName, "vfrac") == 0) {
@@ -1061,7 +1061,7 @@ void AmrData::HiNodeLoc(int lev, IntVect ix, Vector<Real> &pos) const {
 void AmrData::IntVectFromLocation(const int finestFillLevel,
                                   const Vector<Real> &location,
                                   IntVect &ivLoc, int &ivLevel,
-                                  IntVect &ivFinestFillLev)
+                                  IntVect &ivFinestFillLev) const
 {
    BL_ASSERT(location.size() == BL_SPACEDIM);
    BL_ASSERT(finestFillLevel <= finestLevel);

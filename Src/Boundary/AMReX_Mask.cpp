@@ -5,9 +5,6 @@
 
 namespace amrex {
 
-Mask::Mask () noexcept
-    : BaseFab<int>() {}
-
 Mask::Mask (Arena* ar) noexcept
     : BaseFab<int>(ar) {}
 
@@ -39,8 +36,9 @@ operator<< (std::ostream& os,
     for (IntVect p = sm; p <= bg; m.box().next(p))
     {
         os << p;
-        for (int k = 0; k < ncomp; k++)
+        for (int k = 0; k < ncomp; k++) {
             os << "  " << m(p,k);
+        }
         os << "\n";
     }
     os << ")\n";
@@ -58,6 +56,7 @@ operator>> (std::istream& is,
     Box b;
     int ncomp;
     is >> b >> ncomp;
+    AMREX_ASSERT(ncomp >= 0 && ncomp < std::numeric_limits<int>::max());
     is.ignore(BL_IGNORE_MAX, '\n');
     m.resize(b,ncomp);
     IntVect sm = b.smallEnd();
@@ -67,7 +66,7 @@ operator>> (std::istream& is,
     {
         is >> q;
         BL_ASSERT( p == q);
-        for( int k=0; k<ncomp; k++ ) is >> m(p,k);
+        for( int k=0; k<ncomp; k++ ) { is >> m(p,k); }
         is.ignore(BL_IGNORE_MAX, '\n');
     }
     is.ignore(BL_IGNORE_MAX,'\n');
@@ -80,8 +79,8 @@ Mask::writeOn (std::ostream& os) const
 {
     os << "(Mask: " << domain << " " << nvar << "\n";
     const int* ptr = dataPtr();
-    int len = domain.numPts();
-    os.write( (char*) ptr, len*sizeof(int) );
+    auto len = domain.numPts();
+    os.write( (char*) ptr, static_cast<std::streamsize>(len*sizeof(int)) );
     os << ")\n";
 }
 
@@ -92,11 +91,12 @@ Mask::readFrom (std::istream& is)
     Box b;
     int ncomp;
     is >> b >> ncomp;
+    AMREX_ASSERT(ncomp >= 0 && ncomp < std::numeric_limits<int>::max());
     is.ignore(BL_IGNORE_MAX, '\n');
     resize(b,ncomp);
     int *ptr = dataPtr();
-    int len = domain.numPts();
-    is.read( (char*) ptr, len*sizeof(int) );
+    auto len = domain.numPts();
+    is.read( (char*) ptr, static_cast<std::streamsize>(len*sizeof(int)) );
     is.ignore(BL_IGNORE_MAX, '\n');
 }
 

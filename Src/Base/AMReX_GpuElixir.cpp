@@ -6,20 +6,17 @@
 #include <cstdlib>
 #include <memory>
 
-namespace amrex {
-namespace Gpu {
+namespace amrex::Gpu {
 
 namespace {
 
-#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_SYCL)
 
 extern "C" {
 #if defined(AMREX_USE_HIP)
     void amrex_elixir_delete ( hipStream_t /*stream*/,  hipError_t /*error*/, void* p)
-#elif defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10)
-    void CUDART_CB amrex_elixir_delete (void* p)
 #elif defined(AMREX_USE_CUDA)
-    void CUDART_CB amrex_elixir_delete (cudaStream_t /*stream*/, cudaError_t /*error*/, void* p)
+    void CUDART_CB amrex_elixir_delete (void* p)
 #endif
     {
         auto p_pa = reinterpret_cast<Vector<std::pair<void*,Arena*> >*>(p);
@@ -46,35 +43,24 @@ Elixir::clear () noexcept
 #if defined(AMREX_USE_HIP)
             AMREX_HIP_SAFE_CALL ( hipStreamAddCallback(Gpu::gpuStream(),
                                                        amrex_elixir_delete, (void*)p, 0));
-#elif defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10)
+#elif defined(AMREX_USE_CUDA)
             AMREX_CUDA_SAFE_CALL(cudaLaunchHostFunc(Gpu::gpuStream(),
                                                     amrex_elixir_delete, (void*)p));
-#elif defined(AMREX_USE_CUDA)
-            AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
-                                                       amrex_elixir_delete, (void*)p, 0));
 #endif
-#elif defined(AMREX_USE_DPCPP)
-#ifdef AMREX_USE_CODEPLAY_HOST_TASK
-            auto lpa = std::move(m_pa);
-            auto& q = *(Gpu::gpuStream().queue);
-            try {
-                q.submit([&] (sycl::handler& h) {
-                    h.codeplay_host_task([=] () {
-                        for (auto const& pa : lpa) {
-                            pa.second->free(pa.first);
-                        }
-                    });
+#elif defined(AMREX_USE_SYCL)
+        auto lpa = std::move(m_pa);
+        auto& q = *(Gpu::gpuStream().queue);
+        try {
+            q.submit([&] (sycl::handler& h) {
+                h.host_task([=] () {
+                    for (auto const& pa : lpa) {
+                        pa.second->free(pa.first);
+                    }
                 });
-            } catch (sycl::exception const& ex) {
-                amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
-            }
-#else
-            // xxxxx DPCPP todo
-            Gpu::streamSynchronize();
-            for (auto const& pa : m_pa) {
-                pa.second->free(pa.first);
-            }
-#endif
+            });
+        } catch (sycl::exception const& ex) {
+            amrex::Abort(std::string("host_task: ")+ex.what()+"!!!!!");
+        }
 #endif
         }
     }
@@ -88,5 +74,4 @@ Elixir::clear () noexcept
     m_pa.clear();
 }
 
-}
 }

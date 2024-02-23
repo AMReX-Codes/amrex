@@ -26,7 +26,7 @@ namespace amrex {
                      Vector<Long>& Snds, Vector<Long>& Rcvs)
     {
         Long NumSnds = CountSnds(not_ours, Snds);
-        if (NumSnds == 0) return NumSnds;
+        if (NumSnds == 0) { return NumSnds; }
 
         BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(Long),
                         ParallelContext::MyProcSub(), BLProfiler::BeforeCall());
@@ -60,7 +60,7 @@ namespace amrex {
 
         const int SeqNum = ParallelDescriptor::SeqNum();
 
-        const int num_rcvs = neighbor_procs.size();
+        const int num_rcvs = static_cast<int>(neighbor_procs.size());
         Vector<MPI_Status>  stats(num_rcvs);
         Vector<MPI_Request> rreqs(num_rcvs);
 

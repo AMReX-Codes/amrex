@@ -36,8 +36,7 @@ Real      CNS::gravity        = 0.0;
 int       CNS::eb_weights_type = 0;   // [0,1,2,3] 0: weights are all 1
 int       CNS::do_reredistribution = 1;
 
-CNS::CNS ()
-{}
+CNS::CNS () = default;
 
 CNS::CNS (Amr&            papa,
           int             lev,
@@ -57,8 +56,7 @@ CNS::CNS (Amr&            papa,
     buildMetrics();
 }
 
-CNS::~CNS ()
-{}
+CNS::~CNS () = default;
 
 void
 CNS::init (AmrLevel& old)
@@ -280,7 +278,7 @@ CNS::printTotal () const
     Lazy::QueueReduction( [=] () mutable {
 #endif
             ParallelDescriptor::ReduceRealSum(tot.data(), 5, ParallelDescriptor::IOProcessorNumber());
-            amrex::Print().SetPrecision(17) << "\n[CNS] Total mass       is " << tot[0] << "\n"
+            amrex::Print().SetPrecision(15) << "\n[CNS] Total mass       is " << tot[0] << "\n"
                                             <<   "      Total x-momentum is " << tot[1] << "\n"
                                             <<   "      Total y-momentum is " << tot[2] << "\n"
 #if (AMREX_SPACEDIM == 3)
@@ -295,7 +293,7 @@ CNS::printTotal () const
 void
 CNS::post_init (Real)
 {
-    if (level > 0) return;
+    if (level > 0) { return; }
     for (int k = parent->finestLevel()-1; k >= 0; --k) {
         getLevel(k).avgDown();
     }
@@ -322,10 +320,10 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real /*time*/, int, int)
 
     if (!refine_boxes.empty())
     {
-        const int n_refine_boxes = refine_boxes.size();
+        const auto n_refine_boxes = int(refine_boxes.size());
         const auto problo = geom.ProbLoArray();
         const auto dx = geom.CellSizeArray();
-        auto boxes = dp_refine_boxes;
+        auto const* boxes = dp_refine_boxes;
 
         auto const& tagma = tags.arrays();
         ParallelFor(tags,
@@ -340,7 +338,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real /*time*/, int, int)
                 }
             }
         });
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 
     if (level < refine_max_dengrad_lev)
@@ -361,7 +359,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real /*time*/, int, int)
         {
             cns_tag_denerror(i, j, k, tagma[box_no], rhoma[box_no], dengrad_threshold, tagval);
         });
-        Gpu::synchronize();
+        Gpu::streamSynchronize();
     }
 }
 
@@ -424,7 +422,7 @@ CNS::read_params ()
     if (!refine_boxes.empty()) {
 #ifdef AMREX_USE_GPU
         dp_refine_boxes = (RealBox*)The_Arena()->alloc(sizeof(RealBox)*refine_boxes.size());
-        Gpu::htod_memcpy(dp_refine_boxes, refine_boxes.data(), sizeof(RealBox)*refine_boxes.size());
+        Gpu::htod_memcpy_async(dp_refine_boxes, refine_boxes.data(), sizeof(RealBox)*refine_boxes.size());
 #else
         dp_refine_boxes = refine_boxes.data();
 #endif
@@ -439,7 +437,7 @@ CNS::read_params ()
     pp.query("T_S"      , h_parm->T_S);
 
     h_parm->Initialize();
-    amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_parm, h_parm+1, d_parm);
+    amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, h_parm, h_parm+1, d_parm);
 
     // eb_weights_type:
     //   0 -- weights = 1
@@ -447,12 +445,16 @@ CNS::read_params ()
     //   2 -- use_mass_as_eb_weights
     //   3 -- use_volfrac_as_eb_weights
     pp.query("eb_weights_type", eb_weights_type);
-    if (eb_weights_type < 0 || eb_weights_type > 3)
+    if (eb_weights_type < 0 || eb_weights_type > 3) {
         amrex::Abort("CNS: eb_weights_type must be 0,1,2 or 3");
+    }
 
     pp.query("do_reredistribution", do_reredistribution);
-    if (do_reredistribution != 0 && do_reredistribution != 1)
+    if (do_reredistribution != 0 && do_reredistribution != 1) {
         amrex::Abort("CNS: do_reredistibution must be 0 or 1");
+    }
+
+    amrex::Gpu::streamSynchronize();
 }
 
 void
@@ -460,7 +462,7 @@ CNS::avgDown ()
 {
     BL_PROFILE("CNS::avgDown()");
 
-    if (level == parent->finestLevel()) return;
+    if (level == parent->finestLevel()) { return; }
 
     auto& fine_lev = getLevel(level+1);
 
@@ -498,15 +500,13 @@ CNS::buildMetrics ()
     areafrac = ebfactory.getAreaFrac();
     facecent = ebfactory.getFaceCent();
 
-    Parm const* l_parm = d_parm;
-
     level_mask.clear();
     level_mask.define(grids,dmap,1,3);
     level_mask.BuildMask(geom.Domain(), geom.periodicity(),
-                         l_parm->level_mask_covered,
-                         l_parm->level_mask_notcovered,
-                         l_parm->level_mask_physbnd,
-                         l_parm->level_mask_interior);
+                         Parm::level_mask_covered,
+                         Parm::level_mask_notcovered,
+                         Parm::level_mask_physbnd,
+                         Parm::level_mask_interior);
 }
 
 Real

@@ -11,8 +11,9 @@
 #include <memory>
 #include <type_traits>
 #include <cmath>
+#include <utility>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 template <class F, typename std::enable_if<IsGPUable<F>::value>::type* FOO = nullptr>
 AMREX_GPU_HOST_DEVICE
@@ -27,13 +28,12 @@ AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
 {
-#if AMREX_DEVICE_COMPILE
-    amrex::ignore_unused(f,p);
-    amrex::Error("EB2::GeometryShop: how did this happen?");
-    return 0.0;
-#else
-    return f({AMREX_D_DECL(p[0],p[1],p[2])});
-#endif
+    AMREX_IF_ON_DEVICE((
+        amrex::ignore_unused(f,p);
+        amrex::Error("EB2::GeometryShop: how did this happen?");
+        return 0.0;
+    ))
+    AMREX_IF_ON_HOST((return f({AMREX_D_DECL(p[0],p[1],p[2])});))
 }
 
 template <class F>
@@ -43,9 +43,14 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
                  GpuArray<Real,AMREX_SPACEDIM> const& hi,
                  int rangedir, F const& f) noexcept
 {
+#ifdef AMREX_USE_FLOAT
+    const Real tol = 1.e-4_rt;
+    const Real EPS = 1.0e-6_rt;
+#else
     const Real tol = 1.e-12;
-    const int MAXITER = 100;
     const Real EPS = 3.0e-15;
+#endif
+    const int MAXITER = 100;
 
     Real p, q, r, s;
 
@@ -57,17 +62,17 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
     Real c = bPt[rangedir];
     Real fc = fb;
 
-    if (fb*fa > 0.0) {
+    if (fb*fa > 0.0_rt) {
 //        amrex::AllPrint() << "fa " << fa << " fb " << fb << "\n";
         amrex::Error("BrentRootFinder. Root must be bracketed, but instead the supplied end points have the same sign.");
-        return 0.0;
-    } else if (fa == 0.0) {
+        return 0.0_rt;
+    } else if (fa == 0.0_rt) {
         return aPt[rangedir];
-    } else if (fb == 0.0) {
+    } else if (fb == 0.0_rt) {
         return bPt[rangedir];
     }
 
-    Real d = 0.0, e = 0.0;
+    Real d = 0.0_rt, e = 0.0_rt;
     int i;
     for (i = 0; i < MAXITER; ++i)
     {
@@ -80,7 +85,7 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
             e = d;
         }
 
-        if (amrex::Math::abs(fc) < amrex::Math::abs(fb))
+        if (std::abs(fc) < std::abs(fb))
         {
             aPt[rangedir] = bPt[rangedir];
             bPt[rangedir] = c;
@@ -91,37 +96,37 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
         }
 
         //  Convergence check
-        Real tol1  = 2.0 * EPS * amrex::Math::abs(bPt[rangedir]) + 0.5 * tol;
-        Real xm    = 0.5 * (c - bPt[rangedir]);
+        Real tol1  = 2.0_rt * EPS * std::abs(bPt[rangedir]) + 0.5_rt * tol;
+        Real xm    = 0.5_rt * (c - bPt[rangedir]);
 
-        if (amrex::Math::abs(xm) <= tol1 || fb == 0.0)
+        if (std::abs(xm) <= tol1 || fb == 0.0_rt)
         {
             break;
         }
 
-        if (amrex::Math::abs(e) >= tol1 && amrex::Math::abs(fa) > amrex::Math::abs(fb))
+        if (std::abs(e) >= tol1 && std::abs(fa) > std::abs(fb))
         {
             //  Attempt inverse quadratic interpolation
             s = fb / fa;
             if (aPt[rangedir] == c)
             {
-                p = 2.0 * xm * s;
-                q = 1.0 - s;
+                p = 2.0_rt * xm * s;
+                q = 1.0_rt - s;
             }
             else
             {
                 q = fa / fc;
                 r = fb / fc;
-                p = s * (2.0 * xm * q * (q-r) - (bPt[rangedir]-aPt[rangedir]) * (r-1.0));
-                q = (q-1.0) * (r-1.0) * (s-1.0);
+                p = s * (2.0_rt * xm * q * (q-r) - (bPt[rangedir]-aPt[rangedir]) * (r-1.0_rt));
+                q = (q-1.0_rt) * (r-1.0_rt) * (s-1.0_rt);
             }
 
             //  Check whether in bounds
-            if (p > 0) q = -q;
+            if (p > 0) { q = -q; }
 
-            p = amrex::Math::abs(p);
+            p = std::abs(p);
 
-            if (2.0 * p < amrex::min(3.0*xm*q-amrex::Math::abs(tol1*q), 1.0*amrex::Math::abs(e*q)))
+            if (2.0_rt * p < amrex::min(3.0_rt*xm*q-std::abs(tol1*q), 1.0_rt*std::abs(e*q)))
             {
                 //  Accept interpolation
                 e = d;
@@ -146,14 +151,14 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
         fa  = fb;
 
         //  Evaluate new trial root
-        if (amrex::Math::abs(d) > tol1)
+        if (std::abs(d) > tol1)
         {
             bPt[rangedir] = bPt[rangedir] + d;
         }
         else
         {
-            if (xm < 0) bPt[rangedir] = bPt[rangedir] - tol1;
-            else        bPt[rangedir] = bPt[rangedir] + tol1;
+            if (xm < 0) { bPt[rangedir] = bPt[rangedir] - tol1; }
+            else        { bPt[rangedir] = bPt[rangedir] + tol1; }
         }
 
         fb = IF_f(f, bPt);
@@ -182,39 +187,18 @@ public:
 
     using FunctionType = F;
 
-    explicit GeometryShop (F const& f)
-        : m_f(f), m_resource()
-        {}
-
-    explicit GeometryShop (F && f)
+    explicit GeometryShop (F f)
         : m_f(std::move(f)), m_resource()
         {}
 
-    GeometryShop (F const& f, R const& r)
-        : m_f(f), m_resource(r)
-        {}
-
-    GeometryShop (F && f, R && r)
+    GeometryShop (F f, R r)
         : m_f(std::move(f)), m_resource(std::move(r))
         {}
 
-    ~GeometryShop() {}
-
-    GeometryShop (GeometryShop<F> const& rhs)
-        : m_f(rhs.m_f), m_resource(rhs.m_resource)
-        {}
-
-    GeometryShop (GeometryShop<F> && rhs)
-        : m_f(std::move(rhs.m_f)), m_resource(std::move(rhs.m_resource))
-        {}
-
-    GeometryShop<F>& operator= (GeometryShop<F> const& rhs) = delete;
-    GeometryShop<F>& operator= (GeometryShop<F> && rhs) = delete;
-
-    F const& GetImpFunc () const& { return m_f; }
+    [[nodiscard]] F const& GetImpFunc () const& { return m_f; }
     F&& GetImpFunc () && { return std::move(m_f); }
 
-    int getBoxType_Cpu (const Box& bx, Geometry const& geom) const noexcept
+    [[nodiscard]] int getBoxType_Cpu (const Box& bx, Geometry const& geom) const noexcept
     {
         const Real* problo = geom.ProbLo();
         const Real* dx = geom.CellSize();
@@ -228,17 +212,18 @@ public:
                                                 problo[1]+(j+blo[1])*dx[1],
                                                 problo[2]+(k+blo[2])*dx[2])};
                     Real v = m_f(xyz);
-                    if (v == 0.0) {
+                    if (v == 0.0_rt) {
                         ++nzero;
-                    } else if (v > 0.0) {
+                    } else if (v > 0.0_rt) {
                         ++nbody;
                     } else {
                         ++nfluid;
                     }
-                    if (nbody > 0 && nfluid > 0) return mixedcells;
+                    if (nbody > 0 && nfluid > 0) { return mixedcells; }
                 }
             }
         }
+        amrex::ignore_unused(nzero);
 
         if (nbody == 0) {
             return allregular;
@@ -250,7 +235,7 @@ public:
     }
 
     template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
-    int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
+    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
     {
         if (run_on == RunOn::Gpu && Gpu::inLaunchRegion())
         {
@@ -268,9 +253,9 @@ public:
                                         problo[1]+j*dx[1],
                                         problo[2]+k*dx[2]));
                 int nbody = 0, nzero = 0, nfluid = 0;
-                if (v == 0.0) {
+                if (v == 0.0_rt) {
                     ++nzero;
-                } else if (v > 0.0) {
+                } else if (v > 0.0_rt) {
                     ++nbody;
                 } else {
                     ++nfluid;
@@ -297,7 +282,7 @@ public:
     }
 
     template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
-    int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
+    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
     {
         return getBoxType_Cpu(bx, geom);
     }
@@ -347,8 +332,8 @@ public:
         }
     }
 
-    void fillFab_Cpu(BaseFab<Real>& levelset, const Geometry& geom,
-                     Box const& bounding_box) const noexcept
+    void fillFab_Cpu (BaseFab<Real>& levelset, const Geometry& geom,
+                      Box const& bounding_box) const noexcept
     {
         const auto problo = geom.ProbLoArray();
         const auto dx = geom.CellSizeArray();
@@ -369,7 +354,7 @@ public:
     template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
-                       Geometry const& geom, RunOn run_on,
+                       Array4<Real const> const&, Geometry const& geom, RunOn run_on,
                        Box const& bounding_box) const noexcept
     {
         auto const& dx = geom.CellSizeArray();
@@ -405,7 +390,7 @@ public:
     template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
-                       Geometry const& geom, RunOn,
+                       Array4<Real const> const&, Geometry const& geom, RunOn,
                        Box const& bounding_box) const noexcept
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -437,11 +422,11 @@ public:
         }
     }
 
-    void getIntercept_Cpu(Array4<Real> const& inter,
-                          Array4<Type_t const> const& type,
-                          Geometry const& geom,
-                          Box const& bounding_box,
-                          const int idim) const noexcept
+    void getIntercept_Cpu (Array4<Real> const& inter,
+                           Array4<Type_t const> const& type,
+                           Geometry const& geom,
+                           Box const& bounding_box,
+                           const int idim) const noexcept
     {
         auto const& dx = geom.CellSizeArray();
         auto const& problo = geom.ProbLoArray();
@@ -490,7 +475,7 @@ public:
                         {
                             // interp might still be quiet_nan because lst that
                             // was set to zero has been changed by FillBoundary
-                            // at periodic bounadries.
+                            // at periodic boundaries.
                             inter(i,j,k) = problo[0] + i*dx[0];
                         }
                         else if (lst(i+1,j,k) == Real(0.0) ||
@@ -549,6 +534,6 @@ makeShop (F&& f, R&& r)
         (std::forward<F>(f), std::forward<R>(r));
 }
 
-}}
+}
 
 #endif

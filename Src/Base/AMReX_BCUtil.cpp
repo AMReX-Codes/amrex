@@ -1,6 +1,9 @@
 #include <AMReX_BCUtil.H>
 #include <AMReX_PhysBCFunct.H>
 
+// CUDA 11.6 bug: https://github.com/AMReX-Codes/amrex/issues/2607
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 11) || (__CUDACC_VER_MINOR__ != 6)
+
 namespace amrex
 {
 
@@ -12,7 +15,7 @@ void dummy_cpu_fill_extdir (Box const& /*bx*/, Array4<Real> const& /*dest*/,
                             const BCRec* /*bcr*/, const int /*bcomp*/,
                             const int /*orig_comp*/)
 {
-    // do something for external Dirichlet (BCType::ext_dir) if there are
+    // do something for external Dirichlet (BCType::ext_dir or BCType::ext_dir_cc) if there are
 }
 
 struct dummy_gpu_fill_extdir
@@ -24,7 +27,7 @@ struct dummy_gpu_fill_extdir
                      const BCRec* /*bcr*/, const int /*bcomp*/,
                      const int /*orig_comp*/) const
         {
-            // do something for external Dirichlet (BCType::ext_dir) if there are
+            // do something for external Dirichlet (BCType::ext_dir or BCType::ext_dir_cc) if there are
         }
 };
 
@@ -32,8 +35,8 @@ struct dummy_gpu_fill_extdir
 
 void FillDomainBoundary (MultiFab& phi, const Geometry& geom, const Vector<BCRec>& bc)
 {
-    if (geom.isAllPeriodic()) return;
-    if (phi.nGrow() == 0) return;
+    if (geom.isAllPeriodic()) { return; }
+    if (phi.nGrow() == 0) { return; }
 
     AMREX_ALWAYS_ASSERT(phi.ixType().cellCentered());
 
@@ -53,3 +56,5 @@ void FillDomainBoundary (MultiFab& phi, const Geometry& geom, const Vector<BCRec
 }
 
 }
+
+#endif

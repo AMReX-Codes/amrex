@@ -5,6 +5,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_Array.H>
@@ -23,9 +24,10 @@
 #include <cmath>
 #include <type_traits>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class IndexSpace;
+template <typename G> class GShopLevel;
 
 class Level
 {
@@ -55,18 +57,24 @@ public:
     const DistributionMapping& DistributionMap () const noexcept { return m_dmap; }
 
     Level (IndexSpace const* is, const Geometry& geom) : m_geom(geom), m_parent(is) {}
-    void prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect ngrow);
+    void prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect const& ngrow);
 
     const Geometry& Geom () const noexcept { return m_geom; }
     IndexSpace const* getEBIndexSpace () const noexcept { return m_parent; }
 
+    IntVect const& nGrowVect () const noexcept { return m_ngrow; }
+
+    void write_to_chkpt_file (const std::string& fname, bool extend_domain_face, int max_grid_size) const;
+
+    bool hasEBInfo () const noexcept { return m_has_eb_info; }
+    void fillCutCellMask (iMultiFab& cutcellmask, const Geometry& geom) const;
+
+// public: // for cuda
+    int coarsenFromFine (Level& fineLevel, bool fill_boundary);
+    void buildCellFlag ();
+    void buildCutCellMask (Level const& fine_level);
+
 protected:
-
-    Level (Level && rhs) = default;
-
-    Level (Level const& rhs) = delete;
-    Level& operator=(Level const& rhs) = delete;
-    Level& operator=(Level && rhs) = delete;
 
     Geometry m_geom;
     IntVect  m_ngrow;
@@ -84,13 +92,21 @@ protected:
     Array<MultiFab,AMREX_SPACEDIM> m_areafrac;
     Array<MultiFab,AMREX_SPACEDIM> m_facecent;
     Array<MultiFab,AMREX_SPACEDIM> m_edgecent;
+    iMultiFab m_cutcellmask;
     bool m_allregular = false;
     bool m_ok = false;
+    bool m_has_eb_info = true;
     IndexSpace const* m_parent;
 
-public: // for cuda
-    int coarsenFromFine (Level& fineLevel, bool fill_boundary);
-    void buildCellFlag ();
+private:
+    template <typename G> friend class GShopLevel;
+
+    // Need this function to work around a gcc bug.
+    void setRegularLevel () {
+        m_allregular = true;
+        m_ok = true;
+        m_has_eb_info = false;
+    }
 };
 
 template <typename G>
@@ -98,14 +114,31 @@ class GShopLevel
     : public Level
 {
 public:
-    GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size, int ngrow, bool extend_domain_face);
+    GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size,
+                int ngrow, bool extend_domain_face, int num_crse_opt);
     GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, int ngrow,
                 const Geometry& geom, GShopLevel<G>& fineLevel);
+    GShopLevel (IndexSpace const* is, const Geometry& geom);
+    void define_fine (G const& gshop, const Geometry& geom,
+                      int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
+
+    static GShopLevel<G>
+    makeAllRegular(IndexSpace const* is, const Geometry& geom)
+    {
+        GShopLevel<G> r(is, geom);
+        r.setRegularLevel();
+        return r;
+    }
 };
 
 template <typename G>
+GShopLevel<G>::GShopLevel (IndexSpace const* is, const Geometry& geom)
+    : Level(is, geom)
+{}
+
+template <typename G>
 GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom,
-                           int max_grid_size, int ngrow, bool extend_domain_face)
+                           int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
     : Level(is, geom)
 {
     if (std::is_same<typename G::FunctionType, AllRegularIF>::value) {
@@ -114,13 +147,25 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
         return;
     }
 
+    define_fine(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
+}
+
+template <typename G>
+void
+GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
+                            int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
+{
     if (amrex::Verbose() > 0 && extend_domain_face == false) {
         amrex::Print() << "AMReX WARNING: extend_domain_face=false is not recommended!\n";
     }
 
     BL_PROFILE("EB2::GShopLevel()-fine");
 
+#ifdef AMREX_USE_FLOAT
+    Real small_volfrac = 1.e-5_rt;
+#else
     Real small_volfrac = 1.e-14;
+#endif
     bool cover_multiple_cuts = false;
     int maxiter = 32;
     {
@@ -129,6 +174,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
         pp.queryAdd("cover_multiple_cuts", cover_multiple_cuts);
         pp.queryAdd("maxiter", maxiter);
     }
+    maxiter = std::min(100000, maxiter);
 
     // make sure ngrow is multiple of 16
     m_ngrow = IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16};
@@ -146,57 +192,84 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     Box bounding_box = (extend_domain_face) ? domain : domain_grown;
     bounding_box.surroundingNodes();
 
-    BoxList bl(domain);
-    bl.maxSize(max_grid_size);
+    BoxList cut_boxes;
+    BoxList covered_boxes;
+
+    const int nprocs = ParallelDescriptor::NProcs();
+    const int iproc = ParallelDescriptor::MyProc();
+
+    num_crse_opt = std::max(0,std::min(8,num_crse_opt));
+    for (int clev = num_crse_opt; clev >= 0; --clev) {
+        IntVect crse_ratio(1 << clev);
+        if (domain.coarsenable(crse_ratio)) {
+            Box const& crse_bounding_box = amrex::coarsen(bounding_box, crse_ratio);
+            Geometry const& crse_geom = amrex::coarsen(geom, crse_ratio);
+            BoxList test_boxes;
+            if (cut_boxes.isEmpty()) {
+                covered_boxes.clear();
+                test_boxes = BoxList(crse_geom.Domain());
+                test_boxes.maxSize(max_grid_size);
+            } else {
+                test_boxes.swap(cut_boxes);
+                test_boxes.coarsen(crse_ratio);
+                test_boxes.maxSize(max_grid_size);
+            }
+
+            const Long nboxes = test_boxes.size();
+            const auto& boxes = test_boxes.data();
+            for (Long i = iproc; i < nboxes; i += nprocs) {
+                const Box& vbx = boxes[i];
+                const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1));
+                auto box_type = gshop.getBoxType(gbx&crse_bounding_box,crse_geom,RunOn::Gpu);
+                if (box_type == gshop.allcovered) {
+                    covered_boxes.push_back(amrex::refine(vbx, crse_ratio));
+                } else if (box_type == gshop.mixedcells) {
+                    cut_boxes.push_back(amrex::refine(vbx, crse_ratio));
+                }
+            }
+
+            amrex::AllGatherBoxes(cut_boxes.data());
+        }
+    }
+
+    amrex::AllGatherBoxes(covered_boxes.data());
+
     if (m_ngrow != 0) {
-        const IntVect& domlo = domain.smallEnd();
-        const IntVect& domhi = domain.bigEnd();
-        for (auto& b : bl) {
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if (m_ngrow[idim] != 0) {
-                    if (b.smallEnd(idim) == domlo[idim]) {
-                        b.growLo(idim,m_ngrow[idim]);
-                    }
-                    if (b.bigEnd(idim) == domhi[idim]) {
-                        b.growHi(idim,m_ngrow[idim]);
+        auto grow_at_domain_boundary = [&] (BoxList& bl)
+        {
+            const IntVect& domlo = domain.smallEnd();
+            const IntVect& domhi = domain.bigEnd();
+            for (auto& b : bl) {
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (m_ngrow[idim] != 0) {
+                        if (b.smallEnd(idim) == domlo[idim]) {
+                            b.growLo(idim,m_ngrow[idim]);
+                        }
+                        if (b.bigEnd(idim) == domhi[idim]) {
+                            b.growHi(idim,m_ngrow[idim]);
+                        }
                     }
                 }
             }
-        }
+        };
+        grow_at_domain_boundary(covered_boxes);
+        grow_at_domain_boundary(cut_boxes);
     }
 
-    m_grids.define(std::move(bl));
-    m_dmap.define(m_grids);
-
-    Vector<Box> cut_boxes;
-    Vector<Box> covered_boxes;
-
-    for (MFIter mfi(m_grids, m_dmap); mfi.isValid(); ++mfi)
-    {
-        const Box& vbx = mfi.validbox();
-        const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1));
-        int box_type = gshop.getBoxType(gbx & bounding_box, geom, RunOn::Gpu);
-        if (box_type == gshop.allcovered) {
-            covered_boxes.push_back(vbx);
-        } else if (box_type == gshop.mixedcells) {
-            cut_boxes.push_back(vbx);
-        }
-    }
-
-    amrex::AllGatherBoxes(cut_boxes);
-    amrex::AllGatherBoxes(covered_boxes);
-
-    if ( cut_boxes.empty() &&
-        !covered_boxes.empty())
+    if ( cut_boxes.isEmpty() &&
+        !covered_boxes.isEmpty())
     {
         amrex::Abort("AMReX_EB2_Level.H: Domain is completely covered");
     }
 
-    if (!covered_boxes.empty()) {
-        m_covered_grids = BoxArray(BoxList(std::move(covered_boxes)));
+    if (!covered_boxes.isEmpty()) {
+        if (num_crse_opt > 2) { // don't want the box too big
+            covered_boxes.maxSize(max_grid_size*4);
+        }
+        m_covered_grids = BoxArray(std::move(covered_boxes));
     }
 
-    if (cut_boxes.empty()) {
+    if (cut_boxes.isEmpty()) {
         m_grids = BoxArray();
         m_dmap = DistributionMapping();
         m_allregular = true;
@@ -204,7 +277,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
         return;
     }
 
-    m_grids = BoxArray(BoxList(std::move(cut_boxes)));
+    m_grids = BoxArray(std::move(cut_boxes));
     m_dmap = DistributionMapping(m_grids);
 
     m_mgf.define(m_grids, m_dmap);
@@ -239,6 +312,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
         ? RunOn::Gpu : RunOn::Cpu;
 
     bool hybrid = Gpu::inLaunchRegion() && (gshop_run_on == RunOn::Cpu);
+    amrex::ignore_unused(hybrid);
 
     int iter = 0;
     for (; iter < maxiter; ++iter)
@@ -261,9 +335,11 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                 auto& levelset = gfab.getLevelSet();
                 if (iter == 0) {
                     gshop.fillFab(levelset, geom, gshop_run_on, bounding_box);
+#ifdef AMREX_USE_GPU
                     if (hybrid) {
                         levelset.prefetchToDevice();
                     }
+#endif
                 }
 
                 auto& cellflag = m_cellflag[mfi];
@@ -304,6 +380,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                 Array4<Real> const& zip = m_edgecent[2].array(mfi);
 
                 if (iter == 0) {
+#ifdef AMREX_USE_GPU
                     if (hybrid) {
                         Gpu::streamSynchronize();
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -311,16 +388,19 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                             m_edgecent[idim][mfi].prefetchToHost();
                         }
                     }
+#endif
 
-                    gshop.getIntercept({xip,yip,zip}, {xdg,ydg,zdg},
+                    gshop.getIntercept({xip,yip,zip}, {xdg,ydg,zdg}, clst,
                                        geom, gshop_run_on, bounding_box);
 
+#ifdef AMREX_USE_GPU
                     if (hybrid) {
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                             edgetype[idim].prefetchToDevice();
                             m_edgecent[idim][mfi].prefetchToDevice();
                         }
                     }
+#endif
                 } else {
                     gshop.updateIntercept({xip,yip,zip}, {xdg,ydg,zdg}, clst, geom);
                 }
@@ -347,7 +427,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                             small_volfrac, geom, extend_domain_face, cover_multiple_cuts,
                             nsm, nmc);
 
-                // Becasue it is used in a synchronous reduction kernel in
+                // Because it is used in a synchronous reduction kernel in
                 // build_cells, we do not need to worry about M2's lifetime.
                 // But we still need to use Elixir to extend the life of
                 // cellflagtmp.
@@ -357,6 +437,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                 Array4<Real> const& yip = m_edgecent[1].array(mfi);
 
                 if (iter == 0) {
+#ifdef AMREX_USE_GPU
                     if (hybrid) {
                         Gpu::streamSynchronize();
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -364,28 +445,31 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                             m_edgecent[idim][mfi].prefetchToHost();
                         }
                     }
+#endif
 
                     //                         yes, factype[1] and then [0]
                     gshop.getIntercept({xip,yip},
                                        {facetype[1].const_array(), facetype[0].const_array()},
-                                       geom, gshop_run_on, bounding_box);
+                                       clst, geom, gshop_run_on, bounding_box);
 
+#ifdef AMREX_USE_GPU
                     if (hybrid) {
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                             facetype[idim].prefetchToDevice();
                             m_edgecent[idim][mfi].prefetchToDevice();
                         }
                     }
+#endif
                 } else {
                     gshop.updateIntercept({xip,yip},
                                           {facetype[1].const_array(), facetype[0].const_array()},
                                           clst, geom);
                 }
 
-                nmc = build_faces(vbx, cfg, ftx, fty, clst, xip, yip, apx, apy, fcx, fcy,
-                                  dx, problo, cover_multiple_cuts);
+                nmc = build_faces(vbx, cfg, ftx, fty, lst, xip, yip, apx, apy, fcx, fcy,
+                                  dx, problo, cover_multiple_cuts, nsm);
 
-                build_cells(vbx, cfg, ftx, fty, apx, apy, vfr, ctr,
+                build_cells(vbx, cfg, ftx, fty, apx, apy, dx, vfr, ctr,
                             bar, bct, bnm, lst, small_volfrac, geom, extend_domain_face,
                             nsm, nmc);
 #endif
@@ -399,7 +483,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
             break;
         } else {
             auto ls = m_mgf.getLevelSet();
-            // This is an alias MulitFab, therefore FillBoundary on it is fine.
+            // This is an alias MultiFab, therefore FillBoundary on it is fine.
             ls.FillBoundary(geom.periodicity());
             if (amrex::Verbose() > 0) {
                 if (nsmallcells) {
@@ -491,6 +575,6 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
     }
 }
 
-}}
+}
 
 #endif

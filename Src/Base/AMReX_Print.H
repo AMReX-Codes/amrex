@@ -81,6 +81,11 @@ namespace amrex
             }
         }
 
+        Print (Print const&) = delete;
+        Print (Print &&) = delete;
+        Print& operator= (Print const&) = delete;
+        Print& operator= (Print &&) = delete;
+
         Print& SetPrecision(int p) {
             ss.precision(p);
             return *this;
@@ -125,20 +130,20 @@ namespace amrex
 
         static constexpr int AllProcs = -1;
 
-        explicit PrintToFile (const std::string& file_name_)
-            : file_name(file_name_)
+        explicit PrintToFile (std::string file_name_)
+            : file_name(std::move(file_name_))
             , rank(ParallelContext::IOProcessorNumberSub())
             , comm(ParallelContext::CommunicatorSub())
         { Initialize(); }
 
-        PrintToFile (const std::string& file_name_, int rank_ )
-            : file_name(file_name_)
+        PrintToFile (std::string file_name_, int rank_ )
+            : file_name(std::move(file_name_))
             , rank(rank_)
             , comm(ParallelContext::CommunicatorSub())
         { Initialize(); }
 
-        PrintToFile (const std::string& file_name_, int rank_, MPI_Comm comm_)
-            : file_name(file_name_)
+        PrintToFile (std::string file_name_, int rank_, MPI_Comm comm_)
+            : file_name(std::move(file_name_))
             , rank(rank_)
             , comm(comm_)
         { Initialize(); }
@@ -150,6 +155,11 @@ namespace amrex
                 ofs.flush();
             }
         }
+
+        PrintToFile (PrintToFile const&) = delete;
+        PrintToFile (PrintToFile &&) = delete;
+        PrintToFile& operator= (PrintToFile const&) = delete;
+        PrintToFile& operator= (PrintToFile &&) = delete;
 
         PrintToFile& SetPrecision(int p) {
             ss.precision(p);
@@ -200,8 +210,8 @@ namespace amrex
     {
     public:
         //! Example: AllPrint() << " x = " << x << std::endl;
-        explicit AllPrintToFile (const std::string& file_name_)
-            : PrintToFile(file_name_, Print::AllProcs)
+        explicit AllPrintToFile (std::string file_name_)
+            : PrintToFile(std::move(file_name_), Print::AllProcs)
             {}
 
     };

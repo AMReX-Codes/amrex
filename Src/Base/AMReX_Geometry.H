@@ -16,14 +16,6 @@
 #include <map>
 
 namespace amrex {
-/**
-* \class Geometry
-* \brief Rectangular problem domain geometry.
-*
-* This class describes problem domain and coordinate system for
-* RECTANGULAR problem domains.  Since the problem domain is RECTANGULAR,
-* periodicity is meaningful.
-*/
 
 class MultiFab;
 class DistributionMapping;
@@ -32,31 +24,31 @@ class BoxArray;
 struct GeometryData
 {
  //! Returns the cellsize for each coordinate direction.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const Real* CellSize () const noexcept { return dx; }
     //
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real CellSize (int dir) const noexcept { return dx[dir]; }
  //! Returns the lo end of the problem domain in each dimension.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const Real* ProbLo () const noexcept { return prob_domain.lo(); }
     //
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ProbLo (int dir) const noexcept { return prob_domain.lo(dir); }
  //! Returns the hi end of the problem domain in each dimension.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const Real* ProbHi () const noexcept { return prob_domain.hi(); }
     //
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ProbHi (int dir) const noexcept { return prob_domain.hi(dir); }
  //! Returns our rectangular domain.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const Box& Domain () const noexcept { return domain; }
 //! Returns whether the domain is periodic in the given direction.
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int isPeriodic (const int i) const noexcept { return is_periodic[i]; }
  //! Coordinates type
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int Coord () const noexcept { return coord; }
 
 public:
@@ -67,6 +59,14 @@ public:
     int coord;
 };
 
+/**
+ * \class Geometry
+ * \brief Rectangular problem domain geometry.
+ *
+ * This class describes problem domain and coordinate system for
+ * RECTANGULAR problem domains.  Since the problem domain is RECTANGULAR,
+ * periodicity is meaningful.
+ */
 class Geometry
     :
     public CoordSys
@@ -120,14 +120,14 @@ public:
     Geometry& operator= (Geometry&& rhs) noexcept = default;
 
     //! Returns non-static copy of geometry's stored data.
-    GeometryData data() const noexcept {
+    [[nodiscard]] GeometryData data() const noexcept {
         return { prob_domain, domain, {AMREX_D_DECL(dx[0],dx[1],dx[2])},
             {AMREX_D_DECL(is_periodic[0], is_periodic[1], is_periodic[2])},
                 static_cast<int>(c_sys) };
     }
 
     //! Read static values from ParmParse database.
-    static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* is_per = nullptr) noexcept;
+    static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* isper = nullptr) noexcept;
     static void ResetDefaultProbDomain (const RealBox& rb) noexcept;
     static void ResetDefaultPeriodicity (const Array<int,AMREX_SPACEDIM>& is_per) noexcept;
     static void ResetDefaultCoord (int coord) noexcept;
@@ -147,7 +147,7 @@ public:
      * \param is_per pointer to memory space specifying periodicity in each coordinate direction.
      *        Optional. Default is non-periodic.
      */
-    void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int const* is_per = nullptr) noexcept;
+    void define (const Box& dom, const RealBox* rb = nullptr, int coord = -1, int const* is_per = nullptr) noexcept;
 
     /**
      * Defines a geometry object that describes the problem domain and coordinate system for rectangular problem
@@ -167,9 +167,7 @@ public:
     void define (const Box& dom, const RealBox& rb, int coord, Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
 
     //! Returns the problem domain.
-    const RealBox& ProbDomain () const noexcept { return prob_domain; }
-    //! Returns the roundoff domain.
-    const RealBox& RoundoffDomain () const noexcept { return roundoff_domain; }
+    [[nodiscard]] const RealBox& ProbDomain () const noexcept { return prob_domain; }
     //! Sets the problem domain.
     void ProbDomain (const RealBox& rb) noexcept
     {
@@ -177,31 +175,39 @@ public:
         computeRoundoffDomain();
     }
     //! Returns the lo end of the problem domain in each dimension.
-    const Real* ProbLo () const noexcept { return prob_domain.lo(); }
+    [[nodiscard]] const Real* ProbLo () const noexcept { return prob_domain.lo(); }
     //! Returns the hi end of the problem domain in each dimension.
-    const Real* ProbHi () const noexcept { return prob_domain.hi(); }
+    [[nodiscard]] const Real* ProbHi () const noexcept { return prob_domain.hi(); }
     //! Returns the lo end of the problem domain in specified direction.
-    Real ProbLo (int dir) const noexcept { return prob_domain.lo(dir); }
+    [[nodiscard]] Real ProbLo (int dir) const noexcept { return prob_domain.lo(dir); }
     //! Returns the hi end of the problem domain in specified direction.
-    Real ProbHi (int dir) const noexcept { return prob_domain.hi(dir); }
+    [[nodiscard]] Real ProbHi (int dir) const noexcept { return prob_domain.hi(dir); }
 
-    GpuArray<Real,AMREX_SPACEDIM> ProbLoArray () const noexcept {
+    [[nodiscard]] GpuArray<Real,AMREX_SPACEDIM> ProbLoArray () const noexcept {
         return {{AMREX_D_DECL(prob_domain.lo(0),prob_domain.lo(1),prob_domain.lo(2))}};
     }
 
-    GpuArray<Real,AMREX_SPACEDIM> ProbHiArray () const noexcept {
+    [[nodiscard]] GpuArray<Real,AMREX_SPACEDIM> ProbHiArray () const noexcept {
         return {{AMREX_D_DECL(prob_domain.hi(0),prob_domain.hi(1),prob_domain.hi(2))}};
     }
 
+    [[nodiscard]] GpuArray<ParticleReal,AMREX_SPACEDIM> ProbLoArrayInParticleReal () const noexcept {
+        return roundoff_lo;
+    }
+
+    [[nodiscard]] GpuArray<ParticleReal,AMREX_SPACEDIM> ProbHiArrayInParticleReal () const noexcept {
+        return roundoff_hi;
+    }
+
     //! Returns the overall size of the domain by multiplying the ProbLength's together
-    Real ProbSize () const noexcept
+    [[nodiscard]] Real ProbSize () const noexcept
     {
         return AMREX_D_TERM(prob_domain.length(0),*prob_domain.length(1),*prob_domain.length(2));
     }
     //! Returns length of problem domain in specified dimension.
-    Real ProbLength (int dir) const noexcept { return prob_domain.length(dir); }
+    [[nodiscard]] Real ProbLength (int dir) const noexcept { return prob_domain.length(dir); }
     //! Returns our rectangular domain.
-    const Box& Domain () const noexcept { return domain; }
+    [[nodiscard]] const Box& Domain () const noexcept { return domain; }
     //! Sets our rectangular domain.
     void Domain (const Box& bx) noexcept
     {
@@ -220,6 +226,66 @@ public:
                     const BoxArray& grds,
                     int             idx,
                     int             grow) const;
+
+    //! Return the volume of the specified cell.
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    static Real Volume (const IntVect& point, const GeometryData& geomdata)
+    {
+        const auto *dx = geomdata.CellSize();
+
+        Real vol;
+
+#if AMREX_SPACEDIM == 1
+
+        auto coord = geomdata.Coord();
+
+        if (coord == CoordSys::cartesian) {
+            // Cartesian
+
+            vol = dx[0];
+        }
+        else {
+            // Spherical
+
+            Real rl = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
+            Real rr = rl + dx[0];
+
+            constexpr Real pi = Real(3.1415926535897932);
+            vol = (4.0_rt / 3.0_rt) * pi * dx[0] * (rl * rl + rl * rr + rr * rr);
+        }
+
+#elif AMREX_SPACEDIM == 2
+
+        auto coord = geomdata.Coord();
+
+        if (coord == CoordSys::cartesian) {
+            // Cartesian
+
+            vol = dx[0] * dx[1];
+        }
+        else {
+            // Cylindrical
+
+            Real r_l = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
+            Real r_r = geomdata.ProbLo()[0] + static_cast<Real>(point[0]+1) * dx[0];
+
+            constexpr Real pi = Real(3.1415926535897932);
+            vol = pi * (r_l + r_r) * dx[0] * dx[1];
+        }
+
+#else
+
+        amrex::ignore_unused(point);
+
+        // Cartesian
+
+        vol = dx[0] * dx[1] * dx[2];
+
+#endif
+
+        return vol;
+    }
+
     /**
     * \brief Compute d(log(A))/dr at cell centers in given region and
     *           stuff the results into the passed MultiFab.
@@ -248,37 +314,37 @@ public:
                       int             dir,
                       int             grow) const;
     //! Is the domain periodic in the specified direction?
-    bool isPeriodic (int dir) const noexcept { return is_periodic[dir]; }
+    [[nodiscard]] bool isPeriodic (int dir) const noexcept { return is_periodic[dir]; }
     //! Is domain periodic in any direction?
-    bool isAnyPeriodic () const noexcept
+    [[nodiscard]] bool isAnyPeriodic () const noexcept
     {
         return AMREX_D_TERM(isPeriodic(0),||isPeriodic(1),||isPeriodic(2));
     }
     //! Is domain periodic in all directions?
-    bool isAllPeriodic ()  const noexcept
+    [[nodiscard]] bool isAllPeriodic ()  const noexcept
     {
         return AMREX_D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2));
     }
-    Array<int,AMREX_SPACEDIM> isPeriodic () const noexcept {
+    [[nodiscard]] Array<int,AMREX_SPACEDIM> isPeriodic () const noexcept {
         return {{AMREX_D_DECL(static_cast<int>(is_periodic[0]),
                               static_cast<int>(is_periodic[1]),
                               static_cast<int>(is_periodic[2]))}};
     }
-    GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () const noexcept {
+    [[nodiscard]] GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () const noexcept {
         return {{AMREX_D_DECL(static_cast<int>(is_periodic[0]),
                               static_cast<int>(is_periodic[1]),
                               static_cast<int>(is_periodic[2]))}};
     }
     //! What's period in specified direction?
-    int period (int dir) const noexcept { BL_ASSERT(is_periodic[dir]); return domain.length(dir); }
+    [[nodiscard]] int period (int dir) const noexcept { BL_ASSERT(is_periodic[dir]); return domain.length(dir); }
 
-    Periodicity periodicity () const noexcept {
+    [[nodiscard]] Periodicity periodicity () const noexcept {
         return Periodicity(IntVect(AMREX_D_DECL(domain.length(0) * is_periodic[0],
                                           domain.length(1) * is_periodic[1],
                                           domain.length(2) * is_periodic[2])));
     }
 
-    Periodicity periodicity (const Box& b) const noexcept {
+    [[nodiscard]] Periodicity periodicity (const Box& b) const noexcept {
         AMREX_ASSERT(b.cellCentered());
         return Periodicity(IntVect(AMREX_D_DECL(b.length(0) * is_periodic[0],
                                                 b.length(1) * is_periodic[1],
@@ -298,9 +364,13 @@ public:
                         Vector<IntVect>& out) const noexcept;
 
     //! Return domain box with non-periodic directions grown by ngrow.
-    Box growNonPeriodicDomain (int ngrow) const noexcept;
+    [[nodiscard]] Box growNonPeriodicDomain (IntVect const& ngrow) const noexcept;
+    //! Return domain box with non-periodic directions grown by ngrow.
+    [[nodiscard]] Box growNonPeriodicDomain (int ngrow) const noexcept;
     //! Return domain box with periodic directions grown by ngrow.
-    Box growPeriodicDomain (int ngrow) const noexcept;
+    [[nodiscard]] Box growPeriodicDomain (IntVect const& ngrow) const noexcept;
+    //! Return domain box with periodic directions grown by ngrow.
+    [[nodiscard]] Box growPeriodicDomain (int ngrow) const noexcept;
 
     //! Set periodicity flags and return the old flags.
     //! Note that, unlike Periodicity class, the flags are just boolean.
@@ -319,16 +389,16 @@ public:
     void coarsen (IntVect const& rr) {
         domain.coarsen(rr);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            dx[i] = (ProbHi(i) - ProbLo(i)) / domain.length(i);
-            inv_dx[i] = static_cast<Real>(1.)/dx[i];
+            dx[i] = (ProbHi(i) - ProbLo(i)) / static_cast<Real>(domain.length(i));
+            inv_dx[i] = Real(1.)/dx[i];
         }
     }
 
     void refine (IntVect const& rr) {
         domain.refine(rr);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            dx[i] = (ProbHi(i) - ProbLo(i)) / domain.length(i);
-            inv_dx[i] = static_cast<Real>(1.)/dx[i];
+            dx[i] = (ProbHi(i) - ProbLo(i)) / static_cast<Real>(domain.length(i));
+            inv_dx[i] = Real(1.)/dx[i];
         }
     }
 
@@ -338,7 +408,7 @@ public:
     *        are sure to be mapped to cells inside the Domain() box. Note that
     *        the same need not be true for all points inside ProbDomain().
     */
-    bool outsideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const;
+    [[nodiscard]] bool outsideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const;
 
     /**
     * \brief Returns true if a point is inside the roundoff domain.
@@ -346,7 +416,7 @@ public:
     *        are sure to be mapped to cells inside the Domain() box. Note that
     *        the same need not be true for all points inside ProbDomain().
     */
-    bool insideRoundoffDomain (AMREX_D_DECL(Real x, Real y, Real z)) const;
+    [[nodiscard]] bool insideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const;
 
     /**
     * \brief Compute the roundoff domain. Public because it contains an
@@ -362,10 +432,10 @@ private:
     RealBox prob_domain;
 
     // Due to round-off errors, not all floating point numbers for which plo >= x < phi
-    // will map to a cell that is inside "domain". "roundoff_domain" stores a phi
-    // that is very close to that in prob_domain, and for which all floating point numbers
-    // inside it according to a naive inequality check will map to a cell inside domain.
-    RealBox roundoff_domain;
+    // will map to a cell that is inside "domain". "roundoff_{lo,hi}" store
+    // positions that are very close to that in prob_domain, and for which all doubles and floats
+    // between them will map to a cell inside domain.
+    GpuArray<ParticleReal , AMREX_SPACEDIM> roundoff_lo, roundoff_hi;
 
     //
     Box     domain;

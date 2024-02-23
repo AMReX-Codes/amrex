@@ -6,18 +6,11 @@
 #include <AMReX_Utility.H>
 #include <AMReX.H>
 
-namespace amrex {
-namespace AsyncOut {
+namespace amrex::AsyncOut {
 
 namespace {
 
-#if defined(AMREX_USE_DPCPP) || defined(AMREX_USE_HIP)
-int s_asyncout = true; // Have this on by default for DPC++ for now so that
-                       // I/O writing plotfile does not depend on unified
-                       // memory.
-#else
 int s_asyncout = false;
-#endif
 int s_noutfiles = 64;
 MPI_Comm s_comm = MPI_COMM_NULL;
 
@@ -69,7 +62,7 @@ void Finalize ()
     }
 
 #ifdef AMREX_USE_MPI
-    if (s_comm != MPI_COMM_NULL) MPI_Comm_free(&s_comm);
+    if (s_comm != MPI_COMM_NULL) { MPI_Comm_free(&s_comm); }
     s_comm = MPI_COMM_NULL;
 #endif
 }
@@ -111,7 +104,9 @@ void Submit (std::function<void()> const& a_f)
 
 void Finish ()
 {
-    s_thread->Finish();
+    if (s_thread) {
+        s_thread->Finish();
+    }
 }
 
 void Wait ()
@@ -144,4 +139,4 @@ void Notify ()
 #endif
 }
 
-}}
+}

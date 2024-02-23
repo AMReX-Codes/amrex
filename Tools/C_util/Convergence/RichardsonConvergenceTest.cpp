@@ -73,11 +73,11 @@ amrDatasHaveSameDerives(const AmrData& amrd1,
   return true;
 }
 /**********/
-Vector<string>
+Vector<std::string>
 getVarNames(const AmrData& amrd1,
             const AmrData& amrd2)
 {
-  Vector<string> names;
+  Vector<std::string> names;
   const Vector<std::string>& derives1 = amrd1.PlotVarNames();
   const Vector<std::string>& derives2 = amrd2.PlotVarNames();
   int length = derives1.size();
@@ -131,10 +131,10 @@ getRefRatio(const Box& crse,
 /**********/
 void
 getErrorNorms(Vector<Real>& a_norms, //one for each comp
-              Vector<string>& a_names,
-              const string& a_fineFile,
-              const string& a_coarFile,
-              const string& a_errFile,
+              Vector<std::string>& a_names,
+              const std::string& a_fineFile,
+              const std::string& a_coarFile,
+              const std::string& a_errFile,
               const int& a_norm,
               bool verbose, bool print_header)
 {
@@ -278,11 +278,11 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
 
 
         FORT_CV_AVGDOWN(data2Coarse.dataPtr(),
-                        ARLIM(bx.loVect()), ARLIM(bx.hiVect()),
+                        AMREX_ARLIM(bx.loVect()), AMREX_ARLIM(bx.hiVect()),
                         &ncCoarse,
                         data2Fine[mfi].dataPtr(),
-                        ARLIM(data2Fine[mfi].loVect()),
-                        ARLIM(data2Fine[mfi].hiVect()),
+                        AMREX_ARLIM(data2Fine[mfi].loVect()),
+                        AMREX_ARLIM(data2Fine[mfi].hiVect()),
                         bx.loVect(), bx.hiVect(),
                         refine_ratio.getVect());
 
@@ -458,7 +458,7 @@ main (int   argc,
       for(int inorm = 0; inorm <=1; inorm++)
       {
           Vector<Real> normsMedi, normsCoar;
-          Vector<string> namesMedi, namesCoar;
+          Vector<std::string> namesMedi, namesCoar;
 
           amrex::Print() << std::endl;
           amrex::Print() << "Level  L"<< inorm << " norm of Error in Each Component" << std::endl

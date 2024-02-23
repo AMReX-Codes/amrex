@@ -1,12 +1,6 @@
-#!/usr/bin/env python
-
-from __future__ import print_function
+#!/usr/bin/env python3
 
 import sys
-
-if sys.version_info < (2, 7):
-    sys.exit("ERROR: need python 2.7 or later for configure.py")
-
 import argparse
 
 def configure(argv):
@@ -39,8 +33,8 @@ def configure(argv):
                         help="Use HIP [default=no]",
                         choices=["yes","no"],
                         default="no")
-    parser.add_argument("--with-dpcpp",
-                        help="Use DPCPP [default=no]",
+    parser.add_argument("--with-sycl",
+                        help="Use SYCL [default=no]",
                         choices=["yes","no"],
                         default="no")
     parser.add_argument("--with-acc",
@@ -49,7 +43,7 @@ def configure(argv):
                         default="no")
     parser.add_argument("--comp",
                         help="Compiler [default=gnu]",
-                        choices=["gnu","intel","cray","pgi","llvm","nag","nec","ibm","armclang"],
+                        choices=["gnu","intel","intel-llvm","intel-classic","cray","pgi","llvm","nag","nec","ibm","armclang"],
                         default="gnu")
     parser.add_argument("--debug",
                         help="Debug build [default=no]",
@@ -122,6 +116,10 @@ def configure(argv):
                         help="Only relevant to Amr/AmrLevel based codes that need to read probin file or call amrex_probinit",
                         choices=["yes","no"],
                         default="yes")
+    parser.add_argument("--enable-bittree",
+                        help="Enable Bittree mode [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     args = parser.parse_args()
 
     if args.with_fortran == "no":
@@ -139,7 +137,7 @@ def configure(argv):
     f.write("USE_OMP = {}\n".format("FALSE" if args.with_omp == "no" else "TRUE"))
     f.write("USE_CUDA = {}\n".format("FALSE" if args.with_cuda == "no" else "TRUE"))
     f.write("USE_HIP = {}\n".format("FALSE" if args.with_hip == "no" else "TRUE"))
-    f.write("USE_DPCPP = {}\n".format("FALSE" if args.with_dpcpp == "no" else "TRUE"))
+    f.write("USE_SYCL = {}\n".format("FALSE" if args.with_sycl == "no" else "TRUE"))
     f.write("USE_ACC = {}\n".format("FALSE" if args.with_acc == "no" else "TRUE"))
     f.write("COMP = " + args.comp.strip() + "\n")
     f.write("DEBUG = {}\n".format("TRUE" if args.debug == "yes" else "FALSE"))
@@ -160,6 +158,7 @@ def configure(argv):
     f.write("USE_COMPILE_PIC = {}\n".format("FALSE" if args.enable_pic == "no" else "TRUE"))
     f.write("CUDA_ARCH = " + args.cuda_arch.strip() + "\n")
     f.write("AMREX_NO_PROBINIT = {}\n".format("TRUE" if args.enable_probinit == "no" else "FALSE"))
+    f.write("USE_BITTREE = {}\n".format("TRUE" if args.enable_bittree == "yes" else "FALSE"))
     f.write("\n")
 
     fin = open("GNUmakefile.in","r")
