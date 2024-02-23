@@ -106,7 +106,7 @@ struct TestField
 
 void saveFile(char const* fname, const InputParams& inputs, const TestField& testField)
 {
-#ifdef AMREX_USE_OPENPMD_API
+#ifdef AMREX_USE_OPENPMD
   openpmd_api::InitHandler(fname);
 
   for (int ts = 0; ts < inputs.nplotfile; ts++)

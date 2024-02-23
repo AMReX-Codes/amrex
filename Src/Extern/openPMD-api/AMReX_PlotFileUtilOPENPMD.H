@@ -12,7 +12,7 @@
 #include <AMReX_Particles.H>
 #endif
 
-#ifdef AMREX_USE_OPENPMD_API
+#ifdef AMREX_USE_OPENPMD
 #include <openPMD/openPMD.hpp>
 #endif
 

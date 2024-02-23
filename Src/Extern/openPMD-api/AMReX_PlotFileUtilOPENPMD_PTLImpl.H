@@ -654,4 +654,4 @@ namespace amrex::openpmd_api
 
 } // namespace amrex::openpmd_api
 
-#endif // AMREX_PLOTFILE_OPENPMD_API_H
+#endif // AMREX_PLOTFILE_OPENPMD_PTLS_API_H
