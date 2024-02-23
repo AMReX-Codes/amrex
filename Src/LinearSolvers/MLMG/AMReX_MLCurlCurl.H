@@ -77,7 +77,7 @@ public:
     void averageDownAndSync (Vector<MF>& sol) const override;
 
     [[nodiscard]] IntVect getNGrowVectRestriction () const override {
-        return IntVect(0);
+        return IntVect(1);
     }
 
     void make (Vector<Vector<MF> >& mf, IntVect const& ng) const override;
@@ -118,6 +118,7 @@ private:
          {IntVect(0,1), IntVect(1,0), IntVect(1,1)};
 #endif
 
+    Vector<Vector<Array<std::unique_ptr<iMultiFab>,3>>> m_dirichlet_mask;
     mutable Vector<Vector<Array<std::unique_ptr<iMultiFab>,3>>> m_dotmask;
     static constexpr int m_ncomp = 1;
 };

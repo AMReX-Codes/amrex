@@ -335,6 +335,104 @@ void mlcurlcurl_interpadd (int dir, int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void mlcurlcurl_restriction (int dir, int i, int j, int k,
+                             Array4<Real> const& crse,
+                             Array4<Real const> const& fine,
+                             Array4<int const> const& dmsk)
+{
+    int ii = i*2;
+    int jj = j*2;
+    int kk = k*2;
+    if (dmsk(ii,jj,kk)) {
+        crse(i,j,k) = Real(0.0);
+    }
+    else
+    {
+#if (AMREX_SPACEDIM == 3)
+        if (dir == 0) {
+            crse(i,j,k) = Real(1./32.) * (fine(ii  ,jj-1,kk-1)             +
+                                          fine(ii  ,jj  ,kk-1) * Real(2.0) +
+                                          fine(ii  ,jj+1,kk-1)             +
+                                          fine(ii  ,jj-1,kk  ) * Real(2.0) +
+                                          fine(ii  ,jj  ,kk  ) * Real(4.0) +
+                                          fine(ii  ,jj+1,kk  ) * Real(2.0) +
+                                          fine(ii  ,jj-1,kk+1)             +
+                                          fine(ii  ,jj  ,kk+1) * Real(2.0) +
+                                          fine(ii  ,jj+1,kk+1)             +
+                                          fine(ii+1,jj-1,kk-1)             +
+                                          fine(ii+1,jj  ,kk-1) * Real(2.0) +
+                                          fine(ii+1,jj+1,kk-1)             +
+                                          fine(ii+1,jj-1,kk  ) * Real(2.0) +
+                                          fine(ii+1,jj  ,kk  ) * Real(4.0) +
+                                          fine(ii+1,jj+1,kk  ) * Real(2.0) +
+                                          fine(ii+1,jj-1,kk+1)             +
+                                          fine(ii+1,jj  ,kk+1) * Real(2.0) +
+                                          fine(ii+1,jj+1,kk+1)             );
+        } else if (dir == 1) {
+            crse(i,j,k) = Real(1./32.) * (fine(ii-1,jj  ,kk-1)             +
+                                          fine(ii  ,jj  ,kk-1) * Real(2.0) +
+                                          fine(ii+1,jj  ,kk-1)             +
+                                          fine(ii-1,jj  ,kk  ) * Real(2.0) +
+                                          fine(ii  ,jj  ,kk  ) * Real(4.0) +
+                                          fine(ii+1,jj  ,kk  ) * Real(2.0) +
+                                          fine(ii-1,jj  ,kk+1)             +
+                                          fine(ii  ,jj  ,kk+1) * Real(2.0) +
+                                          fine(ii+1,jj  ,kk+1)             +
+                                          fine(ii-1,jj+1,kk-1)             +
+                                          fine(ii  ,jj+1,kk-1) * Real(2.0) +
+                                          fine(ii+1,jj+1,kk-1)             +
+                                          fine(ii-1,jj+1,kk  ) * Real(2.0) +
+                                          fine(ii  ,jj+1,kk  ) * Real(4.0) +
+                                          fine(ii+1,jj+1,kk  ) * Real(2.0) +
+                                          fine(ii-1,jj+1,kk+1)             +
+                                          fine(ii  ,jj+1,kk+1) * Real(2.0) +
+                                          fine(ii+1,jj+1,kk+1)             );
+        } else {
+            crse(i,j,k) = Real(1./32.) * (fine(ii-1,jj-1,kk  )             +
+                                          fine(ii  ,jj-1,kk  ) * Real(2.0) +
+                                          fine(ii+1,jj-1,kk  )             +
+                                          fine(ii-1,jj  ,kk  ) * Real(2.0) +
+                                          fine(ii  ,jj  ,kk  ) * Real(4.0) +
+                                          fine(ii+1,jj  ,kk  ) * Real(2.0) +
+                                          fine(ii-1,jj+1,kk  )             +
+                                          fine(ii  ,jj+1,kk  ) * Real(2.0) +
+                                          fine(ii+1,jj+1,kk  )             +
+                                          fine(ii-1,jj-1,kk+1)             +
+                                          fine(ii  ,jj-1,kk+1) * Real(2.0) +
+                                          fine(ii+1,jj-1,kk+1)             +
+                                          fine(ii-1,jj  ,kk+1) * Real(2.0) +
+                                          fine(ii  ,jj  ,kk+1) * Real(4.0) +
+                                          fine(ii+1,jj  ,kk+1) * Real(2.0) +
+                                          fine(ii-1,jj+1,kk+1)             +
+                                          fine(ii  ,jj+1,kk+1) * Real(2.0) +
+                                          fine(ii+1,jj+1,kk+1)             );
+        }
+#else
+        if (dir == 0) {
+            crse(i,j,0) = Real(0.125) * (fine(ii  ,jj-1,0)             +
+                                         fine(ii  ,jj  ,0) * Real(2.0) +
+                                         fine(ii  ,jj+1,0)             +
+                                         fine(ii+1,jj-1,0)             +
+                                         fine(ii+1,jj  ,0) * Real(2.0) +
+                                         fine(ii+1,jj+1,0)             );
+        } else if (dir == 1) {
+            crse(i,j,0) = Real(0.125) * (fine(ii-1,jj  ,0)             +
+                                         fine(ii  ,jj  ,0) * Real(2.0) +
+                                         fine(ii+1,jj  ,0)             +
+                                         fine(ii-1,jj+1,0)             +
+                                         fine(ii  ,jj+1,0) * Real(2.0) +
+                                         fine(ii+1,jj+1,0)             );
+        } else {
+            crse(i,j,0) = Real(1./16.)*(fine(ii-1,jj-1,0) + Real(2.)*fine(ii  ,jj-1,0) +          fine(ii+1,jj-1,0)
+                             + Real(2.)*fine(ii-1,jj  ,0) + Real(4.)*fine(ii  ,jj  ,0) + Real(2.)*fine(ii+1,jj  ,0)
+                                      + fine(ii-1,jj+1,0) + Real(2.)*fine(ii  ,jj+1,0) +          fine(ii+1,jj+1,0));
+
+        }
+#endif
+    }
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlcurlcurl_bc_symmetry (int i, int j, int k, Orientation face, IndexType it,
                              Array4<Real> const& a)
 {
