@@ -204,6 +204,28 @@
 #    define AMREX_UNLIKELY
 #endif
 
+// Note: following compilers support assumptions, at least using builtin functions:
+//   - Clang >= 3.7
+//   - GCC >= 5.1
+//   - MSVC >= 19.20
+//   - nvcc >= 11.1.0
+//   - icx >= 2021.1.2
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(assume)
+#   define AMREX_ASSUME(ASSUMPTION) [[assume(ASSUMPTION)]]
+#else
+#   if defined(__CUDA_ARCH__) && defined(__CUDACC__) && ( (__CUDACC_VER_MAJOR__ > 11) || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)) )
+#       define AMREX_ASSUME(ASSUMPTION) __builtin_assume(ASSUMPTION)
+#   elif defined(AMREX_CXX_INTEL) || defined(__clang__)
+#       define AMREX_ASSUME(ASSUMPTION) __builtin_assume(ASSUMPTION)
+#   elif defined(_MSC_VER)
+#       define AMREX_ASSUME(ASSUMPTION) __assume(ASSUMPTION)
+#   elif defined(__GNUC__)
+#       define AMREX_ASSUME(ASSUMPTION) if (ASSUMPTION) {} else { __builtin_unreachable(); }
+#   else
+#       define AMREX_ASSUME(ASSUMPTION)
+#   endif
+#endif
+
 // CI uses -Werror -Wc++17-extension, thus we need to add the __cplusplus clause
 #if !defined(AMREX_NO_NODISCARD) && defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard) >= 201603L
 #   define AMREX_NODISCARD [[nodiscard]]
