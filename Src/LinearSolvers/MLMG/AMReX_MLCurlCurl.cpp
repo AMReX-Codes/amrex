@@ -23,6 +23,11 @@ void MLCurlCurl::define (const Vector<Geometry>& a_geom,
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         m_dotmask[amrlev].resize(this->m_num_mg_levels[amrlev]);
     }
+
+    m_dirichlet_mask.resize(this->m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        m_dirichlet_mask[amrlev].resize(this->m_num_mg_levels[amrlev]);
+    }
 }
 
 void MLCurlCurl::setScalars (RT a_alpha, RT a_beta) noexcept
@@ -41,12 +46,33 @@ void MLCurlCurl::setLevelBC (int amrlev, const MF* levelbcdata, // TODO
 void MLCurlCurl::restriction (int amrlev, int cmglev, MF& crse, MF& fine) const
 {
     IntVect ratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[cmglev-1];
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        amrex::average_down_edges(fine[idim], crse[idim], ratio);
+    AMREX_ALWAYS_ASSERT(ratio == 2);
+
+    applyBC(amrlev, cmglev-1, fine);
+
+    for (int idim = 0; idim < 3; ++idim) {
+        bool need_parallel_copy = !amrex::isMFIterSafe(crse[idim], fine[idim]);
+        MultiFab cfine;
+        if (need_parallel_copy) {
+            BoxArray const& ba = amrex::coarsen(fine[idim].boxArray(), 2);
+            cfine.define(ba, fine[idim].DistributionMap(), 1, 0);
+        }
+
+        MultiFab* pcrse = (need_parallel_copy) ? &cfine : &(crse[idim]);
+
+        auto const& crsema = pcrse->arrays();
+        auto const& finema = fine[idim].const_arrays();
+        auto const& dmsk = m_dirichlet_mask[amrlev][cmglev-1][idim]->const_arrays();
+        ParallelFor(*pcrse, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+        {
+            mlcurlcurl_restriction(idim,i,j,k,crsema[bno],finema[bno],dmsk[bno]);
+        });
+        Gpu::streamSynchronize();
+
+        if (need_parallel_copy) {
+            crse[idim].ParallelCopy(cfine);
+        }
     }
-#if (AMREX_SPACEDIM == 2)
-    amrex::average_down_nodal(fine[2], crse[2], ratio);
-#endif
 }
 
 void MLCurlCurl::interpolation (int amrlev, int fmglev, MF& fine,
@@ -56,11 +82,23 @@ void MLCurlCurl::interpolation (int amrlev, int fmglev, MF& fine,
     AMREX_ALWAYS_ASSERT(ratio == 2);
 
     for (int idim = 0; idim < 3; ++idim) {
+        bool need_parallel_copy = !amrex::isMFIterSafe(crse[idim], fine[idim]);
+        MultiFab cfine;
+        MultiFab const* cmf = &(crse[idim]);
+        if (need_parallel_copy) {
+            BoxArray const& ba = amrex::coarsen(fine[idim].boxArray(), 2);
+            cfine.define(ba, fine[idim].DistributionMap(), 1, 0);
+            cfine.ParallelCopy(crse[idim]);
+            cmf = &cfine;
+        }
         auto const& finema = fine[idim].arrays();
-        auto const& crsema = crse[idim].const_arrays();
+        auto const& crsema = cmf->const_arrays();
+        auto const& dmsk = m_dirichlet_mask[amrlev][fmglev][idim]->const_arrays();
         ParallelFor(fine[idim], [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
         {
-            mlcurlcurl_interpadd(idim,i,j,k,finema[bno],crsema[bno]);
+            if (!dmsk[bno](i,j,k)) {
+                mlcurlcurl_interpadd(idim,i,j,k,finema[bno],crsema[bno]);
+            }
         });
     }
     Gpu::streamSynchronize();
@@ -76,13 +114,6 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
     auto const a = m_alpha;
     auto const b = m_beta;
 
-    int const dirichlet_xlo = getDirichlet(amrlev, mglev, 0, 0);
-    int const dirichlet_xhi = getDirichlet(amrlev, mglev, 0, 1);
-    int const dirichlet_ylo = getDirichlet(amrlev, mglev, 1, 0);
-    int const dirichlet_yhi = getDirichlet(amrlev, mglev, 1, 1);
-    int const dirichlet_zlo = getDirichlet(amrlev, mglev, 2, 0);
-    int const dirichlet_zhi = getDirichlet(amrlev, mglev, 2, 1);
-
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -97,11 +128,13 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
         auto const& xin = in[0].array(mfi);
         auto const& yin = in[1].array(mfi);
         auto const& zin = in[2].array(mfi);
+        auto const& mx = m_dirichlet_mask[amrlev][mglev][0]->const_array(mfi);
+        auto const& my = m_dirichlet_mask[amrlev][mglev][1]->const_array(mfi);
+        auto const& mz = m_dirichlet_mask[amrlev][mglev][2]->const_array(mfi);
         amrex::ParallelFor(xbx, ybx, zbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            if (j == dirichlet_ylo || j == dirichlet_yhi ||
-                k == dirichlet_zlo || k == dirichlet_zhi) {
+            if (mx(i,j,k)) {
                 xout(i,j,k) = Real(0.0);
             } else {
                 mlcurlcurl_adotx_x(i,j,k,xout,xin,yin,zin,a,b,dxinv);
@@ -109,8 +142,7 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            if (i == dirichlet_xlo || i == dirichlet_xhi ||
-                k == dirichlet_zlo || k == dirichlet_zhi) {
+            if (my(i,j,k)) {
                 yout(i,j,k) = Real(0.0);
             } else {
                 mlcurlcurl_adotx_y(i,j,k,yout,xin,yin,zin,a,b,dxinv);
@@ -118,8 +150,7 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            if (i == dirichlet_xlo || i == dirichlet_xhi ||
-                j == dirichlet_ylo || j == dirichlet_yhi) {
+            if (mz(i,j,k)) {
                 zout(i,j,k) = Real(0.0);
             } else {
                 mlcurlcurl_adotx_z(i,j,k,zout,xin,yin,zin,a,b,dxinv);
@@ -167,13 +198,6 @@ void MLCurlCurl::smooth (int amrlev, int mglev, MF& sol, MultiFab const& rhs,
     auto const a = m_alpha;
     auto const b = m_beta;
 
-    int const dirichlet_xlo = getDirichlet(amrlev, mglev, 0, 0);
-    int const dirichlet_xhi = getDirichlet(amrlev, mglev, 0, 1);
-    int const dirichlet_ylo = getDirichlet(amrlev, mglev, 1, 0);
-    int const dirichlet_yhi = getDirichlet(amrlev, mglev, 1, 1);
-    int const dirichlet_zlo = getDirichlet(amrlev, mglev, 2, 0);
-    int const dirichlet_zhi = getDirichlet(amrlev, mglev, 2, 1);
-
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -185,10 +209,10 @@ void MLCurlCurl::smooth (int amrlev, int mglev, MF& sol, MultiFab const& rhs,
             auto const& ex = sol[0].array(mfi);
             auto const& ey = sol[1].const_array(mfi);
             auto const& ez = sol[2].const_array(mfi);
+            auto const& mx = m_dirichlet_mask[amrlev][mglev][0]->const_array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                if (j != dirichlet_ylo && j != dirichlet_yhi &&
-                    k != dirichlet_zlo && k != dirichlet_zhi) {
+                if (!mx(i,j,k)) {
                     mlcurlcurl_gsrb_x(i,j,k,ex,ey,ez,rh,a,b,dxinv,redblack);
                 }
             });
@@ -196,10 +220,10 @@ void MLCurlCurl::smooth (int amrlev, int mglev, MF& sol, MultiFab const& rhs,
             auto const& ex = sol[0].const_array(mfi);
             auto const& ey = sol[1].array(mfi);
             auto const& ez = sol[2].const_array(mfi);
+            auto const& my = m_dirichlet_mask[amrlev][mglev][1]->const_array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                if (i != dirichlet_xlo && i != dirichlet_xhi &&
-                    k != dirichlet_zlo && k != dirichlet_zhi) {
+                if (!my(i,j,k)) {
                     mlcurlcurl_gsrb_y(i,j,k,ex,ey,ez,rh,a,b,dxinv,redblack);
                 }
             });
@@ -207,10 +231,10 @@ void MLCurlCurl::smooth (int amrlev, int mglev, MF& sol, MultiFab const& rhs,
             auto const& ex = sol[0].const_array(mfi);
             auto const& ey = sol[1].const_array(mfi);
             auto const& ez = sol[2].array(mfi);
+            auto const& mz = m_dirichlet_mask[amrlev][mglev][2]->const_array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                if (i != dirichlet_xlo && i != dirichlet_xhi &&
-                    j != dirichlet_ylo && j != dirichlet_yhi) {
+                if (!mz(i,j,k)) {
                     mlcurlcurl_gsrb_z(i,j,k,ex,ey,ez,rh,a,b,dxinv,redblack);
                 }
             });
@@ -238,13 +262,6 @@ void MLCurlCurl::correctionResidual (int amrlev, int mglev, MF& resid, MF& x,
 
 void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
 {
-    int const dirichlet_xlo = getDirichlet(amrlev, mglev, 0, 0);
-    int const dirichlet_xhi = getDirichlet(amrlev, mglev, 0, 1);
-    int const dirichlet_ylo = getDirichlet(amrlev, mglev, 1, 0);
-    int const dirichlet_yhi = getDirichlet(amrlev, mglev, 1, 1);
-    int const dirichlet_zlo = getDirichlet(amrlev, mglev, 2, 0);
-    int const dirichlet_zhi = getDirichlet(amrlev, mglev, 2, 1);
-
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -259,11 +276,13 @@ void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
         auto const& bx = b[0].array(mfi);
         auto const& by = b[1].array(mfi);
         auto const& bz = b[2].array(mfi);
+        auto const& mx = m_dirichlet_mask[amrlev][mglev][0]->const_array(mfi);
+        auto const& my = m_dirichlet_mask[amrlev][mglev][1]->const_array(mfi);
+        auto const& mz = m_dirichlet_mask[amrlev][mglev][2]->const_array(mfi);
         amrex::ParallelFor(xbx, ybx, zbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            if (j == dirichlet_ylo || j == dirichlet_yhi ||
-                k == dirichlet_zlo || k == dirichlet_zhi) {
+            if (mx(i,j,k)) {
                 resx(i,j,k) = Real(0.0);
             } else {
                 resx(i,j,k) = bx(i,j,k) - resx(i,j,k);
@@ -271,8 +290,7 @@ void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            if (i == dirichlet_xlo || i == dirichlet_xhi ||
-                k == dirichlet_zlo || k == dirichlet_zhi) {
+            if (my(i,j,k)) {
                 resy(i,j,k) = Real(0.0);
             } else {
                 resy(i,j,k) = by(i,j,k) - resy(i,j,k);
@@ -280,8 +298,7 @@ void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            if (i == dirichlet_xlo || i == dirichlet_xhi ||
-                j == dirichlet_ylo || j == dirichlet_yhi) {
+            if (mz(i,j,k)) {
                 resz(i,j,k) = Real(0.0);
             } else {
                 resz(i,j,k) = bz(i,j,k) - resz(i,j,k);
@@ -292,6 +309,52 @@ void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
 
 void MLCurlCurl::prepareForSolve ()
 {
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+            for (int idim = 0; idim < 3; ++idim) {
+                m_dirichlet_mask[amrlev][mglev][idim] = std::make_unique<iMultiFab>
+                    (amrex::convert(this->m_grids[amrlev][mglev], m_etype[idim]),
+                     this->m_dmap[amrlev][mglev], 1, 0);
+            }
+
+            int const dirichlet_xlo = getDirichlet(amrlev, mglev, 0, 0);
+            int const dirichlet_xhi = getDirichlet(amrlev, mglev, 0, 1);
+            int const dirichlet_ylo = getDirichlet(amrlev, mglev, 1, 0);
+            int const dirichlet_yhi = getDirichlet(amrlev, mglev, 1, 1);
+            int const dirichlet_zlo = getDirichlet(amrlev, mglev, 2, 0);
+            int const dirichlet_zhi = getDirichlet(amrlev, mglev, 2, 1);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*m_dirichlet_mask[amrlev][mglev][0],
+                            TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                Box const& xbx = mfi.tilebox(m_etype[0]);
+                Box const& ybx = mfi.tilebox(m_etype[1]);
+                Box const& zbx = mfi.tilebox(m_etype[2]);
+                auto const& mx = m_dirichlet_mask[amrlev][mglev][0]->array(mfi);
+                auto const& my = m_dirichlet_mask[amrlev][mglev][1]->array(mfi);
+                auto const& mz = m_dirichlet_mask[amrlev][mglev][2]->array(mfi);
+                amrex::ParallelFor(xbx, ybx, zbx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    mx(i,j,k) = int(j == dirichlet_ylo || j == dirichlet_yhi ||
+                                    k == dirichlet_zlo || k == dirichlet_zhi);
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    my(i,j,k) = int(i == dirichlet_xlo || i == dirichlet_xhi ||
+                                    k == dirichlet_zlo || k == dirichlet_zhi);
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    mz(i,j,k) = (i == dirichlet_xlo || i == dirichlet_xhi ||
+                                 j == dirichlet_ylo || j == dirichlet_yhi);
+                });
+            }
+        }
+    }
 }
 
 Real MLCurlCurl::xdoty (int amrlev, int mglev, const MF& x, const MF& y,
