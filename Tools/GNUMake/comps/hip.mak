@@ -92,10 +92,10 @@ ifeq ($(HIP_COMPILER),clang)
 
   else  # DEBUG=FALSE flags
 
-    CXXFLAGS += -g -O3 -munsafe-fp-atomics
-    CFLAGS   += -g -O3
-    FFLAGS   += -g -O3
-    F90FLAGS += -g -O3
+    CXXFLAGS += -gline-tables-only -fdebug-info-for-profiling -O3 -munsafe-fp-atomics
+    CFLAGS   += -gline-tables-only -fdebug-info-for-profiling -O3
+    FFLAGS   += -g1 -O3
+    F90FLAGS += -g1 -O3
 
   endif
 

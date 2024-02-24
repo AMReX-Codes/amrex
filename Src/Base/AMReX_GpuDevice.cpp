@@ -354,6 +354,8 @@ Device::initialize_gpu ()
 
     AMREX_HIP_SAFE_CALL(hipGetDeviceProperties(&device_prop, device_id));
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(warp_size == device_prop.warpSize, "Incorrect warp size");
+
     // check compute capability
 
     // AMD devices do not support shared cache banking.

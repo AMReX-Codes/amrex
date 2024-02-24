@@ -25,7 +25,7 @@ private:
     // For MLMG solver
     int verbose = 1;
     int bottom_verbose = 0;
-    int max_iter = 100;
+    int max_iter = 300;
     bool agglomeration = true;
     bool consolidation = true;
     int max_coarsening_level = 30;
