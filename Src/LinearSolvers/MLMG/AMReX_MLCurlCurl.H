@@ -14,15 +14,12 @@ namespace amrex {
  * scalar, and beta is a non-negative scalar.
  *
  * It's the caller's responsibility to make sure rhs has consistent nodal
- * data. If needed, one could use FabArray::OverrideSync to synchronize
- * nodal data.
+ * data. If needed, one could call prepareRHS for this.
  *
  * The smoother is based on the 4-color Gauss-Seidel smoother of Li
  * et. al. 2020.  "An Efficient Preconditioner for 3-D Finite Difference
  * Modeling of the Electromagnetic Diffusion Process in the Frequency
  * Domain", IEEE Transactions on Geoscience and Remote Sensing, 58, 500-509.
- *
- * TODO: If beta is zero, the system could be singular.
  */
 class MLCurlCurl
     : public MLLinOpT<Array<MultiFab,3> >
@@ -47,6 +44,12 @@ public:
                  const LPInfo& a_info = LPInfo());
 
     void setScalars (RT a_alpha, RT a_beta) noexcept;
+
+    //! Synchronize RHS on nodal points and set to zero on Dirichlet
+    //! boundaries. If the user can guarantee these requirements on RHS,
+    //! this function does not need to be called. If this is called, it
+    //! should only be called after setDomainBC is called.
+    void prepareRHS (Vector<MF*> const& rhs) const;
 
     [[nodiscard]] std::string name () const override {
         return std::string("curl of curl");
