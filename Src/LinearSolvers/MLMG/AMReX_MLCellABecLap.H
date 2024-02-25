@@ -50,6 +50,8 @@ public:
 
     void prepareForSolve () override;
 
+    void setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const override;
+
     void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
                             const Vector<MF*>& a_sol,
                             Location a_loc) const final;
@@ -245,6 +247,24 @@ void
 MLCellABecLapT<MF>::prepareForSolve ()
 {
     MLCellLinOpT<MF>::prepareForSolve();
+}
+
+template <typename MF>
+void
+MLCellABecLapT<MF>::setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const
+{
+    auto const* omask = this->getOversetMask(amrlev, mglev);
+    if (omask) {
+        const int ncomp = this->getNComp();
+        auto const& mskma = omask->const_arrays();
+        auto const& ma = mf.arrays();
+        ParallelFor(mf, IntVect(0), ncomp,
+        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n)
+        {
+            if (mskma[bno](i,j,k) == 0) { ma[bno](i,j,k,n) = RT(0.0); }
+        });
+        Gpu::streamSynchronize();
+    }
 }
 
 template <typename MF>

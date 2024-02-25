@@ -452,6 +452,16 @@ public:
 
     virtual void prepareForSolve () = 0;
 
+    virtual void prepareForGMRES () {}
+
+    //! For GMRES to work, this might need to be implemented to mask out
+    //! Dirichlet nodes or cells (e.g., EB covered cells or overset cells)
+    virtual void setDirichletNodesToZero (int /*amrlev*/, int /*mglev*/,
+                                          MF& /*mf*/) const
+    {
+        amrex::Warning("This function might need to be implemented for GMRES to work with this LinOp.");
+    }
+
     //! Is it singular on given AMR level?
     [[nodiscard]] virtual bool isSingular (int amrlev) const = 0;
     //! Is the bottom of MG singular?

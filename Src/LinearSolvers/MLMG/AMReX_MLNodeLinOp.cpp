@@ -4,6 +4,10 @@
 #include <AMReX_MLMG_K.H>
 #include <AMReX_MultiFabUtil.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBMultiFabUtil.H>
+#endif
+
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
@@ -377,6 +381,38 @@ MLNodeLinOp::buildMasks ()
         m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
         MLNodeLinOp_set_dot_mask(m_coarse_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
+}
+
+void
+MLNodeLinOp::prepareForGMRES ()
+{
+    if (m_coarse_dot_mask.empty()) {
+        int amrlev = 0;
+        int mglev = 0;
+        const Geometry& geom = m_geom[amrlev][mglev];
+        const iMultiFab& omask = *m_owner_mask_top;
+        m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
+        const auto lobc = LoBC();
+        const auto hibc = HiBC();
+        MLNodeLinOp_set_dot_mask(m_coarse_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
+    }
+}
+
+void
+MLNodeLinOp::setDirichletNodesToZero (int amrlev, int mglev, MultiFab& mf) const
+{
+    auto const& maskma = m_dirichlet_mask[amrlev][mglev]->const_arrays();
+    auto const& ma = mf.arrays();
+    const int ncomp = getNComp();
+    ParallelFor(mf, IntVect(0), ncomp,
+    [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n)
+    {
+        if (maskma[bno](i,j,k)) { ma[bno](i,j,k,n) = RT(0.0); }
+    });
+    Gpu::streamSynchronize();
+#ifdef AMREX_USE_EB
+    EB_set_covered(mf, 0, ncomp, 0, RT(0.0));
+#endif
 }
 
 void
