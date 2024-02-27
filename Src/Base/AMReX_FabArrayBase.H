@@ -28,6 +28,12 @@ template <typename FAB> class FabArray;
 
 namespace EB2 { class IndexSpace; }
 
+/**
+ * \brief Base class for FabArray.
+ *
+ * Not to be confused with FArrayBox or `FAB` shorthands.
+ * Can be read as FArrayBox-like Array Base.
+ */
 class FabArrayBase
 {
     friend class MFIter;
@@ -645,7 +651,7 @@ public:
         ~ParForInfo ();
 
         std::pair<int*,int*> const& getBlocks () const { return m_nblocks_x; }
-        Box const* getBoxes () const { return m_boxes; }
+        BoxIndexer const* getBoxes () const { return m_boxes; }
 
         ParForInfo () = delete;
         ParForInfo (ParForInfo const&) = delete;
@@ -657,7 +663,7 @@ public:
         IntVect m_ng;
         int m_nthreads;
         std::pair<int*,int*> m_nblocks_x;
-        Box* m_boxes = nullptr;
+        BoxIndexer* m_boxes = nullptr;
         char* m_hp = nullptr;
         char* m_dp = nullptr;
     };
@@ -714,6 +720,11 @@ public:
     static AMREX_EXPORT FabArrayStats m_FA_stats;
 
 };
+
+[[nodiscard]] int nComp (FabArrayBase const& fa);
+[[nodiscard]] IntVect nGrowVect (FabArrayBase const& fa);
+[[nodiscard]] BoxArray const& boxArray (FabArrayBase const& fa);
+[[nodiscard]] DistributionMapping const& DistributionMap (FabArrayBase const& fa);
 
 #ifdef BL_USE_MPI
 bool CheckRcvStats (Vector<MPI_Status>& recv_stats, const Vector<std::size_t>& recv_size, int tag);

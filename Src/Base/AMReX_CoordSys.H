@@ -20,7 +20,6 @@ class FArrayBox;
 *
 * Routines for mapping between physical coordinate system and index space.
 */
-
 class CoordSys
 {
 public:

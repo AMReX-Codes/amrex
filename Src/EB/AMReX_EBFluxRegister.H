@@ -53,7 +53,6 @@ namespace amrex {
   to add the part in ghost cells (excluding ghost cells covered by
   valid cells of other grids) to EBFluxRegister's internal data.
 */
-
 class EBFluxRegister
     : public YAFluxRegister
 {

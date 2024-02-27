@@ -17,6 +17,7 @@ namespace {
     MPI_Comm app_comm = MPI_COMM_NULL;
     int myproc;
     int nprocs;
+    int appnum;
 }
 
 namespace {
@@ -31,7 +32,16 @@ int num_unique_elements (std::vector<T>& v)
 
 }
 
-MPI_Comm Initialize (int argc, char* argv[])
+/*
+Initialize_without_split function assigns and checks the required
+AMReX_MPMD variables. This function is internally leveraged by
+Initialize function.
+
+This function needs to be used EXPLICITLY ONLY with pyAMReX (python)
+so that the communication split can be performed using a python
+library, for example, mpi4py.
+*/
+void Initialize_without_split (int argc, char* argv[])
 {
     initialized = true;
     int flag;
@@ -46,7 +56,7 @@ MPI_Comm Initialize (int argc, char* argv[])
 
     int* p;
     MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_APPNUM, &p, &flag);
-    int appnum = *p;
+    appnum = *p;
 
     std::vector<int> all_appnum(nprocs);
     MPI_Allgather(&appnum, 1, MPI_INT, all_appnum.data(), 1, MPI_INT, MPI_COMM_WORLD);
@@ -77,12 +87,17 @@ MPI_Comm Initialize (int argc, char* argv[])
         }
     }
 
-    if (napps == 2) {
-        MPI_Comm_split(MPI_COMM_WORLD, appnum, myproc, &app_comm);
-    } else {
+    if (napps != 2) {
         std::cout << "amrex::MPMD only supports two programs." << std::endl;
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
+
+}
+
+MPI_Comm Initialize (int argc, char* argv[])
+{
+    Initialize_without_split(argc,argv);
+    MPI_Comm_split(MPI_COMM_WORLD, appnum, myproc, &app_comm);
 
     return app_comm;
 }
@@ -107,6 +122,16 @@ int MyProc ()
 int NProcs ()
 {
     return nprocs;
+}
+
+/*
+AppNum function is provided so that appnum (color)
+can be passed to python library (mpi4py) to perform
+a pythonic version of MPI_Comm_split.
+*/
+int AppNum ()
+{
+    return appnum;
 }
 
 int MyProgId ()

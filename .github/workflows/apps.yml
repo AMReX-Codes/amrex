@@ -11,7 +11,7 @@ jobs:
     name: Castro
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Get Latest Release Tag
       run: |
         CASTRO_TAG=$(wget https://github.com/AMReX-Astro/Castro/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
@@ -19,13 +19,13 @@ jobs:
         MICROPHYSICS_TAG=$(wget https://github.com/AMReX-Astro/Microphysics/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
         echo "MICROPHYSICS_TAG=$MICROPHYSICS_TAG" >> $GITHUB_ENV
     - name: Download Castro
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: 'AMReX-Astro/Castro'
         ref: ${{env.CASTRO_TAG}}
         path: 'Castro'
     - name: Download Microphysics
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: 'AMReX-Astro/Microphysics'
         ref: ${{env.MICROPHYSICS_TAG}}
@@ -35,7 +35,7 @@ jobs:
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -52,7 +52,7 @@ jobs:
         export AMREX_HOME=${PWD}
         export MICROPHYSICS_HOME=${PWD}/Microphysics
         cd Castro/Exec/hydro_tests/Sedov/
-        make -j2 CCACHE=ccache USE_MPI=FALSE
+        make -j4 CCACHE=ccache USE_MPI=FALSE
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -61,13 +61,13 @@ jobs:
     name: WarpX
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Get Latest Release Tag
       run: |
         WARPX_TAG=$(wget https://github.com/ECP-WarpX/WarpX/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
         echo "WARPX_TAG=$WARPX_TAG" >> $GITHUB_ENV
     - name: Download WarpX
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: 'ECP-WarpX/WarpX'
         ref: ${{env.WARPX_TAG}}
@@ -77,7 +77,7 @@ jobs:
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -97,7 +97,7 @@ jobs:
             -DWarpX_OPENPMD=OFF                   \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build WarpX/build -j 2
+        cmake --build WarpX/build -j 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -111,7 +111,7 @@ jobs:
           PR_NUMBER: ${{ github.event.number }}
         run: |
           echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pr_number
           path: pr_number.txt

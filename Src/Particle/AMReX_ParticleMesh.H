@@ -5,6 +5,7 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParticleUtil.H>
+#include <type_traits>
 
 namespace amrex {
 
@@ -18,9 +19,12 @@ auto call_f (F const& f,
              GpuArray<Real,AMREX_SPACEDIM> const& plo,
              GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
 {
-    if constexpr (IsCallable<F, decltype(p.m_aos[i]), decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
+    using PTDTypeT = std::remove_const_t<std::remove_reference_t<decltype(p)>>;
+    if constexpr ( ! T_ParticleType::is_soa_particle &&
+                   IsCallable<F, typename PTDTypeT::ParticleRefType, decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
         return f(p.m_aos[i], fabarr, plo, dxi);
-    } else if constexpr (IsCallable<F, decltype(p.m_aos[i]), decltype(fabarr)>::value) {
+    } else if constexpr ( ! T_ParticleType::is_soa_particle &&
+                          IsCallable<F, typename PTDTypeT::ParticleRefType, decltype(fabarr)>::value) {
         return f(p.m_aos[i], fabarr);
     } else if constexpr (IsCallable<F, decltype(p.getSuperParticle(i)), decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
         return f(p.getSuperParticle(i), fabarr, plo, dxi);

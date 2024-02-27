@@ -13,11 +13,13 @@ namespace amrex {
 namespace Gpu::Atomic {
 
 // For Add, Min and Max, we support int, unsigned int, long, unsigned long long, float and double.
+// For Multiply and Divide, we support generic types provided they are the same size as int or unsigned long long
+// and have *= and /= operators.
 // For LogicalOr and LogicalAnd, the data type is int.
 // For Exch and CAS, the data type is generic.
 // All these functions are non-atomic in host code!!!
 // If one needs them to be atomic in host code, use HostDevice::Atomic::*.  Currently only
-// HostDevice::Atomic is supported.  We could certainly add more.
+// HostDevice::Atomic::Add is supported.  We could certainly add more.
 
 namespace detail {
 
@@ -525,6 +527,78 @@ namespace detail {
             return old;
         ))
 #endif
+    }
+
+////////////////////////////////////////////////////////////////////////
+//  Multiply
+////////////////////////////////////////////////////////////////////////
+
+#ifdef AMREX_USE_GPU
+
+    template <typename T, std::enable_if_t<sizeof(T) == sizeof(int), int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T Multiply_device (T* const prod, T const value) noexcept
+    {
+        return detail::atomic_op<T, int>(prod,value,amrex::Multiplies<T>());
+    }
+
+    template <typename T, std::enable_if_t<sizeof(T) == sizeof(unsigned long long), int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T Multiply_device (T* const prod, T const value) noexcept
+    {
+        return detail::atomic_op<T, unsigned long long>(prod,value,amrex::Multiplies<T>());
+    }
+
+#endif
+
+    template<class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T Multiply (T* const prod, T const value) noexcept
+    {
+        AMREX_IF_ON_DEVICE((
+            return Multiply_device(prod, value);
+        ))
+        AMREX_IF_ON_HOST((
+            auto const old = *prod;
+            *prod *= value;
+            return old;
+        ))
+    }
+
+////////////////////////////////////////////////////////////////////////
+//  Divide
+////////////////////////////////////////////////////////////////////////
+
+#ifdef AMREX_USE_GPU
+
+    template <typename T, std::enable_if_t<sizeof(T) == sizeof(int), int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T Divide_device (T* const quot, T const value) noexcept
+    {
+        return detail::atomic_op<T, int>(quot,value,amrex::Divides<T>());
+    }
+
+    template <typename T, std::enable_if_t<sizeof(T) == sizeof(unsigned long long), int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T Divide_device (T* const quot, T const value) noexcept
+    {
+        return detail::atomic_op<T, unsigned long long>(quot,value,amrex::Divides<T>());
+    }
+
+#endif
+
+    template<class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T Divide (T* const quot, T const value) noexcept
+    {
+        AMREX_IF_ON_DEVICE((
+            return Divide_device(quot, value);
+        ))
+        AMREX_IF_ON_HOST((
+            auto const old = *quot;
+            *quot /= value;
+            return old;
+        ))
     }
 }
 

@@ -11,14 +11,14 @@ jobs:
     name: GCC 2D EB PETSc@3.18.1
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy.sh 14
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -31,7 +31,7 @@ jobs:
         cd petsc-3.18.1
         export PETSC_DIR=${PWD}
         ./configure --prefix=${PWD}/petsc
-        make -j 2
+        make -j 4
         make install
         cd ../
     - name: Build and Run Test
@@ -45,12 +45,12 @@ jobs:
 
         export AMREX_PETSC_HOME=${PWD}/petsc-3.18.1/petsc
         cd Tests/LinearSolvers/CellEB
-        make -j2 USE_MPI=TRUE USE_PETSC=TRUE DIM=2 TEST=TRUE \
+        make -j4 USE_MPI=TRUE USE_PETSC=TRUE DIM=2 TEST=TRUE \
             CCACHE=ccache
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.rt.2d.petsc
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-14 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -66,7 +66,7 @@ jobs:
           PR_NUMBER: ${{ github.event.number }}
         run: |
           echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pr_number
           path: pr_number.txt

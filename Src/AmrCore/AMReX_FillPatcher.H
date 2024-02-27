@@ -15,13 +15,13 @@ namespace amrex {
  * with interpolation of the coarse data.  Then it fills the fine ghost
  * cells overlapping fine level valid cells with the fine level data.  If
  * the valid cells of the destination need to be filled, it will be done as
- * well.  Finally, it will fill the physical bounbary using the user
+ * well.  Finally, it will fill the physical boundary using the user
  * provided functor.  The `fill` member function can be used to do the
  * operations just described.  Alternatively, one can also use the
  * `fillCoarseFineBounary` to fill the ghost cells at the coarse/fine
  * boundary only.  Then one can manually call FillBoundary to fill the other
  * ghost cells, and use the physical BC functor to handle the physical
- * boundeary.
+ * boundary.
  *
  * The communication of the coarse data needed for spatial interpolation is
  * optimized at the cost of being error-prone.  One must follow the
@@ -42,7 +42,7 @@ namespace amrex {
  *
  * (3) When to destroy?  Usually, we do time steppig on a coarse level
  * first.  Then we recursively do time stepping on fine levels.  After the
- * finer level finishes, we do reflux and averge the fine data down to the
+ * finer level finishes, we do reflux and average the fine data down to the
  * coarse level.  After that we should destroy the FillPatcher object
  * associated with these two levels, because the coarse data stored in the
  * object has become outdated.  For AmrCore based codes, you could use
@@ -68,7 +68,6 @@ namespace amrex {
  * See AmrLevel::RK for an example of using the RungeKutta functions and
  * FillPatcher together.
  */
-
 template <class MF = MultiFab>
 class FillPatcher
 {
@@ -118,7 +117,7 @@ public:
      * \param fbc         for filling fine level physical BC
      * \param fbccomp     starting component of the fine level BC functor
      * \param bcs         BCRec specifying physical boundary types
-     * \parame bcscomp    starting component of the BCRec Vector.
+     * \param bcscomp    starting component of the BCRec Vector.
      * \param pre_interp  optional pre-interpolation hook for modifying the coarse data
      * \param post_interp optional post-interpolation hook for modifying the fine data
      */

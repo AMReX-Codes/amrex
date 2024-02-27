@@ -132,16 +132,6 @@ namespace amrex
     *  WWW URL:     http://www.math.uio.no/~jacklam
 
     *  "p" MUST be in the open interval (0,1).
-
-    *  Entry points for Fortran:
-
-    *    REAL_T val
-    *    call blinvnormdist(val)
-
-    *  Internally, the Fortran entry point calls a static Mersenne Twister
-    *  object (the same one called by blutilrand()) to get a random number in
-    *  the open interval (0,1), and then sets "val" to the result of calling
-    *  amrex::InvNormDist() with that random number.
     */
     double InvNormDist (double p);
     /**
@@ -165,16 +155,6 @@ namespace amrex
     *  is roughly 30% more costly than InvNormDist() above.
     *
     *  "p" MUST be in the open interval (0,1).
-    *
-    *  Entry points for Fortran:
-    *
-    *    REAL_T val
-    *    call blinvnormdistbest(val)
-    *
-    *  Internally, the Fortran entry point calls a static Mersenne Twister
-    *  object (the same one called by blutilrand()) to get a random number in
-    *  the open interval (0,1), and then sets "val" to the result of calling
-    *  amrex::InvNormDist() with that random number.
     */
     double InvNormDistBest (double p);
 

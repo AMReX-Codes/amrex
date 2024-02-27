@@ -378,6 +378,20 @@ ForwardAsTuple (Ts&&... args) noexcept
     return GpuTuple<Ts&&...>(std::forward<Ts>(args)...);
 }
 
+// MakeZeroTuple
+
+/**
+ * \brief Return a GpuTuple containing all zeros.
+ * Note that a default-constructed GpuTuple can have uninitialized values.
+ */
+template <typename... Ts>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts...>
+MakeZeroTuple (GpuTuple<Ts...>) noexcept
+{
+    return GpuTuple<Ts...>(static_cast<Ts>(0)...);
+}
+
 }
 
 #endif /*AMREX_TUPLE_H_*/

@@ -13,14 +13,14 @@ jobs:
     env:
       AMREX_HYPRE_HOME: ${HOME}/.cache/hypre-2.26.0-cuda
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc.sh 11.2
         sudo apt-get install -y libcublas-dev-11-2 libcusparse-dev-11-2
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cache/ccache
@@ -38,7 +38,7 @@ jobs:
           ./configure --with-cxxstandard=17 --with-cuda --enable-unified-memory \
               --with-cuda-home=/usr/local/cuda --with-gpu-arch="80" \
               --prefix=${{ env.AMREX_HYPRE_HOME }}
-          make -j 2
+          make -j 4
           make install
           cd ../../
         fi
@@ -53,7 +53,7 @@ jobs:
         export CUDA_PATH=/usr/local/cuda
         export PATH=${PATH}:/usr/local/cuda/bin
         cd Tests/LinearSolvers/CellEB
-        make -j2 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 USE_CUDA=TRUE CCACHE=ccache
+        make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 USE_CUDA=TRUE CCACHE=ccache
 
         ccache -s
         du -h -d1 ~/.cache
@@ -62,14 +62,14 @@ jobs:
     name: GCC 3D Hypre@2.21.0
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy.sh 14
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -81,7 +81,7 @@ jobs:
         tar xfz v2.21.0.tar.gz
         cd hypre-2.21.0/src
         ./configure --with-cxxstandard=17 --enable-bigint
-        make -j 2
+        make -j 4
         make install
         cd ../../
     - name: Build and Run Test
@@ -95,12 +95,12 @@ jobs:
 
         export AMREX_HYPRE_HOME=${PWD}/hypre-2.21.0/src/hypre
         cd Tests/LinearSolvers/ABecLaplacian_C
-        make -j2 USE_MPI=TRUE USE_HYPRE=TRUE DIM=3 \
+        make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=3 \
             CCACHE=ccache
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs.hypre
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-14 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -111,14 +111,14 @@ jobs:
     name: GCC EB 2D Hypre@2.28.0
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy.sh 14
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -130,7 +130,7 @@ jobs:
         tar xfz v2.28.0.tar.gz
         cd hypre-2.28.0/src
         ./configure --with-cxxstandard=17
-        make -j 2
+        make -j 4
         make install
         cd ../../
     - name: Build and Run Test
@@ -144,11 +144,11 @@ jobs:
 
         export AMREX_HYPRE_HOME=${PWD}/hypre-2.28.0/src/hypre
         cd Tests/LinearSolvers/Hypre
-        make -j2 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache
+        make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs.2d
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-14 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -164,7 +164,7 @@ jobs:
           PR_NUMBER: ${{ github.event.number }}
         run: |
           echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pr_number
           path: pr_number.txt

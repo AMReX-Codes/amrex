@@ -103,7 +103,6 @@ FabCopyDescriptor<FAB>::~FabCopyDescriptor ()
 * \brief This class orchestrates filling a destination fab of size destFabBox
 * from fabarray on the local processor (myProc).
 */
-
 template <class FAB>
 class FabArrayCopyDescriptor
 {

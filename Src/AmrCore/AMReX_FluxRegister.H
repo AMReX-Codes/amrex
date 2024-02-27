@@ -14,7 +14,6 @@ namespace amrex {
 *
 * Stores and manipulates fluxes at coarse-fine interfaces.
 */
-
 class FluxRegister
     :
     public BndryRegister

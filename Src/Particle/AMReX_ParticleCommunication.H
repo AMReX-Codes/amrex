@@ -7,6 +7,7 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_Scan.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MakeParticle.H>
 
@@ -90,8 +91,8 @@ struct ParticleCopyPlan
     Vector<int> m_rcv_box_pids;
     Vector<int> m_rcv_box_levs;
 
-    Long m_NumSnds;
-    int m_nrcvs;
+    Long m_NumSnds = 0;
+    int m_nrcvs = 0;
     mutable Vector<MPI_Status> m_build_stats;
     mutable Vector<MPI_Request> m_build_rreqs;
 
@@ -219,9 +220,13 @@ struct ParticleCopyPlan
             if (int_comp_mask[i])  {++num_int_comm_comp;}
         }
 
-        m_superparticle_size = sizeof(typename PC::ParticleType)
-                             + num_real_comm_comp * sizeof(typename PC::ParticleType::RealType)
-                             + num_int_comm_comp  * sizeof(int);
+        if constexpr (PC::ParticleType::is_soa_particle) {
+            m_superparticle_size = sizeof(uint64_t);  // idcpu
+        } else {
+            m_superparticle_size = sizeof(typename PC::ParticleType);
+        }
+        m_superparticle_size += num_real_comm_comp * sizeof(typename PC::ParticleType::RealType)
+                              + num_int_comm_comp  * sizeof(int);
 
         buildMPIStart(pc.BufferMap(), m_superparticle_size);
     }
@@ -478,7 +483,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
             RcvProc.push_back(i);
             rOffset.push_back(TotRcvBytes);
             Long nbytes = plan.m_rcv_num_particles[i]*psize;
-            std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+            std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
             TotRcvBytes = Long(amrex::aligned_size(acd, TotRcvBytes));
             TotRcvBytes += Long(amrex::aligned_size(acd, nbytes));
             plan.m_rcv_pad_correction_h.push_back(plan.m_rcv_pad_correction_h.back() + nbytes);
@@ -511,7 +516,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
         Long nbytes       = plan.m_rcv_num_particles[Who]*psize;
-        std::size_t acd   = ParallelDescriptor::alignof_comm_data(nbytes);
+        std::size_t acd   = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         const auto Cnt    = amrex::aligned_size(acd, nbytes);
 
         AMREX_ASSERT(Cnt > 0);
@@ -533,9 +538,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
         if (Cnt == 0) { continue; }
 
         auto snd_offset = plan.m_snd_offsets[i];
-        AMREX_ASSERT(plan.m_snd_counts[i] % ParallelDescriptor::alignof_comm_data(plan.m_snd_num_particles[i]*psize) == 0);
+        AMREX_ASSERT(plan.m_snd_counts[i] % ParallelDescriptor::sizeof_selected_comm_data_type(plan.m_snd_num_particles[i]*psize) == 0);
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
-        AMREX_ASSERT(snd_offset % ParallelDescriptor::alignof_comm_data(plan.m_snd_num_particles[i]*psize) == 0);
 
         ParallelDescriptor::Send((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
                                  ParallelContext::CommunicatorSub());

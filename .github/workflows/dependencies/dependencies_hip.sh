@@ -45,6 +45,9 @@ sudo apt-get install -y --no-install-recommends \
     rocrand-dev     \
     rocprim-dev
 
+# hiprand-dev is a new package that does not exist in old versions
+sudo apt-get install -y --no-install-recommends hiprand-dev || true
+
 # activate
 #
 source /etc/profile.d/rocm.sh

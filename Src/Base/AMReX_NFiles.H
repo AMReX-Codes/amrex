@@ -23,7 +23,6 @@ namespace amrex {
 *   nfi.Stream().write((const char *) data.dataPtr(), nChars);
 * }
 */
-
 class NFilesIter
 {
   public:

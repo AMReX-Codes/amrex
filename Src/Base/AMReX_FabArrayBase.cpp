@@ -2699,4 +2699,24 @@ FabArrayBase::flushParForCache ()
 
 #endif
 
+int nComp (FabArrayBase const& fa)
+{
+    return fa.nComp();
+}
+
+IntVect nGrowVect (FabArrayBase const& fa)
+{
+    return fa.nGrowVect();
+}
+
+BoxArray const& boxArray (FabArrayBase const& fa)
+{
+    return fa.boxArray();
+}
+
+DistributionMapping const& DistributionMap (FabArrayBase const& fa)
+{
+    return fa.DistributionMap();
+}
+
 }

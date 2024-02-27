@@ -217,7 +217,7 @@ variables to configure the build
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | SYCL_SUB_GROUP_SIZE          | Specify subgroup size                           | 32          | 64, 32, 16      |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | SYCL_MAX_PARALLEL_LINK_JOBS  | Number of parallel jobs in device link          | 1           | 1, 2, 3, etc.   |
+   | SYCL_PARALLEL_LINK_JOBS      | Number of parallel jobs in device link          | 1           | 1, 2, 3, etc.   |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
@@ -307,7 +307,7 @@ If autodetection fails, a list of "common" architectures is assumed.
 Building for multiple CUDA architectures will generally result in a larger library and longer build times.
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
-CUDA Toolkit version 9.0 or higher.**
+CUDA Toolkit version 11.0 or higher.**
 
 In order to import the CUDA-enabled AMReX library into your CMake project, you need to include
 the following code into the appropriate CMakeLists.txt file:
@@ -428,22 +428,24 @@ Below is an example configuration for SYCL:
 
 .. table:: AMReX SYCL-specific build options
 
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | Variable Name                | Description                                     | Default     | Possible values |
-   +==============================+=================================================+=============+=================+
-   | AMReX_SYCL_AOT               | Enable SYCL ahead-of-time compilation           | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_SYCL_AOT_GRF_MODE      | Specify AOT register file mode                  | Default     | Default, Large, |
-   |                              |                                                 |             | AutoLarge       |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | None        | pvc, etc.       |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_SYCL_SPLIT_KERNEL      | Enable SYCL kernel splitting                    | YES         | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_SYCL_ONEDPL            | Enable SYCL's oneDPL algorithms                 | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_SYCL_SUB_GROUP_SIZE    | Specify subgroup size                           | 32          | 64, 32, 16      |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | Variable Name                 | Description                                  | Default     | Possible values  |
+   +===============================+==============================================+=============+==================+
+   | AMReX_SYCL_AOT                | Enable SYCL ahead-of-time compilation        | NO          | YES, NO          |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_SYCL_AOT_GRF_MODE       | Specify AOT register file mode               | Default     | Default, Large,  |
+   |                               |                                              |             | AutoLarge        |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMREX_INTEL_ARCH              | Specify target if AOT is enabled             | None        | pvc, etc.        |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_SYCL_SPLIT_KERNEL       | Enable SYCL kernel splitting                 | YES         | YES, NO          |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_SYCL_ONEDPL             | Enable SYCL's oneDPL algorithms              | NO          | YES, NO          |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_SYCL_SUB_GROUP_SIZE     | Specify subgroup size                        | 32          | 64, 32, 16       |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_PARALLEL_LINK_JOBS      | Specify number of parallel link jobs         | 1           | positive integer |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
 .. raw:: latex
 
    \end{center}
@@ -794,7 +796,7 @@ As another example, the following function computes the max- and 1-norm of a
 ::
 
     GpuTuple<Real,Real> compute_norms (MultiFab const& mf,
-                                       iMulitiFab const& mask)
+                                       iMultiFab const& mask)
     {
         auto const& data_ma = mf.const_arrays();
         auto const& mask_ma = mask.const_arrays();

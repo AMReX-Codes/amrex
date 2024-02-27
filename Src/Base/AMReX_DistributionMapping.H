@@ -37,7 +37,6 @@ class FabArrayBase;
 *  BoxArray are as equal across CPUs as is possible.  The SFC distribution is
 *  based on a space filling curve.
 */
-
 class DistributionMapping
 {
   public:

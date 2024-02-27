@@ -1,6 +1,5 @@
 
 #include <AMReX_AmrCore.H>
-#include <AMReX_Print.H>
 
 #ifdef AMREX_PARTICLES
 #include <AMReX_AmrParGDB.H>

@@ -11,13 +11,13 @@ jobs:
     name: oneAPI SYCL [tests]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_dpcpp.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -44,8 +44,9 @@ jobs:
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
             -DCMAKE_Fortran_COMPILER=$(which ifx)          \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --parallel 2
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DAMReX_PARALLEL_LINK_JOBS=4
+        cmake --build build --parallel 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -54,13 +55,13 @@ jobs:
     name: oneAPI SYCL [tests w/ EB]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_dpcpp.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -86,8 +87,9 @@ jobs:
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --parallel 2
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DAMReX_PARALLEL_LINK_JOBS=4
+        cmake --build build --parallel 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -95,29 +97,24 @@ jobs:
   tests-oneapi-sycl-eb-nvidia:
     name: oneAPI SYCL for Nvidia GPUs [tests w/ EB]
     runs-on: ubuntu-latest
-    env:
-      CODEPLAYTOKEN: ${{ secrets.CODEPLAYTOKEN }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
-      if: ${{ env.CODEPLAYTOKEN != '' }}
       run: |
-        .github/workflows/dependencies/dependencies_nvcc.sh
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_dpcpp.sh
-        .github/workflows/dependencies/dependencies_codeplay.sh ${{ env.CODEPLAYTOKEN }}
+        .github/workflows/dependencies/dependencies_nvcc.sh 12.0
+        .github/workflows/dependencies/dependencies_codeplay.sh oneapi-nvidia-12.0
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      if: ${{ env.CODEPLAYTOKEN != '' }}
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      if: ${{ env.CODEPLAYTOKEN != '' }}
-      # clang currently supports CUDA up to version 11.5 and a warning is issued with newer versions
-      env: {CXXFLAGS: "-fsycl -fsycl-targets=nvptx64-nvidia-cuda -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-unknown-cuda-version"}
+      env: {CXXFLAGS: "-fsycl -fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend --offload-arch=sm_80 -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -136,8 +133,9 @@ jobs:
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which clang++)          \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --parallel 2
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DAMReX_PARALLEL_LINK_JOBS=4
+        cmake --build build --parallel 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -145,28 +143,23 @@ jobs:
   no-tests-oneapi-sycl-amd:
     name: oneAPI SYCL for AMD GPUs
     runs-on: ubuntu-20.04
-    env:
-      CODEPLAYTOKEN: ${{ secrets.CODEPLAYTOKEN }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
-      if: ${{ env.CODEPLAYTOKEN != '' }}
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
-        .github/workflows/dependencies/dependencies_hip.sh 5.4.6
         .github/workflows/dependencies/dependencies_dpcpp.sh
-        .github/workflows/dependencies/dependencies_codeplay.sh ${{ env.CODEPLAYTOKEN }}
+        .github/workflows/dependencies/dependencies_hip.sh 5.4.3
+        .github/workflows/dependencies/dependencies_codeplay.sh oneapi-amd-5.4.3
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      if: ${{ env.CODEPLAYTOKEN != '' }}
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      if: ${{ env.CODEPLAYTOKEN != '' }}
       env: {CXXFLAGS: "-fsycl -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx90a -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
         export CCACHE_COMPRESS=1
@@ -186,8 +179,9 @@ jobs:
             -DAMReX_SYCL_SUB_GROUP_SIZE=64                 \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which clang++)          \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --parallel 2
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DAMReX_PARALLEL_LINK_JOBS=4
+        cmake --build build --parallel 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -197,7 +191,7 @@ jobs:
     name: ICC [tests]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
@@ -205,7 +199,7 @@ jobs:
         sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -230,7 +224,7 @@ jobs:
             -DCMAKE_C_COMPILER=$(which icc)                \
             -DCMAKE_CXX_COMPILER=$(which icpc)             \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --parallel 2
+        cmake --build build --parallel 4
         cmake --build build --target install
         cmake --build build --target test_install
 
@@ -254,7 +248,7 @@ jobs:
           PR_NUMBER: ${{ github.event.number }}
         run: |
           echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pr_number
           path: pr_number.txt

@@ -2406,7 +2406,7 @@ void mlndlap_fillijmat_aa_cpu (Box const& ndbx,
     Real f2xmy = Real(2.0)*facx - facy;
     Real fmx2y = Real(2.0)*facy - facx;
 
-    // Note that ccdom has been grown at peridoci boundaries.
+    // Note that ccdom has been grown at periodic boundaries.
     const Box& nddom = amrex::surroundingNodes(ccdom);
 
     constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
@@ -2552,7 +2552,7 @@ void mlndlap_fillijmat_ha_cpu (Box const& ndbx,
     Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
     Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
 
-    // Note that ccdom has been grown at peridoci boundaries.
+    // Note that ccdom has been grown at periodic boundaries.
     const Box& nddom = amrex::surroundingNodes(ccdom);
 
     constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
@@ -2708,7 +2708,7 @@ void mlndlap_fillijmat_cs_cpu (Box const& ndbx,
     Real f2xmy = Real(2.0)*facx - facy;
     Real fmx2y = Real(2.0)*facy - facx;
 
-    // Note that ccdom has been grown at peridoci boundaries.
+    // Note that ccdom has been grown at periodic boundaries.
     const Box& nddom = amrex::surroundingNodes(ccdom);
 
     constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
@@ -3355,7 +3355,7 @@ void mlndlap_fillijmat_cs_gpu (const int ps, const int i, const int j, const int
             fp = fm = Real(0.0);
         }
 
-        // Note that nddom has been grown at peridoci boundaries.
+        // Note that nddom has been grown at periodic boundaries.
         const Box& nddom = amrex::surroundingNodes(ccdom);
 
         constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();

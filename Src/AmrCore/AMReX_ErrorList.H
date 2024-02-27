@@ -102,7 +102,6 @@ extern "C"
 * actual error tagging will be through derivation, so provision is made
 * for this as well.
 */
-
 class ErrorRec
 {
 public:
@@ -348,7 +347,6 @@ private:
 *
 * Container class for ErrorRecs.
 */
-
 class ErrorList
 {
 public:

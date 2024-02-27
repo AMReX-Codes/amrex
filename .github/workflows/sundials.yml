@@ -15,13 +15,13 @@ jobs:
        CCACHE_COMPRESSLEVEL: 10
        CCACHE_MAXSIZE: 20M
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -41,7 +41,7 @@ jobs:
             -DCMAKE_CXX_STANDARD=17                  \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache     \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache
-        make -j2
+        make -j4
         make install
         cd ../..
     - name: Compile Test
@@ -57,10 +57,10 @@ jobs:
             -DSUNDIALS_ROOT=${PWD}/sundials-6.5.0/instdir \
             -DCMAKE_CXX_STANDARD=17     \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build -j 2
+        cmake --build build -j 4
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-14 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
@@ -75,13 +75,13 @@ jobs:
        CCACHE_COMPRESSLEVEL: 10
        CCACHE_MAXSIZE: 75M
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -110,7 +110,7 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache     \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache       \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache
-        make -j2
+        make -j4
         make install
         cd ../..
     - name: Compile Test
@@ -129,7 +129,7 @@ jobs:
             -DSUNDIALS_ROOT=${PWD}/sundials-6.5.0/instdir \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache  \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache
-        cmake --build build -j 2
+        cmake --build build -j 4
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -143,7 +143,7 @@ jobs:
           PR_NUMBER: ${{ github.event.number }}
         run: |
           echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pr_number
           path: pr_number.txt

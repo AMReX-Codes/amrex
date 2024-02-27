@@ -67,14 +67,14 @@ namespace Reduce::detail {
 
     template <std::size_t I, typename T, typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void for_each_init (T& t)
+    constexpr void for_each_init (T& t)
     {
         P().init(amrex::get<I>(t));
     }
 
     template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void for_each_init (T& t)
+    constexpr void for_each_init (T& t)
     {
         P().init(amrex::get<I>(t));
         for_each_init<I+1,T,P1,Ps...>(t);
@@ -376,11 +376,12 @@ public:
             const int nblocks = par_for_blocks.first[nboxes];
             const int block_0_size = par_for_blocks.first[1];
             const int* dp_nblocks = par_for_blocks.second;
-            const Box* dp_boxes = parforinfo.getBoxes();
+            const BoxIndexer* dp_boxes = parforinfo.getBoxes();
 
             auto const& stream = Gpu::gpuStream();
             auto pdst = reduce_data.devicePtr(stream);
             int nblocks_ec = std::min(nblocks, reduce_data.maxBlocks());
+            AMREX_ASSERT(Long(nblocks_ec)*2 <= Long(std::numeric_limits<int>::max()));
             reduce_data.nBlocks(stream) = nblocks_ec;
             reduce_data.updateMaxStreamIndex(stream);
 
@@ -405,25 +406,19 @@ public:
                     dst = r;
                 }
                 for (int iblock = blockIdx.x; iblock < nblocks; iblock += nblocks_ec) {
-                    int ibox, icell;
+                    int ibox;
+                    std::uint64_t icell;
                     if (dp_nblocks) {
                         ibox = amrex::bisect(dp_nblocks, 0, nboxes, iblock);
-                        icell = (iblock-dp_nblocks[ibox])*AMREX_GPU_MAX_THREADS + threadIdx.x;
+                        icell = std::uint64_t(iblock-dp_nblocks[ibox])*AMREX_GPU_MAX_THREADS + threadIdx.x;
                     } else {
                         ibox = iblock / block_0_size;
-                        icell = (iblock-ibox*block_0_size)*AMREX_GPU_MAX_THREADS + threadIdx.x;
+                        icell = std::uint64_t(iblock-ibox*block_0_size)*AMREX_GPU_MAX_THREADS + threadIdx.x;
                     }
 
-                    Box const& b = dp_boxes[ibox];
-                    int ncells = b.numPts();
-                    if (icell < ncells) {
-                        const auto len = amrex::length(b);
-                        int k =  icell /   (len.x*len.y);
-                        int j = (icell - k*(len.x*len.y)) /   len.x;
-                        int i = (icell - k*(len.x*len.y)) - j*len.x;
-                        AMREX_D_TERM(i += b.smallEnd(0);,
-                                     j += b.smallEnd(1);,
-                                     k += b.smallEnd(2););
+                    BoxIndexer const& indexer = dp_boxes[ibox];
+                    if (icell < indexer.numPts()) {
+                        auto [i, j, k] = indexer(icell);
                         Reduce::detail::mf_call_f<I, F, ReduceTuple, Ps...>
                             (f, ibox, i, j, k, ncomp, r);
                     }
@@ -1274,6 +1269,34 @@ bool AnyOf (Box const& box, P&&pred)
 }
 
 #endif
+
+/**
+ * \brief Return a GpuTuple containing the identity element for each operation in ReduceOps.
+ * For example 0, +inf and -inf for ReduceOpSum, ReduceOpMin and ReduceOpMax respectively.
+ */
+template <typename... Ts, typename... Ps>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts...>
+IdentityTuple (GpuTuple<Ts...>, ReduceOps<Ps...>) noexcept
+{
+    GpuTuple<Ts...> r{};
+    Reduce::detail::for_each_init<0, decltype(r), Ps...>(r);
+    return r;
+}
+
+/**
+ * \brief Return a GpuTuple containing the identity element for each ReduceOp in TypeList.
+ * For example 0, +inf and -inf for ReduceOpSum, ReduceOpMin and ReduceOpMax respectively.
+ */
+template <typename... Ts, typename... Ps>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts...>
+IdentityTuple (GpuTuple<Ts...>, TypeList<Ps...>) noexcept
+{
+    GpuTuple<Ts...> r{};
+    Reduce::detail::for_each_init<0, decltype(r), Ps...>(r);
+    return r;
+}
 
 }
 
