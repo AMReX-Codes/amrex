@@ -29,6 +29,9 @@ with ``TEST=TRUE`` or ``DEBUG=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=D
 One can also control the setting for ``FArrayBox`` using the runtime parameter, ``fab.init_snan``.
 Note for Macs, M1 and M2 chips using Arm64 architecture are not able to trap division by zero.
 
+By default, even AMReX release mode builds add minimal address to line debub information.
+This can be turned off via ``-DAMReX_ADDRLINES=NO``.
+
 One can get more information than the backtrace of the call stack by
 instrumenting the code.  Here is an example.
 You know the line ``Real rho = state(cell,0);`` is causing a segfault.  You

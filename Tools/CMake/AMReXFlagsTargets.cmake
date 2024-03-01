@@ -5,6 +5,7 @@
 #   Flags_CXX                 --> Optional flags for C++ code
 #   Flags_Fortran             --> Optional flags for Fortran code
 #   Flags_FPE                 --> Floating-Point Exception flags for both C++ and Fortran
+#   Flags_ADDRLINES           --> Minimal debug flags that only record address to line number
 #
 # These INTERFACE targets can be added to the AMReX export set.
 #
@@ -60,6 +61,24 @@ else ()
    endforeach ()
 endif ()
 
+
+#
+# Minimal Debug info for address --> line
+#
+add_library(Flags_ADDRLINES INTERFACE)
+add_library(AMReX::Flags_ADDRLINES ALIAS Flags_ADDRLINES)
+
+target_compile_options( Flags_ADDRLINES
+   INTERFACE
+   $<${_cxx_gnu}:-g1>
+   $<${_cxx_intel}:>  # TODO: help wanted
+   $<${_cxx_pgi}:>  # TODO: help wanted
+   $<${_cxx_cray}:>  # TODO: help wanted
+   $<${_cxx_clang}:-gline-tables-only>
+   $<${_cxx_appleclang}:-gline-tables-only>
+   # info for profiling: minimal addition and needed for Intel VTune
+   $<${_cxx_intelllvm}:-gline-tables-only -fdebug-info-for-profiling>
+)
 
 #
 # C++ flags

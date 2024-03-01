@@ -86,6 +86,13 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           $<BUILD_INTERFACE:Flags_FPE>
           )
     endif ()
+
+    if (AMReX_ADDRLINES)
+       target_link_libraries(amrex_${D}d
+          PUBLIC
+          $<BUILD_INTERFACE:Flags_ADDRLINES>
+          )
+    endif ()
 endforeach()
 
 # General configuration
