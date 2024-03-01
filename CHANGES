@@ -1,3 +1,68 @@
+# 24.03
+
+  -- Fix GPU restart for pure SoA particles (#3783)
+
+  -- fix for ref_ratio=1 (#3786)
+
+  -- Update GMRES/MLMG interface (#3779)
+
+  -- Ref ratio 3 (#3781)
+
+  -- Curl Curl solver: 4-color Gauss-Seidel smoother (#3778)
+
+  -- assert wavefront size (#3777)
+
+  -- Curl of Curl solver: Tweak restriction (#3765)
+
+  -- Adjust debug info argument for HIP compiler (#3761)
+
+  -- fixed bug in MLCurlCurL::xdoty() to prevent doing MPI sum twice. (#3774)
+
+  -- Implement portable assumptions with AMREX_ASSUME (#3770)
+     Fix bug in AMREX_ASSUME (#3773)
+
+  -- Pure SoA: `NextID` as `Long` (#3772)
+
+  -- GNU Make: set COMP_VERSION for hipcc and nvcc (#3771)
+
+  -- Make MFParallelFor safer from int overflow (#3768)
+
+  -- getParticleTileData: HostVector must be initialized during resize (#3769)
+
+  -- add AMREX_LIKELY and AMREX_UNLIKELY (#3767)
+
+  -- Only do a htod memcpy in getParticleTileData when necessary (#3760)
+
+  -- Sync GPU stream before getting the time in TinyProfiler (#3763)
+
+  -- Add a logspace-like function in AMReX_Algorithm.H (#3754)
+
+  -- Fix offset in send buffer of single precision particle communication (#3758)
+
+  -- EdgeFluxRegister for MHD (#3633)
+
+  -- Fix a typo in SYCL version of scan (#3757)
+
+  -- Interpolation from node-centered general mapped coordinates to tracers (#3750)
+
+  -- Remove various deprecated stuff not prefixed by amrex or bl (#3713)
+
+  -- GNU Make: Link flags (#3711)
+
+  -- Remove UB from is_aligned (#3751)
+
+  -- Add partitionParticles Function (#3743)
+
+  -- Minor new functions in AMReX_MPMD to provide flexibility for python binding (#3748)
+
+  -- Box::numPts() returns 0 for empty boxes (#3747)
+
+  -- New Linear Solver: Curl of Curl (#3682)
+
+  -- Use long integer in GPU kernels (#3742)
+
+  -- Add `ParticleIDWrapper::make_invalid()` (#3735)
+
 # 24.02
 
   -- Disable m_aos for SoA Particle (#3736)
