@@ -778,6 +778,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     //
                     // Impose max_grid_size (suitably coarsened)
                     //
+                    AMREX_ASSERT(max_grid_size[levf].allGE(ref_ratio[levc]));
                     new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]/ref_ratio[levc]);
 
                     //
