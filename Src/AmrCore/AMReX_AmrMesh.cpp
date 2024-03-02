@@ -764,8 +764,8 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 new_bx.Bcast();  // Broadcast the new BoxList to other processes
 
                 bool odd_ref_ratio = false;
-                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    if (ref_ratio[levc][idim] != 1 && ref_ratio[levc] % 2 != 0) {
+                for (auto const& rr : ref_ratio[levc]) {
+                    if (rr != 1 && (rr%2 != 0)) {
                         odd_ref_ratio = true;
                     }
                 }
