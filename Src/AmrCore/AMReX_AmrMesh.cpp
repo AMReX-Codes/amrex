@@ -763,12 +763,18 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 }
                 new_bx.Bcast();  // Broadcast the new BoxList to other processes
 
-                // This approach imposes max_grid_size after refining.
-                // For ref_ratio = 3 this can create fine grids that do not correctly divide by 3,
-                //     but we leave it here so as not to change the gridding in
-                //     existing ref_ratio = 2 or 4 applications
-                if (ref_ratio[levc] != 2 && ref_ratio[levc] != 4)
+                bool odd_ref_ratio = false;
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (ref_ratio[levc][idim] != 1 && ref_ratio[levc] % 2 != 0) {
+                        odd_ref_ratio = true;
+                    }
+                }
+
+                if (odd_ref_ratio)
                 {
+                    // This approach imposes max_grid_size (suitably scaled) before
+                    //     refining so as to ensure fine grids align with coarse grids
+
                     //
                     // Impose max_grid_size (suitably coarsened)
                     //
@@ -778,10 +784,14 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     // Refine up to levf.
                     //
                     new_grids[levf].refine(ref_ratio[levc]);
+                }
+                else
+                {
+                    // This approach imposes max_grid_size after refining.
+                    // For ref_ratio = 3 this can create fine grids that do not correctly divide by 3,
+                    //     but we leave it here so as not to change the gridding in
+                    //     existing ref_ratio = 2 or 4 applications
 
-                // This approach imposes max_grid_size (suitably scaled) before
-                //     refining so as to ensure fine grids align with coarse grids
-                } else {
                     //
                     // Refine up to levf.
                     //
