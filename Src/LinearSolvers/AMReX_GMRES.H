@@ -87,8 +87,8 @@ public:
     //! Sets restart length. The default is 30.
     void setRestartLength (int rl);
 
-    //! Sets the number of iterations
-    void setNumIters (int niters) { m_maxiter = niters; }
+    //! Sets the max number of iterations
+    void setMaxIters (int niters) { m_maxiter = niters; }
 
     //! Gets the number of iterations.
     [[nodiscard]] int getNumIters () const { return m_its; }
