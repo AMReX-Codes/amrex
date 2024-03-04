@@ -5,6 +5,7 @@
 #ifdef AMREX_USE_MPI
 
 #include <AMReX_FabArray.H>
+//#include <AMReX_ParallelDescriptor.H>
 
 #include <mpi.h>
 
@@ -26,7 +27,8 @@ int MyProgId (); //! Program ID
 class Copier
 {
 public:
-    Copier (BoxArray const& ba, DistributionMapping const& dm);
+    Copier (BoxArray const& ba_org, DistributionMapping const& dm,
+            int nghost = 0);
 
     template <typename FAB>
     void send (FabArray<FAB> const& mf, int icomp, int ncomp) const;
@@ -64,7 +66,7 @@ void Copier::send (FabArray<FAB> const& mf, int icomp, int ncomp) const
             nbytes += cct.sbox.numPts() * ncomp * sizeof(typename FAB::value_type);
         }
 
-        std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
+        std::size_t acd = amrex::ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes); // so that bytes are aligned
 
         // Also need to align the offset properly

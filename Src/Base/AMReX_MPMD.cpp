@@ -139,7 +139,8 @@ int MyProgId ()
     return (myproc == ParallelDescriptor::MyProc()) ? 0 : 1;
 }
 
-Copier::Copier (BoxArray const& ba, DistributionMapping const& dm)
+Copier::Copier (BoxArray const& ba_org, DistributionMapping const& dm,
+        int nghost)
 {
     int rank_offset = myproc - ParallelDescriptor::MyProc();
     int this_root, other_root;
@@ -151,6 +152,10 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm)
         other_root = 0;
     }
 
+    auto ba = ba_org;
+    if (nghost > 0){
+        ba.grow(nghost);
+    }
     Vector<Box> bv = ba.boxList().data();
 
     int this_nboxes = static_cast<int>(ba.size());
