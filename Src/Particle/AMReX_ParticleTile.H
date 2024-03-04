@@ -382,7 +382,7 @@ struct SoAParticle : SoAParticleBase
     {
     }
 
-    static int the_next_id;
+    static Long the_next_id;
 
     //functions to get id and cpu in the SOA data
 
@@ -423,19 +423,19 @@ struct SoAParticle : SoAParticleBase
         return this->m_particle_tile_data.m_rdata[position_index][m_index];
     }
 
-    static int NextID ();
+    static Long NextID ();
 
     /**
     * \brief This version can only be used inside omp critical.
     */
-    static int UnprotectedNextID ();
+    static Long UnprotectedNextID ();
 
     /**
     * \brief Reset on restart.
     *
     * \param nextid
     */
-    static void NextID (int nextid);
+    static void NextID (Long nextid);
 
 private :
 
@@ -446,10 +446,10 @@ private :
 };
 
 //template <int NArrayReal, int NArrayInt> Long ConstSoAParticle<NArrayReal, NArrayInt>::the_next_id = 1;
-template <int NArrayReal, int NArrayInt> int SoAParticle<NArrayReal, NArrayInt>::the_next_id = 1;
+template <int NArrayReal, int NArrayInt> Long SoAParticle<NArrayReal, NArrayInt>::the_next_id = 1;
 
 template <int NArrayReal, int NArrayInt>
-int
+Long
 SoAParticle<NArrayReal, NArrayInt>::NextID ()
 {
     Long next;
@@ -466,14 +466,14 @@ SoAParticle<NArrayReal, NArrayInt>::NextID ()
         amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
     }
 
-    return int(next);
+    return next;
 }
 
 template <int NArrayReal, int NArrayInt>
-int
+Long
 SoAParticle<NArrayReal, NArrayInt>::UnprotectedNextID ()
 {
-    int next = the_next_id++;
+    Long next = the_next_id++;
     if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
     }
@@ -482,7 +482,7 @@ SoAParticle<NArrayReal, NArrayInt>::UnprotectedNextID ()
 
 template <int NArrayReal, int NArrayInt>
 void
-SoAParticle<NArrayReal, NArrayInt>::NextID (int nextid)
+SoAParticle<NArrayReal, NArrayInt>::NextID (Long nextid)
 {
     the_next_id = nextid;
 }
@@ -1113,7 +1113,7 @@ struct ParticleTile
         m_runtime_i_ptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
 #ifdef AMREX_USE_GPU
         bool copy_real = false;
-        m_h_runtime_r_ptrs.resize(m_soa_tile.NumRealComps() - NArrayReal);
+        m_h_runtime_r_ptrs.resize(m_soa_tile.NumRealComps() - NArrayReal, nullptr);
         for (std::size_t i = 0; i < m_h_runtime_r_ptrs.size(); ++i) {
             if (m_h_runtime_r_ptrs[i] != m_soa_tile.GetRealData(i + NArrayReal).dataPtr()) {
                 m_h_runtime_r_ptrs[i] = m_soa_tile.GetRealData(i + NArrayReal).dataPtr();
@@ -1126,7 +1126,7 @@ struct ParticleTile
         }
 
         bool copy_int = false;
-        m_h_runtime_i_ptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
+        m_h_runtime_i_ptrs.resize(m_soa_tile.NumIntComps() - NArrayInt, nullptr);
         for (std::size_t i = 0; i < m_h_runtime_i_ptrs.size(); ++i) {
             if (m_h_runtime_i_ptrs[i] != m_soa_tile.GetIntData(i + NArrayInt).dataPtr()) {
                 m_h_runtime_i_ptrs[i] = m_soa_tile.GetIntData(i + NArrayInt).dataPtr();
@@ -1189,7 +1189,7 @@ struct ParticleTile
         m_runtime_i_cptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
 #ifdef AMREX_USE_GPU
         bool copy_real = false;
-        m_h_runtime_r_cptrs.resize(m_soa_tile.NumRealComps() - NArrayReal);
+        m_h_runtime_r_cptrs.resize(m_soa_tile.NumRealComps() - NArrayReal, nullptr);
         for (std::size_t i = 0; i < m_h_runtime_r_cptrs.size(); ++i) {
             if (m_h_runtime_r_cptrs[i] != m_soa_tile.GetRealData(i + NArrayReal).dataPtr()) {
                 m_h_runtime_r_cptrs[i] = m_soa_tile.GetRealData(i + NArrayReal).dataPtr();
@@ -1202,7 +1202,7 @@ struct ParticleTile
         }
 
         bool copy_int = false;
-        m_h_runtime_i_cptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
+        m_h_runtime_i_cptrs.resize(m_soa_tile.NumIntComps() - NArrayInt, nullptr);
         for (std::size_t i = 0; i < m_h_runtime_i_cptrs.size(); ++i) {
             if (m_h_runtime_i_cptrs[i] != m_soa_tile.GetIntData(i + NArrayInt).dataPtr()) {
                 m_h_runtime_i_cptrs[i] = m_soa_tile.GetIntData(i + NArrayInt).dataPtr();

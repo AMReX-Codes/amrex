@@ -763,13 +763,47 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 }
                 new_bx.Bcast();  // Broadcast the new BoxList to other processes
 
-                //
-                // Refine up to levf.
-                //
-                new_bx.refine(ref_ratio[levc]);
-                BL_ASSERT(new_bx.isDisjoint());
+                bool odd_ref_ratio = false;
+                for (auto const& rr : ref_ratio[levc]) {
+                    if (rr != 1 && (rr%2 != 0)) {
+                        odd_ref_ratio = true;
+                    }
+                }
 
-                new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]);
+                if (odd_ref_ratio)
+                {
+                    // This approach imposes max_grid_size (suitably scaled) before
+                    //     refining so as to ensure fine grids align with coarse grids
+
+                    //
+                    // Impose max_grid_size (suitably coarsened)
+                    //
+                    AMREX_ASSERT(max_grid_size[levf].allGE(ref_ratio[levc]));
+                    new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]/ref_ratio[levc]);
+
+                    //
+                    // Refine up to levf.
+                    //
+                    new_grids[levf].refine(ref_ratio[levc]);
+                }
+                else
+                {
+                    // This approach imposes max_grid_size after refining.
+                    // For ref_ratio = 3 this can create fine grids that do not correctly divide by 3,
+                    //     but we leave it here so as not to change the gridding in
+                    //     existing ref_ratio = 2 or 4 applications
+
+                    //
+                    // Refine up to levf.
+                    //
+                    new_bx.refine(ref_ratio[levc]);
+
+                    //
+                    // Impose max_grid_size
+                    //
+                    new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]);
+                }
+                BL_ASSERT(new_grids[levf].isDisjoint());
             }
         }
     }

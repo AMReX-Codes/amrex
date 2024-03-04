@@ -13,7 +13,7 @@ class GMRESMLMGT
 {
 public:
     using MF = typename M::MFType; // typically MultiFab
-    using RT = typename MF::value_type; // double or float
+    using RT = typename M::RT; // double or float
 
     explicit GMRESMLMGT (M& mlmg);
 
@@ -29,8 +29,8 @@ public:
 
     RT dotProduct (MF const& mf1, MF const& mf2) const;
 
-    //! lhs = value
-    static void setVal (MF& lhs, RT value);
+    //! lhs = 0
+    static void setToZero (MF& lhs);
 
     //! lhs = rhs
     static void assign (MF& lhs, MF const& rhs);
@@ -58,6 +58,8 @@ template <typename M>
 GMRESMLMGT<M>::GMRESMLMGT (M& mlmg)
     : m_mlmg(mlmg), m_linop(mlmg.getLinOp())
 {
+    m_mlmg.setVerbose(0);
+    m_mlmg.setBottomVerbose(0);
     m_mlmg.prepareLinOp();
 }
 
@@ -71,7 +73,7 @@ template <typename M>
 auto GMRESMLMGT<M>::makeVecLHS () const -> MF
 {
     auto mf = m_linop.make(0, 0, IntVect(1));
-    mf.setBndry(0);
+    setBndry(mf, RT(0), 0, nComp(mf));
     return mf;
 }
 
@@ -85,7 +87,7 @@ auto GMRESMLMGT<M>::norm2 (MF const& mf) const -> RT
 template <typename M>
 void GMRESMLMGT<M>::scale (MF& mf, RT scale_factor)
 {
-    mf.mult(scale_factor, 0, mf.nComp());
+    Scale(mf, scale_factor, 0, nComp(mf), 0);
 }
 
 template <typename M>
@@ -95,27 +97,27 @@ auto GMRESMLMGT<M>::dotProduct (MF const& mf1, MF const& mf2) const -> RT
 }
 
 template <typename M>
-void GMRESMLMGT<M>::setVal (MF& lhs, RT value)
+void GMRESMLMGT<M>::setToZero (MF& lhs)
 {
-    lhs.setVal(value);
+    setVal(lhs, RT(0.0));
 }
 
 template <typename M>
 void GMRESMLMGT<M>::assign (MF& lhs, MF const& rhs)
 {
-    MF::Copy(lhs, rhs, 0, 0, lhs.nComp(), IntVect(0));
+    LocalCopy(lhs, rhs, 0, 0, nComp(lhs), IntVect(0));
 }
 
 template <typename M>
 void GMRESMLMGT<M>::increment (MF& lhs, MF const& rhs, RT a)
 {
-    MF::Saxpy(lhs, a, rhs, 0, 0, lhs.nComp(), IntVect(0));
+    Saxpy(lhs, a, rhs, 0, 0, nComp(lhs), IntVect(0));
 }
 
 template <typename M>
 void GMRESMLMGT<M>::linComb (MF& lhs, RT a, MF const& rhs_a, RT b, MF const& rhs_b)
 {
-    MF::LinComb(lhs, a, rhs_a, 0, b, rhs_b, 0, 0, lhs.nComp(), IntVect(0));
+    LinComb(lhs, a, rhs_a, 0, b, rhs_b, 0, 0, nComp(lhs), IntVect(0));
 }
 
 template <typename M>
@@ -130,13 +132,18 @@ template <typename M>
 void GMRESMLMGT<M>::precond (MF& lhs, MF const& rhs) const
 {
     if (m_use_precond) {
-        // for now, let's just do some smoothing
-        lhs.setVal(RT(0.0));
-        for (int m = 0; m < 4; ++m) {
-            m_linop.smooth(0, 0, lhs, rhs, (m==0) ? true : false);
-        }
+        AMREX_ALWAYS_ASSERT(m_linop.NAMRLevels() == 1);
+
+        m_mlmg.prepareMGcycle();
+
+        LocalCopy(m_mlmg.res[0][0], rhs, 0, 0, nComp(rhs), IntVect(0));
+
+        m_mlmg.mgVcycle(0,0);
+
+        LocalCopy(lhs, m_mlmg.cor[0][0], 0, 0, nComp(rhs), IntVect(0));
+
     } else {
-        amrex::Copy(lhs, rhs, 0, 0, lhs.nComp(), IntVect(0));
+        LocalCopy(lhs, rhs, 0, 0, nComp(lhs), IntVect(0));
     }
 }
 

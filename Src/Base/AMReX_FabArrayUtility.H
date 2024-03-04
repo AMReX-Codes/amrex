@@ -1616,6 +1616,13 @@ void setBndry (MF& dst, typename MF::value_type val, int scomp, int ncomp)
     dst.setBndry(val, scomp, ncomp);
 }
 
+//! dst *= val
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void Scale (MF& dst, typename MF::value_type val, int scomp, int ncomp, int nghost)
+{
+    dst.mult(val, scomp, ncomp, nghost);
+}
+
 //! dst = src
 template <class DMF, class SMF,
           std::enable_if_t<IsMultiFabLike_v<DMF> &&
@@ -1648,6 +1655,16 @@ void Xpay (MF& dst, typename MF::value_type a, MF const& src, int scomp, int dco
            int ncomp, IntVect const& nghost)
 {
     MF::Xpay(dst, a, src, scomp, dcomp, ncomp, nghost);
+}
+
+//! dst = a*src_a + b*src_b
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void LinComb (MF& dst,
+              typename MF::value_type a, MF const& src_a, int acomp,
+              typename MF::value_type b, MF const& src_b, int bcomp,
+              int dcomp, int ncomp, IntVect const& nghost)
+{
+    MF::LinComb(dst, a, src_a, acomp, b, src_b, bcomp, dcomp, ncomp, nghost);
 }
 
 //! dst = src w/ MPI communication
@@ -1683,6 +1700,16 @@ void setBndry (Array<MF,N>& dst, typename MF::value_type val, int scomp, int nco
 {
     for (auto& mf : dst) {
         mf.setBndry(val, scomp, ncomp);
+    }
+}
+
+//! dst *= val
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void Scale (Array<MF,N>& dst, typename MF::value_type val, int scomp, int ncomp,
+            int nghost)
+{
+    for (auto& mf : dst) {
+        mf.mult(val, scomp, ncomp, nghost);
     }
 }
 
@@ -1727,6 +1754,18 @@ void Xpay (Array<MF,N>& dst, typename MF::value_type a,
 {
     for (std::size_t i = 0; i < N; ++i) {
         MF::Xpay(dst[i], a, src[i], scomp, dcomp, ncomp, nghost);
+    }
+}
+
+//! dst = a*src_a + b*src_b
+template <class MF, std::size_t N, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void LinComb (Array<MF,N>& dst,
+              typename MF::value_type a, Array<MF,N> const& src_a, int acomp,
+              typename MF::value_type b, Array<MF,N> const& src_b, int bcomp,
+              int dcomp, int ncomp, IntVect const& nghost)
+{
+    for (std::size_t i = 0; i < N; ++i) {
+        MF::LinComb(dst[i], a, src_a[i], acomp, b, src_b[i], bcomp, dcomp, ncomp, nghost);
     }
 }
 
