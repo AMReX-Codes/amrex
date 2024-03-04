@@ -58,7 +58,7 @@ void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const
         for (int n = 0; n < ncomp; ++n) {
             fine(i,j,k,n+scomp) = crse(ic,jc,kc,n);
         }
-        if (ic != domface.smallEnd(0) && ic == domface.bigEnd(0) && rr[0] > 1) {
+        if (ic != domface.smallEnd(0) && ic != domface.bigEnd(0) && rr[0] > 1) {
             Real sfx = Real(1.0);
             for (int n = 0; n < ncomp; ++n) {
                 Real dc = Real(0.5) * (crse(ic+1,jc,kc,n) - crse(ic-1,jc,kc,n));
