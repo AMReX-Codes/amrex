@@ -20,6 +20,7 @@ public:
     };
 
     template <typename T> friend class MLCGSolverT;
+    template <typename M> friend class GMRESMLMGT;
 
     using MFType = MF;
     using FAB = typename MLLinOpT<MF>::FAB;
@@ -169,6 +170,8 @@ public:
     void prepareForNSolve ();
 
     void prepareLinOp ();
+
+    void prepareMGcycle ();
 
     void oneIter (int iter);
 
@@ -866,17 +869,11 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
         {
             IntVect ng = ng_sol;
             if (cf_strategy == CFStrategy::ghostnodes) { ng = IntVect(nghost); }
-            in_raii[alev].define(boxArray       (*a_in[alev]),
-                                 DistributionMap(*a_in[alev]),
-                                 nComp          (*a_in[alev]), ng,
-                                 MFInfo(), *linop.Factory(alev));
+            in_raii[alev] = linop.make(alev, 0, ng);
             LocalCopy(in_raii[alev], *a_in[alev], 0, 0, ncomp, IntVect(nghost));
             in[alev] = &(in_raii[alev]);
         }
-        rh[alev].define(boxArray       (*a_in[alev]),
-                        DistributionMap(*a_in[alev]),
-                        nComp          (*a_in[alev]), nghost, MFInfo(),
-                        *linop.Factory(alev));
+        rh[alev] = linop.make(alev, 0, IntVect(nghost));
         setVal(rh[alev], RT(0.0));
     }
 
@@ -895,11 +892,15 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
             linop.reflux(alev, *out[alev], *in[alev], rh[alev],
                          *out[alev+1], *in[alev+1], rh[alev+1]);
             if (linop.isCellCentered()) {
+                if constexpr (IsMultiFabLike_v<MF>) {
 #ifdef AMREX_USE_EB
-                EB_average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), amrrr[alev]);
+                    EB_average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), amrrr[alev]);
 #else
-                average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), amrrr[alev]);
+                    average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), amrrr[alev]);
 #endif
+                } else {
+                    amrex::Abort("MLMG: TODO average_down for non-MultiFab");
+                }
             }
         }
     }
@@ -912,7 +913,7 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
 
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
         if (cf_strategy == CFStrategy::ghostnodes) { nghost = linop.getNGrow(alev); }
-        out[alev]->negate(nghost);
+        Scale(*out[alev], RT(-1), 0, nComp(*out[alev]), nghost);
     }
 }
 
@@ -1110,6 +1111,61 @@ MLMGT<MF>::prepareLinOp ()
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();
+    }
+}
+
+template <typename MF>
+void
+MLMGT<MF>::prepareMGcycle ()
+{
+    if (res.empty()) {
+        IntVect ng = linop.getNGrowVectRestriction();
+        linop.make(res, ng);
+        linop.make(rescor, ng);
+
+        for (int alev = 0; alev <= finest_amr_lev; ++alev)
+        {
+            const int nmglevs = linop.NMGLevels(alev);
+            for (int mglev = 0; mglev < nmglevs; ++mglev)
+            {
+                setVal(res   [alev][mglev], RT(0.0));
+                setVal(rescor[alev][mglev], RT(0.0));
+            }
+        }
+
+        IntVect ng_sol(1);
+        if (linop.hasHiddenDimension()) { ng_sol[linop.hiddenDirection()] = 0; }
+        ng = ng_sol;
+
+        cor.resize(namrlevs);
+        for (int alev = 0; alev <= finest_amr_lev; ++alev)
+        {
+            const int nmglevs = linop.NMGLevels(alev);
+            cor[alev].resize(nmglevs);
+            for (int mglev = 0; mglev < nmglevs; ++mglev)
+            {
+                cor[alev][mglev] = linop.make(alev, mglev, ng);
+                setVal(cor[alev][mglev], RT(0.0));
+            }
+        }
+
+        cor_hold.resize(std::max(namrlevs-1,1));
+        {
+            const int alev = 0;
+            const int nmglevs = linop.NMGLevels(alev);
+            cor_hold[alev].resize(nmglevs);
+            for (int mglev = 0; mglev < nmglevs-1; ++mglev)
+            {
+                cor_hold[alev][mglev] = linop.make(alev, mglev, ng);
+                setVal(cor_hold[alev][mglev], RT(0.0));
+            }
+        }
+        for (int alev = 1; alev < finest_amr_lev; ++alev)
+        {
+            cor_hold[alev].resize(1);
+            cor_hold[alev][0] = linop.make(alev, 0, ng);
+            setVal(cor_hold[alev][0], RT(0.0));
+        }
     }
 }
 
@@ -1524,7 +1580,9 @@ MLMGT<MF>::actualBottomSolve ()
 
     ParallelContext::pop();
 
-    timer[bottom_time] += amrex::second() - bottom_start_time;
+    if (! timer.empty()) {
+        timer[bottom_time] += amrex::second() - bottom_start_time;
+    }
 }
 
 template <typename MF>
