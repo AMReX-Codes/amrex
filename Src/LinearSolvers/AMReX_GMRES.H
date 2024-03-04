@@ -53,15 +53,15 @@ namespace amrex {
  *             - void precond(V& lhs, V const& rhs)\n
  *               applies preconditioner to rhs. If there is no preconditioner,
  *               this function should do lhs = rhs.
- *             - void setVal(V& v, RT value)\n
- *               v = value.
+ *             - void setToZero(V& v)\n
+ *               v = 0.
  */
 template <typename V, typename M>
 class GMRES
 {
 public:
 
-    using RT = typename V::value_type; // double or float
+    using RT = typename M::RT; // double or float
 
     GMRES ();
 
@@ -86,6 +86,9 @@ public:
 
     //! Sets restart length. The default is 30.
     void setRestartLength (int rl);
+
+    //! Sets the number of iterations
+    void setNumIters (int niters) { m_maxiter = niters; }
 
     //! Gets the number of iterations.
     [[nodiscard]] int getNumIters () const { return m_its; }
@@ -202,9 +205,9 @@ void GMRES<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, in
         m_v_tmp_lhs = std::make_unique<V>(m_linop->makeVecLHS());
     }
     if (m_vv.empty()) {
-        m_vv.resize(m_restrtlen+1);
-        for (auto& v : m_vv) {
-            v = m_linop->makeVecRHS();
+        m_vv.reserve(m_restrtlen+1);
+        for (int i = 0; i < 2; ++i) { // to save space, start with just 2
+            m_vv.emplace_back(m_linop->makeVecRHS());
         }
     }
 
@@ -216,7 +219,7 @@ void GMRES<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, in
     auto rnorm0 = RT(0);
 
     m_linop->assign(m_vv[0], a_rhs);
-    m_linop->setVal(a_sol, RT(0.0));
+    m_linop->setToZero(a_sol);
 
     m_its = 0;
     m_status = -1;
@@ -268,6 +271,10 @@ void GMRES<V,M>::cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0)
         }
 
         if (a_status == 0) { break; }
+
+        while (m_vv.size() < it+2) {
+            m_vv.emplace_back(m_linop->makeVecRHS());
+        }
 
         auto const& vv_it  = m_vv[it  ];
         auto      & vv_it1 = m_vv[it+1];
@@ -384,7 +391,7 @@ void GMRES<V,M>::build_solution (V& a_xx, int const it)
         m_grs[k] = tt / m_hh(k,k);
     }
 
-    m_linop->setVal(*m_v_tmp_rhs, RT(0.0));
+    m_linop->setToZero(*m_v_tmp_rhs);
     for (int ii = 0; ii < it+1; ++ii) {
         m_linop->increment(*m_v_tmp_rhs, m_vv[ii], m_grs[ii]);
     }

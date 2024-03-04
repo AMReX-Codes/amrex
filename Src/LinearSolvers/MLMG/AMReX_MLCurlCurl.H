@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_MLLinOp.H>
+#include <AMReX_MLCurlCurl_K.H>
 
 namespace amrex {
 
@@ -12,8 +13,13 @@ namespace amrex {
  * Here E is an Array of 3 MultiFabs on staggered grid, alpha is a positive
  * scalar, and beta is a non-negative scalar.
  *
- * TODO: If beta is zero, the system could be singular.
- * TODO: Try different restriction & interpolation strategies.
+ * It's the caller's responsibility to make sure rhs has consistent nodal
+ * data. If needed, one could call prepareRHS for this.
+ *
+ * The smoother is based on the 4-color Gauss-Seidel smoother of Li
+ * et. al. 2020.  "An Efficient Preconditioner for 3-D Finite Difference
+ * Modeling of the Electromagnetic Diffusion Process in the Frequency
+ * Domain", IEEE Transactions on Geoscience and Remote Sensing, 58, 500-509.
  */
 class MLCurlCurl
     : public MLLinOpT<Array<MultiFab,3> >
@@ -38,6 +44,12 @@ public:
                  const LPInfo& a_info = LPInfo());
 
     void setScalars (RT a_alpha, RT a_beta) noexcept;
+
+    //! Synchronize RHS on nodal points and set to zero on Dirichlet
+    //! boundaries. If the user can guarantee these requirements on RHS,
+    //! this function does not need to be called. If this is called, it
+    //! should only be called after setDomainBC is called.
+    void prepareRHS (Vector<MF*> const& rhs) const;
 
     [[nodiscard]] std::string name () const override {
         return std::string("curl of curl");
@@ -92,21 +104,20 @@ public:
 
 // public for cuda
 
-    void smooth (int amrlev, int mglev, MF& sol, MultiFab const& rhs,
-                 int redblack) const;
+    void smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs, int color) const;
 
     void compresid (int amrlev, int mglev, MF& resid, MF const& b) const;
 
-    void applyPhysBC (int amrlev, int mglev, MultiFab& mf) const;
+    void applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlStateType type) const;
 
 private:
 
-    void applyBC (int amrlev, int mglev, MF& in) const;
-    void applyBC (int amrlev, int mglev, MultiFab& mf) const;
+    void applyBC (int amrlev, int mglev, MF& in, CurlCurlStateType type) const;
 
     [[nodiscard]] iMultiFab const& getDotMask (int amrlev, int mglev, int idim) const;
 
-    [[nodiscard]] int getDirichlet (int amrlev, int mglev, int idim, int face) const;
+    [[nodiscard]] CurlCurlDirichletInfo getDirichletInfo (int amrlev, int mglev) const;
+    [[nodiscard]] CurlCurlSymmetryInfo getSymmetryInfo (int amrlev, int mglev) const;
 
     RT m_alpha = std::numeric_limits<RT>::lowest();
     RT m_beta  = std::numeric_limits<RT>::lowest();
@@ -118,9 +129,10 @@ private:
          {IntVect(0,1), IntVect(1,0), IntVect(1,1)};
 #endif
 
-    Vector<Vector<Array<std::unique_ptr<iMultiFab>,3>>> m_dirichlet_mask;
     mutable Vector<Vector<Array<std::unique_ptr<iMultiFab>,3>>> m_dotmask;
     static constexpr int m_ncomp = 1;
+    Vector<Vector<std::unique_ptr<Gpu::DeviceScalar
+                                  <LUSolver<AMREX_SPACEDIM*2,RT>>>>> m_lusolver;
 };
 
 }

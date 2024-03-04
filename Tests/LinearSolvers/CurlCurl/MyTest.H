@@ -30,6 +30,9 @@ private:
     bool consolidation = true;
     int max_coarsening_level = 30;
 
+    bool use_gmres = false;
+    bool gmres_use_precond = true;
+
     amrex::Geometry geom;
     amrex::BoxArray grids;
     amrex::DistributionMapping dmap;
@@ -38,8 +41,8 @@ private:
     amrex::Array<amrex::MultiFab,3> exact;
     amrex::Array<amrex::MultiFab,3> rhs;
 
-    amrex::Real alpha_over_dx2 = 1.0;
-    amrex::Real alpha;
+    amrex::Real beta_factor = 1.e-2;
+    amrex::Real alpha = 1.0;
     amrex::Real beta = 1.0;
 };
 

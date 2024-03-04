@@ -1,6 +1,4 @@
-
 #include <AMReX_MLCurlCurl.H>
-#include <AMReX_MLCurlCurl_K.H>
 
 namespace amrex {
 
@@ -24,9 +22,9 @@ void MLCurlCurl::define (const Vector<Geometry>& a_geom,
         m_dotmask[amrlev].resize(this->m_num_mg_levels[amrlev]);
     }
 
-    m_dirichlet_mask.resize(this->m_num_amr_levels);
+    m_lusolver.resize(this->m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
-        m_dirichlet_mask[amrlev].resize(this->m_num_mg_levels[amrlev]);
+        m_lusolver[amrlev].resize(this->m_num_mg_levels[amrlev]);
     }
 }
 
@@ -34,6 +32,62 @@ void MLCurlCurl::setScalars (RT a_alpha, RT a_beta) noexcept
 {
     m_alpha = a_alpha;
     m_beta = a_beta;
+    AMREX_ASSERT(m_beta > RT(0));
+}
+
+void MLCurlCurl::prepareRHS (Vector<MF*> const& rhs) const
+{
+    MFItInfo mfi_info{};
+#ifdef AMREX_USE_GPU
+    Vector<Array4BoxTag<RT>> tags;
+    mfi_info.DisableDeviceSync();
+#endif
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        for (auto& mf : *rhs[amrlev]) {
+            mf.OverrideSync(m_geom[amrlev][0].periodicity());
+
+            auto const idxtype = mf.ixType();
+            Box const domain = amrex::convert(m_geom[amrlev][0].Domain(), idxtype);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(mf,mfi_info); mfi.isValid(); ++mfi) {
+                auto const& vbx = mfi.validbox();
+                auto const& a = mf.array(mfi);
+                for (OrientationIter oit; oit; ++oit) {
+                    Orientation const face = oit();
+                    int const idim = face.coordDir();
+                    bool is_dirichlet = face.isLow()
+                        ? m_lobc[0][idim] == LinOpBCType::Dirichlet
+                        : m_hibc[0][idim] == LinOpBCType::Dirichlet;
+                    if (is_dirichlet && domain[face] == vbx[face] &&
+                        idxtype.nodeCentered(idim))
+                    {
+                        Box b = vbx;
+                        b.setRange(idim, vbx[face], 1);
+#ifdef AMREX_USE_GPU
+                        tags.emplace_back(Array4BoxTag<RT>{a,b});
+#else
+                        amrex::LoopOnCpu(b, [&] (int i, int j, int k)
+                        {
+                            a(i,j,k) = RT(0.0);
+                        });
+#endif
+                    }
+                }
+            }
+        }
+    }
+
+#ifdef AMREX_USE_GPU
+    ParallelFor(tags,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, Array4BoxTag<RT> const& tag) noexcept
+    {
+        tag.dfab(i,j,k) = RT(0.0);
+    });
+#endif
 }
 
 void MLCurlCurl::setLevelBC (int amrlev, const MF* levelbcdata, // TODO
@@ -48,7 +102,9 @@ void MLCurlCurl::restriction (int amrlev, int cmglev, MF& crse, MF& fine) const
     IntVect ratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[cmglev-1];
     AMREX_ALWAYS_ASSERT(ratio == 2);
 
-    applyBC(amrlev, cmglev-1, fine);
+    applyBC(amrlev, cmglev-1, fine, CurlCurlStateType::r);
+
+    auto dinfo = getDirichletInfo(amrlev,cmglev-1);
 
     for (int idim = 0; idim < 3; ++idim) {
         bool need_parallel_copy = !amrex::isMFIterSafe(crse[idim], fine[idim]);
@@ -62,10 +118,9 @@ void MLCurlCurl::restriction (int amrlev, int cmglev, MF& crse, MF& fine) const
 
         auto const& crsema = pcrse->arrays();
         auto const& finema = fine[idim].const_arrays();
-        auto const& dmsk = m_dirichlet_mask[amrlev][cmglev-1][idim]->const_arrays();
         ParallelFor(*pcrse, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
         {
-            mlcurlcurl_restriction(idim,i,j,k,crsema[bno],finema[bno],dmsk[bno]);
+            mlcurlcurl_restriction(idim,i,j,k,crsema[bno],finema[bno],dinfo);
         });
         Gpu::streamSynchronize();
 
@@ -81,6 +136,8 @@ void MLCurlCurl::interpolation (int amrlev, int fmglev, MF& fine,
     IntVect ratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[fmglev];
     AMREX_ALWAYS_ASSERT(ratio == 2);
 
+    auto dinfo = getDirichletInfo(amrlev,fmglev);
+
     for (int idim = 0; idim < 3; ++idim) {
         bool need_parallel_copy = !amrex::isMFIterSafe(crse[idim], fine[idim]);
         MultiFab cfine;
@@ -93,10 +150,9 @@ void MLCurlCurl::interpolation (int amrlev, int fmglev, MF& fine,
         }
         auto const& finema = fine[idim].arrays();
         auto const& crsema = cmf->const_arrays();
-        auto const& dmsk = m_dirichlet_mask[amrlev][fmglev][idim]->const_arrays();
         ParallelFor(fine[idim], [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
         {
-            if (!dmsk[bno](i,j,k)) {
+            if (!dinfo.is_dirichlet_edge(idim,i,j,k)) {
                 mlcurlcurl_interpadd(idim,i,j,k,finema[bno],crsema[bno]);
             }
         });
@@ -108,11 +164,15 @@ void
 MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
                    StateMode /*s_mode*/, const MLMGBndryT<MF>* /*bndry*/) const
 {
-    applyBC(amrlev, mglev, in);
+    applyBC(amrlev, mglev, in, CurlCurlStateType::x);
 
-    auto const& dxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
-    auto const a = m_alpha;
+    auto adxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        adxinv[idim] *= std::sqrt(m_alpha);
+    }
     auto const b = m_beta;
+
+    auto dinfo = getDirichletInfo(amrlev,mglev);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -128,32 +188,29 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
         auto const& xin = in[0].array(mfi);
         auto const& yin = in[1].array(mfi);
         auto const& zin = in[2].array(mfi);
-        auto const& mx = m_dirichlet_mask[amrlev][mglev][0]->const_array(mfi);
-        auto const& my = m_dirichlet_mask[amrlev][mglev][1]->const_array(mfi);
-        auto const& mz = m_dirichlet_mask[amrlev][mglev][2]->const_array(mfi);
         amrex::ParallelFor(xbx, ybx, zbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            if (mx(i,j,k)) {
+            if (dinfo.is_dirichlet_x_edge(i,j,k)) {
                 xout(i,j,k) = Real(0.0);
             } else {
-                mlcurlcurl_adotx_x(i,j,k,xout,xin,yin,zin,a,b,dxinv);
+                mlcurlcurl_adotx_x(i,j,k,xout,xin,yin,zin,b,adxinv);
             }
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            if (my(i,j,k)) {
+            if (dinfo.is_dirichlet_y_edge(i,j,k)) {
                 yout(i,j,k) = Real(0.0);
             } else {
-                mlcurlcurl_adotx_y(i,j,k,yout,xin,yin,zin,a,b,dxinv);
+                mlcurlcurl_adotx_y(i,j,k,yout,xin,yin,zin,b,adxinv);
             }
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            if (mz(i,j,k)) {
+            if (dinfo.is_dirichlet_z_edge(i,j,k)) {
                 zout(i,j,k) = Real(0.0);
             } else {
-                mlcurlcurl_adotx_z(i,j,k,zout,xin,yin,zin,a,b,dxinv);
+                mlcurlcurl_adotx_z(i,j,k,zout,xin,yin,zin,b,adxinv);
             }
         });
     }
@@ -162,84 +219,54 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
 void MLCurlCurl::smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
                          bool skip_fillboundary) const
 {
-    if (!skip_fillboundary) {
-        applyBC(amrlev, mglev, sol);
-    }
+    AMREX_ASSERT(rhs[0].nGrowVect().allGE(IntVect(1)));
 
-    smooth(amrlev, mglev, sol, rhs[0], 0); // Ex red
-    applyBC(amrlev, mglev, sol[0]);
+    applyBC(amrlev, mglev, const_cast<MF&>(rhs), CurlCurlStateType::b);
 
-    smooth(amrlev, mglev, sol, rhs[1], 0); // Ey red
-    applyBC(amrlev, mglev, sol[1]);
-
-    smooth(amrlev, mglev, sol, rhs[2], 0); // Ez red
-    applyBC(amrlev, mglev, sol[2]);
-
-    smooth(amrlev, mglev, sol, rhs[0], 1); // Ex black
-    applyBC(amrlev, mglev, sol[0]);
-
-    smooth(amrlev, mglev, sol, rhs[1], 1); // Ey black
-#if (AMREX_SPACEDIM == 3)
-    applyBC(amrlev, mglev, sol[1]);
-#endif
-
-    smooth(amrlev, mglev, sol, rhs[2], 1); // Ez black
-
-    for (int idim = 0; idim < 3; ++idim) {
-        amrex::OverrideSync(sol[idim], getDotMask(amrlev,mglev,idim),
-                            this->m_geom[amrlev][mglev].periodicity());
+    for (int color = 0; color < 4; ++color) {
+        if (!skip_fillboundary) {
+            applyBC(amrlev, mglev, sol, CurlCurlStateType::x);
+        }
+        skip_fillboundary = false;
+        smooth4(amrlev, mglev, sol, rhs, color);
     }
 }
 
-void MLCurlCurl::smooth (int amrlev, int mglev, MF& sol, MultiFab const& rhs,
-                         int redblack) const
+void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
+                          int color) const
 {
-    auto const& dxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
-    auto const a = m_alpha;
-    auto const b = m_beta;
+    auto const& ex = sol[0].arrays();
+    auto const& ey = sol[1].arrays();
+    auto const& ez = sol[2].arrays();
+    auto const& rhsx = rhs[0].const_arrays();
+    auto const& rhsy = rhs[1].const_arrays();
+    auto const& rhsz = rhs[2].const_arrays();
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#if (AMREX_SPACEDIM == 2)
+    auto b = m_beta;
 #endif
-    for (MFIter mfi(rhs,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        Box const& bx = mfi.tilebox();
-        auto const& rh = rhs.const_array(mfi);
-        if (rhs.ixType() == sol[0].ixType()) {
-            auto const& ex = sol[0].array(mfi);
-            auto const& ey = sol[1].const_array(mfi);
-            auto const& ez = sol[2].const_array(mfi);
-            auto const& mx = m_dirichlet_mask[amrlev][mglev][0]->const_array(mfi);
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                if (!mx(i,j,k)) {
-                    mlcurlcurl_gsrb_x(i,j,k,ex,ey,ez,rh,a,b,dxinv,redblack);
-                }
-            });
-        } else if (rhs.ixType() == sol[1].ixType()) {
-            auto const& ex = sol[0].const_array(mfi);
-            auto const& ey = sol[1].array(mfi);
-            auto const& ez = sol[2].const_array(mfi);
-            auto const& my = m_dirichlet_mask[amrlev][mglev][1]->const_array(mfi);
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                if (!my(i,j,k)) {
-                    mlcurlcurl_gsrb_y(i,j,k,ex,ey,ez,rh,a,b,dxinv,redblack);
-                }
-            });
-        } else {
-            auto const& ex = sol[0].const_array(mfi);
-            auto const& ey = sol[1].const_array(mfi);
-            auto const& ez = sol[2].array(mfi);
-            auto const& mz = m_dirichlet_mask[amrlev][mglev][2]->const_array(mfi);
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                if (!mz(i,j,k)) {
-                    mlcurlcurl_gsrb_z(i,j,k,ex,ey,ez,rh,a,b,dxinv,redblack);
-                }
-            });
-        }
+
+    auto adxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        adxinv[idim] *= std::sqrt(m_alpha);
     }
+
+    auto* plusolver = m_lusolver[amrlev][mglev]->dataPtr();
+
+    auto dinfo = getDirichletInfo(amrlev,mglev);
+    auto sinfo = getSymmetryInfo(amrlev,mglev);
+
+    MultiFab nmf(amrex::convert(rhs[0].boxArray(),IntVect(1)),
+                 rhs[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
+    ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+    {
+        mlcurlcurl_gs4(i,j,k,ex[bno],ey[bno],ez[bno],rhsx[bno],rhsy[bno],rhsz[bno],
+#if (AMREX_SPACEDIM == 2)
+                       b,
+#endif
+                       adxinv,color,*plusolver,dinfo,sinfo);
+    });
+    Gpu::streamSynchronize();
 }
 
 void MLCurlCurl::solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
@@ -262,6 +289,8 @@ void MLCurlCurl::correctionResidual (int amrlev, int mglev, MF& resid, MF& x,
 
 void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
 {
+    auto dinfo = getDirichletInfo(amrlev,mglev);
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -276,13 +305,10 @@ void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
         auto const& bx = b[0].array(mfi);
         auto const& by = b[1].array(mfi);
         auto const& bz = b[2].array(mfi);
-        auto const& mx = m_dirichlet_mask[amrlev][mglev][0]->const_array(mfi);
-        auto const& my = m_dirichlet_mask[amrlev][mglev][1]->const_array(mfi);
-        auto const& mz = m_dirichlet_mask[amrlev][mglev][2]->const_array(mfi);
         amrex::ParallelFor(xbx, ybx, zbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            if (mx(i,j,k)) {
+            if (dinfo.is_dirichlet_x_edge(i,j,k)) {
                 resx(i,j,k) = Real(0.0);
             } else {
                 resx(i,j,k) = bx(i,j,k) - resx(i,j,k);
@@ -290,7 +316,7 @@ void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            if (my(i,j,k)) {
+            if (dinfo.is_dirichlet_y_edge(i,j,k)) {
                 resy(i,j,k) = Real(0.0);
             } else {
                 resy(i,j,k) = by(i,j,k) - resy(i,j,k);
@@ -298,7 +324,7 @@ void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            if (mz(i,j,k)) {
+            if (dinfo.is_dirichlet_z_edge(i,j,k)) {
                 resz(i,j,k) = Real(0.0);
             } else {
                 resz(i,j,k) = bz(i,j,k) - resz(i,j,k);
@@ -309,50 +335,85 @@ void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
 
 void MLCurlCurl::prepareForSolve ()
 {
-    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+    for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
-            for (int idim = 0; idim < 3; ++idim) {
-                m_dirichlet_mask[amrlev][mglev][idim] = std::make_unique<iMultiFab>
-                    (amrex::convert(this->m_grids[amrlev][mglev], m_etype[idim]),
-                     this->m_dmap[amrlev][mglev], 1, 0);
-            }
+            auto const& dxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
+            Real dxx = dxinv[0]*dxinv[0];
+            Real dyy = dxinv[1]*dxinv[1];
+            Real dxy = dxinv[0]*dxinv[1];
+#if (AMREX_SPACEDIM == 2)
+            Array2D<Real,0,3,0,3,Order::C> A
+                {m_alpha*dyy*Real(2.0) + m_beta,
+                 Real(0.0),
+                -m_alpha*dxy,
+                 m_alpha*dxy,
+                 //
+                 Real(0.0),
+                 m_alpha*dyy*Real(2.0) + m_beta,
+                 m_alpha*dxy,
+                -m_alpha*dxy,
+                 //
+                -m_alpha*dxy,
+                 m_alpha*dxy,
+                 m_alpha*dxx*Real(2.0) + m_beta,
+                 Real(0.0),
+                 //
+                 m_alpha*dxy,
+                -m_alpha*dxy,
+                 Real(0.0),
+                 m_alpha*dxx*Real(2.0) + m_beta};
+#else
+            Real dzz = dxinv[2]*dxinv[2];
+            Real dxz = dxinv[0]*dxinv[2];
+            Real dyz = dxinv[1]*dxinv[2];
 
-            int const dirichlet_xlo = getDirichlet(amrlev, mglev, 0, 0);
-            int const dirichlet_xhi = getDirichlet(amrlev, mglev, 0, 1);
-            int const dirichlet_ylo = getDirichlet(amrlev, mglev, 1, 0);
-            int const dirichlet_yhi = getDirichlet(amrlev, mglev, 1, 1);
-            int const dirichlet_zlo = getDirichlet(amrlev, mglev, 2, 0);
-            int const dirichlet_zhi = getDirichlet(amrlev, mglev, 2, 1);
-
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+            Array2D<Real,0,5,0,5,Order::C> A
+                {m_alpha*(dyy+dzz)*Real(2.0) + m_beta,
+                 Real(0.0),
+                -m_alpha*dxy,
+                 m_alpha*dxy,
+                -m_alpha*dxz,
+                 m_alpha*dxz,
+                 //
+                 Real(0.0),
+                 m_alpha*(dyy+dzz)*Real(2.0) + m_beta,
+                 m_alpha*dxy,
+                -m_alpha*dxy,
+                 m_alpha*dxz,
+                -m_alpha*dxz,
+                 //
+                -m_alpha*dxy,
+                 m_alpha*dxy,
+                 m_alpha*(dxx+dzz)*Real(2.0) + m_beta,
+                 Real(0.0),
+                -m_alpha*dyz,
+                 m_alpha*dyz,
+                 //
+                 m_alpha*dxy,
+                -m_alpha*dxy,
+                 Real(0.0),
+                 m_alpha*(dxx+dzz)*Real(2.0) + m_beta,
+                 m_alpha*dyz,
+                -m_alpha*dyz,
+                 //
+                -m_alpha*dxz,
+                 m_alpha*dxz,
+                -m_alpha*dyz,
+                 m_alpha*dyz,
+                 m_alpha*(dxx+dyy)*Real(2.0) + m_beta,
+                 Real(0.0),
+                 //
+                 m_alpha*dxz,
+                -m_alpha*dxz,
+                 m_alpha*dyz,
+                -m_alpha*dyz,
+                 Real(0.0),
+                 m_alpha*(dxx+dyy)*Real(2.0) + m_beta};
 #endif
-            for (MFIter mfi(*m_dirichlet_mask[amrlev][mglev][0],
-                            TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                Box const& xbx = mfi.tilebox(m_etype[0]);
-                Box const& ybx = mfi.tilebox(m_etype[1]);
-                Box const& zbx = mfi.tilebox(m_etype[2]);
-                auto const& mx = m_dirichlet_mask[amrlev][mglev][0]->array(mfi);
-                auto const& my = m_dirichlet_mask[amrlev][mglev][1]->array(mfi);
-                auto const& mz = m_dirichlet_mask[amrlev][mglev][2]->array(mfi);
-                amrex::ParallelFor(xbx, ybx, zbx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    mx(i,j,k) = int(j == dirichlet_ylo || j == dirichlet_yhi ||
-                                    k == dirichlet_zlo || k == dirichlet_zhi);
-                },
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    my(i,j,k) = int(i == dirichlet_xlo || i == dirichlet_xhi ||
-                                    k == dirichlet_zlo || k == dirichlet_zhi);
-                },
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    mz(i,j,k) = (i == dirichlet_xlo || i == dirichlet_xhi ||
-                                 j == dirichlet_ylo || j == dirichlet_yhi);
-                });
-            }
+
+            m_lusolver[amrlev][mglev]
+                = std::make_unique<Gpu::DeviceScalar
+                                   <LUSolver<AMREX_SPACEDIM*2,RT>>>(A);
         }
     }
 }
@@ -446,19 +507,22 @@ MLCurlCurl::makeCoarseAmr (int famrlev, IntVect const& ng) const
     return r;
 }
 
-void MLCurlCurl::applyBC (int amrlev, int mglev, MF& in) const
+void MLCurlCurl::applyBC (int amrlev, int mglev, MF& in, CurlCurlStateType type) const
 {
-    Vector<MultiFab*> mfs{in.data(),&(in[1]),&(in[2])};
-    FillBoundary(mfs, this->m_geom[amrlev][mglev].periodicity());
-    for (auto& mf : in) {
-        applyPhysBC(amrlev, mglev, mf);
+    int nmfs = 3;
+#if (AMREX_SPACEDIM == 2)
+    if (CurlCurlStateType::b == type) {
+        nmfs = 2; // no need to applyBC on Ez
     }
-}
-
-void MLCurlCurl::applyBC (int amrlev, int mglev, MultiFab& mf) const
-{
-    mf.FillBoundary(this->m_geom[amrlev][mglev].periodicity());
-    applyPhysBC(amrlev, mglev, mf);
+#endif
+    Vector<MultiFab*> mfs(nmfs);
+    for (int imf = 0; imf < nmfs; ++imf) {
+        mfs[imf] = in.data() + imf;
+    }
+    FillBoundary(mfs, this->m_geom[amrlev][mglev].periodicity());
+    for (auto* mf : mfs) {
+        applyPhysBC(amrlev, mglev, *mf, type);
+    }
 }
 
 #ifdef AMREX_USE_GPU
@@ -470,12 +534,25 @@ struct MLCurlCurlBCTag {
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box() const noexcept { return bx; }
 };
+
+struct MLCurlCurlEdgeBCTag {
+    Array4<Real> fab;
+    Box bx;
+    Dim3 offset;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box() const noexcept { return bx; }
+};
 #endif
 
-void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf) const
+void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlStateType type) const
 {
+    if (CurlCurlStateType::b == type) { return; }
+
     auto const idxtype = mf.ixType();
     Box const domain = amrex::convert(this->m_geom[amrlev][mglev].Domain(), idxtype);
+    Box const gdomain = amrex::convert
+        (this->m_geom[amrlev][mglev].growPeriodicDomain(1), idxtype);
 
     MFItInfo mfi_info{};
 
@@ -496,10 +573,24 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf) const
             bool is_symmetric = face.isLow()
                 ? m_lobc[0][idim] == LinOpBCType::symmetry
                 : m_hibc[0][idim] == LinOpBCType::symmetry;
-            if (domain[face] == vbx[face] && is_symmetric) {
+            if (domain[face] == vbx[face] && is_symmetric &&
+                ((type == CurlCurlStateType::x) ||
+                 (type == CurlCurlStateType::r && idxtype.nodeCentered(idim)))) // transverse direction only
+            {
                 Box b = vbx;
-                int shift = face.isLow() ? -1 : 1;
-                b.setRange(idim, domain[face] + shift, 1);
+                for (int jdim = 0; jdim < AMREX_SPACEDIM; ++jdim) {
+                    if (jdim == idim) {
+                        int shift = face.isLow() ? -1 : 1;
+                        b.setRange(jdim, domain[face] + shift, 1);
+                    } else {
+                        if (b.smallEnd(jdim) > gdomain.smallEnd(jdim)) {
+                            b.growLo(jdim);
+                        }
+                        if (b.bigEnd(jdim) < gdomain.bigEnd(jdim)) {
+                            b.growHi(jdim);
+                        }
+                    }
+                }
 #ifdef AMREX_USE_GPU
                 tags.emplace_back(MLCurlCurlBCTag{a,b,face});
 #else
@@ -519,6 +610,72 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf) const
         mlcurlcurl_bc_symmetry(i, j, k, tag.face, idxtype, tag.fab);
     });
 #endif
+
+    if (CurlCurlStateType::r == type) { // fix domain edges
+        auto sinfo = getSymmetryInfo(amrlev,mglev);
+
+#ifdef AMREX_USE_GPU
+        Vector<MLCurlCurlEdgeBCTag> tags2;
+#endif
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(mf,mfi_info); mfi.isValid(); ++mfi) {
+            auto const& vbx = mfi.validbox();
+            auto const& a = mf.array(mfi);
+            for (int idim = 0; idim < AMREX_SPACEDIM-1; ++idim) {
+                for (int jdim = idim+1; jdim < AMREX_SPACEDIM; ++jdim) {
+                    if (idxtype.nodeCentered(idim) &&
+                        idxtype.nodeCentered(jdim))
+                    {
+                        for (int iside = 0; iside < 2; ++iside) {
+                            int ii = (iside == 0) ? vbx.smallEnd(idim) : vbx.bigEnd(idim);
+                            for (int jside = 0; jside < 2; ++jside) {
+                                int jj = (jside == 0) ? vbx.smallEnd(jdim) : vbx.bigEnd(jdim);
+                                if (sinfo.is_symmetric(idim,iside,ii) &&
+                                    sinfo.is_symmetric(jdim,jside,jj))
+                                {
+                                    IntVect oiv(0);
+                                    oiv[idim] = (iside == 0) ? 2 : -2;
+                                    oiv[jdim] = (jside == 0) ? 2 : -2;
+                                    Dim3 offset = oiv.dim3();
+
+                                    Box b = vbx;
+                                    if (iside == 0) {
+                                        b.setRange(idim,vbx.smallEnd(idim)-1);
+                                    } else {
+                                        b.setRange(idim,vbx.bigEnd(idim)+1);
+                                    }
+                                    if (jside == 0) {
+                                        b.setRange(jdim,vbx.smallEnd(jdim)-1);
+                                    } else {
+                                        b.setRange(jdim,vbx.bigEnd(jdim)+1);
+                                    }
+#ifdef AMREX_USE_GPU
+                                    tags2.emplace_back(MLCurlCurlEdgeBCTag{a,b,offset});
+#else
+                                    amrex::LoopOnCpu(b, [&] (int i, int j, int k)
+                                    {
+                                        a(i,j,k) = a(i+offset.x,j+offset.y,k+offset.z);
+                                    });
+#endif
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+#ifdef AMREX_USE_GPU
+        ParallelFor(tags2,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, MLCurlCurlEdgeBCTag const& tag)
+        {
+            tag.fab(i,j,k) = tag.fab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z);
+        });
+#endif
+    }
 }
 
 iMultiFab const& MLCurlCurl::getDotMask (int amrlev, int mglev, int idim) const
@@ -532,27 +689,72 @@ iMultiFab const& MLCurlCurl::getDotMask (int amrlev, int mglev, int idim) const
     return *m_dotmask[amrlev][mglev][idim];
 }
 
-int MLCurlCurl::getDirichlet (int amrlev, int mglev, int idim, int face) const
+CurlCurlDirichletInfo MLCurlCurl::getDirichletInfo (int amrlev, int mglev) const
 {
-#if (AMREX_SPACEDIM == 2)
-    if (idim == 2) {
-        return std::numeric_limits<int>::lowest();
-    }
-#endif
 
-    if (face == 0) {
-        if (m_lobc[0][idim] == LinOpBCType::Dirichlet) {
-            return m_geom[amrlev][mglev].Domain().smallEnd(idim);
-        } else {
+    auto helper = [&] (int idim, int face) -> int
+    {
+#if (AMREX_SPACEDIM == 2)
+        if (idim == 2) {
             return std::numeric_limits<int>::lowest();
         }
-    } else {
-        if (m_hibc[0][idim] == LinOpBCType::Dirichlet) {
-            return m_geom[amrlev][mglev].Domain().bigEnd(idim) + 1;
+#endif
+
+        if (face == 0) {
+            if (m_lobc[0][idim] == LinOpBCType::Dirichlet) {
+                return m_geom[amrlev][mglev].Domain().smallEnd(idim);
+            } else {
+                return std::numeric_limits<int>::lowest();
+            }
         } else {
-            return std::numeric_limits<int>::max();
+            if (m_hibc[0][idim] == LinOpBCType::Dirichlet) {
+                return m_geom[amrlev][mglev].Domain().bigEnd(idim) + 1;
+            } else {
+                return std::numeric_limits<int>::max();
+            }
         }
-    }
+    };
+
+    return CurlCurlDirichletInfo{IntVect(AMREX_D_DECL(helper(0,0),
+                                                      helper(1,0),
+                                                      helper(2,0))),
+                                 IntVect(AMREX_D_DECL(helper(0,1),
+                                                      helper(1,1),
+                                                      helper(2,1)))};
+}
+
+CurlCurlSymmetryInfo MLCurlCurl::getSymmetryInfo (int amrlev, int mglev) const
+{
+
+    auto helper = [&] (int idim, int face) -> int
+    {
+#if (AMREX_SPACEDIM == 2)
+        if (idim == 2) {
+            return std::numeric_limits<int>::lowest();
+        }
+#endif
+
+        if (face == 0) {
+            if (m_lobc[0][idim] == LinOpBCType::symmetry) {
+                return m_geom[amrlev][mglev].Domain().smallEnd(idim);
+            } else {
+                return std::numeric_limits<int>::lowest();
+            }
+        } else {
+            if (m_hibc[0][idim] == LinOpBCType::symmetry) {
+                return m_geom[amrlev][mglev].Domain().bigEnd(idim) + 1;
+            } else {
+                return std::numeric_limits<int>::max();
+            }
+        }
+    };
+
+    return CurlCurlSymmetryInfo{IntVect(AMREX_D_DECL(helper(0,0),
+                                                     helper(1,0),
+                                                     helper(2,0))),
+                                IntVect(AMREX_D_DECL(helper(0,1),
+                                                     helper(1,1),
+                                                     helper(2,1)))};
 }
 
 }

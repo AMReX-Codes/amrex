@@ -2,6 +2,8 @@
 
 #include "MyTest.H"
 
+#include <AMReX_GMRES.H>
+#include <AMReX_GMRES_MLMG.H>
 #include <AMReX_MLMG.H>
 #include <AMReX_ParmParse.H>
 
@@ -31,6 +33,7 @@ MyTest::solve ()
                                    LinOpBCType::Periodic)});
 
     mlcc.setScalars(alpha, beta);
+    mlcc.prepareRHS({&rhs});
 
     MLMGT<Array<MultiFab,3> > mlmg(mlcc);
     mlmg.setMaxIter(max_iter);
@@ -39,7 +42,29 @@ MyTest::solve ()
     for (auto& mf : solution) {
         mf.setVal(Real(0));
     }
-    mlmg.solve({&solution}, {&rhs}, Real(1.0e-10), Real(0));
+
+    auto tol_rel = Real(1.0e-10);
+    auto tol_abs = Real(0.0);
+
+    if (use_gmres)
+    {
+        // This system has homogeneous BC unlike
+        // Tests/LinearSolvers/ABecLaplacian_C, so the setup is simpler.
+
+        using V = Array<MultiFab,3>;
+        using M = GMRESMLMGT<MLMGT<V>>;
+        M mat(mlmg);
+        mat.usePrecond(gmres_use_precond);
+
+        GMRES<V,M> gmres;
+        gmres.setVerbose(verbose);
+        gmres.define(mat);
+        gmres.solve(solution, rhs, tol_rel, tol_abs);
+    }
+    else
+    {
+        mlmg.solve({&solution}, {&rhs}, tol_rel, tol_abs);
+    }
 
     amrex::Print() << "  Number of cells: " << n_cell << std::endl;
     auto dvol = AMREX_D_TERM(geom.CellSize(0), *geom.CellSize(1), *geom.CellSize(2));
@@ -70,8 +95,11 @@ MyTest::readParameters ()
     pp.query("consolidation", consolidation);
     pp.query("max_coarsening_level", max_coarsening_level);
 
-    pp.query("alpha_over_dx2", alpha_over_dx2);
-    pp.query("beta", beta);
+    pp.query("use_gmres", use_gmres);
+    pp.query("gmres_use_precond", gmres_use_precond);
+
+    pp.query("beta_factor", beta_factor);
+    pp.query("alpha", alpha);
 }
 
 void
@@ -84,7 +112,7 @@ MyTest::initData ()
     geom.define(domain);
 
     const Real dx = geom.CellSize(0);
-    alpha = alpha_over_dx2 * dx*dx;
+    beta = beta_factor * alpha/(dx*dx);
 
     grids.define(domain);
     grids.maxSize(max_grid_size);
