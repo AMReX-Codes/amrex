@@ -159,6 +159,10 @@ protected:
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
     [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
+
+private:
+
+    bool m_applyRobinBCTermsCoeffs_called = false;
 };
 
 }

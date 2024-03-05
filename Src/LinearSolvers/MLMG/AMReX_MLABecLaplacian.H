@@ -207,6 +207,8 @@ private:
 
     int m_ncomp = 1;
 
+    bool m_applyRobinBCTermsCoeffs_called = false;
+
     void define_ab_coeffs ();
 
     void update_singular_flags ();
@@ -586,7 +588,10 @@ void
 MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
 {
     if (this->hasRobinBC()) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_applyRobinBCTermsCoeffs_called,
+                                         "MLABecLaplacian cannot be reused when there is Robin BC");
         detail::applyRobinBCTermsCoeffs(*this);
+        m_applyRobinBCTermsCoeffs_called = true;
     }
 }
 

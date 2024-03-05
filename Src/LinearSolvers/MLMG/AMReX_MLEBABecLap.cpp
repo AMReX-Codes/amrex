@@ -1291,7 +1291,10 @@ void
 MLEBABecLap::applyRobinBCTermsCoeffs ()
 {
     if (this->hasRobinBC()) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_applyRobinBCTermsCoeffs_called,
+                                         "MLEBABecLap cannot be reused when there is Robin BC");
         detail::applyRobinBCTermsCoeffs(*this);
+        m_applyRobinBCTermsCoeffs_called = true;
     }
 }
 
