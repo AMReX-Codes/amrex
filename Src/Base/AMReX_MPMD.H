@@ -5,7 +5,6 @@
 #ifdef AMREX_USE_MPI
 
 #include <AMReX_FabArray.H>
-//#include <AMReX_ParallelDescriptor.H>
 
 #include <mpi.h>
 
