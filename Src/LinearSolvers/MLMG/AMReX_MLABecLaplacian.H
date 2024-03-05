@@ -195,6 +195,9 @@ public:
     Vector<Vector<MF> > m_a_coeffs;
     Vector<Vector<Array<MF,AMREX_SPACEDIM> > > m_b_coeffs;
 
+    bool m_scalars_set = false;
+    bool m_acoef_set = false;
+
 protected:
 
     bool m_needs_update = true;
@@ -206,8 +209,6 @@ protected:
 private:
 
     int m_ncomp = 1;
-
-    bool m_applyRobinBCTermsCoeffs_called = false;
 
     void define_ab_coeffs ();
 
@@ -310,7 +311,9 @@ MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
         for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
             m_a_coeffs[amrlev][0].setVal(RT(0.0));
         }
+        m_acoef_set = true;
     }
+    m_scalars_set = true;
 }
 
 template <typename MF>
@@ -325,6 +328,7 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
                               "MLABecLaplacian::setACoeffs: alpha is supposed to be single component.");
     m_a_coeffs[amrlev][0].LocalCopy(alpha, 0, 0, 1, IntVect(0));
     m_needs_update = true;
+    m_acoef_set = true;
 }
 
 template <typename MF>
@@ -335,6 +339,7 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, T alpha)
 {
     m_a_coeffs[amrlev][0].setVal(RT(alpha));
     m_needs_update = true;
+    m_acoef_set = true;
 }
 
 
@@ -490,6 +495,14 @@ void applyRobinBCTermsCoeffs (LP& linop)
     }
     const RT bovera = linop.m_b_scalar/linop.m_a_scalar;
 
+    if (!reset_alpha) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(linop.m_scalars_set && linop.m_acoef_set,
+                                         "To reuse solver With Robin BC, one must re-call setScalars (and setACoeffs if the scalar is not zero)");
+    }
+
+    linop.m_scalars_set = false;
+    linop.m_acoef_set = false;
+
     for (int amrlev = 0; amrlev < linop.NAMRLevels(); ++amrlev) {
         const int mglev = 0;
         const Box& domain = linop.Geom(amrlev,mglev).Domain();
@@ -588,10 +601,7 @@ void
 MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
 {
     if (this->hasRobinBC()) {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_applyRobinBCTermsCoeffs_called,
-                                         "MLABecLaplacian cannot be reused when there is Robin BC");
         detail::applyRobinBCTermsCoeffs(*this);
-        m_applyRobinBCTermsCoeffs_called = true;
     }
 }
 
