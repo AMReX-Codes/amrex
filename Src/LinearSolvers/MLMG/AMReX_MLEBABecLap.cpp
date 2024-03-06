@@ -1189,6 +1189,8 @@ MLEBABecLap::update ()
 {
     if (MLCellABecLap::needsUpdate()) { MLCellABecLap::update(); }
 
+    applyRobinBCTermsCoeffs();
+
     averageDownCoeffs();
 
     m_is_singular.clear();

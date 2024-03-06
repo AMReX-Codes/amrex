@@ -409,6 +409,8 @@ MLABecLaplacianT<MF>::update ()
     applyMetricTermsCoeffs();
 #endif
 
+    applyRobinBCTermsCoeffs();
+
     averageDownCoeffs();
 
     update_singular_flags();
