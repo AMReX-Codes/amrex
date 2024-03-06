@@ -252,7 +252,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                 // extra SoA Real components
                 const int real_start_offset = PC::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // pure SoA: skip positions
                 for (int j = real_start_offset; j < PC::SuperParticleType::NReal; j++) {
-                    const int write_comp_index = PC::NStructReal+j-real_start_offset;
+                    const int write_comp_index = j-real_start_offset;
                     if (write_real_comp_d_ptr[write_comp_index]) {
                         rdata_d_ptr[rout_index] = p.rdata(j);
                         rout_index++;
