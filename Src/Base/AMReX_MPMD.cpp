@@ -154,7 +154,10 @@ Copier::Copier (BoxArray const& ba_org, DistributionMapping const& dm,
 
     auto ba = ba_org;
     if (nghost > 0){
+        m_nghost = nghost;
         ba.grow(nghost);
+    }else{
+        m_nghost = 0;
     }
     Vector<Box> bv = ba.boxList().data();
 
@@ -248,6 +251,10 @@ Copier::Copier (BoxArray const& ba_org, DistributionMapping const& dm,
     for (auto& kv : m_RcvTags) {
         std::sort(kv.second.begin(), kv.second.end());
     }
+}
+
+int Copier::get_nghost(){
+    return m_nghost;
 }
 
 }

@@ -35,9 +35,12 @@ public:
     template <typename FAB>
     void recv (FabArray<FAB>& mf, int icomp, int ncomp) const;
 
+    int get_nghost ();
+
 private:
     std::map<int,FabArrayBase::CopyComTagsContainer> m_SndTags;
     std::map<int,FabArrayBase::CopyComTagsContainer> m_RcvTags;
+    int m_nghost;
 };
 
 template <typename FAB>
@@ -177,6 +180,7 @@ void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
 }
 
 }
+
 
 #endif
 #endif
