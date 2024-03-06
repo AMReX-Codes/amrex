@@ -183,7 +183,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     idata.resize(np*iChunkSize);
 
     int num_output_real = 0;
-    for (int i = 0; i < pc.NumRealComps() + PC::NStructReal; ++i) {
+    for (int i = 0; i < (int) write_real_comp.size(); ++i) {
         if (write_real_comp[i]) { ++num_output_real; }
     }
 
@@ -249,15 +249,18 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                     }
                 }
 
-                for (int j = 0; j < PC::SuperParticleType::NReal; j++) {
-                    if (write_real_comp_d_ptr[j]) {
+                // extra SoA Real components
+                const int real_start_offset = PC::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // pure SoA: skip positions
+                for (int j = real_start_offset; j < PC::SuperParticleType::NReal; j++) {
+                    const int write_comp_index = j-real_start_offset;
+                    if (write_real_comp_d_ptr[write_comp_index]) {
                         rdata_d_ptr[rout_index] = p.rdata(j);
                         rout_index++;
                     }
                 }
 
                 for (int j = 0; j < ptd.m_num_runtime_real; j++) {
-                    if (write_real_comp_d_ptr[PC::SuperParticleType::NReal + j]) {
+                    if (write_real_comp_d_ptr[PC::SuperParticleType::NReal+j-real_start_offset]) {
                         rdata_d_ptr[rout_index] = ptd.m_runtime_rdata[j][pindex];
                         rout_index++;
                     }
@@ -336,13 +339,25 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                     }
                 }
                 else {
-                    amrex::ignore_unused(is_checkpoint);
-                    // Int: id, cpu
                     uint64_t idcpu = soa.GetIdCPUData()[pindex];
-                    *iptr = (int) ParticleIDWrapper(idcpu);
-                    iptr += 1;
-                    *iptr = (int) ParticleCPUWrapper(idcpu);
-                    iptr += 1;
+                    if (is_checkpoint) {
+                        std::int32_t  xi, yi;
+                        std::uint32_t xu, yu;
+                        xu = (std::uint32_t)((idcpu & 0xFFFFFFFF00000000LL) >> 32);
+                        yu = (std::uint32_t)( idcpu & 0xFFFFFFFFLL);
+                        std::memcpy(&xi, &xu, sizeof(xu));
+                        std::memcpy(&yi, &yu, sizeof(yu));
+                        *iptr = xi;
+                        iptr += 1;
+                        *iptr = yi;
+                        iptr += 1;
+                    } else {
+                        // Int: id, cpu
+                        *iptr = (int) ParticleIDWrapper(idcpu);
+                        iptr += 1;
+                        *iptr = (int) ParticleCPUWrapper(idcpu);
+                        iptr += 1;
+                    }
 
                     // Real: position
                     for (int j = 0; j < AMREX_SPACEDIM; j++) { rptr[j] = soa.GetRealData(j)[pindex]; }
@@ -361,8 +376,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
                 // extra SoA Real components
                 const int real_start_offset = PC::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // pure SoA: skip positions
                 for (int j = real_start_offset; j < pc.NumRealComps(); j++) {
-                    const int write_comp_offset = PC::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0; // pure SoA: skip positions
-                    const int write_comp_index = PC::NStructReal+j-write_comp_offset;
+                    const int write_comp_index = PC::NStructReal+j-real_start_offset;
                     if (write_real_comp[write_comp_index]) {
                         *rptr = (ParticleReal) soa.GetRealData(j)[pindex];
                         ++rptr;
@@ -1032,12 +1046,25 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                             }
                         }
                         else {
-                            // Ints: id, cpu
                             uint64_t idcpu = soa.GetIdCPUData()[pindex];
-                            *iptr = (int) ParticleIDWrapper(idcpu);
-                            iptr += 1;
-                            *iptr = (int) ParticleCPUWrapper(idcpu);
-                            iptr += 1;
+                            if (is_checkpoint) {
+                                std::int32_t  xi, yi;
+                                std::uint32_t xu, yu;
+                                xu = (std::uint32_t)((idcpu & 0xFFFFFFFF00000000LL) >> 32);
+                                yu = (std::uint32_t)( idcpu & 0xFFFFFFFFLL);
+                                std::memcpy(&xi, &xu, sizeof(xu));
+                                std::memcpy(&yi, &yu, sizeof(yu));
+                                *iptr = xi;
+                                iptr += 1;
+                                *iptr = yi;
+                                iptr += 1;
+                            } else {
+                                // Int: id, cpu
+                                *iptr = (int) ParticleIDWrapper(idcpu);
+                                iptr += 1;
+                                *iptr = (int) ParticleCPUWrapper(idcpu);
+                                iptr += 1;
+                            }
                         }
 
                         // extra SoA Ints
