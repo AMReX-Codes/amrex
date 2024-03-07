@@ -97,7 +97,7 @@ private:
     GM m_gmres;
     MG& m_mlmg;
     MLLinOpT<MF>& m_linop;
-    bool m_use_precond = false;
+    bool m_use_precond = true;
     bool m_prop_zero = false;
 };
 
@@ -109,7 +109,7 @@ GMRESMLMGT<MF>::GMRESMLMGT (MG& mlmg)
                                      "Only support single level solve");
     m_mlmg.setVerbose(0);
     m_mlmg.setBottomVerbose(0);
-    m_mlmg.prepareLinOp();
+    m_mlmg.prepareForGMRES();
     m_gmres.define(*this);
 }
 
@@ -199,12 +199,16 @@ template <typename MF>
 void GMRESMLMGT<MF>::solve (MF& a_sol, MF const& a_rhs, RT a_tol_rel, RT a_tol_abs)
 {
     if (m_prop_zero) {
-        m_gmres.solve(a_sol, a_rhs, a_tol_rel, a_tol_abs);
+        auto rhs = makeVecRHS();
+        assign(rhs, a_rhs);
+        m_linop.setDirichletNodesToZero(0,0,rhs);
+        m_gmres.solve(a_sol, rhs, a_tol_rel, a_tol_abs);
     } else {
         auto res = makeVecRHS();
         m_mlmg.apply({&res}, {&a_sol}); // res = L(sol)
         increment(res, a_rhs, RT(-1)); // res = L(sol) - rhs
         auto cor = makeVecLHS();
+        m_linop.setDirichletNodesToZero(0,0,res);
         m_gmres.solve(cor, res, a_tol_rel, a_tol_abs); // L(cor) = res
         increment(a_sol, cor, RT(-1)); // sol = sol - cor
     }

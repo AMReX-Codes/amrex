@@ -173,6 +173,8 @@ public:
 
     void prepareMGcycle ();
 
+    void prepareForGMRES ();
+
     void oneIter (int iter);
 
     void miniCycle (int amrlev);
@@ -1112,6 +1114,14 @@ MLMGT<MF>::prepareLinOp ()
     } else if (linop.needsUpdate()) {
         linop.update();
     }
+}
+
+template <typename MF>
+void
+MLMGT<MF>::prepareForGMRES ()
+{
+    prepareLinOp();
+    linop.prepareForGMRES();
 }
 
 template <typename MF>

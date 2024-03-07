@@ -45,11 +45,11 @@ public:
 
     void setScalars (RT a_alpha, RT a_beta) noexcept;
 
-    //! Synchronize RHS on nodal points and set to zero on Dirichlet
-    //! boundaries. If the user can guarantee these requirements on RHS,
-    //! this function does not need to be called. If this is called, it
-    //! should only be called after setDomainBC is called.
+    //! Synchronize RHS on nodal points. If the user can guarantee it, this
+    //! function does not need to be called.
     void prepareRHS (Vector<MF*> const& rhs) const;
+
+    void setDirichletNodesToZero (int amrlev, int mglev, MF& a_mf) const override;
 
     [[nodiscard]] std::string name () const override {
         return std::string("curl of curl");
