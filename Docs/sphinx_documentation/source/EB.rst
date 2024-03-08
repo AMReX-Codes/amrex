@@ -386,6 +386,9 @@ testing cell types and getting neighbor information. For example
         end do
     end do
 
+
+.. _sec:EB:redistribution:
+
 Small Cell Problem and Redistribution
 =====================================
 
