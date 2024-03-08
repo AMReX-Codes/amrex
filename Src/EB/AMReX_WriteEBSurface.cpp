@@ -24,7 +24,7 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
 
         const auto & sfab    = static_cast<EBFArrayBox const &>(mf_ba[mfi]);
         const auto & my_flag = sfab.getEBCellFlagFab();
-        auto my_flag_ptr = &my_flag;
+        const auto * my_flag_ptr = &my_flag;
 
         const Box & bx = mfi.validbox();
 
@@ -95,7 +95,7 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
 
         const auto & sfab    = static_cast<EBFArrayBox const &>(mf_ba[mfi]);
         const auto & my_flag = sfab.getEBCellFlagFab();
-        auto my_flag_ptr = &my_flag;
+        const auto * my_flag_ptr = &my_flag;
 
         const Box & bx = mfi.validbox();
 
