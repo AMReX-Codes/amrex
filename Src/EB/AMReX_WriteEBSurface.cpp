@@ -45,7 +45,7 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
             host_flag = std::make_unique<EBCellFlagFab>(my_flag.box(), my_flag.nComp(),
                                                   The_Pinned_Arena());
             Gpu::dtoh_memcpy_async(host_flag->dataPtr(), my_flag.dataPtr(),
-                                   my_flag.size()*sizeof(Real));
+                                   host_flag.nBytes());
             Gpu::streamSynchronize();
             my_flag_ptr = host_flag.get();
         }
