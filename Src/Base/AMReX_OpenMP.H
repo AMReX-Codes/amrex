@@ -5,7 +5,6 @@
 #ifdef AMREX_USE_OMP
 #include <AMReX_Extension.H>
 #include <omp.h>
-#include <array>
 
 namespace amrex::OpenMP {
 
@@ -19,7 +18,7 @@ namespace amrex::OpenMP {
     void Finalize ();
 
     static constexpr int nlocks = 128;
-    extern AMREX_EXPORT std::array<omp_lock_t,nlocks> omp_locks;
+    extern AMREX_EXPORT omp_lock_t omp_locks[nlocks];
 }
 
 #else // AMREX_USE_OMP
