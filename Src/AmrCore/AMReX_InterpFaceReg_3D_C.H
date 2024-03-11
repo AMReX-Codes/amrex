@@ -6,7 +6,7 @@ namespace amrex {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const& fine, int scomp,
                       Array4<Real const> const& crse, Array4<Real> const& slope, int ncomp,
-                      Box const& domface, int idim)
+                      Box const& per_grown_domain, int idim)
 {
     int ic = amrex::coarsen(i,rr[0]);
     int jc = amrex::coarsen(j,rr[1]);
@@ -15,7 +15,8 @@ void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const
         for (int n = 0; n < ncomp; ++n) {
             fine(i,j,k,n+scomp) = crse(ic,jc,kc,n);
         }
-        if (jc != domface.smallEnd(1) && jc != domface.bigEnd(1) && rr[1] > 1) {
+#if 0
+        if (jc != per_grown_domain.smallEnd(1) && jc != per_grown_domain.bigEnd(1) && rr[1] > 1) {
             Real sfy = Real(1.0);
             for (int n = 0; n < ncomp; ++n) {
                 Real dc = Real(0.5) * (crse(ic,jc+1,kc,n) - crse(ic,jc-1,kc,n));
@@ -34,8 +35,7 @@ void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const
                 fine(i,j,k,n+scomp) += yoff * slope(i,j,k,n) * sfy;
             }
         }
-
-        if (kc != domface.smallEnd(2) && kc != domface.bigEnd(2) && rr[2] > 1) {
+        if (kc != per_grown_domain.smallEnd(2) && kc != per_grown_domain.bigEnd(2) && rr[2] > 1) {
             Real sfz = Real(1.0);
             for (int n = 0; n < ncomp; ++n) {
                 Real dc = Real(0.5) * (crse(ic,jc,kc+1,n) - crse(ic,jc,kc-1,n));
@@ -54,11 +54,13 @@ void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const
                 fine(i,j,k,n+scomp) += zoff * slope(i,j,k,n) * sfz;
             }
         }
+#endif
     } else if (idim == 1) {
         for (int n = 0; n < ncomp; ++n) {
             fine(i,j,k,n+scomp) = crse(ic,jc,kc,n);
         }
-        if (ic != domface.smallEnd(0) && ic != domface.bigEnd(0) && rr[0] > 1) {
+#if 0
+        if (ic != per_grown_domain.smallEnd(0) && ic != per_grown_domain.bigEnd(0) && rr[0] > 1) {
             Real sfx = Real(1.0);
             for (int n = 0; n < ncomp; ++n) {
                 Real dc = Real(0.5) * (crse(ic+1,jc,kc,n) - crse(ic-1,jc,kc,n));
@@ -78,7 +80,7 @@ void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const
             }
         }
 
-        if (kc != domface.smallEnd(2) && kc != domface.bigEnd(2) && rr[2] > 1) {
+        if (kc != per_grown_domain.smallEnd(2) && kc != per_grown_domain.bigEnd(2) && rr[2] > 1) {
             Real sfz = Real(1.0);
             for (int n = 0; n < ncomp; ++n) {
                 Real dc = Real(0.5) * (crse(ic,jc,kc+1,n) - crse(ic,jc,kc-1,n));
@@ -97,11 +99,13 @@ void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const
                 fine(i,j,k,n+scomp) += zoff * slope(i,j,k,n) * sfz;
             }
         }
+#endif
     } else {
         for (int n = 0; n < ncomp; ++n) {
             fine(i,j,k,n+scomp) = crse(ic,jc,kc,n);
         }
-        if (ic != domface.smallEnd(0) && ic != domface.bigEnd(0) && rr[0] > 1) {
+#if 0
+        if (ic != per_grown_domain.smallEnd(0) && ic != per_grown_domain.bigEnd(0) && rr[0] > 1) {
             Real sfx = Real(1.0);
             for (int n = 0; n < ncomp; ++n) {
                 Real dc = Real(0.5) * (crse(ic+1,jc,kc,n) - crse(ic-1,jc,kc,n));
@@ -121,7 +125,7 @@ void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const
             }
         }
 
-        if (jc != domface.smallEnd(1) && jc != domface.bigEnd(1) && rr[1] > 1) {
+        if (jc != per_grown_domain.smallEnd(1) && jc != per_grown_domain.bigEnd(1) && rr[1] > 1) {
             Real sfy = Real(1.0);
             for (int n = 0; n < ncomp; ++n) {
                 Real dc = Real(0.5) * (crse(ic,jc+1,kc,n) - crse(ic,jc-1,kc,n));
@@ -140,6 +144,7 @@ void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const
                 fine(i,j,k,n+scomp) += yoff * slope(i,j,k,n) * sfy;
             }
         }
+#endif
     }
 }
 

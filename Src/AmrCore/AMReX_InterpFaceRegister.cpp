@@ -20,6 +20,14 @@ void InterpFaceRegister::define (BoxArray const& fba, DistributionMapping const&
 
     m_crse_geom = amrex::coarsen(m_fine_geom, m_ref_ratio);
 
+    // We don't need to worry about face-based domain because this is only used in the tangential interpolation
+    Box per_grown_domain = m_crse_geom.Domain();
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {
+        if (m_crse_geom.isPeriodic(dim)) {
+            per_grown_domain.grow(dim,1);
+        }
+    }
+
     constexpr int crse_fine_face = 1;
     constexpr int fine_fine_face = 0;
     // First, set the face mask to 1 (i.e., coarse/fine boundary),
@@ -91,7 +99,7 @@ namespace {
         Array4<Real> slope;
         Array4<Real const> crse;
         Array4<int const> mask;
-        Box domface;
+        Box per_grown_domain;
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         Box box() const noexcept { return Box(mask); }
     };
@@ -151,7 +159,7 @@ InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOL
             {
                 if (tag.mask(i,j,k)) {
                     interp_face_reg(AMREX_D_DECL(i,j,k), rr, tag.fine, scomp, tag.crse,
-                                    tag.slope, ncomp, tag.domface, idim);
+                                    tag.slope, ncomp, tag.per_grown_domain, idim);
                 }
             });
         } else
