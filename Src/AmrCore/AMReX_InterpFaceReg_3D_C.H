@@ -15,7 +15,6 @@ void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const
         for (int n = 0; n < ncomp; ++n) {
             fine(i,j,k,n+scomp) = crse(ic,jc,kc,n);
         }
-#if 0
         if (jc != per_grown_domain.smallEnd(1) && jc != per_grown_domain.bigEnd(1) && rr[1] > 1) {
             Real sfy = Real(1.0);
             for (int n = 0; n < ncomp; ++n) {
@@ -54,12 +53,10 @@ void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const
                 fine(i,j,k,n+scomp) += zoff * slope(i,j,k,n) * sfz;
             }
         }
-#endif
     } else if (idim == 1) {
         for (int n = 0; n < ncomp; ++n) {
             fine(i,j,k,n+scomp) = crse(ic,jc,kc,n);
         }
-#if 0
         if (ic != per_grown_domain.smallEnd(0) && ic != per_grown_domain.bigEnd(0) && rr[0] > 1) {
             Real sfx = Real(1.0);
             for (int n = 0; n < ncomp; ++n) {
@@ -99,12 +96,10 @@ void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const
                 fine(i,j,k,n+scomp) += zoff * slope(i,j,k,n) * sfz;
             }
         }
-#endif
     } else {
         for (int n = 0; n < ncomp; ++n) {
             fine(i,j,k,n+scomp) = crse(ic,jc,kc,n);
         }
-#if 0
         if (ic != per_grown_domain.smallEnd(0) && ic != per_grown_domain.bigEnd(0) && rr[0] > 1) {
             Real sfx = Real(1.0);
             for (int n = 0; n < ncomp; ++n) {
@@ -144,7 +139,6 @@ void interp_face_reg (int i, int j, int k, IntVect const& rr, Array4<Real> const
                 fine(i,j,k,n+scomp) += yoff * slope(i,j,k,n) * sfy;
             }
         }
-#endif
     }
 }
 

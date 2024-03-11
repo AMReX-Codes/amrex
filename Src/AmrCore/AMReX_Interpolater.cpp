@@ -422,7 +422,7 @@ FaceConservativeLinear::CoarseBox (const Box& fine, const IntVect& ratio)
 {
     IntVect ng(1);
     for (int i = 0; i < AMREX_SPACEDIM; i++) {
-        if (fine.type(i) == IndexType::NODE or ratio[i] == 1) {
+        if ( (fine.type(i) == IndexType::NODE) || (ratio[i] == 1) ) {
             ng[i] = 0;
         }
     }
@@ -451,8 +451,8 @@ FaceConservativeLinear::interp (const FArrayBox&     crse,
                                 const Geometry&      crse_geom,
                                 const Geometry&      fine_geom,
                                 Vector<BCRec> const& bcr,
-                                int                  actual_comp,
-                                int                  actual_state,
+                                int                  /*actual_comp*/,
+                                int                  /*actual_state*/,
                                 RunOn                runon)
 {
     //
