@@ -410,7 +410,6 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
               });
 }
 
-#if (AMREX_SPACEDIM > 1)
 Box
 FaceConservativeLinear::CoarseBox (const Box& fine, int ratio)
 {
@@ -712,7 +711,6 @@ void FaceConservativeLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const
                   });
               });
 }
-#endif  // AMREX_SPACEDIM > 1
 
 Box
 CellBilinear::CoarseBox (const Box& fine, int ratio)
