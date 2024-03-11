@@ -35,7 +35,8 @@ MyTest::solve ()
     mlcc.setScalars(alpha, beta);
     mlcc.prepareRHS({&rhs});
 
-    MLMGT<Array<MultiFab,3> > mlmg(mlcc);
+    using V = Array<MultiFab,3>;
+    MLMGT<V> mlmg(mlcc);
     mlmg.setMaxIter(max_iter);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
@@ -48,18 +49,15 @@ MyTest::solve ()
 
     if (use_gmres)
     {
+        GMRESMLMGT<V> gmsolver(mlmg);
+        gmsolver.usePrecond(gmres_use_precond);
+
         // This system has homogeneous BC unlike
         // Tests/LinearSolvers/ABecLaplacian_C, so the setup is simpler.
+        gmsolver.setPropertyOfZero(true);
 
-        using V = Array<MultiFab,3>;
-        using M = GMRESMLMGT<MLMGT<V>>;
-        M mat(mlmg);
-        mat.usePrecond(gmres_use_precond);
-
-        GMRES<V,M> gmres;
-        gmres.setVerbose(verbose);
-        gmres.define(mat);
-        gmres.solve(solution, rhs, tol_rel, tol_abs);
+        gmsolver.setVerbose(verbose);
+        gmsolver.solve(solution, rhs, tol_rel, tol_abs);
     }
     else
     {

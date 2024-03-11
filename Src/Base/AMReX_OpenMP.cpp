@@ -135,7 +135,7 @@ namespace amrex
 #ifdef AMREX_USE_OMP
 namespace amrex::OpenMP
 {
-    std::array<omp_lock_t,nlocks> omp_locks;
+    omp_lock_t omp_locks[nlocks];
 
     namespace {
         unsigned int initialized = 0;

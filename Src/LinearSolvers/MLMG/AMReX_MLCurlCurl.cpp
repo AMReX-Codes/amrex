@@ -37,45 +37,51 @@ void MLCurlCurl::setScalars (RT a_alpha, RT a_beta) noexcept
 
 void MLCurlCurl::prepareRHS (Vector<MF*> const& rhs) const
 {
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        for (auto& mf : *rhs[amrlev]) {
+            mf.OverrideSync(m_geom[amrlev][0].periodicity());
+        }
+    }
+}
+
+void MLCurlCurl::setDirichletNodesToZero (int amrlev, int mglev, MF& a_mf) const
+{
     MFItInfo mfi_info{};
 #ifdef AMREX_USE_GPU
     Vector<Array4BoxTag<RT>> tags;
     mfi_info.DisableDeviceSync();
 #endif
 
-    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
-        for (auto& mf : *rhs[amrlev]) {
-            mf.OverrideSync(m_geom[amrlev][0].periodicity());
-
-            auto const idxtype = mf.ixType();
-            Box const domain = amrex::convert(m_geom[amrlev][0].Domain(), idxtype);
+    for (auto& mf : a_mf)
+    {
+        auto const idxtype = mf.ixType();
+        Box const domain = amrex::convert(m_geom[amrlev][mglev].Domain(), idxtype);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(mf,mfi_info); mfi.isValid(); ++mfi) {
-                auto const& vbx = mfi.validbox();
-                auto const& a = mf.array(mfi);
-                for (OrientationIter oit; oit; ++oit) {
-                    Orientation const face = oit();
-                    int const idim = face.coordDir();
-                    bool is_dirichlet = face.isLow()
-                        ? m_lobc[0][idim] == LinOpBCType::Dirichlet
-                        : m_hibc[0][idim] == LinOpBCType::Dirichlet;
-                    if (is_dirichlet && domain[face] == vbx[face] &&
-                        idxtype.nodeCentered(idim))
-                    {
-                        Box b = vbx;
-                        b.setRange(idim, vbx[face], 1);
+        for (MFIter mfi(mf,mfi_info); mfi.isValid(); ++mfi) {
+            auto const& vbx = mfi.validbox();
+            auto const& a = mf.array(mfi);
+            for (OrientationIter oit; oit; ++oit) {
+                Orientation const face = oit();
+                int const idim = face.coordDir();
+                bool is_dirichlet = face.isLow()
+                    ? m_lobc[0][idim] == LinOpBCType::Dirichlet
+                    : m_hibc[0][idim] == LinOpBCType::Dirichlet;
+                if (is_dirichlet && domain[face] == vbx[face] &&
+                    idxtype.nodeCentered(idim))
+                {
+                    Box b = vbx;
+                    b.setRange(idim, vbx[face], 1);
 #ifdef AMREX_USE_GPU
-                        tags.emplace_back(Array4BoxTag<RT>{a,b});
+                    tags.emplace_back(Array4BoxTag<RT>{a,b});
 #else
-                        amrex::LoopOnCpu(b, [&] (int i, int j, int k)
-                        {
-                            a(i,j,k) = RT(0.0);
-                        });
+                    amrex::LoopOnCpu(b, [&] (int i, int j, int k)
+                    {
+                        a(i,j,k) = RT(0.0);
+                    });
 #endif
-                    }
                 }
             }
         }
