@@ -110,7 +110,6 @@ face_cons_linear_face_interp (int i, int j, int k, int n, Array4<T> const& fine,
         // Check solve mask to ensure we don't overwrite valid fine data.
         if (!mask || mask(ci, cj, ck, n)) {
             fine(i, j, k, n) = crse(ci, cj, ck, n);
-#if 0
 #if (AMREX_SPACEDIM >= 2)
             if (cj != per_grown_domain.smallEnd(1) && cj != per_grown_domain.bigEnd(1) && ratio[1] > 1) {
                 Real sfy = Real(1.0);
@@ -127,7 +126,6 @@ face_cons_linear_face_interp (int i, int j, int k, int n, Array4<T> const& fine,
                 Real yoff = (static_cast<Real>(j - cj*ratio[1]) + Real(0.5)) / Real(ratio[1]) - Real(0.5);
                 fine(i,j,k,n) += yoff * slope * sfy;
             } // jc
-#endif
 #if (AMREX_SPACEDIM == 3)
             if (ck != per_grown_domain.smallEnd(2) && ck != per_grown_domain.bigEnd(2) && ratio[2] > 1) {
                 Real sfz = Real(1.0);
@@ -195,7 +193,6 @@ face_cons_linear_face_interp (int i, int j, int k, int n, Array4<T> const& fine,
         // Check solve mask to ensure we don't overwrite valid fine data.
         if (!mask || mask(ci, cj, ck, n)) {
             fine(i, j, k, n) = crse(ci, cj, ck, n);
-#if 0
             if (ci != per_grown_domain.smallEnd(0) && ci != per_grown_domain.bigEnd(0) && ratio[0] > 1) {
                 Real sfx = Real(1.0);
                 Real dc = Real(0.5) * (crse(ci+1,cj,ck,n) - crse(ci-1,cj,ck,n));
@@ -226,7 +223,6 @@ face_cons_linear_face_interp (int i, int j, int k, int n, Array4<T> const& fine,
                 Real yoff = (static_cast<Real>(j - cj*ratio[1]) + Real(0.5)) / Real(ratio[1]) - Real(0.5);
                 fine(i,j,k,n) += yoff * slope * sfy;
             } // cj
-#endif
         } // mask
     } // dim == 2
 #endif
