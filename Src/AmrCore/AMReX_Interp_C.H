@@ -183,8 +183,8 @@ face_cons_linear_face_interp (int i, int j, int k, int n, Array4<T> const& fine,
                 Real zoff = (static_cast<Real>(k - ck*ratio[2]) + Real(0.5)) / Real(ratio[2]) - Real(0.5);
                 fine(i,j,k,n) += zoff * slope * sfz;
             } // ck
-        } // mask
 #endif // SPACEDIM >= 3
+        } // mask
     } // dim == 1
 #endif // SPACEDIM >= 2
 
