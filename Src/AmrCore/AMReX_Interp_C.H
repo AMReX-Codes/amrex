@@ -96,16 +96,20 @@ face_cons_linear_face_interp (int i, int j, int k, int n, Array4<T> const& fine,
                               IntVect const& ratio,  Box const& per_grown_domain, int dim) noexcept
 {
     int ci = amrex::coarsen(i, ratio[0]);
-#if (AMREX_SPACEDIM >= 2)
-    int cj = amrex::coarsen(j, ratio[1]);
-#else
+
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(per_grown_domain);
     int cj = 0;
+#else
+    int cj = amrex::coarsen(j, ratio[1]);
 #endif
+
 #if (AMREX_SPACEDIM == 3)
     int ck = amrex::coarsen(k, ratio[2]);
 #else
     int ck = 0;
 #endif
+
     if (dim == 0 && ci*ratio[0] == i) {
         // Check solve mask to ensure we don't overwrite valid fine data.
         if (!mask || mask(ci, cj, ck, n)) {
