@@ -100,6 +100,7 @@ namespace {
         Array4<Real> slope;
         Array4<Real const> crse;
         Array4<int const> mask;
+        Box per_grown_domain;
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         Box box() const noexcept { return Box(mask); }
     };
@@ -131,10 +132,6 @@ InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOL
 
         IntVect rr = m_ref_ratio;
 
-        Box const& domain = m_crse_geom.growPeriodicDomain(1);
-        Box const& domlo = amrex::bdryLo(domain, idim);
-        Box const& domhi = amrex::bdryHi(domain, idim);
-
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
             auto const& mlo_mf = m_face_mask[Orientation(idim,Orientation::low)];
@@ -151,15 +148,15 @@ InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOL
                 auto const& chi_arr = chidata.const_array(mfi);
                 auto const& mlo_arr = mlo_mf.const_array(mfi);
                 auto const& mhi_arr = mhi_mf.const_array(mfi);
-                tags.push_back(IFRTag{fine_arr, slo_arr, clo_arr, mlo_arr, domlo});
-                tags.push_back(IFRTag{fine_arr, shi_arr, chi_arr, mhi_arr, domhi});
+                tags.push_back(IFRTag{fine_arr, slo_arr, clo_arr, mlo_arr, per_grown_domain});
+                tags.push_back(IFRTag{fine_arr, shi_arr, chi_arr, mhi_arr, per_grown_domain});
             }
 
             ParallelFor(tags, [=] AMREX_GPU_DEVICE (int i, int j, int k, IFRTag const& tag) noexcept
             {
                 if (tag.mask(i,j,k)) {
                     interp_face_reg(AMREX_D_DECL(i,j,k), rr, tag.fine, scomp, tag.crse,
-                                    tag.slope, ncomp, per_grown_domain, idim);
+                                    tag.slope, ncomp, tags.per_grown_domain, idim);
                 }
             });
         } else
