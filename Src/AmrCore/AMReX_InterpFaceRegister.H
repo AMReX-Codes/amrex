@@ -74,8 +74,6 @@ private:
 
     Geometry m_crse_geom;
 
-    Box per_grown_domain;
-
     Array<BoxArray, 2*AMREX_SPACEDIM> m_fine_face_ba;
     Array<BoxArray, 2*AMREX_SPACEDIM> m_crse_face_ba;
     Array<iMultiFab,2*AMREX_SPACEDIM> m_face_mask; // crse/fine: 1, fine/fine & fine/physbc: 0

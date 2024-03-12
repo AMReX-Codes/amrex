@@ -20,14 +20,6 @@ void InterpFaceRegister::define (BoxArray const& fba, DistributionMapping const&
 
     m_crse_geom = amrex::coarsen(m_fine_geom, m_ref_ratio);
 
-    // We don't need to worry about face-based domain because this is only used in the tangential interpolation
-    per_grown_domain = m_crse_geom.Domain();
-    for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {
-        if (m_crse_geom.isPeriodic(dim)) {
-            per_grown_domain.grow(dim,1);
-        }
-    }
-
     constexpr int crse_fine_face = 1;
     constexpr int fine_fine_face = 0;
     // First, set the face mask to 1 (i.e., coarse/fine boundary),
@@ -47,7 +39,6 @@ void InterpFaceRegister::define (BoxArray const& fba, DistributionMapping const&
 #ifdef AMREX_USE_GPU
         Vector<Array4BoxValTag<int> > tags;
 #endif
-
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -100,7 +91,7 @@ namespace {
         Array4<Real> slope;
         Array4<Real const> crse;
         Array4<int const> mask;
-        Box per_grown_domain;
+        Box domface;
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         Box box() const noexcept { return Box(mask); }
     };
@@ -132,6 +123,10 @@ InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOL
 
         IntVect rr = m_ref_ratio;
 
+        Box const& domain = m_crse_geom.growPeriodicDomain(1);
+        Box const& domlo = amrex::bdryLo(domain, idim);
+        Box const& domhi = amrex::bdryHi(domain, idim);
+
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
             auto const& mlo_mf = m_face_mask[Orientation(idim,Orientation::low)];
@@ -148,15 +143,15 @@ InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOL
                 auto const& chi_arr = chidata.const_array(mfi);
                 auto const& mlo_arr = mlo_mf.const_array(mfi);
                 auto const& mhi_arr = mhi_mf.const_array(mfi);
-                tags.push_back(IFRTag{fine_arr, slo_arr, clo_arr, mlo_arr, per_grown_domain});
-                tags.push_back(IFRTag{fine_arr, shi_arr, chi_arr, mhi_arr, per_grown_domain});
+                tags.push_back(IFRTag{fine_arr, slo_arr, clo_arr, mlo_arr, domlo});
+                tags.push_back(IFRTag{fine_arr, shi_arr, chi_arr, mhi_arr, domhi});
             }
 
             ParallelFor(tags, [=] AMREX_GPU_DEVICE (int i, int j, int k, IFRTag const& tag) noexcept
             {
                 if (tag.mask(i,j,k)) {
                     interp_face_reg(AMREX_D_DECL(i,j,k), rr, tag.fine, scomp, tag.crse,
-                                    tag.slope, ncomp, tags.per_grown_domain, idim);
+                                    tag.slope, ncomp, tag.domface, idim);
                 }
             });
         } else
@@ -184,7 +179,7 @@ InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOL
                     {
                         if (mlo_arr(i,j,k)) {
                             interp_face_reg(AMREX_D_DECL(i,j,k), rr, fine_arr, scomp, clo_arr,
-                                            slope_arr, ncomp, per_grown_domain, idim);
+                                            slope_arr, ncomp, domlo, idim);
                         }
                     });
                     slope.resize(hibx, ncomp);
@@ -193,7 +188,7 @@ InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOL
                     {
                         if (mhi_arr(i,j,k)) {
                             interp_face_reg(AMREX_D_DECL(i,j,k), rr, fine_arr, scomp, chi_arr,
-                                            slope_arr, ncomp, per_grown_domain, idim);
+                                            slope_arr, ncomp, domhi, idim);
                         }
                     });
                 }

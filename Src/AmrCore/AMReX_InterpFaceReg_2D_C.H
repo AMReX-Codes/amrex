@@ -6,12 +6,12 @@ namespace amrex {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void interp_face_reg (int i, int j, IntVect const& rr, Array4<Real> const& fine, int scomp,
                       Array4<Real const> const& crse, Array4<Real> const& slope, int ncomp,
-                      Box const& per_grown_domain, int idim)
+                      Box const& domface, int idim)
 {
     int ic = amrex::coarsen(i,rr[0]);
     int jc = amrex::coarsen(j,rr[1]);
     if (idim == 0) {
-        if (jc == per_grown_domain.smallEnd(1) || jc == per_grown_domain.bigEnd(1)) {
+        if (jc == domface.smallEnd(1) || jc == domface.bigEnd(1)) {
             for (int n = 0; n < ncomp; ++n) {
                 fine(i,j,0,n+scomp) = crse(ic,jc,0,n);
             }
@@ -35,7 +35,7 @@ void interp_face_reg (int i, int j, IntVect const& rr, Array4<Real> const& fine,
             }
         }
     } else {
-        if (ic == per_grown_domain.smallEnd(0) || ic == per_grown_domain.bigEnd(0)) {
+        if (ic == domface.smallEnd(0) || ic == domface.bigEnd(0)) {
             for (int n = 0; n < ncomp; ++n) {
                 fine(i,j,0,n+scomp) = crse(ic,jc,0,n);
             }
