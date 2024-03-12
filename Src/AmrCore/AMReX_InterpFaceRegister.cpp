@@ -21,7 +21,7 @@ void InterpFaceRegister::define (BoxArray const& fba, DistributionMapping const&
     m_crse_geom = amrex::coarsen(m_fine_geom, m_ref_ratio);
 
     // We don't need to worry about face-based domain because this is only used in the tangential interpolation
-    Box per_grown_domain = m_crse_geom.Domain();
+    per_grown_domain = m_crse_geom.Domain();
     for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {
         if (m_crse_geom.isPeriodic(dim)) {
             per_grown_domain.grow(dim,1);
@@ -47,6 +47,7 @@ void InterpFaceRegister::define (BoxArray const& fba, DistributionMapping const&
 #ifdef AMREX_USE_GPU
         Vector<Array4BoxValTag<int> > tags;
 #endif
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -99,7 +100,6 @@ namespace {
         Array4<Real> slope;
         Array4<Real const> crse;
         Array4<int const> mask;
-        Box per_grown_domain;
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         Box box() const noexcept { return Box(mask); }
     };
@@ -159,7 +159,7 @@ InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOL
             {
                 if (tag.mask(i,j,k)) {
                     interp_face_reg(AMREX_D_DECL(i,j,k), rr, tag.fine, scomp, tag.crse,
-                                    tag.slope, ncomp, tag.per_grown_domain, idim);
+                                    tag.slope, ncomp, per_grown_domain, idim);
                 }
             });
         } else
@@ -187,7 +187,7 @@ InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOL
                     {
                         if (mlo_arr(i,j,k)) {
                             interp_face_reg(AMREX_D_DECL(i,j,k), rr, fine_arr, scomp, clo_arr,
-                                            slope_arr, ncomp, domlo, idim);
+                                            slope_arr, ncomp, per_grown_domain, idim);
                         }
                     });
                     slope.resize(hibx, ncomp);
@@ -196,7 +196,7 @@ InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOL
                     {
                         if (mhi_arr(i,j,k)) {
                             interp_face_reg(AMREX_D_DECL(i,j,k), rr, fine_arr, scomp, chi_arr,
-                                            slope_arr, ncomp, domhi, idim);
+                                            slope_arr, ncomp, per_grown_domain, idim);
                         }
                     });
                 }

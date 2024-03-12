@@ -429,7 +429,6 @@ FaceConservativeLinear::CoarseBox (const Box& fine, const IntVect& ratio)
 
     for (int i = 0; i < AMREX_SPACEDIM; i++) {
         if (b.type(i) == IndexType::NODE) {
-            ng[i] = 0;
             if (b.type(i) == IndexType::NODE && b.length(i) < 2) {
                 // Don't want degenerate boxes in nodal direction.
                 b.growHi(i,1);
