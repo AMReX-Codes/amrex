@@ -289,7 +289,11 @@ int clz (T x) noexcept;
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz_generic (std::uint8_t x) noexcept
 {
+#if !defined(__NVCOMPILER)
     static constexpr int clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+#else
+    constexpr int clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+#endif
     auto upper = x >> 4;
     auto lower = x & 0xF;
     return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
