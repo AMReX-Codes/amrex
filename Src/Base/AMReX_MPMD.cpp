@@ -217,8 +217,8 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm)
     // MPI_COMM_WORLD.
 
     // Build communication meta-data
-
-    AMREX_ALWAYS_ASSERT(ba.ixType().cellCentered());
+    AMREX_ALWAYS_ASSERT(ba.ixType() == oba.ixType());
+    m_is_thread_safe = ba.ixType().cellCentered();
 
     std::vector<std::pair<int,Box> > isects;
 
