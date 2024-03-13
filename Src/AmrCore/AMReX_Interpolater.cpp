@@ -11,7 +11,7 @@
 namespace amrex {
 
 /*
- * PCInterp, NodeBilinear, FaceLinear, CellConservativeLinear, and
+ * PCInterp, NodeBilinear, FaceLinear, CellConservativeLinear and
  * CellBilinear are supported for all dimensions on cpu and gpu.
  *
  * CellConservativeProtected only works in 2D and 3D on cpu and gpu
@@ -23,6 +23,8 @@ namespace amrex {
  *
  * CellConservativeQuartic only works with ref ratio of 2 on cpu and gpu.
  *
+ * FaceConservativeLinear works in 2D and 3D on cpu and gpu.
+ *
  * FaceDivFree works in 2D and 3D on cpu and gpu.
  * The algorithm is restricted to ref ratio of 2.
  */
@@ -33,6 +35,7 @@ namespace amrex {
 PCInterp                  pc_interp;
 NodeBilinear              node_bilinear_interp;
 FaceLinear                face_linear_interp;
+FaceConservativeLinear    face_cons_linear_interp;
 FaceDivFree               face_divfree_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(false);
@@ -142,7 +145,14 @@ FaceLinear::interp (const FArrayBox&  crse,
                     RunOn             runon)
 {
     //
-    // This version is called from InterpFromCoarseLevel
+    // This version is called from FillPatchInterp which is called by
+    //      InterpFromCoarseLevel in AMReX_FillPatchUtil_I.H
+    //
+    // It assumes no existing fine values that need to be preserved (unlike interp_face below)
+    //
+    // Inside each call to face_linear_interp_* (in AMRex_Interp_*D_C.H), we do:
+    //  * on fine faces which overlie crse faces, the fine value is set to the crse value (piecewise constant)
+    //  * on fine faces which are between two crse faces, the fine value is set to the average of the crse values (linear)
     //
     BL_PROFILE("FaceLinear::interp()");
 
@@ -193,6 +203,18 @@ FaceLinear::interp_face (const FArrayBox&  crse,
                          const int         /*bccomp*/,
                          RunOn             runon)
 {
+    //
+    // This version is called from InterpFace which is called from the version FillPatchTwoLevels_doit
+    //      that takes a single MF (in AMReX_FillPatchUtil_I.H)
+    //
+    // It assumes there are existing fine values which we want to preserve (unlike interp above)
+    //
+    // We do the interpolation in two steps:
+    //   1) face_linear_face_interp_*: on fine faces which overlie crse faces, the fine value is set to the crse value (piecewise constant) ONLY IF
+    //      there is not already fine data there
+    //   2) face_linear_interp_*: on fine faces which are between two crse faces, the fine value is set to the average of the values
+    //      on the faces overlying -- this uses only the results of step 1, it does not take the crse values
+    //
     BL_PROFILE("FaceLinear::interp_face()");
 
     AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
@@ -283,6 +305,17 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                              const int         /*actual_state*/,
                              const RunOn       runon)
 {
+    //
+    // This version is called from FillPatchTwoLevels_doit (that takes an Array of MF*) in AMReX_FillPatchUtil_I.H
+    //
+    // It assumes there are existing fine values which we want to preserve (like face_interp, unlike interp above)
+    //
+    // We do the interpolation in two steps:
+    //   1) face_linear_face_interp_*: on fine faces which overlie crse faces, the fine value is set to the crse value (piecewise constant) ONLY IF
+    //      there is not already fine data there
+    //   2) face_linear_interp_*: on fine faces which are between two crse faces, the fine value is set to the average of the values
+    //      on the faces overlying -- this uses only the results of step 1, it does not take the crse values
+    //
     BL_PROFILE("FaceLinear::interp_arr()");
 
     Array<IndexType, AMREX_SPACEDIM> types;
@@ -335,6 +368,307 @@ void FaceLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                       for (int n=0; n<ncomp; ++n)
                       {
                           face_linear_face_interp_z(i,j,k,n,fine_arr[2],crse_arr[2],mask_arr[2],ratio);
+                      }
+                  });
+              });
+
+    //
+    // Interpolate unfilled grow cells using best data from
+    // surrounding faces of valid region, and pc-interpd data
+    // on fine faces overlaying coarse edges.
+    //
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
+              amrex::convert(fine_region,types[0]), bx0,
+              {
+                  AMREX_LOOP_3D(bx0, i, j, k,
+                  {
+                      for (int n=0; n<ncomp; ++n)
+                      {
+                          face_linear_interp_x(i,j,k,n,fine_arr[0],ratio);
+                      }
+                  });
+              },
+              amrex::convert(fine_region,types[1]), bx1,
+              {
+                  AMREX_LOOP_3D(bx1, i, j, k,
+                  {
+                      for (int n=0; n<ncomp; ++n)
+                      {
+                          face_linear_interp_y(i,j,k,n,fine_arr[1],ratio);
+                      }
+                  });
+              },
+              amrex::convert(fine_region,types[2]), bx2,
+              {
+                  AMREX_LOOP_3D(bx2, i, j, k,
+                  {
+                      for (int n=0; n<ncomp; ++n)
+                      {
+                          face_linear_interp_z(i,j,k,n,fine_arr[2],ratio);
+                      }
+                  });
+              });
+}
+
+Box
+FaceConservativeLinear::CoarseBox (const Box& fine, int ratio)
+{
+    return CoarseBox(fine, IntVect(ratio));
+}
+
+Box
+FaceConservativeLinear::CoarseBox (const Box& fine, const IntVect& ratio)
+{
+    IntVect ng(1);
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
+        if ( (fine.type(i) == IndexType::NODE) || (ratio[i] == 1) ) {
+            ng[i] = 0;
+        }
+    }
+    Box b = amrex::coarsen(fine,ratio); b.grow(ng);
+
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
+        if (b.type(i) == IndexType::NODE) {
+            if (b.type(i) == IndexType::NODE && b.length(i) < 2) {
+                // Don't want degenerate boxes in nodal direction.
+                b.growHi(i,1);
+            }
+        }
+    }
+    return b;
+}
+
+void
+FaceConservativeLinear::interp (const FArrayBox&     crse,
+                                int                  crse_comp,
+                                FArrayBox&           fine,
+                                int                  fine_comp,
+                                int                  ncomp,
+                                const Box&           fine_region,
+                                const IntVect&       ratio,
+                                const Geometry&      crse_geom,
+                                const Geometry&      fine_geom,
+                                Vector<BCRec> const& bcr,
+                                int                  /*actual_comp*/,
+                                int                  /*actual_state*/,
+                                RunOn                runon)
+{
+    //
+    // This version is called from FillPatchInterp which is called by
+    //      InterpFromCoarseLevel in AMReX_FillPatchUtil_I.H
+    //
+    // It assumes no existing fine values that need to be preserved thus does not send a mask to interp_face
+    //
+    BL_PROFILE("FaceConservativeLinear::interp()");
+
+    AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
+
+    // We intentionally do not allocate the mask so that all faces are filled from coarse values
+    IArrayBox dummy_mask;
+    int bccomp = 0; // This is also a dummy -- it's not used
+    interp_face(crse,crse_comp,fine,fine_comp,ncomp,fine_region,ratio,dummy_mask,
+                crse_geom,fine_geom,bcr,bccomp,runon);
+}
+
+void
+FaceConservativeLinear::interp_face (const FArrayBox&       crse,
+                                     const int              crse_comp,
+                                     FArrayBox&             fine,
+                                     const int              fine_comp,
+                                     const int              ncomp,
+                                     const Box&             fine_region,
+                                     const IntVect&         ratio,
+                                     const IArrayBox&       solve_mask,
+                                     const Geometry&        crse_geom,
+                                     const Geometry&      /*fine_geom */,
+                                     Vector<BCRec> const& /*bcr*/,
+                                     const int            /*bccomp*/,
+                                     RunOn                  runon)
+{
+    //
+    // This version is called from InterpFace which is called from the version FillPatchTwoLevels_doit
+    //      that takes a single MF (in AMReX_FillPatchUtil_I.H)
+    //
+    // It assumes there are existing fine values which we want to preserve (unlike interp above)
+    //
+    // We do the interpolation in two steps:
+    //   1) face_cons_linear_face_interp: on fine faces which overlie crse faces, slopes are computed (linear in 2d, bilinear in 3d)
+    //      and the fine value is over-written ONLY IF there is not already fine data there (assuming the mask is used)
+    //   2) face_linear_interp_*: on fine faces which are between two crse faces, the fine value is set to the average of the values
+    //      on the faces overlying -- this uses only the results of step 1
+    //      NOTE: we use the same routines as used by FaceLinear since this interpolation is only in the normal direction
+    //
+    BL_PROFILE("FaceConservativeLinear::interp_face()");
+
+    AMREX_ASSERT(AMREX_D_TERM(fine_region.type(0),+fine_region.type(1),+fine_region.type(2)) == 1);
+    Array4<Real> const& fine_arr = fine.array(fine_comp);
+    Array4<Real const> const& crse_arr = crse.const_array(crse_comp);
+    Array4<const int> mask_arr;
+    if (solve_mask.isAllocated()) {
+        mask_arr = solve_mask.const_array();
+    }
+
+    // We don't need to worry about face-based domain because this is only used in the tangential interpolation
+    Box per_grown_domain = crse_geom.Domain();
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {
+        if (crse_geom.isPeriodic(dim)) {
+            per_grown_domain.grow(dim,1);
+        }
+    }
+
+    //
+    // Fill fine ghost faces with interpolation of coarse data that is conservative linear
+    //      in the tangential direction.
+    // Operate only on faces that overlap--ie, only fill the fine faces that make up each
+    // coarse face, leave the in-between faces alone.
+    // The mask ensures we do not overwrite valid fine cells.
+    //
+    if (fine_region.type(0) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_cons_linear_face_interp(i,j,k,n,fine_arr,crse_arr,mask_arr,ratio,per_grown_domain,0);
+        });
+    }
+#if (AMREX_SPACEDIM >= 2)
+    else if (fine_region.type(1) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_cons_linear_face_interp(i,j,k,n,fine_arr,crse_arr,mask_arr,ratio,per_grown_domain,1);
+        });
+    }
+#if (AMREX_SPACEDIM == 3)
+    else
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_cons_linear_face_interp(i,j,k,n,fine_arr,crse_arr,mask_arr,ratio,per_grown_domain,2);
+        });
+    }
+#endif
+#endif
+
+    //
+    // Interpolate unfilled grow cells using best data from
+    // surrounding faces of valid region, and pc-interpd data
+    // on fine faces overlaying coarse edges.
+    //
+    if (fine_region.type(0) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_interp_x(i,j,k,n,fine_arr,ratio);
+        });
+    }
+#if (AMREX_SPACEDIM >= 2)
+    else if (fine_region.type(1) == IndexType::NODE)
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_interp_y(i,j,k,n,fine_arr,ratio);
+        });
+    }
+#if (AMREX_SPACEDIM == 3)
+    else
+    {
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        {
+            face_linear_interp_z(i,j,k,n,fine_arr,ratio);
+        });
+    }
+#endif
+#endif
+}
+
+void FaceConservativeLinear::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
+                                         const int         crse_comp,
+                                         Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
+                                         const int         fine_comp,
+                                         const int         ncomp,
+                                         const Box&        fine_region,
+                                         const IntVect&    ratio,
+                                         Array<IArrayBox*, AMREX_SPACEDIM> const& solve_mask,
+                                         const Geometry&   crse_geom,
+                                         const Geometry&   /*fine_geom*/,
+                                         Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
+                                         const int         /*actual_comp*/,
+                                         const int         /*actual_state*/,
+                                         const RunOn       runon)
+{
+    //
+    // This version is called from FillPatchTwoLevels_doit (that takes an Array of MF*) in AMReX_FillPatchUtil_I.H
+    //
+    // It assumes there are existing fine values which we want to preserve (like face_interp, unlike interp above)
+    //
+    // We do the interpolation in two steps:
+    //   1) face_cons_linear_face_interp_*: on fine faces which overlie crse faces, we compute tangential slopes
+    //      to compute the fine values (linear in 2d, bilinear in 3d) ONLY IF there is not already fine data there
+    //   2) face_cons_linear_interp_*: on fine faces which are between two crse faces, the fine value is set to the average of the values
+    //      on the faces overlying -- this uses only the results of step 1, it does not take the crse values
+    //      NOTE: here we use the same routines as used by FaceLinear since this interpolation is only in the normal direction
+    //
+    BL_PROFILE("FaceConservativeLinear::interp_arr()");
+
+    Array<IndexType, AMREX_SPACEDIM> types;
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        { types[d].set(d); }
+
+    GpuArray<Array4<const Real>, AMREX_SPACEDIM> crse_arr;
+    GpuArray<Array4<Real>, AMREX_SPACEDIM> fine_arr;
+    GpuArray<Array4<const int>, AMREX_SPACEDIM> mask_arr;
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+    {
+        crse_arr[d] = crse[d]->const_array(crse_comp);
+        fine_arr[d] = fine[d]->array(fine_comp);
+        if (solve_mask[d] != nullptr)
+            { mask_arr[d] = solve_mask[d]->const_array(0); }
+    }
+
+    // We don't need to worry about face-based domain because this is only used in the tangential interpolation
+    Box per_grown_domain = crse_geom.Domain();
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++) {
+        if (crse_geom.isPeriodic(dim)) {
+            per_grown_domain.grow(dim,1);
+        }
+    }
+
+    //
+    // Fill fine ghost faces with interpolation of coarse data that is conservative linear
+    //      in the tangential direction.
+    // Operate only on faces that overlap--ie, only fill the fine faces that make up each
+    // coarse face, leave the in-between faces alone.
+    // The mask ensures we do not overwrite valid fine cells.
+    //
+    // Fuse the launches, 1 for each dimension, into a single launch.
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
+              amrex::convert(fine_region,types[0]), bx0,
+              {
+                  AMREX_LOOP_3D(bx0, i, j, k,
+                  {
+                      for (int n=0; n<ncomp; ++n)
+                      {
+                          face_cons_linear_face_interp(i,j,k,n,fine_arr[0],crse_arr[0],mask_arr[0],ratio,per_grown_domain,0);
+                      }
+                  });
+              },
+              amrex::convert(fine_region,types[1]), bx1,
+              {
+                  AMREX_LOOP_3D(bx1, i, j, k,
+                  {
+                      for (int n=0; n<ncomp; ++n)
+                      {
+                          face_cons_linear_face_interp(i,j,k,n,fine_arr[1],crse_arr[1],mask_arr[1],ratio,per_grown_domain,1);
+                      }
+                  });
+              },
+              amrex::convert(fine_region,types[2]), bx2,
+              {
+                  AMREX_LOOP_3D(bx2, i, j, k,
+                  {
+                      for (int n=0; n<ncomp; ++n)
+                      {
+                          face_cons_linear_face_interp(i,j,k,n,fine_arr[2],crse_arr[2],mask_arr[2],ratio,per_grown_domain,2);
                       }
                   });
               });

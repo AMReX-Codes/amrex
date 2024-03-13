@@ -15,8 +15,8 @@ namespace amrex {
 
 //
 // Fill fine values with piecewise-constant interpolation of coarse data.
-// Operate only on faces that overlap--ie, only fill the fine faces that make up each
-// coarse face, leave the in-between faces alone.
+// Operate only on faces that overlap -- i.e., only fill the fine faces that
+// make up each coarse face, leave the in-between faces alone.
 //
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
@@ -82,6 +82,154 @@ face_linear_face_interp_z (int fi, int fj, int fk, int n, Array4<T> const& fine,
             fine(fi, fj, fk, n) = crse(ci, cj, ck, n);
         }
     }
+}
+
+//
+// Fill fine values with tangential interpolation of coarse data.
+// Operate only on faces that overlap -- i.e., only fill the fine faces that
+// make up each coarse face, leave the in-between faces alone.
+//
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_cons_linear_face_interp (int i, int j, int k, int n, Array4<T> const& fine,
+                              Array4<T const> const& crse, Array4<int const> const& mask,
+                              IntVect const& ratio,  Box const& per_grown_domain, int dim) noexcept
+{
+    int ci = amrex::coarsen(i, ratio[0]);
+
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(per_grown_domain);
+    int cj = 0;
+#else
+    int cj = amrex::coarsen(j, ratio[1]);
+#endif
+
+#if (AMREX_SPACEDIM == 3)
+    int ck = amrex::coarsen(k, ratio[2]);
+#else
+    int ck = 0;
+#endif
+
+    if (dim == 0 && ci*ratio[0] == i) {
+        // Check solve mask to ensure we don't overwrite valid fine data.
+        if (!mask || mask(ci, cj, ck, n)) {
+            fine(i, j, k, n) = crse(ci, cj, ck, n);
+#if (AMREX_SPACEDIM >= 2)
+            if (cj > per_grown_domain.smallEnd(1) && cj < per_grown_domain.bigEnd(1) && ratio[1] > 1) {
+                Real sfy = Real(1.0);
+                Real dc = Real(0.5) * (crse(ci,cj+1,ck,n) - crse(ci,cj-1,ck,n));
+                Real df = Real(2.0) * (crse(ci,cj+1,ck,n) - crse(ci,cj  ,ck,n));
+                Real db = Real(2.0) * (crse(ci,cj  ,ck,n) - crse(ci,cj-1,ck,n));
+                Real sy = (df*db >= Real(0.0)) ?
+                    amrex::min(std::abs(df),std::abs(db)) : Real(0.);
+                sy = std::copysign(Real(1.),dc)*amrex::min(sy,std::abs(dc));
+                if (dc != Real(0.0)) {
+                    sfy = amrex::min(sfy, sy / dc);
+                }
+                Real slope = dc;
+                Real yoff = (static_cast<Real>(j - cj*ratio[1]) + Real(0.5)) / Real(ratio[1]) - Real(0.5);
+                fine(i,j,k,n) += yoff * slope * sfy;
+            } // jc
+#if (AMREX_SPACEDIM == 3)
+            if (ck > per_grown_domain.smallEnd(2) && ck < per_grown_domain.bigEnd(2) && ratio[2] > 1) {
+                Real sfz = Real(1.0);
+                Real dc = Real(0.5) * (crse(ci,cj,ck+1,n) - crse(ci,cj,ck-1,n));
+                Real df = Real(2.0) * (crse(ci,cj,ck+1,n) - crse(ci,cj,ck  ,n));
+                Real db = Real(2.0) * (crse(ci,cj,ck  ,n) - crse(ci,cj,ck-1,n));
+                Real sz = (df*db >= Real(0.0)) ?
+                    amrex::min(std::abs(df),std::abs(db)) : Real(0.);
+                sz = std::copysign(Real(1.),dc)*amrex::min(sz,std::abs(dc));
+                if (dc != Real(0.0)) {
+                    sfz = amrex::min(sfz, sz / dc);
+                }
+                Real slope = dc;
+                Real zoff = (static_cast<Real>(k - ck*ratio[2]) + Real(0.5)) / Real(ratio[2]) - Real(0.5);
+                fine(i,j,k,n) += zoff * slope * sfz;
+            } // ck
+#endif
+#endif
+        } // mask
+    } // dim
+
+#if (AMREX_SPACEDIM >= 2)
+    if (dim == 1 && cj*ratio[1] == j) {
+        // Check solve mask to ensure we don't overwrite valid fine data.
+        if (!mask || mask(ci, cj, ck, n)) {
+            fine(i, j, k, n) = crse(ci, cj, ck, n);
+            if (ci > per_grown_domain.smallEnd(0) && ci < per_grown_domain.bigEnd(0) && ratio[0] > 1) {
+                Real sfx = Real(1.0);
+                Real dc = Real(0.5) * (crse(ci+1,cj,ck,n) - crse(ci-1,cj,ck,n));
+                Real df = Real(2.0) * (crse(ci+1,cj,ck,n) - crse(ci  ,cj,ck,n));
+                Real db = Real(2.0) * (crse(ci  ,cj,ck,n) - crse(ci-1,cj,ck,n));
+                Real sx = (df*db >= Real(0.0)) ?
+                    amrex::min(std::abs(df),std::abs(db)) : Real(0.);
+                sx = std::copysign(Real(1.),dc)*amrex::min(sx,std::abs(dc));
+                if (dc != Real(0.0)) {
+                    sfx = amrex::min(sfx, sx / dc);
+                }
+                Real slope = dc;
+                Real xoff = (static_cast<Real>(i - ci*ratio[0]) + Real(0.5)) / Real(ratio[0]) - Real(0.5);
+                fine(i,j,k,n) += xoff * slope * sfx;
+            } // ci
+#if (AMREX_SPACEDIM == 3)
+            if (ck > per_grown_domain.smallEnd(2) && ck < per_grown_domain.bigEnd(2) && ratio[2] > 1) {
+                Real sfz = Real(1.0);
+                Real dc = Real(0.5) * (crse(ci,cj,ck+1,n) - crse(ci,cj,ck-1,n));
+                Real df = Real(2.0) * (crse(ci,cj,ck+1,n) - crse(ci,cj,ck  ,n));
+                Real db = Real(2.0) * (crse(ci,cj,ck  ,n) - crse(ci,cj,ck-1,n));
+                Real sz = (df*db >= Real(0.0)) ?
+                    amrex::min(std::abs(df),std::abs(db)) : Real(0.);
+                sz = std::copysign(Real(1.),dc)*amrex::min(sz,std::abs(dc));
+                if (dc != Real(0.0)) {
+                    sfz = amrex::min(sfz, sz / dc);
+                }
+                Real slope = dc;
+                Real zoff = (static_cast<Real>(k - ck*ratio[2]) + Real(0.5)) / Real(ratio[2]) - Real(0.5);
+                fine(i,j,k,n) += zoff * slope * sfz;
+            } // ck
+#endif // SPACEDIM >= 3
+        } // mask
+    } // dim == 1
+#endif // SPACEDIM >= 2
+
+#if (AMREX_SPACEDIM == 3)
+    if (dim == 2 && ck*ratio[2] == k) {
+        // Check solve mask to ensure we don't overwrite valid fine data.
+        if (!mask || mask(ci, cj, ck, n)) {
+            fine(i, j, k, n) = crse(ci, cj, ck, n);
+            if (ci > per_grown_domain.smallEnd(0) && ci < per_grown_domain.bigEnd(0) && ratio[0] > 1) {
+                Real sfx = Real(1.0);
+                Real dc = Real(0.5) * (crse(ci+1,cj,ck,n) - crse(ci-1,cj,ck,n));
+                Real df = Real(2.0) * (crse(ci+1,cj,ck,n) - crse(ci  ,cj,ck,n));
+                Real db = Real(2.0) * (crse(ci  ,cj,ck,n) - crse(ci-1,cj,ck,n));
+                Real sx = (df*db >= Real(0.0)) ?
+                    amrex::min(std::abs(df),std::abs(db)) : Real(0.);
+                sx = std::copysign(Real(1.),dc)*amrex::min(sx,std::abs(dc));
+                if (dc != Real(0.0)) {
+                    sfx = amrex::min(sfx, sx / dc);
+                }
+                Real slope = dc;
+                Real xoff = (static_cast<Real>(i - ci*ratio[0]) + Real(0.5)) / Real(ratio[0]) - Real(0.5);
+                fine(i,j,k,n) += xoff * slope * sfx;
+            } // ci
+            if (cj > per_grown_domain.smallEnd(1) && cj < per_grown_domain.bigEnd(1) && ratio[1] > 1) {
+                Real sfy = Real(1.0);
+                Real dc = Real(0.5) * (crse(ci,cj+1,ck,n) - crse(ci,cj-1,ck,n));
+                Real df = Real(2.0) * (crse(ci,cj+1,ck,n) - crse(ci,cj  ,ck,n));
+                Real db = Real(2.0) * (crse(ci,cj  ,ck,n) - crse(ci,cj-1,ck,n));
+                Real sy = (df*db >= Real(0.0)) ?
+                    amrex::min(std::abs(df),std::abs(db)) : Real(0.);
+                sy = std::copysign(Real(1.),dc)*amrex::min(sy,std::abs(dc));
+                if (dc != Real(0.0)) {
+                    sfy = amrex::min(sfy, sy / dc);
+                }
+                Real slope = dc;
+                Real yoff = (static_cast<Real>(j - cj*ratio[1]) + Real(0.5)) / Real(ratio[1]) - Real(0.5);
+                fine(i,j,k,n) += yoff * slope * sfy;
+            } // cj
+        } // mask
+    } // dim == 2
+#endif
 }
 
 //
