@@ -26,9 +26,6 @@ jobs:
     #    Invoke-WebRequest https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-windows-x86_64.zip -OutFile ccache-4.8-windows-x86_64.zip
     #    Expand-Archive ccache-4.8-windows-x86_64.zip
     - name: Build & Install
-      env:
-        CC: "cl.exe"
-        CXX: "cl.exe"
       run: |
         #$ccachepath = Join-Path $pwd "ccache-4.8-windows-x86_64"
         #$Env:PATH += ";$ccachepath"
@@ -41,7 +38,6 @@ jobs:
         #ccache -z
 
         cmake -S . -B build   `
-              -G "Ninja"      `
               -DCMAKE_BUILD_TYPE=Debug      `
               -DBUILD_SHARED_LIBS=ON        `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
@@ -73,9 +69,6 @@ jobs:
     #    Invoke-WebRequest https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-windows-x86_64.zip -OutFile ccache-4.8-windows-x86_64.zip
     #    Expand-Archive ccache-4.8-windows-x86_64.zip
     - name: Build & Install
-      env:
-        CC: "cl.exe"
-        CXX: "cl.exe"
       run: |
         #$ccachepath = Join-Path $pwd "ccache-4.8-windows-x86_64"
         #$Env:PATH += ";$ccachepath"
@@ -87,7 +80,6 @@ jobs:
         #ccache -z
 
         cmake -S . -B build   `
-              -G "Ninja"      `
               -DCMAKE_BUILD_TYPE=RelWithDebInfo `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DAMReX_EB=ON                 `
