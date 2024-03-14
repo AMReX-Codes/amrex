@@ -48,6 +48,9 @@ jobs:
               #-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --config Debug -j 4
 
+        cmake --build build --config Debug --target install
+        cmake --build build --config Debug --target test_install
+
         #ccache -s
 
   # Build libamrex and all test (static)
@@ -89,6 +92,9 @@ jobs:
               #-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build --config RelWithDebInfo -j 4
 
+        cmake --build build --config RelWithDebInfo --target install
+        cmake --build build --config RelWithDebInfo --target test_install
+
         #ccache -s
 
   # Build libamrex and all tests
@@ -113,6 +119,9 @@ jobs:
               -DAMReX_MPI=OFF               ^
               -DAMReX_OMP=ON
         cmake --build build --config Release -j 4
+
+        cmake --build build --config Release --target install
+        cmake --build build --config Release --target test_install
 
   # If we add ccache back, don't forget to update cleanup-cache.yml
   #save_pr_number:
