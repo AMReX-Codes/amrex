@@ -37,6 +37,7 @@ public:
 private:
     std::map<int,FabArrayBase::CopyComTagsContainer> m_SndTags;
     std::map<int,FabArrayBase::CopyComTagsContainer> m_RcvTags;
+    bool m_is_thread_safe;
 };
 
 template <typename FAB>
@@ -166,12 +167,12 @@ void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && (mf.arena()->isDevice() || mf.arena()->isManaged())) {
         mf.unpack_recv_buffer_gpu(mf, icomp, ncomp, recv_data, recv_size, recv_cctc,
-                                  FabArrayBase::COPY, true);
+                                  FabArrayBase::COPY, m_is_thread_safe);
     } else
 #endif
     {
         mf.unpack_recv_buffer_cpu(mf, icomp, ncomp, recv_data, recv_size, recv_cctc,
-                                  FabArrayBase::COPY, true);
+                                  FabArrayBase::COPY, m_is_thread_safe);
     }
 }
 
