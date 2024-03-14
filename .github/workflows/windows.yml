@@ -38,7 +38,6 @@ jobs:
         #ccache -z
 
         cmake -S . -B build   `
-              -G "Ninja"      `
               -DCMAKE_BUILD_TYPE=Debug      `
               -DBUILD_SHARED_LIBS=ON        `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
@@ -81,7 +80,6 @@ jobs:
         #ccache -z
 
         cmake -S . -B build   `
-              -G "Ninja"      `
               -DCMAKE_BUILD_TYPE=RelWithDebInfo `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DAMReX_EB=ON                 `
