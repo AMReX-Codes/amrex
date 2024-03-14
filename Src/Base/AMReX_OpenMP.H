@@ -17,8 +17,7 @@ namespace amrex::OpenMP {
     void Initialize ();
     void Finalize ();
 
-    static constexpr int nlocks = 128;
-    extern AMREX_EXPORT omp_lock_t omp_locks[nlocks];
+    omp_lock_t* get_lock (int ilock);
 }
 
 #else // AMREX_USE_OMP

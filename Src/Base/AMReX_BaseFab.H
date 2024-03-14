@@ -3360,9 +3360,7 @@ BaseFab<T>::lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbo
         while (planes_left > 0) {
             AMREX_ASSERT(mm < nplanes);
             auto const m = mm + plo;
-            int ilock = m % OpenMP::nlocks;
-            if (ilock < 0) { ilock += OpenMP::nlocks; }
-            auto* lock = &(OpenMP::omp_locks[ilock]);
+            auto* lock = OpenMP::get_lock(m);
             if (omp_test_lock(lock))
             {
                 auto lo = dlo;
