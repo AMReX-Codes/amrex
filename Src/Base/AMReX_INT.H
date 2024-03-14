@@ -31,7 +31,7 @@ namespace amrex {
 }
 #endif
 
-#if (defined(__x86_64) || defined (__aarch64__)) && !defined(_WIN32) && (defined(__GNUC__) || defined(__clang__))
+#if (defined(__x86_64) || defined (__aarch64__)) && !defined(_WIN32) && (defined(__GNUC__) || defined(__clang__)) && !defined(__NVCOMPILER)
 
 #define AMREX_INT128_SUPPORTED 1
 
