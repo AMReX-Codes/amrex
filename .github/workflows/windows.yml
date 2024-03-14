@@ -26,6 +26,9 @@ jobs:
     #    Invoke-WebRequest https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-windows-x86_64.zip -OutFile ccache-4.8-windows-x86_64.zip
     #    Expand-Archive ccache-4.8-windows-x86_64.zip
     - name: Build & Install
+      env:
+        CC: "cl.exe"
+        CXX: "cl.exe"
       run: |
         #$ccachepath = Join-Path $pwd "ccache-4.8-windows-x86_64"
         #$Env:PATH += ";$ccachepath"
@@ -70,6 +73,9 @@ jobs:
     #    Invoke-WebRequest https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-windows-x86_64.zip -OutFile ccache-4.8-windows-x86_64.zip
     #    Expand-Archive ccache-4.8-windows-x86_64.zip
     - name: Build & Install
+      env:
+        CC: "cl.exe"
+        CXX: "cl.exe"
       run: |
         #$ccachepath = Join-Path $pwd "ccache-4.8-windows-x86_64"
         #$Env:PATH += ";$ccachepath"
