@@ -1,4 +1,4 @@
-if (AMReX_GPU_BACKEND STREQUAL NONE)
+if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
    return()
 endif ()
 
