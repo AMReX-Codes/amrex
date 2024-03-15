@@ -13,7 +13,6 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: seanmiddleditch/gha-setup-ninja@master
     #- name: Set Up Cache
     #  uses: actions/cache@v3
     #  with:
@@ -38,7 +37,6 @@ jobs:
         #ccache -z
 
         cmake -S . -B build   `
-              -DCMAKE_BUILD_TYPE=Debug      `
               -DBUILD_SHARED_LIBS=ON        `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DAMReX_EB=OFF                `
@@ -49,6 +47,8 @@ jobs:
         cmake --build build --config Debug -j 4
 
         cmake --build build --config Debug --target install
+
+        $Env:PATH += ";D:\\a\amrex\amrex\installdir\bin"
         cmake --build build --config Debug --target test_install
 
         #ccache -s
@@ -59,7 +59,6 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: seanmiddleditch/gha-setup-ninja@master
     #- name: Set Up Cache
     #  uses: actions/cache@v3
     #  with:
@@ -83,7 +82,6 @@ jobs:
         #ccache -z
 
         cmake -S . -B build   `
-              -DCMAKE_BUILD_TYPE=RelWithDebInfo `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DAMReX_EB=ON                 `
               -DAMReX_ENABLE_TESTS=ON       `
@@ -112,7 +110,6 @@ jobs:
       run: |
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
         cmake -S . -B build   ^
-              -DCMAKE_BUILD_TYPE=Release    ^
               -DBUILD_SHARED_LIBS=ON        ^
               -DCMAKE_VERBOSE_MAKEFILE=ON   ^
               -DAMReX_EB=ON                 ^
@@ -123,6 +120,8 @@ jobs:
         cmake --build build --config Release -j 4
 
         cmake --build build --config Release --target install
+
+        set "PATH=%PATH%;D:\\a\amrex\amrex\installdir\bin"
         cmake --build build --config Release --target test_install
 
   # If we add ccache back, don't forget to update cleanup-cache.yml
