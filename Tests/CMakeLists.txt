@@ -143,7 +143,7 @@ else()
       list(APPEND AMREX_TESTS_SUBDIRS GPU)
    endif ()
 
-   if (AMReX_OMP)
+   if (AMReX_GPU_BACKEND STREQUAL NONE)
       list(APPEND AMREX_TESTS_SUBDIRS OpenMP)
    endif ()
 
