@@ -401,14 +401,17 @@ template <typename T, int N>
 TableData<T,N>&
 TableData<T,N>::operator= (TableData<T,N> && rhs) noexcept
 {
-    m_arena     = rhs.m_arena;
-    m_dptr      = rhs.m_dptr;
-    m_lo        = rhs.m_lo;
-    m_hi        = rhs.m_hi;
-    m_truesize  = rhs.m_truesize;
-    m_ptr_owner = rhs.m_ptr_owner;
-    rhs.m_dptr = nullptr;
-    rhs.m_ptr_owner = false;
+    if (this != &rhs) {
+        clear();
+        m_arena     = rhs.m_arena;
+        m_dptr      = rhs.m_dptr;
+        m_lo        = rhs.m_lo;
+        m_hi        = rhs.m_hi;
+        m_truesize  = rhs.m_truesize;
+        m_ptr_owner = rhs.m_ptr_owner;
+        rhs.m_dptr = nullptr;
+        rhs.m_ptr_owner = false;
+    }
     return *this;
 }
 
