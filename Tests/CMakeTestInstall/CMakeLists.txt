@@ -60,9 +60,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        TARGET install_test_${D}d
        POST_BUILD
        COMMAND ${CMAKE_COMMAND} -E echo "Running test project"
-       COMMAND ${CMAKE_COMMAND} -E echo "Command: $<TARGET_FILE:install_test_${D}d> ${inputs_path} max_step=1"
-       COMMAND $<TARGET_FILE:install_test_${D}d> ${inputs_path} max_step=1
-       # > out_${D}d.txt
+       COMMAND ${CMAKE_COMMAND} -E echo "Command: $<TARGET_FILE:install_test_${D}d> ${inputs_path} max_step=1 > out_${D}d.txt"
+       COMMAND $<TARGET_FILE:install_test_${D}d> ${inputs_path} max_step=1 > out_${D}d.txt
        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     )
 endforeach()
