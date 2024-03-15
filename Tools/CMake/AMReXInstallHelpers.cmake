@@ -135,6 +135,11 @@ endfunction ()
 # _amrex_root is the amrex installation dir
 #
 macro( add_test_install_target _dir _amrex_root )
+   get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+   set(_select_config)
+   if(isMultiConfig)
+      set(_select_config "--config $<CONFIG>")
+   endif()
 
    get_filename_component( _dirname ${_dir} NAME )
    set(_builddir  ${CMAKE_CURRENT_BINARY_DIR}/${_dirname})
@@ -150,9 +155,9 @@ macro( add_test_install_target _dir _amrex_root )
       COMMAND ${CMAKE_COMMAND} -E echo ""
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_builddir}
       COMMAND ${CMAKE_COMMAND} -E echo "Configuring test project"
-      COMMAND ${CMAKE_COMMAND} -S ${_dir} -B ${_builddir} -DAMReX_ROOT=${_amrex_root} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${_enable_fortran}
+      COMMAND ${CMAKE_COMMAND} -S ${_dir} -B ${_builddir} -DCMAKE_BUILD_TYPE=$<CONFIG> -DAMReX_ROOT=${_amrex_root} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${_enable_fortran}
       COMMAND ${CMAKE_COMMAND} -E echo "Building test project"
-      COMMAND ${CMAKE_COMMAND} --build ${_builddir}
+      COMMAND ${CMAKE_COMMAND} --build ${_builddir} ${_select_config}
       COMMAND ${CMAKE_COMMAND} -E echo ""
       COMMAND ${CMAKE_COMMAND} -E echo "------------------------------------"
       COMMAND ${CMAKE_COMMAND} -E echo "   AMReX is installed correctly"
