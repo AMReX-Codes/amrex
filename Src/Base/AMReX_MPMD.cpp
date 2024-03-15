@@ -139,7 +139,8 @@ int MyProgId ()
     return (myproc == ParallelDescriptor::MyProc()) ? 0 : 1;
 }
 
-Copier::Copier (BoxArray const& ba, DistributionMapping const& dm)
+Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
+        bool send_ba)
 {
     int rank_offset = myproc - ParallelDescriptor::MyProc();
     int this_root, other_root;
@@ -152,9 +153,11 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm)
     }
 
     Vector<Box> bv = ba.boxList().data();
-
     int this_nboxes = static_cast<int>(ba.size());
+    m_bv.resize(this_nboxes);
+    m_bv = bv;
     Vector<int> procs = dm.ProcessorMap();
+    m_dm.define(procs);
     if (rank_offset != 0) {
         for (int i = 0; i < this_nboxes; ++i) {
             procs[i] += rank_offset;
@@ -163,34 +166,46 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm)
 
     Vector<Box> obv;
     Vector<int> oprocs;
-    int other_nboxes;
+    int other_nboxes = this_nboxes;
     if (myproc == this_root) {
         if (rank_offset == 0) // the first program
         {
             MPI_Send(&this_nboxes, 1, MPI_INT, other_root, 0, MPI_COMM_WORLD);
-            MPI_Recv(&other_nboxes, 1, MPI_INT, other_root, 1, MPI_COMM_WORLD,
+            if (!send_ba)
+            {
+                MPI_Recv(&other_nboxes, 1, MPI_INT, other_root, 1, MPI_COMM_WORLD,
                      MPI_STATUS_IGNORE);
+            }
             obv.resize(other_nboxes);
             MPI_Send(bv.data(), this_nboxes,
                      ParallelDescriptor::Mpi_typemap<Box>::type(),
                      other_root, 2, MPI_COMM_WORLD);
-            MPI_Recv(obv.data(), other_nboxes,
+            if (!send_ba)
+            {
+                MPI_Recv(obv.data(), other_nboxes,
                      ParallelDescriptor::Mpi_typemap<Box>::type(),
                      other_root, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            oprocs.resize(other_nboxes);
+            }
             MPI_Send(procs.data(), this_nboxes, MPI_INT, other_root, 4, MPI_COMM_WORLD);
+            oprocs.resize(other_nboxes);
             MPI_Recv(oprocs.data(), other_nboxes, MPI_INT, other_root, 5, MPI_COMM_WORLD,
                      MPI_STATUS_IGNORE);
         }
         else // the second program
         {
-            MPI_Recv(&other_nboxes, 1, MPI_INT, other_root, 0, MPI_COMM_WORLD,
+            if (!send_ba)
+            {
+                MPI_Recv(&other_nboxes, 1, MPI_INT, other_root, 0, MPI_COMM_WORLD,
                      MPI_STATUS_IGNORE);
-            MPI_Send(&this_nboxes, 1, MPI_INT, other_root, 1, MPI_COMM_WORLD);
+            }
             obv.resize(other_nboxes);
-            MPI_Recv(obv.data(), other_nboxes,
+            MPI_Send(&this_nboxes, 1, MPI_INT, other_root, 1, MPI_COMM_WORLD);
+            if (!send_ba)
+            {
+                MPI_Recv(obv.data(), other_nboxes,
                      ParallelDescriptor::Mpi_typemap<Box>::type(),
                      other_root, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            }
             MPI_Send(bv.data(), this_nboxes,
                      ParallelDescriptor::Mpi_typemap<Box>::type(),
                      other_root, 3, MPI_COMM_WORLD);
@@ -202,9 +217,13 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm)
     }
 
     ParallelDescriptor::Bcast(&other_nboxes, 1);
-    if (obv.empty()) {
+    if (obv.empty()){
         obv.resize(other_nboxes);
         oprocs.resize(other_nboxes);
+    }
+
+    if ((myproc == this_root) && (send_ba)){
+        obv = bv;
     }
     ParallelDescriptor::Bcast(obv.data(), obv.size());
     ParallelDescriptor::Bcast(oprocs.data(), oprocs.size());
@@ -243,6 +262,124 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm)
     for (auto& kv : m_RcvTags) {
         std::sort(kv.second.begin(), kv.second.end());
     }
+}
+
+Copier::Copier ()
+{
+    int rank_offset = myproc - ParallelDescriptor::MyProc();
+    int this_root, other_root;
+    if (rank_offset == 0) { // First program
+        this_root = 0;
+        other_root = ParallelDescriptor::NProcs();
+    } else {
+        this_root = rank_offset;
+        other_root = 0;
+    }
+
+    int this_nboxes;
+
+    if (myproc == this_root) {
+        if (rank_offset == 0) // the first program
+        {
+            MPI_Recv(&this_nboxes, 1, MPI_INT, other_root, 1, MPI_COMM_WORLD,
+                     MPI_STATUS_IGNORE);
+            m_bv.resize(this_nboxes);
+            MPI_Recv(m_bv.data(), this_nboxes,
+                     ParallelDescriptor::Mpi_typemap<Box>::type(),
+                     other_root, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+        else // the second program
+        {
+            MPI_Recv(&this_nboxes, 1, MPI_INT, other_root, 0, MPI_COMM_WORLD,
+                     MPI_STATUS_IGNORE);
+            m_bv.resize(this_nboxes);
+            MPI_Recv(m_bv.data(), this_nboxes,
+                     ParallelDescriptor::Mpi_typemap<Box>::type(),
+                     other_root, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+    }
+
+    ParallelDescriptor::Bcast(&this_nboxes, 1);
+    if (m_bv.empty()) {
+        m_bv.resize(this_nboxes);
+    }
+
+    ParallelDescriptor::Bcast(m_bv.data(), m_bv.size());
+    Vector<Box> bv(m_bv);
+    BoxArray ba(BoxList(std::move(bv)));
+    m_dm.define(ba);
+    Vector<int> procs = m_dm.ProcessorMap();
+    if (rank_offset != 0) {
+        for (int i = 0; i < this_nboxes; ++i) {
+            procs[i] += rank_offset;
+        }
+    }
+
+    Vector<int> oprocs;
+    if (myproc == this_root) {
+        if (rank_offset == 0) // the first program
+        {
+            MPI_Send(procs.data(), this_nboxes, MPI_INT, other_root, 4, MPI_COMM_WORLD);
+            oprocs.resize(this_nboxes);
+            MPI_Recv(oprocs.data(), this_nboxes, MPI_INT, other_root, 5, MPI_COMM_WORLD,
+                     MPI_STATUS_IGNORE);
+        }
+        else // the second program
+        {
+            oprocs.resize(this_nboxes);
+            MPI_Recv(oprocs.data(), this_nboxes, MPI_INT, other_root, 4, MPI_COMM_WORLD,
+                     MPI_STATUS_IGNORE);
+            MPI_Send(procs.data(), this_nboxes, MPI_INT, other_root, 5, MPI_COMM_WORLD);
+        }
+    }
+
+    if (oprocs.empty()) {
+        oprocs.resize(this_nboxes);
+    }
+
+    ParallelDescriptor::Bcast(oprocs.data(), oprocs.size());
+
+    // procs holds mpi ranks of our boxes, and oprocs holds
+    // mpi ranks of the other program's boxes.  All mpi ranks are in
+    // MPI_COMM_WORLD.
+
+    // Build communication meta-data
+    m_is_thread_safe = ba.ixType().cellCentered();
+
+    std::vector<std::pair<int,Box> > isects;
+
+    for (int i = 0; i < this_nboxes; ++i) {
+        if (procs[i] == myproc) {
+            ba.intersections(m_bv[i], isects);
+            for (auto const& isec : isects) {
+                const int oi = isec.first;
+                const Box& bx = isec.second;
+                const int orank = oprocs[oi];
+                m_SndTags[orank].push_back
+                    (FabArrayBase::CopyComTag(bx, bx, oi, i));
+                m_RcvTags[orank].push_back
+                    (FabArrayBase::CopyComTag(bx, bx, i, oi));
+            }
+        }
+    }
+
+    for (auto& kv : m_SndTags) {
+        std::sort(kv.second.begin(), kv.second.end());
+    }
+    for (auto& kv : m_RcvTags) {
+        std::sort(kv.second.begin(), kv.second.end());
+    }
+}
+
+BoxArray Copier::get_my_ba ()
+{
+    Vector<Box> bv(m_bv);
+    return BoxArray(BoxList(std::move(bv)));
+}
+
+DistributionMapping Copier::get_my_dm ()
+{
+    return m_dm;
 }
 
 }

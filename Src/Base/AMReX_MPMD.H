@@ -26,7 +26,10 @@ int MyProgId (); //! Program ID
 class Copier
 {
 public:
-    Copier (BoxArray const& ba, DistributionMapping const& dm);
+    Copier ();
+
+    Copier (BoxArray const& ba, DistributionMapping const& dm,
+            bool send_ba = false);
 
     template <typename FAB>
     void send (FabArray<FAB> const& mf, int icomp, int ncomp) const;
@@ -34,10 +37,16 @@ public:
     template <typename FAB>
     void recv (FabArray<FAB>& mf, int icomp, int ncomp) const;
 
+    BoxArray get_my_ba();
+
+    DistributionMapping get_my_dm();
+
 private:
     std::map<int,FabArrayBase::CopyComTagsContainer> m_SndTags;
     std::map<int,FabArrayBase::CopyComTagsContainer> m_RcvTags;
     bool m_is_thread_safe;
+    Vector<Box> m_bv;
+    DistributionMapping m_dm;
 };
 
 template <typename FAB>
@@ -175,6 +184,7 @@ void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
                                   FabArrayBase::COPY, m_is_thread_safe);
     }
 }
+
 
 }
 
