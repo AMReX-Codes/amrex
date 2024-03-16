@@ -15,8 +15,10 @@
 #include <omp.h>
 #endif
 
+#include <ostream>
 #include <string>
 #include <utility>
+
 
 namespace amrex {
 
