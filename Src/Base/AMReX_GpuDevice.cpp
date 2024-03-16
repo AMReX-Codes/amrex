@@ -374,11 +374,13 @@ Device::initialize_gpu ()
     cudaDeviceGetAttribute(&memory_pools_supported, cudaDevAttrMemoryPoolsSupported, device_id);
 #endif
 
+#if (__CUDACC_VER_MAJOR__ < 12) || ((__CUDACC_VER_MAJOR__ == 12) && (__CUDACC_VER_MINOR__ < 4))
     if (sizeof(Real) == 8) {
         AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
     } else if (sizeof(Real) == 4) {
         AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
     }
+#endif
 
     for (int i = 0; i < max_gpu_streams; ++i) {
         AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_stream_pool[i]));
