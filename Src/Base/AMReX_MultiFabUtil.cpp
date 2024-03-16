@@ -46,7 +46,7 @@ namespace {
             boxes.push_back(is.second);
             slice_to_full_ba_map.push_back(is.first);
         }
-        if (boxes.size() > 0) {
+        if (!boxes.empty()) {
             BoxArray slice_ba(boxes.data(), static_cast<int>(boxes.size()));
             DistributionMapping slice_dmap(std::move(procs));
 
