@@ -353,22 +353,36 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
         auto* plusolver = m_lusolver[amrlev][mglev]->dataPtr();
         ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
         {
-            mlcurlcurl_gs4(i,j,k,ex[bno],ey[bno],ez[bno],rhsx[bno],rhsy[bno],rhsz[bno],
+            mlcurlcurl_gs4_lu(i,j,k,ex[bno],ey[bno],ez[bno],
+                              rhsx[bno],rhsy[bno],rhsz[bno],
 #if (AMREX_SPACEDIM == 2)
-                           b,
+                              b,
 #endif
-                           adxinv,color,*plusolver,dinfo,sinfo);
+                              adxinv,color,*plusolver,dinfo,sinfo);
         });
     } else {
         auto const& bcx = m_bcoefs[amrlev][mglev][0]->const_arrays();
         auto const& bcy = m_bcoefs[amrlev][mglev][1]->const_arrays();
         auto const& bcz = m_bcoefs[amrlev][mglev][2]->const_arrays();
-        ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
-        {
+        if (m_use_pcg) {
+            ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+            {
 
-            mlcurlcurl_gs4(i,j,k,ex[bno],ey[bno],ez[bno],rhsx[bno],rhsy[bno],rhsz[bno],
-                           adxinv,color,bcx[bno],bcy[bno],bcz[bno],dinfo,sinfo);
-        });
+                mlcurlcurl_gs4<true>(i,j,k,ex[bno],ey[bno],ez[bno],
+                                     rhsx[bno],rhsy[bno],rhsz[bno],
+                                     adxinv,color,bcx[bno],bcy[bno],bcz[bno],
+                                     dinfo,sinfo);
+            });
+        } else {
+            ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+            {
+
+                mlcurlcurl_gs4<false>(i,j,k,ex[bno],ey[bno],ez[bno],
+                                      rhsx[bno],rhsy[bno],rhsz[bno],
+                                      adxinv,color,bcx[bno],bcy[bno],bcz[bno],
+                                      dinfo,sinfo);
+            });
+        }
     }
     Gpu::streamSynchronize();
 }
