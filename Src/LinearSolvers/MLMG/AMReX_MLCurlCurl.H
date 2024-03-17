@@ -58,6 +58,8 @@ public:
         return std::string("curl of curl");
     }
 
+    bool setUsePCG (bool flag) { return std::exchange(m_use_pcg, flag); }
+
     void setLevelBC (int amrlev, const MF* levelbcdata,
                      const MF* robinbc_a = nullptr,
                      const MF* robinbc_b = nullptr,
@@ -137,6 +139,7 @@ private:
     Vector<Vector<std::unique_ptr<Gpu::DeviceScalar
                                   <LUSolver<AMREX_SPACEDIM*2,RT>>>>> m_lusolver;
     Vector<Vector<Array<std::unique_ptr<MultiFab>,3>>> m_bcoefs;
+    bool m_use_pcg = false;
 };
 
 }
