@@ -603,7 +603,7 @@ int amrex::StreamRetry::nStreamErrors = 0;
 
 amrex::StreamRetry::StreamRetry(std::ostream &a_os, std::string a_suffix,
                                 int a_maxtries)
-    : tries(0), maxTries(a_maxtries), sros(a_os), spos(a_os.tellp()), suffix(std::move(a_suffix))
+    : tries(0), maxTries(a_maxtries), sros(&a_os), spos(a_os.tellp()), suffix(std::move(a_suffix))
 {
 }
 
@@ -612,7 +612,7 @@ amrex::StreamRetry::StreamRetry (std::string filename, bool abortonretryfailure,
     : tries(0), maxTries(maxtries),
       abortOnRetryFailure(abortonretryfailure),
       fileName(std::move(filename)),
-      sros(amrex::ErrorStream())    // unused here, just to make the compiler happy
+      sros(&amrex::ErrorStream())    // unused here, just to make the compiler happy
 {
   nStreamErrors = 0;
 }
@@ -623,41 +623,41 @@ bool amrex::StreamRetry::TryOutput()
     ++tries;
     return true;
   } else {
-    if(sros.fail()) {
+    if(sros->fail()) {
       ++nStreamErrors;
       int myProc(ParallelDescriptor::MyProc());
       if(tries <= maxTries) {
           if (amrex::Verbose() > 1) {
               amrex::AllPrint() << "PROC: " << myProc << " :: STREAMRETRY_" << suffix << " # "
                                 << tries << " :: gbfe:  "
-                                << sros.good() << sros.bad() << sros.fail() << sros.eof()
+                                << sros->good() << sros->bad() << sros->fail() << sros->eof()
                                 << " :: sec = " << ParallelDescriptor::second()
-                                << " :: os.tellp() = " << sros.tellp()
+                                << " :: os.tellp() = " << sros->tellp()
                                 << " :: rewind spos = " << spos
                                 << std::endl;
           }
-        sros.clear();  // clear the bad bits
+        sros->clear();  // clear the bad bits
         if (amrex::Verbose() > 1) {
-            amrex::AllPrint() << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
-                              << sros.fail() << sros.eof() << std::endl;
+            amrex::AllPrint() << "After os.clear() : gbfe:  " << sros->good() << sros->bad()
+                              << sros->fail() << sros->eof() << std::endl;
         }
-        sros.seekp(spos, std::ios::beg);  // reset stream position
+        sros->seekp(spos, std::ios::beg);  // reset stream position
         ++tries;
         return true;
       } else {
         if (amrex::Verbose() > 1) {
             amrex::AllPrint() << "PROC: " << myProc << " :: STREAMFAILED_" << suffix << " # "
                               << tries << " :: File may be corrupt.  :: gbfe:  "
-                              << sros.good() << sros.bad() << sros.fail() << sros.eof()
+                              << sros->good() << sros->bad() << sros->fail() << sros->eof()
                               << " :: sec = " << ParallelDescriptor::second()
-                              << " :: os.tellp() = " << sros.tellp()
+                              << " :: os.tellp() = " << sros->tellp()
                               << " :: rewind spos = " << spos
                               << std::endl;
         }
-        sros.clear();  // clear the bad bits
+        sros->clear();  // clear the bad bits
         if (amrex::Verbose() > 1) {
-            amrex::AllPrint() << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
-                              << sros.fail() << sros.eof() << std::endl;
+            amrex::AllPrint() << "After os.clear() : gbfe:  " << sros->good() << sros->bad()
+                              << sros->fail() << sros->eof() << std::endl;
         }
         return false;
       }

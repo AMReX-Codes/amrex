@@ -85,7 +85,7 @@ struct BinIterator
     {}
 
 private:
-    const index_type m_i;
+    index_type m_i;
     const index_type * m_offsets_ptr;
     const index_type * m_permutation_ptr;
     const_pointer_type m_items;

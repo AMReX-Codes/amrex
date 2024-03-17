@@ -191,7 +191,7 @@ namespace amrex
         int tries, maxTries;
         bool abortOnRetryFailure = true;
         std::string fileName;
-        std::ostream &sros;
+        std::ostream *sros;
         std::ostream::pos_type spos;
         std::string suffix;
 
