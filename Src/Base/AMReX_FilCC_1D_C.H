@@ -69,6 +69,7 @@ struct FilccCell
                     q(i,0,0,n) = -q(2*ilo-i-1,0,0,n);
                     break;
                 }
+                default: { break; }
                 }
             }
             else if (i > ihi)
@@ -111,6 +112,7 @@ struct FilccCell
                     q(i,0,0,n) = -q(2*ihi-i+1,0,0,n);
                     break;
                 }
+                default: { break; }
                 }
             }
         }
