@@ -141,6 +141,7 @@ int MyProgId ()
 
 Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
         bool send_ba)
+        : m_ba(ba), m_dm(dm)
 {
     int rank_offset = myproc - ParallelDescriptor::MyProc();
     int this_root, other_root;
