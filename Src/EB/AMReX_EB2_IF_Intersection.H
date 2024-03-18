@@ -19,27 +19,27 @@ namespace IIF_detail {
     template <typename F>
     [[nodiscard]] inline Real do_min (const RealArray& p, F&& f) noexcept
     {
-        return f(p);
+        return std::forward<F>(f)(p);
     }
 
     template <typename F, typename... Fs>
     [[nodiscard]] inline Real do_min (const RealArray& p, F&& f, Fs&... fs) noexcept
     {
-        return amrex::min(f(p), do_min(p, std::forward<Fs>(fs)...));
+        return amrex::min(std::forward<F>(f)(p), do_min(p, std::forward<Fs>(fs)...));
     }
 
     template <typename F>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real do_min (AMREX_D_DECL(Real x, Real y, Real z), F&& f) noexcept
     {
-        return f(AMREX_D_DECL(x,y,z));
+        return std::forward<F>(f)(AMREX_D_DECL(x,y,z));
     }
 
     template <typename F, typename... Fs>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real do_min (AMREX_D_DECL(Real x, Real y, Real z), F&& f, Fs&... fs)
     {
-        return amrex::min(f(AMREX_D_DECL(x,y,z)), do_min(AMREX_D_DECL(x,y,z), std::forward<Fs>(fs)...));
+        return amrex::min(std::forward<F>(f)(AMREX_D_DECL(x,y,z)), do_min(AMREX_D_DECL(x,y,z), std::forward<Fs>(fs)...));
     }
 }
 

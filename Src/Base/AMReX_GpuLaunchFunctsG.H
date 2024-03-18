@@ -7,7 +7,7 @@ namespace amrex {
 #ifdef AMREX_USE_SYCL
 
 template <typename L>
-void single_task (gpuStream_t stream, L&& f) noexcept
+void single_task (gpuStream_t stream, L const& f) noexcept
 {
     auto& q = *(stream.queue);
     try {
@@ -21,7 +21,7 @@ void single_task (gpuStream_t stream, L&& f) noexcept
 
 template<typename L>
 void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
-             gpuStream_t stream, L&& f) noexcept
+             gpuStream_t stream, L const& f) noexcept
 {
     const auto nthreads_total = std::size_t(nthreads_per_block) * nblocks;
     const std::size_t shared_mem_numull = (shared_mem_bytes+sizeof(unsigned long long)-1)
@@ -45,7 +45,7 @@ void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
 }
 
 template<typename L>
-void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L&& f) noexcept
+void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L const& f) noexcept
 {
     const auto nthreads_total = std::size_t(nthreads_per_block) * nblocks;
     auto& q = *(stream.queue);
@@ -66,7 +66,7 @@ void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L&& f) noe
 
 template <int MT, typename L>
 void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
-             L&& f) noexcept
+             L const& f) noexcept
 {
     const auto nthreads_total = MT * std::size_t(nblocks);
     const std::size_t shared_mem_numull = (shared_mem_bytes+sizeof(unsigned long long)-1)
@@ -91,7 +91,7 @@ void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
 }
 
 template <int MT, typename L>
-void launch (int nblocks, gpuStream_t stream, L&& f) noexcept
+void launch (int nblocks, gpuStream_t stream, L const& f) noexcept
 {
     const auto nthreads_total = MT * std::size_t(nblocks);
     auto& q = *(stream.queue);
@@ -112,7 +112,7 @@ void launch (int nblocks, gpuStream_t stream, L&& f) noexcept
 }
 
 template<int MT, typename T, typename L>
-void launch (T const& n, L&& f) noexcept
+void launch (T const& n, L const& f) noexcept
 {
     if (amrex::isEmpty(n)) { return; }
     const auto ec = Gpu::makeExecutionConfig<MT>(n);
@@ -188,7 +188,7 @@ namespace detail {
 }
 
 template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
-void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
+void ParallelFor (Gpu::KernelInfo const& info, T n, L const& f) noexcept
 {
     if (amrex::isEmpty(n)) { return; }
     const auto ec = Gpu::makeExecutionConfig<MT>(n);
@@ -236,7 +236,7 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 }
 
 template <int MT, typename L>
-void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
+void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexer indexer(box);
@@ -287,7 +287,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L&& f) noexcept
 }
 
 template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
-void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) noexcept
+void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexer indexer(box);
@@ -339,7 +339,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L&& f) n
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
-void ParallelForRNG (T n, L&& f) noexcept
+void ParallelForRNG (T n, L const& f) noexcept
 {
     if (amrex::isEmpty(n)) { return; }
     const auto ec = Gpu::ExecutionConfig(n);
@@ -372,7 +372,7 @@ void ParallelForRNG (T n, L&& f) noexcept
 }
 
 template <typename L>
-void ParallelForRNG (Box const& box, L&& f) noexcept
+void ParallelForRNG (Box const& box, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexer indexer(box);
@@ -408,7 +408,7 @@ void ParallelForRNG (Box const& box, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
-void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
+void ParallelForRNG (Box const& box, T ncomp, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexer indexer(box);
@@ -629,7 +629,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
 // CUDA or HIP
 
 template <typename L>
-void single_task (gpuStream_t stream, L&& f) noexcept
+void single_task (gpuStream_t stream, L const& f) noexcept
 {
     AMREX_LAUNCH_KERNEL(Gpu::Device::warp_size, 1, 1, 0, stream,
                         [=] AMREX_GPU_DEVICE () noexcept {f();});
@@ -638,7 +638,7 @@ void single_task (gpuStream_t stream, L&& f) noexcept
 
 template <int MT, typename L>
 void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
-             L&& f) noexcept
+             L const& f) noexcept
 {
     AMREX_LAUNCH_KERNEL(MT, nblocks, MT, shared_mem_bytes, stream,
                         [=] AMREX_GPU_DEVICE () noexcept { f(); });
@@ -646,7 +646,7 @@ void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
 }
 
 template <int MT, typename L>
-void launch (int nblocks, gpuStream_t stream, L&& f) noexcept
+void launch (int nblocks, gpuStream_t stream, L const& f) noexcept
 {
     AMREX_LAUNCH_KERNEL(MT, nblocks, MT, 0, stream,
                         [=] AMREX_GPU_DEVICE () noexcept { f(); });
@@ -655,7 +655,7 @@ void launch (int nblocks, gpuStream_t stream, L&& f) noexcept
 
 template<typename L>
 void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
-             gpuStream_t stream, L&& f) noexcept
+             gpuStream_t stream, L const& f) noexcept
 {
     AMREX_ASSERT(nthreads_per_block <= AMREX_GPU_MAX_THREADS);
     AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, nblocks, nthreads_per_block, shared_mem_bytes,
@@ -670,7 +670,7 @@ void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L&& f) noe
 }
 
 template<int MT, typename T, typename L>
-void launch (T const& n, L&& f) noexcept
+void launch (T const& n, L const& f) noexcept
 {
     if (amrex::isEmpty(n)) { return; }
     const auto ec = Gpu::makeExecutionConfig<MT>(n);
@@ -735,7 +735,7 @@ namespace detail {
 
 template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
-ParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
+ParallelFor (Gpu::KernelInfo const&, T n, L const& f) noexcept
 {
     if (amrex::isEmpty(n)) { return; }
     const auto ec = Gpu::makeExecutionConfig<MT>(n);
@@ -751,7 +751,7 @@ ParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
 
 template <int MT, typename L>
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
-ParallelFor (Gpu::KernelInfo const&, Box const& box, L&& f) noexcept
+ParallelFor (Gpu::KernelInfo const&, Box const& box, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexer indexer(box);
@@ -770,7 +770,7 @@ ParallelFor (Gpu::KernelInfo const&, Box const& box, L&& f) noexcept
 
 template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
-ParallelFor (Gpu::KernelInfo const&, Box const& box, T ncomp, L&& f) noexcept
+ParallelFor (Gpu::KernelInfo const&, Box const& box, T ncomp, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexer indexer(box);
@@ -788,7 +788,7 @@ ParallelFor (Gpu::KernelInfo const&, Box const& box, T ncomp, L&& f) noexcept
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
-ParallelForRNG (T n, L&& f) noexcept
+ParallelForRNG (T n, L const& f) noexcept
 {
     if (amrex::isEmpty(n)) { return; }
     randState_t* rand_state = getRandState();
@@ -809,7 +809,7 @@ ParallelForRNG (T n, L&& f) noexcept
 
 template <typename L>
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
-ParallelForRNG (Box const& box, L&& f) noexcept
+ParallelForRNG (Box const& box, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
     randState_t* rand_state = getRandState();
@@ -832,7 +832,7 @@ ParallelForRNG (Box const& box, L&& f) noexcept
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
-ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
+ParallelForRNG (Box const& box, T ncomp, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
     randState_t* rand_state = getRandState();
@@ -1416,7 +1416,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         AMREX_PRAGMA_SIMD
-        for (T i = 0; i < n; ++i) f(i);
+        for (T i = 0; i < n; ++i) { f(i); }
 #endif
     }
 }
@@ -1432,7 +1432,7 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile");
 #else
         AMREX_PRAGMA_SIMD
-        for (T i = 0; i < n; ++i) f(i);
+        for (T i = 0; i < n; ++i) { f(i); }
 #endif
     }
 }

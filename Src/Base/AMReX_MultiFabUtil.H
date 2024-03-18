@@ -648,7 +648,7 @@ template <typename F>
 Real
 NormHelper (const MultiFab& x, int xcomp,
             const MultiFab& y, int ycomp,
-            F && f,
+            F const& f,
             int numcomp, IntVect nghost, bool local)
 {
     BL_ASSERT(x.boxArray() == y.boxArray());
@@ -709,8 +709,8 @@ Real
 NormHelper (const MMF& mask,
                const MultiFab& x, int xcomp,
                const MultiFab& y, int ycomp,
-               Pred && pf,
-               F && f,
+               Pred const& pf,
+               F const& f,
                int numcomp, IntVect nghost, bool local)
 {
     BL_ASSERT(x.boxArray() == y.boxArray());
@@ -1036,7 +1036,7 @@ template <typename Op, typename T, typename FAB, typename F,
 #endif
                            , int> FOO>
 BaseFab<T>
-ReduceToPlane (int direction, Box const& domain, FabArray<FAB> const& mf, F&& f)
+ReduceToPlane (int direction, Box const& domain, FabArray<FAB> const& mf, F const& f)
 {
     Box domain2d = domain;
     domain2d.setRange(direction, 0);

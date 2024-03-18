@@ -523,7 +523,7 @@ namespace {
 
     template <typename F>
     bool group_combinables (struct parser_node*& a, struct parser_node*& b,
-                            F&& f, parser_node_t type)
+                            F const& f, parser_node_t type)
     {
         if (a->type == type && f(a->l, b))
         {

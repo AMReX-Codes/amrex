@@ -187,7 +187,7 @@ struct BlockStatus<T, false>
 
 #ifndef AMREX_SYCL_NO_MULTIPASS_SCAN
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE>
-T PrefixSum_mp (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum)
+T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
 {
     if (n <= 0) { return 0; }
     constexpr int nwarps_per_block = 8;
@@ -627,7 +627,7 @@ template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral<N>::value &&
                                       (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
                                        std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
-T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
+T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
     constexpr int nwarps_per_block = 4;
@@ -770,7 +770,7 @@ template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral<N>::value &&
                                       (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
                                        std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
-T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
+T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
     constexpr int nwarps_per_block = 8;
@@ -903,7 +903,7 @@ template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral<N>::value &&
                                       (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
                                        std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
-T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
+T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
     constexpr int nwarps_per_block = 4;
@@ -1284,7 +1284,7 @@ template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral<N>::value &&
                                       (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
                                        std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
-T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum = retSum)
+T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum = retSum)
 {
     if (n <= 0) { return 0; }
     T totalsum = 0;

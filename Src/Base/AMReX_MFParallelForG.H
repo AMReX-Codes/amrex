@@ -72,7 +72,7 @@ namespace parfor_mf_detail {
 
 template <int MT, typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, bool, F&& f)
+ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, bool, F const& f)
 {
     const auto& index_array = mf.IndexArray();
     const int nboxes = index_array.size();

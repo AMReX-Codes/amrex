@@ -366,7 +366,7 @@ public:
 
     // This is public for CUDA
     template <typename I, typename MF, typename D, typename F>
-    void eval_mf (I, MF const& mf, IntVect const& nghost, int ncomp, D& reduce_data, F&&f)
+    void eval_mf (I, MF const& mf, IntVect const& nghost, int ncomp, D& reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         const int nboxes = mf.local_size();
@@ -491,7 +491,7 @@ public:
     }
 
     template <typename D, typename F>
-    void eval (Box const& box, D & reduce_data, F&& f)
+    void eval (Box const& box, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
@@ -551,7 +551,7 @@ public:
 
     template <typename N, typename D, typename F,
               typename M=std::enable_if_t<std::is_integral<N>::value> >
-    void eval (Box const& box, N ncomp, D & reduce_data, F&& f)
+    void eval (Box const& box, N ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
@@ -612,7 +612,7 @@ public:
 
     template <typename N, typename D, typename F,
               typename M=std::enable_if_t<std::is_integral<N>::value> >
-    void eval (N n, D & reduce_data, F&& f)
+    void eval (N n, D & reduce_data, F const& f)
     {
         if (n <= 0) { return; }
         using ReduceTuple = typename D::Type;
@@ -766,7 +766,7 @@ T Sum (N n, T const* v, T init_val = 0)
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral<N>::value> >
-T Sum (N n, F&& f, T init_val = 0)
+T Sum (N n, F const& f, T init_val = 0)
 {
     ReduceOps<ReduceOpSum> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -789,7 +789,7 @@ T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral<N>::value> >
-T Min (N n, F&& f, T init_val = std::numeric_limits<T>::max())
+T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max())
 {
     ReduceOps<ReduceOpMin> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -812,7 +812,7 @@ T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral<N>::value> >
-T Max (N n, F&& f, T init_val = std::numeric_limits<T>::lowest())
+T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest())
 {
     ReduceOps<ReduceOpMax> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -837,7 +837,7 @@ std::pair<T,T> MinMax (N n, T const* v)
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral<N>::value> >
-std::pair<T,T> MinMax (N n, F&& f)
+std::pair<T,T> MinMax (N n, F const& f)
 {
     ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
     ReduceData<T,T> reduce_data(reduce_op);
@@ -851,7 +851,7 @@ std::pair<T,T> MinMax (N n, F&& f)
 }
 
 template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral<N>::value> >
-bool AnyOf (N n, T const* v, P&& pred)
+bool AnyOf (N n, T const* v, P const& pred)
 {
     Gpu::LaunchSafeGuard lsg(true);
     Gpu::DeviceScalar<int> ds(0);
@@ -907,7 +907,7 @@ bool AnyOf (N n, T const* v, P&& pred)
 }
 
 template <typename P>
-bool AnyOf (Box const& box, P&& pred)
+bool AnyOf (Box const& box, P const& pred)
 {
     Gpu::LaunchSafeGuard lsg(true);
     Gpu::DeviceScalar<int> ds(0);
@@ -1064,7 +1064,7 @@ public:
 
     template <typename MF, typename D, typename F>
     std::enable_if_t<IsFabArray<MF>::value && IsCallable<F, int, int, int, int>::value>
-    eval (MF const& mf, IntVect const& nghost, D & reduce_data, F&& f)
+    eval (MF const& mf, IntVect const& nghost, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
 #ifdef AMREX_USE_OMP
@@ -1086,7 +1086,7 @@ public:
 
     template <typename MF, typename D, typename F>
     std::enable_if_t<IsFabArray<MF>::value && IsCallable<F, int, int, int, int, int>::value>
-    eval (MF const& mf, IntVect const& nghost, int ncomp, D & reduce_data, F&& f)
+    eval (MF const& mf, IntVect const& nghost, int ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
 #ifdef AMREX_USE_OMP
@@ -1111,12 +1111,12 @@ public:
     void eval (Box const& box, D & reduce_data, F&& f)
     {
         auto& rr = reduce_data.reference(OpenMP::get_thread_num());
-        call_f<D>(box, rr, f);
+        call_f<D>(box, rr, std::forward<F>(f));
     }
 
     template <typename N, typename D, typename F,
               typename M=std::enable_if_t<std::is_integral<N>::value> >
-    void eval (Box const& box, N ncomp, D & reduce_data, F&& f)
+    void eval (Box const& box, N ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         auto& rr = reduce_data.reference(OpenMP::get_thread_num());
@@ -1132,7 +1132,7 @@ public:
 
     template <typename N, typename D, typename F,
               typename M=std::enable_if_t<std::is_integral<N>::value> >
-    void eval (N n, D & reduce_data, F&& f)
+    void eval (N n, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         auto& rr = reduce_data.reference(OpenMP::get_thread_num());
@@ -1166,7 +1166,7 @@ namespace Reduce {
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral<N>::value> >
-T Sum (N n, F&& f, T init_val = 0)
+T Sum (N n, F const& f, T init_val = 0)
 {
     T r = init_val;
 #ifdef AMREX_USE_OMP
@@ -1186,7 +1186,7 @@ T Sum (N n, T const* v, T init_val = 0)
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral<N>::value> >
-T Min (N n, F&& f, T init_val = std::numeric_limits<T>::max())
+T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max())
 {
     T r = init_val;
 #ifdef AMREX_USE_OMP
@@ -1206,7 +1206,7 @@ T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral<N>::value> >
-T Max (N n, F&& f, T init_val = std::numeric_limits<T>::lowest())
+T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest())
 {
     T r = init_val;
 #ifdef AMREX_USE_OMP
@@ -1226,7 +1226,7 @@ T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral<N>::value> >
-std::pair<T,T> Min (N n, F&& f)
+std::pair<T,T> Min (N n, F const& f)
 {
     T r_min = std::numeric_limits<T>::max();
     T r_max = std::numeric_limits<T>::lowest();
@@ -1250,11 +1250,11 @@ std::pair<T,T> MinMax (N n, T const* v)
 template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral<N>::value> >
 bool AnyOf (N n, T const* v, P&& pred)
 {
-    return std::any_of(v, v+n, pred);
+    return std::any_of(v, v+n, std::forward<P>(pred));
 }
 
 template <typename P>
-bool AnyOf (Box const& box, P&&pred)
+bool AnyOf (Box const& box, P const& pred)
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);

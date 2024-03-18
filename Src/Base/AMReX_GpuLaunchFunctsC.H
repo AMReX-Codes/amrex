@@ -57,18 +57,18 @@ namespace detail {
 template<typename T, typename L>
 void launch (T const& n, L&& f) noexcept
 {
-    f(n);
+    std::forward<L>(f)(n);
 }
 
 template<int MT, typename T, typename L>
 void launch (T const& n, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
-    f(n);
+    std::forward<L>(f)(n);
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
-void For (T n, L&& f) noexcept
+void For (T n, L const& f) noexcept
 {
     for (T i = 0; i < n; ++i) {
         detail::call_f(f,i);
@@ -96,7 +96,7 @@ void For (Gpu::KernelInfo const&, T n, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
-void ParallelFor (T n, L&& f) noexcept
+void ParallelFor (T n, L const& f) noexcept
 {
     AMREX_PRAGMA_SIMD
     for (T i = 0; i < n; ++i) {
@@ -125,7 +125,7 @@ void ParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
 }
 
 template <typename L>
-void For (Box const& box, L&& f) noexcept
+void For (Box const& box, L const& f) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -157,7 +157,7 @@ void For (Gpu::KernelInfo const&, Box const& box, L&& f) noexcept
 }
 
 template <typename L>
-void ParallelFor (Box const& box, L&& f) noexcept
+void ParallelFor (Box const& box, L const& f) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -190,7 +190,7 @@ void ParallelFor (Gpu::KernelInfo const&, Box const& box, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
-void For (Box const& box, T ncomp, L&& f) noexcept
+void For (Box const& box, T ncomp, L const& f) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -224,7 +224,7 @@ void For (Gpu::KernelInfo const&, Box const& box, T ncomp, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
-void ParallelFor (Box const& box, T ncomp, L&& f) noexcept
+void ParallelFor (Box const& box, T ncomp, L const& f) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -432,14 +432,14 @@ void ParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 template <typename L1, typename L2>
 void ParallelFor (Gpu::KernelInfo const&, Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
-    ParallelFor(box1,box2,f1,f2);
+    ParallelFor(box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
 }
 
 template <int MT, typename L1, typename L2>
 void ParallelFor (Gpu::KernelInfo const&, Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
     amrex::ignore_unused(MT);
-    ParallelFor(box1,box2,f1,f2);
+    ParallelFor(box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
 }
 
 template <typename L1, typename L2, typename L3>
@@ -1037,7 +1037,7 @@ void HostDeviceFor (Gpu::KernelInfo const&,
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
-void ParallelForRNG (T n, L&& f) noexcept
+void ParallelForRNG (T n, L const& f) noexcept
 {
     for (T i = 0; i < n; ++i) {
         f(i,RandomEngine{});
@@ -1045,7 +1045,7 @@ void ParallelForRNG (T n, L&& f) noexcept
 }
 
 template <typename L>
-void ParallelForRNG (Box const& box, L&& f) noexcept
+void ParallelForRNG (Box const& box, L const& f) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -1057,7 +1057,7 @@ void ParallelForRNG (Box const& box, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
-void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
+void ParallelForRNG (Box const& box, T ncomp, L const& f) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -1073,7 +1073,7 @@ void ParallelForRNG (Box const& box, T ncomp, L&& f) noexcept
 template <typename L>
 void single_task (L&& f) noexcept
 {
-    f();
+    std::forward<L>(f)();
 }
 
 }

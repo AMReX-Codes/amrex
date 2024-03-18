@@ -21,7 +21,7 @@ namespace fudetail {
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-ReduceSum_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+ReduceSum_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
     using value_type = typename FAB::value_type;
     value_type sm = 0;
@@ -47,7 +47,7 @@ std::enable_if_t<IsBaseFab<FAB>::value,
                  std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
                                     std::is_same<OP,ReduceOpLogicalOr>::value,
                                     int, typename FAB::value_type> >
-ReduceMF (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+ReduceMF (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
     using T = std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
                                  std::is_same<OP,ReduceOpLogicalOr>::value,
@@ -66,7 +66,7 @@ std::enable_if_t<IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value,
                  std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
                                     std::is_same<OP,ReduceOpLogicalOr>::value,
                                     int, typename FAB1::value_type> >
-ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& nghost, F&& f)
+ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& nghost, F const& f)
 {
     using T = std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
                                  std::is_same<OP,ReduceOpLogicalOr>::value,
@@ -88,7 +88,7 @@ std::enable_if_t<IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value && IsBaseFab<F
                                     std::is_same<OP,ReduceOpLogicalOr>::value,
                                     int, typename FAB1::value_type> >
 ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-          FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
+          FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
 {
     using T = std::conditional_t<std::is_same<OP,ReduceOpLogicalAnd>::value ||
                                  std::is_same<OP,ReduceOpLogicalOr>::value,
@@ -156,7 +156,7 @@ template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                IntVect const& nghost, F&& f)
+                IntVect const& nghost, F const& f)
 {
     using value_type = typename FAB1::value_type;
     value_type sm = 0;
@@ -234,7 +234,7 @@ template <class FAB1, class FAB2, class FAB3, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
+                FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
 {
     using value_type = typename FAB1::value_type;
     value_type sm = 0;
@@ -311,7 +311,7 @@ namespace fudetail {
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
     using value_type = typename FAB::value_type;
     value_type r = std::numeric_limits<value_type>::max();
@@ -382,7 +382,7 @@ template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                IntVect const& nghost, F&& f)
+                IntVect const& nghost, F const& f)
 {
     using value_type = typename FAB1::value_type;
     value_type r = std::numeric_limits<value_type>::max();
@@ -460,7 +460,7 @@ template <class FAB1, class FAB2, class FAB3, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
+                FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
 {
     using value_type = typename FAB1::value_type;
     value_type r = std::numeric_limits<value_type>::max();
@@ -537,7 +537,7 @@ namespace fudetail {
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
     using value_type = typename FAB::value_type;
     value_type r = std::numeric_limits<value_type>::lowest();
@@ -609,7 +609,7 @@ template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                IntVect const& nghost, F&& f)
+                IntVect const& nghost, F const& f)
 {
     using value_type = typename FAB1::value_type;
     value_type r = std::numeric_limits<value_type>::lowest();
@@ -687,7 +687,7 @@ template <class FAB1, class FAB2, class FAB3, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
+                FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
 {
     using value_type = typename FAB1::value_type;
     value_type r = std::numeric_limits<value_type>::lowest();
@@ -764,7 +764,7 @@ namespace fudetail {
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 bool
-ReduceLogicalAnd_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+ReduceLogicalAnd_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
     int r = true;
 
@@ -836,7 +836,7 @@ template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalAnd_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                       IntVect const& nghost, F&& f)
+                       IntVect const& nghost, F const& f)
 {
     int r = true;
 
@@ -911,7 +911,7 @@ namespace fudetail {
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 bool
-ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
     int r = false;
 
@@ -940,9 +940,9 @@ ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&
 
 template <class FAB, class F>
 std::enable_if_t<amrex::DefinitelyNotHostRunnable<F>::value, bool>
-ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& /*f*/)
 {
-    amrex::ignore_unused(fa,nghost,f);
+    amrex::ignore_unused(fa,nghost);
     amrex::Abort("ReduceLogicalOr: Launch Region is off. Device lambda cannot be called by host.");
     return 0;
 }
@@ -983,7 +983,7 @@ template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalOr_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                      IntVect const& nghost, F&& f)
+                      IntVect const& nghost, F const& f)
 {
     int r = false;
 
