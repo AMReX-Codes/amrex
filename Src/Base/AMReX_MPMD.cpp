@@ -153,7 +153,6 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
         other_root = 0;
     }
 
-    m_ba.define(ba.boxList());
     Vector<Box> bv = ba.boxList().data();
     int this_nboxes = static_cast<int>(ba.size());
     Vector<int> procs = dm.ProcessorMap();
