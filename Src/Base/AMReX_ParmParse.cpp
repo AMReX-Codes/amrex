@@ -1130,7 +1130,7 @@ ParmParse::ParmParse (const std::string& prefix)
 ParmParse::ParmParse (Table& a_table)
     : m_table(a_table)
 {
-    m_pstack.push("");
+    m_pstack.emplace("");
 }
 
 ParmParse::Frame::Frame (ParmParse& pp, const std::string& pfix)

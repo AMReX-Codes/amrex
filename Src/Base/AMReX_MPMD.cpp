@@ -248,10 +248,8 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
                 const int oi = isec.first;
                 const Box& bx = isec.second;
                 const int orank = oprocs[oi];
-                m_SndTags[orank].push_back
-                    (FabArrayBase::CopyComTag(bx, bx, oi, i));
-                m_RcvTags[orank].push_back
-                    (FabArrayBase::CopyComTag(bx, bx, i, oi));
+                m_SndTags[orank].emplace_back(bx, bx, oi, i);
+                m_RcvTags[orank].emplace_back(bx, bx, i, oi);
             }
         }
     }
