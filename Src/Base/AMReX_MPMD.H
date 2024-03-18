@@ -39,7 +39,7 @@ public:
 
     [[nodiscard]] BoxArray const& boxArray () const;
 
-    DistributionMapping const& DistributionMap () const;
+    [[nodiscard]] DistributionMapping const& DistributionMap () const;
 
 private:
     std::map<int,FabArrayBase::CopyComTagsContainer> m_SndTags;
