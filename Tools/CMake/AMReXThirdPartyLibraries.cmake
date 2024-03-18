@@ -1,5 +1,5 @@
 #
-# openPMD_api related targets
+# openPMD-api related targets
 #
 if (AMReX_OPENPMD)
     if (AMReX_MPI)
