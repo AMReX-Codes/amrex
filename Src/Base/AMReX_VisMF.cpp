@@ -2243,9 +2243,10 @@ VisMF::AsyncWrite (const FabArray<FArrayBox>& mf, const std::string& mf_name, bo
 }
 
 void
-VisMF::AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name, bool valid_cells_only)
+VisMF::AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name, bool valid_cells_only) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     if (AsyncOut::UseAsyncOut()) {
+        // Note that we use `true` below to indicate this is rvalue.
         AsyncWriteDoit(mf, mf_name, true, valid_cells_only);
     } else {
         if (valid_cells_only && mf.nGrowVect() != 0) {
