@@ -382,7 +382,8 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
  * \param p predicate function - particles will be copied if p returns true
  *
  */
-template <typename DstTile, typename SrcTile, typename Pred>
+template <typename DstTile, typename SrcTile, typename Pred,
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,int> foo = 0>
 int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
 {
     return filterParticles(dst, src, std::forward<Pred>(p), 0, 0, src.numParticles());
@@ -510,7 +511,8 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
-template <typename DstTile, typename SrcTile, typename Pred, typename F>
+template <typename DstTile, typename SrcTile, typename Pred, typename F,
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,int> foo = 0>
 int filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f) noexcept
 {
     return filterAndTransformParticles(dst, src, std::forward<Pred>(p), std::forward<F>(f), 0, 0);
@@ -578,7 +580,8 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
-template <typename DstTile1, typename DstTile2, typename SrcTile, typename Pred, typename F>
+template <typename DstTile1, typename DstTile2, typename SrcTile, typename Pred, typename F,
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>, int> foo = 0>
 int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
                                  Pred const& p, F&& f) noexcept
 {
