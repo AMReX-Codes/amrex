@@ -173,8 +173,8 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
             {
                 MPI_Recv(&other_nboxes, 1, MPI_INT, other_root, 1, MPI_COMM_WORLD,
                      MPI_STATUS_IGNORE);
+                obv.resize(other_nboxes);
             }
-            obv.resize(other_nboxes);
             MPI_Send(bv.data(), this_nboxes,
                      ParallelDescriptor::Mpi_typemap<Box>::type(),
                      other_root, 2, MPI_COMM_WORLD);
@@ -195,8 +195,8 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
             {
                 MPI_Recv(&other_nboxes, 1, MPI_INT, other_root, 0, MPI_COMM_WORLD,
                      MPI_STATUS_IGNORE);
+                obv.resize(other_nboxes);
             }
-            obv.resize(other_nboxes);
             MPI_Send(&this_nboxes, 1, MPI_INT, other_root, 1, MPI_COMM_WORLD);
             if (!send_ba)
             {
@@ -214,19 +214,23 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
         }
     }
 
-    ParallelDescriptor::Bcast(&other_nboxes, 1);
-    if (obv.empty()){
-        obv.resize(other_nboxes);
+    if (!send_ba) {
+        ParallelDescriptor::Bcast(&other_nboxes, 1);
+        if (obv.empty()){
+            obv.resize(other_nboxes);
+        }
+        ParallelDescriptor::Bcast(obv.data(), obv.size());
+    }
+
+    if (oprocs.empty()) {
         oprocs.resize(other_nboxes);
     }
-
-    if ((myproc == this_root) && (send_ba)){
-        obv = bv;
-    }
-    ParallelDescriptor::Bcast(obv.data(), obv.size());
     ParallelDescriptor::Bcast(oprocs.data(), oprocs.size());
 
-    BoxArray oba(BoxList(std::move(obv)));
+    BoxArray oba;
+    if (!obv.empty()) {
+        oba.define(BoxList(std::move(obv)));
+    }
 
     // At this point, ba and bv hold our boxes, and oba holds the other
     // program's boxes. procs holds mpi ranks of our boxes, and oprocs holds
@@ -248,15 +252,6 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
         if (procs[i] == myproc) {
             if (!send_ba){
                 oba.intersections(bv[i], isects);
-                if((isects.size() > 1) && m_is_thread_safe){
-                    for (auto const& isec : isects){
-                        oba.intersections(isec.second,isects_o);
-                        if (isects_o.size() > 1){
-                            m_is_thread_safe = false;
-                            break;
-                        }
-                    }
-                }
             }
             else{
                 isects.resize(0);
@@ -280,10 +275,10 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
             std::sort(kv.second.begin(), kv.second.end());
         }
     }
-
 }
 
 Copier::Copier (bool)
+    : m_is_thread_safe(true)
 {
     int rank_offset = myproc - ParallelDescriptor::MyProc();
     int this_root, other_root;
@@ -299,24 +294,24 @@ Copier::Copier (bool)
     int this_nboxes;
 
     if (myproc == this_root) {
+        int tags[2];
         if (rank_offset == 0) // the first program
         {
-            MPI_Recv(&this_nboxes, 1, MPI_INT, other_root, 1, MPI_COMM_WORLD,
-                     MPI_STATUS_IGNORE);
-            bv.resize(this_nboxes);
-            MPI_Recv(bv.data(), this_nboxes,
-                     ParallelDescriptor::Mpi_typemap<Box>::type(),
-                     other_root, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            tags[0] = 1;
+            tags[1] = 3;
         }
         else // the second program
         {
-            MPI_Recv(&this_nboxes, 1, MPI_INT, other_root, 0, MPI_COMM_WORLD,
-                     MPI_STATUS_IGNORE);
-            bv.resize(this_nboxes);
-            MPI_Recv(bv.data(), this_nboxes,
-                     ParallelDescriptor::Mpi_typemap<Box>::type(),
-                     other_root, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            tags[0] = 0;
+            tags[1] = 2;
         }
+
+        MPI_Recv(&this_nboxes, 1, MPI_INT, other_root, tags[0], MPI_COMM_WORLD,
+                 MPI_STATUS_IGNORE);
+        bv.resize(this_nboxes);
+        MPI_Recv(bv.data(), this_nboxes,
+                 ParallelDescriptor::Mpi_typemap<Box>::type(),
+                 other_root, tags[1], MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
     ParallelDescriptor::Bcast(&this_nboxes, 1);
@@ -334,26 +329,20 @@ Copier::Copier (bool)
         }
     }
 
-    Vector<int> oprocs;
+    Vector<int> oprocs(this_nboxes);
     if (myproc == this_root) {
         if (rank_offset == 0) // the first program
         {
             MPI_Send(procs.data(), this_nboxes, MPI_INT, other_root, 4, MPI_COMM_WORLD);
-            oprocs.resize(this_nboxes);
             MPI_Recv(oprocs.data(), this_nboxes, MPI_INT, other_root, 5, MPI_COMM_WORLD,
                      MPI_STATUS_IGNORE);
         }
         else // the second program
         {
-            oprocs.resize(this_nboxes);
             MPI_Recv(oprocs.data(), this_nboxes, MPI_INT, other_root, 4, MPI_COMM_WORLD,
                      MPI_STATUS_IGNORE);
             MPI_Send(procs.data(), this_nboxes, MPI_INT, other_root, 5, MPI_COMM_WORLD);
         }
-    }
-
-    if (oprocs.empty()) {
-        oprocs.resize(this_nboxes);
     }
 
     ParallelDescriptor::Bcast(oprocs.data(), oprocs.size());
@@ -363,7 +352,6 @@ Copier::Copier (bool)
     // MPI_COMM_WORLD.
 
     // Build communication meta-data
-    m_is_thread_safe = true;
 
     for (int i = 0; i < this_nboxes; ++i) {
         if (procs[i] == myproc) {
@@ -373,7 +361,6 @@ Copier::Copier (bool)
             m_RcvTags[orank].emplace_back(bx, bx, i, i);
         }
     }
-
 }
 
 BoxArray const& Copier::boxArray () const
