@@ -152,10 +152,9 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
         other_root = 0;
     }
 
+    m_ba.define(ba.boxList());
     Vector<Box> bv = ba.boxList().data();
     int this_nboxes = static_cast<int>(ba.size());
-    m_bv.resize(this_nboxes);
-    m_bv = bv;
     Vector<int> procs = dm.ProcessorMap();
     m_dm.define(procs);
     if (rank_offset != 0) {
@@ -236,14 +235,34 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
     // MPI_COMM_WORLD.
 
     // Build communication meta-data
-    AMREX_ALWAYS_ASSERT(ba.ixType() == oba.ixType());
-    m_is_thread_safe = ba.ixType().cellCentered();
+    if (!send_ba){
+        AMREX_ALWAYS_ASSERT(ba.ixType() == oba.ixType());
+        m_is_thread_safe = ba.ixType().cellCentered();
+    }else{
+        m_is_thread_safe = true;
+    }
 
     std::vector<std::pair<int,Box> > isects;
+    std::vector<std::pair<int,Box> > isects_o;
 
     for (int i = 0; i < this_nboxes; ++i) {
         if (procs[i] == myproc) {
-            oba.intersections(bv[i], isects);
+            if (!send_ba){
+                oba.intersections(bv[i], isects);
+                if((isects.size() > 1) && m_is_thread_safe){
+                    for (auto const& isec : isects){
+                        oba.intersections(isec.second,isects_o);
+                        if (isects_o.size() > 1){
+                            m_is_thread_safe = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            else{
+                isects.resize(0);
+                isects.emplace_back(i,bv[i]);
+            }
             for (auto const& isec : isects) {
                 const int oi = isec.first;
                 const Box& bx = isec.second;
@@ -254,15 +273,18 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
         }
     }
 
-    for (auto& kv : m_SndTags) {
-        std::sort(kv.second.begin(), kv.second.end());
+    if (!send_ba){
+        for (auto& kv : m_SndTags) {
+            std::sort(kv.second.begin(), kv.second.end());
+        }
+        for (auto& kv : m_RcvTags) {
+            std::sort(kv.second.begin(), kv.second.end());
+        }
     }
-    for (auto& kv : m_RcvTags) {
-        std::sort(kv.second.begin(), kv.second.end());
-    }
+
 }
 
-Copier::Copier ()
+Copier::Copier (bool)
 {
     int rank_offset = myproc - ParallelDescriptor::MyProc();
     int this_root, other_root;
@@ -274,6 +296,7 @@ Copier::Copier ()
         other_root = 0;
     }
 
+    Vector<Box> bv;
     int this_nboxes;
 
     if (myproc == this_root) {
@@ -281,8 +304,8 @@ Copier::Copier ()
         {
             MPI_Recv(&this_nboxes, 1, MPI_INT, other_root, 1, MPI_COMM_WORLD,
                      MPI_STATUS_IGNORE);
-            m_bv.resize(this_nboxes);
-            MPI_Recv(m_bv.data(), this_nboxes,
+            bv.resize(this_nboxes);
+            MPI_Recv(bv.data(), this_nboxes,
                      ParallelDescriptor::Mpi_typemap<Box>::type(),
                      other_root, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
@@ -290,22 +313,21 @@ Copier::Copier ()
         {
             MPI_Recv(&this_nboxes, 1, MPI_INT, other_root, 0, MPI_COMM_WORLD,
                      MPI_STATUS_IGNORE);
-            m_bv.resize(this_nboxes);
-            MPI_Recv(m_bv.data(), this_nboxes,
+            bv.resize(this_nboxes);
+            MPI_Recv(bv.data(), this_nboxes,
                      ParallelDescriptor::Mpi_typemap<Box>::type(),
                      other_root, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
     }
 
     ParallelDescriptor::Bcast(&this_nboxes, 1);
-    if (m_bv.empty()) {
-        m_bv.resize(this_nboxes);
+    if (bv.empty()) {
+        bv.resize(this_nboxes);
     }
 
-    ParallelDescriptor::Bcast(m_bv.data(), m_bv.size());
-    Vector<Box> bv(m_bv);
-    BoxArray ba(BoxList(std::move(bv)));
-    m_dm.define(ba);
+    ParallelDescriptor::Bcast(bv.data(), bv.size());
+    m_ba.define(BoxList(std::move(bv)));
+    m_dm.define(m_ba);
     Vector<int> procs = m_dm.ProcessorMap();
     if (rank_offset != 0) {
         for (int i = 0; i < this_nboxes; ++i) {
@@ -342,40 +364,25 @@ Copier::Copier ()
     // MPI_COMM_WORLD.
 
     // Build communication meta-data
-    m_is_thread_safe = ba.ixType().cellCentered();
-
-    std::vector<std::pair<int,Box> > isects;
+    m_is_thread_safe = true;
 
     for (int i = 0; i < this_nboxes; ++i) {
         if (procs[i] == myproc) {
-            ba.intersections(m_bv[i], isects);
-            for (auto const& isec : isects) {
-                const int oi = isec.first;
-                const Box& bx = isec.second;
-                const int orank = oprocs[oi];
-                m_SndTags[orank].push_back
-                    (FabArrayBase::CopyComTag(bx, bx, oi, i));
-                m_RcvTags[orank].push_back
-                    (FabArrayBase::CopyComTag(bx, bx, i, oi));
-            }
+            const Box& bx = m_ba[i];
+            const int orank = oprocs[i];
+            m_SndTags[orank].emplace_back(bx, bx, i, i);
+            m_RcvTags[orank].emplace_back(bx, bx, i, i);
         }
     }
 
-    for (auto& kv : m_SndTags) {
-        std::sort(kv.second.begin(), kv.second.end());
-    }
-    for (auto& kv : m_RcvTags) {
-        std::sort(kv.second.begin(), kv.second.end());
-    }
 }
 
-BoxArray Copier::get_my_ba ()
+BoxArray const& Copier::boxArray () const
 {
-    Vector<Box> bv(m_bv);
-    return BoxArray(BoxList(std::move(bv)));
+    return m_ba;
 }
 
-DistributionMapping Copier::get_my_dm ()
+DistributionMapping const& Copier::DistributionMap () const
 {
     return m_dm;
 }
