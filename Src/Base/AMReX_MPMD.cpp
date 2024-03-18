@@ -246,7 +246,6 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
     }
 
     std::vector<std::pair<int,Box> > isects;
-    std::vector<std::pair<int,Box> > isects_o;
 
     for (int i = 0; i < this_nboxes; ++i) {
         if (procs[i] == myproc) {
