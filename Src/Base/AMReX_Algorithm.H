@@ -89,7 +89,7 @@ namespace amrex
     // Reference: https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    typename std::enable_if<std::is_floating_point<T>::value,bool>::type
+    std::enable_if_t<std::is_floating_point_v<T>,bool>
     almostEqual (T x, T y, int ulp = 2)
     {
         // the machine epsilon has to be scaled to the magnitude of the values used
@@ -100,7 +100,7 @@ namespace amrex
     }
 
     template <class T, class F,
-              typename std::enable_if<std::is_floating_point<T>::value,int>::type FOO = 0>
+              std::enable_if_t<std::is_floating_point_v<T>,int>FOO = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T bisect (T lo, T hi, F f, T tol=1e-12, int max_iter=100)
     {
@@ -141,7 +141,7 @@ namespace amrex
     // It is assumed that the input data are sorted and T[lo] <= v < T[hi].
     // Note that this is different from std::lower_bound.
     template <typename T, typename I,
-              typename std::enable_if<std::is_integral<I>::value,int>::type = 0>
+              std::enable_if_t<std::is_integral_v<I>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     I bisect (T const* d, I lo, I hi, T const& v) {
         while (lo <= hi) {
@@ -210,10 +210,10 @@ namespace amrex
     }
 
     template<typename ItType, typename ValType,
-        typename std::enable_if<
-            std::is_floating_point<typename std::iterator_traits<ItType>::value_type>::value &&
-            std::is_floating_point<ValType>::value,
-        int>::type = 0>
+        std::enable_if_t<
+            std::is_floating_point_v<typename std::iterator_traits<ItType>::value_type> &&
+            std::is_floating_point_v<ValType>,
+        int> = 0>
     AMREX_GPU_HOST_DEVICE
     void linspace (ItType first, const ItType& last, const ValType& start, const ValType& stop)
     {
@@ -228,10 +228,10 @@ namespace amrex
     }
 
     template<typename ItType, typename ValType,
-        typename std::enable_if<
-            std::is_floating_point<typename std::iterator_traits<ItType>::value_type>::value &&
-            std::is_floating_point<ValType>::value,
-        int>::type = 0>
+        std::enable_if_t<
+            std::is_floating_point_v<typename std::iterator_traits<ItType>::value_type> &&
+            std::is_floating_point_v<ValType>,
+        int> = 0>
     AMREX_GPU_HOST_DEVICE
     void logspace (ItType first, const ItType& last,
         const ValType& start, const ValType& stop, const ValType& base)
@@ -256,21 +256,21 @@ struct clz_tag : clzl_tag {};
 // unsigned long, and unsigned long long inputs. Because the sizes of these data types
 // vary on different platforms, we work with fixed-width integer types.
 // these tags and overloads select the smallest version of __builtin_clz that will hold the input type
-template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned int)>::type>
+template <typename T, typename = std::enable_if_t<sizeof(T) <= sizeof(unsigned int)>>
 AMREX_FORCE_INLINE
 int builtin_clz_wrapper (clz_tag, T x) noexcept
 {
     return static_cast<int>(__builtin_clz(x) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
 
-template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned long)>::type>
+template <typename T, typename = std::enable_if_t<sizeof(T) <= sizeof(unsigned long)>>
 AMREX_FORCE_INLINE
 int builtin_clz_wrapper (clzl_tag, T x) noexcept
 {
     return static_cast<int>(__builtin_clzl(x) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
 
-template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(unsigned long long)>::type>
+template <typename T, typename = std::enable_if_t<sizeof(T) <= sizeof(unsigned long long)>>
 AMREX_FORCE_INLINE
 int builtin_clz_wrapper (clzll_tag, T x) noexcept
 {
@@ -279,10 +279,10 @@ int builtin_clz_wrapper (clzll_tag, T x) noexcept
 
 }
 
-template <class T, typename std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
-                                             std::is_same_v<std::decay_t<T>,std::uint16_t> ||
-                                             std::is_same_v<std::decay_t<T>,std::uint32_t> ||
-                                             std::is_same_v<std::decay_t<T>,std::uint64_t>, int> = 0>
+template <class T, std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
+                                    std::is_same_v<std::decay_t<T>,std::uint16_t> ||
+                                    std::is_same_v<std::decay_t<T>,std::uint32_t> ||
+                                    std::is_same_v<std::decay_t<T>,std::uint64_t>, int> = 0>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (T x) noexcept;
 
@@ -327,14 +327,14 @@ int clz_generic (std::uint64_t x) noexcept
 
 namespace detail {
     // likewise with CUDA, there are __clz functions that take (signed) int and long long int
-    template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(int)>::type>
+    template <typename T, typename = std::enable_if_t<sizeof(T) <= sizeof(int)> >
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     int clz_wrapper (clz_tag, T x) noexcept
     {
         return __clz((int) x) - (sizeof(int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
     }
 
-    template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(long long int)>::type>
+    template <typename T, typename = std::enable_if_t<sizeof(T) <= sizeof(long long int)> >
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     int clz_wrapper (clzll_tag, T x) noexcept
     {
@@ -342,10 +342,10 @@ namespace detail {
     }
 }
 
-template <class T, typename std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
-                                             std::is_same_v<std::decay_t<T>,std::uint16_t> ||
-                                             std::is_same_v<std::decay_t<T>,std::uint32_t> ||
-                                             std::is_same_v<std::decay_t<T>,std::uint64_t>, int> >
+template <class T, std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
+                                    std::is_same_v<std::decay_t<T>,std::uint16_t> ||
+                                    std::is_same_v<std::decay_t<T>,std::uint32_t> ||
+                                    std::is_same_v<std::decay_t<T>,std::uint64_t>, int> >
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (T x) noexcept
 {
@@ -359,10 +359,10 @@ int clz (T x) noexcept
 
 #else // !defined AMREX_USE_CUDA
 
-template <class T, typename std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
-                                             std::is_same_v<std::decay_t<T>,std::uint16_t> ||
-                                             std::is_same_v<std::decay_t<T>,std::uint32_t> ||
-                                             std::is_same_v<std::decay_t<T>,std::uint64_t>, int> >
+template <class T, std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
+                                    std::is_same_v<std::decay_t<T>,std::uint16_t> ||
+                                    std::is_same_v<std::decay_t<T>,std::uint32_t> ||
+                                    std::is_same_v<std::decay_t<T>,std::uint64_t>, int> >
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (T x) noexcept
 {

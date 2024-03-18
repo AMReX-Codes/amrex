@@ -222,9 +222,9 @@ namespace amrex
     void Sleep (double sleepsec);  // Sleep for sleepsec seconds
 
 
-    using MaxResSteadyClock = std::conditional<std::chrono::high_resolution_clock::is_steady,
+    using MaxResSteadyClock = std::conditional_t<std::chrono::high_resolution_clock::is_steady,
                                                std::chrono::high_resolution_clock,
-                                               std::chrono::steady_clock>::type;
+                                               std::chrono::steady_clock>;
     double second () noexcept;
 
     template<typename T> void hash_combine (uint64_t & seed, const T & val) noexcept;

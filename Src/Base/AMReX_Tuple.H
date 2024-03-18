@@ -24,7 +24,7 @@ namespace detail {
 template <std::size_t I, typename T>
 struct gpu_tuple_element
 {
-    template <typename U=T, std::enable_if_t<std::is_default_constructible<U>::value,int> = 0>
+    template <typename U=T, std::enable_if_t<std::is_default_constructible_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_element () {} // NOLINT
 
@@ -32,7 +32,7 @@ struct gpu_tuple_element
         : m_value(a_value)
         {}
 
-    template <typename U, std::enable_if_t<std::is_convertible<U&&,T>::value,int> = 0>
+    template <typename U, std::enable_if_t<std::is_convertible_v<U&&,T>,int> = 0>
     explicit constexpr gpu_tuple_element (U && a_value) // NOLINT(bugprone-forwarding-reference-overload)
         : m_value(std::forward<U>(a_value))
         {}
@@ -47,7 +47,7 @@ struct gpu_tuple_impl<I, Head, Tail...>
     : public gpu_tuple_impl<I+1, Tail...>,
       public gpu_tuple_element<I, Head>
 {
-    template<typename U=Head, std::enable_if_t<std::is_default_constructible<U>::value,int> = 0>
+    template<typename U=Head, std::enable_if_t<std::is_default_constructible_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_impl () {} // NOLINT
 
@@ -56,7 +56,7 @@ struct gpu_tuple_impl<I, Head, Tail...>
           gpu_tuple_element<I, Head>(a_head)
         {}
 
-    template <typename UH, typename... UT, std::enable_if_t<std::is_convertible<UH&&,Head>::value,int> = 0>
+    template <typename UH, typename... UT, std::enable_if_t<std::is_convertible_v<UH&&,Head>,int> = 0>
     constexpr gpu_tuple_impl (UH&& a_head, UT &&... a_tail)
         : gpu_tuple_impl<I+1, Tail...>(std::forward<UT>(a_tail)...),
           gpu_tuple_element<I, Head>(std::forward<UH>(a_head))
@@ -68,7 +68,7 @@ struct gpu_tuple_impl<I, Head>
     : public gpu_tuple_element<I, Head>
 {
 
-    template<typename U=Head, std::enable_if_t<std::is_default_constructible<U>::value,int> = 0>
+    template<typename U=Head, std::enable_if_t<std::is_default_constructible_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_impl () {} // NOLINT
 
@@ -76,7 +76,7 @@ struct gpu_tuple_impl<I, Head>
         : gpu_tuple_element<I, Head>(a_head)
         {}
 
-    template <typename U, std::enable_if_t<std::is_convertible<U&&,Head>::value,int> = 0>
+    template <typename U, std::enable_if_t<std::is_convertible_v<U&&,Head>,int> = 0>
     explicit constexpr gpu_tuple_impl (U&& a_head) // NOLINT(bugprone-forwarding-reference-overload)
         : gpu_tuple_element<I, Head>(std::forward<U>(a_head))
         {}
@@ -241,7 +241,7 @@ namespace detail {
     template <typename T> struct unwrap { using type = T; };
     template <typename T> struct unwrap<std::reference_wrapper<T> > { using type = T&; };
     template <typename T>
-    using tuple_decay_t = typename unwrap<typename std::decay<T>::type>::type;
+    using tuple_decay_t = typename unwrap<std::decay_t<T>>::type;
 }
 
 template <typename... Ts>
@@ -298,8 +298,8 @@ TupleCat (TP1 && a, TP2 && b) -> typename detail::tuple_cat_result<detail::tuple
                                                           detail::tuple_decay_t<TP2> >::type;
     return detail::make_tuple<ReturnType>
         (std::forward<TP1>(a), std::forward<TP2>(b),
-         std::make_index_sequence<GpuTupleSize<typename std::decay<TP1>::type>::value>(),
-         std::make_index_sequence<GpuTupleSize<typename std::decay<TP2>::type>::value>());
+         std::make_index_sequence<GpuTupleSize<std::decay_t<TP1>>::value>(),
+         std::make_index_sequence<GpuTupleSize<std::decay_t<TP2>>::value>());
 }
 
 template <typename TP1, typename TP2, typename... TPs>
@@ -355,7 +355,7 @@ constexpr auto
 Apply (F&& f, TP&& t) -> typename detail::apply_result<F,detail::tuple_decay_t<TP> >::type
 {
     return detail::apply_impl(std::forward<F>(f), std::forward<TP>(t),
-                              std::make_index_sequence<GpuTupleSize<typename std::decay<TP>::type>::value>());
+                              std::make_index_sequence<GpuTupleSize<std::decay_t<TP>>::value>());
 }
 
 // Tie

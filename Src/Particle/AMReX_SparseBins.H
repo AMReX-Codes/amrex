@@ -16,15 +16,15 @@ struct SparseBinIteratorFactory
 
     using index_type = unsigned int;
 
-    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_type = std::conditional_t<IsParticleTileData<T>(),
         T,
         const T*
-    >::type;
+    >;
 
-    using const_pointer_input_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_input_type = std::conditional_t<IsParticleTileData<T>(),
         const T&,
         const T*
-    >::type;
+    >;
 
     SparseBinIteratorFactory (const Gpu::DeviceVector<index_type>& bins,
                               const Gpu::DeviceVector<index_type>& offsets,
@@ -99,15 +99,15 @@ public:
     using bin_type = IntVect;
     using index_type = unsigned int;
 
-    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_type = std::conditional_t<IsParticleTileData<T>(),
         T,
         const T*
-    >::type;
+    >;
 
-    using const_pointer_input_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_input_type = std::conditional_t<IsParticleTileData<T>(),
         const T&,
         const T*
-    >::type;
+    >;
 
     /**
      * \brief Populate the bins with a set of items.

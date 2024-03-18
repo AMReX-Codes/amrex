@@ -457,7 +457,7 @@
 #define AMREX_GPU_HOST_DEVICE_FOR_1D(n,i,block) \
 { \
     auto const& amrex_i_n = n; \
-    using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
     if (amrex::Gpu::inLaunchRegion()) { \
         amrex::ParallelFor(amrex_i_n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
     } else { \
@@ -468,7 +468,7 @@
 #define AMREX_GPU_HOST_DEVICE_FOR_1D(n,i,block) \
 { \
     auto const& amrex_i_n = n; \
-    using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
     if (amrex::Gpu::inLaunchRegion()) { \
         amrex::ParallelFor(amrex_i_n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
     } else { \
@@ -481,7 +481,7 @@
 
 #define AMREX_GPU_DEVICE_FOR_1D(n,i,block) \
 { \
-    using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
     amrex::ParallelFor(n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
 }
 

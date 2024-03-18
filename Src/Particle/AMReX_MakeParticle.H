@@ -25,7 +25,7 @@ struct make_particle
 };
 
 template <typename T_ParticleType>
-struct make_particle<T_ParticleType, typename std::enable_if<is_soa_particle<T_ParticleType>::value>::type>
+struct make_particle<T_ParticleType, std::enable_if_t<is_soa_particle<T_ParticleType>::value>>
 {
     template <typename PTD>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

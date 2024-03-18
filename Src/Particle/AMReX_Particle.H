@@ -354,7 +354,7 @@ struct Particle
         return this->m_pos[index];
     }
 
-    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealType& rdata (int index) &
     {
@@ -362,7 +362,7 @@ struct Particle
         return this->m_rdata[index];
     }
 
-    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealType& rdata (int /*index*/) &
     {
@@ -370,7 +370,7 @@ struct Particle
         return this->pos(0);  // bc we must return something
     }
 
-    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const RealType& rdata (int index) const &
     {
@@ -378,7 +378,7 @@ struct Particle
         return this->m_rdata[index];
     }
 
-    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealType rdata (int /*index*/) const &
     {
@@ -389,7 +389,7 @@ struct Particle
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealType rdata (int /*index*/) && = delete;
 
-    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
     {
@@ -399,7 +399,7 @@ struct Particle
                                      this->m_rdata[indz]));
     }
 
-    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect rvec (AMREX_D_DECL(int /*indx*/, int /*indy*/, int /*indz*/)) const &
     {
@@ -407,7 +407,7 @@ struct Particle
         return RealVect(AMREX_D_DECL(0.0, 0.0, 0.0)); // bc we must return something
     }
 
-    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect rvec (const IntVect& indices) const &
     {
@@ -417,7 +417,7 @@ struct Particle
                                      this->m_rdata[indices[2]]));
     }
 
-    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect rvec (const IntVect& /*indices*/) const &
     {
@@ -425,7 +425,7 @@ struct Particle
         return RealVect(AMREX_D_DECL(0.0, 0.0, 0.0)); // bc we must return something
     }
 
-    template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
+    template <int U = T_NInt, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int& idata (int index) &
     {
@@ -433,7 +433,7 @@ struct Particle
         return this->m_idata[index];
     }
 
-    template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
+    template <int U = T_NInt, std::enable_if_t<U == 0, int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     uint64_t& idata (int /*index*/) &
     {
@@ -441,7 +441,7 @@ struct Particle
         return this->m_idcpu;  //bc we must return something
     }
 
-    template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
+    template <int U = T_NInt, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int& idata (int index) const &
     {
@@ -449,7 +449,7 @@ struct Particle
         return this->m_idata[index];
     }
 
-    template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
+    template <int U = T_NInt, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int idata (int /*index*/) const &
     {
