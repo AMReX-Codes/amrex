@@ -37,7 +37,7 @@ public:
     template <typename FAB>
     void recv (FabArray<FAB>& mf, int icomp, int ncomp) const;
 
-    BoxArray const& boxArray () const;
+    [[nodiscard]] BoxArray const& boxArray () const;
 
     DistributionMapping const& DistributionMap () const;
 
