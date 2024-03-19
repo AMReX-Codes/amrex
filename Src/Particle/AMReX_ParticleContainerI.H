@@ -1027,7 +1027,7 @@ template <class F, class PCType,
           std::enable_if_t<! std::is_integral<F>::value, int> bar>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
-addParticles (const PCType& other, F&& f, bool local)
+addParticles (const PCType& other, F const& f, bool local)
 {
     BL_PROFILE("ParticleContainer::addParticles");
 

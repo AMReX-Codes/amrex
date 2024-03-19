@@ -121,7 +121,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (N nitems, const_pointer_input_type v, const Box& bx, F&& f)
+    void build (N nitems, const_pointer_input_type v, const Box& bx, F const& f)
     {
         BL_PROFILE("SparseBins<T>::build");
 

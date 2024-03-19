@@ -470,7 +470,7 @@ bool enforcePeriodic (P& p,
  */
 template <typename PTile, typename ParFunc>
 int
-partitionParticles (PTile& ptile, ParFunc&& is_left)
+partitionParticles (PTile& ptile, ParFunc const& is_left)
 {
     const int np = ptile.numParticles();
     if (np == 0) { return 0; }
@@ -585,7 +585,7 @@ removeInvalidParticles (PTile& ptile)
 
 template <typename PTile, typename PLocator, typename CellAssignor>
 int
-partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& assignor,
+partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const& assignor,
                           const ParticleBufferMap& pmap,
                           const GpuArray<Real,AMREX_SPACEDIM>& plo,
                           const GpuArray<Real,AMREX_SPACEDIM>& phi,
@@ -693,7 +693,7 @@ void clearEmptyEntries (C& c)
 
 template <class index_type, typename F>
 void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type nitems,
-                               index_type nbins, F&& f)
+                               index_type nbins, F const& f)
 {
     BL_PROFILE("PermutationForDeposition()");
 

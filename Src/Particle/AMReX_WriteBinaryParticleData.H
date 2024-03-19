@@ -31,7 +31,7 @@ template <template <class, class> class Container,
           class PTile,
           class F>
 typename std::enable_if<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>::type
-fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F&& f)
+fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F const& f)
 {
     const auto ptd = ptile.getConstParticleTileData();
     const auto np = ptile.numParticles();
@@ -55,7 +55,7 @@ template <template <class, class> class Container,
           class PTile,
           class F>
 typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>::type
-fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F&& f)
+fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F const& f)
 {
     const auto ptd = ptile.getConstParticleTileData();
     const auto np = ptile.numParticles();
@@ -394,7 +394,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
                                   const Vector<int>& write_int_comp,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>& int_comp_names,
-                                  F&& f, bool is_checkpoint)
+                                  F const& f, bool is_checkpoint)
 {
     BL_PROFILE("WriteBinaryParticleData()");
     AMREX_ASSERT(pc.OK());

@@ -28,7 +28,7 @@ namespace detail
 {
     template <int MT, typename T, class F, typename... As>
     std::enable_if_t<std::is_integral<T>::value || std::is_same<T,Box>::value, bool>
-    ParallelFor_helper2 (T const& N, F&& f, TypeList<As...>,
+    ParallelFor_helper2 (T const& N, F const& f, TypeList<As...>,
                          std::array<int,sizeof...(As)> const& runtime_options)
     {
         if (runtime_options == std::array<int,sizeof...(As)>{As::value...}) {
@@ -51,7 +51,7 @@ namespace detail
 
     template <int MT, typename T, class F, typename... As>
     std::enable_if_t<std::is_integral<T>::value, bool>
-    ParallelFor_helper2 (Box const& box, T ncomp, F&& f, TypeList<As...>,
+    ParallelFor_helper2 (Box const& box, T ncomp, F const& f, TypeList<As...>,
                          std::array<int,sizeof...(As)> const& runtime_options)
     {
         if (runtime_options == std::array<int,sizeof...(As)>{As::value...}) {
@@ -67,11 +67,11 @@ namespace detail
 
     template <int MT, typename T, class F, typename... PPs, typename RO>
     std::enable_if_t<std::is_integral<T>::value || std::is_same<T,Box>::value>
-    ParallelFor_helper1 (T const& N, F&& f, TypeList<PPs...>,
+    ParallelFor_helper1 (T const& N, F const& f, TypeList<PPs...>,
                          RO const& runtime_options)
     {
         bool found_option = (false || ... ||
-                             ParallelFor_helper2<MT>(N, std::forward<F>(f),
+                             ParallelFor_helper2<MT>(N, f,
                                                      PPs{}, runtime_options));
         amrex::ignore_unused(found_option);
         AMREX_ASSERT(found_option);
@@ -79,11 +79,11 @@ namespace detail
 
     template <int MT, typename T, class F, typename... PPs, typename RO>
     std::enable_if_t<std::is_integral<T>::value>
-    ParallelFor_helper1 (Box const& box, T ncomp, F&& f, TypeList<PPs...>,
+    ParallelFor_helper1 (Box const& box, T ncomp, F const& f, TypeList<PPs...>,
                          RO const& runtime_options)
     {
         bool found_option = (false || ... ||
-                             ParallelFor_helper2<MT>(box, ncomp, std::forward<F>(f),
+                             ParallelFor_helper2<MT>(box, ncomp, f,
                                                      PPs{}, runtime_options));
         amrex::ignore_unused(found_option);
         AMREX_ASSERT(found_option);

@@ -173,7 +173,7 @@ ReduceSum (PC const& pc, int lev, F&& f)
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f)
+ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
     -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
@@ -373,7 +373,7 @@ ReduceMax (PC const& pc, int lev, F&& f)
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f)
+ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
     -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
@@ -574,7 +574,7 @@ ReduceMin (PC const& pc, int lev, F&& f)
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f)
+ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
     -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
@@ -773,7 +773,7 @@ ReduceLogicalAnd (PC const& pc, int lev, F&& f)
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
-ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
+ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
 {
     int r = true;
 
@@ -969,7 +969,7 @@ ReduceLogicalOr (PC const& pc, int lev, F&& f)
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
-ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
+ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
 {
     int r = false;
 
@@ -1235,7 +1235,7 @@ ParticleReduce (PC const& pc, int lev, F&& f, ReduceOps& reduce_ops)
 template <class RD, class PC, class F, class ReduceOps,
           std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 typename RD::Type
-ParticleReduce (PC const& pc, int lev_min, int lev_max, F&& f, ReduceOps& reduce_ops)
+ParticleReduce (PC const& pc, int lev_min, int lev_max, F const& f, ReduceOps& reduce_ops)
 {
     RD reduce_data(reduce_ops);
     for (int lev = lev_min; lev <= lev_max; ++lev) {

@@ -26,7 +26,7 @@ template <typename STRUCT, typename F,
                                   AMREX_IS_TRIVIALLY_COPYABLE(STRUCT) &&
                                   std::is_trivially_destructible<STRUCT>::value,
                                   int>::type FOO = 0>
-void fill (BaseFab<STRUCT>& aos_fab, F && f)
+void fill (BaseFab<STRUCT>& aos_fab, F const& f)
 {
     Box const& box = aos_fab.box();
     auto const& aos = aos_fab.array();
@@ -88,7 +88,7 @@ void fill (BaseFab<STRUCT>& aos_fab, F && f)
     } else
 #endif
     {
-        amrex::LoopOnCpu(box, [=] (int i, int j, int k) noexcept
+        amrex::LoopOnCpu(box, [&] (int i, int j, int k) noexcept
         {
             f(aos(i,j,k), i, j, k);
         });
