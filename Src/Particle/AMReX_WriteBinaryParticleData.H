@@ -3,7 +3,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_TypeTraits.H>
-#include <AMReX_Particles.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_GpuDevice.H>
 

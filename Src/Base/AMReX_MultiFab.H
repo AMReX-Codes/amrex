@@ -11,10 +11,6 @@
 #include <AMReX_Periodicity.H>
 #include <AMReX_NonLocalBC.H>
 
-#ifdef AMREX_USE_EB
-#include <AMReX_EBMultiFabUtil.H>
-#endif
-
 #include <cstdint>
 
 namespace amrex
