@@ -153,9 +153,7 @@ namespace amrex::OpenMP
         pp.queryAdd("omp_threads", omp_threads);
 
         auto to_int = [](std::string const & str_omp_threads) {
-            std::optional<int> num;
-            try { num = std::stoi(str_omp_threads); }
-            catch (...) { /* nothing */ }
+            std::optional<int> num = std::stoi(str_omp_threads);
             return num;
         };
 

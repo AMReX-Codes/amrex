@@ -157,7 +157,7 @@ namespace amrex::ParallelDescriptor {
                  ParallelDescriptor::IOProcessorNumber(),
                  ParallelDescriptor::Communicator());
 
-      amrex::Print() << "PMI statistics:" << std::endl;
+      amrex::Print() << "PMI statistics:" << '\n';
 
       std::vector<unsigned short> PMI_x_meshcoord(all_x_meshcoords, all_x_meshcoords + ParallelDescriptor::NProcs());
       std::vector<unsigned short> PMI_y_meshcoord(all_y_meshcoords, all_y_meshcoords + ParallelDescriptor::NProcs());
@@ -168,13 +168,13 @@ namespace amrex::ParallelDescriptor {
       std::sort(PMI_z_meshcoord.begin(), PMI_z_meshcoord.end());
 
       auto last = std::unique(PMI_x_meshcoord.begin(), PMI_x_meshcoord.end());
-      amrex::Print() << "# of unique groups: " << std::distance(PMI_x_meshcoord.begin(), last) << std::endl;
+      amrex::Print() << "# of unique groups: " << std::distance(PMI_x_meshcoord.begin(), last) << '\n';
 
       last = std::unique(PMI_y_meshcoord.begin(), PMI_y_meshcoord.end());
-      amrex::Print() << "# of unique groups: " << std::distance(PMI_y_meshcoord.begin(), last) << std::endl;
+      amrex::Print() << "# of unique groups: " << std::distance(PMI_y_meshcoord.begin(), last) << '\n';
 
       last = std::unique(PMI_z_meshcoord.begin(), PMI_z_meshcoord.end());
-      amrex::Print() << "# of unique groups: " << std::distance(PMI_z_meshcoord.begin(), last) << std::endl;
+      amrex::Print() << "# of unique groups: " << std::distance(PMI_z_meshcoord.begin(), last) << '\n';
     }
 #endif
 
@@ -323,7 +323,7 @@ StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
         {
             auto f = ParallelDescriptor::mpi_level_to_string;
             std::cout << "MPI provided < requested: " << f(provided) << " < "
-                      << f(requested) << std::endl;;
+                      << f(requested) << '\n';;
             std::abort();
         }
     }

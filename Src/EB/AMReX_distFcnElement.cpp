@@ -286,7 +286,6 @@ void SplineDistFcnElement2d::set_control_points
   for (auto & pt : pts) {
     control_points_x.push_back(pt[0]);
     control_points_y.push_back(pt[1]);
-    //  std::cout << "Added point (" << pt[0] << "," << pt[1] << ")" << std::endl;
   }
 }
 
@@ -408,7 +407,6 @@ void LineDistFcnElement2d::set_control_points
   for (auto & pt : pts) {
     control_points_x.push_back(pt[0]);
     control_points_y.push_back(pt[1]);
-    //  std::cout << "Added point (" << pt[0] << "," << pt[1] << ")" << std::endl;
   }
 }
 

@@ -103,7 +103,7 @@ AmrCoreAdv::Evolve ()
 
     for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
     {
-        amrex::Print() << "\nCoarse STEP " << step+1 << " starts ..." << std::endl;
+        amrex::Print() << "\nCoarse STEP " << step+1 << " starts ..." << '\n';
 
         ComputeDt();
 
@@ -121,7 +121,7 @@ AmrCoreAdv::Evolve ()
         Real sum_phi = phi_new[0].sum();
 
         amrex::Print() << "Coarse STEP " << step+1 << " ends." << " TIME = " << cur_time
-                       << " DT = " << dt[0] << " Sum(Phi) = " << sum_phi << std::endl;
+                       << " DT = " << dt[0] << " Sum(Phi) = " << sum_phi << '\n';
 
         // sync up time
         for (lev = 0; lev <= finest_level; ++lev) {
@@ -603,7 +603,7 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
     if (Verbose()) {
         amrex::Print() << "[Level " << lev << " step " << istep[lev]+1 << "] ";
         amrex::Print() << "ADVANCE with time = " << t_new[lev]
-                       << " dt = " << dt[lev] << std::endl;
+                       << " dt = " << dt[lev] << '\n';
     }
 
     // Advance a single level for a single time step, and update flux registers
@@ -628,7 +628,7 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
     if (Verbose())
     {
         amrex::Print() << "[Level " << lev << " step " << istep[lev] << "] ";
-        amrex::Print() << "Advanced " << CountCells(lev) << " cells" << std::endl;
+        amrex::Print() << "Advanced " << CountCells(lev) << " cells" << '\n';
     }
 
     if (lev < finest_level)
@@ -691,7 +691,7 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         {
            amrex::Print() << "[Level " << lev << " step " << istep[lev]+1 << "] ";
            amrex::Print() << "ADVANCE with time = " << t_new[lev]
-                          << " dt = " << dt[0] << std::endl;
+                          << " dt = " << dt[0] << '\n';
         }
     }
 
@@ -724,7 +724,7 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         for (int lev = 0; lev <= finest_level; lev++)
         {
             amrex::Print() << "[Level " << lev << " step " << istep[lev] << "] ";
-            amrex::Print() << "Advanced " << CountCells(lev) << " cells" << std::endl;
+            amrex::Print() << "Advanced " << CountCells(lev) << " cells" << '\n';
         }
     }
 }
@@ -887,20 +887,20 @@ AmrCoreAdv::WriteCheckpointFile () const
        HeaderFile << finest_level << "\n";
 
        // write out array of istep
-       for (int i = 0; i < istep.size(); ++i) {
-           HeaderFile << istep[i] << " ";
+       for (auto s : istep) {
+           HeaderFile << s << " ";
        }
        HeaderFile << "\n";
 
        // write out array of dt
-       for (int i = 0; i < dt.size(); ++i) {
-           HeaderFile << dt[i] << " ";
+       for (auto dti : dt) {
+           HeaderFile << dti << " ";
        }
        HeaderFile << "\n";
 
        // write out array of t_new
-       for (int i = 0; i < t_new.size(); ++i) {
-           HeaderFile << t_new[i] << " ";
+       for (auto t_new_i : t_new) {
+           HeaderFile << t_new_i << " ";
        }
        HeaderFile << "\n";
 

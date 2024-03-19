@@ -64,7 +64,7 @@ MyTest::writePlotfile () const
             Real dvol = AMREX_D_TERM(dx[0],*dx[1],*dx[2]);
             amrex::Print() << "Level " << ilev
                            << " max-norm error: " << plotmf[ilev].norminf(3)
-                           << " 1-norm error: " << plotmf[ilev].norm1(3)*dvol << std::endl;
+                           << " 1-norm error: " << plotmf[ilev].norm1(3)*dvol << '\n';
         }
 
         WriteMultiLevelPlotfile("plot", nlevels, amrex::GetVecOfConstPtrs(plotmf),

@@ -18,7 +18,7 @@ CreateDirectories (std::string const& p, mode_t /*mode*/, bool verbose)
     std::filesystem::create_directories(std::filesystem::path{p}, ec);
     if (ec && verbose) {
         amrex::AllPrint() << "amrex::UtilCreateDirectory failed to create "
-                          << p << ": " << ec.message() << std::endl;
+                          << p << ": " << ec.message() << '\n';
     }
     return !ec;
 }
@@ -29,7 +29,7 @@ Exists (std::string const& filename)
     std::error_code ec;
     bool r = std::filesystem::exists(std::filesystem::path{filename}, ec);
     if (ec && amrex::Verbose() > 0) {
-        amrex::AllPrint() << "amrex::FileSystem::Exists failed. " << ec.message() << std::endl;
+        amrex::AllPrint() << "amrex::FileSystem::Exists failed. " << ec.message() << '\n';
     }
     return r;
 }
@@ -40,7 +40,7 @@ CurrentPath ()
     std::error_code ec;
     auto path = std::filesystem::current_path(ec);
     if (ec && amrex::Verbose() > 0) {
-        amrex::AllPrint() << "amrex::FileSystem::CurrentPath failed. " << ec.message() << std::endl;
+        amrex::AllPrint() << "amrex::FileSystem::CurrentPath failed. " << ec.message() << '\n';
     }
     return path.string();
 }

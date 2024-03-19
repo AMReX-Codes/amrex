@@ -121,9 +121,9 @@ BLBackTrace::handler(int s)
         std::ofstream errfile;
         errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
         if (errfile.is_open()) {
-            errfile << std::endl;
+            errfile << '\n';
             TinyProfiler::PrintCallStack(errfile);
-            errfile << std::endl;
+            errfile << '\n';
         }
     }
 #endif
@@ -356,7 +356,7 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
         ss0 << "Proc. " << ParallelDescriptor::MyProc()
             << ", Thread " << omp_get_thread_num()
             << ": \"" << s << "\"";
-        BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
+        BLBackTrace::bt_stack.emplace(ss0.str(), line_file);
     }
     else {
         #pragma omp parallel
@@ -365,7 +365,7 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
             ss0 << "Proc. " << ParallelDescriptor::MyProc()
                 << ", Master Thread"
                 << ": \"" << s << "\"";
-            BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
+            BLBackTrace::bt_stack.emplace(ss0.str(), line_file);
         }
     }
 #else

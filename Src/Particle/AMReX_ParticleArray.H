@@ -46,14 +46,14 @@ public:
 
     AMREX_GPU_HOST_DEVICE
     ref_wrapper(T& ref) noexcept : _ptr(&ref) {}
-    ref_wrapper(T&&) = delete;
+    ref_wrapper(T&&) = delete; // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved) // clang-tidy bug
 
     ~ref_wrapper () = default;
     ref_wrapper (const ref_wrapper&) noexcept = default;
     ref_wrapper (ref_wrapper&&) noexcept = default;
 
     AMREX_GPU_HOST_DEVICE
-    ref_wrapper& operator= (T&& a_other) { this->get()=a_other; return *this; }
+    ref_wrapper& operator= (T&& a_other) { this->get()=std::move(a_other); return *this; }
 
     ref_wrapper& operator= (const ref_wrapper&) noexcept = default;
     ref_wrapper& operator= (ref_wrapper&&) noexcept = default;
@@ -94,7 +94,7 @@ struct DataLayoutPolicy<ContainerType, ParticleType<Types...>, DataLayout::AoS>
     template <typename ValueType>
     static constexpr void push_back (container_type& a_container, ValueType&& a_value)
     {
-        a_container.push_back(a_value);
+        a_container.push_back(std::forward<ValueType>(a_value));
     }
 
     static constexpr std::size_t size (container_type& a_container)
@@ -173,7 +173,7 @@ private:
     }
 
     template <typename ValueType, std::size_t... Is>
-    static constexpr void push_back_impl(container_type& a_container, ValueType&& a_value,
+    static constexpr void push_back_impl(container_type& a_container, ValueType const& a_value,
                                          std::index_sequence<Is...>)
     {
         using expander = int[];

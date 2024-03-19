@@ -248,7 +248,7 @@ void testRedistribute ()
     auto *insitu_bridge = new ParticleInSituBridge;
 
     if (insitu_bridge->initialize()) {
-        amrex::ErrorStream() << "Failed to initialize the in situ bridge." << std::endl;
+        amrex::ErrorStream() << "Failed to initialize the in situ bridge." << '\n';
         amrex::Abort();
     }
 
@@ -259,12 +259,12 @@ void testRedistribute ()
     std::map<std::string, int> iArrays;
 
     if (insitu_bridge->update(0.0, 0, &pc, rStructs)) {
-        amrex::ErrorStream() << "Failed to update the in situ bridge." << std::endl;
+        amrex::ErrorStream() << "Failed to update the in situ bridge." << '\n';
         amrex::Abort();
     }
 
     if (insitu_bridge->finalize()) {
-        amrex::ErrorStream() << "Failed to finalize the in situ bridge." << std::endl;
+        amrex::ErrorStream() << "Failed to finalize the in situ bridge." << '\n';
     }
 
     delete insitu_bridge;

@@ -235,7 +235,7 @@ struct KeepEvenFilter
 };
 
 template <typename PC, typename F>
-void transformParticles (PC& pc, F&& f)
+void transformParticles (PC& pc, F const& f)
 {
     BL_PROFILE("transformParticles");
 
@@ -258,7 +258,7 @@ void transformParticles (PC& pc, F&& f)
 }
 
 template <typename PC, typename F>
-void twoWayTransformParticles (PC& dst1, PC& dst2, const PC& src, F&& f)
+void twoWayTransformParticles (PC& dst1, PC& dst2, const PC& src, F const& f)
 {
     BL_PROFILE("twoWayTransformParticles");
 
@@ -315,7 +315,7 @@ void testTwoWayTransform (const PC& pc)
 }
 
 template <typename PC, typename F>
-void filterParticles (PC& pc, F&& f)
+void filterParticles (PC& pc, F const& f)
 {
     BL_PROFILE("filterParticles");
 
@@ -340,7 +340,7 @@ void filterParticles (PC& pc, F&& f)
 }
 
 template <typename PC, typename Pred, typename F>
-void filterAndTransformParticles (PC& pc, Pred&& p, F&& f)
+void filterAndTransformParticles (PC& pc, Pred const& p, F const& f)
 {
     BL_PROFILE("filterAndTransformParticles");
 
@@ -365,7 +365,7 @@ void filterAndTransformParticles (PC& pc, Pred&& p, F&& f)
 }
 
 template <typename PC, typename Pred, typename F>
-void twoWayFilterAndTransformParticles (PC& dst1, PC& dst2, const PC& src, Pred&& p, F&& f)
+void twoWayFilterAndTransformParticles (PC& dst1, PC& dst2, const PC& src, Pred const& p, F const& f)
 {
     BL_PROFILE("twoWayFilterAndTransformParticles");
 

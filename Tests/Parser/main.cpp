@@ -5,14 +5,16 @@
 
 using namespace amrex;
 
-static int max_stack_size = 0;
-static int test_number = 0;
+namespace {
+    int max_stack_size = 0;
+    int test_number = 0;
+}
 
 template <typename F>
 int test1 (std::string const& f,
            std::map<std::string,Real> const& constants,
            Vector<std::string> const& variables,
-           F && fb, Array<Real,1> const& lo, Array<Real,1> const& hi,
+           F const& fb, Array<Real,1> const& lo, Array<Real,1> const& hi,
            int N, Real reltol, Real abstol)
 {
     amrex::Print() << test_number++ << ". Testing \"" << f << "\"   ";
@@ -56,7 +58,7 @@ template <typename F>
 int test3 (std::string const& f,
            std::map<std::string,Real> const& constants,
            Vector<std::string> const& variables,
-           F && fb, Array<Real,3> const& lo, Array<Real,3> const& hi,
+           F const& fb, Array<Real,3> const& lo, Array<Real,3> const& hi,
            int N, Real reltol, Real abstol)
 {
     amrex::Print() << test_number++ << ". Testing \"" << f << "\"   ";
@@ -102,7 +104,7 @@ template <typename F>
 int test4 (std::string const& f,
            std::map<std::string,Real> const& constants,
            Vector<std::string> const& variables,
-           F && fb, Array<Real,4> const& lo, Array<Real,4> const& hi,
+           F const& fb, Array<Real,4> const& lo, Array<Real,4> const& hi,
            int N, Real reltol, Real abstol)
 {
     amrex::Print() << test_number++ << ". Testing \"" << f << "\"   ";
