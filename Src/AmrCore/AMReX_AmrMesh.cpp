@@ -1133,12 +1133,12 @@ AmrMesh::checkInput ()
     {
         int len = domain.length(idim);
         if (blocking_factor[0][idim] <= max_grid_size[0][idim]) {
-           if (len%blocking_factor[0][idim] != 0)
-           {
-              amrex::Print() << "domain size in direction " << idim << " is " << len << std::endl;
-              amrex::Print() << "blocking_factor is " << blocking_factor[0][idim] << std::endl;
-              amrex::Error("domain size not divisible by blocking_factor");
-           }
+            if (len%blocking_factor[0][idim] != 0)
+            {
+                amrex::Print() << "domain size in direction " << idim << " is " << len << '\n'
+                               << "blocking_factor is " << blocking_factor[0][idim] << '\n';
+                amrex::Error("domain size not divisible by blocking_factor");
+            }
         }
     }
 
@@ -1168,7 +1168,7 @@ AmrMesh::checkInput ()
             amrex::Print() << "Blocking factors on levels " << i << " and " << i+1
                            << " are " << blocking_factor[i] << " " << blocking_factor[i+1]
                            << ". Ref ratio is " << ref_ratio[i]
-                           << ".  They vary too much between levels." << std::endl;
+                           << ".  They vary too much between levels." << '\n';
             amrex::Error("Blocking factors vary too much between levels");
         }
     }
@@ -1183,8 +1183,8 @@ AmrMesh::checkInput ()
             if (blocking_factor[i][idim] <= max_grid_size[i][idim]) {
                 if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
                     amrex::Print() << "max_grid_size in direction " << idim
-                                   << " is " << max_grid_size[i][idim] << std::endl;
-                    amrex::Print() << "blocking_factor is " << blocking_factor[i][idim] << std::endl;
+                                   << " is " << max_grid_size[i][idim] << '\n'
+                                   << "blocking_factor is " << blocking_factor[i][idim] << '\n';
                     amrex::Error("max_grid_size not divisible by blocking_factor");
                 }
             }
@@ -1201,7 +1201,7 @@ AmrMesh::checkInput ()
                                << " max_grid_size is " << max_grid_size[i][idim]
                                << " blocking factor is " << blocking_factor[i][idim] << "\n"
                                << "On level " << i+1 << " in direction " << idim
-                               << " blocking_factor is " << blocking_factor[i+1][idim] << std::endl;
+                               << " blocking_factor is " << blocking_factor[i+1][idim] << '\n';
                 amrex::Error("Coarse level blocking factor not a multiple of fine level blocking factor divided by ref ratio");
             }
         }

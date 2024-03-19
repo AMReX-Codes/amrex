@@ -304,7 +304,7 @@ STLtools::prepare ()
     m_ptmax.z = amrex::get<5>(hv);
 
     if (amrex::Verbose() > 0) {
-        amrex::Print() << "    Min: " << m_ptmin << " Max: " << m_ptmax << std::endl;
+        amrex::Print() << "    Min: " << m_ptmin << " Max: " << m_ptmax << '\n';
     }
 
     // Choose a reference point by extending the normal vector of the first

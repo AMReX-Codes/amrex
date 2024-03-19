@@ -208,7 +208,7 @@ namespace {
       // proc number is known.  So treat it as a programming bug.  Since MPI
       // isn't initialized, all procs must be running this code, so all procs
       // will fail.
-      std::cerr << "error: poutFileName() cannot be called before MPI_Initialize()." << std::endl ;
+      std::cerr << "error: poutFileName() cannot be called before MPI_Initialize()." << '\n' ;
       exit( 111 );
     }
 #else

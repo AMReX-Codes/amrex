@@ -100,19 +100,19 @@ BLBackTrace::handler(int s)
         fclose(p);
     }
 
-    amrex::ErrorStream() << "See " << errfilename << " file for details" << std::endl;
+    amrex::ErrorStream() << "See " << errfilename << " file for details" << '\n';
 
     if (!bt_stack.empty()) {
         std::ofstream errfile;
         errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
         if (errfile.is_open()) {
-            errfile << std::endl;
+            errfile << '\n';
             while (!bt_stack.empty()) {
                 errfile << "== BACKTRACE == " << bt_stack.top().first
                         <<", " << bt_stack.top().second << "\n";
                 bt_stack.pop();
             }
-            errfile << std::endl;
+            errfile << '\n';
         }
     }
 
@@ -149,7 +149,7 @@ BLBackTrace::print_backtrace_info (const std::string& filename)
     {
         amrex::Print() << "Warning @ BLBackTrace::print_backtrace_info: "
                        << filename << " is not a valid output file."
-                       << std::endl;
+                       << '\n';
     }
 }
 

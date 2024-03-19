@@ -2206,7 +2206,7 @@ Amr::coarseTimeStep (Real stop_time)
     }
     if (record_run_info_terse && ParallelDescriptor::IOProcessor()) {
         runlog_terse << level_steps[0] << " " << cumtime << " " << dt_level[0];
-        runlog_terse << std::endl; // Make sure we flush!
+        runlog_terse << '\n';
     }
 
     int check_test = 0;
@@ -2346,11 +2346,11 @@ Amr::coarseTimeStep (Real stop_time)
         if(ParallelDescriptor::IOProcessor()) {
             if (to_checkpoint)
             {
-                amrex::ErrorStream() << "Stopped by user w/ checkpoint" << std::endl;
+                amrex::ErrorStream() << "Stopped by user w/ checkpoint" << '\n';
             }
             else
             {
-                amrex::ErrorStream() << "Stopped by user w/o checkpoint" << std::endl;
+                amrex::ErrorStream() << "Stopped by user w/o checkpoint" << '\n';
             }
         }
     }
@@ -2735,7 +2735,7 @@ Amr::regrid (int  lbase,
                        << time
                        << " : REGRID  with lbase = "
                        << lbase
-                       << std::endl;
+                       << '\n';
 
         if (verbose > 1)
         {
@@ -2916,7 +2916,7 @@ Amr::printGridInfo (std::ostream& os,
         }
     }
 
-    os << std::endl; // Make sure we flush!
+    os << '\n';
 }
 
 
