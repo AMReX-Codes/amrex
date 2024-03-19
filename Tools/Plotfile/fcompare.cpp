@@ -279,19 +279,23 @@ int main_main()
             if (ivar_b[icomp_a] < 0) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
-                               << "< variable not present in both files > \n";
+                               << "< variable not present in both files > "
+                               << "\n";
             } else if (has_nan_a[icomp_a] && has_nan_b[icomp_a]) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
-                               << "< NaN present in both A and B > \n";
+                               << "< NaN present in both A and B > "
+                               << "\n";
             } else if (has_nan_a[icomp_a]) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
-                               << "< NaN present in A > \n";
+                               << "< NaN present in A > "
+                               << "\n";
             } else if (has_nan_b[icomp_a]) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_b[icomp_a]
                                << "  " << std::setw(50)
-                               << "< NaN present in B > \n";
+                               << "< NaN present in B > "
+                               << "\n";
             } else {
                 Real aerr = 0., rerr = 0.;
                 if (aerror[icomp_a] > 0.) {
