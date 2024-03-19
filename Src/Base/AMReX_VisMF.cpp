@@ -11,9 +11,11 @@
 
 namespace amrex {
 
-static const char *TheMultiFabHdrFileSuffix = "_H";
-static const char *FabFileSuffix = "_D_";
-static const char *TheFabOnDiskPrefix = "FabOnDisk:";
+namespace {
+    const char *TheMultiFabHdrFileSuffix = "_H";
+    const char *FabFileSuffix = "_D_";
+    const char *TheFabOnDiskPrefix = "FabOnDisk:";
+}
 
 std::map<std::string, VisMF::PersistentIFStream> VisMF::persistentIFStreams;
 
@@ -192,7 +194,8 @@ operator>> (std::istream&            is,
     return is;
 }
 
-static
+namespace {
+
 std::ostream&
 operator<< (std::ostream&               os,
             const Vector< Vector<Real> >& ar)
@@ -217,7 +220,6 @@ operator<< (std::ostream&               os,
     return os;
 }
 
-static
 std::istream&
 operator>> (std::istream&         is,
             Vector< Vector<Real> >& ar)
@@ -263,6 +265,8 @@ operator>> (std::istream&         is,
     }
 
     return is;
+}
+
 }
 
 std::ostream&

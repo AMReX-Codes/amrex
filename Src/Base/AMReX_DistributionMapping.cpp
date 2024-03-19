@@ -570,7 +570,7 @@ struct WeightedBoxList
     }
 };
 
-static
+namespace {
 void
 knapsack (const std::vector<Long>&         wgts,
           int                              nprocs,
@@ -711,6 +711,7 @@ top: ;
             result[i].push_back(wb.boxid());
         }
     }
+}
 }
 
 void
@@ -1171,7 +1172,7 @@ namespace {
     }
 }
 
-static
+namespace {
 void
 Distribute (const std::vector<SFCToken>&     tokens,
             const std::vector<Long>&         wgts,
@@ -1253,6 +1254,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
     }
     BL_ASSERT(cnt == tokens.size());
 #endif
+}
 }
 
 void

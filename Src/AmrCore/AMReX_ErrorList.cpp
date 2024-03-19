@@ -194,7 +194,9 @@ ErrorList::operator[] (int k) const noexcept
     return *vec[k];
 }
 
-static const char* err_name[] = { "Special", "Standard", "UseAverage" };
+namespace {
+    const char* err_name[] = { "Special", "Standard", "UseAverage" };
+}
 
 std::ostream&
 operator << (std::ostream&    os,
