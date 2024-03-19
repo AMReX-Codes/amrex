@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX.H>
+#include <AMReX_BCRec.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiCutFab.H>

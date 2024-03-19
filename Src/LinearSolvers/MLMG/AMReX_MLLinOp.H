@@ -12,6 +12,7 @@
 #endif
 
 #ifdef AMREX_USE_EB
+#include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_MultiCutFab.H>
 #endif
 
