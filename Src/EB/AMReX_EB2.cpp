@@ -260,7 +260,7 @@ BuildFromChkptFile (std::string const& fname,
                      max_coarsening_level, ngrow,
                      build_coarse_level_by_coarsening,
                      a_extend_domain_face));
-}
+} // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 
 namespace {
 int comp_max_crse_level (Box cdomain, const Box& domain)

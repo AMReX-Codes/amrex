@@ -128,6 +128,7 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
 
             break;
         }
+        default : { break; }
     }
 }
 

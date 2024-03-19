@@ -70,6 +70,7 @@ BLBackTrace::handler(int s)
     case SIGABRT:
         amrex::ErrorStream() << "SIGABRT\n";
         break;
+    default: break;
     }
 
 #if defined(AMREX_BACKTRACE_SUPPORTED) || defined(AMREX_TINY_PROFILING)
