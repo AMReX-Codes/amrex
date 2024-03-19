@@ -1830,8 +1830,8 @@ Amr::checkPoint ()
                 amrex::FileOpenFailed(FAHeaderFilesName);
             }
 
-            for(int i(0); i < FAHeaderNames.size(); ++i) {
-                FAHeaderFile << FAHeaderNames[i] << '\n';
+            for(const auto & FAHeaderName : FAHeaderNames) {
+                FAHeaderFile << FAHeaderName << '\n';
             }
         }
     }

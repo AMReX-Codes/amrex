@@ -182,8 +182,8 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     idata.resize(np*iChunkSize);
 
     int num_output_real = 0;
-    for (int i = 0; i < (int) write_real_comp.size(); ++i) {
-        if (write_real_comp[i]) { ++num_output_real; }
+    for (int i : write_real_comp) {
+        if (i) { ++num_output_real; }
     }
 
     const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
@@ -204,9 +204,9 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     const auto write_real_comp_d_ptr = write_real_comp_d.data();
 
     std::size_t poffset = 0;
-    for (int i = 0; i < tiles.size(); i++) {
-        const auto& ptile = pc.ParticlesAt(lev, grid, tiles[i]);
-        const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tiles[i]));
+    for (int tile : tiles) {
+        const auto& ptile = pc.ParticlesAt(lev, grid, tile);
+        const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tile));
         int np_tile = ptile.numParticles();
         typename PC::IntVector offsets(np_tile);
         int num_copies = Scan::ExclusiveSum(np_tile, pflags.begin(), offsets.begin(), Scan::retSum);
@@ -291,8 +291,8 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     idata.resize(np*iChunkSize);
 
     int num_output_real = 0;
-    for (int i = 0; i < (int) write_real_comp.size(); ++i) {
-        if (write_real_comp[i]) { ++num_output_real; }
+    for (int i : write_real_comp) {
+        if (i) { ++num_output_real; }
     }
 
     const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
@@ -300,9 +300,9 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
 
     int* iptr = idata.dataPtr();
     ParticleReal* rptr = rdata.dataPtr();
-    for (unsigned i = 0; i < tiles.size(); i++) {
-        const auto& ptile = pc.ParticlesAt(lev, grid, tiles[i]);
-        const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tiles[i]));
+    for (int tile : tiles) {
+        const auto& ptile = pc.ParticlesAt(lev, grid, tile);
+        const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tile));
         for (int pindex = 0; pindex < ptile.numParticles(); ++pindex) {
             if (pflags[pindex]) {
                 const auto& soa  = ptile.GetStructOfArrays();
@@ -495,8 +495,8 @@ void WriteBinaryParticleDataSync (PC const& pc,
         }
 
         int num_output_real = 0;
-        for (int i = 0; i < (int) write_real_comp.size(); ++i) {
-            if (write_real_comp[i]) { ++num_output_real; }
+        for (int i : write_real_comp) {
+            if (i) { ++num_output_real; }
         }
 
         int num_output_int = 0;
