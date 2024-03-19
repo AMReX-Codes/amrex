@@ -20,7 +20,7 @@ MFIter::allowMultipleMFIters (int allow)
 MFIter::MFIter (const FabArrayBase& fabarray_,
                 unsigned char       flags_)
     :
-    fabArray(fabarray_),
+    fabArray(&fabarray_),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
     streams(Gpu::numGpuStreams()),
@@ -38,7 +38,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 MFIter::MFIter (const FabArrayBase& fabarray_,
                 bool                do_tiling_)
     :
-    fabArray(fabarray_),
+    fabArray(&fabarray_),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
     streams(Gpu::numGpuStreams()),
@@ -57,7 +57,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
                 const IntVect&      tilesize_,
                 unsigned char       flags_)
     :
-    fabArray(fabarray_),
+    fabArray(&fabarray_),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
     streams(Gpu::numGpuStreams()),
@@ -75,7 +75,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char flags_)
     :
     m_fa(std::make_unique<FabArrayBase>(ba,dm,1,0)),
-    fabArray(*m_fa),
+    fabArray(m_fa.get()),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
     streams(Gpu::numGpuStreams()),
@@ -99,7 +99,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tiling_)
     :
     m_fa(std::make_unique<FabArrayBase>(ba,dm,1,0)),
-    fabArray(*m_fa),
+    fabArray(m_fa.get()),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
     streams(Gpu::numGpuStreams()),
@@ -125,7 +125,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
                 const IntVect& tilesize_, unsigned char flags_)
     :
     m_fa(std::make_unique<FabArrayBase>(ba,dm,1,0)),
-    fabArray(*m_fa),
+    fabArray(m_fa.get()),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
     streams(Gpu::numGpuStreams()),
@@ -150,7 +150,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInfo& info)
     :
     m_fa(std::make_unique<FabArrayBase>(ba, dm, 1, 0)),
-    fabArray(*m_fa),
+    fabArray(m_fa.get()),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
     streams(std::max(1,std::min(Gpu::numGpuStreams(),info.num_streams))),
@@ -182,7 +182,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
 
 MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
     :
-    fabArray(fabarray_),
+    fabArray(&fabarray_),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
     streams(std::max(1,std::min(Gpu::numGpuStreams(),info.num_streams))),
@@ -282,14 +282,14 @@ MFIter::Initialize ()
 
     if (flags & AllBoxes)  // a very special case
     {
-        index_map    = &(fabArray.IndexArray());
+        index_map    = &(fabArray->IndexArray());
         currentIndex = 0;
         beginIndex   = 0;
         endIndex     = static_cast<int>(index_map->size());
     }
     else
     {
-        const FabArrayBase::TileArray* pta = fabArray.getTileArray(tile_size);
+        const FabArrayBase::TileArray* pta = fabArray->getTileArray(tile_size);
 
         index_map            = &(pta->indexMap);
         local_index_map      = &(pta->localIndexMap);
@@ -366,7 +366,7 @@ MFIter::Initialize ()
         Gpu::Device::setStreamIndex(currentIndex%streams);
 #endif
 
-        typ = fabArray.boxArray().ixType();
+        typ = fabArray->boxArray().ixType();
     }
 }
 
@@ -462,7 +462,7 @@ MFIter::growntilebox (int a_ng) const noexcept
 {
     Box bx = tilebox();
     IntVect ngv{a_ng};
-    if (a_ng < -100) { ngv = fabArray.nGrowVect(); }
+    if (a_ng < -100) { ngv = fabArray->nGrowVect(); }
     const Box& vbx = validbox();
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         if (bx.smallEnd(d) == vbx.smallEnd(d)) {
@@ -495,7 +495,7 @@ Box
 MFIter::grownnodaltilebox (int dir, int a_ng) const noexcept
 {
     IntVect ngv(a_ng);
-    if (a_ng < -100) { ngv = fabArray.nGrowVect(); }
+    if (a_ng < -100) { ngv = fabArray->nGrowVect(); }
     return grownnodaltilebox(dir, ngv);
 }
 

@@ -470,7 +470,7 @@ public:
 private:
     StateData* statedata;
     int src_comp;
-    const Geometry& geom;
+    const Geometry* geom;
 
 };
 

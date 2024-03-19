@@ -34,15 +34,16 @@ class ParIterBase_impl
 private:
 
     using PCType = ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
-    using ContainerRef    = typename std::conditional<is_const, PCType const&, PCType&>::type;
-    using ParticleTileRef = typename std::conditional
-        <is_const, typename PCType::ParticleTileType const&, typename PCType::ParticleTileType &>::type;
-    using ParticleTilePtr = typename std::conditional
-        <is_const, typename PCType::ParticleTileType const*, typename PCType::ParticleTileType *>::type;
-    using AoSRef          = typename std::conditional
-        <is_const, typename PCType::AoS const&, typename PCType::AoS&>::type;
-    using SoARef          = typename std::conditional
-        <is_const, typename PCType::SoA const&, typename PCType::SoA&>::type;
+    using ContainerRef    = std::conditional_t<is_const, PCType const&, PCType&>;
+    using ContainerPtr    = std::conditional_t<is_const, PCType const*, PCType*>;
+    using ParticleTileRef = std::conditional_t
+        <is_const, typename PCType::ParticleTileType const&, typename PCType::ParticleTileType &>;
+    using ParticleTilePtr = std::conditional_t
+        <is_const, typename PCType::ParticleTileType const*, typename PCType::ParticleTileType *>;
+    using AoSRef          = std::conditional_t
+        <is_const, typename PCType::AoS const&, typename PCType::AoS&>;
+    using SoARef          = std::conditional_t
+        <is_const, typename PCType::SoA const&, typename PCType::SoA&>;
 
 public:
 
@@ -99,7 +100,7 @@ public:
 
     [[nodiscard]] std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
 
-    [[nodiscard]] const Geometry& Geom (int lev) const { return m_pc.Geom(lev); }
+    [[nodiscard]] const Geometry& Geom (int lev) const { return m_pc->Geom(lev); }
 
 protected:
 
@@ -107,7 +108,7 @@ protected:
     int m_pariter_index;
     Vector<int> m_valid_index;
     Vector<ParticleTilePtr> m_particle_tiles;
-    ContainerRef m_pc;
+    ContainerPtr m_pc;
 };
 
 template <typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
@@ -172,7 +173,7 @@ ParIterBase_impl<is_const, ParticleType, NArrayReal, NArrayInt, Allocator, CellA
       MFIter(*pc.m_dummy_mf[level], pc.do_tiling ? info.EnableTiling(pc.tile_size) : info),
       m_level(level),
       m_pariter_index(0),
-      m_pc(pc)
+      m_pc(&pc)
 {
     auto& particles = pc.GetParticles(level);
 
@@ -224,7 +225,7 @@ ParIterBase_impl<is_const, T_ParticleType, NArrayReal, NArrayInt, Allocator, Cel
            pc.do_tiling ? pc.tile_size : IntVect::TheZeroVector()),
     m_level(level),
     m_pariter_index(0),
-    m_pc(pc)
+    m_pc(&pc)
 {
     auto& particles = pc.GetParticles(level);
 

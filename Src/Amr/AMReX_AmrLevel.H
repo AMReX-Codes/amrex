@@ -553,8 +553,8 @@ private:
     //
     // The data.
     //
-    AmrLevel&                         m_amrlevel;
-    MultiFab&                         m_leveldata;
+    AmrLevel*                         m_amrlevel;
+    MultiFab*                         m_leveldata;
     std::vector< std::pair<int,int> > m_range;
     MultiFab                          m_fabs;
     int                               m_ncomp;
@@ -591,8 +591,8 @@ private:
     //
     // The data.
     //
-    AmrLevel&                  m_amrlevel;
-    MultiFab&                  m_leveldata;
+    AmrLevel*                  m_amrlevel;
+    MultiFab*                  m_leveldata;
     MultiFabCopyDescriptor     m_mfcd;
     Vector< Vector<MultiFabId> > m_mfid;     // [level][oldnew]
     Interpolater*              m_map = nullptr;

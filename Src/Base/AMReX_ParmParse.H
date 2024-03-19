@@ -1062,7 +1062,7 @@ public:
     struct PP_entry;
     using Table = std::list<PP_entry>;
     static void appendTable(ParmParse::Table& tab);
-    [[nodiscard]] const Table& table() const {return m_table;}
+    [[nodiscard]] const Table& table() const {return *m_table;}
 
 protected:
 
@@ -1080,7 +1080,7 @@ protected:
     //
     //! Prefix used in keyword search.
     std::stack<std::string> m_pstack;
-    Table& m_table;
+    Table* m_table;
 };
 
 struct ParmParse::PP_entry
@@ -1115,7 +1115,7 @@ public:
     void pop();
     [[nodiscard]] std::string getPrefix() const;
 private:
-    ParmParse& m_pp;
+    ParmParse* m_pp;
     int        m_np{0};
 };
 

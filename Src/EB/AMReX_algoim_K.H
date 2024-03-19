@@ -253,12 +253,12 @@ struct Interval
 template<int M, int N, typename Phi, typename F, bool S>
 struct ImplicitIntegral
 {
-    const Phi& phi;
-    F& f;
-    const GpuArray<bool,N> free;
+    const Phi* phi;
+    F* f;
+    GpuArray<bool,N> free;
     GpuArray<PsiCode<N>,1 << (N - 1)> psi;
     int psiCount;
-    const BoundingBox<N> xrange;
+    BoundingBox<N> xrange;
     int e0 = -1;
     GpuArray<Interval,N> xint;
     static constexpr int p = 4;
@@ -281,13 +281,13 @@ struct ImplicitIntegral
             Real dphi_max = 0.0_rt;
             for (int dim = 0; dim < N; ++dim) {
                 if (free[dim]) {
-                    dphi_max += std::abs(phi.grad(dim));
+                    dphi_max += std::abs(phi->grad(dim));
                 } else {
                     mid[dim] = xrange(psi[i].side(dim),dim);
                 }
             }
             dphi_max *= 0.5*almostone;
-            const Real phi_0 = phi(mid);
+            const Real phi_0 = (*phi)(mid);
             bool uniform_sign = (phi_0 > dphi_max) || (phi_0 < -dphi_max);
             if (uniform_sign)
             {
@@ -338,7 +338,7 @@ struct ImplicitIntegral
                     ++k;
                 }
             }
-            f.evalIntegrand(x, w);
+            f->evalIntegrand(x, w);
 
             for (int m = M-1; m >= 0; --m) {
                 ++(i[m]);
@@ -385,8 +385,8 @@ struct ImplicitIntegral
             int nroots = 0;
 
             x[e0] = x_min;
-            Real phi_lo = phi(x);
-            Real xroot = x[e0] - phi_lo / phi.grad(e0);
+            Real phi_lo = (*phi)(x);
+            Real xroot = x[e0] - phi_lo / phi->grad(e0);
             if (xroot > x_min && xroot < x_max) {
                 roots[nroots++] = xroot;
             }
@@ -398,10 +398,10 @@ struct ImplicitIntegral
                 x[e0] = roots[i];
                 Real mag = 0._rt;
                 for (int dim = 0; dim < N; ++dim) {
-                    mag += phi.grad(dim)*phi.grad(dim);
+                    mag += phi->grad(dim)*phi->grad(dim);
                 }
                 mag = std::sqrt(mag);
-                f.evalIntegrand(x, (mag/std::abs(phi.grad(e0)))*w);
+                f->evalIntegrand(x, (mag/std::abs(phi->grad(e0)))*w);
             }
 
             return;
@@ -412,7 +412,7 @@ struct ImplicitIntegral
         Real x_max = xrange.max(e0);
         roots[0] = x_min;
         int nroots = 1;
-        if (phi.grad(e0) != Real(0.0)) {
+        if (phi->grad(e0) != Real(0.0)) {
             for (int i = 0; i < psiCount; ++i)
             {
                 for (int dim = 0; dim < N; ++dim) {
@@ -422,8 +422,8 @@ struct ImplicitIntegral
                 }
                 // x is now valid in all variables except e0
                 x[e0] = x_min;
-                Real phi_lo = phi(x);
-                Real xroot = x[e0] - phi_lo / phi.grad(e0);
+                Real phi_lo = (*phi)(x);
+                Real xroot = x[e0] - phi_lo / phi->grad(e0);
                 if (xroot > x_min && xroot < x_max) {
                     roots[nroots++] = xroot;
                 }
@@ -454,7 +454,7 @@ struct ImplicitIntegral
                         x[dim] = xrange(psi[j].side(dim), dim);
                     }
                 }
-                bool new_ok = (phi(x) > 0.0) ? (psi[j].sign() >= 0) : (psi[j].sign() <= 0);
+                bool new_ok = ((*phi)(x) > 0.0) ? (psi[j].sign() >= 0) : (psi[j].sign() <= 0);
                 okay = okay && new_ok;
             }
             if (!okay) { continue; }
@@ -463,7 +463,7 @@ struct ImplicitIntegral
             {
                 x[e0] = roots[i] + (roots[i+1] - roots[i]) * gauss_x[j];
                 Real gw = (roots[i+1] - roots[i]) * gauss_w[j];
-                f.evalIntegrand(x, w * gw);
+                f->evalIntegrand(x, w * gw);
             }
         }
     }
@@ -475,7 +475,7 @@ struct ImplicitIntegral
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
                       int psiCount_) noexcept
-        : phi(phi_), f(f_), free(free_), psi(psi_), psiCount(psiCount_),
+        : phi(&phi_), f(&f_), free(free_), psi(psi_), psiCount(psiCount_),
           xrange()
     {
         // For the one-dimensional base case, evaluate the
@@ -495,7 +495,7 @@ struct ImplicitIntegral
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
                       int psiCount_) noexcept
-        : phi(phi_), f(f_), free(free_), psi(psi_), psiCount(psiCount_),
+        : phi(&phi_), f(&f_), free(free_), psi(psi_), psiCount(psiCount_),
           xrange()
     {
         // Establish interval bounds for prune() and remaining part of ctor.
@@ -538,8 +538,8 @@ struct ImplicitIntegral
         {
             Real gmax = -1.;
             for (int dim = 0; dim < N; ++dim) {
-                if (free[dim] && std::abs(phi.grad(dim)) > gmax) {
-                    gmax = std::abs(phi.grad(dim));
+                if (free[dim] && std::abs(phi->grad(dim)) > gmax) {
+                    gmax = std::abs(phi->grad(dim));
                     e0 = dim;
                 }
             }
@@ -560,7 +560,7 @@ struct ImplicitIntegral
 
             // w.z. We assume grad does not change.
             int bottomSign, topSign;
-            detail::determineSigns<S>(phi.grad(e0) > 0.0, psi[i].sign(),
+            detail::determineSigns<S>(phi->grad(e0) > 0.0, psi[i].sign(),
                                    bottomSign, topSign);
             // w.z. There are sides 0 and 1.
             newPsi[newPsiCount++] = PsiCode<N>(psi[i], e0, 0, bottomSign);
@@ -571,7 +571,7 @@ struct ImplicitIntegral
         GpuArray<bool,N> new_free = free;
         new_free[e0] = false;
         ImplicitIntegral<M-1,N,Phi,ImplicitIntegral<M,N,Phi,F,S>,false>
-            (phi, *this, new_free, newPsi, newPsiCount);
+            (*phi, *this, new_free, newPsi, newPsiCount);
     }
 };
 
