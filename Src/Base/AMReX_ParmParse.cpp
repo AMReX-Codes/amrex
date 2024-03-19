@@ -29,11 +29,13 @@ extern "C" void amrex_finalize_namelist ();
 
 namespace amrex {
 
+namespace {
 #ifdef AMREX_XSDK
-static bool finalize_verbose = false;
+    bool finalize_verbose = false;
 #else
-static bool finalize_verbose = true;
+    bool finalize_verbose = true;
 #endif
+}
 
 std::string const ParmParse::FileKeyword = "FILE";
 
@@ -1178,7 +1180,8 @@ ParmParse::appendTable(ParmParse::Table& tab)
   g_table.splice(g_table.end(), tab);
 }
 
-static
+namespace {
+
 bool
 unused_table_entries_q (const ParmParse::Table& table, const std::string& prefix = std::string())
 {
@@ -1215,7 +1218,6 @@ unused_table_entries_q (const ParmParse::Table& table, const std::string& prefix
     return false;
 }
 
-static
 void
 finalize_table (const std::string& pfx, const ParmParse::Table& table)
 {
@@ -1241,6 +1243,8 @@ finalize_table (const std::string& pfx, const ParmParse::Table& table)
             }
         }
     }
+}
+
 }
 
 void
@@ -1278,7 +1282,7 @@ ParmParse::hasUnusedInputs (const std::string& prefix)
     return unused_table_entries_q(g_table, prefix);
 }
 
-static
+namespace {
 void
 get_entries_under_prefix (std::vector<std::string>& found_entries,
                          const ParmParse::Table& table,
@@ -1306,6 +1310,7 @@ get_entries_under_prefix (std::vector<std::string>& found_entries,
                                      only_unused, add_values);
         }
     }
+}
 }
 
 std::vector<std::string>

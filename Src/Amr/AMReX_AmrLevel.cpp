@@ -726,11 +726,12 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
 #endif
 }
 
-static
+namespace {
 bool
 NeedToTouchUpPhysCorners (const Geometry& geom)
 {
     return geom.isAnyPeriodic() && !geom.isAllPeriodic();
+}
 }
 
 void
@@ -1154,7 +1155,8 @@ FillPatchIterator::FillFromTwoLevels (Real time, int idx, int scomp, int dcomp, 
                               desc.getBCs(),scomp);
 }
 
-static
+namespace {
+
 bool
 HasPhysBndry (const Box&      b,
               const Box&      dmn,
@@ -1174,7 +1176,6 @@ HasPhysBndry (const Box&      b,
     return false;
 }
 
-static
 void
 FixUpPhysCorners (FArrayBox&      fab,
                   AmrLevel&       TheLevel,
@@ -1256,6 +1257,8 @@ FixUpPhysCorners (FArrayBox&      fab,
             fab.copy<RunOn::Host>(tmp,0,dcomp,ncomp);
         }
     }
+}
+
 }
 
 void

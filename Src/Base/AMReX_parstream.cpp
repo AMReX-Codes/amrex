@@ -40,12 +40,14 @@ namespace amrex
 
 // the shared variables
 
-  static std::string       s_pout_filename ;
-  static std::string       s_pout_basename ;
-  static std::ofstream     s_pout ;
+namespace {
 
-  static bool              s_pout_init = false ;
-  static bool              s_pout_open = false ;
+  std::string       s_pout_filename ;
+  std::string       s_pout_basename ;
+  std::ofstream     s_pout ;
+
+  bool              s_pout_init = false ;
+  bool              s_pout_open = false ;
 
 ////////////////////////////////////////////////////////////////
 
@@ -54,7 +56,7 @@ namespace amrex
 #ifdef BL_USE_MPI
 // in parallel, compute the filename give the basename
 //[NOTE: dont call this before MPI is initialized.]
-  static void setFileName()
+  void setFileName()
   {
     int outInterv = 1;
     ParmParse pp("amrex");
@@ -76,7 +78,7 @@ namespace amrex
   }
 
 // in parallel, close the file if nec., open it and check for success
-  static void openFile()
+  void openFile()
   {
     if ( s_pout_open )
     {
@@ -90,17 +92,19 @@ namespace amrex
 
 #else
 // in serial, filename is always cout
-  static void setFileName()
+  void setFileName()
   {
     s_pout_filename = "cout" ;
   }
 
 // in serial, this does absolutely nothing
-  static void openFile()
+  void openFile()
   {
     amrex::ignore_unused(s_pout);
   }
 #endif
+
+}
 
 ////////////////////////////////////////////////////////////////
 
