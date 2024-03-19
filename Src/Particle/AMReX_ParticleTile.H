@@ -1087,7 +1087,7 @@ struct ParticleTile
         return nbytes;
     }
 
-    void swap (ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>& other)
+    void swap (ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>& other) noexcept
     {
         if constexpr (ParticleType::is_soa_particle) {
             GetStructOfArrays().GetIdCPUData().swap(other.GetStructOfArrays().GetIdCPUData());
