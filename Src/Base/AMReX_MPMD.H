@@ -26,7 +26,7 @@ int MyProgId (); //! Program ID
 class Copier
 {
 public:
-    Copier (bool);
+    explicit Copier (bool);
 
     Copier (BoxArray const& ba, DistributionMapping const& dm,
             bool send_ba = false);

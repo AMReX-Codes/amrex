@@ -51,8 +51,8 @@ namespace
         }
         int countForAll = static_cast<int>(totalItems / binCounts.size());
         int remainder = static_cast<int>(totalItems % binCounts.size());
-        for(int i(0); i < binCounts.size(); ++i) {
-            binCounts[i] = countForAll;
+        for(int & binCount : binCounts) {
+            binCount = countForAll;
         }
         for(int i(0); i < remainder; ++i) {
             ++binCounts[i];
@@ -304,12 +304,12 @@ operator<< (std::ostream        &os,
     if(hd.m_vers == VisMF::Header::NoFabHeaderFAMinMax_v1) {
       BL_ASSERT(hd.m_famin.size() == hd.m_ncomp);
       BL_ASSERT(hd.m_famin.size() == hd.m_famax.size());
-      for(int i(0); i < hd.m_famin.size(); ++i) {
-        os << hd.m_famin[i] << ',';
+      for(auto famin : hd.m_famin) {
+        os << famin << ',';
       }
       os << '\n';
-      for(int i(0); i < hd.m_famax.size(); ++i) {
-        os << hd.m_famax[i] << ',';
+      for(auto famax : hd.m_famax) {
+        os << famax << ',';
       }
       os << '\n';
     }
@@ -392,14 +392,14 @@ operator>> (std::istream  &is,
       AMREX_ASSERT(hd.m_ncomp >= 0 && hd.m_ncomp < std::numeric_limits<int>::max());
       hd.m_famin.resize(hd.m_ncomp);
       hd.m_famax.resize(hd.m_ncomp);
-      for(int i(0); i < hd.m_famin.size(); ++i) {
-        is >> hd.m_famin[i] >> ch;
+      for(auto famin : hd.m_famin) {
+        is >> famin >> ch;
         if( ch != ',' ) {
           amrex::Error("Expected a ',' when reading hd.m_famin");
         }
       }
-      for(int i(0); i < hd.m_famax.size(); ++i) {
-        is >> hd.m_famax[i] >> ch;
+      for(auto famax : hd.m_famax) {
+        is >> famax >> ch;
         if( ch != ',' ) {
           amrex::Error("Expected a ',' when reading hd.m_famax");
         }
@@ -862,14 +862,14 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
       m_famax[comp] = -std::numeric_limits<Real>::max();
     }
 
-    for(int ibox(0); ibox < m_min.size(); ++ibox) {
-      for(int comp(0); comp < m_min[ibox].size(); ++comp) {
-        m_famin[comp] = std::min(m_famin[comp], m_min[ibox][comp]);
+    for(auto & ibox : m_min) {
+      for(int comp(0); comp < ibox.size(); ++comp) {
+        m_famin[comp] = std::min(m_famin[comp], ibox[comp]);
       }
     }
-    for(int ibox(0); ibox < m_max.size(); ++ibox) {
-      for(int comp(0); comp < m_max[ibox].size(); ++comp) {
-        m_famax[comp] = std::max(m_famax[comp], m_max[ibox][comp]);
+    for(auto & ibox : m_max) {
+      for(int comp(0); comp < ibox.size(); ++comp) {
+        m_famax[comp] = std::max(m_famax[comp], ibox[comp]);
       }
     }
 }
@@ -978,8 +978,8 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     const Vector<int> &pmap = mf.DistributionMap().ProcessorMap();
     std::set<int> procsWithData;
     Vector<int> procsWithDataVector;
-    for(int i(0); i < pmap.size(); ++i) {
-      procsWithData.insert(pmap[i]);
+    for(int i : pmap) {
+      procsWithData.insert(i);
     }
     if(allowSparseWrites && (static_cast<int>(procsWithData.size()) < nOutFiles)) {
       useSparseFPP = true;
@@ -1300,9 +1300,8 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 
         const Vector< Vector<int> > &fileNumbersWriteOrder = nfi.FileNumbersWriteOrder();
 
-        for(int fn(0); fn < fileNumbersWriteOrder.size(); ++fn) {
-          for(int ri(0); ri < fileNumbersWriteOrder[fn].size(); ++ri) {
-            int rank(fileNumbersWriteOrder[fn][ri]);
+        for(const auto & fn : fileNumbersWriteOrder) {
+          for(int rank : fn) {
             auto rboIter = rankBoxOrder.find(rank);
 
             if(rboIter != rankBoxOrder.end()) {
@@ -1310,11 +1309,11 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
               whichFileNumber = fileNumbers[rank];
               whichFileName   = VisMF::BaseName(NFilesIter::FileName(whichFileNumber, filePrefix));
 
-              for(int i(0); i < index.size(); ++i) {
-                 hdr.m_fod[index[i]].m_name = whichFileName;
-                 hdr.m_fod[index[i]].m_head = currentOffset[whichFileNumber];
-                 currentOffset[whichFileNumber] += mf.fabbox(index[i]).numPts() * nComps * whichRDBytes
-                                                   + fabHeaderBytes[index[i]];
+              for(int i : index) {
+                 hdr.m_fod[i].m_name = whichFileName;
+                 hdr.m_fod[i].m_head = currentOffset[whichFileNumber];
+                 currentOffset[whichFileNumber] += mf.fabbox(i).numPts() * nComps * whichRDBytes
+                                                   + fabHeaderBytes[i];
               }
             }
           }
@@ -1374,12 +1373,8 @@ VisMF::VisMF (std::string fafab_name)
     AMREX_ASSERT(m_hdr.m_ncomp >= 0 && m_hdr.m_ncomp < std::numeric_limits<int>::max());
     m_pa.resize(m_hdr.m_ncomp);
 
-    for(int n(0); n < m_pa.size(); ++n) {
-        m_pa[n].resize(m_hdr.m_ba.size());
-
-        for(int ii(0), N = static_cast<int>(m_pa[n].size()); ii < N; ++ii) {
-            m_pa[n][ii] = 0;
-        }
+    for(auto & vfabptr : m_pa) {
+        vfabptr.resize(m_hdr.m_ba.size(), nullptr);
     }
 }
 
@@ -1604,8 +1599,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       NItemsPerBin(static_cast<int>(frc.size()), nBoxesPerRank);
       int frcIndex(0);
 
-      for(int nbpr(0); nbpr < nBoxesPerRank.size(); ++nbpr) {
-        for(int nb(0); nb < nBoxesPerRank[nbpr]; ++nb) {
+      for(int nbpr : nBoxesPerRank) {
+        for(int nb(0); nb < nbpr; ++nb) {
 
           baFileOrder.set(indexFileOrder, frc[frcIndex].box);
           ranksFileOrder[indexFileOrder] = currentRank;
@@ -1663,9 +1658,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         }
       }
 
-      for(int iSet(0); iSet < streamSets.size(); ++iSet) {
+      for(auto & rfrSet : streamSets) {
         Vector<int> readRanks;
-        std::set<int> &rfrSet = streamSets[iSet];
         for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
           readRanks.push_back(*setIter);
         }
@@ -1680,9 +1674,9 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
               // ---- confirm the data is contiguous in the stream
               Long firstOffset(-1);
-              for(int i(0); i < frc.size(); ++i) {
-                if(myProc == frc[i].rankToRead) {
-                  firstOffset = frc[i].fileOffset;
+              for(auto & i : frc) {
+                if(myProc == i.rankToRead) {
+                  firstOffset = i.fileOffset;
                   break;
                 }
               }
@@ -1691,12 +1685,12 @@ VisMF::Read (FabArray<FArrayBox> &mf,
               Long currentOffset(firstOffset), bytesToRead(0);
               int nFABs(0);
 
-              for(int i(0); i < frc.size(); ++i) {
-                if(myProc == frc[i].rankToRead) {
-                  if(currentOffset != frc[i].fileOffset) {
+              for(auto & i : frc) {
+                if(myProc == i.rankToRead) {
+                  if(currentOffset != i.fileOffset) {
                     dataIsContiguous = false;
                   } else {
-                    FArrayBox &fab = whichFA[frc[i].faIndex];
+                    FArrayBox &fab = whichFA[i.faIndex];
                     Long fabBytesToRead(fab.box().numPts() * fab.nComp() * hdr.m_writtenRD.numBytes());
                     currentOffset += fabBytesToRead;
                     bytesToRead   += fabBytesToRead;
@@ -1721,10 +1715,10 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
                 currentOffset = 0;  // ---- this is now relative to allFabData
 
-                for(int i(0); i < frc.size(); ++i) {
-                  if(myProc == frc[i].rankToRead) {
+                for(auto & i : frc) {
+                  if(myProc == i.rankToRead) {
                     char *afPtr = allFabData + currentOffset;
-                    FArrayBox &fab = whichFA[frc[i].faIndex];
+                    FArrayBox &fab = whichFA[i.faIndex];
                     Real* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
                     std::unique_ptr<FArrayBox> hostfab;
@@ -1757,12 +1751,12 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                 delete [] allFabData;
 
               } else {          // ---- cannot use one read
-                for(int i(0); i < frc.size(); ++i) {
-                  if(myProc == frc[i].rankToRead) {
-                    if(static_cast<std::streamoff>(nfi.SeekPos()) != frc[i].fileOffset) {
-                      nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
+                for(auto & i : frc) {
+                  if(myProc == i.rankToRead) {
+                    if(static_cast<std::streamoff>(nfi.SeekPos()) != i.fileOffset) {
+                      nfi.Stream().seekp(i.fileOffset, std::ios::beg);
                     }
-                    FArrayBox &fab = whichFA[frc[i].faIndex];
+                    FArrayBox &fab = whichFA[i.faIndex];
                     Real* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
                     std::unique_ptr<FArrayBox> hostfab;
@@ -1978,9 +1972,9 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 #endif
 
     if(VisMF::GetUsePersistentIFStreams()) {
-      for(int idx(0); idx < hdr.m_fod.size(); ++idx) {
+      for(auto & idx : hdr.m_fod) {
         std::string FullName(VisMF::DirName(mf_name));
-        FullName += hdr.m_fod[idx].m_name;
+        FullName += idx.m_name;
         VisMF::DeleteStream(FullName);
       }
     }

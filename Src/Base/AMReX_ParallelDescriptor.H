@@ -996,9 +996,9 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     Vector<int> recvcount(nprocs, 0);
     recvbuf.resize(sendbuf.size());
     const Vector<int>& old_pmap = sendbuf.DistributionMap().ProcessorMap();
-    for (int i=0; i<old_pmap.size(); ++i)
+    for (int i : old_pmap)
     {
-        ++recvcount[old_pmap[i]];
+        ++recvcount[i];
     }
 
     // Make a map from post-gather to pre-gather index

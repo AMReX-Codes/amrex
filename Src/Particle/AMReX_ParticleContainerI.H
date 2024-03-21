@@ -1836,9 +1836,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-            for (int pit = 0; pit < static_cast<int>(grid_tile_ids.size()); ++pit)
+            for (auto index : grid_tile_ids)
             {
-                auto index = grid_tile_ids[pit];
                 auto& ptile = DefineAndReturnParticleTile(lev, index.first, index.second);
                 auto& soa = ptile.GetStructOfArrays();
                 auto& soa_tmp = soa_local[lev][index];

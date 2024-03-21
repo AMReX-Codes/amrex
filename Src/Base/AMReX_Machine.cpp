@@ -291,8 +291,8 @@ class Machine
             }
 
             result.reserve(nbh_rank_n);
-            for (int i = 0; i < local_nbh.size(); ++i) {
-                for (auto rank : node_ranks.at(local_nbh[i])) {
+            for (int i : local_nbh) {
+                for (auto rank : node_ranks.at(i)) {
                     if (result.size() < nbh_rank_n) {
                         result.push_back(rank);
                     }

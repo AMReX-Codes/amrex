@@ -1445,8 +1445,8 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Copy intersect finefab into next level m_cboxes.
             //
-            for (int j = 0, K = static_cast<int>(FinerCrseFabs.size()); j < K; ++j) {
-                FinerCrseFabs[j]->copy<RunOn::Host>(finefab);
+            for (const auto & FinerCrseFab : FinerCrseFabs) {
+                FinerCrseFab->copy<RunOn::Host>(finefab);
             }
         }
 
@@ -1462,8 +1462,8 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     // Copy intersect coarse into destination fab.
     //
-    for (int i = 0, N = static_cast<int>(FinestCrseFabs.size()); i < N; ++i) {
-        fab.copy<RunOn::Host>(*FinestCrseFabs[i],0,dcomp,m_ncomp);
+    for (const auto & FinestCrseFab : FinestCrseFabs) {
+        fab.copy<RunOn::Host>(*FinestCrseFab,0,dcomp,m_ncomp);
     }
 
     if (FineGeom.isAnyPeriodic() && !FineDomain.contains(fab.box()))
@@ -1472,17 +1472,17 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         FineGeom.periodicShift(FineDomain,fab.box(),pshifts);
 
-        for (int i = 0, N = static_cast<int>(FinestCrseFabs.size()); i < N; i++)
+        for (const auto & FinestCrseFab : FinestCrseFabs)
         {
             for (const auto& iv : pshifts)
             {
                 fab.shift(iv);
 
-                Box src_dst = FinestCrseFabs[i]->box() & fab.box();
+                Box src_dst = FinestCrseFab->box() & fab.box();
                 src_dst    &= FineDomain;
 
                 if (src_dst.ok()) {
-                    fab.copy<RunOn::Host>(*FinestCrseFabs[i],src_dst,0,src_dst,dcomp,m_ncomp);
+                    fab.copy<RunOn::Host>(*FinestCrseFab,src_dst,0,src_dst,dcomp,m_ncomp);
                 }
 
                 fab.shift(-iv);
@@ -1846,10 +1846,10 @@ AmrLevel::UpdateDistributionMaps ( DistributionMapping& update_dmap )
     if (dmap.size() == mapsize)
     { dmap = update_dmap; }
 
-    for (int i = 0; i < state.size(); ++i)
+    for (auto & i : state)
     {
-       if (state[i].DistributionMap().size() == mapsize)
-          { state[i].setDistributionMap(update_dmap); }
+       if (i.DistributionMap().size() == mapsize)
+          { i.setDistributionMap(update_dmap); }
     }
 }
 

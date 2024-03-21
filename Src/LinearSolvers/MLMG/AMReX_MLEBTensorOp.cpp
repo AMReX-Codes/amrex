@@ -156,9 +156,9 @@ MLEBTensorOp::prepareForSolve ()
         }
     } else {
         for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
-            for (int mglev = 0; mglev < m_kappa[amrlev].size(); ++mglev) {
+            for (auto & mglev : m_kappa[amrlev]) {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    m_kappa[amrlev][mglev][idim].setVal(0.0);
+                    mglev[idim].setVal(0.0);
                 }
             }
         }
@@ -179,8 +179,8 @@ MLEBTensorOp::prepareForSolve ()
         }
     } else {
         for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
-            for (int mglev = 0; mglev < m_eb_kappa[amrlev].size(); ++mglev) {
-                m_eb_kappa[amrlev][mglev].setVal(0.0);
+            for (auto & mglev : m_eb_kappa[amrlev]) {
+                mglev.setVal(0.0);
             }
         }
     }
