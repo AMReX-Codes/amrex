@@ -1,5 +1,6 @@
 #ifndef AMREX_SUNDIALS_INTEGRATOR_H
 #define AMREX_SUNDIALS_INTEGRATOR_H
+#include <AMReX_Config.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_ParmParse.H>
@@ -178,14 +179,30 @@ public:
     {
         initialize_parameters();
         mpi_comm = ParallelContext::CommunicatorSub();
+#if defined(SUNDIALS_VERSION_MAJOR) && (SUNDIALS_VERSION_MAJOR < 7)
         SUNContext_Create(&mpi_comm, &sunctx);
+#else
+#  ifdef AMREX_USE_MPI
+        SUNContext_Create(mpi_comm, &sunctx);
+#  else
+        SUNContext_Create(SUN_COMM_NULL, &sunctx);
+#  endif
+#endif
     }
 
     void initialize ()
     {
         initialize_parameters();
         mpi_comm = ParallelContext::CommunicatorSub();
+#if defined(SUNDIALS_VERSION_MAJOR) && (SUNDIALS_VERSION_MAJOR < 7)
         SUNContext_Create(&mpi_comm, &sunctx);
+#else
+#  ifdef AMREX_USE_MPI
+        SUNContext_Create(mpi_comm, &sunctx);
+#  else
+        SUNContext_Create(SUN_COMM_NULL, &sunctx);
+#  endif
+#endif
     }
 
     virtual ~SundialsIntegrator () {
@@ -607,7 +624,11 @@ public:
         MRIStepSStolerances(mristep_mem, reltol, abstol);
 
         /* Initialize spgmr solver */
+#if defined(SUNDIALS_VERSION_MAJOR) && (SUNDIALS_VERSION_MAJOR < 7)
         LS = SUNLinSol_SPGMR(nv_S, PREC_NONE, 10, sunctx);
+#else
+        LS = SUNLinSol_SPGMR(nv_S, SUN_PREC_NONE, 10, sunctx);
+#endif
         NLS = SUNNonlinSol_FixedPoint(nv_S, 50, sunctx);
 
         if (use_implicit_inner) { ARKStepSetNonlinearSolver(inner_mem, NLS); }
