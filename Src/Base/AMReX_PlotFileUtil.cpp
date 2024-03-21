@@ -98,8 +98,8 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
 
         HeaderFile << varnames.size() << '\n';
 
-        for (int ivar = 0; ivar < varnames.size(); ++ivar) {
-            HeaderFile << varnames[ivar] << "\n";
+        for (const auto & varname : varnames) {
+            HeaderFile << varname << "\n";
         }
         HeaderFile << AMREX_SPACEDIM << '\n';
         HeaderFile << time << '\n';

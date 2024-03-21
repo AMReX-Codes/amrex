@@ -24,6 +24,7 @@
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_LayoutData.H>
+#include <AMReX_BaseFab.H>
 #include <AMReX_BaseFabUtility.H>
 #include <AMReX_MFParallelFor.H>
 #include <AMReX_TagParallelFor.H>
@@ -39,14 +40,16 @@
 #include <omp.h>
 #endif
 
+#include <algorithm>
 #include <cstring>
 #include <limits>
 #include <map>
+#include <memory>
 #include <utility>
-#include <vector>
-#include <algorithm>
 #include <set>
 #include <string>
+#include <vector>
+
 
 namespace amrex {
 

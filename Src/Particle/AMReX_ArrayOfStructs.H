@@ -86,7 +86,7 @@ public:
     [[nodiscard]] const ParticleType& operator[] (int i) const { return m_data[i]; }
     [[nodiscard]]       ParticleType& operator[] (int i)       { return m_data[i]; }
 
-    void swap (ArrayOfStructs& other)
+    void swap (ArrayOfStructs& other) noexcept
     {
         m_data.swap(other.m_data);
     }

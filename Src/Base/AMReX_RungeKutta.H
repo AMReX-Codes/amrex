@@ -155,8 +155,8 @@ void rk4_update_4 (MF& Unew, MF const& Uold, Array<MF,4> const& rkk, Real dt6)
  * \param post_stage post-processing stage results
  */
 template <typename MF, typename F, typename FB, typename P = PostStageNoOp>
-void RK2 (MF& Uold, MF& Unew, Real time, Real dt, F&& frhs, FB&& fillbndry,
-          P&& post_stage = PostStageNoOp())
+void RK2 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillbndry,
+          P const& post_stage = PostStageNoOp())
 {
     BL_PROFILE("RungeKutta2");
 
@@ -193,8 +193,8 @@ void RK2 (MF& Uold, MF& Unew, Real time, Real dt, F&& frhs, FB&& fillbndry,
  */
 template <typename MF, typename F, typename FB, typename R,
           typename P = PostStageNoOp>
-void RK3 (MF& Uold, MF& Unew, Real time, Real dt, F&& frhs, FB&& fillbndry,
-          R&& store_crse_data, P&& post_stage = PostStageNoOp())
+void RK3 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillbndry,
+          R const& store_crse_data, P const& post_stage = PostStageNoOp())
 {
     BL_PROFILE("RungeKutta3");
 
@@ -243,8 +243,8 @@ void RK3 (MF& Uold, MF& Unew, Real time, Real dt, F&& frhs, FB&& fillbndry,
  */
 template <typename MF, typename F, typename FB, typename R,
           typename P = PostStageNoOp>
-void RK4 (MF& Uold, MF& Unew, Real time, Real dt, F&& frhs, FB&& fillbndry,
-          R&& store_crse_data, P&& post_stage = PostStageNoOp())
+void RK4 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillbndry,
+          R const& store_crse_data, P const& post_stage = PostStageNoOp())
 {
     BL_PROFILE("RungeKutta4");
 

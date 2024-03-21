@@ -227,6 +227,25 @@ namespace amrex
         }
     }
 
+    template<typename ItType, typename ValType,
+        typename std::enable_if<
+            std::is_floating_point<typename std::iterator_traits<ItType>::value_type>::value &&
+            std::is_floating_point<ValType>::value,
+        int>::type = 0>
+    AMREX_GPU_HOST_DEVICE
+    void logspace (ItType first, const ItType& last,
+        const ValType& start, const ValType& stop, const ValType& base)
+    {
+        const std::ptrdiff_t count = last-first;
+        if (count >= 2){
+            const auto delta = (stop - start)/(count - 1);
+            for (std::ptrdiff_t i = 0; i < count-1; ++i){
+                *(first++) = std::pow(base, start + i*delta);
+            }
+            *first = std::pow(base, stop);
+        }
+    }
+
 namespace detail {
 
 struct clzll_tag {};
@@ -270,7 +289,11 @@ int clz (T x) noexcept;
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz_generic (std::uint8_t x) noexcept
 {
+#if !defined(__NVCOMPILER)
     static constexpr int clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+#else
+    constexpr int clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+#endif
     auto upper = x >> 4;
     auto lower = x & 0xF;
     return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];

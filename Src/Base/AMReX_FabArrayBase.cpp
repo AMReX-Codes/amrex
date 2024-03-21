@@ -1325,8 +1325,7 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
                     {
                         Box bxsnd = (n==0) ? amrex::get<0>(dst_to_src)(bxrcv)
                                            : amrex::get<1>(dst_to_src)(bxrcv);
-                        send_tags[dst_owner].push_back(FabArrayBase::CopyComTag(bxrcv, bxsnd,
-                                                                                krcv, ksnd));
+                        send_tags[dst_owner].emplace_back(bxrcv, bxsnd, krcv, ksnd);
                     }
                 }
             }
@@ -1498,8 +1497,7 @@ FabArrayBase::RB180::define (const FabArrayBase& fa)
                 if (dst_owner != myproc) // local copy will be dealt with later
                 {
                     Box const& bxsnd = convert(bxrcv);
-                    send_tags[dst_owner].push_back(FabArrayBase::CopyComTag(bxrcv, bxsnd,
-                                                                            krcv, ksnd));
+                    send_tags[dst_owner].emplace_back(bxrcv, bxsnd, krcv, ksnd);
                 }
             }
         }
@@ -1683,8 +1681,7 @@ FabArrayBase::PolarB::define (const FabArrayBase& fa)
                     if (dst_owner != myproc) // local copy will be dealt with later
                     {
                         Box const bxsnd = (n<4) ? convert(bxrcv) : convert_corner(bxrcv);
-                        send_tags[dst_owner].push_back(FabArrayBase::CopyComTag(bxrcv, bxsnd,
-                                                                                krcv, ksnd));
+                        send_tags[dst_owner].emplace_back(bxrcv, bxsnd, krcv, ksnd);
                     }
                 }
             }

@@ -184,13 +184,13 @@ namespace Gpu {
 
 #else
 
-    [[nodiscard]] inline static constexpr bool inLaunchRegion () { return false; }
-    [[nodiscard]] inline static constexpr bool notInLaunchRegion () { return true; }
-    [[nodiscard]] inline static constexpr bool setLaunchRegion (bool) { return false; }
+    [[nodiscard]] inline constexpr bool inLaunchRegion () { return false; }
+    [[nodiscard]] inline constexpr bool notInLaunchRegion () { return true; }
+    [[nodiscard]] inline constexpr bool setLaunchRegion (bool) { return false; }
 
-    [[nodiscard]] inline static constexpr bool inGraphRegion () { return false; }
-    [[nodiscard]] inline static constexpr bool notInGraphRegion () { return true; }
-    [[nodiscard]] inline static constexpr bool setGraphRegion (bool) { return false; }
+    [[nodiscard]] inline constexpr bool inGraphRegion () { return false; }
+    [[nodiscard]] inline constexpr bool notInGraphRegion () { return true; }
+    [[nodiscard]] inline constexpr bool setGraphRegion (bool) { return false; }
 
     struct [[nodiscard]] LaunchSafeGuard
     {
@@ -202,10 +202,10 @@ namespace Gpu {
         explicit GraphSafeGuard (bool) {}
     };
 
-    [[nodiscard]] inline static constexpr bool inSingleStreamRegion () { return false; }
-    [[nodiscard]] inline static constexpr bool inNoSyncRegion () { return true; }
-    [[nodiscard]] inline static constexpr bool setSingleStreamRegion (bool) { return false; }
-    [[nodiscard]] inline static constexpr bool setNoSyncRegion (bool) { return true; }
+    [[nodiscard]] inline constexpr bool inSingleStreamRegion () { return false; }
+    [[nodiscard]] inline constexpr bool inNoSyncRegion () { return true; }
+    [[nodiscard]] inline constexpr bool setSingleStreamRegion (bool) { return false; }
+    [[nodiscard]] inline constexpr bool setNoSyncRegion (bool) { return true; }
     struct [[nodiscard]] SingleStreamRegion {};
     struct [[nodiscard]] NoSyncRegion {};
 

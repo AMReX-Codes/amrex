@@ -19,7 +19,9 @@ amrex_iparsererror (char const *s, ...)
 
 namespace amrex {
 
-static struct iparser_node* iparser_root = nullptr;
+namespace {
+    struct iparser_node* iparser_root = nullptr;
+}
 
 // This is called by a bison rule to store the original AST in a static variable.
 void
@@ -150,7 +152,8 @@ amrex_iparser_delete (struct amrex_iparser* iparser)
     std::free(iparser);
 }
 
-static
+namespace {
+
 std::size_t
 iparser_aligned_size (std::size_t N)
 {
@@ -160,13 +163,14 @@ iparser_aligned_size (std::size_t N)
     return x;
 }
 
-static
 void*
 iparser_allocate (struct amrex_iparser* my_iparser, std::size_t N)
 {
     void* r = my_iparser->p_free;
     my_iparser->p_free = (char*)r + iparser_aligned_size(N);
     return r;
+}
+
 }
 
 struct amrex_iparser*
@@ -976,7 +980,8 @@ iparser_ast_optimize (struct iparser_node* node)
     }
 }
 
-static
+namespace {
+
 void
 iparser_ast_print_f1 (struct iparser_f1* f1, std::string const& space, AllPrint& printer)
 {
@@ -989,7 +994,6 @@ iparser_ast_print_f1 (struct iparser_f1* f1, std::string const& space, AllPrint&
     iparser_ast_print(f1->l, space+"  ", printer);
 }
 
-static
 void
 iparser_ast_print_f2 (struct iparser_f2* f2, std::string const& space, AllPrint& printer)
 {
@@ -1038,7 +1042,6 @@ iparser_ast_print_f2 (struct iparser_f2* f2, std::string const& space, AllPrint&
     iparser_ast_print(f2->r, space+"  ", printer);
 }
 
-static
 void
 iparser_ast_print_f3 (struct iparser_f3* f3, std::string const& space, AllPrint& printer)
 {
@@ -1053,6 +1056,8 @@ iparser_ast_print_f3 (struct iparser_f3* f3, std::string const& space, AllPrint&
     iparser_ast_print(f3->n1, more_space, printer);
     iparser_ast_print(f3->n2, more_space, printer);
     iparser_ast_print(f3->n3, more_space, printer);
+}
+
 }
 
 void

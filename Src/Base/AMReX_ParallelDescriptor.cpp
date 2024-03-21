@@ -1630,7 +1630,7 @@ select_comm_data_type (std::size_t nbytes)
 }
 
 std::size_t
-alignof_comm_data (std::size_t nbytes)
+sizeof_selected_comm_data_type (std::size_t nbytes)
 {
     const int t = select_comm_data_type(nbytes);
     if (t == 1) {

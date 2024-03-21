@@ -19,7 +19,9 @@ amrex_parsererror (char const *s, ...)
 
 namespace amrex {
 
-static struct parser_node* parser_root = nullptr;
+namespace {
+    struct parser_node* parser_root = nullptr;
+}
 
 // This is called by a bison rule to store the original AST in a static variable.
 void
@@ -171,7 +173,8 @@ amrex_parser_delete (struct amrex_parser* parser)
     std::free(parser);
 }
 
-static
+namespace {
+
 std::size_t
 parser_aligned_size (std::size_t N)
 {
@@ -181,13 +184,14 @@ parser_aligned_size (std::size_t N)
     return x;
 }
 
-static
 void*
 parser_allocate (struct amrex_parser* my_parser, std::size_t N)
 {
     void* r = my_parser->p_free;
     my_parser->p_free = (char*)r + parser_aligned_size(N);
     return r;
+}
+
 }
 
 struct amrex_parser*
@@ -523,7 +527,7 @@ namespace {
 
     template <typename F>
     bool group_combinables (struct parser_node*& a, struct parser_node*& b,
-                            F&& f, parser_node_t type)
+                            F const& f, parser_node_t type)
     {
         if (a->type == type && f(a->l, b))
         {
@@ -1334,7 +1338,8 @@ parser_ast_optimize (struct parser_node* node)
     }
 }
 
-static
+namespace {
+
 void
 parser_ast_print_f1 (struct parser_f1* f1, std::string const& space, std::ostream& printer)
 {
@@ -1342,7 +1347,6 @@ parser_ast_print_f1 (struct parser_f1* f1, std::string const& space, std::ostrea
     parser_ast_print(f1->l, space+"  ", printer);
 }
 
-static
 void
 parser_ast_print_f2 (struct parser_f2* f2, std::string const& space, std::ostream& printer)
 {
@@ -1351,7 +1355,6 @@ parser_ast_print_f2 (struct parser_f2* f2, std::string const& space, std::ostrea
     parser_ast_print(f2->r, space+"  ", printer);
 }
 
-static
 void
 parser_ast_print_f3 (struct parser_f3* f3, std::string const& space, std::ostream& printer)
 {
@@ -1360,6 +1363,8 @@ parser_ast_print_f3 (struct parser_f3* f3, std::string const& space, std::ostrea
     parser_ast_print(f3->n1, more_space, printer);
     parser_ast_print(f3->n2, more_space, printer);
     parser_ast_print(f3->n3, more_space, printer);
+}
+
 }
 
 void

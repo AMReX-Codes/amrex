@@ -104,7 +104,7 @@ private:
 
 #else
 
-    DeviceScalar (T init_val) : d(init_val) {}
+    DeviceScalar (T const& init_val) : d(init_val) {}
     DeviceScalar () = default;
     ~DeviceScalar () = default;
 

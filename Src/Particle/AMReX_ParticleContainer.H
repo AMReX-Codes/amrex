@@ -711,7 +711,7 @@ public:
     template <class F, class PCType,
               std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
               std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
-    void addParticles (const PCType& other, F&& f, bool local=false);
+    void addParticles (const PCType& other, F const& f, bool local=false);
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.

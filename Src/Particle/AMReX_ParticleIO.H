@@ -869,9 +869,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             }
         }
 
-        for(int igrid = 0; igrid < static_cast<int>(grids_to_read.size()); ++igrid) {
-            const int grid = grids_to_read[igrid];
-
+        for(int grid : grids_to_read) {
             if (count[grid] <= 0) { continue; }
 
             // The file names in the header file are relative.
@@ -999,7 +997,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i = 0; i < cnt; i++) {
         // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct
         //       for backwards compatibility with readers
-        if (!ParticleType::is_soa_particle && convert_ids) {
+        if (convert_ids) {
             std::int32_t  xi, yi;
             std::uint32_t xu, yu;
             xi = iptr[0];

@@ -482,6 +482,8 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept // NOLINT(readab
         {
         case 0: return dx[1];
         case 1: return dx[0];
+        default:
+            AMREX_ASSERT(0);
         }
         return 0._rt; // to silent compiler warning
     case RZ:
@@ -490,6 +492,8 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept // NOLINT(readab
         {
         case 0: return Real(TWOPI)*dx[1]*xlo[0];
         case 1: return ((xlo[0]+dx[0])*(xlo[0]+dx[0])-xlo[0]*xlo[0])*static_cast<Real>(0.5*TWOPI);
+        default:
+            AMREX_ASSERT(0);
         }
         return 0._rt; // to silent compiler warning
     default:
@@ -502,6 +506,8 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept // NOLINT(readab
     case 0: return dx[1]*dx[2];
     case 1: return dx[0]*dx[2];
     case 2: return dx[1]*dx[0];
+    default:
+        AMREX_ASSERT(0);
     }
 #endif
     return 0;
@@ -520,6 +526,8 @@ CoordSys::AreaHi (const IntVect& point, int dir) const noexcept // NOLINT(readab
         {
         case 0: return dx[1];
         case 1: return dx[0];
+        default:
+            AMREX_ASSERT(0);
         }
         return 0._rt; // to silent compiler warning
     case RZ:
@@ -528,6 +536,8 @@ CoordSys::AreaHi (const IntVect& point, int dir) const noexcept // NOLINT(readab
         {
         case 0: return Real(TWOPI)*dx[1]*xhi[0];
         case 1: return (xhi[0]*xhi[0]-(xhi[0]-dx[0])*(xhi[0]-dx[0]))*static_cast<Real>(TWOPI*0.5);
+        default:
+            AMREX_ASSERT(0);
         }
         return 0._rt; // to silent compiler warning
     default:
@@ -540,6 +550,8 @@ CoordSys::AreaHi (const IntVect& point, int dir) const noexcept // NOLINT(readab
     case 0: return dx[1]*dx[2];
     case 1: return dx[0]*dx[2];
     case 2: return dx[1]*dx[0];
+    default:
+        AMREX_ASSERT(0);
     }
 #endif
     return 0._rt;

@@ -121,7 +121,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     std::string File(m_restart_file + "/Header");
 
-    if (amrex::Verbose()) { amrex::Print() << "file=" << File << std::endl; }
+    if (amrex::Verbose()) { amrex::Print() << "file=" << File << '\n'; }
 
     VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
@@ -209,7 +209,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // volfrac
     {
-        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_volfrac_name << std::endl; }
+        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_volfrac_name << '\n'; }
 
         volfrac.define(cut_grids, dmap, 1, ng_gfab);
 
@@ -219,7 +219,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // centroid
     {
-        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_centroid_name << std::endl; }
+        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_centroid_name << '\n'; }
 
         centroid.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
 
@@ -229,7 +229,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // bndryarea
     {
-        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_bndryarea_name << std::endl; }
+        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_bndryarea_name << '\n'; }
 
         bndryarea.define(cut_grids, dmap, 1, ng_gfab);
 
@@ -239,7 +239,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // bndrycent
     {
-        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_bndrycent_name << std::endl; }
+        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_bndrycent_name << '\n'; }
 
         bndrycent.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
 
@@ -249,7 +249,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // bndrynorm
     {
-        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_bndrynorm_name << std::endl; }
+        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_bndrynorm_name << '\n'; }
 
         bndrynorm.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
 
@@ -260,7 +260,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         // areafrac
         {
-            if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_areafrac_name[idim] << std::endl; }
+            if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_areafrac_name[idim] << '\n'; }
 
             areafrac[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng_gfab);
 
@@ -270,7 +270,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
         // facecent
         {
-            if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_facecent_name[idim] << std::endl; }
+            if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_facecent_name[idim] << '\n'; }
 
             facecent[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, AMREX_SPACEDIM-1, ng_gfab);
 
@@ -280,7 +280,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
         // edgecent
         {
-            if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_edgecent_name[idim] << std::endl; }
+            if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_edgecent_name[idim] << '\n'; }
 
             IntVect edge_type{1}; edge_type[idim] = 0;
             edgecent[idim].define(convert(cut_grids, edge_type), dmap, 1, ng_gfab);
@@ -292,7 +292,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // levelset
     {
-        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_levelset_name << std::endl; }
+        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_levelset_name << '\n'; }
 
         levelset.define(convert(cut_grids,IntVect::TheNodeVector()), dmap, 1, ng_gfab);
 
@@ -316,7 +316,7 @@ ChkptFile::write_to_chkpt_file (const BoxArray& cut_grids,
 {
 
     if (ParallelDescriptor::IOProcessor()) {
-        std::cout << "\n\t Writing checkpoint " << m_restart_file << std::endl;
+        std::cout << "\n\t Writing checkpoint " << m_restart_file << '\n';
     }
 
     const int nlevels = 1;

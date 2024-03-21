@@ -154,11 +154,11 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
     }
 
     if(retVal == false  || verbose == true) {
-      for(int i(0); i < pathError.size(); ++i) {
+      for(auto & i : pathError) {
           amrex::AllPrint()<< "amrex::UtilCreateDirectory:: path errno:  "
-                           << pathError[i].first << " :: "
-                           << strerror(pathError[i].second)
-                           << std::endl;
+                           << i.first << " :: "
+                           << strerror(i.second)
+                           << '\n';
       }
     }
 

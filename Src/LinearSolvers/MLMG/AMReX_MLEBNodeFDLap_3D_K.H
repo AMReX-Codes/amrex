@@ -26,7 +26,7 @@ void mlebndfdlap_adotx_eb_doit (int i, int j, int k, Array4<Real> const& y,
                                 Array4<Real const> const& x, Array4<Real const> const& levset,
                                 Array4<int const> const& dmsk,
                                 Array4<Real const> const& ecx, Array4<Real const> const& ecy,
-                                Array4<Real const> const& ecz, F && xeb,
+                                Array4<Real const> const& ecz, F const& xeb,
                                 Real bx, Real by, Real bz) noexcept
 {
     if (dmsk(i,j,k)) {

@@ -392,8 +392,8 @@ Write (const FabArray<FAB>& fa, const std::string& name)
     const Vector<int> &pmap = fa.DistributionMap().ProcessorMap();
     std::set<int> procsWithData;
     Vector<int> procsWithDataVector;
-    for(int i = 0; i < pmap.size(); ++i) {
-        procsWithData.insert(pmap[i]);
+    for(int i : pmap) {
+        procsWithData.insert(i);
     }
     const int nOutFiles = VisMF::GetNOutFiles();
     if (static_cast<int>(procsWithData.size()) < nOutFiles) {

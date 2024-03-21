@@ -8,7 +8,7 @@ namespace amrex {
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
-void Loop (Dim3 lo, Dim3 hi, F&& f) noexcept
+void Loop (Dim3 lo, Dim3 hi, F const& f) noexcept
 {
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
@@ -19,7 +19,7 @@ void Loop (Dim3 lo, Dim3 hi, F&& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
-void Loop (Dim3 lo, Dim3 hi, int ncomp, F&& f) noexcept
+void Loop (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
 {
     for (int n = 0; n < ncomp; ++n) {
     for (int k = lo.z; k <= hi.z; ++k) {
@@ -31,7 +31,7 @@ void Loop (Dim3 lo, Dim3 hi, int ncomp, F&& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
-void LoopConcurrent (Dim3 lo, Dim3 hi, F&& f) noexcept
+void LoopConcurrent (Dim3 lo, Dim3 hi, F const& f) noexcept
 {
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
@@ -43,7 +43,7 @@ void LoopConcurrent (Dim3 lo, Dim3 hi, F&& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
-void LoopConcurrent (Dim3 lo, Dim3 hi, int ncomp, F&& f) noexcept
+void LoopConcurrent (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
 {
     for (int n = 0; n < ncomp; ++n) {
     for (int k = lo.z; k <= hi.z; ++k) {
@@ -56,7 +56,7 @@ void LoopConcurrent (Dim3 lo, Dim3 hi, int ncomp, F&& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
-void Loop (Box const& bx, F&& f) noexcept
+void Loop (Box const& bx, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -69,7 +69,7 @@ void Loop (Box const& bx, F&& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
-void Loop (Box const& bx, int ncomp, F&& f) noexcept
+void Loop (Box const& bx, int ncomp, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -83,7 +83,7 @@ void Loop (Box const& bx, int ncomp, F&& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
-void LoopConcurrent (Box const& bx, F&& f) noexcept
+void LoopConcurrent (Box const& bx, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -97,7 +97,7 @@ void LoopConcurrent (Box const& bx, F&& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
-void LoopConcurrent (Box const& bx, int ncomp, F&& f) noexcept
+void LoopConcurrent (Box const& bx, int ncomp, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -116,7 +116,7 @@ void LoopConcurrent (Box const& bx, int ncomp, F&& f) noexcept
 // of the warning, we have to use the functions below for those situations.
 
 template <class F>
-void LoopOnCpu (Dim3 lo, Dim3 hi, F&& f) noexcept
+void LoopOnCpu (Dim3 lo, Dim3 hi, F const& f) noexcept
 {
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
@@ -126,7 +126,7 @@ void LoopOnCpu (Dim3 lo, Dim3 hi, F&& f) noexcept
 }
 
 template <class F>
-void LoopOnCpu (Dim3 lo, Dim3 hi, int ncomp, F&& f) noexcept
+void LoopOnCpu (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
 {
     for (int n = 0; n < ncomp; ++n) {
     for (int k = lo.z; k <= hi.z; ++k) {
@@ -137,7 +137,7 @@ void LoopOnCpu (Dim3 lo, Dim3 hi, int ncomp, F&& f) noexcept
 }
 
 template <class F>
-void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, F&& f) noexcept
+void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, F const& f) noexcept
 {
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
@@ -148,7 +148,7 @@ void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, F&& f) noexcept
 }
 
 template <class F>
-void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, int ncomp, F&& f) noexcept
+void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
 {
     for (int n = 0; n < ncomp; ++n) {
     for (int k = lo.z; k <= hi.z; ++k) {
@@ -160,7 +160,7 @@ void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, int ncomp, F&& f) noexcept
 }
 
 template <class F>
-void LoopOnCpu (Box const& bx, F&& f) noexcept
+void LoopOnCpu (Box const& bx, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -172,7 +172,7 @@ void LoopOnCpu (Box const& bx, F&& f) noexcept
 }
 
 template <class F>
-void LoopOnCpu (Box const& bx, int ncomp, F&& f) noexcept
+void LoopOnCpu (Box const& bx, int ncomp, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -185,7 +185,7 @@ void LoopOnCpu (Box const& bx, int ncomp, F&& f) noexcept
 }
 
 template <class F>
-void LoopConcurrentOnCpu (Box const& bx, F&& f) noexcept
+void LoopConcurrentOnCpu (Box const& bx, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -198,7 +198,7 @@ void LoopConcurrentOnCpu (Box const& bx, F&& f) noexcept
 }
 
 template <class F>
-void LoopConcurrentOnCpu (Box const& bx, int ncomp, F&& f) noexcept
+void LoopConcurrentOnCpu (Box const& bx, int ncomp, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -227,7 +227,7 @@ void LoopConcurrentOnCpu (Box const& bx, int ncomp, F&& f) noexcept
 
 template<auto I, auto N, class F>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-constexpr void constexpr_for (F&& f)
+constexpr void constexpr_for (F const& f)
 {
     if constexpr (I < N) {
         f(std::integral_constant<decltype(I), I>());

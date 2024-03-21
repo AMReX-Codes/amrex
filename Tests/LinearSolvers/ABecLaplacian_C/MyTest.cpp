@@ -267,6 +267,7 @@ MyTest::solveABecLaplacian ()
     // Since this problem has Neumann BC, solution + constant is also a
     // solution.  So we are going to shift the solution by a constant
     // for comparison with the "exact solution".
+    // The statement above is incorrect because we have the a term, albeit small.
     const Real npts = grids[0].d_numPts();
     const Real avg1 = exact_solution[0].sum();
     const Real avg2 = solution[0].sum();
@@ -409,6 +410,7 @@ MyTest::solveABecLaplacianInhomNeumann ()
     // Since this problem has Neumann BC, solution + constant is also a
     // solution.  So we are going to shift the solution by a constant
     // for comparison with the "exact solution".
+    // The statement above is incorrect because we have the a term, albeit small.
     const Real npts = grids[0].d_numPts();
     const Real avg1 = exact_solution[0].sum();
     const Real avg2 = solution[0].sum();
@@ -470,9 +472,13 @@ void
 MyTest::solveABecLaplacianGMRES ()
 {
     LPInfo info;
-    info.setMaxCoarseningLevel(0);
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+    info.setSemicoarsening(semicoarsening);
+    info.setMaxCoarseningLevel(max_coarsening_level);
+    info.setMaxSemicoarseningLevel(max_semicoarsening_level);
 
-    const auto tol_rel = Real(1.e-6);
+    const auto tol_rel = Real(1.e-10);
     const auto tol_abs = Real(0.0);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(composite_solve == false,
@@ -490,9 +496,9 @@ MyTest::solveABecLaplacianGMRES ()
         mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
                                          LinOpBCType::Neumann,
                                          LinOpBCType::Neumann)},
-            {AMREX_D_DECL(LinOpBCType::Neumann,
-                          LinOpBCType::Neumann,
-                          LinOpBCType::Neumann)});
+                           {AMREX_D_DECL(LinOpBCType::Neumann,
+                                         LinOpBCType::Neumann,
+                                         LinOpBCType::Neumann)});
 
         if (ilev > 0) {
             mlabec.setCoarseFineBC(&solution[ilev-1], ref_ratio);
@@ -516,33 +522,31 @@ MyTest::solveABecLaplacianGMRES ()
                                           bcoef[ilev], geom[ilev]);
         mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
 
-        MultiFab res(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
-
         MLMG mlmg(mlabec);
-        mlmg.setVerbose(verbose);
-        mlmg.apply({&res}, {&solution[ilev]}); // res = L(sol)
+        GMRESMLMG gmsolver(mlmg);
+        gmsolver.usePrecond(true);
+        gmsolver.setVerbose(verbose);
+        gmsolver.solve(solution[ilev], rhs[ilev], tol_rel, tol_abs);
 
-        MultiFab::Subtract(res, rhs[ilev], 0, 0, 1, 0); // now res = L(sol) - rhs
-
-        MultiFab cor(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
-
-        using M = GMRESMLMG;
-        M mat(mlmg);
-        mat.usePrecond(true);
-
-        GMRES<MultiFab,M> gmres;
-        gmres.setVerbose(verbose);
-        gmres.define(mat);
-        gmres.solve(cor, res, tol_rel, tol_abs); // solve L(cor) = res
-
-        MultiFab::Subtract(solution[ilev], cor, 0, 0, 1, 0);
-
-        mlmg.apply({&res}, {&solution[ilev]}); // res = L(sol)
-        MultiFab::Subtract(res, rhs[ilev], 0, 0, 1, 0); // now res = L(sol) - rhs
         if (verbose) {
+            MultiFab res(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
+            mlmg.apply({&res}, {&solution[ilev]}); // res = L(sol)
+            MultiFab::Subtract(res, rhs[ilev], 0, 0, 1, 0); // now res = L(sol) - rhs
             amrex::Print() << "Final residual = " << res.norminf(0)
                            << " " << res.norm1(0) << " " << res.norm2(0) << std::endl;
         }
+    }
+
+    // Since this problem has Neumann BC, solution + constant is also a
+    // solution.  So we are going to shift the solution by a constant
+    // for comparison with the "exact solution".
+    // The statement above is incorrect because we have the a term, albeit small.
+    const Real npts = grids[0].d_numPts();
+    const Real avg1 = exact_solution[0].sum();
+    const Real avg2 = solution[0].sum();
+    const Real offset = (avg1-avg2)/npts;
+    for (int ilev = 0; ilev < nlevels; ++ilev) {
+        solution[ilev].plus(offset, 0, 1, 0);
     }
 }
 

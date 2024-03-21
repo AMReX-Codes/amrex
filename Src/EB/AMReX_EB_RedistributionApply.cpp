@@ -4,6 +4,7 @@
  *
  */
 
+#include <AMReX_BCRec.H>
 #include <AMReX_EB_Redistribution.H>
 #include <AMReX_EB_utils.H>
 

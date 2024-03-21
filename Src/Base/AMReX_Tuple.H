@@ -270,7 +270,7 @@ namespace detail {
 
     template <typename R, typename TP1, typename TP2, std::size_t... N1, std::size_t... N2>
     AMREX_GPU_HOST_DEVICE constexpr R
-    make_tuple (TP1 && a, TP2 && b,
+    make_tuple (TP1 const& a, TP2 const& b,
                 std::index_sequence<N1...> const& /*n1*/, std::index_sequence<N2...> const& /*n2*/)
     {
         return R(amrex::get<N1>(a)..., amrex::get<N2>(b)...);
@@ -297,7 +297,7 @@ TupleCat (TP1 && a, TP2 && b) -> typename detail::tuple_cat_result<detail::tuple
     using ReturnType =  typename detail::tuple_cat_result<detail::tuple_decay_t<TP1>,
                                                           detail::tuple_decay_t<TP2> >::type;
     return detail::make_tuple<ReturnType>
-        (a, b,
+        (std::forward<TP1>(a), std::forward<TP2>(b),
          std::make_index_sequence<GpuTupleSize<typename std::decay<TP1>::type>::value>(),
          std::make_index_sequence<GpuTupleSize<typename std::decay<TP2>::type>::value>());
 }
@@ -345,7 +345,7 @@ namespace detail {
     apply_impl (F&& f, TP&& t, std::index_sequence<N...> /*is*/)
         -> typename detail::apply_result<F,detail::tuple_decay_t<TP> >::type
     {
-        return f(amrex::get<N>(std::forward<TP>(t))...);
+        return std::forward<F>(f)(amrex::get<N>(std::forward<TP>(t))...);
     }
 }
 

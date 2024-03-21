@@ -73,7 +73,7 @@ struct range_impl
     struct iterator
     {
         AMREX_GPU_HOST_DEVICE
-        iterator (T const& b, Long i, Long s) noexcept : mi_b(b), mi_i(i), mi_s(s)  {}
+        iterator (T const& b, Long i, Long s) noexcept : mi_b(&b), mi_i(i), mi_s(s)  {}
 
         AMREX_GPU_HOST_DEVICE
         void operator++ () noexcept { mi_i += mi_s; }
@@ -82,10 +82,10 @@ struct range_impl
         bool operator!= (iterator const& rhs) const noexcept { return mi_i < rhs.mi_i; }
 
         AMREX_GPU_HOST_DEVICE
-        T operator* () const noexcept { return range_detail::at(mi_b,mi_i); }
+        T operator* () const noexcept { return range_detail::at(*mi_b,mi_i); }
 
     private:
-        T const& mi_b;
+        T const* mi_b;
         Long mi_i;
         Long mi_s;
     };
