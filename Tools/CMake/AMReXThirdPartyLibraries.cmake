@@ -140,15 +140,22 @@ endif ()
 #
 if (AMReX_SUNDIALS)
     if (SUNDIALS_FOUND)
-        message(STATUS "SUNDIALS_FOUND is true, assuming nvecserial or gpu-specific vector found for version 7.0.0 or higher")
+        message(STATUS "SUNDIALS_FOUND is true, assuming nvecserial or gpu-specific vector found for version 6.0.0 or higher")
     else ()
-       set(SUNDIALS_MINIMUM_VERSION 7.0.0 CACHE INTERNAL "Minimum required SUNDIALS version")
-       set(SUNDIALS_COMPONENTS core arkode cvode sunlinsolspgmr sunlinsolspfgmr
+       set(SUNDIALS_MINIMUM_VERSION 6.0.0 CACHE INTERNAL "Minimum required SUNDIALS version")
+       set(SUNDIALS_COMPONENTS arkode cvode sunlinsolspgmr sunlinsolspfgmr
                                nvecserial nvecmanyvector sunnonlinsolfixedpoint)
        find_package(SUNDIALS ${SUNDIALS_MINIMUM_VERSION} CONFIG REQUIRED
-                    COMPONENTS ${SUNDIALS_COMPONENTS})
+                    COMPONENTS ${SUNDIALS_COMPONENTS}
+                    OPTIONAL_COMPONENTS core) # core only available for >= 7
     endif ()
     foreach(D IN LISTS AMReX_SPACEDIM)
+        if (SUNDIALS_VERSION VERSION_GREATER_EQUAL 7)
+           if (NOT TARGET SUNDIALS::core)
+              message(FATAL_ERROR "\nSUNDIALS::core not found")
+           endif ()
+           target_link_libraries(amrex_${D}d PUBLIC SUNDIALS::core)
+        endif ()
         foreach(comp IN LISTS SUNDIALS_COMPONENTS)
            target_link_libraries(amrex_${D}d PUBLIC SUNDIALS::${comp})
         endforeach()
