@@ -204,7 +204,7 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
       std::string newoldname(path + ".old." + amrex::UniqueString());
       if (amrex::system::verbose > 1) {
           amrex::Print() << "amrex::UtilCreateCleanDirectory():  " << path
-                         << " exists.  Renaming to:  " << newoldname << std::endl;
+                         << " exists.  Renaming to:  " << newoldname << '\n';
       }
       if (std::rename(path.c_str(), newoldname.c_str())) {
           amrex::Abort("UtilCreateCleanDirectory:: std::rename failed");
@@ -230,7 +230,7 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
     {
       if (amrex::Verbose() > 1) {
           amrex::Print() << "amrex::UtilCreateCleanDirectoryDestructive():  " << path
-                         << " exists.  I am destroying it.  " << std::endl;
+                         << " exists.  I am destroying it.  " << '\n';
       }
       FileSystem::RemoveAll(path);
     }
@@ -254,7 +254,7 @@ amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
       std::string newoldname(path + ".old." + amrex::UniqueString());
       if (amrex::Verbose() > 1) {
           amrex::Print() << "amrex::UtilRenameDirectoryToOld():  " << path
-                         << " exists.  Renaming to:  " << newoldname << std::endl;
+                         << " exists.  Renaming to:  " << newoldname << '\n';
       }
       if (std::rename(path.c_str(), newoldname.c_str())) {
           amrex::Abort("UtilRenameDirectoryToOld: std::rename failed");
@@ -634,12 +634,12 @@ bool amrex::StreamRetry::TryOutput()
                                 << " :: sec = " << ParallelDescriptor::second()
                                 << " :: os.tellp() = " << sros->tellp()
                                 << " :: rewind spos = " << spos
-                                << std::endl;
+                                << '\n';
           }
         sros->clear();  // clear the bad bits
         if (amrex::Verbose() > 1) {
             amrex::AllPrint() << "After os.clear() : gbfe:  " << sros->good() << sros->bad()
-                              << sros->fail() << sros->eof() << std::endl;
+                              << sros->fail() << sros->eof() << '\n';
         }
         sros->seekp(spos, std::ios::beg);  // reset stream position
         ++tries;
@@ -652,12 +652,12 @@ bool amrex::StreamRetry::TryOutput()
                               << " :: sec = " << ParallelDescriptor::second()
                               << " :: os.tellp() = " << sros->tellp()
                               << " :: rewind spos = " << spos
-                              << std::endl;
+                              << '\n';
         }
         sros->clear();  // clear the bad bits
         if (amrex::Verbose() > 1) {
             amrex::AllPrint() << "After os.clear() : gbfe:  " << sros->good() << sros->bad()
-                              << sros->fail() << sros->eof() << std::endl;
+                              << sros->fail() << sros->eof() << '\n';
         }
         return false;
       }
@@ -687,7 +687,7 @@ bool amrex::StreamRetry::TryFileOutput()
                                                                tries - 1, 2);
           if (amrex::Verbose() > 1) {
               amrex::Print() << nWriteErrors << " STREAMERRORS : Renaming file from "
-                             << fileName << "  to  " << badFileName << std::endl;
+                             << fileName << "  to  " << badFileName << '\n';
           }
           if (std::rename(fileName.c_str(), badFileName.c_str())) {
               amrex::Abort("StreamRetry::TryFileOutput: std::rename failed");

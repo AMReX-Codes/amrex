@@ -158,7 +158,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
           amrex::AllPrint()<< "amrex::UtilCreateDirectory:: path errno:  "
                            << pathError[i].first << " :: "
                            << strerror(pathError[i].second)
-                           << std::endl;
+                           << '\n';
       }
     }
 

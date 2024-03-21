@@ -488,11 +488,11 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
             if (amrex::Verbose() > 0) {
                 if (nsmallcells) {
                     amrex::Print() << "AMReX EB: Iter. " << iter+1 << " fixed " << nsmallcells
-                                   << " small cells" << std::endl;
+                                   << " small cells" << '\n';
                 }
                 if (nmulticuts) {
                     amrex::Print() << "AMReX EB: Iter. " << iter+1 << " fixed " << nmulticuts
-                                   << " multicuts" << std::endl;
+                                   << " multicuts" << '\n';
                 }
             }
         }

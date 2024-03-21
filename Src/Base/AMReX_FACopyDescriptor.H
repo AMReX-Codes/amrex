@@ -467,7 +467,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         const int Who = it->procThatHasData;
         const auto Cnt = static_cast<int>((it->box.numPts())*(it->nComp));
 
-        RcvTags[Who].push_back(it);
+        RcvTags[Who].emplace_back(it);
 
         Total_Rcvs_Size += Cnt;
 

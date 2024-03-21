@@ -922,7 +922,7 @@ VisMF::WriteHeader (const std::string &mf_name, VisMF::Header &hdr,
           hss << hdr;
           if(static_cast<std::streamoff>(hss.tellp()) != bytesWritten) {
               amrex::ErrorStream() << "**** tellp error: hss.tellp() != bytesWritten :  "
-                                   << hss.tellp() << "  " << bytesWritten << std::endl;
+                                   << hss.tellp() << "  " << bytesWritten << '\n';
           }
         }
 
@@ -1330,25 +1330,25 @@ VisMF::RemoveFiles(const std::string &mf_name, bool a_verbose)
     if(ParallelDescriptor::IOProcessor()) {
       std::string MFHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
       if(a_verbose) {
-        amrex::Print() << "---- removing:  " << MFHdrFileName << std::endl;
+        amrex::Print() << "---- removing:  " << MFHdrFileName << '\n';
       }
       int retVal(std::remove(MFHdrFileName.c_str()));
       if(a_verbose) {
         if(retVal != 0) {
           amrex::Print() << "---- error removing:  " << MFHdrFileName << "  errno = "
-                    << strerror(errno) << std::endl;
+                    << strerror(errno) << '\n';
         }
       }
       for(int ip(0); ip < nOutFiles; ++ip) {
         std::string fileName(NFilesIter::FileName(nOutFiles, mf_name + FabFileSuffix, ip, true));
         if(a_verbose) {
-          amrex::Print() << "---- removing:  " << fileName << std::endl;
+          amrex::Print() << "---- removing:  " << fileName << '\n';
         }
         int rv(std::remove(fileName.c_str()));
         if(a_verbose) {
           if(rv != 0) {
             amrex::Print() << "---- error removing:  " << fileName << "  errno = "
-                      << strerror(errno) << std::endl;
+                      << strerror(errno) << '\n';
           }
         }
       }
@@ -1514,7 +1514,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     int messTotal(0);
 
     if(verbose && myProc == coordinatorProc) {
-        amrex::AllPrint() << myProc << "::VisMF::Read:  about to read:  " << mf_name << std::endl;
+        amrex::AllPrint() << myProc << "::VisMF::Read:  about to read:  " << mf_name << '\n';
     }
 
     std::string FullHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
@@ -1543,7 +1543,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     } else {
         if (hdr.m_ba.empty())
         {
-            amrex::Print() << "In trying to read " << mf_name << std::endl;
+            amrex::Print() << "In trying to read " << mf_name << '\n';
             amrex::Error("Empty box array");
         }
     }
@@ -1627,11 +1627,11 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     bool inFileOrder(mf.DistributionMap() == dmFileOrder && mf.boxArray() == baFileOrder);
     if(inFileOrder) {
       if(myProc == coordinatorProc && verbose) {
-          amrex::AllPrint() << "VisMF::Read:  inFileOrder" << std::endl;
+          amrex::AllPrint() << "VisMF::Read:  inFileOrder" << '\n';
       }
     } else {
       if(myProc == coordinatorProc && verbose) {
-          amrex::AllPrint() << "VisMF::Read:  not inFileOrder" << std::endl;
+          amrex::AllPrint() << "VisMF::Read:  not inFileOrder" << '\n';
       }
       // ---- make a temporary fabarray in file order
       fafabFileOrder.define(baFileOrder, dmFileOrder, hdr.m_ncomp, hdr.m_ngrow, MFInfo(), mf.Factory());
@@ -1854,7 +1854,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           int findex = fileNamesIter->second;
           allReads[findex][whichProc].insert(std::pair<Long, int>(iSeekPos, i));
         } else {
-            amrex::ErrorStream() << "**** Error:  filename not found = " << fname << std::endl;
+            amrex::ErrorStream() << "**** Error:  filename not found = " << fname << '\n';
             amrex::Abort("**** Error in VisMF::Read");
         }
       }
@@ -1947,7 +1947,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
             int fileIndex = fit->second;
             availableFiles.insert(fileIndex);
           } else {
-            amrex::ErrorStream() << "**** Error:  filename not found = " << fname << std::endl;
+            amrex::ErrorStream() << "**** Error:  filename not found = " << fname << '\n';
             amrex::Abort("**** Error in VisMF::Read");
           }
         }
@@ -1993,7 +1993,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                         << "FARead ::  hTime = " << (hEndTime - hStartTime) << '\n'
                         << "FARead ::  faCopyTime = " << faCopyTime << '\n'
                         << "FARead ::  mfReadTime = " << mfReadTime
-                        << "  totalTime = " << totalTime << std::endl;
+                        << "  totalTime = " << totalTime << '\n';
     }
 
     BL_ASSERT(mf.ok());
@@ -2035,7 +2035,7 @@ VisMF::Check (const std::string& mf_name)
 
   if(ParallelDescriptor::IOProcessor()) {
    if (verbose) {
-       amrex::Print() << "---------------- VisMF::Check:  about to check:  " << mf_name << std::endl;
+       amrex::Print() << "---------------- VisMF::Check:  about to check:  " << mf_name << '\n';
    }
 
     char c;
@@ -2063,7 +2063,7 @@ VisMF::Check (const std::string& mf_name)
     if(hdr.m_vers != VisMF::Header::Version_v1) {
      v1 = false;
      if (verbose) {
-         amrex::Print() << "**** VisMF::Check currently only supports Version_v1." << std::endl;
+         amrex::Print() << "**** VisMF::Check currently only supports Version_v1." << '\n';
      }
     } else {
 
@@ -2078,7 +2078,7 @@ VisMF::Check (const std::string& mf_name)
 
       if( ! ifs.good()) {
           if (verbose) {
-              amrex::AllPrint() << "**** Error:  could not open file:  " << FullName << std::endl;
+              amrex::AllPrint() << "**** Error:  could not open file:  " << FullName << '\n';
           }
           continue;
       }
@@ -2102,7 +2102,7 @@ VisMF::Check (const std::string& mf_name)
         if (verbose) {
             amrex::AllPrint() << "**** Error in file:  " << FullName << "  Bad Fab at index = "
                               << i << "  seekpos = " << fod.m_head << "  box = " << hdr.m_ba[i]
-                              << std::endl;
+                              << '\n';
         }
       }
       ifs.close();
@@ -2110,12 +2110,12 @@ VisMF::Check (const std::string& mf_name)
     }
     if(nBadFabs) {
         if (verbose) {
-            amrex::AllPrint() << "Total Bad Fabs = " << nBadFabs << std::endl;
+            amrex::AllPrint() << "Total Bad Fabs = " << nBadFabs << '\n';
         }
         isOk = false;
     } else {
         if (verbose) {
-            amrex::AllPrint() << "No Bad Fabs." << std::endl;
+            amrex::AllPrint() << "No Bad Fabs." << '\n';
         }
         isOk = true;
     }
