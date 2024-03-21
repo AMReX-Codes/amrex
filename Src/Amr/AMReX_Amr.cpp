@@ -2207,6 +2207,7 @@ Amr::coarseTimeStep (Real stop_time)
     if (record_run_info_terse && ParallelDescriptor::IOProcessor()) {
         runlog_terse << level_steps[0] << " " << cumtime << " " << dt_level[0];
         runlog_terse << '\n';
+        runlog_terse.flush();
     }
 
     int check_test = 0;
@@ -2917,6 +2918,7 @@ Amr::printGridInfo (std::ostream& os,
     }
 
     os << '\n';
+    os.flush();
 }
 
 
