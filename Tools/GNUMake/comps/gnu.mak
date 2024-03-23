@@ -44,6 +44,8 @@ gcc_major_ge_10 = $(shell expr $(gcc_major_version) \>= 10)
 gcc_major_ge_11 = $(shell expr $(gcc_major_version) \>= 11)
 gcc_major_ge_12 = $(shell expr $(gcc_major_version) \>= 12)
 
+INLINE_LIMIT ?= 43210
+
 ifneq ($(NO_CONFIG_CHECKING),TRUE)
 ifneq ($(gcc_major_ge_8),1)
   $(error GCC < 8 not supported)
@@ -95,6 +97,9 @@ else
   else
     CXXFLAGS += -g -O3
     CFLAGS   += -g -O3
+  endif
+  ifneq ($(USE_COMPILER_DEFAULT_INLINE),TRUE)
+    CXXFLAGS += -finline-limit=$(INLINE_LIMIT)
   endif
 endif
 
