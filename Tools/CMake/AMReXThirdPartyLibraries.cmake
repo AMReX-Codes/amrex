@@ -145,9 +145,12 @@ if (AMReX_SUNDIALS)
        set(SUNDIALS_MINIMUM_VERSION 6.0.0 CACHE INTERNAL "Minimum required SUNDIALS version")
        set(SUNDIALS_COMPONENTS arkode cvode sunlinsolspgmr sunlinsolspfgmr
                                nvecserial nvecmanyvector sunnonlinsolfixedpoint)
-       find_package(SUNDIALS ${SUNDIALS_MINIMUM_VERSION} CONFIG REQUIRED
+       find_package(SUNDIALS CONFIG REQUIRED
                     COMPONENTS ${SUNDIALS_COMPONENTS}
                     OPTIONAL_COMPONENTS core) # core only available for >= 7
+       if (SUNDIALS_VERSION VERSION_LESS ${SUNDIALS_MINIMUM_VERSION})
+          message(FATAL_ERROR "SUNDIALS_VERSION ${SUNDIALS_MINIMUM_VERSION} or newer is required. Found version ${SUNDIALS_VERSION}.")
+       endif ()
     endif ()
     foreach(D IN LISTS AMReX_SPACEDIM)
         if (SUNDIALS_VERSION VERSION_GREATER_EQUAL 7)
