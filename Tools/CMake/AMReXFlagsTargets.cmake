@@ -5,6 +5,7 @@
 #   Flags_CXX                 --> Optional flags for C++ code
 #   Flags_Fortran             --> Optional flags for Fortran code
 #   Flags_FPE                 --> Floating-Point Exception flags for both C++ and Fortran
+#   Flags_INLINE              --> Optional flags for inlining
 #
 # These INTERFACE targets can be added to the AMReX export set.
 #
@@ -92,6 +93,17 @@ target_compile_options( Flags_CXX
    $<${_cxx_intelllvm_rwdbg}:-gline-tables-only -fdebug-info-for-profiling> # recommended by Intel VTune
    $<${_cxx_intelllvm_rel}:>
    )
+
+add_library(Flags_INLINE INTERFACE)
+add_library(AMReX::Flags_INLINE ALIAS Flags_INLINE)
+
+if (NOT AMReX_COMPILER_DEFAULT_INLINE)
+   target_compile_options( Flags_INLINE
+      INTERFACE
+      $<${_cxx_gnu_rwdbg}:-finline-limit=${AMReX_INLINE_LIMIT}>
+      $<${_cxx_gnu_rel}:-finline-limit=${AMReX_INLINE_LIMIT}>
+      )
+endif ()
 
 #
 # Fortran flags
