@@ -145,6 +145,12 @@
 #define AMREX_FLATTEN
 #endif
 
+#ifdef AMREX_USE_FLATTEN_FOR
+#define AMREX_ATTRIBUTE_FLATTEN_FOR AMREX_FLATTEN
+#else
+#define AMREX_ATTRIBUTE_FLATTEN_FOR
+#endif
+
 // unroll loop
 #define AMREX_TO_STRING_HELPER(X)   #X
 #define AMREX_TO_STRING(X)          AMREX_TO_STRING_HELPER(X)

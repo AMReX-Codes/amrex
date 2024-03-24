@@ -3,11 +3,13 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
+#include <AMReX_Extension.H>
 
 namespace amrex {
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void Loop (Dim3 lo, Dim3 hi, F const& f) noexcept
 {
     for (int k = lo.z; k <= hi.z; ++k) {
@@ -19,6 +21,7 @@ void Loop (Dim3 lo, Dim3 hi, F const& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void Loop (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
 {
     for (int n = 0; n < ncomp; ++n) {
@@ -31,6 +34,7 @@ void Loop (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopConcurrent (Dim3 lo, Dim3 hi, F const& f) noexcept
 {
     for (int k = lo.z; k <= hi.z; ++k) {
@@ -43,6 +47,7 @@ void LoopConcurrent (Dim3 lo, Dim3 hi, F const& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopConcurrent (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
 {
     for (int n = 0; n < ncomp; ++n) {
@@ -56,6 +61,7 @@ void LoopConcurrent (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void Loop (Box const& bx, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
@@ -69,6 +75,7 @@ void Loop (Box const& bx, F const& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void Loop (Box const& bx, int ncomp, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
@@ -83,6 +90,7 @@ void Loop (Box const& bx, int ncomp, F const& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopConcurrent (Box const& bx, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
@@ -97,6 +105,7 @@ void LoopConcurrent (Box const& bx, F const& f) noexcept
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopConcurrent (Box const& bx, int ncomp, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
@@ -116,6 +125,7 @@ void LoopConcurrent (Box const& bx, int ncomp, F const& f) noexcept
 // of the warning, we have to use the functions below for those situations.
 
 template <class F>
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopOnCpu (Dim3 lo, Dim3 hi, F const& f) noexcept
 {
     for (int k = lo.z; k <= hi.z; ++k) {
@@ -126,6 +136,7 @@ void LoopOnCpu (Dim3 lo, Dim3 hi, F const& f) noexcept
 }
 
 template <class F>
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopOnCpu (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
 {
     for (int n = 0; n < ncomp; ++n) {
@@ -137,6 +148,7 @@ void LoopOnCpu (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
 }
 
 template <class F>
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, F const& f) noexcept
 {
     for (int k = lo.z; k <= hi.z; ++k) {
@@ -148,6 +160,7 @@ void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, F const& f) noexcept
 }
 
 template <class F>
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
 {
     for (int n = 0; n < ncomp; ++n) {
@@ -160,6 +173,7 @@ void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
 }
 
 template <class F>
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopOnCpu (Box const& bx, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
@@ -172,6 +186,7 @@ void LoopOnCpu (Box const& bx, F const& f) noexcept
 }
 
 template <class F>
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopOnCpu (Box const& bx, int ncomp, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
@@ -185,6 +200,7 @@ void LoopOnCpu (Box const& bx, int ncomp, F const& f) noexcept
 }
 
 template <class F>
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopConcurrentOnCpu (Box const& bx, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
@@ -198,6 +214,7 @@ void LoopConcurrentOnCpu (Box const& bx, F const& f) noexcept
 }
 
 template <class F>
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopConcurrentOnCpu (Box const& bx, int ncomp, F const& f) noexcept
 {
     const auto lo = amrex::lbound(bx);
