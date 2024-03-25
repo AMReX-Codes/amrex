@@ -30,7 +30,7 @@ template <template <class, class> class Container,
           class Allocator,
           class PTile,
           class F>
-typename std::enable_if<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>::type
+std::enable_if_t<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>
 fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F const& f)
 {
     const auto ptd = ptile.getConstParticleTileData();
@@ -54,7 +54,7 @@ template <template <class, class> class Container,
           class Allocator,
           class PTile,
           class F>
-typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>::type
+std::enable_if_t<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>
 fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F const& f)
 {
     const auto ptd = ptile.getConstParticleTileData();
@@ -72,7 +72,7 @@ fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F const& f)
 }
 
 template <template <class, class> class Container, class Allocator, class PC>
-typename std::enable_if<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, amrex::Long>::type
+std::enable_if_t<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, amrex::Long>
 countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>& particle_io_flags, const PC& pc)
 {
     ReduceOps<ReduceOpSum> reduce_op;
@@ -98,7 +98,7 @@ countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>&
 }
 
 template <template <class, class> class Container, class Allocator>
-typename std::enable_if<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, int>::type
+std::enable_if_t<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, int>
 countFlags (const Container<int,Allocator>& pflags)
 {
     ReduceOps<ReduceOpSum> reduce_op;
@@ -116,7 +116,7 @@ countFlags (const Container<int,Allocator>& pflags)
 }
 
 template <template <class, class> class Container, class Allocator, class PC>
-typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, amrex::Long>::type
+std::enable_if_t<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, amrex::Long>
 countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>& particle_io_flags, const PC& pc)
 {
     amrex::Long nparticles = 0;
@@ -136,7 +136,7 @@ countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>&
 }
 
 template <template <class, class> class Container, class Allocator>
-typename std::enable_if<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, int>::type
+std::enable_if_t<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value, int>
 countFlags (const Container<int,Allocator>& pflags)
 {
     int nparticles = 0;
@@ -167,7 +167,7 @@ void packParticleIDs (I* idata, const P& p, bool is_checkpoint) noexcept
 }
 
 template <class PC>
-typename std::enable_if<RunOnGpu<typename PC::template AllocatorType<int>>::value>::type
+std::enable_if_t<RunOnGpu<typename PC::template AllocatorType<int>>::value>
 packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int lev, int grid,
             const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
             const Vector<std::map<std::pair<int, int>, typename PC::IntVector>>& particle_io_flags,
@@ -276,7 +276,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
 }
 
 template <class PC>
-typename std::enable_if<!RunOnGpu<typename PC::template AllocatorType<int>>::value>::type
+std::enable_if_t<!RunOnGpu<typename PC::template AllocatorType<int>>::value>
 packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int lev, int grid,
             const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
             const Vector<std::map<std::pair<int, int>, typename PC::IntVector>>& particle_io_flags,

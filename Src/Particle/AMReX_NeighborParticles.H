@@ -290,7 +290,7 @@ public:
     }
 
     template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddRealComp (T communicate=true)
     {
         ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
@@ -300,7 +300,7 @@ public:
     }
 
     template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddIntComp (T communicate=true)
     {
         ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::

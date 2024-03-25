@@ -178,7 +178,7 @@ void copyParticles (DstTile& dst, const SrcTile& src) noexcept
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 void copyParticles (DstTile& dst, const SrcTile& src,
                     Index src_start, Index dst_start, N n) noexcept
 {
@@ -232,7 +232,7 @@ void transformParticles (DstTile& dst, const SrcTile& src, F&& f) noexcept
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N, typename F,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 void transformParticles (DstTile& dst, const SrcTile& src,
                          Index src_start, Index dst_start, N n, F const& f) noexcept
 {
@@ -292,7 +292,7 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src, F&&
  */
 template <typename DstTile1, typename DstTile2, typename SrcTile,
           typename Index, typename N, typename F,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
                          Index src_start, Index dst1_start, Index dst2_start, N n, F const& f) noexcept
 {
@@ -321,7 +321,7 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noexcept
 {
     return filterParticles(dst, src, mask, 0, 0, src.numParticles());
@@ -345,7 +345,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noex
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
                        Index src_start, Index dst_start, N n) noexcept
 {
@@ -445,7 +445,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, Pred const& p,
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename F,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F const& f,
                                    Index src_start, Index dst_start) noexcept
 {
@@ -490,7 +490,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename F,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F&& f) noexcept
 {
     return filterAndTransformParticles(dst, src, mask, std::forward<F>(f), 0, 0);
@@ -536,7 +536,7 @@ int filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&&
  *
  */
 template <typename DstTile1, typename DstTile2, typename SrcTile, typename Index, typename F,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
                                    const SrcTile& src, Index* mask, F const& f) noexcept
 {
@@ -662,7 +662,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred const&
  *
  */
 template <typename PTile, typename N, typename Index,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
 {
     const auto src_data = src.getConstParticleTileData();
@@ -692,7 +692,7 @@ void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
  *
  */
 template <typename PTile, typename N, typename Index,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 void scatterParticles (PTile& dst, const PTile& src, N np, const Index* inds)
 {
     const auto src_data = src.getConstParticleTileData();

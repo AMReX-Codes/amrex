@@ -1376,8 +1376,8 @@ BL_FORT_PROC_DECL(BL_PD_ABORT,bl_pd_abort)()
 #if defined(BL_USE_MPI) && !defined(BL_AMRPROF)
 template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 {
-    static_assert(std::is_trivially_copyable<IntVect>::value, "IntVect must be trivially copyable");
-    static_assert(std::is_standard_layout<IntVect>::value, "IntVect must be standard layout");
+    static_assert(std::is_trivially_copyable_v<IntVect>, "IntVect must be trivially copyable");
+    static_assert(std::is_standard_layout_v<IntVect>, "IntVect must be standard layout");
 
     if ( mpi_type_intvect == MPI_DATATYPE_NULL )
     {
@@ -1399,8 +1399,8 @@ template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 
 template <> MPI_Datatype Mpi_typemap<IndexType>::type()
 {
-    static_assert(std::is_trivially_copyable<IndexType>::value, "IndexType must be trivially copyable");
-    static_assert(std::is_standard_layout<IndexType>::value, "IndexType must be standard layout");
+    static_assert(std::is_trivially_copyable_v<IndexType>, "IndexType must be trivially copyable");
+    static_assert(std::is_standard_layout_v<IndexType>, "IndexType must be standard layout");
 
     if ( mpi_type_indextype == MPI_DATATYPE_NULL )
     {
@@ -1422,8 +1422,8 @@ template <> MPI_Datatype Mpi_typemap<IndexType>::type()
 
 template <> MPI_Datatype Mpi_typemap<Box>::type()
 {
-    static_assert(std::is_trivially_copyable<Box>::value, "Box must be trivially copyable");
-    static_assert(std::is_standard_layout<Box>::value, "Box must be standard layout");
+    static_assert(std::is_trivially_copyable_v<Box>, "Box must be trivially copyable");
+    static_assert(std::is_standard_layout_v<Box>, "Box must be standard layout");
 
     if ( mpi_type_box == MPI_DATATYPE_NULL )
     {

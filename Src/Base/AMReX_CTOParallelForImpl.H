@@ -27,12 +27,12 @@ struct CompileTimeOptions {
 namespace detail
 {
     template <int MT, typename T, class F, typename... As>
-    std::enable_if_t<std::is_integral<T>::value || std::is_same<T,Box>::value, bool>
+    std::enable_if_t<std::is_integral_v<T> || std::is_same_v<T,Box>, bool>
     ParallelFor_helper2 (T const& N, F const& f, TypeList<As...>,
                          std::array<int,sizeof...(As)> const& runtime_options)
     {
         if (runtime_options == std::array<int,sizeof...(As)>{As::value...}) {
-            if constexpr (std::is_integral<T>::value) {
+            if constexpr (std::is_integral_v<T>) {
                 ParallelFor<MT>(N, [f] AMREX_GPU_DEVICE (T i) noexcept
                 {
                     f(i, As{}...);
@@ -50,7 +50,7 @@ namespace detail
     }
 
     template <int MT, typename T, class F, typename... As>
-    std::enable_if_t<std::is_integral<T>::value, bool>
+    std::enable_if_t<std::is_integral_v<T>, bool>
     ParallelFor_helper2 (Box const& box, T ncomp, F const& f, TypeList<As...>,
                          std::array<int,sizeof...(As)> const& runtime_options)
     {
@@ -66,7 +66,7 @@ namespace detail
     }
 
     template <int MT, typename T, class F, typename... PPs, typename RO>
-    std::enable_if_t<std::is_integral<T>::value || std::is_same<T,Box>::value>
+    std::enable_if_t<std::is_integral_v<T> || std::is_same_v<T,Box>>
     ParallelFor_helper1 (T const& N, F const& f, TypeList<PPs...>,
                          RO const& runtime_options)
     {
@@ -78,7 +78,7 @@ namespace detail
     }
 
     template <int MT, typename T, class F, typename... PPs, typename RO>
-    std::enable_if_t<std::is_integral<T>::value>
+    std::enable_if_t<std::is_integral_v<T>>
     ParallelFor_helper1 (Box const& box, T ncomp, F const& f, TypeList<PPs...>,
                          RO const& runtime_options)
     {
@@ -93,7 +93,7 @@ namespace detail
 #endif
 
 template <int MT, typename T, class F, typename... CTOs>
-std::enable_if_t<std::is_integral<T>::value>
+std::enable_if_t<std::is_integral_v<T>>
 ParallelFor (TypeList<CTOs...> /*list_of_compile_time_options*/,
              std::array<int,sizeof...(CTOs)> const& runtime_options,
              T N, F&& f)
@@ -124,7 +124,7 @@ void ParallelFor (TypeList<CTOs...> /*list_of_compile_time_options*/,
 }
 
 template <int MT, typename T, class F, typename... CTOs>
-std::enable_if_t<std::is_integral<T>::value>
+std::enable_if_t<std::is_integral_v<T>>
 ParallelFor (TypeList<CTOs...> /*list_of_compile_time_options*/,
              std::array<int,sizeof...(CTOs)> const& runtime_options,
              Box const& box, T ncomp, F&& f)
@@ -184,7 +184,7 @@ ParallelFor (TypeList<CTOs...> /*list_of_compile_time_options*/,
  * \param f      a callable object taking an integer and working on that iteration.
  */
 template <typename T, class F, typename... CTOs>
-std::enable_if_t<std::is_integral<T>::value>
+std::enable_if_t<std::is_integral_v<T>>
 ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& option,
              T N, F&& f)
@@ -292,7 +292,7 @@ void ParallelFor (TypeList<CTOs...> ctos,
  * \param f      a callable object taking three integers and working on the given cell.
  */
 template <typename T, class F, typename... CTOs>
-std::enable_if_t<std::is_integral<T>::value>
+std::enable_if_t<std::is_integral_v<T>>
 ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& option,
              Box const& box, T ncomp, F&& f)

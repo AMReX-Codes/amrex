@@ -24,15 +24,15 @@ struct BinIterator
 {
     using index_type = unsigned int;
 
-    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_type = std::conditional_t<IsParticleTileData<T>(),
         T,
         const T*
-    >::type;
+    >;
 
-    using const_pointer_input_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_input_type = std::conditional_t<IsParticleTileData<T>(),
         const T&,
         const T*
-    >::type;
+    >;
 
     struct iterator
     {

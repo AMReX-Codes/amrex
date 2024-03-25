@@ -379,7 +379,7 @@ std::istream& operator>> (std::istream& is, VisMF::Header& hd);
  */
 template <typename FAB>
 // This function does work for MultiFab, but let's disable it to avoid confusion.
-std::enable_if_t<std::is_same<FAB,IArrayBox>::value>
+std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
 Write (const FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Write(FabArray)");
@@ -556,7 +556,7 @@ void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
  */
 template <typename FAB>
 // This function does work for MultiFab, but let's disable it to avoid confusion.
-std::enable_if_t<std::is_same<FAB,IArrayBox>::value>
+std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
 Read (FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Read(FabArray)");

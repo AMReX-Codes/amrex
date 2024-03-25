@@ -145,9 +145,9 @@ namespace amrex
         return r;
     }
 
-    template <class T, typename std::enable_if<IsFabArray<T>::value ||
+    template <class T, std::enable_if_t<IsFabArray<T>::value ||
                                                IsBaseFab<T>::value,
-                                               int>::type = 0 >
+                                               int> = 0 >
     [[nodiscard]] Vector<std::array<T const*,AMREX_SPACEDIM> >
     GetVecOfArrOfConstPtrs (const Vector<std::array<T,AMREX_SPACEDIM> >& a)
     {
@@ -157,9 +157,9 @@ namespace amrex
         return r;
     }
 
-    template <class T, typename std::enable_if<IsFabArray<T>::value ||
+    template <class T, std::enable_if_t<IsFabArray<T>::value ||
                                                IsBaseFab<T>::value,
-                                               int>::type = 0 >
+                                               int> = 0 >
     [[nodiscard]] Vector<std::array<T*, AMREX_SPACEDIM> >
     GetVecOfArrOfPtrs(Vector<std::array<T, AMREX_SPACEDIM> >& a)
     {

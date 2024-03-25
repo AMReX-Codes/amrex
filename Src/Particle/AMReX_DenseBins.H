@@ -32,10 +32,10 @@ struct DenseBinIteratorFactory
 {
     using index_type = unsigned int;
 
-    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_type = std::conditional_t<IsParticleTileData<T>(),
         T,
         const T*
-    >::type;
+    >;
 
     DenseBinIteratorFactory (const Gpu::DeviceVector<index_type>& offsets,
                              const Gpu::DeviceVector<index_type>& permutation,
@@ -80,15 +80,15 @@ public:
     using BinIteratorFactory = DenseBinIteratorFactory<T>;
     using index_type = unsigned int;
 
-    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_type = std::conditional_t<IsParticleTileData<T>(),
         T,
         const T*
-    >::type;
+    >;
 
-    using const_pointer_input_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_input_type = std::conditional_t<IsParticleTileData<T>(),
         const T&,
         const T*
-    >::type;
+    >;
 
 private:
 
