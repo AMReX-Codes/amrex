@@ -112,6 +112,9 @@
 #elif defined(__GNUC__)
 #define AMREX_FORCE_INLINE inline __attribute__((always_inline))
 
+#elif defined(_MSC_VER)
+#define AMREX_FORCE_INLINE inline __forceinline
+
 #else
 #define AMREX_FORCE_INLINE inline
 
@@ -131,6 +134,15 @@
 #define AMREX_NO_INLINE __attribute__((noinline))
 #else
 #define AMREX_NO_INLINE
+#endif
+
+// flatten
+#if defined(_MSC_VER)
+#define AMREX_FLATTEN [[msvc::flatten]]
+#elif defined(__clang__) || defined(__GNUC__)
+#define AMREX_FLATTEN __attribute__((flatten))
+#else
+#define AMREX_FLATTEN
 #endif
 
 // unroll loop
