@@ -167,6 +167,27 @@ MultiFab::Add (MultiFab& dst, const MultiFab& src,
     amrex::Add(dst, src, srccomp, dstcomp, numcomp, nghost);
 }
 
+MultiFab
+MultiFab::copy ()
+{
+    auto mf = MultiFab(
+        this->boxArray(),
+        this->DistributionMap(),
+        this->nComp(),
+        this->nGrowVect(),
+        MFInfo().SetArena(this->arena())
+    );
+    MultiFab::Copy(
+        mf,
+        *this,
+        0,
+        0,
+        this->nComp(),
+        this->nGrowVect()
+    );
+    return mf;
+}
+
 void
 MultiFab::Copy (MultiFab& dst, const MultiFab& src,
                 int srccomp, int dstcomp, int numcomp, int nghost)

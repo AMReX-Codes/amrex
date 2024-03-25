@@ -486,6 +486,12 @@ public:
                      int             dstcomp,
                      int             numcomp,
                      const IntVect&  nghost);
+
+
+    /** Create a copy of this MultiFab, using the same Arena.
+     */
+    MultiFab copy ();
+
     /**
     * \brief Copy from src to dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
