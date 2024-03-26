@@ -488,6 +488,8 @@ public:
                      const IntVect&  nghost);
 
 
+    using FabArray<FArrayBox>::copy;
+
     /** Create a copy of this MultiFab, using the same Arena.
      */
     MultiFab copy ();
