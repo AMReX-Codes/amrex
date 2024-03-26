@@ -175,7 +175,8 @@ MultiFab::copy ()
         this->DistributionMap(),
         this->nComp(),
         this->nGrowVect(),
-        MFInfo().SetArena(this->arena())
+        MFInfo().SetArena(this->arena()),
+        this->Factory()
     );
     MultiFab::Copy(
         mf,
