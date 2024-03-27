@@ -74,6 +74,8 @@ void
 Geometry::define (const Box& dom, const RealBox* rb, int coord,
                   int const* is_per) noexcept
 {
+    AMREX_ASSERT(dom.cellCentered());
+
     Setup(rb,coord,is_per);
 
     Geometry* gg = AMReX::top()->getDefaultGeometry();
