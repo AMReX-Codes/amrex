@@ -487,12 +487,12 @@ public:
                      int             numcomp,
                      const IntVect&  nghost);
 
-
-    using FabArray<FArrayBox>::copy;
-
-    /** Create a copy of this MultiFab, using the same Arena.
+    /** Create a deep copy of this MultiFab and its data.
+     *
+     * This uses the same arena and factory in the copy and copies
+     * all data.
      */
-    MultiFab copy ();
+    MultiFab deepCopy ();
 
     /**
     * \brief Copy from src to dst including nghost ghost cells.

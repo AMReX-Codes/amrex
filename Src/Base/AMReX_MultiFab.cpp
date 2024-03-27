@@ -168,7 +168,7 @@ MultiFab::Add (MultiFab& dst, const MultiFab& src,
 }
 
 MultiFab
-MultiFab::copy ()
+MultiFab::deepCopy ()
 {
     auto mf = MultiFab(
         this->boxArray(),
