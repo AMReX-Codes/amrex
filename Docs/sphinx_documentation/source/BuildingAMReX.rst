@@ -533,7 +533,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_PROBINIT               |  Enable support for probin file                 | Platform dependent      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FLATTEN_FOR            |  Enable flattening of ParallelFor and similar   | YES unless for Debug    | YES, NO               |
-   |                              |  functions                                      | build                   |                       |
+   |                              |  functions for host code                        | build                   |                       |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
 .. raw:: latex
 
