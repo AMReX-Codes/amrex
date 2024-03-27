@@ -369,6 +369,9 @@ print_option( AMReX_IPO )
 option(AMReX_FPE "Enable Floating Point Exceptions checks" OFF)
 print_option( AMReX_FPE )
 
+option(AMReX_ADDRLINES "Add minimal debug info that only records line numbers" ON)
+print_option( AMReX_ADDRLINES )
+
 if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
    option( AMReX_ASSERTIONS "Enable assertions" ON)
 else ()
@@ -377,7 +380,7 @@ endif ()
 
 print_option( AMReX_ASSERTIONS )
 
-option(AMReX_BOUND_CHECK  "Enable bound checking in Array4 class" OFF)
+option(AMReX_BOUND_CHECK "Enable bound checking in Array4 class" OFF)
 print_option( AMReX_BOUND_CHECK )
 
 if("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")

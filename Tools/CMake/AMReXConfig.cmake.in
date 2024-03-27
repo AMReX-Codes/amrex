@@ -88,6 +88,7 @@ set(AMReX_HDF5_ZFP_FOUND            @AMReX_HDF5_ZFP@)
 
 # Compilation options
 set(AMReX_FPE_FOUND                 @AMReX_FPE@)
+set(AMReX_ADDRLINES_FOUND           @AMReX_ADDRLINES@)
 set(AMReX_PIC_FOUND                 @AMReX_PIC@)
 set(AMReX_ASSERTIONS_FOUND          @AMReX_ASSERTIONS@)
 

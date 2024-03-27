@@ -496,6 +496,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FPE                    |  Build with Floating Point Exceptions checks    | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_ADDRLINES              |  Build with minimal debug info for line numbers | YES                     | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_ASSERTIONS             |  Build with assertions turned on                | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_BOUND_CHECK            |  Enable bound checking in Array4 class          | NO                      | YES, NO               |
@@ -617,6 +619,8 @@ In the above snippet, ``<amrex-target-name>`` is any of the targets listed in th
    | Flags_Fortran         |  Fortran flags preset (interface)               |
    +-----------------------+-------------------------------------------------+
    | Flags_FPE             |  Floating Point Exception flags (interface)     |
+   +-----------------------+-------------------------------------------------+
+   | Flags_ADDRLINES       |  Minimal debug/line numbers flags (interface)   |
    +-----------------------+-------------------------------------------------+
 .. raw:: latex
 

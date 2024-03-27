@@ -23,8 +23,10 @@ function (configure_amrex AMREX_TARGET)
    #
    # Check that needed options have already been defined
    #
-   if ( ( NOT ( DEFINED AMReX_MPI ) ) OR ( NOT (DEFINED AMReX_OMP) )
-	 OR ( NOT (DEFINED AMReX_PIC) ) OR (NOT (DEFINED AMReX_FPE)))
+   if ( (NOT (DEFINED AMReX_MPI) ) OR (NOT (DEFINED AMReX_OMP) )
+	 OR (NOT (DEFINED AMReX_PIC) ) OR (NOT (DEFINED AMReX_FPE) )
+	 OR (NOT (DEFINED AMReX_ADDRLINES) )
+   )
       message ( AUTHOR_WARNING "Required options are not defined" )
    endif ()
 
