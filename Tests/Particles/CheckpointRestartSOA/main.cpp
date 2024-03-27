@@ -89,7 +89,7 @@ void test ()
     for (int ts = 0; ts < nplotfile; ts++) {
         std::snprintf(fname, sizeof fname, "%splt%05d", directory.c_str(), ts);
 
-        amrex::Print() << "Writing plot file [" << fname << "] ..." << std::endl;
+        amrex::Print() << "Writing plot file [" << fname << "] ..." << '\n';
 
         WriteMultiLevelPlotfile(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
                                 varnames, geom, time, level_steps, ref_ratio);
@@ -113,7 +113,7 @@ void test ()
                       {5, 14, 15, 16}};
 
     if (nparticlefile > 0) {
-        amrex::Print() << "Init particles ..." << std::endl;
+        amrex::Print() << "Init particles ..." << '\n';
 
         myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
@@ -132,7 +132,7 @@ void test ()
         for (int ts = 0; ts < nparticlefile; ts++) {
             std::snprintf(fname, sizeof fname, "%splt%05d", directory.c_str(), ts);
 
-            amrex::Print() << "Writing particle file [" << fname << "] ..." << std::endl;
+            amrex::Print() << "Writing particle file [" << fname << "] ..." << '\n';
 
             myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
 

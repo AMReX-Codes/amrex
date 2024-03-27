@@ -442,7 +442,7 @@ NFilesIter &NFilesIter::operator++() {
             }
             if(nextProcToWrite == -1) {
               --remainingWriters;
-//              amrex::Print() << myProc << "::IOIOIOIO:  nptw == -1  rW = " << remainingWriters << std::endl;
+//              amrex::Print() << myProc << "::IOIOIOIO:  nptw == -1  rW = " << remainingWriters << '\n';
             } else {
 
             fileNumbersWriteOrder[nextFileNumberToWrite].push_back(nextProcToWrite);
@@ -503,9 +503,9 @@ bool NFilesIter::CheckNFiles(int nProcs, int nOutFiles, bool groupSets)
       fileNumbers.insert(FileNumber(nOutFiles, i, groupSets));
     }
 //    amrex::Print() << "nOutFiles fileNumbers.size() = " << nOutFiles
-//              << "  " << fileNumbers.size() << std::endl;
+//              << "  " << fileNumbers.size() << '\n';
     if(nOutFiles != static_cast<int>(fileNumbers.size())) {
-//      amrex::Print() << "**** Different number of files." << std::endl;
+//      amrex::Print() << "**** Different number of files." << '\n';
       return false;
     }
   }
@@ -533,7 +533,7 @@ Vector<int> NFilesIter::FileNumbersWritten()
       amrex::AllPrint() << "**** Error in NFilesIter::FileNumbersWritten():  "
                 << " coordinatorProc nProcs total procSet.size() = "
                 << coordinatorProc << "  " << nProcs << "  "
-                << total << "  " << procSet.size() << std::endl;
+                << total << "  " << procSet.size() << '\n';
     }
 #endif
 
@@ -556,7 +556,7 @@ void NFilesIter::CleanUpMessages() {
     int fromProc, tag(pii.first), nMessages(pii.second);
 #if 0
     amrex::AllPrint() << ParallelDescriptor::MyProc() << ":: cleaning up " << nMessages
-              << " messages for tag " << tag << std::endl;
+              << " messages for tag " << tag << '\n';
 #endif
     for(int n(0); n < nMessages; ++n) {
       ParallelDescriptor::Recv(&fromProc, 1, MPI_ANY_SOURCE, tag);

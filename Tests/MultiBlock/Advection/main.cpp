@@ -186,8 +186,9 @@ struct FillBoundaryFn {
         core_x.mass.FillBoundary(core_x.Geom(coarsest_level).periodicity());
         core_y.mass.FillBoundary(core_y.Geom(coarsest_level).periodicity());
         std::vector<CommHandler> comms;
+        comms.reserve(boundaries.size());
         for (auto& boundary : boundaries) {
-            comms.push_back(boundary.FillBoundary_nowait());
+            comms.emplace_back(boundary.FillBoundary_nowait());
         }
         for (auto& boundary : boundaries) {
             boundary.FillBoundary_do_local_copy();

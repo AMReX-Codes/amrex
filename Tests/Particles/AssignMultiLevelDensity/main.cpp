@@ -152,13 +152,13 @@ int main(int argc, char* argv[])
   pp.query("verbose", parms.verbose);
 
   if (parms.verbose && ParallelDescriptor::IOProcessor()) {
-    std::cout << std::endl;
+    std::cout << '\n';
     std::cout << "Number of particles per cell : ";
-    std::cout << parms.nppc  << std::endl;
+    std::cout << parms.nppc  << '\n';
     std::cout << "Size of domain               : ";
     std::cout << "Num levels: ";
-    std::cout << parms.nlevs << std::endl;
-    std::cout << parms.nx << " " << parms.ny << " " << parms.nz << std::endl;
+    std::cout << parms.nlevs << '\n';
+    std::cout << parms.nx << " " << parms.ny << " " << parms.nz << '\n';
   }
 
   test_assign_density(parms);

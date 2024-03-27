@@ -46,7 +46,7 @@ void main_main()
             << "\n"
             << " args [-v|--variable]  varname      : the field to integrate over\n"
             << "\n"
-            << std::endl;
+            << '\n';
         return;
     }
 
@@ -155,7 +155,7 @@ void main_main()
     ParallelDescriptor::ReduceRealSum(lsum);
 
     if (ParallelDescriptor::IOProcessor()) {
-        std::cout << "integral of " << var_name << " = " << lsum << std::endl;
+        std::cout << "integral of " << var_name << " = " << lsum << '\n';
 
     }
 }

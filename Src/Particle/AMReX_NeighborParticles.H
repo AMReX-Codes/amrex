@@ -254,13 +254,13 @@ public:
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair>
-    void buildNeighborList (CheckPair&& check_pair, bool sort=false);
+    void buildNeighborList (CheckPair const& check_pair, bool sort=false);
 
     ///
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair, class OtherPCType>
-    void buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
+    void buildNeighborList (CheckPair const& check_pair, OtherPCType& other,
                             Vector<std::map<std::pair<int, int>, amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
                             bool sort=false);
 
@@ -268,11 +268,11 @@ public:
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair>
-    void buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
+    void buildNeighborList (CheckPair const& check_pair, int type_ind, int* ref_ratio,
                             int num_bin_types=1, bool sort=false);
 
     template <class CheckPair>
-    void selectActualNeighbors (CheckPair&& check_pair, int num_cells=1);
+    void selectActualNeighbors (CheckPair const& check_pair, int num_cells=1);
 
     void printNeighborList ();
 
@@ -401,7 +401,7 @@ protected:
     Vector<std::map<PairIndex, Vector<InverseCopyTag> > > inverse_tags;
     Vector<std::map<PairIndex, ParticleTile> > neighbors;
     Vector<std::map<PairIndex, IntVector> >      neighbor_list;
-    const size_t pdata_size = sizeof(ParticleType);
+    static constexpr size_t pdata_size = sizeof(ParticleType);
 
     static constexpr int num_mask_comps = 3;  //!< grid, tile, level
     size_t cdata_size;

@@ -92,7 +92,7 @@ MyTest::writePlotfile ()
     auto dx = geom.CellSize();
     Real dvol = AMREX_D_TERM(dx[0],*dx[1],*dx[2]);
     amrex::Print() << " max-norm error: " << plotmf.norminf(3)
-                   << " 1-norm error: " << plotmf.norm1(3)*dvol << std::endl;
+                   << " 1-norm error: " << plotmf.norm1(3)*dvol << '\n';
     WriteSingleLevelPlotfile("plot", plotmf, varname, geom, 0.0, 0);
 }
 

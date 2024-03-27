@@ -1082,7 +1082,7 @@ printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
 
             if (comp >= 0) {
                 amrex::AllPrint().SetPrecision(17) << " At cell " << cell << " in Box " << bx
-                                                   << ": " << *dp << std::endl;
+                                                   << ": " << *dp << '\n';
             } else {
                 std::ostringstream ss;
                 ss.precision(17);

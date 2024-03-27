@@ -518,7 +518,7 @@ Amr::initInSitu()
     insitu_bridge = new AmrInSituBridge;
     if (insitu_bridge->initialize())
     {
-        amrex::ErrorStream() << "Amr::initInSitu : Failed to initialize." << std::endl;
+        amrex::ErrorStream() << "Amr::initInSitu : Failed to initialize." << '\n';
         amrex::Abort();
     }
 #endif
@@ -531,7 +531,7 @@ Amr::updateInSitu() // NOLINT(readability-convert-member-functions-to-static)
 #if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
     if (insitu_bridge && insitu_bridge->update(this))
     {
-        amrex::ErrorStream() << "Amr::updateInSitu : Failed to update." << std::endl;
+        amrex::ErrorStream() << "Amr::updateInSitu : Failed to update." << '\n';
         amrex::Abort();
     }
 #endif
@@ -545,7 +545,7 @@ Amr::finalizeInSitu()
     if (insitu_bridge)
     {
         if (insitu_bridge->finalize())
-            amrex::ErrorStream() << "Amr::finalizeInSitu : Failed to finalize." << std::endl;
+            amrex::ErrorStream() << "Amr::finalizeInSitu : Failed to finalize." << '\n';
 
         delete insitu_bridge;
         insitu_bridge = nullptr;

@@ -1,5 +1,6 @@
 macro(setup_clang_tidy)
-   find_program(AMReX_CLANG_TIDY_EXE NAMES "clang-tidy-17" "clang-tidy-16"
+   find_program(AMReX_CLANG_TIDY_EXE NAMES
+        "clang-tidy-20" "clang-tidy-19" "clang-tidy-18" "clang-tidy-17" "clang-tidy-16"
 	"clang-tidy-15" "clang-tidy-14" "clang-tidy-13" "clang-tidy-12" "clang-tidy")
    if (AMReX_CLANG_TIDY_EXE)
       set(_tmp "")

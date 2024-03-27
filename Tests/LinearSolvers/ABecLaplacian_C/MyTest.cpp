@@ -533,7 +533,7 @@ MyTest::solveABecLaplacianGMRES ()
             mlmg.apply({&res}, {&solution[ilev]}); // res = L(sol)
             MultiFab::Subtract(res, rhs[ilev], 0, 0, 1, 0); // now res = L(sol) - rhs
             amrex::Print() << "Final residual = " << res.norminf(0)
-                           << " " << res.norm1(0) << " " << res.norm2(0) << std::endl;
+                           << " " << res.norm1(0) << " " << res.norm2(0) << '\n';
         }
     }
 

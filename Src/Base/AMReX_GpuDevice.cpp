@@ -275,7 +275,7 @@ Device::Initialize ()
                     for (auto x : uuid) {
                         std::cout << std::hex << static_cast<unsigned int>(x) << "|";
                     }
-                    std::cout << std::endl;;
+                    std::cout << '\n';;
                 }
                 ParallelDescriptor::Barrier();
             }
@@ -444,7 +444,7 @@ Device::initialize_gpu ()
                            << "  managedMemory: " << (device_prop.managedMemory ? "Yes" : "No") << "\n"
                            << "  concurrentManagedAccess: " << (device_prop.concurrentManagedAccess ? "Yes" : "No") << "\n"
                            << "  maxParameterSize: " << device_prop.maxParameterSize << "\n"
-                           << std::endl;
+                           << '\n';
 #if defined(__INTEL_LLVM_COMPILER)
             if (d.has(sycl::aspect::ext_intel_gpu_eu_simd_width)) {
                 auto r = d.get_info<sycl::ext::intel::info::device::gpu_eu_simd_width>();
@@ -721,7 +721,7 @@ Device::instantiateGraph(cudaGraph_t graph)
 
     if (graph_log[0] != '\0')
     {
-        amrex::Print() << graph_log << std::endl;
+        amrex::Print() << graph_log << '\n';
         AMREX_GPU_ERROR_CHECK();
     }
 #else

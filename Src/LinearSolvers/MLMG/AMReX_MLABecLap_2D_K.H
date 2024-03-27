@@ -247,8 +247,6 @@ void abec_gsrb_with_line_solve (
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
-    // amrex::Print() << "GSRB LS " << box << " " << dhx << " " << dhy << " " << dhz << std::endl;
-
     // idir is the direction in which we will do the tridiagonal solve --
     // it should be the direction in which the mesh spacing is much larger
     // than in the other directions

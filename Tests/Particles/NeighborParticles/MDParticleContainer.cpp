@@ -368,7 +368,7 @@ void MDParticleContainer::checkNeighborList()
         }
     }
 
-    amrex::PrintToFile("neighbor_test") << "All the neighbor list particles match!" << std::endl;
+    amrex::PrintToFile("neighbor_test") << "All the neighbor list particles match!" << '\n';
 }
 
 void MDParticleContainer::reset_test_id()
