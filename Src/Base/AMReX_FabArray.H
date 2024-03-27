@@ -732,32 +732,32 @@ public:
     sum (int comp, IntVect const& nghost, bool local = false) const;
 
     /**
-    * \brief This function copies data from fa to this FabArray.  Each FAB
+    * \brief This function copies data from src to this FabArray.  Each FAB
     * in fa is intersected with all FABs in this FabArray and a copy
     * is performed on the region of intersection.  The intersection
     * is restricted to the valid regions.
     */
-    void ParallelAdd (const FabArray<FAB>& fa,
+    void ParallelAdd (const FabArray<FAB>& src,
                       const Periodicity&   period = Periodicity::NonPeriodic())
-       { ParallelCopy(fa,period,FabArray::ADD); }
-    void ParallelCopy (const FabArray<FAB>& fa,
+       { ParallelCopy(src,period,FabArray::ADD); }
+    void ParallelCopy (const FabArray<FAB>& src,
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY)
-       { ParallelCopy(fa,0,0,nComp(),0,0,period,op); }
+       { ParallelCopy(src,0,0,nComp(),0,0,period,op); }
 
     [[deprecated("Use FabArray::ParallelCopy() instead.")]]
-    void copy (const FabArray<FAB>& fa,
+    void copy (const FabArray<FAB>& src,
                const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY)
-        { ParallelCopy(fa,period,op); }
+        { ParallelCopy(src,period,op); }
 
-    void ParallelAdd_nowait (const FabArray<FAB>& fa,
+    void ParallelAdd_nowait (const FabArray<FAB>& src,
                              const Periodicity& period = Periodicity::NonPeriodic())
-        { ParallelCopy_nowait(fa,period,FabArray::ADD); }
-    void ParallelCopy_nowait (const FabArray<FAB>& fa,
+        { ParallelCopy_nowait(src,period,FabArray::ADD); }
+    void ParallelCopy_nowait (const FabArray<FAB>& src,
                               const Periodicity&   period = Periodicity::NonPeriodic(),
                               CpOp                 op = FabArrayBase::COPY)
-       { ParallelCopy_nowait(fa,0,0,nComp(),0,0,period,op); }
+       { ParallelCopy_nowait(src,0,0,nComp(),0,0,period,op); }
 
     /**
     * \brief This function copies data from src to this FabArray.  Each FAB
