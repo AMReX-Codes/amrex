@@ -68,7 +68,7 @@ jobs:
         du -hs ~/.cache/ccache
 
   sundials-cuda:
-    name: CUDA SUNDIALS@6.5.0
+    name: CUDA SUNDIALS@7.0.0
     runs-on: ubuntu-22.04
     env:
        CCACHE_COMPRESS: 1
@@ -97,9 +97,9 @@ jobs:
         export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         which nvcc || echo "nvcc not in PATH!"
 
-        wget -q https://github.com/LLNL/sundials/archive/refs/tags/v6.5.0.tar.gz
-        tar xfz v6.5.0.tar.gz
-        cd sundials-6.5.0
+        wget -q https://github.com/LLNL/sundials/archive/refs/tags/v7.0.0.tar.gz
+        tar xfz v7.0.0.tar.gz
+        cd sundials-7.0.0
         mkdir instdir builddir
         cd builddir
         cmake ..                                     \
@@ -126,7 +126,7 @@ jobs:
             -DAMReX_GPU_BACKEND=CUDA    \
             -DAMReX_CUDA_ARCH=8.0       \
             -DAMReX_SUNDIALS=ON         \
-            -DSUNDIALS_ROOT=${PWD}/sundials-6.5.0/instdir \
+            -DSUNDIALS_ROOT=${PWD}/sundials-7.0.0/instdir \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache  \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4

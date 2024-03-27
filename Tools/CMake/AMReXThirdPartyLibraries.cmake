@@ -143,9 +143,22 @@ if (AMReX_SUNDIALS)
         message(STATUS "SUNDIALS_FOUND is true, assuming nvecserial or gpu-specific vector found for version 6.0.0 or higher")
     else ()
        set(SUNDIALS_MINIMUM_VERSION 6.0.0 CACHE INTERNAL "Minimum required SUNDIALS version")
-       find_package(SUNDIALS ${SUNDIALS_MINIMUM_VERSION} CONFIG QUIET )
+       set(SUNDIALS_COMPONENTS arkode cvode sunlinsolspgmr sunlinsolspfgmr
+                               nvecserial nvecmanyvector sunnonlinsolfixedpoint)
+       find_package(SUNDIALS CONFIG REQUIRED
+                    COMPONENTS ${SUNDIALS_COMPONENTS}
+                    OPTIONAL_COMPONENTS core) # core only available for >= 7
+       if (SUNDIALS_VERSION VERSION_LESS ${SUNDIALS_MINIMUM_VERSION})
+          message(FATAL_ERROR "SUNDIALS_VERSION ${SUNDIALS_MINIMUM_VERSION} or newer is required. Found version ${SUNDIALS_VERSION}.")
+       endif ()
     endif ()
     foreach(D IN LISTS AMReX_SPACEDIM)
+        if (SUNDIALS_VERSION VERSION_GREATER_EQUAL 7)
+           target_link_libraries(amrex_${D}d PUBLIC SUNDIALS::core)
+        endif ()
+        foreach(comp IN LISTS SUNDIALS_COMPONENTS)
+           target_link_libraries(amrex_${D}d PUBLIC SUNDIALS::${comp})
+        endforeach()
         if (AMReX_GPU_BACKEND STREQUAL "CUDA")
            target_link_libraries(amrex_${D}d PUBLIC SUNDIALS::nveccuda)
         elseif (AMReX_GPU_BACKEND STREQUAL "HIP")

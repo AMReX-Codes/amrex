@@ -3,7 +3,13 @@
 
 #include <AMReX.H>
 #include <AMReX_OpenMP.H>
-#include <sundials/sundials_context.h>
+
+#include <sundials/sundials_config.h>
+#if defined(SUNDIALS_VERSION_MAJOR) && (SUNDIALS_VERSION_MAJOR < 7)
+#  include <sundials/sundials_context.h>
+#else
+#  include <sundials/sundials_context.hpp>
+#endif
 
 namespace amrex::sundials {
 
