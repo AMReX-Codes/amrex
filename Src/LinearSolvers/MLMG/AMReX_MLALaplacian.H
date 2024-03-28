@@ -450,7 +450,7 @@ MLALaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int r
     const RT probxlo = RT(this->m_geom[amrlev][mglev].ProbLo(0));
 #endif
 
-    const RT alpha = m_a_scalar;
+    const RT ascalar = m_a_scalar;
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
@@ -492,7 +492,7 @@ MLALaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int r
         if (this->m_has_metric_term) {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
             {
-                mlalap_gsrb_m(thread_box, solnfab, rhsfab, alpha, dhx,
+                mlalap_gsrb_m(thread_box, solnfab, rhsfab, ascalar, dhx,
                               afab,
                               f0fab, m0,
                               f1fab, m1,
@@ -502,7 +502,7 @@ MLALaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int r
         } else {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
             {
-                mlalap_gsrb(thread_box, solnfab, rhsfab, alpha, dhx,
+                mlalap_gsrb(thread_box, solnfab, rhsfab, ascalar, dhx,
                             afab,
                             f0fab, m0,
                             f1fab, m1,
@@ -516,7 +516,7 @@ MLALaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int r
         if (this->m_has_metric_term) {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
             {
-                mlalap_gsrb_m(thread_box, solnfab, rhsfab, alpha, dhx, dhy,
+                mlalap_gsrb_m(thread_box, solnfab, rhsfab, ascalar, dhx, dhy,
                               afab,
                               f0fab, m0,
                               f1fab, m1,
@@ -528,7 +528,7 @@ MLALaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int r
         } else {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
             {
-                mlalap_gsrb(thread_box, solnfab, rhsfab, alpha, dhx, dhy,
+                mlalap_gsrb(thread_box, solnfab, rhsfab, ascalar, dhx, dhy,
                             afab,
                             f0fab, m0,
                             f1fab, m1,
@@ -556,7 +556,7 @@ MLALaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int r
             const auto& m3_2d = this->compactify(this->get_d1(m3,m4,m5));
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx_2d, thread_box,
             {
-                TwoD::mlalap_gsrb(thread_box, solnfab_2d, rhsfab_2d, alpha, dh0, dh1,
+                TwoD::mlalap_gsrb(thread_box, solnfab_2d, rhsfab_2d, ascalar, dh0, dh1,
                                   afab_2d,
                                   f0fab_2d, m0_2d,
                                   f1fab_2d, m1_2d,
@@ -567,7 +567,7 @@ MLALaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int r
         } else {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
             {
-                mlalap_gsrb(thread_box, solnfab, rhsfab, alpha, dhx, dhy, dhz,
+                mlalap_gsrb(thread_box, solnfab, rhsfab, ascalar, dhx, dhy, dhz,
                             afab,
                             f0fab, m0,
                             f1fab, m1,
