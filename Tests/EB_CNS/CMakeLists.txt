@@ -1,3 +1,7 @@
+if (NOT AMReX_AMRLEVEL)
+   return()
+endif ()
+
 foreach(D IN LISTS AMReX_SPACEDIM)
     set(_sources main.cpp CNS_advance.cpp CNS_advance_box.cpp CNS_advance_box_eb.cpp CNS_bcfill.cpp
        CNSBld.cpp CNS.cpp CNS.H CNS_derive.cpp CNS_derive.H CNS_index_macros.H CNS_init_eb2.cpp CNS_io.cpp

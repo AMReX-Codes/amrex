@@ -1,3 +1,7 @@
+if (NOT AMReX_AMRLEVEL)
+   return()
+endif ()
+
 foreach(D IN LISTS AMReX_SPACEDIM)
     if (D EQUAL 1)
        continue()

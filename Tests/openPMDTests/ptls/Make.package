@@ -1,0 +1,4 @@
+CEXE_headers += mypc.H
+CEXE_headers += trilinear_deposition_K.H
+CEXE_sources += main.cpp
+

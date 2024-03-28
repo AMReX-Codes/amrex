@@ -1,0 +1,38 @@
+# Domain size
+ncells = 64
+
+# Maximum allowable size of each subdomain in the problem domain;
+# this is used to decompose the domain for parallel calculations.
+max_grid_size = 8
+
+# Number of levels
+nlevs = 1
+
+# Number of components in the multifabs
+ncomp = 6
+
+# Number of particles per cell
+nppc = 2
+
+# Number of plot files to write
+nplotfile = 2
+
+# Number of plot files to write
+nparticlefile = 2
+
+# Time to sleep before each write
+sleeptime = 2
+
+# Whether to check the correctness of Checkpoint / Restart
+restart_check = 1
+
+## Uncomment to read grids from file
+#nlevs = 3
+#grids_from_file = 1
+#ref_ratio_file = 4 2
+
+## Uncomment to enable compression
+#hdf5compression=ZFP_ACCURACY@0.001
+#hdf5compression=SZ@sz.config
+
+directory=.

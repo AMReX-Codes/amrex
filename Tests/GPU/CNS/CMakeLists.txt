@@ -1,3 +1,7 @@
+if (NOT AMReX_AMRLEVEL)
+   return()
+endif ()
+
 if (NOT 3 IN_LIST AMReX_SPACEDIM)
    return()
 endif ()

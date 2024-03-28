@@ -1,0 +1,6 @@
+CEXE_sources += AMReX_PlotFileOPENPMD.cpp AMReX_PlotFileOPENPMD_PTL.cpp AMReX_PlotFileUtilOPENPMD.cpp
+
+CEXE_headers += AMReX_ParticlesOPENPMD.H AMReX_PlotFileUtilOPENPMD.H AMReX_PlotFileUtilOPENPMD_PTLImpl.H
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/openPMD-api
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/openPMD-api
