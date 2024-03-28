@@ -594,8 +594,6 @@ namespace amrex::openpmd_api {
       mesh.setAttribute("fieldSmoothing", "none");
       mesh_comp.resetDataset(dataset);
 
-      helper::setOpenPMDUnit( mesh, varName.m_FieldName );
-
       auto relative_cell_pos = helper::getRelativeCellPosition(mf);     // AMReX Fortran index order
       std::reverse( relative_cell_pos.begin(), relative_cell_pos.end() ); // now in C order
       mesh_comp.setPosition( relative_cell_pos );

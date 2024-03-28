@@ -1,7 +1,6 @@
 #ifndef AMREX_PLOTFILE_OPENPMD_PTLS_API_H
 #define AMREX_PLOTFILE_OPENPMD_PTLS_API_H
 
-//extern  std::unique_ptr< amrex::openpmd_api::AMReX_openPMDHandler > amrex::openpmd_api::m_OpenPMDHandler;
 namespace amrex::openpmd_api
 {
     extern  std::unique_ptr< amrex::openpmd_api::AMReX_openPMDHandler > m_OpenPMDHandler;
@@ -25,9 +24,6 @@ namespace amrex::openpmd_api
                         FUNC_pit&& posIdFunc)
     {
       BL_PROFILE("amrex::openpmd_api::WriteParticles()");
-
-      amrex::Print()<<"   Real: "<<pc.NStructReal<<" "<<pc.NumRealComps()<<"\n";
-      amrex::Print()<<"   Int:  "<<pc.NStructInt<<" "<<pc.NumIntComps()<<"\n";
 
       if ((m_OpenPMDHandler == nullptr) || (m_OpenPMDHandler->m_Writer == nullptr)) {
         return;
@@ -658,4 +654,4 @@ namespace amrex::openpmd_api
 
 } // namespace amrex::openpmd_api
 
-#endif // AMREX_PLOTFILE_OPENPMD_API_H
+#endif // AMREX_PLOTFILE_OPENPMD_PTLS_API_H

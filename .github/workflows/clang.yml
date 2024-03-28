@@ -195,7 +195,12 @@ jobs:
         cd openPMD-api-0.15.2
         mkdir build
         cd build
-        cmake .. -DopenPMD_USE_PYTHON=OFF -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake ..  \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache  \
+          -DopenPMD_BUILD_EXAMPLES=OFF  \
+          -DopenPMD_BUILD_CLI_TOOLS=OFF  \
+          -DopenPMD_BUILD_TESTING=OFF  \
+          -DopenPMD_USE_PYTHON=OFF  \
         make -j4
         sudo make install
     - name: Build & Test
@@ -211,7 +216,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                                      \
-            -DAMReX_OPENPMD_API=ON                    \
+            -DAMReX_OPENPMD=ON                        \
             -DCMAKE_VERBOSE_MAKEFILE=ON               \
             -DAMReX_ENABLE_TESTS=ON                   \
             -DAMReX_SPACEDIM=3                        \

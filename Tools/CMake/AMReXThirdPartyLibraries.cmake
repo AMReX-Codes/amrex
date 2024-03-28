@@ -1,7 +1,7 @@
 #
-# openPMD_api related targets
+# openPMD-api related targets
 #
-if (AMReX_OPENPMD_API)
+if (AMReX_OPENPMD)
     if (AMReX_MPI)
        find_package(openPMD 0.14.2 CONFIG REQUIRED COMPONENTS MPI)
     else ()

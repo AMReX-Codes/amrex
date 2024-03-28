@@ -1,4 +1,4 @@
-CPPFLAGS += -DAMREX_USE_OPENPMD_API
+CPPFLAGS += -DAMREX_USE_OPENPMD
 include $(AMREX_HOME)/Src/Extern/openPMD-api/Make.package
 
 ifndef AMREX_OPENPMD_HOME

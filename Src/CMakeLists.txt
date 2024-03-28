@@ -200,7 +200,7 @@ if (AMReX_HDF5)
    add_subdirectory(Extern/HDF5)
 endif ()
 
-if (AMReX_OPENPMD_API)
+if (AMReX_OPENPMD)
    add_subdirectory(Extern/openPMD-api)
 endif()
 

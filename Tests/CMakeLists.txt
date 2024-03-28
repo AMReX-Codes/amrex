@@ -135,7 +135,7 @@ else()
       list(APPEND AMREX_TESTS_SUBDIRS HDF5Benchmark)
    endif ()
 
-   if (AMReX_OPENPMD_API)
+   if (AMReX_OPENPMD)
       list(APPEND AMREX_TESTS_SUBDIRS openPMDTests)
    endif ()
 
