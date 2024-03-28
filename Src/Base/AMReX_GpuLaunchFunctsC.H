@@ -68,6 +68,7 @@ void launch (T const& n, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void For (T n, L const& f) noexcept
 {
     for (T i = 0; i < n; ++i) {
@@ -96,6 +97,7 @@ void For (Gpu::KernelInfo const&, T n, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelFor (T n, L const& f) noexcept
 {
     AMREX_PRAGMA_SIMD
@@ -125,6 +127,7 @@ void ParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
 }
 
 template <typename L>
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void For (Box const& box, L const& f) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -157,6 +160,7 @@ void For (Gpu::KernelInfo const&, Box const& box, L&& f) noexcept
 }
 
 template <typename L>
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelFor (Box const& box, L const& f) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -190,6 +194,7 @@ void ParallelFor (Gpu::KernelInfo const&, Box const& box, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void For (Box const& box, T ncomp, L const& f) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -224,6 +229,7 @@ void For (Gpu::KernelInfo const&, Box const& box, T ncomp, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelFor (Box const& box, T ncomp, L const& f) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -1037,6 +1043,7 @@ void HostDeviceFor (Gpu::KernelInfo const&,
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForRNG (T n, L const& f) noexcept
 {
     for (T i = 0; i < n; ++i) {
@@ -1045,6 +1052,7 @@ void ParallelForRNG (T n, L const& f) noexcept
 }
 
 template <typename L>
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForRNG (Box const& box, L const& f) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -1057,6 +1065,7 @@ void ParallelForRNG (Box const& box, L const& f) noexcept
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForRNG (Box const& box, T ncomp, L const& f) noexcept
 {
     const auto lo = amrex::lbound(box);

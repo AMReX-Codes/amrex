@@ -305,6 +305,7 @@ jobs:
         cmake ..                        \
             -DCMAKE_BUILD_TYPE=Release  \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_FLATTEN_FOR=OFF     \
             -DAMReX_ASSERTIONS=ON       \
             -DAMReX_TESTING=ON          \
             -DAMReX_BOUND_CHECK=ON      \
