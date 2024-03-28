@@ -2,7 +2,7 @@
 #define AMREX_LU_SOLVER_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Arena.H>
+#include <AMReX_Algorithm.H>
 #include <AMReX_Array.H>
 #include <cmath>
 #include <limits>
@@ -18,6 +18,7 @@ public:
 
     LUSolver () = default;
 
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     LUSolver (Array2D<T, 0, N-1, 0, N-1, Order::C> const& a_mat);
 
     void define (Array2D<T, 0, N-1, 0, N-1, Order::C> const& a_mat);
@@ -74,6 +75,7 @@ public:
 
 private:
 
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void define_innard ();
 
     Array2D<T, 0, N-1, 0, N-1, Order::C> m_mat;
@@ -82,6 +84,7 @@ private:
 };
 
 template <int N, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 LUSolver<N,T>::LUSolver (Array2D<T, 0, N-1, 0, N-1, Order::C> const& a_mat)
     : m_mat(a_mat)
 {
@@ -96,6 +99,7 @@ void LUSolver<N,T>::define (Array2D<T, 0, N-1, 0, N-1, Order::C> const& a_mat)
 }
 
 template <int N, typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void LUSolver<N,T>::define_innard ()
 {
     static_assert(N > 1);
@@ -121,9 +125,9 @@ void LUSolver<N,T>::define_innard ()
         }
 
         if (imax != i) {
-            std::swap(m_piv(i), m_piv(imax));
+            amrex::Swap(m_piv(i), m_piv(imax));
             for (int j = 0; j < N; ++j) {
-                std::swap(m_mat(i,j), m_mat(imax,j));
+                amrex::Swap(m_mat(i,j), m_mat(imax,j));
             }
             ++m_npivs;
         }

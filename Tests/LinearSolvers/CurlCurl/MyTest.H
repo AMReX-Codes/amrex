@@ -30,6 +30,7 @@ private:
     bool consolidation = true;
     int max_coarsening_level = 30;
 
+    bool use_pcg = false;
     bool use_gmres = false;
     bool gmres_use_precond = true;
 
@@ -44,6 +45,7 @@ private:
     amrex::Real beta_factor = 1.e-2;
     amrex::Real alpha = 1.0;
     amrex::Real beta = 1.0;
+    bool variable_beta = false;
 };
 
 #endif

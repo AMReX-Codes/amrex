@@ -11,7 +11,7 @@ namespace amrex {
  * \brief curl (alpha curl E) + beta E = rhs
  *
  * Here E is an Array of 3 MultiFabs on staggered grid, alpha is a positive
- * scalar, and beta is a non-negative scalar.
+ * scalar, and beta is either a non-negative scalar or a MultiFab.
  *
  * It's the caller's responsibility to make sure rhs has consistent nodal
  * data. If needed, one could call prepareRHS for this.
@@ -45,6 +45,9 @@ public:
 
     void setScalars (RT a_alpha, RT a_beta) noexcept;
 
+    //! This is needed only if there is variable beta coefficient.
+    void setBeta (const Vector<Array<MultiFab const*,3>>& a_bcoefs);
+
     //! Synchronize RHS on nodal points. If the user can guarantee it, this
     //! function does not need to be called.
     void prepareRHS (Vector<MF*> const& rhs) const;
@@ -54,6 +57,8 @@ public:
     [[nodiscard]] std::string name () const override {
         return std::string("curl of curl");
     }
+
+    bool setUsePCG (bool flag) { return std::exchange(m_use_pcg, flag); }
 
     void setLevelBC (int amrlev, const MF* levelbcdata,
                      const MF* robinbc_a = nullptr,
@@ -133,6 +138,8 @@ private:
     static constexpr int m_ncomp = 1;
     Vector<Vector<std::unique_ptr<Gpu::DeviceScalar
                                   <LUSolver<AMREX_SPACEDIM*2,RT>>>>> m_lusolver;
+    Vector<Vector<Array<std::unique_ptr<MultiFab>,3>>> m_bcoefs;
+    bool m_use_pcg = false;
 };
 
 }
