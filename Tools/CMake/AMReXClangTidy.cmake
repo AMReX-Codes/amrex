@@ -17,7 +17,7 @@ macro(setup_clang_tidy)
 
       # Need --extra-arg to suppress warnings like clang-diagnostic-unknown-warning-option
       # when GCC is used.
-      set(AMReX_CLANG_TIDY_COMMAND "${AMReX_CLANG_TIDY_EXE};--extra-arg=-Wno-unknown-warning-option")
+      set(AMReX_CLANG_TIDY_COMMAND "${AMReX_CLANG_TIDY_EXE};--extra-arg=-Wno-unknown-warning-option;--extra-arg=-Wno-ignored-optimization-argument")
       if (AMReX_CLANG_TIDY_CONFIG_FILE_NAME)
          set(AMReX_CLANG_TIDY_COMMAND "${AMReX_CLANG_TIDY_COMMAND}"
              "--config-file=${AMReX_CLANG_TIDY_CONFIG_FILE_NAME}")

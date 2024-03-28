@@ -28,7 +28,7 @@ def mmclt(argv):
     fout = open(args.output, "w")
 
     fout.write("CLANG_TIDY ?= clang-tidy\n")
-    fout.write("override CLANG_TIDY_ARGS += --extra-arg=-Wno-unknown-warning-option --extra-arg-before=--driver-mode=g++\n")
+    fout.write("override CLANG_TIDY_ARGS += --extra-arg=-Wno-unknown-warning-option --extra-arg=-Wno-ignored-optimization-argument --extra-arg-before=--driver-mode=g++\n")
     fout.write("\n")
 
     fout.write(".SECONDEXPANSION:\n")
