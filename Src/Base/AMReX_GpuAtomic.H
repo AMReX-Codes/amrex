@@ -258,8 +258,8 @@ namespace detail {
         ))
         AMREX_IF_ON_HOST((
             T old = *add;
-            T const tmp = op(old, value);
-            if (cond(tmp)) {
+            T const tmp = std::forward<Op>(op)(old, value);
+            if (std::forward<Cond>(cond)(tmp)) {
                 *add = tmp;
                 return true;
             } else {

@@ -77,6 +77,7 @@ struct FilfcFace
                                                            : -q(2*ilo-i-1,j,k,n);
                     break;
                 }
+                default: { break; }
                 }
             }
             if (i == ihi)
@@ -121,6 +122,7 @@ struct FilfcFace
                                                            : -q(2*ihi-i+1,j,k,n);
                     break;
                 }
+                default: { break; }
                 }
             }
 
@@ -166,6 +168,7 @@ struct FilfcFace
                                                            : -q(i,2*jlo-j-1,k,n);
                     break;
                 }
+                default: { break; }
                 }
             }
             else if (j == jhi)
@@ -210,6 +213,7 @@ struct FilfcFace
                                                            : -q(i,2*jhi-j+1,k,n);
                     break;
                 }
+                default: { break; }
                 }
             }
 
@@ -255,6 +259,7 @@ struct FilfcFace
                                                            : -q(i,j,2*klo-k-1,n);
                     break;
                 }
+                default: { break; }
                 }
             }
             if (k == khi)
@@ -299,6 +304,7 @@ struct FilfcFace
                                                            : -q(i,j,2*khi-k+1,n);
                     break;
                 }
+                default: { break; }
                 }
             }
         }

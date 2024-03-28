@@ -15,7 +15,7 @@
 
 namespace amrex::EB2 {
 
-template <class F, typename std::enable_if<IsGPUable<F>::value>::type* FOO = nullptr>
+template <class F, std::enable_if_t<IsGPUable<F>::value>* FOO = nullptr>
 AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
@@ -23,7 +23,7 @@ IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
     return f(AMREX_D_DECL(p[0],p[1],p[2]));
 }
 
-template <class F, typename std::enable_if<!IsGPUable<F>::value>::type* BAR = nullptr>
+template <class F, std::enable_if_t<!IsGPUable<F>::value>* BAR = nullptr>
 AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
@@ -234,7 +234,7 @@ public:
         }
     }
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
+    template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
     [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
     {
         if (run_on == RunOn::Gpu && Gpu::inLaunchRegion())
@@ -281,19 +281,19 @@ public:
         }
     }
 
-    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
+    template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
     [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
     {
         return getBoxType_Cpu(bx, geom);
     }
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
+    template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
     static constexpr bool isGPUable () noexcept { return true; }
 
-    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
+    template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
     static constexpr bool isGPUable () noexcept { return false; }
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
+    template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn run_on,
                   Box const& bounding_box) const noexcept
     {
@@ -312,7 +312,7 @@ public:
         });
     }
 
-    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
+    template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn,
                   Box const& bounding_box) const noexcept
     {
@@ -351,7 +351,7 @@ public:
     }
 
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
+    template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Array4<Real const> const&, Geometry const& geom, RunOn run_on,
@@ -387,7 +387,7 @@ public:
         }
     }
 
-    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
+    template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Array4<Real const> const&, Geometry const& geom, RunOn,
@@ -519,18 +519,18 @@ private:
 };
 
 template <class F>
-GeometryShop<typename std::decay<F>::type>
+GeometryShop<std::decay_t<F>>
 makeShop (F&& f)
 {
-    return GeometryShop<typename std::decay<F>::type>(std::forward<F>(f));
+    return GeometryShop<std::decay_t<F>>(std::forward<F>(f));
 }
 
 template <class F, class R>
-GeometryShop<typename std::decay<F>::type, typename std::decay<R>::type>
+GeometryShop<std::decay_t<F>, std::decay_t<R>>
 makeShop (F&& f, R&& r)
 {
-    return GeometryShop<typename std::decay<F>::type,
-                        typename std::decay<R>::type>
+    return GeometryShop<std::decay_t<F>,
+                        std::decay_t<R>>
         (std::forward<F>(f), std::forward<R>(r));
 }
 

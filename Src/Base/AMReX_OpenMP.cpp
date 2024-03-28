@@ -135,9 +135,9 @@ namespace amrex
 #ifdef AMREX_USE_OMP
 namespace amrex::OpenMP
 {
-    std::array<omp_lock_t,nlocks> omp_locks;
-
     namespace {
+        constexpr int nlocks = 128;
+        omp_lock_t omp_locks[nlocks];
         unsigned int initialized = 0;
     }
 
@@ -153,9 +153,7 @@ namespace amrex::OpenMP
         pp.queryAdd("omp_threads", omp_threads);
 
         auto to_int = [](std::string const & str_omp_threads) {
-            std::optional<int> num;
-            try { num = std::stoi(str_omp_threads); }
-            catch (...) { /* nothing */ }
+            std::optional<int> num = std::stoi(str_omp_threads);
             return num;
         };
 
@@ -202,6 +200,13 @@ namespace amrex::OpenMP
                 }
             }
         }
+    }
+
+    omp_lock_t* get_lock (int ilock)
+    {
+        ilock = ilock % nlocks;
+        if (ilock < 0) { ilock += nlocks; }
+        return omp_locks + ilock;
     }
 
 } // namespace amrex::OpenMP

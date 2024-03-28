@@ -58,7 +58,7 @@ using std::isinf;
 #endif
 
 template <typename T>
-constexpr std::enable_if_t<std::is_floating_point<T>::value,T> pi ()
+constexpr std::enable_if_t<std::is_floating_point_v<T>,T> pi ()
 {
     return T(3.1415926535897932384626433832795029L);
 }
@@ -189,7 +189,7 @@ std::pair<float,float> sincospi (float x)
 
 //! Return pow(x, Power), where Power is an integer known at compile time
 template <int Power, typename T,
-    typename = typename std::enable_if<!std::is_integral<T>() || Power>=0>::type>
+    typename = std::enable_if_t<!std::is_integral<T>() || Power>=0>>
 AMREX_FORCE_INLINE
 constexpr T powi (T x) noexcept
 {

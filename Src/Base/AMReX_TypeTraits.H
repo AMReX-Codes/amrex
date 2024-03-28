@@ -7,8 +7,8 @@
 #include <type_traits>
 
 // In case they are still used by applications
-#define AMREX_IS_TRIVIALLY_COPYABLE(T) std::is_trivially_copyable<T>::value
-#define AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) std::is_trivially_default_constructible<T>::value
+#define AMREX_IS_TRIVIALLY_COPYABLE(T) std::is_trivially_copyable_v<T>
+#define AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) std::is_trivially_default_constructible_v<T>
 
 namespace amrex
 {
@@ -18,9 +18,9 @@ namespace amrex
     template <class A, class Enable = void> struct IsBaseFab : std::false_type {};
     //
     template <class D>
-    struct IsBaseFab<D, typename std::enable_if<
-                            std::is_base_of<BaseFab<typename D::value_type>,
-                                            D>::value>::type>
+    struct IsBaseFab<D, std::enable_if_t<
+                            std::is_base_of_v<BaseFab<typename D::value_type>,
+                                            D>>>
         : std::true_type {};
     //
     template <class A>
@@ -29,9 +29,9 @@ namespace amrex
     template <class A, class Enable = void> struct IsFabArray : std::false_type {};
     //
     template <class D>
-    struct IsFabArray<D, typename std::enable_if<
-                             std::is_base_of<FabArray<typename D::FABType::value_type>,
-                                             D>::value>::type>
+    struct IsFabArray<D, std::enable_if_t<
+                             std::is_base_of_v<FabArray<typename D::FABType::value_type>,
+                                             D>>>
         : std::true_type {};
     //
     template <class A>
@@ -50,7 +50,7 @@ namespace amrex
 
 
     template <bool B, class T = void>
-    using EnableIf_t = typename std::enable_if<B,T>::type;
+    using EnableIf_t = std::enable_if_t<B,T>;
 
     template <class T, class Enable = void>
     struct HasAtomicAdd : std::false_type {};
@@ -122,13 +122,13 @@ namespace amrex
     template <typename T, typename U>
     struct Same<T,U>
     {
-        static constexpr bool value = std::is_same<T,U>::value;
+        static constexpr bool value = std::is_same_v<T,U>;
     };
 
     template <typename T, typename U1, typename... Us>
     struct Same
     {
-        static constexpr bool value = std::is_same<T,U1>::value && Same<T,Us...>::value;
+        static constexpr bool value = std::is_same_v<T,U1> && Same<T,Us...>::value;
     };
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -243,18 +243,18 @@ namespace amrex
     struct IsStoreAtomic : std::false_type {};
     //
     template <class T>
-    struct IsStoreAtomic<T, typename std::enable_if <
-                                std::is_arithmetic<T>::value
-                                && sizeof(T) <= 8 >::type >
+    struct IsStoreAtomic<T, std::enable_if_t <
+                                std::is_arithmetic_v<T>
+                                && sizeof(T) <= 8 > >
         : std::true_type {};
 
     template <class T, class Enable = void>
     struct IsStdVector : std::false_type {};
     //
     template <class T>
-    struct IsStdVector<T, std::enable_if_t<std::is_base_of<std::vector<typename T::value_type,
+    struct IsStdVector<T, std::enable_if_t<std::is_base_of_v<std::vector<typename T::value_type,
                                                                        typename T::allocator_type>,
-                                                           T>::value> >
+                                                           T>> >
                        : std::true_type {};
 
 }

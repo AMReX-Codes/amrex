@@ -24,7 +24,7 @@ extern "C" {
 namespace amrex {
 namespace Gpu {
 
-template <typename T, std::enable_if_t<std::is_trivially_copyable<T>::value,int> = 0>
+template <typename T, std::enable_if_t<std::is_trivially_copyable_v<T>,int> = 0>
 class AsyncArray
 {
 public:
@@ -43,7 +43,7 @@ public:
 #endif
     }
 
-    template <typename U = T, typename std::enable_if<std::is_standard_layout<U>::value && std::is_trivial<U>::value,int>::type = 0>
+    template <typename U = T, std::enable_if_t<std::is_standard_layout_v<U> && std::is_trivial_v<U>,int> = 0>
     explicit AsyncArray (const std::size_t n)
     {
         if (n == 0) { return; }

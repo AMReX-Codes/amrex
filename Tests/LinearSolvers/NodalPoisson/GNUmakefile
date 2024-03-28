@@ -14,7 +14,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
 
-Pdirs 	:= Base Boundary AmrCore LinearSolvers/MLMG
+Pdirs 	:= Base Boundary AmrCore LinearSolvers
 
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 

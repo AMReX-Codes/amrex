@@ -226,7 +226,8 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
         }
     }
 
-    os << std::endl; // Make sure we flush!
+    os << '\n';
+    os.flush();
 }
 
 }

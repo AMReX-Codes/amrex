@@ -518,7 +518,7 @@ Amr::initInSitu()
     insitu_bridge = new AmrInSituBridge;
     if (insitu_bridge->initialize())
     {
-        amrex::ErrorStream() << "Amr::initInSitu : Failed to initialize." << std::endl;
+        amrex::ErrorStream() << "Amr::initInSitu : Failed to initialize." << '\n';
         amrex::Abort();
     }
 #endif
@@ -531,7 +531,7 @@ Amr::updateInSitu() // NOLINT(readability-convert-member-functions-to-static)
 #if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
     if (insitu_bridge && insitu_bridge->update(this))
     {
-        amrex::ErrorStream() << "Amr::updateInSitu : Failed to update." << std::endl;
+        amrex::ErrorStream() << "Amr::updateInSitu : Failed to update." << '\n';
         amrex::Abort();
     }
 #endif
@@ -545,7 +545,7 @@ Amr::finalizeInSitu()
     if (insitu_bridge)
     {
         if (insitu_bridge->finalize())
-            amrex::ErrorStream() << "Amr::finalizeInSitu : Failed to finalize." << std::endl;
+            amrex::ErrorStream() << "Amr::finalizeInSitu : Failed to finalize." << '\n';
 
         delete insitu_bridge;
         insitu_bridge = nullptr;
@@ -1830,8 +1830,8 @@ Amr::checkPoint ()
                 amrex::FileOpenFailed(FAHeaderFilesName);
             }
 
-            for(int i(0); i < FAHeaderNames.size(); ++i) {
-                FAHeaderFile << FAHeaderNames[i] << '\n';
+            for(const auto & FAHeaderName : FAHeaderNames) {
+                FAHeaderFile << FAHeaderName << '\n';
             }
         }
     }
@@ -2206,7 +2206,8 @@ Amr::coarseTimeStep (Real stop_time)
     }
     if (record_run_info_terse && ParallelDescriptor::IOProcessor()) {
         runlog_terse << level_steps[0] << " " << cumtime << " " << dt_level[0];
-        runlog_terse << std::endl; // Make sure we flush!
+        runlog_terse << '\n';
+        runlog_terse.flush();
     }
 
     int check_test = 0;
@@ -2346,11 +2347,11 @@ Amr::coarseTimeStep (Real stop_time)
         if(ParallelDescriptor::IOProcessor()) {
             if (to_checkpoint)
             {
-                amrex::ErrorStream() << "Stopped by user w/ checkpoint" << std::endl;
+                amrex::ErrorStream() << "Stopped by user w/ checkpoint" << '\n';
             }
             else
             {
-                amrex::ErrorStream() << "Stopped by user w/o checkpoint" << std::endl;
+                amrex::ErrorStream() << "Stopped by user w/o checkpoint" << '\n';
             }
         }
     }
@@ -2735,7 +2736,7 @@ Amr::regrid (int  lbase,
                        << time
                        << " : REGRID  with lbase = "
                        << lbase
-                       << std::endl;
+                       << '\n';
 
         if (verbose > 1)
         {
@@ -2916,7 +2917,8 @@ Amr::printGridInfo (std::ostream& os,
         }
     }
 
-    os << std::endl; // Make sure we flush!
+    os << '\n';
+    os.flush();
 }
 
 

@@ -78,7 +78,7 @@ public:
                    int dcomp, int numcomp,
                    Geometry const& geom, Real time,
                    const Vector<BCRec>& bcr, int bcomp,
-                   int orig_comp, FF&& fillfunc);
+                   int orig_comp, FF const& fillfunc);
 
     void nddoit (Box const& bx, FArrayBox& dest,
                  int dcomp, int numcomp,
@@ -355,7 +355,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
                               int dcomp, int numcomp,
                               Geometry const& geom, Real time,
                               const Vector<BCRec>& bcr, int bcomp,
-                              int orig_comp, FF&& fillfunc)
+                              int orig_comp, FF const& fillfunc)
 {
     const IntVect& len = bx.length();
 

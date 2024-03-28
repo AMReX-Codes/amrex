@@ -36,7 +36,7 @@ void PrintUsage()
         << "    -r|--rel_tol rtol        : relative tolerance (default is 0)\n"
         << "    --abs_tol atol           : absolute tolerance (default is 0)\n"
         << "    --abort_if_not_all_found : abort if not all variables are present in both files\n"
-        << std::endl;
+        << '\n';
 }
 
 int main_main()
@@ -279,19 +279,23 @@ int main_main()
             if (ivar_b[icomp_a] < 0) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
-                               << "< variable not present in both files > \n";
+                               << "< variable not present in both files > "
+                               << "\n";
             } else if (has_nan_a[icomp_a] && has_nan_b[icomp_a]) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
-                               << "< NaN present in both A and B > \n";
+                               << "< NaN present in both A and B > "
+                               << "\n";
             } else if (has_nan_a[icomp_a]) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
-                               << "< NaN present in A > \n";
+                               << "< NaN present in A > "
+                               << "\n";
             } else if (has_nan_b[icomp_a]) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_b[icomp_a]
                                << "  " << std::setw(50)
-                               << "< NaN present in B > \n";
+                               << "< NaN present in B > "
+                               << "\n";
             } else {
                 Real aerr = 0., rerr = 0.;
                 if (aerror[icomp_a] > 0.) {
@@ -347,7 +351,7 @@ int main_main()
             bool owner_proc = ParallelDescriptor::MyProc() == dmap[err_zone.grid_index];
 
             if (owner_proc) {
-                amrex::AllPrint() << std::endl
+                amrex::AllPrint() << '\n'
                                   << " maximum error in " << zone_info_var_name << "\n"
                                   << "   level = " << err_zone.level << " (i,j,k) = " << err_zone.cell << "\n";
             }
@@ -373,12 +377,12 @@ int main_main()
     if (any_nans) {
         return EXIT_FAILURE;
     } else if (global_error == 0.0) {
-        amrex::Print() << " PLOTFILE AGREE" << std::endl;
+        amrex::Print() << " PLOTFILE AGREE" << '\n';
         return EXIT_SUCCESS;
     } else if (all_variables_passed) {
         amrex::Print() << " PLOTFILE AGREE to specified tolerances: "
                        << "absolute = " << atol
-                       << " relative = " << rtol << std::endl;
+                       << " relative = " << rtol << '\n';
         return EXIT_SUCCESS;
     } else {
         return EXIT_FAILURE;

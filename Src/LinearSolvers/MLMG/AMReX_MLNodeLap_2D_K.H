@@ -1376,7 +1376,7 @@ void mlndlap_crse_resid (int i, int j, int k, Array4<Real> const& resid,
 namespace {
     template <typename P, typename S>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real mlndlap_sum_Ax (P && pred, S && sig, int i, int j, Real facx, Real facy,
+    Real mlndlap_sum_Ax (P const& pred, S const& sig, int i, int j, Real facx, Real facy,
                          Array4<Real const> const& phi, bool is_rz) noexcept
     {
         Real Ax = Real(0.0);
@@ -1418,7 +1418,7 @@ namespace {
 
     template <int rr, typename S>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void mlndlap_Ax_fine_contrib_doit (S&& sig, int i, int j, Box const& ndbx, Box const& ccbx,
+    void mlndlap_Ax_fine_contrib_doit (S const& sig, int i, int j, Box const& ndbx, Box const& ccbx,
                                        Array4<Real> const& f, Array4<Real const> const& res,
                                        Array4<Real const> const& rhs,
                                        Array4<Real const> const& phi,

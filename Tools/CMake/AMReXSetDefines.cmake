@@ -79,6 +79,9 @@ add_amrex_define( AMREX_${CMAKE_SYSTEM_NAME} )
 #  Assertions
 add_amrex_define( AMREX_USE_ASSERTION NO_LEGACY IF AMReX_ASSERTIONS )
 
+# Flatten
+add_amrex_define( AMREX_USE_FLATTEN_FOR NO_LEGACY IF AMReX_FLATTEN_FOR )
+
 # Bound checking
 add_amrex_define( AMREX_BOUND_CHECK NO_LEGACY IF AMReX_BOUND_CHECK )
 

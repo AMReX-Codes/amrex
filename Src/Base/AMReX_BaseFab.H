@@ -90,13 +90,13 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 }
 
 template <typename T>
-typename std::enable_if<std::is_arithmetic<T>::value>::type
+std::enable_if_t<std::is_arithmetic_v<T>>
 placementNew (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-std::enable_if_t<std::is_trivially_default_constructible<T>::value
-                 && !std::is_arithmetic<T>::value>
+std::enable_if_t<std::is_trivially_default_constructible_v<T>
+                 && !std::is_arithmetic_v<T>>
 placementNew (T* const ptr, Long n)
 {
     for (Long i = 0; i < n; ++i) {
@@ -105,7 +105,7 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-std::enable_if_t<!std::is_trivially_default_constructible<T>::value>
+std::enable_if_t<!std::is_trivially_default_constructible_v<T>>
 placementNew (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D ( n, i,
@@ -115,12 +115,12 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-typename std::enable_if<std::is_trivially_destructible<T>::value>::type
+std::enable_if_t<std::is_trivially_destructible_v<T>>
 placementDelete (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-typename std::enable_if<!std::is_trivially_destructible<T>::value>::type
+std::enable_if_t<!std::is_trivially_destructible_v<T>>
 placementDelete (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D (n, i,
@@ -250,7 +250,7 @@ public:
     */
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
-    template <class U=T, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<std::is_trivially_destructible_v<U>,int> = 0>
     [[nodiscard]] Elixir elixir () noexcept;
 
     /**
@@ -2103,7 +2103,7 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 }
 
 template <class T>
-template <class U, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type>
+template <class U, std::enable_if_t<std::is_trivially_destructible_v<U>,int>>
 Elixir
 BaseFab<T>::elixir () noexcept
 {
@@ -3360,9 +3360,7 @@ BaseFab<T>::lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbo
         while (planes_left > 0) {
             AMREX_ASSERT(mm < nplanes);
             auto const m = mm + plo;
-            int ilock = m % OpenMP::nlocks;
-            if (ilock < 0) { ilock += OpenMP::nlocks; }
-            auto* lock = &(OpenMP::omp_locks[ilock]);
+            auto* lock = OpenMP::get_lock(m);
             if (omp_test_lock(lock))
             {
                 auto lo = dlo;

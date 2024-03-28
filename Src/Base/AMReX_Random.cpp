@@ -198,7 +198,7 @@ UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   uSet = uSetTemp;
   if(printSet) {
     for(int i(0); i < uSet.size(); ++i) {
-        AllPrint() << "uSet[" << i << "]  = " << uSet[i] << std::endl;
+        AllPrint() << "uSet[" << i << "]  = " << uSet[i] << '\n';
     }
   }
 }

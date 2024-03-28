@@ -23,6 +23,14 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_BoundaryFwd.H
        )
 
+    if (NOT (D EQUAL 1))
+       target_sources(amrex_${D}d
+          PRIVATE
+          AMReX_EdgeFluxRegister.H
+          AMReX_EdgeFluxRegister.cpp
+          )
+    endif ()
+
     if (AMReX_FORTRAN)
        target_sources(amrex_${D}d
           PRIVATE

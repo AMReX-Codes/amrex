@@ -19,27 +19,27 @@ namespace UIF_detail {
     template <typename F>
     [[nodiscard]] inline Real do_max (const RealArray& p, F&& f) noexcept
     {
-        return f(p);
+        return std::forward<F>(f)(p);
     }
 
     template <typename F, typename... Fs>
     [[nodiscard]] inline Real do_max (const RealArray& p, F&& f, Fs&... fs) noexcept
     {
-        return amrex::max(f(p), do_max(p, std::forward<Fs>(fs)...));
+        return amrex::max(std::forward<F>(f)(p), do_max(p, std::forward<Fs>(fs)...));
     }
 
     template <typename F>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real do_max (AMREX_D_DECL(Real x, Real y, Real z), F&& f) noexcept
     {
-        return f(AMREX_D_DECL(x,y,z));
+        return std::forward<F>(f)(AMREX_D_DECL(x,y,z));
     }
 
     template <typename F, typename... Fs>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real do_max (AMREX_D_DECL(Real x, Real y, Real z), F&& f, Fs&... fs) noexcept
     {
-        return amrex::max(f(AMREX_D_DECL(x,y,z)), do_max(AMREX_D_DECL(x,y,z), std::forward<Fs>(fs)...));
+        return amrex::max(std::forward<F>(f)(AMREX_D_DECL(x,y,z)), do_max(AMREX_D_DECL(x,y,z), std::forward<Fs>(fs)...));
     }
 }
 
@@ -55,7 +55,7 @@ public:
         return op_impl(p, std::make_index_sequence<sizeof...(Fs)>());
     }
 
-    template <class U=UnionIF<Fs...>, typename std::enable_if<IsGPUable<U>::value,int>::type = 0>
+    template <class U=UnionIF<Fs...>, std::enable_if_t<IsGPUable<U>::value,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
@@ -79,18 +79,18 @@ protected:
 };
 
 template <class Head, class... Tail>
-struct IsGPUable<UnionIF<Head, Tail...>, typename std::enable_if<IsGPUable<Head>::value>::type>
+struct IsGPUable<UnionIF<Head, Tail...>, std::enable_if_t<IsGPUable<Head>::value>>
     : IsGPUable<UnionIF<Tail...> > {};
 
 template <class F>
-struct IsGPUable<UnionIF<F>, typename std::enable_if<IsGPUable<F>::value>::type>
+struct IsGPUable<UnionIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class... Fs>
-constexpr UnionIF<typename std::decay<Fs>::type ...>
+constexpr UnionIF<std::decay_t<Fs> ...>
 makeUnion (Fs&&... fs)
 {
-    return UnionIF<typename std::decay<Fs>::type ...>(std::forward<Fs>(fs)...);
+    return UnionIF<std::decay_t<Fs> ...>(std::forward<Fs>(fs)...);
 }
 
 }

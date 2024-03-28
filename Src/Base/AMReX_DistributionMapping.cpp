@@ -221,9 +221,9 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
     }
 
     if (flag_verbose_mapper) {
-        Print() << "LeastUsedCPUs:" << std::endl;
+        Print() << "LeastUsedCPUs:" << '\n';
         for (const auto &p : LIpairV) {
-            Print() << "  Rank " << p.second << " contains " << p.first << std::endl;
+            Print() << "  Rank " << p.second << " contains " << p.first << '\n';
         }
     }
 #else
@@ -368,7 +368,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
                                      bool                 sort)
 {
     if (flag_verbose_mapper) {
-        Print() << "DM: RoundRobinDoIt called..." << std::endl;
+        Print() << "DM: RoundRobinDoIt called..." << '\n';
     }
 
     int nprocs = ParallelContext::NProcsSub();
@@ -426,7 +426,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
             m_ref->m_pmap[(*LIpairV)[i].second] = ParallelContext::local_to_global_rank(rank);
             if (flag_verbose_mapper) {
                 Print() << "  Mapping box " << (*LIpairV)[i].second << " of size "
-                        << (*LIpairV)[i].first << " to rank " << rank << std::endl;
+                        << (*LIpairV)[i].first << " to rank " << rank << '\n';
             }
         }
     }
@@ -439,7 +439,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
             int rank = tid*nworkers + wrkerord[tid][wid];
             m_ref->m_pmap[i] = ParallelContext::local_to_global_rank(rank);
             if (flag_verbose_mapper) {
-                Print() << "  Mapping box " << i << " to rank " << rank << std::endl;
+                Print() << "  Mapping box " << i << " to rank " << rank << '\n';
             }
         }
     }
@@ -570,7 +570,7 @@ struct WeightedBoxList
     }
 };
 
-static
+namespace {
 void
 knapsack (const std::vector<Long>&         wgts,
           int                              nprocs,
@@ -712,6 +712,7 @@ top: ;
         }
     }
 }
+}
 
 void
 DistributionMapping::KnapSackDoIt (const std::vector<Long>& wgts,
@@ -722,7 +723,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<Long>& wgts,
                                    bool                     sort)
 {
     if (flag_verbose_mapper) {
-        Print() << "DM: KnapSackDoIt called..." << std::endl;
+        Print() << "DM: KnapSackDoIt called..." << '\n';
     }
 
     BL_PROFILE("DistributionMapping::KnapSackDoIt()");
@@ -747,9 +748,9 @@ DistributionMapping::KnapSackDoIt (const std::vector<Long>& wgts,
 
     if (flag_verbose_mapper) {
         for (int i = 0, ni = static_cast<int>(vec.size()); i < ni; ++i) {
-            Print() << "  Bucket " << i << " contains boxes:" << std::endl;
+            Print() << "  Bucket " << i << " contains boxes:" << '\n';
             for (int x : vec[i]) {
-                Print() << "    " << x << std::endl;
+                Print() << "    " << x << '\n';
             }
         }
     }
@@ -774,7 +775,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<Long>& wgts,
 
     if (flag_verbose_mapper) {
         for (const auto &p : LIpairV) {
-            Print() << "  Bucket " << p.second << " total weight: " << p.first << std::endl;
+            Print() << "  Bucket " << p.second << " total weight: " << p.first << '\n';
         }
     }
 
@@ -811,7 +812,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<Long>& wgts,
         const int N = static_cast<int>(vi.size());
 
         if (flag_verbose_mapper) {
-            Print() << "  Mapping bucket " << idx << " to rank " << tid << std::endl;
+            Print() << "  Mapping bucket " << idx << " to rank " << tid << '\n';
         }
 
         if (nteams == nprocs) {
@@ -1171,7 +1172,7 @@ namespace {
     }
 }
 
-static
+namespace {
 void
 Distribute (const std::vector<SFCToken>&     tokens,
             const std::vector<Long>&         wgts,
@@ -1183,14 +1184,14 @@ Distribute (const std::vector<SFCToken>&     tokens,
     BL_PROFILE("DistributionMapping::Distribute()");
 
     if (flag_verbose_mapper) {
-        Print() << "Distribute:" << std::endl;
-        Print() << "  volpercpu: " << volpercpu << std::endl;
-        Print() << "  Sorted SFC Tokens:" << std::endl;
+        Print() << "Distribute:" << '\n'
+                << "  volpercpu: " << volpercpu << '\n'
+                << "  Sorted SFC Tokens:" << '\n';
         int idx = 0;
         for (const auto &t : tokens) {
             Print() << "    " << idx++ << ": "
                     << t.m_box << ": "
-                    << t.m_morton << std::endl;
+                    << t.m_morton << '\n';
         }
     }
 
@@ -1227,10 +1228,10 @@ Distribute (const std::vector<SFCToken>&     tokens,
     }
 
     if (flag_verbose_mapper) {
-        Print() << "Distributed SFC Tokens:" << std::endl;
+        Print() << "Distributed SFC Tokens:" << '\n';
         int idx = 0;
         for (int i = 0; i < nprocs; ++i) {
-            Print() << "  Rank/Team " << i << ":" << std::endl;
+            Print() << "  Rank/Team " << i << ":" << '\n';
             Real rank_vol = 0;
             for (const auto &box : v[i]) {
                 amrex::ignore_unused(box);
@@ -1238,11 +1239,11 @@ Distribute (const std::vector<SFCToken>&     tokens,
                 BL_ASSERT(box == t.m_box);
                 Print() << "    " << idx << ": "
                         << t.m_box << ": "
-                        << t.m_morton << std::endl;
+                        << t.m_morton << '\n';
                 rank_vol += static_cast<Real>(wgts[t.m_box]);
                 idx++;
             }
-            Print() << "    Total Rank Vol: " << rank_vol << std::endl;
+            Print() << "    Total Rank Vol: " << rank_vol << '\n';
         }
     }
 
@@ -1254,6 +1255,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
     BL_ASSERT(cnt == tokens.size());
 #endif
 }
+}
 
 void
 DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
@@ -1263,7 +1265,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           Real*                    eff)
 {
     if (flag_verbose_mapper) {
-        Print() << "DM: SFCProcessorMapDoIt called..." << std::endl;
+        Print() << "DM: SFCProcessorMapDoIt called..." << '\n';
     }
 
     BL_PROFILE("DistributionMapping::SFCProcessorMapDoIt()");
@@ -1339,7 +1341,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     if (flag_verbose_mapper) {
         for (const auto &p : LIpairV) {
-            Print() << "  Bucket " << p.second << " contains " << p.first << std::endl;
+            Print() << "  Bucket " << p.second << " contains " << p.first << '\n';
         }
     }
 
@@ -1382,7 +1384,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         const int Nbx = static_cast<int>(vi.size());// # of boxes assigned to this team
 
         if (flag_verbose_mapper) {
-            Print() << "Mapping bucket " << LIpairV[i].second << " to rank " << ord[i] << std::endl;
+            Print() << "Mapping bucket " << LIpairV[i].second << " to rank " << ord[i] << '\n';
         }
 
         if (nteams == nprocs) { // In this case, team id is process id.

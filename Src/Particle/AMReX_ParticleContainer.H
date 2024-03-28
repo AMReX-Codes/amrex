@@ -692,7 +692,7 @@ public:
     */
     template <class F, class PCType,
               std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
+              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
     void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
@@ -710,8 +710,8 @@ public:
     */
     template <class F, class PCType,
               std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
-    void addParticles (const PCType& other, F&& f, bool local=false);
+              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
+    void addParticles (const PCType& other, F const& f, bool local=false);
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.
@@ -819,7 +819,7 @@ public:
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>&>::value>::type* = nullptr>
+    template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>&>>* = nullptr>
     void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
 
     /**
@@ -876,7 +876,7 @@ public:
      * \param real_comp_names for each real component, a name to label the data with
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type* = nullptr>
+    template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>* = nullptr>
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names, F&& f) const;
 
@@ -1237,7 +1237,7 @@ public:
     Long superParticleSize() const { return superparticle_size; }
 
     template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddRealComp (T communicate=true)
     {
         m_runtime_comps_defined = true;
@@ -1247,7 +1247,7 @@ public:
     }
 
     template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddIntComp (T communicate=true)
     {
         m_runtime_comps_defined = true;

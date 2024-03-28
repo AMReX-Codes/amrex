@@ -187,7 +187,7 @@ struct BlockStatus<T, false>
 
 #ifndef AMREX_SYCL_NO_MULTIPASS_SCAN
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE>
-T PrefixSum_mp (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum)
+T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
 {
     if (n <= 0) { return 0; }
     constexpr int nwarps_per_block = 8;
@@ -400,15 +400,15 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
 
 #ifndef AMREX_SYCL_NO_MULTIPASS_SCAN
     if (nblocks > 1) {
-        return PrefixSum_mp<T>(n, std::forward<FIN>(fin), std::forward<FOUT>(fout), type, retSum);
+        return PrefixSum_mp<T>(n, std::forward<FIN>(fin), std::forward<FOUT>(fout), type, a_ret_sum);
     }
 #endif
 
     std::size_t sm = sizeof(T) * (Gpu::Device::warp_size + nwarps_per_block) + sizeof(int);
     auto stream = Gpu::gpuStream();
 
-    using BlockStatusT = typename std::conditional<sizeof(detail::STVA<T>) <= 8,
-        detail::BlockStatus<T,true>, detail::BlockStatus<T,false> >::type;
+    using BlockStatusT = std::conditional_t<sizeof(detail::STVA<T>) <= 8,
+        detail::BlockStatus<T,true>, detail::BlockStatus<T,false> >;
 
     std::size_t nbytes_blockstatus = Arena::align(sizeof(BlockStatusT)*nblocks);
     std::size_t nbytes_blockid = Arena::align(sizeof(unsigned int));
@@ -627,7 +627,7 @@ template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral<N>::value &&
                                       (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
                                        std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
-T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
+T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
     constexpr int nwarps_per_block = 4;
@@ -770,7 +770,7 @@ template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral<N>::value &&
                                       (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
                                        std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
-T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
+T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
     constexpr int nwarps_per_block = 8;
@@ -903,7 +903,7 @@ template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral<N>::value &&
                                       (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
                                        std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
-T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
+T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
     constexpr int nwarps_per_block = 4;
@@ -915,8 +915,8 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum a_ret_sum = retSum)
     std::size_t sm = sizeof(T) * (Gpu::Device::warp_size + nwarps_per_block) + sizeof(int);
     auto stream = Gpu::gpuStream();
 
-    using BlockStatusT = typename std::conditional<sizeof(detail::STVA<T>) <= 8,
-        detail::BlockStatus<T,true>, detail::BlockStatus<T,false> >::type;
+    using BlockStatusT = std::conditional_t<sizeof(detail::STVA<T>) <= 8,
+        detail::BlockStatus<T,true>, detail::BlockStatus<T,false> >;
 
     std::size_t nbytes_blockstatus = Arena::align(sizeof(BlockStatusT)*nblocks);
     std::size_t nbytes_blockid = Arena::align(sizeof(unsigned int));
@@ -1281,10 +1281,10 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 #else
 //  !defined(AMREX_USE_GPU)
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
-          typename M=std::enable_if_t<std::is_integral<N>::value &&
-                                      (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
-                                       std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
-T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum = retSum)
+          typename M=std::enable_if_t<std::is_integral_v<N> &&
+                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
+T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum = retSum)
 {
     if (n <= 0) { return 0; }
     T totalsum = 0;
@@ -1292,7 +1292,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum = retSum)
         T x = fin(i);
         T y = totalsum;
         totalsum += x;
-        AMREX_IF_CONSTEXPR (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value) {
+        AMREX_IF_CONSTEXPR (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive>) {
             y += x;
         }
         fout(i, y);
@@ -1301,7 +1301,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE, RetSum = retSum)
 }
 
 // The return value is the total sum.
-template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T InclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 {
 #if (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
@@ -1314,7 +1314,7 @@ T InclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 }
 
 // The return value is the total sum.
-template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T ExclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 {
     if (n <= 0) { return 0; }
