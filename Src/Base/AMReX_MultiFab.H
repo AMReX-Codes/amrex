@@ -492,7 +492,7 @@ public:
      * This uses the same arena and factory in the copy and copies
      * all data.
      */
-    MultiFab deepCopy ();
+    [[nodiscard]] MultiFab deepCopy () const;
 
     /**
     * \brief Copy from src to dst including nghost ghost cells.
