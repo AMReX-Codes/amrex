@@ -2719,7 +2719,9 @@ namespace detail {
 
     void* SingleChunkArena::alloc (std::size_t sz)
     {
+        amrex::ignore_unused(m_size);
         auto* p = (void*)m_free;
+        AMREX_ASSERT(sz <= m_size && ((m_free-m_root)+sz <= m_size));
         m_free += sz;
         return p;
     }
