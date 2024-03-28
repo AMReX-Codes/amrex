@@ -9,8 +9,7 @@
 
 namespace amrex {
 
-// (alpha * a - beta * (del dot b grad)) phi
-
+// (A * alpha - B * (del dot beta grad)) phi
 class MLEBABecLap
     : public MLCellABecLap
 {
