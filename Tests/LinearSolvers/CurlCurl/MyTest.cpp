@@ -33,6 +33,17 @@ MyTest::solve ()
                                    LinOpBCType::Periodic)});
 
     mlcc.setScalars(alpha, beta);
+    if (variable_beta) {
+        Array<MultiFab,3> bcoef;
+        for (int idim = 0; idim < 3; ++idim) {
+            bcoef[idim].define(solution[idim].boxArray(),
+                               solution[idim].DistributionMap(), 1, 0);
+            bcoef[idim].setVal(beta);
+        }
+        mlcc.setBeta({Array<MultiFab const*,3>{bcoef.data(),
+                                               bcoef.data()+1,
+                                               bcoef.data()+2}});
+    }
     mlcc.prepareRHS({&rhs});
 
     using V = Array<MultiFab,3>;
@@ -98,6 +109,7 @@ MyTest::readParameters ()
 
     pp.query("beta_factor", beta_factor);
     pp.query("alpha", alpha);
+    pp.query("variable_beta", variable_beta);
 }
 
 void

@@ -73,6 +73,26 @@ struct Array4BoxValTag {
 };
 
 template <class T>
+struct Array4BoxOrientationTag {
+    Array4<T> fab;
+    Box bx;
+    Orientation face;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box() const noexcept { return bx; }
+};
+
+template <class T>
+struct Array4BoxOffsetTag {
+    Array4<T> fab;
+    Box bx;
+    Dim3 offset;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box() const noexcept { return bx; }
+};
+
+template <class T>
 struct VectorTag {
     T* p;
     Long m_size;
