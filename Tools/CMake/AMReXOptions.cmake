@@ -377,11 +377,7 @@ endif ()
 
 print_option( AMReX_ASSERTIONS )
 
-if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
-   option( AMReX_FLATTEN_FOR "Enable flattening of ParallelFor and other similar functions" OFF)
-else ()
-   option( AMReX_FLATTEN_FOR "Enable flattening of ParallelFor and other similar functions" ON)
-endif ()
+option( AMReX_FLATTEN_FOR "Enable flattening of ParallelFor and other similar functions" OFF)
 print_option( AMReX_FLATTEN_FOR )
 
 option(AMReX_BOUND_CHECK  "Enable bound checking in Array4 class" OFF)

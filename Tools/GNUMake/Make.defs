@@ -314,7 +314,7 @@ endif
 ifdef USE_FLATTEN_FOR
   USE_FLATTEN_FOR := $(strip $(USE_FLATTEN_FOR))
 else
-  USE_FLATTEN_FOR := TRUE
+  USE_FLATTEN_FOR := FALSE
 endif
 
 ifdef WARN_ALL
