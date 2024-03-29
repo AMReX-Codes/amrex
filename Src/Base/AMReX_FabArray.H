@@ -65,10 +65,13 @@ Long nBytesOwned (BaseFab<T> const& fab) noexcept { return fab.nBytesOwned(); }
 struct MFInfo {
     // alloc: allocate memory or not
     bool    alloc = true;
+    bool    alloc_single_chunk = FabArrayBase::getAllocSingleChunk();
     Arena*  arena = nullptr;
     Vector<std::string> tags;
 
     MFInfo& SetAlloc (bool a) noexcept { alloc = a; return *this; }
+
+    MFInfo& SetAllocSingleChunk (bool a) noexcept { alloc_single_chunk = a; return *this; }
 
     MFInfo& SetArena (Arena* ar) noexcept { arena = ar; return *this; }
 
@@ -435,6 +438,22 @@ public:
         return false;
 #endif
     }
+
+    //! Return the data pointer to the single chunk memory if this object
+    //! uses a single contiguous chunk of memory, nullptr otherwise.
+    [[nodiscard]] value_type* singleChunkPtr () noexcept {
+        return m_single_chunk_arena ? (value_type*)m_single_chunk_arena->data() : nullptr;
+    }
+
+    //! Return the data pointer to the single chunk memory if this object
+    //! uses a single contiguous chunk of memory, nullptr otherwise.
+    [[nodiscard]] value_type const* singleChunkPtr () const noexcept {
+        return m_single_chunk_arena ? (value_type const*)m_single_chunk_arena->data() : nullptr;
+    }
+
+    //! Return the size of the single chunk memory if this object uses a
+    //! single contiguous chunk of memory, 0 otherwise.
+    [[nodiscard]] std::size_t singleChunkSize () const noexcept { return m_single_chunk_size; }
 
     bool isAllRegular () const noexcept {
 #ifdef AMREX_USE_EB
@@ -1233,6 +1252,8 @@ protected:
 
     std::unique_ptr<FabFactory<FAB> > m_factory;
     DataAllocator m_dallocator;
+    std::unique_ptr<detail::SingleChunkArena> m_single_chunk_arena;
+    Long m_single_chunk_size = 0;
 
     //! has define() been called?
     bool define_function_called = false;
@@ -1306,7 +1327,8 @@ private:
     using Iterator = typename std::vector<FAB*>::iterator;
 
     void AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
-                    const Vector<std::string>& tags);
+                    const Vector<std::string>& tags,
+                    bool alloc_single_chunk);
 
     void setFab_assert (int K, FAB const& fab) const;
 
@@ -1696,6 +1718,7 @@ FabArray<FAB>::release (int K)
 {
     const int li = localindex(K);
     if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+        AMREX_ASSERT(m_single_chunk_arena == nullptr);
         Long nbytes = amrex::nBytesOwned(*m_fabs_v[li]);
         if (nbytes > 0) {
             for (auto const& t : m_tags) {
@@ -1715,6 +1738,7 @@ FabArray<FAB>::release (const MFIter& mfi)
 {
     const int li = mfi.LocalIndex();
     if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+        AMREX_ASSERT(m_single_chunk_arena == nullptr);
         Long nbytes = amrex::nBytesOwned(*m_fabs_v[li]);
         if (nbytes > 0) {
             for (auto const& t : m_tags) {
@@ -1755,6 +1779,12 @@ FabArray<FAB>::clear ()
             updateMemUsage(t, -nbytes, nullptr);
         }
     }
+
+    if (m_single_chunk_arena) {
+        m_single_chunk_arena.reset();
+    }
+    m_single_chunk_size = 0;
+
     m_tags.clear();
 
     FabArrayBase::clear();
@@ -1880,6 +1910,8 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     : FabArrayBase (static_cast<FabArrayBase&&>(rhs))
     , m_factory    (std::move(rhs.m_factory))
     , m_dallocator (std::move(rhs.m_dallocator))
+    , m_single_chunk_arena(std::move(rhs.m_single_chunk_arena))
+    , m_single_chunk_size(std::exchange(rhs.m_single_chunk_size,0))
     , define_function_called(rhs.define_function_called)
     , m_fabs_v     (std::move(rhs.m_fabs_v))
 #ifdef AMREX_USE_GPU
@@ -1909,6 +1941,8 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         FabArrayBase::operator=(static_cast<FabArrayBase&&>(rhs));
         m_factory = std::move(rhs.m_factory);
         m_dallocator = std::move(rhs.m_dallocator);
+        m_single_chunk_arena = std::move(rhs.m_single_chunk_arena);
+        std::swap(m_single_chunk_size, rhs.m_single_chunk_size);
         define_function_called = rhs.define_function_called;
         std::swap(m_fabs_v, rhs.m_fabs_v);
 #ifdef AMREX_USE_GPU
@@ -2008,7 +2042,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-        AllocFabs(*m_factory, m_dallocator.m_arena, info.tags);
+        AllocFabs(*m_factory, m_dallocator.m_arena, info.tags, info.alloc_single_chunk);
 #ifdef BL_USE_TEAM
         ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
@@ -2018,8 +2052,11 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 template <class FAB>
 void
 FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
-                          const Vector<std::string>& tags)
+                          const Vector<std::string>& tags, bool alloc_single_chunk)
 {
+    if (shmem.alloc) { alloc_single_chunk = false; }
+    if constexpr (!IsBaseFab_v<FAB>) { alloc_single_chunk = false; }
+
     const int n = indexArray.size();
     const int nworkers = ParallelDescriptor::TeamSize();
     shmem.alloc = (nworkers > 1);
@@ -2028,6 +2065,18 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
 
     FabInfo fab_info;
     fab_info.SetAlloc(alloc).SetShared(shmem.alloc).SetArena(ar);
+
+    if (alloc_single_chunk) {
+        m_single_chunk_size = 0L;
+        for (int i = 0; i < n; ++i) {
+            int K = indexArray[i];
+            const Box& tmpbox = fabbox(K);
+            m_single_chunk_size += factory.nBytes(tmpbox, n_comp, K);
+        }
+        AMREX_ASSERT(m_single_chunk_size >= 0); // 0 is okay.
+        m_single_chunk_arena = std::make_unique<detail::SingleChunkArena>(ar, m_single_chunk_size);
+        fab_info.SetArena(m_single_chunk_arena.get());
+    }
 
     m_fabs_v.reserve(n);
 
@@ -2136,6 +2185,7 @@ FabArray<FAB>::setFab_assert (int K, FAB const& fab) const
     AMREX_ASSERT(!boxarray.empty());
     AMREX_ASSERT(fab.box() == fabbox(K));
     AMREX_ASSERT(distributionMap[K] == ParallelDescriptor::MyProc());
+    AMREX_ASSERT(m_single_chunk_arena == nullptr);
 }
 
 template <class FAB>

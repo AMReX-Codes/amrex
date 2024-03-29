@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BoxArray.H>
+#include <AMReX_DataAllocator.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
@@ -721,7 +722,45 @@ public:
     };
     static AMREX_EXPORT FabArrayStats m_FA_stats;
 
+    static AMREX_EXPORT bool m_alloc_single_chunk;
+
+    [[nodiscard]] static bool getAllocSingleChunk () { return m_alloc_single_chunk; }
 };
+
+namespace detail {
+    class SingleChunkArena final
+        : public Arena
+    {
+    public:
+        SingleChunkArena (Arena* a_arena, std::size_t a_size);
+        ~SingleChunkArena () override;
+
+        SingleChunkArena () = delete;
+        SingleChunkArena (const SingleChunkArena& rhs) = delete;
+        SingleChunkArena (SingleChunkArena&& rhs) = delete;
+        SingleChunkArena& operator= (const SingleChunkArena& rhs) = delete;
+        SingleChunkArena& operator= (SingleChunkArena&& rhs) = delete;
+
+        [[nodiscard]] void* alloc (std::size_t sz) override;
+        void free (void* pt) override;
+
+        // isDeviceAccessible and isHostAccessible can both be true.
+        [[nodiscard]] bool isDeviceAccessible () const override;
+        [[nodiscard]] bool isHostAccessible () const override;
+
+        [[nodiscard]] bool isManaged () const override;
+        [[nodiscard]] bool isDevice () const override;
+        [[nodiscard]] bool isPinned () const override;
+
+        [[nodiscard]] void* data () const noexcept { return (void*) m_root; }
+
+    private:
+        DataAllocator m_dallocator;
+        char* m_root = nullptr;
+        char* m_free = nullptr;
+        std::size_t m_size = 0;
+    };
+}
 
 [[nodiscard]] int nComp (FabArrayBase const& fa);
 [[nodiscard]] IntVect nGrowVect (FabArrayBase const& fa);
