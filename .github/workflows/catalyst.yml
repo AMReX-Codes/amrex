@@ -17,9 +17,10 @@ jobs:
     container:
       image: cwetterernelson/catalyst:v2
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Configure
       run: |
+        export Catalyst_DIR=${catalyst_DIR}
         cmake -S . -B build          \
             -DCMAKE_BUILD_TYPE=Debug \
             -DAMReX_ENABLE_TESTS=ON  \
