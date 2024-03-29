@@ -1244,6 +1244,7 @@ public:
         m_num_runtime_real++;
         h_redistribute_real_comp.push_back(communicate);
         SetParticleSize();
+        this->resizeData();
 
         // resize runtime SoA
         for (int lev = 0; lev < numLevels(); ++lev) {
@@ -1266,6 +1267,7 @@ public:
         m_num_runtime_int++;
         h_redistribute_int_comp.push_back(communicate);
         SetParticleSize();
+        this->resizeData();
 
         // resize runtime SoA
         for (int lev = 0; lev < numLevels(); ++lev) {
