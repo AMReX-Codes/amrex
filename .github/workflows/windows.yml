@@ -142,37 +142,36 @@ jobs:
 
   # Build libamrex and all tutorials with CUDA
   tutorials-cuda:
-    name: MSVC C++17 w/ CUDA@11.1.1 w/o Fortran w/o MPI
-    runs-on: windows-2019
+    name: MSVC C++17 w/ CUDA@12.4 w/o Fortran w/o MPI
+    runs-on: windows-2022
     steps:
-    - uses: actions/checkout@v2
-    - uses: seanmiddleditch/gha-setup-ninja@master
-    - name: Windows CUDA Cache
-      uses: actions/cache@v2
-      with:
-        path: "C:/Program Files/NVIDIA GPU Computing Toolkit/"
-        key: msvc_cxx17_cuda111
+    - uses: actions/checkout@v4
     - name: Download CUDA
       run: |
         if (Test-Path "C:\Program Files\NVIDIA GPU Computing Toolkit\") { exit }
         New-item -ItemType directory -Name cuda
         Set-Location -Path cuda -PassThru
-        Invoke-WebRequest -Uri 'https://developer.download.nvidia.com/compute/cuda/11.1.1/network_installers/cuda_11.1.1_win10_network.exe' -OutFile 'cuda_install.exe'
+        Invoke-WebRequest -Uri 'https://developer.download.nvidia.com/compute/cuda/12.4.0/network_installers/cuda_12.4.0_windows_network.exe' -OutFile 'cuda_install.exe'
         Start-Process -FilePath '.\cuda_install.exe' -ArgumentList '-s' -Wait -NoNewWindow
     - name: Build & Install
       shell: cmd
       run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
-        SET "PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.1\bin\;%PATH%"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
+        SET "CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4"
+        SET "CMAKE_PREFIX_PATH=%CUDA_PATH%;%CMAKE_PREFIX_PATH%"
+        SET "PATH=%CUDA_PATH%\bin\;%PATH%"
+        SET "PATH=%CUDA_PATH%\libnvvp\;%PATH%"
         cmake -S . -B build ^
-              -G Ninja      ^
+              -DCUDAToolkit_ROOT="%CUDA_PATH%"  ^
               -DCMAKE_BUILD_TYPE=Release ^
+              -DAMReX_CUDA_ARCH=8.0      ^
               -DAMReX_FORTRAN=OFF        ^
-              -DAMReX_MPI=OFF            ^
               -DAMReX_GPU_BACKEND=CUDA   ^
-              -DCMAKE_CXX_STANDARD=17    ^
-              -DCMAKE_CUDA_STANDARD=17   ^
-              -DAMReX_CUDA_ARCH=6.0
-        cmake --build build -j 2
+              -DAMReX_MPI=OFF            ^
+              -DAMReX_PARTICLES=ON
+
+        cmake --build build --config Release -j 4
+
+        cmake --build build --config Release --target install
+
     # use "cmd", see https://gitlab.kitware.com/cmake/cmake/-/issues/20281
-    # -DAMReX_PARTICLES=ON
