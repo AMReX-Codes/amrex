@@ -20,7 +20,6 @@ namespace amrex {
 *
 * This class is used to tag cells in a Box that need addition refinement.
 */
-
 class TagBox final
     :
     public BaseFab<char>
@@ -28,7 +27,7 @@ class TagBox final
 public:
 
     //! The type of each tag.
-    typedef char TagType;
+    using TagType = char;
 
     //! Possible values for each cell.
     enum TagVal { CLEAR=0, BUF, SET };
@@ -145,7 +144,6 @@ public:
 *
 * A container class for TagBoxes.
 */
-
 class TagBoxArray
     :
     public FabArray<TagBox>
@@ -153,7 +151,7 @@ class TagBoxArray
 public:
 
     //! The type of each tag.
-    typedef TagBox::TagType TagType;
+    using TagType = TagBox::TagType;
 
     /**
     * \brief The constructor.

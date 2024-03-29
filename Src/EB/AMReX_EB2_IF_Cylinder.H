@@ -37,7 +37,7 @@ public:
             AMREX_ASSERT(m_direction < AMREX_SPACEDIM);
         }
 
-    AMREX_GPU_HOST_DEVICE inline
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
 #if (AMREX_SPACEDIM == 3)
@@ -92,7 +92,7 @@ public:
         }
     }
 
-    inline Real operator() (const RealArray& p) const noexcept
+    [[nodiscard]] inline Real operator() (const RealArray& p) const noexcept
     {
         return this->operator() (AMREX_D_DECL(p[0], p[1], p[2]));
     }

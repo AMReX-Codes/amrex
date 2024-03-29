@@ -12,11 +12,11 @@ jobs:
     name: AppleClang Universal w/o MPI [tests-universal]
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_mac.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: /Users/runner/Library/Caches/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -31,7 +31,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=125M
+        export CCACHE_MAXSIZE=30M
         ccache -z
 
         cmake -S . -B build             \
@@ -41,9 +41,8 @@ jobs:
             -DAMReX_EB=ON               \
             -DAMReX_MPI=OFF             \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --parallel 2
+        cmake --build build --parallel 3
 
         ctest --test-dir build --output-on-failure
 
@@ -54,11 +53,11 @@ jobs:
     name: AppleClang@11.0 GFortran@9.3 [tests]
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_mac.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: /Users/runner/Library/Caches/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -71,7 +70,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=250M
+        export CCACHE_MAXSIZE=160M
         ccache -z
 
         cmake -S . -B build             \
@@ -79,11 +78,25 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_PARTICLES=ON        \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --parallel 2
+        cmake --build build --parallel 3
         cmake --build build --target install
 
         ctest --test-dir build --output-on-failure
 
         ccache -s
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

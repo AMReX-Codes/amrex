@@ -110,8 +110,8 @@ namespace amrex
         T flo = f(lo);
         T fhi = f(hi);
 
-        if (flo == T(0)) return flo;
-        if (fhi == T(0)) return fhi;
+        if (flo == T(0)) { return flo; }
+        if (fhi == T(0)) { return fhi; }
 
         AMREX_ASSERT_WITH_MESSAGE(flo * fhi <= T(0),
             "Error - calling bisect but lo and hi don't bracket a root.");
@@ -121,10 +121,10 @@ namespace amrex
         int n = 1;
         while (n <= max_iter)
         {
-            if (hi - lo < tol || almostEqual(lo,hi)) break;
+            if (hi - lo < tol || almostEqual(lo,hi)) { break; }
             mi = (lo + hi) / T(2);
             fmi = f(mi);
-            if (fmi == T(0)) break;
+            if (fmi == T(0)) { break; }
             fmi*flo < T(0) ? hi = mi : lo = mi;
             flo = f(lo);
             fhi = f(hi);
@@ -161,51 +161,89 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE
     ItType upper_bound (ItType first, ItType last, const ValType& val)
     {
-#if AMREX_DEVICE_COMPILE
-        std::ptrdiff_t count = last-first;
-        while(count>0){
-            auto it = first;
-            const auto step = count/2;
-            it += step;
-            if (!(val < *it)){
-                first = ++it;
-                count -= step + 1;
+        AMREX_IF_ON_DEVICE((
+            std::ptrdiff_t count = last-first;
+            while(count>0){
+                auto it = first;
+                const auto step = count/2;
+                it += step;
+                if (!(val < *it)){
+                    first = ++it;
+                    count -= step + 1;
+                }
+                else{
+                    count = step;
+                }
             }
-            else{
-                count = step;
-            }
-        }
-
-        return first;
-#else
-        return std::upper_bound(first, last, val);
-#endif
+            return first;
+        ))
+        AMREX_IF_ON_HOST((
+            return std::upper_bound(first, last, val);
+        ))
     }
 
     template<typename ItType, typename ValType>
     AMREX_GPU_HOST_DEVICE
     ItType lower_bound (ItType first, ItType last, const ValType& val)
     {
-#ifdef AMREX_DEVICE_COMPILE
-        std::ptrdiff_t count = last-first;
-        while(count>0)
-        {
-            auto it = first;
-            const auto step = count/2;
-            it += step;
-            if (*it < val){
-                first = ++it;
-                count -= step + 1;
+        AMREX_IF_ON_DEVICE((
+            std::ptrdiff_t count = last-first;
+            while(count>0)
+            {
+                auto it = first;
+                const auto step = count/2;
+                it += step;
+                if (*it < val){
+                    first = ++it;
+                    count -= step + 1;
+                }
+                else{
+                    count = step;
+                }
             }
-            else{
-                count = step;
-            }
-        }
 
-        return first;
-#else
-        return std::lower_bound(first, last, val);
-#endif
+            return first;
+        ))
+        AMREX_IF_ON_HOST((
+            return std::lower_bound(first, last, val);
+        ))
+    }
+
+    template<typename ItType, typename ValType,
+        typename std::enable_if<
+            std::is_floating_point<typename std::iterator_traits<ItType>::value_type>::value &&
+            std::is_floating_point<ValType>::value,
+        int>::type = 0>
+    AMREX_GPU_HOST_DEVICE
+    void linspace (ItType first, const ItType& last, const ValType& start, const ValType& stop)
+    {
+        const std::ptrdiff_t count = last-first;
+        if (count >= 2){
+            const auto delta = (stop - start)/(count - 1);
+            for (std::ptrdiff_t i = 0; i < count-1; ++i){
+                *(first++) = start + i*delta;
+            }
+            *first = stop;
+        }
+    }
+
+    template<typename ItType, typename ValType,
+        typename std::enable_if<
+            std::is_floating_point<typename std::iterator_traits<ItType>::value_type>::value &&
+            std::is_floating_point<ValType>::value,
+        int>::type = 0>
+    AMREX_GPU_HOST_DEVICE
+    void logspace (ItType first, const ItType& last,
+        const ValType& start, const ValType& stop, const ValType& base)
+    {
+        const std::ptrdiff_t count = last-first;
+        if (count >= 2){
+            const auto delta = (stop - start)/(count - 1);
+            for (std::ptrdiff_t i = 0; i < count-1; ++i){
+                *(first++) = std::pow(base, start + i*delta);
+            }
+            *first = std::pow(base, stop);
+        }
     }
 
 namespace detail {
@@ -239,82 +277,99 @@ int builtin_clz_wrapper (clzll_tag, T x) noexcept
     return static_cast<int>(__builtin_clzll(x) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
 
-#ifdef AMREX_USE_CUDA
-
-// likewise with CUDA, there are __clz functions that take (signed) int and long long int
-template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(int)>::type>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-int clz_wrapper (clz_tag, T x) noexcept
-{
-    return __clz((int) x) - (sizeof(int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
 }
 
-template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(long long int)>::type>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-int clz_wrapper (clzll_tag, T x) noexcept
-{
-    return __clzll((long long int) x) - (sizeof(long long int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
-}
-#endif
-
-}
+template <class T, typename std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
+                                             std::is_same_v<std::decay_t<T>,std::uint16_t> ||
+                                             std::is_same_v<std::decay_t<T>,std::uint32_t> ||
+                                             std::is_same_v<std::decay_t<T>,std::uint64_t>, int> = 0>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (T x) noexcept;
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint8_t x) noexcept
+int clz_generic (std::uint8_t x) noexcept
 {
-#if (AMREX_DEVICE_COMPILE && defined(AMREX_USE_CUDA)) // all supported cuda versions have __clz
-    return detail::clz_wrapper(detail::clz_tag{}, x);
-#elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
-    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
-#else
     static constexpr int clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
     auto upper = x >> 4;
     auto lower = x & 0xF;
     return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
-#endif
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint16_t x) noexcept
+int clz_generic (std::uint16_t x) noexcept
 {
-#if (AMREX_DEVICE_COMPILE && defined(AMREX_USE_CUDA)) // all supported cuda versions have __clz
-    return detail::clz_wrapper(detail::clz_tag{}, x);
-#elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
-    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
-#else
     auto upper = std::uint8_t(x >> 8);
     auto lower = std::uint8_t(x & 0xFF);
     return upper ? clz(upper) : 8 + clz(lower);
-#endif
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint32_t x) noexcept
+int clz_generic (std::uint32_t x) noexcept
 {
-#if (AMREX_DEVICE_COMPILE && defined(AMREX_USE_CUDA)) // all supported cuda versions have __clz
-    return detail::clz_wrapper(detail::clz_tag{}, x);
-#elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
-    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
-#else
     auto upper = std::uint16_t(x >> 16);
     auto lower = std::uint16_t(x & 0xFFFF);
     return upper ? clz(upper) : 16 + clz(lower);
-#endif
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (std::uint64_t x) noexcept
+int clz_generic (std::uint64_t x) noexcept
 {
-#if (AMREX_DEVICE_COMPILE && defined(AMREX_USE_CUDA)) // all supported cuda versions have __clz
-    return detail::clz_wrapper(detail::clz_tag{}, x);
-#elif (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
-    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
-#else
     auto upper = std::uint32_t(x >> 32);
     auto lower = std::uint32_t(x & 0xFFFFFFFF);
     return upper ? clz(upper) : 32 + clz(lower);
+}
+
+#if defined AMREX_USE_CUDA
+
+namespace detail {
+    // likewise with CUDA, there are __clz functions that take (signed) int and long long int
+    template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(int)>::type>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    int clz_wrapper (clz_tag, T x) noexcept
+    {
+        return __clz((int) x) - (sizeof(int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+    }
+
+    template <typename T, typename = typename std::enable_if<sizeof(T) <= sizeof(long long int)>::type>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    int clz_wrapper (clzll_tag, T x) noexcept
+    {
+        return __clzll((long long int) x) - (sizeof(long long int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+    }
+}
+
+template <class T, typename std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
+                                             std::is_same_v<std::decay_t<T>,std::uint16_t> ||
+                                             std::is_same_v<std::decay_t<T>,std::uint32_t> ||
+                                             std::is_same_v<std::decay_t<T>,std::uint64_t>, int> >
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (T x) noexcept
+{
+    AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
+#if AMREX_HAS_BUILTIN_CLZ
+    AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
+#else
+    AMREX_IF_ON_HOST((return clz_generic(x);))
 #endif
 }
+
+#else // !defined AMREX_USE_CUDA
+
+template <class T, typename std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
+                                             std::is_same_v<std::decay_t<T>,std::uint16_t> ||
+                                             std::is_same_v<std::decay_t<T>,std::uint32_t> ||
+                                             std::is_same_v<std::decay_t<T>,std::uint64_t>, int> >
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (T x) noexcept
+{
+#if (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
+    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
+#else
+    return clz_generic(x);
+#endif
+}
+
+#endif // defined AMREX_USE_CUDA
 
 }
 

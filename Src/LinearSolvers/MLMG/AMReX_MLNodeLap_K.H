@@ -206,7 +206,7 @@ bool mlndlap_any_fine_sync_cells (Box const& bx, Array4<int const> const& msk, i
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        if (msk(i,j,k) == fine_flag) return true;
+        if (msk(i,j,k) == fine_flag) { return true; }
     }}}
     return false;
 }

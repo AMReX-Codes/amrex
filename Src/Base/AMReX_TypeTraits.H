@@ -37,6 +37,18 @@ namespace amrex
     template <class A>
     inline constexpr bool IsFabArray_v = IsFabArray<A>::value;
 
+    template <class M, class Enable = void>
+    struct IsMultiFabLike : std::false_type {};
+    //
+    template <class M>
+    struct IsMultiFabLike<M, std::enable_if_t<IsFabArray_v<M> &&
+                                              IsBaseFab_v<typename M::fab_type> > >
+        : std::true_type {};
+    //
+    template <class M>
+    inline constexpr bool IsMultiFabLike_v = IsMultiFabLike<M>::value;
+
+
     template <bool B, class T = void>
     using EnableIf_t = typename std::enable_if<B,T>::type;
 
@@ -54,17 +66,17 @@ namespace amrex
     struct IsMultiFabIterator : public std::is_base_of<MFIter, T>::type {};
 
 #ifdef AMREX_PARTICLES
-    template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-              template<class> class Allocator>
-    class ParIterBase;
+    // template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+    //           template<class> class Allocator>
+    // class ParIterBase;
 
-    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-              template<class> class Allocator>
-    class ParIter;
+    // template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+    //           template<class> class Allocator>
+    // class ParIter;
 
-    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-              template<class> class Allocator>
-    class ParConstIter;
+    // template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+    //           template<class> class Allocator>
+    // class ParConstIter;
 
     class ParticleContainerBase;
 
@@ -137,7 +149,9 @@ namespace amrex
             Nonesuch() = delete;
             ~Nonesuch() = delete;
             Nonesuch(Nonesuch const&) = delete;
+            Nonesuch(Nonesuch &&) = delete;
             void operator=(Nonesuch const&) = delete;
+            void operator=(Nonesuch &&) = delete;
         };
 
         template <class Default, class AlwaysVoid, template <class...> class Op,

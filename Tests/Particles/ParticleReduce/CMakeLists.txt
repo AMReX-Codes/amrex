@@ -1,7 +1,13 @@
-set(_sources     main.cpp)
-set(_input_files inputs  )
+if (AMReX_MPI)
+   return()
+endif()
 
-setup_test(_sources _input_files NTHREADS 2)
+foreach(D IN LISTS AMReX_SPACEDIM)
+    set(_sources     main.cpp)
+    set(_input_files inputs  )
 
-unset(_sources)
-unset(_input_files)
+    setup_test(${D} _sources _input_files)
+
+    unset(_sources)
+    unset(_input_files)
+endforeach()

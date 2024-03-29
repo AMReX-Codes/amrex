@@ -636,107 +636,107 @@ void build_cellflag_from_ap (int i, int j, int k, Array4<EBCellFlag> const& cfla
     {
         flg.setConnected(0,0,0);
 
-        if (apx(i  ,j,k) != 0.0_rt) flg.setConnected(-1,  0,  0);
-        if (apx(i+1,j,k) != 0.0_rt) flg.setConnected( 1,  0,  0);
-        if (apy(i,j  ,k) != 0.0_rt) flg.setConnected( 0, -1,  0);
-        if (apy(i,j+1,k) != 0.0_rt) flg.setConnected( 0,  1,  0);
-        if (apz(i,j,k  ) != 0.0_rt) flg.setConnected( 0,  0, -1);
-        if (apz(i,j,k+1) != 0.0_rt) flg.setConnected( 0,  0,  1);
+        if (apx(i  ,j,k) != 0.0_rt) { flg.setConnected(-1,  0,  0); }
+        if (apx(i+1,j,k) != 0.0_rt) { flg.setConnected( 1,  0,  0); }
+        if (apy(i,j  ,k) != 0.0_rt) { flg.setConnected( 0, -1,  0); }
+        if (apy(i,j+1,k) != 0.0_rt) { flg.setConnected( 0,  1,  0); }
+        if (apz(i,j,k  ) != 0.0_rt) { flg.setConnected( 0,  0, -1); }
+        if (apz(i,j,k+1) != 0.0_rt) { flg.setConnected( 0,  0,  1); }
 
         if ( (apx(i,j,k) != 0.0_rt && apy(i-1,j,k) != 0.0_rt) ||
              (apy(i,j,k) != 0.0_rt && apx(i,j-1,k) != 0.0_rt) )
         {
             flg.setConnected(-1, -1, 0);
-            if (apz(i-1,j-1,k  ) != 0.0_rt) flg.setConnected(-1,-1,-1);
-            if (apz(i-1,j-1,k+1) != 0.0_rt) flg.setConnected(-1,-1, 1);
+            if (apz(i-1,j-1,k  ) != 0.0_rt) { flg.setConnected(-1,-1,-1); }
+            if (apz(i-1,j-1,k+1) != 0.0_rt) { flg.setConnected(-1,-1, 1); }
         }
 
         if ( (apx(i+1,j,k) != 0.0_rt && apy(i+1,j  ,k) != 0.0_rt) ||
              (apy(i  ,j,k) != 0.0_rt && apx(i+1,j-1,k) != 0.0_rt) )
         {
             flg.setConnected(1, -1, 0);
-            if (apz(i+1,j-1,k  ) != 0.0_rt) flg.setConnected(1,-1,-1);
-            if (apz(i+1,j-1,k+1) != 0.0_rt) flg.setConnected(1,-1, 1);
+            if (apz(i+1,j-1,k  ) != 0.0_rt) { flg.setConnected(1,-1,-1); }
+            if (apz(i+1,j-1,k+1) != 0.0_rt) { flg.setConnected(1,-1, 1); }
         }
 
         if ( (apx(i,j  ,k) != 0.0_rt && apy(i-1,j+1,k) != 0.0_rt) ||
              (apy(i,j+1,k) != 0.0_rt && apx(i  ,j+1,k) != 0.0_rt) )
         {
             flg.setConnected(-1, 1, 0);
-            if (apz(i-1,j+1,k  ) != 0.0_rt) flg.setConnected(-1, 1,-1);
-            if (apz(i-1,j+1,k+1) != 0.0_rt) flg.setConnected(-1, 1, 1);
+            if (apz(i-1,j+1,k  ) != 0.0_rt) { flg.setConnected(-1, 1,-1); }
+            if (apz(i-1,j+1,k+1) != 0.0_rt) { flg.setConnected(-1, 1, 1); }
         }
 
         if ( (apx(i+1,j  ,k) != 0.0_rt && apy(i+1,j+1,k) != 0.0_rt) ||
              (apy(i  ,j+1,k) != 0.0_rt && apx(i+1,j+1,k) != 0.0_rt) )
         {
             flg.setConnected(1, 1, 0);
-            if (apz(i+1,j+1,k  ) != 0.0_rt) flg.setConnected(1, 1,-1);
-            if (apz(i+1,j+1,k+1) != 0.0_rt) flg.setConnected(1, 1, 1);
+            if (apz(i+1,j+1,k  ) != 0.0_rt) { flg.setConnected(1, 1,-1); }
+            if (apz(i+1,j+1,k+1) != 0.0_rt) { flg.setConnected(1, 1, 1); }
         }
 
         if ( (apx(i,j,k) != 0.0_rt && apz(i-1,j,k  ) != 0.0_rt) ||
              (apz(i,j,k) != 0.0_rt && apx(i  ,j,k-1) != 0.0_rt) )
         {
             flg.setConnected(-1, 0, -1);
-            if (apy(i-1,j  ,k-1) != 0.0_rt) flg.setConnected(-1,-1,-1);
-            if (apy(i-1,j+1,k-1) != 0.0_rt) flg.setConnected(-1, 1,-1);
+            if (apy(i-1,j  ,k-1) != 0.0_rt) { flg.setConnected(-1,-1,-1); }
+            if (apy(i-1,j+1,k-1) != 0.0_rt) { flg.setConnected(-1, 1,-1); }
         }
 
         if ( (apx(i+1,j,k) != 0.0_rt && apz(i+1,j,k  ) != 0.0_rt) ||
              (apz(i  ,j,k) != 0.0_rt && apx(i+1,j,k-1) != 0.0_rt) )
         {
             flg.setConnected(1, 0, -1);
-            if (apy(i+1,j  ,k-1) != 0.0_rt) flg.setConnected(1,-1,-1);
-            if (apy(i+1,j+1,k-1) != 0.0_rt) flg.setConnected(1, 1,-1);
+            if (apy(i+1,j  ,k-1) != 0.0_rt) { flg.setConnected(1,-1,-1); }
+            if (apy(i+1,j+1,k-1) != 0.0_rt) { flg.setConnected(1, 1,-1); }
         }
 
         if ( (apx(i,j,k  ) != 0.0_rt && apz(i-1,j,k+1) != 0.0_rt) ||
              (apz(i,j,k+1) != 0.0_rt && apx(i  ,j,k+1) != 0.0_rt) )
         {
             flg.setConnected(-1, 0, 1);
-            if (apy(i-1,j  ,k+1) != 0.0_rt) flg.setConnected(-1,-1, 1);
-            if (apy(i-1,j+1,k+1) != 0.0_rt) flg.setConnected(-1, 1, 1);
+            if (apy(i-1,j  ,k+1) != 0.0_rt) { flg.setConnected(-1,-1, 1); }
+            if (apy(i-1,j+1,k+1) != 0.0_rt) { flg.setConnected(-1, 1, 1); }
         }
 
         if ( (apx(i+1,j,k  ) != 0.0_rt && apz(i+1,j,k+1) != 0.0_rt) ||
              (apz(i  ,j,k+1) != 0.0_rt && apx(i+1,j,k+1) != 0.0_rt) )
         {
             flg.setConnected(1, 0, 1);
-            if (apy(i+1,j  ,k+1) != 0.0_rt) flg.setConnected(1,-1, 1);
-            if (apy(i+1,j+1,k+1) != 0.0_rt) flg.setConnected(1, 1, 1);
+            if (apy(i+1,j  ,k+1) != 0.0_rt) { flg.setConnected(1,-1, 1); }
+            if (apy(i+1,j+1,k+1) != 0.0_rt) { flg.setConnected(1, 1, 1); }
         }
 
         if ( (apy(i,j,k) != 0.0_rt && apz(i,j-1,k  ) != 0.0_rt) ||
              (apz(i,j,k) != 0.0_rt && apy(i,j  ,k-1) != 0.0_rt) )
         {
             flg.setConnected(0, -1, -1);
-            if (apx(i  ,j-1,k-1) != 0.0_rt) flg.setConnected(-1,-1,-1);
-            if (apx(i+1,j-1,k-1) != 0.0_rt) flg.setConnected( 1,-1,-1);
+            if (apx(i  ,j-1,k-1) != 0.0_rt) { flg.setConnected(-1,-1,-1); }
+            if (apx(i+1,j-1,k-1) != 0.0_rt) { flg.setConnected( 1,-1,-1); }
         }
 
         if ( (apy(i,j+1,k) != 0.0_rt && apz(i,j+1,k  ) != 0.0_rt) ||
              (apz(i,j  ,k) != 0.0_rt && apy(i,j+1,k-1) != 0.0_rt) )
         {
             flg.setConnected(0, 1, -1);
-            if (apx(i  ,j+1,k-1) != 0.0_rt) flg.setConnected(-1, 1,-1);
-            if (apx(i+1,j+1,k-1) != 0.0_rt) flg.setConnected( 1, 1,-1);
+            if (apx(i  ,j+1,k-1) != 0.0_rt) { flg.setConnected(-1, 1,-1); }
+            if (apx(i+1,j+1,k-1) != 0.0_rt) { flg.setConnected( 1, 1,-1); }
         }
 
         if ( (apy(i,j,k  ) != 0.0_rt && apz(i,j-1,k+1) != 0.0_rt) ||
              (apz(i,j,k+1) != 0.0_rt && apy(i,j  ,k+1) != 0.0_rt) )
         {
             flg.setConnected(0, -1, 1);
-            if (apx(i  ,j-1,k+1) != 0.0_rt) flg.setConnected(-1,-1, 1);
-            if (apx(i+1,j-1,k+1) != 0.0_rt) flg.setConnected( 1,-1, 1);
+            if (apx(i  ,j-1,k+1) != 0.0_rt) { flg.setConnected(-1,-1, 1); }
+            if (apx(i+1,j-1,k+1) != 0.0_rt) { flg.setConnected( 1,-1, 1); }
         }
 
         if ( (apy(i,j+1,k  ) != 0.0_rt && apz(i,j+1,k+1) != 0.0_rt) ||
              (apz(i,j  ,k+1) != 0.0_rt && apy(i,j+1,k+1) != 0.0_rt) )
         {
             flg.setConnected(0, 1, 1);
-            if (apx(i  ,j+1,k+1) != 0.0_rt) flg.setConnected(-1, 1, 1);
-            if (apx(i+1,j+1,k+1) != 0.0_rt) flg.setConnected( 1, 1, 1);
+            if (apx(i  ,j+1,k+1) != 0.0_rt) { flg.setConnected(-1, 1, 1); }
+            if (apx(i+1,j+1,k+1) != 0.0_rt) { flg.setConnected( 1, 1, 1); }
         }
     }
 

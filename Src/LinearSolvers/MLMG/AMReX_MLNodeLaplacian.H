@@ -6,7 +6,7 @@
 
 namespace amrex {
 
-// del dot (sigma grah phi) = rhs
+// del dot (sigma grad phi) = rhs
 // where phi and rhs are nodal, and sigma is cell-centered.
 
 class MLNodeLaplacian
@@ -29,7 +29,7 @@ public :
                      const Vector<EBFArrayBoxFactory const*>& a_factory,
                      Real a_const_sigma = Real(0.0));
 #endif
-    virtual ~MLNodeLaplacian () = default;
+    ~MLNodeLaplacian () override = default;
 
     MLNodeLaplacian (const MLNodeLaplacian&) = delete;
     MLNodeLaplacian (MLNodeLaplacian&&) = delete;
@@ -52,7 +52,7 @@ public :
                  Real a_const_sigma = Real(0.0));
 #endif
 
-    virtual std::string name () const override { return std::string("MLNodeLaplacian"); }
+    std::string name () const override { return std::string("MLNodeLaplacian"); }
 
     void setRZCorrection (bool rz) noexcept { m_is_rz = rz; }
 
@@ -81,49 +81,45 @@ public :
     void setMapped (bool flag) noexcept { m_use_mapped = flag; }
 
     void setCoarseningStrategy (CoarseningStrategy cs) noexcept {
-        if (m_const_sigma == Real(0.0)) m_coarsening_strategy = cs;
+        if (m_const_sigma == Real(0.0)) { m_coarsening_strategy = cs; }
     }
 
-    void setSmoothNumSweeps (int nsweeps) noexcept {
-        m_smooth_num_sweeps = nsweeps;
-    }
-
-    virtual BottomSolver getDefaultBottomSolver () const final override {
+    BottomSolver getDefaultBottomSolver () const final {
         return (m_coarsening_strategy == CoarseningStrategy::RAP) ?
             BottomSolver::bicgcg : BottomSolver::bicgstab;
     }
 
-    virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final override;
-    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final override;
-    virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
-                                         const MultiFab& fine_sol, const MultiFab& fine_rhs) final override;
+    void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final;
+    void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;
+    void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
+                                         const MultiFab& fine_sol, const MultiFab& fine_rhs) final;
 
-    virtual void reflux (int crse_amrlev,
+    void reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final override;
+                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final;
 
-    virtual void prepareForSolve () final override;
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final override;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final override;
-    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final override;
+    void prepareForSolve () final;
+    void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
+    void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;
+    void normalize (int amrlev, int mglev, MultiFab& mf) const final;
 
-    virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final override;
+    void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final;
 
-    virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& /*a_flux*/,
+    void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& /*a_flux*/,
                             const Vector<MultiFab*>& /*a_sol*/,
-                            Location /*a_loc*/) const final override {
+                            Location /*a_loc*/) const final {
         amrex::Abort("MLNodeLaplacian::getFluxes: How did we get here?");
     }
-    virtual void getFluxes (const Vector<MultiFab*>& a_flux,
-                            const Vector<MultiFab*>& a_sol) const final override;
-    virtual void unimposeNeumannBC (int amrlev, MultiFab& rhs) const final override;
-    virtual Vector<Real> getSolvabilityOffset (int amrlev, int mglev,
-                                               MultiFab const& rhs) const override;
-    virtual void fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs,
-                                         Vector<Real> const& offset) const override;
+    void getFluxes (const Vector<MultiFab*>& a_flux,
+                            const Vector<MultiFab*>& a_sol) const final;
+    void unimposeNeumannBC (int amrlev, MultiFab& rhs) const final;
+    Vector<Real> getSolvabilityOffset (int amrlev, int mglev,
+                                       MultiFab const& rhs) const override;
+    void fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs,
+                                 Vector<Real> const& offset) const override;
 
-    virtual void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
-                           MultiFab& /*sol*/, Location /*loc*/) const final override {
+    void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
+                           MultiFab& /*sol*/, Location /*loc*/) const final {
         amrex::Abort("MLNodeLaplacian::compGrad: How did we get here?");
     }
     void compGrad (int amrlev, MultiFab& grad, MultiFab& sol) const;
@@ -148,36 +144,36 @@ public :
 #endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    virtual void fillIJMatrix (MFIter const& mfi,
+    void fillIJMatrix (MFIter const& mfi,
                                Array4<HypreNodeLap::AtomicInt const> const& gid,
                                Array4<int const> const& lid,
-                               HypreNodeLap::Int* const ncols,
-                               HypreNodeLap::Int* const cols,
-                               Real* const mat) const override;
+                               HypreNodeLap::Int* ncols,
+                               HypreNodeLap::Int* cols,
+                               Real* mat) const override;
 
 #ifdef AMREX_USE_GPU
     void fillIJMatrix_gpu (MFIter const& mfi,
                            Array4<HypreNodeLap::AtomicInt const> const& gid,
                            Array4<int const> const& lid,
-                           HypreNodeLap::Int* const ncols,
-                           HypreNodeLap::Int* const cols,
-                           Real* const mat) const;
+                           HypreNodeLap::Int* ncols,
+                           HypreNodeLap::Int* cols,
+                           Real* mat) const;
 #endif
 
     void fillIJMatrix_cpu (MFIter const& mfi,
                            Array4<HypreNodeLap::AtomicInt const> const& gid,
                            Array4<int const> const& lid,
-                           HypreNodeLap::Int* const ncols,
-                           HypreNodeLap::Int* const cols,
-                           Real* const mat) const;
+                           HypreNodeLap::Int* ncols,
+                           HypreNodeLap::Int* cols,
+                           Real* mat) const;
 
-    virtual void fillRHS (MFIter const& mfi, Array4<int const> const& lid,
-                          Real* const rhs, Array4<Real const> const& bfab) const override;
+    void fillRHS (MFIter const& mfi, Array4<int const> const& lid,
+                  Real* rhs, Array4<Real const> const& bfab) const override;
 #endif
 
 protected:
 
-    virtual void resizeMultiGrid (int new_size) override final;
+    void resizeMultiGrid (int new_size) final;
 
 private:
 
@@ -206,7 +202,7 @@ private:
     bool m_use_harmonic_average = false;
     bool m_use_mapped           = false;
 
-    virtual void checkPoint (std::string const& file_name) const final;
+    void checkPoint (std::string const& file_name) const final;
 };
 
 }

@@ -10,6 +10,8 @@
 
 namespace amrex::MPMD {
 
+void Initialize_without_split (int argc, char* argv[]);
+
 MPI_Comm Initialize (int argc, char* argv[]);
 
 void Finalize ();
@@ -18,6 +20,7 @@ bool Initialized ();
 
 int MyProc ();   //! Process ID in MPI_COMM_WORLD
 int NProcs ();   //! Number of processes in MPI_COMM_WORLD
+int AppNum ();   //! Get the appnum (color) required for MPI_Comm_split
 int MyProgId (); //! Program ID
 
 class Copier
@@ -41,7 +44,7 @@ void Copier::send (FabArray<FAB> const& mf, int icomp, int ncomp) const
 {
     const auto N_snds = static_cast<int>(m_SndTags.size());
 
-    if (N_snds == 0) return;
+    if (N_snds == 0) { return; }
 
     // Prepare buffer
 
@@ -61,7 +64,7 @@ void Copier::send (FabArray<FAB> const& mf, int icomp, int ncomp) const
             nbytes += cct.sbox.numPts() * ncomp * sizeof(typename FAB::value_type);
         }
 
-        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes); // so that bytes are aligned
 
         // Also need to align the offset properly
@@ -108,7 +111,7 @@ void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
 {
     const auto N_rcvs = static_cast<int>(m_RcvTags.size());
 
-    if (N_rcvs == 0) return;
+    if (N_rcvs == 0) { return; }
 
     // Prepare buffer
 
@@ -125,7 +128,7 @@ void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
             nbytes += cct.dbox.numPts() * ncomp * sizeof(typename FAB::value_type);
         }
 
-        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes); // so that nbytes are aligned
 
         // Also need to align the offset properly

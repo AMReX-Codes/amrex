@@ -12,7 +12,7 @@ as whether a plotfile should be written out immediately after restarting a simul
 | plot_int            | Frequency of plotfile output;                                         |    Int      | -1        |
 |                     | if -1 then no plotfiles will be written                               |             |           |
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
-| plotfile_on_restart | Should we write a plotfile when we restart (only used if plot_int>0)  |   Bool      | False     |
+| plotfile_on_restart | Should we write a plotfile when we restart (only used if plot_int>0)  |   Bool      | 0 (false) |
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
 | plot_file           | Prefix to use for plotfile output                                     |  String     | plt       |
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+

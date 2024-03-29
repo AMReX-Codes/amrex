@@ -42,8 +42,9 @@ void test_assign_density(TestParams& parms)
 
     // Define the refinement ratio
     Vector<int> rr(nlevs-1);
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         rr[lev-1] = 2;
+    }
 
     // This sets the boundary conditions to be doubly or triply periodic
     int is_per[] = {AMREX_D_DECL(1,1,1)};
@@ -87,7 +88,7 @@ void test_assign_density(TestParams& parms)
         acceleration[lev]->setVal(5.0, 1);
     }
 
-    typedef AmrParticleContainer<1> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<1>;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
 
@@ -97,13 +98,9 @@ void test_assign_density(TestParams& parms)
     double mass = 10.0;
     MyParticleContainer::ParticleInitData pdata = {{mass},{},{},{}};
 
-    //    myPC.InitRandom(num_particles, iseed, pdata, serialize, fine_box);
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
-    //myPC.AssignDensity(0, true, partMF, 0, 1, 1);
     myPC.AssignDensity(0, partMF, 0, 1, nlevs-1);
-
-    myPC.Interpolate(acceleration, 0, nlevs-1);
 
     for (int lev = 0; lev < nlevs; ++lev) {
         MultiFab::Copy(*density[lev], *partMF[lev], 0, 0, 1, 0);
@@ -147,8 +144,9 @@ int main(int argc, char* argv[])
   pp.get("max_grid_size", parms.max_grid_size);
   pp.get("nlevs", parms.nlevs);
   pp.get("nppc", parms.nppc);
-  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
+  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
+  }
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);

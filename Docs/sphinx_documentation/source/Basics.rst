@@ -380,7 +380,7 @@ They are briefly introduced in the table below.
    |                                           |        | after the executable.                     |
    +-------------------------------------------+--------+-------------------------------------------+
    | ``amrex:get_command_argument(int n)``     | String | Returns the n-th argument after           |
-   |                                           |        | the exectuable.                           |
+   |                                           |        | the executable.                           |
    +-------------------------------------------+--------+-------------------------------------------+
 
 
@@ -394,13 +394,15 @@ Parser
 AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to evaluate mathematical
 expressions given in the form of string.  It supports ``+``, ``-``, ``*``,
 ``/``, ``**`` (power), ``^`` (power), ``sqrt``, ``exp``, ``log``, ``log10``,
-``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``sinh``, ``cosh``,
-``tanh``, ``abs``, ``floor``, ``ceil`` and ``fmod``.  The minimum and maximum of two
+``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``atan2``, ``sinh``, ``cosh``,
+``tanh``, ``asinh``, ``acosh``, ``atanh``, ``abs``, ``floor``, ``ceil`` and ``fmod``.
+The minimum and maximum of two
 numbers can be computed with ``min`` and ``max``, respectively.  It supports
 the Heaviside step function, ``heaviside(x1,x2)`` that gives ``0``, ``x2``,
 ``1``, for ``x1 < 0``, ``x1 = 0`` and ``x1 > 0``, respectively.
-It also supports the Bessel function of the first kind of order ``n``
-``jn(n,x)``.
+It supports the Bessel function of the first kind of order ``n``
+``jn(n,x)``. Complete elliptic integrals of the first and second kind, ``comp_ellint_1`` and ``comp_ellint_2``,
+are supported only for gcc and CPUs.
 There is ``if(a,b,c)`` that gives ``b`` or ``c`` depending on the value of
 ``a``.  A number of comparison operators are supported, including ``<``,
 ``>``, ``==``, ``!=``, ``<=``, and ``>=``.  The Boolean results from
@@ -2029,8 +2031,8 @@ multi-threaded codes race conditions could occur.
    |                        |e|                          |                        |f|                           |
    +-----------------------------------------------------+------------------------------------------------------+
    | | Example of cell-centered grown tile boxes. As     | | Example of face type grown tile boxes. As          |
-   | | indicated by symbols, there are 8 tiles and four  | | indicated by symbols, there are 8 tiles and four   |
-   | | in each grid in this example. Tiles from the      | | in each grid in this example. Tiles from the       |
+   | | indicated by symbols and colors, there are 4      | | indicated by symbols and colors, there are 4 tiles |
+   | | tiles per grid in this example. Tiles from the    | | per grid in this example. Tiles from the           |
    | | same grid do not overlap. But tiles from          | | same grid do not overlap even though they          |
    | | different grids may overlap.                      | | have face index type.                              |
    |                                                     |                                                      |
@@ -2535,11 +2537,26 @@ The basic idea behind physical boundary conditions is as follows:
 
        ext_dir
            "External Dirichlet". It is the user's responsibility to write a routine
-           to fill ghost cells (more details below).
+           to fill ghost cells (more details below). The boundary location
+           is on the domain face even when the data inside the domain are
+           cell-centered.
+
+       ext_dir_cc
+           "External Dirichlet". It is the user's responsibility to write a routine
+           to fill ghost cells (more details below). The boundary location
+           is at the cell center of ghost cells outside the domain.
 
        foextrap
            "First Order Extrapolation"
            First order extrapolation from last cell in interior.
+
+       hoextrap
+           "High Order Extrapolation". The boundary location is on the domain
+           face even when the data inside the domain are cell-centered.
+
+       hoextrapcc
+           "High Order Extrapolation" The boundary location is at the cell
+           center of ghost cells outside the domain.
 
        reflect_even
            Reflection from interior cells with sign
@@ -2795,3 +2812,6 @@ Backtrace files are produced by AMReX signal handler by default when
 segfault occurs or ``Abort`` is called.  If the application does not
 want AMReX to handle this, ``ParmParse`` parameter
 `amrex.signal_handling=0` can be used to disable it.
+
+See :ref:`sec:gpu:assertion` for considerations on using these functions in
+GPU-enabled code.

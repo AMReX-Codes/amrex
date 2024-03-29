@@ -48,7 +48,7 @@ namespace {
 }
 
 TinyProfiler::TinyProfiler (std::string funcname) noexcept
-    : fname(std::move(funcname)), uCUPTI(false)
+    : fname(std::move(funcname))
 {
     start();
 }
@@ -56,11 +56,11 @@ TinyProfiler::TinyProfiler (std::string funcname) noexcept
 TinyProfiler::TinyProfiler (std::string funcname, bool start_, bool useCUPTI) noexcept
     : fname(std::move(funcname)), uCUPTI(useCUPTI)
 {
-    if (start_) start();
+    if (start_) { start(); }
 }
 
 TinyProfiler::TinyProfiler (const char* funcname) noexcept
-    : fname(funcname), uCUPTI(false)
+    : fname(funcname)
 {
     start();
 }
@@ -68,7 +68,7 @@ TinyProfiler::TinyProfiler (const char* funcname) noexcept
 TinyProfiler::TinyProfiler (const char* funcname, bool start_, bool useCUPTI) noexcept
     : fname(funcname), uCUPTI(useCUPTI)
 {
-    if (start_) start();
+    if (start_) { start(); }
 }
 
 TinyProfiler::~TinyProfiler ()
@@ -93,30 +93,28 @@ TinyProfiler::start () noexcept
 #endif
     if (!regionstack.empty()) {
 
-        double t;
-        if (!uCUPTI) {
-            t = amrex::second();
-        } else {
+#ifdef AMREX_USE_GPU
+        if (device_synchronize_around_region) {
+            amrex::Gpu::streamSynchronize();
+        }
+#endif
+
 #ifdef AMREX_USE_CUPTI
+        if (uCUPTI) {
             cudaDeviceSynchronize();
             cuptiActivityFlushAll(0);
             activityRecordUserdata.clear();
-            t = amrex::second();
-#endif
         }
+#endif
 
-        ttstack.emplace_back(std::make_tuple(t, 0.0, &fname));
+        double t = amrex::second();
+
+        ttstack.emplace_back(t, 0.0, &fname);
         global_depth = static_cast<int>(ttstack.size());
 #ifdef AMREX_USE_OMP
         in_parallel_region = omp_in_parallel();
 #else
         in_parallel_region = false;
-#endif
-
-#ifdef AMREX_USE_GPU
-            if (device_synchronize_around_region) {
-                amrex::Gpu::streamSynchronize();
-            }
 #endif
 
 #ifdef AMREX_USE_CUDA
@@ -151,8 +149,14 @@ TinyProfiler::stop () noexcept
 #ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
-    if (!stats.empty())
-    {
+    if (!stats.empty()) {
+
+#ifdef AMREX_USE_GPU
+        if (device_synchronize_around_region) {
+            amrex::Gpu::streamSynchronize();
+        }
+#endif
+
         double t;
         int nKernelCalls = 0;
 #ifdef AMREX_USE_CUPTI
@@ -209,12 +213,6 @@ TinyProfiler::stop () noexcept
                 std::get<1>(parent) += dtin;
             }
 
-#ifdef AMREX_USE_GPU
-            if (device_synchronize_around_region) {
-                amrex::Gpu::streamSynchronize();
-            }
-#endif
-
 #ifdef AMREX_USE_CUDA
             nvtxRangePop();
 #elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
@@ -244,8 +242,12 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
 #ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
-    if (!stats.empty())
-    {
+    if (!stats.empty()) {
+
+        if (device_synchronize_around_region) {
+            amrex::Gpu::streamSynchronize();
+        }
+
         double t;
         cudaDeviceSynchronize();
         cuptiActivityFlushAll(0);
@@ -293,10 +295,6 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
             {
                 std::tuple<double,double,std::string*>& parent = ttstack.back();
                 std::get<1>(parent) += dtin;
-            }
-
-            if (device_synchronize_around_region) {
-                amrex::Gpu::streamSynchronize();
             }
 
 #ifdef AMREX_USE_CUDA
@@ -545,7 +543,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
         }
     }
 
-    if (regstats.empty()) return;
+    if (regstats.empty()) { return; }
 
     int nprocs = ParallelDescriptor::NProcs();
     int ioproc = ParallelDescriptor::IOProcessorNumber();
@@ -570,8 +568,8 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
             dtdt[1] = dts[1];
         } else
         {
-            ParallelDescriptor::Gather(&n, 1, &ncalls[0], 1, ioproc);
-            ParallelDescriptor::Gather(dts, 2, &dtdt[0], 2, ioproc);
+            ParallelDescriptor::Gather(&n, 1, ncalls.data(), 1, ioproc);
+            ParallelDescriptor::Gather(dts, 2, dtdt.data(), 2, ioproc);
         }
 
         if (ParallelDescriptor::IOProcessor()) {
@@ -744,7 +742,7 @@ TinyProfiler::PrintMemStats(std::map<std::string, MemStat>& memstats,
         }
     }
 
-    if (memstats.empty()) return;
+    if (memstats.empty()) { return; }
 
     const int nprocs = ParallelDescriptor::NProcs();
     const int ioproc = ParallelDescriptor::IOProcessorNumber();
@@ -774,10 +772,10 @@ TinyProfiler::PrintMemStats(std::map<std::string, MemStat>& memstats,
             maxmem_vec[0] = maxmem;
         } else
         {
-            ParallelDescriptor::Gather(&nalloc, 1, &nalloc_vec[0], 1, ioproc);
-            ParallelDescriptor::Gather(&nfree, 1, &nfree_vec[0], 1, ioproc);
-            ParallelDescriptor::Gather(&maxmem, 1, &maxmem_vec[0], 1, ioproc);
-            ParallelDescriptor::Gather(&avgmem, 1, &avgmem_vec[0], 1, ioproc);
+            ParallelDescriptor::Gather(&nalloc, 1, nalloc_vec.data(), 1, ioproc);
+            ParallelDescriptor::Gather(&nfree , 1,  nfree_vec.data(), 1, ioproc);
+            ParallelDescriptor::Gather(&maxmem, 1, maxmem_vec.data(), 1, ioproc);
+            ParallelDescriptor::Gather(&avgmem, 1, avgmem_vec.data(), 1, ioproc);
         }
 
         if (ParallelDescriptor::IOProcessor()) {
@@ -866,7 +864,7 @@ TinyProfiler::PrintMemStats(std::map<std::string, MemStat>& memstats,
         maxlen[i] += 2;
     }
 
-    if (allstatsstr.size() == 1) return;
+    if (allstatsstr.size() == 1) { return; }
 
     int lenhline = 0;
     for (auto i : maxlen) {

@@ -15,11 +15,25 @@ namespace amrex {
 
 namespace
 {
-    constexpr Long GhostParticleID    = 549755813887L; // 2**39-1
-    constexpr Long VirtualParticleID  = GhostParticleID-1;
-    constexpr Long LastParticleID     = GhostParticleID-2;
-    constexpr Long DoSplitParticleID  = GhostParticleID-3;
-    constexpr Long NoSplitParticleID  = GhostParticleID-4;
+    /** Special flags used for 64-bit Long particle Ids */
+    namespace LongParticleIds {
+        constexpr Long GhostParticleID = 549755813887L; // 2**39-1
+        constexpr Long VirtualParticleID = GhostParticleID - 1;
+        constexpr Long LastParticleID = GhostParticleID - 2;
+        constexpr Long DoSplitParticleID = GhostParticleID - 3;
+        constexpr Long NoSplitParticleID = GhostParticleID - 4;
+    }
+
+    using namespace LongParticleIds;
+
+    /** Flags used to set the entire uint64_t idcpu
+        to special values at once.
+     */
+    namespace ParticleIdCpus {
+        constexpr std::uint64_t Invalid = 16777216; // corresponds to id = -1, cpu = 0
+    }
+
+    using namespace ParticleIdCpus;
 }
 
 struct ParticleIDWrapper
@@ -41,7 +55,7 @@ struct ParticleIDWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper& operator= (const ParticleIDWrapper& pidw) noexcept
     {
-        return this->operator=(Long(pidw)); // NOLINT(cppcoreguidelines-c-copy-assignment-signature)
+        return this->operator=(Long(pidw)); // NOLINT
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -88,6 +102,41 @@ struct ParticleIDWrapper
         r = (sign) ? lval : -lval;
         return r;
     }
+
+    /** Mark the particle as invalid
+     *
+     * Swaps the is_valid (sign) bit to invalid.
+     * This is NOT identical to id = -id, but it is equally reversible via make_valid().
+     */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_invalid () noexcept
+    {
+        // RHS mask: 0111...
+        m_idata &= ~(uint64_t(1) << 63);
+    }
+
+    /** Mark the particle as valid
+     *
+     * Swaps the is_valid (sign) bit to valid.
+     * This is NOT identical to id = -id, but it is equally reversible via make_invalid().
+     */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_valid () noexcept
+    {
+        // RHS mask: 1000...
+        m_idata |= uint64_t(1) << 63;
+    }
+
+    /** Check the particle is valid, via the sign of the id.
+     *
+     * Returns true if the particle is valid (the id is positive), otherwise false (invalid particle).
+     */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool is_valid () const noexcept
+    {
+        // the leftmost bit is our id's valid sign
+        return m_idata >> 63;
+    }
 };
 
 struct ParticleCPUWrapper
@@ -109,7 +158,7 @@ struct ParticleCPUWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper& operator= (const ParticleCPUWrapper& pcpuw) noexcept
     {
-        return this->operator=(int(pcpuw));  // NOLINT(cppcoreguidelines-c-copy-assignment-signature)
+        return this->operator=(int(pcpuw));  // NOLINT
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -159,6 +208,17 @@ struct ConstParticleIDWrapper
         r = (sign) ? lval : -lval;
         return r;
     }
+
+    /** Check the sign of the id.
+     *
+     * Returns true if the id is positive, otherwise false (invalid particle).
+     */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool is_valid () const noexcept
+    {
+        // the leftmost bit is our id's valid sign
+        return m_idata >> 63;
+    }
 };
 
 struct ConstParticleCPUWrapper
@@ -174,6 +234,18 @@ struct ConstParticleCPUWrapper
     operator int () const noexcept { return static_cast<int>(m_idata & 0x00FFFFFF); }
 };
 
+/** Set the idcpu value at once, based on a particle id and cpuid
+ *
+ * This can be used in initialization and assignments,
+ * to avoid writing twice into the same memory bank.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::uint64_t SetParticleIDandCPU (Long id, int cpu) noexcept{
+    std::uint64_t idcpu = 0;
+    ParticleIDWrapper{idcpu} = id;
+    ParticleCPUWrapper{idcpu} = cpu;
+    return idcpu;
+}
 
 template <typename T, int NReal, int NInt>
 struct ParticleBase
@@ -208,6 +280,13 @@ struct ParticleBase<T,0,0>
 };
 
 
+struct SoAParticleBase
+{
+    static constexpr int NReal=0;
+    static constexpr int NInt=0;
+    static constexpr bool is_soa_particle = true;
+};
+
 /** \brief The struct used to store particles.
  *
  * \tparam T_NReal The number of extra Real components
@@ -217,6 +296,10 @@ template <int T_NReal, int T_NInt=0>
 struct Particle
     : ParticleBase<ParticleReal,T_NReal,T_NInt>
 {
+    static constexpr bool is_soa_particle = false;
+    using StorageParticleType = Particle;
+    using ConstType = Particle const;
+
     //! \brief number of extra Real components in the particle struct
     static constexpr int NReal = T_NReal;
 
@@ -416,8 +499,9 @@ Particle<NReal, NInt>::NextID ()
 #endif
     next = the_next_id++;
 
-    if (next > LastParticleID)
+    if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
+    }
 
     return next;
 }
@@ -427,8 +511,9 @@ Long
 Particle<NReal, NInt>::UnprotectedNextID ()
 {
     Long next = the_next_id++;
-    if (next > LastParticleID)
+    if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
+    }
     return next;
 }
 
@@ -446,17 +531,21 @@ operator<< (std::ostream& os, const Particle<NReal, NInt>& p)
     os << p.id()   << ' '
        << p.cpu()  << ' ';
 
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         os << p.pos(i) << ' ';
+    }
 
-    for (int i = 0; i < NReal; i++)
+    for (int i = 0; i < NReal; i++) {
         os << p.rdata(i) << ' ';
+    }
 
-    for (int i = 0; i < NInt; i++)
+    for (int i = 0; i < NInt; i++) {
         os << p.idata(i) << ' ';
+    }
 
-    if (!os.good())
+    if (!os.good()) {
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+    }
 
     return os;
 }
@@ -468,14 +557,17 @@ operator<< (std::ostream& os, const Particle<NReal, 0>& p)
     os << p.id()   << ' '
        << p.cpu()  << ' ';
 
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         os << p.pos(i) << ' ';
+    }
 
-    for (int i = 0; i < NReal; i++)
+    for (int i = 0; i < NReal; i++) {
         os << p.rdata(i) << ' ';
+    }
 
-    if (!os.good())
+    if (!os.good()) {
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+    }
 
     return os;
 }
@@ -487,14 +579,17 @@ operator<< (std::ostream& os, const Particle<0, NInt>& p)
     os << p.id()   << ' '
        << p.cpu()  << ' ';
 
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         os << p.pos(i) << ' ';
+    }
 
-    for (int i = 0; i < NInt; i++)
+    for (int i = 0; i < NInt; i++) {
         os << p.idata(i) << ' ';
+    }
 
-    if (!os.good())
+    if (!os.good()) {
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+    }
 
     return os;
 }
@@ -506,11 +601,13 @@ operator<< (std::ostream& os, const Particle<0, 0>& p)
     os << p.id()   << ' '
        << p.cpu()  << ' ';
 
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         os << p.pos(i) << ' ';
+    }
 
-    if (!os.good())
+    if (!os.good()) {
         amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+    }
 
     return os;
 }

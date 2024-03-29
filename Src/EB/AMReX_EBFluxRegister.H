@@ -53,7 +53,6 @@ namespace amrex {
   to add the part in ghost cells (excluding ghost cells covered by
   valid cells of other grids) to EBFluxRegister's internal data.
 */
-
 class EBFluxRegister
     : public YAFluxRegister
 {
@@ -78,6 +77,12 @@ public:
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                   RunOn runon);
+    void CrseAdd (const MFIter& mfi,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                  const Real* dx, Real dt,
+                  const FArrayBox& volfrac,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
+                  int srccomp, int destcomp, int numcomp, RunOn runon);
 
     using YAFluxRegister::FineAdd;
     void FineAdd (const MFIter& mfi,
@@ -87,9 +92,29 @@ public:
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                   const FArrayBox& dm,
                   RunOn runon);
+    void FineAdd (const MFIter& mfi,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                  const Real* dx, Real dt,
+                  const FArrayBox& volfrac,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
+                  const FArrayBox& dm,
+                  int srccomp, int destcomp, int numcomp, RunOn runon);
+    //! This version does not do re-redistribution.
+    void FineAdd (const MFIter& mfi,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                  const Real* dx, Real dt,
+                  const FArrayBox& volfrac,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
+                  int srccomp, int destcomp, int numcomp, RunOn runon);
 
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                  MultiFab& fine_state, const amrex::MultiFab& fine_vfrac);
+    void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
+                 MultiFab& fine_state, const amrex::MultiFab& fine_vfrac,
+                 int srccomp, int destcomp, int numcomp);
+    //! This version does not do re-redistribution.
+    void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
+                 int srccomp, int destcomp, int numcomp);
 
     FArrayBox* getCrseData (const MFIter& mfi) {
         return &(m_crse_data[mfi]);

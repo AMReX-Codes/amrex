@@ -234,7 +234,7 @@ void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geome
     Box nddomain = amrex::surroundingNodes(geom.Domain());
 
     if (strategy != MLNodeLinOp::CoarseningStrategy::Sigma) {
-        nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
+        nddomain.grow(1000); // hack to avoid masks being modified at Neumann boundary
     }
 
 #ifdef AMREX_USE_OMP
@@ -257,7 +257,7 @@ void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geome
 void
 MLNodeLinOp::buildMasks ()
 {
-    if (m_masks_built) return;
+    if (m_masks_built) { return; }
 
     BL_PROFILE("MLNodeLinOp::buildMasks()");
 
@@ -289,7 +289,7 @@ MLNodeLinOp::buildMasks ()
             ccm.BuildMask(ccdomain,period,0,1,2,0);
 
             MFItInfo mfi_info;
-            if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+            if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
             if (m_overset_dirichlet_mask && mglev > 0) {
                 const auto& dmask_fine = *m_dirichlet_mask[amrlev][mglev-1];
@@ -368,7 +368,7 @@ MLNodeLinOp::buildMasks ()
         MLNodeLinOp_set_dot_mask(m_bottom_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
 
-    if (m_is_bottom_singular)
+    if (isBottomSingular())
     {
         int amrlev = 0;
         int mglev = 0;

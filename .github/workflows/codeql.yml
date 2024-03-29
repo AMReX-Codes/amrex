@@ -1,4 +1,4 @@
-name: 🔍 CodeQL
+name: CodeQL
 
 on:
   push:
@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   analyze:
+    if: ${{ github.repository == 'AMReX-Codes/amrex' || github.event_name != 'schedule' }}
     name: Analyze
     runs-on: ubuntu-latest
     permissions:
@@ -28,35 +29,81 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Packages (C++)
         if: ${{ matrix.language == 'cpp' }}
         run: |
           sudo apt-get update
           sudo apt-get install --yes cmake openmpi-bin libopenmpi-dev libhdf5-openmpi-dev
+          .github/workflows/dependencies/dependencies_ccache.sh
+          sudo ln -s /usr/local/bin/ccache /usr/local/bin/g++
+
+      - name: Set Up Cache
+        if: ${{ matrix.language == 'cpp' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+          restore-keys: |
+               ccache-${{ github.workflow }}-${{ github.job }}-git-
 
       - name: Configure (C++)
         if: ${{ matrix.language == 'cpp' }}
         run: |
-          cmake -S . -B build -DAMReX_EB=ON -DAMReX_ENABLE_TESTS=ON -DAMReX_FORTRAN=OFF -DAMReX_PARTICLES=ON
+          cmake -S . -B build                            \
+              -DAMReX_EB=ON                              \
+              -DAMReX_ENABLE_TESTS=ON                    \
+              -DAMReX_FORTRAN=OFF                        \
+              -DCMAKE_VERBOSE_MAKEFILE=ON                \
+              -DCMAKE_CXX_COMPILER="/usr/local/bin/g++"
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           queries: +security-and-quality
+          config-file: ./.github/workflows/codeql/codeql-config.yml
 
       - name: Build (py)
-        uses: github/codeql-action/autobuild@v2
+        uses: github/codeql-action/autobuild@v3
         if: ${{ matrix.language == 'python' }}
 
       - name: Build (C++)
         if: ${{ matrix.language == 'cpp' }}
         run: |
-          cmake --build build -j 2
+          export CCACHE_COMPRESS=1
+          export CCACHE_COMPRESSLEVEL=10
+          export CCACHE_MAXSIZE=30M
+          ccache -z
+
+          cmake --build build -j 4
+
+          ccache -s
+          du -hs ~/.cache/ccache
+
+          # Make sure CodeQL has something to do
+          touch Src/Base/AMReX.cpp
+          export CCACHE_DISABLE=1
+          cd build
+          make -j 4
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

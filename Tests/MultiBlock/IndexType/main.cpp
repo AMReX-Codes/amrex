@@ -53,7 +53,7 @@ bool ParallelCopyWithItselfIsCorrect(amrex::iMultiFab& mf, const amrex::Box& dom
     int fails = 0;
     for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const amrex::Box section = dest_box & mfi.tilebox();
-        if (section.isEmpty()) continue;
+        if (section.isEmpty()) { continue; }
         auto array = mf.const_array(mfi);
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {
@@ -115,7 +115,7 @@ bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_des
     const int ny = domain_src.length(1);
     for (amrex::MFIter mfi(dest); mfi.isValid(); ++mfi) {
         const amrex::Box section = dest_box & mfi.tilebox();
-        if (section.isEmpty()) continue;
+        if (section.isEmpty()) { continue; }
         auto darray = dest.const_array(mfi);
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {

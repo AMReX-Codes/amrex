@@ -96,7 +96,7 @@ struct BARef
 
     mutable IntVect crsn;
 
-    typedef std::unordered_map< IntVect, std::vector<int>, IntVect::shift_hasher > HashType;
+    using HashType = std::unordered_map< IntVect, std::vector<int>, IntVect::shift_hasher > ;
     //using HashType = std::map< IntVect,std::vector<int> >;
 
     mutable HashType hash;
@@ -515,16 +515,16 @@ struct BATransformer
 // for backward compatibility
 using BndryBATransformer = BATransformer;
 
-/**
-* \brief A collection of Boxes stored in an Array.  It is a
-* reference-counted concrete class, not a polymorphic one; i.e. you
-* cannot use any of the List member functions with a BoxList.
-*/
-
 class MFIter;
 class AmrMesh;
 class FabArrayBase;
 
+/**
+ * \brief A collection of Boxes stored in an Array.
+ *
+ * It is a reference-counted concrete class, not a polymorphic one; i.e. you
+ * cannot use any of the List member functions with a BoxList.
+ */
 class BoxArray
 {
 public:

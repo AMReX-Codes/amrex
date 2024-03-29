@@ -11,6 +11,7 @@ class InterpBndryDataT;
 class Mask;
 class MultiMask;
 class YAFluxRegisterT;
+class EdgeFluxRegister;
 
 }
 

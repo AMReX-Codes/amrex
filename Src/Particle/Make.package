@@ -13,6 +13,7 @@ CEXE_headers += AMReX_ParIter.H
 CEXE_headers += AMReX_StructOfArrays.H
 CEXE_headers += AMReX_ArrayOfStructs.H
 CEXE_headers += AMReX_ParticleTile.H
+CEXE_headers += AMReX_MakeParticle.H
 
 CEXE_headers += AMReX_NeighborParticles.H
 CEXE_headers += AMReX_NeighborParticlesI.H

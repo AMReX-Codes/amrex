@@ -342,8 +342,9 @@ int
 ParGDB::MaxRefRatio (int /*level*/) const
 {
     int max_ref_ratio = 0;
-    for (int lev = 0; lev < m_nlevels-1; lev++)
+    for (int lev = 0; lev < m_nlevels-1; lev++) {
         max_ref_ratio = std::max(max_ref_ratio, m_rr[lev].max());
+    }
     return max_ref_ratio;
 }
 
@@ -351,11 +352,7 @@ inline
 Vector<IntVect>
 ParGDB::refRatio () const
 {
-    Vector<IntVect> rr_vect;
-    for (auto rr : m_rr) {
-        rr_vect.push_back(rr*IntVect::TheUnitVector());
-    }
-    return rr_vect;
+    return m_rr;
 }
 
 }

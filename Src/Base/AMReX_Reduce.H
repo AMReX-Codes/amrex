@@ -67,14 +67,14 @@ namespace Reduce::detail {
 
     template <std::size_t I, typename T, typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void for_each_init (T& t)
+    constexpr void for_each_init (T& t)
     {
         P().init(amrex::get<I>(t));
     }
 
     template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void for_each_init (T& t)
+    constexpr void for_each_init (T& t)
     {
         P().init(amrex::get<I>(t));
         for_each_init<I+1,T,P1,Ps...>(t);
@@ -258,6 +258,7 @@ public:
                                                     * m_max_blocks * sizeof(Type)))),
           m_fn_value([&reduce_op,this] () -> Type { return this->value(reduce_op); })
     {
+        reduce_op.resetResultReadiness();
         static_assert(std::is_trivially_copyable<Type>(),
                       "ReduceData::Type must be trivially copyable");
         static_assert(std::is_trivially_destructible<Type>(),
@@ -618,7 +619,7 @@ public:
               typename M=std::enable_if_t<std::is_integral<N>::value> >
     void eval (N n, D & reduce_data, F&& f)
     {
-        if (n <= 0) return;
+        if (n <= 0) { return; }
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
         auto dp = reduce_data.devicePtr(stream);
@@ -666,9 +667,14 @@ public:
     template <typename D>
     typename D::Type value (D & reduce_data)
     {
+        auto hp = reduce_data.hostPtr();
+
+        if (m_result_is_ready) {
+            return *hp;
+        }
+
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
-        auto hp = reduce_data.hostPtr();
         auto dp = reduce_data.devicePtr();
         auto const& nblocks = reduce_data.nBlocks();
 #if defined(AMREX_USE_SYCL)
@@ -676,7 +682,6 @@ public:
             const int N = nblocks[0];
             if (N == 0) {
                 Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(*hp);
-                return *hp;
             } else {
                 Gpu::PinnedVector<ReduceTuple> tmp(N);
                 Gpu::dtoh_memcpy_async(tmp.data(), dp, sizeof(ReduceTuple)*N);
@@ -684,7 +689,7 @@ public:
                 for (int i = 1; i < N; ++i) {
                     Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(tmp[0], tmp[i]);
                 }
-                return tmp[0];
+                *hp = tmp[0];
             }
         } else
 #endif
@@ -738,9 +743,17 @@ public:
             });
 #endif
             Gpu::streamSynchronize();
-            return *hp;
         }
+
+        m_result_is_ready = true;
+        return *hp;
     }
+
+private:
+    bool m_result_is_ready = false;
+
+public:
+    void resetResultReadiness () { m_result_is_ready = false; }
 };
 
 namespace Reduce {
@@ -878,7 +891,7 @@ bool AnyOf (N n, T const* v, P&& pred)
     amrex::launch<AMREX_GPU_MAX_THREADS>(ec.numBlocks.x, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
-        if (threadIdx.x == 0) has_any = *dp;
+        if (threadIdx.x == 0) { has_any = *dp; }
         __syncthreads();
 
         if (!has_any)
@@ -944,7 +957,7 @@ bool AnyOf (Box const& box, P&& pred)
                         Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
-        if (threadIdx.x == 0) has_any = *dp;
+        if (threadIdx.x == 0) { has_any = *dp; }
         __syncthreads();
 
         if (!has_any)
@@ -984,6 +997,7 @@ public:
         : m_tuple(OpenMP::in_parallel() ? 1 : OpenMP::get_max_threads()),
           m_fn_value([&reduce_op,this] () -> Type { return this->value(reduce_op); })
     {
+        reduce_op.resetResultReadiness();
         for (auto& t : m_tuple) {
             Reduce::detail::for_each_init<0, Type, Ps...>(t);
         }
@@ -1135,15 +1149,22 @@ public:
     template <typename D>
     typename D::Type value (D & reduce_data)
     {
-        using ReduceTuple = typename D::Type;
         auto& rrv = reduce_data.reference();
-        if (rrv.size() > 1) {
-            for (int i = 1, N = rrv.size(); i < N; ++i) {
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rrv[0], rrv[i]);
+        if (! m_result_is_ready) {
+            using ReduceTuple = typename D::Type;
+            if (rrv.size() > 1) {
+                for (int i = 1, N = rrv.size(); i < N; ++i) {
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rrv[0], rrv[i]);
+                }
             }
+            m_result_is_ready = true;
         }
         return rrv[0];
     }
+
+    bool m_result_is_ready = false;
+
+    void resetResultReadiness () { m_result_is_ready = false; }
 };
 
 namespace Reduce {
@@ -1245,7 +1266,7 @@ bool AnyOf (Box const& box, P&&pred)
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        if (pred(i,j,k)) return true;
+        if (pred(i,j,k)) { return true; }
     }}}
     return false;
 }
@@ -1253,6 +1274,34 @@ bool AnyOf (Box const& box, P&&pred)
 }
 
 #endif
+
+/**
+ * \brief Return a GpuTuple containing the identity element for each operation in ReduceOps.
+ * For example 0, +inf and -inf for ReduceOpSum, ReduceOpMin and ReduceOpMax respectively.
+ */
+template <typename... Ts, typename... Ps>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts...>
+IdentityTuple (GpuTuple<Ts...>, ReduceOps<Ps...>) noexcept
+{
+    GpuTuple<Ts...> r{};
+    Reduce::detail::for_each_init<0, decltype(r), Ps...>(r);
+    return r;
+}
+
+/**
+ * \brief Return a GpuTuple containing the identity element for each ReduceOp in TypeList.
+ * For example 0, +inf and -inf for ReduceOpSum, ReduceOpMin and ReduceOpMax respectively.
+ */
+template <typename... Ts, typename... Ps>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts...>
+IdentityTuple (GpuTuple<Ts...>, TypeList<Ps...>) noexcept
+{
+    GpuTuple<Ts...> r{};
+    Reduce::detail::for_each_init<0, decltype(r), Ps...>(r);
+    return r;
+}
 
 }
 

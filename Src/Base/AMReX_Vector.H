@@ -20,7 +20,6 @@ namespace amrex {
 * Vector::operator[] provides bound checking when compiled with
 * DEBUG=TRUE.
 */
-
 template <class T, class Allocator=std::allocator<T> >
 class Vector
     :
@@ -63,7 +62,7 @@ namespace amrex
     {
         Vector<T*> r;
         r.reserve(a.size());
-        for (auto& x : a)  r.push_back(&x);
+        for (auto& x : a) { r.push_back(&x); }
         return r;
     }
 
@@ -72,7 +71,7 @@ namespace amrex
     {
         Vector<T*> r;
         r.reserve(a.size());
-        for (const auto& x : a)  r.push_back(x.get());
+        for (const auto& x : a) { r.push_back(x.get()); }
         return r;
     }
 
@@ -83,7 +82,7 @@ namespace amrex
     {
         Vector<const T*> r;
         r.reserve(a.size());
-        for (const auto& x : a)  r.push_back(&x);
+        for (const auto& x : a) { r.push_back(&x); }
         return r;
     }
 
@@ -92,7 +91,7 @@ namespace amrex
     {
         Vector<const T*> r;
         r.reserve(a.size());
-        for (const auto& x : a)  r.push_back(x.get());
+        for (const auto& x : a) { r.push_back(x.get()); }
         return r;
     }
 
@@ -109,7 +108,7 @@ namespace amrex
     {
         Vector<Vector<T*> > r;
         r.reserve(a.size());
-        for (const auto& x : a)  r.push_back(GetVecOfPtrs(x));
+        for (const auto& x : a) { r.push_back(GetVecOfPtrs(x)); }
         return r;
     }
 
@@ -122,7 +121,7 @@ namespace amrex
     {
         Vector<std::array<T*, AMREX_SPACEDIM> > r;
         r.reserve(a.size());
-        for (const auto& x : a)  r.push_back(GetArrOfPtrs(x));
+        for (const auto& x : a) { r.push_back(GetArrOfPtrs(x)); }
         return r;
     }
 
@@ -132,7 +131,7 @@ namespace amrex
     {
         Vector<std::array<T const*, AMREX_SPACEDIM> > r;
         r.reserve(a.size());
-        for (const auto& x : a)  r.push_back(GetArrOfConstPtrs(x));
+        for (const auto& x : a) { r.push_back(GetArrOfConstPtrs(x)); }
         return r;
     }
 
@@ -142,7 +141,7 @@ namespace amrex
     {
         Vector<std::array<T const*, AMREX_SPACEDIM> > r;
         r.reserve(a.size());
-        for (const auto& x : a)  r.push_back(GetArrOfConstPtrs(x));
+        for (const auto& x : a) { r.push_back(GetArrOfConstPtrs(x)); }
         return r;
     }
 
@@ -154,7 +153,7 @@ namespace amrex
     {
         Vector<std::array<T const*, AMREX_SPACEDIM> > r;
         r.reserve(a.size());
-        for (const auto& x : a)  r.push_back(GetArrOfConstPtrs(x));
+        for (const auto& x : a) { r.push_back(GetArrOfConstPtrs(x)); }
         return r;
     }
 
@@ -166,7 +165,7 @@ namespace amrex
     {
         Vector<std::array<T*, AMREX_SPACEDIM> > r;
         r.reserve(a.size());
-        for (auto &x: a) r.push_back(GetArrOfPtrs(x));
+        for (auto &x: a) { r.push_back(GetArrOfPtrs(x)); }
         return r;
     }
 #endif
@@ -199,7 +198,7 @@ namespace amrex
         std::size_t removeDupDoit (Vector<T>& vec, std::size_t start, std::size_t stop)
         {
             std::size_t N = stop-start;
-            if (N < 2) return stop;
+            if (N < 2) { return stop; }
 
             T* const data = vec.data() + start;
             T const sentinel = data[0]; // duplicates will be set to sentinel and removed later

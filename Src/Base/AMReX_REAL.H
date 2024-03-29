@@ -46,29 +46,48 @@
 */
 
 #ifdef BL_USE_FLOAT
-typedef float amrex_real;
+typedef float amrex_real; // NOLINT(modernize-use-using)
 // We need to define these to get around a CUDA 9.2 bug that breaks std::numeric_limits
 #define AMREX_REAL_MIN     FLT_MIN
 #define AMREX_REAL_MAX     FLT_MAX
 #define AMREX_REAL_LOWEST (-FLT_MAX)
 #else
-typedef double amrex_real;
+typedef double amrex_real; // NOLINT(modernize-use-using)
 #define AMREX_REAL_MIN     DBL_MIN
 #define AMREX_REAL_MAX     DBL_MAX
 #define AMREX_REAL_LOWEST (-DBL_MAX)
 #endif
 
 #ifdef AMREX_SINGLE_PRECISION_PARTICLES
-typedef float amrex_particle_real;
+typedef float amrex_particle_real; // NOLINT(modernize-use-using)
 #else
-typedef double amrex_particle_real;
+typedef double amrex_particle_real; // NOLINT(modernize-use-using)
 #endif
 
 #ifdef __cplusplus
 namespace amrex {
+    /** Floating Point Type for Fields
+     *
+     * This is a floating point type used by default for fields such as
+     * FArrayBox and MultiFab classes. This can be changed at compile time to
+     * run double, single or experimental floating point precisions for field
+     * computations and storage.
+     */
     using Real = amrex_real;
+
+    /** Floating Point Type for Particles
+     *
+     * This is a floating point type used by default for ParticleContainer and
+     * related particle classes. This can be changed at compile time to run
+     * double, single or experimental floating point precisions for particle
+     * computations and storage.
+     */
     using ParticleReal = amrex_particle_real;
 
+/** Floating point literals for AMReX precision.
+ *
+ * This namespace can be used to write typed numeric literals in expressions.
+ */
 inline namespace literals {
 
     /** @{
@@ -107,44 +126,6 @@ inline namespace literals {
 } // namespace literals
 } // namespace amrex
 #endif
-
-#else
-
-#ifndef AMREX_XSDK
-
-/*
-  The REAL_T macro specifies the precision of the floating-point
-  calculations in Fortran code.  It will be either real*4 or
-  real*8 depending upon which of the symbols BL_USE_FLOAT or
-  BL_USE_DOUBLE, respectively, is defined during compilations.  For
-  portability, you should write floating-point code in terms of this
-  macro, instead of using real*4 or real*8 directly.
-
-  Note that exactly one of these macros must be defined
-  when compiling any module that uses floating-point.
-*/
-
-#ifdef BL_USE_FLOAT
-#    define REAL_T REAL
-#if __STDC__==1 || defined(__INTEL_COMPILER)
-#        define BL_REAL(a) a##E0
-#        define BL_REAL_E(a,b) a##E##b
-#else
-#        define BL_REAL(a) a/**/E0
-#        define BL_REAL_E(a,b) a/**/E/**/b
-#endif
-#else
-#    define REAL_T DOUBLE PRECISION
-#if __STDC__==1 || defined(__INTEL_COMPILER)
-#        define BL_REAL(a) a##D0
-#        define BL_REAL_E(a,b) a##D##b
-#else
-#        define BL_REAL(a) a/**/D0
-#        define BL_REAL_E(a,b) a/**/D/**/b
-#endif
-#endif
-
-#endif /* ndef AMREX_XSDK */
 
 #endif /* !BL_LANG_FORT */
 

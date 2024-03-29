@@ -15,7 +15,6 @@ namespace amrex {
 * \brief This arena uses CUDA stream-ordered memory allocator if available.
 * If not, use The_Arena().
 */
-
 class PArena
     :
     public Arena
@@ -23,18 +22,25 @@ class PArena
 public:
     PArena (Long release_threshold);
     PArena (const PArena& rhs) = delete;
+    PArena (PArena&& rhs) = delete;
     PArena& operator= (const PArena& rhs) = delete;
-    virtual ~PArena () override;
+    PArena& operator= (PArena&& rhs) = delete;
+    ~PArena () override;
 
-    virtual void* alloc (std::size_t nbytes) override final;
-    virtual void free (void* p) override final;
+    [[nodiscard]] void* alloc (std::size_t nbytes) final;
+    void free (void* p) final;
 
-    virtual bool isDeviceAccessible () const override final;
-    virtual bool isHostAccessible () const override final;
+    [[nodiscard]] bool isDeviceAccessible () const final;
+    [[nodiscard]] bool isHostAccessible () const final;
 
-    virtual bool isManaged () const override final;
-    virtual bool isDevice () const override final;
-    virtual bool isPinned () const override final;
+    [[nodiscard]] bool isManaged () const final;
+    [[nodiscard]] bool isDevice () const final;
+    [[nodiscard]] bool isPinned () const final;
+
+#ifdef AMREX_USE_GPU
+    //! Is this CUDA stream ordered memory allocator?
+    [[nodiscard]] bool isStreamOrderedArena () const final { return true; }
+#endif
 
 #ifdef AMREX_CUDA_GE_11_2
 private:

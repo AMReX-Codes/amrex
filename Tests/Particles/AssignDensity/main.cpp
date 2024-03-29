@@ -51,13 +51,14 @@ void test_assign_density(TestParams& parms)
   MultiFab partMF(ba, dmap, 1 + BL_SPACEDIM, 1);
   partMF.setVal(0.0);
 
-  typedef ParticleContainer<1 + BL_SPACEDIM> MyParticleContainer;
+  using MyParticleContainer = ParticleContainer<1 + BL_SPACEDIM>;
   MyParticleContainer myPC(geom, dmap, ba);
   myPC.SetVerbose(false);
 
   int num_particles = parms.nppc * parms.nx * parms.ny * parms.nz;
-  if (ParallelDescriptor::IOProcessor())
+  if (ParallelDescriptor::IOProcessor()) {
     std::cout << "Total number of particles    : " << num_particles << '\n' << '\n';
+  }
 
   bool serialize = true;
   int iseed = 451;
@@ -66,10 +67,6 @@ void test_assign_density(TestParams& parms)
   MyParticleContainer::ParticleInitData pdata = {{mass, AMREX_D_DECL(1.0, 2.0, 3.0)}, {}, {}, {}};
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
   myPC.AssignCellDensitySingleLevel(0, partMF, 0, 1 + AMREX_SPACEDIM, 0);
-
-  //  myPC.AssignDensitySingleLevel(0, partMF, 0, 4, 0);
-
-  //  myPC.InterpolateSingleLevel(acceleration, 0);
 
   MultiFab::Copy(density, partMF, 0, 0, 1, 0);
 
@@ -93,8 +90,9 @@ int main(int argc, char* argv[])
   pp.get("nz", parms.nz);
   pp.get("max_grid_size", parms.max_grid_size);
   pp.get("nppc", parms.nppc);
-  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
+  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
+  }
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);

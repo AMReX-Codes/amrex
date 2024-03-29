@@ -97,8 +97,8 @@ void main_main()
 
     // make sure we have valid options set
     if (do_log) {
-        if (ldef_mx && def_mx < 0.) amrex::Abort("ERROR: log plot specified with negative maximum");
-        if (ldef_mn && def_mn < 0.) amrex::Abort("ERROR: log plot specified with negative minimum");
+        if (ldef_mx && def_mx < 0.) { amrex::Abort("ERROR: log plot specified with negative maximum"); }
+        if (ldef_mn && def_mn < 0.) { amrex::Abort("ERROR: log plot specified with negative minimum"); }
     }
 
     // get the palette
@@ -278,7 +278,7 @@ void main_main()
         gmx = std::log10(gmx);
     }
 
-    BaseFab<unsigned char> intdat;
+    BaseFab<unsigned char> intdat(The_Pinned_Arena());
     for (int idir = ndir_begin; idir < ndir_end; ++idir) {
         intdat.resize(finebox[idir],1);
         const int width = (idir == 0) ? finebox[idir].length(1) : finebox[idir].length(0);
@@ -286,12 +286,12 @@ void main_main()
         const auto& intarr = intdat.array();
         const auto& realarr = datamf[idir].array(0);
         Real fac = Real(253.999) / (gmx-gmn);
-        amrex::LoopOnCpu(finebox[idir], [=] (int i, int j, int k)
+        amrex::ParallelFor(finebox[idir], [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             int jj = (idir == 2) ? height - 1 - j : j;  // flip the data in second image direction
             int kk = (idir == 2) ? k : height - 1 - k;
             Real rd = realarr(i,jj,kk);
-            if (do_log) rd = std::log10(rd);
+            if (do_log) { rd = std::log10(rd); }
             int id = std::max(0,std::min(255,static_cast<int>((rd-gmn)*fac)));
             auto c = static_cast<unsigned char>(id);
             constexpr auto cmn = static_cast<unsigned char>(1);  // avoid zero

@@ -210,44 +210,48 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
             if (apxm != Real(0.0) && apxm != Real(1.0)) {
                 int jj = j + static_cast<int>(std::copysign(Real(1.0),fcx(i,j,k)));
                 Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx(i,j,k)) : Real(0.0);
-                if (beta_on_center && phi_on_center)
+                if (beta_on_center && phi_on_center) {
                    fxm = (Real(1.0)-fracy)*fxm + fracy*bX(i,jj,k,n)*(x(i,jj,k,n)-x(i-1,jj,k,n));
-                else if (beta_on_centroid && phi_on_center)
+                } else if (beta_on_centroid && phi_on_center) {
                    fxm = bX(i,j,k,n) * ( (Real(1.0)-fracy)*(x(i, j,k,n)-x(i-1, j,k,n))
                                            + fracy  *(x(i,jj,k,n)-x(i-1,jj,k,n)) );
+                }
             }
 
             Real fxp = bX(i+1,j,k,n)*(x(i+1,j,k,n)-x(i,j,k,n));
             if (apxp != Real(0.0) && apxp != Real(1.0)) {
                 int jj = j + static_cast<int>(std::copysign(Real(1.0),fcx(i+1,j,k)));
                 Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? std::abs(fcx(i+1,j,k)) : Real(0.0);
-                if (beta_on_center && phi_on_center)
+                if (beta_on_center && phi_on_center) {
                     fxp = (Real(1.0)-fracy)*fxp + fracy*bX(i+1,jj,k,n)*(x(i+1,jj,k,n)-x(i,jj,k,n));
-                else if (beta_on_centroid && phi_on_center)
+                } else if (beta_on_centroid && phi_on_center) {
                     fxp = bX(i+1,j,k,n) * ( (Real(1.0)-fracy)*(x(i+1, j,k,n)-x(i, j,k,n))
                                                + fracy *(x(i+1,jj,k,n)-x(i,jj,k,n)) );
+                }
             }
 
             Real fym = bY(i,j,k,n)*(x(i,j,k,n)-x(i,j-1,k,n));
             if (apym != Real(0.0) && apym != Real(1.0)) {
                 int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy(i,j,k)));
                 Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy(i,j,k)) : Real(0.0);
-                if (beta_on_center && phi_on_center)
+                if (beta_on_center && phi_on_center) {
                     fym = (Real(1.0)-fracx)*fym + fracx*bY(ii,j,k,n)*(x(ii,j,k,n)-x(ii,j-1,k,n));
-                else if (beta_on_centroid && phi_on_center)
+                } else if (beta_on_centroid && phi_on_center) {
                     fym = bY(i,j,k,n) * ( (Real(1.0)-fracx)*(x( i,j,k,n)-x( i,j-1,k,n))
                                              + fracx *(x(ii,j,k,n)-x(ii,j-1,k,n)) );
+                }
             }
 
             Real fyp = bY(i,j+1,k,n)*(x(i,j+1,k,n)-x(i,j,k,n));
             if (apyp != Real(0.0) && apyp != Real(1.0)) {
                 int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy(i,j+1,k)));
                 Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? std::abs(fcy(i,j+1,k)) : Real(0.0);
-                if (beta_on_center && phi_on_center)
+                if (beta_on_center && phi_on_center) {
                     fyp = (Real(1.0)-fracx)*fyp + fracx*bY(ii,j+1,k,n)*(x(ii,j+1,k,n)-x(ii,j,k,n));
-                else if (beta_on_centroid && phi_on_center)
+                } else if (beta_on_centroid && phi_on_center) {
                     fyp = bY(i,j+1,k,n) * ( (Real(1.0)-fracx)*(x( i,j+1,k,n)-x( i,j,k,n))
                                                + fracx *(x(ii,j+1,k,n)-x(ii,j,k,n)) );
+                }
             }
 
             Real feb = Real(0.0);
@@ -603,9 +607,10 @@ void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real con
                 if (!beta_on_centroid && !phi_on_centroid)
                 {
                     fxm = (Real(1.0)-fracy)*fxm + fracy*bX(i,jj,k,n)*(sol(i,jj,k,n)-sol(i-1,jj,k,n));
-                } else if (beta_on_centroid && !phi_on_centroid)
+                } else if (beta_on_centroid && !phi_on_centroid) {
                     fxm = bX(i,j,k,n) * ( (Real(1.0)-fracy)*(sol(i, j,k,n)-sol(i-1, j,k,n)) +
                                                fracy *(sol(i,jj,k,n)-sol(i-1,jj,k,n)) );
+                }
                 fx(i,j,k,n) = -fxm*dhx;
             }
         }
@@ -635,9 +640,10 @@ void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real con
                 if (!beta_on_centroid && !phi_on_centroid)
                 {
                     fym = (Real(1.0)-fracx)*fym + fracx*bY(ii,j,k,n)*(sol(ii,j,k,n)-sol(ii,j-1,k,n));
-                } else if (beta_on_centroid && !phi_on_centroid)
+                } else if (beta_on_centroid && !phi_on_centroid) {
                     fym = bY(i,j,k,n) * ( (Real(1.0)-fracx)*(sol( i,j,k,n)-sol( i,j-1,k,n)) +
                                                fracx *(sol(ii,j,k,n)-sol(ii,j-1,k,n)) );
+                }
                 fy(i,j,k,n) = -fym*dhy;
             }
         }
@@ -698,8 +704,9 @@ void mlebabeclap_grad_x (Box const& box, Array4<Real> const& gx, Array4<Real con
             Real gxm = (sol(i,j,k,n)-sol(i-1,j,k,n));
             int jj = j + static_cast<int>(std::copysign(Real(1.0),fcx(i,j,k)));
             Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx(i,j,k)) : Real(0.0);
-            if (!phi_on_centroid)
+            if (!phi_on_centroid) {
                gxm = (Real(1.0)-fracy)*gxm + fracy*(sol(i,jj,k,n)-sol(i-1,jj,k,n));
+            }
             gx(i,j,k,n) = gxm*dxi;
         }
     });
@@ -721,8 +728,9 @@ void mlebabeclap_grad_y (Box const& box, Array4<Real> const& gy, Array4<Real con
             Real gym = (sol(i,j,k,n)-sol(i,j-1,k,n));
             int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy(i,j,k)));
             Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy(i,j,k)) : Real(0.0);
-            if (!phi_on_centroid)
+            if (!phi_on_centroid) {
                 gym = (Real(1.0)-fracx)*gym + fracx*(sol(ii,j,k,n)-sol(ii,j-1,k,n));
+            }
             gy(i,j,k,n) = gym*dyi;
         }
     });

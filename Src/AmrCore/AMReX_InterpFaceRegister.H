@@ -10,9 +10,8 @@ namespace amrex {
 
 /**
  *  \brief InterpFaceRegister is a coarse/fine boundary register for
- *  interpolation of face data at the coarse/fine boundadry.
+ *  interpolation of face data at the coarse/fine boundary.
  */
-
 class InterpFaceRegister
 {
 public:
@@ -31,7 +30,7 @@ public:
                         Geometry const& fgeom, IntVect const& ref_ratio);
 
     /**
-     * \brief Defines an InterpFaceRegister objecct.
+     * \brief Defines an InterpFaceRegister object.
      *
      * \param fba  The fine level BoxArray
      * \param fdm  The fine level DistributionMapping

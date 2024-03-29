@@ -22,7 +22,6 @@ namespace amrex {
 
         This class does NOT provide a copy constructor or assignment operator.
 */
-
 class Mask final
     :
     public BaseFab<int>

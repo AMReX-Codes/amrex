@@ -16,7 +16,7 @@ MLNodeTensorLaplacian::MLNodeTensorLaplacian (const Vector<Geometry>& a_geom,
 void
 MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 {
-    for (int i = 0; i < nelems; ++i) m_sigma[i] = a_sigma[i];
+    for (int i = 0; i < nelems; ++i) { m_sigma[i] = a_sigma[i]; }
 }
 
 void
@@ -282,9 +282,9 @@ void
 MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
                                      Array4<HypreNodeLap::AtomicInt const> const& gid,
                                      Array4<int const> const& lid,
-                                     HypreNodeLap::Int* const ncols,
-                                     HypreNodeLap::Int* const cols,
-                                     Real* const mat) const
+                                     HypreNodeLap::Int* ncols,
+                                     HypreNodeLap::Int* cols,
+                                     Real* mat) const
 {
     const int amrlev = 0;
     const int mglev = NMGLevels(amrlev)-1;
@@ -327,7 +327,7 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
 
 void
 MLNodeTensorLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
-                                Real* const rhs, Array4<Real const> const& bfab) const
+                                Real* rhs, Array4<Real const> const& bfab) const
 {
     const Box& bx = mfi.validbox();
     AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,

@@ -12,9 +12,28 @@
 #include <AMReX_Vector.H>
 
 #include <limits>
+#include <type_traits>
 
-namespace amrex
+namespace amrex {
+
+namespace particle_detail {
+
+template <typename F, typename T_ParticleType, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
+             const int i) noexcept
 {
+    if constexpr ( ! T_ParticleType::is_soa_particle &&
+                   IsCallable<F, T_ParticleType const&>::value) {
+        return f(p.m_aos[i]);
+    } else if constexpr (IsCallable<F, decltype(p.getSuperParticle(i))>::value) {
+        return f(p.getSuperParticle(i));
+    } else {
+        return f(p, i);
+    }
+}
+}
 
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.

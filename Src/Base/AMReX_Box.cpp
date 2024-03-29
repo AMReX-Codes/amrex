@@ -24,8 +24,9 @@ operator<< (std::ostream& os,
        << b.type()
        << ')';
 
-    if (os.fail())
+    if (os.fail()) {
         amrex::Error("operator<<(ostream&,Box&) failed");
+    }
 
     return os;
 }
@@ -77,8 +78,9 @@ operator>> (std::istream& is,
 
     b = Box(lo,hi,typ);
 
-    if (is.fail())
+    if (is.fail()) {
         amrex::Error("operator>>(istream&,Box&) failed");
+    }
 
     return is;
 }
@@ -88,7 +90,7 @@ BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
 {
     if (p == nullptr) {
         v.resize(3*AMREX_SPACEDIM);
-        p = &v[0];
+        p = v.data();
     }
 
     AMREX_D_EXPR(p[0]                = bx.smallend[0],
@@ -123,7 +125,7 @@ AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
         count_tot += countvec[i];
     }
 
-    if (count_tot == 0) return;
+    if (count_tot == 0) { return; }
 
     if (count_tot > static_cast<Long>(std::numeric_limits<int>::max())) {
         amrex::Abort("AllGatherBoxes: too many boxes");
@@ -158,7 +160,7 @@ AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
 
     MPI_Bcast(&count_tot, 1, MPI_INT, root, comm);
 
-    if (count_tot == 0) return;
+    if (count_tot == 0) { return; }
 
     if (count_tot > static_cast<Long>(std::numeric_limits<int>::max())) {
         amrex::Abort("AllGatherBoxes: too many boxes");

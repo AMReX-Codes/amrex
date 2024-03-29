@@ -9,6 +9,7 @@ Run-time Inputs
    InputsProblemDefinition
    InputsTimeStepping
    InputsLoadBalancing
+   InputsComputeBackends
    InputsPlotFiles
    InputsCheckpoint
 

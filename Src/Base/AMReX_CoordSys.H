@@ -20,7 +20,6 @@ class FArrayBox;
 *
 * Routines for mapping between physical coordinate system and index space.
 */
-
 class CoordSys
 {
 public:
@@ -54,7 +53,7 @@ public:
         BL_ASSERT(c_sys != undef); return (c_sys == RZ);
     }
 
-    //! Is CoordType == cartesion?
+    //! Is CoordType == cartesian?
     [[nodiscard]] bool IsCartesian () const noexcept {
         BL_ASSERT(c_sys != undef); return (c_sys == cartesian);
     }

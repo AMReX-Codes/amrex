@@ -10,24 +10,25 @@ jobs:
   sundials-cpu:
     name: GCC SUNDIALS@6.5.0
     runs-on: ubuntu-22.04
+    env:
+       CCACHE_COMPRESS: 1
+       CCACHE_COMPRESSLEVEL: 10
+       CCACHE_MAXSIZE: 20M
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build SUNDIALS
       run: |
-        export CCACHE_COMPRESS=1
-        export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=125M
         ccache -z
 
         wget -q https://github.com/LLNL/sundials/archive/refs/tags/v6.5.0.tar.gz
@@ -40,16 +41,13 @@ jobs:
             -DCMAKE_CXX_STANDARD=17                  \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache     \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache
-        make -j2
+        make -j4
         make install
         cd ../..
     - name: Compile Test
       run: |
         .github/workflows/dependencies/dependencies_clang-tidy.sh 14
         export CXXFLAGS="-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"
-        export CCACHE_COMPRESS=1
-        export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=125M
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         cmake -S . -B build             \
@@ -59,36 +57,38 @@ jobs:
             -DSUNDIALS_ROOT=${PWD}/sundials-6.5.0/instdir \
             -DCMAKE_CXX_STANDARD=17     \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build -j 2
+        cmake --build build -j 4
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        make -j2 -f clang-tidy-ccache-misses.mak \
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
             CLANG_TIDY=clang-tidy-14 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
+        du -hs ~/.cache/ccache
 
   sundials-cuda:
     name: CUDA SUNDIALS@6.5.0
     runs-on: ubuntu-22.04
+    env:
+       CCACHE_COMPRESS: 1
+       CCACHE_COMPRESSLEVEL: 10
+       CCACHE_MAXSIZE: 75M
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc12.sh
+        .github/workflows/dependencies/dependencies_nvcc.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
-        path: ~/.cache
+        path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build SUNDIALS
       run: |
-        export CCACHE_COMPRESS=1
-        export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=250M
         ccache -z
 
         # sundials requirement
@@ -110,7 +110,7 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache     \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache       \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache
-        make -j2
+        make -j4
         make install
         cd ../..
     - name: Compile Test
@@ -119,10 +119,6 @@ jobs:
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
         export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         which nvcc || echo "nvcc not in PATH!"
-
-        export CCACHE_COMPRESS=1
-        export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=250M
 
         cmake -S . -B build             \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
@@ -133,6 +129,22 @@ jobs:
             -DSUNDIALS_ROOT=${PWD}/sundials-6.5.0/instdir \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache  \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache
-        cmake --build build -j 2
+        cmake --build build -j 4
 
         ccache -s
+        du -hs ~/.cache/ccache
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

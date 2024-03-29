@@ -45,8 +45,13 @@ endif
 ifeq ($(USE_SUNDIALS),TRUE)
     Pdirs += Extern/SUNDIALS
 endif
+ifeq ($(USE_BITTREE),TRUE)
+	Pdirs += Extern/Bittree
+endif
 Ppack := $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
+
+Pdirs += Base/Parser
 
 all: $(amrexlib)
 	@echo SUCCESS

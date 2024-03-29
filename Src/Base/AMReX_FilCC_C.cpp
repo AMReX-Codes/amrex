@@ -41,7 +41,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         if (lo.x < ilo) {
            const int imin = lo.x;
            const int imax = ilo-1;
-           if (bc.lo(0) == BCType::ext_dir) {
+           if (bc.lo(0) == BCType::ext_dir || bc.lo(0) == BCType::ext_dir_cc) {
                // Do nothing.
            } else if (bc.lo(0) == BCType::foextrap) {
                for (int k = lo.z; k <= hi.z; ++k) {
@@ -88,7 +88,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
             const int imin = ihi+1;
             const int imax = hi.x;
 
-            if (bc.hi(0) == BCType::ext_dir) {
+            if (bc.hi(0) == BCType::ext_dir || bc.hi(0) == BCType::ext_dir_cc) {
                 // Do nothing.
             } else if (bc.hi(0) == BCType::foextrap) {
                 for (int k = lo.z; k <= hi.z; ++k) {
@@ -136,7 +136,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         if (lo.y < jlo) {
             const int jmin = lo.y;
             const int jmax = jlo-1;
-            if (bc.lo(1) == BCType::ext_dir) {
+            if (bc.lo(1) == BCType::ext_dir || bc.lo(1) == BCType::ext_dir_cc) {
                 // Do nothing.
             } else if (bc.lo(1) == BCType::foextrap) {
                 for (int k = lo.z; k <= hi.z; ++k) {
@@ -182,7 +182,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         if (hi.y > jhi) {
             const int jmin = jhi+1;
             const int jmax = hi.y;
-            if (bc.hi(1) == BCType::ext_dir) {
+            if (bc.hi(1) == BCType::ext_dir || bc.hi(1) == BCType::ext_dir_cc) {
                 // Do nothing.
             } else if (bc.hi(1) == BCType::foextrap) {
                 for (int k = lo.z; k <= hi.z; ++k) {
@@ -231,7 +231,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         if (lo.z < klo) {
             const int kmin = lo.z;
             const int kmax = klo-1;
-            if (bc.lo(2) == BCType::ext_dir) {
+            if (bc.lo(2) == BCType::ext_dir || bc.lo(2) == BCType::ext_dir_cc) {
                 // Do nothing.
             } else if (bc.lo(2) == BCType::foextrap) {
                 for (int k = kmin; k <= kmax; ++k) {
@@ -277,7 +277,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         if (hi.z > khi) {
             const int kmin = khi+1;
             const int kmax = hi.z;
-            if (bc.hi(2) == BCType::ext_dir) {
+            if (bc.hi(2) == BCType::ext_dir || bc.hi(2) == BCType::ext_dir_cc) {
                 // Do nothing.
             } else if (bc.hi(2) == BCType::foextrap) {
                 for (int k = kmin; k <= kmax; ++k) {

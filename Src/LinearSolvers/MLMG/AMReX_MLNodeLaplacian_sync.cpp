@@ -89,7 +89,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     bool neumann_doubling = true; // yes even for RAP, because unimposeNeumannBC will be called on rhs
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -359,7 +359,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 #endif
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -621,7 +621,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     //
     //  Note that the residue we copmute on a coarse/fine node is not a
     //  composite divergence.  It has been restricted so that it is suitable
-    //  as RHS for our geometric mulitgrid solver with a MG hirerachy
+    //  as RHS for our geometric multigrid solver with a MG hirerachy
     //  including multiple AMR levels.
     //
 
@@ -710,7 +710,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const auto& fsigma = m_sigma[crse_amrlev+1][0][0];
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

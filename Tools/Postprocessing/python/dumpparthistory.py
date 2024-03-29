@@ -4,8 +4,6 @@
 # histories into separate files (1 file per particle) so that they can
 # be plotted elsewhere
 
-#import math
-import numpy
 import sys
 import parseparticles
 

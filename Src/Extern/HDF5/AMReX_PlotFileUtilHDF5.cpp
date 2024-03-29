@@ -107,13 +107,13 @@ static int CreateWriteHDF5AttrString(hid_t loc, const char *name, const char* st
     return 1;
 }
 
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
 static void SetHDF5fapl(hid_t fapl, MPI_Comm comm)
 #else
 static void SetHDF5fapl(hid_t fapl)
 #endif
 {
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
 
     // Alignment and metadata block size
@@ -127,16 +127,18 @@ static void SetHDF5fapl(hid_t fapl)
     H5Pset_all_coll_metadata_ops(fapl, true);
 
     // Defer cache flush
-    H5AC_cache_config_t cache_config;
-    cache_config.version = H5AC__CURR_CACHE_CONFIG_VERSION;
-    H5Pget_mdc_config(fapl, &cache_config);
-    cache_config.set_initial_size = 1;
-    cache_config.initial_size = 16 * 1024 * 1024;
-    cache_config.evictions_enabled = 0;
-    cache_config.incr_mode = H5C_incr__off;
-    cache_config.flash_incr_mode = H5C_flash_incr__off;
-    cache_config.decr_mode = H5C_decr__off;
-    H5Pset_mdc_config (fapl, &cache_config);
+    // 7/19/23 Comment out the following as it is causing segfault
+    // with vol-async on Frontier
+    /* H5AC_cache_config_t cache_config; */
+    /* cache_config.version = H5AC__CURR_CACHE_CONFIG_VERSION; */
+    /* H5Pget_mdc_config(fapl, &cache_config); */
+    /* cache_config.set_initial_size = 1; */
+    /* cache_config.initial_size = 16 * 1024 * 1024; */
+    /* cache_config.evictions_enabled = 0; */
+    /* cache_config.incr_mode = H5C_incr__off; */
+    /* cache_config.flash_incr_mode = H5C_flash_incr__off; */
+    /* cache_config.decr_mode = H5C_decr__off; */
+    /* H5Pset_mdc_config (fapl, &cache_config); */
 #else
     H5Pset_fapl_sec2(fapl);
 #endif
@@ -372,7 +374,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
     std::string filename(plotfilename + ".h5");
 
     // Write out root level metadata
-    hid_t fapl, dxpl_col, dxpl_ind, dcpl_id, fid, grp;
+    hid_t fapl, dxpl_col, dxpl_ind, dcpl_id, lev_dcpl_id, fid, grp;
 
     if(ParallelDescriptor::IOProcessor()) {
         BL_PROFILE_VAR("H5writeMetadata", h5dwm);
@@ -432,7 +434,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
     dxpl_col = H5Pcreate(H5P_DATASET_XFER);
     dxpl_ind = H5Pcreate(H5P_DATASET_XFER);
 
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
     H5Pset_dxpl_mpio(dxpl_col, H5FD_MPIO_COLLECTIVE);
 #else
@@ -441,6 +443,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
 
     dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
     H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
+    H5Pset_alloc_time(dcpl_id, H5D_ALLOC_TIME_INCR);
 
 #if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
     const char *chunk_env = NULL;
@@ -453,7 +456,6 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
         chunk_dim = atoi(chunk_env);
 
     H5Pset_chunk(dcpl_id, 1, &chunk_dim);
-    H5Pset_alloc_time(dcpl_id, H5D_ALLOC_TIME_LATE);
 
     std::string::size_type pos = compression.find('@');
     if (pos != std::string::npos) {
@@ -468,7 +470,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
     pos = compression.find("ZFP");
     if (pos != std::string::npos) {
         ret = H5Z_zfp_initialize();
-        if (ret < 0) amrex::Abort("ZFP initialize failed!");
+        if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
     }
 #endif
 
@@ -668,13 +670,6 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
         hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
         hid_t memdataspace = H5Screate_simple(1, hs_procsize, NULL);
 
-        /* fprintf(stderr, "Rank %d: level %d, offset %ld, size %ld, all size %ld\n", myProc, level, ch_offset[0], hs_procsize[0], hs_allprocsize[0]); */
-
-        if (hs_procsize[0] == 0)
-            H5Sselect_none(dataspace);
-        else
-            H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
-
         Vector<Real> a_buffer(procBufferSize[myProc], -1.0);
         const MultiFab* data;
         std::unique_ptr<MultiFab> mf_tmp;
@@ -705,23 +700,31 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
 
         BL_PROFILE_VAR("H5DwriteData", h5dwg);
 
+        lev_dcpl_id = H5Pcopy(dcpl_id);
 #ifdef AMREX_USE_HDF5_SZ
         if (mode_env == "SZ") {
             size_t cd_nelmts;
             unsigned int* cd_values = NULL;
             unsigned filter_config;
             SZ_metaDataToCdArray(&cd_nelmts, &cd_values, SZ_DOUBLE, 0, 0, 0, 0, hs_allprocsize[0]);
-            H5Pset_filter(dcpl_id, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
+            H5Pset_filter(lev_dcpl_id, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
         }
 #endif
 
 #ifdef AMREX_USE_HDF5_ASYNC
-        hid_t dataset = H5Dcreate_async(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT, es_id_g);
+        hid_t dataset = H5Dcreate_async(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT, es_id_g);
 #else
-        hid_t dataset = H5Dcreate(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
+        hid_t dataset = H5Dcreate(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT);
 #endif
         if(dataset < 0)
             std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
+
+        /* fprintf(stderr, "Rank %d: level %d, offset %ld, size %ld, all size %ld\n", myProc, level, ch_offset[0], hs_procsize[0], hs_allprocsize[0]); */
+
+        if (hs_procsize[0] == 0)
+            H5Sselect_none(dataspace);
+        else
+            H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
 
 #ifdef AMREX_USE_HDF5_ASYNC
         ret = H5Dwrite_async(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer.dataPtr(), es_id_g);
@@ -732,6 +735,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
 
         BL_PROFILE_VAR_STOP(h5dwg);
 
+        H5Pclose(lev_dcpl_id);
         H5Sclose(memdataspace);
         H5Sclose(dataspace);
         H5Sclose(offsetdataspace);
@@ -812,7 +816,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     std::string filename(plotfilename + ".h5");
 
     // Write out root level metadata
-    hid_t fapl, dxpl_col, dxpl_ind, fid, grp, dcpl_id;
+    hid_t fapl, dxpl_col, dxpl_ind, fid, grp, dcpl_id, lev_dcpl_id;
 
     if(ParallelDescriptor::IOProcessor()) {
         BL_PROFILE_VAR("H5writeMetadata", h5dwm);
@@ -872,7 +876,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     dxpl_col = H5Pcreate(H5P_DATASET_XFER);
     dxpl_ind = H5Pcreate(H5P_DATASET_XFER);
 
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     SetHDF5fapl(fapl, ParallelDescriptor::Communicator());
     H5Pset_dxpl_mpio(dxpl_col, H5FD_MPIO_COLLECTIVE);
 #else
@@ -881,6 +885,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
 
     dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
     H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
+    H5Pset_alloc_time(dcpl_id, H5D_ALLOC_TIME_INCR);
 
 #if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
     const char *chunk_env = NULL;
@@ -893,7 +898,6 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
         chunk_dim = atoi(chunk_env);
 
     H5Pset_chunk(dcpl_id, 1, &chunk_dim);
-    H5Pset_alloc_time(dcpl_id, H5D_ALLOC_TIME_LATE);
 
     std::string::size_type pos = compression.find('@');
     if (pos != std::string::npos) {
@@ -908,7 +912,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     pos = compression.find("ZFP");
     if (pos != std::string::npos) {
         ret = H5Z_zfp_initialize();
-        if (ret < 0) amrex::Abort("ZFP initialize failed!");
+        if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
     }
 #endif
 
@@ -916,7 +920,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     pos = compression.find("SZ");
     if (pos != std::string::npos) {
         ret = H5Z_SZ_Init((char*)value_env.c_str());
-        if (ret < 0) amrex::Abort("ZFP initialize failed, check SZ config file!");
+        if (ret < 0) { amrex::Abort("ZFP initialize failed, check SZ config file!"); }
     }
 #endif
 
@@ -1097,13 +1101,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
         hs_procsize[0]     = procBufferSize[myProc];       // ---- size of buffer on this proc
         hs_allprocsize[0]  = offsets[sortedGrids.size()];  // ---- size of buffer on all procs
 
-        hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
         hid_t memdataspace = H5Screate_simple(1, hs_procsize, NULL);
-
-        if (hs_procsize[0] == 0)
-            H5Sselect_none(dataspace);
-        else
-            H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
 
         Vector<Real> a_buffer(procBufferSize[myProc]*ncomp, -1.0);
         Vector<Real> a_buffer_ind(procBufferSize[myProc], -1.0);
@@ -1123,13 +1121,14 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
         hid_t dataset;
         char dataname[64];
 
+        lev_dcpl_id = H5Pcopy(dcpl_id);
 #ifdef AMREX_USE_HDF5_SZ
         if (mode_env == "SZ") {
             size_t cd_nelmts;
             unsigned int* cd_values = NULL;
             unsigned filter_config;
             SZ_metaDataToCdArray(&cd_nelmts, &cd_values, SZ_DOUBLE, 0, 0, 0, 0, hs_allprocsize[0]);
-            H5Pset_filter(dcpl_id, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
+            H5Pset_filter(lev_dcpl_id, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
         }
 #endif
 
@@ -1158,26 +1157,42 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
                 writeDataSize += writeDataItems;
             }
 
+            hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
             snprintf(dataname, sizeof dataname, "data:datatype=%d", jj);
 #ifdef AMREX_USE_HDF5_ASYNC
-            dataset = H5Dcreate_async(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT, es_id_g);
-            if(dataset < 0) std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
+            dataset = H5Dcreate_async(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT, es_id_g);
+            if(dataset < 0) { std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl; }
+
+            if (hs_procsize[0] == 0) {
+                H5Sselect_none(dataspace);
+            } else {
+                H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
+            }
+
             ret = H5Dwrite_async(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer_ind.dataPtr(), es_id_g);
             if(ret < 0) { std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl; break; }
             H5Dclose_async(dataset, es_id_g);
 #else
-            dataset = H5Dcreate(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
-            if(dataset < 0) std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
+            dataset = H5Dcreate(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT);
+            if(dataset < 0) { std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl; }
+
+            if (hs_procsize[0] == 0) {
+                H5Sselect_none(dataspace);
+            } else {
+                H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
+            }
+
             ret = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer_ind.dataPtr());
             if(ret < 0) { std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl; break; }
             H5Dclose(dataset);
 #endif
+            H5Sclose(dataspace);
         }
 
         BL_PROFILE_VAR_STOP(h5dwg);
 
+        H5Pclose(lev_dcpl_id);
         H5Sclose(memdataspace);
-        H5Sclose(dataspace);
         H5Sclose(offsetdataspace);
         H5Sclose(centerdataspace);
         H5Sclose(boxdataspace);

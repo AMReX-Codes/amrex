@@ -15,14 +15,6 @@
 
 using namespace amrex;
 
-
-
-#ifdef AMREX_PARTICLES
-std::unique_ptr<AmrTracerParticleContainer> AmrCoreAdv::TracerPC =  nullptr;
-int AmrCoreAdv::do_tracers = 0;
-#endif
-
-
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
 //             - initializes BCRec boundary condition object
@@ -60,8 +52,8 @@ AmrCoreAdv::AmrCoreAdv ()
 
 /*
     // walls (Neumann)
-    int bc_lo[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
-    int bc_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
+    int bc_lo[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
+    int bc_hi[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
 */
 
     bcs.resize(1);     // Setup 1-component
@@ -117,10 +109,11 @@ AmrCoreAdv::Evolve ()
 
         int lev = 0;
         int iteration = 1;
-        if (do_subcycle)
+        if (do_subcycle) {
             timeStepWithSubcycling(lev, cur_time, iteration);
-        else
+        } else {
             timeStepNoSubcycling(cur_time, iteration);
+        }
 
         cur_time += dt[0];
 
@@ -152,7 +145,7 @@ AmrCoreAdv::Evolve ()
         }
 #endif
 
-        if (cur_time >= stop_time - 1.e-6*dt[0]) break;
+        if (cur_time >= stop_time - 1.e-6*dt[0]) { break; }
     }
 
     if (plot_int > 0 && istep[0] > last_plot_file_step) {
@@ -332,7 +325,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
         }
     }
 
-    if (lev >= phierr.size()) return;
+    if (lev >= phierr.size()) { return; }
 
 //    const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -722,8 +715,9 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         fp.reset(); // Because the data have changed.
     }
 
-    for (int lev = 0; lev <= finest_level; lev++)
+    for (int lev = 0; lev <= finest_level; lev++) {
         ++istep[lev];
+    }
 
     if (Verbose())
     {
@@ -745,7 +739,7 @@ AmrCoreAdv::ComputeDt ()
     {
         dt_tmp[lev] = EstTimeStep(lev, t_new[lev]);
     }
-    ParallelDescriptor::ReduceRealMin(&dt_tmp[0], int(dt_tmp.size()));
+    ParallelDescriptor::ReduceRealMin(dt_tmp.data(), int(dt_tmp.size()));
 
     constexpr Real change_max = 1.1;
     Real dt_0 = dt_tmp[0];

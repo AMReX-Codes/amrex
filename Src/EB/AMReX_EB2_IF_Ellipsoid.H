@@ -21,7 +21,7 @@ public:
           m_sign( a_inside ? 1.0_rt : -1.0_rt )
         {}
 
-    AMREX_GPU_HOST_DEVICE inline
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept {
         Real d2 = AMREX_D_TERM(  (x-m_center.x)*(x-m_center.x) / (m_radii.x*m_radii.x),
                                + (y-m_center.y)*(y-m_center.y) / (m_radii.y*m_radii.y),
@@ -29,7 +29,7 @@ public:
         return m_sign*(d2-1.0_rt);
     }
 
-    inline Real operator() (const RealArray& p) const noexcept {
+    [[nodiscard]] inline Real operator() (const RealArray& p) const noexcept {
         return this->operator()(AMREX_D_DECL(p[0],p[1],p[2]));
     }
 

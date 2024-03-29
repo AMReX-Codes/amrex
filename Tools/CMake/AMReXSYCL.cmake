@@ -53,7 +53,7 @@ endif()
 #
 target_link_options( SYCL
    INTERFACE
-   $<${_cxx_sycl}:-fsycl -fsycl-device-lib=libc,libm-fp32,libm-fp64> )
+   $<${_cxx_sycl}:-qmkl=sequential -fsycl -fsycl-device-lib=libc,libm-fp32,libm-fp64> )
 
 
 # TODO: use $<LINK_LANG_AND_ID:> genex for CMake >=3.17
@@ -87,5 +87,11 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND "${CMAKE_BUILD_TYPE}" MATCHES "Debug"
       INTERFACE
       "$<${_cxx_sycl}:-fsycl-link-huge-device-code>" )
 endif ()
+
+if (AMReX_PARALLEL_LINK_JOBS GREATER 1)
+   target_link_options( SYCL
+      INTERFACE
+      $<${_cxx_sycl}:-fsycl-max-parallel-link-jobs=${AMReX_PARALLEL_LINK_JOBS}>)
+endif()
 
 unset(_cxx_sycl)
