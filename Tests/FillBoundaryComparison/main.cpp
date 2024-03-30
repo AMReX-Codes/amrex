@@ -94,10 +94,10 @@ main (int argc, char* argv[])
         }
 
         if (ParallelDescriptor::IOProcessor()) {
-            std::cout << "min length = " << bsmin << std::endl;
-            std::cout << "num Pts    = " << ba.numPts() << std::endl;
-            std::cout << "num boxes  = " << ba.size() << std::endl;
-            std::cout << "num levels = " << nlevels << std::endl;
+            std::cout << "min length = " << bsmin << '\n';
+            std::cout << "num Pts    = " << ba.numPts() << '\n';
+            std::cout << "num boxes  = " << ba.size() << '\n';
+            std::cout << "num levels = " << nlevels << '\n';
         }
     }
 
@@ -120,7 +120,7 @@ main (int argc, char* argv[])
     for (int lev=0; lev<nlevels; ++lev) {
         points[lev] = mfs[lev]->norm1();
         if (ParallelDescriptor::IOProcessor()) {
-            std::cout << points[lev] << " points on level " << lev << std::endl;
+            std::cout << points[lev] << " points on level " << lev << '\n';
         }
     }
 
@@ -155,11 +155,11 @@ main (int argc, char* argv[])
     auto wt1 = ParallelDescriptor::second();
 
     if (ParallelDescriptor::IOProcessor()) {
-        std::cout << "Using MPI" << std::endl;
-        std::cout << "----------------------------------------------" << std::endl;
-        std::cout << "Fill Boundary Time: " << wt1-wt0 << std::endl;
-        std::cout << "----------------------------------------------" << std::endl;
-        std::cout << "ignore this line " << err << std::endl;
+        std::cout << "Using MPI" << '\n';
+        std::cout << "----------------------------------------------" << '\n';
+        std::cout << "Fill Boundary Time: " << wt1-wt0 << '\n';
+        std::cout << "----------------------------------------------" << '\n';
+        std::cout << "ignore this line " << err << '\n';
     }
 
     //

@@ -1,5 +1,8 @@
 #include "MyTest.H"
 
+#include <AMReX_GMRES.H>
+#include <AMReX_GMRES_MLMG.H>
+#include <AMReX_MLNodeABecLaplacian.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLPoisson.H>
 #include <AMReX_ParmParse.H>
@@ -19,9 +22,15 @@ MyTest::solve ()
     if (prob_type == 1) {
         solvePoisson();
     } else if (prob_type == 2) {
-        solveABecLaplacian();
+        if (use_gmres) {
+            solveABecLaplacianGMRES();
+        } else {
+            solveABecLaplacian();
+        }
     } else if (prob_type == 3) {
         solveABecLaplacianInhomNeumann();
+    } else if (prob_type == 4) {
+        solveNodeABecLaplacian();
     } else {
         amrex::Abort("Unknown prob_type");
     }
@@ -35,10 +44,10 @@ MyTest::solvePoisson ()
     info.setConsolidation(consolidation);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    const Real tol_rel = 1.e-10;
-    const Real tol_abs = 0.0;
+    const auto tol_rel = Real(1.e-10);
+    const auto tol_abs = Real(0.0);
 
-    const int nlevels = geom.size();
+    const auto nlevels = static_cast<int>(geom.size());
 
     if (composite_solve)
     {
@@ -133,10 +142,10 @@ MyTest::solveABecLaplacian ()
     info.setMaxCoarseningLevel(max_coarsening_level);
     info.setMaxSemicoarseningLevel(max_semicoarsening_level);
 
-    const Real tol_rel = 1.e-10;
-    const Real tol_abs = 0.0;
+    const auto tol_rel = Real(1.e-10);
+    const auto tol_abs = Real(0.0);
 
-    const int nlevels = geom.size();
+    const auto nlevels = static_cast<int>(geom.size());
 
     if (composite_solve)
     {
@@ -258,6 +267,7 @@ MyTest::solveABecLaplacian ()
     // Since this problem has Neumann BC, solution + constant is also a
     // solution.  So we are going to shift the solution by a constant
     // for comparison with the "exact solution".
+    // The statement above is incorrect because we have the a term, albeit small.
     const Real npts = grids[0].d_numPts();
     const Real avg1 = exact_solution[0].sum();
     const Real avg2 = solution[0].sum();
@@ -275,10 +285,10 @@ MyTest::solveABecLaplacianInhomNeumann ()
     info.setConsolidation(consolidation);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    const Real tol_rel = 1.e-10;
-    const Real tol_abs = 0.0;
+    const auto tol_rel = Real(1.e-10);
+    const auto tol_abs = Real(0.0);
 
-    const int nlevels = geom.size();
+    const auto nlevels = static_cast<int>(geom.size());
 
     if (composite_solve)
     {
@@ -400,6 +410,137 @@ MyTest::solveABecLaplacianInhomNeumann ()
     // Since this problem has Neumann BC, solution + constant is also a
     // solution.  So we are going to shift the solution by a constant
     // for comparison with the "exact solution".
+    // The statement above is incorrect because we have the a term, albeit small.
+    const Real npts = grids[0].d_numPts();
+    const Real avg1 = exact_solution[0].sum();
+    const Real avg2 = solution[0].sum();
+    const Real offset = (avg1-avg2)/npts;
+    for (int ilev = 0; ilev < nlevels; ++ilev) {
+        solution[ilev].plus(offset, 0, 1, 0);
+    }
+}
+
+void
+MyTest::solveNodeABecLaplacian ()
+{
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+    info.setMaxCoarseningLevel(max_coarsening_level);
+
+    const auto tol_rel = Real(1.e-10);
+    const auto tol_abs = Real(0.0);
+
+    const auto nlevels = static_cast<int>(geom.size());
+
+    if (composite_solve && nlevels > 1)
+    {
+        amrex::Abort("solveNodeABecLaplacian: TODO composite_solve");
+    }
+    else
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nlevels == 1, "solveNodeABecLaplacian: nlevels > 1 TODO");
+        for (int ilev = 0; ilev < nlevels; ++ilev)
+        {
+            MLNodeABecLaplacian mlndabec({geom[ilev]}, {grids[ilev]}, {dmap[ilev]},
+                                         info);
+
+            mlndabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                               LinOpBCType::Neumann,
+                                               LinOpBCType::Dirichlet)},
+                                 {AMREX_D_DECL(LinOpBCType::Neumann,
+                                               LinOpBCType::Dirichlet,
+                                               LinOpBCType::Dirichlet)});
+
+            mlndabec.setScalars(ascalar, bscalar);
+
+            mlndabec.setACoeffs(0, acoef[ilev]);
+            mlndabec.setBCoeffs(0, bcoef[ilev]);
+
+            MLMG mlmg(mlndabec);
+            mlmg.setMaxIter(max_iter);
+            mlmg.setMaxFmgIter(max_fmg_iter);
+            mlmg.setVerbose(verbose);
+            mlmg.setBottomVerbose(bottom_verbose);
+
+            mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
+        }
+    }
+}
+
+void
+MyTest::solveABecLaplacianGMRES ()
+{
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+    info.setSemicoarsening(semicoarsening);
+    info.setMaxCoarseningLevel(max_coarsening_level);
+    info.setMaxSemicoarseningLevel(max_semicoarsening_level);
+
+    const auto tol_rel = Real(1.e-10);
+    const auto tol_abs = Real(0.0);
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(composite_solve == false,
+       "solveABecLaplacianGMRES does not support composite solve");
+
+    const auto nlevels = static_cast<int>(geom.size());
+
+    for (int ilev = 0; ilev < nlevels; ++ilev)
+    {
+        MLABecLaplacian mlabec({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
+
+        mlabec.setMaxOrder(linop_maxorder);
+
+        // This is a 3d problem with homogeneous Neumann BC
+        mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
+                                         LinOpBCType::Neumann,
+                                         LinOpBCType::Neumann)},
+                           {AMREX_D_DECL(LinOpBCType::Neumann,
+                                         LinOpBCType::Neumann,
+                                         LinOpBCType::Neumann)});
+
+        if (ilev > 0) {
+            mlabec.setCoarseFineBC(&solution[ilev-1], ref_ratio);
+        }
+
+        // for problem with pure homogeneous Neumann BC, we could pass a nullptr
+        mlabec.setLevelBC(0, nullptr);
+
+        mlabec.setScalars(ascalar, bscalar);
+
+        mlabec.setACoeffs(0, acoef[ilev]);
+
+        Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            const BoxArray& ba = amrex::convert(bcoef[ilev].boxArray(),
+                                                IntVect::TheDimensionVector(idim));
+            face_bcoef[idim].define(ba, bcoef[ilev].DistributionMap(), 1, 0);
+        }
+        amrex::average_cellcenter_to_face(GetArrOfPtrs(face_bcoef),
+                                          bcoef[ilev], geom[ilev]);
+        mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
+
+        MLMG mlmg(mlabec);
+        GMRESMLMG gmsolver(mlmg);
+        gmsolver.usePrecond(true);
+        gmsolver.setVerbose(verbose);
+        gmsolver.solve(solution[ilev], rhs[ilev], tol_rel, tol_abs);
+
+        if (verbose) {
+            MultiFab res(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
+            mlmg.apply({&res}, {&solution[ilev]}); // res = L(sol)
+            MultiFab::Subtract(res, rhs[ilev], 0, 0, 1, 0); // now res = L(sol) - rhs
+            amrex::Print() << "Final residual = " << res.norminf(0)
+                           << " " << res.norm1(0) << " " << res.norm2(0) << '\n';
+        }
+    }
+
+    // Since this problem has Neumann BC, solution + constant is also a
+    // solution.  So we are going to shift the solution by a constant
+    // for comparison with the "exact solution".
+    // The statement above is incorrect because we have the a term, albeit small.
     const Real npts = grids[0].d_numPts();
     const Real avg1 = exact_solution[0].sum();
     const Real avg2 = solution[0].sum();
@@ -433,6 +574,9 @@ MyTest::readParameters ()
     pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("max_semicoarsening_level", max_semicoarsening_level);
 
+    pp.query("use_gmres", use_gmres);
+    AMREX_ALWAYS_ASSERT(use_gmres == false || prob_type == 2);
+
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
     pp.query("hypre_interface", hypre_interface_i);
@@ -463,7 +607,7 @@ MyTest::initData ()
     rhs.resize(nlevels);
     exact_solution.resize(nlevels);
 
-    if (prob_type == 2 || prob_type == 3) {
+    if (prob_type == 2 || prob_type == 3 || prob_type == 4) {
         acoef.resize(nlevels);
         bcoef.resize(nlevels);
     }
@@ -491,12 +635,17 @@ MyTest::initData ()
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
         dmap[ilev].define(grids[ilev]);
-        solution      [ilev].define(grids[ilev], dmap[ilev], 1, 1);
-        rhs           [ilev].define(grids[ilev], dmap[ilev], 1, 0);
-        exact_solution[ilev].define(grids[ilev], dmap[ilev], 1, 0);
+        BoxArray ba = grids[ilev];
+        if (prob_type == 4) {
+            ba.surroundingNodes();
+        }
+        solution      [ilev].define(ba, dmap[ilev], 1, 1);
+        rhs           [ilev].define(ba, dmap[ilev], 1, 0);
+        exact_solution[ilev].define(ba, dmap[ilev], 1, 0);
         if (!acoef.empty()) {
-            acoef[ilev].define(grids[ilev], dmap[ilev], 1, 0);
-            bcoef[ilev].define(grids[ilev], dmap[ilev], 1, 1);
+            acoef[ilev].define(ba         , dmap[ilev], 1, 0);
+            const int ngb = (prob_type == 4) ? 0 : 1;
+            bcoef[ilev].define(grids[ilev], dmap[ilev], 1, ngb);
         }
     }
 
@@ -506,8 +655,9 @@ MyTest::initData ()
         initProbABecLaplacian();
     } else if (prob_type == 3) {
         initProbABecLaplacianInhomNeumann();
+    } else if (prob_type == 4) {
+        initProbNodeABecLaplacian();
     } else {
         amrex::Abort("Unknown prob_type "+std::to_string(prob_type));
     }
 }
-

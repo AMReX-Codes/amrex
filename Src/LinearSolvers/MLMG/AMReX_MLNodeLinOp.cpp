@@ -1,7 +1,12 @@
 
 #include <AMReX_MLNodeLinOp.H>
 #include <AMReX_MLNodeLap_K.H>
+#include <AMReX_MLMG_K.H>
 #include <AMReX_MultiFabUtil.H>
+
+#ifdef AMREX_USE_EB
+#include <AMReX_EBMultiFabUtil.H>
+#endif
 
 #ifdef AMREX_USE_OMP
 #include <omp.h>
@@ -13,8 +18,6 @@ MLNodeLinOp::MLNodeLinOp ()
 {
     m_ixtype = IntVect::TheNodeVector();
 }
-
-MLNodeLinOp::~MLNodeLinOp () {}
 
 void
 MLNodeLinOp::define (const Vector<Geometry>& a_geom,
@@ -82,6 +85,22 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
         }
         m_has_fine_bndry[amrlev] = std::make_unique<LayoutData<int> >(m_grids[amrlev][0],
                                                                       m_dmap[amrlev][0]);
+    }
+
+    m_norm_fine_mask.resize(m_num_amr_levels-1);
+    for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev) {
+        m_norm_fine_mask[amrlev] = std::make_unique<iMultiFab>
+            (makeFineMask(amrex::convert(m_grids[amrlev][0], IntVect(1)), m_dmap[amrlev][0],
+                          amrex::convert(m_grids[amrlev+1][0], IntVect(1)),
+                          IntVect(m_amr_ref_ratio[amrlev]), 1, 0));
+    }
+}
+
+void
+MLNodeLinOp::prepareForSolve ()
+{
+    for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev) {
+        fixUpResidualMask(amrlev, *m_norm_fine_mask[amrlev]);
     }
 }
 
@@ -177,17 +196,13 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
     return result;
 }
 
-void
-MLNodeLinOp::applyInhomogNeumannTerm (int /*amrlev*/, MultiFab& /*rhs*/) const
-{
-}
-
-Real
+Vector<Real>
 MLNodeLinOp::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const
 {
     amrex::ignore_unused(amrlev);
-    AMREX_ASSERT(amrlev==0);
-    AMREX_ASSERT(mglev+1==m_num_mg_levels[0] || mglev==0);
+    AMREX_ASSERT(amrlev==0 && (mglev+1==m_num_mg_levels[0] || mglev==0));
+    AMREX_ASSERT(getNComp() == 1);
+
     const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
     const auto& mask_ma = mask.const_arrays();
     const auto& rhs_ma = rhs.const_arrays();
@@ -203,13 +218,14 @@ MLNodeLinOp::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) c
     Real s1 = amrex::get<0>(r);
     Real s2 = amrex::get<1>(r);
     ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
-    return s1/s2;
+    return {s1/s2};
 }
 
 void
-MLNodeLinOp::fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MultiFab& rhs, Real offset) const
+MLNodeLinOp::fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MultiFab& rhs,
+                                     Vector<Real> const& offset) const
 {
-    rhs.plus(-offset, 0, 1);
+    rhs.plus(-offset[0], 0, 1);
 }
 
 namespace {
@@ -222,7 +238,7 @@ void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geome
     Box nddomain = amrex::surroundingNodes(geom.Domain());
 
     if (strategy != MLNodeLinOp::CoarseningStrategy::Sigma) {
-        nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
+        nddomain.grow(1000); // hack to avoid masks being modified at Neumann boundary
     }
 
 #ifdef AMREX_USE_OMP
@@ -245,15 +261,15 @@ void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geome
 void
 MLNodeLinOp::buildMasks ()
 {
-    if (m_masks_built) return;
+    if (m_masks_built) { return; }
 
     BL_PROFILE("MLNodeLinOp::buildMasks()");
 
     m_masks_built = true;
 
     m_is_bottom_singular = false;
-    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
+    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet); // NOLINT
+    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet); // NOLINT
     if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
     {  // No Dirichlet
         m_is_bottom_singular = (m_domain_covered[0] && !m_overset_dirichlet_mask);
@@ -277,7 +293,7 @@ MLNodeLinOp::buildMasks ()
             ccm.BuildMask(ccdomain,period,0,1,2,0);
 
             MFItInfo mfi_info;
-            if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+            if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
             if (m_overset_dirichlet_mask && mglev > 0) {
                 const auto& dmask_fine = *m_dirichlet_mask[amrlev][mglev-1];
@@ -356,7 +372,7 @@ MLNodeLinOp::buildMasks ()
         MLNodeLinOp_set_dot_mask(m_bottom_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
 
-    if (m_is_bottom_singular)
+    if (isBottomSingular())
     {
         int amrlev = 0;
         int mglev = 0;
@@ -365,6 +381,38 @@ MLNodeLinOp::buildMasks ()
         m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
         MLNodeLinOp_set_dot_mask(m_coarse_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
+}
+
+void
+MLNodeLinOp::prepareForGMRES ()
+{
+    if (m_coarse_dot_mask.empty()) {
+        int amrlev = 0;
+        int mglev = 0;
+        const Geometry& geom = m_geom[amrlev][mglev];
+        const iMultiFab& omask = *m_owner_mask_top;
+        m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
+        const auto lobc = LoBC();
+        const auto hibc = HiBC();
+        MLNodeLinOp_set_dot_mask(m_coarse_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
+    }
+}
+
+void
+MLNodeLinOp::setDirichletNodesToZero (int amrlev, int mglev, MultiFab& mf) const
+{
+    auto const& maskma = m_dirichlet_mask[amrlev][mglev]->const_arrays();
+    auto const& ma = mf.arrays();
+    const int ncomp = getNComp();
+    ParallelFor(mf, IntVect(0), ncomp,
+    [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n)
+    {
+        if (maskma[bno](i,j,k)) { ma[bno](i,j,k,n) = RT(0.0); }
+    });
+    Gpu::streamSynchronize();
+#ifdef AMREX_USE_EB
+    EB_set_covered(mf, 0, ncomp, 0, RT(0.0));
+#endif
 }
 
 void
@@ -446,6 +494,113 @@ MLNodeLinOp::resizeMultiGrid (int new_size)
     }
 
     MLLinOp::resizeMultiGrid(new_size);
+}
+
+Real
+MLNodeLinOp::normInf (int amrlev, MultiFab const& mf, bool local) const
+{
+    const int ncomp = this->getNComp();
+    const int finest_level = NAMRLevels() - 1;
+    if (amrlev == finest_level) {
+        return mf.norminf(0, ncomp, IntVect(0), local);
+    } else {
+        return mf.norminf(*m_norm_fine_mask[amrlev], 0, ncomp, IntVect(0), local);
+    }
+}
+
+void
+MLNodeLinOp::interpolationAmr (int famrlev, MultiFab& fine, const MultiFab& crse,
+                               IntVect const& nghost) const
+{
+    const int ncomp = getNComp();
+    const int refratio = AMRRefRatio(famrlev-1);
+
+    AMREX_ALWAYS_ASSERT(refratio == 2 || refratio == 4);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        Box fbx = mfi.tilebox();
+        fbx.grow(nghost);
+        Array4<Real> const& ffab = fine.array(mfi);
+        Array4<Real const> const& cfab = crse.const_array(mfi);
+
+        if (refratio == 2) {
+            AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
+            {
+                mlmg_lin_nd_interp_r2(i,j,k,n,ffab,cfab);
+            });
+        } else {
+            AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
+            {
+                mlmg_lin_nd_interp_r4(i,j,k,n,ffab,cfab);
+            });
+        }
+    }
+}
+
+void
+MLNodeLinOp::averageDownAndSync (Vector<MultiFab>& sol) const
+{
+    const int ncomp = getNComp();
+    const int finest_amr_lev = NAMRLevels() - 1;
+
+    nodalSync(finest_amr_lev, 0, sol[finest_amr_lev]);
+
+    for (int falev = finest_amr_lev; falev > 0; --falev)
+    {
+        const auto& fmf = sol[falev  ];
+        auto&       cmf = sol[falev-1];
+
+        auto rr = AMRRefRatio(falev-1);
+        MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), rr), fmf.DistributionMap(), ncomp, 0);
+        amrex::average_down(fmf, tmpmf, 0, ncomp, rr);
+        cmf.ParallelCopy(tmpmf, 0, 0, ncomp);
+        nodalSync(falev-1, 0, cmf);
+    }
+}
+
+void
+MLNodeLinOp::interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crse) const
+{
+    const int ncomp = getNComp();
+
+    const Geometry& crse_geom = Geom(amrlev,fmglev+1);
+    const IntVect refratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
+    AMREX_ALWAYS_ASSERT(refratio == 2);
+
+    MultiFab cfine;
+    const MultiFab* cmf;
+
+    if (amrex::isMFIterSafe(crse, fine))
+    {
+        crse.FillBoundary(crse_geom.periodicity());
+        cmf = &crse;
+    }
+    else
+    {
+        BoxArray cba = fine.boxArray();
+        cba.coarsen(refratio);
+        cfine.define(cba, fine.DistributionMap(), ncomp, 0);
+        cfine.ParallelCopy(crse, 0, 0, ncomp, 0, 0, crse_geom.periodicity());
+        cmf = & cfine;
+    }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& fbx = mfi.tilebox();
+        Array4<Real> const& ffab = fine.array(mfi);
+        Array4<Real const> const& cfab = cmf->const_array(mfi);
+
+        AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
+        {
+            mlmg_lin_nd_interp_r2(i,j,k,n,ffab,cfab);
+        });
+    }
 }
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)

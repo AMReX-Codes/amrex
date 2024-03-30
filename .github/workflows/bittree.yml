@@ -1,0 +1,127 @@
+name: bittree
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-bittree
+  cancel-in-progress: true
+
+jobs:
+  bittree-2d:
+    name: Bittree 2D
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 15
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Check out Bittree
+      uses: actions/checkout@v4
+      with:
+        repository: Flash-X/Bittree
+        path: bittree
+    - name: Build Bittree
+      run: |
+        cd ${{ github.workspace }}/bittree
+        python setup.py library --dim 2 --prefix ${{ github.workspace }}/libbittree
+        cd build
+        make -j4
+        make install
+    - name: Build and Run Test
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=80M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
+        export AMREX_BITTREE_HOME=${{ github.workspace }}/libbittree
+        cd ${{ github.workspace }}/Tests/Amr/Advection_AmrCore/Exec
+        make -j4 USE_MPI=TRUE USE_BITTREE=TRUE DIM=2 TEST=TRUE \
+            CCACHE=ccache
+        mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs_bittree amr.plot_int=1000
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-15 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  bittree-3d:
+    name: Bittree 3D
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 15
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Check out Bittree
+      uses: actions/checkout@v4
+      with:
+        repository: Flash-X/Bittree
+        path: bittree
+    - name: Build Bittree
+      run: |
+        cd ${{ github.workspace }}/bittree
+        python setup.py library --dim 3 --prefix ${{ github.workspace }}/libbittree
+        cd build
+        make -j4
+        make install
+    - name: Build and Run Test
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=80M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
+        export AMREX_BITTREE_HOME=${{ github.workspace }}/libbittree
+        cd ${{ github.workspace }}/Tests/Amr/Advection_AmrCore/Exec
+        make -j4 USE_MPI=TRUE USE_BITTREE=TRUE DIM=3 TEST=TRUE BL_NO_FORT=TRUE\
+            CCACHE=ccache
+        mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs_bittree max_step=10
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-15 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

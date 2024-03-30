@@ -41,7 +41,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         if (lo.x < ilo) {
            const int imin = lo.x;
            const int imax = ilo-1;
-           if (bc.lo(0) == BCType::ext_dir) {
+           if (bc.lo(0) == BCType::ext_dir || bc.lo(0) == BCType::ext_dir_cc) {
                // Do nothing.
            } else if (bc.lo(0) == BCType::foextrap) {
                for (int k = lo.z; k <= hi.z; ++k) {
@@ -67,7 +67,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                for (int k = lo.z; k <= hi.z; ++k) {
                for (int j = lo.y; j <= hi.y; ++j) {
                for (int i = imin; i <= imax; ++i) {
-                   q(i,j,k) = (ilo - i)*(q(ilo,j,k) - q(ilo+1,j,k)) + q(ilo,j,k);
+                   q(i,j,k) = static_cast<Real>(ilo - i)*(q(ilo,j,k) - q(ilo+1,j,k)) + q(ilo,j,k);
                }}}
            } else if (bc.lo(0) == BCType::reflect_even) {
                for (int k = lo.z; k <= hi.z; ++k) {
@@ -88,7 +88,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
             const int imin = ihi+1;
             const int imax = hi.x;
 
-            if (bc.hi(0) == BCType::ext_dir) {
+            if (bc.hi(0) == BCType::ext_dir || bc.hi(0) == BCType::ext_dir_cc) {
                 // Do nothing.
             } else if (bc.hi(0) == BCType::foextrap) {
                 for (int k = lo.z; k <= hi.z; ++k) {
@@ -114,7 +114,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                 for (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = imin; i <= imax; ++i) {
-                    q(i,j,k) = (i - ihi)*(q(ihi,j,k) - q(ihi-1,j,k)) + q(ihi,j,k);
+                    q(i,j,k) = static_cast<Real>(i - ihi)*(q(ihi,j,k) - q(ihi-1,j,k)) + q(ihi,j,k);
                 }}}
             } else if (bc.hi(0) == BCType::reflect_even) {
                 for (int k = lo.z; k <= hi.z; ++k) {
@@ -136,7 +136,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         if (lo.y < jlo) {
             const int jmin = lo.y;
             const int jmax = jlo-1;
-            if (bc.lo(1) == BCType::ext_dir) {
+            if (bc.lo(1) == BCType::ext_dir || bc.lo(1) == BCType::ext_dir_cc) {
                 // Do nothing.
             } else if (bc.lo(1) == BCType::foextrap) {
                 for (int k = lo.z; k <= hi.z; ++k) {
@@ -162,7 +162,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                 for (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = jmin; j <= jmax; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    q(i,j,k) = (jlo - j)*(q(i,jlo,k) - q(i,jlo+1,k)) + q(i,jlo,k);
+                    q(i,j,k) = static_cast<Real>(jlo - j)*(q(i,jlo,k) - q(i,jlo+1,k)) + q(i,jlo,k);
                 }}}
             } else if (bc.lo(1) == BCType::reflect_even) {
                 for (int k = lo.z; k <= hi.z; ++k) {
@@ -182,7 +182,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         if (hi.y > jhi) {
             const int jmin = jhi+1;
             const int jmax = hi.y;
-            if (bc.hi(1) == BCType::ext_dir) {
+            if (bc.hi(1) == BCType::ext_dir || bc.hi(1) == BCType::ext_dir_cc) {
                 // Do nothing.
             } else if (bc.hi(1) == BCType::foextrap) {
                 for (int k = lo.z; k <= hi.z; ++k) {
@@ -208,7 +208,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                 for (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = jmin; j <= jmax; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    q(i,j,k) = (j - jhi)*(q(i,jhi,k) - q(i,jhi-1,k)) + q(i,jhi,k);
+                    q(i,j,k) = static_cast<Real>(j - jhi)*(q(i,jhi,k) - q(i,jhi-1,k)) + q(i,jhi,k);
                 }}}
             } else if (bc.hi(1) == BCType::reflect_even) {
                 for (int k = lo.z; k <= hi.z; ++k) {
@@ -231,7 +231,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         if (lo.z < klo) {
             const int kmin = lo.z;
             const int kmax = klo-1;
-            if (bc.lo(2) == BCType::ext_dir) {
+            if (bc.lo(2) == BCType::ext_dir || bc.lo(2) == BCType::ext_dir_cc) {
                 // Do nothing.
             } else if (bc.lo(2) == BCType::foextrap) {
                 for (int k = kmin; k <= kmax; ++k) {
@@ -257,7 +257,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                 for (int k = kmin; k <= kmax; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    q(i,j,k) = (klo - k)*(q(i,j,klo) - q(i,j,klo+1)) + q(i,j,klo);
+                    q(i,j,k) = static_cast<Real>(klo - k)*(q(i,j,klo) - q(i,j,klo+1)) + q(i,j,klo);
                 }}}
             } else if (bc.lo(2) == BCType::reflect_even) {
                 for (int k = kmin; k <= kmax; ++k) {
@@ -277,7 +277,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
         if (hi.z > khi) {
             const int kmin = khi+1;
             const int kmax = hi.z;
-            if (bc.hi(2) == BCType::ext_dir) {
+            if (bc.hi(2) == BCType::ext_dir || bc.hi(2) == BCType::ext_dir_cc) {
                 // Do nothing.
             } else if (bc.hi(2) == BCType::foextrap) {
                 for (int k = kmin; k <= kmax; ++k) {
@@ -303,7 +303,7 @@ void fab_filcc (Box const& bx, Array4<Real> const& qn, int ncomp,
                 for (int k = kmin; k <= kmax; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    q(i,j,k) = (k - khi)*(q(i,j,khi) - q(i,j,khi-1)) + q(i,j,khi);
+                    q(i,j,k) = static_cast<Real>(k - khi)*(q(i,j,khi) - q(i,j,khi-1)) + q(i,j,khi);
                 }}}
             } else if (bc.hi(2) == BCType::reflect_even) {
                 for (int k = kmin; k <= kmax; ++k) {

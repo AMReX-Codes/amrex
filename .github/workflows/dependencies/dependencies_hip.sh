@@ -12,11 +12,15 @@
 
 set -eu -o pipefail
 
+# `man apt.conf`:
+#   Number of retries to perform. If this is non-zero APT will retry
+#   failed files the given number of times.
+echo 'Acquire::Retries "3";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
 # Ref.: https://rocmdocs.amd.com/en/latest/Installation_Guide/Installation-Guide.html#ubuntu
 curl -O https://repo.radeon.com/rocm/rocm.gpg.key
 sudo apt-key add rocm.gpg.key
-echo 'deb [arch=amd64] https://repo.radeon.com/rocm/apt/debian/ ubuntu main' \
+echo "deb [arch=amd64] https://repo.radeon.com/rocm/apt/${1-debian}/ ubuntu main" \
   | sudo tee /etc/apt/sources.list.d/rocm.list
 echo 'export PATH=/opt/rocm/llvm/bin:/opt/rocm/bin:/opt/rocm/profiler/bin:/opt/rocm/opencl/bin:$PATH' \
   | sudo tee -a /etc/profile.d/rocm.sh
@@ -41,16 +45,14 @@ sudo apt-get install -y --no-install-recommends \
     rocrand-dev     \
     rocprim-dev
 
+# hiprand-dev is a new package that does not exist in old versions
+sudo apt-get install -y --no-install-recommends hiprand-dev || true
+
 # activate
 #
 source /etc/profile.d/rocm.sh
 hipcc --version
+hipconfig --full
 which clang
 which clang++
 which flang
-
-# cmake-easyinstall
-#
-sudo curl -L -o /usr/local/bin/cmake-easyinstall https://git.io/JvLxY
-sudo chmod a+x /usr/local/bin/cmake-easyinstall
-export CEI_SUDO="sudo"

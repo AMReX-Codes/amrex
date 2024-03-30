@@ -39,7 +39,7 @@ namespace amrex
 
     /**
     * \brief Print on I/O Processor of the default communicator
-    * Example: Print() << " x = " << x << std::endl;
+    * Example: Print() << " x = " << x << '\n';
     */
         explicit Print (std::ostream& os_ = amrex::OutStream())
             : rank(ParallelContext::IOProcessorNumberSub())
@@ -49,7 +49,7 @@ namespace amrex
 
     /**
     * \brief Print on all processors of the default communicator
-    * Example: Print(Print::AllProcs) << " x = " << x << std::endl;
+    * Example: Print(Print::AllProcs) << " x = " << x << '\n';
     */
         Print (int rank_, std::ostream& os_ = amrex::OutStream())
             : rank(rank_)
@@ -59,7 +59,7 @@ namespace amrex
 
     /**
     * \brief Print on process rank_ of communicator comm_
-    * Example: Print(rank_, comm_) << " x = " << x << std::endl;
+    * Example: Print(rank_, comm_) << " x = " << x << '\n';
     */
         Print (int rank_, MPI_Comm comm_, std::ostream& os_ = amrex::OutStream())
             : rank(rank_)
@@ -80,6 +80,11 @@ namespace amrex
                 os.flush();
             }
         }
+
+        Print (Print const&) = delete;
+        Print (Print &&) = delete;
+        Print& operator= (Print const&) = delete;
+        Print& operator= (Print &&) = delete;
 
         Print& SetPrecision(int p) {
             ss.precision(p);
@@ -111,7 +116,7 @@ namespace amrex
         : public Print
     {
     public:
-        //! Example: AllPrint() << " x = " << x << std::endl;
+        //! Example: AllPrint() << " x = " << x << '\n';
         explicit AllPrint (std::ostream& os_ = amrex::OutStream())
             : Print(Print::AllProcs, os_)
             {}
@@ -125,20 +130,20 @@ namespace amrex
 
         static constexpr int AllProcs = -1;
 
-        explicit PrintToFile (const std::string& file_name_)
-            : file_name(file_name_)
+        explicit PrintToFile (std::string file_name_)
+            : file_name(std::move(file_name_))
             , rank(ParallelContext::IOProcessorNumberSub())
             , comm(ParallelContext::CommunicatorSub())
         { Initialize(); }
 
-        PrintToFile (const std::string& file_name_, int rank_ )
-            : file_name(file_name_)
+        PrintToFile (std::string file_name_, int rank_ )
+            : file_name(std::move(file_name_))
             , rank(rank_)
             , comm(ParallelContext::CommunicatorSub())
         { Initialize(); }
 
-        PrintToFile (const std::string& file_name_, int rank_, MPI_Comm comm_)
-            : file_name(file_name_)
+        PrintToFile (std::string file_name_, int rank_, MPI_Comm comm_)
+            : file_name(std::move(file_name_))
             , rank(rank_)
             , comm(comm_)
         { Initialize(); }
@@ -150,6 +155,11 @@ namespace amrex
                 ofs.flush();
             }
         }
+
+        PrintToFile (PrintToFile const&) = delete;
+        PrintToFile (PrintToFile &&) = delete;
+        PrintToFile& operator= (PrintToFile const&) = delete;
+        PrintToFile& operator= (PrintToFile &&) = delete;
 
         PrintToFile& SetPrecision(int p) {
             ss.precision(p);
@@ -199,9 +209,9 @@ namespace amrex
         : public PrintToFile
     {
     public:
-        //! Example: AllPrint() << " x = " << x << std::endl;
-        explicit AllPrintToFile (const std::string& file_name_)
-            : PrintToFile(file_name_, Print::AllProcs)
+        //! Example: AllPrint() << " x = " << x << '\n';
+        explicit AllPrintToFile (std::string file_name_)
+            : PrintToFile(std::move(file_name_), Print::AllProcs)
             {}
 
     };

@@ -1,3 +1,1103 @@
+# 24.03
+
+  -- Fix GPU restart for pure SoA particles (#3783)
+
+  -- fix for ref_ratio=1 (#3786)
+
+  -- Update GMRES/MLMG interface (#3779)
+
+  -- Ref ratio 3 (#3781)
+
+  -- Curl Curl solver: 4-color Gauss-Seidel smoother (#3778)
+
+  -- assert wavefront size (#3777)
+
+  -- Curl of Curl solver: Tweak restriction (#3765)
+
+  -- Adjust debug info argument for HIP compiler (#3761)
+
+  -- fixed bug in MLCurlCurL::xdoty() to prevent doing MPI sum twice. (#3774)
+
+  -- Implement portable assumptions with AMREX_ASSUME (#3770)
+     Fix bug in AMREX_ASSUME (#3773)
+
+  -- Pure SoA: `NextID` as `Long` (#3772)
+
+  -- GNU Make: set COMP_VERSION for hipcc and nvcc (#3771)
+
+  -- Make MFParallelFor safer from int overflow (#3768)
+
+  -- getParticleTileData: HostVector must be initialized during resize (#3769)
+
+  -- add AMREX_LIKELY and AMREX_UNLIKELY (#3767)
+
+  -- Only do a htod memcpy in getParticleTileData when necessary (#3760)
+
+  -- Sync GPU stream before getting the time in TinyProfiler (#3763)
+
+  -- Add a logspace-like function in AMReX_Algorithm.H (#3754)
+
+  -- Fix offset in send buffer of single precision particle communication (#3758)
+
+  -- EdgeFluxRegister for MHD (#3633)
+
+  -- Fix a typo in SYCL version of scan (#3757)
+
+  -- Interpolation from node-centered general mapped coordinates to tracers (#3750)
+
+  -- Remove various deprecated stuff not prefixed by amrex or bl (#3713)
+
+  -- GNU Make: Link flags (#3711)
+
+  -- Remove UB from is_aligned (#3751)
+
+  -- Add partitionParticles Function (#3743)
+
+  -- Minor new functions in AMReX_MPMD to provide flexibility for python binding (#3748)
+
+  -- Box::numPts() returns 0 for empty boxes (#3747)
+
+  -- New Linear Solver: Curl of Curl (#3682)
+
+  -- Use long integer in GPU kernels (#3742)
+
+  -- Add `ParticleIDWrapper::make_invalid()` (#3735)
+
+# 24.02
+
+  -- Disable m_aos for SoA Particle (#3736)
+     Update AoS Restrict (#3738)
+
+  -- Add helper function for setting id and cpu simultaneously. (#3733)
+
+  -- Disable SYCL on Nvidia and AMD CIs (#3726)
+
+  -- ParticleCopyPlan for SoA Particles (#3732)
+
+  -- Do not use std::forward twice on the same object in AmrParticleLocator (#3734)
+
+  -- Particle Copy Plan: Default Vals (#3729)
+
+  -- Fix circular header file dependency (#3725)
+
+  -- Provide portable Gpu::Atomic::Multiply and Gpu::Atomic::Divide implemented with CAS. (#3724)
+
+  -- Plotfile Tools: Add missing option to fcompare usage print (#3722)
+
+  -- Update documentation for STL files (#3723)
+
+  -- Add TypeMultiplier, MakeZeroTuple and IdentityTuple (#3718)
+
+  -- Interpolation routines for tracers with mapped_z. (#3714)
+
+  -- relax constraint that real_comp_names.size() == pc.NumRealComps() + NStructReal for pure SoA plotfiles (#3717)
+
+  -- Fix warnings in DenseBins::build with serial bin policy (#3716)
+
+  -- lockAdd: case of 2D plane in 3D (#3700)
+
+  -- Clean up interpolation routines in AMReX_TracerParticle_mod_K.H and AMReX_Particle_mod_K.H (#3679)
+
+  -- Add macro for loop unrolling across compilers (#3701)
+
+  -- Add a linspace-like function in AMReX_Algorithm.H (#3698)
+
+  -- use amrex::Gpu::memcpy for packParticleIDs (#3699)
+
+  -- BaseFab::lockAdd: Faster version of BaseFab::atomicAdd for OpenMP (#3696)
+
+  -- GMRES (#3648)
+
+  -- Add special named flag for invalid particles (#3688)
+
+  -- Fix BL_PROFILE_TINY_FLUSH (#3695)
+
+  -- Align GpuComplex to its size (#3691)
+
+  -- Fix Advection_AmrCore test (#3690)
+
+# 24.01
+
+  -- MLMG: Use free functions instead of MF member functions (#3681)
+
+  -- Add a few free functions for MLMG (#3680)
+
+  -- Eliminating Matrix operations in MLMG CG bottom solver if initial vector is zero (#3668)
+
+  -- Add a for loop that is unrolled at compile time (#3674)
+
+  -- Add PTD version of getParticleCell (#3675)
+
+  -- Improve ParIter docs (#3676)
+
+  -- Fix CI for ROCm 6.0 (#3673)
+
+  -- PureSoA IdCpu fixes (#3671)
+
+  -- CMake: AMReX_PARALLEL_LINK_JOBS (#3628)
+
+  -- Clang-Tidy in CI: Keep Going after Errors (#3667)
+
+  -- Delete empty below comments on classes and functions (#3669)
+
+  -- Documentation for Profiling: Hot Spots and Load Balance (#3622)
+
+  -- Fix warnings in SortParticlesForDeposition (#3664)
+
+  -- Fix Resize Issue of Fab with the Async Arena (#3663)
+
+  -- Fix SuperParticle `push_back` (#3661)
+
+  -- Pure SoA Particle: Separate Array for IdCPU (#3585)
+
+  -- Limit the scope of gpu_rand_generator (#3659)
+
+  -- Fix a typo in doxygen for NonLocalBC::FillBoundary (#3658)
+
+  -- GNU Make: Fix name collision for aurora (#3656)
+
+  -- two separate fixes -- particle_compare and ref_ratio=1 (#3655)
+
+  -- Clarify documentation on setEBDirchlet() and fix link to AMReX-Hydro (#3652)
+
+  -- Robustify the Cache Cleanup Scripts (#3650)
+
+  -- Disable CodeQL scheduled jobs on forks (#3649)
+
+  -- Work around compiler bug in nvcc 12.2 by using functor instead of lambda (#3653)
+
+# 23.12
+
+  -- solve_cg: avoid use of MF `z` (#3637)
+
+  -- Fix: nosmt OMP Threads Default (#3647)
+     `amrex.omp_threads`: Can Avoid SMT (#3607)
+
+  -- When checking for periodic outs on GPU, copy full particle data (#3646)
+
+  -- MLEBABecLap: Support Robin BC at Domain Boundaries (#3617)
+
+  -- Ascent: SoA Particle Support (#3350)
+
+  -- solve_bicgstab: use fewer MFs (#3635)
+
+  -- solve_bicgstab: cut use of `s` (#3629)
+
+  -- Bug fix for amrex::Subtract when called with interger nghost (#3634)
+
+  -- Fix typo in `MLMGT<MF>::getGradSolution` when `MF` is different from `AMF` (#3631)
+
+  -- SUNDIALS: Use sunrealtype instead of realtype (#3632)
+
+  -- SYCL: Use get_multi_ptr instead of get_pointer (#3630)
+
+  -- Plotfile Tools: GPU support (#3626)
+
+  -- solve_cg: use linop.make instead of MF constructor (#3627)
+
+  -- CArena: shrink_in_place and operator<< (#3621)
+
+  -- solve_bicgstab: use linop.make instead of MF constructor (#3619)
+
+  -- replace AMREX_DEVICE_COMPILE with AMREX_IF_ON_DEVICE and AMREX_IF_ON_HOST (#3591)
+
+  -- [Breaking] Prefix `amrex_` to each plotfile Tool (#3600)
+
+  -- FillRandom: Use MKL host API (#3536)
+
+  -- use hipPointerAttribute_t.type as HIP is removing hipPointerAttribute_t.memoryType (#3610)
+
+# 23.11
+
+  -- Give FlashFluxRegisters ways to accumulate data in registers (#3597)
+
+  -- `AMReXBuildInfo.cmake`: AMReX_DIR (#3609)
+
+  -- update doc for amrex::Abort on GPU (#3605)
+
+  -- Add runtime particle components to HDF5 wrapper (#3596)
+
+  -- Windows: Fix Installed AMReXBuildInfo.cmake (#3606)
+
+  -- Print AMReX version at the beginning of Initialize (#3604)
+
+  -- Install Move Tools to `shared/amrex` (#3599)
+
+  -- Revert "Add ability for GCC 8 in CMake to build fgradient which uses std::filesystem" (#3601)
+
+  -- Avoid std::filesystem (#3602)
+
+  -- Fix Assertion in MLEBNodeFDLaplacian (#3594)
+
+  -- Fix a memory "leak" in VisMF's persistent streams (#3592)
+
+  -- RealVect Static: Export (#3589)
+
+  -- change MaxCnt from 4 to max(4,max_level+1) for how many iterations we… (#3588)
+     … allow in creation of the initial grid hierarchy
+
+  -- Add Bittree CI (#3577)
+
+  -- BCType::ext_dir_cc (#3581)
+
+  -- Disable CCache in Windows CIs (#3566)
+
+  -- Fix ICC CI by Freeing up Disk Space (#3583)
+
+  -- Docs: Link pyAMReX (#3582)
+
+  -- NodeABecLaplacian: Reuse (#3579)
+
+  -- simplify how 2d surface integrals are computed (#3571)
+
+  -- Adding bittree interface to improve regridding performance in octree mode (#3555)
+
+  -- MLNodeABecLaplacian (#3559)
+
+  -- Fix Boundary Centroid in a Corner Case in 2D (#3568)
+
+# 23.10
+
+  -- Bugfix typo in AMReX_SundialsIntegrator.H Nvar vs NVar, the
+     declared/used variable is NVar (#3573)
+
+  -- Code Spell (#3563)
+
+  -- Add Fortran interface for average_down_faces (#3553)
+
+  -- PureSoA: Disable AoS Access (#3290)
+
+  -- Another terrain fix for MPI (#3557)
+     Fix Increment, OK, and EnforcePeriodicWhere for terrain-fitted particles. (#3556)
+
+  -- Added cvode functionality to SUNDIALS integrator (#3436)
+
+  -- ParmParse::addfile needs Init (#3440)
+
+  -- Make the same changes to ApplyInitialRedistribution as to ApplyMLRedistribution (#3554)
+
+  -- Reset EB Fab Type (#3552)
+     EB Data outside domain (#3549)
+
+  -- We weren't defining cent_hat out far enough (#3548)
+
+  -- Add Fortran interface for FillCoarsePatch for face variables (#3542)
+
+  -- print_state/printCell: Make it work without managed memory (#3543)
+
+  -- FillPatch Fortran Interface: Fix incorrect size of Vector<BCRec> (#3546)
+
+  -- ReduceOps: reset result readiness flag (#3545)
+
+  -- Fix Fortran interface for FillPatch for face variables (#3541)
+
+  -- Support multiple CUDA architectures at compilation (#3535)
+
+  -- Add Kestrel machine and remove Rhodes machine from Make.nrel (#3533)
+
+  -- Explicitly flush when writing to the terse run log (#3532)
+
+  -- Missing header in AMReX_GpuComplex.H (#3531)
+
+  -- Add global domain id offset to conduit wrapper (#3524)
+
+# 23.09
+
+  -- Fix InitRandomPerBox for 1D & 2D (#3527)
+
+  -- Add ability for GCC 8 in CMake to build fgradient which uses std::filesystem (#3523)
+
+  -- Fix: Include Guard 1D for MLPoisson (#3528)
+
+  -- Workaround for Intel compiler classic (#3526)
+
+  -- Constness in buildInfo: num_modules (#3522)
+
+  -- MLABecLaplacian: Tweak kernel fusing (#3521)
+
+  -- UniqueString tweak (#3520)
+
+  -- faverage fix (#3519)
+
+  -- Empty level fix (#3517)
+
+  -- Simplify filterParticles Kernel (#3510)
+
+  -- Generalize particle-to-cell assignment function (#3499)
+     Follow-on to 3499 (#3514)
+     ParticleLocator: Make Assignor optional template parameter (#3515)
+
+  -- GPU Launch Min Blocks (#3503)
+
+  -- Remove unsafe std::forward (#3513)
+
+  -- Fix Bug in FaceLinear Interpolater (#3483)
+
+  -- Add test on whether we are in the valid box when updating drho_as_crs… (#3506)
+
+  -- Fix backtrace nullptrs (#3505)
+
+  -- Skip ubsan lib on OSX (#3504)
+
+  -- SYCL: Add table of GNU Make config vars to docs (#3400)
+
+  -- Fix: Backtraces will NULL Addresses (#3502)
+
+  -- Update gpu elixir and async array synchronization for sycl (#3498)
+
+  -- SundialsIntegrator: Fix memory deallocation (#3501)
+
+  -- FillRandom & FillRandomNormal (#3500)
+
+  -- Update position in 2nd pass for tracer advect with Ucc. (#3496)
+
+  -- Move use of bcrec back onto GPU (#3494)
+
+  -- fix bug in StateRedist and add multi-level functionality for FluxRedi… (#3491)
+
+  -- fgradient: A new plotfile tool for computing gradient (#3490)
+
+  -- CI: Remove redundancy in nvcc dependencies files (#3387)
+
+  -- CMake: HIP Debug with -O1 (#3487)
+
+  -- Fix overflow in ParallelFor(Long n, ...) (#3489)
+
+  -- Adjust build for upstream Mpich and OpenMPI modules on Perlmutter. (#3486)
+
+  -- CArena: Implement alloc_in_place (#3426)
+
+  -- Clang-Tidy: Add more checks (#3466)
+     Fix a bug in #3466 (#3485)
+
+  -- Option to force regrid level zero (#3484)
+
+  -- Fix typo introduced in PR 3452 (#3482)
+
+  -- Clang-Tidy changes in Src/LinearSolvers (#3475)
+
+  -- Update FluxRedist and comments for StateItracker (#3481)
+
+  -- Clang-Tidy changes in Src/EB (#3473)
+
+  -- Clang-Tidy changes in Src/Boundary (#3471)
+
+  -- Clang-Tidy changes in Src/F_Interfaces (#3474)
+
+  -- Clang-Tidy changes in Src/Particle (#3476)
+
+  -- Clang-Tidy changes in Src/Extern (#3472)
+
+  -- Clang-Tidy changes in Tests (#3477)
+
+  -- Clang-Tidy changes in Tools (#3478)
+
+  -- Change the default value of The_Pinned_Arena release threshold (#3479)
+
+  -- Handle ThetaGPU in GNU make system (#3469)
+
+  -- Clang-Tidy changes in Src/AmrCore (#3468)
+
+  -- Clang-Tidy changes in Src/Amr (#3467)
+
+  -- Fix a bug in EB tensor solver's cross term (#3465)
+
+  -- Add misc-misplaced-const check to clang-tidy CI test (#3464)
+
+  -- Suppress implicit return warnings with nvcc (#3463)
+
+  -- Silence "unreachable loop" warning for GPU builds (#3462)
+
+  -- PlotFileUtil: Add Direct Includes (#3446)
+
+# 23.08
+
+  -- Fix a bug in AmrMesh::ChopGrids (#3460)
+
+  -- Remove use of managed memory from TracerParticleContainer::TimeStamp (#3457)
+
+  -- Mac Arm64 Architecture fpe handling (#3447)
+
+  -- SYCL: Remove Workaround no longer needed (#3455)
+
+  -- SENSEI: SoA Particle Support (#3349)
+
+  -- Warn if USE_GPU_RDC=TRUE when HIP_SAVE_TEMPS=TRUE (#3454)
+
+  -- SYCL: Allocate 3/4 of total global memory by default (#3431)
+
+  -- GPU Assignment (#3382)
+
+  -- call_f refactor (#3452)
+
+  -- HDF5 bug fix for vol-async and compression (#3451)
+
+  -- Add second template parameter to other AoS for swap (#3450)
+
+  -- Refactor call_f in ParticleTransformation and WriteBinaryParticleData
+     to use constexpr if (#3448)
+
+  -- Fix this version of WritePlotFile to use SuperParticle, as expected by
+     WriteBinaryParticleData (#3449)
+
+  -- PODVector: Add a Missing STL Include (#3445)
+
+  -- Disable Managed Memory for The_Arena by default. (#3438)
+
+  -- SYCL RelWithDebInfo Build: Add -g1 (#3429)
+
+  -- Clang Tidy: +modernize-use-using (#3420)
+
+  -- Intel CI: Update Warning Flags (#3443)
+
+  -- In MLEBABecLap::compGrad, add missing call to addInhomogNeumannFlux (#3441)
+
+  -- Doxygen: SoA Get[Real/Int]Data (#3439)
+
+  -- ParmParse: Line Continuation (#3437)
+
+  -- SYCL: Get Pointer Type (#3434)
+
+  -- SYCL: UUID (#3432)
+
+  -- Re-Enable FPE Trap for SYCL (#3430)
+
+  -- Memory Efficient AoS Particle Sorting (#3427)
+
+  -- Use MPI_IN_PLACE (#3428)
+
+  -- PODVector Updates (#3425)
+
+  -- generalize interpolaters to not need or use extra values in a direction
+     for which the refinement ratio is 1 (#3415)
+
+  -- Fix Fortran module installation (#3411)
+
+  -- Fix allocateSlice for EB (#3391)
+
+  -- Update Intel compiler installation (#3423)
+
+  -- Improve comments and documentation on FaceDivFree Interpolater. (#3422)
+
+  -- Add the option to throw an exception on MLMG failure rather than aborting (#3424)
+
+  -- Make ReduceData::value safer (#3421)
+
+  -- Use atomic load in SYCL version of the single-pass scan (#3419)
+
+  -- GPU: Add Device::deviceVendor() function and fix #3416 (#3418)
+
+  -- New feature in EB: Add regular coarse levels (#3414)
+
+  -- add access function for EBFactory (moved out of IAMR) (#3417)
+
+  -- DataServices: Qualify math functions with `std::` namespace specifier (#3406)
+
+  -- Update CleanUpCache workflow (#3403)
+
+  -- Add some profilers to AmrLevel and FillPatcher (#3402)
+
+  -- Update the clang-tidy/ccache script (#3399)
+
+  -- Update Git workflow in CONTRIBUTING.md (#3397)
+
+  -- move redist into amrex (#3378)
+
+  -- Amr: Add printing of simulation time (#3392)
+
+  -- Add function for setting growth factor (#3394)
+
+  -- Updates Ascent Github Actions CI to use 0.9.2 (latest release)
+
+# 23.07
+
+  -- Allow users to change the default vector growth strategy (#3389)
+
+  -- Communications arena implementation (#3388)
+
+  -- CI: oneAPI SYCL for AMD GPUs (#3341)
+
+  -- GPU: Always deallocate gpu_rand_state in Finalize() (#3384)
+
+  -- Hypre ILU options (#3381)
+
+  -- Amr Class: Synchronization of StateData's Time (#3375)
+
+  -- EB 2D: Fix levelset on nodes adjacent to covered edges (#3370)
+
+  -- Add workflow for oneAPI SYCL on Nvidia GPUs (#3360)
+
+  -- CMake: Enforce >= C++17 for ROCm (#3355)
+
+  -- Use device arena for the_fa_arena when activating GPU-aware MPI (#3362)
+
+  -- Coverity Scan (#3361)
+
+  -- CMake: AMReX_TEST_TYPE (#3357)
+
+  -- CMake: Enable AMReX_PARTICLES by default (#3358)
+
+  -- Add AMReX Apps to CI (#3348)
+
+  -- Make sure amrex::Long is wider than int. (#3345)
+
+  -- Particle Ids: Add int Constants (#3338)
+
+  -- CI: Clang CUDA (#3184)
+
+  -- Reinforce __CUDACC__ conditionals w/ AMREX_USE_CUDA (#3331)
+
+  -- CMake: Link option when HIP is a language (#3335)
+
+# 23.06
+
+  -- Implement Checkpoint, Restart, and Plotfile for pure SOA (#3332)
+
+  -- Clang: -Wno-null-conversion for Lexer (#3333)
+
+  -- Fix Pure SOA RedistributeGPU: size from ptile, not the AoS (#3330)
+
+  -- cleaning and fixes for PureSoA ParticleTile (#3327)
+
+  -- RealBox: Accept RealVect Setters (#3328)
+
+  -- Port InitRandom for pure SoA (#3325)
+
+  -- FillBoundary for Spherical Coordinates (#3286)
+
+  -- Fix: AMReXConfig.cmake Multi-Dim (#3324)
+
+  -- HypreSolver: a new interface for Hypre (#3269)
+
+  -- Fix Tests/EB_CNS in 2D (#3323)
+
+  -- Fix CodeQL warnings (#3318)
+
+  -- Add get/set of AMRErrorTagInfo in AMRErrorTag (#3317)
+
+  -- GNU Make: allow skipping paths when running clang-tidy (#3316)
+
+  -- Multi-Dim Buildsystem Support (#3309)
+
+  -- GNU Make: use CLANG_TIDY_CONFIG_FILE if it's set (#3315)
+
+  -- Refactor Parser (#3265)
+
+  -- Enable binning for ParticleTileData (#3307)
+
+  -- ParticleTile: More SoA Updates (#3305)
+
+  -- HIP Debug Build (#3311)
+
+  -- Run PODVector::push_back on GPU (#3308)
+
+  -- ParticleInit: Implicit Int Float Conversion (#3304)
+
+  -- More constexpr if for pure soa in RedistributeCPU (#3299)
+
+  -- MLEBNodeFDLaplacian: Implement the alpha term (#3301)
+
+  -- Fixing the ParIter numParticles functions for pure SOA (#3303)
+
+  -- Add .mailmap (#3295)
+
+  -- Implement StructOfArray::empty() and ParticleTile::empty() for pure SoA (#3296)
+
+  -- port the old BoxLib faverage tool to AMReX (#3293)
+
+  -- GNU Make: add -pthread for HIP (#3294)
+
+  -- Github Cache: Path and Hypre (#3288)
+
+# 23.05
+
+  -- Support SoA-Only Particles (#2878)
+     Conduit: Update ParticleTile API (#3260)
+     Fix default template parameter for ParConstIter (#3262)
+     Update SortParticlesForDeposition for pure SoA (#3277)
+     Implement increment for pure SoA (#3278)
+     Fix RealVect version of pos() for pure SoA (#3283)
+     Fix increment for pure SoA (follow on to #3278) (#3284)
+
+  -- handle divide by 0 in signed distance function (#3279)
+
+  -- Work-Around: CUDA 12.1 Non-Default Codelines (#3275)
+
+  -- CMake: Fix CUDA Options Order (#3274)
+
+  -- Fix bug in EBNodeFDLap (#3271)
+
+  -- update ci to use ascent 0.9.1 (#3266)
+
+  -- Add powi function in AMReX_Math.H (#3251)
+
+  -- update hiprand header path (#3252)
+
+  -- Installation using configure: Forgot to install Parser headers (#3249)
+
+  -- ParticleTileData: No Restrict in Storage (#3245)
+
+  -- CI: Retry Apt Repos (#3242)
+
+  -- Silence SWFFT (#3240)
+
+  -- Support complete elliptic integrals of 1st and 2nd type in Parser (#3225)
+
+  -- Rework handling of roundoff domain extent (#3199)
+     Fix periodic boundary bug in #3199 (#3243)
+     Fix Roundoff Domain (#3247)
+     Roundoff errors in computeRoundoffDomain (#3255)
+     Ensure that particles are always < rhi after applying periodic bcs. (#3263)
+
+  -- Fix: queryAdd for resizing vectors (#3220)
+
+# 23.04
+
+  -- Speedup clang tidy (#3219)
+
+  -- Use ccache in Github Actions (#3218)
+
+  -- Clang-tidy fixes
+     #3227, #3224, #3222, #3206, #3203, #3202, #3201, #3200, #3197, #3190, #3188, #3176
+
+  -- bug fix in creating EB from STL files (#3223)
+
+  -- Fix bug in MLEBABecLap getEBFluxes(). (#3217)
+
+  -- Add build option for Intel SYCL AOT GRF mode (#3173)
+
+  -- SYCL sub-group size (#3180)
+
+  -- Warning about CPU core oversubscription (#3211)
+
+  -- Fix issues in ParticleContainerBase (#3208)
+
+  -- Add assert that we are not inside threaded region when InitRandom is called. (#3204)
+
+  -- Sorting for faster current deposition (#3198)
+
+  -- Update SUNDIALS NVector constructors (#3165)
+
+  -- ReduceToPlane (#3187)
+
+  -- ParticleContainer: Resize runtime components (#3186)
+
+  -- SYCL: Tweak #3164 and switch to multi_ptr for sincos (#3185)
+
+  -- Fix race condition with TinyProfiler for memory (#3169)
+
+# 23.03
+
+  -- GNU Make: Allow customizing tmp_build_dir (#3177)
+     fix recently introduced tmp_build_dir build bug (#3179)
+
+  -- GNU Make: Allow choice of Intel compiler variant (#3175)
+
+  -- CMake: Parallel HDF5 Detection (#3170)
+
+  -- TableData: Relax the static assertion (#3174)
+
+  -- SYCL: Group and subgroup size (#3172)
+
+  -- Add Make.local-pre to gitignore (#3171)
+
+  -- New functions for getting data in cell or line. (#3166)
+
+  -- SYCL: Optimization of small reduction (#3167)
+
+  -- amrex::Math: No longer need to use sycl math functions (#3164)
+
+  -- gitignore: Editors & IDEs (#3163)
+
+  -- SYCL Device Info (#3161)
+
+  -- SYCL AOT: Fix warning (#3159)
+
+  -- GNU Make: make it an error if intel gpu arch for aot is unknown (#3157)
+
+  -- Update Build Systems for oneAPI (#3123)
+     SYCL: Fix AOT (#3155)
+
+  -- CI: Add sundials (#3153)
+
+  -- Add static_assert to Mpi_typemap<GpuComplex> (#3154)
+
+  -- SUNDIALS: Replace SUNDIALS math macros with std math functions (#3151)
+
+  -- Fix case where a norm is 1e-15 but not technically zero (#3149)
+
+  -- Fix bug in async IO for particles (#3150)
+
+  -- DPCPP -> SYCL (#3140)
+
+  -- Add MPI support to GpuComplex (#3148)
+
+  -- GNU Make: Add support for Intel LLVM compiler in CPU builds (#3126)
+
+  -- SYCL: Fix the order of destruction (#3146)
+
+  -- Adjust subgroup size for Intel GPUs (#3139)
+
+  -- Runtime parameters for Signal handling controls (#3125)
+
+  -- FillPatcher: Update interpolation in time (#3106)
+
+  -- AmrLevel::FillPatch: Abort if grids are not properly nested for GPU or EB (#3098)
+
+  -- Fix FabArray::shift (#3147)
+
+  -- Fix nl test (#3142)
+
+  -- Fix bug in Device::Finalize: Forgot to clear streams (#3143)
+
+  -- Add a compute face-centered velocity gradient in MLEBTensor (#3133)
+
+  -- Test: Reinit AMReX (#3141)
+
+  -- Functional: Less -> Minimum, Greater -> Maximum (#3138)
+
+  -- Profile memory allocations of the CArena using TinyProfiler (#3105)
+     Fix #3105: missing include (#3134)
+     Initialize TinyProfiler earlier only for memory (#3137)
+
+  -- PODVector: Add some stream synchronization (#3130)
+
+  -- SENSIE CI: run on ubuntu-20.04. 18.04 is deprecated. (#3131)
+
+  -- NeighborParticles: memcpy -> memcpy_async (#3129)
+
+  -- Rename AMReX_CUDA_MAX_THREADS to AMReX_GPU_MAX_THREADS (#3115)
+
+  -- CI: NVHPC 23.1 (#3122)
+     NVHPC: CUDA (#3124)
+
+  -- NVHPC: OpenMP Atomic Capture Fixed (#2378)
+
+  -- oneAPI: Work around compiler bug (#3121)
+
+  -- Multi-grid NeighborList GPU Sync (#3120)
+
+  -- Modify the neighbor particles test to also test selectActualNeighbors. (#3118)
+
+  -- Remove Atomic::Inc and Dec (#3117)
+
+# 23.02
+
+  -- update github actions to use ascent 0.9.0 release (#3114)
+
+  -- CMake 3.18+: Stay OLD CUDA_ARCHITECTURES Policy (#3112)
+
+  -- OpenBCSolver: Fix reuse (#3111)
+
+  -- CMake: Fix AMD Flags for ROCm 5.5 and Bump cmake minimum version to
+     3.18 (#3107)
+
+  -- Check component and derive names for `canDerive` and `get` (#3109)
+
+  -- CMake clean up (#3100)
+
+  -- Replace sprintf with snprintf to fix compiler warnings (#3108)
+
+  -- ParmParse: support nan and inf (#3101)
+
+  -- CMake: add offload linker option --whole-archive for ROCm hipcc (#3097)
+
+  -- SinCos: AppleClang Fix (#3094) (#3096)
+
+  -- CMake: Make hypre and PETSc available only if it's not 1D. (#3093)
+
+  -- introduce amrex code of conduct (#3092)
+
+  -- SYCL: Reinforce device compilation preprocessor conditionals (#3090)
+
+  -- New knapsack function to reduce the cost of data movement in load
+     balancing (#3079)
+
+  -- GPU single stream region and no sync region (#3073)
+
+  -- Check for small cell before checking for multi-cut (#3088)
+
+  -- Improve AmrMesh::ChopGrids (#3081)
+
+  -- Add extra check for multicut cell (#3087)
+
+  -- Polydisperse neighbor search algorithm (#3060)
+
+  -- GPU UUID and Arena initial size (#3085)
+
+  -- Use IsCallable to detect if F is callable (#3080)
+
+  -- GNU Make: No need to do GCC version check for make clean etc. (#3084)
+
+  -- Mlebabeclap aniso (#2640)
+
+# 23.01
+
+  -- amrex::fillAsync (#3076)
+
+  -- CI: Ascent (#3078)
+
+  -- Add forward declarations for class template friends (#3077)
+
+  -- Update GNU Make file for OLCF (#3070)
+
+  -- HIP: amdgpu-target -> offload-arch (#3069)
+
+  -- GPU kernel fusing in MLPoisson (#3071)
+
+  -- Docs: Sync Before Comms (#3075)
+
+  -- Remove deprecated SYCL declaration (#3074)
+
+  -- Change the type of DeriveRec::DeriveBoxMap to std::function (#3068)
+
+  -- Add CodeQL Scanning (#3059)
+
+  -- Remove old python scripts for releasing (#3066)
+
+  -- Plotfile Reader: Allow multi-word variable names (#3067)
+
+  -- Fix FPE in FillPatcher for RK (#3065)
+
+  -- Fix: Shared CMake builds w/ `AMReX_BUILD_SHARED_LIBS` (#3057)
+
+  -- Add PETSc CI (#3049)
+
+  -- remove plotsinglevar.py (#3063)
+
+  -- Remove old python build scripts from Castro / Maestro (#3064)
+
+  -- Add math functions to amrex::Math (#3008)
+
+  -- remove some astro-specific python routines (#3062)
+
+  -- Gpu Streams: Performance Tuning (#3058)
+
+  -- MLMG: template (#3035)
+
+  -- Add Hypre CI (#3048)
+
+  -- Print host name in backtrace files (#3054)
+
+# 22.12
+
+  -- SYCL: Remove floating-point specialisations for atomic adds (#3050)
+
+  -- Template average down (#2980)
+
+  -- fix compilation of RichardsonConvergenceTest (#3046)
+
+  -- Refactor Boundary Registers (#3028)
+
+  -- Fix Multi-Level Open BC Solver (#3032)
+
+  -- Template average_down_faces (#3040)
+
+  -- Add FabArray::LocalCopy and LocalAdd (#3043)
+
+  -- FabArray::sum (#3041)
+
+  -- amrex::Any::hasValue() (#3025)
+
+  -- Make YAFluxRegister template (#3030)
+
+  -- FabArray::norminf (#3039)
+
+  -- amrex::Dot (#3042)
+
+  -- template FabArray::Saxpy, Xpay and LinComb (#3044)
+
+  -- Use std::max when coarsening a TagBox to preserve TagBox::SET values (#3045)
+
+  -- Update for oneAPI 2023 (#3024)
+
+  -- min/max- and linear combination-preserving interpolater (#3020)
+
+  -- template Xpay (#3031)
+
+  -- CMake: AMReX_BUILD_SHARED_LIBS (#3013)
+
+  -- Fix mis-matched array type that broke mixed-precision restarts (#3026)
+
+  -- Add amrex::demangle for demangling C++ names (#3022)
+
+  -- Add more functionalities to TypeList (#3021)
+
+  -- Add muller to NERSC machines (#3019)
+
+  -- Fix -lquadmath in GNU Make (#3018)
+
+  -- Fix EB tensor solver's boundary when EB is tilted. (#3002)
+
+  -- Add -Wmissing-include-dirs to gcc warning flags (#3012)
+
+  -- A better fix for the PETSc compilation issue (#3011)
+
+  -- Replace all `sprintf` by `snprintf` (#3010)
+
+  -- Use std::less for comparison of pointers (#3007)
+
+  -- Add YAFluxRegister::getFineData (#3004)
+
+  -- C++17 Transition (#2992)
+
+# 22.11
+
+  -- MPI Reduce for ValLocPair (#3003)
+
+  -- `FabArray::isDefined` (#2997)
+
+  -- Make The_Device_Arena non-managed (#2998)
+
+  -- Add alias template Gpu::NonManagedDeviceVector (#2999)
+
+  -- Pre- and Post-interpolation hook interface (#2991)
+
+  -- Add user defined BC types (#2995)
+
+  -- Add BCRec::set for convenience (#2993)
+
+  -- ParallelFor with compile time optimization of kernels with run time parameters (#2954)
+
+  -- 2D RZ solver for WarpX: Arbitrary coefficient (#2986)
+
+  -- Runge-Kutta support for AMR (#2974)
+
+  -- Fourth-order interpolation from fine to coarse level (#2987)
+
+  -- Fix EB data inconsistency when fixing small cells and multiple cuts (#2943)
+
+  -- MFIter::Finalize (#2983, #2985, #2988)
+
+  -- Fix MLMG::getGradSolution & getFluxes for inhomogeneous Neumann and Robin BC (#2984)
+
+  -- MLLinOp::postSolve (#2981)
+
+  -- add templating for the cell bilinear interpolators (#2979)
+
+  -- FillPatcher class (#2972)
+
+  -- Remove sycl namespace alias (#2971)
+
+  -- Fix Tensor Solver BC (#2930)
+
+  -- Disable host device for macros for SYCL/DPC++ (#2969)
+
+# 22.10
+
+  -- Solve an issue with particles async IO when having runtime added variables (#2966)
+
+  -- Fix int overflow in amrex::bisect (#2964)
+
+  -- Fix MLEBNodeFDLaplacian bottom solver (#2963)
+
+  -- make tagging routines EB_aware (#2962)
+
+  -- Volume weighted sum (#2961)
+
+  -- CellData: data in a single cell (#2959)
+
+  -- Quartic interpolation for cell centered data (#2960)
+
+  -- Add GPU-compatible upper bound and lower bound algorithms to AMReX_Algorithm (#2958)
+
+  -- add option for makebuildsources to specify the style arguments for 'git describe'. (#2957)
+
+  -- Add roundoff_lo corresponding to roundoff_hi for domains that don't start at 0 (#2950)
+
+  -- Add template parameter to ParallelFor and launch specifying block size (#2947)
+
+  -- Byte spread fixes (#2949)
+
+  -- CMake: HIP_PATH from ROCM_PATH (#2948)
+
+  -- Fix: Make Finalize->Initialize->F->I->... Work (#2944)
+
+  -- Changes for Cray & Clang (#2941)
+
+  -- Link to cublas when using CUDA and Hypre (#2933)
+
+  -- HIP: use coarse grained host memory (#2932)
+
+  -- EB checkpoint files (#2897)
+
+  -- Fix: Loading Files Again (#2936)
+
+  -- Check if boundary particles container has been created before clearance. (#2935)
+
+  -- SYCL: Replace deprecated atomic types and operations (#2921)
+
+# 22.09
+
+  -- Preserve neighbor particles when sorting particles. (#2923)
+
+  -- Scope of NonLocalBC::ParallelCopy (#2922)
+
+  -- Open Boundary Poisson Solver (#2912)
+     Add hypre as an option for OpenBCSolver (#2931)
+
+  -- Fix OOB access of ref ratio on HDF write header (#2919)
+
+  -- Add Polaris to GNUMake (#2908)
+
+  -- Export GpuDevice Globals (#2918)
+
+  -- enable LinOp to use the right Factory (fixes moving geometry problem) (#2916)
+
+  -- Use 1 atomic instead of two per item in DenseBins::build (#2911)
+
+  -- [SYCL] Remove amrex::oneapi and update deprecated device descriptors (#2910)
+
+  -- Add: `MultiFab::sum_unique` (#2909)
+
+  -- In MLMG::mgFcycle, assert that for EB the linop is cell-centered. (#2905)
+
+  -- EB: Add Fine Levels (#2881)
+
+  -- Add rpath to lib64 for ZFP. (#2902)
+
+  -- change data types from double to amrex::Real, and thus we can use single precision for the hypre IJ interface (#2896)
+
+  -- MPMD Support (#2895)
+
+  -- MLMG interface (#2858)
+
+# 22.08
+
+  -- Let `selectActualNeighbors` return right after starting if there are no
+     particles for communication. (#2886)
+
+  -- Add Comm Sync to Redistribute (#2891)
+
+  -- Multi-materials and derived variable output (#2888)
+
+  -- Fix host / device sync bug in PODVector (#2890)
+
+  -- MinLoc and MaxLoc Support (#2885)
+
+  -- HIP: Remove the call to hipDeviceSetSharedMemConfig (#2884)
+
+  -- Add Frontier to GNU Make (#2879)
+
+  -- Add option to derefine to AMRErrorTag (#2875)
+
+  -- Fix the segmentation fault in selecting actual neighbor particles. (#2877)
+
+  -- Workaround to bypass issue observed at very large scale with Fujitsu MPI (#2874)
+     `TagBoxArray::collate`: Fujitsu Clang (#2889)
+
+  -- Allow zero components MultiFab and BaseFab (#2873)
+
+  -- New EB optimization parameter: eb2.num_coarsen_opt (#2872)
+
+  -- SENSEI 4.0: Fix Build for Particles (#2869)
+
+  -- Cache the neighbor comm tags for the CPU implementation of fillNeighbors. (#2862)
+
+  -- Remove some hard checks in check_mvmc for 3D (#2864)
+
+  -- Carry over fix for ngbxy.smallEnd typo (#2868)
+
 # 22.07
 
   -- Adding control APIs and namespacing for core algorithm paths like SpGEMM, SpMV, and SpTrans. (#2859)

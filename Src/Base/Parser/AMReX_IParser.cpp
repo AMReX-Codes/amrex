@@ -38,9 +38,6 @@ IParser::define (std::string const& func_body)
     }
 }
 
-IParser::~IParser ()
-{}
-
 IParser::Data::~Data ()
 {
     m_expression.clear();
@@ -68,7 +65,7 @@ void
 IParser::registerVariables (Vector<std::string> const& vars)
 {
     if (m_data && m_data->m_iparser) {
-        m_data->m_nvars = vars.size();
+        m_data->m_nvars = static_cast<int>(vars.size());
         for (int i = 0; i < m_data->m_nvars; ++i) {
             iparser_regvar(m_data->m_iparser, vars[i].c_str(), i);
         }

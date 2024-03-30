@@ -4,6 +4,7 @@
 #include <AMReX_Particles.H>
 
 #include <unistd.h>
+#include <cstdio>
 
 using namespace amrex;
 
@@ -104,16 +105,16 @@ void test ()
     Vector<int> level_steps(nlevs, 0);
 
     /* if (compression.compare("None@0") != 0) */
-    /*     std::cout << "Compression: " << compression << std::endl; */
+    /*     std::cout << "Compression: " << compression << '\n'; */
 
     char fname[512];
     for (int ts = 0; ts < nplotfile; ts++) {
-        sprintf(fname, "%splt%05d", directory.c_str(), ts);
+        std::snprintf(fname, sizeof fname, "%splt%05d", directory.c_str(), ts);
 
         // Fake computation
         if (ts > 0 && sleeptime > 0) {
             if (ParallelDescriptor::IOProcessor()) {
-                std::cout << "Sleep for " << sleeptime << " seconds." << std::endl;
+                std::cout << "Sleep for " << sleeptime << " seconds." << '\n';
                 fflush(stdout);
             }
             sleep(sleeptime);
@@ -138,7 +139,7 @@ void test ()
                                 varnames, geom, time, level_steps, ref_ratio);
 #endif
         if (ParallelDescriptor::IOProcessor())
-            std::cout << " done" << std::endl;
+            std::cout << " done" << '\n';
     }
 
     /* ParallelDescriptor::Barrier(); */
@@ -149,7 +150,7 @@ void test ()
     constexpr int NArrayReal  = 8;
     constexpr int NArrayInt   = 3;
 
-    typedef ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> MyPC;
+    using MyPC = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     MyPC myPC(geom, dmap, ba, ref_ratio);
     myPC.SetVerbose(false);
 
@@ -169,7 +170,7 @@ void test ()
         myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << " done" << std::endl;
+            std::cout << " done" << '\n';
 
         Vector<std::string> particle_realnames;
         for (int i = 0; i < NStructReal + NArrayReal; ++i)
@@ -180,12 +181,12 @@ void test ()
             particle_intnames.push_back("particle_int_component_" + std::to_string(i));
 
         for (int ts = 0; ts < nparticlefile; ts++) {
-            sprintf(fname, "%splt%05d", directory.c_str(), ts);
+            std::snprintf(fname, sizeof fname, "%splt%05d", directory.c_str(), ts);
 
             // Fake computation
             if (ts > 0 && sleeptime > 0) {
                 if (ParallelDescriptor::IOProcessor()) {
-                    std::cout << "Sleep for " << sleeptime << " seconds." << std::endl;
+                    std::cout << "Sleep for " << sleeptime << " seconds." << '\n';
                     fflush(stdout);
                 }
                 sleep(sleeptime);
@@ -203,7 +204,7 @@ void test ()
             /* myPC.WriteAsciiFile("particle0_ascii"); */
 #endif
             if (ParallelDescriptor::IOProcessor())
-                std::cout << " done" << std::endl;
+                std::cout << " done" << '\n';
         }
     }
 
@@ -214,10 +215,10 @@ void test ()
     {
         MyPC newPC(geom, dmap, ba, ref_ratio);
 #ifdef AMREX_USE_HDF5
-        sprintf(directory_path, "%s%s", directory.c_str(), "plt00000/particle0");
+        std::snprintf(directory_path, sizeof directory_path, "%s%s", directory.c_str(), "plt00000/particle0");
         newPC.RestartHDF5(directory_path, "particle0");
 #else
-        sprintf(directory_path, "%s%s", directory.c_str(), "plt00000");
+        std::snprintf(directory_path, sizeof directory_path, "%s%s", directory.c_str(), "plt00000");
         newPC.Restart(directory_path, "particle0");
 #endif
 
@@ -240,7 +241,7 @@ void test ()
             ParallelDescriptor::ReduceRealSum(sm_new);
             ParallelDescriptor::ReduceRealSum(sm_old);
 
-            AMREX_ALWAYS_ASSERT(sm_old = sm_new);
+            AMREX_ALWAYS_ASSERT(sm_old == sm_new);
         }
     }
 }

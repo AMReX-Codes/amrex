@@ -1,5 +1,6 @@
 #include "MyTest.H"
 
+#include <AMReX_GMRES_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_FillPatchUtil.H>
@@ -112,7 +113,13 @@ MyTest::solve ()
                                              bcrec, 0);
             }
 
-            mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, reltol, 0.0);
+            if (use_gmres) {
+                GMRESMLMG gmsolver(mlmg);
+                gmsolver.setVerbose(verbose);
+                gmsolver.solve(solution[ilev], rhs[ilev], reltol, 0.0);
+            } else {
+                mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, reltol, 0.0);
+            }
         }
     }
 }
@@ -143,8 +150,13 @@ MyTest::readParameters ()
     pp.query("ref_ratio", ref_ratio);
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
+    pp.query("domain_ratio", domain_ratio);
 
     pp.query("composite_solve", composite_solve);
+    pp.query("use_gmres", use_gmres);
+    if (use_gmres) {
+        composite_solve = false;
+    }
 
     pp.query("verbose", verbose);
     pp.query("bottom_verbose", bottom_verbose);
@@ -190,7 +202,7 @@ MyTest::initData ()
     exact_solution.resize(nlevels);
     sigma.resize(nlevels);
 
-    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
+    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,domain_ratio,1.)});
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
     Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
@@ -253,4 +265,3 @@ MyTest::initData ()
         sigma[ilev].setVal(1.0);
     }
 }
-

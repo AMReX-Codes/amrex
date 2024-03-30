@@ -34,7 +34,9 @@ endif
 ifeq ($(USE_ACC),TRUE)
   GENERIC_PGI_FLAGS += -acc -Minfo=accel -mcmodel=medium
   ifneq ($(CUDA_ARCH),)
-    GENERIC_PGI_FLAGS += -ta=tesla:cc$(CUDA_ARCH)
+    PGI_COMMASPACE := , 
+    PGI_COMMA := ,
+    GENERIC_PGI_FLAGS += -ta=tesla:$(patsubst %$(PGI_COMMA),%,$(subst $(PGI_COMMASPACE),$(PGI_COMMA),$(foreach arch,$(CUDA_ARCH),cc$(arch),)))
   else
     GENERIC_PGI_FLAGS += -ta=tesla
   endif
@@ -87,20 +89,18 @@ endif
 
 # The logic here should be consistent with what's in nvcc.mak
 
-ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-  $(error C++14 support requires GCC 5 or newer.)
+ifeq ($(shell expr $(gcc_major_version) \< 8),1)
+  $(error GCC >= 8 required)
 endif
 
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
   CXXFLAGS += -std=$(CXXSTD)
 else
-  ifeq ($(gcc_major_version),5)
-    CXXFLAGS += -std=c++14
-  endif
+  CXXFLAGS += -std=c++17
 endif
 
-CFLAGS   += -c99
+CFLAGS   += -c11
 
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
 CFLAGS   += $(GENERIC_PGI_FLAGS)

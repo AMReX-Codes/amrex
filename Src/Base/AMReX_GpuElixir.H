@@ -13,12 +13,12 @@ class Elixir
 {
 public:
 
-    Elixir () noexcept {}
+    Elixir () noexcept = default;
 
     Elixir (void* p, Arena* arena) noexcept : m_pa({std::make_pair(p,arena)}) {}
 
     Elixir (Elixir const&) = delete;
-    void operator= (Elixir const&) = delete;
+    Elixir& operator= (Elixir const&) = delete;
 
     Elixir (Elixir && rhs) noexcept
         : m_pa(std::move(rhs.m_pa))
@@ -26,14 +26,15 @@ public:
         rhs.m_pa.clear();
     }
 
-    void operator= (Elixir && rhs) noexcept
+    Elixir& operator= (Elixir && rhs) noexcept
     {
         clear();
         m_pa = std::move(rhs.m_pa);
         rhs.m_pa.clear();
+        return *this;
     }
 
-    void append (Elixir && rhs) noexcept
+    void append (Elixir rhs) noexcept
     {
         m_pa.insert(m_pa.end(), rhs.m_pa.begin(), rhs.m_pa.end());
         rhs.m_pa.clear();

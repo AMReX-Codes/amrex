@@ -20,7 +20,6 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-import sphinx_rtd_theme
 from datetime import datetime
 
 def get_amrex_version():
@@ -43,7 +42,7 @@ extensions = ['sphinx.ext.mathjax',
 
 intersphinx_mapping = {
     'amrex_tutorials': ('https://amrex-codes.github.io/amrex/tutorials_html/', None),
-    'amrex_hydro':('https://amrex-codes.github.io/amrex/hydro_html/', None)
+    'amrex_hydro':('https://amrex-fluids.github.io/amrex-hydro/docs_html/', None)
 }
 
 # Add any paths that contain templates here, relative to this directory.

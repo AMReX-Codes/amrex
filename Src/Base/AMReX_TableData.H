@@ -22,12 +22,11 @@ struct Table1D
     int begin = 1;
     int end = 0;
 
-    AMREX_GPU_HOST_DEVICE
-    constexpr Table1D () noexcept {}
+    constexpr Table1D () noexcept = default;
 
-    template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
-    constexpr Table1D (Table1D<typename std::remove_const<T>::type> const& rhs) noexcept
+    constexpr Table1D (Table1D<std::remove_const_t<T>> const& rhs) noexcept
         : p(rhs.p),
           begin(rhs.begin),
           end(rhs.end)
@@ -43,7 +42,7 @@ struct Table1D
     AMREX_GPU_HOST_DEVICE
     explicit operator bool () const noexcept { return p != nullptr; }
 
-    template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     U& operator() (int i) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -57,16 +56,17 @@ struct Table1D
     void index_assert (int i) const
     {
         if (i < begin || i >= end) {
-#if AMREX_DEVICE_COMPILE
-            AMREX_DEVICE_PRINTF(" (%d) is out of bound (%d:%d)\n",
-                                i, begin, end-1);
-            amrex::Abort();
-#else
-            std::stringstream ss;
-            ss << " (" << i << ") is out of bound ("
-               << begin << ":" << end-1 << ")";
-            amrex::Abort(ss.str());
-#endif
+            AMREX_IF_ON_DEVICE((
+                AMREX_DEVICE_PRINTF(" (%d) is out of bound (%d:%d)\n",
+                                    i, begin, end-1);
+                amrex::Abort();
+            ))
+            AMREX_IF_ON_HOST((
+                std::stringstream ss;
+                ss << " (" << i << ") is out of bound ("
+                << begin << ":" << end-1 << ")";
+                amrex::Abort(ss.str());
+            ))
         }
     }
 #endif
@@ -80,12 +80,11 @@ struct Table2D
     GpuArray<int,2> begin{{1,1}};
     GpuArray<int,2> end{{0,0}};
 
-    AMREX_GPU_HOST_DEVICE
-    constexpr Table2D () noexcept {}
+    constexpr Table2D () noexcept = default;
 
-    template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
-    constexpr Table2D (Table2D<typename std::remove_const<T>::type> const& rhs) noexcept
+    constexpr Table2D (Table2D<std::remove_const_t<T>> const& rhs) noexcept
         : p(rhs.p),
           jstride(rhs.jstride),
           begin(rhs.begin),
@@ -105,7 +104,7 @@ struct Table2D
     AMREX_GPU_HOST_DEVICE
     explicit operator bool () const noexcept { return p != nullptr; }
 
-    template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     U& operator() (int i, int j) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -120,17 +119,18 @@ struct Table2D
     {
         if (i < begin[0] || i >= end[0] ||
             j < begin[1] || j >= end[1]) {
-#if AMREX_DEVICE_COMPILE
-            AMREX_DEVICE_PRINTF(" (%d,%d) is out of bound (%d:%d,%d:%d)\n",
-                                i, j, begin[0], end[0]-1, begin[1], end[1]-1);
-            amrex::Abort();
-#else
-            std::stringstream ss;
-            ss << " (" << i << "," << j << ") is out of bound ("
-               << begin[0] << ":" << end[0]-1
-               << "," << begin[1] << ":" << end[1]-1 << ")";
-            amrex::Abort(ss.str());
-#endif
+            AMREX_IF_ON_DEVICE((
+                AMREX_DEVICE_PRINTF(" (%d,%d) is out of bound (%d:%d,%d:%d)\n",
+                                    i, j, begin[0], end[0]-1, begin[1], end[1]-1);
+                amrex::Abort();
+            ))
+            AMREX_IF_ON_HOST((
+                std::stringstream ss;
+                ss << " (" << i << "," << j << ") is out of bound ("
+                << begin[0] << ":" << end[0]-1
+                << "," << begin[1] << ":" << end[1]-1 << ")";
+                amrex::Abort(ss.str());
+            ))
         }
     }
 #endif
@@ -145,12 +145,11 @@ struct Table3D
     GpuArray<int,3> begin{{1,1,1}};
     GpuArray<int,3> end{{0,0,0}};
 
-    AMREX_GPU_HOST_DEVICE
-    constexpr Table3D () noexcept {}
+    constexpr Table3D () noexcept = default;
 
-    template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
-    constexpr Table3D (Table3D<typename std::remove_const<T>::type> const& rhs) noexcept
+    constexpr Table3D (Table3D<std::remove_const_t<T>> const& rhs) noexcept
         : p(rhs.p),
           jstride(rhs.jstride),
           kstride(rhs.kstride),
@@ -172,7 +171,7 @@ struct Table3D
     AMREX_GPU_HOST_DEVICE
     explicit operator bool () const noexcept { return p != nullptr; }
 
-    template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     U& operator() (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -188,19 +187,20 @@ struct Table3D
         if (i < begin[0] || i >= end[0] ||
             j < begin[1] || j >= end[1] ||
             k < begin[2] || k >= end[2]) {
-#if AMREX_DEVICE_COMPILE
-            AMREX_DEVICE_PRINTF(" (%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d)\n",
-                                i, j, k, begin[0], end[0]-1, begin[1], end[1]-1,
-                                begin[2], end[2]-1);
-            amrex::Abort();
-#else
-            std::stringstream ss;
-            ss << " (" << i << "," << j << "," << k << ") is out of bound ("
-               << begin[0] << ":" << end[0]-1
-               << "," << begin[1] << ":" << end[1]-1
-               << "," << begin[2] << ":" << end[2]-1 << ")";
-            amrex::Abort(ss.str());
-#endif
+            AMREX_IF_ON_DEVICE((
+                AMREX_DEVICE_PRINTF(" (%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d)\n",
+                                    i, j, k, begin[0], end[0]-1, begin[1], end[1]-1,
+                                    begin[2], end[2]-1);
+                amrex::Abort();
+            ))
+            AMREX_IF_ON_HOST((
+                std::stringstream ss;
+                ss << " (" << i << "," << j << "," << k << ") is out of bound ("
+                << begin[0] << ":" << end[0]-1
+                << "," << begin[1] << ":" << end[1]-1
+                << "," << begin[2] << ":" << end[2]-1 << ")";
+                amrex::Abort(ss.str());
+            ))
         }
     }
 #endif
@@ -216,12 +216,11 @@ struct Table4D
     GpuArray<int,4> begin{{1,1,1,1}};
     GpuArray<int,4> end{{0,0,0,0}};
 
-    AMREX_GPU_HOST_DEVICE
-    constexpr Table4D () noexcept {}
+    constexpr Table4D () noexcept = default;
 
-    template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
-    constexpr Table4D (Table4D<typename std::remove_const<T>::type> const& rhs) noexcept
+    constexpr Table4D (Table4D<std::remove_const_t<T>> const& rhs) noexcept
         : p(rhs.p),
           jstride(rhs.jstride),
           kstride(rhs.kstride),
@@ -245,7 +244,7 @@ struct Table4D
     AMREX_GPU_HOST_DEVICE
     explicit operator bool () const noexcept { return p != nullptr; }
 
-    template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     U& operator() (int i, int j, int k, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -262,20 +261,21 @@ struct Table4D
             j < begin[1] || j >= end[1] ||
             k < begin[2] || k >= end[2] ||
             n < begin[3] || n >= end[3]) {
-#if AMREX_DEVICE_COMPILE
-            AMREX_DEVICE_PRINTF(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,%d:%d)\n",
-                                i, j, k, n, begin[0], end[0]-1, begin[1], end[1]-1,
-                                begin[2], end[2]-1, begin[3], end[3]-1);
-            amrex::Abort();
-#else
-            std::stringstream ss;
-            ss << " (" << i << "," << j << "," << k << "," << n << ") is out of bound ("
-               << begin[0] << ":" << end[0]-1
-               << "," << begin[1] << ":" << end[1]-1
-               << "," << begin[2] << ":" << end[2]-1
-               << "," << begin[3] << ":" << end[3]-1 << ")";
-            amrex::Abort(ss.str());
-#endif
+            AMREX_IF_ON_DEVICE((
+                AMREX_DEVICE_PRINTF(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,%d:%d)\n",
+                                    i, j, k, n, begin[0], end[0]-1, begin[1], end[1]-1,
+                                    begin[2], end[2]-1, begin[3], end[3]-1);
+                amrex::Abort();
+            ))
+            AMREX_IF_ON_HOST((
+                std::stringstream ss;
+                ss << " (" << i << "," << j << "," << k << "," << n << ") is out of bound ("
+                << begin[0] << ":" << end[0]-1
+                << "," << begin[1] << ":" << end[1]-1
+                << "," << begin[2] << ":" << end[2]-1
+                << "," << begin[3] << ":" << end[3]-1 << ")";
+                amrex::Abort(ss.str());
+            ))
         }
     }
 #endif
@@ -333,7 +333,7 @@ public:
                              std::conditional_t<N==3, Table3D<T const>,
                                                       Table4D<T const> > > >;
 
-    TableData () noexcept;
+    TableData () noexcept = default;
 
     explicit TableData (Arena* ar) noexcept;
 
@@ -347,11 +347,11 @@ public:
 
     ~TableData () noexcept;
 
-    constexpr int dim () const noexcept { return N; }
+    [[nodiscard]] constexpr int dim () const noexcept { return N; }
 
     void resize (Array<int,N> const& lo, Array<int,N> const& hi, Arena* ar = nullptr);
 
-    Long size () const noexcept;
+    [[nodiscard]] Long size () const noexcept;
 
     Array<int,N> const& lo () const noexcept { return m_lo; }
 
@@ -375,9 +375,6 @@ private:
     Long m_truesize = 0L;
     bool m_ptr_owner = false;
 };
-
-template <typename T, int N>
-TableData<T,N>::TableData () noexcept {}
 
 template <typename T, int N>
 TableData<T,N>::TableData (Array<int,N> const& lo, Array<int,N> const& hi, Arena* ar)
@@ -404,21 +401,26 @@ template <typename T, int N>
 TableData<T,N>&
 TableData<T,N>::operator= (TableData<T,N> && rhs) noexcept
 {
-    m_arena     = rhs.m_arena;
-    m_dptr      = rhs.m_dptr;
-    m_lo        = rhs.m_lo;
-    m_hi        = rhs.m_hi;
-    m_truesize  = rhs.m_truesize;
-    m_ptr_owner = rhs.m_ptr_owner;
-    rhs.m_dptr = nullptr;
-    rhs.m_ptr_owner = false;
+    if (this != &rhs) {
+        clear();
+        m_arena     = rhs.m_arena;
+        m_dptr      = rhs.m_dptr;
+        m_lo        = rhs.m_lo;
+        m_hi        = rhs.m_hi;
+        m_truesize  = rhs.m_truesize;
+        m_ptr_owner = rhs.m_ptr_owner;
+        rhs.m_dptr = nullptr;
+        rhs.m_ptr_owner = false;
+    }
     return *this;
 }
 
 template <typename T, int N>
 TableData<T,N>::~TableData () noexcept
 {
-    static_assert(std::is_arithmetic<T>::value, "TableData<T,N>: T must be an arithmetic type");
+    static_assert(std::is_trivially_copyable<T>() &&
+                  std::is_trivially_destructible<T>(),
+                  "TableData<T,N>: T must be trivially copyable and trivially destructible");
     static_assert(N>=1 && N <=4, "TableData<T,N>: N must be in the range of [1,4]");
     clear();
 }

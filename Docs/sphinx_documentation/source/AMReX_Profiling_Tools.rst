@@ -93,6 +93,47 @@ it is also recommended to wrap any ``BL_PROFILE_TINY_FLUSH();`` calls in
 informative ``amrex::Print()`` lines to ensure accurate identification of each
 set of timers.
 
+Hot Spots and Load Balance
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The output of TinyProfiler can help us to identify hot spots. For example,
+the following output shows the top three hot spots of a linear solver test
+running on 4 MPI processes.
+
+.. highlight:: console
+
+::
+
+    --------------------------------------------------------------------------------------------
+    Name                                         NCalls  Excl. Min  Excl. Avg  Excl. Max   Max %
+    --------------------------------------------------------------------------------------------
+    MLPoisson::Fsmooth()                            560     0.4775     0.4793     0.4815  34.97%
+    MLPoisson::Fapply()                             114     0.1103      0.113     0.1167   8.48%
+    FabArray::Xpay()                                109        0.1     0.1013     0.1038   7.54%
+
+In this test, there are 16 boxes evenly distributed among 4 MPI processes. The
+output above shows that the load is perfectly balanced. However, if the load
+is not balanced, the results can be very different and sometimes
+misleading. For example, if we put 2, 2, 6 and 6 boxes on processes 0, 1, 2
+and 3, respectively, the top three hot spots now include two MPI
+communication functions, ``FillBoundary`` and ``ParallelCopy``.
+
+.. highlight:: console
+
+::
+
+    --------------------------------------------------------------------------------------------
+    Name                                         NCalls  Excl. Min  Excl. Avg  Excl. Max   Max %
+    --------------------------------------------------------------------------------------------
+    FillBoundary_finish()                           607    0.01568     0.3367     0.6574  41.97%
+    MLPoisson::Fsmooth()                            560     0.2133     0.4047     0.5973  38.13%
+    FabArray::ParallelCopy_finish()                 231   0.002977    0.09748     0.1895  12.10%
+
+The reason that the MPI communication appears slow is that the lightly
+loaded processes have to wait for messages sent by the heavily loaded
+processes. See also :ref:`sec:profopts` for a diagnostic option that may
+provide more insight on the load imbalance.
+
 .. _sec:full:profiling:
 
 Full Profiling
@@ -427,6 +468,32 @@ in the ``bl_proffortfuncstart_int/bl_proffortfuncstop_int`` calls.
    Fortran functions cannot be profiled when using the Tiny Profiler.
    You will need to turn on the Full Profiler to receive the results from
    fortran instrumentation.
+
+.. _sec:profopts:
+
+Profiling Options
+=================
+
+AMReX's communication algorithms are often regions of code that increase in wall clock time
+when the application is load imbalanced, due to the MPI_Wait calls in these functions.
+To better understand if this is occurring and by how much, you can turn on an AMReX timed
+synchronization with the runtime variable: ``amrex.use_profiler_syncs=1`` This adds named timers
+beginning with ``SyncBeforeComms`` immediately prior to the start of the FillBoundary,
+ParallelCopy and particle Redistribute functions, isolating any prior load imbalance to that timer
+before beginning the comm operation.
+
+This is a diagnostic tool and may slow your code down, so it is not recommended to turn this
+on for production runs.
+
+.. note::
+  Note: the ``SyncBeforeComms`` timer is not equal to your load imbalance. It only captures imbalance
+  between the comm functions and the previous sync point; there may be other load imbalances
+  captured elsewhere. Also, the timer reports in terms of MPI rank, so if the most imbalanced
+  rank changes throughout the simulation, the timer will be an underestimation.
+
+  The effect on the communication timers may be more helpful: they will show the time to complete
+  communications if there was no load imbalance. This means the difference between a case
+  with and without this profiler sync may be a more useful metric for analysis.
 
 .. _sec:amrprofparse:
 

@@ -3,13 +3,9 @@
 #define BL_FARRAYBOX_H
 #include <AMReX_Config.H>
 
-#include <AMReX_Box.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_FabConv.H>
-#include <AMReX_REAL.H>
-#include <AMReX_SPACE.H>
 #include <AMReX_FabFactory.H>
-#include <cmath>
 
 namespace amrex {
 
@@ -27,11 +23,10 @@ class FArrayBox;
 * only want to write out 32 bit FABs.
 *
 * With the exception of the enumeration constants, this class is
-* primarily for FArrayBox implementors; i.e. user's shouldn't
+* primarily for FArrayBox implementers; i.e. user's shouldn't
 * call any of the member functions in this class directly.
 */
-
-class FABio
+class FABio // NOLINT(cppcoreguidelines-special-member-functions)
 {
 public:
     /**
@@ -70,7 +65,7 @@ public:
     */
     enum Format
     {
-        FAB_ASCII = 0,
+        FAB_ASCII,
         FAB_IEEE,
         FAB_NATIVE,
         //
@@ -97,7 +92,7 @@ public:
     };
 
     //! The virtual destructor.
-    virtual ~FABio ();
+    virtual ~FABio () = default;
     /**
     * \brief Pure virtual function.  Derived classes MUST override this
     * function to read an FArrayBox from the istream, under the
@@ -120,7 +115,7 @@ public:
     * \brief Pure virtual function.  Derived classes MUST override this
     * function to skip over the next FAB f in the istream, under the
     * assumption that the header for the FAB f has already been
-    * skpped over.
+    * skipped over.
     */
     virtual void skip (std::istream& is,
                        FArrayBox&    f) const = 0;
@@ -170,23 +165,23 @@ class FABio_binary
 public:
     FABio_binary (RealDescriptor* rd_);
 
-    virtual void read (std::istream& is,
+    void read (std::istream& is,
                        FArrayBox&    fb) const override;
 
-    virtual void write (std::ostream&    os,
+    void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
                         int              num_comp) const override;
 
-    virtual void skip (std::istream& is,
+    void skip (std::istream& is,
                        FArrayBox&    f) const override;
 
-    virtual void skip (std::istream& is,
+    void skip (std::istream& is,
                        FArrayBox&    f,
                        int           nCompToSkip) const override;
 
 private:
-    virtual void write_header (std::ostream&    os,
+    void write_header (std::ostream&    os,
                                const FArrayBox& f,
                                int              nvar) const override;
 
@@ -228,7 +223,6 @@ private:
 *  This class does NOT provide a copy constructor or assignment operator,
 *  but it has a move constructor.
 */
-
 class FArrayBox
     :
     public BaseFab<Real>
@@ -237,7 +231,7 @@ class FArrayBox
     friend class FABio;
 public:
     //! Construct an invalid FAB with no memory.
-    FArrayBox () noexcept;
+    FArrayBox () noexcept = default;
 
     explicit FArrayBox (Arena* ar) noexcept;
 
@@ -245,7 +239,7 @@ public:
 
     /**
     * \brief Construct an initial FAB with the data space allocated but
-    * not inititialized. ncomp is the number of components
+    * not initialized. ncomp is the number of components
     * (variables) at each data point in the Box.
     */
     explicit FArrayBox (const Box& b,
@@ -269,10 +263,10 @@ public:
     explicit FArrayBox (Array4<Real const> const& a, IndexType t) noexcept : BaseFab<Real>(a,t) {}
 
     //!  The destructor.
-    virtual ~FArrayBox () noexcept override {}
+    ~FArrayBox () noexcept override = default;
 
     FArrayBox (FArrayBox&& rhs) noexcept = default;
-    FArrayBox& operator= (FArrayBox&&) = default;
+    FArrayBox& operator= (FArrayBox&&) noexcept = default;
 
     FArrayBox (const FArrayBox&) = delete;
     FArrayBox& operator= (const FArrayBox&) = delete;
@@ -283,7 +277,7 @@ public:
 #else
     template <RunOn run_on=RunOn::Host>
 #endif
-    FArrayBox& operator= (Real r) noexcept;
+    FArrayBox& operator= (Real v) noexcept;
 
     /**
     * \brief Are there any NaNs in the FAB?
@@ -295,14 +289,14 @@ public:
 #else
     template <RunOn run_on=RunOn::Host>
 #endif
-    bool contains_nan () const noexcept;
+    [[nodiscard]] bool contains_nan () const noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
     template <RunOn run_on=RunOn::Host>
 #endif
-    bool contains_nan (const Box& bx, int scomp, int ncomp) const noexcept;
+    [[nodiscard]] bool contains_nan (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
     * \brief These versions return the cell index (though not the component) of
     * the first location of a NaN if there is one.
@@ -330,14 +324,14 @@ public:
 #else
     template <RunOn run_on=RunOn::Host>
 #endif
-    bool contains_inf () const noexcept;
+    [[nodiscard]] bool contains_inf () const noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
     template <RunOn run_on=RunOn::Host>
 #endif
-    bool contains_inf (const Box& bx, int scomp, int ncomp) const noexcept;
+    [[nodiscard]] bool contains_inf (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
     * \brief These versions return the cell index (though not the component) of
     * the first location of an Inf if there is one.
@@ -359,7 +353,7 @@ public:
     //! For debugging purposes we hide BaseFab version and do some extra work.
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
-    FabType getType () const noexcept { return m_type; }
+    [[nodiscard]] FabType getType () const noexcept { return m_type; }
 
     void initVal () noexcept; // public for cuda
 
@@ -371,7 +365,7 @@ public:
     * \brief Writes out the FAB in whatever format you've set.
     * The default format is NATIVE.
     */
-    void writeOn (std::ostream& of) const;
+    void writeOn (std::ostream& os) const;
 
     /**
     * \brief Write only selected range of components.  comp specifies
@@ -384,7 +378,7 @@ public:
     * NATIVE.  The FAB that is written to disk will be an
     * num_comp component FAB.
     */
-    void writeOn (std::ostream& of,
+    void writeOn (std::ostream& os,
                   int           comp,
                   int           num_comp=1) const;
 
@@ -413,7 +407,7 @@ public:
     /**
     * \brief Set the FABio::Format in the program.
     * This is the preferred way to set the output format
-    * in "new" FABs.  When desiging new programs, this should
+    * in "new" FABs.  When designing new programs, this should
     * be the only function that needs to be called in order
     * to set the format.
     */

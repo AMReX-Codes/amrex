@@ -9,7 +9,7 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#if defined(AMREX_USE_GPU) && !defined(AMREX_GPU_NO_ERROR_CHECK) && !defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_GPU) && !defined(AMREX_GPU_NO_ERROR_CHECK) && !defined(AMREX_USE_SYCL)
 
 namespace amrex {
 
@@ -79,6 +79,11 @@ namespace Gpu {
                            + ": " + cudaGetErrorString(amrex_i_err)); \
         amrex::Abort(errStr); \
     }}
+
+#define AMREX_CURAND_SAFE_CALL(x) do { if((x)!=CURAND_STATUS_SUCCESS) { \
+    std::string errStr(std::string("CURAND error in file ") + __FILE__  \
+                       + " line " + std::to_string(__LINE__));          \
+    amrex::Abort(errStr); }} while(0)
 #endif
 
 #ifdef AMREX_USE_HIP
@@ -90,6 +95,11 @@ namespace Gpu {
                            + " " + hipGetErrorString(amrex_i_err)); \
         amrex::Abort(errStr); \
     }}
+
+#define AMREX_HIPRAND_SAFE_CALL(x) do { if((x)!=HIPRAND_STATUS_SUCCESS) { \
+    std::string errStr(std::string("HIPRAND error in file ") + __FILE__  \
+                       + " line " + std::to_string(__LINE__));          \
+    amrex::Abort(errStr); }} while(0)
 #endif
 
 #define AMREX_GPU_ERROR_CHECK() amrex::Gpu::ErrorCheck(__FILE__, __LINE__)

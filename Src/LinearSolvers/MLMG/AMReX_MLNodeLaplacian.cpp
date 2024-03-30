@@ -35,9 +35,6 @@ MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
 }
 #endif
 
-MLNodeLaplacian::~MLNodeLaplacian ()
-{}
-
 void
 MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
@@ -91,15 +88,10 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
     m_eb_vel_dot_n.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-#ifdef AMREX_USE_EB
         m_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
                                                         m_dmap[amrlev][0],
                                                         ncomp_i, 1, MFInfo(),
                                                         *m_factory[amrlev][0]);
-#else
-        m_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
-                                                        m_dmap[amrlev][0], ncomp_i, 1));
-#endif
     }
 #endif
 
@@ -118,7 +110,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          Real  a_const_sigma)
 {
     Vector<FabFactory<FArrayBox> const*> _factory;
-    for (auto x : a_factory) {
+    for (const auto *x : a_factory) {
         _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
     }
     define(a_geom, a_grids, a_dmap, a_info, _factory, a_const_sigma);
@@ -158,7 +150,7 @@ MLNodeLaplacian::unimposeNeumannBC (int amrlev, MultiFab& rhs) const
         const auto hibc = HiBC();
 
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -171,16 +163,16 @@ MLNodeLaplacian::unimposeNeumannBC (int amrlev, MultiFab& rhs) const
     }
 }
 
-Real
+Vector<Real>
 MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const
 {
     amrex::ignore_unused(amrlev);
-    AMREX_ASSERT(amrlev==0);
-    AMREX_ASSERT(mglev+1==m_num_mg_levels[0] || mglev==0);
+    AMREX_ASSERT(amrlev==0 && (mglev+1==m_num_mg_levels[0] || mglev==0));
+    AMREX_ASSERT(getNComp() == 1);
 
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         if (mglev == 0 && factory && !factory->isAllRegular()) {
             const MultiFab& vfrac = factory->getVolFrac();
             const auto& vfrac_ma = vfrac.const_arrays();
@@ -229,7 +221,7 @@ MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rh
             Real s1 = amrex::get<0>(r);
             Real s2 = amrex::get<1>(r);
             ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
-            return s1/s2;
+            return {s1/s2};
         } else
 #endif
         {
@@ -238,7 +230,7 @@ MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rh
                 if (m_lobc[0][idim] != LinOpBCType::Neumann &&
                     m_lobc[0][idim] != LinOpBCType::inflow)
                 {
-                    nddom.growLo(idim, 10); // so that the test in ParReduce will faill
+                    nddom.growLo(idim, 10); // so that the test in ParReduce will fail
                 }
                 if (m_hibc[0][idim] != LinOpBCType::Neumann &&
                     m_hibc[0][idim] != LinOpBCType::inflow)
@@ -279,7 +271,7 @@ MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rh
             Real s1 = amrex::get<0>(r);
             Real s2 = amrex::get<1>(r);
             ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
-            return s1/s2;
+            return {s1/s2};
         }
     } else {
         return MLNodeLinOp::getSolvabilityOffset(amrlev, mglev, rhs);
@@ -287,11 +279,14 @@ MLNodeLaplacian::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rh
 }
 
 void
-MLNodeLaplacian::fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs, Real offset) const
+MLNodeLaplacian::fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs,
+                                         Vector<Real> const& a_offset) const
 {
+    Real offset = a_offset[0];
+
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         if (mglev == 0 && factory && !factory->isAllRegular()) {
             const MultiFab& vfrac = factory->getVolFrac();
             const auto& vfrac_ma = vfrac.const_arrays();
@@ -339,7 +334,7 @@ MLNodeLaplacian::fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs, R
                 if (m_lobc[0][idim] != LinOpBCType::Neumann &&
                     m_lobc[0][idim] != LinOpBCType::inflow)
                 {
-                    nddom.growLo(idim, 10); // so that the test in ParReduce will faill
+                    nddom.growLo(idim, 10); // so that the test in ParReduce will fail
                 }
                 if (m_hibc[0][idim] != LinOpBCType::Neumann &&
                     m_hibc[0][idim] != LinOpBCType::inflow)
@@ -388,14 +383,16 @@ MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
     if (a_sigma.nComp() > 1)
     {
         AMREX_ALWAYS_ASSERT(a_sigma.nComp() == AMREX_SPACEDIM);
-        for (int idim = 1; idim < AMREX_SPACEDIM; idim++)
+        for (int idim = 1; idim < AMREX_SPACEDIM; idim++) {
             m_sigma[amrlev][0][idim] = std::make_unique<MultiFab>(m_grids[amrlev][0],
                                                                   m_dmap[amrlev][0],
                                                                   1, 1, MFInfo());
+        }
         setMapped(true);
 
-        for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
+        for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
             MultiFab::Copy(*m_sigma[amrlev][0][idim], a_sigma, idim, 0, 1, 0);
+        }
 
     } else {
         MultiFab::Copy(*m_sigma[amrlev][0][0], a_sigma, 0, 0, 1, 0);
@@ -416,7 +413,7 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
         const auto hibc = HiBC();
 
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -431,7 +428,7 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
 void
 MLNodeLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
 {
-    if (!m_masks_built) buildMasks();
+    if (!m_masks_built) { buildMasks(); }
 
     const iMultiFab& cfmask = *m_nd_fine_mask[amrlev];
 
@@ -445,7 +442,7 @@ MLNodeLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
         Array4<int const> const& fmsk = cfmask.const_array(mfi);
         AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
         {
-            if (fmsk(i,j,k) == crse_fine_node) rmsk(i,j,k) = 1;
+            if (fmsk(i,j,k) == crse_fine_node) { rmsk(i,j,k) = 1; }
         });
     }
 }
@@ -463,7 +460,7 @@ MLNodeLaplacian::prepareForSolve ()
 
 #ifdef AMREX_USE_EB
     buildIntegral();
-    if (m_build_surface_integral) buildSurfaceIntegral();
+    if (m_build_surface_integral) { buildSurfaceIntegral(); }
 #endif
 
     buildStencil();
@@ -488,7 +485,11 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 
     const auto& stencil = m_stencil[amrlev][cmglev-1];
 
-    bool regular_coarsening = true; int idir = 2;
+    bool regular_coarsening = true;
+#if (AMREX_SPACEDIM == 1)
+    int idir = 0;
+#else
+    int idir = 2;
     if (cmglev > 0) {
         regular_coarsening = mg_coarsen_ratio_vec[cmglev-1] == mg_coarsen_ratio;
         IntVect ratio = mg_coarsen_ratio_vec[cmglev-1];
@@ -498,6 +499,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
             idir = 0;
         }
     }
+#endif
 
 #ifdef AMREX_USE_GPU
     auto pcrse_ma = pcrse->arrays();
@@ -596,7 +598,11 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][fmglev];
 
-    bool regular_coarsening = true; int idir = 2;
+    bool regular_coarsening = true;
+#if (AMREX_SPACEDIM == 1)
+    int idir = 0;
+#else
+    int idir = 2;
     if (fmglev > 0) {
         regular_coarsening = mg_coarsen_ratio_vec[fmglev] == mg_coarsen_ratio;
         IntVect ratio = mg_coarsen_ratio_vec[fmglev];
@@ -606,6 +612,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
             idir = 0;
         }
     }
+#endif
     if (sigma[0] == nullptr) {
         AMREX_ALWAYS_ASSERT(regular_coarsening);
     }
@@ -808,7 +815,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     const auto& has_fine_bndry = *m_has_fine_bndry[camrlev];
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -822,7 +829,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
             Array4<int const> const& mfab = c_nd_mask.const_array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
             {
-                if (mfab(i,j,k) == fine_node) dfab(i,j,k) = sfab(i,j,k);
+                if (mfab(i,j,k) == fine_node) { dfab(i,j,k) = sfab(i,j,k); }
             });
         }
     }
@@ -833,7 +840,7 @@ MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
     BL_PROFILE("MLNodeLaplacian::normalize()");
 
-    if (m_sigma[0][0][0] == nullptr) return;
+    if (m_sigma[0][0][0] == nullptr) { return; }
 
     const auto& sigma = m_sigma[amrlev][mglev];
     const auto& stencil = m_stencil[amrlev][mglev];
@@ -940,7 +947,7 @@ MLNodeLaplacian::checkPoint (std::string const& file_name) const
 
             HeaderFile.precision(17);
 
-            // MLLinop stuff
+            // MLLinOp stuff
             HeaderFile << "verbose = " << verbose << "\n"
                        << "nlevs = " << NAMRLevels() << "\n"
                        << "do_agglomeration = " << info.do_agglomeration << "\n"
@@ -1023,10 +1030,10 @@ MLNodeLaplacian::setEBInflowVelocity (int amrlev, const MultiFab& eb_vel)
 
     m_eb_vel_dot_n[amrlev]->setVal(0.0);
 
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

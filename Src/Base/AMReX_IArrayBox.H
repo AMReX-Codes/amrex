@@ -17,8 +17,8 @@ class IntDescriptor;
 class IFABio
 {
 public:
-    void write_header (std::ostream& os, const IArrayBox& fab, int nvar) const;
-    void read (std::istream& is, IArrayBox& fab, IntDescriptor const& data_descriptor) const;
+    static void write_header (std::ostream& os, const IArrayBox& fab, int nvar) ;
+    static void read (std::istream& is, IArrayBox& fab, IntDescriptor const& data_descriptor) ;
 };
 
 /**
@@ -41,7 +41,6 @@ public:
 
 *  This class does NOT provide a copy constructor or assignment operator.
 */
-
 class IArrayBox
     :
     public BaseFab<int>
@@ -50,7 +49,7 @@ public:
     friend class IFABio;
 
     //! Construct an invalid FAB with no memory.
-    IArrayBox () noexcept;
+    IArrayBox () noexcept = default;
 
     explicit IArrayBox (Arena* ar) noexcept;
 
@@ -58,7 +57,7 @@ public:
 
     /**
     * \brief Construct an initial FAB with the data space allocated but
-    * not inititialized. ncomp is the number of components
+    * not initialized. ncomp is the number of components
     * (variables) at each data point in the Box.
     */
     explicit IArrayBox (const Box& b,
@@ -78,7 +77,7 @@ public:
     explicit IArrayBox (Array4<int const> const& a, IndexType t) noexcept : BaseFab<int>(a,t) {}
 
     //!  The destructor.
-    virtual ~IArrayBox () noexcept override {}
+    ~IArrayBox () noexcept override = default;
 
     IArrayBox (IArrayBox&& rhs) noexcept = default;
     IArrayBox& operator= (IArrayBox&&) = default;
@@ -88,7 +87,7 @@ public:
 
     //! Set the fab to the value r.
     template <RunOn run_on>
-    IArrayBox& operator= (int r) noexcept;
+    IArrayBox& operator= (int v) noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);

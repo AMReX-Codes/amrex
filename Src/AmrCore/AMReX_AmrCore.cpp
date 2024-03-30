@@ -1,6 +1,5 @@
 
 #include <AMReX_AmrCore.H>
-#include <AMReX_Print.H>
 
 #ifdef AMREX_PARTICLES
 #include <AMReX_AmrParGDB.H>
@@ -17,7 +16,6 @@
 namespace amrex {
 
 AmrCore::AmrCore ()
-    : AmrMesh()
 {
     InitAmrCore();
 }
@@ -47,28 +45,26 @@ AmrCore::AmrCore (Geometry const& level_0_geom, AmrInfo const& amr_info)
 #endif
 }
 
-AmrCore::AmrCore (AmrCore&& rhs)
-    : AmrMesh(std::move(rhs))
+AmrCore::AmrCore (AmrCore&& rhs) noexcept
+    : AmrMesh(static_cast<AmrMesh&&>(rhs))
 {
 #ifdef AMREX_PARTICLES
-    m_gdb = std::move(rhs.m_gdb);
+    m_gdb = std::move(rhs.m_gdb); // NOLINT(cppcoreguidelines-prefer-member-initializer)
     m_gdb->m_amrcore = this;
 #endif
 }
 
-AmrCore& AmrCore::operator= (AmrCore&& rhs)
+AmrCore::~AmrCore () {} // NOLINT
+
+AmrCore& AmrCore::operator= (AmrCore&& rhs) noexcept
 {
-    AmrMesh::operator=(std::move(rhs));
+    AmrMesh::operator=(static_cast<AmrMesh&&>(rhs));
 #ifdef AMREX_PARTICLES
     m_gdb = std::move(rhs.m_gdb);
     m_gdb->m_amrcore = this;
 #endif
 
     return *this;
-}
-
-AmrCore::~AmrCore ()
-{
 }
 
 void
@@ -88,7 +84,7 @@ AmrCore::InitFromScratch (Real time)
 void
 AmrCore::regrid (int lbase, Real time, bool)
 {
-    if (lbase >= max_level) return;
+    if (lbase >= max_level) { return; }
 
     int new_finest;
     Vector<BoxArray> new_grids(finest_level+2);
@@ -107,7 +103,7 @@ AmrCore::regrid (int lbase, Real time, bool)
                 DistributionMapping level_dmap = dmap[lev];
                 if (ba_changed) {
                     level_grids = new_grids[lev];
-                    level_dmap = DistributionMapping(level_grids);
+                    level_dmap = MakeDistributionMap(lev, level_grids);
                 }
                 const auto old_num_setdm = num_setdm;
                 RemakeLevel(lev, time, level_grids, level_dmap);
@@ -120,7 +116,7 @@ AmrCore::regrid (int lbase, Real time, bool)
         }
         else  // a new level
         {
-            DistributionMapping new_dmap(new_grids[lev]);
+            DistributionMapping new_dmap = MakeDistributionMap(lev, new_grids[lev]);
             const auto old_num_setdm = num_setdm;
             MakeNewLevelFromCoarse(lev, time, new_grids[lev], new_dmap);
             SetBoxArray(lev, new_grids[lev]);
@@ -146,7 +142,7 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
     for (int lev = min_lev; lev <= max_lev; lev++)
     {
         const BoxArray&           bs      = boxArray(lev);
-        int                       numgrid = bs.size();
+        int                       numgrid = static_cast<int>(bs.size());
         Long                      ncells  = bs.numPts();
         double                    ntot    = Geom(lev).Domain().d_numPts();
         Real                      frac    = Real(100.0*double(ncells) / ntot);
@@ -167,6 +163,7 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
             Long vmax = -1;
             int lmax = -1;
             int smin = std::numeric_limits<int>::max();
+
             int imax = std::numeric_limits<int>::lowest();
             int imin = std::numeric_limits<int>::lowest();
 #ifdef AMREX_USE_OMP
@@ -203,13 +200,13 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
 #endif
                 {
                     if (vmin_this < vmin || (vmin_this == vmin && smin_this < smin)) {
-                        vmin = vmin_this;
-                        smin = smin_this;
+                        vmin = vmin_this; // NOLINT
+                        smin = smin_this; // NOLINT
                         imin = imin_this;
                     }
                     if (vmax_this > vmax || (vmax_this == vmax && lmax_this > lmax)) {
-                        vmax = vmax_this;
-                        lmax = lmax_this;
+                        vmax = vmax_this; // NOLINT
+                        lmax = lmax_this; // NOLINT
                         imax = imax_this;
                     }
                 }
@@ -229,7 +226,8 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
         }
     }
 
-    os << std::endl; // Make sure we flush!
+    os << '\n';
+    os.flush();
 }
 
 }

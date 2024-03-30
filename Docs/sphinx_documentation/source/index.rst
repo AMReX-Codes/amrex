@@ -51,6 +51,7 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    LinearSolvers_Chapter
    Particle_Chapter
    Fortran_Chapter
+   Python_Chapter
    EB_Chapter
    TimeIntegration_Chapter
    GPU_Chapter

@@ -53,7 +53,7 @@ bool ParallelCopyWithItselfIsCorrect(amrex::iMultiFab& mf, const amrex::Box& dom
     int fails = 0;
     for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const amrex::Box section = dest_box & mfi.tilebox();
-        if (section.isEmpty()) continue;
+        if (section.isEmpty()) { continue; }
         auto array = mf.const_array(mfi);
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {
@@ -72,7 +72,7 @@ int GetFaceDir(amrex::IndexType iv)
     static_assert(sizeof(amrex::IndexType) == sizeof(unsigned int), "IndexType is not punnable to unsigned int");
     unsigned int value{0};
     std::memcpy(&value, &iv, sizeof(unsigned int));
-    return ((value & 0b001) + (value & 0b010) + (value & 0b100)) >> 1;
+    return int(((value & 0b001) + (value & 0b010) + (value & 0b100)) >> 1);
 }
 
 amrex::Box GetFaceBoundary(const amrex::Box& domain, amrex::Orientation::Side side)
@@ -115,7 +115,7 @@ bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_des
     const int ny = domain_src.length(1);
     for (amrex::MFIter mfi(dest); mfi.isValid(); ++mfi) {
         const amrex::Box section = dest_box & mfi.tilebox();
-        if (section.isEmpty()) continue;
+        if (section.isEmpty()) { continue; }
         auto darray = dest.const_array(mfi);
         amrex::LoopOnCpu(section, [&](int i, int j, int k)
         {

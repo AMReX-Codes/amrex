@@ -1,13 +1,13 @@
 
-#include <petscksp.h>
-#include <AMReX_PETSc.H>
-
 #ifdef AMREX_USE_EB
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EBFabFactory.H>
 #endif
 
 #include <AMReX_Habec_K.H>
+
+#include <petscksp.h>
+#include <AMReX_PETSc.H>
 
 #include <cmath>
 #include <numeric>
@@ -17,9 +17,38 @@
 
 namespace amrex {
 
-constexpr PetscInt PETScABecLap::regular_stencil_size;
-constexpr PetscInt PETScABecLap::eb_stencil_size;
+struct amrex_KSP
+{
+    amrex_KSP () = default;
+    ~amrex_KSP () { if (a) { KSPDestroy(&a); } }
+    amrex_KSP (amrex_KSP const&) = delete;
+    amrex_KSP (amrex_KSP &&) = delete;
+    amrex_KSP& operator= (amrex_KSP const&) = delete;
+    amrex_KSP& operator= (amrex_KSP &&) = delete;
+    KSP a = nullptr;
+};
 
+struct amrex_Mat
+{
+    amrex_Mat () = default;
+    ~amrex_Mat () { if (a) { MatDestroy(&a); } }
+    amrex_Mat (amrex_Mat const&) = delete;
+    amrex_Mat (amrex_Mat &&) = delete;
+    amrex_Mat& operator= (amrex_Mat const&) = delete;
+    amrex_Mat& operator= (amrex_Mat &&) = delete;
+    Mat a = nullptr;
+};
+
+struct amrex_Vec
+{
+    amrex_Vec () = default;
+    ~amrex_Vec () { if (a) { VecDestroy(&a); } }
+    amrex_Vec (amrex_Vec const&) = delete;
+    amrex_Vec (amrex_Vec &&) = delete;
+    amrex_Vec& operator= (amrex_Vec const&) = delete;
+    amrex_Vec& operator= (amrex_Vec &&) = delete;
+    Vec a = nullptr;
+};
 
 std::unique_ptr<PETScABecLap>
 makePetsc (const BoxArray& grids, const DistributionMapping& dmap,
@@ -56,22 +85,20 @@ PETScABecLap::PETScABecLap (const BoxArray& grids, const DistributionMapping& dm
     diaginv.define(grids,dmap,ncomp,0);
 
     PETSC_COMM_WORLD = comm;
-    PetscInitialize(0, 0, 0, 0);
+    PetscInitialize(nullptr, nullptr, nullptr, nullptr);
+
+    solver = std::make_unique<amrex_KSP>();
+    A = std::make_unique<amrex_Mat>();
+    b = std::make_unique<amrex_Vec>();
+    x = std::make_unique<amrex_Vec>();
 }
 
 PETScABecLap::~PETScABecLap ()
 {
-    MatDestroy(&A);
-    A = nullptr;
-
-    VecDestroy(&b);
-    b = nullptr;
-
-    VecDestroy(&x);
-    x = nullptr;
-
-    KSPDestroy(&solver);
-    solver = nullptr;
+    solver.reset();
+    A.reset();
+    b.reset();
+    x.reset();
 
     m_factory = nullptr;
     m_bndry = nullptr;
@@ -128,19 +155,19 @@ PETScABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real /*a
 
     loadVectors(soln, rhs);
     //
-    VecAssemblyBegin(x);
-    VecAssemblyEnd(x);
+    VecAssemblyBegin(x->a);
+    VecAssemblyEnd(x->a);
     //
-    VecAssemblyBegin(b);
-    VecAssemblyEnd(b);
-    KSPSetTolerances(solver, rel_tol, PETSC_DEFAULT, PETSC_DEFAULT, max_iter);
-    KSPSolve(solver, b, x);
+    VecAssemblyBegin(b->a);
+    VecAssemblyEnd(b->a);
+    KSPSetTolerances(solver->a, rel_tol, PETSC_DEFAULT, PETSC_DEFAULT, max_iter);
+    KSPSolve(solver->a, b->a, x->a);
     if (verbose >= 2)
     {
         PetscInt niters;
         Real res;
-        KSPGetIterationNumber(solver, &niters);
-        KSPGetResidualNorm(solver, &res);
+        KSPGetIterationNumber(solver->a, &niters);
+        KSPGetResidualNorm(solver->a, &res);
         amrex::Print() <<"\n" <<  niters << " PETSc Iterations, Residual Norm " << res << std::endl;
     }
 
@@ -176,15 +203,15 @@ PETScABecLap::prepareSolver ()
 
 #ifdef AMREX_USE_EB
 
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
+    const auto* ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (ebfactory) ? &(ebfactory->getVolFrac()) : nullptr;
     auto area = (ebfactory) ? ebfactory->getAreaFrac()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (ebfactory) ? ebfactory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    auto barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr;
-    auto bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr;
+    const auto* barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr;
+    const auto* bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr;
 
     if (ebfactory)
     {
@@ -210,7 +237,7 @@ PETScABecLap::prepareSolver ()
             Gpu::DeviceVector<int> dv_is_covered(hv_is_covered.size());
             Gpu::copyAsync(Gpu::hostToDevice, hv_is_covered.begin(), hv_is_covered.end(),
                            dv_is_covered.begin());
-            auto pc = dv_is_covered.data();
+            auto const* pc = dv_is_covered.data();
             auto const& cell_id_ma = cell_id.arrays();
             ParallelFor(cell_id, IntVect(1),
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
@@ -246,7 +273,7 @@ PETScABecLap::prepareSolver ()
                 }
                 else
                 {
-                    Long npts = bx.numPts();
+                    auto npts = static_cast<PetscInt>(bx.numPts());
                     ncells_grid[mfi] = npts;
                     ncells_proc += npts;
 
@@ -266,7 +293,7 @@ PETScABecLap::prepareSolver ()
 #endif
     {
         for (MFIter mfi(cell_id); mfi.isValid(); ++mfi) {
-            Long npts = mfi.validbox().numPts();
+            auto npts = static_cast<PetscInt>(mfi.validbox().numPts());
             ncells_grid[mfi] = npts;
             ncells_proc += npts;
         }
@@ -334,7 +361,7 @@ PETScABecLap::prepareSolver ()
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && cell_id.isFusingCandidate()) {
         Gpu::Buffer<PetscInt> offset_buf(offset.data(), offset.local_size());
-        auto poffset = offset_buf.data();
+        auto const* poffset = offset_buf.data();
         auto const& cell_id_ma = cell_id.arrays();
         auto const& cell_id_vec_ma = cell_id_vec.arrays();
         ParallelFor(cell_id,
@@ -370,13 +397,13 @@ PETScABecLap::prepareSolver ()
     PetscInt d_nz = (eb_stencil_size + regular_stencil_size) / 2;
     // estimated amount of block off diag elements
     PetscInt o_nz  = d_nz / 2;
-    MatCreate(PETSC_COMM_WORLD, &A);
-    MatSetType(A, MATMPIAIJ);
-    MatSetSizes(A, ncells_proc, ncells_proc, ncells_world, ncells_world);
-    MatMPIAIJSetPreallocation(A, d_nz, NULL, o_nz, NULL );
+    MatCreate(PETSC_COMM_WORLD, &A->a);
+    MatSetType(A->a, MATMPIAIJ);
+    MatSetSizes(A->a, ncells_proc, ncells_proc, ncells_world, ncells_world);
+    MatMPIAIJSetPreallocation(A->a, d_nz, nullptr, o_nz, nullptr );
     //Maybe an over estimate of the diag/off diag #of non-zero entries, so we turn off malloc warnings
-    MatSetUp(A);
-    MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
+    MatSetUp(A->a);
+    MatSetOption(A->a, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
 
     // A.SetValues
     const auto dx = geom.CellSizeArray();
@@ -548,21 +575,21 @@ PETScABecLap::prepareSolver ()
             int matid = 0;
             for (int rit = 0; rit < nrows; ++rit)
             {
-                MatSetValues(A, 1, &rows[rit], ncols[rit], &cols[matid], &mat[matid], INSERT_VALUES);
+                MatSetValues(A->a, 1, &rows[rit], ncols[rit], &cols[matid], &mat[matid], INSERT_VALUES);
                 matid += ncols[rit];
             }
         }
     }
 
-    MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
-    MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
+    MatAssemblyBegin(A->a, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(A->a, MAT_FINAL_ASSEMBLY);
     // create solver
-    KSPCreate(PETSC_COMM_WORLD, &solver);
-    KSPSetOperators(solver, A, A);
+    KSPCreate(PETSC_COMM_WORLD, &solver->a);
+    KSPSetOperators(solver->a, A->a, A->a);
 
     // Set up preconditioner
     PC pc;
-    KSPGetPC(solver, &pc);
+    KSPGetPC(solver->a, &pc);
 
     // Classic AMG
     PCSetType(pc, PCGAMG);
@@ -571,10 +598,10 @@ PETScABecLap::prepareSolver ()
 //    PCSetType(pc, PCJACOBI);
 
 
-// we are not using command line options    KSPSetFromOptions(solver);
+// we are not using command line options    KSPSetFromOptions(solver->a);
     // create b & x
-    VecCreateMPI(PETSC_COMM_WORLD, ncells_proc, ncells_world, &x);
-    VecDuplicate(x, &b);
+    VecCreateMPI(PETSC_COMM_WORLD, ncells_proc, ncells_world, &x->a);
+    VecDuplicate(x->a, &b->a);
 }
 
 void
@@ -583,7 +610,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
     BL_PROFILE("PETScABecLap::loadVectors()");
 
 #ifdef AMREX_USE_EB
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
+    const auto* ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
 #endif
 
@@ -685,8 +712,8 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
         if (nrows > 0)
         {
             // soln has been set to zero.
-            VecSetValues(x, nrows, cell_id_vec[mfi].dataPtr(), soln[mfi].dataPtr(), INSERT_VALUES);
-            VecSetValues(b, nrows, cell_id_vec[mfi].dataPtr(), rhs_diag[mfi].dataPtr(), INSERT_VALUES);
+            VecSetValues(x->a, nrows, cell_id_vec[mfi].dataPtr(), soln[mfi].dataPtr(), INSERT_VALUES);
+            VecSetValues(b->a, nrows, cell_id_vec[mfi].dataPtr(), rhs_diag[mfi].dataPtr(), INSERT_VALUES);
         }
     }
     Gpu::synchronize();
@@ -707,7 +734,7 @@ PETScABecLap::getSolution (MultiFab& a_soln)
     {
         const PetscInt nrows = ncells_grid[mfi];
         if (nrows > 0) {
-            VecGetValues(x, nrows, cell_id_vec[mfi].dataPtr(), (*l_soln)[mfi].dataPtr());
+            VecGetValues(x->a, nrows, cell_id_vec[mfi].dataPtr(), (*l_soln)[mfi].dataPtr());
         } else {
             (*l_soln)[mfi].setVal<RunOn::Device>(0.0);
         }

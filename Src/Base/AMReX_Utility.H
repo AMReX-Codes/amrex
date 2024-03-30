@@ -9,6 +9,7 @@
 #include <AMReX_Vector.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxArray.H>
+#include <AMReX_Demangle.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Random.H>
@@ -24,6 +25,7 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <typeinfo>
 #include <type_traits>
 
 namespace amrex
@@ -83,7 +85,7 @@ namespace amrex
     //! Output a message and abort when couldn't create the directory.
     void CreateDirectoryFailed (const std::string& dir);
     //! Output a message and abort when couldn't open the file.
-    void FileOpenFailed (const std::string& dir);
+    void FileOpenFailed (const std::string& file);
     /**
     * \brief Check if a file already exists.
     *   Return true if the filename is an existing file, directory,
@@ -130,16 +132,6 @@ namespace amrex
     *  WWW URL:     http://www.math.uio.no/~jacklam
 
     *  "p" MUST be in the open interval (0,1).
-
-    *  Entry points for Fortran:
-
-    *    REAL_T val
-    *    call blinvnormdist(val)
-
-    *  Internally, the Fortran entry point calls a static Mersenne Twister
-    *  object (the same one called by blutilrand()) to get a random number in
-    *  the open interval (0,1), and then sets "val" to the result of calling
-    *  amrex::InvNormDist() with that random number.
     */
     double InvNormDist (double p);
     /**
@@ -163,16 +155,6 @@ namespace amrex
     *  is roughly 30% more costly than InvNormDist() above.
     *
     *  "p" MUST be in the open interval (0,1).
-    *
-    *  Entry points for Fortran:
-    *
-    *    REAL_T val
-    *    call blinvnormdistbest(val)
-    *
-    *  Internally, the Fortran entry point calls a static Mersenne Twister
-    *  object (the same one called by blutilrand()) to get a random number in
-    *  the open interval (0,1), and then sets "val" to the result of calling
-    *  amrex::InvNormDist() with that random number.
     */
     double InvNormDistBest (double p);
 
@@ -187,10 +169,10 @@ namespace amrex
     {
         friend std::istream& operator>>(std::istream&, const expect& exp);
     public:
-        explicit expect(const std::string& str_);
-        explicit expect(const char* istr_);
-        explicit expect(char c);
-        const std::string& the_string() const;
+        explicit expect (std::string str_);
+        explicit expect (const char* istr_);
+        explicit expect (char c);
+        [[nodiscard]] const std::string& the_string( ) const;
     private:
         std::string istr;
     };
@@ -198,11 +180,8 @@ namespace amrex
     class StreamRetry
     {
       public:
-        StreamRetry(std::ostream &os, const std::string &suffix,
-                    const int maxtries);
-        StreamRetry(const std::string &filename,
-                    const bool abortonretryfailure,
-                    const int maxtries);
+        StreamRetry(std::ostream &os, std::string suffix, int maxtries);
+        StreamRetry(std::string filename, bool abortonretryfailure, int maxtries);
         bool TryOutput();
         bool TryFileOutput();
         static int NStreamErrors()       { return nStreamErrors; }
@@ -210,9 +189,9 @@ namespace amrex
 
       private:
         int tries, maxTries;
-        bool abortOnRetryFailure;
+        bool abortOnRetryFailure = true;
         std::string fileName;
-        std::ostream &sros;
+        std::ostream *sros;
         std::ostream::pos_type spos;
         std::string suffix;
 
@@ -243,9 +222,9 @@ namespace amrex
     void Sleep (double sleepsec);  // Sleep for sleepsec seconds
 
 
-    using MaxResSteadyClock = std::conditional<std::chrono::high_resolution_clock::is_steady,
+    using MaxResSteadyClock = std::conditional_t<std::chrono::high_resolution_clock::is_steady,
                                                std::chrono::high_resolution_clock,
-                                               std::chrono::steady_clock>::type;
+                                               std::chrono::steady_clock>;
     double second () noexcept;
 
     template<typename T> void hash_combine (uint64_t & seed, const T & val) noexcept;
@@ -347,6 +326,7 @@ template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int r
 */
 #define BL_IGNORE_MAX 100000
 
+// \cond CODEGEN
 template <typename T>
 amrex::Long
 amrex::bytesOf (const std::vector<T>& v)
@@ -360,6 +340,7 @@ amrex::bytesOf (const std::map<Key,T,Compare>& m)
 {
     return sizeof(m) + m.size()*(sizeof(Key)+sizeof(T)+gcc_map_node_extra_bytes);
 }
+// \endcond
 
 extern "C" {
     void* amrex_malloc (std::size_t size);

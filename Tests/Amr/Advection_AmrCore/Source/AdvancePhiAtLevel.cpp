@@ -33,7 +33,8 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
 
     // State with ghost cells
     MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
-    FillPatch(lev, time, Sborder, 0, Sborder.nComp());
+    FillPatch(lev, time, Sborder, 0, Sborder.nComp(),
+              FillPatchType::fillpatch_class);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -348,10 +349,10 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
     {
 #if (AMREX_SPACEDIM > 2)
         amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax << ", wmax = " << wmax
-                          << ", dt = " << dt_lev << " dx = " << dx << " " << dy << " " << dz << std::endl;
+                          << ", dt = " << dt_lev << " dx = " << dx << " " << dy << " " << dz << '\n';
 #else
         amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax
-                          << ", dt = " << dt_lev << " dx = " << dx << " " << dy << " " << dz << std::endl;
+                          << ", dt = " << dt_lev << " dx = " << dx << " " << dy << " " << dz << '\n';
 #endif
         amrex::Abort("CFL violation. use smaller adv.cfl.");
     }

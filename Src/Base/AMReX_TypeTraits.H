@@ -7,8 +7,8 @@
 #include <type_traits>
 
 // In case they are still used by applications
-#define AMREX_IS_TRIVIALLY_COPYABLE(T) std::is_trivially_copyable<T>::value
-#define AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) std::is_trivially_default_constructible<T>::value
+#define AMREX_IS_TRIVIALLY_COPYABLE(T) std::is_trivially_copyable_v<T>
+#define AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) std::is_trivially_default_constructible_v<T>
 
 namespace amrex
 {
@@ -18,22 +18,39 @@ namespace amrex
     template <class A, class Enable = void> struct IsBaseFab : std::false_type {};
     //
     template <class D>
-    struct IsBaseFab<D, typename std::enable_if<
-                            std::is_base_of<BaseFab<typename D::value_type>,
-                                            D>::value>::type>
+    struct IsBaseFab<D, std::enable_if_t<
+                            std::is_base_of_v<BaseFab<typename D::value_type>,
+                                            D>>>
         : std::true_type {};
-
+    //
+    template <class A>
+    inline constexpr bool IsBaseFab_v = IsBaseFab<A>::value;
 
     template <class A, class Enable = void> struct IsFabArray : std::false_type {};
     //
     template <class D>
-    struct IsFabArray<D, typename std::enable_if<
-                             std::is_base_of<FabArray<typename D::FABType::value_type>,
-                                             D>::value>::type>
+    struct IsFabArray<D, std::enable_if_t<
+                             std::is_base_of_v<FabArray<typename D::FABType::value_type>,
+                                             D>>>
         : std::true_type {};
+    //
+    template <class A>
+    inline constexpr bool IsFabArray_v = IsFabArray<A>::value;
+
+    template <class M, class Enable = void>
+    struct IsMultiFabLike : std::false_type {};
+    //
+    template <class M>
+    struct IsMultiFabLike<M, std::enable_if_t<IsFabArray_v<M> &&
+                                              IsBaseFab_v<typename M::fab_type> > >
+        : std::true_type {};
+    //
+    template <class M>
+    inline constexpr bool IsMultiFabLike_v = IsMultiFabLike<M>::value;
+
 
     template <bool B, class T = void>
-    using EnableIf_t = typename std::enable_if<B,T>::type;
+    using EnableIf_t = std::enable_if_t<B,T>;
 
     template <class T, class Enable = void>
     struct HasAtomicAdd : std::false_type {};
@@ -49,17 +66,17 @@ namespace amrex
     struct IsMultiFabIterator : public std::is_base_of<MFIter, T>::type {};
 
 #ifdef AMREX_PARTICLES
-    template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-              template<class> class Allocator>
-    class ParIterBase;
+    // template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+    //           template<class> class Allocator>
+    // class ParIterBase;
 
-    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-              template<class> class Allocator>
-    class ParIter;
+    // template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+    //           template<class> class Allocator>
+    // class ParIter;
 
-    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-              template<class> class Allocator>
-    class ParConstIter;
+    // template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+    //           template<class> class Allocator>
+    // class ParConstIter;
 
     class ParticleContainerBase;
 
@@ -105,13 +122,13 @@ namespace amrex
     template <typename T, typename U>
     struct Same<T,U>
     {
-        static constexpr bool value = std::is_same<T,U>::value;
+        static constexpr bool value = std::is_same_v<T,U>;
     };
 
     template <typename T, typename U1, typename... Us>
     struct Same
     {
-        static constexpr bool value = std::is_same<T,U1>::value && Same<T,Us...>::value;
+        static constexpr bool value = std::is_same_v<T,U1> && Same<T,Us...>::value;
     };
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -132,7 +149,9 @@ namespace amrex
             Nonesuch() = delete;
             ~Nonesuch() = delete;
             Nonesuch(Nonesuch const&) = delete;
+            Nonesuch(Nonesuch &&) = delete;
             void operator=(Nonesuch const&) = delete;
+            void operator=(Nonesuch &&) = delete;
         };
 
         template <class Default, class AlwaysVoid, template <class...> class Op,
@@ -224,18 +243,18 @@ namespace amrex
     struct IsStoreAtomic : std::false_type {};
     //
     template <class T>
-    struct IsStoreAtomic<T, typename std::enable_if <
-                                std::is_arithmetic<T>::value
-                                && sizeof(T) <= 8 >::type >
+    struct IsStoreAtomic<T, std::enable_if_t <
+                                std::is_arithmetic_v<T>
+                                && sizeof(T) <= 8 > >
         : std::true_type {};
 
     template <class T, class Enable = void>
     struct IsStdVector : std::false_type {};
     //
     template <class T>
-    struct IsStdVector<T, std::enable_if_t<std::is_base_of<std::vector<typename T::value_type,
+    struct IsStdVector<T, std::enable_if_t<std::is_base_of_v<std::vector<typename T::value_type,
                                                                        typename T::allocator_type>,
-                                                           T>::value> >
+                                                           T>> >
                        : std::true_type {};
 
 }

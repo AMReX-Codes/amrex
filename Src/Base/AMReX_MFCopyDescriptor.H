@@ -10,7 +10,7 @@ namespace amrex {
 
 class MultiFabCopyDescriptor;
 
-typedef FabArrayId MultiFabId;
+using MultiFabId = FabArrayId;
 
 void InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
                    BoxList*                returnUnfilledBoxes,
@@ -46,12 +46,13 @@ class MultiFabCopyDescriptor
 {
   public:
 
-    MultiFabCopyDescriptor ();
-
-    ~MultiFabCopyDescriptor ();
+    MultiFabCopyDescriptor () = default;
+    ~MultiFabCopyDescriptor () = default;
 
     MultiFabCopyDescriptor (const MultiFabCopyDescriptor&) = delete;
+    MultiFabCopyDescriptor (MultiFabCopyDescriptor&&) = delete;
     MultiFabCopyDescriptor& operator= (const MultiFabCopyDescriptor&) = delete;
+    MultiFabCopyDescriptor& operator= (MultiFabCopyDescriptor&&) = delete;
 
     MultiFabId RegisterMultiFab (MultiFab* mf) { return RegisterFabArray(mf); }
 };

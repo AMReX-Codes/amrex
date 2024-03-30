@@ -65,9 +65,9 @@ void addParticles (PCType1& pc1, PCType2& pc2)
     auto& ptile1 = pc1.DefineAndReturnParticleTile(0, 0, 0);
     {
         PType1 p;
-        p.pos(0) = 12.0;
-        p.pos(1) = 12.0;
-        p.pos(2) = 12.0;
+        AMREX_D_TERM(p.pos(0) = 12.0;,
+                     p.pos(1) = 12.0;,
+                     p.pos(2) = 12.0;)
         p.id() = PType1::NextID();
         p.cpu() = ParallelDescriptor::MyProc();
         ptile1.push_back(p);
@@ -76,9 +76,9 @@ void addParticles (PCType1& pc1, PCType2& pc2)
     auto& ptile2 = pc2.DefineAndReturnParticleTile(0, 0, 0);
     {
         PType2 p;
-        p.pos(0) = 12.0;
-        p.pos(1) = 13.0;
-        p.pos(2) = 12.0;
+        AMREX_D_TERM(p.pos(0) = 12.0;,
+                     p.pos(1) = 13.0;,
+                     p.pos(2) = 12.0;)
         p.id() = PType2::NextID();
         p.cpu() = ParallelDescriptor::MyProc();
         p.idata(0) = 1;
@@ -107,9 +107,9 @@ void testNeighborList ()
     const Box domain(domain_lo, domain_hi);
 
     int coord = 0;
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = params.is_periodic;
+    int is_per[] = {AMREX_D_DECL(params.is_periodic,
+                                 params.is_periodic,
+                                 params.is_periodic)};
     Geometry geom(domain, &real_box, coord, is_per);
 
     BoxArray ba(domain);

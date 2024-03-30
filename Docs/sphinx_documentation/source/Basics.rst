@@ -380,7 +380,7 @@ They are briefly introduced in the table below.
    |                                           |        | after the executable.                     |
    +-------------------------------------------+--------+-------------------------------------------+
    | ``amrex:get_command_argument(int n)``     | String | Returns the n-th argument after           |
-   |                                           |        | the exectuable.                           |
+   |                                           |        | the executable.                           |
    +-------------------------------------------+--------+-------------------------------------------+
 
 
@@ -394,13 +394,15 @@ Parser
 AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to evaluate mathematical
 expressions given in the form of string.  It supports ``+``, ``-``, ``*``,
 ``/``, ``**`` (power), ``^`` (power), ``sqrt``, ``exp``, ``log``, ``log10``,
-``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``sinh``, ``cosh``,
-``tanh``, ``abs``, ``floor``, ``ceil`` and ``fmod``.  The minimum and maximum of two
+``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``atan2``, ``sinh``, ``cosh``,
+``tanh``, ``asinh``, ``acosh``, ``atanh``, ``abs``, ``floor``, ``ceil`` and ``fmod``.
+The minimum and maximum of two
 numbers can be computed with ``min`` and ``max``, respectively.  It supports
 the Heaviside step function, ``heaviside(x1,x2)`` that gives ``0``, ``x2``,
 ``1``, for ``x1 < 0``, ``x1 = 0`` and ``x1 > 0``, respectively.
-It also supports the Bessel function of the first kind of order ``n``
-``jn(n,x)``.
+It supports the Bessel function of the first kind of order ``n``
+``jn(n,x)``. Complete elliptic integrals of the first and second kind, ``comp_ellint_1`` and ``comp_ellint_2``,
+are supported only for gcc and CPUs.
 There is ``if(a,b,c)`` that gives ``b`` or ``c`` depending on the value of
 ``a``.  A number of comparison operators are supported, including ``<``,
 ``>``, ``==``, ``!=``, ``<=``, and ``>=``.  The Boolean results from
@@ -1940,7 +1942,8 @@ tiling flag is on. One can change the default size using :cpp:`ParmParse`
    | | FArrayBoxes.                                      |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
 
-Dynamic tiling, which runs one box per OpenMP thread, is also available.
+Dynamic tiling, which runs one box per OpenMP thread, either with or without
+tiling the box, is also available.
 This is useful when the underlying work cannot benefit from thread
 parallelization.  Dynamic tiling is implemented using the :cpp:`MFItInfo`
 object and requires the :cpp:`MFIter` loop to be defined in an OpenMP
@@ -1979,9 +1982,13 @@ Dynamic tiling also allows explicit definition of a tile size:
           ...
       }
 
-Usually :cpp:`MFIter` is used for accessing multiple MultiFabs like the second
-example, in which two MultiFabs, :cpp:`U` and :cpp:`F`, use :cpp:`MFIter` via
-:cpp:`operator[]`. These different MultiFabs may have different BoxArrays. For
+Note that :cpp:`EnableTiling()`, with no argument, will use the default tile size.
+
+Usually :cpp:`MFIter` is used for accessing multiple MultiFabs, like
+the second example in the previous section on :ref:`sec:basics:mfiter:notiling`
+in which two MultiFabs, :cpp:`U` and :cpp:`F`, use :cpp:`MFIter` via
+:cpp:`array()` and :cpp:`const_array()` functions. These different MultiFabs
+may have different BoxArrays. For
 example, :cpp:`U` might be cell-centered, whereas :cpp:`F` might be nodal in
 :math:`x`-direction and cell in other directions. The :cpp:`MFIter::validbox`
 and :cpp:`tilebox` functions return Boxes of the same type as the
@@ -2029,8 +2036,8 @@ multi-threaded codes race conditions could occur.
    |                        |e|                          |                        |f|                           |
    +-----------------------------------------------------+------------------------------------------------------+
    | | Example of cell-centered grown tile boxes. As     | | Example of face type grown tile boxes. As          |
-   | | indicated by symbols, there are 8 tiles and four  | | indicated by symbols, there are 8 tiles and four   |
-   | | in each grid in this example. Tiles from the      | | in each grid in this example. Tiles from the       |
+   | | indicated by symbols and colors, there are 4      | | indicated by symbols and colors, there are 4 tiles |
+   | | tiles per grid in this example. Tiles from the    | | per grid in this example. Tiles from the           |
    | | same grid do not overlap. But tiles from          | | same grid do not overlap even though they          |
    | | different grids may overlap.                      | | have face index type.                              |
    |                                                     |                                                      |
@@ -2535,11 +2542,26 @@ The basic idea behind physical boundary conditions is as follows:
 
        ext_dir
            "External Dirichlet". It is the user's responsibility to write a routine
-           to fill ghost cells (more details below).
+           to fill ghost cells (more details below). The boundary location
+           is on the domain face even when the data inside the domain are
+           cell-centered.
+
+       ext_dir_cc
+           "External Dirichlet". It is the user's responsibility to write a routine
+           to fill ghost cells (more details below). The boundary location
+           is at the cell center of ghost cells outside the domain.
 
        foextrap
            "First Order Extrapolation"
            First order extrapolation from last cell in interior.
+
+       hoextrap
+           "High Order Extrapolation". The boundary location is on the domain
+           face even when the data inside the domain are cell-centered.
+
+       hoextrapcc
+           "High Order Extrapolation" The boundary location is at the cell
+           center of ghost cells outside the domain.
 
        reflect_even
            Reflection from interior cells with sign
@@ -2549,7 +2571,11 @@ The basic idea behind physical boundary conditions is as follows:
            Reflection from interior cells with sign
            changed, :math:`q(-i) = -q(i)`.
 
--  For external Dirichlet boundaries, the user needs to provide a
+       user_1, user_2 and user_3
+           "User".  It is the user's responsibility to write a routine
+           to fill ghost cells (more details below).
+
+-  For external Dirichlet and user boundaries, the user needs to provide a
    callable object like below.
 
    .. highlight:: c++
@@ -2564,7 +2590,7 @@ The basic idea behind physical boundary conditions is as follows:
                             const BCRec* bcr, const int bcomp,
                             const int orig_comp) const
            {
-               // external Dirichlet for cell iv
+               // external Dirichlet or user BC for cell iv
            }
        };
 
@@ -2610,13 +2636,125 @@ to fill the ghost cells on each grid.
         physbcf(mf, 0, mf.nComp(), mf.nGrowVector(), time, 0);
     }
 
+
+Masks
+=====
+
+Given an index :cpp:`(i,j,k)`, we often need to know its relationship with
+other points and levels (e.g., whether this point on a coarse level is
+covered by a fine level, whether this ghost point is outside coarse/fine
+boundary, etc.).  AMReX provides various functions for creating masks for
+this type of purposes.
+
+Owner Mask
+----------
+
+AMReX supports various index types such as face, edge and node, besides cell
+centered type.  For non-cell types, two boxes could overlap.  For example, a
+nodal index :cpp:`(i,j,k)` could exist in more than one :cpp:`FArrayBox` of
+a nodal :cpp:`MultiFab`.  AMReX provides a function to create an owner mask,
+where the owner is the grid with the lowest grid number containing the data.
+This has a number of use cases.  The nodal data for the same nodal point on
+different :cpp:`FArrayBox`\ es may be out of sync.  We can use
+:cpp:`MultiFab::OverrideSync` and an owner mask to sync up the data with
+owners overriding non-owners.
+
+.. highlight:: c++
+
+::
+
+    MultiFab mf(...); // non-cell-centered
+    auto mask = amrex::OwnerMask(mf, geom.periodicity());
+    mf.OverrideSync(*mask, geom.periodicity());
+
+To compute the dot product of two nodal :cpp:`MultiFab`\ s, we can use a
+mask to avoid double counting.
+
+.. highlight:: c++
+
+::
+
+    MultiFab mf1(...);
+    MultiFab mf2(...);
+    auto mask = amrex::OwnerMask(mf1, geom.periodicity());
+    Real result = MultiFab::Dot(*mask, mf1, 0, mf2, 0, 1, 0);
+
+Overlap Mask
+------------
+
+For the synchronization example mentioned previously, maybe instead of
+overriding, we want to do averaging.  This can be achieved with an overlap
+mask indicating how many duplicates are in each point.  The code below shows
+how the :cpp:`MultiFab::AverageSync` function is implemented in AMReX.
+
+.. highlight:: c++
+
+::
+
+    MultiFab mf(...); // non-cell-centered
+    auto mask = mf.OverlapMask(geom.periodicity());
+    mask->invert(1.0, 0, 1);
+    mf.WeightedSync(*mask, geom.periodicity());
+
+Point Mask
+----------
+
+The :cpp:`FabArray` class has a member function :cpp:`BuildMask` that can be
+used to set masks indicating the type of points (e.g., valid, outside the
+domain, etc.).  For example,
+
+.. highlight:: c++
+
+::
+
+    iMultiFab mask(ba, dm, 1, nghost);
+    int a = 10; // ghost points covered by valid points
+    int b = 11; // ghost points not covered by valid points
+    int c = 12; // outside physical domain
+    int d = 13; // interior points (i.e., valid points)
+    mask.BuildMask(geom.Domain(), geom.periodicity(), a, b, c, d);
+
+Fine Mask
+---------
+
+AMReX provides a number of :cpp:`makeFineMask` functions that can be useful
+for multi-level AMR calculations.  For example, we may want to compute the
+infinity norm on a coarse AMR level without including data from cells
+covered by fine level grids.
+
+.. highlight:: c++
+
+::
+
+    int coarse_value = 1;
+    int fine_value = 0;
+    iMultiFab mask = makeFineMask(coarse_mf, fine_boxarray, refine_ratio,
+                                  coarse_value, fine_value);
+    Real result = coarse_mf.norminf(mask);
+
 Memory Allocation
 =================
 
-Some constructors of :cpp:`MultiFab`, :cpp:`FArrayBox`, etc. can take
-an :cpp:`Arena` argument for memory allocation.  This is usually not
-important for CPU codes, but very important for GPU codes.  We will
-present more details in :ref:`sec:gpu:memory` in Chapter GPU.
+Some constructors of :cpp:`MultiFab`, :cpp:`FArrayBox`, etc. can take an
+:cpp:`Arena` argument for memory allocation.  Some constructors of
+:cpp:`MultiFab` can take an optional argument :cpp:`MFInfo`, which can be
+used to set the arena.  This is usually not important for CPU codes, but
+very important for GPU codes.  We will present more details about memory
+arenas in :ref:`sec:gpu:memory` in Chapter GPU.
+
+Every :cpp:`FArrayBox` in a :cpp:`MultiFab` has a contiguous chunk of memory
+for floating point data, whereas by default :cpp:`MultiFab` as a collection
+of multiple :cpp:`FArrayBox`\ s does not store all floating point data in
+contiguous chunk of memory. This behavior can be changed for all
+:cpp:`MultiFab`\ s with the :cpp:`ParmParse` parameter,
+``amrex.mf.alloc_single_chunk=1``, or for a specific :cpp:`MultiFab` by
+passing a :cpp:`MFInfo` object (e.g.,
+``MFInfo().SetAllocSingleChunk(true)``) to the constructor. One can call
+:cpp:`MultiFab::singleChunkPtr()` to obtain a pointer to the single chunk
+memory. Note that the function returns a null pointer if the :cpp:`MultiFab`
+does not use a single contiguous chunk of memory. One can also call
+:cpp:`MultiFab::singleChunkSize()` to obtain the size in bytes of the single
+chunk memory.
 
 AMReX has a Fortran module, :fortran:`amrex_mempool_module` that can be used to
 allocate memory for Fortran pointers. The reason that such a module exists in
@@ -2695,3 +2833,6 @@ Backtrace files are produced by AMReX signal handler by default when
 segfault occurs or ``Abort`` is called.  If the application does not
 want AMReX to handle this, ``ParmParse`` parameter
 `amrex.signal_handling=0` can be used to disable it.
+
+See :ref:`sec:gpu:assertion` for considerations on using these functions in
+GPU-enabled code.

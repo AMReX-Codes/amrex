@@ -10,7 +10,7 @@
 
 namespace amrex {
 
-template <typename T, typename std::enable_if<std::is_integral<T>::value,int>::type = 0>
+template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
 bool isEmpty (T n) noexcept { return n <= 0; }
 
 AMREX_FORCE_INLINE bool isEmpty (Box const& b) noexcept { return b.isEmpty(); }
@@ -20,11 +20,11 @@ namespace Gpu {
 namespace range_detail {
 
 //! integer version
-template <typename T, typename std::enable_if<std::is_integral<T>::value,int>::type = 0>
+template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
 AMREX_GPU_HOST_DEVICE
 Long size (T const& b) noexcept { return static_cast<Long>(b); }
 
-template <typename T, typename std::enable_if<std::is_integral<T>::value,int>::type = 0>
+template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
 AMREX_GPU_HOST_DEVICE
 Long at (T const& /*b*/, Long offset) noexcept { return offset; }
 
@@ -32,31 +32,31 @@ Long at (T const& /*b*/, Long offset) noexcept { return offset; }
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE Long size (Box const& b) noexcept
 {
-#if AMREX_DEVICE_COMPILE
-    return b.numPts();
-#else
-    amrex::ignore_unused(b);
-    return 1;
-#endif
+    AMREX_IF_ON_DEVICE((return b.numPts();))
+    AMREX_IF_ON_HOST((
+        amrex::ignore_unused(b);
+        return 1;
+    ))
 }
 
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE Box at (Box const& b, Long offset) noexcept
 {
-#if AMREX_DEVICE_COMPILE
-    auto len = b.length3d();
-    Long k = offset / (len[0]*len[1]);
-    Long j = (offset - k*(len[0]*len[1])) / len[0];
-    Long i = (offset - k*(len[0]*len[1])) - j*len[0];
-    IntVect iv{AMREX_D_DECL(static_cast<int>(i),
-                            static_cast<int>(j),
-                            static_cast<int>(k))};
-    iv += b.smallEnd();
-    return Box(iv,iv,b.type());
-#else
-    amrex::ignore_unused(offset);
-    return b;
-#endif
+    AMREX_IF_ON_DEVICE((
+        auto len = b.length3d();
+        Long k = offset / (len[0]*len[1]);
+        Long j = (offset - k*(len[0]*len[1])) / len[0];
+        Long i = (offset - k*(len[0]*len[1])) - j*len[0];
+        IntVect iv{AMREX_D_DECL(static_cast<int>(i),
+                                static_cast<int>(j),
+                                static_cast<int>(k))};
+        iv += b.smallEnd();
+        return Box(iv,iv,b.type());
+    ))
+    AMREX_IF_ON_HOST((
+        amrex::ignore_unused(offset);
+        return b;
+    ))
 }
 
 template <typename T>
@@ -65,7 +65,7 @@ struct range_impl
     AMREX_GPU_HOST_DEVICE
     explicit range_impl (T const& b) noexcept : m_b(b), m_n(range_detail::size(b)) {}
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     range_impl (T const& b, Long gid, Long grange) noexcept
         : m_b(b), m_n(range_detail::size(b)), m_gid(gid), m_grange(grange) {}
 #endif
@@ -73,7 +73,7 @@ struct range_impl
     struct iterator
     {
         AMREX_GPU_HOST_DEVICE
-        iterator (T const& b, Long i, Long s) noexcept : mi_b(b), mi_i(i), mi_s(s)  {}
+        iterator (T const& b, Long i, Long s) noexcept : mi_b(&b), mi_i(i), mi_s(s)  {}
 
         AMREX_GPU_HOST_DEVICE
         void operator++ () noexcept { mi_i += mi_s; }
@@ -82,39 +82,42 @@ struct range_impl
         bool operator!= (iterator const& rhs) const noexcept { return mi_i < rhs.mi_i; }
 
         AMREX_GPU_HOST_DEVICE
-        T operator* () const noexcept { return range_detail::at(mi_b,mi_i); }
+        T operator* () const noexcept { return range_detail::at(*mi_b,mi_i); }
 
     private:
-        T const& mi_b;
+        T const* mi_b;
         Long mi_i;
         Long mi_s;
     };
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     iterator begin () const noexcept {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        return iterator(m_b, blockDim.x*blockIdx.x+threadIdx.x, blockDim.x*gridDim.x);
-#elif defined (__SYCL_DEVICE_ONLY__)
+#if defined (__SYCL_DEVICE_ONLY__)
         return iterator(m_b, m_gid, m_grange);
 #else
-        return iterator(m_b,0,1);
+        AMREX_IF_ON_DEVICE((
+            return iterator(m_b, blockDim.x*blockIdx.x+threadIdx.x, blockDim.x*gridDim.x);
+        ))
+        AMREX_IF_ON_HOST((
+            return iterator(m_b,0,1);
+        ))
 #endif
     }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     iterator end () const noexcept { return iterator(m_b,m_n,0); }
 
 private:
     T m_b;
     Long m_n;
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
     Long m_gid;
     Long m_grange;
 #endif
 };
 }
 
-#ifdef AMREX_USE_DPCPP
+#ifdef AMREX_USE_SYCL
 template <typename T>
 range_detail::range_impl<T> Range (T const& b, Long gid, Long grange) noexcept {
     return range_detail::range_impl<T>(b,gid,grange);

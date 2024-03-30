@@ -17,14 +17,14 @@ void main_main()
             << " Description:\n"
             << "      This program takes a whitespace-separated list of plotfiles and\n"
             << "      returns the time for each plotfile.\n"
-            << std::endl;
+            << '\n';
         return;
     }
 
     for (int f = 1; f <= narg; ++f) {
         const auto& fname = amrex::get_command_argument(f);
         PlotFileData plotfile(fname);
-        amrex::Print().SetPrecision(17) << fname << "    " << plotfile.time() << std::endl;
+        amrex::Print().SetPrecision(17) << fname << "    " << plotfile.time() << '\n';
     }
 }
 

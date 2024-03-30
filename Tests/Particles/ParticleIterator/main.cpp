@@ -31,11 +31,11 @@ int main(int argc, char* argv[])
   const Box domain(domain_lo, domain_hi);
 
   Vector<int> rr(nlevs-1);
-  for (int lev = 1; lev < nlevs; lev++)
+  for (int lev = 1; lev < nlevs; lev++) {
     rr[lev-1] = 2;
+  }
 
-  int is_per[BL_SPACEDIM];
-  for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1;
+  int is_per[] = {AMREX_D_DECL(1,1,1)};
 
   Vector<Geometry> geom(nlevs);
   geom[0].define(domain, &real_box, coord, is_per);
@@ -43,19 +43,21 @@ int main(int argc, char* argv[])
   Vector<BoxArray> ba(nlevs);
   ba[0].define(domain);
 
-  for (int lev = 0; lev < nlevs; lev++)
+  for (int lev = 0; lev < nlevs; lev++) {
     ba[lev].maxSize(max_grid_size);
+  }
 
   Vector<DistributionMapping> dmap(nlevs);
-  for (int lev = 0; lev < nlevs; lev++)
+  for (int lev = 0; lev < nlevs; lev++) {
     dmap[lev].define(ba[lev]);
+  }
 
-  typedef ParticleContainer<1+BL_SPACEDIM> MyParticleContainer;
+  using MyParticleContainer = ParticleContainer<1+BL_SPACEDIM>;
   MyParticleContainer MyPC(geom, dmap, ba, rr);
 
   MyParticleContainer::ParticleInitData pdata = {{1.0},{},{},{}};
   MyPC.InitOnePerCell(0.5, 0.5, 0.5, pdata);
-  MyPC.do_tiling = true;
+  MyParticleContainer::do_tiling = true;
 
   amrex::AllPrintToFile("outside") << "outside parallel region. \n";
 

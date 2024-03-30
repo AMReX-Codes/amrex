@@ -31,7 +31,7 @@ namespace
 void
 IArrayBox::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
 //    ParmParse pp("iab");
 
     ifabio = std::make_unique<IFABio>();
@@ -46,8 +46,6 @@ IArrayBox::Finalize ()
     ifabio.reset();
     initialized = false;
 }
-
-IArrayBox::IArrayBox () noexcept {}
 
 IArrayBox::IArrayBox (Arena* ar) noexcept
     : BaseFab<int>(ar)
@@ -133,6 +131,7 @@ IArrayBox::readFrom (std::istream& is)
     int tmp_ncomp;
     is >> tmp_box;
     is >> tmp_ncomp;
+    AMREX_ASSERT(tmp_ncomp >= 0 && tmp_ncomp < std::numeric_limits<int>::max());
     is.ignore(99999, '\n');
 
     if (this->box() != tmp_box || this->nComp() != tmp_ncomp) {
@@ -154,7 +153,7 @@ IArrayBox::readFrom (std::istream& is)
 }
 
 void
-IFABio::write_header (std::ostream& os, const IArrayBox& fab, int nvar) const
+IFABio::write_header (std::ostream& os, const IArrayBox& fab, int nvar)
 {
     AMREX_ASSERT(nvar <= fab.nComp());
     os <<"IFAB " << FPC::NativeIntDescriptor();
@@ -162,7 +161,7 @@ IFABio::write_header (std::ostream& os, const IArrayBox& fab, int nvar) const
 }
 
 void
-IFABio::read (std::istream& is, IArrayBox& fab, IntDescriptor const& data_descriptor) const
+IFABio::read (std::istream& is, IArrayBox& fab, IntDescriptor const& data_descriptor)
 {
     readIntData(fab.dataPtr(), fab.size(), is, data_descriptor);
 }

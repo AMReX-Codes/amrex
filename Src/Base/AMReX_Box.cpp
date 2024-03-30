@@ -24,8 +24,9 @@ operator<< (std::ostream& os,
        << b.type()
        << ')';
 
-    if (os.fail())
+    if (os.fail()) {
         amrex::Error("operator<<(ostream&,Box&) failed");
+    }
 
     return os;
 }
@@ -77,8 +78,9 @@ operator>> (std::istream& is,
 
     b = Box(lo,hi,typ);
 
-    if (is.fail())
+    if (is.fail()) {
         amrex::Error("operator>>(istream&,Box&) failed");
+    }
 
     return is;
 }
@@ -86,9 +88,9 @@ operator>> (std::istream& is,
 BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
     : p(p_)
 {
-    if (p == 0) {
+    if (p == nullptr) {
         v.resize(3*AMREX_SPACEDIM);
-        p = &v[0];
+        p = v.data();
     }
 
     AMREX_D_EXPR(p[0]                = bx.smallend[0],
@@ -123,7 +125,7 @@ AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
         count_tot += countvec[i];
     }
 
-    if (count_tot == 0) return;
+    if (count_tot == 0) { return; }
 
     if (count_tot > static_cast<Long>(std::numeric_limits<int>::max())) {
         amrex::Abort("AllGatherBoxes: too many boxes");
@@ -142,7 +144,7 @@ AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
     const int root = ParallelContext::IOProcessorNumberSub();
     const int myproc = ParallelContext::MyProcSub();
     const int nprocs = ParallelContext::NProcsSub();
-    const int count = bxs.size();
+    const int count = static_cast<int>(bxs.size());
     Vector<int> countvec(nprocs);
     MPI_Gather(&count, 1, MPI_INT, countvec.data(), 1, MPI_INT, root, comm);
 
@@ -150,7 +152,7 @@ AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
     Vector<int> offset(countvec.size(),0);
     if (myproc == root) {
         count_tot = countvec[0];
-        for (int i = 1, N = offset.size(); i < N; ++i) {
+        for (int i = 1, N = static_cast<int>(offset.size()); i < N; ++i) {
             offset[i] = offset[i-1] + countvec[i-1];
             count_tot += countvec[i];
         }
@@ -158,7 +160,7 @@ AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
 
     MPI_Bcast(&count_tot, 1, MPI_INT, root, comm);
 
-    if (count_tot == 0) return;
+    if (count_tot == 0) { return; }
 
     if (count_tot > static_cast<Long>(std::numeric_limits<int>::max())) {
         amrex::Abort("AllGatherBoxes: too many boxes");
@@ -170,7 +172,7 @@ AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
     MPI_Gatherv(bxs.data(), count, ParallelDescriptor::Mpi_typemap<Box>::type(),
                 recv_buffer.data(), countvec.data(), offset.data(),
                 ParallelDescriptor::Mpi_typemap<Box>::type(), root, comm);
-    MPI_Bcast(recv_buffer.data(), count_tot, ParallelDescriptor::Mpi_typemap<Box>::type(),
+    MPI_Bcast(recv_buffer.data(), static_cast<int>(count_tot), ParallelDescriptor::Mpi_typemap<Box>::type(),
               root, comm);
 
     std::swap(bxs,recv_buffer);

@@ -6,11 +6,11 @@
 
 #include <cstdio>
 
-#ifdef AMREX_USE_DPCPP
-#include <CL/sycl.hpp>
+#ifdef AMREX_USE_SYCL
+#  include <sycl/sycl.hpp>
 #endif
 
-#if defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_SYCL)
 #if defined(__SYCL_DEVICE_ONLY__)
 #  define AMREX_DEVICE_PRINTF(format,...) { \
       static const __attribute__((opencl_constant)) char amrex_i_format[] = format ; \

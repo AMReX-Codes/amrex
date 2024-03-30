@@ -8,6 +8,7 @@ ifneq ($(NO_CONFIG_CHECKING),TRUE)
   ifeq ($(HIP_PATH),)
     $(error hipconfig failed. Is the HIP toolkit available?)
   endif
+  COMP_VERSION = $(hipcc_version)
 endif
 
 CXX = $(HIP_PATH)/bin/hipcc
@@ -23,7 +24,7 @@ endif
 
 # Generic flags, always used
 CXXFLAGS = -std=$(CXXSTD) -m64
-CFLAGS   = -std=c99 -m64
+CFLAGS   = -std=c11 -m64
 
 FFLAGS   = -ffixed-line-length-none -fno-range-check -fno-second-underscore
 F90FLAGS = -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
@@ -36,11 +37,14 @@ ifeq ($(USE_GPU_RDC),TRUE)
 endif
 
 # amd gpu target
-HIPCC_FLAGS += --amdgpu-target=$(AMD_ARCH)
+HIPCC_FLAGS += --offload-arch=$(AMD_ARCH)
+
+# pthread
+HIPCC_FLAGS += -pthread
 
 CXXFLAGS += $(HIPCC_FLAGS)
 
-# add fopenmp targetting the gnu library
+# add fopenmp targeting the gnu library
 ifeq ($(USE_OMP),TRUE)
   CXXFLAGS += -fopenmp=libgomp
   CFLAGS   += -fopenmp=libgomp
@@ -62,7 +66,16 @@ else
   LIBRARY_LOCATIONS += $(dir $(gfortran_libso))
 endif
 
-override XTRALIBS += -lgfortran -lquadmath
+override XTRALIBS += -lgfortran
+
+quadmath_liba  = $(shell $(F90) -print-file-name=libquadmath.a)
+quadmath_libso = $(shell $(F90) -print-file-name=libquadmath.so)
+
+ifneq ($(quadmath_liba),libquadmath.a)
+  override XTRALIBS += -lquadmath
+else ifneq ($(quadmath_libso),libquadmath.so)
+  override XTRALIBS += -lquadmath
+endif
 
 endif  # BL_NO_FORT
 
@@ -71,22 +84,20 @@ endif  # BL_NO_FORT
 ifeq ($(HIP_COMPILER),clang)
 
   ifeq ($(DEBUG),TRUE)
-    CXXFLAGS += -g -O0 #-ftrapv
-    CFLAGS   += -g -O0 #-ftrapv
+    CXXFLAGS += -g -O1 -munsafe-fp-atomics
+    CFLAGS   += -g -O0
 
     FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
     F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
 
   else  # DEBUG=FALSE flags
 
-    CXXFLAGS += -g -O3 -munsafe-fp-atomics
-    CFLAGS   += -g -O3
-    FFLAGS   += -g -O3
-    F90FLAGS += -g -O3
+    CXXFLAGS += -gline-tables-only -fdebug-info-for-profiling -O3 -munsafe-fp-atomics
+    CFLAGS   += -gline-tables-only -fdebug-info-for-profiling -O3
+    FFLAGS   += -g1 -O3
+    F90FLAGS += -g1 -O3
 
   endif
-
-  CXXFLAGS += -Wno-pass-failed  # disable this warning
 
   ifeq ($(WARN_ALL),TRUE)
     warning_flags = -Wall -Wextra -Wunreachable-code -Wnull-dereference
@@ -109,7 +120,7 @@ ifeq ($(HIP_COMPILER),clang)
 
   # Generic HIP info
   ROC_PATH=$(realpath $(dir $(HIP_PATH)))
-  SYSTEM_INCLUDE_LOCATIONS += $(HIP_PATH)/include
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include $(HIP_PATH)/include
 
   # rocRand
   SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/hiprand $(ROC_PATH)/include/rocrand
@@ -122,13 +133,12 @@ ifeq ($(HIP_COMPILER),clang)
   # rocThrust - Header only
   # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/rocthrust
 
-  ifeq ($(USE_ROCTX),TRUE)
   # rocTracer
-  CXXFLAGS += -DAMREX_USE_ROCTX
-  HIPCC_FLAGS += -DAMREX_USE_ROCTX
-  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/roctracer $(ROC_PATH)/include/rocprofiler
-  LIBRARY_LOCATIONS += $(ROC_PATH)/lib
-  LIBRARIES += -lroctracer64 -lroctx64
+  ifeq ($(USE_ROCTX),TRUE)
+    CXXFLAGS += -DAMREX_USE_ROCTX
+    HIPCC_FLAGS += -DAMREX_USE_ROCTX
+    LIBRARY_LOCATIONS += $(ROC_PATH)/lib
+    LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lroctracer64 -lroctx64
   endif
 
   # hipcc passes a lot of unused arguments to clang

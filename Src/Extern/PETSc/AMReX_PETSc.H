@@ -7,20 +7,29 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_BndryData.H>
 
-// Do NOT include any PETSc headers here.  They should be included in
+// Do NOT include any other PETSc headers here.  They should be included in
 // .cpp files before AMReX_PETSc.H is included.
+#include <petscsystypes.h>
 
 namespace amrex {
+
+class amrex_KSP;
+class amrex_Mat;
+class amrex_Vec;
 
 class PETScABecLap
 {
 public:
 
-
     PETScABecLap (const BoxArray& grids, const DistributionMapping& dmap,
                   const Geometry& geom_, MPI_Comm comm_);
 
     ~PETScABecLap ();
+
+    PETScABecLap (PETScABecLap const&) = delete;
+    PETScABecLap (PETScABecLap &&) noexcept = delete;
+    PETScABecLap& operator= (PETScABecLap const&) = delete;
+    PETScABecLap& operator= (PETScABecLap &&) noexcept = delete;
 
     void setScalars (Real sa, Real sb);
     void setACoeffs (const MultiFab& alpha);
@@ -53,10 +62,10 @@ private:
     BndryData const* m_bndry = nullptr;
     int m_maxorder = -1;
 
-    KSP solver = nullptr;
-    Mat A = nullptr;
-    Vec b = nullptr;
-    Vec x = nullptr;
+    std::unique_ptr<amrex_KSP> solver;
+    std::unique_ptr<amrex_Mat> A;
+    std::unique_ptr<amrex_Vec> b;
+    std::unique_ptr<amrex_Vec> x;
 
     LayoutData<PetscInt> ncells_grid;
     FabArray<BaseFab<PetscInt> > cell_id;
@@ -70,8 +79,9 @@ public: // for cuda
     void getSolution (MultiFab& soln);
 };
 
-std::unique_ptr<PETScABecLap> makePetsc (const BoxArray& grids, const DistributionMapping& damp,
-                                  const Geometry& geom, MPI_Comm comm_);
+[[nodiscard]] std::unique_ptr<PETScABecLap>
+makePetsc (const BoxArray& grids, const DistributionMapping& dmap,
+           const Geometry& geom, MPI_Comm comm_);
 
 }
 

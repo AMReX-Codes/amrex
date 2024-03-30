@@ -2,16 +2,9 @@
 #define AMREX_EXTENSION_H_
 #include <AMReX_Config.H>
 
-#if !defined(BL_LANG_FORT)
-
-// restrict
-
-#ifdef __cplusplus
-
-
-#if defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) || (defined(__INTEL_LLVM_COMPILER) && !defined(SYCL_LANGUAGE_VERSION))
 #define AMREX_CXX_INTEL
-#elif defined(_CRAYC)
+#elif defined(_CRAYC) || defined(__cray__)
 #define AMREX_CXX_CRAY
 #elif defined(__PGI)
 #define AMREX_CXX_PGI
@@ -27,6 +20,11 @@
 #define AMREX_CXX_GCC
 #endif
 
+#if !defined(BL_LANG_FORT)
+
+// restrict
+
+#ifdef __cplusplus
 
 #ifdef _WIN32
 #define AMREX_RESTRICT __restrict
@@ -45,35 +43,35 @@
 #if defined(AMREX_DEBUG)
 #define AMREX_PRAGMA_SIMD
 
-#elif defined(__CUDA_ARCH__)
+#elif defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
 #define AMREX_PRAGMA_SIMD
 
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
 #define AMREX_PRAGMA_SIMD
 
 //#elif defined(AMREX_USE_OMP) && defined(_OPENMP) && (_OPENMP >= 201307) && !defined(__PGI)
 //#define AMREX_PRAGMA_SIMD _Pragma("omp simd")
 
-#elif defined(__INTEL_COMPILER)
+#elif defined(AMREX_CXX_INTEL)
 #define AMREX_PRAGMA_SIMD _Pragma("ivdep")
 
-#elif defined(_CRAYC)
+#elif defined(AMREX_CXX_CRAY)
 #define AMREX_PRAGMA_SIMD _Pragma("ivdep")
 
-#elif defined(__PGI)
+#elif defined(AMREX_CXX_PGI)
 #define AMREX_PRAGMA_SIMD _Pragma("loop ivdep")
 
-#elif defined(__NVCOMPILER)
+#elif defined(AMREX_CXX_NVHPC)
 #define AMREX_PRAGMA_SIMD _Pragma("loop ivdep")
 
-#elif defined(__NEC__)
+#elif defined(AMREX_CXX_NEC)
 #define AMREX_PRAGMA_SIMD
 
-#elif defined(__ibmxl__)
+#elif defined(AMREX_CXX_IBM)
 #define AMREX_PRAGMA_SIMD _Pragma("ibm independent_loop")
 
 #elif defined(__clang__)
-#define AMREX_PRAGMA_SIMD _Pragma("clang loop vectorize(enable)")
+#define AMREX_PRAGMA_SIMD
 
 #elif defined(__GNUC__)
 #define AMREX_PRAGMA_SIMD _Pragma("GCC ivdep")
@@ -84,28 +82,28 @@
 #endif /* simd */
 
 // force inline
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
 #define AMREX_FORCE_INLINE __forceinline__
 
-#elif defined(__HIP_DEVICE_COMPILE__)
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
 #define AMREX_FORCE_INLINE __forceinline__
 
-#elif defined(__INTEL_COMPILER)
+#elif defined(AMREX_CXX_INTEL)
 #define AMREX_FORCE_INLINE inline __attribute__((always_inline))
 
-#elif defined(_CRAYC)
+#elif defined(AMREX_CXX_CRAY)
 #define AMREX_FORCE_INLINE inline
 
-#elif defined(__PGI)
+#elif defined(AMREX_CXX_PGI)
 #define AMREX_FORCE_INLINE inline
 
-#elif defined(__NVCOMPILER)
+#elif defined(AMREX_CXX_NVHPC)
 #define AMREX_FORCE_INLINE inline
 
-#elif defined(__NEC__)
+#elif defined(AMREX_CXX_NEC)
 #define AMREX_FORCE_INLINE inline
 
-#elif defined(__ibmxl__)
+#elif defined(AMREX_CXX_IBM)
 #define AMREX_FORCE_INLINE inline __attribute__((always_inline))
 
 #elif defined(__clang__)
@@ -113,6 +111,9 @@
 
 #elif defined(__GNUC__)
 #define AMREX_FORCE_INLINE inline __attribute__((always_inline))
+
+#elif defined(_MSC_VER)
+#define AMREX_FORCE_INLINE inline __forceinline
 
 #else
 #define AMREX_FORCE_INLINE inline
@@ -133,6 +134,33 @@
 #define AMREX_NO_INLINE __attribute__((noinline))
 #else
 #define AMREX_NO_INLINE
+#endif
+
+// flatten
+#if defined(_MSC_VER)
+#define AMREX_FLATTEN [[msvc::flatten]]
+#elif defined(__clang__) || defined(__GNUC__)
+#define AMREX_FLATTEN __attribute__((flatten))
+#else
+#define AMREX_FLATTEN
+#endif
+
+#ifdef AMREX_USE_FLATTEN_FOR
+#define AMREX_ATTRIBUTE_FLATTEN_FOR AMREX_FLATTEN
+#else
+#define AMREX_ATTRIBUTE_FLATTEN_FOR
+#endif
+
+// unroll loop
+#define AMREX_TO_STRING_HELPER(X)   #X
+#define AMREX_TO_STRING(X)          AMREX_TO_STRING_HELPER(X)
+
+#if defined(__clang__) || defined(__CUDACC__) || defined(__HIP__) || defined(__INTEL_CLANG_COMPILER)
+#define AMREX_UNROLL_LOOP(n)  _Pragma(AMREX_TO_STRING(unroll n))
+#elif defined(__GNUC__)
+#define AMREX_UNROLL_LOOP(n)  _Pragma(AMREX_TO_STRING(GCC unroll n))
+#else
+#define AMREX_UNROLL_LOOP(n)
 #endif
 
 // __attribute__((weak))
@@ -178,6 +206,42 @@
 #    define AMREX_FALLTHROUGH [[gnu::fallthrough]]
 #else
 #    define AMREX_FALLTHROUGH ((void)0)
+#endif
+
+// Note: following compilers support [[likely]] and [[unlikely]]
+//   - Clang >= 12.0
+//   - GCC >= 9.0
+//   - Intel >= 2021.7
+//   - MSVC >= 19.26
+//   - nvcc >= 12
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(likely) >= 201803L
+#    define AMREX_LIKELY [[likely]]
+#    define AMREX_UNLIKELY [[unlikely]]
+#else
+#    define AMREX_LIKELY
+#    define AMREX_UNLIKELY
+#endif
+
+// Note: following compilers support assumptions, at least using builtin functions:
+//   - Clang >= 3.7
+//   - GCC >= 5.1
+//   - MSVC >= 19.20
+//   - nvcc >= 11.1.0
+//   - icx >= 2021.1.2
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(assume)
+#   define AMREX_ASSUME(ASSUMPTION) [[assume(ASSUMPTION)]]
+#else
+#   if defined(__CUDA_ARCH__) && defined(__CUDACC__) && ( (__CUDACC_VER_MAJOR__ > 11) || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)) )
+#       define AMREX_ASSUME(ASSUMPTION) __builtin_assume(ASSUMPTION)
+#   elif defined(AMREX_CXX_INTEL) || defined(__clang__)
+#       define AMREX_ASSUME(ASSUMPTION) __builtin_assume(ASSUMPTION)
+#   elif defined(_MSC_VER)
+#       define AMREX_ASSUME(ASSUMPTION) __assume(ASSUMPTION)
+#   elif defined(__GNUC__)
+#       define AMREX_ASSUME(ASSUMPTION) if (ASSUMPTION) {} else { __builtin_unreachable(); }
+#   else
+#       define AMREX_ASSUME(ASSUMPTION)
+#   endif
 #endif
 
 // CI uses -Werror -Wc++17-extension, thus we need to add the __cplusplus clause

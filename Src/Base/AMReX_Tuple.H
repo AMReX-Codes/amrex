@@ -3,21 +3,18 @@
 #define AMREX_TUPLE_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_TypeTraits.H>
 #include <AMReX_Functional.H>
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_TypeList.H>
+#include <AMReX_TypeTraits.H>
 
 #include <array>
-#include <tuple>
 #include <functional>
-#include <type_traits>
-#include <utility>
+#include <tuple>
 
 namespace amrex {
     template <class... Ts>
     using Tuple = std::tuple<Ts...>;
-
-    template <class... Ts> struct TypeList {};
 }
 
 namespace amrex {
@@ -27,20 +24,20 @@ namespace detail {
 template <std::size_t I, typename T>
 struct gpu_tuple_element
 {
-    template <typename U=T, std::enable_if_t<std::is_default_constructible<U>::value,int> = 0>
+    template <typename U=T, std::enable_if_t<std::is_default_constructible_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
-    constexpr gpu_tuple_element () {}
+    constexpr gpu_tuple_element () {} // NOLINT
 
     explicit constexpr gpu_tuple_element (T const& a_value)
         : m_value(a_value)
         {}
 
-    template <typename U, std::enable_if_t<std::is_convertible<U&&,T>::value,int> = 0>
-    explicit constexpr gpu_tuple_element (U && a_value)
+    template <typename U, std::enable_if_t<std::is_convertible_v<U&&,T>,int> = 0>
+    explicit constexpr gpu_tuple_element (U && a_value) // NOLINT(bugprone-forwarding-reference-overload)
         : m_value(std::forward<U>(a_value))
         {}
 
-    T m_value;
+    T m_value{};
 };
 
 template <std::size_t I, typename... Ts> struct gpu_tuple_impl;
@@ -50,16 +47,16 @@ struct gpu_tuple_impl<I, Head, Tail...>
     : public gpu_tuple_impl<I+1, Tail...>,
       public gpu_tuple_element<I, Head>
 {
-    template<typename U=Head, std::enable_if_t<std::is_default_constructible<U>::value,int> = 0>
+    template<typename U=Head, std::enable_if_t<std::is_default_constructible_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
-    constexpr gpu_tuple_impl () {}
+    constexpr gpu_tuple_impl () {} // NOLINT
 
     constexpr gpu_tuple_impl (Head const& a_head, Tail const&... a_tail)
         : gpu_tuple_impl<I+1, Tail...>(a_tail...),
           gpu_tuple_element<I, Head>(a_head)
         {}
 
-    template <typename UH, typename... UT, std::enable_if_t<std::is_convertible<UH&&,Head>::value,int> = 0>
+    template <typename UH, typename... UT, std::enable_if_t<std::is_convertible_v<UH&&,Head>,int> = 0>
     constexpr gpu_tuple_impl (UH&& a_head, UT &&... a_tail)
         : gpu_tuple_impl<I+1, Tail...>(std::forward<UT>(a_tail)...),
           gpu_tuple_element<I, Head>(std::forward<UH>(a_head))
@@ -71,16 +68,16 @@ struct gpu_tuple_impl<I, Head>
     : public gpu_tuple_element<I, Head>
 {
 
-    template<typename U=Head, std::enable_if_t<std::is_default_constructible<U>::value,int> = 0>
+    template<typename U=Head, std::enable_if_t<std::is_default_constructible_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
-    constexpr gpu_tuple_impl () {}
+    constexpr gpu_tuple_impl () {} // NOLINT
 
     explicit constexpr gpu_tuple_impl (Head const& a_head)
         : gpu_tuple_element<I, Head>(a_head)
         {}
 
-    template <typename U, std::enable_if_t<std::is_convertible<U&&,Head>::value,int> = 0>
-    explicit constexpr gpu_tuple_impl (U&& a_head)
+    template <typename U, std::enable_if_t<std::is_convertible_v<U&&,Head>,int> = 0>
+    explicit constexpr gpu_tuple_impl (U&& a_head) // NOLINT(bugprone-forwarding-reference-overload)
         : gpu_tuple_element<I, Head>(std::forward<U>(a_head))
         {}
 };
@@ -244,7 +241,7 @@ namespace detail {
     template <typename T> struct unwrap { using type = T; };
     template <typename T> struct unwrap<std::reference_wrapper<T> > { using type = T&; };
     template <typename T>
-    using tuple_decay_t = typename unwrap<typename std::decay<T>::type>::type;
+    using tuple_decay_t = typename unwrap<std::decay_t<T>>::type;
 }
 
 template <typename... Ts>
@@ -262,18 +259,18 @@ namespace detail {
     template <typename... Ts>
     struct tuple_cat_result<GpuTuple<Ts...> >
     {
-        typedef GpuTuple<Ts...> type;
+        using type = GpuTuple<Ts...>;
     };
 
     template <typename... T1s, typename... T2s, typename... TPs>
     struct tuple_cat_result<GpuTuple<T1s...>,GpuTuple<T2s...>,TPs...>
     {
-        typedef typename tuple_cat_result<GpuTuple<T1s..., T2s...>, TPs...>::type type;
+        using type = typename tuple_cat_result<GpuTuple<T1s..., T2s...>, TPs...>::type;
     };
 
     template <typename R, typename TP1, typename TP2, std::size_t... N1, std::size_t... N2>
     AMREX_GPU_HOST_DEVICE constexpr R
-    make_tuple (TP1 && a, TP2 && b,
+    make_tuple (TP1 const& a, TP2 const& b,
                 std::index_sequence<N1...> const& /*n1*/, std::index_sequence<N2...> const& /*n2*/)
     {
         return R(amrex::get<N1>(a)..., amrex::get<N2>(b)...);
@@ -287,7 +284,7 @@ AMREX_GPU_HOST_DEVICE
 constexpr auto
 TupleCat (TP && a) -> typename detail::tuple_cat_result<detail::tuple_decay_t<TP> >::type
 {
-    typedef typename detail::tuple_cat_result<detail::tuple_decay_t<TP> >::type ReturnType;
+    using ReturnType = typename detail::tuple_cat_result<detail::tuple_decay_t<TP> >::type;
     return ReturnType(std::forward<TP>(a));
 }
 
@@ -297,12 +294,12 @@ constexpr auto
 TupleCat (TP1 && a, TP2 && b) -> typename detail::tuple_cat_result<detail::tuple_decay_t<TP1>,
                                                                    detail::tuple_decay_t<TP2> >::type
 {
-    typedef typename detail::tuple_cat_result<detail::tuple_decay_t<TP1>,
-                                              detail::tuple_decay_t<TP2> >::type ReturnType;
+    using ReturnType =  typename detail::tuple_cat_result<detail::tuple_decay_t<TP1>,
+                                                          detail::tuple_decay_t<TP2> >::type;
     return detail::make_tuple<ReturnType>
-        (a, b,
-         std::make_index_sequence<GpuTupleSize<typename std::decay<TP1>::type>::value>(),
-         std::make_index_sequence<GpuTupleSize<typename std::decay<TP2>::type>::value>());
+        (std::forward<TP1>(a), std::forward<TP2>(b),
+         std::make_index_sequence<GpuTupleSize<std::decay_t<TP1>>::value>(),
+         std::make_index_sequence<GpuTupleSize<std::decay_t<TP2>>::value>());
 }
 
 template <typename TP1, typename TP2, typename... TPs>
@@ -331,7 +328,7 @@ namespace detail {
     struct invoke_result<decltype(void(INVOKE(std::declval<F>(), std::declval<Args>()...))),
                          F, Args...>
     {
-        typedef decltype(INVOKE(std::declval<F>(), std::declval<Args>()...)) type;
+        using type = decltype(INVOKE(std::declval<F>(), std::declval<Args>()...));
     };
 
     template <typename F, typename...> struct apply_result {};
@@ -339,7 +336,7 @@ namespace detail {
     template <typename F, typename... Ts>
     struct apply_result<F, GpuTuple<Ts...> >
     {
-        typedef typename invoke_result<void, F, Ts...>::type type;
+        using type = typename invoke_result<void, F, Ts...>::type;
     };
 
     template <typename F, typename TP, std::size_t... N>
@@ -348,7 +345,7 @@ namespace detail {
     apply_impl (F&& f, TP&& t, std::index_sequence<N...> /*is*/)
         -> typename detail::apply_result<F,detail::tuple_decay_t<TP> >::type
     {
-        return f(amrex::get<N>(std::forward<TP>(t))...);
+        return std::forward<F>(f)(amrex::get<N>(std::forward<TP>(t))...);
     }
 }
 
@@ -358,7 +355,7 @@ constexpr auto
 Apply (F&& f, TP&& t) -> typename detail::apply_result<F,detail::tuple_decay_t<TP> >::type
 {
     return detail::apply_impl(std::forward<F>(f), std::forward<TP>(t),
-                              std::make_index_sequence<GpuTupleSize<typename std::decay<TP>::type>::value>());
+                              std::make_index_sequence<GpuTupleSize<std::decay_t<TP>>::value>());
 }
 
 // Tie
@@ -379,6 +376,20 @@ constexpr GpuTuple<Ts&&...>
 ForwardAsTuple (Ts&&... args) noexcept
 {
     return GpuTuple<Ts&&...>(std::forward<Ts>(args)...);
+}
+
+// MakeZeroTuple
+
+/**
+ * \brief Return a GpuTuple containing all zeros.
+ * Note that a default-constructed GpuTuple can have uninitialized values.
+ */
+template <typename... Ts>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts...>
+MakeZeroTuple (GpuTuple<Ts...>) noexcept
+{
+    return GpuTuple<Ts...>(static_cast<Ts>(0)...);
 }
 
 }

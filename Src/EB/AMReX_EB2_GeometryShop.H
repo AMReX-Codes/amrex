@@ -11,10 +11,11 @@
 #include <memory>
 #include <type_traits>
 #include <cmath>
+#include <utility>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
-template <class F, typename std::enable_if<IsGPUable<F>::value>::type* FOO = nullptr>
+template <class F, std::enable_if_t<IsGPUable<F>::value>* FOO = nullptr>
 AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
@@ -22,18 +23,17 @@ IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
     return f(AMREX_D_DECL(p[0],p[1],p[2]));
 }
 
-template <class F, typename std::enable_if<!IsGPUable<F>::value>::type* BAR = nullptr>
+template <class F, std::enable_if_t<!IsGPUable<F>::value>* BAR = nullptr>
 AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
 {
-#if AMREX_DEVICE_COMPILE
-    amrex::ignore_unused(f,p);
-    amrex::Error("EB2::GeometryShop: how did this happen?");
-    return 0.0;
-#else
-    return f({AMREX_D_DECL(p[0],p[1],p[2])});
-#endif
+    AMREX_IF_ON_DEVICE((
+        amrex::ignore_unused(f,p);
+        amrex::Error("EB2::GeometryShop: how did this happen?");
+        return 0.0;
+    ))
+    AMREX_IF_ON_HOST((return f({AMREX_D_DECL(p[0],p[1],p[2])});))
 }
 
 template <class F>
@@ -85,7 +85,7 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
             e = d;
         }
 
-        if (amrex::Math::abs(fc) < amrex::Math::abs(fb))
+        if (std::abs(fc) < std::abs(fb))
         {
             aPt[rangedir] = bPt[rangedir];
             bPt[rangedir] = c;
@@ -96,15 +96,15 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
         }
 
         //  Convergence check
-        Real tol1  = 2.0_rt * EPS * amrex::Math::abs(bPt[rangedir]) + 0.5_rt * tol;
+        Real tol1  = 2.0_rt * EPS * std::abs(bPt[rangedir]) + 0.5_rt * tol;
         Real xm    = 0.5_rt * (c - bPt[rangedir]);
 
-        if (amrex::Math::abs(xm) <= tol1 || fb == 0.0_rt)
+        if (std::abs(xm) <= tol1 || fb == 0.0_rt)
         {
             break;
         }
 
-        if (amrex::Math::abs(e) >= tol1 && amrex::Math::abs(fa) > amrex::Math::abs(fb))
+        if (std::abs(e) >= tol1 && std::abs(fa) > std::abs(fb))
         {
             //  Attempt inverse quadratic interpolation
             s = fb / fa;
@@ -122,11 +122,11 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
             }
 
             //  Check whether in bounds
-            if (p > 0) q = -q;
+            if (p > 0) { q = -q; }
 
-            p = amrex::Math::abs(p);
+            p = std::abs(p);
 
-            if (2.0_rt * p < amrex::min(3.0_rt*xm*q-amrex::Math::abs(tol1*q), 1.0_rt*amrex::Math::abs(e*q)))
+            if (2.0_rt * p < amrex::min(3.0_rt*xm*q-std::abs(tol1*q), 1.0_rt*std::abs(e*q)))
             {
                 //  Accept interpolation
                 e = d;
@@ -151,14 +151,14 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
         fa  = fb;
 
         //  Evaluate new trial root
-        if (amrex::Math::abs(d) > tol1)
+        if (std::abs(d) > tol1)
         {
             bPt[rangedir] = bPt[rangedir] + d;
         }
         else
         {
-            if (xm < 0) bPt[rangedir] = bPt[rangedir] - tol1;
-            else        bPt[rangedir] = bPt[rangedir] + tol1;
+            if (xm < 0) { bPt[rangedir] = bPt[rangedir] - tol1; }
+            else        { bPt[rangedir] = bPt[rangedir] + tol1; }
         }
 
         fb = IF_f(f, bPt);
@@ -187,39 +187,18 @@ public:
 
     using FunctionType = F;
 
-    explicit GeometryShop (F const& f)
-        : m_f(f), m_resource()
-        {}
-
-    explicit GeometryShop (F && f)
+    explicit GeometryShop (F f)
         : m_f(std::move(f)), m_resource()
         {}
 
-    GeometryShop (F const& f, R const& r)
-        : m_f(f), m_resource(r)
-        {}
-
-    GeometryShop (F && f, R && r)
+    GeometryShop (F f, R r)
         : m_f(std::move(f)), m_resource(std::move(r))
         {}
 
-    ~GeometryShop() {}
-
-    GeometryShop (GeometryShop<F> const& rhs)
-        : m_f(rhs.m_f), m_resource(rhs.m_resource)
-        {}
-
-    GeometryShop (GeometryShop<F> && rhs)
-        : m_f(std::move(rhs.m_f)), m_resource(std::move(rhs.m_resource))
-        {}
-
-    GeometryShop<F>& operator= (GeometryShop<F> const& rhs) = delete;
-    GeometryShop<F>& operator= (GeometryShop<F> && rhs) = delete;
-
-    F const& GetImpFunc () const& { return m_f; }
+    [[nodiscard]] F const& GetImpFunc () const& { return m_f; }
     F&& GetImpFunc () && { return std::move(m_f); }
 
-    int getBoxType_Cpu (const Box& bx, Geometry const& geom) const noexcept
+    [[nodiscard]] int getBoxType_Cpu (const Box& bx, Geometry const& geom) const noexcept
     {
         const Real* problo = geom.ProbLo();
         const Real* dx = geom.CellSize();
@@ -240,10 +219,11 @@ public:
                     } else {
                         ++nfluid;
                     }
-                    if (nbody > 0 && nfluid > 0) return mixedcells;
+                    if (nbody > 0 && nfluid > 0) { return mixedcells; }
                 }
             }
         }
+        amrex::ignore_unused(nzero);
 
         if (nbody == 0) {
             return allregular;
@@ -254,8 +234,8 @@ public:
         }
     }
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
-    int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
+    template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
+    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
     {
         if (run_on == RunOn::Gpu && Gpu::inLaunchRegion())
         {
@@ -301,19 +281,19 @@ public:
         }
     }
 
-    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
-    int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
+    template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
+    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
     {
         return getBoxType_Cpu(bx, geom);
     }
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
+    template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
     static constexpr bool isGPUable () noexcept { return true; }
 
-    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
+    template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
     static constexpr bool isGPUable () noexcept { return false; }
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
+    template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn run_on,
                   Box const& bounding_box) const noexcept
     {
@@ -332,7 +312,7 @@ public:
         });
     }
 
-    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
+    template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn,
                   Box const& bounding_box) const noexcept
     {
@@ -371,7 +351,7 @@ public:
     }
 
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
+    template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Array4<Real const> const&, Geometry const& geom, RunOn run_on,
@@ -407,7 +387,7 @@ public:
         }
     }
 
-    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
+    template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Array4<Real const> const&, Geometry const& geom, RunOn,
@@ -495,7 +475,7 @@ public:
                         {
                             // interp might still be quiet_nan because lst that
                             // was set to zero has been changed by FillBoundary
-                            // at periodic bounadries.
+                            // at periodic boundaries.
                             inter(i,j,k) = problo[0] + i*dx[0];
                         }
                         else if (lst(i+1,j,k) == Real(0.0) ||
@@ -539,21 +519,21 @@ private:
 };
 
 template <class F>
-GeometryShop<typename std::decay<F>::type>
+GeometryShop<std::decay_t<F>>
 makeShop (F&& f)
 {
-    return GeometryShop<typename std::decay<F>::type>(std::forward<F>(f));
+    return GeometryShop<std::decay_t<F>>(std::forward<F>(f));
 }
 
 template <class F, class R>
-GeometryShop<typename std::decay<F>::type, typename std::decay<R>::type>
+GeometryShop<std::decay_t<F>, std::decay_t<R>>
 makeShop (F&& f, R&& r)
 {
-    return GeometryShop<typename std::decay<F>::type,
-                        typename std::decay<R>::type>
+    return GeometryShop<std::decay_t<F>,
+                        std::decay_t<R>>
         (std::forward<F>(f), std::forward<R>(r));
 }
 
-}}
+}
 
 #endif

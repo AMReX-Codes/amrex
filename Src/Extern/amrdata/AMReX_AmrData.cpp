@@ -267,12 +267,12 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
         if(bCartGrid) {  // check various permutations of vfrac name
           if(strcmp(plotVarName, "vol_frac") == 0) {
             cout << "+++++++++++++ found bad vfrac name:  " << plotVarName << endl;
-            strcpy(plotVarName, "vfrac");
+            std::strncpy(plotVarName, "vfrac", sizeof(plotVarName));
             cout << "+++++++++++++                  now:  " << plotVarName << endl;
           }
           if(strcmp(plotVarName, "volfrac") == 0) {
             cout << "+++++++++++++ found bad vfrac name:  " << plotVarName << endl;
-            strcpy(plotVarName, "vfrac");
+            std::strncpy(plotVarName, "vfrac", sizeof(plotVarName));
             cout << "+++++++++++++                  now:  " << plotVarName << endl;
           }
           if(strcmp(plotVarName, "vfrac") == 0) {

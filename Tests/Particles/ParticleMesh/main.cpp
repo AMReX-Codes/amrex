@@ -33,9 +33,7 @@ void testParticleMesh (TestParams& parms)
   const Box domain(domain_lo, domain_hi);
 
   // This sets the boundary conditions to be doubly or triply periodic
-  int is_per[AMREX_SPACEDIM];
-  for (int i = 0; i < AMREX_SPACEDIM; i++)
-    is_per[i] = 1;
+  int is_per[] = {AMREX_D_DECL(1,1,1)};
   Geometry geom(domain, &real_box, CoordSys::cartesian, is_per);
 
   BoxArray ba(domain);
@@ -52,13 +50,14 @@ void testParticleMesh (TestParams& parms)
   iMultiFab partiMF(ba, dmap, 1 + AMREX_SPACEDIM, 1);
   partiMF.setVal(0);
 
-  typedef ParticleContainer<1 + 2*AMREX_SPACEDIM, 1> MyParticleContainer;
+  using MyParticleContainer = ParticleContainer<1 + 2*AMREX_SPACEDIM, 1>;
   MyParticleContainer myPC(geom, dmap, ba);
   myPC.SetVerbose(false);
 
   int num_particles = parms.nppc * parms.nx * parms.ny * parms.nz;
-  if (ParallelDescriptor::IOProcessor())
+  if (ParallelDescriptor::IOProcessor()) {
     std::cout << "Total number of particles    : " << num_particles << '\n' << '\n';
+  }
 
   bool serialize = true;
   int iseed = 451;
@@ -109,7 +108,7 @@ void testParticleMesh (TestParams& parms)
                   [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& part,
                                         int comp, amrex::Real val)
                   {
-                      part.rdata(comp) += val;
+                      part.rdata(comp) += ParticleReal(val);
                   });
       });
 
@@ -167,18 +166,19 @@ int main(int argc, char* argv[])
   pp.get("nz", parms.nz);
   pp.get("max_grid_size", parms.max_grid_size);
   pp.get("nppc", parms.nppc);
-  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
+  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
+  }
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);
 
   if (parms.verbose && ParallelDescriptor::IOProcessor()) {
-    std::cout << std::endl;
+    std::cout << '\n';
     std::cout << "Number of particles per cell : ";
-    std::cout << parms.nppc  << std::endl;
+    std::cout << parms.nppc  << '\n';
     std::cout << "Size of domain               : ";
-    std::cout << parms.nx << " " << parms.ny << " " << parms.nz << std::endl;
+    std::cout << parms.nx << " " << parms.ny << " " << parms.nz << '\n';
   }
 
   testParticleMesh(parms);

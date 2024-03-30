@@ -10,7 +10,7 @@ There are three ways to use AMReX.
     Fortran modules via `./configure` followed by `make` and `make
     install`.  Type `./configure -h` to show help message.  An
     application code uses its build system to compile and link to the
-    AMReX library.  Because AMReX uses C++14 and Fortran, the linker
+    AMReX library.  Because AMReX uses C++17 and Fortran, the linker
     needs to link the libraries.  See
     `Tutorials/Basic/Build_with_libamrex` for an example of this
     approach.  Note that this approach relies the make system in

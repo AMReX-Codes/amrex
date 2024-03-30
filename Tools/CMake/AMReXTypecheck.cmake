@@ -250,7 +250,7 @@ function( add_typecheck_target _target)
       add_custom_command(
          OUTPUT  ${_cppd_file}
          COMMAND ${CMAKE_C_COMPILER}
-         ARGS    ${_cxx_defines} ${_includes} -E -P -x c -std=c99 ${_fullname} > ${_cppd_file}
+         ARGS    ${_cxx_defines} ${_includes} -E -P -x c -std=c11 ${_fullname} > ${_cppd_file}
          COMMAND sed
          ARGS -i -e 's/amrex::Real/${AMREX_REAL}/g' ${_cppd_file}
          COMMAND sed
@@ -296,9 +296,13 @@ function( add_typecheck_target _target)
    #
    set(_outfile  "${_typecheck_dir}/${_target}_typecheck.ou" )
 
-   # Find typechecker 
+   # Find typechecker
    find_file(_typechecker "typechecker.py"
-      HINTS ${AMReX_SOURCE_DIR} ${AMReX_ROOT} ENV AMReX_ROOT PATH_SUFFIXES Tools/typechecker)
+      HINTS ${AMReX_SOURCE_DIR} ${AMReX_ROOT} ENV AMReX_ROOT
+      PATH_SUFFIXES
+        Tools/typechecker        # in-source
+        share/amrex/typechecker  # installed
+   )
 
    add_custom_target( typecheck_${_target}
       COMMAND python3  ${_typechecker}

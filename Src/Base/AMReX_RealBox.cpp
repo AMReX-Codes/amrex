@@ -15,9 +15,9 @@ RealBox::RealBox (const Box&  bx,
     const int* bhi = bx.hiVect();
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-        xlo[i] = base[i] + dx[i]*blo[i];
+        xlo[i] = base[i] + dx[i]*static_cast<Real>(blo[i]);
         int shft = (bx.type(i) == IndexType::CELL ? 1 : 0);
-        xhi[i] = base[i] + dx[i]*(bhi[i]+ shft);
+        xhi[i] = base[i] + dx[i]*static_cast<Real>(bhi[i]+ shft);
     }
 }
 
@@ -32,8 +32,9 @@ std::ostream&
 operator << (std::ostream &os, const RealBox& b)
 {
     os << "(RealBox ";
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         os << b.lo(i) << ' ' << b.hi(i) << ' ';
+    }
     os << ')';
     return os;
 }
@@ -68,8 +69,9 @@ operator >> (std::istream &is, RealBox& b)
         hi[i] = static_cast<Real>(dhitemp);
     }
 #else
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         is >> lo[i] >> hi[i];
+    }
 #endif
 
     is.ignore(BL_IGNORE_MAX, ')');

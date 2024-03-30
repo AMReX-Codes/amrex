@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX.H>
+#include <AMReX_Functional.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_Vector.H>
@@ -34,15 +35,16 @@ namespace detail {
     template<typename T>
     inline void Reduce (ReduceOp op, T* v, int cnt, int root, MPI_Comm comm)
     {
-        auto mpi_op = mpi_ops[static_cast<int>(op)];
-        Vector<T> tmp(v, v+cnt);
+        auto mpi_op = mpi_ops[static_cast<int>(op)]; // NOLINT
         if (root == -1) {
             // TODO: add BL_COMM_PROFILE commands
-            MPI_Allreduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
+            MPI_Allreduce(MPI_IN_PLACE, v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
                           mpi_op, comm);
         } else {
             // TODO: add BL_COMM_PROFILE commands
-            MPI_Reduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
+            const auto* sendbuf = (ParallelDescriptor::MyProc(comm) == root) ?
+                (void const*)(MPI_IN_PLACE) : (void const*) v;
+            MPI_Reduce(sendbuf, v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
                        mpi_op, root, comm);
         }
     }
@@ -120,6 +122,58 @@ namespace ParallelGather {
 
 namespace ParallelAllReduce {
 
+    template<typename K, typename V>
+    void Max (KeyValuePair<K,V>& vi, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        using T = KeyValuePair<K,V>;
+        MPI_Allreduce(MPI_IN_PLACE, &vi, 1,
+                      ParallelDescriptor::Mpi_typemap<T>::type(),
+                      // () needed to work around PETSc macro
+                      (ParallelDescriptor::Mpi_op<T,amrex::Maximum<T>>()), comm);
+#else
+        amrex::ignore_unused(vi, comm);
+#endif
+    }
+
+    template<typename K, typename V>
+    void Max (KeyValuePair<K,V>* vi, int cnt, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        using T = KeyValuePair<K,V>;
+        MPI_Allreduce(MPI_IN_PLACE, vi, cnt,
+                      ParallelDescriptor::Mpi_typemap<T>::type(),
+                      // () needed to work around PETSc macro
+                      (ParallelDescriptor::Mpi_op<T,amrex::Maximum<T>>()), comm);
+#else
+        amrex::ignore_unused(vi, cnt, comm);
+#endif
+    }
+
+    template<typename K, typename V>
+    void Min (KeyValuePair<K,V>& vi, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        using T = KeyValuePair<K,V>;
+        MPI_Allreduce(MPI_IN_PLACE, &vi, 1,
+                      ParallelDescriptor::Mpi_typemap<T>::type(),
+                      // () needed to work around PETSc macro
+                      (ParallelDescriptor::Mpi_op<T,amrex::Minimum<T>>()), comm);
+#else
+        amrex::ignore_unused(vi, comm);
+#endif
+    }
+
+    template<typename K, typename V>
+    void Min (KeyValuePair<K,V>* vi, int cnt, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        using T = KeyValuePair<K,V>;
+        MPI_Allreduce(MPI_IN_PLACE, vi, cnt,
+                      ParallelDescriptor::Mpi_typemap<T>::type(),
+                      // () needed to work around PETSc macro
+                      (ParallelDescriptor::Mpi_op<T,amrex::Minimum<T>>()), comm);
+#else
+        amrex::ignore_unused(vi, cnt, comm);
+#endif
+    }
+
     template<typename T>
     void Max (T& v, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::max, v, -1, comm);
@@ -173,6 +227,68 @@ namespace ParallelAllReduce {
 }
 
 namespace ParallelReduce {
+
+    template<typename K, typename V>
+    void Max (KeyValuePair<K,V>& vi, int root, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        auto tmp = vi;
+        using T = KeyValuePair<K,V>;
+        MPI_Reduce(&tmp, &vi, 1,
+                   ParallelDescriptor::Mpi_typemap<T>::type(),
+                   // () needed to work around PETSc macro
+                   (ParallelDescriptor::Mpi_op<T,amrex::Maximum<T>>()),
+                   root, comm);
+#else
+        amrex::ignore_unused(vi, root, comm);
+#endif
+    }
+
+    template<typename K, typename V>
+    void Max (KeyValuePair<K,V>* vi, int cnt, int root, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        const auto *sendbuf = (ParallelDescriptor::MyProc(comm) == root) ?
+            (void const*)(MPI_IN_PLACE) : (void const*)vi;
+        using T = KeyValuePair<K,V>;
+        MPI_Reduce(sendbuf, vi, cnt,
+                   ParallelDescriptor::Mpi_typemap<T>::type(),
+                   // () needed to work around PETSc macro
+                   (ParallelDescriptor::Mpi_op<T,amrex::Maximum<T>>()),
+                   root, comm);
+#else
+        amrex::ignore_unused(vi, cnt, root, comm);
+#endif
+    }
+
+    template<typename K, typename V>
+    void Min (KeyValuePair<K,V>& vi, int root, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        auto tmp = vi;
+        using T = KeyValuePair<K,V>;
+        MPI_Reduce(&tmp, &vi, 1,
+                   ParallelDescriptor::Mpi_typemap<T>::type(),
+                   // () needed to work around PETSc macro
+                   (ParallelDescriptor::Mpi_op<T,amrex::Minimum<T>>()),
+                   root, comm);
+#else
+        amrex::ignore_unused(vi, root, comm);
+#endif
+    }
+
+    template<typename K, typename V>
+    void Min (KeyValuePair<K,V>* vi, int cnt, int root, MPI_Comm comm) {
+#ifdef AMREX_USE_MPI
+        const auto *sendbuf = (ParallelDescriptor::MyProc(comm) == root) ?
+            (void const*)(MPI_IN_PLACE) : (void const*)vi;
+        using T = KeyValuePair<K,V>;
+        MPI_Reduce(sendbuf, vi, cnt,
+                   ParallelDescriptor::Mpi_typemap<T>::type(),
+                   // () needed to work around PETSc macro
+                   (ParallelDescriptor::Mpi_op<T,amrex::Minimum<T>>()),
+                   root, comm);
+#else
+        amrex::ignore_unused(vi, cnt, root, comm);
+#endif
+    }
 
     template<typename T>
     void Max (T& v, int root, MPI_Comm comm) {

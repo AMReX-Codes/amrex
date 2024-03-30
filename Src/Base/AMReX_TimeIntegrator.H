@@ -48,7 +48,7 @@ private:
             try {
                 integrator_type = std::stoi(integrator_str, nullptr);
             } catch (const std::invalid_argument& ia) {
-                Print() << "Invalid integration.type: " << ia.what() << std::endl;
+                Print() << "Invalid integration.type: " << ia.what() << '\n';
                 Error("Failed to initialize AMReX TimeIntegrator class.");
             }
 

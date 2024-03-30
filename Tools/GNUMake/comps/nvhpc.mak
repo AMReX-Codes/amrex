@@ -39,7 +39,9 @@ ifeq ($(USE_OMP_OFFLOAD),TRUE)
   # (The USE_ACC code path below should be revisited)
   GENERIC_NVHPC_FLAGS += -mp=gpu -Minfo=mp
   ifneq ($(CUDA_ARCH),)
-    GENERIC_NVHPC_FLAGS += -gpu=cc$(CUDA_ARCH)
+    NVHPC_COMMASPACE := , 
+    NVHPC_COMMA := ,
+    GENERIC_NVHPC_FLAGS += -gpu=$(patsubst %$(NVHPC_COMMA),%,$(subst $(NVHPC_COMMASPACE),$(NVHPC_COMMA),$(foreach arch,$(CUDA_ARCH),cc$(arch),)))
   endif
 endif
 
@@ -94,19 +96,15 @@ endif
 # The logic here should be consistent with what's in nvcc.mak
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
-  ifeq ($(shell expr $(gcc_major_version) \< 5),1)
-    ifeq ($(CXXSTD),c++14)
-      $(error C++14 support requires GCC 5 or newer.)
-    endif
+  ifeq ($(shell expr $(gcc_major_version) \< 8),1)
+    $(error GCC >= 8 required.)
   endif
   CXXFLAGS += -std=$(CXXSTD)
 else
-  ifeq ($(gcc_major_version),5)
-    CXXFLAGS += -std=c++14
-  endif
+  CXXFLAGS += -std=c++17
 endif
 
-CFLAGS   += -c99
+CFLAGS   += -c11
 
 CXXFLAGS += $(GENERIC_NVHPC_FLAGS)
 CFLAGS   += $(GENERIC_NVHPC_FLAGS)

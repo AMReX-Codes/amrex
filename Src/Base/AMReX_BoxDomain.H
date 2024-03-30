@@ -55,14 +55,12 @@ std::ostream& operator<< (std::ostream& os, const BoxDomain& bd);
 
 /**
 * \brief A List of Disjoint Boxes.
+*
 * A BoxDomain is a BoxList with the restriction that Boxes in the list
 * are disjoint.
+* Note that a BoxDomain is NOT a BoxList due to the protected inheritance.
+* This is a concrete class, not a polymorphic one.
 */
-
-//Note that a BoxDomain is NOT a BoxList due to the protected inheritance.
-//This is a concrete class, not a polymorphic one.
-
-
 class BoxDomain
     :
     protected BoxList
@@ -70,7 +68,8 @@ class BoxDomain
 public:
     friend class ClusterList;
 
-    typedef BoxList::const_iterator const_iterator;
+    using const_iterator = BoxList::const_iterator;
+
     //! Construct an empty BoxDomain of IndexType::TheCellType().
     BoxDomain ();
 
@@ -79,11 +78,6 @@ public:
 
     //! Construct an empty BoxDomain of IndexType itype.
     explicit BoxDomain (IndexType itype);
-
-    BoxDomain (const BoxDomain& rhs) = default;
-    BoxDomain (BoxDomain&& rhs) = default;
-    BoxDomain& operator= (const BoxDomain& rhs) = default;
-    BoxDomain& operator= (BoxDomain&& rhs) = default;
 
     //! Add a Box to the domain.
     void add (const Box& b);
@@ -98,7 +92,7 @@ public:
     * Returns True if this BoxDomain is valid.  Checks for
     * disjointness. Returns true if the BoxDomain is empty.
     */
-    bool ok () const;
+    [[nodiscard]] bool ok () const;
 
     //! Promoted from BoxList.
     using BoxList::clear;
@@ -137,7 +131,7 @@ public:
     using BoxList::shiftHalf;
 
     //! Return a const reference to the underlying BoxList of this BoxDomain.
-    const BoxList& boxList () const;
+    [[nodiscard]] const BoxList& boxList () const;
 
     //! Are the BoxDomains equal?
     bool operator== (const BoxDomain& rhs) const;

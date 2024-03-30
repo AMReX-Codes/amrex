@@ -5,14 +5,16 @@
 
 using namespace amrex;
 
-static int max_stack_size = 0;
-static int test_number = 0;
+namespace {
+    int max_stack_size = 0;
+    int test_number = 0;
+}
 
 template <typename F>
 int test1 (std::string const& f,
            std::map<std::string,Real> const& constants,
            Vector<std::string> const& variables,
-           F && fb, Array<Real,1> const& lo, Array<Real,1> const& hi,
+           F const& fb, Array<Real,1> const& lo, Array<Real,1> const& hi,
            int N, Real reltol, Real abstol)
 {
     amrex::Print() << test_number++ << ". Testing \"" << f << "\"   ";
@@ -56,7 +58,7 @@ template <typename F>
 int test3 (std::string const& f,
            std::map<std::string,Real> const& constants,
            Vector<std::string> const& variables,
-           F && fb, Array<Real,3> const& lo, Array<Real,3> const& hi,
+           F const& fb, Array<Real,3> const& lo, Array<Real,3> const& hi,
            int N, Real reltol, Real abstol)
 {
     amrex::Print() << test_number++ << ". Testing \"" << f << "\"   ";
@@ -102,7 +104,7 @@ template <typename F>
 int test4 (std::string const& f,
            std::map<std::string,Real> const& constants,
            Vector<std::string> const& variables,
-           F && fb, Array<Real,4> const& lo, Array<Real,4> const& hi,
+           F const& fb, Array<Real,4> const& lo, Array<Real,4> const& hi,
            int N, Real reltol, Real abstol)
 {
     amrex::Print() << test_number++ << ". Testing \"" << f << "\"   ";
@@ -322,7 +324,8 @@ int main (int argc, char* argv[])
                         [=] (Real z) -> Real {
                             Real lramp=8.e-3, pi=3.14, dens=1.e23;
                             if (z < lramp) {
-                                return 0.5*(1-std::cos(pi*z/lramp))*dens;
+                                //return 0.5*(1-std::cos(pi*z/lramp))*dens;
+                                return 0.5*dens-0.5*dens*std::cos(pi*z/lramp);
                             } else {
                                 return dens;
                             }
@@ -370,7 +373,7 @@ int main (int argc, char* argv[])
         int count = 0;
         int x = 11;
         {
-            auto f = [&] (std::string s) -> int
+            auto f = [&] (std::string const& s) -> int
             {
                 amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
                 IParser iparser(s);
@@ -387,7 +390,7 @@ int main (int argc, char* argv[])
             AMREX_ALWAYS_ASSERT(f("x/13/5") == ((x/13)/5));
             AMREX_ALWAYS_ASSERT(f("13/x/5") == ((13/x)/5));
 
-            auto g = [&] (std::string s, std::string c, int cv) -> int
+            auto g = [&] (std::string const& s, std::string const& c, int cv) -> int
             {
                 amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
                 IParser iparser(s);
@@ -405,7 +408,7 @@ int main (int argc, char* argv[])
             AMREX_ALWAYS_ASSERT(g("x/b/5", "b", 13) == ((x/13)/5));
             AMREX_ALWAYS_ASSERT(g("b/x/5", "b", 13) == ((13/x)/5));
 
-            auto h = [&] (std::string s) -> int
+            auto h = [&] (std::string const& s) -> int
             {
                 amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
                 IParser iparser(s);

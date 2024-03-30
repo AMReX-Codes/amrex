@@ -5,6 +5,9 @@
 #include <AMReX_AsyncOut.H>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
+#ifdef AMREX_USE_MPI
+#include <AMReX_MPMD.H>
+#endif
 
 #ifdef AMREX_TINY_PROFILING
 #include <AMReX_TinyProfiler.H>
@@ -44,7 +47,7 @@ void
 BLBackTrace::handler(int s)
 {
 
-    signal(s, SIG_DFL);
+    std::signal(s, SIG_DFL);
 
     AsyncOut::Finalize();
 
@@ -55,6 +58,9 @@ BLBackTrace::handler(int s)
     case SIGFPE:
         amrex::ErrorStream() << "Erroneous arithmetic operation\n";
         break;
+    case SIGILL:
+        amrex::ErrorStream() << "SIGILL Invalid, privileged, or ill-formed instruction\n";
+        break;
     case SIGTERM:
         amrex::ErrorStream() << "SIGTERM\n";
         break;
@@ -64,6 +70,7 @@ BLBackTrace::handler(int s)
     case SIGABRT:
         amrex::ErrorStream() << "SIGABRT\n";
         break;
+    default: break;
     }
 
 #if defined(AMREX_BACKTRACE_SUPPORTED) || defined(AMREX_TINY_PROFILING)
@@ -71,7 +78,15 @@ BLBackTrace::handler(int s)
     std::string errfilename;
     {
         std::ostringstream ss;
-        ss << "Backtrace." << ParallelDescriptor::MyProc();
+#ifdef AMREX_USE_MPI
+        if (MPMD::Initialized()) {
+            ss << "Backtrace.prog" << MPMD::MyProgId() << ".";
+        } else
+#endif
+        {
+            ss << "Backtrace.";
+        }
+        ss << ParallelDescriptor::MyProc();
 #ifdef AMREX_USE_OMP
         ss << "." << omp_get_thread_num();
 #endif
@@ -85,19 +100,19 @@ BLBackTrace::handler(int s)
         fclose(p);
     }
 
-    amrex::ErrorStream() << "See " << errfilename << " file for details" << std::endl;
+    amrex::ErrorStream() << "See " << errfilename << " file for details" << '\n';
 
     if (!bt_stack.empty()) {
         std::ofstream errfile;
         errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
         if (errfile.is_open()) {
-            errfile << std::endl;
+            errfile << '\n';
             while (!bt_stack.empty()) {
                 errfile << "== BACKTRACE == " << bt_stack.top().first
                         <<", " << bt_stack.top().second << "\n";
                 bt_stack.pop();
             }
-            errfile << std::endl;
+            errfile << '\n';
         }
     }
 
@@ -106,9 +121,9 @@ BLBackTrace::handler(int s)
         std::ofstream errfile;
         errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
         if (errfile.is_open()) {
-            errfile << std::endl;
+            errfile << '\n';
             TinyProfiler::PrintCallStack(errfile);
-            errfile << std::endl;
+            errfile << '\n';
         }
     }
 #endif
@@ -134,7 +149,7 @@ BLBackTrace::print_backtrace_info (const std::string& filename)
     {
         amrex::Print() << "Warning @ BLBackTrace::print_backtrace_info: "
                        << filename << " is not a valid output file."
-                       << std::endl;
+                       << '\n';
     }
 }
 
@@ -176,8 +191,20 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
 #ifdef __linux__
 
+    {
+        constexpr std::size_t len = 64;
+        char host_name[len];
+        host_name[len-1] = '\n';
+        // The returned buffer may not include '\n', when truncation occurs.
+        // So we insert one just in case.
+        const int ret = gethostname(host_name, len-1);
+        if (ret == 0) {
+            std::fprintf(f, "Host Name: %s\n", host_name);
+        }
+    }
+
     char **strings = backtrace_symbols(bt_buffer, nentries);
-    if (strings != NULL) {
+    if (strings != nullptr) {
         int have_eu_addr2line = 0;
         int have_addr2line = 0;
         std::string eu_cmd;
@@ -198,25 +225,27 @@ BLBackTrace::print_backtrace_info (FILE* f)
             }
         }
 
-        fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
-        fprintf(f, "            addr2line -Cpfie my_exefile my_line_address\n");
-        fprintf(f, "    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.\n");
-        fprintf(f, "    Or one can use amrex/Tools/Backtrace/parse_bt.py.\n\n");
+        std::fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
+        std::fprintf(f, "            addr2line -Cpfie my_exefile my_line_address\n");
+        std::fprintf(f, "    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.\n");
+        std::fprintf(f, "    Or one can use amrex/Tools/Backtrace/parse_bt.py.\n\n");
 
-        fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
-        fprintf(f, "    One can use\n");
-        fprintf(f, "            readelf -wl my_exefile | grep my_line_address'\n");
-        fprintf(f, "    to find out the offset for that line.\n\n");
+        std::fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
+        std::fprintf(f, "    One can use\n");
+        std::fprintf(f, "            readelf -wl my_exefile | grep my_line_address'\n");
+        std::fprintf(f, "    to find out the offset for that line.\n\n");
 
         for (int i = 0; i < nentries; ++i)
         {
-            fprintf(f, "%2d: %s\n", i, strings[i]);
+            std::fprintf(f, "%2d: %s\n", i, strings[i]);
 
 #if !defined(AMREX_USE_OMP) || !defined(__INTEL_COMPILER)
+            const bool stack_ptr_not_null = (bt_buffer[i] != nullptr);
+
             std::string addr2line_result;
             bool try_addr2line = false;
             if (amrex::system::call_addr2line && have_eu_addr2line) {
-                if (bt_buffer[i] != nullptr) {
+                if (stack_ptr_not_null) {
                     char print_buff[32];
                     std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
                     const std::string full_cmd = eu_cmd + " " + print_buff;
@@ -247,26 +276,28 @@ BLBackTrace::print_backtrace_info (FILE* f)
                         }
                     }
                     if (!addr.empty()) {
-                        const std::string full_cmd = cmd + " " + addr;
+                        std::string full_cmd = cmd;
+                        full_cmd.append(" ").append(addr);
                         addr2line_result = run_command(full_cmd);
                         if (addr2line_result.find('?') != std::string::npos) {
                             addr2line_result.clear();
                         }
                     }
-                    if (addr2line_result.empty()) {
+                    if (addr2line_result.empty() && stack_ptr_not_null) {
                         char print_buff[32];
                         std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
-                        const std::string full_cmd = cmd + " " + print_buff;
+                        std::string full_cmd = cmd;
+                        full_cmd.append(" ").append(print_buff);
                         addr2line_result = run_command(full_cmd);
                     }
                 }
             }
 
             if (!addr2line_result.empty()) {
-                fprintf(f, "    %s", addr2line_result.c_str());
+                std::fprintf(f, "    %s", addr2line_result.c_str());
             }
 #endif
-            fprintf(f, "\n");
+            std::fprintf(f, "\n");
         }
         std::free(strings);
     }
@@ -279,27 +310,30 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
     for (int i = 0; i < nentries; ++i) {
         Dl_info info;
-        if (dladdr(bt_buffer[i], &info))
+        if (bt_buffer[i] != nullptr)
         {
-            std::string line;
-            if (amrex::system::call_addr2line && have_atos) {
-                char print_buff[32];
-                std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
-                const std::string full_cmd = cmd + " " + print_buff;
-                line = run_command(full_cmd);
-            }
-            if (line.empty()) {
-                int status;
-                char * demangled_name = abi::__cxa_demangle(info.dli_sname, nullptr, 0, &status);
-                if (status == 0) {
-                    line += demangled_name;
-                } else {
-                    line += info.dli_fname;
+            if (dladdr(bt_buffer[i], &info))
+            {
+                std::string line;
+                if (amrex::system::call_addr2line && have_atos) {
+                    char print_buff[32];
+                    std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
+                    const std::string full_cmd = cmd + " " + print_buff;
+                    line = run_command(full_cmd);
                 }
-                line += '\n';
-                std::free(demangled_name);
+                if (line.empty()) {
+                    int status;
+                    char * demangled_name = abi::__cxa_demangle(info.dli_sname, nullptr, 0, &status);
+                    if (status == 0) {
+                        line += demangled_name;
+                    } else {
+                        line += info.dli_fname;
+                    }
+                    line += '\n';
+                    std::free(demangled_name);
+                }
+                std::fprintf(f, "%2d: %s\n", i, line.c_str());
             }
-            fprintf(f, "%2d: %s\n", i, line.c_str());
         }
     }
 
@@ -322,7 +356,7 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
         ss0 << "Proc. " << ParallelDescriptor::MyProc()
             << ", Thread " << omp_get_thread_num()
             << ": \"" << s << "\"";
-        BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
+        BLBackTrace::bt_stack.emplace(ss0.str(), line_file);
     }
     else {
         #pragma omp parallel
@@ -331,14 +365,14 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
             ss0 << "Proc. " << ParallelDescriptor::MyProc()
                 << ", Master Thread"
                 << ": \"" << s << "\"";
-            BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
+            BLBackTrace::bt_stack.emplace(ss0.str(), line_file);
         }
     }
 #else
     std::ostringstream ss0;
     ss0 << "Proc. " << ParallelDescriptor::MyProc()
         << ": \"" << s << "\"";
-    BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
+    BLBackTrace::bt_stack.emplace(ss0.str(), line_file);
 #endif
 }
 
@@ -363,7 +397,7 @@ void
 BLBTer::pop_bt_stack()
 {
     if (!BLBackTrace::bt_stack.empty()) {
-        if (BLBackTrace::bt_stack.top().second.compare(line_file) == 0) {
+        if (BLBackTrace::bt_stack.top().second == line_file) {
             BLBackTrace::bt_stack.pop();
         }
     }

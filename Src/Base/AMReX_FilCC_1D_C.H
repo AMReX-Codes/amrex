@@ -46,11 +46,11 @@ struct FilccCell
                     // i == ilo-1
                     else if (ilo+2 <= ie)
                     {
-                        q(i,0,0,n) = 0.125*(15.*q(i+1,0,0,n) - 10.*q(i+2,0,0,n) + 3.*q(i+3,0,0,n));
+                        q(i,0,0,n) = Real(0.125)*(Real(15.)*q(i+1,0,0,n) - Real(10.)*q(i+2,0,0,n) + Real(3.)*q(i+3,0,0,n));
                     }
                     else
                     {
-                        q(i,0,0,n) = 0.5*(3.*q(i+1,0,0,n) - q(i+2,0,0,n));
+                        q(i,0,0,n) = Real(0.5)*(Real(3.)*q(i+1,0,0,n) - q(i+2,0,0,n));
                     }
                     break;
                 }
@@ -69,6 +69,7 @@ struct FilccCell
                     q(i,0,0,n) = -q(2*ilo-i-1,0,0,n);
                     break;
                 }
+                default: { break; }
                 }
             }
             else if (i > ihi)
@@ -88,11 +89,11 @@ struct FilccCell
                     // i == ihi+1
                     else if (ihi-2 >= is)
                     {
-                        q(i,0,0,n) = 0.125*(15.*q(i-1,0,0,n) - 10.*q(i-2,0,0,n) + 3.*q(i-3,0,0,n));
+                        q(i,0,0,n) = Real(0.125)*(Real(15.)*q(i-1,0,0,n) - Real(10.)*q(i-2,0,0,n) + Real(3.)*q(i-3,0,0,n));
                     }
                     else
                     {
-                        q(i,0,0,n) = 0.5*(3.*q(i-1,0,0,n) - q(i-2,0,0,n));
+                        q(i,0,0,n) = Real(0.5)*(Real(3.)*q(i-1,0,0,n) - q(i-2,0,0,n));
                     }
                     break;
                 }
@@ -111,6 +112,7 @@ struct FilccCell
                     q(i,0,0,n) = -q(2*ihi-i+1,0,0,n);
                     break;
                 }
+                default: { break; }
                 }
             }
         }

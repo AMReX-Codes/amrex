@@ -10,10 +10,9 @@ namespace amrex {
 /**
 * \brief Boundary Condition Records.
 * Necessary information and functions for computing boundary conditions.
+*
+* This class has standard layout.  And we should keep it so!
 */
-
-// This class has standard layout.  And we should keep it so!
-
 class BCRec
 {
 public:
@@ -22,9 +21,8 @@ public:
     */
     AMREX_GPU_HOST_DEVICE
     BCRec () noexcept
-        : bc {AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus),
-              AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}
-        { }
+
+        = default;
     /**
     * \brief The constructor.
     */
@@ -44,7 +42,7 @@ public:
         {}
     /*
     * \brief Yet another constructor.  Inherits bndry types from bc_domain
-    * when bx lies on edge of domain otherwise gets interior Dirchlet.
+    * when bx lies on edge of domain otherwise gets interior Dirichlet.
     */
     AMREX_GPU_HOST_DEVICE
     BCRec (const Box&   bx,
@@ -74,42 +72,53 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setHi (int dir, int bc_val) noexcept { bc[AMREX_SPACEDIM+dir] = bc_val; }
     /**
-    * \brief  Return bndry values (used in calls to FORTRAN).
+    * \brief Explicitly set bndry value for given face.
     */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void set (Orientation face, int bc_val) noexcept {
+        if (face.isLow()) {
+            setLo(face.coordDir(), bc_val);
+        } else {
+            setHi(face.coordDir(), bc_val);
+        }
+    }
+    /**
+    * \brief  Return bndry values (used in calls to FORTRAN).
+    */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int* vect () const& noexcept{ return bc; }
     const int* vect () && = delete;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int* data () const& noexcept { return bc; }
     const int* data () && = delete;
 
     /**
     * \brief Return low-end boundary data.
     */
-    AMREX_GPU_HOST_DEVICE  AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int* lo () const& noexcept { return bc; }
     const int* lo () && = delete;
     /**
     * \brief Return high-end boundary data.
     */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int* hi () const& noexcept { return bc+AMREX_SPACEDIM; }
     const int* hi () && = delete;
     /**
     * \brief Return low-end boundary data in direction \<dir\>.
     */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int lo (int dir) const noexcept { return bc[dir]; }
     /**
     * \brief Return high-end boundary data in direction \<dir\>.
     */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int hi (int dir) const noexcept { return bc[AMREX_SPACEDIM+dir]; }
     /**
     * \brief Equal test.
     */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator== (const BCRec& rhs) const noexcept {
         bool retval = true;
         for (int i = 0; i < 2*AMREX_SPACEDIM && retval; i++)
@@ -121,7 +130,7 @@ public:
     /**
     * \brief Not equal test.
     */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator!= (const BCRec& rhs) const noexcept { return !(*this == rhs); }
     /**
     * \brief ASCII write to ostream.
@@ -132,7 +141,8 @@ private:
     /**
     * \brief Array of integer values describing boundary conditions.
     */
-    int bc[2*AMREX_SPACEDIM];
+    int bc[2*AMREX_SPACEDIM]{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus),
+              AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)};
 };
 
 /**

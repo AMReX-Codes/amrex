@@ -80,7 +80,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* intg = m_integral[0].get();
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
@@ -89,7 +89,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     bool neumann_doubling = true; // yes even for RAP, because unimposeNeumannBC will be called on rhs
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -344,7 +344,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
     const auto hibc = HiBC();
 
 #ifdef AMREX_USE_EB
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[0][0].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* intg = m_integral[0].get();
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
@@ -359,7 +359,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 #endif
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -621,7 +621,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     //
     //  Note that the residue we copmute on a coarse/fine node is not a
     //  composite divergence.  It has been restricted so that it is suitable
-    //  as RHS for our geometric mulitgrid solver with a MG hirerachy
+    //  as RHS for our geometric multigrid solver with a MG hirerachy
     //  including multiple AMR levels.
     //
 
@@ -710,7 +710,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const auto& fsigma = m_sigma[crse_amrlev+1][0][0];
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -759,9 +759,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 #endif
         } else {
             Real const_sigma = m_const_sigma;
-#if (AMREX_SPACEDIM == 1)
-            amrex::ignore_unused(const_sigma);
-#elif (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
             if (amrrr == 2) {
                 AMREX_HOST_DEVICE_FOR_3D(cbx, i, j, k,
                 {
@@ -842,9 +840,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 #endif
             } else {
                 Real const_sigma = m_const_sigma;
-#if (AMREX_SPACEDIM == 1)
-                amrex::ignore_unused(const_sigma);
-#elif (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
                 AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                 {
                     mlndlap_res_cf_contrib_cs(i,j,k,resarr,csolarr,crhsarr,const_sigma,

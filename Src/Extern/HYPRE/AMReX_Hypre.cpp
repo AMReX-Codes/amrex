@@ -8,9 +8,6 @@
 
 namespace amrex {
 
-constexpr HYPRE_Int Hypre::regular_stencil_size;
-constexpr HYPRE_Int Hypre::eb_stencil_size;
-
 std::unique_ptr<Hypre>
 makeHypre (const BoxArray& grids, const DistributionMapping& dmap,
            const Geometry& geom, MPI_Comm comm_, Hypre::Interface interface,
@@ -34,7 +31,11 @@ Hypre::Hypre (const BoxArray& grids, const DistributionMapping& dmap,
 {
     static_assert(AMREX_SPACEDIM > 1, "Hypre: 1D not supported");
 
-    static_assert(std::is_same<Real, HYPRE_Real>::value, "amrex::Real != HYPRE_Real");
+    // This is not static_assert because HypreSolver class does not require this.
+    if (!std::is_same<Real, HYPRE_Real>::value) {
+        amrex::Abort("amrex::Real != HYPRE_Real");
+    }
+
 #ifdef HYPRE_BIGINT
     static_assert(std::is_same<long long int, HYPRE_Int>::value, "long long int != HYPRE_Int");
 #else
@@ -60,12 +61,7 @@ Hypre::Hypre (const BoxArray& grids, const DistributionMapping& dmap,
     diaginv.define(grids,dmap,ncomp,0);
 }
 
-Hypre::~Hypre ()
-{
-    m_factory = nullptr;
-    m_bndry = nullptr;
-    m_maxorder = -1;
-}
+Hypre::~Hypre () = default;
 
 void
 Hypre::setScalars (Real sa, Real sb)

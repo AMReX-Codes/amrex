@@ -6,14 +6,14 @@ using namespace amrex;
 
 namespace {
 
-inline bool file_exists(std::string file_path) {
+inline bool file_exists(std::string const& file_path) {
   std::ifstream ifs(file_path);
   return ifs.good();
 }
 
 template <class T>
 std::string
-str_join (Vector<T> xs, std::string sep)
+str_join (Vector<T> xs, std::string const& sep)
 {
     std::ostringstream ss;
     bool flag_first = true;
@@ -57,7 +57,7 @@ ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
     double accum = 0;
     for (int i = 0; i < ntasks; ++i) {
         accum += task_rank_pct[i];
-        int cur = std::lround(rank_n * accum);
+        int cur = static_cast<int>(std::lround(rank_n * accum));
         task_rank_n[i] = cur - prev;
         prev = cur;
     }
@@ -201,14 +201,14 @@ ForkJoin::copy_data_to_tasks ()
                     if (forked.size() <= i) {
                         if (flag_verbose) {
                             amrex::Print() << "  Creating forked " << mf_name << "[" << idx << "] for task " << i
-                                           << (mff.strategy == Strategy::split ? " (split)" : " (whole)") << std::endl;
+                                           << (mff.strategy == Strategy::split ? " (split)" : " (whole)") << '\n';
                         }
                         // look up the distribution mapping for this (box array, task) pair
                         const DistributionMapping &dm = get_dm(ba, i, orig.DistributionMap());
                         forked.emplace_back(ba, dm, task_comp_n, mff.ngrow);
                     } else if (flag_verbose) {
                         amrex::Print() << "  Forked " << mf_name << "[" << idx << "] for task " << i
-                                       << " already created" << std::endl;
+                                       << " already created" << '\n';
                     }
                     AMREX_ASSERT(i < forked.size());
 
@@ -216,7 +216,7 @@ ForkJoin::copy_data_to_tasks ()
                     if (mff.intent == Intent::in || mff.intent == Intent::inout) {
                         if (flag_verbose) {
                             amrex::Print() << "    Copying " << mf_name << "[" << idx << "] components ["
-                                           << comp_split[i].lo << ", " << comp_split[i].hi << ") into to task " << i << std::endl;
+                                           << comp_split[i].lo << ", " << comp_split[i].hi << ") into to task " << i << '\n';
                         }
                         // parallel copy data into forked MF
                         forked[i].Redistribute(orig, comp_split[i].lo, 0, task_comp_n, mff.ngrow);
@@ -257,7 +257,7 @@ ForkJoin::copy_data_from_tasks ()
                     for (int i = 0; i < NTasks(); ++i) {
                         if (flag_verbose) {
                             amrex::Print() << "  Copying " << mf_name << "[" << idx << "] components ["
-                                           << comp_split[i].lo << ", " << comp_split[i].hi << ") out from task " << i << " (unsplit)" << std::endl;
+                                           << comp_split[i].lo << ", " << comp_split[i].hi << ") out from task " << i << " (unsplit)" << '\n';
                         }
                         int task_comp_n = comp_split[i].hi - comp_split[i].lo;
                         AMREX_ASSERT(forked[i].nComp() == task_comp_n);
@@ -266,7 +266,7 @@ ForkJoin::copy_data_from_tasks ()
                 } else { // mff.strategy == single or duplicate
                     // copy all components from owner_task
                     if (flag_verbose) {
-                        amrex::Print() << "Copying " << mf_name << " out from task " << mff.owner_task << " (whole)" << std::endl;
+                        amrex::Print() << "Copying " << mf_name << " out from task " << mff.owner_task << " (whole)" << '\n';
                     }
                     AMREX_ASSERT(forked[mff.owner_task].nComp() == orig.nComp());
                     orig.Redistribute(forked[mff.owner_task], 0, 0, orig.nComp(), mff.ngrow);
@@ -285,7 +285,7 @@ ForkJoin::get_dm (const BoxArray& ba, int task_idx, const DistributionMapping& d
     AMREX_ASSERT(task_idx < NTasks());
 
     auto &dm_vec = dms[ba.getRefID()];
-    if (dm_vec.size() == 0) {
+    if (dm_vec.empty()) {
         // new entry
         dm_vec.resize(NTasks());
     }
@@ -307,13 +307,13 @@ ForkJoin::get_dm (const BoxArray& ba, int task_idx, const DistributionMapping& d
 
         if (flag_verbose) {
             amrex::Print() << "    Creating DM for (box array, task id) = ("
-                      << ba.getRefID() << ", " << task_idx << ")" << std::endl;
+                      << ba.getRefID() << ", " << task_idx << ")" << '\n';
         }
     } else {
         // DM has already been created
         if (flag_verbose) {
             amrex::Print() << "    DM for (box array, task id) = (" << ba.getRefID() << ", " << task_idx
-                           << ") already created" << std::endl;
+                           << ") already created" << '\n';
         }
     }
     AMREX_ASSERT(dm_vec[task_idx] != nullptr);
@@ -348,12 +348,14 @@ ForkJoin::split_tasks ()
 
 void ForkJoin::create_task_output_dir ()
 {
-    if (task_output_dir != "" && !amrex::FileExists(task_output_dir)) {
+    if (!task_output_dir.empty() && !amrex::FileExists(task_output_dir)) {
         if (flag_verbose) {
-            Print() << "Creating task_output_dir: " << task_output_dir << std::endl;
+            Print() << "Creating task_output_dir: " << task_output_dir << '\n';
         }
         if (ParallelContext::IOProcessorSub()) {
-            amrex::UtilCreateDirectory(task_output_dir, 0755, flag_verbose);
+            if (! amrex::UtilCreateDirectory(task_output_dir, 0755, flag_verbose)) {
+                amrex::Abort("ForkJoin:create_task_output_dir: failed to create directory");
+            }
         }
     }
 }
@@ -361,9 +363,9 @@ void ForkJoin::create_task_output_dir ()
 std::string
 ForkJoin::get_io_filename (bool flag_unique)
 {
-    std::string result = "";
+    std::string result;
 
-    if (task_output_dir != "") {
+    if (!task_output_dir.empty()) {
         // build base filename
         std::string result_base = task_output_dir;
         result_base += "/T-" + str_join(get_frame_id_vec(), "-");
