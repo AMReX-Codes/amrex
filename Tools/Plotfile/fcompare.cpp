@@ -120,7 +120,7 @@ int main_main()
 
     const int finest_level = std::min(pf_a.finestLevel(), pf_b.finestLevel());
     const int nlevels = finest_level+1;
-    if (allow_diff_num_levels) {
+    if (allow_diff_num_levels && pf_a.finestLevel() != pf_b.finestLevel()) {
         amrex::Print() << "\n WARNING: number of levels do not match\n";
     }
     else {
