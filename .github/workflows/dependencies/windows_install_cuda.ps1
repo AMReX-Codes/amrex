@@ -36,7 +36,6 @@ $CudaFeatures = " nvcc_${cuda_version_short} " + `
 " cuxxfilt_${cuda_version_short} " + `
 " npp_${cuda_version_short} " + `
 " npp_dev_${cuda_version_short} " + `
-" nsight_vse_${cuda_version_short} " + `
 " nvdisasm_${cuda_version_short} " + `
 " nvjitlink_${cuda_version_short} " + `
 " nvjpeg_${cuda_version_short} " + `
