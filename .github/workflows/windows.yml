@@ -155,6 +155,7 @@ jobs:
         call "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
         SET "CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4"
         SET "CUDA_HOME=%CUDA_PATH%"
+        SET "CUDA_TOOLKIT_ROOT_DIR=%CUDA_PATH%"
         SET "CMAKE_PREFIX_PATH=%CUDA_PATH%;%CMAKE_PREFIX_PATH%"
         SET "PATH=%CUDA_PATH%\bin\;%PATH%"
         SET "PATH=%CUDA_PATH%\libnvvp\;%PATH%"
