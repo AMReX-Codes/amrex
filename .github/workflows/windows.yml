@@ -159,6 +159,7 @@ jobs:
         SET "PATH=%CUDA_PATH%\bin\;%PATH%"
         SET "PATH=%CUDA_PATH%\libnvvp\;%PATH%"
         cmake -S . -B build ^
+              -A x64        ^
               -DCUDAToolkit_ROOT="%CUDA_PATH%"  ^
               -DCMAKE_BUILD_TYPE=Release ^
               -DAMReX_CUDA_ARCH=8.0      ^
