@@ -1,3 +1,92 @@
+# 24.04
+
+  -- `AddRealComp`/`AddIntComp`: Resize SoA (#3615)
+     Fix: Resize Component on Add (#3861)
+
+  -- Use less device memory when checkpointing particles (#3238)
+
+  -- FabArray: Option to use a single contiguous chunk of memory (#3857)
+
+  -- AMReX_FLATTEN_FOR (#3855)
+     Disable AMReX_FLATTEN_FOR by default (#3860)
+
+  -- Curl Curl Solver: Variable beta coefficient (#3810)
+
+  -- `MultiFab::deepCopy()` (#3848)
+
+  -- `FabArray<FAB>::copy` Argument Name (#3856)
+
+  -- Use Clang-Tidy 17 in GitHub CI (#3845)
+
+  -- Update to SUNDIALS v7 (#3835)
+
+  -- Assert: Geometry's domain is cell-centered (#3853)
+
+  -- Fix ReduceToPlane (#3852)
+
+  -- Clang-Tidy 17: modernize-type-traits (#3844)
+
+  -- Clang-Tidy 17: cppcoreguidelines-rvalue-reference-param-not-moved (#3825)
+
+  -- Clang-Tidy 17: modernize-loop-convert (#3833)
+     Revert range based for-loop with OMP (#3839)
+
+  -- Clang-Tidy 17: performance-avoid-endl (#3830)
+
+  -- Fix a memory leak in TableData::operator= (#3807)
+
+  -- Update Copyright Notice and License Agreement (#3829)
+
+  -- Clang-Tidy 17: cppcoreguidelines-missing-std-forward (#3818)
+
+  -- Clang-Tidy 17: cppcoreguidelines-avoid-const-or-ref-data-members (#3817)
+
+  -- Clang-Tidy 17: misc-use-anonymous-namespace (#3824)
+
+  -- Clang-Tidy 17: bugprone-switch-missing-default-case (#3816)
+
+  -- Clang-Tidy 17: performance-noexcept-swap (#3822)
+
+  -- Fix extra indentation in fcompare output (#3823)
+
+  -- Clang-Tidy 17: misc-header-include-cycle (#3820)
+
+  -- New constructor for MPMD::Copier (#3806)
+
+  -- Fix deprecation warning for CUDA 12.4 (#3811)
+
+  -- use emplace_back / emplace where possible (#3814)
+
+  -- In allocateSlice, handle empty list of boxes (#3808)
+
+  -- Explicit Includes: MultiFab -> BaseFab (#3802)
+
+  -- CI: Windows Install & Test Install (#3803)
+
+  -- Add Tests/OpenMP/atomicAdd (#3805)
+
+  -- Minor changes in Src/Base/AMReX_MPMD (#3800)
+
+  -- add ifdefs to enable NVHPC as device compiler (#3801)
+
+  -- CI: Windows MSVC w/ Ninja (#3804)
+
+  -- omp_locks: Avoid extern global variable (#3798)
+
+  -- Add option to interpolate data on faces linearly in the tangential direction (#3794)
+
+  -- `omp_locks`: C Array (#3796)
+
+  -- Port WriteEBSurface by copying EB information to pinned tmps before writing. (#3793)
+
+  -- Robin BC: Abort if solver is not safe for reuse (#3788)
+
+  -- Update GMRES/MLMG for nodal solver (#3787)
+
+  -- TagParallelFor: Add assertion against integer overflow (#3790)
+
+  -- Simplify GMRES/MLMG interface (#3785)
+
 # 24.03
 
   -- Fix GPU restart for pure SoA particles (#3783)
