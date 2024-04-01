@@ -148,7 +148,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install CUDA
       shell: powershell
-      run: .\dependencies\windows_install_cuda.ps1
+      run: .github\workflows\dependencies\windows_install_cuda.ps1
     - name: Build & Install
       shell: cmd
       run: |

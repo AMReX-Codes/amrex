@@ -15,7 +15,7 @@ $cuda_version_short = '12.4'
 # download
 New-item -ItemType directory -Name cuda
 Set-Location -Path cuda -PassThru
-Invoke-WebRequest -Uri 'https://developer.download.nvidia.com/compute/cuda/${cuda_version_long}/network_installers/cuda_${cuda_version_long}_windows_network.exe' -OutFile 'cuda_install.exe'
+Invoke-WebRequest -Uri "https://developer.download.nvidia.com/compute/cuda/${cuda_version_long}/network_installers/cuda_${cuda_version_long}_windows_network.exe" -OutFile "cuda_install.exe"
 
 # install
 $CudaFeatures = " nvcc_${cuda_version_short} " + `
