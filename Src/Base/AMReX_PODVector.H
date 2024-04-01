@@ -512,6 +512,15 @@ namespace amrex
                                    (Allocator const&)(*this));
         }
 
+        /** Set the same value to every element of the vector
+         *
+         * @param a_value the value to assign
+         */
+        void assign (const T& a_value)
+        {
+            assign(m_size, a_value);
+        }
+
         [[nodiscard]] allocator_type get_allocator () const noexcept { return *this; }
 
         void push_back (const T& a_value)
