@@ -152,7 +152,8 @@ jobs:
         New-item -ItemType directory -Name cuda
         Set-Location -Path cuda -PassThru
         Invoke-WebRequest -Uri 'https://developer.download.nvidia.com/compute/cuda/12.4.0/network_installers/cuda_12.4.0_windows_network.exe' -OutFile 'cuda_install.exe'
-        Start-Process -FilePath '.\cuda_install.exe' -ArgumentList '-s' -Wait -NoNewWindow
+        Start-Process -FilePath '.\cuda_install.exe' -ArgumentList '-s nvcc cudart cublas cufft curand' -Wait -NoNewWindow
+        Remove-Item cuda_install.exe
     - name: Build & Install
       shell: cmd
       run: |
