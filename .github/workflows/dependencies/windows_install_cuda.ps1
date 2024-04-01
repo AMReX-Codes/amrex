@@ -15,7 +15,8 @@ $cuda_version_short = '12.4'
 # download
 New-item -ItemType directory -Name cuda
 Set-Location -Path cuda -PassThru
-Invoke-WebRequest -Uri "https://developer.download.nvidia.com/compute/cuda/${cuda_version_long}/network_installers/cuda_${cuda_version_long}_windows_network.exe" -OutFile "cuda_install.exe"
+# Invoke-WebRequest -Uri "https://developer.download.nvidia.com/compute/cuda/${cuda_version_long}/network_installers/cuda_${cuda_version_long}_windows_network.exe" -OutFile "cuda_install.exe"
+Invoke-WebRequest -Uri "https://developer.download.nvidia.com/compute/cuda/${cuda_version_long}/local_installers/cuda_${cuda_version_long}_551.61_windows.exe" -OutFile "cuda_install.exe"
 
 # install
 $CudaFeatures = " nvcc_${cuda_version_short} " + `
@@ -49,8 +50,9 @@ $CudaFeatures = " nvcc_${cuda_version_short} " + `
 " sanitizer_${cuda_version_short} " + `
 " thrust_${cuda_version_short} "
 
-$SilentFlag = '-s '
-Start-Process -FilePath '.\cuda_install.exe' -ArgumentList @($SilentFlag + $CudaFeatures) -Wait -NoNewWindow
+#$SilentFlag = '-s '
+#Start-Process -FilePath '.\cuda_install.exe' -ArgumentList @($SilentFlag + $CudaFeatures) -Wait -NoNewWindow
+Start-Process -FilePath '.\cuda_install.exe' -ArgumentList "-s" -Wait -NoNewWindow
 
 # cleanup
 Remove-Item cuda_install.exe
