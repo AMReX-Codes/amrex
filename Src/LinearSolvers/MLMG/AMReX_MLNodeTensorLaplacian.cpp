@@ -38,7 +38,7 @@ MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexce
 #endif
 }
 
-GpuArray<Real,nelems>
+GpuArray<Real,MLNodeTensorLaplacian::nelems>
 MLNodeTensorLaplacian::scaledSigma (int amrlev, int mglev) const noexcept
 {
     auto s = m_sigma;
@@ -305,15 +305,15 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
             (nmax,
              [=] AMREX_GPU_DEVICE (int offset) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
-                 Dim3 node2 = GetNode2()(offset, node);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
                          < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
                  mlndtslap_fill_ijmatrix_gpu(ps, node.x, node.y, node.z, offset,
                                              ndbx, gid, lid, ncols, cols, mat, s);
              },

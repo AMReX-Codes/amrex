@@ -308,7 +308,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
     {
         if (m_cf_fine_data == nullptr) {
             m_cf_fine_data = std::make_unique<MF>
-                (make_mf_fine_patch<MF>(fpc, m_ncomp));
+                (detail::make_mf_fine_patch<MF>(fpc, m_ncomp));
         }
 
         int ncmfs = cmf.size();
@@ -320,7 +320,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
                                    });
 
             if (it == std::end(m_cf_crse_data)) {
-                MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, m_ncomp);
+                MF mf_crse_patch = detail::make_mf_crse_patch<MF>(fpc, m_ncomp);
                 mf_crse_patch.ParallelCopy(*cmf[icmf], m_cgeom.periodicity());
 
                 std::pair<Real,std::unique_ptr<MF>> tmp;
@@ -332,7 +332,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
 
         if (m_cf_crse_data_tmp == nullptr) {
             m_cf_crse_data_tmp = std::make_unique<MF>
-                (make_mf_crse_patch<MF>(fpc, m_ncomp));
+                (detail::make_mf_crse_patch<MF>(fpc, m_ncomp));
         }
 
         int const ng_space_interp = 8; // Need to be big enough
@@ -419,7 +419,7 @@ void FillPatcher<MF>::storeRKCoarseData (Real /*time*/, Real dt, MF const& S_old
 
     for (auto& tmf : m_cf_crse_data) {
         tmf.first = std::numeric_limits<Real>::lowest(); // because we don't need it
-        tmf.second = std::make_unique<MF>(make_mf_crse_patch<MF>(fpc, m_ncomp));
+        tmf.second = std::make_unique<MF>(detail::make_mf_crse_patch<MF>(fpc, m_ncomp));
     }
     m_cf_crse_data[0].second->ParallelCopy(S_old, m_cgeom.periodicity());
     for (std::size_t i = 0; i < order; ++i) {
@@ -444,7 +444,7 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
     auto const& fpc = getFPinfo();
     if (m_cf_crse_data_tmp == nullptr) {
         m_cf_crse_data_tmp = std::make_unique<MF>
-            (make_mf_crse_patch<MF>(fpc, m_ncomp));
+            (detail::make_mf_crse_patch<MF>(fpc, m_ncomp));
     }
 
     auto const& u = m_cf_crse_data_tmp->arrays();
@@ -596,7 +596,7 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
     cbc(*m_cf_crse_data_tmp, 0, m_ncomp, m_nghost, time, 0);
 
     if (m_cf_fine_data == nullptr) {
-        m_cf_fine_data = std::make_unique<MF>(make_mf_fine_patch<MF>(fpc, m_ncomp));
+        m_cf_fine_data = std::make_unique<MF>(detail::make_mf_fine_patch<MF>(fpc, m_ncomp));
     }
 
     FillPatchInterp(*m_cf_fine_data, 0, *m_cf_crse_data_tmp, 0,

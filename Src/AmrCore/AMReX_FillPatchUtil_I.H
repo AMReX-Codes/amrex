@@ -293,7 +293,7 @@ InterpFace (InterpBase *interp,
 }
 
 
-namespace {
+namespace detail {
 
 // ======== FArrayBox
 
@@ -739,7 +739,7 @@ namespace {
         }
     }
 
-} // Anonymous namespace
+} // namespace detail
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 std::enable_if_t<IsFabArray<MF>::value>
@@ -761,7 +761,7 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
 #else
     EB2::IndexSpace const* index_space = nullptr;
 #endif
-    FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
+    detail::FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
                             cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
                             pre_interp,post_interp,index_space);
@@ -788,7 +788,7 @@ FillPatchTwoLevels (MF& mf, Real time,
     EB2::IndexSpace const* index_space = nullptr;
 #endif
 
-    FillPatchTwoLevels_doit(mf,mf.nGrowVect(),time,cmf,ct,fmf,ft,
+    detail::FillPatchTwoLevels_doit(mf,mf.nGrowVect(),time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
                             cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
                             pre_interp,post_interp,index_space);
@@ -815,7 +815,7 @@ FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost,
     EB2::IndexSpace const* index_space = nullptr;
 #endif
 
-    FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
+    detail::FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
                             cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
                             pre_interp,post_interp,index_space);
@@ -846,7 +846,7 @@ FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost,
     Array<int, AMREX_SPACEDIM> fbccomp_arr = {AMREX_D_DECL(fbccomp,fbccomp,fbccomp)};
     Array<int, AMREX_SPACEDIM> bcscomp_arr = {AMREX_D_DECL(bcscomp,bcscomp,bcscomp)};
 
-    FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
+    detail::FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
                             cbc,cbccomp_arr,fbc,fbccomp_arr,ratio,mapper,bcs,bcscomp_arr,
                             pre_interp,post_interp,index_space);
@@ -877,7 +877,7 @@ FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
     Array<int, AMREX_SPACEDIM> fbccomp_arr = {AMREX_D_DECL(fbccomp,fbccomp,fbccomp)};
     Array<int, AMREX_SPACEDIM> bcscomp_arr = {AMREX_D_DECL(bcscomp,bcscomp,bcscomp)};
 
-    FillPatchTwoLevels_doit(mf,mf[0]->nGrowVect(),time,cmf,ct,fmf,ft,
+    detail::FillPatchTwoLevels_doit(mf,mf[0]->nGrowVect(),time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
                             cbc,cbccomp_arr,fbc,fbccomp_arr,ratio,mapper,bcs,bcscomp_arr,
                             pre_interp,post_interp,index_space);
@@ -900,7 +900,7 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                     const PreInterpHook& pre_interp,
                     const PostInterpHook& post_interp)
 {
-    FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
+    detail::FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
                             cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
                             pre_interp,post_interp,&index_space);
@@ -922,7 +922,7 @@ FillPatchTwoLevels (MF& mf, Real time,
                     const PreInterpHook& pre_interp,
                     const PostInterpHook& post_interp)
 {
-    FillPatchTwoLevels_doit(mf,mf.nGrowVect(),time,cmf,ct,fmf,ft,
+    detail::FillPatchTwoLevels_doit(mf,mf.nGrowVect(),time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
                             cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
                             pre_interp,post_interp,&index_space);
@@ -1016,7 +1016,7 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
     {
         mf_crse_patch.define(ba_crse_patch, dm, ncomp, 0);
     }
-    mf_set_domain_bndry (mf_crse_patch, cgeom);
+    detail::mf_set_domain_bndry (mf_crse_patch, cgeom);
 
     mf_crse_patch.ParallelCopy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 
@@ -1131,7 +1131,7 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
 #else
         mf_crse_patch[d].define(ba_crse_idxed, dm, ncomp, 0);
 #endif
-        mf_set_domain_bndry(mf_crse_patch[d], cgeom);
+        detail::mf_set_domain_bndry(mf_crse_patch[d], cgeom);
 
         mf_crse_patch[d].ParallelCopy(*(cmf[d]), scomp, 0, ncomp, cgeom.periodicity());
         cbc[d](mf_crse_patch[d], 0, ncomp, mf_crse_patch[d].nGrowVect(), time, cbccomp);

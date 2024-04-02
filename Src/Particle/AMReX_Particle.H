@@ -13,8 +13,6 @@
 
 namespace amrex {
 
-namespace
-{
     /** Special flags used for 64-bit Long particle Ids */
     namespace LongParticleIds {
         constexpr Long GhostParticleID = 549755813887L; // 2**39-1
@@ -34,7 +32,6 @@ namespace
     }
 
     using namespace ParticleIdCpus;
-}
 
 struct ParticleIDWrapper
 {
