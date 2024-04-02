@@ -86,7 +86,7 @@ HypreABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abst
 
         amrex::Print() << "\n" << num_iterations
                        << " Hypre PFMG Iterations, Relative Residual "
-                       << res << std::endl;
+                       << res << '\n';
     }
 
     getSolution(soln);
