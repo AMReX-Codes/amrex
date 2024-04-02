@@ -108,7 +108,7 @@ void main_main ()
                    << "\n  dimensions = "    << ba.minimalBox()
                    << "\n  max_grid_size = " << max_grid_size
                    << "\n  boxes = "         << ba.size()
-                   << "\n  and nwork = "     << nwork << std::endl;
+                   << "\n  and nwork = "     << nwork << '\n';
 
     Vector<Real> mf_min(nwrites), mf_max(nwrites);
 
@@ -119,7 +119,7 @@ void main_main ()
 
     for (int ip = 0; ip < ParallelDescriptor::NProcs(); ++ip) {
         if (ip == ParallelDescriptor::MyProc()) {
-            amrex::AllPrint() << "Proc. " << ip << " number of boxes = " << mfs[0].local_size() << std::endl;
+            amrex::AllPrint() << "Proc. " << ip << " number of boxes = " << mfs[0].local_size() << '\n';
         }
         amrex::Sleep(0.001);
         ParallelDescriptor::Barrier();
@@ -129,7 +129,7 @@ void main_main ()
 
 // ***************************************************************
 
-    amrex::Print() << " Time Write and Work separately. " << std::endl;
+    amrex::Print() << " Time Write and Work separately. " << '\n';
     {
         BL_PROFILE_REGION("vismf-time");
         {
@@ -146,9 +146,9 @@ void main_main ()
                     Real min = mfs[m].min(0);
                     Real max = mfs[m].max(0);
                     if (mf_min[m] != min)
-                        { amrex::AllPrint() << "Min failed: " << min << " != " << mf_min[m] << std::endl; }
+                        { amrex::AllPrint() << "Min failed: " << min << " != " << mf_min[m] << '\n'; }
                     if (mf_max[m] != max)
-                        { amrex::AllPrint() << "Max failed: " << max << " != " << mf_max[m] << std::endl; }
+                        { amrex::AllPrint() << "Max failed: " << max << " != " << mf_max[m] << '\n'; }
                 }
             }
         }
@@ -157,7 +157,7 @@ void main_main ()
 
 // ***************************************************************
 
-    amrex::Print() << " Typical Write " << std::endl;
+    amrex::Print() << " Typical Write " << '\n';
     {
         BL_PROFILE_REGION("vismf-orig");
         for (int m = 0; m < nwrites; ++m) {
@@ -170,9 +170,9 @@ void main_main ()
                     Real min = mfs[m].min(0);
                     Real max = mfs[m].max(0);
                     if (mf_min[m] != min)
-                        { amrex::AllPrint() << "Min failed: " << min << " != " << mf_min[m] << std::endl; }
+                        { amrex::AllPrint() << "Min failed: " << min << " != " << mf_min[m] << '\n'; }
                     if (mf_max[m] != max)
-                        { amrex::AllPrint() << "Max failed: " << max << " != " << mf_max[m] << std::endl; }
+                        { amrex::AllPrint() << "Max failed: " << max << " != " << mf_max[m] << '\n'; }
                 }
             }
         }
@@ -181,7 +181,7 @@ void main_main ()
 
 // ***************************************************************
 
-    amrex::Print() << " AsyncOut " << std::endl;
+    amrex::Print() << " AsyncOut " << '\n';
     {
         BL_PROFILE_REGION("vismf-async-overlap");
         for (int m = 0; m < nwrites; ++m) {
@@ -194,9 +194,9 @@ void main_main ()
                     Real min = mfs[m].min(0);
                     Real max = mfs[m].max(0);
                     if (mf_min[m] != min)
-                        { amrex::AllPrint() << "Min failed: " << min << " != " << mf_min[m] << std::endl; }
+                        { amrex::AllPrint() << "Min failed: " << min << " != " << mf_min[m] << '\n'; }
                     if (mf_max[m] != max)
-                        { amrex::AllPrint() << "Max failed: " << max << " != " << mf_max[m] << std::endl; }
+                        { amrex::AllPrint() << "Max failed: " << max << " != " << mf_max[m] << '\n'; }
                 }
             }
         }

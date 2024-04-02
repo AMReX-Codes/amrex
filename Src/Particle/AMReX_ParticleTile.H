@@ -220,7 +220,7 @@ struct ParticleTileData
         }
     }
 
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, std::enable_if_t<!T::is_soa_particle, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SuperParticleType getSuperParticle (int index) const noexcept
     {
@@ -246,7 +246,7 @@ struct ParticleTileData
         return sp;
     }
 
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, std::enable_if_t<T::is_soa_particle, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SuperParticleType getSuperParticle (int index) const noexcept
     {
@@ -263,7 +263,7 @@ struct ParticleTileData
         return sp;
     }
 
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, std::enable_if_t<!T::is_soa_particle, int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
     {
@@ -286,7 +286,7 @@ struct ParticleTileData
         }
     }
 
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, std::enable_if_t<T::is_soa_particle, int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
     {
@@ -630,7 +630,7 @@ struct ConstParticleTileData
         }
     }
 
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, std::enable_if_t<!T::is_soa_particle, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SuperParticleType getSuperParticle (int index) const noexcept
     {
@@ -660,7 +660,7 @@ struct ConstParticleTileData
         return sp;
     }
 
-    template <typename T = ParticleType, typename std::enable_if<T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, std::enable_if_t<T::is_soa_particle, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SuperParticleType getSuperParticle (int index) const noexcept
     {
@@ -701,16 +701,16 @@ struct ParticleTile
 
     using SuperParticleType = Particle<NStructReal + NArrayReal, NStructInt + NArrayInt>;
 
-    using AoS = typename std::conditional<
+    using AoS = std::conditional_t<
         ParticleType::is_soa_particle,
         ThisParticleTileHasNoAoS,
-        ArrayOfStructs<ParticleType, Allocator>>::type;
+        ArrayOfStructs<ParticleType, Allocator>>;
     //using ParticleVector = typename AoS::ParticleVector;
 
-    using SoA = typename std::conditional<
+    using SoA = std::conditional_t<
         ParticleType::is_soa_particle,
         StructOfArrays<NArrayReal, NArrayInt, Allocator, true>,
-        StructOfArrays<NArrayReal, NArrayInt, Allocator, false>>::type;
+        StructOfArrays<NArrayReal, NArrayInt, Allocator, false>>;
     using RealVector = typename SoA::RealVector;
     using IntVector = typename SoA::IntVector;
     using StorageParticleType = typename ParticleType::StorageParticleType;
@@ -892,7 +892,7 @@ struct ParticleTile
     ///
     /// Add one particle to this tile.
     ///
-    template <typename T = ParticleType, typename std::enable_if<!T::is_soa_particle, int>::type = 0>
+    template <typename T = ParticleType, std::enable_if_t<!T::is_soa_particle, int> = 0>
     void push_back (const ParticleType& p) { m_aos_tile().push_back(p); }
 
     ///

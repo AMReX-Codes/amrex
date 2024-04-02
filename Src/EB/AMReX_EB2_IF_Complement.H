@@ -23,7 +23,7 @@ public:
         return -m_f(p);
     }
 
-    template<class U=F, typename std::enable_if<IsGPUable<U>::value,int>::type = 0>
+    template<class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
@@ -36,14 +36,14 @@ protected:
 };
 
 template <class F>
-struct IsGPUable<ComplementIF<F>, typename std::enable_if<IsGPUable<F>::value>::type>
+struct IsGPUable<ComplementIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class F>
-constexpr ComplementIF<typename std::decay<F>::type>
+constexpr ComplementIF<std::decay_t<F>>
 makeComplement (F&& f)
 {
-    return ComplementIF<typename std::decay<F>::type>(std::forward<F>(f));
+    return ComplementIF<std::decay_t<F>>(std::forward<F>(f));
 }
 
 }

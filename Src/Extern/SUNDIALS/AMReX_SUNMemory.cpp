@@ -1,6 +1,8 @@
+#include <AMReX_Sundials_Core.H>
+#include <AMReX_SUNMemory.H>
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
-#include <AMReX_SUNMemory.H>
+
 #if defined(AMREX_USE_HIP)
 #include <sunmemory/sunmemory_hip.h>
 #elif defined(AMREX_USE_CUDA)
@@ -8,6 +10,7 @@
 #elif defined(AMREX_USE_SYCL)
 #include <sunmemory/sunmemory_sycl.h>
 #endif
+#include <sundials/sundials_config.h>
 
 namespace amrex::sundials {
 
@@ -35,7 +38,11 @@ namespace {
 
     int Alloc(SUNMemoryHelper, SUNMemory* memptr, size_t memsize, SUNMemoryType mem_type, void* /*queue*/)
     {
+#if defined(SUNDIALS_VERSION_MAJOR) && (SUNDIALS_VERSION_MAJOR < 7)
         SUNMemory mem = SUNMemoryNewEmpty();
+#else
+        SUNMemory mem = SUNMemoryNewEmpty(*The_Sundials_Context());
+#endif
 
         if (mem == nullptr) { return -1; }
         mem->ptr = nullptr;

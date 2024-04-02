@@ -22,6 +22,11 @@ void MLCurlCurl::define (const Vector<Geometry>& a_geom,
         m_dotmask[amrlev].resize(this->m_num_mg_levels[amrlev]);
     }
 
+    m_bcoefs.resize(this->m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        m_bcoefs[amrlev].resize(this->m_num_mg_levels[amrlev]);
+    }
+
     m_lusolver.resize(this->m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         m_lusolver[amrlev].resize(this->m_num_mg_levels[amrlev]);
@@ -33,6 +38,57 @@ void MLCurlCurl::setScalars (RT a_alpha, RT a_beta) noexcept
     m_alpha = a_alpha;
     m_beta = a_beta;
     AMREX_ASSERT(m_beta > RT(0));
+}
+
+void MLCurlCurl::setBeta (const Vector<Array<MultiFab const*,3>>& a_bcoefs)
+{
+    Array<IntVect,3> ng;
+    for (int idim = 0; idim < 3; ++idim) {
+        ng[idim] = IntVect(1) - m_etype[idim]; // 1 ghost for cell direction, 0 for node
+    }
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        for (int idim = 0; idim < 3; ++idim) {
+            if (m_bcoefs[amrlev][0][idim] == nullptr) {
+                m_bcoefs[amrlev][0][idim] = std::make_unique<MultiFab>
+                    (a_bcoefs[amrlev][idim]->boxArray(),
+                     a_bcoefs[amrlev][idim]->DistributionMap(), 1, ng[idim]);
+            }
+            MultiFab::Copy(*m_bcoefs[amrlev][0][idim], *a_bcoefs[amrlev][idim], 0, 0, 1, 0);
+            m_bcoefs[amrlev][0][idim]->FillBoundary(m_geom[amrlev][0].periodicity());
+        }
+    }
+
+    // Need to average down from fine AMR level to coarse level and we need
+    // to support periodic boundary
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_num_amr_levels == 1,
+                                     "MLCurlCurl: multi-level not supported yet");
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+            IntVect ratio = (amrlev > 0) ? IntVect(2)
+                : mg_coarsen_ratio_vec[mglev-1];
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (m_bcoefs[amrlev][mglev][idim] == nullptr) {
+                    m_bcoefs[amrlev][mglev][idim] = std::make_unique<MultiFab>
+                        (amrex::convert(m_grids[amrlev][mglev], m_etype[idim]),
+                         m_dmap[amrlev][mglev], 1, ng[idim]);
+                }
+                average_down_edges(*m_bcoefs[amrlev][mglev-1][idim],
+                                   *m_bcoefs[amrlev][mglev  ][idim], ratio);
+                m_bcoefs[amrlev][mglev][idim]->FillBoundary(m_geom[amrlev][mglev].periodicity());
+            }
+#if (AMREX_SPACEDIM == 2)
+            if (m_bcoefs[amrlev][mglev][2] == nullptr) {
+                m_bcoefs[amrlev][mglev][2] = std::make_unique<MultiFab>
+                    (amrex::convert(m_grids[amrlev][mglev], m_etype[2]),
+                     m_dmap[amrlev][mglev], 1, 0);
+            }
+            average_down_nodal(*m_bcoefs[amrlev][mglev-1][2],
+                               *m_bcoefs[amrlev][mglev  ][2], ratio);
+#endif
+        }
+    }
 }
 
 void MLCurlCurl::prepareRHS (Vector<MF*> const& rhs) const
@@ -194,31 +250,62 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
         auto const& xin = in[0].array(mfi);
         auto const& yin = in[1].array(mfi);
         auto const& zin = in[2].array(mfi);
-        amrex::ParallelFor(xbx, ybx, zbx,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k)
-        {
-            if (dinfo.is_dirichlet_x_edge(i,j,k)) {
-                xout(i,j,k) = Real(0.0);
-            } else {
-                mlcurlcurl_adotx_x(i,j,k,xout,xin,yin,zin,b,adxinv);
-            }
-        },
-        [=] AMREX_GPU_DEVICE (int i, int j, int k)
-        {
-            if (dinfo.is_dirichlet_y_edge(i,j,k)) {
-                yout(i,j,k) = Real(0.0);
-            } else {
-                mlcurlcurl_adotx_y(i,j,k,yout,xin,yin,zin,b,adxinv);
-            }
-        },
-        [=] AMREX_GPU_DEVICE (int i, int j, int k)
-        {
-            if (dinfo.is_dirichlet_z_edge(i,j,k)) {
-                zout(i,j,k) = Real(0.0);
-            } else {
-                mlcurlcurl_adotx_z(i,j,k,zout,xin,yin,zin,b,adxinv);
-            }
-        });
+        if (m_bcoefs[amrlev][mglev][0]) {
+            auto const& bcx = m_bcoefs[amrlev][mglev][0]->const_array(mfi);
+            auto const& bcy = m_bcoefs[amrlev][mglev][1]->const_array(mfi);
+            auto const& bcz = m_bcoefs[amrlev][mglev][2]->const_array(mfi);
+            amrex::ParallelFor(xbx, ybx, zbx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                if (dinfo.is_dirichlet_x_edge(i,j,k)) {
+                    xout(i,j,k) = Real(0.0);
+                } else {
+                    mlcurlcurl_adotx_x(i,j,k,xout,xin,yin,zin,bcx(i,j,k),adxinv);
+                }
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                if (dinfo.is_dirichlet_y_edge(i,j,k)) {
+                    yout(i,j,k) = Real(0.0);
+                } else {
+                    mlcurlcurl_adotx_y(i,j,k,yout,xin,yin,zin,bcy(i,j,k),adxinv);
+                }
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                if (dinfo.is_dirichlet_z_edge(i,j,k)) {
+                    zout(i,j,k) = Real(0.0);
+                } else {
+                    mlcurlcurl_adotx_z(i,j,k,zout,xin,yin,zin,bcz(i,j,k),adxinv);
+                }
+            });
+        } else {
+            amrex::ParallelFor(xbx, ybx, zbx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                if (dinfo.is_dirichlet_x_edge(i,j,k)) {
+                    xout(i,j,k) = Real(0.0);
+                } else {
+                    mlcurlcurl_adotx_x(i,j,k,xout,xin,yin,zin,b,adxinv);
+                }
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                if (dinfo.is_dirichlet_y_edge(i,j,k)) {
+                    yout(i,j,k) = Real(0.0);
+                } else {
+                    mlcurlcurl_adotx_y(i,j,k,yout,xin,yin,zin,b,adxinv);
+                }
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                if (dinfo.is_dirichlet_z_edge(i,j,k)) {
+                    zout(i,j,k) = Real(0.0);
+                } else {
+                    mlcurlcurl_adotx_z(i,j,k,zout,xin,yin,zin,b,adxinv);
+                }
+            });
+        }
     }
 }
 
@@ -257,21 +344,32 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
         adxinv[idim] *= std::sqrt(m_alpha);
     }
 
-    auto* plusolver = m_lusolver[amrlev][mglev]->dataPtr();
-
     auto dinfo = getDirichletInfo(amrlev,mglev);
     auto sinfo = getSymmetryInfo(amrlev,mglev);
 
     MultiFab nmf(amrex::convert(rhs[0].boxArray(),IntVect(1)),
                  rhs[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
-    ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
-    {
-        mlcurlcurl_gs4(i,j,k,ex[bno],ey[bno],ez[bno],rhsx[bno],rhsy[bno],rhsz[bno],
+    if (m_lusolver[amrlev][mglev]) {
+        auto* plusolver = m_lusolver[amrlev][mglev]->dataPtr();
+        ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+        {
+            mlcurlcurl_gs4(i,j,k,ex[bno],ey[bno],ez[bno],rhsx[bno],rhsy[bno],rhsz[bno],
 #if (AMREX_SPACEDIM == 2)
-                       b,
+                           b,
 #endif
-                       adxinv,color,*plusolver,dinfo,sinfo);
-    });
+                           adxinv,color,*plusolver,dinfo,sinfo);
+        });
+    } else {
+        auto const& bcx = m_bcoefs[amrlev][mglev][0]->const_arrays();
+        auto const& bcy = m_bcoefs[amrlev][mglev][1]->const_arrays();
+        auto const& bcz = m_bcoefs[amrlev][mglev][2]->const_arrays();
+        ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+        {
+
+            mlcurlcurl_gs4(i,j,k,ex[bno],ey[bno],ez[bno],rhsx[bno],rhsy[bno],rhsz[bno],
+                           adxinv,color,bcx[bno],bcy[bno],bcz[bno],dinfo,sinfo);
+        });
+    }
     Gpu::streamSynchronize();
 }
 
@@ -341,85 +439,87 @@ void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
 
 void MLCurlCurl::prepareForSolve ()
 {
-    for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev) {
-        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
-            auto const& dxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
-            Real dxx = dxinv[0]*dxinv[0];
-            Real dyy = dxinv[1]*dxinv[1];
-            Real dxy = dxinv[0]*dxinv[1];
+    if (m_bcoefs[0][0][0] == nullptr) {
+        for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev) {
+            for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+                auto const& dxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
+                Real dxx = dxinv[0]*dxinv[0];
+                Real dyy = dxinv[1]*dxinv[1];
+                Real dxy = dxinv[0]*dxinv[1];
 #if (AMREX_SPACEDIM == 2)
-            Array2D<Real,0,3,0,3,Order::C> A
-                {m_alpha*dyy*Real(2.0) + m_beta,
-                 Real(0.0),
-                -m_alpha*dxy,
-                 m_alpha*dxy,
-                 //
-                 Real(0.0),
-                 m_alpha*dyy*Real(2.0) + m_beta,
-                 m_alpha*dxy,
-                -m_alpha*dxy,
-                 //
-                -m_alpha*dxy,
-                 m_alpha*dxy,
-                 m_alpha*dxx*Real(2.0) + m_beta,
-                 Real(0.0),
-                 //
-                 m_alpha*dxy,
-                -m_alpha*dxy,
-                 Real(0.0),
-                 m_alpha*dxx*Real(2.0) + m_beta};
+                Array2D<Real,0,3,0,3,Order::C> A
+                    {m_alpha*dyy*Real(2.0) + m_beta,
+                     Real(0.0),
+                    -m_alpha*dxy,
+                     m_alpha*dxy,
+                     //
+                     Real(0.0),
+                     m_alpha*dyy*Real(2.0) + m_beta,
+                     m_alpha*dxy,
+                    -m_alpha*dxy,
+                     //
+                    -m_alpha*dxy,
+                     m_alpha*dxy,
+                     m_alpha*dxx*Real(2.0) + m_beta,
+                     Real(0.0),
+                     //
+                     m_alpha*dxy,
+                    -m_alpha*dxy,
+                     Real(0.0),
+                     m_alpha*dxx*Real(2.0) + m_beta};
 #else
-            Real dzz = dxinv[2]*dxinv[2];
-            Real dxz = dxinv[0]*dxinv[2];
-            Real dyz = dxinv[1]*dxinv[2];
+                Real dzz = dxinv[2]*dxinv[2];
+                Real dxz = dxinv[0]*dxinv[2];
+                Real dyz = dxinv[1]*dxinv[2];
 
-            Array2D<Real,0,5,0,5,Order::C> A
-                {m_alpha*(dyy+dzz)*Real(2.0) + m_beta,
-                 Real(0.0),
-                -m_alpha*dxy,
-                 m_alpha*dxy,
-                -m_alpha*dxz,
-                 m_alpha*dxz,
-                 //
-                 Real(0.0),
-                 m_alpha*(dyy+dzz)*Real(2.0) + m_beta,
-                 m_alpha*dxy,
-                -m_alpha*dxy,
-                 m_alpha*dxz,
-                -m_alpha*dxz,
-                 //
-                -m_alpha*dxy,
-                 m_alpha*dxy,
-                 m_alpha*(dxx+dzz)*Real(2.0) + m_beta,
-                 Real(0.0),
-                -m_alpha*dyz,
-                 m_alpha*dyz,
-                 //
-                 m_alpha*dxy,
-                -m_alpha*dxy,
-                 Real(0.0),
-                 m_alpha*(dxx+dzz)*Real(2.0) + m_beta,
-                 m_alpha*dyz,
-                -m_alpha*dyz,
-                 //
-                -m_alpha*dxz,
-                 m_alpha*dxz,
-                -m_alpha*dyz,
-                 m_alpha*dyz,
-                 m_alpha*(dxx+dyy)*Real(2.0) + m_beta,
-                 Real(0.0),
-                 //
-                 m_alpha*dxz,
-                -m_alpha*dxz,
-                 m_alpha*dyz,
-                -m_alpha*dyz,
-                 Real(0.0),
-                 m_alpha*(dxx+dyy)*Real(2.0) + m_beta};
+                Array2D<Real,0,5,0,5,Order::C> A
+                    {m_alpha*(dyy+dzz)*Real(2.0) + m_beta,
+                     Real(0.0),
+                    -m_alpha*dxy,
+                     m_alpha*dxy,
+                    -m_alpha*dxz,
+                     m_alpha*dxz,
+                     //
+                     Real(0.0),
+                     m_alpha*(dyy+dzz)*Real(2.0) + m_beta,
+                     m_alpha*dxy,
+                    -m_alpha*dxy,
+                     m_alpha*dxz,
+                    -m_alpha*dxz,
+                     //
+                    -m_alpha*dxy,
+                     m_alpha*dxy,
+                     m_alpha*(dxx+dzz)*Real(2.0) + m_beta,
+                     Real(0.0),
+                    -m_alpha*dyz,
+                     m_alpha*dyz,
+                     //
+                     m_alpha*dxy,
+                    -m_alpha*dxy,
+                     Real(0.0),
+                     m_alpha*(dxx+dzz)*Real(2.0) + m_beta,
+                     m_alpha*dyz,
+                    -m_alpha*dyz,
+                     //
+                    -m_alpha*dxz,
+                     m_alpha*dxz,
+                    -m_alpha*dyz,
+                     m_alpha*dyz,
+                     m_alpha*(dxx+dyy)*Real(2.0) + m_beta,
+                     Real(0.0),
+                     //
+                     m_alpha*dxz,
+                    -m_alpha*dxz,
+                     m_alpha*dyz,
+                    -m_alpha*dyz,
+                     Real(0.0),
+                     m_alpha*(dxx+dyy)*Real(2.0) + m_beta};
 #endif
 
-            m_lusolver[amrlev][mglev]
-                = std::make_unique<Gpu::DeviceScalar
-                                   <LUSolver<AMREX_SPACEDIM*2,RT>>>(A);
+                m_lusolver[amrlev][mglev]
+                    = std::make_unique<Gpu::DeviceScalar
+                                       <LUSolver<AMREX_SPACEDIM*2,RT>>>(A);
+            }
         }
     }
 }
@@ -531,26 +631,6 @@ void MLCurlCurl::applyBC (int amrlev, int mglev, MF& in, CurlCurlStateType type)
     }
 }
 
-#ifdef AMREX_USE_GPU
-struct MLCurlCurlBCTag {
-    Array4<Real> fab;
-    Box bx;
-    Orientation face;
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Box const& box() const noexcept { return bx; }
-};
-
-struct MLCurlCurlEdgeBCTag {
-    Array4<Real> fab;
-    Box bx;
-    Dim3 offset;
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Box const& box() const noexcept { return bx; }
-};
-#endif
-
 void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlStateType type) const
 {
     if (CurlCurlStateType::b == type) { return; }
@@ -563,7 +643,7 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlState
     MFItInfo mfi_info{};
 
 #ifdef AMREX_USE_GPU
-    Vector<MLCurlCurlBCTag> tags;
+    Vector<Array4BoxOrientationTag<RT>> tags;
     mfi_info.DisableDeviceSync();
 #endif
 
@@ -598,7 +678,7 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlState
                     }
                 }
 #ifdef AMREX_USE_GPU
-                tags.emplace_back(MLCurlCurlBCTag{a,b,face});
+                tags.emplace_back(Array4BoxOrientationTag<RT>{a,b,face});
 #else
                 amrex::LoopOnCpu(b, [&] (int i, int j, int k)
                 {
@@ -611,7 +691,7 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlState
 
 #ifdef AMREX_USE_GPU
     ParallelFor(tags,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k, MLCurlCurlBCTag const& tag) noexcept
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, Array4BoxOrientationTag<RT> const& tag) noexcept
     {
         mlcurlcurl_bc_symmetry(i, j, k, tag.face, idxtype, tag.fab);
     });
@@ -621,7 +701,7 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlState
         auto sinfo = getSymmetryInfo(amrlev,mglev);
 
 #ifdef AMREX_USE_GPU
-        Vector<MLCurlCurlEdgeBCTag> tags2;
+        Vector<Array4BoxOffsetTag<RT>> tags2;
 #endif
 
 #ifdef AMREX_USE_OMP
@@ -659,7 +739,7 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlState
                                         b.setRange(jdim,vbx.bigEnd(jdim)+1);
                                     }
 #ifdef AMREX_USE_GPU
-                                    tags2.emplace_back(MLCurlCurlEdgeBCTag{a,b,offset});
+                                    tags2.emplace_back(Array4BoxOffsetTag<RT>{a,b,offset});
 #else
                                     amrex::LoopOnCpu(b, [&] (int i, int j, int k)
                                     {
@@ -676,7 +756,7 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlState
 
 #ifdef AMREX_USE_GPU
         ParallelFor(tags2,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k, MLCurlCurlEdgeBCTag const& tag)
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, Array4BoxOffsetTag<RT> const& tag)
         {
             tag.fab(i,j,k) = tag.fab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z);
         });

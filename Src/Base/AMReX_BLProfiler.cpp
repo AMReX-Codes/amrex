@@ -158,7 +158,7 @@ void BLProfiler::Initialize() {
     procName = cProcName;
     procNumber = ParallelDescriptor::MyProc();
   }
-  //amrex::AllPrint() << myProc << ":::: " << procName << "  len =  " << resultLen << std::endl;
+  //amrex::AllPrint() << myProc << ":::: " << procName << "  len =  " << resultLen << '\n';
 
   Real t0, t1;
   int nTimerTimes(1000);
@@ -684,7 +684,7 @@ void WriteStats(std::ostream &ios,
         << '\n';
   }
   ios << std::setfill(' ');
-  ios << std::endl;
+  ios << '\n';
 
 
 #ifdef BL_TRACE_PROFILING
@@ -755,7 +755,7 @@ void WriteStats(std::ostream &ios,
     ios << std::setfill('=') << std::setw(maxlen+4 + 1 * (colWidth+2)) << ""
         << '\n';
     ios << std::setfill(' ');
-    ios << std::endl;
+    ios << '\n';
   }
 
 #endif
@@ -1341,24 +1341,24 @@ void BLProfiler::WriteFortProfErrors() {
   // report any fortran errors.  should really check with all procs, just iop for now
   if(ParallelDescriptor::IOProcessor()) {
     if(BLProfiler::mFortProfs.size() > 0) {
-      amrex::Print() << "FFFFFFFF -------- FORTRAN PROFILING UNSTOPPED ERRORS" << std::endl;
+      amrex::Print() << "FFFFFFFF -------- FORTRAN PROFILING UNSTOPPED ERRORS" << '\n';
       for(std::map<std::string, BLProfiler *>::iterator it = BLProfiler::mFortProfs.begin();
           it != BLProfiler::mFortProfs.end(); ++it)
       {
         amrex::Print() << "FFFF function not stopped:  fname ptr = " << it->first
-                       << "  ---->" << it->second << "<----" << std::endl;
+                       << "  ---->" << it->second << "<----" << '\n';
       }
-      amrex::Print() << "FFFFFFFF -------- END FORTRAN PROFILING UNSTOPPED ERRORS" << std::endl;
+      amrex::Print() << "FFFFFFFF -------- END FORTRAN PROFILING UNSTOPPED ERRORS" << '\n';
     }
     if(BLProfiler::mFortProfsErrors.size() > 0) {
-      amrex::Print() << "FFFFFFFF FORTRAN PROFILING ERRORS" << std::endl;
+      amrex::Print() << "FFFFFFFF FORTRAN PROFILING ERRORS" << '\n';
       if(BLProfiler::mFortProfsErrors.size() >= mFortProfMaxErrors) {
-        amrex::Print() << "FFFFFFFF -------- MAX FORTRAN ERRORS EXCEEDED" << std::endl;
+        amrex::Print() << "FFFFFFFF -------- MAX FORTRAN ERRORS EXCEEDED" << '\n';
       }
       for(int i(0); i < BLProfiler::mFortProfsErrors.size(); ++i) {
-        amrex::Print() << "FFFF " << BLProfiler::mFortProfsErrors[i] << std::endl;
+        amrex::Print() << "FFFF " << BLProfiler::mFortProfsErrors[i] << '\n';
       }
-      amrex::Print() << "FFFFFFFF -------- END FORTRAN PROFILING ERRORS" << std::endl;
+      amrex::Print() << "FFFFFFFF -------- END FORTRAN PROFILING ERRORS" << '\n';
     }
   }
 }

@@ -88,7 +88,7 @@ private:
     struct innards final : innards_base // NOLINT(cppcoreguidelines-special-member-functions)
     {
         innards (MF && mf)
-            : m_mf(std::forward<MF>(mf))
+            : m_mf(std::move(mf))
             {}
 
         ~innards () final = default;

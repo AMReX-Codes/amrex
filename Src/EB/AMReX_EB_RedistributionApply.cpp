@@ -88,7 +88,7 @@ ApplyMLRedistribution ( Box const& bx, int ncomp,
     // redistribution_type = "FluxRedist"      // flux_redistribute
     // redistribution_type = "StateRedist";    // (weighted) state redistribute
 
-    // amrex::Print() <<" Redistribution::ApplyML " << redistribution_type << std::endl;
+    // amrex::Print() <<" Redistribution::ApplyML " << redistribution_type << '\n';
 
     amrex::ParallelFor(bx,ncomp,
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -252,7 +252,7 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
         amrex::Error(msg);
     }
 
-    // amrex::Print() <<" Redistribution::ApplyInitial " << redistribution_type << std::endl;
+    // amrex::Print() <<" Redistribution::ApplyInitial " << redistribution_type << '\n';
 
     Box const& bxg3 = grow(bx,3);
     Box const& bxg4 = grow(bx,4);

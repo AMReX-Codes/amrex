@@ -24,9 +24,9 @@ struct Table1D
 
     constexpr Table1D () noexcept = default;
 
-    template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
-    constexpr Table1D (Table1D<typename std::remove_const<T>::type> const& rhs) noexcept
+    constexpr Table1D (Table1D<std::remove_const_t<T>> const& rhs) noexcept
         : p(rhs.p),
           begin(rhs.begin),
           end(rhs.end)
@@ -42,7 +42,7 @@ struct Table1D
     AMREX_GPU_HOST_DEVICE
     explicit operator bool () const noexcept { return p != nullptr; }
 
-    template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     U& operator() (int i) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -82,9 +82,9 @@ struct Table2D
 
     constexpr Table2D () noexcept = default;
 
-    template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
-    constexpr Table2D (Table2D<typename std::remove_const<T>::type> const& rhs) noexcept
+    constexpr Table2D (Table2D<std::remove_const_t<T>> const& rhs) noexcept
         : p(rhs.p),
           jstride(rhs.jstride),
           begin(rhs.begin),
@@ -104,7 +104,7 @@ struct Table2D
     AMREX_GPU_HOST_DEVICE
     explicit operator bool () const noexcept { return p != nullptr; }
 
-    template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     U& operator() (int i, int j) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -147,9 +147,9 @@ struct Table3D
 
     constexpr Table3D () noexcept = default;
 
-    template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
-    constexpr Table3D (Table3D<typename std::remove_const<T>::type> const& rhs) noexcept
+    constexpr Table3D (Table3D<std::remove_const_t<T>> const& rhs) noexcept
         : p(rhs.p),
           jstride(rhs.jstride),
           kstride(rhs.kstride),
@@ -171,7 +171,7 @@ struct Table3D
     AMREX_GPU_HOST_DEVICE
     explicit operator bool () const noexcept { return p != nullptr; }
 
-    template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     U& operator() (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -218,9 +218,9 @@ struct Table4D
 
     constexpr Table4D () noexcept = default;
 
-    template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
-    constexpr Table4D (Table4D<typename std::remove_const<T>::type> const& rhs) noexcept
+    constexpr Table4D (Table4D<std::remove_const_t<T>> const& rhs) noexcept
         : p(rhs.p),
           jstride(rhs.jstride),
           kstride(rhs.kstride),
@@ -244,7 +244,7 @@ struct Table4D
     AMREX_GPU_HOST_DEVICE
     explicit operator bool () const noexcept { return p != nullptr; }
 
-    template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     U& operator() (int i, int j, int k, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -401,14 +401,17 @@ template <typename T, int N>
 TableData<T,N>&
 TableData<T,N>::operator= (TableData<T,N> && rhs) noexcept
 {
-    m_arena     = rhs.m_arena;
-    m_dptr      = rhs.m_dptr;
-    m_lo        = rhs.m_lo;
-    m_hi        = rhs.m_hi;
-    m_truesize  = rhs.m_truesize;
-    m_ptr_owner = rhs.m_ptr_owner;
-    rhs.m_dptr = nullptr;
-    rhs.m_ptr_owner = false;
+    if (this != &rhs) {
+        clear();
+        m_arena     = rhs.m_arena;
+        m_dptr      = rhs.m_dptr;
+        m_lo        = rhs.m_lo;
+        m_hi        = rhs.m_hi;
+        m_truesize  = rhs.m_truesize;
+        m_ptr_owner = rhs.m_ptr_owner;
+        rhs.m_dptr = nullptr;
+        rhs.m_ptr_owner = false;
+    }
     return *this;
 }
 

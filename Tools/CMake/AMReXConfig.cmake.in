@@ -90,6 +90,9 @@ set(AMReX_HDF5_ZFP_FOUND            @AMReX_HDF5_ZFP@)
 set(AMReX_FPE_FOUND                 @AMReX_FPE@)
 set(AMReX_PIC_FOUND                 @AMReX_PIC@)
 set(AMReX_ASSERTIONS_FOUND          @AMReX_ASSERTIONS@)
+set(AMReX_FLATTEN_FOR_FOUND         @AMReX_FLATTEN_FOR@)
+set(AMReX_COMPILER_DEFAULT_INLINE_FOUND   @AMReX_COMPILER_DEFAULT_INLINE@)
+set(AMReX_INLINE_LIMIT_FOUND              @AMReX_INLINE_LIMIT@)
 
 # Profiling options
 set(AMReX_BASEP_FOUND               @AMReX_BASE_PROFILE@)
@@ -141,6 +144,7 @@ set(AMReX_HDF5_ZFP                  @AMReX_HDF5_ZFP@)
 set(AMReX_FPE                       @AMReX_FPE@)
 set(AMReX_PIC                       @AMReX_PIC@)
 set(AMReX_ASSERTIONS                @AMReX_ASSERTIONS@)
+set(AMReX_FLATTEN_FOR               @AMReX_FLATTEN_FOR@)
 
 # Profiling options
 set(AMReX_BASE_PROFILE              @AMReX_BASE_PROFILE@)

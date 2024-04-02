@@ -95,34 +95,34 @@ public:
 
 private:
     GM m_gmres;
-    MG& m_mlmg;
-    MLLinOpT<MF>& m_linop;
+    MG* m_mlmg;
+    MLLinOpT<MF>* m_linop;
     bool m_use_precond = true;
     bool m_prop_zero = false;
 };
 
 template <typename MF>
 GMRESMLMGT<MF>::GMRESMLMGT (MG& mlmg)
-    : m_mlmg(mlmg), m_linop(mlmg.getLinOp())
+    : m_mlmg(&mlmg), m_linop(&mlmg.getLinOp())
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_linop.NAMRLevels() == 1,
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_linop->NAMRLevels() == 1,
                                      "Only support single level solve");
-    m_mlmg.setVerbose(0);
-    m_mlmg.setBottomVerbose(0);
-    m_mlmg.prepareForGMRES();
+    m_mlmg->setVerbose(0);
+    m_mlmg->setBottomVerbose(0);
+    m_mlmg->prepareForGMRES();
     m_gmres.define(*this);
 }
 
 template <typename MF>
 auto GMRESMLMGT<MF>::makeVecRHS () const -> MF
 {
-    return m_linop.make(0, 0, IntVect(0));
+    return m_linop->make(0, 0, IntVect(0));
 }
 
 template <typename MF>
 auto GMRESMLMGT<MF>::makeVecLHS () const -> MF
 {
-    auto mf = m_linop.make(0, 0, IntVect(1));
+    auto mf = m_linop->make(0, 0, IntVect(1));
     setBndry(mf, RT(0), 0, nComp(mf));
     return mf;
 }
@@ -130,7 +130,7 @@ auto GMRESMLMGT<MF>::makeVecLHS () const -> MF
 template <typename MF>
 auto GMRESMLMGT<MF>::norm2 (MF const& mf) const -> RT
 {
-    auto r = m_linop.xdoty(0, 0, mf, mf, false);
+    auto r = m_linop->xdoty(0, 0, mf, mf, false);
     return std::sqrt(r);
 }
 
@@ -143,7 +143,7 @@ void GMRESMLMGT<MF>::scale (MF& mf, RT scale_factor)
 template <typename MF>
 auto GMRESMLMGT<MF>::dotProduct (MF const& mf1, MF const& mf2) const -> RT
 {
-    return m_linop.xdoty(0, 0, mf1, mf2, false);
+    return m_linop->xdoty(0, 0, mf1, mf2, false);
 }
 
 template <typename MF>
@@ -173,22 +173,22 @@ void GMRESMLMGT<MF>::linComb (MF& lhs, RT a, MF const& rhs_a, RT b, MF const& rh
 template <typename MF>
 void GMRESMLMGT<MF>::apply (MF& lhs, MF const& rhs) const
 {
-    m_linop.apply(0, 0, lhs, const_cast<MF&>(rhs),
-                  MLLinOpT<MF>::BCMode::Homogeneous,
-                  MLLinOpT<MF>::StateMode::Correction);
+    m_linop->apply(0, 0, lhs, const_cast<MF&>(rhs),
+                   MLLinOpT<MF>::BCMode::Homogeneous,
+                   MLLinOpT<MF>::StateMode::Correction);
 }
 
 template <typename MF>
 void GMRESMLMGT<MF>::precond (MF& lhs, MF const& rhs) const
 {
     if (m_use_precond) {
-        m_mlmg.prepareMGcycle();
+        m_mlmg->prepareMGcycle();
 
-        LocalCopy(m_mlmg.res[0][0], rhs, 0, 0, nComp(rhs), IntVect(0));
+        LocalCopy(m_mlmg->res[0][0], rhs, 0, 0, nComp(rhs), IntVect(0));
 
-        m_mlmg.mgVcycle(0,0);
+        m_mlmg->mgVcycle(0,0);
 
-        LocalCopy(lhs, m_mlmg.cor[0][0], 0, 0, nComp(rhs), IntVect(0));
+        LocalCopy(lhs, m_mlmg->cor[0][0], 0, 0, nComp(rhs), IntVect(0));
 
     } else {
         LocalCopy(lhs, rhs, 0, 0, nComp(lhs), IntVect(0));
@@ -201,14 +201,14 @@ void GMRESMLMGT<MF>::solve (MF& a_sol, MF const& a_rhs, RT a_tol_rel, RT a_tol_a
     if (m_prop_zero) {
         auto rhs = makeVecRHS();
         assign(rhs, a_rhs);
-        m_linop.setDirichletNodesToZero(0,0,rhs);
+        m_linop->setDirichletNodesToZero(0,0,rhs);
         m_gmres.solve(a_sol, rhs, a_tol_rel, a_tol_abs);
     } else {
         auto res = makeVecRHS();
-        m_mlmg.apply({&res}, {&a_sol}); // res = L(sol)
+        m_mlmg->apply({&res}, {&a_sol}); // res = L(sol)
         increment(res, a_rhs, RT(-1)); // res = L(sol) - rhs
         auto cor = makeVecLHS();
-        m_linop.setDirichletNodesToZero(0,0,res);
+        m_linop->setDirichletNodesToZero(0,0,res);
         m_gmres.solve(cor, res, a_tol_rel, a_tol_abs); // L(cor) = res
         increment(a_sol, cor, RT(-1)); // sol = sol - cor
     }

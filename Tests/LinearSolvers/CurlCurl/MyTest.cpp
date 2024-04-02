@@ -33,6 +33,17 @@ MyTest::solve ()
                                    LinOpBCType::Periodic)});
 
     mlcc.setScalars(alpha, beta);
+    if (variable_beta) {
+        Array<MultiFab,3> bcoef;
+        for (int idim = 0; idim < 3; ++idim) {
+            bcoef[idim].define(solution[idim].boxArray(),
+                               solution[idim].DistributionMap(), 1, 0);
+            bcoef[idim].setVal(beta);
+        }
+        mlcc.setBeta({Array<MultiFab const*,3>{bcoef.data(),
+                                               bcoef.data()+1,
+                                               bcoef.data()+2}});
+    }
     mlcc.prepareRHS({&rhs});
 
     using V = Array<MultiFab,3>;
@@ -64,7 +75,7 @@ MyTest::solve ()
         mlmg.solve({&solution}, {&rhs}, tol_rel, tol_abs);
     }
 
-    amrex::Print() << "  Number of cells: " << n_cell << std::endl;
+    amrex::Print() << "  Number of cells: " << n_cell << '\n';
     auto dvol = AMREX_D_TERM(geom.CellSize(0), *geom.CellSize(1), *geom.CellSize(2));
     Array<std::string,3> names{"Ex", "Ey", "Ez"};
     for (int idim = 0; idim < 3; ++idim) {
@@ -75,7 +86,7 @@ MyTest::solve ()
         auto e2 = solution[idim].norm2(0,geom.periodicity());
         e2 *= std::sqrt(dvol);
         amrex::Print() << "  " << names[idim] << " errors (max, L1, L2): "
-                       << e0 << " " << e1 << " " << e2 << std::endl;
+                       << e0 << " " << e1 << " " << e2 << '\n';
     }
 }
 
@@ -98,6 +109,7 @@ MyTest::readParameters ()
 
     pp.query("beta_factor", beta_factor);
     pp.query("alpha", alpha);
+    pp.query("variable_beta", variable_beta);
 }
 
 void

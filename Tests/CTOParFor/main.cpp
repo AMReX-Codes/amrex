@@ -58,7 +58,7 @@ int main (int argc, char* argv[])
         }
     }
 #else
-    amrex::Print() << "This test requires C++17." << std::endl;
+    amrex::Print() << "This test requires C++17." << '\n';
 #endif
     amrex::Finalize();
 }

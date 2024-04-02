@@ -1228,7 +1228,7 @@ finalize_table (const std::string& pfx, const ParmParse::Table& table)
             if ( !li.m_queried )
             {
                 if (finalize_verbose) {
-                    amrex::AllPrint() << "Record " << li.m_name << std::endl;
+                    amrex::AllPrint() << "Record " << li.m_name << '\n';
                 }
             }
             else
@@ -1239,7 +1239,7 @@ finalize_table (const std::string& pfx, const ParmParse::Table& table)
         else if ( !li.m_queried )
         {
             if (finalize_verbose) {
-                amrex::AllPrint() << pfx << "::" << li << std::endl;
+                amrex::AllPrint() << pfx << "::" << li << '\n';
             }
         }
     }
@@ -1270,7 +1270,7 @@ ParmParse::QueryUnusedInputs ()
         finalize_verbose = amrex::system::verbose;
         if (finalize_verbose) { amrex::OutStream() << "Unused ParmParse Variables:\n"; }
         finalize_table("  [TOP]", g_table);
-        if (finalize_verbose) { amrex::OutStream() << std::endl; }
+        if (finalize_verbose) { amrex::OutStream() << '\n'; }
         return true;
     }
     return false;
@@ -1337,7 +1337,7 @@ ParmParse::Finalize ()
         finalize_verbose = amrex::system::verbose;
         if (finalize_verbose) { amrex::OutStream() << "Unused ParmParse Variables:\n"; }
         finalize_table("  [TOP]", g_table);
-        if (finalize_verbose) { amrex::OutStream() << std::endl; }
+        if (finalize_verbose) { amrex::OutStream() << '\n'; }
         //
         // First loop through and delete all queried entries.
         //
@@ -1360,10 +1360,10 @@ ParmParse::dumpTable (std::ostream& os, bool prettyPrint)
     for (auto const& li : g_table)
     {
         if(prettyPrint && li.m_queried) {
-            os << li.print() << std::endl;
+            os << li.print() << '\n';
         }
         else {
-            os << li << std::endl;
+            os << li << '\n';
         }
     }
 }
@@ -2030,7 +2030,7 @@ ParmParse::getRecord (const std::string& name, int n) const
     const PP_entry* pe = ppindex(*m_table, n, prefixedName(name), true);
     if ( pe == nullptr )
     {
-        amrex::ErrorStream() << "ParmParse::getRecord: record " << name << " not found" << std::endl;
+        amrex::ErrorStream() << "ParmParse::getRecord: record " << name << " not found" << '\n';
         amrex::Abort();
         return Record(ParmParse());
     } else {

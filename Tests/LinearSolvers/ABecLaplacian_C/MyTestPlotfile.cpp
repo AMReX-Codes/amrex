@@ -16,7 +16,7 @@ MyTest::writePlotfile () const
             MultiFab::Copy(errmf, solution[ilev], 0, 0, 1, 0);
             MultiFab::Subtract(errmf, exact_solution[ilev], 0, 0, 1, 0);
             auto error = errmf.norminf();
-            amrex::Print() << "Level " << ilev << " max-norm error: " << error << std::endl;
+            amrex::Print() << "Level " << ilev << " max-norm error: " << error << '\n';
         }
         return;
     }
@@ -78,7 +78,7 @@ MyTest::writePlotfile () const
             amrex::Print() << "Level " << ilev
                            << " max-norm error: " << plotmf[ilev].norminf(3)
                            << " 1-norm error: " << plotmf[ilev].norm1(3)*dvol
-                           << " 2-norm error: " << plotmf[ilev].norm2(3)*std::sqrt(dvol) << std::endl;
+                           << " 2-norm error: " << plotmf[ilev].norm2(3)*std::sqrt(dvol) << '\n';
         }
 
         WriteMultiLevelPlotfile("plot", nlevels, amrex::GetVecOfConstPtrs(plotmf),

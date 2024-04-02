@@ -532,6 +532,15 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PROBINIT               |  Enable support for probin file                 | Platform dependent      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_FLATTEN_FOR            |  Enable flattening of ParallelFor and similar   | NO                      | YES, NO               |
+   |                              |  functions for host code                        |                         |                       |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_COMPILER_DEFAULT_INLINE|  Use default inline behavior of compiler,       | NO for GCC              | YES, NO               |
+   |                              |  so far relevant for GCC Only                   | YES otherwise           |                       |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_INLINE_LIMIT           |  Inline limit. Relevant only when               | 43210                   | Non-negative number   |
+   |                              |  AMReX_COMPILER_DEFAULT_INLINE is NO.           |                         |                       |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
 .. raw:: latex
 
    \end{center}

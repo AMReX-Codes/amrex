@@ -457,7 +457,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                        << " MPI processes\n";
         int provided = -1;
         MPI_Query_thread(&provided);
-        amrex::Print() << "MPI initialized with thread support level " << provided << std::endl;
+        amrex::Print() << "MPI initialized with thread support level " << provided << '\n';
     }
 #endif
 
@@ -688,7 +688,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
 
     if (system::verbose > 0) {
-        amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
+        amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << '\n';
     }
 
     BL_TINY_PROFILE_INITIALIZE();
@@ -759,7 +759,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
                                << "min used in a thread: " << mp_min << " MB, "
                                << "max used in a thread: " << mp_max << " MB, "
 #endif
-                               << "tot used: " << mp_tot << " MB." << std::endl;
+                               << "tot used: " << mp_tot << " MB." << '\n';
             }
         } else {
             int global_max = mp_tot;
@@ -838,7 +838,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
 #endif
 
     if (amrex::system::verbose > 0 && is_ioproc) {
-        amrex::OutStream() << "AMReX (" << amrex::Version() << ") finalized" << std::endl;
+        amrex::OutStream() << "AMReX (" << amrex::Version() << ") finalized" << '\n';
     }
 }
 

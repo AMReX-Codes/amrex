@@ -369,6 +369,20 @@ print_option( AMReX_IPO )
 option(AMReX_FPE "Enable Floating Point Exceptions checks" OFF)
 print_option( AMReX_FPE )
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+   option(AMReX_COMPILER_DEFAULT_INLINE "Use compiler default inline behavior" OFF)
+   set(AMReX_INLINE_LIMIT 43210 CACHE STRING "Inline limit")
+   if (NOT AMReX_COMPILER_DEFAULT_INLINE)
+      if (AMReX_INLINE_LIMIT LESS 0)
+         message(FATAL_ERROR "AMReX_INLINE_LIMIT, if set, must be non-negative")
+      endif()
+      message(STATUS "   AMReX_INLINE_LIMIT = ${AMReX_INLINE_LIMIT}")
+   endif ()
+else ()
+   set(AMReX_COMPILER_DEFAULT_INLINE ON)
+endif ()
+
+
 if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
    option( AMReX_ASSERTIONS "Enable assertions" ON)
 else ()
@@ -376,6 +390,9 @@ else ()
 endif ()
 
 print_option( AMReX_ASSERTIONS )
+
+option( AMReX_FLATTEN_FOR "Enable flattening of ParallelFor and other similar functions" OFF)
+print_option( AMReX_FLATTEN_FOR )
 
 option(AMReX_BOUND_CHECK  "Enable bound checking in Array4 class" OFF)
 print_option( AMReX_BOUND_CHECK )

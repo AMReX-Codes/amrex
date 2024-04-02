@@ -238,7 +238,7 @@ void GMRES<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, in
 
     auto t1 = amrex::second();
     if (m_verbose > 0) {
-        amrex::Print() << "GMRES: Solve Time = " << t1-t0 << std::endl;
+        amrex::Print() << "GMRES: Solve Time = " << t1-t0 << '\n';
     }
 }
 

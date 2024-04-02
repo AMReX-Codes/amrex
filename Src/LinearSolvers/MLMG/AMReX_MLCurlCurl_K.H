@@ -599,6 +599,267 @@ void mlcurlcurl_gs4 (int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void mlcurlcurl_gs4 (int i, int j, int k,
+                     Array4<Real> const& ex,
+                     Array4<Real> const& ey,
+                     Array4<Real> const& ez,
+                     Array4<Real const> const& rhsx,
+                     Array4<Real const> const& rhsy,
+                     Array4<Real const> const& rhsz,
+                     GpuArray<Real,AMREX_SPACEDIM> const& adxinv,
+                     int color,
+                     Array4<Real const> const& betax,
+                     Array4<Real const> const& betay,
+                     Array4<Real const> const& betaz,
+                     CurlCurlDirichletInfo const& dinfo,
+                     CurlCurlSymmetryInfo const& sinfo)
+{
+    if (dinfo.is_dirichlet_node(i,j,k)) { return; }
+
+    int my_color = i%2 + 2*(j%2);
+    if (k%2 != 0) {
+        my_color = 3 - my_color;
+    }
+
+#if (AMREX_SPACEDIM == 2)
+
+    Real dxx = adxinv[0] * adxinv[0];
+    Real dyy = adxinv[1] * adxinv[1];
+
+    if (((my_color == 0 || my_color == 3) && (color == 0 || color == 3)) ||
+        ((my_color == 1 || my_color == 2) && (color == 1 || color == 2)))
+    {
+        Real gamma = (dxx+dyy)*Real(2.0) + betaz(i,j,k);
+        Real ccez = - dxx * (ez(i-1,j  ,k  ) +
+                             ez(i+1,j  ,k  ))
+                    - dyy * (ez(i  ,j-1,k  ) +
+                             ez(i  ,j+1,k  ));
+        Real res = rhsz(i,j,k) - (gamma*ez(i,j,k) + ccez);
+        constexpr Real omega = Real(1.15);
+        ez(i,j,k) += omega/gamma * res;
+    }
+
+    if (my_color != color) { return; }
+
+    Real dxy = adxinv[0]*adxinv[1];
+
+    GpuArray<Real,6> b
+        {rhsx(i-1,j,k) - (-dyy * ( ex(i-1,j-1,k  ) +
+                                   ex(i-1,j+1,k  ))
+                         + dxy * ( ey(i-1,j-1,k  )
+                                  -ey(i-1,j  ,k  ))),
+         rhsx(i  ,j,k) - (-dyy * ( ex(i  ,j-1,k  ) +
+                                   ex(i  ,j+1,k  ))
+                         + dxy * (-ey(i+1,j-1,k  )
+                                  +ey(i+1,j  ,k  ))),
+         rhsy(i,j-1,k) - (-dxx * ( ey(i-1,j-1,k  ) +
+                                   ey(i+1,j-1,k  ))
+                         + dxy * ( ex(i-1,j-1,k  )
+                                  -ex(i  ,j-1,k  ))),
+         rhsy(i,j  ,k) - (-dxx * ( ey(i-1,j  ,k  ) +
+                                   ey(i+1,j  ,k  ))
+                         + dxy * (-ex(i-1,j+1,k  )
+                                  +ex(i  ,j+1,k  )))};
+
+    GpuArray<Real,4> x;
+
+    if (sinfo.xlo_is_symmetric(i)) {
+        b[0] = -b[1];
+        x[0] = x[1] = betax(i,j,k);
+    } else if (sinfo.xhi_is_symmetric(i)) {
+        b[1] = -b[0];
+        x[0] = x[1] = betax(i-1,j,k);
+    } else {
+        x[0] = betax(i-1,j,k);
+        x[1] = betax(i  ,j,k);
+    }
+
+    if (sinfo.ylo_is_symmetric(j)) {
+        b[2] = -b[3];
+        x[2] = x[3] = betay(i,j,k);
+    } else if (sinfo.yhi_is_symmetric(j)) {
+        b[3] = -b[2];
+        x[2] = x[3] = betay(i,j-1,k);
+    } else {
+        x[2] = betay(i,j-1,k);
+        x[3] = betay(i,j  ,k);
+    }
+
+    LUSolver<4,Real> lusolver
+        ({dyy*Real(2.0) + x[0],
+          Real(0.0),
+         -dxy,
+          dxy,
+          //
+          Real(0.0),
+          dyy*Real(2.0) + x[1],
+          dxy,
+         -dxy,
+          //
+         -dxy,
+          dxy,
+          dxx*Real(2.0) + x[2],
+          Real(0.0),
+          //
+          dxy,
+         -dxy,
+          Real(0.0),
+          dxx*Real(2.0) + x[3]});
+    lusolver(x.data(), b.data());
+    ex(i-1,j  ,k  ) = x[0];
+    ex(i  ,j  ,k  ) = x[1];
+    ey(i  ,j-1,k  ) = x[2];
+    ey(i  ,j  ,k  ) = x[3];
+
+#else
+
+    if (my_color != color) { return; }
+
+    Real dxx = adxinv[0]*adxinv[0];
+    Real dyy = adxinv[1]*adxinv[1];
+    Real dzz = adxinv[2]*adxinv[2];
+    Real dxy = adxinv[0]*adxinv[1];
+    Real dxz = adxinv[0]*adxinv[2];
+    Real dyz = adxinv[1]*adxinv[2];
+
+    GpuArray<Real,6> b
+        {rhsx(i-1,j,k) - (-dyy * ( ex(i-1,j-1,k  ) +
+                                   ex(i-1,j+1,k  ))
+                         - dzz * ( ex(i-1,j  ,k+1) +
+                                   ex(i-1,j  ,k-1))
+                         + dxy * ( ey(i-1,j-1,k  )
+                                  -ey(i-1,j  ,k  ))
+                         + dxz * ( ez(i-1,j  ,k-1)
+                                  -ez(i-1,j  ,k  ))),
+         rhsx(i  ,j,k) - (-dyy * ( ex(i  ,j-1,k  ) +
+                                   ex(i  ,j+1,k  ))
+                         - dzz * ( ex(i  ,j  ,k+1) +
+                                   ex(i  ,j  ,k-1))
+                         + dxy * (-ey(i+1,j-1,k  )
+                                  +ey(i+1,j  ,k  ))
+                         + dxz * (-ez(i+1,j  ,k-1)
+                                  +ez(i+1,j  ,k  ))),
+         rhsy(i,j-1,k) - (-dxx * ( ey(i-1,j-1,k  ) +
+                                   ey(i+1,j-1,k  ))
+                         - dzz * ( ey(i  ,j-1,k-1) +
+                                   ey(i  ,j-1,k+1))
+                         + dxy * ( ex(i-1,j-1,k  )
+                                  -ex(i  ,j-1,k  ))
+                         + dyz * ( ez(i  ,j-1,k-1)
+                                  -ez(i  ,j-1,k  ))),
+         rhsy(i,j  ,k) - (-dxx * ( ey(i-1,j  ,k  ) +
+                                   ey(i+1,j  ,k  ))
+                         - dzz * ( ey(i  ,j  ,k-1) +
+                                   ey(i  ,j  ,k+1))
+                         + dxy * (-ex(i-1,j+1,k  )
+                                  +ex(i  ,j+1,k  ))
+                         + dyz * (-ez(i  ,j+1,k-1)
+                                  +ez(i  ,j+1,k  ))),
+         rhsz(i,j,k-1) - (-dxx * ( ez(i-1,j  ,k-1) +
+                                   ez(i+1,j  ,k-1))
+                         - dyy * ( ez(i  ,j-1,k-1) +
+                                   ez(i  ,j+1,k-1))
+                         + dxz * ( ex(i-1,j  ,k-1)
+                                  -ex(i  ,j  ,k-1))
+                         + dyz * ( ey(i  ,j-1,k-1)
+                                  -ey(i  ,j  ,k-1))),
+         rhsz(i,j,k  ) - (-dxx * ( ez(i-1,j  ,k  ) +
+                                   ez(i+1,j  ,k  ))
+                         - dyy * ( ez(i  ,j-1,k  ) +
+                                   ez(i  ,j+1,k  ))
+                         + dxz * (-ex(i-1,j  ,k+1)
+                                  +ex(i  ,j  ,k+1))
+                         + dyz * (-ey(i  ,j-1,k+1)
+                                  +ey(i  ,j  ,k+1)))};
+
+    GpuArray<Real,6> x;
+
+    if (sinfo.xlo_is_symmetric(i)) {
+        b[0] = -b[1];
+        x[0] = x[1] = betax(i,j,k);
+    } else if (sinfo.xhi_is_symmetric(i)) {
+        b[1] = -b[0];
+        x[0] = x[1] = betax(i-1,j,k);
+    } else {
+        x[0] = betax(i-1,j,k);
+        x[1] = betax(i  ,j,k);
+    }
+
+    if (sinfo.ylo_is_symmetric(j)) {
+        b[2] = -b[3];
+        x[2] = x[3] = betay(i,j,k);
+    } else if (sinfo.yhi_is_symmetric(j)) {
+        b[3] = -b[2];
+        x[2] = x[3] = betay(i,j-1,k);
+    } else {
+        x[2] = betay(i,j-1,k);
+        x[3] = betay(i,j  ,k);
+    }
+
+    if (sinfo.zlo_is_symmetric(k)) {
+        b[4] = -b[5];
+        x[4] = x[5] = betaz(i,j,k);
+    } else if (sinfo.zhi_is_symmetric(k)) {
+        b[5] = -b[4];
+        x[4] = x[5] = betaz(i,j,k-1);
+    } else {
+        x[4] = betaz(i,j,k-1);
+        x[5] = betaz(i,j,k  );
+    }
+
+    LUSolver<6,Real> lusolver
+        ({(dyy+dzz)*Real(2.0) + x[0],
+          Real(0.0),
+         -dxy,
+          dxy,
+         -dxz,
+          dxz,
+          //
+          Real(0.0),
+          (dyy+dzz)*Real(2.0) + x[1],
+          dxy,
+         -dxy,
+          dxz,
+         -dxz,
+          //
+         -dxy,
+          dxy,
+          (dxx+dzz)*Real(2.0) + x[2],
+          Real(0.0),
+         -dyz,
+          dyz,
+          //
+          dxy,
+         -dxy,
+          Real(0.0),
+          (dxx+dzz)*Real(2.0) + x[3],
+          dyz,
+         -dyz,
+          //
+         -dxz,
+          dxz,
+         -dyz,
+          dyz,
+          (dxx+dyy)*Real(2.0) + x[4],
+          Real(0.0),
+          //
+          dxz,
+         -dxz,
+          dyz,
+         -dyz,
+          Real(0.0),
+          (dxx+dyy)*Real(2.0) + x[5]});
+    lusolver(x.data(), b.data());
+    ex(i-1,j  ,k  ) = x[0];
+    ex(i  ,j  ,k  ) = x[1];
+    ey(i  ,j-1,k  ) = x[2];
+    ey(i  ,j  ,k  ) = x[3];
+    ez(i  ,j  ,k-1) = x[4];
+    ez(i  ,j  ,k  ) = x[5];
+#endif
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlcurlcurl_interpadd (int dir, int i, int j, int k,
                            Array4<Real> const& fine,
                            Array4<Real const> const& crse)

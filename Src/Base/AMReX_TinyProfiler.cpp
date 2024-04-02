@@ -136,7 +136,7 @@ TinyProfiler::start () noexcept
             for (int itab = 0; itab < n_print_tabs; ++itab) {
                 whitespace += "  ";
             }
-            amrex::Print() << whitespace << "TP: Entering " << fname << std::endl;
+            amrex::Print() << whitespace << "TP: Entering " << fname << '\n';
         }
     }
 }
@@ -228,7 +228,7 @@ TinyProfiler::stop () noexcept
                 whitespace += "  ";
             }
             --n_print_tabs;
-            amrex::Print() << whitespace << "TP: Leaving  " << fname << std::endl;
+            amrex::Print() << whitespace << "TP: Leaving  " << fname << '\n';
         }
     }
 }
@@ -307,7 +307,7 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
         stats.clear();
     }
     if (verbose) {
-        amrex::Print() << "  TP: Leaving " << fname << std::endl;
+        amrex::Print() << "  TP: Leaving " << fname << '\n';
     }
 }
 #endif
@@ -712,8 +712,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
             }
 #endif
         }
-        amrex::OutStream() << hline << "\n";
-        amrex::OutStream() << std::endl;
+        amrex::OutStream() << hline << "\n\n";
     }
 }
 

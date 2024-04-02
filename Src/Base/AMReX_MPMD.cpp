@@ -88,7 +88,7 @@ void Initialize_without_split (int argc, char* argv[])
     }
 
     if (napps != 2) {
-        std::cout << "amrex::MPMD only supports two programs." << std::endl;
+        std::cout << "amrex::MPMD only supports two programs." << '\n';
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 

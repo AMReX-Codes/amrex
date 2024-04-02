@@ -311,6 +311,12 @@ else
   USE_FORCE_INLINE := FALSE
 endif
 
+ifdef USE_FLATTEN_FOR
+  USE_FLATTEN_FOR := $(strip $(USE_FLATTEN_FOR))
+else
+  USE_FLATTEN_FOR := FALSE
+endif
+
 ifdef WARN_ALL
   WARN_ALL := $(strip $(WARN_ALL))
 else
@@ -712,6 +718,12 @@ endif
 
 ifeq ($(USE_FORCE_INLINE),TRUE)
     CPPFLAGS += -DAMREX_USE_FORCE_INLINE
+endif
+
+ifeq ($(USE_FLATTEN_FOR),TRUE)
+ifneq ($(DEBUG),TRUE)
+    CPPFLAGS += -DAMREX_USE_FLATTEN_FOR
+endif
 endif
 
 ifeq ($(USE_ACC),TRUE)

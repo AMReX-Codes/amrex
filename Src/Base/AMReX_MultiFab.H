@@ -486,6 +486,14 @@ public:
                      int             dstcomp,
                      int             numcomp,
                      const IntVect&  nghost);
+
+    /** Create a deep copy of this MultiFab and its data.
+     *
+     * This uses the same arena and factory in the copy and copies
+     * all data.
+     */
+    [[nodiscard]] MultiFab deepCopy () const;
+
     /**
     * \brief Copy from src to dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.

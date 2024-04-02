@@ -61,7 +61,7 @@ BARef::BARef (const BoxList& bl)
 }
 
 BARef::BARef (BoxList&& bl) noexcept
-    : m_abox(std::move(bl.data()))
+    : m_abox(std::move(std::move(bl).data()))
 {
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
@@ -170,7 +170,7 @@ BARef::define (BoxList&& bl) noexcept
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(-1);
 #endif
-    m_abox = std::move(bl.data());
+    m_abox = std::move(std::move(bl).data());
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif

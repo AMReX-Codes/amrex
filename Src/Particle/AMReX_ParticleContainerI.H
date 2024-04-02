@@ -1010,7 +1010,7 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class F, class PCType,
           std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
-          std::enable_if_t<! std::is_integral<F>::value, int> bar>
+          std::enable_if_t<! std::is_integral_v<F>, int> bar>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 copyParticles (const PCType& other, F&& f, bool local)
@@ -1024,7 +1024,7 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class F, class PCType,
           std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
-          std::enable_if_t<! std::is_integral<F>::value, int> bar>
+          std::enable_if_t<! std::is_integral_v<F>, int> bar>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 addParticles (const PCType& other, F const& f, bool local)
@@ -1836,7 +1836,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-            for (int pit = 0; pit < static_cast<int>(grid_tile_ids.size()); ++pit)
+            for (int pit = 0; pit < static_cast<int>(grid_tile_ids.size()); ++pit) // NOLINT(modernize-loop-convert)
             {
                 auto index = grid_tile_ids[pit];
                 auto& ptile = DefineAndReturnParticleTile(lev, index.first, index.second);

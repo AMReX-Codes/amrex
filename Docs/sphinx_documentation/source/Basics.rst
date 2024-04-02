@@ -1942,7 +1942,8 @@ tiling flag is on. One can change the default size using :cpp:`ParmParse`
    | | FArrayBoxes.                                      |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
 
-Dynamic tiling, which runs one box per OpenMP thread, is also available.
+Dynamic tiling, which runs one box per OpenMP thread, either with or without
+tiling the box, is also available.
 This is useful when the underlying work cannot benefit from thread
 parallelization.  Dynamic tiling is implemented using the :cpp:`MFItInfo`
 object and requires the :cpp:`MFIter` loop to be defined in an OpenMP
@@ -1981,9 +1982,13 @@ Dynamic tiling also allows explicit definition of a tile size:
           ...
       }
 
-Usually :cpp:`MFIter` is used for accessing multiple MultiFabs like the second
-example, in which two MultiFabs, :cpp:`U` and :cpp:`F`, use :cpp:`MFIter` via
-:cpp:`operator[]`. These different MultiFabs may have different BoxArrays. For
+Note that :cpp:`EnableTiling()`, with no argument, will use the default tile size.
+
+Usually :cpp:`MFIter` is used for accessing multiple MultiFabs, like
+the second example in the previous section on :ref:`sec:basics:mfiter:notiling`
+in which two MultiFabs, :cpp:`U` and :cpp:`F`, use :cpp:`MFIter` via
+:cpp:`array()` and :cpp:`const_array()` functions. These different MultiFabs
+may have different BoxArrays. For
 example, :cpp:`U` might be cell-centered, whereas :cpp:`F` might be nodal in
 :math:`x`-direction and cell in other directions. The :cpp:`MFIter::validbox`
 and :cpp:`tilebox` functions return Boxes of the same type as the
@@ -2730,10 +2735,26 @@ covered by fine level grids.
 Memory Allocation
 =================
 
-Some constructors of :cpp:`MultiFab`, :cpp:`FArrayBox`, etc. can take
-an :cpp:`Arena` argument for memory allocation.  This is usually not
-important for CPU codes, but very important for GPU codes.  We will
-present more details in :ref:`sec:gpu:memory` in Chapter GPU.
+Some constructors of :cpp:`MultiFab`, :cpp:`FArrayBox`, etc. can take an
+:cpp:`Arena` argument for memory allocation.  Some constructors of
+:cpp:`MultiFab` can take an optional argument :cpp:`MFInfo`, which can be
+used to set the arena.  This is usually not important for CPU codes, but
+very important for GPU codes.  We will present more details about memory
+arenas in :ref:`sec:gpu:memory` in Chapter GPU.
+
+Every :cpp:`FArrayBox` in a :cpp:`MultiFab` has a contiguous chunk of memory
+for floating point data, whereas by default :cpp:`MultiFab` as a collection
+of multiple :cpp:`FArrayBox`\ s does not store all floating point data in
+contiguous chunk of memory. This behavior can be changed for all
+:cpp:`MultiFab`\ s with the :cpp:`ParmParse` parameter,
+``amrex.mf.alloc_single_chunk=1``, or for a specific :cpp:`MultiFab` by
+passing a :cpp:`MFInfo` object (e.g.,
+``MFInfo().SetAllocSingleChunk(true)``) to the constructor. One can call
+:cpp:`MultiFab::singleChunkPtr()` to obtain a pointer to the single chunk
+memory. Note that the function returns a null pointer if the :cpp:`MultiFab`
+does not use a single contiguous chunk of memory. One can also call
+:cpp:`MultiFab::singleChunkSize()` to obtain the size in bytes of the single
+chunk memory.
 
 AMReX has a Fortran module, :fortran:`amrex_mempool_module` that can be used to
 allocate memory for Fortran pointers. The reason that such a module exists in

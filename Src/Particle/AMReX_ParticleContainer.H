@@ -692,7 +692,7 @@ public:
     */
     template <class F, class PCType,
               std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
+              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
     void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
@@ -710,7 +710,7 @@ public:
     */
     template <class F, class PCType,
               std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
+              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
     void addParticles (const PCType& other, F const& f, bool local=false);
 
     /**
@@ -819,7 +819,7 @@ public:
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>&>::value>::type* = nullptr>
+    template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>&>>* = nullptr>
     void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
 
     /**
@@ -876,7 +876,7 @@ public:
      * \param real_comp_names for each real component, a name to label the data with
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type* = nullptr>
+    template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>* = nullptr>
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names, F&& f) const;
 
@@ -1237,23 +1237,49 @@ public:
     Long superParticleSize() const { return superparticle_size; }
 
     template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddRealComp (T communicate=true)
     {
         m_runtime_comps_defined = true;
         m_num_runtime_real++;
         h_redistribute_real_comp.push_back(communicate);
         SetParticleSize();
+        this->resizeData();
+
+        // resize runtime SoA
+        for (int lev = 0; lev < numLevels(); ++lev) {
+            for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
+                auto& tile = DefineAndReturnParticleTile(lev, pti);
+                auto np = tile.numParticles();
+                if (np > 0) {
+                    auto& soa = tile.GetStructOfArrays();
+                    soa.resize(np);
+                }
+            }
+        }
     }
 
     template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddIntComp (T communicate=true)
     {
         m_runtime_comps_defined = true;
         m_num_runtime_int++;
         h_redistribute_int_comp.push_back(communicate);
         SetParticleSize();
+        this->resizeData();
+
+        // resize runtime SoA
+        for (int lev = 0; lev < numLevels(); ++lev) {
+            for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
+                auto& tile = DefineAndReturnParticleTile(lev, pti);
+                auto np = tile.numParticles();
+                if (np > 0) {
+                    auto& soa = tile.GetStructOfArrays();
+                    soa.resize(np);
+                }
+            }
+        }
     }
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
@@ -1262,7 +1288,18 @@ public:
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
+    /** Resize the Real runtime components (SoA)
+     *
+     * @param new_size new number of Real runtime components
+     * @param communicate participate this component in redistribute
+     */
     void ResizeRuntimeRealComp (int new_size, bool communicate);
+
+    /** Resize the Int runtime components (SoA)
+     *
+     * @param new_size new number of integer runtime components
+     * @param communicate participate this component in redistribute
+     */
     void ResizeRuntimeIntComp (int new_size, bool communicate);
 
     /** type trait to translate one particle container to another, with changed allocator */

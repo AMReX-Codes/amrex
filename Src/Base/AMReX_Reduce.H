@@ -200,11 +200,11 @@ struct ReduceOpLogicalAnd
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<std::is_integral<T>::value>
+    std::enable_if_t<std::is_integral_v<T>>
     local_update (T& d, T s) const noexcept { d = d && s; }
 
     template <typename T>
-    constexpr std::enable_if_t<std::is_integral<T>::value>
+    constexpr std::enable_if_t<std::is_integral_v<T>>
     init (T& t) const noexcept { t = true; }
 };
 
@@ -232,11 +232,11 @@ struct ReduceOpLogicalOr
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<std::is_integral<T>::value>
+    std::enable_if_t<std::is_integral_v<T>>
     local_update (T& d, T s) const noexcept { d = d || s; }
 
     template <typename T>
-    constexpr std::enable_if_t<std::is_integral<T>::value>
+    constexpr std::enable_if_t<std::is_integral_v<T>>
     init (T& t) const noexcept { t = false; }
 };
 
@@ -1037,8 +1037,8 @@ private:
     template <typename D, typename F>
     AMREX_FORCE_INLINE
     static auto call_f (Box const& box, typename D::Type & r, F const& f)
-        noexcept -> std::enable_if_t<std::is_same<std::decay_t<decltype(f(0,0,0))>,
-                                                  typename D::Type>::value>
+        noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(f(0,0,0))>,
+                                                  typename D::Type>>
     {
         using ReduceTuple = typename D::Type;
         const auto lo = amrex::lbound(box);
@@ -1053,8 +1053,8 @@ private:
     template <typename D, typename F>
     AMREX_FORCE_INLINE
     static auto call_f (Box const& box, typename D::Type & r, F const& f)
-        noexcept -> std::enable_if_t<std::is_same<std::decay_t<decltype(f(Box()))>,
-                                                  typename D::Type>::value>
+        noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(f(Box()))>,
+                                                  typename D::Type>>
     {
         using ReduceTuple = typename D::Type;
         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, f(box));
@@ -1115,7 +1115,7 @@ public:
     }
 
     template <typename N, typename D, typename F,
-              typename M=std::enable_if_t<std::is_integral<N>::value> >
+              typename M=std::enable_if_t<std::is_integral_v<N>> >
     void eval (Box const& box, N ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
@@ -1131,7 +1131,7 @@ public:
     }
 
     template <typename N, typename D, typename F,
-              typename M=std::enable_if_t<std::is_integral<N>::value> >
+              typename M=std::enable_if_t<std::is_integral_v<N>> >
     void eval (N n, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
@@ -1165,7 +1165,7 @@ public:
 namespace Reduce {
 
 template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral<N>::value> >
+          typename M=std::enable_if_t<std::is_integral_v<N>> >
 T Sum (N n, F const& f, T init_val = 0)
 {
     T r = init_val;
@@ -1178,14 +1178,14 @@ T Sum (N n, F const& f, T init_val = 0)
     return r;
 }
 
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T Sum (N n, T const* v, T init_val = 0)
 {
     return Sum(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
 template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral<N>::value> >
+          typename M=std::enable_if_t<std::is_integral_v<N>> >
 T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max())
 {
     T r = init_val;
@@ -1198,14 +1198,14 @@ T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max())
     return r;
 }
 
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
 {
     return Reduce::Min(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
 template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral<N>::value> >
+          typename M=std::enable_if_t<std::is_integral_v<N>> >
 T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest())
 {
     T r = init_val;
@@ -1218,14 +1218,14 @@ T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest())
     return r;
 }
 
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
 {
     return Reduce::Max(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
 template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral<N>::value> >
+          typename M=std::enable_if_t<std::is_integral_v<N>> >
 std::pair<T,T> Min (N n, F const& f)
 {
     T r_min = std::numeric_limits<T>::max();
@@ -1241,13 +1241,13 @@ std::pair<T,T> Min (N n, F const& f)
     return std::make_pair(r_min,r_max);
 }
 
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
 std::pair<T,T> MinMax (N n, T const* v)
 {
     return Reduce::MinMax<T>(n, [=] (N i) -> T { return v[i]; });
 }
 
-template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral_v<N>> >
 bool AnyOf (N n, T const* v, P&& pred)
 {
     return std::any_of(v, v+n, std::forward<P>(pred));

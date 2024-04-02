@@ -325,7 +325,7 @@ namespace amrex
 #endif
                                , int> FOO = 0>
     BaseFab<T>
-    ReduceToPlane (int direction, Box const& domain, FabArray<FAB> const& mf, F&& f);
+    ReduceToPlane (int direction, Box const& domain, FabArray<FAB> const& mf, F const& f);
 
     /**
      * \brief Sum MultiFab data to line

@@ -252,7 +252,7 @@ WritePlotFile (const std::string& dir, const std::string& name,
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>&>::value>::type*>
+template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>&>>*>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir, const std::string& name, F&& f) const
@@ -319,7 +319,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
+template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>*>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir, const std::string& name,
@@ -869,9 +869,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             }
         }
 
-        for(int igrid = 0; igrid < static_cast<int>(grids_to_read.size()); ++igrid) {
-            const int grid = grids_to_read[igrid];
-
+        for(int grid : grids_to_read) {
             if (count[grid] <= 0) { continue; }
 
             // The file names in the header file are relative.

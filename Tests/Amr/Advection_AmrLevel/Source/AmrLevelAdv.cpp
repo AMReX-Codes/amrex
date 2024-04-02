@@ -165,7 +165,7 @@ void
 AmrLevelAdv::initData ()
 {
     if (verbose) {
-        amrex::Print() << "Initializing the data at level " << level << std::endl;
+        amrex::Print() << "Initializing the data at level " << level << '\n';
     }
 
     // Initialize data on MultiFab
@@ -177,7 +177,7 @@ AmrLevelAdv::initData ()
 
     if (verbose) {
         amrex::Print() << "Done initializing the level " << level
-                       << " data " << std::endl;
+                       << " data " << '\n';
     }
 }
 
@@ -233,7 +233,7 @@ AmrLevelAdv::advance (Real time,
     Real maxval = S_mm.max(0);
     Real minval = S_mm.min(0);
 
-    amrex::Print() << "phi max = " << maxval << ", min = " << minval  << std::endl;
+    amrex::Print() << "phi max = " << maxval << ", min = " << minval  << '\n';
     for (int k = 0; k < NUM_STATE_TYPE; k++) {
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);
@@ -352,10 +352,10 @@ AmrLevelAdv::advance (Real time,
             {
 #if (AMREX_SPACEDIM > 2)
                 amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax << ", wmax = " << wmax
-                                  << ", dt = " << dt << " dx = " << dx[0] << " " << dx[1] << " " << dx[2] << std::endl;
+                                  << ", dt = " << dt << " dx = " << dx[0] << " " << dx[1] << " " << dx[2] << '\n';
 #else
                 amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax
-                                  << ", dt = " << dt << " dx = " << dx[0] << " " << dx[1] << std::endl;
+                                  << ", dt = " << dt << " dx = " << dx[0] << " " << dx[1] << '\n';
 #endif
                 amrex::Abort("CFL violation. Use smaller adv.cfl.");
             }
@@ -451,7 +451,7 @@ AmrLevelAdv::estTimeStep (Real)
 
     if (verbose) {
         amrex::Print() << "AmrLevelAdv::estTimeStep at level " << level
-                       << ":  dt_est = " << dt_est << std::endl;
+                       << ":  dt_est = " << dt_est << '\n';
     }
 
     return dt_est;
@@ -795,7 +795,7 @@ AmrLevelAdv::reflux ()
         ParallelDescriptor::ReduceRealMax(end,IOProc);
 
         amrex::Print() << "AmrLevelAdv::reflux() at level " << level
-                       << " : time = " << end << std::endl;
+                       << " : time = " << end << '\n';
     }
 }
 

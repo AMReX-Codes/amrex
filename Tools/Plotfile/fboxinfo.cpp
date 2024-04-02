@@ -78,7 +78,7 @@ void main_main()
                        << "    [-f|--full]     output detailed information about the boxes\n"
                        << "    [-g|--gridfile] output a gridfile for use with test_average\n"
                        << "    [-l|--levels]   just output the number of levels\n"
-                       << std::endl;
+                       << '\n';
         return;
     }
 
@@ -94,7 +94,7 @@ void main_main()
         const int nlevels = plotfile.finestLevel()+1;
 
         if (b_levels) {
-            amrex::Print() << " " << nlevels << std::endl;
+            amrex::Print() << " " << nlevels << '\n';
             continue;
         }
 
@@ -126,7 +126,7 @@ void main_main()
                                    << " x "
                                    << std::setw(7) << prob_domain.length(2) << "\n";
                 }
-                amrex::Print() << std::endl;
+                amrex::Print() << '\n';
             }
         }
 
@@ -183,7 +183,7 @@ void main_main()
             }
         }
 
-        amrex::Print() << std::endl;
+        amrex::Print() << '\n';
     }
 }
 

@@ -15,7 +15,7 @@ namespace EB2 {
 template <class D, class Enable = void> struct IsGPUable : std::false_type {};
 
 template <class D>
-struct IsGPUable<D, typename std::enable_if<std::is_base_of<GPUable,D>::value>::type>
+struct IsGPUable<D, std::enable_if_t<std::is_base_of_v<GPUable,D>>>
     : std::true_type {};
 
 }

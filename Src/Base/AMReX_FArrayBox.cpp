@@ -809,7 +809,7 @@ FABio_8bit::write (std::ostream&    os,
         const Real mn   = f.min<RunOn::Host>(k+comp);
         const Real mx   = f.max<RunOn::Host>(k+comp);
         const Real* dat = f.dataPtr(k+comp);
-        Real rng = std::fabs(mx-mn);
+        Real rng = std::abs(mx-mn);
         rng = (rng < eps) ? 0.0_rt : 255.0_rt/(mx-mn);
         for(Long i(0); i < siz; ++i) {
             Real v = rng*(dat[i]-mn);
