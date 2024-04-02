@@ -159,6 +159,8 @@ jobs:
         SET "CMAKE_PREFIX_PATH=%CUDA_PATH%;%CMAKE_PREFIX_PATH%"
         SET "PATH=%CUDA_PATH%\bin\;%PATH%"
         SET "PATH=%CUDA_PATH%\libnvvp\;%PATH%"
+        SET "CUDACXX=%CUDA_PATH%\bin\nvcc.exe"
+
         cmake -S . -B build ^
               -A x64        ^
               -DCUDAToolkit_ROOT="%CUDA_PATH%"  ^
