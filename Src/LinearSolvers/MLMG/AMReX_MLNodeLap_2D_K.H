@@ -883,8 +883,6 @@ void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
 // interpolation
 //
 
-namespace {
-
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real aa_interp_line_x (Array4<Real const> const& crse, Array4<Real const> const& sig,
                            int i, int j, int ic, int jc) noexcept
@@ -916,7 +914,6 @@ namespace {
                 w3 * aa_interp_line_x(crse,sig,i  ,j-1,ic  ,jc  ) +
                 w4 * aa_interp_line_x(crse,sig,i  ,j+1,ic  ,jc+1)) / (w1+w2+w3+w4);
     }
-}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_interpadd_c (int i, int j, int, Array4<Real> const& fine,
@@ -1007,7 +1004,6 @@ void mlndlap_semi_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
     }
 }
 
-namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ha_interp_face_xy (Array4<Real const> const& crse,
                             Array4<Real const> const& sigx, Array4<Real const> const& sigy,
@@ -1022,7 +1018,6 @@ namespace {
                 w3 * aa_interp_line_x(crse,sigx,i  ,j-1,ic  ,jc  ) +
                 w4 * aa_interp_line_x(crse,sigx,i  ,j+1,ic  ,jc+1)) / (w1+w2+w3+w4);
     }
-}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_interpadd_ha (int i, int j, int,
@@ -1158,7 +1153,6 @@ void mlndlap_mknewu_c (int i, int j, int k, Array4<Real> const& u, Array4<Real c
     }
 }
 
-namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real mlndlap_sum_Df (int ii, int jj, Real facx, Real facy,
                          Array4<Real const> const& vel, Box const& velbx, bool is_rz) noexcept
@@ -1181,7 +1175,6 @@ namespace {
         }
         return Df;
     }
-}
 
 template <int rr>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1247,7 +1240,6 @@ void mlndlap_rhcc_fine_contrib (int i, int j, int, Box const& ccbx,
     }
 }
 
-namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real neumann_scale (int i, int j, Box const& nddom,
                         GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bclo,
@@ -1274,7 +1266,6 @@ namespace {
 
         return val;
     }
-}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_divu_cf_contrib (int i, int j, int, Array4<Real> const& rhs,
@@ -1373,7 +1364,6 @@ void mlndlap_crse_resid (int i, int j, int k, Array4<Real> const& resid,
 // sync residual
 //
 
-namespace {
     template <typename P, typename S>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real mlndlap_sum_Ax (P const& pred, S const& sig, int i, int j, Real facx, Real facy,
@@ -1459,7 +1449,6 @@ namespace {
             f(i,j,0) = Real(0.0);
         }
     }
-}
 
 template <int rr>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1972,7 +1961,7 @@ void mlndlap_restriction_rap (int i, int j, int /*k*/, Array4<Real> const& crse,
 
 #ifdef AMREX_USE_EB
 
-namespace {
+namespace nodelap_detail {
     constexpr int i_S_x     = 0;
     constexpr int i_S_y     = 1;
     constexpr int i_S_x2    = 2;
@@ -1991,6 +1980,8 @@ void mlndlap_set_connection (int i, int j, int, Array4<Real> const& conn,
                              Array4<Real const> const& intg, Array4<Real const> const& vol,
                              Array4<EBCellFlag const> const& flag) noexcept
 {
+    using namespace nodelap_detail;
+
     if (flag(i,j,0).isCovered()) {
         for (int n = 0; n < 6; ++n) { conn(i,j,0,n) = Real(0.); }
     } else if (flag(i,j,0).isRegular() || vol(i,j,0) >= almostone) {
@@ -2088,6 +2079,8 @@ void add_eb_flow_contribution (int i, int j, int, Array4<Real> const& rhs,
                       Array4<Real const> const& sintg,
                       Array4<Real const> const& eb_vel_dot_n) noexcept
 {
+    using namespace nodelap_detail;
+
     Real fac_eb = 0.25 *dxinv[0];
 
     if (!msk(i,j,0)) {
@@ -2152,6 +2145,8 @@ Real mlndlap_rhcc_eb (int i, int j, int, Array4<Real const> const& rhcc,
                       Array4<Real const> const& vfrac, Array4<Real const> const& intg,
                       Array4<int const> const& msk) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!msk(i,j,0)) {
         return
             rhcc(i  ,j  ,0)*(Real(0.25)*vfrac(i  ,j  ,0)-intg(i  ,j  ,0,i_S_x)-intg(i  ,j  ,0,i_S_y)+intg(i  ,j  ,0,i_S_xy)) +
@@ -2166,6 +2161,8 @@ Real mlndlap_rhcc_eb (int i, int j, int, Array4<Real const> const& rhcc,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_integral (int i, int j, int, Array4<Real> const& intg) noexcept
 {
+    using namespace nodelap_detail;
+
     intg(i,j,0,i_S_x ) = Real(0.);
     intg(i,j,0,i_S_y ) = Real(0.);
     intg(i,j,0,i_S_x2) = Real(1./12.);
@@ -2176,6 +2173,8 @@ void mlndlap_set_integral (int i, int j, int, Array4<Real> const& intg) noexcept
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_surface_integral (int i, int j, int, Array4<Real> const& sintg) noexcept
 {
+    using namespace nodelap_detail;
+
     sintg(i,j,0,i_B_x ) = Real(0.);
     sintg(i,j,0,i_B_y ) = Real(0.);
     sintg(i,j,0,i_B_xy) = Real(0.);
@@ -2187,6 +2186,8 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
                               Array4<Real const> const& ax, Array4<Real const> const& ay,
                               Array4<Real const> const& bcen) noexcept
 {
+    using namespace nodelap_detail;
+
     if (flag(i,j,0).isCovered()) {
         intg(i,j,0,i_S_x ) = Real(0.);
         intg(i,j,0,i_S_y ) = Real(0.);
@@ -2287,6 +2288,8 @@ void mlndlap_set_surface_integral_eb (int i, int j, int, Array4<Real> const& sin
                               Array4<Real const> const& barea,
                               Array4<Real const> const& bnorm) noexcept
 {
+    using namespace nodelap_detail;
+
     if (flag(i,j,0).isCovered() || flag(i,j,0).isRegular()) {
         sintg(i,j,0,i_B_x ) = Real(0.);
         sintg(i,j,0,i_B_y ) = Real(0.);
