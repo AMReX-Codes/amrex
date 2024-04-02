@@ -54,3 +54,15 @@ Start-Process -FilePath '.\cuda_install.exe' -ArgumentList @($SilentFlag + $Cuda
 
 # cleanup
 Remove-Item cuda_install.exe
+
+# VisualStudio integration
+Copy-item -Force -Recurse -Verbose "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v${cuda_version_short}\extras\visual_studio_integration\MSBuildExtensions" -Destination "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Microsoft\VC\v170\BuildCustomizations"
+Copy-item -Force -Recurse -Verbose "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v${cuda_version_short}\extras\visual_studio_integration\MSBuildExtensions" -Destination "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\BuildCustomizations"
+
+# GitHub actions env updates
+if (Test-Path "env:GITHUB_ACTIONS") {
+    echo "Adding CUDA to CUDA_PATH and PATH"
+    $env:CUDA_PATH = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v${cuda_version_short}"
+    echo "CUDA_PATH=$env:CUDA_PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+    echo "$env:CUDA_PATH/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+}
