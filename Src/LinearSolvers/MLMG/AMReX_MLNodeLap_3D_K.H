@@ -12,6 +12,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_nodal_mask (int i, int j, int k, Array4<int> const& nmsk,
                              Array4<int const> const& cmsk) noexcept
 {
+    using namespace nodelap_detail;
+
     int s = cmsk(i-1,j-1,k-1) + cmsk(i  ,j-1,k-1)
         +   cmsk(i-1,j  ,k-1) + cmsk(i  ,j  ,k-1)
         +   cmsk(i-1,j-1,k  ) + cmsk(i  ,j-1,k  )
@@ -2349,6 +2351,8 @@ void mlndlap_divu_cf_contrib (int i, int j, int k, Array4<Real> const& rhs,
                               GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bclo,
                               GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!dmsk(i,j,k) && ndmsk(i,j,k) == crse_fine_node) {
         Real facx = Real(0.25) * dxinv[0];
         Real facy = Real(0.25) * dxinv[1];
@@ -2682,6 +2686,8 @@ void mlndlap_res_cf_contrib (int i, int j, int k, Array4<Real> const& res,
                              GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
                              bool neumann_doubling) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!dmsk(i,j,k) && ndmsk(i,j,k) == crse_fine_node) {
         Real facx = Real(1./36.)*dxinv[0]*dxinv[0];
         Real facy = Real(1./36.)*dxinv[1]*dxinv[1];
@@ -2715,6 +2721,8 @@ void mlndlap_res_cf_contrib_cs (int i, int j, int k, Array4<Real> const& res,
                                 GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
                                 bool neumann_doubling) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!dmsk(i,j,k) && ndmsk(i,j,k) == crse_fine_node) {
         Real facx = Real(1./36.)*dxinv[0]*dxinv[0];
         Real facy = Real(1./36.)*dxinv[1]*dxinv[1];

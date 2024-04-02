@@ -12,6 +12,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_nodal_mask (int i, int j, int k, Array4<int> const& nmsk,
                              Array4<int const> const& cmsk) noexcept
 {
+    using namespace nodelap_detail;
+
     int s = cmsk(i-1,j-1,k) + cmsk(i  ,j-1,k)
         +   cmsk(i-1,j  ,k) + cmsk(i  ,j  ,k);
     if (s == 4*crse_cell) {
@@ -1277,6 +1279,8 @@ void mlndlap_divu_cf_contrib (int i, int j, int, Array4<Real> const& rhs,
                               GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bclo,
                               GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!dmsk(i,j,0) && ndmsk(i,j,0) == crse_fine_node) {
         Real facx = Real(0.5) * dxinv[0];
         Real facy = Real(0.5) * dxinv[1];
@@ -1491,6 +1495,8 @@ void mlndlap_res_cf_contrib (int i, int j, int, Array4<Real> const& res,
                              GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
                              bool neumann_doubling) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!dmsk(i,j,0) && ndmsk(i,j,0) == crse_fine_node) {
         Real facx = Real(1./6.)*dxinv[0]*dxinv[0];
         Real facy = Real(1./6.)*dxinv[1]*dxinv[1];
@@ -1524,6 +1530,8 @@ void mlndlap_res_cf_contrib_cs (int i, int j, int, Array4<Real> const& res,
                                 GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
                                 bool neumann_doubling) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!dmsk(i,j,0) && ndmsk(i,j,0) == crse_fine_node) {
         Real facx = Real(1./6.)*dxinv[0]*dxinv[0];
         Real facy = Real(1./6.)*dxinv[1]*dxinv[1];
@@ -1570,6 +1578,8 @@ void mlndlap_set_stencil (Box const& bx, Array4<Real> const& sten,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_stencil_s0 (int i, int j, int k, Array4<Real> const& sten) noexcept
 {
+    using namespace nodelap_detail;
+
     sten(i,j,k,0) = -(sten(i-1,j  ,k,1) + sten(i  ,j  ,k,1)
                     + sten(i  ,j-1,k,2) + sten(i  ,j  ,k,2)
                     + sten(i-1,j-1,k,3) + sten(i  ,j-1,k,3)
@@ -1584,6 +1594,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
                           Array4<Real const> const& fsten) noexcept
 {
+    using namespace nodelap_detail;
+
     constexpr int k = 0;
 
 #if 0
@@ -1856,6 +1868,8 @@ void mlndlap_interpadd_rap (int i, int j, int, Array4<Real> const& fine,
                             Array4<Real const> const& crse, Array4<Real const> const& sten,
                             Array4<int const> const& msk) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!msk(i,j,0) && sten(i,j,0,0) != Real(0.0)) {
         int ic = amrex::coarsen(i,2);
         int jc = amrex::coarsen(j,2);
@@ -1899,6 +1913,8 @@ void mlndlap_restriction_rap (int i, int j, int /*k*/, Array4<Real> const& crse,
                               Array4<Real const> const& fine, Array4<Real const> const& sten,
                               Array4<int const> const& msk) noexcept
 {
+    using namespace nodelap_detail;
+
     int ii = i*2;
     int jj = j*2;
     if (msk(ii,jj,0)) {
