@@ -163,6 +163,7 @@ jobs:
 
         cmake -S . -B build ^
               -A x64        ^
+              -DCMAKE_GENERATOR_TOOLSET="cuda=%CUDA_PATH%"  ^
               -DCUDAToolkit_ROOT="%CUDA_PATH%"  ^
               -DCMAKE_BUILD_TYPE=Release ^
               -DAMReX_CUDA_ARCH=8.0      ^
