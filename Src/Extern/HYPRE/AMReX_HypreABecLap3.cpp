@@ -104,7 +104,7 @@ HypreABecLap3::prepareSolver ()
     }
 #endif
 
-    static_assert(std::is_signed<HYPRE_Int>::value, "HYPRE_Int is assumed to be signed");
+    static_assert(std::is_signed_v<HYPRE_Int>, "HYPRE_Int is assumed to be signed");
 
     // how many non-covered cells do we have?
     ncells_grid.define(ba,dm);

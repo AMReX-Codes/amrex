@@ -103,7 +103,7 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
 
         amrex::Print() << "\n" << num_iterations
                        << " Hypre SS BoomerAMG Iterations, Relative Residual "
-                       << res << std::endl;
+                       << res << '\n';
     }
 
     getSolution(soln);
