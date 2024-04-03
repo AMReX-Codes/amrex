@@ -42,7 +42,8 @@ enum parser_f1_t {  // Built-in functions with one argument
     PARSER_FLOOR,
     PARSER_CEIL,
     PARSER_COMP_ELLINT_1,
-    PARSER_COMP_ELLINT_2
+    PARSER_COMP_ELLINT_2,
+    PARSER_ERF
 };
 
 static
@@ -73,7 +74,8 @@ std::string_view parser_f1_s[] =
     "floor",
     "ceil",
     "comp_ellint_1",
-    "comp_ellint_2"
+    "comp_ellint_2",
+    "erf"
 };
 
 enum parser_f2_t {  // Built-in functions with two arguments
@@ -374,6 +376,13 @@ T parser_math_comp_ellint_2 (T a)
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+T parser_math_erf(T a)
+{
+    return std::erf(a);
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
 T parser_math_pow (T a, T b) { return std::pow(a,b); }
 
 template <typename T>
@@ -420,6 +429,7 @@ parser_call_f1 (enum parser_f1_t type, double a)
     case PARSER_CEIL:        return std::ceil(a);
     case PARSER_COMP_ELLINT_1: return parser_math_comp_ellint_1<double>(a);
     case PARSER_COMP_ELLINT_2: return parser_math_comp_ellint_2<double>(a);
+    case PARSER_ERF:         return parser_math_erf<double>(a);
     default:
         amrex::Abort("parser_call_f1: Unknown function ");
         return 0.0;
