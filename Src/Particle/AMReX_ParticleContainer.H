@@ -369,7 +369,18 @@ public:
         return (lev < m_particles.size()) ? m_particles[lev].size() : 0;
     }
 
+    /**
+     * \brief This reserves data in the vector of dummy MultiFabs used by
+     * the ParticleContainer for the maximum number of levels possible.
+     */
     void reserveData () override;
+
+    /**
+     * \brief This resizes the vector of dummy MultiFabs used by the
+     * ParticleContainer for the current number of levels and calls
+     * RedefineDummyMF on each level. Note that this must be done prior
+     * to using ParticleIterator.
+     */
     void resizeData () override;
 
     void InitFromAsciiFile (const std::string& file, int extradata,
