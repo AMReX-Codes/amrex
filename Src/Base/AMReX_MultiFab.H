@@ -238,6 +238,10 @@ public:
     * \brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
     */
     [[nodiscard]] Real sum (int comp = 0, bool local = false) const;
+    /**
+    * \brief Returns the sum of component "comp" in the given "region". -- no ghost cells are included.
+    */
+    [[nodiscard]] Real sum (Box const& region, int comp = 0, bool local = false) const;
 
     using FabArray<FArrayBox>::sum;
 
@@ -248,6 +252,13 @@ public:
     [[nodiscard]] Real sum_unique (int comp = 0,
                      bool local = false,
                      const Periodicity& period = Periodicity::NonPeriodic()) const;
+    /**
+    * \brief Returns the unique sum of component "comp" in the given
+    * region. Non-unique points owned by multiple boxes in the MultiFab are
+    * skipped. No ghost cells are included. This function does not take
+    * periodicity into account in the determination of uniqueness of points.
+    */
+    [[nodiscard]] Real sum_unique (Box const& region, int comp = 0, bool local = false) const;
     /**
     * \brief Adds the scalar value \p val to the value of each cell in the
     * specified subregion of the MultiFab.
