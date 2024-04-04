@@ -1258,7 +1258,7 @@ MultiFab::sum_unique (int comp,
 {
     BL_PROFILE("MultiFab::sum_unique()");
 
-    // no duplicatly distributed points if cell centered
+    // no duplicately distributed points if cell centered
     if (ixType().cellCentered()) {
         return this->sum(comp, local);
     }
@@ -1309,7 +1309,7 @@ MultiFab::sum_unique (Box const& region, int comp, bool local) const
 {
     BL_PROFILE("MultiFab::sum_unique(region)");
 
-    // no duplicatly distributed points if cell centered
+    // no duplicately distributed points if cell centered
     if (ixType().cellCentered()) {
         return this->sum(region, comp, local);
     }
