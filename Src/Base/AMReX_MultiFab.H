@@ -247,7 +247,7 @@ public:
 
     /**
     * \brief Same as sum with \p local =false, but for non-cell-centered data, this
-    * skips non-unique points that are owned by multiple boxes.
+    * only adds non-unique points that are owned by multiple boxes once.
     */
     [[nodiscard]] Real sum_unique (int comp = 0,
                      bool local = false,
