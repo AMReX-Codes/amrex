@@ -67,6 +67,7 @@ Four types of documentation are available:
 - [Example Codes](https://amrex-codes.github.io/amrex/tutorials_html/#example-codes) -- The fastest way to start your own project
 - [Guided Tutorials](https://amrex-codes.github.io/amrex/tutorials_html/GuidedTutorials.html) -- Learn basic AMReX topics in a progressive way
 - [Technical Reference](https://amrex-codes.github.io/amrex/doxygen/) -- Conveniently searchable code documentation via Doxygen
+- [Slides](https://drive.google.com/file/d/1-Fn6peoPj6zRc-iV-j1_Zc3YHoKZM2C9/view?usp=sharing) and [video recordings](https://youtube.com/playlist?list=PL20S5EeApOSs7JV6dMJnpduaznAoR2Cpr&feature=shared) -- From the [AMReX tutorial](https://www.nersc.gov/performance-portability-series-amrex-mar2024/) organized by NERSC/OLCF/ALCF on March 14, 2024
 
 ## Gallery
 
@@ -82,7 +83,7 @@ in our application [gallery](https://amrex-codes.github.io/amrex/gallery.html).
 ## Get Help
 
 You can also view questions
-and ask your own on our [GitHub Discussions](https://github.com/AMReX-Codes/amrex/discussions) page.  
+and ask your own on our [GitHub Discussions](https://github.com/AMReX-Codes/amrex/discussions) page.
 To obtain additional help, simply post an issue.
 
 ## Contribute
