@@ -255,7 +255,7 @@ public:
     /**
     * \brief Returns the unique sum of component "comp" in the given
     * region. Non-unique points owned by multiple boxes in the MultiFab are
-    * skipped. No ghost cells are included. This function does not take
+    * only added once. No ghost cells are included. This function does not take
     * periodicity into account in the determination of uniqueness of points.
     */
     [[nodiscard]] Real sum_unique (Box const& region, int comp = 0, bool local = false) const;
