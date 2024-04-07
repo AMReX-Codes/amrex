@@ -291,7 +291,7 @@ AmrLevel::writePlotFile (const std::string& dir,
             RealBox gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
             for (n = 0; n < AMREX_SPACEDIM; n++) {
                 os << gridloc.lo(n) << ' ' << gridloc.hi(n) << '\n';
-	    }
+            }
         }
         //
         // The full relative pathname of the MultiFabs at this level.
