@@ -129,8 +129,6 @@ public:
     Real smallplotPer () const noexcept { return small_plot_per; }
     //! Spacing in log10(time) of logarithmically spaced small plot files
     Real smallplotLogPer () const noexcept { return small_plot_log_per; }
-    //! Maximum level to small plot
-    int smallplotMaxLevel () const noexcept { return small_plot_max_level; }
     /**
     * \brief The names of state variables to output in the
     * plotfile.  They can be set using the amr.plot_vars variable
@@ -432,7 +430,6 @@ protected:
     int              small_plot_int;  //!< How often small plotfile (# of time steps)
     Real             small_plot_per;  //!< How often small plotfile (in units of time)
     Real             small_plot_log_per;  //!< How often small plotfile (in units of log10(time))
-    int              small_plot_max_level; //!< Maximum AMR level to write to a small plotfile
     int              write_plotfile_with_checkpoint;  //!< Write out a plotfile whenever we checkpoint
     int              file_name_digits; //!< How many digits to use in the plotfile and checkpoint names
     int              message_int;     //!< How often checking messages touched by user, such as "stop_run"
@@ -493,7 +490,7 @@ public:
     static bool first_smallplotfile;
 
 private:
-    void writePlotFileDoit (std::string const& pltfile, bool regular, int max_level_to_plot);
+    void writePlotFileDoit (std::string const& pltfile, bool regular);
 };
 
 }

@@ -871,7 +871,7 @@ Amr::writePlotFile ()
         runlog << "PLOTFILE: file = " << pltfile << '\n';
     }
 
-    writePlotFileDoit(pltfile, true, std::min(plot_max_level, finest_level));
+    writePlotFileDoit(pltfile, true);
 
     BL_PROFILE_REGION_STOP("Amr::writePlotFile()");
 }
@@ -910,17 +910,17 @@ Amr::writeSmallPlotFile ()
         runlog << "SMALL PLOTFILE: file = " << pltfile << '\n';
     }
 
-    writePlotFileDoit(pltfile, false, std::min(small_plot_max_level, finest_level));
+    writePlotFileDoit(pltfile, false);
 
     BL_PROFILE_REGION_STOP("Amr::writeSmallPlotFile()");
 }
 
 void
-Amr::writePlotFileDoit (std::string const& pltfile, bool regular, int max_level_to_plot)
+Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
 {
     auto dPlotFileTime0 = amrex::second();
 
-    AMREX_ALWAYS_ASSERT(max_level_to_plot <= finest_level);
+    int max_level_to_plot = std::min(plot_max_level, finest_level);
 
     VisMF::SetNOutFiles(plot_nfiles);
     VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
@@ -3291,9 +3291,6 @@ Amr::initPltAndChk ()
             amrex::Warning("Warning: both amr.small_plot_int and amr.small_plot_per are > 0.");
         }
     }
-
-    small_plot_max_level = max_level;
-    pp.queryAdd("small_plot_max_level",small_plot_max_level);
 
     write_plotfile_with_checkpoint = 1;
     pp.queryAdd("write_plotfile_with_checkpoint",write_plotfile_with_checkpoint);
