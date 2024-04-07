@@ -34,7 +34,7 @@ void test_lockAdd (MultiFab& mf)
             Box const& tbx = mfi.growntilebox();
             tmp.resize(tbx);
             tmp.template setVal<RunOn::Host>(0.2);
-            mf[mfi].template lockAdd<RunOn::Host>(tmp, tbx, tbx, 0, 0, 1);
+            mf[mfi].lockAdd(tmp, tbx, tbx, 0, 0, 1);
         }
     }
 }
