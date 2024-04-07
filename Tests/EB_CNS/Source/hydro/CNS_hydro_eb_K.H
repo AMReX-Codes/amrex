@@ -8,10 +8,8 @@
 #include <AMReX_FArrayBox.H>
 #include <cmath>
 
-namespace {
-
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real limiter_eb (amrex::Real dlft, amrex::Real drgt, amrex::Real plm_theta) noexcept
+amrex::Real cns_limiter_eb (amrex::Real dlft, amrex::Real drgt, amrex::Real plm_theta) noexcept
 {
     using amrex::Real;
 
@@ -20,8 +18,6 @@ amrex::Real limiter_eb (amrex::Real dlft, amrex::Real drgt, amrex::Real plm_thet
     Real slop = plm_theta * amrex::min(std::abs(dlft),std::abs(drgt));
     Real dlim = (dlft*drgt >= Real(0.0)) ? slop : Real(0.0);
     return dsgn * amrex::min(dlim,std::abs(dcen));
-}
-
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -84,12 +80,12 @@ cns_slope_eb_x (int i, int j, int k,
 #endif
         }
 
-        dq(i,j,k,0) = limiter_eb(dlft0, drgt0, plm_theta);
-        dq(i,j,k,1) = limiter_eb(dlft1, drgt1, plm_theta);
-        dq(i,j,k,2) = limiter_eb(dlft2, drgt2, plm_theta);
-        dq(i,j,k,3) = limiter_eb(dlft3, drgt3, plm_theta);
+        dq(i,j,k,0) = cns_limiter_eb(dlft0, drgt0, plm_theta);
+        dq(i,j,k,1) = cns_limiter_eb(dlft1, drgt1, plm_theta);
+        dq(i,j,k,2) = cns_limiter_eb(dlft2, drgt2, plm_theta);
+        dq(i,j,k,3) = cns_limiter_eb(dlft3, drgt3, plm_theta);
 #if (AMREX_SPACEDIM == 3)
-        dq(i,j,k,4) = limiter_eb(dlft4, drgt4, plm_theta);
+        dq(i,j,k,4) = cns_limiter_eb(dlft4, drgt4, plm_theta);
 #endif
     }
 }
@@ -154,12 +150,12 @@ cns_slope_eb_y (int i, int j, int k,
 #endif
         }
 
-        dq(i,j,k,0) = limiter_eb(dlft0, drgt0, plm_theta);
-        dq(i,j,k,1) = limiter_eb(dlft1, drgt1, plm_theta);
-        dq(i,j,k,2) = limiter_eb(dlft2, drgt2, plm_theta);
-        dq(i,j,k,3) = limiter_eb(dlft3, drgt3, plm_theta);
+        dq(i,j,k,0) = cns_limiter_eb(dlft0, drgt0, plm_theta);
+        dq(i,j,k,1) = cns_limiter_eb(dlft1, drgt1, plm_theta);
+        dq(i,j,k,2) = cns_limiter_eb(dlft2, drgt2, plm_theta);
+        dq(i,j,k,3) = cns_limiter_eb(dlft3, drgt3, plm_theta);
 #if (AMREX_SPACEDIM == 3)
-        dq(i,j,k,4) = limiter_eb(dlft4, drgt4, plm_theta);
+        dq(i,j,k,4) = cns_limiter_eb(dlft4, drgt4, plm_theta);
 #endif
    }
 }
@@ -219,11 +215,11 @@ cns_slope_eb_z (int i, int j, int k,
         }
 
 
-        dq(i,j,k,0) = limiter_eb(dlft0, drgt0, plm_theta);
-        dq(i,j,k,1) = limiter_eb(dlft1, drgt1, plm_theta);
-        dq(i,j,k,2) = limiter_eb(dlft2, drgt2, plm_theta);
-        dq(i,j,k,3) = limiter_eb(dlft3, drgt3, plm_theta);
-        dq(i,j,k,4) = limiter_eb(dlft4, drgt4, plm_theta);
+        dq(i,j,k,0) = cns_limiter_eb(dlft0, drgt0, plm_theta);
+        dq(i,j,k,1) = cns_limiter_eb(dlft1, drgt1, plm_theta);
+        dq(i,j,k,2) = cns_limiter_eb(dlft2, drgt2, plm_theta);
+        dq(i,j,k,3) = cns_limiter_eb(dlft3, drgt3, plm_theta);
+        dq(i,j,k,4) = cns_limiter_eb(dlft4, drgt4, plm_theta);
    }
 }
 #endif

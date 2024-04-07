@@ -65,15 +65,15 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
             (nmax,
              [=] AMREX_GPU_DEVICE (int offset) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
-                 Dim3 node2 = GetNode2()(offset, node);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
                          < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
                  mlndlap_fillijmat_sten_gpu(ps, node.x, node.y, node.z, offset, gid, lid,
                                             ncols, cols, mat, sten);
              },
@@ -86,15 +86,15 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
             (nmax,
              [=] AMREX_GPU_DEVICE (int offset) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
-                 Dim3 node2 = GetNode2()(offset, node);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
                          < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
                  mlndlap_fillijmat_cs_gpu(ps, node.x, node.y, node.z, offset,
                                           ndbx, gid, lid, ncols, cols, mat,
                                           const_sigma, dxinvarr, domain
@@ -115,15 +115,15 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
             (nmax,
              [=] AMREX_GPU_DEVICE (int offset) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
-                 Dim3 node2 = GetNode2()(offset, node);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
                          < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
                  mlndlap_fillijmat_ha_gpu(ps, node.x, node.y, node.z, offset,
                                           ndbx, gid, lid, ncols, cols, mat,
                                           AMREX_D_DECL(sxarr, syarr, szarr),
@@ -142,15 +142,15 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
             (nmax,
              [=] AMREX_GPU_DEVICE (int offset) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
-                 Dim3 node2 = GetNode2()(offset, node);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
                          < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
                  mlndlap_fillijmat_aa_gpu(ps, node.x, node.y, node.z, offset,
                                           ndbx, gid, lid, ncols, cols, mat,
                                           sarr, dxinvarr, domain
