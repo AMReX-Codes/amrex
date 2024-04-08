@@ -920,6 +920,8 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
 {
     auto dPlotFileTime0 = amrex::second();
 
+    int max_level_to_plot = std::min(plot_max_level, finest_level);
+
     VisMF::SetNOutFiles(plot_nfiles);
     VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
     VisMF::SetHeaderVersion(plot_headerversion);
@@ -941,7 +943,7 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
         if (precreateDirectories) {    // ---- make all directories at once
             amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
             amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
-            for(int i(0); i <= finest_level; ++i) {
+            for(int i(0); i <= max_level_to_plot; ++i) {
                 amr_level[i]->CreateLevelDirectory(pltfileTemp);
             }
             ParallelDescriptor::Barrier("Amr::writePlotFile:PCD");
@@ -973,17 +975,17 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
         }
 
         if (regular) {
-            for (int k(0); k <= finest_level; ++k) {
+            for (int k(0); k <= max_level_to_plot; ++k) {
                 amr_level[k]->writePlotFilePre(pltfileTemp, HeaderFile);
             }
-            for (int k(0); k <= finest_level; ++k) {
+            for (int k(0); k <= max_level_to_plot; ++k) {
                 amr_level[k]->writePlotFile(pltfileTemp, HeaderFile);
             }
-            for (int k(0); k <= finest_level; ++k) {
+            for (int k(0); k <= max_level_to_plot; ++k) {
                 amr_level[k]->writePlotFilePost(pltfileTemp, HeaderFile);
             }
         } else {
-            for (int k(0); k <= finest_level; ++k) {
+            for (int k(0); k <= max_level_to_plot; ++k) {
                 amr_level[k]->writeSmallPlotFile(pltfileTemp, HeaderFile);
             }
         }
@@ -3267,6 +3269,9 @@ Amr::initPltAndChk ()
             amrex::Warning("Warning: both amr.plot_int and amr.plot_per are > 0.");
         }
     }
+
+    plot_max_level = max_level;
+    pp.queryAdd("plot_max_level",plot_max_level);
 
     small_plot_file_root = "smallplt";
     pp.queryAdd("small_plot_file",small_plot_file_root);

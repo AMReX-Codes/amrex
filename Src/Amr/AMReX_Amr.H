@@ -121,6 +121,8 @@ public:
     Real plotPer () const noexcept { return plot_per; }
     //! Spacing in log10(time) of logarithmically spaced plot files
     Real plotLogPer () const noexcept { return plot_log_per; }
+    //! Maximum level to plot
+    int plotMaxLevel () const noexcept { return plot_max_level; }
     //! Number of time steps between small plot files.
     int smallplotInt () const noexcept { return small_plot_int; }
     //! Time between plot files.
@@ -424,6 +426,7 @@ protected:
     int              plot_int;        //!< How often plotfile (# of time steps)
     Real             plot_per;        //!< How often plotfile (in units of time)
     Real             plot_log_per;    //!< How often plotfile (in units of log10(time))
+    int              plot_max_level;  //!< Maximum AMR level to write to a plotfile
     int              small_plot_int;  //!< How often small plotfile (# of time steps)
     Real             small_plot_per;  //!< How often small plotfile (in units of time)
     Real             small_plot_log_per;  //!< How often small plotfile (in units of log10(time))

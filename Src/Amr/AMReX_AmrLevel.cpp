@@ -179,6 +179,8 @@ AmrLevel::writePlotFile (const std::string& dir,
     // if the State_Type is ::Interval, this will get t^{n+1/2} instead of t^n
     Real cur_time = state[0].curTime();
 
+    int f_lev = std::min(parent->plotMaxLevel(), parent->finestLevel());
+
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
         //
@@ -218,7 +220,6 @@ AmrLevel::writePlotFile (const std::string& dir,
 
         os << AMREX_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
-        int f_lev = parent->finestLevel();
         os << f_lev << '\n';
         for (i = 0; i < AMREX_SPACEDIM; i++) {
             os << Geom().ProbLo(i) << ' ';
@@ -290,7 +291,7 @@ AmrLevel::writePlotFile (const std::string& dir,
             RealBox gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
             for (n = 0; n < AMREX_SPACEDIM; n++) {
                 os << gridloc.lo(n) << ' ' << gridloc.hi(n) << '\n';
-}
+            }
         }
         //
         // The full relative pathname of the MultiFabs at this level.
@@ -307,8 +308,8 @@ AmrLevel::writePlotFile (const std::string& dir,
 #ifdef AMREX_USE_EB
         if (EB2::TopIndexSpaceIfPresent()) {
             // volfrac threshold for amrvis
-            if (level == parent->finestLevel()) {
-                for (int lev = 0; lev <= parent->finestLevel(); ++lev) {
+            if (level == f_lev) {
+                for (int lev = 0; lev <= f_lev; ++lev) {
                     os << "1.0e-6\n";
                 }
             }
