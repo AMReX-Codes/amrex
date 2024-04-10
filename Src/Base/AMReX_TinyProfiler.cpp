@@ -123,12 +123,9 @@ TinyProfiler::start () noexcept
         roctxRangePush(fname.c_str());
 #endif
 
-        for (auto const& region : regionstack)
-        {
-            Stats& st = statsmap[region][fname];
-            ++st.depth;
-            stats.push_back(&st);
-        }
+        Stats& st = statsmap[regionstack.back()][fname];
+        ++st.depth;
+        stats.push_back(&st);
 
         if (verbose) {
             ++n_print_tabs;
