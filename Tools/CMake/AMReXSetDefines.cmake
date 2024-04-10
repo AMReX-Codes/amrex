@@ -59,8 +59,15 @@ if (AMReX_SYCL)
 endif()
 
 # HIP
-add_amrex_define( AMREX_USE_HIP NO_LEGACY IF AMReX_HIP )
-add_amrex_define( NDEBUG IF AMReX_HIP)  # This address a bug that causes slow build times
+if (AMReX_HIP)
+   add_amrex_define( AMREX_USE_HIP NO_LEGACY )
+   add_amrex_define( NDEBUG )  # This address a bug that causes slow build times
+   if (${AMReX_AMD_ARCH} MATCHES "gfx10.*")
+      add_amrex_define( AMREX_AMDGCN_WAVEFRONT_SIZE=32 NO_LEGACY )
+   else ()
+      add_amrex_define( AMREX_AMDGCN_WAVEFRONT_SIZE=64 NO_LEGACY )
+   endif ()
+endif()
 
 # Precision
 if (AMReX_PRECISION STREQUAL "SINGLE")
