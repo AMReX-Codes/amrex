@@ -42,6 +42,7 @@ double TinyProfiler::t_init = std::numeric_limits<double>::max();
 int TinyProfiler::device_synchronize_around_region = 0;
 int TinyProfiler::n_print_tabs = 0;
 int TinyProfiler::verbose = 0;
+double TinyProfiler::print_threshold = 1.;
 
 namespace {
     constexpr char mainregion[] = "main";
@@ -393,6 +394,9 @@ TinyProfiler::Initialize () noexcept
         pp.queryAdd("device_synchronize_around_region", device_synchronize_around_region);
         pp.queryAdd("verbose", verbose);
         pp.queryAdd("v", verbose);
+        // Specify the maximum percentage of inclusive time
+        // that the "Other" section in the output can have (default 1%)
+        pp.queryAdd("print_threshold", print_threshold);
     }
 }
 
@@ -613,8 +617,61 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 #ifdef AMREX_USE_CUPTI
         const std::string hlinehlf((maxfnamelen+wnc+2+(wt+2)*3+wp+2)/2-12,'-');
 #endif
+
+        ProcStats other_procstat;
+        bool print_other_procstat = false;
+
+        // try to combine low-performance impact functions into "Other" to clean up the output
+        if (print_threshold > 0.) {
+            // initialize other_procstat to zero
+            other_procstat.nmin = 0;
+            other_procstat.dtinmin = 0.;
+            other_procstat.dtexmin = 0.;
+            other_procstat.fname = "Other";
+            int num_procstats_in_other = 0;
+
+            // sort by exclusive time and iterate backwards over the profiled funcitons
+            std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compin);
+            for (int i = allprocstats.size()-1; i >= 0; --i) {
+                // include function in "Other" if together they are below the threshold
+                if ((other_procstat.dtinmax + allprocstats[i].dtinmax)*(100.0/dt_max)
+                        < print_threshold) {
+                    allprocstats[i].do_print = false;
+                    ++num_procstats_in_other;
+
+                    // add time for function to "Other"
+                    // for min and max this is not exact but produces an upper limit
+                    other_procstat.nmin += allprocstats[i].nmin;
+                    other_procstat.navg += allprocstats[i].navg;
+                    other_procstat.nmax += allprocstats[i].nmax;
+
+                    other_procstat.dtinmin += allprocstats[i].dtinmin;
+                    other_procstat.dtinavg += allprocstats[i].dtinavg;
+                    other_procstat.dtinmax += allprocstats[i].dtinmax;
+
+                    other_procstat.dtexmin += allprocstats[i].dtexmin;
+                    other_procstat.dtexavg += allprocstats[i].dtexavg;
+                    other_procstat.dtexmax += allprocstats[i].dtexmax;
+                } else {
+                    break;
+                }
+            }
+
+            if (num_procstats_in_other == 1) {
+                // if only one funciton would be included in "Other"
+                // the output would not get shorter
+                allprocstats[allprocstats.size() - 1].do_print = true;
+            } else if (num_procstats_in_other >= 2) {
+                print_other_procstat = true;
+            }
+        }
+
         // Exclusive time
         std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compex);
+        if (print_other_procstat) {
+            // make sure "Other" is printed at the end of the list
+            allprocstats.push_back(other_procstat);
+        }
         amrex::OutStream() << "\n" << hline << "\n";
         amrex::OutStream() << std::left
                            << std::setw(maxfnamelen) << "Name"
@@ -627,6 +684,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
                            << "\n" << hline << "\n";
         for (const auto & allprocstat : allprocstats)
         {
+            if (!allprocstat.do_print) continue;
 #ifdef AMREX_USE_CUPTI
             if (it->usesCUPTI)
             {
@@ -663,9 +721,16 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 #endif
         }
         amrex::OutStream() << hline << "\n";
+        if (print_other_procstat) {
+            allprocstats.pop_back();
+        }
 
         // Inclusive time
         std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compin);
+        if (print_other_procstat) {
+            // make sure "Other" is printed at the end of the list
+            allprocstats.push_back(other_procstat);
+        }
         amrex::OutStream() << "\n" << hline << "\n";
         amrex::OutStream() << std::left
                            << std::setw(maxfnamelen) << "Name"
@@ -678,6 +743,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
                            << "\n" << hline << "\n";
         for (const auto & allprocstat : allprocstats)
         {
+            if (!allprocstat.do_print) continue;
 #ifdef AMREX_USE_CUPTI
             if (it->usesCUPTI)
             {
@@ -713,6 +779,9 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 #endif
         }
         amrex::OutStream() << hline << "\n\n";
+        if (print_other_procstat) {
+            allprocstats.pop_back();
+        }
     }
 }
 

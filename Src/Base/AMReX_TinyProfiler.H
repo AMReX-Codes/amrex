@@ -102,6 +102,7 @@ private:
         double dtexmin{std::numeric_limits<double>::max()};
         double dtexavg{0.0}, dtexmax{0.0};
         bool usesCUPTI{false};
+        bool do_print{true};
         std::string fname;
         static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
             return lhs.dtexmax > rhs.dtexmax;
@@ -153,6 +154,7 @@ private:
     static int device_synchronize_around_region;
     static int n_print_tabs;
     static int verbose;
+    static double print_threshold;
 
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
     static void PrintMemStats (std::map<std::string, MemStat>& memstats,
