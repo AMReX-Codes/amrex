@@ -493,16 +493,9 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_T_S(fname, T)
 
 #define BL_PROFILE_VAR(fname, vname)                      amrex::TinyProfiler tiny_profiler_##vname((fname))
-#define BL_PROFILE_VAR_NS(fname, vname)                   amrex::TinyProfiler tiny_profiler_##vname(fname, false, false)
+#define BL_PROFILE_VAR_NS(fname, vname)                   amrex::TinyProfiler tiny_profiler_##vname(fname, false)
 #define BL_PROFILE_VAR_START(vname)                       tiny_profiler_##vname.start()
 #define BL_PROFILE_VAR_STOP(vname)                        tiny_profiler_##vname.stop()
-#ifdef AMREX_USE_CUPTI
-#include <AMReX_CuptiTrace.H>
-#define BL_PROFILE_VAR_NS_CUPTI(fname, vname)             amrex::TinyProfiler tiny_profiler_##vname(fname, false, true)
-#define BL_PROFILE_VAR_START_CUPTI(vname)                 tiny_profiler_##vname.start()
-#define BL_PROFILE_VAR_STOP_CUPTI(vname)                  tiny_profiler_##vname.stop()
-#define BL_PROFILE_VAR_STOP_CUPTI_ID(vname, uintID)       tiny_profiler_##vname.stop(uintID)
-#endif // AMREX_USE_CUPTI
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)
 #define BL_PROFILE_ADD_STEP(snum)
 #define BL_PROFILE_SET_RUN_TIME(rtime)
