@@ -39,9 +39,9 @@ class TinyProfiler
 {
 public:
     explicit TinyProfiler (std::string funcname) noexcept;
-    TinyProfiler (std::string funcname, bool start_, bool useCUPTI=false) noexcept;
+    TinyProfiler (std::string funcname, bool start_) noexcept;
     explicit TinyProfiler (const char* funcname) noexcept;
-    TinyProfiler (const char* funcname, bool start_, bool useCUPTI=false) noexcept;
+    TinyProfiler (const char* funcname, bool start_) noexcept;
     ~TinyProfiler ();
 
     TinyProfiler (TinyProfiler const&) = delete;
@@ -51,10 +51,6 @@ public:
 
     void start () noexcept;
     void stop () noexcept;
-#ifdef AMREX_USE_CUPTI
-    void stop (unsigned boxUintID) noexcept;
-#endif // AMREX_USE_CUPTI
-
 
     void memory_start () const noexcept;
     void memory_stop () const noexcept;
@@ -87,8 +83,6 @@ private:
         Long n{0L};         //!< number of calls
         double dtin{0.0};    //!< inclusive dt
         double dtex{0.0};    //!< exclusive dt
-        bool usesCUPTI{false}; //!< uses CUPTI
-        Long nk{0};        //!< number of kernel calls
     };
 
     //! stats across processes
@@ -101,7 +95,6 @@ private:
         double dtinavg{0.0}, dtinmax{0.0};
         double dtexmin{std::numeric_limits<double>::max()};
         double dtexavg{0.0}, dtexmax{0.0};
-        bool usesCUPTI{false};
         bool do_print{true};
         std::string fname;
         static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
@@ -129,7 +122,6 @@ private:
     };
 
     std::string fname;
-    bool uCUPTI = false;
     bool in_parallel_region = false;
     int global_depth = -1;
     std::vector<Stats*> stats;

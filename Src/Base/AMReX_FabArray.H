@@ -1082,7 +1082,6 @@ public:
      *
      * \param scomp starting component
      * \param ncomp number of components
-     * \param nghost number of ghost cells to fill
      * \param period periodic length if it's non-zero
      */
     void OverrideSync (int scomp, int ncomp, const Periodicity& period);
