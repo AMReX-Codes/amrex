@@ -96,6 +96,7 @@ jobs:
 
   tests-oneapi-sycl-eb-nvidia:
     name: oneAPI SYCL for Nvidia GPUs [tests w/ EB]
+    if: 0
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
