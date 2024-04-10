@@ -1210,13 +1210,55 @@ MultiFab::sum (int comp, bool local) const
 }
 
 Real
+MultiFab::sum (Box const& region, int comp, bool local) const
+{
+    BL_PROFILE("MultiFab::sum(region)");
+
+    auto sm = 0.0_rt;
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = this->const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
+        {
+            return (region.contains(i,j,k)) ? ma[box_no](i,j,k,comp) : 0.0_rt;
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
+            Box const& bx = mfi.tilebox() & region;
+            if (bx.ok()) {
+                auto const& a = this->const_array(mfi);
+                auto tmp = 0.0_rt;
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    tmp += a(i,j,k,comp);
+                });
+                sm += tmp; // Do it this way so that it does not break regression tests.
+            }
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
+
+    return sm;
+}
+
+Real
 MultiFab::sum_unique (int comp,
                       bool local,
                       const Periodicity& period) const
 {
     BL_PROFILE("MultiFab::sum_unique()");
 
-    // no duplicatly distributed points if cell centered
+    // no duplicately distributed points if cell centered
     if (ixType().cellCentered()) {
         return this->sum(comp, local);
     }
@@ -1252,6 +1294,60 @@ MultiFab::sum_unique (int comp,
                 tmp += msk(i,j,k) ? a(i,j,k,comp) : 0.0_rt;
             });
             sm += tmp; // Do it this way so that it does not break regression tests.
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
+
+    return sm;
+}
+
+Real
+MultiFab::sum_unique (Box const& region, int comp, bool local) const
+{
+    BL_PROFILE("MultiFab::sum_unique(region)");
+
+    // no duplicately distributed points if cell centered
+    if (ixType().cellCentered()) {
+        return this->sum(region, comp, local);
+    }
+
+    // Owner is the grid with the lowest grid number containing the data
+    std::unique_ptr<iMultiFab> owner_mask = OwnerMask();
+
+    auto sm = 0.0_rt;
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = this->const_arrays();
+        auto const& msk = owner_mask->const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                       -> GpuTuple<Real>
+        {
+            return (region.contains(i,j,k) && msk[box_no](i,j,k))
+                ? ma[box_no](i,j,k,comp) : 0.0_rt;
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.tilebox() & region;
+            if (bx.ok()) {
+                Array4<Real const> const& a = this->const_array(mfi);
+                Array4<int const> const& msk = owner_mask->const_array(mfi);
+                auto tmp = 0.0_rt;
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    if (msk(i,j,k)) { tmp += a(i,j,k,comp); }
+                });
+                sm += tmp; // Do it this way so that it does not break regression tests.
+            }
         }
     }
 
