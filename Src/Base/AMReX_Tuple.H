@@ -3,6 +3,7 @@
 #define AMREX_TUPLE_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Array.H>
 #include <AMReX_Functional.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_TypeList.H>
@@ -390,6 +391,29 @@ constexpr GpuTuple<Ts...>
 MakeZeroTuple (GpuTuple<Ts...>) noexcept
 {
     return GpuTuple<Ts...>(static_cast<Ts>(0)...);
+}
+
+namespace detail {
+    template <typename T, std::size_t... I>
+    AMREX_GPU_HOST_DEVICE constexpr
+    auto tuple_to_array_helper (T const& tup, std::index_sequence<I...>) {
+        return GpuArray<typename GpuTupleElement<0,T>::type, sizeof...(I)>{amrex::get<I>(tup)...};
+    }
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE constexpr
+auto tupleToArray (GpuTuple<T> const& tup)
+{
+    return GpuArray<T,1>{amrex::get<0>(tup)};
+}
+
+//! Convert GpuTuple<T,Ts...> to GpuArray
+template <typename T, typename... Ts, std::enable_if_t<Same<T,Ts...>::value, int> = 0>
+AMREX_GPU_HOST_DEVICE constexpr
+auto tupleToArray (GpuTuple<T,Ts...> const& tup)
+{
+    return detail::tuple_to_array_helper(tup, std::index_sequence_for<T,Ts...>{});
 }
 
 }
