@@ -392,6 +392,26 @@ MakeZeroTuple (GpuTuple<Ts...>) noexcept
     return GpuTuple<Ts...>(static_cast<Ts>(0)...);
 }
 
+namespace detail {
+    template <typename T, std::size_t... I>
+    auto tuple_to_array_helper (T const& tup, std::index_sequence<I...>) {
+        return std::array{amrex::get<I>(tup)...};
+    }
+}
+
+template <typename T>
+auto tupleToArray (GpuTuple<T> const& tup)
+{
+    return std::array{amrex::get<0>(tup)};
+}
+
+//! Convert GpuTuple<T,Ts...> to std::array
+template <typename T, typename... Ts, std::enable_if_t<Same<T,Ts...>::value, int> = 0>
+auto tupleToArray (GpuTuple<T,Ts...> const& tup)
+{
+    return detail::tuple_to_array_helper(tup, std::index_sequence_for<T,Ts...>{});
+}
+
 }
 
 #endif /*AMREX_TUPLE_H_*/
