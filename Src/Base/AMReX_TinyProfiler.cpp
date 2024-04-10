@@ -630,7 +630,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
             other_procstat.fname = "Other";
             int num_procstats_in_other = 0;
 
-            // sort by exclusive time and iterate backwards over the profiled funcitons
+            // sort by exclusive time and iterate backwards over the profiled functions
             std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compin);
             for (int i = allprocstats.size()-1; i >= 0; --i) {
                 // include function in "Other" if together they are below the threshold
@@ -658,9 +658,9 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
             }
 
             if (num_procstats_in_other == 1) {
-                // if only one funciton would be included in "Other"
+                // if only one function would be included in "Other"
                 // the output would not get shorter
-                allprocstats[allprocstats.size() - 1].do_print = true;
+                allprocstats.back().do_print = true;
             } else if (num_procstats_in_other >= 2) {
                 print_other_procstat = true;
             }
@@ -779,9 +779,6 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 #endif
         }
         amrex::OutStream() << hline << "\n\n";
-        if (print_other_procstat) {
-            allprocstats.pop_back();
-        }
     }
 }
 
