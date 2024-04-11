@@ -45,10 +45,11 @@ MyTest::initProbABecLaplacian ()
 #endif
         for (MFIter mfi(rhs[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.tilebox();
+            const Box& vbx = mfi.validbox();
             const Box& gbx = mfi.growntilebox(1);
 
             auto rhsfab = rhs[ilev].array(mfi);
+            auto solfab = solution[ilev].array(mfi);
             auto exactfab = exact_solution[ilev].array(mfi);
             auto acoeffab = acoef[ilev].array(mfi);
             auto bcoeffab = bcoef[ilev].array(mfi);
@@ -56,18 +57,10 @@ MyTest::initProbABecLaplacian ()
             amrex::ParallelFor(gbx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                actual_init_bcoef(i,j,k,bcoeffab,prob_lo,prob_hi,dx);
-            });
-
-            amrex::ParallelFor(bx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                actual_init_abeclap(i,j,k,rhsfab,exactfab,acoeffab,bcoeffab,
-                                    a,b,prob_lo,prob_hi,dx);
+                actual_init_abeclap(i,j,k,rhsfab,solfab,exactfab,acoeffab,bcoeffab,
+                                    a,b,prob_lo,prob_hi,dx,vbx);
             });
         }
-
-        solution[ilev].setVal(0.0);
     }
 }
 
