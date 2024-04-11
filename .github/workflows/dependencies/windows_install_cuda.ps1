@@ -5,6 +5,9 @@
 # License: BSD-3-Clause-LBNL
 # Authors: Axel Huebl
 
+# fail on first error
+$ErrorActionPreference = "Stop"
+
 # skip if already installed
 if (Test-Path "C:\Program Files\NVIDIA GPU Computing Toolkit\") { exit }
 
@@ -47,17 +50,14 @@ $CudaFeatures = " nvcc_${cuda_version_short} " + `
 " nvrtc_dev_${cuda_version_short} " + `
 " nvtx_${cuda_version_short} " + `
 " sanitizer_${cuda_version_short} " + `
-" thrust_${cuda_version_short} "
+" thrust_${cuda_version_short} " + `
+" visual_studio_integration_${cuda_version_short} "
 
 $SilentFlag = '-s '
 Start-Process -FilePath '.\cuda_install.exe' -ArgumentList @($SilentFlag + $CudaFeatures) -Wait -NoNewWindow
 
 # cleanup
 Remove-Item cuda_install.exe
-
-# VisualStudio integration
-Copy-item -Force -Recurse -Verbose "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v${cuda_version_short}\extras\visual_studio_integration\MSBuildExtensions" -Destination "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Microsoft\VC\v170\BuildCustomizations"
-Copy-item -Force -Recurse -Verbose "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v${cuda_version_short}\extras\visual_studio_integration\MSBuildExtensions" -Destination "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\BuildCustomizations"
 
 # GitHub actions env updates
 if (Test-Path "env:GITHUB_ACTIONS") {
