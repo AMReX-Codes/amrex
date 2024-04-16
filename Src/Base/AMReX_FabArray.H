@@ -1478,8 +1478,8 @@ template <class FAB>
 FAB*
 FabArray<FAB>::fabPtr (const MFIter& mfi) noexcept
 {
-    BL_ASSERT(mfi.LocalIndex() < indexArray.size());
-    BL_ASSERT(DistributionMap() == mfi.DistributionMap());
+    AMREX_ASSERT(mfi.LocalIndex() < indexArray.size());
+    AMREX_ASSERT(DistributionMap() == mfi.DistributionMap());
     int li = mfi.LocalIndex();
     return m_fabs_v[li];
 }
@@ -1488,8 +1488,8 @@ template <class FAB>
 FAB const*
 FabArray<FAB>::fabPtr (const MFIter& mfi) const noexcept
 {
-    BL_ASSERT(mfi.LocalIndex() < indexArray.size());
-    BL_ASSERT(DistributionMap() == mfi.DistributionMap());
+    AMREX_ASSERT(mfi.LocalIndex() < indexArray.size());
+    AMREX_ASSERT(DistributionMap() == mfi.DistributionMap());
     int li = mfi.LocalIndex();
     return m_fabs_v[li];
 }
@@ -1499,7 +1499,7 @@ FAB*
 FabArray<FAB>::fabPtr (int K) noexcept
 {
     int li = localindex(K);
-    BL_ASSERT(li >=0 && li < indexArray.size());
+    AMREX_ASSERT(li >=0 && li < indexArray.size());
     return m_fabs_v[li];
 }
 
@@ -1508,7 +1508,7 @@ FAB const*
 FabArray<FAB>::fabPtr (int K) const noexcept
 {
     int li = localindex(K);
-    BL_ASSERT(li >=0 && li < indexArray.size());
+    AMREX_ASSERT(li >=0 && li < indexArray.size());
     return m_fabs_v[li];
 }
 
@@ -2034,8 +2034,8 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
     define_function_called = true;
 
-    BL_ASSERT(ngrow.allGE(IntVect::TheZeroVector()));
-    BL_ASSERT(boxarray.empty());
+    AMREX_ASSERT(ngrow.allGE(IntVect::TheZeroVector()));
+    AMREX_ASSERT(boxarray.empty());
     FabArrayBase::define(bxs, dm, nvar, ngrow);
 
     addThisBD();
@@ -2149,7 +2149,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
             int disp;
             value_type *dptr = 0;
             BL_MPI_REQUIRE( MPI_Win_shared_query(shmem.win, w, &sz, &disp, &dptr) );
-            // BL_ASSERT(disp == sizeof(value_type));
+            // AMREX_ASSERT(disp == sizeof(value_type));
             dps.push_back(dptr);
         }
 
@@ -2508,8 +2508,8 @@ FabArray<FAB>::setVal (value_type val,
                        int        ncomp,
                        const IntVect& nghost)
 {
-    BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
-    BL_ASSERT(comp+ncomp <= n_comp);
+    AMREX_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
+    AMREX_ALWAYS_ASSERT(comp+ncomp <= n_comp);
 
     BL_PROFILE("FabArray::setVal()");
 
@@ -2563,8 +2563,8 @@ FabArray<FAB>::setVal (value_type val,
                        int        ncomp,
                        const IntVect& nghost)
 {
-    BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
-    BL_ASSERT(comp+ncomp <= n_comp);
+    AMREX_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
+    AMREX_ALWAYS_ASSERT(comp+ncomp <= n_comp);
 
     BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
@@ -2616,8 +2616,8 @@ template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
 void
 FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
 {
-    BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
-    BL_ASSERT(comp+ncomp <= n_comp);
+    AMREX_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
+    AMREX_ALWAYS_ASSERT(comp+ncomp <= n_comp);
     BL_PROFILE("FabArray::abs()");
 
 #ifdef AMREX_USE_GPU
@@ -2899,9 +2899,9 @@ template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
 void FabArray<FAB>::Saxpy (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
                            int xcomp, int ycomp, int ncomp, IntVect const& nghost)
 {
-    BL_ASSERT(y.boxArray() == x.boxArray());
-    BL_ASSERT(y.distributionMap == x.distributionMap);
-    BL_ASSERT(y.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost));
+    AMREX_ASSERT(y.boxArray() == x.boxArray());
+    AMREX_ASSERT(y.distributionMap == x.distributionMap);
+    AMREX_ASSERT(y.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost));
 
     BL_PROFILE("FabArray::Saxpy()");
 
@@ -2945,9 +2945,9 @@ void
 FabArray<FAB>::Xpay (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
                      int xcomp, int ycomp, int ncomp, IntVect const& nghost)
 {
-    BL_ASSERT(y.boxArray() == x.boxArray());
-    BL_ASSERT(y.distributionMap == x.distributionMap);
-    BL_ASSERT(y.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost));
+    AMREX_ASSERT(y.boxArray() == x.boxArray());
+    AMREX_ASSERT(y.distributionMap == x.distributionMap);
+    AMREX_ASSERT(y.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost));
 
     BL_PROFILE("FabArray::Xpay()");
 
@@ -2992,11 +2992,11 @@ FabArray<FAB>::LinComb (FabArray<FAB>& dst,
                         value_type b, const FabArray<FAB>& y, int ycomp,
                         int dstcomp, int numcomp, const IntVect& nghost)
 {
-    BL_ASSERT(dst.boxArray() == x.boxArray());
-    BL_ASSERT(dst.distributionMap == x.distributionMap);
-    BL_ASSERT(dst.boxArray() == y.boxArray());
-    BL_ASSERT(dst.distributionMap == y.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
+    AMREX_ASSERT(dst.boxArray() == x.boxArray());
+    AMREX_ASSERT(dst.distributionMap == x.distributionMap);
+    AMREX_ASSERT(dst.boxArray() == y.boxArray());
+    AMREX_ASSERT(dst.distributionMap == y.distributionMap);
+    AMREX_ASSERT(dst.nGrowVect().allGE(nghost) && x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
 
     BL_PROFILE("FabArray::LinComb()");
 
@@ -3295,7 +3295,7 @@ FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngho
 
     if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) { return; }
 
-    AMREX_ASSERT(src_nghost <= n_grow);
+    AMREX_ALWAYS_ASSERT(src_nghost <= n_grow);
 
     auto* tmp = new FabArray<FAB>( boxArray(), DistributionMap(), ncomp, src_nghost, MFInfo(), Factory() );
     amrex::Copy(*tmp, *this, scomp, 0, ncomp, src_nghost);
