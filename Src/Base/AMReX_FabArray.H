@@ -3295,7 +3295,7 @@ FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngho
 
     if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) { return; }
 
-    AMREX_ALWAYS_ASSERT(src_nghost <= n_grow);
+    AMREX_ALWAYS_ASSERT(src_nghost.allLE(n_grow));
 
     auto* tmp = new FabArray<FAB>( boxArray(), DistributionMap(), ncomp, src_nghost, MFInfo(), Factory() );
     amrex::Copy(*tmp, *this, scomp, 0, ncomp, src_nghost);
