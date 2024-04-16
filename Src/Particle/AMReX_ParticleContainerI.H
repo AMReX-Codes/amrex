@@ -1115,6 +1115,19 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 });
             }
             Gpu::streamSynchronize();
+        } else {
+            typename SoA::IdCPU tmp_idcpu(np_total);
+
+            auto src = ptile.GetStructOfArrays().GetIdCPUData().data();
+            uint64_t* dst = tmp_idcpu.data();
+            AMREX_HOST_DEVICE_FOR_1D( np_total, i,
+            {
+                dst[i] = i < np ? src[permutations[i]] : src[i];
+            });
+
+            Gpu::streamSynchronize();
+
+            ptile.GetStructOfArrays().GetIdCPUData().swap(tmp_idcpu);
         }
 
         { // Create a scope for the temporary vector below
