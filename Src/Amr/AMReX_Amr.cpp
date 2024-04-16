@@ -855,7 +855,7 @@ Amr::writePlotFile ()
 
     // Don't continue if we have no variables to plot.
 
-    if (statePlotVars().empty()) {
+    if (statePlotVars().empty() && derivePlotVars().empty()) {
         return;
     }
 
