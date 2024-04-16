@@ -511,7 +511,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 
             // sort by exclusive time and iterate backwards over the profiled functions
             std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compin);
-            for (int i = allprocstats.size()-1; i >= 0; --i) {
+            for (Long i = static_cast<Long>(allprocstats.size())-1; i >= 0; --i) {
                 // include function in "Other" if together they are below the threshold
                 if ((other_procstat.dtinmax + allprocstats[i].dtinmax)*(100.0/dt_max)
                         < print_threshold) {
@@ -563,7 +563,9 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
                            << "\n" << hline << "\n";
         for (const auto & allprocstat : allprocstats)
         {
-            if (!allprocstat.do_print) continue;
+            if (!allprocstat.do_print) {
+                continue;
+            }
             amrex::OutStream() << std::setprecision(4) << std::left
                                << std::setw(maxfnamelen) << allprocstat.fname
                                << std::right
@@ -599,7 +601,9 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
                            << "\n" << hline << "\n";
         for (const auto & allprocstat : allprocstats)
         {
-            if (!allprocstat.do_print) continue;
+            if (!allprocstat.do_print) {
+                continue;
+            }
             amrex::OutStream() << std::setprecision(4) << std::left
                                << std::setw(maxfnamelen) << allprocstat.fname
                                << std::right
