@@ -641,6 +641,10 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
     using ScanTileState = rocprim::detail::lookback_scan_state<T>;
     using OrderedBlockId = rocprim::detail::ordered_block_id<unsigned int>;
 
+#if (defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)) || \
+    (defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR == 6) && \
+     defined(HIP_VERSION_MINOR) && (HIP_VERSION_MINOR == 0))
+
     std::size_t nbytes_tile_state = rocprim::detail::align_size
         (ScanTileState::get_storage_size(nblocks));
     std::size_t nbytes_block_id = OrderedBlockId::get_storage_size();
@@ -648,6 +652,22 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
     auto dp = (char*)(The_Arena()->alloc(nbytes_tile_state+nbytes_block_id));
 
     ScanTileState tile_state = ScanTileState::create(dp, nblocks);
+
+#else
+
+    std::size_t nbytes_tile_state;
+    AMREX_HIP_SAFE_CALL(ScanTileState::get_storage_size(nblocks, stream, nbytes_tile_state));
+    nbytes_tile_state = rocprim::detail::align_size(nbytes_tile_state);
+
+    std::size_t nbytes_block_id = OrderedBlockId::get_storage_size();
+
+    auto dp = (char*)(The_Arena()->alloc(nbytes_tile_state+nbytes_block_id));
+
+    ScanTileState tile_state;
+    AMREX_HIP_SAFE_CALL(ScanTileState::create(tile_state, dp, nblocks, stream));
+
+#endif
+
     auto ordered_block_id = OrderedBlockId::create
         (reinterpret_cast<OrderedBlockId::id_type*>(dp + nbytes_tile_state));
 
