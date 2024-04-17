@@ -481,10 +481,10 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
     for (int i = 0; i < NProcs; ++i) {
         if (plan.m_rcv_num_particles[i] > 0) {
             RcvProc.push_back(i);
-            rOffset.push_back(TotRcvBytes);
             Long nbytes = plan.m_rcv_num_particles[i]*psize;
             std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
             TotRcvBytes = Long(amrex::aligned_size(acd, TotRcvBytes));
+            rOffset.push_back(TotRcvBytes);
             TotRcvBytes += Long(amrex::aligned_size(acd, nbytes));
             plan.m_rcv_pad_correction_h.push_back(plan.m_rcv_pad_correction_h.back() + nbytes);
         }
