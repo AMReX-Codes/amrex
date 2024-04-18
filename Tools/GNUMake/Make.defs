@@ -1103,6 +1103,13 @@ else ifeq ($(USE_HIP),TRUE)
       AMD_ARCH = $(AMREX_AMD_ARCH)
     endif
 
+    # For AMD GPUs, the wavefront is 64 except for gfx10??.
+    ifeq ($(findstring gfx10,$(AMD_ARCH)),)
+       DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=64
+    else
+       DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=32
+    endif
+
     ifeq ($(HIP_SAVE_TEMPS),TRUE)
       ifeq ($(USE_GPU_RDC),TRUE)
         $(warning *** HIP_SAVE_TEMPS requires USE_GPU_RDC=FALSE to obtain the assembly files for AMD GPU kernels.)

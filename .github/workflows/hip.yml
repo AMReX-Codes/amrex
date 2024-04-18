@@ -59,7 +59,7 @@ jobs:
             -DAMReX_FORTRAN=ON                            \
             -DAMReX_LINEAR_SOLVERS=ON                     \
             -DAMReX_GPU_BACKEND=HIP                       \
-            -DAMReX_AMD_ARCH=gfx908                       \
+            -DAMReX_AMD_ARCH=gfx1010                      \
             -DAMReX_ROCTX=ON                              \
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which clang++)         \

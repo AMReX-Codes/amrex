@@ -164,11 +164,8 @@ public:
 
     static int memoryPoolsSupported () noexcept { return memory_pools_supported; }
 
-#if defined(AMREX_USE_HIP) && (HIP_VERSION_MAJOR >= 4)
-    // definition: https://github.com/llvm/llvm-project/blob/62ec4ac90738a5f2d209ed28c822223e58aaaeb7/clang/lib/Basic/Targets/AMDGPU.cpp#L400
-    // overview wavefront size: https://github.com/llvm/llvm-project/blob/efc063b621ea0c4d1e452bcade62f7fc7e1cc937/clang/test/Driver/amdgpu-macros.cl#L70-L115
-    // gfx10XX has 32 threads per wavefront else 64
-    static AMREX_EXPORT constexpr int warp_size = __AMDGCN_WAVEFRONT_SIZE;
+#if defined(AMREX_USE_HIP)
+    static AMREX_EXPORT constexpr int warp_size = AMREX_AMDGCN_WAVEFRONT_SIZE;
 #elif defined(AMREX_USE_SYCL)
     static AMREX_EXPORT constexpr int warp_size = AMREX_SYCL_SUB_GROUP_SIZE;
 #else
