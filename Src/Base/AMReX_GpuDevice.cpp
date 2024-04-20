@@ -324,6 +324,8 @@ Device::Initialize ()
 
 #if defined(AMREX_USE_HIP)
     if (num_devices_used < 0) {
+        // This test is always false, but it makes the compiler no longer
+        // complain about unused function, amrex_check_wavefront_size.
         amrex::single_task(amrex_check_wavefront_size);
     }
 #endif
