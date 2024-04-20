@@ -323,7 +323,9 @@ Device::Initialize ()
 #endif
 
 #if defined(AMREX_USE_HIP)
-    amrex::single_task(amrex_check_wavefront_size);
+    if (num_devices_used < 0) {
+        amrex::single_task(amrex_check_wavefront_size);
+    }
 #endif
 
     Device::profilerStart();
