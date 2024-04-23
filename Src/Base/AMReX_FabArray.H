@@ -1115,9 +1115,10 @@ public:
                              const Periodicity& period = Periodicity::NonPeriodic());
     void SumBoundary_finish ();
 
-    /** \brief Fill cells outside periodic domains with their corresponding cells inside
-    * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
-    * is allowed to be overlapping.
+    /** \brief Fill ghost cells with values from their corresponding cells across periodic
+    * boundaries, regardless of whether the corresponding cells are valid. This differs from
+    * FillBoundary, which only fills from valid cells, and does not fill from ghost cells.
+    * The BoxArray is allowed to be overlapping.
     */
     void EnforcePeriodicity (const Periodicity& period);
     void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period);
