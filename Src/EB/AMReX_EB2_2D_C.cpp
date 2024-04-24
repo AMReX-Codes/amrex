@@ -20,7 +20,15 @@ void set_eb_data (const int i, const int j,
     constexpr Real small = 1.e-14;
     constexpr Real tiny = 1.e-15;
 #endif
-
+    Print()<<i<<"\t"<<j<<"\t"<<0<<std::endl;
+    Print()<<"\nReal axm = "<<apx(i,j,0);
+    Print()<<"\n    Real axp = "<<apx(i+1,j,0);
+    Print()<<"\n    Real aym = "<<apy(i,j,0);
+    Print()<<"\n    Real ayp = "<<apy(i,j+1,0);
+    Print()<<"\n        const Real axm = "<<apx(i  ,j  ,0  )*dx[1];
+    Print()<<"\n        const Real axp = "<<apx(i+1,j  ,0  )*dx[1];
+    Print()<<"\n        const Real aym = "<<apy(i  ,j  ,0  )*dx[0];
+    Print()<<"\n        const Real ayp = "<<apy(i  ,j+1,0  )*dx[0]<<std::endl;
     const Real axm = apx(i  ,j  ,0)*dx[1];
     const Real axp = apx(i+1,j  ,0)*dx[1];
     const Real aym = apy(i  ,j  ,0)*dx[0];
@@ -82,12 +90,15 @@ void set_eb_data (const int i, const int j,
     barea(i,j,0) = (nx*daxp + ny*dayp)/bareascaling;
     bcent(i,j,0,0) = 0.5_rt*(x_ym+x_yp);
     bcent(i,j,0,1) = 0.5_rt*(y_xm+y_xp);
+    Print()<<"\nbcent x"<<x_ym<<"\t"<<x_yp<<std::endl;
+    Print()<<"\nbcent y"<<y_xm<<"\t"<<y_xp<<std::endl;
     bnorm(i,j,0,0) = nx;
     bnorm(i,j,0,1) = ny;
 
     if (nxabs < tiny || nyabs > almostone) {
         vfrac(i,j,0) = 0.5_rt*(axm+axp)/dx[1];
         vcent(i,j,0,0) = 0.0_rt;
+	Print()<<"\neq almost vfrac "<<axm;//<<"\t"<<axp<"\t"<<(dx[1])<<std::endl;
         if (vfrac(i,j,0) > almostone) {
             vcent(i,j,0,1) = 0.0_rt;
         } else {
@@ -95,6 +106,7 @@ void set_eb_data (const int i, const int j,
         }
     } else if (nyabs < tiny || nxabs > almostone) {
         vfrac(i,j,0) = 0.5_rt*(aym+ayp)/dx[0];
+	Print()<<"\neq almost vfrac y";//<<aym<<"\t"<<ayp<"\t"<<std::endl;
         if (vfrac(i,j,0) > almostone) {
             vcent(i,j,0,0) = 0.0_rt;
         } else {
@@ -117,6 +129,7 @@ void set_eb_data (const int i, const int j,
         vcent(i,j,0,1) = -0.125_rt*dayp*dx[1]*dx[1] + aa*(1._rt/6._rt)*dy3;
 
         vfrac(i,j,0) = 0.5_rt*(af1+af2)/(dx[0]*dx[1]);
+	Print()<<"\neq vfrac "<<af1<<"\t"<<af2<<"\t"<<(dx[0]*dx[1])<<std::endl;
 
         if (vfrac(i,j,0) > 1.0_rt-small) {
             vfrac(i,j,0) = 1.0_rt;
@@ -133,8 +146,13 @@ void set_eb_data (const int i, const int j,
             vcent(i,j,0,1) = amrex::min(amrex::max(vcent(i,j,0,1),Real(-0.5)),Real(0.5));
         }
     }
+    Print()<<"\nvfrac "<<vfrac(i,j,0)<<std::endl;
+    Print()<<"\nvcent "<<vcent(i,j,0,0)<<std::endl;
+    Print()<<"\nvcent "<<vcent(i,j,0,1)<<std::endl;
     bcent(i,j,0,0) /= dx[0];
     bcent(i,j,0,1) /= dx[1];
+    Print()<<"\nbcent "<<bcent(i,j,0,0)<<std::endl;
+    Print()<<"\nbcent "<<bcent(i,j,0,1)<<std::endl;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
