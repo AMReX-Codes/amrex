@@ -228,8 +228,6 @@ void set_eb_data (const int i, const int j, const int k,
     bcent(i,j,k,2) *= dapz!=0 ? Math::abs(dx[1]/dapz) : 1.0;
     Print()<<"\nbcent "<<bcent(i,j,k,0)<<std::endl;
     Print()<<"\nbcent "<<bcent(i,j,k,1)<<std::endl;
-    if(k>0)
-	Abort("finished k=0");
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
