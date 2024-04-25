@@ -39,6 +39,7 @@ void set_eb_data (const int i, const int j, const int k,
                   bool& is_small_cell, bool& is_multicut) noexcept
 {
     Print()<<i<<"\t"<<j<<"\t"<<k<<std::endl;
+
     Print()<<"\nReal axm = "<<apx(i,j,k);
     Print()<<"\n    Real axp = "<<apx(i+1,j,k);
     Print()<<"\n    Real aym = "<<apy(i,j,k);
