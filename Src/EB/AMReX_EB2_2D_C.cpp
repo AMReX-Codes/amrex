@@ -153,8 +153,8 @@ void set_eb_data (const int i, const int j,
     bcent(i,j,0,1) /= dx[1];
     Print()<<"\nbcent "<<bcent(i,j,0,0)<<std::endl;
     Print()<<"\nbcent "<<bcent(i,j,0,1)<<std::endl;
-    if(i==36&&j==5)
-	Abort("finished 36 5");
+    //    if(i==36&&j==5)
+    //	Abort("finished 36 5");
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

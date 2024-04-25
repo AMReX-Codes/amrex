@@ -223,13 +223,13 @@ void set_eb_data (const int i, const int j, const int k,
     Print()<<"\nvcent "<<vcent(i,j,k,2)<<std::endl;
     Print()<<"\nbcent "<<bcent(i,j,k,0)<<std::endl;
     Print()<<"\nbcent "<<bcent(i,j,k,1)<<std::endl;
-    bcent(i,j,k,0) /= dx[1]*dx[2];
-    bcent(i,j,k,1) /= dx[0]*dx[2];
-    bcent(i,j,k,2) /= dx[0]*dx[1];
+    bcent(i,j,k,0) *= dapx!=0 ? Math::abs(dx[0]/dapx) : 1.0;
+    bcent(i,j,k,1) *= dapy!=0 ? Math::abs(dx[1]/dapy) : 1.0;
+    bcent(i,j,k,2) *= dapz!=0 ? Math::abs(dx[1]/dapz) : 1.0;
     Print()<<"\nbcent "<<bcent(i,j,k,0)<<std::endl;
     Print()<<"\nbcent "<<bcent(i,j,k,1)<<std::endl;
-    if(i==36&&j==5&&k==0)
-	Abort("finished 36 5 0");
+    if(k>0)
+	Abort("finished k=0");
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
