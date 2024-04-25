@@ -55,8 +55,8 @@ void set_eb_data (const int i, const int j, const int k,
     const Real axp = apx(i+1,j  ,k  )*dx[1]*dx[2];
     const Real aym = apy(i  ,j  ,k  )*dx[0]*dx[2];
     const Real ayp = apy(i  ,j+1,k  )*dx[0]*dx[2];
-    const Real azm = apy(i  ,j  ,k  )*dx[0]*dx[1];
-    const Real azp = apy(i  ,j  ,k+1)*dx[0]*dx[1];
+    const Real azm = apz(i  ,j  ,k  )*dx[0]*dx[1];
+    const Real azp = apz(i  ,j  ,k+1)*dx[0]*dx[1];
     Real axmt = apx(i,j,k);
     Real axpt = apx(i+1,j,k);
     Real aymt = apy(i,j,k);
