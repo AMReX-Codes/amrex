@@ -221,13 +221,15 @@ void set_eb_data (const int i, const int j, const int k,
     Print()<<"\nvcent "<<vcent(i,j,k,0)<<std::endl;
     Print()<<"\nvcent "<<vcent(i,j,k,1)<<std::endl;
     Print()<<"\nvcent "<<vcent(i,j,k,2)<<std::endl;
-    Print()<<"\nbcent "<<bcent(i,j,0,0)<<std::endl;
-    Print()<<"\nbcent "<<bcent(i,j,0,1)<<std::endl;
-    bcent(i,j,k,0) /= dx[0]*dx[0];
-    bcent(i,j,k,1) /= dx[1]*dx[1];
-    bcent(i,j,k,2) /= dx[2]*dx[2];
-    Print()<<"\nbcent "<<bcent(i,j,0,0)<<std::endl;
-    Print()<<"\nbcent "<<bcent(i,j,0,1)<<std::endl;
+    Print()<<"\nbcent "<<bcent(i,j,k,0)<<std::endl;
+    Print()<<"\nbcent "<<bcent(i,j,k,1)<<std::endl;
+    bcent(i,j,k,0) /= dx[1]*dx[2];
+    bcent(i,j,k,1) /= dx[0]*dx[2];
+    bcent(i,j,k,2) /= dx[0]*dx[1];
+    Print()<<"\nbcent "<<bcent(i,j,k,0)<<std::endl;
+    Print()<<"\nbcent "<<bcent(i,j,k,1)<<std::endl;
+    if(i==36&&j==5&&k==0)
+	Abort("finished 36 5 0");
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
