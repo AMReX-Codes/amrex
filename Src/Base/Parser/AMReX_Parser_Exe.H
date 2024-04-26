@@ -5,6 +5,8 @@
 #include <AMReX_Parser_Y.H>
 #include <AMReX_Vector.H>
 
+#include <limits>
+
 #ifndef AMREX_PARSER_STACK_SIZE
 #define AMREX_PARSER_STACK_SIZE 16
 #endif
@@ -230,6 +232,8 @@ struct ParserStack
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double parser_exe_eval (const char* p, double const* x)
 {
+    if (p == nullptr) { return std::numeric_limits<double>::max(); }
+
     ParserStack<AMREX_PARSER_STACK_SIZE> pstack;
     while (*((parser_exe_t*)p) != PARSER_EXE_NULL) { // NOLINT
         switch (*((parser_exe_t*)p))
