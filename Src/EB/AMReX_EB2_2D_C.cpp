@@ -90,8 +90,9 @@ void set_eb_data (const int i, const int j,
     barea(i,j,0) = (nx*daxp + ny*dayp)/bareascaling;
     bcent(i,j,0,0) = 0.5_rt*(x_ym+x_yp);
     bcent(i,j,0,1) = 0.5_rt*(y_xm+y_xp);
-    Print()<<"\nbcent x"<<x_ym<<"\t"<<x_yp<<std::endl;
-    Print()<<"\nbcent y"<<y_xm<<"\t"<<y_xp<<std::endl;
+    Real aax = 0.5_rt*(axm+axp)/dx[1];
+    Real Bx = -nx*aax;
+
     bnorm(i,j,0,0) = nx;
     bnorm(i,j,0,1) = ny;
 
@@ -146,6 +147,16 @@ void set_eb_data (const int i, const int j,
             vcent(i,j,0,1) = amrex::min(amrex::max(vcent(i,j,0,1),Real(-0.5)),Real(0.5));
         }
     }
+    Print()<<"\nbcent x"<<x_ym<<"\t"<<x_yp<<std::endl;
+    Print()<<"\nbcent y"<<y_xm<<"\t"<<y_xp<<std::endl;
+    Print()<<i<<" "<<j<<" na"<<std::endl;
+    Print()<<nx*daxp<<" "<<ny*dayp<<" "<<"na "<<bareascaling<<std::endl;
+    Print()<<1/barea(i,j,0)<<" "<<Bx<<" "<<(Bx/(dx[1]))<<" "<<(nx*vfrac(i,j,0))<<" "<<nx<<" "<<vfrac(i,j,0);
+    Print()<<"Bx should be " <<(bcent(i,j,0,0)*barea(i,j,0)-nx*vfrac(i,j,0))<<std::endl;
+    Print()<<"Bx should be " <<(bcent(i,j,0,0)-nx*vfrac(i,j,0))<<std::endl;
+    Print()<<"Bx should be " <<(bcent(i,j,0,0)/barea(i,j,0)-nx*vfrac(i,j,0))<<std::endl;
+    Print()<<std::endl;
+    Print()<<"x_ym "<<x_ym<<"x_yp "<<x_yp<<std::endl;
     Print()<<"\nvfrac "<<vfrac(i,j,0)<<std::endl;
     Print()<<"\nvcent "<<vcent(i,j,0,0)<<std::endl;
     Print()<<"\nvcent "<<vcent(i,j,0,1)<<std::endl;
@@ -153,6 +164,8 @@ void set_eb_data (const int i, const int j,
     bcent(i,j,0,1) /= dx[1];
     Print()<<"\nbcent "<<bcent(i,j,0,0)<<std::endl;
     Print()<<"\nbcent "<<bcent(i,j,0,1)<<std::endl;
+    if(i==33&&j==7)
+	Abort("33 7 0");
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
