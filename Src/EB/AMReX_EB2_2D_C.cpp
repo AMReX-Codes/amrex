@@ -20,15 +20,6 @@ void set_eb_data (const int i, const int j,
     constexpr Real small = 1.e-14;
     constexpr Real tiny = 1.e-15;
 #endif
-    Print()<<i<<"\t"<<j<<"\t"<<0<<std::endl;
-    Print()<<"\nReal axm = "<<apx(i,j,0);
-    Print()<<"\n    Real axp = "<<apx(i+1,j,0);
-    Print()<<"\n    Real aym = "<<apy(i,j,0);
-    Print()<<"\n    Real ayp = "<<apy(i,j+1,0);
-    Print()<<"\n        const Real axm = "<<apx(i  ,j  ,0  )*dx[1];
-    Print()<<"\n        const Real axp = "<<apx(i+1,j  ,0  )*dx[1];
-    Print()<<"\n        const Real aym = "<<apy(i  ,j  ,0  )*dx[0];
-    Print()<<"\n        const Real ayp = "<<apy(i  ,j+1,0  )*dx[0]<<std::endl;
     const Real axm = apx(i  ,j  ,0)*dx[1];
     const Real axp = apx(i+1,j  ,0)*dx[1];
     const Real aym = apy(i  ,j  ,0)*dx[0];
@@ -99,7 +90,6 @@ void set_eb_data (const int i, const int j,
     if (nxabs < tiny || nyabs > almostone) {
         vfrac(i,j,0) = 0.5_rt*(axm+axp)/dx[1];
         vcent(i,j,0,0) = 0.0_rt;
-	Print()<<"\neq almost vfrac "<<axm;//<<"\t"<<axp<"\t"<<(dx[1])<<std::endl;
         if (vfrac(i,j,0) > almostone) {
             vcent(i,j,0,1) = 0.0_rt;
         } else {
@@ -107,7 +97,6 @@ void set_eb_data (const int i, const int j,
         }
     } else if (nyabs < tiny || nxabs > almostone) {
         vfrac(i,j,0) = 0.5_rt*(aym+ayp)/dx[0];
-	Print()<<"\neq almost vfrac y";//<<aym<<"\t"<<ayp<"\t"<<std::endl;
         if (vfrac(i,j,0) > almostone) {
             vcent(i,j,0,0) = 0.0_rt;
         } else {
@@ -130,7 +119,6 @@ void set_eb_data (const int i, const int j,
         vcent(i,j,0,1) = -0.125_rt*dayp*dx[1]*dx[1] + aa*(1._rt/6._rt)*dy3;
 
         vfrac(i,j,0) = 0.5_rt*(af1+af2)/(dx[0]*dx[1]);
-	Print()<<"\neq vfrac "<<af1<<"\t"<<af2<<"\t"<<(dx[0]*dx[1])<<std::endl;
 
         if (vfrac(i,j,0) > 1.0_rt-small) {
             vfrac(i,j,0) = 1.0_rt;
@@ -147,23 +135,8 @@ void set_eb_data (const int i, const int j,
             vcent(i,j,0,1) = amrex::min(amrex::max(vcent(i,j,0,1),Real(-0.5)),Real(0.5));
         }
     }
-    Print()<<"\nbcent x"<<x_ym<<"\t"<<x_yp<<std::endl;
-    Print()<<"\nbcent y"<<y_xm<<"\t"<<y_xp<<std::endl;
-    Print()<<i<<" "<<j<<" na"<<std::endl;
-    Print()<<nx*daxp<<" "<<ny*dayp<<" "<<"na "<<bareascaling<<std::endl;
-    Print()<<1/barea(i,j,0)<<" "<<Bx<<" "<<(Bx/(dx[1]))<<" "<<(nx*vfrac(i,j,0))<<" "<<nx<<" "<<vfrac(i,j,0);
-    Print()<<"Bx should be " <<(bcent(i,j,0,0)*barea(i,j,0)-nx*vfrac(i,j,0))<<std::endl;
-    Print()<<"Bx should be " <<(bcent(i,j,0,0)-nx*vfrac(i,j,0))<<std::endl;
-    Print()<<"Bx should be " <<(bcent(i,j,0,0)/barea(i,j,0)-nx*vfrac(i,j,0))<<std::endl;
-    Print()<<std::endl;
-    Print()<<"x_ym "<<x_ym<<"x_yp "<<x_yp<<std::endl;
-    Print()<<"\nvfrac "<<vfrac(i,j,0)<<std::endl;
-    Print()<<"\nvcent "<<vcent(i,j,0,0)<<std::endl;
-    Print()<<"\nvcent "<<vcent(i,j,0,1)<<std::endl;
     bcent(i,j,0,0) /= dx[0];
     bcent(i,j,0,1) /= dx[1];
-    Print()<<"\nbcent "<<bcent(i,j,0,0)<<std::endl;
-    Print()<<"\nbcent "<<bcent(i,j,0,1)<<std::endl;
     if(i==33&&j==7)
 	Abort("33 7 0");
 }
