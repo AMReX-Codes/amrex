@@ -163,7 +163,7 @@ void set_eb_data (const int i, const int j, const int k,
         Print()<<"is_small_cell"<<std::endl;
         return;
     }
-
+    //apnorm*apnorm/barea(i,j,k)
     Real bainv = bareascaling*bareascaling/apnorm;
     bcent(i,j,k,0) = bainv * (Bxo/(dx[1]*dx[2]) + nx*vfrac(i,j,k));
     bcent(i,j,k,0) = bainv * (Bxo/(dx[1]*dx[2]) + nx*vfrac(i,j,k));
@@ -180,15 +180,15 @@ void set_eb_data (const int i, const int j, const int k,
 
     bcent(i,j,k,1) = bainv * (Byo/(dx[0]*dx[2]) + ny*vfrac(i,j,k));
     bcent(i,j,k,2) = bainv * (Bzo/(dx[0]*dx[1]) + nz*vfrac(i,j,k));
-    Real b1 = 0.5_rt*(axp-axm)/dx[1]/dx[2] + 0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0))/dx[0]/dx[2] + 0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0))/dx[0]/dx[1];
-    Real b2 = 0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0))/dx[1]/dx[2] + 0.5_rt*(ayp-aym)/dx[0]/dx[2] + 0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1))/dx[0]/dx[1];
-    Real b3 = 0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1))/dx[1]/dx[2] + 0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1))/dx[0]/dx[2] + 0.5_rt*(azp-azm)/dx[0]/dx[1];
-    Real b4 = -nx*0.25_rt*(axp-axm)/dx[1]/dx[2] - ny*(m2y(i,j+1,k,0) - m2y(i,j,k,0))/dx[0]/dx[2] - nz*(m2z(i,j,k+1,0) - m2z(i,j,k,0))/dx[0]/dx[1];
-    Real b5 = -nx*(m2x(i+1,j,k,0) - m2x(i,j,k,0))/dx[1]/dx[2] - ny*0.25_rt*(ayp-aym)/dx[0]/dx[2] - nz*(m2z(i,j,k+1,1) - m2z(i,j,k,1))/dx[0]/dx[1];
-    Real b6 = -nx*(m2x(i+1,j,k,1) - m2x(i,j,k,1))/dx[1]/dx[2] - ny*(m2y(i,j+1,k,1) - m2y(i,j,k,1))/dx[0]/dx[2] - nz*0.25_rt*(azp-azm)/dx[0]/dx[1];
-    Real b7 = -nx*0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0))/dx[1]/dx[2] - ny*0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0))/dx[0]/dx[2] - nz*(m2z(i,j,k+1,2) - m2z(i,j,k,2))/dx[0]/dx[1];
-    Real b8 = -nx*0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1))/dx[1]/dx[2] - ny*(m2y(i,j+1,k,2) - m2y(i,j,k,2))/dx[0]/dx[2] - nz*0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0))/dx[0]/dx[1];
-    Real b9 = -nx*(m2x(i+1,j,k,2) - m2x(i,j,k,2))/dx[1]/dx[2] - ny*0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1))/dx[0]/dx[2] - nz*0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1))/dx[0]/dx[1]; 
+    Real b1 = 0.5_rt*(axp-axm)*dx[1]*dx[2] + 0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0))*dx[0]*dx[2] + 0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0))*dx[0]*dx[1];
+    Real b2 = 0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0))*dx[1]*dx[2] + 0.5_rt*(ayp-aym)*dx[0]*dx[2] + 0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1))*dx[0]*dx[1];
+    Real b3 = 0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1))*dx[1]*dx[2] + 0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1))*dx[0]*dx[2] + 0.5_rt*(azp-azm)*dx[0]*dx[1];
+    Real b4 = -nx*0.25_rt*(axp-axm)*dx[1]*dx[2] - ny*(m2y(i,j+1,k,0) - m2y(i,j,k,0))*dx[0]*dx[2] - nz*(m2z(i,j,k+1,0) - m2z(i,j,k,0))*dx[0]*dx[1];
+    Real b5 = -nx*(m2x(i+1,j,k,0) - m2x(i,j,k,0))*dx[1]*dx[2] - ny*0.25_rt*(ayp-aym)*dx[0]*dx[2] - nz*(m2z(i,j,k+1,1) - m2z(i,j,k,1))*dx[0]*dx[1];
+    Real b6 = -nx*(m2x(i+1,j,k,1) - m2x(i,j,k,1))*dx[1]*dx[2] - ny*(m2y(i,j+1,k,1) - m2y(i,j,k,1))*dx[0]*dx[2] - nz*0.25_rt*(azp-azm)*dx[0]*dx[1];
+    Real b7 = -nx*0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0))*dx[1]*dx[2] - ny*0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0))*dx[0]*dx[2] - nz*(m2z(i,j,k+1,2) - m2z(i,j,k,2))*dx[0]*dx[1];
+    Real b8 = -nx*0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1))*dx[1]*dx[2] - ny*(m2y(i,j+1,k,2) - m2y(i,j,k,2))*dx[0]*dx[2] - nz*0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0))*dx[0]*dx[1];
+    Real b9 = -nx*(m2x(i+1,j,k,2) - m2x(i,j,k,2))*dx[1]*dx[2] - ny*0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1))*dx[0]*dx[2] - nz*0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1))*dx[0]*dx[1];
 
     Real ny2 = ny*ny*apnorm;
     Real ny3 = ny2*ny*apnorm;
