@@ -138,7 +138,7 @@ void set_eb_data (const int i, const int j,
     bcent(i,j,0,0) /= dx[0];
     bcent(i,j,0,1) /= dx[1];
     if(i==33&&j==7)
-	Abort("33 7 0");
+    Abort("33 7 0");
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

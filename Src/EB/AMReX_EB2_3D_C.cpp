@@ -200,12 +200,12 @@ void set_eb_data (const int i, const int j, const int k,
                 10._rt*b8*nx*(-2._rt + ny2))*nz2 +
                2._rt*(-5._rt*b4 + 15._rt*b6 + (b2 + b7*nx)*ny +
                    2._rt*(b4 + b5 - 4._rt*b6)*ny2)*nz3 + 2._rt*b9*ny*nz4);
-    
+
     Real deno = 1._rt / (10._rt*(5._rt + 4._rt*nz2 - 4._rt*nz4 + 2._rt*ny4*(-2._rt + nz2) +
                                   2._rt*ny2*(2._rt - 3._rt*nz2 + nz4)) * (vfrac(i,j,k)+1.e-30_rt) );
     Real den = 1._rt / (10._rt*(5._rt + 4._rt*nz2 - 4._rt*nz4 + 2._rt*ny4*(-2._rt + nz2) +
                                 2._rt*ny2*(2._rt - 3._rt*nz2 + nz4)) * (vfrac(i,j,k)+1.e-30_rt) ) / (dx[0]*dx[1]*dx[2]);
-	   <<std::endl;
+       <<std::endl;
 
     vcent(i,j,k,0) = Sx * den;
     vcent(i,j,k,1) = Sy * den;
@@ -216,7 +216,7 @@ void set_eb_data (const int i, const int j, const int k,
     bcent(i,j,k,2) *= dapz!=0 ? Math::abs(dx[2]/(dapz)) : 1e34;
     */
 //    if(i==19&&j==20&&k==0)
-//	Abort("19 20 0");
+//    Abort("19 20 0");
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
