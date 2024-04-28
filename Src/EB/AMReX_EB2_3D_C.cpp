@@ -113,7 +113,7 @@ void set_eb_data (const int i, const int j, const int k,
     Real aax = 0.5_rt*(axm+axp);
     Real aay = 0.5_rt*(aym+ayp);
     Real aaz = 0.5_rt*(azm+azp);
-    Real B0 = aax + aay + aaz;
+    Real B0 = aax/dx[1]/dx[2] + aay/dx[0]/dx[2] + aaz/dx[0]/dx[1];
     Real Bx = -nx*aax + ny*(aym*fcy(i,j,k,0)-ayp*fcy(i,j+1,k,0))
                       + nz*(azm*fcz(i,j,k,0)-azp*fcz(i,j,k+1,0));
     Real By = -ny*aay + nx*(axm*fcx(i,j,k,0)-axp*fcx(i+1,j,k,0))
