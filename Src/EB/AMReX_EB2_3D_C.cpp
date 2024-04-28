@@ -111,7 +111,7 @@ void set_eb_data (const int i, const int j, const int k,
     bnorm(i,j,k,0) = nx;
     bnorm(i,j,k,1) = ny;
     bnorm(i,j,k,2) = nz;
-    barea(i,j,k) = (nx*dapx*dx[0]*dx[0] + ny*dapy*dx[1]*dx[1] + nz*dapz*dx[2]*dx[2])*apnorminv*apnorminv;
+    barea(i,j,k) = (nx*dapx/dx[1]/dx[2] + ny*dapy/dx[0]/dx[2] + nz*dapz/dx[0]/dx[1]);
     //    barea(i,j,k) = (nx*dapx*dx[0]*dx[0] + ny*dapy*dx[1]*dx[1] + nz*dapz*dx[2]*dx[2])/bareascaling;
 
     Real aaxo = 0.5_rt*(axm+axp);
