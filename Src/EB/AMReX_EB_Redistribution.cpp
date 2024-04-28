@@ -31,7 +31,7 @@ namespace amrex {
         // Check that grid is uniform
         //
         const Real* dx = geom.CellSize();
-/*
+
 #if (AMREX_SPACEDIM == 2)
         if (! amrex::almostEqual(dx[0], dx[1])) {
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
@@ -42,7 +42,7 @@ namespace amrex {
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
         }
 #endif
-*/
+
         //
         // Get array4 from arguments
         //

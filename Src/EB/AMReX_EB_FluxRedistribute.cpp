@@ -32,7 +32,7 @@ amrex_flux_redistribute (
     // Check that grid is uniform
     //
     const Real* dx = geom.CellSize();
-    /*
+
 #if (AMREX_SPACEDIM == 2)
     if (! amrex::almostEqual(dx[0], dx[1]))
 #elif (AMREX_SPACEDIM == 3)
@@ -42,7 +42,7 @@ amrex_flux_redistribute (
     {
         amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
     }
-*/
+
     const Box dbox1 = geom.growPeriodicDomain(1);
     const Box dbox2 = geom.growPeriodicDomain(2);
 

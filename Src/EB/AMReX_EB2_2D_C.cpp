@@ -20,6 +20,7 @@ void set_eb_data (const int i, const int j,
     constexpr Real small = 1.e-14;
     constexpr Real tiny = 1.e-15;
 #endif
+
     const Real axm = apx(i  ,j  ,0)*dx[1];
     const Real axp = apx(i+1,j  ,0)*dx[1];
     const Real aym = apy(i  ,j  ,0)*dx[0];
@@ -81,9 +82,6 @@ void set_eb_data (const int i, const int j,
     barea(i,j,0) = (nx*daxp + ny*dayp)/bareascaling;
     bcent(i,j,0,0) = 0.5_rt*(x_ym+x_yp);
     bcent(i,j,0,1) = 0.5_rt*(y_xm+y_xp);
-    Real aax = 0.5_rt*(axm+axp)/dx[1];
-    Real Bx = -nx*aax;
-
     bnorm(i,j,0,0) = nx;
     bnorm(i,j,0,1) = ny;
 
@@ -137,8 +135,6 @@ void set_eb_data (const int i, const int j,
     }
     bcent(i,j,0,0) /= dx[0];
     bcent(i,j,0,1) /= dx[1];
-    if(i==33&&j==7)
-    Abort("33 7 0");
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
