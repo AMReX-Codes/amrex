@@ -38,12 +38,12 @@ void set_eb_data (const int i, const int j, const int k,
                   Array4<Real> const& bnorm, Real small_volfrac,
                   bool& is_small_cell, bool& is_multicut) noexcept
 {
-    const Real axm = apx(i  ,j  ,k  )*dx[1]*dx[2];
-    const Real axp = apx(i+1,j  ,k  )*dx[1]*dx[2];
-    const Real aym = apy(i  ,j  ,k  )*dx[0]*dx[2];
-    const Real ayp = apy(i  ,j+1,k  )*dx[0]*dx[2];
-    const Real azm = apz(i  ,j  ,k  )*dx[0]*dx[1];
-    const Real azp = apz(i  ,j  ,k+1)*dx[0]*dx[1];
+    Real axm = apx(i  ,j  ,k  )*dx[1]*dx[2];
+    Real axp = apx(i+1,j  ,k  )*dx[1]*dx[2];
+    Real aym = apy(i  ,j  ,k  )*dx[0]*dx[2];
+    Real ayp = apy(i  ,j+1,k  )*dx[0]*dx[2];
+    Real azm = apz(i  ,j  ,k  )*dx[0]*dx[1];
+    Real azp = apz(i  ,j  ,k+1)*dx[0]*dx[1];
     Real axmt = apx(i,j,k);
     Real axpt = apx(i+1,j,k);
     Real aymt = apy(i,j,k);
@@ -110,10 +110,17 @@ void set_eb_data (const int i, const int j, const int k,
     bnorm(i,j,k,2) = nz;
     barea(i,j,k) = (nx*dapx/dx[1]/dx[2] + ny*dapy/dx[0]/dx[2] + nz*dapz/dx[0]/dx[1]);
 
+    axm = apx(i  ,j  ,k  );
+    axp = apx(i+1,j  ,k  );
+    aym = apy(i  ,j  ,k  );
+    ayp = apy(i  ,j+1,k  );
+    azm = apz(i  ,j  ,k  );
+    azp = apz(i  ,j  ,k+1);
+
     Real aax = 0.5_rt*(axm+axp);
     Real aay = 0.5_rt*(aym+ayp);
     Real aaz = 0.5_rt*(azm+azp);
-    Real B0 = aax/dx[1]/dx[2] + aay/dx[0]/dx[2] + aaz/dx[0]/dx[1];
+    Real B0 = aax + aay + aaz;
     Real Bx = -nx*aax + ny*(aym*fcy(i,j,k,0)-ayp*fcy(i,j+1,k,0))
                       + nz*(azm*fcz(i,j,k,0)-azp*fcz(i,j,k+1,0));
     Real By = -ny*aay + nx*(axm*fcx(i,j,k,0)-axp*fcx(i+1,j,k,0))
@@ -121,7 +128,7 @@ void set_eb_data (const int i, const int j, const int k,
     Real Bz = -nz*aaz + nx*(axm*fcx(i,j,k,1)-axp*fcx(i+1,j,k,1))
                       + ny*(aym*fcy(i,j,k,1)-ayp*fcy(i,j+1,k,1));
 
-    vfrac(i,j,k) = 0.5_rt*(B0 + nx*Bx/(dx[1]*dx[2]) + ny*By/(dx[0]*dx[2]) + nz*Bz/(dx[0]*dx[1]));
+    vfrac(i,j,k) = 0.5_rt*(B0 + nx*Bx + ny*By + nz*Bz);
 
     // remove small cell
     if (vfrac(i,j,k) < small_volfrac) {
@@ -131,19 +138,19 @@ void set_eb_data (const int i, const int j, const int k,
     }
 
     Real bainv = bareascaling*bareascaling/apnorm;
-    bcent(i,j,k,0) = bainv * (Bx/(dx[1]*dx[2]) + nx*vfrac(i,j,k));
-    bcent(i,j,k,1) = bainv * (By/(dx[0]*dx[2]) + ny*vfrac(i,j,k));
-    bcent(i,j,k,2) = bainv * (Bz/(dx[0]*dx[1]) + nz*vfrac(i,j,k));
+    bcent(i,j,k,0) = bainv * (Bx + nx*vfrac(i,j,k));
+    bcent(i,j,k,1) = bainv * (By + ny*vfrac(i,j,k));
+    bcent(i,j,k,2) = bainv * (Bz + nz*vfrac(i,j,k));
 
-    Real b1 = 0.5_rt*(axp-axm)/dx[1]/dx[2] + 0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0))/dx[0]/dx[2] + 0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0))/dx[0]/dx[1];
-    Real b2 = 0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0))/dx[1]/dx[2] + 0.5_rt*(ayp-aym)/dx[0]/dx[2] + 0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1))/dx[0]/dx[1];
-    Real b3 = 0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1))/dx[1]/dx[2] + 0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1))/dx[0]/dx[2] + 0.5_rt*(azp-azm)/dx[0]/dx[1];
-    Real b4 = -nx*0.25_rt*(axp-axm)/dx[1]/dx[2] - ny*(m2y(i,j+1,k,0) - m2y(i,j,k,0)) - nz*(m2z(i,j,k+1,0) - m2z(i,j,k,0));
-    Real b5 = -nx*(m2x(i+1,j,k,0) - m2x(i,j,k,0)) - ny*0.25_rt*(ayp-aym)/dx[0]/dx[2] - nz*(m2z(i,j,k+1,1) - m2z(i,j,k,1));
-    Real b6 = -nx*(m2x(i+1,j,k,1) - m2x(i,j,k,1)) - ny*(m2y(i,j+1,k,1) - m2y(i,j,k,1)) - nz*0.25_rt*(azp-azm)/dx[0]/dx[1];
-    Real b7 = -nx*0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0))/dx[1]/dx[2] - ny*0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0))/dx[0]/dx[2] - nz*(m2z(i,j,k+1,2) - m2z(i,j,k,2));
-    Real b8 = -nx*0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1))/dx[1]/dx[2] - ny*(m2y(i,j+1,k,2) - m2y(i,j,k,2)) - nz*0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0))/dx[0]/dx[1];
-    Real b9 = -nx*(m2x(i+1,j,k,2) - m2x(i,j,k,2)) - ny*0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1))/dx[0]/dx[2] - nz*0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1))/dx[0]/dx[1];
+    Real b1 = 0.5_rt*(axp-axm) + 0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0)) + 0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
+    Real b2 = 0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0)) + 0.5_rt*(ayp-aym) + 0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
+    Real b3 = 0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1)) + 0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1)) + 0.5_rt*(azp-azm);
+    Real b4 = -nx*0.25_rt*(axp-axm) - ny*(m2y(i,j+1,k,0) - m2y(i,j,k,0)) - nz*(m2z(i,j,k+1,0) - m2z(i,j,k,0));
+    Real b5 = -nx*(m2x(i+1,j,k,0) - m2x(i,j,k,0)) - ny*0.25_rt*(ayp-aym) - nz*(m2z(i,j,k+1,1) - m2z(i,j,k,1));
+    Real b6 = -nx*(m2x(i+1,j,k,1) - m2x(i,j,k,1)) - ny*(m2y(i,j+1,k,1) - m2y(i,j,k,1)) - nz*0.25_rt*(azp-azm);
+    Real b7 = -nx*0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0)) - ny*0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0)) - nz*(m2z(i,j,k+1,2) - m2z(i,j,k,2));
+    Real b8 = -nx*0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1)) - ny*(m2y(i,j+1,k,2) - m2y(i,j,k,2)) - nz*0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
+    Real b9 = -nx*(m2x(i+1,j,k,2) - m2x(i,j,k,2)) - ny*0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1)) - nz*0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
 
     Real ny2 = ny*ny;
     Real ny3 = ny2*ny;
