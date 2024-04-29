@@ -38,28 +38,28 @@ void set_eb_data (const int i, const int j, const int k,
                   Array4<Real> const& bnorm, Real small_volfrac,
                   bool& is_small_cell, bool& is_multicut) noexcept
 {
-    Real axm = apx(i  ,j  ,k  )*dx[1]*dx[2];
-    Real axp = apx(i+1,j  ,k  )*dx[1]*dx[2];
-    Real aym = apy(i  ,j  ,k  )*dx[0]*dx[2];
-    Real ayp = apy(i  ,j+1,k  )*dx[0]*dx[2];
-    Real azm = apz(i  ,j  ,k  )*dx[0]*dx[1];
-    Real azp = apz(i  ,j  ,k+1)*dx[0]*dx[1];
-    Real axmt = apx(i,j,k);
-    Real axpt = apx(i+1,j,k);
-    Real aymt = apy(i,j,k);
-    Real aypt = apy(i,j+1,k);
-    Real azmt = apz(i,j,k);
-    Real azpt = apz(i,j,k+1);
+    const Real axmt = apx(i  ,j  ,k  )*dx[1]*dx[2];
+    const Real axpt = apx(i+1,j  ,k  )*dx[1]*dx[2];
+    const Real aymt = apy(i  ,j  ,k  )*dx[0]*dx[2];
+    const Real aypt = apy(i  ,j+1,k  )*dx[0]*dx[2];
+    const Real azmt = apz(i  ,j  ,k  )*dx[0]*dx[1];
+    const Real azpt = apz(i  ,j  ,k+1)*dx[0]*dx[1];
+    const Real axm = apx(i,j,k);
+    const Real axp = apx(i+1,j,k);
+    const Real aym = apy(i,j,k);
+    const Real ayp = apy(i,j+1,k);
+    const Real azm = apz(i,j,k);
+    const Real azp = apz(i,j,k+1);
     // Check for small cell first
-    if (((axmt == 0.0_rt && axpt == 0.0_rt) &&
-         (aymt == 0.0_rt && aypt == 0.0_rt) &&
-         (azmt == 0.0_rt || azpt == 0.0_rt)) ||
-        ((axmt == 0.0_rt && axpt == 0.0_rt) &&
-         (aymt == 0.0_rt || aypt == 0.0_rt) &&
-         (azmt == 0.0_rt && azpt == 0.0_rt)) ||
-        ((axmt == 0.0_rt || axpt == 0.0_rt) &&
-         (aymt == 0.0_rt && aypt == 0.0_rt) &&
-         (azmt == 0.0_rt && azpt == 0.0_rt))) {
+    if (((axm == 0.0_rt && axp == 0.0_rt) &&
+         (aym == 0.0_rt && ayp == 0.0_rt) &&
+         (azm == 0.0_rt || azp == 0.0_rt)) ||
+        ((axm == 0.0_rt && axp == 0.0_rt) &&
+         (aym == 0.0_rt || ayp == 0.0_rt) &&
+         (azm == 0.0_rt && azp == 0.0_rt)) ||
+        ((axm == 0.0_rt || axp == 0.0_rt) &&
+         (aym == 0.0_rt && ayp == 0.0_rt) &&
+         (azm == 0.0_rt && azp == 0.0_rt))) {
         set_covered(i, j, k, cell, vfrac, vcent, barea, bcent, bnorm);
         is_small_cell = true;
         return;
@@ -69,12 +69,12 @@ void set_eb_data (const int i, const int j, const int k,
     // We know there are no multiple cuts on faces by now.
     // We need to check the case that there are two cuts
     // at the opposite corners.
-    bool multi_cuts = (axm >= 0.5_rt*dx[1]*dx[2] && axm < dx[1]*dx[2] &&
-                       axp >= 0.5_rt*dx[1]*dx[2] && axp < dx[1]*dx[2] &&
-                       aym >= 0.5_rt*dx[0]*dx[1] && aym < dx[0]*dx[1] &&
-                       ayp >= 0.5_rt*dx[0]*dx[1] && ayp < dx[0]*dx[1] &&
-                       azm >= 0.5_rt*dx[1]*dx[2] && azm < dx[1]*dx[2] &&
-                       azp >= 0.5_rt*dx[1]*dx[2] && azp < dx[1]*dx[2]);
+    bool multi_cuts = (axmt >= 0.5_rt*dx[1]*dx[2] && axmt < dx[1]*dx[2] &&
+                       axpt >= 0.5_rt*dx[1]*dx[2] && axpt < dx[1]*dx[2] &&
+                       aymt >= 0.5_rt*dx[0]*dx[1] && aymt < dx[0]*dx[1] &&
+                       aypt >= 0.5_rt*dx[0]*dx[1] && aypt < dx[0]*dx[1] &&
+                       azmt >= 0.5_rt*dx[1]*dx[2] && azmt < dx[1]*dx[2] &&
+                       azpt >= 0.5_rt*dx[1]*dx[2] && azpt < dx[1]*dx[2]);
 
     if (multi_cuts) {
         set_covered(i, j, k, cell, vfrac, vcent, barea, bcent, bnorm);
@@ -82,9 +82,9 @@ void set_eb_data (const int i, const int j, const int k,
         return;
     }
 
-    Real dapx = axm - axp;
-    Real dapy = aym - ayp;
-    Real dapz = azm - azp;
+    Real dapx = axmt - axpt;
+    Real dapy = aymt - aypt;
+    Real dapz = azmt - azpt;
     const Real apnorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz) + 1.e-30_rt*std::sqrt(dx[0]*dx[1]*dx[2]);
     if (apnorm == 0.0_rt) {
         bool maybe_multi_cuts = (axm == 0.0_rt && axp == 0.0_rt) ||
@@ -109,13 +109,6 @@ void set_eb_data (const int i, const int j, const int k,
     bnorm(i,j,k,1) = ny;
     bnorm(i,j,k,2) = nz;
     barea(i,j,k) = (nx*dapx/dx[1]/dx[2] + ny*dapy/dx[0]/dx[2] + nz*dapz/dx[0]/dx[1]);
-
-    axm = apx(i  ,j  ,k  );
-    axp = apx(i+1,j  ,k  );
-    aym = apy(i  ,j  ,k  );
-    ayp = apy(i  ,j+1,k  );
-    azm = apz(i  ,j  ,k  );
-    azp = apz(i  ,j  ,k+1);
 
     Real aax = 0.5_rt*(axm+axp);
     Real aay = 0.5_rt*(aym+ayp);
