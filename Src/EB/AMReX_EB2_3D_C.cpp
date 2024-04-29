@@ -85,7 +85,7 @@ void set_eb_data (const int i, const int j, const int k,
     Real dapx = axm - axp;
     Real dapy = aym - ayp;
     Real dapz = azm - azp;
-    const Real apnorm = std::hypot(dapx,dapy,dapz) + 1.e-30_rt*std::sqrt(dx[0]*dx[1]*dx[2]);
+    const Real apnorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz) + 1.e-30_rt*std::sqrt(dx[0]*dx[1]*dx[2]);
     if (apnorm == 0.0_rt) {
         bool maybe_multi_cuts = (axm == 0.0_rt && axp == 0.0_rt) ||
                                 (aym == 0.0_rt && ayp == 0.0_rt) ||
