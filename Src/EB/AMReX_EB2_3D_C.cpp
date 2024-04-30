@@ -32,18 +32,18 @@ void set_eb_data (const int i, const int j, const int k,
                   Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                   Array4<Real const> const& fcz, Array4<Real const> const& m2x,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
+                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Real small_volfrac,
                   bool& is_small_cell, bool& is_multicut) noexcept
 {
-    Real axm = apx(i,j,k);
-    Real axp = apx(i+1,j,k);
-    Real aym = apy(i,j,k);
-    Real ayp = apy(i,j+1,k);
-    Real azm = apz(i,j,k);
-    Real azp = apz(i,j,k+1);
-
+    const Real axm = apx(i,j,k);
+    const Real axp = apx(i+1,j,k);
+    const Real aym = apy(i,j,k);
+    const Real ayp = apy(i,j+1,k);
+    const Real azm = apz(i,j,k);
+    const Real azp = apz(i,j,k+1);
     // Check for small cell first
     if (((axm == 0.0_rt && axp == 0.0_rt) &&
          (aym == 0.0_rt && ayp == 0.0_rt) &&
@@ -76,10 +76,10 @@ void set_eb_data (const int i, const int j, const int k,
         return;
     }
 
-    Real dapx = axm - axp;
-    Real dapy = aym - ayp;
-    Real dapz = azm - azp;
-    Real apnorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+    Real dapx = (axm - axp)*(dx[1]*dx[2]);
+    Real dapy = (aym - ayp)*(dx[0]*dx[2]);
+    Real dapz = (azm - azp)*(dx[0]*dx[1]);
+    const Real apnorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz) + 1.e-30_rt*std::sqrt(dx[0]*dx[1]*dx[2]);
     if (apnorm == 0.0_rt) {
         bool maybe_multi_cuts = (axm == 0.0_rt && axp == 0.0_rt) ||
                                 (aym == 0.0_rt && ayp == 0.0_rt) ||
@@ -96,10 +96,13 @@ void set_eb_data (const int i, const int j, const int k,
     Real nx = dapx * apnorminv;
     Real ny = dapy * apnorminv;
     Real nz = dapz * apnorminv;
+    const Real bareascaling = std::sqrt( (nx*dx[0])*(nx*dx[0]) +
+            (ny*dx[1])*(ny*dx[1]) +
+            (nz*dx[2])*(nz*dx[2]) );
     bnorm(i,j,k,0) = nx;
     bnorm(i,j,k,1) = ny;
     bnorm(i,j,k,2) = nz;
-    barea(i,j,k) = nx*dapx + ny*dapy + nz*dapz;
+    barea(i,j,k) = (nx*dapx/(dx[1]*dx[2]) + ny*dapy/(dx[0]*dx[2]) + nz*dapz/(dx[0]*dx[1]));
 
     Real aax = 0.5_rt*(axm+axp);
     Real aay = 0.5_rt*(aym+ayp);
@@ -121,7 +124,7 @@ void set_eb_data (const int i, const int j, const int k,
         return;
     }
 
-    Real bainv = 1.0_rt/barea(i,j,k);
+    Real bainv = bareascaling*bareascaling/apnorm;
     bcent(i,j,k,0) = bainv * (Bx + nx*vfrac(i,j,k));
     bcent(i,j,k,1) = bainv * (By + ny*vfrac(i,j,k));
     bcent(i,j,k,2) = bainv * (Bz + nz*vfrac(i,j,k));
@@ -310,6 +313,7 @@ void set_eb_cell (int i, int j, int k,
                   Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                   Array4<Real const> const& fcz, Array4<Real const> const& m2x,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
+                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Real small_volfrac,
@@ -341,7 +345,7 @@ void set_eb_cell (int i, int j, int k,
         barea(i,j,k) = 0.0_rt;
     } else {
         set_eb_data(i, j , k, cell, apx, apy, apz, fcx, fcy, fcz, m2x, m2y, m2z,
-                    vfrac, vcent, barea, bcent, bnorm, small_volfrac,
+                    dx, vfrac, vcent, barea, bcent, bnorm, small_volfrac,
                     is_small_cell, is_multicut);
     }
 }
@@ -773,6 +777,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                   Array4<Real const> const& fcz, Array4<Real const> const& m2x,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
+                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
@@ -790,7 +795,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         bool is_small_cell = false;
         bool is_multicut = false;
         set_eb_cell(i, j, k, cell, apx, apy, apz, fcx, fcy, fcz, m2x, m2y, m2z,
-                    vfrac, vcent, barea, bcent, bnorm, small_volfrac,
+                    dx, vfrac, vcent, barea, bcent, bnorm, small_volfrac,
                     is_small_cell, is_multicut);
         if (is_small_cell) {
             Gpu::Atomic::Add(dp, 1);
