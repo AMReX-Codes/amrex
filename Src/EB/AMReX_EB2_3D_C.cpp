@@ -123,7 +123,7 @@ void set_eb_data (const int i, const int j, const int k,
         return;
     }
 
-    Real bainv = (nx*dx[0])*(nx*dx[0]) + (ny*dx[1])*(ny*dx[1]) + (nz*dx[2])*(nz*dx[2]) ) * apnorminv;
+    Real bainv = ( (nx*dx[0])*(nx*dx[0]) + (ny*dx[1])*(ny*dx[1]) + (nz*dx[2])*(nz*dx[2]) ) * apnorminv;
     bcent(i,j,k,0) = bainv * (Bx + nx*vfrac(i,j,k));
     bcent(i,j,k,1) = bainv * (By + ny*vfrac(i,j,k));
     bcent(i,j,k,2) = bainv * (Bz + nz*vfrac(i,j,k));
