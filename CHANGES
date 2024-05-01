@@ -1,3 +1,42 @@
+# 24.05
+
+  -- 3d anisotropic eb (#3907)
+     cleanup of latest changes for 3D EB (#3912)
+
+  -- Update for ROCm 6.1.0 (#3898)
+
+  -- fix a HIP/Frontier issue (#3902)
+
+  -- Set AMD wavefront size according to AMReX_AMD_ARCH (#3881)
+
+  -- Fix offset in recv buffer of single precision particle communication (#3896)
+
+  -- Fix Assertion (#3894)
+
+  -- TinyProfiler: shorten output into "Other" section (#3885)
+
+  -- Fix ReorderParticles for PureSoA (#3890)
+
+  -- Fix full plotfiles with only derived variables (#3892)
+
+  -- FabArray: Update Asserts (#3893)
+
+  -- Add MultiFab::sum(region) and sum_unique(region) (#3871)
+
+  -- TinyProfiler: remove CUPTI (#3886)
+
+  -- ParticleContainer::WritePlotFile: Fix enable_if (#3884)
+
+  -- amrex::tupleToArray (#3880)
+
+  -- Allow plotting only a subset of Amr levels (#2825)
+
+  -- Parser: add error function (#3870)
+
+  -- Add `PODVector::assign(value)` (#3866)
+
+  -- GCC: inline limit (#3841)
+
 # 24.04
 
   -- `AddRealComp`/`AddIntComp`: Resize SoA (#3615)
