@@ -53,6 +53,9 @@ Technical Committee
 Current Roster
 ^^^^^^^^^^^^^^
 
+- Ann Almgren
+- Weiqun Zhang
+- Andrew Myers
 - Axel Huebl
 - Kevin Gott
 - Marc Day
