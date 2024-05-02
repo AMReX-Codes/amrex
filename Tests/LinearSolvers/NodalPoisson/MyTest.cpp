@@ -251,8 +251,16 @@ MyTest::initData ()
                 constexpr Real fac = tpi*tpi*AMREX_SPACEDIM;
 
                 Real x = i*dx[0];
+#if (AMREX_SPACEDIM > 1)
                 Real y = j*dx[1];
+#else
+                Real y = Real(0.0);
+#endif
+#if (AMREX_SPACEDIM > 2)
                 Real z = k*dx[2];
+#else
+                Real z = Real(0.0);
+#endif
 
                 phi(i,j,k) = (std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z))
                     + 0.25 * (std::cos(fpi*x) * std::cos(fpi*y) * std::cos(fpi*z));

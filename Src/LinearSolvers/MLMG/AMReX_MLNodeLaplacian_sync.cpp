@@ -19,6 +19,10 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 {
     BL_PROFILE("MLNodeLaplacian::SyncResCrse()");
 
+#if (AMREX_SPACEDIM == 1)
+    amrex::Abort("MLNodeLaplacian::compSyncResidualCoarse: 1D not supported");
+#endif
+
     sync_resid.setVal(0.0);
 
     const Geometry& geom = m_geom[0][0];
@@ -337,6 +341,10 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 {
     BL_PROFILE("MLNodeLaplacian::SyncResFine()");
 
+#if (AMREX_SPACEDIM == 1)
+    amrex::Abort("MLNodeLaplacian::compSyncResidualFine: 1D not supported");
+#endif
+
     const auto& sigma_orig = m_sigma[0][0][0];
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
@@ -617,6 +625,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(crse_amrlev,res,crse_sol,crse_rhs,a_fine_res,fine_sol,fine_rhs);
+    amrex::Abort("MLNodeLaplacian::reflux: 1D not supported");
 #else
     //
     //  Note that the residue we copmute on a coarse/fine node is not a

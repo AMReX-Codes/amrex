@@ -113,14 +113,19 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
+        IntVect ratio = mg_coarsen_ratio_vec[mglev-1];
+#if (AMREX_SPACEDIM == 1)
+        int idir = 0;
+        bool regular_coarsening = true;
+#else
         int idir = 2;
         bool regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
-        IntVect ratio = mg_coarsen_ratio_vec[mglev-1];
         if (ratio[1] == 1) {
             idir = 1;
         } else if (ratio[0] == 1) {
             idir = 0;
         }
+#endif
         for (int idim = 0; idim < nsigma; ++idim)
         {
             const MultiFab& fine = *m_sigma[amrlev][mglev-1][idim];
@@ -891,6 +896,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(rhs,vel,rhnd,a_rhcc);
+    amrex::Abort("MLNodeLaplacian::compRHS: 1D not supported");
 #else
     //
     // Note that div vel we copmute on a coarse/fine nodes is not a
