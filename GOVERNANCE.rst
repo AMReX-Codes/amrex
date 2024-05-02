@@ -60,6 +60,7 @@ Current Roster
 - Kevin Gott
 - Marc Day
 - Michael Zingale
+- Candace Gilet
 
 See: `GitHub team <https://github.com/orgs/AMReX-Codes/teams/amrex>`__
 
