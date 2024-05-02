@@ -12,10 +12,10 @@ Steering Committee
 Current Roster
 ^^^^^^^^^^^^^^
 
-- John Bell (chair)
 - Ann Almgren
-- Weiqun Zhang
+- John Bell (chair)
 - Andrew Myers
+- Weiqun Zhang
 
 Role
 ^^^^
@@ -54,13 +54,13 @@ Current Roster
 ^^^^^^^^^^^^^^
 
 - Ann Almgren
-- Weiqun Zhang
-- Andrew Myers
-- Axel Huebl
-- Kevin Gott
 - Marc Day
-- Michael Zingale
 - Candace Gilet
+- Kevin Gott
+- Axel Huebl
+- Andrew Myers
+- Weiqun Zhang
+- Michael Zingale
 
 See: `GitHub team <https://github.com/orgs/AMReX-Codes/teams/amrex>`__
 
