@@ -2035,7 +2035,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
     define_function_called = true;
 
-    AMREX_ASSERT(ngrow.allGE(IntVect::TheZeroVector()));
+    AMREX_ASSERT(ngrow.allGE(0));
     AMREX_ASSERT(boxarray.empty());
     FabArrayBase::define(bxs, dm, nvar, ngrow);
 
@@ -2509,7 +2509,7 @@ FabArray<FAB>::setVal (value_type val,
                        int        ncomp,
                        const IntVect& nghost)
 {
-    AMREX_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
+    AMREX_ASSERT(nghost.allGE(0) && nghost.allLE(n_grow));
     AMREX_ALWAYS_ASSERT(comp+ncomp <= n_comp);
 
     BL_PROFILE("FabArray::setVal()");
@@ -2564,7 +2564,7 @@ FabArray<FAB>::setVal (value_type val,
                        int        ncomp,
                        const IntVect& nghost)
 {
-    AMREX_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
+    AMREX_ASSERT(nghost.allGE(0) && nghost.allLE(n_grow));
     AMREX_ALWAYS_ASSERT(comp+ncomp <= n_comp);
 
     BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
@@ -2617,7 +2617,7 @@ template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
 void
 FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
 {
-    AMREX_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
+    AMREX_ASSERT(nghost.allGE(0) && nghost.allLE(n_grow));
     AMREX_ALWAYS_ASSERT(comp+ncomp <= n_comp);
     BL_PROFILE("FabArray::abs()");
 

@@ -299,6 +299,14 @@ public:
         return AMREX_D_TERM(vect[0] < rhs[0], && vect[1] < rhs[1], && vect[2] < rhs[2]);
     }
     /**
+    * \brief Returns true if this is less than argument for all components.
+    */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool allLT (int rhs) const noexcept
+    {
+        return AMREX_D_TERM(vect[0] < rhs, && vect[1] < rhs, && vect[2] < rhs);
+    }
+    /**
     * \brief Returns true if this is less than or equal to argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
@@ -306,6 +314,14 @@ public:
     bool allLE (const IntVect& rhs) const noexcept
     {
         return AMREX_D_TERM(vect[0] <= rhs[0], && vect[1] <= rhs[1], && vect[2] <= rhs[2]);
+    }
+    /**
+    * \brief Returns true if this is less than or equal to argument for all components.
+    */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool allLE (int rhs) const noexcept
+    {
+        return AMREX_D_TERM(vect[0] <= rhs, && vect[1] <= rhs, && vect[2] <= rhs);
     }
     /**
     * \brief Returns true if this is greater than argument for all components.
@@ -317,6 +333,14 @@ public:
         return AMREX_D_TERM(vect[0] > rhs[0], && vect[1] > rhs[1], && vect[2] > rhs[2]);
     }
     /**
+    * \brief Returns true if this is greater than argument for all components.
+    */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool allGT (int rhs) const noexcept
+    {
+        return AMREX_D_TERM(vect[0] > rhs, && vect[1] > rhs, && vect[2] > rhs);
+    }
+    /**
     * \brief Returns true if this is greater than or equal to argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
@@ -324,6 +348,14 @@ public:
     bool allGE (const IntVect& rhs) const noexcept
     {
         return AMREX_D_TERM(vect[0] >= rhs[0], && vect[1] >= rhs[1], && vect[2] >= rhs[2]);
+    }
+    /**
+    * \brief Returns true if this is greater than or equal to argument for all components.
+    */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool allGE (int rhs) const noexcept
+    {
+        return AMREX_D_TERM(vect[0] >= rhs, && vect[1] >= rhs, && vect[2] >= rhs);
     }
     //! Unary plus -- for completeness.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -580,7 +612,7 @@ AMREX_FORCE_INLINE
 IntVect&
 IntVect::coarsen (const IntVect& p) noexcept
 {
-    BL_ASSERT(p.allGT(IntVect::TheZeroVector()));
+    BL_ASSERT(p.allGT(0));
     AMREX_D_TERM(vect[0] = amrex::coarsen(vect[0], p.vect[0]);,
                  vect[1] = amrex::coarsen(vect[1], p.vect[1]);,
                  vect[2] = amrex::coarsen(vect[2], p.vect[2]););

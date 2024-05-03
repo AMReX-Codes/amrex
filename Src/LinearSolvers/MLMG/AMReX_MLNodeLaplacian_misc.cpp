@@ -937,7 +937,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     {
         const Geometry& geom = m_geom[ilev][0];
         AMREX_ASSERT(vel[ilev]->nComp() >= AMREX_SPACEDIM);
-        AMREX_ASSERT(vel[ilev]->nGrow() >= 1);
+        AMREX_ASSERT(vel[ilev]->nGrowVect().allGE(1));
 
         if (has_inflow) { // Zero out transverse velocity so that it's not seen.
             Box domain = geom.Domain();

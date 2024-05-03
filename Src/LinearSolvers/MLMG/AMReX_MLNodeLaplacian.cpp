@@ -750,7 +750,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
 
     MultiFab* frhs = nullptr;
     std::unique_ptr<MultiFab> mf;
-    if (a_frhs.nGrowVect().allGE(IntVect(amrrr-1)))
+    if (a_frhs.nGrowVect().allGE(amrrr-1))
     {
         frhs = &a_frhs;
     }

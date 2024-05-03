@@ -13,13 +13,13 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     AMREX_ASSERT(OK(lev, lev, umac[0].nGrow()-1));
     AMREX_ASSERT(lev >= 0 && lev < GetParticles().size());
 
-    AMREX_D_TERM(AMREX_ASSERT(umac[0].nGrow() >= 1);,
-                 AMREX_ASSERT(umac[1].nGrow() >= 1);,
-                 AMREX_ASSERT(umac[2].nGrow() >= 1););
+    AMREX_ASSERT(AMREX_D_TERM(umac[0].nGrowVect().allGE(1),
+                           && umac[1].nGrowVect().allGE(1),
+                           && umac[2].nGrowVect().allGE(1)));
 
-    AMREX_D_TERM(AMREX_ASSERT(!umac[0].contains_nan());,
-                 AMREX_ASSERT(!umac[1].contains_nan());,
-                 AMREX_ASSERT(!umac[2].contains_nan()););
+    AMREX_ASSERT(AMREX_D_TERM(!umac[0].contains_nan(),
+                           && !umac[1].contains_nan(),
+                           && !umac[2].contains_nan()));
 
     const auto      strttime = amrex::second();
     const Geometry& geom     = m_gdb->Geom(lev);
@@ -120,7 +120,7 @@ void
 TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 {
     BL_PROFILE("TracerParticleContainer::AdvectWithUcc()");
-    AMREX_ASSERT(Ucc.nGrow() > 0);
+    AMREX_ASSERT(Ucc.nGrowVect().allGT(0));
     AMREX_ASSERT(OK(lev, lev, Ucc.nGrow()-1));
     AMREX_ASSERT(lev >= 0 && lev < GetParticles().size());
     AMREX_ASSERT(!Ucc.contains_nan());
