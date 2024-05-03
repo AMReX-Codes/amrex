@@ -154,18 +154,16 @@ MyTest::solveABecLaplacian ()
 
         mlabec.setMaxOrder(linop_maxorder);
 
-        // This is a 3d problem with homogeneous Neumann BC
-        mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
+        mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
                                          LinOpBCType::Neumann,
                                          LinOpBCType::Neumann)},
                            {AMREX_D_DECL(LinOpBCType::Neumann,
-                                         LinOpBCType::Neumann,
+                                         LinOpBCType::Dirichlet,
                                          LinOpBCType::Neumann)});
 
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
-            // for problem with pure homogeneous Neumann BC, we could pass a nullptr
-            mlabec.setLevelBC(ilev, nullptr);
+            mlabec.setLevelBC(ilev, &solution[ilev]);
         }
 
         mlabec.setScalars(ascalar, bscalar);
@@ -213,20 +211,18 @@ MyTest::solveABecLaplacian ()
 
             mlabec.setMaxOrder(linop_maxorder);
 
-            // This is a 3d problem with homogeneous Neumann BC
-            mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
+            mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
                                              LinOpBCType::Neumann,
                                              LinOpBCType::Neumann)},
                                {AMREX_D_DECL(LinOpBCType::Neumann,
-                                             LinOpBCType::Neumann,
+                                             LinOpBCType::Dirichlet,
                                              LinOpBCType::Neumann)});
 
             if (ilev > 0) {
                 mlabec.setCoarseFineBC(&solution[ilev-1], ref_ratio);
             }
 
-            // for problem with pure homogeneous Neumann BC, we could pass a nullptr
-            mlabec.setLevelBC(0, nullptr);
+            mlabec.setLevelBC(0, &solution[ilev]);
 
             mlabec.setScalars(ascalar, bscalar);
 
@@ -262,18 +258,6 @@ MyTest::solveABecLaplacian ()
 
             mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
         }
-    }
-
-    // Since this problem has Neumann BC, solution + constant is also a
-    // solution.  So we are going to shift the solution by a constant
-    // for comparison with the "exact solution".
-    // The statement above is incorrect because we have the a term, albeit small.
-    const Real npts = grids[0].d_numPts();
-    const Real avg1 = exact_solution[0].sum();
-    const Real avg2 = solution[0].sum();
-    const Real offset = (avg1-avg2)/npts;
-    for (int ilev = 0; ilev < nlevels; ++ilev) {
-        solution[ilev].plus(offset, 0, 1, 0);
     }
 }
 
@@ -406,18 +390,6 @@ MyTest::solveABecLaplacianInhomNeumann ()
             mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
         }
     }
-
-    // Since this problem has Neumann BC, solution + constant is also a
-    // solution.  So we are going to shift the solution by a constant
-    // for comparison with the "exact solution".
-    // The statement above is incorrect because we have the a term, albeit small.
-    const Real npts = grids[0].d_numPts();
-    const Real avg1 = exact_solution[0].sum();
-    const Real avg2 = solution[0].sum();
-    const Real offset = (avg1-avg2)/npts;
-    for (int ilev = 0; ilev < nlevels; ++ilev) {
-        solution[ilev].plus(offset, 0, 1, 0);
-    }
 }
 
 void
@@ -481,10 +453,10 @@ MyTest::solveABecLaplacianGMRES ()
     const auto tol_rel = Real(1.e-10);
     const auto tol_abs = Real(0.0);
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(composite_solve == false,
-       "solveABecLaplacianGMRES does not support composite solve");
-
     const auto nlevels = static_cast<int>(geom.size());
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(composite_solve == false || nlevels == 1,
+       "solveABecLaplacianGMRES does not support composite solve");
 
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
@@ -492,12 +464,11 @@ MyTest::solveABecLaplacianGMRES ()
 
         mlabec.setMaxOrder(linop_maxorder);
 
-        // This is a 3d problem with homogeneous Neumann BC
-        mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
+        mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
                                          LinOpBCType::Neumann,
                                          LinOpBCType::Neumann)},
                            {AMREX_D_DECL(LinOpBCType::Neumann,
-                                         LinOpBCType::Neumann,
+                                         LinOpBCType::Dirichlet,
                                          LinOpBCType::Neumann)});
 
         if (ilev > 0) {
@@ -505,7 +476,7 @@ MyTest::solveABecLaplacianGMRES ()
         }
 
         // for problem with pure homogeneous Neumann BC, we could pass a nullptr
-        mlabec.setLevelBC(0, nullptr);
+        mlabec.setLevelBC(0, &solution[ilev]);
 
         mlabec.setScalars(ascalar, bscalar);
 
@@ -535,18 +506,6 @@ MyTest::solveABecLaplacianGMRES ()
             amrex::Print() << "Final residual = " << res.norminf(0)
                            << " " << res.norm1(0) << " " << res.norm2(0) << '\n';
         }
-    }
-
-    // Since this problem has Neumann BC, solution + constant is also a
-    // solution.  So we are going to shift the solution by a constant
-    // for comparison with the "exact solution".
-    // The statement above is incorrect because we have the a term, albeit small.
-    const Real npts = grids[0].d_numPts();
-    const Real avg1 = exact_solution[0].sum();
-    const Real avg2 = solution[0].sum();
-    const Real offset = (avg1-avg2)/npts;
-    for (int ilev = 0; ilev < nlevels; ++ilev) {
-        solution[ilev].plus(offset, 0, 1, 0);
     }
 }
 
