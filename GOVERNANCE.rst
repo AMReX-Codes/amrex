@@ -131,7 +131,7 @@ Appointment Process
 
 Appointed after contributing to AMReX (see above) through nomination by any member of the TC. Another member of the TC must second the nomination.
 
-The role can be lost by resigning or by decision of an individual TC or SC member due to inactivity, inappropriate or otherwise negative behavior, or other reasons.
+The role can be lost by resigning or by majority vote of either the TC or the SC due to inactivity, inappropriate or otherwise negative behavior, or other reasons.
 
 
 Former Members
