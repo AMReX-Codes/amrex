@@ -3,7 +3,7 @@
 AMReX Governance
 ================
 
-AMReX is led in an open governance model, described in this file.
+AMReX is led in an open governance model, described in this document.
 
 
 Steering Committee
@@ -73,8 +73,8 @@ Role
 The technical committee (TC) is the core governance body, where, under normal operations, most ideas are discussed and decisions are made.
 Individual TC members can approve and merge code changes.
 TC members are expected to seek approval of another maintainer for their own changes, except under exigent circumstances.
-TC members lead - and weigh in on - technical discussions and, if needed, can call for a vote of the TC for a technical decision.
-TC members can merge/close PRs and issues, and moderate (including block/mute) bad actors.
+TC members lead and weigh in on technical discussions and, if needed, can call for a vote of the TC for a technical decision.
+TC members can merge/close PRs and issues, and moderate (including blocking or muting) bad actors.
 The TC can propose governance changes to the SC.
 
 
@@ -83,7 +83,7 @@ Decision Process
 
 Discussion in the TC usually happens in the developer meetings. Developer meetings can be scheduled by any member of the SC or TC.
 
-If a member of the TC calls for a vote, the vote will be decided by the majority of the votest cast, provided that at least half of the TC members participate in the vote. If fewer than half of the TC members cast votes, the SC will make the decision according to the guidelines specified above.
+If a member of the TC calls for a vote, the vote will be decided by the majority of the votes cast, provided that at least half of the TC members participate in the vote. If fewer than half of the TC members cast votes, the SC will make the decision according to the guidelines specified above.
 
 Votes are cast in a non-confidential manner.
 Decisions are documented in the developer meeting notes and/or in the GitHub repository.
@@ -118,7 +118,7 @@ Contributors are valuable, vetted developers of AMReX.
 Contributions can be in many forms and not all need to be code contributions.
 Examples include code pull requests, support in issues & user discussions, writing and updating documentation, writing tutorials, visualizations, R&D on algorithms, testing and benchmarking, etc.
 Contributors can participate in developer meetings and weigh in on discussions.
-Contributors can "triage" (i.e. add labels to) pull requests, issues, and GitHub discussion pages.
+Contributors can "triage" (i.e., add and remove labels to) pull requests, issues, and GitHub discussion pages.
 Contributors can comment on and review PRs (but not merge).
 
 Decision Process
