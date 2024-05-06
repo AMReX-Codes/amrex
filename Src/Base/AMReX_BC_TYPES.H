@@ -5,6 +5,7 @@
 #if 0
 ---------------------------------------------------------------------
           CONVERSIONS FROM PHYSICAL TO MATHEMATICAL BCs
+  Note that it is up to application codes to enforce conversions
 
 
 PHYS BC        |   Velocity      |    Temperature   |    Scalars     |
@@ -22,11 +23,11 @@ OUTFLOW        |    FOEXTRAP     |     FOEXTRAP     |    FOEXTRAP    |
                |                 |                  |                |
 ----------------------------------------------------------------------
 NO SLIP WALL   |                 |                  |                |
-  with         |    EXT_DIR      |  REFLECT_EVEN    |    HOEXTRAP    |
+  with         |    EXT_DIR      |  REFLECT_EVEN    |    FOEXTRAP    |
 ADIABATIC TEMP |    U = V = 0    |    dT/dn = 0     |                |
 ----------------------------------------------------------------------
 NO SLIP WALL   |                 |                  |                |
-  with         |    EXT_DIR      |     EXT_DIR      |    HOEXTRAP    |
+  with         |    EXT_DIR      |     EXT_DIR      |    FOEXTRAP    |
 FIXED TEMP     |    U = V = 0    |                  |                |
 ----------------------------------------------------------------------
 SLIP WALL      |                 |                  |                |
