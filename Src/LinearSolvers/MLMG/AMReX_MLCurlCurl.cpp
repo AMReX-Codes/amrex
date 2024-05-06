@@ -312,7 +312,7 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
 void MLCurlCurl::smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
                          bool skip_fillboundary) const
 {
-    AMREX_ASSERT(rhs[0].nGrowVect().allGE(IntVect(1)));
+    AMREX_ASSERT(rhs[0].nGrowVect().allGE(1));
 
     applyBC(amrlev, mglev, const_cast<MF&>(rhs), CurlCurlStateType::b);
 

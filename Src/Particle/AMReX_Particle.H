@@ -408,7 +408,7 @@ struct Particle
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect rvec (const IntVect& indices) const &
     {
-        AMREX_ASSERT(indices.max() < NReal);
+        AMREX_ASSERT(indices.allLT(NReal));
         return RealVect(AMREX_D_DECL(this->m_rdata[indices[0]],
                                      this->m_rdata[indices[1]],
                                      this->m_rdata[indices[2]]));

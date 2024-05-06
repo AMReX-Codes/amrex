@@ -78,7 +78,7 @@ public:
           bigend(big),
           btype(typ)
         {
-            BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
+            BL_ASSERT(typ.allGE(0) && typ.allLE(1));
         }
 
     //! Construct dimension specific Boxes.
@@ -829,7 +829,7 @@ AMREX_FORCE_INLINE
 Box&
 Box::convert (const IntVect& typ) noexcept
 {
-    BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
+    BL_ASSERT(typ.allGE(0) && typ.allLE(1));
     IntVect shft(typ - btype.ixType());
     bigend += shft;
     btype = IndexType(typ);

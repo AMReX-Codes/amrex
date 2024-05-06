@@ -228,7 +228,7 @@ namespace amrex
                                     const Geometry& geom, int ncomp, bool use_harmonic_averaging)
     {
         AMREX_ASSERT(cc.nComp() == ncomp);
-        AMREX_ASSERT(cc.nGrow() >= 1);
+        AMREX_ASSERT(cc.nGrowVect().allGE(1));
         AMREX_ASSERT(fc[0]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
 #if (AMREX_SPACEDIM >= 2)
         AMREX_ASSERT(fc[1]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
@@ -396,10 +396,9 @@ namespace amrex
                             const Geometry& cgeom, const Geometry& /*fgeom*/)
     {
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
-        AMREX_ASSERT(ratio == ratio[0]);
-        AMREX_ASSERT(S_fine.nGrow() % ratio[0] == 0);
 
-        const int nGrow = S_fine.nGrow() / ratio[0];
+        const IntVect nGrow = S_fine.nGrowVect() / ratio;
+        AMREX_ASSERT((nGrow*ratio) == S_fine.nGrowVect());
 
         //
         // Coarsen() the fine stuff on processors owning the fine data.
@@ -412,7 +411,7 @@ namespace amrex
         if (Gpu::inLaunchRegion() && crse_S_fine.isFusingCandidate()) {
             auto const& crsema = crse_S_fine.arrays();
             auto const& finema = S_fine.const_arrays();
-            ParallelFor(crse_S_fine, IntVect(nGrow), ncomp,
+            ParallelFor(crse_S_fine, nGrow, ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 amrex_avgdown(i,j,k,n,crsema[box_no],finema[box_no],0,scomp,ratio);
@@ -440,7 +439,7 @@ namespace amrex
             }
         }
 
-        S_crse.ParallelCopy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
+        S_crse.ParallelCopy(crse_S_fine, 0, scomp, ncomp, nGrow, IntVect(0),
                             cgeom.periodicity(), FabArrayBase::ADD);
     }
 
@@ -556,7 +555,7 @@ namespace amrex
         BL_PROFILE("amrex::get_slice_data");
 
         if (interpolate) {
-            AMREX_ASSERT(cc.nGrow() >= 1);
+            AMREX_ASSERT(cc.nGrowVect().allGE(1));
         }
 
         const auto geomdata = geom.data();

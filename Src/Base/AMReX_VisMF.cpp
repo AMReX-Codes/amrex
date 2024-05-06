@@ -368,7 +368,7 @@ operator>> (std::istream  &is,
         is >> ng;
         hd.m_ngrow = IntVect(AMREX_D_DECL(ng,ng,ng));
     }
-    BL_ASSERT(hd.m_ngrow.min() >= 0);
+    BL_ASSERT(hd.m_ngrow.allGE(0));
 
     int ba_ndims = hd.m_ba.readFrom(is);
     for (int i = ba_ndims; i < AMREX_SPACEDIM; ++i) {

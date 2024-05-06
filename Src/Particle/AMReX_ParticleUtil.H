@@ -778,7 +778,7 @@ template <class index_type, class PTile>
 void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type nitems,
                                const PTile& ptile, Box bx, Geometry geom, const IntVect idx_type)
 {
-    AMREX_ALWAYS_ASSERT(idx_type.allGE(IntVect(0)) && idx_type.allLE(IntVect(2)));
+    AMREX_ALWAYS_ASSERT(idx_type.allGE(0) && idx_type.allLE(2));
 
     const IntVect refine_vect = max(idx_type, IntVect(1)).min(IntVect(2));
     const IntVect type_vect = idx_type - idx_type / 2 * 2;
