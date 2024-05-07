@@ -105,7 +105,7 @@ MyTest::solvePoisson ()
                                                 LinOpBCType::Dirichlet)});
 
             if (ilev > 0) {
-                mlpoisson.setCoarseFineBC(&solution[ilev-1], ref_ratio, LinOpBCType::Neumann);
+                mlpoisson.setCoarseFineBC(&solution[ilev-1], ref_ratio);
             }
 
             mlpoisson.setLevelBC(0, &solution[ilev]);
