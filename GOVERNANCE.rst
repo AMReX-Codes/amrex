@@ -64,6 +64,8 @@ Current Roster
 - Kevin Gott
 - Axel Huebl
 - Andrew Myers
+- Andy Nonaka
+- Jean Sexton
 - Weiqun Zhang
 - Michael Zingale
 
