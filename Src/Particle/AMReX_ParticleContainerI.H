@@ -1239,33 +1239,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 }
 
-template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator, class CellAssignor>
-void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::SortParticlesForDeposition (IntVect idx_type, IntVect tile_size)
-{
-    BL_PROFILE("ParticleContainer::SortParticlesForDeposition()");
-
-    for (int lev = 0; lev < numLevels(); ++lev)
-    {
-        const Geometry& geom = Geom(lev);
-
-        for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-        {
-            const auto& ptile = ParticlesAt(lev, mfi);
-            const size_t np   = ptile.numParticles();
-
-            const Box& box = mfi.validbox();
-
-            using index_type = typename decltype(m_bins)::index_type;
-            Gpu::DeviceVector<index_type> perm;
-            PermutationForDepositionTiling<index_type>(perm, np, ptile, box, geom, idx_type, tile_size);
-            ReorderParticles(lev, mfi, perm.dataPtr());
-        }
-    }
-}
-
 //
 // The GPU implementation of Redistribute
 //
