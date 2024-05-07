@@ -158,7 +158,8 @@ protected:
                               const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc,
                               int ratio, const RealVect& interior_bloc,
                               const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
-                              const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi);
+                              const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi,
+                              LinOpBCType crse_fine_bc_type);
 
         const Vector<BCTuple>& bndryConds (const MFIter& mfi) const noexcept {
             return bcond[mfi];
@@ -291,7 +292,8 @@ setLOBndryConds (const Geometry& geom, const Real* dx,
                  const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc,
                  int ratio, const RealVect& interior_bloc,
                  const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
-                 const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi)
+                 const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi,
+                 LinOpBCType crse_fine_bc_type)
 {
     const Box& domain = geom.Domain();
 
@@ -308,7 +310,8 @@ setLOBndryConds (const Geometry& geom, const Real* dx,
                                      lobc[icomp], hibc[icomp],
                                      dx, ratio, interior_bloc,
                                      domain_bloc_lo, domain_bloc_hi,
-                                     geom.isPeriodicArray());
+                                     geom.isPeriodicArray(),
+                                     crse_fine_bc_type);
         }
     }
 
@@ -556,7 +559,9 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
         br_ref_ratio = this->m_amr_ref_ratio[amrlev-1];
     }
 
-    m_bndry_sol[amrlev]->setLOBndryConds(this->m_lobc, this->m_hibc, br_ref_ratio, this->m_coarse_bc_loc);
+    auto crse_fine_bc_type = (amrlev == 0) ? this->m_coarse_fine_bc_type : LinOpBCType::Dirichlet;
+    m_bndry_sol[amrlev]->setLOBndryConds(this->m_lobc, this->m_hibc, br_ref_ratio,
+                                         this->m_coarse_bc_loc, crse_fine_bc_type);
 
     const Real* dx = this->m_geom[amrlev][0].CellSize();
     for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev)
@@ -564,7 +569,8 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
         m_bcondloc[amrlev][mglev]->setLOBndryConds(this->m_geom[amrlev][mglev], dx,
                                                    this->m_lobc, this->m_hibc,
                                                    br_ref_ratio, this->m_coarse_bc_loc,
-                                                   this->m_domain_bloc_lo, this->m_domain_bloc_hi);
+                                                   this->m_domain_bloc_lo, this->m_domain_bloc_hi,
+                                                   crse_fine_bc_type);
     }
 
     if (this->hasRobinBC()) {
