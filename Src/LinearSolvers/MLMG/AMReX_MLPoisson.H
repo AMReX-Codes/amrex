@@ -158,6 +158,23 @@ MLPoissonT<MF>::prepareForSolve ()
             }
         }
     }
+    if (!m_is_singular[0] && this->m_needs_coarse_data_for_bc &&
+        this->m_coarse_fine_bc_type == LinOpBCType::Neumann)
+    {
+        AMREX_ASSERT(this->m_overset_mask[0][0] == nullptr);
+        auto bbox = this->m_grids[0][0].minimalBox();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (this->m_lobc[0][idim] == LinOpBCType::Dirichlet) {
+                bbox.growLo(idim,1);
+            }
+            if (this->m_hibc[0][idim] == LinOpBCType::Dirichlet) {
+                bbox.growHi(idim,1);
+            }
+        }
+        if (this->m_geom[0][0].Domain().contains(bbox)) {
+            m_is_singular[0] = true;
+        }
+    }
 }
 
 template <typename MF>
