@@ -791,7 +791,7 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
             }
         });
 #else
-    amrex::ignore_unused(pperm, pglobal_idx);
+    amrex::ignore_unused(pperm, pglobal_idx, compressed_layout);
     Abort("PermutationForDeposition only implemented for CUDA and HIP");
 #endif
 
