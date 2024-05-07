@@ -693,11 +693,11 @@ void clearEmptyEntries (C& c)
 
 template <class index_type, typename F>
 void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type nitems,
-                               index_type nbins, F const& f)
+                               index_type nbins, F const& f, int type=0)
 {
     BL_PROFILE("PermutationForDeposition()");
 
-    constexpr index_type gpu_block_size = 1024;
+    constexpr index_type gpu_block_size = 64;
     constexpr index_type gpu_block_size_m1 = gpu_block_size - 1;
     constexpr index_type llist_guard = std::numeric_limits<index_type>::max();
 
@@ -720,11 +720,168 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
         pllist_next[i] = Gpu::Atomic::Exch(pllist_start + f(i), i);
     });
 
+    if (type == 0) {
+
+        index_type num_added = 0;
+
+        Vector<int> hist(0);
+
+        while (num_added < nitems) {
+            index_type to_add = Scan::PrefixSum<index_type>(nbins,
+                [=] AMREX_GPU_DEVICE (index_type i) -> index_type
+                {
+                    index_type current_idx = pllist_start[i];
+                    return index_type(current_idx != llist_guard);
+                },
+                [=] AMREX_GPU_DEVICE (index_type i, index_type const& s)
+                {
+                    index_type current_idx = pllist_start[i];
+                    if (current_idx != llist_guard) {
+                        pperm[s+num_added] = current_idx;
+                        pllist_start[i] = pllist_next[current_idx];
+                    }
+                },
+                Scan::Type::exclusive, Scan::retSum);
+            num_added += to_add;
+            hist.push_back(to_add);
+        }
+
+        std::cout << "hist";
+        for (int h : hist) {
+            std::cout << " " << h;
+        }
+        std::cout << std::endl;
+
+    } else if (type == 1) {
+
+        index_type num_added = Scan::PrefixSum<index_type>(nbins,
+            [=] AMREX_GPU_DEVICE (index_type i) -> index_type
+            {
+                index_type current_idx = pllist_start[i];
+
+                index_type nitems = 0;
+                while (current_idx != llist_guard) {
+                    ++nitems;
+                    current_idx = pllist_next[current_idx];
+                }
+
+                return nitems;
+            },
+            [=] AMREX_GPU_DEVICE (index_type i, index_type const& s)
+            {
+                index_type current_idx = pllist_start[i];
+
+                index_type nitems = s;
+                while (current_idx != llist_guard) {
+                    pperm[nitems] = current_idx;
+                    ++nitems;
+                    current_idx = pllist_next[current_idx];
+                }
+            },
+            Scan::Type::exclusive, Scan::retSum);
+
+        AMREX_ALWAYS_ASSERT(num_added == nitems);
+
+    } else if (type >= 2 && type < 1024) {
+
+        index_type num_added = Scan::PrefixSum<index_type>( (nbins+type-1)/type ,
+            [=] AMREX_GPU_DEVICE (index_type i) -> index_type
+            {
+
+                index_type nitems = 0;
+
+                for (int t=i*type; t<(i*type+type) && t<nbins; ++t) {
+                    index_type current_idx = pllist_start[t];
+                    while (current_idx != llist_guard) {
+                        ++nitems;
+                        current_idx = pllist_next[current_idx];
+                    }
+                }
+
+                return nitems;
+            },
+            [=] AMREX_GPU_DEVICE (index_type i, index_type const& s)
+            {
+
+                index_type nitems = s;
+
+                index_type to_add = 0;
+
+                do {
+                    to_add = 0;
+
+                    for (int t=i*type; t<(i*type+type) && t<nbins; ++t) {
+
+                        index_type current_idx = pllist_start[t];
+
+                        if (current_idx != llist_guard) {
+                            pperm[nitems] = current_idx;
+                            ++nitems;
+                            ++to_add;
+                            pllist_start[t] = pllist_next[current_idx];
+                        }
+                    }
+
+                } while (to_add > 0);
+            },
+            Scan::Type::exclusive, Scan::retSum);
+
+        AMREX_ALWAYS_ASSERT(num_added == nitems);
+
+    } else if (type >= 2) {
+
+        index_type tile = type;
+        index_type num_added = 0;
+
+        for (index_type r=0; r<nbins; r+=tile) {
+
+            index_type local_bins = std::min(r+tile, nbins) - r;
+            index_type to_add = 0;
+
+            do {
+                to_add = Scan::PrefixSum<index_type>(local_bins,
+                    [=] AMREX_GPU_DEVICE (index_type i) -> index_type
+                    {
+                        index_type current_idx = pllist_start[i+r];
+                        return index_type(current_idx != llist_guard);
+                    },
+                    [=] AMREX_GPU_DEVICE (index_type i, index_type const& s)
+                    {
+                        index_type current_idx = pllist_start[i+r];
+                        if (current_idx != llist_guard) {
+                            pperm[s+num_added] = current_idx;
+                            pllist_start[i+r] = pllist_next[current_idx];
+                        }
+                    },
+                    Scan::Type::exclusive, Scan::retSum);
+                num_added += to_add;
+            } while (to_add > 0);
+
+        }
+
+    } else {
+
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     amrex::launch<gpu_block_size>(nbins / gpu_block_size, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () {
             __shared__ index_type sdata[gpu_block_size];
             index_type current_idx = pllist_start[threadIdx.x + gpu_block_size * blockIdx.x];
+
+            index_type num_particles_thread = 0;
+            while (current_idx != llist_guard) {
+                ++num_particles_thread;
+                current_idx = pllist_next[current_idx];
+            }
+
+            __shared__ index_type idx_start;
+
+            index_type num_particles_block = Gpu::blockReduceSum<gpu_block_size>(num_particles_thread);
+
+            if (threadIdx.x == 0) {
+                idx_start = Gpu::Atomic::Add(pglobal_idx, num_particles_block);
+            }
+
+            current_idx = pllist_start[threadIdx.x + gpu_block_size * blockIdx.x];
 
             while (true) {
                 sdata[threadIdx.x] = index_type(current_idx != llist_guard);
@@ -748,7 +905,8 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
                 __syncthreads();
                 if (threadIdx.x == gpu_block_size_m1) {
                     x = sdata[gpu_block_size_m1];
-                    sdata[gpu_block_size_m1] = Gpu::Atomic::Add(pglobal_idx, x);
+                    sdata[gpu_block_size_m1] = idx_start;
+                    idx_start += x;
                 }
                 __syncthreads();
                 if (threadIdx.x < gpu_block_size_m1) {
@@ -770,6 +928,8 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
     amrex::ignore_unused(pperm, pglobal_idx);
     Abort("Not implemented");
 #endif
+
+    }
 
     Gpu::Device::streamSynchronize();
 }
@@ -813,6 +973,70 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
                 iv_coarse = iv_coarse.min(bx.bigEnd());
                 return bx.index(iv_coarse) + bx.numPts() * (iv_remainder * ref_offset).sum();
         });
+}
+
+
+template <class index_type, class PTile>
+void PermutationForDepositionTiling (Gpu::DeviceVector<index_type>& perm, index_type nitems,
+                                     const PTile& ptile, Box bx, Geometry geom,
+                                     const IntVect idx_type, IntVect tile_size)
+{
+    int perm_type = tile_size[2];
+    tile_size[2] = 0;
+    AMREX_ALWAYS_ASSERT(idx_type.allGE(IntVect(0)) && idx_type.allLE(IntVect(1)));
+    AMREX_ALWAYS_ASSERT(tile_size.allGE(IntVect(0)));
+
+    //const IntVect refine_vect = max(idx_type, IntVect(1)).min(IntVect(2));
+    //const IntVect type_vect = idx_type - idx_type / 2 * 2;
+
+    //geom.refine(refine_vect);
+
+    Box domain = geom.Domain();
+
+    bx.convert(idx_type);
+    domain.convert(idx_type);
+
+    domain -= IntVect(bx.smallEnd());
+    bx -= IntVect(bx.smallEnd());
+
+    const IntVect bx_big_end = bx.bigEnd();
+
+    const RealVect dxi(geom.InvCellSize());
+    const RealVect pos_offset = Real(0.5) * (RealVect(geom.ProbLo()) + RealVect(geom.ProbHi())
+        - RealVect(geom.CellSize()) * RealVect(domain.smallEnd() + domain.bigEnd()));
+
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+        if (tile_size[i] == 0) {
+            tile_size[i] = bx.length(i);
+        }
+    }
+
+    const Box bx_coarse = coarsen(bx, tile_size);
+    const Box bx_fine = Box(IntVect(0), tile_size - IntVect(1));
+    const Long num_pts_fine = bx_fine.numPts();
+
+    //const int ref_product = AMREX_D_TERM(refine_vect[0], * refine_vect[1], * refine_vect[2]);
+    //const IntVect ref_offset(AMREX_D_DECL(1, refine_vect[0], refine_vect[0] * refine_vect[1]));
+
+    auto ptd = ptile.getConstParticleTileData();
+    PermutationForDeposition<index_type>(perm, nitems, num_pts_fine * bx_coarse.numPts(),
+        [=] AMREX_GPU_DEVICE (index_type idx) noexcept
+            {
+                const auto& p = ptd[idx];
+
+                IntVect iv = ((p.pos() - pos_offset) * dxi).round();
+                iv = iv.max(IntVect(0));
+                iv = iv.min(bx_big_end);
+
+                IntVect iv_coarse = iv / tile_size;
+                IntVect iv_fine = iv - iv_coarse * tile_size;
+
+                //IntVect iv_coarse = iv / refine_vect;
+                //IntVect iv_remainder = iv - iv_coarse * refine_vect;
+
+
+                return bx_coarse.index(iv_coarse) * num_pts_fine + bx_fine.index(iv_fine);
+        }, perm_type);
 }
 
 
