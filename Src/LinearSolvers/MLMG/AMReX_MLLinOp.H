@@ -191,8 +191,7 @@ public:
     * called, it must be called before `setLevelBC`.  If crse is nullptr,
     * then the bc values are assumed to be zero. The coarse/fine BC type
     * can be changed to homogeneous Neumann by the bc_type argument. In that
-    * case, use nullptr for the crse argument. Currently, only MLABecLaplacian
-    * supports homogeneous Neumann BC at the coarse/fine interface.
+    * case, use nullptr for the crse argument.
     *
     * \param crse       the coarse AMR level data
     * \param crse_ratio the coarsening ratio between fine and coarse AMR levels.
