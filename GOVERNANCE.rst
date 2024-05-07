@@ -17,6 +17,8 @@ Current Roster
 - Andrew Myers
 - Weiqun Zhang
 
+See: `GitHub team <https://github.com/orgs/AMReX-Codes/teams/amrex-steering-committee>`__
+
 Role
 ^^^^
 
@@ -65,7 +67,7 @@ Current Roster
 - Weiqun Zhang
 - Michael Zingale
 
-See: `GitHub team <https://github.com/orgs/AMReX-Codes/teams/amrex>`__
+See: `GitHub team <https://github.com/orgs/AMReX-Codes/teams/amrex-technical-committee>`__
 
 Role
 ^^^^
@@ -109,7 +111,7 @@ Contributors
 Current Roster
 ^^^^^^^^^^^^^^
 
-See: `GitHub contributors <https://github.com/AMReX-Codes/amrex/graphs/contributors>`__
+See: `GitHub team <https://github.com/orgs/AMReX-Codes/teams/amrex-contributors>`__
 
 Role
 ^^^^
