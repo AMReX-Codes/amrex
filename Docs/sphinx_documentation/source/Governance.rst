@@ -1,1 +1,1 @@
-../../../GOVERNANCE.rst
+.. include:: ../../../GOVERNANCE.rst
