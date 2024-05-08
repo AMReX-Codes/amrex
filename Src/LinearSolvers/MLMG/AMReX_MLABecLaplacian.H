@@ -719,9 +719,10 @@ MLABecLaplacianT<MF>::update_singular_flags ()
     m_is_singular.resize(this->m_num_amr_levels, false);
     auto itlo = std::find(this->m_lobc[0].begin(), this->m_lobc[0].end(), BCType::Dirichlet);
     auto ithi = std::find(this->m_hibc[0].begin(), this->m_hibc[0].end(), BCType::Dirichlet);
-    bool lev0_a_is_zero = false;
+    int lev0_a_is_zero = -1; // unknown
     if (itlo == this->m_lobc[0].end() && ithi == this->m_hibc[0].end())
     {  // No Dirichlet
+        lev0_a_is_zero = 0;
         for (int alev = 0; alev < this->m_num_amr_levels; ++alev)
         {
             // For now this assumes that overset regions are treated as Dirichlet bc's
@@ -744,21 +745,35 @@ MLABecLaplacianT<MF>::update_singular_flags ()
         }
     }
 
-    if (lev0_a_is_zero && !m_is_singular[0] && this->m_needs_coarse_data_for_bc &&
+    if (!m_is_singular[0] && this->m_needs_coarse_data_for_bc &&
         this->m_coarse_fine_bc_type == LinOpBCType::Neumann)
     {
         AMREX_ASSERT(this->m_overset_mask[0][0] == nullptr);
-        auto bbox = this->m_grids[0][0].minimalBox();
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (this->m_lobc[0][idim] == LinOpBCType::Dirichlet) {
-                bbox.growLo(idim,1);
-            }
-            if (this->m_hibc[0][idim] == LinOpBCType::Dirichlet) {
-                bbox.growHi(idim,1);
+
+        if (lev0_a_is_zero == -1) {
+            if (m_a_scalar == Real(0.0)) {
+                lev0_a_is_zero = 1;
+            } else {
+                RT asum = m_a_coeffs[alev].back().sum(0,IntVect(0));
+                RT amax = m_a_coeffs[alev].back().norminf(0,1,IntVect(0));
+                bool a_is_almost_zero = std::abs(asum) <= amax * RT(1.e-12);
+                if (a_is_almost_zero) { lev0_a_is_zero = 1; }
             }
         }
-        if (this->m_geom[0][0].Domain().contains(bbox)) {
-            m_is_singular[0] = true;
+
+        if (lev0_a_is_zero == 1) {
+            auto bbox = this->m_grids[0][0].minimalBox();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (this->m_lobc[0][idim] == LinOpBCType::Dirichlet) {
+                    bbox.growLo(idim,1);
+                }
+                if (this->m_hibc[0][idim] == LinOpBCType::Dirichlet) {
+                    bbox.growHi(idim,1);
+                }
+            }
+            if (this->m_geom[0][0].Domain().contains(bbox)) {
+                m_is_singular[0] = true;
+            }
         }
     }
 }
