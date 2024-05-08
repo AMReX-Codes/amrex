@@ -728,7 +728,7 @@ MLABecLaplacianT<MF>::update_singular_flags ()
             // For now this assumes that overset regions are treated as Dirichlet bc's
             if (this->m_domain_covered[alev] && !this->m_overset_mask[alev][0])
             {
-                if (m_a_scalar == 0.0)
+                if (m_a_scalar == Real(0.0))
                 {
                     m_is_singular[alev] = true;
                     if (alev == 0) { lev0_a_is_zero = true; }
@@ -754,8 +754,8 @@ MLABecLaplacianT<MF>::update_singular_flags ()
             if (m_a_scalar == Real(0.0)) {
                 lev0_a_is_zero = 1;
             } else {
-                RT asum = m_a_coeffs[alev].back().sum(0,IntVect(0));
-                RT amax = m_a_coeffs[alev].back().norminf(0,1,IntVect(0));
+                RT asum = m_a_coeffs[0].back().sum(0,IntVect(0));
+                RT amax = m_a_coeffs[0].back().norminf(0,1,IntVect(0));
                 bool a_is_almost_zero = std::abs(asum) <= amax * RT(1.e-12);
                 if (a_is_almost_zero) { lev0_a_is_zero = 1; }
             }
