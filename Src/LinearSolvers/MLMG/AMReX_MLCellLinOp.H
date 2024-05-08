@@ -156,7 +156,7 @@ protected:
         void setLOBndryConds (const Geometry& geom, const Real* dx,
                               const Vector<Array<BCType,AMREX_SPACEDIM> >& lobc,
                               const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc,
-                              int ratio, const RealVect& interior_bloc,
+                              IntVect const& ratio, const RealVect& interior_bloc,
                               const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
                               const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi,
                               LinOpBCType crse_fine_bc_type);
@@ -290,7 +290,7 @@ MLCellLinOpT<MF>::BndryCondLoc::
 setLOBndryConds (const Geometry& geom, const Real* dx,
                  const Vector<Array<BCType,AMREX_SPACEDIM> >& lobc,
                  const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc,
-                 int ratio, const RealVect& interior_bloc,
+                 IntVect const& ratio, const RealVect& interior_bloc,
                  const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
                  const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi,
                  LinOpBCType crse_fine_bc_type)
@@ -516,27 +516,27 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
     }
     const MF& bcdata = (a_levelbcdata == nullptr) ? zero : *a_levelbcdata;
 
-    int br_ref_ratio = -1;
+    IntVect br_ref_ratio(-1);
 
     if (amrlev == 0)
     {
         if (this->needsCoarseDataForBC())
         {
             AMREX_ALWAYS_ASSERT(!this->hasHiddenDimension());
-            br_ref_ratio = this->m_coarse_data_crse_ratio > 0 ? this->m_coarse_data_crse_ratio : 2;
-            if (m_crse_sol_br[amrlev] == nullptr && br_ref_ratio > 0)
+            br_ref_ratio = this->m_coarse_data_crse_ratio.allGT(0) ? this->m_coarse_data_crse_ratio : IntVect(2);
+            if (m_crse_sol_br[amrlev] == nullptr && br_ref_ratio.allGT(0))
             {
                 const int in_rad = 0;
                 const int out_rad = 1;
                 const int extent_rad = 2;
-                const int crse_ratio = br_ref_ratio;
+                const IntVect crse_ratio = br_ref_ratio;
                 BoxArray cba = this->m_grids[amrlev][0];
                 cba.coarsen(crse_ratio);
                 m_crse_sol_br[amrlev] = std::make_unique<BndryRegisterT<MF>>
                     (cba, this->m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
             }
             if (this->m_coarse_data_for_bc != nullptr) {
-                AMREX_ALWAYS_ASSERT(this->m_coarse_data_crse_ratio > 0);
+                AMREX_ALWAYS_ASSERT(this->m_coarse_data_crse_ratio.allGT(0));
                 const Box& cbx = amrex::coarsen(this->m_geom[0][0].Domain(), this->m_coarse_data_crse_ratio);
                 m_crse_sol_br[amrlev]->copyFrom(*this->m_coarse_data_for_bc, 0, 0, 0, ncomp,
                                                 this->m_geom[0][0].periodicity(cbx));
@@ -544,19 +544,19 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
                 m_crse_sol_br[amrlev]->setVal(RT(0.0));
             }
             m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
-                                                bcdata, 0, 0, ncomp, IntVect(br_ref_ratio));
+                                                bcdata, 0, 0, ncomp, br_ref_ratio);
             br_ref_ratio = this->m_coarse_data_crse_ratio;
         }
         else
         {
             m_bndry_sol[amrlev]->setPhysBndryValues(bcdata,0,0,ncomp);
-            br_ref_ratio = 1;
+            br_ref_ratio = IntVect(1);
         }
     }
     else
     {
         m_bndry_sol[amrlev]->setPhysBndryValues(bcdata,0,0,ncomp);
-        br_ref_ratio = this->m_amr_ref_ratio[amrlev-1];
+        br_ref_ratio = IntVect(this->m_amr_ref_ratio[amrlev-1]);
     }
 
     auto crse_fine_bc_type = (amrlev == 0) ? this->m_coarse_fine_bc_type : LinOpBCType::Dirichlet;

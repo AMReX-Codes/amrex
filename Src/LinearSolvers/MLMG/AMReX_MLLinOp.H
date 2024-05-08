@@ -200,8 +200,15 @@ public:
     void setCoarseFineBC (const MF* crse, int crse_ratio,
                           LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
 
+    void setCoarseFineBC (const MF* crse, IntVect const& crse_ratio,
+                          LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
+
     template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int> = 0>
     void setCoarseFineBC (const AMF* crse, int crse_ratio,
+                          LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
+
+    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int> = 0>
+    void setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
                           LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
 
     /**
@@ -618,7 +625,7 @@ protected:
 
     bool m_needs_coarse_data_for_bc = false;
     LinOpBCType m_coarse_fine_bc_type = LinOpBCType::Dirichlet;
-    int m_coarse_data_crse_ratio = -1;
+    IntVect m_coarse_data_crse_ratio = IntVect(-1);
     RealVect m_coarse_bc_loc;
     const MF* m_coarse_data_for_bc = nullptr;
     MF m_coarse_data_for_bc_raii;
@@ -1413,6 +1420,14 @@ void
 MLLinOpT<MF>::setCoarseFineBC (const MF* crse, int crse_ratio,
                                LinOpBCType bc_type) noexcept
 {
+    setCoarseFineBC(crse, IntVect(crse_ratio), bc_type);
+}
+
+template <typename MF>
+void
+MLLinOpT<MF>::setCoarseFineBC (const MF* crse, IntVect const& crse_ratio,
+                               LinOpBCType bc_type) noexcept
+{
     m_coarse_data_for_bc = crse;
     m_coarse_data_crse_ratio = crse_ratio;
     m_coarse_fine_bc_type = bc_type;
@@ -1422,6 +1437,15 @@ template <typename MF>
 template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int>>
 void
 MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, int crse_ratio,
+                               LinOpBCType bc_type) noexcept
+{
+    setCoarseFineBC(crse, IntVect(crse_ratio), bc_type);
+}
+
+template <typename MF>
+template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int>>
+void
+MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
                                LinOpBCType bc_type) noexcept
 {
     m_coarse_data_for_bc_raii = MF(crse->boxArray(), crse->DistributionMap(),

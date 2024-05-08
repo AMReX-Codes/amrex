@@ -30,11 +30,16 @@ public:
                           int ratio, const RealVect& a_loc,
                           LinOpBCType a_crse_fine_bc_type = LinOpBCType::Dirichlet);
 
+    void setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo,
+                          const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& hi,
+                          IntVect const& ratio, const RealVect& a_loc,
+                          LinOpBCType a_crse_fine_bc_type = LinOpBCType::Dirichlet);
+
     static void setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx,
                           const Box& domain,
                           const Array<LinOpBCType,AMREX_SPACEDIM>& lo,
                           const Array<LinOpBCType,AMREX_SPACEDIM>& hi,
-                          const Real* dx, int ratio,
+                          const Real* dx, IntVect const& ratio,
                           const RealVect& interior_bloc,
                           const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
                           const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi,
@@ -53,6 +58,16 @@ void
 MLMGBndryT<MF>::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo,
                                  const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& hi,
                                  int ratio, const RealVect& a_loc,
+                                 LinOpBCType a_crse_fine_bc_type)
+{
+    setLOBndryConds(lo, hi, IntVect(ratio), a_loc, a_crse_fine_bc_type);
+}
+
+template <typename MF>
+void
+MLMGBndryT<MF>::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo,
+                                 const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& hi,
+                                 IntVect const& ratio, const RealVect& a_loc,
                                  LinOpBCType a_crse_fine_bc_type)
 {
     const BoxArray& ba     = this->boxes();
@@ -93,7 +108,7 @@ MLMGBndryT<MF>::setBoxBC (RealTuple& bloc, BCTuple& bctag,
                           const Box& bx, const Box& domain,
                           const Array<LinOpBCType,AMREX_SPACEDIM>& lo,
                           const Array<LinOpBCType,AMREX_SPACEDIM>& hi,
-                          const Real* dx, int ratio,
+                          const Real* dx, IntVect const& ratio,
                           const RealVect& interior_bloc,
                           const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
                           const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi,
@@ -127,7 +142,7 @@ MLMGBndryT<MF>::setBoxBC (RealTuple& bloc, BCTuple& bctag,
         {
             // Internal bndry.
             bctag[face] = static_cast<int>(a_crse_fine_bc_type);
-            bloc[face]  = static_cast<T>(ratio > 0 ? Real(0.5)*static_cast<Real>(ratio)*dx[dir]
+            bloc[face]  = static_cast<T>(ratio[dir] > 0 ? Real(0.5)*static_cast<Real>(ratio[dir])*dx[dir]
                                                    : interior_bloc[dir]);
             // If this is next to another same level box, BC type is wrong
             // and bloc is wrong.  But it doesn't matter, because we also
