@@ -1893,11 +1893,12 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
             hypre_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
             hypre_bndry->setHomogValues();
             const Real* dx = linop.m_geom[0][0].CellSize();
-            int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
-            RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
-                                             0.5*dx[1]*crse_ratio,
-                                             0.5*dx[2]*crse_ratio));
-            hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
+            IntVect crse_ratio = linop.m_coarse_data_crse_ratio.allGT(0) ? linop.m_coarse_data_crse_ratio : IntVect(1);
+            RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio[0],
+                                             0.5*dx[1]*crse_ratio[1],
+                                             0.5*dx[2]*crse_ratio[2]));
+            hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, IntVect(-1), bclocation,
+                                         linop.m_coarse_fine_bc_type);
         }
 
         // IJ interface understands absolute tolerance API of hypre
@@ -1947,11 +1948,12 @@ MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
         petsc_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
         petsc_bndry->setHomogValues();
         const Real* dx = linop.m_geom[0][0].CellSize();
-        int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
-        RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
-                                         0.5*dx[1]*crse_ratio,
-                                         0.5*dx[2]*crse_ratio));
-        petsc_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
+        auto crse_ratio = linop.m_coarse_data_crse_ratio.allGT(0) ? linop.m_coarse_data_crse_ratio : IntVect(1);
+        RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio[0],
+                                         0.5*dx[1]*crse_ratio[1],
+                                         0.5*dx[2]*crse_ratio[2]));
+        petsc_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, IntVect(-1), bclocation,
+                                     linop.m_coarse_fine_bc_type);
     }
     petsc_solver->solve(x, b, bottom_reltol, Real(-1.), bottom_maxiter, *petsc_bndry,
                         linop.getMaxOrder());

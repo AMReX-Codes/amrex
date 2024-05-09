@@ -726,7 +726,7 @@ MLABecLaplacianT<MF>::update_singular_flags ()
             // For now this assumes that overset regions are treated as Dirichlet bc's
             if (this->m_domain_covered[alev] && !this->m_overset_mask[alev][0])
             {
-                if (m_a_scalar == 0.0)
+                if (m_a_scalar == Real(0.0))
                 {
                     m_is_singular[alev] = true;
                 }
@@ -736,6 +736,37 @@ MLABecLaplacianT<MF>::update_singular_flags ()
                     RT amax = m_a_coeffs[alev].back().norminf(0,1,IntVect(0));
                     m_is_singular[alev] = (std::abs(asum) <= amax * RT(1.e-12));
                 }
+            }
+        }
+    }
+
+    if (!m_is_singular[0] && this->m_needs_coarse_data_for_bc &&
+        this->m_coarse_fine_bc_type == LinOpBCType::Neumann)
+    {
+        AMREX_ASSERT(this->m_overset_mask[0][0] == nullptr);
+
+        bool lev0_a_is_zero = false;
+        if (m_a_scalar == Real(0.0)) {
+            lev0_a_is_zero = true;
+        } else {
+            RT asum = m_a_coeffs[0].back().sum(0,IntVect(0));
+            RT amax = m_a_coeffs[0].back().norminf(0,1,IntVect(0));
+            bool a_is_almost_zero = std::abs(asum) <= amax * RT(1.e-12);
+            if (a_is_almost_zero) { lev0_a_is_zero = true; }
+        }
+
+        if (lev0_a_is_zero) {
+            auto bbox = this->m_grids[0][0].minimalBox();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (this->m_lobc[0][idim] == LinOpBCType::Dirichlet) {
+                    bbox.growLo(idim,1);
+                }
+                if (this->m_hibc[0][idim] == LinOpBCType::Dirichlet) {
+                    bbox.growHi(idim,1);
+                }
+            }
+            if (this->m_geom[0][0].Domain().contains(bbox)) {
+                m_is_singular[0] = true;
             }
         }
     }
@@ -1217,8 +1248,9 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
     if (this->needsCoarseDataForBC())
     {
         const Real* dx0 = this->m_geom[0][0].CellSize();
-        const Real fac = Real(0.5)*this->m_coarse_data_crse_ratio;
-        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac, dx0[1]*fac, dx0[2]*fac)};
+        RealVect fac(this->m_coarse_data_crse_ratio);
+        fac *= Real(0.5);
+        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac[0], dx0[1]*fac[1], dx0[2]*fac[2])};
         nop->setCoarseFineBCLocation(cbloc);
     }
 
