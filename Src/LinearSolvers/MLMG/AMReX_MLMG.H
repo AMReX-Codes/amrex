@@ -1948,7 +1948,7 @@ MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
         petsc_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
         petsc_bndry->setHomogValues();
         const Real* dx = linop.m_geom[0][0].CellSize();
-        int crse_ratio = linop.m_coarse_data_crse_ratio.allGT(0) ? linop.m_coarse_data_crse_ratio : IntVect(1);
+        auto crse_ratio = linop.m_coarse_data_crse_ratio.allGT(0) ? linop.m_coarse_data_crse_ratio : IntVect(1);
         RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio[0],
                                          0.5*dx[1]*crse_ratio[1],
                                          0.5*dx[2]*crse_ratio[2]));
