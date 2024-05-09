@@ -341,15 +341,16 @@ the plotfiles in a JSON format as below.
 
 { "file-series-version": "1.0", "files": [
 { "name": "plt00000", "time": 0},
-{ "name": "plt01000", "time": 1},
-{ "name": "plt02000", "time": 2},
-{ "name": "plt03000", "time": 3},
-{ "name": "plt04000", "time": 4},
-{ "name": "plt05000", "time": 5},
-{ "name": "plt06000", "time": 6},
-{ "name": "plt07000", "time": 7},
-{ "name": "plt08000", "time": 8},
-{ "name": "plt09000", "time": 9},] } 
+{ "name": "plt00100", "time": 1},
+{ "name": "plt00200", "time": 2},
+{ "name": "plt00300", "time": 3},
+{ "name": "plt00400", "time": 4},
+{ "name": "plt00500", "time": 5},
+{ "name": "plt00600", "time": 6},
+{ "name": "plt00700", "time": 7},
+{ "name": "plt00800", "time": 8},
+{ "name": "plt00900", "time": 9},
+{ "name": "plt01000", "time": 10},] }
 
 :download:`write_series_file.sh </Visualization/write_series_file.sh>` is a bash script 
 that can generate such a ``.series`` file. Navigate to the directory with the plotfiles and  
