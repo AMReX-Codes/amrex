@@ -91,7 +91,11 @@ public:
 
     void precond (MF& lhs, MF const& rhs) const;
 
+    //! Control whether or not to use MLMG as preconditioner.
     bool usePrecond (bool new_flag) { return std::exchange(m_use_precond, new_flag); }
+
+    //! Set the number of MLMG preconditioner iterations per GMRES iteration.
+    void setPrecondNumIters (int precond_niters) { m_precond_niters = precond_niters; }
 
 private:
     GM m_gmres;
@@ -99,6 +103,7 @@ private:
     MLLinOpT<MF>* m_linop;
     bool m_use_precond = true;
     bool m_prop_zero = false;
+    int m_precond_niters = 1;
 };
 
 template <typename MF>
@@ -184,12 +189,22 @@ void GMRESMLMGT<MF>::precond (MF& lhs, MF const& rhs) const
     if (m_use_precond) {
         m_mlmg->prepareMGcycle();
 
-        LocalCopy(m_mlmg->res[0][0], rhs, 0, 0, nComp(rhs), IntVect(0));
+        for (int icycle = 0; icycle < m_precond_niters; ++icycle) {
+            if (icycle == 0) {
+                LocalCopy(m_mlmg->res[0][0], rhs, 0, 0, nComp(rhs), IntVect(0));
+            } else {
+                m_mlmg->computeResOfCorrection(0,0);
+                LocalCopy(m_mlmg->res[0][0], m_mlmg->rescor[0][0], 0, 0, nComp(rhs), IntVect(0));
+            }
 
-        m_mlmg->mgVcycle(0,0);
+            m_mlmg->mgVcycle(0,0);
 
-        LocalCopy(lhs, m_mlmg->cor[0][0], 0, 0, nComp(rhs), IntVect(0));
-
+            if (icycle == 0) {
+                LocalCopy(lhs, m_mlmg->cor[0][0], 0, 0, nComp(rhs), IntVect(0));
+            } else {
+                increment(lhs, m_mlmg->cor[0][0], RT(1));
+            }
+        }
     } else {
         LocalCopy(lhs, rhs, 0, 0, nComp(lhs), IntVect(0));
     }

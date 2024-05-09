@@ -32,6 +32,7 @@ private:
 
     bool use_gmres = false;
     bool gmres_use_precond = true;
+    int gmres_precond_niters = 1;
 
     amrex::Geometry geom;
     amrex::BoxArray grids;

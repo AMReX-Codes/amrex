@@ -62,6 +62,7 @@ MyTest::solve ()
     {
         GMRESMLMGT<V> gmsolver(mlmg);
         gmsolver.usePrecond(gmres_use_precond);
+        gmsolver.setPrecondNumIters(gmres_precond_niters);
 
         // This system has homogeneous BC unlike
         // Tests/LinearSolvers/ABecLaplacian_C, so the setup is simpler.
@@ -106,6 +107,7 @@ MyTest::readParameters ()
 
     pp.query("use_gmres", use_gmres);
     pp.query("gmres_use_precond", gmres_use_precond);
+    pp.query("gmres_precond_niters", gmres_precond_niters);
 
     pp.query("beta_factor", beta_factor);
     pp.query("alpha", alpha);
