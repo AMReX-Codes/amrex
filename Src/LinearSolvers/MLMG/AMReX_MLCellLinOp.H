@@ -1917,6 +1917,8 @@ MLCellLinOpT<MF>::computeVolInv () const
         m_volinv[amrlev].resize(this->NMGLevels(amrlev));
     }
 
+    AMREX_ASSERT(this->m_coarse_fine_bc_type == LinOpBCType::Dirichlet || ! this->hasHiddenDimension());
+
     // We don't need to compute for every level
 
     auto f = [&] (int amrlev, int mglev) {
@@ -1934,8 +1936,13 @@ MLCellLinOpT<MF>::computeVolInv () const
         else
 #endif
         {
-            m_volinv[amrlev][mglev]
-                = RT(1.0 / this->compactify(this->Geom(amrlev,mglev).Domain()).d_numPts());
+            if (this->m_coarse_fine_bc_type == LinOpBCType::Dirichlet) {
+                m_volinv[amrlev][mglev]
+                    = RT(1.0 / this->compactify(this->Geom(amrlev,mglev).Domain()).d_numPts());
+            } else {
+                m_volinv[amrlev][mglev]
+                    = RT(1.0 / this->m_grids[amrlev][mglev].d_numPts());
+            }
         }
     };
 

@@ -902,7 +902,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
     Box aggbox;
     bool aggable = false;
 
-    if (info.do_agglomeration)
+    if (m_grids[0][0].size() > 1 && info.do_agglomeration)
     {
         if (m_domain_covered[0])
         {
