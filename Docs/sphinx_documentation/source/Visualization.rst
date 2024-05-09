@@ -331,8 +331,8 @@ To open a plotfile (for example, you could run the
 
    \end{center}
 
-Another useful feature in ParaView to load and re-load a group of plotfiles is using a ``.series`` file 
-(similar to the ``.visit`` file in VisIt). It is a text file (say ``plot_files.series``) which lists 
+Another useful feature in ParaView to load and re-load a group of plotfiles is using a ``.series`` file
+(similar to the ``.visit`` file in VisIt). It is a text file (say ``plot_files.series``) which lists
 the plotfiles in a JSON format as below.
 
 .. highlight:: console
@@ -352,22 +352,22 @@ the plotfiles in a JSON format as below.
 { "name": "plt00900", "time": 9},
 { "name": "plt01000", "time": 10},] }
 
-:download:`write_series_file.sh </Visualization/write_series_file.sh>` is a bash script 
-that can generate such a ``.series`` file. Navigate to the directory with the plotfiles and  
+:download:`write_series_file.sh </Visualization/write_series_file.sh>` is a bash script
+that can generate such a ``.series`` file. Navigate to the directory with the plotfiles and
 save this script. Then run the bash script by executing the following command in the terminal.
 
 .. highlight:: console
 
 ::
 
-	bash write_series_file.sh
+    bash write_series_file.sh
 
-This will generate a file ``plot_files.series``. Open ParaView, and then select 
-"File" :math:`\rightarrow` "Open". In the "Files of Type" dropdown menu (see :numref:`fig:ParaView_filegroup`) 
-choose the option ``All Files (*)``. Then choose ``plot_files.series`` and click "OK". Now the plotfiles have been 
-loaded as a Group as in Step 2 of section :ref:`section-1`. Now, you can follow the steps 2 to 7 in the section 
-:ref:`section-1` to plot. As new plotfiles are generated, just re-run the bash script to re-generate the 
-``plot_files.series`` file, right-click on ``plot_files.series`` in the ParaView menu, and click on 
+This will generate a file ``plot_files.series``. Open ParaView, and then select
+"File" :math:`\rightarrow` "Open". In the "Files of Type" dropdown menu (see :numref:`fig:ParaView_filegroup`)
+choose the option ``All Files (*)``. Then choose ``plot_files.series`` and click "OK". Now the plotfiles have been
+loaded as a Group as in Step 2 of section :ref:`section-1`. Now, you can follow the steps 2 to 7 in the section
+:ref:`section-1` to plot. As new plotfiles are generated, just re-run the bash script to re-generate the
+``plot_files.series`` file, right-click on ``plot_files.series`` in the ParaView menu, and click on
 "Reload Files" (see :numref:`fig:ParaView_series_reload`).
 
 .. _fig:ParaView_series_reload:
