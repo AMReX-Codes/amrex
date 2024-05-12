@@ -101,6 +101,10 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
 
    add_subdirectory("Amr/Advection_AmrCore")
 
+   if (AMReX_OMP)
+      add_subdirectory("OpenMP/atomicAdd")
+   endif ()
+
    if (AMReX_PARTICLES)
       add_subdirectory("Particles/Redistribute")
    endif ()
