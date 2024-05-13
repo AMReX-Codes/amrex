@@ -593,7 +593,7 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
     }
     Gpu::streamSynchronize();
 
-    cbc(*m_cf_crse_data_tmp, 0, m_ncomp, m_nghost, time, 0);
+    cbc(*m_cf_crse_data_tmp, 0, m_ncomp, m_cf_crse_data_tmp->nGrowVect(), time, 0);
 
     if (m_cf_fine_data == nullptr) {
         m_cf_fine_data = std::make_unique<MF>(detail::make_mf_fine_patch<MF>(fpc, m_ncomp));
