@@ -390,7 +390,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
         }
         Gpu::streamSynchronize();
 
-        cbc(*m_cf_crse_data_tmp, 0, ncomp, nghost, time, cbccomp);
+        cbc(*m_cf_crse_data_tmp, 0, ncomp, m_cf_crse_data_tmp->nGrowVect(), time, cbccomp);
 
         detail::call_interp_hook(pre_interp, *m_cf_crse_data_tmp, 0, ncomp);
 
