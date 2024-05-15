@@ -719,6 +719,7 @@ struct ParticleTile
     using ConstParticleTileDataType = ConstParticleTileData<StorageParticleType, NArrayReal, NArrayInt>;
 
     ParticleTile () = default;
+    ~ParticleTile () = default;
 
     ParticleTile (ParticleTile const&) = delete;
     ParticleTile (ParticleTile &&) noexcept = default;
