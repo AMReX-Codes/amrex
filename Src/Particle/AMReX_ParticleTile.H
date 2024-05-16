@@ -719,6 +719,8 @@ struct ParticleTile
     using ConstParticleTileDataType = ConstParticleTileData<StorageParticleType, NArrayReal, NArrayInt>;
 
     ParticleTile () = default;
+
+#ifndef _WIN32  // workaround windows compiler bug
     ~ParticleTile () = default;
 
     ParticleTile (ParticleTile const&) = delete;
@@ -726,6 +728,7 @@ struct ParticleTile
 
     ParticleTile& operator= (ParticleTile const&) = delete;
     ParticleTile& operator= (ParticleTile &&) noexcept = default;
+#endif
 
     void define (int a_num_runtime_real, int a_num_runtime_int)
     {
