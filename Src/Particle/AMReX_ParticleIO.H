@@ -921,7 +921,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     if (dual_grid) {
-        for (int lev = 0; lev <= finest_level_in_file; lev++) {
+        for (int lev = 0; lev <= finestLevel(); lev++) {
             SetParticleBoxArray(lev, old_bas[lev]);
             SetParticleDistributionMap(lev, old_dms[lev]);
         }
