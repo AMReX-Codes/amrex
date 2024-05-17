@@ -775,7 +775,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     if (have_pheaders)
     {
-        for (int lev = 0; lev <= finest_level_in_file; lev++)
+        for (int lev = 0; lev <= finestLevel(); lev++)
         {
             old_dms[lev] = ParticleDistributionMap(lev);
             old_bas[lev] = ParticleBoxArray(lev);
@@ -790,12 +790,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             ParallelDescriptor::ReadAndBcastFile(phdr_name, phdr_chars);
             std::string phdr_string(phdr_chars.dataPtr());
             std::istringstream phdr_file(phdr_string, std::istringstream::in);
-
-            if (lev > finestLevel())
-            {
-                dual_grid = true;
-                break;
-            }
 
             particle_box_arrays[lev].readFrom(phdr_file);
             if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) { dual_grid = true; }
@@ -927,7 +921,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     if (dual_grid) {
-        for (int lev = 0; lev <= finest_level_in_file; lev++) {
+        for (int lev = 0; lev <= finestLevel(); lev++) {
             SetParticleBoxArray(lev, old_bas[lev]);
             SetParticleDistributionMap(lev, old_dms[lev]);
         }
