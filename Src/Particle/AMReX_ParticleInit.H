@@ -873,7 +873,7 @@ InitFromBinaryFile (const std::string& file,
             auto& pmap     = m_particles[lev];
             auto& tmp_pmap = tmp_particles[lev];
 
-            for (auto kv : pmap) {
+            for (auto& kv : pmap) {
                 auto& aos = kv.second.GetArrayOfStructs()();
                 auto& tmp_aos = tmp_pmap[kv.first].GetArrayOfStructs()();
 
