@@ -65,18 +65,28 @@ public:
 #ifdef AMREX_USE_OMP
     void operator++ ()
     {
-        if (dynamic) {
+        bool has_particles = false;
+        while (isValid() && !has_particles) {
+            if (dynamic) {
 #pragma omp atomic capture
-            m_pariter_index = nextDynamicIndex++;
-        } else {
-            ++m_pariter_index;
+                m_pariter_index = nextDynamicIndex++;
+            } else {
+                ++m_pariter_index;
+            }
+            if (m_pariter_index >= m_particle_tiles.size()) { break; }
+            has_particles = m_particle_tiles[m_pariter_index]->numParticles() > 0;
         }
         currentIndex = m_valid_index[m_pariter_index];
     }
 #else
     void operator++ ()
     {
-        ++m_pariter_index;
+        bool has_particles = false;
+        while (isValid() && !has_particles) {
+            ++m_pariter_index;
+            if (m_pariter_index >= m_particle_tiles.size()) { break; }
+            has_particles = m_particle_tiles[m_pariter_index]->numParticles() > 0;
+        }
         currentIndex = m_valid_index[m_pariter_index];
 #ifdef AMREX_USE_GPU
         Gpu::Device::setStreamIndex(currentIndex);
@@ -184,7 +194,7 @@ ParIterBase_impl<is_const, ParticleType, NArrayReal, NArrayInt, Allocator, CellA
         int tile = local_tile_index_map ? (*local_tile_index_map)[i] : 0;
         auto key = std::make_pair(grid,tile);
         auto f = particles.find(key);
-        if (f != particles.end() && f->second.numParticles() > 0)
+        if (f != particles.end())
         {
             m_valid_index.push_back(i);
             m_particle_tiles.push_back(&(f->second));
@@ -235,7 +245,7 @@ ParIterBase_impl<is_const, T_ParticleType, NArrayReal, NArrayInt, Allocator, Cel
         int tile = local_tile_index_map ? (*local_tile_index_map)[i] : 0;
         auto key = std::make_pair(grid,tile);
         auto f = particles.find(key);
-        if (f != particles.end() && f->second.numParticles() > 0)
+        if (f != particles.end())
         {
             m_valid_index.push_back(i);
             m_particle_tiles.push_back(&(f->second));
