@@ -698,9 +698,13 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
     BL_PROFILE("PermutationForDeposition()");
 
 #if defined(AMREX_USE_HIP)
+    // MI250X has a small L2 cache and is more tolerant of atomic add contention,
+    // so we use a small block size of 64 and the compressed layout.
     static constexpr index_type gpu_block_size = 64;
     static constexpr bool compressed_layout = true;
 #else
+    // A100 has a larger L2 cache and is very sensitive to atomic add contention,
+    // so we use a large bock size of 1024 and not the compressed layout.
     static constexpr index_type gpu_block_size = 1014;
     static constexpr bool compressed_layout = false;
 #endif
@@ -737,6 +741,9 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
             index_type current_idx = 0;
 
             if constexpr (compressed_layout) {
+                // Compressed layout: subsequent sweeps of up to gpu_block_size contiguous particles
+                // are put right next to each other, while without the compressed layout,
+                // there can be other particle sweeps from different locations between them.
                 current_idx = pllist_start[threadIdx.x + gpu_block_size * blockIdx.x];
 
                 index_type num_particles_thread = 0;
