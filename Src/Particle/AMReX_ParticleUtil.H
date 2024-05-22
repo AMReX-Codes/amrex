@@ -705,7 +705,7 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
 #else
     // A100 has a larger L2 cache and is very sensitive to atomic add contention,
     // so we use a large bock size of 1024 and not the compressed layout.
-    static constexpr index_type gpu_block_size = 1014;
+    static constexpr index_type gpu_block_size = 1024;
     static constexpr bool compressed_layout = false;
 #endif
 
