@@ -1200,7 +1200,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         /* particle_box_arrays[lev].readFrom(phdr_file); */
         particle_box_arrays[lev] = ParticleBoxArray(lev);
         for (int i = 0; i < (int)ngrid; i++) {
-            Box tmp ({AMREX_D_DECL(boxes[i*AMREX_SPACEDIM], boxes[i*AMREX_SPACEDIM+1], boxes[i*AMREX_SPACEDIM+2])}, {AMREX_D_DECL(boxes[i*AMREX_SPACEDIM*2], boxes[i*AMREX_SPACEDIM*2+1], boxes[i*AMREX_SPACEDIM*2+2])});
+            Box tmp (IntVect{AMREX_D_DECL(boxes[i*AMREX_SPACEDIM], boxes[i*AMREX_SPACEDIM+1], boxes[i*AMREX_SPACEDIM+2])},
+                     IntVect{AMREX_D_DECL(boxes[i*AMREX_SPACEDIM*2], boxes[i*AMREX_SPACEDIM*2+1], boxes[i*AMREX_SPACEDIM*2+2])});
             particle_box_arrays[lev][i] = tmp;
         }
 

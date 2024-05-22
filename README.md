@@ -40,9 +40,7 @@ applications solving partial differential equations on block-structured meshes. 
 massively parallel adaptive mesh refinement (AMR) algorithms focus computational
 resources and allow scalable performance on heterogeneous architectures so that
 scientists can efficiently resolve details in large simulations.
-AMReX is developed at [LBNL](https://www.lbl.gov/), [NREL](https://www.nrel.gov/),
-and [ANL](https://www.anl.gov/) as part of the Block-Structured
-AMR Co-Design Center in the Department of Energy's Exascale Computing Project.
+AMReX is developed at [LBNL](https://www.lbl.gov/).
 
 More information is available at the [AMReX website](https://amrex-codes.github.io/).
 
@@ -103,13 +101,7 @@ required approvals from the U.S. Dept. of Energy).  All rights reserved.
 If you have questions about your rights to use or distribute this software,
 please contact Berkeley Lab's Intellectual Property Office at IPO@lbl.gov.
 
-NOTICE.  This Software was developed under funding from the U.S. Department
-of Energy and the U.S. Government consequently retains certain rights.  As
-such, the U.S. Government has been granted for itself and others acting on
-its behalf a paid-up, nonexclusive, irrevocable, worldwide license in the
-Software to reproduce, distribute copies to the public, prepare derivative
-works, and perform publicly and display publicly, and to permit others to do
-so.
+Please see the notices in [NOTICE](NOTICE).
 
 ## License
 

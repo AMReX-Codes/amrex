@@ -184,7 +184,7 @@ FabArrayBase::define (const BoxArray&            bxs,
                       int                        nvar,
                       const IntVect&             ngrow)
 {
-    BL_ASSERT(ngrow.allGE(IntVect::TheZeroVector()));
+    BL_ASSERT(ngrow.allGE(0));
     BL_ASSERT(boxarray.empty());
     indexArray.clear();
     ownership.clear();
@@ -875,7 +875,7 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
 void
 FabArrayBase::FB::define_fb (const FabArrayBase& fa)
 {
-    AMREX_ASSERT(m_multi_ghost ? fa.nGrow() >= 2 : true); // must have >= 2 ghost nodes
+    AMREX_ASSERT(m_multi_ghost ? fa.nGrowVect().allGE(2) : true); // must have >= 2 ghost nodes
     AMREX_ASSERT(m_multi_ghost ? !m_period.isAnyPeriodic() : true); // this only works for non-periodic
 
     fa.define_fb_metadata(*this, m_ngrow, m_cross, m_period, m_multi_ghost);

@@ -153,6 +153,8 @@ public:
 
         BL_PROFILE("PhysBCFunct::()");
 
+        AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
+
         //! create a grown domain box containing valid + periodic cells
         const Box& domain = m_geom.Domain();
         Box gdomain = amrex::convert(domain, mf.boxArray().ixType());

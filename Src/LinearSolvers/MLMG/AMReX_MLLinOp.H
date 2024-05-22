@@ -184,20 +184,32 @@ public:
     * coarsest AMR level of the solve come from a coarser level (e.g. the
     * base AMR level of the solve is > 0 and does not cover the entire
     * domain), we must explicitly provide the coarser data.  Boundary
-    * conditions from a coarser level are always Dirichlet.  The MultiFab
+    * conditions from a coarser level are Dirichlet by default.  The MultiFab
     * crse does not need to have ghost cells and is at a coarser resolution
     * than the coarsest AMR level of the solve; it is used to supply
     * (interpolated) boundary conditions for the solve.  NOTE: If this is
     * called, it must be called before `setLevelBC`.  If crse is nullptr,
-    * then the bc values are assumed to be zero.
+    * then the bc values are assumed to be zero. The coarse/fine BC type
+    * can be changed to homogeneous Neumann by the bc_type argument. In that
+    * case, use nullptr for the crse argument.
     *
     * \param crse       the coarse AMR level data
     * \param crse_ratio the coarsening ratio between fine and coarse AMR levels.
+    * \param bc_type    optional. It's Dirichlet by default, and can be Neumann.
     */
-    void setCoarseFineBC (const MF* crse, int crse_ratio) noexcept;
+    void setCoarseFineBC (const MF* crse, int crse_ratio,
+                          LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
+
+    void setCoarseFineBC (const MF* crse, IntVect const& crse_ratio,
+                          LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
 
     template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int> = 0>
-    void setCoarseFineBC (const AMF* crse, int crse_ratio) noexcept;
+    void setCoarseFineBC (const AMF* crse, int crse_ratio,
+                          LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
+
+    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int> = 0>
+    void setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
+                          LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
 
     /**
     * \brief Set boundary conditions for given level. For cell-centered
@@ -612,7 +624,8 @@ protected:
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_hi {{AMREX_D_DECL(0._rt,0._rt,0._rt)}};
 
     bool m_needs_coarse_data_for_bc = false;
-    int m_coarse_data_crse_ratio = -1;
+    LinOpBCType m_coarse_fine_bc_type = LinOpBCType::Dirichlet;
+    IntVect m_coarse_data_crse_ratio = IntVect(-1);
     RealVect m_coarse_bc_loc;
     const MF* m_coarse_data_for_bc = nullptr;
     MF m_coarse_data_for_bc_raii;
@@ -889,7 +902,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
     Box aggbox;
     bool aggable = false;
 
-    if (info.do_agglomeration)
+    if (m_grids[0][0].size() > 1 && info.do_agglomeration)
     {
         if (m_domain_covered[0])
         {
@@ -1404,16 +1417,36 @@ MLLinOpT<MF>::setDomainBCLoc (const Array<Real,AMREX_SPACEDIM>& lo_bcloc,
 
 template <typename MF>
 void
-MLLinOpT<MF>::setCoarseFineBC (const MF* crse, int crse_ratio) noexcept
+MLLinOpT<MF>::setCoarseFineBC (const MF* crse, int crse_ratio,
+                               LinOpBCType bc_type) noexcept
+{
+    setCoarseFineBC(crse, IntVect(crse_ratio), bc_type);
+}
+
+template <typename MF>
+void
+MLLinOpT<MF>::setCoarseFineBC (const MF* crse, IntVect const& crse_ratio,
+                               LinOpBCType bc_type) noexcept
 {
     m_coarse_data_for_bc = crse;
     m_coarse_data_crse_ratio = crse_ratio;
+    m_coarse_fine_bc_type = bc_type;
 }
 
 template <typename MF>
 template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int>>
 void
-MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, int crse_ratio) noexcept
+MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, int crse_ratio,
+                               LinOpBCType bc_type) noexcept
+{
+    setCoarseFineBC(crse, IntVect(crse_ratio), bc_type);
+}
+
+template <typename MF>
+template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int>>
+void
+MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
+                               LinOpBCType bc_type) noexcept
 {
     m_coarse_data_for_bc_raii = MF(crse->boxArray(), crse->DistributionMap(),
                                    crse->nComp(), crse->nGrowVect());
@@ -1421,6 +1454,7 @@ MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, int crse_ratio) noexcept
                                         crse->nGrowVect());
     m_coarse_data_for_bc = &m_coarse_data_for_bc_raii;
     m_coarse_data_crse_ratio = crse_ratio;
+    m_coarse_fine_bc_type = bc_type;
 }
 
 template <typename MF>

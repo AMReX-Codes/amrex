@@ -17,7 +17,15 @@ namespace amrex::OpenMP {
     void Initialize ();
     void Finalize ();
 
+#if defined(_WIN32)
+    void** get_lock_impl (int ilock);
+
+    inline omp_lock_t* get_lock (int ilock) {
+        return (omp_lock_t*)(*(get_lock_impl(ilock)));
+    }
+#else
     omp_lock_t* get_lock (int ilock);
+#endif
 }
 
 #else // AMREX_USE_OMP

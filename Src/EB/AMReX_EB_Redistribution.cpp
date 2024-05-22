@@ -64,7 +64,7 @@ namespace amrex {
         Box domain(geom.Domain());
 
         int nghost = 2;
-        AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
+        AMREX_ASSERT(div_tmp_in.nGrowVect().allGE(nghost));
 
         EB_set_covered(div_tmp_in, 0, ncomp, div_tmp_in.nGrow(), eb_covered_val);
 

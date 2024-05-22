@@ -1110,7 +1110,7 @@ CellConservativeProtected::protect (const FArrayBox& /*crse*/,
                                     Vector<BCRec>&   /*bcr*/,
                                     RunOn            runon)
 {
-    AMREX_ALWAYS_ASSERT(ratio.allGT(IntVect(1)));
+    AMREX_ALWAYS_ASSERT(ratio.allGT(1));
 
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(fine,fine_state,
