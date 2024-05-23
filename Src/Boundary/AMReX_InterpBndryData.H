@@ -91,7 +91,7 @@ public:
      */
     void setBndryValues (BndryRegisterT<MF> const& crse, int c_start, const MF& fine, int f_start,
                          int bnd_start, int num_comp, const IntVect& ratio,
-                         int max_order = IBD_max_order_DEF);
+                         int max_order = IBD_max_order_DEF, int max_width = 2);
 
     /**
      * \brief Update boundary values at coarse/fine boundaries
@@ -127,14 +127,15 @@ template <typename MF>
 void
 InterpBndryDataT<MF>::setPhysBndryValues (const MF& mf, int mf_start, int bnd_start, int num_comp)
 {
-    AMREX_ASSERT(this->grids == mf.boxArray());
+    AMREX_ASSERT(mf.empty() || this->grids == mf.boxArray());
 
     const Box& fine_domain = this->geom.Domain();
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+    for (MFIter mfi(this->grids, this->DistributionMap(),
+                    MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
         for (OrientationIter fi; fi; ++fi) {
@@ -143,14 +144,22 @@ InterpBndryDataT<MF>::setPhysBndryValues (const MF& mf, int mf_start, int bnd_st
             {
                 // Physical bndry, copy from grid.
                 auto      & bnd_fab = this->bndry[face][mfi];
-                auto const& src_fab = mf[mfi];
                 auto const& bnd_array = bnd_fab.array();
-                auto const& src_array = src_fab.const_array();
-                const Box& b = src_fab.box() & bnd_fab.box();
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( b, num_comp, i, j, k, n,
-                {
-                    bnd_array(i,j,k,n+bnd_start) = src_array(i,j,k,n+mf_start);
-                });
+                if (mf.empty()) {
+                    const Box& b = bnd_fab.box();
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( b, num_comp, i, j, k, n,
+                    {
+                        bnd_array(i,j,k,n+bnd_start) = value_type(0);
+                    });
+                } else {
+                    auto const& src_fab = mf[mfi];
+                    auto const& src_array = src_fab.const_array();
+                    const Box& b = src_fab.box() & bnd_fab.box();
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( b, num_comp, i, j, k, n,
+                    {
+                        bnd_array(i,j,k,n+bnd_start) = src_array(i,j,k,n+mf_start);
+                    });
+                }
             }
         }
     }
@@ -160,7 +169,7 @@ template <typename MF>
 void
 InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_start, const MF& fine,
                                       int f_start, int bnd_start, int num_comp, const IntVect& ratio,
-                                      int max_order)
+                                      int max_order, int max_width)
 {
     AMREX_ASSERT(this->grids == fine.boxArray());
 
@@ -205,7 +214,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
                             {
                                 interpbndrydata_x_o3(it,jt,kt,n,bdry_array,bnd_start,
                                                      crse_array,c_start,rr,
-                                                     mask_array, is_not_covered);
+                                                     mask_array, is_not_covered, max_width);
                             });
                             break;
                         }
@@ -216,7 +225,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
                             {
                                 interpbndrydata_y_o3(it,jt,kt,n,bdry_array,bnd_start,
                                                      crse_array,c_start,rr,
-                                                     mask_array, is_not_covered);
+                                                     mask_array, is_not_covered, max_width);
                             });
                             break;
                         }
@@ -227,7 +236,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
                             {
                                 interpbndrydata_z_o3(it,jt,kt,n,bdry_array,bnd_start,
                                                      crse_array,c_start,rr,
-                                                     mask_array, is_not_covered);
+                                                     mask_array, is_not_covered, max_width);
                             });
                             break;
                         }
