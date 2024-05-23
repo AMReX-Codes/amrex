@@ -155,6 +155,12 @@ struct MultiArray4
         AMREX_IF_ON_HOST((return hp[li];))
     }
 
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    explicit operator bool() const noexcept {
+        AMREX_IF_ON_DEVICE((return dp != nullptr;))
+        AMREX_IF_ON_HOST((return hp != nullptr;))
+    }
+
 #ifdef AMREX_USE_GPU
     Array4<T> const* AMREX_RESTRICT dp = nullptr;
 #endif
