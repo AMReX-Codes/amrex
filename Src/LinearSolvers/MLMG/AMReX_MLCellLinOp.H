@@ -505,11 +505,15 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
 
     const int ncomp = this->getNComp();
 
+    MF zero;
     IntVect ng(1);
     if (this->hasHiddenDimension()) { ng[this->hiddenDirection()] = 0; }
-    AMREX_ALWAYS_ASSERT(a_levelbcdata == nullptr || a_levelbcdata->nGrowVect().allGE(ng));
-
-    MF zero;
+    if (a_levelbcdata == nullptr) {
+        zero.define(this->m_grids[amrlev][0], this->m_dmap[amrlev][0], ncomp, ng);
+        zero.setVal(RT(0.0));
+    } else {
+        AMREX_ALWAYS_ASSERT(a_levelbcdata->nGrowVect().allGE(ng));
+    }
     const MF& bcdata = (a_levelbcdata == nullptr) ? zero : *a_levelbcdata;
 
     IntVect br_ref_ratio(-1);
