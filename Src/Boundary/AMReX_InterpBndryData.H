@@ -104,7 +104,7 @@ public:
      * \param max_order interpolation order
      */
     void updateBndryValues (BndryRegisterT<MF>& crse, int c_start, int bnd_start, int num_comp,
-                            const IntVect& ratio, int max_order = IBD_max_order_DEF);
+                            const IntVect& ratio, int max_order = IBD_max_order_DEF, int max_width = 2);
 
     //! Set boundary values to zero
     void setHomogValues ();
@@ -127,15 +127,14 @@ template <typename MF>
 void
 InterpBndryDataT<MF>::setPhysBndryValues (const MF& mf, int mf_start, int bnd_start, int num_comp)
 {
-    AMREX_ASSERT(mf.empty() || this->grids == mf.boxArray());
+    AMREX_ASSERT(this->grids == mf.boxArray());
 
     const Box& fine_domain = this->geom.Domain();
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(this->grids, this->DistributionMap(),
-                    MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
         for (OrientationIter fi; fi; ++fi) {
@@ -144,22 +143,14 @@ InterpBndryDataT<MF>::setPhysBndryValues (const MF& mf, int mf_start, int bnd_st
             {
                 // Physical bndry, copy from grid.
                 auto      & bnd_fab = this->bndry[face][mfi];
+                auto const& src_fab = mf[mfi];
                 auto const& bnd_array = bnd_fab.array();
-                if (mf.empty()) {
-                    const Box& b = bnd_fab.box();
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( b, num_comp, i, j, k, n,
-                    {
-                        bnd_array(i,j,k,n+bnd_start) = value_type(0);
-                    });
-                } else {
-                    auto const& src_fab = mf[mfi];
-                    auto const& src_array = src_fab.const_array();
-                    const Box& b = src_fab.box() & bnd_fab.box();
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( b, num_comp, i, j, k, n,
-                    {
-                        bnd_array(i,j,k,n+bnd_start) = src_array(i,j,k,n+mf_start);
-                    });
-                }
+                auto const& src_array = src_fab.const_array();
+                const Box& b = src_fab.box() & bnd_fab.box();
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( b, num_comp, i, j, k, n,
+                {
+                    bnd_array(i,j,k,n+bnd_start) = src_array(i,j,k,n+mf_start);
+                });
             }
         }
     }
@@ -270,10 +261,10 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
 template <typename MF>
 void
 InterpBndryDataT<MF>::updateBndryValues (BndryRegisterT<MF>& crse, int c_start, int bnd_start,
-                                         int num_comp, const IntVect& ratio, int max_order)
+                                         int num_comp, const IntVect& ratio, int max_order, int max_width)
 {
     MF foo(this->grids, this->bndry[0].DistributionMap(), 1, num_comp, MFInfo().SetAlloc(false));
-    setBndryValues(crse, c_start, foo, 0, bnd_start, num_comp, ratio, max_order);
+    setBndryValues(crse, c_start, foo, 0, bnd_start, num_comp, ratio, max_order, max_width);
 }
 
 template <typename MF>
