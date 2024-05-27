@@ -155,6 +155,12 @@ struct MultiArray4
         AMREX_IF_ON_HOST((return hp[li];))
     }
 
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    explicit operator bool() const noexcept {
+        AMREX_IF_ON_DEVICE((return dp != nullptr;))
+        AMREX_IF_ON_HOST((return hp != nullptr;))
+    }
+
 #ifdef AMREX_USE_GPU
     Array4<T> const* AMREX_RESTRICT dp = nullptr;
 #endif
@@ -1343,42 +1349,44 @@ public:
 
     //! Prepost nonblocking receives
     template <typename BUF=value_type>
-    void PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
+    static void PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
                    char*&                                 the_recv_data,
                    Vector<char*>&                         recv_data,
                    Vector<std::size_t>&                   recv_size,
                    Vector<int>&                           recv_from,
                    Vector<MPI_Request>&                   recv_reqs,
                    int                                    ncomp,
-                   int                                    SeqNum) const;
+                   int                                    SeqNum);
 
     template <typename BUF=value_type>
-    AMREX_NODISCARD TheFaArenaPointer PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
+    AMREX_NODISCARD
+    static TheFaArenaPointer PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
                    Vector<char*>&                         recv_data,
                    Vector<std::size_t>&                   recv_size,
                    Vector<int>&                           recv_from,
                    Vector<MPI_Request>&                   recv_reqs,
                    int                                    ncomp,
-                   int                                    SeqNum) const;
+                   int                                    SeqNum);
 
     template <typename BUF=value_type>
-    void PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
+    static void PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                              char*&                               the_send_data,
                              Vector<char*>&                       send_data,
                              Vector<std::size_t>&                 send_size,
                              Vector<int>&                         send_rank,
                              Vector<MPI_Request>&                 send_reqs,
                              Vector<const CopyComTagsContainer*>& send_cctc,
-                             int                                  ncomp) const;
+                             int                                  ncomp);
 
     template <typename BUF=value_type>
-    AMREX_NODISCARD TheFaArenaPointer PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
+    AMREX_NODISCARD
+    static TheFaArenaPointer PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                              Vector<char*>&                       send_data,
                              Vector<std::size_t>&                 send_size,
                              Vector<int>&                         send_rank,
                              Vector<MPI_Request>&                 send_reqs,
                              Vector<const CopyComTagsContainer*>& send_cctc,
-                             int                                  ncomp) const;
+                             int                                  ncomp);
 
     static void PostSnds (Vector<char*> const&       send_data,
                           Vector<std::size_t> const& send_size,

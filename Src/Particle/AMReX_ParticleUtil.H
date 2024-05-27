@@ -697,9 +697,20 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
 {
     BL_PROFILE("PermutationForDeposition()");
 
-    constexpr index_type gpu_block_size = 1024;
-    constexpr index_type gpu_block_size_m1 = gpu_block_size - 1;
-    constexpr index_type llist_guard = std::numeric_limits<index_type>::max();
+#if defined(AMREX_USE_HIP)
+    // MI250X has a small L2 cache and is more tolerant of atomic add contention,
+    // so we use a small block size of 64 and the compressed layout.
+    static constexpr index_type gpu_block_size = 64;
+    static constexpr bool compressed_layout = true;
+#else
+    // A100 has a larger L2 cache and is very sensitive to atomic add contention,
+    // so we use a large bock size of 1024 and not the compressed layout.
+    static constexpr index_type gpu_block_size = 1024;
+    static constexpr bool compressed_layout = false;
+#endif
+
+    static constexpr index_type gpu_block_size_m1 = gpu_block_size - 1;
+    static constexpr index_type llist_guard = std::numeric_limits<index_type>::max();
 
     // round up to gpu_block_size
     nbins = (nbins + gpu_block_size_m1) / gpu_block_size * gpu_block_size;
@@ -722,9 +733,34 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     amrex::launch<gpu_block_size>(nbins / gpu_block_size, Gpu::gpuStream(),
-        [=] AMREX_GPU_DEVICE () {
+        [pllist_start,pllist_next,pperm,pglobal_idx] AMREX_GPU_DEVICE () {
             __shared__ index_type sdata[gpu_block_size];
-            index_type current_idx = pllist_start[threadIdx.x + gpu_block_size * blockIdx.x];
+            __shared__ index_type global_idx_start;
+            __shared__ index_type idx_start;
+
+            index_type current_idx = 0;
+
+            if constexpr (compressed_layout) {
+                // Compressed layout: subsequent sweeps of up to gpu_block_size contiguous particles
+                // are put right next to each other, while without the compressed layout,
+                // there can be other particle sweeps from different locations between them.
+                current_idx = pllist_start[threadIdx.x + gpu_block_size * blockIdx.x];
+
+                index_type num_particles_thread = 0;
+                while (current_idx != llist_guard) {
+                    ++num_particles_thread;
+                    current_idx = pllist_next[current_idx];
+                }
+
+                index_type num_particles_block =
+                    Gpu::blockReduceSum<gpu_block_size>(num_particles_thread);
+
+                if (threadIdx.x == 0) {
+                    global_idx_start = Gpu::Atomic::Add(pglobal_idx, num_particles_block);
+                }
+            }
+
+            current_idx = pllist_start[threadIdx.x + gpu_block_size * blockIdx.x];
 
             while (true) {
                 sdata[threadIdx.x] = index_type(current_idx != llist_guard);
@@ -745,21 +781,16 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
                 if (sdata[gpu_block_size_m1] == 0) {
                     break;
                 }
-                __syncthreads();
                 if (threadIdx.x == gpu_block_size_m1) {
-                    x = sdata[gpu_block_size_m1];
-                    sdata[gpu_block_size_m1] = Gpu::Atomic::Add(pglobal_idx, x);
+                    if constexpr (compressed_layout) {
+                        idx_start = global_idx_start;
+                        global_idx_start += sdata[gpu_block_size_m1];
+                    } else {
+                        idx_start = Gpu::Atomic::Add(pglobal_idx, sdata[gpu_block_size_m1]);
+                    }
                 }
                 __syncthreads();
-                if (threadIdx.x < gpu_block_size_m1) {
-                    sdata[threadIdx.x] += sdata[gpu_block_size_m1];
-                }
-                __syncthreads();
-                if (threadIdx.x == gpu_block_size_m1) {
-                    sdata[gpu_block_size_m1] += x;
-                }
-                __syncthreads();
-
+                sdata[threadIdx.x] += idx_start;
                 if (current_idx != llist_guard) {
                     pperm[sdata[threadIdx.x] - 1] = current_idx;
                     current_idx = pllist_next[current_idx];
@@ -767,8 +798,8 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
             }
         });
 #else
-    amrex::ignore_unused(pperm, pglobal_idx);
-    Abort("Not implemented");
+    amrex::ignore_unused(pperm, pglobal_idx, compressed_layout);
+    Abort("PermutationForDeposition only implemented for CUDA and HIP");
 #endif
 
     Gpu::Device::streamSynchronize();

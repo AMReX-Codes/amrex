@@ -390,7 +390,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
         }
         Gpu::streamSynchronize();
 
-        cbc(*m_cf_crse_data_tmp, 0, ncomp, nghost, time, cbccomp);
+        cbc(*m_cf_crse_data_tmp, 0, ncomp, m_cf_crse_data_tmp->nGrowVect(), time, cbccomp);
 
         detail::call_interp_hook(pre_interp, *m_cf_crse_data_tmp, 0, ncomp);
 
@@ -593,7 +593,7 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
     }
     Gpu::streamSynchronize();
 
-    cbc(*m_cf_crse_data_tmp, 0, m_ncomp, m_nghost, time, 0);
+    cbc(*m_cf_crse_data_tmp, 0, m_ncomp, m_cf_crse_data_tmp->nGrowVect(), time, 0);
 
     if (m_cf_fine_data == nullptr) {
         m_cf_fine_data = std::make_unique<MF>(detail::make_mf_fine_patch<MF>(fpc, m_ncomp));

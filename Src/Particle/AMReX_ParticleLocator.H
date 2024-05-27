@@ -35,13 +35,13 @@ struct AssignGrid
           m_plo(a_geom.ProbLoArray()), m_dxi(a_geom.InvCellSizeArray())
         {
             // clamp bin size and num_bins to 1 for AMREX_SPACEDIM < 3
-            m_bin_size.x = amrex::max(m_bin_size.x, 1);
-            m_bin_size.y = amrex::max(m_bin_size.y, 1);
-            m_bin_size.z = amrex::max(m_bin_size.z, 1);
+            if (m_bin_size.x >= 0) {m_bin_size.x = amrex::max(m_bin_size.x, 1);}
+            if (m_bin_size.y >= 0) {m_bin_size.y = amrex::max(m_bin_size.y, 1);}
+            if (m_bin_size.z >= 0) {m_bin_size.z = amrex::max(m_bin_size.z, 1);}
 
-            m_num_bins.x = amrex::max(m_num_bins.x, 1);
-            m_num_bins.y = amrex::max(m_num_bins.y, 1);
-            m_num_bins.z = amrex::max(m_num_bins.z, 1);
+            if (m_bin_size.x >= 0) {m_num_bins.x = amrex::max(m_num_bins.x, 1);}
+            if (m_bin_size.y >= 0) {m_num_bins.y = amrex::max(m_num_bins.y, 1);}
+            if (m_bin_size.z >= 0) {m_num_bins.z = amrex::max(m_num_bins.z, 1);}
         }
 
     template <typename P, typename Assignor = DefaultAssignor>
@@ -55,6 +55,9 @@ struct AssignGrid
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator() (const IntVect& iv, int nGrow=0) const noexcept
     {
+        if (AMREX_D_TERM((m_num_bins.x == 0), && (m_num_bins.y == 0), && (m_num_bins.z == 0))) {
+            return -1;
+        }
         const auto lo = iv.dim3();
         int ix_lo = amrex::max((lo.x - nGrow - m_lo.x) / m_bin_size.x - 1, 0);
         int iy_lo = amrex::max((lo.y - nGrow - m_lo.y) / m_bin_size.y - 1, 0);
@@ -116,6 +119,14 @@ public:
 
         m_device_boxes.resize(num_boxes);
         Gpu::copyAsync(Gpu::hostToDevice, m_host_boxes.begin(), m_host_boxes.end(), m_device_boxes.begin());
+
+        if (num_boxes == 0) {
+            m_bins_lo  = IntVect(AMREX_D_DECL( 0,  0,  0));
+            m_bins_hi  = IntVect(AMREX_D_DECL(-1, -1, -1));
+            m_bin_size = IntVect(AMREX_D_DECL(-1, -1, -1));
+            m_num_bins = IntVect(AMREX_D_DECL( 0,  0,  0));
+            return;
+        }
 
         // compute the lo, hi and the max box size in each direction
         ReduceOps<AMREX_D_DECL(ReduceOpMin, ReduceOpMin, ReduceOpMin),

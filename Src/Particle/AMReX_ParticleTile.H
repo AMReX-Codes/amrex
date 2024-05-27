@@ -720,6 +720,16 @@ struct ParticleTile
 
     ParticleTile () = default;
 
+#ifndef _WIN32  // workaround windows compiler bug
+    ~ParticleTile () = default;
+
+    ParticleTile (ParticleTile const&) = delete;
+    ParticleTile (ParticleTile &&) noexcept = default;
+
+    ParticleTile& operator= (ParticleTile const&) = delete;
+    ParticleTile& operator= (ParticleTile &&) noexcept = default;
+#endif
+
     void define (int a_num_runtime_real, int a_num_runtime_int)
     {
         m_defined = true;

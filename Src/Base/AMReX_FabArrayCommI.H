@@ -622,7 +622,7 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                                    Vector<int>&                         send_rank,
                                    Vector<MPI_Request>&                 send_reqs,
                                    Vector<const CopyComTagsContainer*>& send_cctc,
-                                   int                                  ncomp) const
+                                   int                                  ncomp)
 {
     char* pointer = nullptr;
     PrepareSendBuffers<BUF>(SndTags, pointer, send_data, send_size, send_rank, send_reqs, send_cctc, ncomp);
@@ -639,7 +639,7 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                                    Vector<int>&                         send_rank,
                                    Vector<MPI_Request>&                 send_reqs,
                                    Vector<const CopyComTagsContainer*>& send_cctc,
-                                   int                                  ncomp) const
+                                   int                                  ncomp)
 {
     send_data.clear();
     send_size.clear();
@@ -723,7 +723,7 @@ TheFaArenaPointer FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&     
                    Vector<int>&                           recv_from,
                    Vector<MPI_Request>&                   recv_reqs,
                    int                                    ncomp,
-                   int                                    SeqNum) const
+                   int                                    SeqNum)
 {
     char* pointer = nullptr;
     PostRcvs(RcvTags, pointer, recv_data, recv_size, recv_from, recv_reqs, ncomp, SeqNum);
@@ -740,7 +740,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  RcvTags,
                          Vector<int>&                      recv_from,
                          Vector<MPI_Request>&              recv_reqs,
                          int                               ncomp,
-                         int                               SeqNum) const
+                         int                               SeqNum)
 {
     recv_data.clear();
     recv_size.clear();
