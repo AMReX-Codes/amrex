@@ -104,7 +104,7 @@ else
 endif
 
 ifeq ($(DEBUG_LIBSTDCXX),TRUE)
-   CXXFLAGS += -D_GLIBCXX_DEBUG
+   CPPFLAGS += -D_GLIBCXX_DEBUG
 endif
 
 ifeq ($(WARN_ALL),TRUE)
