@@ -73,7 +73,7 @@ public:
                 auto f = particles.find(key);
                 if (f != particles.end() && f->second.numParticles() > 0) {
                     m_particle_current_tile = &(f->second);
-                    break; // break if isValid() and non-empty particl tile found
+                    break; // break if isValid() and non-empty particle tile found
                 }
             } else {
                 break; // break if isValid() returns false
