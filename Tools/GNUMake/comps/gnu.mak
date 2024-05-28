@@ -103,6 +103,10 @@ else
   endif
 endif
 
+ifeq ($(DEBUG_LIBSTDCXX),TRUE)
+   CPPFLAGS += -D_GLIBCXX_DEBUG
+endif
+
 ifeq ($(WARN_ALL),TRUE)
   warning_flags = -Wall -Wextra -Wlogical-op -Wfloat-conversion -Wnull-dereference -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs
 

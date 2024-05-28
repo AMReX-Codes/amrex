@@ -91,7 +91,7 @@ public:
      */
     void setBndryValues (BndryRegisterT<MF> const& crse, int c_start, const MF& fine, int f_start,
                          int bnd_start, int num_comp, const IntVect& ratio,
-                         int max_order = IBD_max_order_DEF);
+                         int max_order = IBD_max_order_DEF, int max_width = 2);
 
     /**
      * \brief Update boundary values at coarse/fine boundaries
@@ -104,7 +104,7 @@ public:
      * \param max_order interpolation order
      */
     void updateBndryValues (BndryRegisterT<MF>& crse, int c_start, int bnd_start, int num_comp,
-                            const IntVect& ratio, int max_order = IBD_max_order_DEF);
+                            const IntVect& ratio, int max_order = IBD_max_order_DEF, int max_width = 2);
 
     //! Set boundary values to zero
     void setHomogValues ();
@@ -160,7 +160,7 @@ template <typename MF>
 void
 InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_start, const MF& fine,
                                       int f_start, int bnd_start, int num_comp, const IntVect& ratio,
-                                      int max_order)
+                                      int max_order, int max_width)
 {
     AMREX_ASSERT(this->grids == fine.boxArray());
 
@@ -205,7 +205,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
                             {
                                 interpbndrydata_x_o3(it,jt,kt,n,bdry_array,bnd_start,
                                                      crse_array,c_start,rr,
-                                                     mask_array, is_not_covered);
+                                                     mask_array, is_not_covered, max_width);
                             });
                             break;
                         }
@@ -216,7 +216,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
                             {
                                 interpbndrydata_y_o3(it,jt,kt,n,bdry_array,bnd_start,
                                                      crse_array,c_start,rr,
-                                                     mask_array, is_not_covered);
+                                                     mask_array, is_not_covered, max_width);
                             });
                             break;
                         }
@@ -227,7 +227,7 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
                             {
                                 interpbndrydata_z_o3(it,jt,kt,n,bdry_array,bnd_start,
                                                      crse_array,c_start,rr,
-                                                     mask_array, is_not_covered);
+                                                     mask_array, is_not_covered, max_width);
                             });
                             break;
                         }
@@ -261,10 +261,10 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
 template <typename MF>
 void
 InterpBndryDataT<MF>::updateBndryValues (BndryRegisterT<MF>& crse, int c_start, int bnd_start,
-                                         int num_comp, const IntVect& ratio, int max_order)
+                                         int num_comp, const IntVect& ratio, int max_order, int max_width)
 {
     MF foo(this->grids, this->bndry[0].DistributionMap(), 1, num_comp, MFInfo().SetAlloc(false));
-    setBndryValues(crse, c_start, foo, 0, bnd_start, num_comp, ratio, max_order);
+    setBndryValues(crse, c_start, foo, 0, bnd_start, num_comp, ratio, max_order, max_width);
 }
 
 template <typename MF>
