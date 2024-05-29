@@ -137,6 +137,7 @@ set(AMReX_CONDUIT                   @AMReX_CONDUIT@)
 set(AMReX_ASCENT                    @AMReX_ASCENT@)
 set(AMReX_HYPRE                     @AMReX_HYPRE@)
 set(AMReX_PETSC                     @AMReX_PETSC@)
+set(AMReX_SUNDIALS                  @AMReX_SUNDIALS@)
 set(AMReX_HDF5                      @AMReX_HDF5@)
 set(AMReX_HDF5_ZFP                  @AMReX_HDF5_ZFP@)
 
