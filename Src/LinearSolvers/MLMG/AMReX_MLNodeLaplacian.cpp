@@ -490,7 +490,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
     int idir = 0;
 #else
     int idir = 2;
-    if (cmglev > 0) {
+    if (amrlev == 0) {
         regular_coarsening = mg_coarsen_ratio_vec[cmglev-1] == mg_coarsen_ratio;
         IntVect ratio = mg_coarsen_ratio_vec[cmglev-1];
         if (ratio[1] == 1) {
@@ -603,7 +603,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
     int idir = 0;
 #else
     int idir = 2;
-    if (fmglev > 0) {
+    if (amrlev == 0) {
         regular_coarsening = mg_coarsen_ratio_vec[fmglev] == mg_coarsen_ratio;
         IntVect ratio = mg_coarsen_ratio_vec[fmglev];
         if (ratio[1] == 1) {
