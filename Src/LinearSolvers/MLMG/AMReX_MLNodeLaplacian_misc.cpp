@@ -113,17 +113,19 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
-        IntVect ratio = mg_coarsen_ratio_vec[mglev-1];
+        IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev-1];
+        bool regular_coarsening = true;
 #if (AMREX_SPACEDIM == 1)
         int idir = 0;
-        bool regular_coarsening = true;
 #else
         int idir = 2;
-        bool regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
-        if (ratio[1] == 1) {
-            idir = 1;
-        } else if (ratio[0] == 1) {
-            idir = 0;
+        if (amrlev == 0) {
+            regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
+            if (ratio[1] == 1) {
+                idir = 1;
+            } else if (ratio[0] == 1) {
+                idir = 0;
+            }
         }
 #endif
         for (int idim = 0; idim < nsigma; ++idim)
