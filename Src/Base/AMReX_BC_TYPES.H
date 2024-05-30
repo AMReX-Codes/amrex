@@ -74,7 +74,7 @@ enum mathematicalBndryTypes : int {
     hoextrap            =  4,
     hoextrapcc          =  5,
     ext_dir_cc          =  6,
-    direction_dependent = 7,
+    direction_dependent =  7,
     user_1              = 1001,
     user_2              = 1002,
     user_3              = 1003
