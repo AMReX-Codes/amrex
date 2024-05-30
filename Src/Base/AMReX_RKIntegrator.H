@@ -155,12 +155,12 @@ private:
 public:
     RKIntegrator () {}
 
-    RKIntegrator (const T& S_data)
+    RKIntegrator (const T& S_data, const amrex::Real time = 0.0)
     {
-        initialize(S_data);
+        initialize(S_data, time);
     }
 
-    void initialize (const T& S_data) override
+    void initialize (const T& S_data, const amrex::Real /* time */) override
     {
         initialize_parameters();
         initialize_stages(S_data);

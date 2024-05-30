@@ -165,12 +165,12 @@ private:
    /**
     * \brief Fun is the right-hand-side function the integrator will use.
     */
-    std::function<void(T&, const T&, const amrex::Real)> Fun;
+    std::function<void(T& rhs, T& state, const amrex::Real time)> Fun;
 
    /**
     * \brief FastFun is the fast timescale right-hand-side function for a multirate integration problem.
     */
-    std::function<void(T&, T&, const T&, const amrex::Real)> FastFun;
+    std::function<void(T& rhs, T& state, const amrex::Real time)> FastFun;
 
 protected:
    /**
@@ -200,14 +200,14 @@ public:
 
     virtual ~IntegratorBase () = default;
 
-    virtual void initialize (const T& S_data) = 0;
+    virtual void initialize (const T& S_data, const amrex::Real time = 0.0) = 0;
 
-    void set_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
+    void set_rhs (std::function<void(T&, T&, const amrex::Real)> F)
     {
         Fun = F;
     }
 
-    void set_fast_rhs (std::function<void(T&, T&, const T&, const amrex::Real)> F)
+    void set_fast_rhs (std::function<void(T&, T&, const amrex::Real)> F)
     {
         FastFun = F;
     }
@@ -232,12 +232,12 @@ public:
         return post_update;
     }
 
-    std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
+    std::function<void(T&, T&, const amrex::Real)> get_rhs ()
     {
         return Fun;
     }
 
-    std::function<void(T&, T&, const T&, const amrex::Real)> get_fast_rhs ()
+    std::function<void(T&, T&, const amrex::Real)> get_fast_rhs ()
     {
         return FastFun;
     }
@@ -252,14 +252,14 @@ public:
         return fast_timestep;
     }
 
-    void rhs (T& S_rhs, const T& S_data, const amrex::Real time)
+    void rhs (T& S_rhs, T& S_data, const amrex::Real time)
     {
         Fun(S_rhs, S_data, time);
     }
 
-    void fast_rhs (T& S_rhs, T& S_extra, const T& S_data, const amrex::Real time)
+    void fast_rhs (T& S_rhs, T& S_data, const amrex::Real time)
     {
-        FastFun(S_rhs, S_extra, S_data, time);
+        FastFun(S_rhs, S_data, time);
     }
 
     virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time, amrex::Real dt) = 0;

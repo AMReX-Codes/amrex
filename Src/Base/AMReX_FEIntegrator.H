@@ -23,14 +23,14 @@ private:
 public:
     FEIntegrator () {}
 
-    FEIntegrator (const T& S_data)
+    FEIntegrator (const T& S_data, const amrex::Real time = 0.0)
     {
-        initialize(S_data);
+        initialize(S_data, time);
     }
 
     virtual ~FEIntegrator () {}
 
-    void initialize (const T& S_data) override
+    void initialize (const T& S_data, const amrex::Real /* time */) override
     {
         initialize_stages(S_data);
     }

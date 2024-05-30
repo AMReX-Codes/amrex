@@ -75,8 +75,8 @@ private:
         set_post_update([](T& /* S_data */, amrex::Real /* S_time */){});
 
         // By default, do nothing
-        set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
-        set_fast_rhs([](T& /* S_rhs */, T& /* S_extra */, const T& /* S_data */, const amrex::Real /* time */){});
+        set_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */){});
+        set_fast_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */){});
 
         // By default, initialize time, timestep, step number to 0's
         m_time = 0.0_rt;
@@ -91,20 +91,20 @@ public:
         set_default_functions();
     }
 
-    TimeIntegrator (IntegratorTypes integrator_type, const T& S_data)
+    TimeIntegrator (IntegratorTypes integrator_type, const T& S_data, const amrex::Real time = 0.0)
     {
         // initialize the integrator class corresponding to the desired type
-        initialize_integrator(integrator_type, S_data);
+        initialize_integrator(integrator_type, S_data, time);
 
         // initialize functions to do nothing
         set_default_functions();
     }
 
-    TimeIntegrator (const T& S_data)
+    TimeIntegrator (const T& S_data, const amrex::Real time = 0.0)
     {
         // initialize the integrator class corresponding to the input parameter selection
         IntegratorTypes integrator_type = read_parameters();
-        initialize_integrator(integrator_type, S_data);
+        initialize_integrator(integrator_type, S_data, time);
 
         // initialize functions to do nothing
         set_default_functions();
@@ -112,19 +112,19 @@ public:
 
     virtual ~TimeIntegrator () {}
 
-    void initialize_integrator (IntegratorTypes integrator_type, const T& S_data)
+    void initialize_integrator (IntegratorTypes integrator_type, const T& S_data, const amrex::Real time = 0.0)
     {
         switch (integrator_type)
         {
             case IntegratorTypes::ForwardEuler:
-                integrator_ptr = std::make_unique<FEIntegrator<T> >(S_data);
+                integrator_ptr = std::make_unique<FEIntegrator<T> >(S_data, time);
                 break;
             case IntegratorTypes::ExplicitRungeKutta:
-                integrator_ptr = std::make_unique<RKIntegrator<T> >(S_data);
+                integrator_ptr = std::make_unique<RKIntegrator<T> >(S_data, time);
                 break;
 #ifdef AMREX_USE_SUNDIALS
             case IntegratorTypes::Sundials:
-                integrator_ptr = std::make_unique<SundialsIntegrator<T> >(S_data);
+                integrator_ptr = std::make_unique<SundialsIntegrator<T> >(S_data, time);
                 break;
 #endif
             default:
@@ -143,12 +143,12 @@ public:
         integrator_ptr->set_post_update(F);
     }
 
-    void set_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
+    void set_rhs (std::function<void(T&, T&, const amrex::Real)> F)
     {
         integrator_ptr->set_rhs(F);
     }
 
-    void set_fast_rhs (std::function<void(T&, T&, const T&, const amrex::Real)> F)
+    void set_fast_rhs (std::function<void(T&, T&, const amrex::Real)> F)
     {
         integrator_ptr->set_fast_rhs(F);
     }
@@ -198,12 +198,12 @@ public:
         return integrator_ptr->get_post_update();
     }
 
-    std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
+    std::function<void(T&, T&, const amrex::Real)> get_rhs ()
     {
         return integrator_ptr->get_rhs();
     }
 
-    std::function<void(T&, T&, const T&, const amrex::Real)> get_fast_rhs ()
+    std::function<void(T&, T&, const amrex::Real)> get_fast_rhs ()
     {
         return integrator_ptr->get_fast_rhs();
     }
