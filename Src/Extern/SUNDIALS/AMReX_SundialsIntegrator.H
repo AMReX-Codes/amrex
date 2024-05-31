@@ -18,9 +18,17 @@
 namespace amrex {
 
 struct SundialsUserData {
+    // ERK or DIRK right-hand side function
+    // ExMRI or ImMRI slow right-hand side function
     std::function<int(sunrealtype, N_Vector, N_Vector, void*)> f;
-    std::function<int(sunrealtype, N_Vector, N_Vector, void*)> fe;
+
+    // ImEx right-hand side functions
+    // ImExMRI slow right-hand side functions
     std::function<int(sunrealtype, N_Vector, N_Vector, void*)> fi;
+    std::function<int(sunrealtype, N_Vector, N_Vector, void*)> fe;
+
+    // MRI fast time scale right-hand side function
+    std::function<int(sunrealtype, N_Vector, N_Vector, void*)> ff;
 };
 
 namespace SundialsUserFun {
@@ -29,14 +37,19 @@ namespace SundialsUserFun {
         return udata->f(t, y_data, y_rhs, user_data);
     }
 
+    static int fi (sunrealtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->fi(t, y_data, y_rhs, user_data);
+    }
+
     static int fe (sunrealtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
         SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
         return udata->fe(t, y_data, y_rhs, user_data);
     }
 
-    static int fi (sunrealtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
+    static int ff (sunrealtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
         SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
-        return udata->fi(t, y_data, y_rhs, user_data);
+        return udata->ff(t, y_data, y_rhs, user_data);
     }
 }
 
@@ -146,7 +159,6 @@ public:
 
             return 0;
         };
-
 
 
         // Create an N_Vector wrapper for the solution MultiFab

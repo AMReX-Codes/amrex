@@ -75,8 +75,10 @@ private:
         set_post_update([](T& /* S_data */, amrex::Real /* S_time */){});
 
         // By default, do nothing
-        set_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */){});
-        set_fast_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */){});
+        set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
+        set_imex_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){},
+                     [](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
+        set_fast_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
 
         // By default, initialize time, timestep, step number to 0's
         m_time = 0.0_rt;
@@ -143,29 +145,20 @@ public:
         integrator_ptr->set_post_update(F);
     }
 
-    void set_rhs (std::function<void(T&, T&, const amrex::Real)> F)
+    void set_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
     {
         integrator_ptr->set_rhs(F);
     }
 
-    void set_fast_rhs (std::function<void(T&, T&, const amrex::Real)> F)
+    void set_imex_rhs (std::function<void(T&, const T&, const amrex::Real)> Fi,
+                       std::function<void(T&, const T&, const amrex::Real)> Fe)
+    {
+        integrator_ptr->set_imex_rhs(Fi, Fe);
+    }
+
+    void set_fast_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
     {
         integrator_ptr->set_fast_rhs(F);
-    }
-
-    void set_slow_fast_timestep_ratio (const int timestep_ratio = 1)
-    {
-        integrator_ptr->set_slow_fast_timestep_ratio(timestep_ratio);
-    }
-
-    void set_fast_timestep (const Real fast_dt = 1.0)
-    {
-        integrator_ptr->set_fast_timestep(fast_dt);
-    }
-
-    Real get_fast_timestep ()
-    {
-        return integrator_ptr->get_fast_timestep();
     }
 
     int get_step_number ()
@@ -186,26 +179,6 @@ public:
     void set_timestep (amrex::Real dt)
     {
         m_timestep = dt;
-    }
-
-    std::function<void ()> get_post_timestep ()
-    {
-        return post_timestep;
-    }
-
-    std::function<void (T&, amrex::Real)> get_post_update ()
-    {
-        return integrator_ptr->get_post_update();
-    }
-
-    std::function<void(T&, T&, const amrex::Real)> get_rhs ()
-    {
-        return integrator_ptr->get_rhs();
-    }
-
-    std::function<void(T&, T&, const amrex::Real)> get_fast_rhs ()
-    {
-        return integrator_ptr->get_fast_rhs();
     }
 
     void advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
