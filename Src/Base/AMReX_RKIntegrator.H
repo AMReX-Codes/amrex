@@ -222,6 +222,11 @@ public:
         return BaseT::timestep;
     }
 
+    void evolve (T& S_out, const amrex::Real t_out) override
+    {
+        amrex::Error("Not implemented yet");
+    }
+
     void time_interpolate (const T& /* S_new */, const T& S_old, amrex::Real timestep_fraction, T& data) override
     {
         // data = S_old*(1-time_step_fraction) + S_new*(time_step_fraction)

@@ -213,6 +213,11 @@ public:
         integrator_ptr->advance(S_old, S_new, time, timestep);
     }
 
+    void evolve (T& S_out, const amrex::Real t_out)
+    {
+        integrator_ptr->evolve(S_out, t_out);
+    }
+
     void integrate (T& S_old, T& S_new, amrex::Real start_time, const amrex::Real start_timestep,
                     const amrex::Real end_time, const int start_step, const int max_steps)
     {

@@ -250,6 +250,34 @@ public:
         return time_step;
     }
 
+    void evolve (T& S_out, const amrex::Real t_out) override
+    {
+        amrex::Real tret;
+
+        if (use_erk || use_dirk || use_imex) {
+            int flag = ARKStepEvolve(arkode_mem, t_out, nv_S, &tret, ARK_NORMAL);
+            AMREX_ALWAYS_ASSERT(flag >= 0);
+        }
+        else if (use_mri) {
+            Error("SUNDIALS integrator type not implemented, yet.");
+        } else {
+            Error("SUNDIALS integrator type not specified.");
+        }
+
+        // Should be able to make an alias to S_out and avoid the copy
+        for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
+        {
+            MultiFab::Copy(S_out[i],
+                           *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)),
+                           0,
+                           0,
+                           S_out[i].nComp(),
+                           S_out[i].nGrow());
+        }
+    }
+
+
+
     void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) override {}
 
     void map_data (std::function<void(T&)> /* Map */) override {}

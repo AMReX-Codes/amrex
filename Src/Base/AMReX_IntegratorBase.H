@@ -264,6 +264,8 @@ public:
 
     virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time, amrex::Real dt) = 0;
 
+    virtual void evolve (T& S_out, const amrex::Real t_out) = 0;
+
     virtual void time_interpolate (const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data) = 0;
 
     virtual void map_data (std::function<void(T&)> Map) = 0;
