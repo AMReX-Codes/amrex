@@ -717,13 +717,13 @@ public:
     /**
        This is an IntVectND all of whose components are equal to zero.
     */
-    static constexpr IntVectND Zero = TheZeroVector();
+    inline static const IntVectND<dim> Zero = TheZeroVector();
 
     ///
     /**
        This is an IntVectND all of whose components are equal to one.
     */
-    static constexpr IntVectND Unit = TheUnitVector();
+    inline static const IntVectND<dim> Unit = TheUnitVector();
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr std::size_t size () noexcept {
