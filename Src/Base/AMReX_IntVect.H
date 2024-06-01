@@ -337,7 +337,7 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator< (const IntVectND<dim>& rhs) const noexcept
     {
-        for (int i=dim-1; i>0; --i) {
+        for (int i=dim-1; i>=0; --i) {
             if (vect[i] < rhs[i]) {
                 return true;
             } else if (vect[i] > rhs[i]) {
