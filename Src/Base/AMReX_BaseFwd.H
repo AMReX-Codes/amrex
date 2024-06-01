@@ -22,7 +22,9 @@ class DistributionMapping;
 class Geometry;
 
 class Box;
-class IntVect;
+template<int dim>
+class IntVectND;
+using IntVect = IntVectND<AMREX_SPACEDIM>;
 class IndexType;
 struct Dim3;
 struct XDim3;
