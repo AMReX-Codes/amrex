@@ -102,7 +102,7 @@ public:
     template <class...Args,
         std::enable_if_t<(
             ((sizeof...(Args))+2 == dim) &&
-            (... && detail::is_convertable_to_int(Args{}))
+            (... && detail::is_convertable_to_int(Args()))
         ), int> = 0>
     AMREX_GPU_HOST_DEVICE
     constexpr IntVectND (int i, int j, Args...ks) noexcept : vect{i, j, static_cast<int>(ks)...} {}
@@ -307,7 +307,7 @@ public:
     {
         bool retval = vect[0] == rhs[0];
         for (int i=1; i<dim; ++i) {
-            retval = retval && vect[i] == rhs[0];
+            retval = retval && vect[i] == rhs[i];
         }
         return retval;
     }
