@@ -86,18 +86,6 @@ public:
 
     ///
     /**
-       This is an IntVectND all of whose components are equal to zero.
-    */
-    static constexpr IntVectND Zero = IntVectND::TheZeroVector();
-
-    ///
-    /**
-       This is an IntVectND all of whose components are equal to one.
-    */
-    static constexpr IntVectND Unit = IntVectND::TheUnitVector();
-
-    ///
-    /**
     * \brief Construct an IntVectND whose components are all zero.
     */
     constexpr IntVectND () noexcept {
@@ -724,6 +712,18 @@ public:
     static constexpr IntVectND<dim> TheMinVector () noexcept {
         return IntVectND<dim>(std::numeric_limits<int>::lowest());
     }
+
+    ///
+    /**
+       This is an IntVectND all of whose components are equal to zero.
+    */
+    static constexpr IntVectND Zero = TheZeroVector();
+
+    ///
+    /**
+       This is an IntVectND all of whose components are equal to one.
+    */
+    static constexpr IntVectND Unit = TheUnitVector();
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr std::size_t size () noexcept {
