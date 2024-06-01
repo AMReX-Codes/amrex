@@ -176,7 +176,13 @@ public:
                                                               S_data[i].DistributionMap(),
                                                               S_data[i].nComp(),
                                                               S_data[i].nGrow());
-            MultiFab::Copy(*amrex::sundials::getMFptr(nv_many_arr[i]), S_data[i], 0, 0, S_data[i].nComp(), S_data[i].nGrow());
+
+            MultiFab::Copy(*amrex::sundials::getMFptr(nv_many_arr[i]),
+                           S_data[i],
+                           0,
+                           0,
+                           S_data[i].nComp(),
+                           S_data[i].nGrow());
         }
         nv_S = N_VNew_ManyVector(NVar, nv_many_arr, sunctx);
 
