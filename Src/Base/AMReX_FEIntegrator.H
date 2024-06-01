@@ -44,7 +44,7 @@ public:
 
         // F = RHS(S, t)
         T& F = *F_nodes[0];
-        BaseT::rhs(F, S_new, time);
+        BaseT::Rhs(F, S_new, time);
 
         // S_new += timestep * dS/dt
         IntegratorOps<T>::Saxpy(S_new, BaseT::timestep, F);

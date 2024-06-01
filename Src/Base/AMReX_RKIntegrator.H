@@ -200,7 +200,7 @@ public:
 
             // Fill F[i], the RHS at the current stage
             // F[i] = RHS(y, t) at y = stage_value, t = stage_time
-            BaseT::rhs(*F_nodes[i], S_new, stage_time);
+            BaseT::Rhs(*F_nodes[i], S_new, stage_time);
         }
 
         // Fill new State, starting with S_new = S_old.

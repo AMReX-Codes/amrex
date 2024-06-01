@@ -161,41 +161,40 @@ struct IntegratorOps<T, std::enable_if_t<std::is_same_v<amrex::MultiFab, T> > >
 template<class T>
 class IntegratorBase
 {
-private:
-    /**
-     * \brief Fun is the right-hand-side function the integrator will use.
-     */
-    std::function<void(T& rhs, const T& state, const amrex::Real time)> Fun;
-
-    /**
-     * \brief FunIm is the implicit right-hand-side function an ImEx integrator
-     * will use.
-     */
-    std::function<void(T& rhs, const T& state, const amrex::Real time)> FunIm;
-
-    /**
-     * \brief FunEx is the explicit right-hand-side function an ImEx integrator
-     * will use.
-     */
-    std::function<void(T& rhs, const T& state, const amrex::Real time)> FunEx;
-
-    /**
-     * \brief FastFun is the fast timescale right-hand-side function a multirate
-     * integrator will use.
-     */
-    std::function<void(T& rhs, const T& state, const amrex::Real time)> FunFast;
-
 protected:
     /**
-     * \brief Integrator timestep size (Real)
+     * \brief Rhs is the right-hand-side function the integrator will use.
      */
-    amrex::Real timestep;
+    std::function<void(T& rhs, const T& state, const amrex::Real time)> Rhs;
+
+    /**
+     * \brief RhsIm is the implicit right-hand-side function an ImEx integrator
+     * will use.
+     */
+    std::function<void(T& rhs, const T& state, const amrex::Real time)> RhsIm;
+
+    /**
+     * \brief RhsEx is the explicit right-hand-side function an ImEx integrator
+     * will use.
+     */
+    std::function<void(T& rhs, const T& state, const amrex::Real time)> RhsEx;
+
+    /**
+     * \brief RhsFast is the fast timescale right-hand-side function a multirate
+     * integrator will use.
+     */
+    std::function<void(T& rhs, const T& state, const amrex::Real time)> RhsFast;
 
     /**
      * \brief The post_update function is called by the integrator on state data
      * before using it to evaluate a right-hand side.
      */
     std::function<void (T&, amrex::Real)> post_update;
+
+    /**
+     * \brief Integrator timestep size (Real)
+     */
+    amrex::Real timestep;
 
 public:
     IntegratorBase () = default;
@@ -208,44 +207,24 @@ public:
 
     void set_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
     {
-        Fun = F;
+        Rhs = F;
     }
 
     void set_imex_rhs (std::function<void(T&, const T&, const amrex::Real)> Fi,
                        std::function<void(T&, const T&, const amrex::Real)> Fe)
     {
-        FunIm = Fi;
-        FunEx = Fe;
+        RhsIm = Fi;
+        RhsEx = Fe;
     }
 
     void set_fast_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
     {
-        FunFast = F;
+        RhsFast = F;
     }
 
     void set_post_update (std::function<void (T&, amrex::Real)> F)
     {
         post_update = F;
-    }
-
-    void rhs (T& S_rhs, const T& S_data, const amrex::Real time)
-    {
-        Fun(S_rhs, S_data, time);
-    }
-
-    void rhs_ex (T& S_rhs, const T& S_data, const amrex::Real time)
-    {
-        FunEx(S_rhs, S_data, time);
-    }
-
-    void rhs_im (T& S_rhs, const T& S_data, const amrex::Real time)
-    {
-        FunIm(S_rhs, S_data, time);
-    }
-
-    void fast_rhs (T& S_rhs, const T& S_data, const amrex::Real time)
-    {
-        FunFast(S_rhs, S_data, time);
     }
 
     virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time, amrex::Real dt) = 0;

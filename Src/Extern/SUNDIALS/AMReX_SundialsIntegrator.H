@@ -155,7 +155,7 @@ public:
             }
 
             BaseT::post_update(S_data, rhs_time);
-            BaseT::rhs(S_rhs, S_data, rhs_time);
+            BaseT::Rhs(S_rhs, S_data, rhs_time);
 
             return 0;
         };
