@@ -373,7 +373,7 @@ public:
     {
         bool retval = vect[0] < rhs[0];
         for (int i=1; i<dim; ++i) {
-            retval = retval && vect[i] < rhs[0];
+            retval = retval && vect[i] < rhs[i];
         }
         return retval;
     }
@@ -398,7 +398,7 @@ public:
     {
         bool retval = vect[0] <= rhs[0];
         for (int i=1; i<dim; ++i) {
-            retval = retval && vect[i] <= rhs[0];
+            retval = retval && vect[i] <= rhs[i];
         }
         return retval;
     }
@@ -423,7 +423,7 @@ public:
     {
         bool retval = vect[0] > rhs[0];
         for (int i=1; i<dim; ++i) {
-            retval = retval && vect[i] > rhs[0];
+            retval = retval && vect[i] > rhs[i];
         }
         return retval;
     }
@@ -448,7 +448,7 @@ public:
     {
         bool retval = vect[0] >= rhs[0];
         for (int i=1; i<dim; ++i) {
-            retval = retval && vect[i] >= rhs[0];
+            retval = retval && vect[i] >= rhs[i];
         }
         return retval;
     }
