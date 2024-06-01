@@ -224,7 +224,7 @@ public:
 
     void evolve (T& S_out, const amrex::Real t_out) override
     {
-        amrex::Error("Not implemented yet");
+        amrex::Error("Evolve is not yet supported by the RK integrator.");
     }
 
     void time_interpolate (const T& /* S_new */, const T& S_old, amrex::Real timestep_fraction, T& data) override
