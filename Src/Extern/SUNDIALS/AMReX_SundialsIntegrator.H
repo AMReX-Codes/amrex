@@ -132,16 +132,15 @@ public:
 #  endif
 #endif
 
-        /* f routine to compute the ODE RHS function f(t,y). */
-        udata.f = [&](sunrealtype rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
-            amrex::Vector<amrex::MultiFab> S_data;
-            amrex::Vector<amrex::MultiFab> S_rhs;
+        /* Utility to unpack SUNDIALS vectors */
+        auto unpack_vectors = [&](N_Vector y_data, amrex::Vector<amrex::MultiFab>& S_data,
+                                  N_Vector y_rhs, amrex::Vector<amrex::MultiFab>& S_rhs) -> void {
 
             const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
             S_data.resize(num_vecs);
             S_rhs.resize(num_vecs);
 
-            for(int i=0; i<num_vecs; i++)
+            for(int i = 0; i < num_vecs; i++)
             {
                 S_data.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i)),
                                              amrex::make_alias,
@@ -153,6 +152,15 @@ public:
                                             0,
                                             amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i))->nComp());
             }
+        };
+
+        /* Right-hand side function wrappers */
+        udata.f = [&](sunrealtype rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+
+            amrex::Vector<amrex::MultiFab> S_data;
+            amrex::Vector<amrex::MultiFab> S_rhs;
+
+            unpack_vectors(y_data, S_data, y_rhs, S_rhs);
 
             BaseT::post_update(S_data, rhs_time);
             BaseT::Rhs(S_rhs, S_data, rhs_time);
@@ -160,6 +168,44 @@ public:
             return 0;
         };
 
+        udata.fi = [&](sunrealtype rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+
+            amrex::Vector<amrex::MultiFab> S_data;
+            amrex::Vector<amrex::MultiFab> S_rhs;
+
+            unpack_vectors(y_data, S_data, y_rhs, S_rhs);
+
+            BaseT::post_update(S_data, rhs_time);
+            BaseT::RhsIm(S_rhs, S_data, rhs_time);
+
+            return 0;
+        };
+
+        udata.fe = [&](sunrealtype rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+
+            amrex::Vector<amrex::MultiFab> S_data;
+            amrex::Vector<amrex::MultiFab> S_rhs;
+
+            unpack_vectors(y_data, S_data, y_rhs, S_rhs);
+
+            BaseT::post_update(S_data, rhs_time);
+            BaseT::RhsEx(S_rhs, S_data, rhs_time);
+
+            return 0;
+        };
+
+        udata.ff = [&](sunrealtype rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+
+            amrex::Vector<amrex::MultiFab> S_data;
+            amrex::Vector<amrex::MultiFab> S_rhs;
+
+            unpack_vectors(y_data, S_data, y_rhs, S_rhs);
+
+            BaseT::post_update(S_data, rhs_time);
+            BaseT::RhsFast(S_rhs, S_data, rhs_time);
+
+            return 0;
+        };
 
         // Create an N_Vector wrapper for the solution MultiFab
         auto get_length = [&](int index) -> sunindextype {
