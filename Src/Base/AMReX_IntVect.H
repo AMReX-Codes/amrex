@@ -100,10 +100,10 @@ public:
     * where N is equal to the number of dimensions of the IntVectND.
     */
     template <class...Args,
-        std::enable_if_t<
-            sizeof...(Args)+2 == dim &&
-            (true && ... && detail::is_convertable_to_int(Args{})),
-        int> = 0>
+        std::enable_if_t<(
+            ((sizeof...(Args))+2 == dim) &&
+            (... && detail::is_convertable_to_int(Args{}))
+        ), int> = 0>
     AMREX_GPU_HOST_DEVICE
     constexpr IntVectND (int i, int j, Args...ks) noexcept : vect{i, j, static_cast<int>(ks)...} {}
 
@@ -151,12 +151,12 @@ public:
 
     template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
     explicit constexpr IntVectND (Dim3 const& a) noexcept {
-        vect[0] == a.x;
+        vect[0] = a.x;
         if constexpr (dim >= 2) {
-            vect[1] == a.y;
+            vect[1] = a.y;
         }
         if constexpr (dim == 3) {
-            vect[2] == a.z;
+            vect[2] = a.z;
         }
     }
 
