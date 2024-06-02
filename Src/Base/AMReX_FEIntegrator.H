@@ -42,15 +42,15 @@ public:
         // So we initialize S_new by copying the old state.
         IntegratorOps<T>::Copy(S_new, S_old);
 
+        // Call the update hook for S_new
+        BaseT::pre_rhs_update(S_new, time + BaseT::timestep);
+
         // F = RHS(S, t)
         T& F = *F_nodes[0];
         BaseT::Rhs(F, S_new, time);
 
         // S_new += timestep * dS/dt
         IntegratorOps<T>::Saxpy(S_new, BaseT::timestep, F);
-
-        // Call the post-update hook for S_new
-        BaseT::post_update(S_new, time + BaseT::timestep);
 
         // Return timestep
         return BaseT::timestep;

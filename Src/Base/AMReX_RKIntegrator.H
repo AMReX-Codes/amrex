@@ -193,10 +193,10 @@ public:
                 {
                     IntegratorOps<T>::Saxpy(S_new, BaseT::timestep * tableau[i][j], *F_nodes[j]);
                 }
-
-                // Call the post-update hook for the stage state value
-                BaseT::post_update(S_new, stage_time);
             }
+
+            // Call the update hook for the stage state value
+            BaseT::pre_rhs_update(S_new, stage_time);
 
             // Fill F[i], the RHS at the current stage
             // F[i] = RHS(y, t) at y = stage_value, t = stage_time
@@ -211,9 +211,6 @@ public:
         {
             IntegratorOps<T>::Saxpy(S_new, BaseT::timestep * weights[i], *F_nodes[i]);
         }
-
-        // Call the post-update hook for S_new
-        BaseT::post_update(S_new, time + BaseT::timestep);
 
         // If we are working with an extended Butcher tableau, we can estimate the error here,
         // and then calculate an adaptive timestep.

@@ -174,7 +174,7 @@ public:
 
             unpack_vectors(y_data, S_data, y_rhs, S_rhs);
 
-            BaseT::post_update(S_data, rhs_time);
+            BaseT::pre_rhs_update(S_data, rhs_time);
             BaseT::Rhs(S_rhs, S_data, rhs_time);
 
             return 0;
@@ -187,7 +187,7 @@ public:
 
             unpack_vectors(y_data, S_data, y_rhs, S_rhs);
 
-            BaseT::post_update(S_data, rhs_time);
+            BaseT::pre_rhs_update(S_data, rhs_time);
             BaseT::RhsIm(S_rhs, S_data, rhs_time);
 
             return 0;
@@ -200,7 +200,7 @@ public:
 
             unpack_vectors(y_data, S_data, y_rhs, S_rhs);
 
-            BaseT::post_update(S_data, rhs_time);
+            BaseT::pre_rhs_update(S_data, rhs_time);
             BaseT::RhsEx(S_rhs, S_data, rhs_time);
 
             return 0;
@@ -213,7 +213,7 @@ public:
 
             unpack_vectors(y_data, S_data, y_rhs, S_rhs);
 
-            BaseT::post_update(S_data, rhs_time);
+            BaseT::pre_rhs_update(S_data, rhs_time);
             BaseT::RhsFast(S_rhs, S_data, rhs_time);
 
             return 0;

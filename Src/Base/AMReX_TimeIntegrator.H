@@ -72,7 +72,7 @@ private:
 
         // By default, do nothing after updating the state
         // In general, this is where BCs should be filled
-        set_post_update([](T& /* S_data */, amrex::Real /* S_time */){});
+        set_pre_rhs_update([](T& /* S_data */, amrex::Real /* S_time */){});
 
         // By default, do nothing
         set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
@@ -140,9 +140,9 @@ public:
         post_timestep = F;
     }
 
-    void set_post_update (std::function<void (T&, amrex::Real)> F)
+    void set_pre_rhs_update (std::function<void (T&, amrex::Real)> F)
     {
-        integrator_ptr->set_post_update(F);
+        integrator_ptr->set_pre_rhs_update(F);
     }
 
     void set_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
