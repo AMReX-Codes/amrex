@@ -14,6 +14,7 @@
 #include <nvector/nvector_manyvector.h>
 #include <sunlinsol/sunlinsol_spgmr.h>
 #include <arkode/arkode_arkstep.h>
+#include <arkode/arkode_mristep.h>
 
 namespace amrex {
 
@@ -22,8 +23,8 @@ struct SundialsUserData {
     // ExMRI or ImMRI slow right-hand side function
     std::function<int(sunrealtype, N_Vector, N_Vector, void*)> f;
 
-    // ImEx right-hand side functions
-    // ImExMRI slow right-hand side functions
+    // ImEx-RK right-hand side functions
+    // ImEx-MRI slow right-hand side functions
     std::function<int(sunrealtype, N_Vector, N_Vector, void*)> fi;
     std::function<int(sunrealtype, N_Vector, N_Vector, void*)> fe;
 
@@ -65,23 +66,32 @@ private:
     std::string method_e = "DEFAULT";
     std::string method_i = "DEFAULT";
 
-    // method type flags
-    bool use_erk  = false;
-    bool use_dirk = false;
-    bool use_imex = false;
-    bool use_mri  = false;
+    std::string fast_type   = "ERK";
+    std::string fast_method = "DEFAULT";
+
+    // SUNDIALS package flags, set based on type
+    bool use_ark = false;
+    bool use_mri = false;
 
     // structure for interfacing with user-supplied functions
     SundialsUserData udata;
 
     // SUNDIALS objects
-    SUNContext sunctx  = nullptr; // should get from singleton
+    SUNContext sunctx = nullptr;
+
     void *arkode_mem   = nullptr;
     SUNLinearSolver LS = nullptr;
+
+    void *arkode_fast_mem            = nullptr;
+    MRIStepInnerStepper fast_stepper = nullptr;
+    SUNLinearSolver fast_LS          = nullptr;
 
     // relative and absolute tolerances
     Real reltol = 1.0e-4;
     Real abstol = 1.0e-9;
+
+    Real fast_reltol = 1.0e-4;
+    Real fast_abstol = 1.0e-9;
 
     int NVar;               // NOTE: expects S_data to be a Vector<MultiFab>
     N_Vector* nv_many_arr;  /* vector array composed of cons, xmom, ymom, zmom component vectors */
@@ -93,15 +103,17 @@ private:
 
         pp.query("type", type);
         pp.query("method", method);
+        pp.query("method_e", method);
+        pp.query("method_i", method);
 
-        if (type == "ERK") {
-            use_erk = true;
+        pp.query("fast_type", fast_type);
+        pp.query("fast_method", fast_method);
+
+        if (type == "ERK" || type == "DIRK" || type == "IMEX-RK") {
+            use_ark = true;
         }
-        else if (type == "DIRK") {
-            use_dirk = true;
-        }
-        else if (type == "IMEX") {
-            use_imex = true;
+        else if (type == "EX-MRI" || type == "IM-MRI" || type == "IMEX-MRI") {
+            use_mri = true;
         }
         else {
             std::string msg("Unknown strategy: ");
@@ -132,7 +144,7 @@ public:
 #  endif
 #endif
 
-        /* Utility to unpack SUNDIALS vectors */
+        // Utility to unpack SUNDIALS vectors
         auto unpack_vectors = [&](N_Vector y_data, amrex::Vector<amrex::MultiFab>& S_data,
                                   N_Vector y_rhs, amrex::Vector<amrex::MultiFab>& S_rhs) -> void {
 
@@ -154,7 +166,7 @@ public:
             }
         };
 
-        /* Right-hand side function wrappers */
+        // Right-hand side function wrappers
         udata.f = [&](sunrealtype rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
 
             amrex::Vector<amrex::MultiFab> S_data;
@@ -213,7 +225,7 @@ public:
             return p_mf->nComp() * (p_mf->boxArray()).numPts();
         };
 
-        NVar        = S_data.size();       // NOTE: expects S_data to be a Vector<MultiFab>
+        NVar        = S_data.size();      // NOTE: expects S_data to be a Vector<MultiFab>
         nv_many_arr = new N_Vector[NVar]; // vector array composed of cons, xmom, ymom, zmom component vectors */
 
         for (int i = 0; i < NVar; ++i) {
@@ -232,42 +244,129 @@ public:
         }
         nv_S = N_VNew_ManyVector(NVar, nv_many_arr, sunctx);
 
-        if (use_erk) {
+        if (use_ark) {
+            SetupRK(time, nv_S);
+        }
+        else if (use_mri)
+        {
+            SetupMRI(time, nv_S);
+        }
+    }
+
+    void SetupRK(amrex::Real time, N_Vector y_data)
+    {
+        // Create integrator and select method
+        if (type == "ERK") {
             amrex::Print() << "SUNDIALS ERK time integrator\n";
             arkode_mem = ARKStepCreate(SundialsUserFun::f, nullptr, time, nv_S, sunctx);
-        }
-        else if (use_dirk) {
-            amrex::Print() << "SUNDIALS DIRK time integrator\n";
-            arkode_mem = ARKStepCreate(nullptr, SundialsUserFun::f, time, nv_S, sunctx);
-        }
-        else if (use_imex) {
-            amrex::Print() << "SUNDIALS IMEX time integrator\n";
-            arkode_mem = ARKStepCreate(SundialsUserFun::fe, SundialsUserFun::fi, time, nv_S, sunctx);
-        }
-        ARKStepSetUserData(arkode_mem, &udata);  /* Pass udata to user functions */
-        ARKStepSStolerances(arkode_mem, reltol, abstol);
 
-        if (method != "DEFAULT" || (method_e != "DEFAULT" && method_i != "DEFAULT"))
-        {
-            if (use_erk) {
+            if (method != "DEFAULT") {
                 amrex::Print() << "SUNDIALS ERK method " << method << "\n";
                 ARKStepSetTableName(arkode_mem, "ARKODE_DIRK_NONE", method.c_str());
             }
-            else if (use_dirk) {
+        }
+        else if (type == "DIRK") {
+            amrex::Print() << "SUNDIALS DIRK time integrator\n";
+            arkode_mem = ARKStepCreate(nullptr, SundialsUserFun::f, time, nv_S, sunctx);
+
+            if (method != "DEFAULT") {
                 amrex::Print() << "SUNDIALS DIRK method " << method << "\n";
                 ARKStepSetTableName(arkode_mem, method.c_str(), "ARKODE_ERK_NONE");
             }
-            else {
+        }
+        else if (type == "IMEX-RK") {
+            amrex::Print() << "SUNDIALS IMEX time integrator\n";
+            arkode_mem = ARKStepCreate(SundialsUserFun::fe, SundialsUserFun::fi, time, nv_S, sunctx);
+
+            if (method_e != "DEFAULT" && method_i != "DEFAULT")
+            {
                 amrex::Print() << "SUNDIALS IMEX method " << method_i << " and "
                                << method_e << "\n";
                 ARKStepSetTableName(arkode_mem, method_i.c_str(), method_e.c_str());
             }
         }
 
-        // Create and attach linear solver
-        if (use_dirk || use_imex) {
+        // Attach structure with user-supplied function wrappers
+        ARKStepSetUserData(arkode_mem, &udata);
+
+        // Set integrator tolerances
+        ARKStepSStolerances(arkode_mem, reltol, abstol);
+
+        // Create and attach linear solver for implicit methods
+        if (type == "DIRK" || type == "IMEX-RK") {
             LS = SUNLinSol_SPGMR(nv_S, SUN_PREC_NONE, 0, sunctx);
             ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
+        }
+    }
+
+    void SetupMRI(amrex::Real time, N_Vector y_data)
+    {
+        // Create the fast integrator and select method
+        if (fast_type == "ERK") {
+            amrex::Print() << "SUNDIALS ERK time integrator\n";
+            arkode_fast_mem = ARKStepCreate(SundialsUserFun::ff, nullptr, time, nv_S, sunctx);
+
+            if (method != "DEFAULT") {
+                amrex::Print() << "SUNDIALS ERK method " << method << "\n";
+                ARKStepSetTableName(arkode_fast_mem, "ARKODE_DIRK_NONE", fast_method.c_str());
+            }
+        }
+        else if (fast_type == "DIRK") {
+            amrex::Print() << "SUNDIALS DIRK time integrator\n";
+            arkode_fast_mem = ARKStepCreate(nullptr, SundialsUserFun::ff, time, nv_S, sunctx);
+
+            if (method != "DEFAULT") {
+                amrex::Print() << "SUNDIALS DIRK method " << method << "\n";
+                ARKStepSetTableName(arkode_fast_mem, fast_method.c_str(), "ARKODE_ERK_NONE");
+            }
+
+            fast_LS = SUNLinSol_SPGMR(nv_S, SUN_PREC_NONE, 0, sunctx);
+            ARKStepSetLinearSolver(arkode_fast_mem, fast_LS, nullptr);
+        }
+
+        // Attach structure with user-supplied function wrappers
+        ARKStepSetUserData(arkode_fast_mem, &udata);
+
+        // Set integrator tolerances
+        ARKStepSStolerances(arkode_fast_mem, fast_reltol, fast_abstol);
+
+        // Wrap fast integrator as an inner stepper
+        ARKStepCreateMRIStepInnerStepper(arkode_fast_mem, &fast_stepper);
+
+        // Create slow integrator
+        if (type == "EX-MRI") {
+            amrex::Print() << "SUNDIALS ERK time integrator\n";
+            arkode_mem = MRIStepCreate(SundialsUserFun::f, nullptr, time, nv_S,
+                                       fast_stepper, sunctx);
+        }
+        else if (type == "IM-MRI") {
+            amrex::Print() << "SUNDIALS DIRK time integrator\n";
+            arkode_mem = MRIStepCreate(nullptr, SundialsUserFun::f, time, nv_S,
+                                       fast_stepper, sunctx);
+        }
+        else if (type == "IMEX-MRI") {
+            amrex::Print() << "SUNDIALS IMEX time integrator\n";
+            arkode_mem = MRIStepCreate(SundialsUserFun::fe, SundialsUserFun::fi,
+                                       time, nv_S, fast_stepper, sunctx);
+        }
+
+        // Set method
+        if (method != "DEFAULT") {
+            MRIStepCoupling MRIC = MRIStepCoupling_LoadTableByName(method.c_str());
+            MRIStepSetCoupling(arkode_mem, MRIC);
+            MRIStepCoupling_Free(MRIC);
+        }
+
+        // Attach structure with user-supplied function wrappers
+        MRIStepSetUserData(arkode_mem, &udata);
+
+        // Set integrator tolerances
+        MRIStepSStolerances(arkode_mem, reltol, abstol);
+
+        // Create and attach linear solver
+        if (type == "IM-MRI" || type == "IMEX-MRI") {
+            LS = SUNLinSol_SPGMR(nv_S, SUN_PREC_NONE, 0, sunctx);
+            MRIStepSetLinearSolver(arkode_mem, LS, nullptr);
         }
     }
 
@@ -278,6 +377,10 @@ public:
         }
         delete[] nv_many_arr;
         N_VDestroy(nv_S);
+        SUNLinSolFree(LS);
+        SUNLinSolFree(fast_LS);
+        MRIStepInnerStepper_Free(&fast_stepper);
+        MRIStepFree(&arkode_fast_mem);
         ARKStepFree(&arkode_mem);
         SUNContext_Free(&sunctx);
     }
@@ -293,14 +396,17 @@ public:
             MultiFab::Copy(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), S_old[i], 0, 0, S_old[i].nComp(), S_old[i].nGrow());
         }
 
-        if (use_erk || use_dirk || use_imex) {
+        if (use_ark) {
             ARKStepReset(arkode_mem, time, nv_S);
             ARKStepSetFixedStep(arkode_mem, time_step);
             int flag = ARKStepEvolve(arkode_mem, tout, nv_S, &tret, ARK_ONE_STEP);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         }
         else if (use_mri) {
-            Error("SUNDIALS integrator type not implemented, yet.");
+            MRIStepReset(arkode_mem, time, nv_S);
+            MRIStepSetFixedStep(arkode_mem, time_step);
+            int flag = MRIStepEvolve(arkode_mem, tout, nv_S, &tret, ARK_ONE_STEP);
+            AMREX_ALWAYS_ASSERT(flag >= 0);
         } else {
             Error("SUNDIALS integrator type not specified.");
         }
@@ -318,12 +424,13 @@ public:
     {
         amrex::Real tret;
 
-        if (use_erk || use_dirk || use_imex) {
+        if (use_ark) {
             int flag = ARKStepEvolve(arkode_mem, t_out, nv_S, &tret, ARK_NORMAL);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         }
         else if (use_mri) {
-            Error("SUNDIALS integrator type not implemented, yet.");
+            int flag = MRIStepEvolve(arkode_mem, t_out, nv_S, &tret, ARK_NORMAL);
+            AMREX_ALWAYS_ASSERT(flag >= 0);
         } else {
             Error("SUNDIALS integrator type not specified.");
         }
@@ -339,8 +446,6 @@ public:
                            S_out[i].nGrow());
         }
     }
-
-
 
     void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) override {}
 
