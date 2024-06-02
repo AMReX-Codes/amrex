@@ -35,6 +35,9 @@ int coarsen (int i, int ratio) noexcept
 
 namespace detail {
     inline constexpr bool is_convertable_to_int(int) {return true;}
+
+    template<class...Args>
+    inline constexpr bool are_convertable_to_int() {return (... && is_convertable_to_int(Args()));}
 }
 
 /**
@@ -101,8 +104,8 @@ public:
     */
     template <class...Args,
         std::enable_if_t<(
-            ((sizeof...(Args))+2 == dim) &&
-            (... && detail::is_convertable_to_int(Args()))
+            (sizeof...(Args)+2 == dim) &&
+            detail::are_convertable_to_int<Args...>()
         ), int> = 0>
     AMREX_GPU_HOST_DEVICE
     constexpr IntVectND (int i, int j, Args...ks) noexcept : vect{i, j, static_cast<int>(ks)...} {}
@@ -744,7 +747,7 @@ IntVectND(const Array<int, dim>&) -> IntVectND<dim>;
 // Template deduction guide for IntVectND
 template <class...Args,
     std::enable_if_t<
-        (true && ... && detail::is_convertable_to_int(Args{})),
+        detail::are_convertable_to_int<Args...>(),
     int> = 0>
 IntVectND(int, int, Args...) -> IntVectND<sizeof...(Args)+2>;
 
@@ -1067,6 +1070,12 @@ namespace detail {
         (IntVectSplit_imp2(std::get<Ns>(retval), src), ...);
         return retval;
     }
+
+    template<int...dims>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
+    int get_sum () {
+        return (0 + ... + dims);
+    }
 }
 
 template<int dim>
@@ -1090,9 +1099,9 @@ operator>> (std::istream& is, IntVectND<dim>& iv)
 template<int d, int...dims>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-constexpr IntVectND<(d + ... + dims)>
+constexpr IntVectND<detail::get_sum<d, dims...>()>
 IntVectCat (const IntVectND<d>& v, const IntVectND<dims>&...vects) noexcept {
-    IntVectND<(d + ... + dims)> retval (0);
+    IntVectND<detail::get_sum<d, dims...>()> retval (0);
     int* dst = retval.begin();
     detail::IntVectCat_imp(dst, v);
     (detail::IntVectCat_imp(dst, vects), ...);
@@ -1107,7 +1116,7 @@ template<int d, int...dims>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 constexpr GpuTuple<IntVectND<d>, IntVectND<dims>...>
-IntVectSplit (const IntVectND<(d + ... + dims)>& v) noexcept {
+IntVectSplit (const IntVectND<detail::get_sum<d, dims...>()>& v) noexcept {
     GpuTuple<IntVectND<d>, IntVectND<dims>...> retval;
     return detail::IntVectSplit_imp(retval,
                                     std::make_index_sequence<1 + sizeof...(dims)>(),
