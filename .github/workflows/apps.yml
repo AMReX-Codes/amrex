@@ -70,7 +70,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: 'ECP-WarpX/WarpX'
-        ref: 'development'
+        ref: ${{env.WARPX_TAG}}
         path: 'WarpX'
     - name: Dependencies
       run: |
