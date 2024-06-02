@@ -96,7 +96,6 @@ jobs:
 
   tests-oneapi-sycl-eb-nvidia:
     name: oneAPI SYCL for Nvidia GPUs [tests w/ EB]
-    if: 0
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -126,10 +125,13 @@ jobs:
         set +e
         source /opt/intel/oneapi/setvars.sh --include-intel-llvm
         set -e
+        # Test is disabled due to a compiler issue with some math functions.
+        # The fix did not make it to the next oneAPI release. So we will
+        # enable it again after the next next oneAPI release.
         cmake -S . -B build                                \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_EB=ON                                  \
-            -DAMReX_ENABLE_TESTS=ON                        \
+            -DAMReX_ENABLE_TESTS=OFF                       \
             -DAMReX_TEST_TYPE=Small                        \
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
