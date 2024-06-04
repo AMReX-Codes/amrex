@@ -85,7 +85,7 @@ private:
     SundialsUserData udata;
 
     // SUNDIALS objects
-    SUNContext sunctx = nullptr;
+    SUNContext sunctx = nullptr; // use context created by amrex:sundials::Initialize
 
     void *arkode_mem   = nullptr;
     SUNLinearSolver LS = nullptr;
@@ -100,10 +100,6 @@ private:
 
     Real fast_reltol = 1.0e-4;
     Real fast_abstol = 1.0e-9;
-
-    int NVar;               // NOTE: expects S_data to be a Vector<MultiFab>
-    N_Vector* nv_many_arr;  /* vector array composed of cons, xmom, ymom, zmom component vectors */
-    N_Vector nv_S;
 
     void initialize_parameters ()
     {
@@ -135,7 +131,7 @@ private:
         // Create integrator and select method
         if (type == "ERK") {
             amrex::Print() << "SUNDIALS ERK time integrator\n";
-            arkode_mem = ARKStepCreate(SundialsUserFun::f, nullptr, time, nv_S, sunctx);
+            arkode_mem = ARKStepCreate(SundialsUserFun::f, nullptr, time, y_data, sunctx);
 
             if (method != "DEFAULT") {
                 amrex::Print() << "SUNDIALS ERK method " << method << "\n";
@@ -144,7 +140,7 @@ private:
         }
         else if (type == "DIRK") {
             amrex::Print() << "SUNDIALS DIRK time integrator\n";
-            arkode_mem = ARKStepCreate(nullptr, SundialsUserFun::f, time, nv_S, sunctx);
+            arkode_mem = ARKStepCreate(nullptr, SundialsUserFun::f, time, y_data, sunctx);
 
             if (method != "DEFAULT") {
                 amrex::Print() << "SUNDIALS DIRK method " << method << "\n";
@@ -153,7 +149,7 @@ private:
         }
         else if (type == "IMEX-RK") {
             amrex::Print() << "SUNDIALS IMEX time integrator\n";
-            arkode_mem = ARKStepCreate(SundialsUserFun::fe, SundialsUserFun::fi, time, nv_S, sunctx);
+            arkode_mem = ARKStepCreate(SundialsUserFun::fe, SundialsUserFun::fi, time, y_data, sunctx);
 
             if (method_e != "DEFAULT" && method_i != "DEFAULT")
             {
@@ -171,7 +167,7 @@ private:
 
         // Create and attach linear solver for implicit methods
         if (type == "DIRK" || type == "IMEX-RK") {
-            LS = SUNLinSol_SPGMR(nv_S, SUN_PREC_NONE, 0, sunctx);
+            LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
             ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
         }
 
@@ -184,7 +180,7 @@ private:
         // Create the fast integrator and select method
         if (fast_type == "ERK") {
             amrex::Print() << "SUNDIALS ERK time integrator\n";
-            arkode_fast_mem = ARKStepCreate(SundialsUserFun::ff, nullptr, time, nv_S, sunctx);
+            arkode_fast_mem = ARKStepCreate(SundialsUserFun::ff, nullptr, time, y_data, sunctx);
 
             if (method != "DEFAULT") {
                 amrex::Print() << "SUNDIALS ERK method " << method << "\n";
@@ -193,14 +189,14 @@ private:
         }
         else if (fast_type == "DIRK") {
             amrex::Print() << "SUNDIALS DIRK time integrator\n";
-            arkode_fast_mem = ARKStepCreate(nullptr, SundialsUserFun::ff, time, nv_S, sunctx);
+            arkode_fast_mem = ARKStepCreate(nullptr, SundialsUserFun::ff, time, y_data, sunctx);
 
             if (method != "DEFAULT") {
                 amrex::Print() << "SUNDIALS DIRK method " << method << "\n";
                 ARKStepSetTableName(arkode_fast_mem, fast_method.c_str(), "ARKODE_ERK_NONE");
             }
 
-            fast_LS = SUNLinSol_SPGMR(nv_S, SUN_PREC_NONE, 0, sunctx);
+            fast_LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
             ARKStepSetLinearSolver(arkode_fast_mem, fast_LS, nullptr);
         }
 
@@ -216,18 +212,18 @@ private:
         // Create slow integrator
         if (type == "EX-MRI") {
             amrex::Print() << "SUNDIALS ERK time integrator\n";
-            arkode_mem = MRIStepCreate(SundialsUserFun::f, nullptr, time, nv_S,
+            arkode_mem = MRIStepCreate(SundialsUserFun::f, nullptr, time, y_data,
                                        fast_stepper, sunctx);
         }
         else if (type == "IM-MRI") {
             amrex::Print() << "SUNDIALS DIRK time integrator\n";
-            arkode_mem = MRIStepCreate(nullptr, SundialsUserFun::f, time, nv_S,
+            arkode_mem = MRIStepCreate(nullptr, SundialsUserFun::f, time, y_data,
                                        fast_stepper, sunctx);
         }
         else if (type == "IMEX-MRI") {
             amrex::Print() << "SUNDIALS IMEX time integrator\n";
             arkode_mem = MRIStepCreate(SundialsUserFun::fe, SundialsUserFun::fi,
-                                       time, nv_S, fast_stepper, sunctx);
+                                       time, y_data, fast_stepper, sunctx);
         }
 
         // Set method
@@ -245,13 +241,127 @@ private:
 
         // Create and attach linear solver
         if (type == "IM-MRI" || type == "IMEX-MRI") {
-            LS = SUNLinSol_SPGMR(nv_S, SUN_PREC_NONE, 0, sunctx);
+            LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
             MRIStepSetLinearSolver(arkode_mem, LS, nullptr);
         }
 
         // Set post step function (only on slow integrator)
         MRIStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
     }
+
+    // -------------------------------------
+    // Vector<MultiFab> / N_Vector Utilities
+    // -------------------------------------
+
+    // Utility to unpack a SUNDIALS ManyVector into a vector of MultiFabs
+    void unpack_vector(N_Vector y_data, amrex::Vector<amrex::MultiFab>& S_data)
+    {
+        const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
+        S_data.resize(num_vecs);
+
+        for(int i = 0; i < num_vecs; i++)
+        {
+            S_data.at(i) = amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i)),
+                                           amrex::make_alias,
+                                           0,
+                                           amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i))->nComp());
+        }
+    };
+
+    // Utility to wrap vector of MultiFabs as a SUNDIALS ManyVector
+    N_Vector wrap_data(amrex::Vector<amrex::MultiFab>& S_data)
+    {
+        auto get_length = [&](int index) -> sunindextype {
+            auto* p_mf = &S_data[index];
+            return p_mf->nComp() * (p_mf->boxArray()).numPts();
+        };
+
+        sunindextype NV_len = S_data.size();
+        N_Vector* NV_array  = new N_Vector[NV_len];
+
+        for (int i = 0; i < NV_len; ++i) {
+            NV_array[i] = amrex::sundials::N_VMake_MultiFab(get_length(i),
+                                                            &S_data[i]); // correct context
+        }
+
+        N_Vector y_data = N_VNew_ManyVector(NV_len, NV_array, sunctx);
+
+        delete[] NV_array;
+
+        return y_data;
+    };
+
+    // Utility to wrap vector of MultiFabs as a SUNDIALS ManyVector
+    N_Vector copy_data(const amrex::Vector<amrex::MultiFab>& S_data)
+    {
+        auto get_length = [&](int index) -> sunindextype {
+            auto* p_mf = &S_data[index];
+            return p_mf->nComp() * (p_mf->boxArray()).numPts();
+        };
+
+        sunindextype NV_len = S_data.size();
+        N_Vector* NV_array  = new N_Vector[NV_len];
+
+        for (int i = 0; i < NV_len; ++i) {
+            NV_array[i] = amrex::sundials::N_VNew_MultiFab(get_length(i),
+                                                           S_data[i].boxArray(),
+                                                           S_data[i].DistributionMap(),
+                                                           S_data[i].nComp(),
+                                                           S_data[i].nGrow()); // correct context
+
+            MultiFab::Copy(*amrex::sundials::getMFptr(NV_array[i]),
+                           S_data[i],
+                           0,
+                           0,
+                           S_data[i].nComp(),
+                           S_data[i].nGrow());
+        }
+
+        N_Vector y_data =  N_VNew_ManyVector(NV_len, NV_array, sunctx);
+
+        delete[] NV_array;
+
+        return y_data;
+    };
+
+    // -----------------------------
+    // MultiFab / N_Vector Utilities
+    // -----------------------------
+
+    // Utility to unpack a SUNDIALS Vector into a MultiFab
+    void unpack_vector(N_Vector y_data, amrex::MultiFab& S_data)
+    {
+        S_data = amrex::MultiFab(*amrex::sundials::getMFptr(y_data),
+                                 amrex::make_alias,
+                                 0,
+                                 amrex::sundials::getMFptr(y_data)->nComp());
+    };
+
+    // Utility to wrap a MultiFab as a SUNDIALS Vector
+    N_Vector wrap_data(amrex::MultiFab& S_data)
+    {
+        return amrex::sundials::N_VMake_MultiFab(S_data.nComp() * S_data.boxArray().numPts(),
+                                                 &S_data); // correct context
+    };
+
+    // Utility to wrap a MultiFab as a SUNDIALS Vector
+    N_Vector copy_data(const amrex::MultiFab& S_data)
+    {
+        N_Vector y_data = amrex::sundials::N_VNew_MultiFab(S_data.nComp() * S_data.boxArray().numPts(),
+                                                           S_data.boxArray(),
+                                                           S_data.DistributionMap(),
+                                                           S_data.nComp(),
+                                                           S_data.nGrow()); // correct context
+
+        MultiFab::Copy(*amrex::sundials::getMFptr(y_data),
+                       S_data,
+                       0,
+                       0,
+                       S_data.nComp(),
+                       S_data.nGrow());
+
+        return y_data;
+    };
 
 public:
     SundialsIntegrator () {}
@@ -275,28 +385,13 @@ public:
 #  endif
 #endif
 
-        // Utility to unpack SUNDIALS vectors
-        auto unpack_vector = [&](N_Vector y_data, amrex::Vector<amrex::MultiFab>& S_data) -> void {
-
-            const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
-            S_data.resize(num_vecs);
-
-            for(int i = 0; i < num_vecs; i++)
-            {
-                S_data.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i)),
-                                             amrex::make_alias,
-                                             0,
-                                             amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i))->nComp());
-            }
-        };
-
         // Right-hand side function wrappers
         udata.f = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
 
-            amrex::Vector<amrex::MultiFab> S_data;
+            T S_data;
             unpack_vector(y_data, S_data);
 
-            amrex::Vector<amrex::MultiFab> S_rhs;
+            T S_rhs;
             unpack_vector(y_rhs, S_rhs);
 
             BaseT::pre_rhs_action(S_data, rhs_time);
@@ -307,10 +402,10 @@ public:
 
         udata.fi = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
 
-            amrex::Vector<amrex::MultiFab> S_data;
+            T S_data;
             unpack_vector(y_data, S_data);
 
-            amrex::Vector<amrex::MultiFab> S_rhs;
+            T S_rhs;
             unpack_vector(y_rhs, S_rhs);
 
             BaseT::pre_rhs_action(S_data, rhs_time);
@@ -321,10 +416,10 @@ public:
 
         udata.fe = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
 
-            amrex::Vector<amrex::MultiFab> S_data;
+            T S_data;
             unpack_vector(y_data, S_data);
 
-            amrex::Vector<amrex::MultiFab> S_rhs;
+            T S_rhs;
             unpack_vector(y_rhs, S_rhs);
 
             BaseT::pre_rhs_action(S_data, rhs_time);
@@ -335,10 +430,10 @@ public:
 
         udata.ff = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
 
-            amrex::Vector<amrex::MultiFab> S_data;
+            T S_data;
             unpack_vector(y_data, S_data);
 
-            amrex::Vector<amrex::MultiFab> S_rhs;
+            T S_rhs;
             unpack_vector(y_rhs, S_rhs);
 
             BaseT::pre_rhs_action(S_data, rhs_time);
@@ -349,7 +444,7 @@ public:
 
         udata.post_step = [&](amrex::Real time, N_Vector y_data, void * /* user_data */) -> int {
 
-            amrex::Vector<amrex::MultiFab> S_data;
+            T S_data;
             unpack_vector(y_data, S_data);
 
             BaseT::post_step_action(S_data, time);
@@ -357,47 +452,21 @@ public:
             return 0;
         };
 
-        // Create an N_Vector wrapper for the solution MultiFab
-        auto get_length = [&](int index) -> sunindextype {
-            auto* p_mf = &S_data[index];
-            return p_mf->nComp() * (p_mf->boxArray()).numPts();
-        };
-
-        NVar        = S_data.size();      // NOTE: expects S_data to be a Vector<MultiFab>
-        nv_many_arr = new N_Vector[NVar]; // vector array composed of cons, xmom, ymom, zmom component vectors */
-
-        for (int i = 0; i < NVar; ++i) {
-            nv_many_arr[i] = amrex::sundials::N_VNew_MultiFab(get_length(i),
-                                                              S_data[i].boxArray(),
-                                                              S_data[i].DistributionMap(),
-                                                              S_data[i].nComp(),
-                                                              S_data[i].nGrow());
-
-            MultiFab::Copy(*amrex::sundials::getMFptr(nv_many_arr[i]),
-                           S_data[i],
-                           0,
-                           0,
-                           S_data[i].nComp(),
-                           S_data[i].nGrow());
-        }
-        nv_S = N_VNew_ManyVector(NVar, nv_many_arr, sunctx);
+        N_Vector y_data = copy_data(S_data); // ideally just wrap and ignore const
 
         if (use_ark) {
-            SetupRK(time, nv_S);
+            SetupRK(time, y_data);
         }
         else if (use_mri)
         {
-            SetupMRI(time, nv_S);
+            SetupMRI(time, y_data);
         }
+
+        N_VDestroy(y_data);
     }
 
     virtual ~SundialsIntegrator () {
         // Clean up allocated memory
-        for (int i = 0; i < NVar; ++i) {
-            N_VDestroy(nv_many_arr[i]);
-        }
-        delete[] nv_many_arr;
-        N_VDestroy(nv_S);
         SUNLinSolFree(LS);
         SUNLinSolFree(fast_LS);
         MRIStepInnerStepper_Free(&fast_stepper);
@@ -411,32 +480,26 @@ public:
         amrex::Real tout = time + time_step;
         amrex::Real tret;
 
-        // Copy the S_old to nv_S
-        for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
-        {
-            MultiFab::Copy(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), S_old[i], 0, 0, S_old[i].nComp(), S_old[i].nGrow());
-        }
+        N_Vector y_old = wrap_data(S_old);
+        N_Vector y_new = wrap_data(S_new);
 
         if (use_ark) {
-            ARKStepReset(arkode_mem, time, nv_S);
+            ARKStepReset(arkode_mem, time, y_old);
             ARKStepSetFixedStep(arkode_mem, time_step);
-            int flag = ARKStepEvolve(arkode_mem, tout, nv_S, &tret, ARK_ONE_STEP);
+            int flag = ARKStepEvolve(arkode_mem, tout, y_new, &tret, ARK_ONE_STEP);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         }
         else if (use_mri) {
-            MRIStepReset(arkode_mem, time, nv_S);
+            MRIStepReset(arkode_mem, time, y_old);
             MRIStepSetFixedStep(arkode_mem, time_step);
-            int flag = MRIStepEvolve(arkode_mem, tout, nv_S, &tret, ARK_ONE_STEP);
+            int flag = MRIStepEvolve(arkode_mem, tout, y_new, &tret, ARK_ONE_STEP);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         } else {
             Error("SUNDIALS integrator type not specified.");
         }
 
-        // Copy the result stored in nv_S to state_new
-        for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
-        {
-            MultiFab::Copy(S_new[i], *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)), 0, 0, S_new[i].nComp(), S_new[i].nGrow());
-        }
+        N_VDestroy(y_old);
+        N_VDestroy(y_new);
 
         return time_step;
     }
@@ -445,27 +508,20 @@ public:
     {
         amrex::Real tret;
 
+        N_Vector y_out = wrap_data(S_out);
+
         if (use_ark) {
-            int flag = ARKStepEvolve(arkode_mem, t_out, nv_S, &tret, ARK_NORMAL);
+            int flag = ARKStepEvolve(arkode_mem, t_out, y_out, &tret, ARK_NORMAL);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         }
         else if (use_mri) {
-            int flag = MRIStepEvolve(arkode_mem, t_out, nv_S, &tret, ARK_NORMAL);
+            int flag = MRIStepEvolve(arkode_mem, t_out, y_out, &tret, ARK_NORMAL);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         } else {
             Error("SUNDIALS integrator type not specified.");
         }
 
-        // Should be able to make an alias to S_out and avoid the copy
-        for(int i=0; i<N_VGetNumSubvectors_ManyVector(nv_S); i++)
-        {
-            MultiFab::Copy(S_out[i],
-                           *amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(nv_S, i)),
-                           0,
-                           0,
-                           S_out[i].nComp(),
-                           S_out[i].nGrow());
-        }
+        N_VDestroy(y_out);
     }
 
     void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) override {}
