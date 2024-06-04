@@ -312,6 +312,9 @@ public:
             LS = SUNLinSol_SPGMR(nv_S, SUN_PREC_NONE, 0, sunctx);
             ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
         }
+
+        // Set post step function
+        ARKStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
     }
 
     void SetupMRI(amrex::Real time, N_Vector y_data)
@@ -383,6 +386,9 @@ public:
             LS = SUNLinSol_SPGMR(nv_S, SUN_PREC_NONE, 0, sunctx);
             MRIStepSetLinearSolver(arkode_mem, LS, nullptr);
         }
+
+        // Set post step function (only on slow integrator)
+        MRIStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
     }
 
     virtual ~SundialsIntegrator () {
