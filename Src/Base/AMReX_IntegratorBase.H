@@ -197,10 +197,21 @@ protected:
      */
     std::function<void (T&, amrex::Real)> post_step_action;
 
-    // /**
-    //  * \brief Integrator timestep size (Real)
-    //  */
-    // amrex::Real timestep;
+    /**
+     * \brief Current time reached by the integrator (Real)
+     */
+    amrex::Real cur_time;
+
+    /**
+     * \brief Current integrator time step size (Real)
+     */
+    amrex::Real time_step;
+
+    /**
+     * \brief Number of Integrator time steps (Long)
+     */
+    amrex::Long num_steps;
+
 
 public:
     IntegratorBase () = default;
@@ -228,14 +239,24 @@ public:
         RhsFast = F;
     }
 
-    void set_pre_rhs_action (std::function<void (T&, amrex::Real)> F)
+    void set_pre_rhs_action (std::function<void (T&, amrex::Real)> A)
     {
-        pre_rhs_action = F;
+        pre_rhs_action = A;
     }
 
-    void set_post_step_action (std::function<void (T&, amrex::Real)> F)
+    void set_post_step_action (std::function<void (T&, amrex::Real)> A)
     {
-        post_step_action = F;
+        post_step_action = A;
+    }
+
+    amrex::Real get_time_step()
+    {
+        return time_step;
+    }
+
+    void set_time_step(amrex::Real dt)
+    {
+        time_step = dt;
     }
 
     virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time, amrex::Real dt) = 0;

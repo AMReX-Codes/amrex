@@ -168,7 +168,7 @@ public:
 
     virtual ~RKIntegrator () {}
 
-    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step) override
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
     {
         // Assume before advance() that S_old is valid data at the current time ("time" argument)
         // And that if data is a MultiFab, both S_old and S_new contain ghost cells for evaluating a stencil based RHS
@@ -179,7 +179,7 @@ public:
         for (int i = 0; i < number_nodes; ++i)
         {
             // Get current stage time, t = t_old + h * Ci
-            amrex::Real stage_time = time + time_step * nodes[i];
+            amrex::Real stage_time = time + dt * nodes[i];
 
             // Fill S_new with the solution value for evaluating F at the current stage
             // Copy S_new = S_old
@@ -190,7 +190,7 @@ public:
                 // We should fuse these kernels ...
                 for (int j = 0; j < i; ++j)
                 {
-                    IntegratorOps<T>::Saxpy(S_new, time_step * tableau[i][j], *F_nodes[j]);
+                    IntegratorOps<T>::Saxpy(S_new, dt * tableau[i][j], *F_nodes[j]);
                 }
             }
 
@@ -208,16 +208,16 @@ public:
         IntegratorOps<T>::Copy(S_new, S_old);
         for (int i = 0; i < number_nodes; ++i)
         {
-            IntegratorOps<T>::Saxpy(S_new, time_step * weights[i], *F_nodes[i]);
+            IntegratorOps<T>::Saxpy(S_new, dt * weights[i], *F_nodes[i]);
         }
 
-        BaseT::post_step_action(S_new, time + time_step);
+        BaseT::post_step_action(S_new, time + dt);
 
         // If we are working with an extended Butcher tableau, we can estimate the error here,
         // and then calculate an adaptive timestep.
 
         // Return timestep
-        return time_step;
+        return dt;
     }
 
     void evolve (T& S_out, const amrex::Real t_out) override

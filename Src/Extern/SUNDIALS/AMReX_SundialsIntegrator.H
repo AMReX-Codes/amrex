@@ -68,12 +68,15 @@ class SundialsIntegrator : public IntegratorBase<T>
 private:
     using BaseT = IntegratorBase<T>;
 
-    // method type and name
-    std::string type     = "ERK";
+    // Method type: ERK, DIRK, IMEX-RK, EX-MRI, IM-MRI, IMEX-MRI
+    std::string type = "ERK";
+
+    // Use SUNDIALS default methods
     std::string method   = "DEFAULT";
     std::string method_e = "DEFAULT";
     std::string method_i = "DEFAULT";
 
+    // Fast method type (ERK or DIRK) and method
     std::string fast_type   = "ERK";
     std::string fast_method = "DEFAULT";
 
@@ -84,22 +87,21 @@ private:
     // structure for interfacing with user-supplied functions
     SundialsUserData udata;
 
-    // SUNDIALS objects
-    SUNContext sunctx = nullptr; // use context created by amrex:sundials::Initialize
+    // SUNDIALS context -- should use context created by amrex:sundials::Initialize
+    SUNContext sunctx = nullptr;
 
+    // Single rate or slow time scale
     void *arkode_mem   = nullptr;
     SUNLinearSolver LS = nullptr;
+    Real reltol        = 1.0e-4;
+    Real abstol        = 1.0e-9;
 
+    // Fast time scale
     void *arkode_fast_mem            = nullptr;
     MRIStepInnerStepper fast_stepper = nullptr;
     SUNLinearSolver fast_LS          = nullptr;
-
-    // relative and absolute tolerances
-    Real reltol = 1.0e-4;
-    Real abstol = 1.0e-9;
-
-    Real fast_reltol = 1.0e-4;
-    Real fast_abstol = 1.0e-9;
+    Real fast_reltol                 = 1.0e-4;
+    Real fast_abstol                 = 1.0e-9;
 
     void initialize_parameters ()
     {
@@ -386,7 +388,8 @@ public:
 #endif
 
         // Right-hand side function wrappers
-        udata.f = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+        udata.f = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs,
+                      void * /* user_data */) -> int {
 
             T S_data;
             unpack_vector(y_data, S_data);
@@ -400,7 +403,8 @@ public:
             return 0;
         };
 
-        udata.fi = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+        udata.fi = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs,
+                       void * /* user_data */) -> int {
 
             T S_data;
             unpack_vector(y_data, S_data);
@@ -414,7 +418,8 @@ public:
             return 0;
         };
 
-        udata.fe = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+        udata.fe = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs,
+                       void * /* user_data */) -> int {
 
             T S_data;
             unpack_vector(y_data, S_data);
@@ -428,7 +433,8 @@ public:
             return 0;
         };
 
-        udata.ff = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+        udata.ff = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs,
+                       void * /* user_data */) -> int {
 
             T S_data;
             unpack_vector(y_data, S_data);
@@ -442,7 +448,8 @@ public:
             return 0;
         };
 
-        udata.post_step = [&](amrex::Real time, N_Vector y_data, void * /* user_data */) -> int {
+        udata.post_step = [&](amrex::Real time, N_Vector y_data,
+                              void * /* user_data */) -> int {
 
             T S_data;
             unpack_vector(y_data, S_data);
@@ -475,23 +482,23 @@ public:
         SUNContext_Free(&sunctx);
     }
 
-    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step) override
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
     {
-        amrex::Real tout = time + time_step;
+        amrex::Real tout = time + dt;
         amrex::Real tret;
 
         N_Vector y_old = wrap_data(S_old);
         N_Vector y_new = wrap_data(S_new);
 
         if (use_ark) {
-            ARKStepReset(arkode_mem, time, y_old);
-            ARKStepSetFixedStep(arkode_mem, time_step);
+            ARKStepReset(arkode_mem, time, y_old); // should probably resize
+            ARKStepSetFixedStep(arkode_mem, dt);
             int flag = ARKStepEvolve(arkode_mem, tout, y_new, &tret, ARK_ONE_STEP);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         }
         else if (use_mri) {
-            MRIStepReset(arkode_mem, time, y_old);
-            MRIStepSetFixedStep(arkode_mem, time_step);
+            MRIStepReset(arkode_mem, time, y_old); // should probably resize -- need to resize inner stepper
+            MRIStepSetFixedStep(arkode_mem, dt);
             int flag = MRIStepEvolve(arkode_mem, tout, y_new, &tret, ARK_ONE_STEP);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         } else {
@@ -501,7 +508,7 @@ public:
         N_VDestroy(y_old);
         N_VDestroy(y_new);
 
-        return time_step;
+        return dt;
     }
 
     void evolve (T& S_out, const amrex::Real t_out) override
