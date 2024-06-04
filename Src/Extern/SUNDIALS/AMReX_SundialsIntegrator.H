@@ -128,7 +128,7 @@ private:
         }
     }
 
-    void SetupRK(amrex::Real time, N_Vector y_data)
+    void SetupRK (amrex::Real time, N_Vector y_data)
     {
         // Create integrator and select method
         if (type == "ERK") {
@@ -177,7 +177,7 @@ private:
         ARKStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
     }
 
-    void SetupMRI(amrex::Real time, N_Vector y_data)
+    void SetupMRI (amrex::Real time, N_Vector y_data)
     {
         // Create the fast integrator and select method
         if (fast_type == "ERK") {
@@ -256,7 +256,7 @@ private:
     // -------------------------------------
 
     // Utility to unpack a SUNDIALS ManyVector into a vector of MultiFabs
-    void unpack_vector(N_Vector y_data, amrex::Vector<amrex::MultiFab>& S_data)
+    void unpack_vector (N_Vector y_data, amrex::Vector<amrex::MultiFab>& S_data)
     {
         const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
         S_data.resize(num_vecs);
@@ -271,7 +271,7 @@ private:
     };
 
     // Utility to wrap vector of MultiFabs as a SUNDIALS ManyVector
-    N_Vector wrap_data(amrex::Vector<amrex::MultiFab>& S_data)
+    N_Vector wrap_data (amrex::Vector<amrex::MultiFab>& S_data)
     {
         auto get_length = [&](int index) -> sunindextype {
             auto* p_mf = &S_data[index];
@@ -294,7 +294,7 @@ private:
     };
 
     // Utility to wrap vector of MultiFabs as a SUNDIALS ManyVector
-    N_Vector copy_data(const amrex::Vector<amrex::MultiFab>& S_data)
+    N_Vector copy_data (const amrex::Vector<amrex::MultiFab>& S_data)
     {
         auto get_length = [&](int index) -> sunindextype {
             auto* p_mf = &S_data[index];
@@ -331,7 +331,7 @@ private:
     // -----------------------------
 
     // Utility to unpack a SUNDIALS Vector into a MultiFab
-    void unpack_vector(N_Vector y_data, amrex::MultiFab& S_data)
+    void unpack_vector (N_Vector y_data, amrex::MultiFab& S_data)
     {
         S_data = amrex::MultiFab(*amrex::sundials::getMFptr(y_data),
                                  amrex::make_alias,
@@ -340,14 +340,14 @@ private:
     };
 
     // Utility to wrap a MultiFab as a SUNDIALS Vector
-    N_Vector wrap_data(amrex::MultiFab& S_data)
+    N_Vector wrap_data (amrex::MultiFab& S_data)
     {
         return amrex::sundials::N_VMake_MultiFab(S_data.nComp() * S_data.boxArray().numPts(),
                                                  &S_data); // correct context
     };
 
     // Utility to wrap a MultiFab as a SUNDIALS Vector
-    N_Vector copy_data(const amrex::MultiFab& S_data)
+    N_Vector copy_data (const amrex::MultiFab& S_data)
     {
         N_Vector y_data = amrex::sundials::N_VNew_MultiFab(S_data.nComp() * S_data.boxArray().numPts(),
                                                            S_data.boxArray(),
