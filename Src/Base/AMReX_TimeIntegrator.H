@@ -169,9 +169,9 @@ public:
     }
 
     // TODO: Add to FE and RK integrators
-    void evolve (T& S_out, const amrex::Real t_out)
+    void evolve (T& S_out, const amrex::Real time_out)
     {
-        integrator_ptr->evolve(S_out, t_out);
+        integrator_ptr->evolve(S_out, time_out);
     }
 
     // TODO: Change to advance

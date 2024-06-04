@@ -511,18 +511,19 @@ public:
         return dt;
     }
 
-    void evolve (T& S_out, const amrex::Real t_out) override
+    void evolve (T& S_out, const amrex::Real time_out) override
     {
-        amrex::Real tret;
+        int flag = 0;         // SUNDIALS return status
+        amrex::Real time_ret; // SUNDIALS return time
 
         N_Vector y_out = wrap_data(S_out);
 
         if (use_ark) {
-            int flag = ARKStepEvolve(arkode_mem, t_out, y_out, &tret, ARK_NORMAL);
+            flag = ARKStepEvolve(arkode_mem, time_out, y_out, &time_ret, ARK_NORMAL);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         }
         else if (use_mri) {
-            int flag = MRIStepEvolve(arkode_mem, t_out, y_out, &tret, ARK_NORMAL);
+            flag = MRIStepEvolve(arkode_mem, time_out, y_out, &time_ret, ARK_NORMAL);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         } else {
             Error("SUNDIALS integrator type not specified.");

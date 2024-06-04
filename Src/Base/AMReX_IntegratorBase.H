@@ -259,10 +259,17 @@ public:
         time_step = dt;
     }
 
+    /**
+     * \brief Take a single time step from (time, S_old) to (time + dt, S_new)
+     * with the given step size.
+     */
     virtual amrex::Real step (T& S_old, T& S_new, amrex::Real time,
                               amrex::Real dt) = 0;
 
-    virtual void evolve (T& S_out, const amrex::Real t_out) = 0;
+    /**
+     * \brief Evolve the current (internal) integrator state to time_out
+     */
+    virtual void evolve (T& S_out, const amrex::Real time_out) = 0;
 
     virtual void time_interpolate (const T& S_new, const T& S_old,
                                    amrex::Real timestep_fraction, T& data) = 0;
