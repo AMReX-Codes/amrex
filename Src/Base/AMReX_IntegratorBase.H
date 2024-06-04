@@ -189,7 +189,7 @@ protected:
      * \brief The pre_rhs_update function is called by the integrator on state
      * data before using it to evaluate a right-hand side.
      */
-    std::function<void (T&, amrex::Real)> pre_rhs_update;
+    std::function<void (T&, amrex::Real)> pre_rhs_action;
 
     /**
      * \brief Integrator timestep size (Real)
@@ -222,9 +222,9 @@ public:
         RhsFast = F;
     }
 
-    void set_pre_rhs_update (std::function<void (T&, amrex::Real)> F)
+    void set_pre_rhs_action (std::function<void (T&, amrex::Real)> F)
     {
-        pre_rhs_update = F;
+        pre_rhs_action = F;
     }
 
     virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time, amrex::Real dt) = 0;

@@ -196,7 +196,7 @@ public:
             }
 
             // Call the update hook for the stage state value
-            BaseT::pre_rhs_update(S_new, stage_time);
+            BaseT::pre_rhs_action(S_new, stage_time);
 
             // Fill F[i], the RHS at the current stage
             // F[i] = RHS(y, t) at y = stage_value, t = stage_time

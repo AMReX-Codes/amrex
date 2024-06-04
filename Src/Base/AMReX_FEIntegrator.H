@@ -43,7 +43,7 @@ public:
         IntegratorOps<T>::Copy(S_new, S_old);
 
         // Call the update hook for S_new
-        BaseT::pre_rhs_update(S_new, time + BaseT::timestep);
+        BaseT::pre_rhs_action(S_new, time + BaseT::timestep);
 
         // F = RHS(S, t)
         T& F = *F_nodes[0];
