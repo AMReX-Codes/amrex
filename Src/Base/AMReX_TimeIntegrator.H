@@ -163,10 +163,9 @@ public:
         integrator_ptr->set_time_step();
     }
 
-    // TODO: Change to step
-    void advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt)
+    void step (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt)
     {
-        integrator_ptr->advance(S_old, S_new, time, dt);
+        integrator_ptr->step(S_old, S_new, time, dt);
     }
 
     // TODO: Add to FE and RK integrators
@@ -181,20 +180,20 @@ public:
     {
         amrex::Real m_time = start_time;
         amrex::Real m_timestep = start_timestep;
-        bool stop_advance = false;
-        for (int m_step_number = start_step; m_step_number < max_steps && !stop_advance; ++m_step_number)
+        bool stop = false;
+        for (int m_step_number = start_step; m_step_number < max_steps && !stop; ++m_step_number)
         {
             if (end_time - m_time < m_timestep) {
                 m_timestep = end_time - m_time;
-                stop_advance = true;
+                stop = true;
             }
 
             if (m_step_number > 0) {
                 std::swap(S_old, S_new);
             }
 
-            // Call the time integrator advance
-            integrator_ptr->advance(S_old, S_new, m_time, m_timestep);
+            // Call the time integrator step
+            integrator_ptr->step(S_old, S_new, m_time, m_timestep);
 
             // Update our time variable
             m_time += m_timestep;

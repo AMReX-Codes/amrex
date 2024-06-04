@@ -168,9 +168,9 @@ public:
 
     virtual ~RKIntegrator () {}
 
-    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
+    amrex::Real step (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
     {
-        // Assume before advance() that S_old is valid data at the current time ("time" argument)
+        // Assume before step() that S_old is valid data at the current time ("time" argument)
         // And that if data is a MultiFab, both S_old and S_new contain ghost cells for evaluating a stencil based RHS
         // We need this from S_old. This is convenient for S_new to have so we can use it
         // as scratch space for stage values without creating a new scratch MultiFab with ghost cells.

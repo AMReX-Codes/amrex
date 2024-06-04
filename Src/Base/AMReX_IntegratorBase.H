@@ -259,7 +259,7 @@ public:
         time_step = dt;
     }
 
-    virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time, amrex::Real dt) = 0;
+    virtual amrex::Real step (T& S_old, T& S_new, amrex::Real time, amrex::Real dt) = 0;
 
     virtual void evolve (T& S_out, const amrex::Real t_out) = 0;
 

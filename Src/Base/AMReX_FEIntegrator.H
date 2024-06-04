@@ -35,9 +35,9 @@ public:
         initialize_stages(S_data);
     }
 
-    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
+    amrex::Real step (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
     {
-        // Assume before advance() that S_old is valid data at the current time ("time" argument)
+        // Assume before step() that S_old is valid data at the current time ("time" argument)
         // So we initialize S_new by copying the old state.
         IntegratorOps<T>::Copy(S_new, S_old);
 
