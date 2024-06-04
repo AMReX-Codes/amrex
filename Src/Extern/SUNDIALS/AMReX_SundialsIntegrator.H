@@ -20,7 +20,7 @@ namespace amrex {
 
 struct SundialsUserData {
     // ERK or DIRK right-hand side function
-    // ExMRI or ImMRI slow right-hand side function
+    // EX-MRI or IM-MRI slow right-hand side function
     std::function<int(amrex::Real, N_Vector, N_Vector, void*)> f;
 
     // ImEx-RK right-hand side functions
@@ -519,10 +519,19 @@ public:
         N_Vector y_out = wrap_data(S_out);
 
         if (use_ark) {
+            if (!BaseT::use_adaptive_time_step) {
+                ARKStepSetFixedStep(arkode_mem, BaseT::time_step);
+            }
             flag = ARKStepEvolve(arkode_mem, time_out, y_out, &time_ret, ARK_NORMAL);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         }
         else if (use_mri) {
+            if (!BaseT::use_adaptive_time_step) {
+                MRIStepSetFixedStep(arkode_mem, BaseT::time_step);
+            }
+            if (!BaseT::use_adaptive_fast_time_step) {
+                ARKStepSetFixedStep(arkode_fast_mem, BaseT::fast_time_step);
+            }
             flag = MRIStepEvolve(arkode_mem, time_out, y_out, &time_ret, ARK_NORMAL);
             AMREX_ALWAYS_ASSERT(flag >= 0);
         } else {

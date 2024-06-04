@@ -15,9 +15,23 @@ private:
 
     amrex::Vector<std::unique_ptr<T> > F_nodes;
 
-    void initialize_stages (const T& S_data)
+    // Current (internal) state and time
+    amrex::Vector<std::unique_ptr<T> > S_current;
+    amrex::Real time_current;
+
+    int max_steps = 500;
+
+    void initialize_stages (const T& S_data, const amrex::Real time)
     {
+        // Create data for stage RHS
         IntegratorOps<T>::CreateLike(F_nodes, S_data);
+
+        // Create and initialize data for current state
+        IntegratorOps<T>::CreateLike(S_current, S_data, true);
+        IntegratorOps<T>::Copy(*S_current[0], S_data);
+
+        // Set the initial time
+        time_current = time;
     }
 
 public:
@@ -30,9 +44,9 @@ public:
 
     virtual ~FEIntegrator () {}
 
-    void initialize (const T& S_data, const amrex::Real /* time */) override
+    void initialize (const T& S_data, const amrex::Real time = 0.0) override
     {
-        initialize_stages(S_data);
+        initialize_stages(S_data, time);
     }
 
     amrex::Real step (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
@@ -58,9 +72,32 @@ public:
         return dt;
     }
 
-    void evolve (T& S_out, const amrex::Real t_out) override
+    void evolve (T& S_out, const amrex::Real time_out) override
     {
-        amrex::Error("Evolve is not yet supported by the forward euler integrator.");
+        amrex::Real dt = BaseT::time_step;
+        bool stop = false;
+
+        for (int step_number = 0; step_number < max_steps && !stop; ++step_number)
+        {
+            // Adjust step size to reach output time
+            if (time_out - time_current < dt) {
+                dt = time_out - time_current;
+                stop = true;
+            }
+
+            // Call the time integrator step
+            step(*S_current[0], S_out, time_current, dt);
+
+            // Update current state S_current = S_out
+            IntegratorOps<T>::Copy(*S_current[0], S_out);
+
+            // Update time
+            time_current += dt;
+
+            if (step_number == max_steps - 1) {
+                Error("Did not reach output time in max steps.");
+            }
+        }
     }
 
     virtual void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) override

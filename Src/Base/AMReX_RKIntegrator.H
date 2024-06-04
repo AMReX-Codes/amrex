@@ -23,14 +23,35 @@ class RKIntegrator : public IntegratorBase<T>
 private:
     using BaseT = IntegratorBase<T>;
 
+    // Butcher tableau identifiers
     ButcherTableauTypes tableau_type;
+
+    // Number of RK stages
     int number_nodes;
-    bool use_adaptive_timestep;
-    amrex::Vector<std::unique_ptr<T> > F_nodes;
+
+    // A matrix from Butcher tableau
     amrex::Vector<amrex::Vector<amrex::Real> > tableau;
+
+    // b vector from Butcher tableau
     amrex::Vector<amrex::Real> weights;
-    amrex::Vector<amrex::Real> extended_weights;
+
+    // c vector from Butcher tableau
     amrex::Vector<amrex::Real> nodes;
+
+    // RK embedded method b vector
+    amrex::Vector<amrex::Real> extended_weights;
+
+    // Flag to enable adaptive stepping
+    bool use_adaptive_timestep;
+
+    // RK stage right-hand sides
+    amrex::Vector<std::unique_ptr<T> > F_nodes;
+
+    // Current (internal) state and time
+    amrex::Vector<std::unique_ptr<T> > S_current;
+    amrex::Real time_current;
+
+    int max_steps = 500;
 
     void initialize_preset_tableau ()
     {
@@ -85,14 +106,14 @@ private:
         pp.get("type", _tableau_type);
         tableau_type = static_cast<ButcherTableauTypes>(_tableau_type);
 
-        // By default, define no extended weights and no adaptive timestepping
+        // By default, define no extended weights and no adaptive time stepping
         extended_weights = {};
         use_adaptive_timestep = false;
         pp.queryAdd("use_adaptive_timestep", use_adaptive_timestep);
 
         if (tableau_type == ButcherTableauTypes::User)
         {
-            // Read weights/nodes/butcher tableau"
+            // Read weights/nodes/butcher tableau
             pp.getarr("weights", weights);
             pp.queryarr("extended_weights", extended_weights);
             pp.getarr("nodes", nodes);
@@ -143,13 +164,20 @@ private:
         }
     }
 
-    void initialize_stages (const T& S_data)
+    void initialize_stages (const T& S_data, const amrex::Real time)
     {
         // Create data for stage RHS
         for (int i = 0; i < number_nodes; ++i)
         {
             IntegratorOps<T>::CreateLike(F_nodes, S_data);
         }
+
+        // Create and initialize data for current state
+        IntegratorOps<T>::CreateLike(S_current, S_data, true);
+        IntegratorOps<T>::Copy(*S_current[0], S_data);
+
+        // Set the initial time
+        time_current = time;
     }
 
 public:
@@ -160,10 +188,10 @@ public:
         initialize(S_data, time);
     }
 
-    void initialize (const T& S_data, const amrex::Real /* time */) override
+    void initialize (const T& S_data, const amrex::Real time = 0.0) override
     {
         initialize_parameters();
-        initialize_stages(S_data);
+        initialize_stages(S_data, time);
     }
 
     virtual ~RKIntegrator () {}
@@ -220,9 +248,32 @@ public:
         return dt;
     }
 
-    void evolve (T& S_out, const amrex::Real t_out) override
+    void evolve (T& S_out, const amrex::Real time_out) override
     {
-        amrex::Error("Evolve is not yet supported by the RK integrator.");
+        amrex::Real dt = BaseT::time_step;
+        bool stop = false;
+
+        for (int step_number = 0; step_number < max_steps && !stop; ++step_number)
+        {
+            // Adjust step size to reach output time
+            if (time_out - time_current < dt) {
+                dt = time_out - time_current;
+                stop = true;
+            }
+
+            // Call the time integrator step
+            step(*S_current[0], S_out, time_current, dt);
+
+            // Update current state S_current = S_out
+            IntegratorOps<T>::Copy(*S_current[0], S_out);
+
+            // Update time
+            time_current += dt;
+
+            if (step_number == max_steps - 1) {
+                Error("Did not reach output time in max steps.");
+            }
+        }
     }
 
     void time_interpolate (const T& /* S_new */, const T& S_old, amrex::Real timestep_fraction, T& data) override

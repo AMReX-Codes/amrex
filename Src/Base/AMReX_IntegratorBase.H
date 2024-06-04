@@ -198,14 +198,27 @@ protected:
     std::function<void (T&, amrex::Real)> post_step_action;
 
     /**
-     * \brief Current time reached by the integrator (Real)
+     * \brief Flag to enable/disable adaptive time stepping in single rate
+     * methods or at the slow time scale in multirate methods (bool)
      */
-    amrex::Real cur_time;
+    bool use_adaptive_time_step;
 
     /**
      * \brief Current integrator time step size (Real)
      */
     amrex::Real time_step;
+
+    /**
+     * \brief Flag to enable/disable adaptive time stepping at the fast time
+     * scale in multirate methods (bool)
+     */
+    bool use_adaptive_fast_time_step;
+
+    /**
+     * \brief Current integrator fast time scale time step size with multirate
+     * methods (Real)
+     */
+    amrex::Real fast_time_step;
 
     /**
      * \brief Number of integrator time steps (Long)
@@ -257,6 +270,23 @@ public:
     void set_time_step(amrex::Real dt)
     {
         time_step = dt;
+        use_adaptive_time_step = false;
+    }
+
+    void set_adaptive_step()
+    {
+        use_adaptive_time_step = true;
+    }
+
+    void set_fast_time_step(amrex::Real dt)
+    {
+        fast_time_step = dt;
+        use_adaptive_fast_time_step = false;
+    }
+
+    void set_adaptive_fast_step()
+    {
+        use_adaptive_fast_time_step = true;
     }
 
     /**

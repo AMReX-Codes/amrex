@@ -160,7 +160,22 @@ public:
 
     void set_time_step (amrex::Real dt)
     {
-        integrator_ptr->set_time_step();
+        integrator_ptr->set_time_step(dt);
+    }
+
+    void set_adaptive_step ()
+    {
+        integrator_ptr->set_adaptive_step();
+    }
+
+    void set_fast_time_step (amrex::Real dt)
+    {
+        integrator_ptr->set_fast_time_step(dt);
+    }
+
+    void set_adaptive_fast_step ()
+    {
+        integrator_ptr->set_adaptive_fast_step();
     }
 
     void step (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt)
