@@ -208,7 +208,7 @@ protected:
     amrex::Real time_step;
 
     /**
-     * \brief Number of Integrator time steps (Long)
+     * \brief Number of integrator time steps (Long)
      */
     amrex::Long num_steps;
 
