@@ -70,15 +70,18 @@ private:
         // By default, do nothing post-timestep
         set_post_timestep([](){});
 
-        // By default, do nothing after updating the state
+        // By default, do nothing after before calling the RHS
         // In general, this is where BCs should be filled
         set_pre_rhs_action([](T& /* S_data */, amrex::Real /* S_time */){});
 
-        // By default, do nothing
+        // By default, do nothing in the RHS
         set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
         set_imex_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){},
                      [](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
         set_fast_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
+
+        // By default, do nothing after a step
+        set_post_step_action([](T& /* S_rhs */, const amrex::Real /* time */){});
 
         // By default, initialize time, timestep, step number to 0's
         m_time = 0.0_rt;
@@ -140,11 +143,6 @@ public:
         post_timestep = F;
     }
 
-    void set_pre_rhs_action (std::function<void (T&, amrex::Real)> F)
-    {
-        integrator_ptr->set_pre_rhs_action(F);
-    }
-
     void set_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
     {
         integrator_ptr->set_rhs(F);
@@ -159,6 +157,16 @@ public:
     void set_fast_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
     {
         integrator_ptr->set_fast_rhs(F);
+    }
+
+    void set_pre_rhs_action (std::function<void (T&, amrex::Real)> F)
+    {
+        integrator_ptr->set_pre_rhs_action(F);
+    }
+
+    void set_post_step_action (std::function<void (T&, amrex::Real)> F)
+    {
+        integrator_ptr->set_post_step_action(F);
     }
 
     int get_step_number ()

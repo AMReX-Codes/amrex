@@ -37,23 +37,25 @@ public:
 
     amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step) override
     {
-        BaseT::timestep = time_step;
         // Assume before advance() that S_old is valid data at the current time ("time" argument)
         // So we initialize S_new by copying the old state.
         IntegratorOps<T>::Copy(S_new, S_old);
 
-        // Call the update hook for S_new
-        BaseT::pre_rhs_action(S_new, time + BaseT::timestep);
+        // Call the pre RHS hook
+        BaseT::pre_rhs_action(S_new, time);
 
         // F = RHS(S, t)
         T& F = *F_nodes[0];
         BaseT::Rhs(F, S_new, time);
 
         // S_new += timestep * dS/dt
-        IntegratorOps<T>::Saxpy(S_new, BaseT::timestep, F);
+        IntegratorOps<T>::Saxpy(S_new, time_step, F);
+
+        // Call the post step hook
+        BaseT::post_step_action(S_new, time + time_step);
 
         // Return timestep
-        return BaseT::timestep;
+        return time_step;
     }
 
     void evolve (T& S_out, const amrex::Real t_out) override

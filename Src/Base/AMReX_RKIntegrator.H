@@ -170,7 +170,6 @@ public:
 
     amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step) override
     {
-        BaseT::timestep = time_step;
         // Assume before advance() that S_old is valid data at the current time ("time" argument)
         // And that if data is a MultiFab, both S_old and S_new contain ghost cells for evaluating a stencil based RHS
         // We need this from S_old. This is convenient for S_new to have so we can use it
@@ -180,7 +179,7 @@ public:
         for (int i = 0; i < number_nodes; ++i)
         {
             // Get current stage time, t = t_old + h * Ci
-            amrex::Real stage_time = time + BaseT::timestep * nodes[i];
+            amrex::Real stage_time = time + time_step * nodes[i];
 
             // Fill S_new with the solution value for evaluating F at the current stage
             // Copy S_new = S_old
@@ -191,7 +190,7 @@ public:
                 // We should fuse these kernels ...
                 for (int j = 0; j < i; ++j)
                 {
-                    IntegratorOps<T>::Saxpy(S_new, BaseT::timestep * tableau[i][j], *F_nodes[j]);
+                    IntegratorOps<T>::Saxpy(S_new, time_step * tableau[i][j], *F_nodes[j]);
                 }
             }
 
@@ -209,14 +208,16 @@ public:
         IntegratorOps<T>::Copy(S_new, S_old);
         for (int i = 0; i < number_nodes; ++i)
         {
-            IntegratorOps<T>::Saxpy(S_new, BaseT::timestep * weights[i], *F_nodes[i]);
+            IntegratorOps<T>::Saxpy(S_new, time_step * weights[i], *F_nodes[i]);
         }
+
+        BaseT::post_step_action(S_new, time + time_step);
 
         // If we are working with an extended Butcher tableau, we can estimate the error here,
         // and then calculate an adaptive timestep.
 
         // Return timestep
-        return BaseT::timestep;
+        return time_step;
     }
 
     void evolve (T& S_out, const amrex::Real t_out) override
@@ -235,30 +236,32 @@ public:
         */
 
 
+        // Update to use the last time step taken
+
         // currently we only do this for 4th order RK
-        AMREX_ASSERT(number_nodes == 4);
+        // AMREX_ASSERT(number_nodes == 4);
 
-        // fill data using MC Equation 39 at time + timestep_fraction * dt
-        amrex::Real c = 0;
+        // // fill data using MC Equation 39 at time + timestep_fraction * dt
+        // amrex::Real c = 0;
 
-        // data = S_old
-        IntegratorOps<T>::Copy(data, S_old);
+        // // data = S_old
+        // IntegratorOps<T>::Copy(data, S_old);
 
-        // data += (chi - 3/2 * chi^2 + 2/3 * chi^3) * k1
-        c = timestep_fraction - 1.5 * std::pow(timestep_fraction, 2) + 2./3. * std::pow(timestep_fraction, 3);
-        IntegratorOps<T>::Saxpy(data, c*BaseT::timestep, *F_nodes[0]);
+        // // data += (chi - 3/2 * chi^2 + 2/3 * chi^3) * k1
+        // c = timestep_fraction - 1.5 * std::pow(timestep_fraction, 2) + 2./3. * std::pow(timestep_fraction, 3);
+        // IntegratorOps<T>::Saxpy(data, c*BaseT::timestep, *F_nodes[0]);
 
-        // data += (chi^2 - 2/3 * chi^3) * k2
-        c = std::pow(timestep_fraction, 2) - 2./3. * std::pow(timestep_fraction, 3);
-        IntegratorOps<T>::Saxpy(data, c*BaseT::timestep, *F_nodes[1]);
+        // // data += (chi^2 - 2/3 * chi^3) * k2
+        // c = std::pow(timestep_fraction, 2) - 2./3. * std::pow(timestep_fraction, 3);
+        // IntegratorOps<T>::Saxpy(data, c*BaseT::timestep, *F_nodes[1]);
 
-        // data += (chi^2 - 2/3 * chi^3) * k3
-        c = std::pow(timestep_fraction, 2) - 2./3. * std::pow(timestep_fraction, 3);
-        IntegratorOps<T>::Saxpy(data, c*BaseT::timestep, *F_nodes[2]);
+        // // data += (chi^2 - 2/3 * chi^3) * k3
+        // c = std::pow(timestep_fraction, 2) - 2./3. * std::pow(timestep_fraction, 3);
+        // IntegratorOps<T>::Saxpy(data, c*BaseT::timestep, *F_nodes[2]);
 
-        // data += (-1/2 * chi^2 + 2/3 * chi^3) * k4
-        c = -0.5 * std::pow(timestep_fraction, 2) + 2./3. * std::pow(timestep_fraction, 3);
-        IntegratorOps<T>::Saxpy(data, c*BaseT::timestep, *F_nodes[3]);
+        // // data += (-1/2 * chi^2 + 2/3 * chi^3) * k4
+        // c = -0.5 * std::pow(timestep_fraction, 2) + 2./3. * std::pow(timestep_fraction, 3);
+        // IntegratorOps<T>::Saxpy(data, c*BaseT::timestep, *F_nodes[3]);
 
     }
 

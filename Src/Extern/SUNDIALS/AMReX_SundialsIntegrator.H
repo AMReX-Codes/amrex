@@ -21,36 +21,44 @@ namespace amrex {
 struct SundialsUserData {
     // ERK or DIRK right-hand side function
     // ExMRI or ImMRI slow right-hand side function
-    std::function<int(sunrealtype, N_Vector, N_Vector, void*)> f;
+    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> f;
 
     // ImEx-RK right-hand side functions
     // ImEx-MRI slow right-hand side functions
-    std::function<int(sunrealtype, N_Vector, N_Vector, void*)> fi;
-    std::function<int(sunrealtype, N_Vector, N_Vector, void*)> fe;
+    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> fi;
+    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> fe;
 
     // MRI fast time scale right-hand side function
-    std::function<int(sunrealtype, N_Vector, N_Vector, void*)> ff;
+    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> ff;
+
+    // Post step actions
+    std::function<int(amrex::Real, N_Vector, void*)> post_step;
 };
 
 namespace SundialsUserFun {
-    static int f (sunrealtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
+    static int f (amrex::Real t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
         SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
         return udata->f(t, y_data, y_rhs, user_data);
     }
 
-    static int fi (sunrealtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
+    static int fi (amrex::Real t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
         SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
         return udata->fi(t, y_data, y_rhs, user_data);
     }
 
-    static int fe (sunrealtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
+    static int fe (amrex::Real t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
         SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
         return udata->fe(t, y_data, y_rhs, user_data);
     }
 
-    static int ff (sunrealtype t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
+    static int ff (amrex::Real t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
         SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
         return udata->ff(t, y_data, y_rhs, user_data);
+    }
+
+    static int post_step (amrex::Real t, N_Vector y_data, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->post_step(t, y_data, user_data);
     }
 }
 
@@ -145,12 +153,10 @@ public:
 #endif
 
         // Utility to unpack SUNDIALS vectors
-        auto unpack_vectors = [&](N_Vector y_data, amrex::Vector<amrex::MultiFab>& S_data,
-                                  N_Vector y_rhs, amrex::Vector<amrex::MultiFab>& S_rhs) -> void {
+        auto unpack_vector = [&](N_Vector y_data, amrex::Vector<amrex::MultiFab>& S_data) -> void {
 
             const int num_vecs = N_VGetNumSubvectors_ManyVector(y_data);
             S_data.resize(num_vecs);
-            S_rhs.resize(num_vecs);
 
             for(int i = 0; i < num_vecs; i++)
             {
@@ -158,21 +164,17 @@ public:
                                              amrex::make_alias,
                                              0,
                                              amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_data, i))->nComp());
-
-                S_rhs.at(i)=amrex::MultiFab(*amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i)),
-                                            amrex::make_alias,
-                                            0,
-                                            amrex::sundials::getMFptr(N_VGetSubvector_ManyVector(y_rhs, i))->nComp());
             }
         };
 
         // Right-hand side function wrappers
-        udata.f = [&](sunrealtype rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+        udata.f = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
 
             amrex::Vector<amrex::MultiFab> S_data;
-            amrex::Vector<amrex::MultiFab> S_rhs;
+            unpack_vector(y_data, S_data);
 
-            unpack_vectors(y_data, S_data, y_rhs, S_rhs);
+            amrex::Vector<amrex::MultiFab> S_rhs;
+            unpack_vector(y_rhs, S_rhs);
 
             BaseT::pre_rhs_action(S_data, rhs_time);
             BaseT::Rhs(S_rhs, S_data, rhs_time);
@@ -180,12 +182,13 @@ public:
             return 0;
         };
 
-        udata.fi = [&](sunrealtype rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+        udata.fi = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
 
             amrex::Vector<amrex::MultiFab> S_data;
-            amrex::Vector<amrex::MultiFab> S_rhs;
+            unpack_vector(y_data, S_data);
 
-            unpack_vectors(y_data, S_data, y_rhs, S_rhs);
+            amrex::Vector<amrex::MultiFab> S_rhs;
+            unpack_vector(y_rhs, S_rhs);
 
             BaseT::pre_rhs_action(S_data, rhs_time);
             BaseT::RhsIm(S_rhs, S_data, rhs_time);
@@ -193,12 +196,13 @@ public:
             return 0;
         };
 
-        udata.fe = [&](sunrealtype rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+        udata.fe = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
 
             amrex::Vector<amrex::MultiFab> S_data;
-            amrex::Vector<amrex::MultiFab> S_rhs;
+            unpack_vector(y_data, S_data);
 
-            unpack_vectors(y_data, S_data, y_rhs, S_rhs);
+            amrex::Vector<amrex::MultiFab> S_rhs;
+            unpack_vector(y_rhs, S_rhs);
 
             BaseT::pre_rhs_action(S_data, rhs_time);
             BaseT::RhsEx(S_rhs, S_data, rhs_time);
@@ -206,15 +210,26 @@ public:
             return 0;
         };
 
-        udata.ff = [&](sunrealtype rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
+        udata.ff = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs, void * /* user_data */) -> int {
 
             amrex::Vector<amrex::MultiFab> S_data;
-            amrex::Vector<amrex::MultiFab> S_rhs;
+            unpack_vector(y_data, S_data);
 
-            unpack_vectors(y_data, S_data, y_rhs, S_rhs);
+            amrex::Vector<amrex::MultiFab> S_rhs;
+            unpack_vector(y_rhs, S_rhs);
 
             BaseT::pre_rhs_action(S_data, rhs_time);
             BaseT::RhsFast(S_rhs, S_data, rhs_time);
+
+            return 0;
+        };
+
+        udata.post_step = [&](amrex::Real time, N_Vector y_data, void * /* user_data */) -> int {
+
+            amrex::Vector<amrex::MultiFab> S_data;
+            unpack_vector(y_data, S_data);
+
+            BaseT::post_step_action(S_data, time);
 
             return 0;
         };
