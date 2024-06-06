@@ -255,6 +255,18 @@ namespace amrex
                                      const Geometry& cgeom, const Geometry& fgeom,
                                      int ref_ratio);
 #endif
+
+    template <typename MF, typename BC, typename Interp>
+    std::enable_if_t<IsFabArray<MF>::value>
+    FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
+                      const Vector<Vector<MF*>>& smf, const Vector<Vector<Real>>& st,
+                      int scomp, int dcomp, int ncomp,
+                      const Vector<Geometry>& geom,
+                      Vector<BC>& bc, int bccomp,
+                      const Vector<IntVect>& ratio,
+                      Interp* mapper,
+                      const Vector<BCRec>& bcr, int bcrcomp);
+
 }
 
 #include <AMReX_FillPatchUtil_I.H>

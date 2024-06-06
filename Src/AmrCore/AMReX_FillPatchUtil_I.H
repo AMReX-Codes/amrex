@@ -438,8 +438,62 @@ namespace detail {
         // nothing
     }
 
+    inline BoxArray periodic_wrap_boxarray (BoxArray const& a_ba, Geometry const& geom)
+    {
+        if (geom.isAnyPeriodic()) {
+            BoxList bl(a_ba.ixType());
+            bool is_same = true;
+            Box domain = geom.growNonPeriodicDomain(2048); // 2048 should be big enough
+            domain.convert(a_ba.ixType());
+            for (int i = 0, N = int(a_ba.size()); i < N; ++i) {
+                Box const& b = a_ba[i];
+                if (domain.contains(b)) {
+                    bl.push_back(b);
+                } else {
+                    is_same = false;
+                    Box isect = b & domain;
+                    auto shift = [&geom] (Box obox)
+                    {
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            if (geom.isPeriodic(idim)) {
+                                int dlo = geom.Domain().smallEnd(idim);
+                                int dhi = geom.Domain().bigEnd(idim);
+                                int len = dhi-dlo+1;
+                                if (obox.type(idim) == IndexType::NODE) {
+                                    ++dhi;
+                                }
+                                if (obox.bigEnd(idim) < dlo) {
+                                    obox.shift(idim, len);
+                                } else if (obox.smallEnd(idim) > dhi) {
+                                    obox.shift(idim, -len);
+                                }
+                            }
+                        }
+                        return obox;
+                    };
+                    if (isect.isEmpty()) {
+                        bl.push_back(shift(b));
+                    } else {
+                        bl.push_back(isect);
+                        BoxList bltmp = amrex::boxDiff(b, isect);
+                        for (auto const& btmp : bltmp) {
+                            bl.push_back(shift(btmp));
+                        }
+                    }
+                }
+            }
+            if (is_same) {
+                return a_ba;
+            } else {
+                return BoxArray(std::move(bl));
+            }
+        } else {
+            return a_ba;
+        }
+    }
+
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-    std::enable_if_t<IsFabArray<MF>::value>
+    std::enable_if_t<IsFabArray<MF>::value,int>
     FillPatchTwoLevels_doit (MF& mf, IntVect const& nghost, Real time,
                              const Vector<MF*>& cmf, const Vector<Real>& ct,
                              const Vector<MF*>& fmf, const Vector<Real>& ft,
@@ -452,9 +506,13 @@ namespace detail {
                              const Vector<BCRec>& bcs, int bcscomp,
                              const PreInterpHook& pre_interp,
                              const PostInterpHook& post_interp,
-                             EB2::IndexSpace const* index_space)
+                             EB2::IndexSpace const* index_space,
+                             bool return_error_code = false)
     {
         BL_PROFILE("FillPatchTwoLevels");
+
+        int success_code = return_error_code ? 0 : -1;
+        int failure_code = 1;
 
         if (nghost.max() > 0 || mf.getBDKey() != fmf[0]->getBDKey())
         {
@@ -484,6 +542,13 @@ namespace detail {
 
                 if ( ! fpc.ba_crse_patch.empty())
                 {
+                    if (return_error_code) {
+                        BoxArray const& cba = amrex::convert(cmf[0]->boxArray(), IntVect(0));
+                        if (!cba.contains(detail::periodic_wrap_boxarray(fpc.ba_crse_patch,cgeom))) {
+                            return failure_code;
+                        }
+                    }
+
                     MF mf_crse_patch     = make_mf_crse_patch<MF>      (fpc, ncomp, mf.boxArray().ixType());
                     // Must make sure fine exists under needed coarse faces.
                     // It stores values for the final (interior) interpolation,
@@ -544,6 +609,12 @@ namespace detail {
 
                 if ( ! fpc.ba_crse_patch.empty())
                 {
+                    if (return_error_code) {
+                        BoxArray const& cba = cmf[0]->boxArray();
+                        if (!cba.contains(detail::periodic_wrap_boxarray(fpc.ba_crse_patch,cgeom))) {
+                            return failure_code;
+                        }
+                    }
 
                     MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, ncomp);
                     mf_set_domain_bndry (mf_crse_patch, cgeom);
@@ -568,6 +639,8 @@ namespace detail {
 
         FillPatchSingleLevel(mf, nghost, time, fmf, ft, scomp, dcomp, ncomp,
                              fgeom, fbc, fbccomp);
+
+        return success_code;
     }
 
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
@@ -1188,6 +1261,88 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
         }
 
         fbc[d](*mf[d], dcomp, ncomp, nghost, time, fbccomp);
+    }
+}
+
+template <typename MF, typename BC, typename Interp>
+std::enable_if_t<IsFabArray<MF>::value>
+FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
+                  const Vector<Vector<MF*>>& smf, const Vector<Vector<Real>>& st,
+                  int scomp, int dcomp, int ncomp,
+                  const Vector<Geometry>& geom,
+                  Vector<BC>& bc, int bccomp,
+                  const Vector<IntVect>& ratio,
+                  Interp* mapper,
+                  const Vector<BCRec>& bcr, int bcrcomp)
+{
+    AMREX_ALWAYS_ASSERT(level < int(geom.size()) &&
+                        level < int(bc.size()) &&
+                        level < int(ratio.size()+1));
+    if (level == 0) {
+        FillPatchSingleLevel(mf, nghost, time, smf[0], st[0], scomp, dcomp, ncomp, geom[0],
+                             bc[0], bccomp);
+    } else if (level >= int(smf.size())) {
+        BoxArray const& ba = mf.boxArray();
+        auto const& typ = ba.ixType();
+        Box domain_g = geom[level].growPeriodicDomain(nghost);
+        domain_g.convert(typ);
+        BoxArray cba;
+        {
+            BoxList cbl(typ);
+            cbl.reserve(ba.size());
+            for (int i = 0, N = int(ba.size()); i < N; ++i) {
+                cbl.push_back(mapper->CoarseBox(amrex::grow(ba[i],nghost), ratio[level-1]));
+            }
+            cba = BoxArray(std::move(cbl));
+        }
+        MultiFab cmf_tmp(cba, mf.DistributionMap(), ncomp, 0);
+        FillPatchNLevels(cmf_tmp, level-1, IntVect(0), time, smf, st, scomp, 0, ncomp,
+                         geom, bc, bccomp, ratio, mapper, bcr, bcrcomp);
+        FillPatchInterp(mf, dcomp, cmf_tmp, 0, ncomp, nghost, geom[level-1], geom[level],
+                        domain_g, ratio[level-1], mapper, bcr, bcrcomp);
+    } else {
+        NullInterpHook<typename MF::FABType::value_type> hook{};
+        int error_code = detail::FillPatchTwoLevels_doit(mf, nghost, time,
+                                                         smf[level-1], st[level-1],
+                                                         smf[level  ], st[level  ],
+                                                         scomp, dcomp, ncomp,
+                                                         geom[level-1], geom[level],
+                                                         bc[level-1], bccomp,
+                                                         bc[level  ], bccomp,
+                                                         ratio[level-1], mapper, bcr, bcrcomp,
+                                                         hook, hook, nullptr, true);
+        if (error_code == 0) { return; }
+
+        BoxArray cba;
+        {
+            BoxArray const& ba = mf.boxArray();
+            BoxList cbl(mf.ixType());
+            cbl.reserve(ba.size());
+            for (int i = 0; i < int(ba.size()); ++i) {
+                cbl.push_back(mapper->CoarseBox(amrex::grow(ba[i], nghost), ratio[level-1]));
+            }
+            cba = BoxArray(std::move(cbl));
+        }
+        MultiFab cmf_tmp(cba, mf.DistributionMap(), ncomp, 0);
+        FillPatchNLevels(cmf_tmp, level-1, IntVect(0), time, smf, st, scomp, 0, ncomp,
+                         geom, bc, bccomp, ratio, mapper, bcr, bcrcomp);
+        Vector<MF*> cmf{&cmf_tmp};
+        Vector<MF*> fmf = smf[level];
+        Vector<MF> fmf_raii;
+        if (scomp != 0) {
+            for (auto const* p : fmf) {
+                fmf_raii.emplace_back(*p,  amrex::make_alias, 0, ncomp);
+            }
+        }
+        detail::FillPatchTwoLevels_doit(mf, nghost, time,
+                                        cmf, {time},
+                                        fmf, st[level],
+                                        0, dcomp, ncomp,
+                                        geom[level-1], geom[level],
+                                        bc[level-1], bccomp,
+                                        bc[level  ], bccomp,
+                                        ratio[level-1], mapper, bcr, bccomp,
+                                        hook, hook, nullptr);
     }
 }
 
