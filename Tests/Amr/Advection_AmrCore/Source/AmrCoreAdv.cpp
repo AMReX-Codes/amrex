@@ -101,7 +101,6 @@ AmrCoreAdv::Evolve ()
     Real cur_time = t_new[0];
     int last_plot_file_step = 0;
 
-#ifndef _WIN32
     int levmean = max_level;
     MultiFab mfmean;
     int test_fillpatchnlevels = 0;
@@ -118,7 +117,6 @@ AmrCoreAdv::Evolve ()
         mfmean.define(bamean,DistributionMapping{bamean},1,0);
         mfmean.setVal(0.0);
     }
-#endif
 
     for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
     {
@@ -166,7 +164,6 @@ AmrCoreAdv::Evolve ()
 
         if (cur_time >= stop_time - 1.e-6*dt[0]) { break; }
 
-#ifndef _WIN32
         if (test_fillpatchnlevels)
         {
             MultiFab mftmp(mfmean.boxArray(), mfmean.DistributionMap(), 1, 0);
@@ -186,10 +183,8 @@ AmrCoreAdv::Evolve ()
                              physbcs, 0, refRatio(), &cell_cons_interp, bcs, 0);
             MultiFab::Add(mfmean, mftmp, 0, 0, 1, 0);
         }
-#endif
     }
 
-#ifndef _WIN32
     if (test_fillpatchnlevels) {
         if (mfmean.is_finite()) {
             amrex::Print() << "\namrex::FillPatchNLevels test passed\n\n";
@@ -197,7 +192,6 @@ AmrCoreAdv::Evolve ()
             amrex::Abort("amrex::FillPatchNLevels test failed");
         }
     }
-#endif
 
     if (plot_int > 0 && istep[0] > last_plot_file_step) {
         WritePlotFile();

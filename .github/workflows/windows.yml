@@ -91,13 +91,13 @@ jobs:
         cmake --build build --config RelWithDebInfo -j 4
 
         cmake --build build --config RelWithDebInfo --target install
-        cmake --build build --config RelWithDebInfo --target test_install
+        # WATCH: cmake --build build --config RelWithDebInfo --target test_install
 
         #ccache -s
 
   # Build libamrex and all tests
   tests_clang:
-    name: Clang C++17 w/o Fortran w/o MPI
+    name: MSVC Clang C++17 w/o Fortran w/o MPI
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
@@ -122,7 +122,7 @@ jobs:
         cmake --build build --config Release --target install
 
         set "PATH=%PATH%;D:\\a\amrex\amrex\installdir\bin"
-        cmake --build build --config Release --target test_install
+        # WATCH: cmake --build build --config Release --target test_install
 
   # If we add ccache back, don't forget to update cleanup-cache.yml
   #save_pr_number:

@@ -438,7 +438,6 @@ namespace detail {
         // nothing
     }
 
-#ifndef _WIN32
     inline BoxArray periodic_wrap_boxarray (BoxArray const& a_ba, Geometry const& geom)
     {
         if (geom.isAnyPeriodic()) {
@@ -492,14 +491,9 @@ namespace detail {
             return a_ba;
         }
     }
-#endif
 
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-#ifndef _WIN32
     std::enable_if_t<IsFabArray<MF>::value,int>
-#else
-    std::enable_if_t<IsFabArray<MF>::value>
-#endif
     FillPatchTwoLevels_doit (MF& mf, IntVect const& nghost, Real time,
                              const Vector<MF*>& cmf, const Vector<Real>& ct,
                              const Vector<MF*>& fmf, const Vector<Real>& ft,
@@ -512,18 +506,13 @@ namespace detail {
                              const Vector<BCRec>& bcs, int bcscomp,
                              const PreInterpHook& pre_interp,
                              const PostInterpHook& post_interp,
-                             EB2::IndexSpace const* index_space
-#ifndef _WIN32
-                             , bool return_error_code = false
-#endif
-                             )
+                             EB2::IndexSpace const* index_space,
+                             bool return_error_code = false)
     {
         BL_PROFILE("FillPatchTwoLevels");
 
-#ifndef _WIN32
         int success_code = return_error_code ? 0 : -1;
         int failure_code = 1;
-#endif
 
         if (nghost.max() > 0 || mf.getBDKey() != fmf[0]->getBDKey())
         {
@@ -553,14 +542,12 @@ namespace detail {
 
                 if ( ! fpc.ba_crse_patch.empty())
                 {
-#ifndef _WIN32
                     if (return_error_code) {
                         BoxArray const& cba = amrex::convert(cmf[0]->boxArray(), IntVect(0));
                         if (!cba.contains(detail::periodic_wrap_boxarray(fpc.ba_crse_patch,cgeom))) {
                             return failure_code;
                         }
                     }
-#endif
 
                     MF mf_crse_patch     = make_mf_crse_patch<MF>      (fpc, ncomp, mf.boxArray().ixType());
                     // Must make sure fine exists under needed coarse faces.
@@ -622,14 +609,12 @@ namespace detail {
 
                 if ( ! fpc.ba_crse_patch.empty())
                 {
-#ifndef _WIN32
                     if (return_error_code) {
                         BoxArray const& cba = cmf[0]->boxArray();
                         if (!cba.contains(detail::periodic_wrap_boxarray(fpc.ba_crse_patch,cgeom))) {
                             return failure_code;
                         }
                     }
-#endif
 
                     MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, ncomp);
                     mf_set_domain_bndry (mf_crse_patch, cgeom);
@@ -655,9 +640,7 @@ namespace detail {
         FillPatchSingleLevel(mf, nghost, time, fmf, ft, scomp, dcomp, ncomp,
                              fgeom, fbc, fbccomp);
 
-#ifndef _WIN32
         return success_code;
-#endif
     }
 
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
@@ -1281,8 +1264,6 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
     }
 }
 
-#ifndef _WIN32
-
 template <typename MF, typename BC, typename Interp>
 std::enable_if_t<IsFabArray<MF>::value>
 FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
@@ -1394,8 +1375,6 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                                         hook, hook, index_space);
     }
 }
-
-#endif /*ifndef _WIN32 */
 
 }
 
