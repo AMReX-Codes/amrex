@@ -451,7 +451,6 @@ namespace detail {
                     bl.push_back(b);
                 } else {
                     is_same = false;
-                    Box isect = b & domain;
                     auto shift = [&geom] (Box obox)
                     {
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -471,11 +470,12 @@ namespace detail {
                         }
                         return obox;
                     };
+                    Box const& isect = b & domain;
                     if (isect.isEmpty()) {
                         bl.push_back(shift(b));
                     } else {
                         bl.push_back(isect);
-                        BoxList bltmp = amrex::boxDiff(b, isect);
+                        BoxList const& bltmp = amrex::boxDiff(b, isect);
                         for (auto const& btmp : bltmp) {
                             bl.push_back(shift(btmp));
                         }
@@ -1361,7 +1361,7 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
         Vector<MF> fmf_raii;
         if (scomp != 0) {
             for (auto const* p : fmf) {
-                fmf_raii.emplace_back(*p,  amrex::make_alias, 0, ncomp);
+                fmf_raii.emplace_back(*p,  amrex::make_alias, scomp, ncomp);
             }
         }
         detail::FillPatchTwoLevels_doit(mf, nghost, time,
