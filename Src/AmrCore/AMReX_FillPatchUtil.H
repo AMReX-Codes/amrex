@@ -256,6 +256,7 @@ namespace amrex
                                      int ref_ratio);
 #endif
 
+#ifndef _WIN32
     template <typename MF, typename BC, typename Interp>
     std::enable_if_t<IsFabArray<MF>::value>
     FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
@@ -266,6 +267,7 @@ namespace amrex
                       const Vector<IntVect>& ratio,
                       Interp* mapper,
                       const Vector<BCRec>& bcr, int bcrcomp);
+#endif
 
 }
 

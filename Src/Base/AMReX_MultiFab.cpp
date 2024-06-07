@@ -606,6 +606,61 @@ MultiFab::initVal ()
 }
 
 bool
+MultiFab::is_finite (int scomp, int ncomp, int ngrow, bool local) const
+{
+    return is_finite(scomp, ncomp, IntVect(ngrow), local);
+}
+
+bool
+MultiFab::is_finite (int scomp, int ncomp, const IntVect& ngrow, bool local) const
+{
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(scomp + ncomp <= nComp());
+    BL_ASSERT(ncomp >  0 && ncomp <= nComp());
+    BL_ASSERT(IntVect::TheZeroVector().allLE(ngrow) && ngrow.allLE(nGrowVect()));
+
+    BL_PROFILE("MultiFab::is_finite()");
+
+    bool r = false;
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = this->const_arrays();
+        r = ParReduce(TypeList<ReduceOpLogicalOr>{}, TypeList<bool>{}, *this, ngrow, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<bool>
+        {
+            return !amrex::Math::isfinite(ma[box_no](i,j,k,n+scomp));
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(||:r)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid() && !r; ++mfi)
+        {
+            Box const& bx = mfi.growntilebox(ngrow);
+            Array4<Real const> const& fab = this->const_array(mfi);
+            AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+            {
+                r = r || !amrex::Math::isfinite(fab(i,j,k,n+scomp));
+            });
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Or(r, ParallelContext::CommunicatorSub());
+    }
+
+    return !r;
+}
+
+bool
+MultiFab::is_finite (bool local) const
+{
+    return is_finite(0,nComp(),nGrowVect(),local);
+}
+
+bool
 MultiFab::contains_nan (int scomp, int ncomp, int ngrow, bool local) const
 {
     return contains_nan(scomp, ncomp, IntVect(ngrow), local);
