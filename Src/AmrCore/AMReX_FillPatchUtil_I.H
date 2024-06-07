@@ -493,7 +493,7 @@ namespace detail {
     }
 
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-    std::enable_if_t<IsFabArray<MF>::value,int>
+    std::enable_if_t<IsFabArray<MF>::value>
     FillPatchTwoLevels_doit (MF& mf, IntVect const& nghost, Real time,
                              const Vector<MF*>& cmf, const Vector<Real>& ct,
                              const Vector<MF*>& fmf, const Vector<Real>& ft,
@@ -507,12 +507,9 @@ namespace detail {
                              const PreInterpHook& pre_interp,
                              const PostInterpHook& post_interp,
                              EB2::IndexSpace const* index_space,
-                             bool return_error_code = false)
+                             int& return_error_code) // Have to return error this way because windows su*ks.
     {
         BL_PROFILE("FillPatchTwoLevels");
-
-        int success_code = return_error_code ? 0 : -1;
-        int failure_code = 1;
 
         if (nghost.max() > 0 || mf.getBDKey() != fmf[0]->getBDKey())
         {
@@ -545,7 +542,7 @@ namespace detail {
                     if (return_error_code) {
                         BoxArray const& cba = amrex::convert(cmf[0]->boxArray(), IntVect(0));
                         if (!cba.contains(detail::periodic_wrap_boxarray(fpc.ba_crse_patch,cgeom))) {
-                            return failure_code;
+                            return;
                         }
                     }
 
@@ -612,7 +609,7 @@ namespace detail {
                     if (return_error_code) {
                         BoxArray const& cba = cmf[0]->boxArray();
                         if (!cba.contains(detail::periodic_wrap_boxarray(fpc.ba_crse_patch,cgeom))) {
-                            return failure_code;
+                            return;
                         }
                     }
 
@@ -640,7 +637,7 @@ namespace detail {
         FillPatchSingleLevel(mf, nghost, time, fmf, ft, scomp, dcomp, ncomp,
                              fgeom, fbc, fbccomp);
 
-        return success_code;
+        return_error_code = 0;
     }
 
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
@@ -834,10 +831,11 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
 #else
     EB2::IndexSpace const* index_space = nullptr;
 #endif
+    int return_error_code = 0;
     detail::FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
                             cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
-                            pre_interp,post_interp,index_space);
+                            pre_interp,post_interp,index_space,return_error_code);
 }
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
@@ -861,10 +859,11 @@ FillPatchTwoLevels (MF& mf, Real time,
     EB2::IndexSpace const* index_space = nullptr;
 #endif
 
+    int return_error_code = 0;
     detail::FillPatchTwoLevels_doit(mf,mf.nGrowVect(),time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
                             cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
-                            pre_interp,post_interp,index_space);
+                            pre_interp,post_interp,index_space,return_error_code);
 }
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
@@ -973,10 +972,11 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                     const PreInterpHook& pre_interp,
                     const PostInterpHook& post_interp)
 {
+    int return_error_code = 0;
     detail::FillPatchTwoLevels_doit(mf,nghost,time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
                             cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
-                            pre_interp,post_interp,&index_space);
+                            pre_interp,post_interp,&index_space,return_error_code);
 }
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
@@ -995,10 +995,11 @@ FillPatchTwoLevels (MF& mf, Real time,
                     const PreInterpHook& pre_interp,
                     const PostInterpHook& post_interp)
 {
+    int return_error_code = 0;
     detail::FillPatchTwoLevels_doit(mf,mf.nGrowVect(),time,cmf,ct,fmf,ft,
                             scomp,dcomp,ncomp,cgeom,fgeom,
                             cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
-                            pre_interp,post_interp,&index_space);
+                            pre_interp,post_interp,&index_space,return_error_code);
 }
 #endif
 
@@ -1302,16 +1303,17 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                         domain_g, ratio[level-1], mapper, bcr, bcrcomp);
     } else {
         NullInterpHook<typename MF::FABType::value_type> hook{};
-        int error_code = detail::FillPatchTwoLevels_doit(mf, nghost, time,
-                                                         smf[level-1], st[level-1],
-                                                         smf[level  ], st[level  ],
-                                                         scomp, dcomp, ncomp,
-                                                         geom[level-1], geom[level],
-                                                         bc[level-1], bccomp,
-                                                         bc[level  ], bccomp,
-                                                         ratio[level-1], mapper, bcr, bcrcomp,
-                                                         hook, hook, nullptr, true);
-        if (error_code == 0) { return; }
+        int return_error_code = 1;
+        detail::FillPatchTwoLevels_doit(mf, nghost, time,
+                                        smf[level-1], st[level-1],
+                                        smf[level  ], st[level  ],
+                                        scomp, dcomp, ncomp,
+                                        geom[level-1], geom[level],
+                                        bc[level-1], bccomp,
+                                        bc[level  ], bccomp,
+                                        ratio[level-1], mapper, bcr, bcrcomp,
+                                        hook, hook, nullptr, return_error_code);
+        if (return_error_code != 0) { return; }
 
         BoxArray cba;
         {
@@ -1334,6 +1336,7 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                 fmf_raii.emplace_back(*p,  amrex::make_alias, 0, ncomp);
             }
         }
+        return_error_code = 0;
         detail::FillPatchTwoLevels_doit(mf, nghost, time,
                                         cmf, {time},
                                         fmf, st[level],
@@ -1342,7 +1345,7 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                                         bc[level-1], bccomp,
                                         bc[level  ], bccomp,
                                         ratio[level-1], mapper, bcr, bccomp,
-                                        hook, hook, nullptr);
+                                        hook, hook, nullptr, return_error_code);
     }
 }
 
