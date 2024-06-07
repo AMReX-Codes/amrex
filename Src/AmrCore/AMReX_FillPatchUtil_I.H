@@ -1294,6 +1294,14 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                   Interp* mapper,
                   const Vector<BCRec>& bcr, int bcrcomp)
 {
+    BL_PROFILE("FillPatchNLevels");
+
+#ifdef AMREX_USE_EB
+    EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
+#else
+    EB2::IndexSpace const* index_space = nullptr;
+#endif
+
     AMREX_ALWAYS_ASSERT(level < int(geom.size()) &&
                         level < int(bc.size()) &&
                         level < int(ratio.size()+1));
@@ -1314,7 +1322,18 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
             }
             cba = BoxArray(std::move(cbl));
         }
-        MultiFab cmf_tmp(cba, mf.DistributionMap(), ncomp, 0);
+        MultiFab cmf_tmp;
+#ifdef AMREX_USE_EB
+        if (index_space) {
+            auto factory = makeEBFabFactory(index_space, geom[level-1], cba,
+                                            mf.DistributionMap(), {0,0,0},
+                                            EBSupport::basic);
+            cmf_tmp.define(cba, mf.DistributionMap(), ncomp, 0, MFInfo(), *factory);
+        } else
+#endif
+        {
+            cmf_tmp.define(cba, mf.DistributionMap(), ncomp, 0);
+        }
         FillPatchNLevels(cmf_tmp, level-1, IntVect(0), time, smf, st, scomp, 0, ncomp,
                          geom, bc, bccomp, ratio, mapper, bcr, bcrcomp);
         FillPatchInterp(mf, dcomp, cmf_tmp, 0, ncomp, nghost, geom[level-1], geom[level],
@@ -1329,7 +1348,7 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                                                          bc[level-1], bccomp,
                                                          bc[level  ], bccomp,
                                                          ratio[level-1], mapper, bcr, bcrcomp,
-                                                         hook, hook, nullptr, true);
+                                                         hook, hook, index_space, true);
         if (error_code == 0) { return; }
 
         BoxArray cba;
@@ -1342,7 +1361,18 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
             }
             cba = BoxArray(std::move(cbl));
         }
-        MultiFab cmf_tmp(cba, mf.DistributionMap(), ncomp, 0);
+        MultiFab cmf_tmp;
+#ifdef AMREX_USE_EB
+        if (index_space) {
+            auto factory = makeEBFabFactory(index_space, geom[level-1], cba,
+                                            mf.DistributionMap(), {0,0,0},
+                                            EBSupport::basic);
+            cmf_tmp.define(cba, mf.DistributionMap(), ncomp, 0, MFInfo(), *factory);
+        } else
+#endif
+        {
+            cmf_tmp.define(cba, mf.DistributionMap(), ncomp, 0);
+        }
         FillPatchNLevels(cmf_tmp, level-1, IntVect(0), time, smf, st, scomp, 0, ncomp,
                          geom, bc, bccomp, ratio, mapper, bcr, bcrcomp);
         Vector<MF*> cmf{&cmf_tmp};
@@ -1361,7 +1391,7 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                                         bc[level-1], bccomp,
                                         bc[level  ], bccomp,
                                         ratio[level-1], mapper, bcr, bccomp,
-                                        hook, hook, nullptr);
+                                        hook, hook, index_space);
     }
 }
 
