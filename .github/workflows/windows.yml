@@ -81,8 +81,13 @@ jobs:
         #$Env:CCACHE_MAXSIZE='135M'
         #ccache -z
 
+        # -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" `
+        # is a workaround github windows runner 20240603.1.0.
+        # https://github.com/actions/runner-images/issues/10004
+
         cmake -S . -B build   `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
+              -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" `
               -DAMReX_EB=ON                 `
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
@@ -91,7 +96,7 @@ jobs:
         cmake --build build --config RelWithDebInfo -j 4
 
         cmake --build build --config RelWithDebInfo --target install
-        # WATCH: cmake --build build --config RelWithDebInfo --target test_install
+        cmake --build build --config RelWithDebInfo --target test_install
 
         #ccache -s
 
@@ -108,10 +113,15 @@ jobs:
         CMAKE_GENERATOR_TOOLSET: "ClangCl"
         CMAKE_GENERATOR: "Visual Studio 17 2022"
       run: |
+        # -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" `
+        # is a workaround github windows runner 20240603.1.0.
+        # https://github.com/actions/runner-images/issues/10004
+
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
         cmake -S . -B build   ^
               -DBUILD_SHARED_LIBS=ON        ^
               -DCMAKE_VERBOSE_MAKEFILE=ON   ^
+              -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" ^
               -DAMReX_EB=ON                 ^
               -DAMReX_ENABLE_TESTS=ON       ^
               -DAMReX_FORTRAN=OFF           ^
@@ -121,8 +131,8 @@ jobs:
 
         cmake --build build --config Release --target install
 
-  #     set "PATH=%PATH%;D:\\a\amrex\amrex\installdir\bin"
-  #     WATCH: cmake --build build --config Release --target test_install
+        set "PATH=%PATH%;D:\\a\amrex\amrex\installdir\bin"
+        cmake --build build --config Release --target test_install
 
   # If we add ccache back, don't forget to update cleanup-cache.yml
   #save_pr_number:
