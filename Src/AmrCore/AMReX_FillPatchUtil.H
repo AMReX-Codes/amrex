@@ -232,7 +232,7 @@ namespace amrex
     /**
      * \brief FillPatch for face variables with data from the current level
      * and the level below. Sometimes, we need to fillpatch all
-     * AMREX_SPACEDIM face MultiFabs togother to satisfy certain contraint
+     * AMREX_SPACEDIM face MultiFabs togother to satisfy certain constraint
      * such as divergence preserving.
      *
      * First, we fill the destination MultiFab/FabArray's with the current
@@ -290,7 +290,7 @@ namespace amrex
     /**
      * \brief FillPatch for face variables with data from the current level
      * and the level below. Sometimes, we need to fillpatch all
-     * AMREX_SPACEDIM face MultiFabs togother to satisfy certain contraint
+     * AMREX_SPACEDIM face MultiFabs togother to satisfy certain constraint
      * such as divergence preserving.
      *
      * First, we fill the destination MultiFab/FabArray's with the current
@@ -348,7 +348,7 @@ namespace amrex
     /**
      * \brief FillPatch for face variables with data from the current level
      * and the level below. Sometimes, we need to fillpatch all
-     * AMREX_SPACEDIM face MultiFabs togother to satisfy certain contraint
+     * AMREX_SPACEDIM face MultiFabs togother to satisfy certain constraint
      * such as divergence preserving.
      *
      * First, we fill the destination MultiFab/FabArray's with the current
@@ -605,7 +605,7 @@ namespace amrex
     /**
      * \brief Fill face variables with data from the coarse level.
      * Sometimes, we need to fillpatch all AMREX_SPACEDIM face MultiFabs
-     * togother to satisfy certain contraint such as divergence preserving.
+     * togother to satisfy certain constraint such as divergence preserving.
      *
      * \tparam MF the MultiFab/FabArray type
      * \tparam BC functor for filling physical boundaries
@@ -650,7 +650,7 @@ namespace amrex
     /**
      * \brief Fill face variables with data from the coarse level.
      * Sometimes, we need to fillpatch all AMREX_SPACEDIM face MultiFabs
-     * togother to satisfy certain contraint such as divergence preserving.
+     * togother to satisfy certain constraint such as divergence preserving.
      *
      * \tparam MF the MultiFab/FabArray type
      * \tparam BC functor for filling physical boundaries
