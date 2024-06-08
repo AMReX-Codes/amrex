@@ -121,8 +121,8 @@ jobs:
 
         cmake --build build --config Release --target install
 
-        # set "PATH=%PATH%;D:\\a\amrex\amrex\installdir\bin"
-        # WATCH: cmake --build build --config Release --target test_install
+  #     set "PATH=%PATH%;D:\\a\amrex\amrex\installdir\bin"
+  #     WATCH: cmake --build build --config Release --target test_install
 
   # If we add ccache back, don't forget to update cleanup-cache.yml
   #save_pr_number:

@@ -714,10 +714,11 @@ namespace amrex
      *
      * First, we try to fill the destination MultiFab/FabArray with this
      * level's data if it's available. For the unfilled region, we try to
-     * fill with the level below if it's available. This process goes on
-     * till all regions are filled. This function is more expensive than
-     * FillPatchTwoLevels. So if one knows FillPatchTwoLevels can do the job
-     * because grids are properly nested, this function should be avoided.
+     * fill with the coarse level below if it's available. Even coarser
+     * levels will be used if necessary till all regions are filled. This
+     * function is more expensive than FillPatchTwoLevels. So if one knows
+     * FillPatchTwoLevels can do the job because grids are properly nested,
+     * this function should be avoided.
      *
      * \tparam MF the MultiFab/FabArray type
      * \tparam BC functor for filling physical boundaries
@@ -730,18 +731,18 @@ namespace amrex
      * \param smf source MFs. The outer Vector is for AMR levels, whereas the inner
      *            Vector is for data at various times. It is not an error if the
      *            level for the destination MF is finer than data in smf (i.e.,
-     *            level >= smf.size()).
+     *            `level >= smf.size()`).
      * \param st times associated smf
      * \param scomp starting component of the source MFs
      * \param dcomp starting component of the destination MF
      * \param ncomp number of components
      * \param geom Geometry objects for AMR levels. The size must be big enough
-     *             such that level < geom.size().
+     *             such that `level < geom.size()`.
      * \param bc functors for physical boundaries on AMR levels. The size must be
-     *           big enough such that level < bc.size().
+     *           big enough such that `level < bc.size()`.
      * \param bccomp starting component for bc
      * \param ratio refinement ratio for AMR levels. The size must be big enough
-     *              such that level < bc.size()-1.
+     *              such that `level < bc.size()-1`.
      * \param mapper spatial interpolater
      * \param bcr boundary types for each component. We need this because some interpolaters need it.
      * \param bcrcomp starting component for bcr
