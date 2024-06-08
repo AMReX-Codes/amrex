@@ -438,60 +438,6 @@ namespace detail {
         // nothing
     }
 
-    inline BoxArray periodic_wrap_boxarray (BoxArray const& a_ba, Geometry const& geom)
-    {
-        if (geom.isAnyPeriodic()) {
-            BoxList bl(a_ba.ixType());
-            bool is_same = true;
-            Box domain = geom.growNonPeriodicDomain(2048); // 2048 should be big enough
-            domain.convert(a_ba.ixType());
-            for (int i = 0, N = int(a_ba.size()); i < N; ++i) {
-                Box const& b = a_ba[i];
-                if (domain.contains(b)) {
-                    bl.push_back(b);
-                } else {
-                    is_same = false;
-                    auto shift = [&geom] (Box obox)
-                    {
-                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                            if (geom.isPeriodic(idim)) {
-                                int dlo = geom.Domain().smallEnd(idim);
-                                int dhi = geom.Domain().bigEnd(idim);
-                                int len = dhi-dlo+1;
-                                if (obox.type(idim) == IndexType::NODE) {
-                                    ++dhi;
-                                }
-                                if (obox.bigEnd(idim) < dlo) {
-                                    obox.shift(idim, len);
-                                } else if (obox.smallEnd(idim) > dhi) {
-                                    obox.shift(idim, -len);
-                                }
-                            }
-                        }
-                        return obox;
-                    };
-                    Box const& isect = b & domain;
-                    if (isect.isEmpty()) {
-                        bl.push_back(shift(b));
-                    } else {
-                        bl.push_back(isect);
-                        BoxList const& bltmp = amrex::boxDiff(b, isect);
-                        for (auto const& btmp : bltmp) {
-                            bl.push_back(shift(btmp));
-                        }
-                    }
-                }
-            }
-            if (is_same) {
-                return a_ba;
-            } else {
-                return BoxArray(std::move(bl));
-            }
-        } else {
-            return a_ba;
-        }
-    }
-
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
     std::enable_if_t<IsFabArray<MF>::value,int>
     FillPatchTwoLevels_doit (MF& mf, IntVect const& nghost, Real time,
@@ -544,7 +490,7 @@ namespace detail {
                 {
                     if (return_error_code) {
                         BoxArray const& cba = amrex::convert(cmf[0]->boxArray(), IntVect(0));
-                        if (!cba.contains(detail::periodic_wrap_boxarray(fpc.ba_crse_patch,cgeom))) {
+                        if (!cba.contains(fpc.ba_crse_patch,cgeom.periodicity())) {
                             return failure_code;
                         }
                     }
@@ -611,7 +557,7 @@ namespace detail {
                 {
                     if (return_error_code) {
                         BoxArray const& cba = cmf[0]->boxArray();
-                        if (!cba.contains(detail::periodic_wrap_boxarray(fpc.ba_crse_patch,cgeom))) {
+                        if (!cba.contains(fpc.ba_crse_patch,cgeom.periodicity())) {
                             return failure_code;
                         }
                     }
