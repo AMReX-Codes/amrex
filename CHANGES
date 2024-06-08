@@ -1,3 +1,53 @@
+# 24.06
+
+  -- add missing AMReX_SUNDIALS in AMReXConfig.cmake (#3962)
+
+  -- Linear Solver: Fix semicoarsening issues with multiple AMR levels (#3961)
+
+  -- add DEBUG_LIBSTDCXX option to GNU Make gcc for libstdc++ debug (#3945)
+
+  -- InterpBndryData: Make changes for multi-level hypre (#3959, #3960)
+
+  -- FabArray: Make some functions static (#3958)
+
+  -- MultiArray4: add conversion operator to bool (#3957)
+
+  -- Overloading `Array4::operator()`, `ptr` and `contains` (#3956)
+
+  -- Tune PermutationForDeposition for MI250X (#3925, #3953)
+
+  -- Support size 0 BoxArrays in ParticleLocator (#3949)
+
+  -- Workaround for Windows omp_lock_t issue (#3910)
+
+  -- CMake: No Deprecation Warnings (#3947)
+
+  -- Particle InitBinaryFromFile: Use reference instead of copy (#3946)
+
+  -- Fix particle restart when finestLevel() < finest_level_in_file (#3944)
+
+  -- Delete copy constructor and assignment operator for ParticleTile (#3943)
+
+  -- Fix FillPatcher after enforcing PhysBCFunct operator() fills nghost (#3941)
+
+  -- CTest: Add atomicAdd to small tests (#3915)
+
+  -- Fix 1d HDF5 compilation (#3939)
+
+  -- Update hip installation script for CI (#3938)
+
+  -- GMRES/MLMG: Set the number of MG V-cycles per GMRES iteration (#3875)
+
+  -- Neumann BC at coarse/fine interface for cell-centered solvers (#3926)
+
+  -- Fix assertions involving IntVect (#3919)
+
+  -- Modify Tests/LinearSolvers/ABecLaplacian_C (#3888)
+
+  -- MLNodeLaplacian: 1D support (#3918)
+
+  -- In PhysBCFunct, only fill nghost grow cells (#3914)
+
 # 24.05
 
   -- 3d anisotropic eb (#3907)
