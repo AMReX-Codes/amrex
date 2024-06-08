@@ -243,13 +243,13 @@ namespace amrex
 
     namespace detail {
         template<typename T>
-        inline constexpr bool is_convertable(T) {return true;}
+        inline constexpr bool is_convertible(T) {return true;}
 
         template <typename T, typename U, typename Enable = void>
         struct IsConvertibleImp : std::false_type {};
 
         template <typename T, typename U>
-        struct IsConvertibleImp<T, U, std::enable_if_t<is_convertable<T>(U{})>> : std::true_type {};
+        struct IsConvertibleImp<T, U, std::enable_if_t<is_convertible<T>(U{})>> : std::true_type {};
     }
 
     //! \brief Test if all the types Args... are automatically convertible to type T

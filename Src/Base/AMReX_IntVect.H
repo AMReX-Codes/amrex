@@ -769,6 +769,7 @@ private:
 
 // Template deduction guide for IntVectND
 template<std::size_t dim>
+AMREX_GPU_HOST_DEVICE // __device__ for HIP
 IntVectND(const Array<int, dim>&) -> IntVectND<dim>;
 
 // Template deduction guide for IntVectND
@@ -776,6 +777,7 @@ template <class...Args,
     std::enable_if_t<
         IsConvertible_v<int, Args...>,
     int> = 0>
+AMREX_GPU_HOST_DEVICE // __device__ for HIP
 IntVectND(int, int, Args...) -> IntVectND<sizeof...(Args)+2>;
 
 using IntVect = IntVectND<AMREX_SPACEDIM>;
