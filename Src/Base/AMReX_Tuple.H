@@ -354,7 +354,7 @@ namespace detail {
     TupleSplitImp (const GpuTuple<Args...>& tup, std::index_sequence<Is...>, SIL) noexcept
     {
         return makeTuple(
-            GetSubTuple<SIL::template get_exclusive_sum<Is>()>(
+            GetSubTuple<(SIL::template get_exclusive_sum<Is>())>(
                 tup,
                 std::make_index_sequence<SIL::template get<Is>()>()
             )...
