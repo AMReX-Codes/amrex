@@ -12,6 +12,7 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Math.H>
 #include <AMReX_Tuple.H>
+#include <AMReX_TypeTraits.H>
 
 #include <iosfwd>
 #include <cstdlib>
@@ -31,13 +32,6 @@ int coarsen (int i, int ratio) noexcept
     case  4: return (i<0) ? -std::abs(i+1)/4    -1 : i/4;
     default: return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
     }
-}
-
-namespace detail {
-    inline constexpr bool is_convertable_to_int(int) {return true;}
-
-    template<class...Args>
-    inline constexpr bool are_convertable_to_int() {return (... && is_convertable_to_int(Args()));}
 }
 
 /**
@@ -103,10 +97,10 @@ public:
     * where N is equal to the number of dimensions of the IntVectND.
     */
     template <class...Args,
-        std::enable_if_t<(
+        std::enable_if_t<
             (sizeof...(Args)+2 == dim) &&
-            detail::are_convertable_to_int<Args...>()
-        ), int> = 0>
+            IsConvertible_v<int, Args...>,
+        int> = 0>
     AMREX_GPU_HOST_DEVICE
     constexpr IntVectND (int i, int j, Args...ks) noexcept : vect{i, j, static_cast<int>(ks)...} {}
 
@@ -718,10 +712,55 @@ public:
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr std::size_t size () noexcept {
+        return static_cast<std::size_t>(dim);
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int isize () noexcept {
         return dim;
     }
 
     using value_type = int;
+
+    /**
+    * \brief Returns a new IntVectND of size new_dim and
+    * assigns the first new_dim values of this IntVectND to it.
+    */
+    template<int new_dim>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVectND<new_dim> shrink () const noexcept {
+        static_assert(new_dim <= dim);
+        return IntVectND<new_dim>(this->begin());
+    }
+
+    /**
+    * \brief Returns a new IntVectND of size new_dim and
+    * assigns all values of this IntVectND to it and fill_extra to the remaining elements.
+    */
+    template<int new_dim>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVectND<new_dim> expand (int fill_extra=0) const noexcept {
+        static_assert(new_dim >= dim);
+        IntVectND<new_dim> retval(fill_extra);
+        for (int i=0; i<dim; ++i) {
+            retval[i] = vect[i];
+        }
+        return retval;
+    }
+
+    /**
+    * \brief Returns a new IntVectND of size new_dim
+    * by either shrinking or expanding this IntVectND
+    */
+    template<int new_dim>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVectND<new_dim> resize (int fill_extra=0) const noexcept {
+        if constexpr (new_dim > dim) {
+            return expand<new_dim>(fill_extra);
+        } else {
+            return shrink<new_dim>();
+        }
+    }
 
 private:
 
@@ -735,7 +774,7 @@ IntVectND(const Array<int, dim>&) -> IntVectND<dim>;
 // Template deduction guide for IntVectND
 template <class...Args,
     std::enable_if_t<
-        detail::are_convertable_to_int<Args...>(),
+        IsConvertible_v<int, Args...>,
     int> = 0>
 IntVectND(int, int, Args...) -> IntVectND<sizeof...(Args)+2>;
 
@@ -1081,9 +1120,9 @@ operator>> (std::istream& is, IntVectND<dim>& iv)
 }
 
 /**
- * \brief Returns a IntVectND obtained by concatenating the input IntVectNDs.
- * The dimension of the return value equals the sum of the dimensions of the inputted IntVectNDs.
- */
+* \brief Returns a IntVectND obtained by concatenating the input IntVectNDs.
+* The dimension of the return value equals the sum of the dimensions of the inputted IntVectNDs.
+*/
 template<int d, int...dims>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
@@ -1097,9 +1136,9 @@ IntVectCat (const IntVectND<d>& v, const IntVectND<dims>&...vects) noexcept {
 }
 
 /**
- * \brief Returns a tuple of IntVectND obtained by splitting the input IntVectND
- * according to the dimensions specified by the template arguments.
- */
+* \brief Returns a tuple of IntVectND obtained by splitting the input IntVectND
+* according to the dimensions specified by the template arguments.
+*/
 template<int d, int...dims>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
@@ -1109,6 +1148,42 @@ IntVectSplit (const IntVectND<detail::get_sum<d, dims...>()>& v) noexcept {
     return detail::IntVectSplit_imp(retval,
                                     std::make_index_sequence<1 + sizeof...(dims)>(),
                                     v.begin());
+}
+
+/**
+* \brief Returns a new IntVectND of size new_dim and
+* assigns the first new_dim values of iv to it.
+*/
+template<int new_dim, int old_dim>
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+constexpr IntVectND<new_dim>
+IntVectShrink (const IntVectND<old_dim>& iv) noexcept {
+    return iv.template shrink<new_dim>();
+}
+
+/**
+* \brief Returns a new IntVectND of size new_dim and
+* assigns all values of iv to it and fill_extra to the remaining elements.
+*/
+template<int new_dim, int old_dim>
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+constexpr IntVectND<new_dim>
+IntVectExpand (const IntVectND<old_dim>& iv, int fill_extra=0) noexcept {
+    return iv.template expand<new_dim>(fill_extra);
+}
+
+/**
+* \brief Returns a new IntVectND of size new_dim
+* by either shrinking or expanding iv.
+*/
+template<int new_dim, int old_dim>
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+constexpr IntVectND<new_dim>
+IntVectResize (const IntVectND<old_dim>& iv, int fill_extra=0) noexcept {
+    return iv.template resize<new_dim>(fill_extra);
 }
 
 } // namespace amrex
