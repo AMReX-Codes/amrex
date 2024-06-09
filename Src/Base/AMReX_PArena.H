@@ -42,7 +42,7 @@ public:
     [[nodiscard]] bool isStreamOrderedArena () const final { return true; }
 #endif
 
-#ifdef AMREX_CUDA_GE_11_2
+#ifdef AMREX_GPU_STREAM_ALLOC_SUPPORT
 private:
     cudaMemPool_t m_pool;
     cuuint64_t m_old_release_threshold;
