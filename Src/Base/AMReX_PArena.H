@@ -49,7 +49,7 @@ private:
         cudaMemPool_t m_pool;
     )
     AMREX_HIP_OR_CUDA(
-        uint64_t m_old_release_threshold;
+        uint64_t m_old_release_threshold;,
         cuuint64_t m_old_release_threshold;
     )
 #endif
