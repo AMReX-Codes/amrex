@@ -387,7 +387,7 @@ Device::initialize_gpu ()
     }
 
 #ifdef AMREX_GPU_STREAM_ALLOC_SUPPORT
-    hipDeviceGetAttribute(&memory_pools_supported, hipDevAttrMemoryPoolsSupported, device_id);
+    hipDeviceGetAttribute(&memory_pools_supported, hipDeviceAttributeMemoryPoolsSupported, device_id);
 #endif
 
 #elif defined(AMREX_USE_CUDA)
