@@ -23,7 +23,10 @@ PArena::PArena (Long release_threshold)
             AMREX_CUDA_SAFE_CALL(cudaMemPoolGetAttribute(m_pool, cudaMemPoolAttrReleaseThreshold,
                                                          &m_old_release_threshold));
         )
-        cuuint64_t value = release_threshold;
+        AMREX_HIP_OR_CUDA(
+            uint64_t value = release_threshold;,
+            cuuint64_t value = release_threshold;
+        )
         AMREX_HIP_OR_CUDA(
             AMREX_HIP_SAFE_CALL(hipMemPoolSetAttribute(m_pool, hipMemPoolAttrReleaseThreshold, &value));,
             AMREX_CUDA_SAFE_CALL(cudaMemPoolSetAttribute(m_pool, cudaMemPoolAttrReleaseThreshold, &value));

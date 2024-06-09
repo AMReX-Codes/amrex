@@ -44,8 +44,14 @@ public:
 
 #ifdef AMREX_GPU_STREAM_ALLOC_SUPPORT
 private:
-    cudaMemPool_t m_pool;
-    cuuint64_t m_old_release_threshold;
+    AMREX_HIP_OR_CUDA(
+        hipMemPool_t m_pool;,
+        cudaMemPool_t m_pool;
+    )
+    AMREX_HIP_OR_CUDA(
+        uint64_t m_old_release_threshold;
+        cuuint64_t m_old_release_threshold;
+    )
 #endif
 };
 
