@@ -658,6 +658,17 @@ public:
                             const IntVect&  nghost);
 
     /**
+    * \brief Are the numbers in the MF finite (i.e., neither nan nor inf)?
+    * This may return true, even if the MF contains NaNs or Infs, if the
+    * machine doesn't support the appropriate NaN and Inf testing functions.
+    *
+    * This version checks all components and grow cells.
+    */
+    [[nodiscard]] bool is_finite (bool local=false) const;
+    [[nodiscard]] bool is_finite (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
+    [[nodiscard]] bool is_finite (int scomp, int ncomp, const IntVect& ngrow, bool local=false) const;
+
+    /**
     * \brief Are there any NaNs in the MF?
     * This may return false, even if the MF contains NaNs, if the machine
     * doesn't support the appropriate NaN testing functions.

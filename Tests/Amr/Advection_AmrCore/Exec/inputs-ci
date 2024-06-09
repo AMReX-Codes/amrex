@@ -81,3 +81,5 @@ amr.chk_int  = -1       # number of timesteps between checkpoint files
 # Particles
 # *****************************************************************
 amr.do_tracers = 1      # Turn tracer particles on or off
+
+test_fillpatchnlevels = 1 # Test amrex::FillPatchNLevels

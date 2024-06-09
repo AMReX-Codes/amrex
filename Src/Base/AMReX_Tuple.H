@@ -480,6 +480,23 @@ auto tupleToArray (GpuTuple<T,Ts...> const& tup)
     return detail::tuple_to_array_helper(tup, std::index_sequence_for<T,Ts...>{});
 }
 
-}
+} // namespace amrex
+
+// Spcialize std::tuple_size for GpuTuple. Used by structured bindings.
+template<typename... Ts>
+struct std::tuple_size<amrex::GpuTuple<Ts...>> {
+    static constexpr std::size_t value = sizeof...(Ts);
+};
+
+// Spcialize std::tuple_element for GpuTuple. Used by structured bindings.
+template<typename T, typename... Ts>
+struct std::tuple_element<std::size_t{0}, amrex::GpuTuple<T, Ts...>> {
+    using type = T;
+};
+
+template<std::size_t s, typename T, typename... Ts>
+struct std::tuple_element<s, amrex::GpuTuple<T, Ts...>> {
+    using type = typename std::tuple_element<s-1, amrex::GpuTuple<Ts...>>::type;
+};
 
 #endif /*AMREX_TUPLE_H_*/
