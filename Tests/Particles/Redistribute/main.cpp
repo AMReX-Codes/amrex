@@ -280,7 +280,7 @@ public:
                 int gid = mfi.index();
                 int tid = mfi.LocalTileIndex();
                 const auto& ptile = plev.at(std::make_pair(gid, tid));
-                const auto ptd = ptile.getConstParticleTileData();
+                const auto& ptd = ptile.getConstParticleTileData();
                 const size_t np = ptile.numParticles();
 
                 AMREX_FOR_1D ( np, i,
