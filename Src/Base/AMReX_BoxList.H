@@ -90,7 +90,11 @@ public:
     void reserve (std::size_t n) { m_lbox.reserve(n); }
 
     //! Append a Box to this BoxList.
-    void push_back (const Box& bn) { BL_ASSERT(ixType() == bn.ixType()); m_lbox.push_back(bn); }
+    void push_back (const Box& bn) {
+        if (m_lbox.empty()) { btype = bn.ixType(); }
+        BL_ASSERT(ixType() == bn.ixType());
+        m_lbox.push_back(bn);
+    }
 
     [[nodiscard]] Box& front () noexcept { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
 
