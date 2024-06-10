@@ -207,7 +207,7 @@ public:
                 {
                     amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
                     {
-                        ParticleType p(ptd, i);
+                        ParticleType p = ptd[i];
                         p.pos(0) += static_cast<ParticleReal> (move_dir[0]*dx[0]);
 #if AMREX_SPACEDIM > 1
                         p.pos(1) += static_cast<ParticleReal> (move_dir[1]*dx[1]);
@@ -222,7 +222,7 @@ public:
                     amrex::ParallelForRNG( np,
                     [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
                     {
-                        ParticleType p(ptd, i);
+                        ParticleType p = ptd[i];
                         p.pos(0) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir[0]*dx[0]);
 #if AMREX_SPACEDIM > 1
                         p.pos(1) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir[1]*dx[1]);
@@ -252,7 +252,7 @@ public:
                 const size_t np = ptile.numParticles();
                 amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
                 {
-                    ParticleType p(ptd, i);
+                    ParticleType p = ptd[i];
                     if (p.id() % 2 == 0) {
                         p.id() = -p.id();
                     }
@@ -261,7 +261,7 @@ public:
         }
     }
 
-    void checkAnswer () const
+    void checkAnswer ()
     {
         BL_PROFILE("TestParticleContainer::checkAnswer");
 
@@ -272,18 +272,18 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            const auto & plev  = GetParticles(lev);
+            auto & plev  = GetParticles(lev);
             for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
             {
                 int gid = mfi.index();
                 int tid = mfi.LocalTileIndex();
-                const auto & ptile = plev.at(std::make_pair(gid, tid));
-                const auto ptd = ptile.getConstParticleTileData();
+                auto& ptile = plev.at(std::make_pair(gid, tid));
+                auto ptd = ptile.getParticleTileData();
                 const size_t np = ptile.numParticles();
 
                 AMREX_FOR_1D ( np, i,
                 {
-                    ConstParticleType p(ptd, i);
+                    const SoAParticle<NR,NI> & p = ptd[i];
                     for (int j = AMREX_SPACEDIM; j < NR; ++j)
                     {
                         AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == p.id());
@@ -493,6 +493,9 @@ void testRedistribute ()
     if (geom[0].isAllPeriodic()) {
         amrex::Print() << np_old << " " << pc.TotalNumberOfParticles() << "\n";
         AMREX_ALWAYS_ASSERT(np_old == pc.TotalNumberOfParticles());
+        pc.negateEven();
+        pc.RedistributeLocal();
+        amrex::Print() << np_old << " " << pc.TotalNumberOfParticles() << "\n";
     }
 
     // the way this test is set up, if we make it here we pass

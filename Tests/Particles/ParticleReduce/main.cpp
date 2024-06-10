@@ -228,12 +228,13 @@ void testReduce ()
 
     {
         amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
-        auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
-         pc, [=] AMREX_GPU_DEVICE (const SPType& p) noexcept -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
+        using reduce_data = amrex::ReduceData<amrex::Real, amrex::Real, int>;
+        auto r = amrex::ParticleReduce<reduce_data> (
+           pc, [=] AMREX_GPU_DEVICE (const SPType& p) noexcept -> amrex::GpuTuple<amrex::Real, amrex::Real, int>
            {
-               const amrex::Real a = p.rdata(1);
-               const amrex::Real b = p.rdata(2);
-               const int c = p.idata(1);
+               const amrex::Real a = p.rdata(0);  // the first real particle component
+               const amrex::Real b = p.rdata(1);  // the second real particle component
+               const int c = p.idata(0);          // the second integer particle component
                return {a, b, c};
            }, reduce_ops);
 
