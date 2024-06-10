@@ -33,7 +33,7 @@ template <template <class, class> class Container,
 std::enable_if_t<RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>
 fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F const& f)
 {
-    const auto ptd = ptile.getConstParticleTileData();
+    const auto& ptd = ptile.getConstParticleTileData();
     const auto np = ptile.numParticles();
     pflags.resize(np, 0);
     auto flag_ptr = pflags.data();
@@ -57,7 +57,7 @@ template <template <class, class> class Container,
 std::enable_if_t<!RunOnGpu<typename Container<int, Allocator>::allocator_type>::value>
 fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F const& f)
 {
-    const auto ptd = ptile.getConstParticleTileData();
+    const auto& ptd = ptile.getConstParticleTileData();
     const auto np = ptile.numParticles();
     pflags.resize(np, 0);
     auto flag_ptr = pflags.data();
@@ -215,7 +215,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
         auto idata_d_ptr = idata_d.data();
         auto rdata_d_ptr = rdata_d.data();
 
-        const auto ptd = ptile.getConstParticleTileData();
+        const auto& ptd = ptile.getConstParticleTileData();
         amrex::ParallelFor(num_copies,
         [=] AMREX_GPU_DEVICE (int pindex) noexcept
         {
@@ -1019,7 +1019,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 for (unsigned i = 0; i < tile_map[grid].size(); i++) {
                     auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
                     const auto& pbox = (*myptiles)[lev][ptile_index];
-                    const auto ptd = pbox.getConstParticleTileData();
+                    const auto& ptd = pbox.getConstParticleTileData();
                     for (int pindex = 0; pindex < pbox.numParticles(); ++pindex)
                     {
                         const auto& soa  = pbox.GetStructOfArrays();
@@ -1096,7 +1096,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 for (unsigned i = 0; i < tile_map[grid].size(); i++) {
                     auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
                     const auto& pbox = (*myptiles)[lev][ptile_index];
-                    const auto ptd = pbox.getConstParticleTileData();
+                    const auto& ptd = pbox.getConstParticleTileData();
                     for (int pindex = 0;
                          pindex < pbox.numParticles(); ++pindex)
                     {

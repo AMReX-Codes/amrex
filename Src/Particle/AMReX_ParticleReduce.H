@@ -193,7 +193,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
             {
                 const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
                                    return particle_detail::call_f(f, ptd, i);
@@ -224,7 +224,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
                     sm += particle_detail::call_f(f, ptd, i);
                 }
@@ -394,7 +394,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
             {
                 const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
                                    return particle_detail::call_f(f, ptd, i);
@@ -425,7 +425,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
                     r = std::max(r, particle_detail::call_f(f, ptd, i));
                 }
@@ -595,7 +595,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
             {
                 const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
                                    return particle_detail::call_f(f, ptd, i);
@@ -626,7 +626,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
                     r = std::min(r, particle_detail::call_f(f, ptd, i));
                 }
@@ -791,7 +791,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
             {
                 const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
                                    return particle_detail::call_f(f, ptd, i);
@@ -822,7 +822,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
                     r = r && particle_detail::call_f(f, ptd, i);
                 }
@@ -987,7 +987,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
             {
                 const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple
                                {
@@ -1019,7 +1019,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
                     r = r || particle_detail::call_f(f, ptd, i);
                 }
@@ -1254,7 +1254,7 @@ ParticleReduce (PC const& pc, int lev_min, int lev_max, F const& f, ReduceOps& r
         {
             const auto& tile = plev.at(grid_tile_ids[pmap_it]);
             const auto np = tile.numParticles();
-            const auto ptd = tile.getConstParticleTileData();
+            const auto& ptd = tile.getConstParticleTileData();
             reduce_ops.eval(np, reduce_data,
                             [=] AMREX_GPU_DEVICE (const int i) noexcept
                             {
