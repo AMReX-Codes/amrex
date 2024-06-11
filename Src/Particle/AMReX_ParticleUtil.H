@@ -55,7 +55,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
 
     const auto& tile = pti.GetParticleTile();
     const auto np = tile.numParticles();
-    const auto ptd = tile.getConstParticleTileData();
+    const auto& ptd = tile.getConstParticleTileData();
     const auto& geom = pti.Geom(pti.GetLevel());
 
     const auto domain = geom.Domain();
