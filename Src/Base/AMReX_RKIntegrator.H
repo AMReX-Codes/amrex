@@ -41,9 +41,6 @@ private:
     // RK embedded method b vector
     amrex::Vector<amrex::Real> extended_weights;
 
-    // Flag to enable adaptive stepping
-    bool use_adaptive_timestep;
-
     // RK stage right-hand sides
     amrex::Vector<std::unique_ptr<T> > F_nodes;
 
@@ -106,10 +103,8 @@ private:
         pp.get("type", _tableau_type);
         tableau_type = static_cast<ButcherTableauTypes>(_tableau_type);
 
-        // By default, define no extended weights and no adaptive time stepping
+        // By default, define no extended weights
         extended_weights = {};
-        use_adaptive_timestep = false;
-        pp.queryAdd("use_adaptive_timestep", use_adaptive_timestep);
 
         if (tableau_type == ButcherTableauTypes::User)
         {
