@@ -220,6 +220,8 @@ public:
                 {
                     IntegratorOps<T>::Saxpy(S_new, dt * tableau[i][j], *F_nodes[j]);
                 }
+
+                BaseT::post_stage_action(S_new, stage_time);
             }
 
             // Call the update hook for the stage state value

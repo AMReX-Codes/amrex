@@ -31,6 +31,9 @@ struct SundialsUserData {
     // MRI fast time scale right-hand side function
     std::function<int(amrex::Real, N_Vector, N_Vector, void*)> ff;
 
+    // Post stage actions
+    std::function<int(amrex::Real, N_Vector, void*)> post_stage;
+
     // Post step actions
     std::function<int(amrex::Real, N_Vector, void*)> post_step;
 };
@@ -54,6 +57,11 @@ namespace SundialsUserFun {
     static int ff (amrex::Real t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
         SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
         return udata->ff(t, y_data, y_rhs, user_data);
+    }
+
+    static int post_stage (amrex::Real t, N_Vector y_data, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->post_stage(t, y_data, user_data);
     }
 
     static int post_step (amrex::Real t, N_Vector y_data, void *user_data) {
@@ -173,7 +181,8 @@ private:
             ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
         }
 
-        // Set post step function
+        // Set post stage and step function
+        ARKStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::post_stage);
         ARKStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
     }
 
@@ -247,7 +256,8 @@ private:
             MRIStepSetLinearSolver(arkode_mem, LS, nullptr);
         }
 
-        // Set post step function (only on slow integrator)
+        // Set post stage and step function
+        MRIStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::post_stage);
         MRIStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
     }
 
@@ -444,6 +454,17 @@ public:
 
             BaseT::pre_rhs_action(S_data, rhs_time);
             BaseT::RhsFast(S_rhs, S_data, rhs_time);
+
+            return 0;
+        };
+
+        udata.post_stage = [&](amrex::Real time, N_Vector y_data,
+                               void * /* user_data */) -> int {
+
+            T S_data;
+            unpack_vector(y_data, S_data);
+
+            BaseT::post_stage_action(S_data, time);
 
             return 0;
         };

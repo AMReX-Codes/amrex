@@ -64,18 +64,23 @@ private:
 
     void set_default_functions ()
     {
-        // By default, do nothing after before calling the RHS
-        // In general, this is where BCs should be filled
-        set_pre_rhs_action([](T& /* S_data */, amrex::Real /* S_time */){});
-
         // By default, do nothing in the RHS
         set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
         set_imex_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){},
                      [](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
         set_fast_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
 
+        // In general, the following functions can be used to fill BCs. Which
+        // function to set will depend on the method type and intended use case
+
+        // By default, do nothing before calling the RHS
+        set_pre_rhs_action([](T& /* S_data */, amrex::Real /* time */){});
+
+        // By default, do nothing after a stage
+        set_post_stage_action([](T& /* S_data */, const amrex::Real /* time */){});
+
         // By default, do nothing after a step
-        set_post_step_action([](T& /* S_rhs */, const amrex::Real /* time */){});
+        set_post_step_action([](T& /* S_data */, const amrex::Real /* time */){});
     }
 
 public:
@@ -146,6 +151,11 @@ public:
     void set_pre_rhs_action (std::function<void (T&, amrex::Real)> A)
     {
         integrator_ptr->set_pre_rhs_action(A);
+    }
+
+    void set_post_stage_action (std::function<void (T&, amrex::Real)> A)
+    {
+        integrator_ptr->set_post_stage_action(A);
     }
 
     void set_post_step_action (std::function<void (T&, amrex::Real)> A)

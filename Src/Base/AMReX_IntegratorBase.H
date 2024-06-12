@@ -192,8 +192,14 @@ protected:
     std::function<void (T&, amrex::Real)> pre_rhs_action;
 
     /**
+     * \brief The post_stage_action function is called by the integrator on
+     * the computed stage just after it is computed
+     */
+    std::function<void (T&, amrex::Real)> post_stage_action;
+
+    /**
      * \brief The post_step_action function is called by the integrator on
-     * computed state just after it is computed
+     * the computed state just after it is computed
      */
     std::function<void (T&, amrex::Real)> post_step_action;
 
@@ -255,6 +261,11 @@ public:
     void set_pre_rhs_action (std::function<void (T&, amrex::Real)> A)
     {
         pre_rhs_action = A;
+    }
+
+    void set_post_stage_action (std::function<void (T&, amrex::Real)> A)
+    {
+        post_stage_action = A;
     }
 
     void set_post_step_action (std::function<void (T&, amrex::Real)> A)
