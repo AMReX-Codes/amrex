@@ -243,6 +243,10 @@ protected:
      */
     amrex::Long num_steps;
 
+    /**
+     * \brief Max number of internal steps before an error is returned (Long)
+     */
+    int max_steps = 500;
 
 public:
     IntegratorBase () = default;
@@ -320,6 +324,11 @@ public:
     void set_adaptive_fast_step()
     {
         use_adaptive_fast_time_step = true;
+    }
+
+    void set_max_steps(int steps)
+    {
+        max_steps = steps;
     }
 
     /**

@@ -48,8 +48,6 @@ private:
     amrex::Vector<std::unique_ptr<T> > S_current;
     amrex::Real time_current;
 
-    int max_steps = 500;
-
     void initialize_preset_tableau ()
     {
         switch (tableau_type)
@@ -250,7 +248,7 @@ public:
         amrex::Real dt = BaseT::time_step;
         bool stop = false;
 
-        for (int step_number = 0; step_number < max_steps && !stop; ++step_number)
+        for (int step_number = 0; step_number < BaseT::max_steps && !stop; ++step_number)
         {
             // Adjust step size to reach output time
             if (time_out - time_current < dt) {
@@ -267,7 +265,7 @@ public:
             // Update time
             time_current += dt;
 
-            if (step_number == max_steps - 1) {
+            if (step_number == BaseT::max_steps - 1) {
                 Error("Did not reach output time in max steps.");
             }
         }
