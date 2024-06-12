@@ -762,10 +762,26 @@ public:
         }
     }
 
+    /**
+       This is an IntVect all of whose components are equal to zero.
+    */
+    static const IntVectND<dim> Zero;
+
+    /**
+       This is an IntVect all of whose components are equal to one.
+    */
+    static const IntVectND<dim> Unit;
+
 private:
 
     int vect[dim] = {};
 };
+
+template <int dim>
+inline constexpr const IntVectND<dim> IntVectND<dim>::Zero{0};
+
+template <int dim>
+inline constexpr const IntVectND<dim> IntVectND<dim>::Unit{1};
 
 // Template deduction guide for IntVectND
 template<std::size_t dim>
