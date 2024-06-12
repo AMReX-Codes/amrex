@@ -219,7 +219,7 @@ protected:
      * \brief Flag to enable/disable adaptive time stepping in single rate
      * methods or at the slow time scale in multirate methods (bool)
      */
-    bool use_adaptive_time_step;
+    bool use_adaptive_time_step = false;
 
     /**
      * \brief Current integrator time step size (Real)
@@ -230,7 +230,7 @@ protected:
      * \brief Flag to enable/disable adaptive time stepping at the fast time
      * scale in multirate methods (bool)
      */
-    bool use_adaptive_fast_time_step;
+    bool use_adaptive_fast_time_step = false;
 
     /**
      * \brief Current integrator fast time scale time step size with multirate
@@ -241,7 +241,7 @@ protected:
     /**
      * \brief Number of integrator time steps (Long)
      */
-    amrex::Long num_steps;
+    amrex::Long num_steps = 0;
 
     /**
      * \brief Max number of internal steps before an error is returned (Long)
