@@ -31,11 +31,13 @@ struct SundialsUserData {
     // MRI fast time scale right-hand side function
     std::function<int(amrex::Real, N_Vector, N_Vector, void*)> ff;
 
-    // Post stage actions
+    // Post stage and step actions
     std::function<int(amrex::Real, N_Vector, void*)> post_stage;
-
-    // Post step actions
     std::function<int(amrex::Real, N_Vector, void*)> post_step;
+
+    // Post fast stage and step actions
+    std::function<int(amrex::Real, N_Vector, void*)> post_fast_stage;
+    std::function<int(amrex::Real, N_Vector, void*)> post_fast_step;
 };
 
 namespace SundialsUserFun {
@@ -67,6 +69,16 @@ namespace SundialsUserFun {
     static int post_step (amrex::Real t, N_Vector y_data, void *user_data) {
         SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
         return udata->post_step(t, y_data, user_data);
+    }
+
+    static int post_fast_stage (amrex::Real t, N_Vector y_data, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->post_fast_stage(t, y_data, user_data);
+    }
+
+    static int post_fast_step (amrex::Real t, N_Vector y_data, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->post_fast_step(t, y_data, user_data);
     }
 }
 
@@ -216,6 +228,10 @@ private:
 
         // Set integrator tolerances
         ARKStepSStolerances(arkode_fast_mem, fast_reltol, fast_abstol);
+
+        // Set post stage and step function
+        ARKStepSetPostprocessStageFn(arkode_fast_mem, SundialsUserFun::post_fast_stage);
+        ARKStepSetPostprocessStepFn(arkode_fast_mem, SundialsUserFun::post_fast_step);
 
         // Wrap fast integrator as an inner stepper
         ARKStepCreateMRIStepInnerStepper(arkode_fast_mem, &fast_stepper);
@@ -476,6 +492,28 @@ public:
             unpack_vector(y_data, S_data);
 
             BaseT::post_step_action(S_data, time);
+
+            return 0;
+        };
+
+        udata.post_fast_stage = [&](amrex::Real time, N_Vector y_data,
+                                    void * /* user_data */) -> int {
+
+            T S_data;
+            unpack_vector(y_data, S_data);
+
+            BaseT::post_fast_stage_action(S_data, time);
+
+            return 0;
+        };
+
+        udata.post_fast_step = [&](amrex::Real time, N_Vector y_data,
+                                   void * /* user_data */) -> int {
+
+            T S_data;
+            unpack_vector(y_data, S_data);
+
+            BaseT::post_fast_step_action(S_data, time);
 
             return 0;
         };

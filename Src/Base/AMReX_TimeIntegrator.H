@@ -76,11 +76,13 @@ private:
         // By default, do nothing before calling the RHS
         set_pre_rhs_action([](T& /* S_data */, amrex::Real /* time */){});
 
-        // By default, do nothing after a stage
+        // By default, do nothing after a stage or step
         set_post_stage_action([](T& /* S_data */, const amrex::Real /* time */){});
-
-        // By default, do nothing after a step
         set_post_step_action([](T& /* S_data */, const amrex::Real /* time */){});
+
+        // By default, do nothing after a stage or step
+        set_post_fast_stage_action([](T& /* S_data */, const amrex::Real /* time */){});
+        set_post_fast_step_action([](T& /* S_data */, const amrex::Real /* time */){});
     }
 
 public:
@@ -161,6 +163,16 @@ public:
     void set_post_step_action (std::function<void (T&, amrex::Real)> A)
     {
         integrator_ptr->set_post_step_action(A);
+    }
+
+    void set_post_fast_stage_action (std::function<void (T&, amrex::Real)> A)
+    {
+        integrator_ptr->set_post_fast_stage_action(A);
+    }
+
+    void set_post_fast_step_action (std::function<void (T&, amrex::Real)> A)
+    {
+        integrator_ptr->set_post_fast_step_action(A);
     }
 
     amrex::Real get_time_step ()

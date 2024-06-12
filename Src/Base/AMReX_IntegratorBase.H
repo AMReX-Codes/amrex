@@ -204,6 +204,18 @@ protected:
     std::function<void (T&, amrex::Real)> post_step_action;
 
     /**
+     * \brief The post_stage_action function is called by the integrator on
+     * the computed stage just after it is computed
+     */
+    std::function<void (T&, amrex::Real)> post_fast_stage_action;
+
+    /**
+     * \brief The post_step_action function is called by the integrator on
+     * the computed state just after it is computed
+     */
+    std::function<void (T&, amrex::Real)> post_fast_step_action;
+
+    /**
      * \brief Flag to enable/disable adaptive time stepping in single rate
      * methods or at the slow time scale in multirate methods (bool)
      */
@@ -271,6 +283,16 @@ public:
     void set_post_step_action (std::function<void (T&, amrex::Real)> A)
     {
         post_step_action = A;
+    }
+
+    void set_post_fast_stage_action (std::function<void (T&, amrex::Real)> A)
+    {
+        post_fast_stage_action = A;
+    }
+
+    void set_post_fast_step_action (std::function<void (T&, amrex::Real)> A)
+    {
+        post_fast_step_action = A;
     }
 
     amrex::Real get_time_step()
