@@ -85,11 +85,7 @@ public:
     /**
     * \brief Construct an IntVectND whose components are all zero.
     */
-    constexpr IntVectND () noexcept {
-        for (int i=0; i<dim; ++i) {
-            vect[i] = 0;
-        }
-    }
+    constexpr IntVectND () noexcept {} // cannot use = default due to Clang bug // NOLINT
 
     /**
     * \brief Construct an IntVectND given the specific values for its
