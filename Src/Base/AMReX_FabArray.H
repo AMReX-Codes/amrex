@@ -192,6 +192,15 @@ Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, 
 
     using DT = typename DFAB::value_type;
 
+    if (dst.local_size() == 0) { return; }
+
+    // avoid self copy
+    if constexpr (std::is_same_v<typename SFAB::value_type, typename DFAB::value_type>) {
+        if (dst.atLocalIdx(0).dataPtr(dstcomp) == src.atLocalIdx(0).dataPtr(srccomp)) {
+            return;
+        }
+    }
+
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
         auto const& srcarr = src.const_arrays();
