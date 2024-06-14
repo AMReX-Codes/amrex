@@ -15,6 +15,10 @@
 
 namespace amrex {
 
+enum struct HypreSolverID {
+    BoomerAMG, SSAMG
+};
+
 // single component only, cell centered only
 
 class HypreMLABecLap
@@ -28,6 +32,7 @@ public:
     HypreMLABecLap (Vector<Geometry> a_geom,
                     Vector<BoxArray> a_grids,
                     Vector<DistributionMapping> a_dmap,
+                    HypreSolverID a_hypre_solve_id,
                     std::string a_parmparse_prefix = "hypre_mlabeclap");
 
     ~HypreMLABecLap ();
@@ -119,6 +124,9 @@ private:
     HYPRE_SStructVector  m_ss_b = nullptr;
 
     HYPRE_Solver m_solver = nullptr;
+
+    HypreSolverID m_hypre_solver_id = HypreSolverID::BoomerAMG;
+    HYPRE_Int m_hypre_object_type = HYPRE_PARCSR;
 };
 
 }

@@ -532,6 +532,7 @@ MyTest::readParameters ()
     pp.query("composite_solve", composite_solve);
 
     pp.query("use_mlhypre", use_mlhypre);
+    pp.query("use_hypre_ssamg", use_hypre_ssamg);
 
     pp.query("prob_type", prob_type);
 
@@ -643,9 +644,16 @@ MyTest::solveMLHypre ()
 
     const auto nlevels = static_cast<int>(geom.size());
 
+#ifdef AMREX_FEATURE_HYPRE_SSAMG
+    auto hypre_solver_id = use_hypre_ssamg ? HypreSolverID::SSAMG
+                                           : HypreSolverID::BoomerAMG;
+#else
+    auto hypre_solver_id = HypreSolverID::BoomerAMG;
+#endif
+
     if (prob_type == 1) { // Poisson
         if (composite_solve) {
-            HypreMLABecLap hypre_mlabeclap(geom, grids, dmap);
+            HypreMLABecLap hypre_mlabeclap(geom, grids, dmap, hypre_solver_id);
             hypre_mlabeclap.setVerbose(verbose);
 
             hypre_mlabeclap.setup(Real(0.0), Real(-1.0), {}, {},
@@ -661,7 +669,7 @@ MyTest::solveMLHypre ()
                                   tol_rel, tol_abs);
         } else {
             for (int ilev = 0; ilev < nlevels; ++ilev) {
-                HypreMLABecLap hypre_mlabeclap({geom[ilev]}, {grids[ilev]}, {dmap[ilev]});
+                HypreMLABecLap hypre_mlabeclap({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, hypre_solver_id);
                 hypre_mlabeclap.setVerbose(verbose);
 
                 std::pair<MultiFab const*, IntVect> coarse_bc{nullptr,IntVect(0)};
@@ -696,7 +704,7 @@ MyTest::solveMLHypre ()
         }
 
         if (composite_solve) {
-            HypreMLABecLap hypre_mlabeclap(geom, grids, dmap);
+            HypreMLABecLap hypre_mlabeclap(geom, grids, dmap, hypre_solver_id);
             hypre_mlabeclap.setVerbose(verbose);
 
             hypre_mlabeclap.setup(ascalar, bscalar,
@@ -714,7 +722,7 @@ MyTest::solveMLHypre ()
                                   tol_rel, tol_abs);
         } else {
             for (int ilev = 0; ilev < nlevels; ++ilev) {
-                HypreMLABecLap hypre_mlabeclap({geom[ilev]}, {grids[ilev]}, {dmap[ilev]});
+                HypreMLABecLap hypre_mlabeclap({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, hypre_solver_id);
                 hypre_mlabeclap.setVerbose(verbose);
 
                 std::pair<MultiFab const*, IntVect> coarse_bc{nullptr,IntVect(0)};

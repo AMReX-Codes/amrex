@@ -11,13 +11,17 @@ namespace amrex {
 HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
                                 Vector<BoxArray> a_grids,
                                 Vector<DistributionMapping> a_dmap,
+                                HypreSolverID a_hypre_solver_id,
                                 std::string a_parmparse_prefix)
     : m_geom(std::move(a_geom)),
       m_grids(std::move(a_grids)),
       m_dmap(std::move(a_dmap)),
       m_parmparse_prefix(std::move(a_parmparse_prefix)),
       m_nlevels(int(m_grids.size())),
-      m_comm(ParallelContext::CommunicatorSub())
+      m_comm(ParallelContext::CommunicatorSub()),
+      m_hypre_solver_id(a_hypre_solver_id),
+      m_hypre_object_type((a_hypre_solver_id == HypreSolverID::BoomerAMG) ?
+                          HYPRE_PARCSR : HYPRE_SSTRUCT)
 {
     BL_PROFILE("HypreMLABecLap::HypreMLABecLap");
 
@@ -135,7 +139,7 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
     }
 
     HYPRE_SStructGraphCreate(m_comm, m_ss_grid, &m_ss_graph);
-    HYPRE_SStructGraphSetObjectType(m_ss_graph, HYPRE_PARCSR);
+    HYPRE_SStructGraphSetObjectType(m_ss_graph, m_hypre_object_type);
 
     for (int ilev = 0; ilev < m_nlevels; ++ilev) {
         HYPRE_SStructGraphSetStencil(m_ss_graph, ilev, ivar, m_ss_stencil);
@@ -146,7 +150,7 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
     HYPRE_SStructGraphAssemble(m_ss_graph);
 
     HYPRE_SStructMatrixCreate(m_comm, m_ss_graph, &m_ss_A);
-    HYPRE_SStructMatrixSetObjectType(m_ss_A, HYPRE_PARCSR);
+    HYPRE_SStructMatrixSetObjectType(m_ss_A, m_hypre_object_type);
     HYPRE_SStructMatrixInitialize(m_ss_A);
 }
 
@@ -156,9 +160,6 @@ HypreMLABecLap::~HypreMLABecLap ()
     HYPRE_SStructStencilDestroy(m_ss_stencil);
     HYPRE_SStructGraphDestroy(m_ss_graph);
 #if 0
-    if (m_ss_solver) {
-        HYPRE_SStructSolverDestroy(m_ss_solver);
-    }
     if (m_ss_precond) {
         HYPRE_SStructSolverDestroy(m_ss_precond);
     }
@@ -171,7 +172,18 @@ HypreMLABecLap::~HypreMLABecLap ()
         HYPRE_SStructVectorDestroy(m_ss_b);
     }
     if (m_solver) {
-        HYPRE_BoomerAMGDestroy(m_solver);
+#ifdef AMREX_FEATURE_HYPRE_SSAMG
+        if (m_hypre_solver_id == HypreSolverID::SSAMG) {
+            if (m_ss_solver) {
+                HYPRE_SStructSSAMGDestroy(m_ss_solver);
+            }
+        } else
+#endif
+        {
+            if (m_solver) {
+                HYPRE_BoomerAMGDestroy(m_solver);
+            }
+        }
     }
 }
 
@@ -799,6 +811,27 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         // HYPRE_SStructMatrixPrint("mat", m_ss_A, 0);
     }
 
+#ifdef AMREX_FEATURE_HYPRE_SSAMG
+    if (m_hypre_solver_id == HypreSolverID::SSAMG)
+    {
+        BL_PROFILE("HYPRE_SSAMG_setup");
+
+        AMREX_ALWAYS_ASSERT(m_solver == nullptr);
+
+        HYPRE_SStructSSAMGCreate(m_comm, &m_ss_solver);
+
+        HYPRE_SStructSSAMGSetNumPreRelax(m_ss_solver, 4);
+        HYPRE_SStructSSAMGSetNumPostRelax(m_ss_solver, 4);
+        HYPRE_SStructSSAMGSetNumCoarseRelax(m_ss_solver, 4);
+
+        HYPRE_SStructSSAMGSetLogging(m_ss_solver, m_verbose);
+        HYPRE_SStructSSAMGSetPrintLevel(m_ss_solver, m_verbose);
+
+//        HYPRE_SStructSSAMGSetup(m_ss_solver, A, b, x);
+
+        HYPRE_SStructSSAMGSetMaxIter(m_ss_solver, m_maxiter);
+    } else
+#endif
     {
         BL_PROFILE("HYPRE_BoomerAMG_setup");
 
@@ -840,11 +873,11 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 
         // Do we still have to do this repeatedly to avoid a hypre bug?
         HYPRE_SStructVectorCreate(m_comm, m_ss_grid, &m_ss_x);
-        HYPRE_SStructVectorSetObjectType(m_ss_x, HYPRE_PARCSR);
+        HYPRE_SStructVectorSetObjectType(m_ss_x, m_hypre_object_type);
         HYPRE_SStructVectorInitialize(m_ss_x);
         //
         HYPRE_SStructVectorCreate(m_comm, m_ss_grid, &m_ss_b);
-        HYPRE_SStructVectorSetObjectType(m_ss_b, HYPRE_PARCSR);
+        HYPRE_SStructVectorSetObjectType(m_ss_b, m_hypre_object_type);
         HYPRE_SStructVectorInitialize(m_ss_b);
 
         for (int ilev = 0; ilev < m_nlevels; ++ilev) {
@@ -908,27 +941,51 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         if (a_abstol > Real(0.0)) {
             amrex::Abort("HypreMLABecLap::solve: TODO abstol > 0");
         }
-        HYPRE_BoomerAMGSetTol(m_solver, reltol);
 
-        HYPRE_ParCSRMatrix par_A;
-        HYPRE_ParVector par_b;
-        HYPRE_ParVector par_x;
+#ifdef AMREX_FEATURE_HYPRE_SSAMG
+        if (m_hypre_solver_id == HypreSolverID::SSAMG)
+        {
+            HYPRE_SStructSSAMGSetTol(m_ss_solver, reltol);
 
-        HYPRE_SStructMatrixGetObject(m_ss_A, (void**) &par_A);
-        HYPRE_SStructVectorGetObject(m_ss_b, (void**) &par_b);
-        HYPRE_SStructVectorGetObject(m_ss_x, (void**) &par_x);
+            HYPRE_SStructSSAMGSetup(m_ss_solver, m_ss_A, m_ss_b, m_ss_x);
 
-        HYPRE_BoomerAMGSolve(m_solver, par_A, par_b, par_x);
+            HYPRE_SStructSSAMGSolve(m_ss_solver, m_ss_A, m_ss_b, m_ss_x);
 
-        if (m_verbose) {
-            HYPRE_Int num_iterations;
-            Real res;
-            HYPRE_BoomerAMGGetNumIterations(m_solver, &num_iterations);
-            HYPRE_BoomerAMGGetFinalRelativeResidualNorm(m_solver, &res);
+            if (m_verbose) {
+                HYPRE_Int num_iterations;
+                Real res;
+                HYPRE_SStructSSAMGGetNumIterations(m_ss_solver, &num_iterations);
+                HYPRE_SStructSSAMGGetFinalRelativeResidualNorm(m_ss_solver, &res);
 
-            amrex::Print() << "\n" << num_iterations
-                           << " Hypre SS BoomerAMG Iterations, Relative Residual "
-                           << res << '\n';
+                amrex::Print() << "\n" << num_iterations
+                               << " Hypre SSAMG Iterations, Relative Residual "
+                               << res << '\n';
+            }
+        } else
+#endif
+        {
+            HYPRE_BoomerAMGSetTol(m_solver, reltol);
+
+            HYPRE_ParCSRMatrix par_A;
+            HYPRE_ParVector par_b;
+            HYPRE_ParVector par_x;
+
+            HYPRE_SStructMatrixGetObject(m_ss_A, (void**) &par_A);
+            HYPRE_SStructVectorGetObject(m_ss_b, (void**) &par_b);
+            HYPRE_SStructVectorGetObject(m_ss_x, (void**) &par_x);
+
+            HYPRE_BoomerAMGSolve(m_solver, par_A, par_b, par_x);
+
+            if (m_verbose) {
+                HYPRE_Int num_iterations;
+                Real res;
+                HYPRE_BoomerAMGGetNumIterations(m_solver, &num_iterations);
+                HYPRE_BoomerAMGGetFinalRelativeResidualNorm(m_solver, &res);
+
+                amrex::Print() << "\n" << num_iterations
+                               << " Hypre SS BoomerAMG Iterations, Relative Residual "
+                               << res << '\n';
+            }
         }
     }
 

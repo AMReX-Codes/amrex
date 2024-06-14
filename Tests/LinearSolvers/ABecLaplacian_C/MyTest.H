@@ -48,6 +48,7 @@ private:
     int prob_type = 1;
 
     bool use_mlhypre = false; // use multi-level hypre solver
+    bool use_hypre_ssamg = false; // this option is for mlhypre only
 
     // For MLMG solver
     int verbose = 2;
