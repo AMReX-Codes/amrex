@@ -25,6 +25,11 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
 {
     BL_PROFILE("HypreMLABecLap::HypreMLABecLap");
 
+#ifndef AMREX_FEATURE_HYPRE_SSAMG
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_hypre_solver_id == HypreSolverID::BoomerAMG,
+                                     "HypreMLABecLap only supports BoomerAMG ifndef AMREX_FEATURE_HYPRE_SSAMG");
+#endif
+
     m_ref_ratio.resize(m_nlevels-1);
     for (int ilev = 0; ilev < m_nlevels-1; ++ilev) {
         m_ref_ratio[ilev] = m_geom[ilev+1].Domain().length()
