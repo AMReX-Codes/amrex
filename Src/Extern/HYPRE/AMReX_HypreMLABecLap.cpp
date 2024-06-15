@@ -1013,8 +1013,8 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                 Gpu::synchronize();
                 if (has_ghostcells) {
                     dest.template copyFromMem<RunOn::Device>(vbx, 0, ncomp, p);
+                    Gpu::streamSynchronize();
                 }
-                Gpu::streamSynchronize();
             }
         }
 
