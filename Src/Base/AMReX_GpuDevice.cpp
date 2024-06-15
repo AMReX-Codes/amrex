@@ -5,6 +5,10 @@
 #include <AMReX_Print.H>
 #include <AMReX_GpuLaunch.H>
 
+#ifdef AMREX_USE_HYPRE
+#  include <_hypre_utilities.h>
+#endif
+
 #include <iostream>
 #include <map>
 #include <algorithm>
@@ -1028,5 +1032,14 @@ Device::profilerStop ()
     roctracer_stop();
 #endif
 }
+
+#ifdef AMREX_USE_HYPRE
+void hypreSynchronize ()
+{
+#ifdef AMREX_USE_GPU
+    hypre_SyncCudaDevice(hypre_handle()); // works for non-cuda device too
+#endif
+}
+#endif
 
 }

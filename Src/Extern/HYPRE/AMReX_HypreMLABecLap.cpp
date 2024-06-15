@@ -707,7 +707,7 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 BL_PROFILE("HYPRE_SStructMatrixSetBoxValues");
                 HYPRE_SStructMatrixSetBoxValues(m_ss_A, ilev, vbxlo, vbxhi, ivar, stencil_size,
                                                 stencil_indices.data(), (Real*)matfab.dataPtr());
-                Gpu::synchronize();
+                Gpu::hypreSynchronize();
             }
         }
 
@@ -904,7 +904,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                     psol = solsrc.dataPtr();
                 }
                 HYPRE_SStructVectorSetBoxValues(m_ss_x, ilev, vbxlo, vbxhi, ivar, psol);
-                Gpu::synchronize();
+                Gpu::hypreSynchronize();
 
                 tmp.resize(vbx, ncomp);
                 auto const& rhs1 = tmp.array();
@@ -926,7 +926,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                 });
                 Gpu::streamSynchronize();
                 HYPRE_SStructVectorSetBoxValues(m_ss_b, ilev, vbxlo, vbxhi, ivar, prhs);
-                Gpu::synchronize();
+                Gpu::hypreSynchronize();
             }
         }
 
@@ -1014,8 +1014,10 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                 } else {
                     p = dest.dataPtr();
                 }
+
                 HYPRE_SStructVectorGetBoxValues(m_ss_x, ilev, vbxlo, vbxhi, ivar, p);
-                Gpu::synchronize();
+                Gpu::hypreSynchronize();
+
                 if (has_ghostcells) {
                     dest.template copyFromMem<RunOn::Device>(vbx, 0, ncomp, p);
                     Gpu::streamSynchronize();
