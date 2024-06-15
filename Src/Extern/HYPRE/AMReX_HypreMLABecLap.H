@@ -32,7 +32,7 @@ public:
     HypreMLABecLap (Vector<Geometry> a_geom,
                     Vector<BoxArray> a_grids,
                     Vector<DistributionMapping> a_dmap,
-                    HypreSolverID a_hypre_solve_id,
+                    HypreSolverID a_hypre_solver_id,
                     std::string a_parmparse_prefix = "hypre_mlabeclap");
 
     ~HypreMLABecLap ();
