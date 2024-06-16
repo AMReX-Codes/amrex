@@ -62,29 +62,26 @@ public:
 
     ParIterBase_impl (ContainerRef pc, int level, MFItInfo& info);
 
-#ifdef AMREX_USE_OMP
     void operator++ ()
     {
-        if (dynamic) {
-#pragma omp atomic capture
-            m_pariter_index = nextDynamicIndex++;
-        } else {
-            ++m_pariter_index;
+        m_particle_current_tile = nullptr;
+        auto& particles = m_pc->GetParticles(m_level);
+        while (true) {
+            MFIter::operator++();
+            if (isValid()) {
+                auto key = std::make_pair(index(), LocalTileIndex());
+                auto f = particles.find(key);
+                if (f != particles.end() && f->second.numParticles() > 0) {
+                    m_particle_current_tile = &(f->second);
+                    break; // break if isValid() and non-empty particle tile found
+                }
+            } else {
+                break; // break if isValid() returns false
+            }
         }
-        currentIndex = m_valid_index[m_pariter_index];
     }
-#else
-    void operator++ ()
-    {
-        ++m_pariter_index;
-        currentIndex = m_valid_index[m_pariter_index];
-#ifdef AMREX_USE_GPU
-        Gpu::Device::setStreamIndex(currentIndex);
-#endif
-    }
-#endif
 
-    [[nodiscard]] ParticleTileRef GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
+    [[nodiscard]] ParticleTileRef GetParticleTile () const { return *m_particle_current_tile; }
 
     [[nodiscard]] AoSRef GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
 
@@ -105,9 +102,7 @@ public:
 protected:
 
     int m_level;
-    int m_pariter_index;
-    Vector<int> m_valid_index;
-    Vector<ParticleTilePtr> m_particle_tiles;
+    ParticleTilePtr m_particle_current_tile = nullptr;
     ContainerPtr m_pc;
 };
 
@@ -172,47 +167,20 @@ ParIterBase_impl<is_const, ParticleType, NArrayReal, NArrayInt, Allocator, CellA
     :
       MFIter(*pc.m_dummy_mf[level], pc.do_tiling ? info.EnableTiling(pc.tile_size) : info),
       m_level(level),
-      m_pariter_index(0),
       m_pc(&pc)
 {
-    auto& particles = pc.GetParticles(level);
-
-    int start = dynamic ? 0 : beginIndex;
-    for (int i = start; i < endIndex; ++i)
-    {
-        int grid = (*index_map)[i];
-        int tile = local_tile_index_map ? (*local_tile_index_map)[i] : 0;
-        auto key = std::make_pair(grid,tile);
-        auto f = particles.find(key);
-        if (f != particles.end() && f->second.numParticles() > 0)
-        {
-            m_valid_index.push_back(i);
-            m_particle_tiles.push_back(&(f->second));
-        }
-    }
-
-    if (m_valid_index.empty())
-    {
-        endIndex = beginIndex;
-    }
-    else
-    {
-        currentIndex = beginIndex = m_valid_index.front();
-        if (dynamic) {
-#ifdef AMREX_USE_OMP
-            int ind = omp_get_thread_num();
-            m_pariter_index += ind;
-            if (ind < m_valid_index.size()) {
-                currentIndex = beginIndex = m_valid_index[ind];
-            } else {
-                currentIndex = endIndex;
+    if (isValid()) {
+        auto& particles = m_pc->GetParticles(m_level);
+        while (true) {
+            auto key = std::make_pair(index(), LocalTileIndex());
+            auto f = particles.find(key);
+            if (f != particles.end() && f->second.numParticles() > 0) {
+                m_particle_current_tile = &(f->second);
+                break; // break if isValid() and non-empty particle tile found
             }
-            for (int i = 0; i < omp_get_num_threads(); ++i) {
-                m_valid_index.push_back(endIndex);
-            }
-#endif
+            MFIter::operator++();
+            if (!isValid()) { break; } // break if isValid() returns false
         }
-        m_valid_index.push_back(endIndex);
     }
 }
 
@@ -224,32 +192,20 @@ ParIterBase_impl<is_const, T_ParticleType, NArrayReal, NArrayInt, Allocator, Cel
     MFIter(*pc.m_dummy_mf[level],
            pc.do_tiling ? pc.tile_size : IntVect::TheZeroVector()),
     m_level(level),
-    m_pariter_index(0),
     m_pc(&pc)
 {
-    auto& particles = pc.GetParticles(level);
-
-    for (int i = beginIndex; i < endIndex; ++i)
-    {
-        int grid = (*index_map)[i];
-        int tile = local_tile_index_map ? (*local_tile_index_map)[i] : 0;
-        auto key = std::make_pair(grid,tile);
-        auto f = particles.find(key);
-        if (f != particles.end() && f->second.numParticles() > 0)
-        {
-            m_valid_index.push_back(i);
-            m_particle_tiles.push_back(&(f->second));
+    if (isValid()) {
+        auto& particles = m_pc->GetParticles(m_level);
+        while (true) {
+            auto key = std::make_pair(index(), LocalTileIndex());
+            auto f = particles.find(key);
+            if (f != particles.end() && f->second.numParticles() > 0) {
+                m_particle_current_tile = &(f->second);
+                break;
+            }
+            MFIter::operator++();
+            if (!isValid()) { break; }
         }
-    }
-
-    if (m_valid_index.empty())
-    {
-        endIndex = beginIndex;
-    }
-    else
-    {
-        currentIndex = beginIndex = m_valid_index.front();
-        m_valid_index.push_back(endIndex);
     }
 }
 

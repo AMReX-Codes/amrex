@@ -17,7 +17,9 @@
 namespace amrex {
 
 class Box;
-class IntVect;
+template<int dim>
+class IntVectND;
+using IntVect = IntVectND<AMREX_SPACEDIM>;
 
 //
 // ParmParse class implements a simple database for the storage and

@@ -133,10 +133,6 @@ ifeq ($(findstring kestrel, $(NREL_CLUSTER)), kestrel)
   which_site := nrel
   which_computer := kestrel
 endif
-ifeq ($(findstring eagle, $(NREL_CLUSTER)), eagle)
-  which_site := nrel
-  which_computer := eagle
-endif
 
 ifeq ($(findstring daint, $(host_name)), daint)
   which_site := cscs

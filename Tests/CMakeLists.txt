@@ -143,7 +143,7 @@ else()
       list(APPEND AMREX_TESTS_SUBDIRS FortranInterface)
    endif ()
 
-   if (AMReX_CUDA)
+   if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
       list(APPEND AMREX_TESTS_SUBDIRS GPU)
    endif ()
 

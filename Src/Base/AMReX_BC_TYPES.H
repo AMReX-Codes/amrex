@@ -60,23 +60,24 @@ namespace amrex {
 
 namespace PhysBCType {
 enum physicalBndryTypes : int {interior=0,inflow,outflow,symmetry,
-                               slipwall,noslipwall};
+                               slipwall,noslipwall,inflowoutflow};
 }
 
 namespace BCType {
 enum mathematicalBndryTypes : int {
-    bogus        = -666,
-    reflect_odd  = -1,
-    int_dir      =  0,
-    reflect_even =  1,
-    foextrap     =  2,
-    ext_dir      =  3,
-    hoextrap     =  4,
-    hoextrapcc   =  5,
-    ext_dir_cc   =  6,
-    user_1       = 1001,
-    user_2       = 1002,
-    user_3       = 1003
+    bogus               = -666,
+    reflect_odd         = -1,
+    int_dir             =  0,
+    reflect_even        =  1,
+    foextrap            =  2,
+    ext_dir             =  3,
+    hoextrap            =  4,
+    hoextrapcc          =  5,
+    ext_dir_cc          =  6,
+    direction_dependent =  7,
+    user_1              = 1001,
+    user_2              = 1002,
+    user_3              = 1003
 };
 }
 

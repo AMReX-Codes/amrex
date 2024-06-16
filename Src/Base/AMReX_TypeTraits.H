@@ -238,6 +238,29 @@ namespace amrex
     using Negation = std::integral_constant<bool, !bool(B::value)>;
 #endif
 
+    ////////////////////////////////////////////////////////////////////////////////
+    //                                                        [traits.IsConvertible]
+
+    namespace detail {
+        template<typename T>
+        inline constexpr bool is_convertible(T) {return true;}
+
+        template <typename T, typename U, typename Enable = void>
+        struct IsConvertibleImp : std::false_type {};
+
+        template <typename T, typename U>
+        struct IsConvertibleImp<T, U, std::enable_if_t<is_convertible<T>(U{})>> : std::true_type {};
+    }
+
+    //! \brief Test if all the types Args... are automatically convertible to type T
+    template <typename T, typename... Args>
+    struct IsConvertible {
+        static constexpr bool value = (... && detail::IsConvertibleImp<T, Args>::value);
+    };
+
+    template <typename T, typename... Args>
+    inline constexpr bool IsConvertible_v = IsConvertible<T, Args...>::value;
+
     // Move this down, because doxygen can not parse anything below IsStoreAtomic
     template <class T, class Enable = void>
     struct IsStoreAtomic : std::false_type {};

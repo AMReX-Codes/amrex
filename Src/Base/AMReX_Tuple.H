@@ -315,6 +315,70 @@ TupleCat (TP1&& a, TP2&& b, TPs&&... args)
                     std::forward<TPs>(args)...);
 }
 
+// TupleSplit
+
+namespace detail {
+
+    template<std::size_t...Is>
+    struct SplitIndexList {
+        template<std::size_t J>
+        AMREX_GPU_HOST_DEVICE
+        static constexpr std::size_t get () noexcept {
+            std::size_t arr[sizeof...(Is)] = {Is...};
+            return arr[J];
+        }
+
+        template<std::size_t J>
+        AMREX_GPU_HOST_DEVICE
+        static constexpr std::size_t get_exclusive_sum () noexcept {
+            std::size_t arr[sizeof...(Is)] = {Is...};
+            std::size_t sum = 0;
+            for (std::size_t k=0; k<J; ++k) {
+                sum += arr[k];
+            }
+            return sum;
+        }
+    };
+
+    template <std::size_t start, typename... Args, std::size_t... Is>
+    AMREX_GPU_HOST_DEVICE
+    constexpr auto
+    GetSubTuple (const GpuTuple<Args...>& tup, std::index_sequence<Is...>) noexcept
+    {
+        return makeTuple(amrex::get<start+Is>(tup)...);
+    }
+
+    template <typename... Args, std::size_t... Is, typename SIL>
+    AMREX_GPU_HOST_DEVICE
+    constexpr auto
+    TupleSplitImp (const GpuTuple<Args...>& tup, std::index_sequence<Is...>, SIL) noexcept
+    {
+        return makeTuple(
+            GetSubTuple<(SIL::template get_exclusive_sum<Is>())>(
+                tup,
+                std::make_index_sequence<SIL::template get<Is>()>()
+            )...
+        );
+    }
+}
+
+/**
+ * \brief Returns a GpuTuple of GpuTuples obtained by splitting the input GpuTuple
+ * according to the sizes specified by the template arguments.
+ */
+template <std::size_t... Is, typename... Args>
+AMREX_GPU_HOST_DEVICE
+constexpr auto
+TupleSplit (const GpuTuple<Args...>& tup) noexcept
+{
+    static_assert((0 + ... + Is) == sizeof...(Args), "Incorrect total size in TupleSplit");
+    return detail::TupleSplitImp(
+        tup,
+        std::make_index_sequence<sizeof...(Is)>(),
+        detail::SplitIndexList<Is...>()
+    );
+}
+
 // Apply
 
 namespace detail {
@@ -416,6 +480,23 @@ auto tupleToArray (GpuTuple<T,Ts...> const& tup)
     return detail::tuple_to_array_helper(tup, std::index_sequence_for<T,Ts...>{});
 }
 
-}
+} // namespace amrex
+
+// Spcialize std::tuple_size for GpuTuple. Used by structured bindings.
+template<typename... Ts>
+struct std::tuple_size<amrex::GpuTuple<Ts...>> {
+    static constexpr std::size_t value = sizeof...(Ts);
+};
+
+// Spcialize std::tuple_element for GpuTuple. Used by structured bindings.
+template<typename T, typename... Ts>
+struct std::tuple_element<std::size_t{0}, amrex::GpuTuple<T, Ts...>> {
+    using type = T;
+};
+
+template<std::size_t s, typename T, typename... Ts>
+struct std::tuple_element<s, amrex::GpuTuple<T, Ts...>> {
+    using type = typename std::tuple_element<s-1, amrex::GpuTuple<Ts...>>::type;
+};
 
 #endif /*AMREX_TUPLE_H_*/

@@ -1,9 +1,11 @@
 
 ifneq ($(DIM), 1)
 
-CEXE_sources += AMReX_HypreABecLap.cpp AMReX_HypreABecLap2.cpp AMReX_HypreABecLap3.cpp AMReX_Hypre.cpp
+CEXE_sources += AMReX_HypreABecLap.cpp AMReX_HypreABecLap2.cpp AMReX_HypreABecLap3.cpp AMReX_Hypre.cpp AMReX_HypreMLABecLap.cpp
 
-CEXE_headers += AMReX_HypreABecLap.H AMReX_HypreABecLap2.H AMReX_HypreABecLap3.H AMReX_Hypre.H
+CEXE_headers += AMReX_HypreABecLap.H AMReX_HypreABecLap2.H AMReX_HypreABecLap3.H AMReX_Hypre.H AMReX_HypreMLABecLap.H
+
+CEXE_headers += AMReX_HypreMLABecLap_K.H AMReX_HypreMLABecLap_$(DIM)D_K.H
 
 CEXE_headers += AMReX_Habec_$(DIM)D_K.H
 CEXE_headers += AMReX_Habec_K.H

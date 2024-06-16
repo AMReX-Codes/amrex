@@ -314,6 +314,10 @@ dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
 
 #endif
 
+#ifdef AMREX_USE_HYPRE
+void hypreSynchronize ();
+#endif
+
 }
 
 #endif
