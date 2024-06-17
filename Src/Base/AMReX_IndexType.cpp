@@ -9,9 +9,9 @@ namespace amrex::detail {
 std::ostream&
 index_type_write (std::ostream& os, const unsigned int& iv, int dim)
 {
-    os << '(' << ((iv & 1u != 0) ? 'N' : 'C');
+    os << '(' << (((iv & 1u) != 0) ? 'N' : 'C');
     for (int i=1; i<dim; ++i) {
-        os << ',' << ((iv & (1u<<i) != 0) ? 'N' : 'C');
+        os << ',' << (((iv & (1u<<i)) != 0) ? 'N' : 'C');
     }
     os << ')' << std::flush;
 
