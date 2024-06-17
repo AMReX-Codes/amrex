@@ -299,34 +299,34 @@ public:
         post_fast_step_action = A;
     }
 
-    amrex::Real get_time_step()
+    amrex::Real get_time_step ()
     {
         return time_step;
     }
 
-    void set_time_step(amrex::Real dt)
+    void set_time_step (amrex::Real dt)
     {
         time_step = dt;
         use_adaptive_time_step = false;
     }
 
-    void set_adaptive_step()
+    void set_adaptive_step ()
     {
         use_adaptive_time_step = true;
     }
 
-    void set_fast_time_step(amrex::Real dt)
+    void set_fast_time_step (amrex::Real dt)
     {
         fast_time_step = dt;
         use_adaptive_fast_time_step = false;
     }
 
-    void set_adaptive_fast_step()
+    void set_adaptive_fast_step ()
     {
         use_adaptive_fast_time_step = true;
     }
 
-    void set_max_steps(int steps)
+    void set_max_steps (int steps)
     {
         max_steps = steps;
     }
