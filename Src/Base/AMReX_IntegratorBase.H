@@ -335,8 +335,8 @@ public:
      * \brief Take a single time step from (time, S_old) to (time + dt, S_new)
      * with the given step size.
      */
-    virtual amrex::Real step (T& S_old, T& S_new, amrex::Real time,
-                              amrex::Real dt) = 0;
+    virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time,
+                                 amrex::Real dt) = 0;
 
     /**
      * \brief Evolve the current (internal) integrator state to time_out

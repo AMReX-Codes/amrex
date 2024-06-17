@@ -541,7 +541,7 @@ public:
         SUNContext_Free(&sunctx);
     }
 
-    amrex::Real step (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
     {
         amrex::Real tout = time + dt;
         amrex::Real tret;

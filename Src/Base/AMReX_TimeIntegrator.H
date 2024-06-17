@@ -200,9 +200,9 @@ public:
         integrator_ptr->set_adaptive_fast_step();
     }
 
-    void step (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt)
+    void advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt)
     {
-        integrator_ptr->step(S_old, S_new, time, dt);
+        integrator_ptr->advance(S_old, S_new, time, dt);
     }
 
     // TODO: Add to FE and RK integrators

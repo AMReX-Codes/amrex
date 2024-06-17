@@ -189,7 +189,7 @@ public:
 
     virtual ~RKIntegrator () {}
 
-    amrex::Real step (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
     {
         // Assume before step() that S_old is valid data at the current time ("time" argument)
         // And that if data is a MultiFab, both S_old and S_new contain ghost cells for evaluating a stencil based RHS
@@ -257,7 +257,7 @@ public:
             }
 
             // Call the time integrator step
-            step(*S_current[0], S_out, time_current, dt);
+            advance(*S_current[0], S_out, time_current, dt);
 
             // Update current state S_current = S_out
             IntegratorOps<T>::Copy(*S_current[0], S_out);
