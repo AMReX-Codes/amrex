@@ -35,7 +35,7 @@ public:
     explicit IndexTypeND (const IntVectND<dim>& iv) noexcept {
         itype = 0;
         for (int i=0; i<dim; ++i) {
-            itype |= (iv[i] ? 1u : 0u) << i;
+            itype |= (iv[i] ? 1U : 0U) << i;
         }
     }
     /**
@@ -53,7 +53,7 @@ public:
         CellIndex locarr[dim] = {i, static_cast<CellIndex>(js)...};
         itype = 0;
         for (int s=0; s<dim; ++s) {
-            itype |= ((locarr[s] == CellIndex::NODE) ? 1u : 0u) << s;
+            itype |= ((locarr[s] == CellIndex::NODE) ? 1U : 0U) << s;
         }
     }
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
@@ -69,7 +69,7 @@ public:
     bool test (int dir) const noexcept { return (itype & mask(dir)) != 0; }
     //! Set NODE based in all directions.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
-    void setall () noexcept { itype = (1u << dim) - 1; }
+    void setall () noexcept { itype = (1U << dim) - 1; }
     //! Set CELL based in all directions.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void clear () noexcept { itype = 0; }
@@ -78,7 +78,7 @@ public:
     bool any () const noexcept { return itype != 0; }
     //! True if IndexTypeND is valid.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool ok () const noexcept { return itype < (1u << dim); }
+    bool ok () const noexcept { return itype < (1U << dim); }
     //! Change from CELL to NODE or NODE to CELL in direction dir.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void flip (int i) noexcept { itype ^= mask(i); }
@@ -98,7 +98,7 @@ public:
     bool cellCentered (int dir) const noexcept { return (itype & mask(dir)) == 0; }
     //! True if the IndexTypeND is NODE based in all directions.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool nodeCentered () const noexcept { return itype == (1u<<dim)-1; }
+    bool nodeCentered () const noexcept { return itype == (1U<<dim)-1; }
     //! True if the IndexTypeND is NODE based in dir-direction.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool nodeCentered (int dir) const noexcept { return (itype & mask(dir)) != 0; }
@@ -107,7 +107,7 @@ public:
     void setType (int dir, CellIndex t) noexcept { t == CELL ? unset(dir) : set(dir); }
     //! Returns  the CellIndex in direction dir.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    CellIndex ixType (int dir) const noexcept { return (CellIndex) ((itype & (1u<<dir)) >> dir); }
+    CellIndex ixType (int dir) const noexcept { return (CellIndex) ((itype & (1U<<dir)) >> dir); }
     //! Return an integer representing the IndexTypeND in direction dir.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator[] (int dir) const noexcept { return test(dir); }
@@ -158,7 +158,7 @@ public:
 private:
     //! Returns 1<<k.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static constexpr unsigned int mask (int k) noexcept { return 1u<<k; }
+    static constexpr unsigned int mask (int k) noexcept { return 1U<<k; }
     //! An integer holding the CellIndex in bits 0 - dim-1.
     unsigned int itype{0};
 };

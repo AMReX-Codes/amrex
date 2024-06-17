@@ -9,9 +9,9 @@ namespace amrex::detail {
 std::ostream&
 index_type_write (std::ostream& os, const unsigned int& iv, int dim)
 {
-    os << '(' << (((iv & 1u) != 0) ? 'N' : 'C');
+    os << '(' << (((iv & 1U) != 0) ? 'N' : 'C');
     for (int i=1; i<dim; ++i) {
-        os << ',' << (((iv & (1u<<i)) != 0) ? 'N' : 'C');
+        os << ',' << (((iv & (1U<<i)) != 0) ? 'N' : 'C');
     }
     os << ')' << std::flush;
 
@@ -33,11 +33,11 @@ index_type_read (std::istream& is, unsigned int& iv, int dim)
     char t = '0';
     is.ignore(BL_IGNORE_MAX, '(') >> t;
     BL_ASSERT(t == 'C' || t == 'N');
-    t == 'N' ? (iv |= 1u) : (iv &= ~1u);
+    t == 'N' ? (iv |= 1U) : (iv &= ~1U);
     for (int i=1; i<dim; ++i) {
         is.ignore(BL_IGNORE_MAX, ',') >> t;
         BL_ASSERT(t == 'C' || t == 'N');
-        t == 'N' ? (iv |= (1u << i)) : (iv &= ~(1u << i));
+        t == 'N' ? (iv |= (1U << i)) : (iv &= ~(1U << i));
     }
     is.ignore(BL_IGNORE_MAX, ')');
 
