@@ -35,7 +35,7 @@ public:
     explicit IndexTypeND (const IntVectND<dim>& iv) noexcept {
         itype = 0;
         for (int i=0; i<dim; ++i) {
-            itype |= (iv[i] ? 1u : 0u) << dim;
+            itype |= (iv[i] ? 1u : 0u) << i;
         }
     }
     /**
@@ -53,7 +53,7 @@ public:
         CellIndex locarr[dim] = {i, static_cast<CellIndex>(js)...};
         itype = 0;
         for (int s=0; s<dim; ++s) {
-            itype |= (locarr[s] ? 1u : 0u) << dim;
+            itype |= ((locarr[s] == CellIndex::NODE) ? 1u : 0u) << s;
         }
     }
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
