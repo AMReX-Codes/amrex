@@ -8,6 +8,10 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
 
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_HypreMLABecLap.H>
+#endif
+
 using namespace amrex;
 
 MyTest::MyTest ()
@@ -19,6 +23,13 @@ MyTest::MyTest ()
 void
 MyTest::solve ()
 {
+#ifdef AMREX_USE_HYPRE
+    if (use_mlhypre) {
+        solveMLHypre();
+        return;
+    }
+#endif
+
     if (prob_type == 1) {
         solvePoisson();
     } else if (prob_type == 2) {
@@ -520,6 +531,9 @@ MyTest::readParameters ()
 
     pp.query("composite_solve", composite_solve);
 
+    pp.query("use_mlhypre", use_mlhypre);
+    pp.query("use_hypre_ssamg", use_hypre_ssamg);
+
     pp.query("prob_type", prob_type);
 
     pp.query("verbose", verbose);
@@ -620,3 +634,120 @@ MyTest::initData ()
         amrex::Abort("Unknown prob_type "+std::to_string(prob_type));
     }
 }
+
+#ifdef AMREX_USE_HYPRE
+void
+MyTest::solveMLHypre ()
+{
+    const auto tol_rel = Real(1.e-10);
+    const auto tol_abs = Real(0.0);
+
+    const auto nlevels = static_cast<int>(geom.size());
+
+#ifdef AMREX_FEATURE_HYPRE_SSAMG
+    auto hypre_solver_id = use_hypre_ssamg ? HypreSolverID::SSAMG
+                                           : HypreSolverID::BoomerAMG;
+#else
+    auto hypre_solver_id = HypreSolverID::BoomerAMG;
+#endif
+
+    if (prob_type == 1) { // Poisson
+        if (composite_solve) {
+            HypreMLABecLap hypre_mlabeclap(geom, grids, dmap, hypre_solver_id);
+            hypre_mlabeclap.setVerbose(verbose);
+
+            hypre_mlabeclap.setup(Real(0.0), Real(-1.0), {}, {},
+                                  {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                                LinOpBCType::Dirichlet,
+                                                LinOpBCType::Dirichlet)},
+                                  {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                                LinOpBCType::Dirichlet,
+                                                LinOpBCType::Dirichlet)},
+                                  GetVecOfConstPtrs(solution));
+
+            hypre_mlabeclap.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs),
+                                  tol_rel, tol_abs);
+        } else {
+            for (int ilev = 0; ilev < nlevels; ++ilev) {
+                HypreMLABecLap hypre_mlabeclap({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, hypre_solver_id);
+                hypre_mlabeclap.setVerbose(verbose);
+
+                std::pair<MultiFab const*, IntVect> coarse_bc{nullptr,IntVect(0)};
+                if (ilev > 0) {
+                    coarse_bc.first = &solution[ilev-1];
+                    coarse_bc.second = IntVect(ref_ratio);
+                }
+
+                hypre_mlabeclap.setup(Real(0.0), Real(-1.0), {}, {},
+                                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Dirichlet)},
+                                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Dirichlet)},
+                                      {&solution[ilev]},
+                                      coarse_bc);
+
+                hypre_mlabeclap.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
+            }
+        }
+    } else if (prob_type == 2) { // ABecLaplacian
+        Vector<Array<MultiFab,AMREX_SPACEDIM>> face_bcoef(nlevels);
+        for (int ilev = 0; ilev < nlevels; ++ilev) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const BoxArray& ba = amrex::convert(bcoef[ilev].boxArray(),
+                                                    IntVect::TheDimensionVector(idim));
+                face_bcoef[ilev][idim].define(ba, bcoef[ilev].DistributionMap(), 1, 0);
+            }
+            amrex::average_cellcenter_to_face(GetArrOfPtrs(face_bcoef[ilev]),
+                                              bcoef[ilev], geom[ilev]);
+        }
+
+        if (composite_solve) {
+            HypreMLABecLap hypre_mlabeclap(geom, grids, dmap, hypre_solver_id);
+            hypre_mlabeclap.setVerbose(verbose);
+
+            hypre_mlabeclap.setup(ascalar, bscalar,
+                                  GetVecOfConstPtrs(acoef),
+                                  GetVecOfArrOfConstPtrs(face_bcoef),
+                                  {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                                LinOpBCType::Neumann,
+                                                LinOpBCType::Neumann)},
+                                  {AMREX_D_DECL(LinOpBCType::Neumann,
+                                                LinOpBCType::Dirichlet,
+                                                LinOpBCType::Neumann)},
+                                  GetVecOfConstPtrs(solution));
+
+            hypre_mlabeclap.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs),
+                                  tol_rel, tol_abs);
+        } else {
+            for (int ilev = 0; ilev < nlevels; ++ilev) {
+                HypreMLABecLap hypre_mlabeclap({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, hypre_solver_id);
+                hypre_mlabeclap.setVerbose(verbose);
+
+                std::pair<MultiFab const*, IntVect> coarse_bc{nullptr,IntVect(0)};
+                if (ilev > 0) {
+                    coarse_bc.first = &solution[ilev-1];
+                    coarse_bc.second = IntVect(ref_ratio);
+                }
+
+                hypre_mlabeclap.setup(ascalar, bscalar,
+                                      {&acoef[ilev]},
+                                      {GetArrOfConstPtrs(face_bcoef[ilev])},
+                                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Neumann,
+                                                    LinOpBCType::Neumann)},
+                                      {AMREX_D_DECL(LinOpBCType::Neumann,
+                                                    LinOpBCType::Dirichlet,
+                                                    LinOpBCType::Neumann)},
+                                      {&solution[ilev]},
+                                      coarse_bc);
+
+                hypre_mlabeclap.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
+            }
+        }
+    } else {
+        amrex::Abort("Unsupported prob_type: " + std::to_string(prob_type));
+    }
+}
+#endif

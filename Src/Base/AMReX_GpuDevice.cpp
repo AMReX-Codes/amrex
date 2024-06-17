@@ -5,6 +5,10 @@
 #include <AMReX_Print.H>
 #include <AMReX_GpuLaunch.H>
 
+#ifdef AMREX_USE_HYPRE
+#  include <_hypre_utilities.h>
+#endif
+
 #include <iostream>
 #include <map>
 #include <algorithm>
@@ -386,13 +390,17 @@ Device::initialize_gpu ()
         AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_stream_pool[i]));
     }
 
+#ifdef AMREX_GPU_STREAM_ALLOC_SUPPORT
+    AMREX_HIP_SAFE_CALL(hipDeviceGetAttribute(&memory_pools_supported, hipDeviceAttributeMemoryPoolsSupported, device_id));
+#endif
+
 #elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaGetDeviceProperties(&device_prop, device_id));
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 4 || (device_prop.major == 3 && device_prop.minor >= 5),
                                      "Compute capability must be >= 3.5");
 
-#ifdef AMREX_CUDA_GE_11_2
+#ifdef AMREX_GPU_STREAM_ALLOC_SUPPORT
     cudaDeviceGetAttribute(&memory_pools_supported, cudaDevAttrMemoryPoolsSupported, device_id);
 #endif
 
@@ -1024,5 +1032,14 @@ Device::profilerStop ()
     roctracer_stop();
 #endif
 }
+
+#ifdef AMREX_USE_HYPRE
+void hypreSynchronize ()
+{
+#ifdef AMREX_USE_GPU
+    hypre_SyncCudaDevice(hypre_handle()); // works for non-cuda device too
+#endif
+}
+#endif
 
 }

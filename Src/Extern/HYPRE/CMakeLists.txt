@@ -42,6 +42,10 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           AMReX_HypreIJIface.cpp
           AMReX_HypreIJIface.H
           AMReX_HypreSolver.H
+          AMReX_HypreMLABecLap.H
+          AMReX_HypreMLABecLap.cpp
+          AMReX_HypreMLABecLap_K.H
+          AMReX_HypreMLABecLap_${D}D_K.H
           )
 
     endif ()

@@ -6,6 +6,7 @@
 #include <AMReX_IndexType.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_Array.H>
+#include <AMReX_Periodicity.H>
 #include <AMReX_Vector.H>
 
 #include <iosfwd>
@@ -734,6 +735,16 @@ public:
     [[nodiscard]]
     bool contains (const BoxArray& ba, bool assume_disjoint_ba = false,
                    const IntVect& ng = IntVect(0)) const;
+
+    /**
+     * \brief True if all cells in ba are periodically contained in this
+     * BoxArray.
+     *
+     * If a cell after being periodically shifted is contained in this
+     * BoxArray, it's considered being periodically contained.
+     */
+    [[nodiscard]]
+    bool contains (const BoxArray& ba, Periodicity const& period) const;
 
     //! Return smallest Box that contains all Boxes in this BoxArray.
     [[nodiscard]] Box minimalBox () const;

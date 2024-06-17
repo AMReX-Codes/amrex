@@ -1010,6 +1010,34 @@ BoxArray::contains (const BoxArray& ba, bool assume_disjoint_ba, const IntVect& 
     return true;
 }
 
+bool
+BoxArray::contains (const BoxArray& ba, Periodicity const& period) const
+{
+    if (size() == 0) { return false; }
+
+    if (! period.isAnyPeriodic()) { return contains(ba); }
+
+    auto const& pshifts = period.shiftIntVect();
+
+    std::vector< std::pair<int,Box> > isects;
+    BoxList bl(ba.ixType());
+
+    for (int i = 0, N = static_cast<int>(ba.size()); i < N; ++i) {
+        Box const& b = ba[i];
+        bl.clear();
+        for (auto const& pit: pshifts) {
+            intersections(b+pit, isects);
+            for (auto const& is : isects) {
+                bl.push_back(is.second - pit);
+            }
+        }
+        BoxList const& left = amrex::complementIn(b, bl);
+        if (left.isNotEmpty()) { return false; }
+    }
+
+    return true;
+}
+
 Box
 BoxArray::minimalBox () const
 {

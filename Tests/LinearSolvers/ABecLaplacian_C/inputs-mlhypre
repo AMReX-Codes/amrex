@@ -1,0 +1,22 @@
+
+max_level = 1
+ref_ratio = 2
+n_cell = 8
+max_grid_size = 32
+
+linop_maxorder = 3 # mlhypre is hardwired to use maxorder=3
+
+composite_solve = 1
+
+# In this tutorial, we set up two examples.
+prob_type = 1
+#prob_type = 2
+
+amrex.fpe_trap_invalid = 1
+amrex.fpe_trap_overflow = 1
+amrex.fpe_trap_zero = 1
+
+use_mlhypre = 1
+
+verbose = 2
+

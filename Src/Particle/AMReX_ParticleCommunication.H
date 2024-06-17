@@ -341,7 +341,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             auto index = std::make_pair(gid, tid);
 
             auto& src_tile = plev.at(index);
-            const auto ptd = src_tile.getConstParticleTileData();
+            const auto& ptd = src_tile.getConstParticleTileData();
 
             int num_copies = op.numCopies(gid, lev);
             if (num_copies == 0) { continue; }

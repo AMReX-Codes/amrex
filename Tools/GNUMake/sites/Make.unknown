@@ -43,13 +43,17 @@ ifeq ($(USE_MPI),TRUE)
   ifeq ($(code_sml), 0)
      mpi_link_flags  := $(shell $(MPI_OTHER_COMP) -showme:link)
      mpicxx_link_libs := $(filter -l%,$(shell mpicxx -showme:link))
-     mpicxx_include_dirs := $(addprefix -isystem ,$(shell mpicxx -showme:incdirs))
+     mpicxx_include_dirs := $(addprefix -I,$(shell mpicxx -showme:incdirs))
   else ifeq ($(code_li), 0)
      mpi_link_flags  := $(shell $(MPI_OTHER_COMP) -link_info)
      mpicxx_link_libs := $(filter -l%,$(shell mpicxx -link_info))
-     mpicxx_include_dirs := $(subst -I,-isystem ,$(filter -I%,$(shell mpicxx -compile_info)))
+     mpicxx_include_dirs := $(filter -I%,$(shell mpicxx -compile_info))
   else
      $(error Unknown mpi wrapper.  You can try setting MPI stuff in amrex/Tools/GNUMake/Make.local and then compile with NO_MPI_CHECKING=TRUE.)
+  endif
+
+  ifeq ($(ISYSTEM_MPI_INCDIRS),TRUE)
+     mpicxx_include_dirs := $(subst -I,-isystem ,$(mpicxx_include_dirs))
   endif
 
   # some compilers return the compiler command as part of the link line info.
