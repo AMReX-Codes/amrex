@@ -232,7 +232,7 @@ public:
                 std::swap(S_old, S_new);
             }
 
-            // Call the time integrator step
+            // Call the time integrator advance
             integrator_ptr->advance(S_old, S_new, m_time, m_timestep);
 
             // Update our time variable
