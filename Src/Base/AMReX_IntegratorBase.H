@@ -255,8 +255,6 @@ public:
 
     virtual ~IntegratorBase () = default;
 
-    virtual void initialize (const T& S_data, const amrex::Real time = 0.0) = 0;
-
     void set_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
     {
         Rhs = F;

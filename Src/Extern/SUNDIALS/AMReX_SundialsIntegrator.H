@@ -399,7 +399,7 @@ public:
         initialize(S_data, time);
     }
 
-    void initialize (const T& S_data, const amrex::Real time = 0.0) override
+    void initialize (const T& S_data, const amrex::Real time = 0.0)
     {
         initialize_parameters();
         MPI_Comm mpi_comm = ParallelContext::CommunicatorSub();
