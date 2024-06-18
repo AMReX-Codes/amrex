@@ -120,6 +120,7 @@ void amrex_avgdown_faces (Box const& bx, Array4<T> const& crse,
         }
         break;
     }
+    default: { break; }
     }
 }
 
@@ -157,6 +158,7 @@ void amrex_avgdown_faces (int i, int j, int, int n, Array4<T> const& crse,
         crse(i,j,0,n+ccomp) = c * facInv;
         break;
     }
+    default: { break; }
     }
 }
 
@@ -206,6 +208,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
         }
         break;
     }
+    default: { break; }
     }
 }
 
@@ -242,6 +245,7 @@ void amrex_avgdown_edges (int i, int j, int, int n, Array4<Real> const& crse,
         crse(i,j,0,n+ccomp) = c * facInv;
         break;
     }
+    default: { break; }
     }
 }
 

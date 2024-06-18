@@ -408,5 +408,262 @@ void linear_interpolate_to_particle_z (const P& p,
 }
 
 
+//
+// **********************************************************************
+// General mapped coordinates
+// **********************************************************************
+//
+
+/**
+ \brief Helper functions for 3D interpolation from values on nodes/vertices of arbitrary hexahedra to particle location
+*/
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void particle_interp_decomp (Array2D<Real,1,7,1,7>& a, Array1D<int,1,7>& ip, int neq)
+{
+    amrex::Real amult,apm,apn;
+    for (int n=1; n<neq+1; n++)
+    {
+        ip(n) = n;
+    }
+
+    for (int i=1; i<neq; i++)
+    {
+        int ip1=i+1;
+        int k=i;
+        int ipi = ip(i);
+        apm  = std::abs(a(ipi,i));
+
+        for (int j=ip1; j<neq+1; j++)
+        {
+            int ipj = ip(j);
+            apn=std::abs(a(ipj,i));
+            if(apm < apn){
+                apm = apn;
+                k=j;
+            }
+        }
+
+        int j=ip(k);
+        ip(k)=ip(i);
+        ip(i)=j;
+        for (int l=ip1; l<neq+1; l++)
+        {
+            int n=ip(l);
+            amult=a(n,i)/a(j,i);
+            a(n,i)=amult;
+            for (int kk = ip1; kk < neq+1; kk++)
+            {
+                a(n,kk) -= amult*a(j,kk);
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void particle_interp_solve (Array2D<Real,1,7,1,7>& a, Array1D<Real,1,7>& b, Array1D<int,1,7>& ip, int neq)
+{
+    amrex::Real scr;
+    for (int l=2; l<neq+1; l++)
+    {
+        int n = ip(l);
+
+        for (int k=1; k<l; k++){
+             b(n) -= a(n,k) * b(ip(k));
+        }
+    }
+    b(ip(neq))=b(ip(neq))/a(ip(neq),neq);
+
+    for (int l=1; l<neq; l++)
+    {
+        int j=neq-l;
+        int jp1=j+1;
+        int n=ip(j);
+        for (int k=jp1; k<neq+1; k++){
+           b(n) -= a(n,k  ) * b(ip(k));
+        }
+        b(n)=b(n)/a(n,j);
+    }
+    for (int n=1; n<neq+1; n++)
+    {
+        while(ip(n) != n) {
+            int j=ip(n);
+            scr=b(j);
+            ip(n)=ip(j);
+            b(j)=b(ip(j));
+            b(ip(j))=scr;
+            ip(j)=j;
+        }
+    }
+}
+
+
+/**
+ \brief Linearly interpolates the mesh data to the particle position from node-centered data on a general mapped grid.
+*/
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void cic_interpolate_nd_mapped (const P& p,
+                                const amrex::Array4<amrex::Real const>& data_arr,
+                                const amrex::Array4<amrex::Real const>&  loc_arr,
+                                amrex::ParticleReal * val, int M = AMREX_SPACEDIM)
+{
+    int icomp = 0;
+    int ncomp_per_array = M;
+    int num_arrays = 1;
+    IntVect is_nodal = amrex::IntVect::TheUnitVector();
+    linear_interpolate_to_particle_mapped(p, &data_arr, loc_arr,
+                                          val, &is_nodal, icomp, ncomp_per_array, num_arrays);
+}
+
+/**
+ \brief Linearly interpolates the mesh data to the particle position on a general mapped grid.
+        Note that currently only node-centered data interpolation is supported in 2D and 3D.
+*/
+
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void linear_interpolate_to_particle_mapped (const P& p,
+                                            const Array4<amrex::Real const>* data_arr,
+                                            const amrex::Array4<amrex::Real const>&  loc_arr,
+                                            amrex::ParticleReal * val,
+                                            const IntVect* is_nodal,
+                                            int start_comp, int ncomp, int num_arrays)
+{
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(p, data_arr, loc_arr, val, is_nodal, start_comp, ncomp, num_arrays);
+    amrex::Abort(" General mapped interpolation is not supported in 1D\n");
+#else
+
+    AMREX_ASSERT(val != nullptr);
+    AMREX_ASSERT(num_arrays == 1);
+    for (int d = 0; d < num_arrays; d++)
+    {
+        // Assertion to ensure that only nodal data is supported
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[d][0] == 1),"For general mapped coordinates, interpolation is supported only for node-centered data");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[d][1] == 1),"For general mapped coordinates, interpolation is supported only for node-centered data");
+#if (AMREX_SPACEDIM == 3)
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[d][2] == 1),"For general mapped coordinates, interpolation is supported only for node-centered data");
+#endif
+    }
+    int n_of_data = 0;
+
+    int i = p.idata(0);
+    int j = p.idata(1);
+    for (int comp = start_comp; comp < ncomp; ++comp) {
+
+#if (AMREX_SPACEDIM == 2)
+        // Value of data at surrounding nodes
+        amrex::Real f1 = (data_arr[n_of_data])(i  ,j  ,0,comp);
+        amrex::Real f2 = (data_arr[n_of_data])(i  ,j+1,0,comp) - f1;
+        amrex::Real f3 = (data_arr[n_of_data])(i+1,j  ,0,comp) - f1;
+        amrex::Real f4 = (data_arr[n_of_data])(i+1,j+1,0,comp) - f1;
+
+        // Node locations
+        amrex::Real x1 =  loc_arr(i  ,j  ,0,0);
+        amrex::Real x2 =  loc_arr(i  ,j+1,0,0) - x1;
+        amrex::Real x3 =  loc_arr(i+1,j  ,0,0) - x1;
+        amrex::Real x4 =  loc_arr(i+1,j+1,0,0) - x1;
+
+        amrex::Real y1 =  loc_arr(i  ,j  ,0,1);
+        amrex::Real y2 =  loc_arr(i  ,j+1,0,1) - y1;
+        amrex::Real y3 =  loc_arr(i+1,j  ,0,1) - y1;
+        amrex::Real y4 =  loc_arr(i+1,j+1,0,1) - y1;
+
+        // Particle location
+        amrex::Real x = p.pos(0) - x1;
+        amrex::Real y = p.pos(1) - y1;
+
+        amrex::Real det = x2*x4*y3*(y2 - y4) - x3*x4*y2*(y3 - y4) - x2*x3*(y2 - y3)*y4;
+
+        amrex::Real b = (  f4*(x2*y2*y3 - x3*y2*y3) + (f2*(x3 - x4)*y3)*y4 + f3*(-(x2*y2*y4) + x4*y2*y4) ) / det;
+        amrex::Real c = ( -f2*x3*x4*y3 + f4*x2*x3*(-y2 + y3) + f3*x2*x4*(y2 - y4) + f2*x3*x4*y4          ) / det;
+        amrex::Real d = (  f2*x4*y3 + f4*(x3*y2 - x2*y3) - f2*x3*y4 + f3*(-(x4*y2) + x2*y4)              ) / det;
+
+        amrex::Real f = b*x + c*y + d*x*y;
+        val[comp-start_comp] = f1 + f;
+
+#elif (AMREX_SPACEDIM == 3)
+
+        int k = p.idata(2);
+
+        //
+        // Ordering of particles (lo,lo,lo) (hi,lo,lo) (lo,hi,lo) (hi,hi,lo) (lo,lo,hi) (hi,lo,hi) (lo,hi,hi) (hi,hi,hi)
+        //    All locations are calculated as offsets from (lo,lo,lo), which is only need 7 values are needed
+        //
+        Array1D<Real,0,7> x_vals;
+        Array1D<Real,0,7> y_vals;
+        Array1D<Real,0,7> z_vals;
+        Array1D<Real,1,7> b;
+
+        amrex::Real x1, y1, z1, f1;
+
+        x1        = loc_arr(i  ,j  ,k  ,0);
+        x_vals(1) = loc_arr(i+1,j  ,k  ,0) - x1;
+        x_vals(2) = loc_arr(i  ,j+1,k  ,0) - x1;
+        x_vals(3) = loc_arr(i+1,j+1,k  ,0) - x1;
+        x_vals(4) = loc_arr(i  ,j  ,k+1,0) - x1;
+        x_vals(5) = loc_arr(i+1,j  ,k+1,0) - x1;
+        x_vals(6) = loc_arr(i  ,j+1,k+1,0) - x1;
+        x_vals(7) = loc_arr(i+1,j+1,k+1,0) - x1;
+
+        y1        = loc_arr(i  ,j  ,k  ,1);
+        y_vals(1) = loc_arr(i+1,j  ,k  ,1) - y1;
+        y_vals(2) = loc_arr(i  ,j+1,k  ,1) - y1;
+        y_vals(3) = loc_arr(i+1,j+1,k  ,1) - y1;
+        y_vals(4) = loc_arr(i  ,j  ,k+1,1) - y1;
+        y_vals(5) = loc_arr(i+1,j  ,k+1,1) - y1;
+        y_vals(6) = loc_arr(i  ,j+1,k+1,1) - y1;
+        y_vals(7) = loc_arr(i+1,j+1,k+1,1) - y1;
+
+        z1        = loc_arr(i  ,j  ,k  ,2);
+        z_vals(1) = loc_arr(i+1,j  ,k  ,2) - z1;
+        z_vals(2) = loc_arr(i  ,j+1,k  ,2) - z1;
+        z_vals(3) = loc_arr(i+1,j+1,k  ,2) - z1;
+        z_vals(4) = loc_arr(i  ,j  ,k+1,2) - z1;
+        z_vals(5) = loc_arr(i+1,j  ,k+1,2) - z1;
+        z_vals(6) = loc_arr(i  ,j+1,k+1,2) - z1;
+        z_vals(7) = loc_arr(i+1,j+1,k+1,2) - z1;
+
+        f1   = (data_arr[n_of_data])(i  ,j  ,k  ,comp);
+        b(1) = (data_arr[n_of_data])(i+1,j  ,k  ,comp) - f1;
+        b(2) = (data_arr[n_of_data])(i  ,j+1,k  ,comp) - f1;
+        b(3) = (data_arr[n_of_data])(i+1,j+1,k  ,comp) - f1;
+        b(4) = (data_arr[n_of_data])(i  ,j  ,k+1,comp) - f1;
+        b(5) = (data_arr[n_of_data])(i+1,j  ,k+1,comp) - f1;
+        b(6) = (data_arr[n_of_data])(i  ,j+1,k+1,comp) - f1;
+        b(7) = (data_arr[n_of_data])(i+1,j+1,k+1,comp) - f1;
+
+        Array2D<Real,1,7,1,7> a;
+        Array1D<int,1,7> ip;
+
+        int neq = 7;
+
+        for (int n=1; n<neq+1; n++) {
+            a(n,1) = x_vals(n);
+            a(n,2) = y_vals(n);
+            a(n,3) = z_vals(n);
+            a(n,4) = x_vals(n)*y_vals(n);
+            a(n,5) = x_vals(n)*z_vals(n);
+            a(n,6) = z_vals(n)*y_vals(n);
+            a(n,7) = x_vals(n)*y_vals(n)*z_vals(n);
+        }
+
+        particle_interp_decomp(a,ip,neq);
+        particle_interp_solve(a,b,ip,neq);
+
+        amrex::Real px, py, pz;
+        px = p.pos(0) - x1;
+        py = p.pos(1) - y1;
+        pz = p.pos(2) - z1;
+
+        amrex::Real f = b(1)*px + b(2)*py + b(3)*pz + b(4)*px*py + b(5)*px*pz + b(6)*py*pz + b(7)*px*py*pz;
+        val[comp-start_comp] = static_cast<ParticleReal>(f + f1);
+#endif
+
+    } // comp
+#endif
+}
+
 }  // namespace amrex
 #endif  // include guard

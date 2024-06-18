@@ -51,7 +51,7 @@ struct Deleter {
     void operator() (void* pt) const noexcept { m_arena->free(pt); }
 };
 
-template <class T, std::enable_if_t<std::is_trivially_copyable<T>::value,int> = 0>
+template <class T, std::enable_if_t<std::is_trivially_copyable_v<T>,int> = 0>
 struct DeviceScalar
 {
     DeviceScalar (DeviceScalar const&) = delete;
@@ -104,7 +104,7 @@ private:
 
 #else
 
-    DeviceScalar (T init_val) : d(init_val) {}
+    DeviceScalar (T const& init_val) : d(init_val) {}
     DeviceScalar () = default;
     ~DeviceScalar () = default;
 

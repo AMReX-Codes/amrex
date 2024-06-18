@@ -25,10 +25,14 @@ private:
     // For MLMG solver
     int verbose = 1;
     int bottom_verbose = 0;
-    int max_iter = 100;
+    int max_iter = 300;
     bool agglomeration = true;
     bool consolidation = true;
     int max_coarsening_level = 30;
+
+    bool use_gmres = false;
+    bool gmres_use_precond = true;
+    int gmres_precond_niters = 1;
 
     amrex::Geometry geom;
     amrex::BoxArray grids;
@@ -38,9 +42,10 @@ private:
     amrex::Array<amrex::MultiFab,3> exact;
     amrex::Array<amrex::MultiFab,3> rhs;
 
-    amrex::Real alpha_over_dx2 = 1.0;
-    amrex::Real alpha;
+    amrex::Real beta_factor = 1.e-2;
+    amrex::Real alpha = 1.0;
     amrex::Real beta = 1.0;
+    bool variable_beta = false;
 };
 
 #endif

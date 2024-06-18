@@ -1,3 +1,246 @@
+# 24.06
+
+  -- add missing AMReX_SUNDIALS in AMReXConfig.cmake (#3962)
+
+  -- Linear Solver: Fix semicoarsening issues with multiple AMR levels (#3961)
+
+  -- add DEBUG_LIBSTDCXX option to GNU Make gcc for libstdc++ debug (#3945)
+
+  -- InterpBndryData: Make changes for multi-level hypre (#3959, #3960)
+
+  -- FabArray: Make some functions static (#3958)
+
+  -- MultiArray4: add conversion operator to bool (#3957)
+
+  -- Overloading `Array4::operator()`, `ptr` and `contains` (#3956)
+
+  -- Tune PermutationForDeposition for MI250X (#3925, #3953)
+
+  -- Support size 0 BoxArrays in ParticleLocator (#3949)
+
+  -- Workaround for Windows omp_lock_t issue (#3910)
+
+  -- CMake: No Deprecation Warnings (#3947)
+
+  -- Particle InitBinaryFromFile: Use reference instead of copy (#3946)
+
+  -- Fix particle restart when finestLevel() < finest_level_in_file (#3944)
+
+  -- Delete copy constructor and assignment operator for ParticleTile (#3943)
+
+  -- Fix FillPatcher after enforcing PhysBCFunct operator() fills nghost (#3941)
+
+  -- CTest: Add atomicAdd to small tests (#3915)
+
+  -- Fix 1d HDF5 compilation (#3939)
+
+  -- Update hip installation script for CI (#3938)
+
+  -- GMRES/MLMG: Set the number of MG V-cycles per GMRES iteration (#3875)
+
+  -- Neumann BC at coarse/fine interface for cell-centered solvers (#3926)
+
+  -- Fix assertions involving IntVect (#3919)
+
+  -- Modify Tests/LinearSolvers/ABecLaplacian_C (#3888)
+
+  -- MLNodeLaplacian: 1D support (#3918)
+
+  -- In PhysBCFunct, only fill nghost grow cells (#3914)
+
+# 24.05
+
+  -- 3d anisotropic eb (#3907)
+     cleanup of latest changes for 3D EB (#3912)
+
+  -- Update for ROCm 6.1.0 (#3898)
+
+  -- fix a HIP/Frontier issue (#3902)
+
+  -- Set AMD wavefront size according to AMReX_AMD_ARCH (#3881)
+
+  -- Fix offset in recv buffer of single precision particle communication (#3896)
+
+  -- Fix Assertion (#3894)
+
+  -- TinyProfiler: shorten output into "Other" section (#3885)
+
+  -- Fix ReorderParticles for PureSoA (#3890)
+
+  -- Fix full plotfiles with only derived variables (#3892)
+
+  -- FabArray: Update Asserts (#3893)
+
+  -- Add MultiFab::sum(region) and sum_unique(region) (#3871)
+
+  -- TinyProfiler: remove CUPTI (#3886)
+
+  -- ParticleContainer::WritePlotFile: Fix enable_if (#3884)
+
+  -- amrex::tupleToArray (#3880)
+
+  -- Allow plotting only a subset of Amr levels (#2825)
+
+  -- Parser: add error function (#3870)
+
+  -- Add `PODVector::assign(value)` (#3866)
+
+  -- GCC: inline limit (#3841)
+
+# 24.04
+
+  -- `AddRealComp`/`AddIntComp`: Resize SoA (#3615)
+     Fix: Resize Component on Add (#3861)
+
+  -- Use less device memory when checkpointing particles (#3238)
+
+  -- FabArray: Option to use a single contiguous chunk of memory (#3857)
+
+  -- AMReX_FLATTEN_FOR (#3855)
+     Disable AMReX_FLATTEN_FOR by default (#3860)
+
+  -- Curl Curl Solver: Variable beta coefficient (#3810)
+
+  -- `MultiFab::deepCopy()` (#3848)
+
+  -- `FabArray<FAB>::copy` Argument Name (#3856)
+
+  -- Use Clang-Tidy 17 in GitHub CI (#3845)
+
+  -- Update to SUNDIALS v7 (#3835)
+
+  -- Assert: Geometry's domain is cell-centered (#3853)
+
+  -- Fix ReduceToPlane (#3852)
+
+  -- Clang-Tidy 17: modernize-type-traits (#3844)
+
+  -- Clang-Tidy 17: cppcoreguidelines-rvalue-reference-param-not-moved (#3825)
+
+  -- Clang-Tidy 17: modernize-loop-convert (#3833)
+     Revert range based for-loop with OMP (#3839)
+
+  -- Clang-Tidy 17: performance-avoid-endl (#3830)
+
+  -- Fix a memory leak in TableData::operator= (#3807)
+
+  -- Update Copyright Notice and License Agreement (#3829)
+
+  -- Clang-Tidy 17: cppcoreguidelines-missing-std-forward (#3818)
+
+  -- Clang-Tidy 17: cppcoreguidelines-avoid-const-or-ref-data-members (#3817)
+
+  -- Clang-Tidy 17: misc-use-anonymous-namespace (#3824)
+
+  -- Clang-Tidy 17: bugprone-switch-missing-default-case (#3816)
+
+  -- Clang-Tidy 17: performance-noexcept-swap (#3822)
+
+  -- Fix extra indentation in fcompare output (#3823)
+
+  -- Clang-Tidy 17: misc-header-include-cycle (#3820)
+
+  -- New constructor for MPMD::Copier (#3806)
+
+  -- Fix deprecation warning for CUDA 12.4 (#3811)
+
+  -- use emplace_back / emplace where possible (#3814)
+
+  -- In allocateSlice, handle empty list of boxes (#3808)
+
+  -- Explicit Includes: MultiFab -> BaseFab (#3802)
+
+  -- CI: Windows Install & Test Install (#3803)
+
+  -- Add Tests/OpenMP/atomicAdd (#3805)
+
+  -- Minor changes in Src/Base/AMReX_MPMD (#3800)
+
+  -- add ifdefs to enable NVHPC as device compiler (#3801)
+
+  -- CI: Windows MSVC w/ Ninja (#3804)
+
+  -- omp_locks: Avoid extern global variable (#3798)
+
+  -- Add option to interpolate data on faces linearly in the tangential direction (#3794)
+
+  -- `omp_locks`: C Array (#3796)
+
+  -- Port WriteEBSurface by copying EB information to pinned tmps before writing. (#3793)
+
+  -- Robin BC: Abort if solver is not safe for reuse (#3788)
+
+  -- Update GMRES/MLMG for nodal solver (#3787)
+
+  -- TagParallelFor: Add assertion against integer overflow (#3790)
+
+  -- Simplify GMRES/MLMG interface (#3785)
+
+# 24.03
+
+  -- Fix GPU restart for pure SoA particles (#3783)
+
+  -- fix for ref_ratio=1 (#3786)
+
+  -- Update GMRES/MLMG interface (#3779)
+
+  -- Ref ratio 3 (#3781)
+
+  -- Curl Curl solver: 4-color Gauss-Seidel smoother (#3778)
+
+  -- assert wavefront size (#3777)
+
+  -- Curl of Curl solver: Tweak restriction (#3765)
+
+  -- Adjust debug info argument for HIP compiler (#3761)
+
+  -- fixed bug in MLCurlCurL::xdoty() to prevent doing MPI sum twice. (#3774)
+
+  -- Implement portable assumptions with AMREX_ASSUME (#3770)
+     Fix bug in AMREX_ASSUME (#3773)
+
+  -- Pure SoA: `NextID` as `Long` (#3772)
+
+  -- GNU Make: set COMP_VERSION for hipcc and nvcc (#3771)
+
+  -- Make MFParallelFor safer from int overflow (#3768)
+
+  -- getParticleTileData: HostVector must be initialized during resize (#3769)
+
+  -- add AMREX_LIKELY and AMREX_UNLIKELY (#3767)
+
+  -- Only do a htod memcpy in getParticleTileData when necessary (#3760)
+
+  -- Sync GPU stream before getting the time in TinyProfiler (#3763)
+
+  -- Add a logspace-like function in AMReX_Algorithm.H (#3754)
+
+  -- Fix offset in send buffer of single precision particle communication (#3758)
+
+  -- EdgeFluxRegister for MHD (#3633)
+
+  -- Fix a typo in SYCL version of scan (#3757)
+
+  -- Interpolation from node-centered general mapped coordinates to tracers (#3750)
+
+  -- Remove various deprecated stuff not prefixed by amrex or bl (#3713)
+
+  -- GNU Make: Link flags (#3711)
+
+  -- Remove UB from is_aligned (#3751)
+
+  -- Add partitionParticles Function (#3743)
+
+  -- Minor new functions in AMReX_MPMD to provide flexibility for python binding (#3748)
+
+  -- Box::numPts() returns 0 for empty boxes (#3747)
+
+  -- New Linear Solver: Curl of Curl (#3682)
+
+  -- Use long integer in GPU kernels (#3742)
+
+  -- Add `ParticleIDWrapper::make_invalid()` (#3735)
+
 # 24.02
 
   -- Disable m_aos for SoA Particle (#3736)

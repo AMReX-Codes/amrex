@@ -311,6 +311,12 @@ else
   USE_FORCE_INLINE := FALSE
 endif
 
+ifdef USE_FLATTEN_FOR
+  USE_FLATTEN_FOR := $(strip $(USE_FLATTEN_FOR))
+else
+  USE_FLATTEN_FOR := FALSE
+endif
+
 ifdef WARN_ALL
   WARN_ALL := $(strip $(WARN_ALL))
 else
@@ -714,6 +720,12 @@ ifeq ($(USE_FORCE_INLINE),TRUE)
     CPPFLAGS += -DAMREX_USE_FORCE_INLINE
 endif
 
+ifeq ($(USE_FLATTEN_FOR),TRUE)
+ifneq ($(DEBUG),TRUE)
+    CPPFLAGS += -DAMREX_USE_FLATTEN_FOR
+endif
+endif
+
 ifeq ($(USE_ACC),TRUE)
 
   USE_GPU := TRUE
@@ -1089,6 +1101,13 @@ else ifeq ($(USE_HIP),TRUE)
 
     ifdef AMREX_AMD_ARCH
       AMD_ARCH = $(AMREX_AMD_ARCH)
+    endif
+
+    # For AMD GPUs, the wavefront is 64 except for gfx10??.
+    ifeq ($(findstring gfx10,$(AMD_ARCH)),)
+       DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=64
+    else
+       DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=32
     endif
 
     ifeq ($(HIP_SAVE_TEMPS),TRUE)

@@ -5,6 +5,8 @@
 #include <AMReX_IParser_Y.H>
 #include <AMReX_Vector.H>
 
+#include <limits>
+
 #ifndef AMREX_IPARSER_STACK_SIZE
 #define AMREX_IPARSER_STACK_SIZE 16
 #endif
@@ -239,6 +241,8 @@ struct IParserStack
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int iparser_exe_eval (const char* p, int const* x)
 {
+    if (p == nullptr) { return std::numeric_limits<int>::max(); }
+
     IParserStack<AMREX_IPARSER_STACK_SIZE> pstack;
     while (*((iparser_exe_t*)p) != IPARSER_EXE_NULL) {
         switch (*((iparser_exe_t*)p))

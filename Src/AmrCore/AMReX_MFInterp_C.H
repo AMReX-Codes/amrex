@@ -7,8 +7,6 @@
 
 namespace amrex {
 
-namespace {
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real mf_compute_slopes_x (int i, int j, int k, Array4<Real const> const& u, int nu,
                           Box const& domain, BCRec const& bc)
@@ -251,8 +249,6 @@ Real mf_cell_quadratic_compute_slopes_yz (int i, int j, int k,
     }
     return yz;
 }
-
-} // namespace
 
 } // namespace amrex
 

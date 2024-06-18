@@ -171,9 +171,9 @@ ParGDB::ParGDB (const Vector<Geometry>            & geom,
     m_ba(ba),
     m_nlevels(static_cast<int>(ba.size()))
 {
-    for (int level = 0; level < static_cast<int>(rr.size()); ++level)
+    for (int level : rr)
     {
-        m_rr.push_back(rr[level]*IntVect::TheUnitVector());
+        m_rr.push_back(level*IntVect::TheUnitVector());
     }
 }
 

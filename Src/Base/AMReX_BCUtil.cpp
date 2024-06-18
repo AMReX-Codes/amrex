@@ -36,7 +36,7 @@ struct dummy_gpu_fill_extdir
 void FillDomainBoundary (MultiFab& phi, const Geometry& geom, const Vector<BCRec>& bc)
 {
     if (geom.isAllPeriodic()) { return; }
-    if (phi.nGrow() == 0) { return; }
+    if (phi.nGrowVect() == 0) { return; }
 
     AMREX_ALWAYS_ASSERT(phi.ixType().cellCentered());
 

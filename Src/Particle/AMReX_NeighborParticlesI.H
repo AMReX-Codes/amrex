@@ -690,7 +690,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 template <class CheckPair>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-buildNeighborList (CheckPair&& check_pair, bool /*sort*/)
+buildNeighborList (CheckPair const& check_pair, bool /*sort*/)
 {
     AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
 
@@ -775,7 +775,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 template <class CheckPair, class OtherPCType>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
+buildNeighborList (CheckPair const& check_pair, OtherPCType& other,
                    Vector<std::map<std::pair<int, int>, amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
                    bool /*sort*/)
 {
@@ -844,7 +844,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 template <class CheckPair>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
+buildNeighborList (CheckPair const& check_pair, int type_ind, int* ref_ratio,
                    int num_bin_types, bool /*sort*/)
 {
     AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
@@ -980,7 +980,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 template <class CheckPair>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-selectActualNeighbors (CheckPair&& check_pair, int num_cells)
+selectActualNeighbors (CheckPair const& check_pair, int num_cells)
 {
     BL_PROFILE("NeighborParticleContainer::selectActualNeighbors");
     const auto& geom_fine = this->Geom(0);
@@ -1066,7 +1066,7 @@ selectActualNeighbors (CheckPair&& check_pair, int num_cells)
                             int nbr_cell_id = (ii * ny + jj) * nz + kk;
                             for (auto p = poffset[nbr_cell_id]; p < poffset[nbr_cell_id+1]; ++p) {
                                 if (pperm[p] == i) { continue; }
-                                if (call_check_pair(check_pair, ptile_data, ptile_data, i, pperm[p])) {
+                                if (detail::call_check_pair(check_pair, ptile_data, ptile_data, i, pperm[p])) {
                                     IntVect cell_ijk = getParticleCell(pstruct[pperm[p]], plo, dxi, domain);
                                     if (!box.contains(cell_ijk)) {
                                         unsigned int loc = Gpu::Atomic::Add(p_np_boundary, 1U);

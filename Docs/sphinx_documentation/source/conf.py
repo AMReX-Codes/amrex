@@ -59,7 +59,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'amrex'
-copyright = u'2017-2018, AMReX Team'
+copyright = u'2024, AMReX Team'
 author = u'AMReX Team'
 
 # The version info for the project you're documenting, acts as replacement for

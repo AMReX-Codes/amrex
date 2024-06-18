@@ -270,6 +270,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        Parser/amrex_iparser.tab.cpp
        Parser/amrex_iparser.tab.nolint.H
        Parser/amrex_iparser.tab.h
+       # Dense linear algebra solver using LU decomposition
+       AMReX_LUSolver.H
        # AMReX Hydro -----------------------------------------------------
        AMReX_Slopes_K.H
        # Forward declaration -----------------------------------------------------
@@ -293,7 +295,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           AMReX_filcc_f.H
           AMReX_BLutil_F.F90
           AMReX_BLProfiler_F.F90
-          AMReX_FILCC_${D}D.F90
           AMReX_filcc_mod.F90
           AMReX_omp_mod.F90
           AMReX_acc_mod.F90

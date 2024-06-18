@@ -423,7 +423,7 @@ namespace amrex
         iterator insert (const_iterator a_pos, T&& a_item)
         {
             // This is *POD* vector after all
-            return insert(a_pos, 1, a_item);
+            return insert(a_pos, 1, std::move(a_item));
         }
 
         iterator insert (const_iterator a_pos,
@@ -510,6 +510,15 @@ namespace amrex
             m_size = count;
             detail::fillValuesImpl(m_data, a_first, count,
                                    (Allocator const&)(*this));
+        }
+
+        /** Set the same value to every element of the vector
+         *
+         * @param a_value the value to assign
+         */
+        void assign (const T& a_value)
+        {
+            assign(m_size, a_value);
         }
 
         [[nodiscard]] allocator_type get_allocator () const noexcept { return *this; }

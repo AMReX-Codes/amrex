@@ -32,6 +32,7 @@
 #cmakedefine BL_SPACEDIM @D@
 #endif
 #cmakedefine AMREX_USE_ASSERTION
+#cmakedefine AMREX_USE_FLATTEN_FOR
 #cmakedefine AMREX_BOUND_CHECK
 #cmakedefine AMREX_EXPORT_DYNAMIC
 #cmakedefine BL_FORT_USE_UNDERSCORE
@@ -45,6 +46,7 @@
 #cmakedefine AMREX_USE_EB
 #cmakedefine AMREX_USE_CUDA
 #cmakedefine AMREX_USE_HIP
+#cmakedefine AMREX_AMDGCN_WAVEFRONT_SIZE @AMREX_AMDGCN_WAVEFRONT_SIZE@
 #cmakedefine AMREX_USE_NVML
 #cmakedefine AMREX_GPU_MAX_THREADS @AMREX_GPU_MAX_THREADS@
 #ifndef AMREX_GPU_MAX_THREADS

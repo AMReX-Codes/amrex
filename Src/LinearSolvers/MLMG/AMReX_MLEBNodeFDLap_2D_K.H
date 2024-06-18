@@ -24,7 +24,7 @@ void mlebndfdlap_adotx_eb_doit (int i, int j, int k, Array4<Real> const& y,
                                 Array4<Real const> const& x, Array4<Real const> const& levset,
                                 Array4<int const> const& dmsk,
                                 Array4<Real const> const& ecx, Array4<Real const> const& ecy,
-                                F && xeb, Real bx, Real by) noexcept
+                                F const& xeb, Real bx, Real by) noexcept
 {
     if (dmsk(i,j,k)) {
         y(i,j,k) = Real(0.0);
@@ -199,7 +199,7 @@ void mlebndfdlap_adotx_rz_eb_doit (int i, int j, int k, Array4<Real> const& y,
                                    Array4<Real const> const& x, Array4<Real const> const& levset,
                                    Array4<int const> const& dmsk,
                                    Array4<Real const> const& ecx, Array4<Real const> const& ecy,
-                                   F && xeb, Real sigr, Real dr, Real dz, Real rlo, Real alpha) noexcept
+                                   F const& xeb, Real sigr, Real dr, Real dz, Real rlo, Real alpha) noexcept
 {
     Real const r = rlo + Real(i) * dr;
     if (dmsk(i,j,k) || (r == Real(0.0) && alpha != Real(0.0))) {

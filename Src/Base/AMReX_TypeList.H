@@ -34,13 +34,13 @@ using TypeAt = typename detail::TypeListGet<I,T>::type;
 namespace detail
 {
     template <typename TL, typename F, std::size_t...N>
-    constexpr void for_each_impl (F&&f, std::index_sequence<N...>)
+    constexpr void for_each_impl (F const&f, std::index_sequence<N...>)
     {
         (f(TypeAt<N,TL>{}), ...);
     }
 
     template <typename TL, typename F, std::size_t...N>
-    constexpr bool for_each_until_impl (F&&f, std::index_sequence<N...>)
+    constexpr bool for_each_until_impl (F const&f, std::index_sequence<N...>)
     {
         return (f(TypeAt<N,TL>{}) || ...);
     }

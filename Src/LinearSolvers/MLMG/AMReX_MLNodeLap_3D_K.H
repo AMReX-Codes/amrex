@@ -12,6 +12,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_nodal_mask (int i, int j, int k, Array4<int> const& nmsk,
                              Array4<int const> const& cmsk) noexcept
 {
+    using namespace nodelap_detail;
+
     int s = cmsk(i-1,j-1,k-1) + cmsk(i  ,j-1,k-1)
         +   cmsk(i-1,j  ,k-1) + cmsk(i  ,j  ,k-1)
         +   cmsk(i-1,j-1,k  ) + cmsk(i  ,j-1,k  )
@@ -1721,8 +1723,6 @@ void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
 // interpolation
 //
 
-namespace {
-
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real aa_interp_line_x (Array4<Real const> const& crse, Array4<Real const> const& sig,
                            int i, int j, int k, int ic, int jc, int kc) noexcept
@@ -1791,7 +1791,6 @@ namespace {
                 w3 * aa_interp_line_y(crse,sig,i,j  ,k-1,ic,jc  ,kc  ) +
                 w4 * aa_interp_line_y(crse,sig,i,j  ,k+1,ic,jc  ,kc+1)) / (w1+w2+w3+w4);
     }
-}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_interpadd_c (int i, int j, int k, Array4<Real> const& fine,
@@ -1971,7 +1970,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
         amrex::Abort("mlndlap_semi_interpolation semi direction wrong semi-direction. ");
     }
 }
-namespace {
+
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ha_interp_face_xy (Array4<Real const> const& crse,
@@ -2017,7 +2016,6 @@ namespace {
                 w3 * aa_interp_line_y(crse,sigy,i,j  ,k-1,ic,jc  ,kc  ) +
                 w4 * aa_interp_line_y(crse,sigy,i,j  ,k+1,ic,jc  ,kc+1)) / (w1+w2+w3+w4);
     }
-}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_interpadd_ha (int i, int j, int k, Array4<Real> const& fine,
@@ -2202,7 +2200,6 @@ void mlndlap_mknewu_c (int i, int j, int k, Array4<Real> const& u, Array4<Real c
            +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
 }
 
-namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real mlndlap_sum_Df (int ii, int jj, int kk, Real facx, Real facy, Real facz,
                          Array4<Real const> const& vel, Box const& velbx) noexcept
@@ -2234,7 +2231,6 @@ namespace {
         }
         return Df;
     }
-}
 
 template <int rr>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -2311,7 +2307,6 @@ void mlndlap_rhcc_fine_contrib (int i, int j, int k, Box const& ccbx,
     }
 }
 
-namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real neumann_scale (int i, int j, int k, Box const& nddom,
                         GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bclo,
@@ -2345,7 +2340,6 @@ namespace {
 
         return val;
     }
-}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_divu_cf_contrib (int i, int j, int k, Array4<Real> const& rhs,
@@ -2357,6 +2351,8 @@ void mlndlap_divu_cf_contrib (int i, int j, int k, Array4<Real> const& rhs,
                               GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bclo,
                               GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!dmsk(i,j,k) && ndmsk(i,j,k) == crse_fine_node) {
         Real facx = Real(0.25) * dxinv[0];
         Real facy = Real(0.25) * dxinv[1];
@@ -2479,10 +2475,9 @@ void mlndlap_crse_resid (int i, int j, int k, Array4<Real> const& resid,
 // sync residual
 //
 
-namespace {
     template <typename P, typename S>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real mlndlap_sum_Ax (P && pred, S && sig,
+    Real mlndlap_sum_Ax (P const& pred, S const& sig,
                          int i, int j, int k, Real facx, Real facy, Real facz,
                          Array4<Real const> const& phi) noexcept
     {
@@ -2604,7 +2599,7 @@ namespace {
 
     template <int rr, typename S>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void mlndlap_Ax_fine_contrib_doit (S&& sig,
+    void mlndlap_Ax_fine_contrib_doit (S const& sig,
                                        int i, int j, int k, Box const& ndbx, Box const& ccbx,
                                        Array4<Real> const& f, Array4<Real const> const& res,
                                        Array4<Real const> const& rhs,
@@ -2652,7 +2647,6 @@ namespace {
             f(i,j,k) = Real(0.0);
         }
     }
-}
 
 template <int rr>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -2692,6 +2686,8 @@ void mlndlap_res_cf_contrib (int i, int j, int k, Array4<Real> const& res,
                              GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
                              bool neumann_doubling) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!dmsk(i,j,k) && ndmsk(i,j,k) == crse_fine_node) {
         Real facx = Real(1./36.)*dxinv[0]*dxinv[0];
         Real facy = Real(1./36.)*dxinv[1]*dxinv[1];
@@ -2725,6 +2721,8 @@ void mlndlap_res_cf_contrib_cs (int i, int j, int k, Array4<Real> const& res,
                                 GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
                                 bool neumann_doubling) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!dmsk(i,j,k) && ndmsk(i,j,k) == crse_fine_node) {
         Real facx = Real(1./36.)*dxinv[0]*dxinv[0];
         Real facy = Real(1./36.)*dxinv[1]*dxinv[1];
@@ -2750,7 +2748,7 @@ void mlndlap_res_cf_contrib_cs (int i, int j, int k, Array4<Real> const& res,
 // RAP
 //
 
-namespace {
+namespace nodelap_detail {
 
     constexpr int ist_000 = 0;
     constexpr int ist_p00 = 1;
@@ -2769,6 +2767,8 @@ void mlndlap_set_stencil (Box const& bx, Array4<Real> const& sten,
                           Array4<Real const> const& sig,
                           GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
+    using namespace nodelap_detail;
+
     Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
     Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
     Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
@@ -2827,6 +2827,8 @@ void mlndlap_set_stencil (Box const& bx, Array4<Real> const& sten,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_stencil_s0 (int i, int j, int k, Array4<Real> const& sten) noexcept
 {
+    using namespace nodelap_detail;
+
     sten(i,j,k,ist_000) = -(sten(i-1,j,k,ist_p00) + sten(i,j,k,ist_p00)
                           + sten(i,j-1,k,ist_0p0) + sten(i,j,k,ist_0p0)
                           + sten(i,j,k-1,ist_00p) + sten(i,j,k,ist_00p)
@@ -2860,6 +2862,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
                           Array4<Real const> const& fsten) noexcept
 {
+    using namespace nodelap_detail;
+
     auto interp_from_mmm_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real p = Real(1.);
         p += std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
@@ -5459,6 +5463,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real mlndlap_adotx_sten (int i, int j, int k, Array4<Real const> const& x,
                          Array4<Real const> const& sten, Array4<int const> const& msk) noexcept
 {
+    using namespace nodelap_detail;
+
     if (msk(i,j,k)) {
         return Real(0.0);
     } else {
@@ -5505,6 +5511,8 @@ void mlndlap_gauss_seidel_sten (Box const& bx, Array4<Real> const& sol,
                                 Array4<Real const> const& sten,
                                 Array4<int const> const& msk) noexcept
 {
+    using namespace nodelap_detail;
+
     amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
@@ -5555,6 +5563,8 @@ void mlndlap_interpadd_rap (int i, int j, int k, Array4<Real> const& fine,
                             Array4<Real const> const& crse, Array4<Real const> const& sten,
                             Array4<int const> const& msk) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!msk(i,j,k) && sten(i,j,k,ist_000) != Real(0.0)) {
         int ic = amrex::coarsen(i,2);
         int jc = amrex::coarsen(j,2);
@@ -5803,6 +5813,8 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
                               Array4<Real const> const& fine, Array4<Real const> const& sten,
                               Array4<int const> const& msk) noexcept
 {
+    using namespace nodelap_detail;
+
     int ii = i*2;
     int jj = j*2;
     int kk = k*2;
@@ -6391,7 +6403,7 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
 
 #ifdef AMREX_USE_EB
 
-namespace {
+namespace nodelap_detail {
 
     constexpr int i_S_x     = 0;
     constexpr int i_S_y     = 1;
@@ -6459,6 +6471,8 @@ void mlndlap_set_connection (int i, int j, int k, Array4<Real> const& conn,
                              Array4<Real const> const& intg, Array4<Real const> const& vol,
                              Array4<EBCellFlag const> const& flag) noexcept
 {
+    using namespace nodelap_detail;
+
     if (flag(i,j,k).isCovered()) {
         for (int n = 0; n < n_conn; ++n) { conn(i,j,k,n) = Real(0.); }
     } else if (flag(i,j,k).isRegular() || vol(i,j,k) >= almostone) {
@@ -6630,6 +6644,8 @@ void mlndlap_set_stencil_eb (int i, int j, int k, Array4<Real> const& sten,
                              Array4<Real const> const& sig, Array4<Real const> const& conn,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
+    using namespace nodelap_detail;
+
     Real facx = Real(1./36.)*dxinv[0]*dxinv[0];
     Real facy = Real(1./36.)*dxinv[1]*dxinv[1];
     Real facz = Real(1./36.)*dxinv[2]*dxinv[2];
@@ -6682,6 +6698,8 @@ void mlndlap_divu_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real 
                       GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
                       GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
 {
+    using namespace nodelap_detail;
+
     Real facx = Real(0.25)*dxinv[0];
     Real facy = Real(0.25)*dxinv[1];
     Real facz = Real(0.25)*dxinv[2];
@@ -6842,6 +6860,8 @@ void add_eb_flow_contribution (int i, int j, int k, Array4<Real> const& rhs,
                       Array4<Real const> const& sintg,
                       Array4<Real const> const& eb_vel_dot_n) noexcept
 {
+    using namespace nodelap_detail;
+
     Real fac_eb = Real(0.125) * dxinv[0];
 
     if (!msk(i,j,k)) {
@@ -6918,6 +6938,8 @@ void mlndlap_mknewu_eb (int i, int j, int k, Array4<Real> const& u, Array4<Real 
                         Array4<Real const> const& sig, Array4<Real const> const& vfrac,
                         Array4<Real const> const& intg, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
+    using namespace nodelap_detail;
+
     if (vfrac(i,j,k) == Real(0.)) {
         u(i,j,k,0) = u(i,j,k,1) = u(i,j,k,2) = Real(0.);
     } else {
@@ -6957,6 +6979,8 @@ void mlndlap_mknewu_eb_c (int i, int j, int k, Array4<Real> const& u, Array4<Rea
                         Real sig, Array4<Real const> const& vfrac,
                         Array4<Real const> const& intg, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
+    using namespace nodelap_detail;
+
     if (vfrac(i,j,k) == Real(0.)) {
         u(i,j,k,0) = u(i,j,k,1) = u(i,j,k,2) = Real(0.);
     } else {
@@ -6996,6 +7020,8 @@ Real mlndlap_rhcc_eb (int i, int j, int k, Array4<Real const> const& rhcc,
                       Array4<Real const> const& vfrac, Array4<Real const> const& intg,
                       Array4<int const> const& msk) noexcept
 {
+    using namespace nodelap_detail;
+
     if (!msk(i,j,k)) {
         return
                           rhcc(i  ,j  ,k  ) *

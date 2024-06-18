@@ -4,15 +4,12 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
+#include <AMReX_BaseFab.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_NonLocalBC.H>
-
-#ifdef AMREX_USE_EB
-#include <AMReX_EBMultiFabUtil.H>
-#endif
 
 #include <cstdint>
 
@@ -241,16 +238,27 @@ public:
     * \brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
     */
     [[nodiscard]] Real sum (int comp = 0, bool local = false) const;
+    /**
+    * \brief Returns the sum of component "comp" in the given "region". -- no ghost cells are included.
+    */
+    [[nodiscard]] Real sum (Box const& region, int comp = 0, bool local = false) const;
 
     using FabArray<FArrayBox>::sum;
 
     /**
     * \brief Same as sum with \p local =false, but for non-cell-centered data, this
-    * skips non-unique points that are owned by multiple boxes.
+    * only adds non-unique points that are owned by multiple boxes once.
     */
     [[nodiscard]] Real sum_unique (int comp = 0,
                      bool local = false,
                      const Periodicity& period = Periodicity::NonPeriodic()) const;
+    /**
+    * \brief Returns the unique sum of component "comp" in the given
+    * region. Non-unique points owned by multiple boxes in the MultiFab are
+    * only added once. No ghost cells are included. This function does not take
+    * periodicity into account in the determination of uniqueness of points.
+    */
+    [[nodiscard]] Real sum_unique (Box const& region, int comp = 0, bool local = false) const;
     /**
     * \brief Adds the scalar value \p val to the value of each cell in the
     * specified subregion of the MultiFab.
@@ -489,6 +497,14 @@ public:
                      int             dstcomp,
                      int             numcomp,
                      const IntVect&  nghost);
+
+    /** Create a deep copy of this MultiFab and its data.
+     *
+     * This uses the same arena and factory in the copy and copies
+     * all data.
+     */
+    [[nodiscard]] MultiFab deepCopy () const;
+
     /**
     * \brief Copy from src to dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
@@ -640,6 +656,17 @@ public:
                             int             dstcomp,
                             int             numcomp,
                             const IntVect&  nghost);
+
+    /**
+    * \brief Are the numbers in the MF finite (i.e., neither nan nor inf)?
+    * This may return true, even if the MF contains NaNs or Infs, if the
+    * machine doesn't support the appropriate NaN and Inf testing functions.
+    *
+    * This version checks all components and grow cells.
+    */
+    [[nodiscard]] bool is_finite (bool local=false) const;
+    [[nodiscard]] bool is_finite (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
+    [[nodiscard]] bool is_finite (int scomp, int ncomp, const IntVect& ngrow, bool local=false) const;
 
     /**
     * \brief Are there any NaNs in the MF?

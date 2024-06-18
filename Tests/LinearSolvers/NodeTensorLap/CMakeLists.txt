@@ -1,4 +1,4 @@
-if (NOT AMReX_CUDA)
+if (AMReX_GPU_BACKEND STREQUAL NONE)
     foreach(D IN LISTS AMReX_SPACEDIM)
         if(D EQUAL 1)
             continue()

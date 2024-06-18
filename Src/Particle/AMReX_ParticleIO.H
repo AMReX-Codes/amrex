@@ -252,7 +252,7 @@ WritePlotFile (const std::string& dir, const std::string& name,
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>&>::value>::type*>
+template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>*>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir, const std::string& name, F&& f) const
@@ -319,7 +319,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
+template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>*>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir, const std::string& name,
@@ -775,7 +775,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     if (have_pheaders)
     {
-        for (int lev = 0; lev <= finest_level_in_file; lev++)
+        for (int lev = 0; lev <= finestLevel(); lev++)
         {
             old_dms[lev] = ParticleDistributionMap(lev);
             old_bas[lev] = ParticleBoxArray(lev);
@@ -790,12 +790,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             ParallelDescriptor::ReadAndBcastFile(phdr_name, phdr_chars);
             std::string phdr_string(phdr_chars.dataPtr());
             std::istringstream phdr_file(phdr_string, std::istringstream::in);
-
-            if (lev > finestLevel())
-            {
-                dual_grid = true;
-                break;
-            }
 
             particle_box_arrays[lev].readFrom(phdr_file);
             if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) { dual_grid = true; }
@@ -869,9 +863,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             }
         }
 
-        for(int igrid = 0; igrid < static_cast<int>(grids_to_read.size()); ++igrid) {
-            const int grid = grids_to_read[igrid];
-
+        for(int grid : grids_to_read) {
             if (count[grid] <= 0) { continue; }
 
             // The file names in the header file are relative.
@@ -929,7 +921,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     if (dual_grid) {
-        for (int lev = 0; lev <= finest_level_in_file; lev++) {
+        for (int lev = 0; lev <= finestLevel(); lev++) {
             SetParticleBoxArray(lev, old_bas[lev]);
             SetParticleDistributionMap(lev, old_dms[lev]);
         }
@@ -999,7 +991,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i = 0; i < cnt; i++) {
         // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct
         //       for backwards compatibility with readers
-        if (!ParticleType::is_soa_particle && convert_ids) {
+        if (convert_ids) {
             std::int32_t  xi, yi;
             std::uint32_t xu, yu;
             xi = iptr[0];

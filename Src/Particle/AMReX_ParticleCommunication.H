@@ -294,8 +294,8 @@ struct GetSendBufferOffset
 
 template <class PC, class Buffer,
           std::enable_if_t<IsParticleContainer<PC>::value &&
-                           std::is_base_of<PolymorphicArenaAllocator<typename Buffer::value_type>,
-                                           Buffer>::value, int> foo = 0>
+                           std::is_base_of_v<PolymorphicArenaAllocator<typename Buffer::value_type>,
+                                           Buffer>, int> foo = 0>
 void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan,
                  Buffer& snd_buffer)
 {
@@ -341,7 +341,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             auto index = std::make_pair(gid, tid);
 
             auto& src_tile = plev.at(index);
-            const auto ptd = src_tile.getConstParticleTileData();
+            const auto& ptd = src_tile.getConstParticleTileData();
 
             int num_copies = op.numCopies(gid, lev);
             if (num_copies == 0) { continue; }
@@ -395,7 +395,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
 template <class PC, class Buffer, class UnpackPolicy,
           std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
-void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, const UnpackPolicy&& policy)
+void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, UnpackPolicy const& policy)
 {
     BL_PROFILE("amrex::unpackBuffer");
 
@@ -481,10 +481,10 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
     for (int i = 0; i < NProcs; ++i) {
         if (plan.m_rcv_num_particles[i] > 0) {
             RcvProc.push_back(i);
-            rOffset.push_back(TotRcvBytes);
             Long nbytes = plan.m_rcv_num_particles[i]*psize;
-            std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+            std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
             TotRcvBytes = Long(amrex::aligned_size(acd, TotRcvBytes));
+            rOffset.push_back(TotRcvBytes);
             TotRcvBytes += Long(amrex::aligned_size(acd, nbytes));
             plan.m_rcv_pad_correction_h.push_back(plan.m_rcv_pad_correction_h.back() + nbytes);
         }
@@ -516,7 +516,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
         Long nbytes       = plan.m_rcv_num_particles[Who]*psize;
-        std::size_t acd   = ParallelDescriptor::alignof_comm_data(nbytes);
+        std::size_t acd   = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         const auto Cnt    = amrex::aligned_size(acd, nbytes);
 
         AMREX_ASSERT(Cnt > 0);
@@ -538,9 +538,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
         if (Cnt == 0) { continue; }
 
         auto snd_offset = plan.m_snd_offsets[i];
-        AMREX_ASSERT(plan.m_snd_counts[i] % ParallelDescriptor::alignof_comm_data(plan.m_snd_num_particles[i]*psize) == 0);
+        AMREX_ASSERT(plan.m_snd_counts[i] % ParallelDescriptor::sizeof_selected_comm_data_type(plan.m_snd_num_particles[i]*psize) == 0);
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
-        AMREX_ASSERT(snd_offset % ParallelDescriptor::alignof_comm_data(plan.m_snd_num_particles[i]*psize) == 0);
 
         ParallelDescriptor::Send((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
                                  ParallelContext::CommunicatorSub());
@@ -556,7 +555,7 @@ void communicateParticlesFinish (const ParticleCopyPlan& plan);
 
 template <class PC, class Buffer, class UnpackPolicy,
           std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
-void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, UnpackPolicy&& policy)
+void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, UnpackPolicy const& policy)
 {
     BL_PROFILE("amrex::unpackRemotes");
 

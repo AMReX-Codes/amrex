@@ -145,7 +145,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             amrex::Print() << "MLCGSolver_BiCGStab: niter = 0,"
                            << ", rnorm = " << rnorm
-                           << ", eps_abs = " << eps_abs << std::endl;
+                           << ", eps_abs = " << eps_abs << '\n';
         }
         return ret;
     }
@@ -315,7 +315,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         if ( verbose > 0 ) {
             amrex::Print() << "MLCGSolver_CG: niter = 0,"
                            << ", rnorm = " << rnorm
-                           << ", eps_abs = " << eps_abs << std::endl;
+                           << ", eps_abs = " << eps_abs << '\n';
         }
         return ret;
     }

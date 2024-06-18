@@ -182,7 +182,7 @@ cginterp_interp
   amrex::Abort( "Src/AmrCore/AMReX_Interp_2D_C.H: cginterp_interp not implemented. Calling amrex::Abort()" );
 } // end void cginterp_interp
 
-namespace {
+namespace interp_detail {
     constexpr int ix   = 0;
     constexpr int iy   = 1;
     constexpr int ixy  = 2;
@@ -193,6 +193,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& u,
                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
 {
+    using namespace interp_detail;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -221,6 +223,8 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
                   Array4<T const> const& slope, Array4<T const> const& crse,
                   const int ccomp, IntVect const& ratio) noexcept
 {
+    using namespace interp_detail;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
     const auto chi = amrex::ubound(slope);
@@ -282,6 +286,7 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
 
             break;
         }
+        default : { break; }
     }
 }
 

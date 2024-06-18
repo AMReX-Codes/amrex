@@ -62,11 +62,11 @@ namespace amrex {
 // CPU variation
 
     template<class L>
-    void launch_host (L&& f0) noexcept { f0(); }
+    void launch_host (L&& f0) noexcept { std::forward<L>(f0)(); }
 
     template<class L, class... Lambdas>
     void launch_host (L&& f0, Lambdas&&... fs) noexcept {
-        f0();
+        std::forward<L>(f0)();
         launch_host(std::forward<Lambdas>(fs)...);
     }
 
@@ -77,11 +77,11 @@ namespace amrex {
 namespace Gpu {
 
 #ifdef AMREX_USE_GPU
-    static constexpr std::size_t numThreadsPerBlockParallelFor () {
+    inline constexpr std::size_t numThreadsPerBlockParallelFor () {
         return AMREX_GPU_MAX_THREADS;
     }
 #else
-    static constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
+    inline constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
 #endif
 
 // ************************************************

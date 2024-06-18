@@ -235,7 +235,7 @@ int main(int argc, char* argv[])
         }
 
         // now open the slicefile and write out the data
-        amrex::Print() << "outputting lateral average of " << varname << " to " << slcfile << std::endl;
+        amrex::Print() << "outputting lateral average of " << varname << " to " << slcfile << '\n';
 
         std::ofstream slicefile;
         slicefile.open(slcfile);
@@ -244,14 +244,14 @@ int main(int argc, char* argv[])
         const auto w = 24;
 
         // write the header
-        slicefile << "# " << std::setw(w) << "height" << std::setw(w) << varname << std::endl;
+        slicefile << "# " << std::setw(w) << "height" << std::setw(w) << varname << '\n';
 
         // write the data in columns
         const auto SMALL = 1.e-20;
         for (auto i = 0; i < nbins; i++) {
             if (std::abs(var_bin[i]) < SMALL) var_bin[i] = 0.0;
 
-            slicefile << std::setw(w) << h[i] << std::setw(w) << var_bin[i] << std::endl;
+            slicefile << std::setw(w) << h[i] << std::setw(w) << var_bin[i] << '\n';
         }
 
         slicefile.close();
@@ -278,5 +278,5 @@ void PrintUsage ()
                    << "\n"
                    << "    -v name    : variable to average (default: density)\n"
                    << "    -f         : do Favre (density-weighted) average\n"
-                   << std::endl;
+                   << '\n';
 }

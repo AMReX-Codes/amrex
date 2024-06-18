@@ -57,15 +57,15 @@ public:
         m_gdb_object
         (std::make_unique<ParGDB>(geom,dmap,ba, [&]() -> Vector<int> {
                 Vector<int> ref_ratio;
-                for (int i = 0; i < static_cast<int>(rr.size()); ++i)
+                for (auto const& iv : rr)
                 {
 #if AMREX_SPACEDIM > 1
-                    AMREX_ASSERT(rr[i][0] == rr[i][1]);
+                    AMREX_ASSERT(iv[0] == iv[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                    AMREX_ASSERT(rr[i][0] == rr[i][2]);
+                    AMREX_ASSERT(iv[0] == iv[2]);
 #endif
-                    ref_ratio.push_back(rr[i][0]);
+                    ref_ratio.push_back(iv[0]);
                 }
                 return ref_ratio;  }() )),
         m_gdb(static_cast<ParGDBBase*>(m_gdb_object.get()))

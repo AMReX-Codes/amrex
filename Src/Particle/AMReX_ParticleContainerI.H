@@ -1010,7 +1010,7 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class F, class PCType,
           std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
-          std::enable_if_t<! std::is_integral<F>::value, int> bar>
+          std::enable_if_t<! std::is_integral_v<F>, int> bar>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 copyParticles (const PCType& other, F&& f, bool local)
@@ -1024,10 +1024,10 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class F, class PCType,
           std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
-          std::enable_if_t<! std::is_integral<F>::value, int> bar>
+          std::enable_if_t<! std::is_integral_v<F>, int> bar>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
-addParticles (const PCType& other, F&& f, bool local)
+addParticles (const PCType& other, F const& f, bool local)
 {
     BL_PROFILE("ParticleContainer::addParticles");
 
@@ -1115,6 +1115,19 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 });
             }
             Gpu::streamSynchronize();
+        } else {
+            typename SoA::IdCPU tmp_idcpu(np_total);
+
+            auto src = ptile.GetStructOfArrays().GetIdCPUData().data();
+            uint64_t* dst = tmp_idcpu.data();
+            AMREX_HOST_DEVICE_FOR_1D( np_total, i,
+            {
+                dst[i] = i < np ? src[permutations[i]] : src[i];
+            });
+
+            Gpu::streamSynchronize();
+
+            ptile.GetStructOfArrays().GetIdCPUData().swap(tmp_idcpu);
         }
 
         { // Create a scope for the temporary vector below
@@ -1790,7 +1803,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             // we need to create any missing map entries in serial here
             for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++)
             {
-                m_particles[lev][pmap_it->first];
+                DefineAndReturnParticleTile(lev, pmap_it->first.first, pmap_it->first.second);
                 grid_tile_ids.push_back(pmap_it->first);
                 pvec_ptrs.push_back(&(pmap_it->second));
             }
@@ -1801,7 +1814,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             for (int pit = 0; pit < static_cast<int>(pvec_ptrs.size()); ++pit)
             {
                 auto index = grid_tile_ids[pit];
-                auto& ptile = DefineAndReturnParticleTile(lev, index.first, index.second);
+                auto& ptile = ParticlesAt(lev, index.first, index.second);
                 auto& aos = ptile.GetArrayOfStructs();
                 auto& soa = ptile.GetStructOfArrays();
                 auto& aos_tmp = *(pvec_ptrs[pit]);
@@ -1829,17 +1842,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             // we need to create any missing map entries in serial here
             for (auto soa_map_it=soa_local[lev].begin(); soa_map_it != soa_local[lev].end(); soa_map_it++)
             {
-                m_particles[lev][soa_map_it->first];
+                DefineAndReturnParticleTile(lev, soa_map_it->first.first, soa_map_it->first.second);
                 grid_tile_ids.push_back(soa_map_it->first);
             }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-            for (int pit = 0; pit < static_cast<int>(grid_tile_ids.size()); ++pit)
+            for (int pit = 0; pit < static_cast<int>(grid_tile_ids.size()); ++pit) // NOLINT(modernize-loop-convert)
             {
                 auto index = grid_tile_ids[pit];
-                auto& ptile = DefineAndReturnParticleTile(lev, index.first, index.second);
+                auto& ptile = ParticlesAt(lev, index.first, index.second);
                 auto& soa = ptile.GetStructOfArrays();
                 auto& soa_tmp = soa_local[lev][index];
                 for (int i = 0; i < num_threads; ++i) {

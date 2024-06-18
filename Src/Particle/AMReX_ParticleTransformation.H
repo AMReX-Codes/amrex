@@ -178,7 +178,7 @@ void copyParticles (DstTile& dst, const SrcTile& src) noexcept
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 void copyParticles (DstTile& dst, const SrcTile& src,
                     Index src_start, Index dst_start, N n) noexcept
 {
@@ -232,9 +232,9 @@ void transformParticles (DstTile& dst, const SrcTile& src, F&& f) noexcept
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N, typename F,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 void transformParticles (DstTile& dst, const SrcTile& src,
-                         Index src_start, Index dst_start, N n, F&& f) noexcept
+                         Index src_start, Index dst_start, N n, F const& f) noexcept
 {
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
@@ -292,9 +292,9 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src, F&&
  */
 template <typename DstTile1, typename DstTile2, typename SrcTile,
           typename Index, typename N, typename F,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
-                         Index src_start, Index dst1_start, Index dst2_start, N n, F&& f) noexcept
+                         Index src_start, Index dst1_start, Index dst2_start, N n, F const& f) noexcept
 {
     const auto src_data  = src.getConstParticleTileData();
           auto dst1_data = dst1.getParticleTileData();
@@ -321,7 +321,7 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noexcept
 {
     return filterParticles(dst, src, mask, 0, 0, src.numParticles());
@@ -345,7 +345,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noex
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
                        Index src_start, Index dst_start, N n) noexcept
 {
@@ -382,10 +382,11 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
  * \param p predicate function - particles will be copied if p returns true
  *
  */
-template <typename DstTile, typename SrcTile, typename Pred>
+template <typename DstTile, typename SrcTile, typename Pred,
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,int> foo = 0>
 int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
 {
-    return filterParticles(dst, src, p, 0, 0, src.numParticles());
+    return filterParticles(dst, src, std::forward<Pred>(p), 0, 0, src.numParticles());
 }
 
 /**
@@ -407,7 +408,7 @@ int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
  */
 template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N,
           std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> nvccfoo = 0>
-Index filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
+Index filterParticles (DstTile& dst, const SrcTile& src, Pred const& p,
                        Index src_start, Index dst_start, N n) noexcept
 {
     Gpu::DeviceVector<Index> mask(n);
@@ -444,8 +445,8 @@ Index filterParticles (DstTile& dst, const SrcTile& src, Pred&& p,
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename F,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
-Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F&& f,
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
+Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F const& f,
                                    Index src_start, Index dst_start) noexcept
 {
     auto np = src.numParticles();
@@ -489,7 +490,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
  *
  */
 template <typename DstTile, typename SrcTile, typename Index, typename F,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F&& f) noexcept
 {
     return filterAndTransformParticles(dst, src, mask, std::forward<F>(f), 0, 0);
@@ -510,7 +511,8 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
-template <typename DstTile, typename SrcTile, typename Pred, typename F>
+template <typename DstTile, typename SrcTile, typename Pred, typename F,
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,int> foo = 0>
 int filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f) noexcept
 {
     return filterAndTransformParticles(dst, src, std::forward<Pred>(p), std::forward<F>(f), 0, 0);
@@ -534,9 +536,9 @@ int filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&&
  *
  */
 template <typename DstTile1, typename DstTile2, typename SrcTile, typename Index, typename F,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
-                                   const SrcTile& src, Index* mask, F&& f) noexcept
+                                   const SrcTile& src, Index* mask, F const& f) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> offsets(np);
@@ -578,9 +580,10 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
-template <typename DstTile1, typename DstTile2, typename SrcTile, typename Pred, typename F>
+template <typename DstTile1, typename DstTile2, typename SrcTile, typename Pred, typename F,
+          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>, int> foo = 0>
 int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
-                                 Pred&& p, F&& f) noexcept
+                                 Pred const& p, F&& f) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<int> mask(np);
@@ -620,7 +623,7 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
  */
 template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index,
           std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> nvccfoo = 0>
-Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f,
+Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred const& p, F&& f,
                                    Index src_start, Index dst_start) noexcept
 {
     auto np = src.numParticles();
@@ -659,7 +662,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F
  *
  */
 template <typename PTile, typename N, typename Index,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
 {
     const auto src_data = src.getConstParticleTileData();
@@ -689,7 +692,7 @@ void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
  *
  */
 template <typename PTile, typename N, typename Index,
-          std::enable_if_t<std::is_integral<Index>::value, int> foo = 0>
+          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
 void scatterParticles (PTile& dst, const PTile& src, N np, const Index* inds)
 {
     const auto src_data = src.getConstParticleTileData();

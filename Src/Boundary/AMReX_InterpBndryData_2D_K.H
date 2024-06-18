@@ -23,7 +23,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void interpbndrydata_x_o3 (int i, int j, int /*k*/, int n,
                            Array4<T> const& bdry, int nb,
                            Array4<T const> const& crse, int nc, Dim3 const& r,
-                           Array4<int const> const& mask, int not_covered) noexcept
+                           Array4<int const> const& mask, int not_covered, int max_width) noexcept
 {
     int ic = amrex::coarsen(i,r.x);
     int jc = amrex::coarsen(j,r.y);
@@ -37,7 +37,8 @@ void interpbndrydata_x_o3 (int i, int j, int /*k*/, int n,
         x[NN] = T(-1.0);
         y[NN] = crse(ic,jc-1,0,n+nc);
         ++NN;
-    } else if (mask.contains(i,(jc+2)*r.y,0) &&
+    } else if (max_width >= 2 &&
+               mask.contains(i,(jc+2)*r.y,0) &&
                mask         (i,(jc+2)*r.y,0) == not_covered && crse.contains(ic,jc+2,0)) {
         x[NN] = T(2.0);
         y[NN] = crse(ic,jc+2,0,n+nc);
@@ -48,7 +49,8 @@ void interpbndrydata_x_o3 (int i, int j, int /*k*/, int n,
         x[NN] = T(1.0);
         y[NN] = crse(ic,jc+1,0,n+nc);
         ++NN;
-    } else if (mask.contains(i,jc*r.y-r.y-1,0) &&
+    } else if (max_width >= 2 &&
+               mask.contains(i,jc*r.y-r.y-1,0) &&
                mask         (i,jc*r.y-r.y-1,0) == not_covered && crse.contains(ic,jc-2,0)) {
         x[NN] = T(-2.0);
         y[NN] = crse(ic,jc-2,0,n+nc);
@@ -73,7 +75,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void interpbndrydata_y_o3 (int i, int j, int /*k*/, int n,
                            Array4<T> const& bdry, int nb,
                            Array4<T const> const& crse, int nc, Dim3 const& r,
-                           Array4<int const> const& mask, int not_covered) noexcept
+                           Array4<int const> const& mask, int not_covered, int max_width) noexcept
 {
     int ic = amrex::coarsen(i,r.x);
     int jc = amrex::coarsen(j,r.y);
@@ -87,7 +89,8 @@ void interpbndrydata_y_o3 (int i, int j, int /*k*/, int n,
         x[NN] = T(-1.0);
         y[NN] = crse(ic-1,jc,0,n+nc);
         ++NN;
-    } else if (mask.contains((ic+2)*r.x,j,0) &&
+    } else if (max_width >= 2 &&
+               mask.contains((ic+2)*r.x,j,0) &&
                mask         ((ic+2)*r.x,j,0) == not_covered && crse.contains(ic+2,jc,0)) {
         x[NN] = T(2.0);
         y[NN] = crse(ic+2,jc,0,n+nc);
@@ -98,7 +101,8 @@ void interpbndrydata_y_o3 (int i, int j, int /*k*/, int n,
         x[NN] = T(1.0);
         y[NN] = crse(ic+1,jc,0,n+nc);
         ++NN;
-    } else if (mask.contains(ic*r.x-r.x-1,j,0) &&
+    } else if (max_width >= 2 &&
+               mask.contains(ic*r.x-r.x-1,j,0) &&
                mask         (ic*r.x-r.x-1,j,0) == not_covered && crse.contains(ic-2,jc,0)) {
         x[NN] = T(-2.0);
         y[NN] = crse(ic-2,jc,0,n+nc);

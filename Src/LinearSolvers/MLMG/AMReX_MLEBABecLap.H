@@ -129,6 +129,9 @@ public:
     Vector<Vector<MultiFab> > m_a_coeffs;
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
 
+    bool m_scalars_set = false;
+    bool m_acoef_set = false;
+
 protected:
 
     int m_ncomp = 1;

@@ -5,7 +5,6 @@
 #ifdef AMREX_USE_OMP
 #include <AMReX_Extension.H>
 #include <omp.h>
-#include <array>
 
 namespace amrex::OpenMP {
 
@@ -18,8 +17,15 @@ namespace amrex::OpenMP {
     void Initialize ();
     void Finalize ();
 
-    static constexpr int nlocks = 128;
-    extern AMREX_EXPORT std::array<omp_lock_t,nlocks> omp_locks;
+#if defined(_WIN32)
+    void** get_lock_impl (int ilock);
+
+    inline omp_lock_t* get_lock (int ilock) {
+        return (omp_lock_t*)(*(get_lock_impl(ilock)));
+    }
+#else
+    omp_lock_t* get_lock (int ilock);
+#endif
 }
 
 #else // AMREX_USE_OMP

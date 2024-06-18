@@ -105,7 +105,7 @@ void test ()
     Vector<int> level_steps(nlevs, 0);
 
     /* if (compression.compare("None@0") != 0) */
-    /*     std::cout << "Compression: " << compression << std::endl; */
+    /*     std::cout << "Compression: " << compression << '\n'; */
 
     char fname[512];
     for (int ts = 0; ts < nplotfile; ts++) {
@@ -114,7 +114,7 @@ void test ()
         // Fake computation
         if (ts > 0 && sleeptime > 0) {
             if (ParallelDescriptor::IOProcessor()) {
-                std::cout << "Sleep for " << sleeptime << " seconds." << std::endl;
+                std::cout << "Sleep for " << sleeptime << " seconds." << '\n';
                 fflush(stdout);
             }
             sleep(sleeptime);
@@ -139,7 +139,7 @@ void test ()
                                 varnames, geom, time, level_steps, ref_ratio);
 #endif
         if (ParallelDescriptor::IOProcessor())
-            std::cout << " done" << std::endl;
+            std::cout << " done" << '\n';
     }
 
     /* ParallelDescriptor::Barrier(); */
@@ -170,7 +170,7 @@ void test ()
         myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << " done" << std::endl;
+            std::cout << " done" << '\n';
 
         Vector<std::string> particle_realnames;
         for (int i = 0; i < NStructReal + NArrayReal; ++i)
@@ -186,7 +186,7 @@ void test ()
             // Fake computation
             if (ts > 0 && sleeptime > 0) {
                 if (ParallelDescriptor::IOProcessor()) {
-                    std::cout << "Sleep for " << sleeptime << " seconds." << std::endl;
+                    std::cout << "Sleep for " << sleeptime << " seconds." << '\n';
                     fflush(stdout);
                 }
                 sleep(sleeptime);
@@ -204,7 +204,7 @@ void test ()
             /* myPC.WriteAsciiFile("particle0_ascii"); */
 #endif
             if (ParallelDescriptor::IOProcessor())
-                std::cout << " done" << std::endl;
+                std::cout << " done" << '\n';
         }
     }
 

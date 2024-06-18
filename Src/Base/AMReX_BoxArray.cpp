@@ -61,7 +61,7 @@ BARef::BARef (const BoxList& bl)
 }
 
 BARef::BARef (BoxList&& bl) noexcept
-    : m_abox(std::move(bl.data()))
+    : m_abox(std::move(std::move(bl).data()))
 {
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
@@ -170,7 +170,7 @@ BARef::define (BoxList&& bl) noexcept
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(-1);
 #endif
-    m_abox = std::move(bl.data());
+    m_abox = std::move(std::move(bl).data());
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif
@@ -1005,6 +1005,34 @@ BoxArray::contains (const BoxArray& ba, bool assume_disjoint_ba, const IntVect& 
         if (!contains(ba[i],assume_disjoint_ba, ng)) {
             return false;
         }
+    }
+
+    return true;
+}
+
+bool
+BoxArray::contains (const BoxArray& ba, Periodicity const& period) const
+{
+    if (size() == 0) { return false; }
+
+    if (! period.isAnyPeriodic()) { return contains(ba); }
+
+    auto const& pshifts = period.shiftIntVect();
+
+    std::vector< std::pair<int,Box> > isects;
+    BoxList bl(ba.ixType());
+
+    for (int i = 0, N = static_cast<int>(ba.size()); i < N; ++i) {
+        Box const& b = ba[i];
+        bl.clear();
+        for (auto const& pit: pshifts) {
+            intersections(b+pit, isects);
+            for (auto const& is : isects) {
+                bl.push_back(is.second - pit);
+            }
+        }
+        BoxList const& left = amrex::complementIn(b, bl);
+        if (left.isNotEmpty()) { return false; }
     }
 
     return true;

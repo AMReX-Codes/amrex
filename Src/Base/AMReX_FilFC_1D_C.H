@@ -66,6 +66,7 @@ struct FilfcFace
                     q(i,0,0,n) = -q(2*ilo-i,0,0,n);
                     break;
                 }
+                default: { break; }
                 }
             }
             else if (i == ihi)
@@ -106,6 +107,7 @@ struct FilfcFace
                     q(i,0,0,n) = -q(2*ihi-i,0,0,n);
                     break;
                 }
+                default: { break; }
                 }
             }
         }

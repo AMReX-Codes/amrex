@@ -102,6 +102,61 @@ jobs:
         ccache -s
         du -hs ~/.cache/ccache
 
+  pyamrex:
+    name: pyamrex
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Checkout pyamrex
+      uses: actions/checkout@v4
+      with:
+        repository: 'AMReX-Codes/pyamrex'
+        ref: 'development'
+        path: 'pyamrex'
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build, Install & Test
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=400M
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
+        python3 -m pip install -U pip setuptools wheel
+        python3 -m pip install -U cmake
+        python3 -m pip install -U pandas pytest mpi4py
+
+        export AMREX_HOME=${PWD}
+        cd pyamrex
+
+        cmake -S . -B build               \
+              -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+              -DCMAKE_VERBOSE_MAKEFILE=ON \
+              -DBUILD_SHARED_LIBS=ON      \
+              -DpyAMReX_amrex_src=${AMREX_HOME} \
+              -DAMReX_MPI=ON              \
+              -DAMReX_SPACEDIM="1;2;3"
+        cmake --build build --target pip_install -j 4
+
+        ctest --test-dir build --output-on-failure
+
+        sudo cp build/lib/libamrex_*.so /usr/lib/
+        rm -rf build
+        python3 -m pytest tests
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
   save_pr_number:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

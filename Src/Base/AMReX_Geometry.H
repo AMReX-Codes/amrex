@@ -211,6 +211,7 @@ public:
     //! Sets our rectangular domain.
     void Domain (const Box& bx) noexcept
     {
+        AMREX_ASSERT(bx.cellCentered());
         domain = bx;
         computeRoundoffDomain();
     }

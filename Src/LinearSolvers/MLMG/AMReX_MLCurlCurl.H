@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_MLLinOp.H>
+#include <AMReX_MLCurlCurl_K.H>
 
 namespace amrex {
 
@@ -10,10 +11,15 @@ namespace amrex {
  * \brief curl (alpha curl E) + beta E = rhs
  *
  * Here E is an Array of 3 MultiFabs on staggered grid, alpha is a positive
- * scalar, and beta is a non-negative scalar.
+ * scalar, and beta is either a non-negative scalar or a MultiFab.
  *
- * TODO: If beta is zero, the system could be singular.
- * TODO: Try different restriction & interpolation strategies.
+ * It's the caller's responsibility to make sure rhs has consistent nodal
+ * data. If needed, one could call prepareRHS for this.
+ *
+ * The smoother is based on the 4-color Gauss-Seidel smoother of Li
+ * et. al. 2020.  "An Efficient Preconditioner for 3-D Finite Difference
+ * Modeling of the Electromagnetic Diffusion Process in the Frequency
+ * Domain", IEEE Transactions on Geoscience and Remote Sensing, 58, 500-509.
  */
 class MLCurlCurl
     : public MLLinOpT<Array<MultiFab,3> >
@@ -38,6 +44,15 @@ public:
                  const LPInfo& a_info = LPInfo());
 
     void setScalars (RT a_alpha, RT a_beta) noexcept;
+
+    //! This is needed only if there is variable beta coefficient.
+    void setBeta (const Vector<Array<MultiFab const*,3>>& a_bcoefs);
+
+    //! Synchronize RHS on nodal points. If the user can guarantee it, this
+    //! function does not need to be called.
+    void prepareRHS (Vector<MF*> const& rhs) const;
+
+    void setDirichletNodesToZero (int amrlev, int mglev, MF& a_mf) const override;
 
     [[nodiscard]] std::string name () const override {
         return std::string("curl of curl");
@@ -77,7 +92,7 @@ public:
     void averageDownAndSync (Vector<MF>& sol) const override;
 
     [[nodiscard]] IntVect getNGrowVectRestriction () const override {
-        return IntVect(0);
+        return IntVect(1);
     }
 
     void make (Vector<Vector<MF> >& mf, IntVect const& ng) const override;
@@ -92,21 +107,20 @@ public:
 
 // public for cuda
 
-    void smooth (int amrlev, int mglev, MF& sol, MultiFab const& rhs,
-                 int redblack) const;
+    void smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs, int color) const;
 
     void compresid (int amrlev, int mglev, MF& resid, MF const& b) const;
 
-    void applyPhysBC (int amrlev, int mglev, MultiFab& mf) const;
+    void applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlStateType type) const;
 
 private:
 
-    void applyBC (int amrlev, int mglev, MF& in) const;
-    void applyBC (int amrlev, int mglev, MultiFab& mf) const;
+    void applyBC (int amrlev, int mglev, MF& in, CurlCurlStateType type) const;
 
     [[nodiscard]] iMultiFab const& getDotMask (int amrlev, int mglev, int idim) const;
 
-    [[nodiscard]] int getDirichlet (int amrlev, int mglev, int idim, int face) const;
+    [[nodiscard]] CurlCurlDirichletInfo getDirichletInfo (int amrlev, int mglev) const;
+    [[nodiscard]] CurlCurlSymmetryInfo getSymmetryInfo (int amrlev, int mglev) const;
 
     RT m_alpha = std::numeric_limits<RT>::lowest();
     RT m_beta  = std::numeric_limits<RT>::lowest();
@@ -120,6 +134,9 @@ private:
 
     mutable Vector<Vector<Array<std::unique_ptr<iMultiFab>,3>>> m_dotmask;
     static constexpr int m_ncomp = 1;
+    Vector<Vector<std::unique_ptr<Gpu::DeviceScalar
+                                  <LUSolver<AMREX_SPACEDIM*2,RT>>>>> m_lusolver;
+    Vector<Vector<Array<std::unique_ptr<MultiFab>,3>>> m_bcoefs;
 };
 
 }

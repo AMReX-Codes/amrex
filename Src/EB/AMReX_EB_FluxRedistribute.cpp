@@ -1,3 +1,4 @@
+#include <AMReX_BCRec.H>
 #include <AMReX_EBFluxRegister.H>
 #include <AMReX_YAFluxRegister.H>
 #include <AMReX_EBFArrayBox.H>

@@ -59,6 +59,10 @@ public:
 
     void prepareForSolve () override;
 
+    void prepareForGMRES () override;
+
+    void setDirichletNodesToZero (int amrlev, int mglev, MultiFab& mf) const override;
+
     bool isSingular (int amrlev) const override
         { return (amrlev == 0) ? m_is_bottom_singular : false; }
     bool isBottomSingular () const override { return m_is_bottom_singular; }

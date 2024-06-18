@@ -227,14 +227,14 @@ class Machine
         auto sg_rank_n = sg_g_ranks.size();
         if (flag_verbose) {
             Print() << "Machine::find_best_nbh(): called for " << nbh_rank_n
-                    << " of " << sg_rank_n << " ranks" << std::endl;
+                    << " of " << sg_rank_n << " ranks" << '\n';
         }
 
         Vector<int> result;
         auto key = NeighborhoodCache::hash(sg_g_ranks, nbh_rank_n);
         if (nbh_cache.get(key, result)) {
             if (flag_verbose) {
-                Print() << "Machine::find_best_nbh(): found neighborhood in cache" << std::endl;
+                Print() << "Machine::find_best_nbh(): found neighborhood in cache" << '\n';
             }
         } else {
             // get node IDs of current subgroup
@@ -251,10 +251,10 @@ class Machine
             }
 
             if (flag_very_verbose) {
-                Print() << "SubRank: GloRank: Node ID: Node Coord:" << std::endl;
+                Print() << "SubRank: GloRank: Node ID: Node Coord:" << '\n';
                 for (int i = 0; i < sg_rank_n; ++i) {
                     Print() << "  " << i << ": " << sg_g_ranks[i] << ": " << sg_node_ids[i]
-                            << ": " << to_str(id_to_coord(sg_node_ids[i])) << std::endl;
+                            << ": " << to_str(id_to_coord(sg_node_ids[i])) << '\n';
                 }
             }
 
@@ -268,8 +268,8 @@ class Machine
                 double base_score;
                 tie(base_nbh, base_score) = baseline_score(sg_node_ids, nbh_rank_n);
 
-                Print() << "Baseline neighborhood: " << to_str(base_nbh) << ", score = " << base_score << std::endl;
-                Print() << "Rank 0's neighborhood: " << to_str(local_nbh) << ", score = " << score << std::endl;
+                Print() << "Baseline neighborhood: " << to_str(base_nbh) << ", score = " << base_score << '\n'
+                        << "Rank 0's neighborhood: " << to_str(local_nbh) << ", score = " << score << '\n';
             }
 
             // determine the best neighborhood among ranks
@@ -287,12 +287,12 @@ class Machine
             std::sort(local_nbh.begin(), local_nbh.end());
             if (flag_verbose) {
                 Print() << "Winning neighborhood: " << winner_rank << ": " << to_str(local_nbh)
-                        << ", score = " << winner_score << std::endl;
+                        << ", score = " << winner_score << '\n';
             }
 
             result.reserve(nbh_rank_n);
-            for (int i = 0; i < local_nbh.size(); ++i) {
-                for (auto rank : node_ranks.at(local_nbh[i])) {
+            for (int i : local_nbh) {
+                for (auto rank : node_ranks.at(i)) {
                     if (result.size() < nbh_rank_n) {
                         result.push_back(rank);
                     }
@@ -302,7 +302,7 @@ class Machine
         }
 
         if (flag_very_verbose) {
-            Print() << "Ranks in neighborhood: " << to_str(result) << std::endl;
+            Print() << "Ranks in neighborhood: " << to_str(result) << '\n';
         }
 
         return result;
@@ -360,11 +360,11 @@ class Machine
             topo_addr  = get_env_str("SLURM_TOPOLOGY_ADDR");
 
             if (flag_verbose) {
-                Print() << "HOSTNAME = " << hostname << std::endl;
-                Print() << "NERSC_HOST = " << nersc_host << std::endl;
-                Print() << "SLURM_JOB_PARTITION = " << partition << std::endl;
-                Print() << "SLURM_NODELIST = " << node_list << std::endl;
-                Print() << "SLURM_TOPOLOGY_ADDR = " << topo_addr << std::endl;
+                Print() << "HOSTNAME = " << hostname << '\n'
+                        << "NERSC_HOST = " << nersc_host << '\n'
+                        << "SLURM_JOB_PARTITION = " << partition << '\n'
+                        << "SLURM_NODELIST = " << node_list << '\n'
+                        << "SLURM_TOPOLOGY_ADDR = " << topo_addr << '\n';
             }
         }
     }
@@ -379,19 +379,19 @@ class Machine
             if (pos != std::string::npos) {
                 result = stoi(topo_addr.substr(pos + tag.size())); // assumes format ".*nid(\d+)"
                 if (flag_verbose) {
-                    Print() << "Got node ID from SLURM_TOPOLOGY_ADDR: " << result << std::endl;
+                    Print() << "Got node ID from SLURM_TOPOLOGY_ADDR: " << result << '\n';
                 }
             } else {
                 if (cluster_name == "escori") {
                     tag = "cgpu";
                 }
                 auto mpi_proc_name = get_mpi_processor_name();
-                Print() << "MPI_Get_processor_name: " << mpi_proc_name << std::endl;
+                Print() << "MPI_Get_processor_name: " << mpi_proc_name << '\n';
                 pos = mpi_proc_name.find(tag);
                 if (pos != std::string::npos) {
                     result = stoi(mpi_proc_name.substr(pos + tag.size())); // assumes format ".*nid(\d+)"
                     if (flag_verbose) {
-                        Print() << "Got node ID from MPI_Get_processor_name(): " << result << std::endl;
+                        Print() << "Got node ID from MPI_Get_processor_name(): " << result << '\n';
                     }
                 }
             }
@@ -422,10 +422,10 @@ class Machine
             for (int i = 0; i < ids.size(); ++i) {
                 node_ranks[ids[i]].push_back(i);
             }
-            Print() << "Node ID: Node Coord: Ranks:" << std::endl;
+            Print() << "Node ID: Node Coord: Ranks:" << '\n';
             for (const auto & p : node_ranks) {
                 Print() << "  " << p.first << ": " << to_str(id_to_coord(p.first))
-                        << ": " << to_str(p.second) << std::endl;
+                        << ": " << to_str(p.second) << '\n';
             }
         }
         return ids;
@@ -467,7 +467,7 @@ class Machine
                 if (flag_very_verbose) {
                     Print() << "    Distance from " << a.id
                             << " to " << b.id
-                            << ": " << pair_dist << std::endl;
+                            << ": " << pair_dist << '\n';
                 }
             }
         }
@@ -482,7 +482,7 @@ class Machine
         BL_PROFILE("Machine::search_local_nbh()");
 
         if (amrex::Verbose() > 0) {
-            Print() << "Machine::search_local_nbh() called ..." << std::endl;
+            Print() << "Machine::search_local_nbh() called ..." << '\n';
         }
 
         Vector<int> result;
@@ -497,11 +497,11 @@ class Machine
         }
 
         if (flag_very_verbose) {
-            Print() << "  Candidates:" << std::endl;
+            Print() << "  Candidates:" << '\n';
             for (const auto & p : candidates) {
                 const auto & cand = p.second;
                 Print() << "    " << cand.id << " : " << to_str(cand.coord)
-                        << ": " << cand.rank_n << " ranks" << std::endl;
+                        << ": " << cand.rank_n << " ranks" << '\n';
             }
         }
 
@@ -518,7 +518,7 @@ class Machine
                     << ": " << to_str(cur_node.coord)
                     << ", ranks: " << cur_node.rank_n
                     << ", total ranks: " << total_rank_n
-                    << ", avg dist: " << 0 << std::endl;
+                    << ", avg dist: " << 0 << '\n';
         }
         if (total_rank_n >= nbh_rank_n) {
             return {std::move(result), 0};
@@ -541,7 +541,7 @@ class Machine
                     Print() << "    Distance from " << cand_node.id
                             << " to " << cur_node.id
                             << ": " << cand_dist
-                            << ", candidate avg: " << avg_dist << std::endl;
+                            << ", candidate avg: " << avg_dist << '\n';
                 }
                 // keep track of what should be the next node to add
                 if (avg_dist < min_avg_dist) {
@@ -565,7 +565,7 @@ class Machine
                             << ": " << to_str(cur_node.coord)
                             << ", ranks: " << cur_node.rank_n
                             << ", total ranks: " << total_rank_n
-                            << ", avg dist: " << min_avg_dist << std::endl;
+                            << ", avg dist: " << min_avg_dist << '\n';
                 }
             }
         }

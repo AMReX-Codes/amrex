@@ -158,6 +158,23 @@ MLPoissonT<MF>::prepareForSolve ()
             }
         }
     }
+    if (!m_is_singular[0] && this->m_needs_coarse_data_for_bc &&
+        this->m_coarse_fine_bc_type == LinOpBCType::Neumann)
+    {
+        AMREX_ASSERT(this->m_overset_mask[0][0] == nullptr);
+        auto bbox = this->m_grids[0][0].minimalBox();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (this->m_lobc[0][idim] == LinOpBCType::Dirichlet) {
+                bbox.growLo(idim,1);
+            }
+            if (this->m_hibc[0][idim] == LinOpBCType::Dirichlet) {
+                bbox.growHi(idim,1);
+            }
+        }
+        if (this->m_geom[0][0].Domain().contains(bbox)) {
+            m_is_singular[0] = true;
+        }
+    }
 }
 
 template <typename MF>
@@ -911,8 +928,9 @@ MLPoissonT<MF>::makeNLinOp (int grid_size) const
     if (this->needsCoarseDataForBC())
     {
         const Real* dx0 = this->m_geom[0][0].CellSize();
-        const Real fac = Real(0.5)*this->m_coarse_data_crse_ratio;
-        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac, dx0[1]*fac, dx0[2]*fac)};
+        RealVect fac(this->m_coarse_data_crse_ratio);
+        fac *= Real(0.5);
+        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac[0], dx0[1]*fac[1], dx0[2]*fac[2])};
         nop->setCoarseFineBCLocation(cbloc);
     }
 

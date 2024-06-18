@@ -2,6 +2,8 @@
 
 #include "MyTest.H"
 
+#include <AMReX_GMRES.H>
+#include <AMReX_GMRES_MLMG.H>
 #include <AMReX_MLMG.H>
 #include <AMReX_ParmParse.H>
 
@@ -31,17 +33,50 @@ MyTest::solve ()
                                    LinOpBCType::Periodic)});
 
     mlcc.setScalars(alpha, beta);
+    if (variable_beta) {
+        Array<MultiFab,3> bcoef;
+        for (int idim = 0; idim < 3; ++idim) {
+            bcoef[idim].define(solution[idim].boxArray(),
+                               solution[idim].DistributionMap(), 1, 0);
+            bcoef[idim].setVal(beta);
+        }
+        mlcc.setBeta({Array<MultiFab const*,3>{bcoef.data(),
+                                               bcoef.data()+1,
+                                               bcoef.data()+2}});
+    }
+    mlcc.prepareRHS({&rhs});
 
-    MLMGT<Array<MultiFab,3> > mlmg(mlcc);
+    using V = Array<MultiFab,3>;
+    MLMGT<V> mlmg(mlcc);
     mlmg.setMaxIter(max_iter);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
     for (auto& mf : solution) {
         mf.setVal(Real(0));
     }
-    mlmg.solve({&solution}, {&rhs}, Real(1.0e-10), Real(0));
 
-    amrex::Print() << "  Number of cells: " << n_cell << std::endl;
+    auto tol_rel = Real(1.0e-10);
+    auto tol_abs = Real(0.0);
+
+    if (use_gmres)
+    {
+        GMRESMLMGT<V> gmsolver(mlmg);
+        gmsolver.usePrecond(gmres_use_precond);
+        gmsolver.setPrecondNumIters(gmres_precond_niters);
+
+        // This system has homogeneous BC unlike
+        // Tests/LinearSolvers/ABecLaplacian_C, so the setup is simpler.
+        gmsolver.setPropertyOfZero(true);
+
+        gmsolver.setVerbose(verbose);
+        gmsolver.solve(solution, rhs, tol_rel, tol_abs);
+    }
+    else
+    {
+        mlmg.solve({&solution}, {&rhs}, tol_rel, tol_abs);
+    }
+
+    amrex::Print() << "  Number of cells: " << n_cell << '\n';
     auto dvol = AMREX_D_TERM(geom.CellSize(0), *geom.CellSize(1), *geom.CellSize(2));
     Array<std::string,3> names{"Ex", "Ey", "Ez"};
     for (int idim = 0; idim < 3; ++idim) {
@@ -52,7 +87,7 @@ MyTest::solve ()
         auto e2 = solution[idim].norm2(0,geom.periodicity());
         e2 *= std::sqrt(dvol);
         amrex::Print() << "  " << names[idim] << " errors (max, L1, L2): "
-                       << e0 << " " << e1 << " " << e2 << std::endl;
+                       << e0 << " " << e1 << " " << e2 << '\n';
     }
 }
 
@@ -70,8 +105,13 @@ MyTest::readParameters ()
     pp.query("consolidation", consolidation);
     pp.query("max_coarsening_level", max_coarsening_level);
 
-    pp.query("alpha_over_dx2", alpha_over_dx2);
-    pp.query("beta", beta);
+    pp.query("use_gmres", use_gmres);
+    pp.query("gmres_use_precond", gmres_use_precond);
+    pp.query("gmres_precond_niters", gmres_precond_niters);
+
+    pp.query("beta_factor", beta_factor);
+    pp.query("alpha", alpha);
+    pp.query("variable_beta", variable_beta);
 }
 
 void
@@ -84,7 +124,7 @@ MyTest::initData ()
     geom.define(domain);
 
     const Real dx = geom.CellSize(0);
-    alpha = alpha_over_dx2 * dx*dx;
+    beta = beta_factor * alpha/(dx*dx);
 
     grids.define(domain);
     grids.maxSize(max_grid_size);

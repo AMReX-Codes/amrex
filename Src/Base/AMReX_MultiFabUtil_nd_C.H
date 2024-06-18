@@ -39,6 +39,7 @@ void amrex_fill_slice_interp (Box const& bx, Array4<Real> slice,
             break;
         case 2:
             khi = 1;
+        default: { break; }
         }
     } else {
         switch (dir)
@@ -51,6 +52,7 @@ void amrex_fill_slice_interp (Box const& bx, Array4<Real> slice,
             break;
         case 2:
             klo = -1;
+        default: { break; }
         }
     }
 

@@ -278,7 +278,7 @@ MLNodeABecLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
     amrex::ParallelFor(resmsk,
     [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
     {
-        if (fmsk[bno](i,j,k) == crse_fine_node) { rmsk[bno](i,j,k) = 1; }
+        if (fmsk[bno](i,j,k) == nodelap_detail::crse_fine_node) { rmsk[bno](i,j,k) = 1; }
     });
     Gpu::streamSynchronize();
 }

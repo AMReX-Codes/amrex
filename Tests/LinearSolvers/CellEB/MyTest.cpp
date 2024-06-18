@@ -31,7 +31,7 @@ MyTest::solve ()
                    MFInfo(), *factory[ilev]);
         MultiFab::Copy(v, vfrc, 0, 0, 1, 0);
         amrex::EB_set_covered(v, 1.0);
-        amrex::Print() << "vfrc min = " << v.min(0) << std::endl;
+        amrex::Print() << "vfrc min = " << v.min(0) << '\n';
     }
 
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;

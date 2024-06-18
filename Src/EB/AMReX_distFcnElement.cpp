@@ -204,7 +204,7 @@ void SplineDistFcnElement2d::single_spline_cpdist(amrex::RealVect pt,
 
   if (mindist == Real(0.0)) {
     std::cout << "identified minimum distance of 0.0 at t = " << t
-              << "; cp = " << mincp << " for p = " << pt << std::endl;
+              << "; cp = " << mincp << " for p = " << pt << '\n';
   }
 }
 
@@ -286,7 +286,6 @@ void SplineDistFcnElement2d::set_control_points
   for (auto & pt : pts) {
     control_points_x.push_back(pt[0]);
     control_points_y.push_back(pt[1]);
-    //  std::cout << "Added point (" << pt[0] << "," << pt[1] << ")" << std::endl;
   }
 }
 
@@ -301,12 +300,12 @@ void SplineDistFcnElement2d::set_bc_points(amrex::RealVect start,
 void SplineDistFcnElement2d::print_control_points() const {
   for (unsigned i=0; i<control_points_x.size(); ++i) {
     std::cout << "(" << control_points_x[i] << ","
-              << control_points_y[i] << ")" << std::endl;
+              << control_points_y[i] << ")" << '\n';
   }
 
   std::cout << "(" << bc_pt_start[0] << ","
-            << bc_pt_start[1] << ")" << std::endl;
-  std::cout << "(" << bc_pt_end[0] << "," << bc_pt_end[1] << ")" << std::endl;
+            << bc_pt_start[1] << ")" << '\n';
+  std::cout << "(" << bc_pt_end[0] << "," << bc_pt_end[1] << ")" << '\n';
 }
 
 
@@ -408,7 +407,6 @@ void LineDistFcnElement2d::set_control_points
   for (auto & pt : pts) {
     control_points_x.push_back(pt[0]);
     control_points_y.push_back(pt[1]);
-    //  std::cout << "Added point (" << pt[0] << "," << pt[1] << ")" << std::endl;
   }
 }
 
@@ -439,7 +437,7 @@ void LineDistFcnElement2d::print_control_points()
 {
   for (int i=1, N=static_cast<int>(control_points_x.size()); i<N; ++i) {
     std::cout << "(" << control_points_x[i-1] << ", "<< control_points_y[i-1] << ")" << "---"
-              << "(" << control_points_x[i] << ", " << control_points_y[i] << ")" << std::endl;
+              << "(" << control_points_x[i] << ", " << control_points_y[i] << ")" << '\n';
   }
 }
 

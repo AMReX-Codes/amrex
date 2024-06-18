@@ -16,7 +16,7 @@ namespace amrex {
 template <int N>
 struct IParserExecutor
 {
-    template <int M=N, typename std::enable_if_t<M==0,int> = 0>
+    template <int M=N, std::enable_if_t<M==0,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator() () const noexcept
     {

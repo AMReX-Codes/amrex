@@ -78,7 +78,7 @@ public:
           bigend(big),
           btype(typ)
         {
-            BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
+            BL_ASSERT(typ.allGE(0) && typ.allLE(1));
         }
 
     //! Construct dimension specific Boxes.
@@ -829,7 +829,7 @@ AMREX_FORCE_INLINE
 Box&
 Box::convert (const IntVect& typ) noexcept
 {
-    BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
+    BL_ASSERT(typ.allGE(0) && typ.allLE(1));
     IntVect shft(typ - btype.ixType());
     bigend += shft;
     btype = IndexType(typ);
@@ -1842,13 +1842,16 @@ Box makeSingleCellBox (int i, int j, int k, IndexType typ = IndexType::TheCellTy
 
 struct BoxIndexer
 {
+    std::uint64_t npts;
+
 #if (AMREX_SPACEDIM == 3)
     Math::FastDivmodU64 fdxy;
     Math::FastDivmodU64 fdx;
     IntVect lo;
 
     BoxIndexer (Box const& box)
-        : fdxy(std::uint64_t(box.length(0))*std::uint64_t(box.length(1))),
+        : npts(box.numPts()),
+          fdxy(std::uint64_t(box.length(0))*std::uint64_t(box.length(1))),
           fdx (std::uint64_t(box.length(0))),
           lo  (box.smallEnd())
         {}
@@ -1877,7 +1880,8 @@ struct BoxIndexer
     IntVect lo;
 
     BoxIndexer (Box const& box)
-        : fdx (std::uint64_t(box.length(0))),
+        : npts(box.numPts()),
+          fdx (std::uint64_t(box.length(0))),
           lo  (box.smallEnd())
         {}
 
@@ -1902,7 +1906,8 @@ struct BoxIndexer
     int lo;
 
     BoxIndexer (Box const& box)
-        : lo(box.smallEnd(0))
+        : npts(box.numPts()),
+          lo(box.smallEnd(0))
         {}
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1918,6 +1923,9 @@ struct BoxIndexer
     }
 
 #endif
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    std::uint64_t numPts () const { return npts; }
 };
 
 }

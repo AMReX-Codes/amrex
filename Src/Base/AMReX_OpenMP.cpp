@@ -135,9 +135,13 @@ namespace amrex
 #ifdef AMREX_USE_OMP
 namespace amrex::OpenMP
 {
-    std::array<omp_lock_t,nlocks> omp_locks;
-
     namespace {
+        constexpr int nlocks = 128;
+#if defined(_WIN32)
+        void* omp_locks[nlocks];
+#else
+        omp_lock_t omp_locks[nlocks];
+#endif
         unsigned int initialized = 0;
     }
 
@@ -153,9 +157,7 @@ namespace amrex::OpenMP
         pp.queryAdd("omp_threads", omp_threads);
 
         auto to_int = [](std::string const & str_omp_threads) {
-            std::optional<int> num;
-            try { num = std::stoi(str_omp_threads); }
-            catch (...) { /* nothing */ }
+            std::optional<int> num = std::stoi(str_omp_threads);
             return num;
         };
 
@@ -185,9 +187,17 @@ namespace amrex::OpenMP
             }
         }
 
+#if defined(_WIN32)
+        for (auto& vp : omp_locks) {
+            auto* p = new omp_lock_t;
+            omp_init_lock(p);
+            vp = (void*) p;
+        }
+#else
         for (auto& lck : omp_locks) {
             omp_init_lock(&lck);
         }
+#endif
 
         ++initialized;
     }
@@ -197,11 +207,30 @@ namespace amrex::OpenMP
         if (initialized) {
             --initialized;
             if (initialized == 0) {
+#if defined(_WIN32)
+                for (auto vp : omp_locks) {
+                    auto* p = (omp_lock_t*)vp;
+                    omp_destroy_lock(p);
+                    delete p;
+                }
+#else
                 for (auto& lck : omp_locks) {
                     omp_destroy_lock(&lck);
                 }
+#endif
             }
         }
+    }
+
+#if defined(_WIN32)
+    void** get_lock_impl(int ilock)
+#else
+    omp_lock_t* get_lock (int ilock)
+#endif
+    {
+        ilock = ilock % nlocks;
+        if (ilock < 0) { ilock += nlocks; }
+        return omp_locks + ilock;
     }
 
 } // namespace amrex::OpenMP

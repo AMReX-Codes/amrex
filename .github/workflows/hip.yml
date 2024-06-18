@@ -24,17 +24,11 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      # Have to have -Wno-deprecated-declarations due to deprecated atomicAddNoRet
-      # Have to have -Wno-gnu-zero-variadic-macro-arguments to avoid
-      #    amrex/Src/Base/AMReX_GpuLaunchGlobal.H:15:5: error: must specify at least one argument for '...' parameter of variadic macro [-Werror,-Wgnu-zero-variadic-macro-arguments]
-      #        __launch_bounds__(amrex_launch_bounds_max_threads)
-      #        ^
-      #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:178:71: note: expanded from macro '__launch_bounds__'
-      #        select_impl_(__VA_ARGS__, launch_bounds_impl1, launch_bounds_impl0)(__VA_ARGS__)
-      #                                                                          ^
-      #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:176:9: note: macro 'select_impl_' defined here
-      #    #define select_impl_(_1, _2, impl_, ...) impl_
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-deprecated-declarations -Wno-gnu-zero-variadic-macro-arguments"}
+      # Have to remove "-fno-operator-names to avoid
+      #    /opt/rocm-6.1.0/include/rocprim/device/detail/device_adjacent_difference.hpp:198:26: error: token is not a valid binary operator in a preprocessor subexpression
+      #      198 | #if defined(__gfx1102__) or defined(__gfx1030__)
+      #          |     ~~~~~~~~~~~~~~~~~~~~~^~
+      env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -59,7 +53,7 @@ jobs:
             -DAMReX_FORTRAN=ON                            \
             -DAMReX_LINEAR_SOLVERS=ON                     \
             -DAMReX_GPU_BACKEND=HIP                       \
-            -DAMReX_AMD_ARCH=gfx908                       \
+            -DAMReX_AMD_ARCH=gfx1010                      \
             -DAMReX_ROCTX=ON                              \
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which clang++)         \
@@ -88,17 +82,11 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      # Have to have -Wno-deprecated-declarations due to deprecated atomicAddNoRet
-      # Have to have -Wno-gnu-zero-variadic-macro-arguments to avoid
-      #    amrex/Src/Base/AMReX_GpuLaunchGlobal.H:15:5: error: must specify at least one argument for '...' parameter of variadic macro [-Werror,-Wgnu-zero-variadic-macro-arguments]
-      #        __launch_bounds__(amrex_launch_bounds_max_threads)
-      #        ^
-      #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:178:71: note: expanded from macro '__launch_bounds__'
-      #        select_impl_(__VA_ARGS__, launch_bounds_impl1, launch_bounds_impl0)(__VA_ARGS__)
-      #                                                                          ^
-      #    /opt/rocm-4.1.1/hip/include/hip/hcc_detail/hip_runtime.h:176:9: note: macro 'select_impl_' defined here
-      #    #define select_impl_(_1, _2, impl_, ...) impl_
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-deprecated-declarations -Wno-gnu-zero-variadic-macro-arguments"}
+      # Have to remove "-fno-operator-names to avoid
+      #    /opt/rocm-6.1.0/include/rocprim/device/detail/device_adjacent_difference.hpp:198:26: error: token is not a valid binary operator in a preprocessor subexpression
+      #      198 | #if defined(__gfx1102__) or defined(__gfx1030__)
+      #          |     ~~~~~~~~~~~~~~~~~~~~~^~
+      env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -158,7 +146,7 @@ jobs:
         ccache -z
 
         ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes --with-mpi no --with-omp no --single-precision yes --single-precision-particles yes
-        make -j4 WARN_ALL=TRUE XTRA_CXXFLAGS="-fno-operator-names" AMD_ARCH=gfx90a CCACHE=ccache
+        make -j4 WARN_ALL=TRUE AMD_ARCH=gfx90a CCACHE=ccache
         make install
 
         ccache -s
@@ -189,7 +177,7 @@ jobs:
         ccache -z
 
         cd Tests/LinearSolvers/NodeEB
-        make -j4 USE_HIP=TRUE USE_MPI=FALSE BL_NO_FORT=TRUE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names AMD_ARCH=gfx90a CCACHE=ccache
+        make -j4 USE_HIP=TRUE USE_MPI=FALSE BL_NO_FORT=TRUE WARN_ALL=TRUE WARN_ERROR=TRUE AMD_ARCH=gfx90a CCACHE=ccache
 
         ccache -s
         du -hs ~/.cache/ccache

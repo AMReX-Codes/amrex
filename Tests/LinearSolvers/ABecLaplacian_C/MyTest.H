@@ -32,6 +32,10 @@ private:
     void solveNodeABecLaplacian ();
     void solveABecLaplacianGMRES ();
 
+#ifdef AMREX_USE_HYPRE
+    void solveMLHypre ();
+#endif
+
     int max_level = 1;
     int ref_ratio = 2;
     int n_cell = 128;
@@ -42,6 +46,9 @@ private:
     // 1. Poisson,  2. ABecLaplacian, 3. ABecLaplacian w/ inhomNeumann
     // 4. NodeABecLaplacian
     int prob_type = 1;
+
+    bool use_mlhypre = false; // use multi-level hypre solver
+    bool use_hypre_ssamg = false; // this option is for mlhypre only
 
     // For MLMG solver
     int verbose = 2;

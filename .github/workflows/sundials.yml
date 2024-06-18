@@ -46,7 +46,7 @@ jobs:
         cd ../..
     - name: Compile Test
       run: |
-        .github/workflows/dependencies/dependencies_clang-tidy.sh 14
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         export CXXFLAGS="-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
@@ -61,14 +61,14 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-14 \
+            CLANG_TIDY=clang-tidy-17 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
         du -hs ~/.cache/ccache
 
   sundials-cuda:
-    name: CUDA SUNDIALS@6.5.0
+    name: CUDA SUNDIALS@7.0.0
     runs-on: ubuntu-22.04
     env:
        CCACHE_COMPRESS: 1
@@ -97,9 +97,9 @@ jobs:
         export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         which nvcc || echo "nvcc not in PATH!"
 
-        wget -q https://github.com/LLNL/sundials/archive/refs/tags/v6.5.0.tar.gz
-        tar xfz v6.5.0.tar.gz
-        cd sundials-6.5.0
+        wget -q https://github.com/LLNL/sundials/archive/refs/tags/v7.0.0.tar.gz
+        tar xfz v7.0.0.tar.gz
+        cd sundials-7.0.0
         mkdir instdir builddir
         cd builddir
         cmake ..                                     \
@@ -126,7 +126,7 @@ jobs:
             -DAMReX_GPU_BACKEND=CUDA    \
             -DAMReX_CUDA_ARCH=8.0       \
             -DAMReX_SUNDIALS=ON         \
-            -DSUNDIALS_ROOT=${PWD}/sundials-6.5.0/instdir \
+            -DSUNDIALS_ROOT=${PWD}/sundials-7.0.0/instdir \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache  \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
