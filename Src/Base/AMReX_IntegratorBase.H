@@ -227,6 +227,11 @@ protected:
     amrex::Real time_step;
 
     /**
+     * \brief Step size of the last completed step (Real)
+     */
+    amrex::Real previous_time_step;
+
+    /**
      * \brief Flag to enable/disable adaptive time stepping at the fast time
      * scale in multirate methods (bool)
      */

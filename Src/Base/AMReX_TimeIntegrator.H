@@ -210,13 +210,11 @@ public:
         integrator_ptr->advance(S_old, S_new, time, dt);
     }
 
-    // TODO: Add to FE and RK integrators
     void evolve (T& S_out, const amrex::Real time_out)
     {
         integrator_ptr->evolve(S_out, time_out);
     }
 
-    // TODO: Change to advance
     void integrate (T& S_old, T& S_new, amrex::Real start_time, const amrex::Real start_timestep,
                     const amrex::Real end_time, const int start_step, const int max_steps)
     {
@@ -235,14 +233,13 @@ public:
             }
 
             // Call the time integrator step
-            integrator_ptr->step(S_old, S_new, m_time, m_timestep);
+            integrator_ptr->advance(S_old, S_new, m_time, m_timestep);
 
             // Update our time variable
             m_time += m_timestep;
         }
     }
 
-    // TODO: Update to use prev_time_step
     void time_interpolate (const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data)
     {
         integrator_ptr->time_interpolate(S_new, S_old, timestep_fraction, data);
