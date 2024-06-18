@@ -220,7 +220,7 @@ FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccom
 }
 
 template <typename MF, typename Interp>
-std::enable_if_t<IsFabArray<MF>::value && !std::is_same<Interp,MFInterpolater>::value>
+std::enable_if_t<IsFabArray<MF>::value && !std::is_same_v<Interp,MFInterpolater>>
 FillPatchInterp( MF       & FineMF, MF const & FineMF_G,
                  MF const & CrseMF, MF const & CrseMF_G,
                  int nComp, IntVect const & swX, const Geometry & CrseGeom,
@@ -259,7 +259,7 @@ FillPatchInterp( MF       & FineMF, MF const & FineMF_G,
 }
 
 template <typename MF, typename Interp>
-std::enable_if_t<IsFabArray<MF>::value && !std::is_same<Interp,MFInterpolater>::value>
+std::enable_if_t<IsFabArray<MF>::value && !std::is_same_v<Interp,MFInterpolater>>
 FillPatchInterp( MF       & FineMF,
                  MF const & CrseMF,
                  int nComp, IntVect const & swX, const Geometry & CrseGeom,
