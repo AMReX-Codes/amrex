@@ -205,6 +205,21 @@ public:
         integrator_ptr->set_adaptive_fast_step();
     }
 
+    void set_max_steps (int steps)
+    {
+        integrator_ptr->set_max_steps(steps);
+    }
+
+    void set_tolerances (amrex::Real rtol, amrex::Real atol)
+    {
+        integrator_ptr->set_tolerances(rtol, atol);
+    }
+
+    void set_fast_tolerances (amrex::Real rtol, amrex::Real atol)
+    {
+        integrator_ptr->set_fast_tolerances(rtol, atol);
+    }
+
     void advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt)
     {
         integrator_ptr->advance(S_old, S_new, time, dt);

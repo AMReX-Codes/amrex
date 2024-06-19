@@ -116,15 +116,11 @@ private:
     // Single rate or slow time scale
     void *arkode_mem   = nullptr;
     SUNLinearSolver LS = nullptr;
-    Real reltol        = 1.0e-4;
-    Real abstol        = 1.0e-9;
 
     // Fast time scale
     void *arkode_fast_mem            = nullptr;
     MRIStepInnerStepper fast_stepper = nullptr;
     SUNLinearSolver fast_LS          = nullptr;
-    Real fast_reltol                 = 1.0e-4;
-    Real fast_abstol                 = 1.0e-9;
 
     void initialize_parameters ()
     {
@@ -188,7 +184,7 @@ private:
         ARKStepSetUserData(arkode_mem, &udata);
 
         // Set integrator tolerances
-        ARKStepSStolerances(arkode_mem, reltol, abstol);
+        ARKStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
 
         // Create and attach linear solver for implicit methods
         if (type == "DIRK" || type == "IMEX-RK") {
@@ -230,7 +226,7 @@ private:
         ARKStepSetUserData(arkode_fast_mem, &udata);
 
         // Set integrator tolerances
-        ARKStepSStolerances(arkode_fast_mem, fast_reltol, fast_abstol);
+        ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
 
         // Set post stage and step function
         ARKStepSetPostprocessStageFn(arkode_fast_mem, SundialsUserFun::post_fast_stage);
@@ -267,7 +263,7 @@ private:
         MRIStepSetUserData(arkode_mem, &udata);
 
         // Set integrator tolerances
-        MRIStepSStolerances(arkode_mem, reltol, abstol);
+        MRIStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
 
         // Create and attach linear solver
         if (type == "IM-MRI" || type == "IMEX-MRI") {

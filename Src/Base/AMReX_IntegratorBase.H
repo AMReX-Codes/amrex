@@ -253,6 +253,29 @@ protected:
      */
     int max_steps = 500;
 
+    /**
+     * \brief Relative tolerance for adaptive time stepping (Real)
+     */
+    amrex::Real rel_tol = 1.0e-4;
+
+    /**
+     * \brief Absolute tolerance for adaptive time stepping (Real)
+     */
+    amrex::Real abs_tol = 1.0e-9;
+
+    /**
+     * \brief Relative tolerance for adaptive time stepping at the fast time
+     * scale (Real)
+     */
+    amrex::Real fast_rel_tol = 1.0e-4;
+
+    /**
+     * \brief Absolute tolerance for adaptive time stepping at the fast time
+     * scale (Real)
+     */
+    amrex::Real fast_abs_tol = 1.0e-9;
+
+
 public:
     IntegratorBase () = default;
 
@@ -338,6 +361,18 @@ public:
     void set_max_steps (int steps)
     {
         max_steps = steps;
+    }
+
+    void set_tolerances (amrex::Real rtol, amrex::Real atol)
+    {
+        rel_tol = rtol;
+        abs_tol = atol;
+    }
+
+    void set_fast_tolerances (amrex::Real rtol, amrex::Real atol)
+    {
+        fast_rel_tol = rtol;
+        fast_abs_tol = atol;
     }
 
     /**
