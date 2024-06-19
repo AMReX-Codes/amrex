@@ -145,7 +145,7 @@ private:
             use_mri = true;
         }
         else {
-            std::string msg("Unknown strategy: ");
+            std::string msg("Unknown method type: ");
             msg += type;
             amrex::Error(msg.c_str());
         }
