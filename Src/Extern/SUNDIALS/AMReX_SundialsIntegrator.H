@@ -111,7 +111,7 @@ private:
     //
     // We should probably use context created by amrex:sundials::Initialize but
     // that context is not MPI-aware
-    SUNContext sunctx = nullptr;
+    ::sundials::Context sunctx;
 
     // Single rate or slow time scale
     void *arkode_mem   = nullptr;
@@ -312,7 +312,7 @@ private:
 
         for (int i = 0; i < NV_len; ++i) {
             NV_array[i] = amrex::sundials::N_VMake_MultiFab(get_length(i),
-                                                            &S_data[i], sunctx);
+                                                            &S_data[i], &sunctx);
         }
 
         N_Vector y_data = N_VNew_ManyVector(NV_len, NV_array, sunctx);
@@ -339,7 +339,7 @@ private:
                                                            S_data[i].DistributionMap(),
                                                            S_data[i].nComp(),
                                                            S_data[i].nGrow(),
-                                                           sunctx);
+                                                           &sunctx);
 
             MultiFab::Copy(*amrex::sundials::getMFptr(NV_array[i]),
                            S_data[i],
@@ -373,7 +373,7 @@ private:
     N_Vector wrap_data (amrex::MultiFab& S_data)
     {
         return amrex::sundials::N_VMake_MultiFab(S_data.nComp() * S_data.boxArray().numPts(),
-                                                 &S_data, sunctx);
+                                                 &S_data, &sunctx);
     };
 
     // Utility to wrap a MultiFab as a SUNDIALS Vector
@@ -384,7 +384,7 @@ private:
                                                            S_data.DistributionMap(),
                                                            S_data.nComp(),
                                                            S_data.nGrow(),
-                                                           sunctx);
+                                                           &sunctx);
 
         MultiFab::Copy(*amrex::sundials::getMFptr(y_data),
                        S_data,
@@ -409,12 +409,16 @@ public:
         initialize_parameters();
         MPI_Comm mpi_comm = ParallelContext::CommunicatorSub();
 #if defined(SUNDIALS_VERSION_MAJOR) && (SUNDIALS_VERSION_MAJOR < 7)
-        SUNContext_Create(&mpi_comm, &sunctx);
+#  ifdef AMREX_USE_MPI
+        sunctx = ::sundials::Context(&mpi_comm);
+#  else
+        sunctx = ::sundials::Context(nullptr);
+#  endif
 #else
 #  ifdef AMREX_USE_MPI
-        SUNContext_Create(mpi_comm, &sunctx);
+        sunctx = ::sundials::Context(mpi_comm);
 #  else
-        SUNContext_Create(SUN_COMM_NULL, &sunctx);
+        sunctx = ::sundials::Context(SUN_COMM_NULL);
 #  endif
 #endif
 
@@ -543,7 +547,6 @@ public:
         MRIStepInnerStepper_Free(&fast_stepper);
         MRIStepFree(&arkode_fast_mem);
         ARKStepFree(&arkode_mem);
-        SUNContext_Free(&sunctx);
     }
 
     amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
