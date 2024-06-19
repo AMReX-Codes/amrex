@@ -484,6 +484,12 @@ cmake_dependent_option(AMReX_CLANG_TIDY_WERROR "Treat clang-tidy warnings as err
 print_option(AMReX_CLANG_TIDY_WERROR)
 
 #
+# CCache  =============================================================
+#
+option(AMReX_CCACHE "Enable CCache" OFF)
+print_option(AMReX_CCACHE)
+
+#
 # Tests  =============================================================
 #
 option(AMReX_ENABLE_TESTS "Enable CTest suite for AMReX" NO)

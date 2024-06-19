@@ -102,6 +102,14 @@ endif()
 include( AMReXOptions )
 
 #
+# CCache
+#
+include(AMReXCCache)
+if (AMReX_CCACHE)
+   setup_ccache()
+endif()
+
+#
 # Enable CUDA if requested
 #
 if (AMReX_CUDA)
