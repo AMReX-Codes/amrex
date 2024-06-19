@@ -107,7 +107,10 @@ private:
     // structure for interfacing with user-supplied functions
     SundialsUserData udata;
 
-    // SUNDIALS context -- should use context created by amrex:sundials::Initialize
+    // SUNDIALS context
+    //
+    // We should probably use context created by amrex:sundials::Initialize but
+    // that context is not MPI-aware
     SUNContext sunctx = nullptr;
 
     // Single rate or slow time scale
@@ -309,7 +312,7 @@ private:
 
         for (int i = 0; i < NV_len; ++i) {
             NV_array[i] = amrex::sundials::N_VMake_MultiFab(get_length(i),
-                                                            &S_data[i]); // correct context
+                                                            &S_data[i], sunctx);
         }
 
         N_Vector y_data = N_VNew_ManyVector(NV_len, NV_array, sunctx);
@@ -335,7 +338,8 @@ private:
                                                            S_data[i].boxArray(),
                                                            S_data[i].DistributionMap(),
                                                            S_data[i].nComp(),
-                                                           S_data[i].nGrow()); // correct context
+                                                           S_data[i].nGrow(),
+                                                           sunctx);
 
             MultiFab::Copy(*amrex::sundials::getMFptr(NV_array[i]),
                            S_data[i],
@@ -369,7 +373,7 @@ private:
     N_Vector wrap_data (amrex::MultiFab& S_data)
     {
         return amrex::sundials::N_VMake_MultiFab(S_data.nComp() * S_data.boxArray().numPts(),
-                                                 &S_data); // correct context
+                                                 &S_data, sunctx);
     };
 
     // Utility to wrap a MultiFab as a SUNDIALS Vector
@@ -379,7 +383,8 @@ private:
                                                            S_data.boxArray(),
                                                            S_data.DistributionMap(),
                                                            S_data.nComp(),
-                                                           S_data.nGrow()); // correct context
+                                                           S_data.nGrow(),
+                                                           sunctx);
 
         MultiFab::Copy(*amrex::sundials::getMFptr(y_data),
                        S_data,
