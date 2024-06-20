@@ -290,15 +290,15 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 
         char comp_name[128];
         
-	// Real component names
-	int comp_idx = 0;
+        // Real component names
+        int real_comp_count = AMREX_SPACEDIM; // position values
 
         for (int i = 0; i < NStructReal + pc.NumRealComps(); ++i ) {
             if (write_real_comp[i]) {
                 /* HdrFile << real_comp_names[i] << '\n'; */
-                snprintf(comp_name, sizeof comp_name, "real_component_%d", comp_idx);
+                snprintf(comp_name, sizeof comp_name, "real_component_%d", real_comp_count);
                 CreateWriteHDF5AttrString(fid, comp_name, real_comp_names[i].c_str());
-		++comp_idx;
+                ++real_comp_count;
             }
         }
 
@@ -306,13 +306,13 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         CreateWriteHDF5Attr(fid, "num_component_int", 1, &num_output_int, H5T_NATIVE_INT);
 	
         // int component names
-        comp_idx = 0;
+        int int_comp_count = 2;
 	
-	for (int i = 0; i < NStructInt + pc.NumIntComps(); ++i ) {
+        for (int i = 0; i < NStructInt + pc.NumIntComps(); ++i ) {
             if (write_int_comp[i]) {
-                snprintf(comp_name, sizeof comp_name, "int_component_%d", comp_idx);
+                snprintf(comp_name, sizeof comp_name, "int_component_%d", int_comp_count);
                 CreateWriteHDF5AttrString(fid, comp_name, int_comp_names[i].c_str());
-		++comp_idx;
+                ++int_comp_count;
             }
         }
 
