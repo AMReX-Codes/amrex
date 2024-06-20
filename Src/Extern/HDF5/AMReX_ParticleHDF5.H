@@ -704,6 +704,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     hid_t          int_mem_space, int_dset_id, int_dset_space;
     hsize_t        total_mfi = 0, total_real_size = 0, total_int_size = 0, real_file_offset = 0, int_file_offset = 0;
     hsize_t        my_int_offset, my_int_count, my_real_offset, my_real_count;
+    
+    // Count total number of components written
+    int real_comp_count = AMREX_SPACEDIM; // position values
 
     // Count total number of components written
     int real_comp_count = AMREX_SPACEDIM; // position values
