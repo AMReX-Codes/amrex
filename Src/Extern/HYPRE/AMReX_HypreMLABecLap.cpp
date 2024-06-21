@@ -26,7 +26,7 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
     BL_PROFILE("HypreMLABecLap::HypreMLABecLap");
 
 #ifndef AMREX_FEATURE_HYPRE_SSAMG
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_hypre_solver_id == HypreSolverID::BoomerAMG,
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_hypre_solver_id != HypreSolverID::SSAMG,
                                      "HypreMLABecLap only supports BoomerAMG ifndef AMREX_FEATURE_HYPRE_SSAMG");
 #endif
 
@@ -847,29 +847,47 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
     } else
 #endif
     {
-        BL_PROFILE("HYPRE_BoomerAMG_setup");
+      BL_PROFILE("HYPRE_BoomerAMG_setup");
+      
+      AMREX_ALWAYS_ASSERT(m_solver == nullptr);
 
-        AMREX_ALWAYS_ASSERT(m_solver == nullptr);
+      if (m_hypre_solver_id == HypreSolverID::BoomerAMGDD) {
+	amrex::Print() << "using BoomerAMG-DD.\n";
+	HYPRE_BoomerAMGDDCreate(&m_solver_amgdd);
+	HYPRE_BoomerAMGDDGetAMG(m_solver_amgdd, &m_solver);
+	
+	HYPRE_BoomerAMGDDSetStartLevel(m_solver_amgdd, 0); // do AMG-DD on all levels
+	HYPRE_BoomerAMGDDSetPadding(m_solver_amgdd, 1); // use one layer of padding
+	HYPRE_BoomerAMGDDSetNumGhostLayers(m_solver_amgdd, 1); // use one ghost layer
+	HYPRE_BoomerAMGDDSetFACNumRelax(m_solver_amgdd, 1);
+	HYPRE_BoomerAMGDDSetFACNumCycles(m_solver_amgdd, 2); // do 2 V-cycles
+	// HYPRE_BoomerAMGDDSetFACRelaxType(m_solver_amgdd, 3);
+	// HYPRE_BoomerAMGDDSetFACCycleType(m_solver_amgdd, 1);
+      } else {
+	HYPRE_BoomerAMGCreate(&m_solver);
+      }	
+      
+      HYPRE_BoomerAMGSetOldDefault(m_solver); // Falgout coarsening with modified classical interpolation
+      HYPRE_BoomerAMGSetStrongThreshold(m_solver, (AMREX_SPACEDIM == 3) ? 0.6 : 0.25); // default is 0.25
+      HYPRE_BoomerAMGSetRelaxOrder(m_solver, 1);   /* 0: default, natural order, 1: C/F relaxation order */
+      HYPRE_BoomerAMGSetNumSweeps(m_solver, 2);   /* Sweeps on fine levels */
+      // HYPRE_BoomerAMGSetFCycle(m_solver, 1); // default is 0
+      // HYPRE_BoomerAMGSetCoarsenType(m_solver, 6);
+      // HYPRE_BoomerAMGSetRelaxType(m_solver, 6);   /* G-S/Jacobi hybrid relaxation */
 
-        HYPRE_BoomerAMGCreate(&m_solver);
+      HYPRE_BoomerAMGSetLogging(m_solver, m_verbose);
+      HYPRE_BoomerAMGSetPrintLevel(m_solver, m_verbose);
 
-        HYPRE_BoomerAMGSetOldDefault(m_solver); // Falgout coarsening with modified classical interpolation
-        HYPRE_BoomerAMGSetStrongThreshold(m_solver, (AMREX_SPACEDIM == 3) ? 0.6 : 0.25); // default is 0.25
-        HYPRE_BoomerAMGSetRelaxOrder(m_solver, 1);   /* 0: default, natural order, 1: C/F relaxation order */
-        HYPRE_BoomerAMGSetNumSweeps(m_solver, 2);   /* Sweeps on fine levels */
-        // HYPRE_BoomerAMGSetFCycle(m_solver, 1); // default is 0
-        // HYPRE_BoomerAMGSetCoarsenType(m_solver, 6);
-        // HYPRE_BoomerAMGSetRelaxType(m_solver, 6);   /* G-S/Jacobi hybrid relaxation */
+      HYPRE_ParCSRMatrix par_A;
+      HYPRE_SStructMatrixGetObject(m_ss_A, (void**) &par_A);
 
-        HYPRE_BoomerAMGSetLogging(m_solver, m_verbose);
-        HYPRE_BoomerAMGSetPrintLevel(m_solver, m_verbose);
-
-        HYPRE_ParCSRMatrix par_A;
-        HYPRE_SStructMatrixGetObject(m_ss_A, (void**) &par_A);
-        HYPRE_BoomerAMGSetup(m_solver, par_A, nullptr, nullptr);
-
-        HYPRE_BoomerAMGSetMinIter(m_solver, 1);
-        HYPRE_BoomerAMGSetMaxIter(m_solver, m_maxiter);
+      if (m_hypre_solver_id == HypreSolverID::BoomerAMG) {
+	// we don't need rhs to do setup for BoomerAMG
+	HYPRE_BoomerAMGSetup(m_solver, par_A, nullptr, nullptr);
+      }
+      
+      HYPRE_BoomerAMGSetMinIter(m_solver, 1);
+      HYPRE_BoomerAMGSetMaxIter(m_solver, m_maxiter);
     }
 }
 
@@ -988,8 +1006,14 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
             HYPRE_SStructVectorGetObject(m_ss_b, (void**) &par_b);
             HYPRE_SStructVectorGetObject(m_ss_x, (void**) &par_x);
 
-            HYPRE_BoomerAMGSolve(m_solver, par_A, par_b, par_x);
-
+	    if (m_hypre_solver_id == HypreSolverID::BoomerAMGDD) {
+	      amrex::Print() << "solving with BoomerAMG-DD...\n";
+	      HYPRE_BoomerAMGDDSetup(m_solver_amgdd, par_A, par_b, par_x);
+	      HYPRE_BoomerAMGDDSolve(m_solver_amgdd, par_A, par_b, par_x);
+	    } else {
+	      HYPRE_BoomerAMGSolve(m_solver, par_A, par_b, par_x);
+	    }
+	    
             if (m_verbose) {
                 HYPRE_Int num_iterations;
                 Real res;

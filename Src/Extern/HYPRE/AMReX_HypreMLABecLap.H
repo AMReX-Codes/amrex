@@ -16,7 +16,7 @@
 namespace amrex {
 
 enum struct HypreSolverID {
-    BoomerAMG, SSAMG
+  BoomerAMG, SSAMG, BoomerAMGDD
 };
 
 // single component only, cell centered only
@@ -124,6 +124,7 @@ private:
     HYPRE_SStructVector  m_ss_b = nullptr;
 
     HYPRE_Solver m_solver = nullptr;
+    HYPRE_Solver m_solver_amgdd = nullptr; // AMGDD requires an extra solver object
 
     HypreSolverID m_hypre_solver_id = HypreSolverID::BoomerAMG;
     HYPRE_Int m_hypre_object_type = HYPRE_PARCSR;
