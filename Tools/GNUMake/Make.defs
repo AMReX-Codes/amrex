@@ -267,6 +267,9 @@ ifeq ($(USE_CUDA),TRUE)
   # Limit the maximum number of registers available.
   CUDA_MAXREGCOUNT ?= 255
 
+  # Link-time optimization
+  CUDA_LTO ?= FALSE
+
   # Enable verbosity in the CUDA compilation.
   CUDA_VERBOSE ?= TRUE
 endif
@@ -1176,7 +1179,7 @@ else ifeq ($(USE_CUDA),TRUE)
     endif
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-      LINKFLAGS = $(NVCC_FLAGS) $(CXXFLAGS_FROM_HOST)
+      LINKFLAGS = $(NVCC_FLAGS) $(NVCC_ARCH_LINK_FLAGS) $(CXXFLAGS_FROM_HOST)
       AMREX_LINKER = nvcc
     endif
 

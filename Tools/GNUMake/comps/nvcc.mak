@@ -90,7 +90,17 @@ else
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 endif
 
-NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 $(foreach arch,$(CUDA_ARCH),--generate-code arch=compute_$(arch),code=sm_$(arch)) -maxrregcount=$(CUDA_MAXREGCOUNT) --expt-relaxed-constexpr --expt-extended-lambda --forward-unknown-to-host-compiler
+NVCC_ARCH_FLAGS = $(foreach arch,$(CUDA_ARCH),--generate-code arch=compute_$(arch),code=sm_$(arch))
+
+ifeq ($(CUDA_LTO),TRUE)
+  NVCC_ARCH_COMPILE_FLAGS = $(subst sm,lto,$(NVCC_ARCH_FLAGS))
+  NVCC_ARCH_LINK_FLAGS = -dlto $(NVCC_ARCH_FLAGS)
+else
+  NVCC_ARCH_COMPILE_FLAGS = $(NVCC_ARCH_FLAGS)
+  NVCC_ARCH_LINK_FLAGS = $(NVCC_ARCH_FLAGS)
+endif
+
+NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -maxrregcount=$(CUDA_MAXREGCOUNT) --expt-relaxed-constexpr --expt-extended-lambda --forward-unknown-to-host-compiler
 # This is to work around a bug with nvcc, see: https://github.com/kokkos/kokkos/issues/1473
 NVCC_FLAGS += -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored
 # and another bug related to implicit returns with if constexpr, see: https://stackoverflow.com/questions/64523302/cuda-missing-return-statement-at-end-of-non-void-function-in-constexpr-if-fun
@@ -145,8 +155,8 @@ ifeq ($(nvcc_diag_error),1)
   NVCC_FLAGS += --display-error-number --diag-error 20092
 endif
 
-CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -x cu
-CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -x cu
+CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) $(NVCC_ARCH_COMPILE_FLAGS) -x cu
+CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) $(NVCC_ARCH_COMPILE_FLAGS) -x cu
 
 ifeq ($(USE_GPU_RDC),TRUE)
   CXXFLAGS += -dc
