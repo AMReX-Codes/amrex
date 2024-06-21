@@ -533,6 +533,7 @@ MyTest::readParameters ()
 
     pp.query("use_mlhypre", use_mlhypre);
     pp.query("use_hypre_ssamg", use_hypre_ssamg);
+    pp.query("use_hypre_amgdd", use_hypre_amgdd);
 
     pp.query("prob_type", prob_type);
 
@@ -648,7 +649,8 @@ MyTest::solveMLHypre ()
     auto hypre_solver_id = use_hypre_ssamg ? HypreSolverID::SSAMG
                                            : HypreSolverID::BoomerAMG;
 #else
-    auto hypre_solver_id = HypreSolverID::BoomerAMG;
+    auto hypre_solver_id = use_hypre_amgdd ? HypreSolverID::BoomerAMGDD
+                                           : HypreSolverID::BoomerAMG;
 #endif
 
     if (prob_type == 1) { // Poisson

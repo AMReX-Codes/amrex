@@ -17,6 +17,7 @@ amrex.fpe_trap_overflow = 1
 amrex.fpe_trap_zero = 1
 
 use_mlhypre = 1
+#use_hypre_amgdd = 1
 
 verbose = 2
 
