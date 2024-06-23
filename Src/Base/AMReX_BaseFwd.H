@@ -25,7 +25,9 @@ class Box;
 template<int dim>
 class IntVectND;
 using IntVect = IntVectND<AMREX_SPACEDIM>;
-class IndexType;
+template<int dim>
+class IndexTypeND;
+using IndexType = IndexTypeND<AMREX_SPACEDIM>;
 struct Dim3;
 struct XDim3;
 class RealBox;
