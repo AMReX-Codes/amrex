@@ -5,10 +5,20 @@
 
 #include <AMReX_IntVect.H>
 #include <AMReX_SPACE.H>
+#include <AMReX_Tuple.H>
 
 #include <iosfwd>
 
 namespace amrex {
+
+/**
+* \brief Type for defining CellIndex so that all IndexTypeND with different dimensions
+* have the same CellIndex type.
+*/
+struct CellIndexEnum {
+    //! The cell index type: one of CELL or NODE.
+    enum CellIndex { CELL = 0, NODE = 1 };
+};
 
 /**
 * \brief Cell-Based or Node-Based Indices
@@ -19,21 +29,18 @@ namespace amrex {
 * dim dimensions must be either CELL or NODE.
 */
 template<int dim>
-class IndexTypeND
+class IndexTypeND : public CellIndexEnum
 {
 public:
     static_assert(1 <= dim && dim <= 31, "The number of dimensions of IndexTypeND must be positive"
         " and less than 32");
 
-    //! The cell index type: one of CELL or NODE.
-    enum CellIndex { CELL = 0, NODE = 1 };
     //! The default constructor
     AMREX_GPU_HOST_DEVICE
     constexpr IndexTypeND () noexcept = default;
     //! Construct an IndexTypeND identical to an IntVectND.
     AMREX_GPU_HOST_DEVICE
-    explicit IndexTypeND (const IntVectND<dim>& iv) noexcept {
-        itype = 0;
+    explicit IndexTypeND (const IntVectND<dim>& iv) noexcept : itype{0} {
         for (int i=0; i<dim; ++i) {
             itype |= (iv[i] ? 1U : 0U) << i;
         }
@@ -106,11 +113,15 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setType (int dir, CellIndex t) noexcept { t == CELL ? unset(dir) : set(dir); }
     //! Returns  the CellIndex in direction dir.
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     CellIndex ixType (int dir) const noexcept { return (CellIndex) ((itype & (1U<<dir)) >> dir); }
     //! Return an integer representing the IndexTypeND in direction dir.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator[] (int dir) const noexcept { return test(dir); }
+    //! Returns the i'th CellIndex of the IndexTypeND. Used by structured bindings.
+    template<std::size_t i>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
+    CellIndex get () const noexcept { static_assert(0<=i && i<dim); return ixType(i); }
     //! Fill an IntVectND of size dim with IndexTypeNDs.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     IntVectND<dim> ixType () const noexcept {
@@ -152,8 +163,70 @@ public:
         return retval;
     }
 
-    template<int d> friend std::ostream& operator<< (std::ostream& os, const IndexTypeND<d>& itype);
-    template<int d> friend std::istream& operator>> (std::istream& is, IndexTypeND<d>& itype);
+    //! Return the size of this IndexTypeND.
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr std::size_t size () noexcept {
+        return static_cast<std::size_t>(dim);
+    }
+
+    //! Return the size of this IndexTypeND.
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int isize () noexcept {
+        return dim;
+    }
+
+    using value_type = CellIndex;
+
+    /**
+    * \brief Returns a new IndexTypeND of size new_dim and
+    * assigns the first new_dim values of this IndexTypeND to it.
+    */
+    template<int new_dim>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IndexTypeND<new_dim> shrink () const noexcept {
+        static_assert(new_dim <= dim);
+        IndexTypeND<new_dim> retval{};
+        retval.getBits() = itype & ((1U << new_dim) - 1);
+        return retval;
+    }
+
+    /**
+    * \brief Returns a new IndexTypeND of size new_dim and
+    * assigns all values of this IndexTypeND to it and fill_extra to the remaining elements.
+    */
+    template<int new_dim>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IndexTypeND<new_dim> expand (CellIndex fill_extra=CellIndex::CELL) const noexcept {
+        static_assert(new_dim >= dim);
+        IndexTypeND<new_dim> retval{};
+        retval.getBits() = itype;
+        if (fill_extra == CellIndex::NODE) {
+            retval.getBits() |= (1U << new_dim) - (1U << dim);
+        }
+        return retval;
+    }
+
+    /**
+    * \brief Returns a new IndexTypeND of size new_dim
+    * by either shrinking or expanding this IndexTypeND
+    */
+    template<int new_dim>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IndexTypeND<new_dim> resize (CellIndex fill_extra=CellIndex::CELL) const noexcept {
+        if constexpr (new_dim > dim) {
+            return expand<new_dim>(fill_extra);
+        } else {
+            return shrink<new_dim>();
+        }
+    }
+
+    //! Return the bit field representing the underlying data
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
+    unsigned int& getBits () noexcept { return itype; }
+
+    //! Return the bit field representing the underlying data
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
+    const unsigned int& getBits () const noexcept { return itype; }
 
 private:
     //! Returns 1<<k.
@@ -165,22 +238,130 @@ private:
 
 using IndexType = IndexTypeND<AMREX_SPACEDIM>;
 
+// Template deduction guide for IndexTypeND
+template<int dim>
+AMREX_GPU_HOST_DEVICE // __device__ for HIP
+IndexTypeND(const IntVectND<dim>&) -> IndexTypeND<dim>;
+
+// Template deduction guide for IndexTypeND
+template <class...Args,
+    std::enable_if_t<
+        IsConvertible_v<IndexType::CellIndex, Args...>,
+    int> = 0>
+AMREX_GPU_HOST_DEVICE // __device__ for HIP
+IndexTypeND(IndexType::CellIndex, Args...) -> IndexTypeND<sizeof...(Args)+1>;
+
 namespace detail {
     std::ostream& index_type_write (std::ostream& os, const unsigned int& iv, int dim);
     std::istream& index_type_read (std::istream& is, unsigned int& iv, int dim);
+
+    template<class T, std::size_t...Ns>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
+    T IndexTypeSplit_imp (T& retval, std::index_sequence<Ns...>, unsigned int src) noexcept {
+        int dim_shift = 0;
+        (
+            (
+                amrex::get<Ns>(retval).getBits() =
+                    (src >> dim_shift) & ((1U << amrex::get<Ns>(retval).isize()) - 1),
+                dim_shift += amrex::get<Ns>(retval).isize()
+            ), ...
+        );
+        return retval;
+    }
 }
 
 //! Write an IndexTypeND to an ostream in ASCII.
 template<int dim>
-std::ostream& operator<< (std::ostream& os, const IndexTypeND<dim>& itype) {
-    return detail::index_type_write(os, itype.itype, dim);
+std::ostream& operator<< (std::ostream& os, const IndexTypeND<dim>& it) {
+    return detail::index_type_write(os, it.getBits(), dim);
 }
 //! Read an IndexTypeND from an istream.
 template<int dim>
-std::istream& operator>> (std::istream& is, IndexTypeND<dim>& itype) {
-    return detail::index_type_read(is, itype.itype, dim);
+std::istream& operator>> (std::istream& is, IndexTypeND<dim>& it) {
+    return detail::index_type_read(is, it.getBits(), dim);
 }
 
+/**
+* \brief Returns a IndexTypeND obtained by concatenating the input IndexTypeNDs.
+* The dimension of the return value equals the sum of the dimensions of the inputted IndexTypeNDs.
+*/
+template<int d, int...dims>
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+constexpr IndexTypeND<detail::get_sum<d, dims...>()>
+IndexTypeCat (const IndexTypeND<d>& v, const IndexTypeND<dims>&...vects) noexcept {
+    IndexTypeND<detail::get_sum<d, dims...>()> retval{};
+    retval.getBits() |= v.getBits();
+    int dim_shift = v.isize();
+    (
+        (
+            retval.getBits() |= (vects.getBits() << dim_shift),
+            dim_shift += vects.isize()
+        ), ...
+    );
+    return retval;
 }
+
+/**
+* \brief Returns a tuple of IndexTypeND obtained by splitting the input IndexTypeND
+* according to the dimensions specified by the template arguments.
+*/
+template<int d, int...dims>
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+constexpr GpuTuple<IndexTypeND<d>, IndexTypeND<dims>...>
+IndexTypeSplit (const IndexTypeND<detail::get_sum<d, dims...>()>& v) noexcept {
+    GpuTuple<IndexTypeND<d>, IndexTypeND<dims>...> retval{};
+    return detail::IndexTypeSplit_imp(retval,
+                                      std::make_index_sequence<1 + sizeof...(dims)>(),
+                                      v.getBits());
+}
+
+/**
+* \brief Returns a new IndexTypeND of size new_dim and
+* assigns the first new_dim values of v to it.
+*/
+template<int new_dim, int old_dim>
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+constexpr IndexTypeND<new_dim>
+IndexTypeShrink (const IndexTypeND<old_dim>& v) noexcept {
+    return v.template shrink<new_dim>();
+}
+
+/**
+* \brief Returns a new IndexTypeND of size new_dim and
+* assigns all values of iv to it and fill_extra to the remaining elements.
+*/
+template<int new_dim, int old_dim>
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+constexpr IndexTypeND<new_dim>
+IndexTypeExpand (const IndexTypeND<old_dim>& v,
+                 IndexType::CellIndex fill_extra=IndexType::CellIndex::CELL) noexcept {
+    return v.template expand<new_dim>(fill_extra);
+}
+
+/**
+* \brief Returns a new IndexTypeND of size new_dim
+* by either shrinking or expanding iv.
+*/
+template<int new_dim, int old_dim>
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+constexpr IndexTypeND<new_dim>
+IndexTypeResize (const IndexTypeND<old_dim>& v,
+                 IndexType::CellIndex fill_extra=IndexType::CellIndex::CELL) noexcept {
+    return v.template resize<new_dim>(fill_extra);
+}
+
+} // namespace amrex
+
+// Spcialize std::tuple_size for IndexTypeND. Used by structured bindings.
+template<int dim>
+struct std::tuple_size<amrex::IndexTypeND<dim>> {
+    static constexpr std::size_t value = dim;
+};
+
+// Spcialize std::tuple_element for IndexTypeND. Used by structured bindings.
+template<std::size_t s, int dim>
+struct std::tuple_element<s, amrex::IndexTypeND<dim>> {
+    using type = typename amrex::IndexTypeND<dim>::CellIndex;
+};
 
 #endif /*BL_INDEXTYPE_H*/

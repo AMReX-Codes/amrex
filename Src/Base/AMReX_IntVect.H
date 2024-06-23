@@ -1108,7 +1108,7 @@ namespace detail {
     template<class T, std::size_t...Ns>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     T IntVectSplit_imp (T& retval, std::index_sequence<Ns...>, const int * src) noexcept {
-        (IntVectSplit_imp2(std::get<Ns>(retval), src), ...);
+        (IntVectSplit_imp2(amrex::get<Ns>(retval), src), ...);
         return retval;
     }
 
