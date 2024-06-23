@@ -40,7 +40,7 @@ public:
     constexpr IndexTypeND () noexcept = default;
     //! Construct an IndexTypeND identical to an IntVectND.
     AMREX_GPU_HOST_DEVICE
-    explicit IndexTypeND (const IntVectND<dim>& iv) noexcept : itype{0} {
+    explicit IndexTypeND (const IntVectND<dim>& iv) noexcept {
         for (int i=0; i<dim; ++i) {
             itype |= (iv[i] ? 1U : 0U) << i;
         }
@@ -58,7 +58,6 @@ public:
     AMREX_GPU_HOST_DEVICE
     constexpr IndexTypeND (CellIndex i, Args...js) noexcept {
         CellIndex locarr[dim] = {i, static_cast<CellIndex>(js)...};
-        itype = 0;
         for (int s=0; s<dim; ++s) {
             itype |= ((locarr[s] == CellIndex::NODE) ? 1U : 0U) << s;
         }
