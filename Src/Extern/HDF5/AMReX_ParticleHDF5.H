@@ -724,8 +724,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         if (count[grid] == 0)
             continue;
 
-        // int_size  = count[grid] * (2 + NStructInt + NumIntComps());
-        int_size  = count[grid] * int_comp_count;
+        int_size = count[grid] * int_comp_count;
         my_mfi_int_size.push_back(int_size);
         my_nparticles.push_back(count[grid]);
         my_mfi_int_total_size += int_size;
