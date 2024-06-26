@@ -289,7 +289,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         CreateWriteHDF5Attr(fid, "num_component_real", 1, &num_output_real, H5T_NATIVE_INT);
 
         char comp_name[128];
-        
+
         // Real component names
         int real_comp_count = AMREX_SPACEDIM; // position values
 
