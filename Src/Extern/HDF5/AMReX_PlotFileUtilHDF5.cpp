@@ -523,12 +523,12 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
     auto whichRD = FArrayBox::getDataDescriptor();
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
     int whichRDBytes(whichRD->numBytes());
-    
+
     // Pick data type of dataset
     hid_t data_type;
     if (whichRDBytes == 4) {
         data_type = H5T_NATIVE_FLOAT;
-    } 
+    }
     else {
         data_type = H5T_NATIVE_DOUBLE;
     }
@@ -719,8 +719,6 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
             H5Pset_filter(lev_dcpl_id, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
         }
 #endif
-
-        
 
 #ifdef AMREX_USE_HDF5_ASYNC
         hid_t dataset = H5Dcreate_async(grp, dataname.c_str(), data_type, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT, es_id_g);
@@ -977,7 +975,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     hid_t data_type;
     if (whichRDBytes == 4) {
         data_type = H5T_NATIVE_FLOAT;
-    } 
+    }
     else {
         data_type = H5T_NATIVE_DOUBLE;
     }
