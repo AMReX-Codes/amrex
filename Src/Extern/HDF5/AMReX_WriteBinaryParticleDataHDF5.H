@@ -304,7 +304,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 
         // The number of extra int parameters
         CreateWriteHDF5Attr(fid, "num_component_int", 1, &num_output_int, H5T_NATIVE_INT);
-	
+
         // int component names
         int int_comp_count = 2;
 
