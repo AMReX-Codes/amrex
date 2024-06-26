@@ -304,10 +304,10 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 
         // The number of extra int parameters
         CreateWriteHDF5Attr(fid, "num_component_int", 1, &num_output_int, H5T_NATIVE_INT);
-	
+
         // int component names
         int int_comp_count = 2;
-	
+
         for (int i = 0; i < NStructInt + pc.NumIntComps(); ++i ) {
             if (write_int_comp[i]) {
                 snprintf(comp_name, sizeof comp_name, "int_component_%d", int_comp_count);
