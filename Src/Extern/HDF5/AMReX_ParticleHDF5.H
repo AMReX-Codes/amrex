@@ -705,19 +705,32 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     hsize_t        total_mfi = 0, total_real_size = 0, total_int_size = 0, real_file_offset = 0, int_file_offset = 0;
     hsize_t        my_int_offset, my_int_count, my_real_offset, my_real_count;
 
+    // Count total number of components written
+    int real_comp_count = AMREX_SPACEDIM; // position values
+
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i ) {
+        if (write_real_comp[i]) { ++real_comp_count; }
+    }
+
+    int int_comp_count = 2; // cpu and id values
+
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i ) {
+        if (write_int_comp[i]) { ++int_comp_count; }
+    }
+
     // Get the size for each mf so we know the amount of data from each rank
     for (MFIter mfi(state); mfi.isValid(); ++mfi) {
         const int grid = mfi.index();
         if (count[grid] == 0)
             continue;
 
-        int_size  = count[grid] * (2 + NStructInt + NumIntComps());
+        int_size = count[grid] * int_comp_count;
         my_mfi_int_size.push_back(int_size);
         my_nparticles.push_back(count[grid]);
         my_mfi_int_total_size += int_size;
 
 
-        real_size = count[grid] * (AMREX_SPACEDIM + NStructReal + NumRealComps());
+        real_size = count[grid] * real_comp_count;
         my_mfi_real_size.push_back(real_size);
         my_mfi_real_total_size += real_size;
         my_mfi_cnt++;
