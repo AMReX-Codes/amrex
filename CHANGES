@@ -1,3 +1,56 @@
+# 24.07
+
+  -- HDF5: Correctly handle writing only some components when writing Particle (#4005)
+
+  -- HDF5: Correctly choose datatype of plotfile based on RD numBytes (#4006)
+
+  -- Fix L2 norms in C_util/Convergence codes (#4009)
+
+  -- Match the dimensions of reqd_work_group_size to submitted nd_range (#4002)
+
+  -- GNU Make: try nvidia-smi for CUDA arch if deviceQuery fails (#3997)
+
+  -- Sundials Update (#3984)
+
+  -- Derive: Add MultiFab version of DeriveFunc (#3990)
+
+  -- GNU Make: Add support for CUDA LTO (#3993)
+
+  -- Bottom Solver: Keep the unconverged result if it's an improvement (#3991)
+
+  -- Multi-level composite solver using hypre (#3987)
+     Workaround std::exclusive_scan issue with old compilers (#3996)
+
+  -- TableData: Add support for row-major order (amrex::Order::C) (#3973)
+
+  -- Avoid self copy in MultiFab::Copy (#3986)
+
+  -- Convert IntVect to IntVectND (#3969)
+
+  -- GNU Make: Don't replace -I with -isystem for MPI include paths (#3985)
+
+  -- Add pyamrex CI (#3967)
+
+  -- const auto ptd -> const auto& ptd (#3983)
+
+  -- Fix ctests with HIP (#3982)
+
+  -- Add TupleSplit (#3978)
+
+  -- use HIP stream-ordered allocator (#3980)
+
+  -- Add structured binding support to GpuTuple (#3977)
+
+  -- New FillPatch function: FillPatchNLevels (#3974)
+
+  -- Update GNUmake files for NREL machines. (#3975)
+
+  -- SYCL for Nvidia: Re-enable CI without tests (#3971)
+
+  -- Skip empty particle tiles in operator++ to avoid race condition in constructor. (#3951)
+
+  -- adding physical and math BC types for inflow-outflow BCs (#3965)
+
 # 24.06
 
   -- add missing AMReX_SUNDIALS in AMReXConfig.cmake (#3962)
