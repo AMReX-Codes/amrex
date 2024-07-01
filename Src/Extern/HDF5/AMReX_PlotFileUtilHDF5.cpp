@@ -445,7 +445,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
     H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
     H5Pset_alloc_time(dcpl_id, H5D_ALLOC_TIME_INCR);
 
-#if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
+/* #if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
     const char *chunk_env = NULL;
     std::string mode_env, value_env;
     double comp_value = -1.0;
@@ -506,7 +506,69 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
                 value_env << ", " << chunk_dim << std::endl;
         }
     }
+#endif */
+    
+    std::string mode_env, value_env;
+    double comp_value = -1.0;
+    std::string::size_type pos = compression.find('@');
+    if (pos != std::string::npos) {
+        mode_env = compression.substr(0, pos);
+        value_env = compression.substr(pos+1);
+        if (!value_env.empty()) {
+            comp_value = atof(value_env.c_str());
+        }
+    }
+    
+    if (!mode_env.empty() && mode_env != "None") {
+        const char *chunk_env = NULL;
+        hsize_t chunk_dim = 1024;
+        chunk_env = getenv("HDF5_CHUNK_SIZE");
+        if (chunk_env != NULL) {
+            chunk_dim = atoi(chunk_env);
+        }
+
+        H5Pset_chunk(dcpl_id, 1, &chunk_dim);
+
+#ifdef AMREX_USE_HDF5_ZFP
+        pos = mode_env.find("ZFP");
+        if (pos != std::string::npos) {
+            ret = H5Z_zfp_initialize();
+            if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
+        }
 #endif
+        
+        if (mode_env == "ZLIB") {
+            H5Pset_shuffle(dcpl_id);
+            H5Pset_deflate(dcpl_id, (int)comp_value);
+        }
+#ifdef AMREX_USE_HDF5_SZ
+        else if (mode_env == "SZ") {
+            ret = H5Z_SZ_Init((char*)value_env.c_str());
+            if (ret < 0) {
+                std::cout << "SZ config file:" << value_env.c_str() << std::endl;
+                amrex::Abort("SZ initialize failed, check SZ config file!");
+            }
+        }
+#endif
+#ifdef AMREX_USE_HDF5_ZFP
+        else if (mode_env == "ZFP_RATE") {
+            H5Pset_zfp_rate(dcpl_id, comp_value);
+        }
+        else if (mode_env == "ZFP_PRECISION") {
+            H5Pset_zfp_precision(dcpl_id, (unsigned int)comp_value);
+        }
+        else if (mode_env == "ZFP_ACCURACY") {
+            H5Pset_zfp_accuracy(dcpl_id, comp_value);
+        }
+        else if (mode_env == "ZFP_REVERSIBLE") {
+            H5Pset_zfp_reversible(dcpl_id);
+        }
+#endif
+        if (ParallelDescriptor::MyProc() == 0) {
+            std::cout << "\nHDF5 plotfile using " << mode_env << ", " <<
+                value_env << ", " << chunk_dim << std::endl;
+        }
+    }
 
     BL_PROFILE_VAR("H5writeAllLevel", h5dwd);
 
@@ -897,7 +959,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
     H5Pset_alloc_time(dcpl_id, H5D_ALLOC_TIME_INCR);
 
-#if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
+/* #if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
     const char *chunk_env = NULL;
     std::string mode_env, value_env;
     double comp_value = -1.0;
@@ -953,7 +1015,68 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
                 value_env << ", " << chunk_dim << std::endl;
         }
     }
+#endif */
+    std::string mode_env, value_env;
+    double comp_value = -1.0;
+    std::string::size_type pos = compression.find('@');
+    if (pos != std::string::npos) {
+        mode_env = compression.substr(0, pos);
+        value_env = compression.substr(pos+1);
+        if (!value_env.empty()) {
+            comp_value = atof(value_env.c_str());
+        }
+    }
+    
+    if (!mode_env.empty() && mode_env != "None") {
+        const char *chunk_env = NULL;
+        hsize_t chunk_dim = 1024;
+        chunk_env = getenv("HDF5_CHUNK_SIZE");
+        if (chunk_env != NULL) {
+            chunk_dim = atoi(chunk_env);
+        }
+
+        H5Pset_chunk(dcpl_id, 1, &chunk_dim);
+
+#ifdef AMREX_USE_HDF5_ZFP
+        pos = mode_env.find("ZFP");
+        if (pos != std::string::npos) {
+            ret = H5Z_zfp_initialize();
+            if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
+        }
 #endif
+        
+        if (mode_env == "ZLIB") {
+            H5Pset_shuffle(dcpl_id);
+            H5Pset_deflate(dcpl_id, (int)comp_value);
+        }
+#ifdef AMREX_USE_HDF5_SZ
+        else if (mode_env == "SZ") {
+            ret = H5Z_SZ_Init((char*)value_env.c_str());
+            if (ret < 0) {
+                std::cout << "SZ config file:" << value_env.c_str() << std::endl;
+                amrex::Abort("SZ initialize failed, check SZ config file!");
+            }
+        }
+#endif
+#ifdef AMREX_USE_HDF5_ZFP
+        else if (mode_env == "ZFP_RATE") {
+            H5Pset_zfp_rate(dcpl_id, comp_value);
+        }
+        else if (mode_env == "ZFP_PRECISION") {
+            H5Pset_zfp_precision(dcpl_id, (unsigned int)comp_value);
+        }
+        else if (mode_env == "ZFP_ACCURACY") {
+            H5Pset_zfp_accuracy(dcpl_id, comp_value);
+        }
+        else if (mode_env == "ZFP_REVERSIBLE") {
+            H5Pset_zfp_reversible(dcpl_id);
+        }
+#endif
+        if (ParallelDescriptor::MyProc() == 0) {
+            std::cout << "\nHDF5 checkpoint using " << mode_env << ", " <<
+                value_env << ", " << chunk_dim << std::endl;
+        }
+    }
 
     BL_PROFILE_VAR("H5writeAllLevel", h5dwd);
 
