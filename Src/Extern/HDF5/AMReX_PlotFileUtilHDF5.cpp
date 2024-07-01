@@ -782,6 +782,14 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
         }
 #endif
 
+        // Force maximum chunk size to be size of write
+        hsize_t chunk_size; 
+        if (H5Pget_chunk(lev_dcpl_id, 1, &chunk_size) > -1) {
+            if ((int)chunk_size > hs_procsize[0]) {
+                H5Pset_chunk(lev_dcpl_id, 1, hs_procsize);
+            }
+        }
+        
 #ifdef AMREX_USE_HDF5_ASYNC
         hid_t dataset = H5Dcreate_async(grp, dataname.c_str(), data_type, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT, es_id_g);
 #else
@@ -1301,6 +1309,13 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
 
             hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
             snprintf(dataname, sizeof dataname, "data:datatype=%d", jj);
+            // Force maximum chunk size to be size of write
+            hsize_t chunk_size; 
+            if (H5Pget_chunk(lev_dcpl_id, 1, &chunk_size) > -1) {
+                if ((int)chunk_size > hs_procsize[0]) {
+                    H5Pset_chunk(lev_dcpl_id, 1, hs_procsize);
+                }
+            }
 #ifdef AMREX_USE_HDF5_ASYNC
             dataset = H5Dcreate_async(grp, dataname, data_type, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT, es_id_g);
             if(dataset < 0) { std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl; }
