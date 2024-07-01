@@ -18,7 +18,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v4
       with:
-        path: /Users/runner/Library/Caches/ccache
+        path: ~/Library/Caches/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -31,8 +31,10 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=30M
+        export CCACHE_MAXSIZE=50M
+        export CCACHE_SLOPPINESS=time_macros
         ccache -z
+        ccache --version
 
         cmake -S . -B build             \
             -DBUILD_SHARED_LIBS=ON      \
@@ -46,6 +48,7 @@ jobs:
 
         ctest --test-dir build --output-on-failure
 
+        du -hs ~/Library/Caches/ccache
         ccache -s
 
   # Build libamrex and all tests
@@ -59,7 +62,7 @@ jobs:
     - name: Set Up Cache
       uses: actions/cache@v4
       with:
-        path: /Users/runner/Library/Caches/ccache
+        path: ~/Library/Caches/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -71,7 +74,9 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=160M
+        export CCACHE_SLOPPINESS=time_macros
         ccache -z
+        ccache --version
 
         cmake -S . -B build             \
             -DCMAKE_BUILD_TYPE=Debug    \
@@ -84,6 +89,7 @@ jobs:
 
         ctest --test-dir build --output-on-failure
 
+        du -hs ~/Library/Caches/ccache
         ccache -s
 
   save_pr_number:
