@@ -787,9 +787,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     // Count total number of components written
     int real_comp_count = AMREX_SPACEDIM; // position values
 
-    // Count total number of components written
-    int real_comp_count = AMREX_SPACEDIM; // position values
-
     for (int i = 0; i < NStructReal + NumRealComps(); ++i ) {
         if (write_real_comp[i]) { ++real_comp_count; }
     }
