@@ -161,37 +161,120 @@ struct IntegratorOps<T, std::enable_if_t<std::is_same_v<amrex::MultiFab, T> > >
 template<class T>
 class IntegratorBase
 {
-private:
-   /**
-    * \brief Fun is the right-hand-side function the integrator will use.
-    */
-    std::function<void(T&, const T&, const amrex::Real)> Fun;
-
-   /**
-    * \brief FastFun is the fast timescale right-hand-side function for a multirate integration problem.
-    */
-    std::function<void(T&, T&, const T&, const amrex::Real)> FastFun;
-
 protected:
-   /**
-    * \brief Integrator timestep size (Real)
-    */
-    amrex::Real timestep;
+    /**
+     * \brief Rhs is the right-hand-side function the integrator will use.
+     */
+    std::function<void(T& rhs, const T& state, const amrex::Real time)> Rhs;
 
-   /**
-    * \brief For multirate problems, the ratio of slow timestep size / fast timestep size (int)
-    */
-    int slow_fast_timestep_ratio = 0;
+    /**
+     * \brief RhsIm is the implicit right-hand-side function an ImEx integrator
+     * will use.
+     */
+    std::function<void(T& rhs, const T& state, const amrex::Real time)> RhsIm;
 
-   /**
-    * \brief For multirate problems, the fast timestep size (Real)
-    */
-    Real fast_timestep = 0.0;
+    /**
+     * \brief RhsEx is the explicit right-hand-side function an ImEx integrator
+     * will use.
+     */
+    std::function<void(T& rhs, const T& state, const amrex::Real time)> RhsEx;
 
-   /**
-    * \brief The post_update function is called by the integrator on state data before using it to evaluate a right-hand side.
-    */
-    std::function<void (T&, amrex::Real)> post_update;
+    /**
+     * \brief RhsFast is the fast timescale right-hand-side function a multirate
+     * integrator will use.
+     */
+    std::function<void(T& rhs, const T& state, const amrex::Real time)> RhsFast;
+
+    /**
+     * \brief The pre_rhs_action function is called by the integrator on state
+     * data before using it to evaluate a right-hand side.
+     */
+    std::function<void (T&, amrex::Real)> pre_rhs_action;
+
+    /**
+     * \brief The post_stage_action function is called by the integrator on
+     * the computed stage just after it is computed
+     */
+    std::function<void (T&, amrex::Real)> post_stage_action;
+
+    /**
+     * \brief The post_step_action function is called by the integrator on
+     * the computed state just after it is computed
+     */
+    std::function<void (T&, amrex::Real)> post_step_action;
+
+    /**
+     * \brief The post_stage_action function is called by the integrator on
+     * the computed stage just after it is computed
+     */
+    std::function<void (T&, amrex::Real)> post_fast_stage_action;
+
+    /**
+     * \brief The post_step_action function is called by the integrator on
+     * the computed state just after it is computed
+     */
+    std::function<void (T&, amrex::Real)> post_fast_step_action;
+
+    /**
+     * \brief Flag to enable/disable adaptive time stepping in single rate
+     * methods or at the slow time scale in multirate methods (bool)
+     */
+    bool use_adaptive_time_step = false;
+
+    /**
+     * \brief Current integrator time step size (Real)
+     */
+    amrex::Real time_step;
+
+    /**
+     * \brief Step size of the last completed step (Real)
+     */
+    amrex::Real previous_time_step;
+
+    /**
+     * \brief Flag to enable/disable adaptive time stepping at the fast time
+     * scale in multirate methods (bool)
+     */
+    bool use_adaptive_fast_time_step = false;
+
+    /**
+     * \brief Current integrator fast time scale time step size with multirate
+     * methods (Real)
+     */
+    amrex::Real fast_time_step;
+
+    /**
+     * \brief Number of integrator time steps (Long)
+     */
+    amrex::Long num_steps = 0;
+
+    /**
+     * \brief Max number of internal steps before an error is returned (Long)
+     */
+    int max_steps = 500;
+
+    /**
+     * \brief Relative tolerance for adaptive time stepping (Real)
+     */
+    amrex::Real rel_tol = 1.0e-4;
+
+    /**
+     * \brief Absolute tolerance for adaptive time stepping (Real)
+     */
+    amrex::Real abs_tol = 1.0e-9;
+
+    /**
+     * \brief Relative tolerance for adaptive time stepping at the fast time
+     * scale (Real)
+     */
+    amrex::Real fast_rel_tol = 1.0e-4;
+
+    /**
+     * \brief Absolute tolerance for adaptive time stepping at the fast time
+     * scale (Real)
+     */
+    amrex::Real fast_abs_tol = 1.0e-9;
+
 
 public:
     IntegratorBase () = default;
@@ -200,71 +283,112 @@ public:
 
     virtual ~IntegratorBase () = default;
 
-    virtual void initialize (const T& S_data) = 0;
-
     void set_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
     {
-        Fun = F;
+        Rhs = F;
     }
 
-    void set_fast_rhs (std::function<void(T&, T&, const T&, const amrex::Real)> F)
+    void set_imex_rhs (std::function<void(T&, const T&, const amrex::Real)> Fi,
+                       std::function<void(T&, const T&, const amrex::Real)> Fe)
     {
-        FastFun = F;
+        RhsIm = Fi;
+        RhsEx = Fe;
     }
 
-    void set_slow_fast_timestep_ratio (const int timestep_ratio = 1)
+    void set_fast_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
     {
-        slow_fast_timestep_ratio = timestep_ratio;
+        RhsFast = F;
     }
 
-    void set_fast_timestep (const Real fast_dt = 1.0)
+    void set_pre_rhs_action (std::function<void (T&, amrex::Real)> A)
     {
-        fast_timestep = fast_dt;
+        pre_rhs_action = A;
     }
 
-    void set_post_update (std::function<void (T&, amrex::Real)> F)
+    void set_post_stage_action (std::function<void (T&, amrex::Real)> A)
     {
-        post_update = F;
+        post_stage_action = A;
     }
 
-    std::function<void (T&, amrex::Real)> get_post_update ()
+    void set_post_step_action (std::function<void (T&, amrex::Real)> A)
     {
-        return post_update;
+        post_step_action = A;
     }
 
-    std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
+    void set_post_fast_stage_action (std::function<void (T&, amrex::Real)> A)
     {
-        return Fun;
+        post_fast_stage_action = A;
     }
 
-    std::function<void(T&, T&, const T&, const amrex::Real)> get_fast_rhs ()
+    void set_post_fast_step_action (std::function<void (T&, amrex::Real)> A)
     {
-        return FastFun;
+        post_fast_step_action = A;
     }
 
-    int get_slow_fast_timestep_ratio ()
+    void set_post_update (std::function<void (T&, amrex::Real)> A)
     {
-        return slow_fast_timestep_ratio;
+        set_post_stage_action(A);
+        set_post_step_action(A);
     }
 
-    Real get_fast_timestep ()
+    amrex::Real get_time_step ()
     {
-        return fast_timestep;
+        return time_step;
     }
 
-    void rhs (T& S_rhs, const T& S_data, const amrex::Real time)
+    void set_time_step (amrex::Real dt)
     {
-        Fun(S_rhs, S_data, time);
+        time_step = dt;
+        use_adaptive_time_step = false;
     }
 
-    void fast_rhs (T& S_rhs, T& S_extra, const T& S_data, const amrex::Real time)
+    void set_adaptive_step ()
     {
-        FastFun(S_rhs, S_extra, S_data, time);
+        use_adaptive_time_step = true;
     }
 
-    virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time, amrex::Real dt) = 0;
+    void set_fast_time_step (amrex::Real dt)
+    {
+        fast_time_step = dt;
+        use_adaptive_fast_time_step = false;
+    }
 
-    virtual void time_interpolate (const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data) = 0;
+    void set_adaptive_fast_step ()
+    {
+        use_adaptive_fast_time_step = true;
+    }
+
+    void set_max_steps (int steps)
+    {
+        max_steps = steps;
+    }
+
+    void set_tolerances (amrex::Real rtol, amrex::Real atol)
+    {
+        rel_tol = rtol;
+        abs_tol = atol;
+    }
+
+    void set_fast_tolerances (amrex::Real rtol, amrex::Real atol)
+    {
+        fast_rel_tol = rtol;
+        fast_abs_tol = atol;
+    }
+
+    /**
+     * \brief Take a single time step from (time, S_old) to (time + dt, S_new)
+     * with the given step size.
+     */
+    virtual amrex::Real advance (T& S_old, T& S_new, amrex::Real time,
+                                 amrex::Real dt) = 0;
+
+    /**
+     * \brief Evolve the current (internal) integrator state to time_out
+     */
+    virtual void evolve (T& S_out, const amrex::Real time_out) = 0;
+
+    virtual void time_interpolate (const T& S_new, const T& S_old,
+                                   amrex::Real timestep_fraction, T& data) = 0;
 
     virtual void map_data (std::function<void(T&)> Map) = 0;
 };

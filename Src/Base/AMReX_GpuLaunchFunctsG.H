@@ -79,7 +79,7 @@ void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(MT)),
             [=] (sycl::nd_item<1> item)
-            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_work_group_size(MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 f(Gpu::Handler{&item,shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()});
@@ -100,7 +100,7 @@ void launch (int nblocks, gpuStream_t stream, L const& f) noexcept
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(MT)),
             [=] (sycl::nd_item<1> item)
-            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_work_group_size(MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 f(item);
@@ -124,7 +124,7 @@ void launch (T const& n, L const& f) noexcept
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_work_group_size(MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 for (auto const i : Gpu::Range(n,item.get_global_id(0),item.get_global_range(0))) {
@@ -203,7 +203,7 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L const& f) noexcept
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
-                [[sycl::reqd_work_group_size(1,1,MT)]]
+                [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     for (std::size_t i = item.get_global_id(0), stride = item.get_global_range(0);
@@ -220,7 +220,7 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L const& f) noexcept
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
-                [[sycl::reqd_work_group_size(1,1,MT)]]
+                [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     for (std::size_t i = item.get_global_id(0), stride = item.get_global_range(0);
@@ -252,7 +252,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L const& f) noexc
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
-                [[sycl::reqd_work_group_size(1,1,MT)]]
+                [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
@@ -270,7 +270,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, L const& f) noexc
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
-                [[sycl::reqd_work_group_size(1,1,MT)]]
+                [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
@@ -303,7 +303,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L const&
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
-                [[sycl::reqd_work_group_size(1,1,MT)]]
+                [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
@@ -322,7 +322,7 @@ void ParallelFor (Gpu::KernelInfo const& info, Box const& box, T ncomp, L const&
                 h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                                  sycl::range<1>(nthreads_per_block)),
                 [=] (sycl::nd_item<1> item)
-                [[sycl::reqd_work_group_size(1,1,MT)]]
+                [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
@@ -353,7 +353,7 @@ void ParallelForRNG (T n, L const& f) noexcept
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]]
+            [[sycl::reqd_work_group_size(AMREX_GPU_MAX_THREADS)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 auto const tid = item.get_global_id(0);
@@ -387,7 +387,7 @@ void ParallelForRNG (Box const& box, L const& f) noexcept
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]]
+            [[sycl::reqd_work_group_size(AMREX_GPU_MAX_THREADS)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 auto const tid = item.get_global_id(0);
@@ -423,7 +423,7 @@ void ParallelForRNG (Box const& box, T ncomp, L const& f) noexcept
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]]
+            [[sycl::reqd_work_group_size(AMREX_GPU_MAX_THREADS)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 auto const tid = item.get_global_id(0);
@@ -460,7 +460,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, Box const& box1, Box const& b
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_work_group_size(MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 auto const ncells = std::max(indexer1.numPts(), indexer2.numPts());
@@ -500,7 +500,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_work_group_size(MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 auto const ncells = std::max({indexer1.numPts(), indexer2.numPts(), indexer3.numPts()});
@@ -545,7 +545,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_work_group_size(MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 auto const ncells = std::max(indexer1.numPts(), indexer2.numPts());
@@ -593,7 +593,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
-            [[sycl::reqd_work_group_size(1,1,MT)]]
+            [[sycl::reqd_work_group_size(MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 auto const ncells = std::max({indexer1.numPts(), indexer2.numPts(), indexer3.numPts()});

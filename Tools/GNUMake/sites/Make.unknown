@@ -90,7 +90,12 @@ ifeq ($(USE_CUDA),TRUE)
   COMPILE_CUDA_PATH = $(CUDA_HOME)
   SYSTEM_CUDA_PATH = $(CUDA_HOME)
 
-  cuda_device_query_result := $(shell $(CUDA_HOME)/extras/demo_suite/deviceQuery | grep "CUDA Capability")
+  ifneq ($(wildcard $(CUDA_HOME)/extras/demo_suite/deviceQuery),)
+     cuda_device_query_result := $(shell $(CUDA_HOME)/extras/demo_suite/deviceQuery | grep "CUDA Capability")
+  else
+     # try nvidia-smi, as deviceQuery is no longer distributed with CUDA 12 and up
+     cuda_device_query_result := $(shell nvidia-smi --query-gpu=compute_cap --format=csv,noheader)
+  endif
   ifneq ($(cuda_device_query_result),)
      TEMP_CUDA_ARCH = $(lastword $(cuda_device_query_result))
 #      CUDA_ARCH = $(subst .,,$(TEMP_CUDA_ARCH))
