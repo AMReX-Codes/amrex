@@ -763,6 +763,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 /*         H5Pset_filter(dcpl_int, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values); */
 /*     } */
 /* #endif */
+    
+    hsize_t chunk_size; 
+    if (H5Pget_chunk(dcpl_int, 1, &chunk_size) > -1) {
+        if ((int)chunk_size > total_int_size) {
+            H5Pset_chunk(dcpl_int, 1, &total_int_size);
+        }
+    }
 
     int_dset_space = H5Screate_simple(1, &total_int_size, NULL);
 #ifdef AMREX_USE_HDF5_ASYNC
@@ -799,6 +806,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     }
 #endif
+    
+    if (H5Pget_chunk(dcpl_real, 1, &chunk_size) > -1) {
+        if ((int)chunk_size > total_real_size) {
+            H5Pset_chunk(dcpl_real, 1, &total_real_size);
+        }
+    }
 
     real_dset_space = H5Screate_simple(1, &total_real_size, NULL);
     if (sizeof(typename ParticleType::RealType) == 4) {
