@@ -25,11 +25,11 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         else if (s(i,j  ,k) >= 0.0_rt && s(i+1,j  ,k) >= 0.0_rt
             &&  s(i,j+1,k) >= 0.0_rt && s(i+1,j+1,k) >= 0.0_rt)
         {
-            cell(i,j,k).setCovered();
+            //cell(i,j,k).setCovered();
         }
         else
         {
-            cell(i,j,k).setSingleValued();
+            //cell(i,j,k).setSingleValued();
         }
     });
 
