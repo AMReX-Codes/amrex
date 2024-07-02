@@ -156,7 +156,7 @@ Currently supported compression libraries include `SZ`_ and `ZFP`_.
 To enable HDF5 output, AMReX must be compiled and linked to an HDF5 library
 with parallel I/O support, by adding ``USE_HDF5=TRUE`` and
 ``HDF5_HOME=/path/to/hdf5/install/dir`` to the GNUMakefile.
-many HPC systems have an HDF5 module available that can be loaded with
+Many HPC systems have an HDF5 module available that can be loaded with
 ``module load hdf5`` or ``module load cray-hdf5-parallel``. To download
 and compile HDF5 from source code, please go to `HDF5 Download`_ webpage
 and follow the instructions (latest version is recommended and remember
