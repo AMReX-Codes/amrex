@@ -607,10 +607,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             comp_value = atof(value_env.c_str());
         }
     }
-    
+
     H5Pset_alloc_time(dcpl_int, H5D_ALLOC_TIME_LATE);
     H5Pset_alloc_time(dcpl_real, H5D_ALLOC_TIME_LATE);
-    
+
     if (!mode_env.empty() && mode_env != "None") {
         const char *chunk_env = NULL;
         hsize_t chunk_dim = 1024;
@@ -629,7 +629,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
         }
 #endif
-        
+
         if (mode_env == "ZLIB") {
             H5Pset_shuffle(dcpl_int);
             H5Pset_shuffle(dcpl_real);
@@ -763,8 +763,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 /*         H5Pset_filter(dcpl_int, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values); */
 /*     } */
 /* #endif */
-    
-    hsize_t chunk_size; 
+
+    hsize_t chunk_size;
     if (H5Pget_chunk(dcpl_int, 1, &chunk_size) > -1) {
         if ((int)chunk_size > total_int_size) {
             H5Pset_chunk(dcpl_int, 1, &total_int_size);
@@ -806,7 +806,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     }
 #endif
-    
+
     if (H5Pget_chunk(dcpl_real, 1, &chunk_size) > -1) {
         if ((int)chunk_size > total_real_size) {
             H5Pset_chunk(dcpl_real, 1, &total_real_size);
