@@ -444,7 +444,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
     dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
     H5Pset_fill_time(dcpl_id, H5D_FILL_TIME_NEVER);
     H5Pset_alloc_time(dcpl_id, H5D_ALLOC_TIME_INCR);
-   
+
     std::string mode_env, value_env;
     double comp_value = -1.0;
     std::string::size_type pos = compression.find('@');
@@ -455,7 +455,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
             comp_value = atof(value_env.c_str());
         }
     }
-    
+
     if (!mode_env.empty() && mode_env != "None") {
         const char *chunk_env = NULL;
         hsize_t chunk_dim = 1024;
@@ -473,7 +473,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
             if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
         }
 #endif
-        
+
         if (mode_env == "ZLIB") {
             H5Pset_shuffle(dcpl_id);
             H5Pset_deflate(dcpl_id, (int)comp_value);
@@ -720,13 +720,13 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
 #endif
 
         // Force maximum chunk size to be size of write
-        hsize_t chunk_size; 
+        hsize_t chunk_size;
         if (H5Pget_chunk(lev_dcpl_id, 1, &chunk_size) > -1) {
             if ((int)chunk_size > hs_allprocsize[0]) {
                 H5Pset_chunk(lev_dcpl_id, 1, hs_allprocsize);
             }
         }
-        
+
 #ifdef AMREX_USE_HDF5_ASYNC
         hid_t dataset = H5Dcreate_async(grp, dataname.c_str(), data_type, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT, es_id_g);
 #else
@@ -914,7 +914,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
             comp_value = atof(value_env.c_str());
         }
     }
-    
+
     if (!mode_env.empty() && mode_env != "None") {
         const char *chunk_env = NULL;
         hsize_t chunk_dim = 1024;
@@ -932,7 +932,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
             if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
         }
 #endif
-        
+
         if (mode_env == "ZLIB") {
             H5Pset_shuffle(dcpl_id);
             H5Pset_deflate(dcpl_id, (int)comp_value);
@@ -1190,7 +1190,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
             hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
             snprintf(dataname, sizeof dataname, "data:datatype=%d", jj);
             // Force maximum chunk size to be size of write
-            hsize_t chunk_size; 
+            hsize_t chunk_size;
             if (H5Pget_chunk(lev_dcpl_id, 1, &chunk_size) > -1) {
                 if ((int)chunk_size > hs_allprocsize[0]) {
                     H5Pset_chunk(lev_dcpl_id, 1, hs_allprocsize);
