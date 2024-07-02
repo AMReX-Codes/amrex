@@ -221,7 +221,7 @@ public:
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr EBCellFlag TheCoveredCell () { return EBCellFlag{covered_value}; }
 
-private:
+public:
 
     //! masks for lowest 5 bits (i.e., bit number 0-4)
     static constexpr uint32_t one_lower_mask      =  0x1f;
