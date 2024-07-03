@@ -1803,75 +1803,68 @@ BoxND<dim> makeSingleCellBox (int i, int j, int k, IndexTypeND<dim> typ = IndexT
     return BoxND<dim>(IntVectND<dim>(AMREX_D_DECL(i,j,k)),IntVectND<dim>(AMREX_D_DECL(i,j,k)),typ);
 }
 
-struct BoxIndexer
+template<int dim>
+struct BoxIndexerND
+{
+    std::uint64_t npts;
+    Math::FastDivmodU64 fdm[dim-1];
+    IntVectND<dim> lo;
+
+    BoxIndexerND (BoxND<dim> const& box)
+        : npts(box.numPts()),
+          lo  (box.smallEnd())
+        {
+            std::uint64_t mult = 1;
+            for (int i=0; i<dim-1; ++i) {
+                mult *= box.length(i);
+                fdm[i] = Math::FastDivmodU64(mult);
+            }
+        }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVectND<dim> intVect (std::uint64_t icell) const
+    {
+        IntVectND<dim> retval = lo;
+
+        for (int i=dim-1; i>0; --i) {
+            std::uint64_t quotient, remainder;
+            fdm[i-1](quotient, remainder, icell);
+            retval[i] += quotient;
+            icell = remainder;
+        }
+
+        retval[0] += icell;
+
+        return retval;
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 operator() (std::uint64_t icell) const
+    {
+        return intVect(icell).dim3();
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    std::uint64_t numPts () const { return npts; }
+};
+
+template<>
+struct BoxIndexerND<1>
 {
     std::uint64_t npts;
 
-#if (AMREX_SPACEDIM == 3)
-    Math::FastDivmodU64 fdxy;
-    Math::FastDivmodU64 fdx;
-    IntVect lo;
-
-    BoxIndexer (Box const& box)
-        : npts(box.numPts()),
-          fdxy(std::uint64_t(box.length(0))*std::uint64_t(box.length(1))),
-          fdx (std::uint64_t(box.length(0))),
-          lo  (box.smallEnd())
-        {}
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Dim3 operator() (std::uint64_t icell) const
-    {
-        std::uint64_t x, y, z, rem;
-        fdxy(z, rem, icell);
-        fdx(y, x, rem);
-        return {int(x)+lo[0], int(y)+lo[1], int(z)+lo[2]};
-    }
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVect intVect (std::uint64_t icell) const
-    {
-        std::uint64_t x, y, z, rem;
-        fdxy(z, rem, icell);
-        fdx(y, x, rem);
-        return {int(x)+lo[0], int(y)+lo[1], int(z)+lo[2]};
-    }
-
-#elif (AMREX_SPACEDIM == 2)
-
-    Math::FastDivmodU64 fdx;
-    IntVect lo;
-
-    BoxIndexer (Box const& box)
-        : npts(box.numPts()),
-          fdx (std::uint64_t(box.length(0))),
-          lo  (box.smallEnd())
-        {}
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Dim3 operator() (std::uint64_t icell) const
-    {
-        std::uint64_t x, y;
-        fdx(y, x, icell);
-        return {int(x)+lo[0], int(y)+lo[1], 0};
-    }
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVect intVect (std::uint64_t icell) const
-    {
-        std::uint64_t x, y;
-        fdx(y, x, icell);
-        return {int(x)+lo[0], int(y)+lo[1]};
-    }
-
-#elif (AMREX_SPACEDIM == 1)
-
     int lo;
 
-    BoxIndexer (Box const& box)
+    BoxIndexerND (BoxND<1> const& box)
         : npts(box.numPts()),
           lo(box.smallEnd(0))
         {}
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVectND<1> intVect (std::uint64_t icell) const
+    {
+        return IntVectND<1>{int(icell)+lo};
+    }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 operator() (std::uint64_t icell) const
@@ -1880,16 +1873,10 @@ struct BoxIndexer
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVect intVect (std::uint64_t icell) const
-    {
-        return IntVect{int(icell)+lo};
-    }
-
-#endif
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::uint64_t numPts () const { return npts; }
 };
+
+using BoxIndexer = BoxIndexerND<AMREX_SPACEDIM>;
 
 }
 
