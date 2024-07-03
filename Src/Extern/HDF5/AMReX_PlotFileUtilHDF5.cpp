@@ -524,6 +524,15 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
     int whichRDBytes(whichRD->numBytes());
 
+    // Pick data type of dataset
+    hid_t data_type;
+    if (whichRDBytes == 4) {
+        data_type = H5T_NATIVE_FLOAT;
+    }
+    else {
+        data_type = H5T_NATIVE_DOUBLE;
+    }
+
     // Write data for each level
     char level_name[32];
     for (int level = 0; level <= finest_level; ++level) {
@@ -712,10 +721,11 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
 #endif
 
 #ifdef AMREX_USE_HDF5_ASYNC
-        hid_t dataset = H5Dcreate_async(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT, es_id_g);
+        hid_t dataset = H5Dcreate_async(grp, dataname.c_str(), data_type, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT, es_id_g);
 #else
-        hid_t dataset = H5Dcreate(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT);
+        hid_t dataset = H5Dcreate(grp, dataname.c_str(), data_type, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT);
 #endif
+
         if(dataset < 0)
             std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl;
 
@@ -727,9 +737,9 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
             H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
 
 #ifdef AMREX_USE_HDF5_ASYNC
-        ret = H5Dwrite_async(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer.dataPtr(), es_id_g);
+        ret = H5Dwrite_async(dataset, data_type, memdataspace, dataspace, dxpl_col, a_buffer.dataPtr(), es_id_g);
 #else
-        ret = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer.dataPtr());
+        ret = H5Dwrite(dataset, data_type, memdataspace, dataspace, dxpl_col, a_buffer.dataPtr());
 #endif
         if(ret < 0) { std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl; break; }
 
@@ -961,6 +971,15 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
     int whichRDBytes(whichRD->numBytes());
 
+    // Pick data type
+    hid_t data_type;
+    if (whichRDBytes == 4) {
+        data_type = H5T_NATIVE_FLOAT;
+    }
+    else {
+        data_type = H5T_NATIVE_DOUBLE;
+    }
+
     // Write data for each level
     char level_name[32];
 
@@ -1160,7 +1179,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
             hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
             snprintf(dataname, sizeof dataname, "data:datatype=%d", jj);
 #ifdef AMREX_USE_HDF5_ASYNC
-            dataset = H5Dcreate_async(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT, es_id_g);
+            dataset = H5Dcreate_async(grp, dataname, data_type, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT, es_id_g);
             if(dataset < 0) { std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl; }
 
             if (hs_procsize[0] == 0) {
@@ -1169,11 +1188,11 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
                 H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
             }
 
-            ret = H5Dwrite_async(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer_ind.dataPtr(), es_id_g);
+            ret = H5Dwrite_async(dataset, data_type, memdataspace, dataspace, dxpl_col, a_buffer_ind.dataPtr(), es_id_g);
             if(ret < 0) { std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl; break; }
             H5Dclose_async(dataset, es_id_g);
 #else
-            dataset = H5Dcreate(grp, dataname, H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT);
+            dataset = H5Dcreate(grp, dataname, data_type, dataspace, H5P_DEFAULT, lev_dcpl_id, H5P_DEFAULT);
             if(dataset < 0) { std::cout << ParallelDescriptor::MyProc() << "create data failed!  ret = " << dataset << std::endl; }
 
             if (hs_procsize[0] == 0) {
@@ -1182,7 +1201,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
                 H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
             }
 
-            ret = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl_col, a_buffer_ind.dataPtr());
+            ret = H5Dwrite(dataset, data_type, memdataspace, dataspace, dxpl_col, a_buffer_ind.dataPtr());
             if(ret < 0) { std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl; break; }
             H5Dclose(dataset);
 #endif

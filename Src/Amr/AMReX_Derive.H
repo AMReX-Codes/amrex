@@ -6,6 +6,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_Interpolater.H>
+#include <AMReX_MultiFab.H>
 
 #include <list>
 #include <string>
@@ -88,6 +89,10 @@ using DeriveFuncFab = std::function<void(const amrex::Box& bx, amrex::FArrayBox&
                                          const amrex::FArrayBox& datafab, const amrex::Geometry& geomdata,
                                          amrex::Real time, const int* bcrec, int level)>;
 
+using DeriveFuncMF = std::function<void(amrex::MultiFab& der_mf, int dcomp, int ncomp,
+                                        const amrex::MultiFab& data_mf, const amrex::Geometry& geomdata,
+                                        amrex::Real time, const int* bcrec, int level)>;
+
 class DescriptorList;
 
 
@@ -149,6 +154,7 @@ public:
     [[nodiscard]] DeriveFunc    derFunc    () const noexcept;
     [[nodiscard]] DeriveFunc3D  derFunc3D  () const noexcept;
     [[nodiscard]] DeriveFuncFab derFuncFab () const noexcept;
+    [[nodiscard]] DeriveFuncMF  derFuncMF () const noexcept;
 
     /**
     * \brief Maps state data box to derived data box.
@@ -227,6 +233,13 @@ public:
                DeriveBoxMap   box_map,
                Interpolater*  interp = &pc_interp);
 
+    DeriveRec (std::string    name,
+               IndexType      result_type,
+               int            nvar_derive,
+               DeriveFuncMF   der_func_mf,
+               DeriveBoxMap   box_map,
+               Interpolater*  interp = &pc_interp);
+
 
     /**
     * \brief Constructor without a Fortran function
@@ -276,6 +289,14 @@ public:
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
 
+    DeriveRec (std::string         name,
+               IndexType           result_type,
+               int                 nvar_derive,
+               Vector<std::string> const& var_names,
+               DeriveFuncMF        der_func_mf,
+               DeriveBoxMap        box_map,
+               Interpolater*       interp = &pc_interp);
+
     void addRange (const DescriptorList& d_list,
                    int                   state_indx,
                    int                   src_comp,
@@ -311,6 +332,7 @@ private:
     DeriveFunc    func = nullptr;
     DeriveFunc3D  func_3d = nullptr;
     DeriveFuncFab func_fab = nullptr;
+    DeriveFuncMF  func_mf = nullptr;
 
     //! Interpolater for mapping crse grid derived data to finer levels.
     Interpolater* mapper = nullptr;
@@ -398,6 +420,12 @@ public:
               const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
+    void add (const std::string&      name,
+              IndexType               result_type,
+              int                     nvar_derive,
+              const DeriveFuncMF&           der_func_mf,
+              const DeriveRec::DeriveBoxMap& bx_map,
+              Interpolater*           interp = &pc_interp);
 
     /**
     * \brief This version doesn't take a Fortran function.
@@ -444,6 +472,14 @@ public:
               int                     nvar_derive,
               Vector<std::string> const&    vars,
               const DeriveFuncFab&           der_func_fab,
+              const DeriveRec::DeriveBoxMap& bx_map,
+              Interpolater*           interp = &pc_interp);
+
+    void add (const std::string&      name,
+              IndexType               res_typ,
+              int                     nvar_derive,
+              Vector<std::string> const&    vars,
+              const DeriveFuncMF&           der_func_mf,
               const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 

@@ -259,6 +259,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         if ( !initial_vec_zeroed ) {
             LocalAdd(sol, sorig, 0, 0, ncomp, nghost);
         }
+        if (ret == 8) { ret = 9; }
     }
     else
     {

@@ -443,8 +443,18 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
         if (!nentries.empty()) {
             auto& offset = m_f2c_offset[clev];
             offset.resize(nentries.size());
+#if (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
+            // GCC's __cplusplus is not a reliable indication for C++17 support
             std::exclusive_scan(nentries.begin(), nentries.end(), offset.begin(),
                                 std::size_t(0), std::plus<std::size_t>{});
+#else
+            offset[0] = 0;
+            auto const offset_size = offset.size();
+            if (offset_size > 1) {
+                auto const* pin = nentries.data();
+                std::partial_sum(pin, pin+offset_size-1, offset.data()+1, std::plus<std::size_t>{});
+            }
+#endif
             auto nvalues = std::size_t(nentries.back()) + offset.back();
             m_f2c_values[clev].resize(nvalues,Real(0.0));
         }

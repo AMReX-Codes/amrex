@@ -15,50 +15,92 @@ private:
 
     amrex::Vector<std::unique_ptr<T> > F_nodes;
 
-    void initialize_stages (const T& S_data)
+    // Current (internal) state and time
+    amrex::Vector<std::unique_ptr<T> > S_current;
+    amrex::Real time_current;
+
+    void initialize_stages (const T& S_data, const amrex::Real time)
     {
+        // Create data for stage RHS
         IntegratorOps<T>::CreateLike(F_nodes, S_data);
+
+        // Create and initialize data for current state
+        IntegratorOps<T>::CreateLike(S_current, S_data, true);
+        IntegratorOps<T>::Copy(*S_current[0], S_data);
+
+        // Set the initial time
+        time_current = time;
     }
 
 public:
     FEIntegrator () {}
 
-    FEIntegrator (const T& S_data)
+    FEIntegrator (const T& S_data, const amrex::Real time = 0.0)
     {
-        initialize(S_data);
+        initialize(S_data, time);
     }
 
     virtual ~FEIntegrator () {}
 
-    void initialize (const T& S_data) override
+    void initialize (const T& S_data, const amrex::Real time = 0.0)
     {
-        initialize_stages(S_data);
+        initialize_stages(S_data, time);
     }
 
-    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real time_step) override
+    amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
     {
-        BaseT::timestep = time_step;
-        // Assume before advance() that S_old is valid data at the current time ("time" argument)
+        // Assume before step() that S_old is valid data at the current time ("time" argument)
         // So we initialize S_new by copying the old state.
         IntegratorOps<T>::Copy(S_new, S_old);
 
+        // Call the pre RHS hook
+        BaseT::pre_rhs_action(S_new, time);
+
         // F = RHS(S, t)
         T& F = *F_nodes[0];
-        BaseT::rhs(F, S_new, time);
+        BaseT::Rhs(F, S_new, time);
 
         // S_new += timestep * dS/dt
-        IntegratorOps<T>::Saxpy(S_new, BaseT::timestep, F);
+        IntegratorOps<T>::Saxpy(S_new, dt, F);
 
-        // Call the post-update hook for S_new
-        BaseT::post_update(S_new, time + BaseT::timestep);
+        // Call the post step hook
+        BaseT::post_step_action(S_new, time + dt);
 
         // Return timestep
-        return BaseT::timestep;
+        return dt;
+    }
+
+    void evolve (T& S_out, const amrex::Real time_out) override
+    {
+        amrex::Real dt = BaseT::time_step;
+        bool stop = false;
+
+        for (int step_number = 0; step_number < BaseT::max_steps && !stop; ++step_number)
+        {
+            // Adjust step size to reach output time
+            if (time_out - time_current < dt) {
+                dt = time_out - time_current;
+                stop = true;
+            }
+
+            // Call the time integrator step
+            advance(*S_current[0], S_out, time_current, dt);
+
+            // Update current state S_current = S_out
+            IntegratorOps<T>::Copy(*S_current[0], S_out);
+
+            // Update time
+            time_current += dt;
+
+            if (step_number == BaseT::max_steps - 1) {
+                Error("Did not reach output time in max steps.");
+            }
+        }
     }
 
     virtual void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) override
     {
-        amrex::Error("Time interpolation not yet supported by forward euler integrator.");
+        amrex::Error("Time interpolation not yet supported by the forward euler integrator.");
     }
 
     virtual void map_data (std::function<void(T&)> Map) override

@@ -51,7 +51,7 @@ AMREX_FORCE_INLINE Box at (Box const& b, Long offset) noexcept
                                 static_cast<int>(j),
                                 static_cast<int>(k))};
         iv += b.smallEnd();
-        return Box(iv,iv,b.type());
+        return Box(iv,iv,b.ixType());
     ))
     AMREX_IF_ON_HOST((
         amrex::ignore_unused(offset);

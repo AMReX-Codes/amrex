@@ -1560,7 +1560,7 @@ MLMGT<MF>::actualBottomSolve ()
             }
             int ret = bottomSolveWithCG(x, *bottom_b, cg_type);
             // If the MLMG solve failed then set the correction to zero
-            if (ret != 0) {
+            if (ret != 0 && ret != 9) {
                 setVal(cor[amrlev][mglev], RT(0.0));
                 if (bottom_solver == BottomSolver::cgbicg ||
                     bottom_solver == BottomSolver::bicgcg) {

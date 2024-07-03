@@ -1667,6 +1667,10 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
                 rec->derFuncFab()(bx, derfab, 0, dncomp, datafab, geom, time, rec->getBC(), level);
             }
         }
+        else if (rec->derFuncMF() != nullptr)
+        {
+            rec->derFuncMF()(*mf, 0, dncomp, srcMF, geom, time, rec->getBC(), level);
+        }
         else
         {
 #ifdef AMREX_USE_OMP
@@ -1778,6 +1782,11 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
                 const int dncomp = rec->numDerive();
                 rec->derFuncFab()(bx, derfab, dcomp, dncomp, datafab, geom, time, rec->getBC(), level);
             }
+        }
+        else if (rec->derFuncMF() != nullptr)
+        {
+            const int dncomp = rec->numDerive();
+            rec->derFuncMF()(mf, dcomp, dncomp, srcMF, geom, time, rec->getBC(), level);
         }
         else
         {

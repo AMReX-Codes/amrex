@@ -25,10 +25,7 @@ template<class T>
 class TimeIntegrator
 {
 private:
-    amrex::Real m_time, m_timestep;
-    int m_step_number;
     std::unique_ptr<IntegratorBase<T> > integrator_ptr;
-    std::function<void ()> post_timestep;
 
     IntegratorTypes read_parameters ()
     {
@@ -67,21 +64,25 @@ private:
 
     void set_default_functions ()
     {
-        // By default, do nothing post-timestep
-        set_post_timestep([](){});
-
-        // By default, do nothing after updating the state
-        // In general, this is where BCs should be filled
-        set_post_update([](T& /* S_data */, amrex::Real /* S_time */){});
-
-        // By default, do nothing
+        // By default, do nothing in the RHS
         set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
-        set_fast_rhs([](T& /* S_rhs */, T& /* S_extra */, const T& /* S_data */, const amrex::Real /* time */){});
+        set_imex_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){},
+                     [](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
+        set_fast_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
 
-        // By default, initialize time, timestep, step number to 0's
-        m_time = 0.0_rt;
-        m_timestep = 0.0_rt;
-        m_step_number = 0;
+        // In general, the following functions can be used to fill BCs. Which
+        // function to set will depend on the method type and intended use case
+
+        // By default, do nothing before calling the RHS
+        set_pre_rhs_action([](T& /* S_data */, amrex::Real /* time */){});
+
+        // By default, do nothing after a stage or step
+        set_post_stage_action([](T& /* S_data */, const amrex::Real /* time */){});
+        set_post_step_action([](T& /* S_data */, const amrex::Real /* time */){});
+
+        // By default, do nothing after a stage or step
+        set_post_fast_stage_action([](T& /* S_data */, const amrex::Real /* time */){});
+        set_post_fast_step_action([](T& /* S_data */, const amrex::Real /* time */){});
     }
 
 public:
@@ -91,20 +92,20 @@ public:
         set_default_functions();
     }
 
-    TimeIntegrator (IntegratorTypes integrator_type, const T& S_data)
+    TimeIntegrator (IntegratorTypes integrator_type, const T& S_data, const amrex::Real time = 0.0)
     {
         // initialize the integrator class corresponding to the desired type
-        initialize_integrator(integrator_type, S_data);
+        initialize_integrator(integrator_type, S_data, time);
 
         // initialize functions to do nothing
         set_default_functions();
     }
 
-    TimeIntegrator (const T& S_data)
+    TimeIntegrator (const T& S_data, const amrex::Real time = 0.0)
     {
         // initialize the integrator class corresponding to the input parameter selection
         IntegratorTypes integrator_type = read_parameters();
-        initialize_integrator(integrator_type, S_data);
+        initialize_integrator(integrator_type, S_data, time);
 
         // initialize functions to do nothing
         set_default_functions();
@@ -112,19 +113,19 @@ public:
 
     virtual ~TimeIntegrator () {}
 
-    void initialize_integrator (IntegratorTypes integrator_type, const T& S_data)
+    void initialize_integrator (IntegratorTypes integrator_type, const T& S_data, const amrex::Real time = 0.0)
     {
         switch (integrator_type)
         {
             case IntegratorTypes::ForwardEuler:
-                integrator_ptr = std::make_unique<FEIntegrator<T> >(S_data);
+                integrator_ptr = std::make_unique<FEIntegrator<T> >(S_data, time);
                 break;
             case IntegratorTypes::ExplicitRungeKutta:
-                integrator_ptr = std::make_unique<RKIntegrator<T> >(S_data);
+                integrator_ptr = std::make_unique<RKIntegrator<T> >(S_data, time);
                 break;
 #ifdef AMREX_USE_SUNDIALS
             case IntegratorTypes::Sundials:
-                integrator_ptr = std::make_unique<SundialsIntegrator<T> >(S_data);
+                integrator_ptr = std::make_unique<SundialsIntegrator<T> >(S_data, time);
                 break;
 #endif
             default:
@@ -133,97 +134,113 @@ public:
         }
     }
 
-    void set_post_timestep (std::function<void ()> F)
-    {
-        post_timestep = F;
-    }
-
-    void set_post_update (std::function<void (T&, amrex::Real)> F)
-    {
-        integrator_ptr->set_post_update(F);
-    }
-
     void set_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
     {
         integrator_ptr->set_rhs(F);
     }
 
-    void set_fast_rhs (std::function<void(T&, T&, const T&, const amrex::Real)> F)
+    void set_imex_rhs (std::function<void(T&, const T&, const amrex::Real)> Fi,
+                       std::function<void(T&, const T&, const amrex::Real)> Fe)
+    {
+        integrator_ptr->set_imex_rhs(Fi, Fe);
+    }
+
+    void set_fast_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
     {
         integrator_ptr->set_fast_rhs(F);
     }
 
-    void set_slow_fast_timestep_ratio (const int timestep_ratio = 1)
+    void set_pre_rhs_action (std::function<void (T&, amrex::Real)> A)
     {
-        integrator_ptr->set_slow_fast_timestep_ratio(timestep_ratio);
+        integrator_ptr->set_pre_rhs_action(A);
     }
 
-    void set_fast_timestep (const Real fast_dt = 1.0)
+    void set_post_stage_action (std::function<void (T&, amrex::Real)> A)
     {
-        integrator_ptr->set_fast_timestep(fast_dt);
+        integrator_ptr->set_post_stage_action(A);
     }
 
-    Real get_fast_timestep ()
+    void set_post_step_action (std::function<void (T&, amrex::Real)> A)
     {
-        return integrator_ptr->get_fast_timestep();
+        integrator_ptr->set_post_step_action(A);
     }
 
-    int get_step_number ()
+    void set_post_fast_stage_action (std::function<void (T&, amrex::Real)> A)
     {
-        return m_step_number;
+        integrator_ptr->set_post_fast_stage_action(A);
     }
 
-    amrex::Real get_time ()
+    void set_post_fast_step_action (std::function<void (T&, amrex::Real)> A)
     {
-        return m_time;
+        integrator_ptr->set_post_fast_step_action(A);
     }
 
-    amrex::Real get_timestep ()
+    void set_post_update (std::function<void (T&, amrex::Real)> A)
     {
-        return m_timestep;
+        integrator_ptr->set_post_update(A);
     }
 
-    void set_timestep (amrex::Real dt)
+    amrex::Real get_time_step ()
     {
-        m_timestep = dt;
+        return integrator_ptr->get_time_step();
     }
 
-    std::function<void ()> get_post_timestep ()
+    void set_time_step (amrex::Real dt)
     {
-        return post_timestep;
+        integrator_ptr->set_time_step(dt);
     }
 
-    std::function<void (T&, amrex::Real)> get_post_update ()
+    void set_adaptive_step ()
     {
-        return integrator_ptr->get_post_update();
+        integrator_ptr->set_adaptive_step();
     }
 
-    std::function<void(T&, const T&, const amrex::Real)> get_rhs ()
+    void set_fast_time_step (amrex::Real dt)
     {
-        return integrator_ptr->get_rhs();
+        integrator_ptr->set_fast_time_step(dt);
     }
 
-    std::function<void(T&, T&, const T&, const amrex::Real)> get_fast_rhs ()
+    void set_adaptive_fast_step ()
     {
-        return integrator_ptr->get_fast_rhs();
+        integrator_ptr->set_adaptive_fast_step();
     }
 
-    void advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real timestep)
+    void set_max_steps (int steps)
     {
-        integrator_ptr->advance(S_old, S_new, time, timestep);
+        integrator_ptr->set_max_steps(steps);
+    }
+
+    void set_tolerances (amrex::Real rtol, amrex::Real atol)
+    {
+        integrator_ptr->set_tolerances(rtol, atol);
+    }
+
+    void set_fast_tolerances (amrex::Real rtol, amrex::Real atol)
+    {
+        integrator_ptr->set_fast_tolerances(rtol, atol);
+    }
+
+    void advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt)
+    {
+        integrator_ptr->advance(S_old, S_new, time, dt);
+    }
+
+    void evolve (T& S_out, const amrex::Real time_out)
+    {
+        integrator_ptr->evolve(S_out, time_out);
     }
 
     void integrate (T& S_old, T& S_new, amrex::Real start_time, const amrex::Real start_timestep,
                     const amrex::Real end_time, const int start_step, const int max_steps)
     {
-        m_time = start_time;
-        m_timestep = start_timestep;
-        bool stop_advance = false;
-        for (m_step_number = start_step; m_step_number < max_steps && !stop_advance; ++m_step_number)
+        amrex::Real m_time = start_time;
+        amrex::Real m_timestep = start_timestep;
+        bool stop = false;
+        for (int m_step_number = start_step; m_step_number < max_steps && !stop; ++m_step_number)
         {
             if (end_time - m_time < m_timestep) {
                 m_timestep = end_time - m_time;
-                stop_advance = true;
+                stop = true;
             }
 
             if (m_step_number > 0) {
@@ -235,9 +252,6 @@ public:
 
             // Update our time variable
             m_time += m_timestep;
-
-            // Call the post-timestep hook
-            post_timestep();
         }
     }
 
