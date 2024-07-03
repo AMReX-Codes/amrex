@@ -16,7 +16,9 @@
 
 namespace amrex {
 
-class Box;
+template<int dim>
+class BoxND;
+using Box = BoxND<AMREX_SPACEDIM>;
 template<int dim>
 class IntVectND;
 using IntVect = IntVectND<AMREX_SPACEDIM>;
