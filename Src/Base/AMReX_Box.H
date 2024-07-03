@@ -67,9 +67,7 @@ public:
     AMREX_GPU_HOST_DEVICE
     BoxND (const IntVectND<dim>& small, const int* vec_len) noexcept
         : smallend(small),
-          bigend(AMREX_D_DECL(small[0]+vec_len[0]-1,
-                              small[1]+vec_len[1]-1,
-                              small[2]+vec_len[2]-1))
+          bigend(small + IntVectND<dim>(vec_len) - 1)
         {}
 
     /**
@@ -96,8 +94,8 @@ public:
     template <typename T>
     AMREX_GPU_HOST_DEVICE
     explicit BoxND (Array4<T> const& a) noexcept
-        : smallend(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-          bigend  (AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))
+        : smallend(a.begin),
+          bigend  (IntVectND<dim>(a.end) - 1)
         {}
 
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
@@ -140,18 +138,14 @@ public:
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     IntVectND<dim> size () const noexcept
     {
-        return IntVectND<dim>(AMREX_D_DECL(bigend[0]-smallend[0] + 1,
-                                    bigend[1]-smallend[1] + 1,
-                                    bigend[2]-smallend[2] + 1));
+        return bigend - smallend + 1;
     }
 
     //! Return the length of the BoxND.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     IntVectND<dim> length () const noexcept
     {
-        return IntVectND<dim>(AMREX_D_DECL(bigend[0]-smallend[0] + 1,
-                                    bigend[1]-smallend[1] + 1,
-                                    bigend[2]-smallend[2] + 1));
+        return bigend - smallend + 1;
     }
 
     //! Return the length of the BoxND in given direction.
@@ -1789,18 +1783,24 @@ BoxND<dim> makeSlab (BoxND<dim> const& b, int direction, int slab_index) noexcep
     return r;
 }
 
-template<int dim>
+template<int dim=AMREX_SPACEDIM>
 [[nodiscard]]
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 BoxND<dim> makeSingleCellBox (int i, int j, int k, IndexTypeND<dim> typ = IndexTypeND<dim>::TheCellType())
 {
-#if (AMREX_SPACEDIM == 1)
-    amrex::ignore_unused(j,k);
-#elif (AMREX_SPACEDIM == 2)
-    amrex::ignore_unused(k);
-#endif
-    return BoxND<dim>(IntVectND<dim>(AMREX_D_DECL(i,j,k)),IntVectND<dim>(AMREX_D_DECL(i,j,k)),typ);
+    IntVectND<3> vect{i, j, k};
+
+    return BoxND<dim>(vect.template shrink<dim>(), vect.template shrink<dim>(), typ);
+}
+
+template<int dim>
+[[nodiscard]]
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+BoxND<dim> makeSingleCellBox (IntVectND<dim> const& vect, IndexTypeND<dim> typ = IndexTypeND<dim>::TheCellType())
+{
+    return BoxND<dim>{vect, vect, typ};
 }
 
 template<int dim>
