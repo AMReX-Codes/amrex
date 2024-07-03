@@ -1,5 +1,6 @@
 #ifndef AMREX_BASE_FWD_H_
 #define AMREX_BASE_FWD_H_
+#include <AMReX_Config.H>
 
 namespace amrex {
 
