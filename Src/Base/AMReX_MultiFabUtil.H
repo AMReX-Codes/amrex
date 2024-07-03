@@ -410,7 +410,7 @@ namespace amrex
      * MultiFabs have no ghost cells. For nodal data, the nodes on the
      * coarse/fine interface exist on both levels.
      */
-    Vector<MultiFab> convexify (Vector<MultiFab const*> const& mf,
+    [[nodiscard]] Vector<MultiFab> convexify (Vector<MultiFab const*> const& mf,
                                 Vector<IntVect> const& refinement_ratio);
 }
 
