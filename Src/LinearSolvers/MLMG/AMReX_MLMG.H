@@ -1558,28 +1558,31 @@ MLMGT<MF>::actualBottomSolve ()
             } else {
                 cg_type = MLCGSolverT<MF>::Type::BiCGStab;
             }
+
             int ret = bottomSolveWithCG(x, *bottom_b, cg_type);
-            // If the MLMG solve failed then set the correction to zero
-            if (ret != 0 && ret != 9) {
+
+            if (ret != 0 && (bottom_solver == BottomSolver::cgbicg ||
+                             bottom_solver == BottomSolver::bicgcg))
+            {
+                if (bottom_solver == BottomSolver::cgbicg) {
+                    cg_type = MLCGSolverT<MF>::Type::BiCGStab; // switch to bicg
+                } else {
+                    cg_type = MLCGSolverT<MF>::Type::CG; // switch to cg
+                }
                 setVal(cor[amrlev][mglev], RT(0.0));
-                if (bottom_solver == BottomSolver::cgbicg ||
-                    bottom_solver == BottomSolver::bicgcg) {
-                    if (bottom_solver == BottomSolver::cgbicg) {
-                        cg_type = MLCGSolverT<MF>::Type::BiCGStab; // switch to bicg
+                ret = bottomSolveWithCG(x, *bottom_b, cg_type);
+                if (ret == 0) { // switch permanently
+                    if (cg_type == MLCGSolverT<MF>::Type::CG) {
+                        bottom_solver = BottomSolver::cg;
                     } else {
-                        cg_type = MLCGSolverT<MF>::Type::CG; // switch to cg
-                    }
-                    ret = bottomSolveWithCG(x, *bottom_b, cg_type);
-                    if (ret != 0) {
-                        setVal(cor[amrlev][mglev], RT(0.0));
-                    } else { // switch permanently
-                        if (cg_type == MLCGSolverT<MF>::Type::CG) {
-                            bottom_solver = BottomSolver::cg;
-                        } else {
-                            bottom_solver = BottomSolver::bicgstab;
-                        }
+                        bottom_solver = BottomSolver::bicgstab;
                     }
                 }
+            }
+
+            // If the bottom solve failed then set the correction to zero
+            if (ret != 0 && ret != 9) {
+                setVal(cor[amrlev][mglev], RT(0.0));
             }
             const int n = (ret==0) ? nub : nuf;
             for (int i = 0; i < n; ++i) {
