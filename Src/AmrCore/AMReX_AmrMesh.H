@@ -178,7 +178,7 @@ public:
     void SetGeometry (int lev, const Geometry& geom_in) noexcept;
 
     //! Given domain box, return AMR level.  Return -1 if there is no match.
-    int GetLevel (Box const& domain) noexcept;
+    [[nodiscard]] int GetLevel (Box const& domain) const noexcept;
 
     void ClearDistributionMap (int lev) noexcept;
     void ClearBoxArray (int lev) noexcept;
@@ -201,7 +201,7 @@ public:
     //! Return the largest allowable grid.
     [[nodiscard]] const IntVect& maxGridSize (int lev) const noexcept { return max_grid_size[lev]; }
 
-    [[nodiscard]] bool LevelDefined (int lev) noexcept;
+    [[nodiscard]] bool LevelDefined (int lev) const noexcept;
 
     //! Should we keep the coarser grids fixed (and not regrid those levels) at all?
     [[nodiscard]] bool useFixedCoarseGrids () const noexcept { return use_fixed_coarse_grids; }
@@ -255,7 +255,7 @@ public:
 
     [[nodiscard]] virtual BoxArray GetAreaNotToTag (int /*lev*/) { return BoxArray(); }
 
-    [[nodiscard]] long CountCells (int lev) noexcept;
+    [[nodiscard]] Long CountCells (int lev) const noexcept;
 
     [[nodiscard]] virtual DistributionMapping MakeDistributionMap (int lev, BoxArray const& ba);
 

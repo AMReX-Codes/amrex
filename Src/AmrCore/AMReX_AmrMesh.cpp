@@ -421,9 +421,9 @@ AmrMesh::SetGeometry (int lev, const Geometry& geom_in) noexcept
 }
 
 int
-AmrMesh::GetLevel (Box const& domain) noexcept
+AmrMesh::GetLevel (Box const& domain) const noexcept
 {
-    Box ccdomain = amrex::enclosedCells(domain);
+    Box const& ccdomain = amrex::enclosedCells(domain);
     for (int lev = 0; lev < geom.size(); ++lev) {
         if (geom[lev].Domain() == ccdomain) { return lev; }
     }
@@ -443,7 +443,7 @@ AmrMesh::ClearBoxArray (int lev) noexcept
 }
 
 bool
-AmrMesh::LevelDefined (int lev) noexcept
+AmrMesh::LevelDefined (int lev) const noexcept
 {
     return lev <= max_level && !grids[lev].empty() && !dmap[lev].empty();
 }
@@ -1216,8 +1216,8 @@ AmrMesh::checkInput ()
     }
 }
 
-long
-AmrMesh::CountCells (int lev) noexcept
+Long
+AmrMesh::CountCells (int lev) const noexcept
 {
     return grids[lev].numPts();
 }
