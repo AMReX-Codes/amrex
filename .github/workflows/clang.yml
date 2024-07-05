@@ -126,6 +126,53 @@ jobs:
         ccache -s
         du -hs ~/.cache/ccache
 
+  tests_cxx20:
+    name: Clang C++20 [tests]
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang.sh 15
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=100M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
+        mkdir build
+        cd build
+        cmake ..                                      \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo         \
+            -DCMAKE_VERBOSE_MAKEFILE=ON               \
+            -DAMReX_EB=ON                             \
+            -DAMReX_ENABLE_TESTS=ON                   \
+            -DAMReX_FORTRAN=OFF                       \
+            -DAMReX_MPI=ON                            \
+            -DCMAKE_CXX_STANDARD=20                   \
+            -DCMAKE_C_COMPILER=$(which clang-15)      \
+            -DCMAKE_CXX_COMPILER=$(which clang++-15)  \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        make -j 4
+
+        ctest --output-on-failure
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
   # Build 2D libamrex with configure
   configure-2d:
     name: Clang NOMPI Release [configure 2D]
