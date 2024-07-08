@@ -10,10 +10,12 @@
 #include <AMReX_Exception.H>
 #include <AMReX_Extension.H>
 
+#include <cstdint>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 //
@@ -277,6 +279,65 @@ namespace amrex
 
         Geometry* m_geom = nullptr;
     };
+
+    enum struct FPExcept : std::uint8_t {
+        none     = 0B0000,
+        invalid  = 0B0001,
+        zero     = 0B0010,
+        overflow = 0B0100,
+        all      = 0B0111
+    };
+
+    [[nodiscard]] inline bool any (FPExcept a) { return a != FPExcept::none; }
+
+    [[nodiscard]] inline FPExcept operator| (FPExcept a, FPExcept b)
+    {
+        using T = std::underlying_type_t<FPExcept>;
+        return static_cast<FPExcept>(static_cast<T>(a) | static_cast<T>(b));
+    }
+
+    [[nodiscard]] inline FPExcept operator& (FPExcept a, FPExcept b)
+    {
+        using T = std::underlying_type_t<FPExcept>;
+        return static_cast<FPExcept>(static_cast<T>(a) & static_cast<T>(b));
+    }
+
+    //! Return currently enabled FP exceptions. Linux only.
+    [[nodiscard]] FPExcept getFPExcept ();
+
+    //! Set FP exception traps. Linux only. This enables set flags and
+    //! DISABLES unset flags. This can be used to restore previous settings.
+    FPExcept setFPExcept (FPExcept excepts);
+
+    /**
+     * \brief Disable FP exceptions. Linux Only
+     *
+     * This function disables given exception traps and keeps the status of
+     * the others. The example below disables FPE invalid and
+     * divide-by-zero, and later restores the previous settings.
+     *
+     \verbatim
+         auto prev_excepts = disableFPExcept(FPExcept::invalid | FPExcept::zero);
+         // ....
+         setFPExcept(prev_excepts); // restore previous settings
+     \endverbatim
+     */
+    [[nodiscard]] FPExcept disableFPExcept (FPExcept excepts);
+
+    /**
+     * \brief Enable FP exceptions. Linux Only
+     *
+     * This function enables given exeption traps and keeps the status of
+     * the others. The example below enables all FPE traps, and later
+     * restores the previous settings.
+     *
+     \verbatim
+         auto prev_excepts = disableFPExcept(FPExcept::all);
+         // ....
+         setFPExcept(prev_excepts); // restore previous settings
+     \endverbatim
+     */
+    [[nodiscard]] FPExcept enableFPExcept (FPExcept excepts);
 }
 
 #endif /*BL_AMREX_H*/
