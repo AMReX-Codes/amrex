@@ -324,7 +324,7 @@ public:
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Long numPts () const noexcept {
         if (ok()) {
-            Long num_pts = static_cast<Long>(length(0));
+            auto num_pts = static_cast<Long>(length(0));
             for (int i = 1; i < dim; ++i) {
                 num_pts *= static_cast<Long>(length(i));
             }
@@ -341,7 +341,7 @@ public:
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     double d_numPts () const noexcept {
         if (ok()) {
-            double num_pts = static_cast<double>(length(0));
+            auto num_pts = static_cast<double>(length(0));
             for (int i = 1; i < dim; ++i) {
                 num_pts *= static_cast<double>(length(i));
             }
@@ -359,7 +359,7 @@ public:
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Long volume () const noexcept {
         if (ok()) {
-            Long num_pts = static_cast<Long>(length(0)-btype[0]);
+            auto num_pts = static_cast<Long>(length(0)-btype[0]);
             for (int i = 1; i < dim; ++i) {
                 num_pts *= static_cast<Long>(length(i)-btype[i]);
             }
