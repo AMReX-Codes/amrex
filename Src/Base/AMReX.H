@@ -327,7 +327,7 @@ namespace amrex
     /**
      * \brief Enable FP exceptions. Linux Only
      *
-     * This function enables given exeption traps and keeps the status of
+     * This function enables given exception traps and keeps the status of
      * the others. The example below enables all FPE traps, and later
      * restores the previous settings.
      *
