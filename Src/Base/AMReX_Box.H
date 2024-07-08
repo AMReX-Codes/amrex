@@ -947,6 +947,8 @@ BoxND<dim>::atOffset (Long offset) const noexcept
     }
 
     result[0] += static_cast<int>(offset);
+
+    return result;
 }
 
 template<int dim>
