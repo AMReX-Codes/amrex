@@ -842,7 +842,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     my_real_count  = 0;
 
     int max_mfi_count = 0, write_count = 0;
-    for (int i = 0; i < ParallelDescriptor::MyProc(); i++) {
+    for (int i = 0; i < ParallelDescriptor::NProcs(); i++) {
         if (max_mfi_count < all_mfi_cnt[i]) {
             max_mfi_count = all_mfi_cnt[i];
         }
