@@ -597,23 +597,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     dcpl_int  = H5Pcreate(H5P_DATASET_CREATE);
     dcpl_real = H5Pcreate(H5P_DATASET_CREATE);
 
-#if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
-    const char *chunk_env = NULL;
     std::string mode_env, value_env;
     double comp_value = -1.0;
-    hsize_t chunk_dim = 1024;
-
-    chunk_env = getenv("HDF5_CHUNK_SIZE");
-    if (chunk_env != NULL) {
-        chunk_dim = atoi(chunk_env);
-    }
-
-    H5Pset_chunk(dcpl_int, 1, &chunk_dim);
-    H5Pset_chunk(dcpl_real, 1, &chunk_dim);
-
-    H5Pset_alloc_time(dcpl_int, H5D_ALLOC_TIME_LATE);
-    H5Pset_alloc_time(dcpl_real, H5D_ALLOC_TIME_LATE);
-
     std::string::size_type pos = compression.find('@');
     if (pos != std::string::npos) {
         mode_env = compression.substr(0, pos);
@@ -623,30 +608,43 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     }
 
-#ifdef AMREX_USE_HDF5_ZFP
-    pos = compression.find("ZFP");
-    if (pos != std::string::npos) {
-        ret = H5Z_zfp_initialize();
-        if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
-    }
-#endif
-
-#ifdef AMREX_USE_HDF5_SZ
-    pos = compression.find("SZ");
-    if (pos != std::string::npos) {
-        ret = H5Z_SZ_Init((char*)value_env.c_str());
-        if (ret < 0) {
-            std::cout << "SZ config file:" << value_env.c_str() << std::endl;
-            amrex::Abort("SZ initialize failed, check SZ config file!");
-        }
-    }
-#endif
+    H5Pset_alloc_time(dcpl_int, H5D_ALLOC_TIME_LATE);
+    H5Pset_alloc_time(dcpl_real, H5D_ALLOC_TIME_LATE);
 
     if (!mode_env.empty() && mode_env != "None") {
+        const char *chunk_env = NULL;
+        hsize_t chunk_dim = 1024;
+        chunk_env = getenv("HDF5_CHUNK_SIZE");
+        if (chunk_env != NULL) {
+            chunk_dim = atoi(chunk_env);
+        }
+
+        H5Pset_chunk(dcpl_int, 1, &chunk_dim);
+        H5Pset_chunk(dcpl_real, 1, &chunk_dim);
+
+#ifdef AMREX_USE_HDF5_ZFP
+        pos = mode_env.find("ZFP");
+        if (pos != std::string::npos) {
+            ret = H5Z_zfp_initialize();
+            if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
+        }
+#endif
+
         if (mode_env == "ZLIB") {
+            H5Pset_shuffle(dcpl_int);
+            H5Pset_shuffle(dcpl_real);
             H5Pset_deflate(dcpl_int, (int)comp_value);
             H5Pset_deflate(dcpl_real, (int)comp_value);
         }
+#ifdef AMREX_USE_HDF5_SZ
+        else if (mode_env == "SZ") {
+            ret = H5Z_SZ_Init((char*)value_env.c_str());
+            if (ret < 0) {
+                std::cout << "SZ config file:" << value_env.c_str() << std::endl;
+                amrex::Abort("SZ initialize failed, check SZ config file!");
+            }
+        }
+#endif
 #ifdef AMREX_USE_HDF5_ZFP
         else if (mode_env == "ZFP_RATE") {
             H5Pset_zfp_rate(dcpl_int, comp_value);
@@ -664,18 +662,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             H5Pset_zfp_reversible(dcpl_int);
             H5Pset_zfp_reversible(dcpl_real);
         }
-        else if (mode_env == "ZLIB") {
-            H5Pset_deflate(dcpl_int, (int)comp_value);
-            H5Pset_deflate(dcpl_real, (int)comp_value);
-        }
 #endif
         if (ParallelDescriptor::MyProc() == 0) {
             std::cout << "\nHDF5 particle checkpoint using " << mode_env << ", " <<
                 value_env << ", " << chunk_dim << std::endl;
         }
     }
-#endif
-
 
     for (const auto& kv : m_particles[lev])
     {
@@ -772,6 +764,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 /*     } */
 /* #endif */
 
+    hsize_t chunk_size;
+    if (H5Pget_chunk(dcpl_int, 1, &chunk_size) > -1) {
+        if ((int)chunk_size > total_int_size) {
+            H5Pset_chunk(dcpl_int, 1, &total_int_size);
+        }
+    }
+
     int_dset_space = H5Screate_simple(1, &total_int_size, NULL);
 #ifdef AMREX_USE_HDF5_ASYNC
     int_dset_id  = H5Dcreate_async(grp, "data:datatype=0", H5T_NATIVE_INT, int_dset_space, H5P_DEFAULT, dcpl_int, H5P_DEFAULT, es_par_g);
@@ -807,6 +806,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     }
 #endif
+
+    if (H5Pget_chunk(dcpl_real, 1, &chunk_size) > -1) {
+        if ((int)chunk_size > total_real_size) {
+            H5Pset_chunk(dcpl_real, 1, &total_real_size);
+        }
+    }
 
     real_dset_space = H5Screate_simple(1, &total_real_size, NULL);
     if (sizeof(typename ParticleType::RealType) == 4) {
