@@ -931,7 +931,7 @@ AMREX_FORCE_INLINE
 IntVectND<dim>
 BoxND<dim>::atOffset (Long offset) const noexcept
 {
-    IntVectND<dim> result;
+    IntVectND<dim> result = smallend;
 
     if constexpr (dim > 1) {
         GpuArray<Long, dim-1> mult{};
@@ -942,11 +942,11 @@ BoxND<dim>::atOffset (Long offset) const noexcept
         for (int i = dim-1 ; i > 0; --i) {
             Long idx = offset / mult[i-1];
             offset -= idx * mult[i-1];
-            result[i] = static_cast<int>(idx);
+            result[i] += static_cast<int>(idx);
         }
     }
 
-    result[0] = static_cast<int>(offset);
+    result[0] += static_cast<int>(offset);
 }
 
 template<int dim>
