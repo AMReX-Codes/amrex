@@ -187,15 +187,14 @@ UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
     Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
   }
   std::set<int> copySet;
-  Vector<int> uSetTemp;
+  uSet.clear();
   while(static_cast<int>(copySet.size()) < setSize) {
     int r = static_cast<int>(Random_int(poolSize));
     if(copySet.find(r) == copySet.end()) {
       copySet.insert(r);
-      uSetTemp.push_back(r);
+      uSet.push_back(r);
     }
   }
-  uSet = uSetTemp;
   if(printSet) {
     for(int i(0); i < uSet.size(); ++i) {
         AllPrint() << "uSet[" << i << "]  = " << uSet[i] << '\n';

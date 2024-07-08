@@ -71,9 +71,9 @@ IntVect
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::Index (const P& p, int lev) const
 {
     const Geometry& geom = Geom(lev);
-    const auto domain = geom.Domain();
-    const auto plo = geom.ProbLoArray();
-    const auto dxi = geom.InvCellSizeArray();
+    const auto& domain = geom.Domain();
+    const auto& plo = geom.ProbLoArray();
+    const auto& dxi = geom.InvCellSizeArray();
 
     return Assignor{}(p, plo, dxi, domain);
 }

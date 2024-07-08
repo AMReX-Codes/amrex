@@ -366,7 +366,7 @@ namespace amrex
             else
             {
                 // if the allocators are not the same we give up and copy
-                *this = a_vector;
+                *this = a_vector; // must copy instead of move
             }
 
             return *this;
