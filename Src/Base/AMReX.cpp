@@ -550,7 +550,18 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 prev_handler_sigabrt = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
             }
 
-            prev_handler_sigfpe = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
+            if (system::handle_sigfpe) {
+                prev_handler_sigfpe = std::signal(SIGFPE,  BLBackTrace::handler);
+            } else {
+                prev_handler_sigfpe = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
+            }
+
+            if (system::handle_sigill) {
+                prev_handler_sigill = std::signal(SIGILL,  BLBackTrace::handler);
+            } else {
+                prev_handler_sigill = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
+            }
+
             if (system::handle_sigfpe)
             {
                 int invalid = 0, divbyzero=0, overflow=0;
@@ -566,7 +577,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 prev_fpe_excepts = fegetexcept();
                 if (curr_fpe_excepts != 0) {
                     feenableexcept(curr_fpe_excepts);  // trap floating point exceptions
-                    prev_handler_sigfpe = std::signal(SIGFPE,  BLBackTrace::handler);
                 }
 
 #elif defined(__APPLE__) && defined(__x86_64__)
@@ -577,15 +587,13 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 if (overflow)  { curr_fpe_excepts |= _MM_MASK_OVERFLOW; }
                 if (curr_fpe_excepts != 0u) {
                     _MM_SET_EXCEPTION_MASK(prev_fpe_mask & ~curr_fpe_excepts);
-                    prev_handler_sigfpe = std::signal(SIGFPE,  BLBackTrace::handler);
                 }
 #endif
             }
 
-            prev_handler_sigill = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
+#if defined(__APPLE__) && defined(__aarch64__)
             if (system::handle_sigill)
             {
-#if defined(__APPLE__) && defined(__aarch64__)
                 int invalid = 0, divbyzero=0, overflow=0;
                 pp.queryAdd("fpe_trap_invalid", invalid);
                 pp.queryAdd("fpe_trap_zero", divbyzero);
@@ -598,9 +606,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 if (overflow)  { env.__fpcr |= __fpcr_trap_overflow;  }
                 fesetenv(&env);
                 // SIGILL ref: https://developer.apple.com/forums/thread/689159
-#endif
-                prev_handler_sigill = std::signal(SIGILL,  BLBackTrace::handler);
             }
+#endif
         }
 
 #ifdef AMREX_USE_HYPRE
@@ -911,6 +918,65 @@ AMReX::erase (AMReX* pamrex)
     if (r != m_instance.end()) {
         m_instance.erase(r);
     }
+}
+
+FPExcept getFPExcept ()
+{
+    auto r = FPExcept::none;
+#if defined(__linux__)
+    auto excepts = fegetexcept();
+    if (excepts & FE_INVALID  ) { r = r | FPExcept::invalid ; }
+    if (excepts & FE_DIVBYZERO) { r = r | FPExcept::zero    ; }
+    if (excepts & FE_OVERFLOW ) { r = r | FPExcept::overflow; }
+#endif
+    return r;
+}
+
+FPExcept setFPExcept (FPExcept excepts)
+{
+    auto prev = getFPExcept();
+#if defined(__linux__)
+    int flags = FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW;
+    fedisableexcept(flags);
+    flags = 0;
+    if (any(excepts & FPExcept::invalid )) { flags |= FE_INVALID  ; }
+    if (any(excepts & FPExcept::zero    )) { flags |= FE_DIVBYZERO; }
+    if (any(excepts & FPExcept::overflow)) { flags |= FE_OVERFLOW ; }
+    feenableexcept(flags);
+#else
+    amrex::ignore_unused(excepts);
+#endif
+    return prev;
+}
+
+FPExcept disableFPExcept (FPExcept excepts)
+{
+    auto prev = getFPExcept();
+#if defined(__linux__)
+    int flags = 0;
+    if (any(excepts & FPExcept::invalid )) { flags |= FE_INVALID  ; }
+    if (any(excepts & FPExcept::zero    )) { flags |= FE_DIVBYZERO; }
+    if (any(excepts & FPExcept::overflow)) { flags |= FE_OVERFLOW ; }
+    fedisableexcept(flags);
+#else
+    amrex::ignore_unused(excepts);
+#endif
+    return prev;
+}
+
+FPExcept enableFPExcept (FPExcept excepts)
+{
+    auto prev = getFPExcept();
+#if defined(__linux__)
+    int flags = 0;
+    if (any(excepts & FPExcept::invalid )) { flags |= FE_INVALID  ; }
+    if (any(excepts & FPExcept::zero    )) { flags |= FE_DIVBYZERO; }
+    if (any(excepts & FPExcept::overflow)) { flags |= FE_OVERFLOW ; }
+    feenableexcept(flags);
+#else
+    amrex::ignore_unused(excepts);
+#endif
+    return prev;
 }
 
 }
