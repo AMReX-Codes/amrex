@@ -641,7 +641,7 @@ jobs:
     - name: Run tests
       run: |
         cd build
-        ctest --output-on-failure -R
+        ctest --output-on-failure
 
   test_hdf5:
     name: GNU@9.3 HDF5 I/O Test [tests]
