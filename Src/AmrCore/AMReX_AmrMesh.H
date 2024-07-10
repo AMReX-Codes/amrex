@@ -26,7 +26,11 @@ struct AmrInfo {
     //! Blocking factor in grid generation (by level).
     Vector<IntVect> blocking_factor {{IntVect(8)}};
     //! Maximum allowable grid size (by level).
+#if defined(AMREX_USE_GPU)
+    Vector<IntVect> max_grid_size {{IntVect(AMREX_D_PICK(128,128,64))}};
+#else
     Vector<IntVect> max_grid_size {{IntVect(AMREX_D_PICK(128,128,32))}};
+#endif
     //! Buffer cells around each tagged cell.
     Vector<IntVect> n_error_buf {{IntVect(1)}};
     //! Grid efficiency.
