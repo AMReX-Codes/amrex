@@ -66,6 +66,8 @@ namespace amrex
 
         extern AMREX_EXPORT ErrorHandler error_handler;
         extern AMREX_EXPORT int abort_on_unused_inputs;
+
+        extern AMREX_EXPORT bool init_snan;
     }
 
     /** the AMReX "git describe" version */
@@ -198,6 +200,9 @@ namespace amrex
 
     [[nodiscard]] int Verbose () noexcept;
     void SetVerbose (int v) noexcept;
+
+    [[nodiscard]] bool InitSNaN () noexcept;
+    void SetInitSNaN (bool v) noexcept;
 
     // ! Get the entire command line including the executable
     [[nodiscard]] std::string get_command ();

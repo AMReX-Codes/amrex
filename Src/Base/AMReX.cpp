@@ -113,6 +113,11 @@ namespace system
     std::ostream* osout = &std::cout;
     std::ostream* oserr = &std::cerr;
     ErrorHandler error_handler = nullptr;
+#if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
+    bool init_snan = true;
+#else
+    bool init_snan = false;
+#endif
 }
 }
 
@@ -155,6 +160,10 @@ namespace {
 int amrex::Verbose () noexcept { return amrex::system::verbose; }
 
 void amrex::SetVerbose (int v) noexcept { amrex::system::verbose = v; }
+
+bool amrex::InitSNaN () noexcept { return amrex::system::init_snan; }
+
+void amrex::SetInitSNaN (bool v) noexcept  { amrex::system::init_snan = v; }
 
 void amrex::SetErrorHandler (amrex::ErrorHandler f) {
     amrex::system::error_handler = f;
@@ -444,6 +453,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         ParmParse pp("amrex");
         pp.queryAdd("v", system::verbose);
         pp.queryAdd("verbose", system::verbose);
+        pp.queryAdd("init_snan", system::init_snan);
     }
 
     if (system::verbose > 0) {

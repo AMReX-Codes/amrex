@@ -144,6 +144,9 @@ FArrayBox::FArrayBox (const Box& b, int ncomp, Real const* p) noexcept
 void
 FArrayBox::initVal () noexcept
 {
+    // If amrex::InitSNaN is true, snans have been filled by BaseFab.
+    if (amrex::InitSNaN()) { return; }
+
     Real * p = dataPtr();
     Long s = size();
     if (p && s > 0) {
