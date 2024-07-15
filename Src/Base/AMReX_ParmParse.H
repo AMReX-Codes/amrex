@@ -266,6 +266,17 @@ using IntVect = IntVectND<AMREX_SPACEDIM>;
 *    t = 1.5
 *    #endif
 *
+*  Math expression is supported for integers and reals. For example
+*
+*    n_cell = 128
+*    amrex.n_cell = {n_cell*2} 8 {16**2}
+*
+*  becomes
+*
+*    n_cell = 128
+*    amrex.n_cell = 256 8 256
+*
+*  More details can be found at https://amrex-codes.github.io/amrex/docs_html/Basics.html#parmparse
 */
 class ParmParse
 {
@@ -273,11 +284,13 @@ public:
     enum { LAST = -1, FIRST = 0, ALL = -1 };
     /**
     * \brief Construct an additional ParmParse object sharing the same
-    * internal table as any other such objects in existence.  If
-    * prefix is specified, load this string as the code prefix
-    * for this particular ParmParse object.
+    * internal table as any other such objects in existence.  If prefix is
+    * specified, load this string as the code prefix for this particular
+    * ParmParse object. If parser_prefix is specified, it will be used as
+    * prefixed in math expression evaluations.
     */
-    explicit ParmParse (std::string prefix = std::string());
+    explicit ParmParse (std::string prefix = std::string(),
+                        std::string parser_prefix = std::string());
 
     //! Returns true if name is in table.
     [[nodiscard]] bool contains (const char* name) const;
@@ -1045,6 +1058,7 @@ protected:
     [[nodiscard]] std::string prefixedName (const std::string_view& str) const;
 
     std::string m_prefix; // Prefix used in keyword search
+    std::string m_parser_prefix; // Prefix used by Parser
     Table* m_table;
 };
 

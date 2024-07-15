@@ -224,17 +224,17 @@ file is a series of
 definitions in the form of ``prefix.name = value value ....`` For each line,
 text after # are comments. Here is an example inputs file.
 
-    .. highlight:: python
+.. highlight:: python
 
-    ::
+::
 
-        nsteps    = 100               # integer
-        nsteps    = 1000              # nsteps appears a second time
-        dt        = 0.03              # floating point number
-        ncells    = 128 64 32         # a list of 3 ints
-        xrange    = -0.5 0.5          # a list of 2 reals
-        title     = "Three Kingdoms"  # a string
-        hydro.cfl = 0.8               # with prefix, hydro
+    nsteps    = 100               # integer
+    nsteps    = 1000              # nsteps appears a second time
+    dt        = 0.03              # floating point number
+    ncells    = 128 64 32         # a list of 3 ints
+    xrange    = -0.5 0.5          # a list of 2 reals
+    title     = "Three Kingdoms"  # a string
+    hydro.cfl = 0.8               # with prefix, hydro
 
 The following code shows how to use :cpp:`ParmParse` to get/query the values.
 
@@ -274,6 +274,59 @@ by default returns the last one. The difference between :cpp:`query` and
 :cpp:`get` should also be noted. It is a runtime error if :cpp:`get` fails to
 get the value, whereas :cpp:`query` returns an error code without generating a
 runtime error that will abort the run.
+
+Math Expressions
+----------------
+
+:cpp:`ParmParse` supports math expressions for integers and floating point
+numbers. For example,
+
+.. highlight:: python
+
+::
+
+    # in inputs file
+    n_cell = 128
+    amrex.n_cell = {n_cell*2} 8 {16**2}
+
+is equivalent to the following input parameters.
+
+.. highlight:: python
+
+::
+
+    n_cell = 128
+    amrex.n_cell = 256 8 256
+
+Note that the user must use `{}` to indicate that the block needs to be
+evaluated as a math expression. If the expression contains another variable,
+it will be looked up by :cpp:`ParmParse`.
+
+:cpp:`ParmParse`'s constructor accepts an optional second argument,
+``parser_prefix``. When a variable in a math expression is being looked up,
+it will first try to find it by using the exact name of the variable. If
+this attempt fails and the :cpp:`ParmParse` object has a non-empty
+``parser_prefix``, it will try again, this time looking up the variable by
+prefixing its name with ``parser_prefix`` followed by a ``.``. For example,
+
+.. highlight:: python
+
+::
+
+    # in inputs file
+    physical_constants.c = 3.e8
+    amrex.pi = 3.14
+    amrex.foo = { sin(amrex.pi/2) * c**2 }
+
+will give ``foo = 8.999997146e+16`` if we do this
+
+.. highlight:: c++
+
+::
+
+    amrex::ParmParse pp("amrex", "physical_constants");
+    double foo;
+    pp.get("foo", foo);
 
 Overriding Parameters with Command-Line Arguments
 -------------------------------------------------
