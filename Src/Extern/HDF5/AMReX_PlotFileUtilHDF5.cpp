@@ -722,7 +722,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
         // Force maximum chunk size to be size of write
         hsize_t chunk_size;
         if (H5Pget_chunk(lev_dcpl_id, 1, &chunk_size) > -1) {
-            if ((int)chunk_size > hs_allprocsize[0]) {
+            if ((unsigned long long) chunk_size > hs_allprocsize[0]) {
                 H5Pset_chunk(lev_dcpl_id, 1, hs_allprocsize);
             }
         }
@@ -1192,7 +1192,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
             // Force maximum chunk size to be size of write
             hsize_t chunk_size;
             if (H5Pget_chunk(lev_dcpl_id, 1, &chunk_size) > -1) {
-                if ((int)chunk_size > hs_allprocsize[0]) {
+                if ((unsigned long long) chunk_size > hs_allprocsize[0]) {
                     H5Pset_chunk(lev_dcpl_id, 1, hs_allprocsize);
                 }
             }
