@@ -2,6 +2,7 @@
 #include <AMReX.H>
 #include <AMReX_Box.H>
 #include <AMReX_IParser.H>
+#include <AMReX_OpenMP.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Parser.H>
 #include <AMReX_Print.H>
@@ -26,6 +27,7 @@ namespace {
     bool initialized = false;
     std::set<std::string> g_entry_used;
     ParmParse::Table g_table;
+    std::vector<std::set<std::string>> g_parser_recursive_symbols;
     namespace pp_detail {
         int verbose = -1;
     }
@@ -1008,6 +1010,12 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
     using PARSER_t = std::conditional_t<std::is_integral_v<T>, IParser, Parser>;
     using value_t =  std::conditional_t<std::is_integral_v<T>, int, double>;
     if (name.size() > 3 && name[0] == '{' && name[name.size()-1] == '}') {
+        auto& recursive_symbols = g_parser_recursive_symbols[OpenMP::get_thread_num()];
+        if (auto found = recursive_symbols.find(name); found != recursive_symbols.end()) {
+            amrex::Error("ParmParse: recursive reference to "+name+" is not allowed");
+        } else {
+            recursive_symbols.insert(name);
+        }
         PARSER_t parser(name.substr(1, name.size()-2));
         auto symbols = parser.symbols();
         for (auto const& s : symbols) {
@@ -1028,6 +1036,7 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
         }
         auto exe = parser.template compileHost<0>();
         ref = static_cast<T>(exe());
+        recursive_symbols.erase(name);
         return true;
     } else {
         return false;
@@ -1073,6 +1082,8 @@ ParmParse::Initialize (int         argc,
     {
         amrex::Error("ParmParse::Initialize(): already initialized!");
     }
+
+    g_parser_recursive_symbols.resize(OpenMP::get_max_threads());
 
     ppinit(argc, argv, parfile, g_table);
 
@@ -1173,6 +1184,8 @@ ParmParse::Finalize ()
 #if !defined(BL_NO_FORT)
     amrex_finalize_namelist();
 #endif
+
+    g_parser_recursive_symbols.clear();
 
     pp_detail::verbose = -1;
     initialized = false;
