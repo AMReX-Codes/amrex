@@ -328,6 +328,28 @@ will give ``foo = 8.999997146e+16`` if we do this
     double foo;
     pp.get("foo", foo);
 
+The variables in :cpp:`ParmParse` math expressions are not evaluated until
+they are referenced. If a variable is defined multiple times, the last
+occurrence will override previous ones even if it appears after the variable
+has been referenced. This behavior is demonstrated in the following example.
+
+.. highlight:: python
+
+::
+
+    foo.a = 1
+    foo.b = {foo.a}
+    foo.a = 2
+
+will become
+
+.. highlight:: python
+
+::
+
+    foo.a = 2
+    foo.b = 2
+
 Overriding Parameters with Command-Line Arguments
 -------------------------------------------------
 
