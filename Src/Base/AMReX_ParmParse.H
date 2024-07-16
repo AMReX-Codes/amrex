@@ -1025,6 +1025,9 @@ public:
     */
     static void Finalize ();
 
+    //! Set prefix used by math expression Parser
+    static void SetParserPrefix (std::string a_prefix);
+
     static int Verbose ();
     static void SetVerbose (int v);
 
@@ -1052,6 +1055,8 @@ public:
 
     //! keyword for files to load
     static std::string const FileKeyword;
+
+    static std::string ParserPrefix;
 
 protected:
 

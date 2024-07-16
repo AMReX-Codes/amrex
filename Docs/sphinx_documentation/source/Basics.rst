@@ -306,24 +306,31 @@ it will be looked up by :cpp:`ParmParse`.
 ``parser_prefix``. When a variable in a math expression is being looked up,
 it will first try to find it by using the exact name of the variable. If
 this attempt fails and the :cpp:`ParmParse` object has a non-empty
-``parser_prefix``, it will try again, this time looking up the variable by
-prefixing its name with ``parser_prefix`` followed by a ``.``. For example,
+non-static member ``parser_prefix``, it will try again, this time looking up
+the variable by prefixing its name with the value of ``parser_prefix``
+followed by a ``.``. If this attempt also fails and the :cpp:`ParmParse`
+class has a non-empty static member ``ParserPrefix`` (which can be set by
+:cpp:`ParmParse::SetParserPrefix`), it will try again, this time looking up
+the variable by prefixing its name with the value of ``ParserPrefix``
+followed by a ``.``. For example,
 
 .. highlight:: python
 
 ::
 
     # in inputs file
-    physical_constants.c = 3.e8
-    amrex.pi = 3.14
-    amrex.foo = { sin(amrex.pi/2) * c**2 }
+    my_constants.alpha = 5.
+    physical_constants.beta = 3
+    amrex.pi = {atan(1.0)*4}
+    amrex.foo = { sin(amrex.pi/2) * alpha * beta }
 
-will give ``foo = 8.999997146e+16`` if we do this
+will give ``foo = 15`` if we do this
 
 .. highlight:: c++
 
 ::
 
+    amrex::ParmParse::SetParserPrefix("my_constants");
     amrex::ParmParse pp("amrex", "physical_constants");
     double foo;
     pp.get("foo", foo);

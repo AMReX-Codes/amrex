@@ -34,6 +34,7 @@ namespace {
 }
 
 std::string const ParmParse::FileKeyword = "FILE";
+std::string       ParmParse::ParserPrefix;
 
 ParmParse::ParmParse (std::string prefix, std::string parser_prefix)
     : m_prefix(std::move(prefix)),
@@ -1016,21 +1017,29 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
         } else {
             recursive_symbols.insert(name);
         }
+
+        std::vector<std::string> prefixes;
+        prefixes.reserve(3);
+        prefixes.emplace_back();
+        if (! parser_prefix.empty()) {
+            prefixes.emplace_back(parser_prefix+".");
+        }
+        if (! ParmParse::ParserPrefix.empty()) {
+            prefixes.emplace_back(ParmParse::ParserPrefix+".");
+        }
+
         PARSER_t parser(name.substr(1, name.size()-2));
         auto symbols = parser.symbols();
         for (auto const& s : symbols) {
-            value_t v;
-            if (parser_prefix.empty()) {
-                sgetval(table, parser_prefix, s, v,
-                        ParmParse::FIRST, ParmParse::LAST);
-            } else {
-                if (squeryval(table, parser_prefix, s, v,
-                              ParmParse::FIRST, ParmParse::LAST) == false) {
-                    std::string ppdots = parser_prefix;
-                    ppdots.append(".").append(s);
-                    sgetval(table, parser_prefix, ppdots, v,
-                            ParmParse::FIRST, ParmParse::LAST);
-                }
+            value_t v = 0;
+            bool r = false;
+            for (auto const& pf : prefixes) {
+                r = squeryval(table, parser_prefix, pf+s, v,
+                              ParmParse::FIRST, ParmParse::LAST);
+                if (r) { break; }
+            }
+            if (r == false) {
+                amrex::Error("ParmParse: failed to parse " + name);
             }
             parser.setConstant(s, v);
         }
@@ -1189,6 +1198,12 @@ ParmParse::Finalize ()
 
     pp_detail::verbose = -1;
     initialized = false;
+}
+
+void
+ParmParse::SetParserPrefix (std::string a_prefix)
+{
+    ParmParse::ParserPrefix = std::move(a_prefix);
 }
 
 void
