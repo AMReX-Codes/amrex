@@ -765,9 +765,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 /* #endif */
 
     hsize_t chunk_size;
-    if (H5Pget_chunk(dcpl_int, 1, &chunk_size) > -1) {
-        if ((int)chunk_size > total_int_size) {
-            H5Pset_chunk(dcpl_int, 1, &total_int_size);
+    if (H5Pget_layout(dcpl_int) == H5D_CHUNKED) {
+        if (H5Pget_chunk(dcpl_int, 1, &chunk_size) > -1) {
+            if ((int)chunk_size > total_int_size) {
+                H5Pset_chunk(dcpl_int, 1, &total_int_size);
+            }
         }
     }
 
@@ -806,10 +808,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     }
 #endif
-
-    if (H5Pget_chunk(dcpl_real, 1, &chunk_size) > -1) {
-        if ((int)chunk_size > total_real_size) {
-            H5Pset_chunk(dcpl_real, 1, &total_real_size);
+    if (H5Pget_layout(dcpl_real) == H5D_CHUNKED) {
+        if (H5Pget_chunk(dcpl_real, 1, &chunk_size) > -1) {
+            if ((int)chunk_size > total_real_size) {
+                H5Pset_chunk(dcpl_real, 1, &total_real_size);
+            }
         }
     }
 
