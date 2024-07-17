@@ -723,7 +723,7 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
         if (H5Pget_layout(lev_dcpl_id) == H5D_CHUNKED) {
             hsize_t chunk_size;
             if (H5Pget_chunk(lev_dcpl_id, 1, &chunk_size) > -1) {
-                if ((int)chunk_size > hs_allprocsize[0]) {
+                if (chunk_size > hs_allprocsize[0]) {
                     H5Pset_chunk(lev_dcpl_id, 1, hs_allprocsize);
                 }
             }
@@ -1195,7 +1195,7 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
             if (H5Pget_layout(lev_dcpl_id) == H5D_CHUNKED) {
                 hsize_t chunk_size;
                 if (H5Pget_chunk(lev_dcpl_id, 1, &chunk_size) > -1) {
-                    if ((int)chunk_size > hs_allprocsize[0]) {
+                    if (chunk_size > hs_allprocsize[0]) {
                         H5Pset_chunk(lev_dcpl_id, 1, hs_allprocsize);
                     }
                 }
