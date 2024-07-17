@@ -720,10 +720,12 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
 #endif
 
         // Force maximum chunk size to be size of write
-        hsize_t chunk_size;
-        if (H5Pget_chunk(lev_dcpl_id, 1, &chunk_size) > -1) {
-            if ((unsigned long long) chunk_size > hs_allprocsize[0]) {
-                H5Pset_chunk(lev_dcpl_id, 1, hs_allprocsize);
+        if (H5Pget_layout(lev_dcpl_id) == H5D_CHUNKED) {
+            hsize_t chunk_size;
+            if (H5Pget_chunk(lev_dcpl_id, 1, &chunk_size) > -1) {
+                if ((int)chunk_size > hs_allprocsize[0]) {
+                    H5Pset_chunk(lev_dcpl_id, 1, hs_allprocsize);
+                }
             }
         }
 
@@ -1190,10 +1192,12 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
             hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
             snprintf(dataname, sizeof dataname, "data:datatype=%d", jj);
             // Force maximum chunk size to be size of write
-            hsize_t chunk_size;
-            if (H5Pget_chunk(lev_dcpl_id, 1, &chunk_size) > -1) {
-                if ((unsigned long long) chunk_size > hs_allprocsize[0]) {
-                    H5Pset_chunk(lev_dcpl_id, 1, hs_allprocsize);
+            if (H5Pget_layout(lev_dcpl_id) == H5D_CHUNKED) {
+                hsize_t chunk_size;
+                if (H5Pget_chunk(lev_dcpl_id, 1, &chunk_size) > -1) {
+                    if ((int)chunk_size > hs_allprocsize[0]) {
+                        H5Pset_chunk(lev_dcpl_id, 1, hs_allprocsize);
+                    }
                 }
             }
 #ifdef AMREX_USE_HDF5_ASYNC
