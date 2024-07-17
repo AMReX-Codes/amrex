@@ -681,7 +681,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
 
 template <typename T>
 bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
-                const std::string& name, T& ref);
+                const std::string& name, const std::string& val, T& ref);
 
 template <class T>
 bool
@@ -727,11 +727,11 @@ squeryval (const ParmParse::Table& table,
         if constexpr (std::is_same_v<T,int> ||
                       std::is_same_v<T,long> ||
                       std::is_same_v<T,long long>) {
-            if (pp_parser(table, parser_prefix, valname, ref)) {
+            if (pp_parser(table, parser_prefix, name, valname, ref)) {
                 return true;
             }
         } else if constexpr (std::is_floating_point_v<T>) {
-            if (pp_parser(table, parser_prefix, valname, ref)) {
+            if (pp_parser(table, parser_prefix, name, valname, ref)) {
                 return true;
             }
         }
@@ -842,11 +842,11 @@ squeryarr (const ParmParse::Table& table,
             if constexpr (std::is_same_v<T,int> ||
                           std::is_same_v<T,long> ||
                           std::is_same_v<T,long long>) {
-                if (pp_parser(table, parser_prefix, valname, ref[n])) {
+                if (pp_parser(table, name, parser_prefix, valname, ref[n])) {
                     continue;
                 }
             } else if constexpr (std::is_floating_point_v<T>) {
-                if (pp_parser(table, parser_prefix, valname, ref[n])) {
+                if (pp_parser(table, name, parser_prefix, valname, ref[n])) {
                     continue;
                 }
             }
@@ -1006,50 +1006,47 @@ void pp_print_unused (const std::string& pfx, const ParmParse::Table& table)
 
 template <typename T>
 bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
-                const std::string& name, T& ref)
+                const std::string& name, const std::string& val, T& ref)
 {
     using PARSER_t = std::conditional_t<std::is_integral_v<T>, IParser, Parser>;
     using value_t =  std::conditional_t<std::is_integral_v<T>, int, double>;
-    if (name.size() > 3 && name[0] == '{' && name[name.size()-1] == '}') {
-        auto& recursive_symbols = g_parser_recursive_symbols[OpenMP::get_thread_num()];
-        if (auto found = recursive_symbols.find(name); found != recursive_symbols.end()) {
-            amrex::Error("ParmParse: recursive reference to "+name+" is not allowed");
-        } else {
-            recursive_symbols.insert(name);
-        }
 
-        std::vector<std::string> prefixes;
-        prefixes.reserve(3);
-        prefixes.emplace_back();
-        if (! parser_prefix.empty()) {
-            prefixes.emplace_back(parser_prefix+".");
-        }
-        if (! ParmParse::ParserPrefix.empty()) {
-            prefixes.emplace_back(ParmParse::ParserPrefix+".");
-        }
-
-        PARSER_t parser(name.substr(1, name.size()-2));
-        auto symbols = parser.symbols();
-        for (auto const& s : symbols) {
-            value_t v = 0;
-            bool r = false;
-            for (auto const& pf : prefixes) {
-                r = squeryval(table, parser_prefix, pf+s, v,
-                              ParmParse::FIRST, ParmParse::LAST);
-                if (r) { break; }
-            }
-            if (r == false) {
-                amrex::Error("ParmParse: failed to parse " + name);
-            }
-            parser.setConstant(s, v);
-        }
-        auto exe = parser.template compileHost<0>();
-        ref = static_cast<T>(exe());
-        recursive_symbols.erase(name);
-        return true;
+    auto& recursive_symbols = g_parser_recursive_symbols[OpenMP::get_thread_num()];
+    if (auto found = recursive_symbols.find(name); found != recursive_symbols.end()) {
+        amrex::Error("ParmParse: recursive reference to "+name+" is not allowed");
     } else {
-        return false;
+        recursive_symbols.insert(name);
     }
+
+    std::vector<std::string> prefixes;
+    prefixes.reserve(3);
+    prefixes.emplace_back();
+    if (! parser_prefix.empty()) {
+        prefixes.emplace_back(parser_prefix+".");
+    }
+    if (! ParmParse::ParserPrefix.empty()) {
+        prefixes.emplace_back(ParmParse::ParserPrefix+".");
+    }
+
+    PARSER_t parser(val);
+    auto symbols = parser.symbols();
+    for (auto const& s : symbols) {
+        value_t v = 0;
+        bool r = false;
+        for (auto const& pf : prefixes) {
+            r = squeryval(table, parser_prefix, pf+s, v,
+                          ParmParse::FIRST, ParmParse::LAST);
+            if (r) { break; }
+        }
+        if (r == false) {
+            amrex::Error("ParmParse: failed to parse " + name);
+        }
+        parser.setConstant(s, v);
+    }
+    auto exe = parser.template compileHost<0>();
+    ref = static_cast<T>(exe());
+    recursive_symbols.erase(name);
+    return true;
 }
 
 }  // End of unnamed namespace.
@@ -1853,6 +1850,56 @@ ParmParse::remove (const char* name)
     auto const new_size = m_table->size();
     g_entry_used.erase(pname);
     return static_cast<int>(old_size - new_size);
+}
+
+namespace {
+template <class T>
+bool squeryWithParser (const ParmParse::Table& table,
+                       const std::string&      parser_prefix,
+                       const std::string&      name,
+                       T&                      ref)
+{
+    std::vector<std::string> vals;
+    bool exist = squeryarr(table, parser_prefix, name, vals,
+                           ParmParse::FIRST, ParmParse::ALL, ParmParse::LAST);
+    if (!exist) { return false; }
+
+    std::string combined_string;
+    for (auto const& v : vals) {
+        combined_string.append(v);
+    }
+    return pp_parser(table, parser_prefix, name, combined_string, ref);
+}
+}
+
+int
+ParmParse::queryWithParser (const char* name, int& ref) const
+{
+    return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
+}
+
+int
+ParmParse::queryWithParser (const char* name, long& ref) const
+{
+    return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
+}
+
+int
+ParmParse::queryWithParser (const char* name, long long& ref) const
+{
+    return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
+}
+
+int
+ParmParse::queryWithParser (const char* name, float& ref) const
+{
+    return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
+}
+
+int
+ParmParse::queryWithParser (const char* name, double& ref) const
+{
+    return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
 }
 
 }

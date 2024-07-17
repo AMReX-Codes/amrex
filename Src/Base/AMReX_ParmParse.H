@@ -1008,6 +1008,55 @@ public:
         return exist;
     }
 
+    /**
+     * \brief Query with Parser. If `name` is found, this uses amrex::Parser
+     * to parse the entire list of empty space separated values as a single
+     * scalar. The return value indicates whether it's found.
+     */
+    int queryWithParser (const char* name, int& ref) const;
+    int queryWithParser (const char* name, long& ref) const;
+    int queryWithParser (const char* name, long long& ref) const;
+    int queryWithParser (const char* name, float& ref) const;
+    int queryWithParser (const char* name, double& ref) const;
+
+    /**
+     * \brief Query with Parser. If `name` is found, this uses amrex::Parser
+     * to parse the entire list of empty space separated values as a single
+     * scalar. If not, the value in `ref` will be added to the ParmParse
+     * database. The return value indicates whether it's found.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    int queryAddWithParser (const char* name, T& ref) const
+    {
+        int exist = this->queryWithParser(name, ref);
+        if (!exist) {
+            this->add(name, ref);
+        }
+        return exist;
+    }
+
+    /**
+     * \brief Get with Parser. If `name` is found, this uses amrex::Parser
+     * to parse the entire list of empty space separated values as a single
+     * scalar. If not, it's a runtime error.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    void getWithParser (const char* name, T& ref) const
+    {
+        int exist = this->queryWithParser(name, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getWithParser: failed to get ")+name);
+        }
+    }
+
     //! Remove given name from the table.
     int remove (const char* name);
 
