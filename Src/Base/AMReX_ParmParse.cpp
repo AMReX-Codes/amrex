@@ -842,11 +842,11 @@ squeryarr (const ParmParse::Table& table,
             if constexpr (std::is_same_v<T,int> ||
                           std::is_same_v<T,long> ||
                           std::is_same_v<T,long long>) {
-                if (pp_parser(table, name, parser_prefix, valname, ref[n])) {
+                if (pp_parser(table, parser_prefix, name, valname, ref[n])) {
                     continue;
                 }
             } else if constexpr (std::is_floating_point_v<T>) {
-                if (pp_parser(table, name, parser_prefix, valname, ref[n])) {
+                if (pp_parser(table, parser_prefix, name, valname, ref[n])) {
                     continue;
                 }
             }
