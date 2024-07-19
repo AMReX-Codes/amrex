@@ -519,7 +519,7 @@ namespace detail {
 
                     const FabArrayBase::CPC mask_cpc( mf_solution, IntVect::TheZeroVector(),
                                                       mf_known, IntVect::TheZeroVector(),
-                                                      fgeom.periodicity());
+                                                      cgeom.periodicity());
 
                     solve_mask.setVal(1);                   // Values to solve.
                     solve_mask.setVal(0, mask_cpc, 0, 1);   // Known values.
@@ -681,7 +681,7 @@ namespace detail {
 
                     const FabArrayBase::CPC mask_cpc( mf_solution, IntVect::TheZeroVector(),
                                                       mf_known, IntVect::TheZeroVector(),
-                                                      fgeom.periodicity() );
+                                                      cgeom.periodicity() );
 
                     solve_mask[d].setVal(1);                   // Values to solve.
                     solve_mask[d].setVal(0, mask_cpc, 0, 1);   // Known values.
