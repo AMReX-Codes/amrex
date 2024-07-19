@@ -380,7 +380,7 @@ The results will be
 
 Note that the empty spaces are significant for math expressions unless they
 are inside a pair of ``"`` or explicitly parsed by
-:cpp:`ParmParse::queryWithParer` or :cpp:`ParmParse::getWithParser`. If the
+:cpp:`ParmParse::queryWithParser` or :cpp:`ParmParse::getWithParser`. If the
 expression contains another variable, it will be looked up by
 :cpp:`ParmParse`. :cpp:`ParmParse`'s constructor accepts an optional second
 argument, ``parser_prefix``. When a variable in a math expression is being
