@@ -364,29 +364,28 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
             auto starr_ma = stencil->const_arrays();
-            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns)
+            for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
             {
                 ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Real Ax = mlndlap_adotx_sten(i,j,k,solarr_ma[box_no],starr_ma[box_no],dmskarr_ma[box_no]);
-                    mlndlap_jacobi_sten(i,j,k,solarr_ma[box_no],Ax,rhsarr_ma[box_no],starr_ma[box_no],dmskarr_ma[box_no]);
+                    mlndlap_gscolor_sten(i,j,k,solarr_ma[box_no],rhsarr_ma[box_no],
+                                         starr_ma[box_no],dmskarr_ma[box_no],color);
                 });
             }
         }
         else if (sigma[0] == nullptr)
         {
-            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns)
+            Real const_sigma = m_const_sigma;
+            for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
             {
-                Real const_sigma = m_const_sigma;
                 ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Real Ax = mlndlap_adotx_c(i,j,k,solarr_ma[box_no],const_sigma,dmskarr_ma[box_no],
+                    mlndlap_gscolor_c(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
+                                      const_sigma, dmskarr_ma[box_no], dxinvarr, color
 #if (AMREX_SPACEDIM == 2)
-                                              is_rz,
+                                      ,is_rz
 #endif
-                                              dxinvarr);
-                    mlndlap_jacobi_c(i,j,k, solarr_ma[box_no], Ax, rhsarr_ma[box_no], const_sigma,
-                                     dmskarr_ma[box_no], dxinvarr);
+                        );
                 });
             }
         }
@@ -395,40 +394,39 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             AMREX_D_TERM(MultiArray4<Real const> const& sxarr_ma = sigma[0]->const_arrays();,
                          MultiArray4<Real const> const& syarr_ma = sigma[1]->const_arrays();,
                          MultiArray4<Real const> const& szarr_ma = sigma[2]->const_arrays(););
-            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns)
+            for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
             {
                 ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Real Ax = mlndlap_adotx_ha(i,j,k,solarr_ma[box_no],AMREX_D_DECL(sxarr_ma[box_no],syarr_ma[box_no],szarr_ma[box_no]), dmskarr_ma[box_no],
+                    mlndlap_gscolor_ha(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
+                                       AMREX_D_DECL(sxarr_ma[box_no],syarr_ma[box_no],szarr_ma[box_no]),
+                                       dmskarr_ma[box_no], dxinvarr, color
 #if (AMREX_SPACEDIM == 2)
-                                               is_rz,
+                                       ,is_rz
 #endif
-                                               dxinvarr);
-                    mlndlap_jacobi_ha(i,j,k, solarr_ma[box_no], Ax, rhsarr_ma[box_no], AMREX_D_DECL(sxarr_ma[box_no],syarr_ma[box_no],szarr_ma[box_no]),
-                                      dmskarr_ma[box_no], dxinvarr);
+                        );
                 });
             }
         }
         else
         {
             auto sarr_ma = sigma[0]->const_arrays();
-            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns)
+            for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
             {
                 ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
                 {
-                    Real Ax = mlndlap_adotx_aa(i,j,k,solarr_ma[box_no],sarr_ma[box_no],dmskarr_ma[box_no],
+                    mlndlap_gscolor_aa(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
+                                       sarr_ma[box_no], dmskarr_ma[box_no], dxinvarr, color
 #if (AMREX_SPACEDIM == 2)
-                                               is_rz,
+                                       ,is_rz
 #endif
-                                               dxinvarr);
-                    mlndlap_jacobi_aa(i,j,k, solarr_ma[box_no], Ax, rhsarr_ma[box_no], sarr_ma[box_no],
-                                      dmskarr_ma[box_no], dxinvarr);
+                        );
                 });
             }
         }
 
         Gpu::streamSynchronize();
-        if (m_smooth_num_sweeps > 1) { nodalSync(amrlev, mglev, sol); }
+        nodalSync(amrlev, mglev, sol);
     }
     else // cpu
 #endif

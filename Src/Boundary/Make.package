@@ -1,3 +1,5 @@
+ifndef AMREX_BOUNDARY_MAKE
+       AMREX_BOUNDARY_MAKE := 1
 
 CEXE_sources += AMReX_Mask.cpp AMReX_MultiMask.cpp AMReX_LO_BCTYPES.cpp
 
@@ -27,3 +29,4 @@ endif
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Boundary
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Boundary
 
+endif
