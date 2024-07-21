@@ -988,6 +988,29 @@ void mlndlap_normalize_aa (int i, int j, int k, Array4<Real> const& x, Array4<Re
     }
 }
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void mlndlap_jacobi_ha (int i, int j, int k, Array4<Real> const& sol, Real Ax,
+                        Array4<Real const> const& rhs, Array4<Real const> const& sx,
+                        Array4<Real const> const& sy, Array4<Real const> const& sz,
+                        Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = Real(-4.0 / 36.0)*dxinv[0]*dxinv[0];
+    Real facy = Real(-4.0 / 36.0)*dxinv[1]*dxinv[1];
+    Real facz = Real(-4.0 / 36.0)*dxinv[2]*dxinv[2];
+
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else {
+        sol(i,j,k) += Real(2.0/3.0) * (rhs(i,j,k) - Ax)
+            / (facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1)
+                    +sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  ))
+              +facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1)
+                    +sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  ))
+              +facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1)
+                    +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )));
+    }
+}
+
 inline
 void mlndlap_jacobi_ha (Box const& bx, Array4<Real> const& sol, Array4<Real const> const& Ax,
                         Array4<Real const> const& rhs, Array4<Real const> const& sx,
@@ -998,7 +1021,7 @@ void mlndlap_jacobi_ha (Box const& bx, Array4<Real> const& sol, Array4<Real cons
     Real facy = Real(-4.0 / 36.0)*dxinv[1]*dxinv[1];
     Real facz = Real(-4.0 / 36.0)*dxinv[2]*dxinv[2];
 
-    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
+    amrex::LoopConcurrentOnCpu(bx, [&] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
             sol(i,j,k) = Real(0.0);
@@ -1014,6 +1037,41 @@ void mlndlap_jacobi_ha (Box const& bx, Array4<Real> const& sol, Array4<Real cons
     });
 }
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void mlndlap_jacobi_aa (int i, int j, int k, Array4<Real> const& sol, Real Ax,
+                        Array4<Real const> const& rhs, Array4<Real const> const& sig,
+                        Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real fxyz = Real(-4.0 / 36.0)*(dxinv[0]*dxinv[0] +
+                                   dxinv[1]*dxinv[1] +
+                                   dxinv[2]*dxinv[2]);
+
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else {
+        sol(i,j,k) += Real(2.0/3.0) * (rhs(i,j,k) - Ax)
+            / (fxyz*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
+                    +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
+    }
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void mlndlap_jacobi_c (int i, int j, int k, Array4<Real> const& sol, Real Ax,
+                       Array4<Real const> const& rhs, Real sig,
+                       Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real fxyz = Real(-4.0 / 36.0)*(dxinv[0]*dxinv[0] +
+                                   dxinv[1]*dxinv[1] +
+                                   dxinv[2]*dxinv[2]);
+
+    if (msk(i,j,k)) {
+        sol(i,j,k) = Real(0.0);
+    } else {
+        sol(i,j,k) += Real(2.0/3.0) * (rhs(i,j,k) - Ax)
+            / (fxyz*Real(8.)*sig);
+    }
+}
+
 inline
 void mlndlap_jacobi_aa (Box const& bx, Array4<Real> const& sol, Array4<Real const> const& Ax,
                         Array4<Real const> const& rhs, Array4<Real const> const& sig,
@@ -1023,7 +1081,7 @@ void mlndlap_jacobi_aa (Box const& bx, Array4<Real> const& sol, Array4<Real cons
                                    dxinv[1]*dxinv[1] +
                                    dxinv[2]*dxinv[2]);
 
-    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
+    amrex::LoopConcurrentOnCpu(bx, [&] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
             sol(i,j,k) = Real(0.0);
@@ -1044,7 +1102,7 @@ void mlndlap_jacobi_c (Box const& bx, Array4<Real> const& sol, Array4<Real const
                                    dxinv[1]*dxinv[1] +
                                    dxinv[2]*dxinv[2]);
 
-    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
+    amrex::LoopConcurrentOnCpu(bx, [&] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
             sol(i,j,k) = Real(0.0);
@@ -1066,7 +1124,7 @@ void mlndlap_gauss_seidel_ha (Box const& bx, Array4<Real> const& sol,
     Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
     Real facz = Real(1.0/36.0)*dxinv[2]*dxinv[2];
 
-    amrex::Loop(bx, [=] (int i, int j, int k) noexcept
+    amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
             sol(i,j,k) = Real(0.0);
@@ -1179,7 +1237,7 @@ void mlndlap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
     Real fm2x4ym2z = -Real(2.0)*facx + Real(4.0)*facy - Real(2.0)*facz;
     Real fm2xm2y4z = -Real(2.0)*facx - Real(2.0)*facy + Real(4.0)*facz;
 
-    amrex::Loop(bx, [=] (int i, int j, int k) noexcept
+    amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
             sol(i,j,k) = Real(0.0);
@@ -1236,7 +1294,7 @@ void mlndlap_gauss_seidel_c (Box const& bx, Array4<Real> const& sol,
     Real fm2x4ym2z = -Real(2.0)*facx + Real(4.0)*facy - Real(2.0)*facz;
     Real fm2xm2y4z = -Real(2.0)*facx - Real(2.0)*facy + Real(4.0)*facz;
 
-    amrex::Loop(bx, [=] (int i, int j, int k) noexcept
+    amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
     {
         if (msk(i,j,k)) {
             sol(i,j,k) = Real(0.0);
@@ -5470,7 +5528,7 @@ void mlndlap_gauss_seidel_sten (int i, int j, int k, Array4<Real> const& sol,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+inline
 void mlndlap_gauss_seidel_sten (Box const& bx, Array4<Real> const& sol,
                                 Array4<Real const> const& rhs,
                                 Array4<Real const> const& sten,
