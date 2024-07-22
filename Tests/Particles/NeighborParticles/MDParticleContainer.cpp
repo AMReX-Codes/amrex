@@ -166,7 +166,7 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
         ParticleType* pstruct = aos().dataPtr();
 
         ParticleReal min_start = std::numeric_limits<ParticleReal>::max();
-        ParticleReal max_start = std::numeric_limits<ParticleReal>::min();
+        ParticleReal max_start = std::numeric_limits<ParticleReal>::lowest();
 
         reduce_op.eval(aos.numParticles(), reduce_data,
                        [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
