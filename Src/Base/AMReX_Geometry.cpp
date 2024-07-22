@@ -26,11 +26,9 @@ std::istream&
 operator>> (std::istream& is,
             Geometry&     g)
 {
-    Box     bx;
-    RealBox rb;
-    is >> (CoordSys&) g >> rb >> bx;
-    g.Domain(bx);
-    g.ProbDomain(rb);
+    is >> (CoordSys&) g >> g.prob_domain >> g.domain;
+
+    g.computeRoundoffDomain();
 
     int ic = is.peek();
     if (ic == static_cast<int>('P')) {
