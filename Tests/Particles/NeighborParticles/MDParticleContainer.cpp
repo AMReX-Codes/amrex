@@ -184,7 +184,7 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
 
                                ParticleReal r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
                                r2 = amrex::max(r2, Params::min_r*Params::min_r);
-                               ParticleReal r = ParticleReal(sqrt(r2));
+                               auto r = ParticleReal(sqrt(r2));
 
                                min_d = std::min(min_d, r);
                                max_d = std::max(max_d, r);
