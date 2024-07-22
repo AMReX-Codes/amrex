@@ -1,28 +1,18 @@
-#include <AMReX.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_ParallelDescriptor.H>
+#include <AMReX.H>
 #include <AMReX_Box.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_BLFort.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 
 #include <algorithm>
 #include <cctype>
-#include <cstddef>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
-#include <iterator>
-#include <list>
+#include <limits>
 #include <numeric>
 #include <regex>
-#include <stdexcept>
-#include <set>
 #include <sstream>
-#include <string>
+#include <stdexcept>
 #include <typeinfo>
-#include <vector>
 
 extern "C" void amrex_init_namelist (const char*);
 extern "C" void amrex_finalize_namelist ();
@@ -30,78 +20,24 @@ extern "C" void amrex_finalize_namelist ();
 namespace amrex {
 
 namespace {
-#ifdef AMREX_XSDK
-    bool finalize_verbose = false;
-#else
-    bool finalize_verbose = true;
-#endif
+    bool initialized = false;
+    std::set<std::string> g_entry_used;
+    ParmParse::Table g_table;
+    namespace pp_detail {
+        int verbose = -1;
+    }
 }
 
 std::string const ParmParse::FileKeyword = "FILE";
 
-//
-// Used by constructor to build table.
-//
-ParmParse::PP_entry::PP_entry (std::string name, const std::list<std::string>& vals)
-    :
-    m_name(std::move(name)),
-    m_vals(vals.begin(), vals.end()),
-    m_table(nullptr),
-    m_queried(false)
-{
-}
-
-ParmParse::PP_entry::PP_entry (std::string name, const std::string& val)
-    :
-    m_name(std::move(name)),
-    m_vals({val}),
-    m_table(nullptr),
-    m_queried(false)
-{
-}
-
-ParmParse::PP_entry::PP_entry (std::string name, const std::list<PP_entry>& table)
-    :
-    m_name(std::move(name)),
-    m_table(new Table(table)),
-    m_queried(false)
-{
-}
-
-ParmParse::PP_entry::PP_entry (const PP_entry& pe)
-    : m_name(pe.m_name),
-      m_vals(pe.m_vals),
-      m_table(nullptr),
-      m_queried(pe.m_queried)
-{
-    if ( pe.m_table )
-    {
-        m_table = new Table(*pe.m_table);
-    }
-}
-
-ParmParse::PP_entry::~PP_entry ()
-{
-    delete m_table;
-}
-
-ParmParse::PP_entry&
-ParmParse::PP_entry::operator= (const PP_entry& pe)
-{
-    if ( &pe == this ) { return *this; }
-    m_name = pe.m_name;
-    m_vals = pe.m_vals;
-    m_table = nullptr;
-    m_queried = pe.m_queried;
-    if ( pe.m_table )
-    {
-        m_table = new Table(*pe.m_table);
-    }
-    return *this;
-}
+ParmParse::ParmParse (std::string prefix)
+    : m_prefix(std::move(prefix)),
+      m_table(&g_table)
+{}
 
 std::string
-ParmParse::PP_entry::print () const {
+ParmParse::PP_entry::print () const
+{
     std::stringstream t;
     t << m_name << " = ";
     int n = static_cast<int>(m_vals.size());
@@ -134,13 +70,12 @@ operator<< (std::ostream& os, const ParmParse::PP_entry& pp)
 
 namespace
 {
+
 enum PType
 {
     pDefn,
     pValue,
     pEQ_sign,
-    pOpenBracket,
-    pCloseBracket,
     pEOF
 };
 
@@ -232,8 +167,6 @@ is (const std::string& str, bool& val)
     }
     return false;
 }
-
-ParmParse::Table g_table;
 
 template <class T> const char* tok_name(const T&) { return typeid(T).name(); }
 template <class T> const char* tok_name(std::vector<T>&) { return tok_name(T());}
@@ -348,16 +281,6 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                ostr += ch; str++; pcnt = 1;
                state = LIST;
            }
-           else if ( ch == '{' )
-           {
-               str++;
-               return pOpenBracket;
-           }
-           else if ( ch == '}' )
-           {
-               str++;
-               return pCloseBracket;
-           }
            else if ( std::isalpha(ch) )
            {
                ostr += ch; str++;
@@ -433,52 +356,32 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
    }
 }
 
-
-//
-// Keyword aware string comparison.
-//
-
-
-bool
-ppfound (const std::string& keyword,
-         const ParmParse::PP_entry& pe,
-         bool recordQ)
-{
-    return (recordQ == (pe.m_table!=nullptr)) && (keyword == pe.m_name);
-}
-
 //
 // Return the index of the n'th occurrence of a parameter name,
 // except if n==-1, return the index of the last occurrence.
 // Return 0 if the specified occurrence does not exist.
 //
 const ParmParse::PP_entry*
-ppindex (const ParmParse::Table& table,
-         int         n,
-         const std::string& name,
-         bool recordQ)
+ppindex (const ParmParse::Table& table, int n, const std::string& name)
 {
     const ParmParse::PP_entry* fnd = nullptr;
 
     if ( n == ParmParse::LAST )
     {
-        //
         // Search from back of list.
-        //
-        for (auto li = table.crbegin(), REnd = table.crend(); li != REnd; ++li)
-        {
-            if ( ppfound(name, *li, recordQ) )
-            {
-                fnd = &*li;
-                break;
-            }
+        auto it = std::find_if(table.crbegin(), table.crend(),
+                               [&] (ParmParse::PP_entry const& x) -> bool {
+                                   return name == x.name();
+                               });
+        if (it != table.crend()) {
+            fnd = &(*it);
         }
     }
     else
     {
         for (auto const& li : table)
         {
-            if ( ppfound(name, li, recordQ) )
+            if (name == li.name())
             {
                 fnd = &li;
                 if ( --n < 0 )
@@ -493,47 +396,37 @@ ppindex (const ParmParse::Table& table,
         }
     }
 
-    if ( fnd )
-    {
-        //
-        // Found an entry; mark all occurrences of name as used.
-        //
-        for (const auto& li : table)
-        {
-            if ( ppfound(name, li, recordQ) )
-            {
-                li.m_queried = true;
-            }
-        }
+    if (fnd) {
+        fnd->m_unused = false;
+        g_entry_used.insert(name);
     }
+
     return fnd;
 }
 
-void
-bldTable (const char*& str, std::list<ParmParse::PP_entry>& tab);
+void bldTable (const char*& str, ParmParse::Table& tab);
 
-namespace {
-    bool isTrue(std::smatch const& sm) {
-        const std::string op = sm[1].str();
-        const int dim = std::stoi(sm[2].str());
-        if (op == "<") {
-            return AMREX_SPACEDIM < dim;
-        } else if (op == ">") {
-            return AMREX_SPACEDIM > dim;
-        } else if (op == "==") {
-            return AMREX_SPACEDIM == dim;
-        } else if (op == "<=") {
-            return AMREX_SPACEDIM <= dim;
-        } else if (op == ">=") {
-            return AMREX_SPACEDIM >= dim;
-        } else {
-            return false;
-        }
+bool isTrue(std::smatch const& sm)
+{
+    const std::string op = sm[1].str();
+    const int dim = std::stoi(sm[2].str());
+    if (op == "<") {
+        return AMREX_SPACEDIM < dim;
+    } else if (op == ">") {
+        return AMREX_SPACEDIM > dim;
+    } else if (op == "==") {
+        return AMREX_SPACEDIM == dim;
+    } else if (op == "<=") {
+        return AMREX_SPACEDIM <= dim;
+    } else if (op == ">=") {
+        return AMREX_SPACEDIM >= dim;
+    } else {
+        return false;
     }
 }
 
 void
-read_file (const char* fname, std::list<ParmParse::PP_entry>& tab)
+read_file (const char* fname, ParmParse::Table& tab)
 {
     //
     // Space for input file if it exists.
@@ -629,9 +522,7 @@ read_file (const char* fname, std::list<ParmParse::PP_entry>& tab)
 }
 
 void
-addDefn (std::string&         def,
-         std::list<std::string>&   val,
-         std::list<ParmParse::PP_entry>& tab)
+addDefn (std::string& def, std::vector<std::string>& val, ParmParse::Table& tab)
 {
     //
     // Check that defn exists.
@@ -671,54 +562,23 @@ addDefn (std::string&         def,
 }
 
 void
-addTable (std::string& def,
-          ParmParse::Table& val,
-          std::list<ParmParse::PP_entry>& tab)
+bldTable (const char*& str, ParmParse::Table& tab)
 {
-    if ( def.empty() )
-    {
-        val.clear();
-        return;
-    }
-    //
-    // Check that it has values.
-    //
-    if ( val.empty() )
-    {
-        amrex::ErrorStream() << "ParmParse::addTable(): no values for Table " << def << "\n";
-        amrex::Abort();
-    }
-    tab.emplace_back(def, val);
-    val.clear();
-    def = std::string();
-}
-
-void
-bldTable (const char*&                    str,
-          std::list<ParmParse::PP_entry>& tab)
-{
-    std::string            cur_name;
-    std::list<std::string> cur_list;
-    ParmParse::Table       cur_table;
-    std::string            tmp_str;
-    std::vector<int>       cur_linefeeds;
+    std::string              cur_name;
+    std::vector<std::string> cur_list;
+    std::vector<int>         cur_linefeeds;
 
     for (;;)
     {
         std::string tokname;
         int num_linefeeds;
 
-        PType token = getToken(str,tokname, num_linefeeds);
+        PType token = getToken(str, tokname, num_linefeeds);
 
         switch (token)
         {
-        case pCloseBracket:
-            if ( !cur_name.empty() && cur_list.empty() )
-            {
-                amrex::Abort("ParmParse::bldTable() defn with no list");
-            }
-            AMREX_FALLTHROUGH;
         case pEOF:
+        {
             if (std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
             {
                 std::string error_message("ParmParse: Multiple lines in ");
@@ -731,33 +591,9 @@ bldTable (const char*&                    str,
             }
             addDefn(cur_name,cur_list,tab);
             return;
-        case pOpenBracket:
-            if ( cur_name.empty() )
-            {
-                amrex::Abort("ParmParse::bldTabe() '{' with no blocknamne");
-            }
-            if ( !cur_list.empty() )
-            {
-                tmp_str = cur_list.back();
-                cur_list.pop_back();
-                cur_linefeeds.pop_back();
-                if (std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
-                {
-                    std::string error_message("ParmParse: Multiple lines in ");
-                    error_message.append(cur_name).append(" =");
-                    for (auto const& x : cur_list) {
-                        error_message.append(" ").append(x);
-                    }
-                    error_message.append(". Must use \\ for line continuation.");
-                    amrex::Abort(error_message);
-                }
-                addDefn(cur_name, cur_list, tab);
-                cur_name = tmp_str;
-            }
-            bldTable(str, cur_table);
-            addTable(cur_name, cur_table, tab);
-            break;
+        }
         case pEQ_sign:
+        {
             if ( cur_name.empty() )
             {
                 amrex::Abort("ParmParse::bldTable() EQ with no current defn");
@@ -767,7 +603,7 @@ bldTable (const char*&                    str,
                 //
                 // Read one too far, remove last name on list.
                 //
-                tmp_str = cur_list.back();
+                auto tmp_str = cur_list.back();
                 cur_list.pop_back();
                 cur_linefeeds.pop_back();
                 if (std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
@@ -781,11 +617,13 @@ bldTable (const char*&                    str,
                     amrex::Abort(error_message);
                 }
                 addDefn(cur_name,cur_list,tab);
-                cur_name = tmp_str;
+                cur_name = std::move(tmp_str);
             }
             cur_linefeeds.clear();
             break;
+        }
         case pDefn:
+        {
             if ( cur_name.empty() )
             {
                 cur_name = tokname;
@@ -795,7 +633,9 @@ bldTable (const char*&                    str,
             // Otherwise, fall through, this may be a string.
             //
             AMREX_FALLTHROUGH;
+        }
         case pValue:
+        {
             if ( cur_name.empty() )
             {
                 std::string msg("ParmParse::bldTable(): value with no defn: ");
@@ -806,23 +646,22 @@ bldTable (const char*&                    str,
             cur_linefeeds.push_back(num_linefeeds);
             break;
         }
+        } // switch (token)
     }
 }
 
-namespace
-{
 template <class T>
 bool
 squeryval (const ParmParse::Table& table,
-           const std::string& name,
-           T&           ref,
-           int          ival,
-           int          occurrence)
+           const std::string&      name,
+           T&                      ref,
+           int                     ival,
+           int                     occurrence)
 {
     //
     // Get last occurrence of name in table.
     //
-    const ParmParse::PP_entry* def = ppindex(table, occurrence, name, false);
+    const ParmParse::PP_entry* def = ppindex(table, occurrence, name);
     if ( def == nullptr )
     {
         return false;
@@ -833,7 +672,7 @@ squeryval (const ParmParse::Table& table,
     if ( ival >= static_cast<int>(def->m_vals.size()) )
     {
         amrex::ErrorStream() << "ParmParse::queryval no value number"
-                  << ival << " for ";
+                             << ival << " for ";
         if ( occurrence ==  ParmParse::LAST )
         {
             amrex::ErrorStream() << "last occurrence of ";
@@ -852,7 +691,7 @@ squeryval (const ParmParse::Table& table,
     if ( !ok )
     {
         amrex::ErrorStream() << "ParmParse::queryval type mismatch on value number "
-                  << ival << " of " << '\n';
+                             << ival << " of " << '\n';
         if ( occurrence == ParmParse::LAST )
         {
             amrex::ErrorStream() << " last occurrence of ";
@@ -863,10 +702,10 @@ squeryval (const ParmParse::Table& table,
         }
         amrex::ErrorStream() << def->m_name << '\n';
         amrex::ErrorStream() << " Expected an \""
-                  << tok_name(ref)
-                  << "\" type  which can't be parsed from the string \""
-                  << valname << "\"\n"
-                  << *def << '\n';
+                             << tok_name(ref)
+                             << "\" type  which can't be parsed from the string \""
+                             << valname << "\"\n"
+                             << *def << '\n';
         amrex::Abort();
     }
     return true;
@@ -875,10 +714,10 @@ squeryval (const ParmParse::Table& table,
 template <class T>
 void
 sgetval (const ParmParse::Table& table,
-         const std::string& name,
-         T&           ref,
-         int          ival,
-         int          occurrence)
+         const std::string&      name,
+         T&                      ref,
+         int                     ival,
+         int                     occurrence)
 {
     if ( squeryval(table, name,ref,ival,occurrence) == 0 )
     {
@@ -886,14 +725,14 @@ sgetval (const ParmParse::Table& table,
         if ( occurrence >= 0 )
         {
             amrex::ErrorStream() << "occurrence number "
-                      << occurrence
-                      << " of ";
+                                 << occurrence
+                                 << " of ";
         }
 
         amrex::ErrorStream() << "ParmParse::getval(): "
-                  << name
-                  << " not found in table"
-                  << '\n';
+                             << name
+                             << " not found in table"
+                             << '\n';
         ParmParse::dumpTable(amrex::ErrorStream());
         amrex::Abort();
     }
@@ -902,16 +741,16 @@ sgetval (const ParmParse::Table& table,
 template <class T>
 bool
 squeryarr (const ParmParse::Table& table,
-           const std::string& name,
-           std::vector<T>&    ref,
-           int          start_ix,
-           int          num_val,
-           int          occurrence)
+           const std::string&      name,
+           std::vector<T>&         ref,
+           int                     start_ix,
+           int                     num_val,
+           int                     occurrence)
 {
     //
     // Get last occurrence of name in table.
     //
-    const ParmParse::PP_entry *def = ppindex(table,occurrence, name, false);
+    const ParmParse::PP_entry *def = ppindex(table,occurrence, name);
     if ( def == nullptr )
     {
         return false;
@@ -953,7 +792,7 @@ squeryarr (const ParmParse::Table& table,
         if ( !ok )
         {
             amrex::ErrorStream() << "ParmParse::queryarr type mismatch on value number "
-                      <<  n << " of ";
+                                 <<  n << " of ";
             if ( occurrence == ParmParse::LAST )
             {
                 amrex::ErrorStream() << " last occurrence of ";
@@ -964,10 +803,10 @@ squeryarr (const ParmParse::Table& table,
             }
             amrex::ErrorStream() << def->m_name << '\n';
             amrex::ErrorStream() << " Expected an \""
-                      << tok_name(ref)
-                      << "\" type which can't be parsed from the string \""
-                      << valname << "\"\n"
-                      << *def << '\n';
+                                 << tok_name(ref)
+                                 << "\" type which can't be parsed from the string \""
+                                 << valname << "\"\n"
+                                 << *def << '\n';
             amrex::Abort();
         }
     }
@@ -976,8 +815,12 @@ squeryarr (const ParmParse::Table& table,
 
 template <class T>
 void
-sgetarr (const ParmParse::Table& table, const std::string& name,
-         std::vector<T>& ref, int start_ix, int num_val, int occurrence)
+sgetarr (const ParmParse::Table& table,
+         const std::string&      name,
+         std::vector<T>&         ref,
+         int                     start_ix,
+         int                     num_val,
+         int                     occurrence)
 {
     if ( squeryarr(table,name,ref,start_ix,num_val,occurrence) == 0 )
     {
@@ -987,9 +830,9 @@ sgetarr (const ParmParse::Table& table, const std::string& name,
             amrex::ErrorStream() << "occurrence number " << occurrence << " of ";
         }
         amrex::ErrorStream() << "ParmParse::sgetarr(): "
-                  << name
-                  << " not found in table"
-                  << '\n';
+                             << name
+                             << " not found in table"
+                             << '\n';
         ParmParse::dumpTable(amrex::ErrorStream());
         amrex::Abort();
     }
@@ -1002,8 +845,8 @@ saddval (const std::string& name, const T& ref)
     std::stringstream val;
     val << std::setprecision(17) << ref;
     ParmParse::PP_entry entry(name,val.str());
-    entry.m_queried=true;
-    g_table.push_back(entry);
+    entry.m_unused = false;
+    g_table.emplace_back(std::move(entry));
 }
 
 
@@ -1011,27 +854,19 @@ template <class T>
 void
 saddarr (const std::string& name, const std::vector<T>& ref)
 {
-    std::list<std::string> arr;
+    std::vector<std::string> arr;
+    arr.reserve(ref.size());
     for (auto const& item : ref) {
         std::stringstream val;
         val << std::setprecision(17) << item;
         arr.push_back(val.str());
     }
-    ParmParse::PP_entry entry(name,arr);
-    entry.m_queried=true;
-    g_table.push_back(entry);
+    ParmParse::PP_entry entry(name,std::move(arr));
+    entry.m_unused = false;
+    g_table.emplace_back(std::move(entry));
 }
 
-}
-
-//
 // Initialize ParmParse.
-//
-
-namespace {
-    bool initialized = false;
-}
-
 void
 ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
 {
@@ -1049,31 +884,79 @@ ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
             argstr += argv[i];
             argstr += SPACE;
         }
-        std::list<ParmParse::PP_entry> arg_table;
+        ParmParse::Table arg_table;
         const char* b = argstr.c_str();
         bldTable(b, arg_table);
         //
         // Append arg_table to end of existing table.
         //
-        table.splice(table.end(), arg_table);
+        table.reserve(table.size() + arg_table.size());
+        std::move(std::begin(arg_table), std::end(arg_table), std::back_inserter(table));
     }
     initialized = true;
+}
+
+void pp_update_unused (const ParmParse::Table& table)
+{
+    if (g_entry_used.empty()) { return; }
+
+    for (auto const& s : g_entry_used) {
+        for (auto const& entry : table) {
+            if (entry.m_unused && (entry.name() == s)) {
+                entry.m_unused = false;
+
+            }
+        }
+    }
+
+    g_entry_used.clear();
+}
+
+bool unused_table_entries_q (const ParmParse::Table& table,
+                             const std::string& prefix = std::string())
+{
+    pp_update_unused(table);
+
+    if (prefix.empty()) {
+        return std::any_of(table.begin(), table.end(),
+                           [] (ParmParse::PP_entry const& x) -> bool {
+                               return x.m_unused;
+                           });
+    } else {
+        auto s = prefix + '.';
+        return std::any_of(table.begin(), table.end(),
+                           [&] (ParmParse::PP_entry const& x) -> bool {
+                               return x.m_unused
+                                   && x.name().substr(0,s.size()) == s;
+                           });
+    }
+}
+
+void pp_print_unused (const std::string& pfx, const ParmParse::Table& table)
+{
+    pp_update_unused(table);
+
+    for (auto const& li : table) {
+        if (li.m_unused) {
+            amrex::AllPrint() << pfx << "::" << li << '\n';
+        }
+    }
 }
 
 }  // End of unnamed namespace.
 
 std::string
-ParmParse::prefixedName (const std::string& str) const
+ParmParse::prefixedName (const std::string_view& str) const
 {
-    if ( str.empty() )
-    {
-        amrex::Error("ParmParse::prefixedName: has empty name");
+    AMREX_ASSERT( ! str.empty() );
+
+    if (m_prefix.empty()) {
+        return std::string(str);
+    } else {
+        std::string r = m_prefix + '.';
+        r.append(str);
+        return r;
     }
-    if ( !m_pstack.top().empty())
-    {
-        return m_pstack.top() + '.' + str;
-    }
-    return str;
 }
 
 void
@@ -1085,166 +968,9 @@ ParmParse::addfile (std::string const& filename) {
     }
 #endif
 
-    auto l = std::list<std::string>{filename};
     auto file = FileKeyword;
-    addDefn(file,
-            l,
-            g_table);
-}
-
-void
-ParmParse::pushPrefix (const std::string& str)
-{
-    std::string s(str);
-    if ( !s.empty() )
-    {
-        if ( !m_pstack.top().empty() )
-        {
-            s = m_pstack.top() + "." + s;
-        }
-        m_pstack.push(s);
-    }
-}
-
-void
-ParmParse::popPrefix ()
-{
-    if ( m_pstack.size() <= 1 )
-    {
-        amrex::Error("ParmParse::popPrefix: stack underflow");
-    }
-    m_pstack.pop();
-}
-
-std::string
-ParmParse::getPrefix() const
-{
-    return m_pstack.top();
-}
-
-ParmParse::ParmParse (const std::string& prefix)
-    :
-    m_table(&g_table)
-{
-    m_pstack.push(prefix);
-}
-
-ParmParse::ParmParse (Table& a_table)
-    : m_table(&a_table)
-{
-    m_pstack.emplace("");
-}
-
-ParmParse::Frame::Frame (ParmParse& pp, const std::string& pfix)
-    :
-    m_pp(&pp)
-{
-    push(pfix);
-    BL_ASSERT( m_np == 1 );
-}
-
-ParmParse::Frame::~Frame ()
-{
-    BL_ASSERT( m_np > 0 );
-    while ( m_np )
-    {
-        pop();
-    }
-    BL_ASSERT( m_np == 0 );
-}
-
-void
-ParmParse::Frame::push (const std::string& str)
-{
-    m_pp->pushPrefix(str);
-    m_np++;
-}
-
-void
-ParmParse::Frame::pop ()
-{
-    BL_ASSERT( m_np > 0);
-    m_pp->popPrefix();
-    m_np--;
-}
-
-std::string
-ParmParse::Frame::getPrefix () const
-{
-    return m_pp->getPrefix();
-}
-
-void
-ParmParse::appendTable(ParmParse::Table& tab)
-{
-  g_table.splice(g_table.end(), tab);
-}
-
-namespace {
-
-bool
-unused_table_entries_q (const ParmParse::Table& table, const std::string& prefix = std::string())
-{
-    for (auto const& li : table) // NOLINT(readability-use-anyofallof)
-    {
-        if ( li.m_table )
-        {
-            if ( !li.m_queried )
-            {
-                if (prefix.empty()) {
-                    return true;
-                } else {
-                    if (li.m_name.substr(0,prefix.size()+1) == prefix+".") {
-                        return true;
-                    }
-                }
-            }
-            else
-            {
-                if (unused_table_entries_q(*li.m_table, prefix)) { return true; }
-            }
-        }
-        else if ( !li.m_queried )
-        {
-            if (prefix.empty()) {
-                return true;
-            } else {
-                if (li.m_name.substr(0,prefix.size()+1) == prefix+".") {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-void
-finalize_table (const std::string& pfx, const ParmParse::Table& table)
-{
-    for (auto const& li : table)
-    {
-        if ( li.m_table )
-        {
-            if ( !li.m_queried )
-            {
-                if (finalize_verbose) {
-                    amrex::AllPrint() << "Record " << li.m_name << '\n';
-                }
-            }
-            else
-            {
-                finalize_table(pfx + "::" + li.m_name, *li.m_table);
-            }
-        }
-        else if ( !li.m_queried )
-        {
-            if (finalize_verbose) {
-                amrex::AllPrint() << pfx << "::" << li << '\n';
-            }
-        }
-    }
-}
-
+    std::vector<std::string> val{{filename}};
+    addDefn(file, val, g_table);
 }
 
 void
@@ -1267,10 +993,11 @@ ParmParse::QueryUnusedInputs ()
 {
     if ( ParallelDescriptor::IOProcessor() && unused_table_entries_q(g_table))
     {
-        finalize_verbose = amrex::system::verbose;
-        if (finalize_verbose) { amrex::OutStream() << "Unused ParmParse Variables:\n"; }
-        finalize_table("  [TOP]", g_table);
-        if (finalize_verbose) { amrex::OutStream() << '\n'; }
+        if (ParmParse::Verbose()) {
+            amrex::OutStream() << "Unused ParmParse Variables:\n";
+            pp_print_unused("  [TOP]", g_table);
+            amrex::OutStream() << '\n';
+        }
         return true;
     }
     return false;
@@ -1282,51 +1009,57 @@ ParmParse::hasUnusedInputs (const std::string& prefix)
     return unused_table_entries_q(g_table, prefix);
 }
 
-namespace {
-void
-get_entries_under_prefix (std::vector<std::string>& found_entries,
-                         const ParmParse::Table& table,
-                         const std::string& prefix,
-                         const bool only_unused = false,
-                         const bool add_values = false)
-{
-    const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
-    for (auto const& entry : table) {
-        if ((! only_unused) || (only_unused && ! entry.m_queried)) {
-            if (entry.m_name.substr(0,prefixdot.size()) == prefixdot) {
-                std::string tmp(entry.m_name);
-                if (add_values) {
-                    tmp.append(" =");
-                    for (auto const& v : entry.m_vals) {
-                        tmp += " " + v;
-                    }
-                }
-                found_entries.emplace_back(std::move(tmp));
-            }
-        }
-
-        if (entry.m_table) {
-            get_entries_under_prefix(found_entries, table, prefix,
-                                     only_unused, add_values);
-        }
-    }
-}
-}
-
 std::vector<std::string>
 ParmParse::getUnusedInputs (const std::string& prefix)
 {
+    pp_update_unused(g_table);
+
     std::vector<std::string> r;
-    get_entries_under_prefix(r, g_table, prefix, true, true);
+    const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
+    for (auto const& entry : g_table) {
+        if (entry.m_unused
+            && entry.name().substr(0,prefixdot.size()) == prefixdot)
+        {
+            std::string tmp(entry.name());
+            tmp.append(" =");
+            for (auto const& v : entry.m_vals) {
+                tmp += " " + v;
+            }
+            r.emplace_back(std::move(tmp));
+        }
+    }
     return r;
 }
 
 std::set<std::string>
 ParmParse::getEntries (const std::string& prefix)
 {
-    std::vector<std::string> r;
-    get_entries_under_prefix(r, g_table, prefix, false, false);
-    return std::set<std::string>(r.begin(), r.end());
+    std::set<std::string> r;
+    const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
+    for (auto const& entry : g_table) {
+        if (entry.name().substr(0,prefixdot.size()) == prefixdot) {
+            r.insert(entry.name());
+        }
+    }
+    return r;
+}
+
+int
+ParmParse::Verbose ()
+{
+    if (pp_detail::verbose < 0) {
+        pp_detail::verbose = std::max(amrex::Verbose(),0);
+        ParmParse pp("parmparse");
+        pp.queryAdd("v", pp_detail::verbose);
+        pp.queryAdd("verbose", pp_detail::verbose);
+    }
+    return pp_detail::verbose;
+}
+
+void
+ParmParse::SetVerbose (int v)
+{
+    pp_detail::verbose = v;
 }
 
 void
@@ -1334,32 +1067,34 @@ ParmParse::Finalize ()
 {
     if ( ParallelDescriptor::IOProcessor() && unused_table_entries_q(g_table))
     {
-        finalize_verbose = amrex::system::verbose;
-        if (finalize_verbose) { amrex::OutStream() << "Unused ParmParse Variables:\n"; }
-        finalize_table("  [TOP]", g_table);
-        if (finalize_verbose) { amrex::OutStream() << '\n'; }
-        //
-        // First loop through and delete all queried entries.
-        //
+        if (ParmParse::Verbose()) {
+            amrex::OutStream() << "Unused ParmParse Variables:\n";
+            pp_print_unused("  [TOP]", g_table);
+            amrex::OutStream() << '\n';
+        }
         if (amrex::system::abort_on_unused_inputs) {
             amrex::Abort("ERROR: unused ParmParse variables.");
         }
     }
     g_table.clear();
+    g_entry_used.clear();
 
 #if !defined(BL_NO_FORT)
     amrex_finalize_namelist();
 #endif
 
+    pp_detail::verbose = -1;
     initialized = false;
 }
 
 void
 ParmParse::dumpTable (std::ostream& os, bool prettyPrint)
 {
+    pp_update_unused(g_table);
+
     for (auto const& li : g_table)
     {
-        if(prettyPrint && li.m_queried) {
+        if(prettyPrint && !li.m_unused) {
             os << li.print() << '\n';
         }
         else {
@@ -1375,7 +1110,7 @@ ParmParse::countval (const char* name,
     //
     // First find n'th occurrence of name in table.
     //
-    const PP_entry* def = ppindex(*m_table, n, prefixedName(name), false);
+    const PP_entry* def = ppindex(*m_table, n, prefixedName(name));
     return def == nullptr ? 0 : static_cast<int>(def->m_vals.size());
 }
 
@@ -1957,29 +1692,12 @@ ParmParse::addarr (const char* name, const std::vector<Box>& ref)
 int
 ParmParse::countname (const std::string& name) const
 {
-    int cnt = 0;
-    for (auto const& li : *m_table)
-    {
-        if ( ppfound(prefixedName(name), li, false) )
-        {
-            cnt++;
-        }
-    }
-    return cnt;
-}
-
-int
-ParmParse::countRecords (const std::string& name) const
-{
-    int cnt = 0;
-    for (auto const& li : *m_table)
-    {
-        if ( ppfound(prefixedName(name), li, true) )
-        {
-            cnt++;
-        }
-    }
-    return cnt;
+    auto pname = prefixedName(name);
+    auto cnt = std::count_if(m_table->begin(), m_table->end(),
+                             [&] (PP_entry const& entry) -> bool {
+                                 return pname == entry.name();
+                             });
+    return static_cast<int>(cnt);
 }
 
 //
@@ -1989,20 +1707,13 @@ ParmParse::countRecords (const std::string& name) const
 bool
 ParmParse::contains (const char* name) const
 {
+    auto pname = prefixedName(name);
     for (auto const& li : *m_table)
     {
-       if ( ppfound(prefixedName(name), li, false))
+       if (pname == li.name())
        {
-           //
-           // Found an entry; mark all occurrences of name as used.
-           //
-           for (auto& lli : *m_table)
-           {
-               if ( ppfound(prefixedName(name), lli, false) )
-               {
-                   lli.m_queried = true;
-               }
-           }
+           li.m_unused = false;
+           g_entry_used.insert(pname);
            return true;
        }
     }
@@ -2012,51 +1723,17 @@ ParmParse::contains (const char* name) const
 int
 ParmParse::remove (const char* name)
 {
-    int r = 0;
-    for (auto it = m_table->begin(); it != m_table->end(); ) {
-        if (ppfound(prefixedName(name), *it, false)) {
-            it = m_table->erase(it);
-            ++r;
-        } else {
-            ++it;
-        }
-    }
-    return r;
-}
+    auto const pname = prefixedName(name);
 
-ParmParse::Record
-ParmParse::getRecord (const std::string& name, int n) const
-{
-    const PP_entry* pe = ppindex(*m_table, n, prefixedName(name), true);
-    if ( pe == nullptr )
-    {
-        amrex::ErrorStream() << "ParmParse::getRecord: record " << name << " not found" << '\n';
-        amrex::Abort();
-        return Record(ParmParse());
-    } else {
-        return Record(ParmParse(*pe->m_table));
-    }
-}
-
-//
-//
-//
-
-ParmParse::Record::Record ( const ParmParse& pp )
-    : m_pp(pp)
-{
-}
-
-const ParmParse*
-ParmParse::Record::operator-> () const
-{
-    return &m_pp;
-}
-
-const ParmParse&
-ParmParse::Record::operator* () const
-{
-    return m_pp;
+    auto const old_size = m_table->size();
+    m_table->erase(std::remove_if(m_table->begin(), m_table->end(),
+                                  [&] (ParmParse::PP_entry const& entry) -> bool {
+                                      return pname == entry.name();
+                                  }),
+                   m_table->end());
+    auto const new_size = m_table->size();
+    g_entry_used.erase(pname);
+    return static_cast<int>(old_size - new_size);
 }
 
 }
