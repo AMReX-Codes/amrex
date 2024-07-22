@@ -3,10 +3,12 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
+#include <AMReX_INT.H>
 #include <AMReX_TypeTraits.H>
 
 #include <array>
 #include <iosfwd>
+#include <unordered_map>
 #include <set>
 #include <string>
 #include <string_view>
@@ -1097,8 +1099,15 @@ public:
     //! Returns [prefix.]* parameters.
     [[nodiscard]] static std::set<std::string> getEntries (const std::string& prefix = std::string());
 
-    struct PP_entry;
-    using Table = std::vector<PP_entry>;
+    struct PP_entry {
+        // There can be multiple occurrences for a given name (e.g.,
+        // multiple lines starting with `foo =` in inputs. For each
+        // occurrence, there can be multiple values. Thus, the use of
+        // vector<vector<std::string>>.
+        std::vector<std::vector<std::string>> m_vals;
+        mutable Long                          m_count = 0;
+    };
+    using Table = std::unordered_map<std::string, PP_entry>;
 
     [[nodiscard]] const Table& table() const {return *m_table;}
 
@@ -1115,25 +1124,6 @@ protected:
     std::string m_parser_prefix; // Prefix used by Parser
     Table* m_table;
 };
-
-struct ParmParse::PP_entry
-{
-    PP_entry (std::string a_name, std::vector<std::string> a_vals)
-        : m_name(std::move(a_name)), m_vals(std::move(a_vals)) {}
-
-    PP_entry (std::string a_name, std::string const& a_val)
-        : m_name(std::move(a_name)), m_vals({a_val}) {}
-
-    [[nodiscard]] std::string const& name () const noexcept { return m_name; }
-
-    [[nodiscard]] std::string print() const;
-
-    std::string              m_name;
-    std::vector<std::string> m_vals;
-    mutable bool             m_unused = true;
-};
-
-std::ostream& operator<< (std::ostream& os, const ParmParse::PP_entry& pp);
 
 }
 
