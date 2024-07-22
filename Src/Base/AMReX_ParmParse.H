@@ -269,7 +269,7 @@ using IntVect = IntVectND<AMREX_SPACEDIM>;
 *  Math expression is supported for integers and reals. For example
 *
 *    n_cell = 128
-*    amrex.n_cell = {n_cell*2} 8 {16**2}
+*    amrex.n_cell = n_cell*2 8 16**2
 *
 *  becomes
 *
