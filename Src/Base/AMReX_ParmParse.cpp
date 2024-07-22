@@ -1013,7 +1013,9 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
             if (r) { break; }
         }
         if (r == false) {
-            amrex::Error("ParmParse: failed to parse " + name + " = " + val);
+            std::string msg("ParmParse: failed to parse ");
+            msg.append(name).append(" = ").append(val);
+            amrex::Error(msg);
         }
         parser.setConstant(s, v);
     }
