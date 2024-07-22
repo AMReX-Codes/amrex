@@ -29,10 +29,10 @@ std::map<std::string, Vector<char> > *StateData::faHeaderMap;
 
 
 StateData::StateData ()
-    : desc(nullptr),
+    :
       new_time{INVALID_TIME,INVALID_TIME},
-      old_time{INVALID_TIME,INVALID_TIME},
-      arena(nullptr)
+      old_time{INVALID_TIME,INVALID_TIME}
+
 {
 }
 
@@ -61,10 +61,10 @@ StateData::StateData (StateData&& rhs) noexcept
 {
 }
 
-void
+StateData&
 StateData::operator= (StateData const& rhs)
 {
-    if (this == &rhs) return;
+    if (this == &rhs) { return *this; };
     m_factory.reset(rhs.m_factory->clone());
     desc = rhs.desc;
     arena = rhs.arena;
@@ -85,6 +85,7 @@ StateData::operator= (StateData const& rhs)
     } else {
         old_data.reset();
     }
+    return *this;
 }
 
 void
@@ -139,10 +140,10 @@ StateData::copyOld (const StateData& state)
     const MultiFab& MF = state.oldData();
 
     int nc = MF.nComp();
-    int ng = MF.nGrow();
+    auto ng = MF.nGrowVect();
 
     BL_ASSERT(nc == (*old_data).nComp());
-    BL_ASSERT(ng == (*old_data).nGrow());
+    BL_ASSERT(ng == (*old_data).nGrowVect());
 
     MultiFab::Copy(*old_data, state.oldData(), 0, 0, nc, ng);
 
@@ -155,10 +156,10 @@ StateData::copyNew (const StateData& state)
     const MultiFab& MF = state.newData();
 
     int nc = MF.nComp();
-    int ng = MF.nGrow();
+    auto ng = MF.nGrowVect();
 
     BL_ASSERT(nc == (*new_data).nComp());
-    BL_ASSERT(ng == (*new_data).nGrow());
+    BL_ASSERT(ng == (*new_data).nGrowVect());
 
     MultiFab::Copy(*new_data, state.newData(), 0, 0, nc, ng);
 
@@ -220,6 +221,7 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
 
     int nsets;
     is >> nsets;
+    AMREX_ASSERT(nsets >= 0 && nsets <= 2);
 
     new_data = std::make_unique<MultiFab>(grids,dmap,desc->nComp(),desc->nExtra(),
                                           MFInfo().SetTag("StateData").SetArena(arena),
@@ -440,7 +442,7 @@ StateData::FillBoundary (FArrayBox&     dest,
     BL_PROFILE("StateData::FillBoundary(dx)");
     BL_ASSERT(dest.box().ixType() == desc->getType());
 
-    if (domain.contains(dest.box())) return;
+    if (domain.contains(dest.box())) { return; }
 
     const Box& bx  = dest.box();
     const int* dlo = dest.loVect();
@@ -456,7 +458,7 @@ StateData::FillBoundary (FArrayBox&     dest,
 
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-        xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
+        xlo[i] = problo[i] + dx[i]*static_cast<Real>(dlo[i]-plo[i]);
     }
     for (int i = 0; i < num_comp; )
     {
@@ -485,8 +487,9 @@ StateData::FillBoundary (FArrayBox&     dest,
 
                     const int* bc = bcr.vect();
 
-                    for (int k = 0; k < 2*AMREX_SPACEDIM; k++)
+                    for (int k = 0; k < 2*AMREX_SPACEDIM; k++) {
                         bci[k] = bc[k];
+                    }
 
                     bci += 2*AMREX_SPACEDIM;
                 }
@@ -529,7 +532,7 @@ StateData::FillBoundary (Box const&      bx,
 {
     BL_PROFILE("StateData::FillBoundary(geom)");
 
-    if (domain.contains(convert(bx,domain.ixType()))) return;
+    if (domain.contains(convert(bx,domain.ixType()))) { return; }
 
     Vector<BCRec> bcr(num_comp);
 
@@ -860,7 +863,7 @@ StateData::printTimeInterval (std::ostream &os) const
 StateDataPhysBCFunct::StateDataPhysBCFunct (StateData&sd, int sc, const Geometry& geom_)
     : statedata(&sd),
       src_comp(sc),
-      geom(geom_)
+      geom(&geom_)
 { }
 
 void
@@ -873,11 +876,12 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
     const Box&     domain_mt   = amrex::convert(statedata->getDomain(),mf.ixType());
     const int*     domainlo    = domain_mt.loVect();
     const int*     domainhi    = domain_mt.hiVect();
-    const Real*    dx          = geom.CellSize();
-    const RealBox& prob_domain = geom.ProbDomain();
+    const Real*    dx          = geom->CellSize();
+    const RealBox& prob_domain = geom->ProbDomain();
 
     bool has_bndryfunc_fab = statedata->desc->hasBndryFuncFab();
     bool run_on_gpu = statedata->desc->RunOnGPU() && Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_gpu);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
@@ -888,14 +892,16 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
             FArrayBox& dest = mf[mfi];
+#ifdef AMREX_USE_GPU
             Array4<Real> const& desta = dest.array();
+#endif
             const Box& bx = dest.box();
 
             bool has_phys_bc = false;
             bool is_periodic = false;
             for (int i = 0; i < AMREX_SPACEDIM; ++i) {
                 bool touch = bx.smallEnd(i) < domainlo[i] || bx.bigEnd(i) > domainhi[i];
-                if (geom.isPeriodic(i)) {
+                if (geom->isPeriodic(i)) {
                     is_periodic = is_periodic || touch;
                 } else {
                     has_phys_bc = has_phys_bc || touch;
@@ -905,7 +911,7 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
             if (has_phys_bc)
             {
                 if (has_bndryfunc_fab) {
-                    statedata->FillBoundary(bx, dest, time, geom, dest_comp, src_comp, num_comp);
+                    statedata->FillBoundary(bx, dest, time, *geom, dest_comp, src_comp, num_comp);
                 } else {
                     statedata->FillBoundary(dest, time, dx, prob_domain, dest_comp, src_comp, num_comp);
                 }
@@ -916,34 +922,35 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
 
                     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                     {
-                        if (!geom.isPeriodic(dir))
+                        if (!(geom->isPeriodic(dir)))
                         {
                             const int lo = domainlo[dir] - bx.smallEnd(dir);
                             const int hi = bx.bigEnd(dir) - domainhi[dir];
-                            if (lo > 0) GrownDomain.growLo(dir,lo);
-                            if (hi > 0) GrownDomain.growHi(dir,hi);
+                            if (lo > 0) { GrownDomain.growLo(dir,lo); }
+                            if (hi > 0) { GrownDomain.growHi(dir,hi); }
                         }
                     }
 
                     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                     {
-                        if (!geom.isPeriodic(dir)) continue;
+                        if (!(geom->isPeriodic(dir))) { continue; }
 
                         Box lo_slab = bx;
                         Box hi_slab = bx;
-                        lo_slab.shift(dir, geom.period(dir));
-                        hi_slab.shift(dir,-geom.period(dir));
+                        lo_slab.shift(dir, geom->period(dir));
+                        hi_slab.shift(dir,-geom->period(dir));
                         lo_slab &= GrownDomain;
                         hi_slab &= GrownDomain;
 
                         if (lo_slab.ok())
                         {
+#ifdef AMREX_USE_GPU
                             if (run_on_gpu)
                             {
                                 tmp.resize(lo_slab,num_comp);
                                 Elixir elitmp = tmp.elixir();
                                 Array4<Real> const& tmpa = tmp.array();
-                                const int ishift = -geom.period(dir);
+                                const int ishift = -geom->period(dir);
                                 amrex::launch(lo_slab,
                                 [=] AMREX_GPU_DEVICE (Box const& tbx) noexcept
                                 {
@@ -964,7 +971,7 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                                     }
                                 });
                                 if (has_bndryfunc_fab) {
-                                    statedata->FillBoundary(lo_slab, tmp, time, geom, 0, src_comp, num_comp);
+                                    statedata->FillBoundary(lo_slab, tmp, time, *geom, 0, src_comp, num_comp);
                                 } else {
                                     statedata->FillBoundary(tmp, time, dx, prob_domain, 0, src_comp, num_comp);
                                 }
@@ -989,12 +996,13 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                                 });
                             }
                             else
+#endif
                             {
                                 tmp.resize(lo_slab,num_comp);
-                                const Box db = amrex::shift(lo_slab, dir, -geom.period(dir));
+                                const Box db = amrex::shift(lo_slab, dir, -geom->period(dir));
                                 tmp.copy<RunOn::Host>(dest, db, dest_comp, lo_slab, 0, num_comp);
                                 if (has_bndryfunc_fab) {
-                                    statedata->FillBoundary(lo_slab, tmp, time, geom, 0, src_comp, num_comp);
+                                    statedata->FillBoundary(lo_slab, tmp, time, *geom, 0, src_comp, num_comp);
                                 } else {
                                     statedata->FillBoundary(tmp, time, dx, prob_domain, 0, src_comp, num_comp);
                                 }
@@ -1004,12 +1012,13 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
 
                         if (hi_slab.ok())
                         {
+#ifdef AMREX_USE_GPU
                             if (run_on_gpu)
                             {
                                 tmp.resize(hi_slab,num_comp);
                                 Elixir elitmp = tmp.elixir();
                                 Array4<Real> const& tmpa = tmp.array();
-                                const int ishift = geom.period(dir);
+                                const int ishift = geom->period(dir);
                                 amrex::launch(hi_slab,
                                 [=] AMREX_GPU_DEVICE (Box const& tbx) noexcept
                                 {
@@ -1030,7 +1039,7 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                                     }
                                 });
                                 if (has_bndryfunc_fab) {
-                                    statedata->FillBoundary(hi_slab, tmp, time, geom, 0, src_comp, num_comp);
+                                    statedata->FillBoundary(hi_slab, tmp, time, *geom, 0, src_comp, num_comp);
                                 } else {
                                     statedata->FillBoundary(tmp, time, dx, prob_domain, 0, src_comp, num_comp);
                                 }
@@ -1055,12 +1064,13 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                                 });
                             }
                             else
+#endif
                             {
                                 tmp.resize(hi_slab,num_comp);
-                                const Box db = amrex::shift(hi_slab, dir, geom.period(dir));
+                                const Box db = amrex::shift(hi_slab, dir, geom->period(dir));
                                 tmp.copy<RunOn::Host>(dest, db, dest_comp, hi_slab, 0, num_comp);
                                 if (has_bndryfunc_fab) {
-                                    statedata->FillBoundary(hi_slab, tmp, time, geom, 0, src_comp, num_comp);
+                                    statedata->FillBoundary(hi_slab, tmp, time, *geom, 0, src_comp, num_comp);
                                 } else {
                                     statedata->FillBoundary(tmp, time, dx, prob_domain, 0, src_comp, num_comp);
                                 }

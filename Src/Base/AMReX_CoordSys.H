@@ -20,7 +20,6 @@ class FArrayBox;
 *
 * Routines for mapping between physical coordinate system and index space.
 */
-
 class CoordSys
 {
 public:
@@ -54,7 +53,7 @@ public:
         BL_ASSERT(c_sys != undef); return (c_sys == RZ);
     }
 
-    //! Is CoordType == cartesion?
+    //! Is CoordType == cartesian?
     [[nodiscard]] bool IsCartesian () const noexcept {
         BL_ASSERT(c_sys != undef); return (c_sys == cartesian);
     }
@@ -105,25 +104,25 @@ public:
     //! Returns location of lo edge in specified direction.
     [[nodiscard]] Real LoEdge (int point, int dir) const noexcept
     {
-        BL_ASSERT(ok); return offset[dir] + dx[dir]*point;
+        BL_ASSERT(ok); return offset[dir] + dx[dir]*static_cast<Real>(point);
     }
 
     //! Equivalent to LoEdge(point[dir], dir).
     [[nodiscard]] Real LoEdge (const IntVect& point, int dir) const noexcept
     {
-        BL_ASSERT(ok); return offset[dir] + dx[dir]*point[dir];
+        BL_ASSERT(ok); return offset[dir] + dx[dir]*static_cast<Real>(point[dir]);
     }
 
     //! Returns location of hi edge in specified direction.
     [[nodiscard]] Real HiEdge (int point, int dir) const noexcept
     {
-        BL_ASSERT(ok); return offset[dir] + dx[dir]*(point + 1);
+        BL_ASSERT(ok); return offset[dir] + dx[dir]*static_cast<Real>(point + 1);
     }
 
     //! Equivalent to HiEdge(point[dir], dir).
     [[nodiscard]] Real HiEdge (const IntVect& point, int dir) const noexcept
     {
-        BL_ASSERT(ok); return offset[dir] + dx[dir]*(point[dir] + 1);
+        BL_ASSERT(ok); return offset[dir] + dx[dir]*static_cast<Real>(point[dir] + 1);
     }
 
     //! Sets location of lo face into loc.

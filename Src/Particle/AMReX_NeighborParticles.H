@@ -19,7 +19,7 @@ namespace amrex {
   };
 
 ///
-/// This is a container for particles that undergo short-range interations.
+/// This is a container for particles that undergo short-range interactions.
 /// In addition to the normal ParticleContainer methods, each tile contains a "neighbor
 /// buffer" that is filled with data corresponding to the particles within 1 neighbor cell of
 /// the tile boundaries. This allows the N^2 search over each pair of particles to proceed
@@ -30,7 +30,7 @@ namespace amrex {
 /// levels during a fine level time step.
 ///
 template <int NStructReal, int NStructInt, int NArrayReal=0, int NArrayInt=0>
-class NeighborParticleContainer
+class NeighborParticleContainer // NOLINT(cppcoreguidelines-virtual-class-destructor) // clang-tidy seems wrong.
     : public ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
 public:
@@ -71,32 +71,32 @@ private:
             os << nim.dst_level << " " << nim.dst_grid << " " << nim.dst_tile << " " << nim.dst_index
                << nim.src_level << " " << nim.src_grid << " " << nim.src_tile << " " << nim.src_index
                << nim.thread_num;
-            if (!os.good())
+            if (!os.good()) {
                 amrex::Error("operator<<(ostream&, const NeighborIndexMap& nim) failed");
+            }
             return os;
         }
 
     };
 
     struct NeighborCopyTag {
-        int level;
-        int grid;
-        int tile;
-        int src_index;
-        int dst_index;
-        IntVect periodic_shift;
+        int level = -1;
+        int grid = -1;
+        int tile = -1;
+        int src_index = 0;
+        int dst_index = 0;
+        IntVect periodic_shift = IntVect(0);
 
-        NeighborCopyTag () {}
+        NeighborCopyTag () = default;
 
         NeighborCopyTag (int a_level, int a_grid, int a_tile) :
-            level(a_level), grid(a_grid), tile(a_tile), src_index(0), dst_index(0),
-            periodic_shift(IntVect(AMREX_D_DECL(0, 0, 0)))
+            level(a_level), grid(a_grid), tile(a_tile)
             {}
 
         bool operator< (const NeighborCopyTag& other) const {
-            if (level != other.level) return level < other.level;
-            if (grid != other.grid) return grid < other.grid;
-            if (tile != other.tile) return tile < other.tile;
+            if (level != other.level) { return level < other.level; }
+            if (grid != other.grid) { return grid < other.grid; }
+            if (tile != other.tile) { return tile < other.tile; }
             AMREX_D_TERM(
             if (periodic_shift[0] != other.periodic_shift[0])
                 return periodic_shift[0] < other.periodic_shift[0];,
@@ -125,8 +125,9 @@ private:
         friend std::ostream& operator<< (std::ostream& os, const NeighborCopyTag& tag)
         {
             os << tag.level << " " << tag.grid << " " << tag.tile << " " << tag.periodic_shift;
-            if (!os.good())
+            if (!os.good()) {
                 amrex::Error("operator<<(ostream&, const NeighborCopyTag&) failed");
+            }
             return os;
         }
     };
@@ -142,8 +143,9 @@ private:
     friend std::ostream& operator<< (std::ostream& os, const InverseCopyTag& tag)
     {
         os << tag.src_level << " " << tag.src_grid << " " << tag.src_tile << " " << tag.src_index;
-        if (!os.good())
+        if (!os.good()) {
             amrex::Error("operator<<(ostream&, const InverseCopyTag&) failed");
+        }
         return os;
     }
 
@@ -181,8 +183,9 @@ private:
         friend std::ostream& operator<< (std::ostream& os, const NeighborCommTag& tag)
         {
             os << tag.proc_id << " " << tag.level_id << " " << tag.grid_id << " " << tag.tile_id;
-            if (!os.good())
+            if (!os.good()) {
                 amrex::Error("operator<<(ostream&, const NeighborCommTag&) failed");
+            }
             return os;
         }
     };
@@ -196,7 +199,6 @@ public:
     using ParticleVector = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleVector;
     using ParticleTile = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleTileType;
     using IntVector  = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IntVector;
-    using SendBuffer = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SendBuffer;
 
     NeighborParticleContainer (ParGDBBase* gdb, int ncells);
 
@@ -211,17 +213,19 @@ public:
                                const Vector<int>                 & rr,
                                int                               nneighbor);
 
+    ~NeighborParticleContainer () override = default;
+
     NeighborParticleContainer ( const NeighborParticleContainer &) = delete;
     NeighborParticleContainer& operator= ( const NeighborParticleContainer & ) = delete;
 
-    NeighborParticleContainer ( NeighborParticleContainer && ) = default;
-    NeighborParticleContainer& operator= ( NeighborParticleContainer && ) = default;
+    NeighborParticleContainer ( NeighborParticleContainer && ) = default; // NOLINT(performance-noexcept-move-constructor)
+    NeighborParticleContainer& operator= ( NeighborParticleContainer && ) = default; // NOLINT(performance-noexcept-move-constructor)
 
     ///
     /// Regrid functions
     ///
     void Regrid (const DistributionMapping& dmap, const BoxArray& ba);
-    void Regrid (const DistributionMapping& dmap, const BoxArray& ba, const int lev);
+    void Regrid (const DistributionMapping& dmap, const BoxArray& ba, int lev);
     void Regrid (const Vector<DistributionMapping>& dmap, const Vector<BoxArray>& ba);
 
     ///
@@ -250,13 +254,13 @@ public:
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair>
-    void buildNeighborList (CheckPair&& check_pair, bool sort=false);
+    void buildNeighborList (CheckPair const& check_pair, bool sort=false);
 
     ///
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair, class OtherPCType>
-    void buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
+    void buildNeighborList (CheckPair const& check_pair, OtherPCType& other,
                             Vector<std::map<std::pair<int, int>, amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
                             bool sort=false);
 
@@ -264,11 +268,11 @@ public:
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair>
-    void buildNeighborList (CheckPair&& check_pair, int typeInd, int* RefRatio,
+    void buildNeighborList (CheckPair const& check_pair, int type_ind, int* ref_ratio,
                             int num_bin_types=1, bool sort=false);
 
     template <class CheckPair>
-    void selectActualNeighbors (CheckPair&& check_pair, int num_cells=1);
+    void selectActualNeighbors (CheckPair const& check_pair, int num_cells=1);
 
     void printNeighborList ();
 
@@ -286,7 +290,7 @@ public:
     }
 
     template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddRealComp (T communicate=true)
     {
         ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
@@ -296,7 +300,7 @@ public:
     }
 
     template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddIntComp (T communicate=true)
     {
         ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
@@ -362,9 +366,9 @@ protected:
 
     void GetNeighborCommTags ();
 
-    void GetCommTagsBox (Vector<NeighborCommTag>& tags, const int lev, const Box& in_box);
+    void GetCommTagsBox (Vector<NeighborCommTag>& tags, int lev, const Box& in_box);
 
-    void resizeContainers (const int lev);
+    void resizeContainers (int num_levels);
 
     void initializeCommComps ();
 
@@ -384,22 +388,20 @@ protected:
     ///
     void getRcvCountsMPI ();
 
-    void GetNeighborCommTags (Vector<NeighborCommTag>& tags, const int lev, Box box);
-
     void getNeighborTags (Vector<NeighborCopyTag>& tags,
                          const ParticleType& p,
-                         const int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
+                          int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
 
     void getNeighborTags (Vector<NeighborCopyTag>& tags,
                          const ParticleType& p,
                          const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
 
-    IntVect computeRefFac (const int src_lev, const int lev);
+    IntVect computeRefFac (int src_lev, int lev);
 
     Vector<std::map<PairIndex, Vector<InverseCopyTag> > > inverse_tags;
     Vector<std::map<PairIndex, ParticleTile> > neighbors;
     Vector<std::map<PairIndex, IntVector> >      neighbor_list;
-    const size_t pdata_size = sizeof(ParticleType);
+    static constexpr size_t pdata_size = sizeof(ParticleType);
 
     static constexpr int num_mask_comps = 3;  //!< grid, tile, level
     size_t cdata_size;
@@ -435,15 +437,15 @@ protected:
             : grid_id(a_grid_id), box(a_box), periodic_shift(a_periodic_shift) {}
 
         bool operator<(const NeighborTask& other) const {
-            if (grid_id != other.grid_id) return grid_id < other.grid_id;
-            if (box     != other.box    ) return box < other.box;
+            if (grid_id != other.grid_id) { return grid_id < other.grid_id; }
+            if (box     != other.box    ) { return box < other.box; }
             AMREX_D_TERM(
             if (periodic_shift[0] != other.periodic_shift[0])
-                return periodic_shift[0] < other.periodic_shift[0];,
+                { return periodic_shift[0] < other.periodic_shift[0]; },
             if (periodic_shift[1] != other.periodic_shift[1])
-                return periodic_shift[1] < other.periodic_shift[1];,
+                { return periodic_shift[1] < other.periodic_shift[1]; },
             if (periodic_shift[2] != other.periodic_shift[2])
-                return periodic_shift[2] < other.periodic_shift[2];
+                { return periodic_shift[2] < other.periodic_shift[2]; }
                 )
             return false;
         }
@@ -475,7 +477,7 @@ protected:
 
     Vector<std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<int> > > m_boundary_particle_ids;
 
-    bool hasNeighbors() const { return m_has_neighbors; }
+    [[nodiscard]] bool hasNeighbors() const { return m_has_neighbors; }
 
     bool m_has_neighbors = false;
 };

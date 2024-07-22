@@ -5,7 +5,7 @@ namespace amrex
 
 IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev)
 {
-    IntVect ref_fac = IntVect(AMREX_D_DECL(1,1,1));
+    IntVect ref_fac(AMREX_D_DECL(1,1,1));
     if (src_lev < lev) {
         for (int l = src_lev; l < lev; ++l) {
             ref_fac *= a_gdb->refRatio(l);
@@ -36,17 +36,17 @@ Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
             {
                 Box box = src_box;
                 const IntVect& ref_fac = computeRefFac(a_gdb, src_lev, lev);
-                if (ref_fac < IntVect::TheZeroVector()) box.coarsen(-1*ref_fac);
-                else if (ref_fac > IntVect::TheZeroVector()) box.refine(ref_fac);
+                if (ref_fac < IntVect::TheZeroVector()) { box.coarsen(-1*ref_fac); }
+                else if (ref_fac > IntVect::TheZeroVector()) { box.refine(ref_fac); }
                 box.grow(computeRefFac(a_gdb, 0, src_lev)*ngrow);
 
                 const Periodicity& periodicity = a_gdb->Geom(lev).periodicity();
                 const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
                 const BoxArray& ba = a_gdb->ParticleBoxArray(lev);
 
-                for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
+                for (auto const& pshift : pshifts)
                 {
-                    const Box& pbox = box + (*pit);
+                    const Box& pbox = box + pshift;
                     bool first_only = false;
                     ba.intersections(pbox, isects, first_only, 0);
                     for (const auto& isec : isects)

@@ -22,7 +22,7 @@ public:
     using BCType = LinOpBCType;
     using Location  = typename MLLinOpT<MF>::Location;
 
-    MLPoissonT () noexcept {}
+    MLPoissonT () = default;
     MLPoissonT (const Vector<Geometry>& a_geom,
                 const Vector<BoxArray>& a_grids,
                 const Vector<DistributionMapping>& a_dmap,
@@ -34,7 +34,7 @@ public:
                 const Vector<iMultiFab const*>& a_overset_mask, // 1: unknown, 0: known
                 const LPInfo& a_info = LPInfo(),
                 const Vector<FabFactory<FAB> const*>& a_factory = {});
-    virtual ~MLPoissonT ();
+    ~MLPoissonT () override;
 
     MLPoissonT (const MLPoissonT<MF>&) = delete;
     MLPoissonT (MLPoissonT<MF>&&) = delete;
@@ -54,28 +54,28 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FAB> const*>& a_factory = {});
 
-    virtual void prepareForSolve () final override;
-    virtual bool isSingular (int amrlev) const final override { return m_is_singular[amrlev]; }
-    virtual bool isBottomSingular () const final override { return m_is_singular[0]; }
-    virtual void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final override;
-    virtual void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rsh, int redblack) const final override;
-    virtual void FFlux (int amrlev, const MFIter& mfi,
+    void prepareForSolve () final;
+    [[nodiscard]] bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
+    [[nodiscard]] bool isBottomSingular () const final { return m_is_singular[0]; }
+    void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final;
+    void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const final;
+    void FFlux (int amrlev, const MFIter& mfi,
                         const Array<FAB*,AMREX_SPACEDIM>& flux,
-                        const FAB& sol, Location loc, const int face_only=0) const final override;
+                        const FAB& sol, Location loc, int face_only=0) const final;
 
-    virtual void normalize (int amrlev, int mglev, MF& mf) const final override;
+    void normalize (int amrlev, int mglev, MF& mf) const final;
 
-    virtual RT getAScalar () const final override { return RT(0.0); }
-    virtual RT getBScalar () const final override { return RT(-1.0); }
-    virtual MF const* getACoeffs (int /*amrlev*/, int /*mglev*/) const final override { return nullptr; }
-    virtual Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int /*amrlev*/, int /*mglev*/) const final override
+    [[nodiscard]] RT getAScalar () const final { return RT(0.0); }
+    [[nodiscard]] RT getBScalar () const final { return RT(-1.0); }
+    [[nodiscard]] MF const* getACoeffs (int /*amrlev*/, int /*mglev*/) const final { return nullptr; }
+    [[nodiscard]] Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int /*amrlev*/, int /*mglev*/) const final
         { return {{ AMREX_D_DECL(nullptr,nullptr,nullptr)}}; }
 
-    virtual std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int grid_size) const final override;
+    [[nodiscard]] std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int grid_size) const final;
 
-    virtual bool supportNSolve () const final override;
+    [[nodiscard]] bool supportNSolve () const final;
 
-    virtual void copyNSolveSolution (MF& dst, MF const& src) const final override;
+    void copyNSolveSolution (MF& dst, MF const& src) const final;
 
     //! Compute dphi/dn on domain faces after the solver has converged.
     void get_dpdn_on_domain_faces (Array<MF*,AMREX_SPACEDIM> const& dpdn,
@@ -133,8 +133,7 @@ MLPoissonT<MF>::define (const Vector<Geometry>& a_geom,
 }
 
 template <typename MF>
-MLPoissonT<MF>::~MLPoissonT ()
-{}
+MLPoissonT<MF>::~MLPoissonT () = default;
 
 template <typename MF>
 void
@@ -157,6 +156,23 @@ MLPoissonT<MF>::prepareForSolve ()
             {
                 m_is_singular[alev] = true;
             }
+        }
+    }
+    if (!m_is_singular[0] && this->m_needs_coarse_data_for_bc &&
+        this->m_coarse_fine_bc_type == LinOpBCType::Neumann)
+    {
+        AMREX_ASSERT(this->m_overset_mask[0][0] == nullptr);
+        auto bbox = this->m_grids[0][0].minimalBox();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (this->m_lobc[0][idim] == LinOpBCType::Dirichlet) {
+                bbox.growLo(idim,1);
+            }
+            if (this->m_hibc[0][idim] == LinOpBCType::Dirichlet) {
+                bbox.growHi(idim,1);
+            }
+        }
+        if (this->m_geom[0][0].Domain().contains(bbox)) {
+            m_is_singular[0] = true;
         }
     }
 }
@@ -300,7 +316,7 @@ MLPoissonT<MF>::normalize (int amrlev, int mglev, MF& mf) const
 #if (AMREX_SPACEDIM != 3)
     BL_PROFILE("MLPoisson::normalize()");
 
-    if (!this->m_has_metric_term) return;
+    if (!this->m_has_metric_term) { return; }
 
     const Real* dxinv = this->m_geom[amrlev][mglev].InvCellSize();
     AMREX_D_TERM(const RT dhx = RT(dxinv[0]*dxinv[0]);,
@@ -394,7 +410,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 #endif
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && sol.isFusingCandidate()
@@ -866,9 +882,9 @@ bool
 MLPoissonT<MF>::supportNSolve () const
 {
     bool support = true;
-    if (this->m_domain_covered[0]) support = false;
-    if (this->doAgglomeration()) support = false;
-    if (AMREX_SPACEDIM != 3) support = false;
+    if (this->m_domain_covered[0]) { support = false; }
+    if (this->doAgglomeration()) { support = false; }
+    if (AMREX_SPACEDIM != 3) { support = false; }
     return support;
 }
 
@@ -912,8 +928,9 @@ MLPoissonT<MF>::makeNLinOp (int grid_size) const
     if (this->needsCoarseDataForBC())
     {
         const Real* dx0 = this->m_geom[0][0].CellSize();
-        const Real fac = Real(0.5)*this->m_coarse_data_crse_ratio;
-        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac, dx0[1]*fac, dx0[2]*fac)};
+        RealVect fac(this->m_coarse_data_crse_ratio);
+        fac *= Real(0.5);
+        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac[0], dx0[1]*fac[1], dx0[2]*fac[2])};
         nop->setCoarseFineBCLocation(cbloc);
     }
 

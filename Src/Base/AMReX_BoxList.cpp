@@ -236,10 +236,8 @@ BoxList::BoxList (const Box& bx, int nboxes, Direction dir)
 bool
 BoxList::ok () const noexcept
 {
-    for (const auto& b : *this) {
-        if (!b.ok()) return false;
-    }
-    return true;
+    return std::all_of(this->cbegin(), this->cend(),
+                       [] (Box const& b) { return b.ok(); });
 }
 
 bool
@@ -253,21 +251,16 @@ BoxList::isDisjoint () const
 }
 
 bool
-BoxList::contains (const BoxList&  bl) const
+BoxList::contains (const BoxList& bl) const
 {
-    if (isEmpty() || bl.isEmpty()) return false;
+    if (isEmpty() || bl.isEmpty()) { return false; }
 
     BL_ASSERT(ixType() == bl.ixType());
 
     BoxArray ba(*this);
 
-    for (const Box& bx : bl) {
-        if (!ba.contains(bx)) {
-            return false;
-        }
-    }
-
-    return true;
+    return std::all_of(bl.cbegin(), bl.cend(),
+                       [&ba] (Box const& b) { return ba.contains(b); });
 }
 
 BoxList&
@@ -446,7 +439,7 @@ BoxList::parallelComplementIn (const Box& b, BoxArray const& ba)
 
         const int block_size = 4 * std::max(1,static_cast<int>(std::ceil(s_avgbox/4.))*4);
         bl_mesh.maxSize(block_size);
-        const int N = bl_mesh.size();
+        const int N = static_cast<int>(bl_mesh.size());
 
         const int nprocs = ParallelContext::NProcsSub();
         const int myproc = ParallelContext::MyProcSub();
@@ -479,7 +472,7 @@ BoxList::parallelComplementIn (const Box& b, BoxArray const& ba)
                     ba.complementIn(bl_tmp, bl_mesh.m_lbox[i]);
                     vbox.insert(std::end(vbox), std::begin(bl_tmp), std::end(bl_tmp));
                 }
-                ntot += bl_tmp.size();
+                ntot += static_cast<int>(bl_tmp.size());
             }
             local_boxes.reserve(ntot);
             for (auto& bl : bl_priv) {
@@ -499,7 +492,7 @@ BoxList::parallelComplementIn (const Box& b, BoxArray const& ba)
             }
         }
 
-        amrex::AllGatherBoxes(local_boxes, this->size());
+        amrex::AllGatherBoxes(local_boxes, static_cast<int>(this->size()));
         local_boxes.insert(std::end(local_boxes), std::begin(m_lbox), std::end(m_lbox));
         std::swap(m_lbox, local_boxes);
 

@@ -46,7 +46,7 @@ public:
     using value_type = typename MF::value_type;
 
     //! Default constructor
-    BndryDataT() noexcept;
+    BndryDataT() noexcept = default;
 
     /**
     * \brief constructor specifying number of components and box of physical
@@ -157,18 +157,13 @@ private:
 };
 
 template <typename MF>
-BndryDataT<MF>::BndryDataT () noexcept
-     {}
-
-template <typename MF>
 BndryDataT<MF>::BndryDataT (const BoxArray& _grids,
                             const DistributionMapping& _dmap,
                             int             _ncomp,
                             const Geometry& _geom)
     :
     geom(_geom),
-    m_ncomp(_ncomp),
-    m_defined(false)
+    m_ncomp(_ncomp)
 {
     define(_grids,_dmap,_ncomp,_geom);
 }

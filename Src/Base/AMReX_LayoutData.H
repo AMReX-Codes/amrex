@@ -31,18 +31,18 @@ namespace amrex
         m_data.resize(local_size());
       }
 
-    ~LayoutData () { if (m_need_to_clear_bd) clearThisBD(); }
+    ~LayoutData () { if (m_need_to_clear_bd) { clearThisBD(); } }
 
     LayoutData (const LayoutData& rhs) noexcept
         : FabArrayBase(rhs),
           m_data(rhs.m_data),
           m_need_to_clear_bd(rhs.m_need_to_clear_bd)
     {
-        if (m_need_to_clear_bd) addThisBD();
+        if (m_need_to_clear_bd) { addThisBD(); }
     }
 
     LayoutData (LayoutData&& rhs) noexcept
-        : FabArrayBase(std::move(rhs)),
+        : FabArrayBase(static_cast<FabArrayBase&&>(rhs)),
           m_data(std::move(rhs.m_data)),
           m_need_to_clear_bd(rhs.m_need_to_clear_bd)
     {
@@ -54,13 +54,13 @@ namespace amrex
         if (&rhs != this)
         {
             m_data.clear();
-            if (m_need_to_clear_bd) clearThisBD();
+            if (m_need_to_clear_bd) { clearThisBD(); }
 
             FabArrayBase::operator=(rhs);
             m_data = rhs.m_data;
             m_need_to_clear_bd = rhs.m_need_to_clear_bd;
 
-            if (m_need_to_clear_bd) addThisBD();
+            if (m_need_to_clear_bd) { addThisBD(); }
         }
         return *this;
     }
@@ -70,9 +70,9 @@ namespace amrex
         if (&rhs != this)
         {
             m_data.clear();
-            if (m_need_to_clear_bd) clearThisBD();
+            if (m_need_to_clear_bd) { clearThisBD(); }
 
-            FabArrayBase::operator=(std::move(rhs));
+            FabArrayBase::operator=(static_cast<FabArrayBase&&>(rhs));
             m_data = std::move(rhs.m_data);
             m_need_to_clear_bd = rhs.m_need_to_clear_bd;
 
@@ -83,32 +83,34 @@ namespace amrex
 
     T& operator[](const MFIter& a_mfi) noexcept
       {
-        BL_ASSERT(a_mfi.LocalIndex() < m_data.size());
-        BL_ASSERT(DistributionMap() == a_mfi.DistributionMap());
-        return (m_data[a_mfi.LocalIndex()]);
+        int local_index = a_mfi.LocalIndex();
+        BL_ASSERT(local_index >= 0 && local_index < m_data.size() &&
+                  DistributionMap() == a_mfi.DistributionMap());
+        return m_data[local_index];
       }
 
 
     const T& operator[](const MFIter& a_mfi) const noexcept
       {
-        BL_ASSERT(a_mfi.LocalIndex() < m_data.size());
-        BL_ASSERT(DistributionMap() == a_mfi.DistributionMap());
-        return (m_data[a_mfi.LocalIndex()]);
+        int local_index = a_mfi.LocalIndex();
+        BL_ASSERT(local_index >= 0 && local_index < m_data.size() &&
+                  DistributionMap() == a_mfi.DistributionMap());
+        return m_data[local_index];
       }
 
     T& operator[](int a_box_index) noexcept
       {
         int local_index = this->localindex(a_box_index);
-        BL_ASSERT(local_index < m_data.size());
-        return (m_data[local_index]);
+        BL_ASSERT(local_index >= 0 && local_index < m_data.size());
+        return m_data[local_index];
       }
 
 
     const T& operator[](int a_box_index) const noexcept
       {
         int local_index = this->localindex(a_box_index);
-        BL_ASSERT(local_index < m_data.size());
-        return (m_data[local_index]);
+        BL_ASSERT(local_index >= 0 && local_index < m_data.size());
+        return m_data[local_index];
       }
 
     const T* data () const noexcept { return m_data.data(); }

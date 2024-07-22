@@ -302,8 +302,8 @@ int sort_particles_ascending(const void *p, const void *q)
     std::memcpy(&cpu1, iptr1, sizeof(int));
     std::memcpy(&cpu2, iptr2, sizeof(int));
 
-    if (cpu1 != cpu2) return (cpu1 - cpu2);
-    if (id1  != id2 ) return (id1  - id2 );
+    if (cpu1 != cpu2) { return (cpu1 - cpu2); }
+    if (id1  != id2 ) { return (id1  - id2 ); }
     return 0;
 }
 
@@ -312,7 +312,7 @@ void compare_particle_chunk(const ParticleHeader& header1,
                             std::vector<double>&  norms,
                             int level, int file_num, int np, int offset) {
 
-    if (np == 0) return;
+    if (np == 0) { return; }
 
     std::string read_file1 = getDataFileName(header1.par_file_name, level, file_num);
     std::string read_file2 = getDataFileName(header2.par_file_name, level, file_num);
@@ -438,12 +438,15 @@ int main_main()
     std::string fn2;
     std::string pt;
     Real rtol = 0.0;
+    Real atol = 0.0;
 
     int farg=1;
     while (farg <= narg) {
         const std::string fname = amrex::get_command_argument(farg);
         if (fname == "-r" || fname == "--rel_tol") {
             rtol = std::stod(amrex::get_command_argument(++farg));
+    } else if (fname == "--abs_tol") {
+            atol = std::stod(amrex::get_command_argument(++farg));
         } else {
             break;
         }
@@ -472,6 +475,7 @@ int main_main()
             << "\n"
             << " optional arguments:\n"
             << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
+            << "       --abs_tol atol     : absolute tolerance (default is 0)\n"
             << std::endl;
         return EXIT_SUCCESS;
     }
@@ -555,16 +559,25 @@ int main_main()
 
     int exit_code = 0;
     for (int i = 0; i < header1.num_comp; ++i) {
-        if (global_norms[i+header1.num_comp] > rtol) exit_code = 1;
+        if (global_norms[i                 ] > atol &&
+            global_norms[i+header1.num_comp] > rtol) exit_code = 1;
     }
 
     if (exit_code == 0)
     {
-        amrex::Print() << " PARTICLES AGREE to relative tolerance " << rtol << "\n";
+        if (atol > 0.) {
+            amrex::Print() << " PARTICLES AGREE to relative tolerance " << rtol << " and/or absolute tolerance " << atol << "\n";
+    } else {
+            amrex::Print() << " PARTICLES AGREE to relative tolerance " << rtol << "\n";
+    }
     }
     else
     {
-        amrex::Print() << " PARTICLES DISAGREE to relative tolerance " << rtol << "\n";
+        if (atol > 0.) {
+            amrex::Print() << " PARTICLES DISAGREE to relative tolerance " << rtol << " and/or absolute tolerance " << atol << "\n";
+    } else {
+            amrex::Print() << " PARTICLES DISAGREE to relative tolerance " << rtol << "\n";
+    }
     }
 
     return exit_code;

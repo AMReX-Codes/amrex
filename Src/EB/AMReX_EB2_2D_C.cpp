@@ -1,6 +1,6 @@
 #include <AMReX_EB2_C.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -9,7 +9,7 @@ void set_eb_data (const int i, const int j,
                   GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm) noexcept
+                  Array4<Real> const& bnorm, Array4<Real> const& levset) noexcept
 {
 #ifdef AMREX_USE_FLOAT
     constexpr Real almostone = 1.0_rt-1.e-6_rt;
@@ -37,7 +37,20 @@ void set_eb_data (const int i, const int j,
     const Real nyabs = std::abs(ny);
 
     Real x_ym, x_yp, y_xm, y_xp;
-    if (nx > 0.0_rt) {
+    if (nx == 0.0_rt) {
+        if (apx(i,j,0) == 1.0_rt && apx(i+1,j,0) == 1.0_rt) {
+            if (levset(i,j,0) > 0.0_rt || levset(i,j+1,0) > 0.0_rt) {
+                x_ym = 0.5_rt*dx[0] - aym;
+                x_yp = 0.5_rt*dx[0] - ayp;
+            } else {
+                x_ym = -0.5_rt*dx[0] + aym;
+                x_yp = -0.5_rt*dx[0] + ayp;
+            }
+        } else {
+            x_ym = 0.0_rt;
+            x_yp = 0.0_rt;
+        }
+    } else if (nx > 0.0_rt) {
         x_ym = -0.5_rt*dx[0] + aym;
         x_yp = -0.5_rt*dx[0] + ayp;
     } else {
@@ -45,7 +58,20 @@ void set_eb_data (const int i, const int j,
         x_yp = 0.5_rt*dx[0] - ayp;
     }
 
-    if (ny > 0.0_rt) {
+    if (ny == 0.0_rt) {
+        if (apy(i,j,0) == 1.0_rt && apy(i,j+1,0) == 1.0_rt) {
+            if (levset(i,j,0) > 0.0_rt || levset(i+1,j,0) > 0.0_rt) {
+                y_xm = 0.5_rt*dx[1] - axm;
+                y_xp = 0.5_rt*dx[1] - axp;
+            } else {
+                y_xm = -0.5_rt*dx[1] + axm;
+                y_xp = -0.5_rt*dx[1] + axp;
+            }
+        } else {
+            y_xm = 0.0_rt;
+            y_xp = 0.0_rt;
+        }
+    } else if (ny > 0.0_rt) {
         y_xm = -0.5_rt*dx[1] + axm;
         y_xp = -0.5_rt*dx[1] + axp;
     } else {
@@ -135,7 +161,8 @@ bool set_eb_cell (int i, int j, Array4<EBCellFlag> const& cell,
                   GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm, Real small_volfrac) noexcept
+                  Array4<Real> const& bnorm, Array4<Real> const& levset,
+                  Real small_volfrac) noexcept
 {
     bool is_small_cell = false;
     if (cell(i,j,0).isRegular()) {
@@ -157,7 +184,7 @@ bool set_eb_cell (int i, int j, Array4<EBCellFlag> const& cell,
         bnorm(i,j,0,0) = 0.0_rt;
         bnorm(i,j,0,1) = 0.0_rt;
     } else {
-        set_eb_data(i,j,apx,apy,dx,vfrac,vcent,barea,bcent,bnorm);
+        set_eb_data(i,j,apx,apy,dx,vfrac,vcent,barea,bcent,bnorm,levset);
         // remove small cells
         if (vfrac(i,j,0) < small_volfrac) {
             set_covered(i,j,cell,vfrac,vcent,barea,bcent,bnorm);
@@ -171,13 +198,13 @@ bool set_eb_cell (int i, int j, Array4<EBCellFlag> const& cell,
 
 int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                  Array4<Type_t> const& fx, Array4<Type_t> const& fy,
-                 Array4<Real const> const& levset,
+                 Array4<Real> const& levset,
                  Array4<Real const> const& interx, Array4<Real const> const& intery,
                  Array4<Real> const& apx, Array4<Real> const& apy,
                  Array4<Real> const& fcx, Array4<Real> const& fcy,
                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                  GpuArray<Real,AMREX_SPACEDIM> const& problo,
-                 bool cover_multiple_cuts) noexcept
+                 bool cover_multiple_cuts, int& nsmallfaces) noexcept
 {
 #ifdef AMREX_USE_FLOAT
     constexpr Real small = 1.e-5_rt;
@@ -256,7 +283,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
         }}
     });
 
-    Gpu::Buffer<int> nmulticuts = {0};
+    Gpu::Buffer<int> nmulticuts = {0, 0};
     int* hp = nmulticuts.hostData();
     int* dp = nmulticuts.data();
 
@@ -278,10 +305,10 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             else
             {
                 int ncuts = 0;
-                if (fx(i  ,j  ,0) == Type::irregular) ++ncuts;
-                if (fx(i+1,j  ,0) == Type::irregular) ++ncuts;
-                if (fy(i  ,j  ,0) == Type::irregular) ++ncuts;
-                if (fy(i  ,j+1,0) == Type::irregular) ++ncuts;
+                if (fx(i  ,j  ,0) == Type::irregular) { ++ncuts; }
+                if (fx(i+1,j  ,0) == Type::irregular) { ++ncuts; }
+                if (fy(i  ,j  ,0) == Type::irregular) { ++ncuts; }
+                if (fy(i  ,j+1,0) == Type::irregular) { ++ncuts; }
                 if (ncuts > 2) {
                     Gpu::Atomic::Add(dp,1);
                 }
@@ -289,7 +316,31 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
         }
     });
 
+    const Box& nbxg1 = amrex::surroundingNodes(bxg1);
+    const Box& bxg1x = amrex::surroundingNodes(bxg1,0);
+    const Box& bxg1y = amrex::surroundingNodes(bxg1,1);
+    AMREX_HOST_DEVICE_FOR_3D ( nbxg1, i, j, k,
+    {
+        amrex::ignore_unused(k);
+        if (levset(i,j,0) < Real(0.0)) {
+            if ((bxg1x.contains(i  ,j-1,0)
+                 &&          fx(i  ,j-1,0) == Type::covered) ||
+                (bxg1x.contains(i  ,j  ,0)
+                 &&          fx(i  ,j  ,0) == Type::covered) ||
+                (bxg1y.contains(i-1,j  ,0)
+                 &&          fy(i-1,j  ,0) == Type::covered) ||
+                (bxg1y.contains(i  ,j  ,0)
+                 &&          fy(i  ,j  ,0) == Type::covered))
+            {
+                levset(i,j,k) = Real(0.0);
+                Gpu::Atomic::Add(dp+1,1);
+            }
+        }
+    });
+
     nmulticuts.copyToHost();
+
+    nsmallfaces += *(hp+1);
 
     if (*hp > 0 && !cover_multiple_cuts) {
         amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
@@ -317,7 +368,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     {
         amrex::ignore_unused(k);
         bool is_small = set_eb_cell(i, j, cell, apx, apy, dx, vfrac, vcent, barea, bcent,
-                                    bnorm, small_volfrac);
+                                    bnorm, levset, small_volfrac);
         if (is_small) {
             Gpu::Atomic::Add(dp, 1);
         }
@@ -384,17 +435,15 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         AMREX_HOST_DEVICE_FOR_3D(nbxg1, i, j, k,
         {
             if (levset(i,j,k) < Real(0.0)) {
-                if        (bxg1.contains(i-1,j-1,k)
-                           &&       cell(i-1,j-1,k).isCovered()) {
-                    levset(i,j,k) = Real(0.0);
-                } else if (bxg1.contains(i  ,j-1,k)
-                           &&       cell(i  ,j-1,k).isCovered()) {
-                    levset(i,j,k) = Real(0.0);
-                } else if (bxg1.contains(i-1,j  ,k)
-                           &&       cell(i-1,j  ,k).isCovered()) {
-                    levset(i,j,k) = Real(0.0);
-                } else if (bxg1.contains(i  ,j  ,k)
-                           &&       cell(i  ,j  ,k).isCovered()) {
+                if ((bxg1.contains(i-1,j-1,k)
+                     &&       cell(i-1,j-1,k).isCovered()) ||
+                    (bxg1.contains(i  ,j-1,k)
+                     &&       cell(i  ,j-1,k).isCovered()) ||
+                    (bxg1.contains(i-1,j  ,k)
+                     &&       cell(i-1,j  ,k).isCovered()) ||
+                    (bxg1.contains(i  ,j  ,k)
+                     &&       cell(i  ,j  ,k).isCovered()))
+                {
                     levset(i,j,k) = Real(0.0);
                 }
             }
@@ -415,10 +464,10 @@ void set_connection_flags (Box const& bxg1,
 
         auto flg = cell(i,j,0);
 
-        if (fx(i  ,j  ,0) == Type::covered) flg.setDisconnected(IntVect(-1, 0));
-        if (fx(i+1,j  ,0) == Type::covered) flg.setDisconnected(IntVect( 1, 0));
-        if (fy(i  ,j  ,0) == Type::covered) flg.setDisconnected(IntVect( 0,-1));
-        if (fy(i  ,j+1,0) == Type::covered) flg.setDisconnected(IntVect( 0, 1));
+        if (fx(i  ,j  ,0) == Type::covered) { flg.setDisconnected(IntVect(-1, 0)); }
+        if (fx(i+1,j  ,0) == Type::covered) { flg.setDisconnected(IntVect( 1, 0)); }
+        if (fy(i  ,j  ,0) == Type::covered) { flg.setDisconnected(IntVect( 0,-1)); }
+        if (fy(i  ,j+1,0) == Type::covered) { flg.setDisconnected(IntVect( 0, 1)); }
 
         if (((fx(i,j,0) == Type::covered) || fy(i-1,j,0) == Type::covered) &&
             ((fx(i,j-1,0) == Type::covered) || fy(i,j,0) == Type::covered))
@@ -448,4 +497,4 @@ void set_connection_flags (Box const& bxg1,
     });
 }
 
-}}
+}

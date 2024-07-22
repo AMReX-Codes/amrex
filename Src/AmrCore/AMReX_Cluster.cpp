@@ -148,7 +148,8 @@ Cluster::minBox () noexcept
 // Finds best cut location in histogram.
 //
 
-static
+namespace {
+
 int
 FindCut (const int* hist,
          int        lo,
@@ -163,8 +164,9 @@ FindCut (const int* hist,
     //
     // Check validity of histogram.
     //
-    if (len <= 1)
+    if (len <= 1) {
         return lo;
+    }
     //
     // First find centermost point where hist == 0 (if any).
     //
@@ -179,20 +181,23 @@ FindCut (const int* hist,
             if (std::abs(cutpoint-mid) > std::abs(i-mid))
             {
                 cutpoint = i;
-                if (i > mid)
+                if (i > mid) {
                     break;
+                }
             }
         }
     }
-    if (status == HoleCut)
+    if (status == HoleCut) {
         return lo + cutpoint;
+    }
     //
     // If we got here, there was no obvious cutpoint, try
     // finding place where change in second derivative is max.
     //
     Vector<int> dhist(len,0);
-    for (i = 1; i < len-1; i++)
+    for (i = 1; i < len-1; i++) {
         dhist[i] = hist[i+1] - 2*hist[i] + hist[i-1];
+    }
 
     int locmax = -1;
     for (i = 0+MINOFF; i < len-MINOFF; i++)
@@ -213,8 +218,9 @@ FindCut (const int* hist,
                 //
                 // Select location nearest center of range.
                 //
-                if (std::abs(i-mid) < std::abs(cutpoint-mid))
+                if (std::abs(i-mid) < std::abs(cutpoint-mid)) {
                     cutpoint = i;
+                }
             }
         }
     }
@@ -231,7 +237,6 @@ FindCut (const int* hist,
     return lo + cutpoint;
 }
 
-namespace {
 //
 // Predicate in call to std::partition() in Cluster::chop().
 //
@@ -359,7 +364,7 @@ Cluster::new_chop ()
        // Find cutpoint and cutstatus in each index direction.
        //
        CutStatus mincut = InvalidCut;
-       CutStatus status[AMREX_SPACEDIM];
+       CutStatus status[AMREX_SPACEDIM] = {AMREX_D_DECL(InvalidCut,InvalidCut,InvalidCut)};
        IntVect cut;
        for (int n = 0; n < AMREX_SPACEDIM; n++)
        {
@@ -396,7 +401,7 @@ Cluster::new_chop ()
            nlo += hist[dir][i-lo[dir]];
        }
 
-       if (nlo <= 0 || nlo >= m_len) return chop();
+       if (nlo <= 0 || nlo >= m_len) { return chop(); }
 
        Long nhi = m_len - nlo;
 

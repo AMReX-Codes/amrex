@@ -130,7 +130,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
 
 
 void
-MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes, // NOLINT(readability-convert-member-functions-to-static)
                        MultiFab& sol, Location /*loc*/) const
 {
 #if (AMREX_SPACEDIM == 1)

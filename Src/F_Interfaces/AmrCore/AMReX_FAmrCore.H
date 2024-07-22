@@ -13,7 +13,6 @@ class FAmrCore
 {
 public:
     FAmrCore ();
-    virtual ~FAmrCore ();
 
     using make_level_funptr_t = void(*)(int lev, Real time, const BoxArray* ba,
                                       const DistributionMapping* dm);
@@ -38,17 +37,16 @@ public:
 
 protected:
 
-    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
+    void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
                                           const DistributionMapping& dm) override;
-    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
+    void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
                                          const DistributionMapping& dm) override;
-    virtual void RemakeLevel (int lev, Real time, const BoxArray& ba,
+    void RemakeLevel (int lev, Real time, const BoxArray& ba,
                               const DistributionMapping& dm) override;
-    virtual void ClearLevel (int lev) override;
-    virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) override;
+    void ClearLevel (int lev) override;
+    void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) override;
 };
 
 }
 
 #endif
-

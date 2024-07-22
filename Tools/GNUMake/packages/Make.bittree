@@ -1,0 +1,16 @@
+
+CPPFLAGS += -DAMREX_USE_BITTREE
+include $(AMREX_HOME)/Src/Extern/Bittree/Make.package
+
+ifndef AMREX_BITTREE_HOME
+ifdef BITTREE_$(DIM)D_HOME
+  AMREX_BITTREE_HOME = $(BITTREE_$(DIM)D_HOME)
+endif
+endif
+
+ifdef AMREX_BITTREE_HOME
+  BITTREE_ABSPATH = $(abspath $(AMREX_BITTREE_HOME))
+  INCLUDE_LOCATIONS += $(BITTREE_ABSPATH)/include
+  LIBRARY_LOCATIONS += $(BITTREE_ABSPATH)/lib
+  LIBRARIES += -Wl,-rpath,$(BITTREE_ABSPATH)/lib -lbittree
+endif

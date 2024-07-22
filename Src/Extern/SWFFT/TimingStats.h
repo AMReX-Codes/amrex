@@ -59,6 +59,8 @@
 
 #include <mpi.h>
 
+#include "verbosity.h"
+
 // lightweight timing statistics from MPI_Wtime() calls
 // C header only, no static variables
 // prints maximum, average/mean, minimum, and stddev
@@ -89,7 +91,7 @@ void printTimingStats(MPI_Comm comm,        // comm for MPI_Allreduce()
   var *= 1.0/nranks;
   stdev = sqrt(var);
 
-  if(myrank==0) {
+  if(myrank==0 && verbosity() > 0) {
     printf("%s  max %.3es  avg %.3es  min %.3es  dev %.3es\n",
            preamble, max, avg, min, stdev);
   }

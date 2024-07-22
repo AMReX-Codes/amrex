@@ -24,10 +24,10 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (apx(i,j,0) == 0.0)
+            if (apx(i,j,0) == Real(0.0))
             {
-                fx(i,j,0,0) = 0.0;
-                fx(i,j,0,1) = 0.0;
+                fx(i,j,0,0) = Real(0.0);
+                fx(i,j,0,1) = Real(0.0);
             }
             else
             {
@@ -70,10 +70,10 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (apy(i,j,0) == 0.0)
+            if (apy(i,j,0) == Real(0.0))
             {
-                fy(i,j,0,0) = 0.0;
-                fy(i,j,0,1) = 0.0;
+                fy(i,j,0,0) = Real(0.0);
+                fy(i,j,0,1) = Real(0.0);
             }
             else
             {
@@ -122,10 +122,10 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (apx(i,j,0) == 0.0)
+            if (apx(i,j,0) == Real(0.0))
             {
-                fx(i,j,0,0) = 0.0;
-                fx(i,j,0,1) = 0.0;
+                fx(i,j,0,0) = Real(0.0);
+                fx(i,j,0,1) = Real(0.0);
             }
             else
             {
@@ -176,10 +176,10 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (apy(i,j,0) == 0.0)
+            if (apy(i,j,0) == Real(0.0))
             {
-                fy(i,j,0,0) = 0.0;
-                fy(i,j,0,1) = 0.0;
+                fy(i,j,0,0) = Real(0.0);
+                fy(i,j,0,1) = Real(0.0);
             }
             else
             {
@@ -245,48 +245,48 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
             {
                 Real fxm_0 = fx(i,j,0,0);
                 Real fxm_1 = fx(i,j,0,1);
-                if (apx(i,j,0) > 0.0 && apx(i,j,0) < 1.0) {
-                    int jj = j + (fcx(i,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracy = (ccm(i-1,jj,0) || ccm(i,jj,0)) ? std::abs(fcx(i,j,0,0)) : 0.0;
-                    fxm_0 = (1.0-fracy)*fxm_0 + fracy*fx(i,jj,0,0);
-                    fxm_1 = (1.0-fracy)*fxm_1 + fracy*fx(i,jj,0,1);
+                if (apx(i,j,0) > Real(0.0) && apx(i,j,0) < Real(1.0)) {
+                    int jj = j + (fcx(i,j,0,0) >= Real(0.0) ? 1 : -1);
+                    Real fracy = (ccm(i-1,jj,0) || ccm(i,jj,0)) ? std::abs(fcx(i,j,0,0)) : Real(0.0);
+                    fxm_0 = (Real(1.0)-fracy)*fxm_0 + fracy*fx(i,jj,0,0);
+                    fxm_1 = (Real(1.0)-fracy)*fxm_1 + fracy*fx(i,jj,0,1);
                 }
 
                 Real fxp_0 = fx(i+1,j,0,0);
                 Real fxp_1 = fx(i+1,j,0,1);
-                if (apx(i+1,j,0) > 0.0 && apx(i+1,j,0) < 1.0) {
-                    int jj = j + (fcx(i+1,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracy = (ccm(i,jj,0) || ccm(i+1,jj,0)) ? std::abs(fcx(i+1,j,0,0)) : 0.0;
-                    fxp_0 = (1.0-fracy)*fxp_0 + fracy*fx(i+1,jj,0,0);
-                    fxp_1 = (1.0-fracy)*fxp_1 + fracy*fx(i+1,jj,0,1);
+                if (apx(i+1,j,0) > Real(0.0) && apx(i+1,j,0) < Real(1.0)) {
+                    int jj = j + (fcx(i+1,j,0,0) >= Real(0.0) ? 1 : -1);
+                    Real fracy = (ccm(i,jj,0) || ccm(i+1,jj,0)) ? std::abs(fcx(i+1,j,0,0)) : Real(0.0);
+                    fxp_0 = (Real(1.0)-fracy)*fxp_0 + fracy*fx(i+1,jj,0,0);
+                    fxp_1 = (Real(1.0)-fracy)*fxp_1 + fracy*fx(i+1,jj,0,1);
                 }
 
                 Real fym_0 = fy(i,j,0,0);
                 Real fym_1 = fy(i,j,0,1);
-                if (apy(i,j,0) > 0.0 && apy(i,j,0) < 1.0) {
-                    int ii = i + (fcy(i,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracx = (ccm(ii,j-1,0) || ccm(ii,j,0)) ? std::abs(fcy(i,j,0,0)) : 0.0;
-                    fym_0 = (1.0-fracx)*fym_0 + fracx*fy(ii,j,0,0);
-                    fym_1 = (1.0-fracx)*fym_1 + fracx*fy(ii,j,0,1);
+                if (apy(i,j,0) > Real(0.0) && apy(i,j,0) < Real(1.0)) {
+                    int ii = i + (fcy(i,j,0,0) >= Real(0.0) ? 1 : -1);
+                    Real fracx = (ccm(ii,j-1,0) || ccm(ii,j,0)) ? std::abs(fcy(i,j,0,0)) : Real(0.0);
+                    fym_0 = (Real(1.0)-fracx)*fym_0 + fracx*fy(ii,j,0,0);
+                    fym_1 = (Real(1.0)-fracx)*fym_1 + fracx*fy(ii,j,0,1);
                 }
 
                 Real fyp_0 = fy(i,j+1,0,0);
                 Real fyp_1 = fy(i,j+1,0,1);
-                if (apy(i,j+1,0) > 0.0 && apy(i,j+1,0) < 1.0) {
-                    int ii = i + (fcy(i,j+1,0,0) >= 0.0 ? 1 : -1);
-                    Real fracx = (ccm(ii,j,0) || ccm(ii,j+1,0)) ? std::abs(fcy(i,j+1,0,0)) : 0.0;
-                    fyp_0 = (1.0-fracx)*fyp_0 + fracx*fy(ii,j+1,0,0);
-                    fyp_1 = (1.0-fracx)*fyp_1 + fracx*fy(ii,j+1,0,1);
+                if (apy(i,j+1,0) > Real(0.0) && apy(i,j+1,0) < Real(1.0)) {
+                    int ii = i + (fcy(i,j+1,0,0) >= Real(0.0) ? 1 : -1);
+                    Real fracx = (ccm(ii,j,0) || ccm(ii,j+1,0)) ? std::abs(fcy(i,j+1,0,0)) : Real(0.0);
+                    fyp_0 = (Real(1.0)-fracx)*fyp_0 + fracx*fy(ii,j+1,0,0);
+                    fyp_1 = (Real(1.0)-fracx)*fyp_1 + fracx*fy(ii,j+1,0,1);
                 }
 
                 Real kappa = vol(i,j,0);
-                Real feb_0 = 0.0;
-                Real feb_1 = 0.0;
+                Real feb_0 = Real(0.0);
+                Real feb_1 = Real(0.0);
                 if (is_dirichlet)
                 {
                     Real dapx = apx(i+1,j,0)-apx(i,j,0);
                     Real dapy = apy(i,j+1,0)-apy(i,j,0);
-                    Real anorminv = 1.0/std::sqrt(dapx*dapx+dapy*dapy);
+                    Real anorminv = Real(1.0)/std::sqrt(dapx*dapx+dapy*dapy);
                     Real anrmx = -dapx * anorminv;
                     Real anrmy = -dapy * anorminv;
 
@@ -297,20 +297,20 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                         velb_1 = velb(i,j,0,1);
                     }
 
-                    Real dx_eb = amrex::max(0.3, (kappa*kappa-0.25)/(2.*kappa));
+                    Real dx_eb = amrex::max(Real(0.3), (kappa*kappa-Real(0.25))/(Real(2.)*kappa));
                     Real dg = dx_eb / amrex::max(std::abs(anrmx),std::abs(anrmy));
-                    Real dginv = 1.0/dg;
+                    Real dginv = Real(1.0)/dg;
                     Real gx = bc(i,j,0,0) - dg*anrmx;
                     Real gy = bc(i,j,0,1) - dg*anrmy;
-                    int isx = (anrmx > 0.0) ? 1 : -1;
-                    int isy = (anrmy > 0.0) ? 1 : -1;
+                    int isx = (anrmx > Real(0.0)) ? 1 : -1;
+                    int isy = (anrmy > Real(0.0)) ? 1 : -1;
                     int ii = i - isx;
                     int jj = j - isy;
 
                     gx *= isx;
                     gy *= isy;
                     Real gxy = gx*gy;
-                    Real oneggg = 1.0+gx+gy+gxy;
+                    Real oneggg = Real(1.0)+gx+gy+gxy;
 
                     Real velg = oneggg * vel(i ,j ,0,0)
                         +  (-gy - gxy) * vel(i ,jj,0,0)
@@ -370,9 +370,10 @@ void mlebtensor_flux_0 (Box const& box,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-          if (ap(i,j,k) != 0.0) {
-              for (int n=0; n<AMREX_SPACEDIM; n++)
+          if (ap(i,j,k) != Real(0.0)) {
+              for (int n=0; n<AMREX_SPACEDIM; n++) {
                   Ax(i,j,k,n) += bscalar*fx(i,j,k,n);
+              }
           }
           //else MLEBABec::compFlux already set Ax = 0
         }
@@ -392,18 +393,19 @@ void mlebtensor_flux_x (Box const& box, Array4<Real> const& Ax,
     amrex::LoopConcurrent(box, [=] (int i, int j, int k) noexcept
     {
         if (!face_only || lof == i || hif == i) {
-          if (apx(i,j,k) == 1.0) {
-            for (int n=0; n<AMREX_SPACEDIM; n++)
+          if (apx(i,j,k) == Real(1.0)) {
+            for (int n=0; n<AMREX_SPACEDIM; n++) {
                 Ax(i,j,k,n) += bscalar*fx(i,j,k,n);
+            }
           }
           else if (apx(i,j,k) != 0.) {
                 Real fxm_0 = fx(i,j,0,0);
                 Real fxm_1 = fx(i,j,0,1);
 
-                int jj = j + (fcx(i,j,0,0) >= 0.0 ? 1 : -1);
-                Real fracy = (ccm(i-1,jj,0) || ccm(i,jj,0)) ? std::abs(fcx(i,j,0,0)) : 0.0;
-                fxm_0 = (1.0-fracy)*fxm_0 + fracy*fx(i,jj,0,0);
-                fxm_1 = (1.0-fracy)*fxm_1 + fracy*fx(i,jj,0,1);
+                int jj = j + (fcx(i,j,0,0) >= Real(0.0) ? 1 : -1);
+                Real fracy = (ccm(i-1,jj,0) || ccm(i,jj,0)) ? std::abs(fcx(i,j,0,0)) : Real(0.0);
+                fxm_0 = (Real(1.0)-fracy)*fxm_0 + fracy*fx(i,jj,0,0);
+                fxm_1 = (Real(1.0)-fracy)*fxm_1 + fracy*fx(i,jj,0,1);
 
                 Ax(i,j,k,0) += bscalar*fxm_0;
                 Ax(i,j,k,1) += bscalar*fxm_1;
@@ -425,18 +427,19 @@ void mlebtensor_flux_y (Box const& box, Array4<Real> const& Ay,
     amrex::LoopConcurrent(box, [=] (int i, int j, int k) noexcept
     {
         if (!face_only || lof == j || hif == j) {
-          if (apy(i,j,k) == 1.0) {
-            for (int n=0; n<AMREX_SPACEDIM; n++)
+          if (apy(i,j,k) == Real(1.0)) {
+            for (int n=0; n<AMREX_SPACEDIM; n++) {
                 Ay(i,j,k,n) += bscalar*fy(i,j,k,n);
+            }
           }
           else if (apy(i,j,k) != 0.) {
                 Real fym_0 = fy(i,j,0,0);
                 Real fym_1 = fy(i,j,0,1);
 
-                int ii = i + (fcy(i,j,0,0) >= 0.0 ? 1 : -1);
-                Real fracx = (ccm(ii,j-1,0) || ccm(ii,j,0)) ? std::abs(fcy(i,j,0,0)) : 0.0;
-                fym_0 = (1.0-fracx)*fym_0 + fracx*fy(ii,j,0,0);
-                fym_1 = (1.0-fracx)*fym_1 + fracx*fy(ii,j,0,1);
+                int ii = i + (fcy(i,j,0,0) >= Real(0.0) ? 1 : -1);
+                Real fracx = (ccm(ii,j-1,0) || ccm(ii,j,0)) ? std::abs(fcy(i,j,0,0)) : Real(0.0);
+                fym_0 = (Real(1.0)-fracx)*fym_0 + fracx*fy(ii,j,0,0);
+                fym_1 = (Real(1.0)-fracx)*fym_1 + fracx*fy(ii,j,0,1);
 
                 Ay(i,j,k,0) += bscalar*fym_0;
                 Ay(i,j,k,1) += bscalar*fym_1;
@@ -461,12 +464,12 @@ void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (apx(i,j,0) == 0.0)
+            if (apx(i,j,0) == Real(0.0))
             {
-                fx(i,j,0,0) = 0.0;
-                fx(i,j,0,1) = 0.0;
-                fx(i,j,0,2) = 0.0;
-                fx(i,j,0,3) = 0.0;
+                fx(i,j,0,0) = Real(0.0);
+                fx(i,j,0,1) = Real(0.0);
+                fx(i,j,0,2) = Real(0.0);
+                fx(i,j,0,3) = Real(0.0);
             }
             else
             {
@@ -508,10 +511,10 @@ void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             if (apy(i,j,0) == 0.) {
-                fy(i,j,0,0) = 0.0;
-                fy(i,j,0,1) = 0.0;
-                fy(i,j,0,2) = 0.0;
-                fy(i,j,0,3) = 0.0;
+                fy(i,j,0,0) = Real(0.0);
+                fy(i,j,0,1) = Real(0.0);
+                fy(i,j,0,2) = Real(0.0);
+                fy(i,j,0,3) = Real(0.0);
             }
             else
             {
@@ -557,12 +560,12 @@ void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
     int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (apx(i,j,0) == 0.0)
+            if (apx(i,j,0) == Real(0.0))
             {
-                fx(i,j,0,0) = 0.0;
-                fx(i,j,0,1) = 0.0;
-                fx(i,j,0,2) = 0.0;
-                fx(i,j,0,3) = 0.0;
+                fx(i,j,0,0) = Real(0.0);
+                fx(i,j,0,1) = Real(0.0);
+                fx(i,j,0,2) = Real(0.0);
+                fx(i,j,0,3) = Real(0.0);
             }
             else
             {
@@ -611,10 +614,10 @@ void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
             if (apy(i,j,0) == 0.) {
-                fy(i,j,0,0) = 0.0;
-                fy(i,j,0,1) = 0.0;
-                fy(i,j,0,2) = 0.0;
-                fy(i,j,0,3) = 0.0;
+                fy(i,j,0,0) = Real(0.0);
+                fy(i,j,0,1) = Real(0.0);
+                fy(i,j,0,2) = Real(0.0);
+                fy(i,j,0,3) = Real(0.0);
             }
             else
             {
@@ -659,23 +662,23 @@ void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (apx(i,j,0) == 0.0)
+            if (apx(i,j,0) == Real(0.0))
             {
-                fx(i,j,0,0) = 0.0;
-                fx(i,j,0,1) = 0.0;
-                fx(i,j,0,2) = 0.0;
-                fx(i,j,0,3) = 0.0;
+                fx(i,j,0,0) = Real(0.0);
+                fx(i,j,0,1) = Real(0.0);
+                fx(i,j,0,2) = Real(0.0);
+                fx(i,j,0,3) = Real(0.0);
             }
             else
             {
                 Real dudx =  (vel(i,j,0,0) - vel(i-1,j,0,0))*dxi;
                 Real dvdx =  (vel(i,j,0,1) - vel(i-1,j,0,1))*dxi;
-                if (apx(i,j,0) < 1.0) {
-                    int jj = j + (fcx(i,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracy = (ccm(i-1,jj,0) || ccm(i,jj,0)) ? std::abs(fcx(i,j,0,0)) : 0.0;
-                    dudx =  (1.0-fracy)*dudx
+                if (apx(i,j,0) < Real(1.0)) {
+                    int jj = j + (fcx(i,j,0,0) >= Real(0.0) ? 1 : -1);
+                    Real fracy = (ccm(i-1,jj,0) || ccm(i,jj,0)) ? std::abs(fcx(i,j,0,0)) : Real(0.0);
+                    dudx =  (Real(1.0)-fracy)*dudx
                           + fracy      *(vel(i,jj,0,0) - vel(i-1,jj,0,0))*dxi;
-                    dvdx =  (1.0-fracy)*dvdx
+                    dvdx =  (Real(1.0)-fracy)*dvdx
                           + fracy      *(vel(i,jj,0,1) - vel(i-1,jj,0,1))*dxi;
                 }
 
@@ -716,10 +719,10 @@ void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             if (apy(i,j,0) == 0.) {
-                fy(i,j,0,0) = 0.0;
-                fy(i,j,0,1) = 0.0;
-                fy(i,j,0,2) = 0.0;
-                fy(i,j,0,3) = 0.0;
+                fy(i,j,0,0) = Real(0.0);
+                fy(i,j,0,1) = Real(0.0);
+                fy(i,j,0,2) = Real(0.0);
+                fy(i,j,0,3) = Real(0.0);
             }
             else
             {
@@ -736,12 +739,12 @@ void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
 
                 Real dudy =  (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
                 Real dvdy =  (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
-                if (apy(i,j,0) < 1.0) {
-                    int ii = i + (fcy(i,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracx = (ccm(ii,j-1,0) || ccm(ii,j,0)) ? std::abs(fcy(i,j,0,0)) : 0.0;
-                    dudy =  (1.0-fracx)*dudy
+                if (apy(i,j,0) < Real(1.0)) {
+                    int ii = i + (fcy(i,j,0,0) >= Real(0.0) ? 1 : -1);
+                    Real fracx = (ccm(ii,j-1,0) || ccm(ii,j,0)) ? std::abs(fcy(i,j,0,0)) : Real(0.0);
+                    dudy =  (Real(1.0)-fracx)*dudy
                           + fracx      *(vel(ii,j,0,0) - vel(ii,j-1,0,0))*dyi;
-                    dvdy =  (1.0-fracx)*dvdy
+                    dvdy =  (Real(1.0)-fracx)*dvdy
                           + fracx      *(vel(ii,j,0,1) - vel(ii,j-1,0,1))*dyi;
                 }
 
@@ -776,23 +779,23 @@ void mlebtensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
     int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (apx(i,j,0) == 0.0)
+            if (apx(i,j,0) == Real(0.0))
             {
-                fx(i,j,0,0) = 0.0;
-                fx(i,j,0,1) = 0.0;
-                fx(i,j,0,2) = 0.0;
-                fx(i,j,0,3) = 0.0;
+                fx(i,j,0,0) = Real(0.0);
+                fx(i,j,0,1) = Real(0.0);
+                fx(i,j,0,2) = Real(0.0);
+                fx(i,j,0,3) = Real(0.0);
             }
             else
             {
                 Real dudx = (vel(i,j,0,0) - vel(i-1,j,0,0))*dxi;
                 Real dvdx = (vel(i,j,0,1) - vel(i-1,j,0,1))*dxi;
-                if (apx(i,j,0) < 1.0) {
-                    int jj = j + (fcx(i,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracy = (ccm(i-1,jj,0) || ccm(i,jj,0)) ? std::abs(fcx(i,j,0,0)) : 0.0;
-                    dudx =  (1.0-fracy)*dudx
+                if (apx(i,j,0) < Real(1.0)) {
+                    int jj = j + (fcx(i,j,0,0) >= Real(0.0) ? 1 : -1);
+                    Real fracy = (ccm(i-1,jj,0) || ccm(i,jj,0)) ? std::abs(fcx(i,j,0,0)) : Real(0.0);
+                    dudx =  (Real(1.0)-fracy)*dudx
                           + fracy      *(vel(i,jj,0,0) - vel(i-1,jj,0,0))*dxi;
-                    dvdx =  (1.0-fracy)*dvdx
+                    dvdx =  (Real(1.0)-fracy)*dvdx
                           + fracy      *(vel(i,jj,0,1) - vel(i-1,jj,0,1))*dxi;
                 }
 
@@ -840,10 +843,10 @@ void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
             if (apy(i,j,0) == 0.) {
-                fy(i,j,0,0) = 0.0;
-                fy(i,j,0,1) = 0.0;
-                fy(i,j,0,2) = 0.0;
-                fy(i,j,0,3) = 0.0;
+                fy(i,j,0,0) = Real(0.0);
+                fy(i,j,0,1) = Real(0.0);
+                fy(i,j,0,2) = Real(0.0);
+                fy(i,j,0,3) = Real(0.0);
             }
             else
             {
@@ -862,12 +865,12 @@ void mlebtensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
 
                 Real dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
                 Real dvdy = (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
-                if (apy(i,j,0) < 1.0) {
-                    int ii = i + (fcy(i,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracx = (ccm(ii,j-1,0) || ccm(ii,j,0)) ? std::abs(fcy(i,j,0,0)) : 0.0;
-                    dudy =  (1.0-fracx)*dudy
+                if (apy(i,j,0) < Real(1.0)) {
+                    int ii = i + (fcy(i,j,0,0) >= Real(0.0) ? 1 : -1);
+                    Real fracx = (ccm(ii,j-1,0) || ccm(ii,j,0)) ? std::abs(fcy(i,j,0,0)) : Real(0.0);
+                    dudy =  (Real(1.0)-fracx)*dudy
                           + fracx      *(vel(ii,j,0,0) - vel(ii,j-1,0,0))*dyi;
-                    dvdy =  (1.0-fracx)*dvdy
+                    dvdy =  (Real(1.0)-fracx)*dvdy
                           + fracx      *(vel(ii,j,0,1) - vel(ii,j-1,0,1))*dyi;
                 }
 

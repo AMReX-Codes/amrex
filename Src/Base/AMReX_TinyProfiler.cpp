@@ -11,11 +11,6 @@
 #endif
 #include <AMReX_Print.H>
 
-#ifdef AMREX_USE_CUPTI
-#include <AMReX_CuptiTrace.H>
-#include <cupti.h>
-#endif
-
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
@@ -42,33 +37,34 @@ double TinyProfiler::t_init = std::numeric_limits<double>::max();
 int TinyProfiler::device_synchronize_around_region = 0;
 int TinyProfiler::n_print_tabs = 0;
 int TinyProfiler::verbose = 0;
+double TinyProfiler::print_threshold = 1.;
 
 namespace {
-    static constexpr char mainregion[] = "main";
+    constexpr char mainregion[] = "main";
 }
 
 TinyProfiler::TinyProfiler (std::string funcname) noexcept
-    : fname(std::move(funcname)), uCUPTI(false)
+    : fname(std::move(funcname))
 {
     start();
 }
 
-TinyProfiler::TinyProfiler (std::string funcname, bool start_, bool useCUPTI) noexcept
-    : fname(std::move(funcname)), uCUPTI(useCUPTI)
+TinyProfiler::TinyProfiler (std::string funcname, bool start_) noexcept
+    : fname(std::move(funcname))
 {
-    if (start_) start();
+    if (start_) { start(); }
 }
 
 TinyProfiler::TinyProfiler (const char* funcname) noexcept
-    : fname(funcname), uCUPTI(false)
+    : fname(funcname)
 {
     start();
 }
 
-TinyProfiler::TinyProfiler (const char* funcname, bool start_, bool useCUPTI) noexcept
-    : fname(funcname), uCUPTI(useCUPTI)
+TinyProfiler::TinyProfiler (const char* funcname, bool start_) noexcept
+    : fname(funcname)
 {
-    if (start_) start();
+    if (start_) { start(); }
 }
 
 TinyProfiler::~TinyProfiler ()
@@ -93,30 +89,20 @@ TinyProfiler::start () noexcept
 #endif
     if (!regionstack.empty()) {
 
-        double t;
-        if (!uCUPTI) {
-            t = amrex::second();
-        } else {
-#ifdef AMREX_USE_CUPTI
-            cudaDeviceSynchronize();
-            cuptiActivityFlushAll(0);
-            activityRecordUserdata.clear();
-            t = amrex::second();
-#endif
+#ifdef AMREX_USE_GPU
+        if (device_synchronize_around_region) {
+            amrex::Gpu::streamSynchronize();
         }
+#endif
 
-        ttstack.emplace_back(std::make_tuple(t, 0.0, &fname));
-        global_depth = ttstack.size();
+        const double t = amrex::second();
+
+        ttstack.emplace_back(t, 0.0, &fname);
+        global_depth = static_cast<int>(ttstack.size());
 #ifdef AMREX_USE_OMP
         in_parallel_region = omp_in_parallel();
 #else
         in_parallel_region = false;
-#endif
-
-#ifdef AMREX_USE_GPU
-            if (device_synchronize_around_region) {
-                amrex::Gpu::streamSynchronize();
-            }
 #endif
 
 #ifdef AMREX_USE_CUDA
@@ -138,7 +124,7 @@ TinyProfiler::start () noexcept
             for (int itab = 0; itab < n_print_tabs; ++itab) {
                 whitespace += "  ";
             }
-            amrex::Print() << whitespace << "TP: Entering " << fname << std::endl;
+            amrex::Print() << whitespace << "TP: Entering " << fname << '\n';
         }
     }
 }
@@ -151,21 +137,15 @@ TinyProfiler::stop () noexcept
 #ifdef AMREX_USE_OMP
 #pragma omp master
 #endif
-    if (!stats.empty())
-    {
-        double t;
-        int nKernelCalls = 0;
-#ifdef AMREX_USE_CUPTI
-        if (uCUPTI) {
-            cudaDeviceSynchronize();
-            cuptiActivityFlushAll(0);
-            t = computeElapsedTimeUserdata(activityRecordUserdata);
-            nKernelCalls = activityRecordUserdata.size();
-        } else
-#endif
-        {
-            t = amrex::second();
+    if (!stats.empty()) {
+
+#ifdef AMREX_USE_GPU
+        if (device_synchronize_around_region) {
+            amrex::Gpu::streamSynchronize();
         }
+#endif
+
+        const double t = amrex::second();
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(static_cast<int>(ttstack.size()) == global_depth,
             "TinyProfiler sections must be nested with respect to each other");
@@ -179,15 +159,8 @@ TinyProfiler::stop () noexcept
 
             // first: wall time when the pair is pushed into the stack
             // second: accumulated dt of children
-            double dtin;
-            double dtex;
-            if (!uCUPTI) {
-                dtin = t - std::get<0>(tt); // elapsed time since start() is called.
-                dtex = dtin - std::get<1>(tt);
-            } else {
-                dtin = t;
-                dtex = dtin - std::get<1>(tt);
-            }
+            double dtin = t - std::get<0>(tt); // elapsed time since start() is called.
+            double dtex = dtin - std::get<1>(tt);
 
             for (Stats* st : stats)
             {
@@ -197,10 +170,6 @@ TinyProfiler::stop () noexcept
                     st->dtin += dtin;
                 }
                 st->dtex += dtex;
-                st->usesCUPTI = uCUPTI;
-                if (uCUPTI) {
-                    st->nk += nKernelCalls;
-                }
             }
 
             ttstack.pop_back();
@@ -208,12 +177,6 @@ TinyProfiler::stop () noexcept
                 std::tuple<double,double,std::string*>& parent = ttstack.back();
                 std::get<1>(parent) += dtin;
             }
-
-#ifdef AMREX_USE_GPU
-            if (device_synchronize_around_region) {
-                amrex::Gpu::streamSynchronize();
-            }
-#endif
 
 #ifdef AMREX_USE_CUDA
             nvtxRangePop();
@@ -230,89 +193,10 @@ TinyProfiler::stop () noexcept
                 whitespace += "  ";
             }
             --n_print_tabs;
-            amrex::Print() << whitespace << "TP: Leaving  " << fname << std::endl;
+            amrex::Print() << whitespace << "TP: Leaving  " << fname << '\n';
         }
     }
 }
-
-#ifdef AMREX_USE_CUPTI
-void
-TinyProfiler::stop (unsigned boxUintID) noexcept
-{
-    memory_stop();
-
-#ifdef AMREX_USE_OMP
-#pragma omp master
-#endif
-    if (!stats.empty())
-    {
-        double t;
-        cudaDeviceSynchronize();
-        cuptiActivityFlushAll(0);
-        t = computeElapsedTimeUserdata(activityRecordUserdata);
-        int nKernelCalls = activityRecordUserdata.size();
-
-        for (auto& record : activityRecordUserdata)
-        {
-            record->setUintID(boxUintID);
-        }
-
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(static_cast<int>(ttstack.size()) == global_depth,
-            "TinyProfiler sections must be nested with respect to each other");
-#ifdef AMREX_USE_OMP
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(in_parallel_region == omp_in_parallel(),
-            "TinyProfiler sections must be nested with respect to parallel regions");
-#endif
-
-        {
-            const std::tuple<double,double,std::string*>& tt = ttstack.back();
-
-            // first: wall time when the pair is pushed into the stack
-            // second: accumulated dt of children
-            double dtin;
-            double dtex;
-
-            dtin = t;
-            dtex = dtin - std::get<1>(tt);
-
-            for (Stats* st : stats)
-            {
-                --(st->depth);
-                ++(st->n);
-                if (st->depth == 0)
-                {
-                    st->dtin += dtin;
-                }
-                st->dtex += dtex;
-                st->usesCUPTI = uCUPTI;
-                st->nk += nKernelCalls;
-            }
-
-            ttstack.pop_back();
-            if (!ttstack.empty())
-            {
-                std::tuple<double,double,std::string*>& parent = ttstack.back();
-                std::get<1>(parent) += dtin;
-            }
-
-            if (device_synchronize_around_region) {
-                amrex::Gpu::streamSynchronize();
-            }
-
-#ifdef AMREX_USE_CUDA
-            nvtxRangePop();
-#elif defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
-            roctxRangePop();
-#endif
-        }
-
-        stats.clear();
-    }
-    if (verbose) {
-        amrex::Print() << "  TP: Leaving " << fname << std::endl;
-    }
-}
-#endif
 
 void
 TinyProfiler::memory_start () const noexcept {
@@ -366,8 +250,8 @@ TinyProfiler::memory_alloc (std::size_t nbytes, std::map<std::string, MemStat>& 
     }
 
     ++stat->nalloc;
-    stat->currentmem += nbytes;
-    stat->avgmem -= nbytes * amrex::second();
+    stat->currentmem += static_cast<Long>(nbytes);
+    stat->avgmem -= static_cast<double>(nbytes) * amrex::second();
     stat->maxmem = std::max(stat->maxmem, stat->currentmem);
 
     return stat;
@@ -379,8 +263,8 @@ TinyProfiler::memory_free (std::size_t nbytes, MemStat* stat) noexcept {
     // the caller of this function (CArena::free) has a mutex
     if (stat) {
         ++stat->nfree;
-        stat->avgmem += nbytes * amrex::second();
-        stat->currentmem -= nbytes;
+        stat->avgmem += static_cast<double>(nbytes) * amrex::second();
+        stat->currentmem -= static_cast<Long>(nbytes);
     }
 }
 
@@ -388,13 +272,16 @@ TinyProfiler::memory_free (std::size_t nbytes, MemStat* stat) noexcept {
 void
 TinyProfiler::Initialize () noexcept
 {
-    regionstack.push_back(mainregion);
+    regionstack.emplace_back(mainregion);
     t_init = amrex::second();
     {
         amrex::ParmParse pp("tiny_profiler");
         pp.queryAdd("device_synchronize_around_region", device_synchronize_around_region);
         pp.queryAdd("verbose", verbose);
         pp.queryAdd("v", verbose);
+        // Specify the maximum percentage of inclusive time
+        // that the "Other" section in the output can have (default 1%)
+        pp.queryAdd("print_threshold", print_threshold);
     }
 }
 
@@ -491,8 +378,8 @@ TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
     int ioproc = ParallelDescriptor::IOProcessorNumber();
     ParallelReduce::Max(dt_max, ioproc, ParallelDescriptor::Communicator());
 
-    for (std::size_t i=0; i<all_memstats.size(); ++i) {
-        PrintMemStats(i, dt_max, t_final);
+    for (std::size_t i = 0; i < all_memstats.size(); ++i) {
+        PrintMemStats(*(all_memstats[i]), all_memnames[i], dt_max, t_final);
     }
 
     if (!bFlushing) {
@@ -514,8 +401,8 @@ TinyProfiler::DeregisterArena (std::map<std::string, MemStat>& memstats) noexcep
 {
     for (std::size_t i = 0; i < all_memstats.size();) {
         if (all_memstats[i] == &memstats) {
-            all_memstats.erase(all_memstats.begin() + i);
-            all_memnames.erase(all_memnames.begin() + i);
+            all_memstats.erase(all_memstats.begin() + i); // NOLINT
+            all_memnames.erase(all_memnames.begin() + i); // NOLINT
         } else {
             ++i;
         }
@@ -545,7 +432,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
         }
     }
 
-    if (regstats.empty()) return;
+    if (regstats.empty()) { return; }
 
     int nprocs = ParallelDescriptor::NProcs();
     int ioproc = ParallelDescriptor::IOProcessorNumber();
@@ -555,10 +442,10 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
     Long maxncalls = 0;
 
     // now collect global data onto the ioproc
-    for (auto it = regstats.cbegin(); it != regstats.cend(); ++it)
+    for (const auto & regstat : regstats)
     {
-        Long n = it->second.n;
-        double dts[2] = {it->second.dtin, it->second.dtex};
+        Long n = regstat.second.n;
+        double dts[2] = {regstat.second.dtin, regstat.second.dtex};
 
         std::vector<Long> ncalls(nprocs);
         std::vector<double> dtdt(2*nprocs);
@@ -570,8 +457,8 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
             dtdt[1] = dts[1];
         } else
         {
-            ParallelDescriptor::Gather(&n, 1, &ncalls[0], 1, ioproc);
-            ParallelDescriptor::Gather(dts, 2, &dtdt[0], 2, ioproc);
+            ParallelDescriptor::Gather(&n, 1, ncalls.data(), 1, ioproc);
+            ParallelDescriptor::Gather(dts, 2, dtdt.data(), 2, ioproc);
         }
 
         if (ParallelDescriptor::IOProcessor()) {
@@ -590,10 +477,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
             pst.navg /= nprocs;
             pst.dtinavg /= nprocs;
             pst.dtexavg /= nprocs;
-            pst.fname = it->first;
-#ifdef AMREX_USE_CUPTI
-            pst.usesCUPTI = it->second.usesCUPTI;
-#endif
+            pst.fname = regstat.first;
             allprocstats.push_back(pst);
             maxfnamelen = std::max(maxfnamelen, int(pst.fname.size()));
             maxncalls = std::max(maxncalls, pst.nmax);
@@ -612,11 +496,61 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
         wp  = std::max(wp,  int(std::string("Max %").size()));
 
         const std::string hline(maxfnamelen+wnc+2+(wt+2)*3+wp+2,'-');
-#ifdef AMREX_USE_CUPTI
-        const std::string hlinehlf((maxfnamelen+wnc+2+(wt+2)*3+wp+2)/2-12,'-');
-#endif
+
+        ProcStats other_procstat;
+        bool print_other_procstat = false;
+
+        // try to combine low-performance impact functions into "Other" to clean up the output
+        if (print_threshold > 0.) {
+            // initialize other_procstat to zero
+            other_procstat.nmin = 0;
+            other_procstat.dtinmin = 0.;
+            other_procstat.dtexmin = 0.;
+            other_procstat.fname = "Other";
+            int num_procstats_in_other = 0;
+
+            // sort by exclusive time and iterate backwards over the profiled functions
+            std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compin);
+            for (Long i = static_cast<Long>(allprocstats.size())-1; i >= 0; --i) {
+                // include function in "Other" if together they are below the threshold
+                if ((other_procstat.dtinmax + allprocstats[i].dtinmax)*(100.0/dt_max)
+                        < print_threshold) {
+                    allprocstats[i].do_print = false;
+                    ++num_procstats_in_other;
+
+                    // add time for function to "Other"
+                    // for min and max this is not exact but produces an upper limit
+                    other_procstat.nmin += allprocstats[i].nmin;
+                    other_procstat.navg += allprocstats[i].navg;
+                    other_procstat.nmax += allprocstats[i].nmax;
+
+                    other_procstat.dtinmin += allprocstats[i].dtinmin;
+                    other_procstat.dtinavg += allprocstats[i].dtinavg;
+                    other_procstat.dtinmax += allprocstats[i].dtinmax;
+
+                    other_procstat.dtexmin += allprocstats[i].dtexmin;
+                    other_procstat.dtexavg += allprocstats[i].dtexavg;
+                    other_procstat.dtexmax += allprocstats[i].dtexmax;
+                } else {
+                    break;
+                }
+            }
+
+            if (num_procstats_in_other == 1) {
+                // if only one function would be included in "Other"
+                // the output would not get shorter
+                allprocstats.back().do_print = true;
+            } else if (num_procstats_in_other >= 2) {
+                print_other_procstat = true;
+            }
+        }
+
         // Exclusive time
         std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compex);
+        if (print_other_procstat) {
+            // make sure "Other" is printed at the end of the list
+            allprocstats.push_back(other_procstat);
+        }
         amrex::OutStream() << "\n" << hline << "\n";
         amrex::OutStream() << std::left
                            << std::setw(maxfnamelen) << "Name"
@@ -627,47 +561,34 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
                            << std::setw(wt+2) << "Excl. Max"
                            << std::setw(wp+2)  << "Max %"
                            << "\n" << hline << "\n";
-        for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
+        for (const auto & allprocstat : allprocstats)
         {
-#ifdef AMREX_USE_CUPTI
-            if (it->usesCUPTI)
-            {
-                amrex::OutStream() << hlinehlf << "START CUPTI Trace Stats-"
-                                   << hlinehlf << "\n";
+            if (!allprocstat.do_print) {
+                continue;
             }
-#endif
             amrex::OutStream() << std::setprecision(4) << std::left
-                               << std::setw(maxfnamelen) << it->fname
+                               << std::setw(maxfnamelen) << allprocstat.fname
                                << std::right
-                               << std::setw(wnc+2) << it->navg
-                               << std::setw(wt+2) << it->dtexmin
-                               << std::setw(wt+2) << it->dtexavg
-                               << std::setw(wt+2) << it->dtexmax
+                               << std::setw(wnc+2) << allprocstat.navg
+                               << std::setw(wt+2) << allprocstat.dtexmin
+                               << std::setw(wt+2) << allprocstat.dtexavg
+                               << std::setw(wt+2) << allprocstat.dtexmax
                                << std::setprecision(2) << std::setw(wp+1) << std::fixed
-                               << it->dtexmax*(100.0/dt_max) << "%";
+                               << allprocstat.dtexmax*(100.0/dt_max) << "%";
             amrex::OutStream().unsetf(std::ios_base::fixed);
             amrex::OutStream() << "\n";
-#ifdef AMREX_USE_CUPTI
-            if (it->usesCUPTI)
-            {
-                amrex::OutStream() << std::setprecision(4) << std::left
-                                   << std::setw(maxfnamelen) // it->fname
-                                   << std::right
-                                   << std::setw(wnc+2) // it->navg
-                                   << std::setw(wt+2) // it->dtexmin
-                                   << std::setw(wt+2) // it->dtexavg
-                                   << std::setw(wt+2) // it->dtexmax
-                                   << std::setprecision(2) << std::setw(wp+1) << std::fixed; // it->dtexmax*(100.0/dt_max)
-                amrex::OutStream().unsetf(std::ios_base::fixed);
-                amrex::OutStream();
-                amrex::OutStream() << hlinehlf << "--END CUPTI Trace Stats-" << hlinehlf << "\n";
-            }
-#endif
         }
         amrex::OutStream() << hline << "\n";
+        if (print_other_procstat) {
+            allprocstats.pop_back();
+        }
 
         // Inclusive time
         std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compin);
+        if (print_other_procstat) {
+            // make sure "Other" is printed at the end of the list
+            allprocstats.push_back(other_procstat);
+        }
         amrex::OutStream() << "\n" << hline << "\n";
         amrex::OutStream() << std::left
                            << std::setw(maxfnamelen) << "Name"
@@ -678,56 +599,38 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
                            << std::setw(wt+2) << "Incl. Max"
                            << std::setw(wp+2)  << "Max %"
                            << "\n" << hline << "\n";
-        for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
+        for (const auto & allprocstat : allprocstats)
         {
-#ifdef AMREX_USE_CUPTI
-            if (it->usesCUPTI)
-            {
-                amrex::OutStream() << hlinehlf << "START CUPTI Trace Stats-" << hlinehlf << "\n";
+            if (!allprocstat.do_print) {
+                continue;
             }
-#endif
             amrex::OutStream() << std::setprecision(4) << std::left
-                               << std::setw(maxfnamelen) << it->fname
+                               << std::setw(maxfnamelen) << allprocstat.fname
                                << std::right
-                               << std::setw(wnc+2) << it->navg
-                               << std::setw(wt+2) << it->dtinmin
-                               << std::setw(wt+2) << it->dtinavg
-                               << std::setw(wt+2) << it->dtinmax
+                               << std::setw(wnc+2) << allprocstat.navg
+                               << std::setw(wt+2) << allprocstat.dtinmin
+                               << std::setw(wt+2) << allprocstat.dtinavg
+                               << std::setw(wt+2) << allprocstat.dtinmax
                                << std::setprecision(2) << std::setw(wp+1) << std::fixed
-                               << it->dtinmax*(100.0/dt_max) << "%";
+                               << allprocstat.dtinmax*(100.0/dt_max) << "%";
             amrex::OutStream().unsetf(std::ios_base::fixed);
             amrex::OutStream() << "\n";
-#ifdef AMREX_USE_CUPTI
-            if (it->usesCUPTI)
-            {
-                amrex::OutStream() << std::setprecision(4) << std::left
-                                   << std::setw(maxfnamelen) // it->fname
-                                   << std::right
-                                   << std::setw(wnc+2) // it->navg
-                                   << std::setw(wt+2) // it->dtexmin
-                                   << std::setw(wt+2) // it->dtexavg
-                                   << std::setw(wt+2) // it->dtexmax
-                                   << std::setprecision(2) << std::setw(wp+1) << std::fixed; // it->dtexmax*(100.0/dt_max)
-                amrex::OutStream().unsetf(std::ios_base::fixed);
-                amrex::OutStream();
-                amrex::OutStream() << hlinehlf << "--END CUPTI Trace Stats-" << hlinehlf << "\n";
-            }
-#endif
         }
-        amrex::OutStream() << hline << "\n";
-        amrex::OutStream() << std::endl;
+        amrex::OutStream() << hline << "\n\n";
     }
 }
 
 void
-TinyProfiler::PrintMemStats(int mem_idx, double dt_max, double t_final)
+TinyProfiler::PrintMemStats(std::map<std::string, MemStat>& memstats,
+                            std::string const& memname, double dt_max,
+                            double t_final)
 {
     // make sure the set of profiled functions is the same on all processes
     {
         Vector<std::string> localStrings, syncedStrings;
         bool alreadySynced;
 
-        for(auto const& kv : *all_memstats[mem_idx]) {
+        for(auto const& kv : memstats) {
             localStrings.push_back(kv.first);
         }
 
@@ -735,14 +638,14 @@ TinyProfiler::PrintMemStats(int mem_idx, double dt_max, double t_final)
 
         if (! alreadySynced) {  // add the new name
             for (auto const& s : syncedStrings) {
-                if (all_memstats[mem_idx]->find(s) == all_memstats[mem_idx]->end()) {
-                    (*all_memstats[mem_idx])[s]; // insert
+                if (memstats.find(s) == memstats.end()) {
+                    memstats[s]; // insert
                 }
             }
         }
     }
 
-    if (all_memstats[mem_idx]->empty()) return;
+    if (memstats.empty()) { return; }
 
     const int nprocs = ParallelDescriptor::NProcs();
     const int ioproc = ParallelDescriptor::IOProcessorNumber();
@@ -750,14 +653,14 @@ TinyProfiler::PrintMemStats(int mem_idx, double dt_max, double t_final)
     std::vector<MemProcStats> allprocstats;
 
     // now collect global data onto the ioproc
-    for (auto it = all_memstats[mem_idx]->cbegin(); it != all_memstats[mem_idx]->cend(); ++it)
+    for (const auto & it : memstats)
     {
-        Long nalloc = it->second.nalloc;
-        Long nfree = it->second.nfree;
+        Long nalloc = it.second.nalloc;
+        Long nfree = it.second.nfree;
         // simulate the freeing of remaining memory currentmem for the avgmem metric
         Long avgmem = static_cast<Long>(
-            (it->second.avgmem + it->second.currentmem * t_final) / dt_max);
-        Long maxmem = it->second.maxmem;
+            (it.second.avgmem + static_cast<double>(it.second.currentmem) * t_final) / dt_max);
+        Long maxmem = it.second.maxmem;
 
         std::vector<Long> nalloc_vec(nprocs);
         std::vector<Long> nfree_vec(nprocs);
@@ -772,10 +675,10 @@ TinyProfiler::PrintMemStats(int mem_idx, double dt_max, double t_final)
             maxmem_vec[0] = maxmem;
         } else
         {
-            ParallelDescriptor::Gather(&nalloc, 1, &nalloc_vec[0], 1, ioproc);
-            ParallelDescriptor::Gather(&nfree, 1, &nfree_vec[0], 1, ioproc);
-            ParallelDescriptor::Gather(&maxmem, 1, &maxmem_vec[0], 1, ioproc);
-            ParallelDescriptor::Gather(&avgmem, 1, &avgmem_vec[0], 1, ioproc);
+            ParallelDescriptor::Gather(&nalloc, 1, nalloc_vec.data(), 1, ioproc);
+            ParallelDescriptor::Gather(&nfree , 1,  nfree_vec.data(), 1, ioproc);
+            ParallelDescriptor::Gather(&maxmem, 1, maxmem_vec.data(), 1, ioproc);
+            ParallelDescriptor::Gather(&avgmem, 1, avgmem_vec.data(), 1, ioproc);
         }
 
         if (ParallelDescriptor::IOProcessor()) {
@@ -793,7 +696,7 @@ TinyProfiler::PrintMemStats(int mem_idx, double dt_max, double t_final)
             }
             pst.avgmem_avg /= nprocs;
             pst.maxmem_avg /= nprocs;
-            pst.fname = it->first;
+            pst.fname = it.first;
             allprocstats.push_back(pst);
         }
     }
@@ -853,10 +756,10 @@ TinyProfiler::PrintMemStats(int mem_idx, double dt_max, double t_final)
         }
     }
 
-    std::vector<std::size_t> maxlen(allstatsstr[0].size(), 0);
+    std::vector<int> maxlen(allstatsstr[0].size(), 0);
     for (auto& strvec : allstatsstr) {
         for (std::size_t i=0; i<maxlen.size(); ++i) {
-            maxlen[i] = std::max(maxlen[i], strvec[i].size());
+            maxlen[i] = std::max(maxlen[i], static_cast<int>(strvec[i].size()));
         }
     }
 
@@ -864,15 +767,15 @@ TinyProfiler::PrintMemStats(int mem_idx, double dt_max, double t_final)
         maxlen[i] += 2;
     }
 
-    if (allstatsstr.size() == 1) return;
+    if (allstatsstr.size() == 1) { return; }
 
-    std::size_t lenhline = 0;
-    for (std::size_t i=0; i<maxlen.size(); ++i) {
-        lenhline += maxlen[i];
+    int lenhline = 0;
+    for (auto i : maxlen) {
+        lenhline += i;
     }
     const std::string hline(lenhline, '-');
 
-    amrex::OutStream() << all_memnames[mem_idx] << " Usage:\n";
+    amrex::OutStream() << memname << " Usage:\n";
     amrex::OutStream() << hline << "\n";
     for (std::size_t i=0; i<allstatsstr.size(); ++i) {
         amrex::OutStream() << std::left << std::setw(maxlen[0]) << allstatsstr[i][0];
@@ -905,7 +808,7 @@ TinyProfiler::StopRegion (const std::string& regname) noexcept
 
 TinyProfileRegion::TinyProfileRegion (std::string a_regname) noexcept
     : regname(std::move(a_regname)),
-      tprof(std::string("REG::")+regname, false, false)
+      tprof(std::string("REG::")+regname, false)
 {
     TinyProfiler::StartRegion(regname);
     tprof.start();
@@ -913,7 +816,7 @@ TinyProfileRegion::TinyProfileRegion (std::string a_regname) noexcept
 
 TinyProfileRegion::TinyProfileRegion (const char* a_regname) noexcept
     : regname(a_regname),
-      tprof(std::string("REG::")+std::string(a_regname), false, false)
+      tprof(std::string("REG::")+std::string(a_regname), false)
 {
     TinyProfiler::StartRegion(a_regname);
     tprof.start();

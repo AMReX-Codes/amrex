@@ -23,7 +23,6 @@ namespace amrex {
 *   nfi.Stream().write((const char *) data.dataPtr(), nChars);
 * }
 */
-
 class NFilesIter
 {
   public:
@@ -41,7 +40,7 @@ class NFilesIter
     * \param groupsets
     * \param setBuf
     */
-    NFilesIter(int noutfiles, const std::string &fileprefix,
+    NFilesIter(int noutfiles, std::string fileprefix,
                bool groupsets, bool setBuf);
 
 
@@ -73,12 +72,16 @@ class NFilesIter
     * \param &readRanks
     * \param setBuf
     */
-    NFilesIter(const std::string &fileName,
-               const Vector<int> &readRanks,
+    NFilesIter(std::string fileName,
+               Vector<int> readRanks,
                bool setBuf = false);
 
     ~NFilesIter();
 
+    NFilesIter (NFilesIter const&) = delete;
+    NFilesIter (NFilesIter &&) = delete;
+    NFilesIter& operator= (NFilesIter const&) = delete;
+    NFilesIter& operator= (NFilesIter &&) = delete;
 
     /**
     * \brief if appendFirst is true, the first set for this
@@ -202,30 +205,33 @@ class NFilesIter
 
   private:
 
-    int myProc;
-    int nProcs;
-    int nOutFiles;
-    int nSets;
-    int mySetPosition;
-    std::string fullFileName;
+    int myProc = -1;
+    int nProcs = -1;
+    int nOutFiles = -1;
+    int nSets = -1;
+    bool groupSets = false;
+    int mySetPosition = -1;
+    int fileNumber = -1;
     std::string filePrefix;
+    std::string fullFileName;
     VisMFBuffer::IO_Buffer io_buffer;
     std::fstream fileStream;
-    bool finishedWriting;
-    bool groupSets;
-    bool isReading;
-    bool finishedReading;
+    bool finishedWriting = false;
+    bool isReading = false;
+    bool finishedReading = false;
     Vector<int> readRanks;
     Vector< Vector<int> > fileNumbersWriteOrder;        //!< [filenumber][ranks in order they wrote to filenumber]
-    int myReadIndex;
-    bool useStaticSetSelection;
-    int fileNumber, remainingWriters, deciderProc, coordinatorProc;
-    int deciderTag, coordinatorTag, doneTag, writeTag, stReadTag, stWriteTag;
+    int myReadIndex = -1;
+    bool useStaticSetSelection = true;
+    int remainingWriters = -1, deciderProc=-1, coordinatorProc = -1;
+    int deciderTag = -1, coordinatorTag = -1, doneTag = -1, writeTag=-1;
+    int stWriteTag = -1;
+    int stReadTag = -1;
     Vector<int> availableDeciders;
     Vector<int> setZeroProcs;
-    bool useSparseFPP;
+    bool useSparseFPP = false;
     Vector<int> sparseWritingRanks;
-    int mySparseFileNumber;
+    int mySparseFileNumber = -1;
 
     static int currentDeciderIndex;
 
@@ -235,8 +241,6 @@ class NFilesIter
     static const int indexUndefined = -1;
 
     static AMREX_EXPORT int minDigits;        //!< for Concatenate
-
-    NFilesIter() = delete;  //!< disallow
 };
 
 }

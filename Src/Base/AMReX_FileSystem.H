@@ -5,13 +5,12 @@
 #include <string>
 
 #ifdef _WIN32
-typedef unsigned short mode_t;
+using mode_t = unsigned short;
 #else
 #include <sys/types.h>  // for mode_t
 #endif
 
-namespace amrex {
-namespace FileSystem {
+namespace amrex::FileSystem {
 
 bool
 CreateDirectories (std::string const& path, mode_t mode, bool verbose = false);
@@ -28,6 +27,6 @@ Remove (std::string const& filename);
 bool
 RemoveAll (std::string const& p); // recursive remove
 
-}}
+}
 
 #endif

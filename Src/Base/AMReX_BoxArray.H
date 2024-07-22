@@ -6,6 +6,7 @@
 #include <AMReX_IndexType.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_Array.H>
+#include <AMReX_Periodicity.H>
 #include <AMReX_Vector.H>
 
 #include <iosfwd>
@@ -96,7 +97,7 @@ struct BARef
 
     mutable IntVect crsn;
 
-    typedef std::unordered_map< IntVect, std::vector<int>, IntVect::shift_hasher > HashType;
+    using HashType = std::unordered_map< IntVect, std::vector<int>, IntVect::shift_hasher > ;
     //using HashType = std::map< IntVect,std::vector<int> >;
 
     mutable HashType hash;
@@ -515,21 +516,21 @@ struct BATransformer
 // for backward compatibility
 using BndryBATransformer = BATransformer;
 
-/**
-* \brief A collection of Boxes stored in an Array.  It is a
-* reference-counted concrete class, not a polymorphic one; i.e. you
-* cannot use any of the List member functions with a BoxList.
-*/
-
 class MFIter;
 class AmrMesh;
 class FabArrayBase;
 
+/**
+ * \brief A collection of Boxes stored in an Array.
+ *
+ * It is a reference-counted concrete class, not a polymorphic one; i.e. you
+ * cannot use any of the List member functions with a BoxList.
+ */
 class BoxArray
 {
 public:
 
-    BoxArray ();
+    BoxArray () noexcept;
     BoxArray (const BoxArray& rhs) = default;
     BoxArray (BoxArray&& rhs) noexcept = default;
     BoxArray& operator= (BoxArray const& rhs) = default;
@@ -734,6 +735,16 @@ public:
     [[nodiscard]]
     bool contains (const BoxArray& ba, bool assume_disjoint_ba = false,
                    const IntVect& ng = IntVect(0)) const;
+
+    /**
+     * \brief True if all cells in ba are periodically contained in this
+     * BoxArray.
+     *
+     * If a cell after being periodically shifted is contained in this
+     * BoxArray, it's considered being periodically contained.
+     */
+    [[nodiscard]]
+    bool contains (const BoxArray& ba, Periodicity const& period) const;
 
     //! Return smallest Box that contains all Boxes in this BoxArray.
     [[nodiscard]] Box minimalBox () const;

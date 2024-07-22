@@ -68,20 +68,23 @@ operator>> (std::istream& is,
 {
     char c;
     is >> c;
-    if (c != '(')
+    if (c != '(') {
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \'(\'");
+    }
     int numbytes;
     is >> numbytes;
     id.numbytes = numbytes;
     is >> c;
-    if (c != ',')
+    if (c != ',') {
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \',\'");
+    }
     int ord;
     is >> ord;
     id.ord = (IntDescriptor::Ordering) ord;
     is >> c;
-    if (c != ')')
+    if (c != ')') {
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \')\'");
+    }
     return is;
 }
 
@@ -167,7 +170,7 @@ RealDescriptor::clone () const
 // This exists solely to support reading "old" FABs.
 //
 
-static
+namespace {
 const int*
 selectOrdering (int prec,
                 int ordering)
@@ -204,6 +207,7 @@ selectOrdering (int prec,
         amrex::Error("selectOrdering(): Crazy precision");
     }
     return nullptr;
+}
 }
 
 //
@@ -247,10 +251,9 @@ ONES_COMP_NEG (Long& n,
                int   nb,
                Long  incr)
 {
-    if (nb == 8*sizeof(Long))
+    if (nb == 8*sizeof(Long)) {
         n = ~n + incr;
-    else
-    {
+    } else {
         const Long MSK = (1LL << nb) - 1LL;
         n = (~n + incr) & MSK;
     }
@@ -272,10 +275,11 @@ _pd_get_bit (char const* base,
     n     -= nbytes;
     offs   = offs % 8;
 
-    if (ord == nullptr)
+    if (ord == nullptr) {
         base += (n + nbytes);
-    else
+    } else {
         base += (n + (ord[nbytes] - 1));
+    }
 
     int mask = (1 << (7 - offs));
 
@@ -290,7 +294,7 @@ _pd_get_bit (char const* base,
 // for longer fields
 //
 
-static
+namespace {
 Long
 _pd_extract_field (char const* in,
                    int         offs,
@@ -315,10 +319,9 @@ _pd_extract_field (char const* in,
     in += n;
     unsigned char bpb = 8 - offs;
 
-    if (ord == nullptr)
+    if (ord == nullptr) {
         ind = offy++;
-    else
-    {
+    } else {
         if (offy >= nby)
         {
             offy -= nby;
@@ -331,19 +334,17 @@ _pd_extract_field (char const* in,
     unsigned char mask = (1 << bpb) - 1;
     bit_field = ((bit_field << bpb) | (tgt & mask));
     nbi -= bpb;
-    if (nbi < 0)
+    if (nbi < 0) {
         bit_field = bit_field >> (-nbi);
-    else
-    {
+    } else {
         for (; nbi > 0; nbi -= bpb)
         {
             //
             // ind  = (ord == nullptr) ? offy++ : (ord[offy++] - 1);
             //
-            if (ord == nullptr)
+            if (ord == nullptr) {
                 ind = offy++;
-            else
-            {
+            } else {
                 if (offy >= nby)
                 {
                     offy -= nby;
@@ -367,7 +368,6 @@ _pd_extract_field (char const* in,
 //
 
 template <int NB>
-static
 void
 _pd_btrvout (char* out, Long  nitems)
 {
@@ -387,8 +387,10 @@ _pd_btrvout (char* out, Long  nitems)
     }
 }
 
-const int BitsMax       = 8*sizeof(Long);
-const int REVERSE_ORDER = 2;
+constexpr int BitsMax       = 8*sizeof(Long);
+constexpr int REVERSE_ORDER = 2;
+
+}
 
 //
 // Copy the least significant NB bits from the given Long into the byte array
@@ -427,10 +429,11 @@ _pd_insert_field (Long  in_long,
     if (mi < offs)
     {
         dm = BitsMax - (8 - offs);
-        if (nb == BitsMax)
+        if (nb == BitsMax) {
             longmask = ~((1LL << dm) - 1LL);
-        else
+        } else {
             longmask = ((1LL << nb) - 1LL) ^ ((1LL << dm) - 1LL);
+        }
 
         unsigned char fb = ((in_long&longmask)>>dm)&((1LL<<(nb-dm))-1LL);
         *(out++) |= fb; // NOLINT
@@ -486,7 +489,7 @@ _pd_set_bit (char* base, int offs)
 // on input.
 //
 
-static
+namespace {
 void
 _pd_reorder (char*      arr,
              Long       nitems,
@@ -499,9 +502,9 @@ _pd_reorder (char*      arr,
     for (int j; nitems > 0; nitems--)
     {
         arr--;
-        for (j = 0; j < nbytes; local[j] = arr[ord[j]], j++);
+        for (j = 0; j < nbytes; local[j] = arr[ord[j]], j++) {;}
         arr++;
-        for (j = 0; j < nbytes; *(arr++) = local[j++]);
+        for (j = 0; j < nbytes; *(arr++) = local[j++]) {;}
     }
 }
 
@@ -511,7 +514,6 @@ _pd_reorder (char*      arr,
 // from inord to outord.
 //
 
-static
 void
 permute_real_word_order (void*       out,
                          const void* in,
@@ -529,8 +531,9 @@ permute_real_word_order (void*       out,
 
     for (; nitems > 0; nitems--, pin += REALSIZE, pout += REALSIZE)
     {
-        for (int i = 0; i < REALSIZE; i++)
+        for (int i = 0; i < REALSIZE; i++) {
             pout[outord[i]] = pin[inord[i]];
+        }
     }
 }
 
@@ -673,17 +676,20 @@ PD_fconvert (void*       out,
             {
                 ONES_COMP_NEG(expn, nbi_exp, 1L);
             }
-            else
+            else {
                 expn += (expn < hexpn);
+            }
         }
-        if (expn != 0)
+        if (expn != 0) {
             expn += DeltaBias;
+        }
         if ((0 <= expn) && (expn < expn_max))
         {
             _pd_insert_field(expn, nbo_exp, lout, bo_exp, l_order, l_bytes);
 
-            if (sign)
+            if (sign) {
                 _pd_set_bit(lout, bo_sign);
+            }
 
             indxin  = bi_mant;
             inrem   = int(infor[2]);
@@ -722,8 +728,9 @@ PD_fconvert (void*       out,
                 //
                 // Do complement for negative ones complement data.
                 //
-                if (onescmp && sign)
+                if (onescmp && sign) {
                     ONES_COMP_NEG(mant, nbits, 0L);
+                }
 
                 _pd_insert_field(mant, nbits, lout, indxout, l_order, l_bytes);
 
@@ -740,8 +747,9 @@ PD_fconvert (void*       out,
         {
             _pd_insert_field(expn_max, nbo_exp, lout, bo_exp, l_order, l_bytes);
 
-            if (_pd_get_bit(lin, bi_sign, inbytes, inord))
+            if (_pd_get_bit(lin, bi_sign, inbytes, inord)) {
                 _pd_set_bit(lout, bo_sign);
+            }
         }
         bi_sign += nbi;
         bi_exp  += nbi;
@@ -763,11 +771,14 @@ PD_fconvert (void*       out,
         rout    = (unsigned char *) out;
         for (i = 0L; i < nitems; i++, rout += outbytes)
         {
-            for (j = 0; j < outbytes; j++)
-                if ((j == indxout) ? (rout[j] != mask) : rout[j])
+            for (j = 0; j < outbytes; j++) {
+                if ((j == indxout) ? (rout[j] != mask) : rout[j]) {
                     break;
-            if (j == outbytes)
+                }
+            }
+            if (j == outbytes) {
                 rout[indxout] = 0;
+            }
         }
     }
     //
@@ -776,7 +787,6 @@ PD_fconvert (void*       out,
     _pd_reorder((char*)out, nitems, outbytes, outord);
 }
 
-static
 void
 PD_fixdenormals (void*       out,
                  Long        nitems,
@@ -806,13 +816,15 @@ PD_fixdenormals (void*       out,
     }
 }
 
+}
+
 //
 // It's really sad that I need to do this ...
 //
 
 #undef  GETARRAY
+namespace {
 #define GETARRAY(TYPE)                                             \
-static                                                             \
 void                                                               \
 getarray (std::istream&  is,                                       \
           Vector< TYPE >& ar)                                       \
@@ -829,6 +841,7 @@ getarray (std::istream&  is,                                       \
     is >> c;                                                       \
     if (c != '(')                                                  \
         amrex::Error("getarray(istream&): expected a \'(\'");     \
+    AMREX_ASSERT(size >= 0 && size < std::numeric_limits<int>::max()); \
     ar.resize(size);                                               \
     for(int i = 0; i < size; ++i)                                  \
         is >> ar[i];                                               \
@@ -841,11 +854,12 @@ getarray (std::istream&  is,                                       \
 }
 GETARRAY(int)
 GETARRAY(Long)
+}
 #undef GETARRAY
 
 #undef  PUTARRAY
+namespace {
 #define PUTARRAY(TYPE)                 \
-static                                 \
 void                                   \
 putarray (std::ostream&        os,     \
           const Vector< TYPE >& ar)     \
@@ -863,6 +877,7 @@ putarray (std::ostream&        os,     \
 }
 PUTARRAY(int)
 PUTARRAY(Long)
+}
 #undef PUTARRAY
 
 std::ostream&
@@ -887,23 +902,26 @@ operator>> (std::istream&   is,
 {
     char c;
     is >> c;
-    if (c != '(')
+    if (c != '(') {
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \'(\'");
+    }
     Vector<Long> fmt;
     getarray(is, fmt);
     is >> c;
-    if (c != ',')
+    if (c != ',') {
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \',\'");
+    }
     Vector<int> ord;
     getarray(is, ord);
     is >> c;
-    if (c != ')')
+    if (c != ')') {
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \')\'");
+    }
     rd = RealDescriptor(fmt.dataPtr(),ord.dataPtr(),static_cast<int>(ord.size()));
     return is;
 }
 
-static
+namespace {
 void
 PD_convert (void*                 out,
             const void*           in,
@@ -945,6 +963,7 @@ PD_convert (void*                 out,
                     onescmp);
         PD_fixdenormals(out, nitems, ord.format(), ord.order());
     }
+}
 }
 
 //

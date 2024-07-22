@@ -6,31 +6,32 @@ using namespace amrex;
 
 int CNS::num_state_data_types = 0;
 
-static Box the_same_box (const Box& b) { return b; }
-//static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
-
 using BndryFunc = StateDescriptor::BndryFunc;
+
+
+namespace {
+
+Box the_same_box (const Box& b) { return b; }
 
 //
 // Components are:
 //  Interior, Inflow, Outflow,  Symmetry,     SlipWall,     NoSlipWall
 //
-static int scalar_bc[] =
+int scalar_bc[] =
 {
     BCType::int_dir, BCType::ext_dir, BCType::foextrap, BCType::reflect_even, BCType::reflect_even, BCType::reflect_even
 };
 
-static int norm_vel_bc[] =
+int norm_vel_bc[] =
 {
     BCType::int_dir, BCType::ext_dir, BCType::foextrap, BCType::reflect_odd,  BCType::reflect_odd,  BCType::reflect_odd
 };
 
-static int tang_vel_bc[] =
+int tang_vel_bc[] =
 {
     BCType::int_dir, BCType::ext_dir, BCType::foextrap, BCType::reflect_even, BCType::reflect_even, BCType::reflect_odd
 };
 
-static
 void
 set_scalar_bc (BCRec& bc, const BCRec& phys_bc)
 {
@@ -43,7 +44,6 @@ set_scalar_bc (BCRec& bc, const BCRec& phys_bc)
     }
 }
 
-static
 void
 set_x_vel_bc(BCRec& bc, const BCRec& phys_bc)
 {
@@ -61,7 +61,6 @@ set_x_vel_bc(BCRec& bc, const BCRec& phys_bc)
 #endif
 }
 
-static
 void
 set_y_vel_bc(BCRec& bc, const BCRec& phys_bc)
 {
@@ -79,7 +78,6 @@ set_y_vel_bc(BCRec& bc, const BCRec& phys_bc)
 #endif
 }
 
-static
 void
 set_z_vel_bc(BCRec& bc, const BCRec& phys_bc)
 {
@@ -95,6 +93,8 @@ set_z_vel_bc(BCRec& bc, const BCRec& phys_bc)
     bc.setLo(2,norm_vel_bc[lo_bc[2]]);
     bc.setHi(2,norm_vel_bc[hi_bc[2]]);
 #endif
+}
+
 }
 
 void

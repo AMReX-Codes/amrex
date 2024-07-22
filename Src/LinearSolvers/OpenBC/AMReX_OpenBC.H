@@ -15,7 +15,7 @@ namespace openbc {
 
     struct Moments
     {
-        typedef GpuArray<Real,(M+2)*(M+1)/2> array_type;
+        using array_type = GpuArray<Real,(M+2)*(M+1)/2>;
         array_type mom;
         Real x, y, z;
         Orientation face;
@@ -85,7 +85,7 @@ public:
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
                 Real a_tol_rel, Real a_tol_abs);
 
-public: // public for cuda
+// public for cuda
 
     void compute_moments (Gpu::DeviceVector<openbc::Moments>& moments);
     void compute_potential (Gpu::DeviceVector<openbc::Moments> const& moments);

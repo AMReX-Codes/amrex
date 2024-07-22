@@ -10,32 +10,30 @@
 #include <AMReX_Array.H>
 #include <AMReX_distFcnElement.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 /*
  * Implicit function to specify a spline through a set of control points
  */
 class SplineIF {
  public:
-  //! Constructor
-  SplineIF() {}
 
   void addSplineElement(std::vector<amrex::RealVect> pts) {
-    SplineDistFcnElement2d * theSpline = new SplineDistFcnElement2d();
-    theSpline->set_control_points(pts);
+    auto* theSpline = new SplineDistFcnElement2d();
+    theSpline->set_control_points(std::move(pts));
     theSpline->calc_D();
     geomElements.push_back(theSpline);
   }
 
   void addLineElement(std::vector<amrex::RealVect> pts) {
-    LineDistFcnElement2d * theLine = new LineDistFcnElement2d();
-    theLine->set_control_points(pts);
+    auto* theLine = new LineDistFcnElement2d();
+    theLine->set_control_points(std::move(pts));
     geomElements.push_back(theLine);
   }
 
-  amrex::Real operator() (const amrex::RealArray& p) const {
+  [[nodiscard]] amrex::Real operator() (const amrex::RealArray& p) const {
     amrex::RealVect cp;
-    distFcnElement2d * closesetGeomElement;
+    distFcnElement2d * closesetGeomElement = nullptr;
     amrex::Real dist;
     dist = 1.0e29_rt;
     amrex::RealVect x(AMREX_D_DECL(p[0], p[1], p[2]));
@@ -46,7 +44,7 @@ class SplineIF {
         closesetGeomElement = geom;
       }
     }
-    amrex::Real side = closesetGeomElement->cpside(x,cp);
+    amrex::Real side = closesetGeomElement ? closesetGeomElement->cpside(x,cp) : Real(0.0);
     return dist*side;
   }
 
@@ -55,5 +53,5 @@ class SplineIF {
   amrex::Vector<distFcnElement2d*> geomElements;
 };
 
-}}
+}
 #endif

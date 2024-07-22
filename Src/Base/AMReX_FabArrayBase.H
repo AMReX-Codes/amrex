@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BoxArray.H>
+#include <AMReX_DataAllocator.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
@@ -15,8 +16,10 @@
 #include <omp.h>
 #endif
 
+#include <ostream>
 #include <string>
 #include <utility>
+
 
 namespace amrex {
 
@@ -28,6 +31,12 @@ template <typename FAB> class FabArray;
 
 namespace EB2 { class IndexSpace; }
 
+/**
+ * \brief Base class for FabArray.
+ *
+ * Not to be confused with FArrayBox or `FAB` shorthands.
+ * Can be read as FArrayBox-like Array Base.
+ */
 class FabArrayBase
 {
     friend class MFIter;
@@ -147,18 +156,17 @@ public:
     //
     struct CacheStats
     {
-        int         size;     //!< current size: nbuild - nerase
-        int         maxsize;  //!< highest water mark of size
-        Long        maxuse;   //!< max # of uses of a cached item
-        Long        nuse;     //!< # of uses of the whole cache
-        Long        nbuild;   //!< # of build operations
-        Long        nerase;   //!< # of erase operations
-        Long        bytes;
-        Long        bytes_hwm;
+        int         size{0};     //!< current size: nbuild - nerase
+        int         maxsize{0};  //!< highest water mark of size
+        Long        maxuse{0};   //!< max # of uses of a cached item
+        Long        nuse{0};     //!< # of uses of the whole cache
+        Long        nbuild{0};   //!< # of build operations
+        Long        nerase{0};   //!< # of erase operations
+        Long        bytes{0};
+        Long        bytes_hwm{0};
         std::string name;     //!< name of the cache
         explicit CacheStats (std::string  name_)
-            : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),
-              bytes(0L),bytes_hwm(0L),name(std::move(name_)) {;}
+            : name(std::move(name_)) {;}
         void recordBuild () noexcept {
             ++size;
             ++nbuild;
@@ -201,15 +209,15 @@ public:
         //
         // Some typedefs & helper functions used throughout the code.
         //
-        typedef std::vector<CopyComTag> CopyComTagsContainer;
+        using CopyComTagsContainer = std::vector<CopyComTag>;
 
-        typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+        using MapOfCopyComTagContainers = std::map<int,CopyComTagsContainer>;
     };
     //
     // Some useful typedefs.
     //
-    typedef CopyComTag::CopyComTagsContainer CopyComTagsContainer;
-    typedef CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
+    using CopyComTagsContainer = CopyComTag::CopyComTagsContainer;
+    using MapOfCopyComTagContainers = CopyComTag::MapOfCopyComTagContainers;
     //
     static Long bytesOfMapOfCopyComTagContainers (const MapOfCopyComTagContainers&);
 
@@ -317,11 +325,11 @@ public:
         IntVect             m_dstng;
         std::unique_ptr<BoxConverter> m_coarsener;
         //
-        Long                m_nuse;
+        Long                m_nuse{0};
     };
 
-    typedef std::multimap<BDKey,FabArrayBase::FPinfo*> FPinfoCache;
-    typedef FPinfoCache::iterator FPinfoCacheIter;
+    using FPinfoCache = std::multimap<BDKey,FabArrayBase::FPinfo*>;
+    using FPinfoCacheIter = FPinfoCache::iterator;
 
     static FPinfoCache m_TheFillPatchCache;
 
@@ -362,7 +370,7 @@ public:
         bool                m_include_periodic;
         bool                m_include_physbndry;
         //
-        Long                m_nuse;
+        Long                m_nuse{0};
     };
 
     using CFinfoCache = std::multimap<BDKey,FabArrayBase::CFinfo*>;
@@ -410,7 +418,7 @@ public:
         RegionTag (RegionTag && rhs) noexcept : tagged(rhs.tagged) { rhs.tagged = false; }
         RegionTag& operator= (RegionTag const&) = delete;
         RegionTag& operator= (RegionTag &&) = delete;
-        ~RegionTag () { if (tagged) popRegionTag(); }
+        ~RegionTag () { if (tagged) { popRegionTag(); } }
     private:
         bool tagged = false;
     };
@@ -469,6 +477,9 @@ public:
         std::unique_ptr<MapOfCopyComTagContainers> m_RcvTags;
     };
 
+    void define_fb_metadata (CommMetaData& cmd, const IntVect& nghost, bool cross,
+                             const Periodicity& period, bool multi_ghost) const;
+
     //
     //! FillBoundary
     struct FB
@@ -487,10 +498,10 @@ public:
         bool         m_override_sync;
         Periodicity  m_period;
         //
-        Long         m_nuse;
+        Long         m_nuse{0};
         bool         m_multi_ghost = false;
         //
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined (AMREX_USE_CUDA)
         CudaGraph<CopyMemory> m_localCopy;
         CudaGraph<CopyMemory> m_copyToBuffer;
         CudaGraph<CopyMemory> m_copyFromBuffer;
@@ -505,8 +516,8 @@ public:
                           bool build_recv_tag);
     };
     //
-    typedef std::multimap<BDKey,FabArrayBase::FB*> FBCache;
-    typedef FBCache::iterator FBCacheIter;
+    using FBCache = std::multimap<BDKey,FabArrayBase::FB*>;
+    using FBCacheIter = FBCache::iterator;
     //
     static FBCache    m_TheFBCache;
     static CacheStats m_FBC_stats;
@@ -545,7 +556,7 @@ public:
         BoxArray    m_srcba;
         BoxArray    m_dstba;
         //
-        Long        m_nuse;
+        Long        m_nuse{0};
 
     private:
         void define (const BoxArray& ba_dst, const DistributionMapping& dm_dst,
@@ -556,8 +567,8 @@ public:
     };
 
     //
-    typedef std::multimap<BDKey,FabArrayBase::CPC*> CPCache;
-    typedef CPCache::iterator CPCacheIter;
+    using CPCache = std::multimap<BDKey,FabArrayBase::CPC*>;
+    using CPCacheIter = CPCache::iterator;
     //
     static CPCache    m_TheCPCache;
     static CacheStats m_CPC_stats;
@@ -580,8 +591,8 @@ public:
         void define (const FabArrayBase& fa);
     };
     //
-    typedef std::multimap<BDKey,FabArrayBase::RB90*> RB90Cache;
-    typedef RB90Cache::iterator RB90CacheIter;
+    using RB90Cache = std::multimap<BDKey,FabArrayBase::RB90*>;
+    using RB90CacheIter = RB90Cache::iterator;
     //
     static RB90Cache m_TheRB90Cache;
     //
@@ -602,8 +613,8 @@ public:
         void define (const FabArrayBase& fa);
     };
     //
-    typedef std::multimap<BDKey,FabArrayBase::RB180*> RB180Cache;
-    typedef RB180Cache::iterator RB180CacheIter;
+    using RB180Cache = std::multimap<BDKey,FabArrayBase::RB180*>;
+    using RB180CacheIter = RB180Cache::iterator;
     //
     static RB180Cache m_TheRB180Cache;
     //
@@ -624,8 +635,8 @@ public:
         void define (const FabArrayBase& fa);
     };
     //
-    typedef std::multimap<BDKey,FabArrayBase::PolarB*> PolarBCache;
-    typedef PolarBCache::iterator PolarBCacheIter;
+    using PolarBCache = std::multimap<BDKey,FabArrayBase::PolarB*>;
+    using PolarBCacheIter = PolarBCache::iterator;
     //
     static PolarBCache m_ThePolarBCache;
     //
@@ -643,7 +654,7 @@ public:
         ~ParForInfo ();
 
         std::pair<int*,int*> const& getBlocks () const { return m_nblocks_x; }
-        Box const* getBoxes () const { return m_boxes; }
+        BoxIndexer const* getBoxes () const { return m_boxes; }
 
         ParForInfo () = delete;
         ParForInfo (ParForInfo const&) = delete;
@@ -655,7 +666,7 @@ public:
         IntVect m_ng;
         int m_nthreads;
         std::pair<int*,int*> m_nblocks_x;
-        Box* m_boxes = nullptr;
+        BoxIndexer* m_boxes = nullptr;
         char* m_hp = nullptr;
         char* m_dp = nullptr;
     };
@@ -711,15 +722,56 @@ public:
     };
     static AMREX_EXPORT FabArrayStats m_FA_stats;
 
+    static AMREX_EXPORT bool m_alloc_single_chunk;
+
+    [[nodiscard]] static bool getAllocSingleChunk () { return m_alloc_single_chunk; }
 };
+
+namespace detail {
+    class SingleChunkArena final
+        : public Arena
+    {
+    public:
+        SingleChunkArena (Arena* a_arena, std::size_t a_size);
+        ~SingleChunkArena () override;
+
+        SingleChunkArena () = delete;
+        SingleChunkArena (const SingleChunkArena& rhs) = delete;
+        SingleChunkArena (SingleChunkArena&& rhs) = delete;
+        SingleChunkArena& operator= (const SingleChunkArena& rhs) = delete;
+        SingleChunkArena& operator= (SingleChunkArena&& rhs) = delete;
+
+        [[nodiscard]] void* alloc (std::size_t sz) override;
+        void free (void* pt) override;
+
+        // isDeviceAccessible and isHostAccessible can both be true.
+        [[nodiscard]] bool isDeviceAccessible () const override;
+        [[nodiscard]] bool isHostAccessible () const override;
+
+        [[nodiscard]] bool isManaged () const override;
+        [[nodiscard]] bool isDevice () const override;
+        [[nodiscard]] bool isPinned () const override;
+
+        [[nodiscard]] void* data () const noexcept { return (void*) m_root; }
+
+    private:
+        DataAllocator m_dallocator;
+        char* m_root = nullptr;
+        char* m_free = nullptr;
+        std::size_t m_size = 0;
+    };
+}
+
+[[nodiscard]] int nComp (FabArrayBase const& fa);
+[[nodiscard]] IntVect nGrowVect (FabArrayBase const& fa);
+[[nodiscard]] BoxArray const& boxArray (FabArrayBase const& fa);
+[[nodiscard]] DistributionMapping const& DistributionMap (FabArrayBase const& fa);
 
 #ifdef BL_USE_MPI
 bool CheckRcvStats (Vector<MPI_Status>& recv_stats, const Vector<std::size_t>& recv_size, int tag);
 #endif
 
 std::ostream& operator<< (std::ostream& os, const FabArrayBase::BDKey& id);
-
-Arena* The_FA_Arena ();
 
 }
 

@@ -5,7 +5,7 @@
 #include <AMReX_EB2_Level.H>
 #include <AMReX_EB_STL_utils.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class STLLevel
     : public GShopLevel<STLtools>
@@ -20,6 +20,6 @@ public:
 
 };
 
-}}
+}
 
 #endif

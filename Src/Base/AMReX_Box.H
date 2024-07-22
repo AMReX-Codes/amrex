@@ -15,6 +15,7 @@
 #include <AMReX_Vector.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
+#include <AMReX_Math.H>
 
 #include <iosfwd>
 
@@ -77,7 +78,7 @@ public:
           bigend(big),
           btype(typ)
         {
-            BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
+            BL_ASSERT(typ.allGE(0) && typ.allLE(1));
         }
 
     //! Construct dimension specific Boxes.
@@ -338,9 +339,10 @@ public:
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Long numPts () const noexcept {
-        return AMREX_D_TERM( static_cast<Long>(length(0)),
-                            *static_cast<Long>(length(1)),
-                            *static_cast<Long>(length(2)));
+        return ok() ? AMREX_D_TERM( static_cast<Long>(length(0)),
+                                   *static_cast<Long>(length(1)),
+                                   *static_cast<Long>(length(2)))
+                    : Long(0);
     }
 
     /**
@@ -349,8 +351,10 @@ public:
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     double d_numPts () const noexcept {
-        BL_ASSERT(ok());
-        return AMREX_D_TERM(double(length(0)), *double(length(1)), *double(length(2)));
+        return ok() ? AMREX_D_TERM( double(length(0)),
+                                   *double(length(1)),
+                                   *double(length(2)))
+                    : 0.0;
     }
 
     /**
@@ -360,9 +364,10 @@ public:
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Long volume () const noexcept {
-        return AMREX_D_TERM( static_cast<Long>(length(0)-btype[0]),
-                            *static_cast<Long>(length(1)-btype[1]),
-                            *static_cast<Long>(length(2)-btype[2]));
+        return ok() ? AMREX_D_TERM( static_cast<Long>(length(0)-btype[0]),
+                                   *static_cast<Long>(length(1)-btype[1]),
+                                   *static_cast<Long>(length(2)-btype[2]))
+                    : Long(0);
     }
 
     /**
@@ -636,10 +641,11 @@ public:
     AMREX_GPU_HOST_DEVICE
     Box& grow (Orientation face, int n_cell = 1) noexcept {
         int idir = face.coordDir();
-        if (face.isLow())
+        if (face.isLow()) {
             smallend.shift(idir, -n_cell);
-        else
+        } else {
             bigend.shift(idir,n_cell);
+        }
         return *this;
     }
 
@@ -800,9 +806,11 @@ Box::coarsen (const IntVect& ref_ratio) noexcept
             IntVect off(0);
             for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
             {
-                if (btype[dir])
-                    if (bigend[dir]%ref_ratio[dir])
+                if (btype[dir]) {
+                    if (bigend[dir]%ref_ratio[dir]) {
                         off.setVal(dir,1);
+                    }
+                }
             }
             bigend.coarsen(ref_ratio);
             bigend += off;
@@ -821,7 +829,7 @@ AMREX_FORCE_INLINE
 Box&
 Box::convert (const IntVect& typ) noexcept
 {
-    BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
+    BL_ASSERT(typ.allGE(0) && typ.allLE(1));
     IntVect shft(typ - btype.ixType());
     bigend += shft;
     btype = IndexType(typ);
@@ -911,10 +919,10 @@ Box::index (const IntVect& v) const noexcept
 {
     Long result = v[0]-smallend[0];
 #if   AMREX_SPACEDIM==2
-    result += length(0)*(v[1]-smallend[1]);
+    result += length(0)*Long(v[1]-smallend[1]);
 #elif AMREX_SPACEDIM==3
-    result += length(0)*(v[1]-smallend[1]
-                         +(v[2]-smallend[2])*length(1));
+    result += length(0)*((v[1]-smallend[1])
+                         +Long(v[2]-smallend[2])*length(1));
 #endif
     return result;
 }
@@ -987,7 +995,7 @@ Box::setRange (int dir,
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 void
-Box::next (IntVect& p) const noexcept
+Box::next (IntVect& p) const noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
     BL_ASSERT(contains(p));
 
@@ -1012,7 +1020,7 @@ Box::next (IntVect& p) const noexcept
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 bool
-Box::isSquare () const noexcept
+Box::isSquare () const noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
 #if AMREX_SPACEDIM==1
     return false; // can't build a square in 1-D
@@ -1831,6 +1839,94 @@ Box makeSingleCellBox (int i, int j, int k, IndexType typ = IndexType::TheCellTy
 #endif
     return Box(IntVect(AMREX_D_DECL(i,j,k)),IntVect(AMREX_D_DECL(i,j,k)),typ);
 }
+
+struct BoxIndexer
+{
+    std::uint64_t npts;
+
+#if (AMREX_SPACEDIM == 3)
+    Math::FastDivmodU64 fdxy;
+    Math::FastDivmodU64 fdx;
+    IntVect lo;
+
+    BoxIndexer (Box const& box)
+        : npts(box.numPts()),
+          fdxy(std::uint64_t(box.length(0))*std::uint64_t(box.length(1))),
+          fdx (std::uint64_t(box.length(0))),
+          lo  (box.smallEnd())
+        {}
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 operator() (std::uint64_t icell) const
+    {
+        std::uint64_t x, y, z, rem;
+        fdxy(z, rem, icell);
+        fdx(y, x, rem);
+        return {int(x)+lo[0], int(y)+lo[1], int(z)+lo[2]};
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVect intVect (std::uint64_t icell) const
+    {
+        std::uint64_t x, y, z, rem;
+        fdxy(z, rem, icell);
+        fdx(y, x, rem);
+        return {int(x)+lo[0], int(y)+lo[1], int(z)+lo[2]};
+    }
+
+#elif (AMREX_SPACEDIM == 2)
+
+    Math::FastDivmodU64 fdx;
+    IntVect lo;
+
+    BoxIndexer (Box const& box)
+        : npts(box.numPts()),
+          fdx (std::uint64_t(box.length(0))),
+          lo  (box.smallEnd())
+        {}
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 operator() (std::uint64_t icell) const
+    {
+        std::uint64_t x, y;
+        fdx(y, x, icell);
+        return {int(x)+lo[0], int(y)+lo[1], 0};
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVect intVect (std::uint64_t icell) const
+    {
+        std::uint64_t x, y;
+        fdx(y, x, icell);
+        return {int(x)+lo[0], int(y)+lo[1]};
+    }
+
+#elif (AMREX_SPACEDIM == 1)
+
+    int lo;
+
+    BoxIndexer (Box const& box)
+        : npts(box.numPts()),
+          lo(box.smallEnd(0))
+        {}
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 operator() (std::uint64_t icell) const
+    {
+        return {int(icell)+lo, 0, 0};
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVect intVect (std::uint64_t icell) const
+    {
+        return IntVect{int(icell)+lo};
+    }
+
+#endif
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    std::uint64_t numPts () const { return npts; }
+};
 
 }
 

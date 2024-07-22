@@ -99,7 +99,7 @@ namespace {
 #endif
 
 void
-InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine,
+InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOLINT(readability-convert-member-functions-to-static)
                             Array<MultiFab const*, AMREX_SPACEDIM> const& crse,
                             int scomp, int ncomp)
 {

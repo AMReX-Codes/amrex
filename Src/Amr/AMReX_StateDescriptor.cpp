@@ -10,12 +10,6 @@ namespace amrex {
 
 int StateDescriptor::bf_ext_dir_threadsafe = 0;
 
-StateDescriptor::BndryFunc*
-StateDescriptor::BndryFunc::clone () const
-{
-    return new BndryFunc(*this);
-}
-
 bool
 StateDescriptor::bf_thread_safety (const int* /*lo*/,const int* /*hi*/,
                                    const int* /*dom_lo*/, const int* /*dom_hi*/,
@@ -25,9 +19,9 @@ StateDescriptor::bf_thread_safety (const int* /*lo*/,const int* /*hi*/,
     if (!bf_ext_dir_threadsafe) {
         bool has_ext_dir = false;
         for (int i=0; i<2*AMREX_SPACEDIM*ng && !has_ext_dir; ++i) {
-            has_ext_dir = bc[i]==BCType::ext_dir;
+            has_ext_dir = ((bc[i]==BCType::ext_dir) || (bc[i]==BCType::ext_dir_cc));
         }
-        if (has_ext_dir) thread_safe = false;
+        if (has_ext_dir) { thread_safe = false; }
     }
     return thread_safe;
 }
@@ -38,7 +32,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
                                          const Real* dx, const Real* grd_lo,
                                          const Real* time, const int* a_bc) const
 {
-    BL_ASSERT(m_func != 0 || m_func3D != 0);
+    BL_ASSERT(m_func != nullptr || m_func3D != nullptr);
 
 #ifdef AMREX_USE_OMP
     bool thread_safe = bf_thread_safety(lo, hi, dom_lo, dom_hi, a_bc, 1);
@@ -73,7 +67,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
                                          const Real* dx, const Real* grd_lo,
                                          const Real* time, const int* a_bc, int ng) const
 {
-    BL_ASSERT(m_gfunc != 0 || m_gfunc3D != 0);
+    BL_ASSERT(m_gfunc != nullptr || m_gfunc3D != nullptr);
 
     amrex::ignore_unused(ng);
 #ifdef AMREX_USE_OMP
@@ -92,7 +86,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
     } else {
 #pragma omp critical (bndryfunc)
         {
-            if (m_gfunc != 0) {
+            if (m_gfunc != nullptr) {
                 m_gfunc(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,a_bc);
             } else {
                 m_gfunc3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
@@ -188,18 +182,6 @@ DescriptorList::addDescriptor (int                         indx,
                                                    a_store_in_checkpoint);
 }
 
-
-StateDescriptor::StateDescriptor () noexcept
-    :
-    t_type(Point),
-    id(-1),
-    ncomp(0),
-    ngrow(0),
-    mapper(nullptr),
-    m_extrap(false),
-    m_store_in_checkpoint(true)
-{}
-
 StateDescriptor::StateDescriptor (IndexType                   btyp,
                                   StateDescriptor::TimeCenter ttyp,
                                   int                         ident,
@@ -230,11 +212,6 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     min_map_end_comp.resize(num_comp);
 }
 
-StateDescriptor::~StateDescriptor ()
-{
-    mapper = nullptr;
-}
-
 void
 StateDescriptor::resetComponentBCs (int              comp,
                                     const BCRec&     bcr,
@@ -242,7 +219,7 @@ StateDescriptor::resetComponentBCs (int              comp,
 {
     BL_ASSERT(comp >= 0 && comp < ncomp);
 
-    bc_func[comp].reset(func.clone());
+    bc_func[comp] = std::make_unique<BndryFunc>(func);
     bc[comp] = bcr;
 }
 
@@ -365,7 +342,7 @@ StateDescriptor::setComponent (int                               comp,
                                int                               max_map_start_comp_,
                                int                               min_map_end_comp_)
 {
-    bc_func[comp].reset(func.clone());
+    bc_func[comp] = std::make_unique<BndryFunc>(func);
 
     names[comp]       = nm;
     bc[comp]          = bcr;
@@ -440,7 +417,7 @@ StateDescriptor::setUpMaps (int&                use_default_map,
     // First, count number of interpolaters needed and allocate.
     //
     InterpBase* map = mapper_comp[start_comp];
-    if (!map) map = (InterpBase*) default_map;
+    if (!map) { map = (InterpBase*) default_map; }
     nmaps = 1;
     int icomp = start_comp+1;
 
@@ -464,7 +441,7 @@ StateDescriptor::setUpMaps (int&                use_default_map,
         icomp++;
     }
 
-    if (use_default_map) return;
+    if (use_default_map) { return; }
 
     maps           = new InterpBase*[nmaps];
     map_start_comp = new int[nmaps];
@@ -495,8 +472,9 @@ StateDescriptor::setUpMaps (int&                use_default_map,
     {
         InterpBase* mapper_icomp = mapper_comp[icomp];
 
-        if (!mapper_icomp)
+        if (!mapper_icomp) {
             mapper_icomp = (InterpBase *) default_map;
+        }
 
         if (maps[imap] != mapper_icomp)
         {
@@ -526,7 +504,7 @@ StateDescriptor::cleanUpMaps (InterpBase**&   maps,
                               int*&           map_start_comp,
                               int*&           map_num_comp,
                               int*&           max_start_comp,
-                              int*&           min_end_comp) const
+                              int*&           min_end_comp)
 {
     delete [] maps;
     delete [] map_start_comp;
@@ -544,9 +522,11 @@ StateDescriptor::identicalInterps (int a_scomp,
 
     InterpBase* map = interp(a_scomp);
 
-    for (int i = a_scomp+1; i < a_scomp+a_ncomp; i++)
-        if (!(map == interp(i)))
+    for (int i = a_scomp+1; i < a_scomp+a_ncomp; i++) {
+        if (!(map == interp(i))) {
             return false;
+        }
+    }
 
     return true;
 }

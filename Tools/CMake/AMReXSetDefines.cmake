@@ -51,13 +51,23 @@ add_amrex_define( AMREX_MPI_THREAD_MULTIPLE NO_LEGACY IF AMReX_MPI_THREAD_MULTIP
 add_amrex_define( AMREX_USE_OMP IF AMReX_OMP )
 
 # SYCL
-add_amrex_define( AMREX_USE_SYCL NO_LEGACY IF AMReX_SYCL )
-add_amrex_define( AMREX_USE_DPCPP NO_LEGACY IF AMReX_SYCL )
-add_amrex_define( AMREX_USE_ONEDPL NO_LEGACY IF AMReX_SYCL_ONEDPL )
+if (AMReX_SYCL)
+  add_amrex_define( AMREX_USE_SYCL NO_LEGACY )
+  add_amrex_define( AMREX_USE_DPCPP NO_LEGACY )
+  add_amrex_define( AMREX_SYCL_SUB_GROUP_SIZE=${AMReX_SYCL_SUB_GROUP_SIZE} NO_LEGACY )
+  add_amrex_define( AMREX_USE_ONEDPL NO_LEGACY IF AMReX_SYCL_ONEDPL )
+endif()
 
 # HIP
-add_amrex_define( AMREX_USE_HIP NO_LEGACY IF AMReX_HIP )
-add_amrex_define( NDEBUG IF AMReX_HIP)  # This address a bug that causes slow build times
+if (AMReX_HIP)
+   add_amrex_define( AMREX_USE_HIP NO_LEGACY )
+   add_amrex_define( NDEBUG )  # This address a bug that causes slow build times
+   if (${AMReX_AMD_ARCH} MATCHES "gfx10.*")
+      add_amrex_define( AMREX_AMDGCN_WAVEFRONT_SIZE=32 NO_LEGACY )
+   else ()
+      add_amrex_define( AMREX_AMDGCN_WAVEFRONT_SIZE=64 NO_LEGACY )
+   endif ()
+endif()
 
 # Precision
 if (AMReX_PRECISION STREQUAL "SINGLE")
@@ -66,12 +76,18 @@ endif ()
 
 # Dimensionality
 add_amrex_define( AMREX_SPACEDIM=${AMReX_SPACEDIM} )
+foreach(D IN LISTS AMReX_SPACEDIM)
+    target_compile_definitions(amrex_${D}d PUBLIC AMREX_SPACEDIM=${D})
+endforeach()
 
 # System -- not used anywhere in the source code
 add_amrex_define( AMREX_${CMAKE_SYSTEM_NAME} )
 
 #  Assertions
 add_amrex_define( AMREX_USE_ASSERTION NO_LEGACY IF AMReX_ASSERTIONS )
+
+# Flatten
+add_amrex_define( AMREX_USE_FLATTEN_FOR NO_LEGACY IF AMReX_FLATTEN_FOR )
 
 # Bound checking
 add_amrex_define( AMREX_BOUND_CHECK NO_LEGACY IF AMReX_BOUND_CHECK )
@@ -83,9 +99,11 @@ if (AMReX_FORTRAN)
 
    # Fortran-specific defines, BL_LANG_FORT and AMREX_LANG_FORT do not get
    # stored in AMReX_Config.H
-   target_compile_definitions( amrex PRIVATE
-      $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT AMREX_LANG_FORT>
-      )
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       target_compile_definitions(amrex_${D}d PRIVATE
+          $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT AMREX_LANG_FORT>
+          )
+   endforeach()
 
    #
    # Fortran/C mangling scheme
@@ -149,12 +167,6 @@ if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
 endif()
 
 if (AMReX_CUDA OR AMReX_HIP)
-   add_amrex_define( AMREX_GPUS_PER_SOCKET=${GPUS_PER_SOCKET}
-      NO_LEGACY IF GPUS_PER_SOCKET)
-
-   add_amrex_define( AMREX_GPUS_PER_NODE=${GPUS_PER_NODE}
-      NO_LEGACY IF GPUS_PER_NODE)
-
    add_amrex_define( AMREX_USE_GPU_RDC NO_LEGACY IF AMReX_GPU_RDC )
 endif ()
 
@@ -181,6 +193,8 @@ add_amrex_define( AMREX_NO_PROBINIT NO_LEGACY IF_NOT AMReX_PROBINIT)
 # https://stackoverflow.com/questions/54560832/cmake-windows-export-all-symbols-does-not-cover-global-variables/54568678#54568678
 #
 if(WIN32 AND AMReX_BUILD_SHARED_LIBS)
-  add_amrex_define(AMREX_IS_DLL NO_LEGACY)
-  target_compile_definitions( amrex PRIVATE AMREX_IS_DLL_BUILDING)
+    add_amrex_define(AMREX_IS_DLL NO_LEGACY)
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        target_compile_definitions(amrex_${D}d PRIVATE AMREX_IS_DLL_BUILDING)
+    endforeach()
 endif()

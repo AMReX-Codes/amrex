@@ -83,7 +83,7 @@ main (int   argc,
 
     ParallelDescriptor::ReduceRealMax(dRunTime2, ParallelDescriptor::IOProcessorNumber());
 
-    amrex::Print() << "Run time = " << dRunTime2 << std::endl;
+    amrex::Print() << "Run time = " << dRunTime2 << '\n';
 
     amrex::Finalize();
 

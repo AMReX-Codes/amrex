@@ -43,13 +43,15 @@ void test_ghosts_and_virtuals (TestParams& parms)
 
     // Define the refinement ratio
     Vector<int> rr(nlevs);
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         rr.at(lev-1) = 2;
+    }
 
     // This sets the boundary conditions to be doubly or triply periodic
     std::array<int, BL_SPACEDIM> is_per;
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < BL_SPACEDIM; i++) {
         is_per.at(i) = 1;
+    }
 
     // This defines a Geometry object which is useful for writing the plotfiles
     Vector<Geometry> geom(nlevs);
@@ -83,7 +85,7 @@ void test_ghosts_and_virtuals (TestParams& parms)
         dmap.at(lev) = DistributionMapping{ba.at(lev)};
     }
 
-    typedef AmrParticleContainer<1, 0, 0, 1> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<1, 0, 0, 1>;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(parms.verbose);
 
@@ -130,18 +132,20 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     IntVect domain_hi(AMREX_D_DECL(nx - 1, ny - 1, nz-1));
     const Box domain(domain_lo, domain_hi);
 
-    amrex::Print()<<"Ascii test always uses nx=ny=nz=32, nlevs=3, ProbHi=64"<<std::endl;
+    amrex::Print()<<"Ascii test always uses nx=ny=nz=32, nlevs=3, ProbHi=64"<<'\n';
 
     // Define the refinement ratio
     Vector<int> rr(nlevs);
     rr[0] = 2;
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         rr.at(lev) = 2;
+    }
 
     // This sets the boundary conditions to be doubly or triply periodic
     std::array<int, BL_SPACEDIM> is_per;
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < BL_SPACEDIM; i++) {
         is_per[i] = 1;
+    }
 
     // This defines a Geometry object which is useful for writing the plotfiles
     Vector<Geometry> geom(nlevs);
@@ -162,8 +166,9 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
 #define STRIP while( is.get() != '\n' ) {}
         std::ifstream is(regrid_grids_file.c_str(),std::ios::in);
 
-        if (!is.good())
+        if (!is.good()) {
             amrex::FileOpenFailed(regrid_grids_file);
+        }
 
         int in_finest,ngrid;
 
@@ -218,7 +223,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
         dmap_orig.at(lev) = DistributionMapping{ba_orig.at(lev)};
     }
 
-    typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<4, 0, 0, 0>;
     using PType = typename MyParticleContainer::SuperParticleType;
     MyParticleContainer myPC(geom, dmap_orig, ba_orig, rr);
 
@@ -227,7 +232,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
     //Initialize particles from ascii file with extradata=4
     myPC.InitFromAsciiFile("particle_file.init", 4);
 
-    //Regrid to the more compilcated BoxArray similar to NeighborParticleContainer Regrid
+    //Regrid to the more complicated BoxArray similar to NeighborParticleContainer Regrid
     for (int lev = 0; lev < nlevs; lev++) {
         myPC.SetParticleBoxArray(lev, ba.at(lev));
         myPC.SetParticleDistributionMap(lev, dmap.at(lev));
@@ -252,7 +257,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<'\n';
         AMREX_ALWAYS_ASSERT(virtPC.TotalNumberOfParticles(true,false)==3);
         AMREX_ALWAYS_ASSERT(std::abs(sum_test-3029.00000028022578)<tol);
 
@@ -274,7 +279,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<'\n';
         AMREX_ALWAYS_ASSERT(virtPC.TotalNumberOfParticles(true,false)==0);
         AMREX_ALWAYS_ASSERT(std::abs(sum_test-0.0)<tol);
     }
@@ -297,7 +302,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<'\n';
         AMREX_ALWAYS_ASSERT(ghostPC.TotalNumberOfParticles(true,false)==0);
         AMREX_ALWAYS_ASSERT(std::abs(sum_test-0.0)<tol);
     }
@@ -320,7 +325,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<'\n';
         AMREX_ALWAYS_ASSERT(ghostPC.TotalNumberOfParticles(true,false)==3);
         AMREX_ALWAYS_ASSERT(std::abs(sum_test-3035.00000001795206)<tol);
     }
@@ -343,7 +348,7 @@ void test_ghosts_and_virtuals_ascii (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<'\n';
         AMREX_ALWAYS_ASSERT(ghostPC.TotalNumberOfParticles(true,false)==1);
         AMREX_ALWAYS_ASSERT(std::abs(sum_test-1005.00000009692667)<tol);
     }
@@ -373,13 +378,15 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
 
     // Define the refinement ratio
     Vector<int> rr(nlevs);
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         rr.at(lev-1) = 2;
+    }
 
     // This sets the boundary conditions to be doubly or triply periodic
     std::array<int, BL_SPACEDIM> is_per;
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < BL_SPACEDIM; i++) {
         is_per.at(i) = 1;
+    }
 
     // This defines a Geometry object which is useful for writing the plotfiles
     Vector<Geometry> geom(nlevs);
@@ -413,7 +420,7 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
         dmap.at(lev) = DistributionMapping{ba.at(lev)};
     }
 
-    typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<4, 0, 0, 0>;
     using PType = typename MyParticleContainer::SuperParticleType;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
@@ -457,7 +464,7 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<'\n';
         AMREX_ALWAYS_ASSERT((virtPC.AggregationType()=="None" && std::abs(sum_test - total_virts_test * parms.nx * parms.ny * parms.nz / (32 * 32 * 32) * (16 * 16 * 16) / (parms.max_grid_size * parms.max_grid_size * parms.max_grid_size) * parms.nppc * parms.nppc * parms.nppc) < tol) || ParallelDescriptor::NProcs() % 2 != 0 || virtPC.AggregationType() == "Cell");
 
     }
@@ -480,7 +487,7 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<'\n';
     }
 
     mass = 1000000.0;
@@ -507,7 +514,7 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<'\n';
     }
 
     {
@@ -535,8 +542,8 @@ void test_ghosts_and_virtuals_randomperbox (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(id_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
-        amrex::Print().SetPrecision(18)<<"Found sum of id of ghosts: "<<id_test<<" ?= "<<ghostPC.TotalNumberOfParticles(true,false)*GhostParticleID<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<'\n';
+        amrex::Print().SetPrecision(18)<<"Found sum of id of ghosts: "<<id_test<<" ?= "<<ghostPC.TotalNumberOfParticles(true,false)*GhostParticleID<<'\n';
         AMREX_ALWAYS_ASSERT(id_test==ghostPC.TotalNumberOfParticles(true,false)*GhostParticleID);
         AMREX_ALWAYS_ASSERT(ghostPC.TotalNumberOfParticles(true,false)==ghostPC.TotalNumberOfParticles(false,false));
     }
@@ -566,13 +573,15 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
 
     // Define the refinement ratio
     Vector<int> rr(nlevs);
-    for (int lev = 1; lev < nlevs; lev++)
+    for (int lev = 1; lev < nlevs; lev++) {
         rr.at(lev-1) = 2;
+    }
 
     // This sets the boundary conditions to be doubly or triply periodic
     std::array<int, BL_SPACEDIM> is_per;
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < BL_SPACEDIM; i++) {
         is_per.at(i) = 1;
+    }
 
     // This defines a Geometry object which is useful for writing the plotfiles
     Vector<Geometry> geom(nlevs);
@@ -606,7 +615,7 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
         dmap.at(lev) = DistributionMapping{ba.at(lev)};
     }
 
-    typedef AmrParticleContainer<4, 0, 0, 0> MyParticleContainer;
+    using MyParticleContainer = AmrParticleContainer<4, 0, 0, 0>;
     using PType = typename MyParticleContainer::SuperParticleType;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
@@ -651,7 +660,7 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<'\n';
 
     }
 
@@ -673,7 +682,7 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<'\n';
     }
 
     mass = 1000000.0;
@@ -701,7 +710,7 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of virts: "<<sum_test<<'\n';
     }
 
     {
@@ -722,7 +731,7 @@ void test_ghosts_and_virtuals_onepercell (TestParams& parms)
             }
         );
         amrex::ParallelAllReduce::Sum(sum_test,ParallelContext::CommunicatorSub());
-        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<std::endl;
+        amrex::Print().SetPrecision(18)<<"Found sum of ghosts: "<<sum_test<<'\n';
     }
 }
 
@@ -740,35 +749,36 @@ int main(int argc, char* argv[])
   pp.get("max_grid_size", parms.max_grid_size);
   pp.get("nlevs", parms.nlevs);
   pp.get("nppc", parms.nppc);
-  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
+  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
+  }
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);
 
   if (parms.verbose && ParallelDescriptor::IOProcessor()) {
-    std::cout << std::endl;
+    std::cout << '\n';
     std::cout << "Number of particles per cell : ";
-    std::cout << parms.nppc  << std::endl;
+    std::cout << parms.nppc  << '\n';
     std::cout << "Size of domain               : ";
     std::cout << "Num levels: ";
-    std::cout << parms.nlevs << std::endl;
-    std::cout << parms.nx << " " << parms.ny << " " << parms.nz << std::endl;
+    std::cout << parms.nlevs << '\n';
+    std::cout << parms.nx << " " << parms.ny << " " << parms.nz << '\n';
   }
 
-  amrex::Print()<<"Ascii test"<<std::endl;
+  amrex::Print()<<"Ascii test"<<'\n';
 
   test_ghosts_and_virtuals_ascii(parms);
 
-  amrex::Print()<<"Original test"<<std::endl;
+  amrex::Print()<<"Original test"<<'\n';
   test_ghosts_and_virtuals(parms);
 
 #ifndef AMREX_USE_SYCL
-  amrex::Print()<<"RandomPerBox test"<<std::endl;
+  amrex::Print()<<"RandomPerBox test"<<'\n';
   test_ghosts_and_virtuals_randomperbox(parms);
 #endif
 
-  amrex::Print()<<"OnePerCell test"<<std::endl;
+  amrex::Print()<<"OnePerCell test"<<'\n';
   test_ghosts_and_virtuals_onepercell(parms);
 
   amrex::Finalize();

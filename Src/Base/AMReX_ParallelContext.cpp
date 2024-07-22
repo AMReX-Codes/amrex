@@ -18,9 +18,6 @@ Frame::Frame (MPI_Comm c, int id, int io_rank)
     MPI_Comm_group(comm, &group);
     MPI_Comm_rank(comm, &m_rank_me);
     MPI_Comm_size(comm, &m_nranks);
-#else
-    m_rank_me = 0;
-    m_nranks = 1;
 #endif
 }
 
@@ -59,20 +56,20 @@ Frame::local_to_global_rank (int lrank)
 }
 
 void
-Frame::local_to_global_rank (int* global, const int* local, std::size_t n)
+Frame::local_to_global_rank (int* global, const int* local, int n)
 {
 #ifdef BL_USE_MPI
     if (frames.size() > 1)
     {
-      MPI_Group_translate_ranks(GroupSub(), n, const_cast<int*>(local), GroupAll(), global);
+        MPI_Group_translate_ranks(GroupSub(), n, const_cast<int*>(local), GroupAll(), global);
     }
     else
     {
-        for (std::size_t i = 0; i < n; ++i) global[i] = local[i];
+        for (int i = 0; i < n; ++i) { global[i] = local[i]; }
     }
 #else
     amrex::ignore_unused(local);
-    for (std::size_t i = 0; i < n; ++i) global[i] = 0;
+    for (int i = 0; i < n; ++i) { global[i] = 0; }
 #endif
 }
 
@@ -85,20 +82,20 @@ Frame::global_to_local_rank (int grank)
 }
 
 void
-Frame::global_to_local_rank (int* local, const int* global, std::size_t n)
+Frame::global_to_local_rank (int* local, const int* global, int n)
 {
 #ifdef BL_USE_MPI
     if (frames.size() > 1)
     {
-      MPI_Group_translate_ranks(GroupAll(), n, const_cast<int*>(global), GroupSub(), local);
+        MPI_Group_translate_ranks(GroupAll(), n, const_cast<int*>(global), GroupSub(), local);
     }
     else
     {
-        for (std::size_t i = 0; i < n; ++i) local[i] = global[i];
+        for (int i = 0; i < n; ++i) { local[i] = global[i]; }
     }
 #else
     amrex::ignore_unused(global);
-    for (std::size_t i = 0; i < n; ++i) local[i] = 0;
+    for (int i = 0; i < n; ++i) { local[i] = 0; }
 #endif
 }
 

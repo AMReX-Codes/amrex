@@ -26,6 +26,11 @@ public:
 
     ~PETScABecLap ();
 
+    PETScABecLap (PETScABecLap const&) = delete;
+    PETScABecLap (PETScABecLap &&) noexcept = delete;
+    PETScABecLap& operator= (PETScABecLap const&) = delete;
+    PETScABecLap& operator= (PETScABecLap &&) noexcept = delete;
+
     void setScalars (Real sa, Real sb);
     void setACoeffs (const MultiFab& alpha);
     void setBCoeffs (const Array<const MultiFab*,BL_SPACEDIM>& beta);
@@ -74,8 +79,9 @@ public: // for cuda
     void getSolution (MultiFab& soln);
 };
 
-std::unique_ptr<PETScABecLap> makePetsc (const BoxArray& grids, const DistributionMapping& damp,
-                                  const Geometry& geom, MPI_Comm comm_);
+[[nodiscard]] std::unique_ptr<PETScABecLap>
+makePetsc (const BoxArray& grids, const DistributionMapping& dmap,
+           const Geometry& geom, MPI_Comm comm_);
 
 }
 

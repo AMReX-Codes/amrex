@@ -4,7 +4,7 @@
 
 #include <AMReX_MultiFab.H>
 
-namespace amrex { namespace algoim {
+namespace amrex::algoim {
 
 void compute_integrals (MultiFab& intg, int nghost = 100);
 void compute_integrals (MultiFab& intg, IntVect nghost);
@@ -41,6 +41,7 @@ static constexpr int i_B_x_z      =  4;
 static constexpr int i_B_y_z      =  5;
 static constexpr int i_B_xyz      =  6;
 static constexpr int numSurfIntgs =  7;
-}}
+
+}
 
 #endif

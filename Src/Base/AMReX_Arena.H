@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <limits>
+#include <utility>
 
 namespace amrex {
 
@@ -21,7 +22,9 @@ inline std::size_t aligned_size (std::size_t align_requirement, std::size_t size
 
 inline bool is_aligned (const void* p, std::size_t alignment) noexcept
 {
-    return (reinterpret_cast<std::size_t>(p) % alignment) == 0;
+    auto* q = const_cast<void*>(p);
+    auto space = alignment;
+    return std::align(alignment, alignment, q, space) == p;
 }
 
 class Arena;
@@ -31,6 +34,7 @@ Arena* The_Async_Arena ();
 Arena* The_Device_Arena ();
 Arena* The_Managed_Arena ();
 Arena* The_Pinned_Arena ();
+Arena* The_Comms_Arena ();
 Arena* The_Cpu_Arena ();
 
 struct ArenaInfo
@@ -80,18 +84,44 @@ struct ArenaInfo
 * A virtual base class for objects that manage their own dynamic
 * memory allocation.
 */
-
 class Arena
 {
 public:
 
     virtual ~Arena () = default;
+    Arena () noexcept = default;
+
+    Arena (const Arena& rhs) = delete;
+    Arena (Arena&& rhs) = delete;
+    Arena& operator= (const Arena& rhs) = delete;
+    Arena& operator= (Arena&& rhs) = delete;
+
     /**
     * Allocate a dynamic memory arena
     * \param sz size of the memory request
     * \return a pointer to the allocated memory
     */
-    virtual void* alloc (std::size_t sz) = 0;
+    [[nodiscard]] virtual void* alloc (std::size_t sz) = 0;
+
+    /**
+     * Try to allocate in-place by extending the capacity of given pointer.
+     */
+    [[nodiscard]] virtual std::pair<void*,std::size_t>
+    alloc_in_place (void* /*pt*/, std::size_t /*szmin*/, std::size_t szmax)
+    {
+        auto* p = alloc(szmax);
+        return std::make_pair(p, szmax);
+    }
+
+    /**
+     * Try to shrink in-place
+     */
+    [[nodiscard]] virtual void*
+    shrink_in_place (void* /*pt*/, std::size_t sz)
+    {
+        return alloc(sz);
+    }
+
     /**
     * \brief A pure virtual function for deleting the arena pointed to by pt
     */
@@ -117,16 +147,21 @@ public:
     /**
      * \brief Does the device have enough free memory for allocating this
      * much memory?  For CPU builds, this always return true.  This is not a
-     * const funciton because it may attempt to release memory back to the
+     * const function because it may attempt to release memory back to the
      * system.
      */
-    virtual bool hasFreeDeviceMemory (std::size_t sz);
+    [[nodiscard]] virtual bool hasFreeDeviceMemory (std::size_t sz);
 
     /**
      * \brief Add this Arena to the list of Arenas that are profiled by TinyProfiler.
      * \param memory_name The name of this arena in the TinyProfiler output.
      */
     virtual void registerForProfiling (const std::string& memory_name);
+
+#ifdef AMREX_USE_GPU
+    //! Is this GPU stream ordered memory allocator?
+    [[nodiscard]] virtual bool isStreamOrderedArena () const { return false; }
+#endif
 
     /**
     * \brief Given a minimum required arena size of sz bytes, this returns

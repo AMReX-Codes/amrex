@@ -1,0 +1,3 @@
+[codespell]
+skip = .git,*.ipynb,*.bib,*.ps,*.patch,*~,CHANGES,*/Extern/SWFFT,*/Extern/hpgmg,./tmp_install_dir,./installdir,*/build,*/tmp_build_dir
+ignore-words = .codespell-ignore-words

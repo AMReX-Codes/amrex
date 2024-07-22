@@ -86,11 +86,12 @@ amrex::Tokenize (const std::string& instr,
 
     char* token = nullptr;
 
-    if (!((token = std::strtok(line, separators.c_str())) == nullptr))
+    if (!((token = std::strtok(line, separators.c_str())) == nullptr)) // NOLINT(bugprone-assignment-in-if-condition)
     {
         ptr.push_back(token);
-        while (!((token = std::strtok(nullptr, separators.c_str())) == nullptr))
+        while (!((token = std::strtok(nullptr, separators.c_str())) == nullptr)) { // NOLINT(bugprone-assignment-in-if-condition)
             ptr.push_back(token);
+        }
     }
 
     tokens.resize(ptr.size());
@@ -132,7 +133,7 @@ std::string
 amrex::trim(std::string s, std::string const& space)
 {
     const auto sbegin = s.find_first_not_of(space);
-    if (sbegin == std::string::npos) return std::string{};
+    if (sbegin == std::string::npos) { return std::string{}; }
     const auto send = s.find_last_not_of(space);
     s = s.substr(sbegin, send-sbegin+1);
     return s;
@@ -182,10 +183,17 @@ amrex::FileExists(const std::string &filename)
 std::string
 amrex::UniqueString()
 {
-  std::stringstream tempstring;
-  tempstring << std::setprecision(11) << std::fixed << ParallelDescriptor::second();
-  auto const tsl = tempstring.str().length();
-  return(tempstring.str().substr(tsl/2, tsl));
+    constexpr int len = 7;
+    static const auto n = std::max
+        (len,
+         static_cast<int>(
+             std::round(std::log10(double(MaxResSteadyClock::period::den)
+                                   /double(MaxResSteadyClock::period::num)))));
+    std::stringstream tempstring;
+    tempstring << std::setprecision(n) << std::fixed << amrex::second();
+    auto const ts = tempstring.str();
+    auto const tsl = ts.length();
+    return ts.substr(tsl-len,tsl); // tsl-len >= 0 because n >= len
 }
 
 void
@@ -196,9 +204,11 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
       std::string newoldname(path + ".old." + amrex::UniqueString());
       if (amrex::system::verbose > 1) {
           amrex::Print() << "amrex::UtilCreateCleanDirectory():  " << path
-                         << " exists.  Renaming to:  " << newoldname << std::endl;
+                         << " exists.  Renaming to:  " << newoldname << '\n';
       }
-      std::rename(path.c_str(), newoldname.c_str());
+      if (std::rename(path.c_str(), newoldname.c_str())) {
+          amrex::Abort("UtilCreateCleanDirectory:: std::rename failed");
+      }
     }
     if( ! amrex::UtilCreateDirectory(path, 0755)) {
       amrex::CreateDirectoryFailed(path);
@@ -220,7 +230,7 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
     {
       if (amrex::Verbose() > 1) {
           amrex::Print() << "amrex::UtilCreateCleanDirectoryDestructive():  " << path
-                         << " exists.  I am destroying it.  " << std::endl;
+                         << " exists.  I am destroying it.  " << '\n';
       }
       FileSystem::RemoveAll(path);
     }
@@ -244,9 +254,11 @@ amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
       std::string newoldname(path + ".old." + amrex::UniqueString());
       if (amrex::Verbose() > 1) {
           amrex::Print() << "amrex::UtilRenameDirectoryToOld():  " << path
-                         << " exists.  Renaming to:  " << newoldname << std::endl;
+                         << " exists.  Renaming to:  " << newoldname << '\n';
       }
-      std::rename(path.c_str(), newoldname.c_str());
+      if (std::rename(path.c_str(), newoldname.c_str())) {
+          amrex::Abort("UtilRenameDirectoryToOld: std::rename failed");
+      }
     }
   }
   if(callbarrier) {
@@ -298,8 +310,9 @@ int amrex::CRRBetweenLevels(int fromlevel, int tolevel,
 double
 amrex::InvNormDist (double p)
 {
-    if (p <= 0 || p >= 1)
+    if (p <= 0 || p >= 1) {
         amrex::Error("amrex::InvNormDist(): p MUST be in (0,1)");
+    }
     //
     // Coefficients in rational approximations.
     //
@@ -470,8 +483,9 @@ amrex::InvNormDistBest (double p)
 
   double r, value;
 
-  if (p <= 0 || p >= 1)
+  if (p <= 0 || p >= 1) {
       amrex::Error("InvNormDistBest(): p MUST be in (0,1)");
+  }
 
   double q = p - 0.5;
 
@@ -524,7 +538,7 @@ amrex::InvNormDistBest (double p)
           value = num / den;
       }
 
-      if ( q < 0.0 ) value = -value;
+      if ( q < 0.0 ) { value = -value; }
   }
 
   return value;
@@ -543,7 +557,7 @@ amrex::operator>>(std::istream& is, const expect& exp)
     {
         char c;
         is >> c;
-        if ( !is ) break;
+        if ( !is ) { break; }
         if ( c != exp.istr[n++] )
         {
             is.putback(c);
@@ -588,18 +602,17 @@ amrex::expect::the_string () const
 int amrex::StreamRetry::nStreamErrors = 0;
 
 amrex::StreamRetry::StreamRetry(std::ostream &a_os, std::string a_suffix,
-                                 const int a_maxtries)
-    : tries(0), maxTries(a_maxtries), sros(a_os), spos(a_os.tellp()), suffix(std::move(a_suffix))
+                                int a_maxtries)
+    : tries(0), maxTries(a_maxtries), sros(&a_os), spos(a_os.tellp()), suffix(std::move(a_suffix))
 {
 }
 
-amrex::StreamRetry::StreamRetry (std::string filename,
-                                 const bool abortonretryfailure,
-                                 const int maxtries)
+amrex::StreamRetry::StreamRetry (std::string filename, bool abortonretryfailure,
+                                 int maxtries)
     : tries(0), maxTries(maxtries),
       abortOnRetryFailure(abortonretryfailure),
       fileName(std::move(filename)),
-      sros(amrex::ErrorStream())    // unused here, just to make the compiler happy
+      sros(&amrex::ErrorStream())    // unused here, just to make the compiler happy
 {
   nStreamErrors = 0;
 }
@@ -610,41 +623,41 @@ bool amrex::StreamRetry::TryOutput()
     ++tries;
     return true;
   } else {
-    if(sros.fail()) {
+    if(sros->fail()) {
       ++nStreamErrors;
       int myProc(ParallelDescriptor::MyProc());
       if(tries <= maxTries) {
           if (amrex::Verbose() > 1) {
               amrex::AllPrint() << "PROC: " << myProc << " :: STREAMRETRY_" << suffix << " # "
                                 << tries << " :: gbfe:  "
-                                << sros.good() << sros.bad() << sros.fail() << sros.eof()
+                                << sros->good() << sros->bad() << sros->fail() << sros->eof()
                                 << " :: sec = " << ParallelDescriptor::second()
-                                << " :: os.tellp() = " << sros.tellp()
+                                << " :: os.tellp() = " << sros->tellp()
                                 << " :: rewind spos = " << spos
-                                << std::endl;
+                                << '\n';
           }
-        sros.clear();  // clear the bad bits
+        sros->clear();  // clear the bad bits
         if (amrex::Verbose() > 1) {
-            amrex::AllPrint() << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
-                              << sros.fail() << sros.eof() << std::endl;
+            amrex::AllPrint() << "After os.clear() : gbfe:  " << sros->good() << sros->bad()
+                              << sros->fail() << sros->eof() << '\n';
         }
-        sros.seekp(spos, std::ios::beg);  // reset stream position
+        sros->seekp(spos, std::ios::beg);  // reset stream position
         ++tries;
         return true;
       } else {
         if (amrex::Verbose() > 1) {
             amrex::AllPrint() << "PROC: " << myProc << " :: STREAMFAILED_" << suffix << " # "
                               << tries << " :: File may be corrupt.  :: gbfe:  "
-                              << sros.good() << sros.bad() << sros.fail() << sros.eof()
+                              << sros->good() << sros->bad() << sros->fail() << sros->eof()
                               << " :: sec = " << ParallelDescriptor::second()
-                              << " :: os.tellp() = " << sros.tellp()
+                              << " :: os.tellp() = " << sros->tellp()
                               << " :: rewind spos = " << spos
-                              << std::endl;
+                              << '\n';
         }
-        sros.clear();  // clear the bad bits
+        sros->clear();  // clear the bad bits
         if (amrex::Verbose() > 1) {
-            amrex::AllPrint() << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
-                              << sros.fail() << sros.eof() << std::endl;
+            amrex::AllPrint() << "After os.clear() : gbfe:  " << sros->good() << sros->bad()
+                              << sros->fail() << sros->eof() << '\n';
         }
         return false;
       }
@@ -674,9 +687,11 @@ bool amrex::StreamRetry::TryFileOutput()
                                                                tries - 1, 2);
           if (amrex::Verbose() > 1) {
               amrex::Print() << nWriteErrors << " STREAMERRORS : Renaming file from "
-                             << fileName << "  to  " << badFileName << std::endl;
+                             << fileName << "  to  " << badFileName << '\n';
           }
-          std::rename(fileName.c_str(), badFileName.c_str());
+          if (std::rename(fileName.c_str(), badFileName.c_str())) {
+              amrex::Abort("StreamRetry::TryFileOutput: std::rename failed");
+          }
         }
         ParallelDescriptor::Barrier("StreamRetry::TryFileOutput");  // wait for file rename
 
@@ -712,16 +727,16 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
   int pfStringsSize(0);
   std::ostringstream pfStrings;
   if(ParallelDescriptor::IOProcessor()) {
-    for(int i(0); i < localStringsCopy.size(); ++i) {
-      pfStrings << localStringsCopy[i] << '\n';
+    for(const auto & i : localStringsCopy) {
+      pfStrings << i << '\n';
     }
-    pfStringsSize = pfStrings.str().size();
+    pfStringsSize = static_cast<int>(pfStrings.str().size());
   }
   ParallelDescriptor::Bcast(&pfStringsSize, 1);
 
   Vector<char> pfCharArray(pfStringsSize + 1);
   if(ParallelDescriptor::IOProcessor()) {
-    std::strcpy(pfCharArray.dataPtr(), pfStrings.str().c_str());  // null terminated
+    std::strncpy(pfCharArray.dataPtr(), pfStrings.str().c_str(), pfCharArray.size());  // null terminated
   }
   ParallelDescriptor::Bcast(pfCharArray.dataPtr(), pfCharArray.size());
 
@@ -737,28 +752,28 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
       }
     }
     // ---- now check if they match on non ioprocs
-    for(int n(0); n < ioprocStrings.size(); ++n) {
+    for(const auto & ioprocString : ioprocStrings) {
       bool matched(false);
-      for(int i(0); i < localStringsCopy.size(); ++i) {
-        if(ioprocStrings[n] == localStringsCopy[i]) {
+      for(const auto & i : localStringsCopy) {
+        if(ioprocString == i) {
           matched = true;
         }
       }
       if( ! matched) {
         ++nUnmatched;
-        localStringsCopy.push_back(ioprocStrings[n]);  // ---- add to local set
+        localStringsCopy.push_back(ioprocString);  // ---- add to local set
       }
     }
-    for(int n(0); n < localStringsCopy.size(); ++n) {
+    for(const auto & n : localStringsCopy) {
       bool matched(false);
-      for(int i(0); i < ioprocStrings.size(); ++i) {
-        if(localStringsCopy[n] == ioprocStrings[i]) {
+      for(const auto & ioprocString : ioprocStrings) {
+        if(n == ioprocString) {
           matched = true;
         }
       }
       if( ! matched) {
         ++nUnmatched;
-        sendStrings.push_back(localStringsCopy[n]);  // ---- send these to the ioproc
+        sendStrings.push_back(n);  // ---- send these to the ioproc
       }
     }
   }
@@ -776,12 +791,12 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
   std::ostringstream ossSendStrings;
   Vector<char> sendCharArray(1);  // cannot be zero for gather call
   if( ! ParallelDescriptor::IOProcessor()) {
-    for(int i(0); i < sendStrings.size(); ++i) {
-      ossSendStrings << sendStrings[i] << '\n';
+    for(const auto & sendString : sendStrings) {
+      ossSendStrings << sendString << '\n';
     }
-    sendStringsSize = ossSendStrings.str().size();
+    sendStringsSize = static_cast<int>(ossSendStrings.str().size());
     sendCharArray.resize(sendStringsSize + 1);
-    std::strcpy(sendCharArray.dataPtr(), ossSendStrings.str().c_str());  // null terminated
+    std::strncpy(sendCharArray.dataPtr(), ossSendStrings.str().c_str(), sendCharArray.size());  // null terminated
   }
 
   Vector<int> nChars(nProcs, 0);
@@ -791,8 +806,8 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
   Vector<char> recvStrings(1);
   Vector<int> offset(nProcs, 0);
   if(ParallelDescriptor::IOProcessor()) {
-    for(int i(0); i < nChars.size(); ++i) {
-      totalChars += nChars[i];
+    for(int nChar : nChars) {
+      totalChars += nChar;
     }
     recvStrings.resize(totalChars + 1);
 
@@ -829,16 +844,16 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
   int syncedStringsSize(0);
   std::ostringstream syncedStrStr;
   if(ParallelDescriptor::IOProcessor()) {
-    for(int i(0); i < syncedStrings.size(); ++i) {
-      syncedStrStr << syncedStrings[i] << '\n';
+    for(const auto & syncedString : syncedStrings) {
+      syncedStrStr << syncedString << '\n';
     }
-    syncedStringsSize = syncedStrStr.str().size();
+    syncedStringsSize = static_cast<int>(syncedStrStr.str().size());
   }
   ParallelDescriptor::Bcast(&syncedStringsSize, 1);
 
   Vector<char> syncedCharArray(syncedStringsSize + 1);
   if(ParallelDescriptor::IOProcessor()) {
-    std::strcpy(syncedCharArray.dataPtr(), syncedStrStr.str().c_str());  // null terminated
+    std::strncpy(syncedCharArray.dataPtr(), syncedStrStr.str().c_str(), syncedCharArray.size());  // null terminated
   }
   ParallelDescriptor::Bcast(syncedCharArray.dataPtr(), syncedCharArray.size());
 
@@ -863,8 +878,8 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
 amrex::Vector<char> amrex::SerializeStringArray(const Vector<std::string> &stringArray)
 {
   std::ostringstream stringStream;
-  for(int i(0); i < stringArray.size(); ++i) {
-    stringStream << stringArray[i] << '\n';
+  for(const auto & i : stringArray) {
+    stringStream << i << '\n';
   }
 
   Vector<char> charArray(stringStream.str().size() + 1);

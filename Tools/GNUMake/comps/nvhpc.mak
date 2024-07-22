@@ -39,7 +39,9 @@ ifeq ($(USE_OMP_OFFLOAD),TRUE)
   # (The USE_ACC code path below should be revisited)
   GENERIC_NVHPC_FLAGS += -mp=gpu -Minfo=mp
   ifneq ($(CUDA_ARCH),)
-    GENERIC_NVHPC_FLAGS += -gpu=cc$(CUDA_ARCH)
+    NVHPC_COMMASPACE := , 
+    NVHPC_COMMA := ,
+    GENERIC_NVHPC_FLAGS += -gpu=$(patsubst %$(NVHPC_COMMA),%,$(subst $(NVHPC_COMMASPACE),$(NVHPC_COMMA),$(foreach arch,$(CUDA_ARCH),cc$(arch),)))
   endif
 endif
 

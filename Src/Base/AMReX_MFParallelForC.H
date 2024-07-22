@@ -6,13 +6,11 @@
 
 #include <AMReX_MFIter.H>
 
-namespace amrex {
-namespace experimental {
-namespace detail {
+namespace amrex::experimental::detail {
 
 template <typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynamic, F&& f)
+ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynamic, F const& f)
 {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -35,7 +33,7 @@ ParallelFor (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynami
 
 template <typename MF, typename F>
 std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, bool dynamic, F&& f)
+ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, bool dynamic, F const& f)
 {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -58,8 +56,6 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, 
     }
 }
 
-}
-}
 }
 
 #endif

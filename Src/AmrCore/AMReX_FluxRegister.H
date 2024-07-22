@@ -14,7 +14,6 @@ namespace amrex {
 *
 * Stores and manipulates fluxes at coarse-fine interfaces.
 */
-
 class FluxRegister
     :
     public BndryRegister
@@ -171,7 +170,7 @@ public:
                   const Geometry& geom);
 
     /**
-    * \brief /in this version the area is assumed to muliplied into the flux (if not, use scale to fix)
+    * \brief /in this version the area is assumed to multiplied into the flux (if not, use scale to fix)
     *
     * \param mflx
     * \param dir
@@ -192,7 +191,7 @@ public:
     /**
     * \brief Increment flux correction with fine data.
     *
-    * /in this version the area is assumed to muliplied into the flux (if not, use scale to fix)
+    * /in this version the area is assumed to multiplied into the flux (if not, use scale to fix)
     *
     * \param mflx
     * \param dir
@@ -230,7 +229,7 @@ public:
     /**
     * \brief Increment flux correction with fine data.
     *
-    * in this version the area is assumed to muliplied into the flux (if not, use scale to fix)
+    * in this version the area is assumed to multiplied into the flux (if not, use scale to fix)
     *
     * \param flux
     * \param dir
@@ -341,6 +340,16 @@ public:
                  int             nc,
                  const Geometry& crse_geom);
 
+    /**
+     * \brief Overwrite the coarse flux at the coarse/fine interface (and
+     * the interface only) with the fine flux stored in the FluxRegister.
+     *
+     * \param crse_fluxes MultiFab pointers to coarse fluxes.
+     * \param scale       scaling factor by which the fine flux is multiplied.
+     * \param destcomp    starting component in coarse flux MultiFab
+     * \param numcomp     number of components
+     * \param crse_geom   coarse Geometry
+     */
     void OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                         Real scale, int srccomp, int destcomp, int numcomp,
                         const Geometry& crse_geom);

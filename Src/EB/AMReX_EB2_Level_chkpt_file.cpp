@@ -3,7 +3,7 @@
 
 #include <AMReX_MultiFabUtil.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, ChkptFile const& chkpt_file,
                                 Geometry const& geom, int max_grid_size, int ngrow, bool extend_domain_face)
@@ -132,7 +132,7 @@ ChkptFileLevel::finalize_cell_flags ()
                 }
             });
 
-    #if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
             const Box& zbx = amrex::grow(amrex::surroundingNodes(vbx,2),1);
             AMREX_HOST_DEVICE_FOR_3D ( zbx, i, j, k,
             {
@@ -142,10 +142,10 @@ ChkptFileLevel::finalize_cell_flags ()
                     fz(i,j,k) = Type::regular;
                 }
             });
-    #endif
+#endif
 
 
-    #if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
             ignore_unused(ctmp);
             AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
             {
@@ -166,7 +166,7 @@ ChkptFileLevel::finalize_cell_flags ()
 
             set_connection_flags(bxg1, cell, fx, fy);
 
-    #else
+#else
             AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
             {
                 if (cell(i,j,k).isSingleValued()) {
@@ -187,7 +187,7 @@ ChkptFileLevel::finalize_cell_flags ()
 
             set_connection_flags(vbx, bxg1, cell, ctmp, fx, fy, fz);
 
-    #endif
+#endif
 
         }
 
@@ -200,4 +200,4 @@ ChkptFileLevel::ChkptFileLevel (IndexSpace const* is, int ilev, int max_grid_siz
 : GShopLevel<ChkptFile>(is, ilev, max_grid_size, ngrow, geom, fineLevel)
 {}
 
-}}
+}

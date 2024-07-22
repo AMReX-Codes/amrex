@@ -17,7 +17,7 @@ namespace amrex::Extrapolater
 
     void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp, int ngrow)
     {
-        BL_ASSERT(mf.nGrow() >= ngrow);
+        BL_ASSERT(mf.nGrowVect().allGE(ngrow));
         BL_ASSERT(scomp >= 0);
         BL_ASSERT((scomp+ncomp) <= mf.nComp());
 
@@ -44,7 +44,7 @@ namespace amrex::Extrapolater
                     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                        if (!gbx.contains(i,j,k)) {
-                           if (mask_arr(i,j,k) == crsebnd) data_arr(i,j,k,n) = 0.0;
+                           if (mask_arr(i,j,k) == crsebnd) { data_arr(i,j,k,n) = 0.0; }
                        }
                     });
                     ParallelFor(amrex::grow(gbx,1), ncomp,

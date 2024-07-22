@@ -26,7 +26,6 @@ class AMReXParticleHeader(object):
             self.version_string = f.readline().strip()
 
             particle_real_type = self.version_string.split('_')[-1]
-            particle_real_type = self.version_string.split('_')[-1]
             if particle_real_type == 'double':
                 self.real_type = np.float64
             elif particle_real_type == 'single':
@@ -92,6 +91,8 @@ def read_amrex_binary_particle_file(fn, ptype="particle0"):
         fdtype = "(%d,)f8" % header.num_real
     elif header.real_type == np.float32:
         fdtype = "(%d,)f4" % header.num_real
+    else:
+        sys.exit(1)
 
     idata = np.empty((header.num_particles, header.num_int ))
     rdata = np.empty((header.num_particles, header.num_real))

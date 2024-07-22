@@ -4,6 +4,10 @@
 #include <AMReX_MLMG_K.H>
 #include <AMReX_MultiFabUtil.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBMultiFabUtil.H>
+#endif
+
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
@@ -234,7 +238,7 @@ void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geome
     Box nddomain = amrex::surroundingNodes(geom.Domain());
 
     if (strategy != MLNodeLinOp::CoarseningStrategy::Sigma) {
-        nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
+        nddomain.grow(1000); // hack to avoid masks being modified at Neumann boundary
     }
 
 #ifdef AMREX_USE_OMP
@@ -257,15 +261,15 @@ void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geome
 void
 MLNodeLinOp::buildMasks ()
 {
-    if (m_masks_built) return;
+    if (m_masks_built) { return; }
 
     BL_PROFILE("MLNodeLinOp::buildMasks()");
 
     m_masks_built = true;
 
     m_is_bottom_singular = false;
-    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
+    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet); // NOLINT
+    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet); // NOLINT
     if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
     {  // No Dirichlet
         m_is_bottom_singular = (m_domain_covered[0] && !m_overset_dirichlet_mask);
@@ -289,7 +293,7 @@ MLNodeLinOp::buildMasks ()
             ccm.BuildMask(ccdomain,period,0,1,2,0);
 
             MFItInfo mfi_info;
-            if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+            if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
             if (m_overset_dirichlet_mask && mglev > 0) {
                 const auto& dmask_fine = *m_dirichlet_mask[amrlev][mglev-1];
@@ -368,7 +372,7 @@ MLNodeLinOp::buildMasks ()
         MLNodeLinOp_set_dot_mask(m_bottom_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
 
-    if (m_is_bottom_singular)
+    if (isBottomSingular())
     {
         int amrlev = 0;
         int mglev = 0;
@@ -377,6 +381,38 @@ MLNodeLinOp::buildMasks ()
         m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
         MLNodeLinOp_set_dot_mask(m_coarse_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
+}
+
+void
+MLNodeLinOp::prepareForGMRES ()
+{
+    if (m_coarse_dot_mask.empty()) {
+        int amrlev = 0;
+        int mglev = 0;
+        const Geometry& geom = m_geom[amrlev][mglev];
+        const iMultiFab& omask = *m_owner_mask_top;
+        m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
+        const auto lobc = LoBC();
+        const auto hibc = HiBC();
+        MLNodeLinOp_set_dot_mask(m_coarse_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
+    }
+}
+
+void
+MLNodeLinOp::setDirichletNodesToZero (int amrlev, int mglev, MultiFab& mf) const
+{
+    auto const& maskma = m_dirichlet_mask[amrlev][mglev]->const_arrays();
+    auto const& ma = mf.arrays();
+    const int ncomp = getNComp();
+    ParallelFor(mf, IntVect(0), ncomp,
+    [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n)
+    {
+        if (maskma[bno](i,j,k)) { ma[bno](i,j,k,n) = RT(0.0); }
+    });
+    Gpu::streamSynchronize();
+#ifdef AMREX_USE_EB
+    EB_set_covered(mf, 0, ncomp, 0, RT(0.0));
+#endif
 }
 
 void

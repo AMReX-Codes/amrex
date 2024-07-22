@@ -26,8 +26,7 @@ MLEBTensorOp::MLEBTensorOp (const Vector<Geometry>& a_geom,
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
-MLEBTensorOp::~MLEBTensorOp ()
-{}
+MLEBTensorOp::~MLEBTensorOp () = default;
 
 void
 MLEBTensorOp::define (const Vector<Geometry>& a_geom,
@@ -38,7 +37,7 @@ MLEBTensorOp::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLEBTensorOp::define()");
 
-    MLEBABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    MLEBABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory, AMREX_SPACEDIM);
 
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());
@@ -157,9 +156,9 @@ MLEBTensorOp::prepareForSolve ()
         }
     } else {
         for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
-            for (int mglev = 0; mglev < m_kappa[amrlev].size(); ++mglev) {
+            for (auto & mglev : m_kappa[amrlev]) {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    m_kappa[amrlev][mglev][idim].setVal(0.0);
+                    mglev[idim].setVal(0.0);
                 }
             }
         }
@@ -180,8 +179,8 @@ MLEBTensorOp::prepareForSolve ()
         }
     } else {
         for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
-            for (int mglev = 0; mglev < m_eb_kappa[amrlev].size(); ++mglev) {
-                m_eb_kappa[amrlev][mglev].setVal(0.0);
+            for (auto & mglev : m_eb_kappa[amrlev]) {
+                mglev.setVal(0.0);
             }
         }
     }
@@ -204,11 +203,11 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     BL_PROFILE("MLEBTensorOp::apply()");
     MLEBABecLap::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
 
-    if (mglev >= m_kappa[amrlev].size()) return;
+    if (mglev >= m_kappa[amrlev].size()) { return; }
 
     applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
 
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
@@ -229,7 +228,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     compCrossTerms(amrlev, mglev, in, bndry);
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -238,7 +237,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
         const Box& bx = mfi.tilebox();
 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (fabtyp == FabType::covered) continue;
+        if (fabtyp == FabType::covered) { continue; }
 
         Array4<Real> const axfab = out.array(mfi);
         AMREX_D_TERM(Array4<Real const> const fxfab = fluxmf[0].const_array(mfi);,
@@ -292,7 +291,7 @@ void
 MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf,
                              const MLMGBndry* bndry) const
 {
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
@@ -312,7 +311,7 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf,
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -505,18 +504,19 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 {
     BL_PROFILE("MLEBTensorOp::compFlux()");
 
-    if ( !(loc==Location::FaceCenter || loc==Location::FaceCentroid) )
+    if ( !(loc==Location::FaceCenter || loc==Location::FaceCentroid) ) {
         amrex::Abort("MLEBTensorOp::compFlux() unknown location for fluxes.");
+    }
 
     const int mglev = 0;
     const int ncomp = getNComp();
     MLEBABecLap::compFlux(amrlev, fluxes, sol, loc);
 
-    if (mglev >= m_kappa[amrlev].size()) return;
+    if (mglev >= m_kappa[amrlev].size()) { return; }
 
     applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
 
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
@@ -527,7 +527,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
     compCrossTerms(amrlev, mglev, sol, m_bndry_sol[amrlev].get());
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -536,7 +536,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
         const Box& bx = mfi.tilebox();
 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (fabtyp == FabType::covered) continue;
+        if (fabtyp == FabType::covered) { continue; }
 
         if (fabtyp == FabType::regular)
         {
@@ -636,7 +636,7 @@ MLEBTensorOp::compVelGrad (int amrlev,
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
 
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
@@ -649,7 +649,7 @@ MLEBTensorOp::compVelGrad (int amrlev,
         const Box& bx = mfi.tilebox();
 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (fabtyp == FabType::covered) continue;
+        if (fabtyp == FabType::covered) { continue; }
 
         Array4<Real const> const vfab = sol.const_array(mfi);
         AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,

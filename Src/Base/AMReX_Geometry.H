@@ -16,14 +16,6 @@
 #include <map>
 
 namespace amrex {
-/**
-* \class Geometry
-* \brief Rectangular problem domain geometry.
-*
-* This class describes problem domain and coordinate system for
-* RECTANGULAR problem domains.  Since the problem domain is RECTANGULAR,
-* periodicity is meaningful.
-*/
 
 class MultiFab;
 class DistributionMapping;
@@ -67,56 +59,14 @@ public:
     int coord;
 };
 
-    namespace detail {
-        template <typename T>
-        T bisect_prob_lo (amrex::Real plo, amrex::Real /*phi*/, amrex::Real dxinv, int ilo, int ihi, amrex::Real tol) {
-            T lo = static_cast<T>(plo + tol);
-            bool safe;
-            {
-                int i = int(std::floor((lo - plo)*dxinv)) + ilo;
-                safe = i >= ilo && i <= ihi;
-            }
-            if (safe) {
-                return lo;
-            } else {
-                // bisect the point at which the cell no longer maps to inside the domain
-                T hi = static_cast<T>(plo + 0.5_rt/dxinv);
-                T mid = bisect(lo, hi,
-                               [=] AMREX_GPU_HOST_DEVICE (T x) -> T
-                               {
-                                   int i = int(std::floor((x - plo)*dxinv)) + ilo;
-                                   bool inside = i >= ilo && i <= ihi;
-                                   return static_cast<T>(inside) - T(0.5);
-                               }, static_cast<T>(tol));
-                return mid - static_cast<T>(tol);
-            }
-        }
-
-        template <typename T>
-        T bisect_prob_hi (amrex::Real plo, amrex::Real phi, amrex::Real dxinv, int ilo, int ihi, amrex::Real tol) {
-            T hi = static_cast<T>(phi - tol);
-            bool safe;
-            {
-                int i = int(std::floor((hi - plo)*dxinv)) + ilo;
-                safe = i >= ilo && i <= ihi;
-            }
-            if (safe) {
-                return hi;
-            } else {
-                // bisect the point at which the cell no longer maps to inside the domain
-                T lo = static_cast<T>(phi - 0.5_rt/dxinv);
-                T mid = bisect(lo, hi,
-                               [=] AMREX_GPU_HOST_DEVICE (T x) -> T
-                                   {
-                                       int i = int(std::floor((x - plo)*dxinv)) + ilo;
-                                       bool inside = i >= ilo && i <= ihi;
-                                       return static_cast<T>(inside) - T(0.5);
-                                   }, static_cast<T>(tol));
-                return mid - static_cast<T>(tol);
-            }
-        }
-    }
-
+/**
+ * \class Geometry
+ * \brief Rectangular problem domain geometry.
+ *
+ * This class describes problem domain and coordinate system for
+ * RECTANGULAR problem domains.  Since the problem domain is RECTANGULAR,
+ * periodicity is meaningful.
+ */
 class Geometry
     :
     public CoordSys
@@ -242,18 +192,11 @@ public:
     }
 
     [[nodiscard]] GpuArray<ParticleReal,AMREX_SPACEDIM> ProbLoArrayInParticleReal () const noexcept {
-#ifdef AMREX_SINGLE_PRECISION_PARTICLES
-        return roundoff_lo_f;
-#else
-        return roundoff_lo_d;
-#endif
+        return roundoff_lo;
     }
+
     [[nodiscard]] GpuArray<ParticleReal,AMREX_SPACEDIM> ProbHiArrayInParticleReal () const noexcept {
-#ifdef AMREX_SINGLE_PRECISION_PARTICLES
-        return roundoff_hi_f;
-#else
-        return roundoff_hi_d;
-#endif
+        return roundoff_hi;
     }
 
     //! Returns the overall size of the domain by multiplying the ProbLength's together
@@ -268,6 +211,7 @@ public:
     //! Sets our rectangular domain.
     void Domain (const Box& bx) noexcept
     {
+        AMREX_ASSERT(bx.cellCentered());
         domain = bx;
         computeRoundoffDomain();
     }
@@ -446,16 +390,16 @@ public:
     void coarsen (IntVect const& rr) {
         domain.coarsen(rr);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            dx[i] = (ProbHi(i) - ProbLo(i)) / domain.length(i);
-            inv_dx[i] = static_cast<Real>(1.)/dx[i];
+            dx[i] = (ProbHi(i) - ProbLo(i)) / static_cast<Real>(domain.length(i));
+            inv_dx[i] = Real(1.)/dx[i];
         }
     }
 
     void refine (IntVect const& rr) {
         domain.refine(rr);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            dx[i] = (ProbHi(i) - ProbLo(i)) / domain.length(i);
-            inv_dx[i] = static_cast<Real>(1.)/dx[i];
+            dx[i] = (ProbHi(i) - ProbLo(i)) / static_cast<Real>(domain.length(i));
+            inv_dx[i] = Real(1.)/dx[i];
         }
     }
 
@@ -489,14 +433,15 @@ private:
     RealBox prob_domain;
 
     // Due to round-off errors, not all floating point numbers for which plo >= x < phi
-    // will map to a cell that is inside "domain". "roundoff_{lo,hi}_{f,d}" each store
-    // a position that is very close to that in prob_domain, and for which all doubles and floats less than
-    // it will map to a cell inside domain.
-    GpuArray<double, AMREX_SPACEDIM> roundoff_lo_d, roundoff_hi_d;
-    GpuArray<float , AMREX_SPACEDIM> roundoff_lo_f, roundoff_hi_f;
+    // will map to a cell that is inside "domain". "roundoff_{lo,hi}" store
+    // positions that are very close to that in prob_domain, and for which all doubles and floats
+    // between them will map to a cell inside domain.
+    GpuArray<ParticleReal , AMREX_SPACEDIM> roundoff_lo, roundoff_hi;
 
     //
     Box     domain;
+
+    friend std::istream& operator>> (std::istream&, Geometry&);
 };
 
 

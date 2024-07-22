@@ -245,7 +245,7 @@ main (int   argc,
 
                     if (norm != 0)
                     {
-                        norms[iComp] = norms[iComp] + pow(grdL2, norm);
+                        norms[iComp] = norms[iComp] + grdL2;
                     }
                     else
                     {

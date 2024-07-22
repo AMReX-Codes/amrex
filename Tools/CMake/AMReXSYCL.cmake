@@ -53,7 +53,7 @@ endif()
 #
 target_link_options( SYCL
    INTERFACE
-   $<${_cxx_sycl}:-fsycl -fsycl-device-lib=libc,libm-fp32,libm-fp64> )
+   $<${_cxx_sycl}:-qmkl=sequential -fsycl -fsycl-device-lib=libc,libm-fp32,libm-fp64> )
 
 
 # TODO: use $<LINK_LANG_AND_ID:> genex for CMake >=3.17
@@ -67,10 +67,19 @@ if (AMReX_SYCL_AOT)
       INTERFACE
       "$<${_cxx_sycl}:-fsycl-targets=spir64_gen>" )
 
+   set(_sycl_backend_flags "-device ${AMReX_INTEL_ARCH}")
+   if (AMReX_SYCL_AOT_GRF_MODE STREQUAL "Large")
+      set(_sycl_backend_flags "${_sycl_backend_flags} -internal_options -ze-opt-large-register-file")
+   elseif (AMReX_SYCL_AOT_GRF_MODE STREQUAL "AutoLarge")
+      set(_sycl_backend_flags "${_sycl_backend_flags} -options -ze-intel-enable-auto-large-GRF-mode")
+   endif()
+
    target_link_options( SYCL
       INTERFACE
       "$<${_cxx_sycl}:-fsycl-targets=spir64_gen>"
-      "$<${_cxx_sycl}:SHELL:-Xsycl-target-backend \"-device ${AMReX_INTEL_ARCH}\">" )
+      "$<${_cxx_sycl}:SHELL:-Xsycl-target-backend \"${_sycl_backend_flags}\">" )
+
+   unset(_sycl_backend_flags)
 endif ()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND "${CMAKE_BUILD_TYPE}" MATCHES "Debug")
@@ -78,5 +87,11 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND "${CMAKE_BUILD_TYPE}" MATCHES "Debug"
       INTERFACE
       "$<${_cxx_sycl}:-fsycl-link-huge-device-code>" )
 endif ()
+
+if (AMReX_PARALLEL_LINK_JOBS GREATER 1)
+   target_link_options( SYCL
+      INTERFACE
+      $<${_cxx_sycl}:-fsycl-max-parallel-link-jobs=${AMReX_PARALLEL_LINK_JOBS}>)
+endif()
 
 unset(_cxx_sycl)

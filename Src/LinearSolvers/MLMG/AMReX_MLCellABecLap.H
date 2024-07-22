@@ -8,7 +8,7 @@
 namespace amrex {
 
 template <typename MF>
-class MLCellABecLapT
+class MLCellABecLapT  // NOLINT(cppcoreguidelines-virtual-class-destructor)
     : public MLCellLinOpT<MF>
 {
 public:
@@ -18,8 +18,8 @@ public:
 
     using Location  = typename MLLinOpT<MF>::Location;
 
-    MLCellABecLapT ();
-    virtual ~MLCellABecLapT ();
+    MLCellABecLapT () = default;
+    ~MLCellABecLapT () override = default;
 
     MLCellABecLapT (const MLCellABecLapT<MF>&) = delete;
     MLCellABecLapT (MLCellABecLapT<MF>&&) = delete;
@@ -39,22 +39,24 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FAB> const*>& a_factory = {});
 
-    iMultiFab const* getOversetMask (int amrlev, int mglev) const {
+    [[nodiscard]] iMultiFab const* getOversetMask (int amrlev, int mglev) const {
         return m_overset_mask[amrlev][mglev].get();
     }
 
-    virtual bool needsUpdate () const override {
+    [[nodiscard]] bool needsUpdate () const override {
         return MLCellLinOpT<MF>::needsUpdate();
     }
-    virtual void update () override;
+    void update () override;
 
-    virtual void prepareForSolve () override;
+    void prepareForSolve () override;
 
-    virtual void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
+    void setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const override;
+
+    void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
                             const Vector<MF*>& a_sol,
-                            Location a_loc) const final override;
-    virtual void getFluxes (const Vector<MF*>& /*a_flux*/,
-                            const Vector<MF*>& /*a_sol*/) const final override {
+                            Location a_loc) const final;
+    void getFluxes (const Vector<MF*>& /*a_flux*/,
+                            const Vector<MF*>& /*a_sol*/) const final {
         amrex::Abort("MLCellABecLap::getFluxes: How did we get here?");
     }
 
@@ -63,20 +65,20 @@ public:
     virtual MF const* getACoeffs (int amrlev, int mglev) const = 0;
     virtual Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const = 0;
 
-    virtual void applyInhomogNeumannTerm (int amrlev, MF& rhs) const final override;
+    void applyInhomogNeumannTerm (int amrlev, MF& rhs) const final;
 
-    virtual void addInhomogNeumannFlux (
+    void addInhomogNeumannFlux (
         int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
-        MF const& sol, bool mult_bcoef) const final override;
+        MF const& sol, bool mult_bcoef) const final;
 
-    virtual void applyOverset (int amlev, MF& rhs) const override;
+    void applyOverset (int amrlev, MF& rhs) const override;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
+    [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 
 #ifdef AMREX_USE_PETSC
-    virtual std::unique_ptr<PETScABecLap> makePETSc () const override;
+    [[nodiscard]] std::unique_ptr<PETScABecLap> makePETSc () const override;
 #endif
 
 protected:
@@ -84,11 +86,8 @@ protected:
 
     LPInfo m_lpinfo_arg;
 
-    virtual bool supportInhomogNeumannBC () const noexcept override { return true; }
+    [[nodiscard]] bool supportInhomogNeumannBC () const noexcept override { return true; }
 };
-
-template <typename MF> MLCellABecLapT<MF>::MLCellABecLapT () {}
-template <typename MF> MLCellABecLapT<MF>::~MLCellABecLapT () {}
 
 template <typename MF>
 void
@@ -121,7 +120,7 @@ MLCellABecLapT<MF>::define (const Vector<Geometry>& a_geom,
 
     this->m_lpinfo_arg = a_info;
 
-    int namrlevs = a_geom.size();
+    auto namrlevs = static_cast<int>(a_geom.size());
     this->m_overset_mask.resize(namrlevs);
     for (int amrlev = 0; amrlev < namrlevs; ++amrlev)
     {
@@ -240,7 +239,7 @@ template <typename MF>
 void
 MLCellABecLapT<MF>::update ()
 {
-    if (MLCellLinOpT<MF>::needsUpdate()) MLCellLinOpT<MF>::update();
+    if (MLCellLinOpT<MF>::needsUpdate()) { MLCellLinOpT<MF>::update(); }
 }
 
 template <typename MF>
@@ -248,6 +247,24 @@ void
 MLCellABecLapT<MF>::prepareForSolve ()
 {
     MLCellLinOpT<MF>::prepareForSolve();
+}
+
+template <typename MF>
+void
+MLCellABecLapT<MF>::setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const
+{
+    auto const* omask = this->getOversetMask(amrlev, mglev);
+    if (omask) {
+        const int ncomp = this->getNComp();
+        auto const& mskma = omask->const_arrays();
+        auto const& ma = mf.arrays();
+        ParallelFor(mf, IntVect(0), ncomp,
+        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n)
+        {
+            if (mskma[bno](i,j,k) == 0) { ma[bno](i,j,k,n) = RT(0.0); }
+        });
+        Gpu::streamSynchronize();
+    }
 }
 
 template <typename MF>
@@ -280,7 +297,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
     bool has_inhomog_neumann = this->hasInhomogNeumannBC();
     bool has_robin = this->hasRobinBC();
 
-    if (!has_inhomog_neumann && !has_robin) return;
+    if (!has_inhomog_neumann && !has_robin) { return; }
 
     int ncomp = this->getNComp();
     const int mglev = 0;
@@ -305,7 +322,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
     const auto& bndry = *(this->m_bndry_sol[amrlev]);
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -332,7 +349,7 @@ MLCellABecLapT<MF>::applyInhomogNeumannTerm (int amrlev, MF& rhs) const
             const auto& bvhi = bndry.bndryValues(ohi).array(mfi);
             bool outside_domain_lo = !(domain.contains(blo));
             bool outside_domain_hi = !(domain.contains(bhi));
-            if ((!outside_domain_lo) && (!outside_domain_hi)) continue;
+            if ((!outside_domain_lo) && (!outside_domain_hi)) { continue; }
             for (int icomp = 0; icomp < ncomp; ++icomp) {
                 const BoundCond bctlo = bdcv[icomp][olo];
                 const BoundCond bcthi = bdcv[icomp][ohi];
@@ -512,7 +529,7 @@ MLCellABecLapT<MF>::addInhomogNeumannFlux (
     bool has_inhomog_neumann = this->hasInhomogNeumannBC();
     bool has_robin = this->hasRobinBC();
 
-    if (!has_inhomog_neumann && !has_robin) return;
+    if (!has_inhomog_neumann && !has_robin) { return; }
 
     int ncomp = this->getNComp();
     const int mglev = 0;
@@ -528,7 +545,7 @@ MLCellABecLapT<MF>::addInhomogNeumannFlux (
     const auto& bndry = *this->m_bndry_sol[amrlev];
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -545,8 +562,8 @@ MLCellABecLapT<MF>::addInhomogNeumannFlux (
             if (! domain.contains(ccb)) {
                 for (int icomp = 0; icomp < ncomp; ++icomp) {
                     auto const& phi = sol.const_array(mfi,icomp);
-                    auto const bv = bndry.bndryValues(ori).multiFab().const_array(mfi,icomp);
-                    auto const bc = bcoef[idim] ? bcoef[idim]->const_array(mfi,icomp)
+                    auto const& bv = bndry.bndryValues(ori).multiFab().const_array(mfi,icomp);
+                    auto const& bc = bcoef[idim] ? bcoef[idim]->const_array(mfi,icomp)
                         : Array4<RT const>{};
                     auto const& f = grad[idim]->array(mfi,icomp);
                     if (ori.isLow()) {
@@ -636,7 +653,7 @@ MLCellABecLapT<MF>::applyOverset (int amrlev, MF& rhs) const
                 auto const& osm = m_overset_mask[amrlev][0]->const_array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
                 {
-                    if (osm(i,j,k) == 0) rfab(i,j,k,n) = RT(0.0);
+                    if (osm(i,j,k) == 0) { rfab(i,j,k,n) = RT(0.0); }
                 });
             }
         }
@@ -648,51 +665,56 @@ template <typename MF>
 std::unique_ptr<Hypre>
 MLCellABecLapT<MF>::makeHypre (Hypre::Interface hypre_interface) const
 {
-    const BoxArray& ba = this->m_grids[0].back();
-    const DistributionMapping& dm = this->m_dmap[0].back();
-    const Geometry& geom = this->m_geom[0].back();
-    const auto& factory = *(this->m_factory[0].back());
-    MPI_Comm comm = this->BottomCommunicator();
+    if constexpr (!std::is_same<MF,MultiFab>()) {
+        amrex::Abort("MLCellABecLap Hypre interface only supports MultiFab");
+    } else {
+        const BoxArray& ba = this->m_grids[0].back();
+        const DistributionMapping& dm = this->m_dmap[0].back();
+        const Geometry& geom = this->m_geom[0].back();
+        const auto& factory = *(this->m_factory[0].back());
+        MPI_Comm comm = this->BottomCommunicator();
 
-    const int mglev = this->NMGLevels(0)-1;
+        const int mglev = this->NMGLevels(0)-1;
 
-    auto om = getOversetMask(0, mglev);
+        auto om = getOversetMask(0, mglev);
 
-    auto hypre_solver = amrex::makeHypre(ba, dm, geom, comm, hypre_interface, om);
+        auto hypre_solver = amrex::makeHypre(ba, dm, geom, comm, hypre_interface, om);
 
-    hypre_solver->setScalars(getAScalar(), getBScalar());
+        hypre_solver->setScalars(getAScalar(), getBScalar());
 
-    auto ac = getACoeffs(0, mglev);
-    if (ac)
-    {
-        hypre_solver->setACoeffs(*ac);
-    }
-    else
-    {
-        MultiFab alpha(ba,dm,1,0,MFInfo(),factory);
-        alpha.setVal(0.0);
-        hypre_solver->setACoeffs(alpha);
-    }
-
-    auto bc = getBCoeffs(0, mglev);
-    if (bc[0])
-    {
-        hypre_solver->setBCoeffs(bc);
-    }
-    else
-    {
-        Array<MultiFab,AMREX_SPACEDIM> beta;
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        auto ac = getACoeffs(0, mglev);
+        if (ac)
         {
-            beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
-                              dm, 1, 0, MFInfo(), factory);
-            beta[idim].setVal(1.0);
+            hypre_solver->setACoeffs(*ac);
         }
-        hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
-    }
-    hypre_solver->setIsMatrixSingular(this->isBottomSingular());
+        else
+        {
+            MultiFab alpha(ba,dm,1,0,MFInfo(),factory);
+            alpha.setVal(0.0);
+            hypre_solver->setACoeffs(alpha);
+        }
 
-    return hypre_solver;
+        auto bc = getBCoeffs(0, mglev);
+        if (bc[0])
+        {
+            hypre_solver->setBCoeffs(bc);
+        }
+        else
+        {
+            Array<MultiFab,AMREX_SPACEDIM> beta;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
+                              dm, 1, 0, MFInfo(), factory);
+                beta[idim].setVal(1.0);
+            }
+            hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
+        }
+        hypre_solver->setIsMatrixSingular(this->isBottomSingular());
+
+        return hypre_solver;
+    }
+    return nullptr;
 }
 #endif
 
@@ -701,46 +723,51 @@ template <typename MF>
 std::unique_ptr<PETScABecLap>
 MLCellABecLapT<MF>::makePETSc () const
 {
-    const BoxArray& ba = this->m_grids[0].back();
-    const DistributionMapping& dm = this->m_dmap[0].back();
-    const Geometry& geom = this->m_geom[0].back();
-    const auto& factory = *(this->m_factory[0].back());
-    MPI_Comm comm = this->BottomCommunicator();
+    if constexpr (!std::is_same<MF,MultiFab>()) {
+        amrex::Abort("MLCellABecLap PETSc interface only supports MultiFab");
+    } else {
+        const BoxArray& ba = this->m_grids[0].back();
+        const DistributionMapping& dm = this->m_dmap[0].back();
+        const Geometry& geom = this->m_geom[0].back();
+        const auto& factory = *(this->m_factory[0].back());
+        MPI_Comm comm = this->BottomCommunicator();
 
-    auto petsc_solver = makePetsc(ba, dm, geom, comm);
+        auto petsc_solver = makePetsc(ba, dm, geom, comm);
 
-    petsc_solver->setScalars(getAScalar(), getBScalar());
+        petsc_solver->setScalars(getAScalar(), getBScalar());
 
-    const int mglev = this->NMGLevels(0)-1;
-    auto ac = getACoeffs(0, mglev);
-    if (ac)
-    {
-        petsc_solver->setACoeffs(*ac);
-    }
-    else
-    {
-        MultiFab alpha(ba,dm,1,0,MFInfo(),factory);
-        alpha.setVal(0.0);
-        petsc_solver->setACoeffs(alpha);
-    }
-
-    auto bc = getBCoeffs(0, mglev);
-    if (bc[0])
-    {
-        petsc_solver->setBCoeffs(bc);
-    }
-    else
-    {
-        Array<MultiFab,AMREX_SPACEDIM> beta;
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        const int mglev = this->NMGLevels(0)-1;
+        auto ac = getACoeffs(0, mglev);
+        if (ac)
         {
-            beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
-                              dm, 1, 0, MFInfo(), factory);
-            beta[idim].setVal(1.0);
+            petsc_solver->setACoeffs(*ac);
         }
-        petsc_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
+        else
+        {
+            MultiFab alpha(ba,dm,1,0,MFInfo(),factory);
+            alpha.setVal(0.0);
+            petsc_solver->setACoeffs(alpha);
+        }
+
+        auto bc = getBCoeffs(0, mglev);
+        if (bc[0])
+        {
+            petsc_solver->setBCoeffs(bc);
+        }
+        else
+        {
+            Array<MultiFab,AMREX_SPACEDIM> beta;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
+                                  dm, 1, 0, MFInfo(), factory);
+                beta[idim].setVal(1.0);
+            }
+            petsc_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
+        }
+        return petsc_solver;
     }
-    return petsc_solver;
+    return nullptr;
 }
 #endif
 

@@ -10,10 +10,10 @@
 
 namespace amrex {
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-          template<class> class Allocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::AssignDensity (int rho_index,
                  Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled,
                  int lev_min, int ncomp, int finest_level, int ngrow) const
@@ -21,7 +21,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
 
     BL_PROFILE("ParticleContainer::AssignDensity()");
 
-    if (rho_index != 0) amrex::Abort("AssignDensity only works if rho_index = 0");
+    if (rho_index != 0) { amrex::Abort("AssignDensity only works if rho_index = 0"); }
 
     BL_ASSERT(NStructReal >= 1);
     BL_ASSERT(NStructReal >= ncomp);
@@ -168,7 +168,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
         if (vol_weight) {
             const Real* dx = pc.Geom(0).CellSize();
             const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
-            mf[0]->mult(1.0/vol, 0, mf[0]->nComp(), mf[0]->nGrow());
+            mf[0]->mult(Real(1.0)/vol, 0, mf[0]->nComp(), mf[0]->nGrow());
         }
         return;
     }
@@ -181,7 +181,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
     {
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
-            mf[lev]->setVal(0.0);
+            mf[lev]->setVal(Real(0.0));
         }
     }
 
@@ -207,11 +207,11 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
 
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
-        ParticleToMesh(pc, mf_part[lev], lev, std::forward<F>(f), zero_out_input);
+        ParticleToMesh(pc, mf_part[lev], lev, f, zero_out_input);
         if (vol_weight) {
             const Real* dx = pc.Geom(lev).CellSize();
             const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
-            mf_part[lev].mult(1.0/vol, 0, mf_part[lev].nComp(), mf_part[lev].nGrow());
+            mf_part[lev].mult(Real(1.0)/vol, 0, mf_part[lev].nComp(), mf_part[lev].nGrow());
         }
 
         if (lev < lev_max) {
@@ -249,42 +249,46 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
     }
 }
 
-template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0,
-          template<class> class Allocator=DefaultAllocator>
-class AmrParticleContainer
-    : public ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>
+template <typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+class AmrParticleContainer_impl // NOLINT(cppcoreguidelines-virtual-class-destructor)
+    : public ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 {
 
 public:
 
-    typedef Particle<NStructReal, NStructInt> ParticleType;
+    using ParticleType = T_ParticleType;
 
-    AmrParticleContainer ()
-        : ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>()
+    AmrParticleContainer_impl ()
+        : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>()
     {
     }
 
-    AmrParticleContainer (AmrCore* amr_core)
-        : ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>(amr_core->GetParGDB())
+    AmrParticleContainer_impl (AmrCore* amr_core)
+        : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>(amr_core->GetParGDB())
     {
     }
 
-    AmrParticleContainer (const Vector<Geometry>            & geom,
-                          const Vector<DistributionMapping> & dmap,
-                          const Vector<BoxArray>            & ba,
-                          const Vector<int>                 & rr)
-        : ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>(geom, dmap, ba, rr)
+    AmrParticleContainer_impl (const Vector<Geometry>            & geom,
+                               const Vector<DistributionMapping> & dmap,
+                               const Vector<BoxArray>            & ba,
+                               const Vector<int>                 & rr)
+        : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>(geom, dmap, ba, rr)
     {
     }
 
-    ~AmrParticleContainer () {}
+    ~AmrParticleContainer_impl () override = default;
 
-    AmrParticleContainer ( const AmrParticleContainer &) = delete;
-    AmrParticleContainer& operator= ( const AmrParticleContainer & ) = delete;
+    AmrParticleContainer_impl ( const AmrParticleContainer_impl &) = delete;
+    AmrParticleContainer_impl& operator= ( const AmrParticleContainer_impl & ) = delete;
 
-    AmrParticleContainer ( AmrParticleContainer && ) = default;
-    AmrParticleContainer& operator= ( AmrParticleContainer && ) = default;
+    AmrParticleContainer_impl ( AmrParticleContainer_impl && ) noexcept = default;
+    AmrParticleContainer_impl& operator= ( AmrParticleContainer_impl && ) noexcept = default;
 };
+
+template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+using AmrParticleContainer = AmrParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 class AmrTracerParticleContainer
     : public TracerParticleContainer
@@ -296,13 +300,13 @@ public:
     {
     }
 
-    ~AmrTracerParticleContainer () {}
+    ~AmrTracerParticleContainer () override = default;
 
     AmrTracerParticleContainer ( const AmrTracerParticleContainer &) = delete;
     AmrTracerParticleContainer& operator= ( const AmrTracerParticleContainer & ) = delete;
 
-    AmrTracerParticleContainer ( AmrTracerParticleContainer && ) = default;
-    AmrTracerParticleContainer& operator= ( AmrTracerParticleContainer && ) = default;
+    AmrTracerParticleContainer ( AmrTracerParticleContainer && ) noexcept = default;
+    AmrTracerParticleContainer& operator= ( AmrTracerParticleContainer && ) noexcept = default;
 };
 
 }

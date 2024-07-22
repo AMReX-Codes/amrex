@@ -1,7 +1,7 @@
 If you use AMReX, we ask you to cite the JOSS paper:
 
     @ARTICLE{AMReX_JOSS,
-       author = {Zhang et al.},
+       author = {Weiqun Zhang and Ann Almgren and Vince Beckner and John Bell and Johannes Blaschke and Cy Chan and Marcus Day and Brian Friesen and Kevin Gott and Daniel Graves and Max Katz and Andrew Myers and Tan Nguyen and Andrew Nonaka and Michele Rosso and Samuel Williams and Michael Zingale},
 	title = "{AMReX: A Framework for Block-Structured Adaptive Mesh Refinement}", 
       journal = {Journal of Open Source Software},
 	 year = 2019,

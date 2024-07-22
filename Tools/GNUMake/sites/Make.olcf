@@ -38,11 +38,6 @@ ifeq ($(which_computer),$(filter $(which_computer),summit ascent))
   CUDA_ARCH = 70
   COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
 
-  # Provide system configuration information.
-
-  GPUS_PER_NODE=6
-  GPUS_PER_SOCKET=3
-
 endif
 
 ifeq ($(which_computer),spock)

@@ -35,8 +35,8 @@
 #include <AMReX_SparseBins.H>
 #include <AMReX_ParticleTransformation.H>
 #include <AMReX_ParticleMesh.H>
-#include <AMReX_ParIter.H>
 #include <AMReX_OpenMP.H>
+#include <AMReX_ParIter.H>
 
 #ifdef AMREX_LAZY
 #include <AMReX_Lazy.H>
@@ -76,11 +76,11 @@ namespace amrex {
 */
 struct ParticleCommData
 {
-  typedef ParticleReal RealType;
-  int     m_lev;
-  int     m_grid;
-  IntVect m_cell;
-  RealType m_data[1 + AMREX_SPACEDIM];
+    using RealType = ParticleReal;
+    int     m_lev;
+    int     m_grid;
+    IntVect m_cell;
+    RealType m_data[1 + AMREX_SPACEDIM];
 };
 
 /**
@@ -88,13 +88,13 @@ struct ParticleCommData
 */
 struct ParticleLocData
 {
-  int     m_lev  = -1;
-  int     m_grid = -1;
-  int     m_tile = -1;
-  IntVect m_cell {AMREX_D_DECL(-1,-1,-1)};
-  Box     m_gridbox;
-  Box     m_tilebox;
-  Box     m_grown_gridbox;
+    int     m_lev  = -1;
+    int     m_grid = -1;
+    int     m_tile = -1;
+    IntVect m_cell {AMREX_D_DECL(-1,-1,-1)};
+    Box     m_gridbox;
+    Box     m_tilebox;
+    Box     m_grown_gridbox;
 };
 
 /**
@@ -119,6 +119,10 @@ struct ParticleInitType
     std::array<int,    NArrayInt  > int_array_data;
 };
 
+template <bool is_const, typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+class ParIterBase_impl;
+
 /**
  * \brief A distributed container for Particles sorted onto the levels, grids,
  * and tiles of a block-structured AMR hierarchy.
@@ -132,30 +136,35 @@ struct ParticleInitType
  * \tparam T_NArrayInt The number of extra integer components stored in struct-of-array form
  *
  */
-template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
-          template<class> class Allocator=DefaultAllocator>
-class ParticleContainer : public ParticleContainerBase
+template <typename T_ParticleType, int T_NArrayReal, int T_NArrayInt,
+          template<class> class Allocator=DefaultAllocator,
+          class T_CellAssignor=DefaultAssignor>
+
+class ParticleContainer_impl : public ParticleContainerBase
 {
 public:
+    using ParticleType = T_ParticleType;
+    using ConstParticleType = typename ParticleType::ConstType;
+    using CellAssignor = T_CellAssignor;
+
     //! \brief Number of extra Real components in the particle struct
-    static constexpr int NStructReal = T_NStructReal;
+    static constexpr int NStructReal = ParticleType::NReal;
     //! \brief Number of extra integer components in the particle struct
-    static constexpr int NStructInt = T_NStructInt;
+    static constexpr int NStructInt = ParticleType::NInt;
     //! \brief Number of extra Real components stored in struct-of-array form
     static constexpr int NArrayReal = T_NArrayReal;
     //! \brief Number of extra integer components stored in struct-of-array form
     static constexpr int NArrayInt = T_NArrayInt;
+        //! \brief The type of the "Particle"
 
 private:
-    friend class ParIterBase<true,NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
-    friend class ParIterBase<false,NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+    friend class ParIterBase_impl<true,ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
+    friend class ParIterBase_impl<false,ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
 
 public:
     //! \brief The memory allocator in use.
     template <typename T>
     using AllocatorType = Allocator<T>;
-    //! \brief The type of Particles we hold.
-    using ParticleType = Particle<NStructReal, NStructInt>;
     //! \brief The type of the "SuperParticle" which stored all components in AoS form
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
     //! \brief The type of the Real data
@@ -167,8 +176,8 @@ public:
     RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
 #endif
 
-    using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
-    using ParticleTileType = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+    using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
+    using ParticleTileType = ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
     //! A single level worth of particles is indexed (grid id, tile id)
@@ -181,20 +190,16 @@ public:
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
     using CharVector       = Gpu::DeviceVector<char>;
-    using SendBuffer       = Gpu::PolymorphicVector<char>;
-    using ParIterType      = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
-    using ParConstIterType = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt, Allocator>;
+    using ParIterType      = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
+    using ParConstIterType = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
 
     //! \brief Default constructor - construct an empty particle container that has no concept
     //!  of a level hierarchy. Must be properly initialized later.
-    ParticleContainer ()
+    ParticleContainer_impl ()
       :
       ParticleContainerBase(),
       h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-      h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-      m_runtime_comps_defined(false),
-      m_num_runtime_real(0),
-      m_num_runtime_int(0)
+      h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
     }
@@ -206,18 +211,15 @@ public:
     //! DistributionMapping, and BoxArray objects that define the AMR hierarchy. Usually,
     //! this is generated by an AmrCore or AmrLevel object.
     //!
-    ParticleContainer (ParGDBBase* gdb)
+    ParticleContainer_impl (ParGDBBase* gdb)
         :
         ParticleContainerBase(gdb),
         h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-        m_runtime_comps_defined(false),
-        m_num_runtime_real(0),
-        m_num_runtime_int(0)
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
-        reserveData();
-        resizeData();
+        ParticleContainer_impl::reserveData();
+        ParticleContainer_impl::resizeData();
     }
 
     //! \brief Construct a particle container using a given Geometry, DistributionMapping,
@@ -227,20 +229,17 @@ public:
     //! \param A DistributionMapping, which describes how the boxes are distributed onto MPI tasks
     //! \param A BoxArray, which gives the set of grid boxes
     //!
-    ParticleContainer (const Geometry            & geom,
-                       const DistributionMapping & dmap,
-                       const BoxArray            & ba)
+    ParticleContainer_impl (const Geometry            & geom,
+                            const DistributionMapping & dmap,
+                            const BoxArray            & ba)
         :
         ParticleContainerBase(geom, dmap, ba),
         h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-        m_runtime_comps_defined(false),
-        m_num_runtime_real(0),
-        m_num_runtime_int(0)
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
-        reserveData();
-        resizeData();
+        ParticleContainer_impl::reserveData();
+        ParticleContainer_impl::resizeData();
     }
 
     //! \brief Construct a particle container using a given Geometry, DistributionMapping,
@@ -252,21 +251,18 @@ public:
     //! \param rr A Vector of integer refinement ratios, of size num_levels - 1. rr[n] gives the
     //! refinement ratio between levels n and n+1
     //!
-    ParticleContainer (const Vector<Geometry>            & geom,
-                       const Vector<DistributionMapping> & dmap,
-                       const Vector<BoxArray>            & ba,
-                       const Vector<int>                 & rr)
+    ParticleContainer_impl (const Vector<Geometry>            & geom,
+                            const Vector<DistributionMapping> & dmap,
+                            const Vector<BoxArray>            & ba,
+                            const Vector<int>                 & rr)
         :
         ParticleContainerBase(geom, dmap, ba, rr),
         h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-        m_runtime_comps_defined(false),
-        m_num_runtime_real(0),
-        m_num_runtime_int(0)
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
-        reserveData();
-        resizeData();
+        ParticleContainer_impl::reserveData();
+        ParticleContainer_impl::resizeData();
     }
 
     //! \brief Same as the above, but accepts different refinement ratios in each direction.
@@ -277,30 +273,27 @@ public:
     //! \param rr A Vector of IntVect refinement ratios, of size num_levels - 1. rr[n] gives the
     //! refinement ratio between levels n and n+1
     //!
-    ParticleContainer (const Vector<Geometry>            & geom,
-                       const Vector<DistributionMapping> & dmap,
-                       const Vector<BoxArray>            & ba,
-                       const Vector<IntVect>             & rr)
+    ParticleContainer_impl (const Vector<Geometry>            & geom,
+                            const Vector<DistributionMapping> & dmap,
+                            const Vector<BoxArray>            & ba,
+                            const Vector<IntVect>             & rr)
         :
         ParticleContainerBase(geom, dmap, ba, rr),
         h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true),
-        m_runtime_comps_defined(false),
-        m_num_runtime_real(0),
-        m_num_runtime_int(0)
+        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
     {
         Initialize ();
-        reserveData();
-        resizeData();
+        ParticleContainer_impl::reserveData();
+        ParticleContainer_impl::resizeData();
     }
 
-    virtual ~ParticleContainer () = default;
+    ~ParticleContainer_impl () override = default;
 
-    ParticleContainer ( const ParticleContainer &) = delete;
-    ParticleContainer& operator= ( const ParticleContainer & ) = delete;
+    ParticleContainer_impl ( const ParticleContainer_impl &) = delete;
+    ParticleContainer_impl& operator= ( const ParticleContainer_impl & ) = delete;
 
-    ParticleContainer ( ParticleContainer && ) = default;
-    ParticleContainer& operator= ( ParticleContainer && ) = default;
+    ParticleContainer_impl ( ParticleContainer_impl && ) noexcept = default;
+    ParticleContainer_impl& operator= ( ParticleContainer_impl && ) noexcept = default;
 
 
     //! \brief Define a default-constructed ParticleContainer using a ParGDB object.
@@ -376,7 +369,18 @@ public:
         return (lev < m_particles.size()) ? m_particles[lev].size() : 0;
     }
 
+    /**
+     * \brief This reserves data in the vector of dummy MultiFabs used by
+     * the ParticleContainer for the maximum number of levels possible.
+     */
     void reserveData () override;
+
+    /**
+     * \brief This resizes the vector of dummy MultiFabs used by the
+     * ParticleContainer for the current number of levels and calls
+     * RedefineDummyMF on each level. Note that this must be done prior
+     * to using ParticleIterator.
+     */
     void resizeData () override;
 
     void InitFromAsciiFile (const std::string& file, int extradata,
@@ -403,7 +407,7 @@ public:
     * \param bx
     */
     void InitRandom (Long icount, ULong iseed,
-                     const ParticleInitData& mass,
+                     const ParticleInitData& pdata,
                      bool serialize = false, RealBox bx = RealBox());
 
 
@@ -428,7 +432,7 @@ public:
     /**
     * \brief
     * This initializes the particle container with one particle per cell,
-    * where the other particle data and attributes are all contant. The
+    * where the other particle data and attributes are all constant. The
     * coarsest level is used to generate the particle positions. The particle
     * variable values are passed in through the pdata struct. The parameters
     * x_off, y_off, and z_off represent offsets between 0 and 1 that show
@@ -499,6 +503,37 @@ public:
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
                        bool remove_negative=true);
 
+
+    /**
+     * \brief Reorder particles on the tile given by lev and mfi using a the permutations array.
+     *
+     * permutations is a pointer to an array on the GPU of size numParticles() with
+     * permutations[new index] = old index.
+     *
+     * \param lev
+     * \param mfi
+     * \param permutations
+     *
+     */
+    template <class index_type>
+    void ReorderParticles (int lev, const MFIter& mfi, const index_type* permutations);
+
+    /**
+     * \brief Sort particles on each tile such that particles adjacent in memory
+     * are likely to map to adjacent cells. This ordering can be beneficial for performance
+     * on GPU when deposition quantities onto a grid.
+     *
+     * idx_type = {0, 0, 0}: Sort particles to a cell centered grid
+     * idx_type = {1, 1, 1}: Sort particles to a node centered grid
+     * idx_type = {2, 2, 2}: Compromise between a cell and node centered grid.
+     * This last option uses more memory than the fist two.
+     * Mixed versions are also possible.
+     *
+     * \param idx_type
+     *
+     */
+    void SortParticlesForDeposition (IntVect idx_type);
+
     /**
      * \brief Sort the particles on each tile by cell, using Fortran ordering.
      */
@@ -539,6 +574,7 @@ public:
     * \param only_valid
     * \param only_local
     */
+
     Long NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const;
 
     Vector<Long> NumberOfParticlesInGrid  (int level, bool only_valid = true, bool only_local = false) const;
@@ -667,7 +703,7 @@ public:
     */
     template <class F, class PCType,
               std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
+              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
     void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
@@ -685,8 +721,8 @@ public:
     */
     template <class F, class PCType,
               std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
-    void addParticles (const PCType& other, F&& f, bool local=false);
+              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
+    void addParticles (const PCType& other, F const& f, bool local=false);
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.
@@ -725,7 +761,7 @@ public:
     /**
      * \brief Writes a particle checkpoint to file, suitable for restarting.
      *        This version allows the particle component names to be passed in.
-     *        This overload exists for backwards comptability. The is_checkpoint parameter is ignored.
+     *        This overload exists for backwards compatibility. The is_checkpoint parameter is ignored.
      */
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
@@ -794,7 +830,7 @@ public:
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>&>::value>::type* = nullptr>
+    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
     void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
 
     /**
@@ -851,7 +887,7 @@ public:
      * \param real_comp_names for each real component, a name to label the data with
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type* = nullptr>
+    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names, F&& f) const;
 
@@ -943,13 +979,13 @@ public:
     void WriteAsciiFile (const std::string& file);
 
     /**
-     * \brief Return the underyling Vector (over AMR levels) of ParticleLevels.
+     * \brief Return the underlying Vector (over AMR levels) of ParticleLevels.
      *        Const version.
      */
     const Vector<ParticleLevel>& GetParticles () const { return m_particles; }
 
     /**
-     * \brief Return the underyling Vector (over AMR levels) of ParticleLevels.
+     * \brief Return the underlying Vector (over AMR levels) of ParticleLevels.
      *        Non-const version.
      */
     Vector      <ParticleLevel>& GetParticles ()       { return m_particles; }
@@ -1155,15 +1191,10 @@ public:
                         Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled,
                         int lev_min, int ncomp, int finest_level, int ngrow=2) const;
 
-    void Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data,
-                      int lev_min, int lev_max);
-
-    void InterpolateSingleLevel (MultiFab& mesh_data, int lev);
-
     void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
                                        int ncomp=1, int particle_lvl_offset = 0) const;
 
-    template <typename P>
+    template <typename P, typename Assignor=CellAssignor>
     IntVect Index (const P& p, int lev) const;
 
     /**
@@ -1183,7 +1214,8 @@ public:
     *
     * \param prt
     */
-    bool PeriodicShift (ParticleType& prt) const;
+    template <typename P>
+    bool PeriodicShift (P& p) const;
 
     void SetLevelDirectoriesCreated (bool tf) { levelDirectoriesCreated = tf; }
 
@@ -1216,23 +1248,49 @@ public:
     Long superParticleSize() const { return superparticle_size; }
 
     template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddRealComp (T communicate=true)
     {
         m_runtime_comps_defined = true;
         m_num_runtime_real++;
         h_redistribute_real_comp.push_back(communicate);
         SetParticleSize();
+        this->resizeData();
+
+        // resize runtime SoA
+        for (int lev = 0; lev < numLevels(); ++lev) {
+            for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
+                auto& tile = DefineAndReturnParticleTile(lev, pti);
+                auto np = tile.numParticles();
+                if (np > 0) {
+                    auto& soa = tile.GetStructOfArrays();
+                    soa.resize(np);
+                }
+            }
+        }
     }
 
     template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddIntComp (T communicate=true)
     {
         m_runtime_comps_defined = true;
         m_num_runtime_int++;
         h_redistribute_int_comp.push_back(communicate);
         SetParticleSize();
+        this->resizeData();
+
+        // resize runtime SoA
+        for (int lev = 0; lev < numLevels(); ++lev) {
+            for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
+                auto& tile = DefineAndReturnParticleTile(lev, pti);
+                auto np = tile.numParticles();
+                if (np > 0) {
+                    auto& soa = tile.GetStructOfArrays();
+                    soa.resize(np);
+                }
+            }
+        }
     }
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
@@ -1241,12 +1299,23 @@ public:
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
+    /** Resize the Real runtime components (SoA)
+     *
+     * @param new_size new number of Real runtime components
+     * @param communicate participate this component in redistribute
+     */
     void ResizeRuntimeRealComp (int new_size, bool communicate);
+
+    /** Resize the Int runtime components (SoA)
+     *
+     * @param new_size new number of integer runtime components
+     * @param communicate participate this component in redistribute
+     */
     void ResizeRuntimeIntComp (int new_size, bool communicate);
 
     /** type trait to translate one particle container to another, with changed allocator */
     template <template<class> class NewAllocator=amrex::DefaultAllocator>
-    using ContainerLike = amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt, NewAllocator>;
+    using ContainerLike = amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, NewAllocator>;
 
     /** Create an empty particle container
      *
@@ -1320,7 +1389,8 @@ protected:
     * \param lev_max
     * \param local_grid
     */
-    bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
+    template <typename P>
+    bool EnforcePeriodicWhere (P& prt, ParticleLocData& pld,
                                int lev_min = 0, int lev_max = -1, int local_grid=-1) const;
 
 public:
@@ -1340,7 +1410,7 @@ protected:
 
     void SetParticleSize ();
 
-    DenseBins<ParticleType> m_bins;
+    DenseBins<typename ParticleTileType::ParticleTileDataType> m_bins;
 
 private:
     virtual void particlePostLocate (ParticleType& /*p*/, const ParticleLocData& /*pld*/,
@@ -1352,19 +1422,27 @@ private:
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                           int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
-    void locateParticle (ParticleType& p, ParticleLocData& pld,
+    template <typename P>
+    void locateParticle (P& p, ParticleLocData& pld,
                          int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
 
     void Initialize ();
 
-    bool m_runtime_comps_defined;
-    int m_num_runtime_real;
-    int m_num_runtime_int;
+    bool m_runtime_comps_defined{false};
+    int m_num_runtime_real{0};
+    int m_num_runtime_int{0};
 
     size_t particle_size, superparticle_size;
     int num_real_comm_comps, num_int_comm_comps;
     Vector<ParticleLevel> m_particles;
 };
+
+template <int T_NStructReal, int T_NStructInt, int T_NArrayReal, int T_NArrayInt, template<class> class Allocator, class CellAssignor>
+using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
+
+template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
+
 
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"

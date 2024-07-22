@@ -5,7 +5,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_EB2_IF_Base.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
@@ -15,10 +15,9 @@ class AllRegularIF
 public:
     constexpr Real operator() (const RealArray&) const noexcept { return -1.0; }
 
-    AMREX_GPU_HOST_DEVICE
     constexpr Real operator() (AMREX_D_DECL(Real, Real, Real)) const noexcept { return -1.0; }
 };
 
-}}
+}
 
 #endif

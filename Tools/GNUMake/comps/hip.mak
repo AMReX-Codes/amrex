@@ -8,6 +8,7 @@ ifneq ($(NO_CONFIG_CHECKING),TRUE)
   ifeq ($(HIP_PATH),)
     $(error hipconfig failed. Is the HIP toolkit available?)
   endif
+  COMP_VERSION = $(hipcc_version)
 endif
 
 CXX = $(HIP_PATH)/bin/hipcc
@@ -38,9 +39,12 @@ endif
 # amd gpu target
 HIPCC_FLAGS += --offload-arch=$(AMD_ARCH)
 
+# pthread
+HIPCC_FLAGS += -pthread
+
 CXXFLAGS += $(HIPCC_FLAGS)
 
-# add fopenmp targetting the gnu library
+# add fopenmp targeting the gnu library
 ifeq ($(USE_OMP),TRUE)
   CXXFLAGS += -fopenmp=libgomp
   CFLAGS   += -fopenmp=libgomp
@@ -80,18 +84,18 @@ endif  # BL_NO_FORT
 ifeq ($(HIP_COMPILER),clang)
 
   ifeq ($(DEBUG),TRUE)
-    CXXFLAGS += -g -O0 #-ftrapv
-    CFLAGS   += -g -O0 #-ftrapv
+    CXXFLAGS += -g -O1 -munsafe-fp-atomics
+    CFLAGS   += -g -O0
 
     FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
     F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
 
   else  # DEBUG=FALSE flags
 
-    CXXFLAGS += -g -O3 -munsafe-fp-atomics
-    CFLAGS   += -g -O3
-    FFLAGS   += -g -O3
-    F90FLAGS += -g -O3
+    CXXFLAGS += -gline-tables-only -fdebug-info-for-profiling -O3 -munsafe-fp-atomics
+    CFLAGS   += -gline-tables-only -fdebug-info-for-profiling -O3
+    FFLAGS   += -g1 -O3
+    F90FLAGS += -g1 -O3
 
   endif
 

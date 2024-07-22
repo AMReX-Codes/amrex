@@ -26,7 +26,7 @@ namespace
 #if defined(AMREX_TESTING) || defined(AMREX_DEBUG)
     int init_snan = 1;
 #else
-    static int init_snan = 0;
+    int init_snan = 0;
 #endif
     bool initialized = false;
 }
@@ -109,31 +109,12 @@ void amrex_mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max
 
 void amrex_real_array_init (Real* p, size_t nelems)
 {
-    if (init_snan) amrex_array_init_snan(p, nelems);
+    if (init_snan) { amrex_array_init_snan(p, nelems); }
 }
 
 void amrex_array_init_snan (Real* p, size_t nelems)
 {
-#ifdef BL_USE_DOUBLE
-
-#ifdef UINT64_MAX
-    const uint64_t snan = UINT64_C(0x7ff0000080000001);
-    static_assert(sizeof(double) == sizeof(uint64_t), "MemPool: sizeof double != sizeof uint64_t");
-    for (size_t i = 0; i < nelems; ++i) {
-        std::memcpy(p++, &snan, sizeof(double));
-    }
-#endif
-
-#else
-
-#ifdef UINT32_MAX
-    const uint32_t snan = UINT32_C(0x7fa00000);
-    static_assert(sizeof(float) == sizeof(uint32_t), "MemPool: sizeof float != sizeof uint32_t");
-    for (size_t i = 0; i < nelems; ++i) {
-        std::memcpy(p++, &snan, sizeof(float));
-    }
-#endif
-
-#endif
+    amrex::fill_snan<RunOn::Host>(p, nelems);
 }
+
 }

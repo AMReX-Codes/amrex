@@ -420,21 +420,21 @@ FluxRegister::FineAdd (const FArrayBox& flux,
         AMREX_LAUNCH_DEVICE_LAMBDA
         ( lobox, tlobx,
           {
-              fluxreg_fineadd(tlobx, loarr, destcomp, farr, srccomp,
+              fluxreg_fineadd(tlobx, loarr, destcomp, farr, srccomp, // NOLINT(readability-suspicious-call-argument)
                               numcomp, dir, local_ratio, mult);
           },
           hibox, thibx,
           {
-              fluxreg_fineadd(thibx, hiarr, destcomp, farr, srccomp,
+              fluxreg_fineadd(thibx, hiarr, destcomp, farr, srccomp, // NOLINT(readability-suspicious-call-argument)
                               numcomp, dir, local_ratio, mult);
           }
         );
     }
     else
     {
-        fluxreg_fineadd(lobox, loarr, destcomp, farr, srccomp,
+        fluxreg_fineadd(lobox, loarr, destcomp, farr, srccomp, // NOLINT(readability-suspicious-call-argument)
                         numcomp, dir, local_ratio, mult);
-        fluxreg_fineadd(hibox, hiarr, destcomp, farr, srccomp,
+        fluxreg_fineadd(hibox, hiarr, destcomp, farr, srccomp, // NOLINT(readability-suspicious-call-argument)
                         numcomp, dir, local_ratio, mult);
     }
 }
@@ -469,13 +469,13 @@ FluxRegister::FineAdd (const FArrayBox& flux,
         AMREX_LAUNCH_DEVICE_LAMBDA
         ( lobox, tlobx,
           {
-              fluxreg_fineareaadd(tlobx, loarr, destcomp,
+              fluxreg_fineareaadd(tlobx, loarr, destcomp, // NOLINT(readability-suspicious-call-argument)
                                   aarr, farr, srccomp,
                                   numcomp, dir, local_ratio, mult);
           },
           hibox, thibx,
           {
-              fluxreg_fineareaadd(thibx, hiarr, destcomp,
+              fluxreg_fineareaadd(thibx, hiarr, destcomp, // NOLINT(readability-suspicious-call-argument)
                                   aarr, farr, srccomp,
                                   numcomp, dir, local_ratio, mult);
           }
@@ -483,10 +483,10 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     }
     else
     {
-        fluxreg_fineareaadd(lobox, loarr, destcomp,
+        fluxreg_fineareaadd(lobox, loarr, destcomp, // NOLINT(readability-suspicious-call-argument)
                             aarr, farr, srccomp,
                             numcomp, dir, local_ratio, mult);
-        fluxreg_fineareaadd(hibox, hiarr, destcomp,
+        fluxreg_fineareaadd(hibox, hiarr, destcomp, // NOLINT(readability-suspicious-call-argument)
                             aarr, farr, srccomp,
                             numcomp, dir, local_ratio, mult);
     }
@@ -739,10 +739,11 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
 
     Box cdomain = crse_geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (crse_geom.isPeriodic(idim)) cdomain.grow(idim, 1);
+        if (crse_geom.isPeriodic(idim)) { cdomain.grow(idim, 1); }
     }
 
     bool run_on_gpu = Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_gpu);
 
     // cell-centered mask:
     constexpr int crse_cell = 0;
@@ -772,6 +773,7 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
     {
         const std::vector<IntVect>& pshifts = cperiod.shiftIntVect();
         Vector<Array4BoxTag<int> > tags;
+        amrex::ignore_unused(tags);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
@@ -801,9 +803,12 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                     for (const auto& is : isects)
                     {
                         Box const& b = is.second-iv;
+#ifdef AMREX_USE_GPU
                         if (run_on_gpu) {
                             tags.push_back({fab,b});
-                        } else {
+                        } else
+#endif
+                        {
                             cc_mask[mfi].setVal<RunOn::Host>(fine_cell, b, 0, 1);
                         }
                     }

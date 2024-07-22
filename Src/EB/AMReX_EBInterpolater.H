@@ -13,9 +13,7 @@ public:
 
     using CellConservativeLinear::CellConservativeLinear;
 
-    virtual ~EBCellConservativeLinear () = default;
-
-    virtual void interp (const FArrayBox& crse,
+    void interp (const FArrayBox& crse,
                          int              crse_comp,
                          FArrayBox&       fine,
                          int              fine_comp,
@@ -27,7 +25,7 @@ public:
                          Vector<BCRec> const& bcr,
                          int              actual_comp,
                          int              actual_state,
-                         RunOn            gpu_or_cpu) override;
+                         RunOn            runon) override;
 };
 
 extern AMREX_EXPORT EBCellConservativeLinear  eb_lincc_interp;

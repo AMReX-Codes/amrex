@@ -109,7 +109,7 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
     }
 #endif
 
-    auto const dx = m_geom[0].CellSize();
+    const auto *const dx = m_geom[0].CellSize();
     Real dmax = amrex::max(std::sqrt(dx[0]*dx[0]+dx[1]*dx[1]),
                            std::sqrt(dx[0]*dx[0]+dx[2]*dx[2]),
                            std::sqrt(dx[1]*dx[1]+dx[2]*dx[2]));
@@ -158,12 +158,12 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
     m_dm_all[0] = DistributionMapping(std::move(p0));
     m_box_offset.push_back(offset);
 
-    auto const problo = m_geom[0].ProbLo();
-    auto const probhi = m_geom[0].ProbHi();
+    const auto *const problo = m_geom[0].ProbLo();
+    const auto *const probhi = m_geom[0].ProbHi();
     std::array<Real,AMREX_SPACEDIM> problo_all, probhi_all;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        problo_all[idim] = problo[idim] - m_ngrowdomain[idim]*dx[idim];
-        probhi_all[idim] = probhi[idim] + m_ngrowdomain[idim]*dx[idim];
+        problo_all[idim] = problo[idim] - static_cast<Real>(m_ngrowdomain[idim])*dx[idim];
+        probhi_all[idim] = probhi[idim] + static_cast<Real>(m_ngrowdomain[idim])*dx[idim];
     }
     m_geom_all[0] = Geometry(amrex::shift(domain1,offset),
                              RealBox(problo_all,probhi_all),
@@ -331,7 +331,7 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
                                  {AMREX_D_DECL(LinOpBCType::Dirichlet,
                                                LinOpBCType::Dirichlet,
                                                LinOpBCType::Dirichlet)});
-        m_poisson_2->setLevelBC(0, &sol_all[0]);
+        m_poisson_2->setLevelBC(0, sol_all.data());
         for (int ilev = 1; ilev < nlevels; ++ilev) {
             m_poisson_2->setLevelBC(ilev, nullptr);
         }
@@ -346,7 +346,7 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
         }
 #endif
     } else {
-        m_poisson_2->setLevelBC(0, &sol_all[0]);
+        m_poisson_2->setLevelBC(0, sol_all.data());
     }
 
     Real err = m_mlmg_2->solve(GetVecOfPtrs(sol_all), GetVecOfConstPtrs(rhs_all),
@@ -569,10 +569,10 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 openbc::scale_moments(mom.mom);
                 // center of the block
                 mom.x = xc;
-                mom.y = problo[1] + dx[1]*(tag.b2d.smallEnd(1)
+                mom.y = problo[1] + dx[1]*static_cast<Real>(tag.b2d.smallEnd(1)
                                            + jb*m_coarsen_ratio
                                            + m_coarsen_ratio/2); // NOLINT
-                mom.z = problo[2] + dx[2]*(tag.b2d.smallEnd(2)
+                mom.z = problo[2] + dx[2]*static_cast<Real>(tag.b2d.smallEnd(2)
                                            + kb*m_coarsen_ratio
                                            + m_coarsen_ratio/2); // NOLINT
                 mom.face = tag.face;
@@ -609,11 +609,11 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                     }
                 }}
                 openbc::scale_moments(mom.mom);
-                mom.x = problo[0] + dx[0]*(tag.b2d.smallEnd(0)
+                mom.x = problo[0] + dx[0]*static_cast<Real>(tag.b2d.smallEnd(0)
                                            + ib*m_coarsen_ratio
                                            + m_coarsen_ratio/2); // NOLINT
                 mom.y = yc;
-                mom.z = problo[2] + dx[2]*(tag.b2d.smallEnd(2)
+                mom.z = problo[2] + dx[2]*static_cast<Real>(tag.b2d.smallEnd(2)
                                            + kb*m_coarsen_ratio
                                            + m_coarsen_ratio/2); // NOLINT
                 mom.face = tag.face;
@@ -650,10 +650,10 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                     }
                 }}
                 openbc::scale_moments(mom.mom);
-                mom.x = problo[0] + dx[0]*(tag.b2d.smallEnd(0)
+                mom.x = problo[0] + dx[0]*static_cast<Real>(tag.b2d.smallEnd(0)
                                            + ib*m_coarsen_ratio
                                            + m_coarsen_ratio/2); // NOLINT
-                mom.y = problo[1] + dx[1]*(tag.b2d.smallEnd(1)
+                mom.y = problo[1] + dx[1]*static_cast<Real>(tag.b2d.smallEnd(1)
                                            + jb*m_coarsen_ratio
                                            + m_coarsen_ratio/2); // NOLINT
                 mom.z = zc;
@@ -676,14 +676,13 @@ void OpenBCSolver::bcast_moments (Gpu::DeviceVector<openbc::Moments>& moments)
     {
         MPI_Comm comm = ParallelContext::CommunicatorSub();
         if (m_nblocks == 0) {
-            int count = moments.size();
-            count *= static_cast<int>(sizeof(openbc::Moments));
+            int count = static_cast<int>(moments.size() * sizeof(openbc::Moments));
             m_countvec.resize(ParallelContext::NProcsSub());
             MPI_Allgather(&count, 1, MPI_INT, m_countvec.data(), 1, MPI_INT, comm);
 
             m_offset.resize(m_countvec.size(), 0);
             Long count_tot = m_countvec[0];
-            for (int i = 1, N = m_offset.size(); i < N; ++i) {
+            for (int i = 1, N = static_cast<int>(m_offset.size()); i < N; ++i) {
                 m_offset[i] = m_offset[i-1] + m_countvec[i-1];
                 count_tot += m_countvec[i];
             }
@@ -692,7 +691,7 @@ void OpenBCSolver::bcast_moments (Gpu::DeviceVector<openbc::Moments>& moments)
                 amrex::Abort("OpenBC: integer overflow. Let us know and we will fix this.");
             }
 
-            m_nblocks = count_tot/sizeof(openbc::Moments);
+            m_nblocks = static_cast<int>(count_tot/sizeof(openbc::Moments));
         }
 
         Gpu::DeviceVector<openbc::Moments> moments_all(m_nblocks);
@@ -772,9 +771,9 @@ void OpenBCSolver::compute_potential (Gpu::DeviceVector<openbc::Moments> const& 
 #else
         amrex::LoopOnCpu(b, [&] (int i, int j, int k) noexcept
         {
-            Real xb = problo[0] + i*crse_ratio*dx[0];
-            Real yb = problo[1] + j*crse_ratio*dx[1];
-            Real zb = problo[2] + k*crse_ratio*dx[2];
+            Real xb = problo[0] + static_cast<Real>(i*crse_ratio)*dx[0];
+            Real yb = problo[1] + static_cast<Real>(j*crse_ratio)*dx[1];
+            Real zb = problo[2] + static_cast<Real>(k*crse_ratio)*dx[2];
             Real phi = 0._rt;
             for (int iblock = 0; iblock < nblocks; ++iblock) {
                 phi += openbc::block_potential(pmom[iblock], xb, yb, zb);

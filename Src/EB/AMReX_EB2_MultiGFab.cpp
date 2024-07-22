@@ -3,7 +3,7 @@
 #include <AMReX_EB2_C.H>
 #include <AMReX_ParmParse.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 void
 GFab::buildTypes (EBCellFlagFab& celltype)
@@ -52,4 +52,4 @@ MultiGFab::getLevelSet ()
     return r;
 }
 
-}}
+}

@@ -8,276 +8,9 @@
 
 namespace amrex {
 
-#if (AMREX_SPACEDIM > 1)
-    //
-    // Do small cell redistribution on one FAB
-    //
-    void apply_eb_redistribution ( const Box& bx,
-                                   MultiFab& div_mf,
-                                   MultiFab& divc_mf,
-                                   const MultiFab& weights,
-                                   MFIter* mfi,
-                                   const int icomp,
-                                   const int ncomp,
-                                   const EBCellFlagFab& flags_fab,
-                                   const MultiFab* volfrac,
-                                   Box& /*domain*/,
-                                   const Geometry & geom)
-    {
-        //
-        // Check that grid is uniform
-        //
-        const Real* dx = geom.CellSize();
-
-#if (AMREX_SPACEDIM == 2)
-        if (! amrex::almostEqual(dx[0], dx[1]))
-            amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
-#elif (AMREX_SPACEDIM == 3)
-        if( ! amrex::almostEqual(dx[0],dx[1]) ||
-            ! amrex::almostEqual(dx[0],dx[2]) ||
-            ! amrex::almostEqual(dx[1],dx[2]) )
-            amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
-#endif
-
-        //
-        // Get array4 from arguments
-        //
-        Array4<Real> const& div  = div_mf.array(*mfi);
-        Array4<Real> const& divc = divc_mf.array(*mfi);
-        auto const&         wt   = weights.array(*mfi);
-        auto const&        flags = flags_fab.array();
-        auto const&        vfrac = volfrac->array(*mfi);
-
-        apply_flux_redistribution ( bx, div, divc, wt, icomp, ncomp, flags, vfrac, geom);
-    }
-
-    //
-    // Do small cell redistribution on one FAB with the Array4's already passed in
-    //
-    void apply_flux_redistribution ( const Box& bx,
-                                     Array4<Real      > const& div,
-                                     Array4<Real const> const& divc,
-                                     Array4<Real const> const& wt,
-                                     const int icomp,
-                                     const int ncomp,
-                                     Array4<EBCellFlag const> const& flags,
-                                     Array4<Real const>    const& vfrac,
-                                     const Geometry & geom)
-    {
-        //
-        // Check that grid is uniform
-        //
-        const Real* dx = geom.CellSize();
-
-#if (AMREX_SPACEDIM == 2)
-        if (! amrex::almostEqual(dx[0], dx[1]))
-            amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
-#elif (AMREX_SPACEDIM == 3)
-        if( ! amrex::almostEqual(dx[0],dx[1]) ||
-            ! amrex::almostEqual(dx[0],dx[2]) ||
-            ! amrex::almostEqual(dx[1],dx[2]) )
-            amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
-#endif
-
-        const Box dbox = geom.growPeriodicDomain(2);
-
-        //
-        // Get array from arguments
-        //
-        // Array4<Real> const& div  = div_mf.array(*mfi);
-        // Array4<Real> const& divc = divc_mf.array(*mfi);
-        // auto const&         wt   = weights.array(*mfi);
-        // auto const&        flags = flags_fab.array();
-        // auto const&        vfrac = volfrac->array(*mfi);
-
-        const Box& grown1_bx = amrex::grow(bx,1);
-        const Box& grown2_bx = amrex::grow(bx,2);
-
-        //
-        // Working arrays
-        //
-        FArrayBox  delm_fab(grown1_bx,ncomp);
-        FArrayBox  optmp_fab(grown2_bx,ncomp);
-        FArrayBox  mask_fab(grown2_bx);
-
-        Array4<Real> const& optmp = optmp_fab.array();
-        Array4<Real> const& mask  = mask_fab.array();
-        Array4<Real> const& delm  = delm_fab.array();
-
-        //
-        // Array "mask" is used to sever the link to ghost cells when the BCs
-        // are not periodic
-        // It is set to 1 when a cell can be used in computations, 0 otherwise
-        //
-        AMREX_FOR_3D(grown2_bx, i, j, k,
-        {
-            mask(i,j,k) = (dbox.contains(IntVect(AMREX_D_DECL(i,j,k)))) ? 1.0 : 0.0;
-        });
-
-        //
-        // Init to zero tmp array
-        //
-        AMREX_FOR_4D(grown2_bx, ncomp, i, j, k, n,
-        {
-            optmp(i,j,k,n) = 0;
-        });
-
-        //
-        // Step 2: compute delta M (mass gain or loss) on (lo-1,lo+1)
-        //
-        AMREX_FOR_4D(grown1_bx, ncomp, i, j, k, n,
-        {
-        if(flags(i,j,k).isSingleValued())
-        {
-            Real divnc(0.0);
-            Real vtot(0.0);
-            Real wted_frac(0.0);
-            int  ks = (AMREX_SPACEDIM == 3) ? -1 : 0;
-            int  ke = (AMREX_SPACEDIM == 3) ?  1 : 0;
-
-            for (int kk(ks); kk <= ke; ++kk) {
-                for (int jj(-1); jj <= 1; ++jj) {
-                    for (int ii(-1); ii <= 1; ++ii) {
-                        if( (ii != 0 || jj != 0 || kk != 0) &&
-                            flags(i,j,k).isConnected(ii,jj,kk) &&
-                            dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
-                        {
-                            wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
-                            vtot   += wted_frac;
-                            divnc  += wted_frac * divc(i+ii,j+jj,k+kk,n);
-                        }
-                    }
-                }
-            }
-            divnc /=  (vtot + 1.e-80);
-
-            // We need to multiply by mask to make sure optmp is zero for cells
-            // outside the domain for non-cyclic BCs
-            optmp(i,j,k,n) =  (1 - vfrac(i,j,k)) * (divnc - divc(i,j,k,n)) * mask(i,j,k);
-            delm(i,j,k,n)  = -(    vfrac(i,j,k)) * optmp(i,j,k,n);
-
-        }
-        else
-        {
-            delm(i,j,k,n) = 0;
-        }
-        });
-
-
-        //
-        // Step 3: redistribute excess/loss of mass
-        //
-        AMREX_FOR_4D(grown1_bx, ncomp, i, j, k, n,
-        {
-        if(flags(i,j,k).isSingleValued())
-        {
-            Real wtot(0.0);
-            int  ks = (AMREX_SPACEDIM == 3) ? -1 : 0;
-            int  ke = (AMREX_SPACEDIM == 3) ?  1 : 0;
-
-            for (int kk(ks); kk <= ke; ++kk) {
-              for (int jj(-1); jj <= 1; ++jj) {
-                for (int ii(-1); ii <= 1; ++ii) {
-
-                        if( (ii != 0 || jj != 0 || kk != 0) &&
-                            (flags(i,j,k).isConnected(ii,jj,kk)) )
-                        {
-                            wtot += wt(i+ii,j+jj,k+kk) * vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
-                        }
-
-            }}}
-
-            wtot = 1.0/(wtot + 1.e-80);
-
-            for (int kk(ks); kk <= ke; ++kk) {
-              for (int jj(-1); jj <= 1; ++jj) {
-                for (int ii(-1); ii <= 1; ++ii) {
-
-                        if( (ii != 0 || jj != 0 || kk != 0) &&
-                            (flags(i,j,k).isConnected(ii,jj,kk)) &&
-                            bx.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))) )
-                        {
-                            Gpu::Atomic::AddNoRet(&optmp(i+ii,j+jj,k+kk,n),
-                                             delm(i,j,k,n) * wtot * mask(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk));
-                        }
-                }}}
-
-        }
-        });
-
-        //
-        // Resume the correct sign, AKA return the negative
-        //
-        AMREX_FOR_4D(bx, ncomp, i, j, k, n,
-        {
-            div(i,j,k,icomp+n) = divc(i,j,k,n) + optmp(i,j,k,n);
-        });
-
-        Gpu::streamSynchronize();
-    }
-
-    //
-    // Do small cell redistribution on a MultiFab -- with a weighting function
-    //
-    void single_level_weighted_redistribute (MultiFab& div_tmp_in, MultiFab& div_out, const MultiFab& weights,
-                                             int div_comp, int ncomp, const Geometry& geom)
-    {
-        Box domain(geom.Domain());
-
-        Real covered_val = 1.e40;
-
-        int nghost = 2;
-        AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
-
-        EB_set_covered(div_tmp_in, 0, ncomp, div_tmp_in.nGrow(), covered_val);
-
-        div_tmp_in.FillBoundary(geom.periodicity());
-
-        // Here we take care of both the regular and covered cases ... all we do below is the cut cell cases
-        MultiFab::Copy(div_out, div_tmp_in, 0, div_comp, ncomp, 0);
-
-        // Get EB geometric info
-        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(div_out.Factory());
-        const MultiFab* volfrac   = &(ebfactory. getVolFrac());
-
-        for (MFIter mfi(div_out,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            // Tilebox
-            const Box& bx = mfi.tilebox ();
-
-            // this is to check efficiently if this tile contains any eb stuff
-            const EBFArrayBox&  div_fab = static_cast<EBFArrayBox const&>(div_out[mfi]);
-            const EBCellFlagFab&  flags = div_fab.getEBCellFlagFab();
-
-            if ( !(flags.getType(amrex::grow(bx,     0)) == FabType::covered) &&
-                 !(flags.getType(amrex::grow(bx,nghost)) == FabType::regular) )
-            {
-                // Compute div(tau) with EB algorithm
-                apply_eb_redistribution(bx, div_out, div_tmp_in, weights, &mfi,
-                                               div_comp, ncomp, flags, volfrac, domain,
-                                               geom);
-
-            }
-        }
-    }
-
-    //
-    // Do small cell redistribution on a MultiFab -- without a weighting function
-    //
-    void single_level_redistribute (MultiFab& div_tmp_in, MultiFab& div_out,
-                                    int div_comp, int ncomp, const Geometry& geom)
-    {
-        // We create a weighting array to use inside the redistribution array
-        MultiFab weights(div_out.boxArray(), div_out.DistributionMap(), 1, div_tmp_in.nGrow());
-        weights.setVal(1.0);
-
-        single_level_weighted_redistribute (div_tmp_in, div_out, weights, div_comp, ncomp, geom);
-    }
-#endif
-
 void FillSignedDistance (MultiFab& mf, bool fluid_has_positive_sign)
 {
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
     if (factory) {
         FillSignedDistance(mf, *(factory->getEBLevel()), *factory, 1, fluid_has_positive_sign);
     } else {
@@ -298,7 +31,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
                    RealVect const& eb_normal, RealVect const& eb_p0,
                    GpuArray<Real,AMREX_SPACEDIM> const& dx)
 {
-    // Enumerate the possible EB facet edges invovlved.
+    // Enumerate the possible EB facet edges involved.
     int n_facets = 0;
     IntVect ind_facets {AMREX_D_DECL(0, 0, 0)};
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
@@ -321,11 +54,15 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         RealVect facet_normal {AMREX_D_DECL(0._rt, 0._rt, 0._rt)};
         facet_normal[tmp_facet] = 1.; // whether facing inwards or outwards is not important here
 
+        Real c_dp = eb_normal.dotProduct(facet_normal);
+        Real c_norm = 1._rt - c_dp*c_dp;
+
+        Real eps = std::numeric_limits<Real>::epsilon();
+
         // skip cases where cell faces coincide with the eb facets
-        if (AMREX_D_TERM(std::abs(eb_normal[0]) == std::abs(facet_normal[0]),
-                      && std::abs(eb_normal[1]) == std::abs(facet_normal[1]),
-                      && std::abs(eb_normal[2]) == std::abs(facet_normal[2])))
-        { continue; }
+        if (std::abs(c_norm) <= eps) {
+            continue;
+        }
 
         int ind_cell = ind_loop[tmp_facet];
         int ind_nb   = ind_pt[tmp_facet];
@@ -333,14 +70,14 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         // determine position of the cell's facet
         Real f_c;
         if (ind_cell < ind_nb) {
-            f_c = ( ind_cell + 1 ) * dx[tmp_facet];
+            f_c = static_cast<Real>( ind_cell + 1 ) * dx[tmp_facet];
         } else {
-            f_c =   ind_cell       * dx[tmp_facet];
+            f_c = static_cast<Real>( ind_cell     ) * dx[tmp_facet];
         }
 
-        RealVect facet_p0{AMREX_D_DECL((ind_loop[0] + 0.5_rt) * dx[0],
-                                       (ind_loop[1] + 0.5_rt) * dx[1],
-                                       (ind_loop[2] + 0.5_rt) * dx[2])};
+        RealVect facet_p0{AMREX_D_DECL((static_cast<Real>(ind_loop[0]) + 0.5_rt) * dx[0],
+                                       (static_cast<Real>(ind_loop[1]) + 0.5_rt) * dx[1],
+                                       (static_cast<Real>(ind_loop[2]) + 0.5_rt) * dx[2])};
         facet_p0[tmp_facet] = f_c;
 
         // scalar characterizing cell facet position
@@ -355,9 +92,6 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         //
         //  When one plane is the EB surface, and the other is a face of the
         //  cell. Then this line represents the edge of the EB facet.
-        //
-        Real c_dp = eb_normal.dotProduct(facet_normal);
-        Real c_norm = 1._rt - c_dp*c_dp;
         //
         Real c1 = ( eb_h - facet_h * c_dp ) / c_norm;
         Real c2 = ( facet_h - eb_h * c_dp ) / c_norm;
@@ -399,26 +133,25 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
         Real cx_hi = std::numeric_limits<Real>::max();
         Real cy_hi = std::numeric_limits<Real>::max();
         Real cz_hi = std::numeric_limits<Real>::max();
-        Real eps = std::numeric_limits<Real>::epsilon();
         // if the line runs parallel to any of these dimensions (which is true for
         // EB edges), then skip -> the min/max functions at the end will skip them
         // due to the +/-huge(c...) defaults (above).
         if ( std::abs(edge_v[0]) > eps ) {
-            cx_lo = -( edge_p0[0] -   ind_loop[0]       * dx[0] ) / edge_v[0];
-            cx_hi = -( edge_p0[0] - ( ind_loop[0] + 1 ) * dx[0] ) / edge_v[0];
-            if ( edge_v[0] < 0._rt ) amrex::Swap(cx_lo, cx_hi);
+            cx_lo = -( edge_p0[0] - static_cast<Real>( ind_loop[0]     ) * dx[0] ) / edge_v[0];
+            cx_hi = -( edge_p0[0] - static_cast<Real>( ind_loop[0] + 1 ) * dx[0] ) / edge_v[0];
+            if ( edge_v[0] < 0._rt ) { amrex::Swap(cx_lo, cx_hi); }
         }
         //
         if ( std::abs(edge_v[1]) > eps ) {
-            cy_lo = -( edge_p0[1] -   ind_loop[1]       * dx[1] ) / edge_v[1];
-            cy_hi = -( edge_p0[1] - ( ind_loop[1] + 1 ) * dx[1] ) / edge_v[1];
-            if ( edge_v[1] < 0._rt ) amrex::Swap(cy_lo, cy_hi);
+            cy_lo = -( edge_p0[1] - static_cast<Real>( ind_loop[1]     ) * dx[1] ) / edge_v[1];
+            cy_hi = -( edge_p0[1] - static_cast<Real>( ind_loop[1] + 1 ) * dx[1] ) / edge_v[1];
+            if ( edge_v[1] < 0._rt ) { amrex::Swap(cy_lo, cy_hi); }
         }
         //
         if ( std::abs(edge_v[2]) > eps ) {
-            cz_lo = -( edge_p0[2] -   ind_loop[2]       * dx[2] ) / edge_v[2];
-            cz_hi = -( edge_p0[2] - ( ind_loop[2] + 1 ) * dx[2] ) / edge_v[2];
-            if ( edge_v[2] < 0._rt ) amrex::Swap(cz_lo, cz_hi);
+            cz_lo = -( edge_p0[2] - static_cast<Real>( ind_loop[2]     ) * dx[2] ) / edge_v[2];
+            cz_hi = -( edge_p0[2] - static_cast<Real>( ind_loop[2] + 1 ) * dx[2] ) / edge_v[2];
+            if ( edge_v[2] < 0._rt ) { amrex::Swap(cz_lo, cz_hi); }
         }
         //
         Real lambda_min = amrex::max(cx_lo, cy_lo, cz_lo);
@@ -479,7 +212,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
     const auto dx_ls = ls_lev.Geom().CellSizeArray();
     const auto dx_eb = eb_factory.Geom().CellSizeArray();
     Real dx_eb_max = amrex::max(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2]));
-    Real ls_roof = amrex::min(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2])) * (flags.nGrow()+1);
+    Real ls_roof = amrex::min(AMREX_D_DECL(dx_eb[0],dx_eb[1],dx_eb[2])) * static_cast<Real>(flags.nGrow()+1);
 
     Real fluid_sign = fluid_has_positive_sign ? 1._rt : -1._rt;
 
@@ -498,7 +231,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
             Box eb_search = mfi.validbox();
             eb_search.coarsen(refratio).enclosedCells().grow(eb_pad);
 
-            const int nallcells = eb_search.numPts();
+            const auto nallcells = static_cast<int>(eb_search.numPts());
 
             Gpu::DeviceVector<int> is_cut(nallcells);
             int* p_is_cut = is_cut.data();
@@ -523,14 +256,14 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
 
             if (ncutcells > 0) {
                 Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM*2> > facets(ncutcells);
-                auto p_facets = facets.data();
+                auto *p_facets = facets.data();
                 Array4<Real const> const& bcent = bndrycent.const_array(mfi);
                 AMREX_D_TERM(Array4<Real const> const& apx = areafrac[0]->const_array(mfi);,
                              Array4<Real const> const& apy = areafrac[1]->const_array(mfi);,
                              Array4<Real const> const& apz = areafrac[2]->const_array(mfi));
                 amrex::ParallelFor(eb_search, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    int icell = eb_search.index(IntVect(AMREX_D_DECL(i,j,k)));
+                    auto icell = eb_search.index(IntVect(AMREX_D_DECL(i,j,k)));
                     if (p_is_cut[icell]) {
                         GpuArray<Real,AMREX_SPACEDIM*2>& fac = p_facets[p_cutcell_offset[icell]];
                         AMREX_D_TERM(fac[0] = (bcent(i,j,k,0)+Real(i)+0.5_rt) * dx_eb[0];,

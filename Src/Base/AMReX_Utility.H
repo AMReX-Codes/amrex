@@ -132,16 +132,6 @@ namespace amrex
     *  WWW URL:     http://www.math.uio.no/~jacklam
 
     *  "p" MUST be in the open interval (0,1).
-
-    *  Entry points for Fortran:
-
-    *    REAL_T val
-    *    call blinvnormdist(val)
-
-    *  Internally, the Fortran entry point calls a static Mersenne Twister
-    *  object (the same one called by blutilrand()) to get a random number in
-    *  the open interval (0,1), and then sets "val" to the result of calling
-    *  amrex::InvNormDist() with that random number.
     */
     double InvNormDist (double p);
     /**
@@ -165,16 +155,6 @@ namespace amrex
     *  is roughly 30% more costly than InvNormDist() above.
     *
     *  "p" MUST be in the open interval (0,1).
-    *
-    *  Entry points for Fortran:
-    *
-    *    REAL_T val
-    *    call blinvnormdistbest(val)
-    *
-    *  Internally, the Fortran entry point calls a static Mersenne Twister
-    *  object (the same one called by blutilrand()) to get a random number in
-    *  the open interval (0,1), and then sets "val" to the result of calling
-    *  amrex::InvNormDist() with that random number.
     */
     double InvNormDistBest (double p);
 
@@ -192,7 +172,7 @@ namespace amrex
         explicit expect (std::string str_);
         explicit expect (const char* istr_);
         explicit expect (char c);
-        const std::string& the_string( ) const;
+        [[nodiscard]] const std::string& the_string( ) const;
     private:
         std::string istr;
     };
@@ -200,11 +180,8 @@ namespace amrex
     class StreamRetry
     {
       public:
-        StreamRetry(std::ostream &os, std::string suffix,
-                    const int maxtries);
-        StreamRetry(std::string filename,
-                    const bool abortonretryfailure,
-                    const int maxtries);
+        StreamRetry(std::ostream &os, std::string suffix, int maxtries);
+        StreamRetry(std::string filename, bool abortonretryfailure, int maxtries);
         bool TryOutput();
         bool TryFileOutput();
         static int NStreamErrors()       { return nStreamErrors; }
@@ -212,9 +189,9 @@ namespace amrex
 
       private:
         int tries, maxTries;
-        bool abortOnRetryFailure;
+        bool abortOnRetryFailure = true;
         std::string fileName;
-        std::ostream &sros;
+        std::ostream *sros;
         std::ostream::pos_type spos;
         std::string suffix;
 
@@ -245,9 +222,9 @@ namespace amrex
     void Sleep (double sleepsec);  // Sleep for sleepsec seconds
 
 
-    using MaxResSteadyClock = std::conditional<std::chrono::high_resolution_clock::is_steady,
+    using MaxResSteadyClock = std::conditional_t<std::chrono::high_resolution_clock::is_steady,
                                                std::chrono::high_resolution_clock,
-                                               std::chrono::steady_clock>::type;
+                                               std::chrono::steady_clock>;
     double second () noexcept;
 
     template<typename T> void hash_combine (uint64_t & seed, const T & val) noexcept;

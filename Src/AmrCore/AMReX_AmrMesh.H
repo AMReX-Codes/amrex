@@ -11,6 +11,10 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_TagBox.H>
 
+#ifdef AMREX_USE_BITTREE
+#include <Bittree_BittreeAmr.h>
+#endif
+
 namespace amrex {
 
 struct AmrInfo {
@@ -22,7 +26,11 @@ struct AmrInfo {
     //! Blocking factor in grid generation (by level).
     Vector<IntVect> blocking_factor {{IntVect(8)}};
     //! Maximum allowable grid size (by level).
+#if defined(AMREX_USE_GPU)
+    Vector<IntVect> max_grid_size {{IntVect(AMREX_D_PICK(128,128,64))}};
+#else
     Vector<IntVect> max_grid_size {{IntVect(AMREX_D_PICK(128,128,32))}};
+#endif
     //! Buffer cells around each tagged cell.
     Vector<IntVect> n_error_buf {{IntVect(1)}};
     //! Grid efficiency.
@@ -65,7 +73,7 @@ public:
 
     AmrMesh (const RealBox& rb, int max_level_in,
              const Vector<int>& n_cell_in, int coord,
-             Vector<IntVect> const& ref_ratios,
+             Vector<IntVect> const& a_refrat,
              Array<int,AMREX_SPACEDIM> const& is_per);
 
     AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info);
@@ -166,7 +174,7 @@ public:
     void SetGridEff (Real eff) noexcept { grid_eff = eff; }
     void SetNProper (int n) noexcept { n_proper = n; }
 
-    //! Set ref_ratio would require rebuiling Geometry objects.
+    //! Set ref_ratio would require rebuilding Geometry objects.
 
     void SetFinestLevel (int new_finest_level) noexcept { finest_level = new_finest_level; }
     void SetDistributionMap (int lev, const DistributionMapping& dmap_in) noexcept;
@@ -174,7 +182,7 @@ public:
     void SetGeometry (int lev, const Geometry& geom_in) noexcept;
 
     //! Given domain box, return AMR level.  Return -1 if there is no match.
-    int GetLevel (Box const& domain) noexcept;
+    [[nodiscard]] int GetLevel (Box const& domain) const noexcept;
 
     void ClearDistributionMap (int lev) noexcept;
     void ClearBoxArray (int lev) noexcept;
@@ -197,7 +205,7 @@ public:
     //! Return the largest allowable grid.
     [[nodiscard]] const IntVect& maxGridSize (int lev) const noexcept { return max_grid_size[lev]; }
 
-    [[nodiscard]] bool LevelDefined (int lev) noexcept;
+    [[nodiscard]] bool LevelDefined (int lev) const noexcept;
 
     //! Should we keep the coarser grids fixed (and not regrid those levels) at all?
     [[nodiscard]] bool useFixedCoarseGrids () const noexcept { return use_fixed_coarse_grids; }
@@ -251,7 +259,9 @@ public:
 
     [[nodiscard]] virtual BoxArray GetAreaNotToTag (int /*lev*/) { return BoxArray(); }
 
-    [[nodiscard]] long CountCells (int lev) noexcept;
+    [[nodiscard]] Long CountCells (int lev) const noexcept;
+
+    [[nodiscard]] virtual DistributionMapping MakeDistributionMap (int lev, BoxArray const& ba);
 
 protected:
 
@@ -259,6 +269,11 @@ protected:
     Vector<Geometry>            geom;
     Vector<DistributionMapping> dmap;
     Vector<BoxArray>            grids;
+
+#ifdef AMREX_USE_BITTREE
+    bool use_bittree = false;
+    std::unique_ptr<bittree::BittreeAmr> btmesh;
+#endif
 
     unsigned int num_setdm = 0;
     unsigned int num_setba = 0;
@@ -274,7 +289,7 @@ private:
                       const RealBox* rb = nullptr, int coord = -1,
                       const int* is_per = nullptr);
 
-    static void ProjPeriodic (BoxList& bd, const Box& domain,
+    static void ProjPeriodic (BoxList& blout, const Box& domain,
                               Array<int,AMREX_SPACEDIM> const& is_per);
 };
 

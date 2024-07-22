@@ -8,6 +8,7 @@
 #include <AMReX_MakeType.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Arena.H>
+#include <AMReX_TypeTraits.H>
 
 namespace amrex
 {
@@ -48,14 +49,25 @@ template <class FAB>
 class FabFactory
 {
 public:
-    virtual ~FabFactory () = default;
+    FabFactory () noexcept = default;
+    FabFactory (FabFactory const&) noexcept = default;
+    FabFactory (FabFactory &&) noexcept = default;
+    FabFactory& operator= (FabFactory const&) noexcept = default;
+    FabFactory& operator= (FabFactory &&) noexcept = default;
+    virtual ~FabFactory () noexcept = default;
     AMREX_NODISCARD
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const = 0;
     AMREX_NODISCARD
     virtual FAB* create_alias (FAB const& /*rhs*/, int /*scomp*/, int /*ncomp*/) const { return nullptr; }
     virtual void destroy (FAB* fab) const = 0;
-    AMREX_NODISCARD
-    virtual FabFactory<FAB>* clone () const = 0;
+    AMREX_NODISCARD virtual FabFactory<FAB>* clone () const = 0;
+    AMREX_NODISCARD virtual Long nBytes (const Box& box, int ncomps, int /*box_index*/) const {
+        if constexpr (IsBaseFab_v<FAB>) {
+            return box.numPts() * ncomps * Long(sizeof(typename FAB::value_type));
+        } else {
+            return -1;
+        }
+    }
 };
 
 template <class FAB>

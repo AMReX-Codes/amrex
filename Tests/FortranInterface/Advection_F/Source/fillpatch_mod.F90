@@ -90,7 +90,7 @@ contains
                   geom%get_physical_location(plo), & ! physical location of lower left corner
                   lo_bc, hi_bc)                      ! bc types for each component
 
-             ! amrex_filcc doesn't fill EXT_DIR (see amrex_bc_types_module for a list of bc types
+             ! amrex_filcc doesn't fill EXT_DIR/EXT_DIR_CC (see amrex_bc_types_module for a list of bc types
              ! In that case, the user needs to fill it.
           end if
        end do

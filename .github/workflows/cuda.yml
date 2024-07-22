@@ -7,17 +7,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Build libamrex and all tests with CUDA 11.0.2 (recent supported)
+  # Build libamrex and all tests with CUDA 11.2
   tests-cuda11:
     name: CUDA@11.2 GNU@9.3.0 C++17 Release [tests]
     runs-on: ubuntu-20.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nvcc11.sh
-    - name: Build & Install
       run: |
+        .github/workflows/dependencies/dependencies_nvcc.sh 11.2
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=235M
+        ccache -z
+
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
         export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         which nvcc || echo "nvcc not in PATH!"
@@ -27,31 +41,103 @@ jobs:
             -DAMReX_EB=ON                                \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_FORTRAN=OFF                          \
-            -DAMReX_PARTICLES=ON                         \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which gcc)              \
             -DCMAKE_CXX_COMPILER=$(which g++)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
-            -DAMReX_CUDA_ARCH=7.0                        \
+            -DAMReX_CUDA_ARCH="7.0"                      \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
-            -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
+            -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON           \
+            -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-        cmake --build build -j 2
+        cmake --build build -j 4
 
-  # Build libamrex and all tests with NVHPC (recent supported)
-  tests-nvhpc23-1-nvcc:
-    name: NVHPC@23.1 NVCC/NVC++ C++17 Release [tests]
-    runs-on: ubuntu-20.04
-    env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wshadow --diag_suppress=code_is_unreachable"}
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  # Build libamrex and all tests for CUDA with LLVM Clang + libc++ + CTK 11.7
+  tests-cuda11-clang:
+    name: Clang@15 CUDA@11.7 C++17 Release [tests]
+    runs-on: ubuntu-22.04
+    env:
+      CC: clang-15
+      CXX: clang++-15
+      CUDACXX: clang++-15
+      CUDAHOSTCXX: clang++-15
+      CUDAFLAGS: "-stdlib=libc++"
+      LDFLAGS: "-stdlib=libc++"
+      CUDAARCHS: "70"
+      AMReX_CUDA_ARCH: "7.0"
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nvhpc23-1.sh
+      run: |
+        .github/workflows/dependencies/dependencies_llvm_cuda11_clang15.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=60M
+        export CCACHE_DEPEND=1
+        ccache -z
+
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+
+        cmake -S . -B build                              \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+            -DAMReX_MPI=OFF                              \
+            -DAMReX_EB=ON                                \
+            -DAMReX_ENABLE_TESTS=ON                      \
+            -DAMReX_FORTRAN=OFF                          \
+            -DAMReX_GPU_BACKEND=CUDA                     \
+            -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+        cmake --build build -j 4
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  # Build libamrex and all tests with NVHPC (recent supported)
+  tests-nvhpc-nvcc:
+    name: NVHPC NVCC/NVC++ C++17 Release [tests]
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
+        .github/workflows/dependencies/dependencies_nvhpc.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wshadow --diag_suppress=code_is_unreachable"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=220M
+        ccache -z
+
         source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/23.1
+        nvhpc_version=`ls -v /opt/nvidia/hpc_sdk/modulefiles/nvhpc/ | tail -n 1`
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/${nvhpc_version}
 
         which nvcc || echo "nvcc not in PATH!"
         which nvc++ || echo "nvc++ not in PATH!"
@@ -66,7 +152,7 @@ jobs:
         cmake -S . -B build                              \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_ENABLE_TESTS=ON                      \
-            -DAMReX_PARTICLES=ON                         \
+            -DAMReX_TEST_TYPE=Small                      \
             -DAMReX_FORTRAN=ON                           \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which nvc)              \
@@ -75,25 +161,62 @@ jobs:
             -DCMAKE_Fortran_COMPILER=$(which nvfortran)  \
             -DAMReX_CUDA_ARCH=8.0                        \
             -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
-            -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
+            -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON           \
+            -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-        cmake --build build -j 2
+        cmake --build build -j 4
+
+        ccache -s
+        du -hs ~/.cache/ccache
 
   # Build 3D libamrex cuda build with configure
   configure-3d-cuda:
     name: CUDA@11.2 GNU@9.3.0 [configure 3D]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_nvcc11.sh
+      run: |
+        .github/workflows/dependencies/dependencies_nvcc.sh 11.2
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=215M
+        ccache -z
+
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
         ./configure --dim 3 --with-cuda yes --enable-eb yes --enable-xsdk-defaults yes --with-fortran no
         #
         # /home/runner/work/amrex/amrex/Src/Base/AMReX_GpuLaunchGlobal.H:16:41: error: unused parameter ‘f0’ [-Werror=unused-parameter]
         #    16 |     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
         #
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-unused-parameter"
+        make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-unused-parameter" CCACHE=ccache CUDA_ARCH="7.0 7.2"
         make install
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

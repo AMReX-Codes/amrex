@@ -9,8 +9,8 @@
 namespace amrex {
 namespace Lazy
 {
-    typedef typename std::function<void()> Func;
-    typedef typename std::vector<Func> FuncQue;
+    using Func = std::function<void()>;
+    using FuncQue = std::vector<Func>;
 
     extern FuncQue reduction_queue;
 

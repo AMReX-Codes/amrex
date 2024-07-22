@@ -20,7 +20,6 @@ class AmrParGDB;
  * virtual functions to allocate, initialize and delete data.  It also
  * requires the derived class to tag cells for refinement.
  */
-
 class AmrCore
     : public AmrMesh
 {
@@ -49,7 +48,7 @@ public:
     ~AmrCore () override;
 
 #ifdef AMREX_PARTICLES
-    AmrParGDB* GetParGDB () const noexcept { return m_gdb.get(); }
+    [[nodiscard]] AmrParGDB* GetParGDB () const noexcept { return m_gdb.get(); }
 #endif
 
     /**

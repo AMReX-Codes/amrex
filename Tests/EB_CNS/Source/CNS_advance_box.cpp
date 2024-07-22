@@ -14,7 +14,7 @@ CNS::compute_dSdt_box (const Box& bx,
                        Array4<Real      >& dsdtfab,
                        const std::array<FArrayBox*, AMREX_SPACEDIM>& flux)
 {
-    BL_PROFILE("CNS::compute_dSdt__box()");
+    BL_PROFILE("CNS::compute_dSdt_box()");
 
     const auto dxinv = geom.InvCellSizeArray();
 

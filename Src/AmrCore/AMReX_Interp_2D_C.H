@@ -28,10 +28,10 @@ pcinterp_interp (Box const& bx,
     }
 }
 
-namespace {
-    static constexpr int ix   = 0;
-    static constexpr int iy   = 1;
-    static constexpr int ixy  = 2;
+namespace interp_detail {
+    constexpr int ix   = 0;
+    constexpr int iy   = 1;
+    constexpr int ixy  = 2;
 }
 
 template<typename T>
@@ -39,11 +39,13 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& u,
                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
 {
+    using namespace interp_detail;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    const Real rx = Real(1.)/ratio[0];
-    const Real ry = Real(1.)/ratio[1];
+    const Real rx = Real(1.)/Real(ratio[0]);
+    const Real ry = Real(1.)/Real(ratio[1]);
 
     for (int n = 0; n < ncomp; ++n) {
         for     (int j = lo.y; j <= hi.y; ++j) {
@@ -67,6 +69,8 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
                   Array4<T const> const& slope, Array4<T const> const& crse,
                   const int ccomp, IntVect const& ratio) noexcept
 {
+    using namespace interp_detail;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
     const auto chi = amrex::ubound(slope);
@@ -128,6 +132,7 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
 
             break;
         }
+        default : { break; }
     }
 }
 
@@ -162,6 +167,36 @@ facediv_int (int ci, int cj, int /*ck*/, int nf,
     fine[1](fi,  fj+1,0,nf) = Real(0.5)*(vmm+vpm) + y_corr;
     fine[1](fi+1,fj+1,0,nf) = Real(0.5)*(vmp+vpp) + y_corr;
 
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_linear_interp_x (int i, int j, int /*k*/, int n, Array4<T> const& fine,
+                      Array4<T const> const& crse, IntVect const& ratio) noexcept
+{
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    if (i-ii*ratio[0] == 0) {
+        fine(i,j,0,n) = crse(ii,jj,0,n);
+    } else {
+        Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/Real(ratio[0]));
+        fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii+1,jj,0,n);
+    }
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_linear_interp_y (int i, int j, int /*k*/, int n, Array4<T> const& fine,
+                      Array4<T const> const& crse, IntVect const& ratio) noexcept
+{
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    if (j-jj*ratio[1] == 0) {
+        fine(i,j,0,n) = crse(ii,jj,0,n);
+    } else {
+        Real const w = static_cast<Real>(j-jj*ratio[1]) * (Real(1.)/Real(ratio[1]));
+        fine(i,j,0,n) = (Real(1.)-w) * crse(ii,jj,0,n) + w * crse(ii,jj+1,0,n);
+    }
 }
 
 template <typename T>

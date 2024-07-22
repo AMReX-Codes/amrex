@@ -7,21 +7,15 @@
 
 namespace amrex {
 
-ErrorRec::ErrorFunc::ErrorFunc ()
-    :
-    m_func(nullptr),
-    m_func3D(nullptr)
-{}
+ErrorRec::ErrorFunc::ErrorFunc () = default;
 
 ErrorRec::ErrorFunc::ErrorFunc (ErrorFuncDefault inFunc)
     :
-    m_func(inFunc),
-    m_func3D(nullptr)
+    m_func(inFunc)
 {}
 
 ErrorRec::ErrorFunc::ErrorFunc (ErrorFunc3DDefault inFunc)
     :
-    m_func(nullptr),
     m_func3D(inFunc)
 {}
 
@@ -71,10 +65,7 @@ ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi,
 }
 // \endcond
 
-ErrorRec::ErrorFunc2::ErrorFunc2 ()
-    :
-    m_func(nullptr)
-{}
+ErrorRec::ErrorFunc2::ErrorFunc2 () = default;
 
 ErrorRec::ErrorFunc2::ErrorFunc2 (ErrorFunc2Default inFunc)
     :
@@ -203,7 +194,9 @@ ErrorList::operator[] (int k) const noexcept
     return *vec[k];
 }
 
-static const char* err_name[] = { "Special", "Standard", "UseAverage" };
+namespace {
+    const char* err_name[] = { "Special", "Standard", "UseAverage" };
+}
 
 std::ostream&
 operator << (std::ostream&    os,
@@ -265,9 +258,9 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
             auto const& tagma = tba.arrays();
             if (m_test == BOX)
             {
-                const auto plo = geom.ProbLoArray();
-                const auto dx  = geom.CellSizeArray();
-                const auto tag_rb = m_info.m_realbox;
+                const auto& plo = geom.ProbLoArray();
+                const auto& dx  = geom.CellSizeArray();
+                const auto& tag_rb = m_info.m_realbox;
                 ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                 {
                     GpuArray<Real,AMREX_SPACEDIM> pt
@@ -284,7 +277,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                 auto const& datma   = mf->const_arrays();
                 auto threshold = m_value[level];
                 auto const volume_weighting = m_info.m_volume_weighting;
-                auto geomdata = geom.data();
+                auto const& geomdata = geom.data();
                 auto tag_update = tagval;
                 if (m_info.m_derefine) {
                     tag_update = clearval;
@@ -469,13 +462,15 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                         });
                     } else
 #endif
-                    ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                     {
-                        Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
+                        ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                        {
+                            Real vol = volume_weighting ? Geometry::Volume(IntVect{AMREX_D_DECL(i,j,k)}, geomdata) : 1.0_rt;
                             if (datma[bi](i,j,k) * vol >= threshold) {
                                 tagma[bi](i,j,k) = tag_update;
                             }
-                    });
+                        });
+                    }
                 }
                 else if (m_test == VORT)
                 {

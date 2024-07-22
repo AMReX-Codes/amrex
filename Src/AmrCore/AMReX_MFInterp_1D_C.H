@@ -38,7 +38,7 @@ void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int, int, Array4<Real>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mf_cell_cons_lin_interp_llslope (int i, int, int, Array4<Real> const& slope,
                                       Array4<Real const> const& u, int scomp, int ncomp,
-                                      Box const& domain, BCRec const* bc) noexcept
+                                      Box const& domain, IntVect const& /*ratio*/, BCRec const* bc) noexcept
 {
     Real sfx = Real(1.0);
 
@@ -105,7 +105,7 @@ void mf_cell_cons_lin_interp (int i, int /*j*/, int /*k*/, int ns,
                               int ccomp, int /*ncomp*/, IntVect const& ratio) noexcept
 {
     const int ic = amrex::coarsen(i, ratio[0]);
-    const Real xoff = (i - ic*ratio[0] + Real(0.5)) / Real(ratio[0]) - Real(0.5);
+    const Real xoff = (static_cast<Real>(i - ic*ratio[0]) + Real(0.5)) / Real(ratio[0]) - Real(0.5);
     fine(i,0,0,fcomp+ns) = crse(ic,0,0,ccomp+ns)
         + xoff * slope(ic,0,0,ns);
 }
@@ -210,8 +210,8 @@ void mf_nodebilin_interp (int i, int, int, int n, Array4<Real> const& fine, int 
     int ioff = i - ic*ratio[0];
     if (ioff != 0) {
         Real rxinv = Real(1.0) / Real(ratio[0]);
-        fine(i,0,0,n+fcomp) = rxinv*((ratio[0]-ioff)*crse(ic  ,0,0,n+ccomp) +
-                                     (         ioff)*crse(ic+1,0,0,n+ccomp));
+        fine(i,0,0,n+fcomp) = rxinv*(static_cast<Real>(ratio[0]-ioff)*crse(ic  ,0,0,n+ccomp) +
+                                     static_cast<Real>(         ioff)*crse(ic+1,0,0,n+ccomp));
     } else {
         fine(i,0,0,n+fcomp) = crse(ic,0,0,n+ccomp);
     }

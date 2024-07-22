@@ -9,18 +9,18 @@
 
 namespace amrex {
 
-HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& dmap_,
+HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& dmap_, // NOLINT(modernize-pass-by-value)
                             const Geometry& geom_, const FabFactory<FArrayBox>& factory_,
                             const iMultiFab& owner_mask_, const iMultiFab& dirichlet_mask_,
                             MPI_Comm comm_, MLNodeLinOp const* linop_, int verbose_,
-                            const std::string& options_namespace_)
+                            std::string options_namespace_)
     : grids(grids_), dmap(dmap_), geom(geom_), factory(&factory_),
       owner_mask(&owner_mask_), dirichlet_mask(&dirichlet_mask_),
       comm(comm_), linop(linop_), verbose(verbose_),
-      options_namespace(options_namespace_)
+      options_namespace(std::move(options_namespace_))
 {
     static_assert(AMREX_SPACEDIM > 1, "HypreNodeLap: 1D not supported");
-    static_assert(std::is_same<Real, HYPRE_Real>::value, "amrex::Real != HYPRE_Real");
+    static_assert(std::is_same_v<Real, HYPRE_Real>, "amrex::Real != HYPRE_Real");
 
     int num_procs, myid;
     MPI_Comm_size(comm, &num_procs);
@@ -47,7 +47,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     Int nnodes_proc = fill_local_node_id();
 
     // At this point, local_node_id stores the ids local to each box.
-    // nnodes_grid stroes the number of nodes in each box.  nnodes_proc is
+    // nnodes_grid stores the number of nodes in each box.  nnodes_proc is
     // the number of nodes on this MPI process.  If a nodal is invalid, its
     // id is invalid (i.e., a very negative number).  Note that the data
     // type of local_node_id is int, not HYPRE_Int for performance on GPU.
@@ -99,18 +99,18 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
         {
             ncols_vec.clear();
             ncols_vec.resize(nrows);
-            auto ncols = ncols_vec.data();
+            auto* ncols = ncols_vec.data();
 
             const auto& rows_vec = node_id_vec[mfi];
-            auto rows = rows_vec.data();
+            const auto* rows = rows_vec.data();
 
             cols_vec.clear();
             cols_vec.resize(nrows*max_stencil_size);
-            auto cols = cols_vec.data();
+            auto* cols = cols_vec.data();
 
             mat_vec.clear();
             mat_vec.resize(nrows*max_stencil_size);
-            auto mat = mat_vec.data();
+            auto* mat = mat_vec.data();
 
             const auto& gid = node_id.const_array(mfi);
             const auto& lid = local_node_id.const_array(mfi);
@@ -123,16 +123,15 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
                 adjust_singular_matrix(ncols, cols, rows, mat);
             }
 
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
             HYPRE_IJMatrixSetValues(A, nrows, ncols, rows, cols, mat);
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
         }
     }
     HYPRE_IJMatrixAssemble(A);
 }
 
-HypreNodeLap::~HypreNodeLap ()
-{}
+HypreNodeLap::~HypreNodeLap () = default;
 
 void
 HypreNodeLap::solve (MultiFab& soln, const MultiFab& rhs,
@@ -182,7 +181,7 @@ HypreNodeLap::fill_local_node_id_gpu ()
         AMREX_ASSERT(ndbx.numPts() < static_cast<Long>(std::numeric_limits<int>::max()));
         const int npts = ndbx.numPts();
         int nnodes_box = amrex::Scan::PrefixSum<int>(npts,
-            [=] AMREX_GPU_DEVICE (int offset) noexcept
+            [=] AMREX_GPU_DEVICE (int offset) noexcept -> int
             {
                 int valid_node = 1;
                 const Dim3 cell = ndbx.atOffset(offset).dim3();
@@ -264,7 +263,7 @@ HypreNodeLap::fill_global_node_id ()
         const auto& lnid = local_node_id.const_array(mfi);
         auto& rows_vec = node_id_vec[mfi];
         rows_vec.resize(nnodes_grid[mfi]);
-        auto rows = rows_vec.data();
+        auto* rows = rows_vec.data();
         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
         {
             if (lnid.contains(i,j,k) && lnid(i,j,k) >= 0) {
@@ -286,7 +285,7 @@ HypreNodeLap::adjust_singular_matrix (Int const* ncols, Int const* cols, Int con
         amrex::ignore_unused(m);
         const int num_cols = ncols[0];
         for (int ic = 0; ic < num_cols; ++ic) {
-            mat[ic] = (cols[ic] == rows[0]) ? mat[ic] : 0.0;
+            mat[ic] = (cols[ic] == rows[0]) ? mat[ic] : Real(0.0);
         }
     });
 }
@@ -309,7 +308,7 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
             bvec.clear();
             bvec.resize(nrows);
-            auto bp = bvec.data();
+            auto* bp = bvec.data();
 
             const auto& bfab = rhs.array(mfi);
             const auto& lid = local_node_id.array(mfi);
@@ -325,9 +324,9 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                 });
             }
 
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
             HYPRE_IJVectorSetValues(b, nrows, rows_vec.data(), bvec.data());
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
         }
     }
 }
@@ -348,7 +347,7 @@ HypreNodeLap::getSolution (MultiFab& soln)
             xvec.resize(nrows);
             Real* xp = xvec.data();
             HYPRE_IJVectorGetValues(x, nrows, rows_vec.data(), xp);
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
 
             const Box& bx = mfi.validbox();
             const auto& xfab = tmpsoln.array(mfi);
@@ -360,7 +359,7 @@ HypreNodeLap::getSolution (MultiFab& soln)
                 }
             });
 
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
         }
     }
 

@@ -51,7 +51,7 @@ struct GetBucket
 
 class ParticleBufferMap
 {
-    bool m_defined;
+    bool m_defined{false};
     Vector<BoxArray> m_ba;
     Vector<DistributionMapping> m_dm;
 
@@ -70,9 +70,7 @@ class ParticleBufferMap
     Gpu::DeviceVector<int> d_lev_offsets;
 
 public:
-    ParticleBufferMap ()
-        : m_defined(false), m_ba(), m_dm()
-        {}
+    ParticleBufferMap () = default;
 
     ParticleBufferMap (const ParGDBBase* a_gdb);
 
@@ -80,63 +78,63 @@ public:
 
     bool isValid (const ParGDBBase* a_gdb) const;
 
-    AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_FORCE_INLINE
     int numLevels () const
     {
         AMREX_ASSERT(m_defined);
-        return m_lev_offsets.size()-1;
+        return static_cast<int>(m_lev_offsets.size()-1);
     }
 
-    AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_FORCE_INLINE
     int numBuckets () const
     {
         AMREX_ASSERT(m_defined);
-        return m_bucket_to_gid.size();
+        return static_cast<int>(m_bucket_to_gid.size());
     }
 
-    AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_FORCE_INLINE
     int bucketToGrid (int bid) const
     {
         AMREX_ASSERT(m_defined);
         return m_bucket_to_gid[bid];
     }
 
-    AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_FORCE_INLINE
     int bucketToLevel (int bid) const
     {
         AMREX_ASSERT(m_defined);
         return m_bucket_to_lev[bid];
     }
 
-    AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_FORCE_INLINE
     int bucketToProc (int bid) const
     {
         AMREX_ASSERT(m_defined);
         return m_bucket_to_pid[bid];
     }
 
-    AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_FORCE_INLINE
     int gridAndLevToBucket (int gid, int lev) const
     {
         AMREX_ASSERT(m_defined);
         return m_lev_gid_to_bucket[m_lev_offsets[lev] + gid];
     }
 
-    AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_FORCE_INLINE
     int firstBucketOnProc (int pid) const
     {
         AMREX_ASSERT(m_defined);
         return m_proc_box_offsets[pid];
     }
 
-    AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_FORCE_INLINE
     int numBoxesOnProc (int pid) const
     {
         AMREX_ASSERT(m_defined);
         return m_proc_box_counts[pid];
     }
 
-    AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_FORCE_INLINE
     Vector<int> allBucketsOnProc (int pid) const
     {
         AMREX_ASSERT(m_defined);
@@ -148,15 +146,15 @@ public:
         return buckets;
     }
 
-    AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_FORCE_INLINE
     int procID (int gid, int lev) const
     {
         AMREX_ASSERT(m_defined);
         return m_dm[lev][gid];
     }
 
-    GetPID getPIDFunctor () const noexcept { return GetPID(d_bucket_to_pid, d_lev_gid_to_bucket, d_lev_offsets);}
-    GetBucket getBucketFunctor () const noexcept { return GetBucket(d_lev_gid_to_bucket, d_lev_offsets);}
+    [[nodiscard]] GetPID getPIDFunctor () const noexcept { return GetPID(d_bucket_to_pid, d_lev_gid_to_bucket, d_lev_offsets);}
+    [[nodiscard]] GetBucket getBucketFunctor () const noexcept { return GetBucket(d_lev_gid_to_bucket, d_lev_offsets);}
 };
 
 } // namespace amrex

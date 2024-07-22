@@ -1,6 +1,6 @@
 #include <AMReX_EB2_IndexSpace_chkpt_file.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 IndexSpaceChkptFile::IndexSpaceChkptFile (const ChkptFile& chkpt_file,
                                           const Geometry& geom, int required_coarsening_level,
@@ -65,7 +65,7 @@ const Level&
 IndexSpaceChkptFile::getLevel (const Geometry& geom) const
 {
     auto it = std::find(std::begin(m_domain), std::end(m_domain), geom.Domain());
-    int i = std::distance(m_domain.begin(), it);
+    auto i = std::distance(m_domain.begin(), it);
     return m_chkpt_file_level[i];
 }
 
@@ -73,7 +73,7 @@ const Geometry&
 IndexSpaceChkptFile::getGeometry (const Box& dom) const
 {
     auto it = std::find(std::begin(m_domain), std::end(m_domain), dom);
-    int i = std::distance(m_domain.begin(), it);
+    auto i = std::distance(m_domain.begin(), it);
     return m_geom[i];
 }
 
@@ -83,4 +83,10 @@ IndexSpaceChkptFile::addFineLevels (int /*num_new_fine_levels*/)
     amrex::Abort("IndexSpaceChkptFile::addFineLevels: not supported");
 }
 
-}}
+void
+IndexSpaceChkptFile::addRegularCoarseLevels (int /*num_new_coarse_levels*/)
+{
+    amrex::Abort("IndexSpaceChkptFile::addRegularCoarseLevels: not supported");
+}
+
+}

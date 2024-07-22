@@ -73,5 +73,5 @@ void RandomNumGen ()
     zvar /= Ndraw;
     amrex::Print() << "\n  Means: " << xmean << ", " << ymean << ", " << zmean
                    << "  Variances: " << xvar << ", " << yvar << ", " << zvar
-                   << std::endl;
+                   << '\n';
 }

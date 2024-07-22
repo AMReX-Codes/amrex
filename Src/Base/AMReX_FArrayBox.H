@@ -3,13 +3,9 @@
 #define BL_FARRAYBOX_H
 #include <AMReX_Config.H>
 
-#include <AMReX_Box.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_FabConv.H>
-#include <AMReX_REAL.H>
-#include <AMReX_SPACE.H>
 #include <AMReX_FabFactory.H>
-#include <cmath>
 
 namespace amrex {
 
@@ -27,10 +23,9 @@ class FArrayBox;
 * only want to write out 32 bit FABs.
 *
 * With the exception of the enumeration constants, this class is
-* primarily for FArrayBox implementors; i.e. user's shouldn't
+* primarily for FArrayBox implementers; i.e. user's shouldn't
 * call any of the member functions in this class directly.
 */
-
 class FABio // NOLINT(cppcoreguidelines-special-member-functions)
 {
 public:
@@ -70,7 +65,7 @@ public:
     */
     enum Format
     {
-        FAB_ASCII = 0,
+        FAB_ASCII,
         FAB_IEEE,
         FAB_NATIVE,
         //
@@ -120,7 +115,7 @@ public:
     * \brief Pure virtual function.  Derived classes MUST override this
     * function to skip over the next FAB f in the istream, under the
     * assumption that the header for the FAB f has already been
-    * skpped over.
+    * skipped over.
     */
     virtual void skip (std::istream& is,
                        FArrayBox&    f) const = 0;
@@ -228,7 +223,6 @@ private:
 *  This class does NOT provide a copy constructor or assignment operator,
 *  but it has a move constructor.
 */
-
 class FArrayBox
     :
     public BaseFab<Real>
@@ -245,7 +239,7 @@ public:
 
     /**
     * \brief Construct an initial FAB with the data space allocated but
-    * not inititialized. ncomp is the number of components
+    * not initialized. ncomp is the number of components
     * (variables) at each data point in the Box.
     */
     explicit FArrayBox (const Box& b,
@@ -413,7 +407,7 @@ public:
     /**
     * \brief Set the FABio::Format in the program.
     * This is the preferred way to set the output format
-    * in "new" FABs.  When desiging new programs, this should
+    * in "new" FABs.  When designing new programs, this should
     * be the only function that needs to be called in order
     * to set the format.
     */

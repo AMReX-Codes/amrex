@@ -11,6 +11,10 @@
 #define AMREX_CUDA_GE_11_2 1
 #endif
 
+#if defined(AMREX_USE_HIP) || defined(AMREX_CUDA_GE_11_2)
+#define AMREX_GPU_STREAM_ALLOC_SUPPORT 1
+#endif
+
 #if defined(AMREX_USE_HIP)
 #define AMREX_HIP_OR_CUDA(a,b) a
 #elif defined(AMREX_USE_CUDA)
@@ -65,7 +69,7 @@ namespace amrex {
     enum struct RunOn { Gpu, Cpu, Device=Gpu, Host=Cpu };
 }
 
-namespace amrex {
+namespace amrex { // NOLINT(modernize-concat-nested-namespaces)
 
 #ifdef AMREX_USE_HIP
 using gpuStream_t = hipStream_t;
@@ -150,7 +154,7 @@ namespace Gpu {
     }
 
     /**
-     * This struct provides a RAII-style mechansim for changing the number
+     * This struct provides a RAII-style mechanism for changing the number
      * of streams returned by Gpu::numStreams() to a single stream.
      */
     struct [[nodiscard]] SingleStreamRegion
@@ -166,7 +170,7 @@ namespace Gpu {
     };
 
     /**
-     * This struct provides a RAII-style mechansim for disabling GPU
+     * This struct provides a RAII-style mechanism for disabling GPU
      * synchronization in MFITer by default.  Note that explicit calls to
      * Gpu::steramSynchronize and Gpu::deviceSynchronize still work.
      */
@@ -184,13 +188,13 @@ namespace Gpu {
 
 #else
 
-    [[nodiscard]] inline static constexpr bool inLaunchRegion () { return false; }
-    [[nodiscard]] inline static constexpr bool notInLaunchRegion () { return true; }
-    [[nodiscard]] inline static constexpr bool setLaunchRegion (bool) { return false; }
+    [[nodiscard]] inline constexpr bool inLaunchRegion () { return false; }
+    [[nodiscard]] inline constexpr bool notInLaunchRegion () { return true; }
+    [[nodiscard]] inline constexpr bool setLaunchRegion (bool) { return false; }
 
-    [[nodiscard]] inline static constexpr bool inGraphRegion () { return false; }
-    [[nodiscard]] inline static constexpr bool notInGraphRegion () { return true; }
-    [[nodiscard]] inline static constexpr bool setGraphRegion (bool) { return false; }
+    [[nodiscard]] inline constexpr bool inGraphRegion () { return false; }
+    [[nodiscard]] inline constexpr bool notInGraphRegion () { return true; }
+    [[nodiscard]] inline constexpr bool setGraphRegion (bool) { return false; }
 
     struct [[nodiscard]] LaunchSafeGuard
     {
@@ -202,10 +206,10 @@ namespace Gpu {
         explicit GraphSafeGuard (bool) {}
     };
 
-    [[nodiscard]] inline static constexpr bool inSingleStreamRegion () { return false; }
-    [[nodiscard]] inline static constexpr bool inNoSyncRegion () { return true; }
-    [[nodiscard]] inline static constexpr bool setSingleStreamRegion (bool) { return false; }
-    [[nodiscard]] inline static constexpr bool setNoSyncRegion (bool) { return true; }
+    [[nodiscard]] inline constexpr bool inSingleStreamRegion () { return false; }
+    [[nodiscard]] inline constexpr bool inNoSyncRegion () { return true; }
+    [[nodiscard]] inline constexpr bool setSingleStreamRegion (bool) { return false; }
+    [[nodiscard]] inline constexpr bool setNoSyncRegion (bool) { return true; }
     struct [[nodiscard]] SingleStreamRegion {};
     struct [[nodiscard]] NoSyncRegion {};
 

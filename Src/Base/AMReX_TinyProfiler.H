@@ -39,17 +39,18 @@ class TinyProfiler
 {
 public:
     explicit TinyProfiler (std::string funcname) noexcept;
-    TinyProfiler (std::string funcname, bool start_, bool useCUPTI=false) noexcept;
+    TinyProfiler (std::string funcname, bool start_) noexcept;
     explicit TinyProfiler (const char* funcname) noexcept;
-    TinyProfiler (const char* funcname, bool start_, bool useCUPTI=false) noexcept;
+    TinyProfiler (const char* funcname, bool start_) noexcept;
     ~TinyProfiler ();
+
+    TinyProfiler (TinyProfiler const&) = delete;
+    TinyProfiler (TinyProfiler &&) = delete;
+    TinyProfiler& operator= (TinyProfiler const&) = delete;
+    TinyProfiler& operator= (TinyProfiler &&) = delete;
 
     void start () noexcept;
     void stop () noexcept;
-#ifdef AMREX_USE_CUPTI
-    void stop (unsigned boxUintID) noexcept;
-#endif // AMREX_USE_CUPTI
-
 
     void memory_start () const noexcept;
     void memory_stop () const noexcept;
@@ -82,8 +83,6 @@ private:
         Long n{0L};         //!< number of calls
         double dtin{0.0};    //!< inclusive dt
         double dtex{0.0};    //!< exclusive dt
-        bool usesCUPTI{false}; //!< uses CUPTI
-        Long nk{0};        //!< number of kernel calls
     };
 
     //! stats across processes
@@ -96,7 +95,7 @@ private:
         double dtinavg{0.0}, dtinmax{0.0};
         double dtexmin{std::numeric_limits<double>::max()};
         double dtexavg{0.0}, dtexmax{0.0};
-        bool usesCUPTI{false};
+        bool do_print{true};
         std::string fname;
         static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
             return lhs.dtexmax > rhs.dtexmax;
@@ -123,11 +122,9 @@ private:
     };
 
     std::string fname;
-    bool uCUPTI;
-    bool in_parallel_region;
-    int global_depth;
+    bool in_parallel_region = false;
+    int global_depth = -1;
     std::vector<Stats*> stats;
-
 
     static std::deque<const TinyProfiler*> mem_stack;
 
@@ -149,9 +146,12 @@ private:
     static int device_synchronize_around_region;
     static int n_print_tabs;
     static int verbose;
+    static double print_threshold;
 
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
-    static void PrintMemStats (int mem_type, double dt_max, double t_final);
+    static void PrintMemStats (std::map<std::string, MemStat>& memstats,
+                               std::string const& memname, double dt_max,
+                               double t_final);
 };
 
 class TinyProfileRegion
@@ -159,6 +159,10 @@ class TinyProfileRegion
 public:
     explicit TinyProfileRegion (std::string a_regname) noexcept;
     explicit TinyProfileRegion (const char* a_regname) noexcept;
+    TinyProfileRegion (TinyProfileRegion const&) = delete;
+    TinyProfileRegion (TinyProfileRegion &&) = delete;
+    TinyProfileRegion& operator= (TinyProfileRegion const&) = delete;
+    TinyProfileRegion& operator= (TinyProfileRegion &&) = delete;
     ~TinyProfileRegion ();
 private:
     std::string regname;

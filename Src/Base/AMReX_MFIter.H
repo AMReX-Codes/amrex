@@ -99,6 +99,9 @@ public:
     MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInfo& info);
 
     MFIter (MFIter&& rhs) = default;
+    MFIter (MFIter const&) = delete;
+    MFIter& operator= (MFIter const&) = delete;
+    MFIter& operator= (MFIter &&) = delete;
 
     // dtor
     ~MFIter ();
@@ -126,10 +129,10 @@ public:
     [[nodiscard]] Box grownnodaltilebox (int dir, const IntVect& ng) const noexcept;
 
     //! Return the valid Box in which the current tile resides.
-    [[nodiscard]] Box validbox () const noexcept { return fabArray.box((*index_map)[currentIndex]); }
+    [[nodiscard]] Box validbox () const noexcept { return fabArray->box((*index_map)[currentIndex]); }
 
     //! Return the Box of the FAB at which we currently point.
-    [[nodiscard]] Box fabbox () const noexcept { return fabArray.fabbox((*index_map)[currentIndex]); }
+    [[nodiscard]] Box fabbox () const noexcept { return fabArray->fabbox((*index_map)[currentIndex]); }
 
     //! Increment iterator to the next tile we own.
     void operator++ () noexcept;
@@ -156,13 +159,15 @@ public:
     [[nodiscard]] int LocalIndex () const noexcept { return local_index_map ? (*local_index_map)[currentIndex] : currentIndex; }
 
     //! Constant reference to FabArray over which we're iterating.
-    [[nodiscard]] const FabArrayBase& theFabArrayBase () const noexcept { return fabArray; }
+    [[nodiscard]] const FabArrayBase& theFabArrayBase () const noexcept { return *fabArray; }
 
     [[nodiscard]] int tileIndex () const noexcept {return currentIndex;}
 
-    [[nodiscard]] const DistributionMapping& DistributionMap () const noexcept { return fabArray.DistributionMap(); }
+    [[nodiscard]] const DistributionMapping& DistributionMap () const noexcept { return fabArray->DistributionMap(); }
 
     static int allowMultipleMFIters (int allow);
+
+    static int currentDepth ();
 
     void Finalize ();
 
@@ -170,7 +175,7 @@ protected:
 
     std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first member!
 
-    const FabArrayBase& fabArray;
+    const FabArrayBase* fabArray;
 
     IntVect tile_size;
 
@@ -185,9 +190,12 @@ protected:
     bool          finalized = false;
 
     struct DeviceSync {
-        DeviceSync () = default;
         DeviceSync (bool f) : flag(f) {}
         DeviceSync (DeviceSync&& rhs)  noexcept : flag(std::exchange(rhs.flag,false)) {}
+        ~DeviceSync () = default;
+        DeviceSync (DeviceSync const&) = delete;
+        DeviceSync& operator= (DeviceSync const&) = delete;
+        DeviceSync& operator= (DeviceSync &&) = delete;
         explicit operator bool() const noexcept { return flag; }
         bool flag = true;
     };

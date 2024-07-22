@@ -67,7 +67,9 @@ struct FabCopyDescriptor
     ~FabCopyDescriptor ();
 
     FabCopyDescriptor (const FabCopyDescriptor&) = delete;
+    FabCopyDescriptor (FabCopyDescriptor&&) = delete;
     FabCopyDescriptor& operator= (const FabCopyDescriptor&) = delete;
+    FabCopyDescriptor& operator= (FabCopyDescriptor&&) = delete;
 
     FAB*     localFabSource;
     Box      subBox;
@@ -92,29 +94,34 @@ FabCopyDescriptor<FAB>::FabCopyDescriptor ()
 template <class FAB>
 FabCopyDescriptor<FAB>::~FabCopyDescriptor ()
 {
-    if (cacheDataAllocated)
+    if (cacheDataAllocated) {
         delete localFabSource;
+    }
 }
 
 /**
 * \brief This class orchestrates filling a destination fab of size destFabBox
 * from fabarray on the local processor (myProc).
 */
-
 template <class FAB>
 class FabArrayCopyDescriptor
 {
-  typedef std::multimap<int,FabCopyDescriptor<FAB>*> FCDMap;
+    using FCDMap = std::multimap<int,FabCopyDescriptor<FAB>*>;
 
-  typedef typename FCDMap::value_type     FCDMapValueType;
-  typedef typename FCDMap::iterator       FCDMapIter;
-  typedef typename FCDMap::const_iterator FCDMapConstIter;
+    using FCDMapValueType = typename FCDMap::value_type;
+    using FCDMapIter      = typename FCDMap::iterator;
+    using FCDMapConstIter = typename FCDMap::const_iterator;
 
-  public:
+public:
 
     FabArrayCopyDescriptor () = default;
 
     ~FabArrayCopyDescriptor ();
+
+    FabArrayCopyDescriptor (const FabArrayCopyDescriptor<FAB>&) = delete;
+    FabArrayCopyDescriptor (FabArrayCopyDescriptor<FAB>&&) = delete;
+    FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &) = delete;
+    FabArrayCopyDescriptor<FAB>& operator= (FabArrayCopyDescriptor<FAB> &&) = delete;
 
     FabArrayId RegisterFabArray(FabArray<FAB> *fabarray);
 
@@ -165,12 +172,6 @@ class FabArrayCopyDescriptor
 
 private:
     //!
-    //! These are disallowed.
-    //!
-    FabArrayCopyDescriptor (const FabArrayCopyDescriptor<FAB>&) = delete;
-
-    FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &) = delete;
-    //!
     //! Helper function for AddBox() routines.
     //!
     void AddBoxDoIt (FabArrayId fabarrayid,
@@ -185,9 +186,9 @@ private:
     //!
     //! Some useful typedefs.
     //!
-    typedef std::vector<FabArrayBase::FabComTag> FabComTagContainer;
+    using FabComTagContainer = std::vector<FabArrayBase::FabComTag>;
 
-    typedef std::vector<FabComTagContainer::const_iterator> FabComTagIterContainer;
+    using FabComTagIterContainer = std::vector<FabComTagContainer::const_iterator>;
     //!
     //! The data.
     //!
@@ -412,7 +413,7 @@ FabArrayCopyDescriptor<FAB>::clear ()
 {
     for (unsigned int i = 0, N = fabCopyDescList.size(); i < N; ++i)
     {
-        for (FCDMapIter fmi = fabCopyDescList[i].begin(), End = fabCopyDescList[i].end();
+        for (auto fmi = fabCopyDescList[i].begin(), End = fabCopyDescList[i].end();
              fmi != End;
              ++fmi)
         {
@@ -434,10 +435,10 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 {
     dataAvailable = true;
 
-    if (ParallelDescriptor::NProcs() == 1) return;
+    if (ParallelDescriptor::NProcs() == 1) { return; }
 
 #ifdef BL_USE_MPI
-    typedef typename FAB::value_type value_type;
+    using value_type = typename FAB::value_type;
 
     BL_PROFILE("FabArrayCopyDescriptor::CollectData()");
 
@@ -464,9 +465,9 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         BL_ASSERT(it->procThatHasData   != MyProc);
 
         const int Who = it->procThatHasData;
-        const int Cnt = (it->box.numPts())*(it->nComp);
+        const auto Cnt = static_cast<int>((it->box.numPts())*(it->nComp));
 
-        RcvTags[Who].push_back(it);
+        RcvTags[Who].emplace_back(it);
 
         Total_Rcvs_Size += Cnt;
 
@@ -498,7 +499,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     {
         Vector<int> SndsArray(NProcs,0), RcvsArray(NProcs,0);
 
-        for (auto Rcv : Rcvs)
+        for (auto const& Rcv : Rcvs)
         {
             RcvsArray[Rcv.first] = Rcv.second;
         }
@@ -523,9 +524,11 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         }
         BL_ASSERT(SndsArray[MyProc] == 0);
 
-        for (int i = 0; i < NProcs; i++)
-            if (SndsArray[i] > 0)
+        for (int i = 0; i < NProcs; i++) {
+            if (SndsArray[i] > 0) {
                 Snds[i] = SndsArray[i];
+            }
+        }
     }
 
     // There are two rounds of send and recv.
@@ -534,10 +537,10 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     const int SeqNum_md   = ParallelDescriptor::SeqNum();
     const int SeqNum_data = ParallelDescriptor::SeqNum();
 
-    const int N_snds = Snds.size();
-    const int N_rcvs = Rcvs.size();
+    const auto N_snds = static_cast<int>(Snds.size());
+    const auto N_rcvs = static_cast<int>(Rcvs.size());
 
-    if ( N_snds == 0 && N_rcvs == 0 ) return;
+    if ( N_snds == 0 && N_rcvs == 0 ) { return; }
 
     const int Nints = 4 + 3*AMREX_SPACEDIM;  // # of ints in a meta-data
 
@@ -558,7 +561,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         // Recv meta-data
 
         int N = 0;
-        for (auto Snd : Snds)
+        for (auto const& Snd : Snds)
         {
             md_sender.push_back(Snd.first);
             md_bcnts.push_back(Snd.second);
@@ -581,7 +584,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     if (N_rcvs > 0)
     {
         // Send meta-data
-        for (auto Rcv : Rcvs)
+        for (auto const& Rcv : Rcvs)
         {
             int rank = Rcv.first;
             int Nmds = Rcv.second;
@@ -672,7 +675,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
                 bxs.push_back(Box(IntVect(&md[4]),
                                   IntVect(&md[4+AMREX_SPACEDIM]),
                                   IntVect(&md[4+AMREX_SPACEDIM*2])));
-                npts[i] = bxs.back().numPts()*ncomp[i];
+                npts[i] = static_cast<int>(bxs.back().numPts()*ncomp[i]);
                 N += npts[i];
             }
 
@@ -694,7 +697,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         amrex::The_Arena()->free(md_recv_data);
     }
 
-    // Wait and upack data
+    // Wait and unpack data
     if (N_rcvs > 0)
     {
         Vector<MPI_Status> stats(N_rcvs);
@@ -714,7 +717,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
             const int         Who  = data_sender[k];
             const value_type* dptr = &recv_data[data_offset[k]];
 
-            BL_ASSERT(dptr != 0);
+            BL_ASSERT(dptr != nullptr);
 
             found = RcvTags.find(Who);
 
@@ -722,7 +725,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
             const FabComTagIterContainer& tags = found->second;
 
-            for (auto it : tags)
+            for (auto const& it : tags)
             {
                 const FabArrayBase::FabComTag& tag = *it;
 
@@ -730,7 +733,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
                 match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
 
-                for (FCDMapIter fmi = match.first; fmi != match.second; ++fmi)
+                for (auto fmi = match.first; fmi != match.second; ++fmi)
                 {
                     FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
 
@@ -738,9 +741,9 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
                     if (fcdp->subBox == tag.box)
                     {
-                        BL_ASSERT(fcdp->localFabSource->dataPtr() != 0);
+                        BL_ASSERT(fcdp->localFabSource->dataPtr() != nullptr);
                         BL_ASSERT(fcdp->localFabSource->box() == tag.box);
-                        const int Cnt = tag.box.numPts()*tag.nComp;
+                        auto Cnt = static_cast<int>(tag.box.numPts()*tag.nComp);
                         fcdp->localFabSource->template copyFromMem<RunOn::Host>(tag.box,0,tag.nComp,dptr);
                         dptr += Cnt;
                         break;

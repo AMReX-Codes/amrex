@@ -37,7 +37,7 @@ class ForkJoin
     ForkJoin (int ntasks)
         : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks) ) { }
 
-    int NTasks () const { return split_bounds.size() - 1; }
+    int NTasks () const { return static_cast<int>(split_bounds.size() - 1); }
 
     int MyTask () const { return task_me; }
 
@@ -113,7 +113,7 @@ class ForkJoin
 
     //! vector of pointers to all MFs under a name
     Vector<MultiFab *> get_mf_vec (const std::string &name) {
-        int dim = data.at(name).size();
+        int dim = static_cast<int>(data.at(name).size());
         Vector<MultiFab *> result(dim);
         for (int idx = 0; idx < dim; ++idx) {
             result[idx] = &get_mf(name, idx);
@@ -162,6 +162,7 @@ class ForkJoin
         Vector<MultiFab> forked; //!< holds new multifab for each task in fork
 
         MFFork () = default;
+        ~MFFork () = default;
         MFFork (const MFFork&) = delete;
         MFFork& operator= (const MFFork&) = delete;
         MFFork (MFFork&&) = default;

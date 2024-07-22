@@ -311,7 +311,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
             Real bf1, bf2;
             detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho);
             mat_tmp(0,0,0) += bf1*b[0](i,j,k);
-            mat_tmp(-1,0,0) = 0.0;
+            mat_tmp(-1,0,0) = Real(0.0);
             mat_tmp(1,0,0) += bf2*b[0](i,j,k);
         }
 
@@ -320,7 +320,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
             Real bf1, bf2;
             detail::comp_bf(bf1, bf2, sb, dx[0], bctype[cdir], bcl[cdir], bho);
             mat_tmp(0,0,0) += bf1*b[0](i+1,j,k);
-            mat_tmp(1,0,0) = 0.0;
+            mat_tmp(1,0,0) = Real(0.0);
             mat_tmp(-1,0,0) += bf2*b[0](i+1,j,k);
         }
 
@@ -329,7 +329,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
             Real bf1, bf2;
             detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho);
             mat_tmp(0,0,0) += bf1*b[1](i,j,k);
-            mat_tmp(0,-1,0) = 0.0;
+            mat_tmp(0,-1,0) = Real(0.0);
             mat_tmp(0,1,0) += bf2*b[1](i,j,k);
         }
 
@@ -338,7 +338,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
             Real bf1, bf2;
             detail::comp_bf(bf1, bf2, sb, dx[1], bctype[cdir], bcl[cdir], bho);
             mat_tmp(0,0,0) += bf1*b[1](i,j+1,k);
-            mat_tmp(0,1,0) = 0.0;
+            mat_tmp(0,1,0) = Real(0.0);
             mat_tmp(0,-1,0) += bf2*b[1](i,j+1,k);
         }
 
@@ -347,7 +347,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
             Real bf1, bf2;
             detail::comp_bf(bf1, bf2, sb, dx[2], bctype[cdir], bcl[cdir], bho);
             mat_tmp(0,0,0) += bf1*b[2](i,j,k);
-            mat_tmp(0,0,-1) = 0.0;
+            mat_tmp(0,0,-1) = Real(0.0);
             mat_tmp(0,0,1) += bf2*b[2](i,j,k);
         }
 
@@ -356,7 +356,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
             Real bf1, bf2;
             detail::comp_bf(bf1, bf2, sb, dx[2], bctype[cdir], bcl[cdir], bho);
             mat_tmp(0,0,0) += bf1*b[2](i,j,k+1);
-            mat_tmp(0,0,1) = 0.0;
+            mat_tmp(0,0,1) = Real(0.0);
             mat_tmp(0,0,-1) += bf2*b[2](i,j,k+1);
         }
 

@@ -9,7 +9,8 @@
 #endif
 
 namespace amrex {
-namespace {
+
+namespace nodelap_detail {
 
     struct GetNode {
         AMREX_GPU_DEVICE Dim3 operator() (Dim3 const& lo, Dim3 const& len, int& offset)
@@ -67,7 +68,6 @@ namespace {
 
 }
 
-namespace {
 inline void
 mlndlap_scale_neumann_bc (Real s, Box const& bx, Array4<Real> const& rhs, Box const& nddom,
                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
@@ -93,7 +93,6 @@ mlndlap_scale_neumann_bc (Real s, Box const& bx, Array4<Real> const& rhs, Box co
             }
         }
     }
-}
 }
 
 inline void
@@ -206,7 +205,7 @@ bool mlndlap_any_fine_sync_cells (Box const& bx, Array4<int const> const& msk, i
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        if (msk(i,j,k) == fine_flag) return true;
+        if (msk(i,j,k) == fine_flag) { return true; }
     }}}
     return false;
 }

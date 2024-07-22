@@ -4,6 +4,7 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_VisMF.H>    // amrex::VisMF::Write(MultiFab)
 #include <AMReX_VectorIO.H> // amrex::[read,write]IntData(array_of_ints)
+#include <utility>
 
 namespace {
 
@@ -17,7 +18,7 @@ void gotoNextLine (std::istream& is)
 
 }
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 // Header information includes the cut and covered boxes (if any)
 // Checkpoint file contains data for cut boxes
@@ -39,8 +40,9 @@ ChkptFile::writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba,
                 std::ofstream::trunc |
                 std::ofstream::binary);
 
-        if ( ! HeaderFile.good() )
+        if ( ! HeaderFile.good() ) {
             FileOpenFailed(HeaderFileName);
+        }
 
         HeaderFile.precision(17);
 
@@ -50,17 +52,20 @@ ChkptFile::writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba,
         HeaderFile << nlevels << "\n";
 
         // Geometry
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             HeaderFile << geom.ProbLo(i) << ' ';
+        }
         HeaderFile << '\n';
 
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             HeaderFile << geom.ProbHi(i) << ' ';
+        }
         HeaderFile << '\n';
 
         // ngrow
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             HeaderFile << ngrow[i] << ' ';
+        }
         HeaderFile << '\n';
 
         // extend domain face
@@ -91,8 +96,8 @@ ChkptFile::writeToFile (const MultiFab& mf, const std::string& mf_name) const
 }
 
 
-ChkptFile::ChkptFile (const std::string &fname)
-    : m_restart_file(fname)
+ChkptFile::ChkptFile (std::string fname)
+    : m_restart_file(std::move(fname))
 {}
 
 void
@@ -107,12 +112,16 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
                                  const IntVect& ngrow_finest, bool extend_domain_face,
                                  int max_grid_size) const
 {
-    Real prob_lo[AMREX_SPACEDIM];
-    Real prob_hi[AMREX_SPACEDIM];
+    Real prob_lo[] = {AMREX_D_DECL(std::numeric_limits<Real>::max(),
+                                   std::numeric_limits<Real>::max(),
+                                   std::numeric_limits<Real>::max())};
+    Real prob_hi[] = {AMREX_D_DECL(std::numeric_limits<Real>::lowest(),
+                                   std::numeric_limits<Real>::lowest(),
+                                   std::numeric_limits<Real>::lowest())};
 
     std::string File(m_restart_file + "/Header");
 
-    if (amrex::Verbose()) amrex::Print() << "file=" << File << std::endl;
+    if (amrex::Verbose()) { amrex::Print() << "file=" << File << '\n'; }
 
     VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
@@ -135,7 +144,11 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         std::istringstream lis(line);
         int i = 0;
         while (lis >> word) {
+#ifdef AMREX_USE_FLOAT
+            prob_lo[i++] = std::stof(word);
+#else
             prob_lo[i++] = std::stod(word);
+#endif
         }
     }
 
@@ -144,7 +157,11 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         std::istringstream lis(line);
         int i = 0;
         while (lis >> word) {
+#ifdef AMREX_USE_FLOAT
+            prob_hi[i++] = std::stof(word);
+#else
             prob_hi[i++] = std::stod(word);
+#endif
         }
     }
 
@@ -178,12 +195,12 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(max_grid_size == mgs_chkptfile,
                                      "EB2::ChkptFile cannot read from different max_grid_size");
 
-    if (amrex::Verbose()) amrex::Print() << "Loading cut_grids\n";
+    if (amrex::Verbose()) { amrex::Print() << "Loading cut_grids\n"; }
     cut_grids.readFrom(is);
     gotoNextLine(is);
 
     if (is.peek() != EOF) {
-        if (amrex::Verbose()) amrex::Print() << "Loading covered_grids\n";
+        if (amrex::Verbose()) { amrex::Print() << "Loading covered_grids\n"; }
         covered_grids.readFrom(is);
         gotoNextLine(is);
     }
@@ -192,7 +209,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // volfrac
     {
-        if (amrex::Verbose()) amrex::Print() << "  Loading " << m_volfrac_name << std::endl;
+        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_volfrac_name << '\n'; }
 
         volfrac.define(cut_grids, dmap, 1, ng_gfab);
 
@@ -202,7 +219,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // centroid
     {
-        if (amrex::Verbose()) amrex::Print() << "  Loading " << m_centroid_name << std::endl;
+        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_centroid_name << '\n'; }
 
         centroid.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
 
@@ -212,7 +229,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // bndryarea
     {
-        if (amrex::Verbose()) amrex::Print() << "  Loading " << m_bndryarea_name << std::endl;
+        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_bndryarea_name << '\n'; }
 
         bndryarea.define(cut_grids, dmap, 1, ng_gfab);
 
@@ -222,7 +239,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // bndrycent
     {
-        if (amrex::Verbose()) amrex::Print() << "  Loading " << m_bndrycent_name << std::endl;
+        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_bndrycent_name << '\n'; }
 
         bndrycent.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
 
@@ -232,7 +249,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // bndrynorm
     {
-        if (amrex::Verbose()) amrex::Print() << "  Loading " << m_bndrynorm_name << std::endl;
+        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_bndrynorm_name << '\n'; }
 
         bndrynorm.define(cut_grids, dmap, AMREX_SPACEDIM, ng_gfab);
 
@@ -243,7 +260,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         // areafrac
         {
-            if (amrex::Verbose()) amrex::Print() << "  Loading " << m_areafrac_name[idim] << std::endl;
+            if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_areafrac_name[idim] << '\n'; }
 
             areafrac[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, 1, ng_gfab);
 
@@ -253,7 +270,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
         // facecent
         {
-            if (amrex::Verbose()) amrex::Print() << "  Loading " << m_facecent_name[idim] << std::endl;
+            if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_facecent_name[idim] << '\n'; }
 
             facecent[idim].define(convert(cut_grids, IntVect::TheDimensionVector(idim)), dmap, AMREX_SPACEDIM-1, ng_gfab);
 
@@ -263,7 +280,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
         // edgecent
         {
-            if (amrex::Verbose()) amrex::Print() << "  Loading " << m_edgecent_name[idim] << std::endl;
+            if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_edgecent_name[idim] << '\n'; }
 
             IntVect edge_type{1}; edge_type[idim] = 0;
             edgecent[idim].define(convert(cut_grids, edge_type), dmap, 1, ng_gfab);
@@ -275,7 +292,7 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
 
     // levelset
     {
-        if (amrex::Verbose()) amrex::Print() << "  Loading " << m_levelset_name << std::endl;
+        if (amrex::Verbose()) { amrex::Print() << "  Loading " << m_levelset_name << '\n'; }
 
         levelset.define(convert(cut_grids,IntVect::TheNodeVector()), dmap, 1, ng_gfab);
 
@@ -299,7 +316,7 @@ ChkptFile::write_to_chkpt_file (const BoxArray& cut_grids,
 {
 
     if (ParallelDescriptor::IOProcessor()) {
-        std::cout << "\n\t Writing checkpoint " << m_restart_file << std::endl;
+        std::cout << "\n\t Writing checkpoint " << m_restart_file << '\n';
     }
 
     const int nlevels = 1;
@@ -321,4 +338,4 @@ ChkptFile::write_to_chkpt_file (const BoxArray& cut_grids,
     }
 }
 
-}}
+}

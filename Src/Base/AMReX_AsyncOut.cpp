@@ -62,7 +62,7 @@ void Finalize ()
     }
 
 #ifdef AMREX_USE_MPI
-    if (s_comm != MPI_COMM_NULL) MPI_Comm_free(&s_comm);
+    if (s_comm != MPI_COMM_NULL) { MPI_Comm_free(&s_comm); }
     s_comm = MPI_COMM_NULL;
 #endif
 }

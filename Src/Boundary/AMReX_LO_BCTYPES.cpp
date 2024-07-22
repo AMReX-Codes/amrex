@@ -52,6 +52,11 @@ std::ostream& operator<< (std::ostream& os, const LinOpBCType& t)
             os << "Robin";
             break;
         }
+        case LinOpBCType::symmetry:
+        {
+            os << "symmetry";
+            break;
+        }
         case LinOpBCType::Periodic:
         {
             os << "Periodic";

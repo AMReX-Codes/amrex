@@ -24,18 +24,20 @@ void PrintUsage()
         << " variable.\n"
         << "\n"
         << " usage:\n"
-        << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] [--abs_tol] file1 file2\n"
+        << "    fcompare [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-l|--allow_diff_num_levels] [-r|rel_tol] [--abs_tol] [--abort_if_not_all_found] file1 file2\n"
         << "\n"
         << " optional arguments:\n"
-        << "    -n|--norm num         : what norm to use (default is 0 for inf norm)\n"
-        << "    -d|--diffvar var      : output a plotfile showing the differences for\n"
-        << "                            variable var\n"
-        << "    -z|--zone_info var    : output the information for a zone corresponding\n"
-        << "                            to the maximum error for the given variable\n"
-        << "    -a|--allow_diff_grids : allow different BoxArrays covering the same domain\n"
-        << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
-        << "    --abs_tol atol        : absolute tolerance (default is 0)\n"
-        << std::endl;
+        << "    -n|--norm num            : what norm to use (default is 0 for inf norm)\n"
+        << "    -d|--diffvar var         : output a plotfile showing the differences for\n"
+        << "                               variable var\n"
+        << "    -z|--zone_info var       : output the information for a zone corresponding\n"
+        << "                               to the maximum error for the given variable\n"
+        << "    -a|--allow_diff_grids    : allow different BoxArrays covering the same domain\n"
+        << "    -l|--allow_diff_num_levels : allow different number of levels (only the levels in common will be compared)\n"
+        << "    -r|--rel_tol rtol        : relative tolerance (default is 0)\n"
+        << "    --abs_tol atol           : absolute tolerance (default is 0)\n"
+        << "    --abort_if_not_all_found : abort if not all variables are present in both files\n"
+        << '\n';
 }
 
 int main_main()
@@ -55,6 +57,7 @@ int main_main()
     std::string diffvar;
     int zone_info = false;
     int allow_diff_grids = false;
+    int allow_diff_num_levels = false;
     Real rtol = 0.0;
     Real atol = 0.0;
     std::string zone_info_var_name;
@@ -81,10 +84,12 @@ int main_main()
             plot_names[0] = diffvar;
         } else if (fname == "-a" || fname == "--allow_diff_grids") {
             allow_diff_grids = true;
+        } else if (fname == "-l" || fname == "--allow_diff_num_levels") {
+            allow_diff_num_levels = true;
         } else if (fname == "-r" || fname == "--rel_tol") {
-            rtol = std::stod(amrex::get_command_argument(++farg));
+            rtol = Real(std::stod(amrex::get_command_argument(++farg)));
         } else if (fname == "--abs_tol") {
-            atol = std::stod(amrex::get_command_argument(++farg));
+            atol = Real(std::stod(amrex::get_command_argument(++farg)));
         } else if (fname == "--abort_if_not_all_found") {
             abort_if_not_all_found = true;
         } else {
@@ -113,10 +118,15 @@ int main_main()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pf_a.spaceDim() == pf_b.spaceDim(),
                                      "ERROR: plotfiles have different numbers of spatial dimensions");
 
-    const int finest_level = pf_a.finestLevel();
+    const int finest_level = std::min(pf_a.finestLevel(), pf_b.finestLevel());
     const int nlevels = finest_level+1;
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pf_a.finestLevel() == pf_b.finestLevel(),
-                                     "ERROR: number of levels do not match");
+    if (allow_diff_num_levels && pf_a.finestLevel() != pf_b.finestLevel()) {
+        amrex::Print() << "\n WARNING: number of levels do not match\n";
+    }
+    else {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pf_a.finestLevel() == pf_b.finestLevel(),
+                                         "ERROR: number of levels do not match");
+    }
 
     const int ncomp_a = pf_a.nComp();
     const int ncomp_b = pf_b.nComp();
@@ -137,7 +147,7 @@ int main_main()
             amrex::Print() << " WARNING: variable " << names_a[n_a] << " not found in plotfile 2\n";
             all_variables_found = false;
         } else {
-            ivar_b[n_a] = std::distance(std::begin(names_b), r);
+            ivar_b[n_a] = static_cast<int>(std::distance(std::begin(names_b), r));
         }
 
         if (names_a[n_a] == diffvar) {
@@ -248,7 +258,7 @@ int main_main()
                     for (int idim = 0; idim < dm; ++idim) {
                         dv *= dx[idim];
                     }
-                    aerror[icomp_a] *= std::pow(dv,1./static_cast<Real>(norm));
+                    aerror[icomp_a] *= std::pow(dv,Real(1.)/static_cast<Real>(norm));
                     rerror[icomp_a] = rerror[icomp_a]/rerror_denom[icomp_a];
                 }
 
@@ -278,19 +288,23 @@ int main_main()
             if (ivar_b[icomp_a] < 0) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
-                               << "< variable not present in both files > \n";
+                               << "< variable not present in both files > "
+                               << "\n";
             } else if (has_nan_a[icomp_a] && has_nan_b[icomp_a]) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
-                               << "< NaN present in both A and B > \n";
+                               << "< NaN present in both A and B > "
+                               << "\n";
             } else if (has_nan_a[icomp_a]) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
-                               << "< NaN present in A > \n";
+                               << "< NaN present in A > "
+                               << "\n";
             } else if (has_nan_b[icomp_a]) {
                 amrex::Print() << " " << std::setw(24) << std::left << names_b[icomp_a]
                                << "  " << std::setw(50)
-                               << "< NaN present in B > \n";
+                               << "< NaN present in B > "
+                               << "\n";
             } else {
                 Real aerr = 0., rerr = 0.;
                 if (aerror[icomp_a] > 0.) {
@@ -346,7 +360,7 @@ int main_main()
             bool owner_proc = ParallelDescriptor::MyProc() == dmap[err_zone.grid_index];
 
             if (owner_proc) {
-                amrex::AllPrint() << std::endl
+                amrex::AllPrint() << '\n'
                                   << " maximum error in " << zone_info_var_name << "\n"
                                   << "   level = " << err_zone.level << " (i,j,k) = " << err_zone.cell << "\n";
             }
@@ -366,18 +380,18 @@ int main_main()
 
     if (! all_variables_found) {
         amrex::Print() << " WARNING: not all variables present in both files\n";
-        if (abort_if_not_all_found) return EXIT_FAILURE;
+        if (abort_if_not_all_found) { return EXIT_FAILURE; }
     }
 
     if (any_nans) {
         return EXIT_FAILURE;
     } else if (global_error == 0.0) {
-        amrex::Print() << " PLOTFILE AGREE" << std::endl;
+        amrex::Print() << " PLOTFILE AGREE" << '\n';
         return EXIT_SUCCESS;
     } else if (all_variables_passed) {
         amrex::Print() << " PLOTFILE AGREE to specified tolerances: "
                        << "absolute = " << atol
-                       << " relative = " << rtol << std::endl;
+                       << " relative = " << rtol << '\n';
         return EXIT_SUCCESS;
     } else {
         return EXIT_FAILURE;

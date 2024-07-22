@@ -29,7 +29,6 @@ class IArrayBox;
 * \brief File I/O for FabArray<FArrayBox>.
 *  Wrapper class for reading/writing FabArray<FArrayBox> objects to disk in various "smart" ways.
 */
-
 class VisMF
     : public VisMFBuffer
 {
@@ -49,7 +48,9 @@ public:
     explicit VisMF (std::string fafab_name);
     ~VisMF () = default;
     VisMF (const VisMF&) = delete;
+    VisMF (VisMF&&) = delete;
     VisMF& operator= (const VisMF&) = delete;
+    VisMF& operator= (VisMF&&) = delete;
     //! A structure containing info regarding an on-disk FAB.
     struct FabOnDisk
     {
@@ -82,7 +83,11 @@ public:
         Header (const FabArray<FArrayBox>& mf, VisMF::How how, Version version = Version_v1,
                 bool calcMinMax = true, MPI_Comm = ParallelDescriptor::Communicator());
 
+        ~Header () = default;
         Header (Header&& rhs) noexcept = default;
+        Header (Header const&) = delete;
+        Header& operator= (Header const&) = delete;
+        Header& operator= (Header &&) = delete;
 
         //! Calculate the min and max arrays
         void CalculateMinMax(const FabArray<FArrayBox>& mf,
@@ -115,7 +120,7 @@ public:
         Long fileOffset{-1};
         Box box;
 
-        FabReadLink();
+        FabReadLink() = default;
         FabReadLink(int ranktoread, int faindex, Long fileoffset, const Box &b);
     };
 
@@ -123,12 +128,16 @@ public:
     struct PersistentIFStream
     {
         std::ifstream   *pstr{nullptr};
-        std::streampos   currentPosition;
+        std::streampos   currentPosition{0};
         bool             isOpen{false};
         VisMF::IO_Buffer ioBuffer;
 
-        PersistentIFStream();
-        ~PersistentIFStream();
+        PersistentIFStream () = default;
+        ~PersistentIFStream ();
+        PersistentIFStream (PersistentIFStream const&) = delete;
+        PersistentIFStream (PersistentIFStream &&) = delete;
+        PersistentIFStream& operator= (PersistentIFStream const&) = delete;
+        PersistentIFStream& operator= (PersistentIFStream &&) = delete;
     };
 
     /**
@@ -370,7 +379,7 @@ std::istream& operator>> (std::istream& is, VisMF::Header& hd);
  */
 template <typename FAB>
 // This function does work for MultiFab, but let's disable it to avoid confusion.
-std::enable_if_t<std::is_same<FAB,IArrayBox>::value>
+std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
 Write (const FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Write(FabArray)");
@@ -383,8 +392,8 @@ Write (const FabArray<FAB>& fa, const std::string& name)
     const Vector<int> &pmap = fa.DistributionMap().ProcessorMap();
     std::set<int> procsWithData;
     Vector<int> procsWithDataVector;
-    for(int i = 0; i < pmap.size(); ++i) {
-        procsWithData.insert(pmap[i]);
+    for(int i : pmap) {
+        procsWithData.insert(i);
     }
     const int nOutFiles = VisMF::GetNOutFiles();
     if (static_cast<int>(procsWithData.size()) < nOutFiles) {
@@ -535,7 +544,7 @@ void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
  * fully defined, the BoxArray on the disk must match the BoxArray in the
  * given iMultiFab/FabArray<IArrayBox> object.  If it is only constructed
  * with the default constructor, the BoxArray on the disk will be used and a
- * new DistributionMapping will be made.  When this funciton is used to
+ * new DistributionMapping will be made.  When this function is used to
  * restart a calculation from checkpoint files, one should use a fully
  * defined iMultiFab/FabArray<IArrayBox> except for the first one in a
  * series of iMultiFab/MultiFab objects that share the same
@@ -547,7 +556,7 @@ void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
  */
 template <typename FAB>
 // This function does work for MultiFab, but let's disable it to avoid confusion.
-std::enable_if_t<std::is_same<FAB,IArrayBox>::value>
+std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
 Read (FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Read(FabArray)");
@@ -611,7 +620,7 @@ Read (FabArray<FAB>& fa, const std::string& name)
         std::multiset<int> availablefiles;  // [whichFile]  supports multiple reads/file
         Vector<std::map<int,std::map<Long,int> > > allreads; // [file]<proc,<seek,index>>
 
-        const int nfiles = filenames.size();
+        const auto nfiles = static_cast<int>(filenames.size());
         for (int i = 0; i < nfiles; ++i) {
             for (int j = 0; j < nopensperfile; ++j) {
                 availablefiles.insert(i);
@@ -713,7 +722,7 @@ Read (FabArray<FAB>& fa, const std::string& name)
         while (nreqs > 0) {
             ParallelDescriptor::Message rmess = ParallelDescriptor::Recv(recreads, coordproc,
                                                                          readtag);
-            const int nrmess = rmess.count();
+            const auto nrmess = static_cast<int>(rmess.count());
             for (int ir = 0; ir < nrmess; ++ir) {
                 int i = recreads[ir];
                 detail::read_fab(fa[i], fod[i], name);

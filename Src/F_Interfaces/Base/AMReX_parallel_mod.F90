@@ -71,7 +71,7 @@ contains
 
     if (present(comm) .and. .not.flag) then
        if (comm .ne. MPI_COMM_WORLD) then
-          stop "MPI has not been initialized.  How come we are given a communciator?"
+          stop "MPI has not been initialized.  How come we are given a communicator?"
        endif
     end if
 

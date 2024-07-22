@@ -14,7 +14,7 @@ namespace amrex {
 void
 MLNodeLaplacian::buildIntegral ()
 {
-    if (m_integral_built) return;
+    if (m_integral_built) { return; }
 
     BL_PROFILE("MLNodeLaplacian::buildIntegral()");
 
@@ -25,7 +25,7 @@ MLNodeLaplacian::buildIntegral ()
     {
         MultiFab* intg = m_integral[amrlev].get();
 
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         if (factory)
         {
             const int ncomp = intg->nComp();
@@ -35,7 +35,7 @@ MLNodeLaplacian::buildIntegral ()
             const auto& bcent = factory->getBndryCent();
 
             MFItInfo mfi_info;
-            if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+            if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -83,7 +83,7 @@ MLNodeLaplacian::buildIntegral ()
 void
 MLNodeLaplacian::buildSurfaceIntegral ()
 {
-    if (m_surface_integral_built) return;
+    if (m_surface_integral_built) { return; }
 
     BL_PROFILE("MLNodeLaplacian::buildSurfaceIntegral()");
 
@@ -94,18 +94,17 @@ MLNodeLaplacian::buildSurfaceIntegral ()
     {
         MultiFab* sintg = m_surface_integral[amrlev].get();
 
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         if (factory)
         {
             const int ncomp = sintg->nComp();
             const auto& flags = factory->getMultiEBCellFlagFab();
-            const auto& vfrac = factory->getVolFrac();
-            const auto& area = factory->getAreaFrac();
             const auto& bcent = factory->getBndryCent();
             const auto& barea = factory->getBndryArea();
+            const auto& bnorm = factory->getBndryNormal();
 
             MFItInfo mfi_info;
-            if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+            if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -128,14 +127,12 @@ MLNodeLaplacian::buildSurfaceIntegral ()
                     });
                 } else {
                     Array4<EBCellFlag const> const& flagarr = flags.const_array(mfi);
-                    Array4<Real const> const& vfracarr = vfrac.const_array(mfi);
-                    Array4<Real const> const& axarr = area[0]->const_array(mfi);
-                    Array4<Real const> const& ayarr = area[1]->const_array(mfi);
                     Array4<Real const> const& bcarr = bcent.const_array(mfi);
                     Array4<Real const> const& baarr = barea.const_array(mfi);
+                    Array4<Real const> const& bnarr = bnorm.const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                     {
-                        mlndlap_set_surface_integral_eb(i,j,k,garr,flagarr,vfracarr,axarr,ayarr,bcarr,baarr);
+                        mlndlap_set_surface_integral_eb(i,j,k,garr,flagarr,bcarr,baarr,bnarr);
                     });
                 }
             }

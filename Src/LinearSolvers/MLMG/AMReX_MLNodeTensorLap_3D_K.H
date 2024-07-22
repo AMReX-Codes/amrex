@@ -4,7 +4,7 @@
 
 namespace amrex {
 
-namespace {
+namespace mlndts_detail {
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_line_x (Array4<Real const> const& crse,
@@ -62,6 +62,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndtslap_interpadd (int i, int j, int k, Array4<Real> const& fine,
                           Array4<Real const> const& crse, Array4<int const> const& msk) noexcept
 {
+    using namespace mlndts_detail;
+
     if (!msk(i,j,k)) {
         int ic = amrex::coarsen(i,2);
         int jc = amrex::coarsen(j,2);
@@ -107,6 +109,8 @@ void mlndtslap_semi_interpadd (int i, int j, int k, Array4<Real> const& fine,
                                Array4<Real const> const& crse, Array4<int const> const& msk,
                                int semi_dir) noexcept
 {
+    using namespace mlndts_detail;
+
     if (!msk(i,j,k)) {
         if (semi_dir == 0) {
             int jc = amrex::coarsen(j,2);
@@ -210,7 +214,8 @@ template <typename HypreInt, typename AtomicInt>
 void mlndtslap_fill_ijmatrix_cpu (Box const& ndbx,
                                   Array4<AtomicInt const> const& gid,
                                   Array4<int const> const& lid,
-                                  HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                                  HypreInt* const ncols, HypreInt* const cols,
+                                  Real* const mat, // NOLINT(readability-non-const-parameter)
                                   GpuArray<Real,6> const& s) noexcept
 {
     constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
@@ -346,7 +351,8 @@ void mlndtslap_fill_ijmatrix_gpu (const int ps, const int i, const int j, const 
                                   const int offset, Box const& ndbx,
                                   Array4<AtomicInt const> const& gid,
                                   Array4<int const> const& lid,
-                                  HypreInt* const ncols, HypreInt* const cols, Real* const mat,
+                                  HypreInt* const ncols, HypreInt* const cols,
+                                  Real* const mat, // NOLINT(readability-non-const-parameter)
                                   GpuArray<Real,6> const& s) noexcept
 {
     if (lid(i,j,k) >= 0)

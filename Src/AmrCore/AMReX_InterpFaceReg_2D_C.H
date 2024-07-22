@@ -29,7 +29,7 @@ void interp_face_reg (int i, int j, IntVect const& rr, Array4<Real> const& fine,
                 }
                 slope(i,j,0,n) = dc;
             }
-            Real yoff = (j - jc*rr[1] + Real(0.5)) / Real(rr[1]) - Real(0.5);
+            Real yoff = (static_cast<Real>(j - jc*rr[1]) + Real(0.5)) / Real(rr[1]) - Real(0.5);
             for (int n = 0; n < ncomp; ++n) {
                 fine(i,j,0,n+scomp) = crse(ic,jc,0,n) + yoff * slope(i,j,0,n) * sfy;
             }
@@ -53,7 +53,7 @@ void interp_face_reg (int i, int j, IntVect const& rr, Array4<Real> const& fine,
                 }
                 slope(i,j,0,n) = dc;
             }
-            Real xoff = (i - ic*rr[0] + Real(0.5)) / Real(rr[0]) - Real(0.5);
+            Real xoff = (static_cast<Real>(i - ic*rr[0]) + Real(0.5)) / Real(rr[0]) - Real(0.5);
             for (int n = 0; n < ncomp; ++n) {
                 fine(i,j,0,n+scomp) = crse(ic,jc,0,n) + xoff * slope(i,j,0,n) * sfx;
             }

@@ -29,6 +29,7 @@ struct Dim1 {
 struct gpuStream_t {
     sycl::queue* queue = nullptr;
     bool operator== (gpuStream_t const& rhs) noexcept { return queue == rhs.queue; }
+    bool operator!= (gpuStream_t const& rhs) noexcept { return queue != rhs.queue; }
 };
 
 #endif
@@ -37,7 +38,7 @@ struct gpuStream_t {
 
 #endif
 
-namespace amrex { namespace Gpu {
+namespace amrex::Gpu {
 
 #if defined(AMREX_USE_SYCL)
 
@@ -101,6 +102,6 @@ struct Handler {};
 
 #endif
 
-}}
+}
 
 #endif

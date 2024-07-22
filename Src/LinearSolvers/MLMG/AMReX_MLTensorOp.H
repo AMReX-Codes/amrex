@@ -39,7 +39,7 @@ public:
                 const Vector<iMultiFab const*>& a_overset_mask, // 1: unknown, 0: known
                 const LPInfo& a_info = LPInfo(),
                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
-    virtual ~MLTensorOp () = default;
+    ~MLTensorOp () override = default;
 
     MLTensorOp (const MLTensorOp&) = delete;
     MLTensorOp (MLTensorOp&&) = delete;
@@ -64,30 +64,32 @@ public:
     void setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa);
     void setBulkViscosity (int amrlev, Real kappa);
 
-    virtual int getNComp () const final override { return AMREX_SPACEDIM; }
+    [[nodiscard]] int getNComp () const final { return AMREX_SPACEDIM; }
 
-    virtual bool isCrossStencil () const final override { return false; }
-    virtual bool isTensorOp () const final override { return true; }
+    [[nodiscard]] bool isCrossStencil () const final { return false; }
+    [[nodiscard]] bool isTensorOp () const final { return true; }
 
-    virtual bool needsUpdate () const final override {
+    [[nodiscard]] bool needsUpdate () const final {
         return (m_needs_update || MLABecLaplacian::needsUpdate());
     }
-    virtual void update () final override {
+    void update () final {
         amrex::Abort("MLTensorOp: update TODO");
     }
 
-    virtual void prepareForSolve () final override;
-    virtual bool isSingular (int /*armlev*/) const final override { return false; }
-    virtual bool isBottomSingular () const final override { return false; }
+    void prepareForSolve () final;
+    [[nodiscard]] bool isSingular (int /*armlev*/) const final { return false; }
+    [[nodiscard]] bool isBottomSingular () const final { return false; }
 
-    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
+    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                StateMode s_mode, const MLMGBndry* bndry=nullptr) const final;
 
-    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
-                           MultiFab& sol, Location loc) const override;
+    void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                   MultiFab& sol, Location loc) const override;
 
     void compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                       MultiFab& sol, Location loc) const;
+
+    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
 
 protected:
 
@@ -95,8 +97,6 @@ protected:
 
     bool m_has_kappa = false;
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_kappa;
-
-    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
 
 public: // for cuda
 

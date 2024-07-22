@@ -2,7 +2,7 @@
 #define AMREX_CUDA_GRAPH_H_
 #include <AMReX_Config.H>
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
 
 #include <AMReX.H>
 #include <AMReX_Array.H>

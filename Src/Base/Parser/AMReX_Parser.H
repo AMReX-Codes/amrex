@@ -17,60 +17,45 @@ namespace amrex {
 template <int N>
 struct ParserExecutor
 {
-    template <int M=N, typename std::enable_if_t<M==0,int> = 0>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    template <int M=N, std::enable_if_t<M==0,int> = 0>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     double operator() () const noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        return parser_exe_eval(m_device_executor, nullptr);
-#else
-        return parser_exe_eval(m_host_executor, nullptr);
-#endif
+        AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, nullptr);))
+        AMREX_IF_ON_HOST((return parser_exe_eval(m_host_executor, nullptr);))
     }
 
     template <typename... Ts>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value, double>
     operator() (Ts... var) const noexcept
     {
         amrex::GpuArray<double,N> l_var{var...};
-#if AMREX_DEVICE_COMPILE
-        return parser_exe_eval(m_device_executor, l_var.data());
-#else
-        return parser_exe_eval(m_host_executor, l_var.data());
-#endif
+        AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, l_var.data());))
+        AMREX_IF_ON_HOST((return parser_exe_eval(m_host_executor, l_var.data());))
     }
 
     template <typename... Ts>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<sizeof...(Ts) == N &&  amrex::Same<float,Ts...>::value, float>
     operator() (Ts... var) const noexcept
     {
         amrex::GpuArray<double,N> l_var{var...};
-#if AMREX_DEVICE_COMPILE
-        return static_cast<float>(parser_exe_eval(m_device_executor, l_var.data()));
-#else
-        return static_cast<float>(parser_exe_eval(m_host_executor, l_var.data()));
-#endif
+        AMREX_IF_ON_DEVICE((return static_cast<float>(parser_exe_eval(m_device_executor, l_var.data()));))
+        AMREX_IF_ON_HOST((return static_cast<float>(parser_exe_eval(m_host_executor, l_var.data()));))
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     double operator() (GpuArray<double,N> const& var) const noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        return parser_exe_eval(m_device_executor, var.data());
-#else
-        return parser_exe_eval(m_host_executor, var.data());
-#endif
+        AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, var.data());))
+        AMREX_IF_ON_HOST((return parser_exe_eval(m_host_executor, var.data());))
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     explicit operator bool () const {
-#if AMREX_DEVICE_COMPILE
-        return m_device_executor != nullptr;
-#else
-        return m_host_executor != nullptr;
-#endif
+        AMREX_IF_ON_DEVICE((return m_device_executor != nullptr;))
+        AMREX_IF_ON_HOST((return m_host_executor != nullptr;))
     }
 
     char* m_host_executor = nullptr;
@@ -93,6 +78,7 @@ public:
     void registerVariables (Vector<std::string> const& vars);
 
     void print () const;
+    void printExe () const;
 
     [[nodiscard]] int depth () const;
     [[nodiscard]] int maxStackSize () const;
@@ -102,10 +88,10 @@ public:
     [[nodiscard]] std::set<std::string> symbols () const;
 
     //! This compiles for both GPU and CPU
-    template <int N> ParserExecutor<N> compile () const;
+    template <int N> [[nodiscard]] ParserExecutor<N> compile () const;
 
     //! This compiles for CPU only
-    template <int N> ParserExecutor<N> compileHost () const;
+    template <int N> [[nodiscard]] ParserExecutor<N> compileHost () const;
 
 private:
 
@@ -119,10 +105,17 @@ private:
 #endif
         mutable int m_max_stack_size = 0;
         mutable int m_exe_size = 0;
+        mutable Vector<char const*> m_locals;
+        Data () = default;
         ~Data ();
+        Data (Data const&) = delete;
+        Data (Data &&) = delete;
+        Data& operator= (Data const&) = delete;
+        Data& operator= (Data &&) = delete;
     };
 
     std::shared_ptr<Data> m_data;
+    Vector<std::string> m_vars;
 };
 
 template <int N>
@@ -151,7 +144,8 @@ Parser::compileHost () const
             m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(m_data->m_exe_size);
 
             try {
-                parser_compile(m_data->m_parser, m_data->m_host_executor);
+                m_data->m_locals = parser_compile(m_data->m_parser,
+                                                  m_data->m_host_executor);
             } catch (const std::runtime_error& e) {
                 throw std::runtime_error(std::string(e.what()) + " in Parser expression \""
                                          + m_data->m_expression + "\"");

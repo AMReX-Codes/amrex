@@ -15,7 +15,7 @@ public:
     void solve ();
     void writePlotfile () const;
 
-public: // make these public for cuda
+// public: for cuda
     void initProbPoisson ();
     void initProbABecLaplacian ();
 
@@ -50,6 +50,13 @@ private:
     bool agglomeration = true;
     bool consolidation = true;
     int max_coarsening_level = 30;
+    bool use_hypre = false;
+    bool use_petsc = false;
+
+#ifdef AMREX_USE_HYPRE
+    int hypre_interface_i = 1;  // 1. structed, 2. semi-structed, 3. ij
+    amrex::Hypre::Interface hypre_interface = amrex::Hypre::Interface::structed;
+#endif
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;
@@ -81,7 +88,7 @@ MyTest::solvePoisson ()
         T(1.e-10) : T(1.e-4);
     const Real tol_abs = 0.0;
 
-    const int nlevels = geom.size();
+    const auto nlevels = int(geom.size());
 
     if (composite_solve)
     {
@@ -109,14 +116,18 @@ MyTest::solvePoisson ()
         mlmg.setVerbose(verbose);
         mlmg.setBottomVerbose(bottom_verbose);
 #ifdef AMREX_USE_HYPRE
-        if (use_hypre) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-            mlmg.setHypreInterface(hypre_interface);
+        if constexpr (std::is_same<MF,MultiFab>()) {
+            if (use_hypre) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+                mlmg.setHypreInterface(hypre_interface);
+            }
         }
 #endif
 #ifdef AMREX_USE_PETSC
-        if (use_petsc) {
-            mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+        if constexpr (std::is_same<MF,MultiFab>()) {
+            if (use_petsc) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+            }
         }
 #endif
 
@@ -150,14 +161,18 @@ MyTest::solvePoisson ()
             mlmg.setVerbose(verbose);
             mlmg.setBottomVerbose(bottom_verbose);
 #ifdef AMREX_USE_HYPRE
-            if (use_hypre) {
-                mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-                mlmg.setHypreInterface(hypre_interface);
+            if constexpr (std::is_same<MF,MultiFab>()) {
+                if (use_hypre) {
+                    mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+                    mlmg.setHypreInterface(hypre_interface);
+                }
             }
 #endif
 #ifdef AMREX_USE_PETSC
-            if (use_petsc) {
-                mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+            if constexpr (std::is_same<MF,MultiFab>()) {
+                if (use_petsc) {
+                    mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+                }
             }
 #endif
 
@@ -182,7 +197,7 @@ MyTest::solveABecLaplacian ()
         T(1.e-10) : T(1.e-4);
     const T tol_abs = T(0.0);
 
-    const int nlevels = geom.size();
+    const auto nlevels = int(geom.size());
 
     if (composite_solve)
     {

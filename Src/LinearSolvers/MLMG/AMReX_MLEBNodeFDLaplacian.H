@@ -18,16 +18,15 @@ namespace amrex {
 // where phi and rhs are nodal multifab, and sigma is a tensor constant
 // with only diagonal components.  The EB is assumed to be Dirichlet.
 //
-// del dot (simga grad phi) - alpha/r^2 phi = rhs, for RZ where alpha is a
-// scalar constant that is zero by default.  For now the `alpha` term has
-// not been implemented yet
+// del dot (sigma grad phi) - alpha/r^2 phi = rhs, for RZ where alpha is a
+// scalar constant that is zero by default.
 
 class MLEBNodeFDLaplacian
     : public MLNodeLinOp
 {
 public:
 
-    MLEBNodeFDLaplacian () noexcept = default;
+    MLEBNodeFDLaplacian () = default;
 
 #ifdef AMREX_USE_EB
     MLEBNodeFDLaplacian (const Vector<Geometry>& a_geom,
@@ -42,7 +41,7 @@ public:
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info);
 
-    virtual ~MLEBNodeFDLaplacian () = default;
+    ~MLEBNodeFDLaplacian () override = default;
 
     MLEBNodeFDLaplacian (const MLEBNodeFDLaplacian&) = delete;
     MLEBNodeFDLaplacian (MLEBNodeFDLaplacian&&) = delete;
@@ -62,7 +61,7 @@ public:
     //
     template <typename F>
     std::enable_if_t<IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value>
-    setEBDirichlet (F&& f);
+    setEBDirichlet (F const& f);
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
@@ -70,9 +69,9 @@ public:
                  const LPInfo& a_info,
                  const Vector<EBFArrayBoxFactory const*>& a_factory);
 
-    virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final override;
+    [[nodiscard]] std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final;
 
-    virtual void scaleRHS (int amrlev, MultiFab& rhs) const final;
+    void scaleRHS (int amrlev, MultiFab& rhs) const final;
 
 #endif
 
@@ -81,45 +80,39 @@ public:
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info);
 
-    virtual std::string name () const override { return std::string("MLEBNodeFDLaplacian"); }
+    [[nodiscard]] std::string name () const override { return std::string("MLEBNodeFDLaplacian"); }
 
-    virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final override;
-    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final override;
-    virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
-                                         const MultiFab& fine_sol, const MultiFab& fine_rhs) final override;
+    void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final;
+    void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;
 
-    virtual void reflux (int crse_amrlev,
-                         MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final override;
+    void prepareForSolve () final;
+    void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
+    void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;
+    void normalize (int amrlev, int mglev, MultiFab& mf) const final;
 
-    virtual void prepareForSolve () final override;
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final override;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final override;
-    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final override;
+    void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final;
 
-    virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final override;
+    [[nodiscard]] bool isSingular (int) const final { return false; }
+    [[nodiscard]] bool isBottomSingular () const final { return false; }
 
-    virtual bool isSingular (int) const final override { return false; }
-    virtual bool isBottomSingular () const final override { return false; }
-
-    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
-                           MultiFab& sol, Location /*loc*/) const override;
+    void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                   MultiFab& sol, Location /*loc*/) const override;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    virtual void fillIJMatrix (MFIter const& mfi,
-                               Array4<HypreNodeLap::AtomicInt const> const& gid,
-                               Array4<int const> const& lid,
-                               HypreNodeLap::Int* const ncols,
-                               HypreNodeLap::Int* const cols,
-                               Real* const mat) const override;
+    void fillIJMatrix (MFIter const& mfi,
+                       Array4<HypreNodeLap::AtomicInt const> const& gid,
+                       Array4<int const> const& lid,
+                       HypreNodeLap::Int* ncols,
+                       HypreNodeLap::Int* cols,
+                       Real* mat) const override;
 
-    virtual void fillRHS (MFIter const& mfi,
-                          Array4<int const> const& lid,
-                          Real* const rhs,
-                          Array4<Real const> const& bfab) const override;
+    void fillRHS (MFIter const& mfi,
+                  Array4<int const> const& lid,
+                  Real* rhs,
+                  Array4<Real const> const& bfab) const override;
 #endif
 
-    virtual void postSolve (Vector<MultiFab>& sol) const override;
+    void postSolve (Vector<MultiFab>& sol) const override;
 
 private:
     GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};
@@ -133,11 +126,11 @@ private:
 
 template <typename F>
 std::enable_if_t<IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value>
-MLEBNodeFDLaplacian::setEBDirichlet (F&& f)
+MLEBNodeFDLaplacian::setEBDirichlet (F const& f)
 {
     m_phi_eb.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        auto const* factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         if (factory) {
             Geometry const& geom = m_geom[amrlev][0];
             auto const problo = geom.ProbLoArray();

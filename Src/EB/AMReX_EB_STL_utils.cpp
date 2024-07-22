@@ -18,7 +18,7 @@ namespace {
             amrex::max(a[2],b[2]) < amrex::min(tri.v1.z,tri.v2.z,tri.v3.z) ||
             amrex::min(a[2],b[2]) > amrex::max(tri.v1.z,tri.v2.z,tri.v3.z))
         {
-            return 0;
+            return false;
         }
         else
         {
@@ -140,6 +140,7 @@ STLtools::read_binary_stl_file (std::string const& fname, Real scale,
 
         uint32_t numtris; // uint32 - Number of triangles - 4 bytes
         amrex::readIntData<uint32_t,uint32_t>(&numtris, 1, is, uint32_descr);
+        AMREX_ASSERT(numtris < uint32_t(std::numeric_limits<int>::max()));
         m_num_tri = static_cast<int>(numtris);
         m_tri_pts_h.resize(m_num_tri);
 
@@ -242,6 +243,7 @@ STLtools::prepare ()
     if (!ParallelDescriptor::IOProcessor()) {
         m_tri_pts_h.resize(m_num_tri);
     }
+    ParallelDescriptor::Bcast((char*)(m_tri_pts_h.dataPtr()), m_num_tri*sizeof(Triangle));
 
     //device vectors
     m_tri_pts_d.resize(m_num_tri);
@@ -302,7 +304,7 @@ STLtools::prepare ()
     m_ptmax.z = amrex::get<5>(hv);
 
     if (amrex::Verbose() > 0) {
-        amrex::Print() << "    Min: " << m_ptmin << " Max: " << m_ptmax << std::endl;
+        amrex::Print() << "    Min: " << m_ptmin << " Max: " << m_ptmax << '\n';
     }
 
     // Choose a reference point by extending the normal vector of the first
@@ -373,16 +375,16 @@ STLtools::prepare ()
             Lz = std::numeric_limits<Real>::lowest();
         }
         if (std::abs(norm.x) < 1.e-5) {
-            norm.x = std::copysign(1.e-5, norm.x);
+            norm.x = std::copysign(Real(1.e-5), norm.x);
         }
         if (std::abs(norm.y) < 1.e-5) {
-            norm.y = std::copysign(1.e-5, norm.y);
+            norm.y = std::copysign(Real(1.e-5), norm.y);
         }
         if (std::abs(norm.z) < 1.e-5) {
-            norm.z = std::copysign(1.e-5, norm.z);
+            norm.z = std::copysign(Real(1.e-5), norm.z);
         }
         Real Lm = std::max({Lx,Ly,Lz});
-        Real Leps = std::max(Lp,-Lm) * 0.009;
+        Real Leps = std::max(Lp,-Lm) * Real(0.009);
         if (Lp < -Lm) {
             m_ptref.x = cent0.x + (Lp+Leps) * norm.x;
             m_ptref.y = cent0.y + (Lp+Leps) * norm.y;
@@ -434,12 +436,12 @@ STLtools::fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
     ParallelFor(mf, nghost, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
     {
         Real coords[3];
-        coords[0]=plo[0]+i*dx[0];
-        coords[1]=plo[1]+j*dx[1];
+        coords[0]=plo[0]+static_cast<Real>(i)*dx[0];
+        coords[1]=plo[1]+static_cast<Real>(j)*dx[1];
 #if (AMREX_SPACEDIM == 2)
         coords[2]=Real(0.);
 #else
-        coords[2]=plo[2]+k*dx[2];
+        coords[2]=plo[2]+static_cast<Real>(k)*dx[2];
 #endif
         int num_intersects=0;
         if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
@@ -464,21 +466,21 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
     const auto plo = geom.ProbLoArray();
     const auto dx  = geom.CellSizeArray();
 
-    XDim3 blo{plo[0] + box.smallEnd(0)*dx[0],
-              plo[1] + box.smallEnd(1)*dx[1],
+    XDim3 blo{plo[0] + static_cast<Real>(box.smallEnd(0))*dx[0],
+              plo[1] + static_cast<Real>(box.smallEnd(1))*dx[1],
 #if (AMREX_SPACEDIM == 2)
               0._rt
 #else
-              plo[2] + box.smallEnd(2)*dx[2]
+              plo[2] + static_cast<Real>(box.smallEnd(2))*dx[2]
 #endif
     };
 
-    XDim3 bhi{plo[0] + box.bigEnd(0)*dx[0],
-              plo[1] + box.bigEnd(1)*dx[1],
+    XDim3 bhi{plo[0] + static_cast<Real>(box.bigEnd(0))*dx[0],
+              plo[1] + static_cast<Real>(box.bigEnd(1))*dx[1],
 #if (AMREX_SPACEDIM == 2)
               0._rt
 #else
-              plo[2] + box.bigEnd(2)*dx[2]
+              plo[2] + static_cast<Real>(box.bigEnd(2))*dx[2]
 #endif
     };
 
@@ -503,13 +505,13 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
             Real coords[3];
-            coords[0]=plo[0]+i*dx[0];
-            coords[1]=plo[1]+j*dx[1];
+            coords[0]=plo[0]+static_cast<Real>(i)*dx[0];
+            coords[1]=plo[1]+static_cast<Real>(j)*dx[1];
 #if (AMREX_SPACEDIM == 2)
             amrex::ignore_unused(k);
             coords[2]=Real(0.);
 #else
-            coords[2]=plo[2]+k*dx[2];
+            coords[2]=plo[2]+static_cast<Real>(k)*dx[2];
 #endif
             int num_intersects=0;
             if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
@@ -559,12 +561,12 @@ STLtools::fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn, Box con
     ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
         Real coords[3];
-        coords[0]=plo[0]+i*dx[0];
-        coords[1]=plo[1]+j*dx[1];
+        coords[0]=plo[0]+static_cast<Real>(i)*dx[0];
+        coords[1]=plo[1]+static_cast<Real>(j)*dx[1];
 #if (AMREX_SPACEDIM == 2)
         coords[2]=Real(0.);
 #else
-        coords[2]=plo[2]+k*dx[2];
+        coords[2]=plo[2]+static_cast<Real>(k)*dx[2];
 #endif
         int num_intersects=0;
         if (coords[0] >= ptmin.x && coords[0] <= ptmax.x &&
@@ -604,16 +606,16 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
         {
             Real r = std::numeric_limits<Real>::quiet_NaN();
             if (type(i,j,k) == EB2::Type::irregular) {
-                XDim3 p1{plo[0]+i*dx[0],
-                         plo[1]+j*dx[1],
+                XDim3 p1{plo[0]+static_cast<Real>(i)*dx[0],
+                         plo[1]+static_cast<Real>(j)*dx[1],
 #if (AMREX_SPACEDIM == 2)
                          Real(0.)
 #else
-                         plo[2]+k*dx[2]
+                         plo[2]+static_cast<Real>(k)*dx[2]
 #endif
                 };
                 if (idim == 0) {
-                    Real x2 = plo[0]+(i+1)*dx[0];
+                    Real x2 = plo[0]+static_cast<Real>(i+1)*dx[0];
                     int it;
                     for (it=0; it < num_triangles; ++it) {
                         auto const& tri = tri_pts[it];
@@ -630,7 +632,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                         r = (lst(i,j,k) > 0._rt) ? p1.x : x2;
                     }
                 } else if (idim == 1) {
-                    Real y2 = plo[1]+(j+1)*dx[1];
+                    Real y2 = plo[1]+static_cast<Real>(j+1)*dx[1];
                     int it;
                     for (it=0; it < num_triangles; ++it) {
                         auto const& tri = tri_pts[it];
@@ -650,7 +652,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                         r = (lst(i,j,k) > 0._rt) ? p1.y : y2;
                     }
                 } else {
-                    Real z2 = plo[2]+(k+1)*dx[2];
+                    Real z2 = plo[2]+static_cast<Real>(k+1)*dx[2];
                     int it;
                     for (it=0; it < num_triangles; ++it) {
                         auto const& tri = tri_pts[it];
@@ -679,7 +681,7 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
 void
 STLtools::updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                            Array<Array4<EB2::Type_t const>,AMREX_SPACEDIM> const& type_arr,
-                           Array4<Real const> const& lst, Geometry const& geom) const
+                           Array4<Real const> const& lst, Geometry const& geom)
 {
     auto const& dx = geom.CellSizeArray();
     auto const& problo = geom.ProbLoArray();
@@ -697,35 +699,35 @@ STLtools::updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                     {
                         // interp might still be quiet_nan because lst that
                         // was set to zero has been changed by FillBoundary
-                        // at periodic bounadries.
-                        inter(i,j,k) = problo[0] + i*dx[0];
+                        // at periodic boundaries.
+                        inter(i,j,k) = problo[0] + static_cast<Real>(i)*dx[0];
                     }
                     else if (lst(i+1,j,k) == Real(0.0) ||
                              (lst(i+1,j,k) > Real(0.0) && is_nan))
                     {
-                        inter(i,j,k) = problo[0] + (i+1)*dx[0];
+                        inter(i,j,k) = problo[0] + static_cast<Real>(i+1)*dx[0];
                     }
                 } else if (idim == 1) {
                     if (lst(i,j,k) == Real(0.0) ||
                         (lst(i,j,k) > Real(0.0) && is_nan))
                     {
-                        inter(i,j,k) = problo[1] + j*dx[1];
+                        inter(i,j,k) = problo[1] + static_cast<Real>(j)*dx[1];
                     }
                     else if (lst(i,j+1,k) == Real(0.0) ||
                              (lst(i,j+1,k) > Real(0.0) && is_nan))
                     {
-                        inter(i,j,k) = problo[1] + (j+1)*dx[1];
+                        inter(i,j,k) = problo[1] + static_cast<Real>(j+1)*dx[1];
                     }
                 } else {
                     if (lst(i,j,k) == Real(0.0) ||
                         (lst(i,j,k) > Real(0.0) && is_nan))
                     {
-                        inter(i,j,k) = problo[2] + k*dx[2];
+                        inter(i,j,k) = problo[2] + static_cast<Real>(k)*dx[2];
                         }
                     else if (lst(i,j,k+1) == Real(0.0) ||
                              (lst(i,j,k+1) > Real(0.0) && is_nan))
                     {
-                        inter(i,j,k) = problo[2] + (k+1)*dx[2];
+                        inter(i,j,k) = problo[2] + static_cast<Real>(k+1)*dx[2];
                     }
                 }
             }

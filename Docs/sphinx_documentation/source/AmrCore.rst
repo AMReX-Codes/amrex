@@ -238,7 +238,7 @@ Within AMReX_Interpolater.cpp/H are the derived classes:
 
 -  :cpp:`FaceLinear`
 
--  :cpp:`FaceDivFree`
+-  :cpp:`FaceDivFree`: This is more accurately a divergence-preserving interpolation on face centered data, i.e., it ensures the divergence of the fine ghost cells match the value of the divergence of the underlying coarse cell. All fine cells overlying a given coarse cell will have the same divergence, even when the coarse grid divergence is spatially varying. Note that when using this with :cpp:`FillPatch` for time sub-cycling, the coarse grid times may not match the fine grid time, in which case :cpp:`FillPatch` will create coarse values at the fine time before calling this interpolation and the result of the :cpp:`FillPatch` is *not* guaranteed to preserve the original divergence.
 
 These Interpolaters can be executed on CPU or GPU, with certain limitations:
 
@@ -648,11 +648,11 @@ interface to a Fortran routine that tags cells (in this case, :fortran:`state_er
             const int*  thi     = tilebox.hiVect();
 
                 // tag cells for refinement
-            state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
+            state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
                 BL_TO_FORTRAN_3D(state[mfi]),
                 &tagval, &clearval,
-                ARLIM_3D(tilebox.loVect()), ARLIM_3D(tilebox.hiVect()),
-                ZFILL(dx), ZFILL(prob_lo), &time, &phierr[lev]);
+                AMREX_ARLIM_3D(tilebox.loVect()), AMREX_ARLIM_3D(tilebox.hiVect()),
+                AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &phierr[lev]);
             //
             // Now update the tags in the TagBox in the tilebox region
                 // to be equal to itags

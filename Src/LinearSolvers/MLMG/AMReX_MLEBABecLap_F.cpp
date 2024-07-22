@@ -21,7 +21,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 
     const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
 
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
@@ -30,7 +30,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
-    const auto         ccent = (factory) ? &(factory->getCentroid()) : nullptr;
+    const auto *const  ccent = (factory) ? &(factory->getCentroid()) : nullptr;
 
     const bool is_eb_dirichlet =  isEBDirichlet();
     const bool is_eb_inhomog = m_is_eb_inhomog;
@@ -58,7 +58,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         const bool extdir_z = !(m_geom[amrlev][mglev].isPeriodic(2)););
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -201,7 +201,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 #endif
     const Real alpha = m_a_scalar;
 
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
@@ -216,7 +216,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
     Array4<Real const> foo;
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -295,7 +295,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
             bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
             bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
 
-            if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
+            if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
@@ -328,7 +328,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
     const Box& box = mfi.tilebox();
     const int ncomp = getNComp();
 
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
@@ -385,7 +385,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
         bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
         bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
 
-        if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
+        if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
             xbx, txbx,

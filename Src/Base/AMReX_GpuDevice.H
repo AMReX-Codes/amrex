@@ -18,8 +18,8 @@
 
 #define AMREX_GPU_MAX_STREAMS 8
 
+#ifdef AMREX_USE_GPU
 namespace amrex {
-
 #ifdef AMREX_USE_HIP
 using gpuDeviceProp_t = hipDeviceProp_t;
 #elif defined(AMREX_USE_CUDA)
@@ -27,6 +27,7 @@ using gpuDeviceProp_t = cudaDeviceProp;
 #elif defined(AMREX_USE_SYCL)
     struct gpuDeviceProp_t {
         std::string name;
+        std::string vendor; // SYCL only (inferred for CUDA and HIP)
         std::size_t totalGlobalMem;
         std::size_t sharedMemPerBlock;
         int multiProcessorCount;
@@ -41,8 +42,10 @@ using gpuDeviceProp_t = cudaDeviceProp;
         int maxParameterSize;
     };
 #endif
+}
+#endif
 
-namespace Gpu {
+namespace amrex::Gpu {
 
 class Device
 {
@@ -68,7 +71,7 @@ public:
         return inSingleStreamRegion() ? 1 : max_gpu_streams;
     }
 
-    static void setStreamIndex (const int idx) noexcept;
+    static void setStreamIndex (int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(0); }
 
 #ifdef AMREX_USE_GPU
@@ -113,8 +116,8 @@ public:
 
 #endif
 
-    static void mem_advise_set_preferred (void* p, const std::size_t sz, const int device);
-    static void mem_advise_set_readonly (void* p, const std::size_t sz);
+    static void mem_advise_set_preferred (void* p, std::size_t sz, int device);
+    static void mem_advise_set_readonly (void* p, std::size_t sz);
 
 #ifdef AMREX_USE_GPU
     static void setNumThreadsMin (int nx, int ny, int nz) noexcept;
@@ -139,6 +142,20 @@ public:
     static int devicePropMinor () noexcept { return device_prop.minor; }
 #endif
 
+    static std::string deviceVendor() noexcept
+    {
+#if defined(AMREX_USE_HIP) && defined(__HIP_PLATFORM_AMD__)
+        return std::string("AMD");
+#elif defined(AMREX_USE_CUDA) || (defined(AMREX_USE_HIP) && defined(__HIP_PLATFORM_NVIDIA__))
+        // Using HIP on NVIDIA GPUs isn't currently supported by AMReX
+        return std::string("NVIDIA");
+#elif defined(AMREX_USE_SYCL)
+        return device_prop.vendor;
+#else
+        return std::string("Unknown");
+#endif
+    }
+
     static std::size_t freeMemAvailable ();
     static void profilerStart ();
     static void profilerStop ();
@@ -147,13 +164,12 @@ public:
 
     static int memoryPoolsSupported () noexcept { return memory_pools_supported; }
 
-#if defined(AMREX_USE_HIP) && (HIP_VERSION_MAJOR >= 4)
-    // definition: https://github.com/llvm/llvm-project/blob/62ec4ac90738a5f2d209ed28c822223e58aaaeb7/clang/lib/Basic/Targets/AMDGPU.cpp#L400
-    // overview wavefront size: https://github.com/llvm/llvm-project/blob/efc063b621ea0c4d1e452bcade62f7fc7e1cc937/clang/test/Driver/amdgpu-macros.cl#L70-L115
-    // gfx10XX has 32 threads per wavefront else 64
-    static AMREX_EXPORT constexpr int warp_size = __AMDGCN_WAVEFRONT_SIZE;
+#if defined(AMREX_USE_HIP)
+    static AMREX_EXPORT constexpr int warp_size = AMREX_AMDGCN_WAVEFRONT_SIZE;
+#elif defined(AMREX_USE_SYCL)
+    static AMREX_EXPORT constexpr int warp_size = AMREX_SYCL_SUB_GROUP_SIZE;
 #else
-    static AMREX_EXPORT constexpr int warp_size = AMREX_HIP_OR_CUDA_OR_SYCL(64,32,32);
+    static AMREX_EXPORT constexpr int warp_size = AMREX_HIP_OR_CUDA(64,32);
 #endif
 
     static unsigned int maxBlocksPerLaunch () noexcept { return max_blocks_per_launch; }
@@ -233,7 +249,7 @@ streamSynchronizeAll () noexcept
 inline void
 htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
 {
-    if (sz == 0) return;
+    if (sz == 0) { return; }
 #ifdef AMREX_USE_SYCL
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d, p_h, sz); });
@@ -247,7 +263,7 @@ htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
 inline void
 dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
 {
-    if (sz == 0) return;
+    if (sz == 0) { return; }
 #ifdef AMREX_USE_SYCL
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_h, p_d, sz); });
@@ -261,7 +277,7 @@ dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
 inline void
 dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
 {
-    if (sz == 0) return;
+    if (sz == 0) { return; }
 #ifdef AMREX_USE_SYCL
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d_dst, p_d_src, sz); });
@@ -275,7 +291,7 @@ dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noe
 inline void
 htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
 {
-    if (sz == 0) return;
+    if (sz == 0) { return; }
     htod_memcpy_async(p_d, p_h, sz);
     Gpu::streamSynchronize();
 }
@@ -283,7 +299,7 @@ htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
 inline void
 dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
 {
-    if (sz == 0) return;
+    if (sz == 0) { return; }
     dtoh_memcpy_async(p_h, p_d, sz);
     Gpu::streamSynchronize();
 }
@@ -291,13 +307,17 @@ dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
 inline void
 dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
 {
-    if (sz == 0) return;
+    if (sz == 0) { return; }
     dtod_memcpy_async(p_d_dst, p_d_src, sz);
     Gpu::streamSynchronize();
 }
 
 #endif
 
-}}
+#ifdef AMREX_USE_HYPRE
+void hypreSynchronize ();
+#endif
+
+}
 
 #endif

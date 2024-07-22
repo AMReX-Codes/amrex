@@ -41,7 +41,6 @@ public:
 
 *  This class does NOT provide a copy constructor or assignment operator.
 */
-
 class IArrayBox
     :
     public BaseFab<int>
@@ -58,7 +57,7 @@ public:
 
     /**
     * \brief Construct an initial FAB with the data space allocated but
-    * not inititialized. ncomp is the number of components
+    * not initialized. ncomp is the number of components
     * (variables) at each data point in the Box.
     */
     explicit IArrayBox (const Box& b,

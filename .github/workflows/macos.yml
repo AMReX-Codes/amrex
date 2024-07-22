@@ -11,17 +11,31 @@ jobs:
   tests-macos-universal-nompi:
     name: AppleClang Universal w/o MPI [tests-universal]
     runs-on: macos-latest
-    env:
-      # build universal binaries for M1 "Apple Silicon" and Intel CPUs
-      CMAKE_OSX_ARCHITECTURES: "arm64;x86_64"
-      CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-c++17-extensions -Wno-range-loop-analysis"
-      # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_mac.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/Library/Caches/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
+      env:
+        # build universal binaries for M1 "Apple Silicon" and Intel CPUs
+        CMAKE_OSX_ARCHITECTURES: "arm64;x86_64"
+        CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-c++17-extensions -Wno-range-loop-analysis"
+        # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=50M
+        export CCACHE_SLOPPINESS=time_macros
+        ccache -z
+        ccache --version
+
         cmake -S . -B build             \
             -DBUILD_SHARED_LIBS=ON      \
             -DCMAKE_BUILD_TYPE=Release  \
@@ -29,31 +43,66 @@ jobs:
             -DAMReX_EB=ON               \
             -DAMReX_MPI=OFF             \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_PARTICLES=ON
-        cmake --build build --parallel 2
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build --parallel 3
 
         ctest --test-dir build --output-on-failure
+
+        du -hs ~/Library/Caches/ccache
+        ccache -s
 
   # Build libamrex and all tests
   tests-macos:
     name: AppleClang@11.0 GFortran@9.3 [tests]
     runs-on: macos-latest
-    env:
-      CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-c++17-extensions -Wno-range-loop-analysis"
-      # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_mac.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/Library/Caches/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
+      env:
+        CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-c++17-extensions -Wno-range-loop-analysis -O1"
+        # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=160M
+        export CCACHE_SLOPPINESS=time_macros
+        ccache -z
+        ccache --version
+
         cmake -S . -B build             \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_PARTICLES=ON
-        cmake --build build --parallel 2
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build --parallel 3
         cmake --build build --target install
 
         ctest --test-dir build --output-on-failure
+
+        du -hs ~/Library/Caches/ccache
+        ccache -s
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

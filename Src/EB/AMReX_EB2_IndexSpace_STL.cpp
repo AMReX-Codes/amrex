@@ -1,6 +1,6 @@
 #include <AMReX_EB2_IndexSpace_STL.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
                               Array<Real,3> const& stl_center, int stl_reverse_normal,
@@ -70,7 +70,7 @@ const Level&
 IndexSpaceSTL::getLevel (const Geometry& geom) const
 {
     auto it = std::find(std::begin(m_domain), std::end(m_domain), geom.Domain());
-    int i = std::distance(m_domain.begin(), it);
+    auto i = std::distance(m_domain.begin(), it);
     return m_stllevel[i];
 }
 
@@ -78,7 +78,7 @@ const Geometry&
 IndexSpaceSTL::getGeometry (const Box& dom) const
 {
     auto it = std::find(std::begin(m_domain), std::end(m_domain), dom);
-    int i = std::distance(m_domain.begin(), it);
+    auto i = std::distance(m_domain.begin(), it);
     return m_geom[i];
 }
 
@@ -88,4 +88,10 @@ IndexSpaceSTL::addFineLevels (int /*num_new_fine_levels*/)
     amrex::Abort("IndexSpaceSTL::addFineLevels: todo");
 }
 
-}}
+void
+IndexSpaceSTL::addRegularCoarseLevels (int /*num_new_coarse_levels*/)
+{
+    amrex::Abort("IndexSpaceSTL::addRegularCoarseLevels: todo");
+}
+
+}

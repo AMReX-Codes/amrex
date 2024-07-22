@@ -94,9 +94,9 @@ Amrvis. Additional information is contained in the document
    The settings for Amrvis are saved in the configuration file ``.amrvis.defaults`` in
    your home directory. A default version of this file is available in the parent directory of the
    Amrvis repo. Run the command ``cp Amrvis/amrvis.defaults ~/.amrvis.defaults`` to
-   copy it to your home directory. A color pallete is also available in the Amrvis directory as a file
+   copy it to your home directory. A color palette is also available in the Amrvis directory as a file
    named ``Palette``.
-   To configure Amrvis to use this pallete you can open the ``.amrvis.defaults`` file
+   To configure Amrvis to use this palette you can open the ``.amrvis.defaults`` file
    in your home directory and edit the line containing ``palette`` to point to the
    location of this file. For example,
 
@@ -239,7 +239,7 @@ done using the command:
 
 ::
 
-    ~/amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C> ls -1 plt*/Header | tee movie.visit
+    ~/amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C> ls -1v plt*/Header | tee movie.visit
     plt00000/Header
     plt01000/Header
     plt02000/Header
@@ -330,6 +330,52 @@ To open a plotfile (for example, you could run the
 .. raw:: latex
 
    \end{center}
+
+Another useful feature in ParaView to load and re-load a group of plotfiles is using a ``.series`` file
+(similar to the ``.visit`` file in VisIt). It is a text file (say ``plot_files.series``) which lists
+the plotfiles in a JSON format as below.
+
+.. highlight:: console
+
+::
+
+{ "file-series-version": "1.0", "files": [
+{ "name": "plt00000", "time": 0},
+{ "name": "plt00100", "time": 1},
+{ "name": "plt00200", "time": 2},
+{ "name": "plt00300", "time": 3},
+{ "name": "plt00400", "time": 4},
+{ "name": "plt00500", "time": 5},
+{ "name": "plt00600", "time": 6},
+{ "name": "plt00700", "time": 7},
+{ "name": "plt00800", "time": 8},
+{ "name": "plt00900", "time": 9},
+{ "name": "plt01000", "time": 10},] }
+
+:download:`write_series_file.sh </Visualization/write_series_file.sh>` is a bash script
+that can generate such a ``.series`` file. Navigate to the directory with the plotfiles and
+save this script. Then run the bash script by executing the following command in the terminal.
+
+.. highlight:: console
+
+::
+
+    bash write_series_file.sh
+
+This will generate a file ``plot_files.series``. Open ParaView, and then select
+"File" :math:`\rightarrow` "Open". In the "Files of Type" dropdown menu (see :numref:`fig:ParaView_filegroup`)
+choose the option ``All Files (*)``. Then choose ``plot_files.series`` and click "OK". Now the plotfiles have been
+loaded as a Group as in Step 2 of section :ref:`section-1`. Now, you can follow the steps 2 to 7 in the section
+:ref:`section-1` to plot. As new plotfiles are generated, just re-run the bash script to re-generate the
+``plot_files.series`` file, right-click on ``plot_files.series`` in the ParaView menu, and click on
+"Reload Files" (see :numref:`fig:ParaView_series_reload`).
+
+.. _fig:ParaView_series_reload:
+
+.. figure:: ./Visualization/ParaView_series_reload.png
+   :width: 3.0in
+
+   : File dialog in ParaView showing how to reload a series file
 
 Building an Iso-surface
 -----------------------
@@ -1025,4 +1071,3 @@ simulation will periodically write images during the run.
    salloc -C haswell -N 1 -t 00:30:00 -q debug
    cd $SCRATCH/amrex-tutorials/ExampleCodes/Amr/Advection_AmrLevel/Exec/SingleVortex
    ./main2d.gnu.haswell.MPI.ex inputs
-

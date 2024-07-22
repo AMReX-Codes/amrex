@@ -455,7 +455,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     fileNameLengthPadded += fileNameLengthPadded % 8;  // for alignment on the t3e
     fileNameCharPtr = new char[fileNameLengthPadded];
     if(ParallelDescriptor::IOProcessor()) {
-      strcpy(fileNameCharPtr, ds->fileName.c_str());
+      std::strncpy(fileNameCharPtr, ds->fileName.c_str(), fileNameLengthPadded);
     }
 
     ParallelDescriptor::Bcast(fileNameCharPtr, fileNameLengthPadded,0);
@@ -567,7 +567,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
       }
 
       ParallelDescriptor::Bcast(derivedCharPtr, derivedLengthPadded, 0);
@@ -621,7 +621,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
       }
 
       ParallelDescriptor::Bcast(derivedCharPtr, derivedLengthPadded, 0);
@@ -679,7 +679,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
       }
       ParallelDescriptor::Bcast(derivedCharPtr, derivedLengthPadded, 0);
 
@@ -728,7 +728,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
       }
       ParallelDescriptor::Bcast(derivedCharPtr, derivedLengthPadded, 0);
 
@@ -780,7 +780,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
       }
       ParallelDescriptor::Bcast(derivedCharPtr, derivedLengthPadded, 0);
 
@@ -844,7 +844,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
         for(int iBox = 0; iBox < pointBoxArraySize; ++iBox) {
           pointBoxArrayPtr[iBox] = pointBoxArrayTempPtr[iBox];
         }
@@ -932,7 +932,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       derivedLengthPadded += derivedLengthPadded % 8;
       derivedCharPtr = new char[derivedLengthPadded];
       if(ParallelDescriptor::IOProcessor()) {
-        strcpy(derivedCharPtr, derivedTemp.c_str());
+        std::strncpy(derivedCharPtr, derivedTemp.c_str(), derivedLengthPadded);
         for(int iBox(0); iBox < lineBoxArraySize; ++iBox) {
           lineBoxArrayPtr[iBox] = lineBoxArrayTempPtr[iBox];
         }
@@ -2488,7 +2488,7 @@ void DataServices::RunTimelinePF(std::map<int, std::string> &mpiFuncNames,
           int ntnSize(nameTagNames.size());
           ntnNumbers.resize(ntnSize, 0.0);
           if(ntnSize > 0) {
-            ntnMultiplier = pow(10, static_cast<int>( 1 + log10(ntnSize)));
+            ntnMultiplier = std::pow(10, static_cast<int>( 1 + std::log10(ntnSize)));
           }
           for(int i(0); i < ntnSize; ++i) {
             if(ntnMultiplier > 0.0) {
@@ -2501,7 +2501,7 @@ void DataServices::RunTimelinePF(std::map<int, std::string> &mpiFuncNames,
           int bnSize(barrierNames.size());
           bnNumbers.resize(bnSize, 0.0);
           if(bnSize > 0) {
-            bnMultiplier = pow(10, static_cast<int>( 1 + log10(bnSize)));
+            bnMultiplier = std::pow(10, static_cast<int>( 1 + std::log10(bnSize)));
           }
           for(int i(0); i < bnSize; ++i) {
             if(bnMultiplier > 0.0) {
