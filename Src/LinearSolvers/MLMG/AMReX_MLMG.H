@@ -971,7 +971,6 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
             if (nGrowVect(*a_sol[alev]) == ng_sol) {
                 if constexpr (std::is_same<AMF,MF>()) {
                     sol[alev] = linop.makeAlias(*a_sol[alev]);
-                    setBndry(sol[alev], RT(0.0), 0, ncomp);
                     sol_is_alias[alev] = true;
                 }
             }
