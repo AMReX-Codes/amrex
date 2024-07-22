@@ -127,12 +127,12 @@ MyTest::solve ()
         amrex::Print() << "\n";
         MultiFab::Copy(error, solution, idim, 0, 1, 0);
         MultiFab::Subtract(error, exact, idim, 0, 1, 0);
-        amrex::Print() << "  max-norm error = " << error.norm0() << std::endl;
+        amrex::Print() << "  max-norm error = " << error.norm0() << '\n';
         const MultiFab& vfrc = factory->getVolFrac();
         MultiFab::Multiply(error, vfrc, 0, 0, 1, 0);
         const auto dx = geom.CellSize();
         error.mult(AMREX_D_TERM(dx[0],*dx[1],*dx[2]));
-        amrex::Print() << "    1-norm error = " << error.norm1() << std::endl;
+        amrex::Print() << "    1-norm error = " << error.norm1() << '\n';
     }
 }
 

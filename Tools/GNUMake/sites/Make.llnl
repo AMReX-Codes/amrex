@@ -46,11 +46,6 @@ ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
     CUDA_ARCH = 60
     COMPILE_CUDA_PATH = $(CUDA_HOME)
 
-    # Provide system configuration information.
-
-    GPUS_PER_NODE=4
-    GPUS_PER_SOCKET=2
-    
   endif
 
   ifeq ($(lowercase_comp),gnu)
@@ -100,11 +95,6 @@ ifeq ($(which_computer),$(filter $(which_computer),sierra butte rzansel lassen))
 
     CUDA_ARCH = 70
     COMPILE_CUDA_PATH = $(CUDA_HOME)
-
-    # Provide system configuration information.
-
-    GPUS_PER_NODE=4
-    GPUS_PER_SOCKET=2
 
   endif
 

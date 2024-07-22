@@ -20,7 +20,6 @@ class AmrParGDB;
  * virtual functions to allocate, initialize and delete data.  It also
  * requires the derived class to tag cells for refinement.
  */
-
 class AmrCore
     : public AmrMesh
 {

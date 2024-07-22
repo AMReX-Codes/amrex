@@ -1,6 +1,10 @@
+ifndef AMREX_OPENBC_MAKE
+       AMREX_OPENBC_MAKE := 1
 
 CEXE_headers += AMReX_OpenBC.H AMReX_OpenBC_K.H
 CEXE_sources += AMReX_OpenBC.cpp
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/OpenBC
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/OpenBC
+
+endif

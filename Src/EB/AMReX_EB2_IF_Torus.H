@@ -23,7 +23,7 @@ public:
           m_sign( a_inside ? 1.0 : -1.0 )
         {}
 
-    AMREX_GPU_HOST_DEVICE inline
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept {
         Real d = std::hypot(x-m_center.x, y-m_center.y);
 #if (AMREX_SPACEDIM == 2)
@@ -36,7 +36,7 @@ public:
 #endif
     }
 
-    inline Real operator() (const RealArray& p) const noexcept {
+    [[nodiscard]] inline Real operator() (const RealArray& p) const noexcept {
         return this->operator()(AMREX_D_DECL(p[0],p[1],p[2]));
     }
 

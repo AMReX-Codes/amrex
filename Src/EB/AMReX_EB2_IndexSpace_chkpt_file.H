@@ -25,14 +25,15 @@ public:
     void operator= (IndexSpaceChkptFile const&) = delete;
     void operator= (IndexSpaceChkptFile &&) = delete;
 
-    virtual ~IndexSpaceChkptFile () {}
+    ~IndexSpaceChkptFile () override = default;
 
-    virtual const Level& getLevel (const Geometry& geom) const final;
-    virtual const Geometry& getGeometry (const Box& dom) const final;
-    virtual const Box& coarsestDomain () const final {
+    [[nodiscard]] const Level& getLevel (const Geometry& geom) const final;
+    [[nodiscard]] const Geometry& getGeometry (const Box& dom) const final;
+    [[nodiscard]] const Box& coarsestDomain () const final {
         return m_geom.back().Domain();
     }
-    virtual void addFineLevels (int num_new_fine_levels) final;
+    void addFineLevels (int num_new_fine_levels) final;
+    void addRegularCoarseLevels (int num_new_coarse_levels) final;
 
 private:
 

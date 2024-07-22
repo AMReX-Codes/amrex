@@ -15,13 +15,13 @@ namespace amrex {
  * with interpolation of the coarse data.  Then it fills the fine ghost
  * cells overlapping fine level valid cells with the fine level data.  If
  * the valid cells of the destination need to be filled, it will be done as
- * well.  Finally, it will fill the physical bounbary using the user
+ * well.  Finally, it will fill the physical boundary using the user
  * provided functor.  The `fill` member function can be used to do the
  * operations just described.  Alternatively, one can also use the
  * `fillCoarseFineBounary` to fill the ghost cells at the coarse/fine
  * boundary only.  Then one can manually call FillBoundary to fill the other
  * ghost cells, and use the physical BC functor to handle the physical
- * boundeary.
+ * boundary.
  *
  * The communication of the coarse data needed for spatial interpolation is
  * optimized at the cost of being error-prone.  One must follow the
@@ -30,7 +30,7 @@ namespace amrex {
  * (1) This class is for filling data during time stepping, not during
  * regrid.  The fine level data passed as input must have the same BoxArray
  * and DistributionMapping as the destination.  It's OK they are the same
- * MultiFab.  For AmrLevel based codes, AmrLevel::FillPatcherFill wil try to
+ * MultiFab.  For AmrLevel based codes, AmrLevel::FillPatcherFill will try to
  * use FillPatcher if it can, and AmrLevel::FillPatch will use the fillpatch
  * functions.
  *
@@ -42,7 +42,7 @@ namespace amrex {
  *
  * (3) When to destroy?  Usually, we do time steppig on a coarse level
  * first.  Then we recursively do time stepping on fine levels.  After the
- * finer level finishes, we do reflux and averge the fine data down to the
+ * finer level finishes, we do reflux and average the fine data down to the
  * coarse level.  After that we should destroy the FillPatcher object
  * associated with these two levels, because the coarse data stored in the
  * object has become outdated.  For AmrCore based codes, you could use
@@ -64,11 +64,10 @@ namespace amrex {
  * AMR levels.  This operation at the coarse/fine boundary is non-trivial
  * for RK orders higher than 2.  Note that it is expected that time stepping
  * on the coarse level is perform before any fine level time stepping, and
- * it's the user's reponsibility to properly create and destroy this object.
+ * it's the user's responsibility to properly create and destroy this object.
  * See AmrLevel::RK for an example of using the RungeKutta functions and
  * FillPatcher together.
  */
-
 template <class MF = MultiFab>
 class FillPatcher
 {
@@ -118,7 +117,7 @@ public:
      * \param fbc         for filling fine level physical BC
      * \param fbccomp     starting component of the fine level BC functor
      * \param bcs         BCRec specifying physical boundary types
-     * \parame bcscomp    starting component of the BCRec Vector.
+     * \param bcscomp    starting component of the BCRec Vector.
      * \param pre_interp  optional pre-interpolation hook for modifying the coarse data
      * \param post_interp optional post-interpolation hook for modifying the fine data
      */
@@ -309,7 +308,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
     {
         if (m_cf_fine_data == nullptr) {
             m_cf_fine_data = std::make_unique<MF>
-                (make_mf_fine_patch<MF>(fpc, m_ncomp));
+                (detail::make_mf_fine_patch<MF>(fpc, m_ncomp));
         }
 
         int ncmfs = cmf.size();
@@ -321,7 +320,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
                                    });
 
             if (it == std::end(m_cf_crse_data)) {
-                MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, m_ncomp);
+                MF mf_crse_patch = detail::make_mf_crse_patch<MF>(fpc, m_ncomp);
                 mf_crse_patch.ParallelCopy(*cmf[icmf], m_cgeom.periodicity());
 
                 std::pair<Real,std::unique_ptr<MF>> tmp;
@@ -333,7 +332,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
 
         if (m_cf_crse_data_tmp == nullptr) {
             m_cf_crse_data_tmp = std::make_unique<MF>
-                (make_mf_crse_patch<MF>(fpc, m_ncomp));
+                (detail::make_mf_crse_patch<MF>(fpc, m_ncomp));
         }
 
         int const ng_space_interp = 8; // Need to be big enough
@@ -391,7 +390,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
         }
         Gpu::streamSynchronize();
 
-        cbc(*m_cf_crse_data_tmp, 0, ncomp, nghost, time, cbccomp);
+        cbc(*m_cf_crse_data_tmp, 0, ncomp, m_cf_crse_data_tmp->nGrowVect(), time, cbccomp);
 
         detail::call_interp_hook(pre_interp, *m_cf_crse_data_tmp, 0, ncomp);
 
@@ -412,14 +411,15 @@ template <std::size_t order>
 void FillPatcher<MF>::storeRKCoarseData (Real /*time*/, Real dt, MF const& S_old,
                                          Array<MF,order> const& RK_k)
 {
+    BL_PROFILE("FillPatcher::storeRKCoarseData()");
     m_dt_coarse = dt;
     m_cf_crse_data.resize(order+1);
 
     auto const& fpc = getFPinfo();
 
     for (auto& tmf : m_cf_crse_data) {
-        tmf.first = std::numeric_limits<Real>::lowest(); // because we dont' need it
-        tmf.second = std::make_unique<MF>(make_mf_crse_patch<MF>(fpc, m_ncomp));
+        tmf.first = std::numeric_limits<Real>::lowest(); // because we don't need it
+        tmf.second = std::make_unique<MF>(detail::make_mf_crse_patch<MF>(fpc, m_ncomp));
     }
     m_cf_crse_data[0].second->ParallelCopy(S_old, m_cgeom.periodicity());
     for (std::size_t i = 0; i < order; ++i) {
@@ -433,6 +433,7 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
                               MF& mf, Real time, BC& cbc, BC& fbc,
                               Vector<BCRec> const& bcs)
 {
+    BL_PROFILE("FillPatcher::fillRK()");
     int rk_order = m_cf_crse_data.size()-1;
     if (rk_order != 3 && rk_order != 4) {
         amrex::Abort("FillPatcher: unsupported RK order "+std::to_string(rk_order));
@@ -443,7 +444,7 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
     auto const& fpc = getFPinfo();
     if (m_cf_crse_data_tmp == nullptr) {
         m_cf_crse_data_tmp = std::make_unique<MF>
-            (make_mf_crse_patch<MF>(fpc, m_ncomp));
+            (detail::make_mf_crse_patch<MF>(fpc, m_ncomp));
     }
 
     auto const& u = m_cf_crse_data_tmp->arrays();
@@ -592,10 +593,10 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
     }
     Gpu::streamSynchronize();
 
-    cbc(*m_cf_crse_data_tmp, 0, m_ncomp, m_nghost, time, 0);
+    cbc(*m_cf_crse_data_tmp, 0, m_ncomp, m_cf_crse_data_tmp->nGrowVect(), time, 0);
 
     if (m_cf_fine_data == nullptr) {
-        m_cf_fine_data = std::make_unique<MF>(make_mf_fine_patch<MF>(fpc, m_ncomp));
+        m_cf_fine_data = std::make_unique<MF>(detail::make_mf_fine_patch<MF>(fpc, m_ncomp));
     }
 
     FillPatchInterp(*m_cf_fine_data, 0, *m_cf_crse_data_tmp, 0,

@@ -1,0 +1,5 @@
+CEXE_headers += AMReX_Bittree.H
+CEXE_sources += AMReX_Bittree.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/Bittree
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/Bittree

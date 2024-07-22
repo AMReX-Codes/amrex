@@ -85,8 +85,16 @@ cuda_print_option(AMReX_CUDA_DEBUG)
 
 # both are performance-neutral debug symbols
 option(AMReX_CUDA_SHOW_LINENUMBERS "Generate line-number information (optimizations: on)" ON)
-option(AMReX_CUDA_SHOW_CODELINES "Generate source information in PTX (optimizations: on)" ON)
 cuda_print_option(AMReX_CUDA_SHOW_LINENUMBERS)
+
+# https://github.com/AMReX-Codes/amrex/issues/3215
+# Nvidia Bug ID: 4088095
+if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.1)
+    set(AMReX_CUDA_SHOW_CODELINES_DEFAULT OFF)
+else()
+    set(AMReX_CUDA_SHOW_CODELINES_DEFAULT ON)
+endif()
+option(AMReX_CUDA_SHOW_CODELINES "Generate source information in PTX (optimizations: on)" AMReX_CUDA_SHOW_CODELINES_DEFAULT)
 cuda_print_option(AMReX_CUDA_SHOW_CODELINES)
 
 option(AMReX_CUDA_BACKTRACE "Generate host function symbol names (better cuda-memcheck)" ${AMReX_CUDA_DEBUG})

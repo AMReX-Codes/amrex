@@ -98,8 +98,8 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
 
         HeaderFile << varnames.size() << '\n';
 
-        for (int ivar = 0; ivar < varnames.size(); ++ivar) {
-            HeaderFile << varnames[ivar] << "\n";
+        for (const auto & varname : varnames) {
+            HeaderFile << varname << "\n";
         }
         HeaderFile << AMREX_SPACEDIM << '\n';
         HeaderFile << time << '\n';
@@ -202,7 +202,7 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
             HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
                                                     std::ofstream::trunc |
                                                     std::ofstream::binary);
-            if( ! HeaderFile.good()) FileOpenFailed(HeaderFileName);
+            if( ! HeaderFile.good()) { FileOpenFailed(HeaderFileName); }
             WriteGenericPlotfileHeader(HeaderFile, nlevels, boxArrays, varnames,
                                        geom, time, level_steps, ref_ratio, versionName,
                                        levelPrefix, mfPrefix);

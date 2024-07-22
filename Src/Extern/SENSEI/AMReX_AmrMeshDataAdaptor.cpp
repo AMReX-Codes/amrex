@@ -405,7 +405,7 @@ int AmrMeshDataAdaptor::GetNumberOfArrays(const std::string &meshName,
 
     if (this->Internals->States.size() < 1)
     {
-        SENSEI_ERROR("No simualtion data, missing call to SetDataSource?")
+        SENSEI_ERROR("No simulation data, missing call to SetDataSource?")
         return -1;
     }
 
@@ -462,7 +462,7 @@ int AmrMeshDataAdaptor::GetMeshHasGhostCells(const std::string &meshName, int &n
 
     if (this->Internals->States.size() < 1)
     {
-        SENSEI_ERROR("No simualtion data, missing call to SetDataSource?")
+        SENSEI_ERROR("No simulation data, missing call to SetDataSource?")
         return -1;
     }
 
@@ -489,7 +489,7 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
 
     if (this->Internals->States.size() < 1)
     {
-        SENSEI_ERROR("No simualtion data, missing call to SetDataSource?")
+        SENSEI_ERROR("No simulation data, missing call to SetDataSource?")
         return -1;
     }
 
@@ -631,7 +631,7 @@ int AmrMeshDataAdaptor::AddGhostCellsArray(svtkDataObject* mesh,
 
     if (this->Internals->States.size() < 1)
     {
-        SENSEI_ERROR("No simualtion data, missing call to SetDataSource?")
+        SENSEI_ERROR("No simulation data, missing call to SetDataSource?")
         return -1;
     }
 
@@ -756,7 +756,7 @@ int AmrMeshDataAdaptor::AddArray(svtkDataObject* mesh,
 
     if (this->Internals->States.size() < 1)
     {
-        SENSEI_ERROR("No simualtion data, missing call to SetDataSource?")
+        SENSEI_ERROR("No simulation data, missing call to SetDataSource?")
         return -1;
     }
 

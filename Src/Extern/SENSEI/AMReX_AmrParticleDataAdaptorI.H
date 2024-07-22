@@ -3,20 +3,20 @@
 namespace amrex
 {
 //-----------------------------------------------------------------------------
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>*
-AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::New()
+template <typename ParticleType, int NArrayReal, int NArrayInt>
+AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>*
+AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::New()
 {
-  auto result = new AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+  auto result = new AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>;
   result->InitializeObjectBase();
   return result;
 }
 
 //-----------------------------------------------------------------------------
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetDataSource(
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::SetDataSource(
   Amr *amr,
-  amrex::ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> * particles,
+  amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt> * particles,
   const std::map<std::string, std::vector<int>> & rStructs,
   const std::map<std::string, int> & iStructs,
   const std::map<std::string, std::vector<int>> & rArrays,
@@ -29,8 +29,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetD
 
 // SENSEI API
 #if SENSEI_VERSION_MAJOR >= 3
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshMetadata(
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshMetadata(
   unsigned int id,
   sensei::MeshMetadataPtr &metadata)
 {
@@ -47,8 +47,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
 }
 
 #else
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshName(
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshName(
   unsigned int id,
   std::string &meshName)
 {
@@ -64,8 +64,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
   return -1;
 }
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshHasGhostNodes(
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshHasGhostNodes(
   const std::string &meshName, int &nLayers)
 {
   if(id == 0)
@@ -80,8 +80,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
   return -1;
 }
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMeshHasGhostCells(
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshHasGhostCells(
   const std::string &meshName, int &nLayers)
 {
   if(id == 0)
@@ -96,8 +96,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
   return -1;
 }
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetNumberOfArrays(
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetNumberOfArrays(
   const std::string &meshName,
   int association,
   unsigned int &numberOfArrays)
@@ -114,8 +114,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetN
   return -1;
 }
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetArrayName(
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetArrayName(
   const std::string &meshName,
   int association,
   unsigned int index,
@@ -134,16 +134,16 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetA
 }
 #endif
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetNumberOfMeshes(
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetNumberOfMeshes(
   unsigned int &numMeshes)
 {
   numMeshes = 2;
   return 0;
 }
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetMesh(
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMesh(
   const std::string &meshName,
   bool structureOnly,
   svtkDataObject *&mesh)
@@ -160,8 +160,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetM
   return -1;
 }
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhostNodesArray(
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddGhostNodesArray(
   svtkDataObject* mesh,
   const std::string &meshName)
 {
@@ -177,8 +177,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddG
   return -1;
 }
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddGhostCellsArray(
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddGhostCellsArray(
   svtkDataObject* mesh,
   const std::string &meshName)
 {
@@ -194,8 +194,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddG
   return -1;
 }
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddArray(
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddArray(
   svtkDataObject* mesh,
   const std::string &meshName,
   int association,
@@ -213,8 +213,8 @@ int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::AddA
   return -1;
 }
 
-template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int AmrParticleDataAdaptor<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReleaseData()
+template<typename ParticleType, int NArrayReal, int NArrayInt>
+int AmrParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::ReleaseData()
 {
   this->m_particleAdaptor->ReleaseData();
   this->m_meshAdaptor->ReleaseData();

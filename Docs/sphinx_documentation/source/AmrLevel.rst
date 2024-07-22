@@ -110,7 +110,7 @@ the :cpp:`AmrLevelAdv` class, e.g.,
         int lo_bc[BL_SPACEDIM];
         int hi_bc[BL_SPACEDIM];
         for (int i = 0; i < BL_SPACEDIM; ++i) {
-            lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries
+            lo_bc[i] = hi_bc[i] = amrex::BCType::int_dir;   // periodic boundaries
         }
 
         BCRec bc(lo_bc, hi_bc);

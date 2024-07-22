@@ -16,7 +16,7 @@ MLNodeTensorLaplacian::MLNodeTensorLaplacian (const Vector<Geometry>& a_geom,
 void
 MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 {
-    for (int i = 0; i < nelems; ++i) m_sigma[i] = a_sigma[i];
+    for (int i = 0; i < nelems; ++i) { m_sigma[i] = a_sigma[i]; }
 }
 
 void
@@ -38,7 +38,7 @@ MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexce
 #endif
 }
 
-GpuArray<Real,nelems>
+GpuArray<Real,MLNodeTensorLaplacian::nelems>
 MLNodeTensorLaplacian::scaledSigma (int amrlev, int mglev) const noexcept
 {
     auto s = m_sigma;
@@ -85,7 +85,7 @@ MLNodeTensorLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, Mult
 
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
-    IntVect const ratio = mg_coarsen_ratio_vec[cmglev-1];
+    IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
     int semicoarsening_dir = info.semicoarsening_direction;
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
@@ -131,7 +131,7 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
 {
     BL_PROFILE("MLNodeTensorLaplacian::interpolation()");
 
-    IntVect const ratio = mg_coarsen_ratio_vec[fmglev];
+    IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
     int semicoarsening_dir = info.semicoarsening_direction;
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
@@ -282,9 +282,9 @@ void
 MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
                                      Array4<HypreNodeLap::AtomicInt const> const& gid,
                                      Array4<int const> const& lid,
-                                     HypreNodeLap::Int* const ncols,
-                                     HypreNodeLap::Int* const cols,
-                                     Real* const mat) const
+                                     HypreNodeLap::Int* ncols,
+                                     HypreNodeLap::Int* cols,
+                                     Real* mat) const
 {
     const int amrlev = 0;
     const int mglev = NMGLevels(amrlev)-1;
@@ -305,15 +305,15 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
             (nmax,
              [=] AMREX_GPU_DEVICE (int offset) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
-                 Dim3 node2 = GetNode2()(offset, node);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
                          < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
                  mlndtslap_fill_ijmatrix_gpu(ps, node.x, node.y, node.z, offset,
                                              ndbx, gid, lid, ncols, cols, mat, s);
              },
@@ -327,7 +327,7 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
 
 void
 MLNodeTensorLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
-                                Real* const rhs, Array4<Real const> const& bfab) const
+                                Real* rhs, Array4<Real const> const& bfab) const
 {
     const Box& bx = mfi.validbox();
     AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,

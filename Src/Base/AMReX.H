@@ -10,10 +10,12 @@
 #include <AMReX_Exception.H>
 #include <AMReX_Extension.H>
 
+#include <cstdint>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 //
@@ -30,8 +32,8 @@ namespace amrex
 {
     class AMReX;
 
-    typedef void (*PTR_TO_VOID_FUNC)();
-    typedef void (*ErrorHandler) (const char* msg);
+    using PTR_TO_VOID_FUNC = void (*)();
+    using ErrorHandler = void (*)(const char*);
 
     namespace system
     {
@@ -64,6 +66,8 @@ namespace amrex
 
         extern AMREX_EXPORT ErrorHandler error_handler;
         extern AMREX_EXPORT int abort_on_unused_inputs;
+
+        extern AMREX_EXPORT bool init_snan;
     }
 
     /** the AMReX "git describe" version */
@@ -109,20 +113,19 @@ namespace amrex
     //! Print out message to cerr and exit via amrex::Abort().
     void Error (const std::string& msg);
 
-    void Error_host (const char* msg);
+    void Error_host (const char* type, const char* msg);
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Error (const char* msg = nullptr) {
-#if AMREX_DEVICE_COMPILE
 #if defined(NDEBUG)
-        amrex::ignore_unused(msg);
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(msg);))
 #else
-        if (msg) AMREX_DEVICE_PRINTF("Error %s\n", msg);
-        AMREX_DEVICE_ASSERT(0);
+        AMREX_IF_ON_DEVICE((
+                if (msg) { AMREX_DEVICE_PRINTF("Error %s\n", msg); }
+                AMREX_DEVICE_ASSERT(0);
+        ))
 #endif
-#else
-        Error_host(msg);
-#endif
+        AMREX_IF_ON_HOST((Error_host("Error", msg);))
     }
 
     //! Print out warning message to cerr.
@@ -132,34 +135,28 @@ namespace amrex
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Warning (const char * msg) {
-#if AMREX_DEVICE_COMPILE
 #if defined(NDEBUG)
-        amrex::ignore_unused(msg);
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(msg);))
 #else
-        if (msg) AMREX_DEVICE_PRINTF("Warning %s\n", msg);
+        AMREX_IF_ON_DEVICE((if (msg) { AMREX_DEVICE_PRINTF("Warning %s\n", msg); }))
 #endif
-#else
-        Warning_host(msg);
-#endif
+        AMREX_IF_ON_HOST((Warning_host(msg);))
     }
 
     //! Print out message to cerr and exit via abort().
     void Abort (const std::string& msg);
 
-    void Abort_host (const char * msg);
-
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Abort (const char * msg = nullptr) {
-#if AMREX_DEVICE_COMPILE
 #if defined(NDEBUG)
-        amrex::ignore_unused(msg);
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(msg);))
 #else
-        if (msg) AMREX_DEVICE_PRINTF("Abort %s\n", msg);
-        AMREX_DEVICE_ASSERT(0);
+        AMREX_IF_ON_DEVICE((
+                if (msg) { AMREX_DEVICE_PRINTF("Abort %s\n", msg); }
+                AMREX_DEVICE_ASSERT(0);
+        ))
 #endif
-#else
-        Abort_host(msg);
-#endif
+        AMREX_IF_ON_HOST((Error_host("Abort", msg);))
     }
 
     /**
@@ -172,22 +169,21 @@ namespace amrex
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line, const char* msg = nullptr) {
-#if AMREX_DEVICE_COMPILE
 #if defined(NDEBUG)
-        amrex::ignore_unused(EX,file,line,msg);
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(EX,file,line,msg);))
 #else
-        if (msg) {
-            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
-                                EX, file, line, msg);
-        } else {
-            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
-                                EX, file, line);
-        }
-        AMREX_DEVICE_ASSERT(0);
+        AMREX_IF_ON_DEVICE((
+                if (msg) {
+                AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
+                                        EX, file, line, msg);
+                } else {
+                AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
+                                        EX, file, line);
+                }
+                AMREX_DEVICE_ASSERT(0);
+        ))
 #endif
-#else
-        Assert_host(EX,file,line,msg);
-#endif
+        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg);))
     }
 
     /**
@@ -204,6 +200,9 @@ namespace amrex
 
     [[nodiscard]] int Verbose () noexcept;
     void SetVerbose (int v) noexcept;
+
+    [[nodiscard]] bool InitSNaN () noexcept;
+    void SetInitSNaN (bool v) noexcept;
 
     // ! Get the entire command line including the executable
     [[nodiscard]] std::string get_command ();
@@ -285,6 +284,65 @@ namespace amrex
 
         Geometry* m_geom = nullptr;
     };
+
+    enum struct FPExcept : std::uint8_t {
+        none     = 0B0000,
+        invalid  = 0B0001,
+        zero     = 0B0010,
+        overflow = 0B0100,
+        all      = 0B0111
+    };
+
+    [[nodiscard]] inline bool any (FPExcept a) { return a != FPExcept::none; }
+
+    [[nodiscard]] inline FPExcept operator| (FPExcept a, FPExcept b)
+    {
+        using T = std::underlying_type_t<FPExcept>;
+        return static_cast<FPExcept>(static_cast<T>(a) | static_cast<T>(b));
+    }
+
+    [[nodiscard]] inline FPExcept operator& (FPExcept a, FPExcept b)
+    {
+        using T = std::underlying_type_t<FPExcept>;
+        return static_cast<FPExcept>(static_cast<T>(a) & static_cast<T>(b));
+    }
+
+    //! Return currently enabled FP exceptions. Linux only.
+    [[nodiscard]] FPExcept getFPExcept ();
+
+    //! Set FP exception traps. Linux only. This enables set flags and
+    //! DISABLES unset flags. This can be used to restore previous settings.
+    FPExcept setFPExcept (FPExcept excepts);
+
+    /**
+     * \brief Disable FP exceptions. Linux Only
+     *
+     * This function disables given exception traps and keeps the status of
+     * the others. The example below disables FPE invalid and
+     * divide-by-zero, and later restores the previous settings.
+     *
+     \verbatim
+         auto prev_excepts = disableFPExcept(FPExcept::invalid | FPExcept::zero);
+         // ....
+         setFPExcept(prev_excepts); // restore previous settings
+     \endverbatim
+     */
+    [[nodiscard]] FPExcept disableFPExcept (FPExcept excepts);
+
+    /**
+     * \brief Enable FP exceptions. Linux Only
+     *
+     * This function enables given exception traps and keeps the status of
+     * the others. The example below enables all FPE traps, and later
+     * restores the previous settings.
+     *
+     \verbatim
+         auto prev_excepts = disableFPExcept(FPExcept::all);
+         // ....
+         setFPExcept(prev_excepts); // restore previous settings
+     \endverbatim
+     */
+    [[nodiscard]] FPExcept enableFPExcept (FPExcept excepts);
 }
 
 #endif /*BL_AMREX_H*/

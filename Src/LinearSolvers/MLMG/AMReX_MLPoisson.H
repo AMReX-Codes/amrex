@@ -158,6 +158,23 @@ MLPoissonT<MF>::prepareForSolve ()
             }
         }
     }
+    if (!m_is_singular[0] && this->m_needs_coarse_data_for_bc &&
+        this->m_coarse_fine_bc_type == LinOpBCType::Neumann)
+    {
+        AMREX_ASSERT(this->m_overset_mask[0][0] == nullptr);
+        auto bbox = this->m_grids[0][0].minimalBox();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (this->m_lobc[0][idim] == LinOpBCType::Dirichlet) {
+                bbox.growLo(idim,1);
+            }
+            if (this->m_hibc[0][idim] == LinOpBCType::Dirichlet) {
+                bbox.growHi(idim,1);
+            }
+        }
+        if (this->m_geom[0][0].Domain().contains(bbox)) {
+            m_is_singular[0] = true;
+        }
+    }
 }
 
 template <typename MF>
@@ -299,7 +316,7 @@ MLPoissonT<MF>::normalize (int amrlev, int mglev, MF& mf) const
 #if (AMREX_SPACEDIM != 3)
     BL_PROFILE("MLPoisson::normalize()");
 
-    if (!this->m_has_metric_term) return;
+    if (!this->m_has_metric_term) { return; }
 
     const Real* dxinv = this->m_geom[amrlev][mglev].InvCellSize();
     AMREX_D_TERM(const RT dhx = RT(dxinv[0]*dxinv[0]);,
@@ -393,7 +410,7 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 #endif
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && sol.isFusingCandidate()
@@ -865,9 +882,9 @@ bool
 MLPoissonT<MF>::supportNSolve () const
 {
     bool support = true;
-    if (this->m_domain_covered[0]) support = false;
-    if (this->doAgglomeration()) support = false;
-    if (AMREX_SPACEDIM != 3) support = false;
+    if (this->m_domain_covered[0]) { support = false; }
+    if (this->doAgglomeration()) { support = false; }
+    if (AMREX_SPACEDIM != 3) { support = false; }
     return support;
 }
 
@@ -911,8 +928,9 @@ MLPoissonT<MF>::makeNLinOp (int grid_size) const
     if (this->needsCoarseDataForBC())
     {
         const Real* dx0 = this->m_geom[0][0].CellSize();
-        const Real fac = Real(0.5)*this->m_coarse_data_crse_ratio;
-        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac, dx0[1]*fac, dx0[2]*fac)};
+        RealVect fac(this->m_coarse_data_crse_ratio);
+        fac *= Real(0.5);
+        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac[0], dx0[1]*fac[1], dx0[2]*fac[2])};
         nop->setCoarseFineBCLocation(cbloc);
     }
 

@@ -65,11 +65,11 @@ Frame::local_to_global_rank (int* global, const int* local, int n)
     }
     else
     {
-        for (int i = 0; i < n; ++i) global[i] = local[i];
+        for (int i = 0; i < n; ++i) { global[i] = local[i]; }
     }
 #else
     amrex::ignore_unused(local);
-    for (int i = 0; i < n; ++i) global[i] = 0;
+    for (int i = 0; i < n; ++i) { global[i] = 0; }
 #endif
 }
 
@@ -91,11 +91,11 @@ Frame::global_to_local_rank (int* local, const int* global, int n)
     }
     else
     {
-        for (int i = 0; i < n; ++i) local[i] = global[i];
+        for (int i = 0; i < n; ++i) { local[i] = global[i]; }
     }
 #else
     amrex::ignore_unused(global);
-    for (int i = 0; i < n; ++i) local[i] = 0;
+    for (int i = 0; i < n; ++i) { local[i] = 0; }
 #endif
 }
 

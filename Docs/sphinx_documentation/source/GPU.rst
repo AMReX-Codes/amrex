@@ -36,7 +36,7 @@ threads are used to perform parallelization techniques, like tiling.
 The most common ``X`` is ``OpenMP``.  On GPUs, AMReX requires ``CUDA/HIP/SYCL``
 and can be further combined with other parallel GPU languages, including
 ``OpenACC`` and ``OpenMP``, to control the offloading of subroutines
-to the GPU.  This ``MPI+CUDA+X`` GPU strategy has been developed
+to the GPU.  This ``MPI+X+Y`` GPU strategy has been developed
 to give users the maximum flexibility to find the best combination of
 portability, readability and performance for their applications.
 
@@ -74,13 +74,14 @@ detailed throughout the rest of this chapter:
   portability while making the code as understandable as possible to
   science-focused code teams.
 
-- AMReX utilizes GPU managed memory to automatically handle memory
+- AMReX can utilize GPU managed memory to automatically handle memory
   movement for mesh and particle data.  Simple data structures, such
   as :cpp:`IntVect`\s can be passed by value and complex data structures, such as
   :cpp:`FArrayBox`\es, have specialized AMReX classes to handle the
   data movement for the user.  Tests have shown CUDA managed memory
   to be efficient and reliable, especially when applications remove
-  any unnecessary data accesses.
+  any unnecessary data accesses. However, managed memory is not used by
+  :cpp:`FArrayBox` and :cpp:`MultiFab` by default.
 
 - Application teams should strive to keep mesh and particle data structures
   on the GPU for as long as possible, minimizing movement back to the CPU.
@@ -186,6 +187,43 @@ can run it and that will generate results like:
    [The  Pinned Arena] space (MB): 8
    AMReX (19.06-404-g0455b168b69c-dirty) finalized
 
+SYCL configuration variables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When building with ``USE_SYCL=TRUE``, one can set the following makefile
+variables to configure the build
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _tab:gnumakesyclvar:
+
+.. table:: AMReX SYCL-specific GNU Make build options
+
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | Variable Name                | Description                                     | Default     | Possible values |
+   +==============================+=================================================+=============+=================+
+   | SYCL_AOT                     | Enable SYCL ahead-of-time compilation           | FALSE       | TRUE, FALSE     |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | SYCL_AOT_GRF_MODE            | Specify AOT register file mode                  | Default     | Default, Large, |
+   |                              |                                                 |             | AutoLarge       |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | None        | pvc, etc.       |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | SYCL_SPLIT_KERNEL            | Enable SYCL kernel splitting                    | FALSE       | TRUE, FALSE     |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | USE_ONEDPL                   | Enable SYCL's oneDPL algorithms                 | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | SYCL_SUB_GROUP_SIZE          | Specify subgroup size                           | 32          | 64, 32, 16      |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | SYCL_PARALLEL_LINK_JOBS      | Number of parallel jobs in device link          | 1           | 1, 2, 3, etc.   |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+.. raw:: latex
+
+   \end{center}
+
+
 Building with CMake
 -------------------
 
@@ -269,7 +307,7 @@ If autodetection fails, a list of "common" architectures is assumed.
 Building for multiple CUDA architectures will generally result in a larger library and longer build times.
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
-CUDA Toolkit version 9.0 or higher.**
+CUDA Toolkit version 11.0 or higher.**
 
 In order to import the CUDA-enabled AMReX library into your CMake project, you need to include
 the following code into the appropriate CMakeLists.txt file:
@@ -390,17 +428,24 @@ Below is an example configuration for SYCL:
 
 .. table:: AMReX SYCL-specific build options
 
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | Variable Name                | Description                                     | Default     | Possible values |
-   +==============================+=================================================+=============+=================+
-   | AMReX_SYCL_AOT               | Enable SYCL ahead-of-time compilation           | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | None        | pvc, etc.       |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_SYCL_SPLIT_KERNEL      | Enable SYCL kernel splitting                    | YES         | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_SYCL_ONEDPL            | Enable SYCL's oneDPL algorithms                 | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | Variable Name                 | Description                                  | Default     | Possible values  |
+   +===============================+==============================================+=============+==================+
+   | AMReX_SYCL_AOT                | Enable SYCL ahead-of-time compilation        | NO          | YES, NO          |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_SYCL_AOT_GRF_MODE       | Specify AOT register file mode               | Default     | Default, Large,  |
+   |                               |                                              |             | AutoLarge        |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMREX_INTEL_ARCH              | Specify target if AOT is enabled             | None        | pvc, etc.        |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_SYCL_SPLIT_KERNEL       | Enable SYCL kernel splitting                 | YES         | YES, NO          |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_SYCL_ONEDPL             | Enable SYCL's oneDPL algorithms              | NO          | YES, NO          |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_SYCL_SUB_GROUP_SIZE     | Specify subgroup size                        | 32          | 64, 32, 16       |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_PARALLEL_LINK_JOBS      | Specify number of parallel link jobs         | 1           | positive integer |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
 .. raw:: latex
 
    \end{center}
@@ -418,8 +463,9 @@ Most GPU related classes and functions are in ``namespace Gpu``,
 which is inside ``namespace amrex``. For example, the GPU configuration
 class ``Device`` can be referenced to at ``amrex::Gpu::Device``.
 
-For portability, AMReX defines some macros for CUDA function qualifiers
-and they should be preferred to allow execution with ``USE_CUDA=FALSE``.
+For portability, AMReX defines some macros for CUDA/HIP function qualifiers
+and they should be preferred to allow execution when ``USE_CUDA=FALSE`` and
+``USE_HIP=FALSE``.
 These include:
 
 .. highlight:: c++
@@ -434,17 +480,21 @@ These include:
 Note that when AMReX is not built with ``CUDA/HIP/SYCL``,
 these macros expand to empty space.
 
-When AMReX is compiled with ``USE_CUDA=TRUE``, the preprocessor
-macros ``AMREX_USE_CUDA`` and ``AMREX_USE_GPU`` are defined for
-conditional programming.  When AMReX is compiled with
-``USE_ACC=TRUE``, ``AMREX_USE_ACC`` is defined.  When AMReX is
-compiled with ``USE_OMP_OFFLOAD=TRUE``, ``AMREX_USE_OMP_OFFLOAD`` is
-defined.
+When AMReX is compiled with ``USE_CUDA=TRUE``, ``USE_HIP=TRUE``,
+``USE_SYCL=TRUE``, or ``USE_ACC=TRUE``  the preprocessor
+macros ``AMREX_USE_CUDA``, ``AMREX_USE_HIP``, ``AMREX_USE_SYCL``,
+or ``AMREX_USE_ACC`` respectively are defined for
+conditional programming, as well as ``AMREX_USE_GPU``.
+This ``AMREX_USE_GPU`` definition can be used in application code
+if different functionality should be used when AMReX is built with
+GPU support.
+When AMReX is compiled with ``USE_OMP_OFFLOAD=TRUE``,
+``AMREX_USE_OMP_OFFLOAD`` is defined.
 
-In addition to AMReX's preprocessor macros, CUDA provides the
-``__CUDA_ARCH__`` macro which is only defined when in device code.
-``__CUDA_ARCH__`` should be used when a ``__host__ __device__``
-function requires separate code for the CPU and GPU implementations.
+The macros ``AMREX_IF_ON_DEVICE((code_for_device))`` and
+``AMREX_IF_ON_HOST((code_for_host))`` should be used when a
+``__host__ __device__`` function requires separate code for the
+CPU and GPU implementations.
 
 .. ===================================================================
 
@@ -494,10 +544,10 @@ to two functions:
    void free (void* p);
 
 :cpp:`The_Arena()` is used for memory allocation of data in
-:cpp:`BaseFab`.  By default, it allocates managed memory.  This can be changed with
-a boolean runtime parameter ``amrex.the_arena_is_managed``.
-Therefore the data in a :cpp:`MultiFab` is placed in
-managed memory by default and is accessible from both CPU host and GPU device.
+:cpp:`BaseFab`.  By default, it allocates device memory.  This can be changed with
+a boolean runtime parameter ``amrex.the_arena_is_managed=1``.
+When managed memory is enabled, the data in a :cpp:`MultiFab` is placed in
+device memory by default and is accessible from both CPU host and GPU device.
 This allows application codes to develop their GPU capability
 gradually. The behavior of :cpp:`The_Managed_Arena()` likewise depends on the
 ``amrex.the_arena_is_managed`` parameter. If ``amrex.the_arena_is_managed=0``,
@@ -528,7 +578,7 @@ a separate arena, the behavior of :cpp:`The_Device_Area()` or
 :cpp:`The_Managed_Arena()` can be changed with
 ``amrex.the_device_arena_release_threshold`` or
 ``amrex.the_managed_arena_release_threshold``.  Note that the units for all
-the parameter discussed above are bytes.  All these areans also have a
+the parameter discussed above are bytes.  All these arenas also have a
 member function :cpp:`freeUnused()` that can be used to manually release
 unused memory back to the system.
 
@@ -612,8 +662,9 @@ code to synchronize. The resulting :cpp:`AsyncArray` class is
 regions that contain both CPU work and GPU launches, including
 :cpp:`MFIter` loops.
 
-:cpp:`AsyncArray` is also portable. When built without ``USE_CUDA``, the
-object only stores and handles the CPU version of the data.
+:cpp:`AsyncArray` is also portable. When AMReX is compiled without
+GPU support, the object only stores and handles the CPU version of
+the data.
 
 An example using :cpp:`AsyncArray` is given below,
 
@@ -681,13 +732,13 @@ allocations and deallocations when (for example) resizing vectors.
 
     \end{center}
 
-These classes behave identically to an
+These classes behave almost identically to an
 :cpp:`amrex::Vector`, (see :ref:`sec:basics:vecandarr`), except that they
 can only hold "plain-old-data" objects (e.g. Reals, integers, amrex Particles,
 etc... ). If you want a resizable vector that doesn't use a memory Arena,
 simply use :cpp:`amrex::Vector`.
 
-Note that, even if the data in the vector is  managed and available on GPUs,
+Note that, even if the data in the vector is managed and available on GPUs,
 the member functions of e.g. :cpp:`Gpu::ManagedVector` are not.
 To use the data on the GPU, it is necessary to pass the underlying data pointer
 in to the GPU kernels. The managed data pointer can be accessed using the :cpp:`data()`
@@ -707,7 +758,7 @@ MultiFab Reductions
 
 AMReX provides functions for performing standard reduction operations on
 :cpp:`MultiFabs`, including :cpp:`MultiFab::sum` and :cpp:`MultiFab::max`.
-When ``USE_CUDA=TRUE``, these functions automatically implement the
+When AMReX is built with GPU support, these functions automatically implement the
 corresponding reductions on GPUs in an efficient manner.
 
 Function template :cpp:`ParReduce` can be used to implement user-defined
@@ -745,7 +796,7 @@ As another example, the following function computes the max- and 1-norm of a
 ::
 
     GpuTuple<Real,Real> compute_norms (MultiFab const& mf,
-                                       iMulitiFab const& mask)
+                                       iMultiFab const& mask)
     {
         auto const& data_ma = mf.const_arrays();
         auto const& mask_ma = mask.const_arrays();
@@ -816,8 +867,8 @@ include :cpp:`array`, :cpp:`dataPtr`, :cpp:`box`, :cpp:`nComp`, and
 
 All :cpp:`BaseFab<T>` objects in :cpp:`FabArray<FAB>` are allocated in
 CPU memory, including :cpp:`IArrayBox` and :cpp:`FArrayBox`, which are
-derived from :cpp:`BaseFab`, although the array data contained are
-allocated in managed memory.  We cannot pass a :cpp:`BaseFab` object by
+derived from :cpp:`BaseFab`, and the array data contained are
+allocated in either device or managed memory.  We cannot pass a :cpp:`BaseFab` object by
 value because they do not have copy constructor.  However, we can make
 an :cpp:`Array4` using member function :cpp:`BaseFab::array()`, and pass it
 by value to GPU kernels. In GPU device code, we can use :cpp:`Array4`
@@ -899,14 +950,14 @@ Kernel Launch
 =============
 
 In this section, how to offload work to the GPU will be demonstrated.
-AMReX supports offloading work with CUDA, OpenACC, or OpenMP.
+AMReX supports offloading work with CUDA, HIP, SYCL, OpenACC, or OpenMP.
 
-When using CUDA, AMReX provides users with portable C++ function calls or
-C++ macros that launch a user-defined lambda function.  When compiled without CUDA,
-the lambda function is ran on the CPU. When compiled with CUDA, the launch function
+When using CUDA, HIP, or SYCL, AMReX provides users with portable C++ function calls or
+C++ macros that launch a user-defined lambda function.  When compiled without CUDA/HIP/SYCL,
+the lambda function is ran on the CPU. When compiled with CUDA/HIP/SYCL, the launch function
 prepares and launches the lambda function on the GPU. The preparation includes
-calculating the appropriate number of blocks and threads, selecting the CUDA stream
-and defining the appropriate work chunk for each CUDA thread.
+calculating the appropriate number of blocks and threads, selecting the CUDA stream or HIP stream
+or SYCL queue, and defining the appropriate work chunk for each GPU thread.
 
 When using OpenACC or OpenMP offloading pragmas, the users add the appropriate
 pragmas to their work loops and functions to offload to the GPU.  These work
@@ -957,8 +1008,8 @@ However, it is important for applications to use these launches whenever appropr
 because they contain optimizations for both CPU and GPU variations of nested
 loops.  For example, on the GPU the spatial coordinate loops are reduced to a single
 loop and the component loop is moved to these inner most loop.  AMReX's launch functions
-apply the appropriate optimizations for ``USE_CUDA=TRUE`` and ``USE_CUDA=FALSE`` in a
-compact and readable format.
+apply the appropriate optimizations for compiling both with and without GPU support
+in a compact and readable format.
 
 AMReX also provides a variation of the launch function that is implemented as a
 C++ macro.  It behaves identically to the function, but hides the lambda function
@@ -1006,7 +1057,8 @@ launch function.
 ``amrex::ParallelFor()`` expands into different variations of a quadruply-nested
 :cpp:`for` loop depending dimensionality and whether it is being implemented on CPU or GPU.
 The best way to understand this function is to take a look at the 4D :cpp:`amrex::ParallelFor`
-that is implemented when ``USE_CUDA=FALSE``. A simplified version is reproduced here:
+that is implemented when AMReX is compiled without GPU support, such as ``USE_CUDA=FALSE``.
+A simplified version is reproduced here:
 
 .. highlight:: c++
 
@@ -1038,7 +1090,7 @@ must be able to be copied onto the device.  In this example, the
 lambda function captures a :cpp:`Array4` object, ``fab``, that defines
 how to access the :cpp:`FArrayBox`.  The macro uses ``fab`` to
 increment the value of each cell within the :cpp:`Box bx`.  If
-``USE_CUDA=TRUE``, this incrementation is performed on the GPU, with
+AMReX is compiled with GPU support, this incrementation is performed on the GPU, with
 GPU optimized loops.
 
 This 4D launch can also be used to work over any sequential set of components, by passing the
@@ -1100,7 +1152,7 @@ An example of a 1D function launch is given here:
     }
 
 Instead of passing an :cpp:`Array4`, :cpp:`FArrayBox::dataPtr()` is called to obtain a
-CUDA managed pointer to the :cpp:`FArrayBox` data.  This is an alternative way to access
+pointer to the :cpp:`FArrayBox` data.  This is an alternative way to access
 the :cpp:`FArrayBox` data on the GPU. Instead of passing a :cpp:`Box` to define the loop
 bounds, a :cpp:`long` or :cpp:`int` number of elements is passed to bound the single
 :cpp:`for` loop.  This construct can be used to work on any contiguous set of memory by
@@ -1112,7 +1164,7 @@ GPU block size
 
 By default, :cpp:`ParallelFor` launches ``AMREX_GPU_MAX_THREADS`` threads
 per GPU block, where ``AMREX_GPU_MAX_THREADS`` is a compile-time constant
-with a default value of 256.  The users can also explcitly specify the
+with a default value of 256.  The users can also explicitly specify the
 number of threads per block by :cpp:`ParallelFor<MY_BLOCK_SIZE>(...)`, where
 ``MY_BLOCK_SIZE`` is a multiple of the warp size (e.g., 128).  This allows
 the users to do performance tuning for individual kernels.
@@ -1188,7 +1240,7 @@ a Fortran function is given here:
 The function ``plusone_acc`` is a CPU host function.  The
 :cpp:`FArrayBox` reference
 from :cpp:`operator[]` is a reference to a :cpp:`FArrayBox` in host
-memory with data that has been placed in managed CUDA memory.
+memory with data that has been placed in GPU memory.
 ``BL_TO_FORTRAN_BOX`` and ``BL_TO_FORTRAN_ANYD`` behave identically
 to implementations used on the CPU.  These macros return the
 individual components of the AMReX C++ objects to allow passing to
@@ -1200,7 +1252,7 @@ The corresponding OpenACC labelled loop in ``plusone_acc`` is:
 
 ::
 
-    !dat = pointer to fab's managed data
+    !dat = pointer to fab's GPU data
 
     !$acc kernels deviceptr(dat)
     do       k = lo(3), hi(3)
@@ -1213,7 +1265,7 @@ The corresponding OpenACC labelled loop in ``plusone_acc`` is:
     !$acc end kernels
 
 Since the data pointer passed to ``plusone_acc`` points to
-unified memory, OpenACC can be told the data is available on the
+device memory, OpenACC can be told the data is available on the
 device using the ``deviceptr`` construct.  For further details
 about OpenACC programming, consult the OpenACC user's guide.
 
@@ -1225,7 +1277,7 @@ OpenMP labelled version of this loop is:
 
 ::
 
-    !dat = pointer to fab's managed data
+    !dat = pointer to fab's GPU data
 
     !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(dat)
     do       k = lo(3), hi(3)
@@ -1244,28 +1296,28 @@ with OpenMP for GPU offloading, consult the OpenMP user's guide.
 Kernel launch details
 ---------------------
 
-CUDA kernel calls are asynchronous and they return before the kernel
+CUDA (and HIP) kernel calls are asynchronous and they return before the kernel
 is finished on the GPU. So the :cpp:`MFIter` loop finishes iterating on
 the CPU and is ready to move on to the next work before the actual
 work completes on the GPU.  To guarantee consistency,
 there is an implicit device synchronization (a GPU barrier) in
 the destructor of :cpp:`MFIter`.  This ensures that all GPU work
 inside of an :cpp:`MFIter` loop will complete before code outside of
-the loop is executed. Any CUDA kernel launches made outside of an
+the loop is executed. Any kernel launches made outside of an
 :cpp:`MFIter` loop must ensure appropriate device synchronization
 occurs. This can be done by calling :cpp:`Gpu::streamSynchronize()`.
 
-CUDA supports multiple streams and kernels. Kernels launched in the
+CUDA and HIP supports multiple streams and kernels. Kernels launched in the
 same stream are executed sequentially, but different streams of kernel
 launches may be run in parallel.  For each iteration of :cpp:`MFIter`,
-AMReX uses a different CUDA stream (up to 16 streams in total).  This
+AMReX uses a different GPU stream (up to 4 streams in total).  This
 allows each iteration of an :cpp:`MFIter` loop to run independently,
 but in the expected sequence, and maximize the use of GPU parallelism.
-However, AMReX uses the default CUDA stream outside of :cpp:`MFIter`
+However, AMReX uses the default GPU stream outside of :cpp:`MFIter`
 loops.
 
 Launching kernels with AMReX's launch macros or functions implement
-a C++ lambda function. Lambdas functions used with CUDA have some
+a C++ lambda function. Lambdas functions used for launches on the GPU have some
 restrictions the user must understand.  First, the function enclosing the
 extended lambda must not have private or protected access within its parent
 class,  otherwise the code will not compile.  This can be fixed by changing
@@ -1284,7 +1336,7 @@ not work as intended.  For example,
     class MyClass {
     public:
         Box bx;
-        int m;                           // Unmanaged integer created on the host.
+        int m;                           // integer created on the host.
         void f () {
             amrex::launch(bx,
             [=] AMREX_GPU_DEVICE (Box const& tbx)
@@ -1441,14 +1493,15 @@ dependencies between the two (``q``). This makes it difficult to put
 them into a single GPU kernel, so two separate kernels will be
 launched, one for each function.
 
-As we have discussed, AMReX uses multiple CUDA streams for launching
+As we have discussed, AMReX uses multiple CUDA streams or HIP streams
+or SYCL queues for launching
 kernels.  Because ``q`` is used inside :cpp:`MFIter` loops, multiple
 GPU kernels on different streams are accessing its data.  This creates
 a race condition.  One way to fix this is to move ``FArrayBox q``
 inside the loop to make it local to each loop and use :cpp:`Elixir` to
 make it async-safe (see Section :ref:`sec:gpu:classes:elixir`).  This
 strategy works well for GPU.  However it is not optimal for OpenMP CPU
-threads when CUDA is not used, because of the memory allocation inside
+threads when the GPU is not used, because of the memory allocation inside
 OpenMP parallel region.  It turns out it is actually unnecessary to
 make ``FArrayBox q`` local to each iteration when :cpp:`Elixir` is
 used to extend the life of its floating point data.  The code below
@@ -1501,9 +1554,13 @@ Assertions and Error Checking
 To help debugging, we often use :cpp:`amrex::Assert` and
 :cpp:`amrex::Abort`.  These functions are GPU safe and can be used in
 GPU kernels.  However, implementing these functions requires additional
-GPU registers, which will reduce overall performance.  Therefore, it
-is preferred to implement such calls in debug mode only by wrapping the
-calls using ``#ifdef AMREX_DEBUG``.
+GPU registers, which will reduce overall performance.  Therefore, by
+default these functions and the macro ``AMREX_ALWAYS_ASSERT`` are no-ops
+for optimized builds (e.g., ``DEBUG=FALSE`` using the GNU Make build
+system) when called from kernels run on GPU. Calls to these functions from
+GPU kernels are active for debug builds and can optionally be activated
+at compile time for optimized builds (e.g., ``DEBUG=FALSE`` and
+``USE_ASSERTION=TRUE`` using the GNU Make build system).
 
 In CPU code, :cpp:`AMREX_GPU_ERROR_CHECK()` can be called
 to check the health of previous GPU launches.  This call
@@ -1517,13 +1574,13 @@ before continuing work.
 
 However, due to asynchronicity, determining the source of the error
 can be difficult.  Even if GPU kernels launched earlier in the code
-result in a CUDA error, the error may not be output at a nearby call to
-:cpp:`AMREX_GPU_ERROR_CHECK()` by the CPU.  When tracking down a CUDA
-launch error, :cpp:`Gpu::synchronize()`,
+result in a CUDA error or HIP error, the error may not be output at
+a nearby call to :cpp:`AMREX_GPU_ERROR_CHECK()` by the CPU.
+When tracking down a CUDA launch error, :cpp:`Gpu::synchronize()`,
 :cpp:`Gpu::streamSynchronize()`, or :cpp:`Gpu::streamSynchronizeAll()` can
 be used to synchronize the device, the current GPU stream, or all GPU
 streams, respectively, and track down the specific launch that causes the
-error.
+error. This error-checking macro will not return any information for SYCL.
 
 .. ===================================================================
 
@@ -1534,8 +1591,8 @@ Particle Support
 .. _sec:gpu:particle:
 
 As with ``MultiFab``, particle data stored in AMReX ``ParticleContainer`` classes are
-stored in unified memory when AMReX is compiled with ``USE_CUDA=TRUE``. This means that the :cpp:`dataPtr` associated with particles
-is managed and can be passed into GPU kernels. These kernels can be launched with a variety of approaches,
+stored in GPU memory when AMReX is compiled with ``USE_CUDA=TRUE``. This means that the :cpp:`dataPtr` associated with particles
+can be passed into GPU kernels. These kernels can be launched with a variety of approaches,
 including Cuda C / Fortran and OpenACC. An example Fortran particle subroutine offloaded via OpenACC might
 look like the following:
 
@@ -1569,7 +1626,7 @@ look like the following:
    end subroutine push_position_boris
 
 Note the use of the :fortran:`!$acc parallel deviceptr` clause to specify which data has been placed
-in managed memory. This instructs OpenACC to treat those variables as if they already live on
+in device memory. This instructs OpenACC to treat those variables as if they already live on
 the device, bypassing the usual copies. For complete examples of a particle code that has been ported
 to GPUs using Cuda, OpenACC, and OpenMP, please see the tutorial `Electromagnetic PIC`_.
 
@@ -1670,14 +1727,7 @@ AMReX for GPUs:
   AMReX will attempt to do the best job it can assigning MPI ranks to GPUs by
   doing round robin assignment. This may be suboptimal because this assignment
   scheme would not be aware of locality benefits that come from having an MPI
-  rank be on the same socket as the GPU it is managing. If you know the hardware
-  layout of the system you're running on, specifically the number of GPUs per
-  socket (`M`) and number of GPUs per node (`N`), you can set the preprocessor
-  defines `-DAMREX_GPUS_PER_SOCKET=M` and `-DAMREX_GPUS_PER_NODE=N`, which are
-  exposed in the GNU Make system through the variables `GPUS_PER_SOCKET` and
-  `GPUS_PER_NODE` respectively (see an example in `Tools/GNUMake/sites/Make.olcf`).
-  Then AMReX can ensure that each MPI rank selects a GPU on the same socket as
-  that rank (assuming your MPI implementation supports MPI 3.)
+  rank be on the same socket as the GPU it is managing.
 
 
 .. ===================================================================
@@ -1690,17 +1740,17 @@ Inputs Parameters
 The following inputs parameters control the behavior of amrex when running on GPUs. They should be prefaced
 by "amrex" in your :cpp:`inputs` file.
 
-+----------------------------+-----------------------------------------------------------------------+-------------+-------------+
-|                            | Description                                                           |   Type      | Default     |
-+============================+=======================================================================+=============+=============+
-| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | False       |
-|                            | If true, the buffers will use device memory. If false, they will use  |             |             |
-|                            | pinned memory. In practice, we find it is usually not worth it to use |             |             |
-|                            | GPU aware MPI.                                                        |             |             |
-+----------------------------+-----------------------------------------------------------------------+-------------+-------------+
-| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | False       |
-|                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |             |
-|                            | describing how much free memory there is and what was requested.      |             |             |
-+----------------------------+-----------------------------------------------------------------------+-------------+-------------+
-| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | True        |
-+----------------------------+-----------------------------------------------------------------------+-------------+-------------+
++----------------------------+-----------------------------------------------------------------------+-------------+----------+
+|                            | Description                                                           |   Type      | Default  |
++============================+=======================================================================+=============+==========+
+| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | 0        |
+|                            | If true, the buffers will use device memory. If false (i.e., 0), they |             |          |
+|                            | will use pinned memory. In practice, we find it is not always worth   |             |          |
+|                            | it to use GPU aware MPI.                                              |             |          |
++----------------------------+-----------------------------------------------------------------------+-------------+----------+
+| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0        |
+|                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |          |
+|                            | describing how much free memory there is and what was requested.      |             |          |
++----------------------------+-----------------------------------------------------------------------+-------------+----------+
+| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | 0        |
++----------------------------+-----------------------------------------------------------------------+-------------+----------+

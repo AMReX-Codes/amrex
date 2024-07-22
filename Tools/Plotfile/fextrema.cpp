@@ -1,5 +1,6 @@
 #include <AMReX.H>
 #include <AMReX_Print.H>
+#include <AMReX_ParReduce.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_MultiFabUtil.H>
 #include <algorithm>
@@ -36,7 +37,7 @@ void main_main()
                        << "\n"
                        << "   -v names    : output information only for specified variables, given\n"
                        << "                 as a space-spearated string\n"
-                       << std::endl;
+                       << '\n';
         return;
     }
 
@@ -80,23 +81,23 @@ void main_main()
                                               pf.boxArray(ilev+1), ratio);
                 for (int ivar = 0; ivar < var_names.size(); ++ivar) {
                     const MultiFab& mf = pf.get(ilev, var_names[ivar]);
-                    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-                        const Box& bx = mfi.validbox();
-                        const auto lo = amrex::lbound(bx);
-                        const auto hi = amrex::ubound(bx);
-                        const auto& ifab = mask.array(mfi);
-                        const auto& fab = mf.array(mfi);
-                        for         (int k = lo.z; k <= hi.z; ++k) {
-                            for     (int j = lo.y; j <= hi.y; ++j) {
-                                for (int i = lo.x; i <= hi.x; ++i) {
-                                    if (ifab(i,j,k) == 0) {
-                                        vvmin[ivar] = std::min(fab(i,j,k),vvmin[ivar]);
-                                        vvmax[ivar] = std::max(fab(i,j,k),vvmax[ivar]);
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    auto const& ma = mf.const_arrays();
+                    auto const& ima = mask.const_arrays();
+                    auto rr = ParReduce(TypeList<ReduceOpMin,ReduceOpMax>{},
+                                        TypeList<Real,Real>{}, mf,
+                              [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+                                  -> GpuTuple<Real,Real>
+                              {
+                                  if (ima[bno](i,j,k) == 0) {
+                                      auto x = ma[bno](i,j,k);
+                                      return {x,x};
+                                  } else {
+                                      return {std::numeric_limits<Real>::max(),
+                                              std::numeric_limits<Real>::lowest()};
+                                  }
+                              });
+                    vvmin[ivar] = std::min(amrex::get<0>(rr), vvmin[ivar]);
+                    vvmax[ivar] = std::max(amrex::get<1>(rr), vvmax[ivar]);
                 }
             }
         }
@@ -118,12 +119,12 @@ void main_main()
                     << " " << std::setw(22) << std::right << vvmax[i]
                     << "\n";
             }
-            amrex::Print() << std::endl;
+            amrex::Print() << '\n';
         } else {
             if (f == 0) {
                 amrex::Print() << "# " << std::setw(23) << std::right << "time ";
-                for (int i = 0; i < var_names.size(); ++i) {
-                    amrex::Print() << "|" << std::setw(44) << std::left << var_names[i];
+                for (auto const& var_name : var_names) {
+                    amrex::Print() << "|" << std::setw(44) << std::left << var_name;
                 }
                 amrex::Print() << "|\n";
                 amrex::Print() << "# " << std::setw(23) << " ";

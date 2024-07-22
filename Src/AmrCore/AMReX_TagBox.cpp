@@ -98,9 +98,9 @@ TagBox::buffer (const IntVect& a_nbuff, const IntVect& a_nwid) noexcept
                 for (int kk = kmin; kk <= kmax && !to_buf; ++kk) {
                 for (int jj = jmin; jj <= jmax && !to_buf; ++jj) {
                 for (int ii = imin; ii <= imax && !to_buf; ++ii) {
-                    if (a(ii,jj,kk) == TagBox::SET) to_buf = true;
+                    if (a(ii,jj,kk) == TagBox::SET) { to_buf = true; }
                 }}}
-                if (to_buf) a(i,j,k) = TagBox::BUF;
+                if (to_buf) { a(i,j,k) = TagBox::BUF; }
             }
         });
     } else
@@ -195,7 +195,7 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
         stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
     }
 
-    if (ar.size() < Ntb) ar.resize(Ntb);
+    if (ar.size() < Ntb) { ar.resize(Ntb); }
 
     const TagType* const p0   = dataPtr() + stb;  // +stb to the lower corner of tilebox
     int*                 iptr = ar.dataPtr();
@@ -364,7 +364,7 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
             Array4<int const> const& msk = owner_mask->const_array(mfi);
             AMREX_LOOP_3D(box, i, j, k,
             {
-                if (!msk(i,j,k)) tag(i,j,k) = TagBox::CLEAR;
+                if (!msk(i,j,k)) { tag(i,j,k) = TagBox::CLEAR; }
             });
         }
 
@@ -375,7 +375,7 @@ TagBoxArray::mapPeriodicRemoveDuplicates (const Geometry& geom)
 void
 TagBoxArray::local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const
 {
-    if (this->local_size() == 0) return;
+    if (this->local_size() == 0) { return; }
 
     Vector<int> count(this->local_size());
 #ifdef AMREX_USE_OMP
@@ -388,7 +388,7 @@ TagBoxArray::local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const
         int c = 0;
         AMREX_LOOP_3D(bx,i,j,k,
         {
-            if (arr(i,j,k) != TagBox::CLEAR) ++c;
+            if (arr(i,j,k) != TagBox::CLEAR) { ++c; }
         });
         count[fai.LocalIndex()] = c;
     }
@@ -398,7 +398,7 @@ TagBoxArray::local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const
 
     v.resize(offset.back());
 
-    if (v.empty()) return;
+    if (v.empty()) { return; }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -425,7 +425,7 @@ void
 TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
 {
     const int nfabs = this->local_size();
-    if (nfabs == 0) return;
+    if (nfabs == 0) { return; }
 
     constexpr int block_size = 128;
     Vector<int> nblocks(nfabs);
@@ -492,11 +492,11 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
     Gpu::dtoh_memcpy(hv_ntags.data(), dv_ntags.data(), ntotblocks*sizeof(int));
 
     Gpu::PinnedVector<int> hv_tags_offset(ntotblocks+1);
-    hv_tags_offset[0] = 0;
+    if (! hv_tags_offset.empty()) { hv_tags_offset[0] = 0; }
     std::partial_sum(hv_ntags.begin(), hv_ntags.end(), hv_tags_offset.begin()+1);
     int ntotaltags = hv_tags_offset.back();
 
-    if (ntotaltags == 0) return;
+    if (ntotaltags == 0) { return; }
 
     Gpu::NonManagedDeviceVector<int> dv_tags_offset(ntotblocks);
     int* dp_tags_offset = dv_tags_offset.data();
@@ -676,6 +676,7 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
 {
     Vector<Array4BoxTag<char> > tags;
     bool run_on_gpu = Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_gpu,tags);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
@@ -684,13 +685,18 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
         {
             TagBox& fab = (*this)[mfi];
+#ifdef AMREX_USE_GPU
             Array4<char> const& arr = this->array(mfi);
+#endif
             ba.intersections(mfi.fabbox(), isects);
             for (const auto& is : isects) {
                 Box const& b = is.second;
+#ifdef AMREX_USE_GPU
                 if (run_on_gpu) {
                     tags.push_back({arr,b});
-                } else {
+                } else
+#endif
+                {
                    fab.setVal<RunOn::Host>(val,b);
                 }
             }

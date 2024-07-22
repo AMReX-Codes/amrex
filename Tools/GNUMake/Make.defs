@@ -1,6 +1,6 @@
 
 ifneq (,$(findstring ~,$(AMREX_HOME)))
-  $(warning *** AMREX_HOME string constains ~ and make will not like it. So it is replaced.)
+  $(warning *** AMREX_HOME string contains ~ and make will not like it. So it is replaced.)
   AMREX_HOME := $(shell echo $(AMREX_HOME))
 endif
 
@@ -26,7 +26,7 @@ endif
 ifdef USE_SYCL
   USE_SYCL := $(strip $(USE_SYCL))
 else ifdef USE_DPCPP
-  $(warning *** USE_DPCPP has bee deprecated. Use USE_SYCL instead.)
+  $(warning *** USE_DPCPP has been deprecated. Use USE_SYCL instead.)
   USE_SYCL := $(strip $(USE_DPCPP))
 else
   USE_SYCL := FALSE
@@ -35,6 +35,8 @@ endif
 ifeq ($(USE_SYCL),TRUE)
   override COMP = sycl
   DEFINES += -DAMREX_USE_SYCL -DAMREX_USE_DPCPP
+  SYCL_SUB_GROUP_SIZE ?= 32
+  DEFINES += -DAMREX_SYCL_SUB_GROUP_SIZE=$(SYCL_SUB_GROUP_SIZE)
   USE_GPU := TRUE
   USE_CUDA := FALSE
   USE_HIP := FALSE
@@ -54,7 +56,6 @@ else
 endif
 
 ifeq ($(USE_HIP),TRUE)
-  DEBUG := FALSE  # Currently there is a compiler bug for DEBUG=TRUE.
   USE_CUDA := FALSE
   override COMP = hip
   ifneq ($(NO_CONFIG_CHECKING),TRUE)
@@ -266,6 +267,9 @@ ifeq ($(USE_CUDA),TRUE)
   # Limit the maximum number of registers available.
   CUDA_MAXREGCOUNT ?= 255
 
+  # Link-time optimization
+  CUDA_LTO ?= FALSE
+
   # Enable verbosity in the CUDA compilation.
   CUDA_VERBOSE ?= TRUE
 endif
@@ -308,6 +312,12 @@ ifdef USE_FORCE_INLINE
   USE_FORCE_INLINE := $(strip $(USE_FORCE_INLINE))
 else
   USE_FORCE_INLINE := FALSE
+endif
+
+ifdef USE_FLATTEN_FOR
+  USE_FLATTEN_FOR := $(strip $(USE_FLATTEN_FOR))
+else
+  USE_FLATTEN_FOR := FALSE
 endif
 
 ifdef WARN_ALL
@@ -713,6 +723,12 @@ ifeq ($(USE_FORCE_INLINE),TRUE)
     CPPFLAGS += -DAMREX_USE_FORCE_INLINE
 endif
 
+ifeq ($(USE_FLATTEN_FOR),TRUE)
+ifneq ($(DEBUG),TRUE)
+    CPPFLAGS += -DAMREX_USE_FLATTEN_FOR
+endif
+endif
+
 ifeq ($(USE_ACC),TRUE)
 
   USE_GPU := TRUE
@@ -990,6 +1006,10 @@ ifeq ($(USE_CLANG_TIDY),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.clang-tidy
 endif
 
+ifeq ($(USE_COVERITY),TRUE)
+  DEFINES += -DAMREX_USE_COVERITY
+endif
+
 # place holder
 F90CACHE =
 
@@ -1062,6 +1082,12 @@ ifeq ($(USE_HDF5),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hdf5
 endif
 
+ifeq ($(USE_BITTREE),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.bittree...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.bittree
+endif
+
+
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
@@ -1080,12 +1106,19 @@ else ifeq ($(USE_HIP),TRUE)
       AMD_ARCH = $(AMREX_AMD_ARCH)
     endif
 
+    # For AMD GPUs, the wavefront is 64 except for gfx10??.
+    ifeq ($(findstring gfx10,$(AMD_ARCH)),)
+       DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=64
+    else
+       DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=32
+    endif
+
     ifeq ($(HIP_SAVE_TEMPS),TRUE)
+      ifeq ($(USE_GPU_RDC),TRUE)
+        $(warning *** HIP_SAVE_TEMPS requires USE_GPU_RDC=FALSE to obtain the assembly files for AMD GPU kernels.)
+      endif
       # Issue: hipcc does not seem to respect the arg to --save-temps
       CXXFLAGS += --save-temps=$(objEXETempDir)
-      ifeq ($(DEBUG),TRUE) # --save-temps does not like AMREX_GPU_EXTERNAL
-        CPPFLAGS += -DNDEBUG
-      endif
     endif
 
 else ifeq ($(USE_CUDA),TRUE)
@@ -1108,7 +1141,7 @@ else ifeq ($(USE_CUDA),TRUE)
         MAKE_CUDA_PATH := $(SYSTEM_CUDA_PATH)
     endif
 
-    LIBRARIES += -lcuda
+    LIBRARIES += -lcuda -lcurand
 
     ifneq ($(MAKE_CUDA_PATH),)
         LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64
@@ -1145,18 +1178,8 @@ else ifeq ($(USE_CUDA),TRUE)
 
     endif
 
-    # Provide system configuration, if available.
-
-    ifdef GPUS_PER_SOCKET
-       DEFINES += -DAMREX_GPUS_PER_SOCKET=$(GPUS_PER_SOCKET)
-    endif
-
-    ifdef GPUS_PER_NODE
-       DEFINES += -DAMREX_GPUS_PER_NODE=$(GPUS_PER_NODE)
-    endif
-
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-      LINKFLAGS = $(NVCC_FLAGS) $(CXXFLAGS_FROM_HOST)
+      LINKFLAGS = $(NVCC_FLAGS) $(NVCC_ARCH_LINK_FLAGS) $(CXXFLAGS_FROM_HOST)
       AMREX_LINKER = nvcc
     endif
 

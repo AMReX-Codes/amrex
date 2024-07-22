@@ -138,6 +138,36 @@ module amrex_flash_fluxregister_module
        real(amrex_real), value :: scale
      end subroutine amrex_fi_flash_fluxregister_store_area_ifd
 
+     subroutine amrex_fi_flash_fluxregister_add (fr,cgid,dir,flux,flo,fhi,nc,scale) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fr
+       real(amrex_real), intent(in) :: flux(*)
+       integer(c_int), value, intent(in) :: cgid, dir, nc
+       integer(c_int), intent(in) :: flo(*), fhi(*)
+       real(amrex_real), value :: scale
+     end subroutine amrex_fi_flash_fluxregister_add
+
+     subroutine amrex_fi_flash_fluxregister_add_area (fr,cgid,dir,flux,flo,fhi,nc,area,scale) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fr
+       real(amrex_real), intent(in) :: flux(*), area(*)
+       integer(c_int), value, intent(in) :: cgid, dir, nc
+       integer(c_int), intent(in) :: flo(*), fhi(*)
+       real(amrex_real), value :: scale
+     end subroutine amrex_fi_flash_fluxregister_add_area
+
+     subroutine amrex_fi_flash_fluxregister_add_area_ifd (fr,cgid,dir,flux,flo,fhi,nc,area,ifd,scale) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fr
+       real(amrex_real), intent(in) :: flux(*), area(*)
+       integer(c_int), value, intent(in) :: cgid, dir, nc
+       integer(c_int), intent(in) :: flo(*), fhi(*), ifd(*)
+       real(amrex_real), value :: scale
+     end subroutine amrex_fi_flash_fluxregister_add_area_ifd
+
      subroutine amrex_fi_flash_fluxregister_communicate (fr) bind(c)
        import
        implicit none
@@ -186,50 +216,80 @@ contains
     call amrex_fi_flash_fluxregister_communicate(this%p)
   end subroutine amrex_flash_fluxregister_communicate
 
-  subroutine amrex_flash_fluxregister_store (this, flux, flo, fhi, grid_idx, dir, scale)
+  subroutine amrex_flash_fluxregister_store (this, flux, flo, fhi, grid_idx, dir, addit, scale)
     class(amrex_flash_fluxregister), intent(inout) :: this
     integer, intent(in) :: flo(*), fhi(*), grid_idx, dir
     real(amrex_real), intent(in) :: flux(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),flo(4):fhi(4))
+    logical,          optional, intent(in) :: addit
     real(amrex_real), optional, intent(in) :: scale
-    !
+    logical          :: my_addit
     real(amrex_real) :: my_scale
+    if (present(addit)) then
+       my_addit = addit
+    else
+       my_addit = .FALSE.
+    end if
     if (present(scale)) then
        my_scale = scale
     else
        my_scale = 1._amrex_real
     end if
-    call amrex_fi_flash_fluxregister_store(this%p, grid_idx, dir, &
-         flux, flo, fhi, fhi(4)-flo(4)+1, my_scale)
+    if (my_addit) then
+       call amrex_fi_flash_fluxregister_add(this%p, grid_idx, dir, &
+            flux, flo, fhi, fhi(4)-flo(4)+1, my_scale)
+    else
+       call amrex_fi_flash_fluxregister_store(this%p, grid_idx, dir, &
+            flux, flo, fhi, fhi(4)-flo(4)+1, my_scale)
+    end if
   end subroutine amrex_flash_fluxregister_store
 
-  subroutine amrex_flash_fluxregister_store_area (this, flux, area, flo, fhi, grid_idx, dir, scale)
+  subroutine amrex_flash_fluxregister_store_area (this, flux, area, flo, fhi, grid_idx, dir, addit, scale)
     class(amrex_flash_fluxregister), intent(inout) :: this
     integer, intent(in) :: flo(*), fhi(*), grid_idx, dir
     real(amrex_real), intent(in) :: flux(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),flo(4):fhi(4))
     real(amrex_real), intent(in) :: area(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+    logical,          optional, intent(in) :: addit
     real(amrex_real), optional, intent(in) :: scale
     !
+    logical          :: my_addit
     real(amrex_real) :: my_scale
+    if (present(addit)) then
+       my_addit = addit
+    else
+       my_addit = .FALSE.
+    end if
     if (present(scale)) then
        my_scale = scale
     else
        my_scale = 1._amrex_real
     end if
-    call amrex_fi_flash_fluxregister_store_area(this%p, grid_idx, dir, &
-         flux, flo, fhi, fhi(4)-flo(4)+1, area, my_scale)
+    if (my_addit) then
+       call amrex_fi_flash_fluxregister_add_area(this%p, grid_idx, dir, &
+            flux, flo, fhi, fhi(4)-flo(4)+1, area, my_scale)
+    else
+       call amrex_fi_flash_fluxregister_store_area(this%p, grid_idx, dir, &
+            flux, flo, fhi, fhi(4)-flo(4)+1, area, my_scale)
+    end if
   end subroutine amrex_flash_fluxregister_store_area
 
   subroutine amrex_flash_fluxregister_store_area_ifd (this, flux, area, flo, fhi, &
-       isFluxDensity, grid_idx, dir, scale)
+       isFluxDensity, grid_idx, dir, addit, scale)
     class(amrex_flash_fluxregister), intent(inout) :: this
     integer, intent(in) :: flo(*), fhi(*), grid_idx, dir
     real(amrex_real), intent(in) :: flux(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),flo(4):fhi(4))
     real(amrex_real), intent(in) :: area(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
     logical, intent(in) :: isFluxDensity(flo(4):fhi(4))
+    logical,          optional, intent(in) :: addit
     real(amrex_real), optional, intent(in) :: scale
     !
+    logical          :: my_addit
     real(amrex_real) :: my_scale
     integer(c_int) :: ifd(flo(4):fhi(4))
+    if (present(addit)) then
+       my_addit = addit
+    else
+       my_addit = .FALSE.
+    end if
     if (present(scale)) then
        my_scale = scale
     else
@@ -240,8 +300,13 @@ contains
     elsewhere
        ifd = 0
     endwhere
-    call amrex_fi_flash_fluxregister_store_area_ifd(this%p, grid_idx, dir, &
-         flux, flo, fhi, fhi(4)-flo(4)+1, area, ifd, my_scale)
+    if (my_addit) then
+       call amrex_fi_flash_fluxregister_add_area_ifd(this%p, grid_idx, dir, &
+            flux, flo, fhi, fhi(4)-flo(4)+1, area, ifd, my_scale)
+    else
+       call amrex_fi_flash_fluxregister_store_area_ifd(this%p, grid_idx, dir, &
+            flux, flo, fhi, fhi(4)-flo(4)+1, area, ifd, my_scale)
+    end if
   end subroutine amrex_flash_fluxregister_store_area_ifd
 
   subroutine amrex_flash_fluxregister_load_1 (this, flux, flo, fhi, grid_idx, dir, scale)

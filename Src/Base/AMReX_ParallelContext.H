@@ -9,8 +9,7 @@
 #include <iosfwd>
 #include <memory>
 
-namespace amrex {
-namespace ParallelContext {
+namespace amrex::ParallelContext {
 
 class Frame
 {
@@ -19,13 +18,15 @@ public:
     Frame (MPI_Comm c, int id, int io_rank);
     explicit Frame (MPI_Comm c);
     Frame (Frame const&) = delete;
+    Frame& operator= (Frame const&) = delete;
+    Frame& operator= (Frame &&) = delete;
     Frame (Frame && rhs) noexcept;
     ~Frame ();
 
-    int MyID   () const noexcept { return m_id; }
-    int MyProc () const noexcept { return m_rank_me; }
-    int NProcs () const noexcept { return m_nranks; }
-    int IOProc () const noexcept { return m_io_rank; }
+    [[nodiscard]] int MyID   () const noexcept { return m_id; }
+    [[nodiscard]] int MyProc () const noexcept { return m_rank_me; }
+    [[nodiscard]] int NProcs () const noexcept { return m_nranks; }
+    [[nodiscard]] int IOProc () const noexcept { return m_io_rank; }
     static int local_to_global_rank (int lrank);
     static void local_to_global_rank (int* global, const int* local, int n);
     static void global_to_local_rank (int* local, const int* global, int n);
@@ -91,12 +92,12 @@ inline void BarrierAll () noexcept { }
 //! get and increment mpi tag in current frame
 inline int get_inc_mpi_tag () noexcept { return frames.back().get_inc_mpi_tag(); }
 //! translate between local rank and global rank
-inline int local_to_global_rank (int rank) noexcept { return frames.back().local_to_global_rank(rank); }
+inline int local_to_global_rank (int rank) noexcept { return Frame::local_to_global_rank(rank); }
 inline void local_to_global_rank (int* global, const int* local, int n) noexcept
-    { frames.back().local_to_global_rank(global, local, n); }
-inline int global_to_local_rank (int rank) noexcept { return frames.back().global_to_local_rank(rank); }
+    { Frame::local_to_global_rank(global, local, n); }
+inline int global_to_local_rank (int rank) noexcept { return Frame::global_to_local_rank(rank); }
 inline void global_to_local_rank (int* local, const int* global, int n) noexcept
-    { frames.back().global_to_local_rank(local, global, n); }
+    { Frame::global_to_local_rank(local, global, n); }
 
 inline void push (MPI_Comm c) { frames.emplace_back(c); }
 inline void push (MPI_Comm c, int id, int io_rank) { frames.emplace_back(c, id, io_rank); }
@@ -106,6 +107,6 @@ inline void set_last_frame_ofs (const std::string & filename) {
 //! Note that it's the user's responsibility to free the MPI_Comm
 inline void pop () { frames.pop_back(); }
 
-}}
+}
 
 #endif // AMREX_PARALLELCONTEXT_H

@@ -74,12 +74,6 @@ ifeq ($(which_computer),$(filter $(which_computer),polaris))
     else
         $(error No CUDA_ROOT nor CUDA_HOME nor CUDA_PATH found. Please load a cuda module.)
     endif
-
-    # Provide system configuration information.
-
-    GPUS_PER_NODE=4
-    GPUS_PER_SOCKET=4
-
   endif
 
 endif

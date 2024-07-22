@@ -27,17 +27,24 @@ public:
 
     void setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo,
                           const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& hi,
-                          int ratio, const RealVect& a_loc);
+                          int ratio, const RealVect& a_loc,
+                          LinOpBCType a_crse_fine_bc_type = LinOpBCType::Dirichlet);
+
+    void setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo,
+                          const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& hi,
+                          IntVect const& ratio, const RealVect& a_loc,
+                          LinOpBCType a_crse_fine_bc_type = LinOpBCType::Dirichlet);
 
     static void setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx,
                           const Box& domain,
                           const Array<LinOpBCType,AMREX_SPACEDIM>& lo,
                           const Array<LinOpBCType,AMREX_SPACEDIM>& hi,
-                          const Real* dx, int ratio,
+                          const Real* dx, IntVect const& ratio,
                           const RealVect& interior_bloc,
                           const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
                           const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi,
-                          const GpuArray<int,AMREX_SPACEDIM>& is_periodic);
+                          const GpuArray<int,AMREX_SPACEDIM>& is_periodic,
+                          LinOpBCType a_crse_fine_bc_type);
 };
 
 template <typename MF>
@@ -50,12 +57,26 @@ template <typename MF>
 void
 MLMGBndryT<MF>::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo,
                                  const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& hi,
-                                 int ratio, const RealVect& a_loc)
+                                 int ratio, const RealVect& a_loc,
+                                 LinOpBCType a_crse_fine_bc_type)
+{
+    setLOBndryConds(lo, hi, IntVect(ratio), a_loc, a_crse_fine_bc_type);
+}
+
+template <typename MF>
+void
+MLMGBndryT<MF>::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo,
+                                 const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& hi,
+                                 IntVect const& ratio, const RealVect& a_loc,
+                                 LinOpBCType a_crse_fine_bc_type)
 {
     const BoxArray& ba     = this->boxes();
     const Real*     dx     = this->geom.CellSize();
     const Box&      domain = this->geom.Domain();
     const GpuArray<int,AMREX_SPACEDIM>& is_periodic = this->geom.isPeriodicArray();
+
+    AMREX_ASSERT(a_crse_fine_bc_type == LinOpBCType::Dirichlet ||
+                 a_crse_fine_bc_type == LinOpBCType::Neumann);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -72,7 +93,8 @@ MLMGBndryT<MF>::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> 
             BCTuple bct;
             setBoxBC(bloc, bct, grd, domain, lo[icomp], hi[icomp], dx, ratio, a_loc,
                      {{AMREX_D_DECL(Real(0.),Real(0.),Real(0.))}},
-                     {{AMREX_D_DECL(Real(0.),Real(0.),Real(0.))}}, is_periodic);
+                     {{AMREX_D_DECL(Real(0.),Real(0.),Real(0.))}},
+                     is_periodic, a_crse_fine_bc_type);
             for (int idim = 0; idim < 2*AMREX_SPACEDIM; ++idim) {
                 bctag[idim][icomp] = bct[idim];
             }
@@ -86,11 +108,12 @@ MLMGBndryT<MF>::setBoxBC (RealTuple& bloc, BCTuple& bctag,
                           const Box& bx, const Box& domain,
                           const Array<LinOpBCType,AMREX_SPACEDIM>& lo,
                           const Array<LinOpBCType,AMREX_SPACEDIM>& hi,
-                          const Real* dx, int ratio,
+                          const Real* dx, IntVect const& ratio,
                           const RealVect& interior_bloc,
                           const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
                           const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi,
-                          const GpuArray<int,AMREX_SPACEDIM>& is_periodic)
+                          const GpuArray<int,AMREX_SPACEDIM>& is_periodic,
+                          LinOpBCType a_crse_fine_bc_type)
 {
     using T = typename MF::value_type;
 
@@ -118,13 +141,13 @@ MLMGBndryT<MF>::setBoxBC (RealTuple& bloc, BCTuple& bctag,
         else
         {
             // Internal bndry.
-            bctag[face] = AMREX_LO_DIRICHLET;
-            bloc[face]  = static_cast<T>(ratio > 0 ? Real(0.5)*static_cast<Real>(ratio)*dx[dir]
+            bctag[face] = static_cast<int>(a_crse_fine_bc_type);
+            bloc[face]  = static_cast<T>(ratio[dir] > 0 ? Real(0.5)*static_cast<Real>(ratio[dir])*dx[dir]
                                                    : interior_bloc[dir]);
-            // If this is next to another same level box, bloc is
-            // wrong.  But it doesn't matter, because we also have
-            // mask.  It is used only if mask says it is next to
-            // coarse cells.
+            // If this is next to another same level box, BC type is wrong
+            // and bloc is wrong.  But it doesn't matter, because we also
+            // have mask.  It is used only if mask says it is next to coarse
+            // cells.
         }
     }
 }

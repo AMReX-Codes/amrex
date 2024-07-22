@@ -159,9 +159,9 @@ main (int   argc,
                     const int* e_lo = exact[amfi].loVect();
                     const int* e_hi = exact[amfi].hiVect();
                     FORT_CV_AVGDOWN(aveExact[amfi].dataPtr(),
-                                    ARLIM(a_lo), ARLIM(a_hi), &nc,
+                                    AMREX_ARLIM(a_lo), AMREX_ARLIM(a_hi), &nc,
                                     exact[amfi].dataPtr(),
-                                    ARLIM(e_lo), ARLIM(e_hi),
+                                    AMREX_ARLIM(e_lo), AMREX_ARLIM(e_hi),
                                     crseBox.loVect(), crseBox.hiVect(),
                                     refine_ratio.getVect());
                 }
@@ -265,4 +265,3 @@ amrDatasHaveSameDerives(const AmrData& amrd1,
             return false;
     return true;
 }
-

@@ -1,6 +1,6 @@
 # -Wno-c++17-extensions: Clang complains about nodiscard if the standard is not set to c++17.
 
-name: Linux Clang
+name: LinuxClang
 
 on: [push, pull_request]
 
@@ -14,15 +14,30 @@ jobs:
   library_clang:
     name: Clang@7.0 C++17 SP NOMPI Debug [lib]
     runs-on: ubuntu-20.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_clang.sh 7
-        .github/workflows/dependencies/dependencies_clang-tidy.sh 12
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=65M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
         mkdir build
         cd build
         cmake ..                        \
@@ -32,37 +47,58 @@ jobs:
             -DAMReX_EB=ON                             \
             -DAMReX_FORTRAN=ON                        \
             -DAMReX_MPI=OFF                           \
-            -DAMReX_PARTICLES=ON                      \
             -DAMReX_PLOTFILE_TOOLS=ON                 \
             -DAMReX_PRECISION=SINGLE                  \
             -DAMReX_PARTICLES_PRECISION=SINGLE        \
             -DCMAKE_C_COMPILER=$(which clang-7)         \
             -DCMAKE_CXX_COMPILER=$(which clang++-7)     \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)  \
-            -DAMReX_CLANG_TIDY=ON                     \
-            -DAMReX_CLANG_TIDY_WERROR=ON
-        make -j 2
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        make -j 4
         make install
         make test_install
 
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+
         export PATH=/tmp/my-amrex/bin:$PATH
-        which fcompare
+        which amrex_fcompare
 
         ctest --output-on-failure
+
+        ccache -s
+        du -hs ~/.cache/ccache
 
   tests_clang:
     name: Clang@14.0 C++17 SP Particles DP Mesh Debug [tests]
     runs-on: ubuntu-22.04
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -O1 -Wnon-virtual-dtor"}
-      # It's too slow with -O0
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_clang.sh 14
-        .github/workflows/dependencies/dependencies_clang-tidy.sh 14
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -O1 -Wnon-virtual-dtor"}
+        # It's too slow with -O0
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=200M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
         mkdir build
         cd build
         cmake ..                                      \
@@ -72,31 +108,122 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON                   \
             -DAMReX_FORTRAN=ON                        \
             -DAMReX_MPI=OFF                           \
-            -DAMReX_PARTICLES=ON                      \
             -DAMReX_PRECISION=DOUBLE                  \
             -DAMReX_PARTICLES_PRECISION=SINGLE        \
             -DCMAKE_C_COMPILER=$(which clang-14)      \
             -DCMAKE_CXX_COMPILER=$(which clang++-14)  \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)  \
-            -DAMReX_CLANG_TIDY=ON                     \
-            -DAMReX_CLANG_TIDY_WERROR=ON
-        make -j 2
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        make -j 4
 
-        ctest --output-on-failure -E GhostsAndVirtuals
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+
+        ctest --output-on-failure
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  tests_cxx20:
+    name: Clang C++20 [tests]
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_clang.sh 15
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=100M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
+        mkdir build
+        cd build
+        cmake ..                                      \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo         \
+            -DCMAKE_VERBOSE_MAKEFILE=ON               \
+            -DAMReX_EB=ON                             \
+            -DAMReX_ENABLE_TESTS=ON                   \
+            -DAMReX_FORTRAN=OFF                       \
+            -DAMReX_MPI=ON                            \
+            -DCMAKE_CXX_STANDARD=20                   \
+            -DCMAKE_C_COMPILER=$(which clang-15)      \
+            -DCMAKE_CXX_COMPILER=$(which clang++-15)  \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        make -j 4
+
+        ctest --output-on-failure
+
+        ccache -s
+        du -hs ~/.cache/ccache
 
   # Build 2D libamrex with configure
   configure-2d:
-    name: Clang@7.0 NOMPI Release [configure 2D]
+    name: Clang NOMPI Release [configure 2D]
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_clang.sh 14
-        .github/workflows/dependencies/dependencies_clang-tidy.sh 14
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=25M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
         ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
-        make -j2 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names" \
-            USE_CLANG_TIDY=TRUE CLANG_TIDY=clang-tidy-14 CLANG_TIDY_WARN_ERROR=TRUE
+        make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names" \
+            CCACHE=ccache
         make install
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

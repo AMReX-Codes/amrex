@@ -92,7 +92,7 @@ there is the option to use
       void setBCoeffs (int amrlev, Real beta);
       void setBCoeffs (int amrlev, Vector<Real> const& beta);
 
-Note, however, that the solver behaviour is the same regardless of which functions you
+Note, however, that the solver behavior is the same regardless of which functions you
 use to set the coefficients. These functions solely copy the constant value(s) to a MultiFab
 internal to ``MLMG`` and so no appreciable efficiency gains can be expected.
 
@@ -245,9 +245,9 @@ The :cpp:`MLLinOp` member function for this step is
 Here :cpp:`const MultiFab* crse` contains the Dirichlet boundary
 values at the coarse resolution, and :cpp:`int crse_ratio` (e.g., 2)
 is the refinement ratio between the coarsest solver level and the AMR
-level below it.  The MultiFab crse does not need to have ghost cells itself.
-If the coarse grid bc's for the solve are identically zero, :cpp:`nullptr`
-can be passed instead of :cpp:`crse`.
+level below it.  The MultiFab :cpp:`crse` does not need to have ghost cells
+itself. If the coarse grid bc's for the solve are identically zero,
+:cpp:`nullptr` can be passed instead of :cpp:`crse`.
 
 3) Cell-centered solvers only:
 before the solve one must always call the :cpp:`MLLinOp` member function
@@ -292,6 +292,18 @@ For Robin boundary conditions, the ghost cells in
 ``MultiFab* robinbc_a``, ``MultiFab* robinbc_b``, and ``MultiFab* robinbc_f``
 store the numerical values in the condition,
 :math:`a\phi + b\frac{\partial\phi}{\partial n} = f`.
+
+4) Nodal solver provides the option to use an overset mask:
+
+.. highlight:: c++
+
+::
+
+   // omask is either 0 or 1. 1 means the node is an unknown. 0 means it's known.
+   void setOversetMask (int amrlev, const iMultiFab& a_dmask);
+
+Note this is an integer (not bool) MultiFab, so the values must be only either 0 or 1.
+
 
 .. _sec:linearsolver:pars:
 
@@ -367,10 +379,42 @@ Available choices are
 
 - :cpp:`LPInfo::setConsolidation(bool)` (by default true) can be used
   continue to transfer a multigrid problem to fewer MPI ranks.
-  There are more setting sucsh as :cpp:`LPInfo::setConsolidationGridSize(int)`,
+  There are more setting such as :cpp:`LPInfo::setConsolidationGridSize(int)`,
   :cpp:`LPInfo::setConsolidationRatio(int)`, and
   :cpp:`LPInfo::setConsolidationStrategy(int)`, to give control over how this
   process works.
+
+
+:cpp:`MLMG::setThrowException(bool)` controls whether multigrid failure results
+in aborting (default) or throwing an exception, whereby control will return to the calling
+application. The application code must catch the exception:
+
+.. highlight:: c++
+
+::
+
+    try {
+        mlmg.solve(...);
+    } catch (const MLMG::error& e) {
+        Print()<<e.what()<<std::endl; //Prints description of error
+
+        // Do something else...
+    }
+
+Note that exceptions that are not caught are passed up the calling chain so that
+application codes using specialized solvers relying on MLMG can still catch the exception.
+For example, using AMReX-Hydro's :cpp:`NodalProjector`
+
+.. highlight:: c++
+
+::
+
+    try {
+        nodal_projector.project(...);
+    } catch (const MLMG::error& e) {
+        // Do something else...
+    }
+
 
 Boundary Stencils for Cell-Centered Solvers
 ===========================================
@@ -400,7 +444,7 @@ Some of the linear solvers support curvilinear coordinates including 1D
 spherical and 2d cylindrical :math:`(r,z)`.  In those cases, the
 divergence operator has extra metric terms.  If one does not want the
 solver to include the metric terms because they have been handled in
-other ways, one can turn them off with a setter funtion. For
+other ways, one can turn them off with a setter function. For
 the cell-centered linear solvers `MLABecLaplacian` and `MLPoisson`, one
 can call :cpp:`setMetricTerm(bool)` with :cpp:`false`
 on the :cpp:`LPInfo` object passed to the constructor of linear
@@ -451,7 +495,9 @@ To set homogeneous Dirichlet boundary conditions, call
     ml_ebabeclap->setEBHomogDirichlet(lev, coeff);
 
 where coeff can be a real number (i.e. the value is the same at every cell)
-or is the MultiFab holding the coefficient of the gradient at each cell with an EB face.
+or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
+In other words, coeff is :math:`\beta` in the canonical form given in equation :eq:`eqn::abeclap`
+located at the EB surface centroid.
 
 To set inhomogeneous Dirichlet boundary conditions, call
 
@@ -462,8 +508,9 @@ To set inhomogeneous Dirichlet boundary conditions, call
     ml_ebabeclap->setEBDirichlet(lev, phi_on_eb, coeff);
 
 where phi_on_eb is the MultiFab holding the Dirichlet values in every cut cell,
-and coeff again is a real number (i.e. the value is the same at every cell)
-or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
+and coeff again is a real number
+or a MultiFab holding the coefficient of the gradient at each cell with an EB face,
+i.e. :math:`\beta` in equation :eq:`eqn::abeclap` located at the EB surface centroid.
 
 Currently there are options to define the face-based coefficients on
 face centers vs face centroids, and to interpret the solution variable
@@ -509,7 +556,7 @@ passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
 residual correction form of the original problem. To build Hypre, follow the next steps:
 
-.. highlight:: c++
+.. highlight:: console
 
 ::
 
@@ -533,7 +580,7 @@ The following parameter should be set to True if the problem to be solved has a 
 In this case, the solution is only defined to within a constant.  Setting this parameter to True
 replaces one row in the matrix sent to hypre from AMReX by a row that sets the value at one cell to 0.
 
-- :cpp:`hypre.adjust_singular_matrix`:   Default is False.
+- :cpp:`hypre.adjust_singular_matrix`:   Default is false.
 
 
 The following parameters can be set in the inputs file to control the choice of preconditioner and smoother:
@@ -577,15 +624,16 @@ The user is referred to the
 AMReX can also use `PETSc <https://www.mcs.anl.gov/petsc/>`_ as a bottom solver for cell-centered
 problems. To build PETSc, follow the next steps:
 
-.. highlight:: c++
+.. highlight:: console
 
 ::
 
     1.- git clone https://github.com/petsc/petsc.git
     2.- cd petsc
-    3.- ./configure --download-hypre=yes --prefix=build_dir
-    4.- Follow the steps given by petsc
-    5.- Create an environment variable with the PETSC directory --
+    3.- ./configure --prefix=build_dir
+    4.- Invoke the ``make all'' command given at the end of the previous command output
+    5.- Invoke the ``make install'' command given at the end of the previous command output
+    6.- Create an environment variable with the PETSC directory --
         PETSC_DIR=/petsc_path/petsc/build_dir
 
 To use PETSc, one must include ``amrex/Src/Extern/PETSc``

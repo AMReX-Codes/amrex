@@ -35,7 +35,7 @@ public:
                   const LPInfo& a_info,
                   const Vector<EBFArrayBoxFactory const*>& a_factory);
 
-    virtual ~MLEBTensorOp ();
+    ~MLEBTensorOp () override;
 
     MLEBTensorOp (const MLEBTensorOp&) = delete;
     MLEBTensorOp (MLEBTensorOp&&) = delete;
@@ -62,29 +62,34 @@ public:
     void setEBBulkViscosity (int amrlev, MultiFab const& kappa);
     void setEBBulkViscosity (int amrlev, Real kappa);
 
-    virtual int getNComp () const final override { return AMREX_SPACEDIM; }
+    [[nodiscard]] int getNComp () const final { return AMREX_SPACEDIM; }
 
-    virtual bool isCrossStencil () const final override { return false; }
-    virtual bool isTensorOp () const final override { return true; }
+    [[nodiscard]] bool isCrossStencil () const final { return false; }
+    [[nodiscard]] bool isTensorOp () const final { return true; }
 
-    virtual bool needsUpdate () const final override {
+    [[nodiscard]] bool needsUpdate () const final {
         return (m_needs_update || MLEBABecLap::needsUpdate());
     }
-    virtual void update () final override {
+    void update () final {
         amrex::Abort("MLEBTensorOp: update TODO");
     }
 
-    virtual void prepareForSolve () final override;
-    virtual bool isSingular (int /*armlev*/) const final override { return false; }
-    virtual bool isBottomSingular () const final override { return false; }
+    void prepareForSolve () final;
+    [[nodiscard]] bool isSingular (int /*armlev*/) const final { return false; }
+    [[nodiscard]] bool isBottomSingular () const final { return false; }
 
-    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
-    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
-                           MultiFab& sol, Location loc) const override;
+    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                StateMode s_mode, const MLMGBndry* bndry=nullptr) const final;
+    void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                   MultiFab& sol, Location loc) const override;
 
     void compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grads,
                       MultiFab& sol, Location loc) const;
+
+    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta,
+                     Location a_beta_loc) = delete;
+    void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta) = delete;
+    void setEBHomogDirichlet (int amrlev, const MultiFab& beta) = delete;
 
 protected:
 
@@ -95,11 +100,6 @@ protected:
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_kappa;
     Vector<Vector<MultiFab> > m_eb_kappa;
     mutable Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_tauflux;
-
-    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta,
-                     Location a_beta_loc) = delete;
-    void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta) = delete;
-    void setEBHomogDirichlet (int amrlev, const MultiFab& beta) = delete;
 
 public: // for cuda
 

@@ -25,16 +25,18 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
     is >> m_file_version;
 
     is >> m_ncomp;
+    AMREX_ASSERT(m_ncomp >= 0 && m_ncomp < std::numeric_limits<int>::max());
     m_var_names.resize(m_ncomp);
     GotoNextLine(is); // This is needed, otherwise the next getline will get an empty string.
     for (int i = 0; i < m_ncomp; ++i) {
         std::string tmp;
         std::getline(is, tmp);
-        m_var_names[i] = amrex::trim(tmp);
+        m_var_names[i] = amrex::trim(std::move(tmp));
     }
 
     is >> m_spacedim >> m_time >> m_finest_level;
     m_nlevels = m_finest_level+1;
+    AMREX_ASSERT(m_finest_level >= 0 && m_finest_level < 1000 && m_spacedim >= 1 && m_spacedim <= AMREX_SPACEDIM);
 
     for (int i = 0; i < m_spacedim; ++i) {
         is >> m_prob_lo[i];
@@ -44,6 +46,7 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
         m_prob_size[i] = m_prob_hi[i] - m_prob_lo[i];
     }
 
+    AMREX_ASSERT(m_nlevels > 0 && m_nlevels <= 1000);
     m_ref_ratio.resize(m_nlevels, 0);
     for (int i = 0; i < m_finest_level; ++i) {
         is >> m_ref_ratio[i];
@@ -82,6 +85,7 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
         is >> levtmp >> ngrids >> gtime;
         is >> levsteptmp;
         Real glo[3], ghi[3];
+        AMREX_ASSERT(ngrids >= 0 && ngrids < std::numeric_limits<int>::max());
         for (int igrid = 0; igrid < ngrids; ++igrid) {
             for (int idim = 0; idim < m_spacedim; ++idim) {
                 is >> glo[idim] >> ghi[idim];
@@ -137,7 +141,7 @@ PlotFileDataImpl::get (int level, std::string const& varname) noexcept
             int gid = mfi.index();
             FArrayBox& dstfab = mf[mfi];
             std::unique_ptr<FArrayBox> srcfab(m_vismf[level]->readFAB(gid, icomp));
-            dstfab.copy<RunOn::Host>(*srcfab);
+            dstfab.copy<RunOn::Device>(*srcfab);
         }
     }
     return mf;

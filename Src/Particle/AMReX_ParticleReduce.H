@@ -12,9 +12,28 @@
 #include <AMReX_Vector.H>
 
 #include <limits>
+#include <type_traits>
 
-namespace amrex
+namespace amrex {
+
+namespace particle_detail {
+
+template <typename F, typename T_ParticleType, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
+             const int i) noexcept
 {
+    if constexpr ( ! T_ParticleType::is_soa_particle &&
+                   IsCallable<F, T_ParticleType const&>::value) {
+        return f(p.m_aos[i]);
+    } else if constexpr (IsCallable<F, decltype(p.getSuperParticle(i))>::value) {
+        return f(p.getSuperParticle(i));
+    } else {
+        return f(p, i);
+    }
+}
+}
 
 /**
  * \brief A general reduction method for the particles in a ParticleContainer that can run on either CPUs or GPUs.
@@ -154,7 +173,7 @@ ReduceSum (PC const& pc, int lev, F&& f)
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f)
+ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
     -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
@@ -174,7 +193,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
                                    return particle_detail::call_f(f, ptd, i);
@@ -205,7 +224,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
                     sm += particle_detail::call_f(f, ptd, i);
                 }
@@ -354,7 +373,7 @@ ReduceMax (PC const& pc, int lev, F&& f)
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f)
+ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
     -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
@@ -375,7 +394,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
                                    return particle_detail::call_f(f, ptd, i);
@@ -406,7 +425,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
                     r = std::max(r, particle_detail::call_f(f, ptd, i));
                 }
@@ -555,7 +574,7 @@ ReduceMin (PC const& pc, int lev, F&& f)
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
-ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f)
+ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
     -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
 {
     using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
@@ -576,7 +595,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
                                    return particle_detail::call_f(f, ptd, i);
@@ -607,7 +626,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
                     r = std::min(r, particle_detail::call_f(f, ptd, i));
                 }
@@ -754,7 +773,7 @@ ReduceLogicalAnd (PC const& pc, int lev, F&& f)
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
-ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
+ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
 {
     int r = true;
 
@@ -772,7 +791,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple {
                                    return particle_detail::call_f(f, ptd, i);
@@ -803,7 +822,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
                     r = r && particle_detail::call_f(f, ptd, i);
                 }
@@ -950,7 +969,7 @@ ReduceLogicalOr (PC const& pc, int lev, F&& f)
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
-ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
+ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
 {
     int r = false;
 
@@ -968,7 +987,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = plev.at(kv.first);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 reduce_op.eval(np, reduce_data,
                                [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple
                                {
@@ -1000,7 +1019,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
-                const auto ptd = tile.getConstParticleTileData();
+                const auto& ptd = tile.getConstParticleTileData();
                 for (int i = 0; i < np; ++i) {
                     r = r || particle_detail::call_f(f, ptd, i);
                 }
@@ -1216,7 +1235,7 @@ ParticleReduce (PC const& pc, int lev, F&& f, ReduceOps& reduce_ops)
 template <class RD, class PC, class F, class ReduceOps,
           std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 typename RD::Type
-ParticleReduce (PC const& pc, int lev_min, int lev_max, F&& f, ReduceOps& reduce_ops)
+ParticleReduce (PC const& pc, int lev_min, int lev_max, F const& f, ReduceOps& reduce_ops)
 {
     RD reduce_data(reduce_ops);
     for (int lev = lev_min; lev <= lev_max; ++lev) {
@@ -1235,7 +1254,7 @@ ParticleReduce (PC const& pc, int lev_min, int lev_max, F&& f, ReduceOps& reduce
         {
             const auto& tile = plev.at(grid_tile_ids[pmap_it]);
             const auto np = tile.numParticles();
-            const auto ptd = tile.getConstParticleTileData();
+            const auto& ptd = tile.getConstParticleTileData();
             reduce_ops.eval(np, reduce_data,
                             [=] AMREX_GPU_DEVICE (const int i) noexcept
                             {

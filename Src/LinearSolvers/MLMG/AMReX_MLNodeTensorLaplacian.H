@@ -22,12 +22,12 @@ public:
     static constexpr int nelems = 6;
 #endif
 
-    MLNodeTensorLaplacian () noexcept {}
+    MLNodeTensorLaplacian () = default;
     MLNodeTensorLaplacian (const Vector<Geometry>& a_geom,
                            const Vector<BoxArray>& a_grids,
                            const Vector<DistributionMapping>& a_dmap,
                            const LPInfo& a_info = LPInfo());
-    virtual ~MLNodeTensorLaplacian () = default;
+    ~MLNodeTensorLaplacian () override = default;
 
     MLNodeTensorLaplacian (const MLNodeTensorLaplacian&) = delete;
     MLNodeTensorLaplacian (MLNodeTensorLaplacian&&) = delete;
@@ -46,39 +46,39 @@ public:
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo());
 
-    virtual std::string name () const override { return std::string("MLNodeTensorLaplacian"); }
+    [[nodiscard]] std::string name () const override { return std::string("MLNodeTensorLaplacian"); }
 
-    virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final override;
-    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final override;
-    virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
-                                         const MultiFab& fine_sol, const MultiFab& fine_rhs) final override;
+    void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final;
+    void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;
+    void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
+                                 const MultiFab& fine_sol, const MultiFab& fine_rhs) final;
 
-    virtual void reflux (int crse_amrlev,
-                         MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final override;
+    void reflux (int crse_amrlev,
+                 MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
+                 MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final;
 
-    virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                         bool skip_fillboundary=false) const final override;
+    void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+                 bool skip_fillboundary=false) const final;
 
-    virtual void prepareForSolve () final override;
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final override;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final override;
-    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final override;
+    void prepareForSolve () final;
+    void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
+    void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;
+    void normalize (int amrlev, int mglev, MultiFab& mf) const final;
 
-    virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final override;
+    void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    virtual void fillIJMatrix (MFIter const& mfi,
-                               Array4<HypreNodeLap::AtomicInt const> const& gid,
-                               Array4<int const> const& lid,
-                               HypreNodeLap::Int* const ncols,
-                               HypreNodeLap::Int* const cols,
-                               Real* const mat) const override;
+    void fillIJMatrix (MFIter const& mfi,
+                       Array4<HypreNodeLap::AtomicInt const> const& gid,
+                       Array4<int const> const& lid,
+                       HypreNodeLap::Int* ncols,
+                       HypreNodeLap::Int* cols,
+                       Real* mat) const override;
 
-    virtual void fillRHS (MFIter const& mfi,
-                          Array4<int const> const& lid,
-                          Real* const rhs,
-                          Array4<Real const> const& bfab) const override;
+    void fillRHS (MFIter const& mfi,
+                  Array4<int const> const& lid,
+                  Real* rhs,
+                  Array4<Real const> const& bfab) const override;
 #endif
 
 private:

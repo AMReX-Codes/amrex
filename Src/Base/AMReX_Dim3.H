@@ -13,8 +13,8 @@ struct Dim3 { int x; int y; int z; };
 struct XDim3 { Real x; Real y; Real z; };
 
 template <typename T,
-          typename std::enable_if <std::is_same<T,  Dim3>::value ||
-                                   std::is_same<T, XDim3>::value>::type* = nullptr>
+          std::enable_if_t <std::is_same_v<T,  Dim3> ||
+                                   std::is_same_v<T, XDim3>>* = nullptr>
 std::ostream& operator<< (std::ostream& os, const T& d)
 {
     os << '(' << d.x << ',' << d.y << ',' << d.z << ')';

@@ -16,29 +16,20 @@ class ExtrusionIF
 {
 public:
 
-    ExtrusionIF (F&& a_f, int direction)
+    ExtrusionIF (F a_f, int direction)
         : m_f(std::move(a_f)),
           m_direction(direction)
         {}
-    ExtrusionIF (F const& a_f, int direction)
-        : m_f(a_f),
-          m_direction(direction)
-    {}
 
-    ExtrusionIF (const ExtrusionIF& rhs) = default;
-    ExtrusionIF (ExtrusionIF&& rhs) = default;
-    ExtrusionIF& operator= (const ExtrusionIF& rhs) = delete;
-    ExtrusionIF& operator= (ExtrusionIF&& rhs) = delete;
-
-    inline Real operator() (const RealArray& p) const
+    [[nodiscard]] inline Real operator() (const RealArray& p) const
     {
         RealArray x = p;
         x[m_direction] = 0.0;
         return m_f(x);
     }
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value,int>::type = 0>
-    AMREX_GPU_HOST_DEVICE inline
+    template <class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
         switch (m_direction)
@@ -59,14 +50,14 @@ protected:
 };
 
 template <class F>
-struct IsGPUable<ExtrusionIF<F>, typename std::enable_if<IsGPUable<F>::value>::type>
+struct IsGPUable<ExtrusionIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class F>
-constexpr ExtrusionIF<typename std::decay<F>::type>
+constexpr ExtrusionIF<std::decay_t<F>>
 extrude (F&&f, int direction)
 {
-    return ExtrusionIF<typename std::decay<F>::type>(std::forward<F>(f),direction);
+    return ExtrusionIF<std::decay_t<F>>(std::forward<F>(f),direction);
 }
 
 }

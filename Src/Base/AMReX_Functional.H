@@ -63,6 +63,24 @@ struct LogicalOr
     }
 };
 
+template <typename T>
+struct Multiplies
+{
+    constexpr T operator() (const T & lhs, const T & rhs) const
+    {
+        return lhs * rhs;
+    }
+};
+
+template <typename T>
+struct Divides
+{
+    constexpr T operator() (const T & lhs, const T & rhs) const
+    {
+        return lhs / rhs;
+    }
+};
+
 }
 
 #endif

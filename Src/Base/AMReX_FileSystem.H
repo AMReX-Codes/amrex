@@ -5,7 +5,7 @@
 #include <string>
 
 #ifdef _WIN32
-typedef unsigned short mode_t;
+using mode_t = unsigned short;
 #else
 #include <sys/types.h>  // for mode_t
 #endif

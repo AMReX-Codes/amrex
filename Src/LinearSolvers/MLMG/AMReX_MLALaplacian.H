@@ -20,14 +20,14 @@ public:
     using BCType = LinOpBCType;
     using Location  = typename MLLinOpT<MF>::Location;
 
-    MLALaplacianT () {}
+    MLALaplacianT () = default;
     MLALaplacianT (const Vector<Geometry>& a_geom,
                    const Vector<BoxArray>& a_grids,
                    const Vector<DistributionMapping>& a_dmap,
                    const LPInfo& a_info = LPInfo(),
                    const Vector<FabFactory<FAB> const*>& a_factory = {},
-                   const int a_ncomp = 1);
-    virtual ~MLALaplacianT ();
+                   int a_ncomp = 1);
+    ~MLALaplacianT () override;
 
     MLALaplacianT (const MLALaplacianT<MF>&) = delete;
     MLALaplacianT (MLALaplacianT<MF>&&) = delete;
@@ -43,33 +43,33 @@ public:
     void setScalars (RT a, RT b) noexcept;
     void setACoeffs (int amrlev, const MF& alpha);
 
-    virtual int getNComp () const override { return m_ncomp; }
+    [[nodiscard]] int getNComp () const override { return m_ncomp; }
 
-    virtual bool needsUpdate () const override {
+    [[nodiscard]] bool needsUpdate () const override {
         return (m_needs_update || MLCellABecLapT<MF>::needsUpdate());
     }
-    virtual void update () override;
+    void update () override;
 
-    virtual void prepareForSolve () final override;
-    virtual bool isSingular (int amrlev) const final override { return m_is_singular[amrlev]; }
-    virtual bool isBottomSingular () const final override { return m_is_singular[0]; }
-    virtual void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final override;
-    virtual void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rsh, int redblack) const final override;
-    virtual void FFlux (int amrlev, const MFIter& mfi,
-                        const Array<FAB*,AMREX_SPACEDIM>& flux,
-                        const FAB& sol, Location /* loc */,
-                        const int face_only=0) const final override;
+    void prepareForSolve () final;
+    [[nodiscard]] bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
+    [[nodiscard]] bool isBottomSingular () const final { return m_is_singular[0]; }
+    void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final;
+    void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const final;
+    void FFlux (int amrlev, const MFIter& mfi,
+                const Array<FAB*,AMREX_SPACEDIM>& flux,
+                const FAB& sol, Location /* loc */,
+                int face_only=0) const final;
 
-    virtual void normalize (int marlve, int mglev, MF& mf) const final override;
+    void normalize (int amrlev, int mglev, MF& mf) const final;
 
-    virtual RT getAScalar () const final override { return m_a_scalar; }
-    virtual RT getBScalar () const final override { return m_b_scalar; }
-    virtual MF const* getACoeffs (int amrlev, int mglev) const final override
+    [[nodiscard]] RT getAScalar () const final { return m_a_scalar; }
+    [[nodiscard]] RT getBScalar () const final { return m_b_scalar; }
+    [[nodiscard]] MF const* getACoeffs (int amrlev, int mglev) const final
         { return &(m_a_coeffs[amrlev][mglev]); }
-    virtual Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int /*amrlev*/, int /*mglev*/) const final override
+    [[nodiscard]] Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int /*amrlev*/, int /*mglev*/) const final
         { return {{ AMREX_D_DECL(nullptr,nullptr,nullptr)}}; }
 
-    virtual std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int /*grid_size*/) const final override {
+    [[nodiscard]] std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int /*grid_size*/) const final {
         amrex::Abort("MLALaplacian::makeNLinOp: Not implemented");
         return std::unique_ptr<MLLinOpT<MF>>{};
     }
@@ -99,7 +99,7 @@ MLALaplacianT<MF>::MLALaplacianT (const Vector<Geometry>& a_geom,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const LPInfo& a_info,
                                   const Vector<FabFactory<FAB> const*>& a_factory,
-                                  const int a_ncomp)
+                                  int a_ncomp)
     : m_ncomp(a_ncomp)
 {
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
@@ -132,8 +132,7 @@ MLALaplacianT<MF>::define (const Vector<Geometry>& a_geom,
 }
 
 template <typename MF>
-MLALaplacianT<MF>::~MLALaplacianT ()
-{}
+MLALaplacianT<MF>::~MLALaplacianT () = default;
 
 template <typename MF>
 void
@@ -258,7 +257,7 @@ template <typename MF>
 void
 MLALaplacianT<MF>::update ()
 {
-    if (MLCellABecLapT<MF>::needsUpdate()) MLCellABecLapT<MF>::update();
+    if (MLCellABecLapT<MF>::needsUpdate()) { MLCellABecLapT<MF>::update(); }
     averageDownCoeffs();
     updateSingularFlag();
     m_needs_update = false;
@@ -454,7 +453,7 @@ MLALaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int r
     const RT alpha = m_a_scalar;
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -587,7 +586,7 @@ template <typename MF>
 void
 MLALaplacianT<MF>::FFlux (int amrlev, const MFIter& mfi,
                           const Array<FAB*,AMREX_SPACEDIM>& flux,
-                          const FAB& sol, Location, const int face_only) const
+                          const FAB& sol, Location, int face_only) const
 {
     AMREX_ASSERT(!this->hasHiddenDimension());
 

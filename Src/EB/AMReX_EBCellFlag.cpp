@@ -128,6 +128,21 @@ EBCellFlagFab::getType (const Box& bx_in) const noexcept
     }
 }
 
+void
+EBCellFlagFab::resetType (int ng)
+{
+    this->setType(FabType::undefined);
+    m_typemap.clear();
+
+    Box const& bx = this->box();
+    auto typ = this->getType(bx);
+    this->setType(typ);
+    for (int nshrink = 1; nshrink < ng; ++nshrink) {
+        const Box& b = amrex::grow(bx,-nshrink);
+        this->getType(b);
+    }
+}
+
 int
 EBCellFlagFab::getNumRegularCells (const Box& bx_in) const noexcept
 {

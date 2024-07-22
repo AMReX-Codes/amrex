@@ -28,6 +28,7 @@
 #include <cstdio>
 #include <cstddef>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -64,6 +65,12 @@ namespace amrex::ParallelDescriptor {
     ProcessTeam m_Team;
 
     MPI_Comm m_comm = MPI_COMM_NULL;    // communicator for all ranks, probably MPI_COMM_WORLD
+
+    int m_nprocs_per_node = 1;
+    int m_rank_in_node = 0;
+
+    int m_nprocs_per_processor = 1;
+    int m_rank_in_processor = 0;
 
 #ifdef AMREX_USE_MPI
     Vector<MPI_Datatype*> m_mpi_types;
@@ -150,7 +157,7 @@ namespace amrex::ParallelDescriptor {
                  ParallelDescriptor::IOProcessorNumber(),
                  ParallelDescriptor::Communicator());
 
-      amrex::Print() << "PMI statistics:" << std::endl;
+      amrex::Print() << "PMI statistics:" << '\n';
 
       std::vector<unsigned short> PMI_x_meshcoord(all_x_meshcoords, all_x_meshcoords + ParallelDescriptor::NProcs());
       std::vector<unsigned short> PMI_y_meshcoord(all_y_meshcoords, all_y_meshcoords + ParallelDescriptor::NProcs());
@@ -161,13 +168,13 @@ namespace amrex::ParallelDescriptor {
       std::sort(PMI_z_meshcoord.begin(), PMI_z_meshcoord.end());
 
       auto last = std::unique(PMI_x_meshcoord.begin(), PMI_x_meshcoord.end());
-      amrex::Print() << "# of unique groups: " << std::distance(PMI_x_meshcoord.begin(), last) << std::endl;
+      amrex::Print() << "# of unique groups: " << std::distance(PMI_x_meshcoord.begin(), last) << '\n';
 
       last = std::unique(PMI_y_meshcoord.begin(), PMI_y_meshcoord.end());
-      amrex::Print() << "# of unique groups: " << std::distance(PMI_y_meshcoord.begin(), last) << std::endl;
+      amrex::Print() << "# of unique groups: " << std::distance(PMI_y_meshcoord.begin(), last) << '\n';
 
       last = std::unique(PMI_z_meshcoord.begin(), PMI_z_meshcoord.end());
-      amrex::Print() << "# of unique groups: " << std::distance(PMI_z_meshcoord.begin(), last) << std::endl;
+      amrex::Print() << "# of unique groups: " << std::distance(PMI_z_meshcoord.begin(), last) << '\n';
     }
 #endif
 
@@ -204,6 +211,7 @@ MPI_Error (const char* file, int line, const char* str, int rc)
     amrex::Error(the_message_string(file, line, str, rc));
 }
 
+// coverity[+kill]
 void
 Abort (int errorcode, bool backtrace)
 {
@@ -255,22 +263,22 @@ Message::test ()
 int
 Message::tag () const
 {
-    if ( !m_finished ) amrex::Error("Message::tag: Not Finished!");
+    if ( !m_finished ) { amrex::Error("Message::tag: Not Finished!"); }
     return m_stat.MPI_TAG;
 }
 
 int
 Message::pid () const
 {
-    if ( !m_finished ) amrex::Error("Message::pid: Not Finished!");
+    if ( !m_finished ) { amrex::Error("Message::pid: Not Finished!"); }
     return m_stat.MPI_SOURCE;
 }
 
 size_t
 Message::count () const
 {
-    if ( m_type == MPI_DATATYPE_NULL ) amrex::Error("Message::count: Bad Type!");
-    if ( !m_finished ) amrex::Error("Message::count: Not Finished!");
+    if ( m_type == MPI_DATATYPE_NULL ) { amrex::Error("Message::count: Bad Type!"); }
+    if ( !m_finished ) { amrex::Error("Message::count: Not Finished!"); }
     int cnt;
     BL_MPI_REQUIRE( MPI_Get_count(&m_stat, m_type, &cnt) );
     return cnt;
@@ -315,13 +323,55 @@ StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
         {
             auto f = ParallelDescriptor::mpi_level_to_string;
             std::cout << "MPI provided < requested: " << f(provided) << " < "
-                      << f(requested) << std::endl;;
+                      << f(requested) << '\n';;
             std::abort();
         }
     }
 #endif
 
     ParallelContext::push(m_comm);
+
+    if (ParallelDescriptor::NProcs() > 1)
+    {
+#if defined(OPEN_MPI)
+        int split_type = OMPI_COMM_TYPE_NODE;
+#else
+        int split_type = MPI_COMM_TYPE_SHARED;
+#endif
+        MPI_Comm node_comm;
+        MPI_Comm_split_type(m_comm, split_type, 0, MPI_INFO_NULL, &node_comm);
+        MPI_Comm_size(node_comm, &m_nprocs_per_node);
+        MPI_Comm_rank(node_comm, &m_rank_in_node);
+        MPI_Comm_free(&node_comm);
+
+        char procname[MPI_MAX_PROCESSOR_NAME];
+        int lenname;
+        BL_MPI_REQUIRE(MPI_Get_processor_name(procname, &lenname));
+        procname[lenname++] = '\0';
+        const int nranks = ParallelDescriptor::NProcs();
+        Vector<int> lenvec(nranks);
+        MPI_Allgather(&lenname, 1, MPI_INT, lenvec.data(), 1, MPI_INT, m_comm);
+        Vector<int> offset(nranks,0);
+        Long len_tot = lenvec[0];
+        for (int i = 1; i < nranks; ++i) {
+            offset[i] = offset[i-1] + lenvec[i-1];
+            len_tot += lenvec[i];
+        }
+        AMREX_ALWAYS_ASSERT(len_tot <= static_cast<Long>(std::numeric_limits<int>::max()));
+        Vector<char> recv_buffer(len_tot);
+        MPI_Allgatherv(procname, lenname, MPI_CHAR,
+                       recv_buffer.data(), lenvec.data(), offset.data(), MPI_CHAR, m_comm);
+        m_nprocs_per_processor = 0;
+        for (int i = 0; i < nranks; ++i) {
+            if (lenname == lenvec[i] && std::strcmp(procname, recv_buffer.data()+offset[i]) == 0) {
+                if (i == ParallelDescriptor::MyProc()) {
+                    m_rank_in_processor = m_nprocs_per_processor;
+                }
+                ++m_nprocs_per_processor;
+            }
+        }
+        AMREX_ASSERT(m_nprocs_per_processor > 0);
+    }
 
     // Create these types outside OMP parallel region
     auto t1 = Mpi_typemap<IntVect>::type(); // NOLINT
@@ -344,7 +394,7 @@ StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
 #ifdef BL_USE_MPI3
     int mpi_version, mpi_subversion;
     BL_MPI_REQUIRE( MPI_Get_version(&mpi_version, &mpi_subversion) );
-    if (mpi_version < 3) amrex::Abort("MPI 3 is needed because USE_MPI3=TRUE");
+    if (mpi_version < 3) { amrex::Abort("MPI 3 is needed because USE_MPI3=TRUE"); }
 #endif
 
     // Wait until all other processes are properly started.
@@ -421,8 +471,7 @@ Barrier (const MPI_Comm &comm, const std::string &message)
 #ifdef BL_LAZY
     int r;
     MPI_Comm_compare(comm, Communicator(), &r);
-    if (r == MPI_IDENT)
-        Lazy::EvalReduction();
+    if (r == MPI_IDENT) { Lazy::EvalReduction(); }
 #endif
 
     BL_PROFILE_S("ParallelDescriptor::Barrier(comm)");
@@ -502,39 +551,39 @@ Comm_dup (MPI_Comm comm, MPI_Comm& newcomm)
 }
 
 void
-ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar)
+ReduceRealSum (Vector<std::reference_wrapper<Real> > const& rvar)
 {
-    ReduceRealSum<Real>(std::move(rvar));
+    ReduceRealSum<Real>(rvar);
 }
 
 void
-ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
+ReduceRealSum (Vector<std::reference_wrapper<Real> > const& rvar, int cpu)
 {
-    ReduceRealSum<Real>(std::move(rvar), cpu);
+    ReduceRealSum<Real>(rvar, cpu);
 }
 
 void
-ReduceRealMax (Vector<std::reference_wrapper<Real> > && rvar)
+ReduceRealMax (Vector<std::reference_wrapper<Real> > const& rvar)
 {
-    ReduceRealMax<Real>(std::move(rvar));
+    ReduceRealMax<Real>(rvar);
 }
 
 void
-ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
+ReduceRealMax (Vector<std::reference_wrapper<Real> > const& rvar, int cpu)
 {
-    ReduceRealMax<Real>(std::move(rvar), cpu);
+    ReduceRealMax<Real>(rvar, cpu);
 }
 
 void
-ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar)
+ReduceRealMin (Vector<std::reference_wrapper<Real> > const& rvar)
 {
-    ReduceRealMin<Real>(std::move(rvar));
+    ReduceRealMin<Real>(rvar);
 }
 
 void
-ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
+ReduceRealMin (Vector<std::reference_wrapper<Real> > const& rvar, int cpu)
 {
-    ReduceRealMin<Real>(std::move(rvar), cpu);
+    ReduceRealMin<Real>(rvar, cpu);
 }
 
 void
@@ -554,8 +603,9 @@ ReduceBoolAnd (bool& r, int cpu)
 
     detail::DoReduce<int>(&src,MPI_SUM,1,cpu);
 
-    if (ParallelDescriptor::MyProc() == cpu)
+    if (ParallelDescriptor::MyProc() == cpu) {
         r = (src == ParallelDescriptor::NProcs()) ? true : false;
+    }
 }
 
 void
@@ -575,8 +625,9 @@ ReduceBoolOr (bool& r, int cpu)
 
     detail::DoReduce<int>(&src,MPI_SUM,1,cpu);
 
-    if (ParallelDescriptor::MyProc() == cpu)
+    if (ParallelDescriptor::MyProc() == cpu) {
         r = (src == 0) ? false : true;
+    }
 }
 
 void
@@ -592,7 +643,7 @@ ReduceIntSum (int* r, int cnt)
 }
 
 void
-ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar)
+ReduceIntSum (Vector<std::reference_wrapper<int> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -615,7 +666,7 @@ ReduceIntSum (int* r, int cnt, int cpu)
 }
 
 void
-ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
+ReduceIntSum (Vector<std::reference_wrapper<int> > const& rvar, int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -638,7 +689,7 @@ ReduceIntMax (int* r, int cnt)
 }
 
 void
-ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar)
+ReduceIntMax (Vector<std::reference_wrapper<int> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -661,7 +712,7 @@ ReduceIntMax (int* r, int cnt, int cpu)
 }
 
 void
-ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
+ReduceIntMax (Vector<std::reference_wrapper<int> > const& rvar, int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -684,7 +735,7 @@ ReduceIntMin (int* r, int cnt)
 }
 
 void
-ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar)
+ReduceIntMin (Vector<std::reference_wrapper<int> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -707,7 +758,7 @@ ReduceIntMin (int* r, int cnt, int cpu)
 }
 
 void
-ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
+ReduceIntMin (Vector<std::reference_wrapper<int> > const& rvar, int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -730,7 +781,7 @@ ReduceLongSum (Long* r, int cnt)
 }
 
 void
-ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar)
+ReduceLongSum (Vector<std::reference_wrapper<Long> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -753,7 +804,7 @@ ReduceLongSum (Long* r, int cnt, int cpu)
 }
 
 void
-ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
+ReduceLongSum (Vector<std::reference_wrapper<Long> > const& rvar, int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -776,7 +827,7 @@ ReduceLongMax (Long* r, int cnt)
 }
 
 void
-ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar)
+ReduceLongMax (Vector<std::reference_wrapper<Long> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -799,7 +850,7 @@ ReduceLongMax (Long* r, int cnt, int cpu)
 }
 
 void
-ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
+ReduceLongMax (Vector<std::reference_wrapper<Long> > const& rvar, int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -822,7 +873,7 @@ ReduceLongMin (Long* r, int cnt)
 }
 
 void
-ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar)
+ReduceLongMin (Vector<std::reference_wrapper<Long> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -845,7 +896,7 @@ ReduceLongMin (Long* r, int cnt, int cpu)
 }
 
 void
-ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
+ReduceLongMin (Vector<std::reference_wrapper<Long> > const& rvar, int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -868,7 +919,7 @@ ReduceLongAnd (Long* r, int cnt)
 }
 
 void
-ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar)
+ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -891,7 +942,7 @@ ReduceLongAnd (Long* r, int cnt, int cpu)
 }
 
 void
-ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar,int cpu)
+ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& rvar,int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -1078,8 +1129,7 @@ Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm)
 #ifdef BL_LAZY
     int r;
     MPI_Comm_compare(comm, Communicator(), &r);
-    if (r == MPI_IDENT)
-        Lazy::EvalReduction();
+    if (r == MPI_IDENT) { Lazy::EvalReduction(); }
 #endif
 
     BL_PROFILE_S("ParallelDescriptor::Bcast(viMiM)");
@@ -1115,8 +1165,9 @@ Gather (Real const* sendbuf, int nsend, Real* recvbuf, int root)
     BL_ASSERT(!(sendbuf == nullptr));
     BL_ASSERT(!(recvbuf == nullptr));
 
-    for (int i = 0; i < nsend; ++i)
+    for (int i = 0; i < nsend; ++i) {
         recvbuf[i] = sendbuf[i];
+    }
 }
 
 void
@@ -1135,6 +1186,7 @@ EndParallel ()
     ParallelContext::pop();
 }
 
+// coverity[+kill]
 void
 Abort (int errorcode, bool backtrace)
 {
@@ -1159,13 +1211,13 @@ void IProbe (int, int, MPI_Comm, int&, MPI_Status&) {}
 
 void Comm_dup (MPI_Comm, MPI_Comm&) {}
 
-void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
-void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
-void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
+void ReduceRealSum (Vector<std::reference_wrapper<Real> > const& /*rvar*/) {}
+void ReduceRealMax (Vector<std::reference_wrapper<Real> > const& /*rvar*/) {}
+void ReduceRealMin (Vector<std::reference_wrapper<Real> > const& /*rvar*/) {}
 
-void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceRealSum (Vector<std::reference_wrapper<Real> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceRealMax (Vector<std::reference_wrapper<Real> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceRealMin (Vector<std::reference_wrapper<Real> > const& /*rvar*/, int /*cpu*/) {}
 
 void ReduceLongAnd (Long&) {}
 void ReduceLongSum (Long&) {}
@@ -1187,15 +1239,15 @@ void ReduceLongSum (Long*,int,int) {}
 void ReduceLongMax (Long*,int,int) {}
 void ReduceLongMin (Long*,int,int) {}
 
-void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
-void ReduceLongSum (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
-void ReduceLongMax (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
-void ReduceLongMin (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
+void ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& /*rvar*/) {}
+void ReduceLongSum (Vector<std::reference_wrapper<Long> > const& /*rvar*/) {}
+void ReduceLongMax (Vector<std::reference_wrapper<Long> > const& /*rvar*/) {}
+void ReduceLongMin (Vector<std::reference_wrapper<Long> > const& /*rvar*/) {}
 
-void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceLongSum (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceLongMax (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceLongMin (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceLongSum (Vector<std::reference_wrapper<Long> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceLongMax (Vector<std::reference_wrapper<Long> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceLongMin (Vector<std::reference_wrapper<Long> > const& /*rvar*/, int /*cpu*/) {}
 
 void ReduceIntSum (int&) {}
 void ReduceIntMax (int&) {}
@@ -1213,13 +1265,13 @@ void ReduceIntSum (int*,int,int) {}
 void ReduceIntMax (int*,int,int) {}
 void ReduceIntMin (int*,int,int) {}
 
-void ReduceIntSum (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
-void ReduceIntMax (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
-void ReduceIntMin (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
+void ReduceIntSum (Vector<std::reference_wrapper<int> > const& /*rvar*/) {}
+void ReduceIntMax (Vector<std::reference_wrapper<int> > const& /*rvar*/) {}
+void ReduceIntMin (Vector<std::reference_wrapper<int> > const& /*rvar*/) {}
 
-void ReduceIntSum (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceIntMax (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceIntMin (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceIntSum (Vector<std::reference_wrapper<int> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceIntMax (Vector<std::reference_wrapper<int> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceIntMin (Vector<std::reference_wrapper<int> > const& /*rvar*/, int /*cpu*/) {}
 
 void ReduceBoolAnd (bool&) {}
 void ReduceBoolOr  (bool&) {}
@@ -1324,8 +1376,8 @@ BL_FORT_PROC_DECL(BL_PD_ABORT,bl_pd_abort)()
 #if defined(BL_USE_MPI) && !defined(BL_AMRPROF)
 template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 {
-    static_assert(std::is_trivially_copyable<IntVect>::value, "IntVect must be trivially copyable");
-    static_assert(std::is_standard_layout<IntVect>::value, "IntVect must be standard layout");
+    static_assert(std::is_trivially_copyable_v<IntVect>, "IntVect must be trivially copyable");
+    static_assert(std::is_standard_layout_v<IntVect>, "IntVect must be standard layout");
 
     if ( mpi_type_intvect == MPI_DATATYPE_NULL )
     {
@@ -1347,8 +1399,8 @@ template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 
 template <> MPI_Datatype Mpi_typemap<IndexType>::type()
 {
-    static_assert(std::is_trivially_copyable<IndexType>::value, "IndexType must be trivially copyable");
-    static_assert(std::is_standard_layout<IndexType>::value, "IndexType must be standard layout");
+    static_assert(std::is_trivially_copyable_v<IndexType>, "IndexType must be trivially copyable");
+    static_assert(std::is_standard_layout_v<IndexType>, "IndexType must be standard layout");
 
     if ( mpi_type_indextype == MPI_DATATYPE_NULL )
     {
@@ -1370,8 +1422,8 @@ template <> MPI_Datatype Mpi_typemap<IndexType>::type()
 
 template <> MPI_Datatype Mpi_typemap<Box>::type()
 {
-    static_assert(std::is_trivially_copyable<Box>::value, "Box must be trivially copyable");
-    static_assert(std::is_standard_layout<Box>::value, "Box must be standard layout");
+    static_assert(std::is_trivially_copyable_v<Box>, "Box must be trivially copyable");
+    static_assert(std::is_standard_layout_v<Box>, "Box must be standard layout");
 
     if ( mpi_type_box == MPI_DATATYPE_NULL )
     {
@@ -1410,9 +1462,9 @@ ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
     enum { IO_Buffer_Size = 262144 * 8 };
 
 #ifdef BL_SETBUF_SIGNED_CHAR
-    typedef signed char Setbuf_Char_Type;
+    using Setbuf_Char_Type = signed char;
 #else
-    typedef char Setbuf_Char_Type;
+    using Setbuf_Char_Type = char;
 #endif
 
     Vector<Setbuf_Char_Type> io_buffer(IO_Buffer_Size);
@@ -1478,6 +1530,9 @@ Finalize ()
 void
 StartTeams ()
 {
+    int nprocs = ParallelDescriptor::NProcs();
+    int rank   = ParallelDescriptor::MyProc();
+
     int team_size = 1;
     int do_team_reduce = 0;
 
@@ -1485,13 +1540,10 @@ StartTeams ()
     ParmParse pp("team");
     pp.queryAdd("size", team_size);
     pp.queryAdd("reduce", do_team_reduce);
-#endif
-
-    int nprocs = ParallelDescriptor::NProcs();
-    int rank   = ParallelDescriptor::MyProc();
-
-    if (nprocs % team_size != 0)
+    if (nprocs % team_size != 0) {
         amrex::Abort("Number of processes not divisible by team size");
+    }
+#endif
 
     m_Team.m_numTeams    = nprocs / team_size;
     m_Team.m_size        = team_size;
@@ -1517,7 +1569,7 @@ StartTeams ()
         for (int i = 0; i < lead_ranks.size(); ++i) {
             lead_ranks[i] = i * team_size;
         }
-        BL_MPI_REQUIRE( MPI_Group_incl(grp, lead_ranks.size(), &lead_ranks[0], &lead_grp) );
+        BL_MPI_REQUIRE( MPI_Group_incl(grp, lead_ranks.size(), lead_ranks.data(), &lead_grp) );
         BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
                                         lead_grp, &m_Team.m_lead_comm) );
 
@@ -1540,14 +1592,15 @@ mpi_level_to_string (int mtlev)
 {
     amrex::ignore_unused(mtlev);
 #ifdef AMREX_USE_MPI
-    if (mtlev == MPI_THREAD_SINGLE)
+    if (mtlev == MPI_THREAD_SINGLE) {
         return std::string("MPI_THREAD_SINGLE");
-    if (mtlev == MPI_THREAD_FUNNELED)
+    } else if (mtlev == MPI_THREAD_FUNNELED) {
         return std::string("MPI_THREAD_FUNNELED");
-    if (mtlev == MPI_THREAD_SERIALIZED)
+    } else if (mtlev == MPI_THREAD_SERIALIZED) {
         return std::string("MPI_THREAD_SERIALIZED");
-    if (mtlev == MPI_THREAD_MULTIPLE)
+    } else if (mtlev == MPI_THREAD_MULTIPLE) {
         return std::string("MPI_THREAD_MULTIPLE");
+    }
 #endif
     return std::string("UNKNOWN");
 }
@@ -1577,7 +1630,7 @@ select_comm_data_type (std::size_t nbytes)
 }
 
 std::size_t
-alignof_comm_data (std::size_t nbytes)
+sizeof_selected_comm_data_type (std::size_t nbytes)
 {
     const int t = select_comm_data_type(nbytes);
     if (t == 1) {
@@ -1588,7 +1641,7 @@ alignof_comm_data (std::size_t nbytes)
         return sizeof(ParallelDescriptor::lull_t);
     } else {
         amrex::Abort("TODO: message size is too big");
-        return 0;
+        return 1;
     }
 }
 

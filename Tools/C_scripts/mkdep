@@ -7,7 +7,7 @@
 # Notes:  *  -I<path> defines a search path for include files
 #         *  -DBG turn on debug flag
 #         +  -fortran: parse fortran style include directives
-#         *  -X<path> means disgard entries with this path (NOT IMPLEMENTED)
+#         *  -X<path> means discard entries with this path (NOT IMPLEMENTED)
 #         *   searches current directory only if -I. is in search
 #             path or #include directive uses double quotes rather
 #             than angle brackets.

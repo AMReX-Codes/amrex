@@ -34,7 +34,9 @@ endif
 ifeq ($(USE_ACC),TRUE)
   GENERIC_PGI_FLAGS += -acc -Minfo=accel -mcmodel=medium
   ifneq ($(CUDA_ARCH),)
-    GENERIC_PGI_FLAGS += -ta=tesla:cc$(CUDA_ARCH)
+    PGI_COMMASPACE := , 
+    PGI_COMMA := ,
+    GENERIC_PGI_FLAGS += -ta=tesla:$(patsubst %$(PGI_COMMA),%,$(subst $(PGI_COMMASPACE),$(PGI_COMMA),$(foreach arch,$(CUDA_ARCH),cc$(arch),)))
   else
     GENERIC_PGI_FLAGS += -ta=tesla
   endif

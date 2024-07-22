@@ -110,7 +110,7 @@ public:
     RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const final;
 
     virtual void Fapply (int amrlev, int mglev, MF& out, const MF& in) const = 0;
-    virtual void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rsh, int redblack) const = 0;
+    virtual void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const = 0;
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const Array<FAB*,AMREX_SPACEDIM>& flux,
                         const FAB& sol, Location loc, int face_only=0) const = 0;
@@ -130,6 +130,8 @@ public:
         BoundCond type;
         RT location;
     };
+
+    Vector<std::unique_ptr<MF> > m_robin_bcval;
 
 protected:
 
@@ -154,9 +156,10 @@ protected:
         void setLOBndryConds (const Geometry& geom, const Real* dx,
                               const Vector<Array<BCType,AMREX_SPACEDIM> >& lobc,
                               const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc,
-                              int ratio, const RealVect& interior_bloc,
+                              IntVect const& ratio, const RealVect& interior_bloc,
                               const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
-                              const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi);
+                              const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi,
+                              LinOpBCType crse_fine_bc_type);
 
         const Vector<BCTuple>& bndryConds (const MFIter& mfi) const noexcept {
             return bcond[mfi];
@@ -181,8 +184,6 @@ protected:
         int m_ncomp;
     };
     Vector<Vector<std::unique_ptr<BndryCondLoc> > > m_bcondloc;
-
-    Vector<std::unique_ptr<MF> > m_robin_bcval;
 
     // used to save interpolation coefficients of the first interior cells
     mutable Vector<Vector<BndryRegisterT<MF>> > m_undrrelxr;
@@ -289,9 +290,10 @@ MLCellLinOpT<MF>::BndryCondLoc::
 setLOBndryConds (const Geometry& geom, const Real* dx,
                  const Vector<Array<BCType,AMREX_SPACEDIM> >& lobc,
                  const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc,
-                 int ratio, const RealVect& interior_bloc,
+                 IntVect const& ratio, const RealVect& interior_bloc,
                  const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
-                 const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi)
+                 const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi,
+                 LinOpBCType crse_fine_bc_type)
 {
     const Box& domain = geom.Domain();
 
@@ -308,7 +310,8 @@ setLOBndryConds (const Geometry& geom, const Real* dx,
                                      lobc[icomp], hibc[icomp],
                                      dx, ratio, interior_bloc,
                                      domain_bloc_lo, domain_bloc_hi,
-                                     geom.isPeriodicArray());
+                                     geom.isPeriodicArray(),
+                                     crse_fine_bc_type);
         }
     }
 
@@ -504,7 +507,7 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
 
     MF zero;
     IntVect ng(1);
-    if (this->hasHiddenDimension()) ng[this->hiddenDirection()] = 0;
+    if (this->hasHiddenDimension()) { ng[this->hiddenDirection()] = 0; }
     if (a_levelbcdata == nullptr) {
         zero.define(this->m_grids[amrlev][0], this->m_dmap[amrlev][0], ncomp, ng);
         zero.setVal(RT(0.0));
@@ -513,27 +516,27 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
     }
     const MF& bcdata = (a_levelbcdata == nullptr) ? zero : *a_levelbcdata;
 
-    int br_ref_ratio = -1;
+    IntVect br_ref_ratio(-1);
 
     if (amrlev == 0)
     {
         if (this->needsCoarseDataForBC())
         {
             AMREX_ALWAYS_ASSERT(!this->hasHiddenDimension());
-            br_ref_ratio = this->m_coarse_data_crse_ratio > 0 ? this->m_coarse_data_crse_ratio : 2;
-            if (m_crse_sol_br[amrlev] == nullptr && br_ref_ratio > 0)
+            br_ref_ratio = this->m_coarse_data_crse_ratio.allGT(0) ? this->m_coarse_data_crse_ratio : IntVect(2);
+            if (m_crse_sol_br[amrlev] == nullptr && br_ref_ratio.allGT(0))
             {
                 const int in_rad = 0;
                 const int out_rad = 1;
                 const int extent_rad = 2;
-                const int crse_ratio = br_ref_ratio;
+                const IntVect crse_ratio = br_ref_ratio;
                 BoxArray cba = this->m_grids[amrlev][0];
                 cba.coarsen(crse_ratio);
                 m_crse_sol_br[amrlev] = std::make_unique<BndryRegisterT<MF>>
                     (cba, this->m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
             }
             if (this->m_coarse_data_for_bc != nullptr) {
-                AMREX_ALWAYS_ASSERT(this->m_coarse_data_crse_ratio > 0);
+                AMREX_ALWAYS_ASSERT(this->m_coarse_data_crse_ratio.allGT(0));
                 const Box& cbx = amrex::coarsen(this->m_geom[0][0].Domain(), this->m_coarse_data_crse_ratio);
                 m_crse_sol_br[amrlev]->copyFrom(*this->m_coarse_data_for_bc, 0, 0, 0, ncomp,
                                                 this->m_geom[0][0].periodicity(cbx));
@@ -541,22 +544,24 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
                 m_crse_sol_br[amrlev]->setVal(RT(0.0));
             }
             m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
-                                                bcdata, 0, 0, ncomp, IntVect(br_ref_ratio));
+                                                bcdata, 0, 0, ncomp, br_ref_ratio);
             br_ref_ratio = this->m_coarse_data_crse_ratio;
         }
         else
         {
             m_bndry_sol[amrlev]->setPhysBndryValues(bcdata,0,0,ncomp);
-            br_ref_ratio = 1;
+            br_ref_ratio = IntVect(1);
         }
     }
     else
     {
         m_bndry_sol[amrlev]->setPhysBndryValues(bcdata,0,0,ncomp);
-        br_ref_ratio = this->m_amr_ref_ratio[amrlev-1];
+        br_ref_ratio = IntVect(this->m_amr_ref_ratio[amrlev-1]);
     }
 
-    m_bndry_sol[amrlev]->setLOBndryConds(this->m_lobc, this->m_hibc, br_ref_ratio, this->m_coarse_bc_loc);
+    auto crse_fine_bc_type = (amrlev == 0) ? this->m_coarse_fine_bc_type : LinOpBCType::Dirichlet;
+    m_bndry_sol[amrlev]->setLOBndryConds(this->m_lobc, this->m_hibc, br_ref_ratio,
+                                         this->m_coarse_bc_loc, crse_fine_bc_type);
 
     const Real* dx = this->m_geom[amrlev][0].CellSize();
     for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev)
@@ -564,7 +569,8 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
         m_bcondloc[amrlev][mglev]->setLOBndryConds(this->m_geom[amrlev][mglev], dx,
                                                    this->m_lobc, this->m_hibc,
                                                    br_ref_ratio, this->m_coarse_bc_loc,
-                                                   this->m_domain_bloc_lo, this->m_domain_bloc_hi);
+                                                   this->m_domain_bloc_lo, this->m_domain_bloc_hi,
+                                                   crse_fine_bc_type);
     }
 
     if (this->hasRobinBC()) {
@@ -574,7 +580,7 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
                                                      ncomp*3, 1);
         const Box& domain = this->m_geom[amrlev][0].Domain();
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -588,7 +594,7 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
                 const Box& bhi = amrex::adjCellHi(vbx, idim);
                 bool outside_domain_lo = !(domain.contains(blo));
                 bool outside_domain_hi = !(domain.contains(bhi));
-                if ((!outside_domain_lo) && (!outside_domain_hi)) continue;
+                if ((!outside_domain_lo) && (!outside_domain_hi)) { continue; }
                 for (int icomp = 0; icomp < ncomp; ++icomp) {
                     Array4<RT> const& rbc = (*m_robin_bcval[amrlev])[mfi].array(icomp*3);
                     if (this->m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
@@ -619,7 +625,7 @@ template <typename MF>
 void
 MLCellLinOpT<MF>::update ()
 {
-    if (MLLinOpT<MF>::needsUpdate()) MLLinOpT<MF>::update();
+    if (MLLinOpT<MF>::needsUpdate()) { MLLinOpT<MF>::update(); }
 }
 
 template <typename MF>
@@ -681,7 +687,7 @@ MLCellLinOpT<MF>::applyBC (int amrlev, int mglev, MF& in, BCMode bc_mode, StateM
     const auto& foo = foofab.const_array();
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cross || tensorop || Gpu::notInLaunchRegion(),
                                      "non-cross stencil not support for gpu");
@@ -775,7 +781,7 @@ MLCellLinOpT<MF>::applyBC (int amrlev, int mglev, MF& in, BCMode bc_mode, StateM
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
-                if (hidden_direction == idim) continue;
+                if (hidden_direction == idim) { continue; }
                 const Orientation olo(idim,Orientation::low);
                 const Orientation ohi(idim,Orientation::high);
                 const Box blo = amrex::adjCellLo(vbx, idim);
@@ -1005,7 +1011,7 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
 #endif
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1075,7 +1081,7 @@ MLCellLinOpT<MF>::interpolationAmr (int famrlev, MF& fine, const MF& crse,
 #endif
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1253,15 +1259,15 @@ MLCellLinOpT<MF>::reflux (int crse_amrlev, MF& res, const MF& crse_sol, const MF
             m_bndry_sol[fine_amrlev].get());
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         Array<FAB,AMREX_SPACEDIM> flux;
-        Array<FAB*,AMREX_SPACEDIM> pflux {{ AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) }};
-        Array<FAB const*,AMREX_SPACEDIM> cpflux {{ AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) }};
+        Array<FAB*,AMREX_SPACEDIM> pflux {{ AMREX_D_DECL(flux.data(), flux.data()+1, flux.data()+2) }};
+        Array<FAB const*,AMREX_SPACEDIM> cpflux {{ AMREX_D_DECL(flux.data(), flux.data()+1, flux.data()+2) }};
 
         for (MFIter mfi(crse_sol, mfi_info);  mfi.isValid(); ++mfi)
         {
@@ -1317,14 +1323,14 @@ MLCellLinOpT<MF>::compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
             m_bndry_sol[amrlev].get());
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         Array<FAB,AMREX_SPACEDIM> flux;
-        Array<FAB*,AMREX_SPACEDIM> pflux {{ AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) }};
+        Array<FAB*,AMREX_SPACEDIM> pflux {{ AMREX_D_DECL(flux.data(), flux.data()+1, flux.data()+2) }};
         for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
@@ -1408,7 +1414,7 @@ MLCellLinOpT<MF>::applyMetricTerm (int amrlev, int mglev, MF& rhs) const
 {
     amrex::ignore_unused(amrlev,mglev,rhs);
 #if (AMREX_SPACEDIM != 3)
-    if (!m_has_metric_term) return;
+    if (!m_has_metric_term) { return; }
 
     const int ncomp = rhs.nComp();
 
@@ -1464,7 +1470,7 @@ MLCellLinOpT<MF>::unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const
 {
     amrex::ignore_unused(amrlev,mglev,rhs);
 #if (AMREX_SPACEDIM != 3)
-    if (!m_has_metric_term) return;
+    if (!m_has_metric_term) { return; }
 
     const int ncomp = rhs.nComp();
 
@@ -1808,7 +1814,7 @@ MLCellLinOpT<MF>::prepareForSolve ()
 #endif
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                     {
-                        if (idim == hidden_direction) continue;
+                        if (idim == hidden_direction) { continue; }
                         const Orientation olo(idim,Orientation::low);
                         const Orientation ohi(idim,Orientation::high);
                         const Box blo = amrex::adjCellLo(vbx, idim);
@@ -1904,12 +1910,14 @@ template <typename MF>
 void
 MLCellLinOpT<MF>::computeVolInv () const
 {
-    if (!m_volinv.empty()) return;
+    if (!m_volinv.empty()) { return; }
 
     m_volinv.resize(this->m_num_amr_levels);
     for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
         m_volinv[amrlev].resize(this->NMGLevels(amrlev));
     }
+
+    AMREX_ASSERT(this->m_coarse_fine_bc_type == LinOpBCType::Dirichlet || ! this->hasHiddenDimension());
 
     // We don't need to compute for every level
 
@@ -1928,8 +1936,13 @@ MLCellLinOpT<MF>::computeVolInv () const
         else
 #endif
         {
-            m_volinv[amrlev][mglev]
-                = RT(1.0 / this->compactify(this->Geom(amrlev,mglev).Domain()).d_numPts());
+            if (this->m_coarse_fine_bc_type == LinOpBCType::Dirichlet) {
+                m_volinv[amrlev][mglev]
+                    = RT(1.0 / this->compactify(this->Geom(amrlev,mglev).Domain()).d_numPts());
+            } else {
+                m_volinv[amrlev][mglev]
+                    = RT(1.0 / this->m_grids[amrlev][mglev].d_numPts());
+            }
         }
     };
 
@@ -2051,7 +2064,7 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
         }
     }
 
-    if (!local) ParallelAllReduce::Max(norm, ParallelContext::CommunicatorSub());
+    if (!local) { ParallelAllReduce::Max(norm, ParallelContext::CommunicatorSub()); }
     return norm;
 }
 

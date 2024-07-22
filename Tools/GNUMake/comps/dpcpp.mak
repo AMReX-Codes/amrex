@@ -6,6 +6,9 @@ CC  = icx
 FC  = ifx
 F90 = ifx
 
+amrex_oneapi_version = $(shell $(CXX) --version | head -1)
+$(info oneAPI version: $(amrex_oneapi_version))
+
 CXXFLAGS =
 CFLAGS   =
 FFLAGS   =
@@ -29,8 +32,8 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -g1 -O3 # // xxxx SYCL: todo -g in beta6 causes a lot of warning messages
-  CFLAGS   += -g1 -O3 #                       and makes linking much slower
+  CXXFLAGS += -gline-tables-only -fdebug-info-for-profiling -O3 # // xxxx SYCL: todo -g in beta6 causes a lot of warning messages
+  CFLAGS   += -gline-tables-only -fdebug-info-for-profiling -O3 #                       and makes linking much slower
   FFLAGS   += -g -O3
   F90FLAGS += -g -O3
 
@@ -120,7 +123,11 @@ ifneq ($(BL_NO_FORT),TRUE)
   endif
 endif
 
-LDFLAGS += -fsycl-device-lib=libc,libm-fp32,libm-fp64
+LDFLAGS += -qmkl=sequential -fsycl-device-lib=libc,libm-fp32,libm-fp64
+
+ifdef SYCL_PARALLEL_LINK_JOBS
+LDFLAGS += -fsycl-max-parallel-link-jobs=$(SYCL_PARALLEL_LINK_JOBS)
+endif
 
 ifeq ($(SYCL_AOT),TRUE)
   ifndef AMREX_INTEL_ARCH
@@ -135,7 +142,18 @@ ifeq ($(SYCL_AOT),TRUE)
     $(error Either INTEL_ARCH or AMREX_INTEL_ARCH must be specified when SYCL_AOT is TRUE.)
   endif
   CXXFLAGS += -fsycl-targets=spir64_gen
-  LDFLAGS += -Xsycl-target-backend '-device $(amrex_intel_gpu_target)'
+  amrex_sycl_backend_flags = -device $(amrex_intel_gpu_target)
+  SYCL_AOT_GRF_MODE ?= Default
+  ifneq ($(SYCL_AOT_GRF_MODE),Default)
+    ifeq ($(SYCL_AOT_GRF_MODE),Large)
+      amrex_sycl_backend_flags += -internal_options -ze-opt-large-register-file
+    else ifeq ($(SYCL_AOT_GRF_MODE),AutoLarge)
+      amrex_sycl_backend_flags += -options -ze-intel-enable-auto-large-GRF-mode
+    else
+      $(error SYCL_AOT_GRF_MODE ($(SYCL_AOT_GRF_MODE)) must be either Default, Large, or AutoLarge)
+    endif
+  endif
+  LDFLAGS += -Xsycl-target-backend '$(amrex_sycl_backend_flags)'
 endif
 
 ifeq ($(DEBUG),TRUE)
@@ -146,3 +164,5 @@ endif
 ifeq ($(FSANITIZER),TRUE)
   override XTRALIBS += -lubsan
 endif
+
+AMREX_CCACHE_ENV = CCACHE_DEPEND=1

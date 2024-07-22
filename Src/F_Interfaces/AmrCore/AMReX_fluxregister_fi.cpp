@@ -31,8 +31,9 @@ extern "C"
         bx.shiftHalf(dir,-1);
 
         BL_ASSERT(flux_reg->nComp() == nfluxes);
-        if (zeroFirst)
+        if (zeroFirst) {
           flux_reg->FineSetVal(dir, boxno, 0, flux_reg->nComp(), 0.0, RunOn::Cpu);
+        }
         const FArrayBox fab(bx, nfluxes, const_cast<Real*>(fabdata));
         flux_reg->FineAdd(fab, dir, boxno, 0, 0, flux_reg->nComp(), scale, RunOn::Cpu);
     }

@@ -15,7 +15,7 @@ namespace openbc {
 
     struct Moments
     {
-        typedef GpuArray<Real,(M+2)*(M+1)/2> array_type;
+        using array_type = GpuArray<Real,(M+2)*(M+1)/2>;
         array_type mom;
         Real x, y, z;
         Orientation face;

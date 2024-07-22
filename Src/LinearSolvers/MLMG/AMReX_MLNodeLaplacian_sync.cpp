@@ -19,6 +19,10 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 {
     BL_PROFILE("MLNodeLaplacian::SyncResCrse()");
 
+#if (AMREX_SPACEDIM == 1)
+    amrex::Abort("MLNodeLaplacian::compSyncResidualCoarse: 1D not supported");
+#endif
+
     sync_resid.setVal(0.0);
 
     const Geometry& geom = m_geom[0][0];
@@ -89,7 +93,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     bool neumann_doubling = true; // yes even for RAP, because unimposeNeumannBC will be called on rhs
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -337,6 +341,10 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 {
     BL_PROFILE("MLNodeLaplacian::SyncResFine()");
 
+#if (AMREX_SPACEDIM == 1)
+    amrex::Abort("MLNodeLaplacian::compSyncResidualFine: 1D not supported");
+#endif
+
     const auto& sigma_orig = m_sigma[0][0][0];
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
@@ -359,7 +367,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 #endif
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -617,11 +625,12 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(crse_amrlev,res,crse_sol,crse_rhs,a_fine_res,fine_sol,fine_rhs);
+    amrex::Abort("MLNodeLaplacian::reflux: 1D not supported");
 #else
     //
     //  Note that the residue we copmute on a coarse/fine node is not a
     //  composite divergence.  It has been restricted so that it is suitable
-    //  as RHS for our geometric mulitgrid solver with a MG hirerachy
+    //  as RHS for our geometric multigrid solver with a MG hirerachy
     //  including multiple AMR levels.
     //
 
@@ -665,7 +674,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     MultiFab fine_res_for_coarse(amrex::coarsen(fba, amrrr), fdm, 1, 0);
 
     std::unique_ptr<MultiFab> tmp_fine_res;
-    if (amrrr == 4 && !a_fine_res.nGrowVect().allGE(IntVect(3))) {
+    if (amrrr == 4 && !a_fine_res.nGrowVect().allGE(3)) {
         tmp_fine_res = std::make_unique<MultiFab>(a_fine_res.boxArray(),
                                                   a_fine_res.DistributionMap(), 1, 3);
         MultiFab::Copy(*tmp_fine_res, a_fine_res, 0, 0, 1, 0);
@@ -710,7 +719,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const auto& fsigma = m_sigma[crse_amrlev+1][0][0];
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

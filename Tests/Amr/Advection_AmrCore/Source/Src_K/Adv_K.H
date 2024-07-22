@@ -1,5 +1,5 @@
-#ifndef _Adv_K_H_
-#define _Adv_K_H_
+#ifndef Adv_K_H_
+#define Adv_K_H_
 
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>

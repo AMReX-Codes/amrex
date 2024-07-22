@@ -5,6 +5,7 @@
 #if 0
 ---------------------------------------------------------------------
           CONVERSIONS FROM PHYSICAL TO MATHEMATICAL BCs
+  Note that it is up to application codes to enforce conversions
 
 
 PHYS BC        |   Velocity      |    Temperature   |    Scalars     |
@@ -22,11 +23,11 @@ OUTFLOW        |    FOEXTRAP     |     FOEXTRAP     |    FOEXTRAP    |
                |                 |                  |                |
 ----------------------------------------------------------------------
 NO SLIP WALL   |                 |                  |                |
-  with         |    EXT_DIR      |  REFLECT_EVEN    |    HOEXTRAP    |
+  with         |    EXT_DIR      |  REFLECT_EVEN    |    FOEXTRAP    |
 ADIABATIC TEMP |    U = V = 0    |    dT/dn = 0     |                |
 ----------------------------------------------------------------------
 NO SLIP WALL   |                 |                  |                |
-  with         |    EXT_DIR      |     EXT_DIR      |    HOEXTRAP    |
+  with         |    EXT_DIR      |     EXT_DIR      |    FOEXTRAP    |
 FIXED TEMP     |    U = V = 0    |                  |                |
 ----------------------------------------------------------------------
 SLIP WALL      |                 |                  |                |
@@ -44,10 +45,8 @@ SYMMETRY       |  Un REFLECT_ODD |  REFLECT_EVEN    | REFLECT_EVEN   |
 
 
 INT_DIR      : data taken from other grids or interpolated
-EXT_DIR      : data specified on EDGE (FACE) of bndry for the linear solvers
-               for application codes, the location of the EXT_DIR data will
-               depend on how they do reconstruction, and may be edge or
-               cell-centered.
+EXT_DIR      : data specified on EDGE (FACE)
+EXT_DIR_CC   : data specified at cell center
 HOEXTRAP     : higher order extrapolation to EDGE of bndry
 HOEXTRAPCC   : linear extrapolation to CELL of bndry
 FOEXTRAP     : first order extrapolation from last cell in interior
@@ -61,47 +60,28 @@ namespace amrex {
 
 namespace PhysBCType {
 enum physicalBndryTypes : int {interior=0,inflow,outflow,symmetry,
-                               slipwall,noslipwall};
+                               slipwall,noslipwall,inflowoutflow};
 }
 
 namespace BCType {
 enum mathematicalBndryTypes : int {
-    bogus        = -666,
-    reflect_odd  = -1,
-    int_dir      =  0,
-    reflect_even =  1,
-    foextrap     =  2,
-    ext_dir      =  3,
-    hoextrap     =  4,
-    hoextrapcc   =  5,
-    user_1       = 1001,
-    user_2       = 1002,
-    user_3       = 1003
+    bogus               = -666,
+    reflect_odd         = -1,
+    int_dir             =  0,
+    reflect_even        =  1,
+    foextrap            =  2,
+    ext_dir             =  3,
+    hoextrap            =  4,
+    hoextrapcc          =  5,
+    ext_dir_cc          =  6,
+    direction_dependent =  7,
+    user_1              = 1001,
+    user_2              = 1002,
+    user_3              = 1003
 };
 }
 
 }
-#endif
-
-#ifndef AMREX_XSDK
-
-#define BOGUS_BC (-666)
-
-#define REFLECT_ODD (-1)
-#define INT_DIR 0
-#define REFLECT_EVEN 1
-#define FOEXTRAP  2
-#define EXT_DIR 3
-#define HOEXTRAP 4
-#define HOEXTRAPCC 5
-
-#define Interior 0
-#define Inflow 1
-#define Outflow 2
-#define Symmetry 3
-#define SlipWall 4
-#define NoSlipWall 5
-
 #endif
 
 #endif

@@ -44,6 +44,14 @@ endif
 CXXDEPFLAGS = $(LEGACY_DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(includes)
 CDEPFLAGS = $(LEGACY_DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
 
+ifneq ($(CCACHE),)
+  ifneq ($(AMREX_CCACHE_ENV),)
+    CCACHE_COMMAND = $(AMREX_CCACHE_ENV) $(CCACHE)
+  else
+    CCACHE_COMMAND = $(CCACHE)
+  endif
+endif
+
 #
 # Rules for building executable.
 #
@@ -78,7 +86,7 @@ else
 ifeq ($(USE_CLANG_TIDY),TRUE)
 	$(SILENT) $(CLANG_TIDY) $(CLANG_TIDY_ARGS) $< -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
 endif
-	$(SILENT) $(CCACHE) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
+	$(SILENT) $(CCACHE_COMMAND) $(CCACHEFLAGS) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs) -c $< -o $(objEXETempDir)/$(subst /,_,$<).o
 	@echo "Linking $@ ..."
 	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$(subst /,_,$<).o $(objForExecs) $(FINAL_LIBS)
 
@@ -256,9 +264,11 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
 endif
 ifeq ($(USE_CLANG_TIDY),TRUE)
-	$(SILENT) $(CLANG_TIDY) $(CLANG_TIDY_ARGS) $< -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs)
+# for each word in CLANG_TIDY_IGNORE_SOURCES, check if that word is in the absolute path of the source file
+# if any word matches, the result will be non-empty after stripping whitespace, so clang-tidy won't be run
+	$(if $(strip $(foreach pat,$(CLANG_TIDY_IGNORE_SOURCES),$(findstring $(pat),$(abspath $<)))),,$(SILENT) $(CLANG_TIDY) $(CLANG_TIDY_ARGS) $< -- $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs))
 endif
-	$(SILENT) $(CCACHE) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE_COMMAND) $(CCACHEFLAGS) $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) $(mpicxx_include_dirs) -c $< $(EXE_OUTPUT_OPTION)
 ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
@@ -270,7 +280,7 @@ ifeq ($(LOG_BUILD_TIME),TRUE)
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	@date +"%s" > $(tmpEXETempDir)/$(notdir $<).log
 endif
-	$(SILENT) $(CCACHE) $(CC) $(DEPFLAGS) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE_COMMAND) $(CCACHEFLAGS) $(CC) $(DEPFLAGS) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
 ifeq ($(LOG_BUILD_TIME),TRUE)
 	@date +"%s" >> $(tmpEXETempDir)/$(notdir $<).log
 endif
@@ -517,7 +527,7 @@ print-%:
 	@echo '     value = $(subst ','"'"',$(value  $*))'
 # We need to use subst on the result of $(value) because it contains single
 # quotes.  Shell command echo does not like things like 'x'$(filiter-out)'y',
-# because what it sees is 'x', $(filter-out), and 'y'.  With the substition, it
+# because what it sees is 'x', $(filter-out), and 'y'.  With the substitution, it
 # will see 'x', "'", '$(filter-out)', "'", and 'y', with $(filter-out) inside a
 # pair of single quotes.
 

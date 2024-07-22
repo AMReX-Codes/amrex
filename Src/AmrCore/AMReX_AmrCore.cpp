@@ -1,6 +1,5 @@
 
 #include <AMReX_AmrCore.H>
-#include <AMReX_Print.H>
 
 #ifdef AMREX_PARTICLES
 #include <AMReX_AmrParGDB.H>
@@ -85,7 +84,7 @@ AmrCore::InitFromScratch (Real time)
 void
 AmrCore::regrid (int lbase, Real time, bool)
 {
-    if (lbase >= max_level) return;
+    if (lbase >= max_level) { return; }
 
     int new_finest;
     Vector<BoxArray> new_grids(finest_level+2);
@@ -104,7 +103,7 @@ AmrCore::regrid (int lbase, Real time, bool)
                 DistributionMapping level_dmap = dmap[lev];
                 if (ba_changed) {
                     level_grids = new_grids[lev];
-                    level_dmap = DistributionMapping(level_grids);
+                    level_dmap = MakeDistributionMap(lev, level_grids);
                 }
                 const auto old_num_setdm = num_setdm;
                 RemakeLevel(lev, time, level_grids, level_dmap);
@@ -117,7 +116,7 @@ AmrCore::regrid (int lbase, Real time, bool)
         }
         else  // a new level
         {
-            DistributionMapping new_dmap(new_grids[lev]);
+            DistributionMapping new_dmap = MakeDistributionMap(lev, new_grids[lev]);
             const auto old_num_setdm = num_setdm;
             MakeNewLevelFromCoarse(lev, time, new_grids[lev], new_dmap);
             SetBoxArray(lev, new_grids[lev]);
@@ -227,7 +226,8 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
         }
     }
 
-    os << std::endl; // Make sure we flush!
+    os << '\n';
+    os.flush();
 }
 
 }

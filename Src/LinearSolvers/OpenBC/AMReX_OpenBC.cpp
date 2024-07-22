@@ -331,7 +331,7 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
                                  {AMREX_D_DECL(LinOpBCType::Dirichlet,
                                                LinOpBCType::Dirichlet,
                                                LinOpBCType::Dirichlet)});
-        m_poisson_2->setLevelBC(0, &sol_all[0]);
+        m_poisson_2->setLevelBC(0, sol_all.data());
         for (int ilev = 1; ilev < nlevels; ++ilev) {
             m_poisson_2->setLevelBC(ilev, nullptr);
         }
@@ -346,7 +346,7 @@ Real OpenBCSolver::solve (const Vector<MultiFab*>& a_sol,
         }
 #endif
     } else {
-        m_poisson_2->setLevelBC(0, &sol_all[0]);
+        m_poisson_2->setLevelBC(0, sol_all.data());
     }
 
     Real err = m_mlmg_2->solve(GetVecOfPtrs(sol_all), GetVecOfConstPtrs(rhs_all),

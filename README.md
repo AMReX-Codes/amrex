@@ -8,7 +8,12 @@
   <a href="https://doi.org/10.5281/zenodo.2555438">
   <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.2555438.svg" alt="DOI">
   </a>
-  <img src="https://github.com/AMReX-codes/amrex/workflows/cmake/badge.svg?branch=development" alt="CI: CMake on Development">
+  <a href="https://scan.coverity.com/projects/amrex-codes-amrex">
+  <img alt="Coverity Scan Build Status" src="https://scan.coverity.com/projects/28563/badge.svg">
+  </a>
+  <a href="https://opensource.org/licenses/BSD-3-Clause">
+  <img alt="License" src="https://img.shields.io/badge/License-BSD_3--Clause-blue.svg">
+  </a>
 </p>
 
 
@@ -23,6 +28,7 @@ refinement applications.
 [Gallery](#Gallery) -
 [Get Help](#get-help) -
 [Contribute](#Contribute) -
+[Copyright Notice](#copyright-notice) -
 [License](#License) -
 [Citation](#Citation)
 
@@ -35,9 +41,7 @@ applications solving partial differential equations on block-structured meshes. 
 massively parallel adaptive mesh refinement (AMR) algorithms focus computational
 resources and allow scalable performance on heterogeneous architectures so that
 scientists can efficiently resolve details in large simulations.
-AMReX is developed at [LBNL](https://www.lbl.gov/), [NREL](https://www.nrel.gov/),
-and [ANL](https://www.anl.gov/) as part of the Block-Structured
-AMR Co-Design Center in the Department of Energy's Exascale Computing Project.
+AMReX is developed at [LBNL](https://www.lbl.gov/).
 
 More information is available at the [AMReX website](https://amrex-codes.github.io/).
 
@@ -62,6 +66,7 @@ Four types of documentation are available:
 - [Example Codes](https://amrex-codes.github.io/amrex/tutorials_html/#example-codes) -- The fastest way to start your own project
 - [Guided Tutorials](https://amrex-codes.github.io/amrex/tutorials_html/GuidedTutorials.html) -- Learn basic AMReX topics in a progressive way
 - [Technical Reference](https://amrex-codes.github.io/amrex/doxygen/) -- Conveniently searchable code documentation via Doxygen
+- [Slides](https://drive.google.com/file/d/1-Fn6peoPj6zRc-iV-j1_Zc3YHoKZM2C9/view?usp=sharing) and [video recordings](https://youtube.com/playlist?list=PL20S5EeApOSs7JV6dMJnpduaznAoR2Cpr&feature=shared) -- From the [AMReX tutorial](https://www.nersc.gov/performance-portability-series-amrex-mar2024/) organized by NERSC/OLCF/ALCF on March 14, 2024
 
 ## Gallery
 
@@ -77,7 +82,7 @@ in our application [gallery](https://amrex-codes.github.io/amrex/gallery.html).
 ## Get Help
 
 You can also view questions
-and ask your own on our [GitHub Discussions](https://github.com/AMReX-Codes/amrex/discussions) page.  
+and ask your own on our [GitHub Discussions](https://github.com/AMReX-Codes/amrex/discussions) page.
 To obtain additional help, simply post an issue.
 
 ## Contribute
@@ -88,25 +93,18 @@ Any level of changes are welcomed: documentation, bug fixes, new test problems,
 new solvers, etc. For more details on how to contribute to AMReX, please see
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Copyright Notice
+
+AMReX Copyright (c) 2024, The Regents of the University of California,
+through Lawrence Berkeley National Laboratory (subject to receipt of any
+required approvals from the U.S. Dept. of Energy).  All rights reserved.
+
+If you have questions about your rights to use or distribute this software,
+please contact Berkeley Lab's Intellectual Property Office at IPO@lbl.gov.
+
+Please see the notices in [NOTICE](NOTICE).
+
 ## License
-
-AMReX Copyright (c) 2017, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory and the Alliance for
-Sustainable Energy, LLC., through National Renewable Energy Laboratory
-(subject to receipt of any required approvals from the U.S. Dept. of
-Energy).  All rights reserved.
-
-If you have questions about your rights to use or distribute this
-software, please contact Berkeley Lab's Innovation & Partnerships
-Office at IPO@lbl.gov.
-
-NOTICE.  This Software was developed under funding from the
-U.S. Department of Energy and the U.S. Government consequently retains
-certain rights. As such, the U.S. Government has been granted for
-itself and others acting on its behalf a paid-up, nonexclusive,
-irrevocable, worldwide license in the Software to reproduce,
-distribute copies to the public, prepare derivative works, and perform
-publicly and display publicly, and to permit other to do so.
 
 License for AMReX can be found at [LICENSE](LICENSE).
 

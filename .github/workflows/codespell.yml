@@ -1,0 +1,23 @@
+name: codespell
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-codespell
+  cancel-in-progress: true
+
+jobs:
+  codespell:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install codespell
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-pip
+          pip3 install --user codespell
+
+      - name: Run codespell
+        run: codespell

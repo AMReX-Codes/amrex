@@ -116,8 +116,9 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
 
     Vector<Long> isnds(NProcs, 0);
     Vector<Long> ircvs(NProcs, 0);
-    for (int i = 0; i < NProcs; ++i)
+    for (int i = 0; i < NProcs; ++i) {
         ircvs[i] = 0;
+    }
 
     {
         // each proc figures out how many bytes it will send, and how
@@ -132,7 +133,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
 
         ParallelAllReduce::Max(num_isnds, ParallelContext::CommunicatorSub());
 
-        if (num_isnds == 0) return;
+        if (num_isnds == 0) { return; }
 
         const int num_ircvs = neighbor_procs.size();
         Vector<MPI_Status>  stats(num_ircvs);
@@ -163,7 +164,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
                                  ParallelContext::CommunicatorSub());
         }
 
-        if (num_ircvs > 0) ParallelDescriptor::Waitall(rreqs, stats);
+        if (num_ircvs > 0) { ParallelDescriptor::Waitall(rreqs, stats); }
     }
 
     Vector<int> RcvProc;
@@ -177,7 +178,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
         }
     }
 
-    const int nrcvs = RcvProc.size();
+    const auto nrcvs = int(RcvProc.size());
     Vector<MPI_Status>  stats(nrcvs);
     Vector<MPI_Request> rreqs(nrcvs);
 
@@ -229,7 +230,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
             amrex::Abort("NeighborParticles::sumNeighbors: How did this happen?");
         }
 
-        int npart = recvdata.size() / data_size;
+        auto npart = int(recvdata.size() / data_size);
 
         char* buffer = recvdata.data();
         for (int j = 0; j < npart; ++j)
@@ -303,11 +304,12 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             auto& aos = neighbors[tag.level][dst_index].GetArrayOfStructs();
                             ParticleType& p = aos[tag.dst_index];
                             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                                if (! periodicity.isPeriodic(dir)) continue;
-                                if (tag.periodic_shift[dir] < 0)
+                                if (! periodicity.isPeriodic(dir)) { continue; }
+                                if (tag.periodic_shift[dir] < 0) {
                                     p.pos(dir) += static_cast<ParticleReal> (prob_domain.length(dir));
-                                else if (tag.periodic_shift[dir] > 0)
+                                } else if (tag.periodic_shift[dir] > 0) {
                                     p.pos(dir) -= static_cast<ParticleReal> (prob_domain.length(dir));
+                                }
                             }
                         }
 
@@ -326,11 +328,12 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                         ParticleType p = aos[tag.src_index];  // copy
                         if (periodicity.isAnyPeriodic()) {
                             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                                if (! periodicity.isPeriodic(dir)) continue;
-                                if (tag.periodic_shift[dir] < 0)
+                                if (! periodicity.isPeriodic(dir)) { continue; }
+                                if (tag.periodic_shift[dir] < 0) {
                                     p.pos(dir) += static_cast<ParticleReal> (prob_domain.length(dir));
-                                else if (tag.periodic_shift[dir] > 0)
+                                } else if (tag.periodic_shift[dir] > 0) {
                                     p.pos(dir) -= static_cast<ParticleReal> (prob_domain.length(dir));
+                                }
                             }
                         }
 
@@ -386,8 +389,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const int tile = mfi.LocalTileIndex();
             PairIndex dst_index(grid, tile);
             neighbors[lev][dst_index].resize(local_neighbor_sizes[lev][dst_index]);
-            if ( enableInverse() )
+            if ( enableInverse() ) {
                inverse_tags[lev][dst_index].resize(local_neighbor_sizes[lev][dst_index]);
+            }
         }
     }
     BL_PROFILE_VAR_STOP(update);
@@ -420,7 +424,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     resizeContainers(this->numLevels());
     for (int lev = 0; lev < this->numLevels(); ++lev) {
         neighbors[lev].clear();
-        if ( enableInverse() ) inverse_tags[lev].clear();
+        if ( enableInverse() ) { inverse_tags[lev].clear(); }
         buffer_tag_cache[lev].clear();
 
         for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -450,8 +454,9 @@ getRcvCountsMPI () {
     // many it will receive
     Vector<Long> snds(NProcs, 0);
     rcvs.resize(NProcs);
-    for (int i = 0; i < NProcs; ++i)
+    for (int i = 0; i < NProcs; ++i) {
         rcvs[i] = 0;
+    }
 
     num_snds = 0;
     for (const auto& kv : send_data) {
@@ -461,7 +466,7 @@ getRcvCountsMPI () {
 
     ParallelAllReduce::Max(num_snds, ParallelContext::CommunicatorSub());
 
-    if (num_snds == 0) return;
+    if (num_snds == 0) { return; }
 
     const int num_rcvs = neighbor_procs.size();
     Vector<MPI_Status>  stats(num_rcvs);
@@ -491,7 +496,7 @@ getRcvCountsMPI () {
                                  ParallelContext::CommunicatorSub());
     }
 
-    if (num_rcvs > 0) ParallelDescriptor::Waitall(rreqs, stats);
+    if (num_rcvs > 0) { ParallelDescriptor::Waitall(rreqs, stats); }
 
 #endif // AMREX_USE_MPI
 }
@@ -508,8 +513,8 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
 
     // each proc figures out how many bytes it will send, and how
     // many it will receive
-    if (!reuse_rcv_counts) getRcvCountsMPI();
-    if (num_snds == 0) return;
+    if (!reuse_rcv_counts) { getRcvCountsMPI(); }
+    if (num_snds == 0) { return; }
 
     Vector<int> RcvProc;
     Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
@@ -522,7 +527,7 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
         }
     }
 
-    const int nrcvs = RcvProc.size();
+    const auto nrcvs = int(RcvProc.size());
     Vector<MPI_Status>  stats(nrcvs);
     Vector<MPI_Request> rreqs(nrcvs);
 
@@ -561,7 +566,7 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
         for (int i = 0; i < nrcvs; ++i) {
-            const int offset = rOffset[i];
+            const auto offset = int(rOffset[i]);
             char* buffer = &recvdata[offset];
             int num_tiles, lev, gid, tid, size, np;
             std::memcpy(&num_tiles, buffer, sizeof(int)); buffer += sizeof(int);
@@ -571,7 +576,7 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
                 std::memcpy(&tid,  buffer, sizeof(int)); buffer += sizeof(int);
                 std::memcpy(&size, buffer, sizeof(int)); buffer += sizeof(int);
 
-                if (size == 0) continue;
+                if (size == 0) { continue; }
 
                 np = size / cdata_size;
 

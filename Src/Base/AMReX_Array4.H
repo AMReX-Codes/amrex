@@ -24,9 +24,9 @@ namespace amrex {
             {}
 
         template <class U=T,
-                  std::enable_if_t<std::is_const<U>::value,int> = 0>
+                  std::enable_if_t<std::is_const_v<U>,int> = 0>
         AMREX_GPU_HOST_DEVICE
-        constexpr CellData (CellData<typename std::remove_const<T>::type> const& rhs) noexcept
+        constexpr CellData (CellData<std::remove_const_t<T>> const& rhs) noexcept
             : p(rhs.p), stride(rhs.stride), ncomp(rhs.ncomp)
             {}
 
@@ -37,18 +37,19 @@ namespace amrex {
         int nComp() const noexcept { return ncomp; }
 
         template <class U=T,
-                  std::enable_if_t<!std::is_void<U>::value,int> = 0>
+                  std::enable_if_t<!std::is_void_v<U>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator[] (int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             if (n < 0 || n >= ncomp) {
-#if AMREX_DEVICE_COMPILE
-                AMREX_DEVICE_PRINTF(" %d is out of bound (0:%d)", n, ncomp-1);
-#else
-                std::stringstream ss;
-                ss << " " << n << " is out of bound: (0:" << ncomp-1 << ")";
-                amrex::Abort(ss.str());
-#endif
+                AMREX_IF_ON_DEVICE((
+                    AMREX_DEVICE_PRINTF(" %d is out of bound (0:%d)", n, ncomp-1);
+                ))
+                AMREX_IF_ON_HOST((
+                    std::stringstream ss;
+                    ss << " " << n << " is out of bound: (0:" << ncomp-1 << ")";
+                    amrex::Abort(ss.str());
+                ))
             }
 #endif
             return p[n*stride];
@@ -69,9 +70,9 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE
         constexpr Array4 () noexcept : p(nullptr) {}
 
-        template <class U=T, typename std::enable_if<std::is_const<U>::value,int>::type = 0>
+        template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
         AMREX_GPU_HOST_DEVICE
-        constexpr Array4 (Array4<typename std::remove_const<T>::type> const& rhs) noexcept
+        constexpr Array4 (Array4<std::remove_const_t<T>> const& rhs) noexcept
             : p(rhs.p),
               jstride(rhs.jstride),
               kstride(rhs.kstride),
@@ -93,9 +94,9 @@ namespace amrex {
             {}
 
         template <class U,
-                  typename std::enable_if
-                  <std::is_same<typename std::remove_const<T>::type,
-                                typename std::remove_const<U>::type>::value,int>::type = 0>
+                  std::enable_if_t
+                  <std::is_same_v<std::remove_const_t<T>,
+                                std::remove_const_t<U>>,int> = 0>
         AMREX_GPU_HOST_DEVICE
         constexpr Array4 (Array4<U> const& rhs, int start_comp) noexcept
             : p((T*)(rhs.p+start_comp*rhs.nstride)),
@@ -108,9 +109,9 @@ namespace amrex {
         {}
 
         template <class U,
-                  typename std::enable_if
-                  <std::is_same<typename std::remove_const<T>::type,
-                                typename std::remove_const<U>::type>::value,int>::type = 0>
+                  std::enable_if_t
+                  <std::is_same_v<std::remove_const_t<T>,
+                                std::remove_const_t<U>>,int> = 0>
         AMREX_GPU_HOST_DEVICE
         constexpr Array4 (Array4<U> const& rhs, int start_comp, int num_comps) noexcept
             : p((T*)(rhs.p+start_comp*rhs.nstride)),
@@ -125,7 +126,7 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE
         explicit operator bool() const noexcept { return p != nullptr; }
 
-        template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+        template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -134,7 +135,7 @@ namespace amrex {
             return p[(i-begin.x)+(j-begin.y)*jstride+(k-begin.z)*kstride];
         }
 
-        template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+        template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (int i, int j, int k, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -143,7 +144,7 @@ namespace amrex {
             return p[(i-begin.x)+(j-begin.y)*jstride+(k-begin.z)*kstride+n*nstride];
         }
 
-        template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+        template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -152,7 +153,7 @@ namespace amrex {
             return p + ((i-begin.x)+(j-begin.y)*jstride+(k-begin.z)*kstride);
         }
 
-        template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+        template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (int i, int j, int k, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -161,7 +162,7 @@ namespace amrex {
             return p + ((i-begin.x)+(j-begin.y)*jstride+(k-begin.z)*kstride+n*nstride);
         }
 
-        template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+        template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (IntVect const& iv) const noexcept {
 #if (AMREX_SPACEDIM == 1)
@@ -173,7 +174,7 @@ namespace amrex {
 #endif
         }
 
-        template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+        template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (IntVect const& iv, int n) const noexcept {
 #if (AMREX_SPACEDIM == 1)
@@ -185,7 +186,7 @@ namespace amrex {
 #endif
         }
 
-        template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+        template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (IntVect const& iv) const noexcept {
 #if (AMREX_SPACEDIM == 1)
@@ -197,7 +198,7 @@ namespace amrex {
 #endif
         }
 
-        template <class U=T, typename std::enable_if<!std::is_void<U>::value,int>::type = 0>
+        template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (IntVect const& iv, int n) const noexcept {
 #if (AMREX_SPACEDIM == 1)
@@ -207,6 +208,30 @@ namespace amrex {
 #else
             return this->ptr(iv[0],iv[1],iv[2],n);
 #endif
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator() (Dim3 const& cell) const noexcept {
+            return this->operator()(cell.x,cell.y,cell.z);
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator() (Dim3 const& cell, int n) const noexcept {
+            return this->operator()(cell.x,cell.y,cell.z,n);
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T* ptr (Dim3 const& cell) const noexcept {
+            return this->ptr(cell.x,cell.y,cell.z);
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T* ptr (Dim3 const& cell, int n) const noexcept {
+            return this->ptr(cell.x,cell.y,cell.z,n);
         }
 
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -227,27 +252,40 @@ namespace amrex {
             return (i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
         }
 
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        bool contains (IntVect const& iv) const noexcept {
+            return AMREX_D_TERM(   iv[0]>=begin.x && iv[0]<end.x,
+                                && iv[1]>=begin.y && iv[1]<end.y,
+                                && iv[2]>=begin.z && iv[2]<end.z);
+        }
+
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        bool contains (Dim3 const& cell) const noexcept {
+            return this->contains(cell.x,cell.y,cell.z);
+        }
+
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
         AMREX_GPU_HOST_DEVICE inline
         void index_assert (int i, int j, int k, int n) const
         {
             if (i<begin.x || i>=end.x || j<begin.y || j>=end.y || k<begin.z || k>=end.z
                 || n < 0 || n >= ncomp) {
-#if AMREX_DEVICE_COMPILE
-                AMREX_DEVICE_PRINTF(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,0:%d)\n",
-                                    i, j, k, n, begin.x, end.x-1, begin.y, end.y-1,
-                                    begin.z, end.z-1, ncomp-1);
-                amrex::Abort();
-#else
-                std::stringstream ss;
-                ss << " (" << i << "," << j << "," << k << "," <<  n
-                   << ") is out of bound ("
-                   << begin.x << ":" << end.x-1 << ","
-                   << begin.y << ":" << end.y-1 << ","
-                   << begin.z << ":" << end.z-1 << ","
-                   << "0:" << ncomp-1 << ")";
-                amrex::Abort(ss.str());
-#endif
+                AMREX_IF_ON_DEVICE((
+                    AMREX_DEVICE_PRINTF(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,0:%d)\n",
+                                        i, j, k, n, begin.x, end.x-1, begin.y, end.y-1,
+                                        begin.z, end.z-1, ncomp-1);
+                    amrex::Abort();
+                ))
+                AMREX_IF_ON_HOST((
+                    std::stringstream ss;
+                    ss << " (" << i << "," << j << "," << k << "," <<  n
+                    << ") is out of bound ("
+                    << begin.x << ":" << end.x-1 << ","
+                    << begin.y << ":" << end.y-1 << ","
+                    << begin.z << ":" << end.z-1 << ","
+                    << "0:" << ncomp-1 << ")";
+                    amrex::Abort(ss.str());
+                ))
             }
         }
 #endif
@@ -298,7 +336,7 @@ namespace amrex {
     template <class A, class Enable = void> struct HasMultiComp : std::false_type {};
     //
     template <class B>
-    struct HasMultiComp<B, typename std::enable_if<B().size() >= 1>::type>
+    struct HasMultiComp<B, std::enable_if_t<B().size() >= 1>>
         : std::true_type {};
 
     //
@@ -319,14 +357,14 @@ namespace amrex {
             return this->Array4<T>::operator()(i,j,k);
         }
 
-        template <class U=T, typename std::enable_if< amrex::HasMultiComp<U>::value,int>::type = 0>
+        template <class U=T, std::enable_if_t< amrex::HasMultiComp<U>::value,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         typename U::reference_type
         operator() (int i, int j, int k, int n) const noexcept {
             return this->Array4<T>::operator()(i,j,k,0)[n];
         }
 
-        template <class U=T, typename std::enable_if<!amrex::HasMultiComp<U>::value,int>::type = 0>
+        template <class U=T, std::enable_if_t<!amrex::HasMultiComp<U>::value,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (int i, int j, int k, int n) const noexcept {
             return this->Array4<T>::operator()(i,j,k,n);

@@ -4,6 +4,7 @@ ifneq ($(NO_CONFIG_CHECKING),TRUE)
   nvcc_version       := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}')
   nvcc_major_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$1}')
   nvcc_minor_version := $(shell nvcc --version | grep "release" | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$2}')
+  COMP_VERSION = $(nvcc_version)
 else
   nvcc_version       := 99.9
   nvcc_major_version := 99
@@ -89,9 +90,21 @@ else
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 endif
 
-NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT) --expt-relaxed-constexpr --expt-extended-lambda --forward-unknown-to-host-compiler
+NVCC_ARCH_FLAGS = $(foreach arch,$(CUDA_ARCH),--generate-code arch=compute_$(arch),code=sm_$(arch))
+
+ifeq ($(CUDA_LTO),TRUE)
+  NVCC_ARCH_COMPILE_FLAGS = $(subst sm,lto,$(NVCC_ARCH_FLAGS))
+  NVCC_ARCH_LINK_FLAGS = -dlto $(NVCC_ARCH_FLAGS)
+else
+  NVCC_ARCH_COMPILE_FLAGS = $(NVCC_ARCH_FLAGS)
+  NVCC_ARCH_LINK_FLAGS = $(NVCC_ARCH_FLAGS)
+endif
+
+NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -maxrregcount=$(CUDA_MAXREGCOUNT) --expt-relaxed-constexpr --expt-extended-lambda --forward-unknown-to-host-compiler
 # This is to work around a bug with nvcc, see: https://github.com/kokkos/kokkos/issues/1473
 NVCC_FLAGS += -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored
+# and another bug related to implicit returns with if constexpr, see: https://stackoverflow.com/questions/64523302/cuda-missing-return-statement-at-end-of-non-void-function-in-constexpr-if-fun
+NVCC_FLAGS += -Xcudafe --diag_suppress=implicit_return_from_non_void_function
 
 ifeq ($(GPU_ERROR_CROSS_EXECUTION_SPACE_CALL),TRUE)
   NVCC_FLAGS += --Werror cross-execution-space-call
@@ -142,8 +155,8 @@ ifeq ($(nvcc_diag_error),1)
   NVCC_FLAGS += --display-error-number --diag-error 20092
 endif
 
-CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -x cu
-CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -x cu
+CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) $(NVCC_ARCH_COMPILE_FLAGS) -x cu
+CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) $(NVCC_ARCH_COMPILE_FLAGS) -x cu
 
 ifeq ($(USE_GPU_RDC),TRUE)
   CXXFLAGS += -dc

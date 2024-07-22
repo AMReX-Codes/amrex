@@ -16,15 +16,12 @@ namespace amrex {
 template <int N>
 struct IParserExecutor
 {
-    template <int M=N, typename std::enable_if_t<M==0,int> = 0>
+    template <int M=N, std::enable_if_t<M==0,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator() () const noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        return iparser_exe_eval(m_device_executor, nullptr);
-#else
-        return iparser_exe_eval(m_host_executor, nullptr);
-#endif
+        AMREX_IF_ON_DEVICE((return iparser_exe_eval(m_device_executor, nullptr);))
+        AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, nullptr);))
     }
 
     template <typename... Ts>
@@ -33,30 +30,21 @@ struct IParserExecutor
     operator() (Ts... var) const noexcept
     {
         amrex::GpuArray<int,N> l_var{var...};
-#if AMREX_DEVICE_COMPILE
-        return iparser_exe_eval(m_device_executor, l_var.data());
-#else
-        return iparser_exe_eval(m_host_executor, l_var.data());
-#endif
+        AMREX_IF_ON_DEVICE((return iparser_exe_eval(m_device_executor, l_var.data());))
+        AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, l_var.data());))
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator() (GpuArray<int,N> const& var) const noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        return iparser_exe_eval(m_device_executor, var.data());
-#else
-        return iparser_exe_eval(m_host_executor, var.data());
-#endif
+        AMREX_IF_ON_DEVICE((return iparser_exe_eval(m_device_executor, var.data());))
+        AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, var.data());))
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     explicit operator bool () const {
-#if AMREX_DEVICE_COMPILE
-        return m_device_executor != nullptr;
-#else
-        return m_host_executor != nullptr;
-#endif
+        AMREX_IF_ON_DEVICE((return m_device_executor != nullptr;))
+        AMREX_IF_ON_HOST((return m_host_executor != nullptr;))
     }
 
     char* m_host_executor = nullptr;

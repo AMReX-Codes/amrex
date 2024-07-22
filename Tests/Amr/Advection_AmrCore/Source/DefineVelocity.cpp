@@ -8,8 +8,9 @@ using namespace amrex;
 void
 AmrCoreAdv::DefineVelocityAllLevels (Real time)
 {
-    for (int lev = 0; lev <= finest_level; ++lev)
+    for (int lev = 0; lev <= finest_level; ++lev) {
         DefineVelocityAtLevel(lev,time);
+    }
 }
 
 void

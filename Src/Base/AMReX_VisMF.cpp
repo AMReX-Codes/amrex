@@ -11,9 +11,11 @@
 
 namespace amrex {
 
-static const char *TheMultiFabHdrFileSuffix = "_H";
-static const char *FabFileSuffix = "_D_";
-static const char *TheFabOnDiskPrefix = "FabOnDisk:";
+namespace {
+    const char *TheMultiFabHdrFileSuffix = "_H";
+    const char *FabFileSuffix = "_D_";
+    const char *TheFabOnDiskPrefix = "FabOnDisk:";
+}
 
 std::map<std::string, VisMF::PersistentIFStream> VisMF::persistentIFStreams;
 
@@ -49,8 +51,8 @@ namespace
         }
         int countForAll = static_cast<int>(totalItems / binCounts.size());
         int remainder = static_cast<int>(totalItems % binCounts.size());
-        for(int i(0); i < binCounts.size(); ++i) {
-            binCounts[i] = countForAll;
+        for(int & binCount : binCounts) {
+            binCount = countForAll;
         }
         for(int i(0); i < remainder; ++i) {
             ++binCounts[i];
@@ -177,7 +179,7 @@ operator>> (std::istream&            is,
     Long i(0), N;
 
     is >> N;
-    BL_ASSERT(N >= 0);
+    BL_ASSERT(N >= 0 && N < std::numeric_limits<Long>::max());
 
     fa.resize(N);
 
@@ -192,7 +194,8 @@ operator>> (std::istream&            is,
     return is;
 }
 
-static
+namespace {
+
 std::ostream&
 operator<< (std::ostream&               os,
             const Vector< Vector<Real> >& ar)
@@ -217,7 +220,6 @@ operator<< (std::ostream&               os,
     return os;
 }
 
-static
 std::istream&
 operator>> (std::istream&         is,
             Vector< Vector<Real> >& ar)
@@ -230,10 +232,10 @@ operator>> (std::istream&         is,
 
     is >> N >> ch >> M;
 
-    if( N < 0 ) {
+    if( N < 0 || N > std::numeric_limits<Long>::max()/2 ) {
       amrex::Error("Expected a positive integer, N, got something else");
     }
-    if( M < 0 ) {
+    if( M < 0 || M > std::numeric_limits<Long>::max()/2 ) {
       amrex::Error("Expected a positive integer, M, got something else");
     }
     if( ch != ',' ) {
@@ -263,6 +265,8 @@ operator>> (std::istream&         is,
     }
 
     return is;
+}
+
 }
 
 std::ostream&
@@ -300,12 +304,12 @@ operator<< (std::ostream        &os,
     if(hd.m_vers == VisMF::Header::NoFabHeaderFAMinMax_v1) {
       BL_ASSERT(hd.m_famin.size() == hd.m_ncomp);
       BL_ASSERT(hd.m_famin.size() == hd.m_famax.size());
-      for(int i(0); i < hd.m_famin.size(); ++i) {
-        os << hd.m_famin[i] << ',';
+      for(auto famin : hd.m_famin) {
+        os << famin << ',';
       }
       os << '\n';
-      for(int i(0); i < hd.m_famax.size(); ++i) {
-        os << hd.m_famax[i] << ',';
+      for(auto famax : hd.m_famax) {
+        os << famax << ',';
       }
       os << '\n';
     }
@@ -364,7 +368,7 @@ operator>> (std::istream  &is,
         is >> ng;
         hd.m_ngrow = IntVect(AMREX_D_DECL(ng,ng,ng));
     }
-    BL_ASSERT(hd.m_ngrow.min() >= 0);
+    BL_ASSERT(hd.m_ngrow.allGE(0));
 
     int ba_ndims = hd.m_ba.readFrom(is);
     for (int i = ba_ndims; i < AMREX_SPACEDIM; ++i) {
@@ -385,16 +389,17 @@ operator>> (std::istream  &is,
 
     if(hd.m_vers == VisMF::Header::NoFabHeaderFAMinMax_v1) {
       char ch;
+      AMREX_ASSERT(hd.m_ncomp >= 0 && hd.m_ncomp < std::numeric_limits<int>::max());
       hd.m_famin.resize(hd.m_ncomp);
       hd.m_famax.resize(hd.m_ncomp);
-      for(int i(0); i < hd.m_famin.size(); ++i) {
-        is >> hd.m_famin[i] >> ch;
+      for(auto famin : hd.m_famin) {
+        is >> famin >> ch;
         if( ch != ',' ) {
           amrex::Error("Expected a ',' when reading hd.m_famin");
         }
       }
-      for(int i(0); i < hd.m_famax.size(); ++i) {
-        is >> hd.m_famax[i] >> ch;
+      for(auto famax : hd.m_famax) {
+        is >> famax >> ch;
         if( ch != ',' ) {
           amrex::Error("Expected a ',' when reading hd.m_famax");
         }
@@ -659,6 +664,7 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
 
     bool run_on_device = Gpu::inLaunchRegion()
         && (mf.arena()->isManaged() || mf.arena()->isDevice());
+    amrex::ignore_unused(run_on_device);
 
     if(version == NoFabHeaderFAMinMax_v1) {
       // ---- calculate FabArray min max values only
@@ -670,8 +676,12 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
       for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const int idx = mfi.index();
         for(int i(0); i < m_ncomp; ++i) {
+#ifdef AMREX_USE_GPU
             auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(m_ba[idx],i)
                                       : mf[mfi].minmax<RunOn::Host  >(m_ba[idx],i);
+#else
+            auto mm = mf[mfi].minmax<RunOn::Host>(m_ba[idx],i);
+#endif
             m_famin[i] = std::min(m_famin[i], mm.first);
             m_famax[i] = std::max(m_famax[i], mm.second);
         }
@@ -700,6 +710,7 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
 
     bool run_on_device = Gpu::inLaunchRegion()
         && (mf.arena()->isManaged() || mf.arena()->isDevice());
+    amrex::ignore_unused(run_on_device);
 
 #ifdef BL_USE_MPI
     //
@@ -714,8 +725,12 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
         for(int j(0); j < m_ncomp; ++j) {
+#ifdef AMREX_USE_GPU
             auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(m_ba[idx],j)
                                       : mf[mfi].minmax<RunOn::Host  >(m_ba[idx],j);
+#else
+            auto mm = mf[mfi].minmax<RunOn::Host>(m_ba[idx],j);
+#endif
             m_min[idx][j] = mm.first;
             m_max[idx][j] = mm.second;
         }
@@ -761,7 +776,7 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
 
     BL_ASSERT(ioffset == nmtags[ParallelDescriptor::MyProc(comm)]);
 
-    Vector<Real> recvdata(mf.size()*2*m_ncomp);
+    Vector<Real> recvdata(std::size_t(mf.size())*2*m_ncomp);
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(Real),
                     ParallelDescriptor::MyProc(comm), BLProfiler::BeforeCall());
@@ -808,8 +823,12 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
         for(int j(0); j < m_ncomp; ++j) {
+#ifdef AMREX_USE_GPU
             auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(m_ba[idx],j)
                                       : mf[mfi].minmax<RunOn::Host  >(m_ba[idx],j);
+#else
+            auto mm = mf[mfi].minmax<RunOn::Host>(m_ba[idx],j);
+#endif
             m_min[idx][j] = mm.first;
             m_max[idx][j] = mm.second;
         }
@@ -843,14 +862,14 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
       m_famax[comp] = -std::numeric_limits<Real>::max();
     }
 
-    for(int ibox(0); ibox < m_min.size(); ++ibox) {
-      for(int comp(0); comp < m_min[ibox].size(); ++comp) {
-        m_famin[comp] = std::min(m_famin[comp], m_min[ibox][comp]);
+    for(auto & ibox : m_min) {
+      for(int comp(0); comp < ibox.size(); ++comp) {
+        m_famin[comp] = std::min(m_famin[comp], ibox[comp]);
       }
     }
-    for(int ibox(0); ibox < m_max.size(); ++ibox) {
-      for(int comp(0); comp < m_max[ibox].size(); ++comp) {
-        m_famax[comp] = std::max(m_famax[comp], m_max[ibox][comp]);
+    for(auto & ibox : m_max) {
+      for(int comp(0); comp < ibox.size(); ++comp) {
+        m_famax[comp] = std::max(m_famax[comp], ibox[comp]);
       }
     }
 }
@@ -903,7 +922,7 @@ VisMF::WriteHeader (const std::string &mf_name, VisMF::Header &hdr,
           hss << hdr;
           if(static_cast<std::streamoff>(hss.tellp()) != bytesWritten) {
               amrex::ErrorStream() << "**** tellp error: hss.tellp() != bytesWritten :  "
-                                   << hss.tellp() << "  " << bytesWritten << std::endl;
+                                   << hss.tellp() << "  " << bytesWritten << '\n';
           }
         }
 
@@ -932,17 +951,22 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
         bool run_on_device = Gpu::inLaunchRegion()
             && (mf.arena()->isManaged() || mf.arena()->isDevice());
+        amrex::ignore_unused(run_on_device);
 
         for(MFIter mfi(*the_mf); mfi.isValid(); ++mfi) {
             const int idx(mfi.index());
 
             for(int j(0); j < mf.nComp(); ++j) {
-                auto mm = (run_on_device) ? mf[mfi].minmax<RunOn::Device>(mf.box(idx),j)
-                                          : mf[mfi].minmax<RunOn::Host  >(mf.box(idx),j);
-                const Real val = (mm.first + mm.second) / 2.0_rt;
+#ifdef AMREX_USE_GPU
                 if (run_on_device) {
+                    auto mm = mf[mfi].minmax<RunOn::Device>(mf.box(idx),j);
+                    const Real val = (mm.first + mm.second) / 2.0_rt;
                     the_mf->get(mfi).setComplement<RunOn::Device>(val, mf.box(idx), j, 1);
-                } else {
+                } else
+#endif
+                {
+                    auto mm = mf[mfi].minmax<RunOn::Host>(mf.box(idx),j);
+                    const Real val = (mm.first + mm.second) / 2.0_rt;
                     the_mf->get(mfi).setComplement<RunOn::Host>(val, mf.box(idx), j, 1);
                 }
             }
@@ -954,8 +978,8 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     const Vector<int> &pmap = mf.DistributionMap().ProcessorMap();
     std::set<int> procsWithData;
     Vector<int> procsWithDataVector;
-    for(int i(0); i < pmap.size(); ++i) {
-      procsWithData.insert(pmap[i]);
+    for(int i : pmap) {
+      procsWithData.insert(i);
     }
     if(allowSparseWrites && (static_cast<int>(procsWithData.size()) < nOutFiles)) {
       useSparseFPP = true;
@@ -1276,9 +1300,8 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 
         const Vector< Vector<int> > &fileNumbersWriteOrder = nfi.FileNumbersWriteOrder();
 
-        for(int fn(0); fn < fileNumbersWriteOrder.size(); ++fn) {
-          for(int ri(0); ri < fileNumbersWriteOrder[fn].size(); ++ri) {
-            int rank(fileNumbersWriteOrder[fn][ri]);
+        for(const auto & fn : fileNumbersWriteOrder) {
+          for(int rank : fn) {
             auto rboIter = rankBoxOrder.find(rank);
 
             if(rboIter != rankBoxOrder.end()) {
@@ -1286,11 +1309,11 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
               whichFileNumber = fileNumbers[rank];
               whichFileName   = VisMF::BaseName(NFilesIter::FileName(whichFileNumber, filePrefix));
 
-              for(int i(0); i < index.size(); ++i) {
-                 hdr.m_fod[index[i]].m_name = whichFileName;
-                 hdr.m_fod[index[i]].m_head = currentOffset[whichFileNumber];
-                 currentOffset[whichFileNumber] += mf.fabbox(index[i]).numPts() * nComps * whichRDBytes
-                                                   + fabHeaderBytes[index[i]];
+              for(int i : index) {
+                 hdr.m_fod[i].m_name = whichFileName;
+                 hdr.m_fod[i].m_head = currentOffset[whichFileNumber];
+                 currentOffset[whichFileNumber] += mf.fabbox(i).numPts() * nComps * whichRDBytes
+                                                   + fabHeaderBytes[i];
               }
             }
           }
@@ -1306,25 +1329,25 @@ VisMF::RemoveFiles(const std::string &mf_name, bool a_verbose)
     if(ParallelDescriptor::IOProcessor()) {
       std::string MFHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
       if(a_verbose) {
-        amrex::Print() << "---- removing:  " << MFHdrFileName << std::endl;
+        amrex::Print() << "---- removing:  " << MFHdrFileName << '\n';
       }
       int retVal(std::remove(MFHdrFileName.c_str()));
       if(a_verbose) {
         if(retVal != 0) {
           amrex::Print() << "---- error removing:  " << MFHdrFileName << "  errno = "
-                    << strerror(errno) << std::endl;
+                    << strerror(errno) << '\n';
         }
       }
       for(int ip(0); ip < nOutFiles; ++ip) {
         std::string fileName(NFilesIter::FileName(nOutFiles, mf_name + FabFileSuffix, ip, true));
         if(a_verbose) {
-          amrex::Print() << "---- removing:  " << fileName << std::endl;
+          amrex::Print() << "---- removing:  " << fileName << '\n';
         }
         int rv(std::remove(fileName.c_str()));
         if(a_verbose) {
           if(rv != 0) {
             amrex::Print() << "---- error removing:  " << fileName << "  errno = "
-                      << strerror(errno) << std::endl;
+                      << strerror(errno) << '\n';
           }
         }
       }
@@ -1347,14 +1370,11 @@ VisMF::VisMF (std::string fafab_name)
 
     infs >> m_hdr;
 
+    AMREX_ASSERT(m_hdr.m_ncomp >= 0 && m_hdr.m_ncomp < std::numeric_limits<int>::max());
     m_pa.resize(m_hdr.m_ncomp);
 
-    for(int n(0); n < m_pa.size(); ++n) {
-        m_pa[n].resize(m_hdr.m_ba.size());
-
-        for(int ii(0), N = static_cast<int>(m_pa[n].size()); ii < N; ++ii) {
-            m_pa[n][ii] = 0;
-        }
+    for(auto & vfabptr : m_pa) {
+        vfabptr.resize(m_hdr.m_ba.size(), nullptr);
     }
 }
 
@@ -1489,7 +1509,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     int messTotal(0);
 
     if(verbose && myProc == coordinatorProc) {
-        amrex::AllPrint() << myProc << "::VisMF::Read:  about to read:  " << mf_name << std::endl;
+        amrex::AllPrint() << myProc << "::VisMF::Read:  about to read:  " << mf_name << '\n';
     }
 
     std::string FullHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
@@ -1514,11 +1534,11 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     // This allows us to read in an empty MultiFab without an error -- but only if explicitly told to
     if (allow_empty_mf > 0)
     {
-        if (hdr.m_ba.empty()) return;
+        if (hdr.m_ba.empty()) { return; }
     } else {
         if (hdr.m_ba.empty())
         {
-            amrex::Print() << "In trying to read " << mf_name << std::endl;
+            amrex::Print() << "In trying to read " << mf_name << '\n';
             amrex::Error("Empty box array");
         }
     }
@@ -1579,8 +1599,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       NItemsPerBin(static_cast<int>(frc.size()), nBoxesPerRank);
       int frcIndex(0);
 
-      for(int nbpr(0); nbpr < nBoxesPerRank.size(); ++nbpr) {
-        for(int nb(0); nb < nBoxesPerRank[nbpr]; ++nb) {
+      for(int nbpr : nBoxesPerRank) {
+        for(int nb(0); nb < nbpr; ++nb) {
 
           baFileOrder.set(indexFileOrder, frc[frcIndex].box);
           ranksFileOrder[indexFileOrder] = currentRank;
@@ -1602,11 +1622,11 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     bool inFileOrder(mf.DistributionMap() == dmFileOrder && mf.boxArray() == baFileOrder);
     if(inFileOrder) {
       if(myProc == coordinatorProc && verbose) {
-          amrex::AllPrint() << "VisMF::Read:  inFileOrder" << std::endl;
+          amrex::AllPrint() << "VisMF::Read:  inFileOrder" << '\n';
       }
     } else {
       if(myProc == coordinatorProc && verbose) {
-          amrex::AllPrint() << "VisMF::Read:  not inFileOrder" << std::endl;
+          amrex::AllPrint() << "VisMF::Read:  not inFileOrder" << '\n';
       }
       // ---- make a temporary fabarray in file order
       fafabFileOrder.define(baFileOrder, dmFileOrder, hdr.m_ncomp, hdr.m_ngrow, MFInfo(), mf.Factory());
@@ -1638,9 +1658,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         }
       }
 
-      for(int iSet(0); iSet < streamSets.size(); ++iSet) {
+      for(auto & rfrSet : streamSets) {
         Vector<int> readRanks;
-        std::set<int> &rfrSet = streamSets[iSet];
         for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
           readRanks.push_back(*setIter);
         }
@@ -1651,13 +1670,13 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           frcIter = FileReadChains.find(fileName);
           BL_ASSERT(frcIter != FileReadChains.end());
           Vector<FabReadLink> &frc = frcIter->second;
-          for(NFilesIter nfi(fullFileName, readRanks); nfi.ReadyToRead(); ++nfi) {
+          for(NFilesIter nfi(std::move(fullFileName), readRanks); nfi.ReadyToRead(); ++nfi) {
 
               // ---- confirm the data is contiguous in the stream
               Long firstOffset(-1);
-              for(int i(0); i < frc.size(); ++i) {
-                if(myProc == frc[i].rankToRead) {
-                  firstOffset = frc[i].fileOffset;
+              for(auto & i : frc) {
+                if(myProc == i.rankToRead) {
+                  firstOffset = i.fileOffset;
                   break;
                 }
               }
@@ -1666,12 +1685,12 @@ VisMF::Read (FabArray<FArrayBox> &mf,
               Long currentOffset(firstOffset), bytesToRead(0);
               int nFABs(0);
 
-              for(int i(0); i < frc.size(); ++i) {
-                if(myProc == frc[i].rankToRead) {
-                  if(currentOffset != frc[i].fileOffset) {
+              for(auto & i : frc) {
+                if(myProc == i.rankToRead) {
+                  if(currentOffset != i.fileOffset) {
                     dataIsContiguous = false;
                   } else {
-                    FArrayBox &fab = whichFA[frc[i].faIndex];
+                    FArrayBox &fab = whichFA[i.faIndex];
                     Long fabBytesToRead(fab.box().numPts() * fab.nComp() * hdr.m_writtenRD.numBytes());
                     currentOffset += fabBytesToRead;
                     bytesToRead   += fabBytesToRead;
@@ -1679,6 +1698,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                   }
                 }
               }
+              AMREX_ASSERT(bytesToRead >= 0 && bytesToRead < std::numeric_limits<Long>::max());
               char *allFabData;
               bool canCombineFABs(false);
               if(nFABs > 1 && dataIsContiguous && VisMF::useSingleRead) {
@@ -1695,10 +1715,10 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
                 currentOffset = 0;  // ---- this is now relative to allFabData
 
-                for(int i(0); i < frc.size(); ++i) {
-                  if(myProc == frc[i].rankToRead) {
+                for(auto & i : frc) {
+                  if(myProc == i.rankToRead) {
                     char *afPtr = allFabData + currentOffset;
-                    FArrayBox &fab = whichFA[frc[i].faIndex];
+                    FArrayBox &fab = whichFA[i.faIndex];
                     Real* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
                     std::unique_ptr<FArrayBox> hostfab;
@@ -1709,11 +1729,14 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                     }
 #endif
                     Long readDataItems(fab.box().numPts() * fab.nComp());
+                    AMREX_ASSERT(readDataItems >= 0 && readDataItems < std::numeric_limits<Long>::max());
                     if(doConvert) {
                       RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
                                                             afPtr, hdr.m_writtenRD);
                     } else {
-                      std::memcpy(fabdata, afPtr, fab.nBytes());
+                      auto nbytes = fab.nBytes();
+                      AMREX_ASSERT(bytesToRead > currentOffset && nbytes <= std::size_t(bytesToRead - currentOffset));
+                      std::memcpy(fabdata, afPtr, nbytes);
                     }
                     currentOffset += readDataItems * hdr.m_writtenRD.numBytes();
 #ifdef AMREX_USE_GPU
@@ -1728,12 +1751,12 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                 delete [] allFabData;
 
               } else {          // ---- cannot use one read
-                for(int i(0); i < frc.size(); ++i) {
-                  if(myProc == frc[i].rankToRead) {
-                    if(static_cast<std::streamoff>(nfi.SeekPos()) != frc[i].fileOffset) {
-                      nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
+                for(auto & i : frc) {
+                  if(myProc == i.rankToRead) {
+                    if(static_cast<std::streamoff>(nfi.SeekPos()) != i.fileOffset) {
+                      nfi.Stream().seekp(i.fileOffset, std::ios::beg);
                     }
-                    FArrayBox &fab = whichFA[frc[i].faIndex];
+                    FArrayBox &fab = whichFA[i.faIndex];
                     Real* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
                     std::unique_ptr<FArrayBox> hostfab;
@@ -1743,12 +1766,15 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                         fabdata = hostfab->dataPtr();
                     }
 #endif
-                    Long readDataItems(fab.box().numPts() * fab.nComp());
                     if(doConvert) {
+                      Long readDataItems(fab.box().numPts() * fab.nComp());
+                      AMREX_ASSERT(readDataItems >= 0 && readDataItems < std::numeric_limits<Long>::max());
                       RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
                                                             nfi.Stream(), hdr.m_writtenRD);
                     } else {
-                      nfi.Stream().read((char *) fabdata, static_cast<std::streamsize>(fab.nBytes()));
+                      auto nbytes = static_cast<std::streamsize>(fab.nBytes());
+                      AMREX_ASSERT(nbytes >= 0 && nbytes < std::numeric_limits<std::streamsize>::max());
+                      nfi.Stream().read((char *) fabdata, nbytes);
                     }
 #ifdef AMREX_USE_GPU
                     if (hostfab) {
@@ -1819,10 +1845,10 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         std::string fname(hdr.m_fod[i].m_name);
         fileNamesIter = fileNames.find(fname);
         if(fileNamesIter != fileNames.end()) {
-          int findex(fileNames.find(fname)->second);
+          int findex = fileNamesIter->second;
           allReads[findex][whichProc].insert(std::pair<Long, int>(iSeekPos, i));
         } else {
-            amrex::ErrorStream() << "**** Error:  filename not found = " << fname << std::endl;
+            amrex::ErrorStream() << "**** Error:  filename not found = " << fname << '\n';
             amrex::Abort("**** Error in VisMF::Read");
         }
       }
@@ -1832,7 +1858,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     int doneTag(ParallelDescriptor::SeqNum());
 
     if(myProc == coordinatorProc) {  // manage the file locks
-      int reqsPending(0), iopFileIndex;
+      int reqsPending(0), iopFileIndex(0);
       std::deque<int> iopReads;
       MPI_Status status;
       int doneFlag;
@@ -1910,8 +1936,14 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           --reqsPending;
           busyProcs.erase(procDone);
           std::string fname(hdr.m_fod[index].m_name);
-          int fileIndex(fileNames.find(fname)->second);
-          availableFiles.insert(fileIndex);
+          auto fit = fileNames.find(fname);
+          if (fit != fileNames.end()) {
+            int fileIndex = fit->second;
+            availableFiles.insert(fileIndex);
+          } else {
+            amrex::ErrorStream() << "**** Error:  filename not found = " << fname << '\n';
+            amrex::Abort("**** Error in VisMF::Read");
+          }
         }
 
       }  // end while(totalIOReqs...)
@@ -1940,9 +1972,9 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 #endif
 
     if(VisMF::GetUsePersistentIFStreams()) {
-      for(int idx(0); idx < hdr.m_fod.size(); ++idx) {
+      for(auto & idx : hdr.m_fod) {
         std::string FullName(VisMF::DirName(mf_name));
-        FullName += hdr.m_fod[idx].m_name;
+        FullName += idx.m_name;
         VisMF::DeleteStream(FullName);
       }
     }
@@ -1955,7 +1987,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                         << "FARead ::  hTime = " << (hEndTime - hStartTime) << '\n'
                         << "FARead ::  faCopyTime = " << faCopyTime << '\n'
                         << "FARead ::  mfReadTime = " << mfReadTime
-                        << "  totalTime = " << totalTime << std::endl;
+                        << "  totalTime = " << totalTime << '\n';
     }
 
     BL_ASSERT(mf.ok());
@@ -1997,7 +2029,7 @@ VisMF::Check (const std::string& mf_name)
 
   if(ParallelDescriptor::IOProcessor()) {
    if (verbose) {
-       amrex::Print() << "---------------- VisMF::Check:  about to check:  " << mf_name << std::endl;
+       amrex::Print() << "---------------- VisMF::Check:  about to check:  " << mf_name << '\n';
    }
 
     char c;
@@ -2025,7 +2057,7 @@ VisMF::Check (const std::string& mf_name)
     if(hdr.m_vers != VisMF::Header::Version_v1) {
      v1 = false;
      if (verbose) {
-         amrex::Print() << "**** VisMF::Check currently only supports Version_v1." << std::endl;
+         amrex::Print() << "**** VisMF::Check currently only supports Version_v1." << '\n';
      }
     } else {
 
@@ -2040,7 +2072,7 @@ VisMF::Check (const std::string& mf_name)
 
       if( ! ifs.good()) {
           if (verbose) {
-              amrex::AllPrint() << "**** Error:  could not open file:  " << FullName << std::endl;
+              amrex::AllPrint() << "**** Error:  could not open file:  " << FullName << '\n';
           }
           continue;
       }
@@ -2064,7 +2096,7 @@ VisMF::Check (const std::string& mf_name)
         if (verbose) {
             amrex::AllPrint() << "**** Error in file:  " << FullName << "  Bad Fab at index = "
                               << i << "  seekpos = " << fod.m_head << "  box = " << hdr.m_ba[i]
-                              << std::endl;
+                              << '\n';
         }
       }
       ifs.close();
@@ -2072,12 +2104,12 @@ VisMF::Check (const std::string& mf_name)
     }
     if(nBadFabs) {
         if (verbose) {
-            amrex::AllPrint() << "Total Bad Fabs = " << nBadFabs << std::endl;
+            amrex::AllPrint() << "Total Bad Fabs = " << nBadFabs << '\n';
         }
         isOk = false;
     } else {
         if (verbose) {
-            amrex::AllPrint() << "No Bad Fabs." << std::endl;
+            amrex::AllPrint() << "No Bad Fabs." << '\n';
         }
         isOk = true;
     }
@@ -2168,7 +2200,7 @@ void VisMF::CloseStream(const std::string &fileName, bool forceClose)
     pifs.pstr = nullptr;
     pifs.isOpen = false;
   }
-  pifs.ioBuffer.clear();
+  VisMFBuffer::ClearBuffer(pifs.ioBuffer);
 }
 
 
@@ -2205,9 +2237,10 @@ VisMF::AsyncWrite (const FabArray<FArrayBox>& mf, const std::string& mf_name, bo
 }
 
 void
-VisMF::AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name, bool valid_cells_only)
+VisMF::AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name, bool valid_cells_only) // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
 {
     if (AsyncOut::UseAsyncOut()) {
+        // Note that we use `true` below to indicate this is rvalue.
         AsyncWriteDoit(mf, mf_name, true, valid_cells_only);
     } else {
         if (valid_cells_only && mf.nGrowVect() != 0) {
@@ -2239,7 +2272,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     RealDescriptor const& whichRD = FPC::NativeRealDescriptor();
 
     auto hdr = std::make_shared<VisMF::Header>(mf, VisMF::NFiles, VisMF::Header::Version_v1, false);
-    if (valid_cells_only) hdr->m_ngrow = IntVect(0);
+    if (valid_cells_only) { hdr->m_ngrow = IntVect(0); }
 
     constexpr int sizeof_int64_over_real = sizeof(int64_t) / sizeof(Real);
     const int n_local_fabs = mf.local_size();
@@ -2253,6 +2286,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 
     bool data_on_device = mf.arena()->isManaged() || mf.arena()->isDevice();
     bool run_on_device = data_on_device && Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_device);
 
     bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;
 
@@ -2277,8 +2311,12 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 
             // compute min and max
             for (int icomp = 0; icomp < ncomp; ++icomp) {
+#ifdef AMREX_USE_GPU
                 auto mm = (run_on_device) ? fab.minmax<RunOn::Device>(bx,icomp)
                                           : fab.minmax<RunOn::Host  >(bx,icomp);
+#else
+                auto mm = fab.minmax<RunOn::Host>(bx,icomp);
+#endif
                 std::memcpy(pld, &(mm.first), sizeof(Real));
                 pld += sizeof(Real);
                 std::memcpy(pld, &(mm.second), sizeof(Real));
@@ -2436,7 +2474,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
             ofs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
             ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
                                                           : (std::ios::binary | std::ios::app));
-            if (!ofs.good()) amrex::FileOpenFailed(file_name);
+            if (!ofs.good()) { amrex::FileOpenFailed(file_name); }
             for (auto const& fab : *myfabs) {
                 fabio->write_header(ofs, fab, fab.nComp());
                 fabio->write(ofs, fab, 0, fab.nComp());

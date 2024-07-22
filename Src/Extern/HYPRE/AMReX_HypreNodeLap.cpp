@@ -20,7 +20,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
       options_namespace(std::move(options_namespace_))
 {
     static_assert(AMREX_SPACEDIM > 1, "HypreNodeLap: 1D not supported");
-    static_assert(std::is_same<Real, HYPRE_Real>::value, "amrex::Real != HYPRE_Real");
+    static_assert(std::is_same_v<Real, HYPRE_Real>, "amrex::Real != HYPRE_Real");
 
     int num_procs, myid;
     MPI_Comm_size(comm, &num_procs);
@@ -47,7 +47,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     Int nnodes_proc = fill_local_node_id();
 
     // At this point, local_node_id stores the ids local to each box.
-    // nnodes_grid stroes the number of nodes in each box.  nnodes_proc is
+    // nnodes_grid stores the number of nodes in each box.  nnodes_proc is
     // the number of nodes on this MPI process.  If a nodal is invalid, its
     // id is invalid (i.e., a very negative number).  Note that the data
     // type of local_node_id is int, not HYPRE_Int for performance on GPU.
@@ -123,9 +123,9 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
                 adjust_singular_matrix(ncols, cols, rows, mat);
             }
 
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
             HYPRE_IJMatrixSetValues(A, nrows, ncols, rows, cols, mat);
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
         }
     }
     HYPRE_IJMatrixAssemble(A);
@@ -181,7 +181,7 @@ HypreNodeLap::fill_local_node_id_gpu ()
         AMREX_ASSERT(ndbx.numPts() < static_cast<Long>(std::numeric_limits<int>::max()));
         const int npts = ndbx.numPts();
         int nnodes_box = amrex::Scan::PrefixSum<int>(npts,
-            [=] AMREX_GPU_DEVICE (int offset) noexcept
+            [=] AMREX_GPU_DEVICE (int offset) noexcept -> int
             {
                 int valid_node = 1;
                 const Dim3 cell = ndbx.atOffset(offset).dim3();
@@ -324,9 +324,9 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                 });
             }
 
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
             HYPRE_IJVectorSetValues(b, nrows, rows_vec.data(), bvec.data());
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
         }
     }
 }
@@ -347,7 +347,7 @@ HypreNodeLap::getSolution (MultiFab& soln)
             xvec.resize(nrows);
             Real* xp = xvec.data();
             HYPRE_IJVectorGetValues(x, nrows, rows_vec.data(), xp);
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
 
             const Box& bx = mfi.validbox();
             const auto& xfab = tmpsoln.array(mfi);
@@ -359,7 +359,7 @@ HypreNodeLap::getSolution (MultiFab& soln)
                 }
             });
 
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
         }
     }
 

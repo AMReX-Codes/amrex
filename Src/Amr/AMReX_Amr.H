@@ -30,11 +30,10 @@ class AmrInSituBridge;
 * not belong on a single level, like establishing and updating the hierarchy
 * of levels, global timestepping, and managing the different AmrLevels
 */
-
 class Amr
     : public AmrCore
 {
-  typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
+    using BoundaryPointList = std::multimap< std::pair<int, int>, double >;
 
 public:
     //! The constructor.
@@ -122,6 +121,8 @@ public:
     Real plotPer () const noexcept { return plot_per; }
     //! Spacing in log10(time) of logarithmically spaced plot files
     Real plotLogPer () const noexcept { return plot_log_per; }
+    //! Maximum level to plot
+    int plotMaxLevel () const noexcept { return plot_max_level; }
     //! Number of time steps between small plot files.
     int smallplotInt () const noexcept { return small_plot_int; }
     //! Time between plot files.
@@ -407,8 +408,8 @@ protected:
     std::string      regrid_grids_file;   //!< Grids file that will bypass regridding.
     std::string      initial_grids_file;  //!< Grids file that will bypass regridding only at initialization.
     Vector<std::unique_ptr<AmrLevel> > amr_level;    //!< Vector of levels
-    Real             cumtime;      //!< Physical time variable.
-    Real             start_time;   //!< Physical time this simulation started.
+    Real             cumtime = std::numeric_limits<Real>::lowest();      //!< Physical time variable.
+    Real             start_time = std::numeric_limits<Real>::lowest();   //!< Physical time this simulation started.
     Vector<Real>      dt_level;     //!< Timestep at this level.
     Vector<int>       level_steps;  //!< Number of time steps at this level.
     Vector<int>       level_count;
@@ -425,6 +426,7 @@ protected:
     int              plot_int;        //!< How often plotfile (# of time steps)
     Real             plot_per;        //!< How often plotfile (in units of time)
     Real             plot_log_per;    //!< How often plotfile (in units of log10(time))
+    int              plot_max_level;  //!< Maximum AMR level to write to a plotfile
     int              small_plot_int;  //!< How often small plotfile (# of time steps)
     Real             small_plot_per;  //!< How often small plotfile (in units of time)
     Real             small_plot_log_per;  //!< How often small plotfile (in units of log10(time))
@@ -434,7 +436,7 @@ protected:
     std::string      plot_file_root;  //!< Root name of plotfile.
     std::string      small_plot_file_root;  //!< Root name of small plotfile.
 
-    int              which_level_being_advanced; //!< Only >=0 if we are in Amr::timeStep(level,...)
+    int              which_level_being_advanced = -1; //!< Only >=0 if we are in Amr::timeStep(level,...)
 
     int              record_grid_info;
     int              record_run_info;

@@ -100,7 +100,7 @@ exp:
 | exp NEQ exp                { $$ = amrex::parser_newf2(amrex::PARSER_NEQ, $1, $3); }
 | exp AND exp                { $$ = amrex::parser_newf2(amrex::PARSER_AND, $1, $3); }
 | exp OR exp                 { $$ = amrex::parser_newf2(amrex::PARSER_OR, $1, $3); }
-| '-'exp %prec NEG           { $$ = amrex::parser_newnode(amrex::PARSER_NEG, $2, nullptr); }
+| '-'exp %prec NEG           { $$ = amrex::parser_newneg($2); }
 | '+'exp %prec UPLUS         { $$ = $2; }
 | exp POW exp                { $$ = amrex::parser_newf2(amrex::PARSER_POW, $1, $3); }
 | F1 '(' exp ')'             { $$ = amrex::parser_newf1($1, $3); }

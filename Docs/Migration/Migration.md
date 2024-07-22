@@ -91,7 +91,7 @@ perform the search and replace.
 ### Step 5
 
 AMReX `migration/5-namespace` branch should be used in this step.
-BoxLib has a `BoxLib` namspace, but most of BoxLib classes are not in
+BoxLib has a `BoxLib` namespace, but most of BoxLib classes are not in
 the namespace.  In AMReX, all classes and functions have been moved
 into the `amrex` namespace.  In this step, you can use
 `Tools/Migration/step-5-amrex-namespace/amrex-namespace.sh` to replace

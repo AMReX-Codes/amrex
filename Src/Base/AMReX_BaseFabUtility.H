@@ -22,11 +22,11 @@ cast (BaseFab<Tto>& tofab, BaseFab<Tfrom> const& fromfab,
 }
 
 template <typename STRUCT, typename F,
-          typename std::enable_if<(sizeof(STRUCT)<=36*8) &&
+          std::enable_if_t<(sizeof(STRUCT)<=36*8) &&
                                   AMREX_IS_TRIVIALLY_COPYABLE(STRUCT) &&
-                                  std::is_trivially_destructible<STRUCT>::value,
-                                  int>::type FOO = 0>
-void fill (BaseFab<STRUCT>& aos_fab, F && f)
+                                  std::is_trivially_destructible_v<STRUCT>,
+                                  int>FOO = 0>
+void fill (BaseFab<STRUCT>& aos_fab, F const& f)
 {
     Box const& box = aos_fab.box();
     auto const& aos = aos_fab.array();
@@ -36,37 +36,31 @@ void fill (BaseFab<STRUCT>& aos_fab, F && f)
                   "amrex::fill: sizeof(STRUCT) != sizeof(T)*STRUCTSIZE");
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
-        const auto lo  = amrex::lbound(box);
-        const auto len = amrex::length(box);
-        const auto lenxy = len.x*len.y;
-        const auto lenx = len.x;
-        int ntotcells = box.numPts();
+        BoxIndexer indexer(box);
+        const auto ntotcells = std::uint64_t(box.numPts());
         int nthreads_per_block = (STRUCTSIZE <= 8) ? 256 : 128;
-        int nblocks = (ntotcells+nthreads_per_block-1)/nthreads_per_block;
+        std::uint64_t nblocks_long = (ntotcells+nthreads_per_block-1)/nthreads_per_block;
+        AMREX_ASSERT(nblocks_long <= std::uint64_t(std::numeric_limits<int>::max()));
+        auto nblocks = int(nblocks_long);
         std::size_t shared_mem_bytes = nthreads_per_block * sizeof(STRUCT);
         T* p = (T*)aos_fab.dataPtr();
 #ifdef AMREX_USE_SYCL
         amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& handler) noexcept
         {
-            int icell = handler.globalIdx();
-            unsigned int blockDimx = handler.blockDim();
-            unsigned int threadIdxx = handler.threadIdx();
-            unsigned int blockIdxx = handler.blockIdx();
+            auto const icell = std::uint64_t(handler.globalIdx());
+            std::uint64_t const blockDimx = handler.blockDim();
+            std::uint64_t const threadIdxx = handler.threadIdx();
+            std::uint64_t const blockIdxx = handler.blockIdx();
             auto const shared = (T*)handler.sharedMemory();
-            if (icell < ntotcells) {
+            if (icell < indexer.numPts()) {
                 auto ga = new(shared+threadIdxx*STRUCTSIZE) STRUCT;
-                int k =  icell /   lenxy;
-                int j = (icell - k*lenxy) /   lenx;
-                int i = (icell - k*lenxy) - j*lenx;
-                i += lo.x;
-                j += lo.y;
-                k += lo.z;
+                auto [i, j, k] = indexer(icell);
                 f(*ga, i, j, k);
             }
             handler.sharedBarrier();
-            for (unsigned int m = threadIdxx,
-                     mend = amrex::min<unsigned int>(blockDimx, ntotcells-blockDimx*blockIdxx) * STRUCTSIZE;
+            for (std::uint64_t m = threadIdxx,
+                     mend = amrex::min<std::uint64_t>(blockDimx, indexer.numPts()-blockDimx*blockIdxx) * STRUCTSIZE;
                  m < mend; m += blockDimx) {
                 p[blockDimx*blockIdxx*STRUCTSIZE+m] = shared[m];
             }
@@ -75,31 +69,26 @@ void fill (BaseFab<STRUCT>& aos_fab, F && f)
         amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept
         {
-            int icell = blockDim.x*blockIdx.x+threadIdx.x;
+            std::uint64_t const icell = std::uint64_t(blockDim.x)*blockIdx.x+threadIdx.x;
             Gpu::SharedMemory<T> gsm;
             T* const shared = gsm.dataPtr();
-            if (icell < ntotcells) {
-                auto ga = new(shared+threadIdx.x*STRUCTSIZE) STRUCT;
-                int k =  icell /   lenxy;
-                int j = (icell - k*lenxy) /   lenx;
-                int i = (icell - k*lenxy) - j*lenx;
-                i += lo.x;
-                j += lo.y;
-                k += lo.z;
+            if (icell < indexer.numPts()) {
+                auto ga = new(shared+std::uint64_t(threadIdx.x)*STRUCTSIZE) STRUCT;
+                auto [i, j, k] = indexer(icell);
                 f(*ga, i, j, k);
             }
             __syncthreads();
-            for (unsigned int m = threadIdx.x,
-                     mend = amrex::min<unsigned int>(blockDim.x, ntotcells-blockDim.x*blockIdx.x) * STRUCTSIZE;
+            for (std::uint64_t m = threadIdx.x,
+                     mend = amrex::min<std::uint64_t>(blockDim.x, indexer.numPts()-std::uint64_t(blockDim.x)*blockIdx.x) * STRUCTSIZE;
                  m < mend; m += blockDim.x) {
-                p[blockDim.x*blockIdx.x*STRUCTSIZE+m] = shared[m];
+                p[std::uint64_t(blockDim.x)*blockIdx.x*STRUCTSIZE+m] = shared[m];
             }
         });
 #endif
     } else
 #endif
     {
-        amrex::LoopOnCpu(box, [=] (int i, int j, int k) noexcept
+        amrex::LoopOnCpu(box, [&] (int i, int j, int k) noexcept
         {
             f(aos(i,j,k), i, j, k);
         });

@@ -106,23 +106,23 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
   if(argc > 2) {  // parse the command line
     int ia(1);
     while(ia < argc-1) {
-      if(bIOP) cout << "argv[" << ia << "] = " << argv[ia] << endl;
+      if(bIOP) { std::cout << "argv[" << ia << "] = " << argv[ia] << endl; }
       if(strcmp(argv[ia], "-v") == 0) {
         if(ia < argc-2) {
           verbose = atoi(argv[ia+1]);
         }
-        if(bIOP) cout << "*** verbose = " << verbose << endl;
+        if(bIOP) { std::cout << "*** verbose = " << verbose << endl; }
         ++ia;
       } else if(strcmp(argv[ia], "-ws") == 0) {
         bWriteSummary = true;
       } else if(strcmp(argv[ia], "-check") == 0) {          // ---- commprof options
-        if(bIOP) cout << "*** data integrity check." << endl;
+        if(bIOP) { std::cout << "*** data integrity check." << endl; }
         runCheck = true;
       } else if(strcmp(argv[ia], "-stats") == 0) {
-        if(bIOP) cout << "*** print database statistics." << endl;
+        if(bIOP) { std::cout << "*** print database statistics." << endl; }
         runStats = true;
       } else if(strcmp(argv[ia], "-timelinepf") == 0) {
-        if(bIOP) cout << "*** output a timeline plotfile." << endl;
+        if(bIOP) { std::cout << "*** output a timeline plotfile." << endl; }
         runTimelinePF = true;
         runStats = true;
       } else if(strcmp(argv[ia], "-actpf") == 0) {
@@ -134,59 +134,59 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
                       << actFNames[actFNames.size() - 1] << endl;
         ++ia;
       } else if(strcmp(argv[ia], "-sr") == 0) {
-        if(bIOP) cout << "*** send receive pairing." << endl;
+        if(bIOP) { std::cout << "*** send receive pairing." << endl; }
         runSendRecv = true;
       } else if(strcmp(argv[ia], "-srlist") == 0) {
-        if(bIOP) cout << "*** send receive pairing list." << endl;
+        if(bIOP) { std::cout << "*** send receive pairing list." << endl; }
         runSendRecvList = true;
       } else if(strcmp(argv[ia], "-sendspf") == 0) {
-        if(bIOP) cout << "*** sendspf." << endl;
+        if(bIOP) { std::cout << "*** sendspf." << endl; }
         runSendsPF = true;
       } else if(strcmp(argv[ia], "-gl") == 0) {
-        if(bIOP) cout << "*** grdlog." << endl;
+        if(bIOP) { std::cout << "*** grdlog." << endl; }
         glOnly = true;
       } else if(strcmp(argv[ia], "-tce") == 0) {
-        if(bIOP) cout << "*** topolcoords for edison." << endl;
+        if(bIOP) { std::cout << "*** topolcoords for edison." << endl; }
         tcEdisonOnly = true;
       } else if(strcmp(argv[ia], "-spd") == 0) {
-        if(bIOP) cout << "*** sync point data." << endl;
+        if(bIOP) { std::cout << "*** sync point data." << endl; }
         runSyncPointData = true;
       } else if(strcmp(argv[ia], "-redist") == 0) {
-        if(bIOP) cout << "*** redist." << endl;
+        if(bIOP) { std::cout << "*** redist." << endl; }
         runRedist = true;
       } else if(strcmp(argv[ia], "-msil") == 0) {
         if(ia < argc-2) {
           maxSmallImageLength = atoi(argv[ia+1]);
         }
-        if(bIOP) cout << "*** msil = " << maxSmallImageLength << endl;
+        if(bIOP) { std::cout << "*** msil = " << maxSmallImageLength << endl; }
         ++ia;
       } else if(strcmp(argv[ia], "-rra") == 0) {
         if(ia < argc-2) {
           refRatioAll = atoi(argv[ia+1]);
         }
-        if(bIOP) cout << "*** rra = " << refRatioAll << endl;
+        if(bIOP) { std::cout << "*** rra = " << refRatioAll << endl; }
         ++ia;
       } else if(strcmp(argv[ia], "-nts") == 0) {
         if(ia < argc-2) {
           nTimeSlots = atoi(argv[ia+1]);
         }
-        if(bIOP) cout << "*** nts = " << nTimeSlots << endl;
+        if(bIOP) { std::cout << "*** nts = " << nTimeSlots << endl; }
         ++ia;
       } else if(strcmp(argv[ia], "-proc") == 0) {
         if(ia < argc-2) {
           whichProc = atoi(argv[ia+1]);
         }
-        if(bIOP) cout << "*** whichProc = " << whichProc << endl;
+        if(bIOP) { std::cout << "*** whichProc = " << whichProc << endl; }
         ++ia;
       } else if(strcmp(argv[ia], "-of") == 0) {
         if(ia < argc-2) {
           outfileName = argv[ia+1];
           filenameSet = true;
         }
-        if(bIOP) cout << "*** outfileName = " << outfileName << endl;
+        if(bIOP) { std::cout << "*** outfileName = " << outfileName << endl; }
         ++ia;
       } else if(strcmp(argv[ia], "-proxmap") == 0) {
-        if(bIOP) cout << "*** proxmap." << endl;
+        if(bIOP) { std::cout << "*** proxmap." << endl; }
         proxMap = true;
 
       } else if(strcmp(argv[ia], "-mff") == 0) {     // ---- region and trace options
@@ -210,9 +210,9 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
           Real gpct(atof(argv[ia+1]));
           if(gpct >= 0.0 && gpct <= 100.0) {
             RegionsProfStats::SetGPercent(gpct);
-            if(bIOP) cout << "*** gpct = " << gpct << endl;
+            if(bIOP) { std::cout << "*** gpct = " << gpct << endl; }
           } else {
-            if(bIOP) cout << "*** gpct must be in range [0.0, 100.0]" << endl;
+            if(bIOP) { std::cout << "*** gpct must be in range [0.0, 100.0]" << endl; }
           }
         }
         ++ia;
@@ -221,10 +221,10 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
       } else if(strcmp(argv[ia], "-prof") == 0) {
         bParserProf = true;
       } else if(strcmp(argv[ia], "-dispatch") == 0) {
-        if(bIOP) cout << "*** using dispatch interface." << endl;
+        if(bIOP) { std::cout << "*** using dispatch interface." << endl; }
         bUseDispatch = true;
       } else {
-        if(bIOP) cerr << "*** Error:  bad command line arg:  " << argv[ia] << endl;
+        if(bIOP) { std::cerr << "*** Error:  bad command line arg:  " << argv[ia] << endl; }
       }
       ++ia;
     }

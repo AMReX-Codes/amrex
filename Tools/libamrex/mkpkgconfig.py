@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
 
 def doit(prefix, version, cflags, libs, libpriv, fflags):

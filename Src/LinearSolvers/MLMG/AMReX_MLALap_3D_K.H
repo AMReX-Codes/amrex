@@ -19,7 +19,7 @@ void mlalap_adotx (Box const& box, Array4<RT> const& y,
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
-    for (int n = 0; n < ncomp; ++ncomp) {
+    for (int n = 0; n < ncomp; ++n) {
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -49,7 +49,7 @@ void mlalap_normalize (Box const& box, Array4<RT> const& x,
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
-    for (int n = 0; n < ncomp; ++ncomp) {
+    for (int n = 0; n < ncomp; ++n) {
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -69,7 +69,7 @@ void mlalap_flux_x (Box const& box, Array4<RT> const& fx, Array4<RT const> const
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
-    for (int n = 0; n < ncomp; ++ncomp) {
+    for (int n = 0; n < ncomp; ++n) {
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -89,7 +89,7 @@ void mlalap_flux_xface (Box const& box, Array4<RT> const& fx, Array4<RT const> c
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
-    for (int n = 0; n < ncomp; ++ncomp) {
+    for (int n = 0; n < ncomp; ++n) {
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 int i = lo.x;
@@ -109,7 +109,7 @@ void mlalap_flux_y (Box const& box, Array4<RT> const& fy, Array4<RT const> const
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
-    for (int n = 0; n < ncomp; ++ncomp) {
+    for (int n = 0; n < ncomp; ++n) {
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -129,7 +129,7 @@ void mlalap_flux_yface (Box const& box, Array4<RT> const& fy, Array4<RT const> c
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
-    for (int n = 0; n < ncomp; ++ncomp) {
+    for (int n = 0; n < ncomp; ++n) {
         for     (int k = lo.z; k <= hi.z; ++k) {
             int j = lo.y;
             AMREX_PRAGMA_SIMD
@@ -153,7 +153,7 @@ void mlalap_flux_z (Box const& box, Array4<RT> const& fz, Array4<RT const> const
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
-    for (int n = 0; n < ncomp; ++ncomp) {
+    for (int n = 0; n < ncomp; ++n) {
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -173,7 +173,7 @@ void mlalap_flux_zface (Box const& box, Array4<RT> const& fz, Array4<RT const> c
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
 
-    for (int n = 0; n < ncomp; ++ncomp) {
+    for (int n = 0; n < ncomp; ++n) {
         int k = lo.z;
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
@@ -214,7 +214,7 @@ void mlalap_gsrb (Box const& box, Array4<RT> const& phi,
 
     const RT dhfac = RT(2.)*(dhx+dhy+dhz);
 
-    for (int n = 0; n < ncomp; ++ncomp) {
+    for (int n = 0; n < ncomp; ++n) {
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 AMREX_PRAGMA_SIMD

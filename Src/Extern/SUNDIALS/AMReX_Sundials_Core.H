@@ -3,7 +3,13 @@
 
 #include <AMReX.H>
 #include <AMReX_OpenMP.H>
-#include <sundials/sundials_context.h>
+
+#include <sundials/sundials_config.h>
+#if defined(SUNDIALS_VERSION_MAJOR) && (SUNDIALS_VERSION_MAJOR < 7)
+#  include <sundials/sundials_context.h>
+#else
+#  include <sundials/sundials_context.hpp>
+#endif
 
 namespace amrex::sundials {
 
@@ -15,7 +21,6 @@ namespace amrex::sundials {
  * This will create the nthreads SUNDIALS context objects that are needed by
  * the SUNDIALS solver and vector objects. Called by amrex::Initialize.
  */
-
 void Initialize(int nthreads);
 
 /**
@@ -23,7 +28,6 @@ void Initialize(int nthreads);
  *
  * Called by amrex::Finalize.
  */
-
 void Finalize();
 
 /**
@@ -33,7 +37,6 @@ void Finalize();
  *
  * A SUNDIALS context should not be used concurrently from different threads.
  */
-
 ::sundials::Context* The_Sundials_Context(int i = amrex::OpenMP::get_thread_num());
 
 }

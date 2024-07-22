@@ -21,13 +21,13 @@ public:
     using BCType = LinOpBCType;
     using Location  = typename MLLinOpT<MF>::Location;
 
-    MLABecLaplacianT () {}
+    MLABecLaplacianT () = default;
     MLABecLaplacianT (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
                       const LPInfo& a_info = LPInfo(),
                       const Vector<FabFactory<FAB> const*>& a_factory = {},
-                      const int a_ncomp = 1);
+                      int a_ncomp = 1);
 
     MLABecLaplacianT (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
@@ -35,9 +35,9 @@ public:
                       const Vector<iMultiFab const*>& a_overset_mask, // 1: unknown, 0: known
                       const LPInfo& a_info = LPInfo(),
                       const Vector<FabFactory<FAB> const*>& a_factory = {},
-                      const int a_ncomp = 1);
+                      int a_ncomp = 1);
 
-    virtual ~MLABecLaplacianT ();
+    ~MLABecLaplacianT () override;
 
     MLABecLaplacianT (const MLABecLaplacianT<MF>&) = delete;
     MLABecLaplacianT (MLABecLaplacianT<MF>&&) = delete;
@@ -49,7 +49,7 @@ public:
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FAB> const*>& a_factory = {},
-                 const int a_ncomp = 1);
+                 int a_ncomp = 1);
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
@@ -57,7 +57,7 @@ public:
                  const Vector<iMultiFab const*>& a_overset_mask,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FAB> const*>& a_factory = {},
-                 const int a_ncomp = 1);
+                 int a_ncomp = 1);
 
     /**
      * Set scalar constants A and B in the equation:
@@ -72,7 +72,7 @@ public:
 
     /**
      * Sets alpha as a scalar field to values from a single component
-     * mutlifab.
+     * multifab.
      *
      * \param [in] amrlev The level of the multifab for the solver, with
      *                    \p amrlev = 0 always being the lowest level in the
@@ -88,12 +88,12 @@ public:
 
     /**
      * Sets alpha as a single scalar constant value across
-     * the mutlifab.
+     * the multifab.
      *
      * \param [in] amrlev The level of the multifab for the solver, with
      *                    \p amrlev = 0 always being the lowest level in the
      *                    AMR hierarchy represented in the solve.
-     * \param [in] alpha  Single scalar value to populate across mutlifab.
+     * \param [in] alpha  Single scalar value to populate across multifab.
      */
     template <typename T,
               std::enable_if_t<std::is_convertible_v<T,typename MF::value_type>,
@@ -118,12 +118,12 @@ public:
 
     /**
      * Sets beta as a single scalar constant value across
-     * the mutlifabs (one for each dimension).
+     * the multifabs (one for each dimension).
      *
      * \param [in] amrlev The level of the multifab for the solver, with
      *                    \p amrlev = 0 always being the lowest level in the
      *                    AMR hierarchy represented in the solve.
-     * \param [in] beta   Single scalar value to populate across mutlifabs.
+     * \param [in] beta   Single scalar value to populate across multifabs.
      */
     template <typename T,
               std::enable_if_t<std::is_convertible_v<T,typename MF::value_type>,
@@ -144,37 +144,37 @@ public:
                                int> = 0>
     void setBCoeffs (int amrlev, Vector<T> const& beta);
 
-    virtual int getNComp () const override { return m_ncomp; }
+    [[nodiscard]] int getNComp () const override { return m_ncomp; }
 
-    virtual bool needsUpdate () const override {
+    [[nodiscard]] bool needsUpdate () const override {
         return (m_needs_update || MLCellABecLapT<MF>::needsUpdate());
     }
-    virtual void update () override;
+    void update () override;
 
-    virtual void prepareForSolve () override;
-    virtual bool isSingular (int amrlev) const override { return m_is_singular[amrlev]; }
-    virtual bool isBottomSingular () const override { return m_is_singular[0]; }
-    virtual void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final override;
-    virtual void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const final override;
-    virtual void FFlux (int amrlev, const MFIter& mfi,
-                        const Array<FAB*,AMREX_SPACEDIM>& flux,
-                        const FAB& sol, Location /* loc */,
-                        const int face_only=0) const final override;
+    void prepareForSolve () override;
+    [[nodiscard]] bool isSingular (int amrlev) const override { return m_is_singular[amrlev]; }
+    [[nodiscard]] bool isBottomSingular () const override { return m_is_singular[0]; }
+    void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final;
+    void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const final;
+    void FFlux (int amrlev, const MFIter& mfi,
+                const Array<FAB*,AMREX_SPACEDIM>& flux,
+                const FAB& sol, Location /* loc */,
+                int face_only=0) const final;
 
-    virtual void normalize (int amrlev, int mglev, MF& mf) const final override;
+    void normalize (int amrlev, int mglev, MF& mf) const final;
 
-    virtual RT getAScalar () const final override { return m_a_scalar; }
-    virtual RT getBScalar () const final override { return m_b_scalar; }
-    virtual MF const* getACoeffs (int amrlev, int mglev) const final override
+    [[nodiscard]] RT getAScalar () const final { return m_a_scalar; }
+    [[nodiscard]] RT getBScalar () const final { return m_b_scalar; }
+    [[nodiscard]] MF const* getACoeffs (int amrlev, int mglev) const final
         { return &(m_a_coeffs[amrlev][mglev]); }
-    virtual Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final override
+    [[nodiscard]] Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
         { return amrex::GetArrOfConstPtrs(m_b_coeffs[amrlev][mglev]); }
 
-    virtual std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int /*grid_size*/) const final override;
+    [[nodiscard]] std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int /*grid_size*/) const final;
 
-    virtual bool supportNSolve () const final override;
+    [[nodiscard]] bool supportNSolve () const final;
 
-    virtual void copyNSolveSolution (MF& dst, MF const& src) const final override;
+    void copyNSolveSolution (MF& dst, MF const& src) const final;
 
     void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a,
                                         Vector<Array<MF,AMREX_SPACEDIM> >& b);
@@ -190,18 +190,21 @@ public:
                        Array<FAB*,AMREX_SPACEDIM> const& flux,
                        FAB const& sol, int face_only, int ncomp);
 
-protected:
-
-    bool m_needs_update = true;
-
     RT m_a_scalar = std::numeric_limits<RT>::quiet_NaN();
     RT m_b_scalar = std::numeric_limits<RT>::quiet_NaN();
     Vector<Vector<MF> > m_a_coeffs;
     Vector<Vector<Array<MF,AMREX_SPACEDIM> > > m_b_coeffs;
 
+    bool m_scalars_set = false;
+    bool m_acoef_set = false;
+
+protected:
+
+    bool m_needs_update = true;
+
     Vector<int> m_is_singular;
 
-    virtual bool supportRobinBC () const noexcept override { return true; }
+    [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
 
 private:
 
@@ -218,7 +221,7 @@ MLABecLaplacianT<MF>::MLABecLaplacianT (const Vector<Geometry>& a_geom,
                                         const Vector<DistributionMapping>& a_dmap,
                                         const LPInfo& a_info,
                                         const Vector<FabFactory<FAB> const*>& a_factory,
-                                        const int a_ncomp)
+                                        int a_ncomp)
 {
     define(a_geom, a_grids, a_dmap, a_info, a_factory, a_ncomp);
 }
@@ -230,12 +233,12 @@ MLABecLaplacianT<MF>::MLABecLaplacianT (const Vector<Geometry>& a_geom,
                                         const Vector<iMultiFab const*>& a_overset_mask,
                                         const LPInfo& a_info,
                                         const Vector<FabFactory<FAB> const*>& a_factory,
-                                        const int a_ncomp)
+                                        int a_ncomp)
 {
     define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory, a_ncomp);
 }
 
-template <typename MF> MLABecLaplacianT<MF>::~MLABecLaplacianT () {}
+template <typename MF> MLABecLaplacianT<MF>::~MLABecLaplacianT () = default;
 
 template <typename MF>
 void
@@ -244,7 +247,7 @@ MLABecLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
                               const Vector<DistributionMapping>& a_dmap,
                               const LPInfo& a_info,
                               const Vector<FabFactory<FAB> const*>& a_factory,
-                              const int a_ncomp)
+                              int a_ncomp)
 {
     BL_PROFILE("MLABecLaplacian::define()");
     this->m_ncomp = a_ncomp;
@@ -260,7 +263,7 @@ MLABecLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
                               const Vector<iMultiFab const*>& a_overset_mask,
                               const LPInfo& a_info,
                               const Vector<FabFactory<FAB> const*>& a_factory,
-                              const int a_ncomp)
+                              int a_ncomp)
 {
     BL_PROFILE("MLABecLaplacian::define(overset)");
     this->m_ncomp = a_ncomp;
@@ -308,7 +311,9 @@ MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
         for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
             m_a_coeffs[amrlev][0].setVal(RT(0.0));
         }
+        m_acoef_set = true;
     }
+    m_scalars_set = true;
 }
 
 template <typename MF>
@@ -323,6 +328,7 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
                               "MLABecLaplacian::setACoeffs: alpha is supposed to be single component.");
     m_a_coeffs[amrlev][0].LocalCopy(alpha, 0, 0, 1, IntVect(0));
     m_needs_update = true;
+    m_acoef_set = true;
 }
 
 template <typename MF>
@@ -333,6 +339,7 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, T alpha)
 {
     m_a_coeffs[amrlev][0].setVal(RT(alpha));
     m_needs_update = true;
+    m_acoef_set = true;
 }
 
 
@@ -401,6 +408,8 @@ MLABecLaplacianT<MF>::update ()
 #if (AMREX_SPACEDIM != 3)
     applyMetricTermsCoeffs();
 #endif
+
+    applyRobinBCTermsCoeffs();
 
     averageDownCoeffs();
 
@@ -474,51 +483,59 @@ MLABecLaplacianT<MF>::applyMetricTermsCoeffs ()
 //    \tilde{alpha}_i = alpha_i + (1-B) beta_{i+1/2} / h^2
 //    \tilde{rhs}_i = rhs_i + A beta_{i+1/2} / h^2
 //
-template <typename MF>
-void
-MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
+namespace detail {
+template <typename LP>
+void applyRobinBCTermsCoeffs (LP& linop)
 {
-    if (!(this->hasRobinBC())) return;
+    using RT = typename LP::RT;
 
-    const int ncomp = this->getNComp();
+    const int ncomp = linop.getNComp();
     bool reset_alpha = false;
-    if (m_a_scalar == RT(0.0)) {
-        m_a_scalar = RT(1.0);
+    if (linop.m_a_scalar == RT(0.0)) {
+        linop.m_a_scalar = RT(1.0);
         reset_alpha = true;
     }
-    const RT bovera = m_b_scalar/m_a_scalar;
+    const RT bovera = linop.m_b_scalar/linop.m_a_scalar;
 
-    for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
+    if (!reset_alpha) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(linop.m_scalars_set && linop.m_acoef_set,
+                                         "To reuse solver With Robin BC, one must re-call setScalars (and setACoeffs if the scalar is not zero)");
+    }
+
+    linop.m_scalars_set = false;
+    linop.m_acoef_set = false;
+
+    for (int amrlev = 0; amrlev < linop.NAMRLevels(); ++amrlev) {
         const int mglev = 0;
-        const Box& domain = this->m_geom[amrlev][mglev].Domain();
-        const RT dxi = static_cast<RT>(this->m_geom[amrlev][mglev].InvCellSize(0));
-        const RT dyi = static_cast<RT>((AMREX_SPACEDIM >= 2) ? this->m_geom[amrlev][mglev].InvCellSize(1) : Real(1.0));
-        const RT dzi = static_cast<RT>((AMREX_SPACEDIM == 3) ? this->m_geom[amrlev][mglev].InvCellSize(2) : Real(1.0));
+        const Box& domain = linop.Geom(amrlev,mglev).Domain();
+        const RT dxi = static_cast<RT>(linop.Geom(amrlev,mglev).InvCellSize(0));
+        const RT dyi = static_cast<RT>((AMREX_SPACEDIM >= 2) ? linop.Geom(amrlev,mglev).InvCellSize(1) : Real(1.0));
+        const RT dzi = static_cast<RT>((AMREX_SPACEDIM == 3) ? linop.Geom(amrlev,mglev).InvCellSize(2) : Real(1.0));
 
         if (reset_alpha) {
-            m_a_coeffs[amrlev][mglev].setVal(RT(0.0));
+            linop.m_a_coeffs[amrlev][mglev].setVal(RT(0.0));
         }
 
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(m_a_coeffs[amrlev][mglev], mfi_info); mfi.isValid(); ++mfi)
+        for (MFIter mfi(linop.m_a_coeffs[amrlev][mglev], mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& vbx = mfi.validbox();
-            auto const& afab = m_a_coeffs[amrlev][mglev].array(mfi);
+            auto const& afab = linop.m_a_coeffs[amrlev][mglev].array(mfi);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                auto const& bfab = m_b_coeffs[amrlev][mglev][idim].const_array(mfi);
+                auto const& bfab = linop.m_b_coeffs[amrlev][mglev][idim].const_array(mfi);
                 const Box& blo = amrex::adjCellLo(vbx,idim);
                 const Box& bhi = amrex::adjCellHi(vbx,idim);
                 bool outside_domain_lo = !(domain.contains(blo));
                 bool outside_domain_hi = !(domain.contains(bhi));
-                if ((!outside_domain_lo) && (!outside_domain_hi)) continue;
+                if ((!outside_domain_lo) && (!outside_domain_hi)) { continue; }
                 for (int icomp = 0; icomp < ncomp; ++icomp) {
-                    auto const& rbc = (*(this->m_robin_bcval[amrlev]))[mfi].const_array(icomp*3);
-                    if (this->m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
+                    auto const& rbc = (*(linop.m_robin_bcval[amrlev]))[mfi].const_array(icomp*3);
+                    if (linop.m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
                     {
                         if (idim == 0) {
                             RT fac = bovera*dxi*dxi;
@@ -546,7 +563,7 @@ MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
                             });
                         }
                     }
-                    if (this->m_hibc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_hi)
+                    if (linop.m_hibc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_hi)
                     {
                         if (idim == 0) {
                             RT fac = bovera*dxi*dxi;
@@ -577,6 +594,16 @@ MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
                 }
             }
         }
+    }
+}
+} // namespace detail
+
+template <typename MF>
+void
+MLABecLaplacianT<MF>::applyRobinBCTermsCoeffs ()
+{
+    if (this->hasRobinBC()) {
+        detail::applyRobinBCTermsCoeffs(*this);
     }
 }
 
@@ -699,7 +726,7 @@ MLABecLaplacianT<MF>::update_singular_flags ()
             // For now this assumes that overset regions are treated as Dirichlet bc's
             if (this->m_domain_covered[alev] && !this->m_overset_mask[alev][0])
             {
-                if (m_a_scalar == 0.0)
+                if (m_a_scalar == Real(0.0))
                 {
                     m_is_singular[alev] = true;
                 }
@@ -709,6 +736,37 @@ MLABecLaplacianT<MF>::update_singular_flags ()
                     RT amax = m_a_coeffs[alev].back().norminf(0,1,IntVect(0));
                     m_is_singular[alev] = (std::abs(asum) <= amax * RT(1.e-12));
                 }
+            }
+        }
+    }
+
+    if (!m_is_singular[0] && this->m_needs_coarse_data_for_bc &&
+        this->m_coarse_fine_bc_type == LinOpBCType::Neumann)
+    {
+        AMREX_ASSERT(this->m_overset_mask[0][0] == nullptr);
+
+        bool lev0_a_is_zero = false;
+        if (m_a_scalar == Real(0.0)) {
+            lev0_a_is_zero = true;
+        } else {
+            RT asum = m_a_coeffs[0].back().sum(0,IntVect(0));
+            RT amax = m_a_coeffs[0].back().norminf(0,1,IntVect(0));
+            bool a_is_almost_zero = std::abs(asum) <= amax * RT(1.e-12);
+            if (a_is_almost_zero) { lev0_a_is_zero = true; }
+        }
+
+        if (lev0_a_is_zero) {
+            auto bbox = this->m_grids[0][0].minimalBox();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (this->m_lobc[0][idim] == LinOpBCType::Dirichlet) {
+                    bbox.growLo(idim,1);
+                }
+                if (this->m_hibc[0][idim] == LinOpBCType::Dirichlet) {
+                    bbox.growHi(idim,1);
+                }
+            }
+            if (this->m_geom[0][0].Domain().contains(bbox)) {
+                m_is_singular[0] = true;
             }
         }
     }
@@ -736,7 +794,7 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
     const int ncomp = this->getNComp();
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && out.isFusingCandidate()) {
+    if (Gpu::inLaunchRegion()) {
         const auto& xma = in.const_arrays();
         const auto& yma = out.arrays();
         const auto& ama = acoef.arrays();
@@ -846,7 +904,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
     const RT alpha = m_a_scalar;
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && sol.isFusingCandidate()
+    if (Gpu::inLaunchRegion()
         && (this->m_overset_mask[amrlev][mglev] || regular_coarsening))
     {
         const auto& m0ma = mm0.const_arrays();
@@ -914,7 +972,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 #endif
     {
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+        if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1001,7 +1059,7 @@ template <typename MF>
 void
 MLABecLaplacianT<MF>::FFlux (int amrlev, const MFIter& mfi,
                              const Array<FAB*,AMREX_SPACEDIM>& flux,
-                             const FAB& sol, Location, const int face_only) const
+                             const FAB& sol, Location, int face_only) const
 {
     BL_PROFILE("MLABecLaplacian::FFlux()");
 
@@ -1108,7 +1166,7 @@ MLABecLaplacianT<MF>::normalize (int amrlev, int mglev, MF& mf) const
     const int ncomp = getNComp();
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion() && mf.isFusingCandidate()) {
+    if (Gpu::inLaunchRegion()) {
         const auto& ma = mf.arrays();
         const auto& ama = acoef.const_arrays();
         AMREX_D_TERM(const auto& bxma = bxcoef.const_arrays();,
@@ -1166,7 +1224,7 @@ template <typename MF>
 std::unique_ptr<MLLinOpT<MF>>
 MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
 {
-    if (this->m_overset_mask[0][0] == nullptr) return nullptr;
+    if (this->m_overset_mask[0][0] == nullptr) { return nullptr; }
 
     const Geometry& geom = this->m_geom[0].back();
     const BoxArray& ba = this->m_grids[0].back();
@@ -1190,8 +1248,9 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
     if (this->needsCoarseDataForBC())
     {
         const Real* dx0 = this->m_geom[0][0].CellSize();
-        const Real fac = Real(0.5)*this->m_coarse_data_crse_ratio;
-        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac, dx0[1]*fac, dx0[2]*fac)};
+        RealVect fac(this->m_coarse_data_crse_ratio);
+        fac *= Real(0.5);
+        RealVect cbloc {AMREX_D_DECL(dx0[0]*fac[0], dx0[1]*fac[1], dx0[2]*fac[2])};
         nop->setCoarseFineBCLocation(cbloc);
     }
 
@@ -1265,7 +1324,7 @@ template <typename MF>
 void
 MLABecLaplacianT<MF>::copyNSolveSolution (MF& dst, MF const& src) const
 {
-    if (this->m_overset_mask[0].back() == nullptr) return;
+    if (this->m_overset_mask[0].back() == nullptr) { return; }
 
     const int ncomp = dst.nComp();
 

@@ -13,8 +13,9 @@ int main (int argc, char* argv[])
             mytest.solve();
             mytest.compute_norms();
         }
-        if (mytest.getDoPlots())
+        if (mytest.getDoPlots()) {
             mytest.writePlotfile();
+        }
     }
 
     amrex::Finalize();

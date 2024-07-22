@@ -2,7 +2,8 @@
 
 namespace amrex {
 
-static int iparser_local_symbol_index (struct iparser_symbol* sym, Vector<char*>& local_variables)
+namespace {
+int iparser_local_symbol_index (struct iparser_symbol* sym, Vector<char*>& local_variables)
 {
     auto r = std::find_if(local_variables.rbegin(), local_variables.rend(),
                           [=] (char* i) { return std::strcmp(sym->name, i) == 0; });
@@ -11,6 +12,7 @@ static int iparser_local_symbol_index (struct iparser_symbol* sym, Vector<char*>
     } else {
         return -1;
     }
+}
 }
 
 void

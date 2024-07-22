@@ -17,10 +17,9 @@ class LatheIF
 {
 public:
 
-    LatheIF (F&& a_f) : m_f(std::move(a_f)) {}
-    LatheIF (F const& a_f) : m_f(a_f) {}
+    LatheIF (F a_f) : m_f(std::move(a_f)) {}
 
-    inline Real operator() (const RealArray& p) const noexcept
+    [[nodiscard]] inline Real operator() (const RealArray& p) const noexcept
     {
         Real r = std::hypot(p[0],p[1]);
 #if (AMREX_SPACEDIM == 2)
@@ -30,8 +29,8 @@ public:
 #endif
     }
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value,int>::type = 0>
-    AMREX_GPU_HOST_DEVICE inline
+    template <class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
         Real r = std::hypot(x,y);
@@ -48,14 +47,14 @@ protected:
 };
 
 template <class F>
-struct IsGPUable<LatheIF<F>, typename std::enable_if<IsGPUable<F>::value>::type>
+struct IsGPUable<LatheIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class F>
-constexpr LatheIF<typename std::decay<F>::type>
+constexpr LatheIF<std::decay_t<F>>
 lathe (F&& f)
 {
-    return LatheIF<typename std::decay<F>::type>(std::forward<F>(f));
+    return LatheIF<std::decay_t<F>>(std::forward<F>(f));
 }
 
 }

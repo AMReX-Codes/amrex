@@ -60,7 +60,7 @@
 #ifndef AMREX_USE_SYCL
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
-    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    {  using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
@@ -101,7 +101,7 @@
     }
 
 #define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
-    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    {  using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
@@ -186,7 +186,7 @@
 // xxxxx SYCL todo: host disabled in host device
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
-    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    {  using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
@@ -220,7 +220,7 @@
     }
 
 #define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
-    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    {  using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
@@ -290,7 +290,7 @@
 #else
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
-    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    {  using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
     amrex::ignore_unused(where_to_run); \
     AMREX_PRAGMA_SIMD \
     for (amrex_i_inttype i = 0; i < n; ++i) { \
@@ -310,7 +310,7 @@
     );
 
 #define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
-    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    {  using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
     amrex::ignore_unused(where_to_run); \
     for (amrex_i_inttype i = 0; i < n; ++i) { \
         block \

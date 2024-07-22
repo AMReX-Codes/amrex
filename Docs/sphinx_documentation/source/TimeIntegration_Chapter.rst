@@ -248,7 +248,7 @@ The full set of integrator options are detailed as follows:
 
   ## *** Parameters Needed For SUNDIALS ARKODE Integrator ***
   ## integration.sundials.strategy specifies which ARKODE strategy to use.
-  ## The available options are (without the quoatations):
+  ## The available options are (without the quotations):
   ## "ERK" = Explicit Runge Kutta
   ## "MRI" = Multirate Integrator
   ## "MRITEST" = Tests the Multirate Integrator by setting a zero-valued fast RHS function

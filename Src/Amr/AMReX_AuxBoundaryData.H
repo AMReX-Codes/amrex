@@ -58,7 +58,7 @@ public:
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.boxArray();
     }
 
-    void setVal (Real r) { BL_ASSERT(m_initialized); if (!m_empty) m_fabs.setVal(r); }
+    void setVal (Real r) { BL_ASSERT(m_initialized); if (!m_empty) { m_fabs.setVal(r); } }
 
     const DistributionMapping& DistributionMap () const noexcept
     {

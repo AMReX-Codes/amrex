@@ -9,15 +9,29 @@ concurrency:
 jobs:
   tests-oneapi-sycl:
     name: oneAPI SYCL [tests]
-    runs-on: ubuntu-20.04
-    # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_dpcpp.sh
-    - name: Build & Install
       run: |
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=45M
+        export CCACHE_DEPEND=1
+        ccache -z
+
         set +e
         source /opt/intel/oneapi/setvars.sh
         set -e
@@ -26,24 +40,42 @@ jobs:
             -DAMReX_EB=OFF                                 \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=ON                             \
-            -DAMReX_PARTICLES=ON                           \
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
-            -DCMAKE_Fortran_COMPILER=$(which ifx)
-        cmake --build build --parallel 2
+            -DCMAKE_Fortran_COMPILER=$(which ifx)          \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DAMReX_PARALLEL_LINK_JOBS=4
+        cmake --build build --parallel 4
+
+        ccache -s
+        du -hs ~/.cache/ccache
 
   tests-oneapi-sycl-eb:
     name: oneAPI SYCL [tests w/ EB]
-    runs-on: ubuntu-20.04
-    # mkl/rng/device/detail/mrg32k3a_impl.hpp has a number of sign-compare error
-    env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-sign-compare"}
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Dependencies
-      run: .github/workflows/dependencies/dependencies_dpcpp.sh
-    - name: Build & Install
       run: |
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=55M
+        export CCACHE_DEPEND=1
+        ccache -z
+
         set +e
         source /opt/intel/oneapi/setvars.sh
         set -e
@@ -52,49 +84,155 @@ jobs:
             -DAMReX_EB=ON                                  \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=OFF                            \
-            -DAMReX_PARTICLES=ON                           \
             -DAMReX_GPU_BACKEND=SYCL                       \
             -DCMAKE_C_COMPILER=$(which icx)                \
-            -DCMAKE_CXX_COMPILER=$(which icpx)
-        cmake --build build --parallel 2
+            -DCMAKE_CXX_COMPILER=$(which icpx)             \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DAMReX_PARALLEL_LINK_JOBS=4
+        cmake --build build --parallel 4
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  tests-oneapi-sycl-eb-nvidia:
+    name: oneAPI SYCL for Nvidia GPUs [tests w/ EB]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        .github/workflows/dependencies/dependencies_nvcc.sh 12.0
+        .github/workflows/dependencies/dependencies_codeplay.sh oneapi-nvidia-12.0
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      env: {CXXFLAGS: "-fsycl -fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend --offload-arch=sm_80 -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=55M
+        export CCACHE_DEPEND=1
+        ccache -z
+
+        set +e
+        source /opt/intel/oneapi/setvars.sh --include-intel-llvm
+        set -e
+        # WATCH: Test is disabled due to a compiler issue with some math functions.
+        # The fix did not make it to the next oneAPI release. So we will
+        # enable it again after the next next oneAPI release.
+        cmake -S . -B build                                \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_EB=ON                                  \
+            -DAMReX_ENABLE_TESTS=OFF                       \
+            -DAMReX_TEST_TYPE=Small                        \
+            -DAMReX_GPU_BACKEND=SYCL                       \
+            -DCMAKE_C_COMPILER=$(which icx)                \
+            -DCMAKE_CXX_COMPILER=$(which clang++)          \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DAMReX_PARALLEL_LINK_JOBS=4
+        cmake --build build --parallel 4
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
+  no-tests-oneapi-sycl-amd:
+    name: oneAPI SYCL for AMD GPUs
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        .github/workflows/dependencies/dependencies_hip.sh 5.4.3
+        .github/workflows/dependencies/dependencies_codeplay.sh oneapi-amd-5.4.3
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      env: {CXXFLAGS: "-fsycl -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx90a -fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=55M
+        export CCACHE_DEPEND=1
+        ccache -z
+
+        set +e
+        source /opt/intel/oneapi/setvars.sh --include-intel-llvm
+        set -e
+        cmake -S . -B build                                \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                    \
+            -DAMReX_EB=OFF                                 \
+            -DAMReX_ENABLE_TESTS=OFF                       \
+            -DAMReX_GPU_BACKEND=SYCL                       \
+            -DAMReX_SYCL_SUB_GROUP_SIZE=64                 \
+            -DCMAKE_C_COMPILER=$(which icx)                \
+            -DCMAKE_CXX_COMPILER=$(which clang++)          \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
+            -DAMReX_PARALLEL_LINK_JOBS=4
+        cmake --build build --parallel 4
+
+        ccache -s
+        du -hs ~/.cache/ccache
 
 # "Classic" EDG Intel Compiler
-# Ref.: https://github.com/rscohn2/oneapi-ci
-# intel-basekit intel-hpckit are too large in size
   tests-icc:
     name: ICC [tests]
-    runs-on: ubuntu-20.04
-    env: {CXXFLAGS: "-Werror"}
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: install dependencies
+    - uses: actions/checkout@v4
+    - name: Dependencies
       run: |
-        export DEBIAN_FRONTEND=noninteractive
-        sudo apt-get -qqq update
-        sudo apt-get install -y wget build-essential pkg-config cmake ca-certificates gnupg
-        sudo wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-        sudo apt-get update
-        sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-compiler-fortran intel-oneapi-mpi-devel
-    - name: build
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
+        .github/workflows/dependencies/dependencies_dpcpp.sh
+        sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      env: {CXXFLAGS: "-Werror"}
       run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=40M
+        ccache -z
+
         set +e
         source /opt/intel/oneapi/setvars.sh
         set -e
-        export CXX=$(which icpc)
-        export CC=$(which icc)
-        export FC=$(which ifort)
-
         cmake -S . -B build                                \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_EB=ON                                  \
             -DAMReX_ENABLE_TESTS=ON                        \
-            -DAMReX_FORTRAN=ON                             \
-            -DAMReX_PARTICLES=ON
-        cmake --build build --parallel 2
+            -DAMReX_FORTRAN=OFF                            \
+            -DCMAKE_C_COMPILER=$(which icc)                \
+            -DCMAKE_CXX_COMPILER=$(which icpc)             \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build --parallel 4
         cmake --build build --target install
         cmake --build build --target test_install
+
+        ccache -s
+        du -hs ~/.cache/ccache
 
     - name: Run tests
       run: |
@@ -103,3 +241,18 @@ jobs:
         set -e
         cd build
         ctest --output-on-failure
+
+  save_pr_number:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo $PR_NUMBER > pr_number.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr_number
+          path: pr_number.txt
+          retention-days: 1

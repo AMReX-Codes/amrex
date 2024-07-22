@@ -1,6 +1,8 @@
+#include <AMReX_Sundials_Core.H>
+#include <AMReX_SUNMemory.H>
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
-#include <AMReX_SUNMemory.H>
+
 #if defined(AMREX_USE_HIP)
 #include <sunmemory/sunmemory_hip.h>
 #elif defined(AMREX_USE_CUDA)
@@ -8,6 +10,7 @@
 #elif defined(AMREX_USE_SYCL)
 #include <sunmemory/sunmemory_sycl.h>
 #endif
+#include <sundials/sundials_config.h>
 
 namespace amrex::sundials {
 
@@ -35,9 +38,13 @@ namespace {
 
     int Alloc(SUNMemoryHelper, SUNMemory* memptr, size_t memsize, SUNMemoryType mem_type, void* /*queue*/)
     {
+#if defined(SUNDIALS_VERSION_MAJOR) && (SUNDIALS_VERSION_MAJOR < 7)
         SUNMemory mem = SUNMemoryNewEmpty();
+#else
+        SUNMemory mem = SUNMemoryNewEmpty(*The_Sundials_Context());
+#endif
 
-        if (mem == nullptr) return -1;
+        if (mem == nullptr) { return -1; }
         mem->ptr = nullptr;
         mem->own = SUNTRUE;
         mem->type = mem_type;
@@ -48,7 +55,7 @@ namespace {
             return 0;
         }
         else {
-            free(mem);
+            std::free(mem);
             memptr = nullptr;
             return -1;
         }
@@ -59,22 +66,22 @@ namespace {
     int Dealloc(SUNMemoryHelper, SUNMemory mem, void* /*queue*/)
     {
 
-        if (mem == nullptr) return 0;
+        if (mem == nullptr) { return 0; }
         auto* arena = getArena(mem->type);
         if (arena) {
             if(mem->own)
             {
                 arena->free(mem->ptr);
-                free(mem);
+                std::free(mem);
                 return 0;
             }
         }
         else {
-            free(mem);
+            std::free(mem);
             return -1;
         }
 
-        free(mem);
+        std::free(mem);
         return 0;
     }
 
@@ -93,8 +100,8 @@ namespace {
 
     void ActuallyDestroySUNMemoryHelper(SUNMemoryHelper helper)
     {
-        if (helper->ops) free(helper->ops);
-        free(helper);
+        if (helper->ops) { std::free(helper->ops); }
+        std::free(helper);
     }
 
     SUNMemoryHelper CreateMemoryHelper(::sundials::Context* sunctx)
@@ -173,7 +180,7 @@ void MemoryHelper::Initialize(int nthreads)
         std::fill(the_sunmemory_helper.begin(), the_sunmemory_helper.end(), nullptr);
     }
     for (int i = 0; i < nthreads; i++) {
-        if (initialized[i]) continue;
+        if (initialized[i]) { continue; }
         initialized[i] = 1;
         BL_ASSERT(the_sunmemory_helper[i] == nullptr);
         the_sunmemory_helper[i] = new MemoryHelper(The_Sundials_Context(i));

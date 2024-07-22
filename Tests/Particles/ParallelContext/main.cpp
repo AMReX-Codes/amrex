@@ -106,18 +106,22 @@ public:
                     p.pos(2) = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
 #endif
 
-                    for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
-                    for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
+                    for (int i = 0; i < NSR; ++i) { p.rdata(i) = ParticleReal(p.id()); }
+                    for (int i = 0; i < NSI; ++i) { p.idata(i) = int(p.id()); }
 
                     host_particles.push_back(p);
-                    for (int i = 0; i < NAR; ++i)
-                        host_real[i].push_back(p.id());
-                    for (int i = 0; i < NAI; ++i)
-                        host_int[i].push_back(p.id());
-                    for (int i = 0; i < NumRuntimeRealComps(); ++i)
-                        host_runtime_real[i].push_back(p.id());
-                    for (int i = 0; i < NumRuntimeIntComps(); ++i)
-                        host_runtime_int[i].push_back(p.id());
+                    for (int i = 0; i < NAR; ++i) {
+                        host_real[i].push_back(ParticleReal(p.id()));
+                    }
+                    for (int i = 0; i < NAI; ++i) {
+                        host_int[i].push_back(int(p.id()));
+                    }
+                    for (int i = 0; i < NumRuntimeRealComps(); ++i) {
+                        host_runtime_real[i].push_back(ParticleReal(p.id()));
+                    }
+                    for (int i = 0; i < NumRuntimeIntComps(); ++i) {
+                        host_runtime_int[i].push_back(int(p.id()));
+                    }
                 }
             }
 
@@ -184,7 +188,7 @@ public:
                 int tid = mfi.LocalTileIndex();
                 auto& ptile = plev[std::make_pair(gid, tid)];
                 auto& aos   = ptile.GetArrayOfStructs();
-                ParticleType* pstruct = &(aos[0]);
+                ParticleType* pstruct = aos.data();
                 const size_t np = aos.numParticles();
 
                 if (do_random == 0)
@@ -233,14 +237,14 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            auto& plev  = GetParticles(lev);
+            const auto& plev  = GetParticles(lev);
 
             for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
             {
                 int gid = mfi.index();
                 int tid = mfi.LocalTileIndex();
-                auto& ptile = plev.at(std::make_pair(gid, tid));
-                const auto ptd = ptile.getConstParticleTileData();
+                const auto& ptile = plev.at(std::make_pair(gid, tid));
+                const auto& ptd = ptile.getConstParticleTileData();
                 const size_t np = ptile.numParticles();
 
                 AMREX_FOR_1D ( np, i,
@@ -328,7 +332,7 @@ void testParallelContext ()
     int myproc = ParallelContext::MyProcSub();
     int task_me = myproc / (amrex::max(rank_n, 2) / 2);
 
-    if (task_me > 1) task_me = 1;
+    if (task_me > 1) { task_me = 1; }
 
 #ifdef BL_USE_MPI
     MPI_Comm new_comm;
@@ -344,9 +348,9 @@ void testParallelContext ()
         TestParams params;
         get_test_params(params, "redistribute");
 
-        int is_per[BL_SPACEDIM];
-        for (int i = 0; i < BL_SPACEDIM; i++)
-            is_per[i] = params.is_periodic;
+        int is_per[] = {AMREX_D_DECL(params.is_periodic,
+                                     params.is_periodic,
+                                     params.is_periodic)};
 
         // Each comm gets a different domain
         IntVect hs = params.size / 2;
@@ -382,8 +386,7 @@ void testParallelContext ()
         {
             TestParticleContainer pc(geom, dm, ba);
 
-            int npc = params.num_ppc;
-            IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
+            IntVect nppc(params.num_ppc);
 
             pc.InitParticles(nppc);
 
@@ -395,19 +398,20 @@ void testParallelContext ()
             {
                 pc.moveParticles(params.move_dir, params.do_random);
                 pc.RedistributeLocal();
-                if (params.sort) pc.SortParticlesByCell();
+                if (params.sort) { pc.SortParticlesByCell(); }
                 pc.checkAnswer();
             }
 
-            if (geom.isAllPeriodic()) AMREX_ALWAYS_ASSERT(np_old == pc.TotalNumberOfParticles());
+            if (geom.isAllPeriodic()) {
+                AMREX_ALWAYS_ASSERT(np_old == pc.TotalNumberOfParticles());
+            }
         }
 
         if (task_me == 1)
         {
             TestParticleContainer pc(geom, dm, ba);
 
-            int npc = params.num_ppc;
-            IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
+            IntVect nppc(params.num_ppc);
 
             pc.InitParticles(nppc);
 
@@ -419,11 +423,13 @@ void testParallelContext ()
             {
                 pc.moveParticles(params.move_dir, params.do_random);
                 pc.RedistributeLocal();
-                if (params.sort) pc.SortParticlesByCell();
+                if (params.sort) { pc.SortParticlesByCell(); }
                 pc.checkAnswer();
             }
 
-            if (geom.isAllPeriodic()) AMREX_ALWAYS_ASSERT(np_old == pc.TotalNumberOfParticles());
+            if (geom.isAllPeriodic()) {
+                AMREX_ALWAYS_ASSERT(np_old == pc.TotalNumberOfParticles());
+            }
         }
     }
 

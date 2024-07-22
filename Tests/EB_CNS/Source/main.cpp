@@ -10,7 +10,7 @@
 using namespace amrex;
 
 amrex::LevelBld* getLevelBld ();
-void initialize_EB2 (const Geometry& geom, const int required_level, const int max_level);
+void initialize_EB2 (const Geometry& geom, int required_level, int max_level);
 
 int main (int argc, char* argv[])
 {

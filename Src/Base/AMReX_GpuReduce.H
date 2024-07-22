@@ -362,7 +362,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceSum (T source) noexcept
 {
 #if defined(AMREX_USE_CUB)
-    typedef cub::BlockReduce<T,BLOCKDIMX> BlockReduce;
+    using BlockReduce = cub::BlockReduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary
     // if this reduction call is occurring multiple times in a kernel,
@@ -371,7 +371,7 @@ T blockReduceSum (T source) noexcept
     __syncthreads();
     return BlockReduce(temp_storage).Sum(source);
 #elif defined(AMREX_USE_HIP)
-    typedef rocprim::block_reduce<T,BLOCKDIMX> BlockReduce;
+    using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
     __syncthreads();
     BlockReduce().reduce(source, source, temp_storage, rocprim::plus<T>());
@@ -412,7 +412,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMin (T source) noexcept
 {
 #if defined(AMREX_USE_CUB)
-    typedef cub::BlockReduce<T,BLOCKDIMX> BlockReduce;
+    using BlockReduce = cub::BlockReduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary
     // if this reduction call is occurring multiple times in a kernel,
@@ -421,7 +421,7 @@ T blockReduceMin (T source) noexcept
     __syncthreads();
     return BlockReduce(temp_storage).Reduce(source, cub::Min());
 #elif defined(AMREX_USE_HIP)
-    typedef rocprim::block_reduce<T,BLOCKDIMX> BlockReduce;
+    using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
     __syncthreads();
     BlockReduce().reduce(source, source, temp_storage, rocprim::minimum<T>());
@@ -462,7 +462,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMax (T source) noexcept
 {
 #if defined(AMREX_USE_CUB)
-    typedef cub::BlockReduce<T,BLOCKDIMX> BlockReduce;
+    using BlockReduce = cub::BlockReduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary
     // if this reduction call is occurring multiple times in a kernel,
@@ -471,7 +471,7 @@ T blockReduceMax (T source) noexcept
     __syncthreads();
     return BlockReduce(temp_storage).Reduce(source, cub::Max());
 #elif defined(AMREX_USE_HIP)
-    typedef rocprim::block_reduce<T,BLOCKDIMX> BlockReduce;
+    using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
     __syncthreads();
     BlockReduce().reduce(source, source, temp_storage, rocprim::maximum<T>());
@@ -512,7 +512,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 int blockReduceLogicalAnd (int source) noexcept
 {
 #if defined(AMREX_USE_CUB)
-    typedef cub::BlockReduce<int,BLOCKDIMX> BlockReduce;
+    using BlockReduce = cub::BlockReduce<int,BLOCKDIMX>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary
     // if this reduction call is occurring multiple times in a kernel,
@@ -521,7 +521,7 @@ int blockReduceLogicalAnd (int source) noexcept
     __syncthreads();
     return BlockReduce(temp_storage).Reduce(source, amrex::LogicalAnd<int>());
 #elif defined(AMREX_USE_HIP)
-    typedef rocprim::block_reduce<int,BLOCKDIMX> BlockReduce;
+    using BlockReduce = rocprim::block_reduce<int,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
     __syncthreads();
     BlockReduce().reduce(source, source, temp_storage, amrex::LogicalAnd<int>());
@@ -560,7 +560,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 int blockReduceLogicalOr (int source) noexcept
 {
 #if defined(AMREX_USE_CUB)
-    typedef cub::BlockReduce<int,BLOCKDIMX> BlockReduce;
+    using BlockReduce = cub::BlockReduce<int,BLOCKDIMX>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary
     // if this reduction call is occurring multiple times in a kernel,
@@ -569,7 +569,7 @@ int blockReduceLogicalOr (int source) noexcept
     __syncthreads();
     return BlockReduce(temp_storage).Reduce(source, amrex::LogicalOr<int>());
 #elif defined(AMREX_USE_HIP)
-    typedef rocprim::block_reduce<int,BLOCKDIMX> BlockReduce;
+    using BlockReduce = rocprim::block_reduce<int,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
     __syncthreads();
     BlockReduce().reduce(source, source, temp_storage, amrex::LogicalOr<int>());

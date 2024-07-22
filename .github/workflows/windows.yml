@@ -12,58 +12,141 @@ jobs:
     name: MSVC C++17 w/o Fortran w/o MPI
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    #- name: Set Up Cache
+    #  uses: actions/cache@v3
+    #  with:
+    #    path: ~/.ccache
+    #    key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+    #    restore-keys: |
+    #         ccache-${{ github.workflow }}-${{ github.job }}-git-
+    #- name: Install Ccache
+    #  run: |
+    #    Invoke-WebRequest https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-windows-x86_64.zip -OutFile ccache-4.8-windows-x86_64.zip
+    #    Expand-Archive ccache-4.8-windows-x86_64.zip
     - name: Build & Install
       run: |
+        #$ccachepath = Join-Path $pwd "ccache-4.8-windows-x86_64"
+        #$Env:PATH += ";$ccachepath"
+        #$ccachecachedir = Join-Path $HOME ".ccache"
+        #$Env:CCACHE_DIR="$ccachecachedir"
+        #$Env:CCACHE_DIR
+        #$Env:CCACHE_COMPRESS='1'
+        #$Env:CCACHE_COMPRESSLEVEL='10'
+        #$Env:CCACHE_MAXSIZE='105M'
+        #ccache -z
+
         cmake -S . -B build   `
-              -DCMAKE_BUILD_TYPE=Debug      `
               -DBUILD_SHARED_LIBS=ON        `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DAMReX_EB=OFF                `
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
-              -DAMReX_MPI=OFF               `
-              -DAMReX_PARTICLES=ON
-        cmake --build build --config Debug -j 2
+              -DAMReX_MPI=OFF
+              #-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build --config Debug -j 4
+
+        cmake --build build --config Debug --target install
+
+        $Env:PATH += ";D:\\a\amrex\amrex\installdir\bin"
+        cmake --build build --config Debug --target test_install
+
+        #ccache -s
 
   # Build libamrex and all test (static)
   test_msvc_static:
     name: MSVC C++17 w/o Fortran w/o MPI static
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    #- name: Set Up Cache
+    #  uses: actions/cache@v3
+    #  with:
+    #    path: ~/.ccache
+    #    key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+    #    restore-keys: |
+    #         ccache-${{ github.workflow }}-${{ github.job }}-git-
+    #- name: Install Ccache
+    #  run: |
+    #    Invoke-WebRequest https://github.com/ccache/ccache/releases/download/v4.8/ccache-4.8-windows-x86_64.zip -OutFile ccache-4.8-windows-x86_64.zip
+    #    Expand-Archive ccache-4.8-windows-x86_64.zip
     - name: Build & Install
       run: |
+        #$ccachepath = Join-Path $pwd "ccache-4.8-windows-x86_64"
+        #$Env:PATH += ";$ccachepath"
+        #$ccachecachedir = Join-Path $HOME ".ccache"
+        #$Env:CCACHE_DIR="$ccachecachedir"
+        #$Env:CCACHE_COMPRESS='1'
+        #$Env:CCACHE_COMPRESSLEVEL='10'
+        #$Env:CCACHE_MAXSIZE='135M'
+        #ccache -z
+
+        # -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" `
+        # is a workaround github windows runner 20240603.1.0.
+        # https://github.com/actions/runner-images/issues/10004
+
         cmake -S . -B build   `
-              -DCMAKE_BUILD_TYPE=RelWithDebInfo `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
+              -DCMAKE_BUILD_TYPE=RelWithDebInfo `
+              -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" `
               -DAMReX_EB=ON                 `
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
-              -DAMReX_MPI=OFF               `
-              -DAMReX_PARTICLES=ON
-        cmake --build build --config RelWithDebInfo -j 2
+              -DAMReX_MPI=OFF
+              #-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build -j 4
+
+        cmake --build build --target install
+        cmake --build build --target test_install
+
+        #ccache -s
 
   # Build libamrex and all tests
   tests_clang:
-    name: Clang C++17 w/o Fortran w/o MPI
+    name: MSVC Clang C++17 w/o Fortran w/o MPI
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: seanmiddleditch/gha-setup-ninja@master
     - name: Build & Install
       shell: cmd
+      env:
+        CMAKE_GENERATOR_TOOLSET: "ClangCl"
+        CMAKE_GENERATOR: "Visual Studio 17 2022"
       run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
+        # -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" `
+        # is a workaround github windows runner 20240603.1.0.
+        # https://github.com/actions/runner-images/issues/10004
+
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
         cmake -S . -B build   ^
-              -T "ClangCl"    ^
-              -DCMAKE_BUILD_TYPE=Release    ^
               -DBUILD_SHARED_LIBS=ON        ^
               -DCMAKE_VERBOSE_MAKEFILE=ON   ^
+              -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" ^
               -DAMReX_EB=ON                 ^
               -DAMReX_ENABLE_TESTS=ON       ^
               -DAMReX_FORTRAN=OFF           ^
               -DAMReX_MPI=OFF               ^
-              -DAMReX_OMP=ON                ^
-              -DAMReX_PARTICLES=ON
-        cmake --build build --config Release -j 2
+              -DAMReX_OMP=ON
+        cmake --build build --config Release -j 4
+
+        cmake --build build --config Release --target install
+
+        set "PATH=%PATH%;D:\\a\amrex\amrex\installdir\bin"
+        cmake --build build --config Release --target test_install
+
+  # If we add ccache back, don't forget to update cleanup-cache.yml
+  #save_pr_number:
+  #  if: github.event_name == 'pull_request'
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #    - name: Save PR number
+  #      env:
+  #        PR_NUMBER: ${{ github.event.number }}
+  #      run: |
+  #        echo $PR_NUMBER > pr_number.txt
+  #    - uses: actions/upload-artifact@v3
+  #      with:
+  #        name: pr_number
+  #        path: pr_number.txt
+  #        retention-days: 1

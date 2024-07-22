@@ -11,13 +11,13 @@ public:
 
     DevicePtrIF(T* a_p) : p(a_p) {}
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
         return (*p)(AMREX_D_DECL(x,y,z));
     }
 
-    Real operator() (const RealArray& a) const noexcept
+    [[nodiscard]] Real operator() (const RealArray& a) const noexcept
     {
         return this->operator() (AMREX_D_DECL(a[0], a[1], a[2]));
     }

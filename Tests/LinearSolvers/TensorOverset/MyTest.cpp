@@ -83,10 +83,10 @@ MyTest::writePlotfile ()
                             varname, {geom}, 0.0, {0}, {IntVect(2)});
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         amrex::Print() << "\n";
-        amrex::Print() << "  max-norm error = " << plotmf.norm0(6+idim) << std::endl;
+        amrex::Print() << "  max-norm error = " << plotmf.norm0(6+idim) << '\n';
         const auto dx = geom.CellSize();
         amrex::Print() << "    1-norm error = " << plotmf.norm1(6+idim) * (dx[0]*dx[1]*dx[2])
-                       << std::endl;
+                       << '\n';
     }
 }
 

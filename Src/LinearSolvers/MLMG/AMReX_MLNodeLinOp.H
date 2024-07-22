@@ -33,9 +33,13 @@ public:
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
                  int a_eb_limit_coarsening = -1);
 
+    void setSmoothNumSweeps (int nsweeps) noexcept {
+        m_smooth_num_sweeps = nsweeps;
+    }
+
     void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/,
-                             const MultiFab* = nullptr, const MultiFab* = nullptr,
-                             const MultiFab* = nullptr) final {}
+                     const MultiFab* = nullptr, const MultiFab* = nullptr,
+                     const MultiFab* = nullptr) final {}
 
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final;
@@ -47,17 +51,6 @@ public:
                                    const MultiFab* crse_bcdata=nullptr) override;
     void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) override;
-    void compFlux (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*fluxes*/,
-                           MultiFab& /*sol*/, Location /*loc*/) const final {
-        amrex::Abort("AMReX_MLNodeLinOp::compFlux::How did we get here?");
-    }
-    void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
-                           MultiFab& /*sol*/, Location /*loc*/) const override {
-        amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
-    }
-
-    void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final {}
-    void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final {}
 
     Vector<Real> getSolvabilityOffset (int amrlev, int mglev,
                                                MultiFab const& rhs) const override;
@@ -65,6 +58,10 @@ public:
                                          Vector<Real> const& offset) const override;
 
     void prepareForSolve () override;
+
+    void prepareForGMRES () override;
+
+    void setDirichletNodesToZero (int amrlev, int mglev, MultiFab& mf) const override;
 
     bool isSingular (int amrlev) const override
         { return (amrlev == 0) ? m_is_bottom_singular : false; }
@@ -76,14 +73,9 @@ public:
                           bool skip_fillboundary=false) const;
 
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh) const = 0;
+    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const = 0;
 
     void nodalSync (int amrlev, int mglev, MultiFab& mf) const;
-
-    std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final {
-        amrex::Abort("MLNodeLinOp::makeNLinOp: N-Solve not supported");
-        return std::unique_ptr<MLLinOp>{};
-    }
 
     static std::unique_ptr<iMultiFab> makeOwnerMask (const BoxArray& ba,
                                                      const DistributionMapping& dm,
@@ -115,16 +107,16 @@ public:
     virtual void fillIJMatrix (MFIter const& /*mfi*/,
                                Array4<HypreNodeLap::AtomicInt const> const& /*gid*/,
                                Array4<int const> const& /*lid*/,
-                               HypreNodeLap::Int* const /*ncols*/,
-                               HypreNodeLap::Int* const /*cols*/,
-                               Real* const /*mat*/) const
+                               HypreNodeLap::Int* /*ncols*/,
+                               HypreNodeLap::Int* /*cols*/,
+                               Real* /*mat*/) const
     {
         amrex::Abort("MLNodeLinOp::fillIJMatrix: how did we get here?");
     }
 
     virtual void fillRHS (MFIter const& /*mfi*/,
                           Array4<int const> const& /*lid*/,
-                          Real* const /*rhs*/,
+                          Real* /*rhs*/,
                           Array4<Real const> const& /*bfab*/) const
     {
         amrex::Abort("MLNodeLinOp:fillRHS: how did we get here?");
@@ -152,7 +144,6 @@ protected:
     CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::Sigma;
 #endif
 
-    bool m_is_bottom_singular = false;
     bool m_masks_built = false;
     bool m_overset_dirichlet_mask = false;
 #ifdef AMREX_USE_GPU
@@ -161,6 +152,9 @@ protected:
     int m_smooth_num_sweeps = 2;
 #endif
     mutable bool m_in_solution_mode = true;
+
+private:
+    bool m_is_bottom_singular = false;
 };
 
 }

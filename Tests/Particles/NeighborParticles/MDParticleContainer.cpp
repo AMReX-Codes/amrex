@@ -46,8 +46,8 @@ namespace
 void
 MDParticleContainer::
 InitParticles(const IntVect& a_num_particles_per_cell,
-              const Real     a_thermal_momentum_std,
-              const Real     a_thermal_momentum_mean)
+              Real           a_thermal_momentum_std,
+              Real           a_thermal_momentum_mean)
 {
     BL_PROFILE("MDParticleContainer::InitParticles");
 
@@ -79,9 +79,9 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 get_gaussian_random_momentum(v, a_thermal_momentum_mean,
                                              a_thermal_momentum_std);
 
-                AMREX_D_TERM(ParticleReal x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);,
-                             ParticleReal y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);,
-                             ParticleReal z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);)
+                AMREX_D_TERM(auto x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);,
+                             auto y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);,
+                             auto z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);)
 
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
@@ -101,10 +101,12 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 p.idata(0) = mfi.index();
 
                 host_particles.push_back(p);
-                for (int i = 0; i < NumRealComps(); ++i)
-                    host_real[i].push_back(mfi.index());
-                for (int i = 0; i < NumIntComps(); ++i)
+                for (int i = 0; i < NumRealComps(); ++i) {
+                    host_real[i].push_back(ParticleReal(mfi.index()));
+                }
+                for (int i = 0; i < NumIntComps(); ++i) {
                     host_int[i].push_back(mfi.index());
+                }
             }
         }
 
@@ -214,7 +216,7 @@ void MDParticleContainer::moveParticles(amrex::ParticleReal dx)
 
         auto& ptile = plev[std::make_pair(gid, tid)];
         auto& aos   = ptile.GetArrayOfStructs();
-        ParticleType* pstruct = &(aos[0]);
+        ParticleType* pstruct = aos.data();
 
         const size_t np = aos.numParticles();
 
@@ -229,7 +231,7 @@ void MDParticleContainer::moveParticles(amrex::ParticleReal dx)
     }
 }
 
-void MDParticleContainer::writeParticles(const int n)
+void MDParticleContainer::writeParticles(int n)
 {
     BL_PROFILE("MDParticleContainer::writeParticles");
     const std::string& pltfile = amrex::Concatenate("particles", n, 5);
@@ -243,7 +245,7 @@ void MDParticleContainer::checkNeighborParticles()
     const int lev = 0;
     auto& plev  = GetParticles(lev);
 
-    int ngrids = ParticleBoxArray(0).size();
+    auto ngrids = int(ParticleBoxArray(0).size());
 
     amrex::Gpu::DeviceVector<int> d_num_per_grid(ngrids,0);
     amrex::Gpu::HostVector<int> h_num_per_grid(ngrids);
@@ -253,7 +255,7 @@ void MDParticleContainer::checkNeighborParticles()
     {
         int gid = mfi.index();
 
-        if (gid != 0) continue;
+        if (gid != 0) { continue; }
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
 
@@ -263,8 +265,8 @@ void MDParticleContainer::checkNeighborParticles()
         const int np = aos.numTotalParticles();
 
         ParticleType* pstruct = aos().dataPtr();
-        auto rdata = soa.GetRealData(0).dataPtr();
-        auto idata = soa.GetIntData(0).dataPtr();
+        auto* rdata = soa.GetRealData(0).dataPtr();
+        auto* idata = soa.GetIntData(0).dataPtr();
 
         int* p_num_per_grid = d_num_per_grid.data();
         amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
@@ -322,7 +324,7 @@ void MDParticleContainer::checkNeighborList()
             for (int j = 0; j < np_total; j++)
             {
                 // Don't be your own neighbor.
-                if ( i == j ) continue;
+                if ( i == j ) { continue; }
 
                 ParticleType& p2 = h_pstruct[j];
                 AMREX_D_TERM(Real dx = p1.pos(0) - p2.pos(0);,
@@ -368,7 +370,7 @@ void MDParticleContainer::checkNeighborList()
         }
     }
 
-    amrex::PrintToFile("neighbor_test") << "All the neighbor list particles match!" << std::endl;
+    amrex::PrintToFile("neighbor_test") << "All the neighbor list particles match!" << '\n';
 }
 
 void MDParticleContainer::reset_test_id()
@@ -391,8 +393,8 @@ void MDParticleContainer::reset_test_id()
         const size_t np = aos.numTotalParticles();
 
         ParticleType* pstruct = aos().dataPtr();
-        auto rdata = soa.GetRealData(0).dataPtr();
-        auto idata = soa.GetIntData(0).dataPtr();
+        auto* rdata = soa.GetRealData(0).dataPtr();
+        auto* idata = soa.GetIntData(0).dataPtr();
 
         AMREX_FOR_1D ( np, i,
         {

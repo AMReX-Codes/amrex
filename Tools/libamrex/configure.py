@@ -116,6 +116,10 @@ def configure(argv):
                         help="Only relevant to Amr/AmrLevel based codes that need to read probin file or call amrex_probinit",
                         choices=["yes","no"],
                         default="yes")
+    parser.add_argument("--enable-bittree",
+                        help="Enable Bittree mode [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     args = parser.parse_args()
 
     if args.with_fortran == "no":
@@ -154,6 +158,7 @@ def configure(argv):
     f.write("USE_COMPILE_PIC = {}\n".format("FALSE" if args.enable_pic == "no" else "TRUE"))
     f.write("CUDA_ARCH = " + args.cuda_arch.strip() + "\n")
     f.write("AMREX_NO_PROBINIT = {}\n".format("TRUE" if args.enable_probinit == "no" else "FALSE"))
+    f.write("USE_BITTREE = {}\n".format("TRUE" if args.enable_bittree == "yes" else "FALSE"))
     f.write("\n")
 
     fin = open("GNUmakefile.in","r")

@@ -20,7 +20,6 @@ class ClusterList;
 *
 * Utility class for tagging error cells.
 */
-
 class Cluster
 {
 public:
@@ -138,7 +137,6 @@ private:
 *
 * A container class for Cluster.
 */
-
 class ClusterList
 {
 public:

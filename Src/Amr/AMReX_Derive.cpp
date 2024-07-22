@@ -64,6 +64,21 @@ DeriveRec::DeriveRec (std::string    a_name,
     bx_map(std::move(box_map))
 {}
 
+DeriveRec::DeriveRec (std::string    a_name,
+                      IndexType      result_type,
+                      int            nvar_derive,
+                      DeriveFuncMF   der_func_mf,
+                      DeriveBoxMap   box_map,
+                      Interpolater*  a_interp)
+    :
+    derive_name(std::move(a_name)),
+    der_type(result_type),
+    n_derive(nvar_derive),
+    func_mf(std::move(der_func_mf)),
+    mapper(a_interp),
+    bx_map(std::move(box_map))
+{}
+
 // This version doesn't take a Fortran function name, it is entirely defined by the C++
 DeriveRec::DeriveRec (std::string             a_name,
                       IndexType               result_type,
@@ -127,6 +142,23 @@ DeriveRec::DeriveRec (std::string    a_name,
     bx_map(std::move(box_map))
 {}
 
+DeriveRec::DeriveRec (std::string    a_name,
+                      IndexType      result_type,
+                      int            nvar_derive,
+                      Vector<std::string> const& var_names,
+                      DeriveFuncMF   der_func_mf,
+                      DeriveBoxMap   box_map,
+                      Interpolater*  a_interp)
+    :
+    derive_name(std::move(a_name)),
+    variable_names(var_names),
+    der_type(result_type),
+    n_derive(nvar_derive),
+    func_mf(std::move(der_func_mf)),
+    mapper(a_interp),
+    bx_map(std::move(box_map))
+{}
+
 DeriveRec::~DeriveRec ()
 {
    delete [] bcr;
@@ -134,6 +166,7 @@ DeriveRec::~DeriveRec ()
    func     = nullptr;
    func_3d  = nullptr;
    func_fab = nullptr;
+   func_mf  = nullptr;
    mapper   = nullptr;
    bx_map   = nullptr;
    while (rng != nullptr)
@@ -172,6 +205,12 @@ DeriveFuncFab
 DeriveRec::derFuncFab () const noexcept
 {
     return func_fab;
+}
+
+DeriveFuncMF
+DeriveRec::derFuncMF () const noexcept
+{
+    return func_mf;
 }
 
 DeriveRec::DeriveBoxMap
@@ -328,8 +367,9 @@ const
 std::string&
 DeriveRec::variableName(int comp) const noexcept
 {
-  if (comp < variable_names.size())
+  if (comp < variable_names.size()) {
      return variable_names[comp];
+  }
 
   return derive_name;
 }
@@ -365,6 +405,17 @@ DeriveList::add (const std::string&      name,
                  Interpolater*           interp)
 {
     lst.emplace_back(name,result_type,nvar_der,der_func_fab,bx_map,interp);
+}
+
+void
+DeriveList::add (const std::string&      name,
+                 IndexType               result_type,
+                 int                     nvar_der,
+                 const DeriveFuncMF&     der_func_mf,
+                 const DeriveRec::DeriveBoxMap& bx_map,
+                 Interpolater*           interp)
+{
+    lst.emplace_back(name,result_type,nvar_der,der_func_mf,bx_map,interp);
 }
 
 // This version doesn't take a Fortran function name, it is entirely defined by the C++
@@ -413,6 +464,18 @@ DeriveList::add (const std::string&      name,
     lst.emplace_back(name,res_typ,nvar_der,vars,der_func_fab,bx_map,interp);
 }
 
+void
+DeriveList::add (const std::string&      name,
+                 IndexType               res_typ,
+                 int                     nvar_der,
+                 Vector<std::string> const&    vars,
+                 const DeriveFuncMF&     der_func_mf,
+                 const DeriveRec::DeriveBoxMap& bx_map,
+                 Interpolater*           interp)
+{
+    lst.emplace_back(name,res_typ,nvar_der,vars,der_func_mf,bx_map,interp);
+}
+
 std::list<DeriveRec>&
 DeriveList::dlist ()
 {
@@ -426,12 +489,14 @@ DeriveList::canDerive (const std::string& name) const
     {
         // Can be either a component name ...
         for (int i = 0; i < li.numDerive(); i++) {
-           if (li.variableName(i) == name)
+           if (li.variableName(i) == name) {
                return true;
+           }
         }
         // ... or a derive name
-        if (li.derive_name == name)
+        if (li.derive_name == name) {
             return true;
+        }
     }
     return false;
 }
@@ -443,12 +508,14 @@ DeriveList::get (const std::string& name) const
     {
         // Can be either a component name ...
         for (int i = 0; i < li.numDerive(); i++) {
-           if (li.variableName(i) == name)
+           if (li.variableName(i) == name) {
                return &(li);
+           }
         }
         // ... or a derive name
-        if (li.derive_name == name)
+        if (li.derive_name == name) {
             return &(li);
+        }
     }
     return nullptr;
 }

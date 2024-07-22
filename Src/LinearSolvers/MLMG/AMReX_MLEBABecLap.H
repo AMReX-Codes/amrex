@@ -114,6 +114,8 @@ public:
     void getEBFluxes (const Vector<MultiFab*>& a_flux,
                               const Vector<MultiFab*>& a_sol) const override;
 
+    void applyRobinBCTermsCoeffs ();
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
@@ -121,6 +123,14 @@ public:
 #ifdef AMREX_USE_PETSC
     [[nodiscard]] std::unique_ptr<PETScABecLap> makePETSc () const override;
 #endif
+
+    Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
+    Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
+    Vector<Vector<MultiFab> > m_a_coeffs;
+    Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
+
+    bool m_scalars_set = false;
+    bool m_acoef_set = false;
 
 protected:
 
@@ -131,10 +141,6 @@ protected:
     Location m_beta_loc; // Location of coefficients: face centers or face centroids
     Location m_phi_loc;  // Location of solution variable: cell centers or cell centroids
 
-    Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
-    Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
-    Vector<Vector<MultiFab> > m_a_coeffs;
-    Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
     Vector<Vector<iMultiFab> > m_cc_mask;
 
     Vector<std::unique_ptr<MultiFab> > m_eb_phi;
@@ -154,6 +160,8 @@ protected:
                                         const Vector<MultiFab*>& b_eb);
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
+
+    [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
 };
 
 }

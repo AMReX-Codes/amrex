@@ -19,7 +19,7 @@ int main_main()
             << " Description:\n"
             << "      This program takes a single plotfile and reports for each\n"
             << "      variable whether there is a NaN."
-            << std::endl;
+            << '\n';
         return 0;
     }
 
@@ -42,7 +42,7 @@ int main_main()
 
         int num_nans = 0;
         for (int b : has_nan) {
-            if (b) ++num_nans;
+            if (b) { ++num_nans; }
         }
         if (num_nans == 0) {
             amrex::Print() << " " << std::setw(nwidth+1) << std::left << varname << ": clean" << "\n";

@@ -16,7 +16,7 @@ void main_main()
             << "\n"
             << " Description:\n"
             << "      This program takes a single plotfile and dumps out the list of variables\n"
-            << std::endl;
+            << '\n';
         return;
     }
 

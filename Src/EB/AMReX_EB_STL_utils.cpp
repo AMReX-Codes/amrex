@@ -51,7 +51,7 @@ namespace {
                                               Real dlevset)
     {
         if ((dlevset > 0._rt && norm.x > 0._rt) || (dlevset < 0._rt && norm.x < 0._rt))
-        { // This triangle has the wrong direction // NOLINT(bugprone-branch-clone)
+        { // This triangle has the wrong direction
             return std::make_pair(false,0.0_rt);
         }
         else if (x1 > amrex::max(v1.x,v2.x,v3.x) ||
@@ -140,6 +140,7 @@ STLtools::read_binary_stl_file (std::string const& fname, Real scale,
 
         uint32_t numtris; // uint32 - Number of triangles - 4 bytes
         amrex::readIntData<uint32_t,uint32_t>(&numtris, 1, is, uint32_descr);
+        AMREX_ASSERT(numtris < uint32_t(std::numeric_limits<int>::max()));
         m_num_tri = static_cast<int>(numtris);
         m_tri_pts_h.resize(m_num_tri);
 
@@ -242,6 +243,7 @@ STLtools::prepare ()
     if (!ParallelDescriptor::IOProcessor()) {
         m_tri_pts_h.resize(m_num_tri);
     }
+    ParallelDescriptor::Bcast((char*)(m_tri_pts_h.dataPtr()), m_num_tri*sizeof(Triangle));
 
     //device vectors
     m_tri_pts_d.resize(m_num_tri);
@@ -302,7 +304,7 @@ STLtools::prepare ()
     m_ptmax.z = amrex::get<5>(hv);
 
     if (amrex::Verbose() > 0) {
-        amrex::Print() << "    Min: " << m_ptmin << " Max: " << m_ptmax << std::endl;
+        amrex::Print() << "    Min: " << m_ptmin << " Max: " << m_ptmax << '\n';
     }
 
     // Choose a reference point by extending the normal vector of the first
@@ -697,7 +699,7 @@ STLtools::updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                     {
                         // interp might still be quiet_nan because lst that
                         // was set to zero has been changed by FillBoundary
-                        // at periodic bounadries.
+                        // at periodic boundaries.
                         inter(i,j,k) = problo[0] + static_cast<Real>(i)*dx[0];
                     }
                     else if (lst(i+1,j,k) == Real(0.0) ||

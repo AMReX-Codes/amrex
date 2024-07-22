@@ -103,7 +103,7 @@ namespace amrex {
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void fill ( const T& value ) noexcept
-        { for (unsigned int i = 0; i < N; ++i) arr[i] = value; }
+        { for (unsigned int i = 0; i < N; ++i) { arr[i] = value; } }
 
         /**
          * Returns the sum of all elements in the GpuArray object.
@@ -125,6 +125,15 @@ namespace amrex {
             T p = 1;
             for (unsigned int i = 0; i < N; ++i) { p *= arr[i]; }
             return p;
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        GpuArray<T,N>& operator+= (GpuArray<T,N> const& a) noexcept
+        {
+            for (unsigned int i = 0; i < N; ++i) {
+                arr[i] += a.arr[i];
+            }
+            return *this;
         }
 
         T arr[amrex::max(N,1U)];
@@ -362,7 +371,7 @@ namespace amrex {
          * (the index \c i moves the fastest)
          */
         template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
+                  std::enable_if_t<std::is_same_v<O,Order::F>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j) const noexcept {
             AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
@@ -376,7 +385,7 @@ namespace amrex {
          * (the index \c i moves the fastest)
          */
         template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
+                  std::enable_if_t<std::is_same_v<O,Order::F>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j) noexcept {
             AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
@@ -390,7 +399,7 @@ namespace amrex {
          * is used (the index \c j moves the fastest).
          */
         template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
+                  std::enable_if_t<std::is_same_v<O,Order::C>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j) const noexcept {
             AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
@@ -404,7 +413,7 @@ namespace amrex {
          * is used (the index \c j moves the fastest).
          */
         template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
+                  std::enable_if_t<std::is_same_v<O,Order::C>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j) noexcept {
             AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
@@ -654,7 +663,7 @@ namespace amrex {
          * (the index \c i moves the fastest)
          */
         template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
+                  std::enable_if_t<std::is_same_v<O,Order::F>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j, int k) const noexcept {
             return arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
@@ -668,7 +677,7 @@ namespace amrex {
          * (the index \c i moves the fastest)
          */
         template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
+                  std::enable_if_t<std::is_same_v<O,Order::F>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k) noexcept {
             return arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
@@ -682,7 +691,7 @@ namespace amrex {
          * is used (the index \c k moves the fastest).
          */
         template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
+                  std::enable_if_t<std::is_same_v<O,Order::C>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j, int k) const noexcept {
             return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
@@ -696,7 +705,7 @@ namespace amrex {
          * is used (the index \c k moves the fastest).
          */
         template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
+                  std::enable_if_t<std::is_same_v<O,Order::C>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k) noexcept {
             return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
@@ -853,7 +862,7 @@ namespace amrex
     template <class T, typename = typename T::FABType>
     std::array<T*,AMREX_SPACEDIM> GetArrOfPtrs (std::array<T,AMREX_SPACEDIM>& a) noexcept
     {
-        return {{AMREX_D_DECL(&a[0], &a[1], &a[2])}};
+        return {{AMREX_D_DECL(a.data(), a.data()+1, a.data()+2)}};
     }
 
     template <class T>
@@ -865,7 +874,7 @@ namespace amrex
     template <class T>
     std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<T,AMREX_SPACEDIM>& a) noexcept
     {
-        return {{AMREX_D_DECL(&a[0], &a[1], &a[2])}};
+        return {{AMREX_D_DECL(a.data(), a.data()+1, a.data()+2)}};
     }
 
     template <class T>

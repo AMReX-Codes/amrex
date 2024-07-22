@@ -31,7 +31,7 @@ MyTest::solve ()
                    MFInfo(), *factory[ilev]);
         MultiFab::Copy(v, vfrc, 0, 0, 1, 0);
         amrex::EB_set_covered(v, 1.0);
-        amrex::Print() << "vfrc min = " << v.min(0) << std::endl;
+        amrex::Print() << "vfrc min = " << v.min(0) << '\n';
     }
 
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -78,8 +78,11 @@ MyTest::solve ()
     mlmg.setBottomTolerance(bottom_reltol);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
-    if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-    if (use_petsc) mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+    if (use_hypre) {
+        mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+    } else if (use_petsc) {
+        mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+    }
     const Real tol_rel = reltol;
     const Real tol_abs = 0.0;
     mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);

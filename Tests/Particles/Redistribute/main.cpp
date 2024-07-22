@@ -118,18 +118,22 @@ public:
                     p.pos(2) = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);
 #endif
 
-                    for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
-                    for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
+                    for (int i = 0; i < NSR; ++i) { p.rdata(i) = ParticleReal(p.id()); }
+                    for (int i = 0; i < NSI; ++i) { p.idata(i) = int(p.id()); }
 
                     host_particles.push_back(p);
-                    for (int i = 0; i < NAR; ++i)
-                        host_real[i].push_back(p.id());
-                    for (int i = 0; i < NAI; ++i)
-                        host_int[i].push_back(p.id());
-                    for (int i = 0; i < NumRuntimeRealComps(); ++i)
-                        host_runtime_real[i].push_back(p.id());
-                    for (int i = 0; i < NumRuntimeIntComps(); ++i)
-                        host_runtime_int[i].push_back(p.id());
+                    for (int i = 0; i < NAR; ++i) {
+                        host_real[i].push_back(ParticleReal(p.id()));
+                    }
+                    for (int i = 0; i < NAI; ++i) {
+                        host_int[i].push_back(int(p.id()));
+                    }
+                    for (int i = 0; i < NumRuntimeRealComps(); ++i) {
+                        host_runtime_real[i].push_back(ParticleReal(p.id()));
+                    }
+                    for (int i = 0; i < NumRuntimeIntComps(); ++i) {
+                        host_runtime_int[i].push_back(int(p.id()));
+                    }
                 }
             }
 
@@ -196,7 +200,7 @@ public:
                 int tid = mfi.LocalTileIndex();
                 auto& ptile = plev[std::make_pair(gid, tid)];
                 auto& aos   = ptile.GetArrayOfStructs();
-                ParticleType* pstruct = &(aos[0]);
+                ParticleType* pstruct = aos.data();
                 const size_t np = aos.numParticles();
 
                 if (do_random == 0)
@@ -246,7 +250,7 @@ public:
                 int tid = mfi.LocalTileIndex();
                 auto& ptile = plev[std::make_pair(gid, tid)];
                 auto& aos   = ptile.GetArrayOfStructs();
-                ParticleType* pstruct = &(aos[0]);
+                ParticleType* pstruct = aos.data();
                 const size_t np = aos.numParticles();
                 amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
                 {
@@ -270,13 +274,13 @@ public:
 
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
-            auto& plev  = GetParticles(lev);
+            const auto& plev  = GetParticles(lev);
             for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
             {
                 int gid = mfi.index();
                 int tid = mfi.LocalTileIndex();
-                auto& ptile = plev.at(std::make_pair(gid, tid));
-                const auto ptd = ptile.getConstParticleTileData();
+                const auto& ptile = plev.at(std::make_pair(gid, tid));
+                const auto& ptd = ptile.getConstParticleTileData();
                 const size_t np = ptile.numParticles();
 
                 AMREX_FOR_1D ( np, i,
@@ -365,13 +369,14 @@ void testRedistribute ()
     TestParams params;
     get_test_params(params, "redistribute");
 
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = params.is_periodic;
+    int is_per[] = {AMREX_D_DECL(params.is_periodic,
+                                 params.is_periodic,
+                                 params.is_periodic)};
 
     Vector<IntVect> rr(params.nlevs-1);
-    for (int lev = 1; lev < params.nlevs; lev++)
+    for (int lev = 1; lev < params.nlevs; lev++) {
         rr[lev-1] = IntVect(AMREX_D_DECL(2,2,2));
+    }
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
@@ -393,7 +398,7 @@ void testRedistribute ()
 
     Vector<BoxArray> ba(params.nlevs);
     Vector<DistributionMapping> dm(params.nlevs);
-    IntVect lo = IntVect(AMREX_D_DECL(0, 0, 0));
+    IntVect lo(0);
     IntVect size = params.size;
     for (int lev = 0; lev < params.nlevs; ++lev)
     {
@@ -406,8 +411,7 @@ void testRedistribute ()
 
     TestParticleContainer pc(geom, dm, ba, rr);
 
-    int npc = params.num_ppc;
-    IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
+    IntVect nppc(params.num_ppc);
 
     amrex::Print() << "About to initialize particles \n";
 
@@ -417,7 +421,7 @@ void testRedistribute ()
 
     auto np_old = pc.TotalNumberOfParticles();
 
-    if (params.sort) pc.SortParticlesByCell();
+    if (params.sort) { pc.SortParticlesByCell(); }
 
     for (int i = 0; i < params.nsteps; ++i)
     {
@@ -430,7 +434,7 @@ void testRedistribute ()
             pc.negateEven();
         }
         pc.RedistributeLocal();
-        if (params.sort) pc.SortParticlesByCell();
+        if (params.sort) { pc.SortParticlesByCell(); }
         pc.checkAnswer();
     }
 
@@ -442,7 +446,7 @@ void testRedistribute ()
             {
                 DistributionMapping new_dm;
                 Vector<int> pmap;
-                for (int i = 0; i < ba[lev].size(); ++i) pmap.push_back(i % NProcs);
+                for (int i = 0; i < ba[lev].size(); ++i) { pmap.push_back(i % NProcs); }
                 new_dm.define(pmap);
                 pc.SetParticleDistributionMap(lev, new_dm);
             }
@@ -462,7 +466,7 @@ void testRedistribute ()
             {
                 DistributionMapping new_dm;
                 Vector<int> pmap;
-                for (int i = 0; i < ba[lev].size(); ++i) pmap.push_back((i+1) % NProcs);
+                for (int i = 0; i < ba[lev].size(); ++i) { pmap.push_back((i+1) % NProcs); }
                 new_dm.define(pmap);
                 pc.SetParticleDistributionMap(lev, new_dm);
             }
@@ -492,7 +496,9 @@ void testRedistribute ()
         }
     }
 
-    if (geom[0].isAllPeriodic()) AMREX_ALWAYS_ASSERT(np_old == pc.TotalNumberOfParticles());
+    if (geom[0].isAllPeriodic()) {
+        AMREX_ALWAYS_ASSERT(np_old == pc.TotalNumberOfParticles());
+    }
 
     // the way this test is set up, if we make it here we pass
     amrex::Print() << "pass \n";

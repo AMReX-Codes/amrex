@@ -20,16 +20,15 @@
 
 namespace amrex {
 
-  typedef std::function<void(Box const& bx, FArrayBox& data,
-                             const int dcomp, const int numcomp,
-                             Geometry const& geom, const Real time,
-                             const Vector<BCRec>& bcr, const int bcomp,
-                             const int scomp)> BndryFuncFabDefault;
+    using BndryFuncFabDefault = std::function<void(Box const& bx, FArrayBox& data,
+                                                   int dcomp, int numcomp,
+                                                   Geometry const& geom, Real time,
+                                                   const Vector<BCRec>& bcr, int bcomp,
+                                                   int scomp)>;
 
 /**
 * \brief Attributes of StateData.
 */
-
 class StateDescriptor
 {
     friend class DescriptorList;
@@ -434,7 +433,6 @@ private:
 *
 * A container class for StateDescriptors.
 */
-
 class DescriptorList
 {
 public:

@@ -10,8 +10,8 @@
 using namespace amrex;
 
 void
-initialize_EB2 (const Geometry& geom, const int /*required_coarsening_level*/,
-                const int max_coarsening_level)
+initialize_EB2 (const Geometry& geom, int /*required_coarsening_level*/,
+                int max_coarsening_level)
 {
     BL_PROFILE("initializeEB2");
 

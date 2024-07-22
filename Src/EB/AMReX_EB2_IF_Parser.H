@@ -17,7 +17,7 @@ public:
         : m_parser(a_parser)
         {}
 
-    AMREX_GPU_HOST_DEVICE inline
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     amrex::Real operator() (AMREX_D_DECL(amrex::Real x, amrex::Real y,
                                          amrex::Real z)) const noexcept {
 #if (AMREX_SPACEDIM == 2)
@@ -27,7 +27,7 @@ public:
 #endif
     }
 
-    inline amrex::Real operator() (const amrex::RealArray& p) const noexcept {
+    [[nodiscard]] inline amrex::Real operator() (const amrex::RealArray& p) const noexcept {
         return this->operator()(AMREX_D_DECL(p[0],p[1],p[2]));
     }
 

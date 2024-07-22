@@ -58,7 +58,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         const bool extdir_z = !(m_geom[amrlev][mglev].isPeriodic(2)););
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -216,7 +216,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
     Array4<Real const> foo;
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -295,7 +295,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
             bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
             bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
 
-            if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
+            if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
@@ -385,7 +385,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
         bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
         bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
 
-        if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
+        if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
             xbx, txbx,

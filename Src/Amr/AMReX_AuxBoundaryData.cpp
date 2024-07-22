@@ -25,7 +25,7 @@ AuxBoundaryData::copy (const AuxBoundaryData& src,
                        int                    dst_comp,
                        int                    num_comp)
 {
-    if (m_empty || src.m_empty) return;
+    if (m_empty || src.m_empty) { return; }
 
     BL_ASSERT(m_initialized);
     BL_ASSERT(src_comp + num_comp <= src.m_fabs.nComp());

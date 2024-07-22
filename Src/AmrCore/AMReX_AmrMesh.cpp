@@ -5,6 +5,13 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
+#include <AMReX_Vector.H>
+
+#ifdef AMREX_USE_BITTREE
+#include <AMReX_Bittree.H>
+#endif
+
+#include <memory>
 
 namespace amrex {
 
@@ -61,7 +68,7 @@ AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
 
     finest_level = -1;
 
-    if (check_input) checkInput();
+    if (check_input) { checkInput(); }
 }
 
 void
@@ -78,6 +85,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     } else {
        max_level = max_level_in;
     }
+    AMREX_ASSERT(max_level >= 0 && max_level < 1000);
 
     int nlev = max_level + 1;
 
@@ -186,8 +194,9 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
             int k = 0;
             for (int i = 0; i < max_level; i++)
             {
-                for (int n = 0; n < AMREX_SPACEDIM; n++,k++)
+                for (int n = 0; n < AMREX_SPACEDIM; n++,k++) {
                     ref_ratio[i][n] = ratios_vect[k];
+                }
             }
         }
         else if (got_int == 1)
@@ -343,7 +352,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
         }
         else
         {
-            for (int i = 0; i < AMREX_SPACEDIM; i++) n_cell[i] = n_cell_in[i];
+            for (int i = 0; i < AMREX_SPACEDIM; i++) { n_cell[i] = n_cell_in[i]; }
         }
 
         IntVect lo(IntVect::TheZeroVector()), hi(n_cell);
@@ -374,15 +383,20 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 
     finest_level = -1;
 
-    if (check_input) checkInput();
+#ifdef AMREX_USE_BITTREE
+    pp.queryAdd("use_bittree",use_bittree);
+#endif
+
+    if (check_input) { checkInput(); }
 }
 
 int
 AmrMesh::MaxRefRatio (int lev) const noexcept
 {
     int maxval = 0;
-    for (int n = 0; n<AMREX_SPACEDIM; n++)
+    for (int n = 0; n<AMREX_SPACEDIM; n++) {
         maxval = std::max(maxval,ref_ratio[lev][n]);
+    }
     return maxval;
 }
 
@@ -390,14 +404,14 @@ void
 AmrMesh::SetDistributionMap (int lev, const DistributionMapping& dmap_in) noexcept
 {
     ++num_setdm;
-    if (dmap[lev] != dmap_in) dmap[lev] = dmap_in;
+    if (dmap[lev] != dmap_in) { dmap[lev] = dmap_in; }
 }
 
 void
 AmrMesh::SetBoxArray (int lev, const BoxArray& ba_in) noexcept
 {
     ++num_setba;
-    if (grids[lev] != ba_in) grids[lev] = ba_in;
+    if (grids[lev] != ba_in) { grids[lev] = ba_in; }
 }
 
 void
@@ -407,11 +421,11 @@ AmrMesh::SetGeometry (int lev, const Geometry& geom_in) noexcept
 }
 
 int
-AmrMesh::GetLevel (Box const& domain) noexcept
+AmrMesh::GetLevel (Box const& domain) const noexcept
 {
-    Box ccdomain = amrex::enclosedCells(domain);
+    Box const& ccdomain = amrex::enclosedCells(domain);
     for (int lev = 0; lev < geom.size(); ++lev) {
-        if (geom[lev].Domain() == ccdomain) return lev;
+        if (geom[lev].Domain() == ccdomain) { return lev; }
     }
     return -1;
 }
@@ -429,9 +443,29 @@ AmrMesh::ClearBoxArray (int lev) noexcept
 }
 
 bool
-AmrMesh::LevelDefined (int lev) noexcept
+AmrMesh::LevelDefined (int lev) const noexcept
 {
     return lev <= max_level && !grids[lev].empty() && !dmap[lev].empty();
+}
+
+DistributionMapping
+AmrMesh::MakeDistributionMap (int lev, BoxArray const& ba)
+{
+
+    BL_PROFILE("AmrMesh::MakeDistributionMap()");
+
+    if (verbose) {
+        amrex::Print() << "Creating new distribution map on level: " << lev << "\n";
+    }
+
+#ifdef AMREX_USE_BITTREE
+    // if (use_bittree) {
+    //     return DistributionMapping(ba);
+    // } else
+#endif
+    {
+        return DistributionMapping(ba);
+    }
 }
 
 void
@@ -456,7 +490,9 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
             int idim = chunk_dir[idx].second;
             if (refine_grid_layout_dims[idim]) {
                 int new_chunk_size = chunk[idim] / 2;
-                if (new_chunk_size%blocking_factor[lev][idim] == 0) {
+                if (new_chunk_size != 0 &&
+                    new_chunk_size%blocking_factor[lev][idim] == 0)
+                {
                     chunk[idim] = new_chunk_size;
                     ba.maxSize(chunk);
                     break;
@@ -507,7 +543,11 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
     // Add at most one new level
     int max_crse = std::min(finest_level, max_level-1);
 
-    if (new_grids.size() < max_crse+2) new_grids.resize(max_crse+2);
+    if (new_grids.size() < max_crse+2) { new_grids.resize(max_crse+2); }
+
+#ifdef AMREX_USE_BITTREE
+    if(!use_bittree) {
+#endif
 
     //
     // Construct problem domain at each level.
@@ -701,7 +741,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                     //
                     // Construct initial cluster.
                     //
-                    ClusterList clist(&tagvec[0], static_cast<Long>(tagvec.size()));
+                    ClusterList clist(tagvec.data(), static_cast<Long>(tagvec.size()));
                     if (use_new_chop) {
                         clist.new_chop(grid_eff);
                     } else {
@@ -723,13 +763,47 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 }
                 new_bx.Bcast();  // Broadcast the new BoxList to other processes
 
-                //
-                // Refine up to levf.
-                //
-                new_bx.refine(ref_ratio[levc]);
-                BL_ASSERT(new_bx.isDisjoint());
+                bool odd_ref_ratio = false;
+                for (auto const& rr : ref_ratio[levc]) {
+                    if (rr != 1 && (rr%2 != 0)) {
+                        odd_ref_ratio = true;
+                    }
+                }
 
-                new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]);
+                if (odd_ref_ratio)
+                {
+                    // This approach imposes max_grid_size (suitably scaled) before
+                    //     refining so as to ensure fine grids align with coarse grids
+
+                    //
+                    // Impose max_grid_size (suitably coarsened)
+                    //
+                    AMREX_ASSERT(max_grid_size[levf].allGE(ref_ratio[levc]));
+                    new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]/ref_ratio[levc]);
+
+                    //
+                    // Refine up to levf.
+                    //
+                    new_grids[levf].refine(ref_ratio[levc]);
+                }
+                else
+                {
+                    // This approach imposes max_grid_size after refining.
+                    // For ref_ratio = 3 this can create fine grids that do not correctly divide by 3,
+                    //     but we leave it here so as not to change the gridding in
+                    //     existing ref_ratio = 2 or 4 applications
+
+                    //
+                    // Refine up to levf.
+                    //
+                    new_bx.refine(ref_ratio[levc]);
+
+                    //
+                    // Impose max_grid_size
+                    //
+                    new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]);
+                }
+                BL_ASSERT(new_grids[levf].isDisjoint());
             }
         }
     }
@@ -769,6 +843,72 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             }
         }
     }
+
+#ifdef AMREX_USE_BITTREE
+    }
+#endif
+
+#ifdef AMREX_USE_BITTREE
+    // Bittree version
+    if(use_bittree) {
+        // Initialize BT refinement
+        btmesh->refine_init();
+
+        // -------------------------------------------------------------------
+        // Use tagging data to mark BT for refinement, then use the new bitmap
+        // to calculate the new grids.
+        auto tree0 = btmesh->getTree();
+
+        // [1] Error Estimation and tagging
+        // btTags is indexed by bitid, Bittree's internal indexing scheme.
+        // For any id, btTags = 1 if should be parent, -1 if should not be parent (or not exist).
+        std::vector<int> btTags(tree0->id_upper_bound(),0);
+
+        for (int lev=max_crse; lev>=lbase; --lev) {
+
+            TagBoxArray tags(grids[lev],dmap[lev], n_error_buf[lev]);
+            ErrorEst(lev, tags, time, 0);
+            tags.buffer(n_error_buf[lev]);
+
+            for (MFIter mfi(tags); mfi.isValid(); ++mfi) {
+                auto const& tagbox = tags.const_array(mfi);
+                bool has_set_tags = amrex::Reduce::AnyOf(mfi.validbox(),
+                                                         [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                                                         {
+                                                              return tagbox(i,j,k)!=TagBox::CLEAR;
+                                                         });
+
+                // Set the values of btTags.
+                int bitid = btUnit::getBitid(btmesh.get(),false,lev,mfi.index());
+                // TODO Check lev == tree0->block_level(bitid)
+                if(has_set_tags) {
+                    btTags[bitid] = 1;
+                }
+                else {
+                    btTags[bitid] = -1;
+                }
+            }
+        }
+
+        // [2] btRefine - check for proper octree nesting and update bitmap
+        MPI_Comm comm = ParallelContext::CommunicatorSub();
+        int changed = btUnit::btRefine(btmesh.get(), btTags, max_crse, lbase, grids, dmap, comm);
+
+        // [3] btCalculateGrids - use new bitmap to generate new grids
+        if (changed>0) {
+            btUnit::btCalculateGrids(btmesh.get(),lbase,new_finest,new_grids,max_grid_size);
+        } else {
+            new_finest = finest_level;
+            for(int i=0; i<=finest_level; ++i) {
+                new_grids[i] = grids[i];
+            }
+        }
+
+        // Finalize BT refinement
+        btmesh->refine_apply();
+    }
+#endif
+
 }
 
 void
@@ -778,11 +918,48 @@ AmrMesh::MakeNewGrids (Real time)
     {
         finest_level = 0;
 
-        const BoxArray& ba = MakeBaseGrids();
-        DistributionMapping dm(ba);
+        BoxArray ba;
+        DistributionMapping dm;
         const auto old_num_setdm = num_setdm;
         const auto old_num_setba = num_setba;
 
+#ifdef AMREX_USE_BITTREE
+        if(!use_bittree) {
+#endif
+            ba = MakeBaseGrids();
+            dm = MakeDistributionMap(0, ba);
+
+#ifdef AMREX_USE_BITTREE
+        }
+        else {
+            //Initialize Bittree
+
+            // top = number of grids on coarsest level in each direction
+            std::vector<int> top(AMREX_SPACEDIM,0);
+            IntVect ncells = geom[0].Domain().length();
+            for(int i=0; i<AMREX_SPACEDIM; ++i) {
+                top[i] = ncells[i] / max_grid_size[0][i];
+            }
+
+            // includes = boolean to check each coarsest level grid exists
+            // (Bittree supports having "holes" in the mesh)
+            int ngrids = AMREX_D_TERM(top[0],*top[1],*top[2]);
+            std::vector<int> includes(ngrids,1);
+
+            btmesh = std::make_unique<bittree::BittreeAmr>(top.data(),includes.data());
+
+            // Set BCs
+            for(int d=0; d<AMREX_SPACEDIM; ++d) {
+                btUnit::bcPeriodic[d] = geom[0].isPeriodic(d);
+            }
+
+
+            // Use Bittree to make coarsest level (don't need MakeBaseGrids)
+            // Need to use Bittree, so the indices of grids[lev] will be compatible with BT.
+            btUnit::btCalculateLevel(btmesh.get(),0,ba,max_grid_size[0]);
+            dm = MakeDistributionMap(0, ba);
+        }
+#endif
         MakeNewLevelFromScratch(0, time, ba, dm);
 
         if (old_num_setba == num_setba) {
@@ -804,10 +981,10 @@ AmrMesh::MakeNewGrids (Real time)
             // Add (at most) one level at a time.
             MakeNewGrids(finest_level,time,new_finest,new_grids);
 
-            if (new_finest <= finest_level) break;
+            if (new_finest <= finest_level) { break; }
             finest_level = new_finest;
 
-            DistributionMapping dm(new_grids[new_finest]);
+            DistributionMapping dm = MakeDistributionMap(new_finest, new_grids[new_finest]);
             const auto old_num_setdm = num_setdm;
 
             MakeNewLevelFromScratch(new_finest, time, new_grids[finest_level], dm);
@@ -831,14 +1008,14 @@ AmrMesh::MakeNewGrids (Real time)
                 int new_finest;
                 MakeNewGrids(0, time, new_finest, new_grids);
 
-                if (new_finest < finest_level) break;
+                if (new_finest < finest_level) { break; }
                 finest_level = new_finest;
 
                 bool grids_the_same = true;
                 for (int lev = 1; lev <= new_finest; ++lev) {
                     if (new_grids[lev] != grids[lev]) {
                         grids_the_same = false;
-                        DistributionMapping dm(new_grids[lev]);
+                        DistributionMapping dm = MakeDistributionMap(lev, new_grids[lev]);
                         const auto old_num_setdm = num_setdm;
 
                         MakeNewLevelFromScratch(lev, time, new_grids[lev], dm);
@@ -849,7 +1026,7 @@ AmrMesh::MakeNewGrids (Real time)
                         }
                     }
                 }
-                if (grids_the_same) break;
+                if (grids_the_same) { break; }
             }
         }
     }
@@ -885,56 +1062,68 @@ AmrMesh::ProjPeriodic (BoxList& blout, const Box& domain,
     int ri,rj,rk;
     for (ri = nist; ri <= niend; ri++)
     {
-        if (ri != 0 && !is_per[0])
+        if (ri != 0 && !is_per[0]) {
             continue;
-        if (ri != 0 && is_per[0])
+        }
+        if (ri != 0 && is_per[0]) {
             blorig.shift(0,ri*domain.length(0));
+        }
         for (rj = njst; rj <= njend; rj++)
         {
-            if (rj != 0 && !is_per[1])
+            if (rj != 0 && !is_per[1]) {
                 continue;
-            if (rj != 0 && is_per[1])
+            }
+            if (rj != 0 && is_per[1]) {
                 blorig.shift(1,rj*domain.length(1));
+            }
             for (rk = nkst; rk <= nkend; rk++)
             {
-                if (rk != 0 && !is_per[2])
+                if (rk != 0 && !is_per[2]) {
                     continue;
-                if (rk != 0 && is_per[2])
+                }
+                if (rk != 0 && is_per[2]) {
                     blorig.shift(2,rk*domain.length(2));
+                }
 
                 BoxList tmp(blorig);
                 tmp.intersect(domain);
                 blout.catenate(tmp);
 
-                if (rk != 0 && is_per[2])
+                if (rk != 0 && is_per[2]) {
                     blorig.shift(2,-rk*domain.length(2));
+                }
             }
-            if (rj != 0 && is_per[1])
+            if (rj != 0 && is_per[1]) {
                 blorig.shift(1,-rj*domain.length(1));
+            }
         }
-        if (ri != 0 && is_per[0])
+        if (ri != 0 && is_per[0]) {
             blorig.shift(0,-ri*domain.length(0));
+        }
     }
 }
 
 void
 AmrMesh::checkInput ()
 {
-    if (max_level < 0)
+    if (max_level < 0) {
         amrex::Error("checkInput: max_level not set");
+    }
 
     //
     // Check level dependent values.
     //
     for (int i = 0; i < max_level; i++)
     {
-        if (MaxRefRatio(i) < 2)
-            amrex::Error("Amr::checkInput: bad ref_ratios");
+        if (MaxRefRatio(i) < 2) {
+            amrex::Warning("Amr::checkInput: ref_ratios all equal to one!");
+        }
     }
 
     const Box& domain = Geom(0).Domain();
-    if (!domain.ok())
+    if (!domain.ok()) {
         amrex::Error("level 0 domain bad or not set");
+    }
 
     //
     // Check that domain size is a multiple of blocking_factor[0].
@@ -943,13 +1132,14 @@ AmrMesh::checkInput ()
     for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
     {
         int len = domain.length(idim);
-        if (blocking_factor[0][idim] <= max_grid_size[0][idim])
-           if (len%blocking_factor[0][idim] != 0)
-           {
-              amrex::Print() << "domain size in direction " << idim << " is " << len << std::endl;
-              amrex::Print() << "blocking_factor is " << blocking_factor[0][idim] << std::endl;
-              amrex::Error("domain size not divisible by blocking_factor");
-           }
+        if (blocking_factor[0][idim] <= max_grid_size[0][idim]) {
+            if (len%blocking_factor[0][idim] != 0)
+            {
+                amrex::Print() << "domain size in direction " << idim << " is " << len << '\n'
+                               << "blocking_factor is " << blocking_factor[0][idim] << '\n';
+                amrex::Error("domain size not divisible by blocking_factor");
+            }
+        }
     }
 
     //
@@ -960,10 +1150,12 @@ AmrMesh::checkInput ()
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
             int k = blocking_factor[i][idim];
-            while ( k > 0 && (k%2 == 0) )
+            while ( k > 0 && (k%2 == 0) ) {
                 k /= 2;
-            if (k != 1)
+            }
+            if (k != 1) {
                 amrex::Error("Amr::checkInput: blocking_factor not power of 2. You can bypass this by setting ParmParse runtime parameter amr.check_input=0, although we do not recommend it.");
+            }
         }
     }
 
@@ -976,7 +1168,7 @@ AmrMesh::checkInput ()
             amrex::Print() << "Blocking factors on levels " << i << " and " << i+1
                            << " are " << blocking_factor[i] << " " << blocking_factor[i+1]
                            << ". Ref ratio is " << ref_ratio[i]
-                           << ".  They vary too much between levels." << std::endl;
+                           << ".  They vary too much between levels." << '\n';
             amrex::Error("Blocking factors vary too much between levels");
         }
     }
@@ -988,14 +1180,13 @@ AmrMesh::checkInput ()
     for (int i = 0; i < max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-           if (blocking_factor[i][idim] <= max_grid_size[i][idim])
-              if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
-              {
-                 amrex::Print() << "max_grid_size in direction " << idim
-                                << " is " << max_grid_size[i][idim] << std::endl;
-                 amrex::Print() << "blocking_factor is " << blocking_factor[i][idim] << std::endl;
-                 amrex::Error("max_grid_size not divisible by blocking_factor");
-              }
+            if (blocking_factor[i][idim] <= max_grid_size[i][idim]) {
+                if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
+                    amrex::Print() << "max_grid_size in direction " << idim
+                                   << " is " << max_grid_size[i][idim] << '\n'
+                                   << "blocking_factor is " << blocking_factor[i][idim] << '\n';
+                    amrex::Error("max_grid_size not divisible by blocking_factor");
+                }
             }
         }
     }
@@ -1010,7 +1201,7 @@ AmrMesh::checkInput ()
                                << " max_grid_size is " << max_grid_size[i][idim]
                                << " blocking factor is " << blocking_factor[i][idim] << "\n"
                                << "On level " << i+1 << " in direction " << idim
-                               << " blocking_factor is " << blocking_factor[i+1][idim] << std::endl;
+                               << " blocking_factor is " << blocking_factor[i+1][idim] << '\n';
                 amrex::Error("Coarse level blocking factor not a multiple of fine level blocking factor divided by ref ratio");
             }
         }
@@ -1025,8 +1216,8 @@ AmrMesh::checkInput ()
     }
 }
 
-long
-AmrMesh::CountCells (int lev) noexcept
+Long
+AmrMesh::CountCells (int lev) const noexcept
 {
     return grids[lev].numPts();
 }
@@ -1036,16 +1227,16 @@ std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
     os << "  verbose = " << amr_mesh.verbose << "\n";
     os << "  max_level = " << amr_mesh.max_level << "\n";
     os << "  ref_ratio =";
-    for (int lev = 0; lev < amr_mesh.max_level; ++lev) os << " " << amr_mesh.ref_ratio[lev];
+    for (int lev = 0; lev < amr_mesh.max_level; ++lev) { os << " " << amr_mesh.ref_ratio[lev]; }
     os << "\n";
     os << "  blocking_factor =";
-    for (int lev = 0; lev <= amr_mesh.max_level; ++lev) os << " " << amr_mesh.blocking_factor[lev];
+    for (int lev = 0; lev <= amr_mesh.max_level; ++lev) { os << " " << amr_mesh.blocking_factor[lev]; }
     os << "\n";
     os << "  max_grid_size =";
-    for (int lev = 0; lev <= amr_mesh.max_level; ++lev) os << " " << amr_mesh.max_grid_size[lev];
+    for (int lev = 0; lev <= amr_mesh.max_level; ++lev) { os << " " << amr_mesh.max_grid_size[lev]; }
     os << "\n";
     os << "  n_error_buf =";
-    for (int lev = 0; lev < amr_mesh.max_level; ++lev) os << " " << amr_mesh.n_error_buf[lev];
+    for (int lev = 0; lev < amr_mesh.max_level; ++lev) { os << " " << amr_mesh.n_error_buf[lev]; }
     os << "\n";
     os << "  grid_eff = " << amr_mesh.grid_eff << "\n";
     os << "  n_proper = " << amr_mesh.n_proper << "\n";

@@ -1,6 +1,5 @@
 import vtk
 from vtk import *
-import string
 import sys
 
 f = open(sys.argv[1],'r')

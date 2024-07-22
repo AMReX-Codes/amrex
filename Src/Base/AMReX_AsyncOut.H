@@ -4,8 +4,7 @@
 
 #include <functional>
 
-namespace amrex {
-namespace AsyncOut {
+namespace amrex::AsyncOut {
 
 struct WriteInfo {
     int ifile;
@@ -31,6 +30,6 @@ void Finish (); // If you want to wait for jobs submitted to finish
 void Wait ();   // Wait for my turn to write file.  This is not for waiting for job to finish.
 void Notify (); // Notify next MPI process in the same file.
 
-}}
+}
 
 #endif

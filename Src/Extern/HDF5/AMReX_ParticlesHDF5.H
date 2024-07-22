@@ -105,7 +105,7 @@ public:
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type* = nullptr>
+    template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>* = nullptr>
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name, const std::string& compression, F&& f) const;
 
     /**
@@ -165,14 +165,14 @@ public:
      * \param real_comp_names for each real component, a name to label the data with
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type* = nullptr>
+    template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>* = nullptr>
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                             const Vector<std::string>& real_comp_names,
                             const std::string& compression, F&& f) const;
 
     /**
      * \brief This version of WritePlotFile assigns component names, but allows the user to pass
-     * in a vector of ints that toggle on / off the writing of specfic components.
+     * in a vector of ints that toggle on / off the writing of specific components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
@@ -187,7 +187,7 @@ public:
 
     /**
      * \brief This version of WritePlotFile assigns component names, but allows the user to pass
-     * in a vector of ints that toggle on / off the writing of specfic components.
+     * in a vector of ints that toggle on / off the writing of specific components.
      *
      * This version also lets you pass in a functor to toggle whether each particle gets output.
      *
