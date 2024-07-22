@@ -123,9 +123,9 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
                 adjust_singular_matrix(ncols, cols, rows, mat);
             }
 
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
             HYPRE_IJMatrixSetValues(A, nrows, ncols, rows, cols, mat);
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
         }
     }
     HYPRE_IJMatrixAssemble(A);
@@ -324,9 +324,9 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                 });
             }
 
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
             HYPRE_IJVectorSetValues(b, nrows, rows_vec.data(), bvec.data());
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
         }
     }
 }
@@ -347,7 +347,7 @@ HypreNodeLap::getSolution (MultiFab& soln)
             xvec.resize(nrows);
             Real* xp = xvec.data();
             HYPRE_IJVectorGetValues(x, nrows, rows_vec.data(), xp);
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
 
             const Box& bx = mfi.validbox();
             const auto& xfab = tmpsoln.array(mfi);
@@ -359,7 +359,7 @@ HypreNodeLap::getSolution (MultiFab& soln)
                 }
             });
 
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
         }
     }
 

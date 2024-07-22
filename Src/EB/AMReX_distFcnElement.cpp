@@ -6,11 +6,11 @@
 
 namespace amrex {
 
-int distFcnElement2d::solve_thomas(const std::vector<amrex::Real> &a,
-                                   std::vector<amrex::Real> b,
-                                   const std::vector<amrex::Real> &c,
-                                   std::vector<amrex::Real> d,
-                                   std::vector<amrex::Real> &x)
+int distFcnElement2d::solve_thomas (const std::vector<amrex::Real> &a,
+                                    std::vector<amrex::Real> &b,
+                                    const std::vector<amrex::Real> &c,
+                                    std::vector<amrex::Real> &d,
+                                    std::vector<amrex::Real> &x)
 {
   int n = static_cast<int>(d.size());
   x.resize(n);

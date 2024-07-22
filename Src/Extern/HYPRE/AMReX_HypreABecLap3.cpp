@@ -77,7 +77,7 @@ HypreABecLap3::getSolution (MultiFab& a_soln)
             (*l_soln)[mfi].setVal<RunOn::Device>(0.0);
         }
     }
-    Gpu::synchronize();
+    Gpu::hypreSynchronize();
 
     if (use_tmp_mf) {
         MultiFab::Copy(a_soln, tmp, 0, 0, 1, 0);
@@ -499,9 +499,9 @@ HypreABecLap3::prepareSolver ()
                 });
             }
 
-            Gpu::synchronize();
+            Gpu::streamSynchronize();
             HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
         }
     }
     HYPRE_IJMatrixAssemble(A);
@@ -681,7 +681,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
             HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].dataPtr(), rhs_diag[mfi].dataPtr());
         }
     }
-    Gpu::synchronize();
+    Gpu::hypreSynchronize();
 }
 
 }  // namespace amrex

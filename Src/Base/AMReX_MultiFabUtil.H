@@ -398,6 +398,20 @@ namespace amrex
      * \param stddev standard deviation of normal distribution
      */
     void FillRandomNormal (MultiFab& mf, int scomp, int ncomp, Real mean, Real stddev);
+
+    /**
+     * \brief Convexify AMR data
+     *
+     * This function "convexifies" the AMR data by removing cells that are
+     * covered by fine levels from coarse level MultiFabs. This could be
+     * useful for visualization. The returned MultiFabs on coarse levels
+     * have different BoxArrays from the original BoxArrays. For the finest
+     * level, the data is simply copied to the returned object. The returned
+     * MultiFabs have no ghost cells. For nodal data, the nodes on the
+     * coarse/fine interface exist on both levels.
+     */
+    [[nodiscard]] Vector<MultiFab> convexify (Vector<MultiFab const*> const& mf,
+                                Vector<IntVect> const& refinement_ratio);
 }
 
 namespace amrex {

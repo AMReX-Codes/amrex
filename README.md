@@ -28,6 +28,7 @@ refinement applications.
 [Gallery](#Gallery) -
 [Get Help](#get-help) -
 [Contribute](#Contribute) -
+[Copyright Notice](#copyright-notice) -
 [License](#License) -
 [Citation](#Citation)
 

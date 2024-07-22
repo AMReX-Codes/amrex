@@ -457,6 +457,15 @@ public:
     void getVal (T* data, const IntVect& pos, int N, int numcomp) const noexcept;
     //! Same as above, except that starts at component 0 and copies all comps.
     void getVal (T* data, const IntVect& pos) const noexcept;
+
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on,
+#else
+    template <RunOn run_on=RunOn::Host,
+#endif
+              class U=T, std::enable_if_t<std::is_same_v<U,float> || std::is_same_v<U,double>,int> FOO = 0>
+    void fill_snan () noexcept;
+
     /**
     * \brief The setVal functions set sub-regions in the BaseFab to a
     * constant value.  This most general form specifies the sub-box,
@@ -1830,6 +1839,15 @@ BaseFab<T>::shiftHalf (int idir, int n_cell) noexcept
 }
 
 template <class T>
+template <RunOn run_on, class U,
+          std::enable_if_t<std::is_same_v<U,float> || std::is_same_v<U,double>, int> FOO>
+void
+BaseFab<T>::fill_snan () noexcept
+{
+    amrex::fill_snan<run_on>(this->dptr, this->truesize);
+}
+
+template <class T>
 template <RunOn run_on>
 void
 BaseFab<T>::setVal (T const& x, const Box& bx, int n) noexcept
@@ -1924,6 +1942,20 @@ BaseFab<T>::define ()
     placementNew(this->dptr, this->truesize);
 
     amrex::update_fab_stats(this->domain.numPts(), this->truesize, sizeof(T));
+
+    if constexpr (std::is_same_v<T,float> || std::is_same_v<T,double>) {
+        if (amrex::InitSNaN() && this->truesize > 0) {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion() && arena()->isDeviceAccessible()) {
+                this->template fill_snan<RunOn::Device>();
+                Gpu::streamSynchronize();
+            } else
+#endif
+            {
+                this->template fill_snan<RunOn::Host>();
+            }
+        }
+    }
 }
 
 template <class T>
