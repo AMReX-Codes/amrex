@@ -161,7 +161,6 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
 
         auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
 
         auto nbor_data = m_neighbor_list[lev][index].data();
         ParticleType* pstruct = aos().dataPtr();
