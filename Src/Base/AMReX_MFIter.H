@@ -167,6 +167,8 @@ public:
 
     static int allowMultipleMFIters (int allow);
 
+    static int currentDepth ();
+
     void Finalize ();
 
 protected:
