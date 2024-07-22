@@ -188,8 +188,7 @@ enum lexState
     STRING,
     QUOTED_STRING,
     IDENTIFIER,
-    LIST,
-    EXPRESSION
+    LIST
 };
 
 const char* const
@@ -199,8 +198,7 @@ state_name[] =
    "STRING",
    "QUOTED_STRING",
    "IDENTIFIER",
-   "LIST",
-   "EXPRESSION"
+   "LIST"
 };
 
 int
@@ -290,11 +288,6 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                ostr += ch; str++; pcnt = 1;
                state = LIST;
            }
-           else if ( ch == '{' )
-           {
-               ostr += ch; str++;
-               state = EXPRESSION;
-           }
            else if ( std::isalpha(ch) )
            {
                ostr += ch; str++;
@@ -333,21 +326,6 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                {
                    return pValue;
                }
-           }
-           else
-           {
-               ostr += ch; str++;
-           }
-           break;
-       case EXPRESSION:
-           if ( ch == '{' )
-           {
-               amrex::Error("ParmParse::getToken: { found after {");
-           }
-           else if ( ch == '}' )
-           {
-               ostr += ch; str++;
-               return pValue;
            }
            else
            {
