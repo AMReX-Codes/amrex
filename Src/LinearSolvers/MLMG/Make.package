@@ -96,4 +96,6 @@ endif
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
 
+include $(AMREX_HOME)/Src/Boundary/Make.package
+
 endif
