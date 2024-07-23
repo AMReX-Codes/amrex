@@ -1609,7 +1609,7 @@ std::ostream& operator<< (std::ostream& os, const BoxND<dim>& bx)
 {
     IntVectND<dim> type = bx.type();
     return detail::box_write(os, bx.smallEnd().begin(), bx.bigEnd().begin(), type.begin(), dim);
-};
+}
 
 //! Read from istream.
 template<int dim>
@@ -1620,7 +1620,7 @@ std::istream& operator>> (std::istream& is, BoxND<dim>& bx) {
     detail::box_read(is, small.begin(), big.begin(), type.begin(), dim);
     bx = BoxND<dim>{small, big, type};
     return is;
-};
+}
 
 template<int dim>
 [[nodiscard]]
