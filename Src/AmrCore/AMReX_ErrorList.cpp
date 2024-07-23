@@ -258,9 +258,9 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
             auto const& tagma = tba.arrays();
             if (m_test == BOX)
             {
-                const auto plo = geom.ProbLoArray();
-                const auto dx  = geom.CellSizeArray();
-                const auto tag_rb = m_info.m_realbox;
+                const auto& plo = geom.ProbLoArray();
+                const auto& dx  = geom.CellSizeArray();
+                const auto& tag_rb = m_info.m_realbox;
                 ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                 {
                     GpuArray<Real,AMREX_SPACEDIM> pt
@@ -277,7 +277,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                 auto const& datma   = mf->const_arrays();
                 auto threshold = m_value[level];
                 auto const volume_weighting = m_info.m_volume_weighting;
-                auto geomdata = geom.data();
+                auto const& geomdata = geom.data();
                 auto tag_update = tagval;
                 if (m_info.m_derefine) {
                     tag_update = clearval;

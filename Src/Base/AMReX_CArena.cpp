@@ -2,6 +2,7 @@
 #include <AMReX_CArena.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_MFIter.H>
 #include <AMReX_ParallelReduce.H>
 
 #ifdef AMREX_TINY_PROFILING
@@ -57,7 +58,11 @@ CArena::alloc_protected (std::size_t nbytes)
     }
 #endif
 
-    if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
+    if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold
+#ifdef AMREX_USE_GPU
+        && (MFIter::currentDepth() == 0)
+#endif
+        ) {
         freeUnused_protected();
     }
 
@@ -393,7 +398,11 @@ CArena::hasFreeDeviceMemory (std::size_t sz)
 
         std::size_t nbytes = Arena::align(sz == 0 ? 1 : sz);
 
-        if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
+        if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold
+#ifdef AMREX_USE_GPU
+            && (MFIter::currentDepth() == 0)
+#endif
+            ) {
             freeUnused_protected();
         }
 

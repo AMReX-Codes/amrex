@@ -17,6 +17,17 @@ MFIter::allowMultipleMFIters (int allow)
     return allow;
 }
 
+int
+MFIter::currentDepth ()
+{
+    int r;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic read
+#endif
+    r = MFIter::depth;
+    return r;
+}
+
 MFIter::MFIter (const FabArrayBase& fabarray_,
                 unsigned char       flags_)
     :
@@ -222,13 +233,6 @@ MFIter::Finalize ()
     // mark as invalid
     currentIndex = endIndex;
 
-#ifdef AMREX_USE_OMP
-#pragma omp master
-#endif
-    {
-        depth = 0;
-    }
-
 #ifdef BL_USE_TEAM
     if ( ! (flags & NoTeamBarrier) )
         ParallelDescriptor::MyTeam().MemoryBarrier();
@@ -256,6 +260,13 @@ MFIter::Finalize ()
     }
     if (m_fa) {
         m_fa.reset(nullptr);
+    }
+
+#ifdef AMREX_USE_OMP
+#pragma omp master
+#endif
+    {
+        depth = 0;
     }
 }
 

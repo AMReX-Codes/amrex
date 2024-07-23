@@ -1216,4 +1216,57 @@ namespace amrex
             FillRandomNormal(p, npts, mean, stddev);
         }
     }
+
+    Vector<MultiFab> convexify (Vector<MultiFab const*> const& mf,
+                                Vector<IntVect> const& refinement_ratio)
+    {
+        if (mf.empty()) { return Vector<MultiFab>{}; }
+
+        const auto nlevels = int(mf.size());
+        Vector <MultiFab> rmf(nlevels);
+
+        const int ncomp = mf[nlevels-1]->nComp();
+        rmf[nlevels-1].define(mf[nlevels-1]->boxArray(),
+                              mf[nlevels-1]->DistributionMap(), ncomp, 0);
+        MultiFab::Copy(rmf[nlevels-1], *mf[nlevels-1], 0, 0, ncomp, 0);
+
+        for (int ilev = nlevels-2; ilev >= 0; --ilev) {
+            BoxArray fba = mf[ilev+1]->boxArray();
+            BoxArray cba = mf[ilev  ]->boxArray();
+            AMREX_ASSERT(fba.ixType() == cba.ixType());
+            AMREX_ASSERT(mf[ilev]->nComp() == ncomp);
+
+            fba.convert(IntVect(0)).coarsen(refinement_ratio[ilev]);
+            cba.convert(IntVect(0));
+            auto const& cdm = mf[ilev]->DistributionMap();
+
+            BoxList blnew, bltmp;
+            Vector<int> procmap;
+            Vector<int> localmap;
+            for (int ibox = 0; ibox < int(cba.size()); ++ibox) {
+                fba.complementIn(bltmp, cba[ibox]);
+                blnew.join(bltmp);
+                procmap.resize(procmap.size()+bltmp.size(), cdm[ibox]);
+                if (ParallelDescriptor::MyProc() == cdm[ibox]) {
+                    localmap.resize(localmap.size()+bltmp.size(), ibox);
+                }
+            }
+
+            if (blnew.isNotEmpty()) {
+                BoxArray banew(std::move(blnew));
+                banew.convert(mf[ilev]->ixType());
+                DistributionMapping dmnew(std::move(procmap));
+                rmf[ilev].define(banew, dmnew, ncomp, 0);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+                for (MFIter mfi(rmf[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+                   rmf[ilev][mfi].template copy<RunOn::Device>
+                       ((*mf[ilev])[localmap[mfi.LocalIndex()]], mfi.tilebox());
+                }
+            }
+        }
+
+        return rmf;
+    }
 }

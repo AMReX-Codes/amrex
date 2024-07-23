@@ -76,7 +76,7 @@ EXP	([Ee][-+]?[0-9]+)
 "if"          { amrex_parserlval.f3 = amrex::PARSER_IF;        return F3; }
 
  /* We use SYMBOL to hold variables and constants */
-[a-zA-Z_][a-zA-Z0-9_]*  { amrex_parserlval.s = amrex::parser_makesymbol(amrex_parsertext); return SYMBOL; }
+[a-zA-Z_][a-zA-Z0-9_\.]*  { amrex_parserlval.s = amrex::parser_makesymbol(amrex_parsertext); return SYMBOL; }
 
  /* Number */
 [0-9]+"."[0-9]*{EXP}? |

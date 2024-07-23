@@ -127,6 +127,15 @@ namespace amrex {
             return p;
         }
 
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        GpuArray<T,N>& operator+= (GpuArray<T,N> const& a) noexcept
+        {
+            for (unsigned int i = 0; i < N; ++i) {
+                arr[i] += a.arr[i];
+            }
+            return *this;
+        }
+
         T arr[amrex::max(N,1U)];
     };
 }

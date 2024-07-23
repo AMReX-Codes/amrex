@@ -569,7 +569,7 @@ HypreSolver<MSS>::fill_matrix (Filler const& filler)
             Gpu::streamSynchronize();
             HYPRE_IJMatrixSetValues(m_A, nrows, ncols_vec.data(), rows,
                                     cols_vec.data(), mat_vec.data());
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
         }
     }
     HYPRE_IJMatrixAssemble(m_A);
@@ -653,7 +653,7 @@ HypreSolver<MSS>::load_vectors (Vector<MF      *> const& a_soln,
             Gpu::streamSynchronize();
             HYPRE_IJVectorSetValues(m_x, nrows, rows, xp);
             HYPRE_IJVectorSetValues(m_b, nrows, rows, bp);
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
         }
     }
 }
@@ -683,7 +683,7 @@ HypreSolver<MSS>::get_solution (Vector<MF*> const& a_soln)
             HYPRE_Int const* rows = m_global_id_vec[mfi].data();
 
             HYPRE_IJVectorGetValues(m_x, nrows, rows, xp);
-            Gpu::synchronize();
+            Gpu::hypreSynchronize();
 
             HYPRE_Int offset = 0;
             for (int ivar = 0; ivar < m_nvars; ++ivar) {

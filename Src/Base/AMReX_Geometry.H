@@ -440,6 +440,8 @@ private:
 
     //
     Box     domain;
+
+    friend std::istream& operator>> (std::istream&, Geometry&);
 };
 
 

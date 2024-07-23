@@ -48,7 +48,7 @@
 "if"          { amrex_iparserlval.f3 = amrex::IPARSER_IF;        return F3; }
 
  /* We use SYMBOL to hold variables and constants */
-[a-zA-Z_][a-zA-Z0-9_]*  { amrex_iparserlval.s = amrex::iparser_makesymbol(amrex_iparsertext); return SYMBOL; }
+[a-zA-Z_][a-zA-Z0-9_\.]*  { amrex_iparserlval.s = amrex::iparser_makesymbol(amrex_iparsertext); return SYMBOL; }
 
  /* Number */
 [0-9]+        { amrex_iparserlval.d = std::atoi(amrex_iparsertext);   return NUMBER; }

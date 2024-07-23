@@ -208,8 +208,8 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
                     if (apbx.bigEnd(idim) == nbx.bigEnd(idim)) {
                         apbx.growHi(idim,-1);
                     }
-                    auto lev_apidim_domain = lev_ap_domain[idim];
-                    Dim3 off = IntVect::TheDimensionVector(idim).dim3();
+                    auto const& lev_apidim_domain = lev_ap_domain[idim];
+                    Dim3 const& off = IntVect::TheDimensionVector(idim).dim3();
                     amrex::ParallelFor(apbx,
                     [=] AMREX_GPU_DEVICE (int i, int j, int k)
                     {
