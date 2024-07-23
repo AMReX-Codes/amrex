@@ -6,37 +6,6 @@ using namespace amrex;
 
 namespace {
 
-class BoxNDDynamic
-{
-public:
-    friend std::ostream& operator<< (std::ostream& os, const BoxNDDynamic& b);
-    BoxNDDynamic (Box const& b, int dim) : m_box(b), m_dim(dim) {}
-private:
-    Box m_box;
-    int m_dim;
-};
-
-std::ostream&
-operator<< (std::ostream& os, const BoxNDDynamic& b)
-{
-    if (b.m_dim == 1) {
-        os << "("
-           << "(" << b.m_box.smallEnd(0) << ")" << " "
-           << "(" << b.m_box.bigEnd(0) << ")" << " "
-           << "(" << b.m_box.type(0) << ")"
-           << ")";
-    } else if (b.m_dim == 2) {
-        os << "("
-           << "(" << b.m_box.smallEnd(0) << "," << b.m_box.smallEnd(1) << ")" << " "
-           << "(" << b.m_box.bigEnd(0) << "," << b.m_box.bigEnd(1) << ")" << " "
-           << "(" << b.m_box.type(0) << "," << b.m_box.type(1) << ")"
-           << ")";
-    } else {
-        os << b.m_box;
-    }
-    return os;
-}
-
 }
 
 void main_main()
@@ -175,10 +144,19 @@ void main_main()
                 const BoxArray& ba = plotfile.boxArray(ilev);
                 const Long nboxes = ba.size();
                 const Box prob_domain = plotfile.probDomain(ilev);
-                amrex::Print() << "   " << BoxNDDynamic(prob_domain,dim)
-                               << "  " << nboxes << "\n";
+                amrex::Print() << "   ";
+                amrex::IntVect prob_domain_type = prob_domain.type();
+                amrex::detail::box_write(amrex::Print(), prob_domain.smallEnd().begin(),
+                                                         prob_domain.bigEnd().begin(),
+                                                         prob_domain_type.begin(), dim);
+                amrex::Print() << "  " << nboxes << "\n";
                 for (int ibox = 0; ibox < nboxes; ++ibox) {
-                    amrex::Print() << "      "  << BoxNDDynamic(ba[ibox],dim) << "\n";
+                    amrex::Print() << "      ";
+                    amrex::IntVect ba_type = ba[ibox].type();
+                    amrex::detail::box_write(amrex::Print(), ba[ibox].smallEnd().begin(),
+                                                             ba[ibox].bigEnd().begin(),
+                                                             ba_type.begin(), dim);
+                    amrex::Print() << "\n";
                 }
             }
         }

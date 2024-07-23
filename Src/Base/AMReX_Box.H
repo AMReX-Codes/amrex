@@ -95,7 +95,7 @@ public:
     AMREX_GPU_HOST_DEVICE
     explicit BoxND (Array4<T> const& a) noexcept
         : smallend(a.begin),
-          bigend  (IntVectND<dim>(a.end) - 1)
+          bigend(IntVectND<dim>(a.end) - 1)
         {}
 
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
@@ -1597,11 +1597,30 @@ BoxND<dim> minBox (const BoxND<dim>& b1, const BoxND<dim>& b2) noexcept
     return result;
 }
 
-    //! Write an ASCII representation to the ostream.
-std::ostream& operator<< (std::ostream& os, const Box& bx);
+namespace detail {
+    std::ostream& box_write (std::ostream& os, const int * smallend, const int * bigend,
+                             const int * type, int dim);
+    std::istream& box_read (std::istream& is, int * smallend, int * bigend, int * type, int dim);
+}
 
-    //! Read from istream.
-std::istream& operator>> (std::istream& is, Box& bx);
+//! Write an ASCII representation to the ostream.
+template<int dim>
+std::ostream& operator<< (std::ostream& os, const BoxND<dim>& bx)
+{
+    IntVectND<dim> type = bx.type();
+    return detail::box_write(os, bx.smallEnd().begin(), bx.bigEnd().begin(), type.begin(), dim);
+};
+
+//! Read from istream.
+template<int dim>
+std::istream& operator>> (std::istream& is, BoxND<dim>& bx) {
+    IntVectND<dim> small;
+    IntVectND<dim> big;
+    IntVectND<dim> type;
+    detail::box_read(is, small.begin(), big.begin(), type.begin(), dim);
+    bx = BoxND<dim>{small, big, type};
+    return is;
+};
 
 template<int dim>
 [[nodiscard]]
