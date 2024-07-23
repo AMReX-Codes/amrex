@@ -278,6 +278,9 @@ runtime error that will abort the run.
 Math Expressions
 ----------------
 
+.. versionadded:: 24.08
+   Math expression support in :cpp:`ParmParse`.
+
 :cpp:`ParmParse` supports math expressions for integers and floating point
 numbers. For example,
 
@@ -599,6 +602,9 @@ as a separator for :cpp:`IParser` numbers just like C++ integer
 literals. Additionally, a floating point like number with a positive
 exponent may be accepted as an integer if it is reasonable to do so. For
 example, it's okay to have ``1.234e3``, but ``1.234e2`` is an error.
+
+  .. versionadded:: 24.08
+     Support for ``'`` and ``e`` in :cpp:`IParser` integers.
 
 .. _sec:basics:initialize:
 
@@ -1057,7 +1063,7 @@ an :cpp:`int` pointer or array specifying periodicity. If a :cpp:`RealBox` is no
 given in the first constructor, AMReX  will construct one based on :cpp:`ParmParse` parameters,
 ``geometry.prob_lo`` / ``geometry.prob_hi`` / ``geometry.prob_extent``,
 where each of the parameter is an array of ``AMREX_SPACEDIM`` real numbers.
-See the section on :ref:`sec:inputs:pd` for more details about how to specify these.
+See the section on :ref:`sec:inputs:geom` for more details about how to specify these.
 
 The argument for coordinate system is an integer type with
 valid values being 0 (Cartesian), or 1 (cylindrical), or 2 (spherical). If it

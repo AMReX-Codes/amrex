@@ -68,8 +68,8 @@ ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
 void
 ForkJoin::init(const Vector<int> &task_rank_n)
 {
-    ParmParse pp("forkjoin");
-    pp.queryAdd("verbose", flag_verbose);
+    ParmParse pp("amrex.forkjoin");
+    pp.query("verbose", flag_verbose);
 
     const auto task_n = task_rank_n.size();
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(task_n > 0,

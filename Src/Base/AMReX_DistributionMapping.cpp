@@ -118,14 +118,15 @@ DistributionMapping::Initialize ()
 
     ParmParse pp("DistributionMapping");
 
-    pp.queryAdd("v"      ,             verbose);
-    pp.queryAdd("verbose",             verbose);
-    pp.queryAdd("efficiency",          max_efficiency);
-    pp.queryAdd("sfc_threshold",       sfc_threshold);
-    pp.queryAdd("node_size",           node_size);
-    pp.queryAdd("verbose_mapper",      flag_verbose_mapper);
+    if (! pp.query("verbose", "v", verbose)) {
+        pp.add("verbose", verbose);
+    }
+    pp.query("efficiency",          max_efficiency);
+    pp.query("sfc_threshold",       sfc_threshold);
+    pp.query("node_size",           node_size);
+    pp.query("verbose_mapper",      flag_verbose_mapper);
 
-    std::string theStrategy;
+    std::string theStrategy("SFC");
 
     if (pp.query("strategy", theStrategy))
     {

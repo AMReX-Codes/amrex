@@ -57,9 +57,9 @@ namespace amrex::ParallelDescriptor {
 #endif
 
 #ifdef AMREX_USE_GPU
-    int use_gpu_aware_mpi = false;
+    bool use_gpu_aware_mpi = false;
 #else
-    int use_gpu_aware_mpi = false;
+    bool use_gpu_aware_mpi = false;
 #endif
 
     ProcessTeam m_Team;
@@ -1537,9 +1537,9 @@ StartTeams ()
     int do_team_reduce = 0;
 
 #if defined(BL_USE_MPI3)
-    ParmParse pp("team");
-    pp.queryAdd("size", team_size);
-    pp.queryAdd("reduce", do_team_reduce);
+    ParmParse pp("amrex.team");
+    pp.query("size", team_size);
+    pp.query("reduce", do_team_reduce);
     if (nprocs % team_size != 0) {
         amrex::Abort("Number of processes not divisible by team size");
     }
