@@ -75,7 +75,7 @@ enum iparser_node_t {
 
 union iparser_nvp {
     struct iparser_node* n;
-    int v;
+    long long v;
     int ip;
 };
 
@@ -89,7 +89,7 @@ struct iparser_node {
 
 struct iparser_number {
     enum iparser_node_t type;
-    int value;
+    long long value;
 };
 
 struct iparser_symbol {
@@ -134,7 +134,7 @@ void iparser_defexpr (struct iparser_node* body);
 struct iparser_symbol* iparser_makesymbol (char* name);
 struct iparser_node* iparser_newnode (enum iparser_node_t type, struct iparser_node* l,
                                       struct iparser_node* r);
-struct iparser_node* iparser_newnumber (int d);
+struct iparser_node* iparser_newnumber (long long d);
 struct iparser_node* iparser_newsymbol (struct iparser_symbol* sym);
 struct iparser_node* iparser_newf1 (enum iparser_f1_t ftype, struct iparser_node* l);
 struct iparser_node* iparser_newf2 (enum iparser_f2_t ftype, struct iparser_node* l,
@@ -164,7 +164,7 @@ struct amrex_iparser* iparser_dup (struct amrex_iparser* source);
 struct iparser_node* iparser_ast_dup (struct amrex_iparser* iparser, struct iparser_node* node, int move);
 
 void iparser_regvar (struct amrex_iparser* iparser, char const* name, int i);
-void iparser_setconst (struct amrex_iparser* iparser, char const* name, int c);
+void iparser_setconst (struct amrex_iparser* iparser, char const* name, long long c);
 void iparser_print (struct amrex_iparser* iparser);
 std::set<std::string> iparser_get_symbols (struct amrex_iparser* iparser);
 int iparser_depth (struct amrex_iparser* iparser);
@@ -174,27 +174,27 @@ void iparser_ast_optimize (struct iparser_node* node);
 std::size_t iparser_ast_size (struct iparser_node* node);
 void iparser_ast_print (struct iparser_node* node, std::string const& space, AllPrint& printer);
 void iparser_ast_regvar (struct iparser_node* node, char const* name, int i);
-void iparser_ast_setconst (struct iparser_node* node, char const* name, int c);
+void iparser_ast_setconst (struct iparser_node* node, char const* name, long long c);
 void iparser_ast_get_symbols (struct iparser_node* node, std::set<std::string>& symbols,
                               std::set<std::string>& local_symbols);
 int iparser_ast_depth (struct iparser_node* node);
 
 /*******************************************************************/
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int
-iparser_call_f1 (enum iparser_f1_t /*type*/, int a)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE long long
+iparser_call_f1 (enum iparser_f1_t /*type*/, long long a)
 {
     /// There is only one type for now
     return std::abs(a);
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int
-iparser_call_f2 (enum iparser_f2_t type, int a, int b)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE long long
+iparser_call_f2 (enum iparser_f2_t type, long long a, long long b)
 {
     switch (type) {
     case IPARSER_FLRDIV:
     {
-        int r = a/b;
+        long long r = a/b;
         if (r*b == a || (a < 0 && b < 0) || (a > 0 && b > 0)) {
             return r;
         } else {
@@ -206,13 +206,13 @@ iparser_call_f2 (enum iparser_f2_t type, int a, int b)
         if (b < 0) {
             return 0;
         } else {
-            int r = 1;
+            long long r = 1;
             while (b != 0) {
                 if (b & 1) {
                     r *= a;
                 }
                 b >>= 1;
-                a *= a;
+                if (b > 0) { a *= a; } // to avoid overflow
             }
             return r;
         }
@@ -243,12 +243,14 @@ iparser_call_f2 (enum iparser_f2_t type, int a, int b)
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int
-iparser_call_f3 (enum iparser_f3_t /*type*/, int a, int b, int c)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE long long
+iparser_call_f3 (enum iparser_f3_t /*type*/, long long a, long long b, long long c)
 {
     // There is only one type currently
     return (a != 0) ? b : c;
 }
+
+long long iparser_atoll (const char* str);
 
 }
 

@@ -62,7 +62,7 @@ struct alignas(8) IParserExeNull {
 
 struct alignas(8) IParserExeNumber {
     enum iparser_exe_t type = IPARSER_EXE_NUMBER;
-    int v;
+    long long v;
 };
 
 struct alignas(8) IParserExeSymbol {
@@ -76,7 +76,7 @@ struct alignas(8) IParserExeADD {
 
 struct alignas(8) IParserExeSUB {
     enum iparser_exe_t type = IPARSER_EXE_SUB;
-    int sign;
+    long long sign;
 };
 
 struct alignas(8) IParserExeMUL {
@@ -113,31 +113,31 @@ struct alignas(8) IParserExeF2_B {
 struct alignas(8) IParserExeADD_VP {
     enum iparser_exe_t type = IPARSER_EXE_ADD_VP;
     int i;
-    int v;
+    long long v;
 };
 
 struct alignas(8) IParserExeSUB_VP {
     enum iparser_exe_t type = IPARSER_EXE_SUB_VP;
     int i;
-    int v;
+    long long v;
 };
 
 struct alignas(8) IParserExeMUL_VP {
     enum iparser_exe_t type = IPARSER_EXE_MUL_VP;
     int i;
-    int v;
+    long long v;
 };
 
 struct alignas(8) IParserExeDIV_VP {
     enum iparser_exe_t type = IPARSER_EXE_DIV_VP;
     int i;
-    int v;
+    long long v;
 };
 
 struct alignas(8) IParserExeDIV_PV {
     enum iparser_exe_t type = IPARSER_EXE_DIV_PV;
     int i;
-    int v;
+    long long v;
 };
 
 struct alignas(8) IParserExeADD_PP {
@@ -171,27 +171,27 @@ struct alignas(8) IParserExeNEG_P {
 
 struct alignas(8) IParserExeADD_VN {
     enum iparser_exe_t type = IPARSER_EXE_ADD_VN;
-    int v;
+    long long v;
 };
 
 struct alignas(8) IParserExeSUB_VN {
     enum iparser_exe_t type = IPARSER_EXE_SUB_VN;
-    int v;
+    long long v;
 };
 
 struct alignas(8) IParserExeMUL_VN {
     enum iparser_exe_t type = IPARSER_EXE_MUL_VN;
-    int v;
+    long long v;
 };
 
 struct alignas(8) IParserExeDIV_VN {
     enum iparser_exe_t type = IPARSER_EXE_DIV_VN;
-    int v;
+    long long v;
 };
 
 struct alignas(8) IParserExeDIV_NV {
     enum iparser_exe_t type = IPARSER_EXE_DIV_NV;
-    int v;
+    long long v;
 };
 
 struct alignas(8) IParserExeADD_PN {
@@ -202,7 +202,7 @@ struct alignas(8) IParserExeADD_PN {
 struct alignas(8) IParserExeSUB_PN {
     enum iparser_exe_t type = IPARSER_EXE_SUB_PN;
     int i;
-    int sign;
+    long long sign;
 };
 
 struct alignas(8) IParserExeMUL_PN {
@@ -229,19 +229,19 @@ struct alignas(8) IParserExeJUMP {
 template <int N>
 struct IParserStack
 {
-    int m_data[N];
+    long long m_data[N];
     int m_size = 0;
-    constexpr void push (int v) { m_data[m_size++] = v; }
+    constexpr void push (long long v) { m_data[m_size++] = v; }
     constexpr void pop () { --m_size; }
-    [[nodiscard]] constexpr int const& top () const { return m_data[m_size-1]; }
-    [[nodiscard]] constexpr int      & top ()       { return m_data[m_size-1]; }
-    [[nodiscard]] constexpr int operator[] (int i) const { return m_data[i]; }
+    [[nodiscard]] constexpr long long const& top () const { return m_data[m_size-1]; }
+    [[nodiscard]] constexpr long long      & top ()       { return m_data[m_size-1]; }
+    [[nodiscard]] constexpr long long operator[] (int i) const { return m_data[i]; }
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int iparser_exe_eval (const char* p, int const* x)
+long long iparser_exe_eval (const char* p, long long const* x)
 {
-    if (p == nullptr) { return std::numeric_limits<int>::max(); }
+    if (p == nullptr) { return std::numeric_limits<long long>::max(); }
 
     IParserStack<AMREX_IPARSER_STACK_SIZE> pstack;
     while (*((iparser_exe_t*)p) != IPARSER_EXE_NULL) {
@@ -256,14 +256,14 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_SYMBOL:
         {
             int i = ((IParserExeSymbol*)p)->i;
-            int d = AMREX_IPARSER_GET_DATA(i);
+            auto d = AMREX_IPARSER_GET_DATA(i);
             pstack.push(d);
             p    += sizeof(IParserExeSymbol);
             break;
         }
         case IPARSER_EXE_ADD:
         {
-            int b = pstack.top();
+            auto b = pstack.top();
             pstack.pop();
             pstack.top() += b;
             p += sizeof(IParserExeADD);
@@ -271,7 +271,7 @@ int iparser_exe_eval (const char* p, int const* x)
         }
         case IPARSER_EXE_SUB:
         {
-            int b = pstack.top();
+            auto b = pstack.top();
             pstack.pop();
             pstack.top() = (pstack.top() - b) * (((IParserExeSUB*)p)->sign);
             p += sizeof(IParserExeSUB);
@@ -279,7 +279,7 @@ int iparser_exe_eval (const char* p, int const* x)
         }
         case IPARSER_EXE_MUL:
         {
-            int b = pstack.top();
+            auto b = pstack.top();
             pstack.pop();
             pstack.top() *= b;
             p += sizeof(IParserExeMUL);
@@ -287,7 +287,7 @@ int iparser_exe_eval (const char* p, int const* x)
         }
         case IPARSER_EXE_DIV_F:
         {
-            int v = pstack.top();
+            auto v = pstack.top();
             pstack.pop();
             pstack.top() /= v;
             p += sizeof(IParserExeDIV_F);
@@ -295,7 +295,7 @@ int iparser_exe_eval (const char* p, int const* x)
         }
         case IPARSER_EXE_DIV_B:
         {
-            int v = pstack.top();
+            auto v = pstack.top();
             pstack.pop();
             pstack.top() = v / pstack.top();
             p += sizeof(IParserExeDIV_B);
@@ -315,7 +315,7 @@ int iparser_exe_eval (const char* p, int const* x)
         }
         case IPARSER_EXE_F2_F:
         {
-            int v = pstack.top();
+            auto v = pstack.top();
             pstack.pop();
             pstack.top() = iparser_call_f2(((IParserExeF2_F*)p)->ftype, pstack.top(), v);
             p += sizeof(IParserExeF2_F);
@@ -323,7 +323,7 @@ int iparser_exe_eval (const char* p, int const* x)
         }
         case IPARSER_EXE_F2_B:
         {
-            int v = pstack.top();
+            auto v = pstack.top();
             pstack.pop();
             pstack.top() = iparser_call_f2(((IParserExeF2_B*)p)->ftype, v, pstack.top());
             p += sizeof(IParserExeF2_B);
@@ -332,7 +332,7 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_ADD_VP:
         {
             int i = ((IParserExeADD_VP*)p)->i;
-            int d = AMREX_IPARSER_GET_DATA(i);
+            auto d = AMREX_IPARSER_GET_DATA(i);
             pstack.push(((IParserExeADD_VP*)p)->v + d);
             p   += sizeof(IParserExeADD_VP);
             break;
@@ -340,7 +340,7 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_SUB_VP:
         {
             int i = ((IParserExeSUB_VP*)p)->i;
-            int d = AMREX_IPARSER_GET_DATA(i);
+            auto d = AMREX_IPARSER_GET_DATA(i);
             pstack.push(((IParserExeSUB_VP*)p)->v - d);
             p   += sizeof(IParserExeSUB_VP);
             break;
@@ -348,7 +348,7 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_MUL_VP:
         {
             int i = ((IParserExeMUL_VP*)p)->i;
-            int d = AMREX_IPARSER_GET_DATA(i);
+            auto d = AMREX_IPARSER_GET_DATA(i);
             pstack.push(((IParserExeMUL_VP*)p)->v * d);
             p   += sizeof(IParserExeMUL_VP);
             break;
@@ -356,7 +356,7 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_DIV_VP:
         {
             int i = ((IParserExeDIV_VP*)p)->i;
-            int d = AMREX_IPARSER_GET_DATA(i);
+            auto d = AMREX_IPARSER_GET_DATA(i);
             pstack.push(((IParserExeDIV_VP*)p)->v / d);
             p   += sizeof(IParserExeDIV_VP);
             break;
@@ -364,7 +364,7 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_DIV_PV:
         {
             int i = ((IParserExeDIV_PV*)p)->i;
-            int d = AMREX_IPARSER_GET_DATA(i);
+            auto d = AMREX_IPARSER_GET_DATA(i);
             pstack.push(d / ((IParserExeDIV_PV*)p)->v);
             p       += sizeof(IParserExeDIV_PV);
             break;
@@ -372,9 +372,9 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_ADD_PP:
         {
             int i = ((IParserExeADD_PP*)p)->i1;
-            int d1 = AMREX_IPARSER_GET_DATA(i);
+            auto d1 = AMREX_IPARSER_GET_DATA(i);
             i     = ((IParserExeADD_PP*)p)->i2;
-            int d2 = AMREX_IPARSER_GET_DATA(i);
+            auto d2 = AMREX_IPARSER_GET_DATA(i);
             pstack.push(d1+d2);
             p     += sizeof(IParserExeADD_PP);
             break;
@@ -382,9 +382,9 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_SUB_PP:
         {
             int i = ((IParserExeSUB_PP*)p)->i1;
-            int d1 = AMREX_IPARSER_GET_DATA(i);
+            auto d1 = AMREX_IPARSER_GET_DATA(i);
             i     = ((IParserExeSUB_PP*)p)->i2;
-            int d2 = AMREX_IPARSER_GET_DATA(i);
+            auto d2 = AMREX_IPARSER_GET_DATA(i);
             pstack.push(d1-d2);
             p     += sizeof(IParserExeSUB_PP);
             break;
@@ -392,9 +392,9 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_MUL_PP:
         {
             int i = ((IParserExeMUL_PP*)p)->i1;
-            int d1 = AMREX_IPARSER_GET_DATA(i);
+            auto d1 = AMREX_IPARSER_GET_DATA(i);
             i     = ((IParserExeMUL_PP*)p)->i2;
-            int d2 = AMREX_IPARSER_GET_DATA(i);
+            auto d2 = AMREX_IPARSER_GET_DATA(i);
             pstack.push(d1*d2);
             p     += sizeof(IParserExeMUL_PP);
             break;
@@ -402,9 +402,9 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_DIV_PP:
         {
             int i = ((IParserExeDIV_PP*)p)->i1;
-            int d1 = AMREX_IPARSER_GET_DATA(i);
+            auto d1 = AMREX_IPARSER_GET_DATA(i);
             i     = ((IParserExeDIV_PP*)p)->i2;
-            int d2 = AMREX_IPARSER_GET_DATA(i);
+            auto d2 = AMREX_IPARSER_GET_DATA(i);
             pstack.push(d1/d2);
             p      += sizeof(IParserExeDIV_PP);
             break;
@@ -412,7 +412,7 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_NEG_P:
         {
             int i = ((IParserExeNEG_P*)p)->i;
-            int d = AMREX_IPARSER_GET_DATA(i);
+            auto d = AMREX_IPARSER_GET_DATA(i);
             pstack.push(-d);
             p     += sizeof(IParserExeNEG_P);
             break;
@@ -450,7 +450,7 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_ADD_PN:
         {
             int i = ((IParserExeADD_PN*)p)->i;
-            int d = AMREX_IPARSER_GET_DATA(i);
+            auto d = AMREX_IPARSER_GET_DATA(i);
             pstack.top() += d;
             p         += sizeof(IParserExeADD_PN);
             break;
@@ -458,7 +458,7 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_SUB_PN:
         {
             int i = ((IParserExeSUB_PN*)p)->i;
-            int d = AMREX_IPARSER_GET_DATA(i);
+            auto d = AMREX_IPARSER_GET_DATA(i);
             pstack.top() = (d - pstack.top()) * (((IParserExeSUB_PN*)p)->sign);
             p         += sizeof(IParserExeSUB_PN);
             break;
@@ -466,7 +466,7 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_MUL_PN:
         {
             int i = ((IParserExeMUL_PN*)p)->i;
-            int d = AMREX_IPARSER_GET_DATA(i);
+            auto d = AMREX_IPARSER_GET_DATA(i);
             pstack.top() *= d;
             p         += sizeof(IParserExeMUL_PN);
             break;
@@ -474,7 +474,7 @@ int iparser_exe_eval (const char* p, int const* x)
         case IPARSER_EXE_DIV_PN:
         {
             int i = ((IParserExeDIV_PN*)p)->i;
-            int d = AMREX_IPARSER_GET_DATA(i);
+            auto d = AMREX_IPARSER_GET_DATA(i);
             if (((IParserExeDIV_PN*)p)->reverse) {
                 pstack.top() /= d;
             } else {
@@ -485,9 +485,9 @@ int iparser_exe_eval (const char* p, int const* x)
         }
         case IPARSER_EXE_IF:
         {
-            int cond = pstack.top();
+            auto cond = pstack.top();
             pstack.pop();
-            if (cond == 0.0) { // false branch
+            if (cond == 0) { // false branch
                 p += ((IParserExeIF*)p)->offset;
             }
             p += sizeof(IParserExeIF);
