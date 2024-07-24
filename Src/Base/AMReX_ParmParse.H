@@ -4,6 +4,8 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX_INT.H>
+#include <AMReX_IParser.H>
+#include <AMReX_Parser.H>
 #include <AMReX_TypeTraits.H>
 
 #include <array>
@@ -1061,6 +1063,18 @@ public:
 
     //! Remove given name from the table.
     int remove (const char* name);
+
+    //! Make Parser using given string `func` as function body and `vars` as
+    //! variable names. Constants known to ParmParse will be set. It's a
+    //! runtime error, if there are unknown symbols in `func`.
+    Parser makeParser (std::string const& func,
+                       Vector<std::string> const& vars) const;
+
+    //! Make IParser using given string `func` as function body and `vars`
+    //! as variable names. Constants known to ParmParse will be set. It's a
+    //! runtime error, if there are unknown symbols in `func`.
+    IParser makeIParser (std::string const& func,
+                         Vector<std::string> const& vars) const;
 
     /**
     * \brief Construct an initial ParmParse object from the argc and argv

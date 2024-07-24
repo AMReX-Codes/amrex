@@ -1,10 +1,8 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
 #include <AMReX_Box.H>
-#include <AMReX_IParser.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_Parser.H>
 #include <AMReX_Print.H>
 
 #include <algorithm>
@@ -937,19 +935,13 @@ void pp_print_unused (const std::string& pfx, const ParmParse::Table& table)
     }
 }
 
-template <typename T>
-bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
-                const std::string& name, const std::string& val, T& ref)
+template <typename T, typename PARSER_t = std::conditional_t<std::is_integral_v<T>,
+                                                             IParser, Parser>>
+PARSER_t
+pp_make_parser (std::string const& func, Vector<std::string> const& vars,
+                ParmParse::Table const& table, std::string const& parser_prefix)
 {
-    using PARSER_t = std::conditional_t<std::is_integral_v<T>, IParser, Parser>;
     using value_t =  std::conditional_t<std::is_integral_v<T>, int, double>;
-
-    auto& recursive_symbols = g_parser_recursive_symbols[OpenMP::get_thread_num()];
-    if (auto found = recursive_symbols.find(name); found != recursive_symbols.end()) {
-        amrex::Error("ParmParse: recursive reference to "+name+" is not allowed");
-    } else {
-        recursive_symbols.insert(name);
-    }
 
     std::vector<std::string> prefixes;
     prefixes.reserve(3);
@@ -961,8 +953,13 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
         prefixes.emplace_back(ParmParse::ParserPrefix+".");
     }
 
-    PARSER_t parser(val);
+    PARSER_t parser(func);
+
     auto symbols = parser.symbols();
+    for (auto const& var : vars) {
+        symbols.erase(var);
+    }
+
     for (auto const& s : symbols) {
         value_t v = 0;
         bool r = false;
@@ -972,14 +969,33 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
             if (r) { break; }
         }
         if (r == false) {
-            std::string msg("ParmParse: failed to parse ");
-            msg.append(name).append(" = ").append(val);
-            amrex::Error(msg);
+            amrex::Error("ParmParse: failed to parse " + func);
         }
         parser.setConstant(s, v);
     }
+    if (!vars.empty()) {
+        parser.registerVariables(vars);
+    }
+
+    return parser;
+}
+
+template <typename T>
+bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
+                const std::string& name, const std::string& val, T& ref)
+{
+    auto& recursive_symbols = g_parser_recursive_symbols[OpenMP::get_thread_num()];
+    if (auto found = recursive_symbols.find(name); found != recursive_symbols.end()) {
+        amrex::Error("ParmParse: recursive reference to "+name+" is not allowed");
+        return false;
+    } else {
+        recursive_symbols.insert(name);
+    }
+
+    auto parser = pp_make_parser<T>(val, {}, table, parser_prefix);
     auto exe = parser.template compileHost<0>();
     ref = static_cast<T>(exe());
+
     recursive_symbols.erase(name);
     return true;
 }
@@ -1844,6 +1860,20 @@ int
 ParmParse::queryWithParser (const char* name, double& ref) const
 {
     return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
+}
+
+Parser
+ParmParse::makeParser (std::string const& func,
+                       Vector<std::string> const& vars) const
+{
+    return pp_make_parser<double>(func, vars, *m_table, m_parser_prefix);
+}
+
+IParser
+ParmParse::makeIParser (std::string const& func,
+                        Vector<std::string> const& vars) const
+{
+    return pp_make_parser<long long>(func, vars, *m_table, m_parser_prefix);
 }
 
 }
