@@ -457,7 +457,7 @@ result truncates towards negative infinity. Single quotes ``'`` are allowed
 as a separator for :cpp:`IParser` numbers just like C++ integer
 literals. Additionally, a floating point like number with a positive
 exponent may be accepted as an integer if it is reasonable to do so. For
-example, it's okay to have ``1.234e3``, but ``1.23e2`` is an error.
+example, it's okay to have ``1.234e3``, but ``1.234e2`` is an error.
 
 .. _sec:basics:initialize:
 
