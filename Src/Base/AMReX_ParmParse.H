@@ -22,6 +22,7 @@ class Box;
 template<int dim>
 class IntVectND;
 using IntVect = IntVectND<AMREX_SPACEDIM>;
+class RealVect;
 
 //
 // ParmParse class implements a simple database for the storage and
@@ -903,6 +904,28 @@ public:
                   int               num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
     void addarr (const char* name, const std::vector<Box>& refd);
+
+    /*
+     * \brief Query IntVect from array
+     *
+     * This reads IntVect from an array (e.g., `8 16 8`), not the format
+     * using parentheses (e.g., `(8,16,8)`).
+     */
+    int queryarr (const char* name, IntVect& ref) const;
+
+    /*
+     * \brief Get IntVect from array
+     *
+     * This reads IntVect from an array (e.g., `8 16 8`), not the format
+     * using parentheses (e.g., `(8,16,8)`).
+     */
+    void getarr (const char* name, IntVect& ref) const;
+
+    //! Query RealVect from array
+    int queryarr (const char* name, RealVect& ref) const;
+
+    //! Get RealVect from array
+    void getarr (const char* name, RealVect& ref) const;
 
     template <typename T, std::size_t N>
     void get (const char* name, std::array<T,N>& ref) const {
