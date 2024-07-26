@@ -373,7 +373,7 @@ int main (int argc, char* argv[])
         int count = 0;
         int x = 11;
         {
-            auto f = [&] (std::string const& s) -> int
+            auto f = [&] (std::string const& s)
             {
                 amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
                 IParser iparser(s);
@@ -390,7 +390,7 @@ int main (int argc, char* argv[])
             AMREX_ALWAYS_ASSERT(f("x/13/5") == ((x/13)/5));
             AMREX_ALWAYS_ASSERT(f("13/x/5") == ((13/x)/5));
 
-            auto g = [&] (std::string const& s, std::string const& c, int cv) -> int
+            auto g = [&] (std::string const& s, std::string const& c, int cv)
             {
                 amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
                 IParser iparser(s);
@@ -408,7 +408,7 @@ int main (int argc, char* argv[])
             AMREX_ALWAYS_ASSERT(g("x/b/5", "b", 13) == ((x/13)/5));
             AMREX_ALWAYS_ASSERT(g("b/x/5", "b", 13) == ((13/x)/5));
 
-            auto h = [&] (std::string const& s) -> int
+            auto h = [&] (std::string const& s)
             {
                 amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
                 IParser iparser(s);
@@ -435,6 +435,31 @@ int main (int argc, char* argv[])
                     }
                 }
             }
+
+            AMREX_ALWAYS_ASSERT(h("123456789012345") == 123456789012345LL);
+            AMREX_ALWAYS_ASSERT(h("123456789012345.") == 123456789012345LL);
+            AMREX_ALWAYS_ASSERT(h("123'456'789'012'345") == 123456789012345LL);
+            AMREX_ALWAYS_ASSERT(h("1.23456789012345e14") == 123456789012345LL);
+            AMREX_ALWAYS_ASSERT(h("1.0E3") == 1000);
+            AMREX_ALWAYS_ASSERT(h("2**40") == 1024LL*1024LL*1024LL*1024LL);
+
+            auto test_bad_number = [&] (std::string const& s)
+            {
+                amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
+                try {
+                    IParser iparser(s);
+                    auto exe = iparser.compileHost<0>();
+                    auto r = exe();
+                    amrex::ignore_unused(r);
+                    return false;
+                } catch (std::runtime_error const& e) {
+                    amrex::Print() << "    Expected error: " << e.what() << '\n';
+                    return true;
+                }
+            };
+            AMREX_ALWAYS_ASSERT(test_bad_number("1000000e-4"));
+            AMREX_ALWAYS_ASSERT(test_bad_number("1.234e2"));
+            AMREX_ALWAYS_ASSERT(test_bad_number("3.14"));
         }
         amrex::Print() << "\nAll IParser tests passed\n\n";
     }

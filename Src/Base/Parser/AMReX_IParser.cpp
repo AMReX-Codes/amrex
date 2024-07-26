@@ -54,7 +54,7 @@ IParser::operator bool () const
 }
 
 void
-IParser::setConstant (std::string const& name, int c)
+IParser::setConstant (std::string const& name, long long c)
 {
     if (m_data && m_data->m_iparser) {
         iparser_setconst(m_data->m_iparser, name.c_str(), c);

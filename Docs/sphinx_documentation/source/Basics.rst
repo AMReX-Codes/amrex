@@ -594,7 +594,11 @@ Besides :cpp:`amrex::Parser` for floating point numbers, AMReX also provides
 similarity, but floating point number specific functions (e.g., ``sqrt``,
 ``sin``, etc.) are not supported in ``IParser``.  In addition to ``/`` whose
 result truncates towards zero, the integer parser also supports ``//`` whose
-result truncates towards negative infinity.
+result truncates towards negative infinity. Single quotes ``'`` are allowed
+as a separator for :cpp:`IParser` numbers just like C++ integer
+literals. Additionally, a floating point like number with a positive
+exponent may be accepted as an integer if it is reasonable to do so. For
+example, it's okay to have ``1.234e3``, but ``1.234e2`` is an error.
 
 .. _sec:basics:initialize:
 
