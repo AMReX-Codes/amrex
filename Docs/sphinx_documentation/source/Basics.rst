@@ -224,17 +224,17 @@ file is a series of
 definitions in the form of ``prefix.name = value value ....`` For each line,
 text after # are comments. Here is an example inputs file.
 
-    .. highlight:: python
+.. highlight:: python
 
-    ::
+::
 
-        nsteps    = 100               # integer
-        nsteps    = 1000              # nsteps appears a second time
-        dt        = 0.03              # floating point number
-        ncells    = 128 64 32         # a list of 3 ints
-        xrange    = -0.5 0.5          # a list of 2 reals
-        title     = "Three Kingdoms"  # a string
-        hydro.cfl = 0.8               # with prefix, hydro
+    nsteps    = 100               # integer
+    nsteps    = 1000              # nsteps appears a second time
+    dt        = 0.03              # floating point number
+    ncells    = 128 64 32         # a list of 3 ints
+    xrange    = -0.5 0.5          # a list of 2 reals
+    title     = "Three Kingdoms"  # a string
+    hydro.cfl = 0.8               # with prefix, hydro
 
 The following code shows how to use :cpp:`ParmParse` to get/query the values.
 
@@ -274,6 +274,147 @@ by default returns the last one. The difference between :cpp:`query` and
 :cpp:`get` should also be noted. It is a runtime error if :cpp:`get` fails to
 get the value, whereas :cpp:`query` returns an error code without generating a
 runtime error that will abort the run.
+
+Math Expressions
+----------------
+
+:cpp:`ParmParse` supports math expressions for integers and floating point
+numbers. For example,
+
+.. highlight:: python
+
+::
+
+    # three numbers. whitespaces inside `""` are okay.
+    f = 3+4  99  "5 + 6"
+
+    # two numbers. `\` is for continuation
+    g = 3.1+4.1 \
+        5.0+6.6
+
+    # two numbers unless using [query|get]WithParser
+    w = 1 -2
+
+    my_constants.alpha = 5.
+    amrex.c = c
+
+    # must use [query|get]WithParser
+    amrex.foo = sin( pi/2 ) + alpha + -amrex.c**2/c^2
+
+    # either [query|get] or [query|get]WithParser is okay
+    amrex.bar = sin(pi/2)+alpha+-amrex.c**2/c^2
+
+    geom.prob_lo = 2*sin(pi/4)/sqrt(2)  sin(pi/2)+cos(pi/2)  -(sin(pi*3/2)+cos(pi*3/2))
+
+    # three numbers. `\` is for continuation
+    geom.prob_hi =  "2*sin(pi/4)/sqrt(2)" \
+                    "sin(pi/2) + cos(pi/2)" \
+                    -(sin(pi*3/2)+cos(pi*3/2))
+
+can be processed by
+
+.. highlight:: c++
+
+::
+
+    {
+        ParmParse::SetParserPrefix("physical_constants");
+        ParmParse pp("physical_constants");
+        pp.add("c", 299792458.);
+        pp.add("pi", 3.14159265358979323846);
+    }
+    {
+        ParmParse pp;
+
+        double f0 = -1;
+        pp.query("f", f0);
+        std::cout << " double f = " << f0 << '\n';
+
+        std::vector<int> f;
+        pp.queryarr("f", f);
+        std::cout << " int f[3] = {" << f[0] << ", " << f[1] << ", "
+                  << f[2] << "}\n";
+
+        std::vector<double> g;
+        pp.queryarr("g", g);
+        std::cout << " double g[] = " << g[0] << " " << g[1] << '\n';
+
+        double w;
+        pp.query("w", w);
+        std::cout << " w = " << w << " with query\n";
+        pp.queryWithParser("w", w);
+        std::cout << " w = " << w << " with queryParser\n";
+    }
+    {
+        ParmParse pp("amrex", "my_constants");
+        double foo = -1, bar;
+        pp.getWithParser("foo", foo);
+        pp.get("bar", bar);
+        std::cout << " foo = " << foo << ", bar = " << bar << '\n';
+    }
+    {
+        ParmParse pp;
+        std::array<double,3> prob_lo, prob_hi;
+        pp.get("geom.prob_lo", prob_lo);
+        pp.get("geom.prob_hi", prob_hi);
+        std::cout << " double prob_lo[] = {" << prob_lo[0] << ", "
+                  << prob_lo[1] << ", " << prob_lo[2] << "}\n"
+                  << " double prob_hi[] = {" << prob_hi[0] << ", "
+                  << prob_hi[1] << ", " << prob_hi[2] << "}\n";
+    }
+
+The results will be
+
+.. highlight:: console
+
+::
+
+    double f = 7
+    int f[3] = {7, 99, 11}
+    double g[] = 7.2 11.6
+    w = 1 with query
+    w = -1 with queryParser
+    foo = 5, bar = 5
+    double prob_lo[] = {1, 1, 1}
+    double prob_hi[] = {1, 1, 1}
+
+Note that the empty spaces are significant for math expressions unless they
+are inside a pair of ``"`` or explicitly parsed by
+:cpp:`ParmParse::queryWithParser` or :cpp:`ParmParse::getWithParser`. If the
+expression contains another variable, it will be looked up by
+:cpp:`ParmParse`. :cpp:`ParmParse`'s constructor accepts an optional second
+argument, ``parser_prefix``. When a variable in a math expression is being
+looked up, it will first try to find it by using the exact name of the
+variable. If this attempt fails and the :cpp:`ParmParse` object has a
+non-empty non-static member ``parser_prefix``, it will try again, this time
+looking up the variable by prefixing its name with the value of
+``parser_prefix`` followed by a ``.``. If this attempt also fails and the
+:cpp:`ParmParse` class has a non-empty static member ``ParserPrefix`` (which
+can be set by :cpp:`ParmParse::SetParserPrefix`), it will try again, this
+time looking up the variable by prefixing its name with the value of
+``ParserPrefix`` followed by a ``.``.
+
+The variables in :cpp:`ParmParse` math expressions are not evaluated until
+they are referenced. If a variable is defined multiple times, the last
+occurrence will override previous ones even if it appears after the variable
+has been referenced. This behavior is demonstrated in the following example.
+
+.. highlight:: python
+
+::
+
+    foo.a = 1
+    foo.b = foo.a
+    foo.a = 2
+
+will become
+
+.. highlight:: python
+
+::
+
+    foo.a = 2
+    foo.b = 2
 
 Overriding Parameters with Command-Line Arguments
 -------------------------------------------------
