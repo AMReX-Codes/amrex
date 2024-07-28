@@ -91,7 +91,7 @@ public:
           btype(t)
         {}
 
-    template <typename T, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+    template <typename T, int Tdim=dim, std::enable_if_t<( 1<=Tdim && Tdim<=3 ), int> = 0>
     AMREX_GPU_HOST_DEVICE
     explicit BoxND (Array4<T> const& a) noexcept
         : smallend(a.begin),
@@ -757,6 +757,59 @@ public:
         smallend[direction] = slab_index;
         bigend[direction] = slab_index;
         return *this;
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr std::size_t ndims () noexcept {
+        return static_cast<std::size_t>(dim);
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static constexpr int indims () noexcept {
+        return dim;
+    }
+
+    /**
+    * \brief Returns a new BoxND of dimension new_dim and
+    * assigns the first new_dim dimension of this BoxND to it.
+    */
+    template<int new_dim>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    BoxND<new_dim> shrink () const noexcept {
+        static_assert(new_dim <= dim);
+        auto lo = smallend.template shrink<new_dim>();
+        auto hi = bigend.template shrink<new_dim>();
+        auto typ = btype.template shrink<new_dim>();
+        return BoxND<new_dim>(lo, hi, typ);
+    }
+
+    /**
+    * \brief Returns a new BoxND of size new_dim and
+    * assigns all values of this BoxND to it and
+    * (small=0, big=0, typ=CELL) to the remaining elements.
+    */
+    template<int new_dim>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    BoxND<new_dim> expand () const noexcept {
+        static_assert(new_dim >= dim);
+        auto lo = smallend.template expand<new_dim>(0);
+        auto hi = bigend.template expand<new_dim>(0);
+        auto typ = btype.template expand<new_dim>(IndexType::CellIndex::CELL);
+        return BoxND<new_dim>(lo, hi, typ);
+    }
+
+    /**
+    * \brief Returns a new BoxND of size new_dim
+    * by either shrinking or expanding this BoxND
+    */
+    template<int new_dim>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    BoxND<new_dim> resize () const noexcept {
+        if constexpr (new_dim > dim) {
+            return expand<new_dim>();
+        } else {
+            return shrink<new_dim>();
+        }
     }
 
 private:
@@ -1601,6 +1654,13 @@ namespace detail {
     std::ostream& box_write (std::ostream& os, const int * smallend, const int * bigend,
                              const int * type, int dim);
     std::istream& box_read (std::istream& is, int * smallend, int * bigend, int * type, int dim);
+
+    template<std::size_t...Ns, class T, class U>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
+    auto BoxSplit_imp (std::index_sequence<Ns...>,
+                       const T& lo, const T& hi, const U& typ) noexcept {
+        return makeTuple(BoxND(get<Ns>(lo), get<Ns>(hi), get<Ns>(typ))...);
+    }
 }
 
 //! Write an ASCII representation to the ostream.
@@ -1620,6 +1680,73 @@ std::istream& operator>> (std::istream& is, BoxND<dim>& bx) {
     detail::box_read(is, small.begin(), big.begin(), type.begin(), dim);
     bx = BoxND<dim>{small, big, type};
     return is;
+}
+
+/**
+* \brief Returns a BoxND obtained by concatenating the input BoxNDs.
+* The dimension of the return value equals the sum of the dimensions of the inputted BoxNDs.
+*/
+template<int d, int...dims>
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+constexpr BoxND<detail::get_sum<d, dims...>()>
+BoxCat (const BoxND<d>& bx, const BoxND<dims>&...boxes) noexcept {
+    auto lo = IntVectCat(bx.smallEnd(), boxes.smallEnd()...);
+    auto hi = IntVectCat(bx.bigEnd(), boxes.bigEnd()...);
+    auto typ = IndexTypeCat(bx.ixType(), boxes.ixType()...);
+    return BoxND<detail::get_sum<d, dims...>()>{lo, hi, typ};
+}
+
+/**
+* \brief Returns a tuple of BoxNDs obtained by splitting the input BoxND
+* according to the dimensions specified by the template arguments.
+*/
+template<int d, int...dims>
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+constexpr GpuTuple<BoxND<d>, BoxND<dims>...>
+BoxSplit (const BoxND<detail::get_sum<d, dims...>()>& bx) noexcept {
+    auto lo = IntVectSplit<d, dims...>(bx.smallEnd());
+    auto hi = IntVectSplit<d, dims...>(bx.bigEnd());
+    auto typ = IndexTypeSplit<d, dims...>(bx.ixType());
+    return detail::BoxSplit_imp(std::make_index_sequence<1 + sizeof...(dims)>(), lo, hi, typ);
+}
+
+/**
+* \brief Returns a new BoxND of dimension new_dim and
+* assigns the first new_dim dimension of this BoxND to it.
+*/
+template<int new_dim, int old_dim>
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+constexpr BoxND<new_dim>
+BoxShrink (const BoxND<old_dim>& bx) noexcept {
+    return bx.template shrink<new_dim>();
+}
+
+/**
+* \brief Returns a new BoxND of size new_dim and
+* assigns all values of this BoxND to it and
+* (small=0, big=0, typ=CELL) to the remaining elements.
+*/
+template<int new_dim, int old_dim>
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+constexpr BoxND<new_dim>
+BoxExpand (const BoxND<old_dim>& bx) noexcept {
+    return bx.template expand<new_dim>();
+}
+
+/**
+* \brief Returns a new BoxND of size new_dim
+* by either shrinking or expanding this BoxND
+*/
+template<int new_dim, int old_dim>
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+constexpr BoxND<new_dim>
+BoxResize (const BoxND<old_dim>& bx) noexcept {
+    return bx.template resize<new_dim>();
 }
 
 template<int dim>
