@@ -318,11 +318,33 @@ public:
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool cellCentered () const noexcept { return !btype.any(); }
 
+    //! Assert that there are no int/Long overflows when calling length or numPts.
+    void checkOverflow () const noexcept {
+        if (ok()) {
+            for (int i = 0; i < dim; ++i) {
+                auto lo = static_cast<Long>(smallend[i]);
+                auto hi = static_cast<Long>(bigend[i]);
+                Long len = hi - lo + 1;
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(len>=0 && len<std::numeric_limits<int>::max(),
+                    "Overflow when computing length of box");
+            }
+            auto num_pts = static_cast<Long>(length(0));
+            for (int i = 1; i < dim; ++i) {
+                auto len = static_cast<Long>(length(i));
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(num_pts == 0 || len == 0 ||
+                    num_pts <= std::numeric_limits<Long>::max() / len,
+                    "Overflow when computing numPts of box");
+                num_pts *= len;
+            }
+        }
+    }
+
     /**
     * \brief Returns the number of points contained in the BoxND.
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Long numPts () const noexcept {
+        AMREX_IF_ON_HOST((checkOverflow();))
         if (ok()) {
             auto num_pts = static_cast<Long>(length(0));
             for (int i = 1; i < dim; ++i) {
