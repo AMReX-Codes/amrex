@@ -1774,8 +1774,8 @@ ParmParse::queryarr (const char* name, IntVect& ref) const
 {
     std::vector<int> v;
     int exist = this->queryarr(name, v);
-    AMREX_ALWAYS_ASSERT(v.size() == AMREX_SPACEDIM);
     if (exist) {
+        AMREX_ALWAYS_ASSERT(v.size() == AMREX_SPACEDIM);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) { ref[i] = v[i]; }
     }
     return exist;
@@ -1795,8 +1795,8 @@ ParmParse::queryarr (const char* name, RealVect& ref) const
 {
     std::vector<Real> v;
     int exist = this->queryarr(name, v);
-    AMREX_ALWAYS_ASSERT(v.size() == AMREX_SPACEDIM);
     if (exist) {
+        AMREX_ALWAYS_ASSERT(v.size() == AMREX_SPACEDIM);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) { ref[i] = v[i]; }
     }
     return exist;
