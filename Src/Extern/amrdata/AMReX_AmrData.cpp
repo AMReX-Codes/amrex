@@ -34,73 +34,6 @@ using std::ifstream;
 #define VSHOWVAL(verbose, val) { if(verbose) { \
                  cout << #val << " = " << val << endl; } }
 
-
-#if defined( BL_FORT_USE_UPPERCASE )
-#  if (BL_SPACEDIM == 1)
-#    define   FORT_PCINTERP    PCINTERP1D
-#  elif (BL_SPACEDIM == 2)
-#    define   FORT_CINTERP     CINTERP2D
-#    define   FORT_PCINTERP    PCINTERP2D
-#    define   FORT_CARTGRIDMINMAX CARTGRIDMINMAX2D
-#  elif (BL_SPACEDIM == 3)
-#    define   FORT_CINTERP     CINTERP3D
-#    define   FORT_PCINTERP    PCINTERP3D
-#    define   FORT_CARTGRIDMINMAX CARTGRIDMINMAX3D
-#  endif
-#elif defined( BL_FORT_USE_LOWERCASE )
-#  if (BL_SPACEDIM == 1)
-#    define   FORT_PCINTERP    pcinterp1d
-#  elif (BL_SPACEDIM == 2)
-#    define   FORT_CINTERP     cinterp2d
-#    define   FORT_PCINTERP    pcinterp2d
-#    define   FORT_CARTGRIDMINMAX cartgridminmax2d
-#  elif (BL_SPACEDIM == 3)
-#    define   FORT_CINTERP     cinterp3d
-#    define   FORT_PCINTERP    pcinterp3d
-#    define   FORT_CARTGRIDMINMAX cartgridminmax3d
-#  endif
-#else
-#  if (BL_SPACEDIM == 1)
-#    define   FORT_PCINTERP    pcinterp1d_
-#  elif (BL_SPACEDIM == 2)
-#    define   FORT_CINTERP     cinterp2d_
-#    define   FORT_PCINTERP    pcinterp2d_
-#    define   FORT_CARTGRIDMINMAX cartgridminmax2d_
-#  elif (BL_SPACEDIM == 3)
-#    define   FORT_CINTERP     cinterp3d_
-#    define   FORT_PCINTERP    pcinterp3d_
-#    define   FORT_CARTGRIDMINMAX cartgridminmax3d_
-#  endif
-#endif
-
-
-extern "C" {
-#if (BL_SPACEDIM != 1)
-  void FORT_CINTERP(amrex::Real *fine, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
-                  const int *fblo, const int *fbhi,
-                  const int &nvar, const int &lratio,
-                  const amrex::Real *crse, const int &clo, const int &chi,
-                  const int *cslo, const int *cshi,
-                  const int *fslo, const int *fshi,
-                  amrex::Real *cslope, const int &c_len,
-                  amrex::Real *fslope, amrex::Real *fdat, const int &f_len,
-                  amrex::Real *foff);
-#endif
-
-  void FORT_PCINTERP(amrex::Real *fine, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
-                   const int *fblo, const int *fbhi,
-                   const int &lrat, const int &nvar,
-                   const amrex::Real *crse, AMREX_ARLIM_P(clo), AMREX_ARLIM_P(chi),
-                   const int *cblo, const int *cbhi,
-                   amrex::Real *temp, const int &tlo, const int &thi);
-
-#if (BL_SPACEDIM != 1)
-  void FORT_CARTGRIDMINMAX (amrex::Real *data, AMREX_ARLIM_P(dlo), AMREX_ARLIM_P(dhi),
-                            const amrex::Real *vfrac, const amrex::Real &vfeps,
-                            amrex::Real &dmin, amrex::Real &dmax);
-#endif
-}
-
 namespace amrex {
 
 bool AmrData::verbose = false;
@@ -1775,7 +1708,7 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
   bool valid(false);  // does onBox intersect any grids (are minmax valid)
   Real minVal, maxVal;
   dataMin =  std::numeric_limits<Real>::max();
-  dataMax = -std::numeric_limits<Real>::max();
+  dataMax =  std::numeric_limits<Real>::lowest();
   Box overlap;
 
   //  our strategy here is to use the VisMF min and maxes if possible
@@ -1833,22 +1766,21 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
           if(visMFMin < dataMin || visMFMax > dataMax) {  // do it the hard way
             DefineFab(level, compIndex, gdx);
             DefineFab(level, vfIndex, gdx);
-            Real *ddat = (*dataGrids[level][compIndex])[gpli].dataPtr();
-            Real *vdat = (*dataGrids[level][vfIndex])[gpli].dataPtr();
-            const int *dlo = (*dataGrids[level][compIndex])[gpli].loVect();
-            const int *dhi = (*dataGrids[level][compIndex])[gpli].hiVect();
-
             overlap = onBox;
             overlap &= gpli.validbox();
             Real vfMaxVal = (*dataGrids[level][vfIndex])[gpli].max<RunOn::Host>(overlap, 0);
             if(vfMaxVal >= vfEps[level]) {
               ++cCountMixedFort;
               valid = true;
-
-              FORT_CARTGRIDMINMAX(ddat, AMREX_ARLIM(dlo), AMREX_ARLIM(dhi), vdat, vfEps[level],
-                                  minVal, maxVal);
-              dataMin = std::min(dataMin, minVal);
-              dataMax = std::max(dataMax, maxVal);
+              auto const& da = (*dataGrids[level][compIndex])[gpli].const_array();
+              auto const& va = (*dataGrids[level][vfIndex])[gpli].const_array();
+              amrex::LoopOnCpu((*dataGrids[level][compIndex])[gpli].box(), [&] (int i, int j, int k)
+              {
+                  if (va(i,j,k) >= vfEps[level]) {
+                      dataMin = std::min(dataMin, da(i,j,k));
+                      dataMax = std::max(dataMax, da(i,j,k));
+                  }
+              });
             }
           } else {
             ++cCountMixedSkipped;
@@ -1861,22 +1793,21 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
         if(visMFMin < dataMin || visMFMax > dataMax) {  // do it the hard way
           DefineFab(level, compIndex, gdx);
           DefineFab(level, vfIndex, gdx);
-          Real *ddat = (*dataGrids[level][compIndex])[gpli].dataPtr();
-          Real *vdat = (*dataGrids[level][vfIndex])[gpli].dataPtr();
-          const int *dlo = (*dataGrids[level][compIndex])[gpli].loVect();
-          const int *dhi = (*dataGrids[level][compIndex])[gpli].hiVect();
-
           overlap = onBox;
           overlap &= gpli.validbox();
           Real vfMaxVal = (*dataGrids[level][vfIndex])[gpli].max<RunOn::Host>(overlap, 0);
           if(vfMaxVal >= vfEps[level]) {
             ++iCountMixedFort;
             valid = true;
-
-            FORT_CARTGRIDMINMAX(ddat, AMREX_ARLIM(dlo), AMREX_ARLIM(dhi), vdat, vfEps[level],
-                                minVal, maxVal);
-            dataMin = std::min(dataMin, minVal);
-            dataMax = std::max(dataMax, maxVal);
+            auto const& da = (*dataGrids[level][compIndex])[gpli].const_array();
+            auto const& va = (*dataGrids[level][vfIndex])[gpli].const_array();
+            amrex::LoopOnCpu((*dataGrids[level][compIndex])[gpli].box(), [&] (int i, int j, int k)
+            {
+                if (va(i,j,k) >= vfEps[level]) {
+                    dataMin = std::min(dataMin, da(i,j,k));
+                    dataMax = std::max(dataMax, da(i,j,k));
+                }
+            });
           } else {
             ++iCountAllBody;
           }
@@ -1964,58 +1895,6 @@ int AmrData::StateNumber(const string &statename) const {
 
 
 // ---------------------------------------------------------------
-void AmrData::Interp(FArrayBox &fine, FArrayBox &crse,
-                     const Box &fine_box, int lrat)
-{
-#if (BL_SPACEDIM == 1)
-    amrex::ignore_unused(fine, crse, fine_box, lrat);
-    amrex::Abort("AmrData::MinMax:  should not be here for 1d.");
-#else
-   BL_ASSERT(fine.box().contains(fine_box));
-   Box crse_bx(amrex::coarsen(fine_box,lrat));
-   Box fslope_bx(amrex::refine(crse_bx,lrat));
-   Box cslope_bx(crse_bx);
-   cslope_bx.grow(1);
-   BL_ASSERT(crse.box() == cslope_bx);
-
-   // alloc temp space for coarse grid slopes
-   Long cLen = cslope_bx.numPts();
-   Real *cslope = new Real[BL_SPACEDIM*cLen];
-   Long loslp    = cslope_bx.index(crse_bx.smallEnd());
-   Long hislp    = cslope_bx.index(crse_bx.bigEnd());
-   Long cslope_vol = cslope_bx.numPts();
-   Long clo = 1 - loslp;
-   Long chi = clo + cslope_vol - 1;
-   cLen = hislp - loslp + 1;
-
-   // alloc temp space for one strip of fine grid slopes
-   int dir;
-   int fLen = fslope_bx.longside(dir);
-   Real *fdat   = new Real[(BL_SPACEDIM+2)*fLen];
-   Real *foff   = fdat + fLen;
-   Real *fslope = foff + fLen;
-
-
-   // alloc tmp space for slope calc and to allow for vectorization
-   const int *fblo = fine_box.loVect();
-   const int *fbhi = fine_box.hiVect();
-   const int *cblo = crse_bx.loVect();
-   const int *cbhi = crse_bx.hiVect();
-   const int *fslo = fslope_bx.loVect();
-   const int *fshi = fslope_bx.hiVect();
-
-   FORT_CINTERP(fine.dataPtr(0),AMREX_ARLIM(fine.loVect()),AMREX_ARLIM(fine.hiVect()),
-               fblo,fbhi,fine.nComp(),lrat,
-               crse.dataPtr(0),clo,chi,cblo,cbhi,fslo,fshi,
-               cslope,cLen,fslope,fdat,fLen,foff);
-
-   delete [] fdat;
-   delete [] cslope;
-#endif
-}
-
-
-// ---------------------------------------------------------------
 void AmrData::PcInterp(FArrayBox &fine, const FArrayBox &crse,
                        const Box &subbox, int lrat)
 {
@@ -2026,27 +1905,15 @@ void AmrData::PcInterp(FArrayBox &fine, const FArrayBox &crse,
    Box fine_ovlp(subbox);
    fine_ovlp &= cfine;
    if(fine_ovlp.ok()) {
-      const int *fblo = fine_ovlp.smallEnd().getVect();
-      const int *fbhi = fine_ovlp.bigEnd().getVect();
-      Box crse_ovlp(fine_ovlp);
-      crse_ovlp.coarsen(lrat);
-      const int *cblo = crse_ovlp.smallEnd().getVect();
-      const int *cbhi = crse_ovlp.bigEnd().getVect();
-      Box fine_temp(crse_ovlp);
-      fine_temp.refine(lrat);
-      int tlo = fine_temp.smallEnd()[0];
-      int thi = fine_temp.bigEnd()[0];
-      int inextra(0);
-      if(fine_temp.ixType().test(0) == true) {  // node type
-        inextra = 1;
-      }
-      Real *tempSpace = new Real[thi-tlo+1+inextra];
-      FORT_PCINTERP(fine.dataPtr(0),AMREX_ARLIM(fine.loVect()),AMREX_ARLIM(fine.hiVect()),
-                   fblo,fbhi, lrat,fine.nComp(),
-                   crse.dataPtr(),AMREX_ARLIM(crse.loVect()),AMREX_ARLIM(crse.hiVect()),
-                   cblo,cbhi, tempSpace,tlo,thi);
-
-      delete [] tempSpace;
+       auto const& fa = fine.array();
+       auto const& ca = crse.const_array();
+       amrex::LoopOnCpu(fine_ovlp, fine.nComp(), [&] (int i, int j, int k, int n)
+       {
+           int ic = amrex::coarsen(i,lrat);
+           int jc = amrex::coarsen(j,lrat);
+           int kc = amrex::coarsen(k,lrat);
+           fa(i,j,k,n) = ca(ic,jc,kc,n);
+       });
    }
 }
 

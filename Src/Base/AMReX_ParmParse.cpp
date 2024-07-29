@@ -4,6 +4,7 @@
 #include <AMReX_OpenMP.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
+#include <AMReX_RealVect.H>
 
 #include <algorithm>
 #include <cctype>
@@ -14,6 +15,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <typeinfo>
+#include <type_traits>
 
 extern "C" void amrex_init_namelist (const char*);
 extern "C" void amrex_finalize_namelist ();
@@ -23,15 +25,18 @@ namespace amrex {
 namespace {
     bool initialized = false;
     ParmParse::Table g_table;
+    std::vector<std::set<std::string>> g_parser_recursive_symbols;
     namespace pp_detail {
         int verbose = -1;
     }
 }
 
 std::string const ParmParse::FileKeyword = "FILE";
+std::string       ParmParse::ParserPrefix;
 
-ParmParse::ParmParse (std::string prefix)
+ParmParse::ParmParse (std::string prefix, std::string parser_prefix)
     : m_prefix(std::move(prefix)),
+      m_parser_prefix(std::move(parser_prefix)),
       m_table(&g_table)
 {}
 
@@ -65,8 +70,8 @@ std::string pp_to_string (std::string const& name,
 enum PType
 {
     pDefn,
-    pValue,
     pEQ_sign,
+    pValue,
     pEOF
 };
 
@@ -616,9 +621,14 @@ bldTable (const char*& str, ParmParse::Table& tab)
     }
 }
 
+template <typename T>
+bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
+                const std::string& name, const std::string& val, T& ref);
+
 template <class T>
 bool
 squeryval (const ParmParse::Table& table,
+           const std::string&      parser_prefix,
            const std::string&      name,
            T&                      ref,
            int                     ival,
@@ -656,6 +666,16 @@ squeryval (const ParmParse::Table& table,
     bool ok = is(valname, ref);
     if ( !ok )
     {
+        if constexpr (std::is_same_v<T,int> ||
+                      std::is_same_v<T,long> ||
+                      std::is_same_v<T,long long> ||
+                      std::is_same_v<T,float> ||
+                      std::is_same_v<T,double>) {
+            if (pp_parser(table, parser_prefix, name, valname, ref)) {
+                return true;
+            }
+        }
+
         amrex::ErrorStream() << "ParmParse::queryval type mismatch on value number "
                              << ival << " of " << '\n';
         if ( occurrence == ParmParse::LAST )
@@ -680,12 +700,13 @@ squeryval (const ParmParse::Table& table,
 template <class T>
 void
 sgetval (const ParmParse::Table& table,
+         const std::string&      parser_prefix,
          const std::string&      name,
          T&                      ref,
          int                     ival,
          int                     occurrence)
 {
-    if ( squeryval(table, name,ref,ival,occurrence) == 0 )
+    if ( squeryval(table, parser_prefix, name,ref,ival,occurrence) == 0 )
     {
         amrex::ErrorStream() << "ParmParse::getval ";
         if ( occurrence >= 0 )
@@ -707,6 +728,7 @@ sgetval (const ParmParse::Table& table,
 template <class T>
 bool
 squeryarr (const ParmParse::Table& table,
+           const std::string&      parser_prefix,
            const std::string&      name,
            std::vector<T>&         ref,
            int                     start_ix,
@@ -757,6 +779,16 @@ squeryarr (const ParmParse::Table& table,
         bool ok = is(valname, ref[n]);
         if ( !ok )
         {
+            if constexpr (std::is_same_v<T,int> ||
+                          std::is_same_v<T,long> ||
+                          std::is_same_v<T,long long> ||
+                          std::is_same_v<T,float> ||
+                          std::is_same_v<T,double>) {
+                if (pp_parser(table, parser_prefix, name, valname, ref[n])) {
+                    continue;
+                }
+            }
+
             amrex::ErrorStream() << "ParmParse::queryarr type mismatch on value number "
                                  <<  n << " of ";
             if ( occurrence == ParmParse::LAST )
@@ -782,13 +814,14 @@ squeryarr (const ParmParse::Table& table,
 template <class T>
 void
 sgetarr (const ParmParse::Table& table,
+         const std::string&      parser_prefix,
          const std::string&      name,
          std::vector<T>&         ref,
          int                     start_ix,
          int                     num_val,
          int                     occurrence)
 {
-    if ( squeryarr(table,name,ref,start_ix,num_val,occurrence) == 0 )
+    if ( squeryarr(table,parser_prefix,name,ref,start_ix,num_val,occurrence) == 0 )
     {
         amrex::ErrorStream() << "ParmParse::sgetarr ";
         if ( occurrence >= 0 )
@@ -903,6 +936,71 @@ void pp_print_unused (const std::string& pfx, const ParmParse::Table& table)
     }
 }
 
+template <typename T, typename PARSER_t = std::conditional_t<std::is_integral_v<T>,
+                                                             IParser, Parser>>
+PARSER_t
+pp_make_parser (std::string const& func, Vector<std::string> const& vars,
+                ParmParse::Table const& table, std::string const& parser_prefix)
+{
+    using value_t =  std::conditional_t<std::is_integral_v<T>, int, double>;
+
+    std::vector<std::string> prefixes;
+    prefixes.reserve(3);
+    prefixes.emplace_back();
+    if (! parser_prefix.empty()) {
+        prefixes.emplace_back(parser_prefix+".");
+    }
+    if (! ParmParse::ParserPrefix.empty()) {
+        prefixes.emplace_back(ParmParse::ParserPrefix+".");
+    }
+
+    PARSER_t parser(func);
+
+    auto symbols = parser.symbols();
+    for (auto const& var : vars) {
+        symbols.erase(var);
+    }
+
+    for (auto const& s : symbols) {
+        value_t v = 0;
+        bool r = false;
+        for (auto const& pf : prefixes) {
+            r = squeryval(table, parser_prefix, pf+s, v,
+                          ParmParse::FIRST, ParmParse::LAST);
+            if (r) { break; }
+        }
+        if (r == false) {
+            amrex::Error("ParmParse: failed to parse " + func);
+        }
+        parser.setConstant(s, v);
+    }
+    if (!vars.empty()) {
+        parser.registerVariables(vars);
+    }
+
+    return parser;
+}
+
+template <typename T>
+bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
+                const std::string& name, const std::string& val, T& ref)
+{
+    auto& recursive_symbols = g_parser_recursive_symbols[OpenMP::get_thread_num()];
+    if (auto found = recursive_symbols.find(name); found != recursive_symbols.end()) {
+        amrex::Error("ParmParse: recursive reference to "+name+" is not allowed");
+        return false;
+    } else {
+        recursive_symbols.insert(name);
+    }
+
+    auto parser = pp_make_parser<T>(val, {}, table, parser_prefix);
+    auto exe = parser.template compileHost<0>();
+    ref = static_cast<T>(exe());
+
+    recursive_symbols.erase(name);
+    return true;
+}
+
 }  // End of unnamed namespace.
 
 std::string
@@ -942,6 +1040,8 @@ ParmParse::Initialize (int         argc,
     {
         amrex::Error("ParmParse::Initialize(): already initialized!");
     }
+
+    g_parser_recursive_symbols.resize(OpenMP::get_max_threads());
 
     ppinit(argc, argv, parfile, g_table);
 
@@ -1050,8 +1150,16 @@ ParmParse::Finalize ()
     amrex_finalize_namelist();
 #endif
 
+    g_parser_recursive_symbols.clear();
+
     pp_detail::verbose = -1;
     initialized = false;
+}
+
+void
+ParmParse::SetParserPrefix (std::string a_prefix)
+{
+    ParmParse::ParserPrefix = std::move(a_prefix);
 }
 
 void
@@ -1097,7 +1205,7 @@ ParmParse::getkth (const char* name,
                    bool&       ref,
                    int         ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival,k);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 void
@@ -1105,7 +1213,7 @@ ParmParse::get (const char* name,
                 bool&       ref,
                 int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival, LAST);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 int
@@ -1114,7 +1222,7 @@ ParmParse::querykth (const char* name,
                      bool&       ref,
                      int         ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival,k);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 int
@@ -1122,7 +1230,7 @@ ParmParse::query (const char* name,
                   bool&       ref,
                   int         ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival, LAST);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 void
@@ -1136,25 +1244,25 @@ ParmParse::add (const char* name,
 void
 ParmParse::getkth (const char* name, int k, int& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival,k);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 void
 ParmParse::get (const char* name, int& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival, LAST);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 int
 ParmParse::querykth (const char* name, int k, int& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival,k);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 int
 ParmParse::query (const char* name, int& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival, LAST);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 void
@@ -1167,28 +1275,28 @@ void
 ParmParse::getktharr (const char* name, int k, std::vector<int>& ref,
                       int start_ix, int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val,k);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val,k);
 }
 
 void
 ParmParse::getarr (const char* name, std::vector<int>& ref, int start_ix,
                    int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 int
 ParmParse::queryktharr (const char* name, int k, std::vector<int>& ref,
                         int start_ix, int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix,num_val,k);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val,k);
 }
 
 int
 ParmParse::queryarr (const char* name, std::vector<int>& ref, int start_ix,
                      int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 void
@@ -1202,25 +1310,25 @@ ParmParse::addarr (const char* name, const std::vector<int>& ref)
 void
 ParmParse::getkth (const char* name, int k, long& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival,k);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 void
 ParmParse::get (const char* name, long& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival, LAST);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 int
 ParmParse::querykth (const char* name, int k, long& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival,k);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 int
 ParmParse::query (const char* name, long& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival, LAST);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 void
@@ -1234,28 +1342,28 @@ void
 ParmParse::getktharr (const char* name, int k, std::vector<long>& ref,
                       int start_ix, int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val,k);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val,k);
 }
 
 void
 ParmParse::getarr (const char* name, std::vector<long>& ref, int start_ix,
                    int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 int
 ParmParse::queryktharr (const char* name, int k, std::vector<long>& ref,
                         int start_ix, int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix,num_val,k);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val,k);
 }
 
 int
 ParmParse::queryarr (const char* name, std::vector<long>& ref, int start_ix,
                      int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 void
@@ -1268,25 +1376,25 @@ ParmParse::addarr (const char* name, const std::vector<long>& ref)
 void
 ParmParse::getkth (const char* name, int k, long long& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival,k);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 void
 ParmParse::get (const char* name, long long& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival, LAST);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 int
 ParmParse::querykth (const char* name, int k, long long& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival,k);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 int
 ParmParse::query (const char* name, long long& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival, LAST);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 void
@@ -1299,28 +1407,28 @@ void
 ParmParse::getktharr (const char* name, int k, std::vector<long long>& ref,
                       int start_ix, int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val,k);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val,k);
 }
 
 void
 ParmParse::getarr (const char* name, std::vector<long long>& ref, int start_ix,
                    int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 int
 ParmParse::queryktharr (const char* name, int k, std::vector<long long>& ref,
                         int start_ix, int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix,num_val,k);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val,k);
 }
 
 int
 ParmParse::queryarr (const char* name, std::vector<long long>& ref, int start_ix,
                      int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 void
@@ -1333,25 +1441,25 @@ ParmParse::addarr (const char* name, const std::vector<long long>& ref)
 void
 ParmParse::getkth (const char* name, int k, float& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival,k);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 void
 ParmParse::get (const char* name, float& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival, LAST);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 int
 ParmParse::querykth (const char* name, int k, float& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival,k);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 int
 ParmParse::query (const char* name, float& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival, LAST);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 void
@@ -1364,28 +1472,28 @@ void
 ParmParse::getktharr (const char* name, int k, std::vector<float>& ref,
                       int start_ix, int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val,k);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val,k);
 }
 
 void
 ParmParse::getarr (const char* name, std::vector<float>& ref, int start_ix,
                    int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 int
 ParmParse::queryktharr (const char* name, int k, std::vector<float>& ref,
                         int start_ix, int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix, num_val,k);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix, num_val,k);
 }
 
 int
 ParmParse::queryarr (const char* name, std::vector<float>& ref, int start_ix,
                      int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 void
@@ -1400,25 +1508,25 @@ ParmParse::addarr (const char* name, const std::vector<float>& ref)
 void
 ParmParse::getkth (const char* name, int k, double& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival,k);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 void
 ParmParse::get (const char* name, double& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival, LAST);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 int
 ParmParse::querykth (const char* name, int k, double& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival,k);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 int
 ParmParse::query (const char* name, double& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival, LAST);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 void
@@ -1431,28 +1539,28 @@ void
 ParmParse::getktharr (const char* name, int k, std::vector<double>& ref,
                       int start_ix, int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val,k);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val,k);
 }
 
 void
 ParmParse::getarr (const char* name, std::vector<double>& ref, int start_ix,
                    int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 int
 ParmParse::queryktharr (const char* name, int k, std::vector<double>& ref,
                         int start_ix, int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix, num_val,k);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix, num_val,k);
 }
 
 int
 ParmParse::queryarr (const char* name, std::vector<double>& ref, int start_ix,
                      int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 void
@@ -1467,25 +1575,25 @@ ParmParse::addarr (const char* name, const std::vector<double>& ref)
 void
 ParmParse::getkth (const char* name, int k, std::string& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival,k);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 void
 ParmParse::get (const char* name, std::string& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival, LAST);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 int
 ParmParse::querykth (const char* name, int k, std::string& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival,k);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 int
 ParmParse::query (const char* name, std::string& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival, LAST);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 void
@@ -1498,28 +1606,28 @@ void
 ParmParse::getktharr (const char* name, int k, std::vector<std::string>& ref,
                       int start_ix, int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val,k);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val,k);
 }
 
 void
 ParmParse::getarr (const char* name, std::vector<std::string>& ref,
                    int start_ix, int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 int
 ParmParse::queryktharr (const char* name, int k, std::vector<std::string>& ref,
                         int start_ix, int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix, num_val,k);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix, num_val,k);
 }
 
 int
 ParmParse::queryarr (const char* name, std::vector<std::string>& ref,
                      int start_ix, int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 void
@@ -1534,25 +1642,25 @@ ParmParse::addarr (const char* name, const std::vector<std::string>& ref)
 void
 ParmParse::getkth (const char* name, int k, IntVect& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival,k);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 void
 ParmParse::get (const char* name, IntVect& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival, LAST);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 int
 ParmParse::querykth (const char* name, int k, IntVect& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival,k);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 int
 ParmParse::query (const char* name, IntVect& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival, LAST);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 void
@@ -1565,28 +1673,28 @@ void
 ParmParse::getktharr (const char* name, int k, std::vector<IntVect>& ref,
                       int start_ix, int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val,k);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val,k);
 }
 
 void
 ParmParse::getarr (const char* name, std::vector<IntVect>& ref,
                    int start_ix, int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 int
 ParmParse::queryktharr (const char* name, int k, std::vector<IntVect>& ref,
                         int start_ix, int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix, num_val,k);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix, num_val,k);
 }
 
 int
 ParmParse::queryarr (const char* name, std::vector<IntVect>& ref,
                      int start_ix, int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 void
@@ -1599,25 +1707,25 @@ ParmParse::addarr (const char* name, const std::vector<IntVect>& ref)
 void
 ParmParse::getkth (const char* name, int k, Box& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival,k);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 void
 ParmParse::get (const char* name, Box& ref, int ival) const
 {
-    sgetval(*m_table, prefixedName(name),ref,ival, LAST);
+    sgetval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 int
 ParmParse::querykth (const char* name, int k, Box& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival,k);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival,k);
 }
 
 int
 ParmParse::query (const char* name, Box& ref, int ival) const
 {
-    return squeryval(*m_table, prefixedName(name),ref,ival, LAST);
+    return squeryval(*m_table,m_parser_prefix, prefixedName(name),ref,ival, LAST);
 }
 
 void
@@ -1630,28 +1738,28 @@ void
 ParmParse::getktharr (const char* name, int k, std::vector<Box>& ref,
                       int start_ix, int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val,k);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val,k);
 }
 
 void
 ParmParse::getarr (const char* name, std::vector<Box>& ref,
                    int start_ix, int num_val) const
 {
-    sgetarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    sgetarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 int
 ParmParse::queryktharr (const char* name, int k, std::vector<Box>& ref,
                         int start_ix, int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix, num_val,k);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix, num_val,k);
 }
 
 int
 ParmParse::queryarr (const char* name, std::vector<Box>& ref,
                      int start_ix, int num_val) const
 {
-    return squeryarr(*m_table, prefixedName(name),ref,start_ix,num_val, LAST);
+    return squeryarr(*m_table,m_parser_prefix, prefixedName(name),ref,start_ix,num_val, LAST);
 }
 
 void
@@ -1660,6 +1768,48 @@ ParmParse::addarr (const char* name, const std::vector<Box>& ref)
     saddarr(prefixedName(name),ref);
 }
 
+
+int
+ParmParse::queryarr (const char* name, IntVect& ref) const
+{
+    std::vector<int> v;
+    int exist = this->queryarr(name, v);
+    if (exist) {
+        AMREX_ALWAYS_ASSERT(v.size() == AMREX_SPACEDIM);
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) { ref[i] = v[i]; }
+    }
+    return exist;
+}
+
+void
+ParmParse::getarr (const char* name, IntVect& ref) const
+{
+    std::vector<int> v;
+    this->getarr(name, v);
+    AMREX_ALWAYS_ASSERT(v.size() == AMREX_SPACEDIM);
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) { ref[i] = v[i]; }
+}
+
+int
+ParmParse::queryarr (const char* name, RealVect& ref) const
+{
+    std::vector<Real> v;
+    int exist = this->queryarr(name, v);
+    if (exist) {
+        AMREX_ALWAYS_ASSERT(v.size() == AMREX_SPACEDIM);
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) { ref[i] = v[i]; }
+    }
+    return exist;
+}
+
+void
+ParmParse::getarr (const char* name, RealVect& ref) const
+{
+    std::vector<Real> v;
+    this->getarr(name, v);
+    AMREX_ALWAYS_ASSERT(v.size() == AMREX_SPACEDIM);
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) { ref[i] = v[i]; }
+}
 
 //
 // Return number of occurrences of parameter name.
@@ -1703,6 +1853,70 @@ ParmParse::remove (const char* name)
     auto const pname = prefixedName(name);
     auto n = m_table->erase(name);
     return static_cast<int>(n);
+}
+
+namespace {
+template <class T>
+bool squeryWithParser (const ParmParse::Table& table,
+                       const std::string&      parser_prefix,
+                       const std::string&      name,
+                       T&                      ref)
+{
+    std::vector<std::string> vals;
+    bool exist = squeryarr(table, parser_prefix, name, vals,
+                           ParmParse::FIRST, ParmParse::ALL, ParmParse::LAST);
+    if (!exist) { return false; }
+
+    std::string combined_string;
+    for (auto const& v : vals) {
+        combined_string.append(v);
+    }
+    return pp_parser(table, parser_prefix, name, combined_string, ref);
+}
+}
+
+int
+ParmParse::queryWithParser (const char* name, int& ref) const
+{
+    return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
+}
+
+int
+ParmParse::queryWithParser (const char* name, long& ref) const
+{
+    return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
+}
+
+int
+ParmParse::queryWithParser (const char* name, long long& ref) const
+{
+    return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
+}
+
+int
+ParmParse::queryWithParser (const char* name, float& ref) const
+{
+    return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
+}
+
+int
+ParmParse::queryWithParser (const char* name, double& ref) const
+{
+    return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
+}
+
+Parser
+ParmParse::makeParser (std::string const& func,
+                       Vector<std::string> const& vars) const
+{
+    return pp_make_parser<double>(func, vars, *m_table, m_parser_prefix);
+}
+
+IParser
+ParmParse::makeIParser (std::string const& func,
+                        Vector<std::string> const& vars) const
+{
+    return pp_make_parser<long long>(func, vars, *m_table, m_parser_prefix);
 }
 
 }

@@ -4,6 +4,8 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX_INT.H>
+#include <AMReX_IParser.H>
+#include <AMReX_Parser.H>
 #include <AMReX_TypeTraits.H>
 
 #include <array>
@@ -20,6 +22,7 @@ class Box;
 template<int dim>
 class IntVectND;
 using IntVect = IntVectND<AMREX_SPACEDIM>;
+class RealVect;
 
 //
 // ParmParse class implements a simple database for the storage and
@@ -268,6 +271,17 @@ using IntVect = IntVectND<AMREX_SPACEDIM>;
 *    t = 1.5
 *    #endif
 *
+*  Math expression is supported for integers and reals. For example
+*
+*    n_cell = 128
+*    amrex.n_cell = n_cell*2 8 16**2
+*
+*  becomes
+*
+*    n_cell = 128
+*    amrex.n_cell = 256 8 256
+*
+*  More details can be found at https://amrex-codes.github.io/amrex/docs_html/Basics.html#parmparse
 */
 class ParmParse
 {
@@ -275,11 +289,13 @@ public:
     enum { LAST = -1, FIRST = 0, ALL = -1 };
     /**
     * \brief Construct an additional ParmParse object sharing the same
-    * internal table as any other such objects in existence.  If
-    * prefix is specified, load this string as the code prefix
-    * for this particular ParmParse object.
+    * internal table as any other such objects in existence.  If prefix is
+    * specified, load this string as the code prefix for this particular
+    * ParmParse object. If parser_prefix is specified, it will be used as
+    * prefixed in math expression evaluations.
     */
-    explicit ParmParse (std::string prefix = std::string());
+    explicit ParmParse (std::string prefix = std::string(),
+                        std::string parser_prefix = std::string());
 
     //! Returns true if name is in table.
     [[nodiscard]] bool contains (const char* name) const;
@@ -889,6 +905,28 @@ public:
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
     void addarr (const char* name, const std::vector<Box>& refd);
 
+    /*
+     * \brief Query IntVect from array
+     *
+     * This reads IntVect from an array (e.g., `8 16 8`), not the format
+     * using parentheses (e.g., `(8,16,8)`).
+     */
+    int queryarr (const char* name, IntVect& ref) const;
+
+    /*
+     * \brief Get IntVect from array
+     *
+     * This reads IntVect from an array (e.g., `8 16 8`), not the format
+     * using parentheses (e.g., `(8,16,8)`).
+     */
+    void getarr (const char* name, IntVect& ref) const;
+
+    //! Query RealVect from array
+    int queryarr (const char* name, RealVect& ref) const;
+
+    //! Get RealVect from array
+    void getarr (const char* name, RealVect& ref) const;
+
     template <typename T, std::size_t N>
     void get (const char* name, std::array<T,N>& ref) const {
         std::vector<T> v;
@@ -997,8 +1035,69 @@ public:
         return exist;
     }
 
+    /**
+     * \brief Query with Parser. If `name` is found, this uses amrex::Parser
+     * to parse the entire list of empty space separated values as a single
+     * scalar. The return value indicates whether it's found.
+     */
+    int queryWithParser (const char* name, int& ref) const;
+    int queryWithParser (const char* name, long& ref) const;
+    int queryWithParser (const char* name, long long& ref) const;
+    int queryWithParser (const char* name, float& ref) const;
+    int queryWithParser (const char* name, double& ref) const;
+
+    /**
+     * \brief Query with Parser. If `name` is found, this uses amrex::Parser
+     * to parse the entire list of empty space separated values as a single
+     * scalar. If not, the value in `ref` will be added to the ParmParse
+     * database. The return value indicates whether it's found.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    int queryAddWithParser (const char* name, T& ref) const
+    {
+        int exist = this->queryWithParser(name, ref);
+        if (!exist) {
+            this->add(name, ref);
+        }
+        return exist;
+    }
+
+    /**
+     * \brief Get with Parser. If `name` is found, this uses amrex::Parser
+     * to parse the entire list of empty space separated values as a single
+     * scalar. If not, it's a runtime error.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    void getWithParser (const char* name, T& ref) const
+    {
+        int exist = this->queryWithParser(name, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getWithParser: failed to get ")+name);
+        }
+    }
+
     //! Remove given name from the table.
     int remove (const char* name);
+
+    //! Make Parser using given string `func` as function body and `vars` as
+    //! variable names. Constants known to ParmParse will be set. It's a
+    //! runtime error, if there are unknown symbols in `func`.
+    [[nodiscard]] Parser makeParser (std::string const& func,
+                                     Vector<std::string> const& vars) const;
+
+    //! Make IParser using given string `func` as function body and `vars`
+    //! as variable names. Constants known to ParmParse will be set. It's a
+    //! runtime error, if there are unknown symbols in `func`.
+    [[nodiscard]] IParser makeIParser (std::string const& func,
+                                       Vector<std::string> const& vars) const;
 
     /**
     * \brief Construct an initial ParmParse object from the argc and argv
@@ -1013,6 +1112,9 @@ public:
     * if there are no other ParmParse objects in existence.
     */
     static void Finalize ();
+
+    //! Set prefix used by math expression Parser
+    static void SetParserPrefix (std::string a_prefix);
 
     static int Verbose ();
     static void SetVerbose (int v);
@@ -1049,11 +1151,14 @@ public:
     //! keyword for files to load
     static std::string const FileKeyword;
 
+    static std::string ParserPrefix;
+
 protected:
 
     [[nodiscard]] std::string prefixedName (const std::string_view& str) const;
 
     std::string m_prefix; // Prefix used in keyword search
+    std::string m_parser_prefix; // Prefix used by Parser
     Table* m_table;
 };
 
