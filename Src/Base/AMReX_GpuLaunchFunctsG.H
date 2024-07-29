@@ -486,7 +486,7 @@ void ParallelForRNG (BoxND<dim> const& box, L const& f) noexcept
                 for (std::uint64_t icell = tid, stride = item.get_global_range(0);
                      icell < indexer.numPts(); icell += stride) {
                     auto iv = indexer.intVect(icell);
-                    f(iv,rand_eng);
+                    detail::call_f_intvect_engine(f,iv,rand_eng);
                 }
                 engine_acc.store(engine, tid);
             });
@@ -522,9 +522,7 @@ void ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f) noexcept
                 for (std::uint64_t icell = tid, stride = item.get_global_range(0);
                      icell < indexer.numPts(); icell += stride) {
                     auto iv = indexer.intVect(icell);
-                    for (T n = 0; n < ncomp; ++n) {
-                        f(iv,n,rand_eng);
-                    }
+                    detail::call_f_intvect_ncomp_engine(f,iv,ncomp,rand_eng);
                 }
                 engine_acc.store(engine, tid);
             });
@@ -558,11 +556,11 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, BoxND<dim> const& box1, BoxND
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
                         auto iv = indexer1.intVect(icell);
-                        f1(iv);
+                        detail::call_f_intvect(f1,iv);
                     }
                     if (icell < indexer2.numPts()) {
                         auto iv = indexer2.intVect(icell);
-                        f2(iv);
+                        detail::call_f_intvect(f2,iv);
                     }
                 }
             });
@@ -598,15 +596,15 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
                         auto iv = indexer1.intVect(icell);
-                        f1(iv);
+                        detail::call_f_intvect(f1,iv);
                     }
                     if (icell < indexer2.numPts()) {
                         auto iv = indexer2.intVect(icell);
-                        f2(iv);
+                        detail::call_f_intvect(f2,iv);
                     }
                     if (icell < indexer3.numPts()) {
                         auto iv = indexer3.intVect(icell);
-                        f3(iv);
+                        detail::call_f_intvect(f3,iv);
                     }
                 }
             });
@@ -643,15 +641,11 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
                         auto iv = indexer1.intVect(icell);
-                        for (T1 n = 0; n < ncomp1; ++n) {
-                            f1(iv,n);
-                        }
+                        detail::call_f_intvect_ncomp(f1,iv,ncomp1);
                     }
                     if (icell < indexer2.numPts()) {
                         auto iv = indexer2.intVect(icell);
-                        for (T2 n = 0; n < ncomp2; ++n) {
-                            f2(iv,n);
-                        }
+                        detail::call_f_intvect_ncomp(f1,iv,ncomp2);
                     }
                 }
             });
@@ -691,21 +685,15 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
                         auto iv = indexer1.intVect(icell);
-                        for (T1 n = 0; n < ncomp1; ++n) {
-                            f1(iv,n);
-                        }
+                        detail::call_f_intvect_ncomp(f1,iv,ncomp1);
                     }
                     if (icell < indexer2.numPts()) {
                         auto iv = indexer2.intVect(icell);
-                        for (T2 n = 0; n < ncomp2; ++n) {
-                            f2(iv,n);
-                        }
+                        detail::call_f_intvect_ncomp(f2,iv,ncomp2);
                     }
                     if (icell < indexer3.numPts()) {
                         auto iv = indexer3.intVect(icell);
-                        for (T3 n = 0; n < ncomp3; ++n) {
-                            f3(iv,n);
-                        }
+                        detail::call_f_intvect_ncomp(f3,iv,ncomp3);
                     }
                 }
             });
