@@ -650,7 +650,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                     if (icell < indexer2.numPts()) {
                         auto iv = indexer2.intVect(icell);
                         for (T2 n = 0; n < ncomp2; ++n) {
-                            f2(ivk,n);
+                            f2(iv,n);
                         }
                     }
                 }
