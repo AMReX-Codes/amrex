@@ -645,7 +645,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                     }
                     if (icell < indexer2.numPts()) {
                         auto iv = indexer2.intVect(icell);
-                        detail::call_f_intvect_ncomp(f1,iv,ncomp2);
+                        detail::call_f_intvect_ncomp(f2,iv,ncomp2);
                     }
                 }
             });
