@@ -94,11 +94,14 @@ void CoarsenToFine(MultiFab& div_refined_coarse,
 
 
 Real MFdiff(const MultiFab& lhs, const MultiFab& rhs,
-            int strt_comp, int num_comp, int nghost, const std::string name = "")
+            int strt_comp, int num_comp, int nghost, const std::string name = "",
+            bool relative = false)
 {
     MultiFab temp(lhs.boxArray(), lhs.DistributionMap(), lhs.nComp(), nghost);
     Copy(temp, lhs, strt_comp, strt_comp, num_comp, nghost);
     temp.minus(rhs, strt_comp, num_comp, nghost);
+    if (relative) {
+        temp.divide(rhs, strt_comp, num_comp, nghost); }
 
     if (name != "")
         { amrex::VisMF::Write(temp, std::string("pltfiles/" + name)); }
@@ -301,7 +304,7 @@ void main_main ()
 //  Setup initial value on the coarse faces.
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
-        setupMF(c_mf_faces[i], 1);
+        setupMF(c_mf_faces[i], i);
     }
 
     amrex::UtilCreateDirectoryDestructive("pltfiles");
@@ -403,16 +406,21 @@ void main_main ()
                   amrex::VisMF::Write(f_mf_faces_wg[1], std::string("pltfiles/fwgy"));,
                   amrex::VisMF::Write(f_mf_faces_wg[2], std::string("pltfiles/fwgz"));  );
 
-    amrex::Print() << " Max InterpFromCoarse divergence error: "
-                   << MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diff") << '\n';
+    amrex::Print() << " Max InterpFromCoarse divergence error: absolute         relative\n "
+                   << "                                       "
+                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diff")
+                   << "  "
+                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "", true)
+                   << '\n';
 
 // ***************************************************************
 
     // Change coarse values, save current fine values for checking
     //   the final result.
+    amrex::Print()<<" Cyclically permute the velocity components. Should not change div\n";
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
-        setupMF(c_mf_faces[i], 2, BoxArray(amrex::coarsen(f_geom.Domain(), ratio).convert(c_mf_faces[i].ixType())));
+        setupMF(c_mf_faces[i], (i+1)%3, BoxArray(amrex::coarsen(f_geom.Domain(), ratio).convert(c_mf_faces[i].ixType())));
         Copy(f_mf_copy[i], f_mf_faces[i], 0, 0, 1, 0);
     }
 
@@ -424,8 +432,13 @@ void main_main ()
     CoarsenToFine(div_refined_coarse, div_coarse, c_geom, f_geom_all, ratio);
     amrex::VisMF::Write(div_coarse, std::string("pltfiles/coarsetofineB"));
 
-    amrex::Print() << " Checking new adjustment hasn't changed solution on fine region: "
-                   << MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diffFP") << '\n';
+    amrex::Print() << " Change to divergence on fine region:  absolute         relative\n "
+                   << "                                       "
+                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f)
+                   << "  "
+                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "", true)
+                   << '\n';
+
 
 
 // ***************************************************************
@@ -485,20 +498,23 @@ void main_main ()
 // ================================================
 
     // Checking fine valid cells are identical.
-    Real max_diff = 0;
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
-        Real max_i = std::abs( MFdiff(f_mf_copy[i], f_mf_faces[i], 0, 1, 0) );
-        max_diff = (max_diff > max_i) ? max_diff : max_i;
+        amrex::Print() << " Fine valid region maximum change, comp "<<i<<": "
+                       <<MFdiff(f_mf_copy[i], f_mf_faces[i], 0, 1, 0)
+                       << '\n';
     }
-    amrex::Print() << " Fine values maximum change: " << max_diff << '\n';
 
     // Check fine divergence = coarse divergence in ghost cells.
     calcDiv(f_mf_faces, div_fine, f_geom.CellSizeArray());
     amrex::VisMF::Write(div_fine, std::string("pltfiles/fineFP"));
 
-    amrex::Print() << " Max FillPatchTwoLevels divergence error: "
-                   << MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diffFP") << '\n';
+    amrex::Print() << " Max FillPatchTwoLevels divergence error:  absolute         relative\n "
+                   << "                                       "
+                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diffFP")
+                   << "  "
+                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "", true)
+                   << '\n';
 
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
