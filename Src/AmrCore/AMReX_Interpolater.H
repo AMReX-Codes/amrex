@@ -565,6 +565,9 @@ public:
 * of the divergence of the underlying crse cell. All fine cells overlying
 * a given coarse cell will have the same divergence, even when the coarse
 * grid divergence is spatially varying.
+* Based on Vanella et. al. (doi:10.1016/j.jcp.2010.05.003, section 3.2),
+* but solves the interior closure problem using least squares with an
+* initial guess equal to the average of fine face values across the cell.
 */
 class FaceDivFree
     :
