@@ -320,6 +320,11 @@ print_option( AMReX_NO_SENSEI_AMR_INST )
 option( AMReX_CONDUIT "Enable Conduit support" OFF )
 print_option( AMReX_CONDUIT )
 
+# Catalyst
+cmake_dependent_option( AMReX_CATALYST "Enable Catalyst support" OFF 
+   "AMReX_CONDUIT" OFF )
+print_option( AMReX_CATALYST )
+
 # Ascent
 cmake_dependent_option( AMReX_ASCENT "Enable Ascent support" OFF
    "AMReX_CONDUIT" OFF )

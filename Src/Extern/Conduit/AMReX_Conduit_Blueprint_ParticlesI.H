@@ -172,25 +172,30 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
     } else {
         const auto &soa = ptile.GetStructOfArrays();
 
-        // for soa entries, we can use standard strides,
-        // since these are contiguous arrays
 
-        // id is the first int entry
-        conduit::Node &n_f_id = n_fields[topology_name + "_id"];
+        if(!soa.GetIntData().empty())
+        {
 
-        n_f_id["topology"] = topology_name;
-        n_f_id["association"] = "element";
-        n_f_id["values"].set_external(const_cast<int*>(&soa.GetIntData(0)[0]),
-                                      num_particles);
+            // for soa entries, we can use standard strides,
+            // since these are contiguous arrays
 
-        // cpu is the second int entry
-        conduit::Node &n_f_cpu = n_fields[topology_name + "_cpu"];
+            // id is the first int entry
+            conduit::Node &n_f_id = n_fields[topology_name + "_id"];
 
-        n_f_cpu["topology"] = topology_name;
-        n_f_cpu["association"] = "element";
-        n_f_cpu["values"].set_external(const_cast<int*>(&soa.GetIntData(0)[0]),
-                                       num_particles);
+            n_f_id["topology"] = topology_name;
+            n_f_id["association"] = "element";
+            n_f_id["values"].set_external(const_cast<int*>(&soa.GetIntData(0)[0]),
+                                          num_particles);
 
+            // cpu is the second int entry
+            conduit::Node &n_f_cpu = n_fields[topology_name + "_cpu"];
+
+            n_f_cpu["topology"] = topology_name;
+            n_f_cpu["association"] = "element";
+            n_f_cpu["values"].set_external(const_cast<int*>(&soa.GetIntData(0)[0]),
+                                           num_particles);
+
+        }
     }
 
     // --------------------------------
