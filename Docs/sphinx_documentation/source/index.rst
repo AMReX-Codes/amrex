@@ -57,7 +57,7 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    Visualization_Chapter
    Post_Processing_Chapter
    Debugging
-   Inputs_Chapter
+   RuntimeParameters
    AMReX_Profiling_Tools_Chapter
    External_Profiling_Tools_Chapter
    External_Frameworks_Chapter
@@ -68,13 +68,6 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
 .. toctree::
    :maxdepth: 1
    :caption: API
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
 The copyright notice of AMReX is included in the AMReX home directory
 as README.txt.

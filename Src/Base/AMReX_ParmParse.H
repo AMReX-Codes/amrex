@@ -1084,6 +1084,38 @@ public:
         }
     }
 
+    /*
+     * \brief Query two names.
+     *
+     * This function queries with `new_name` first. If it's not found, it
+     * will try again with `old_name`.
+     */
+    template <typename T>
+    int query (const char* new_name, const char* old_name, T& ref)
+    {
+        return (this->query(new_name, ref) ||
+                this->query(old_name, ref));
+    }
+
+    /**
+     * \brief Get using two names.
+     *
+     * This function queries with `new_name` first, If it's not found, it
+     * will try again with `old_name`. It's an error if neither name is
+     * found.
+     */
+    template <typename T>
+    void get (const char* new_name, const char* old_name, T& ref)
+    {
+        auto exist = this->query(new_name, old_name, ref);
+        if (!exist) {
+            amrex::ErrorStream() << "ParmParse::get failed to find "
+                                 << new_name << " and " << old_name << '\n';
+            ParmParse::dumpTable(amrex::ErrorStream());
+            amrex::Abort();
+        }
+    }
+
     //! Remove given name from the table.
     int remove (const char* name);
 

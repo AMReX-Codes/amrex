@@ -175,7 +175,7 @@ namespace amrex::OpenMP
             }
         } else {
             std::optional<int> num_omp_threads = to_int(omp_threads);
-            if (num_omp_threads.has_value()) {
+            if (num_omp_threads.has_value() && num_omp_threads.value() > 0) {
                 omp_set_num_threads(num_omp_threads.value());
             }
             else {

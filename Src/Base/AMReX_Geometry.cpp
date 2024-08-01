@@ -15,16 +15,14 @@
 namespace amrex {
 
 std::ostream&
-operator<< (std::ostream&   os,
-            const Geometry& g)
+operator<< (std::ostream& os, const Geometry& g)
 {
     os << (CoordSys&) g << g.ProbDomain() << g.Domain() << 'P' << IntVect(g.isPeriodic());
     return os;
 }
 
 std::istream&
-operator>> (std::istream& is,
-            Geometry&     g)
+operator>> (std::istream& is, Geometry& g)
 {
     is >> (CoordSys&) g >> g.prob_domain >> g.domain;
 

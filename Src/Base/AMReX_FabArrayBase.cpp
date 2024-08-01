@@ -27,10 +27,7 @@
 
 namespace amrex {
 
-//
-// Set default values in Initialize()!!!
-//
-int     FabArrayBase::MaxComp;
+int FabArrayBase::MaxComp = 25;
 
 #if defined(AMREX_USE_GPU)
 
@@ -99,11 +96,6 @@ FabArrayBase::Initialize ()
     if (initialized) { return; }
     initialized = true;
 
-    //
-    // Set default values here!!!
-    //
-    FabArrayBase::MaxComp           = 25;
-
     ParmParse pp("fabarray");
 
     Vector<int> tilesize(AMREX_SPACEDIM);
@@ -112,13 +104,25 @@ FabArrayBase::Initialize ()
     {
         for (int i=0; i<AMREX_SPACEDIM; i++) { FabArrayBase::mfiter_tile_size[i] = tilesize[i]; }
     }
+    else
+    {
+        pp.addarr("mfiter_tile_size", std::vector<int>{AMREX_D_DECL(FabArrayBase::mfiter_tile_size[0],
+                                                                    FabArrayBase::mfiter_tile_size[1],
+                                                                    FabArrayBase::mfiter_tile_size[2])});
+    }
 
     if (pp.queryarr("comm_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
         for (int i=0; i<AMREX_SPACEDIM; i++) { FabArrayBase::comm_tile_size[i] = tilesize[i]; }
     }
+    else
+    {
+        pp.addarr("comm_tile_size", std::vector<int>{AMREX_D_DECL(FabArrayBase::comm_tile_size[0],
+                                                                  FabArrayBase::comm_tile_size[1],
+                                                                  FabArrayBase::comm_tile_size[2])});
+    }
 
-    pp.queryAdd("maxcomp",             FabArrayBase::MaxComp);
+    pp.query("maxcomp", FabArrayBase::MaxComp);
 
     if (MaxComp < 1) {
         MaxComp = 1;

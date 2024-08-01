@@ -94,7 +94,6 @@ public:
 
     void readFrom (std::istream& is);
 
-    //! Initialize from ParmParse with "fab" prefix.
     static void Initialize ();
     static void Finalize ();
 
