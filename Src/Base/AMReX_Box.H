@@ -344,7 +344,9 @@ public:
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Long numPts () const noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_USE_ASSERTION)
         AMREX_IF_ON_HOST((checkOverflow();))
+#endif
         if (ok()) {
             auto num_pts = static_cast<Long>(length(0));
             for (int i = 1; i < dim; ++i) {
