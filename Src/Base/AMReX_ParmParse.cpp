@@ -944,7 +944,7 @@ PARSER_t
 pp_make_parser (std::string const& func, Vector<std::string> const& vars,
                 ParmParse::Table const& table, std::string const& parser_prefix)
 {
-    using value_t =  std::conditional_t<std::is_integral_v<T>, int, double>;
+    using value_t =  std::conditional_t<std::is_integral_v<T>, long long, double>;
 
     std::vector<std::string> prefixes;
     prefixes.reserve(3);
