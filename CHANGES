@@ -1,3 +1,70 @@
+# 24.08
+
+  -- Catalyst support (#4011)
+
+  -- Fix typos in FaceDivFree interior interpolation. (#4048)
+
+  -- ParmParse: Read IntVect & RealVect from array (#4050)
+     ParmParse: Fix assertion in new queryarr for IntVect & RealVect (#4051)
+
+  -- IParser: Use long long int (#4046)
+
+  -- ParmParse: Math expression support (#4032)
+
+  -- AmrData: remove dependency on Fortran (#4049)
+
+  -- Remove reliance on managed memory in HDF5 mesh IO (#4047)
+
+  -- New Feature in MLEBNodeFDLaplacian: MultiFab sigma coefficient (#3968)
+
+  -- Nodal Solver: Use multi-color Gauss-Seidel on GPU (#4043)
+
+  -- Use reduction to compute min and max particle distances in NeighborParticles test. (#3212)
+
+  -- ParmParse: Refactoring II (#4035)
+
+  -- Fix deadlock for CUDA (#4044)
+
+  -- ParmParse: Refactoring (#4031)
+
+  -- MLMG: Keep ghost cell values in user's inputs (#4040)
+
+  -- Geometry: Fix operator>> (#4042)
+
+  -- FillPatch for Face Data: Fix Geometry used in creating mask (#4039)
+
+  -- Parser: Allow dots in variable names (#4038)
+
+  -- HDF5: Remove unnecessary casting (#4036)
+
+  -- HDF5: Fix chunking warning (#4033) (#4034)
+
+  -- New parameter amrex::init_snan (#4030)
+
+  -- Change the default max_grid_size in 3D on GPU from 32 to 64 (#4029)
+
+  -- GpuArray: add operator+= (#4028)
+
+  -- FPE traps: Add functions for enabling and disabling FPE traps (#4025)
+
+  -- HDF5: Correctly determine max_mfi_count (#4024)
+
+  -- HDF5: expose ZLIB compression without SZ or ZFP flags (#4015)
+
+  -- Hypre: Use Gpu::hypreSynchronize (#4022)
+
+  -- AmrMesh: add const to a few functions (#4021)
+
+  -- Convexify AMR data (#4013)
+
+  -- Fix BottomSolver::bicgcg (#4020)
+
+  -- Fix some warnings issued by Coverity (#4017)
+
+  -- convert IndexType to IndexTypeND (#3988)
+
+  -- Workaround MSVC issue in tupleToArray (#4000)
+
 # 24.07
 
   -- HDF5: Correctly handle writing only some components when writing Particle (#4005)
