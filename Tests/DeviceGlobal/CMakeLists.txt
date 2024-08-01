@@ -1,3 +1,7 @@
+if ((NOT (AMReX_GPU_BACKEND STREQUAL NONE)) AND (NOT AMReX_GPU_RDC))
+   return()
+endif ()
+
 foreach(D IN LISTS AMReX_SPACEDIM)
     set(_sources     main.cpp global_vars.cpp init.cpp work.cpp)
     set(_input_files)
