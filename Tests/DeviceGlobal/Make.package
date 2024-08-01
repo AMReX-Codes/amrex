@@ -1,0 +1,2 @@
+CEXE_sources += main.cpp init.cpp work.cpp global_vars.cpp
+
