@@ -868,6 +868,24 @@ saddarr (const std::string& name, const std::vector<T>& ref)
     ++entry.m_count;
 }
 
+template <class T>
+bool squeryWithParser (const ParmParse::Table& table,
+                       const std::string&      parser_prefix,
+                       const std::string&      name,
+                       T&                      ref)
+{
+    std::vector<std::string> vals;
+    bool exist = squeryarr(table, parser_prefix, name, vals,
+                           ParmParse::FIRST, ParmParse::ALL, ParmParse::LAST);
+    if (!exist) { return false; }
+
+    std::string combined_string;
+    for (auto const& v : vals) {
+        combined_string.append(v);
+    }
+    return pp_parser(table, parser_prefix, name, combined_string, ref);
+}
+
 // Initialize ParmParse.
 void
 ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
@@ -967,8 +985,7 @@ pp_make_parser (std::string const& func, Vector<std::string> const& vars,
         value_t v = 0;
         bool r = false;
         for (auto const& pf : prefixes) {
-            r = squeryval(table, parser_prefix, pf+s, v,
-                          ParmParse::FIRST, ParmParse::LAST);
+            r = squeryWithParser(table, parser_prefix, pf+s, v);
             if (r) { break; }
         }
         if (r == false) {
@@ -1856,26 +1873,6 @@ ParmParse::remove (const char* name)
     auto const pname = prefixedName(name);
     auto n = m_table->erase(name);
     return static_cast<int>(n);
-}
-
-namespace {
-template <class T>
-bool squeryWithParser (const ParmParse::Table& table,
-                       const std::string&      parser_prefix,
-                       const std::string&      name,
-                       T&                      ref)
-{
-    std::vector<std::string> vals;
-    bool exist = squeryarr(table, parser_prefix, name, vals,
-                           ParmParse::FIRST, ParmParse::ALL, ParmParse::LAST);
-    if (!exist) { return false; }
-
-    std::string combined_string;
-    for (auto const& v : vals) {
-        combined_string.append(v);
-    }
-    return pp_parser(table, parser_prefix, name, combined_string, ref);
-}
 }
 
 int
