@@ -10,19 +10,23 @@
 
 namespace amrex {
 
+namespace detail {
+
 //
 // I/O functions.
 //
 
 std::ostream&
-operator<< (std::ostream& os,
-            const Box&    b)
+box_write (std::ostream& os,
+           const int * smallend,
+           const int * bigend,
+           const int * type,
+           int dim)
 {
-    os << '('
-       << b.smallEnd() << ' '
-       << b.bigEnd()   << ' '
-       << b.type()
-       << ')';
+    os << '(';
+    int_vector_write(os, smallend, dim) << ' ';
+    int_vector_write(os, bigend, dim) << ' ';
+    int_vector_write(os, type, dim) << ')';
 
     if (os.fail()) {
         amrex::Error("operator<<(ostream&,Box&) failed");
@@ -37,37 +41,44 @@ operator<< (std::ostream& os,
 #define BL_IGNORE_MAX 100000
 
 std::istream&
-operator>> (std::istream& is,
-            Box&          b)
+box_read (std::istream& is,
+          int * smallend,
+          int * bigend,
+          int * type,
+          int dim)
 {
-    IntVect lo, hi, typ;
-
     is >> std::ws;
     char c;
     is >> c;
 
+    for (int i=0; i<dim; ++i) {
+        type[i] = 0;
+    }
+
     if (c == '(')
     {
-        is >> lo >> hi;
+        int_vector_read(is, smallend, dim);
+        int_vector_read(is, bigend, dim);
         is >> c;
         // Read an optional IndexType
         is.putback(c);
         if ( c == '(' )
         {
-            is >> typ;
+            int_vector_read(is, type, dim);
         }
         is.ignore(BL_IGNORE_MAX,')');
     }
     else if (c == '<')
     {
         is.putback(c);
-        is >> lo >> hi;
+        int_vector_read(is, smallend, dim);
+        int_vector_read(is, bigend, dim);
         is >> c;
         // Read an optional IndexType
         is.putback(c);
         if ( c == '<' )
         {
-            is >> typ;
+            int_vector_read(is, type, dim);
         }
         //is.ignore(BL_IGNORE_MAX,'>');
     }
@@ -76,14 +87,14 @@ operator>> (std::istream& is,
         amrex::Error("operator>>(istream&,Box&): expected \'(\'");
     }
 
-    b = Box(lo,hi,typ);
-
     if (is.fail()) {
         amrex::Error("operator>>(istream&,Box&) failed");
     }
 
     return is;
 }
+
+} // namespace detail
 
 BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
     : p(p_)

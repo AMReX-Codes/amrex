@@ -274,7 +274,7 @@ std::uint64_t umulhi (std::uint64_t a, std::uint64_t b)
 ///
 struct FastDivmodU64
 {
-    std::uint64_t divisor;
+    std::uint64_t divisor = 0;
 
 #ifdef AMREX_INT128_SUPPORTED
     std::uint64_t multiplier = 1U;
@@ -323,6 +323,9 @@ struct FastDivmodU64
     FastDivmodU64 (std::uint64_t divisor_) : divisor(divisor_) {}
 
 #endif
+
+    /// Default construct an invalid FastDivmodU64
+    FastDivmodU64 () = default;
 
     /// Returns the quotient of floor(dividend / divisor)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE

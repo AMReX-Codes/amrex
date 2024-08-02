@@ -167,6 +167,18 @@ public:
         }
     }
 
+    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 dim3 ([[maybe_unused]] int fill_extra) const noexcept {
+        if constexpr (dim == 1) {
+            return Dim3{vect[0],fill_extra,fill_extra};
+        } else if constexpr (dim == 2) {
+            return Dim3{vect[0],vect[1],fill_extra};
+        } else {
+            return Dim3{vect[0],vect[1],vect[2]};
+        }
+    }
+
 #if __cplusplus >= 201402L
     template< typename T = int >
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
