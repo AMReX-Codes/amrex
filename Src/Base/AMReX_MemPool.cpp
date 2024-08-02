@@ -23,11 +23,6 @@ using namespace amrex;
 namespace
 {
     Vector<std::unique_ptr<CArena> > the_memory_pool;
-#if defined(AMREX_TESTING) || defined(AMREX_DEBUG)
-    int init_snan = 1;
-#else
-    int init_snan = 0;
-#endif
     bool initialized = false;
 }
 
@@ -40,9 +35,6 @@ void amrex_mempool_init ()
         BL_PROFILE("amrex_mempool_init()");
 
         initialized = true;
-
-        ParmParse pp("fab");
-        pp.queryAdd("init_snan", init_snan);
 
         int nthreads = OpenMP::get_max_threads();
 
@@ -109,7 +101,7 @@ void amrex_mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max
 
 void amrex_real_array_init (Real* p, size_t nelems)
 {
-    if (init_snan) { amrex_array_init_snan(p, nelems); }
+    if (amrex::InitSNaN()) { amrex_array_init_snan(p, nelems); }
 }
 
 void amrex_array_init_snan (Real* p, size_t nelems)

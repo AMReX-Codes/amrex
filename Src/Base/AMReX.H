@@ -49,23 +49,23 @@ namespace amrex
 
         extern AMREX_EXPORT int verbose;
 
-        extern AMREX_EXPORT int signal_handling;
-        extern AMREX_EXPORT int handle_sigsegv;
-        extern AMREX_EXPORT int handle_sigterm;
-        extern AMREX_EXPORT int handle_sigint;
-        extern AMREX_EXPORT int handle_sigabrt;
-        extern AMREX_EXPORT int handle_sigfpe;
+        extern AMREX_EXPORT bool signal_handling;
+        extern AMREX_EXPORT bool handle_sigsegv;
+        extern AMREX_EXPORT bool handle_sigterm;
+        extern AMREX_EXPORT bool handle_sigint;
+        extern AMREX_EXPORT bool handle_sigabrt;
+        extern AMREX_EXPORT bool handle_sigfpe;
 
-        extern AMREX_EXPORT int call_addr2line;
-        extern AMREX_EXPORT int throw_exception;
+        extern AMREX_EXPORT bool call_addr2line;
+        extern AMREX_EXPORT bool throw_exception;
 
-        extern AMREX_EXPORT int regtest_reduction;
+        extern AMREX_EXPORT bool regtest_reduction;
 
         extern AMREX_EXPORT std::ostream* osout;
         extern AMREX_EXPORT std::ostream* oserr;
 
         extern AMREX_EXPORT ErrorHandler error_handler;
-        extern AMREX_EXPORT int abort_on_unused_inputs;
+        extern AMREX_EXPORT bool abort_on_unused_inputs;
 
         extern AMREX_EXPORT bool init_snan;
     }

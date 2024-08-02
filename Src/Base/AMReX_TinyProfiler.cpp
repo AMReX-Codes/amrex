@@ -34,7 +34,7 @@ std::vector<std::string>          TinyProfiler::regionstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
-int TinyProfiler::device_synchronize_around_region = 0;
+bool TinyProfiler::device_synchronize_around_region = false;
 int TinyProfiler::n_print_tabs = 0;
 int TinyProfiler::verbose = 0;
 double TinyProfiler::print_threshold = 1.;
@@ -277,8 +277,9 @@ TinyProfiler::Initialize () noexcept
     {
         amrex::ParmParse pp("tiny_profiler");
         pp.queryAdd("device_synchronize_around_region", device_synchronize_around_region);
-        pp.queryAdd("verbose", verbose);
-        pp.queryAdd("v", verbose);
+        if (! pp.query("verbose", "v", verbose)) {
+            pp.add("verbose", verbose);
+        }
         // Specify the maximum percentage of inclusive time
         // that the "Other" section in the output can have (default 1%)
         pp.queryAdd("print_threshold", print_threshold);

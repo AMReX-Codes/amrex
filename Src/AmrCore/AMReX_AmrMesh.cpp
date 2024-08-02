@@ -78,7 +78,9 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 {
     ParmParse pp("amr");
 
-    pp.queryAdd("v",verbose);
+    if (! pp.query("verbose", "v", verbose)) {
+        pp.add("verbose", verbose);
+    }
 
     if (max_level_in == -1) {
        pp.get("max_level", max_level);
@@ -89,27 +91,16 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 
     int nlev = max_level + 1;
 
-    blocking_factor.resize(nlev);
-    max_grid_size.resize(nlev);
-    n_error_buf.resize(nlev);
+    AmrInfo def_amr_info;
+
+    blocking_factor.resize(nlev, def_amr_info.blocking_factor.back());
+    max_grid_size.resize  (nlev, def_amr_info.max_grid_size.back());
+    n_error_buf.resize    (nlev, def_amr_info.n_error_buf.back());
+    ref_ratio.resize      (nlev, def_amr_info.ref_ratio.back());
 
     geom.resize(nlev);
     dmap.resize(nlev);
     grids.resize(nlev);
-
-    for (int i = 0; i < nlev; ++i) {
-        n_error_buf[i]     = IntVect{AMREX_D_DECL(1,1,1)};
-        blocking_factor[i] = IntVect{AMREX_D_DECL(8,8,8)};
-        max_grid_size[i]   = (AMREX_SPACEDIM == 2) ? IntVect{AMREX_D_DECL(128,128,128)}
-                                                   : IntVect{AMREX_D_DECL(32,32,32)};
-    }
-
-    // Make the default ref_ratio = 2 for all levels.
-    ref_ratio.resize(max_level);
-    for (int i = 0; i < max_level; ++i)
-    {
-      ref_ratio[i] = 2 * IntVect::TheUnitVector();
-    }
 
     pp.queryAdd("n_proper",n_proper);
     pp.queryAdd("grid_eff",grid_eff);
@@ -371,11 +362,15 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     {
         pp.queryAdd("refine_grid_layout", refine_grid_layout);
 
-        refine_grid_layout_dims = IntVect(refine_grid_layout);
-        AMREX_D_TERM(pp.queryAdd("refine_grid_layout_x", refine_grid_layout_dims[0]);,
-                     pp.queryAdd("refine_grid_layout_y", refine_grid_layout_dims[1]);,
-                     pp.queryAdd("refine_grid_layout_z", refine_grid_layout_dims[2]));
-
+        std::array<bool,AMREX_SPACEDIM> tmp{AMREX_D_DECL(refine_grid_layout,
+                                                         refine_grid_layout,
+                                                         refine_grid_layout)};
+        AMREX_D_TERM(pp.query("refine_grid_layout_x", tmp[0]);,
+                     pp.query("refine_grid_layout_y", tmp[1]);,
+                     pp.query("refine_grid_layout_z", tmp[2]));
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            refine_grid_layout_dims[idim] = tmp[idim];
+        }
         refine_grid_layout = refine_grid_layout_dims != 0;
     }
 

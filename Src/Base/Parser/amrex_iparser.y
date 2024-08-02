@@ -26,7 +26,7 @@ int amrex_iparserlex (void);
 */
 %union {
     struct amrex::iparser_node* n;
-    int d;
+    long long d;
     struct amrex::iparser_symbol* s;
     enum amrex::iparser_f1_t f1;
     enum amrex::iparser_f2_t f2;

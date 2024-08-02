@@ -344,7 +344,9 @@ public:
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Long numPts () const noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_USE_ASSERTION)
         AMREX_IF_ON_HOST((checkOverflow();))
+#endif
         if (ok()) {
             auto num_pts = static_cast<Long>(length(0));
             for (int i = 1; i < dim; ++i) {
@@ -1935,19 +1937,6 @@ AMREX_FORCE_INLINE
 Dim3 min_ubound (BoxND<dim> const& b1, Dim3 const& hi) noexcept
 {
     return min(b1.bigEnd(), IntVectND<dim>(hi)).dim3();
-}
-
-template<int dim>
-[[nodiscard]]
-AMREX_GPU_HOST_DEVICE
-AMREX_FORCE_INLINE
-BoxND<dim> minBox (BoxND<dim> const& b1, BoxND<dim> const& b2, IndexTypeND<dim> typ) noexcept
-{
-    return BoxND<dim>(
-        max(b1.smallEnd(), b2.smallEnd()),
-        min(b1.bigEnd(), b2.bigEnd()),
-        typ
-    );
 }
 
 // Returns a BoxND that covers all the argument Boxes in index

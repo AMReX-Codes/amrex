@@ -223,7 +223,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     // We'll spread the output over this many files.
     int nOutFiles(64);
     ParmParse pp("particles");
-    pp.queryAdd("particles_nfiles",nOutFiles);
+    pp.query("particles_nfiles",nOutFiles);
     if(nOutFiles == -1) {
       nOutFiles = NProcs;
     }

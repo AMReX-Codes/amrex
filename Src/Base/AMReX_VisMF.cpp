@@ -77,24 +77,24 @@ VisMF::Initialize ()
     amrex::ExecOnFinalize(VisMF::Finalize);
 
     ParmParse pp("vismf");
-    pp.queryAdd("v",verbose);
+    pp.query("verbose", "v",verbose);
 
     int headerVersion(currentVersion);
-    pp.queryAdd("headerversion", headerVersion);
+    pp.query("headerversion", headerVersion);
     if(headerVersion != currentVersion) {
       currentVersion = static_cast<VisMF::Header::Version> (headerVersion);
     }
 
-    pp.queryAdd("groupsets", groupSets);
-    pp.queryAdd("setbuf", setBuf);
-    pp.queryAdd("usesingleread", useSingleRead);
-    pp.queryAdd("usesinglewrite", useSingleWrite);
-    pp.queryAdd("checkfilepositions", checkFilePositions);
-    pp.queryAdd("usepersistentifstreams", usePersistentIFStreams);
-    pp.queryAdd("usesynchronousreads", useSynchronousReads);
-    pp.queryAdd("usedynamicsetselection", useDynamicSetSelection);
-    pp.queryAdd("iobuffersize", ioBufferSize);
-    pp.queryAdd("allowsparsewrites", allowSparseWrites);
+    pp.query("groupsets", groupSets);
+    pp.query("setbuf", setBuf);
+    pp.query("usesingleread", useSingleRead);
+    pp.query("usesinglewrite", useSingleWrite);
+    pp.query("checkfilepositions", checkFilePositions);
+    pp.query("usepersistentifstreams", usePersistentIFStreams);
+    pp.query("usesynchronousreads", useSynchronousReads);
+    pp.query("usedynamicsetselection", useDynamicSetSelection);
+    pp.query("iobuffersize", ioBufferSize);
+    pp.query("allowsparsewrites", allowSparseWrites);
 
     initialized = true;
 }

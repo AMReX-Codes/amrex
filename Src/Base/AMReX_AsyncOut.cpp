@@ -10,7 +10,7 @@ namespace amrex::AsyncOut {
 
 namespace {
 
-int s_asyncout = false;
+bool s_asyncout = false;
 int s_noutfiles = 64;
 MPI_Comm s_comm = MPI_COMM_NULL;
 

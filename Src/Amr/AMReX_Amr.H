@@ -181,7 +181,7 @@ public:
     static void fillDerivePlotVarList ();
     static void fillDeriveSmallPlotVarList ();
 
-    static void setComputeNewDtOnRegrid (int flag) { compute_new_dt_on_regrid = flag; }
+    static void setComputeNewDtOnRegrid (bool flag) { compute_new_dt_on_regrid = flag; }
 
     static void Initialize ();
     static void Finalize ();
@@ -430,7 +430,7 @@ protected:
     int              small_plot_int;  //!< How often small plotfile (# of time steps)
     Real             small_plot_per;  //!< How often small plotfile (in units of time)
     Real             small_plot_log_per;  //!< How often small plotfile (in units of log10(time))
-    int              write_plotfile_with_checkpoint;  //!< Write out a plotfile whenever we checkpoint
+    bool             write_plotfile_with_checkpoint;  //!< Write out a plotfile whenever we checkpoint
     int              file_name_digits; //!< How many digits to use in the plotfile and checkpoint names
     int              message_int;     //!< How often checking messages touched by user, such as "stop_run"
     std::string      plot_file_root;  //!< Root name of plotfile.
@@ -473,7 +473,7 @@ protected:
     static Vector<BoxArray> initial_ba;
     //! Array of BoxArrays read in to externally define grid hierarchy at each regrid
     static Vector<BoxArray> regrid_ba;
-    static int compute_new_dt_on_regrid;
+    static bool compute_new_dt_on_regrid;
 
 #if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
     static AmrInSituBridge *insitu_bridge;
