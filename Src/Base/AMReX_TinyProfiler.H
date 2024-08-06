@@ -5,14 +5,6 @@
 #include <AMReX_INT.H>
 #include <AMReX_REAL.H>
 
-#ifdef AMREX_USE_CUDA
-#include <nvToolsExt.h>
-#endif
-
-#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
-#include <roctracer/roctx.h>
-#endif
-
 #include <array>
 #include <deque>
 #include <iosfwd>
