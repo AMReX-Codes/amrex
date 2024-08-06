@@ -419,7 +419,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
         bool alreadySynced;
 
         for(auto const& kv : regstats) {
-            localStrings.push_back(kv.first);
+            localStrings.emplace_back(kv.first);
         }
 
         amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
