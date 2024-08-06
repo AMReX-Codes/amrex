@@ -15,6 +15,21 @@
 #include <omp.h>
 #endif
 
+#ifdef AMREX_USE_CUDA
+#  if defined(AMREX_USE_CUB)
+     // Since 12.6 cub might include nvtx3. We include cub here so that we
+     // can avoid conflict.
+#    include <cub/cub.cuh>
+#  endif
+#  if !defined(NVTX_VERSION)
+#    include <nvToolsExt.h>
+#  endif
+#endif
+
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
+#include <roctracer/roctx.h>
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <iostream>

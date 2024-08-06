@@ -11,6 +11,10 @@
 #define AMREX_CUDA_GE_11_2 1
 #endif
 
+#if !defined(AMREX_USE_CUB) && defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
+#define AMREX_USE_CUB 1
+#endif
+
 #if defined(AMREX_USE_HIP) || defined(AMREX_CUDA_GE_11_2)
 #define AMREX_GPU_STREAM_ALLOC_SUPPORT 1
 #endif

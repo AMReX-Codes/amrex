@@ -19,7 +19,14 @@
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
 #if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
-#include <nvToolsExt.h>
+#  if defined(AMREX_USE_CUB)
+     // Since 12.6 cub might include nvtx3. We include cub here so that we
+     // can avoid conflict.
+#    include <cub/cub.cuh>
+#  endif
+#  if !defined(NVTX_VERSION)
+#    include <nvToolsExt.h>
+#  endif
 #endif
 #endif
 

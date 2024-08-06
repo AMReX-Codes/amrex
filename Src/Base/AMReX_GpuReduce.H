@@ -10,10 +10,6 @@
 #include <AMReX_Functional.H>
 #include <AMReX_TypeTraits.H>
 
-#if !defined(AMREX_USE_CUB) && defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
-#define AMREX_USE_CUB 1
-#endif
-
 #if defined(AMREX_USE_CUB)
 #include <cub/cub.cuh>
 #elif defined(AMREX_USE_HIP)
