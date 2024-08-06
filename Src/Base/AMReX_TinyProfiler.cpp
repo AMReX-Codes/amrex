@@ -15,6 +15,18 @@
 #include <omp.h>
 #endif
 
+#ifdef AMREX_USE_CUDA
+#if __has_include(<nvtx3/nvToolsExt.h>)
+#  include <nvtx3/nvToolsExt.h>
+#else
+#  include <nvToolsExt.h>
+#endif
+#endif
+
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
+#include <roctracer/roctx.h>
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <iostream>
