@@ -675,7 +675,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         HdrFile.close();
         if ( ! HdrFile.good())
         {
-            amrex::Abort("ParticleContainer::Checkpoint(): problem writing HdrFile");
+            amrex::Abort("amrex::WriteBinaryParticleDataSync(): problem writing HdrFile");
         }
     }
 }
@@ -969,7 +969,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             HdrFile.close();
             if ( ! HdrFile.good())
             {
-                amrex::Abort("ParticleContainer::Checkpoint(): problem writing HdrFile");
+                amrex::Abort("amrex::WriteBinaryParticleDataAsync(): problem writing HdrFile");
             }
         }
 
