@@ -53,9 +53,9 @@ namespace detail {
     template <typename F, int dim, std::size_t...Ns, class...Args>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<dim> iv, Args...args)
-        noexcept -> decltype(f(iv.template get<Ns>()..., args...))
+        noexcept -> decltype(f(iv[Ns]..., args...))
     {
-        f(iv.template get<Ns>()..., args...);
+        f(iv[Ns]..., args...);
     }
 
     // call_f_intvect

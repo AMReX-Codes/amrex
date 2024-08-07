@@ -9,7 +9,7 @@ namespace detail {
     // call_f_scalar_handler
 
     template <typename F, typename N>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     auto call_f_scalar_handler (F const& f, N i)
         noexcept -> decltype(f(0))
     {
@@ -17,7 +17,7 @@ namespace detail {
     }
 
     template <typename F, typename N>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     auto call_f_scalar_handler (F const& f, N i)
         noexcept -> decltype(f(0,Gpu::Handler{}))
     {
@@ -27,7 +27,7 @@ namespace detail {
     // call_f_intvect_inner
 
     template <typename F, std::size_t...Ns, class...Args>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<1> iv, Args...args)
         noexcept -> decltype(f(0, 0, 0, args...))
     {
@@ -35,7 +35,7 @@ namespace detail {
     }
 
     template <typename F, std::size_t...Ns, class...Args>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<2> iv, Args...args)
         noexcept -> decltype(f(0, 0, 0, args...))
     {
@@ -43,7 +43,7 @@ namespace detail {
     }
 
     template <typename F, int dim, std::size_t...Ns, class...Args>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<dim> iv, Args...args)
         noexcept -> decltype(f(iv, args...))
     {
@@ -51,17 +51,17 @@ namespace detail {
     }
 
     template <typename F, int dim, std::size_t...Ns, class...Args>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<dim> iv, Args...args)
-        noexcept -> decltype(f(iv.template get<Ns>()..., args...))
+        noexcept -> decltype(f(iv[Ns]..., args...))
     {
-        f(iv.template get<Ns>()..., args...);
+        f(iv[Ns]..., args...);
     }
 
     // call_f_intvect_engine
 
     template <typename F, int dim>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     auto call_f_intvect_engine (F const& f, IntVectND<dim> iv, RandomEngine engine)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, engine))
     {
@@ -71,7 +71,7 @@ namespace detail {
     // call_f_intvect_handler
 
     template <typename F, int dim>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     auto call_f_intvect_handler (F const& f, IntVectND<dim> iv)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv))
     {
@@ -79,7 +79,7 @@ namespace detail {
     }
 
     template <typename F, int dim>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     auto call_f_intvect_handler (F const& f, IntVectND<dim> iv)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, Gpu::Handler{}))
     {
@@ -89,7 +89,7 @@ namespace detail {
     // call_f_intvect_ncomp_engine
 
     template <typename F, typename T, int dim>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     auto call_f_intvect_ncomp_engine (F const& f, IntVectND<dim> iv, T n, RandomEngine engine)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n, engine))
     {
@@ -99,7 +99,7 @@ namespace detail {
     // call_f_intvect_ncomp_handler
 
     template <typename F, typename T, int dim>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     auto call_f_intvect_ncomp_handler (F const& f, IntVectND<dim> iv, T n)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n))
     {
@@ -107,7 +107,7 @@ namespace detail {
     }
 
     template <typename F, typename T, int dim>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_FORCE_INLINE
     auto call_f_intvect_ncomp_handler (F const& f, IntVectND<dim> iv, T n)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n, Gpu::Handler{}))
     {
@@ -196,18 +196,18 @@ void For_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, In
 {
     if constexpr (idim == 1) {
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_handler(f,iv);
+            call_f_intvect_handler(f,iv);
         }
     } else if constexpr (idim == 2) {
         for (int i1 = lo[1], h1 = hi[1]; i1 <= h1; ++i1) { iv[1] = i1;
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_handler(f,iv);
+            call_f_intvect_handler(f,iv);
         }}
     } else if constexpr (idim == 3) {
         for (int i2 = lo[2], h2 = hi[2]; i2 <= h2; ++i2) { iv[2] = i2;
         for (int i1 = lo[1], h1 = hi[1]; i1 <= h1; ++i1) { iv[1] = i1;
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_handler(f,iv);
+            call_f_intvect_handler(f,iv);
         }}}
     } else {
         for (int id = lo[idim-1], hd = hi[idim-1]; id <= hd; ++id) { iv[idim-1] = id;
@@ -257,20 +257,20 @@ void ParallelFor_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> cons
     if constexpr (idim == 1) {
         AMREX_PRAGMA_SIMD
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_handler(f,iv);
+            call_f_intvect_handler(f,iv);
         }
     } else if constexpr (idim == 2) {
         for (int i1 = lo[1], h1 = hi[1]; i1 <= h1; ++i1) { iv[1] = i1;
         AMREX_PRAGMA_SIMD
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_handler(f,iv);
+            call_f_intvect_handler(f,iv);
         }}
     } else if constexpr (idim == 3) {
         for (int i2 = lo[2], h2 = hi[2]; i2 <= h2; ++i2) { iv[2] = i2;
         for (int i1 = lo[1], h1 = hi[1]; i1 <= h1; ++i1) { iv[1] = i1;
         AMREX_PRAGMA_SIMD
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_handler(f,iv);
+            call_f_intvect_handler(f,iv);
         }}}
     } else {
         for (int id = lo[idim-1], hd = hi[idim-1]; id <= hd; ++id) { iv[idim-1] = id;
@@ -319,18 +319,18 @@ void For_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, In
 {
     if constexpr (idim == 1) {
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_ncomp_handler(f,iv,n);
+            call_f_intvect_ncomp_handler(f,iv,n);
         }
     } else if constexpr (idim == 2) {
         for (int i1 = lo[1], h1 = hi[1]; i1 <= h1; ++i1) { iv[1] = i1;
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_ncomp_handler(f,iv,n);
+            call_f_intvect_ncomp_handler(f,iv,n);
         }}
     } else if constexpr (idim == 3) {
         for (int i2 = lo[2], h2 = hi[2]; i2 <= h2; ++i2) { iv[2] = i2;
         for (int i1 = lo[1], h1 = hi[1]; i1 <= h1; ++i1) { iv[1] = i1;
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_ncomp_handler(f,iv,n);
+            call_f_intvect_ncomp_handler(f,iv,n);
         }}}
     } else {
         for (int id = lo[idim-1], hd = hi[idim-1]; id <= hd; ++id) { iv[idim-1] = id;
@@ -345,8 +345,8 @@ template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_i
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void For (BoxND<dim> const& box, T ncomp, L const& f) noexcept
 {
-    const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
+    const auto lo = amrex::lbound_iv(box);
+    const auto hi = amrex::ubound_iv(box);
     IntVectND<dim> iv;
     for (T n = 0; n < ncomp; ++n) {
         detail::For_impND<dim>(f, lo, hi, iv, n);
@@ -382,20 +382,20 @@ void ParallelFor_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> cons
     if constexpr (idim == 1) {
         AMREX_PRAGMA_SIMD
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_ncomp_handler(f,iv,n);
+            call_f_intvect_ncomp_handler(f,iv,n);
         }
     } else if constexpr (idim == 2) {
         for (int i1 = lo[1], h1 = hi[1]; i1 <= h1; ++i1) { iv[1] = i1;
         AMREX_PRAGMA_SIMD
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_ncomp_handler(f,iv,n);
+            call_f_intvect_ncomp_handler(f,iv,n);
         }}
     } else if constexpr (idim == 3) {
         for (int i2 = lo[2], h2 = hi[2]; i2 <= h2; ++i2) { iv[2] = i2;
         for (int i1 = lo[1], h1 = hi[1]; i1 <= h1; ++i1) { iv[1] = i1;
         AMREX_PRAGMA_SIMD
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_ncomp_handler(f,iv,n);
+            call_f_intvect_ncomp_handler(f,iv,n);
         }}}
     } else {
         for (int id = lo[idim-1], hd = hi[idim-1]; id <= hd; ++id) { iv[idim-1] = id;
@@ -1233,18 +1233,18 @@ void ParallelForRNG_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> c
 {
     if constexpr (idim == 1) {
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_engine(f,iv,RandomEngine{});
+            call_f_intvect_engine(f,iv,RandomEngine{});
         }
     } else if constexpr (idim == 2) {
         for (int i1 = lo[1], h1 = hi[1]; i1 <= h1; ++i1) { iv[1] = i1;
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_engine(f,iv,RandomEngine{});
+            call_f_intvect_engine(f,iv,RandomEngine{});
         }}
     } else if constexpr (idim == 3) {
         for (int i2 = lo[2], h2 = hi[2]; i2 <= h2; ++i2) { iv[2] = i2;
         for (int i1 = lo[1], h1 = hi[1]; i1 <= h1; ++i1) { iv[1] = i1;
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_engine(f,iv,RandomEngine{});
+            call_f_intvect_engine(f,iv,RandomEngine{});
         }}}
     } else {
         for (int id = lo[idim-1], hd = hi[idim-1]; id <= hd; ++id) { iv[idim-1] = id;
@@ -1259,18 +1259,18 @@ void ParallelForRNG_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> c
 {
     if constexpr (idim == 1) {
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_ncomp_engine(f,iv,n,RandomEngine{});
+            call_f_intvect_ncomp_engine(f,iv,n,RandomEngine{});
         }
     } else if constexpr (idim == 2) {
         for (int i1 = lo[1], h1 = hi[1]; i1 <= h1; ++i1) { iv[1] = i1;
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_ncomp_engine(f,iv,n,RandomEngine{});
+            call_f_intvect_ncomp_engine(f,iv,n,RandomEngine{});
         }}
     } else if constexpr (idim == 3) {
         for (int i2 = lo[2], h2 = hi[2]; i2 <= h2; ++i2) { iv[2] = i2;
         for (int i1 = lo[1], h1 = hi[1]; i1 <= h1; ++i1) { iv[1] = i1;
         for (int i0 = lo[0], h0 = hi[0]; i0 <= h0; ++i0) { iv[0] = i0;
-            detail::call_f_intvect_ncomp_engine(f,iv,n,RandomEngine{});
+            call_f_intvect_ncomp_engine(f,iv,n,RandomEngine{});
         }}}
     } else {
         for (int id = lo[idim-1], hd = hi[idim-1]; id <= hd; ++id) { iv[idim-1] = id;
