@@ -14,7 +14,7 @@ jobs:
     env:
       CXX: g++
       CC: gcc
-      CMAKE_PREFIX: "/opt/conduit;/opt/catalyst"
+      CMAKE_PREFIX_PATH: "/opt/conduit:/opt/catalyst"
     container:
       image: kitware/paraview:ci-catalyst-amrex-warpx-20240701
     steps:

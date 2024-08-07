@@ -19,7 +19,11 @@
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
 #if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
-#include <nvToolsExt.h>
+#if __has_include(<nvtx3/nvToolsExt.h>)
+#  include <nvtx3/nvToolsExt.h>
+#else
+#  include <nvToolsExt.h>
+#endif
 #endif
 #endif
 

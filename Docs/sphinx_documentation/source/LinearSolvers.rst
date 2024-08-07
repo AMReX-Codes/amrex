@@ -568,6 +568,19 @@ residual correction form of the original problem. To build Hypre, follow the nex
     5.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
+To use Hypre with CUDA, nvcc compiler is needed along with all other requirements for CPU (e.g. gcc, mpicc). It is very important that the GPU architecture for Hypre matches with that of AMReX. By default, Hypre assumes its architecture number to be 70 and it is best to build Hypre for multiple architectures by specifying multiple compute capability numbers (e.g. 80 and 90).
+
+::
+
+    1.- git clone https://github.com/hypre-space/hypre.git
+    2.- cd hypre/src
+    3.- ./configure --with-cuda -—with-gpu-arch=’80 90'
+        (you can figure out the gpu arch from command line using
+        nvidia-smi --query-gpu=compute_cap --format=csv, if it gives 9.0, gpu-arch is 90)
+    4.- make install
+    5.- Create an environment variable with the HYPRE directory --
+        HYPRE_DIR=/hypre_path/hypre/src/hypre
+
 To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system.
 For examples of using hypre, we refer the reader to
 `ABecLaplacian`_ or `NodeTensorLap`_.
