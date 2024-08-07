@@ -84,7 +84,7 @@ struct Handler
 
 struct Handler
 {
-    AMREX_GPU_HOST_DEVICE constexpr Handler (int n_active_threads = -1)
+    AMREX_GPU_HOST_DEVICE constexpr explicit Handler (int n_active_threads = -1)
         : numActiveThreads(n_active_threads) {}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
