@@ -419,6 +419,56 @@ will become
     foo.a = 2
     foo.b = 2
 
+Enum Class
+----------
+
+.. versionadded:: 24.09
+   Enum class support in :cpp:`ParmParse`.
+
+AMReX provides a macro :cpp:`AMREX_ENUM` for defining :cpp:`enum class` that
+supports reflection. For example,
+
+.. highlight:: c++
+
+::
+
+   AMREX_ENUM(MyColor, red, green, blue);
+
+   void f ()
+   {
+       MyColor color = amrex::getEnum<MyColor>("red"); // MyColor::red
+       std::string name = amrex::getEnumNameString(MyColor::blue); // "blue"
+       std::vector<std::string> names = amrex::getEnumNameStrings<MyColor>();
+       // names = {"red", "green", "blue"};
+       std::string class_name = amrex::getEnumClassName<MyColor>(); // "MyColor"
+   }
+
+This allows us to read :cpp:`ParmParse` parameters into enum class objects.
+
+.. highlight:: python
+
+::
+
+   color1 = red
+   color2 = BLue
+
+The following code shows how to query the enumerators.
+
+.. highlight:: c++
+
+::
+
+   AMREX_ENUM(MyColor, none, red, green, blue);
+
+   void f (MyColor& c1, MyColor& c2)
+   {
+       ParmParse pp;
+       pp.query("color1", c1); // c1 becomes MyColor::red
+       pp.query_enum_case_insensitive("color2", c2); // c2 becomes MyColor::blue
+       MyColor default_color; // MyColor::none
+       pp.query("color3", default_color); // Still MyColor::none
+   }
+
 Overriding Parameters with Command-Line Arguments
 -------------------------------------------------
 
