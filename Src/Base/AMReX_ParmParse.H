@@ -1040,13 +1040,26 @@ public:
     /**
      * \brief Query with Parser. If `name` is found, this uses amrex::Parser
      * to parse the entire list of empty space separated values as a single
-     * scalar. The return value indicates whether it's found.
+     * scalar. The return value indicates whether it's found. Note that
+     * queryWithParser will be used recursively for unresolved symbols.
      */
     int queryWithParser (const char* name, int& ref) const;
     int queryWithParser (const char* name, long& ref) const;
     int queryWithParser (const char* name, long long& ref) const;
     int queryWithParser (const char* name, float& ref) const;
     int queryWithParser (const char* name, double& ref) const;
+
+    /**
+     * \brief Query with Parser. The return value indicates whether it's
+     * found. Note that queryWithParser will be used for unresolved
+     * symbols. If the number of elements in the input does not equal to
+     * `nvals`, it's a runtime error.
+     */
+    int queryarrWithParser (const char* name, int nvals, std::vector<int>& ref) const;
+    int queryarrWithParser (const char* name, int nvals, std::vector<long>& ref) const;
+    int queryarrWithParser (const char* name, int nvals, std::vector<long long>& ref) const;
+    int queryarrWithParser (const char* name, int nvals, std::vector<float>& ref) const;
+    int queryarrWithParser (const char* name, int nvals, std::vector<double>& ref) const;
 
     /**
      * \brief Query with Parser. If `name` is found, this uses amrex::Parser
