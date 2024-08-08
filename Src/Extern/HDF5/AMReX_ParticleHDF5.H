@@ -504,7 +504,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         return;
     }
 
-    BL_PROFILE("ParticleContainer::CheckpointPost()");
+    BL_PROFILE("ParticleContainer::CheckpointPostHDF5()");
 
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     std::ofstream HdrFile;
