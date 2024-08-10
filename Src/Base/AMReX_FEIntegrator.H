@@ -53,9 +53,6 @@ public:
         // So we initialize S_new by copying the old state.
         IntegratorOps<T>::Copy(S_new, S_old);
 
-        // Call the pre RHS hook
-        BaseT::pre_rhs_action(S_new, time);
-
         // F = RHS(S, t)
         T& F = *F_nodes[0];
         BaseT::Rhs(F, S_new, time);
