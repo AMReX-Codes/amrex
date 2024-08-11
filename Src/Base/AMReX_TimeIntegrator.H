@@ -167,11 +167,6 @@ public:
         integrator_ptr->set_post_fast_step_action(A);
     }
 
-    void set_post_update (std::function<void (T&, amrex::Real)> A)
-    {
-        integrator_ptr->set_post_update(A);
-    }
-
     amrex::Real get_time_step ()
     {
         return integrator_ptr->get_time_step();

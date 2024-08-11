@@ -314,12 +314,6 @@ public:
         post_fast_step_action = A;
     }
 
-    void set_post_update (std::function<void (T&, amrex::Real)> A)
-    {
-        set_post_stage_action(A);
-        set_post_step_action(A);
-    }
-
     amrex::Real get_time_step ()
     {
         return time_step;
