@@ -1895,7 +1895,7 @@ bool squeryarrWithParser (const ParmParse::Table& table,
                           const std::string&      parser_prefix,
                           const std::string&      name,
                           int                     nvals,
-                          std::vector<T>&         ref)
+                          T*                      ref)
 {
     std::vector<std::string> vals;
     bool exist = squeryarr(table, parser_prefix, name, vals,
@@ -1903,9 +1903,6 @@ bool squeryarrWithParser (const ParmParse::Table& table,
     if (!exist) { return false; }
 
     AMREX_ALWAYS_ASSERT(int(vals.size()) == nvals);
-    if (ref.size() < vals.size()) {
-        ref.resize(nvals);
-    }
     for (int ival = 0; ival < nvals; ++ival) {
         bool r = pp_parser(table, parser_prefix, name, vals[ival], ref[ival], true);
         if (!r) { return false; }
@@ -1945,31 +1942,31 @@ ParmParse::queryWithParser (const char* name, double& ref) const
 }
 
 int
-ParmParse::queryarrWithParser (const char* name, int nvals, std::vector<int>& ref) const
+ParmParse::queryarrWithParser (const char* name, int nvals, int* ref) const
 {
     return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ref);
 }
 
 int
-ParmParse::queryarrWithParser (const char* name, int nvals, std::vector<long>& ref) const
+ParmParse::queryarrWithParser (const char* name, int nvals, long* ref) const
 {
     return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ref);
 }
 
 int
-ParmParse::queryarrWithParser (const char* name, int nvals, std::vector<long long>& ref) const
+ParmParse::queryarrWithParser (const char* name, int nvals, long long* ref) const
 {
     return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ref);
 }
 
 int
-ParmParse::queryarrWithParser (const char* name, int nvals, std::vector<float>& ref) const
+ParmParse::queryarrWithParser (const char* name, int nvals, float* ref) const
 {
     return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ref);
 }
 
 int
-ParmParse::queryarrWithParser (const char* name, int nvals, std::vector<double>& ref) const
+ParmParse::queryarrWithParser (const char* name, int nvals, double* ref) const
 {
     return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ref);
 }

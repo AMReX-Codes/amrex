@@ -1055,11 +1055,25 @@ public:
      * symbols. If the number of elements in the input does not equal to
      * `nvals`, it's a runtime error.
      */
-    int queryarrWithParser (const char* name, int nvals, std::vector<int>& ref) const;
-    int queryarrWithParser (const char* name, int nvals, std::vector<long>& ref) const;
-    int queryarrWithParser (const char* name, int nvals, std::vector<long long>& ref) const;
-    int queryarrWithParser (const char* name, int nvals, std::vector<float>& ref) const;
-    int queryarrWithParser (const char* name, int nvals, std::vector<double>& ref) const;
+    int queryarrWithParser (const char* name, int nvals, int* ref) const;
+    int queryarrWithParser (const char* name, int nvals, long* ref) const;
+    int queryarrWithParser (const char* name, int nvals, long long* ref) const;
+    int queryarrWithParser (const char* name, int nvals, float* ref) const;
+    int queryarrWithParser (const char* name, int nvals, double* ref) const;
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    int queryarrWithParser (const char* name, int nvals, std::vector<T>& ref) const
+    {
+        if (this->contains(name)) {
+            if (int(ref.size()) < nvals) { ref.resize(nvals); }
+            return this->queryarrWithParser(name, nvals, ref.data());
+        } else {
+            return 0;
+        }
+    }
 
     /**
      * \brief Query with Parser. If `name` is found, this uses amrex::Parser
