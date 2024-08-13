@@ -1113,6 +1113,42 @@ public:
         }
     }
 
+    /**
+     * \brief Get with Parser. If `name` is not found, it's a runtime
+     * error. If the number of elements does not equal to `nvals`, it's also
+     * a runtime error.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    void getarrWithParser (const char* name, int nvals, T* ref) const
+    {
+        int exist = this->queryarrWithParser(name, nvals, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getarrWithParser: failed to get ")+name);
+        }
+    }
+
+    /**
+     * \brief Get with Parser. If `name` is not found, it's a runtime
+     * error. If the number of elements does not equal to `nvals`, it's also
+     * a runtime error.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    void getarrWithParser (const char* name, int nvals, std::vector<T>& ref) const
+    {
+        int exist = this->queryarrWithParser(name, nvals, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getarrWithParser: failed to get ")+name);
+        }
+    }
+
     /*
      * \brief Query two names.
      *
