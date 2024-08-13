@@ -64,4 +64,22 @@
 # include <sycl/sycl.hpp>
 #endif
 
+#define AMREX_WRONG_NUM_ARGS(...) static_assert(false,"Wrong number of arguments to macro")
+
+#define AMREX_GET_DGV_MACRO(_1,_2,_3,NAME,...) NAME
+#define AMREX_DEVICE_GLOBAL_VARIABLE(...) AMREX_GET_DGV_MACRO(__VA_ARGS__,\
+                                              AMREX_DGVARR, AMREX_DGV,\
+                                              AMREX_WRONG_NUM_ARGS)(__VA_ARGS__)
+
+#ifdef AMREX_USE_SYCL
+# define AMREX_DGV(type,name) SYCL_EXTERNAL sycl::ext::oneapi::experimental::device_global<type> name
+# define AMREX_DGVARR(type,num,name) SYCL_EXTERNAL sycl::ext::oneapi::experimental::device_global<type[num]> name
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+# define AMREX_DGV(type,name) __device__ type name
+# define AMREX_DGVARR(type,num,name) __device__ type name[num]
+#else
+# define AMREX_DGV(type,name) type name
+# define AMREX_DGVARR(type,num,name) type name[num]
+#endif
+
 #endif
