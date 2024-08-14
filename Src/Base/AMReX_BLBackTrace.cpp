@@ -13,12 +13,13 @@
 #include <AMReX_TinyProfiler.H>
 #endif
 
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
 #include <iostream>
 #include <sstream>
-#include <fstream>
-#include <cstring>
-#include <cstdio>
-#include <csignal>
 
 #if !(defined(_MSC_VER) && defined(__CUDACC__))
 //MSVC can't pre-processor cfenv with `Zc:preprocessor`
@@ -177,6 +178,18 @@ namespace {
         }
         return r;
     }
+
+#ifdef __linux__
+    bool command_exists(std::string const &cmd)
+    {
+        // command -v is part of POSIX so should be available
+        std::string check_command = "command -v " + cmd + " > /dev/null 2>&1";
+        int r = std::system(check_command.c_str());
+        // return value of std::system is implementation defined and can be
+        // decoded using WEXITSTATUS but it should be 0 on success
+        return r == 0;
+    }
+#endif
 }
 #endif
 
@@ -209,19 +222,32 @@ BLBackTrace::print_backtrace_info (FILE* f)
         int have_addr2line = 0;
         std::string eu_cmd;
         {
-            have_eu_addr2line = file_exists("/usr/bin/eu-addr2line");
+            if (command_exists("eu-addr2line")) {
+                have_eu_addr2line = 1;
+                eu_cmd = "eu-addr2line";
+            } else {
+                std::string eu_fallback_path = "/usr/bin/eu-addr2line";
+                have_eu_addr2line = file_exists(eu_fallback_path.c_str());
+                eu_cmd = std::move(eu_fallback_path);
+            }
             if (have_eu_addr2line) {
                 const pid_t pid = getpid();
                 // cmd = "/usr/bin/eu-addr2line -C -f -i --pretty-print -p "
-                eu_cmd = "/usr/bin/eu-addr2line -C -f -i -p "
-                    + std::to_string(pid);
+                eu_cmd += " -C -f -i -p " + std::to_string(pid);
             }
         }
         std::string cmd;
         {
-            have_addr2line = file_exists("/usr/bin/addr2line");
+            if (command_exists("addr2line")) {
+                have_addr2line = 1;
+                cmd = "addr2line";
+            } else {
+                std::string fallback_path = "/usr/bin/addr2line";
+                have_addr2line = file_exists(fallback_path.c_str());
+                cmd = std::move(fallback_path);
+            }
             if (have_addr2line) {
-                cmd = "/usr/bin/addr2line -Cpfie " + amrex::system::exename;
+                cmd += " -Cpfie " + amrex::system::exename;
             }
         }
 
