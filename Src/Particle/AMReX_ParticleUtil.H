@@ -360,13 +360,23 @@ template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 IntVect getParticleCell (P const& p,
                          amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
-                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-                         const Box& domain) noexcept
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi) noexcept
 {
     IntVect iv(
         AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
                      int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
                      int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
+    return iv;
+}
+
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+IntVect getParticleCell (P const& p,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                         const Box& domain) noexcept
+{
+    IntVect iv = getParticleCell(p, plo, dxi);
     iv += domain.smallEnd();
     return iv;
 }
