@@ -489,14 +489,14 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
             if (refine_grid_layout_dims[idim]) {
                 int new_chunk_size = chunk[idim] / 2;
                 int rr = (lev > 0) ? ref_ratio[lev-1][idim] : 1;
-                if (lev > 0) {
+                if (rr > 1) {
                     new_chunk_size = (new_chunk_size/rr) * rr;
                 }
                 if (new_chunk_size != 0 &&
                     new_chunk_size%blocking_factor[lev][idim] == 0)
                 {
                     chunk[idim] = new_chunk_size;
-                    if (lev == 0) {
+                    if (rr == 1) {
                         ba.maxSize(chunk);
                     } else {
                         IntVect bf(1);
