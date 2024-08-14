@@ -501,6 +501,9 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
                     } else {
                         IntVect bf(1);
                         bf[idim] = rr;
+                        // Note that only idim-direction will be chopped by
+                        // minmaxSize because the sizes in other directions
+                        // are already smaller than chunk.
                         ba.minmaxSize(bf, chunk);
                     }
                     break;
