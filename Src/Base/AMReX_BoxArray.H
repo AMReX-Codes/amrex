@@ -615,6 +615,11 @@ public:
 
     BoxArray& maxSize (const IntVect& block_size);
 
+    //! Forces each Box in BoxArray to have sizes >= min_size and <=
+    //! max_size. It's the caller's responsibility to make sure both the
+    //! BoxArray and max_size are coarsenable by min_size.
+    BoxArray& minmaxSize (const IntVect& min_size, const IntVect& max_size);
+
     //! Refine each Box in the BoxArray to the specified ratio.
     BoxArray& refine (int refinement_ratio);
 
