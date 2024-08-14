@@ -182,12 +182,12 @@ namespace {
 #ifdef __linux__
     bool command_exists(std::string const &cmd)
     {
-      // command -v is part of POSIX so should be available
-      std::string check_command = "command -v " + cmd + " > /dev/null 2>&1";
-      int r = std::system(check_command.c_str());
-      // return value of std::system is implementation defined and can be
-      // decoded using WEXITSTATUS but it should be 0 on success
-      return r == 0;
+        // command -v is part of POSIX so should be available
+        std::string check_command = "command -v " + cmd + " > /dev/null 2>&1";
+        int r = std::system(check_command.c_str());
+        // return value of std::system is implementation defined and can be
+        // decoded using WEXITSTATUS but it should be 0 on success
+        return r == 0;
     }
 #endif
 }
@@ -222,14 +222,14 @@ BLBackTrace::print_backtrace_info (FILE* f)
         int have_addr2line = 0;
         std::string eu_cmd;
         {
-          if (command_exists("eu-addr2line")) {
-            have_eu_addr2line = 1;
-            eu_cmd = "eu-addr2line";
-          } else {
-            std::string eu_fallback_path = "/usr/bin/eu-addr2line";
-            have_eu_addr2line = file_exists(eu_fallback_path.c_str());
-            eu_cmd = eu_fallback_path;
-          }
+            if (command_exists("eu-addr2line")) {
+                have_eu_addr2line = 1;
+                eu_cmd = "eu-addr2line";
+            } else {
+                std::string eu_fallback_path = "/usr/bin/eu-addr2line";
+                have_eu_addr2line = file_exists(eu_fallback_path.c_str());
+                eu_cmd = eu_fallback_path;
+            }
             if (have_eu_addr2line) {
                 const pid_t pid = getpid();
                 // cmd = "/usr/bin/eu-addr2line -C -f -i --pretty-print -p "
@@ -238,16 +238,16 @@ BLBackTrace::print_backtrace_info (FILE* f)
         }
         std::string cmd;
         {
-          if (command_exists("addr2line")) {
-            have_addr2line = 1;
-            cmd = "addr2line";
-          } else {
-            std::string fallback_path = "/usr/bin/addr2line";
-            have_addr2line = file_exists(fallback_path.c_str());
-            cmd = fallback_path;
-          }
+            if (command_exists("addr2line")) {
+                have_addr2line = 1;
+                cmd = "addr2line";
+            } else {
+                std::string fallback_path = "/usr/bin/addr2line";
+                have_addr2line = file_exists(fallback_path.c_str());
+                cmd = fallback_path;
+            }
             if (have_addr2line) {
-              cmd += " -Cpfie " + amrex::system::exename;
+                cmd += " -Cpfie " + amrex::system::exename;
             }
         }
 
