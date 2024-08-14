@@ -179,7 +179,9 @@ namespace {
         return r;
     }
 
-    bool command_exists(std::string const &cmd) {
+#ifdef __linux__
+    bool command_exists(std::string const &cmd)
+    {
       // command -v is part of POSIX so should be available
       std::string check_command = "command -v " + cmd + " > /dev/null 2>&1";
       int r = std::system(check_command.c_str());
@@ -187,6 +189,7 @@ namespace {
       // decoded using WEXITSTATUS but it should be 0 on success
       return r == 0;
     }
+#endif
 }
 #endif
 
