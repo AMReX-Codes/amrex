@@ -501,9 +501,7 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
                     } else {
                         IntVect bf(1);
                         bf[idim] = rr;
-                        ba.coarsen(bf); // It's safe to coarsen.
-                        ba.maxSize(chunk/bf);
-                        ba.refine(bf);
+                        ba.minmaxSize(bf, chunk);
                     }
                     break;
                 }
