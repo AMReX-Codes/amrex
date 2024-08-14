@@ -228,7 +228,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
             } else {
                 std::string eu_fallback_path = "/usr/bin/eu-addr2line";
                 have_eu_addr2line = file_exists(eu_fallback_path.c_str());
-                eu_cmd = eu_fallback_path;
+                eu_cmd = std::move(eu_fallback_path);
             }
             if (have_eu_addr2line) {
                 const pid_t pid = getpid();
@@ -244,7 +244,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
             } else {
                 std::string fallback_path = "/usr/bin/addr2line";
                 have_addr2line = file_exists(fallback_path.c_str());
-                cmd = fallback_path;
+                cmd = std::move(fallback_path);
             }
             if (have_addr2line) {
                 cmd += " -Cpfie " + amrex::system::exename;
