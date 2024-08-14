@@ -555,9 +555,10 @@ BoxArray::maxSize (const IntVect& block_size)
     blst.maxSize(block_size);
     const int N = static_cast<int>(blst.size());
     if (size() != N) { // If size doesn't change, do nothing.
-        auto bak = m_simplified_list;
+        std::shared_ptr<BoxList> bak;
+        bak.swap(m_simplified_list);
         define(std::move(blst));
-        m_simplified_list = bak;
+        m_simplified_list = std::move(bak);
     }
     return *this;
 }
@@ -569,12 +570,12 @@ BoxArray::minmaxSize (const IntVect& min_size, const IntVect& max_size)
                  (max_size/min_size)*min_size == max_size);
     std::shared_ptr<BoxList> bak;
     if (m_bat.is_simple() && crseRatio() == IntVect::TheUnitVector()) {
-        bak = m_simplified_list;
+        bak.swap(m_simplified_list);
     }
     this->coarsen(min_size);
     this->maxSize(max_size/min_size);
     this->refine(min_size);
-    m_simplified_list = bak;
+    m_simplified_list = std::move(bak);
     return *this;
 }
 
