@@ -433,7 +433,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
         Array4<int const> const& dmarr = dmask.const_array(mfi);
 #ifdef AMREX_USE_EB
         bool cutfab = edgecent[0] && edgecent[0]->ok(mfi);
-        if (cutfab) {
+        if (cutfab && factory) { // clang-tidy is not that smart
             AMREX_D_TERM(Array4<Real const> const& ecx = edgecent[0]->const_array(mfi);,
                          Array4<Real const> const& ecy = edgecent[1]->const_array(mfi);,
                          Array4<Real const> const& ecz = edgecent[2]->const_array(mfi));
@@ -560,7 +560,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
             Array4<int const> const& dmskarr = dmask.const_array(mfi);
 #ifdef AMREX_USE_EB
             bool cutfab = edgecent[0] && edgecent[0]->ok(mfi);
-            if (cutfab) {
+            if (cutfab && factory) { // clang-tidy is not that smart
                 AMREX_D_TERM(Array4<Real const> const& ecx = edgecent[0]->const_array(mfi);,
                              Array4<Real const> const& ecy = edgecent[1]->const_array(mfi);,
                              Array4<Real const> const& ecz = edgecent[2]->const_array(mfi));
