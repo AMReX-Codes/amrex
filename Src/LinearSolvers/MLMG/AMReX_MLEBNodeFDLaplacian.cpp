@@ -5,6 +5,7 @@
 #include <AMReX_MultiFabUtil.H>
 
 #ifdef AMREX_USE_EB
+#include <AMReX_EB2.H>
 #include <AMReX_EBMultiFabUtil.H>
 #endif
 
@@ -151,10 +152,14 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
 std::unique_ptr<FabFactory<FArrayBox> >
 MLEBNodeFDLaplacian::makeFactory (int amrlev, int mglev) const
 {
-    return makeEBFabFactory(m_geom[amrlev][mglev],
-                            m_grids[amrlev][mglev],
-                            m_dmap[amrlev][mglev],
-                            {1,1,1}, EBSupport::full);
+    if (EB2::TopIndexSpaceIfPresent()) {
+        return makeEBFabFactory(m_geom[amrlev][mglev],
+                                m_grids[amrlev][mglev],
+                                m_dmap[amrlev][mglev],
+                                {1,1,1}, EBSupport::full);
+    } else {
+        return MLNodeLinOp::makeFactory(amrlev, mglev);
+    }
 }
 #endif
 
@@ -264,17 +269,19 @@ MLEBNodeFDLaplacian::prepareForSolve ()
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
             const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-            auto const& levset_mf = factory->getLevelSet();
-            auto const& levset_ar = levset_mf.const_arrays();
-            auto& dmask_mf = *m_dirichlet_mask[amrlev][mglev];
-            auto const& dmask_ar = dmask_mf.arrays();
-            amrex::ParallelFor(dmask_mf,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            {
-                if (levset_ar[box_no](i,j,k) >= Real(0.0)) {
-                    dmask_ar[box_no](i,j,k) = -1;
-                }
-            });
+            if (factory) {
+                auto const& levset_mf = factory->getLevelSet();
+                auto const& levset_ar = levset_mf.const_arrays();
+                auto& dmask_mf = *m_dirichlet_mask[amrlev][mglev];
+                auto const& dmask_ar = dmask_mf.arrays();
+                amrex::ParallelFor(dmask_mf,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    if (levset_ar[box_no](i,j,k) >= Real(0.0)) {
+                        dmask_ar[box_no](i,j,k) = -1;
+                    }
+                });
+            }
         }
     }
 #endif
@@ -359,8 +366,10 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 void
 MLEBNodeFDLaplacian::scaleRHS (int amrlev, MultiFab& rhs) const
 {
-    auto const& dmask = *m_dirichlet_mask[amrlev][0];
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+    if (!factory) { return; }
+
+    auto const& dmask = *m_dirichlet_mask[amrlev][0];
     auto const& edgecent = factory->getEdgeCent();
 
 #ifdef AMREX_USE_OMP
@@ -407,9 +416,14 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
 #ifdef AMREX_USE_EB
     const auto phieb = (m_in_solution_mode) ? m_s_phi_eb : Real(0.0);
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-    auto const& edgecent = factory->getEdgeCent();
-    auto const& levset_mf = factory->getLevelSet();
-    auto const& volfrac = factory->getVolFrac();
+    Array<const MultiCutFab*,AMREX_SPACEDIM> edgecent;
+    MultiFab const* levset_mf = nullptr;
+    MultiFab const* volfrac = nullptr;
+    if (factory) {
+        edgecent = factory->getEdgeCent();
+        levset_mf = &(factory->getLevelSet());
+        volfrac = &(factory->getVolFrac());
+    }
 #endif
 
 #ifdef AMREX_USE_OMP
@@ -422,12 +436,12 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
         Array4<Real> const& yarr = out.array(mfi);
         Array4<int const> const& dmarr = dmask.const_array(mfi);
 #ifdef AMREX_USE_EB
-        bool cutfab = edgecent[0]->ok(mfi);
+        bool cutfab = factory && edgecent[0]->ok(mfi);
         if (cutfab) {
             AMREX_D_TERM(Array4<Real const> const& ecx = edgecent[0]->const_array(mfi);,
                          Array4<Real const> const& ecy = edgecent[1]->const_array(mfi);,
                          Array4<Real const> const& ecz = edgecent[2]->const_array(mfi));
-            auto const& levset = levset_mf.const_array(mfi);
+            auto const& levset = levset_mf->const_array(mfi);
             if (phieb == std::numeric_limits<Real>::lowest()) {
                 auto const& phiebarr = m_phi_eb[amrlev].const_array(mfi);
 #if (AMREX_SPACEDIM == 2)
@@ -441,7 +455,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
 #endif
                 if (m_has_sigma_mf) {
                     auto const& sigarr = m_sigma_mf[amrlev][mglev]->const_array(mfi);
-                    auto const& vfrc = volfrac.const_array(mfi);
+                    auto const& vfrc = volfrac->const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_sig_adotx_eb(i,j,k,yarr,xarr,levset,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
@@ -466,7 +480,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
 #endif
                 if (m_has_sigma_mf) {
                     auto const& sigarr = m_sigma_mf[amrlev][mglev]->const_array(mfi);
-                    auto const& vfrc = volfrac.const_array(mfi);
+                    auto const& vfrc = volfrac->const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_sig_adotx_eb(i,j,k,yarr,xarr,levset,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
@@ -533,9 +547,14 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
 
 #ifdef AMREX_USE_EB
         const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-        auto const& edgecent = factory->getEdgeCent();
-        auto const& levset_mf = factory->getLevelSet();
-        auto const& volfrac = factory->getVolFrac();
+        Array<const MultiCutFab*,AMREX_SPACEDIM> edgecent;
+        MultiFab const* levset_mf = nullptr;
+        MultiFab const* volfrac = nullptr;
+        if (factory) {
+            edgecent = factory->getEdgeCent();
+            levset_mf = &(factory->getLevelSet());
+            volfrac = &(factory->getVolFrac());
+        }
 #endif
 
 #ifdef AMREX_USE_OMP
@@ -548,12 +567,12 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
             Array4<Real const> const& rhsarr = rhs.const_array(mfi);
             Array4<int const> const& dmskarr = dmask.const_array(mfi);
 #ifdef AMREX_USE_EB
-            bool cutfab = edgecent[0]->ok(mfi);
+            bool cutfab = factory && edgecent[0]->ok(mfi);
             if (cutfab) {
                 AMREX_D_TERM(Array4<Real const> const& ecx = edgecent[0]->const_array(mfi);,
                              Array4<Real const> const& ecy = edgecent[1]->const_array(mfi);,
                              Array4<Real const> const& ecz = edgecent[2]->const_array(mfi));
-                auto const& levset = levset_mf.const_array(mfi);
+                auto const& levset = levset_mf->const_array(mfi);
 #if (AMREX_SPACEDIM == 2)
                 if (m_rz) {
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
@@ -565,7 +584,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
 #endif
                 if (m_has_sigma_mf) {
                     auto const& sigarr = m_sigma_mf[amrlev][mglev]->const_array(mfi);
-                    auto const& vfrc = volfrac.const_array(mfi);
+                    auto const& vfrc = volfrac->const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
                     {
                         mlebndfdlap_sig_gsrb_eb(i,j,k,solarr,rhsarr,levset,dmskarr,AMREX_D_DECL(ecx,ecy,ecz),
@@ -641,8 +660,10 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
     auto const& dmask = *m_dirichlet_mask[amrlev][mglev];
     const auto phieb = m_s_phi_eb;
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-    AMREX_ASSERT(factory);
-    auto const& edgecent = factory->getEdgeCent();
+    Array<const MultiCutFab*,AMREX_SPACEDIM> edgecent;
+    if (factory) {
+        edgecent = factory->getEdgeCent();
+    }
 #endif
 
 #ifdef AMREX_USE_OMP
@@ -659,7 +680,7 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
                      Array4<Real> const& gpz = grad[2]->array(mfi);)
 #ifdef AMREX_USE_EB
         Array4<int const> const& dmarr = dmask.const_array(mfi);
-        bool cutfab = edgecent[0]->ok(mfi);
+        bool cutfab = factory && edgecent[0]->ok(mfi);
         AMREX_D_TERM(Array4<Real const> const& ecx
                          = cutfab ? edgecent[0]->const_array(mfi) : Array4<Real const>{};,
                      Array4<Real const> const& ecy
@@ -741,6 +762,7 @@ MLEBNodeFDLaplacian::postSolve (Vector<MultiFab>& sol) const
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         const auto phieb = m_s_phi_eb;
         const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+        if (!factory) { return; }
         auto const& levset_mf = factory->getLevelSet();
         auto const& levset_ar = levset_mf.const_arrays();
         MultiFab& mf = sol[amrlev];
