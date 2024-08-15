@@ -416,7 +416,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
 #ifdef AMREX_USE_EB
     const auto phieb = (m_in_solution_mode) ? m_s_phi_eb : Real(0.0);
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-    Array<const MultiCutFab*,AMREX_SPACEDIM> edgecent;
+    Array<const MultiCutFab*,AMREX_SPACEDIM> edgecent {AMREX_D_DECL(nullptr,nullptr,nullptr)};
     MultiFab const* levset_mf = nullptr;
     MultiFab const* volfrac = nullptr;
     if (factory) {
@@ -436,7 +436,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
         Array4<Real> const& yarr = out.array(mfi);
         Array4<int const> const& dmarr = dmask.const_array(mfi);
 #ifdef AMREX_USE_EB
-        bool cutfab = factory && edgecent[0]->ok(mfi);
+        bool cutfab = edgecent[0] && edgecent[0]->ok(mfi);
         if (cutfab) {
             AMREX_D_TERM(Array4<Real const> const& ecx = edgecent[0]->const_array(mfi);,
                          Array4<Real const> const& ecy = edgecent[1]->const_array(mfi);,
@@ -547,7 +547,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
 
 #ifdef AMREX_USE_EB
         const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-        Array<const MultiCutFab*,AMREX_SPACEDIM> edgecent;
+        Array<const MultiCutFab*,AMREX_SPACEDIM> edgecent {AMREX_D_DECL(nullptr,nullptr,nullptr)};
         MultiFab const* levset_mf = nullptr;
         MultiFab const* volfrac = nullptr;
         if (factory) {
@@ -567,7 +567,7 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
             Array4<Real const> const& rhsarr = rhs.const_array(mfi);
             Array4<int const> const& dmskarr = dmask.const_array(mfi);
 #ifdef AMREX_USE_EB
-            bool cutfab = factory && edgecent[0]->ok(mfi);
+            bool cutfab = edgecent[0] && edgecent[0]->ok(mfi);
             if (cutfab) {
                 AMREX_D_TERM(Array4<Real const> const& ecx = edgecent[0]->const_array(mfi);,
                              Array4<Real const> const& ecy = edgecent[1]->const_array(mfi);,
@@ -660,7 +660,7 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
     auto const& dmask = *m_dirichlet_mask[amrlev][mglev];
     const auto phieb = m_s_phi_eb;
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-    Array<const MultiCutFab*,AMREX_SPACEDIM> edgecent;
+    Array<const MultiCutFab*,AMREX_SPACEDIM> edgecent {AMREX_D_DECL(nullptr,nullptr,nullptr)};
     if (factory) {
         edgecent = factory->getEdgeCent();
     }
@@ -680,7 +680,7 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
                      Array4<Real> const& gpz = grad[2]->array(mfi);)
 #ifdef AMREX_USE_EB
         Array4<int const> const& dmarr = dmask.const_array(mfi);
-        bool cutfab = factory && edgecent[0]->ok(mfi);
+        bool cutfab = edgecent[0] && edgecent[0]->ok(mfi);
         AMREX_D_TERM(Array4<Real const> const& ecx
                          = cutfab ? edgecent[0]->const_array(mfi) : Array4<Real const>{};,
                      Array4<Real const> const& ecy
