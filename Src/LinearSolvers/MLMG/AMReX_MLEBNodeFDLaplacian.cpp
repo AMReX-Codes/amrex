@@ -437,7 +437,7 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
             AMREX_D_TERM(Array4<Real const> const& ecx = edgecent[0]->const_array(mfi);,
                          Array4<Real const> const& ecy = edgecent[1]->const_array(mfi);,
                          Array4<Real const> const& ecz = edgecent[2]->const_array(mfi));
-            auto const& levset = factory->getVolFrac().const_array(mfi);
+            auto const& levset = factory->getLevelSet().const_array(mfi);
             if (phieb == std::numeric_limits<Real>::lowest()) {
                 auto const& phiebarr = m_phi_eb[amrlev].const_array(mfi);
 #if (AMREX_SPACEDIM == 2)
