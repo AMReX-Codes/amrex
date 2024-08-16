@@ -109,7 +109,7 @@ void hypmlabeclap_c2f (int i, int j, int k,
                        Array4<int const> const& offset_by,
                        Real const* bx, Real const* by,
                        Array4<int const> const& fine_mask,
-                       IntVect const& rr)
+                       IntVect const& rr, Array4<int const> const& crse_mask)
 {
     if (fine_mask(i,j,k)) {
         // Let's set off-diagonal elements to zero
@@ -159,9 +159,15 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real xInt = Real(-0.5) + (irx+Real(0.5))/Real(rr[0]);
                 Real xc[3] = {Real(-1.0), Real(0.0), Real(1.0)};
                 Real ct[3] = {Real(0.0), Real(0.0), Real(0.0)};
-                if (fine_mask(i-1,j,k)) {
+                int const cdirlo = Orientation(Direction::x, Orientation::low);
+                int const cdirhi = Orientation(Direction::x, Orientation::high);
+                if ( fine_mask(i-1,j,k) ||
+                    !crse_mask(i-1,j,k))
+                {
                     poly_interp_coeff<2>(xInt, &(xc[1]), &(ct[1]));
-                } else if (fine_mask(i+1,j,k)) {
+                } else if ( fine_mask(i+1,j,k) ||
+                           !crse_mask(i+1,j,k))
+                {
                     poly_interp_coeff<2>(xInt, xc, ct);
                 } else {
                     poly_interp_coeff<3>(xInt, xc, ct);
@@ -202,9 +208,15 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real yInt = Real(-0.5) + (iry+Real(0.5))/Real(rr[1]);
                 Real yc[3] = {Real(-1.0), Real(0.0), Real(1.0)};
                 Real ct[3] = {Real(0.0), Real(0.0), Real(0.0)};
-                if (fine_mask(i,j-1,k)) {
+                int const cdirlo = Orientation(Direction::y, Orientation::low);
+                int const cdirhi = Orientation(Direction::y, Orientation::high);
+                if ( fine_mask(i,j-1,k) ||
+                    !crse_mask(i,j-1,k))
+                {
                     poly_interp_coeff<2>(yInt, &(yc[1]), &(ct[1]));
-                } else if (fine_mask(i,j+1,k)) {
+                } else if ( fine_mask(i,j+1,k) ||
+                           !crse_mask(i,j+1,k))
+                {
                     poly_interp_coeff<2>(yInt, yc, ct);
                 } else {
                     poly_interp_coeff<3>(yInt, yc, ct);
@@ -244,9 +256,15 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real yInt = Real(-0.5) + (iry+Real(0.5))/Real(rr[1]);
                 Real yc[3] = {Real(-1.0), Real(0.0), Real(1.0)};
                 Real ct[3] = {Real(0.0), Real(0.0), Real(0.0)};
-                if (fine_mask(i,j-1,k)) {
+                int const cdirlo = Orientation(Direction::y, Orientation::low);
+                int const cdirhi = Orientation(Direction::y, Orientation::high);
+                if ( fine_mask(i,j-1,k) ||
+                    !crse_mask(i,j-1,k))
+                {
                     poly_interp_coeff<2>(yInt, &(yc[1]), &(ct[1]));
-                } else if (fine_mask(i,j+1,k)) {
+                } else if ( fine_mask(i,j+1,k) ||
+                           !crse_mask(i,j+1,k))
+                {
                     poly_interp_coeff<2>(yInt, yc, ct);
                 } else {
                     poly_interp_coeff<3>(yInt, yc, ct);
@@ -286,9 +304,15 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real xInt = Real(-0.5) + (irx+Real(0.5))/Real(rr[0]);
                 Real xc[3] = {Real(-1.0), Real(0.0), Real(1.0)};
                 Real ct[3] = {Real(0.0), Real(0.0), Real(0.0)};
-                if (fine_mask(i-1,j,k)) {
+                int const cdirlo = Orientation(Direction::x, Orientation::low);
+                int const cdirhi = Orientation(Direction::x, Orientation::high);
+                if ( fine_mask(i-1,j,k) ||
+                    !crse_mask(i-1,j,k))
+                {
                     poly_interp_coeff<2>(xInt, &(xc[1]), &(ct[1]));
-                } else if (fine_mask(i+1,j,k)) {
+                } else if ( fine_mask(i+1,j,k) ||
+                           !crse_mask(i+1,j,k))
+                {
                     poly_interp_coeff<2>(xInt, xc, ct);
                 } else {
                     poly_interp_coeff<3>(xInt, xc, ct);

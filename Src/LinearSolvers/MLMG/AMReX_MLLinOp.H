@@ -376,6 +376,8 @@ public:
     virtual void solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
                                    const MF* crse_bcdata=nullptr) = 0;
 
+    virtual void prepareForFluxes (int /*amrlev*/, const MF* /*crse_bcdata*/ = nullptr) {}
+
     /**
      * \brief Compute residual for the residual-correction form, resid = b - L(x)
      *
