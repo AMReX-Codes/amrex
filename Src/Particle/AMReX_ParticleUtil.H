@@ -356,6 +356,19 @@ struct GetParticleBin
     }
 };
 
+/**
+ * \brief Returns the cell index for a given particle using the
+ * provided lower bounds and cell sizes.
+ *
+ * This version indexes cells starting from 0 at the lower left corner of
+ * the provided lower bounds, i.e., it returns a local index.
+ *
+ * \tparam P a type of AMReX particle.
+ *
+ * \param p the particle for which the cell index is calculated
+ * \param plo the low end of the domain
+ * \param dxi cell sizes in each dimension
+ */
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 IntVect getParticleCell (P const& p,
@@ -369,6 +382,20 @@ IntVect getParticleCell (P const& p,
     return iv;
 }
 
+/**
+ * \brief Returns the cell index for a given particle using the
+ * provided lower bounds, cell sizes and global domain offset.
+ *
+ * This version indexes cells starting from 0 at the lower left corner of
+ * the simulation geometry, i.e., it returns a global index.
+ *
+ * \tparam P a type of AMReX particle.
+ *
+ * \param p the particle for which the cell index is calculated
+ * \param plo the low end of the domain
+ * \param dxi cell sizes in each dimension
+ * \param domain AMReX box in which the given particle resides
+ */
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 IntVect getParticleCell (P const& p,
