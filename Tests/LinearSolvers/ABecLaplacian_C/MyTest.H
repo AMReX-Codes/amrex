@@ -61,6 +61,7 @@ private:
     bool semicoarsening = false;
     int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
+    bool use_gauss_seidel = true; // true: red-black, false: jacobi
     bool use_hypre = false;
     bool use_petsc = false;
 

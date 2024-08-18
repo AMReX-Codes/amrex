@@ -329,6 +329,106 @@ void abec_gsrb_os (int i, int j, int k, int n,
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void abec_jacobi (int i, int j, int k, int n, Array4<T> const& phi,
+                  Array4<T const> const& rhs, Array4<T const> const& Ax,
+                  T alpha, Array4<T const> const& a,
+                  T dhx, T dhy, T dhz,
+                  Array4<T const> const& bX, Array4<T const> const& bY,
+                  Array4<T const> const& bZ,
+                  Array4<int const> const& m0, Array4<int const> const& m2,
+                  Array4<int const> const& m4,
+                  Array4<int const> const& m1, Array4<int const> const& m3,
+                  Array4<int const> const& m5,
+                  Array4<T const> const& f0, Array4<T const> const& f2,
+                  Array4<T const> const& f4,
+                  Array4<T const> const& f1, Array4<T const> const& f3,
+                  Array4<T const> const& f5,
+                  Box const& vbox) noexcept
+{
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+        ? f0(vlo.x,j,k,n) : T(0.0);
+    T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+        ? f1(i,vlo.y,k,n) : T(0.0);
+    T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+        ? f2(i,j,vlo.z,n) : T(0.0);
+    T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+        ? f3(vhi.x,j,k,n) : T(0.0);
+    T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+        ? f4(i,vhi.y,k,n) : T(0.0);
+    T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+        ? f5(i,j,vhi.z,n) : T(0.0);
+
+    T gamma = alpha*a(i,j,k)
+        +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
+        +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
+        +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
+
+    T g_m_d = gamma
+        - (dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
+        +  dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
+        +  dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5));
+
+    phi(i,j,k,n) += T(2.0/3.0) * (rhs(i,j,k,n) - Ax(i,j,k,n)) / g_m_d;
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void abec_jacobi_os (int i, int j, int k, int n,
+                     Array4<T> const& phi, Array4<T const> const& rhs,
+                     Array4<T const> const& Ax,
+                     T alpha, Array4<T const> const& a,
+                     T dhx, T dhy, T dhz,
+                     Array4<T const> const& bX, Array4<T const> const& bY,
+                     Array4<T const> const& bZ,
+                     Array4<int const> const& m0, Array4<int const> const& m2,
+                     Array4<int const> const& m4,
+                     Array4<int const> const& m1, Array4<int const> const& m3,
+                     Array4<int const> const& m5,
+                     Array4<T const> const& f0, Array4<T const> const& f2,
+                     Array4<T const> const& f4,
+                     Array4<T const> const& f1, Array4<T const> const& f3,
+                     Array4<T const> const& f5,
+                     Array4<int const> const& osm,
+                     Box const& vbox) noexcept
+{
+    if (osm(i,j,k) == 0) {
+        phi(i,j,k,n) = T(0.0);
+    } else {
+        const auto vlo = amrex::lbound(vbox);
+        const auto vhi = amrex::ubound(vbox);
+
+        T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+            ? f0(vlo.x,j,k,n) : T(0.0);
+        T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+            ? f1(i,vlo.y,k,n) : T(0.0);
+        T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+            ? f2(i,j,vlo.z,n) : T(0.0);
+        T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+            ? f3(vhi.x,j,k,n) : T(0.0);
+        T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+            ? f4(i,vhi.y,k,n) : T(0.0);
+        T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+            ? f5(i,j,vhi.z,n) : T(0.0);
+
+        T gamma = alpha*a(i,j,k)
+            +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
+            +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
+            +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
+
+        T g_m_d = gamma
+            - (dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
+            +  dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
+            +  dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5));
+
+        phi(i,j,k,n) += T(2.0/3.0) * (rhs(i,j,k,n) - Ax(i,j,k,n)) / g_m_d;
+    }
+}
+
+template <typename T>
+AMREX_FORCE_INLINE
 void tridiagonal_solve (Array1D<T,0,31>& a_ls, Array1D<T,0,31>& b_ls, Array1D<T,0,31>& c_ls,
                         Array1D<T,0,31>& r_ls, Array1D<T,0,31>& u_ls, Array1D<T,0,31>& gam,
                         int ilen ) noexcept
@@ -348,7 +448,7 @@ void tridiagonal_solve (Array1D<T,0,31>& a_ls, Array1D<T,0,31>& b_ls, Array1D<T,
 }
 
 template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_FORCE_INLINE
 void abec_gsrb_with_line_solve (
                 Box const& box, Array4<T> const& phi, Array4<T const> const& rhs,
                 T alpha, Array4<T const> const& a,

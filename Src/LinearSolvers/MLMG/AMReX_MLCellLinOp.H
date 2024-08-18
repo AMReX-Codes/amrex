@@ -55,6 +55,8 @@ public:
     }
     void update () override;
 
+    void setGaussSeidel (bool flag) noexcept { m_use_gauss_seidel = flag; }
+
     virtual bool isCrossStencil () const { return true; }
     virtual bool isTensorOp () const { return false; }
 
@@ -200,6 +202,8 @@ protected:
     Vector<std::unique_ptr<iMultiFab> > m_norm_fine_mask;
 
     mutable Vector<YAFluxRegisterT<MF>> m_fluxreg;
+
+    bool m_use_gauss_seidel = true; // use red-black Gauss-Seidel by default
 
 private:
 

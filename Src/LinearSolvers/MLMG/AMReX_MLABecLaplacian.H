@@ -864,6 +864,12 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
         regular_coarsening = this->mg_coarsen_ratio_vec[mglev-1] == this->mg_coarsen_ratio;
     }
 
+    MF Ax;
+    if (! this->m_use_gauss_seidel && regular_coarsening) { // jacobi
+        Ax.define(sol.boxArray(), sol.DistributionMap(), sol.nComp(), 0);
+        Fapply(amrlev, mglev, Ax, sol);
+    }
+
     const MF& acoef = m_a_coeffs[amrlev][mglev];
     AMREX_ALWAYS_ASSERT(acoef.nGrowVect() == 0);
     AMREX_D_TERM(const MF& bxcoef = m_b_coeffs[amrlev][mglev][0];,
@@ -939,40 +945,76 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 
         if (this->m_overset_mask[amrlev][mglev]) {
             const auto& osmma = this->m_overset_mask[amrlev][mglev]->const_arrays();
-            ParallelFor(sol, IntVect(0), nc,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-            {
-                Box vbx(ama[box_no]);
-                abec_gsrb_os(i,j,k,n, solnma[box_no], rhsma[box_no], alpha, ama[box_no],
-                             AMREX_D_DECL(dhx, dhy, dhz),
-                             AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
-                             AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
-                             AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
-                             AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
-                             AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
-                             osmma[box_no], vbx, redblack);
-            });
+            if (this->m_use_gauss_seidel) {
+                ParallelFor(sol, IntVect(0), nc,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                {
+                    Box vbx(ama[box_no]);
+                    abec_gsrb_os(i,j,k,n, solnma[box_no], rhsma[box_no], alpha, ama[box_no],
+                                 AMREX_D_DECL(dhx, dhy, dhz),
+                                 AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                 AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
+                                 AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
+                                 AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
+                                 AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
+                                 osmma[box_no], vbx, redblack);
+                });
+            } else {
+                const auto& axma = Ax.const_arrays();
+                ParallelFor(sol, IntVect(0), nc,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                {
+                    Box vbx(ama[box_no]);
+                    abec_jacobi_os(i,j,k,n, solnma[box_no], rhsma[box_no], axma[box_no],
+                                   alpha, ama[box_no],
+                                   AMREX_D_DECL(dhx, dhy, dhz),
+                                   AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                   AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
+                                   AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
+                                   AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
+                                   AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
+                                   osmma[box_no], vbx);
+                });
+            }
         } else if (regular_coarsening) {
-            ParallelFor(sol, IntVect(0), nc,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-            {
-                Box vbx(ama[box_no]);
-                abec_gsrb(i,j,k,n, solnma[box_no], rhsma[box_no], alpha, ama[box_no],
-                          AMREX_D_DECL(dhx, dhy, dhz),
-                          AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
-                          AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
-                          AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
-                          AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
-                          AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
-                          vbx, redblack);
-            });
+            if (this->m_use_gauss_seidel) {
+                ParallelFor(sol, IntVect(0), nc,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                {
+                    Box vbx(ama[box_no]);
+                    abec_gsrb(i,j,k,n, solnma[box_no], rhsma[box_no], alpha, ama[box_no],
+                              AMREX_D_DECL(dhx, dhy, dhz),
+                              AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                              AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
+                              AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
+                              AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
+                              AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
+                              vbx, redblack);
+                });
+            } else {
+                const auto& axma = Ax.const_arrays();
+                ParallelFor(sol, IntVect(0), nc,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                {
+                    Box vbx(ama[box_no]);
+                    abec_jacobi(i,j,k,n, solnma[box_no], rhsma[box_no], axma[box_no],
+                                alpha, ama[box_no],
+                                AMREX_D_DECL(dhx, dhy, dhz),
+                                AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
+                                AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
+                                AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
+                                AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
+                                vbx);
+                });
+            }
         }
         Gpu::streamSynchronize();
     } else
 #endif
     {
         MFItInfo mfi_info;
-        if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
+        mfi_info.EnableTiling().SetDynamic(true);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1013,43 +1055,71 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 
             if (this->m_overset_mask[amrlev][mglev]) {
                 const auto& osm = this->m_overset_mask[amrlev][mglev]->const_array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(tbx, nc, i, j, k, n,
-                {
-                    abec_gsrb_os(i,j,k,n, solnfab, rhsfab, alpha, afab,
-                                 AMREX_D_DECL(dhx, dhy, dhz),
-                                 AMREX_D_DECL(bxfab, byfab, bzfab),
-                                 AMREX_D_DECL(m0,m2,m4),
-                                 AMREX_D_DECL(m1,m3,m5),
-                                 AMREX_D_DECL(f0fab,f2fab,f4fab),
-                                 AMREX_D_DECL(f1fab,f3fab,f5fab),
-                                 osm, vbx, redblack);
-                });
+                if (this->m_use_gauss_seidel) {
+                    AMREX_LOOP_4D(tbx, nc, i, j, k, n,
+                    {
+                        abec_gsrb_os(i,j,k,n, solnfab, rhsfab, alpha, afab,
+                                     AMREX_D_DECL(dhx, dhy, dhz),
+                                     AMREX_D_DECL(bxfab, byfab, bzfab),
+                                     AMREX_D_DECL(m0,m2,m4),
+                                     AMREX_D_DECL(m1,m3,m5),
+                                     AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                     AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                     osm, vbx, redblack);
+                    });
+                } else {
+                    const auto& axfab = Ax.const_array(mfi);
+                    AMREX_LOOP_4D(tbx, nc, i, j, k, n,
+                    {
+                        abec_jacobi_os(i,j,k,n, solnfab, rhsfab, axfab,
+                                       alpha, afab,
+                                       AMREX_D_DECL(dhx, dhy, dhz),
+                                       AMREX_D_DECL(bxfab, byfab, bzfab),
+                                       AMREX_D_DECL(m0,m2,m4),
+                                       AMREX_D_DECL(m1,m3,m5),
+                                       AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                       AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                       osm, vbx);
+                    });
+                }
             } else if (regular_coarsening) {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(tbx, nc, i, j, k, n,
-                {
-                    abec_gsrb(i,j,k,n, solnfab, rhsfab, alpha, afab,
-                              AMREX_D_DECL(dhx, dhy, dhz),
-                              AMREX_D_DECL(bxfab, byfab, bzfab),
-                              AMREX_D_DECL(m0,m2,m4),
-                              AMREX_D_DECL(m1,m3,m5),
-                              AMREX_D_DECL(f0fab,f2fab,f4fab),
-                              AMREX_D_DECL(f1fab,f3fab,f5fab),
-                              vbx, redblack);
-                });
+                if (this->m_use_gauss_seidel) {
+                    AMREX_LOOP_4D(tbx, nc, i, j, k, n,
+                    {
+                        abec_gsrb(i,j,k,n, solnfab, rhsfab, alpha, afab,
+                                  AMREX_D_DECL(dhx, dhy, dhz),
+                                  AMREX_D_DECL(bxfab, byfab, bzfab),
+                                  AMREX_D_DECL(m0,m2,m4),
+                                  AMREX_D_DECL(m1,m3,m5),
+                                  AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                  AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                  vbx, redblack);
+                    });
+                } else {
+                    const auto& axfab = Ax.const_array(mfi);
+                    AMREX_LOOP_4D(tbx, nc, i, j, k, n,
+                    {
+                        abec_jacobi(i,j,k,n, solnfab, rhsfab, axfab,
+                                    alpha, afab,
+                                    AMREX_D_DECL(dhx, dhy, dhz),
+                                    AMREX_D_DECL(bxfab, byfab, bzfab),
+                                    AMREX_D_DECL(m0,m2,m4),
+                                    AMREX_D_DECL(m1,m3,m5),
+                                    AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                    AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                    vbx);
+                    });
+                }
             } else {
-                Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
                 // line solve does not with with GPU
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-                {
-                    abec_gsrb_with_line_solve(thread_box, solnfab, rhsfab, alpha, afab,
-                                              AMREX_D_DECL(dhx, dhy, dhz),
-                                              AMREX_D_DECL(bxfab, byfab, bzfab),
-                                              AMREX_D_DECL(m0,m2,m4),
-                                              AMREX_D_DECL(m1,m3,m5),
-                                              AMREX_D_DECL(f0fab,f2fab,f4fab),
-                                              AMREX_D_DECL(f1fab,f3fab,f5fab),
-                                              vbx, redblack, nc);
-                });
+                abec_gsrb_with_line_solve(tbx, solnfab, rhsfab, alpha, afab,
+                                          AMREX_D_DECL(dhx, dhy, dhz),
+                                          AMREX_D_DECL(bxfab, byfab, bzfab),
+                                          AMREX_D_DECL(m0,m2,m4),
+                                          AMREX_D_DECL(m1,m3,m5),
+                                          AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                          AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                          vbx, redblack, nc);
             }
         }
     }
