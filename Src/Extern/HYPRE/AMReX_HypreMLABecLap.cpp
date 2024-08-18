@@ -411,6 +411,15 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
     m_f2c_offset.resize(m_nlevels-1);
     m_f2c_values.resize(m_nlevels-1);
 
+    Vector<IntVect> period(m_nlevels);
+    Vector<IntVect> smallend(m_nlevels);
+    Vector<IntVect> bigend(m_nlevels);
+    for (int ilev = 0; ilev <m_nlevels; ++ilev) {
+        period[ilev] = m_geom[ilev].Domain().length();
+        smallend[ilev] = m_geom[ilev].Domain().smallEnd();
+        bigend[ilev] = m_geom[ilev].Domain().bigEnd();
+    }
+
     for (auto& entry : entries) {
         auto const from_level = std::get<0>(entry);
         auto const   to_level = std::get<3>(entry);
@@ -424,6 +433,15 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
         GpuArray<HYPRE_Int,AMREX_SPACEDIM> to_index{AMREX_D_DECL(to_iv[0],
                                                                  to_iv[1],
                                                                  to_iv[2])};
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (m_geom[0].isPeriodic(idim)) {
+                if (to_index[idim] < smallend[to_level][idim]) {
+                    to_index[idim] += period[to_level][idim];
+                } else if (to_index[idim] > bigend[to_level][idim]) {
+                    to_index[idim] -= period[to_level][idim];
+                }
+            }
+        }
         constexpr int ivar = 0;
         HYPRE_SStructGraphAddEntries(m_ss_graph,
                                      from_level, from_index.data(), ivar,
