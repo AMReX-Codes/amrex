@@ -39,6 +39,7 @@ public:
 
     void setVerbose (int v) { m_verbose = v; }
     void setMaxIter (int v) { m_maxiter = v; }
+    void setIsSingular (bool v) { m_is_singular = v; }
 
     void setup (Real a_ascalar, Real a_bscalar,
                 Vector<MultiFab const*> const& a_acoefs,
@@ -65,6 +66,7 @@ private:
 
     int m_verbose = 0;
     int m_maxiter = 200;
+    bool m_is_singular = false;
 
     Vector<Geometry> m_geom;
     Vector<BoxArray> m_grids;
@@ -87,6 +89,7 @@ private:
     Vector<std::unique_ptr<MLMGBndry>> m_bndry;
     Vector<std::unique_ptr<BndryRegister>> m_bndry_rhs;
     Vector<iMultiFab> m_fine_masks;
+    Vector<iMultiFab> m_crse_masks;
 
     // For coarse cells at coarse/fine interface. The vector is for AMR
     // levels.

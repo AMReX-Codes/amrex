@@ -22,7 +22,7 @@ void hypmlabeclap_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, in
                        GpuArray<Array4<int const>, AMREX_SPACEDIM*2> const& bcmsk,
                        GpuArray<Array4<Real const>, AMREX_SPACEDIM*2> const& bcval,
                        GpuArray<Array4<Real>, AMREX_SPACEDIM*2> const& bcrhs,
-                       int level)
+                       int level, IntVect const& fixed_pt)
 {
     Real bxm = b[0] ? b[0](i  ,j  ,k  ) : Real(1.0);
     Real bxp = b[0] ? b[0](i+1,j  ,k  ) : Real(1.0);
@@ -223,6 +223,12 @@ void hypmlabeclap_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, in
     }
 
 #endif
+
+    if (fixed_pt == IntVect(AMREX_D_DECL(i,j,k))) {
+        for (int n = 1; n < 2*AMREX_SPACEDIM+1; ++n) {
+            sten[n] = Real(0.0);
+        }
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
