@@ -159,8 +159,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real xInt = Real(-0.5) + (irx+Real(0.5))/Real(rr[0]);
                 Real xc[3] = {Real(-1.0), Real(0.0), Real(1.0)};
                 Real ct[3] = {Real(0.0), Real(0.0), Real(0.0)};
-                int const cdirlo = Orientation(Direction::x, Orientation::low);
-                int const cdirhi = Orientation(Direction::x, Orientation::high);
                 if ( fine_mask(i-1,j,k) ||
                     !crse_mask(i-1,j,k))
                 {
@@ -208,8 +206,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real yInt = Real(-0.5) + (iry+Real(0.5))/Real(rr[1]);
                 Real yc[3] = {Real(-1.0), Real(0.0), Real(1.0)};
                 Real ct[3] = {Real(0.0), Real(0.0), Real(0.0)};
-                int const cdirlo = Orientation(Direction::y, Orientation::low);
-                int const cdirhi = Orientation(Direction::y, Orientation::high);
                 if ( fine_mask(i,j-1,k) ||
                     !crse_mask(i,j-1,k))
                 {
@@ -256,8 +252,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real yInt = Real(-0.5) + (iry+Real(0.5))/Real(rr[1]);
                 Real yc[3] = {Real(-1.0), Real(0.0), Real(1.0)};
                 Real ct[3] = {Real(0.0), Real(0.0), Real(0.0)};
-                int const cdirlo = Orientation(Direction::y, Orientation::low);
-                int const cdirhi = Orientation(Direction::y, Orientation::high);
                 if ( fine_mask(i,j-1,k) ||
                     !crse_mask(i,j-1,k))
                 {
@@ -304,8 +298,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real xInt = Real(-0.5) + (irx+Real(0.5))/Real(rr[0]);
                 Real xc[3] = {Real(-1.0), Real(0.0), Real(1.0)};
                 Real ct[3] = {Real(0.0), Real(0.0), Real(0.0)};
-                int const cdirlo = Orientation(Direction::x, Orientation::low);
-                int const cdirhi = Orientation(Direction::x, Orientation::high);
                 if ( fine_mask(i-1,j,k) ||
                     !crse_mask(i-1,j,k))
                 {

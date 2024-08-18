@@ -164,7 +164,7 @@ public:
     void setHypreStrongThreshold (Real t) noexcept {hypre_strong_threshold = t;}
 #endif
 
-    void prepareForFluxes (Vector<MF*> const& a_sol, Vector<MF const*> const& a_rhs);
+    void prepareForFluxes (Vector<MF*> const& a_sol);
 
     template <typename AMF>
     void prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const& a_rhs);
@@ -542,10 +542,10 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 
 template <typename MF>
 void
-MLMGT<MF>::prepareForFluxes (Vector<MF*> const& a_sol, Vector<MF const*> const& a_rhs)
+MLMGT<MF>::prepareForFluxes (Vector<MF*> const& a_sol)
 {
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
-        const MF* crse_bcdata = (alev > 0) ? &(sol[alev-1]) : nullptr;
+        const MF* crse_bcdata = (alev > 0) ? a_sol[alev-1] : nullptr;
         linop.prepareForFluxes(alev, crse_bcdata);
     }
 }

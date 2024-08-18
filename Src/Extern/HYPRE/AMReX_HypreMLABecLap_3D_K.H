@@ -265,8 +265,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real fac0 = fac*cc[0];
                 Real s0 = Real(1.0);
 
-                int cdirlo = Orientation(Direction::x, Orientation::low);
-                int cdirhi = Orientation(Direction::x, Orientation::high);
                 if ( fine_mask(i-1,j,k) ||
                     !crse_mask(i-1,j,k))
                 {
@@ -282,8 +280,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                     stencil(i,j,k)[2] += fac0*Real(0.5)*x*(x+Real(1.0));
                 }
 
-                cdirlo = Orientation(Direction::y, Orientation::low);
-                cdirhi = Orientation(Direction::y, Orientation::high);
                 if ( fine_mask(i,j-1,k) ||
                     !crse_mask(i,j-1,k))
                 {
@@ -344,8 +340,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real fac0 = fac*cc[0];
                 Real s0 = Real(1.0);
 
-                int cdirlo = Orientation(Direction::x, Orientation::low);
-                int cdirhi = Orientation(Direction::x, Orientation::high);
                 if ( fine_mask(i-1,j,k) ||
                     !crse_mask(i-1,j,k))
                 {
@@ -361,8 +355,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                     stencil(i,j,k)[2] += fac0*Real(0.5)*x*(x+Real(1.0));
                 }
 
-                cdirlo = Orientation(Direction::z, Orientation::low);
-                cdirhi = Orientation(Direction::z, Orientation::high);
                 if ( fine_mask(i,j,k-1) ||
                     !crse_mask(i,j,k-1))
                 {
@@ -425,8 +417,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real fac0 = fac*cc[0];
                 Real s0 = Real(1.0);
 
-                int cdirlo = Orientation(Direction::y, Orientation::low);
-                int cdirhi = Orientation(Direction::y, Orientation::high);
                 if ( fine_mask(i,j-1,k) ||
                     !crse_mask(i,j-1,k))
                 {
@@ -442,8 +432,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                     stencil(i,j,k)[4] += fac0*Real(0.5)*y*(y+Real(1.0));
                 }
 
-                cdirlo = Orientation(Direction::z, Orientation::low);
-                cdirhi = Orientation(Direction::z, Orientation::high);
                 if ( fine_mask(i,j,k-1) ||
                     !crse_mask(i,j,k-1))
                 {
@@ -505,8 +493,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real fac0 = fac*cc[0];
                 Real s0 = Real(1.0);
 
-                int cdirlo = Orientation(Direction::y, Orientation::low);
-                int cdirhi = Orientation(Direction::y, Orientation::high);
                 if ( fine_mask(i,j-1,k) ||
                     !crse_mask(i,j-1,k))
                 {
@@ -522,8 +508,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                     stencil(i,j,k)[4] += fac0*Real(0.5)*y*(y+Real(1.0));
                 }
 
-                cdirlo = Orientation(Direction::z, Orientation::low);
-                cdirhi = Orientation(Direction::z, Orientation::high);
                 if ( fine_mask(i,j,k-1) ||
                     !crse_mask(i,j,k-1))
                 {
@@ -586,8 +570,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real fac0 = fac*cc[0];
                 Real s0 = Real(1.0);
 
-                int cdirlo = Orientation(Direction::x, Orientation::low);
-                int cdirhi = Orientation(Direction::x, Orientation::high);
                 if ( fine_mask(i-1,j,k) ||
                     !crse_mask(i-1,j,k))
                 {
@@ -603,8 +585,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                     stencil(i,j,k)[2] += fac0*Real(0.5)*x*(x+Real(1.0));
                 }
 
-                cdirlo = Orientation(Direction::z, Orientation::low);
-                cdirhi = Orientation(Direction::z, Orientation::high);
                 if ( fine_mask(i,j,k-1) ||
                     !crse_mask(i,j,k-1))
                 {
@@ -667,8 +647,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real fac0 = fac*cc[0];
                 Real s0 = Real(1.0);
 
-                int cdirlo = Orientation(Direction::x, Orientation::low);
-                int cdirhi = Orientation(Direction::x, Orientation::high);
                 if ( fine_mask(i-1,j,k) ||
                     !crse_mask(i-1,j,k))
                 {
@@ -684,8 +662,6 @@ void hypmlabeclap_c2f (int i, int j, int k,
                     stencil(i,j,k)[2] += fac0*Real(0.5)*x*(x+Real(1.0));
                 }
 
-                cdirlo = Orientation(Direction::y, Orientation::low);
-                cdirhi = Orientation(Direction::y, Orientation::high);
                 if ( fine_mask(i,j-1,k) ||
                     !crse_mask(i,j-1,k))
                 {
