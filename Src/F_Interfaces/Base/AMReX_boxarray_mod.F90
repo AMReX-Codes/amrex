@@ -205,7 +205,11 @@ contains
   pure function amrex_boxarray_nboxes (this) result(n)
     class(amrex_boxarray), intent(in) :: this
     integer(amrex_long) :: n
-    n = amrex_fi_boxarray_nboxes(this%p)
+    if (c_associated(this%p)) then
+       n = amrex_fi_boxarray_nboxes(this%p)
+    else
+       n = 0
+    end if
   end function amrex_boxarray_nboxes
 
   function amrex_boxarray_get_box (this, i) result(bx)
@@ -234,7 +238,11 @@ contains
   pure function amrex_boxarray_num_pts (this) result(n)
     class(amrex_boxarray), intent(in) :: this
     integer(amrex_long) :: n
-    n = amrex_fi_boxarray_numpts(this%p)
+    if (c_associated(this%p)) then
+       n = amrex_fi_boxarray_numpts(this%p)
+    else
+       n = 0
+    end if
   end function amrex_boxarray_num_pts
 
   pure function amrex_boxarray_intersects_box (this, bx) result(r)
