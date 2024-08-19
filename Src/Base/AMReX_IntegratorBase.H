@@ -165,31 +165,25 @@ protected:
     /**
      * \brief Rhs is the right-hand-side function the integrator will use.
      */
-    std::function<void(T& rhs, const T& state, const amrex::Real time)> Rhs;
+    std::function<void(T& rhs, T& state, const amrex::Real time)> Rhs;
 
     /**
      * \brief RhsIm is the implicit right-hand-side function an ImEx integrator
      * will use.
      */
-    std::function<void(T& rhs, const T& state, const amrex::Real time)> RhsIm;
+    std::function<void(T& rhs, T& state, const amrex::Real time)> RhsIm;
 
     /**
      * \brief RhsEx is the explicit right-hand-side function an ImEx integrator
      * will use.
      */
-    std::function<void(T& rhs, const T& state, const amrex::Real time)> RhsEx;
+    std::function<void(T& rhs, T& state, const amrex::Real time)> RhsEx;
 
     /**
      * \brief RhsFast is the fast timescale right-hand-side function a multirate
      * integrator will use.
      */
-    std::function<void(T& rhs, const T& state, const amrex::Real time)> RhsFast;
-
-    /**
-     * \brief The pre_rhs_action function is called by the integrator on state
-     * data before using it to evaluate a right-hand side.
-     */
-    std::function<void (T&, amrex::Real)> pre_rhs_action;
+    std::function<void(T& rhs, T& state, const amrex::Real time)> RhsFast;
 
     /**
      * \brief The post_stage_action function is called by the integrator on
@@ -283,26 +277,21 @@ public:
 
     virtual ~IntegratorBase () = default;
 
-    void set_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
+    void set_rhs (std::function<void(T&, T&, const amrex::Real)> F)
     {
         Rhs = F;
     }
 
-    void set_imex_rhs (std::function<void(T&, const T&, const amrex::Real)> Fi,
-                       std::function<void(T&, const T&, const amrex::Real)> Fe)
+    void set_imex_rhs (std::function<void(T&, T&, const amrex::Real)> Fi,
+                       std::function<void(T&, T&, const amrex::Real)> Fe)
     {
         RhsIm = Fi;
         RhsEx = Fe;
     }
 
-    void set_fast_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
+    void set_fast_rhs (std::function<void(T&, T&, const amrex::Real)> F)
     {
         RhsFast = F;
-    }
-
-    void set_pre_rhs_action (std::function<void (T&, amrex::Real)> A)
-    {
-        pre_rhs_action = A;
     }
 
     void set_post_stage_action (std::function<void (T&, amrex::Real)> A)
@@ -323,12 +312,6 @@ public:
     void set_post_fast_step_action (std::function<void (T&, amrex::Real)> A)
     {
         post_fast_step_action = A;
-    }
-
-    void set_post_update (std::function<void (T&, amrex::Real)> A)
-    {
-        set_post_stage_action(A);
-        set_post_step_action(A);
     }
 
     amrex::Real get_time_step ()
