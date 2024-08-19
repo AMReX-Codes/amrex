@@ -672,10 +672,13 @@ squeryval (const ParmParse::Table& table,
                       std::is_same_v<T,long> ||
                       std::is_same_v<T,long long> ||
                       std::is_same_v<T,float> ||
-                      std::is_same_v<T,double>) {
+                      std::is_same_v<T,double>)
+        {
             if (pp_parser(table, parser_prefix, name, valname, ref)) {
                 return true;
             }
+        } else {
+            amrex::ignore_unused(parser_prefix);
         }
 
         amrex::ErrorStream() << "ParmParse::queryval type mismatch on value number "
@@ -785,10 +788,13 @@ squeryarr (const ParmParse::Table& table,
                           std::is_same_v<T,long> ||
                           std::is_same_v<T,long long> ||
                           std::is_same_v<T,float> ||
-                          std::is_same_v<T,double>) {
+                          std::is_same_v<T,double>)
+            {
                 if (pp_parser(table, parser_prefix, name, valname, ref[n])) {
                     continue;
                 }
+            } else {
+                amrex::ignore_unused(parser_prefix);
             }
 
             amrex::ErrorStream() << "ParmParse::queryarr type mismatch on value number "
