@@ -20,6 +20,7 @@ module amrex_boxarray_module
      procedure :: move          => amrex_boxarray_move     ! transfer ownership
      generic   :: maxSize       => amrex_boxarray_maxsize_int, &  ! make the boxes smaller
           &                        amrex_boxarray_maxsize_int3, amrex_boxarray_maxsize_iv
+     procedure :: nboxes        => amrex_boxarray_nboxes
      procedure :: get_box       => amrex_boxarray_get_box
      procedure :: nodal_type    => amrex_boxarray_nodal_type  ! get index type
      procedure :: num_pts       => amrex_boxarray_num_pts
@@ -81,6 +82,13 @@ module amrex_boxarray_module
        type(c_ptr), value :: ba
        integer(c_int), intent(in) :: s(3)
      end subroutine amrex_fi_boxarray_maxsize
+
+     pure function amrex_fi_boxarray_nboxes (ba) bind(c)
+       import
+       implicit none
+       type(c_ptr), value, intent(in) :: ba
+       integer(amrex_long) :: amrex_fi_boxarray_nboxes
+     end function amrex_fi_boxarray_nboxes
 
      subroutine amrex_fi_boxarray_get_box (ba,i,lo,hi) bind(c)
        import
@@ -193,6 +201,12 @@ contains
     integer, intent(in)   :: s(3)
     call amrex_fi_boxarray_maxsize(this%p, s)
   end subroutine amrex_boxarray_maxsize_iv
+
+  pure function amrex_boxarray_nboxes (this) result(n)
+    class(amrex_boxarray), intent(in) :: this
+    integer(amrex_long) :: n
+    n = amrex_fi_boxarray_nboxes(this%p)
+  end function amrex_boxarray_nboxes
 
   function amrex_boxarray_get_box (this, i) result(bx)
     class(amrex_boxarray) :: this
