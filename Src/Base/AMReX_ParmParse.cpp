@@ -1854,7 +1854,7 @@ int
 ParmParse::remove (const char* name)
 {
     auto const pname = prefixedName(name);
-    auto n = m_table->erase(name);
+    auto n = m_table->erase(pname);
     return static_cast<int>(n);
 }
 
