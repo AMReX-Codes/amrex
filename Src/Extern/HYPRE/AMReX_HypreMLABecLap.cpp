@@ -57,11 +57,16 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
     }
 
     m_fine_masks.resize(m_nlevels-1);
+    m_crse_masks.resize(m_nlevels-1);
     for (int ilev = 0; ilev < m_nlevels-1; ++ilev) {
         m_fine_masks[ilev] = amrex::makeFineMask(m_grids[ilev], m_dmap[ilev], IntVect(1),
                                                  m_grids[ilev+1], m_ref_ratio[ilev],
                                                  m_geom[ilev].periodicity(),
                                                  0, 1);
+        m_crse_masks[ilev].define(m_grids[ilev], m_dmap[ilev], 1, 1);
+        m_crse_masks[ilev].BuildMask(m_geom[ilev].Domain(),
+                                     m_geom[ilev].periodicity(),
+                                     1, 0, 0, 1);
     }
 
     m_c2f_offset_from.resize(m_nlevels-1);
@@ -406,6 +411,15 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
     m_f2c_offset.resize(m_nlevels-1);
     m_f2c_values.resize(m_nlevels-1);
 
+    Vector<IntVect> period(m_nlevels);
+    Vector<IntVect> smallend(m_nlevels);
+    Vector<IntVect> bigend(m_nlevels);
+    for (int ilev = 0; ilev <m_nlevels; ++ilev) {
+        period[ilev] = m_geom[ilev].Domain().length();
+        smallend[ilev] = m_geom[ilev].Domain().smallEnd();
+        bigend[ilev] = m_geom[ilev].Domain().bigEnd();
+    }
+
     for (auto& entry : entries) {
         auto const from_level = std::get<0>(entry);
         auto const   to_level = std::get<3>(entry);
@@ -419,6 +433,15 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
         GpuArray<HYPRE_Int,AMREX_SPACEDIM> to_index{AMREX_D_DECL(to_iv[0],
                                                                  to_iv[1],
                                                                  to_iv[2])};
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (m_geom[0].isPeriodic(idim)) {
+                if (to_index[idim] < smallend[to_level][idim]) {
+                    to_index[idim] += period[to_level][idim];
+                } else if (to_index[idim] > bigend[to_level][idim]) {
+                    to_index[idim] -= period[to_level][idim];
+                }
+            }
+        }
         constexpr int ivar = 0;
         HYPRE_SStructGraphAddEntries(m_ss_graph,
                                      from_level, from_index.data(), ivar,
@@ -588,12 +611,19 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
             const auto boxlo = amrex::lbound(vbx);
             const auto boxhi = amrex::ubound(vbx);
             // Set up stencil part of the matrix
+            auto fixed_pt = IntVect::TheMaxVector();
+            if (m_is_singular && m_nlevels-1 == ilev) {
+                auto const& box0 = m_grids.back()[0];
+                fixed_pt = box0.smallEnd() + 1;
+                // This cell does not have any non-stencil entries. So it's
+                // a good point for fixing singularity.
+            }
             amrex::fill(matfab,
             [=] AMREX_GPU_HOST_DEVICE (GpuArray<Real,stencil_size>& sten,
                                        int i, int j, int k)
             {
                 hypmlabeclap_mat(sten, i, j, k, boxlo, boxhi, sa, afab, sb, dx, bfabs,
-                                 bctype, bcl, bcmsk, bcval, bcrhs, ilev);
+                                 bctype, bcl, bcmsk, bcval, bcrhs, ilev, fixed_pt);
             });
 
             bool need_sync = true;
@@ -636,6 +666,7 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 auto const& c2f_offset_to_a = m_c2f_offset_to[ilev].const_array(mfi);
                 auto const& mat_a = matfab.array();
                 auto const& fine_mask = m_fine_masks[ilev].const_array(mfi);
+                auto const& crse_mask = m_crse_masks[ilev].const_array(mfi);
                 AMREX_D_TERM(auto offset_bx_a = m_offset_cf_bcoefs[ilev][0].isDefined()
                                               ? m_offset_cf_bcoefs[ilev][0].const_array(mfi)
                                               : Array4<int const>{};,
@@ -664,7 +695,7 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                                      c2f_offset_to_a, dx, sb,
                                      AMREX_D_DECL(offset_bx_a,offset_by_a,offset_bz_a),
                                      AMREX_D_DECL(p_bx, p_by, p_bz),
-                                     fine_mask,rr);
+                                     fine_mask,rr, crse_mask);
                 });
                 if (c2f_total_from > 0) {
 #ifdef AMREX_USE_GPU
@@ -838,8 +869,8 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         HYPRE_SStructSSAMGSetNumPostRelax(m_ss_solver, 4);
         HYPRE_SStructSSAMGSetNumCoarseRelax(m_ss_solver, 4);
 
-        HYPRE_SStructSSAMGSetLogging(m_ss_solver, m_verbose);
-        HYPRE_SStructSSAMGSetPrintLevel(m_ss_solver, m_verbose);
+        HYPRE_SStructSSAMGSetLogging(m_ss_solver, 1);
+        // HYPRE_SStructSSAMGSetPrintLevel(m_ss_solver, 1); /* 0: no, 1: setup, 2: solve, 3:both
 
 //        HYPRE_SStructSSAMGSetup(m_ss_solver, A, b, x);
 
@@ -854,15 +885,15 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         HYPRE_BoomerAMGCreate(&m_solver);
 
         HYPRE_BoomerAMGSetOldDefault(m_solver); // Falgout coarsening with modified classical interpolation
-        HYPRE_BoomerAMGSetStrongThreshold(m_solver, (AMREX_SPACEDIM == 3) ? 0.6 : 0.25); // default is 0.25
+        HYPRE_BoomerAMGSetStrongThreshold(m_solver, (AMREX_SPACEDIM == 3) ? 0.4 : 0.25); // default is 0.25
         HYPRE_BoomerAMGSetRelaxOrder(m_solver, 1);   /* 0: default, natural order, 1: C/F relaxation order */
         HYPRE_BoomerAMGSetNumSweeps(m_solver, 2);   /* Sweeps on fine levels */
         // HYPRE_BoomerAMGSetFCycle(m_solver, 1); // default is 0
         // HYPRE_BoomerAMGSetCoarsenType(m_solver, 6);
         // HYPRE_BoomerAMGSetRelaxType(m_solver, 6);   /* G-S/Jacobi hybrid relaxation */
 
-        HYPRE_BoomerAMGSetLogging(m_solver, m_verbose);
-        HYPRE_BoomerAMGSetPrintLevel(m_solver, m_verbose);
+        HYPRE_BoomerAMGSetLogging(m_solver, 1);
+        // HYPRE_BoomerAMGSetPrintLevel(m_solver, 1); /* 0: no, 1: setup, 2: solve, 3:both
 
         HYPRE_ParCSRMatrix par_A;
         HYPRE_SStructMatrixGetObject(m_ss_A, (void**) &par_A);
@@ -956,6 +987,9 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
             amrex::Abort("HypreMLABecLap::solve: TODO abstol > 0");
         }
 
+        HYPRE_Int num_iterations;
+        Real final_res;
+
 #ifdef AMREX_FEATURE_HYPRE_SSAMG
         if (m_hypre_solver_id == HypreSolverID::SSAMG)
         {
@@ -965,15 +999,13 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 
             HYPRE_SStructSSAMGSolve(m_ss_solver, m_ss_A, m_ss_b, m_ss_x);
 
-            if (m_verbose) {
-                HYPRE_Int num_iterations;
-                Real res;
-                HYPRE_SStructSSAMGGetNumIterations(m_ss_solver, &num_iterations);
-                HYPRE_SStructSSAMGGetFinalRelativeResidualNorm(m_ss_solver, &res);
+            HYPRE_SStructSSAMGGetNumIterations(m_ss_solver, &num_iterations);
+            HYPRE_SStructSSAMGGetFinalRelativeResidualNorm(m_ss_solver, &final_res);
 
+            if (m_verbose) {
                 amrex::Print() << "\n" << num_iterations
                                << " Hypre SSAMG Iterations, Relative Residual "
-                               << res << '\n';
+                               << final_res << '\n';
             }
         } else
 #endif
@@ -990,16 +1022,19 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 
             HYPRE_BoomerAMGSolve(m_solver, par_A, par_b, par_x);
 
-            if (m_verbose) {
-                HYPRE_Int num_iterations;
-                Real res;
-                HYPRE_BoomerAMGGetNumIterations(m_solver, &num_iterations);
-                HYPRE_BoomerAMGGetFinalRelativeResidualNorm(m_solver, &res);
+            HYPRE_BoomerAMGGetNumIterations(m_solver, &num_iterations);
+            HYPRE_BoomerAMGGetFinalRelativeResidualNorm(m_solver, &final_res);
 
+            if (m_verbose) {
                 amrex::Print() << "\n" << num_iterations
                                << " Hypre SS BoomerAMG Iterations, Relative Residual "
-                               << res << '\n';
+                               << final_res << '\n';
             }
+        }
+
+        if (final_res > reltol) {
+            amrex::Abort("Hypre failed to converge after "+std::to_string(num_iterations)+
+                         " iterations. Final relative residual is "+std::to_string(final_res));
         }
     }
 
@@ -1044,8 +1079,6 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
     for (int ilev = m_nlevels-2; ilev >= 0; --ilev) {
         amrex::average_down(*a_sol[ilev+1], *a_sol[ilev], 0, ncomp, m_ref_ratio[ilev]);
     }
-
-    // xxxxx abort if convergence is not reached.
 }
 
 #ifdef AMREX_USE_GPU

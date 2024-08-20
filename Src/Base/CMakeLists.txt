@@ -12,6 +12,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Array.H
        AMReX_BlockMutex.H
        AMReX_BlockMutex.cpp
+       AMReX_Enum.H
        AMReX_GpuComplex.H
        AMReX_Vector.H
        AMReX_TableData.H
@@ -30,6 +31,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_parmparse_fi.cpp
        AMReX_ParmParse.H
        AMReX_Functional.H
+       AMReX_String.H
+       AMReX_String.cpp
        AMReX_Utility.H
        AMReX_Utility.cpp
        AMReX_FileSystem.H

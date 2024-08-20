@@ -471,6 +471,9 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
     IntVect chunk = max_grid_size[lev];
     chunk.min(Geom(lev).Domain().length());
 
+    // Note that ba already satisfies the max_grid_size requirement and it's
+    // coarsenable if it's a fine level BoxArray.
+
     while (ba.size() < target_size)
     {
         IntVect chunk_prev = chunk;
@@ -485,11 +488,24 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
             int idim = chunk_dir[idx].second;
             if (refine_grid_layout_dims[idim]) {
                 int new_chunk_size = chunk[idim] / 2;
+                int rr = (lev > 0) ? ref_ratio[lev-1][idim] : 1;
+                if (rr > 1) {
+                    new_chunk_size = (new_chunk_size/rr) * rr;
+                }
                 if (new_chunk_size != 0 &&
                     new_chunk_size%blocking_factor[lev][idim] == 0)
                 {
                     chunk[idim] = new_chunk_size;
-                    ba.maxSize(chunk);
+                    if (rr == 1) {
+                        ba.maxSize(chunk);
+                    } else {
+                        IntVect bf(1);
+                        bf[idim] = rr;
+                        // Note that only idim-direction will be chopped by
+                        // minmaxSize because the sizes in other directions
+                        // are already smaller than chunk.
+                        ba.minmaxSize(bf, chunk);
+                    }
                     break;
                 }
             }

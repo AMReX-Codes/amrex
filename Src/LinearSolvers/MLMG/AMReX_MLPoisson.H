@@ -367,6 +367,12 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 {
     BL_PROFILE("MLPoisson::Fsmooth()");
 
+    MF Ax;
+    if (! this->m_use_gauss_seidel) { // jacobi
+        Ax.define(sol.boxArray(), sol.DistributionMap(), sol.nComp(), 0);
+        Fapply(amrlev, mglev, Ax, sol);
+    }
+
     const auto& undrrelxr = this->m_undrrelxr[amrlev][mglev];
     const auto& maskvals  = this->m_maskvals [amrlev][mglev];
 
@@ -443,122 +449,130 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
 #endif
 #endif
 
-#if (AMREX_SPACEDIM == 1)
         if (this->m_overset_mask[amrlev][mglev]) {
             AMREX_ASSERT(!this->m_has_metric_term);
             const auto& osmma = this->m_overset_mask[amrlev][mglev]->const_arrays();
-            ParallelFor(sol,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            {
-                Box vbx(rhsma[box_no]);
-                mlpoisson_gsrb_os(i, j, k, solnma[box_no], rhsma[box_no],
-                                  osmma[box_no], dhx,
-                                  f0ma[box_no], m0ma[box_no],
-                                  f1ma[box_no], m1ma[box_no],
-                                  vbx, redblack);
-            });
-        } else if (this->m_has_metric_term) {
-            ParallelFor(sol,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            {
-                Box vbx(rhsma[box_no]);
-                mlpoisson_gsrb_m(i, j, k, solnma[box_no], rhsma[box_no], dhx,
-                                 f0ma[box_no], m0ma[box_no],
-                                 f1ma[box_no], m1ma[box_no],
-                                 vbx, redblack,
-                                 dx, probxlo);
-            });
-        } else {
-            ParallelFor(sol,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            {
-                Box vbx(rhsma[box_no]);
-                mlpoisson_gsrb(i, j, k, solnma[box_no], rhsma[box_no], dhx,
-                               f0ma[box_no], m0ma[box_no],
-                               f1ma[box_no], m1ma[box_no],
-                               vbx, redblack);
-            });
+            if (this->m_use_gauss_seidel) {
+                ParallelFor(sol,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    Box vbx(rhsma[box_no]);
+                    mlpoisson_gsrb_os(i, j, k, solnma[box_no], rhsma[box_no],
+                                      osmma[box_no], AMREX_D_DECL(dhx, dhy, dhz),
+                                      f0ma[box_no], m0ma[box_no],
+                                      f1ma[box_no], m1ma[box_no],
+#if (AMREX_SPACEDIM > 1)
+                                      f2ma[box_no], m2ma[box_no],
+                                      f3ma[box_no], m3ma[box_no],
+#if (AMREX_SPACEDIM > 2)
+                                      f4ma[box_no], m4ma[box_no],
+                                      f5ma[box_no], m5ma[box_no],
+#endif
+#endif
+                                      vbx, redblack);
+                });
+            } else {
+                const auto& axma = Ax.const_arrays();
+                ParallelFor(sol,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    Box vbx(rhsma[box_no]);
+                    mlpoisson_jacobi_os(i, j, k, solnma[box_no], rhsma[box_no],
+                                        axma[box_no], osmma[box_no],
+                                        AMREX_D_DECL(dhx, dhy, dhz),
+                                        f0ma[box_no], m0ma[box_no],
+                                        f1ma[box_no], m1ma[box_no],
+#if (AMREX_SPACEDIM > 1)
+                                        f2ma[box_no], m2ma[box_no],
+                                        f3ma[box_no], m3ma[box_no],
+#if (AMREX_SPACEDIM > 2)
+                                        f4ma[box_no], m4ma[box_no],
+                                        f5ma[box_no], m5ma[box_no],
+#endif
+#endif
+                                        vbx);
+                });
+            }
+        }
+#if (AMREX_SPACEDIM < 3)
+        else if (this->m_has_metric_term) {
+            if (this->m_use_gauss_seidel) {
+                ParallelFor(sol,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    Box vbx(rhsma[box_no]);
+                    mlpoisson_gsrb_m(i, j, k, solnma[box_no], rhsma[box_no],
+                                     AMREX_D_DECL(dhx, dhy, dhz),
+                                     f0ma[box_no], m0ma[box_no],
+                                     f1ma[box_no], m1ma[box_no],
+#if (AMREX_SPACEDIM > 1)
+                                     f2ma[box_no], m2ma[box_no],
+                                     f3ma[box_no], m3ma[box_no],
+#endif
+                                     vbx, redblack,
+                                     dx, probxlo);
+                });
+            } else {
+                const auto& axma = Ax.const_arrays();
+                ParallelFor(sol,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    Box vbx(rhsma[box_no]);
+                    mlpoisson_jacobi_m(i, j, k, solnma[box_no], rhsma[box_no],
+                                       axma[box_no], AMREX_D_DECL(dhx, dhy, dhz),
+                                       f0ma[box_no], m0ma[box_no],
+                                       f1ma[box_no], m1ma[box_no],
+#if (AMREX_SPACEDIM > 1)
+                                       f2ma[box_no], m2ma[box_no],
+                                       f3ma[box_no], m3ma[box_no],
+#endif
+                                       vbx, dx, probxlo);
+                });
+            }
         }
 #endif
-
-#if (AMREX_SPACEDIM == 2)
-        if (this->m_overset_mask[amrlev][mglev]) {
-            AMREX_ASSERT(!this->m_has_metric_term);
-            const auto& osmma = this->m_overset_mask[amrlev][mglev]->const_arrays();
-            ParallelFor(sol,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            {
-                Box vbx(rhsma[box_no]);
-                mlpoisson_gsrb_os(i, j, k, solnma[box_no], rhsma[box_no],
-                                  osmma[box_no], dhx, dhy,
-                                  f0ma[box_no], m0ma[box_no],
-                                  f1ma[box_no], m1ma[box_no],
-                                  f2ma[box_no], m2ma[box_no],
-                                  f3ma[box_no], m3ma[box_no],
-                                  vbx, redblack);
-            });
-        } else if (this->m_has_metric_term) {
-            ParallelFor(sol,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            {
-                Box vbx(rhsma[box_no]);
-                mlpoisson_gsrb_m(i, j, k, solnma[box_no], rhsma[box_no], dhx, dhy,
-                                 f0ma[box_no], m0ma[box_no],
-                                 f1ma[box_no], m1ma[box_no],
-                                 f2ma[box_no], m2ma[box_no],
-                                 f3ma[box_no], m3ma[box_no],
-                                 vbx, redblack,
-                                 dx, probxlo);
-            });
-        } else {
-            ParallelFor(sol,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            {
-                Box vbx(rhsma[box_no]);
-                mlpoisson_gsrb(i, j, k, solnma[box_no], rhsma[box_no], dhx, dhy,
-                               f0ma[box_no], m0ma[box_no],
-                               f1ma[box_no], m1ma[box_no],
-                               f2ma[box_no], m2ma[box_no],
-                               f3ma[box_no], m3ma[box_no],
-                               vbx, redblack);
-            });
-        }
+        else {
+            if (this->m_use_gauss_seidel) {
+                ParallelFor(sol,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    Box vbx(rhsma[box_no]);
+                    mlpoisson_gsrb(i, j, k, solnma[box_no], rhsma[box_no],
+                                   AMREX_D_DECL(dhx, dhy, dhz),
+                                   f0ma[box_no], m0ma[box_no],
+                                   f1ma[box_no], m1ma[box_no],
+#if (AMREX_SPACEDIM > 1)
+                                   f2ma[box_no], m2ma[box_no],
+                                   f3ma[box_no], m3ma[box_no],
+#if (AMREX_SPACEDIM > 2)
+                                   f4ma[box_no], m4ma[box_no],
+                                   f5ma[box_no], m5ma[box_no],
 #endif
-
-#if (AMREX_SPACEDIM == 3)
-        if (this->m_overset_mask[amrlev][mglev]) {
-            AMREX_ASSERT(!this->m_has_metric_term);
-            const auto& osmma = this->m_overset_mask[amrlev][mglev]->const_arrays();
-            ParallelFor(sol,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            {
-                Box vbx(rhsma[box_no]);
-                mlpoisson_gsrb_os(i, j, k, solnma[box_no], rhsma[box_no],
-                                  osmma[box_no], dhx, dhy, dhz,
-                                  f0ma[box_no], m0ma[box_no],
-                                  f1ma[box_no], m1ma[box_no],
-                                  f2ma[box_no], m2ma[box_no],
-                                  f3ma[box_no], m3ma[box_no],
-                                  f4ma[box_no], m4ma[box_no],
-                                  f5ma[box_no], m5ma[box_no],
-                                  vbx, redblack);
-            });
-        } else {
-            ParallelFor(sol,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-            {
-                Box vbx(rhsma[box_no]);
-                mlpoisson_gsrb(i, j, k, solnma[box_no], rhsma[box_no], dhx, dhy, dhz,
-                               f0ma[box_no], m0ma[box_no],
-                               f1ma[box_no], m1ma[box_no],
-                               f2ma[box_no], m2ma[box_no],
-                               f3ma[box_no], m3ma[box_no],
-                               f4ma[box_no], m4ma[box_no],
-                               f5ma[box_no], m5ma[box_no],
-                               vbx, redblack);
-            });
-        }
 #endif
+                                   vbx, redblack);
+                });
+            } else {
+                const auto& axma = Ax.const_arrays();
+                ParallelFor(sol,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    Box vbx(rhsma[box_no]);
+                    mlpoisson_jacobi(i, j, k, solnma[box_no], rhsma[box_no],
+                                     axma[box_no], AMREX_D_DECL(dhx, dhy, dhz),
+                                     f0ma[box_no], m0ma[box_no],
+                                     f1ma[box_no], m1ma[box_no],
+#if (AMREX_SPACEDIM > 1)
+                                     f2ma[box_no], m2ma[box_no],
+                                     f3ma[box_no], m3ma[box_no],
+#if (AMREX_SPACEDIM > 2)
+                                     f4ma[box_no], m4ma[box_no],
+                                     f5ma[box_no], m5ma[box_no],
+#endif
+#endif
+                                     vbx);
+                });
+            }
+        }
     } else
 #endif
     {
@@ -598,30 +612,64 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
             if (this->m_overset_mask[amrlev][mglev]) {
                 AMREX_ASSERT(!this->m_has_metric_term);
                 const auto& osm = this->m_overset_mask[amrlev][mglev]->const_array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
-                {
-                    mlpoisson_gsrb_os(i, j, k, solnfab, rhsfab, osm, dhx,
-                                      f0fab, m0,
-                                      f1fab, m1,
-                                      vbx, redblack);
-                });
+                if (this->m_use_gauss_seidel) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_gsrb_os(i, j, k, solnfab, rhsfab, osm, dhx,
+                                          f0fab, m0,
+                                          f1fab, m1,
+                                          vbx, redblack);
+                    });
+                } else {
+                    const auto& axfab = Ax.const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_jacobi_os(i, j, k, solnfab, rhsfab, axfab,
+                                            osm, dhx,
+                                            f0fab, m0,
+                                            f1fab, m1,
+                                            vbx);
+                    });
+                }
             } else if (this->m_has_metric_term) {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
-                {
-                    mlpoisson_gsrb_m(i, j, k, solnfab, rhsfab, dhx,
-                                     f0fab, m0,
-                                     f1fab, m1,
-                                     vbx, redblack,
-                                     dx, probxlo);
-                });
+                if (this->m_use_gauss_seidel) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_gsrb_m(i, j, k, solnfab, rhsfab, dhx,
+                                         f0fab, m0,
+                                         f1fab, m1,
+                                         vbx, redblack,
+                                         dx, probxlo);
+                    });
+                } else {
+                    const auto& axfab = Ax.const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_jacobi_m(i, j, k, solnfab, rhsfab, axfab, dhx,
+                                           f0fab, m0,
+                                           f1fab, m1,
+                                           vbx, dx, probxlo);
+                    });
+                }
             } else {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
-                {
-                    mlpoisson_gsrb(i, j, k, solnfab, rhsfab, dhx,
-                                   f0fab, m0,
-                                   f1fab, m1,
-                                   vbx, redblack);
-                });
+                if (this->m_use_gauss_seidel) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_gsrb(i, j, k, solnfab, rhsfab, dhx,
+                                       f0fab, m0,
+                                       f1fab, m1,
+                                       vbx, redblack);
+                    });
+                } else {
+                    const auto& axfab = Ax.const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_jacobi(i, j, k, solnfab, rhsfab, axfab, dhx,
+                                         f0fab, m0,
+                                         f1fab, m1,
+                                         vbx);
+                    });
+                }
             }
 #endif
 
@@ -629,55 +677,110 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
             if (this->m_overset_mask[amrlev][mglev]) {
                 AMREX_ASSERT(!this->m_has_metric_term);
                 const auto& osm = this->m_overset_mask[amrlev][mglev]->const_array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
-                {
-                    mlpoisson_gsrb_os(i, j, k, solnfab, rhsfab, osm, dhx, dhy,
-                                      f0fab, m0,
-                                      f1fab, m1,
-                                      f2fab, m2,
-                                      f3fab, m3,
-                                      vbx, redblack);
-                });
+                if (this->m_use_gauss_seidel) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_gsrb_os(i, j, k, solnfab, rhsfab, osm, dhx, dhy,
+                                          f0fab, m0,
+                                          f1fab, m1,
+                                          f2fab, m2,
+                                          f3fab, m3,
+                                          vbx, redblack);
+                    });
+                } else {
+                    const auto& axfab = Ax.const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_jacobi_os(i, j, k, solnfab, rhsfab, axfab,
+                                            osm, dhx, dhy,
+                                            f0fab, m0,
+                                            f1fab, m1,
+                                            f2fab, m2,
+                                            f3fab, m3,
+                                            vbx);
+                    });
+                }
             } else if (this->m_has_metric_term) {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
-                {
-                    mlpoisson_gsrb_m(i, j, k, solnfab, rhsfab, dhx, dhy,
-                                     f0fab, m0,
-                                     f1fab, m1,
-                                     f2fab, m2,
-                                     f3fab, m3,
-                                     vbx, redblack,
-                                     dx, probxlo);
-                });
+                if (this->m_use_gauss_seidel) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_gsrb_m(i, j, k, solnfab, rhsfab, dhx, dhy,
+                                         f0fab, m0,
+                                         f1fab, m1,
+                                         f2fab, m2,
+                                         f3fab, m3,
+                                         vbx, redblack,
+                                         dx, probxlo);
+                    });
+                } else {
+                    const auto& axfab = Ax.const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_jacobi_m(i, j, k, solnfab, rhsfab, axfab, dhx, dhy,
+                                           f0fab, m0,
+                                           f1fab, m1,
+                                           f2fab, m2,
+                                           f3fab, m3,
+                                           vbx, dx, probxlo);
+                    });
+                }
             } else {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
-                {
-                    mlpoisson_gsrb(i, j, k, solnfab, rhsfab, dhx, dhy,
-                                   f0fab, m0,
-                                   f1fab, m1,
-                                   f2fab, m2,
-                                   f3fab, m3,
-                                   vbx, redblack);
-                });
+                if (this->m_use_gauss_seidel) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_gsrb(i, j, k, solnfab, rhsfab, dhx, dhy,
+                                       f0fab, m0,
+                                       f1fab, m1,
+                                       f2fab, m2,
+                                       f3fab, m3,
+                                       vbx, redblack);
+                    });
+                } else {
+                    const auto& axfab = Ax.const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_jacobi(i, j, k, solnfab, rhsfab, axfab, dhx, dhy,
+                                         f0fab, m0,
+                                         f1fab, m1,
+                                         f2fab, m2,
+                                         f3fab, m3,
+                                         vbx);
+                    });
+                }
             }
-
 #endif
 
 #if (AMREX_SPACEDIM == 3)
             if (this->m_overset_mask[amrlev][mglev]) {
                 AMREX_ASSERT(!this->m_has_metric_term);
                 const auto& osm = this->m_overset_mask[amrlev][mglev]->const_array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
-                {
-                    mlpoisson_gsrb_os(i, j, k, solnfab, rhsfab, osm, dhx, dhy, dhz,
-                                      f0fab, m0,
-                                      f1fab, m1,
-                                      f2fab, m2,
-                                      f3fab, m3,
-                                      f4fab, m4,
-                                      f5fab, m5,
-                                      vbx, redblack);
-                });
+                if (this->m_use_gauss_seidel) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_gsrb_os(i, j, k, solnfab, rhsfab, osm, dhx, dhy, dhz,
+                                          f0fab, m0,
+                                          f1fab, m1,
+                                          f2fab, m2,
+                                          f3fab, m3,
+                                          f4fab, m4,
+                                          f5fab, m5,
+                                          vbx, redblack);
+                    });
+                } else {
+                    const auto& axfab = Ax.const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_jacobi_os(i, j, k, solnfab, rhsfab, axfab,
+                                            osm, dhx, dhy, dhz,
+                                            f0fab, m0,
+                                            f1fab, m1,
+                                            f2fab, m2,
+                                            f3fab, m3,
+                                            f4fab, m4,
+                                            f5fab, m5,
+                                            vbx);
+                    });
+                }
             } else if (this->hasHiddenDimension()) {
                 Box const& tbx_2d = this->compactify(tbx);
                 Box const& vbx_2d = this->compactify(vbx);
@@ -691,27 +794,58 @@ MLPoissonT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redb
                 const auto& m1_2d = this->compactify(this->get_d1(m0,m1,m2));
                 const auto& m2_2d = this->compactify(this->get_d0(m3,m4,m5));
                 const auto& m3_2d = this->compactify(this->get_d1(m3,m4,m5));
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx_2d, i, j, k,
-                {
-                    TwoD::mlpoisson_gsrb(i, j, k, solnfab_2d, rhsfab_2d, dh0, dh1,
-                                         f0fab_2d, m0_2d,
-                                         f1fab_2d, m1_2d,
-                                         f2fab_2d, m2_2d,
-                                         f3fab_2d, m3_2d,
-                                         vbx_2d, redblack);
-                });
+                if (this->m_use_gauss_seidel) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx_2d, i, j, k,
+                    {
+                        TwoD::mlpoisson_gsrb(i, j, k, solnfab_2d, rhsfab_2d, dh0, dh1,
+                                             f0fab_2d, m0_2d,
+                                             f1fab_2d, m1_2d,
+                                             f2fab_2d, m2_2d,
+                                             f3fab_2d, m3_2d,
+                                             vbx_2d, redblack);
+                    });
+                } else {
+                    const auto& axfab = Ax.const_array(mfi);
+                    const auto& axfab_2d = this->compactify(axfab);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx_2d, i, j, k,
+                    {
+                        TwoD::mlpoisson_jacobi(i, j, k, solnfab_2d, rhsfab_2d,
+                                               axfab_2d, dh0, dh1,
+                                               f0fab_2d, m0_2d,
+                                               f1fab_2d, m1_2d,
+                                               f2fab_2d, m2_2d,
+                                               f3fab_2d, m3_2d,
+                                               vbx_2d);
+                    });
+                }
             } else {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
-                {
-                    mlpoisson_gsrb(i, j, k, solnfab, rhsfab, dhx, dhy, dhz,
-                                   f0fab, m0,
-                                   f1fab, m1,
-                                   f2fab, m2,
-                                   f3fab, m3,
-                                   f4fab, m4,
-                                   f5fab, m5,
-                                   vbx, redblack);
-                });
+                if (this->m_use_gauss_seidel) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_gsrb(i, j, k, solnfab, rhsfab, dhx, dhy, dhz,
+                                       f0fab, m0,
+                                       f1fab, m1,
+                                       f2fab, m2,
+                                       f3fab, m3,
+                                       f4fab, m4,
+                                       f5fab, m5,
+                                       vbx, redblack);
+                    });
+                } else {
+                    const auto& axfab = Ax.const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( tbx, i, j, k,
+                    {
+                        mlpoisson_jacobi(i, j, k, solnfab, rhsfab, axfab,
+                                         dhx, dhy, dhz,
+                                         f0fab, m0,
+                                         f1fab, m1,
+                                         f2fab, m2,
+                                         f3fab, m3,
+                                         f4fab, m4,
+                                         f5fab, m5,
+                                         vbx);
+                    });
+                }
             }
 #endif
         }

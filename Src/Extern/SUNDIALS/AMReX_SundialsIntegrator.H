@@ -428,7 +428,6 @@ public:
             T S_rhs;
             unpack_vector(y_rhs, S_rhs);
 
-            BaseT::pre_rhs_action(S_data, rhs_time);
             BaseT::Rhs(S_rhs, S_data, rhs_time);
 
             return 0;
@@ -443,7 +442,6 @@ public:
             T S_rhs;
             unpack_vector(y_rhs, S_rhs);
 
-            BaseT::pre_rhs_action(S_data, rhs_time);
             BaseT::RhsIm(S_rhs, S_data, rhs_time);
 
             return 0;
@@ -458,7 +456,6 @@ public:
             T S_rhs;
             unpack_vector(y_rhs, S_rhs);
 
-            BaseT::pre_rhs_action(S_data, rhs_time);
             BaseT::RhsEx(S_rhs, S_data, rhs_time);
 
             return 0;
@@ -473,7 +470,6 @@ public:
             T S_rhs;
             unpack_vector(y_rhs, S_rhs);
 
-            BaseT::pre_rhs_action(S_data, rhs_time);
             BaseT::RhsFast(S_rhs, S_data, rhs_time);
 
             return 0;

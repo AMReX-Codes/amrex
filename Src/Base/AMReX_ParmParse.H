@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
+#include <AMReX_Enum.H>
 #include <AMReX_INT.H>
 #include <AMReX_IParser.H>
 #include <AMReX_Parser.H>
@@ -1178,6 +1179,138 @@ public:
                                  << new_name << " and " << old_name << '\n';
             ParmParse::dumpTable(amrex::ErrorStream());
             amrex::Abort();
+        }
+    }
+
+    /**
+     * \brief. Query enum value using given name.
+     *
+     * Here T is an enum class defined by AMREX_ENUM. The return value
+     * indicates if `name` is found. An exception is thrown, if the found
+     * string associated with the name cannot be converted to an enumerator
+     * (i.e., the string does not match any names in the definition of T).
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    int query (const char* name, T& ref)
+    {
+        std::string s;
+        int exist = this->query(name, s);
+        if (exist) {
+            try {
+                ref = amrex::getEnum<T>(s);
+            } catch (...) {
+                throw;
+            }
+        }
+        return exist;
+    }
+
+    /**
+     * \brief. Get enum value using given name.
+     *
+     * Here T is an enum class defined by AMREX_ENUM. It's a runtime error,
+     * if `name` is not found. An exception is thrown, if the found string
+     * associated with the name cannot be converted to an enumerator (i.e.,
+     * the string does not match any names in the definition of T).
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    void get (const char* name, T& ref)
+    {
+        std::string s;
+        this->get(name, s);
+        try {
+            ref = amrex::getEnum<T>(s);
+        } catch (...) {
+            throw;
+        }
+    }
+
+    //! Query an array of enum values using given name.
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    int queryarr (const char* name, std::vector<T>& ref)
+    {
+        std::vector<std::string> s;
+        int exist = this->queryarr(name, s);
+        if (exist) {
+            ref.resize(s.size());
+            for (std::size_t i = 0; i < s.size(); ++i) {
+                ref[i] = amrex::getEnum<T>(s[i]);
+            }
+        }
+        return exist;
+    }
+
+    //! Get an array of enum values using given name.
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    void getarr (const char* name, std::vector<T>& ref)
+    {
+        std::vector<std::string> s;
+        this->getarr(name, s);
+        ref.resize(s.size());
+        for (std::size_t i = 0; i < s.size(); ++i) {
+            ref[i] = amrex::getEnum<T>(s[i]);
+        }
+    }
+
+    /**
+     * \brief. Query enum value using given name.
+     *
+     * Here T is an enum class defined by AMREX_ENUM. The return value
+     * indicates if `name` is found. An exception is thrown, if the found
+     * string associated with the name cannot be case-insensitively
+     * converted to an enumerator (i.e., the found string, not `name`, does
+     * not case-insensitively match any names in the definition of T). If
+     * there are multiple matches, the first one is used.
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    int query_enum_case_insensitive (const char* name, T& ref)
+    {
+        std::string s;
+        int exist = this->query(name, s);
+        if (exist) {
+            s = amrex::toLower(s);
+            auto const& enum_names = amrex::getEnumNameStrings<T>();
+            auto found = std::find_if(enum_names.begin(), enum_names.end(),
+                                      [&] (std::string const& ename) {
+                                          return amrex::toLower(ename) == s;
+                                      });
+            if (found != enum_names.end()) {
+                ref = static_cast<T>(std::distance(enum_names.begin(), found));
+            } else {
+                std::string msg("query_enum_case_insensitive(\"");
+                msg.append(name).append("\",").append(amrex::getEnumClassName<T>())
+                    .append("&) failed.");
+                throw std::runtime_error(msg);
+            }
+        }
+        return exist;
+    }
+
+    /**
+     * \brief. Get enum value using given name.
+     *
+     * Here T is an enum class defined by AMREX_ENUM. It's a runtime error,
+     * if `name` is not found. An exception is thrown, if the found string
+     * associated with the name cannot be case-insensitively converted to an
+     * enumerator (i.e., the found string, not `name`, does not
+     * case-insensitively match any names in the definition of T). If there
+     * are multiple matches, the first one is used.
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    void get_enum_case_insensitive (const char* name, T& ref)
+    {
+        int exist = this->query_enum_case_insensitive(name, ref);
+        if (!exist) {
+            std::string msg("get_enum_case_insensitive(\"");
+            msg.append(name).append("\",").append(amrex::getEnumClassName<T>())
+                .append("&) failed.");
+            amrex::Abort(msg);
         }
     }
 

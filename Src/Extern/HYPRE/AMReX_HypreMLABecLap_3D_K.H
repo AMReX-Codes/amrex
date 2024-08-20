@@ -166,7 +166,7 @@ void hypmlabeclap_c2f (int i, int j, int k,
                        Array4<int const> const& offset_bz,
                        Real const* bx, Real const* by, Real const* bz,
                        Array4<int const> const& fine_mask,
-                       IntVect const& rr)
+                       IntVect const& rr, Array4<int const> const& crse_mask)
 {
     if (fine_mask(i,j,k)) {
         // Let's set off-diagonal elements to zero
@@ -191,7 +191,11 @@ void hypmlabeclap_c2f (int i, int j, int k,
             (! fine_mask(i,j-1,k-1)) &&
             (! fine_mask(i,j+1,k-1)) &&
             (! fine_mask(i,j-1,k+1)) &&
-            (! fine_mask(i,j+1,k+1)))
+            (! fine_mask(i,j+1,k+1)) &&
+            (  crse_mask(i,j-1,k-1)) &&
+            (  crse_mask(i,j+1,k-1)) &&
+            (  crse_mask(i,j-1,k+1)) &&
+            (  crse_mask(i,j+1,k+1)))
         {
             corner[0] = true;
         }
@@ -199,7 +203,11 @@ void hypmlabeclap_c2f (int i, int j, int k,
             (! fine_mask(i-1,j,k-1)) &&
             (! fine_mask(i+1,j,k-1)) &&
             (! fine_mask(i-1,j,k+1)) &&
-            (! fine_mask(i+1,j,k+1)))
+            (! fine_mask(i+1,j,k+1)) &&
+            (  crse_mask(i-1,j,k-1)) &&
+            (  crse_mask(i+1,j,k-1)) &&
+            (  crse_mask(i-1,j,k+1)) &&
+            (  crse_mask(i+1,j,k+1)))
         {
             corner[1] = true;
         }
@@ -207,7 +215,11 @@ void hypmlabeclap_c2f (int i, int j, int k,
             (! fine_mask(i-1,j-1,k)) &&
             (! fine_mask(i+1,j-1,k)) &&
             (! fine_mask(i-1,j+1,k)) &&
-            (! fine_mask(i+1,j+1,k)))
+            (! fine_mask(i+1,j+1,k)) &&
+            (  crse_mask(i-1,j-1,k)) &&
+            (  crse_mask(i+1,j-1,k)) &&
+            (  crse_mask(i-1,j+1,k)) &&
+            (  crse_mask(i+1,j+1,k)))
         {
             corner[2] = true;
         }
@@ -253,28 +265,34 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real fac0 = fac*cc[0];
                 Real s0 = Real(1.0);
 
-                if (!fine_mask(i-1,j,k) && !fine_mask(i+1,j,k)) {
-                    s0 -= x*x;
-                    stencil(i,j,k)[1] += fac0*Real(0.5)*x*(x-Real(1.0));
-                    stencil(i,j,k)[2] += fac0*Real(0.5)*x*(x+Real(1.0));
-                } else if (!fine_mask(i-1,j,k)) {
+                if ( fine_mask(i-1,j,k) ||
+                    !crse_mask(i-1,j,k))
+                {
+                    s0 += Real(-0.5)*x;
+                    stencil(i,j,k)[2] += fac0*Real(0.5)*x;
+                } else if ( fine_mask(i+1,j,k) ||
+                           !crse_mask(i+1,j,k)) {
                     s0 += Real(0.5)*x;
                     stencil(i,j,k)[1] += fac0*Real(-0.5)*x;
                 } else {
-                    s0 += Real(-0.5)*x;
-                    stencil(i,j,k)[2] += fac0*Real(0.5)*x;
+                    s0 -= x*x;
+                    stencil(i,j,k)[1] += fac0*Real(0.5)*x*(x-Real(1.0));
+                    stencil(i,j,k)[2] += fac0*Real(0.5)*x*(x+Real(1.0));
                 }
 
-                if (!fine_mask(i,j-1,k) && !fine_mask(i,j+1,k)) {
-                    s0 -= y*y;
-                    stencil(i,j,k)[3] += fac0*Real(0.5)*y*(y-Real(1.0));
-                    stencil(i,j,k)[4] += fac0*Real(0.5)*y*(y+Real(1.0));
-                } else if (!fine_mask(i,j-1,k)) {
+                if ( fine_mask(i,j-1,k) ||
+                    !crse_mask(i,j-1,k))
+                {
+                    s0 += Real(-0.5)*y;
+                    stencil(i,j,k)[4] += fac0*Real(0.5)*y;
+                } else if ( fine_mask(i,j+1,k)  ||
+                           !crse_mask(i,j+1,k)) {
                     s0 += Real(0.5)*y;
                     stencil(i,j,k)[3] += fac0*Real(-0.5)*y;
                 } else {
-                    s0 += Real(-0.5)*y;
-                    stencil(i,j,k)[4] += fac0*Real(0.5)*y;
+                    s0 -= y*y;
+                    stencil(i,j,k)[3] += fac0*Real(0.5)*y*(y-Real(1.0));
+                    stencil(i,j,k)[4] += fac0*Real(0.5)*y*(y+Real(1.0));
                 }
 
                 stencil(i,j,k)[0] += fac0*s0;
@@ -322,28 +340,34 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real fac0 = fac*cc[0];
                 Real s0 = Real(1.0);
 
-                if (!fine_mask(i-1,j,k) && !fine_mask(i+1,j,k)) {
-                    s0 -= x*x;
-                    stencil(i,j,k)[1] += fac0*Real(0.5)*x*(x-Real(1.0));
-                    stencil(i,j,k)[2] += fac0*Real(0.5)*x*(x+Real(1.0));
-                } else if (!fine_mask(i-1,j,k)) {
+                if ( fine_mask(i-1,j,k) ||
+                    !crse_mask(i-1,j,k))
+                {
+                    s0 += Real(-0.5)*x;
+                    stencil(i,j,k)[2] += fac0*Real(0.5)*x;
+                } else if ( fine_mask(i+1,j,k) ||
+                           !crse_mask(i+1,j,k)) {
                     s0 += Real(0.5)*x;
                     stencil(i,j,k)[1] += fac0*Real(-0.5)*x;
                 } else {
-                    s0 += Real(-0.5)*x;
-                    stencil(i,j,k)[2] += fac0*Real(0.5)*x;
+                    s0 -= x*x;
+                    stencil(i,j,k)[1] += fac0*Real(0.5)*x*(x-Real(1.0));
+                    stencil(i,j,k)[2] += fac0*Real(0.5)*x*(x+Real(1.0));
                 }
 
-                if (!fine_mask(i,j,k-1) && !fine_mask(i,j,k+1)) {
-                    s0 -= z*z;
-                    stencil(i,j,k)[5] += fac0*Real(0.5)*z*(z-Real(1.0));
-                    stencil(i,j,k)[6] += fac0*Real(0.5)*z*(z+Real(1.0));
-                } else if (!fine_mask(i,j,k-1)) {
+                if ( fine_mask(i,j,k-1) ||
+                    !crse_mask(i,j,k-1))
+                {
+                    s0 += Real(-0.5)*z;
+                    stencil(i,j,k)[6] += fac0*Real(0.5)*z;
+                } else if ( fine_mask(i,j,k+1)  ||
+                           !crse_mask(i,j,k+1)) {
                     s0 += Real(0.5)*z;
                     stencil(i,j,k)[5] += fac0*Real(-0.5)*z;
                 } else {
-                    s0 += Real(-0.5)*z;
-                    stencil(i,j,k)[6] += fac0*Real(0.5)*z;
+                    s0 -= z*z;
+                    stencil(i,j,k)[5] += fac0*Real(0.5)*z*(z-Real(1.0));
+                    stencil(i,j,k)[6] += fac0*Real(0.5)*z*(z+Real(1.0));
                 }
 
                 stencil(i,j,k)[0] += fac0*s0;
@@ -393,28 +417,34 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real fac0 = fac*cc[0];
                 Real s0 = Real(1.0);
 
-                if (!fine_mask(i,j-1,k) && !fine_mask(i,j+1,k)) {
-                    s0 -= y*y;
-                    stencil(i,j,k)[3] += fac0*Real(0.5)*y*(y-Real(1.0));
-                    stencil(i,j,k)[4] += fac0*Real(0.5)*y*(y+Real(1.0));
-                } else if (!fine_mask(i,j-1,k)) {
+                if ( fine_mask(i,j-1,k) ||
+                    !crse_mask(i,j-1,k))
+                {
+                    s0 += Real(-0.5)*y;
+                    stencil(i,j,k)[4] += fac0*Real(0.5)*y;
+                } else if ( fine_mask(i,j+1,k) ||
+                           !crse_mask(i,j+1,k)) {
                     s0 += Real(0.5)*y;
                     stencil(i,j,k)[3] += fac0*Real(-0.5)*y;
                 } else {
-                    s0 += Real(-0.5)*y;
-                    stencil(i,j,k)[4] += fac0*Real(0.5)*y;
+                    s0 -= y*y;
+                    stencil(i,j,k)[3] += fac0*Real(0.5)*y*(y-Real(1.0));
+                    stencil(i,j,k)[4] += fac0*Real(0.5)*y*(y+Real(1.0));
                 }
 
-                if (!fine_mask(i,j,k-1) && !fine_mask(i,j,k+1)) {
-                    s0 -= z*z;
-                    stencil(i,j,k)[5] += fac0*Real(0.5)*z*(z-Real(1.0));
-                    stencil(i,j,k)[6] += fac0*Real(0.5)*z*(z+Real(1.0));
-                } else if (!fine_mask(i,j,k-1)) {
+                if ( fine_mask(i,j,k-1) ||
+                    !crse_mask(i,j,k-1))
+                {
+                    s0 += Real(-0.5)*z;
+                    stencil(i,j,k)[6] += fac0*Real(0.5)*z;
+                } else if ( fine_mask(i,j,k+1) ||
+                           !crse_mask(i,j,k+1)) {
                     s0 += Real(0.5)*z;
                     stencil(i,j,k)[5] += fac0*Real(-0.5)*z;
                 } else {
-                    s0 += Real(-0.5)*z;
-                    stencil(i,j,k)[6] += fac0*Real(0.5)*z;
+                    s0 -= z*z;
+                    stencil(i,j,k)[5] += fac0*Real(0.5)*z*(z-Real(1.0));
+                    stencil(i,j,k)[6] += fac0*Real(0.5)*z*(z+Real(1.0));
                 }
 
                 stencil(i,j,k)[0] += fac0*s0;
@@ -463,28 +493,34 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real fac0 = fac*cc[0];
                 Real s0 = Real(1.0);
 
-                if (!fine_mask(i,j-1,k) && !fine_mask(i,j+1,k)) {
-                    s0 -= y*y;
-                    stencil(i,j,k)[3] += fac0*Real(0.5)*y*(y-Real(1.0));
-                    stencil(i,j,k)[4] += fac0*Real(0.5)*y*(y+Real(1.0));
-                } else if (!fine_mask(i,j-1,k)) {
+                if ( fine_mask(i,j-1,k) ||
+                    !crse_mask(i,j-1,k))
+                {
+                    s0 += Real(-0.5)*y;
+                    stencil(i,j,k)[4] += fac0*Real(0.5)*y;
+                } else if ( fine_mask(i,j+1,k)  ||
+                           !crse_mask(i,j+1,k)) {
                     s0 += Real(0.5)*y;
                     stencil(i,j,k)[3] += fac0*Real(-0.5)*y;
                 } else {
-                    s0 += Real(-0.5)*y;
-                    stencil(i,j,k)[4] += fac0*Real(0.5)*y;
+                    s0 -= y*y;
+                    stencil(i,j,k)[3] += fac0*Real(0.5)*y*(y-Real(1.0));
+                    stencil(i,j,k)[4] += fac0*Real(0.5)*y*(y+Real(1.0));
                 }
 
-                if (!fine_mask(i,j,k-1) && !fine_mask(i,j,k+1)) {
-                    s0 -= z*z;
-                    stencil(i,j,k)[5] += fac0*Real(0.5)*z*(z-Real(1.0));
-                    stencil(i,j,k)[6] += fac0*Real(0.5)*z*(z+Real(1.0));
-                } else if (!fine_mask(i,j,k-1)) {
+                if ( fine_mask(i,j,k-1) ||
+                    !crse_mask(i,j,k-1))
+                {
+                    s0 += Real(-0.5)*z;
+                    stencil(i,j,k)[6] += fac0*Real(0.5)*z;
+                } else if ( fine_mask(i,j,k+1) ||
+                           !crse_mask(i,j,k+1)) {
                     s0 += Real(0.5)*z;
                     stencil(i,j,k)[5] += fac0*Real(-0.5)*z;
                 } else {
-                    s0 += Real(-0.5)*z;
-                    stencil(i,j,k)[6] += fac0*Real(0.5)*z;
+                    s0 -= z*z;
+                    stencil(i,j,k)[5] += fac0*Real(0.5)*z*(z-Real(1.0));
+                    stencil(i,j,k)[6] += fac0*Real(0.5)*z*(z+Real(1.0));
                 }
 
                 stencil(i,j,k)[0] += fac0*s0;
@@ -534,28 +570,34 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real fac0 = fac*cc[0];
                 Real s0 = Real(1.0);
 
-                if (!fine_mask(i-1,j,k) && !fine_mask(i+1,j,k)) {
-                    s0 -= x*x;
-                    stencil(i,j,k)[1] += fac0*Real(0.5)*x*(x-Real(1.0));
-                    stencil(i,j,k)[2] += fac0*Real(0.5)*x*(x+Real(1.0));
-                } else if (!fine_mask(i-1,j,k)) {
+                if ( fine_mask(i-1,j,k) ||
+                    !crse_mask(i-1,j,k))
+                {
+                    s0 += Real(-0.5)*x;
+                    stencil(i,j,k)[2] += fac0*Real(0.5)*x;
+                } else if ( fine_mask(i+1,j,k) ||
+                           !crse_mask(i+1,j,k)) {
                     s0 += Real(0.5)*x;
                     stencil(i,j,k)[1] += fac0*Real(-0.5)*x;
                 } else {
-                    s0 += Real(-0.5)*x;
-                    stencil(i,j,k)[2] += fac0*Real(0.5)*x;
+                    s0 -= x*x;
+                    stencil(i,j,k)[1] += fac0*Real(0.5)*x*(x-Real(1.0));
+                    stencil(i,j,k)[2] += fac0*Real(0.5)*x*(x+Real(1.0));
                 }
 
-                if (!fine_mask(i,j,k-1) && !fine_mask(i,j,k+1)) {
-                    s0 -= z*z;
-                    stencil(i,j,k)[5] += fac0*Real(0.5)*z*(z-Real(1.0));
-                    stencil(i,j,k)[6] += fac0*Real(0.5)*z*(z+Real(1.0));
-                } else if (!fine_mask(i,j,k-1)) {
+                if ( fine_mask(i,j,k-1) ||
+                    !crse_mask(i,j,k-1))
+                {
+                    s0 += Real(-0.5)*z;
+                    stencil(i,j,k)[6] += fac0*Real(0.5)*z;
+                } else if ( fine_mask(i,j,k+1) ||
+                           !crse_mask(i,j,k+1)) {
                     s0 += Real(0.5)*z;
                     stencil(i,j,k)[5] += fac0*Real(-0.5)*z;
                 } else {
-                    s0 += Real(-0.5)*z;
-                    stencil(i,j,k)[6] += fac0*Real(0.5)*z;
+                    s0 -= z*z;
+                    stencil(i,j,k)[5] += fac0*Real(0.5)*z*(z-Real(1.0));
+                    stencil(i,j,k)[6] += fac0*Real(0.5)*z*(z+Real(1.0));
                 }
 
                 stencil(i,j,k)[0] += fac0*s0;
@@ -605,28 +647,34 @@ void hypmlabeclap_c2f (int i, int j, int k,
                 Real fac0 = fac*cc[0];
                 Real s0 = Real(1.0);
 
-                if (!fine_mask(i-1,j,k) && !fine_mask(i+1,j,k)) {
-                    s0 -= x*x;
-                    stencil(i,j,k)[1] += fac0*Real(0.5)*x*(x-Real(1.0));
-                    stencil(i,j,k)[2] += fac0*Real(0.5)*x*(x+Real(1.0));
-                } else if (!fine_mask(i-1,j,k)) {
+                if ( fine_mask(i-1,j,k) ||
+                    !crse_mask(i-1,j,k))
+                {
+                    s0 += Real(-0.5)*x;
+                    stencil(i,j,k)[2] += fac0*Real(0.5)*x;
+                } else if ( fine_mask(i+1,j,k) ||
+                           !crse_mask(i+1,j,k)) {
                     s0 += Real(0.5)*x;
                     stencil(i,j,k)[1] += fac0*Real(-0.5)*x;
                 } else {
-                    s0 += Real(-0.5)*x;
-                    stencil(i,j,k)[2] += fac0*Real(0.5)*x;
+                    s0 -= x*x;
+                    stencil(i,j,k)[1] += fac0*Real(0.5)*x*(x-Real(1.0));
+                    stencil(i,j,k)[2] += fac0*Real(0.5)*x*(x+Real(1.0));
                 }
 
-                if (!fine_mask(i,j-1,k) && !fine_mask(i,j+1,k)) {
-                    s0 -= y*y;
-                    stencil(i,j,k)[3] += fac0*Real(0.5)*y*(y-Real(1.0));
-                    stencil(i,j,k)[4] += fac0*Real(0.5)*y*(y+Real(1.0));
-                } else if (!fine_mask(i,j-1,k)) {
+                if ( fine_mask(i,j-1,k) ||
+                    !crse_mask(i,j-1,k))
+                {
+                    s0 += Real(-0.5)*y;
+                    stencil(i,j,k)[4] += fac0*Real(0.5)*y;
+                } else if ( fine_mask(i,j+1,k) ||
+                           !crse_mask(i,j+1,k)) {
                     s0 += Real(0.5)*y;
                     stencil(i,j,k)[3] += fac0*Real(-0.5)*y;
                 } else {
-                    s0 += Real(-0.5)*y;
-                    stencil(i,j,k)[4] += fac0*Real(0.5)*y;
+                    s0 -= y*y;
+                    stencil(i,j,k)[3] += fac0*Real(0.5)*y*(y-Real(1.0));
+                    stencil(i,j,k)[4] += fac0*Real(0.5)*y*(y+Real(1.0));
                 }
 
                 stencil(i,j,k)[0] += fac0*s0;

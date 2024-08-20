@@ -157,6 +157,69 @@ void abec_gsrb_os (int i, int, int, int n, Array4<T> const& phi, Array4<T const>
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void abec_jacobi (int i, int, int, int n, Array4<T> const& phi,
+                  Array4<T const> const& rhs, Array4<T const> const& Ax,
+                  T alpha, Array4<T const> const& a,
+                  T dhx,
+                  Array4<T const> const& bX,
+                  Array4<int const> const& m0,
+                  Array4<int const> const& m1,
+                  Array4<T const> const& f0,
+                  Array4<T const> const& f1,
+                  Box const& vbox) noexcept
+{
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    T cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
+        ? f0(vlo.x,0,0,n) : T(0.0);
+    T cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
+        ? f1(vhi.x,0,0,n) : T(0.0);
+
+    T delta = dhx*(bX(i,0,0,n)*cf0 + bX(i+1,0,0,n)*cf1);
+
+    T gamma = alpha*a(i,0,0)
+        +   dhx*( bX(i,0,0,n) + bX(i+1,0,0,n) );
+
+    phi(i,0,0,n) += T(2.0/3.0) * (rhs(i,0,0,n) - Ax(i,0,0,n)) / (gamma - delta);
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void abec_jacobi_os (int i, int, int, int n, Array4<T> const& phi,
+                     Array4<T const> const& rhs, Array4<T const> const& Ax,
+                     T alpha, Array4<T const> const& a,
+                     T dhx,
+                     Array4<T const> const& bX,
+                     Array4<int const> const& m0,
+                     Array4<int const> const& m1,
+                     Array4<T const> const& f0,
+                     Array4<T const> const& f1,
+                     Array4<int const> const& osm,
+                     Box const& vbox) noexcept
+{
+    if (osm(i,0,0) == 0) {
+        phi(i,0,0) = T(0.0);
+    } else {
+        const auto vlo = amrex::lbound(vbox);
+        const auto vhi = amrex::ubound(vbox);
+
+        T cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
+            ? f0(vlo.x,0,0,n) : T(0.0);
+        T cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
+            ? f1(vhi.x,0,0,n) : T(0.0);
+
+        T delta = dhx*(bX(i,0,0,n)*cf0 + bX(i+1,0,0,n)*cf1);
+
+        T gamma = alpha*a(i,0,0)
+            +   dhx*( bX(i,0,0,n) + bX(i+1,0,0,n) );
+
+        phi(i,0,0,n) += T(2.0/3.0) * (rhs(i,0,0,n) - Ax(i,0,0,n)) / (gamma - delta);
+    }
+}
+
+template <typename T>
+AMREX_FORCE_INLINE
 void abec_gsrb_with_line_solve (
                 Box const& /*box*/, Array4<T> const& /*phi*/, Array4<T const> const& /*rhs*/,
                 T /*alpha*/, Array4<T const> const& /*a*/,

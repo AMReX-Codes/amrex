@@ -65,16 +65,13 @@ private:
     void set_default_functions ()
     {
         // By default, do nothing in the RHS
-        set_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
-        set_imex_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){},
-                     [](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
-        set_fast_rhs([](T& /* S_rhs */, const T& /* S_data */, const amrex::Real /* time */){});
+        set_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */){});
+        set_imex_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */){},
+                     [](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */){});
+        set_fast_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */){});
 
         // In general, the following functions can be used to fill BCs. Which
         // function to set will depend on the method type and intended use case
-
-        // By default, do nothing before calling the RHS
-        set_pre_rhs_action([](T& /* S_data */, amrex::Real /* time */){});
 
         // By default, do nothing after a stage or step
         set_post_stage_action([](T& /* S_data */, const amrex::Real /* time */){});
@@ -134,25 +131,20 @@ public:
         }
     }
 
-    void set_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
+    void set_rhs (std::function<void(T&, T&, const amrex::Real)> F)
     {
         integrator_ptr->set_rhs(F);
     }
 
-    void set_imex_rhs (std::function<void(T&, const T&, const amrex::Real)> Fi,
-                       std::function<void(T&, const T&, const amrex::Real)> Fe)
+    void set_imex_rhs (std::function<void(T&, T&, const amrex::Real)> Fi,
+                       std::function<void(T&, T&, const amrex::Real)> Fe)
     {
         integrator_ptr->set_imex_rhs(Fi, Fe);
     }
 
-    void set_fast_rhs (std::function<void(T&, const T&, const amrex::Real)> F)
+    void set_fast_rhs (std::function<void(T&, T&, const amrex::Real)> F)
     {
         integrator_ptr->set_fast_rhs(F);
-    }
-
-    void set_pre_rhs_action (std::function<void (T&, amrex::Real)> A)
-    {
-        integrator_ptr->set_pre_rhs_action(A);
     }
 
     void set_post_stage_action (std::function<void (T&, amrex::Real)> A)
@@ -173,11 +165,6 @@ public:
     void set_post_fast_step_action (std::function<void (T&, amrex::Real)> A)
     {
         integrator_ptr->set_post_fast_step_action(A);
-    }
-
-    void set_post_update (std::function<void (T&, amrex::Real)> A)
-    {
-        integrator_ptr->set_post_update(A);
     }
 
     amrex::Real get_time_step ()

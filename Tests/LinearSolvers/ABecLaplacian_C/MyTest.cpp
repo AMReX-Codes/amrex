@@ -62,8 +62,9 @@ MyTest::solvePoisson ()
 
     if (composite_solve)
     {
-
         MLPoisson mlpoisson(geom, grids, dmap, info);
+
+        mlpoisson.setGaussSeidel(use_gauss_seidel);
 
         mlpoisson.setMaxOrder(linop_maxorder);
 
@@ -104,6 +105,8 @@ MyTest::solvePoisson ()
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
             MLPoisson mlpoisson({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
+
+            mlpoisson.setGaussSeidel(use_gauss_seidel);
 
             mlpoisson.setMaxOrder(linop_maxorder);
 
@@ -163,6 +166,8 @@ MyTest::solveABecLaplacian ()
 
         MLABecLaplacian mlabec(geom, grids, dmap, info);
 
+        mlabec.setGaussSeidel(use_gauss_seidel);
+
         mlabec.setMaxOrder(linop_maxorder);
 
         mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
@@ -219,6 +224,8 @@ MyTest::solveABecLaplacian ()
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
             MLABecLaplacian mlabec({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
+
+            mlabec.setGaussSeidel(use_gauss_seidel);
 
             mlabec.setMaxOrder(linop_maxorder);
 
@@ -290,6 +297,8 @@ MyTest::solveABecLaplacianInhomNeumann ()
 
         MLABecLaplacian mlabec(geom, grids, dmap, info);
 
+        mlabec.setGaussSeidel(use_gauss_seidel);
+
         mlabec.setMaxOrder(linop_maxorder);
 
         // This is a 3d problem with inhomogeneous Neumann BC
@@ -348,6 +357,8 @@ MyTest::solveABecLaplacianInhomNeumann ()
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
             MLABecLaplacian mlabec({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
+
+            mlabec.setGaussSeidel(use_gauss_seidel);
 
             mlabec.setMaxOrder(linop_maxorder);
 
@@ -546,6 +557,8 @@ MyTest::readParameters ()
     pp.query("semicoarsening", semicoarsening);
     pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("max_semicoarsening_level", max_semicoarsening_level);
+
+    pp.query("use_gauss_seidel", use_gauss_seidel);
 
     pp.query("use_gmres", use_gmres);
     AMREX_ALWAYS_ASSERT(use_gmres == false || prob_type == 2);

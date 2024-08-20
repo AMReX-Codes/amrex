@@ -2,6 +2,7 @@
 AMREX_BASE=EXE
 
 C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Algorithm.H AMReX_Any.H AMReX_Array.H
+C$(AMREX_BASE)_headers += AMReX_Enum.H
 C$(AMREX_BASE)_headers += AMReX_Vector.H AMReX_TableData.H AMReX_Tuple.H AMReX_Math.H
 
 C$(AMREX_BASE)_headers += AMReX_TypeList.H
@@ -21,6 +22,9 @@ C$(AMREX_BASE)_sources += AMReX_PODVector.cpp
 
 C$(AMREX_BASE)_headers += AMReX_BlockMutex.H
 C$(AMREX_BASE)_sources += AMReX_BlockMutex.cpp
+
+C$(AMREX_BASE)_headers += AMReX_String.H
+C$(AMREX_BASE)_sources += AMReX_String.cpp
 
 C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
 C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
