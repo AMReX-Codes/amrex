@@ -1041,13 +1041,40 @@ public:
     /**
      * \brief Query with Parser. If `name` is found, this uses amrex::Parser
      * to parse the entire list of empty space separated values as a single
-     * scalar. The return value indicates whether it's found.
+     * scalar. The return value indicates whether it's found. Note that
+     * queryWithParser will be used recursively for unresolved symbols.
      */
     int queryWithParser (const char* name, int& ref) const;
     int queryWithParser (const char* name, long& ref) const;
     int queryWithParser (const char* name, long long& ref) const;
     int queryWithParser (const char* name, float& ref) const;
     int queryWithParser (const char* name, double& ref) const;
+
+    /**
+     * \brief Query with Parser. The return value indicates whether it's
+     * found. Note that queryWithParser will be used for unresolved
+     * symbols. If the number of elements in the input does not equal to
+     * `nvals`, it's a runtime error.
+     */
+    int queryarrWithParser (const char* name, int nvals, int* ref) const;
+    int queryarrWithParser (const char* name, int nvals, long* ref) const;
+    int queryarrWithParser (const char* name, int nvals, long long* ref) const;
+    int queryarrWithParser (const char* name, int nvals, float* ref) const;
+    int queryarrWithParser (const char* name, int nvals, double* ref) const;
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    int queryarrWithParser (const char* name, int nvals, std::vector<T>& ref) const
+    {
+        if (this->contains(name)) {
+            if (int(ref.size()) < nvals) { ref.resize(nvals); }
+            return this->queryarrWithParser(name, nvals, ref.data());
+        } else {
+            return 0;
+        }
+    }
 
     /**
      * \brief Query with Parser. If `name` is found, this uses amrex::Parser
@@ -1084,6 +1111,42 @@ public:
         int exist = this->queryWithParser(name, ref);
         if (!exist) {
             amrex::Error(std::string("ParmParse::getWithParser: failed to get ")+name);
+        }
+    }
+
+    /**
+     * \brief Get with Parser. If `name` is not found, it's a runtime
+     * error. If the number of elements does not equal to `nvals`, it's also
+     * a runtime error.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    void getarrWithParser (const char* name, int nvals, T* ref) const
+    {
+        int exist = this->queryarrWithParser(name, nvals, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getarrWithParser: failed to get ")+name);
+        }
+    }
+
+    /**
+     * \brief Get with Parser. If `name` is not found, it's a runtime
+     * error. If the number of elements does not equal to `nvals`, it's also
+     * a runtime error.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    void getarrWithParser (const char* name, int nvals, std::vector<T>& ref) const
+    {
+        int exist = this->queryarrWithParser(name, nvals, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getarrWithParser: failed to get ")+name);
         }
     }
 
