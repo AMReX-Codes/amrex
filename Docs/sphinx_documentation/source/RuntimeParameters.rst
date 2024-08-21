@@ -1204,3 +1204,35 @@ enabled.
   which are unnecessary for correctness, could potentially degrade the
   performance.
 
+.. py:data:: tiny_profiler.enabled
+   :type: bool
+   :value: true
+
+   .. versionadded:: 24.09
+      Runtime parameter `tiny_profiler.enabled``.
+
+   This parameter can be used to disable tiny profiling including
+   :cpp:`CArena` memory profiling at run time.
+
+.. py:data:: tiny_profiler.memprof_enabled
+   :type: bool
+   :value: true
+
+   .. versionadded:: 24.09
+      Runtime parameter ``tiny_profiler.memprof_enabled``.
+
+   This parameter can be used to disable :cpp:`CArena` memory profiling at
+   run time. If ``tiny_profiler.enabled`` is false, this parameter has no
+   effects.
+
+.. py:data:: tiny_profiler.output_file
+   :type: string
+   :value: [empty]
+
+   .. versionadded:: 24.09
+      Runtime parameter ``tiny_profiler.output_file``.
+
+   If this parameter is empty, the output of tiny profiling is dumped on the
+   default out stream of AMReX. If it's not empty, it specifies the file
+   name for the output. Note that ``/dev/null`` is a special name that mean
+   a null file.
