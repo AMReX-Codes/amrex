@@ -1234,5 +1234,5 @@ enabled.
 
    If this parameter is empty, the output of tiny profiling is dumped on the
    default out stream of AMReX. If it's not empty, it specifies the file
-   name for the output. Note that ``/dev/null`` is a special name that mean
-   a null file.
+   name for the output. Note that ``/dev/null`` is a special name that means
+   no output.
