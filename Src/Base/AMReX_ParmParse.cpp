@@ -12,6 +12,7 @@
 #include <iostream>
 #include <limits>
 #include <numeric>
+#include <unordered_map>
 #include <regex>
 #include <sstream>
 #include <stdexcept>
@@ -1204,6 +1205,32 @@ ParmParse::dumpTable (std::ostream& os, bool prettyPrint)
         else {
             for (auto const& vals : entry.m_vals) {
                 os << pp_to_string(name, vals) << '\n';
+            }
+        }
+    }
+}
+
+void
+ParmParse::prettyPrintTable (std::ostream& os)
+{
+    std::vector<std::string> sorted_names;
+    sorted_names.reserve(g_table.size());
+    for (auto const& [name, entry] : g_table) {
+        sorted_names.push_back(name);
+    }
+    std::sort(sorted_names.begin(), sorted_names.end());
+
+    for (auto const& name : sorted_names) {
+        auto const& entry = g_table[name];
+        std::vector<std::string> value_string;
+        std::unordered_map<std::string,int> count;
+        for (auto const& vals : entry.m_vals) {
+            value_string.emplace_back(pp_to_pretty_string(name, vals));
+            ++count[value_string.back()];
+        }
+        for (auto const& s : value_string) {
+            if (--count[s] == 0) {
+                os << s << '\n';
             }
         }
     }
