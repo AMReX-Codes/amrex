@@ -67,10 +67,10 @@ struct AssignGrid
         int iy_hi = amrex::min((lo.y + nGrow - m_lo.y) / m_bin_size.y, m_num_bins.y-1);
         int iz_hi = amrex::min((lo.z + nGrow - m_lo.z) / m_bin_size.z, m_num_bins.z-1);
         int loc = -1;
-        for (int ii = ix_lo; ii <= ix_hi; ++ii) {
+        for (int kk = iz_lo; kk <= iz_hi; ++kk) {
             for (int jj = iy_lo; jj <= iy_hi; ++jj) {
-                for (int kk = iz_lo; kk <= iz_hi; ++kk) {
-                    int index = (ii * m_num_bins.y + jj) * m_num_bins.z + kk;
+                for (int ii = ix_lo; ii <= ix_hi; ++ii) {
+                    int index = (kk * m_num_bins.y + jj) * m_num_bins.x + ii;
                     for (const auto& nbor : m_bif.getBinIterator(index)) {
                         Box bx = nbor.second;
                         if (bx.contains(iv)) {

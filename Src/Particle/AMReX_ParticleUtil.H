@@ -325,7 +325,7 @@ struct BinMapper
         int uix = amrex::min(nx-1,amrex::max(0,iv3.x));
         int uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
         int uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-        return static_cast<unsigned int>( (uix * ny + uiy) * nz + uiz + offset );
+        return static_cast<unsigned int>( (uiz * ny + uiy) * nx + uix + offset );
     }
 
 private:
