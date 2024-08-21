@@ -1352,6 +1352,10 @@ public:
     //! Write the contents of the table in ASCII to the ostream.
     static void dumpTable (std::ostream& os, bool prettyPrint = false);
 
+    //! Write the table in a pretty way to the ostream. If there are
+    //! duplicates, only the last one is printed.
+    static void prettyPrintTable (std::ostream& os);
+
     //! Add keys and values from a file to the end of the PP table.
     static void addfile (std::string const& filename);
 
