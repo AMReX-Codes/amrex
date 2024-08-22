@@ -345,7 +345,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
         std::vector< std::pair<int,Box> > isects;
 
-        const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
+        const std::vector<IntVect>& pshifts = m_period.shiftIntVect(ng_dst);
 
         auto& send_tags = *m_SndTags;
 
@@ -672,7 +672,7 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
     const IntVect ng_ng =nghost - 1;
     std::vector< std::pair<int,Box> > isects;
 
-    const std::vector<IntVect>& pshifts = period.shiftIntVect();
+    const std::vector<IntVect>& pshifts = period.shiftIntVect(nghost);
 
     auto& send_tags = *cmd.m_SndTags;
 
@@ -901,7 +901,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
     const IndexType& typ = ba.ixType();
     std::vector< std::pair<int,Box> > isects;
 
-    const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
+    const std::vector<IntVect>& pshifts = m_period.shiftIntVect(ng);
 
     auto& send_tags = *m_SndTags;
 
@@ -1053,7 +1053,7 @@ void FabArrayBase::FB::tag_one_box (int krcv, BoxArray const& ba, DistributionMa
 
     std::vector<std::pair<int,Box> > isects2;
     std::vector<std::tuple<int,Box,IntVect> > isects3;
-    auto const& pshifts = m_period.shiftIntVect();
+    auto const& pshifts = m_period.shiftIntVect(m_ngrow);
     for (auto const& shft: pshifts) {
         ba.intersections(gbx+shft, isects2);
         for (auto const& is2 : isects2) {
@@ -1144,7 +1144,7 @@ FabArrayBase::FB::define_os (const FabArrayBase& fa)
 
 #ifdef AMREX_USE_MPI
     if (ParallelDescriptor::NProcs() > 1) {
-        const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
+        const std::vector<IntVect>& pshifts = m_period.shiftIntVect(m_ngrow);
         std::vector< std::pair<int,Box> > isects;
 
         std::set<int> my_receiver;
