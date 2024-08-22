@@ -97,6 +97,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Print.H
        AMReX_IntConv.H
        AMReX_IntConv.cpp
+       AMReX_IOFormat.H
        # Index space -------------------------------------------------------------
        AMReX_Box.H
        AMReX_Box.cpp
