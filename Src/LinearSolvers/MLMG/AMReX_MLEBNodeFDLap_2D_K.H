@@ -95,6 +95,73 @@ void mlebndfdlap_adotx_eb (int i, int j, int k, Array4<Real> const& y,
                               bx, by);
 }
 
+template <typename F>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_adotx_eb_sc_doit (int i, int j, int k, Array4<Real> const& y,
+                                   Array4<Real const> const& x, Array4<Real const> const& levset,
+                                   Array4<int const> const& dmsk,
+                                   F const& xeb, Real bx, Real by) noexcept
+{
+    if (dmsk(i,j,k)) {
+        y(i,j,k) = Real(0.0);
+    } else {
+        Real tmp, out;
+
+        if (levset(i+1,j,k) < Real(0.0)) {
+            tmp = x(i+1,j,k) - x(i,j,k);
+        } else {
+            tmp = (xeb(i+1,j,k) - x(i,j,k));
+        }
+
+        if (levset(i-1,j,k) < Real(0.0)) {
+            tmp += x(i-1,j,k) - x(i,j,k);
+        } else {
+            tmp += (xeb(i-1,j,k) - x(i,j,k));
+        }
+
+        out = tmp * bx;
+
+        if (levset(i,j+1,k) < Real(0.0)) {
+            tmp = x(i,j+1,k) - x(i,j,k);
+        } else {
+            tmp = (xeb(i,j+1,k) - x(i,j,k));
+        }
+
+        if (levset(i,j-1,k) < Real(0.0)) {
+            tmp += x(i,j-1,k) - x(i,j,k);
+        } else {
+            tmp += (xeb(i,j-1,k) - x(i,j,k));
+        }
+
+        out += tmp * by;
+
+        y(i,j,k) = out;
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_adotx_eb_sc (int i, int j, int k, Array4<Real> const& y,
+                              Array4<Real const> const& x, Array4<Real const> const& levset,
+                              Array4<int const> const& dmsk,
+                              Real xeb, Real bx, Real by) noexcept
+{
+    mlebndfdlap_adotx_eb_sc_doit(i, j, k, y, x, levset, dmsk,
+                                 [=] (int, int, int) -> Real { return xeb; },
+                                 bx, by);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_adotx_eb_sc (int i, int j, int k, Array4<Real> const& y,
+                              Array4<Real const> const& x, Array4<Real const> const& levset,
+                              Array4<int const> const& dmsk,
+                              Array4<Real const> const& xeb, Real bx, Real by) noexcept
+{
+    mlebndfdlap_adotx_eb_sc_doit(i, j, k, y, x, levset, dmsk,
+                                 [=] (int i1, int i2, int i3) -> Real {
+                                     return xeb(i1,i2,i3); },
+                                 bx, by);
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx (int i, int j, int k, Array4<Real> const& y,
                         Array4<Real const> const& x, Array4<int const> const& dmsk,
@@ -168,6 +235,51 @@ void mlebndfdlap_gsrb_eb (int i, int j, int k, Array4<Real> const& x,
             Real Ax = rho + gamma*x(i,j,k);
             constexpr Real omega = Real(1.25);
             x(i,j,k) += (rhs(i,j,k) - Ax*scale) * (omega / (gamma*scale));
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_gsrb_eb_sc (int i, int j, int k, Array4<Real> const& x,
+                             Array4<Real const> const& rhs, Array4<Real const> const& levset,
+                             Array4<int const> const& dmsk,
+                             Real bx, Real by, int redblack) noexcept
+{
+    if ((i+j+k+redblack)%2 == 0) {
+        if (dmsk(i,j,k)) {
+            x(i,j,k) = Real(0.);
+        } else {
+            Real tmp1;
+
+            if (levset(i+1,j,k) < Real(0.0)) { // regular
+                tmp1 = x(i+1,j,k);
+            } else {
+                tmp1 = Real(0.0);
+            }
+
+            if (levset(i-1,j,k) < Real(0.0)) {
+                tmp1 += x(i-1,j,k);
+            }
+
+            Real gamma = Real(-2.0) * bx;
+            Real rho   = tmp1 * bx;
+
+            if (levset(i,j+1,k) < Real(0.0)) {
+                tmp1 = x(i,j+1,k);
+            } else {
+                tmp1 = Real(0.0);
+            }
+
+            if (levset(i,j-1,k) < Real(0.0)) {
+                tmp1 += x(i,j-1,k);
+            }
+
+            gamma += Real(-2.0) * by;
+            rho   += tmp1 * by;
+
+            Real Ax = rho + gamma*x(i,j,k);
+            constexpr Real omega = Real(1.25);
+            x(i,j,k) += (rhs(i,j,k) - Ax) * (omega / (gamma));
         }
     }
 }
@@ -288,6 +400,88 @@ void mlebndfdlap_adotx_rz_eb (int i, int j, int k, Array4<Real> const& y,
                                  sigr, dr, dz, rlo, alpha);
 }
 
+template <typename F>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_adotx_rz_eb_sc_doit (int i, int j, int k, Array4<Real> const& y,
+                                      Array4<Real const> const& x, Array4<Real const> const& levset,
+                                      Array4<int const> const& dmsk,
+                                      F const& xeb, Real sigr, Real dr, Real dz, Real rlo, Real alpha) noexcept
+{
+    Real const r = rlo + Real(i) * dr;
+    if (dmsk(i,j,k) || (r == Real(0.0) && alpha != Real(0.0))) {
+        y(i,j,k) = Real(0.0);
+    } else {
+        Real tmp, out;
+
+        if (r == Real(0.0)) {
+            if (levset(i+1,j,k) < Real(0.0)) { // regular
+                out = Real(4.0) * sigr * (x(i+1,j,k)-x(i,j,k)) / (dr*dr);
+            } else {
+                out = Real(4.0) * sigr * (xeb(i+1,j,k)-x(i,j,k)) / (dr*dr);
+            }
+        } else {
+            if (levset(i+1,j,k) < Real(0.0)) { // regular
+                tmp = (x(i+1,j,k) - x(i,j,k)) * (r + Real(0.5) * dr);
+            } else {
+                tmp = (xeb(i+1,j,k) - x(i,j,k)) * (r + Real(0.5) * dr);
+            }
+
+            if (levset(i-1,j,k) < Real(0.0)) {
+                tmp += (x(i-1,j,k) - x(i,j,k)) * (r - Real(0.5) * dr);
+            } else {
+                tmp += (xeb(i-1,j,k) - x(i,j,k)) * (r - Real(0.5) * dr);
+            }
+
+            out = tmp * sigr / (r * dr * dr);
+        }
+
+        if (levset(i,j+1,k) < Real(0.0)) {
+            tmp = x(i,j+1,k) - x(i,j,k);
+        } else {
+            tmp = (xeb(i,j+1,k) - x(i,j,k));
+        }
+
+
+        if (levset(i,j-1,k) < Real(0.0)) {
+            tmp += x(i,j-1,k) - x(i,j,k);
+        } else {
+            tmp += (xeb(i,j-1,k) - x(i,j,k));
+        }
+
+        out += tmp / (dz * dz);
+
+        if (r != Real(0.0)) {
+            out -= alpha/(r*r) * x(i,j,k);
+        }
+
+        y(i,j,k) = out;
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_adotx_rz_eb_sc (int i, int j, int k, Array4<Real> const& y,
+                                 Array4<Real const> const& x, Array4<Real const> const& levset,
+                                 Array4<int const> const& dmsk,
+                                 Real xeb, Real sigr, Real dr, Real dz, Real rlo, Real alpha) noexcept
+{
+    mlebndfdlap_adotx_rz_eb_sc_doit(i, j, k, y, x, levset, dmsk,
+                                    [=] (int, int, int) -> Real { return xeb; },
+                                    sigr, dr, dz, rlo, alpha);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_adotx_rz_eb_sc (int i, int j, int k, Array4<Real> const& y,
+                                 Array4<Real const> const& x, Array4<Real const> const& levset,
+                                 Array4<int const> const& dmsk,
+                                 Array4<Real const> const& xeb, Real sigr, Real dr, Real dz, Real rlo,
+                                 Real alpha) noexcept
+{
+    mlebndfdlap_adotx_rz_eb_sc_doit(i, j, k, y, x, levset, dmsk,
+                                    [=] (int i1, int i2, int i3) -> Real {
+                                        return xeb(i1,i2,i3); },
+                                    sigr, dr, dz, rlo, alpha);
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_adotx_rz (int i, int j, int k, Array4<Real> const& y,
                            Array4<Real const> const& x, Array4<int const> const& dmsk,
@@ -389,6 +583,78 @@ void mlebndfdlap_gsrb_rz_eb (int i, int j, int k, Array4<Real> const& x,
 
             constexpr Real omega = Real(1.25);
             x(i,j,k) += (rhs(i,j,k) - Ax*scale) * (omega / (gamma*scale));
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_gsrb_rz_eb_sc (int i, int j, int k, Array4<Real> const& x,
+                                Array4<Real const> const& rhs, Array4<Real const> const& levset,
+                                Array4<int const> const& dmsk,
+                                Real sigr, Real dr, Real dz, Real rlo, int redblack, Real alpha) noexcept
+{
+    if ((i+j+k+redblack)%2 == 0) {
+        Real const r = rlo + Real(i) * dr;
+        if (dmsk(i,j,k) || (r == Real(0.0) && alpha != Real(0.0))) {
+            x(i,j,k) = Real(0.);
+        } else {
+            Real tmp, tmp0, Ax, gamma;
+
+            if (r == Real(0.0)) {
+                if (levset(i+1,j,k) < Real(0.0)) { // regular
+                    Ax = (Real(4.0) * sigr / (dr*dr)) * (x(i+1,j,k)-x(i,j,k));
+                    gamma = -(Real(4.0) * sigr / (dr*dr));
+                } else {
+                    gamma = -(Real(4.0) * sigr / (dr*dr));
+                    Ax = gamma * x(i,j,k);
+                }
+            } else {
+                if (levset(i+1,j,k) < Real(0.0)) { // regular
+                    tmp = (x(i+1,j,k) - x(i,j,k)) * (r + Real(0.5) * dr);
+                    tmp0 = -(r + Real(0.5) * dr);
+                } else {
+                    tmp0 = Real(-1.0) * (r + Real(0.5) * dr);
+                    tmp = tmp0 * x(i,j,k);
+                }
+
+                if (levset(i-1,j,k) < Real(0.0)) {
+                    tmp += (x(i-1,j,k) - x(i,j,k)) * (r - Real(0.5) * dr);
+                    tmp0 += -(r - Real(0.5) * dr);
+                } else {
+                    tmp += -x(i,j,k) * (r - Real(0.5) * dr);
+                    tmp0 += Real(-1.0) * (r - Real(0.5) * dr);
+                }
+
+                Ax = tmp * sigr / (r * dr * dr);
+                gamma = tmp0 * sigr / (r * dr * dr);
+            }
+
+            if (levset(i,j+1,k) < Real(0.0)) {
+                tmp = x(i,j+1,k) - x(i,j,k);
+                tmp0 = Real(-1.0);
+            } else {
+                tmp0 = Real(-1.0);
+                tmp = tmp0 * x(i,j,k);
+            }
+
+            if (levset(i,j-1,k) < Real(0.0)) {
+                tmp += x(i,j-1,k) - x(i,j,k);
+                tmp0 += Real(-1.0);
+            } else {
+                tmp += -x(i,j,k);
+                tmp0 += Real(-1.0);
+            }
+
+            Ax += tmp / (dz * dz);
+            gamma += tmp0 / (dz * dz);
+
+            if (r != Real(0.0)) {
+                Ax -= alpha/(r*r) * x(i,j,k);
+                gamma -= alpha/(r*r);
+            }
+
+            constexpr Real omega = Real(1.25);
+            x(i,j,k) += (rhs(i,j,k) - Ax) * (omega / (gamma));
         }
     }
 }

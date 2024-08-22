@@ -150,6 +150,135 @@ void mlebndfdlap_grad_z (Box const& b, Array4<Real> const& pz, Array4<Real const
 
 #endif
 
+template <typename F>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_grad_x_doit (int i, int j, int k, Array4<Real> const& px,
+                              Array4<Real const> const& p, Array4<int const> const& dmsk,
+                              F const& phieb, Real dxi)
+{
+    if (dmsk(i,j,k) >= 0 && dmsk(i+1,j,k) >= 0) {
+        px(i,j,k) = dxi * (p(i+1,j,k) - p(i,j,k));
+    } else if (dmsk(i,j,k) < 0 && dmsk(i+1,j,k) < 0) {
+        px(i,j,k) = Real(0.0);
+    } else if (dmsk(i,j,k) < 0) {
+        px(i,j,k) = dxi * (p(i+1,j,k) - phieb(i,j,k));
+    } else { //
+        px(i,j,k) = dxi * (phieb(i+1,j,k) - p(i,j,k));
+    }
+}
+
+template <typename F>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_grad_y_doit (int i, int j, int k, Array4<Real> const& py,
+                              Array4<Real const> const& p, Array4<int const> const& dmsk,
+                              F const& phieb, Real dyi)
+{
+    if (dmsk(i,j,k) >= 0 && dmsk(i,j+1,k) >= 0) {
+        py(i,j,k) = dyi * (p(i,j+1,k) - p(i,j,k));
+    } else if (dmsk(i,j,k) < 0 && dmsk(i,j+1,k) < 0) {
+        py(i,j,k) = Real(0.0);
+    } else if (dmsk(i,j,k) < 0) {
+        py(i,j,k) = dyi * (p(i,j+1,k) - phieb(i,j,k));
+    } else { //
+        py(i,j,k) = dyi * (phieb(i,j+1,k) - p(i,j,k));
+    }
+}
+
+#if (AMREX_SPACEDIM > 2)
+template <typename F>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_grad_z_doit (int i, int j, int k, Array4<Real> const& pz,
+                              Array4<Real const> const& p, Array4<int const> const& dmsk,
+                              F const& phieb, Real dzi)
+{
+    if (dmsk(i,j,k) >= 0 && dmsk(i,j,k+1) >= 0) {
+        pz(i,j,k) = dzi * (p(i,j,k+1) - p(i,j,k));
+    } else if (dmsk(i,j,k) < 0 && dmsk(i,j,k+1) < 0) {
+        pz(i,j,k) = Real(0.0);
+    } else if (dmsk(i,j,k) < 0) {
+        pz(i,j,k) = dzi * (p(i,j,k+1) - phieb(i,j,k));
+    } else { //
+        pz(i,j,k) = dzi * (phieb(i,j,k+1) - p(i,j,k));
+    }
+}
+#endif
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_grad_x (Box const& b, Array4<Real> const& px, Array4<Real const> const& p,
+                         Array4<int const> const& dmsk, Real phieb, Real dxi)
+{
+    AMREX_LOOP_3D(b, i, j, k,
+    {
+        mlebndfdlap_grad_x_doit(i,j,k, px, p, dmsk,
+                                [=] (int, int, int) -> Real { return phieb; },
+                                dxi);
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_grad_x (Box const& b, Array4<Real> const& px, Array4<Real const> const& p,
+                         Array4<int const> const& dmsk, Array4<Real const> const& phieb, Real dxi)
+{
+    AMREX_LOOP_3D(b, i, j, k,
+    {
+        mlebndfdlap_grad_x_doit(i,j,k, px, p, dmsk,
+                                [=] (int i1, int i2, int i3) -> Real { return phieb(i1,i2,i3); },
+                                dxi);
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_grad_y (Box const& b, Array4<Real> const& py, Array4<Real const> const& p,
+                         Array4<int const> const& dmsk, Real phieb, Real dyi)
+{
+    AMREX_LOOP_3D(b, i, j, k,
+    {
+        mlebndfdlap_grad_y_doit(i,j,k, py, p, dmsk,
+                                [=] (int, int, int) -> Real { return phieb; },
+                                dyi);
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_grad_y (Box const& b, Array4<Real> const& py, Array4<Real const> const& p,
+                         Array4<int const> const& dmsk, Array4<Real const> const& phieb, Real dyi)
+{
+    AMREX_LOOP_3D(b, i, j, k,
+    {
+        mlebndfdlap_grad_y_doit(i,j,k, py, p, dmsk,
+                                [=] (int i1, int i2, int i3) -> Real { return phieb(i1,i2,i3); },
+                                dyi);
+    });
+}
+
+#if (AMREX_SPACEDIM > 2)
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_grad_z (Box const& b, Array4<Real> const& pz, Array4<Real const> const& p,
+                         Array4<int const> const& dmsk, Real phieb, Real dzi)
+{
+    AMREX_LOOP_3D(b, i, j, k,
+    {
+        mlebndfdlap_grad_z_doit(i,j,k, pz, p, dmsk,
+                                [=] (int, int, int) -> Real { return phieb; },
+                                dzi);
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_grad_z (Box const& b, Array4<Real> const& pz, Array4<Real const> const& p,
+                         Array4<int const> const& dmsk, Array4<Real const> const& phieb, Real dzi)
+{
+    AMREX_LOOP_3D(b, i, j, k,
+    {
+        mlebndfdlap_grad_z_doit(i,j,k, pz, p, dmsk,
+                                [=] (int i1, int i2, int i3) -> Real { return phieb(i1,i2,i3); },
+                                dzi);
+    });
+}
+
+#endif
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_x (Box const& b, Array4<Real> const& px, Array4<Real const> const& p,
                          Real dxi)
