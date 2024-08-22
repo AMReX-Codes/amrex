@@ -5,7 +5,7 @@
 namespace amrex {
 
 std::vector<IntVect>
-Periodicity::shiftIntVect () const
+Periodicity::shiftIntVect (IntVect const& nghost) const
 {
     std::vector<IntVect> r;
 
@@ -15,6 +15,9 @@ Periodicity::shiftIntVect () const
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         if (isPeriodic(i)) {
             per[i] = jmp[i] = period[i];
+            while (per[i] < nghost[i]) {
+                per[i] += period[i];
+            }
         }
     }
 
