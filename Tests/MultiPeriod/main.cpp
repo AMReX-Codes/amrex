@@ -13,8 +13,8 @@ int main (int argc, char* argv[])
         // Domain size: 2 x 128 x 4
         Box box(IntVect(0), IntVect(AMREX_D_DECL(1, 127, 3)));
         Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
-        Geometry geom(box, RealBox({AMREX_D_DECL(Real(0),Real(0),Real(0))},
-                                   {AMREX_D_DECL(Real(1),Real(1),Real(1))}),
+        Geometry geom(box, RealBox(AMREX_D_DECL(Real(0),Real(0),Real(0)),
+                                   AMREX_D_DECL(Real(1),Real(1),Real(1))),
                       CoordSys::cartesian, is_periodic);
         BoxArray ba(box);
         ba.maxSize(32);
