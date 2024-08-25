@@ -26,65 +26,42 @@ struct CompileTimeOptions {
 
 namespace detail
 {
-    template <int MT, typename T, class F, typename... As>
-    std::enable_if_t<std::is_integral_v<T> || std::is_same_v<T,Box>, bool>
-    ParallelFor_helper2 (T const& N, F const& f, TypeList<As...>,
-                         std::array<int,sizeof...(As)> const& runtime_options)
+    template<class F, int... ctr>
+    struct CTOWrapper {
+        F f;
+
+        template<class... Args>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        auto operator() (Args... args) const noexcept
+            -> decltype(f(args..., std::integral_constant<int, ctr>{}...)) {
+            f(args..., std::integral_constant<int, ctr>{}...);
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static constexpr
+        std::array<int, sizeof...(ctr)> GetOptions () noexcept {
+            return {ctr...};
+        }
+    };
+
+    template <class L, class F, typename... As>
+    bool
+    AnyCTO_helper2 (L&& l, F&& f, TypeList<As...>,
+                    std::array<int,sizeof...(As)> const& runtime_options)
     {
         if (runtime_options == std::array<int,sizeof...(As)>{As::value...}) {
-            if constexpr (std::is_integral_v<T>) {
-                ParallelFor<MT>(N, [f] AMREX_GPU_DEVICE (T i) noexcept
-                {
-                    f(i, As{}...);
-                });
-            } else {
-                ParallelFor<MT>(N, [f] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    f(i, j, k, As{}...);
-                });
-            }
+            l(CTOWrapper<F, As::value...>{f});
             return true;
         } else {
             return false;
         }
     }
 
-    template <int MT, typename T, class F, typename... As>
-    std::enable_if_t<std::is_integral_v<T>, bool>
-    ParallelFor_helper2 (Box const& box, T ncomp, F const& f, TypeList<As...>,
-                         std::array<int,sizeof...(As)> const& runtime_options)
+    template <class L, class F, typename... PPs, typename RO>
+    void
+    AnyCTO_helper1 (L&& l, F&& f, TypeList<PPs...>, RO const& runtime_options)
     {
-        if (runtime_options == std::array<int,sizeof...(As)>{As::value...}) {
-            ParallelFor<MT>(box, ncomp, [f] AMREX_GPU_DEVICE (int i, int j, int k, T n) noexcept
-            {
-                f(i, j, k, n, As{}...);
-            });
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    template <int MT, typename T, class F, typename... PPs, typename RO>
-    std::enable_if_t<std::is_integral_v<T> || std::is_same_v<T,Box>>
-    ParallelFor_helper1 (T const& N, F const& f, TypeList<PPs...>,
-                         RO const& runtime_options)
-    {
-        bool found_option = (false || ... ||
-                             ParallelFor_helper2<MT>(N, f,
-                                                     PPs{}, runtime_options));
-        amrex::ignore_unused(found_option);
-        AMREX_ASSERT(found_option);
-    }
-
-    template <int MT, typename T, class F, typename... PPs, typename RO>
-    std::enable_if_t<std::is_integral_v<T>>
-    ParallelFor_helper1 (Box const& box, T ncomp, F const& f, TypeList<PPs...>,
-                         RO const& runtime_options)
-    {
-        bool found_option = (false || ... ||
-                             ParallelFor_helper2<MT>(box, ncomp, f,
-                                                     PPs{}, runtime_options));
+        bool found_option = (false || ... || AnyCTO_helper2(l, f, PPs{}, runtime_options));
         amrex::ignore_unused(found_option);
         AMREX_ASSERT(found_option);
     }
@@ -92,51 +69,60 @@ namespace detail
 
 #endif
 
+template <class L, class F, typename... CTOs>
+void AnyCTO (TypeList<CTOs...> /*list_of_compile_time_options*/,
+             std::array<int,sizeof...(CTOs)> const& runtime_options,
+             L&& l, F&& f)
+{
+#if (__cplusplus >= 201703L)
+    detail::AnyCTO_helper1(std::forward<L>(l), std::forward<F>(f),
+                           CartesianProduct(typename CTOs::list_type{}...),
+                           runtime_options);
+#else
+    amrex::ignore_unused(runtime_options, l, f);
+    static_assert(std::is_integral<F>::value, "This requires C++17");
+#endif
+}
+
 template <int MT, typename T, class F, typename... CTOs>
 std::enable_if_t<std::is_integral_v<T>>
-ParallelFor (TypeList<CTOs...> /*list_of_compile_time_options*/,
+ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& runtime_options,
              T N, F&& f)
 {
-#if (__cplusplus >= 201703L)
-    detail::ParallelFor_helper1<MT>(N, std::forward<F>(f),
-                                    CartesianProduct(typename CTOs::list_type{}...),
-                                    runtime_options);
-#else
-    amrex::ignore_unused(N, f, runtime_options);
-    static_assert(std::is_integral<F>::value, "This requires C++17");
-#endif
+    AnyCTO(ctos, runtime_options,
+        [&](auto cto_func){
+            ParallelFor<MT>(N, cto_func);
+        },
+        f
+    );
 }
 
-template <int MT, class F, typename... CTOs>
-void ParallelFor (TypeList<CTOs...> /*list_of_compile_time_options*/,
+template <int MT, class F, int dim, typename... CTOs>
+void ParallelFor (TypeList<CTOs...> ctos,
                   std::array<int,sizeof...(CTOs)> const& runtime_options,
-                  Box const& box, F&& f)
+                  BoxND<dim> const& box, F&& f)
 {
-#if (__cplusplus >= 201703L)
-    detail::ParallelFor_helper1<MT>(box, std::forward<F>(f),
-                                    CartesianProduct(typename CTOs::list_type{}...),
-                                    runtime_options);
-#else
-    amrex::ignore_unused(box, f, runtime_options);
-    static_assert(std::is_integral<F>::value, "This requires C++17");
-#endif
+    AnyCTO(ctos, runtime_options,
+        [&](auto cto_func){
+            ParallelFor<MT>(box, cto_func);
+        },
+        f
+    );
 }
 
-template <int MT, typename T, class F, typename... CTOs>
+template <int MT, typename T, class F, int dim, typename... CTOs>
 std::enable_if_t<std::is_integral_v<T>>
-ParallelFor (TypeList<CTOs...> /*list_of_compile_time_options*/,
+ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& runtime_options,
-             Box const& box, T ncomp, F&& f)
+             BoxND<dim> const& box, T ncomp, F&& f)
 {
-#if (__cplusplus >= 201703L)
-    detail::ParallelFor_helper1<MT>(box, ncomp, std::forward<F>(f),
-                                    CartesianProduct(typename CTOs::list_type{}...),
-                                    runtime_options);
-#else
-    amrex::ignore_unused(box, ncomp, f, runtime_options);
-    static_assert(std::is_integral<F>::value, "This requires C++17");
-#endif
+    AnyCTO(ctos, runtime_options,
+        [&](auto cto_func){
+            ParallelFor<MT>(box, ncomp, cto_func);
+        },
+        f
+    );
 }
 
 /**
@@ -237,10 +223,10 @@ ParallelFor (TypeList<CTOs...> ctos,
  * \param box      a Box specifying the 3D for loop's range.
  * \param f        a callable object taking three integers and working on the given cell.
  */
-template <class F, typename... CTOs>
+template <class F, int dim, typename... CTOs>
 void ParallelFor (TypeList<CTOs...> ctos,
                   std::array<int,sizeof...(CTOs)> const& option,
-                  Box const& box, F&& f)
+                  BoxND<dim> const& box, F&& f)
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(ctos, option, box, std::forward<F>(f));
 }
@@ -291,11 +277,11 @@ void ParallelFor (TypeList<CTOs...> ctos,
  * \param ncomp  an integer specifying the range for iteration over components.
  * \param f      a callable object taking three integers and working on the given cell.
  */
-template <typename T, class F, typename... CTOs>
+template <typename T, class F, int dim, typename... CTOs>
 std::enable_if_t<std::is_integral_v<T>>
 ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& option,
-             Box const& box, T ncomp, F&& f)
+             BoxND<dim> const& box, T ncomp, F&& f)
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(ctos, option, box, ncomp, std::forward<F>(f));
 }
