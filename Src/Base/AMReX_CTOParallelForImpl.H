@@ -46,7 +46,7 @@ namespace detail
 
     template <class L, class F, typename... As>
     bool
-    AnyCTO_helper2 (L&& l, F&& f, TypeList<As...>,
+    AnyCTO_helper2 (const L& l, const F& f, TypeList<As...>,
                     std::array<int,sizeof...(As)> const& runtime_options)
     {
         if (runtime_options == std::array<int,sizeof...(As)>{As::value...}) {
@@ -59,7 +59,7 @@ namespace detail
 
     template <class L, class F, typename... PPs, typename RO>
     void
-    AnyCTO_helper1 (L&& l, F&& f, TypeList<PPs...>, RO const& runtime_options)
+    AnyCTO_helper1 (const L& l, const F& f, TypeList<PPs...>, RO const& runtime_options)
     {
         bool found_option = (false || ... || AnyCTO_helper2(l, f, PPs{}, runtime_options));
         amrex::ignore_unused(found_option);
