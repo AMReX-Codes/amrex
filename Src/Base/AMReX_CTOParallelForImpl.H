@@ -87,7 +87,7 @@ namespace detail
     AnyCTO(TypeList<CompileTimeOptions<A0,A1,A2,A3>,
                     CompileTimeOptions<B0,B1>>{},
         {A_runtime_option, B_runtime_option},
-        [&](cto_func){
+        [&](auto cto_func){
             ParallelForRNG(N, cto_func);
         },
         [=] AMREX_GPU_DEVICE (int i, const RandomEngine& engine,
@@ -115,7 +115,7 @@ namespace detail
     AnyCTO(TypeList<CompileTimeOptions<A0,A1,A2,A3>,
                     CompileTimeOptions<B0,B1>>{},
         {A_runtime_option, B_runtime_option},
-        [&](cto_func){
+        [&](auto cto_func){
             launch<nthreads_per_block>(nblocks, Gpu::gpuStream(), cto_func);
         },
         [=] AMREX_GPU_DEVICE (auto A_control, auto B_control){
