@@ -62,15 +62,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Get Latest Release Tag
-      run: |
-        WARPX_TAG=$(wget https://github.com/ECP-WarpX/WarpX/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
-        echo "WARPX_TAG=$WARPX_TAG" >> $GITHUB_ENV
     - name: Download WarpX
       uses: actions/checkout@v4
       with:
         repository: 'ECP-WarpX/WarpX'
-        ref: ${{env.WARPX_TAG}}
+        ref: development
         path: 'WarpX'
     - name: Dependencies
       run: |
