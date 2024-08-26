@@ -195,7 +195,7 @@ ParallelFor (TypeList<CTOs...> ctos,
         [&](auto cto_func){
             ParallelFor<MT>(N, cto_func);
         },
-        f
+        std::forward<F>(f)
     );
 }
 
@@ -208,7 +208,7 @@ void ParallelFor (TypeList<CTOs...> ctos,
         [&](auto cto_func){
             ParallelFor<MT>(box, cto_func);
         },
-        f
+        std::forward<F>(f)
     );
 }
 
@@ -222,7 +222,7 @@ ParallelFor (TypeList<CTOs...> ctos,
         [&](auto cto_func){
             ParallelFor<MT>(box, ncomp, cto_func);
         },
-        f
+        std::forward<F>(f)
     );
 }
 
