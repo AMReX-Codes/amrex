@@ -11,8 +11,8 @@ amrex::BArena::alloc (std::size_t sz_)
 void
 amrex::BArena::free (void* pt)
 {
-    std::free(pt);
     m_profiler.free(pt);
+    std::free(pt);
 }
 
 bool

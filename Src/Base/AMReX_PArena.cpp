@@ -94,11 +94,11 @@ PArena::free (void* p)
 
 #if defined (AMREX_GPU_STREAM_ALLOC_SUPPORT)
     if (Gpu::Device::memoryPoolsSupported()) {
+        m_profiler.free(p);
         AMREX_HIP_OR_CUDA(
             AMREX_HIP_SAFE_CALL(hipFreeAsync(p, Gpu::gpuStream()));,
             AMREX_CUDA_SAFE_CALL(cudaFreeAsync(p, Gpu::gpuStream()));
         )
-        m_profiler.free(p);
     } else
 #endif
     {
