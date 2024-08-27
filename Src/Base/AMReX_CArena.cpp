@@ -5,14 +5,6 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_ParallelReduce.H>
 
-#ifdef AMREX_TINY_PROFILING
-#include <AMReX_TinyProfiler.H>
-#else
-namespace amrex {
-    struct MemStat {};
-}
-#endif
-
 #include <utility>
 #include <cstring>
 #include <iostream>
@@ -32,12 +24,6 @@ CArena::~CArena ()
     for (auto const& a : m_alloc) {
         deallocate_system(a.first, a.second);
     }
-
-#ifdef AMREX_TINY_PROFILING
-    if (m_do_profiling) {
-        TinyProfiler::DeregisterArena(m_profiling_stats);
-    }
-#endif
 }
 
 void*
@@ -53,8 +39,8 @@ CArena::alloc_protected (std::size_t nbytes)
 {
     MemStat* stat = nullptr;
 #ifdef AMREX_TINY_PROFILING
-    if (m_do_profiling) {
-        stat = TinyProfiler::memory_alloc(nbytes, m_profiling_stats);
+    if (m_profiler.m_do_profiling) {
+        stat = TinyProfiler::memory_alloc(nbytes, m_profiler.m_profiling_stats);
     }
 #endif
 
@@ -173,10 +159,10 @@ CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
                     free_node.size(left_size);
                 }
 #ifdef AMREX_TINY_PROFILING
-                if (m_do_profiling) {
+                if (m_profiler.m_do_profiling) {
                     TinyProfiler::memory_free(busy_it->size(), busy_it->mem_stat());
                     auto* stat = TinyProfiler::memory_alloc(new_size,
-                                                            m_profiling_stats);
+                                                            m_profiler.m_profiling_stats);
                     const_cast<Node&>(*busy_it).mem_stat(stat);
                 }
 #endif
@@ -186,10 +172,10 @@ CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
             } else if (total_size >= szmin) {
                 m_freelist.erase(next_it);
 #ifdef AMREX_TINY_PROFILING
-                if (m_do_profiling) {
+                if (m_profiler.m_do_profiling) {
                     TinyProfiler::memory_free(busy_it->size(), busy_it->mem_stat());
                     auto* stat = TinyProfiler::memory_alloc(total_size,
-                                                            m_profiling_stats);
+                                                            m_profiler.m_profiling_stats);
                     const_cast<Node&>(*busy_it).mem_stat(stat);
                 }
 #endif
@@ -255,9 +241,9 @@ CArena::shrink_in_place (void* pt, std::size_t new_size)
         m_actually_used -= leftover_size;
 
 #ifdef AMREX_TINY_PROFILING
-        if (m_do_profiling) {
+        if (m_profiler.m_do_profiling) {
             TinyProfiler::memory_free(old_size, busy_it->mem_stat());
-            auto* stat = TinyProfiler::memory_alloc(new_size, m_profiling_stats);
+            auto* stat = TinyProfiler::memory_alloc(new_size, m_profiler.m_profiling_stats);
             const_cast<Node&>(*busy_it).mem_stat(stat);
         }
 #endif
@@ -429,15 +415,6 @@ CArena::hasFreeDeviceMemory (std::size_t sz)
         amrex::ignore_unused(sz);
         return true;
     }
-}
-
-void
-CArena::registerForProfiling ([[maybe_unused]] const std::string& memory_name)
-{
-#ifdef AMREX_TINY_PROFILING
-    m_do_profiling = true;
-    TinyProfiler::RegisterArena(memory_name, m_profiling_stats);
-#endif
 }
 
 std::size_t

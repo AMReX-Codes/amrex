@@ -62,6 +62,7 @@ PArena::alloc (std::size_t nbytes)
             AMREX_HIP_SAFE_CALL(hipMallocAsync(&p, nbytes, m_pool, Gpu::gpuStream()));,
             AMREX_CUDA_SAFE_CALL(cudaMallocAsync(&p, nbytes, m_pool, Gpu::gpuStream()));
         )
+        m_profiler.alloc(p, nbytes);
         return p;
     } else
 #endif
@@ -97,6 +98,7 @@ PArena::free (void* p)
             AMREX_HIP_SAFE_CALL(hipFreeAsync(p, Gpu::gpuStream()));,
             AMREX_CUDA_SAFE_CALL(cudaFreeAsync(p, Gpu::gpuStream()));
         )
+        m_profiler.free(p);
     } else
 #endif
     {
