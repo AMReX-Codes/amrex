@@ -223,10 +223,15 @@ protected:
         std::unordered_map<void*, std::pair<MemStat*, std::size_t>> m_currently_allocated;
 
         ~ArenaProfiler ();
+        ArenaProfiler () noexcept = default;
+        ArenaProfiler (const ArenaProfiler& rhs) = delete;
+        ArenaProfiler (ArenaProfiler&& rhs) = delete;
+        ArenaProfiler& operator= (const ArenaProfiler& rhs) = delete;
+        ArenaProfiler& operator= (ArenaProfiler&& rhs) = delete;
 
-        void alloc (void* ptr, std::size_t nbytes);
+        void profile_alloc (void* ptr, std::size_t nbytes);
 
-        void free (void* ptr);
+        void profile_free (void* ptr);
 
     } m_profiler;
 };

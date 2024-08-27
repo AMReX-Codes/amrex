@@ -4,14 +4,14 @@ void*
 amrex::BArena::alloc (std::size_t sz_)
 {
     void* pt = std::malloc(sz_);
-    m_profiler.alloc(pt, sz_);
+    m_profiler.profile_alloc(pt, sz_);
     return pt;
 }
 
 void
 amrex::BArena::free (void* pt)
 {
-    m_profiler.free(pt);
+    m_profiler.profile_free(pt);
     std::free(pt);
 }
 

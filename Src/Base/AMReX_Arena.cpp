@@ -668,7 +668,8 @@ Arena::ArenaProfiler::~ArenaProfiler () {
 #endif
 }
 
-void Arena::ArenaProfiler::alloc ([[maybe_unused]] void* ptr, [[maybe_unused]] std::size_t nbytes) {
+void Arena::ArenaProfiler::profile_alloc ([[maybe_unused]] void* ptr,
+                                          [[maybe_unused]] std::size_t nbytes) {
 #ifdef AMREX_TINY_PROFILING
     if (m_do_profiling) {
         std::lock_guard<std::mutex> lock(m_arena_profiler_mutex);
@@ -680,7 +681,7 @@ void Arena::ArenaProfiler::alloc ([[maybe_unused]] void* ptr, [[maybe_unused]] s
 #endif
 }
 
-void Arena::ArenaProfiler::free ([[maybe_unused]] void* ptr) {
+void Arena::ArenaProfiler::profile_free ([[maybe_unused]] void* ptr) {
 #ifdef AMREX_TINY_PROFILING
     if (m_do_profiling) {
         std::lock_guard<std::mutex> lock(m_arena_profiler_mutex);
