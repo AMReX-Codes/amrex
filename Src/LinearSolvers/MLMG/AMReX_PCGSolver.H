@@ -33,7 +33,7 @@ int pcg_solve (T* AMREX_RESTRICT x, T* AMREX_RESTRICT r,
     if (rnorm0 == 0) { return 0; }
 
     int iter = 0;
-    T rho_prev = T(1.0); // initialized to quite gcc warning
+    T rho_prev = T(1.0); // initialized to quiet gcc warning
     T p[N];
     for (iter = 1; iter <= maxiter; ++iter) {
         T z[N];
