@@ -21,6 +21,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLCellABecLap_K.H
        MLMG/AMReX_MLCellABecLap_${D}D_K.H
        MLMG/AMReX_MLCGSolver.H
+       MLMG/AMReX_PCGSolver.H
        MLMG/AMReX_MLABecLaplacian.H
        MLMG/AMReX_MLABecLap_K.H
        MLMG/AMReX_MLABecLap_${D}D_K.H

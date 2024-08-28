@@ -4,6 +4,7 @@
 
 #include <AMReX_Array4.H>
 #include <AMReX_LUSolver.H>
+#include <AMReX_PCGSolver.H>
 
 namespace amrex {
 
@@ -427,20 +428,20 @@ void mlcurlcurl_adotx_z (int i, int j, int k, Array4<Real> const& Az,
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void mlcurlcurl_gs4 (int i, int j, int k,
-                     Array4<Real> const& ex,
-                     Array4<Real> const& ey,
-                     Array4<Real> const& ez,
-                     Array4<Real const> const& rhsx,
-                     Array4<Real const> const& rhsy,
-                     Array4<Real const> const& rhsz,
+void mlcurlcurl_gs4_lu (int i, int j, int k,
+                        Array4<Real> const& ex,
+                        Array4<Real> const& ey,
+                        Array4<Real> const& ez,
+                        Array4<Real const> const& rhsx,
+                        Array4<Real const> const& rhsy,
+                        Array4<Real const> const& rhsz,
 #if (AMREX_SPACEDIM == 2)
-                     Real beta,
+                        Real beta,
 #endif
-                     GpuArray<Real,AMREX_SPACEDIM> const& adxinv,
-                     int color, LUSolver<AMREX_SPACEDIM*2,Real> const& lusolver,
-                     CurlCurlDirichletInfo const& dinfo,
-                     CurlCurlSymmetryInfo const& sinfo)
+                        GpuArray<Real,AMREX_SPACEDIM> const& adxinv,
+                        int color, LUSolver<AMREX_SPACEDIM*2,Real> const& lusolver,
+                        CurlCurlDirichletInfo const& dinfo,
+                        CurlCurlSymmetryInfo const& sinfo)
 {
     if (dinfo.is_dirichlet_node(i,j,k)) { return; }
 
@@ -598,6 +599,7 @@ void mlcurlcurl_gs4 (int i, int j, int k,
 #endif
 }
 
+template <bool PCG>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlcurlcurl_gs4 (int i, int j, int k,
                      Array4<Real> const& ex,
@@ -661,55 +663,81 @@ void mlcurlcurl_gs4 (int i, int j, int k,
                          + dxy * (-ex(i-1,j+1,k  )
                                   +ex(i  ,j+1,k  )))};
 
-    GpuArray<Real,4> x;
+    GpuArray<Real,4> beta;
 
     if (sinfo.xlo_is_symmetric(i)) {
         b[0] = -b[1];
-        x[0] = x[1] = betax(i,j,k);
+        beta[0] = beta[1] = betax(i,j,k);
     } else if (sinfo.xhi_is_symmetric(i)) {
         b[1] = -b[0];
-        x[0] = x[1] = betax(i-1,j,k);
+        beta[0] = beta[1] = betax(i-1,j,k);
     } else {
-        x[0] = betax(i-1,j,k);
-        x[1] = betax(i  ,j,k);
+        beta[0] = betax(i-1,j,k);
+        beta[1] = betax(i  ,j,k);
     }
 
     if (sinfo.ylo_is_symmetric(j)) {
         b[2] = -b[3];
-        x[2] = x[3] = betay(i,j,k);
+        beta[2] = beta[3] = betay(i,j,k);
     } else if (sinfo.yhi_is_symmetric(j)) {
         b[3] = -b[2];
-        x[2] = x[3] = betay(i,j-1,k);
+        beta[2] = beta[3] = betay(i,j-1,k);
     } else {
-        x[2] = betay(i,j-1,k);
-        x[3] = betay(i,j  ,k);
+        beta[2] = betay(i,j-1,k);
+        beta[3] = betay(i,j  ,k);
     }
 
-    LUSolver<4,Real> lusolver
-        ({dyy*Real(2.0) + x[0],
-          Real(0.0),
-         -dxy,
-          dxy,
-          //
-          Real(0.0),
-          dyy*Real(2.0) + x[1],
-          dxy,
-         -dxy,
-          //
-         -dxy,
-          dxy,
-          dxx*Real(2.0) + x[2],
-          Real(0.0),
-          //
-          dxy,
-         -dxy,
-          Real(0.0),
-          dxx*Real(2.0) + x[3]});
-    lusolver(x.data(), b.data());
-    ex(i-1,j  ,k  ) = x[0];
-    ex(i  ,j  ,k  ) = x[1];
-    ey(i  ,j-1,k  ) = x[2];
-    ey(i  ,j  ,k  ) = x[3];
+    if constexpr (PCG) {
+        Real diagInv[4] = {Real(1.0) / (dyy*Real(2.0) + beta[0]),
+                           Real(1.0) / (dyy*Real(2.0) + beta[1]),
+                           Real(1.0) / (dxx*Real(2.0) + beta[2]),
+                           Real(1.0) / (dxx*Real(2.0) + beta[3])};
+        auto precond = [&] (Real * AMREX_RESTRICT z,
+                            Real const* AMREX_RESTRICT r)
+        {
+            for (int m = 0; m < 4; ++m) { z[m] = r[m] * diagInv[m]; }
+        };
+        auto mat = [&] (Real * AMREX_RESTRICT Av,
+                        Real const* AMREX_RESTRICT v)
+        {
+            Av[0] = (dyy*Real(2.0) + beta[0]) * v[0] - dxy * v[2] + dxy * v[3];
+            Av[1] = (dyy*Real(2.0) + beta[1]) * v[1] + dxy * v[2] - dxy * v[3];
+            Av[2] = -dxy * v[0] + dxy * v[1] + (dxx*Real(2.0) + beta[2]) * v[2];
+            Av[3] =  dxy * v[0] - dxy * v[1] + (dxx*Real(2.0) + beta[3]) * v[3];
+        };
+        Real sol[4] = {0, 0, 0, 0};
+        pcg_solve<4>(sol, b.data(), mat, precond, 8, Real(1.e-8));
+        ex(i-1,j  ,k  ) = sol[0];
+        ex(i  ,j  ,k  ) = sol[1];
+        ey(i  ,j-1,k  ) = sol[2];
+        ey(i  ,j  ,k  ) = sol[3];
+    } else {
+        LUSolver<4,Real> lusolver
+            ({dyy*Real(2.0) + beta[0],
+              Real(0.0),
+             -dxy,
+              dxy,
+              //
+              Real(0.0),
+              dyy*Real(2.0) + beta[1],
+              dxy,
+             -dxy,
+              //
+             -dxy,
+              dxy,
+              dxx*Real(2.0) + beta[2],
+              Real(0.0),
+              //
+              dxy,
+             -dxy,
+              Real(0.0),
+              dxx*Real(2.0) + beta[3]});
+        lusolver(beta.data(), b.data());
+        ex(i-1,j  ,k  ) = beta[0];
+        ex(i  ,j  ,k  ) = beta[1];
+        ey(i  ,j-1,k  ) = beta[2];
+        ey(i  ,j  ,k  ) = beta[3];
+    }
 
 #else
 
@@ -772,90 +800,128 @@ void mlcurlcurl_gs4 (int i, int j, int k,
                          + dyz * (-ey(i  ,j-1,k+1)
                                   +ey(i  ,j  ,k+1)))};
 
-    GpuArray<Real,6> x;
+    GpuArray<Real,6> beta;
 
     if (sinfo.xlo_is_symmetric(i)) {
         b[0] = -b[1];
-        x[0] = x[1] = betax(i,j,k);
+        beta[0] = beta[1] = betax(i,j,k);
     } else if (sinfo.xhi_is_symmetric(i)) {
         b[1] = -b[0];
-        x[0] = x[1] = betax(i-1,j,k);
+        beta[0] = beta[1] = betax(i-1,j,k);
     } else {
-        x[0] = betax(i-1,j,k);
-        x[1] = betax(i  ,j,k);
+        beta[0] = betax(i-1,j,k);
+        beta[1] = betax(i  ,j,k);
     }
 
     if (sinfo.ylo_is_symmetric(j)) {
         b[2] = -b[3];
-        x[2] = x[3] = betay(i,j,k);
+        beta[2] = beta[3] = betay(i,j,k);
     } else if (sinfo.yhi_is_symmetric(j)) {
         b[3] = -b[2];
-        x[2] = x[3] = betay(i,j-1,k);
+        beta[2] = beta[3] = betay(i,j-1,k);
     } else {
-        x[2] = betay(i,j-1,k);
-        x[3] = betay(i,j  ,k);
+        beta[2] = betay(i,j-1,k);
+        beta[3] = betay(i,j  ,k);
     }
 
     if (sinfo.zlo_is_symmetric(k)) {
         b[4] = -b[5];
-        x[4] = x[5] = betaz(i,j,k);
+        beta[4] = beta[5] = betaz(i,j,k);
     } else if (sinfo.zhi_is_symmetric(k)) {
         b[5] = -b[4];
-        x[4] = x[5] = betaz(i,j,k-1);
+        beta[4] = beta[5] = betaz(i,j,k-1);
     } else {
-        x[4] = betaz(i,j,k-1);
-        x[5] = betaz(i,j,k  );
+        beta[4] = betaz(i,j,k-1);
+        beta[5] = betaz(i,j,k  );
     }
 
-    LUSolver<6,Real> lusolver
-        ({(dyy+dzz)*Real(2.0) + x[0],
-          Real(0.0),
-         -dxy,
-          dxy,
-         -dxz,
-          dxz,
-          //
-          Real(0.0),
-          (dyy+dzz)*Real(2.0) + x[1],
-          dxy,
-         -dxy,
-          dxz,
-         -dxz,
-          //
-         -dxy,
-          dxy,
-          (dxx+dzz)*Real(2.0) + x[2],
-          Real(0.0),
-         -dyz,
-          dyz,
-          //
-          dxy,
-         -dxy,
-          Real(0.0),
-          (dxx+dzz)*Real(2.0) + x[3],
-          dyz,
-         -dyz,
-          //
-         -dxz,
-          dxz,
-         -dyz,
-          dyz,
-          (dxx+dyy)*Real(2.0) + x[4],
-          Real(0.0),
-          //
-          dxz,
-         -dxz,
-          dyz,
-         -dyz,
-          Real(0.0),
-          (dxx+dyy)*Real(2.0) + x[5]});
-    lusolver(x.data(), b.data());
-    ex(i-1,j  ,k  ) = x[0];
-    ex(i  ,j  ,k  ) = x[1];
-    ey(i  ,j-1,k  ) = x[2];
-    ey(i  ,j  ,k  ) = x[3];
-    ez(i  ,j  ,k-1) = x[4];
-    ez(i  ,j  ,k  ) = x[5];
+    if constexpr (PCG) {
+        Real diagInv[6] = {Real(1.0) / ((dyy+dzz)*Real(2.0) + beta[0]),
+                           Real(1.0) / ((dyy+dzz)*Real(2.0) + beta[1]),
+                           Real(1.0) / ((dxx+dzz)*Real(2.0) + beta[2]),
+                           Real(1.0) / ((dxx+dzz)*Real(2.0) + beta[3]),
+                           Real(1.0) / ((dxx+dyy)*Real(2.0) + beta[4]),
+                           Real(1.0) / ((dxx+dyy)*Real(2.0) + beta[5])};
+        auto precond = [&] (Real * AMREX_RESTRICT z,
+                            Real const* AMREX_RESTRICT r)
+        {
+            for (int m = 0; m < 6; ++m) { z[m] = r[m] * diagInv[m]; }
+        };
+        auto mat = [&] (Real * AMREX_RESTRICT Av,
+                        Real const* AMREX_RESTRICT v)
+        {
+            Av[0] = ((dyy+dzz)*Real(2.0) + beta[0]) * v[0] - dxy * v[2]
+                + dxy * v[3] - dxz * v[4] + dxz * v[5];
+            Av[1] = ((dyy+dzz)*Real(2.0) + beta[1]) * v[1] + dxy * v[2]
+                - dxy * v[3] + dxz * v[4] - dxz * v[5];
+            Av[2] = -dxy * v[0] + dxy * v[1] + ((dxx+dzz)*Real(2.0) + beta[2]) * v[2]
+                - dyz * v[4] + dyz * v[5];
+            Av[3] = dxy * v[0] - dxy * v[1] + ((dxx+dzz)*Real(2.0) + beta[3]) * v[3]
+                + dyz * v[4] - dyz * v[5];
+            Av[4] = -dxz * v[0] + dxz * v[1] - dyz * v[2] + dyz * v[3]
+                + ((dxx+dyy)*Real(2.0) + beta[4]) * v[4];
+            Av[5] = dxz * v[0] - dxz * v[1] + dyz * v[2] - dyz * v[3]
+                + ((dxx+dyy)*Real(2.0) + beta[5]) * v[5];
+        };
+        Real sol[6] = {0, 0, 0, 0, 0, 0};
+        pcg_solve<6>(sol, b.data(), mat, precond, 8, Real(1.e-8));
+        ex(i-1,j  ,k  ) = sol[0];
+        ex(i  ,j  ,k  ) = sol[1];
+        ey(i  ,j-1,k  ) = sol[2];
+        ey(i  ,j  ,k  ) = sol[3];
+        ez(i  ,j  ,k-1) = sol[4];
+        ez(i  ,j  ,k  ) = sol[5];
+    } else {
+        LUSolver<6,Real> lusolver
+            ({(dyy+dzz)*Real(2.0) + beta[0],
+              Real(0.0),
+             -dxy,
+              dxy,
+             -dxz,
+              dxz,
+              //
+              Real(0.0),
+              (dyy+dzz)*Real(2.0) + beta[1],
+              dxy,
+             -dxy,
+              dxz,
+             -dxz,
+              //
+             -dxy,
+              dxy,
+              (dxx+dzz)*Real(2.0) + beta[2],
+              Real(0.0),
+             -dyz,
+              dyz,
+              //
+              dxy,
+             -dxy,
+              Real(0.0),
+              (dxx+dzz)*Real(2.0) + beta[3],
+              dyz,
+             -dyz,
+              //
+             -dxz,
+              dxz,
+             -dyz,
+              dyz,
+              (dxx+dyy)*Real(2.0) + beta[4],
+              Real(0.0),
+              //
+              dxz,
+             -dxz,
+              dyz,
+             -dyz,
+              Real(0.0),
+              (dxx+dyy)*Real(2.0) + beta[5]});
+        lusolver(beta.data(), b.data());
+        ex(i-1,j  ,k  ) = beta[0];
+        ex(i  ,j  ,k  ) = beta[1];
+        ey(i  ,j-1,k  ) = beta[2];
+        ey(i  ,j  ,k  ) = beta[3];
+        ez(i  ,j  ,k-1) = beta[4];
+        ez(i  ,j  ,k  ) = beta[5];
+    }
 #endif
 }
 
