@@ -34,6 +34,10 @@ module amrex_distromap_module
      module procedure amrex_distromap_print
   end interface amrex_print
 
+  interface amrex_distromap_destroy
+     module procedure amrex_distromap_destroy
+  end interface amrex_distromap_destroy
+
   ! interfaces to cpp functions
 
   interface

@@ -101,6 +101,10 @@ module amrex_multifab_module
      module procedure amrex_multifab_build_a
   end interface amrex_multifab_build
 
+  interface amrex_multifab_destroy
+    module procedure amrex_multifab_destroy
+  end interface amrex_multifab_destroy
+
   type, public   :: amrex_imultifab
      logical               :: owner = .false.
      type   (c_ptr)        :: p     =  c_null_ptr
@@ -128,6 +132,10 @@ module amrex_multifab_module
      module procedure amrex_imultifab_build_s
      module procedure amrex_imultifab_build_a
   end interface amrex_imultifab_build
+
+  interface amrex_imultifab_destroy
+    module procedure amrex_imultifab_destroy
+  end interface amrex_imultifab_destroy
 
   type, public :: amrex_mfiter
      type(c_ptr)      :: p       = c_null_ptr
@@ -158,6 +166,10 @@ module amrex_multifab_module
      module procedure amrex_mfiter_build_badm
      module procedure amrex_mfiter_build_badm_s
   end interface amrex_mfiter_build
+
+  interface amrex_mfiter_destroy
+    module procedure amrex_mfiter_destroy
+  end interface amrex_mfiter_destroy
 
   ! interfaces to c++ functions
 
