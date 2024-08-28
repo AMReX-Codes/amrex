@@ -2,8 +2,6 @@
 #define AMREX_GPU_PRINT_H_
 #include <AMReX_Config.H>
 
-#if !defined(__APPLE__)
-
 #include <cstdio>
 
 #ifdef AMREX_USE_SYCL
@@ -28,5 +26,4 @@
       std::printf(format, __VA_ARGS__); }
 #endif
 
-#endif  // !defined(__APPLE__)
 #endif  // AMREX_GPU_PRINT_H_
