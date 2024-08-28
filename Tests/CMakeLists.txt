@@ -141,6 +141,10 @@ else()
       list(APPEND AMREX_TESTS_SUBDIRS HDF5Benchmark)
    endif ()
 
+   if (AMReX_OPENPMD)
+      list(APPEND AMREX_TESTS_SUBDIRS openPMDTests)
+   endif ()
+
    if (AMReX_FORTRAN_INTERFACES)
       list(APPEND AMREX_TESTS_SUBDIRS FortranInterface)
    endif ()

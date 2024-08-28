@@ -207,6 +207,10 @@ if (AMReX_HDF5)
    add_subdirectory(Extern/HDF5)
 endif ()
 
+if (AMReX_OPENPMD)
+   add_subdirectory(Extern/openPMD-api)
+endif()
+
 #
 # Print out summary -- do it here so we already linked all
 # libs at this point

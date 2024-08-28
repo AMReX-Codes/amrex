@@ -213,6 +213,82 @@ jobs:
         ccache -s
         du -hs ~/.cache/ccache
 
+  test_openpmd:
+    name: openPMD I/O Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies_clang.sh 15
+        .github/workflows/dependencies/dependencies_clang-tidy.sh 15
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Install openPMD
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=40M
+
+        sudo apt-get install -y --no-install-recommends libhdf5-mpi-dev
+        wget -q https://github.com/openPMD/openPMD-api/archive/refs/tags/0.15.2.tar.gz
+        tar xfz 0.15.2.tar.gz
+        cd openPMD-api-0.15.2
+        mkdir build
+        cd build
+        cmake ..  \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache  \
+          -DopenPMD_BUILD_EXAMPLES=OFF  \
+          -DopenPMD_BUILD_CLI_TOOLS=OFF  \
+          -DopenPMD_BUILD_TESTING=OFF  \
+          -DopenPMD_USE_PYTHON=OFF  \
+        make -j4
+        sudo make install
+    - name: Build & Test
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=40M
+        export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
+        export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
+        ccache -z
+
+        mkdir build
+        cd build
+        cmake ..                                      \
+            -DAMReX_OPENPMD=ON                        \
+            -DCMAKE_VERBOSE_MAKEFILE=ON               \
+            -DAMReX_ENABLE_TESTS=ON                   \
+            -DAMReX_SPACEDIM=3                        \
+            -DAMReX_MPI=ON                            \
+            -DAMReX_OMP=OFF                           \
+            -DAMReX_FORTRAN=OFF                       \
+            -DAMReX_EB=OFF                            \
+            -DAMReX_LINEAR_SOLVERS=OFF                \
+            -DAMReX_AMRLEVEL=OFF                      \
+            -DAMReX_PARTICLES=ON                      \
+            -DCMAKE_C_COMPILER=$(which clang-15)      \
+            -DCMAKE_CXX_COMPILER=$(which clang++-15)  \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        make -j 4
+
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-15 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+
+        ctest --output-on-failure
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
   save_pr_number:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

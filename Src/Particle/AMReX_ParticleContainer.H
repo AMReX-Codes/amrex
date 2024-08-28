@@ -1403,6 +1403,10 @@ public:
 #include "AMReX_ParticlesHDF5.H"
 #endif
 
+#ifdef AMREX_USE_OPENPMD
+#include "AMReX_ParticlesOPENPMD.H"
+#endif
+
 protected:
 
     template <class RTYPE>
