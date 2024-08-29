@@ -1192,7 +1192,7 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    int query (const char* name, T& ref, int ival = FIRST)
+    int query (const char* name, T& ref, int ival = FIRST) const
     {
         std::string s;
         int exist = this->query(name, s, ival);
@@ -1216,7 +1216,7 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    void get (const char* name, T& ref, int ival = FIRST)
+    void get (const char* name, T& ref, int ival = FIRST) const
     {
         std::string s;
         this->get(name, s, ival);
@@ -1233,7 +1233,7 @@ public:
     int queryarr (const char* name,
                   std::vector<T>& ref,
                   int start_ix = FIRST,
-                  int num_val = ALL)
+                  int num_val = ALL) const
     {
         std::vector<std::string> s;
         int exist = this->queryarr(name, s, start_ix, num_val);
@@ -1252,7 +1252,7 @@ public:
     void getarr (const char* name,
                  std::vector<T>& ref,
                  int start_ix = FIRST,
-                 int num_val = ALL)
+                 int num_val = ALL) const
     {
         std::vector<std::string> s;
         this->getarr(name, s, start_ix, num_val);
@@ -1274,7 +1274,7 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    int query_enum_case_insensitive (const char* name, T& ref, int ival = FIRST)
+    int query_enum_case_insensitive (const char* name, T& ref, int ival = FIRST) const
     {
         std::string s;
         int exist = this->query(name, s, ival);
@@ -1309,7 +1309,7 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    void get_enum_case_insensitive (const char* name, T& ref, int ival = FIRST)
+    void get_enum_case_insensitive (const char* name, T& ref, int ival = FIRST) const
     {
         int exist = this->query_enum_case_insensitive(name, ref, ival);
         if (!exist) {
