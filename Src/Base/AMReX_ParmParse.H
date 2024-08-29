@@ -1393,9 +1393,9 @@ public:
 
     static std::string ParserPrefix;
 
-protected:
-
     [[nodiscard]] std::string prefixedName (const std::string_view& str) const;
+
+protected:
 
     std::string m_prefix; // Prefix used in keyword search
     std::string m_parser_prefix; // Prefix used by Parser
