@@ -5,16 +5,35 @@ on:
       - closed
 
 jobs:
-  cleanup:
+  cleanup_cache:
+    name: Clean Up Ccache Cache Post PR
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Save PR number
-        env:
-          PR_NUMBER: ${{ github.event.number }}
+      - uses: actions/checkout@v4
+      - name: Clean up ccache
         run: |
-          echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pr_number
-          path: pr_number.txt
-          retention-days: 1
+          gh extension install actions/gh-actions-cache
+
+          REPO=${{ github.repository }}
+
+          pr_number=${{ github.event.number }}
+          echo "Clean up cache for PR ${pr_number}."
+          BRANCH=refs/pull/${pr_number}/merge
+
+          # Setting this to not fail the workflow while deleting cache keys.
+          set +e
+
+          # Delete all entries associated with this PR.
+          keys=$(gh actions-cache list -L 100 -R $REPO -B $BRANCH | cut -f 1)
+          # $keys might contain spaces. Thus we set IFS to \n.
+          IFS=$'\n'
+          for k in $keys
+          do
+            gh actions-cache delete "$k" -R $REPO -B $BRANCH --confirm
+          done
+          unset IFS
