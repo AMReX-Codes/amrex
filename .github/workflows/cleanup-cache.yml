@@ -29,9 +29,12 @@ jobs:
           # Triggering workflow run name (e.g., LinuxClang)
           WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
 
+          # For debugging, cat ${GITHUB_EVENT_PATH} to see the payload.
+
           if [[ $EVENT == "pull_request" ]]; then
-            gh run download ${{ github.event.workflow_run.id }} -n pr_number
-            pr_number=`cat pr_number.txt`
+            pr_head_sha=${{ github.event.workflow_run.head_sha }}
+            pr_number=$(gh pr list --search $pr_head_sha --json number --jq '.[0].number')
+            echo "Clean up cache for PR ${pr_number}"
             BRANCH=refs/pull/${pr_number}/merge
           else
             BRANCH=refs/heads/${{ github.event.workflow_run.head_branch }}
@@ -54,6 +57,7 @@ jobs:
           IFS=$'\n'
           for j in $cached_jobs
           do
+            # Delete all entries except the last used one
             old_keys=$(gh actions-cache list -L 100 -R $REPO -B $BRANCH --key "${j}-git-" --sort last-used | cut -f 1 | tail -n +2)
             for k in $old_keys
             do
