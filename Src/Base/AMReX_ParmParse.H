@@ -1200,6 +1200,8 @@ public:
             try {
                 ref = amrex::getEnum<T>(s);
             } catch (...) {
+                amrex::Print() << "amrex::ParmParse::query (input name: "
+                               << this->prefixedName(name) << "):" << std::endl;
                 throw;
             }
         }
@@ -1223,6 +1225,8 @@ public:
         try {
             ref = amrex::getEnum<T>(s);
         } catch (...) {
+            amrex::Print() << "amrex::ParmParse::get (input name:  "
+                           << this->prefixedName(name) << "):" << std::endl;
             throw;
         }
     }
@@ -1240,7 +1244,13 @@ public:
         if (exist) {
             ref.resize(s.size());
             for (std::size_t i = 0; i < s.size(); ++i) {
-                ref[i] = amrex::getEnum<T>(s[i]);
+                try {
+                    ref[i] = amrex::getEnum<T>(s[i]);
+                }  catch (...) {
+                    amrex::Print() << "amrex::ParmParse::queryarr (input name:  "
+                                   << this->prefixedName(name) << "):" << std::endl;
+                    throw;
+                }
             }
         }
         return exist;
@@ -1258,7 +1268,13 @@ public:
         this->getarr(name, s, start_ix, num_val);
         ref.resize(s.size());
         for (std::size_t i = 0; i < s.size(); ++i) {
-            ref[i] = amrex::getEnum<T>(s[i]);
+            try {
+                ref[i] = amrex::getEnum<T>(s[i]);
+            }  catch (...) {
+                amrex::Print() << "amrex::ParmParse::getarr (input name:  "
+                               << this->prefixedName(name) << "):" << std::endl;
+                throw;
+            }
         }
     }
 
