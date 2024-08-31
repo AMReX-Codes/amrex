@@ -1,3 +1,64 @@
+# 24.09
+
+  -- Curl Curl Solver: Option to use PCG instead of LU (#3812)
+
+  -- Support for multiple periods in FillBoundary and ParallelCopy (#4106)
+
+  -- ParmParse::prettyPrintTable (#4101)
+
+  -- TinyProfiler:: Add more runtime parameters (#4100)
+
+  -- Fix start_comp offset in tracer particle routines (#4098)
+
+  -- ParmParse: queryarrWithParser (#4073)
+
+  -- Add Geometry::RoundoffLo and RoundoffHi functions (#4097)
+
+  -- Fortran BoxArray: Add nboxes function returning the number of boxes. (#4096)
+
+  -- Time integrator interface updates (#4088)
+
+  -- Fix a bug in ParmParse::remove (#4093)
+
+  -- Add Jacobi smoother to ABecLaplacian and Poisson (#4091)
+
+  -- Multi-level Hypre: Fix periodic boundary bug (#4090)
+
+  -- Multi-level Hypre: Fix bugs (#4089)
+
+  -- Add overload for `getParticleCell` that returns local cell index (#4081)
+
+  -- MLEBNodeFDLaplacian: Make it work with AMREX_USE_EB but with no EB (#4083)
+     MLEBNodeFDLaplacian: Regression (#4085)
+
+  -- AMREX_ENUM and ParmParse support for enum class (#4069)
+
+  -- BLBackTrace: Check for `addr2line` in path first (#4079)
+
+  -- Make sure ChopGrids does not violate refinement ratio. (#4078)
+
+  -- GPU Device Variable on Intel GPUs (#4056)
+
+  -- ParallelFor with BoxND (#4052)
+
+  -- fix compilation of the Richardson tool (#4072)
+
+  -- HDF5: Update BLProfile Name (#4071)
+
+  -- Bins: Index Type `int` (#3684)
+
+  -- Conduit: Fix SoA Particle (#4065)
+
+  -- Plotfile Particles: Fix Error Message (#4068)
+
+  -- CI: Fix Catalyst CMAKE_PREFIX_PATH (#4067)
+
+  -- Use NVTX3 to avoid conflict with cub in CUDA 12.6 (#4064)
+
+  -- Convert Box to BoxND (#4016)
+
+  -- Use long long for IParser value_t in ParmParse (#4059)
+
 # 24.08
 
   -- Catalyst support (#4011)
