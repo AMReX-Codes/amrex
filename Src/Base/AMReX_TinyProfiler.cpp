@@ -490,14 +490,15 @@ TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
     if(os) { os->precision(oldprec); }
 }
 
-void
+bool
 TinyProfiler::RegisterArena (const std::string& memory_name,
                              std::map<std::string, MemStat>& memstats) noexcept
 {
-    if (!memprof_enabled) { return; }
+    if (!memprof_enabled) { return false; }
 
     all_memstats.push_back(&memstats);
     all_memnames.push_back(memory_name);
+    return true;
 }
 
 void

@@ -57,7 +57,7 @@ public:
     static void MemoryInitialize () noexcept;
     static void MemoryFinalize (bool bFlushing = false) noexcept;
 
-    static void RegisterArena (const std::string& memory_name,
+    static bool RegisterArena (const std::string& memory_name,
                                std::map<std::string, MemStat>& memstats) noexcept;
 
     static void DeregisterArena (std::map<std::string, MemStat>& memstats) noexcept;
