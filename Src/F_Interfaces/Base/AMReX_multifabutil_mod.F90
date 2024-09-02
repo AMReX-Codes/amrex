@@ -8,7 +8,11 @@ module amrex_multifabutil_module
   implicit none
   private
 
-  public :: amrex_average_down, amrex_average_down_faces, amrex_average_cellcenter_to_face
+  public :: amrex_average_down, & ! volume weighted average down of cell data
+       &    amrex_average_down_cell,  & ! average down of cell data
+       &    amrex_average_down_node,  & ! average down of nodal data
+       &    amrex_average_down_faces, & ! average down of face data
+       &    amrex_average_cellcenter_to_face ! average from cell centers to faces
 
   interface
      subroutine amrex_fi_average_down (fmf, cmf, fgeom, cgeom, scomp, ncomp, rr) bind(c)
@@ -17,6 +21,13 @@ module amrex_multifabutil_module
        type(c_ptr), value :: fmf, cmf, fgeom, cgeom
        integer(c_int), value :: scomp, ncomp, rr
      end subroutine amrex_fi_average_down
+
+     subroutine amrex_fi_average_down_cell_node (fmf, cmf, scomp, ncomp, rr) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fmf, cmf
+       integer(c_int), value :: scomp, ncomp, rr
+     end subroutine amrex_fi_average_down_cell_node
 
      subroutine amrex_fi_average_down_faces (fmf, cmf, cgeom, scomp, ncomp, rr) bind(c)
        import
@@ -45,6 +56,19 @@ contains
     call amrex_fi_average_down(fmf%p, cmf%p, fgeom%p, cgeom%p, scomp-1, ncomp, rr)
   end subroutine amrex_average_down
 
+  subroutine amrex_average_down_cell (fmf, cmf, scomp, ncomp, rr)
+    type(amrex_multifab), intent(in   ) :: fmf
+    type(amrex_multifab), intent(inout) :: cmf
+    integer, intent(in) :: scomp, ncomp, rr
+    call amrex_fi_average_down_cell_node(fmf%p, cmf%p, scomp-1, ncomp, rr)
+  end subroutine amrex_average_down_cell
+
+  subroutine amrex_average_down_node (fmf, cmf, scomp, ncomp, rr)
+    type(amrex_multifab), intent(in   ) :: fmf
+    type(amrex_multifab), intent(inout) :: cmf
+    integer, intent(in) :: scomp, ncomp, rr
+    call amrex_fi_average_down_cell_node(fmf%p, cmf%p, scomp-1, ncomp, rr)
+  end subroutine amrex_average_down_node
 
   subroutine amrex_average_down_faces (fmf, cmf, cgeom, scomp, ncomp, rr)
     type(amrex_multifab), intent(in   ) :: fmf(amrex_spacedim)
