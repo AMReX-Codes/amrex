@@ -45,6 +45,10 @@ module amrex_boxarray_module
      module procedure amrex_boxarray_print
   end interface amrex_print
 
+  interface amrex_boxarray_destroy
+     module procedure amrex_boxarray_destroy
+  end interface amrex_boxarray_destroy
+
   ! interfaces to cpp functions
 
   interface
