@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <iostream>
 #include <limits>
 #include <numeric>
@@ -407,6 +408,14 @@ read_file (const char* fname, ParmParse::Table& tab)
     //
     if ( fname != nullptr && fname[0] != 0 )
     {
+        std::string filename = fname;
+
+        // optional prefix to search files in
+        char const *amrex_inputs_file_prefix = std::getenv("AMREX_INPUTS_FILE_PREFIX");
+        if (amrex_inputs_file_prefix != nullptr) {
+            filename = std::string(amrex_inputs_file_prefix) + filename;
+        }
+
 #ifdef AMREX_USE_MPI
         if (ParallelDescriptor::Communicator() == MPI_COMM_NULL)
         {
@@ -415,7 +424,6 @@ read_file (const char* fname, ParmParse::Table& tab)
 #endif
 
         Vector<char> fileCharPtr;
-        std::string filename = fname;
         ParallelDescriptor::ReadAndBcastFile(filename, fileCharPtr);
 
         std::istringstream is(fileCharPtr.data());
