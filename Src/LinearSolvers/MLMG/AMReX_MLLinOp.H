@@ -570,11 +570,7 @@ protected:
 
     static constexpr int mg_coarsen_ratio = 2;
     static constexpr int mg_box_min_width = 2;
-#ifdef AMREX_USE_EB
-    static constexpr int mg_domain_min_width = 4;
-#else
-    static constexpr int mg_domain_min_width = 2;
-#endif
+    int mg_domain_min_width = 2;
 
     LPInfo info;
 
@@ -802,6 +798,15 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
                            const Vector<FabFactory<FAB> const*>& a_factory)
 {
     BL_PROFILE("MLLinOp::defineGrids()");
+
+#ifdef AMREX_USE_EB
+    if ( ! a_factory.empty() ) {
+        auto const* ebf = dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0]);
+        if (ebf && !(ebf->isAllRegular())) { // Has non-trivial EB
+            mg_domain_min_width = 4;
+        }
+    }
+#endif
 
     m_num_amr_levels = 0;
     for (int amrlev = 0; amrlev < a_geom.size(); amrlev++) {
