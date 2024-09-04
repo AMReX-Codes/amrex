@@ -660,13 +660,20 @@ The_Comms_Arena ()
     }
 }
 
-Arena::ArenaProfiler::~ArenaProfiler () {
 #ifdef AMREX_TINY_PROFILING
+
+Arena::ArenaProfiler::~ArenaProfiler ()
+{
     if (m_do_profiling) {
         TinyProfiler::DeregisterArena(m_profiling_stats);
     }
-#endif
 }
+
+#else
+
+Arena::ArenaProfiler::~ArenaProfiler () = default;
+
+#endif
 
 void Arena::ArenaProfiler::profile_alloc ([[maybe_unused]] void* ptr,
                                           [[maybe_unused]] std::size_t nbytes) {
