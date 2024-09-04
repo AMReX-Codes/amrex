@@ -143,6 +143,7 @@ private:
     static bool memprof_enabled;
     static std::string output_file;
 
+    static std::string const& get_output_file ();
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
                             std::ostream* os);
     static void PrintMemStats (std::map<std::string, MemStat>& memstats,

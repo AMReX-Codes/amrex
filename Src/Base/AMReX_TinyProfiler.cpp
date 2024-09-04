@@ -56,6 +56,8 @@ std::string TinyProfiler::output_file;
 
 namespace {
     constexpr char mainregion[] = "main";
+    bool finalized = false;
+    bool memprof_finalized = false;
 }
 
 TinyProfiler::TinyProfiler (std::string funcname) noexcept
@@ -318,23 +320,14 @@ TinyProfiler::Initialize () noexcept
         pp.queryAdd("print_threshold", print_threshold);
 
         pp.queryAdd("enabled", enabled);
-        pp.queryAdd("output_file", output_file);
     }
 
     if (!enabled) { return; }
 
-    if (ParallelDescriptor::IOProcessor()) {
-        static bool first = true;
-        if (first && !output_file.empty() && output_file != "/dev/null") {
-            if (FileSystem::Exists(output_file)) {
-                FileSystem::Remove(output_file);
-            }
-            first = false;
-        }
-    }
-
     regionstack.emplace_back(mainregion);
     t_init = amrex::second();
+
+    finalized = false;
 }
 
 void
@@ -352,6 +345,8 @@ TinyProfiler::MemoryInitialize () noexcept
 #ifdef AMREX_USE_OMP
     mem_stack_thread_private.resize(omp_get_max_threads());
 #endif
+
+    memprof_finalized = false;
 }
 
 void
@@ -359,7 +354,6 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
 {
     if (!enabled) { return; }
 
-    static bool finalized = false;
     if (!bFlushing) {                // If flushing, don't make this the last time!
         if (finalized) {
             return;
@@ -388,12 +382,13 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
     std::ostream* os = nullptr;
     std::streamsize oldprec = 0;
     if (ParallelDescriptor::IOProcessor()) {
-        if (output_file.empty()) {
+        auto const& ofile = get_output_file();
+        if (ofile.empty()) {
             os = &(amrex::OutStream());
-        } else if (output_file != "/dev/null") {
-            ofs.open(output_file, std::ios_base::app);
+        } else if (ofile != "/dev/null") {
+            ofs.open(ofile, std::ios_base::app);
             if (!ofs.is_open()) {
-                amrex::Error("TinyProfiler failed to open "+output_file);
+                amrex::Error("TinyProfiler failed to open "+ofile);
             }
             os = static_cast<std::ostream*>(&ofs);
         }
@@ -439,6 +434,12 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
         }
     }
 
+    if (!bFlushing) {
+        regionstack.clear();
+        ttstack.clear();
+        statsmap.clear();
+    }
+
     if(os) { os->precision(oldprec); }
 }
 
@@ -449,12 +450,11 @@ TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
 
     // This function must be called BEFORE the profiled arenas are deleted
 
-    static bool finalized = false;
     if (!bFlushing) {                // If flushing, don't make this the last time!
-        if (finalized) {
+        if (memprof_finalized) {
             return;
         } else {
-            finalized = true;
+            memprof_finalized = true;
         }
     }
 
@@ -467,12 +467,13 @@ TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
     std::ostream* os = nullptr;
     std::streamsize oldprec = 0;
     if (ParallelDescriptor::IOProcessor()) {
-        if (output_file.empty()) {
+        auto const& ofile = get_output_file();
+        if (ofile.empty()) {
             os = &(amrex::OutStream());
-        } else if (output_file != "/dev/null") {
-            ofs.open(output_file, std::ios_base::app);
+        } else if (ofile != "/dev/null") {
+            ofs.open(ofile, std::ios_base::app);
             if (!ofs.is_open()) {
-                amrex::Error("TinyProfiler failed to open "+output_file);
+                amrex::Error("TinyProfiler failed to open "+ofile);
             }
             os = static_cast<std::ostream*>(&ofs);
         }
@@ -949,6 +950,30 @@ TinyProfiler::PrintCallStack (std::ostream& os)
     for (auto const& x : ttstack) {
         os << *(std::get<2>(x)) << "\n";
     }
+}
+
+std::string const&
+TinyProfiler::get_output_file ()
+{
+    // Instead of reading it only once, we could try to read the parameter
+    // every time. But I am not sure how useful that might be.
+    static bool first = true;
+    if (first) {
+        first = false;
+
+        amrex::ParmParse pp("tiny_profiler");
+        pp.query("output_file", output_file);
+
+        if (ParallelDescriptor::IOProcessor()) {
+            if (!output_file.empty() && output_file != "/dev/null") {
+                if (FileSystem::Exists(output_file)) {
+                    FileSystem::Remove(output_file);
+                }
+            }
+        }
+    }
+
+    return output_file;
 }
 
 }
