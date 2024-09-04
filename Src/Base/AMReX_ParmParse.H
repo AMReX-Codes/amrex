@@ -1200,8 +1200,10 @@ public:
             try {
                 ref = amrex::getEnum<T>(s);
             } catch (...) {
-                amrex::Print() << "amrex::ParmParse::query (input name: "
-                               << this->prefixedName(name) << "):\n";
+                if (amrex::Verbose() > 0 ) {
+                    amrex::Print() << "amrex::ParmParse::query (input name: "
+                                   << this->prefixedName(name) << "):\n";
+                }
                 throw;
             }
         }
@@ -1225,8 +1227,10 @@ public:
         try {
             ref = amrex::getEnum<T>(s);
         } catch (...) {
-            amrex::Print() << "amrex::ParmParse::get (input name:  "
-                           << this->prefixedName(name) << "):\n";
+            if (amrex::Verbose() > 0 ) {
+                amrex::Print() << "amrex::ParmParse::get (input name:  "
+                               << this->prefixedName(name) << "):\n";
+            }
             throw;
         }
     }
@@ -1247,8 +1251,10 @@ public:
                 try {
                     ref[i] = amrex::getEnum<T>(s[i]);
                 }  catch (...) {
-                    amrex::Print() << "amrex::ParmParse::queryarr (input name:  "
-                                   << this->prefixedName(name) << "):\n";
+                    if (amrex::Verbose() > 0 ) {
+                        amrex::Print() << "amrex::ParmParse::queryarr (input name:  "
+                                       << this->prefixedName(name) << "):\n";
+                    }
                     throw;
                 }
             }
@@ -1271,8 +1277,10 @@ public:
             try {
                 ref[i] = amrex::getEnum<T>(s[i]);
             }  catch (...) {
-                amrex::Print() << "amrex::ParmParse::getarr (input name:  "
-                               << this->prefixedName(name) << "):\n";
+                if (amrex::Verbose() > 0 ) {
+                    amrex::Print() << "amrex::ParmParse::getarr (input name:  "
+                                   << this->prefixedName(name) << "):\n";
+                }
                 throw;
             }
         }
