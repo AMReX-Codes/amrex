@@ -1192,14 +1192,18 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    int query (const char* name, T& ref)
+    int query (const char* name, T& ref, int ival = FIRST) const
     {
         std::string s;
-        int exist = this->query(name, s);
+        int exist = this->query(name, s, ival);
         if (exist) {
             try {
                 ref = amrex::getEnum<T>(s);
             } catch (...) {
+                if (amrex::Verbose() > 0 ) {
+                    amrex::Print() << "amrex::ParmParse::query (input name: "
+                                   << this->prefixedName(name) << "):\n";
+                }
                 throw;
             }
         }
@@ -1216,13 +1220,17 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    void get (const char* name, T& ref)
+    void get (const char* name, T& ref, int ival = FIRST) const
     {
         std::string s;
-        this->get(name, s);
+        this->get(name, s, ival);
         try {
             ref = amrex::getEnum<T>(s);
         } catch (...) {
+            if (amrex::Verbose() > 0 ) {
+                amrex::Print() << "amrex::ParmParse::get (input name:  "
+                               << this->prefixedName(name) << "):\n";
+            }
             throw;
         }
     }
@@ -1230,14 +1238,25 @@ public:
     //! Query an array of enum values using given name.
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    int queryarr (const char* name, std::vector<T>& ref)
+    int queryarr (const char* name,
+                  std::vector<T>& ref,
+                  int start_ix = FIRST,
+                  int num_val = ALL) const
     {
         std::vector<std::string> s;
-        int exist = this->queryarr(name, s);
+        int exist = this->queryarr(name, s, start_ix, num_val);
         if (exist) {
             ref.resize(s.size());
             for (std::size_t i = 0; i < s.size(); ++i) {
-                ref[i] = amrex::getEnum<T>(s[i]);
+                try {
+                    ref[i] = amrex::getEnum<T>(s[i]);
+                }  catch (...) {
+                    if (amrex::Verbose() > 0 ) {
+                        amrex::Print() << "amrex::ParmParse::queryarr (input name:  "
+                                       << this->prefixedName(name) << "):\n";
+                    }
+                    throw;
+                }
             }
         }
         return exist;
@@ -1246,13 +1265,24 @@ public:
     //! Get an array of enum values using given name.
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    void getarr (const char* name, std::vector<T>& ref)
+    void getarr (const char* name,
+                 std::vector<T>& ref,
+                 int start_ix = FIRST,
+                 int num_val = ALL) const
     {
         std::vector<std::string> s;
-        this->getarr(name, s);
+        this->getarr(name, s, start_ix, num_val);
         ref.resize(s.size());
         for (std::size_t i = 0; i < s.size(); ++i) {
-            ref[i] = amrex::getEnum<T>(s[i]);
+            try {
+                ref[i] = amrex::getEnum<T>(s[i]);
+            }  catch (...) {
+                if (amrex::Verbose() > 0 ) {
+                    amrex::Print() << "amrex::ParmParse::getarr (input name:  "
+                                   << this->prefixedName(name) << "):\n";
+                }
+                throw;
+            }
         }
     }
 
@@ -1268,10 +1298,10 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    int query_enum_case_insensitive (const char* name, T& ref)
+    int query_enum_case_insensitive (const char* name, T& ref, int ival = FIRST) const
     {
         std::string s;
-        int exist = this->query(name, s);
+        int exist = this->query(name, s, ival);
         if (exist) {
             s = amrex::toLower(s);
             auto const& enum_names = amrex::getEnumNameStrings<T>();
@@ -1303,9 +1333,9 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    void get_enum_case_insensitive (const char* name, T& ref)
+    void get_enum_case_insensitive (const char* name, T& ref, int ival = FIRST) const
     {
-        int exist = this->query_enum_case_insensitive(name, ref);
+        int exist = this->query_enum_case_insensitive(name, ref, ival);
         if (!exist) {
             std::string msg("get_enum_case_insensitive(\"");
             msg.append(name).append("\",").append(amrex::getEnumClassName<T>())
@@ -1387,9 +1417,9 @@ public:
 
     static std::string ParserPrefix;
 
-protected:
-
     [[nodiscard]] std::string prefixedName (const std::string_view& str) const;
+
+protected:
 
     std::string m_prefix; // Prefix used in keyword search
     std::string m_parser_prefix; // Prefix used by Parser
