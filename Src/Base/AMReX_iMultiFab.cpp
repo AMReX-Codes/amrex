@@ -431,6 +431,51 @@ iMultiFab::sum (int comp, int nghost, bool local) const
     return sm;
 }
 
+Long
+iMultiFab::sum (Box const& region, int comp, bool local) const
+{
+    BL_PROFILE("iMultiFab::sum(region)");
+
+    Long sm = 0;
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        auto const& ma = this->const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Long>{}, *this, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Long>
+        {
+            return (region.contains(i,j,k)) ? static_cast<Long>(ma[box_no](i,j,k,comp)) : Long(0);
+        });
+    }
+    else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox() & region;
+            if (bx.ok()) {
+                Array4<int const> const& fab = this->const_array(mfi);
+                auto tmp = Long(0);
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    tmp += fab(i,j,k,comp);
+                });
+                sm += tmp;
+            }
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
+
+    return sm;
+}
+
 namespace {
 
 IntVect
