@@ -411,9 +411,14 @@ read_file (const char* fname, ParmParse::Table& tab)
         std::string filename = fname;
 
         // optional prefix to search files in
-        char const *amrex_inputs_file_prefix = std::getenv("AMREX_INPUTS_FILE_PREFIX");
-        if (amrex_inputs_file_prefix != nullptr) {
-            filename = std::string(amrex_inputs_file_prefix) + filename;
+        char const *amrex_inputs_file_prefix_c = std::getenv("AMREX_INPUTS_FILE_PREFIX");
+        if (amrex_inputs_file_prefix_c != nullptr) {
+            // we expect a directory path as the prefix: append a trailing "/" if missing
+            auto amrex_inputs_file_prefix = std::string(amrex_inputs_file_prefix_c);
+            if (amrex_inputs_file_prefix.back() != '/') {
+                amrex_inputs_file_prefix += "/";
+            }
+            filename = amrex_inputs_file_prefix + filename;
         }
 
 #ifdef AMREX_USE_MPI
