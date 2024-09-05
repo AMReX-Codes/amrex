@@ -60,6 +60,9 @@ class RealVect;
 // '\n's. The "FILE = <filename>" definition is special.  Rather than just
 // adding this entry to the database, it reads the contents of <filename>
 // into the database.
+// For CI/CD workflows and out-of-source tests, the environment variable
+// AMREX_INPUTS_FILE_PREFIX can be set to prefix every FILE = <filename>
+// with a custom path.
 //
 // ParmParse stores all entries in a static table which is built the
 // first time a ParmParse object is constructed (usually in main()).
