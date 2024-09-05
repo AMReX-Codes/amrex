@@ -271,6 +271,12 @@ following data:
     // embedded boundary centroid
     const MultiCutFab& getBndryCent () const;
 
+    // embedded boundary normal direction
+    const MultiCutFab& getBndryNormal () const;
+
+    // embedded boundary surface area
+    const MultiCutFab& getBndryArea () const;
+
     // area fractions
     Array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const;
 
@@ -290,6 +296,17 @@ following data:
   ``AMREX_SPACEDIM`` components.  Each component
   of the data is in the range of :math:`[-0.5,0.5]`, based on each
   cell's local coordinates with respect to the regular cell's center.
+
+- **Boundary normal** is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM``
+  components representing the unit vector pointing toward the covered part.
+
+- **Boundary area** is in a :cpp:`MultiCutFab` with a single component
+  representing the dimensionless boundary area. When the cell is isotropic
+  (i.e., :math:`\Delta x = \Delta y = \Delta z`), it's trivial to convert it
+  to physical units. If the cell size is anisotropic, the conversion
+  requires multiplying by a factor of :math:`\sqrt{(n_x \Delta y \Delta
+  z)^2 + (n_y \Delta x \Delta z)^2 + (n_z \Delta x \Delta y)^2}`, where
+  :math:`n` is the boundary normal vector.
 
 - **Face centroid** is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM`` components.
   Each component of the data is in the range of :math:`[-0.5,0.5]`, based on
