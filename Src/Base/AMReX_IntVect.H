@@ -55,8 +55,11 @@ public:
             static constexpr unsigned shift1 = sizeof(size_t)>=8 ? 20 : 10;
             static constexpr unsigned shift2 = sizeof(size_t)>=8 ? 40 : 20;
             if constexpr (dim == 1) {
+                amrex::ignore_unused(shift1);
+                amrex::ignore_unused(shift2);
                 return static_cast<std::size_t>(vec[0]);
             } else if constexpr (dim == 2) {
+                amrex::ignore_unused(shift2);
                 return static_cast<std::size_t>(vec[0]) ^
                       (static_cast<std::size_t>(vec[1]) << shift1);
             } else if constexpr (dim == 3) {
