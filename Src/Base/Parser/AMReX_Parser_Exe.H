@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Parser_Y.H>
+#include <AMReX_Stack.H>
 #include <AMReX_Vector.H>
 
 #include <limits>
@@ -217,24 +218,12 @@ struct alignas(8) ParserExeJUMP {
     int offset;
 };
 
-template <int N>
-struct ParserStack
-{
-    double m_data[N];
-    int m_size = 0;
-    constexpr void push (double v) { m_data[m_size++] = v; }
-    constexpr void pop () { --m_size; }
-    [[nodiscard]] constexpr double const& top () const { return m_data[m_size-1]; }
-    [[nodiscard]] constexpr double      & top ()       { return m_data[m_size-1]; }
-    [[nodiscard]] constexpr double operator[] (int i) const { return m_data[i]; }
-};
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double parser_exe_eval (const char* p, double const* x)
 {
     if (p == nullptr) { return std::numeric_limits<double>::max(); }
 
-    ParserStack<AMREX_PARSER_STACK_SIZE> pstack;
+    Stack<double, AMREX_PARSER_STACK_SIZE> pstack;
     while (*((parser_exe_t*)p) != PARSER_EXE_NULL) { // NOLINT
         switch (*((parser_exe_t*)p))
         {
