@@ -92,9 +92,9 @@ namespace amrex::tri_geom_ops
             CrossProd(v1,v2,n);
 
 
-            centr[0]=Real(0.333333)*(P1[0]+P2[0]+P3[0]);
-            centr[1]=Real(0.333333)*(P1[1]+P2[1]+P3[1]);
-            centr[2]=Real(0.333333)*(P1[2]+P2[2]+P3[2]);
+            centr[0]=Real(1./3.)*(P1[0]+P2[0]+P3[0]);
+            centr[1]=Real(1./3.)*(P1[1]+P2[1]+P3[1]);
+            centr[2]=Real(1./3.)*(P1[2]+P2[2]+P3[2]);
 
             getvec(centr,testp,c_tp_vec);
             magn=std::sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
@@ -166,13 +166,13 @@ namespace amrex::tri_geom_ops
                     break;
                 }
 
-                if(plane_eq_mid*plane_eq1 < 0.0)
+                if(plane_eq_mid*plane_eq1 < Real(0.0))
                 {
                     p2[0]=midp[0];
                     p2[1]=midp[1];
                     p2[2]=midp[2];
                 }
-                else if(plane_eq_mid*plane_eq2 < 0.0)
+                else if(plane_eq_mid*plane_eq2 < Real(0.0))
                 {
                     p1[0]=midp[0];
                     p1[1]=midp[1];
@@ -182,7 +182,7 @@ namespace amrex::tri_geom_ops
                     //or error: p1,midp and p2 are on the same side
                     //which is not what this function is meant for
                 {
-                    if(plane_eq_mid*plane_eq1 > 0.0 && plane_eq_mid*plane_eq2 > 0.0)
+                    if(plane_eq_mid*plane_eq1 > Real(0.0) && plane_eq_mid*plane_eq2 > Real(0.0))
                     {
                         all_ok=false;
                     }
@@ -233,11 +233,11 @@ namespace amrex::tri_geom_ops
                 }
             }
             //proper and edge intersection
-            else if( (S1 < 0.0 && S2 < 0.0 && S3 < 0.0) ||
-                    (S1 > 0.0 && S2 > 0.0 && S3 > 0.0) ||
-                    (std::abs(S1) < eps && S2*S3 > 0.0) ||     //S1=0
-                    (std::abs(S2) < eps && S3*S1 > 0.0) ||     //S2=0
-                    (std::abs(S3) < eps && S1*S2 > 0.0) )      //S3=0
+            else if( (S1 < Real(0.0) && S2 < Real(0.0) && S3 < Real(0.0)) ||
+                    (S1 > Real(0.0) && S2 > Real(0.0) && S3 > Real(0.0)) ||
+                    (std::abs(S1) < eps && S2*S3 > Real(0.0)) ||     //S1=0
+                    (std::abs(S2) < eps && S3*S1 > Real(0.0)) ||     //S2=0
+                    (std::abs(S3) < eps && S1*S2 > Real(0.0)) )      //S3=0
             {
 
                 get_plucker_coords(v1,t1,L2);
@@ -253,7 +253,7 @@ namespace amrex::tri_geom_ops
                 ls_s1 = side_op(L4,L3);
                 ls_s2 = side_op(L4,L2);
 
-                if(ls_s1*ls_s2 > 0.0)
+                if(ls_s1*ls_s2 > Real(0.0))
                 {
                     no_intersections = 0;
                 }
