@@ -10,6 +10,7 @@
 #include <AMReX_GpuDevice.H>
 #endif
 #include <AMReX_Print.H>
+#include <AMReX_IOFormat.H>
 
 #ifdef AMREX_USE_OMP
 #include <omp.h>
@@ -380,7 +381,6 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
 
     std::ofstream ofs;
     std::ostream* os = nullptr;
-    std::streamsize oldprec = 0;
     if (ParallelDescriptor::IOProcessor()) {
         auto const& ofile = get_output_file();
         if (ofile.empty()) {
@@ -393,6 +393,8 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
             os = static_cast<std::ostream*>(&ofs);
         }
     }
+
+    IOFormatSaver iofmtsaver(amrex::OutStream());
 
     if (os)
     {
@@ -439,8 +441,6 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
         ttstack.clear();
         statsmap.clear();
     }
-
-    if(os) { os->precision(oldprec); }
 }
 
 void
@@ -595,6 +595,8 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
 
     if (ParallelDescriptor::IOProcessor() && os)
     {
+        IOFormatSaver iofmtsaver(*os);
+
         *os << std::setfill(' ') << std::setprecision(4);
         int wt = 9;
 
@@ -877,6 +879,8 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
     }
 
     if (allstatsstr.size() == 1 || !os) { return; }
+
+    IOFormatSaver iofmtsaver(*os);
 
     int lenhline = 0;
     for (auto i : maxlen) {
