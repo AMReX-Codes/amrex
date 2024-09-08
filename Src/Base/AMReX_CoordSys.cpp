@@ -164,6 +164,7 @@ CoordSys::UpperIndex(const Real* point) const noexcept
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
+        // +1 for UpperIndex?
         ix[k] = (int) ((point[k]-offset[k])/dx[k]);
     }
     return ix;
@@ -330,6 +331,8 @@ CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
     GetEdgeLoc(vc,region,dir);
     //
     // In R direction of RZ, vol coord = (r^2)/2
+    // In R direction of SPHERICAL, vol coord = (r^3)/3
+    // In theta direction of SPHERICAL, vol coord = -cos(theta)
     //
 #if (AMREX_SPACEDIM == 2)
     if (dir == 0 && c_sys == RZ)
@@ -340,6 +343,29 @@ CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
         {
             Real r = vc[i];
             vc[i] = 0.5_rt*r*r;
+        }
+    }
+    else if (c_sys == SPHERICAL)
+    {
+        if (dir == 0)
+        {
+            int len = static_cast<int>(vc.size());
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len; i++)
+            {
+                Real r = vc[i];
+                vc[i] = r*r*r/3.0_rt;
+            }
+        }
+        else
+        {
+            int len = static_cast<int>(vc.size());
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len; i++)
+            {
+                Real theta = vc[i];
+                vc[i] = -std::cos(theta);
+            }
         }
     }
 #elif (AMREX_SPACEDIM == 1)
@@ -365,8 +391,11 @@ CoordSys::GetCellVolCoord (Vector<Real>& vc,
     // are identical to physical distance from axis.
     //
     GetCellLoc(vc,region,dir);
+
     //
-    // In R direction of RZ, vol coord = (r^2)/2.
+    // In R direction of RZ, vol coord = (r^2)/2
+    // In R direction of SPHERICAL, vol coord = (r^3)/3
+    // In theta direction of SPHERICAL, vol coord = -cos(theta)
     //
 #if (AMREX_SPACEDIM == 2)
     if (dir == 0 && c_sys == RZ)
@@ -377,6 +406,29 @@ CoordSys::GetCellVolCoord (Vector<Real>& vc,
         {
             Real r = vc[i];
             vc[i] = 0.5_rt*r*r;
+        }
+    }
+    else if (c_sys == SPHERICAL)
+    {
+        if (dir == 0)
+        {
+            int len = static_cast<int>(vc.size());
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len; i++)
+            {
+                Real r = vc[i];
+                vc[i] = r*r*r/3.0_rt;
+            }
+        }
+        else
+        {
+            int len = static_cast<int>(vc.size());
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len; i++)
+            {
+                Real theta = vc[i];
+                vc[i] = -std::cos(theta);
+            }
         }
     }
 #elif (AMREX_SPACEDIM == 1)
@@ -461,7 +513,10 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
                             *(xhi[2]-xlo[2]));
 #if (AMREX_SPACEDIM==2)
     case RZ:
-        return static_cast<Real>(0.5*TWOPI)*(xhi[1]-xlo[1])*(xhi[0]*xhi[0]-xlo[0]*xlo[0]);
+        return static_cast<Real>(0.5*TWOPI)*(xhi[1]-xlo[1])*(xhi[0]+xlo[0])*(xhi[0]-xlo[0]);
+    case SPHERICAL:
+        return static_cast<Real>(TWOPI/3.)*(std::cos(xlo[1])-std::cos(xhi[1])) *
+            (xhi[0]-xlo[0])*(xhi[0]*xhi[0]+xhi[0]*xlo[0]+xlo[0]*xlo[0]);
 #endif
     default:
         AMREX_ASSERT(0);
@@ -492,6 +547,16 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept // NOLINT(readab
         {
         case 0: return Real(TWOPI)*dx[1]*xlo[0];
         case 1: return ((xlo[0]+dx[0])*(xlo[0]+dx[0])-xlo[0]*xlo[0])*static_cast<Real>(0.5*TWOPI);
+        default:
+            AMREX_ASSERT(0);
+        }
+        return 0._rt; // to silent compiler warning
+    case SPHERICAL:
+        LoNode(point,xlo);
+        switch (dir)
+        {
+        case 0: return Real(TWOPI)*xlo[0]*xlo[0]*(std::cos(xlo[1]) - std::cos(xlo[1]+dx[1]));
+        case 1: return (xlo[0]+xlo[0]+dx[0])*dx[0]*std::sin(xlo[1])*static_cast<Real>(0.5*TWOPI);
         default:
             AMREX_ASSERT(0);
         }
@@ -536,6 +601,16 @@ CoordSys::AreaHi (const IntVect& point, int dir) const noexcept // NOLINT(readab
         {
         case 0: return Real(TWOPI)*dx[1]*xhi[0];
         case 1: return (xhi[0]*xhi[0]-(xhi[0]-dx[0])*(xhi[0]-dx[0]))*static_cast<Real>(TWOPI*0.5);
+        default:
+            AMREX_ASSERT(0);
+        }
+        return 0._rt; // to silent compiler warning
+    case SPHERICAL:
+        HiNode(point,xhi);
+        switch (dir)
+        {
+        case 0: return Real(TWOPI)*xhi[0]*xhi[0]*(std::cos(xhi[1]-dx[1]) - std::cos(xhi[1]));
+        case 1: return (xhi[0]+xhi[0]-dx[0])*dx[0]*std::sin(xhi[1])*static_cast<Real>(0.5*TWOPI);
         default:
             AMREX_ASSERT(0);
         }
