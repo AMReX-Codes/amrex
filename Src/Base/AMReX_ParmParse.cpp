@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <iostream>
 #include <limits>
 #include <numeric>
@@ -407,6 +408,19 @@ read_file (const char* fname, ParmParse::Table& tab)
     //
     if ( fname != nullptr && fname[0] != 0 )
     {
+        std::string filename = fname;
+
+        // optional prefix to search files in
+        char const *amrex_inputs_file_prefix_c = std::getenv("AMREX_INPUTS_FILE_PREFIX");
+        if (amrex_inputs_file_prefix_c != nullptr) {
+            // we expect a directory path as the prefix: append a trailing "/" if missing
+            auto amrex_inputs_file_prefix = std::string(amrex_inputs_file_prefix_c);
+            if (amrex_inputs_file_prefix.back() != '/') {
+                amrex_inputs_file_prefix += "/";
+            }
+            filename = amrex_inputs_file_prefix + filename;
+        }
+
 #ifdef AMREX_USE_MPI
         if (ParallelDescriptor::Communicator() == MPI_COMM_NULL)
         {
@@ -415,7 +429,6 @@ read_file (const char* fname, ParmParse::Table& tab)
 #endif
 
         Vector<char> fileCharPtr;
-        std::string filename = fname;
         ParallelDescriptor::ReadAndBcastFile(filename, fileCharPtr);
 
         std::istringstream is(fileCharPtr.data());
@@ -1283,7 +1296,7 @@ ParmParse::query (const char* name,
 }
 
 void
-ParmParse::add (const char* name,
+ParmParse::add (const char* name, // NOLINT(readability-make-member-function-const)
                 const bool  val)
 {
     saddval(prefixedName(name),val);
@@ -1315,7 +1328,7 @@ ParmParse::query (const char* name, int& ref, int ival) const
 }
 
 void
-ParmParse::add (const char* name, const int val)
+ParmParse::add (const char* name, const int val) // NOLINT(readability-make-member-function-const)
 {
     saddval(prefixedName(name),val);
 }
@@ -1349,7 +1362,7 @@ ParmParse::queryarr (const char* name, std::vector<int>& ref, int start_ix,
 }
 
 void
-ParmParse::addarr (const char* name, const std::vector<int>& ref)
+ParmParse::addarr (const char* name, const std::vector<int>& ref) // NOLINT(readability-make-member-function-const)
 {
     saddarr(prefixedName(name),ref);
 }
@@ -1381,7 +1394,7 @@ ParmParse::query (const char* name, long& ref, int ival) const
 }
 
 void
-ParmParse::add (const char* name,
+ParmParse::add (const char* name, // NOLINT(readability-make-member-function-const)
                 const long  val)
 {
     saddval(prefixedName(name),val);
@@ -1416,7 +1429,7 @@ ParmParse::queryarr (const char* name, std::vector<long>& ref, int start_ix,
 }
 
 void
-ParmParse::addarr (const char* name, const std::vector<long>& ref)
+ParmParse::addarr (const char* name, const std::vector<long>& ref) // NOLINT(readability-make-member-function-const)
 {
     saddarr(prefixedName(name),ref);
 }
@@ -1447,7 +1460,7 @@ ParmParse::query (const char* name, long long& ref, int ival) const
 }
 
 void
-ParmParse::add (const char* name, const long long val)
+ParmParse::add (const char* name, const long long val) // NOLINT(readability-make-member-function-const)
 {
     saddval(prefixedName(name),val);
 }
@@ -1481,7 +1494,7 @@ ParmParse::queryarr (const char* name, std::vector<long long>& ref, int start_ix
 }
 
 void
-ParmParse::addarr (const char* name, const std::vector<long long>& ref)
+ParmParse::addarr (const char* name, const std::vector<long long>& ref) // NOLINT(readability-make-member-function-const)
 {
     saddarr(prefixedName(name),ref);
 }
@@ -1512,7 +1525,7 @@ ParmParse::query (const char* name, float& ref, int ival) const
 }
 
 void
-ParmParse::add (const char* name, const float val)
+ParmParse::add (const char* name, const float val) // NOLINT(readability-make-member-function-const)
 {
     saddval(prefixedName(name),val);
 }
@@ -1546,7 +1559,7 @@ ParmParse::queryarr (const char* name, std::vector<float>& ref, int start_ix,
 }
 
 void
-ParmParse::addarr (const char* name, const std::vector<float>& ref)
+ParmParse::addarr (const char* name, const std::vector<float>& ref) // NOLINT(readability-make-member-function-const)
 {
     saddarr(prefixedName(name),ref);
 }
@@ -1579,7 +1592,7 @@ ParmParse::query (const char* name, double& ref, int ival) const
 }
 
 void
-ParmParse::add (const char* name, const double val)
+ParmParse::add (const char* name, const double val) // NOLINT(readability-make-member-function-const)
 {
     saddval(prefixedName(name),val);
 }
@@ -1613,7 +1626,7 @@ ParmParse::queryarr (const char* name, std::vector<double>& ref, int start_ix,
 }
 
 void
-ParmParse::addarr (const char* name, const std::vector<double>& ref)
+ParmParse::addarr (const char* name, const std::vector<double>& ref) // NOLINT(readability-make-member-function-const)
 {
     saddarr(prefixedName(name),ref);
 }
@@ -1646,7 +1659,7 @@ ParmParse::query (const char* name, std::string& ref, int ival) const
 }
 
 void
-ParmParse::add (const char* name, const std::string& val)
+ParmParse::add (const char* name, const std::string& val) // NOLINT(readability-make-member-function-const)
 {
     saddval(prefixedName(name),val);
 }
@@ -1680,7 +1693,7 @@ ParmParse::queryarr (const char* name, std::vector<std::string>& ref,
 }
 
 void
-ParmParse::addarr (const char* name, const std::vector<std::string>& ref)
+ParmParse::addarr (const char* name, const std::vector<std::string>& ref) // NOLINT(readability-make-member-function-const)
 {
     saddarr(prefixedName(name),ref);
 }
@@ -1713,7 +1726,7 @@ ParmParse::query (const char* name, IntVect& ref, int ival) const
 }
 
 void
-ParmParse::add (const char* name, const IntVect& val)
+ParmParse::add (const char* name, const IntVect& val) // NOLINT(readability-make-member-function-const)
 {
     saddval(prefixedName(name),val);
 }
@@ -1747,7 +1760,7 @@ ParmParse::queryarr (const char* name, std::vector<IntVect>& ref,
 }
 
 void
-ParmParse::addarr (const char* name, const std::vector<IntVect>& ref)
+ParmParse::addarr (const char* name, const std::vector<IntVect>& ref) // NOLINT(readability-make-member-function-const)
 {
     saddarr(prefixedName(name),ref);
 }
@@ -1778,7 +1791,7 @@ ParmParse::query (const char* name, Box& ref, int ival) const
 }
 
 void
-ParmParse::add (const char* name, const Box& val)
+ParmParse::add (const char* name, const Box& val) // NOLINT(readability-make-member-function-const)
 {
     saddval(prefixedName(name),val);
 }
@@ -1812,7 +1825,7 @@ ParmParse::queryarr (const char* name, std::vector<Box>& ref,
 }
 
 void
-ParmParse::addarr (const char* name, const std::vector<Box>& ref)
+ParmParse::addarr (const char* name, const std::vector<Box>& ref) // NOLINT(readability-make-member-function-const)
 {
     saddarr(prefixedName(name),ref);
 }

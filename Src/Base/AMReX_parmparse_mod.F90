@@ -241,6 +241,10 @@ module amrex_parmparse_module
      end subroutine amrex_parmparse_add_stringarr
   end interface
 
+  interface amrex_parmparse_destroy
+     module procedure amrex_parmparse_destroy
+  end interface amrex_parmparse_destroy
+
 contains
 
   subroutine amrex_parmparse_build (pp, name)

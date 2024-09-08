@@ -57,7 +57,7 @@ public:
     static void MemoryInitialize () noexcept;
     static void MemoryFinalize (bool bFlushing = false) noexcept;
 
-    static void RegisterArena (const std::string& memory_name,
+    static bool RegisterArena (const std::string& memory_name,
                                std::map<std::string, MemStat>& memstats) noexcept;
 
     static void DeregisterArena (std::map<std::string, MemStat>& memstats) noexcept;
@@ -143,6 +143,7 @@ private:
     static bool memprof_enabled;
     static std::string output_file;
 
+    static std::string const& get_output_file ();
     static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
                             std::ostream* os);
     static void PrintMemStats (std::map<std::string, MemStat>& memstats,

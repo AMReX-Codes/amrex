@@ -31,6 +31,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_parmparse_fi.cpp
        AMReX_ParmParse.H
        AMReX_Functional.H
+       AMReX_Stack.H
        AMReX_String.H
        AMReX_String.cpp
        AMReX_Utility.H

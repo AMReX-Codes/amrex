@@ -651,7 +651,7 @@ knapsack (const std::vector<Long>&         wgts,
     if (efficiency < max_efficiency && do_full_knapsack
         && wblv.size() > 1 && wblv.begin()->size() > 1)
     {
-        BL_PROFILE_VAR("knapsack()swap", swap);
+        BL_PROFILE("knapsack()swap");
 top: ;
 
         if (efficiency < max_efficiency && wblv.begin()->size() > 1)
@@ -980,7 +980,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
             new_efficiency = avg_weight / max_weight;
 
             if (new_efficiency < max_efficiency && wblv.size() > 1) {
-                BL_PROFILE_VAR("knapsack()swap", swap);
+                BL_PROFILE("knapsack()swap");
 
                 std::sort(wblv.begin(), wblv.end());
 

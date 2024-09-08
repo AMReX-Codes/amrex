@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_IParser_Y.H>
+#include <AMReX_Stack.H>
 #include <AMReX_Vector.H>
 
 #include <limits>
@@ -226,24 +227,12 @@ struct alignas(8) IParserExeJUMP {
     int offset;
 };
 
-template <int N>
-struct IParserStack
-{
-    long long m_data[N];
-    int m_size = 0;
-    constexpr void push (long long v) { m_data[m_size++] = v; }
-    constexpr void pop () { --m_size; }
-    [[nodiscard]] constexpr long long const& top () const { return m_data[m_size-1]; }
-    [[nodiscard]] constexpr long long      & top ()       { return m_data[m_size-1]; }
-    [[nodiscard]] constexpr long long operator[] (int i) const { return m_data[i]; }
-};
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 long long iparser_exe_eval (const char* p, long long const* x)
 {
     if (p == nullptr) { return std::numeric_limits<long long>::max(); }
 
-    IParserStack<AMREX_IPARSER_STACK_SIZE> pstack;
+    Stack<long long, AMREX_IPARSER_STACK_SIZE> pstack;
     while (*((iparser_exe_t*)p) != IPARSER_EXE_NULL) {
         switch (*((iparser_exe_t*)p))
         {

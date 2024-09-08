@@ -4,9 +4,21 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX_INT.H>
+
+#ifdef AMREX_TINY_PROFILING
+#include <AMReX_TinyProfiler.H>
+#else
+namespace amrex {
+    struct MemStat {};
+}
+#endif
+
 #include <cstddef>
 #include <cstdlib>
 #include <limits>
+#include <map>
+#include <mutex>
+#include <unordered_map>
 #include <utility>
 
 namespace amrex {
@@ -156,7 +168,7 @@ public:
      * \brief Add this Arena to the list of Arenas that are profiled by TinyProfiler.
      * \param memory_name The name of this arena in the TinyProfiler output.
      */
-    virtual void registerForProfiling (const std::string& memory_name);
+    void registerForProfiling (const std::string& memory_name);
 
 #ifdef AMREX_USE_GPU
     //! Is this GPU stream ordered memory allocator?
@@ -199,6 +211,29 @@ protected:
     virtual std::size_t freeUnused_protected () { return 0; }
     void* allocate_system (std::size_t nbytes);
     void deallocate_system (void* p, std::size_t nbytes);
+
+    struct ArenaProfiler {
+        //! If this arena is profiled by TinyProfiler
+        bool m_do_profiling = false;
+        //! Mutex for the profiling
+        std::mutex m_arena_profiler_mutex;
+        //! Data structure used for profiling with TinyProfiler
+        std::map<std::string, MemStat> m_profiling_stats;
+        //! Track the currently allocated memory, not used by CArena
+        std::unordered_map<void*, std::pair<MemStat*, std::size_t>> m_currently_allocated;
+
+        ~ArenaProfiler ();
+        ArenaProfiler () noexcept = default;
+        ArenaProfiler (const ArenaProfiler& rhs) = delete;
+        ArenaProfiler (ArenaProfiler&& rhs) = delete;
+        ArenaProfiler& operator= (const ArenaProfiler& rhs) = delete;
+        ArenaProfiler& operator= (ArenaProfiler&& rhs) = delete;
+
+        void profile_alloc (void* ptr, std::size_t nbytes);
+
+        void profile_free (void* ptr);
+
+    } m_profiler;
 };
 
 }

@@ -154,6 +154,7 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_TEST_TYPE=Small                      \
             -DAMReX_FORTRAN=ON                           \
+            -DAMReX_FORTRAN_INTERFACES=ON                \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which nvc)              \
             -DCMAKE_CXX_COMPILER=$(which nvc++)          \

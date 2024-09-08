@@ -117,9 +117,13 @@ Arena::hasFreeDeviceMemory (std::size_t)
 }
 
 void
-Arena::registerForProfiling (const std::string&)
+Arena::registerForProfiling ([[maybe_unused]] const std::string& memory_name)
 {
-    amrex::Abort("Profiling is not implemented for this type of Arena");
+#ifdef AMREX_TINY_PROFILING
+    AMREX_ALWAYS_ASSERT(m_profiler.m_do_profiling == false);
+    m_profiler.m_do_profiling =
+        TinyProfiler::RegisterArena(memory_name, m_profiler.m_profiling_stats);
+#endif
 }
 
 std::size_t
@@ -330,6 +334,7 @@ Arena::Initialize ()
     }
 
     the_async_arena = new PArena(the_async_arena_release_threshold);
+    the_async_arena->registerForProfiling("Async Memory");
 
 #ifdef AMREX_USE_GPU
     if (the_arena->isDevice()) {
@@ -403,6 +408,7 @@ Arena::Initialize ()
     }
 
     the_cpu_arena = The_BArena();
+    the_cpu_arena->registerForProfiling("Cpu Memory");
 
     // Initialize the null arena
     auto* null_arena = The_Null_Arena();
@@ -652,6 +658,48 @@ The_Comms_Arena ()
     } else {
         return The_Null_Arena();
     }
+}
+
+#ifdef AMREX_TINY_PROFILING
+
+Arena::ArenaProfiler::~ArenaProfiler ()
+{
+    if (m_do_profiling) {
+        TinyProfiler::DeregisterArena(m_profiling_stats);
+    }
+}
+
+#else
+
+Arena::ArenaProfiler::~ArenaProfiler () = default;
+
+#endif
+
+void Arena::ArenaProfiler::profile_alloc ([[maybe_unused]] void* ptr,
+                                          [[maybe_unused]] std::size_t nbytes) {
+#ifdef AMREX_TINY_PROFILING
+    if (m_do_profiling) {
+        std::lock_guard<std::mutex> lock(m_arena_profiler_mutex);
+        MemStat* stat = TinyProfiler::memory_alloc(nbytes, m_profiling_stats);
+        if (stat) {
+            m_currently_allocated.insert({ptr, {stat, nbytes}});
+        }
+    }
+#endif
+}
+
+void Arena::ArenaProfiler::profile_free ([[maybe_unused]] void* ptr) {
+#ifdef AMREX_TINY_PROFILING
+    if (m_do_profiling) {
+        std::lock_guard<std::mutex> lock(m_arena_profiler_mutex);
+        auto it = m_currently_allocated.find(ptr);
+        if (it != m_currently_allocated.end()) {
+            auto [stat, nbytes] = it->second;
+            TinyProfiler::memory_free(nbytes, stat);
+            m_currently_allocated.erase(it);
+        }
+    }
+#endif
 }
 
 }

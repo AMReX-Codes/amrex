@@ -165,6 +165,11 @@ public:
     [[nodiscard]] Long sum (int comp, int nghost = 0, bool local = false) const;
 
     /**
+    * \brief Returns the sum of component "comp" in the given "region". -- no ghost cells are included.
+    */
+    [[nodiscard]] Long sum (Box const& region, int comp = 0, bool local = false) const;
+
+    /**
     * \brief Adds the scalar value val to the value of each cell in the
     * specified subregion of the iMultiFab.  The subregion consists
     * of the num_comp components starting at component comp.

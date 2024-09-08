@@ -101,7 +101,9 @@ void set_eb_data (const int i, const int j, const int k,
     bnorm(i,j,k,0) = nx;
     bnorm(i,j,k,1) = ny;
     bnorm(i,j,k,2) = nz;
-    barea(i,j,k) = (nx*dapx/(dx[1]*dx[2]) + ny*dapy/(dx[0]*dx[2]) + nz*dapz/(dx[0]*dx[1]));
+    barea(i,j,k) = (nx*dapx + ny*dapy + nz*dapz) / std::sqrt(Math::powi<2>(nx*dx[1]*dx[2]) +
+                                                             Math::powi<2>(ny*dx[0]*dx[2]) +
+                                                             Math::powi<2>(nz*dx[0]*dx[1]));
 
     Real aax = 0.5_rt*(axm+axp);
     Real aay = 0.5_rt*(aym+ayp);

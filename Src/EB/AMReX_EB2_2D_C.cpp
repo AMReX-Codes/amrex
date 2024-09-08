@@ -30,8 +30,7 @@ void set_eb_data (const int i, const int j,
     const Real apnorm = std::hypot(daxp,dayp) + 1.e-30_rt*std::sqrt(dx[0]*dx[1]);
     const Real nx = daxp * (1.0_rt/apnorm);
     const Real ny = dayp * (1.0_rt/apnorm);
-    const Real bareascaling = std::sqrt( (nx*dx[0])*(nx*dx[0]) +
-            (ny*dx[1])*(ny*dx[1]) );
+    const Real bareascaling = std::sqrt(Math::powi<2>(nx*dx[1]) + Math::powi<2>(ny*dx[0]));
 
     const Real nxabs = std::abs(nx);
     const Real nyabs = std::abs(ny);
