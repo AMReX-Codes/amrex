@@ -358,6 +358,9 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
     Gpu::PinnedVector<Node> bvh_nodes;
     if (m_bvh_optimization) {
         BL_PROFILE("STLtools::build_bvh");
+        std::size_t nnodes = 0;
+        bvh_size(int(a_tri_pts.size()), nnodes);
+        bvh_nodes.reserve(nnodes);
         build_bvh(a_tri_pts.data(), a_tri_pts.data()+a_tri_pts.size(), bvh_nodes);
 #ifdef AMREX_USE_GPU
         m_bvh_nodes.resize(bvh_nodes.size());
@@ -597,6 +600,23 @@ STLtools::build_bvh (Triangle* begin, Triangle* end, Gpu::PinnedVector<Node>& bv
             node.boundingbox.setLo(idim, std::min(lo,clo));
             node.boundingbox.setHi(idim, std::max(hi,chi));
         }
+    }
+}
+
+void
+STLtools::bvh_size (int ntri, std::size_t& nnodes)
+{
+    ++nnodes;
+
+    if (ntri <= m_bvh_max_size) { return; } // This is a leaf node
+
+    int nsplits = std::min((ntri + (m_bvh_max_size-1)) / m_bvh_max_size, m_bvh_max_splits);
+    int tsize = ntri / nsplits;
+    int nleft = ntri - tsize*nsplits;
+
+    for (int isplit = 0; isplit < nsplits; ++isplit) {
+        int child_size = (isplit < nleft) ? (tsize+1) : tsize;
+        bvh_size(child_size, nnodes);
     }
 }
 

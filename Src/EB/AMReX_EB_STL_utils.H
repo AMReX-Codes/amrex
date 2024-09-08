@@ -109,6 +109,7 @@ private:
                                Gpu::PinnedVector<Triangle>& a_tri_pts);
 
     static void build_bvh (Triangle* begin, Triangle * end, Gpu::PinnedVector<Node>& bvh_nodes);
+    static void bvh_size (int ntri, std::size_t& nnodes);
 };
 
 }
