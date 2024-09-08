@@ -8,6 +8,8 @@
 #include <cstring>
 #include <limits>
 
+// Reference for BVH: https://rmrsk.github.io/EBGeometry/Concepts.html#bounding-volume-hierarchies
+
 namespace amrex
 {
 
