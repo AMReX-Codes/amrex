@@ -126,11 +126,11 @@ namespace {
             // with the actual bounding box.
             if (a[idim] == b[idim]) { continue; }
             Real xi[] = {box.lo(idim), box.hi(idim)};
-            for (int face = 0; face < 2; ++face) {
-                if (!((a[idim] > xi[face] && b[idim] > xi[face]) ||
-                      (a[idim] < xi[face] && b[idim] < xi[face])))
+            for (auto xface : xi) {
+                if (!((a[idim] > xface && b[idim] > xface) ||
+                      (a[idim] < xface && b[idim] < xface)))
                 {
-                    Real w = (xi[face]-a[idim]) / (b[idim]-a[idim]);
+                    Real w = (xface-a[idim]) / (b[idim]-a[idim]);
                     bool inside = true;
                     for (int jdim = 0; jdim < AMREX_SPACEDIM; ++jdim) {
                         if (idim != jdim) {
@@ -151,7 +151,7 @@ namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void bvh_line_tri_intersects (Real a[3], Real b[3],
                                   STLtools::BVHNodeT<M,N> const* root,
-                                  F&& f)
+                                  F const& f)
     {
         // Use stack to avoid recursion
         Stack<int, STLtools::m_bvh_max_stack_size> nodes_to_do;
@@ -172,7 +172,7 @@ namespace {
             } else {
                 auto& ndone = nchildren_done.top();
                 if (ndone < node.nchildren) {
-                    for (int ichild = ndone; ichild < node.nchildren; ++ichild) {
+                    for (auto ichild = ndone; ichild < node.nchildren; ++ichild) {
                         ++ndone;
                         int inode = node.children[ichild];
                         if (line_box_intersects(a, b, root[inode].boundingbox)) {
@@ -548,7 +548,7 @@ STLtools::build_bvh (Triangle* begin, Triangle* end, Gpu::PinnedVector<Node>& bv
             bbox.setLo(idim,bbox.lo(idim)-small);
             bbox.setHi(idim,bbox.hi(idim)+small);
         }
-        node.ntriangles = ntri;
+        node.ntriangles = int(ntri);
         return;
     }
 
@@ -568,8 +568,8 @@ STLtools::build_bvh (Triangle* begin, Triangle* end, Gpu::PinnedVector<Node>& bv
     int nleft = ntri - tsize*nsplits;
 
     bvh_nodes.push_back(Node());
-    bvh_nodes.back().nchildren = nsplits;
-    int this_node = bvh_nodes.size()-1;
+    bvh_nodes.back().nchildren = std::int8_t(nsplits);
+    auto this_node = bvh_nodes.size()-1;
 
     for (int isplit = 0; isplit < nsplits; ++isplit) {
         int tbegin, tend;

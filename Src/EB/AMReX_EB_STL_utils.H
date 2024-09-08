@@ -20,13 +20,13 @@ public:
     struct Triangle {
         XDim3 v1, v2, v3;
 
-        Real cent (int d) const
+        [[nodiscard]] Real cent (int d) const
         {
             static_assert(sizeof(XDim3) == sizeof(Real)*3);
             return Real(1./3.)*((&v1.x)[d] + (&v2.x)[d] + (&v3.x)[d]);
         }
 
-        std::pair<Real,Real> minmax (int d) const
+        [[nodiscard]] std::pair<Real,Real> minmax (int d) const
         {
             static_assert(sizeof(XDim3) == sizeof(Real)*3);
             return std::minmax({(&v1.x)[d], (&v2.x)[d], (&v3.x)[d]});
