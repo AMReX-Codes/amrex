@@ -548,7 +548,7 @@ STLtools::build_bvh (Triangle* begin, Triangle* end, Gpu::PinnedVector<Node>& bv
             bbox.setLo(idim,bbox.lo(idim)-small);
             bbox.setHi(idim,bbox.hi(idim)+small);
         }
-        node.ntriangles = int(ntri);
+        node.ntriangles = int(ntri); // NOLINT
         return;
     }
 
