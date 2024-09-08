@@ -6,7 +6,6 @@
 #include <AMReX_Stack.H>
 
 #include <cstring>
-#include <limits>
 
 // Reference for BVH: https://rmrsk.github.io/EBGeometry/Concepts.html#bounding-volume-hierarchies
 
@@ -669,7 +668,6 @@ STLtools::fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
         }
         ma[box_no](i,j,k) = (num_intersects % 2 == 0) ? reference_value : other_value;
     });
-
     Gpu::streamSynchronize();
 }
 
@@ -768,7 +766,6 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
 
             return (num_intersects % 2 == 0) ? ref_value : 1-ref_value;
         });
-
         ReduceTuple hv = reduce_data.value(reduce_op);
         Long nfluid = static_cast<Long>(amrex::get<0>(hv));
         Long npts = box.numPts();

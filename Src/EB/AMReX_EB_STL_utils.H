@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <utility>
 
 namespace amrex
@@ -59,7 +60,6 @@ public:
     static constexpr int mixedcells = 0;
     static constexpr int allcovered = 1;
 
-    // xxxxx yes, no, auto
     void setBVHOptimization (bool flag) { m_bvh_optimization = flag; }
 
     void read_stl_file (std::string const& fname, Real scale, Array<Real,3> const& center,
