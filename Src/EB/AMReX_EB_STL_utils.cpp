@@ -28,7 +28,7 @@ namespace {
 
     // Does line ab intersect with the triangle?
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool line_tri_intersects (Real a[3], Real b[3], STLtools::Triangle const& tri)
+    bool line_tri_intersects (Real const a[3], Real const b[3], STLtools::Triangle const& tri)
     {
         if (amrex::max(a[0],b[0]) < amrex::min(tri.v1.x,tri.v2.x,tri.v3.x) ||
             amrex::min(a[0],b[0]) > amrex::max(tri.v1.x,tri.v2.x,tri.v3.x) ||
@@ -150,7 +150,7 @@ namespace {
 
     template <int M, int N, typename F>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void bvh_line_tri_intersects (Real a[3], Real b[3],
+    void bvh_line_tri_intersects (Real const a[3], Real const b[3],
                                   STLtools::BVHNodeT<M,N> const* root,
                                   F const& f)
     {

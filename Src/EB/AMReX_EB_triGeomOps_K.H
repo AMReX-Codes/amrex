@@ -63,8 +63,8 @@ namespace amrex::tri_geom_ops
             L[5] = v2[1]       - v1[1];
         }
         //================================================================================
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void side_op3(Real v1[3],Real v2[3],
-                Real t1[3],Real t2[3],Real t3[3],
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void side_op3(const Real v1[3], const Real v2[3],
+                const Real t1[3], const Real t2[3], const Real t3[3],
                 Real &S1, Real &S2, Real &S3)
         {
 
@@ -81,8 +81,8 @@ namespace amrex::tri_geom_ops
         }
         //================================================================================
         //get normal of triangle pointing at a test-point
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void tri_n(Real P1[3],Real P2[3],Real P3[3],
-                Real testp[3],Real n[3])
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void tri_n(const Real P1[3], const Real P2[3], const Real P3[3],
+                const Real testp[3], Real n[3])
         {
             Real v1[3],v2[3],magn;
             Real centr[3],c_tp_vec[3];
@@ -109,7 +109,7 @@ namespace amrex::tri_geom_ops
             n[2]=n[2]/magn;
         }
         //================================================================================
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real triangle_area(Real P1[3],Real P2[3],Real P3[3])
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE Real triangle_area(const Real P1[3], const Real P2[3], const Real P3[3])
         {
             Real v1[3],v2[3],area[3];
 
@@ -121,7 +121,7 @@ namespace amrex::tri_geom_ops
         //================================================================================
         //this is only useful when v1-v2 segment intersects the triangle
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE bool find_intersection_point(const Real v1[3],const Real v2[3],
-                Real t1[3], Real t2[3], Real t3[3],Real ip[3],int bisect_iters=20,Real tol=1e-6)
+                const Real t1[3], const Real t2[3], const Real t3[3], Real ip[3],int bisect_iters=20,Real tol=1e-6)
         {
             Real plane_eq_mid,plane_eq1,plane_eq2;
 
@@ -197,8 +197,8 @@ namespace amrex::tri_geom_ops
             return(all_ok);
         }
         //================================================================================
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int lineseg_tri_intersect(Real v1[3],Real v2[3],
-                Real t1[3],Real t2[3],Real t3[3])
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE int lineseg_tri_intersect(const Real v1[3], const Real v2[3],
+                const Real t1[3], const Real t2[3], const Real t3[3])
         {
             //see plucker coordinates based method
             //https://members.loria.fr/SLazard/ARC-Visi3D/Pant-project/files/Line_Triangle.html
