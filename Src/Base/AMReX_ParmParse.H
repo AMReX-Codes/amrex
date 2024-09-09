@@ -1154,6 +1154,29 @@ public:
     }
 
     /*
+     * \brief Evaluate given string as math expression
+     *
+     * For unknown symbols, ParmParse database will be queried.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    T eval (std::string const& expr) const
+    {
+        if constexpr (std::is_integral_v<T>) {
+            auto const parser = this->makeIParser(expr, {});
+            auto const exe = parser.compileHost<0>();
+            return static_cast<T>(exe()); // In the future, we might add safety check.
+        } else {
+            auto const parser = this->makeParser(expr, {});
+            auto const exe = parser.compileHost<0>();
+            return static_cast<T>(exe());
+        }
+    }
+
+    /*
      * \brief Query two names.
      *
      * This function queries with `new_name` first. If it's not found, it
