@@ -164,8 +164,7 @@ CoordSys::UpperIndex(const Real* point) const noexcept
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
-        // +1 for UpperIndex?
-        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
+        ix[k] = (int) ((point[k]-offset[k])/dx[k] + 1);
     }
     return ix;
 }
