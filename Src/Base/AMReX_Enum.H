@@ -15,49 +15,91 @@
 template <typename T>
 using amrex_enum_traits = decltype(amrex_get_enum_traits(std::declval<T>()));
 
-namespace amrex {
+namespace amrex
+{
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    std::vector<std::pair<std::string,T>> getEnumNameValuePairs ()
+    {
+        auto tmp = amrex::split(std::string(ET::enum_names), ",");
+        std::vector<std::pair<std::string,T>> r;
+        r.reserve(tmp.size());
+        int next_value = 0;
+        for (auto const& item : tmp) {
+            auto const& kv = amrex::split(item, "=");
+            if (kv.size() == 1) {
+                r.emplace_back(amrex::trim(kv[0]), static_cast<T>(next_value));
+                ++next_value;
+            } else if (kv.size() == 2) {
+                auto const& value_string = amrex::trim(kv[1]);
+                auto it = std::find_if(r.begin(), r.end(),
+                                       [&] (auto const& x) -> bool
+                                           { return x.first == value_string; });
+                auto this_value = it->second;
+                r.emplace_back(amrex::trim(kv[0]), this_value);
+                next_value = static_cast<int>(this_value) + 1;
+            } else {
+                std::string error_msg("amrex::getEnumNameIntPairs: AMREX_ENUM(");
+                error_msg.append(ET::class_name).append(", ").append(ET::enum_names)
+                    .append(").");
+                throw std::runtime_error(error_msg);
+            }
+        }
+        return r;
+    }
+
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
     T getEnum (std::string_view const& s)
     {
-        auto pos = ET::enum_names.find(s);
-        if (pos == std::string_view::npos) {
+        auto const& kv = getEnumNameValuePairs<T>();
+        auto it = std::find_if(kv.begin(), kv.end(),
+                               [&] (auto const& x) -> bool
+                                   { return x.first == s; });
+        if (it != kv.end()) {
+            return it->second;
+        } else {
             std::string error_msg("amrex::getEnum: Unknown enum: ");
             error_msg.append(s).append(" in AMREX_ENUM(").append(ET::class_name)
                 .append(", ").append(ET::enum_names).append(").");
             throw std::runtime_error(error_msg);
+            return T();
         }
-        auto count = std::count(ET::enum_names.begin(),
-                                ET::enum_names.begin()+pos, ',');
-        return static_cast<T>(count);
     }
 
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
     std::string getEnumNameString (T const& v)
     {
-        auto n = static_cast<int>(v);
-        std::size_t pos = 0;
-        for (int i = 0; i < n; ++i) {
-            pos = ET::enum_names.find(',', pos);
-            if (pos == std::string::npos) {
-                std::string error_msg("amrex::getEnum: Unknown enum value: ");
-                error_msg.append(std::to_string(n)).append(" in AMREX_ENUM(")
-                    .append(ET::class_name).append(", ").append(ET::enum_names)
-                    .append(").");
-                throw std::runtime_error(error_msg);
-            }
-            ++pos;
+        auto const& kv = getEnumNameValuePairs<T>();
+        auto it = std::find_if(kv.begin(), kv.end(),
+                               [&] (auto const& x) -> bool
+                                   { return x.second == v; });
+        if (it != kv.end()) {
+            return it->first;
+        } else {
+            std::string error_msg("amrex::getEnum: Unknown enum value: ");
+            error_msg.append(std::to_string(static_cast<int>(v)))
+                .append(" in AMREX_ENUM(").append(ET::class_name).append(", ")
+                .append(ET::enum_names).append(").");
+            throw std::runtime_error(error_msg);
+            return std::string();
         }
-        auto pos2 = ET::enum_names.find(',', pos);
-        return amrex::trim(std::string(ET::enum_names.substr(pos,pos2-pos)));
     }
 
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
     std::vector<std::string> getEnumNameStrings ()
     {
-        return amrex::split(std::string(ET::enum_names), ", ");
+        auto r = amrex::split(std::string(ET::enum_names), ",");
+        for (auto& s : r) {
+            auto found = s.find('=');
+            if (found != std::string::npos) {
+                s.erase(found);
+            }
+            s = amrex::trim(s);
+        }
+        return r;
     }
 
     template <typename T, typename ET = amrex_enum_traits<T>,
