@@ -787,6 +787,15 @@ Embedded Boundary
    .. tip::  Because AMReX currently does not support multi-cut cells, it
              would be a runtime error if multi-cut cells are left unfixed.
 
+.. py:data:: eb2.plt_multiple_cuts
+   :type: bool
+   :value: false
+
+   If this parameter is set to true and multi-cut cells are present,
+   we produce plot files to see the location of the multi-cut issue.
+   In the plot file, a cell value of 2 indicates regular, 0 means covered,
+   and values greater than 2 indicate multi-cut cells.
+
 .. py:data:: eb2.maxiter
    :type: int
    :value: 32
