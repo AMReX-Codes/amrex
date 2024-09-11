@@ -56,7 +56,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                  Array4<Real> const& m2z,
                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                  GpuArray<Real,AMREX_SPACEDIM> const& problo,
-                 bool cover_multiple_cuts, bool plt_multiple_cuts, 
+                 bool cover_multiple_cuts, bool plt_multiple_cuts,
                  Array4<Real> const& mcx, Array4<Real> const& mcy, Array4<Real> const& mcz) noexcept;
 
 void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
