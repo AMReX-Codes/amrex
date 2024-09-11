@@ -1329,19 +1329,14 @@ public:
         std::string s;
         int exist = this->query(name, s, ival);
         if (exist) {
-            s = amrex::toLower(s);
-            auto const& enum_names = amrex::getEnumNameStrings<T>();
-            auto found = std::find_if(enum_names.begin(), enum_names.end(),
-                                      [&] (std::string const& ename) {
-                                          return amrex::toLower(ename) == s;
-                                      });
-            if (found != enum_names.end()) {
-                ref = static_cast<T>(std::distance(enum_names.begin(), found));
-            } else {
-                std::string msg("query_enum_case_insensitive(\"");
-                msg.append(name).append("\",").append(amrex::getEnumClassName<T>())
-                    .append("&) failed.");
-                throw std::runtime_error(msg);
+            try {
+                ref = amrex::getEnumCaseInsensitive<T>(s);
+            } catch (...) {
+                if (amrex::Verbose() > 0) {
+                    amrex::Print() << "amrex::ParmParse::query_enum_case_insensitive (input name: "
+                                   << this->prefixedName(name) << "):\n";
+                }
+                throw;
             }
         }
         return exist;

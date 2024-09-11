@@ -129,6 +129,11 @@ int main (int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(amrex::getEnum<MyColor2>("green") == MyColor2::green);
         AMREX_ALWAYS_ASSERT(amrex::getEnum<MyColor2>("blue") == MyColor2::blue);
         AMREX_ALWAYS_ASSERT(amrex::getEnum<MyColor2>("Default") == MyColor2::Default);
+
+        auto my_blue = MyColor2::Default;
+        ParmParse pp;
+        pp.query_enum_case_insensitive("color5", my_blue);
+        AMREX_ALWAYS_ASSERT(my_blue == MyColor2::blue);
     }
 
     amrex::Finalize();
