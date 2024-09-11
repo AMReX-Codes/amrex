@@ -1365,6 +1365,69 @@ public:
         }
     }
 
+    /**
+     * \brief. Query enum value using given name.
+     *
+     * Here T is an enum class defined by AMREX_ENUM. The return value
+     * indicates if `name` is found. An exception is thrown, if the found
+     * string associated with the name cannot be case-insensitively
+     * converted to an enumerator (i.e., the found string, not `name`, does
+     * not case-insensitively match any names in the definition of T). If
+     * there are multiple matches, the first one is used. Characters in
+     * `ignores` will be ignored as if they don't exist in the value part of
+     * ParamParse entries (e.g., `name = value`).
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    int query_enum_sloppy (const char* name, T& ref, std::string_view const& ignores,
+                           int ival = FIRST) const
+    {
+        std::string s;
+        int exist = this->query(name, s, ival);
+        if (exist) {
+            try {
+                s.erase(std::remove_if(s.begin(), s.end(),
+                                       [&] (auto const& c) {
+                                           return ignores.find(c) != std::string_view::npos; }),
+                        s.end());
+                ref = amrex::getEnumCaseInsensitive<T>(s);
+            } catch (...) {
+                if (amrex::Verbose() > 0) {
+                    amrex::Print() << "amrex::ParmParse::query_enum_sloppy (input name: "
+                                   << this->prefixedName(name) << "):\n";
+                }
+                throw;
+            }
+        }
+        return exist;
+    }
+
+    /**
+     * \brief. Get enum value using given name.
+     *
+     * Here T is an enum class defined by AMREX_ENUM. It's a runtime error,
+     * if `name` is not found. An exception is thrown, if the found string
+     * associated with the name cannot be case-insensitively converted to an
+     * enumerator (i.e., the found string, not `name`, does not
+     * case-insensitively match any names in the definition of T). If there
+     * are multiple matches, the first one is used. Characters in `ignores`
+     * will be ignored as if they don't exist in the value part of
+     * ParamParse entries (e.g., `name = value`).
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    void get_enum_sloppy (const char* name, T& ref, std::string_view const& ignores,
+                          int ival = FIRST) const
+    {
+        int exist = this->query_enum_sloppy(name, ref, ignores, ival);
+        if (!exist) {
+            std::string msg("get_enum_sloppy(\"");
+            msg.append(name).append("\",").append(amrex::getEnumClassName<T>())
+                .append("&) failed.");
+            amrex::Abort(msg);
+        }
+    }
+
     //! Remove given name from the table.
     int remove (const char* name);
 
