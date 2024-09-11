@@ -69,6 +69,26 @@ namespace amrex
 
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
+    T getEnumCaseInsensitive (std::string_view const& s)
+    {
+        auto const& kv = getEnumNameValuePairs<T>();
+        std::string ls = amrex::toLower(std::string(s));
+        auto it = std::find_if(kv.begin(), kv.end(),
+                               [&] (auto const& x) -> bool
+                                   { return amrex::toLower(x.first) == ls; });
+        if (it != kv.end()) {
+            return it->second;
+        } else {
+            std::string error_msg("amrex::getEnumCaseInsensitive: Unknown enum: ");
+            error_msg.append(s).append(" in AMREX_ENUM(").append(ET::class_name)
+                .append(", ").append(ET::enum_names).append(").");
+            throw std::runtime_error(error_msg);
+            return T();
+        }
+    }
+
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
     std::string getEnumNameString (T const& v)
     {
         auto const& kv = getEnumNameValuePairs<T>();
