@@ -10,6 +10,13 @@ namespace my_namespace {
     AMREX_ENUM(MyColor, orange,     yellow,cyan );
 }
 
+AMREX_ENUM(MyColor2,
+           red,       // 0
+           chi=red,   // 0
+           green,     // 1
+           blue,      // 2
+           Default = green); // 1
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
@@ -93,6 +100,35 @@ int main (int argc, char* argv[])
             }
             amrex::Print() << "\n";
         }
+    }
+    {
+        auto names2 = amrex::getEnumNameStrings<MyColor2>();
+        amrex::Print() << "Names in " << amrex::getEnumClassName<MyColor2>() << "\n";
+        for (auto const& name : names2) {
+            amrex::Print() << "  " << name << "\n";
+        }
+
+        auto const& kv = amrex::getEnumNameValuePairs<MyColor2>();
+        amrex::Print() << "Name : Value\n";
+        for (auto const& item : kv) {
+            amrex::Print() << "  " << item.first << ": "
+                           << static_cast<int>(item.second) << "\n";
+        }
+
+        AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(MyColor2::red) == "red");
+        AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(MyColor2::chi) == "red");
+        AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(MyColor2::green) == "green");
+        AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(MyColor2::blue) == "blue");
+        AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(MyColor2::Default) == "green");
+
+        static_assert(MyColor2::red == MyColor2::chi);
+        static_assert(MyColor2::green == MyColor2::Default);
+
+        AMREX_ALWAYS_ASSERT(amrex::getEnum<MyColor2>("red") == MyColor2::red);
+        AMREX_ALWAYS_ASSERT(amrex::getEnum<MyColor2>("chi") == MyColor2::chi);
+        AMREX_ALWAYS_ASSERT(amrex::getEnum<MyColor2>("green") == MyColor2::green);
+        AMREX_ALWAYS_ASSERT(amrex::getEnum<MyColor2>("blue") == MyColor2::blue);
+        AMREX_ALWAYS_ASSERT(amrex::getEnum<MyColor2>("Default") == MyColor2::Default);
     }
 
     amrex::Finalize();
