@@ -134,6 +134,10 @@ int main (int argc, char* argv[])
         ParmParse pp;
         pp.query_enum_case_insensitive("color5", my_blue);
         AMREX_ALWAYS_ASSERT(my_blue == MyColor2::blue);
+
+        auto my_green = MyColor2::red;
+        pp.query_enum_sloppy("color6", my_green, "-.");
+        AMREX_ALWAYS_ASSERT(my_green == MyColor2::green);
     }
 
     amrex::Finalize();
