@@ -881,6 +881,7 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
     if (allstatsstr.size() == 1 || !os) { return; }
 
     IOFormatSaver iofmtsaver(*os);
+    *os << std::setfill(' ');
 
     int lenhline = 0;
     for (auto i : maxlen) {
