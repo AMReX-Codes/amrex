@@ -164,7 +164,7 @@ CoordSys::UpperIndex(const Real* point) const noexcept
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
-        ix[k] = (int) ((point[k]-offset[k])/dx[k] + 1);
+        ix[k] = (int) ((point[k]-offset[k])/dx[k]) + 1;
     }
     return ix;
 }
@@ -512,7 +512,7 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
                             *(xhi[2]-xlo[2]));
 #if (AMREX_SPACEDIM==2)
     case RZ:
-        return static_cast<Real>(0.5*TWOPI)*(xhi[1]-xlo[1])*(xhi[0]+xlo[0])*(xhi[0]-xlo[0]);
+        return static_cast<Real>(0.5*TWOPI)*(xhi[1]-xlo[1])*(xhi[0]*xhi[0]-xlo[0]*xlo[0]);
     case SPHERICAL:
         return static_cast<Real>(TWOPI/3.)*(std::cos(xlo[1])-std::cos(xhi[1])) *
             (xhi[0]-xlo[0])*(xhi[0]*xhi[0]+xhi[0]*xlo[0]+xlo[0]*xlo[0]);
