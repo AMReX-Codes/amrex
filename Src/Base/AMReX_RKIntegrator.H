@@ -251,7 +251,8 @@ public:
         for (int step_number = 0; step_number < BaseT::max_steps && !stop; ++step_number)
         {
             // Adjust step size to reach output time
-            if (time_out - time_current < dt) {
+            // protect against roundoff
+            if (std::abs(time_out - time_current - dt) <= 1.e5 * std::numeric_limits<amrex::Real>::epsilon() * std::abs(dt)) {
                 dt = time_out - time_current;
                 stop = true;
             }
