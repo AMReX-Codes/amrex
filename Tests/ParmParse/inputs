@@ -1,0 +1,62 @@
+
+amrex.signal_handling = 0
+amrex.throw_exception = 1
+amrex.v = 0
+
+name = "I am w" \
+       "line 2"
+
+b = ((1, 2, 3) (7, 8,9) (1,0,   1))
+
+# three numbers. whitespaces inside `""` are okay.
+f = 3+4  99  "5 + 6"
+
+# two numbers. `\` is for continuation
+g = 3.1+4.1 \
+    5.0+6.6
+
+# two numbers unless using [query|get]WithParser
+w = 1 -2
+
+my_constants.alpha = 5.
+amrex.c = c
+
+# must use [query|get]WithParser
+amrex.foo = sin( pi/2 ) + alpha + -amrex.c**2.5/c^2
+
+# either [query|get] or [query|get]WithParser is okay
+amrex.bar = sin(pi/2)+alpha+-amrex.c**2.5/c^2
+
+# one string across multiple lines
+amrex.bar2 = "sin(pi/2)+alpha+
+              -amrex.c**2.5/c^2"
+
+geom.prob_lo = -2*sin(pi/4)/sqrt(2)  -sin(pi/2)-cos(pi/2)  (sin(pi*3/2)+cos(pi*3/2))
+
+# three numbers. `\` is for continuation
+geom.prob_hi =  "2*sin(pi/4)/sqrt(2)" \
+                "sin(pi/2) + cos(pi/2)" \
+                -(sin(pi*3/2)+cos(pi*3/2))
+
+long_int_1 = 123456789012345
+long_int_2 = 123'456'789'012'345
+long_int_3 = 1.23456789012345e14
+
+# recursion like this is not allowed
+code.a = code.b
+code.b = code.c
+code.c = code.d
+code.d = code.a
+
+# Recursion like this is allowed, if my_constants is added as parser prefix.
+# It's same as max_steps = my_constants.max_steps
+my_constants.max_steps = 40
+max_steps = max_steps
+warpx.max_steps = max_steps
+
+# query int as double
+my_constants.lx = 40.e-6
+my_constants.dx = 6.25e-7
+my_constants.nx = lx/dx
+n_cell = nx nx nx
+ny = nx
