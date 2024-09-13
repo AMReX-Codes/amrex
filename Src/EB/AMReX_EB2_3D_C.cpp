@@ -768,7 +768,8 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 }
             });
         } else {
-            amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
+            amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported. "
+                         "You can try to fix it by using runtime parameter eb2.cover_multiple_cuts=1.");
         }
     }
 
@@ -932,7 +933,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
 
     if (nsmallcells > 0 || nmulticuts > 0) {
         if (!cover_multiple_cuts && nmulticuts > 0) {
-            amrex::Abort("amrex::EB2::build_cells: multi-cuts not supported");
+            amrex::Abort("amrex::EB2::build_cells: multi-cuts not supported. "
+                         "You can try to fix it by using runtime parameter eb2.cover_multiple_cuts=1.");
         }
         return;
     } else {
