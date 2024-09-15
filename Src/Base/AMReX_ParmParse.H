@@ -1428,6 +1428,70 @@ public:
         }
     }
 
+    //! \brief Query integer with Parser, but treat the number as double
+    //! precision during parsing. The final result is cast to integer. It
+    //! may result in a runtime error if the conversion is not safe.
+    template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
+    int queryAsDouble (const char* name, T& ref) const
+    {
+        double dref;
+        int exist = queryWithParser(name, dref);
+        if (exist) {
+            dref = std::round(dref);
+            ref = static_cast<T>(dref);
+            if (static_cast<double>(ref) != dref) {
+                amrex::Abort("ParmParse:: queryAsDouble is not safe");
+            }
+        }
+        return exist;
+    }
+
+    //! \brief Query integer array with Parser, but treat the numbers as
+    //! double precision uring parsing. The final results are cast to
+    //! integers. It may result in a runtime error if the conversion is not
+    //! safe.
+    template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
+    int queryarrAsDouble (const char* name, int nvals, T* ref) const
+    {
+        std::vector<double> dref(nvals);
+        int exist = queryarrWithParser(name, nvals, dref.data());
+        if (exist) {
+            for (int i = 0; i < nvals; ++i) {
+                dref[i] = std::round(dref[i]);
+                ref[i] = static_cast<T>(dref[i]);
+                if (static_cast<double>(ref[i]) != dref[i]) {
+                    amrex::Abort("ParmParse:: queryarrAsDouble is not safe");
+                }
+            }
+        }
+        return exist;
+    }
+
+    //! \brief Get integer with Parser, but treat the number as double
+    //! precision during parsing. The final result is cast to integer. It
+    //! may result in a runtime error if the conversion is not safe.
+    template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
+    void getAsDouble (const char* name, T& ref) const
+    {
+        int exist = this->queryAsDouble(name, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getAsDouble: failed to get ")+name);
+        }
+    }
+
+    //! \brief Get integer array with Parser, but treat the numbers as
+    //! double precision uring parsing. The final results are cast to
+    //! integers. It may result in a runtime error if the conversion is not
+    //! safe.
+    template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
+    void getarrAsDouble (const char* name, int nvals, T* ref) const
+    {
+        int exist = this->queryarrAsDouble(name, nvals, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getarrAsDouble: failed to get ")+name);
+        }
+    }
+
     //! Remove given name from the table.
     int remove (const char* name);
 
