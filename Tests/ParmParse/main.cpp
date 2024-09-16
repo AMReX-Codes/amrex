@@ -123,6 +123,20 @@ int main(int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(n_cell[0] == 64 && n_cell[1] == 64 && n_cell[2] == 64);
     }
     {
+        ParmParse pp;
+        bool b_do_this = false;
+        pp.queryAsDouble("do_this", b_do_this);
+        AMREX_ALWAYS_ASSERT(b_do_this);
+
+        std::optional<int> o_do_this;
+        pp.queryAsDouble("do_this", o_do_this);
+        AMREX_ALWAYS_ASSERT(o_do_this.has_value() && o_do_this.value());
+
+        std::optional<int> o_do_that;
+        pp.queryAsDouble("do_that", o_do_that);
+        AMREX_ALWAYS_ASSERT(!o_do_that.has_value());
+    }
+    {
         amrex::Print() << "SUCCESS\n";
     }
     amrex::Finalize();

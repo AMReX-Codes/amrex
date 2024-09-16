@@ -11,10 +11,11 @@
 
 #include <array>
 #include <iosfwd>
-#include <unordered_map>
+#include <optional>
 #include <set>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace amrex {
@@ -26,6 +27,32 @@ template<int dim>
 class IntVectND;
 using IntVect = IntVectND<AMREX_SPACEDIM>;
 class RealVect;
+
+namespace ppdetail {
+    template <class T, class Enable = void>
+    struct ArithmeticOptional_TT : std::false_type {};
+
+    template <class T>
+    struct ArithmeticOptional_TT<T, std::enable_if_t<std::is_arithmetic_v<T>>>
+        : std::true_type
+    {
+        using value_type = T;
+    };
+
+    template <class T>
+    struct ArithmeticOptional_TT<std::optional<T>,
+                                 std::enable_if_t<std::is_arithmetic_v<T>>>
+        : std::true_type
+    {
+        using value_type = T;
+    };
+
+    template <class T>
+    inline constexpr bool IsArithmeticOptional_v = ArithmeticOptional_TT<T>::value;
+
+    template <class T>
+    using underlying_type_t = typename ArithmeticOptional_TT<T>::value_type;
+}
 
 //
 // ParmParse class implements a simple database for the storage and
@@ -1428,49 +1455,71 @@ public:
         }
     }
 
-    //! \brief Query integer with Parser, but treat the number as double
-    //! precision during parsing. The final result is cast to integer. It
-    //! may result in a runtime error if the conversion is not safe.
-    template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
+    /**
+     * \brief Query T with Parser, but treat the number as double precision
+     * during parsing.
+     *
+     * The final result is cast to T. It may result in a runtime error if
+     * the conversion is not safe. T is either arithmetic type or
+     * std::optional of arithmetic type.
+     */
+    template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
     int queryAsDouble (const char* name, T& ref) const
     {
+        using value_type = ppdetail::underlying_type_t<T>;
         double dref;
         int exist = queryWithParser(name, dref);
         if (exist) {
             dref = std::round(dref);
-            ref = static_cast<T>(dref);
-            if (static_cast<double>(ref) != dref) {
-                amrex::Abort("ParmParse:: queryAsDouble is not safe");
+            auto vref = static_cast<value_type>(dref);
+            if constexpr (!std::is_same_v<value_type,bool>) {
+                if (static_cast<double>(vref) != dref) {
+                    amrex::Abort("ParmParse:: queryAsDouble is not safe");
+                }
             }
+            ref = vref;
         }
         return exist;
     }
 
-    //! \brief Query integer array with Parser, but treat the numbers as
-    //! double precision uring parsing. The final results are cast to
-    //! integers. It may result in a runtime error if the conversion is not
-    //! safe.
-    template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
+    /**
+     * \brief Query T array with Parser, but treat the number as double
+     * precision during parsing.
+     *
+     * The final result is cast to T's. It may result in a runtime error if
+     * the conversion is not safe. T is either arithmetic type or
+     * std::optional of arithmetic type.
+     */
+    template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
     int queryarrAsDouble (const char* name, int nvals, T* ref) const
     {
+        using value_type = ppdetail::underlying_type_t<T>;
         std::vector<double> dref(nvals);
         int exist = queryarrWithParser(name, nvals, dref.data());
         if (exist) {
             for (int i = 0; i < nvals; ++i) {
                 dref[i] = std::round(dref[i]);
-                ref[i] = static_cast<T>(dref[i]);
-                if (static_cast<double>(ref[i]) != dref[i]) {
-                    amrex::Abort("ParmParse:: queryarrAsDouble is not safe");
+                auto vref = static_cast<value_type>(dref[i]);
+                if constexpr (!std::is_same_v<value_type,bool>) {
+                    if (static_cast<double>(vref) != dref[i]) {
+                        amrex::Abort("ParmParse:: queryarrAsDouble is not safe");
+                    }
                 }
+                ref[i] = vref;
             }
         }
         return exist;
     }
 
-    //! \brief Get integer with Parser, but treat the number as double
-    //! precision during parsing. The final result is cast to integer. It
-    //! may result in a runtime error if the conversion is not safe.
-    template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
+    /**
+     * \brief Get T with Parser, but treat the number as double precision
+     * during parsing.
+     *
+     * The final result is cast to T. It may result in a runtime error if
+     * the conversion is not safe. T is either arithmetic type or
+     * std::optional of arithmetic type.
+     */
+    template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
     void getAsDouble (const char* name, T& ref) const
     {
         int exist = this->queryAsDouble(name, ref);
@@ -1479,11 +1528,15 @@ public:
         }
     }
 
-    //! \brief Get integer array with Parser, but treat the numbers as
-    //! double precision uring parsing. The final results are cast to
-    //! integers. It may result in a runtime error if the conversion is not
-    //! safe.
-    template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
+    /**
+     * \brief Get T array with Parser, but treat the number as double
+     * precision during parsing.
+     *
+     * The final result is cast to T's. It may result in a runtime error if
+     * the conversion is not safe. T is either arithmetic type or
+     * std::optional of arithmetic type.
+     */
+    template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
     void getarrAsDouble (const char* name, int nvals, T* ref) const
     {
         int exist = this->queryarrAsDouble(name, nvals, ref);
