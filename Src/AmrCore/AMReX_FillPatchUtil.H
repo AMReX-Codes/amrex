@@ -694,6 +694,23 @@ namespace amrex
                            const PreInterpHook& pre_interp = {},
                            const PostInterpHook& post_interp = {});
 
+    /**
+     * \brief Fill with interpolation of coarse level data
+     *
+     * It's the CALLER's responsibility to make sure all ghost cells of the
+     * coarse MF needed for interpolation are filled already before calling
+     * this function. It's assumed that the fine level MultiFab mf's
+     * BoxArray is coarsenable by the refinement ratio. There is no support
+     * for EB.
+     */
+    template <typename MF, typename Interp>
+    std::enable_if_t<IsFabArray<MF>::value>
+    InterpFromCoarseLevel (MF& mf, IntVect const& nghost, const MF& cmf,
+                           int scomp, int dcomp, int ncomp,
+                           const Geometry& cgeom, const Geometry& fgeom,
+                           const IntVect& ratio, Interp* mapper,
+                           const Vector<BCRec>& bcs);
+
 #ifndef BL_NO_FORT
     enum InterpEM_t { InterpE, InterpB};
 
