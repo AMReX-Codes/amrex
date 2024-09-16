@@ -10,7 +10,6 @@
 #include <cstdlib>
 #include <type_traits>
 #include <utility>
-#include <iostream>
 
 #ifdef AMREX_USE_SYCL
 #  include <sycl/sycl.hpp>

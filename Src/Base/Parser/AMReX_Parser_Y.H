@@ -353,8 +353,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T parser_math_comp_ellint_1 (T k)
 {
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__CUDA_ARCH__) && !defined(__NVCOMPILER)
-    // return std::comp_ellint_1(k);
-    return amrex::Math::comp_ellint_1<T>(k);
+    return std::comp_ellint_1(k);
 #else
     return amrex::Math::comp_ellint_1<T>(k);
 #endif
@@ -365,8 +364,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T parser_math_comp_ellint_2 (T k)
 {
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__CUDA_ARCH__) && !defined(__NVCOMPILER)
-    // return std::comp_ellint_2(k);
-    return amrex::Math::comp_ellint_2<T>(k);
+    return std::comp_ellint_2(k);
 #else
     return amrex::Math::comp_ellint_2<T>(k);
 #endif
