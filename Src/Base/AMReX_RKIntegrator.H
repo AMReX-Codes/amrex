@@ -252,7 +252,7 @@ public:
         {
             // Adjust step size to reach output time
             // protect against roundoff
-            if (almostEqual(std::abs(time_out-time_current), std::abs(dt)), 10.) {
+            if (almostEqual(time_out-time_current, dt), 10) {
                 dt = time_out - time_current;
                 stop = true;
             }
