@@ -252,7 +252,7 @@ public:
         {
             // Adjust step size to reach output time
             // protect against roundoff
-            if (std::abs(time_out - time_current - dt) <= 1.e5 * std::numeric_limits<amrex::Real>::epsilon() * std::abs(dt)) {
+            if (almostEqual(std::abs(time_out-time_current), std::abs(dt)), 10.) {
                 dt = time_out - time_current;
                 stop = true;
             }
