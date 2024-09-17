@@ -1470,9 +1470,11 @@ public:
         double dref;
         int exist = queryWithParser(name, dref);
         if (exist) {
-            dref = std::round(dref);
+            if (std::is_integral_v<value_type>) {
+                dref = std::round(dref);
+            }
             auto vref = static_cast<value_type>(dref);
-            if constexpr (!std::is_same_v<value_type,bool>) {
+            if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
                 if (static_cast<double>(vref) != dref) {
                     amrex::Abort("ParmParse:: queryAsDouble is not safe");
                 }
@@ -1498,9 +1500,11 @@ public:
         int exist = queryarrWithParser(name, nvals, dref.data());
         if (exist) {
             for (int i = 0; i < nvals; ++i) {
-                dref[i] = std::round(dref[i]);
+                if (std::is_integral_v<value_type>) {
+                    dref[i] = std::round(dref[i]);
+                }
                 auto vref = static_cast<value_type>(dref[i]);
-                if constexpr (!std::is_same_v<value_type,bool>) {
+                if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
                     if (static_cast<double>(vref) != dref[i]) {
                         amrex::Abort("ParmParse:: queryarrAsDouble is not safe");
                     }
