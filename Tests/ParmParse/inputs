@@ -60,3 +60,5 @@ my_constants.dx = 6.25e-7
 my_constants.nx = lx/dx
 n_cell = nx nx nx
 ny = nx
+
+do_this = 1
