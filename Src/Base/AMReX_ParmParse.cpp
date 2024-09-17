@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -1075,6 +1076,24 @@ ParmParse::addfile (std::string const& filename) {
     }
 #endif
 
+    // check the file exists
+    int file_exists = int(false);
+    if (ParallelDescriptor::IOProcessor())
+    {
+        if (std::FILE *fp = std::fopen(filename.c_str(), "r")) {
+            fclose(fp);
+            file_exists = int(true);
+        }
+    }
+    amrex::ParallelDescriptor::Bcast(
+        &file_exists,
+        1,
+        amrex::ParallelDescriptor::IOProcessorNumber()
+    );
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bool(file_exists),
+        "ParmParse::addfile: file does not exist: " + filename);
+
+    // add the file
     auto file = FileKeyword;
     std::vector<std::string> val{{filename}};
     addDefn(file, val, g_table);
