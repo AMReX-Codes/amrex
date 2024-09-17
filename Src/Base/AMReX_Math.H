@@ -228,13 +228,17 @@ std::uint64_t umulhi (std::uint64_t a, std::uint64_t b)
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-T comp_ellint_1 (T m)
+T comp_ellint_1 (T k)
 {
     // Computing K based on DLMF
     // https://dlmf.nist.gov/19.8
     T tol = 1e-12;
+    if constexpr (std::is_same<T, float>::value) {
+        tol = 1e-6;
+    }
+    
     T a0 = 1.0;
-    T g0 = std::sqrt(1.0 - m);
+    T g0 = std::sqrt(1.0 - k*k);
     T a, g;
 
     // Find Arithmetic Geometric mean
@@ -251,16 +255,19 @@ T comp_ellint_1 (T m)
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-T comp_ellint_2 (T m)
+T comp_ellint_2 (T k)
 {
     // Computing E based on DLMF
     // https://dlmf.nist.gov/19.8
-    T Kcomp = amrex::Math::comp_ellint_1<T>(m);
+    T Kcomp = amrex::Math::comp_ellint_1<T>(k);
     T tol = 1e-12;
+    if constexpr (std::is_same<T, float>::value) {
+        tol = 1e-6;
+    }
 
     // Step Zero
     T a0 = 1.0;
-    T g0 = std::sqrt(1.0 - m);
+    T g0 = std::sqrt(1.0 - k*k);
     T cn = std::sqrt(a0*a0 - g0*g0);
 
     // Step 1
