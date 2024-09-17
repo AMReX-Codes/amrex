@@ -32,7 +32,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=45M
+        export CCACHE_MAXSIZE=100M
         export CCACHE_DEPEND=1
         ccache -z
 
@@ -80,7 +80,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=55M
+        export CCACHE_MAXSIZE=150M
         export CCACHE_DEPEND=1
         ccache -z
 
@@ -126,7 +126,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=55M
+        export CCACHE_MAXSIZE=100M
         export CCACHE_DEPEND=1
         ccache -z
 
@@ -175,7 +175,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=55M
+        export CCACHE_MAXSIZE=100M
         export CCACHE_DEPEND=1
         ccache -z
 
@@ -221,7 +221,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=40M
+        export CCACHE_MAXSIZE=100M
         ccache -z
 
         set +e
