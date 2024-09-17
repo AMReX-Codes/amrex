@@ -1230,8 +1230,17 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
     Box tmp2 = coarsener.doit(tmp);
     IntVect src_ghost = -tmp2.smallEnd();
 
+    tmp = Box(-nghost_outside_domain, IntVect(32), typ);
+    tmp2 = coarsener.doit(tmp);
+    IntVect src_ghost_outside_domain = -tmp2.smallEnd();
+
+    IntVect cghost = cmf.nGrowVect();
+    cghost.min(src_ghost);
+
+    AMREX_ALWAYS_ASSERT(cghost.allGE(src_ghost_outside_domain));
+
     MF mf_crse_patch(amrex::coarsen(ba,ratio), dm, ncomp, src_ghost);
-    mf_crse_patch.ParallelCopy(cmf, scomp, 0, ncomp, src_ghost, src_ghost,
+    mf_crse_patch.ParallelCopy(cmf, scomp, 0, ncomp, cghost, src_ghost,
                                cgeom.periodicity());
 
     Box fdomain_g = amrex::convert(fgeom.Domain(),typ);
