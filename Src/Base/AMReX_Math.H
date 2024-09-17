@@ -239,7 +239,8 @@ T comp_ellint_1 (T k)
     
     T a0 = 1.0;
     T g0 = std::sqrt(1.0 - k*k);
-    T a, g;
+    T a = a0;
+    T g = g0;
 
     // Find Arithmetic Geometric mean
     while(std::abs(a0 - g0) > tol) {
