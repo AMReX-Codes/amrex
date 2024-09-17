@@ -233,7 +233,7 @@ T comp_ellint_1 (T k)
     // Computing K based on DLMF
     // https://dlmf.nist.gov/19.8
     T tol = std::numeric_limits<T>::epsilon();
-    
+
     T a0 = 1.0;
     T g0 = std::sqrt(1.0 - k*k);
     T a = a0;
