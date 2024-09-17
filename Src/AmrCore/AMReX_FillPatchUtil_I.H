@@ -1212,8 +1212,9 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
 
 template <typename MF, typename Interp>
 std::enable_if_t<IsFabArray<MF>::value>
-InterpFromCoarseLevel (MF& mf, IntVect const& nghost, const MF& cmf,
-                       int scomp, int dcomp, int ncomp,
+InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
+                       IntVect const& nghost_outside_domain,
+                       const MF& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
                        const IntVect& ratio, Interp* mapper,
                        const Vector<BCRec>& bcs)
@@ -1234,7 +1235,7 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, const MF& cmf,
                                cgeom.periodicity());
 
     Box fdomain_g = amrex::convert(fgeom.Domain(),typ);
-    fdomain_g.grow(nghost);
+    fdomain_g.grow(nghost_outside_domain);
     FillPatchInterp(mf, dcomp, mf_crse_patch, 0, ncomp, nghost, cgeom, fgeom,
                     fdomain_g, ratio, mapper, bcs, 0);
 }

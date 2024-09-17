@@ -702,11 +702,28 @@ namespace amrex
      * this function. It's assumed that the fine level MultiFab mf's
      * BoxArray is coarsenable by the refinement ratio. There is no support
      * for EB.
+     *
+     * \tparam MF the MultiFab/FabArray type
+     * \tparam Interp spatial interpolater
+     *
+     * \param mf destination MF on the fine level
+     * \param nghost number of ghost cells of mf inside domain needed to be filled
+     * \param nghost_outside_domain number of ghost cells of mf outside domain needed to be filled
+     * \param cmf source MF on the coarse level
+     * \param scomp starting component of the source MF
+     * \param dcomp starting component of the destination MF
+     * \param ncomp number of components
+     * \param cgeom Geometry for the coarse level
+     * \param fgeom Geometry for the fine level
+     * \param ratio refinement ratio
+     * \param mapper spatial interpolater
+     * \param bcs boundar types for each component
      */
     template <typename MF, typename Interp>
     std::enable_if_t<IsFabArray<MF>::value>
-    InterpFromCoarseLevel (MF& mf, IntVect const& nghost, const MF& cmf,
-                           int scomp, int dcomp, int ncomp,
+    InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
+                           IntVect const& nghost_outside_domain,
+                           const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
                            const IntVect& ratio, Interp* mapper,
                            const Vector<BCRec>& bcs);
