@@ -252,7 +252,7 @@ public:
         {
             // Adjust step size to reach output time
             // protect against roundoff
-            if ((time_out-time_current) < dt || almostEqual(time_out-time_current,dt,10)) {
+            if ((time_out-time_current) < dt || almostEqual(time_out-time_current,dt,1000)) {
                 dt = time_out - time_current;
                 stop = true;
             }
