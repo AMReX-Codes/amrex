@@ -232,10 +232,7 @@ T comp_ellint_1 (T k)
 {
     // Computing K based on DLMF
     // https://dlmf.nist.gov/19.8
-    T tol = 1e-12;
-    if constexpr (std::is_same<T, float>::value) {
-        tol = 1e-6;
-    }
+    T tol = std::numeric_limits<T>::epsilon();
     
     T a0 = 1.0;
     T g0 = std::sqrt(1.0 - k*k);
@@ -261,10 +258,7 @@ T comp_ellint_2 (T k)
     // Computing E based on DLMF
     // https://dlmf.nist.gov/19.8
     T Kcomp = amrex::Math::comp_ellint_1<T>(k);
-    T tol = 1e-12;
-    if constexpr (std::is_same<T, float>::value) {
-        tol = 1e-6;
-    }
+    T tol = std::numeric_limits<T>::epsilon();
 
     // Step Zero
     T a0 = 1.0;
