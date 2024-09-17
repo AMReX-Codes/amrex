@@ -1210,6 +1210,45 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
     }
 }
 
+template <typename MF, typename Interp>
+std::enable_if_t<IsFabArray<MF>::value>
+InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
+                       IntVect const& nghost_outside_domain,
+                       const MF& cmf, int scomp, int dcomp, int ncomp,
+                       const Geometry& cgeom, const Geometry& fgeom,
+                       const IntVect& ratio, Interp* mapper,
+                       const Vector<BCRec>& bcs)
+{
+    const BoxArray& ba = mf.boxArray();
+    const DistributionMapping& dm = mf.DistributionMap();
+
+    const IndexType& typ = ba.ixType();
+    BL_ASSERT(typ == cmf.boxArray().ixType());
+
+    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
+    Box tmp(-nghost, IntVect(32), typ);
+    Box tmp2 = coarsener.doit(tmp);
+    IntVect src_ghost = -tmp2.smallEnd();
+
+    tmp = Box(-nghost_outside_domain, IntVect(32), typ);
+    tmp2 = coarsener.doit(tmp);
+    IntVect src_ghost_outside_domain = -tmp2.smallEnd();
+
+    IntVect cghost = cmf.nGrowVect();
+    cghost.min(src_ghost);
+
+    AMREX_ALWAYS_ASSERT(cghost.allGE(src_ghost_outside_domain));
+
+    MF mf_crse_patch(amrex::coarsen(ba,ratio), dm, ncomp, src_ghost);
+    mf_crse_patch.ParallelCopy(cmf, scomp, 0, ncomp, cghost, src_ghost,
+                               cgeom.periodicity());
+
+    Box fdomain_g = amrex::convert(fgeom.Domain(),typ);
+    fdomain_g.grow(nghost_outside_domain);
+    FillPatchInterp(mf, dcomp, mf_crse_patch, 0, ncomp, nghost, cgeom, fgeom,
+                    fdomain_g, ratio, mapper, bcs, 0);
+}
+
 template <typename MF, typename BC, typename Interp>
 std::enable_if_t<IsFabArray<MF>::value>
 FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
