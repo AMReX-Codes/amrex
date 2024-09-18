@@ -1069,12 +1069,23 @@ ParmParse::prefixedName (const std::string_view& str) const
 void
 ParmParse::addfile (std::string const& filename) {
 #ifdef AMREX_USE_MPI
+    // this is required because we will BCast the file content in sub-function calls
     if (ParallelDescriptor::Communicator() == MPI_COMM_NULL)
     {
         throw std::runtime_error("ParmParse::addfile: AMReX must be initialized");
     }
 #endif
 
+    // check the file exists and give a user-friendly error
+    if (ParallelDescriptor::IOProcessor())
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            FileExists(filename),
+            "ParmParse::addfile: file does not exist: " + filename
+        );
+    }
+
+    // add the file
     auto file = FileKeyword;
     std::vector<std::string> val{{filename}};
     addDefn(file, val, g_table);
