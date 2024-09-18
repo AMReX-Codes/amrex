@@ -595,8 +595,8 @@ numbers can be computed with ``min`` and ``max``, respectively.  It supports
 the Heaviside step function, ``heaviside(x1,x2)`` that gives ``0``, ``x2``,
 ``1``, for ``x1 < 0``, ``x1 = 0`` and ``x1 > 0``, respectively.
 It supports the Bessel function of the first kind of order ``n``
-``jn(n,x)``. Complete elliptic integrals of the first and second kind, ``comp_ellint_1`` and ``comp_ellint_2``,
-are supported only for gcc and CPUs.
+``jn(n,x)``. Complete elliptic integrals of the first and second kind, ``comp_ellint_1(k)`` and ``comp_ellint_2(k)``,
+are supported.
 There is ``if(a,b,c)`` that gives ``b`` or ``c`` depending on the value of
 ``a``.  A number of comparison operators are supported, including ``<``,
 ``>``, ``==``, ``!=``, ``<=``, and ``>=``.  The Boolean results from

@@ -349,28 +349,24 @@ AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
 T parser_math_atanh (T a) { return std::atanh(a); }
 
 template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
-T parser_math_comp_ellint_1 (T a)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T parser_math_comp_ellint_1 (T k)
 {
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__CUDA_ARCH__) && !defined(__NVCOMPILER)
-    return std::comp_ellint_1(a);
+    return std::comp_ellint_1(k);
 #else
-    amrex::ignore_unused(a);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: comp_ellint_1 only supported with gcc and cpu");
-    return 0.0;
+    return amrex::Math::comp_ellint_1<T>(k);
 #endif
 }
 
 template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
-T parser_math_comp_ellint_2 (T a)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T parser_math_comp_ellint_2 (T k)
 {
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__CUDA_ARCH__) && !defined(__NVCOMPILER)
-    return std::comp_ellint_2(a);
+    return std::comp_ellint_2(k);
 #else
-    amrex::ignore_unused(a);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "parser: comp_ellint_2 only supported with gcc and cpu");
-    return 0.0;
+    return amrex::Math::comp_ellint_2<T>(k);
 #endif
 }
 
