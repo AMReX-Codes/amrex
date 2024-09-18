@@ -9,7 +9,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -1070,28 +1069,21 @@ ParmParse::prefixedName (const std::string_view& str) const
 void
 ParmParse::addfile (std::string const& filename) {
 #ifdef AMREX_USE_MPI
+    // this is required because we will BCast the file content in sub-function calls
     if (ParallelDescriptor::Communicator() == MPI_COMM_NULL)
     {
         throw std::runtime_error("ParmParse::addfile: AMReX must be initialized");
     }
 #endif
 
-    // check the file exists
-    int file_exists = int(false);
+    // check the file exists and give a user-friendly error
     if (ParallelDescriptor::IOProcessor())
     {
-        if (std::FILE *fp = std::fopen(filename.c_str(), "r")) {
-            fclose(fp);
-            file_exists = int(true);
-        }
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            FileExists(filename),
+            "ParmParse::addfile: file does not exist: " + filename
+        );
     }
-    amrex::ParallelDescriptor::Bcast(
-        &file_exists,
-        1,
-        amrex::ParallelDescriptor::IOProcessorNumber()
-    );
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(bool(file_exists),
-        "ParmParse::addfile: file does not exist: " + filename);
 
     // add the file
     auto file = FileKeyword;
