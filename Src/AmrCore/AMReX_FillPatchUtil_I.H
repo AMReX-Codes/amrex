@@ -84,12 +84,17 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
     AMREX_ASSERT(!smf.empty());
     AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
 
+    IntVect src_ghost(0);
+    if constexpr (std::is_same_v<BC,PhysBCFunctUseCoarseGhost>) {
+        src_ghost = physbcf.fp1_src_ghost;
+    }
+
     if (smf.size() == 1)
     {
         if (&mf == smf[0] && scomp == dcomp) {
             mf.FillBoundary(dcomp, ncomp, nghost, geom.periodicity());
         } else {
-            mf.ParallelCopy(*smf[0], scomp, dcomp, ncomp, IntVect{0}, nghost, geom.periodicity());
+            mf.ParallelCopy(*smf[0], scomp, dcomp, ncomp, src_ghost, nghost, geom.periodicity());
         }
     }
     else if (smf.size() == 2)
@@ -106,7 +111,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
             destcomp = dcomp;
             sameba = true;
         } else {
-            raii.define(smf[0]->boxArray(), smf[0]->DistributionMap(), ncomp, 0,
+            raii.define(smf[0]->boxArray(), smf[0]->DistributionMap(), ncomp, src_ghost,
                         MFInfo(), smf[0]->Factory());
 
             dmf = &raii;
@@ -116,12 +121,19 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
 
         if ((dmf != smf[0] && dmf != smf[1]) || scomp != dcomp)
         {
+            IntVect interp_ghost(0);
+            if constexpr (std::is_same_v<BC,PhysBCFunctUseCoarseGhost>) {
+                interp_ghost = physbcf.fp1_src_ghost;
+                if (sameba) {
+                    interp_ghost.min(nghost);
+                }
+            }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                const Box& bx = mfi.tilebox();
+                const Box& bx = mfi.growntilebox(interp_ghost);
                 const Real t0 = stime[0];
                 const Real t1 = stime[1];
                 auto const sfab0 = smf[0]->array(mfi);
@@ -170,10 +182,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
         }
         else
         {
-            IntVect src_ngrow = IntVect::TheZeroVector();
-            IntVect dst_ngrow = nghost;
-
-            mf.ParallelCopy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow, geom.periodicity());
+            mf.ParallelCopy(*dmf, 0, dcomp, ncomp, src_ghost, nghost, geom.periodicity());
         }
     }
     else {
@@ -504,10 +513,16 @@ namespace detail {
                     auto solve_mask = make_mf_crse_mask<iMultiFab>(fpc, ncomp, mf.boxArray().ixType(), ratio);
 
                     mf_set_domain_bndry(mf_crse_patch, cgeom);
+                    if constexpr (std::is_same_v<BC,PhysBCFunctUseCoarseGhost>) {
+                        cbc.fp1_src_ghost = cbc.cghost;
+                    }
                     FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp,
                                          cgeom, cbc, cbccomp);
 
                     mf_set_domain_bndry(mf_refined_patch, fgeom);
+                    if constexpr (std::is_same_v<BC,PhysBCFunctUseCoarseGhost>) {
+                        fbc.fp1_src_ghost = IntVect(0);
+                    }
                     FillPatchSingleLevel(mf_refined_patch, time, fmf, ft, scomp, 0, ncomp,
                                          fgeom, fbc, fbccomp);
 
@@ -565,16 +580,29 @@ namespace detail {
                     MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, ncomp);
                     mf_set_domain_bndry (mf_crse_patch, cgeom);
 
+                    if constexpr (std::is_same_v<BC,PhysBCFunctUseCoarseGhost>) {
+                        cbc.fp1_src_ghost = cbc.cghost;
+                    }
                     FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc, cbccomp);
 
                     MF mf_fine_patch = make_mf_fine_patch<MF>(fpc, ncomp);
 
                     detail::call_interp_hook(pre_interp, mf_crse_patch, 0, ncomp);
 
+                    Box fdomain_g( amrex::convert(fgeom.Domain(),mf.ixType()) );
+                    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+                        if (fgeom.isPeriodic(i)) {
+                            fdomain_g.grow(i, nghost[i]);
+                        } else {
+                            if constexpr (std::is_same_v
+                                          <BC, PhysBCFunctUseCoarseGhost>) {
+                                fdomain_g.grow(i, fbc.nghost_outside_domain[i]);
+                            }
+                        }
+                    }
                     FillPatchInterp(mf_fine_patch, 0, mf_crse_patch, 0,
                                     ncomp, IntVect(0), cgeom, fgeom,
-                                    amrex::grow(amrex::convert(fgeom.Domain(),mf.ixType()),nghost),
-                                    ratio, mapper, bcs, bcscomp);
+                                    fdomain_g, ratio, mapper, bcs, bcscomp);
 
                     detail::call_interp_hook(post_interp, mf_fine_patch, 0, ncomp);
 
@@ -583,6 +611,9 @@ namespace detail {
             }
         }
 
+        if constexpr(std::is_same_v<BC, PhysBCFunctUseCoarseGhost>) {
+            fbc.fp1_src_ghost = IntVect(0);
+        }
         FillPatchSingleLevel(mf, nghost, time, fmf, ft, scomp, dcomp, ncomp,
                              fgeom, fbc, fbccomp);
 
@@ -1012,15 +1043,11 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
 
     Box fdomain_g( amrex::convert(fgeom.Domain(),mf.ixType()) );
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-        if constexpr (std::is_same_v<BC, PhysBCFunctUseCoarseGhost>) {
-            if (fgeom.isPeriodic(i)) {
-                fdomain_g.grow(i, nghost[i]);
-            } else {
-                fdomain_g.grow(i, fbc.nghost_outside_domain[i]);
-            }
+        if (fgeom.isPeriodic(i)) {
+            fdomain_g.grow(i, nghost[i]);
         } else {
-            if (fgeom.isPeriodic(i)) {
-                fdomain_g.grow(i,nghost[i]);
+            if constexpr (std::is_same_v<BC, PhysBCFunctUseCoarseGhost>) {
+                fdomain_g.grow(i, fbc.nghost_outside_domain[i]);
             }
         }
     }
@@ -1252,108 +1279,9 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                       const Vector<Real>& stime, int scomp, int dcomp, int ncomp,
                       const Geometry& geom)
 {
-    BL_PROFILE("FillPatchSingleLevel_nobc");
-
-    AMREX_ASSERT(scomp+ncomp <= smf[0]->nComp());
-    AMREX_ASSERT(dcomp+ncomp <= mf.nComp());
-    AMREX_ASSERT(smf.size() == stime.size());
-    AMREX_ASSERT(!smf.empty());
-    AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
-
-    if (smf.size() == 1)
-    {
-        if (&mf == smf[0] && scomp == dcomp) {
-            mf.FillBoundary(dcomp, ncomp, nghost, geom.periodicity());
-        } else {
-            mf.ParallelCopy(*smf[0], scomp, dcomp, ncomp, snghost, nghost, geom.periodicity());
-        }
-    }
-    else if (smf.size() == 2)
-    {
-        BL_ASSERT(smf[0]->boxArray() == smf[1]->boxArray());
-        MF raii;
-        MF * dmf;
-        int destcomp;
-        bool sameba;
-        if (mf.boxArray() == smf[0]->boxArray() &&
-            mf.DistributionMap() == smf[0]->DistributionMap())
-        {
-            dmf = &mf;
-            destcomp = dcomp;
-            sameba = true;
-        } else {
-            raii.define(smf[0]->boxArray(), smf[0]->DistributionMap(), ncomp, snghost,
-                        MFInfo(), smf[0]->Factory());
-
-            dmf = &raii;
-            destcomp = 0;
-            sameba = false;
-        }
-
-        if ((dmf != smf[0] && dmf != smf[1]) || scomp != dcomp)
-        {
-            IntVect interp_ghost = snghost;
-            if (sameba) { interp_ghost.min(nghost); }
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-            for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.growntilebox(interp_ghost);
-                const Real t0 = stime[0];
-                const Real t1 = stime[1];
-                auto const sfab0 = smf[0]->array(mfi);
-                auto const sfab1 = smf[1]->array(mfi);
-                auto       dfab  = dmf->array(mfi);
-
-                if (time == t0)
-                {
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-                    {
-                        dfab(i,j,k,n+destcomp) = sfab0(i,j,k,n+scomp);
-                    });
-                }
-                else if (time == t1)
-                {
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-                    {
-                        dfab(i,j,k,n+destcomp) = sfab1(i,j,k,n+scomp);
-                    });
-                }
-                else if (! amrex::almostEqual(t0,t1))
-                {
-                    Real alpha = (t1-time)/(t1-t0);
-                    Real beta = (time-t0)/(t1-t0);
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-                    {
-                        dfab(i,j,k,n+destcomp) = alpha*sfab0(i,j,k,n+scomp)
-                            +                     beta*sfab1(i,j,k,n+scomp);
-                    });
-                }
-                else
-                {
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-                    {
-                        dfab(i,j,k,n+destcomp) = sfab0(i,j,k,n+scomp);
-                    });
-                }
-            }
-        }
-
-        if (sameba)
-        {
-            // Note that when sameba is true mf's BoxArray is nonoverlapping.
-            // So FillBoundary is safe.
-            mf.FillBoundary(dcomp, ncomp, nghost, geom.periodicity());
-        }
-        else
-        {
-            mf.ParallelCopy(*dmf, 0, dcomp, ncomp, snghost, nghost, geom.periodicity());
-        }
-    }
-    else {
-        amrex::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
-    }
+    PhysBCFunctUseCoarseGhost erfbc(snghost);
+    FillPatchSingleLevel(mf, nghost, time, smf, stime, scomp, dcomp, ncomp, geom,
+                         erfbc, 0);
 }
 
 template <typename MF, typename Interp>
@@ -1367,70 +1295,11 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost,
                     const IntVect& ratio, Interp* mapper,
                     const Vector<BCRec>& bcs, int bcscomp)
 {
-    BL_PROFILE("FillPatchTwoLevels_nobc");
-
-    const IndexType& typ = mf.ixType();
-
-    AMREX_ALWAYS_ASSERT(typ.nodeCentered() || typ.cellCentered());
-
-    if (nghost.max() > 0 || mf.getBDKey() != fmf[0]->getBDKey())
-    {
-        const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
-
-        Box tmp(-nghost, IntVect(32), typ);
-        Box tmp2 = coarsener.doit(tmp);
-
-        // This is the number of coarse ghost cells needed to interpolate
-        // nghost fine ghost cells inside the domain
-        IntVect src_ghost = -tmp2.smallEnd();
-
-        // This is the number of coarse ghost cells needed to interpolate
-        // nghost_outside_domain fine ghost cells outside the domain
-        tmp = Box(-nghost_outside_domain, IntVect(32), typ);
-        tmp2 = coarsener.doit(tmp);
-        IntVect src_ghost_outside_domain = -tmp2.smallEnd();
-
-        IntVect cghost = cmf[0]->nGrowVect();
-        cghost.min(src_ghost);
-
-        // This is the minimum number of ghost cells needed in cmf.
-        AMREX_ALWAYS_ASSERT(cghost.allGE(src_ghost_outside_domain) &&
-                            cmf[1]->nGrowVect().allGE(cghost));
-
-        const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf,
-                                                                  nghost,
-                                                                  coarsener,
-                                                                  fgeom,
-                                                                  cgeom,
-                                                                  nullptr);
-
-        if ( ! fpc.ba_crse_patch.empty())
-        {
-            MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0);
-
-            FillPatchSingleLevel(mf_crse_patch, IntVect(0), time, cmf, cghost,
-                                 ct, scomp, 0, ncomp, cgeom);
-
-            MF mf_fine_patch(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0);
-
-            Box fdomain_g = amrex::convert(fgeom.Domain(),typ);
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if (fgeom.isPeriodic(idim)) {
-                    fdomain_g.grow(idim, nghost[idim]);
-                } else {
-                    fdomain_g.grow(idim, nghost_outside_domain[idim]);
-                }
-            }
-            FillPatchInterp(mf_fine_patch, 0, mf_crse_patch, 0,
-                            ncomp, IntVect(0), cgeom, fgeom,
-                            fdomain_g, ratio, mapper, bcs, bcscomp);
-
-            mf.ParallelCopy(mf_fine_patch, 0, dcomp, ncomp, IntVect{0}, nghost);
-        }
-    }
-
-    FillPatchSingleLevel(mf, nghost, time, fmf, IntVect(0), ft,
-                         scomp, dcomp, ncomp, fgeom);
+    PhysBCFunctUseCoarseGhost erfbc(*cmf[0], nghost, nghost_outside_domain, ratio,
+                                    mapper);
+    FillPatchTwoLevels(mf, nghost, time, cmf, ct, fmf, ft, scomp, dcomp, ncomp,
+                       cgeom, fgeom, erfbc, 0, erfbc, 0, ratio, mapper,
+                       bcs, bcscomp);
 }
 
 template <typename MF, typename BC, typename Interp>

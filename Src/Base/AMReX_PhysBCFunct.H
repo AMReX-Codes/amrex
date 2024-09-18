@@ -127,6 +127,9 @@ class PhysBCFunctUseCoarseGhost
 {
 public:
 
+    PhysBCFunctUseCoarseGhost (IntVect const& a_fp1_src_ghost)
+        : fp1_src_ghost(a_fp1_src_ghost) {}
+
     template <typename MF, typename Interp>
     PhysBCFunctUseCoarseGhost (MF const& cmf, IntVect const& a_nghost,
                                IntVect const& a_nghost_outside_domain,
@@ -166,6 +169,8 @@ public:
 
     // This is the minimum number of ghost cells needed in coarse MF
     IntVect cghost;
+
+    IntVect fp1_src_ghost; // Used to pass information into FillPatchSingleLevel
 };
 
 template <class F>
