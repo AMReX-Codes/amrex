@@ -134,7 +134,9 @@ public:
     PhysBCFunctUseCoarseGhost (MF const& cmf, IntVect const& a_nghost,
                                IntVect const& a_nghost_outside_domain,
                                IntVect const& ratio, Interp* mapper)
-        : nghost(a_nghost), nghost_outside_domain(a_nghost_outside_domain)
+        : nghost(a_nghost),
+          nghost_outside_domain(a_nghost_outside_domain),
+          cghost(cmf.nGrowVect())
     {
         IndexType typ = cmf.ixType();
 
@@ -147,7 +149,6 @@ public:
         tmp2 = coarsener.doit(tmp);
         src_ghost_outside_domain = -tmp2.smallEnd();
 
-        cghost = cmf.nGrowVect();
         cghost.min(src_ghost);
         AMREX_ALWAYS_ASSERT(cghost.allGE(src_ghost_outside_domain));
     }
