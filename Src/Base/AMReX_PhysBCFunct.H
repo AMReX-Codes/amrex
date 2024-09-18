@@ -123,6 +123,50 @@ public:
                      Real /*time*/, int /*bccomp*/) {}
 };
 
+class PhysBCFunctUseCoarseGhost
+{
+public:
+
+    template <typename MF, typename Interp>
+    PhysBCFunctUseCoarseGhost (MF const& cmf, IntVect const& a_nghost,
+                               IntVect const& a_nghost_outside_domain,
+                               IntVect const& ratio, Interp* mapper)
+        : nghost(a_nghost), nghost_outside_domain(a_nghost_outside_domain)
+    {
+        IndexType typ = cmf.ixType();
+
+        const auto& coarsener = mapper->BoxCoarsener(ratio);
+        Box tmp(-nghost, IntVect(32), typ);
+        Box tmp2 = coarsener.doit(tmp);
+        src_ghost = -tmp2.smallEnd();
+
+        tmp = Box(-nghost_outside_domain, IntVect(32), typ);
+        tmp2 = coarsener.doit(tmp);
+        src_ghost_outside_domain = -tmp2.smallEnd();
+
+        cghost = cmf.nGrowVect();
+        cghost.min(src_ghost);
+        AMREX_ALWAYS_ASSERT(cghost.allGE(src_ghost_outside_domain));
+    }
+
+    void operator() (MultiFab& /*mf*/, int /*dcomp*/, int /*ncomp*/, IntVect const& /*nghost*/,
+                     Real /*time*/, int /*bccomp*/) {}
+
+    IntVect nghost; // # of fine ghosts inside domain to be filled
+
+    IntVect nghost_outside_domain; // # of fine ghosts outside domain to be filled
+
+    // This is the number of coarse ghost cells needed to interpolate fine
+    // ghost cells inside the domain
+    IntVect src_ghost;
+
+    // This is the number of coarse ghost cells needed to interpolate
+    // nghost_outside_domain fine ghost cells outside the domain
+    IntVect src_ghost_outside_domain;
+
+    // This is the minimum number of ghost cells needed in coarse MF
+    IntVect cghost;
+};
 
 template <class F>
 class PhysBCFunct

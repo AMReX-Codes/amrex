@@ -997,6 +997,8 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
                        const PreInterpHook& pre_interp,
                        const PostInterpHook& post_interp)
 {
+    BL_PROFILE("InterpFromCoarseLevel");
+
     using FAB = typename MF::FABType::value_type;
 
     const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
@@ -1010,34 +1012,50 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
 
     Box fdomain_g( amrex::convert(fgeom.Domain(),mf.ixType()) );
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-        if (fgeom.isPeriodic(i)) {
-            fdomain_g.grow(i,nghost[i]);
-        }
-    }
-
-    BoxArray ba_crse_patch(ba.size());
-    {  // TODO: later we might want to cache this
-        for (int i = 0, N = ba.size(); i < N; ++i)
-        {
-            Box bx = amrex::convert(amrex::grow(ba[i],nghost), typ);
-            bx &= fdomain_g;
-            ba_crse_patch.set(i, coarsener.doit(bx));
+        if constexpr (std::is_same_v<BC, PhysBCFunctUseCoarseGhost>) {
+            if (fgeom.isPeriodic(i)) {
+                fdomain_g.grow(i, nghost[i]);
+            } else {
+                fdomain_g.grow(i, fbc.nghost_outside_domain[i]);
+            }
+        } else {
+            if (fgeom.isPeriodic(i)) {
+                fdomain_g.grow(i,nghost[i]);
+            }
         }
     }
 
     MF mf_crse_patch;
-#ifdef AMREX_USE_EB
-    if (EB2::TopIndexSpaceIfPresent()) {
-        auto factory = makeEBFabFactory(cgeom, ba_crse_patch, dm, {0,0,0}, EBSupport::basic);
-        mf_crse_patch.define(ba_crse_patch, dm, ncomp, 0, MFInfo(), *factory);
-    } else
-#endif
-    {
-        mf_crse_patch.define(ba_crse_patch, dm, ncomp, 0);
-    }
-    detail::mf_set_domain_bndry (mf_crse_patch, cgeom);
+    IntVect send_ghost(0), recv_ghost(0);
+    if constexpr (std::is_same_v<BC, PhysBCFunctUseCoarseGhost>) {
+        mf_crse_patch.define(amrex::coarsen(ba,ratio), dm, ncomp, fbc.src_ghost);
+        send_ghost = fbc.cghost;
+        recv_ghost = fbc.src_ghost;
+    } else {
+        BoxArray ba_crse_patch(ba.size());
+        {  // TODO: later we might want to cache this
+            for (int i = 0, N = ba.size(); i < N; ++i)
+            {
+                Box bx = amrex::convert(amrex::grow(ba[i],nghost), typ);
+                bx &= fdomain_g;
+                ba_crse_patch.set(i, coarsener.doit(bx));
+            }
+        }
 
-    mf_crse_patch.ParallelCopy(cmf, scomp, 0, ncomp, cgeom.periodicity());
+#ifdef AMREX_USE_EB
+        if (EB2::TopIndexSpaceIfPresent()) {
+            auto factory = makeEBFabFactory(cgeom, ba_crse_patch, dm, {0,0,0}, EBSupport::basic);
+            mf_crse_patch.define(ba_crse_patch, dm, ncomp, 0, MFInfo(), *factory);
+        } else
+#endif
+        {
+            mf_crse_patch.define(ba_crse_patch, dm, ncomp, 0);
+        }
+        detail::mf_set_domain_bndry (mf_crse_patch, cgeom);
+    }
+
+    mf_crse_patch.ParallelCopy(cmf, scomp, 0, ncomp, send_ghost, recv_ghost,
+                               cgeom.periodicity());
 
     cbc(mf_crse_patch, 0, ncomp, mf_crse_patch.nGrowVect(), time, cbccomp);
 
@@ -1075,7 +1093,7 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ngho
                        const PreInterpHook& pre_interp,
                        const PostInterpHook& post_interp)
 {
-    BL_PROFILE("InterpFromCoarseLevel");
+    BL_PROFILE("InterpFromCoarseLevel(array)");
 
     using FAB = typename MF::FABType::value_type;
     using iFAB = typename iMultiFab::FABType::value_type;
@@ -1221,42 +1239,10 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
                        const IntVect& ratio, Interp* mapper,
                        const Vector<BCRec>& bcs)
 {
-    BL_PROFILE("InterpFromCoarseLevel_nobc");
-
-    const BoxArray& ba = mf.boxArray();
-    const DistributionMapping& dm = mf.DistributionMap();
-
-    const IndexType& typ = ba.ixType();
-    BL_ASSERT(typ == cmf.boxArray().ixType());
-
-    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
-    Box tmp(-nghost, IntVect(32), typ);
-    Box tmp2 = coarsener.doit(tmp);
-    IntVect src_ghost = -tmp2.smallEnd();
-
-    tmp = Box(-nghost_outside_domain, IntVect(32), typ);
-    tmp2 = coarsener.doit(tmp);
-    IntVect src_ghost_outside_domain = -tmp2.smallEnd();
-
-    IntVect cghost = cmf.nGrowVect();
-    cghost.min(src_ghost);
-
-    AMREX_ALWAYS_ASSERT(cghost.allGE(src_ghost_outside_domain));
-
-    MF mf_crse_patch(amrex::coarsen(ba,ratio), dm, ncomp, src_ghost);
-    mf_crse_patch.ParallelCopy(cmf, scomp, 0, ncomp, cghost, src_ghost,
-                               cgeom.periodicity());
-
-    Box fdomain_g = amrex::convert(fgeom.Domain(),typ);
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (fgeom.isPeriodic(idim)) {
-            fdomain_g.grow(idim, nghost[idim]);
-        } else {
-            fdomain_g.grow(idim, nghost_outside_domain[idim]);
-        }
-    }
-    FillPatchInterp(mf, dcomp, mf_crse_patch, 0, ncomp, nghost, cgeom, fgeom,
-                    fdomain_g, ratio, mapper, bcs, 0);
+    PhysBCFunctUseCoarseGhost erfbc(cmf,nghost,nghost_outside_domain,ratio,mapper);
+    InterpFromCoarseLevel(mf, nghost, Real(0.0), cmf, scomp, dcomp, ncomp,
+                          cgeom, fgeom, erfbc, 0, erfbc, 0, ratio, mapper,
+                          bcs, 0);
 }
 
 template <typename MF>
