@@ -1385,7 +1385,7 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost,
 
     const IndexType& typ = mf.ixType();
 
-    AMREX_ALWAYS_ASSERT(mf.ixType.nodeCentered() || mf.cellCentered());
+    AMREX_ALWAYS_ASSERT(typ.nodeCentered() || typ.cellCentered());
 
     if (nghost.max() > 0 || mf.getBDKey() != fmf[0]->getBDKey())
     {
@@ -1393,6 +1393,7 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost,
 
         Box tmp(-nghost, IntVect(32), typ);
         Box tmp2 = coarsener.doit(tmp);
+
         // This is the number of coarse ghost cells needed to interpolate
         // nghost fine ghost cells inside the domain
         IntVect src_ghost = -tmp2.smallEnd();
@@ -1402,12 +1403,13 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost,
         tmp = Box(-nghost_outside_domain, IntVect(32), typ);
         tmp2 = coarsener.doit(tmp);
         IntVect src_ghost_outside_domain = -tmp2.smallEnd();
-        AMREX_ALWAYS_ASSERT(src_ghost_outside_domain.allGE(src_ghost));
 
-        IntVect cghost = cmf.nGrowVect();
+        IntVect cghost = cmf[0].nGrowVect();
         cghost.min(src_ghost);
+
         // This is the minimum number of ghost cells needed in cmf.
-        AMREX_ALWAYS_ASSERT(cghost.allGE(src_ghost_outside_domain));
+        AMREX_ALWAYS_ASSERT(cghost.allGE(src_ghost_outside_domain) &&
+                            cmf[1]->nGrowVect().allGE(cghost));
 
         const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf,
                                                                   nghost,
