@@ -1237,12 +1237,12 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
                        const MF& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
                        const IntVect& ratio, Interp* mapper,
-                       const Vector<BCRec>& bcs)
+                       const Vector<BCRec>& bcs, int bcscomp)
 {
     PhysBCFunctUseCoarseGhost erfbc(cmf,nghost,nghost_outside_domain,ratio,mapper);
     InterpFromCoarseLevel(mf, nghost, Real(0.0), cmf, scomp, dcomp, ncomp,
                           cgeom, fgeom, erfbc, 0, erfbc, 0, ratio, mapper,
-                          bcs, 0);
+                          bcs, bcscomp);
 }
 
 template <typename MF>
@@ -1365,7 +1365,7 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost,
                     int scomp, int dcomp, int ncomp,
                     const Geometry& cgeom, const Geometry& fgeom,
                     const IntVect& ratio, Interp* mapper,
-                    const Vector<BCRec>& bcs)
+                    const Vector<BCRec>& bcs, int bcscomp)
 {
     BL_PROFILE("FillPatchTwoLevels_nobc");
 
@@ -1390,7 +1390,7 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost,
         tmp2 = coarsener.doit(tmp);
         IntVect src_ghost_outside_domain = -tmp2.smallEnd();
 
-        IntVect cghost = cmf[0].nGrowVect();
+        IntVect cghost = cmf[0]->nGrowVect();
         cghost.min(src_ghost);
 
         // This is the minimum number of ghost cells needed in cmf.
@@ -1423,7 +1423,7 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost,
             }
             FillPatchInterp(mf_fine_patch, 0, mf_crse_patch, 0,
                             ncomp, IntVect(0), cgeom, fgeom,
-                            fdomain_g, ratio, mapper, bcs, 0);
+                            fdomain_g, ratio, mapper, bcs, bcscomp);
 
             mf.ParallelCopy(mf_fine_patch, 0, dcomp, ncomp, IntVect{0}, nghost);
         }

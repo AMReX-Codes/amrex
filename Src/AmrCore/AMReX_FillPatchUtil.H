@@ -718,6 +718,7 @@ namespace amrex
      * \param ratio refinement ratio
      * \param mapper spatial interpolater
      * \param bcs boundar types for each component
+     * \param bcscomp starting component for bcs
      */
     template <typename MF, typename Interp>
     std::enable_if_t<IsFabArray<MF>::value>
@@ -726,7 +727,7 @@ namespace amrex
                            const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
                            const IntVect& ratio, Interp* mapper,
-                           const Vector<BCRec>& bcs);
+                           const Vector<BCRec>& bcs, int bcscomp);
 
     /**
      * \brief FillPatch with data from the current level
@@ -785,6 +786,7 @@ namespace amrex
      * \param ratio refinement ratio
      * \param mapper spatial interpolater
      * \param bcs boundary types for each component.
+     * \param bcscomp starting component for bcs
      */
     template <typename MF, typename Interp>
     std::enable_if_t<IsFabArray<MF>::value>
@@ -795,7 +797,7 @@ namespace amrex
                         int scomp, int dcomp, int ncomp,
                         const Geometry& cgeom, const Geometry& fgeom,
                         const IntVect& ratio, Interp* mapper,
-                        const Vector<BCRec>& bcs);
+                        const Vector<BCRec>& bcs, int bcscomp);
 
 #ifndef BL_NO_FORT
     enum InterpEM_t { InterpE, InterpB};
