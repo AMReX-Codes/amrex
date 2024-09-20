@@ -93,7 +93,9 @@ protected:
     Array<MultiFab,AMREX_SPACEDIM> m_areafrac;
     Array<MultiFab,AMREX_SPACEDIM> m_facecent;
     Array<MultiFab,AMREX_SPACEDIM> m_edgecent;
-    Array<MultiFab,AMREX_SPACEDIM> m_multicuts;
+    MultiFab m_multicut_fcx;
+    MultiFab m_multicut_fcy;
+    MultiFab m_multicut_fcz;
     iMultiFab m_cutcellmask;
     bool m_allregular = false;
     bool m_ok = false;
@@ -294,10 +296,11 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
     m_bndryarea.define(m_grids, m_dmap, 1, ng, mf_info);
     m_bndrycent.define(m_grids, m_dmap, AMREX_SPACEDIM, ng, mf_info);
     m_bndrynorm.define(m_grids, m_dmap, AMREX_SPACEDIM, ng, mf_info);
+    m_multicut_fcx.define(m_grids, m_dmap, 1, ng, mf_info);
+    m_multicut_fcy.define(m_grids, m_dmap, 1, ng, mf_info);
+    m_multicut_fcz.define(m_grids, m_dmap, 1, ng, mf_info);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         m_areafrac[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
-                                m_dmap, 1, ng, mf_info);
-        m_multicuts[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
                                 m_dmap, 1, ng, mf_info);
         m_facecent[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
                                 m_dmap, AMREX_SPACEDIM-1, ng, mf_info);
@@ -419,9 +422,9 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
                 Array4<Real> const& ym2 = M2[1].array();
                 Array4<Real> const& zm2 = M2[2].array();
 
-                AMREX_D_TERM(Array4<Real> const& mcx = m_multicuts[0].array(mfi);,
-                             Array4<Real> const& mcy = m_multicuts[1].array(mfi);,
-                             Array4<Real> const& mcz = m_multicuts[2].array(mfi););
+                Array4<Real> const& mcx = m_multicut_fcx.array(mfi);
+                Array4<Real> const& mcy = m_multicut_fcy.array(mfi);
+                Array4<Real> const& mcz = m_multicut_fcz.array(mfi);
 
                 nmc = build_faces(vbx, cfg, ftx, fty, ftz, xdg, ydg, zdg, lst,
                                   xip, yip, zip, apx, apy, apz, fcx, fcy, fcz,
@@ -478,7 +481,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
                                           clst, geom);
                 }
 
-                Array4<Real> const& mcx = m_multicuts[0].array(mfi);
+                Array4<Real> const& mcx = m_multicut_fcx.array(mfi);
 
                 nmc = build_faces(vbx, cfg, ftx, fty, lst, xip, yip, apx, apy, fcx, fcy,
                                   dx, problo, cover_multiple_cuts, nsm,
@@ -501,22 +504,22 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
             amrex::Print() << "Plotting multicut locations..." << "\n";
 
             #if (AMREX_SPACEDIM == 3)
-                if (m_multicuts[0].max(0) > 2)
+                if (m_multicut_fcx.max(0) > 2)
                 {
-                    WriteSingleLevelPlotfile("plt.multicut.x", m_multicuts[0], {"multicut_fcx"}, geom, 0.0, 0);
+                    WriteSingleLevelPlotfile("plt.multicut.x", m_multicut_fcx, {"multicut_fcx"}, geom, 0.0, 0);
                 }
-                if (m_multicuts[1].max(0) > 2)
+                if (m_multicut_fcy.max(0) > 2)
                 {
-                    WriteSingleLevelPlotfile("plt.multicut.y", m_multicuts[1], {"multicut_fcy"}, geom, 0.0, 0);
+                    WriteSingleLevelPlotfile("plt.multicut.y", m_multicut_fcy, {"multicut_fcy"}, geom, 0.0, 0);
                 }
-                if (m_multicuts[2].max(0) > 2)
+                if (m_multicut_fcz.max(0) > 2)
                 {
-                    WriteSingleLevelPlotfile("plt.multicut.z", m_multicuts[2], {"multicut_fcz"}, geom, 0.0, 0);
+                    WriteSingleLevelPlotfile("plt.multicut.z", m_multicut_fcz, {"multicut_fcz"}, geom, 0.0, 0);
                 }
             #elif (AMREX_SPACEDIM == 2)
-                if (m_multicuts[0].max(0) > 2)
+                if (m_multicut_fcx.max(0) > 2)
                 {
-                    WriteSingleLevelPlotfile("plt.multicut", m_multicuts[0], {"multicut_fcx"}, geom, 0.0, 0);
+                    WriteSingleLevelPlotfile("plt.multicut", m_multicut_fcx, {"multicut_fcx"}, geom, 0.0, 0);
                 }
             #endif
             amrex::Abort("amrex::EB2:: more than 2 cuts not supported");
