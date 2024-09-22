@@ -1295,6 +1295,7 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost,
                     const IntVect& ratio, Interp* mapper,
                     const Vector<BCRec>& bcs, int bcscomp)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost_outside_domain == 0, "TODO");
     PhysBCFunctUseCoarseGhost erfbc(*cmf[0], nghost, nghost_outside_domain, ratio,
                                     mapper);
     FillPatchTwoLevels(mf, nghost, time, cmf, ct, fmf, ft, scomp, dcomp, ncomp,
