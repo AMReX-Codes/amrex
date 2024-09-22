@@ -858,8 +858,6 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
                        const Array<FAB*,AMREX_SPACEDIM>& flux,
                        const FAB& sol, Location, const int face_only) const
 {
-    AMREX_ASSERT(!this->hasHiddenDimension());
-
     BL_PROFILE("MLPoisson::FFlux()");
 
     const int mglev = 0;
@@ -878,103 +876,143 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
 
 #if (AMREX_SPACEDIM == 3)
     if (face_only) {
-        RT fac = RT(dxinv[0]);
-        Box blo = amrex::bdryLo(box, 0);
-        int blen = box.length(0);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
-        {
-            mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen);
-        });
-        fac = RT(dxinv[1]);
-        blo = amrex::bdryLo(box, 1);
-        blen = box.length(1);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
-        {
-            mlpoisson_flux_yface(tbox, fyarr, solarr, fac, blen);
-        });
-        fac = RT(dxinv[2]);
-        blo = amrex::bdryLo(box, 2);
-        blen = box.length(2);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
-        {
-            mlpoisson_flux_zface(tbox, fzarr, solarr, fac, blen);
-        });
-    } else {
-        RT fac = RT(dxinv[0]);
-        Box bflux = amrex::surroundingNodes(box, 0);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
-        {
-            mlpoisson_flux_x(tbox, fxarr, solarr, fac);
-        });
-        fac = RT(dxinv[1]);
-        bflux = amrex::surroundingNodes(box, 1);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
-        {
-            mlpoisson_flux_y(tbox, fyarr, solarr, fac);
-        });
-        fac = RT(dxinv[2]);
-        bflux = amrex::surroundingNodes(box, 2);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
-        {
-            mlpoisson_flux_z(tbox, fzarr, solarr, fac);
-        });
-    }
-#elif (AMREX_SPACEDIM == 2)
-    if (face_only) {
-        RT fac = RT(dxinv[0]);
-        Box blo = amrex::bdryLo(box, 0);
-        int blen = box.length(0);
-        if (this->m_has_metric_term) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
-            {
-                mlpoisson_flux_xface_m(tbox, fxarr, solarr, fac, blen, dx, probxlo);
-            });
-        } else {
+        if (this->hiddenDirection() != 0) {
+            RT fac = RT(dxinv[0]);
+            Box blo = amrex::bdryLo(box, 0);
+            int blen = box.length(0);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
             {
                 mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen);
             });
-        }
-        fac = RT(dxinv[1]);
-        blo = amrex::bdryLo(box, 1);
-        blen = box.length(1);
-        if (this->m_has_metric_term) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
-            {
-                mlpoisson_flux_yface_m(tbox, fyarr, solarr, fac, blen, dx, probxlo);
-            });
         } else {
+            flux[0]->setVal(RT(0.0));
+        }
+        if (this->hiddenDirection() != 1) {
+            RT fac = RT(dxinv[1]);
+            Box blo = amrex::bdryLo(box, 1);
+            int blen = box.length(1);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
             {
                 mlpoisson_flux_yface(tbox, fyarr, solarr, fac, blen);
             });
+        } else {
+            flux[1]->setVal(RT(0.0));
         }
-    } else {
-        RT fac = RT(dxinv[0]);
-        Box bflux = amrex::surroundingNodes(box, 0);
-        if (this->m_has_metric_term) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        if (this->hiddenDirection() != 2) {
+            RT fac = RT(dxinv[2]);
+            Box blo = amrex::bdryLo(box, 2);
+            int blen = box.length(2);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
             {
-                mlpoisson_flux_x_m(tbox, fxarr, solarr, fac, dx, probxlo);
+                mlpoisson_flux_zface(tbox, fzarr, solarr, fac, blen);
             });
         } else {
+            flux[2]->setVal(RT(0.0));
+        }
+    } else {
+        if (this->hiddenDirection() != 0) {
+            RT fac = RT(dxinv[0]);
+            Box bflux = amrex::surroundingNodes(box, 0);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
             {
                 mlpoisson_flux_x(tbox, fxarr, solarr, fac);
             });
-        }
-        fac = RT(dxinv[1]);
-        bflux = amrex::surroundingNodes(box, 1);
-        if (this->m_has_metric_term) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
-            {
-                mlpoisson_flux_y_m(tbox, fyarr, solarr, fac, dx, probxlo);
-            });
         } else {
+            flux[0]->setVal(RT(0.0));
+        }
+        if (this->hiddenDirection() != 1) {
+            RT fac = RT(dxinv[1]);
+            Box bflux = amrex::surroundingNodes(box, 1);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
             {
                 mlpoisson_flux_y(tbox, fyarr, solarr, fac);
             });
+        } else {
+            flux[1]->setVal(RT(0.0));
+        }
+        if (this->hiddenDirection() != 2) {
+            RT fac = RT(dxinv[2]);
+            Box bflux = amrex::surroundingNodes(box, 2);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+            {
+                mlpoisson_flux_z(tbox, fzarr, solarr, fac);
+            });
+        } else {
+            flux[2]->setVal(RT(0.0));
+        }
+    }
+#elif (AMREX_SPACEDIM == 2)
+    if (face_only) {
+        if (this->hiddenDirection() != 0) {
+            RT fac = RT(dxinv[0]);
+            Box blo = amrex::bdryLo(box, 0);
+            int blen = box.length(0);
+            if (this->m_has_metric_term) {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+                {
+                    mlpoisson_flux_xface_m(tbox, fxarr, solarr, fac, blen, dx, probxlo);
+                });
+            } else {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+                {
+                    mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen);
+                });
+            }
+        } else {
+            flux[0]->setVal(RT(0.0));
+        }
+        if (this->hiddenDirection() != 1) {
+            RT fac = RT(dxinv[1]);
+            Box blo = amrex::bdryLo(box, 1);
+            int blen = box.length(1);
+            if (this->m_has_metric_term) {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+                {
+                    mlpoisson_flux_yface_m(tbox, fyarr, solarr, fac, blen, dx, probxlo);
+                });
+            } else {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+                {
+                    mlpoisson_flux_yface(tbox, fyarr, solarr, fac, blen);
+                });
+            }
+        } else {
+            flux[1]->setVal(RT(0.0));
+        }
+    } else {
+        if (this->hiddenDirection() != 0) {
+            RT fac = RT(dxinv[0]);
+            Box bflux = amrex::surroundingNodes(box, 0);
+            if (this->m_has_metric_term) {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+                {
+                    mlpoisson_flux_x_m(tbox, fxarr, solarr, fac, dx, probxlo);
+                });
+            } else {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+                {
+                    mlpoisson_flux_x(tbox, fxarr, solarr, fac);
+                });
+            }
+        } else {
+            flux[0]->setVal(RT(0.0));
+        }
+        if (this->hiddenDirection() != 1) {
+            RT fac = RT(dxinv[1]);
+            Box bflux = amrex::surroundingNodes(box, 1);
+            if (this->m_has_metric_term) {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+                {
+                    mlpoisson_flux_y_m(tbox, fyarr, solarr, fac, dx, probxlo);
+                });
+            } else {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+                {
+                    mlpoisson_flux_y(tbox, fyarr, solarr, fac);
+                });
+            }
+        } else {
+            flux[1]->setVal(RT(0.0));
         }
     }
 #else
