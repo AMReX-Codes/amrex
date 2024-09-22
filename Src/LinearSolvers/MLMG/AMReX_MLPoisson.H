@@ -885,7 +885,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
                 mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen);
             });
         } else {
-            flux[0]->setVal(RT(0.0));
+            flux[0]->template setVal<RunOn::Device>(RT(0.0));
         }
         if (this->hiddenDirection() != 1) {
             RT fac = RT(dxinv[1]);
@@ -896,7 +896,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
                 mlpoisson_flux_yface(tbox, fyarr, solarr, fac, blen);
             });
         } else {
-            flux[1]->setVal(RT(0.0));
+            flux[1]->template setVal<RunOn::Device>(RT(0.0));
         }
         if (this->hiddenDirection() != 2) {
             RT fac = RT(dxinv[2]);
@@ -907,7 +907,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
                 mlpoisson_flux_zface(tbox, fzarr, solarr, fac, blen);
             });
         } else {
-            flux[2]->setVal(RT(0.0));
+            flux[2]->template setVal<RunOn::Device>(RT(0.0));
         }
     } else {
         if (this->hiddenDirection() != 0) {
@@ -918,7 +918,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
                 mlpoisson_flux_x(tbox, fxarr, solarr, fac);
             });
         } else {
-            flux[0]->setVal(RT(0.0));
+            flux[0]->template setVal<RunOn::Device>(RT(0.0));
         }
         if (this->hiddenDirection() != 1) {
             RT fac = RT(dxinv[1]);
@@ -928,7 +928,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
                 mlpoisson_flux_y(tbox, fyarr, solarr, fac);
             });
         } else {
-            flux[1]->setVal(RT(0.0));
+            flux[1]->template setVal<RunOn::Device>(RT(0.0));
         }
         if (this->hiddenDirection() != 2) {
             RT fac = RT(dxinv[2]);
@@ -938,7 +938,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
                 mlpoisson_flux_z(tbox, fzarr, solarr, fac);
             });
         } else {
-            flux[2]->setVal(RT(0.0));
+            flux[2]->template setVal<RunOn::Device>(RT(0.0));
         }
     }
 #elif (AMREX_SPACEDIM == 2)
@@ -959,7 +959,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
                 });
             }
         } else {
-            flux[0]->setVal(RT(0.0));
+            flux[0]->template setVal<RunOn::Device>(RT(0.0));
         }
         if (this->hiddenDirection() != 1) {
             RT fac = RT(dxinv[1]);
@@ -977,7 +977,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
                 });
             }
         } else {
-            flux[1]->setVal(RT(0.0));
+            flux[1]->template setVal<RunOn::Device>(RT(0.0));
         }
     } else {
         if (this->hiddenDirection() != 0) {
@@ -995,7 +995,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
                 });
             }
         } else {
-            flux[0]->setVal(RT(0.0));
+            flux[0]->template setVal<RunOn::Device>(RT(0.0));
         }
         if (this->hiddenDirection() != 1) {
             RT fac = RT(dxinv[1]);
@@ -1012,7 +1012,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
                 });
             }
         } else {
-            flux[1]->setVal(RT(0.0));
+            flux[1]->template setVal<RunOn::Device>(RT(0.0));
         }
     }
 #else
