@@ -1,5 +1,9 @@
-#include <type_traits>
 #include <AMReX_MakeParticle.H>
+
+#include <string>
+#include <type_traits>
+#include <vector>
+
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
@@ -60,7 +64,48 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         pp.query("do_unlink", doUnlink);
         pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
 
+        // add default names for SoA Real and Int compile-time arguments
+        int first_r_name = 0;
+        // push back x,y,z
+        if constexpr (ParticleType::is_soa_particle) {
+            constexpr int x_in_ascii = 120;
+            for (int i=0; i<AMREX_SPACEDIM; ++i)
+            {
+                std::string const name{char(x_in_ascii+i)};
+                m_soa_rdata_names.push_back(name);
+            }
+            first_r_name = AMREX_SPACEDIM;
+        }
+        for (int i=first_r_name; i<NArrayReal; ++i)
+        {
+            m_soa_rdata_names.push_back("real_comp" + std::to_string(i-first_r_name));
+        }
+        for (int i=0; i<NArrayInt; ++i)
+        {
+            m_soa_idata_names.push_back("int_comp" + std::to_string(i));
+        }
+
         initialized = true;
+    }
+}
+
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+        template<class> class Allocator, class CellAssignor>
+void
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor> :: SetSoACompileTimeNames (
+    std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name
+)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rdata_name.size() == NArrayReal, "rdata_name must be equal to NArrayReal");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(idata_name.size() == NArrayInt, "idata_name must be equal to NArrayInt");
+
+    for (int i=0; i<NArrayReal; ++i)
+    {
+        m_soa_rdata_names.at(i) = rdata_name.at(i);
+    }
+    for (int i=0; i<NArrayInt; ++i)
+    {
+        m_soa_idata_names.at(i) = idata_name.at(i);
     }
 }
 
@@ -1161,7 +1206,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     } else {
         ParticleTileType ptile_tmp;
-        ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
+        ptile_tmp.define(m_num_runtime_real, m_num_runtime_int, &m_soa_rdata_names, &m_soa_idata_names);
         ptile_tmp.resize(np_total);
         // copy re-ordered particles
         gatherParticles(ptile_tmp, ptile, np, permutations);
@@ -1498,7 +1543,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             tmp_local[lev][index].resize(num_threads);
             soa_local[lev][index].resize(num_threads);
             for (int t = 0; t < num_threads; ++t) {
-                soa_local[lev][index][t].define(m_num_runtime_real, m_num_runtime_int);
+                soa_local[lev][index][t].define(m_num_runtime_real, m_num_runtime_int, &m_soa_rdata_names, &m_soa_idata_names);
             }
         }
     }
