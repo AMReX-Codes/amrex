@@ -66,6 +66,7 @@
 #include <cfenv>
 #endif
 
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -339,7 +340,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     bool amrex_debug = false;
     if (env_amrex_debug != nullptr) {
         std::string str_amrex_debug{env_amrex_debug};
-        for(auto& c : test) { c = tolower(c); }
+        for(auto& c : str_amrex_debug) { c = std::tolower(c); }
 
         if (str_amrex_debug == "1" || str_amrex_debug == "on" || str_amrex_debug == "true") {
             amrex_debug = true;
@@ -349,8 +350,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::exename.clear();
 //    system::verbose = 0;
     system::regtest_reduction = false;
-
-
     system::signal_handling = !amrex_debug;
     system::handle_sigsegv = true;
     system::handle_sigterm = false;

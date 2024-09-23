@@ -100,13 +100,13 @@ The following runtime options need to be set in order to prevent AMReX from catc
 
 This default behavior can also be modified by applications, see for example `this custom application initializer <https://github.com/Exawind/amr-wind/blob/84f81a990152f4f748c1ab0fa17c8c663e51df86/amr-wind/main.cpp#L21>`__.
 
-The above default can also be achieve by setting the environment variable ``AMREX_DEBUG``:
+Alternatively, set the environment variable ``AMREX_DEBUG`` to change the defaults in the same way:
 
-.. highlight:: console
-
-::
+.. code-block: console
 
     export AMREX_DEBUG=1
+
+Note that input and command line arguments always have precedence over environment variables.
 
 
 .. _sec:gpu:debugging:
