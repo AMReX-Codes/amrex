@@ -170,6 +170,12 @@ public:
      */
     void registerForProfiling (const std::string& memory_name);
 
+    /**
+     * \brief Remove this Arena from the list of Arenas that are profiled by TinyProfiler.
+     * This is equivalent to destructing and re-constructing the Arena
+     */
+    void deregisterFromProfiling ();
+
 #ifdef AMREX_USE_GPU
     //! Is this GPU stream ordered memory allocator?
     [[nodiscard]] virtual bool isStreamOrderedArena () const { return false; }

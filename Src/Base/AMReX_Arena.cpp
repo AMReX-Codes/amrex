@@ -126,6 +126,19 @@ Arena::registerForProfiling ([[maybe_unused]] const std::string& memory_name)
 #endif
 }
 
+void
+Arena::deregisterFromProfiling ()
+{
+#ifdef AMREX_TINY_PROFILING
+    if (m_profiler.m_do_profiling) {
+        TinyProfiler::DeregisterArena(m_profiler.m_profiling_stats);
+        m_profiler.m_do_profiling = false;
+        m_profiler.m_profiling_stats.clear();
+        m_profiler.m_currently_allocated.clear();
+    }
+#endif
+}
+
 std::size_t
 Arena::align (std::size_t s)
 {
@@ -588,6 +601,8 @@ Arena::Finalize ()
         delete the_cpu_arena;
         the_cpu_arena = nullptr;
     }
+
+    The_BArena()->deregisterFromProfiling();
 }
 
 Arena*
