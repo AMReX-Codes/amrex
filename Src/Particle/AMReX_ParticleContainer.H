@@ -1249,9 +1249,7 @@ public:
 
     Long superParticleSize() const { return superparticle_size; }
 
-    template <typename T,
-              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
-    void AddRealComp (std::string const & name, T communicate=true)
+    void AddRealComp (std::string const & name, bool communicate=true)
     {
         m_soa_rdata_names.push_back(name);
 
@@ -1274,17 +1272,13 @@ public:
         }
     }
 
-    template <typename T,
-              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
-    void AddRealComp (T communicate=true)
+    void AddRealComp (bool communicate=true)
     {
-        std::string default_name = "make-up-name"; //! @FIXME add naming scheme
+        std::string default_name = "runtime_real" + std::to_string(m_num_runtime_real);
         AddRealComp(default_name, communicate);
     }
 
-    template <typename T,
-              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
-    void AddIntComp (std::string const & name, T communicate=true)
+    void AddIntComp (std::string const & name, bool communicate=true)
     {
         m_soa_idata_names.push_back(name);
 
@@ -1307,11 +1301,9 @@ public:
         }
     }
 
-    template <typename T,
-              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
-    void AddIntComp (T communicate=true)
+    void AddIntComp (bool communicate=true)
     {
-        std::string default_name = "make-up-name"; //! @FIXME add naming scheme
+        std::string default_name = "runtime_int" + std::to_string(m_num_runtime_int);
         AddIntComp(default_name, communicate);
     }
 
@@ -1425,6 +1417,15 @@ public:
 #include "AMReX_ParticlesHDF5.H"
 #endif
 
+    /** Overwrite the default names for the compile-time SoA components */
+    void SetSoACompileTimeNames (std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name);
+
+    /** Get the names for the real SoA components **/
+    std::vector<std::string> GetRealSoANames () const {return m_soa_rdata_names;}
+
+    /** Get the names for the int SoA components **/
+    std::vector<std::string> GetIntSoANames () const {return m_soa_idata_names;}
+
 protected:
 
     template <class RTYPE>
@@ -1449,9 +1450,6 @@ private:
                          int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
 
     void Initialize ();
-
-    /** Overwrite the default names for the compile-time SoA components */
-    void SetSoACompileTimeNames (std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name);
 
     bool m_runtime_comps_defined{false};
     int m_num_runtime_real{0};
