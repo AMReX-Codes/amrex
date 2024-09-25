@@ -13,7 +13,7 @@ using namespace amrex;
 
 void addParticles ()
 {
-    using PC = ParticleContainerPureSoA<4, 2>;
+    using PC = ParticleContainerPureSoA<AMREX_SPACEDIM+1, 2>;
     int is_per[AMREX_SPACEDIM];
     for (int & d : is_per) {
         d = 1;
@@ -68,7 +68,7 @@ void addParticles ()
     amrex::Print() << "\n";
 
     amrex::Print() << "Reset compile-time SoA names \n";
-    pc.SetSoACompileTimeNames({"x", "y", "z", "w"}, {"i1", "i2"});
+    pc.SetSoACompileTimeNames({AMREX_D_DECL("x", "y", "z"), "w"}, {"i1", "i2"});
 
     amrex::Print() << "New Real SoA component names are: ";
     for (auto& n : pc.GetRealSoANames()) {
@@ -105,20 +105,24 @@ void addParticles ()
     using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
     for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
         auto& soa = pti.GetStructOfArrays();
-        auto *xp = soa.GetRealData("x").data();
-        auto *yp = soa.GetRealData("y").data();
-        auto *zp = soa.GetRealData("z").data();
+        AMREX_D_TERM(
+                     auto *xp = soa.GetRealData("x").data();,
+                     auto *yp = soa.GetRealData("y").data();,
+                     auto *zp = soa.GetRealData("z").data();
+                     );
         auto *wp = soa.GetRealData("w").data();
 
         const int np = pti.numParticles();
         ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
         {
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(xp[ip] == 12_prt,
-                                             "pos attribute expected to be 12");
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(yp[ip] == 12_prt,
-                                             "pos attribute expected to be 12");
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(zp[ip] == 12_prt,
-                                             "pos attribute expected to be 12");
+            AMREX_D_TERM(
+                         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(xp[ip] == 12_prt,
+                                                          "pos attribute expected to be 12");,
+                         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(yp[ip] == 12_prt,
+                                                          "pos attribute expected to be 12");,
+                         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(zp[ip] == 12_prt,
+                                                          "pos attribute expected to be 12");
+                         );
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(wp[ip] == 1.2_prt,
                                              "pos attribute expected to be 1.2");
         });
