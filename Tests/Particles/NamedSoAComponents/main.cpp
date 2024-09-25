@@ -11,9 +11,9 @@
 
 using namespace amrex;
 
-template <typename T_PC,template<class> class Allocator=DefaultAllocator>
 void addParticles ()
 {
+    using PC = ParticleContainerPureSoA<4, 2>;
     int is_per[AMREX_SPACEDIM];
     for (int & d : is_per) {
         d = 1;
@@ -36,7 +36,7 @@ void addParticles ()
 
     DistributionMapping dm(ba);
 
-    T_PC pc(geom, dm, ba);
+    PC pc(geom, dm, ba);
 
     amrex::Print() << "Original Real SoA component names are: ";
     for (auto& n : pc.GetRealSoANames()) {
@@ -85,8 +85,8 @@ void addParticles ()
     int const NArrayReal = pc.NArrayReal;
     int const NArrayInt = pc.NArrayInt;
 
-    using ParticleType = typename T_PC::ParticleType;
-    using ParticleTileDataType = typename T_PC::ParticleTileType::ParticleTileDataType;
+    using ParticleType = typename PC::ParticleType;
+    using ParticleTileDataType = typename PC::ParticleTileType::ParticleTileDataType;
 
     const int add_num_particles = 5;
 
@@ -107,25 +107,13 @@ void addParticles ()
     int lev=0;
     using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
     for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
-        const int np = pti.numParticles();
-        // preparing access to particle data: SoA of Reals
         auto& soa = pti.GetStructOfArrays();
         auto xp = soa.GetRealData("x").data();
         auto yp = soa.GetRealData("y").data();
         auto zp = soa.GetRealData("z").data();
         auto wp = soa.GetRealData("w").data();
-        auto soa_real = soa.GetRealData();
-        auto size = soa.size();
-        amrex::ParticleReal* const AMREX_RESTRICT part_x = soa_real[0].dataPtr();
-        amrex::ParticleReal* const AMREX_RESTRICT part_y = AMREX_SPACEDIM >= 2 ? soa_real[1].dataPtr() : nullptr;
-        amrex::ParticleReal* const AMREX_RESTRICT part_z = AMREX_SPACEDIM >= 3 ? soa_real[2].dataPtr() : nullptr;
-        amrex::ParticleReal* const AMREX_RESTRICT part_w = soa_real[AMREX_SPACEDIM].dataPtr();
-        auto& soa_int = pti.GetStructOfArrays().GetIntData();
-        amrex::ignore_unused(size, part_x, part_y, part_z, part_w, soa_int);
 
-        // Iterating over SoA Particles
-        ParticleTileDataType ptd = pti.GetParticleTile().getParticleTileData();
-
+        const int np = pti.numParticles();
         ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
         {
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(xp[ip] == 12_prt,
@@ -137,80 +125,14 @@ void addParticles ()
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(wp[ip] == 1.2_prt,
                                              "pos attribute expected to be 1.2");
         });
-
-
     }
-
-    // create a host-side particle buffer
-    auto tmp = pc.template make_alike<amrex::PinnedArenaAllocator>();
-    tmp.copyParticles(pc, true);
-
-    using MyPinnedParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator>;
-
-    for (MyPinnedParIter pti(tmp, lev); pti.isValid(); ++pti) {
-        auto& particle_attributes = pti.GetStructOfArrays();
-        auto& real_comp0 = particle_attributes.GetRealData(0);
-        auto&  int_comp1  = particle_attributes.GetIntData(1);
-        for (int i = 0; i < pti.numParticles(); ++i) {
-            real_comp0[i] += 1;
-            int_comp1[i] += 1;
-        }
-    }
-
-    tmp.Redistribute();
-
-    using ConstPTDType = typename T_PC::ParticleTileType::ConstParticleTileDataType;
-    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
-    auto r = amrex::ParticleReduce<
-        amrex::ReduceData<
-            amrex::ParticleReal, amrex::ParticleReal, amrex::ParticleReal,
-            amrex::ParticleReal, amrex::ParticleReal, amrex::ParticleReal,
-            amrex::ParticleReal>
-    >(
-        pc,
-        [=] AMREX_GPU_DEVICE(const ConstPTDType& ptd, const int i) noexcept
-        {
-            amrex::ParticleReal const x = ptd.rdata(0)[i];
-            amrex::ParticleReal const y = AMREX_SPACEDIM >= 2 ? ptd.rdata(1)[i] : 0.0;
-            amrex::ParticleReal const z = AMREX_SPACEDIM >= 3 ? ptd.rdata(2)[i] : 0.0;
-
-            amrex::ParticleReal const w = ptd.rdata(AMREX_SPACEDIM)[i];
-
-            return amrex::makeTuple(x, x*x, y, y*y, z, z*z, w);
-        },
-        reduce_ops
-    );
-    amrex::ignore_unused(r);
-
-    // Reduce for SoA Particle Struct
-    /*
-    using PTDType = typename T_PC::ParticleTileType::ConstParticleTileDataType;
-    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
-    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
-                 pc, [=] AMREX_GPU_DEVICE (const PTDType& ptd, const int i) noexcept
-                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
-             {
-
-                const amrex::Real a = ptd.rdata(1)[i];
-                const amrex::Real b = ptd.rdata(2)[i];
-                const int c = ptd.idata(1)[i];
-                return {a, b, c};
-             }, reduce_ops);
-
-    AMREX_ALWAYS_ASSERT(amrex::get<0>(r) == amrex::Real(std::pow(256, AMREX_SPACEDIM)));
-    AMREX_ALWAYS_ASSERT(amrex::get<1>(r) == 2.0);
-    AMREX_ALWAYS_ASSERT(amrex::get<2>(r) == 1);
-    */
 }
 
-
-
-
-int main(int argc, char* argv[])
+int main (int argc, char* argv[])
  {
     amrex::Initialize(argc,argv);
     {
-        addParticles< ParticleContainerPureSoA<4, 2> > ();
+        addParticles();
     }
     amrex::Finalize();
  }
