@@ -84,12 +84,9 @@ void addParticles ()
 
     int const NArrayReal = pc.NArrayReal;
     int const NArrayInt = pc.NArrayInt;
-
     using ParticleType = typename PC::ParticleType;
-    using ParticleTileDataType = typename PC::ParticleTileType::ParticleTileDataType;
 
     const int add_num_particles = 5;
-
     auto& ptile1 = pc.DefineAndReturnParticleTile(0, 0, 0);
     ptile1.resize(add_num_particles);
 
