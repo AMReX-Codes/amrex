@@ -82,8 +82,8 @@ void addParticles ()
     }
     amrex::Print() << "\n";
 
-    int const NArrayReal = pc.NArrayReal;
-    int const NArrayInt = pc.NArrayInt;
+    int const NArrayReal = PC::NArrayReal;
+    int const NArrayInt = PC::NArrayInt;
     using ParticleType = typename PC::ParticleType;
 
     const int add_num_particles = 5;
@@ -97,7 +97,7 @@ void addParticles ()
         }
         ptile1.getParticleTileData().rdata(AMREX_SPACEDIM)[i] = 1.2;  // w
 
-        ptile1.push_back_int(0, ParticleType::NextID());
+        ptile1.push_back_int(0, int(ParticleType::NextID()));
         ptile1.push_back_int(1, amrex::ParallelDescriptor::MyProc());
     }
 
@@ -105,10 +105,10 @@ void addParticles ()
     using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
     for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
         auto& soa = pti.GetStructOfArrays();
-        auto xp = soa.GetRealData("x").data();
-        auto yp = soa.GetRealData("y").data();
-        auto zp = soa.GetRealData("z").data();
-        auto wp = soa.GetRealData("w").data();
+        auto *xp = soa.GetRealData("x").data();
+        auto *yp = soa.GetRealData("y").data();
+        auto *zp = soa.GetRealData("z").data();
+        auto *wp = soa.GetRealData("w").data();
 
         const int np = pti.numParticles();
         ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
