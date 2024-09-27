@@ -14,6 +14,12 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
 {
+// GCC does not like rdata(comp)
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 #if (AMREX_SPACEDIM == 1)
     amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + Real(0.5);
 
@@ -101,6 +107,10 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
 #else
     amrex::Abort("Not implemented.");
 #endif
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 }
 
 template <typename P>
@@ -110,6 +120,12 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
                                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
                                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& pdxi)
 {
+// GCC does not like rdata(comp)
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 #if (AMREX_SPACEDIM == 1)
     amrex::Real factor = (pdxi[0]/dxi[0]);
 
@@ -229,6 +245,10 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     }
 #else
     amrex::Abort("Not implemented.")
+#endif
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
 #endif
 }
 

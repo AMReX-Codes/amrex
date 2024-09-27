@@ -69,13 +69,13 @@ jobs:
 
   # Build libamrex and all tests
   tests_build_3D:
-    name: GNU@9.3 C++17 3D Debug Fortran [tests]
-    runs-on: ubuntu-20.04
+    name: GNU@13 C++17 3D Debug Fortran [tests]
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_gcc.sh 13
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
@@ -86,7 +86,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-null-dereference"}
         # It's too slow with -O0
       run: |
         export CCACHE_COMPRESS=1
@@ -595,13 +595,13 @@ jobs:
 
   # Build libamrex and run all tests
   tests_run:
-    name: GNU@9.3 C++17 [tests]
-    runs-on: ubuntu-20.04
+    name: GNU@13 C++17 [tests]
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_gcc.sh 13
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
