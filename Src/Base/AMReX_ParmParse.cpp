@@ -184,16 +184,6 @@ enum lexState
     LIST
 };
 
-const char* const
-state_name[] =
-{
-   "START",
-   "STRING",
-   "QUOTED_STRING",
-   "IDENTIFIER",
-   "LIST"
-};
-
 int
 eat_garbage (const char*& str)
 {
@@ -348,7 +338,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
            break;
        default:
            amrex::ErrorStream() << "ParmParse::getToken(): invalid string = " << ostr << '\n'
-                                << "STATE = " << state_name[state]
+                                << "STATE = " << static_cast<int>(state)
                                 << ", next char = " << ch << '\n'
                                 << ", rest of input = \n" << str << '\n';
            amrex::Abort();
