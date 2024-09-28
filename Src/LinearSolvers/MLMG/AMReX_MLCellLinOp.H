@@ -2009,11 +2009,11 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
     const int finest_level = this->NAMRLevels() - 1;
     RT norm = RT(0.0);
 #ifdef AMREX_USE_EB
-    if (! mf.isAllRegular()) {
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev));
+    if (factory && !factory->isAllRegular()) {
         if constexpr (!std::is_same<MF,MultiFab>()) {
             amrex::Abort("MLCellLinOpT with EB only works with MultiFab");
         } else {
-            const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev));
             const MultiFab& vfrac = factory->getVolFrac();
             if (amrlev == finest_level) {
 #ifdef AMREX_USE_GPU
