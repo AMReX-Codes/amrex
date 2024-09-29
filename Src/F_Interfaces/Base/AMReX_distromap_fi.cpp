@@ -44,6 +44,6 @@ extern "C" {
 
     bool amrex_fi_distromap_issame (const DistributionMapping& dma, const DistributionMapping& dmb)
     {
-        return dma==dmb;
+        return dma == dmb;
     }
 }
