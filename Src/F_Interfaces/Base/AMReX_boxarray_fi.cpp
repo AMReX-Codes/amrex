@@ -86,4 +86,9 @@ extern "C" {
         Box bx(IntVect(lo), IntVect(hi), ba->ixType());
         return ba->intersects(bx);
     }
+
+    bool amrex_fi_boxarray_issame (const BoxArray& baa, const BoxArray& bab)
+    {
+        return baa == bab;
+    }
 }

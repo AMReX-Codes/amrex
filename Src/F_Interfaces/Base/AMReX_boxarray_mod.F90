@@ -9,7 +9,8 @@ module amrex_boxarray_module
 
   private
 
-  public :: amrex_boxarray_build, amrex_boxarray_destroy, amrex_print
+  public :: amrex_boxarray_build, amrex_boxarray_destroy, amrex_print, &
+            amrex_boxarray_issame
 
   type, public :: amrex_boxarray
      logical     :: owner = .false.
@@ -128,6 +129,12 @@ module amrex_boxarray_module
        type(c_ptr), value, intent(in) :: ba
        integer, intent(in) :: lo(*), hi(*)
      end function amrex_fi_boxarray_intersects_box
+
+     pure logical function amrex_fi_boxarray_issame (baa, bab) bind(c)
+       import
+       implicit none
+       type(c_ptr), value, intent(in) :: baa, bab
+     end function amrex_fi_boxarray_issame
   end interface
 
 contains
@@ -257,5 +264,12 @@ contains
     ir = amrex_fi_boxarray_intersects_box(this%p, bx%lo, bx%hi)
     r = ir .ne. 0
   end function amrex_boxarray_intersects_box
+
+  pure function amrex_boxarray_issame(baa, bab) result(r)
+    class(amrex_boxarray), intent(in) :: baa
+    class(amrex_boxarray), intent(in) :: bab
+    logical :: r
+    r = amrex_fi_boxarray_issame(baa%p, bab%p)
+  end function amrex_boxarray_issame
 
 end module amrex_boxarray_module
