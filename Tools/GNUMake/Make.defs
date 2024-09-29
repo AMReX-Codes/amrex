@@ -216,6 +216,12 @@ else
   USE_CONDUIT := FALSE
 endif
 
+ifdef USE_CATALYST
+  USE_CATALYST := $(strip $(USE_CATALYST))
+else
+  USE_CATALYST := FALSE
+endif
+
 ifdef USE_ASCENT
   USE_ASCENT := $(strip $(USE_ASCENT))
 else
@@ -266,6 +272,9 @@ ifeq ($(USE_CUDA),TRUE)
 
   # Limit the maximum number of registers available.
   CUDA_MAXREGCOUNT ?= 255
+
+  # Link-time optimization
+  CUDA_LTO ?= FALSE
 
   # Enable verbosity in the CUDA compilation.
   CUDA_VERBOSE ?= TRUE
@@ -1054,6 +1063,11 @@ ifeq ($(USE_CONDUIT),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.conduit
 endif
 
+ifeq ($(USE_CATALYST),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.catalyst...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.catalyst
+endif
+
 ifeq ($(USE_ASCENT),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.ascent...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.ascent
@@ -1103,8 +1117,8 @@ else ifeq ($(USE_HIP),TRUE)
       AMD_ARCH = $(AMREX_AMD_ARCH)
     endif
 
-    # For AMD GPUs, the wavefront is 64 except for gfx10??.
-    ifeq ($(findstring gfx10,$(AMD_ARCH)),)
+    # For AMD GPUs, the wavefront is 64 except for gfx10?? and gfx11??.
+    ifeq ($(filter gfx10% gfx11%,$(AMD_ARCH)),)
        DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=64
     else
        DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=32
@@ -1176,7 +1190,7 @@ else ifeq ($(USE_CUDA),TRUE)
     endif
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-      LINKFLAGS = $(NVCC_FLAGS) $(CXXFLAGS_FROM_HOST)
+      LINKFLAGS = $(NVCC_FLAGS) $(NVCC_ARCH_LINK_FLAGS) $(CXXFLAGS_FROM_HOST)
       AMREX_LINKER = nvcc
     endif
 

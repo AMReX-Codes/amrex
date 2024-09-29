@@ -284,8 +284,7 @@ print_option(AMReX_FORTRAN_INTERFACES)
 option( AMReX_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option( AMReX_LINEAR_SOLVERS )
 
-cmake_dependent_option( AMReX_AMRDATA "Build data services" OFF
-   "AMReX_FORTRAN" OFF )
+option( AMReX_AMRDATA "Build data services" OFF )
 print_option( AMReX_AMRDATA )
 
 option( AMReX_PARTICLES "Build particle classes" ON)
@@ -320,6 +319,11 @@ print_option( AMReX_NO_SENSEI_AMR_INST )
 # Conduit (requires CONDUIT_DIR)
 option( AMReX_CONDUIT "Enable Conduit support" OFF )
 print_option( AMReX_CONDUIT )
+
+# Catalyst
+cmake_dependent_option( AMReX_CATALYST "Enable Catalyst support" OFF 
+   "AMReX_CONDUIT" OFF )
+print_option( AMReX_CATALYST )
 
 # Ascent
 cmake_dependent_option( AMReX_ASCENT "Enable Ascent support" OFF

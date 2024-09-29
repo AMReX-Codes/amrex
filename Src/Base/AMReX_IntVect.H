@@ -55,8 +55,11 @@ public:
             static constexpr unsigned shift1 = sizeof(size_t)>=8 ? 20 : 10;
             static constexpr unsigned shift2 = sizeof(size_t)>=8 ? 40 : 20;
             if constexpr (dim == 1) {
+                amrex::ignore_unused(shift1);
+                amrex::ignore_unused(shift2);
                 return static_cast<std::size_t>(vec[0]);
             } else if constexpr (dim == 2) {
+                amrex::ignore_unused(shift2);
                 return static_cast<std::size_t>(vec[0]) ^
                       (static_cast<std::size_t>(vec[1]) << shift1);
             } else if constexpr (dim == 3) {
@@ -162,6 +165,18 @@ public:
             return Dim3{vect[0],0,0};
         } else if constexpr (dim == 2) {
             return Dim3{vect[0],vect[1],0};
+        } else {
+            return Dim3{vect[0],vect[1],vect[2]};
+        }
+    }
+
+    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 dim3 ([[maybe_unused]] int fill_extra) const noexcept {
+        if constexpr (dim == 1) {
+            return Dim3{vect[0],fill_extra,fill_extra};
+        } else if constexpr (dim == 2) {
+            return Dim3{vect[0],vect[1],fill_extra};
         } else {
             return Dim3{vect[0],vect[1],vect[2]};
         }
@@ -1108,7 +1123,7 @@ namespace detail {
     template<class T, std::size_t...Ns>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     T IntVectSplit_imp (T& retval, std::index_sequence<Ns...>, const int * src) noexcept {
-        (IntVectSplit_imp2(std::get<Ns>(retval), src), ...);
+        (IntVectSplit_imp2(amrex::get<Ns>(retval), src), ...);
         return retval;
     }
 

@@ -675,7 +675,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         HdrFile.close();
         if ( ! HdrFile.good())
         {
-            amrex::Abort("ParticleContainer::Checkpoint(): problem writing HdrFile");
+            amrex::Abort("amrex::WriteBinaryParticleDataSync(): problem writing HdrFile");
         }
     }
 }
@@ -969,7 +969,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             HdrFile.close();
             if ( ! HdrFile.good())
             {
-                amrex::Abort("ParticleContainer::Checkpoint(): problem writing HdrFile");
+                amrex::Abort("amrex::WriteBinaryParticleDataAsync(): problem writing HdrFile");
             }
         }
 
@@ -1024,7 +1024,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     {
                         const auto& soa  = pbox.GetStructOfArrays();
 
-                        const auto& p = make_particle<typename PC::ConstParticleType>{}(ptd, pindex);
+                        make_particle<typename PC::ConstParticleType> mp{};
+                        const auto& p = mp(ptd, pindex);
                         if (p.id() <= 0) { continue; }
 
                         // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct
@@ -1101,7 +1102,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                          pindex < pbox.numParticles(); ++pindex)
                     {
                         const auto& soa  = pbox.GetStructOfArrays();
-                        const auto& p = make_particle<typename PC::ConstParticleType>{}(ptd, pindex);
+                        make_particle<typename PC::ConstParticleType> mp{};
+                        const auto& p = mp(ptd, pindex);
 
                         if (p.id() <= 0) { continue; }
 

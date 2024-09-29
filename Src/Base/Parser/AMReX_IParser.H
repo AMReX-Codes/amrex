@@ -18,7 +18,7 @@ struct IParserExecutor
 {
     template <int M=N, std::enable_if_t<M==0,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int operator() () const noexcept
+    long long operator() () const noexcept
     {
         AMREX_IF_ON_DEVICE((return iparser_exe_eval(m_device_executor, nullptr);))
         AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, nullptr);))
@@ -26,16 +26,17 @@ struct IParserExecutor
 
     template <typename... Ts>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<sizeof...(Ts) == N, int>
+    std::enable_if_t<sizeof...(Ts) == N && std::conjunction_v<std::is_integral<Ts>...>,
+                     long long>
     operator() (Ts... var) const noexcept
     {
-        amrex::GpuArray<int,N> l_var{var...};
+        amrex::GpuArray<long long,N> l_var{var...};
         AMREX_IF_ON_DEVICE((return iparser_exe_eval(m_device_executor, l_var.data());))
         AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, l_var.data());))
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int operator() (GpuArray<int,N> const& var) const noexcept
+    long long operator() (GpuArray<long long, N> const& var) const noexcept
     {
         AMREX_IF_ON_DEVICE((return iparser_exe_eval(m_device_executor, var.data());))
         AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, var.data());))
@@ -62,7 +63,7 @@ public:
 
     explicit operator bool () const;
 
-    void setConstant (std::string const& name, int c);
+    void setConstant (std::string const& name, long long c);
 
     void registerVariables (Vector<std::string> const& vars);
 

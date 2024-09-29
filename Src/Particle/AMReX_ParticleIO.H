@@ -651,7 +651,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     int DATA_Digits_Read(5);
     ParmParse pp("particles");
-    pp.queryAdd("datadigits_read",DATA_Digits_Read);
+    pp.query("datadigits_read",DATA_Digits_Read);
 
     std::string fullname = dir;
     if (!fullname.empty() && fullname[fullname.size()-1] != '/') {

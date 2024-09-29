@@ -32,7 +32,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=100M
+        export CCACHE_MAXSIZE=150M
         ccache -z
 
         source /etc/profile.d/rocm.sh
@@ -90,7 +90,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=40M
+        export CCACHE_MAXSIZE=100M
         ccache -z
 
         source /etc/profile.d/rocm.sh
@@ -142,7 +142,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=60M
+        export CCACHE_MAXSIZE=100M
         ccache -z
 
         ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes --with-mpi no --with-omp no --single-precision yes --single-precision-particles yes
@@ -181,18 +181,3 @@ jobs:
 
         ccache -s
         du -hs ~/.cache/ccache
-
-  save_pr_number:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Save PR number
-        env:
-          PR_NUMBER: ${{ github.event.number }}
-        run: |
-          echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pr_number
-          path: pr_number.txt
-          retention-days: 1

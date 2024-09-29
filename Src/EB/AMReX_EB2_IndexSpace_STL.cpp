@@ -83,9 +83,12 @@ IndexSpaceSTL::getGeometry (const Box& dom) const
 }
 
 void
-IndexSpaceSTL::addFineLevels (int /*num_new_fine_levels*/)
+IndexSpaceSTL::addFineLevels (int num_new_fine_levels)
 {
-    amrex::Abort("IndexSpaceSTL::addFineLevels: todo");
+    // This function is a no op if not adding levels, otherwise TODO
+    if (num_new_fine_levels > 0) {
+        amrex::Abort("IndexSpaceSTL::addFineLevels: todo");
+    }
 }
 
 void

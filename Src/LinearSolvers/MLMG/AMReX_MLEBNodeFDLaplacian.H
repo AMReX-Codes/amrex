@@ -20,6 +20,9 @@ namespace amrex {
 //
 // del dot (sigma grad phi) - alpha/r^2 phi = rhs, for RZ where alpha is a
 // scalar constant that is zero by default.
+//
+// New feature: for non-RZ, sigma can also be a single-component
+// cell-centered multifab.
 
 class MLEBNodeFDLaplacian
     : public MLNodeLinOp
@@ -49,6 +52,8 @@ public:
     MLEBNodeFDLaplacian& operator= (MLEBNodeFDLaplacian&&) = delete;
 
     void setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexcept;
+
+    void setSigma (int amrlev, MultiFab const& a_sigma);
 
     void setRZ (bool flag);
 
@@ -116,6 +121,8 @@ public:
 
 private:
     GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};
+    Vector<Vector<std::unique_ptr<MultiFab>>> m_sigma_mf;
+    bool m_has_sigma_mf = false;
     Real m_s_phi_eb = std::numeric_limits<Real>::lowest();
     Vector<MultiFab> m_phi_eb;
     int m_rz = false;

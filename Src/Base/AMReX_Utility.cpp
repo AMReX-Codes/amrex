@@ -16,7 +16,6 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <ctime>
@@ -112,44 +111,6 @@ amrex::Tokenize (const std::string& instr,
     ptr.clear();
     return tokens;
 }
-
-std::string
-amrex::toLower (std::string s)
-{
-    std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    return s;
-}
-
-std::string
-amrex::toUpper (std::string s)
-{
-    std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c) { return std::toupper(c); });
-    return s;
-}
-
-std::string
-amrex::trim(std::string s, std::string const& space)
-{
-    const auto sbegin = s.find_first_not_of(space);
-    if (sbegin == std::string::npos) { return std::string{}; }
-    const auto send = s.find_last_not_of(space);
-    s = s.substr(sbegin, send-sbegin+1);
-    return s;
-}
-
-std::string
-amrex::Concatenate (const std::string& root,
-                     int                num,
-                     int                mindigits)
-{
-    BL_ASSERT(mindigits >= 0);
-    std::stringstream result;
-    result << root << std::setfill('0') << std::setw(mindigits) << num;
-    return result.str();
-}
-
 
 bool
 amrex::UtilCreateDirectory (const std::string& path,

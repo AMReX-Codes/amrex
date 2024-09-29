@@ -19,7 +19,11 @@
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
 #if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
-#include <nvToolsExt.h>
+#if __has_include(<nvtx3/nvToolsExt.h>)
+#  include <nvtx3/nvToolsExt.h>
+#else
+#  include <nvToolsExt.h>
+#endif
 #endif
 #endif
 
@@ -155,9 +159,9 @@ Device::Initialize ()
     max_gpu_streams = std::max(max_gpu_streams, 1);
 
     ParmParse pp("device");
-
-    pp.queryAdd("v", verbose);
-    pp.queryAdd("verbose", verbose);
+    if (! pp.query("verbose", "v", verbose)) {
+        pp.add("verbose", verbose);
+    }
 
     if (amrex::Verbose()) {
         AMREX_HIP_OR_CUDA_OR_SYCL
@@ -519,9 +523,9 @@ Device::initialize_gpu ()
     int ny = 0;
     int nz = 0;
 
-    pp.queryAdd("numThreads.x", nx);
-    pp.queryAdd("numThreads.y", ny);
-    pp.queryAdd("numThreads.z", nz);
+    pp.query("numThreads.x", nx);
+    pp.query("numThreads.y", ny);
+    pp.query("numThreads.z", nz);
 
     numThreadsOverride.x = (int) nx;
     numThreadsOverride.y = (int) ny;
@@ -531,9 +535,9 @@ Device::initialize_gpu ()
     ny = 0;
     nz = 0;
 
-    pp.queryAdd("numBlocks.x", nx);
-    pp.queryAdd("numBlocks.y", ny);
-    pp.queryAdd("numBlocks.z", nz);
+    pp.query("numBlocks.x", nx);
+    pp.query("numBlocks.y", ny);
+    pp.query("numBlocks.z", nz);
 
     numBlocksOverride.x = (int) nx;
     numBlocksOverride.y = (int) ny;
@@ -542,8 +546,8 @@ Device::initialize_gpu ()
     // Graph initialization
     int graph_init = 0;
     int graph_size = 10000;
-    pp.queryAdd("graph_init", graph_init);
-    pp.queryAdd("graph_init_nodes", graph_size);
+    pp.query("graph_init", graph_init);
+    pp.query("graph_init_nodes", graph_size);
 
     if (graph_init)
     {

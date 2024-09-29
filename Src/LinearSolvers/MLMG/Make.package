@@ -22,7 +22,7 @@ CEXE_sources   += AMReX_MLNodeLinOp.cpp
 CEXE_headers   += AMReX_MLCellABecLap.H
 CEXE_headers   += AMReX_MLCellABecLap_K.H AMReX_MLCellABecLap_$(DIM)D_K.H
 
-CEXE_headers   += AMReX_MLCGSolver.H
+CEXE_headers   += AMReX_MLCGSolver.H AMReX_PCGSolver.H
 
 CEXE_headers   += AMReX_MLABecLaplacian.H
 CEXE_headers   += AMReX_MLABecLap_K.H AMReX_MLABecLap_$(DIM)D_K.H
@@ -95,5 +95,7 @@ endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
+
+include $(AMREX_HOME)/Src/Boundary/Make.package
 
 endif

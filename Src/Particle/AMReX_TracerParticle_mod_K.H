@@ -134,7 +134,7 @@ void linear_interpolate_to_particle (const P& p,
         amrex::Real sz[] = {amrex::Real(1.0) - zint, zint};
 #endif
 
-        for (int comp = start_comp; comp < ncomp; ++comp) {
+        for (int comp = start_comp; comp < start_comp + ncomp; ++comp) {
             val[ctr] = ParticleReal(0.0);
 #if (AMREX_SPACEDIM > 2)
             for (int kk = 0; kk <=1; ++kk) {
@@ -378,7 +378,7 @@ void linear_interpolate_to_particle_z (const P& p,
                                                hint_ilojhi,
                                                hint_ihijhi};
 #endif
-        for (int comp = start_comp; comp < ncomp; ++comp) {
+        for (int comp = start_comp; comp < start_comp + ncomp; ++comp) {
             val[ctr] = amrex::ParticleReal(0.);
 #if (AMREX_SPACEDIM == 2)
             int k0 = 0;
@@ -550,7 +550,7 @@ void linear_interpolate_to_particle_mapped (const P& p,
 
     int i = p.idata(0);
     int j = p.idata(1);
-    for (int comp = start_comp; comp < ncomp; ++comp) {
+    for (int comp = start_comp; comp < start_comp + ncomp; ++comp) {
 
 #if (AMREX_SPACEDIM == 2)
         // Value of data at surrounding nodes

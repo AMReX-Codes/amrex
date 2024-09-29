@@ -62,15 +62,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Get Latest Release Tag
-      run: |
-        WARPX_TAG=$(wget https://github.com/ECP-WarpX/WarpX/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
-        echo "WARPX_TAG=$WARPX_TAG" >> $GITHUB_ENV
     - name: Download WarpX
       uses: actions/checkout@v4
       with:
         repository: 'ECP-WarpX/WarpX'
-        ref: ${{env.WARPX_TAG}}
+        ref: development
         path: 'WarpX'
     - name: Dependencies
       run: |
@@ -156,18 +152,3 @@ jobs:
 
         ccache -s
         du -hs ~/.cache/ccache
-
-  save_pr_number:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Save PR number
-        env:
-          PR_NUMBER: ${{ github.event.number }}
-        run: |
-          echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pr_number
-          path: pr_number.txt
-          retention-days: 1

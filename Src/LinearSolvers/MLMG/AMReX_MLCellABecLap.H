@@ -562,8 +562,8 @@ MLCellABecLapT<MF>::addInhomogNeumannFlux (
             if (! domain.contains(ccb)) {
                 for (int icomp = 0; icomp < ncomp; ++icomp) {
                     auto const& phi = sol.const_array(mfi,icomp);
-                    auto const bv = bndry.bndryValues(ori).multiFab().const_array(mfi,icomp);
-                    auto const bc = bcoef[idim] ? bcoef[idim]->const_array(mfi,icomp)
+                    auto const& bv = bndry.bndryValues(ori).multiFab().const_array(mfi,icomp);
+                    auto const& bc = bcoef[idim] ? bcoef[idim]->const_array(mfi,icomp)
                         : Array4<RT const>{};
                     auto const& f = grad[idim]->array(mfi,icomp);
                     if (ori.isLow()) {

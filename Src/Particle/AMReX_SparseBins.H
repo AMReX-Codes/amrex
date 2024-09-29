@@ -14,7 +14,7 @@ template <typename T>
 struct SparseBinIteratorFactory
 {
 
-    using index_type = unsigned int;
+    using index_type = int;
 
     using const_pointer_type = std::conditional_t<IsParticleTileData<T>(),
         T,
@@ -33,7 +33,7 @@ struct SparseBinIteratorFactory
         : m_bins_ptr(bins.dataPtr()),
           m_offsets_ptr(offsets.dataPtr()),
           m_permutation_ptr(permutation.dataPtr()),
-          m_items(items), m_num_bins(bins.size())
+          m_items(items), m_num_bins(int(bins.size()))
     {}
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
@@ -97,7 +97,7 @@ public:
 
     using BinIteratorFactory = SparseBinIteratorFactory<T>;
     using bin_type = IntVect;
-    using index_type = unsigned int;
+    using index_type = int;
 
     using const_pointer_type = std::conditional_t<IsParticleTileData<T>(),
         T,

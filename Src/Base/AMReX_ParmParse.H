@@ -1,25 +1,58 @@
-
-#ifndef BL_PARMPARSE_H
-#define BL_PARMPARSE_H
+#ifndef AMREX_PARMPARSE_H_
+#define AMREX_PARMPARSE_H_
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
+#include <AMReX_Enum.H>
+#include <AMReX_INT.H>
+#include <AMReX_IParser.H>
+#include <AMReX_Parser.H>
 #include <AMReX_TypeTraits.H>
 
-#include <set>
-#include <stack>
-#include <string>
-#include <iosfwd>
-#include <vector>
-#include <list>
 #include <array>
+#include <iosfwd>
+#include <optional>
+#include <set>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <vector>
 
 namespace amrex {
 
-class Box;
+template<int dim>
+class BoxND;
+using Box = BoxND<AMREX_SPACEDIM>;
 template<int dim>
 class IntVectND;
 using IntVect = IntVectND<AMREX_SPACEDIM>;
+class RealVect;
+
+namespace ppdetail {
+    template <class T, class Enable = void>
+    struct ArithmeticOptional_TT : std::false_type {};
+
+    template <class T>
+    struct ArithmeticOptional_TT<T, std::enable_if_t<std::is_arithmetic_v<T>>>
+        : std::true_type
+    {
+        using value_type = T;
+    };
+
+    template <class T>
+    struct ArithmeticOptional_TT<std::optional<T>,
+                                 std::enable_if_t<std::is_arithmetic_v<T>>>
+        : std::true_type
+    {
+        using value_type = T;
+    };
+
+    template <class T>
+    inline constexpr bool IsArithmeticOptional_v = ArithmeticOptional_TT<T>::value;
+
+    template <class T>
+    using underlying_type_t = typename ArithmeticOptional_TT<T>::value_type;
+}
 
 //
 // ParmParse class implements a simple database for the storage and
@@ -54,6 +87,9 @@ using IntVect = IntVectND<AMREX_SPACEDIM>;
 // '\n's. The "FILE = <filename>" definition is special.  Rather than just
 // adding this entry to the database, it reads the contents of <filename>
 // into the database.
+// For CI/CD workflows and out-of-source tests, the environment variable
+// AMREX_INPUTS_FILE_PREFIX can be set to prefix every FILE = <filename>
+// with a custom path.
 //
 // ParmParse stores all entries in a static table which is built the
 // first time a ParmParse object is constructed (usually in main()).
@@ -268,28 +304,31 @@ using IntVect = IntVectND<AMREX_SPACEDIM>;
 *    t = 1.5
 *    #endif
 *
+*  Math expression is supported for integers and reals. For example
+*
+*    n_cell = 128
+*    amrex.n_cell = n_cell*2 8 16**2
+*
+*  becomes
+*
+*    n_cell = 128
+*    amrex.n_cell = 256 8 256
+*
+*  More details can be found at https://amrex-codes.github.io/amrex/docs_html/Basics.html#parmparse
 */
 class ParmParse
 {
 public:
-    class Frame;
-    class Record;
-
     enum { LAST = -1, FIRST = 0, ALL = -1 };
     /**
     * \brief Construct an additional ParmParse object sharing the same
-    * internal table as any other such objects in existence.  If
-    * prefix is specified, load this string as the code prefix
-    * for this particular ParmParse object.
+    * internal table as any other such objects in existence.  If prefix is
+    * specified, load this string as the code prefix for this particular
+    * ParmParse object. If parser_prefix is specified, it will be used as
+    * prefixed in math expression evaluations.
     */
-    explicit ParmParse (const std::string& prefix = std::string());
-
-    ParmParse (ParmParse const& rhs) = default;
-    ~ParmParse () = default;
-
-    ParmParse (ParmParse && rhs) = delete;
-    ParmParse& operator= (const ParmParse& rhs) = delete;
-    ParmParse& operator= (ParmParse&& rhs) = delete;
+    explicit ParmParse (std::string prefix = std::string(),
+                        std::string parser_prefix = std::string());
 
     //! Returns true if name is in table.
     [[nodiscard]] bool contains (const char* name) const;
@@ -304,15 +343,6 @@ public:
     * prefix) appears in the table.
     */
     [[nodiscard]] int countname (const std::string& name) const;
-    /**
-    * \brief Returns the number of records of the given name (prepended with prefix) appears
-    * in the table
-    */
-    [[nodiscard]] int countRecords (const std::string& name) const;
-    //! Returns the nth record of the given name, or zero if none found.
-    [[nodiscard]] Record getRecord (const std::string& name, int n = LAST) const;
-    //! Write the contents of the table in ASCII to the ostream.
-    static void dumpTable (std::ostream& os, bool prettyPrint = false);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a bool and stored
@@ -345,7 +375,7 @@ public:
                   int         ival = FIRST) const;
     //! Same as querykth() but searches for the last occurrence of name.
     int query (const char* name,
-               bool&        ref,
+               bool&       ref,
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name, bool val);
@@ -383,8 +413,7 @@ public:
                int&        ref,
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name,
-              int  val);
+    void add (const char* name, int  val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to an int and stored
@@ -418,8 +447,7 @@ public:
                long&        ref,
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name,
-              long  val);
+    void add (const char* name, long  val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to an int and stored
@@ -453,8 +481,7 @@ public:
                long long&  ref,
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name,
-              long long  val);
+    void add (const char* name, long long  val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a float and stored
@@ -488,8 +515,7 @@ public:
                float&      ref,
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name,
-              float  val);
+    void add (const char* name, float  val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a double and stored
@@ -523,8 +549,7 @@ public:
                double&     ref,
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name,
-              double  val);
+    void add (const char* name, double val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a std::string and stored
@@ -534,15 +559,15 @@ public:
     * is output and the program halts.   Note that ival = 0 is the
     * first value in the list.
     */
-    void getkth (const char* name,
-                 int         k,
-                 std::string&    ref,
-                 int         ival = FIRST) const;
+    void getkth (const char*  name,
+                 int          k,
+                 std::string& ref,
+                 int          ival = FIRST) const;
 
     //! Same as getkth() but searches for the last occurrence of name.
-    void get (const char* name,
-              std::string&    ref,
-              int         ival = FIRST) const;
+    void get (const char*  name,
+              std::string& ref,
+              int          ival = FIRST) const;
     /**
     * \brief Similar to getkth() but returns 0 if there is no kth occurrence
     * of name.  If successful, it returns 1 and stores the value in
@@ -550,23 +575,16 @@ public:
     * occurrence does not, or if there is a type mismatch, then the
     * program signals an error and halts.
     */
-    int querykth (const char* name,
-                  int         k,
-                  std::string&   ref,
-                  int         ival = FIRST) const;
+    int querykth (const char*  name,
+                  int          k,
+                  std::string& ref,
+                  int          ival = FIRST) const;
     //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char* name,
-               std::string&    ref,
-               int         ival = FIRST) const;
+    int query (const char*  name,
+               std::string& ref,
+               int          ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name,
-              const std::string&  val);
-
-    //! keyword for files to load
-    static std::string const FileKeyword;
-
-    //! Add keys and values from a file to the end of the PP table.
-    static void addfile (std::string const& filename);
+    void add (const char* name, const std::string& val);
 
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
@@ -594,15 +612,14 @@ public:
     */
     int querykth (const char* name,
                   int         k,
-                  IntVect&   ref,
+                  IntVect&    ref,
                   int         ival = FIRST) const;
     //! Same as querykth() but searches for the last occurrence of name.
     int query (const char* name,
                IntVect&    ref,
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name,
-              const IntVect&  val);
+    void add (const char* name, const IntVect& val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a Box and stored
@@ -636,8 +653,7 @@ public:
                Box&        ref,
                int         ival = FIRST) const;
     //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name,
-              const Box&  val);
+    void add (const char* name, const Box& val);
     /**
     * \brief Gets an std::vector\<int\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an int
@@ -650,27 +666,27 @@ public:
     * converted to an int, an error message is reported and the
     * program halts.
     */
-    void getktharr (const char* name,
-                    int         k,
+    void getktharr (const char*       name,
+                    int               k,
                     std::vector<int>& ref,
-                    int         start_ix = FIRST,
-                    int         num_val = ALL) const;
+                    int               start_ix = FIRST,
+                    int               num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char* name,
+    void getarr (const char*       name,
                  std::vector<int>& ref,
-                 int         start_ix = FIRST,
-                 int         num_val = ALL) const;
+                 int               start_ix = FIRST,
+                 int               num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char* name,
-                     int         k,
+    int queryktharr (const char*       name,
+                     int               k,
                      std::vector<int>& ref,
-                     int         start_ix = FIRST,
-                     int         num_val = ALL) const;
+                     int               start_ix = FIRST,
+                     int               num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.
-    int queryarr (const char* name,
+    int queryarr (const char*       name,
                   std::vector<int>& ref,
-                  int         start_ix = FIRST,
-                  int         num_val = ALL) const;
+                  int               start_ix = FIRST,
+                  int               num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
     void addarr (const char* name, const std::vector<int>& ref);
 
@@ -686,30 +702,29 @@ public:
     * converted to a long, an error message is reported and the
     * program halts.
     */
-    void getktharr (const char* name,
-                    int         k,
+    void getktharr (const char*        name,
+                    int                k,
                     std::vector<long>& ref,
-                    int         start_ix = FIRST,
-                    int         num_val = ALL) const;
+                    int                start_ix = FIRST,
+                    int                num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char* name,
+    void getarr (const char*        name,
                  std::vector<long>& ref,
-                 int         start_ix = FIRST,
-                 int         num_val = ALL) const;
+                 int                start_ix = FIRST,
+                 int                num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char* name,
-                     int         k,
+    int queryktharr (const char*        name,
+                     int                k,
                      std::vector<long>& ref,
-                     int         start_ix = FIRST,
-                     int         num_val = ALL) const;
+                     int                start_ix = FIRST,
+                     int                num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.
-    int queryarr (const char* name,
+    int queryarr (const char*        name,
                   std::vector<long>& ref,
-                  int         start_ix = FIRST,
-                  int         num_val = ALL) const;
+                  int                start_ix = FIRST,
+                  int                num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
-    void addarr (const char* name,
-                const std::vector<long>& ref);
+    void addarr (const char* name, const std::vector<long>& ref);
 
     /**
     * \brief Gets an std::vector\<long long\> of num_val values from kth occurrence of
@@ -723,27 +738,27 @@ public:
     * converted to a long long, an error message is reported and the
     * program halts.
     */
-    void getktharr (const char* name,
-                    int         k,
+    void getktharr (const char*             name,
+                    int                     k,
                     std::vector<long long>& ref,
-                    int         start_ix = FIRST,
-                    int         num_val = ALL) const;
+                    int                     start_ix = FIRST,
+                    int                     num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char* name,
+    void getarr (const char*             name,
                  std::vector<long long>& ref,
-                 int         start_ix = FIRST,
-                 int         num_val = ALL) const;
+                 int                     start_ix = FIRST,
+                 int                     num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char* name,
-                     int         k,
+    int queryktharr (const char*             name,
+                     int                     k,
                      std::vector<long long>& ref,
-                     int         start_ix = FIRST,
-                     int         num_val = ALL) const;
+                     int                     start_ix = FIRST,
+                     int                     num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.
-    int queryarr (const char* name,
+    int queryarr (const char*             name,
                   std::vector<long long>& ref,
-                  int         start_ix = FIRST,
-                  int         num_val = ALL) const;
+                  int                     start_ix = FIRST,
+                  int                     num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
     void addarr (const char* name, const std::vector<long long>& ref);
 
@@ -759,27 +774,27 @@ public:
     * values cannot be converted to a float, an error message is
     * reported and the program halts.
     */
-    void getktharr (const char*   name,
-                    int           k,
+    void getktharr (const char*         name,
+                    int                 k,
                     std::vector<float>& ref,
-                    int           start_ix = FIRST,
-                    int           num_val = ALL) const;
+                    int                 start_ix = FIRST,
+                    int                 num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*   name,
+    void getarr (const char*         name,
                  std::vector<float>& ref,
-                 int           start_ix = FIRST,
-                 int           num_val = ALL) const;
+                 int                 start_ix = FIRST,
+                 int                 num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*   name,
-                     int           k,
+    int queryktharr (const char*         name,
+                     int                 k,
                      std::vector<float>& ref,
-                     int           start_ix = FIRST,
-                     int           num_val = ALL) const;
+                     int                 start_ix = FIRST,
+                     int                 num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.
-    int queryarr (const char*   name,
+    int queryarr (const char*         name,
                   std::vector<float>& ref,
-                  int           start_ix = FIRST,
-                  int           num_val = ALL) const;
+                  int                 start_ix = FIRST,
+                  int                 num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
     void addarr (const char* name, const std::vector<float>& ref);
     /**
@@ -794,27 +809,27 @@ public:
     * values cannot be converted to a double, an error message is
     * reported and the program halts.
     */
-    void getktharr (const char*    name,
-                    int            k,
+    void getktharr (const char*          name,
+                    int                  k,
                     std::vector<double>& ref,
-                    int            start_ix = FIRST,
-                    int            num_val = ALL) const;
+                    int                  start_ix = FIRST,
+                    int                  num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*    name,
+    void getarr (const char*          name,
                  std::vector<double>& ref,
-                 int            start_ix = FIRST,
-                 int            num_val = ALL) const;
+                 int                  start_ix = FIRST,
+                 int                  num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*    name,
-                     int            k,
+    int queryktharr (const char*          name,
+                     int                  k,
                      std::vector<double>& ref,
-                     int            start_ix = FIRST,
-                     int            num_val = ALL) const;
+                     int                  start_ix = FIRST,
+                     int                  num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.
-    int queryarr (const char*    name,
+    int queryarr (const char*          name,
                   std::vector<double>& ref,
-                  int            start_ix = FIRST,
-                  int            num_val = ALL) const;
+                  int                  start_ix = FIRST,
+                  int                  num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
     void addarr (const char* name, const std::vector<double>& ref);
     /**
@@ -829,27 +844,27 @@ public:
     * values cannot be converted to an std::string, an error message is
     * reported and the program halts.
     */
-    void getktharr (const char*     name,
-                    int             k,
+    void getktharr (const char*               name,
+                    int                       k,
                     std::vector<std::string>& ref,
-                    int             start_ix = FIRST,
-                    int             num_val = ALL) const;
+                    int                       start_ix = FIRST,
+                    int                       num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*     name,
+    void getarr (const char*               name,
                  std::vector<std::string>& ref,
-                 int             start_ix = FIRST,
-                 int             num_val = ALL) const;
+                 int                       start_ix = FIRST,
+                 int                       num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*     name,
-                     int             k,
+    int queryktharr (const char*               name,
+                     int                       k,
                      std::vector<std::string>& ref,
-                     int             start_ix = FIRST,
-                     int             num_val = ALL) const;
+                     int                       start_ix = FIRST,
+                     int                       num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.2
-    int queryarr (const char*     name,
+    int queryarr (const char*               name,
                   std::vector<std::string>& ref,
-                  int             start_ix = FIRST,
-                  int             num_val = ALL) const;
+                  int                       start_ix = FIRST,
+                  int                       num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
     void addarr (const char* name, const std::vector<std::string>& ref);
     /**
@@ -864,27 +879,27 @@ public:
     * values cannot be converted to an IntVect, an error message is
     * reported and the program halts.
     */
-    void getktharr (const char*     name,
-                    int             k,
+    void getktharr (const char*           name,
+                    int                   k,
                     std::vector<IntVect>& ref,
-                    int             start_ix = FIRST,
-                    int             num_val = ALL) const;
+                    int                   start_ix = FIRST,
+                    int                   num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*     name,
+    void getarr (const char*           name,
                  std::vector<IntVect>& ref,
-                 int             start_ix = FIRST,
-                 int             num_val = ALL) const;
+                 int                   start_ix = FIRST,
+                 int                   num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*     name,
-                     int             k,
+    int queryktharr (const char*           name,
+                     int                   k,
                      std::vector<IntVect>& ref,
-                     int             start_ix = FIRST,
-                     int             num_val = ALL) const;
+                     int                   start_ix = FIRST,
+                     int                   num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.2
-    int queryarr (const char*     name,
+    int queryarr (const char*           name,
                   std::vector<IntVect>& ref,
-                  int             start_ix = FIRST,
-                  int             num_val = ALL) const;
+                  int                   start_ix = FIRST,
+                  int                   num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
     void addarr (const char* name, const std::vector<IntVect>& ref);
     /**
@@ -899,29 +914,51 @@ public:
     * values cannot be converted to an Box, an error message is
     * reported and the program halts.
     */
-    void getktharr (const char*     name,
-                    int             k,
+    void getktharr (const char*       name,
+                    int               k,
                     std::vector<Box>& ref,
-                    int             start_ix = FIRST,
-                    int             num_val = ALL) const;
+                    int               start_ix = FIRST,
+                    int               num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*     name,
+    void getarr (const char*       name,
                  std::vector<Box>& ref,
-                 int             start_ix = FIRST,
-                 int             num_val = ALL) const;
+                 int               start_ix = FIRST,
+                 int               num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*     name,
-                     int             k,
+    int queryktharr (const char*       name,
+                     int               k,
                      std::vector<Box>& ref,
-                     int             start_ix = FIRST,
-                     int             num_val = ALL) const;
+                     int               start_ix = FIRST,
+                     int               num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.2
-    int queryarr (const char*     name,
+    int queryarr (const char*       name,
                   std::vector<Box>& ref,
-                  int             start_ix = FIRST,
-                  int             num_val = ALL) const;
+                  int               start_ix = FIRST,
+                  int               num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
     void addarr (const char* name, const std::vector<Box>& refd);
+
+    /*
+     * \brief Query IntVect from array
+     *
+     * This reads IntVect from an array (e.g., `8 16 8`), not the format
+     * using parentheses (e.g., `(8,16,8)`).
+     */
+    int queryarr (const char* name, IntVect& ref) const;
+
+    /*
+     * \brief Get IntVect from array
+     *
+     * This reads IntVect from an array (e.g., `8 16 8`), not the format
+     * using parentheses (e.g., `(8,16,8)`).
+     */
+    void getarr (const char* name, IntVect& ref) const;
+
+    //! Query RealVect from array
+    int queryarr (const char* name, RealVect& ref) const;
+
+    //! Get RealVect from array
+    void getarr (const char* name, RealVect& ref) const;
 
     template <typename T, std::size_t N>
     void get (const char* name, std::array<T,N>& ref) const {
@@ -1031,8 +1068,501 @@ public:
         return exist;
     }
 
+    /**
+     * \brief Query with Parser. If `name` is found, this uses amrex::Parser
+     * to parse the entire list of empty space separated values as a single
+     * scalar. The return value indicates whether it's found. Note that
+     * queryWithParser will be used recursively for unresolved symbols.
+     */
+    int queryWithParser (const char* name, int& ref) const;
+    int queryWithParser (const char* name, long& ref) const;
+    int queryWithParser (const char* name, long long& ref) const;
+    int queryWithParser (const char* name, float& ref) const;
+    int queryWithParser (const char* name, double& ref) const;
+
+    /**
+     * \brief Query with Parser. The return value indicates whether it's
+     * found. Note that queryWithParser will be used for unresolved
+     * symbols. If the number of elements in the input does not equal to
+     * `nvals`, it's a runtime error.
+     */
+    int queryarrWithParser (const char* name, int nvals, int* ref) const;
+    int queryarrWithParser (const char* name, int nvals, long* ref) const;
+    int queryarrWithParser (const char* name, int nvals, long long* ref) const;
+    int queryarrWithParser (const char* name, int nvals, float* ref) const;
+    int queryarrWithParser (const char* name, int nvals, double* ref) const;
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    int queryarrWithParser (const char* name, int nvals, std::vector<T>& ref) const
+    {
+        if (this->contains(name)) {
+            if (int(ref.size()) < nvals) { ref.resize(nvals); }
+            return this->queryarrWithParser(name, nvals, ref.data());
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * \brief Query with Parser. If `name` is found, this uses amrex::Parser
+     * to parse the entire list of empty space separated values as a single
+     * scalar. If not, the value in `ref` will be added to the ParmParse
+     * database. The return value indicates whether it's found.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    int queryAddWithParser (const char* name, T& ref) const
+    {
+        int exist = this->queryWithParser(name, ref);
+        if (!exist) {
+            this->add(name, ref);
+        }
+        return exist;
+    }
+
+    /**
+     * \brief Get with Parser. If `name` is found, this uses amrex::Parser
+     * to parse the entire list of empty space separated values as a single
+     * scalar. If not, it's a runtime error.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    void getWithParser (const char* name, T& ref) const
+    {
+        int exist = this->queryWithParser(name, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getWithParser: failed to get ")+name);
+        }
+    }
+
+    /**
+     * \brief Get with Parser. If `name` is not found, it's a runtime
+     * error. If the number of elements does not equal to `nvals`, it's also
+     * a runtime error.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    void getarrWithParser (const char* name, int nvals, T* ref) const
+    {
+        int exist = this->queryarrWithParser(name, nvals, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getarrWithParser: failed to get ")+name);
+        }
+    }
+
+    /**
+     * \brief Get with Parser. If `name` is not found, it's a runtime
+     * error. If the number of elements does not equal to `nvals`, it's also
+     * a runtime error.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    void getarrWithParser (const char* name, int nvals, std::vector<T>& ref) const
+    {
+        int exist = this->queryarrWithParser(name, nvals, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getarrWithParser: failed to get ")+name);
+        }
+    }
+
+    /*
+     * \brief Evaluate given string as math expression
+     *
+     * For unknown symbols, ParmParse database will be queried.
+     */
+    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>,int> = 0>
+    T eval (std::string const& expr) const
+    {
+        if constexpr (std::is_integral_v<T>) {
+            auto const parser = this->makeIParser(expr, {});
+            auto const exe = parser.compileHost<0>();
+            return static_cast<T>(exe()); // In the future, we might add safety check.
+        } else {
+            auto const parser = this->makeParser(expr, {});
+            auto const exe = parser.compileHost<0>();
+            return static_cast<T>(exe());
+        }
+    }
+
+    /*
+     * \brief Query two names.
+     *
+     * This function queries with `new_name` first. If it's not found, it
+     * will try again with `old_name`.
+     */
+    template <typename T>
+    int query (const char* new_name, const char* old_name, T& ref)
+    {
+        return (this->query(new_name, ref) ||
+                this->query(old_name, ref));
+    }
+
+    /**
+     * \brief Get using two names.
+     *
+     * This function queries with `new_name` first, If it's not found, it
+     * will try again with `old_name`. It's an error if neither name is
+     * found.
+     */
+    template <typename T>
+    void get (const char* new_name, const char* old_name, T& ref)
+    {
+        auto exist = this->query(new_name, old_name, ref);
+        if (!exist) {
+            amrex::ErrorStream() << "ParmParse::get failed to find "
+                                 << new_name << " and " << old_name << '\n';
+            ParmParse::dumpTable(amrex::ErrorStream());
+            amrex::Abort();
+        }
+    }
+
+    /**
+     * \brief. Query enum value using given name.
+     *
+     * Here T is an enum class defined by AMREX_ENUM. The return value
+     * indicates if `name` is found. An exception is thrown, if the found
+     * string associated with the name cannot be converted to an enumerator
+     * (i.e., the string does not match any names in the definition of T).
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    int query (const char* name, T& ref, int ival = FIRST) const
+    {
+        std::string s;
+        int exist = this->query(name, s, ival);
+        if (exist) {
+            try {
+                ref = amrex::getEnum<T>(s);
+            } catch (...) {
+                if (amrex::Verbose() > 0 ) {
+                    amrex::Print() << "amrex::ParmParse::query (input name: "
+                                   << this->prefixedName(name) << "):\n";
+                }
+                throw;
+            }
+        }
+        return exist;
+    }
+
+    /**
+     * \brief. Get enum value using given name.
+     *
+     * Here T is an enum class defined by AMREX_ENUM. It's a runtime error,
+     * if `name` is not found. An exception is thrown, if the found string
+     * associated with the name cannot be converted to an enumerator (i.e.,
+     * the string does not match any names in the definition of T).
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    void get (const char* name, T& ref, int ival = FIRST) const
+    {
+        std::string s;
+        this->get(name, s, ival);
+        try {
+            ref = amrex::getEnum<T>(s);
+        } catch (...) {
+            if (amrex::Verbose() > 0 ) {
+                amrex::Print() << "amrex::ParmParse::get (input name:  "
+                               << this->prefixedName(name) << "):\n";
+            }
+            throw;
+        }
+    }
+
+    //! Query an array of enum values using given name.
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    int queryarr (const char* name,
+                  std::vector<T>& ref,
+                  int start_ix = FIRST,
+                  int num_val = ALL) const
+    {
+        std::vector<std::string> s;
+        int exist = this->queryarr(name, s, start_ix, num_val);
+        if (exist) {
+            ref.resize(s.size());
+            for (std::size_t i = 0; i < s.size(); ++i) {
+                try {
+                    ref[i] = amrex::getEnum<T>(s[i]);
+                }  catch (...) {
+                    if (amrex::Verbose() > 0 ) {
+                        amrex::Print() << "amrex::ParmParse::queryarr (input name:  "
+                                       << this->prefixedName(name) << "):\n";
+                    }
+                    throw;
+                }
+            }
+        }
+        return exist;
+    }
+
+    //! Get an array of enum values using given name.
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    void getarr (const char* name,
+                 std::vector<T>& ref,
+                 int start_ix = FIRST,
+                 int num_val = ALL) const
+    {
+        std::vector<std::string> s;
+        this->getarr(name, s, start_ix, num_val);
+        ref.resize(s.size());
+        for (std::size_t i = 0; i < s.size(); ++i) {
+            try {
+                ref[i] = amrex::getEnum<T>(s[i]);
+            }  catch (...) {
+                if (amrex::Verbose() > 0 ) {
+                    amrex::Print() << "amrex::ParmParse::getarr (input name:  "
+                                   << this->prefixedName(name) << "):\n";
+                }
+                throw;
+            }
+        }
+    }
+
+    /**
+     * \brief. Query enum value using given name.
+     *
+     * Here T is an enum class defined by AMREX_ENUM. The return value
+     * indicates if `name` is found. An exception is thrown, if the found
+     * string associated with the name cannot be case-insensitively
+     * converted to an enumerator (i.e., the found string, not `name`, does
+     * not case-insensitively match any names in the definition of T). If
+     * there are multiple matches, the first one is used.
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    int query_enum_case_insensitive (const char* name, T& ref, int ival = FIRST) const
+    {
+        std::string s;
+        int exist = this->query(name, s, ival);
+        if (exist) {
+            try {
+                ref = amrex::getEnumCaseInsensitive<T>(s);
+            } catch (...) {
+                if (amrex::Verbose() > 0) {
+                    amrex::Print() << "amrex::ParmParse::query_enum_case_insensitive (input name: "
+                                   << this->prefixedName(name) << "):\n";
+                }
+                throw;
+            }
+        }
+        return exist;
+    }
+
+    /**
+     * \brief. Get enum value using given name.
+     *
+     * Here T is an enum class defined by AMREX_ENUM. It's a runtime error,
+     * if `name` is not found. An exception is thrown, if the found string
+     * associated with the name cannot be case-insensitively converted to an
+     * enumerator (i.e., the found string, not `name`, does not
+     * case-insensitively match any names in the definition of T). If there
+     * are multiple matches, the first one is used.
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    void get_enum_case_insensitive (const char* name, T& ref, int ival = FIRST) const
+    {
+        int exist = this->query_enum_case_insensitive(name, ref, ival);
+        if (!exist) {
+            std::string msg("get_enum_case_insensitive(\"");
+            msg.append(name).append("\",").append(amrex::getEnumClassName<T>())
+                .append("&) failed.");
+            amrex::Abort(msg);
+        }
+    }
+
+    /**
+     * \brief. Query enum value using given name.
+     *
+     * Here T is an enum class defined by AMREX_ENUM. The return value
+     * indicates if `name` is found. An exception is thrown, if the found
+     * string associated with the name cannot be case-insensitively
+     * converted to an enumerator (i.e., the found string, not `name`, does
+     * not case-insensitively match any names in the definition of T). If
+     * there are multiple matches, the first one is used. Characters in
+     * `ignores` will be ignored as if they don't exist in the value part of
+     * ParamParse entries (e.g., `name = value`).
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    int query_enum_sloppy (const char* name, T& ref, std::string_view const& ignores,
+                           int ival = FIRST) const
+    {
+        std::string s;
+        int exist = this->query(name, s, ival);
+        if (exist) {
+            try {
+                s.erase(std::remove_if(s.begin(), s.end(),
+                                       [&] (auto const& c) {
+                                           return ignores.find(c) != std::string_view::npos; }),
+                        s.end());
+                ref = amrex::getEnumCaseInsensitive<T>(s);
+            } catch (...) {
+                if (amrex::Verbose() > 0) {
+                    amrex::Print() << "amrex::ParmParse::query_enum_sloppy (input name: "
+                                   << this->prefixedName(name) << "):\n";
+                }
+                throw;
+            }
+        }
+        return exist;
+    }
+
+    /**
+     * \brief. Get enum value using given name.
+     *
+     * Here T is an enum class defined by AMREX_ENUM. It's a runtime error,
+     * if `name` is not found. An exception is thrown, if the found string
+     * associated with the name cannot be case-insensitively converted to an
+     * enumerator (i.e., the found string, not `name`, does not
+     * case-insensitively match any names in the definition of T). If there
+     * are multiple matches, the first one is used. Characters in `ignores`
+     * will be ignored as if they don't exist in the value part of
+     * ParamParse entries (e.g., `name = value`).
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    void get_enum_sloppy (const char* name, T& ref, std::string_view const& ignores,
+                          int ival = FIRST) const
+    {
+        int exist = this->query_enum_sloppy(name, ref, ignores, ival);
+        if (!exist) {
+            std::string msg("get_enum_sloppy(\"");
+            msg.append(name).append("\",").append(amrex::getEnumClassName<T>())
+                .append("&) failed.");
+            amrex::Abort(msg);
+        }
+    }
+
+    /**
+     * \brief Query T with Parser, but treat the number as double precision
+     * during parsing.
+     *
+     * The final result is cast to T. It may result in a runtime error if
+     * the conversion is not safe. T is either arithmetic type or
+     * std::optional of arithmetic type.
+     */
+    template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
+    int queryAsDouble (const char* name, T& ref) const
+    {
+        using value_type = ppdetail::underlying_type_t<T>;
+        double dref;
+        int exist = queryWithParser(name, dref);
+        if (exist) {
+            if (std::is_integral_v<value_type>) {
+                dref = std::round(dref);
+            }
+            auto vref = static_cast<value_type>(dref);
+            if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
+                if (static_cast<double>(vref) != dref) {
+                    amrex::Abort("ParmParse:: queryAsDouble is not safe");
+                }
+            }
+            ref = vref;
+        }
+        return exist;
+    }
+
+    /**
+     * \brief Query T array with Parser, but treat the number as double
+     * precision during parsing.
+     *
+     * The final result is cast to T's. It may result in a runtime error if
+     * the conversion is not safe. T is either arithmetic type or
+     * std::optional of arithmetic type.
+     */
+    template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
+    int queryarrAsDouble (const char* name, int nvals, T* ref) const
+    {
+        using value_type = ppdetail::underlying_type_t<T>;
+        std::vector<double> dref(nvals);
+        int exist = queryarrWithParser(name, nvals, dref.data());
+        if (exist) {
+            for (int i = 0; i < nvals; ++i) {
+                if (std::is_integral_v<value_type>) {
+                    dref[i] = std::round(dref[i]);
+                }
+                auto vref = static_cast<value_type>(dref[i]);
+                if constexpr (std::is_integral_v<value_type> && !std::is_same_v<value_type,bool>) {
+                    if (static_cast<double>(vref) != dref[i]) {
+                        amrex::Abort("ParmParse:: queryarrAsDouble is not safe");
+                    }
+                }
+                ref[i] = vref;
+            }
+        }
+        return exist;
+    }
+
+    /**
+     * \brief Get T with Parser, but treat the number as double precision
+     * during parsing.
+     *
+     * The final result is cast to T. It may result in a runtime error if
+     * the conversion is not safe. T is either arithmetic type or
+     * std::optional of arithmetic type.
+     */
+    template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
+    void getAsDouble (const char* name, T& ref) const
+    {
+        int exist = this->queryAsDouble(name, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getAsDouble: failed to get ")+name);
+        }
+    }
+
+    /**
+     * \brief Get T array with Parser, but treat the number as double
+     * precision during parsing.
+     *
+     * The final result is cast to T's. It may result in a runtime error if
+     * the conversion is not safe. T is either arithmetic type or
+     * std::optional of arithmetic type.
+     */
+    template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
+    void getarrAsDouble (const char* name, int nvals, T* ref) const
+    {
+        int exist = this->queryarrAsDouble(name, nvals, ref);
+        if (!exist) {
+            amrex::Error(std::string("ParmParse::getarrAsDouble: failed to get ")+name);
+        }
+    }
+
     //! Remove given name from the table.
     int remove (const char* name);
+
+    //! Make Parser using given string `func` as function body and `vars` as
+    //! variable names. Constants known to ParmParse will be set. It's a
+    //! runtime error, if there are unknown symbols in `func`.
+    [[nodiscard]] Parser makeParser (std::string const& func,
+                                     Vector<std::string> const& vars) const;
+
+    //! Make IParser using given string `func` as function body and `vars`
+    //! as variable names. Constants known to ParmParse will be set. It's a
+    //! runtime error, if there are unknown symbols in `func`.
+    [[nodiscard]] IParser makeIParser (std::string const& func,
+                                       Vector<std::string> const& vars) const;
 
     /**
     * \brief Construct an initial ParmParse object from the argc and argv
@@ -1041,14 +1571,28 @@ public:
     * read the parameters in from that file first and then append
     * those derived from argv to the table.
     */
-    static void Initialize(int         argc,
-                           char**      argv,
-                           const char* parfile);
+    static void Initialize (int argc, char** argv, const char* parfile);
     /**
     * \brief The destructor.  The internal static table will only be deleted
     * if there are no other ParmParse objects in existence.
     */
-    static void Finalize();
+    static void Finalize ();
+
+    //! Set prefix used by math expression Parser
+    static void SetParserPrefix (std::string a_prefix);
+
+    static int Verbose ();
+    static void SetVerbose (int v);
+
+    //! Write the contents of the table in ASCII to the ostream.
+    static void dumpTable (std::ostream& os, bool prettyPrint = false);
+
+    //! Write the table in a pretty way to the ostream. If there are
+    //! duplicates, only the last one is printed.
+    static void prettyPrintTable (std::ostream& os);
+
+    //! Add keys and values from a file to the end of the PP table.
+    static void addfile (std::string const& filename);
 
     static bool QueryUnusedInputs ();
 
@@ -1061,79 +1605,32 @@ public:
     //! Returns [prefix.]* parameters.
     [[nodiscard]] static std::set<std::string> getEntries (const std::string& prefix = std::string());
 
-    struct PP_entry;
-    using Table = std::list<PP_entry>;
-    static void appendTable(ParmParse::Table& tab);
+    struct PP_entry {
+        // There can be multiple occurrences for a given name (e.g.,
+        // multiple lines starting with `foo =` in inputs. For each
+        // occurrence, there can be multiple values. Thus, the use of
+        // vector<vector<std::string>>.
+        std::vector<std::vector<std::string>> m_vals;
+        mutable Long                          m_count = 0;
+    };
+    using Table = std::unordered_map<std::string, PP_entry>;
+
     [[nodiscard]] const Table& table() const {return *m_table;}
+
+    //! keyword for files to load
+    static std::string const FileKeyword;
+
+    static std::string ParserPrefix;
+
+    [[nodiscard]] std::string prefixedName (const std::string_view& str) const;
 
 protected:
 
-    friend class Frame;
-    friend class Record;
-
-    explicit ParmParse (Table& a_table);
-    //
-    //! Set/Get the prefix.
-    [[nodiscard]] std::string getPrefix() const;
-    std::string setPrefix(const std::string& str);
-    void pushPrefix(const std::string& str);
-    void popPrefix();
-    [[nodiscard]] std::string prefixedName (const std::string& str) const;
-    //
-    //! Prefix used in keyword search.
-    std::stack<std::string> m_pstack;
+    std::string m_prefix; // Prefix used in keyword search
+    std::string m_parser_prefix; // Prefix used by Parser
     Table* m_table;
 };
 
-struct ParmParse::PP_entry
-{
-    PP_entry (std::string name, const std::list<std::string>& vals);
-    PP_entry (std::string name, const std::string& vals);
-    PP_entry (std::string name, const std::list<PP_entry>& table);
-    PP_entry (const PP_entry& pe);
-    PP_entry& operator= (const PP_entry& pe);
-    PP_entry (PP_entry&&) = delete;
-    PP_entry& operator= (PP_entry&&) = delete;
-    ~PP_entry ();
-    [[nodiscard]] std::string print() const;
-
-    std::string              m_name;
-    std::vector<std::string> m_vals;
-    Table*                   m_table;
-    mutable bool             m_queried;
-};
-
-
-class ParmParse::Frame
-{
-public:
-    Frame (ParmParse& pp, const std::string& pfix);
-    ~Frame ();
-    Frame (Frame const&) = default;
-    Frame (Frame&&) = delete;
-    Frame& operator= (Frame const&) = delete;
-    Frame& operator= (Frame &&) = delete;
-    void push(const std::string& str);
-    void pop();
-    [[nodiscard]] std::string getPrefix() const;
-private:
-    ParmParse* m_pp;
-    int        m_np{0};
-};
-
-class ParmParse::Record
-{
-public:
-    [[nodiscard]] const ParmParse* operator->() const;
-    [[nodiscard]] const ParmParse& operator* () const;
-private:
-    friend class ParmParse;
-    explicit Record (const ParmParse& pp);
-    ParmParse m_pp;
-};
-
-std::ostream& operator<< (std::ostream& os, const ParmParse::PP_entry& pp);
-
 }
 
-#endif /*BL_PARMPARSE_H*/
+#endif /* AMREX_PARMPARSE_H_ */

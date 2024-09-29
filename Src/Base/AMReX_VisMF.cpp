@@ -1,6 +1,7 @@
 
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_FPC.H>
+#include <AMReX_IOFormat.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
@@ -77,24 +78,24 @@ VisMF::Initialize ()
     amrex::ExecOnFinalize(VisMF::Finalize);
 
     ParmParse pp("vismf");
-    pp.queryAdd("v",verbose);
+    pp.query("verbose", "v",verbose);
 
     int headerVersion(currentVersion);
-    pp.queryAdd("headerversion", headerVersion);
+    pp.query("headerversion", headerVersion);
     if(headerVersion != currentVersion) {
       currentVersion = static_cast<VisMF::Header::Version> (headerVersion);
     }
 
-    pp.queryAdd("groupsets", groupSets);
-    pp.queryAdd("setbuf", setBuf);
-    pp.queryAdd("usesingleread", useSingleRead);
-    pp.queryAdd("usesinglewrite", useSingleWrite);
-    pp.queryAdd("checkfilepositions", checkFilePositions);
-    pp.queryAdd("usepersistentifstreams", usePersistentIFStreams);
-    pp.queryAdd("usesynchronousreads", useSynchronousReads);
-    pp.queryAdd("usedynamicsetselection", useDynamicSetSelection);
-    pp.queryAdd("iobuffersize", ioBufferSize);
-    pp.queryAdd("allowsparsewrites", allowSparseWrites);
+    pp.query("groupsets", groupSets);
+    pp.query("setbuf", setBuf);
+    pp.query("usesingleread", useSingleRead);
+    pp.query("usesinglewrite", useSingleWrite);
+    pp.query("checkfilepositions", checkFilePositions);
+    pp.query("usepersistentifstreams", usePersistentIFStreams);
+    pp.query("usesynchronousreads", useSynchronousReads);
+    pp.query("usedynamicsetselection", useDynamicSetSelection);
+    pp.query("iobuffersize", ioBufferSize);
+    pp.query("allowsparsewrites", allowSparseWrites);
 
     initialized = true;
 }
@@ -277,9 +278,9 @@ operator<< (std::ostream        &os,
     // Up the precision for the Reals in m_min and m_max.
     // Force it to be written in scientific notation to match fParallel code.
     //
-    std::ios::fmtflags oflags = os.flags();
+    IOFormatSaver iofmtsaver(os);
     os.setf(std::ios::floatfield, std::ios::scientific);
-    int oldPrec = static_cast<int>(os.precision(16));
+    os.precision(17);
 
     os << hd.m_vers     << '\n';
     os << int(hd.m_how) << '\n';
@@ -326,9 +327,6 @@ operator<< (std::ostream        &os,
         os << FPC::Ieee32NormalRealDescriptor() << '\n';
       }
     }
-
-    os.flags(oflags);
-    os.precision(oldPrec);
 
     if( ! os.good()) {
         amrex::Error("Write of VisMF::Header failed");

@@ -164,6 +164,8 @@ public:
     void setHypreStrongThreshold (Real t) noexcept {hypre_strong_threshold = t;}
 #endif
 
+    void prepareForFluxes (Vector<MF const*> const& a_sol);
+
     template <typename AMF>
     void prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const& a_rhs);
 
@@ -536,6 +538,16 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     ++solve_called;
 
     return composite_norminf;
+}
+
+template <typename MF>
+void
+MLMGT<MF>::prepareForFluxes (Vector<MF const*> const& a_sol)
+{
+    for (int alev = finest_amr_lev; alev >= 0; --alev) {
+        const MF* crse_bcdata = (alev > 0) ? a_sol[alev-1] : nullptr;
+        linop.prepareForFluxes(alev, crse_bcdata);
+    }
 }
 
 template <typename MF>
@@ -971,7 +983,6 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
             if (nGrowVect(*a_sol[alev]) == ng_sol) {
                 if constexpr (std::is_same<AMF,MF>()) {
                     sol[alev] = linop.makeAlias(*a_sol[alev]);
-                    setBndry(sol[alev], RT(0.0), 0, ncomp);
                     sol_is_alias[alev] = true;
                 }
             }
@@ -1558,28 +1569,31 @@ MLMGT<MF>::actualBottomSolve ()
             } else {
                 cg_type = MLCGSolverT<MF>::Type::BiCGStab;
             }
+
             int ret = bottomSolveWithCG(x, *bottom_b, cg_type);
-            // If the MLMG solve failed then set the correction to zero
-            if (ret != 0) {
+
+            if (ret != 0 && (bottom_solver == BottomSolver::cgbicg ||
+                             bottom_solver == BottomSolver::bicgcg))
+            {
+                if (bottom_solver == BottomSolver::cgbicg) {
+                    cg_type = MLCGSolverT<MF>::Type::BiCGStab; // switch to bicg
+                } else {
+                    cg_type = MLCGSolverT<MF>::Type::CG; // switch to cg
+                }
                 setVal(cor[amrlev][mglev], RT(0.0));
-                if (bottom_solver == BottomSolver::cgbicg ||
-                    bottom_solver == BottomSolver::bicgcg) {
-                    if (bottom_solver == BottomSolver::cgbicg) {
-                        cg_type = MLCGSolverT<MF>::Type::BiCGStab; // switch to bicg
+                ret = bottomSolveWithCG(x, *bottom_b, cg_type);
+                if (ret == 0) { // switch permanently
+                    if (cg_type == MLCGSolverT<MF>::Type::CG) {
+                        bottom_solver = BottomSolver::cg;
                     } else {
-                        cg_type = MLCGSolverT<MF>::Type::CG; // switch to cg
-                    }
-                    ret = bottomSolveWithCG(x, *bottom_b, cg_type);
-                    if (ret != 0) {
-                        setVal(cor[amrlev][mglev], RT(0.0));
-                    } else { // switch permanently
-                        if (cg_type == MLCGSolverT<MF>::Type::CG) {
-                            bottom_solver = BottomSolver::cg;
-                        } else {
-                            bottom_solver = BottomSolver::bicgstab;
-                        }
+                        bottom_solver = BottomSolver::bicgstab;
                     }
                 }
+            }
+
+            // If the bottom solve failed then set the correction to zero
+            if (ret != 0 && ret != 9) {
+                setVal(cor[amrlev][mglev], RT(0.0));
             }
             const int n = (ret==0) ? nub : nuf;
             for (int i = 0; i < n; ++i) {

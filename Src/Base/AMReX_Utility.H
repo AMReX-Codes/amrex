@@ -15,6 +15,7 @@
 #include <AMReX_Random.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_FileSystem.H>
+#include <AMReX_String.H>
 
 #include <cfloat>
 #include <chrono>
@@ -44,17 +45,6 @@ namespace amrex
     const std::vector<std::string>& Tokenize (const std::string& instr,
                                               const std::string& separators);
 
-    //! Converts all characters of the string into lower or uppercase based on std::locale
-    std::string toLower (std::string s);
-    std::string toUpper (std::string s);
-
-    //! Trim leading and trailing white space
-    std::string trim (std::string s, std::string const& space = " \t");
-
-    //! Returns rootNNNN where NNNN == num.
-    std::string Concatenate (const std::string& root,
-                             int                num,
-                             int                mindigits = 5);
     /**
     *  \brief Creates the specified directories.  path may be either a full pathname
     *  or a relative pathname.  It will create all the directories in the

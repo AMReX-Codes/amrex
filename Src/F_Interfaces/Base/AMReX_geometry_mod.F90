@@ -76,6 +76,10 @@ module amrex_geometry_module
      end subroutine amrex_fi_geometry_get_intdomain
   end interface
 
+  interface amrex_geometry_destroy
+     module procedure amrex_geometry_destroy
+  end interface amrex_geometry_destroy
+
 contains
 
   subroutine amrex_geometry_finalize ()

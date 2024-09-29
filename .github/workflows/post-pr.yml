@@ -4,17 +4,13 @@ on:
     types:
       - closed
 
+# This workflow does not have the permission to clean up cache for PRs
+# originated from a fork. The purpose here is to trigger a workflow_run
+# cleanup-cache-postpr.yml that has the right permission.
+
 jobs:
-  cleanup:
+  noop:
     runs-on: ubuntu-latest
     steps:
-      - name: Save PR number
-        env:
-          PR_NUMBER: ${{ github.event.number }}
-        run: |
-          echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pr_number
-          path: pr_number.txt
-          retention-days: 1
+      - name: No OP
+        run: echo "This workflow is going to trigger CleanUpCachePostPR."

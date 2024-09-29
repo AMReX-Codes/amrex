@@ -1,0 +1,33 @@
+name: 🐧 Catalyst
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.head_ref }}-insituvis-catalyst
+  cancel-in-progress: true
+
+jobs:
+  catalyst:
+    name: Catalyst
+    runs-on: ubuntu-22.04
+    if: github.event.pull_request.draft == false
+    env:
+      CXX: g++
+      CC: gcc
+      CMAKE_PREFIX_PATH: "/opt/conduit:/opt/catalyst"
+    container:
+      image: kitware/paraview:ci-catalyst-amrex-warpx-20240701
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure
+      run: |
+        cmake -S . -B build          \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DAMReX_ENABLE_TESTS=ON  \
+            -DAMReX_FORTRAN=OFF      \
+            -DAMReX_CATALYST=ON      \
+            -DAMReX_CONDUIT=ON
+    - name: Build
+      run: |
+        cmake --build build -j 4
+

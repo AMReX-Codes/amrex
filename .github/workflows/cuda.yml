@@ -154,6 +154,7 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_TEST_TYPE=Small                      \
             -DAMReX_FORTRAN=ON                           \
+            -DAMReX_FORTRAN_INTERFACES=ON                \
             -DAMReX_GPU_BACKEND=CUDA                     \
             -DCMAKE_C_COMPILER=$(which nvc)              \
             -DCMAKE_CXX_COMPILER=$(which nvc++)          \
@@ -205,18 +206,3 @@ jobs:
 
         ccache -s
         du -hs ~/.cache/ccache
-
-  save_pr_number:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Save PR number
-        env:
-          PR_NUMBER: ${{ github.event.number }}
-        run: |
-          echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pr_number
-          path: pr_number.txt
-          retention-days: 1

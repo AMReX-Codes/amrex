@@ -69,13 +69,13 @@ jobs:
 
   # Build libamrex and all tests
   tests_build_3D:
-    name: GNU@9.3 C++17 3D Debug Fortran [tests]
-    runs-on: ubuntu-20.04
+    name: GNU@13 C++17 3D Debug Fortran [tests]
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_gcc.sh 13
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
@@ -86,7 +86,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -O1 -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-null-dereference"}
         # It's too slow with -O0
       run: |
         export CCACHE_COMPRESS=1
@@ -295,7 +295,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=40M
+        export CCACHE_MAXSIZE=100M
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
@@ -360,7 +360,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=315M
+        export CCACHE_MAXSIZE=400M
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
@@ -595,13 +595,13 @@ jobs:
 
   # Build libamrex and run all tests
   tests_run:
-    name: GNU@9.3 C++17 [tests]
-    runs-on: ubuntu-20.04
+    name: GNU@13 C++17 [tests]
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_gcc.sh 13
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
@@ -616,7 +616,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=30M
+        export CCACHE_MAXSIZE=100M
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
@@ -641,7 +641,7 @@ jobs:
     - name: Run tests
       run: |
         cd build
-        ctest --output-on-failure -R
+        ctest --output-on-failure
 
   test_hdf5:
     name: GNU@9.3 HDF5 I/O Test [tests]
@@ -664,18 +664,3 @@ jobs:
         mpirun -np 2 ./main3d.gnu.TPROF.MPI.ex ./inputs
         h5dump -d "level_0/data:offsets=0"  -s "1" -c "1" ./plt00000.h5
         h5dump -d "level_0/data:datatype=1" -s "1" -c "1" ./plt00000/particle0/particle0.h5
-
-  save_pr_number:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Save PR number
-        env:
-          PR_NUMBER: ${{ github.event.number }}
-        run: |
-          echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pr_number
-          path: pr_number.txt
-          retention-days: 1

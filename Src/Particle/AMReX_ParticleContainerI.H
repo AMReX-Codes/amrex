@@ -56,8 +56,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         //                   && std::is_trivial<ParticleType>::value,
         //                      "Particle type must be standard layout and trivial.");
 
-        pp.queryAdd("use_prepost", usePrePost);
-        pp.queryAdd("do_unlink", doUnlink);
+        pp.query("use_prepost", usePrePost);
+        pp.query("do_unlink", doUnlink);
         pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
 
         initialized = true;
@@ -71,9 +71,9 @@ IntVect
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::Index (const P& p, int lev) const
 {
     const Geometry& geom = Geom(lev);
-    const auto domain = geom.Domain();
-    const auto plo = geom.ProbLoArray();
-    const auto dxi = geom.InvCellSizeArray();
+    const auto& domain = geom.Domain();
+    const auto& plo = geom.ProbLoArray();
+    const auto& dxi = geom.InvCellSizeArray();
 
     return Assignor{}(p, plo, dxi, domain);
 }

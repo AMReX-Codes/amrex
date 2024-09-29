@@ -30,6 +30,7 @@ private:
     bool consolidation = true;
     int max_coarsening_level = 30;
 
+    bool use_pcg = false;
     bool use_gmres = false;
     bool gmres_use_precond = true;
     int gmres_precond_niters = 1;

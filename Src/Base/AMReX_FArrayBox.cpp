@@ -24,10 +24,8 @@ bool FArrayBox::initialized = false;
 
 #if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
 bool FArrayBox::do_initval = true;
-bool FArrayBox::init_snan  = true;
 #else
 bool FArrayBox::do_initval = false;
-bool FArrayBox::init_snan  = false;
 #endif
 Real FArrayBox::initval;
 
@@ -144,6 +142,9 @@ FArrayBox::FArrayBox (const Box& b, int ncomp, Real const* p) noexcept
 void
 FArrayBox::initVal () noexcept
 {
+    // If amrex::InitSNaN is true, snans have been filled by BaseFab.
+    if (amrex::InitSNaN()) { return; }
+
     Real * p = dataPtr();
     Long s = size();
     if (p && s > 0) {
@@ -158,22 +159,7 @@ FArrayBox::initVal () noexcept
         runon = RunOn::Cpu;
 #endif
 
-        if (init_snan) {
-#if defined(AMREX_USE_GPU)
-            if (runon == RunOn::Gpu)
-            {
-                amrex::ParallelFor(s, [=] AMREX_GPU_DEVICE (Long i) noexcept
-                {
-                    p[i] = std::numeric_limits<Real>::signaling_NaN();
-                });
-                Gpu::streamSynchronize();
-            }
-            else
-#endif
-            {
-                amrex_array_init_snan(p, s);
-            }
-        } else if (do_initval) {
+        if (do_initval) {
             const Real x = initval;
             AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG (runon, s, i,
             {
@@ -435,9 +421,8 @@ FArrayBox::Initialize ()
             ? std::numeric_limits<Real>::quiet_NaN()
             : std::numeric_limits<Real>::max();
 
-    pp.queryAdd("initval",    initval);
-    pp.queryAdd("do_initval", do_initval);
-    pp.queryAdd("init_snan", init_snan);
+    pp.query("initval",    initval);
+    pp.query("do_initval", do_initval);
 
     amrex::ExecOnFinalize(FArrayBox::Finalize);
 }

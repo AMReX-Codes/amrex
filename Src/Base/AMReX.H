@@ -10,10 +10,12 @@
 #include <AMReX_Exception.H>
 #include <AMReX_Extension.H>
 
+#include <cstdint>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 //
@@ -47,23 +49,25 @@ namespace amrex
 
         extern AMREX_EXPORT int verbose;
 
-        extern AMREX_EXPORT int signal_handling;
-        extern AMREX_EXPORT int handle_sigsegv;
-        extern AMREX_EXPORT int handle_sigterm;
-        extern AMREX_EXPORT int handle_sigint;
-        extern AMREX_EXPORT int handle_sigabrt;
-        extern AMREX_EXPORT int handle_sigfpe;
+        extern AMREX_EXPORT bool signal_handling;
+        extern AMREX_EXPORT bool handle_sigsegv;
+        extern AMREX_EXPORT bool handle_sigterm;
+        extern AMREX_EXPORT bool handle_sigint;
+        extern AMREX_EXPORT bool handle_sigabrt;
+        extern AMREX_EXPORT bool handle_sigfpe;
 
-        extern AMREX_EXPORT int call_addr2line;
-        extern AMREX_EXPORT int throw_exception;
+        extern AMREX_EXPORT bool call_addr2line;
+        extern AMREX_EXPORT bool throw_exception;
 
-        extern AMREX_EXPORT int regtest_reduction;
+        extern AMREX_EXPORT bool regtest_reduction;
 
         extern AMREX_EXPORT std::ostream* osout;
         extern AMREX_EXPORT std::ostream* oserr;
 
         extern AMREX_EXPORT ErrorHandler error_handler;
-        extern AMREX_EXPORT int abort_on_unused_inputs;
+        extern AMREX_EXPORT bool abort_on_unused_inputs;
+
+        extern AMREX_EXPORT bool init_snan;
     }
 
     /** the AMReX "git describe" version */
@@ -197,6 +201,9 @@ namespace amrex
     [[nodiscard]] int Verbose () noexcept;
     void SetVerbose (int v) noexcept;
 
+    [[nodiscard]] bool InitSNaN () noexcept;
+    void SetInitSNaN (bool v) noexcept;
+
     // ! Get the entire command line including the executable
     [[nodiscard]] std::string get_command ();
 
@@ -277,6 +284,65 @@ namespace amrex
 
         Geometry* m_geom = nullptr;
     };
+
+    enum struct FPExcept : std::uint8_t {
+        none     = 0B0000,
+        invalid  = 0B0001,
+        zero     = 0B0010,
+        overflow = 0B0100,
+        all      = 0B0111
+    };
+
+    [[nodiscard]] inline bool any (FPExcept a) { return a != FPExcept::none; }
+
+    [[nodiscard]] inline FPExcept operator| (FPExcept a, FPExcept b)
+    {
+        using T = std::underlying_type_t<FPExcept>;
+        return static_cast<FPExcept>(static_cast<T>(a) | static_cast<T>(b));
+    }
+
+    [[nodiscard]] inline FPExcept operator& (FPExcept a, FPExcept b)
+    {
+        using T = std::underlying_type_t<FPExcept>;
+        return static_cast<FPExcept>(static_cast<T>(a) & static_cast<T>(b));
+    }
+
+    //! Return currently enabled FP exceptions. Linux only.
+    [[nodiscard]] FPExcept getFPExcept ();
+
+    //! Set FP exception traps. Linux only. This enables set flags and
+    //! DISABLES unset flags. This can be used to restore previous settings.
+    FPExcept setFPExcept (FPExcept excepts);
+
+    /**
+     * \brief Disable FP exceptions. Linux Only
+     *
+     * This function disables given exception traps and keeps the status of
+     * the others. The example below disables FPE invalid and
+     * divide-by-zero, and later restores the previous settings.
+     *
+     \verbatim
+         auto prev_excepts = disableFPExcept(FPExcept::invalid | FPExcept::zero);
+         // ....
+         setFPExcept(prev_excepts); // restore previous settings
+     \endverbatim
+     */
+    [[nodiscard]] FPExcept disableFPExcept (FPExcept excepts);
+
+    /**
+     * \brief Enable FP exceptions. Linux Only
+     *
+     * This function enables given exception traps and keeps the status of
+     * the others. The example below enables all FPE traps, and later
+     * restores the previous settings.
+     *
+     \verbatim
+         auto prev_excepts = disableFPExcept(FPExcept::all);
+         // ....
+         setFPExcept(prev_excepts); // restore previous settings
+     \endverbatim
+     */
+    [[nodiscard]] FPExcept enableFPExcept (FPExcept excepts);
 }
 
 #endif /*BL_AMREX_H*/

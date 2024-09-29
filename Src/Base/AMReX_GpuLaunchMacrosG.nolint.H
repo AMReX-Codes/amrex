@@ -16,7 +16,7 @@
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
                 [=] (sycl::nd_item<1> amrex_i_item) \
-                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
+                [[sycl::reqd_work_group_size(AMREX_GPU_MAX_THREADS)]] \
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     for (auto const TI : amrex::Gpu::Range(amrex_i_tn,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
@@ -266,7 +266,7 @@
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
                 [=] (sycl::nd_item<1> amrex_i_item) \
-                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
+                [[sycl::reqd_work_group_size(AMREX_GPU_MAX_THREADS)]] \
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     for (auto const TI : amrex::Gpu::Range(amrex_i_tn,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \

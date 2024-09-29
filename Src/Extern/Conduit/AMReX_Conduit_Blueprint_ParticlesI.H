@@ -69,14 +69,14 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
         // for soa entries, we can use standard strides,
         // since these are contiguous arrays
 
-        n_coords["values/x"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(0)[0]),
+        n_coords["values/x"].set_external(const_cast<ParticleReal*>(soa.GetRealData(0).data()),
                                           num_particles);
 #if AMREX_SPACEDIM > 1
-        n_coords["values/y"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(1)[0]),
+        n_coords["values/y"].set_external(const_cast<ParticleReal*>(soa.GetRealData(1).data()),
                                           num_particles);
 #endif
 #if AMREX_SPACEDIM > 2
-        n_coords["values/z"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(2)[0]),
+        n_coords["values/z"].set_external(const_cast<ParticleReal*>(soa.GetRealData(2).data()),
                                           num_particles);
 #endif
     } else
@@ -175,22 +175,12 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
         // for soa entries, we can use standard strides,
         // since these are contiguous arrays
 
-        // id is the first int entry
-        conduit::Node &n_f_id = n_fields[topology_name + "_id"];
+        conduit::Node &n_f_idcpu = n_fields[topology_name + "_idcpu"];
 
-        n_f_id["topology"] = topology_name;
-        n_f_id["association"] = "element";
-        n_f_id["values"].set_external(const_cast<int*>(&soa.GetIntData(0)[0]),
-                                      num_particles);
-
-        // cpu is the second int entry
-        conduit::Node &n_f_cpu = n_fields[topology_name + "_cpu"];
-
-        n_f_cpu["topology"] = topology_name;
-        n_f_cpu["association"] = "element";
-        n_f_cpu["values"].set_external(const_cast<int*>(&soa.GetIntData(0)[0]),
-                                       num_particles);
-
+        n_f_idcpu["topology"] = topology_name;
+        n_f_idcpu["association"] = "element";
+        n_f_idcpu["values"].set_external(const_cast<uint64_t*>(soa.GetIdCPUData().data()),
+                                         num_particles);
     }
 
     // --------------------------------
@@ -232,7 +222,7 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
         conduit::Node &n_f = n_fields[real_comp_names.at(vname_real_idx)];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
-        n_f["values"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(i)[0]),
+        n_f["values"].set_external(const_cast<ParticleReal*>(soa.GetRealData(i).data()),
                                    num_particles);
 
         vname_real_idx++;
@@ -244,7 +234,7 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
         conduit::Node &n_f = n_fields[int_comp_names.at(vname_int_idx)];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
-        n_f["values"].set_external(const_cast<int*>(&soa.GetIntData(i)[0]),
+        n_f["values"].set_external(const_cast<int*>(soa.GetIntData(i).data()),
                                    num_particles);
 
         vname_int_idx++;

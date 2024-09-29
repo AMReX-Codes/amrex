@@ -6,18 +6,18 @@ using namespace amrex;
 
 namespace {
 
-class BoxND
+class BoxNDDynamic
 {
 public:
-    friend std::ostream& operator<< (std::ostream& os, const BoxND& b);
-    BoxND (Box const& b, int dim) : m_box(b), m_dim(dim) {}
+    friend std::ostream& operator<< (std::ostream& os, const BoxNDDynamic& b);
+    BoxNDDynamic (Box const& b, int dim) : m_box(b), m_dim(dim) {}
 private:
     Box m_box;
     int m_dim;
 };
 
 std::ostream&
-operator<< (std::ostream& os, const BoxND& b)
+operator<< (std::ostream& os, const BoxNDDynamic& b)
 {
     if (b.m_dim == 1) {
         os << "("
@@ -175,10 +175,10 @@ void main_main()
                 const BoxArray& ba = plotfile.boxArray(ilev);
                 const Long nboxes = ba.size();
                 const Box prob_domain = plotfile.probDomain(ilev);
-                amrex::Print() << "   " << BoxND(prob_domain,dim)
+                amrex::Print() << "   " << BoxNDDynamic(prob_domain,dim)
                                << "  " << nboxes << "\n";
                 for (int ibox = 0; ibox < nboxes; ++ibox) {
-                    amrex::Print() << "      "  << BoxND(ba[ibox],dim) << "\n";
+                    amrex::Print() << "      "  << BoxNDDynamic(ba[ibox],dim) << "\n";
                 }
             }
         }

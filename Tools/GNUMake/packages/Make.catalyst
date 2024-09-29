@@ -1,0 +1,16 @@
+#########################################################
+# Catalyst (https://gitlab.kitware.com/paraview/catalyst) Support 
+#########################################################
+
+CPPFLAGS += -DAMREX_USE_CATALYST
+
+ifdef CATALYST_DIR
+  INCLUDE_LOCATIONS += $(CATALYST_DIR)/include
+  VPATH_LOCATIONS   += $(CATALYST_DIR)/include
+  LIBRARY_LOCATIONS += $(CATALYST_DIR)/lib
+  LIBRARIES += -Wl,-rpath,$(CATALYST_DIR)/lib
+
+  LIBRARIES += -lcatalyst
+
+endif
+

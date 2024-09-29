@@ -118,14 +118,15 @@ DistributionMapping::Initialize ()
 
     ParmParse pp("DistributionMapping");
 
-    pp.queryAdd("v"      ,             verbose);
-    pp.queryAdd("verbose",             verbose);
-    pp.queryAdd("efficiency",          max_efficiency);
-    pp.queryAdd("sfc_threshold",       sfc_threshold);
-    pp.queryAdd("node_size",           node_size);
-    pp.queryAdd("verbose_mapper",      flag_verbose_mapper);
+    if (! pp.query("verbose", "v", verbose)) {
+        pp.add("verbose", verbose);
+    }
+    pp.query("efficiency",          max_efficiency);
+    pp.query("sfc_threshold",       sfc_threshold);
+    pp.query("node_size",           node_size);
+    pp.query("verbose_mapper",      flag_verbose_mapper);
 
-    std::string theStrategy;
+    std::string theStrategy("SFC");
 
     if (pp.query("strategy", theStrategy))
     {
@@ -650,7 +651,7 @@ knapsack (const std::vector<Long>&         wgts,
     if (efficiency < max_efficiency && do_full_knapsack
         && wblv.size() > 1 && wblv.begin()->size() > 1)
     {
-        BL_PROFILE_VAR("knapsack()swap", swap);
+        BL_PROFILE("knapsack()swap");
 top: ;
 
         if (efficiency < max_efficiency && wblv.begin()->size() > 1)
@@ -979,7 +980,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
             new_efficiency = avg_weight / max_weight;
 
             if (new_efficiency < max_efficiency && wblv.size() > 1) {
-                BL_PROFILE_VAR("knapsack()swap", swap);
+                BL_PROFILE("knapsack()swap");
 
                 std::sort(wblv.begin(), wblv.end());
 

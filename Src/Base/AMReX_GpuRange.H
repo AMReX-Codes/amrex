@@ -13,7 +13,8 @@ namespace amrex {
 template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
 bool isEmpty (T n) noexcept { return n <= 0; }
 
-AMREX_FORCE_INLINE bool isEmpty (Box const& b) noexcept { return b.isEmpty(); }
+template<int dim>
+AMREX_FORCE_INLINE bool isEmpty (BoxND<dim> const& b) noexcept { return b.isEmpty(); }
 
 namespace Gpu {
 
@@ -28,9 +29,10 @@ template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
 AMREX_GPU_HOST_DEVICE
 Long at (T const& /*b*/, Long offset) noexcept { return offset; }
 
-//! Box version
+//! BoxND version
+template<int dim>
 AMREX_GPU_HOST_DEVICE
-AMREX_FORCE_INLINE Long size (Box const& b) noexcept
+AMREX_FORCE_INLINE Long size (BoxND<dim> const& b) noexcept
 {
     AMREX_IF_ON_DEVICE((return b.numPts();))
     AMREX_IF_ON_HOST((
@@ -39,19 +41,13 @@ AMREX_FORCE_INLINE Long size (Box const& b) noexcept
     ))
 }
 
+template<int dim>
 AMREX_GPU_HOST_DEVICE
-AMREX_FORCE_INLINE Box at (Box const& b, Long offset) noexcept
+AMREX_FORCE_INLINE BoxND<dim> at (BoxND<dim> const& b, Long offset) noexcept
 {
     AMREX_IF_ON_DEVICE((
-        auto len = b.length3d();
-        Long k = offset / (len[0]*len[1]);
-        Long j = (offset - k*(len[0]*len[1])) / len[0];
-        Long i = (offset - k*(len[0]*len[1])) - j*len[0];
-        IntVect iv{AMREX_D_DECL(static_cast<int>(i),
-                                static_cast<int>(j),
-                                static_cast<int>(k))};
-        iv += b.smallEnd();
-        return Box(iv,iv,b.type());
+        auto iv = b.atOffset(offset);
+        return BoxND<dim>(iv,iv,b.ixType());
     ))
     AMREX_IF_ON_HOST((
         amrex::ignore_unused(offset);

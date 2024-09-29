@@ -264,7 +264,7 @@ public:
 
             vol = dx[0] * dx[1];
         }
-        else {
+        else if (coord == CoordSys::RZ) {
             // Cylindrical
 
             Real r_l = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
@@ -272,6 +272,19 @@ public:
 
             constexpr Real pi = Real(3.1415926535897932);
             vol = pi * (r_l + r_r) * dx[0] * dx[1];
+        }
+        else {
+            // Spherical
+
+            Real r_l = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
+            Real r_r = geomdata.ProbLo()[0] + static_cast<Real>(point[0]+1) * dx[0];
+
+            Real theta_l = geomdata.ProbLo()[1] + static_cast<Real>(point[1]) * dx[1];
+            Real theta_r = geomdata.ProbLo()[1] + static_cast<Real>(point[1]+1) * dx[1];
+
+            constexpr Real twoThirdsPi = static_cast<Real>(2.0 * 3.1415926535897932 / 3.0);
+            vol = twoThirdsPi * (std::cos(theta_l) - std::cos(theta_r)) * dx[0] *
+                (r_r*r_r + r_r*r_l + r_l*r_l);
         }
 
 #else
@@ -425,6 +438,14 @@ public:
     */
     void computeRoundoffDomain ();
 
+    //! Returns roundoff domain's lower end
+    [[nodiscard]] GpuArray<ParticleReal, AMREX_SPACEDIM> const&
+    RoundOffLo () const { return roundoff_lo; }
+
+    //! Returns roundoff domain's higher end
+    [[nodiscard]] GpuArray<ParticleReal, AMREX_SPACEDIM> const&
+    RoundOffHi () const { return roundoff_hi; }
+
 private:
     void read_params ();
 
@@ -440,6 +461,8 @@ private:
 
     //
     Box     domain;
+
+    friend std::istream& operator>> (std::istream&, Geometry&);
 };
 
 

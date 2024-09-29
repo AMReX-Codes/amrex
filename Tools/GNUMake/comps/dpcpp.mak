@@ -45,6 +45,14 @@ ifeq ($(WARN_ALL),TRUE)
 
   warning_flags += -Wpedantic
 
+  # /tmp/icpx-2d34de0e47/global_vars-header-4390fb.h:25:36: error: zero size arrays are an extension [-Werror,-Wzero-length-array]
+  #    25 | const char* const kernel_names[] = {
+  #       |                                    ^
+  # 1 error generated.
+  #
+  # Seen in oneapi 2024.2.0 after adding Test/DeviceGlobal
+  warning_flags += -Wno-zero-length-array
+
   ifneq ($(WARN_SHADOW),FALSE)
     warning_flags += -Wshadow
   endif

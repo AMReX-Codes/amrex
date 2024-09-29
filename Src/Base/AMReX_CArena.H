@@ -16,8 +16,6 @@
 
 namespace amrex {
 
-struct MemStat;
-
 /**
 * \brief A Concrete Class for Dynamic Memory Management using first fit.
 * This is a coalescing memory manager.  It allocates (possibly) large
@@ -74,12 +72,6 @@ public:
      * system.
      */
     [[nodiscard]] bool hasFreeDeviceMemory (std::size_t sz) final;
-
-    /**
-     * \brief Add this Arena to the list of Arenas that are profiled by TinyProfiler.
-     * \param memory_name The name of this arena in the TinyProfiler output.
-     */
-    void registerForProfiling (const std::string& memory_name) final;
 
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
@@ -191,10 +183,6 @@ protected:
     std::size_t m_used{0};
     //! The amount of memory given out via alloc().
     std::size_t m_actually_used{0};
-    //! If this arena is profiled by TinyProfiler
-    bool m_do_profiling = false;
-    //! Data structure used for profiling with TinyProfiler
-    std::map<std::string, MemStat> m_profiling_stats;
 
 
     std::mutex carena_mutex;

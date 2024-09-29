@@ -47,6 +47,11 @@ extern "C" {
         ba->maxSize(iv);
     }
 
+    Long amrex_fi_boxarray_nboxes (const BoxArray* ba)
+    {
+        return ba->size();
+    }
+
     void amrex_fi_boxarray_get_box (const BoxArray* ba, int i, int lo[3], int hi[3])
     {
         const Box& bx = (*ba)[i];

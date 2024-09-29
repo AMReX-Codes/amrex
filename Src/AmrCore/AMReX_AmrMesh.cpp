@@ -78,7 +78,9 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 {
     ParmParse pp("amr");
 
-    pp.queryAdd("v",verbose);
+    if (! pp.query("verbose", "v", verbose)) {
+        pp.add("verbose", verbose);
+    }
 
     if (max_level_in == -1) {
        pp.get("max_level", max_level);
@@ -89,27 +91,16 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 
     int nlev = max_level + 1;
 
-    blocking_factor.resize(nlev);
-    max_grid_size.resize(nlev);
-    n_error_buf.resize(nlev);
+    AmrInfo def_amr_info;
+
+    blocking_factor.resize(nlev, def_amr_info.blocking_factor.back());
+    max_grid_size.resize  (nlev, def_amr_info.max_grid_size.back());
+    n_error_buf.resize    (nlev, def_amr_info.n_error_buf.back());
+    ref_ratio.resize      (nlev, def_amr_info.ref_ratio.back());
 
     geom.resize(nlev);
     dmap.resize(nlev);
     grids.resize(nlev);
-
-    for (int i = 0; i < nlev; ++i) {
-        n_error_buf[i]     = IntVect{AMREX_D_DECL(1,1,1)};
-        blocking_factor[i] = IntVect{AMREX_D_DECL(8,8,8)};
-        max_grid_size[i]   = (AMREX_SPACEDIM == 2) ? IntVect{AMREX_D_DECL(128,128,128)}
-                                                   : IntVect{AMREX_D_DECL(32,32,32)};
-    }
-
-    // Make the default ref_ratio = 2 for all levels.
-    ref_ratio.resize(max_level);
-    for (int i = 0; i < max_level; ++i)
-    {
-      ref_ratio[i] = 2 * IntVect::TheUnitVector();
-    }
 
     pp.queryAdd("n_proper",n_proper);
     pp.queryAdd("grid_eff",grid_eff);
@@ -371,11 +362,15 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     {
         pp.queryAdd("refine_grid_layout", refine_grid_layout);
 
-        refine_grid_layout_dims = IntVect(refine_grid_layout);
-        AMREX_D_TERM(pp.queryAdd("refine_grid_layout_x", refine_grid_layout_dims[0]);,
-                     pp.queryAdd("refine_grid_layout_y", refine_grid_layout_dims[1]);,
-                     pp.queryAdd("refine_grid_layout_z", refine_grid_layout_dims[2]));
-
+        std::array<bool,AMREX_SPACEDIM> tmp{AMREX_D_DECL(refine_grid_layout,
+                                                         refine_grid_layout,
+                                                         refine_grid_layout)};
+        AMREX_D_TERM(pp.query("refine_grid_layout_x", tmp[0]);,
+                     pp.query("refine_grid_layout_y", tmp[1]);,
+                     pp.query("refine_grid_layout_z", tmp[2]));
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            refine_grid_layout_dims[idim] = tmp[idim];
+        }
         refine_grid_layout = refine_grid_layout_dims != 0;
     }
 
@@ -421,9 +416,9 @@ AmrMesh::SetGeometry (int lev, const Geometry& geom_in) noexcept
 }
 
 int
-AmrMesh::GetLevel (Box const& domain) noexcept
+AmrMesh::GetLevel (Box const& domain) const noexcept
 {
-    Box ccdomain = amrex::enclosedCells(domain);
+    Box const& ccdomain = amrex::enclosedCells(domain);
     for (int lev = 0; lev < geom.size(); ++lev) {
         if (geom[lev].Domain() == ccdomain) { return lev; }
     }
@@ -443,7 +438,7 @@ AmrMesh::ClearBoxArray (int lev) noexcept
 }
 
 bool
-AmrMesh::LevelDefined (int lev) noexcept
+AmrMesh::LevelDefined (int lev) const noexcept
 {
     return lev <= max_level && !grids[lev].empty() && !dmap[lev].empty();
 }
@@ -476,6 +471,9 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
     IntVect chunk = max_grid_size[lev];
     chunk.min(Geom(lev).Domain().length());
 
+    // Note that ba already satisfies the max_grid_size requirement and it's
+    // coarsenable if it's a fine level BoxArray.
+
     while (ba.size() < target_size)
     {
         IntVect chunk_prev = chunk;
@@ -490,11 +488,24 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
             int idim = chunk_dir[idx].second;
             if (refine_grid_layout_dims[idim]) {
                 int new_chunk_size = chunk[idim] / 2;
+                int rr = (lev > 0) ? ref_ratio[lev-1][idim] : 1;
+                if (rr > 1) {
+                    new_chunk_size = (new_chunk_size/rr) * rr;
+                }
                 if (new_chunk_size != 0 &&
                     new_chunk_size%blocking_factor[lev][idim] == 0)
                 {
                     chunk[idim] = new_chunk_size;
-                    ba.maxSize(chunk);
+                    if (rr == 1) {
+                        ba.maxSize(chunk);
+                    } else {
+                        IntVect bf(1);
+                        bf[idim] = rr;
+                        // Note that only idim-direction will be chopped by
+                        // minmaxSize because the sizes in other directions
+                        // are already smaller than chunk.
+                        ba.minmaxSize(bf, chunk);
+                    }
                     break;
                 }
             }
@@ -1216,8 +1227,8 @@ AmrMesh::checkInput ()
     }
 }
 
-long
-AmrMesh::CountCells (int lev) noexcept
+Long
+AmrMesh::CountCells (int lev) const noexcept
 {
     return grids[lev].numPts();
 }

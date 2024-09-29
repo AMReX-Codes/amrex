@@ -1,8 +1,9 @@
+#include <AMReX_Reduce.H>
+#include <AMReX_SPACE.H>
+
 #include "MDParticleContainer.H"
 #include "Constants.H"
-
 #include "CheckPair.H"
-#include <AMReX_SPACE.H>
 
 using namespace amrex;
 
@@ -148,8 +149,9 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
     const int lev = 0;
     auto& plev  = GetParticles(lev);
 
-    Real min_d = std::numeric_limits<Real>::max();
-    Real max_d = std::numeric_limits<Real>::min();
+    ReduceOps<ReduceOpMin, ReduceOpMax> reduce_op;
+    ReduceData<ParticleReal, ParticleReal> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -159,41 +161,40 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
 
         auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
 
         auto nbor_data = m_neighbor_list[lev][index].data();
         ParticleType* pstruct = aos().dataPtr();
 
-        Gpu::DeviceScalar<Real> min_d_gpu(min_d);
-        Gpu::DeviceScalar<Real> max_d_gpu(max_d);
+        ParticleReal min_start = std::numeric_limits<ParticleReal>::max();
+        ParticleReal max_start = std::numeric_limits<ParticleReal>::lowest();
 
-        Real* pmin_d = min_d_gpu.dataPtr();
-        Real* pmax_d = max_d_gpu.dataPtr();
+        reduce_op.eval(aos.numParticles(), reduce_data,
+                       [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+                       {
+                           ParticleType& p1 = pstruct[i];
 
-        AMREX_FOR_1D ( np, i,
-        {
-            ParticleType& p1 = pstruct[i];
+                           ParticleReal min_d = min_start;
+                           ParticleReal max_d = max_start;
 
-            for (const auto& p2 : nbor_data.getNeighbors(i))
-            {
-                AMREX_D_TERM(Real dx = p1.pos(0) - p2.pos(0);,
-                             Real dy = p1.pos(1) - p2.pos(1);,
-                             Real dz = p1.pos(2) - p2.pos(2);)
+                           for (const auto& p2 : nbor_data.getNeighbors(i))
+                           {
+                               AMREX_D_TERM(ParticleReal dx = p1.pos(0) - p2.pos(0);,
+                                            ParticleReal dy = p1.pos(1) - p2.pos(1);,
+                                            ParticleReal dz = p1.pos(2) - p2.pos(2);)
 
-                Real r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
-                r2 = amrex::max(r2, Params::min_r*Params::min_r);
-                Real r = sqrt(r2);
+                               ParticleReal r2 = AMREX_D_TERM(dx*dx, + dy*dy, + dz*dz);
+                               r2 = amrex::max(r2, Params::min_r*Params::min_r);
+                               auto r = ParticleReal(std::sqrt(r2));
 
-                Gpu::Atomic::Min(pmin_d, r);
-                Gpu::Atomic::Max(pmax_d, r);
-            }
-        });
-
-        Gpu::Device::streamSynchronize();
-
-        min_d = std::min(min_d, min_d_gpu.dataValue());
-        max_d = std::max(max_d, max_d_gpu.dataValue());
+                               min_d = std::min(min_d, r);
+                               max_d = std::max(max_d, r);
+                           }
+                           return {min_d, max_d};
+                       });
     }
+
+    ParticleReal min_d = amrex::get<0>(reduce_data.value(reduce_op));
+    ParticleReal max_d = amrex::get<1>(reduce_data.value(reduce_op));
     ParallelDescriptor::ReduceRealMin(min_d, ParallelDescriptor::IOProcessorNumber());
     ParallelDescriptor::ReduceRealMax(max_d, ParallelDescriptor::IOProcessorNumber());
 
