@@ -21,7 +21,6 @@ class Interpolater
     : public InterpBase
 {
 public:
-
     /**
     * \brief Coarse to fine interpolation in space.
     * This is a pure virtual function and hence MUST
@@ -53,56 +52,6 @@ public:
                          int              actual_comp,
                          int              actual_state,
                          RunOn            runon) = 0;
-
-    /**
-    * \brief Coarse to fine interpolation in space.
-    *
-    * \param CrseFab
-    * \param CrseFab_G
-    * \param FineFab
-    * \param FineFab_G
-    * \param nComp
-    * \param fine_region
-    * \param RefRatio
-    * \param nDOFX
-    * \param CoarseToFineProjectionMatrix
-    * \param runon
-    */
-    virtual void interpConservative
-      ( const FArrayBox &  /* CrseFab                      */ ,
-        const FArrayBox &  /* CrseFab_G                    */ ,
-        FArrayBox       &  /* FineFab                      */ ,
-        const FArrayBox &  /* FineFab_G                    */ ,
-        int                /* nComp                        */ ,
-        const Box       &  /* fine_region                  */ ,
-        const IntVect   &  /* RefRatio                     */ ,
-        int                /* nDOFX                        */ ,
-        Array4<Real const> /* CoarseToFineProjectionMatrix */ ,
-        RunOn              /* runon                        */  ){}
-
-    /**
-    * \brief Coarse to fine interpolation in space.
-    *
-    * \param CrseFab
-    * \param CrseFab_G
-    * \param FineFab
-    * \param FineFab_G
-    * \param nComp
-    * \param fine_region
-    * \param RefRatio
-    * \param nDOFX
-    * \param CoarseToFineProjectionMatrix
-    * \param runon
-    */
-    virtual void interpPointWise
-      ( const FArrayBox &  /* CrseFab                      */ ,
-        FArrayBox       &  /* FineFab                      */ ,
-        int                /* nComp                        */ ,
-        const Box       &  /* fine_region                  */ ,
-        const IntVect   &  /* RefRatio                     */ ,
-        int                /* nDOFX                        */ ,
-        Array4<Real const> /* CoarseToFineProjectionMatrix */ ,
-        RunOn              /* runon                        */  ){}
 
     /**
     * \brief Coarse to fine interpolation in space for face-based data.
@@ -1006,173 +955,6 @@ public:
                  RunOn            runon) override;
 };
 
-/**
-* \brief DG interpolation on nodal data with cell.
-*/
-
-class DGInterp
-    :
-    public Interpolater
-{
-public:
-
-    /**
-    * \brief Returns coarsened box given fine box and refinement ratio.
-    *
-    * \param fine
-    * \param ratio
-    */
-    Box CoarseBox (const Box& fine,
-                   int        ratio) override;
-
-    /**
-    * \brief Returns coarsened box given fine box and refinement ratio.
-    *
-    * \param fine
-    * \param ratio
-    */
-    Box CoarseBox (const Box&     fine,
-                   const IntVect& ratio) override;
-
-    /**
-    * \brief Coarse to fine interpolation in space.
-    *
-    * \param crse
-    * \param crse_comp
-    * \param fine
-    * \param fine_comp
-    * \param ncomp
-    * \param fine_region
-    * \param ratio
-    * \param crse_geom
-    * \param fine_geom
-    * \param bcr
-    * \param actual_comp
-    * \param actual_state
-    */
-    void interp
-           ( const FArrayBox     & crse        ,
-             int                   crse_comp   ,
-             FArrayBox           & fine        ,
-             int                   fine_comp   ,
-             int                   ncomp       ,
-             const Box           & fine_region ,
-             const IntVect       & ratio       ,
-             const Geometry      & crse_geom   ,
-             const Geometry      & fine_geom   ,
-             Vector<BCRec> const & bcr         ,
-             int                   actual_comp ,
-             int                   actual_state,
-             RunOn                 runon        ) override;
-
-    /**
-    * \brief Coarse to fine interpolation in space.
-    *
-    * \param CrseFab
-    * \param CrseFab_G
-    * \param FineFab
-    * \param FineFab_G
-    * \param nComp
-    * \param fine_region
-    * \param RefRatio
-    * \param nDOFX
-    * \param CoarseToFineProjectionMatrix
-    * \param runon
-    */
-    void interpConservative
-           ( const FArrayBox &  CrseFab                     ,
-             const FArrayBox &  CrseFab_G                   ,
-             FArrayBox       &  FineFab                     ,
-             const FArrayBox &  FineFab_G                   ,
-             int                nComp                       ,
-             const Box       &  fine_region                 ,
-             const IntVect   &  RefRatio                    ,
-             int                nDOFX                       ,
-             Array4<Real const> CoarseToFineProjectionMatrix,
-             RunOn              runon                        ) override;
-
-    /**
-    * \brief Coarse to fine interpolation in space.
-    *
-    * \param CrseFab
-    * \param FineFab
-    * \param nComp
-    * \param fine_region
-    * \param RefRatio
-    * \param nDOFX
-    * \param CoarseToFineProjectionMatrix
-    * \param runon
-    */
-    void interpPointWise
-           ( const FArrayBox &  CrseFab                     ,
-             FArrayBox       &  FineFab                     ,
-             int                nComp                       ,
-             const Box       &  fine_region                 ,
-             const IntVect   &  RefRatio                    ,
-             int                nDOFX                       ,
-             Array4<Real const> CoarseToFineProjectionMatrix,
-             RunOn              runon                        ) override;
-};
-/**
-* \brief CG interpolation on nodal data with cell.
-*/
-
-class CGInterp
-    :
-    public Interpolater
-{
-public:
-
-    /**
-    * \brief Returns coarsened box given fine box and refinement ratio.
-    *
-    * \param fine
-    * \param ratio
-    */
-    Box CoarseBox (const Box& fine,
-                   int        ratio) override;
-
-    /**
-    * \brief Returns coarsened box given fine box and refinement ratio.
-    *
-    * \param fine
-    * \param ratio
-    */
-    Box CoarseBox (const Box&     fine,
-                   const IntVect& ratio) override;
-
-    /**
-    * \brief Coarse to fine interpolation in space.
-    *
-    * \param crse
-    * \param crse_comp
-    * \param fine
-    * \param fine_comp
-    * \param ncomp
-    * \param fine_region
-    * \param ratio
-    * \param crse_geom
-    * \param fine_geom
-    * \param bcr
-    * \param actual_comp
-    * \param actual_state
-    */
-    void interp
-           ( const FArrayBox     & crse        ,
-             int                   crse_comp   ,
-             FArrayBox           & fine        ,
-             int                   fine_comp   ,
-             int                   ncomp       ,
-             const Box           & fine_region ,
-             const IntVect       & ratio       ,
-             const Geometry      & crse_geom   ,
-             const Geometry      & fine_geom   ,
-             Vector<BCRec> const & bcr         ,
-             int                   actual_comp ,
-             int                   actual_state,
-             RunOn                 runon        ) override;
-};
-
 //! CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
 extern AMREX_EXPORT PCInterp                  pc_interp;
 extern AMREX_EXPORT NodeBilinear              node_bilinear_interp;
@@ -1185,8 +967,6 @@ extern AMREX_EXPORT CellBilinear              cell_bilinear_interp;
 extern AMREX_EXPORT CellConservativeProtected protected_interp;
 extern AMREX_EXPORT CellConservativeQuartic   quartic_interp;
 extern AMREX_EXPORT CellQuadratic             quadratic_interp;
-extern AMREX_EXPORT DGInterp                  dg_interp;
-extern AMREX_EXPORT CGInterp                  cg_interp;
 extern AMREX_EXPORT CellQuartic               cell_quartic_interp;
 
 }

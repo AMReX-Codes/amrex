@@ -85,14 +85,14 @@ CEXE_sources += AMReX_EB2_$(DIM)D_C.cpp AMReX_EB2_ND_C.cpp
 CEXE_headers += AMReX_EB2_C.H AMReX_EB2_$(DIM)D_C.H
 
 CEXE_sources += AMReX_EB_STL_utils.cpp
-CEXE_headers += AMReX_EB_STL_utils.H
+CEXE_headers += AMReX_EB_STL_utils.H  
 CEXE_headers += AMReX_EB_triGeomOps_K.H
 
 CEXE_headers += AMReX_EB2_Level_STL.H AMReX_EB2_IndexSpace_STL.H
 CEXE_sources += AMReX_EB2_Level_STL.cpp AMReX_EB2_IndexSpace_STL.cpp
 
 CEXE_sources += AMReX_EB_chkpt_file.cpp
-CEXE_headers += AMReX_EB_chkpt_file.H
+CEXE_headers += AMReX_EB_chkpt_file.H  
 
 CEXE_headers += AMReX_EB2_Level_chkpt_file.H AMReX_EB2_IndexSpace_chkpt_file.H
 CEXE_sources += AMReX_EB2_Level_chkpt_file.cpp AMReX_EB2_IndexSpace_chkpt_file.cpp

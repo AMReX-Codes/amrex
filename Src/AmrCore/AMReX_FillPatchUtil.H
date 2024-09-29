@@ -275,48 +275,6 @@ namespace amrex
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
     std::enable_if_t<IsFabArray<MF>::value>
-    FillPatchTwoLevels
-      ( MF & mf, MF & mf_G, Real Time,
-        const Vector<MF*> & CrseMF, const Vector<MF*> & CrseMF_G,
-        const Vector<Real> & CrseTime,
-        const Vector<MF*> & FineMF, const Vector<MF*> & FineMF_G,
-        const Vector<Real> & FineTime,
-        int sComp, int dComp, int nComp,
-        const Geometry & CrseGeom, const Geometry & FineGeom,
-        BC & CrseBC, int CrseBCcomp,
-        BC & FineBC, int FineBCcomp,
-        const IntVect & RefRatio,
-        Interp * mapper,
-        const Vector<BCRec> & bcs, int bcscomp,
-        int nDOFX, Array4<Real const> CoarseToFineProjectionMatrix,
-        const PreInterpHook  & pre_interp  = {},
-        const PostInterpHook & post_interp = {} );
-
-    template <typename MF, typename BC, typename Interp,
-              typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
-              typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
-    FillPatchTwoLevels
-      ( MF & mf, Real Time,
-        const Vector<MF*> & CrseMF,
-        const Vector<Real> & CrseTime,
-        const Vector<MF*> & FineMF,
-        const Vector<Real> & FineTime,
-        int sComp, int dComp, int nComp,
-        const Geometry & CrseGeom, const Geometry & FineGeom,
-        BC & CrseBC, int CrseBCcomp,
-        BC & FineBC, int FineBCcomp,
-        const IntVect & RefRatio,
-        Interp * mapper,
-        const Vector<BCRec> & bcs, int bcscomp,
-        int nDOFX, Array4<Real const> CoarseToFineProjectionMatrix,
-        const PreInterpHook  & pre_interp  = {},
-        const PostInterpHook & post_interp = {} );
-
-    template <typename MF, typename BC, typename Interp,
-              typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
-              typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
     FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,

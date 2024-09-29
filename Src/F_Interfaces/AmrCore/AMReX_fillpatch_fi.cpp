@@ -16,9 +16,7 @@ namespace
         &amrex::protected_interp,        // 6
         &amrex::quartic_interp,          // 7
         &amrex::face_divfree_interp,     // 8
-        &amrex::face_linear_interp,      // 9
-        &amrex::dg_interp,               // 10
-        &amrex::cg_interp                // 11
+        &amrex::face_linear_interp       // 9
     };
 }
 
@@ -95,131 +93,34 @@ extern "C"
                                     scomp, dcomp, ncomp, *geom, pbc, 0);
     }
 
-    void amrex_fi_fillpatch_two
-           ( MultiFab * MF, Real Time,
-             MultiFab * pCrseMF[], Real CrseTime[], int nCrse,
-             MultiFab * pFineMF[], Real FineTime[], int nFine,
-             int sComp, int dComp, int nComp,
-             const Geometry * pCrseGeom, const Geometry * pFineGeom,
-             FPhysBC::fill_physbc_funptr_t fpCrseFillPhysBC,
-             FPhysBC::fill_physbc_funptr_t fpFineFillPhysBC,
-             int RefRatio, int interp_id,
-             int * pLoBC[], int * pHiBC[],
-             INTERP_HOOK pre_interp, INTERP_HOOK post_interp )
+    void amrex_fi_fillpatch_two (MultiFab* mf, Real time,
+                                 MultiFab* cmf[], Real ct[], int nc,
+                                 MultiFab* fmf[], Real ft[], int nf,
+                                 int scomp, int dcomp, int ncomp,
+                                 const Geometry* cgeom, const Geometry* fgeom,
+                                 FPhysBC::fill_physbc_funptr_t cfill,
+                                 FPhysBC::fill_physbc_funptr_t ffill,
+                                 int rr, int interp_id,
+                                 int* lo_bc[], int* hi_bc[],
+                                 INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
     {
         Vector<BCRec> bcs;
-        for ( int iComp = 0; iComp < nComp; ++iComp ) {
-            bcs.emplace_back( pLoBC[iComp+sComp], pHiBC[iComp+sComp] );
+        for (int i = 0; i < ncomp; ++i) {
+            bcs.emplace_back(lo_bc[i+scomp], hi_bc[i+scomp]);
         }
 
-        FPhysBC CrseBC( fpCrseFillPhysBC, pCrseGeom );
-        FPhysBC FineBC( fpFineFillPhysBC, pFineGeom );
-
-        amrex::FillPatchTwoLevels
-                 ( *MF, Time,
-                   Vector<MultiFab*>{pCrseMF , pCrseMF+nCrse},
-                   Vector<Real>     {CrseTime, CrseTime+nCrse},
-                   Vector<MultiFab*>{pFineMF , pFineMF+nFine},
-                   Vector<Real>     {FineTime, FineTime+nFine},
-                   sComp, dComp, nComp,
-                   *pCrseGeom, *pFineGeom,
-                   CrseBC, 0, FineBC, 0,
-                   IntVect{AMREX_D_DECL(RefRatio,RefRatio,RefRatio)},
-                   interp[interp_id], bcs, 0,
-                   FIInterpHook( pre_interp  ),
-                   FIInterpHook( post_interp ) );
-    }
-
-    void amrex_fi_fillpatch_dgconservative_two
-           ( MultiFab * MF, MultiFab * MF_G, Real Time,
-             MultiFab * pCrseMF[], MultiFab * pCrseMF_G[],
-             Real CrseTime[], int nCrse,
-             MultiFab * pFineMF[], MultiFab * pFineMF_G[],
-             Real FineTime[], int nFine,
-             int sComp, int dComp, int nComp,
-             const Geometry* pCrseGeom, const Geometry * pFineGeom,
-             FPhysBC::fill_physbc_funptr_t fpCrseFillPhysBC,
-             FPhysBC::fill_physbc_funptr_t fpFineFillPhysBC,
-             int RefRatio, int interp_id,
-             int * pLoBC[], int * pHiBC[],
-             int nFineV, int nDOFX, void * vpCoarseToFineProjectionMatrix,
-             INTERP_HOOK pre_interp, INTERP_HOOK post_interp )
-    {
-        Vector<BCRec> bcs;
-        for ( int iComp = 0; iComp < nComp; ++iComp ) {
-            bcs.emplace_back( pLoBC[iComp+sComp], pHiBC[iComp+sComp] );
-        }
-
-        FPhysBC CrseBC( fpCrseFillPhysBC, pCrseGeom );
-        FPhysBC FineBC( fpFineFillPhysBC, pFineGeom );
-
-        auto *pCoarseToFineProjectionMatrix
-               = reinterpret_cast<Real*>(vpCoarseToFineProjectionMatrix);
-        Array4<Real const> CoarseToFineProjectionMatrix
-                             ( pCoarseToFineProjectionMatrix,
-                               {0,0,0}, {1,nFineV,nDOFX}, nDOFX );
-
-        amrex::FillPatchTwoLevels
-                 ( *MF, *MF_G, Time,
-                   Vector<MultiFab*>{pCrseMF  , pCrseMF  +nCrse},
-                   Vector<MultiFab*>{pCrseMF_G, pCrseMF_G+nCrse},
-                   Vector<Real>     {CrseTime , CrseTime +nCrse},
-                   Vector<MultiFab*>{pFineMF  , pFineMF  +nFine},
-                   Vector<MultiFab*>{pFineMF_G, pFineMF_G+nFine},
-                   Vector<Real>     {FineTime , FineTime +nFine},
-                   sComp, dComp, nComp,
-                   *pCrseGeom, *pFineGeom,
-                   CrseBC, 0, FineBC, 0,
-                   IntVect{AMREX_D_DECL(RefRatio,RefRatio,RefRatio)},
-                   interp[interp_id], bcs, 0,
-                   nDOFX, CoarseToFineProjectionMatrix,
-                   FIInterpHook(pre_interp),
-                   FIInterpHook(post_interp));
-    }
-
-    void amrex_fi_fillpatch_dgpointwise_two
-           ( MultiFab * MF, Real Time,
-             MultiFab * pCrseMF[],
-             Real CrseTime[], int nCrse,
-             MultiFab * pFineMF[],
-             Real FineTime[], int nFine,
-             int sComp, int dComp, int nComp,
-             const Geometry* pCrseGeom, const Geometry * pFineGeom,
-             FPhysBC::fill_physbc_funptr_t fpCrseFillPhysBC,
-             FPhysBC::fill_physbc_funptr_t fpFineFillPhysBC,
-             int RefRatio, int interp_id,
-             int * pLoBC[], int * pHiBC[],
-             int nFineV, int nDOFX, void * vpCoarseToFineProjectionMatrix,
-             INTERP_HOOK pre_interp, INTERP_HOOK post_interp )
-    {
-        Vector<BCRec> bcs;
-        for ( int iComp = 0; iComp < nComp; ++iComp ) {
-            bcs.emplace_back( pLoBC[iComp+sComp], pHiBC[iComp+sComp] );
-        }
-
-        FPhysBC CrseBC( fpCrseFillPhysBC, pCrseGeom );
-        FPhysBC FineBC( fpFineFillPhysBC, pFineGeom );
-
-        auto *pCoarseToFineProjectionMatrix
-               = reinterpret_cast<Real*>(vpCoarseToFineProjectionMatrix);
-        Array4<Real const> CoarseToFineProjectionMatrix
-                             ( pCoarseToFineProjectionMatrix,
-                               {0,0,0}, {1,nFineV,nDOFX}, nDOFX );
-
-        amrex::FillPatchTwoLevels
-                 ( *MF, Time,
-                   Vector<MultiFab*>{pCrseMF  , pCrseMF  +nCrse},
-                   Vector<Real>     {CrseTime , CrseTime +nCrse},
-                   Vector<MultiFab*>{pFineMF  , pFineMF  +nFine},
-                   Vector<Real>     {FineTime , FineTime +nFine},
-                   sComp, dComp, nComp,
-                   *pCrseGeom, *pFineGeom,
-                   CrseBC, 0, FineBC, 0,
-                   IntVect{AMREX_D_DECL(RefRatio,RefRatio,RefRatio)},
-                   interp[interp_id], bcs, 0,
-                   nDOFX, CoarseToFineProjectionMatrix,
-                   FIInterpHook(pre_interp),
-                   FIInterpHook(post_interp));
+        FPhysBC cbc(cfill, cgeom);
+        FPhysBC fbc(ffill, fgeom);
+        amrex::FillPatchTwoLevels(*mf, time,
+                                  Vector<MultiFab*>{cmf, cmf+nc}, Vector<Real>{ct, ct+nc},
+                                  Vector<MultiFab*>{fmf, fmf+nf}, Vector<Real>{ft, ft+nf},
+                                  scomp, dcomp, ncomp,
+                                  *cgeom, *fgeom,
+                                  cbc, 0, fbc, 0,
+                                  IntVect{AMREX_D_DECL(rr,rr,rr)},
+                                  interp[interp_id], bcs, 0,
+                                  FIInterpHook(pre_interp),
+                                  FIInterpHook(post_interp));
     }
 
     void amrex_fi_fillpatch_two_faces (MultiFab* mf[], Real time,
@@ -272,109 +173,30 @@ extern "C"
                                   FIArrInterpHook(post_interp));
     }
 
-    void amrex_fi_fillcoarsepatch
-           ( MultiFab * MF, Real Time, const MultiFab * pCrseMF,
-             int sComp, int dComp, int nComp,
-             const Geometry * pCrseGeom, const Geometry * pFineGeom,
-             FPhysBC::fill_physbc_funptr_t fpFillPhysBCCrse,
-             FPhysBC::fill_physbc_funptr_t fpFillPhysBCFine,
-             int RefRatio, int interp_id,
-             int * pLoBC[], int * pHiBC[],
-             INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
+    void amrex_fi_fillcoarsepatch (MultiFab* mf, Real time, const MultiFab* cmf,
+                                   int scomp, int dcomp, int ncomp,
+                                   const Geometry* cgeom, const Geometry* fgeom,
+                                   FPhysBC::fill_physbc_funptr_t cfill,
+                                   FPhysBC::fill_physbc_funptr_t ffill,
+                                   int rr, int interp_id,
+                                   int* lo_bc[], int* hi_bc[],
+                                   INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
     {
         Vector<BCRec> bcs;
-        for ( int iComp = 0; iComp < nComp; ++iComp) {
-            bcs.emplace_back( pLoBC[iComp+sComp], pHiBC[iComp+sComp] );
+        for (int i = 0; i < ncomp; ++i) {
+            bcs.emplace_back(lo_bc[i+scomp], hi_bc[i+scomp]);
         }
 
-        FPhysBC CrseBC( fpFillPhysBCCrse, pCrseGeom );
-        FPhysBC FineBC( fpFillPhysBCFine, pFineGeom );
-
-        amrex::InterpFromCoarseLevel
-                 ( *MF, Time, *pCrseMF,
-                   sComp, dComp, nComp,
-                   *pCrseGeom, *pFineGeom,
-                   CrseBC, 0, FineBC, 0,
-                   IntVect{AMREX_D_DECL(RefRatio,RefRatio,RefRatio)},
-                   interp[interp_id], bcs, 0,
-                   FIInterpHook( pre_interp  ),
-                   FIInterpHook( post_interp ) );
-    }
-
-    void amrex_fi_fillcoarsepatch_dgconservative
-           ( MultiFab * MF, MultiFab * MF_G, Real Time,
-             const MultiFab * pCrseMF, const MultiFab * pCrseMF_G,
-             int sComp, int dComp, int nComp,
-             const Geometry * pCrseGeom, const Geometry * pFineGeom,
-             FPhysBC::fill_physbc_funptr_t fpFillPhysBCCrse,
-             FPhysBC::fill_physbc_funptr_t fpFillPhysBCFine,
-             int RefRatio, int interp_id,
-             int * pLoBC[], int * pHiBC[],
-             int nFineV, int nDOFX, void * vpCoarseToFineProjectionMatrix,
-             INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
-    {
-        Vector<BCRec> bcs;
-        for ( int iComp = 0; iComp < nComp; ++iComp) {
-            bcs.emplace_back( pLoBC[iComp+sComp], pHiBC[iComp+sComp] );
-        }
-
-        FPhysBC CrseBC( fpFillPhysBCCrse, pCrseGeom );
-        FPhysBC FineBC( fpFillPhysBCFine, pFineGeom );
-
-        auto *pCoarseToFineProjectionMatrix
-               = reinterpret_cast<Real*>(vpCoarseToFineProjectionMatrix);
-        Array4<Real const> CoarseToFineProjectionMatrix
-                             ( pCoarseToFineProjectionMatrix,
-                               {0,0,0}, {1,nFineV,nDOFX}, nDOFX );
-
-        amrex::InterpFromCoarseLevel
-                 ( *MF, *MF_G, Time, *pCrseMF, *pCrseMF_G,
-                   sComp, dComp, nComp,
-                   *pCrseGeom, *pFineGeom,
-                   CrseBC, 0, FineBC, 0,
-                   IntVect{AMREX_D_DECL(RefRatio,RefRatio,RefRatio)},
-                   interp[interp_id], bcs, 0,
-                   nDOFX, CoarseToFineProjectionMatrix,
-                   FIInterpHook( pre_interp  ),
-                   FIInterpHook( post_interp ) );
-    }
-
-    void amrex_fi_fillcoarsepatch_dgpointwise
-           ( MultiFab * MF, Real Time,
-             const MultiFab * pCrseMF,
-             int sComp, int dComp, int nComp,
-             const Geometry * pCrseGeom, const Geometry * pFineGeom,
-             FPhysBC::fill_physbc_funptr_t fpFillPhysBCCrse,
-             FPhysBC::fill_physbc_funptr_t fpFillPhysBCFine,
-             int RefRatio, int interp_id,
-             int * pLoBC[], int * pHiBC[],
-             int nFineV, int nDOFX, void * vpCoarseToFineProjectionMatrix,
-             INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
-    {
-        Vector<BCRec> bcs;
-        for ( int iComp = 0; iComp < nComp; ++iComp) {
-            bcs.emplace_back( pLoBC[iComp+sComp], pHiBC[iComp+sComp] );
-        }
-
-        FPhysBC CrseBC( fpFillPhysBCCrse, pCrseGeom );
-        FPhysBC FineBC( fpFillPhysBCFine, pFineGeom );
-
-        auto *pCoarseToFineProjectionMatrix
-               = reinterpret_cast<Real*>(vpCoarseToFineProjectionMatrix);
-        Array4<Real const> CoarseToFineProjectionMatrix
-                             ( pCoarseToFineProjectionMatrix,
-                               {0,0,0}, {1,nFineV,nDOFX}, nDOFX );
-
-        amrex::InterpFromCoarseLevel
-                 ( *MF, Time, *pCrseMF,
-                   sComp, dComp, nComp,
-                   *pCrseGeom, *pFineGeom,
-                   CrseBC, 0, FineBC, 0,
-                   IntVect{AMREX_D_DECL(RefRatio,RefRatio,RefRatio)},
-                   interp[interp_id], bcs, 0,
-                   nDOFX, CoarseToFineProjectionMatrix,
-                   FIInterpHook( pre_interp  ),
-                   FIInterpHook( post_interp ) );
+        FPhysBC cbc(cfill, cgeom);
+        FPhysBC fbc(ffill, fgeom);
+        amrex::InterpFromCoarseLevel(*mf, time, *cmf,
+                                     scomp, dcomp, ncomp,
+                                     *cgeom, *fgeom,
+                                     cbc, 0, fbc, 0,
+                                     IntVect{AMREX_D_DECL(rr,rr,rr)},
+                                     interp[interp_id], bcs, 0,
+                                     FIInterpHook(pre_interp),
+                                     FIInterpHook(post_interp));
     }
 
     void amrex_fi_fillcoarsepatch_faces (MultiFab* mf[], Real time, MultiFab* cmf[],
