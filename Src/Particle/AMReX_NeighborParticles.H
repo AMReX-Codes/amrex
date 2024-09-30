@@ -467,7 +467,7 @@ protected:
     ParticleCopyPlan neighbor_copy_plan;
 
     amrex::PODVector<char, PolymorphicArenaAllocator<char> > snd_buffer;
-    amrex::Gpu::DeviceVector<char> rcv_buffer;
+    amrex::PODVector<char, PolymorphicArenaAllocator<char> > rcv_buffer;
 
     Gpu::PinnedVector<char> pinned_snd_buffer;
     Gpu::PinnedVector<char> pinned_rcv_buffer;

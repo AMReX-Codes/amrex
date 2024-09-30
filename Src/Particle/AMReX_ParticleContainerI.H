@@ -1355,7 +1355,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                h_redistribute_real_comp, local);
 
     amrex::PODVector<char, PolymorphicArenaAllocator<char> > snd_buffer;
-    Gpu::DeviceVector<char> rcv_buffer;
+    amrex::PODVector<char, PolymorphicArenaAllocator<char> > rcv_buffer;
+    snd_buffer.setArena(The_Comms_Arena());
+    rcv_buffer.setArena(The_Comms_Arena());
 
     packBuffer(*this, op, plan, snd_buffer);
 
