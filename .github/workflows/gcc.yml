@@ -69,13 +69,13 @@ jobs:
 
   # Build libamrex and all tests
   tests_build_3D:
-    name: GNU@9.3 C++17 3D Debug Fortran [tests]
-    runs-on: ubuntu-20.04
+    name: GNU@13 C++17 3D Debug Fortran [tests]
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_gcc.sh 13
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
@@ -295,7 +295,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=40M
+        export CCACHE_MAXSIZE=100M
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
@@ -353,14 +353,11 @@ jobs:
       # /home/runner/work/amrex/amrex/Src/Base/AMReX_IntVect.H:194:92: error: array subscript -1 is below array bounds of ‘int [3]’ [-Werror=array-bounds]
       # int& operator[] (int i) noexcept { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
       #
-      # inlined from ‘const amrex::MultiFab& amrex::EBFArrayBoxFactory::getVolFrac() const’ at /home/runner/work/amrex/amrex/Src/EB/AMReX_EBFabFactory.H:53:91,
-      # /usr/include/c++/12/bits/shared_ptr_base.h:1666:16: error: potential null pointer dereference [-Werror=null-dereference]
-      #
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds -Wno-null-dereference"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=315M
+        export CCACHE_MAXSIZE=400M
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
@@ -376,7 +373,6 @@ jobs:
             -DAMReX_FPE=ON              \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
-            -DAMReX_FORTRAN=OFF         \
             -DAMReX_FORTRAN=OFF         \
             -DCMAKE_C_COMPILER=$(which gcc-12)     \
             -DCMAKE_CXX_COMPILER=$(which g++-12)   \
@@ -595,13 +591,13 @@ jobs:
 
   # Build libamrex and run all tests
   tests_run:
-    name: GNU@9.3 C++17 [tests]
-    runs-on: ubuntu-20.04
+    name: GNU@13 C++17 [tests]
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies.sh
+        .github/workflows/dependencies/dependencies_gcc.sh 13
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
@@ -616,7 +612,7 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=30M
+        export CCACHE_MAXSIZE=100M
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z

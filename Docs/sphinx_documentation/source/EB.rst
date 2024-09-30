@@ -308,10 +308,6 @@ following data:
   z)^2 + (n_y \Delta x \Delta z)^2 + (n_z \Delta x \Delta y)^2}`, where
   :math:`n` is the boundary normal vector.
 
-- **Face centroid** is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM`` components.
-  Each component of the data is in the range of :math:`[-0.5,0.5]`, based on
-  each cell's local coordinates with respect to the embedded boundary.
-
 - **Area fractions** are returned in an :cpp:`Array` of :cpp:`MultiCutFab`
   pointers. For each direction, area fraction is for the face of that direction.
   Data are in the range of :math:`[0,1]` with zero representing a covered face

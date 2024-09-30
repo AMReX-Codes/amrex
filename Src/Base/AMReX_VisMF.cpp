@@ -1,6 +1,7 @@
 
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_FPC.H>
+#include <AMReX_IOFormat.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
@@ -277,9 +278,9 @@ operator<< (std::ostream        &os,
     // Up the precision for the Reals in m_min and m_max.
     // Force it to be written in scientific notation to match fParallel code.
     //
-    std::ios::fmtflags oflags = os.flags();
+    IOFormatSaver iofmtsaver(os);
     os.setf(std::ios::floatfield, std::ios::scientific);
-    int oldPrec = static_cast<int>(os.precision(16));
+    os.precision(17);
 
     os << hd.m_vers     << '\n';
     os << int(hd.m_how) << '\n';
@@ -326,9 +327,6 @@ operator<< (std::ostream        &os,
         os << FPC::Ieee32NormalRealDescriptor() << '\n';
       }
     }
-
-    os.flags(oflags);
-    os.precision(oldPrec);
 
     if( ! os.good()) {
         amrex::Error("Write of VisMF::Header failed");

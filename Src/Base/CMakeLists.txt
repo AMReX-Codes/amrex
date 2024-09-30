@@ -31,6 +31,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_parmparse_fi.cpp
        AMReX_ParmParse.H
        AMReX_Functional.H
+       AMReX_Stack.H
        AMReX_String.H
        AMReX_String.cpp
        AMReX_Utility.H
@@ -97,6 +98,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Print.H
        AMReX_IntConv.H
        AMReX_IntConv.cpp
+       AMReX_IOFormat.H
        # Index space -------------------------------------------------------------
        AMReX_Box.H
        AMReX_Box.cpp

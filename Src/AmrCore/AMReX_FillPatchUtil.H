@@ -694,6 +694,111 @@ namespace amrex
                            const PreInterpHook& pre_interp = {},
                            const PostInterpHook& post_interp = {});
 
+    /**
+     * \brief Fill with interpolation of coarse level data
+     *
+     * It's the CALLER's responsibility to make sure all ghost cells of the
+     * coarse MF needed for interpolation are filled already before calling
+     * this function. It's assumed that the fine level MultiFab mf's
+     * BoxArray is coarsenable by the refinement ratio. There is no support
+     * for EB.
+     *
+     * \tparam MF the MultiFab/FabArray type
+     * \tparam Interp spatial interpolater
+     *
+     * \param mf destination MF on the fine level
+     * \param nghost number of ghost cells of mf inside domain needed to be filled
+     * \param nghost_outside_domain number of ghost cells of mf outside domain needed to be filled
+     * \param cmf source MF on the coarse level
+     * \param scomp starting component of the source MF
+     * \param dcomp starting component of the destination MF
+     * \param ncomp number of components
+     * \param cgeom Geometry for the coarse level
+     * \param fgeom Geometry for the fine level
+     * \param ratio refinement ratio
+     * \param mapper spatial interpolater
+     * \param bcs boundar types for each component
+     * \param bcscomp starting component for bcs
+     */
+    template <typename MF, typename Interp>
+    std::enable_if_t<IsFabArray<MF>::value>
+    InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
+                           IntVect const& nghost_outside_domain,
+                           const MF& cmf, int scomp, int dcomp, int ncomp,
+                           const Geometry& cgeom, const Geometry& fgeom,
+                           const IntVect& ratio, Interp* mapper,
+                           const Vector<BCRec>& bcs, int bcscomp);
+
+    /**
+     * \brief FillPatch with data from the current level
+     *
+     * In this version of FillPatchSingleLevel, it's the CALLER's
+     * responsibility to make sure that smf has `snghost` ghost cells
+     * already filled before calling this function.  The destination
+     * MultiFab/FabArray is on the same AMR level as the source
+     * MultiFab/FabArray. If needed, interpolation in time is performed.
+     *
+     * \tparam MF the MultiFab/FabArray type
+     *
+     * \param mf destination MF
+     * \param nghost number of ghost cells of mf needed to be filled
+     * \param time time associated with mf
+     * \param smf source MFs
+     * \param snghost number of ghost cells in smf with valid data
+     * \param stime times associated smf
+     * \param scomp starting component of the source MFs
+     * \param dcomp starting component of the destination MF
+     * \param ncomp number of components
+     * \param geom Geometry for this level
+     */
+    template <typename MF>
+    std::enable_if_t<IsFabArray<MF>::value>
+    FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
+                          const Vector<MF*>& smf, IntVect const& snghost,
+                          const Vector<Real>& stime, int scomp, int dcomp, int ncomp,
+                          const Geometry& geom);
+
+    /**
+     * \brief FillPatch with data from the current level and the level below.
+     *
+     * In this version of FillPatchTwoLevels, it's the CALLER's
+     * responsibility to make sure all ghost cells of the coarse MF needed
+     * for interpolation are filled already before calling this
+     * function. It's assumed that the fine level MultiFab mf's BoxArray is
+     * coarsenable by the refinement ratio. There is no support for EB.
+     *
+     * \tparam MF the MultiFab/FabArray type
+     * \tparam Interp spatial interpolater
+     *
+     * \param mf destination MF on the fine level
+     * \param nghost number of ghost cells of mf inside domain needed to be filled
+     * \param nghost_outside_domain number of ghost cells of mf outside domain needed to be filled
+     * \param time time associated with mf
+     * \param cmf source MFs on the coarse level
+     * \param ct times associated cmf
+     * \param fmf source MFs on the fine level
+     * \param ft times associated fmf
+     * \param scomp starting component of the source MFs
+     * \param dcomp starting component of the destination MF
+     * \param ncomp number of components
+     * \param cgeom Geometry for the coarse level
+     * \param fgeom Geometry for the fine level
+     * \param ratio refinement ratio
+     * \param mapper spatial interpolater
+     * \param bcs boundary types for each component.
+     * \param bcscomp starting component for bcs
+     */
+    template <typename MF, typename Interp>
+    std::enable_if_t<IsFabArray<MF>::value>
+    FillPatchTwoLevels (MF& mf, IntVect const& nghost,
+                        IntVect const& nghost_outside_domain, Real time,
+                        const Vector<MF*>& cmf, const Vector<Real>& ct,
+                        const Vector<MF*>& fmf, const Vector<Real>& ft,
+                        int scomp, int dcomp, int ncomp,
+                        const Geometry& cgeom, const Geometry& fgeom,
+                        const IntVect& ratio, Interp* mapper,
+                        const Vector<BCRec>& bcs, int bcscomp);
+
 #ifndef BL_NO_FORT
     enum InterpEM_t { InterpE, InterpB};
 

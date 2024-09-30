@@ -184,16 +184,6 @@ enum lexState
     LIST
 };
 
-const char* const
-state_name[] =
-{
-   "START",
-   "STRING",
-   "QUOTED_STRING",
-   "IDENTIFIER",
-   "LIST"
-};
-
 int
 eat_garbage (const char*& str)
 {
@@ -348,7 +338,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
            break;
        default:
            amrex::ErrorStream() << "ParmParse::getToken(): invalid string = " << ostr << '\n'
-                                << "STATE = " << state_name[state]
+                                << "STATE = " << static_cast<int>(state)
                                 << ", next char = " << ch << '\n'
                                 << ", rest of input = \n" << str << '\n';
            amrex::Abort();
@@ -991,20 +981,34 @@ pp_make_parser (std::string const& func, Vector<std::string> const& vars,
         symbols.erase(var);
     }
 
+    bool recursive = false;
+    auto& recursive_symbols = g_parser_recursive_symbols[OpenMP::get_thread_num()];
+
     for (auto const& s : symbols) {
         value_t v = 0;
         bool r = false;
         for (auto const& pf : prefixes) {
+            std::string pfs = pf + s;
+            if (auto found = recursive_symbols.find(pfs); found != recursive_symbols.end()) {
+                recursive = true;
+                continue;
+            }
             if (use_querywithparser) {
-                r = squeryWithParser(table, parser_prefix, pf+s, v);
+                r = squeryWithParser(table, parser_prefix, pfs, v);
             } else {
-                r = squeryval(table, parser_prefix, pf+s, v,
+                r = squeryval(table, parser_prefix, pfs, v,
                               ParmParse::FIRST, ParmParse::LAST);
             }
             if (r) { break; }
         }
         if (r == false) {
-            amrex::Error("ParmParse: failed to parse " + func);
+            std::string msg("ParmParse: failed to parse "+func);
+            if (recursive) {
+                msg.append(" due to recursive symbol ").append(s);
+            } else {
+                msg.append(" due to unknown symbol ").append(s);
+            }
+            amrex::Error(msg);
         }
         parser.setConstant(s, v);
     }
@@ -1055,12 +1059,23 @@ ParmParse::prefixedName (const std::string_view& str) const
 void
 ParmParse::addfile (std::string const& filename) {
 #ifdef AMREX_USE_MPI
+    // this is required because we will BCast the file content in sub-function calls
     if (ParallelDescriptor::Communicator() == MPI_COMM_NULL)
     {
         throw std::runtime_error("ParmParse::addfile: AMReX must be initialized");
     }
 #endif
 
+    // check the file exists and give a user-friendly error
+    if (ParallelDescriptor::IOProcessor())
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            FileExists(filename),
+            "ParmParse::addfile: file does not exist: " + filename
+        );
+    }
+
+    // add the file
     auto file = FileKeyword;
     std::vector<std::string> val{{filename}};
     addDefn(file, val, g_table);

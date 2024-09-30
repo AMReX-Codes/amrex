@@ -1117,8 +1117,8 @@ else ifeq ($(USE_HIP),TRUE)
       AMD_ARCH = $(AMREX_AMD_ARCH)
     endif
 
-    # For AMD GPUs, the wavefront is 64 except for gfx10??.
-    ifeq ($(findstring gfx10,$(AMD_ARCH)),)
+    # For AMD GPUs, the wavefront is 64 except for gfx10?? and gfx11??.
+    ifeq ($(filter gfx10% gfx11%,$(AMD_ARCH)),)
        DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=64
     else
        DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=32

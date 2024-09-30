@@ -23,6 +23,8 @@ C$(AMREX_BASE)_sources += AMReX_PODVector.cpp
 C$(AMREX_BASE)_headers += AMReX_BlockMutex.H
 C$(AMREX_BASE)_sources += AMReX_BlockMutex.cpp
 
+C$(AMREX_BASE)_headers += AMReX_Stack.H
+
 C$(AMREX_BASE)_headers += AMReX_String.H
 C$(AMREX_BASE)_sources += AMReX_String.cpp
 
@@ -121,6 +123,7 @@ C$(AMREX_BASE)_headers += AMReX_ParReduce.H
 #
 C${AMREX_BASE}_headers += AMReX_ANSIEscCode.H AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H AMReX_IntConv.H AMReX_VectorIO.H
 C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp AMReX_IntConv.cpp AMReX_VectorIO.cpp
+C${AMREX_BASE}_headers += AMReX_IOFormat.H
 
 #
 # Index space.
