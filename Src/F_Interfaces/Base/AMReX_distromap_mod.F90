@@ -9,7 +9,7 @@ module amrex_distromap_module
   private
 
   public :: amrex_distromap_build, amrex_distromap_destroy, amrex_print, &
-            amrex_distromap_issame
+            operator(==)
 
   type, public :: amrex_distromap
      logical     :: owner = .false.
@@ -25,6 +25,10 @@ module amrex_distromap_module
      final :: amrex_distromap_destroy
 #endif
   end type amrex_distromap
+
+  interface operator(==)
+    module procedure amrex_distromap_issame
+  end interface operator(==)
 
   interface amrex_distromap_build
      module procedure amrex_distromap_build_ba
@@ -91,10 +95,10 @@ module amrex_distromap_module
        type(c_ptr), value :: dm
      end subroutine amrex_fi_print_distromap
 
-     pure logical function amrex_fi_distromap_issame (dma, dmb) bind(c)
+     pure integer function amrex_fi_distromap_issame (dma, dmb) bind(c)
        import
        implicit none
-       type(c_ptr), value :: dma, dmb
+       type(c_ptr), value, intent(in) :: dma, dmb
      end function amrex_fi_distromap_issame
   end interface
 
@@ -165,9 +169,8 @@ contains
     call amrex_fi_print_distromap(dm%p)
   end subroutine amrex_distromap_print
 
-  pure function amrex_distromap_issame (dma, dmb) result(r)
+  pure logical function amrex_distromap_issame (dma, dmb) result(r)
      type(amrex_distromap), intent(in) :: dma, dmb
-     logical :: r
      r =  amrex_fi_distromap_issame(dma%p, dmb%p)
   end function amrex_distromap_issame
 

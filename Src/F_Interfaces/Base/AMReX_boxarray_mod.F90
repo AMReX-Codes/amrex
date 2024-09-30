@@ -10,7 +10,7 @@ module amrex_boxarray_module
   private
 
   public :: amrex_boxarray_build, amrex_boxarray_destroy, amrex_print, &
-            amrex_boxarray_issame
+            operator(==)
 
   type, public :: amrex_boxarray
      logical     :: owner = .false.
@@ -36,6 +36,10 @@ module amrex_boxarray_module
      final :: amrex_boxarray_destroy
 #endif
   end type amrex_boxarray
+
+  interface operator(==)
+    module procedure amrex_boxarray_issame
+  end interface operator(==)
 
   interface amrex_boxarray_build
      module procedure amrex_boxarray_build_bx
@@ -130,7 +134,7 @@ module amrex_boxarray_module
        integer, intent(in) :: lo(*), hi(*)
      end function amrex_fi_boxarray_intersects_box
 
-     pure logical function amrex_fi_boxarray_issame (baa, bab) bind(c)
+     pure integer function amrex_fi_boxarray_issame (baa, bab) bind(c)
        import
        implicit none
        type(c_ptr), value, intent(in) :: baa, bab
@@ -265,10 +269,9 @@ contains
     r = ir .ne. 0
   end function amrex_boxarray_intersects_box
 
-  pure function amrex_boxarray_issame(baa, bab) result(r)
-    class(amrex_boxarray), intent(in) :: baa
-    class(amrex_boxarray), intent(in) :: bab
-    logical :: r
+  pure logical function amrex_boxarray_issame(baa, bab) result(r)
+    type(amrex_boxarray), intent(in) :: baa
+    type(amrex_boxarray), intent(in) :: bab
     r = amrex_fi_boxarray_issame(baa%p, bab%p)
   end function amrex_boxarray_issame
 

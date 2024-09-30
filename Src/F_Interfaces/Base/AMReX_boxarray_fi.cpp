@@ -87,7 +87,7 @@ extern "C" {
         return ba->intersects(bx);
     }
 
-    bool amrex_fi_boxarray_issame (const BoxArray& baa, const BoxArray& bab)
+    int amrex_fi_boxarray_issame (const BoxArray* baa, const BoxArray* bab)
     {
         return baa == bab;
     }
