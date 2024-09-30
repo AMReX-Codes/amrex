@@ -465,7 +465,6 @@ TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
 
     std::ofstream ofs;
     std::ostream* os = nullptr;
-    std::streamsize oldprec = 0;
     if (ParallelDescriptor::IOProcessor()) {
         auto const& ofile = get_output_file();
         if (ofile.empty()) {
@@ -487,8 +486,6 @@ TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
         all_memstats.clear();
         all_memnames.clear();
     }
-
-    if(os) { os->precision(oldprec); }
 }
 
 bool
