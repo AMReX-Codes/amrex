@@ -95,7 +95,7 @@ module amrex_distromap_module
        type(c_ptr), value :: dm
      end subroutine amrex_fi_print_distromap
 
-     pure integer function amrex_fi_distromap_issame (dma, dmb) bind(c)
+     pure integer(c_int) function amrex_fi_distromap_issame (dma, dmb) bind(c)
        import
        implicit none
        type(c_ptr), value, intent(in) :: dma, dmb
@@ -171,7 +171,7 @@ contains
 
   pure logical function amrex_distromap_issame (dma, dmb) result(r)
      type(amrex_distromap), intent(in) :: dma, dmb
-     r =  amrex_fi_distromap_issame(dma%p, dmb%p)
+     r = amrex_fi_distromap_issame(dma%p, dmb%p) .ne. 0
   end function amrex_distromap_issame
 
 end module amrex_distromap_module

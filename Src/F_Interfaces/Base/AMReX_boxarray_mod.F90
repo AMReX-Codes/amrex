@@ -127,14 +127,14 @@ module amrex_boxarray_module
        integer(amrex_long) :: amrex_fi_boxarray_numpts
      end function amrex_fi_boxarray_numpts
 
-     pure integer function amrex_fi_boxarray_intersects_box (ba, lo, hi) bind(c)
+     pure integer(c_int) function amrex_fi_boxarray_intersects_box (ba, lo, hi) bind(c)
        import
        implicit none
        type(c_ptr), value, intent(in) :: ba
        integer, intent(in) :: lo(*), hi(*)
      end function amrex_fi_boxarray_intersects_box
 
-     pure integer function amrex_fi_boxarray_issame (baa, bab) bind(c)
+     pure integer(c_int) function amrex_fi_boxarray_issame (baa, bab) bind(c)
        import
        implicit none
        type(c_ptr), value, intent(in) :: baa, bab
@@ -272,7 +272,7 @@ contains
   pure logical function amrex_boxarray_issame(baa, bab) result(r)
     type(amrex_boxarray), intent(in) :: baa
     type(amrex_boxarray), intent(in) :: bab
-    r = amrex_fi_boxarray_issame(baa%p, bab%p)
+    r = amrex_fi_boxarray_issame(baa%p, bab%p) .ne. 0
   end function amrex_boxarray_issame
 
 end module amrex_boxarray_module
