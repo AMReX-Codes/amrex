@@ -89,6 +89,6 @@ extern "C" {
 
     int amrex_fi_boxarray_issame (const BoxArray* baa, const BoxArray* bab)
     {
-        return baa == bab;
+        return *baa == *bab;
     }
 }
