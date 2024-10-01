@@ -1,3 +1,81 @@
+# 24.10
+
+  -- TinyProfiler: Remove unnecessary precision() call (#4174)
+
+  -- Fix GCC 12 & 13 warnings on null-dereference (#4171)
+
+  -- fix: wavefront_size for gfx11* (#4170)
+
+  -- CI: Test GCC-13 (#4169)
+
+  -- allow hidden dimension when calling FFlux routines (#4162)
+
+  -- Deregister BArena from Profiling in Arena::Finalize (#4164)
+
+  -- FillPatchSingleLevel and FillPatchTwoLevels for ERF (#4158)
+
+  -- `ParmParse:addFile`: User-Friendly Error (#4156)
+
+  -- Adding computation of complete elliptic integrals into amrex::Math (#4151)
+
+  -- Fix roundoff issue in SUNDIALS evolve() (#4148) (#4157)
+
+  -- Add a new InterFromCoarseLevel for ERF (#4150)
+
+  -- Add ParmParse features for WarpX (#4149)
+
+  -- ParmParse::queryAsDouble: Support bool and std::optional (#4152)
+
+  -- add geometric terms for spherical 2D support. (#4141)
+
+  -- Add std::setfill to PrintMemStats (#4147)
+
+  -- Add ParmParse::query_enum_sloppy that can ignore characters (#4145)
+
+  -- Fix ParmParse::query_enum_case_insensitive (#4144)
+
+  -- AMREX_ENUM: Add more capabilites (#4143)
+
+  -- Add ParmParse::eval (#4142)
+
+  -- AnyCTO with arbitrary number of functions (#4135)
+
+  -- IOFormatSaver (#4104)
+
+  -- amrex::Stack (#4139)
+
+  -- Use BL_PROFILE instead of BL_PROFILE_VAR to time in knapsack()swap (#4134)
+
+  -- Add iMultiFab::sum that returns the sum over a region (#4132)
+
+  -- EB Boundary Area: Fix issues for anisotropic cell size (#4131)
+
+  -- `ParmParse`: Prefix to `FILE` (#4126)
+
+  -- MLMG: Minimum domain width (#4129)
+
+  -- Capability adds for ParmParse enum (#4119)
+
+  -- use perl instead of sed in style checks for portability to MacOS (#4127)
+
+  -- Fortran Interfaces: Add new average down functions (#4124)
+
+  -- TinyProfiler: A few updates (#4102)
+
+  -- ArenaProfiler: Fix clang-tidy warning (#4128)
+
+  -- CTOParallelFor with BoxND / add AnyCTO (#4109)
+
+  -- TinyProfiler with BArena and PArena (#4113)
+
+  -- Fix Fortran interface compilation issue using `nvfortran` (#4115)
+
+  -- `AMREX_DEVICE_PRINTF`: Host (#4116)
+
+  -- EB: don't abort for no-op case in unsupported addFineLevels functions (#4123)
+
+  -- Fix FillPatchNLevels (#4117)
+
 # 24.09
 
   -- Curl Curl Solver: Option to use PCG instead of LU (#3812)
