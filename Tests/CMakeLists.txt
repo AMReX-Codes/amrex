@@ -123,7 +123,7 @@ else()
    #
    set( AMREX_TESTS_SUBDIRS Amr AsyncOut CLZ CTOParFor DeviceGlobal Enum
                             MultiBlock MultiPeriod ParmParse Parser Parser2 Reinit
-                            RoundoffDomain)
+                            RoundoffDomain SmallMatrix)
 
    if (AMReX_PARTICLES)
      list(APPEND AMREX_TESTS_SUBDIRS Particles)
