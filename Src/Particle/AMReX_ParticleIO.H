@@ -62,7 +62,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
         else
         {
-            tmp_real_comp_names.push_back(real_comp_names[i]);
+            tmp_real_comp_names.push_back(real_comp_names[i-first_rcomp]);
         }
     }
 
