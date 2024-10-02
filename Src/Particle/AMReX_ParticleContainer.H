@@ -1249,7 +1249,7 @@ public:
 
     Long superParticleSize() const { return superparticle_size; }
 
-    void AddRealComp (std::string const & name, bool communicate=true)
+    void AddRealComp (std::string const & name, int communicate=1)
     {
         m_soa_rdata_names.push_back(name);
 
@@ -1272,13 +1272,13 @@ public:
         }
     }
 
-    void AddRealComp (bool communicate=true)
+    void AddRealComp (int communicate=1)
     {
         std::string default_name = "runtime_real" + std::to_string(m_num_runtime_real);
         AddRealComp(default_name, communicate);
     }
 
-    void AddIntComp (std::string const & name, bool communicate=true)
+    void AddIntComp (std::string const & name, int communicate=1)
     {
         m_soa_idata_names.push_back(name);
 
@@ -1301,7 +1301,7 @@ public:
         }
     }
 
-    void AddIntComp (bool communicate=true)
+    void AddIntComp (int communicate=1)
     {
         std::string default_name = "runtime_int" + std::to_string(m_num_runtime_int);
         AddIntComp(default_name, communicate);
