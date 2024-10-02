@@ -417,3 +417,24 @@ namespace amrex {
 }
 
 #endif
+
+/*
+ * Notes on why SmallMatrix matrix{} is zero initialized.
+ *
+ * SmallMatrix is not an aggregate, because it has a user declared default
+ * constructor. The rule is that, for `SmallMatrix matrix{}` with an empty
+ * brace-enclosed initializer list, value-initialization is performed. The
+ * effects of value-initialization of SmallMatrix (which has a user-declared
+ * but not user-provided default constructor) are that the matrix object is
+ * first zero-initialized and then the object's default constructor is
+ * applied. Since the default constructor does nothing, the final result is
+ * the object is zero-initialized.
+ *
+ * Why is SmallMatrix's default constructor user-declared not user-provided?
+ * It's because we first declare it with `SmallMatrix () = default`.
+ *
+ * Reference:
+ *   https://en.cppreference.com/w/cpp/language/list_initialization
+ *   https://en.cppreference.com/w/cpp/language/value_initialization
+ *   https://en.cppreference.com/w/cpp/language/zero_initialization
+ */
