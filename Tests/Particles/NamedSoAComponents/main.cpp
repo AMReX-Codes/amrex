@@ -51,9 +51,9 @@ void addParticles ()
     amrex::Print() << "\n";
 
     amrex::Print() << "Adding runtime comps. \n";
-    pc.AddRealComp("runtime_rcomp0");
-    pc.AddRealComp(); // without name - should be runtime_rcomp1
-    pc.AddIntComp(); // without name - should be runtime_icomp0
+    pc.AddRealComp("real_comp1");
+    pc.AddRealComp(); // without name - should be real_comp2
+    pc.AddIntComp(); // without name - should be int_comp0
 
     amrex::Print() << "New Real SoA component names are: ";
     for (auto& n : pc.GetRealSoANames()) {

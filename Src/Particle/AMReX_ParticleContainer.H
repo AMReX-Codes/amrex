@@ -1274,8 +1274,7 @@ public:
 
     void AddRealComp (int communicate=1)
     {
-        std::string default_name = "runtime_real" + std::to_string(m_num_runtime_real);
-        AddRealComp(default_name, communicate);
+        AddRealComp(getDefaultCompNameReal<ParticleType>(NArrayReal+m_num_runtime_real), communicate);
     }
 
     void AddIntComp (std::string const & name, int communicate=1)
@@ -1303,8 +1302,7 @@ public:
 
     void AddIntComp (int communicate=1)
     {
-        std::string default_name = "runtime_int" + std::to_string(m_num_runtime_int);
-        AddIntComp(default_name, communicate);
+        AddIntComp(getDefaultCompNameInt<ParticleType>(NArrayInt+m_num_runtime_int), communicate);
     }
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }

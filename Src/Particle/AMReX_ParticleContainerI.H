@@ -65,24 +65,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
 
         // add default names for SoA Real and Int compile-time arguments
-        int first_r_name = 0;
-        // push back x,y,z
-        if constexpr (ParticleType::is_soa_particle) {
-            constexpr int x_in_ascii = 120;
-            for (int i=0; i<AMREX_SPACEDIM; ++i)
-            {
-                std::string const name{char(x_in_ascii+i)};
-                m_soa_rdata_names.push_back(name);
-            }
-            first_r_name = AMREX_SPACEDIM;
-        }
-        for (int i=first_r_name; i<NArrayReal; ++i)
+        for (int i=0; i<NArrayReal; ++i)
         {
-            m_soa_rdata_names.push_back("real_comp" + std::to_string(i-first_r_name));
+            m_soa_rdata_names.push_back(getDefaultCompNameReal<ParticleType>(i));
         }
         for (int i=0; i<NArrayInt; ++i)
         {
-            m_soa_idata_names.push_back("int_comp" + std::to_string(i));
+            m_soa_idata_names.push_back(getDefaultCompNameInt<ParticleType>(i));
         }
 
         initialized = true;
