@@ -536,7 +536,11 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
     {
         if (this->needsCoarseDataForBC())
         {
-            AMREX_ALWAYS_ASSERT(!this->hasHiddenDimension());
+            // AMREX_ALWAYS_ASSERT(!this->hasHiddenDimension());
+            if (this->hasHiddenDimension()) {
+                int hidden_dir = this->hiddenDirection();
+                AMREX_ALWAYS_ASSERT(this->m_coarse_data_crse_ratio[hidden_dir] == 1);
+            }
             br_ref_ratio = this->m_coarse_data_crse_ratio.allGT(0) ? this->m_coarse_data_crse_ratio : IntVect(2);
             if (m_crse_sol_br[amrlev] == nullptr && br_ref_ratio.allGT(0))
             {
@@ -1945,8 +1949,6 @@ MLCellLinOpT<MF>::computeVolInv () const
     for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
         m_volinv[amrlev].resize(this->NMGLevels(amrlev));
     }
-
-    AMREX_ASSERT(this->m_coarse_fine_bc_type == LinOpBCType::Dirichlet || ! this->hasHiddenDimension());
 
     // We don't need to compute for every level
 
