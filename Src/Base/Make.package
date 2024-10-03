@@ -4,6 +4,7 @@ AMREX_BASE=EXE
 C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Algorithm.H AMReX_Any.H AMReX_Array.H
 C$(AMREX_BASE)_headers += AMReX_Enum.H
 C$(AMREX_BASE)_headers += AMReX_Vector.H AMReX_TableData.H AMReX_Tuple.H AMReX_Math.H
+C$(AMREX_BASE)_headers += AMReX_SmallMatrix.H AMReX_ConstexprFor.H
 
 C$(AMREX_BASE)_headers += AMReX_TypeList.H
 

@@ -10,6 +10,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Algorithm.H>
 #include <AMReX_Dim3.H>
+#include <AMReX_SmallMatrix.H>
 
 #include <array>
 #include <memory>
@@ -148,10 +149,6 @@ namespace amrex {
      * order (last index moving fastest). If not specified, Fortran order is
      * assumed.
      */
-    namespace Order {
-        struct C {};
-        struct F {};
-    }
 
     /**
      * A GPU-compatible one-dimensional array.
@@ -280,7 +277,7 @@ namespace amrex {
      *               default if not given)
      */
     template <class T, int XLO, int XHI, int YLO, int YHI,
-              class ORDER=Order::F>
+              Order ORDER = Order::F>
     struct Array2D
     {
         /**
@@ -370,8 +367,7 @@ namespace amrex {
          * If the order is not specified, Fortran column-major order is assumed
          * (the index \c i moves the fastest)
          */
-        template <typename O=ORDER,
-                  std::enable_if_t<std::is_same_v<O,Order::F>,int> = 0>
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::F,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j) const noexcept {
             AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
@@ -384,8 +380,7 @@ namespace amrex {
          * If the order is not specified, Fortran column-major order is assumed
          * (the index \c i moves the fastest)
          */
-        template <typename O=ORDER,
-                  std::enable_if_t<std::is_same_v<O,Order::F>,int> = 0>
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::F,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j) noexcept {
             AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
@@ -398,8 +393,7 @@ namespace amrex {
          * When the order is manually specified as Order::C, row-major order
          * is used (the index \c j moves the fastest).
          */
-        template <typename O=ORDER,
-                  std::enable_if_t<std::is_same_v<O,Order::C>,int> = 0>
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::C,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j) const noexcept {
             AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
@@ -412,8 +406,7 @@ namespace amrex {
          * When the order is manually specified as Order::C, row-major order
          * is used (the index \c j moves the fastest).
          */
-        template <typename O=ORDER,
-                  std::enable_if_t<std::is_same_v<O,Order::C>,int> = 0>
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::C,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j) noexcept {
             AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
@@ -551,7 +544,7 @@ namespace amrex {
      *               default if not given)
      */
     template <class T, int XLO, int XHI, int YLO, int YHI, int ZLO, int ZHI,
-              class ORDER=Order::F>
+              Order ORDER=Order::F>
     struct Array3D
     {
         /**
@@ -662,8 +655,7 @@ namespace amrex {
          * If the order is not specified, Fortran column-major order is assumed
          * (the index \c i moves the fastest)
          */
-        template <typename O=ORDER,
-                  std::enable_if_t<std::is_same_v<O,Order::F>,int> = 0>
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::F,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j, int k) const noexcept {
             return arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
@@ -676,8 +668,7 @@ namespace amrex {
          * If the order is not specified, Fortran column-major order is assumed
          * (the index \c i moves the fastest)
          */
-        template <typename O=ORDER,
-                  std::enable_if_t<std::is_same_v<O,Order::F>,int> = 0>
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::F,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k) noexcept {
             return arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
@@ -690,8 +681,7 @@ namespace amrex {
          * When the order is manually specified as Order::C, row-major order
          * is used (the index \c k moves the fastest).
          */
-        template <typename O=ORDER,
-                  std::enable_if_t<std::is_same_v<O,Order::C>,int> = 0>
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::C,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j, int k) const noexcept {
             return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
@@ -704,8 +694,7 @@ namespace amrex {
          * When the order is manually specified as Order::C, row-major order
          * is used (the index \c k moves the fastest).
          */
-        template <typename O=ORDER,
-                  std::enable_if_t<std::is_same_v<O,Order::C>,int> = 0>
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::C,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k) noexcept {
             return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))

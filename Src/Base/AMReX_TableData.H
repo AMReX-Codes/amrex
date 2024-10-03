@@ -72,7 +72,7 @@ struct Table1D
 #endif
 };
 
-template <typename T, typename ORDER = Order::F>
+template <typename T, Order ORDER = Order::F>
 struct Table2D
 {
     T* AMREX_RESTRICT p = nullptr;
@@ -110,9 +110,7 @@ struct Table2D
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
         index_assert(i,j);
 #endif
-        static_assert(std::is_same_v<ORDER,Order::F> ||
-                      std::is_same_v<ORDER,Order::C>);
-        if constexpr (std::is_same_v<ORDER,Order::F>) {
+        if constexpr (ORDER == Order::F) {
             return p[(i-begin[0])+(j-begin[1])*stride1];
         } else {
             return p[(i-begin[0])*stride1+(j-begin[1])];
@@ -146,7 +144,7 @@ private:
     static constexpr int len0 (GpuArray<int,2> const& a_begin,
                                GpuArray<int,2> const& a_end) noexcept
     {
-        if constexpr (std::is_same_v<ORDER,Order::F>) {
+        if constexpr (ORDER == Order::F) {
             return a_end[0] - a_begin[0];
         } else {
             return a_end[1] - a_begin[1];
@@ -154,7 +152,7 @@ private:
     }
 };
 
-template <typename T, typename ORDER = Order::F>
+template <typename T, Order ORDER = Order::F>
 struct Table3D
 {
     T* AMREX_RESTRICT p = nullptr;
@@ -195,9 +193,7 @@ struct Table3D
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
         index_assert(i,j,k);
 #endif
-        static_assert(std::is_same_v<ORDER,Order::F> ||
-                      std::is_same_v<ORDER,Order::C>);
-        if constexpr (std::is_same_v<ORDER,Order::F>) {
+        if constexpr (ORDER == Order::F) {
             return p[(i-begin[0])+(j-begin[1])*stride1+(k-begin[2])*stride2];
         } else {
             return p[(i-begin[0])*stride2+(j-begin[1])*stride1+(k-begin[2])];
@@ -234,7 +230,7 @@ private:
     static constexpr int len0 (GpuArray<int,3> const& a_begin,
                                GpuArray<int,3> const& a_end) noexcept
     {
-        if constexpr (std::is_same_v<ORDER,Order::F>) {
+        if constexpr (ORDER == Order::F) {
             return a_end[0] - a_begin[0];
         } else {
             return a_end[2] - a_begin[2];
@@ -248,7 +244,7 @@ private:
     }
 };
 
-template <typename T, typename ORDER = Order::F>
+template <typename T, Order ORDER = Order::F>
 struct Table4D
 {
     T* AMREX_RESTRICT p = nullptr;
@@ -292,9 +288,7 @@ struct Table4D
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
         index_assert(i,j,k,n);
 #endif
-        static_assert(std::is_same_v<ORDER,Order::F> ||
-                      std::is_same_v<ORDER,Order::C>);
-        if constexpr (std::is_same_v<ORDER,Order::F>) {
+        if constexpr (ORDER == Order::F) {
             return p[(i-begin[0])+(j-begin[1])*stride1+(k-begin[2])*stride2+(n-begin[3])*stride3];
         } else {
             return p[(i-begin[0])*stride3+(j-begin[1])*stride2+(k-begin[2])*stride1+(n-begin[3])];
@@ -333,7 +327,7 @@ private:
     static constexpr int len0 (GpuArray<int,4> const& a_begin,
                                GpuArray<int,4> const& a_end) noexcept
     {
-        if constexpr (std::is_same_v<ORDER,Order::F>) {
+        if constexpr (ORDER == Order::F) {
             return a_end[0] - a_begin[0];
         } else {
             return a_end[3] - a_begin[3];
@@ -343,7 +337,7 @@ private:
     static constexpr int len1 (GpuArray<int,4> const& a_begin,
                                GpuArray<int,4> const& a_end) noexcept
     {
-        if constexpr (std::is_same_v<ORDER,Order::F>) {
+        if constexpr (ORDER == Order::F) {
             return a_end[1] - a_begin[1];
         } else {
             return a_end[2] - a_begin[2];
@@ -353,7 +347,7 @@ private:
     static constexpr int len2 (GpuArray<int,4> const& a_begin,
                                GpuArray<int,4> const& a_end) noexcept
     {
-        if constexpr (std::is_same_v<ORDER,Order::F>) {
+        if constexpr (ORDER == Order::F) {
             return a_end[2] - a_begin[2];
         } else {
             return a_end[1] - a_begin[1];
@@ -399,13 +393,13 @@ private:
  *      // We can now use table in device lambda.
  * \endcode
  */
-template <typename T, int N, typename ORDER = Order::F>
+template <typename T, int N, Order ORDER = Order::F>
 class TableData
     : public DataAllocator
 {
 public:
 
-    template <class U, int M, class O> friend class TableData;
+    template <class U, int M, Order O> friend class TableData;
     using value_type = T;
     using table_type = std::conditional_t<N==1, Table1D<T>,
                        std::conditional_t<N==2, Table2D<T, ORDER>,
@@ -459,7 +453,7 @@ private:
     bool m_ptr_owner = false;
 };
 
-template <typename T, int N, typename ORDER>
+template <typename T, int N, Order ORDER>
 TableData<T,N,ORDER>::TableData (Array<int,N> const& lo, Array<int,N> const& hi, Arena* ar)
     : DataAllocator{ar}, m_lo(lo), m_hi(hi)
 {
@@ -467,7 +461,7 @@ TableData<T,N,ORDER>::TableData (Array<int,N> const& lo, Array<int,N> const& hi,
 }
 
 
-template <typename T, int N, typename ORDER>
+template <typename T, int N, Order ORDER>
 TableData<T,N,ORDER>::TableData (TableData<T,N,ORDER>&& rhs) noexcept
     : DataAllocator{rhs.arena()},
       m_dptr(rhs.m_dptr),
@@ -480,7 +474,7 @@ TableData<T,N,ORDER>::TableData (TableData<T,N,ORDER>&& rhs) noexcept
     rhs.m_ptr_owner = false;
 }
 
-template <typename T, int N, typename ORDER>
+template <typename T, int N, Order ORDER>
 TableData<T,N,ORDER>&
 TableData<T,N,ORDER>::operator= (TableData<T,N,ORDER> && rhs) noexcept
 {
@@ -498,20 +492,17 @@ TableData<T,N,ORDER>::operator= (TableData<T,N,ORDER> && rhs) noexcept
     return *this;
 }
 
-template <typename T, int N, typename ORDER>
+template <typename T, int N, Order ORDER>
 TableData<T,N,ORDER>::~TableData () noexcept
 {
     static_assert(std::is_trivially_copyable<T>() &&
                   std::is_trivially_destructible<T>(),
                   "TableData<T,N,ORDER>: T must be trivially copyable and trivially destructible");
     static_assert(N>=1 && N <=4, "TableData<T,N,ORDER>: N must be in the range of [1,4]");
-    static_assert(std::is_same_v<ORDER,Order::F> ||
-                  std::is_same_v<ORDER,Order::C>,
-                  "TableDat<T,N,ORDER>: ORDER must be either Order::F or Order::C");
     clear();
 }
 
-template <typename T, int N, typename ORDER>
+template <typename T, int N, Order ORDER>
 void
 TableData<T,N,ORDER>::resize (Array<int,N> const& lo, Array<int,N> const& hi, Arena* ar)
 {
@@ -535,7 +526,7 @@ TableData<T,N,ORDER>::resize (Array<int,N> const& lo, Array<int,N> const& hi, Ar
     }
 }
 
-template <typename T, int N, typename ORDER>
+template <typename T, int N, Order ORDER>
 Long
 TableData<T,N,ORDER>::size () const noexcept
 {
@@ -546,7 +537,7 @@ TableData<T,N,ORDER>::size () const noexcept
     return r;
 }
 
-template <typename T, int N, typename ORDER>
+template <typename T, int N, Order ORDER>
 void
 TableData<T,N,ORDER>::clear () noexcept
 {
@@ -559,7 +550,7 @@ TableData<T,N,ORDER>::clear () noexcept
     }
 }
 
-template <typename T, int N, typename ORDER>
+template <typename T, int N, Order ORDER>
 void
 TableData<T,N,ORDER>::define ()
 {
@@ -578,42 +569,42 @@ namespace detail {
     Table1D<T> make_table (T* p, Array<int,1> const& lo, Array<int,1> const& hi) {
         return Table1D<T>(p, lo[0], hi[0]+1);
     }
-    template <typename T, typename ORDER>
+    template <typename T, Order ORDER>
     Table2D<T,ORDER> make_table (T* p, Array<int,2> const& lo, Array<int,2> const& hi) {
         return Table2D<T,ORDER>(p, {lo[0],lo[1]}, {hi[0]+1,hi[1]+1});
     }
-    template <typename T, typename ORDER>
+    template <typename T, Order ORDER>
     Table3D<T> make_table (T* p, Array<int,3> const& lo, Array<int,3> const& hi) {
         return Table3D<T,ORDER>(p, {lo[0],lo[1],lo[2]}, {hi[0]+1,hi[1]+1,hi[2]+1});
     }
-    template <typename T, typename ORDER>
+    template <typename T, Order ORDER>
     Table4D<T> make_table (T* p, Array<int,4> const& lo, Array<int,4> const& hi) {
         return Table4D<T,ORDER>(p, {lo[0],lo[1],lo[2],lo[3]}, {hi[0]+1,hi[1]+1,hi[2]+1,hi[3]+1});
     }
 }
 
-template <typename T, int N, typename ORDER>
+template <typename T, int N, Order ORDER>
 typename TableData<T,N,ORDER>::table_type
 TableData<T,N,ORDER>::table () noexcept
 {
     return detail::make_table<T,ORDER>(m_dptr, m_lo, m_hi);
 }
 
-template <typename T, int N, typename ORDER>
+template <typename T, int N, Order ORDER>
 typename TableData<T,N,ORDER>::const_table_type
 TableData<T,N,ORDER>::table () const noexcept
 {
     return detail::make_table<T const, ORDER>(m_dptr, m_lo, m_hi);
 }
 
-template <typename T, int N, typename ORDER>
+template <typename T, int N, Order ORDER>
 typename TableData<T,N,ORDER>::const_table_type
 TableData<T,N,ORDER>::const_table () const noexcept
 {
     return detail::make_table<T const, ORDER>(m_dptr, m_lo, m_hi);
 }
 
-template <typename T, int N, typename ORDER>
+template <typename T, int N, Order ORDER>
 void
 TableData<T,N,ORDER>::copy (TableData<T,N,ORDER> const& rhs) noexcept
 {
