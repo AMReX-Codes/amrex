@@ -284,6 +284,16 @@ print_option(AMReX_FORTRAN_INTERFACES)
 option( AMReX_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option( AMReX_LINEAR_SOLVERS )
 
+cmake_dependent_option( AMReX_LINEAR_SOLVERS_INCFLO
+    "Build AMReX Linear solvers useful for incompressible flow codes" ON
+    "AMReX_LINEAR_SOLVERS" OFF)
+print_option( AMReX_LINEAR_SOLVERS_INCFLO )
+
+cmake_dependent_option( AMReX_LINEAR_SOLVERS_EM
+    "Build AMReX Linear solvers useful for electromagnetic codes" ON
+    "AMReX_LINEAR_SOLVERS" OFF)
+print_option( AMReX_LINEAR_SOLVERS_EM )
+
 option( AMReX_AMRDATA "Build data services" OFF )
 print_option( AMReX_AMRDATA )
 

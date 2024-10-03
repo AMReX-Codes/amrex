@@ -16,6 +16,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLLinOp_K.H
        MLMG/AMReX_MLCellLinOp.H
        MLMG/AMReX_MLNodeLinOp.H
+       MLMG/AMReX_MLNodeLinOp_K.H
+       MLMG/AMReX_MLNodeLinOp_${D}D_K.H
        MLMG/AMReX_MLNodeLinOp.cpp
        MLMG/AMReX_MLCellABecLap.H
        MLMG/AMReX_MLCellABecLap_K.H
@@ -31,30 +33,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLPoisson.H
        MLMG/AMReX_MLPoisson_K.H
        MLMG/AMReX_MLPoisson_${D}D_K.H
-       MLMG/AMReX_MLNodeLaplacian.H
-       MLMG/AMReX_MLNodeLaplacian.cpp
-       MLMG/AMReX_MLNodeLaplacian_sync.cpp
-       MLMG/AMReX_MLNodeLaplacian_sten.cpp
-       MLMG/AMReX_MLNodeLaplacian_misc.cpp
-       MLMG/AMReX_MLNodeLap_K.H
-       MLMG/AMReX_MLNodeLap_${D}D_K.H
-       MLMG/AMReX_MLNodeTensorLaplacian.H
-       MLMG/AMReX_MLNodeTensorLaplacian.cpp
-       MLMG/AMReX_MLNodeTensorLap_K.H
-       MLMG/AMReX_MLNodeTensorLap_${D}D_K.H
-       MLMG/AMReX_MLTensorOp.H
-       MLMG/AMReX_MLTensorOp.cpp
-       MLMG/AMReX_MLTensorOp_grad.cpp
-       MLMG/AMReX_MLTensor_K.H
-       MLMG/AMReX_MLTensor_${D}D_K.H
-       MLMG/AMReX_MLEBNodeFDLaplacian.H
-       MLMG/AMReX_MLEBNodeFDLaplacian.cpp
-       MLMG/AMReX_MLEBNodeFDLap_K.H
-       MLMG/AMReX_MLEBNodeFDLap_${D}D_K.H
-       MLMG/AMReX_MLNodeABecLaplacian.H
-       MLMG/AMReX_MLNodeABecLaplacian.cpp
-       MLMG/AMReX_MLNodeABecLap_K.H
-       MLMG/AMReX_MLNodeABecLap_${D}D_K.H
        AMReX_GMRES.H
        AMReX_GMRES_MLMG.H
        )
@@ -68,30 +46,72 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           )
     endif ()
 
-    if (NOT D EQUAL 1)
+    if (AMReX_LINEAR_SOLVERS_EM)
+       if (NOT D EQUAL 1 AND AMReX_LINEAR_SOLVERS_EM)
+          target_sources(amrex_${D}d
+             PRIVATE
+             MLMG/AMReX_MLCurlCurl.H
+             MLMG/AMReX_MLCurlCurl.cpp
+             MLMG/AMReX_MLCurlCurl_K.H
+             )
+       endif ()
+
        target_sources(amrex_${D}d
           PRIVATE
-          MLMG/AMReX_MLCurlCurl.H
-          MLMG/AMReX_MLCurlCurl.cpp
-          MLMG/AMReX_MLCurlCurl_K.H
-          )
+          MLMG/AMReX_MLEBNodeFDLaplacian.H
+          MLMG/AMReX_MLEBNodeFDLaplacian.cpp
+          MLMG/AMReX_MLEBNodeFDLap_K.H
+          MLMG/AMReX_MLEBNodeFDLap_${D}D_K.H
+          MLMG/AMReX_MLNodeTensorLaplacian.H
+          MLMG/AMReX_MLNodeTensorLaplacian.cpp
+          MLMG/AMReX_MLNodeTensorLap_K.H
+          MLMG/AMReX_MLNodeTensorLap_${D}D_K.H
+       )
+    endif ()
+
+    if (AMReX_LINEAR_SOLVERS_INCFLO)
+       target_sources(amrex_${D}d
+          PRIVATE
+          MLMG/AMReX_MLNodeABecLaplacian.H
+          MLMG/AMReX_MLNodeABecLaplacian.cpp
+          MLMG/AMReX_MLNodeABecLap_K.H
+          MLMG/AMReX_MLNodeABecLap_${D}D_K.H
+          MLMG/AMReX_MLNodeLaplacian.H
+          MLMG/AMReX_MLNodeLaplacian.cpp
+          MLMG/AMReX_MLNodeLaplacian_sync.cpp
+          MLMG/AMReX_MLNodeLaplacian_sten.cpp
+          MLMG/AMReX_MLNodeLaplacian_misc.cpp
+          MLMG/AMReX_MLNodeLap_K.H
+          MLMG/AMReX_MLNodeLap_${D}D_K.H
+          MLMG/AMReX_MLTensorOp.H
+          MLMG/AMReX_MLTensorOp.cpp
+          MLMG/AMReX_MLTensorOp_grad.cpp
+          MLMG/AMReX_MLTensor_K.H
+          MLMG/AMReX_MLTensor_${D}D_K.H
+       )
     endif ()
 
     if (AMReX_EB AND NOT D EQUAL 1)
        target_sources(amrex_${D}d
           PRIVATE
-          MLMG/AMReX_MLNodeLaplacian_eb.cpp
           MLMG/AMReX_MLEBABecLap.H
           MLMG/AMReX_MLEBABecLap.cpp
           MLMG/AMReX_MLEBABecLap_F.cpp
           MLMG/AMReX_MLEBABecLap_K.H
           MLMG/AMReX_MLEBABecLap_${D}D_K.H
-          MLMG/AMReX_MLEBTensorOp.H
-          MLMG/AMReX_MLEBTensorOp.cpp
-          MLMG/AMReX_MLEBTensorOp_bc.cpp
-          MLMG/AMReX_MLEBTensor_K.H
-          MLMG/AMReX_MLEBTensor_${D}D_K.H
           )
+
+       if (AMReX_LINEAR_SOLVERS_INCFLO)
+          target_sources(amrex_${D}d
+             PRIVATE
+             MLMG/AMReX_MLNodeLaplacian_eb.cpp
+             MLMG/AMReX_MLEBTensorOp.H
+             MLMG/AMReX_MLEBTensorOp.cpp
+             MLMG/AMReX_MLEBTensorOp_bc.cpp
+             MLMG/AMReX_MLEBTensor_K.H
+             MLMG/AMReX_MLEBTensor_${D}D_K.H
+             )
+       endif ()
     endif ()
 
     if (AMReX_FORTRAN)
@@ -102,7 +122,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           )
     endif ()
 
-    if (AMReX_HYPRE)
+    if (AMReX_HYPRE AND AMReX_LINEAR_SOLVERS_INCFLO)
        target_sources(amrex_${D}d
           PRIVATE
           MLMG/AMReX_MLNodeLaplacian_hypre.cpp
