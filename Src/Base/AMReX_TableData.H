@@ -565,7 +565,7 @@ TableData<T,N,ORDER>::define ()
 }
 
 namespace detail {
-    template <typename T, typename>
+    template <typename T, Order>
     Table1D<T> make_table (T* p, Array<int,1> const& lo, Array<int,1> const& hi) {
         return Table1D<T>(p, lo[0], hi[0]+1);
     }
