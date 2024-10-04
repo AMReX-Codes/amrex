@@ -12,6 +12,9 @@
 
 #include <AMReX_OpenMP.H>
 
+#include <algorithm>
+#include <cstdlib>
+#include <functional>
 #include <iostream>
 
 namespace amrex {
@@ -1885,6 +1888,173 @@ bool match (const BoxArray& x, const BoxArray& y)
         }
         return m;
     }
+}
+
+BoxArray decompose (Box const& domain, int nboxes,
+                    Array<bool,AMREX_SPACEDIM> const& decomp)
+{
+    auto ndecomp = std::count(decomp.begin(), decomp.end(), true);
+
+    if (nboxes <= 1 || ndecomp == 0) {
+        return BoxArray(domain);
+    }
+
+    Box const& ccdomain = amrex::enclosedCells(domain);
+    IntVect const& ncells = ccdomain.length();
+    IntVect nprocs(1);
+
+    if (ndecomp == 1) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (decomp[idim]) {
+                nprocs[idim] = nboxes;
+            }
+        }
+    } else {
+        // Factorization of nboxes
+        Vector<int> factors;
+        {
+            int x = 2;
+            int n = nboxes;
+            while (x*x <= n) {
+                std::div_t dv = std::div(n, x);
+                if (dv.rem == 0) {
+                    factors.push_back(x);
+                    n = dv.quot;
+                } else {
+                    ++x;
+                }
+            }
+            if (n != 1) {
+                factors.push_back(n);
+            }
+            AMREX_ALWAYS_ASSERT(nboxes == std::accumulate(factors.begin(), factors.end(),
+                                                          1, std::multiplies<>()));
+        }
+
+        struct ProcDim
+        {
+            int nproc;
+            int idim;
+            Vector<int> procs;
+            ProcDim (int np, int dim) : nproc(np), idim(dim) {}
+        };
+
+        Vector<ProcDim> procdim;
+        procdim.reserve(AMREX_SPACEDIM);
+
+        Array<Long,AMREX_SPACEDIM> nblocks;
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (decomp[idim]) {
+                nblocks[idim] = ncells[idim];
+                procdim.emplace_back(1,idim);
+            } else {
+                nblocks[idim] = 0;  // This dimension will not be decomposed.
+            }
+        }
+
+        auto comp = [&] (ProcDim const& a, ProcDim const& b) {
+                          if (nblocks[a.idim]*b.nproc <
+                              nblocks[b.idim]*a.nproc) {
+                              return true;
+                          } else if (nblocks[a.idim]*b.nproc >
+                                     nblocks[b.idim]*a.nproc) {
+                              return false;
+                          } else {
+                              return a.procs.size() > b.procs.size();
+                          }
+                      };
+
+        int nprocs_tot = 1;
+        while (!factors.empty()) {
+            std::sort(procdim.begin(), procdim.end(), comp);
+            auto f = factors.back();
+            factors.pop_back();
+            procdim.back().nproc *= f;
+            procdim.back().procs.push_back(f);
+            nprocs_tot *= f;
+            if (nprocs_tot == nboxes) {
+                break;
+            }
+        }
+
+        // swap to see if the decomposition can be improved.
+        while (true)
+        {
+            std::sort(procdim.begin(), procdim.end(), comp);
+            auto fit = std::find_if(procdim.begin(),procdim.end(),
+                                    [] (ProcDim const& x) { return x.nproc > 1; });
+            if (fit == procdim.end()) { break; } // This should not actually happen.
+            auto& light = *fit;
+            auto& heavy = procdim.back();
+            Long w0 = nblocks[light.idim] * heavy.nproc;
+            Long w1 = nblocks[heavy.idim] * light.nproc;
+            if (w0 >= w1) { break; }
+            bool swapped = false;
+            for (auto& f0 : light.procs) {
+                for (auto& f1 : heavy.procs) {
+                    if ((f0 > f1) && (w0*f0 < w1*f1)) {
+                        light.nproc /= f0;
+                        light.nproc *= f1;
+                        heavy.nproc /= f1;
+                        heavy.nproc *= f0;
+                        std::swap(f0,f1);
+                        swapped = true;
+                        break;
+                    }
+                }
+                if (swapped) { break;}
+            }
+            if (!swapped) { break; }
+        }
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (!decomp[idim]) {
+                procdim.emplace_back(1,idim);
+            }
+        }
+        for (auto const& pd : procdim) {
+            nprocs[pd.idim] = pd.nproc;
+        }
+    }
+
+    AMREX_ALWAYS_ASSERT(AMREX_D_TERM(nprocs[0],*nprocs[1],*nprocs[2]) == nboxes);
+
+    IntVect const domlo = ccdomain.smallEnd();
+    IntVect const sz = ncells / nprocs;
+    IntVect const extra = ncells - sz*nprocs;
+    auto ixtyp = domain.ixType();
+    BoxList bl(ixtyp);
+#if (AMREX_SPACEDIM == 3)
+    for (int k = 0; k < nprocs[2]; ++k) {
+        // The first extra[2] blocks get one extra cell with a total of
+        // sz[2]+1.  The rest get sz[2] cells.  The decomposition in y
+        // and x directions are similar.
+        int klo = (k < extra[2]) ? k*(sz[2]+1) : (k*sz[2]+extra[2]);
+        int khi = (k < extra[2]) ? klo+(sz[2]+1)-1 : klo+sz[2]-1;
+        klo += domlo[2];
+        khi += domlo[2];
+#endif
+#if (AMREX_SPACEDIM >= 2)
+        for (int j = 0; j < nprocs[1]; ++j) {
+            int jlo = (j < extra[1]) ? j*(sz[1]+1) : (j*sz[1]+extra[1]);
+            int jhi = (j < extra[1]) ? jlo+(sz[1]+1)-1 : jlo+sz[1]-1;
+            jlo += domlo[1];
+            jhi += domlo[1];
+#endif
+            for (int i = 0; i < nprocs[0]; ++i) {
+                int ilo = (i < extra[0]) ? i*(sz[0]+1) : (i*sz[0]+extra[0]);
+                int ihi = (i < extra[0]) ? ilo+(sz[0]+1)-1 : ilo+sz[0]-1;
+                ilo += domlo[0];
+                ihi += domlo[0];
+                Box b{IntVect(AMREX_D_DECL(ilo,jlo,klo)),
+                      IntVect(AMREX_D_DECL(ihi,jhi,khi))};
+                if (b.ok()) {
+                    bl.push_back(b.convert(ixtyp));
+                }
+    AMREX_D_TERM(},},})
+
+    return BoxArray(std::move(bl));
 }
 
 std::ostream&
