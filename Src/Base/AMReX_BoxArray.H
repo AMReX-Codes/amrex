@@ -53,6 +53,24 @@ namespace amrex
     //! Note that two BoxArrays that match are not necessarily equal.
     [[nodiscard]] bool match (const BoxArray& x, const BoxArray& y);
 
+    /**
+     * \brief Decompose domain box into BoxArray
+     *
+     * The returned BoxArray has nboxes Boxes, unless the the domain is too
+     * small. We aim to decompose the domain into subdomains that are as
+     * cubic as possible, even if this results in Boxes with odd numbers of
+     * cells. Thus, this function is generally not suited for applications
+     * with multiple AMR levels or for multigrid solvers.
+     *
+     * \param domain Domain Box
+     * \param nboxes the target number of Boxes
+     * \param decomp controls whether domain decomposition should be done in
+     *               that direction.
+     */
+    [[nodiscard]] BoxArray decompose (Box const& domain, int nboxes,
+                                      Array<bool,AMREX_SPACEDIM> const& decomp
+                                      = {AMREX_D_DECL(true,true,true)});
+
 struct BARef
 {
     BARef ();
