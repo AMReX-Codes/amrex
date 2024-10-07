@@ -366,7 +366,7 @@ ppindex (const ParmParse::Table& table, int n, const std::string& name)
         return &(found->second.m_vals.back());
     } else {
       if(found->second.m_vals.size() < n+1) {
-	return nullptr;
+        return nullptr;
       }
       return &(found->second.m_vals[n]);
     }
