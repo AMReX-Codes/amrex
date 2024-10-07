@@ -463,6 +463,12 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_LINEAR_SOLVERS         |  Build AMReX linear solvers                     | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_LINEAR_SOLVERS_INCFLO  |  Build AMReX linear solvers for incompressible  | YES                     | YES, NO               |
+   |                              |  flow                                           |                         |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_LINEAR_SOLVERS_EM      |  Build AMReX linear solvers for electromagnetic | YES                     | YES, NO               |
+   |                              |  solvers                                        |                         |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_AMRDATA                |  Build data services                            | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_AMRLEVEL               |  Build AmrLevel class                           | YES                     | YES, NO               |
@@ -680,6 +686,10 @@ A list of AMReX component names and related configure options are shown in the t
    | AMReX_FORTRAN_INTERFACES     | FINTERFACES     |
    +------------------------------+-----------------+
    | AMReX_LINEAR_SOLVERS         | LSOLVERS        |
+   +------------------------------+-----------------+
+   | AMReX_LINEAR_SOLVERS_INCFLO  | LSOLVERS_INCFLO |
+   +------------------------------+-----------------+
+   | AMReX_LINEAR_SOLVERS_EM      | LSOLVERS_EM     |
    +------------------------------+-----------------+
    | AMReX_AMRDATA                | AMRDATA         |
    +------------------------------+-----------------+

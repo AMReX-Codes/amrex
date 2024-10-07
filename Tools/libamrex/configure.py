@@ -61,6 +61,14 @@ def configure(argv):
                         help="Enable AMReX linear solvers [default=yes]",
                         choices=["yes","no"],
                         default="yes")
+    parser.add_argument("--enable-linear-solver-incflo",
+                        help="Enable AMReX linear solvers for incompressible flow codes [default=yes]",
+                        choices=["yes","no"],
+                        default="yes")
+    parser.add_argument("--enable-linear-solver-em",
+                        help="Enable AMReX linear solvers for electromagnetic codes [default=yes]",
+                        choices=["yes","no"],
+                        default="yes")
     parser.add_argument("--enable-hypre",
                         help="Enable Hypre as an option for bottom solver of AMReX linear solvers [default=no]",
                         choices=["yes","no"],
@@ -144,6 +152,8 @@ def configure(argv):
     f.write("USE_PARTICLES = {}\n".format("FALSE" if args.enable_particle == "no" else "TRUE"))
     f.write("USE_FORTRAN_INTERFACE = {}\n".format("FALSE" if args.enable_fortran_api == "no" else "TRUE"))
     f.write("USE_LINEAR_SOLVERS = {}\n".format("FALSE" if args.enable_linear_solver == "no" else "TRUE"))
+    f.write("USE_LINEAR_SOLVERS_INCFLO = {}\n".format("FALSE" if args.enable_linear_solver_incflo == "no" else "TRUE"))
+    f.write("USE_LINEAR_SOLVERS_EM = {}\n".format("FALSE" if args.enable_linear_solver_em == "no" else "TRUE"))
     f.write("USE_HYPRE = {}\n".format("TRUE" if args.enable_hypre == "yes" else "FALSE"))
     f.write("USE_PETSC = {}\n".format("TRUE" if args.enable_petsc == "yes" else "FALSE"))
     f.write("USE_EB = {}\n".format("TRUE" if args.enable_eb == "yes" else "FALSE"))

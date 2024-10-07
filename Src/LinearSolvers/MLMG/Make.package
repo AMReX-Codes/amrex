@@ -1,6 +1,9 @@
 ifndef AMREX_MLMG_MAKE
        AMREX_MLMG_MAKE := 1
 
+USE_LINEAR_SOLVERS_INCFLO ?= TRUE
+USE_LINEAR_SOLVERS_EM ?= TRUE
+
 CEXE_sources += AMReX_MLMG.cpp
 
 CEXE_headers   += AMReX_MLMG.H
@@ -16,7 +19,7 @@ CEXE_headers   += AMReX_MLLinOp_K.H
 
 CEXE_headers   += AMReX_MLCellLinOp.H
 
-CEXE_headers   += AMReX_MLNodeLinOp.H
+CEXE_headers   += AMReX_MLNodeLinOp.H AMReX_MLNodeLinOp_K.H AMReX_MLNodeLinOp_$(DIM)D_K.H
 CEXE_sources   += AMReX_MLNodeLinOp.cpp
 
 CEXE_headers   += AMReX_MLCellABecLap.H
@@ -39,59 +42,68 @@ ifeq ($(DIM),3)
 CEXE_headers   += AMReX_MLPoisson_2D_K.H
 endif
 
-CEXE_headers   += AMReX_MLNodeLaplacian.H
-CEXE_sources   += AMReX_MLNodeLaplacian.cpp
-CEXE_sources   += AMReX_MLNodeLaplacian_sync.cpp
-CEXE_sources   += AMReX_MLNodeLaplacian_sten.cpp
-CEXE_sources   += AMReX_MLNodeLaplacian_misc.cpp
-CEXE_headers   += AMReX_MLNodeLap_K.H AMReX_MLNodeLap_$(DIM)D_K.H
-ifeq ($(USE_EB),TRUE)
-  CEXE_sources   += AMReX_MLNodeLaplacian_eb.cpp
-endif
-ifeq ($(USE_HYPRE),TRUE)
-  CEXE_sources   += AMReX_MLNodeLaplacian_hypre.cpp
-endif
-
-CEXE_headers   += AMReX_MLNodeABecLaplacian.H
-CEXE_sources   += AMReX_MLNodeABecLaplacian.cpp
-CEXE_headers   += AMReX_MLNodeABecLap_K.H AMReX_MLNodeABecLap_$(DIM)D_K.H
-
-CEXE_headers   += AMReX_MLNodeTensorLaplacian.H
-CEXE_sources   += AMReX_MLNodeTensorLaplacian.cpp
-CEXE_headers   += AMReX_MLNodeTensorLap_K.H AMReX_MLNodeTensorLap_$(DIM)D_K.H
-
-CEXE_headers   += AMReX_MLTensorOp.H
-CEXE_sources   += AMReX_MLTensorOp.cpp AMReX_MLTensorOp_grad.cpp
-CEXE_headers   += AMReX_MLTensor_K.H AMReX_MLTensor_$(DIM)D_K.H
-
-CEXE_headers   += AMReX_MLEBNodeFDLaplacian.H
-CEXE_sources   += AMReX_MLEBNodeFDLaplacian.cpp
-CEXE_headers   += AMReX_MLEBNodeFDLap_K.H
-CEXE_headers   += AMReX_MLEBNodeFDLap_$(DIM)D_K.H
-
-ifeq ($(USE_EB),TRUE)
-CEXE_headers   += AMReX_MLEBABecLap.H
-CEXE_sources   += AMReX_MLEBABecLap.cpp
-CEXE_sources   += AMReX_MLEBABecLap_F.cpp
-CEXE_headers   += AMReX_MLEBABecLap_K.H
-CEXE_headers   += AMReX_MLEBABecLap_$(DIM)D_K.H
-
-CEXE_headers   += AMReX_MLEBTensorOp.H
-CEXE_sources   += AMReX_MLEBTensorOp.cpp
-CEXE_sources   += AMReX_MLEBTensorOp_bc.cpp
-CEXE_headers   += AMReX_MLEBTensor_K.H AMReX_MLEBTensor_$(DIM)D_K.H
-endif
-
 ifneq ($(BL_NO_FORT),TRUE)
   CEXE_headers += AMReX_MLLinOp_F.H
   F90EXE_sources += AMReX_MLLinOp_nd.F90
 endif
 
+ifeq ($(USE_EB),TRUE)
+  CEXE_headers += AMReX_MLEBABecLap.H
+  CEXE_sources += AMReX_MLEBABecLap.cpp
+  CEXE_sources += AMReX_MLEBABecLap_F.cpp
+  CEXE_headers += AMReX_MLEBABecLap_K.H
+  CEXE_headers += AMReX_MLEBABecLap_$(DIM)D_K.H
+endif
+
+ifneq ($(USE_LINEAR_SOLVERS_INCFLO),FALSE)
+
+  CEXE_headers += AMReX_MLNodeABecLaplacian.H
+  CEXE_sources += AMReX_MLNodeABecLaplacian.cpp
+  CEXE_headers += AMReX_MLNodeABecLap_K.H AMReX_MLNodeABecLap_$(DIM)D_K.H
+
+  CEXE_headers += AMReX_MLNodeLaplacian.H
+  CEXE_sources += AMReX_MLNodeLaplacian.cpp
+  CEXE_sources += AMReX_MLNodeLaplacian_sync.cpp
+  CEXE_sources += AMReX_MLNodeLaplacian_sten.cpp
+  CEXE_sources += AMReX_MLNodeLaplacian_misc.cpp
+  CEXE_headers += AMReX_MLNodeLap_K.H AMReX_MLNodeLap_$(DIM)D_K.H
+ifeq ($(USE_EB),TRUE)
+  CEXE_sources += AMReX_MLNodeLaplacian_eb.cpp
+endif
+ifeq ($(USE_HYPRE),TRUE)
+  CEXE_sources += AMReX_MLNodeLaplacian_hypre.cpp
+endif
+
+  CEXE_headers += AMReX_MLTensorOp.H
+  CEXE_sources += AMReX_MLTensorOp.cpp AMReX_MLTensorOp_grad.cpp
+  CEXE_headers += AMReX_MLTensor_K.H AMReX_MLTensor_$(DIM)D_K.H
+
+ifeq ($(USE_EB),TRUE)
+  CEXE_headers += AMReX_MLEBTensorOp.H
+  CEXE_sources += AMReX_MLEBTensorOp.cpp
+  CEXE_sources += AMReX_MLEBTensorOp_bc.cpp
+  CEXE_headers += AMReX_MLEBTensor_K.H AMReX_MLEBTensor_$(DIM)D_K.H
+endif
+
+endif # ifneq ($(USE_LINEAR_SOLVERS_INCFLO),FALSE)
+
+ifneq ($(USE_LINEAR_SOLVERS_EM),FALSE)
 ifneq ($(DIM),1)
   CEXE_headers += AMReX_MLCurlCurl.H
   CEXE_sources += AMReX_MLCurlCurl.cpp
   CEXE_headers += AMReX_MLCurlCurl_K.H
 endif
+
+  CEXE_headers += AMReX_MLEBNodeFDLaplacian.H
+  CEXE_sources += AMReX_MLEBNodeFDLaplacian.cpp
+  CEXE_headers += AMReX_MLEBNodeFDLap_K.H
+  CEXE_headers += AMReX_MLEBNodeFDLap_$(DIM)D_K.H
+
+  CEXE_headers += AMReX_MLNodeTensorLaplacian.H
+  CEXE_sources += AMReX_MLNodeTensorLaplacian.cpp
+  CEXE_headers += AMReX_MLNodeTensorLap_K.H AMReX_MLNodeTensorLap_$(DIM)D_K.H
+
+endif # ifneq ($(USE_LINEAR_SOLVERS_EM),FALSE)
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG

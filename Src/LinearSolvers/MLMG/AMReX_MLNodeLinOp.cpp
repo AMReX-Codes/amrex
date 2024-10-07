@@ -1,6 +1,6 @@
 
 #include <AMReX_MLNodeLinOp.H>
-#include <AMReX_MLNodeLap_K.H>
+#include <AMReX_MLNodeLinOp_K.H>
 #include <AMReX_MLMG_K.H>
 #include <AMReX_MultiFabUtil.H>
 

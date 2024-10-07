@@ -6,7 +6,7 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EBFabFactory.H>
-#include <AMReX_MLEBABecLap_K.H>
+#include <AMReX_MLLinOp_K.H>
 #endif
 
 namespace amrex {
