@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <array>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -51,6 +52,28 @@ struct StructOfArrays {
     [[nodiscard]] const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
     /** Get access to the particle Int Arrays (only compile-time components) */
     [[nodiscard]] const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
+
+    /** Get the names for the real SoA components **/
+    [[nodiscard]] std::vector<std::string> GetRealNames () const
+    {
+        if (m_rdata_names) {
+            return *m_rdata_names;
+        }
+        else {
+            throw std::runtime_error("SoA: no Real names defined!");
+        }
+    }
+
+    /** Get the names for the int SoA components **/
+    [[nodiscard]] std::vector<std::string> GetIntNames () const
+    {
+        if (m_idata_names) {
+            return *m_idata_names;
+        }
+        else {
+            throw std::runtime_error("SoA: no int names defined!");
+        }
+    }
 
     /** Get access to a particle Real component Array (compile-time and runtime component)
      *
