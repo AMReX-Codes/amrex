@@ -883,6 +883,26 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
         });
 }
 
+template <typename P>
+std::string getDefaultCompNameReal (const int i) {
+    int first_r_name = 0;
+    if constexpr (P::is_soa_particle) {
+        if (i < AMREX_SPACEDIM) {
+            constexpr int x_in_ascii = 120;
+            std::string const name{char(x_in_ascii+i)};
+            return name;
+        }
+        first_r_name = AMREX_SPACEDIM;
+    }
+    std::string const name{("real_comp" + std::to_string(i-first_r_name))};
+    return name;
+}
+
+template <typename P>
+std::string getDefaultCompNameInt (const int i) {
+    std::string const name{("int_comp" + std::to_string(i))};
+    return name;
+}
 
 #ifdef AMREX_USE_HDF5_ASYNC
 void async_vol_es_wait_particle();

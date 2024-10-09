@@ -60,6 +60,7 @@
 #include <memory>
 #include <numeric>
 #include <random>
+#include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -1144,7 +1145,8 @@ public:
      */
     ParticleTileType& DefineAndReturnParticleTile (int lev, int grid, int tile)
     {
-        m_particles[lev][std::make_pair(grid, tile)].define(NumRuntimeRealComps(), NumRuntimeIntComps());
+        m_particles[lev][std::make_pair(grid, tile)].define(NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
+
         return ParticlesAt(lev, grid, tile);
     }
 
@@ -1247,10 +1249,10 @@ public:
 
     Long superParticleSize() const { return superparticle_size; }
 
-    template <typename T,
-              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
-    void AddRealComp (T communicate=true)
+    void AddRealComp (std::string const & name, int communicate=1)
     {
+        m_soa_rdata_names.push_back(name);
+
         m_runtime_comps_defined = true;
         m_num_runtime_real++;
         h_redistribute_real_comp.push_back(communicate);
@@ -1270,10 +1272,15 @@ public:
         }
     }
 
-    template <typename T,
-              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
-    void AddIntComp (T communicate=true)
+    void AddRealComp (int communicate=1)
     {
+        AddRealComp(getDefaultCompNameReal<ParticleType>(NArrayReal+m_num_runtime_real), communicate);
+    }
+
+    void AddIntComp (std::string const & name, int communicate=1)
+    {
+        m_soa_idata_names.push_back(name);
+
         m_runtime_comps_defined = true;
         m_num_runtime_int++;
         h_redistribute_int_comp.push_back(communicate);
@@ -1291,6 +1298,11 @@ public:
                 }
             }
         }
+    }
+
+    void AddIntComp (int communicate=1)
+    {
+        AddIntComp(getDefaultCompNameInt<ParticleType>(NArrayInt+m_num_runtime_int), communicate);
     }
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
@@ -1403,6 +1415,15 @@ public:
 #include "AMReX_ParticlesHDF5.H"
 #endif
 
+    /** Overwrite the default names for the compile-time SoA components */
+    void SetSoACompileTimeNames (std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name);
+
+    /** Get the names for the real SoA components **/
+    std::vector<std::string> GetRealSoANames () const {return m_soa_rdata_names;}
+
+    /** Get the names for the int SoA components **/
+    std::vector<std::string> GetIntSoANames () const {return m_soa_idata_names;}
+
 protected:
 
     template <class RTYPE>
@@ -1435,6 +1456,10 @@ private:
     size_t particle_size, superparticle_size;
     int num_real_comm_comps, num_int_comm_comps;
     Vector<ParticleLevel> m_particles;
+
+    // names of both compile-time and runtime Real and Int SoA data
+    std::vector<std::string> m_soa_rdata_names;
+    std::vector<std::string> m_soa_idata_names;
 };
 
 template <int T_NStructReal, int T_NStructInt, int T_NArrayReal, int T_NArrayInt, template<class> class Allocator, class CellAssignor>

@@ -11,7 +11,10 @@
 #include <AMReX_RealVect.H>
 
 #include <array>
+#include <string>
 #include <type_traits>
+#include <vector>
+
 
 namespace amrex {
 
@@ -730,10 +733,15 @@ struct ParticleTile
     ParticleTile& operator= (ParticleTile &&) noexcept = default;
 #endif
 
-    void define (int a_num_runtime_real, int a_num_runtime_int)
+    void define (
+        int a_num_runtime_real,
+        int a_num_runtime_int,
+        std::vector<std::string>* soa_rdata_names=nullptr,
+        std::vector<std::string>* soa_idata_names=nullptr
+    )
     {
         m_defined = true;
-        GetStructOfArrays().define(a_num_runtime_real, a_num_runtime_int);
+        GetStructOfArrays().define(a_num_runtime_real, a_num_runtime_int, soa_rdata_names, soa_idata_names);
         m_runtime_r_ptrs.resize(a_num_runtime_real);
         m_runtime_i_ptrs.resize(a_num_runtime_int);
         m_runtime_r_cptrs.resize(a_num_runtime_real);

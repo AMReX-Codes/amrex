@@ -51,20 +51,18 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     Vector<int> write_real_comp;
     Vector<std::string> tmp_real_comp_names;
-    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
 
-    for (int i = 0; i < nrc; ++i )
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
         if (real_comp_names.empty())
         {
-            std::stringstream ss;
-            ss << "real_comp" << i;
-            tmp_real_comp_names.push_back(ss.str());
+            tmp_real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
         }
         else
         {
-            tmp_real_comp_names.push_back(real_comp_names[i]);
+            tmp_real_comp_names.push_back(real_comp_names[i-first_rcomp]);
         }
     }
 
@@ -75,9 +73,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         write_int_comp.push_back(1);
         if (int_comp_names.empty())
         {
-            std::stringstream ss;
-            ss << "int_comp" << i;
-            tmp_int_comp_names.push_back(ss.str());
+            tmp_int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
         }
         else
         {
@@ -98,14 +94,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
-    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
 
-    for (int i = 0; i < nrc; ++i )
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
-        std::stringstream ss;
-        ss << "real_comp" << i;
-        real_comp_names.push_back(ss.str());
+        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
     }
 
     Vector<int> write_int_comp;
@@ -113,9 +107,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
+        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
@@ -182,9 +174,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
+        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     WriteBinaryParticleData(dir, name,
@@ -211,20 +201,16 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NArrayInt );
 
     Vector<std::string> real_comp_names;
-    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
-    for (int i = 0; i < nrc; ++i )
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
-        std::stringstream ss;
-        ss << "real_comp" << i;
-        real_comp_names.push_back(ss.str());
+        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
     }
 
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
+        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
@@ -259,14 +245,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
-    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
 
-    for (int i = 0; i < nrc; ++i )
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
-        std::stringstream ss;
-        ss << "real_comp" << i;
-        real_comp_names.push_back(ss.str());
+        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
     }
 
     Vector<int> write_int_comp;
@@ -274,9 +258,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
+        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
@@ -345,9 +327,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
+        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     WriteBinaryParticleData(dir, name,
@@ -374,20 +354,16 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NumIntComps() );
 
     Vector<std::string> real_comp_names;
-    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
-    for (int i = 0; i < nrc; ++i )
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
-        std::stringstream ss;
-        ss << "real_comp" << i;
-        real_comp_names.push_back(ss.str());
+        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
     }
 
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
+        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
