@@ -349,7 +349,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
 //
 // Return the index of the n'th occurrence of a parameter name,
 // except if n==-1, return the index of the last occurrence.
-// Return 0 if the specified occurrence does not exist.
+// Return nullptr if the specified occurrence does not exist.
 //
 std::vector<std::string> const*
 ppindex (const ParmParse::Table& table, int n, const std::string& name)
@@ -365,6 +365,9 @@ ppindex (const ParmParse::Table& table, int n, const std::string& name)
     if (n == ParmParse::LAST) {
         return &(found->second.m_vals.back());
     } else {
+        if(found->second.m_vals.size() < (std::size_t)n + 1) {
+            return nullptr;
+        }
         return &(found->second.m_vals[n]);
     }
 }
@@ -642,7 +645,7 @@ squeryval (const ParmParse::Table& table,
            int                     occurrence)
 {
     //
-    // Get last occurrence of name in table.
+    // Get specified occurrence of name in table.
     //
     auto const* def = ppindex(table, occurrence, name);
     if ( def == nullptr )
