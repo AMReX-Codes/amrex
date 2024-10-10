@@ -52,6 +52,28 @@ struct StructOfArrays {
     /** Get access to the particle Int Arrays (only compile-time components) */
     [[nodiscard]] const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
 
+    /** Get the names for the real SoA components **/
+    [[nodiscard]] std::vector<std::string> GetRealNames () const
+    {
+        if (m_rdata_names) {
+            return *m_rdata_names;
+        }
+        else {
+            return std::vector<std::string>();
+        }
+    }
+
+    /** Get the names for the int SoA components **/
+    [[nodiscard]] std::vector<std::string> GetIntNames () const
+    {
+        if (m_idata_names) {
+            return *m_idata_names;
+        }
+        else {
+            return std::vector<std::string>();
+        }
+    }
+
     /** Get access to a particle Real component Array (compile-time and runtime component)
      *
      * @param index component with 0...NReal-1 compile-time and NReal... runtime arguments
