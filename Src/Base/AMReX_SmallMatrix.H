@@ -20,16 +20,16 @@ namespace amrex {
     /**
      * \brief Matrix class with compile-time size
      *
-     * The starting index for both rows and columns is always zero.  Also
-     * note that column vectors and row vectors are special cases of a
+     * Note that column vectors and row vectors are special cases of a
      * Matrix.
      *
      * \tparam T Matrix element data type.
      * \tparam NRows Number of rows.
      * \tparam NCols Number of columns.
      * \tparam ORDER Memory layout order. Order::F (i.e., column-major) by default.
+     * \tparam StartIndex Starting index. Either 0 or 1.
      */
-    template <class T, int NRows, int NCols, Order ORDER = Order::F>
+    template <class T, int NRows, int NCols, Order ORDER = Order::F, int StartIndex = 0>
     struct SmallMatrix
     {
         using value_type = T;
@@ -37,6 +37,7 @@ namespace amrex {
         static constexpr int row_size = NRows;
         static constexpr int column_size = NCols;
         static constexpr Order ordering = ORDER;
+        static constexpr int starting_index = StartIndex;
 
         /**
          * \brief Default constructor
@@ -78,10 +79,10 @@ namespace amrex {
         explicit SmallMatrix (std::initializer_list<std::initializer_list<T>> const& init)
         {
             AMREX_ASSERT(NRows == init.size());
-            int i = 0;
+            int i = StartIndex;
             for (auto const& row : init) {
                 AMREX_ASSERT(NCols == row.size());
-                int j = 0;
+                int j = StartIndex;
                 for (auto const& x : row) {
                     (*this)(i,j) = x;
                     ++j;
@@ -93,6 +94,11 @@ namespace amrex {
         //! Returns a const reference to the element at row i and column j.
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j) const noexcept {
+            static_assert(StartIndex == 0 || StartIndex == 1);
+            if constexpr (StartIndex == 1) {
+                --i;
+                --j;
+            }
             AMREX_ASSERT(i < NRows && j < NCols);
             if constexpr (ORDER == Order::F) {
                 return m_mat[i+j*NRows];
@@ -104,6 +110,11 @@ namespace amrex {
         //! Returns a reference to the element at row i and column j.
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j) noexcept {
+            static_assert(StartIndex == 0 || StartIndex == 1);
+            if constexpr (StartIndex == 1) {
+                --i;
+                --j;
+            }
             AMREX_ASSERT(i < NRows && j < NCols);
             if constexpr (ORDER == Order::F) {
                 return m_mat[i+j*NRows];
@@ -116,6 +127,10 @@ namespace amrex {
         template <int MM=NRows, int NN=NCols, std::enable_if_t<(MM==1 || NN==1), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i) const noexcept {
+            static_assert(StartIndex == 0 || StartIndex == 1);
+            if constexpr (StartIndex == 1) {
+                --i;
+            }
             AMREX_ASSERT(i < NRows*NCols);
             return m_mat[i];
         }
@@ -124,6 +139,10 @@ namespace amrex {
         template <int MM=NRows, int NN=NCols, std::enable_if_t<(MM==1 || NN==1), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i) noexcept {
+            static_assert(StartIndex == 0 || StartIndex == 1);
+            if constexpr (StartIndex == 1) {
+                --i;
+            }
             AMREX_ASSERT(i < NRows*NCols);
             return m_mat[i];
         }
@@ -132,6 +151,10 @@ namespace amrex {
         template <int MM=NRows, int NN=NCols, std::enable_if_t<(MM==1 || NN==1), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator[] (int i) const noexcept {
+            static_assert(StartIndex == 0 || StartIndex == 1);
+            if constexpr (StartIndex == 1) {
+                --i;
+            }
             AMREX_ASSERT(i < NRows*NCols);
             return m_mat[i];
         }
@@ -140,6 +163,10 @@ namespace amrex {
         template <int MM=NRows, int NN=NCols, std::enable_if_t<(MM==1 || NN==1), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator[] (int i) noexcept {
+            static_assert(StartIndex == 0 || StartIndex == 1);
+            if constexpr (StartIndex == 1) {
+                --i;
+            }
             AMREX_ASSERT(i < NRows*NCols);
             return m_mat[i];
         }
@@ -174,7 +201,7 @@ namespace amrex {
 
         //! Set all elements in the matrix to the given value
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        SmallMatrix<T,NRows,NCols,ORDER>&
+        SmallMatrix<T,NRows,NCols,ORDER,StartIndex>&
         setVal (T val)
         {
             for (auto& x : m_mat) { x = val; }
@@ -185,30 +212,32 @@ namespace amrex {
         template <int MM=NRows, int NN=NCols, std::enable_if_t<MM==NN, int> = 0>
         static constexpr
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        SmallMatrix<T,NRows,NCols,ORDER>
+        SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
         Identity () noexcept {
-            SmallMatrix<T,NRows,NCols,ORDER> I{};
-            constexpr_for<0,NRows>([&] (int i) { I(i,i) = T(1); });
+            static_assert(StartIndex == 0 || StartIndex == 1);
+            SmallMatrix<T,NRows,NCols,ORDER,StartIndex> I{};
+            constexpr_for<StartIndex,NRows+StartIndex>(
+                [&] (int i) { I(i,i) = T(1); });
             return I;
         }
 
         //! Returns a matrix initialized with zeros
         static constexpr
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        SmallMatrix<T,NRows,NCols,ORDER>
+        SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
         Zero () noexcept {
-            SmallMatrix<T,NRows,NCols,ORDER> Z{};
+            SmallMatrix<T,NRows,NCols,ORDER,StartIndex> Z{};
             return Z;
         }
 
         //! Returns transposed matrix
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        SmallMatrix<T,NCols,NRows,ORDER>
+        SmallMatrix<T,NCols,NRows,ORDER,StartIndex>
         transpose () const
         {
-            SmallMatrix<T,NCols,NRows,ORDER> r;
-            for (int j = 0; j < NRows; ++j) {
-                for (int i = 0; i < NCols; ++i) {
+            SmallMatrix<T,NCols,NRows,ORDER,StartIndex> r;
+            for (int j = StartIndex; j < NRows+StartIndex; ++j) {
+                for (int i = StartIndex; i < NCols+StartIndex; ++i) {
                     r(i,j) = (*this)(j,i);
                 }
             }
@@ -218,11 +247,12 @@ namespace amrex {
         //! Transposes a square matrix in-place.
         template <int MM=NRows, int NN=NCols, std::enable_if_t<MM==NN,int> = 0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        SmallMatrix<T,NRows,NCols,ORDER>&
+        SmallMatrix<T,NRows,NCols,ORDER,StartIndex>&
         transposeInPlace ()
         {
-            for (int j = 1; j < NCols; ++j) {
-                for (int i = 0; i < j; ++i) {
+            static_assert(StartIndex == 0 || StartIndex == 1);
+            for (int j = 1+StartIndex; j < NCols+StartIndex; ++j) {
+                for (int i = StartIndex; i < j; ++i) {
                     amrex::Swap((*this)(i,j), (*this)(j,i));
                 }
             }
@@ -257,14 +287,14 @@ namespace amrex {
         T trace () const
         {
             T t = 0;
-            constexpr_for<0,MM>([&] (int i) { t += (*this)(i,i); });
+            constexpr_for<StartIndex,MM+StartIndex>([&] (int i) { t += (*this)(i,i); });
             return t;
         }
 
         //! Operator += performing matrix addition as in (*this) += rhs
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        SmallMatrix<T,NRows,NCols,ORDER>&
-        operator += (SmallMatrix<T,NRows,NCols,ORDER> const& rhs)
+        SmallMatrix<T,NRows,NCols,ORDER,StartIndex>&
+        operator += (SmallMatrix<T,NRows,NCols,ORDER,StartIndex> const& rhs)
         {
             for (int n = 0; n < NRows*NCols; ++n) {
                 m_mat[n] += rhs.m_mat[n];
@@ -274,9 +304,9 @@ namespace amrex {
 
         //! Binary operator + returning the result of maxtrix addition, lhs+rhs
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        friend SmallMatrix<T,NRows,NCols,ORDER>
-        operator+ (SmallMatrix<T,NRows,NCols,ORDER>        lhs,
-                   SmallMatrix<T,NRows,NCols,ORDER> const& rhs)
+        friend SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
+        operator+ (SmallMatrix<T,NRows,NCols,ORDER,StartIndex>        lhs,
+                   SmallMatrix<T,NRows,NCols,ORDER,StartIndex> const& rhs)
         {
             lhs += rhs;
             return lhs;
@@ -284,8 +314,8 @@ namespace amrex {
 
         //! Operator -= performing matrix subtraction as in (*this) -= rhs
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        SmallMatrix<T,NRows,NCols,ORDER>&
-        operator -= (SmallMatrix<T,NRows,NCols,ORDER> const& rhs)
+        SmallMatrix<T,NRows,NCols,ORDER,StartIndex>&
+        operator -= (SmallMatrix<T,NRows,NCols,ORDER,StartIndex> const& rhs)
         {
             for (int n = 0; n < NRows*NCols; ++n) {
                 m_mat[n] -= rhs.m_mat[n];
@@ -295,9 +325,9 @@ namespace amrex {
 
         //! Binary operator - returning the result of maxtrix subtraction, lhs-rhs
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        friend SmallMatrix<T,NRows,NCols,ORDER>
-        operator- (SmallMatrix<T,NRows,NCols,ORDER>        lhs,
-                   SmallMatrix<T,NRows,NCols,ORDER> const& rhs)
+        friend SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
+        operator- (SmallMatrix<T,NRows,NCols,ORDER,StartIndex>        lhs,
+                   SmallMatrix<T,NRows,NCols,ORDER,StartIndex> const& rhs)
         {
             lhs -= rhs;
             return lhs;
@@ -305,7 +335,7 @@ namespace amrex {
 
         //! Unary minus operator
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        SmallMatrix<T,NRows,NCols,ORDER>
+        SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
         operator- () const
         {
             return (*this) * T(-1);
@@ -313,7 +343,7 @@ namespace amrex {
 
         //! Operator *= that scales this matrix in place by a scalar.
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        SmallMatrix<T,NRows,NCols,ORDER>&
+        SmallMatrix<T,NRows,NCols,ORDER,StartIndex>&
         operator *= (T a)
         {
             for (auto& x : m_mat) {
@@ -324,8 +354,8 @@ namespace amrex {
 
         //! Returns the product of a matrix and a scalar
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        friend SmallMatrix<T,NRows,NCols,ORDER>
-        operator* (SmallMatrix<T,NRows,NCols,ORDER> m, T a)
+        friend SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
+        operator* (SmallMatrix<T,NRows,NCols,ORDER,StartIndex> m, T a)
         {
             m *= a;
             return m;
@@ -333,23 +363,23 @@ namespace amrex {
 
         //! Returns the product of a scalar and a matrix
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        friend SmallMatrix<T,NRows,NCols,ORDER>
-        operator* (T a, SmallMatrix<T,NRows,NCols,ORDER> m)
+        friend SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
+        operator* (T a, SmallMatrix<T,NRows,NCols,ORDER,StartIndex> m)
         {
             m *= a;
             return m;
         }
 
         //! Returns matrix product of two matrices
-        template <class U, int N1, int N2, int N3, Order Ord>
+        template <class U, int N1, int N2, int N3, Order Ord, int SI>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        friend SmallMatrix<U,N1,N3,Ord>
-        operator* (SmallMatrix<U,N1,N2,Ord> const& lhs,
-                   SmallMatrix<U,N2,N3,Ord> const& rhs);
+        friend SmallMatrix<U,N1,N3,Ord,SI>
+        operator* (SmallMatrix<U,N1,N2,Ord,SI> const& lhs,
+                   SmallMatrix<U,N2,N3,Ord,SI> const& rhs);
 
         //! Returns the dot product of two vectors
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T dot (SmallMatrix<T,NRows,NCols,ORDER> const& rhs) const
+        T dot (SmallMatrix<T,NRows,NCols,ORDER,StartIndex> const& rhs) const
         {
             T r = 0;
             for (int n = 0; n < NRows*NCols; ++n) {
@@ -362,30 +392,31 @@ namespace amrex {
         T m_mat[NRows*NCols];
     };
 
-    template <class U, int N1, int N2, int N3, Order Ord>
+    template <class U, int N1, int N2, int N3, Order Ord, int SI>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    SmallMatrix<U,N1,N3,Ord>
-    operator* (SmallMatrix<U,N1,N2,Ord> const& lhs,
-               SmallMatrix<U,N2,N3,Ord> const& rhs)
+    SmallMatrix<U,N1,N3,Ord,SI>
+    operator* (SmallMatrix<U,N1,N2,Ord,SI> const& lhs,
+               SmallMatrix<U,N2,N3,Ord,SI> const& rhs)
     {
-        SmallMatrix<U,N1,N3,Ord> r;
+        static_assert(SI == 0 || SI == 1);
+        SmallMatrix<U,N1,N3,Ord,SI> r;
         if constexpr (Ord == Order::F) {
-            for (int j = 0; j < N3; ++j) {
-                constexpr_for<0,N1>([&] (int i) { r(i,j) = U(0); });
-                for (int k = 0; k < N2; ++k) {
+            for (int j = SI; j < N3+SI; ++j) {
+                constexpr_for<SI,N1+SI>([&] (int i) { r(i,j) = U(0); });
+                for (int k = SI; k < N2+SI; ++k) {
                     auto b = rhs(k,j);
-                    constexpr_for<0,N1>([&] (int i)
+                    constexpr_for<SI,N1+SI>([&] (int i)
                     {
                         r(i,j) += lhs(i,k) * b;
                     });
                 }
             }
         } else {
-            for (int i = 0; i < N1; ++i) {
-                constexpr_for<0,N3>([&] (int j) { r(i,j) = U(0); });
-                for (int k = 0; k < N2; ++k) {
+            for (int i = SI; i < N1+SI; ++i) {
+                constexpr_for<SI,N3+SI>([&] (int j) { r(i,j) = U(0); });
+                for (int k = SI; k < N2+SI; ++k) {
                     auto a = lhs(i,k);
-                    constexpr_for<0,N3>([&] (int j)
+                    constexpr_for<SI,N3+SI>([&] (int j)
                     {
                         r(i,j) += a * rhs(k,j);
                     });
@@ -395,13 +426,13 @@ namespace amrex {
         return r;
     }
 
-    template <class T, int NRows, int NCols, Order ORDER>
+    template <class T, int NRows, int NCols, Order ORDER, int SI>
     std::ostream& operator<< (std::ostream& os,
-                              SmallMatrix<T,NRows,NCols,ORDER> const& mat)
+                              SmallMatrix<T,NRows,NCols,ORDER,SI> const& mat)
     {
-        for (int i = 0; i < NRows; ++i) {
-            os << mat(i,0);
-            for (int j = 1; j < NCols; ++j) {
+        for (int i = SI; i < NRows+SI; ++i) {
+            os << mat(i,SI);
+            for (int j = 1+SI; j < NCols+SI; ++j) {
                 os << " " << mat(i,j);
             }
             os << "\n";
@@ -409,11 +440,11 @@ namespace amrex {
         return os;
     }
 
-    template <class T, int N>
-    using SmallVector = SmallMatrix<T,N,1>;
+    template <class T, int N, int StartIndex = 0>
+    using SmallVector = SmallMatrix<T,N,1,Order::F,StartIndex>;
 
-    template <class T, int N>
-    using SmallRowVector = SmallMatrix<T,1,N>;
+    template <class T, int N, int StartIndex = 0>
+    using SmallRowVector = SmallMatrix<T,1,N,Order::F,StartIndex>;
 }
 
 #endif
