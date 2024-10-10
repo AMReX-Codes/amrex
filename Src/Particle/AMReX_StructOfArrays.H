@@ -60,7 +60,7 @@ struct StructOfArrays {
             return *m_rdata_names;
         }
         else {
-            throw std::runtime_error("SoA: no Real names defined!");
+            return std::vector<std::string>();
         }
     }
 
@@ -71,7 +71,7 @@ struct StructOfArrays {
             return *m_idata_names;
         }
         else {
-            throw std::runtime_error("SoA: no int names defined!");
+            return std::vector<std::string>();
         }
     }
 
