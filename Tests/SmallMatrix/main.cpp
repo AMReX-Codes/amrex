@@ -141,6 +141,21 @@ int main (int argc, char* argv[])
         b.setVal(-1);
         AMREX_ALWAYS_ASSERT(a.dot(b) == -30);
     }
+    {
+        SmallVector<int, 3> v{10,20,30};
+        auto const& [x,y,z] = v;
+        AMREX_ALWAYS_ASSERT(x == 10 && y == 20 && z == 30);
+
+        auto& [a,b,c] = v;
+        a = 100; b = 200; c = 300;
+        AMREX_ALWAYS_ASSERT(v[0] == 100 && v[1] == 200 && v[2] == 300);
+
+        auto const [i,j,k] = v;
+        AMREX_ALWAYS_ASSERT(i == 100 && j == 200 && k == 300);
+
+        auto [d,e,f] = v;
+        AMREX_ALWAYS_ASSERT(d == 100 && e == 200 && f == 300);
+    }
 
     // 1-based indexing
     {
@@ -271,5 +286,21 @@ int main (int argc, char* argv[])
         b.setVal(-1);
         AMREX_ALWAYS_ASSERT(a.dot(b) == -30);
     }
+    {
+        SmallVector<int, 3, 1> v{10,20,30};
+        auto const& [x,y,z] = v;
+        AMREX_ALWAYS_ASSERT(x == 10 && y == 20 && z == 30);
+
+        auto& [a,b,c] = v;
+        a = 100; b = 200; c = 300;
+        AMREX_ALWAYS_ASSERT(v[1] == 100 && v[2] == 200 && v[3] == 300);
+
+        auto const [i,j,k] = v;
+        AMREX_ALWAYS_ASSERT(i == 100 && j == 200 && k == 300);
+
+        auto [d,e,f] = v;
+        AMREX_ALWAYS_ASSERT(d == 100 && e == 200 && f == 300);
+    }
+
     amrex::Finalize();
 }
