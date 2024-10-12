@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <initializer_list>
 #include <iostream>
+#include <tuple>
 #include <type_traits>
 
 namespace amrex {
@@ -388,6 +389,14 @@ namespace amrex {
             return r;
         }
 
+        template <int N, std::enable_if_t<(N<NRows*NCols),int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        constexpr T const& get () const { return m_mat[N]; }
+
+        template <int N, std::enable_if_t<(N<NRows*NCols),int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        constexpr T& get () { return m_mat[N]; }
+
     private:
         T m_mat[NRows*NCols];
     };
@@ -446,6 +455,16 @@ namespace amrex {
     template <class T, int N, int StartIndex = 0>
     using SmallRowVector = SmallMatrix<T,1,N,Order::F,StartIndex>;
 }
+
+template <class T, int NRows, int NCols, amrex::Order ORDER, int StartIndex>
+struct std::tuple_size<amrex::SmallMatrix<T,NRows,NCols,ORDER,StartIndex> >
+    : std::integral_constant<std::size_t,NRows*NCols> {};
+
+template <std::size_t N, class T, int NRows, int NCols, amrex::Order ORDER, int StartIndex>
+struct std::tuple_element<N, amrex::SmallMatrix<T,NRows,NCols,ORDER,StartIndex> >
+{
+    using type = T;
+};
 
 #endif
 
