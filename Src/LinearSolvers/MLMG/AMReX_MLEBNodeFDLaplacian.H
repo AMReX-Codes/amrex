@@ -36,7 +36,8 @@ public:
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info,
-                         const Vector<EBFArrayBoxFactory const*>& a_factory);
+                         const Vector<EBFArrayBoxFactory const*>& a_factory,
+                         bool a_use_staircases = false);
 #endif
 
     MLEBNodeFDLaplacian (const Vector<Geometry>& a_geom,
@@ -72,7 +73,8 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<EBFArrayBoxFactory const*>& a_factory);
+                 const Vector<EBFArrayBoxFactory const*>& a_factory,
+                 bool a_use_staircases = false);
 
     [[nodiscard]] std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final;
 
@@ -127,6 +129,7 @@ private:
     Vector<MultiFab> m_phi_eb;
     int m_rz = false;
     Real m_rz_alpha = 0._rt;
+    bool m_use_staircases = false;
 };
 
 #ifdef AMREX_USE_EB
