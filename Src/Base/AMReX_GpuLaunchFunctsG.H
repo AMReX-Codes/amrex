@@ -764,7 +764,7 @@ void launch (T const& n, L const& f) noexcept
                 f(tid+ndone);
             }
         });
-        if (nleft > ec.ntotalthreads) {
+        if (Long(nleft) > ec.ntotalthreads) {
             ndone += T(ec.ntotalthreads);
         }
     }
@@ -813,7 +813,7 @@ ParallelFor (Gpu::KernelInfo const&, T n, L const& f) noexcept
                     (std::uint64_t)blockDim.x)));
             }
         });
-        if (nleft > ec.ntotalthreads) {
+        if (Long(nleft) > ec.ntotalthreads) {
             ndone += ec.ntotalthreads;
         }
     }
