@@ -19,7 +19,7 @@ public:
                   const Geometry& geom, int required_coarsening_level,
                   int max_coarsening_level, int ngrow,
                   bool build_coarse_level_by_coarsening,
-                  bool extend_domain_face, int num_coarsen_opt);
+                  bool extend_domain_face, int num_coarsen_opt, bool bvh_optimization);
 
     IndexSpaceSTL (IndexSpaceSTL const&) = delete;
     IndexSpaceSTL (IndexSpaceSTL &&) = delete;

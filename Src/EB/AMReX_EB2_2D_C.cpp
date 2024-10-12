@@ -342,7 +342,8 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
     nsmallfaces += *(hp+1);
 
     if (*hp > 0 && !cover_multiple_cuts) {
-        amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
+        amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported. "
+                     "You can try to fix it by using runtime parameter eb2.cover_multiple_cuts=1.");
     }
 
     return *hp;
