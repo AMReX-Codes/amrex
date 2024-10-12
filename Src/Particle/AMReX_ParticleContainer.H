@@ -1305,6 +1305,38 @@ public:
         AddIntComp(getDefaultCompNameInt<ParticleType>(NArrayInt+m_num_runtime_int), communicate);
     }
 
+    /** Remove the last n Real components of the species
+     *
+     * @param n number of components to remove
+     */
+    void RemoveRealComp (int n = 1)
+    {
+        m_num_runtime_real--;
+        if (m_num_runtime_real == 0 && m_num_runtime_int == 0) {
+            m_runtime_comps_defined = false;
+        }
+        for (int i = 0; i < n; ++i) {
+            h_redistribute_real_comp.pop_back();
+        }
+        SetParticleSize();
+    }
+
+    /** Remove the last n Int components of the species
+     *
+     * @param n number of components to remove
+     */
+    void RemoveIntComp (int n = 1)
+    {
+        m_num_runtime_int--;
+        if (m_num_runtime_real == 0 && m_num_runtime_int == 0) {
+            m_runtime_comps_defined = false;
+        }
+        for (int i = 0; i < n; ++i) {
+            h_redistribute_int_comp.pop_back();
+        }
+        SetParticleSize();
+    }
+
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
     int NumRuntimeIntComps  () const { return m_num_runtime_int;  }
 
