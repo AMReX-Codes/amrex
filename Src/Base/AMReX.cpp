@@ -66,6 +66,7 @@
 #include <cfenv>
 #endif
 
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -334,10 +335,22 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    std::ostream& a_osout, std::ostream& a_oserr,
                    ErrorHandler a_errhandler)
 {
+    // trying to use AMReX in a debugger?
+    char const *env_amrex_debug = std::getenv("AMREX_DEBUG");
+    bool amrex_debug = false;
+    if (env_amrex_debug != nullptr) {
+        std::string str_amrex_debug{env_amrex_debug};
+        for(auto& c : str_amrex_debug) { c = std::tolower(c); }
+
+        if (str_amrex_debug == "1" || str_amrex_debug == "on" || str_amrex_debug == "true") {
+            amrex_debug = true;
+        }
+    }
+
     system::exename.clear();
 //    system::verbose = 0;
     system::regtest_reduction = false;
-    system::signal_handling = true;
+    system::signal_handling = !amrex_debug;
     system::handle_sigsegv = true;
     system::handle_sigterm = false;
     system::handle_sigint  = true;
@@ -345,7 +358,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::handle_sigfpe  = true;
     system::handle_sigill  = true;
     system::call_addr2line = true;
-    system::throw_exception = false;
+    system::throw_exception = amrex_debug;
     system::osout = &a_osout;
     system::oserr = &a_oserr;
     system::error_handler = a_errhandler;
