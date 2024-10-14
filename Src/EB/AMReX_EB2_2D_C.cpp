@@ -203,7 +203,8 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                  Array4<Real> const& fcx, Array4<Real> const& fcy,
                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                  GpuArray<Real,AMREX_SPACEDIM> const& problo,
-                 bool cover_multiple_cuts, int& nsmallfaces) noexcept
+                 bool cover_multiple_cuts, int& nsmallfaces,
+                 bool plt_multiple_cuts, Array4<Real> const& mcx) noexcept
 {
 #ifdef AMREX_USE_FLOAT
     constexpr Real small = 1.e-5_rt;
@@ -311,6 +312,10 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 if (ncuts > 2) {
                     Gpu::Atomic::Add(dp,1);
                 }
+                if (plt_multiple_cuts)
+                {
+                    mcx(i,j,k) = ncuts;
+                }
             }
         }
     });
@@ -342,7 +347,10 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
     nsmallfaces += *(hp+1);
 
     if (*hp > 0 && !cover_multiple_cuts) {
-        amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
+        if (!plt_multiple_cuts)
+        {
+            amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
+        }
     }
 
     return *hp;

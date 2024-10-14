@@ -370,7 +370,8 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                  Array4<Real> const& m2z,
                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                  GpuArray<Real,AMREX_SPACEDIM> const& problo,
-                 bool cover_multiple_cuts) noexcept
+                 bool cover_multiple_cuts, bool plt_multiple_cuts,
+                 Array4<Real> const& mcx, Array4<Real> const& mcy, Array4<Real> const& mcz) noexcept
 {
     Gpu::Buffer<int> nmulticuts = {0};
     int* hp = nmulticuts.hostData();
@@ -491,6 +492,11 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             } else if (apx(i,j,k) == 1.0_rt) {
                 fx(i,j,k) = Type::regular;
             }
+
+            if (plt_multiple_cuts){
+                mcx(i,j,k) = ncuts;
+            }
+
         }
     });
 
@@ -598,6 +604,10 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 fy(i,j,k) = Type::covered;
             } else if (apy(i,j,k) == 1.0_rt) {
                 fy(i,j,k) = Type::regular;
+            }
+
+            if (plt_multiple_cuts){
+                mcy(i,j,k) = ncuts;
             }
         }
     });
@@ -707,6 +717,10 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             } else if (apz(i,j,k) == 1.0_rt) {
                 fz(i,j,k) = Type::regular;
             }
+
+            if (plt_multiple_cuts){
+                mcz(i,j,k) = ncuts;
+            }
         }
     });
 
@@ -768,7 +782,10 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 }
             });
         } else {
-            amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
+            if (!plt_multiple_cuts)
+            {
+                amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
+            }
         }
     }
 
@@ -787,7 +804,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
                   Array4<Real> const& levset, Real small_volfrac, Geometry const& geom,
-                  bool extend_domain_face, bool cover_multiple_cuts,
+                  bool extend_domain_face, bool cover_multiple_cuts, bool plt_multiple_cuts,
                   int& nsmallcells, int& nmulticuts) noexcept
 {
     Gpu::Buffer<int> n_smallcell_multicuts = {0,0};
@@ -932,7 +949,10 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
 
     if (nsmallcells > 0 || nmulticuts > 0) {
         if (!cover_multiple_cuts && nmulticuts > 0) {
-            amrex::Abort("amrex::EB2::build_cells: multi-cuts not supported");
+            if (!plt_multiple_cuts)
+            {
+                amrex::Abort("amrex::EB2::build_cells: multi-cuts not supported");
+            }
         }
         return;
     } else {
