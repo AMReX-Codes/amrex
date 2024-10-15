@@ -119,8 +119,8 @@ ifeq ($(HIP_COMPILER),clang)
   endif
 
   # Generic HIP info
-  ROC_PATH=$(realpath $(dir $(HIP_PATH)))
-  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include $(HIP_PATH)/include
+  ROC_PATH=$(realpath $(HIP_PATH))
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include
 
   # rocRand
   SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/hiprand $(ROC_PATH)/include/rocrand

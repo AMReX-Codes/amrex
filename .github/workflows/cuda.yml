@@ -38,6 +38,7 @@ jobs:
 
         cmake -S . -B build                              \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+            -DAMReX_FFT=ON                               \
             -DAMReX_EB=ON                                \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_FORTRAN=OFF                          \
@@ -97,6 +98,7 @@ jobs:
         cmake -S . -B build                              \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_MPI=OFF                              \
+            -DAMReX_FFT=ON                               \
             -DAMReX_EB=ON                                \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_FORTRAN=OFF                          \
@@ -153,6 +155,7 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_TEST_TYPE=Small                      \
+            -DAMReX_FFT=ON                               \
             -DAMReX_FORTRAN=ON                           \
             -DAMReX_FORTRAN_INTERFACES=ON                \
             -DAMReX_GPU_BACKEND=CUDA                     \
@@ -196,7 +199,7 @@ jobs:
         ccache -z
 
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
-        ./configure --dim 3 --with-cuda yes --enable-eb yes --enable-xsdk-defaults yes --with-fortran no
+        ./configure --dim 3 --with-cuda yes --enable-eb yes --enable-xsdk-defaults yes --with-fortran no --enable-fft yes
         #
         # /home/runner/work/amrex/amrex/Src/Base/AMReX_GpuLaunchGlobal.H:16:41: error: unused parameter ‘f0’ [-Werror=unused-parameter]
         #    16 |     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }

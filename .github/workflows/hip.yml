@@ -48,6 +48,7 @@ jobs:
 
         cmake -S . -B build                               \
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
+            -DAMReX_FFT=ON                                \
             -DAMReX_EB=ON                                 \
             -DAMReX_ENABLE_TESTS=ON                       \
             -DAMReX_FORTRAN=ON                            \
@@ -103,6 +104,7 @@ jobs:
 
         cmake -S . -B build_full_legacywrapper            \
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
+            -DAMReX_FFT=ON                                \
             -DAMReX_EB=OFF                                \
             -DAMReX_ENABLE_TESTS=ON                       \
             -DAMReX_FORTRAN=ON                            \
@@ -145,7 +147,9 @@ jobs:
         export CCACHE_MAXSIZE=100M
         ccache -z
 
-        ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes --with-mpi no --with-omp no --single-precision yes --single-precision-particles yes
+        ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes \
+                    --with-mpi no --with-omp no --single-precision yes \
+                    --single-precision-particles yes --enable-fft yes
         make -j4 WARN_ALL=TRUE AMD_ARCH=gfx90a CCACHE=ccache
         make install
 
