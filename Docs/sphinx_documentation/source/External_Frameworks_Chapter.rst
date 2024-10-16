@@ -7,4 +7,3 @@ External Frameworks
    :maxdepth: 1
 
    SUNDIALS_top
-   SWFFT

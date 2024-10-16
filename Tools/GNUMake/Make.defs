@@ -1062,12 +1062,6 @@ ifeq ($(TP_PROFILING),FORGE)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
 endif
 
-# Use Sam Williams's HPGMG
-ifeq ($(USE_HPGMG), TRUE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hpgmg...)
-  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hpgmg
-endif
-
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/sites/Make.$(host_name))","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/sites/Make.$(host_name)...)
   include        $(AMREX_HOME)/Tools/GNUMake/sites/Make.$(host_name)

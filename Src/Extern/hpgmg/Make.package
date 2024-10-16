@@ -1,5 +1,0 @@
-CEXE_sources += BL_HPGMG.cpp
-CEXE_headers += BL_HPGMG.H
-
-VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/hpgmg
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/hpgmg
