@@ -764,7 +764,7 @@ void launch (T const& n, L const& f) noexcept
                 f(tid+start_idx);
             }
         });
-
+    }
     AMREX_GPU_ERROR_CHECK();
 }
 
