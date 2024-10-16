@@ -776,7 +776,7 @@ void launch (BoxND<dim> const& box, L const& f) noexcept
     const BoxIndexerND<dim> indexer(box);
     const auto type = box.ixType();
     for (auto const& ec : nec) {
-        const T start_idx = T(ec.start_idx);
+        const auto start_idx = std::uint64_t(ec.start_idx);
         AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             auto icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x + start_idx;
@@ -821,7 +821,7 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f) noexcept
     const BoxIndexerND<dim> indexer(box);
     const auto& nec = Gpu::makeNExecutionConfigs<MT>(box);
     for (auto const& ec : nec) {
-        const T start_idx = T(ec.start_idx);
+        const auto start_idx = std::uint64_t(ec.start_idx);
         AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             auto icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x + start_idx;
@@ -844,7 +844,7 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L const& f)
     const BoxIndexerND<dim> indexer(box);
     const auto& nec = Gpu::makeNExecutionConfigs<MT>(box);
     for (auto const& ec : nec) {
-        const T start_idx = T(ec.start_idx);
+        const auto start_idx = std::uint64_t(ec.start_idx);
         AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             auto icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x + start_idx;
