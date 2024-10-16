@@ -21,6 +21,7 @@
 #include <AMReX_RandomEngine.H>
 #include <AMReX_Algorithm.H>
 #include <AMReX_Math.H>
+#include <AMReX_Vector.H>
 #include <cstddef>
 #include <limits>
 #include <algorithm>
@@ -175,6 +176,47 @@ namespace Gpu {
     makeExecutionConfig (const Box& box) noexcept
     {
         return makeExecutionConfig<MT>(box.numPts());
+    }
+
+    struct ExecConfig
+    {
+        Long start_idx;
+        int nblocks;
+    };
+
+    template <int MT>
+    Vector<ExecConfig> makeNExecutionConfigs (Long N) noexcept
+    {
+        // Max # of blocks in a kernel launch
+        int numblocks_max = std::numeric_limits<int>::max();
+        // Max # of threads in a kernel launch
+        Long nmax = Long(MT) * numblocks_max;
+        // # of launches needed for N elements without using grid-stride
+        // loops inside GPU kernels.
+        auto nlaunches = int((N+nmax-1)/nmax);
+        Vector<ExecConfig> r(nlaunches);
+        Long ndone = 0;
+        for (int i = 0; i < nlaunches; ++i) {
+            int nblocks;
+            if (N > nmax) {
+                nblocks = numblocks_max;
+                N -= nmax;
+            } else {
+                nblocks = int((N+MT-1)/MT);
+            }
+            // At which element ID the kernel should start
+            r[i].start_idx = ndone;
+            ndone += Long(nblocks) * MT;
+            // # of blocks in this launch
+            r[i].nblocks = nblocks;
+        }
+        return r;
+    }
+
+    template <int MT, int dim>
+    Vector<ExecConfig> makeNExecutionConfigs (BoxND<dim> const& box) noexcept
+    {
+        return makeNExecutionConfigs<MT>(box.numPts());
     }
 #endif
 

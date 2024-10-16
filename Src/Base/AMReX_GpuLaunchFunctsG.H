@@ -747,17 +747,45 @@ void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L&& f) noe
     launch(nblocks, nthreads_per_block, 0, stream, std::forward<L>(f));
 }
 
-template<int MT, typename T, typename L>
+template<int MT, typename T, typename L, std::enable_if_t<std::is_integral_v<T>,int> FOO = 0>
 void launch (T const& n, L const& f) noexcept
 {
+    static_assert(sizeof(T) >= 2);
     if (amrex::isEmpty(n)) { return; }
-    const auto ec = Gpu::makeExecutionConfig<MT>(n);
-    AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
-    [=] AMREX_GPU_DEVICE () noexcept {
-        for (auto const i : Gpu::Range(n)) {
-            f(i);
-        }
-    });
+    const auto& nec = Gpu::makeNExecutionConfigs<MT>(n);
+    for (auto const& ec : nec) {
+        const T start_idx = T(ec.start_idx);
+        const T nleft = n - start_idx;
+        AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            // This will not overflow, even though nblocks*MT might.
+            auto tid = T(MT)*T(blockIdx.x)+T(threadIdx.x);
+            if (tid < nleft) {
+                f(tid+start_idx);
+            }
+        });
+    }
+    AMREX_GPU_ERROR_CHECK();
+}
+
+template<int MT, int dim, typename L>
+void launch (BoxND<dim> const& box, L const& f) noexcept
+{
+    if (box.isEmpty()) { return; }
+    const auto& nec = Gpu::makeNExecutionConfigs<MT>(box);
+    const BoxIndexerND<dim> indexer(box);
+    const auto type = box.ixType();
+    for (auto const& ec : nec) {
+        const auto start_idx = std::uint64_t(ec.start_idx);
+        AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            auto icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x + start_idx;
+            if (icell < indexer.numPts()) {
+                auto iv = indexer.intVect(icell);
+                f(BoxND<dim>(iv,iv,type));
+            }
+        });
+    }
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -765,17 +793,23 @@ template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_in
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const&, T n, L const& f) noexcept
 {
+    static_assert(sizeof(T) >= 2);
     if (amrex::isEmpty(n)) { return; }
-    const auto ec = Gpu::makeExecutionConfig<MT>(n);
-    AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
-    [=] AMREX_GPU_DEVICE () noexcept {
-        for (Long i = Long(blockDim.x)*blockIdx.x+threadIdx.x, stride = Long(blockDim.x)*gridDim.x;
-             i < Long(n); i += stride) {
-            detail::call_f_scalar_handler(f, T(i),
-                Gpu::Handler(amrex::min((std::uint64_t(n)-i+(std::uint64_t)threadIdx.x),
-                (std::uint64_t)blockDim.x)));
-        }
-    });
+    const auto& nec = Gpu::makeNExecutionConfigs<MT>(n);
+    for (auto const& ec : nec) {
+        const T start_idx = T(ec.start_idx);
+        const T nleft = n - start_idx;
+        AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            // This will not overflow, even though nblocks*MT might.
+            auto tid = T(MT)*T(blockIdx.x)+T(threadIdx.x);
+            if (tid < nleft) {
+                detail::call_f_scalar_handler(f, tid+start_idx,
+                    Gpu::Handler(amrex::min((std::uint64_t(nleft-tid)+(std::uint64_t)threadIdx.x),
+                    (std::uint64_t)blockDim.x)));
+            }
+        });
+    }
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -785,18 +819,20 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexerND<dim> indexer(box);
-    const auto ec = Gpu::makeExecutionConfig<MT>(box.numPts());
-    AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
-    [=] AMREX_GPU_DEVICE () noexcept {
-        for (std::uint64_t icell = std::uint64_t(blockDim.x)*blockIdx.x+threadIdx.x, stride = std::uint64_t(blockDim.x)*gridDim.x;
-             icell < indexer.numPts(); icell += stride)
-        {
-            auto iv = indexer.intVect(icell);
-            detail::call_f_intvect_handler(f, iv,
-                Gpu::Handler(amrex::min((indexer.numPts()-icell+(std::uint64_t)threadIdx.x),
-                (std::uint64_t)blockDim.x)));
-        }
-    });
+    const auto& nec = Gpu::makeNExecutionConfigs<MT>(box);
+    for (auto const& ec : nec) {
+        const auto start_idx = std::uint64_t(ec.start_idx);
+        AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            auto icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x + start_idx;
+            if (icell < indexer.numPts()) {
+                auto iv = indexer.intVect(icell);
+                detail::call_f_intvect_handler(f, iv,
+                    Gpu::Handler(amrex::min((indexer.numPts()-icell+(std::uint64_t)threadIdx.x),
+                    (std::uint64_t)blockDim.x)));
+            }
+        });
+    }
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -806,17 +842,20 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L const& f)
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexerND<dim> indexer(box);
-    const auto ec = Gpu::makeExecutionConfig<MT>(box.numPts());
-    AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
-    [=] AMREX_GPU_DEVICE () noexcept {
-        for (std::uint64_t icell = std::uint64_t(blockDim.x)*blockIdx.x+threadIdx.x, stride = std::uint64_t(blockDim.x)*gridDim.x;
-             icell < indexer.numPts(); icell += stride) {
-            auto iv = indexer.intVect(icell);
-            detail::call_f_intvect_ncomp_handler(f, iv, ncomp,
-                Gpu::Handler(amrex::min((indexer.numPts()-icell+(std::uint64_t)threadIdx.x),
-                (std::uint64_t)blockDim.x)));
-        }
-    });
+    const auto& nec = Gpu::makeNExecutionConfigs<MT>(box);
+    for (auto const& ec : nec) {
+        const auto start_idx = std::uint64_t(ec.start_idx);
+        AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            auto icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x + start_idx;
+            if (icell < indexer.numPts()) {
+                auto iv = indexer.intVect(icell);
+                detail::call_f_intvect_ncomp_handler(f, iv, ncomp,
+                    Gpu::Handler(amrex::min((indexer.numPts()-icell+(std::uint64_t)threadIdx.x),
+                    (std::uint64_t)blockDim.x)));
+            }
+        });
+    }
     AMREX_GPU_ERROR_CHECK();
 }
 
