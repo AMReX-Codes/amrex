@@ -816,7 +816,6 @@ use the install commands,
 
    spack install amrex@develop dimensions=2 +cuda cuda_arch=60
 
-
 .. _sec:build:amrex-kokkos:
 
 AMReX--Kokkos
