@@ -800,22 +800,19 @@ ParallelFor (Gpu::KernelInfo const&, T n, L const& f) noexcept
     static_assert(sizeof(T) >= 2);
     if (amrex::isEmpty(n)) { return; }
     const auto& nec = Gpu::makeNExecutionConfigs<MT>(n);
-    T ndone = 0;
     for (auto const& ec : nec) {
-        T nleft = n - ndone;
+        const T start_idx = T(ec.start_idx);
+        const T nleft = n - start_idx;
         AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             // This will not overflow, even though nblocks*MT might.
             auto tid = T(MT)*T(blockIdx.x)+T(threadIdx.x);
             if (tid < nleft) {
-                detail::call_f_scalar_handler(f, tid+ndone,
+                detail::call_f_scalar_handler(f, tid+start_idx,
                     Gpu::Handler(amrex::min((std::uint64_t(nleft-tid)+(std::uint64_t)threadIdx.x),
                     (std::uint64_t)blockDim.x)));
             }
         });
-        if (Long(nleft) > ec.ntotalthreads) {
-            ndone += ec.ntotalthreads;
-        }
     }
     AMREX_GPU_ERROR_CHECK();
 }

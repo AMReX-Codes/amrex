@@ -180,7 +180,7 @@ namespace Gpu {
 
     struct ExecConfig
     {
-        Long ntotalthreads;
+        Long start_idx;
         int nblocks;
     };
 
@@ -195,6 +195,7 @@ namespace Gpu {
         // loops inside GPU kernels.
         auto nlaunches = int((N+nmax-1)/nmax);
         Vector<ExecConfig> r(nlaunches);
+        Long ndone = 0;
         for (int i = 0; i < nlaunches; ++i) {
             int nblocks;
             if (N > nmax) {
@@ -203,8 +204,9 @@ namespace Gpu {
             } else {
                 nblocks = int((N+MT-1)/MT);
             }
-            // Total # of threads in this launch
-            r[i].ntotalthreads = Long(nblocks) * MT;
+            // At which element ID the kernel should start
+            r[i].start_idx = ndone;
+            ndone += Long(nblocks) * MT;
             // # of blocks in this launch
             r[i].nblocks = nblocks;
         }
