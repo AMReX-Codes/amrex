@@ -821,38 +821,38 @@ use the install commands,
 
 AMReX--Kokkos
 =============
-There is an `example in amrex-devtests`_ of how one can build `Kokkos`_ and `AMReX`_. This uses ``cmake`` to first compile 
-Kokkos and AMReX, and then the example is built. This section describes the build procedure on `Perlmutter`_, though this can be used as 
-a template for other machines as well. 
+There is an `example in amrex-devtests`_ of how one can build `Kokkos`_ and `AMReX`_. This uses ``cmake`` to first compile
+Kokkos and AMReX, and then the example is built. This section describes the build procedure on `Perlmutter`_, though this can be used as
+a template for other machines as well.
 
 Load the following modules, and specify ``MPI_INCLUDE_PATH`` in ``~/.bash_profile``. The ``cmake`` version has to be ``3.24.3``.
 
 .. code-block:: bash
 
-   module load cray-mpich  
-   module load PrgEnv-gnu  
-   module load cudatoolkit/12.2  
-   module load cmake/3.24.3  
+   module load cray-mpich
+   module load PrgEnv-gnu
+   module load cudatoolkit/12.2
+   module load cmake/3.24.3
 
-   export MPI_INCLUDE_PATH=/opt/cray/pe/mpich/8.1.28/ofi/gnu/12.3/include 
+   export MPI_INCLUDE_PATH=/opt/cray/pe/mpich/8.1.28/ofi/gnu/12.3/include
 
 Make sure to do ``source ~/.bash_profile``.
 
 Kokkos installation on Perlmutter
 ---------------------------------
-To install `Kokkos`_, execute the following commands. In the ``cmake`` command, specify the path where the Kokkos installation should reside 
-``-DCMAKE_INSTALL_PREFIX=<path-to-kokkos-install-dir>``. The full path to the ``kokkos`` directory has to be specified in 
+To install `Kokkos`_, execute the following commands. In the ``cmake`` command, specify the path where the Kokkos installation should reside
+``-DCMAKE_INSTALL_PREFIX=<path-to-kokkos-install-dir>``. The full path to the ``kokkos`` directory has to be specified in
 ``-DCMAKE_CXX_COMPILER=<full-path-to-kokkos-dir>/bin/nvcc_wrapper``.
 
 .. code-block:: bash
 
-   git clone https://github.com/kokkos/kokkos.git  
-   cd kokkos  
-   mkdir build  
-   cd build  
-   cmake .. -DCMAKE_INSTALL_PREFIX=<path-to-kokkos-install-dir> -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DKokkos_ENABLE_CUDA=ON -DCMAKE_CXX_COMPILER=<full-path-to-kokkos-dir>/bin/nvcc_wrapper -DKokkos_ENABLE_CUDA_RELOCATABLE_DEVICE_CODE=ON -DKokkos_ARCH_PASCAL60=ON  
-   make -j8  
-   make install  
+   git clone https://github.com/kokkos/kokkos.git
+   cd kokkos
+   mkdir build
+   cd build
+   cmake .. -DCMAKE_INSTALL_PREFIX=<path-to-kokkos-install-dir> -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DKokkos_ENABLE_CUDA=ON -DCMAKE_CXX_COMPILER=<full-path-to-kokkos-dir>/bin/nvcc_wrapper -DKokkos_ENABLE_CUDA_RELOCATABLE_DEVICE_CODE=ON -DKokkos_ARCH_PASCAL60=ON
+   make -j8
+   make install
 
 AMReX installation on Perlmutter
 ---------------------------------
@@ -868,15 +868,15 @@ AMReX installation on Perlmutter
       # Include MPI headers
       include_directories(${MPI_INCLUDE_PATH})
 
-To install `AMReX`_, execute the following commands. In the ``cmake`` command, specify the path where the installation AMReX installation should reside 
+To install `AMReX`_, execute the following commands. In the ``cmake`` command, specify the path where the installation AMReX installation should reside
 ``-DCMAKE_INSTALL_PREFIX=<path-to-amrex-install-dir>``.
 
 .. code-block:: bash
 
-   git clone https://github.com/AMReX-Codes/amrex.git  
+   git clone https://github.com/AMReX-Codes/amrex.git
    cd amrex
-   mkdir build  
-   cd build  
+   mkdir build
+   cd build
    cmake .. -DCMAKE_INSTALL_PREFIX=<path-to-amrex-install-dir> -DAMReX_GPU_BACKEND=CUDA -DAMReX_CUDA_ARCH=60 -DAMReX_MPI=OFF -DCMAKE_PREFIX_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.9/math_libs/12.2/lib64 -DAMReX_MPI=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DMPI_INCLUDE_PATH=/opt/cray/pe/mpich/8.1.28/ofi/gnu/12.3/include
    make -j8
    make install
@@ -896,7 +896,7 @@ Compiling the AMReX-Kokkos example on Perlmutter
       # Include MPI headers
       include_directories(${MPI_INCLUDE_PATH})
 
-To compile the AMReX-Kokkos example, execute the following commands. In the ``cmake`` command, specify the full path to the amrex installation 
+To compile the AMReX-Kokkos example, execute the following commands. In the ``cmake`` command, specify the full path to the amrex installation
 directory ``-DAMReX_ROOT=<full-path-to-amrex-install-dir>``, and the Kokkos installation directory ``-DKokkos_ROOT=<full-path-to-kokkos-install-dir>``.
 
 .. code-block:: bash
@@ -905,7 +905,7 @@ directory ``-DAMReX_ROOT=<full-path-to-amrex-install-dir>``, and the Kokkos inst
    cd amrex-devtests/kokkos
    mkdir build
    cd build
-   cmake .. -DENABLE_CUDA=ON -DAMReX_ROOT=<full-path-to-amrex-install-dir> -DKokkos_ROOT=<full-path-to-kokkos-install-dir> -DCMAKE_CUDA_ARCHITECTURES=60 -DMPI_INCLUDE_PATH=/opt/cray/pe/mpich/8.1.28/ofi/gnu/12.3/include 
+   cmake .. -DENABLE_CUDA=ON -DAMReX_ROOT=<full-path-to-amrex-install-dir> -DKokkos_ROOT=<full-path-to-kokkos-install-dir> -DCMAKE_CUDA_ARCHITECTURES=60 -DMPI_INCLUDE_PATH=/opt/cray/pe/mpich/8.1.28/ofi/gnu/12.3/include
    make -j8
 
 Running the example on Perlmutter
@@ -916,11 +916,11 @@ Get an interactive node on Perlmutter
 
    salloc --nodes 1 --qos interactive --time 02:00:00 --constraint gpu --gpus 4 --account=<account-id>
 
-Run using 
+Run using
 
 .. code-block:: bash
 
-   srun -n 4 --gpus=4 <executable> 
+   srun -n 4 --gpus=4 <executable>
 
 .. _`example in amrex-devtests`: https://github.com/WeiqunZhang/amrex-devtests/tree/main/kokkos
 .. _`Kokkos`: https://github.com/kokkos/kokkos
