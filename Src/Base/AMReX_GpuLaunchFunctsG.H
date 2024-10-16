@@ -809,7 +809,7 @@ ParallelFor (Gpu::KernelInfo const&, T n, L const& f) noexcept
             auto tid = T(MT)*T(blockIdx.x)+T(threadIdx.x);
             if (tid < nleft) {
                 detail::call_f_scalar_handler(f, tid+ndone,
-                    Gpu::Handler(amrex::min((std::uint64_t(nleft)-tid+(std::uint64_t)threadIdx.x),
+                    Gpu::Handler(amrex::min((std::uint64_t(nleft-tid)+(std::uint64_t)threadIdx.x),
                     (std::uint64_t)blockDim.x)));
             }
         });
