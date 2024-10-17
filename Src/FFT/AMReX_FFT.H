@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_MultiFab.H>
+#include <AMReX_FFT_Helper.H>
 #include <numeric>
 #include <tuple>
 #include <utility>
@@ -26,9 +27,6 @@
 namespace amrex::FFT
 {
 
-enum struct Scaling { full, symmetric, none };
-enum struct Direction { forward, backward };
-
 template <typename T = Real>
 class R2C
 {
@@ -37,7 +35,7 @@ public:
                                   MultiFab, FabArray<BaseFab<T> > >;
     using cMF = FabArray<BaseFab<GpuComplex<T> > >;
 
-    R2C (Box const& domain);
+    explicit R2C (Box const& domain, Info const& info = Info{});
 
     ~R2C ();
 
@@ -146,6 +144,8 @@ private:
     static void destroy_plan (P plan);
     static std::pair<FFTPlan2,FFTPlan2> make_c2c_plans (cMF& inout);
 
+    Info m_info;
+
     Box m_real_domain;
     Box m_spectral_domain_x;
     Box m_spectral_domain_y;
@@ -183,8 +183,9 @@ private:
 };
 
 template <typename T>
-R2C<T>::R2C (Box const& domain)
-    : m_real_domain(domain),
+R2C<T>::R2C (Box const& domain, Info const& info)
+    : m_info(info),
+      m_real_domain(domain),
       m_spectral_domain_x(IntVect(0), IntVect(AMREX_D_DECL(domain.length(0)/2,
                                                            domain.bigEnd(1),
                                                            domain.bigEnd(2)))),
@@ -197,6 +198,9 @@ R2C<T>::R2C (Box const& domain)
 {
     static_assert(std::is_same_v<float,T> || std::is_same_v<double,T>);
     AMREX_ALWAYS_ASSERT(m_real_domain.smallEnd() == 0 && m_real_domain.cellCentered());
+#if (AMREX_SPACEDIM != 3)
+    AMREX_ALWAYS_ASSERT(false == m_info.batch_mode);
+#endif
 
     int myproc = ParallelDescriptor::MyProc();
     int nprocs = ParallelDescriptor::NProcs();

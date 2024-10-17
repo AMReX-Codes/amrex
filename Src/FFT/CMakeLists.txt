@@ -5,6 +5,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        PRIVATE
        AMReX_FFT.H
        AMReX_FFT.cpp
+       AMReX_FFT_Helper.H
        )
 
 endforeach()
