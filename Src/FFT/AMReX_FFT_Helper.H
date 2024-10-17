@@ -60,7 +60,7 @@ struct PoissonSpectral
             spectral_data = 0;
         }
         spectral_data *= scale;
-    };
+    }
 
     GpuArray<T,AMREX_SPACEDIM> fac;
     GpuArray<T,AMREX_SPACEDIM> dx;
