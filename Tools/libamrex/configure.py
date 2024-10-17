@@ -57,6 +57,10 @@ def configure(argv):
                         help="Enable AMReX Fortran API [default=yes]",
                         choices=["yes","no"],
                         default="yes")
+    parser.add_argument("--enable-fft",
+                        help="Enable AMReX FFT [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     parser.add_argument("--enable-linear-solver",
                         help="Enable AMReX linear solvers [default=yes]",
                         choices=["yes","no"],
@@ -151,6 +155,7 @@ def configure(argv):
     f.write("DEBUG = {}\n".format("TRUE" if args.debug == "yes" else "FALSE"))
     f.write("USE_PARTICLES = {}\n".format("FALSE" if args.enable_particle == "no" else "TRUE"))
     f.write("USE_FORTRAN_INTERFACE = {}\n".format("FALSE" if args.enable_fortran_api == "no" else "TRUE"))
+    f.write("USE_FFT = {}\n".format("TRUE" if args.enable_fft == "yes" else "FALSE"))
     f.write("USE_LINEAR_SOLVERS = {}\n".format("FALSE" if args.enable_linear_solver == "no" else "TRUE"))
     f.write("USE_LINEAR_SOLVERS_INCFLO = {}\n".format("FALSE" if args.enable_linear_solver_incflo == "no" else "TRUE"))
     f.write("USE_LINEAR_SOLVERS_EM = {}\n".format("FALSE" if args.enable_linear_solver_em == "no" else "TRUE"))

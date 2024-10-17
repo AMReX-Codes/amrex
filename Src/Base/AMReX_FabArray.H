@@ -13,6 +13,7 @@
 #include <AMReX_FabFactory.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_GpuComplex.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 #include <AMReX_ccse-mpi.H>
@@ -3678,6 +3679,8 @@ FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
 
     return nm0;
 }
+
+using cMultiFab = FabArray<BaseFab<GpuComplex<Real> > >;
 
 }
 

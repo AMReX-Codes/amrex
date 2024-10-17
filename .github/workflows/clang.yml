@@ -44,6 +44,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex      \
+            -DAMReX_FFT=ON                            \
             -DAMReX_EB=ON                             \
             -DAMReX_FORTRAN=ON                        \
             -DAMReX_MPI=OFF                           \
@@ -104,6 +105,7 @@ jobs:
         cmake ..                                      \
             -DCMAKE_BUILD_TYPE=Debug                  \
             -DCMAKE_VERBOSE_MAKEFILE=ON               \
+            -DAMReX_FFT=ON                            \
             -DAMReX_EB=ON                             \
             -DAMReX_ENABLE_TESTS=ON                   \
             -DAMReX_FORTRAN=ON                        \
@@ -158,6 +160,7 @@ jobs:
         cmake ..                                      \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo         \
             -DCMAKE_VERBOSE_MAKEFILE=ON               \
+            -DAMReX_FFT=ON                            \
             -DAMReX_EB=ON                             \
             -DAMReX_ENABLE_TESTS=ON                   \
             -DAMReX_FORTRAN=OFF                       \
@@ -200,7 +203,7 @@ jobs:
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
-        ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no
+        ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no --enable-fft yes
         make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names" \
             CCACHE=ccache
         make install
