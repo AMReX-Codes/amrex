@@ -104,7 +104,7 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs)
     auto scale = T(1.0)/(T(m_geom.Domain().length(0)) *
                          T(m_geom.Domain().length(1)));
     auto ny = m_geom.Domain().length(1);
-    auto nz = m_geom.Domain().length(0);
+    auto nz = m_geom.Domain().length(2);
 
     Gpu::DeviceVector<T> delzv(nz, T(m_geom.CellSize(2)));
     auto const* delz = delzv.data();
@@ -167,10 +167,11 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs)
             spectral(i,j,0) = spectral(i,j,0)/bd(i,j,0);
 
             for (int k = 1; k < nz; k++) {
-                if (k < nz-1){
+                if (k < nz-1) {
                     scratch(i,j,k) = cud(i,j,k) / (bd(i,j,k) - ald(i,j,k) * scratch(i,j,k-1));
                 }
-                spectral(i,j,k) = (spectral(i,j,k) - ald(i,j,k) * spectral(i,j,k - 1)) / (bd(i,j,k) - ald(i,j,k) * scratch(i,j,k-1));
+                spectral(i,j,k) = (spectral(i,j,k) - ald(i,j,k) * spectral(i,j,k - 1))
+                    / (bd(i,j,k) - ald(i,j,k) * scratch(i,j,k-1));
             }
 
             for (int k = nz - 2; k >= 0; k--) {
@@ -222,10 +223,11 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs)
             spectral(i,j,0) = spectral(i,j,0)/bd[0];
 
             for (int k = 1; k < nz; k++) {
-                if (k < nz-1){
+                if (k < nz-1) {
                     scratch[k] = cud[k] / (bd[k] - ald[k] * scratch[k-1]);
                 }
-                spectral(i,j,k) = (spectral(i,j,k) - ald[k] * spectral(i,j,k - 1)) / (bd[k] - ald[k] * scratch[k-1]);
+                spectral(i,j,k) = (spectral(i,j,k) - ald[k] * spectral(i,j,k - 1))
+                    / (bd[k] - ald[k] * scratch[k-1]);
             }
 
             for (int k = nz - 2; k >= 0; k--) {

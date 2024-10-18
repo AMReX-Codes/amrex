@@ -106,6 +106,56 @@ public:
         }
     };
 
+    struct RotateFwd
+    {
+        // dest -> src: (x,y,z) -> (y,z,x)
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE Dim3 operator() (Dim3 i) const noexcept
+        {
+            return {i.y, i.z, i.x};
+        }
+
+        // src -> dest: (x,y,z) -> (z,x,y)
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE Dim3 Inverse (Dim3 i) const noexcept
+        {
+            return {i.z, i.x, i.y};
+        }
+
+        [[nodiscard]] IndexType operator() (IndexType it) const noexcept
+        {
+            return it;
+        }
+
+        [[nodiscard]] IndexType Inverse (IndexType it) const noexcept
+        {
+            return it;
+        }
+    };
+
+    struct RotateBwd
+    {
+        // dest -> src: (x,y,z) -> (z,x,y)
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE Dim3 operator() (Dim3 i) const noexcept
+        {
+            return {i.z, i.x, i.y};
+        }
+
+        // src -> dest: (x,y,z) -> (y,z,x)
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE Dim3 Inverse (Dim3 i) const noexcept
+        {
+            return {i.y, i.z, i.x};
+        }
+
+        [[nodiscard]] IndexType operator() (IndexType it) const noexcept
+        {
+            return it;
+        }
+
+        [[nodiscard]] IndexType Inverse (IndexType it) const noexcept
+        {
+            return it;
+        }
+    };
+
     // public for cuda
     template <typename F>
     void post_forward_doit (F const& post_forward);
@@ -188,8 +238,6 @@ private:
     Swap01 m_dtos_y2x{};
     Swap02 m_dtos_y2z{};
     Swap02 m_dtos_z2y{};
-
-    // Optionally we need to copy from m_cz to user provided cMultiFab. xxxxx todo
 
     MF  m_rx;
     cMF m_cx;
@@ -354,11 +402,9 @@ R2C<T>::R2C (Box const& domain, Info const& info)
 
         // comm meta-data between x and y phases
         m_cmd_x2y = std::make_unique<MultiBlockCommMetaData>
-            (m_cy.boxArray(), m_cy.DistributionMap(), m_spectral_domain_y,
-             m_cx.boxArray(), m_cx.DistributionMap(), IntVect(0), m_dtos_x2y);
+            (m_cy, m_spectral_domain_y, m_cx, IntVect(0), m_dtos_x2y);
         m_cmd_y2x = std::make_unique<MultiBlockCommMetaData>
-            (m_cx.boxArray(), m_cx.DistributionMap(), m_spectral_domain_x,
-             m_cy.boxArray(), m_cy.DistributionMap(), IntVect(0), m_dtos_y2x);
+            (m_cx, m_spectral_domain_x, m_cy, IntVect(0), m_dtos_y2x);
     }
 
 #if (AMREX_SPACEDIM == 3)
@@ -380,11 +426,9 @@ R2C<T>::R2C (Box const& domain, Info const& info)
 
         // comm meta-data between y and z phases
         m_cmd_y2z = std::make_unique<MultiBlockCommMetaData>
-            (m_cz.boxArray(), m_cz.DistributionMap(), m_spectral_domain_z,
-             m_cy.boxArray(), m_cy.DistributionMap(), IntVect(0), m_dtos_y2z);
+            (m_cz, m_spectral_domain_z, m_cy, IntVect(0), m_dtos_y2z);
         m_cmd_z2y = std::make_unique<MultiBlockCommMetaData>
-            (m_cy.boxArray(), m_cy.DistributionMap(), m_spectral_domain_y,
-             m_cz.boxArray(), m_cz.DistributionMap(), IntVect(0), m_dtos_z2y);
+            (m_cy, m_spectral_domain_y, m_cz, IntVect(0), m_dtos_z2y);
     }
 #endif
 #endif
@@ -732,13 +776,15 @@ R2C<T>::getSpectralData ()
 template <typename T>
 void R2C<T>::forward (MF const& inmf, cMF& outmf, Scaling scaling)
 {
-    forward(inmf);
-    if (!m_cz.empty()) { // m_cz's ordering is z,x,y
-        amrex::Abort("xxxxx todo, forward m_cz");
+    forward(inmf, scaling);
+    if (!m_cz.empty()) { // m_cz's order (z,x,y) -> (x,y,z)
+        RotateBwd dtos{};
+        MultiBlockCommMetaData cmd
+            (outmf, m_spectral_domain_x, m_cz, IntVect(0), dtos);
+        ParallelCopy(outmf, m_cz, cmd, 0, 0, 1, dtos);
     } else if (!m_cy.empty()) { // m_cy's order (y,x,z) -> (x,y,z)
         MultiBlockCommMetaData cmd
-            (outmf.boxArray(), outmf.DistributionMap(), m_spectral_domain_x,
-             m_cy.boxArray(), m_cy.DistributionMap(), IntVect(0), m_dtos_y2x);
+            (outmf, m_spectral_domain_x, m_cy, IntVect(0), m_dtos_y2x);
         ParallelCopy(outmf, m_cy, cmd, 0, 0, 1, m_dtos_y2x);
     } else {
         outmf.ParallelCopy(m_cx, 0, 0, 1);
@@ -748,17 +794,19 @@ void R2C<T>::forward (MF const& inmf, cMF& outmf, Scaling scaling)
 template <typename T>
 void R2C<T>::backward (cMF const& inmf, MF& outmf, Scaling scaling)
 {
-    if (!m_cz.empty()) { // m_cz's ordering is z,x,y
-        amrex::Abort("xxxxx todo, backward m_cz");
+    if (!m_cz.empty()) { // (x,y,z) -> m_cz's order (z,x,y)
+        RotateFwd dtos{};
+        MultiBlockCommMetaData cmd
+            (m_cz, m_spectral_domain_z, inmf, IntVect(0), dtos);
+        ParallelCopy(m_cz, inmf, cmd, 0, 0, 1, dtos);
     } else if (!m_cy.empty()) { // (x,y,z) -> m_cy's ordering (y,x,z)
         MultiBlockCommMetaData cmd
-            (m_cy.boxArray(), m_cy.DistributionMap(), m_spectral_domain_y,
-             inmf.boxArray(), inmf.DistributionMap(), IntVect(0), m_dtos_x2y);
+            (m_cy, m_spectral_domain_y, inmf, IntVect(0), m_dtos_x2y);
         ParallelCopy(m_cy, inmf, cmd, 0, 0, 1, m_dtos_x2y);
     } else {
         m_cx.ParallelCopy(inmf, 0, 0, 1);
     }
-    backward(outmf);
+    backward(outmf, scaling);
 }
 
 }
