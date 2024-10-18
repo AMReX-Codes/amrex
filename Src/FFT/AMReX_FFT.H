@@ -218,9 +218,12 @@ R2C<T>::R2C (Box const& domain, Info const& info)
       m_info(info)
 {
     static_assert(std::is_same_v<float,T> || std::is_same_v<double,T>);
-    AMREX_ALWAYS_ASSERT(m_real_domain.smallEnd() == 0 && m_real_domain.cellCentered());
+    AMREX_ALWAYS_ASSERT(m_real_domain.smallEnd() == 0 &&
+                        m_real_domain.length(0) > 1 &&
+                        m_real_domain.cellCentered());
 #if (AMREX_SPACEDIM == 3)
     AMREX_ALWAYS_ASSERT(m_real_domain.length(2) > 1 || false == m_info.batch_mode);
+    AMREX_ALWAYS_ASSERT(m_real_domain.length(1) > 1 || m_real_domain.length(2) == 1);
 #else
     AMREX_ALWAYS_ASSERT(false == m_info.batch_mode);
 #endif
@@ -337,26 +340,28 @@ R2C<T>::R2C (Box const& domain, Info const& info)
     }
 
 #if (AMREX_SPACEDIM >= 2)
-    auto cbay = amrex::decompose(m_spectral_domain_y, nprocs, {AMREX_D_DECL(false,true,true)});
     DistributionMapping cdmy;
-    if (cbay.size() == dmx.size()) {
-        cdmy = dmx;
-    } else {
-        Vector<int> pm(cbay.size());
-        std::iota(pm.begin(), pm.end(), 0);
-        cdmy.define(std::move(pm));
+    if (m_real_domain.length(1) > 1) {
+        auto cbay = amrex::decompose(m_spectral_domain_y, nprocs, {AMREX_D_DECL(false,true,true)});
+        if (cbay.size() == dmx.size()) {
+            cdmy = dmx;
+        } else {
+            Vector<int> pm(cbay.size());
+            std::iota(pm.begin(), pm.end(), 0);
+            cdmy.define(std::move(pm));
+        }
+        m_cy.define(cbay, cdmy, 1, 0);
+
+        std::tie(m_fft_fwd_y, m_fft_bwd_y) = make_c2c_plans(m_cy);
+
+        // comm meta-data between x and y phases
+        m_cmd_x2y = std::make_unique<MultiBlockCommMetaData>
+            (m_cy.boxArray(), m_cy.DistributionMap(), m_spectral_domain_y,
+             m_cx.boxArray(), m_cx.DistributionMap(), IntVect(0), m_dtos_x2y);
+        m_cmd_y2x = std::make_unique<MultiBlockCommMetaData>
+            (m_cx.boxArray(), m_cx.DistributionMap(), m_spectral_domain_x,
+             m_cy.boxArray(), m_cy.DistributionMap(), IntVect(0), m_dtos_y2x);
     }
-    m_cy.define(cbay, cdmy, 1, 0);
-
-    std::tie(m_fft_fwd_y, m_fft_bwd_y) = make_c2c_plans(m_cy);
-
-    // comm meta-data between x and y phases
-    m_cmd_x2y = std::make_unique<MultiBlockCommMetaData>
-        (m_cy.boxArray(), m_cy.DistributionMap(), m_spectral_domain_y,
-         m_cx.boxArray(), m_cx.DistributionMap(), IntVect(0), m_dtos_x2y);
-    m_cmd_y2x = std::make_unique<MultiBlockCommMetaData>
-        (m_cx.boxArray(), m_cx.DistributionMap(), m_spectral_domain_x,
-         m_cy.boxArray(), m_cy.DistributionMap(), IntVect(0), m_dtos_y2x);
 
 #if (AMREX_SPACEDIM == 3)
     if (false == m_info.batch_mode || m_real_domain.length(2) > 1) {
