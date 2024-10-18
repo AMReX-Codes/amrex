@@ -112,6 +112,12 @@ else
   DEBUG := FALSE
 endif
 
+ifdef USE_FFT
+  USE_FFT := $(strip $(USE_FFT))
+else
+  USE_FFT := FALSE
+endif
+
 ifdef PROFILE
   PROFILE := $(strip $(PROFILE))
 else
@@ -604,6 +610,28 @@ else
     DebugSuffix :=
 endif
 
+ifeq ($(USE_FFT),TRUE)
+  include $(AMREX_HOME)/Src/FFT/Make.package
+  ifeq ($(USE_CUDA),TRUE)
+    LIBRARIES += -lcufft
+  else ifeq ($(USE_HIP),TRUE)
+    # Use rocFFT.  ROC_PATH is defined in hip.mak
+    SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocfft/include
+    LIBRARY_LOCATIONS += $(ROC_PATH)/rocfft/lib
+    LIBRARIES += -Wl,--rpath=$(ROC_PATH)/rocfft/lib -lrocfft
+  else ifeq ($(USE_SYCL),TRUE)
+    # nothing
+  else
+    FFTW_HOME ?= NOT_SET
+    ifneq ($(FFTW_HOME),NOT_SET)
+      SYSTEM_INCLUDE_LOCATIONS += $(FFTW_HOME)/include
+      LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
+      LIBRARIES += -Wl,--rpath=$(FFTW_HOME)/lib
+    endif
+    LIBRARIES += -lfftw3f -lfftw3
+  endif
+endif
+
 ifeq ($(USE_PROFPARSER),TRUE)
   PROFILE := TRUE
   TRACE_PROFILE := TRUE
@@ -916,6 +944,10 @@ endif
 
 ifeq ($(USE_PARTICLES),TRUE)
   DEFINES += -DAMREX_PARTICLES
+endif
+
+ifeq ($(USE_FFT),TRUE)
+    DEFINES += -DAMREX_USE_FFT
 endif
 
 ifeq ($(USE_EB),TRUE)

@@ -42,6 +42,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                                  \
+            -DAMReX_FFT=ON                        \
             -DAMReX_FORTRAN=ON                    \
             -DAMReX_PLOTFILE_TOOLS=ON             \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
@@ -99,6 +100,7 @@ jobs:
         cmake -S . -B build             \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_FFT=ON              \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
@@ -147,6 +149,7 @@ jobs:
         cmake -S . -B build             \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_FFT=ON              \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
@@ -196,6 +199,7 @@ jobs:
         cmake -S . -B build             \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DAMReX_FFT=ON              \
             -DAMReX_EB=OFF              \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
@@ -248,6 +252,7 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_ASSERTIONS=ON       \
             -DAMReX_TESTING=ON          \
+            -DAMReX_FFT=ON              \
             -DAMReX_EB=OFF              \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_BOUND_CHECK=ON      \
@@ -310,6 +315,7 @@ jobs:
             -DAMReX_TESTING=ON          \
             -DAMReX_BOUND_CHECK=ON      \
             -DAMReX_FPE=ON              \
+            -DAMReX_FFT=ON              \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
@@ -371,6 +377,7 @@ jobs:
             -DAMReX_TESTING=ON          \
             -DAMReX_BOUND_CHECK=ON      \
             -DAMReX_FPE=ON              \
+            -DAMReX_FFT=ON              \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=OFF         \
@@ -457,7 +464,7 @@ jobs:
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
-        ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes
+        ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes --enable-fft yes
         make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
             CCACHE=ccache
         make install
@@ -497,7 +504,8 @@ jobs:
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
-        ./configure --dim 3 --enable-eb no --enable-xsdk-defaults no --single-precision yes --single-precision-particles yes --enable-tiny-profile yes
+        ./configure --dim 3 --enable-eb no --enable-xsdk-defaults no --single-precision yes \
+                    --single-precision-particles yes --enable-tiny-profile yes --enable-fft yes
         make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
             CCACHE=ccache
         make install
@@ -623,6 +631,7 @@ jobs:
             -DAMReX_OMP=ON              \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_ENABLE_TESTS=ON     \
+            -DAMReX_FFT=ON              \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
 

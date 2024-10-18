@@ -26,6 +26,9 @@ ifeq ($(USE_LINEAR_SOLVERS),TRUE)
      Pdirs += F_Interfaces/LinearSolvers
    endif
 endif
+ifeq ($(USE_FFT),TRUE)
+   Pdirs += FFT
+endif
 ifeq ($(USE_EB),TRUE)
    Pdirs += EB
 endif
