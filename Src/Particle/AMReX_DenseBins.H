@@ -197,7 +197,7 @@ public:
                   index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
                   index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
                   index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-                  return (uix * ny + uiy) * nz + uiz;
+                  return (uiz * ny + uiy) * nx + uix;
               });
     }
 
@@ -301,7 +301,7 @@ public:
                   index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
                   index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
                   index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-                  return (uix * ny + uiy) * nz + uiz;
+                  return (uiz * ny + uiy) * nx + uix;
               });
     }
 
@@ -440,7 +440,7 @@ public:
                   index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
                   index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
                   index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-                  return (uix * ny + uiy) * nz + uiz;
+                  return (uiz * ny + uiy) * nx + uix;
               });
     }
 
