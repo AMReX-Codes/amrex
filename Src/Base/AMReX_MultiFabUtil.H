@@ -1027,7 +1027,7 @@ MF get_line_data (MF const& mf, int dir, IntVect const& cell, Box bnd_bx)
             Box const& b = ba[i];
             IntVect lo = bnd_bx.smallEnd();
             IntVect hi = bnd_bx.bigEnd();
-            if (!b.contains(lo)) lo[dir] = b.smallEnd(dir);
+            if (!b.contains(lo)) { lo[dir] = b.smallEnd(dir); }
             if (b.contains(lo)) {
                 if (!b.contains(hi)) { hi[dir] = b.bigEnd(dir); }
                 if (!bnd_bx.contains(hi)) { continue; }
