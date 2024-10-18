@@ -1,11 +1,18 @@
 #include <AMReX_FFT.H>
+#include <algorithm>
 
-namespace amrex::FFT
+namespace amrex::FFT::detail
 {
+
+DistributionMapping make_iota_distromap (Long n)
+{
+    AMREX_ASSERT(n <= ParallelDescriptor::NProcs());
+    Vector<int> pm(n);
+    std::iota(pm.begin(), pm.end(), 0);
+    return DistributionMapping(std::move(pm));
+}
 
 #ifdef AMREX_USE_HIP
-namespace detail
-{
 void hip_execute (rocfft_plan plan, void **in, void **out)
 {
     rocfft_execution_info execinfo = nullptr;
@@ -25,7 +32,6 @@ void hip_execute (rocfft_plan plan, void **in, void **out)
     amrex::The_Arena()->free(buffer);
 
     AMREX_ROCFFT_SAFE_CALL(rocfft_execution_info_destroy(execinfo));
-}
 }
 #endif
 

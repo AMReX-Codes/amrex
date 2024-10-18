@@ -8,6 +8,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_FFT.H
        AMReX_FFT.cpp
        AMReX_FFT_Helper.H
+       AMReX_FFT_Poisson.H
        )
 
 endforeach()

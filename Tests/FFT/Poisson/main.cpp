@@ -1,4 +1,4 @@
-#include <AMReX_FFT.H> // Put this at the top for testing
+#include <AMReX_FFT_Poisson.H> // Put this at the top for testing
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
@@ -24,11 +24,14 @@ int main (int argc, char* argv[])
                      Real prob_hi_y = 1.;,
                      Real prob_hi_z = 1.);
 
+        int solver_type = 0;
+
         {
             ParmParse pp;
             AMREX_D_TERM(pp.query("n_cell_x", n_cell_x);,
                          pp.query("n_cell_y", n_cell_y);,
                          pp.query("n_cell_z", n_cell_z));
+            pp.query("solver_type", solver_type);
         }
 
         Box domain(IntVect(0),IntVect(AMREX_D_DECL(n_cell_x-1,n_cell_y-1,n_cell_z-1)));
@@ -60,22 +63,38 @@ int main (int argc, char* argv[])
         auto rhosum = rhs.sum(0);
         rhs.plus(-rhosum/geom.Domain().d_numPts(), 0, 1);
 
-        auto t0 = amrex::second();
+        double tsetup, tsolve;
 
-        FFT::R2C fft(geom.Domain());
-        FFT::PoissonSpectral<Real> post_forward(geom);
+#if (AMREX_SPACEDIM == 3)
+        if (solver_type == 1) {
+            auto t0 = amrex::second();
+            FFT::PoissonHybrid<MultiFab> fft_poisson(geom);
+            auto t1 = amrex::second();
+            tsetup = t1-t0;
 
-        auto t1 = amrex::second();
+            for (int n = 0; n < 2; ++n) {
+                auto ta = amrex::second();
+                fft_poisson.solve(soln, rhs);
+                auto tb = amrex::second();
+                tsolve = tb-ta;
+            }
+        } else
+#endif
+        {
+            auto t0 = amrex::second();
+            FFT::Poisson<MultiFab> fft_poisson(geom);
+            auto t1 = amrex::second();
+            tsetup = t1-t0;
 
-        double tsolve;
-        for (int n = 0; n < 2; ++n) {
-            auto ta = amrex::second();
-            fft.forwardThenBackward(rhs, soln, post_forward);
-            auto tb = amrex::second();
-            tsolve = tb-ta;
+            for (int n = 0; n < 2; ++n) {
+                auto ta = amrex::second();
+                fft_poisson.solve(soln, rhs);
+                auto tb = amrex::second();
+                tsolve = tb-ta;
+            }
         }
 
-        amrex::Print() << "  AMReX FFT setup time: " << t1-t0 << ", solve time "
+        amrex::Print() << "  AMReX FFT setup time: " << tsetup << ", solve time "
                        << tsolve << "\n";
 
         {
