@@ -38,8 +38,8 @@ int main (int argc, char* argv[])
         Geometry geom;
         {
             geom.define(domain,
-                        RealBox({AMREX_D_DECL(prob_lo_x,prob_lo_y,prob_lo_z)},
-                                {AMREX_D_DECL(prob_hi_x,prob_hi_y,prob_hi_z)}),
+                        RealBox(AMREX_D_DECL(prob_lo_x,prob_lo_y,prob_lo_z),
+                                AMREX_D_DECL(prob_hi_x,prob_hi_y,prob_hi_z)),
                         CoordSys::cartesian, {AMREX_D_DECL(1,1,1)});
         }
         auto const& dx = geom.CellSizeArray();

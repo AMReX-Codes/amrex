@@ -222,10 +222,10 @@ R2C<T>::R2C (Box const& domain, Info const& info)
                         m_real_domain.length(0) > 1 &&
                         m_real_domain.cellCentered());
 #if (AMREX_SPACEDIM == 3)
-    AMREX_ALWAYS_ASSERT(m_real_domain.length(2) > 1 || false == m_info.batch_mode);
+    AMREX_ALWAYS_ASSERT(m_real_domain.length(2) > 1 || ! m_info.batch_mode);
     AMREX_ALWAYS_ASSERT(m_real_domain.length(1) > 1 || m_real_domain.length(2) == 1);
 #else
-    AMREX_ALWAYS_ASSERT(false == m_info.batch_mode);
+    AMREX_ALWAYS_ASSERT(! m_info.batch_mode);
 #endif
 
     int myproc = ParallelDescriptor::MyProc();
@@ -364,7 +364,9 @@ R2C<T>::R2C (Box const& domain, Info const& info)
     }
 
 #if (AMREX_SPACEDIM == 3)
-    if (false == m_info.batch_mode || m_real_domain.length(2) > 1) {
+    if (m_real_domain.length(1) > 1 &&
+        (! m_info.batch_mode || m_real_domain.length(2) > 1))
+    {
         auto cbaz = amrex::decompose(m_spectral_domain_z, nprocs, {false,true,true});
         DistributionMapping cdmz;
         if (cbaz.size() == dmx.size()) {
