@@ -946,6 +946,10 @@ ifeq ($(USE_PARTICLES),TRUE)
   DEFINES += -DAMREX_PARTICLES
 endif
 
+ifeq ($(USE_FFT),TRUE)
+    DEFINES += -DAMREX_USE_FFT
+endif
+
 ifeq ($(USE_EB),TRUE)
     DEFINES += -DAMREX_USE_EB
 endif
