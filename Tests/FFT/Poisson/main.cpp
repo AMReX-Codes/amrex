@@ -24,14 +24,11 @@ int main (int argc, char* argv[])
                      Real prob_hi_y = 1.;,
                      Real prob_hi_z = 1.);
 
-        int solver_type = 0;
-
         {
             ParmParse pp;
             AMREX_D_TERM(pp.query("n_cell_x", n_cell_x);,
                          pp.query("n_cell_y", n_cell_y);,
                          pp.query("n_cell_z", n_cell_z));
-            pp.query("solver_type", solver_type);
         }
 
         Box domain(IntVect(0),IntVect(AMREX_D_DECL(n_cell_x-1,n_cell_y-1,n_cell_z-1)));
@@ -63,41 +60,43 @@ int main (int argc, char* argv[])
         auto rhosum = rhs.sum(0);
         rhs.plus(-rhosum/geom.Domain().d_numPts(), 0, 1);
 
-        double tsetup, tsolve;
-
 #if (AMREX_SPACEDIM == 3)
-        if (solver_type == 1) {
-            auto t0 = amrex::second();
-            FFT::PoissonHybrid<MultiFab> fft_poisson(geom);
-            auto t1 = amrex::second();
-            tsetup = t1-t0;
-
-            for (int n = 0; n < 2; ++n) {
-                auto ta = amrex::second();
-                fft_poisson.solve(soln, rhs);
-                auto tb = amrex::second();
-                tsolve = tb-ta;
-            }
-        } else
+        Array<int,2> solvers{0,1};
+#else
+        Array<int,2> solvers{0};
 #endif
-        {
-            auto t0 = amrex::second();
-            FFT::Poisson<MultiFab> fft_poisson(geom);
-            auto t1 = amrex::second();
-            tsetup = t1-t0;
 
-            for (int n = 0; n < 2; ++n) {
-                auto ta = amrex::second();
-                fft_poisson.solve(soln, rhs);
-                auto tb = amrex::second();
-                tsolve = tb-ta;
+        for (int solver_type : solvers) {
+            double tsetup, tsolve;
+            if (solver_type == 0) {
+                auto t0 = amrex::second();
+                FFT::Poisson<MultiFab> fft_poisson(geom);
+                auto t1 = amrex::second();
+                tsetup = t1-t0;
+
+                for (int n = 0; n < 2; ++n) {
+                    auto ta = amrex::second();
+                    fft_poisson.solve(soln, rhs);
+                    auto tb = amrex::second();
+                    tsolve = tb-ta;
+                }
+            } else {
+                auto t0 = amrex::second();
+                FFT::PoissonHybrid<MultiFab> fft_poisson(geom);
+                auto t1 = amrex::second();
+                tsetup = t1-t0;
+
+                for (int n = 0; n < 2; ++n) {
+                    auto ta = amrex::second();
+                    fft_poisson.solve(soln, rhs);
+                    auto tb = amrex::second();
+                    tsolve = tb-ta;
+                }
             }
-        }
 
-        amrex::Print() << "  AMReX FFT setup time: " << tsetup << ", solve time "
-                       << tsolve << "\n";
+            amrex::Print() << "  AMReX FFT setup time: " << tsetup
+                           << ", solve time " << tsolve << "\n";
 
-        {
             MultiFab phi(soln.boxArray(), soln.DistributionMap(), 1, 1);
             MultiFab res(soln.boxArray(), soln.DistributionMap(), 1, 0);
             MultiFab::Copy(phi, soln, 0, 0, 1, 0);
