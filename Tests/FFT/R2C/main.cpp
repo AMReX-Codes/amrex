@@ -105,7 +105,7 @@ int main (int argc, char* argv[])
         { // forward and backward
             FFT::R2C<Real,FFT::Direction::both> r2c(geom.Domain());
             r2c.forwardThenBackward(mf, mf2,
-                                    [=] AMREX_GPU_DEVICE (int i, int j, int k, auto& sp)
+                                    [=] AMREX_GPU_DEVICE (int, int, int, auto& sp)
             {
                 sp *= scaling;
             });

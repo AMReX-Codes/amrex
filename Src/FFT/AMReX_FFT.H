@@ -33,7 +33,7 @@ namespace amrex::FFT
  * This class supports Fourier transforms between real and complex data. The
  * name R2C indicates that the forward transform converts real data to
  * complex data, while the backward transform converts complex data to real
- * data. It should be noted that both directions fo transformation are
+ * data. It should be noted that both directions of transformation are
  * supported, not just from real to complex. The scaling follows the FFTW
  * convention, where applying the forward transform followed by the backward
  * transform scales the original data by the size of the input array.
