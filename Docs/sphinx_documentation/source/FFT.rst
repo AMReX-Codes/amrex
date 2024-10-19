@@ -21,12 +21,12 @@ data containers (e.g., :cpp:`MultiFab` and
 :cpp:`FabArray<BaseFab<ComplexData<Real>>>`. For local FFT, the users can
 use FFTW, cuFFT, rocFFT, or oneMKL directly.
 
-The scaling follows the FFTW convention, where applying the forward
-transform followed by the backward transform scales the original data by the
-size of the input array. The layout of the complex data also follows the
-FFTW convention, where the complex Hermitian output array has
-`(nx/2+1,ny,nz)` elements. Here `nx`, `ny` and `nz` are the sizes of the
-real array and the division is rounded down.
+Other than using column-majored order, AMReX follows the convention of
+FFTW. Applying the forward transform followed by the backward transform
+scales the original data by the size of the input array. The layout of the
+complex data also follows the FFTW convention, where the complex Hermitian
+output array has `(nx/2+1,ny,nz)` elements. Here `nx`, `ny` and `nz` are the
+sizes of the real array and the division is rounded down.
 
 Below are examples of using :cpp:`FFT:R2C`.
 
