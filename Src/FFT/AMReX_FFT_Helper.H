@@ -7,7 +7,6 @@
 namespace amrex::FFT
 {
 
-enum struct Scaling { full, symmetric, none };
 enum struct Direction { forward, backward };
 
 struct Info

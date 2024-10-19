@@ -63,7 +63,9 @@ void Poisson<MF>::solve (MF& soln, MF const& rhs)
                       T(m_geom.CellSize(1)),
                       T(m_geom.CellSize(2)))};
     auto scale = T(1.0/m_geom.Domain().d_numPts());
+#if (AMREX_SPACEDIM > 1)
     auto const& len = m_geom.Domain().length();
+#endif
 
     m_r2c.forwardThenBackward(rhs, soln,
                               [=] AMREX_GPU_DEVICE (int i, int j, int k,

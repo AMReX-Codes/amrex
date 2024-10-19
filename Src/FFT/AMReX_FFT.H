@@ -52,11 +52,11 @@ public:
         this->backward(outmf);
     }
 
-    void forward (MF const& inmf, Scaling scaling = Scaling::none);
-    void forward (MF const& inmf, cMF& outmf, Scaling scaling = Scaling::none);
+    void forward (MF const& inmf);
+    void forward (MF const& inmf, cMF& outmf);
 
-    void backward (MF& outmf, Scaling scaling = Scaling::none);
-    void backward (cMF const& inmf, MF& outmf, Scaling scaling = Scaling::none);
+    void backward (MF& outmf);
+    void backward (cMF const& inmf, MF& outmf);
 
     std::pair<cMF*,IntVect> getSpectralData ();
 
@@ -603,10 +603,8 @@ void R2C<T>::exec_c2c (Plan2 plan, cMF& inout)
 }
 
 template <typename T>
-void R2C<T>::forward (MF const& inmf, Scaling scaling)
+void R2C<T>::forward (MF const& inmf)
 {
-    AMREX_ALWAYS_ASSERT(scaling == Scaling::none); // xxxxx TODO
-
     m_rx.ParallelCopy(inmf, 0, 0, 1);
     exec_r2c(m_fft_fwd_x, m_rx, m_cx);
 
@@ -622,10 +620,8 @@ void R2C<T>::forward (MF const& inmf, Scaling scaling)
 }
 
 template <typename T>
-void R2C<T>::backward (MF& outmf, Scaling scaling)
+void R2C<T>::backward (MF& outmf)
 {
-    AMREX_ALWAYS_ASSERT(scaling == Scaling::none); // xxxxx TODO
-
     exec_c2c<Direction::backward>(m_fft_bwd_z, m_cz);
     if (                          m_cmd_z2y) {
         ParallelCopy(m_cy, m_cz, *m_cmd_z2y, 0, 0, 1, m_dtos_z2y);
@@ -774,9 +770,9 @@ R2C<T>::getSpectralData ()
 }
 
 template <typename T>
-void R2C<T>::forward (MF const& inmf, cMF& outmf, Scaling scaling)
+void R2C<T>::forward (MF const& inmf, cMF& outmf)
 {
-    forward(inmf, scaling);
+    forward(inmf);
     if (!m_cz.empty()) { // m_cz's order (z,x,y) -> (x,y,z)
         RotateBwd dtos{};
         MultiBlockCommMetaData cmd
@@ -792,7 +788,7 @@ void R2C<T>::forward (MF const& inmf, cMF& outmf, Scaling scaling)
 }
 
 template <typename T>
-void R2C<T>::backward (cMF const& inmf, MF& outmf, Scaling scaling)
+void R2C<T>::backward (cMF const& inmf, MF& outmf)
 {
     if (!m_cz.empty()) { // (x,y,z) -> m_cz's order (z,x,y)
         RotateFwd dtos{};
@@ -806,7 +802,7 @@ void R2C<T>::backward (cMF const& inmf, MF& outmf, Scaling scaling)
     } else {
         m_cx.ParallelCopy(inmf, 0, 0, 1);
     }
-    backward(outmf, scaling);
+    backward(outmf);
 }
 
 }
