@@ -7,6 +7,9 @@
 namespace amrex::FFT
 {
 
+/**
+ * \brief Poisson solver for all periodic boundaries using FFT
+ */
 template <typename MF>
 class Poisson
 {
@@ -26,6 +29,10 @@ private:
     R2C<typename MF::value_type, Direction::both> m_r2c;
 };
 
+/**
+ * \brief 3D Poisson solver for periodic boundaries in the first two
+ * dimensions and Neumann in the last dimension.
+ */
 template <typename MF>
 class PoissonHybrid
 {

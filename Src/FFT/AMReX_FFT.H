@@ -49,6 +49,12 @@ public:
                                   MultiFab, FabArray<BaseFab<T> > >;
     using cMF = FabArray<BaseFab<GpuComplex<T> > >;
 
+    /**
+     * \brief Constructor
+     *
+     * \param domain the forward domain (i.e., the domain of the real data)
+     * \param info optional information
+     */
     explicit R2C (Box const& domain, Info const& info = Info{});
 
     ~R2C ();
@@ -58,6 +64,25 @@ public:
     R2C& operator= (R2C const&) = delete;
     R2C& operator= (R2C &&) = delete;
 
+    /**
+     * \brief Forward and then backward transform
+     *
+     * This function is available only when this class template is
+     * instantiated for transforms in both directions. It's more efficient
+     * than calling the forward function that stores the spectral data in a
+     * caller provided container followed by the backward function, because
+     * this can avoid parallel communication between the internal data and
+     * the caller's data container.
+     *
+     * \param inmf         input data in MultiFab or FabArray<BaseFab<float>>
+     * \param outmf        output data in MultiFab or FabArray<BaseFab<float>>
+     * \param post_forward a callable object for processing the post-forward
+     *                     data before the backward transform. Its interface
+     *                     is `(int,int,int,GpuComplex<T>&)`, where the integers
+     *                     are indices in the spectral space, and the reference
+     *                     to the complex number allows for the modification of
+     *                     the spectral data at that location.
+     */
     template <typename F, Direction DIR=D,
               std::enable_if_t<DIR == Direction::both, int> = 0>
     void forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward)
@@ -67,21 +92,65 @@ public:
         this->backward(outmf);
     }
 
+    /**
+     * \brief Forward transform
+     *
+     * The output is stored in this object's internal data. This function is
+     * not available when this class template is instantiated for
+     * backward-only transform.
+     *
+     * \param inmf input data in MultiFab or FabArray<BaseFab<float>>
+     */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
     void forward (MF const& inmf);
 
+    /**
+     * \brief Forward transform
+     *
+     * This function is not available when this class template is
+     * instantiated for backward-only transform.
+     *
+     * \param inmf input data in MultiFab or FabArray<BaseFab<float>>
+     * \param outmf output data in FabArray<BaseFab<GpuComplex<T>>>
+     */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
     void forward (MF const& inmf, cMF& outmf);
 
+    /**
+     * \brief Backward transform
+     *
+     * This function is available only when this class template is
+     * instantiated for transforms in both directions.
+     *
+     * \param outmf output data in MultiFab or FabArray<BaseFab<float>>
+     */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::both, int> = 0>
     void backward (MF& outmf);
 
+    /**
+     * \brief Backward transform
+     *
+     * This function is not available when this class template is
+     * instantiated for forward-only transform.
+     *
+     * \param inmf input data in FabArray<BaseFab<GpuComplex<T>>>
+     * \param outmf output data in MultiFab or FabArray<BaseFab<float>>
+     */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::backward ||
                                                 DIR == Direction::both, int> = 0>
     void backward (cMF const& inmf, MF& outmf);
 
+    /**
+     * \brief Get the internal spectral data
+     *
+     * This function is not available when this class template is
+     * instantiated for backward-only transform. For performance reasons,
+     * the returned data array does not have the usual ordering of
+     * `(x,y,z)`. The order is specified in the second part of the return
+     * value.
+     */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
     std::pair<cMF*,IntVect> getSpectralData ();
