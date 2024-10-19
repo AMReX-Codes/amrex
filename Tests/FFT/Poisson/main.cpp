@@ -17,6 +17,10 @@ int main (int argc, char* argv[])
                      int n_cell_y = 64;,
                      int n_cell_z = 64);
 
+        AMREX_D_TERM(int max_grid_size_x = 32;,
+                     int max_grid_size_y = 32;,
+                     int max_grid_size_z = 32);
+
         AMREX_D_TERM(Real prob_lo_x = 0.;,
                      Real prob_lo_y = 0.;,
                      Real prob_lo_z = 0.);
@@ -29,10 +33,16 @@ int main (int argc, char* argv[])
             AMREX_D_TERM(pp.query("n_cell_x", n_cell_x);,
                          pp.query("n_cell_y", n_cell_y);,
                          pp.query("n_cell_z", n_cell_z));
+            AMREX_D_TERM(pp.query("max_grid_size_x", max_grid_size_x);,
+                         pp.query("max_grid_size_y", max_grid_size_y);,
+                         pp.query("max_grid_size_z", max_grid_size_z));
         }
 
         Box domain(IntVect(0),IntVect(AMREX_D_DECL(n_cell_x-1,n_cell_y-1,n_cell_z-1)));
-        BoxArray ba = amrex::decompose(domain, ParallelDescriptor::NProcs());
+        BoxArray ba(domain);
+        ba.maxSize(IntVect(AMREX_D_DECL(max_grid_size_x,
+                                        max_grid_size_y,
+                                        max_grid_size_z)));
         DistributionMapping dm(ba);
 
         Geometry geom;

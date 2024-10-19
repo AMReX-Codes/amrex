@@ -27,7 +27,21 @@
 namespace amrex::FFT
 {
 
-template <typename T = Real>
+/**
+ * \brief Discrete Fourier Transform
+ *
+ * This class supports Fourier transforms between real and complex data. The
+ * name R2C indicates that the forward transform converts real data to
+ * complex data, while the backward transform converts complex data to real
+ * data. It should be noted that both directions fo transformation are
+ * supported, not just from real to complex. The scaling follows the FFTW
+ * convention, where applying the forward transform followed by the backward
+ * transform scales the original data by the size of the input array.
+ *
+ * For more details, we refer the users to
+ * https://amrex-codes.github.io/amrex/docs_html/FFT_Chapter.html.
+ */
+template <typename T = Real, FFT::Direction D = FFT::Direction::both>
 class R2C
 {
 public:
@@ -44,7 +58,8 @@ public:
     R2C& operator= (R2C const&) = delete;
     R2C& operator= (R2C &&) = delete;
 
-    template <typename F>
+    template <typename F, Direction DIR=D,
+              std::enable_if_t<DIR == Direction::both, int> = 0>
     void forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward)
     {
         this->forward(inmf);
@@ -52,12 +67,23 @@ public:
         this->backward(outmf);
     }
 
+    template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
+                                                DIR == Direction::both, int> = 0>
     void forward (MF const& inmf);
+
+    template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
+                                                DIR == Direction::both, int> = 0>
     void forward (MF const& inmf, cMF& outmf);
 
+    template <Direction DIR=D, std::enable_if_t<DIR == Direction::both, int> = 0>
     void backward (MF& outmf);
+
+    template <Direction DIR=D, std::enable_if_t<DIR == Direction::backward ||
+                                                DIR == Direction::both, int> = 0>
     void backward (cMF const& inmf, MF& outmf);
 
+    template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
+                                                DIR == Direction::both, int> = 0>
     std::pair<cMF*,IntVect> getSpectralData ();
 
     struct Swap01
@@ -220,6 +246,8 @@ private:
     static void destroy_plan (P plan);
     static std::pair<Plan2,Plan2> make_c2c_plans (cMF& inout);
 
+    void backward_doit (MF& outmf);
+
     Plan m_fft_fwd_x{};
     Plan m_fft_bwd_x{};
     Plan2 m_fft_fwd_y{};
@@ -252,8 +280,8 @@ private:
     Info m_info;
 };
 
-template <typename T>
-R2C<T>::R2C (Box const& domain, Info const& info)
+template <typename T, Direction D>
+R2C<T,D>::R2C (Box const& domain, Info const& info)
     : m_real_domain(domain),
       m_spectral_domain_x(IntVect(0), IntVect(AMREX_D_DECL(domain.length(0)/2,
                                                            domain.bigEnd(1),
@@ -305,34 +333,40 @@ R2C<T>::R2C (Box const& domain, Info const& info)
         int howmany = AMREX_D_TERM(1, *local_box.length(1), *local_box.length(2));
 
 #if defined(AMREX_USE_CUDA)
-
-        cufftType fwd_type = std::is_same_v<float,T> ? CUFFT_R2C : CUFFT_D2Z;
-        cufftType bwd_type = std::is_same_v<float,T> ? CUFFT_C2R : CUFFT_Z2D;
-        AMREX_CUFFT_SAFE_CALL
-            (cufftPlanMany(&m_fft_fwd_x.plan, 1, &n,
-                           nullptr, 1, m_real_domain.length(0),
-                           nullptr, 1, m_spectral_domain_x.length(0),
-                           fwd_type, howmany));
-        AMREX_CUFFT_SAFE_CALL(cufftSetStream(m_fft_fwd_x.plan, Gpu::gpuStream()));
-        AMREX_CUFFT_SAFE_CALL
-            (cufftPlanMany(&m_fft_bwd_x.plan, 1, &n,
-                           nullptr, 1, m_spectral_domain_x.length(0),
-                           nullptr, 1, m_real_domain.length(0),
-                           bwd_type, howmany));
-        AMREX_CUFFT_SAFE_CALL(cufftSetStream(m_fft_bwd_x.plan, Gpu::gpuStream()));
-
+        if constexpr (D == Direction::both || D == Direction::forward) {
+            cufftType fwd_type = std::is_same_v<float,T> ? CUFFT_R2C : CUFFT_D2Z;
+            AMREX_CUFFT_SAFE_CALL
+                (cufftPlanMany(&m_fft_fwd_x.plan, 1, &n,
+                               nullptr, 1, m_real_domain.length(0),
+                               nullptr, 1, m_spectral_domain_x.length(0),
+                               fwd_type, howmany));
+            AMREX_CUFFT_SAFE_CALL(cufftSetStream(m_fft_fwd_x.plan, Gpu::gpuStream()));
+        }
+        if constexpr (D == Direction::both || D == Direction::backward) {
+            cufftType bwd_type = std::is_same_v<float,T> ? CUFFT_C2R : CUFFT_Z2D;
+            AMREX_CUFFT_SAFE_CALL
+                (cufftPlanMany(&m_fft_bwd_x.plan, 1, &n,
+                               nullptr, 1, m_spectral_domain_x.length(0),
+                               nullptr, 1, m_real_domain.length(0),
+                               bwd_type, howmany));
+            AMREX_CUFFT_SAFE_CALL(cufftSetStream(m_fft_bwd_x.plan, Gpu::gpuStream()));
+        }
 #elif defined(AMREX_USE_HIP)
 
         auto prec = std::is_same_v<float,T> ? rocfft_precision_single : rocfft_precision_double;
         const std::size_t length = n;
-        AMREX_ROCFFT_SAFE_CALL
-            (rocfft_plan_create(&m_fft_fwd_x.plan, rocfft_placement_notinplace,
-                                rocfft_transform_type_real_forward, prec, 1,
-                                &length, howmany, nullptr));
-        AMREX_ROCFFT_SAFE_CALL
-            (rocfft_plan_create(&m_fft_bwd_x.plan, rocfft_placement_notinplace,
-                                rocfft_transform_type_real_inverse, prec, 1,
-                                &length, howmany, nullptr));
+        if constexpr (D == Direction::both || D == Direction::forward) {
+            AMREX_ROCFFT_SAFE_CALL
+                (rocfft_plan_create(&m_fft_fwd_x.plan, rocfft_placement_notinplace,
+                                    rocfft_transform_type_real_forward, prec, 1,
+                                    &length, howmany, nullptr));
+        }
+        if constexpr (D == Direction::both || D == Direction::backward) {
+            AMREX_ROCFFT_SAFE_CALL
+                (rocfft_plan_create(&m_fft_bwd_x.plan, rocfft_placement_notinplace,
+                                    rocfft_transform_type_real_inverse, prec, 1,
+                                    &length, howmany, nullptr));
+        }
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -362,29 +396,39 @@ R2C<T>::R2C (Box const& domain, Info const& info)
         auto* out = (FFTComplex*)(m_cx[myproc].dataPtr());
 
         if constexpr (std::is_same_v<float,T>) {
-            m_fft_fwd_x.plan = fftwf_plan_many_dft_r2c
-                (1, &n, howmany, in, nullptr, 1, m_real_domain.length(0),
-                 out, nullptr, 1, m_spectral_domain_x.length(0),
-                 FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
-
-            m_fft_bwd_x.plan = fftwf_plan_many_dft_c2r
-                (1, &n, howmany, out, nullptr, 1, m_spectral_domain_x.length(0),
-                 in, nullptr, 1, m_real_domain.length(0),
-                 FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
+            if constexpr (D == Direction::both || D == Direction::forward) {
+                m_fft_fwd_x.plan = fftwf_plan_many_dft_r2c
+                    (1, &n, howmany, in, nullptr, 1, m_real_domain.length(0),
+                     out, nullptr, 1, m_spectral_domain_x.length(0),
+                     FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
+            }
+            if constexpr (D == Direction::both || D == Direction::backward) {
+                m_fft_bwd_x.plan = fftwf_plan_many_dft_c2r
+                    (1, &n, howmany, out, nullptr, 1, m_spectral_domain_x.length(0),
+                     in, nullptr, 1, m_real_domain.length(0),
+                     FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
+            }
         } else {
-            m_fft_fwd_x.plan = fftw_plan_many_dft_r2c
-                (1, &n, howmany, in, nullptr, 1, m_real_domain.length(0),
-                 out, nullptr, 1, m_spectral_domain_x.length(0),
-                 FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
-
-            m_fft_bwd_x.plan = fftw_plan_many_dft_c2r
-                (1, &n, howmany, out, nullptr, 1, m_spectral_domain_x.length(0),
-                 in, nullptr, 1, m_real_domain.length(0),
-                 FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
+            if constexpr (D == Direction::both || D == Direction::forward) {
+                m_fft_fwd_x.plan = fftw_plan_many_dft_r2c
+                    (1, &n, howmany, in, nullptr, 1, m_real_domain.length(0),
+                     out, nullptr, 1, m_spectral_domain_x.length(0),
+                     FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
+            }
+            if constexpr (D == Direction::both || D == Direction::backward) {
+                m_fft_bwd_x.plan = fftw_plan_many_dft_c2r
+                    (1, &n, howmany, out, nullptr, 1, m_spectral_domain_x.length(0),
+                     in, nullptr, 1, m_real_domain.length(0),
+                     FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
+            }
         }
 #endif
-        m_fft_fwd_x.defined = true;
-        m_fft_bwd_x.defined = true;
+        if constexpr (D == Direction::both || D == Direction::forward) {
+            m_fft_fwd_x.defined = true;
+        }
+        if constexpr (D == Direction::both || D == Direction::backward) {
+            m_fft_bwd_x.defined = true;
+        }
     }
 
 #if (AMREX_SPACEDIM >= 2)
@@ -434,9 +478,9 @@ R2C<T>::R2C (Box const& domain, Info const& info)
 #endif
 }
 
-template <typename T>
+template <typename T, Direction D>
 template <typename P>
-void R2C<T>::destroy_plan (P plan)
+void R2C<T,D>::destroy_plan (P plan)
 {
     if (! plan.defined) { return; }
 
@@ -457,14 +501,23 @@ void R2C<T>::destroy_plan (P plan)
     plan.defined = false;
 }
 
-template <typename T>
-R2C<T>::~R2C<T> ()
+template <typename T, Direction D>
+R2C<T,D>::~R2C<T,D> ()
 {
+#if defined(AMREX_USE_SYCL)
+    if constexpr (D == Direction::both || D == Direction::forward) {
+        destroy_plan(m_fft_fwd_x);
+        destroy_plan(m_fft_fwd_y);
+        destroy_plan(m_fft_fwd_z);
+    } else {
+        destroy_plan(m_fft_bwd_x);
+        destroy_plan(m_fft_bwd_y);
+        destroy_plan(m_fft_bwd_z);
+    }
+#else
     destroy_plan(m_fft_fwd_x);
     destroy_plan(m_fft_fwd_y);
     destroy_plan(m_fft_fwd_z);
-#if !defined(AMREX_USE_SYCL)
-    // For SYCL the same plans are used for both forward and backward transforms.
     destroy_plan(m_fft_bwd_x);
     destroy_plan(m_fft_bwd_y);
     destroy_plan(m_fft_bwd_z);
@@ -507,8 +560,8 @@ void sycl_execute (P plan, TI* in, TO* out)
 }
 #endif
 
-template <typename T>
-void R2C<T>::exec_r2c (Plan plan, MF& in, cMF& out)
+template <typename T, Direction D>
+void R2C<T,D>::exec_r2c (Plan plan, MF& in, cMF& out)
 {
     if (! plan.defined) { return; }
 
@@ -538,8 +591,8 @@ void R2C<T>::exec_r2c (Plan plan, MF& in, cMF& out)
 #endif
 }
 
-template <typename T>
-void R2C<T>::exec_c2r (Plan plan, cMF& in, MF& out)
+template <typename T, Direction D>
+void R2C<T,D>::exec_c2r (Plan plan, cMF& in, MF& out)
 {
     if (! plan.defined) { return; }
 
@@ -569,9 +622,9 @@ void R2C<T>::exec_c2r (Plan plan, cMF& in, MF& out)
 #endif
 }
 
-template <typename T>
+template <typename T, Direction D>
 template <Direction direction>
-void R2C<T>::exec_c2c (Plan2 plan, cMF& inout)
+void R2C<T,D>::exec_c2c (Plan2 plan, cMF& inout)
 {
     if (! plan.defined) { return; }
 
@@ -602,8 +655,10 @@ void R2C<T>::exec_c2c (Plan2 plan, cMF& inout)
 #endif
 }
 
-template <typename T>
-void R2C<T>::forward (MF const& inmf)
+template <typename T, Direction D>
+template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
+                                          DIR == Direction::both, int> >
+void R2C<T,D>::forward (MF const& inmf)
 {
     m_rx.ParallelCopy(inmf, 0, 0, 1);
     exec_r2c(m_fft_fwd_x, m_rx, m_cx);
@@ -619,8 +674,15 @@ void R2C<T>::forward (MF const& inmf)
     exec_c2c<Direction::forward>(m_fft_fwd_z, m_cz);
 }
 
-template <typename T>
-void R2C<T>::backward (MF& outmf)
+template <typename T, Direction D>
+template <Direction DIR, std::enable_if_t<DIR == Direction::both, int> >
+void R2C<T,D>::backward (MF& outmf)
+{
+    backward_doit(outmf);
+}
+
+template <typename T, Direction D>
+void R2C<T,D>::backward_doit (MF& outmf)
 {
     exec_c2c<Direction::backward>(m_fft_bwd_z, m_cz);
     if (                          m_cmd_z2y) {
@@ -636,9 +698,9 @@ void R2C<T>::backward (MF& outmf)
     outmf.ParallelCopy(m_rx, 0, 0, 1);
 }
 
-template <typename T>
-std::pair<typename R2C<T>::Plan2, typename R2C<T>::Plan2>
-R2C<T>::make_c2c_plans (cMF& inout)
+template <typename T, Direction D>
+std::pair<typename R2C<T,D>::Plan2, typename R2C<T,D>::Plan2>
+R2C<T,D>::make_c2c_plans (cMF& inout)
 {
     Plan2 fwd;
     Plan2 bwd;
@@ -653,27 +715,37 @@ R2C<T>::make_c2c_plans (cMF& inout)
 
 #if defined(AMREX_USE_CUDA)
 
-    cufftType fwd_type = std::is_same_v<float,T> ? CUFFT_C2C : CUFFT_Z2Z;
-    cufftType bwd_type = std::is_same_v<float,T> ? CUFFT_C2C : CUFFT_Z2Z;
-    AMREX_CUFFT_SAFE_CALL
-        (cufftPlanMany(&fwd.plan, 1, &n, nullptr, 1, n, nullptr, 1, n, fwd_type, howmany));
-    AMREX_CUFFT_SAFE_CALL(cufftSetStream(fwd.plan, Gpu::gpuStream()));
-    AMREX_CUFFT_SAFE_CALL
-        (cufftPlanMany(&bwd.plan, 1, &n, nullptr, 1, n, nullptr, 1, n, bwd_type, howmany));
-    AMREX_CUFFT_SAFE_CALL(cufftSetStream(bwd.plan, Gpu::gpuStream()));
+    if constexpr (D == Direction::both || D == Direction::forward) {
+        cufftType fwd_type = std::is_same_v<float,T> ? CUFFT_C2C : CUFFT_Z2Z;
+        AMREX_CUFFT_SAFE_CALL
+            (cufftPlanMany(&fwd.plan, 1, &n, nullptr, 1, n, nullptr, 1, n,
+                           fwd_type, howmany));
+        AMREX_CUFFT_SAFE_CALL(cufftSetStream(fwd.plan, Gpu::gpuStream()));
+    }
+    if constexpr (D == Direction::both || D == Direction::backward) {
+        cufftType bwd_type = std::is_same_v<float,T> ? CUFFT_C2C : CUFFT_Z2Z;
+        AMREX_CUFFT_SAFE_CALL
+            (cufftPlanMany(&bwd.plan, 1, &n, nullptr, 1, n, nullptr, 1, n,
+                           bwd_type, howmany));
+        AMREX_CUFFT_SAFE_CALL(cufftSetStream(bwd.plan, Gpu::gpuStream()));
+    }
 
 #elif defined(AMREX_USE_HIP)
 
     auto prec = std::is_same_v<float,T> ? rocfft_precision_single : rocfft_precision_double;
     const std::size_t length = n;
-    AMREX_ROCFFT_SAFE_CALL
-        (rocfft_plan_create(&fwd.plan, rocfft_placement_inplace,
-                            rocfft_transform_type_complex_forward, prec, 1, &length, howmany,
-                            nullptr));
-    AMREX_ROCFFT_SAFE_CALL
-        (rocfft_plan_create(&bwd.plan, rocfft_placement_inplace,
-                            rocfft_transform_type_complex_inverse, prec, 1, &length, howmany,
-                            nullptr));
+    if constexpr (D == Direction::both || D == Direction::forward) {
+        AMREX_ROCFFT_SAFE_CALL
+            (rocfft_plan_create(&fwd.plan, rocfft_placement_inplace,
+                                rocfft_transform_type_complex_forward, prec, 1,
+                                &length, howmany, nullptr));
+    }
+    if constexpr (D == Direction::both || D == Direction::backward) {
+        AMREX_ROCFFT_SAFE_CALL
+            (rocfft_plan_create(&bwd.plan, rocfft_placement_inplace,
+                                rocfft_transform_type_complex_inverse, prec, 1,
+                                &length, howmany, nullptr));
+    }
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -697,27 +769,39 @@ R2C<T>::make_c2c_plans (cMF& inout)
     auto* pinout = (FFTComplex*)fab->dataPtr();
 
     if constexpr (std::is_same_v<float,T>) {
-        fwd.plan = fftwf_plan_many_dft(1, &n, howmany, pinout, nullptr, 1, n,
-                                       pinout, nullptr, 1, n, -1, FFTW_ESTIMATE);
-        bwd.plan = fftwf_plan_many_dft(1, &n, howmany, pinout, nullptr, 1, n,
-                                       pinout, nullptr, 1, n, +1, FFTW_ESTIMATE);
+        if constexpr (D == Direction::both || D == Direction::forward) {
+            fwd.plan = fftwf_plan_many_dft(1, &n, howmany, pinout, nullptr, 1, n,
+                                           pinout, nullptr, 1, n, -1, FFTW_ESTIMATE);
+        }
+        if constexpr (D == Direction::both || D == Direction::backward) {
+            bwd.plan = fftwf_plan_many_dft(1, &n, howmany, pinout, nullptr, 1, n,
+                                           pinout, nullptr, 1, n, +1, FFTW_ESTIMATE);
+        }
     } else {
-        fwd.plan = fftw_plan_many_dft(1, &n, howmany, pinout, nullptr, 1, n,
-                                      pinout, nullptr, 1, n, -1, FFTW_ESTIMATE);
-        bwd.plan = fftw_plan_many_dft(1, &n, howmany, pinout, nullptr, 1, n,
-                                      pinout, nullptr, 1, n, +1, FFTW_ESTIMATE);
+        if constexpr (D == Direction::both || D == Direction::forward) {
+            fwd.plan = fftw_plan_many_dft(1, &n, howmany, pinout, nullptr, 1, n,
+                                          pinout, nullptr, 1, n, -1, FFTW_ESTIMATE);
+        }
+        if constexpr (D == Direction::both || D == Direction::backward) {
+            bwd.plan = fftw_plan_many_dft(1, &n, howmany, pinout, nullptr, 1, n,
+                                          pinout, nullptr, 1, n, +1, FFTW_ESTIMATE);
+        }
     }
 #endif
 
-    fwd.defined = true;
-    bwd.defined = true;
+    if constexpr (D == Direction::both || D == Direction::forward) {
+        fwd.defined = true;
+    }
+    if constexpr (D == Direction::both || D == Direction::backward) {
+        bwd.defined = true;
+    }
 
     return {fwd,bwd};
 }
 
-template <typename T>
+template <typename T, Direction D>
 template <typename F>
-void R2C<T>::post_forward_doit (F const& post_forward)
+void R2C<T,D>::post_forward_doit (F const& post_forward)
 {
     if (m_info.batch_mode) {
         amrex::Abort("xxxxx todo: post_forward");
@@ -756,9 +840,11 @@ void R2C<T>::post_forward_doit (F const& post_forward)
     }
 }
 
-template <typename T>
-std::pair<typename R2C<T>::cMF *, IntVect>
-R2C<T>::getSpectralData ()
+template <typename T, Direction D>
+template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
+                                          DIR == Direction::both, int> >
+std::pair<typename R2C<T,D>::cMF *, IntVect>
+R2C<T,D>::getSpectralData ()
 {
     if (!m_cz.empty()) {
         return std::make_pair(&m_cz, IntVect{AMREX_D_DECL(2,0,1)});
@@ -769,8 +855,10 @@ R2C<T>::getSpectralData ()
     }
 }
 
-template <typename T>
-void R2C<T>::forward (MF const& inmf, cMF& outmf)
+template <typename T, Direction D>
+template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
+                                          DIR == Direction::both, int> >
+void R2C<T,D>::forward (MF const& inmf, cMF& outmf)
 {
     forward(inmf);
     if (!m_cz.empty()) { // m_cz's order (z,x,y) -> (x,y,z)
@@ -787,8 +875,10 @@ void R2C<T>::forward (MF const& inmf, cMF& outmf)
     }
 }
 
-template <typename T>
-void R2C<T>::backward (cMF const& inmf, MF& outmf)
+template <typename T, Direction D>
+template <Direction DIR, std::enable_if_t<DIR == Direction::backward ||
+                                          DIR == Direction::both, int> >
+void R2C<T,D>::backward (cMF const& inmf, MF& outmf)
 {
     if (!m_cz.empty()) { // (x,y,z) -> m_cz's order (z,x,y)
         RotateFwd dtos{};
@@ -802,7 +892,7 @@ void R2C<T>::backward (cMF const& inmf, MF& outmf)
     } else {
         m_cx.ParallelCopy(inmf, 0, 0, 1);
     }
-    backward(outmf);
+    backward_doit(outmf);
 }
 
 }

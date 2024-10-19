@@ -23,7 +23,7 @@ public:
 
 private:
     Geometry m_geom;
-    R2C<typename MF::value_type> m_r2c;
+    R2C<typename MF::value_type, Direction::both> m_r2c;
 };
 
 template <typename MF>
@@ -46,7 +46,7 @@ public:
 
 private:
     Geometry m_geom;
-    R2C<typename MF::value_type> m_r2c;
+    R2C<typename MF::value_type, Direction::both> m_r2c;
 };
 
 template <typename MF>

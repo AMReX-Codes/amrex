@@ -7,7 +7,7 @@
 namespace amrex::FFT
 {
 
-enum struct Direction { forward, backward };
+enum struct Direction { forward, backward, both };
 
 struct Info
 {
