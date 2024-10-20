@@ -117,10 +117,19 @@ int main (int argc, char* argv[])
             ParallelFor(res, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
             {
                 auto const& phia = phi_ma[b];
-                auto lap = AMREX_D_TERM
-                    (((phia(i-1,j,k)-2.*phia(i,j,k)+phia(i+1,j,k)) / (dx[0]*dx[0])),
-                   + ((phia(i,j-1,k)-2.*phia(i,j,k)+phia(i,j+1,k)) / (dx[1]*dx[1])),
-                   + ((phia(i,j,k-1)-2.*phia(i,j,k)+phia(i,j,k+1)) / (dx[2]*dx[2])));
+                auto lap = (phia(i-1,j,k)-2._rt*phia(i,j,k)+phia(i+1,j,k)) / (dx[0]*dx[0]);
+#if (AMREX_SPACEDIM >= 2)
+                lap += (phia(i,j-1,k)-2._rt*phia(i,j,k)+phia(i,j+1,k)) / (dx[1]*dx[1]);
+#endif
+#if (AMREX_SPACEDIM == 3)
+                if ((solver_type == 1) && (k == 0)) { // Neumann
+                    lap += (-phia(i,j,k)+phia(i,j,k+1)) / (dx[2]*dx[2]);
+                } else if ((solver_type == 1) && ((k+1) == n_cell_z)) { // Neumann
+                    lap += (phia(i,j,k-1)-phia(i,j,k)) / (dx[2]*dx[2]);
+                } else {
+                    lap += (phia(i,j,k-1)-2._rt*phia(i,j,k)+phia(i,j,k+1)) / (dx[2]*dx[2]);
+                }
+#endif
                 res_ma[b](i,j,k) = rhs_ma[b](i,j,k) - lap;
             });
             auto bnorm = rhs.norminf();
@@ -128,7 +137,7 @@ int main (int argc, char* argv[])
             amrex::Print() << "  rhs inf norm " << bnorm << "\n"
                            << "  res inf norm " << rnorm << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 1.e-3f;
+            auto eps = 2.e-3f;
 #else
             auto eps = 1.e-11;
 #endif

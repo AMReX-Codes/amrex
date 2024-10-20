@@ -120,7 +120,7 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs)
 
     Box cdomain = m_geom.Domain();
     cdomain.setBig(0,cdomain.length(0)/2);
-    auto cba = amrex::decompose(cdomain, ParallelDescriptor::NProcs(),
+    auto cba = amrex::decompose(cdomain, ParallelContext::NProcsSub(),
                                 {AMREX_D_DECL(true,true,false)});
     DistributionMapping dm = detail::make_iota_distromap(cba.size());
     FabArray<BaseFab<GpuComplex<T> > > spmf(cba, dm, 1, 0);

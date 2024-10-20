@@ -6,9 +6,11 @@ namespace amrex::FFT::detail
 
 DistributionMapping make_iota_distromap (Long n)
 {
-    AMREX_ASSERT(n <= ParallelDescriptor::NProcs());
+    AMREX_ASSERT(n <= ParallelContext::NProcsSub());
     Vector<int> pm(n);
-    std::iota(pm.begin(), pm.end(), 0);
+    for (int i = 0; i < n; ++i) {
+        pm[i] = ParallelContext::local_to_global_rank(i);
+    }
     return DistributionMapping(std::move(pm));
 }
 

@@ -298,7 +298,7 @@ private:
     template <typename FA>
     static typename FA::FABType::value_type *
     get_fab (FA& fa) {
-        auto myproc = ParallelDescriptor::MyProc();
+        auto myproc = ParallelContext::MyProcSub();
         if (myproc < fa.size()) {
             return fa.fabPtr(myproc);
         } else {
@@ -378,8 +378,8 @@ R2C<T,D>::R2C (Box const& domain, Info const& info)
     AMREX_ALWAYS_ASSERT(! m_info.batch_mode);
 #endif
 
-    int myproc = ParallelDescriptor::MyProc();
-    int nprocs = ParallelDescriptor::NProcs();
+    int myproc = ParallelContext::MyProcSub();
+    int nprocs = ParallelContext::NProcsSub();
 
     auto bax = amrex::decompose(m_real_domain, nprocs, {AMREX_D_DECL(false,true,true)});
     DistributionMapping dmx = detail::make_iota_distromap(bax.size());
@@ -635,8 +635,8 @@ void R2C<T,D>::exec_r2c (Plan plan, MF& in, cMF& out)
     if (! plan.defined) { return; }
 
 #if defined(AMREX_USE_GPU)
-    auto* pin = in[ParallelDescriptor::MyProc()].dataPtr();
-    auto* pout = out[ParallelDescriptor::MyProc()].dataPtr();
+    auto* pin = in[ParallelContext::MyProcSub()].dataPtr();
+    auto* pout = out[ParallelContext::MyProcSub()].dataPtr();
 #else
     amrex::ignore_unused(in,out);
 #endif
@@ -666,8 +666,8 @@ void R2C<T,D>::exec_c2r (Plan plan, cMF& in, MF& out)
     if (! plan.defined) { return; }
 
 #if defined(AMREX_USE_GPU)
-    auto* pin = in[ParallelDescriptor::MyProc()].dataPtr();
-    auto* pout = out[ParallelDescriptor::MyProc()].dataPtr();
+    auto* pin = in[ParallelContext::MyProcSub()].dataPtr();
+    auto* pout = out[ParallelContext::MyProcSub()].dataPtr();
 #else
     amrex::ignore_unused(in,out);
 #endif
@@ -699,7 +699,7 @@ void R2C<T,D>::exec_c2c (Plan2 plan, cMF& inout)
 
     amrex::ignore_unused(inout);
 #if defined(AMREX_USE_GPU)
-    auto* p = inout[ParallelDescriptor::MyProc()].dataPtr();
+    auto* p = inout[ParallelContext::MyProcSub()].dataPtr();
 #endif
 
 #if defined(AMREX_USE_CUDA)
