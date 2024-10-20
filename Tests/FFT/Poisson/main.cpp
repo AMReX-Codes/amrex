@@ -14,8 +14,8 @@ int main (int argc, char* argv[])
         BL_PROFILE("main");
 
         AMREX_D_TERM(int n_cell_x = 64;,
-                     int n_cell_y = 64;,
-                     int n_cell_z = 64);
+                     int n_cell_y = 32;,
+                     int n_cell_z = 128);
 
         AMREX_D_TERM(int max_grid_size_x = 32;,
                      int max_grid_size_y = 32;,

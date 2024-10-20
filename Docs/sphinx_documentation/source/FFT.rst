@@ -56,7 +56,9 @@ Below are examples of using :cpp:`FFT:R2C`.
 
 Note that using :cpp:`forwardThenBackward` is expected to be more efficient
 than separate calls to :cpp:`forward` and :cpp:`backward` because some
-parallel communication can be avoided.
+parallel communication can be avoided. It should also be noted that a lot of
+preparation works are done in the construction of an :cpp:`FFT::R2C`
+object. Therefore, one should cache it for reuse if possible.
 
 
 Poisson Solver
@@ -65,4 +67,5 @@ Poisson Solver
 AMReX provides FFT based Poisson solvers. :cpp:`FFT::Poisson` supports all
 periodic boundaries using purely FFT. :cpp:`FFT::PoissonHybrid` is a 3D only
 solver that supports periodic boundaries in the first two dimensions and
-Neumann boundary in the last dimension.
+Neumann boundary in the last dimension. Similar to :cpp:`FFT::R2C`, the
+Poisson solvers should be cached for reuse.
