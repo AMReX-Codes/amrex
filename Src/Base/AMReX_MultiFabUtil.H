@@ -169,7 +169,8 @@ namespace amrex
     std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord,
                                              const MultiFab& cc,
                                              const Geometry& geom, int start_comp, int ncomp,
-                                             bool interpolate=false);
+                                             bool interpolate=false,
+                                             RealBox const& bnd_rbx = RealBox());
 
     /**
      * \brief Get data in a cell of MultiFab/FabArray
@@ -188,7 +189,7 @@ namespace amrex
      * specified by a direction and a cell.
      */
     template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> FOO = 0>
-    MF get_line_data (MF const& mf, int dir, IntVect const& cell);
+    MF get_line_data (MF const& mf, int dir, IntVect const& cell, Box const& bnd_bx = Box());
 
     //! Return an iMultiFab that has the same BoxArray and DistributionMapping
     //! as the coarse MultiFab cmf. Cells covered by the coarsened fine grids
@@ -996,8 +997,10 @@ Vector<typename MF::value_type> get_cell_data (MF const& mf, IntVect const& cell
 }
 
 template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> FOO>
-MF get_line_data (MF const& mf, int dir, IntVect const& cell)
+MF get_line_data (MF const& mf, int dir, IntVect const& cell, Box const& bnd_bx)
 {
+    bool do_bnd = (!bnd_bx.isEmpty());
+
     BoxArray const& ba = mf.boxArray();
     DistributionMapping const& dm = mf.DistributionMap();
     const auto nboxes = static_cast<int>(ba.size());
@@ -1005,17 +1008,29 @@ MF get_line_data (MF const& mf, int dir, IntVect const& cell)
     BoxList bl(ba.ixType());
     Vector<int> procmap;
     Vector<int> index_map;
-    for (int i = 0; i < nboxes; ++i) {
-        Box const& b = ba[i];
-        IntVect lo = cell;
-        lo[dir] = b.smallEnd(dir);
-        if (b.contains(lo)) {
-            IntVect hi = lo;
-            hi[dir] = b.bigEnd(dir);
-            Box b1d(lo,hi,b.ixType());
-            bl.push_back(b1d);
-            procmap.push_back(dm[i]);
-            index_map.push_back(i);
+    if (!do_bnd) {
+        for (int i = 0; i < nboxes; ++i) {
+            Box const& b = ba[i];
+            IntVect lo = cell;
+            lo[dir] = b.smallEnd(dir);
+            if (b.contains(lo)) {
+                IntVect hi = lo;
+                hi[dir] = b.bigEnd(dir);
+                Box b1d(lo,hi,b.ixType());
+                bl.push_back(b1d);
+                procmap.push_back(dm[i]);
+                index_map.push_back(i);
+            }
+        }
+    } else {
+        for (int i = 0; i < nboxes; ++i) {
+            Box const& b   = ba[i];
+            Box const& b1d = bnd_bx & b;
+            if (b1d.ok()) {
+                bl.push_back(b1d);
+                procmap.push_back(dm[i]);
+                index_map.push_back(i);
+            }
         }
     }
 

@@ -9,7 +9,7 @@ namespace {
     using namespace amrex;
 
     Box
-    getIndexBox(const RealBox& real_box, const Geometry& geom) {
+    getIndexBox (const RealBox& real_box, const Geometry& geom) {
         IntVect slice_lo, slice_hi;
 
         AMREX_D_TERM(slice_lo[0]=static_cast<int>(std::floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0)));,
@@ -24,12 +24,11 @@ namespace {
     }
 
 
-    std::unique_ptr<MultiFab> allocateSlice(int dir, const MultiFab& cell_centered_data,
-                                            int ncomp, const Geometry& geom, Real dir_coord,
-                                            Vector<int>& slice_to_full_ba_map) {
+    std::unique_ptr<MultiFab> allocateSlice (int dir, const MultiFab& cell_centered_data,
+                                             int ncomp, const Geometry& geom, Real dir_coord,
+                                             Vector<int>& slice_to_full_ba_map, RealBox real_slice) {
 
         // Get our slice and convert to index space
-        RealBox real_slice = geom.ProbDomain();
         real_slice.setLo(dir, dir_coord);
         real_slice.setHi(dir, dir_coord);
         Box slice_box = getIndexBox(real_slice, geom);
@@ -550,7 +549,7 @@ namespace amrex
         return amrex::cast<FabArray<BaseFab<Long> > > (imf);
     }
 
-    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate) {
+    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate, RealBox const& bnd_rbx) {
 
         BL_PROFILE("amrex::get_slice_data");
 
@@ -559,9 +558,15 @@ namespace amrex
         }
 
         const auto geomdata = geom.data();
+        RealBox real_slice;
+        if (bnd_rbx.ok()) {
+            real_slice = bnd_rbx;
+        } else {
+            real_slice = geom.ProbDomain();
+        }
 
         Vector<int> slice_to_full_ba_map;
-        std::unique_ptr<MultiFab> slice = allocateSlice(dir, cc, ncomp, geom, coord, slice_to_full_ba_map);
+        std::unique_ptr<MultiFab> slice = allocateSlice(dir, cc, ncomp, geom, coord, slice_to_full_ba_map, real_slice);
 
         if (!slice) {
             return nullptr;
