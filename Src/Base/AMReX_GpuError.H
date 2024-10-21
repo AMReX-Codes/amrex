@@ -84,6 +84,16 @@ namespace Gpu {
     std::string errStr(std::string("CURAND error in file ") + __FILE__  \
                        + " line " + std::to_string(__LINE__));          \
     amrex::Abort(errStr); }} while(0)
+
+#define AMREX_CUFFT_SAFE_CALL(call) { \
+    cufftResult_t amrex_i_err = call; \
+    if (CUFFT_SUCCESS != amrex_i_err) { \
+        std::string errStr(std::string("CUFFT error ")+std::to_string(amrex_i_err) \
+                           + std::string(" in file ") + __FILE__        \
+                           + " line " + std::to_string(__LINE__));      \
+        amrex::Abort(errStr); \
+    }}
+
 #endif
 
 #ifdef AMREX_USE_HIP
@@ -100,6 +110,16 @@ namespace Gpu {
     std::string errStr(std::string("HIPRAND error in file ") + __FILE__  \
                        + " line " + std::to_string(__LINE__));          \
     amrex::Abort(errStr); }} while(0)
+
+#define AMREX_ROCFFT_SAFE_CALL(call) { \
+    auto amrex_i_err = call; \
+    if (rocfft_status_success != amrex_i_err) { \
+        std::string errStr(std::string("rocFFT error ")+std::to_string(amrex_i_err) \
+                           + std::string(" in file ") + __FILE__        \
+                           + " line " + std::to_string(__LINE__));      \
+        amrex::Abort(errStr); \
+    }}
+
 #endif
 
 #define AMREX_GPU_ERROR_CHECK() amrex::Gpu::ErrorCheck(__FILE__, __LINE__)

@@ -294,6 +294,9 @@ cmake_dependent_option( AMReX_LINEAR_SOLVERS_EM
     "AMReX_LINEAR_SOLVERS" OFF)
 print_option( AMReX_LINEAR_SOLVERS_EM )
 
+option( AMReX_FFT  "Build AMReX FFT" OFF )
+print_option( AMReX_FFT )
+
 option( AMReX_AMRDATA "Build data services" OFF )
 print_option( AMReX_AMRDATA )
 

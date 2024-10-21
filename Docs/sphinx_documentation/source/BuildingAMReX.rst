@@ -475,6 +475,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_EB                     |  Build Embedded Boundary support                | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_FFT                    |  Build FFT support                              | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PARTICLES              |  Build particle classes                         | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PARTICLES_PRECISION    |  Set reals precision in particle classes        | Same as AMReX_PRECISION | DOUBLE, SINGLE        |
@@ -696,6 +698,8 @@ A list of AMReX component names and related configure options are shown in the t
    | AMReX_AMRLEVEL               | AMRLEVEL        |
    +------------------------------+-----------------+
    | AMReX_EB                     | EB              |
+   +------------------------------+-----------------+
+   | AMReX_FFT                    | FFT             |
    +------------------------------+-----------------+
    | AMReX_PARTICLES              | PARTICLES       |
    +------------------------------+-----------------+

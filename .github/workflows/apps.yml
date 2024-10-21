@@ -95,6 +95,7 @@ jobs:
             -DWarpX_OPENPMD=OFF                   \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache  \
+            -DAMReX_FFT=ON                        \
             -DAMReX_LINEAR_SOLVER_INCFLO=OFF
         cmake --build WarpX/build -j 4
 
