@@ -549,7 +549,7 @@ namespace amrex
         return amrex::cast<FabArray<BaseFab<Long> > > (imf);
     }
 
-    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate, RealBox bnd_rbx) {
+    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate, RealBox const& bnd_rbx) {
 
         BL_PROFILE("amrex::get_slice_data");
 
