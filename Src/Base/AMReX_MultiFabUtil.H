@@ -1025,7 +1025,7 @@ MF get_line_data (MF const& mf, int dir, IntVect const& cell, Box const& bnd_bx)
     } else {
         for (int i = 0; i < nboxes; ++i) {
             Box const& b   = ba[i];
-            Box const& b1d = bnd_box & b;
+            Box const& b1d = bnd_bx & b;
             if (b1d.ok()) {
                 bl.push_back(b1d);
                 procmap.push_back(dm[i]);
