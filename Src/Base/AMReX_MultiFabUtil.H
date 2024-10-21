@@ -1024,14 +1024,9 @@ MF get_line_data (MF const& mf, int dir, IntVect const& cell, Box const& bnd_bx)
         }
     } else {
         for (int i = 0; i < nboxes; ++i) {
-            Box const& b = ba[i];
-            IntVect lo = bnd_bx.smallEnd();
-            IntVect hi = bnd_bx.bigEnd();
-            if (!b.contains(lo)) { lo[dir] = b.smallEnd(dir); }
-            if (b.contains(lo)) {
-                if (!b.contains(hi)) { hi[dir] = b.bigEnd(dir); }
-                if (!bnd_bx.contains(hi)) { continue; }
-                Box b1d(lo,hi,b.ixType());
+            Box const& b   = ba[i];
+            Box const& b1d = bnd_box & b;
+            if (b1d.ok()) {
                 bl.push_back(b1d);
                 procmap.push_back(dm[i]);
                 index_map.push_back(i);
