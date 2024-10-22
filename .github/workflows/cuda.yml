@@ -7,10 +7,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
   # Build libamrex and all tests with CUDA 11.2
   tests-cuda11:
     name: CUDA@11.2 GNU@9.3.0 C++17 Release [tests]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -62,6 +67,8 @@ jobs:
   tests-cuda11-clang:
     name: Clang@15 CUDA@11.7 C++17 Release [tests]
     runs-on: ubuntu-22.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     env:
       CC: clang-15
       CXX: clang++-15
@@ -115,6 +122,8 @@ jobs:
   tests-nvhpc-nvcc:
     name: NVHPC NVCC/NVC++ C++17 Release [tests]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -178,6 +187,8 @@ jobs:
   configure-3d-cuda:
     name: CUDA@11.2 GNU@9.3.0 [configure 3D]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies

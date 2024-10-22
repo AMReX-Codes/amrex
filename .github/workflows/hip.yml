@@ -7,9 +7,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
   tests-hip:
     name: HIP ROCm Flang C++17 [tests]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -69,6 +74,8 @@ jobs:
   tests-hip-wrapper:
     name: HIP ROCm GFortran@9.3 C++17 [tests-hipcc]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -127,6 +134,8 @@ jobs:
   configure-2d-single-hip:
     name: HIP EB [configure 2D]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -160,6 +169,8 @@ jobs:
   hip-3d-eb-gmake:
     name: HIP EB 3D GMake
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies

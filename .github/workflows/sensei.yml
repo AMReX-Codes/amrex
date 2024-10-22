@@ -9,9 +9,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
   test_sensei:
     name: SENSEI Adaptor [test]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     env:
       CXX: clang++
       CC: clang
