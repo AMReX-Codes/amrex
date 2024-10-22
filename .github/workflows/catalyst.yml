@@ -7,10 +7,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
   catalyst:
     name: Catalyst
     runs-on: ubuntu-22.04
-    if: github.event.pull_request.draft == false
+    needs: check_changes
+    if: github.event.pull_request.draft == false && needs.check_changes.outputs.has_non_docs_changes == 'true'
     env:
       CXX: g++
       CC: gcc

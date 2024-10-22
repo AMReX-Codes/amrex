@@ -13,8 +13,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
   analyze:
-    if: ${{ github.repository == 'AMReX-Codes/amrex' || github.event_name != 'schedule' }}
+    needs: check_changes
+    if: ${{ github.repository == 'AMReX-Codes/amrex' || github.event_name != 'schedule' }} && needs.check_changes.outputs.has_non_docs_changes == 'true'
     name: Analyze
     runs-on: ubuntu-latest
     permissions:

@@ -7,10 +7,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
   # Build libamrex and all tests
   tests-macos-universal-nompi:
     name: AppleClang Universal w/o MPI [tests-universal]
     runs-on: macos-latest
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -55,6 +60,8 @@ jobs:
   tests-macos:
     name: AppleClang@11.0 GFortran@9.3 [tests]
     runs-on: macos-latest
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies

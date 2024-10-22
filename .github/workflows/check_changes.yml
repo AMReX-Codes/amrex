@@ -1,0 +1,29 @@
+name: Check Changes
+
+on:
+  workflow_call:
+    outputs:
+      has_docs_changes:
+        value: ${{ jobs.check.outputs.has_docs_changes }}
+      has_non_docs_changes:
+        value: ${{ jobs.check.outputs.has_non_docs_changes }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      has_non_docs_changes: ${{ steps.set-output.outputs.has_non_docs_changes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            docs:
+              - 'Docs/**'
+            others:
+              - '!Docs/**'
+      - id: set-output
+        run: |
+          echo "has_docs_changes=${{ steps.changes.outputs.docs }}" >> $GITHUB_OUTPUT
+          echo "has_non_docs_changes=${{ steps.changes.outputs.others }}" >> $GITHUB_OUTPUT
