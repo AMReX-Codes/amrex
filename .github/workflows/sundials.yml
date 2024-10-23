@@ -7,9 +7,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
   sundials-cpu:
     name: GCC SUNDIALS@6.5.0
     runs-on: ubuntu-22.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     env:
        CCACHE_COMPRESS: 1
        CCACHE_COMPRESSLEVEL: 10
@@ -70,6 +75,8 @@ jobs:
   sundials-cuda:
     name: CUDA SUNDIALS@7.0.0
     runs-on: ubuntu-22.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     env:
        CCACHE_COMPRESS: 1
        CCACHE_COMPRESSLEVEL: 10

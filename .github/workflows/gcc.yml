@@ -10,11 +10,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
   # Build and install libamrex as AMReX CMake project
   # Note: this is an intentional "minimal" build that does not enable (many) options
   library:
     name: GNU@8.4 C++17 Release [lib]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -72,6 +77,8 @@ jobs:
   tests_build_3D:
     name: GNU@13 C++17 3D Debug Fortran [tests]
     runs-on: ubuntu-24.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -121,6 +128,8 @@ jobs:
   tests_build_2D:
     name: GNU@9.3 C++17 2D Debug Fortran [tests]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -170,6 +179,8 @@ jobs:
   tests_build_1D:
     name: GNU@9.3 C++17 1D Debug Fortran [tests]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -221,6 +232,8 @@ jobs:
   tests_cxx20:
     name: GNU@10.1 C++20 OMP [tests]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -281,6 +294,8 @@ jobs:
   tests-nonmpi:
     name: GNU@8.4 C++17 NOMPI [tests]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -340,6 +355,8 @@ jobs:
   tests-nofortran:
     name: GNU@12 C++17 w/o Fortran [tests]
     runs-on: ubuntu-22.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -401,6 +418,8 @@ jobs:
   configure-1d:
     name: GNU@9.3 Release [configure 1D]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -441,6 +460,8 @@ jobs:
   configure-3d:
     name: GNU@11.2 Release [configure 3D]
     runs-on: ubuntu-22.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -481,6 +502,8 @@ jobs:
   configure-3d-single-tprof:
     name: GNU@9.3 Release [configure 3D]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -522,6 +545,8 @@ jobs:
   configure-3d-omp-debug:
     name: GNU@9.3 OMP Debug [configure 3D]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -562,6 +587,8 @@ jobs:
   plotfile-tools:
     name: GNU Plotfile Tools [tools]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -601,6 +628,8 @@ jobs:
   tests_run:
     name: GNU@13 C++17 [tests]
     runs-on: ubuntu-24.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -651,6 +680,8 @@ jobs:
   test_hdf5:
     name: GNU@9.3 HDF5 I/O Test [tests]
     runs-on: ubuntu-20.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     env:
       CXX: h5pcc
       CC: h5cc
