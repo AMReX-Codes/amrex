@@ -516,7 +516,6 @@ public:
         {
             Dim1 blockIdx {gh.blockIdx()};
             Dim1 threadIdx{gh.threadIdx()};
-            Dim1 blockDim {gh.blockDim()};
             Dim1 gridDim  {gh.gridDim()};
 #else
         amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
@@ -529,7 +528,7 @@ public:
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  icell < ncells; icell += stride) {
                 int k =  icell /   lenxy;
                 int j = (icell - k*lenxy) /   lenx;
@@ -575,7 +574,6 @@ public:
         {
             Dim1 blockIdx {gh.blockIdx()};
             Dim1 threadIdx{gh.threadIdx()};
-            Dim1 blockDim {gh.blockDim()};
             Dim1 gridDim  {gh.gridDim()};
 #else
         amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
@@ -588,7 +586,7 @@ public:
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  icell < ncells; icell += stride) {
                 int k =  icell /   lenxy;
                 int j = (icell - k*lenxy) /   lenx;
@@ -632,7 +630,6 @@ public:
         {
             Dim1 blockIdx {gh.blockIdx()};
             Dim1 threadIdx{gh.threadIdx()};
-            Dim1 blockDim {gh.blockDim()};
             Dim1 gridDim  {gh.gridDim()};
 #else
         amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
@@ -645,7 +642,7 @@ public:
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+            for (N i = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  i < n; i += stride) {
                 auto pr = f(i);
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
@@ -728,7 +725,7 @@ public:
                 ReduceTuple dst = r;
                 for (int istream = 0, nstreams = nblocks.size(); istream < nstreams; ++istream) {
                     auto dp_stream = dp+istream*maxblocks;
-                    for (int i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+                    for (int i = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                          i < nblocks[istream]; i += stride) {
                         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, dp_stream[i]);
                     }
@@ -871,7 +868,7 @@ bool AnyOf (N n, T const* v, P const& pred)
         if (!(*has_any))
         {
             int r = false;
-            for (N i = gh.blockDim()*gh.blockIdx()+gh.threadIdx(), stride = gh.blockDim()*gh.gridDim();
+            for (N i = AMREX_GPU_MAX_THREADS*gh.blockIdx()+gh.threadIdx(), stride = AMREX_GPU_MAX_THREADS*gh.gridDim();
                  i < n && !r; i += stride)
             {
                 r = pred(v[i]) ? 1 : 0;
@@ -892,7 +889,7 @@ bool AnyOf (N n, T const* v, P const& pred)
         if (!has_any)
         {
             int r = false;
-            for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+            for (N i = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  i < n && !r; i += stride)
             {
                 r = pred(v[i]) ? 1 : 0;
@@ -932,7 +929,7 @@ bool AnyOf (Box const& box, P const& pred)
         if (!(*has_any))
         {
             int r = false;
-            for (int icell = gh.blockDim()*gh.blockIdx()+gh.threadIdx(), stride = gh.blockDim()*gh.gridDim();
+            for (int icell = AMREX_GPU_MAX_THREADS*gh.blockIdx()+gh.threadIdx(), stride = AMREX_GPU_MAX_THREADS*gh.gridDim();
                  icell < ncells && !r; icell += stride) {
                 int k =  icell /   lenxy;
                 int j = (icell - k*lenxy) /   lenx;
@@ -958,7 +955,7 @@ bool AnyOf (Box const& box, P const& pred)
         if (!has_any)
         {
             int r = false;
-            for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  icell < ncells && !r; icell += stride) {
                 int k =  icell /   lenxy;
                 int j = (icell - k*lenxy) /   lenx;

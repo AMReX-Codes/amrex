@@ -676,7 +676,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
     {
         auto& scan_tile_state = const_cast<ScanTileState&>(tile_state);
         auto& scan_bid = const_cast<OrderedBlockId&>(ordered_block_id);
-        const unsigned int gid = blockIdx.x*blockDim.x + threadIdx.x;
+        const unsigned int gid = blockIdx.x*nthreads + threadIdx.x;
         if (gid == 0) { scan_bid.reset(); }
         scan_tile_state.initialize_prefix(gid, nblocks);
     });
@@ -755,7 +755,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
                                            rocprim::plus<T>());
             }
             if (totalsum_p) {
-                if (iend == n && threadIdx.x == blockDim.x-1) { // last thread of last block
+                if (iend == n && threadIdx.x == nthreads-1) { // last thread of last block
                     T tsum = data[nelms_per_thread-1];
                     AMREX_IF_CONSTEXPR(is_exclusive) { tsum += last; }
                     *totalsum_p = tsum;
@@ -768,7 +768,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         BlockExchange().blocked_to_striped(data, data, temp_storage.exchange);
 
         for (int i = 0; i < nelms_per_thread; ++i) {
-            N offset = ibegin + i*blockDim.x + threadIdx.x;
+            N offset = ibegin + i*nthreads + threadIdx.x;
             if (offset < iend) { fout(offset, data[i]); }
         }
     });
@@ -888,7 +888,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
                 BlockScan(temp_storage.scan_storeage.scan).InclusiveSum(data, data, prefix_op);
             }
             if (totalsum_p) {
-                if (iend == n && threadIdx.x == blockDim.x-1) { // last thread of last block
+                if (iend == n && threadIdx.x == nthreads-1) { // last thread of last block
                     T tsum = data[nelms_per_thread-1];
                     AMREX_IF_CONSTEXPR(is_exclusive) { tsum += last; }
                     *totalsum_p = tsum;
@@ -901,7 +901,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         BlockExchange(temp_storage.exchange).BlockedToStriped(data);
 
         for (int i = 0; i < nelms_per_thread; ++i) {
-            N offset = ibegin + i*blockDim.x + threadIdx.x;
+            N offset = ibegin + i*nthreads + threadIdx.x;
             if (offset < iend) { fout(offset, data[i]); }
         }
     });
@@ -962,7 +962,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
     {
         int lane = threadIdx.x % Gpu::Device::warp_size;
         int warp = threadIdx.x / Gpu::Device::warp_size;
-        int nwarps = blockDim.x / Gpu::Device::warp_size;
+        int nwarps = nthreads / Gpu::Device::warp_size;
 
         amrex::Gpu::SharedMemory<T> gsm;
         T* shared = gsm.dataPtr();
@@ -999,7 +999,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         T sum_prev_chunk = 0; // inclusive sum from previous chunks.
         T tmp_out[nchunks]; // block-wide inclusive sum for chunks
         for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
-            N offset = ibegin + ichunk*blockDim.x;
+            N offset = ibegin + ichunk*nthreads;
             if (offset >= iend) { break; }
 
             offset += threadIdx.x;
@@ -1074,7 +1074,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
         if (virtual_block_id == 0) {
             for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
-                N offset = ibegin + ichunk*blockDim.x + threadIdx.x;
+                N offset = ibegin + ichunk*nthreads + threadIdx.x;
                 if (offset >= iend) { break; }
                 fout(offset, tmp_out[ichunk]);
                 if (offset == n-1) {
@@ -1136,7 +1136,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
             T exclusive_prefix = shared[0];
 
             for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
-                N offset = ibegin + ichunk*blockDim.x + threadIdx.x;
+                N offset = ibegin + ichunk*nthreads + threadIdx.x;
                 if (offset >= iend) { break; }
                 T t = tmp_out[ichunk] + exclusive_prefix;
                 fout(offset, t);

@@ -806,7 +806,7 @@ ParallelFor (Gpu::KernelInfo const&, T n, L const& f) noexcept
             if (tid < nleft) {
                 detail::call_f_scalar_handler(f, tid+start_idx,
                     Gpu::Handler(amrex::min((std::uint64_t(nleft-tid)+(std::uint64_t)threadIdx.x),
-                    (std::uint64_t)blockDim.x)));
+                    (std::uint64_t)MT)));
             }
         });
     }
@@ -829,7 +829,7 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f) noexcept
                 auto iv = indexer.intVect(icell);
                 detail::call_f_intvect_handler(f, iv,
                     Gpu::Handler(amrex::min((indexer.numPts()-icell+(std::uint64_t)threadIdx.x),
-                    (std::uint64_t)blockDim.x)));
+                    (std::uint64_t)MT)));
             }
         });
     }
@@ -852,7 +852,7 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L const& f)
                 auto iv = indexer.intVect(icell);
                 detail::call_f_intvect_ncomp_handler(f, iv, ncomp,
                     Gpu::Handler(amrex::min((indexer.numPts()-icell+(std::uint64_t)threadIdx.x),
-                    (std::uint64_t)blockDim.x)));
+                    (std::uint64_t)MT)));
             }
         });
     }
@@ -870,9 +870,9 @@ ParallelForRNG (T n, L const& f) noexcept
                         amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
                         ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-        Long tid = Long(blockDim.x)*blockIdx.x+threadIdx.x;
+        Long tid = Long(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x;
         RandomEngine engine{&(rand_state[tid])};
-        for (Long i = tid, stride = Long(blockDim.x)*gridDim.x; i < Long(n); i += stride) {
+        for (Long i = tid, stride = Long(AMREX_GPU_MAX_THREADS)*gridDim.x; i < Long(n); i += stride) {
             f(T(i),engine);
         }
     });
@@ -892,9 +892,9 @@ ParallelForRNG (BoxND<dim> const& box, L const& f) noexcept
                         amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
                         ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-        auto const tid = std::uint64_t(blockDim.x)*blockIdx.x+threadIdx.x;
+        auto const tid = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x;
         RandomEngine engine{&(rand_state[tid])};
-        for (std::uint64_t icell = tid, stride = std::uint64_t(blockDim.x)*gridDim.x; icell < indexer.numPts(); icell += stride) {
+        for (std::uint64_t icell = tid, stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x; icell < indexer.numPts(); icell += stride) {
             auto iv = indexer.intVect(icell);
             detail::call_f_intvect_engine(f, iv, engine);
         }
@@ -915,9 +915,9 @@ ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f) noexcept
                         amrex::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch()),
                         ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-        auto const tid = std::uint64_t(blockDim.x)*blockIdx.x+threadIdx.x;
+        auto const tid = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x;
         RandomEngine engine{&(rand_state[tid])};
-        for (std::uint64_t icell = tid, stride = std::uint64_t(blockDim.x)*gridDim.x; icell < indexer.numPts(); icell += stride) {
+        for (std::uint64_t icell = tid, stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x; icell < indexer.numPts(); icell += stride) {
             auto iv = indexer.intVect(icell);
             detail::call_f_intvect_ncomp_engine(f, iv, ncomp, engine);
         }
@@ -938,7 +938,7 @@ ParallelFor (Gpu::KernelInfo const&,
     AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto const ncells = std::max(indexer1.numPts(), indexer2.numPts());
-        for (std::uint64_t icell = std::uint64_t(blockDim.x)*blockIdx.x+threadIdx.x, stride = std::uint64_t(blockDim.x)*gridDim.x;
+        for (std::uint64_t icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x, stride = std::uint64_t(MT)*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < indexer1.numPts()) {
                 auto iv = indexer1.intVect(icell);
@@ -967,7 +967,7 @@ ParallelFor (Gpu::KernelInfo const&,
     AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto const ncells = std::max({indexer1.numPts(), indexer2.numPts(), indexer3.numPts()});
-        for (std::uint64_t icell = std::uint64_t(blockDim.x)*blockIdx.x+threadIdx.x, stride = std::uint64_t(blockDim.x)*gridDim.x;
+        for (std::uint64_t icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x, stride = std::uint64_t(MT)*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < indexer1.numPts()) {
                 auto iv = indexer1.intVect(icell);
@@ -1001,7 +1001,7 @@ ParallelFor (Gpu::KernelInfo const&,
     AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto const ncells = std::max(indexer1.numPts(), indexer2.numPts());
-        for (std::uint64_t icell = std::uint64_t(blockDim.x)*blockIdx.x+threadIdx.x, stride = std::uint64_t(blockDim.x)*gridDim.x;
+        for (std::uint64_t icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x, stride = std::uint64_t(MT)*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < indexer1.numPts()) {
                 auto iv = indexer1.intVect(icell);
@@ -1034,7 +1034,7 @@ ParallelFor (Gpu::KernelInfo const&,
     AMREX_LAUNCH_KERNEL(MT, ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto const ncells = std::max({indexer1.numPts(), indexer2.numPts(), indexer3.numPts()});
-        for (std::uint64_t icell = std::uint64_t(blockDim.x)*blockIdx.x+threadIdx.x, stride = std::uint64_t(blockDim.x)*gridDim.x;
+        for (std::uint64_t icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x, stride = std::uint64_t(MT)*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < indexer1.numPts()) {
                 auto iv = indexer1.intVect(icell);

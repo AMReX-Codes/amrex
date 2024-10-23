@@ -855,10 +855,10 @@ namespace amrex
                 {
 #ifdef AMREX_USE_SYCL
                     int i1d = h.blockIdx() / n2dblocks;
-                    int i2d = h.threadIdx() + h.blockDim()*(h.blockIdx()-i1d*n2dblocks);
+                    int i2d = h.threadIdx() + AMREX_GPU_MAX_THREADS*(h.blockIdx()-i1d*n2dblocks);
 #else
                     int i1d = blockIdx.x / n2dblocks;
-                    int i2d = threadIdx.x + blockDim.x*(blockIdx.x-i1d*n2dblocks);
+                    int i2d = threadIdx.x + AMREX_GPU_MAX_THREADS*(blockIdx.x-i1d*n2dblocks);
 #endif
                     int i2dy = i2d / n2dx;
                     int i2dx = i2d - i2dy*n2dx;
