@@ -58,14 +58,52 @@ Note that using :cpp:`forwardThenBackward` is expected to be more efficient
 than separate calls to :cpp:`forward` and :cpp:`backward` because some
 parallel communication can be avoided. It should also be noted that a lot of
 preparation works are done in the construction of an :cpp:`FFT::R2C`
-object. Therefore, one should cache it for reuse if possible.
+object. Therefore, one should cache it for reuse if possible. Although
+:cpp:`FFT::R2C` does not have a default constructor, one could always use
+:cpp:`std::unique_ptr<FFT::R2C>` to store an object in one's class.
 
 
 Poisson Solver
 ==============
 
-AMReX provides FFT based Poisson solvers. :cpp:`FFT::Poisson` supports all
-periodic boundaries using purely FFT. :cpp:`FFT::PoissonHybrid` is a 3D only
-solver that supports periodic boundaries in the first two dimensions and
-Neumann boundary in the last dimension. Similar to :cpp:`FFT::R2C`, the
-Poisson solvers should be cached for reuse.
+AMReX provides FFT based Poisson solvers. :cpp:`FFT::Poisson` supports
+periodic (:cpp:`FFT::Boundary::periodic`), homogeneous Neumann
+(:cpp:`FFT::Boundary::even`), and homogeneous Dirichlet
+(:cpp:`FFT::Boundary::odd`) boundaries using FFT. Below is an example of
+using the solver.
+
+.. highlight:: c++
+
+::
+
+    Geometry geom(...);
+    MultiFab soln(...);
+    MultiFab rhs(...);
+
+    Array<std::pair<FFT::Boundary,FFT::Boundary>,AMREX_SPACEDIM>
+            fft_bc{...};
+
+    bool has_dirichlet = false;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        has_dirichlet = has_dirichlet ||
+            fft_bc[idim].first == FFT::Boundary::odd ||
+            fft_bc[idim].second == FFT::Boundary::odd;
+    }
+    if (! has_dirichlet) {
+        // Shift rhs so that its sum is zero.
+        auto rhosum = rhs.sum(0);
+        rhs.plus(-rhosum/geom.Domain().d_numPts(), 0, 1);
+    }
+
+    FFT::Poisson fft_poisson(geom, fft_bc);
+    fft_poisson.solve(soln, rhs);
+
+:cpp:`FFT::PoissonHybrid` is a 3D only solver that supports periodic
+boundaries in the first two dimensions and Neumann boundary in the last
+dimension. The last dimension is solved with a tridiagonal solver that can
+support non-uniform cell size in the z-direction. For most applications,
+:cpp:`FFT::Poisson` should be used.
+
+Similar to :cpp:`FFT::R2C`, the Poisson solvers should be cached for reuse,
+and one might need to use :cpp:`std::unique_ptr<FFT::Poisson` because there
+is no default constructor.

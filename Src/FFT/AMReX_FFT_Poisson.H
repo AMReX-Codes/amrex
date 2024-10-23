@@ -10,30 +10,30 @@ namespace amrex::FFT
 /**
  * \brief Poisson solver for all periodic boundaries using FFT
  */
-template <typename MF>
+template <typename MF = MultiFab>
 class Poisson
 {
 public:
 
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
-    explicit Poisson (Geometry const& geom)
-        : m_geom(geom), m_r2c(geom.Domain())
-    {
-        AMREX_ALWAYS_ASSERT(geom.isAllPeriodic());
-    }
+    Poisson (Geometry const& geom,
+             Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
+        : m_geom(geom), m_bc(bc), m_r2x(geom.Domain(),bc)
+    {}
 
     void solve (MF& soln, MF const& rhs);
 
 private:
     Geometry m_geom;
-    R2C<typename MF::value_type, Direction::both> m_r2c;
+    Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> m_bc;
+    R2X<typename MF::value_type> m_r2x;
 };
 
 /**
  * \brief 3D Poisson solver for periodic boundaries in the first two
  * dimensions and Neumann in the last dimension.
  */
-template <typename MF>
+template <typename MF = MultiFab>
 class PoissonHybrid
 {
 public:
@@ -62,37 +62,49 @@ void Poisson<MF>::solve (MF& soln, MF const& rhs)
     using T = typename MF::value_type;
 
     GpuArray<T,AMREX_SPACEDIM> fac
-        {AMREX_D_DECL(T(2)*Math::pi<T>()/T(m_geom.ProbLength(0)),
-                      T(2)*Math::pi<T>()/T(m_geom.ProbLength(1)),
-                      T(2)*Math::pi<T>()/T(m_geom.ProbLength(2)))};
-    GpuArray<T,AMREX_SPACEDIM> dx
-        {AMREX_D_DECL(T(m_geom.CellSize(0)),
-                      T(m_geom.CellSize(1)),
-                      T(m_geom.CellSize(2)))};
-    auto scale = T(1.0/m_geom.Domain().d_numPts());
-#if (AMREX_SPACEDIM > 1)
-    auto const& len = m_geom.Domain().length();
-#endif
+        {AMREX_D_DECL(Math::pi<T>()/T(m_geom.Domain().length(0)),
+                      Math::pi<T>()/T(m_geom.Domain().length(1)),
+                      Math::pi<T>()/T(m_geom.Domain().length(2)))};
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (m_bc[idim].first == Boundary::periodic) {
+            fac[idim] *= T(2);
+        }
+    }
+    GpuArray<T,AMREX_SPACEDIM> dxfac
+        {AMREX_D_DECL(T(2)/T(m_geom.CellSize(0)*m_geom.CellSize(0)),
+                      T(2)/T(m_geom.CellSize(1)*m_geom.CellSize(1)),
+                      T(2)/T(m_geom.CellSize(2)*m_geom.CellSize(2)))};
+    auto scale = m_r2x.scalingFactor();
 
-    m_r2c.forwardThenBackward(rhs, soln,
-                              [=] AMREX_GPU_DEVICE (int i, int j, int k,
-                                                    GpuComplex<T>& spectral_data)
+    GpuArray<T,AMREX_SPACEDIM> offset{AMREX_D_DECL(T(0),T(0),T(0))};
+    // Not sure about odd-even and even-odd yet
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (m_bc[idim].first == Boundary::odd &&
+            m_bc[idim].second == Boundary::odd)
+        {
+            offset[idim] = T(1);
+        }
+        else if ((m_bc[idim].first == Boundary::odd &&
+                  m_bc[idim].second == Boundary::even) ||
+                 (m_bc[idim].first == Boundary::even &&
+                  m_bc[idim].second == Boundary::odd))
+        {
+            offset[idim] = T(0.5);
+        }
+    }
+
+    m_r2x.forwardThenBackward(rhs, soln,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, auto& spectral_data)
     {
-        amrex::ignore_unused(i,j,k);
-        // the values in the upper-half of the spectral array in y and z
-        // are here interpreted as negative wavenumbers
-        AMREX_D_TERM(T a = fac[0]*i;,
-                     T b = (j < len[1]/2) ? fac[1]*j : fac[1]*(len[1]-j);,
-                     T c = (k < len[2]/2) ? fac[2]*k : fac[2]*(len[2]-k));
-        T k2 = AMREX_D_TERM(T(2)*(std::cos(a*dx[0])-T(1))/(dx[0]*dx[0]),
-                           +T(2)*(std::cos(b*dx[1])-T(1))/(dx[1]*dx[1]),
-                           +T(2)*(std::cos(c*dx[2])-T(1))/(dx[2]*dx[2]));
+        amrex::ignore_unused(j,k);
+        AMREX_D_TERM(T a = fac[0]*(i+offset[0]);,
+                     T b = fac[1]*(j+offset[1]);,
+                     T c = fac[2]*(k+offset[2]));
+        T k2 = AMREX_D_TERM(dxfac[0]*(std::cos(a)-T(1)),
+                           +dxfac[1]*(std::cos(b)-T(1)),
+                           +dxfac[2]*(std::cos(c)-T(1)));
         if (k2 != T(0)) {
             spectral_data /= k2;
-        } else {
-            // interpretation here is that the average value of the
-            // solution is zero
-            spectral_data = 0;
         }
         spectral_data *= scale;
     });

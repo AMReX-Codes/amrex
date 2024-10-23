@@ -7,6 +7,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        PRIVATE
        AMReX_FFT.H
        AMReX_FFT.cpp
+       AMReX_FFT_R2C.H
+       AMReX_FFT_R2X.H
        AMReX_FFT_Helper.H
        AMReX_FFT_Poisson.H
        )

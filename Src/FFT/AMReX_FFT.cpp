@@ -1,5 +1,4 @@
-#include <AMReX_FFT.H>
-#include <algorithm>
+#include <AMReX_FFT_Helper.H>
 
 namespace amrex::FFT::detail
 {
