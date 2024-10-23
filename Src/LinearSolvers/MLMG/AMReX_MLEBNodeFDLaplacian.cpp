@@ -17,9 +17,10 @@ MLEBNodeFDLaplacian::MLEBNodeFDLaplacian (
     const Vector<BoxArray>& a_grids,
     const Vector<DistributionMapping>& a_dmap,
     const LPInfo& a_info,
-    const Vector<EBFArrayBoxFactory const*>& a_factory)
+    const Vector<EBFArrayBoxFactory const*>& a_factory,
+    bool a_use_staircases)
 {
-    define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory, a_use_staircases);
 }
 #endif
 
@@ -86,11 +87,14 @@ MLEBNodeFDLaplacian::define (const Vector<Geometry>& a_geom,
                              const Vector<BoxArray>& a_grids,
                              const Vector<DistributionMapping>& a_dmap,
                              const LPInfo& a_info,
-                             const Vector<EBFArrayBoxFactory const*>& a_factory)
+                             const Vector<EBFArrayBoxFactory const*>& a_factory,
+                             bool a_use_staircases)
 {
     static_assert(AMREX_SPACEDIM > 1, "MLEBNodeFDLaplacian: 1D not supported");
 
     BL_PROFILE("MLEBNodeFDLaplacian::define()");
+
+    m_use_staircases = a_use_staircases;
 
     // This makes sure grids are cell-centered;
     Vector<BoxArray> cc_grids = a_grids;
@@ -366,6 +370,8 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 void
 MLEBNodeFDLaplacian::scaleRHS (int amrlev, MultiFab& rhs) const
 {
+    if (m_use_staircases) { return; }
+
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
     if (!factory) { return; }
 
@@ -398,6 +404,10 @@ void
 MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
     BL_PROFILE("MLEBNodeFDLaplacian::Fapply()");
+
+    if (m_has_sigma_mf) {
+        AMREX_ALWAYS_ASSERT(m_use_staircases == false);
+    }
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 #if (AMREX_SPACEDIM == 2)
@@ -442,11 +452,19 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
                 auto const& phiebarr = m_phi_eb[amrlev].const_array(mfi);
 #if (AMREX_SPACEDIM == 2)
                 if (m_rz) {
-                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
-                    {
-                        mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,levset,dmarr,ecx,ecy,
-                                                phiebarr, sig0, dx0, dx1, xlo, alpha);
-                    });
+                    if (m_use_staircases) {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_adotx_rz_eb_sc(i,j,k,yarr,xarr,levset,dmarr,
+                                                       phiebarr, sig0, dx0, dx1, xlo, alpha);
+                        });
+                    } else {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,levset,dmarr,ecx,ecy,
+                                                    phiebarr, sig0, dx0, dx1, xlo, alpha);
+                        });
+                    }
                 } else
 #endif
                 if (m_has_sigma_mf) {
@@ -458,23 +476,40 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
                                                  sigarr, vfrc, phiebarr, AMREX_D_DECL(bx,by,bz));
                     });
                 } else {
-                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
-                    {
-                        mlebndfdlap_adotx_eb(i,j,k,yarr,xarr,levset,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
-                                             phiebarr, AMREX_D_DECL(bx,by,bz));
-                    });
+                    if (m_use_staircases) {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_adotx_eb_sc(i,j,k,yarr,xarr,levset,dmarr,
+                                                    phiebarr, AMREX_D_DECL(bx,by,bz));
+                        });
+                    } else {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_adotx_eb(i,j,k,yarr,xarr,levset,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
+                                                 phiebarr, AMREX_D_DECL(bx,by,bz));
+                        });
+                    }
                 }
             } else {
 #if (AMREX_SPACEDIM == 2)
                 if (m_rz) {
-                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
-                    {
-                        mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,levset,dmarr,ecx,ecy,
-                                                phieb, sig0, dx0, dx1, xlo, alpha);
-                    });
+                    if (m_use_staircases) {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_adotx_rz_eb_sc(i,j,k,yarr,xarr,levset,dmarr,
+                                                       phieb, sig0, dx0, dx1, xlo, alpha);
+                        });
+                    } else {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_adotx_rz_eb(i,j,k,yarr,xarr,levset,dmarr,ecx,ecy,
+                                                    phieb, sig0, dx0, dx1, xlo, alpha);
+                        });
+                    }
                 } else
 #endif
                 if (m_has_sigma_mf) {
+                    AMREX_ALWAYS_ASSERT(m_use_staircases == false);
                     auto const& sigarr = m_sigma_mf[amrlev][mglev]->const_array(mfi);
                     auto const& vfrc = factory->getVolFrac().const_array(mfi);
                     AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
@@ -483,11 +518,19 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
                                                  sigarr, vfrc, phieb, AMREX_D_DECL(bx,by,bz));
                     });
                 } else {
-                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
-                    {
-                        mlebndfdlap_adotx_eb(i,j,k,yarr,xarr,levset,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
-                                             phieb, AMREX_D_DECL(bx,by,bz));
-                    });
+                    if (m_use_staircases) {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_adotx_eb_sc(i,j,k,yarr,xarr,levset,dmarr,
+                                                    phieb, AMREX_D_DECL(bx,by,bz));
+                        });
+                    } else {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_adotx_eb(i,j,k,yarr,xarr,levset,dmarr,AMREX_D_DECL(ecx,ecy,ecz),
+                                                 phieb, AMREX_D_DECL(bx,by,bz));
+                        });
+                    }
                 }
             }
         } else
@@ -567,11 +610,19 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
                 auto const& levset = factory->getLevelSet().const_array(mfi);
 #if (AMREX_SPACEDIM == 2)
                 if (m_rz) {
-                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
-                    {
-                        mlebndfdlap_gsrb_rz_eb(i,j,k,solarr,rhsarr,levset,dmskarr,ecx,ecy,
-                                               sig0, dx0, dx1, xlo, redblack, alpha);
-                    });
+                    if (m_use_staircases) {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_gsrb_rz_eb_sc(i,j,k,solarr,rhsarr,levset,dmskarr,
+                                                      sig0, dx0, dx1, xlo, redblack, alpha);
+                        });
+                    } else {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_gsrb_rz_eb(i,j,k,solarr,rhsarr,levset,dmskarr,ecx,ecy,
+                                                   sig0, dx0, dx1, xlo, redblack, alpha);
+                        });
+                    }
                 } else
 #endif
                 if (m_has_sigma_mf) {
@@ -583,11 +634,19 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
                                                 sigarr, vfrc, AMREX_D_DECL(bx,by,bz), redblack);
                     });
                 } else {
-                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
-                    {
-                        mlebndfdlap_gsrb_eb(i,j,k,solarr,rhsarr,levset,dmskarr,AMREX_D_DECL(ecx,ecy,ecz),
-                                            AMREX_D_DECL(bx,by,bz), redblack);
-                    });
+                    if (m_use_staircases) {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_gsrb_eb_sc(i,j,k,solarr,rhsarr,levset,dmskarr,
+                                                   AMREX_D_DECL(bx,by,bz), redblack);
+                        });
+                    } else {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_gsrb_eb(i,j,k,solarr,rhsarr,levset,dmskarr,AMREX_D_DECL(ecx,ecy,ecz),
+                                                AMREX_D_DECL(bx,by,bz), redblack);
+                        });
+                    }
                 }
             } else
 #endif // AMREX_USE_EB
@@ -681,33 +740,65 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
                          = cutfab ? edgecent[2]->const_array(mfi) : Array4<Real const>{};)
         if (phieb == std::numeric_limits<Real>::lowest()) {
             auto const& phiebarr = m_phi_eb[amrlev].const_array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
-                xbox, txbox,
-                {
-                    mlebndfdlap_grad_x(txbox, gpx, p, dmarr, ecx, phiebarr, dxi);
-                }
-                , ybox, tybox,
-                {
-                    mlebndfdlap_grad_y(tybox, gpy, p, dmarr, ecy, phiebarr, dyi);
-                }
-                , zbox, tzbox,
-                {
-                    mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, ecz, phiebarr, dzi);
-                });
+            if (m_use_staircases) {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
+                    xbox, txbox,
+                    {
+                        mlebndfdlap_grad_x(txbox, gpx, p, dmarr, phiebarr, dxi);
+                    }
+                    , ybox, tybox,
+                    {
+                        mlebndfdlap_grad_y(tybox, gpy, p, dmarr, phiebarr, dyi);
+                    }
+                    , zbox, tzbox,
+                    {
+                        mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, phiebarr, dzi);
+                    });
+            } else {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
+                    xbox, txbox,
+                    {
+                        mlebndfdlap_grad_x(txbox, gpx, p, dmarr, ecx, phiebarr, dxi);
+                    }
+                    , ybox, tybox,
+                    {
+                        mlebndfdlap_grad_y(tybox, gpy, p, dmarr, ecy, phiebarr, dyi);
+                    }
+                    , zbox, tzbox,
+                    {
+                        mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, ecz, phiebarr, dzi);
+                    });
+            }
         } else {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
-                xbox, txbox,
-                {
-                    mlebndfdlap_grad_x(txbox, gpx, p, dmarr, ecx, phieb, dxi);
-                }
-                , ybox, tybox,
-                {
-                    mlebndfdlap_grad_y(tybox, gpy, p, dmarr, ecy, phieb, dyi);
-                }
-                , zbox, tzbox,
-                {
-                    mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, ecz, phieb, dzi);
-                });
+            if (m_use_staircases) {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
+                    xbox, txbox,
+                    {
+                        mlebndfdlap_grad_x(txbox, gpx, p, dmarr, phieb, dxi);
+                    }
+                    , ybox, tybox,
+                    {
+                        mlebndfdlap_grad_y(tybox, gpy, p, dmarr, phieb, dyi);
+                    }
+                    , zbox, tzbox,
+                    {
+                        mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, phieb, dzi);
+                    });
+            } else {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
+                    xbox, txbox,
+                    {
+                        mlebndfdlap_grad_x(txbox, gpx, p, dmarr, ecx, phieb, dxi);
+                    }
+                    , ybox, tybox,
+                    {
+                        mlebndfdlap_grad_y(tybox, gpy, p, dmarr, ecy, phieb, dyi);
+                    }
+                    , zbox, tzbox,
+                    {
+                        mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, ecz, phieb, dzi);
+                    });
+            }
         }
 #else
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
