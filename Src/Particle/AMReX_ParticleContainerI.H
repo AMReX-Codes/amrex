@@ -1388,8 +1388,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     plan.build(*this, op, h_redistribute_int_comp,
                h_redistribute_real_comp, local);
 
+    // by default, this uses The_Arena();
     amrex::PODVector<char, PolymorphicArenaAllocator<char> > snd_buffer;
-    Gpu::DeviceVector<char> rcv_buffer;
+    amrex::PODVector<char, PolymorphicArenaAllocator<char> > rcv_buffer;
+
+    if (ParallelDescriptor::UseGpuAwareMpi()) {
+        snd_buffer.setArena(The_Comms_Arena());
+        rcv_buffer.setArena(The_Comms_Arena());
+    }
 
     packBuffer(*this, op, plan, snd_buffer);
 

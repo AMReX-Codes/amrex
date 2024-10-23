@@ -255,6 +255,12 @@ updateNeighborsGPU (bool boundary_neighbors_only)
     }
 
     clearNeighbors();
+
+    if (ParallelDescriptor::UseGpuAwareMpi()) {
+        snd_buffer.setArena(The_Comms_Arena());
+        rcv_buffer.setArena(The_Comms_Arena());
+    }
+
     packBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer);
     if (ParallelDescriptor::UseGpuAwareMpi())
     {
