@@ -309,6 +309,30 @@ public:
         calcCommSize();
     }
 
+    /** Remove the last n Real components of the species
+     *
+     * @param n number of components to remove
+     */
+    void RemoveRealComp (int n = 1)
+    {
+        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+            RemoveRealComp(n);
+        ghost_real_comp.pop_back();
+        calcCommSize();
+    }
+
+    /** Remove the last n Int components of the species
+     *
+     * @param n number of components to remove
+     */
+    void RemoveIntComp (int n = 1)
+    {
+        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+            RemoveIntComp(n);
+        ghost_int_comp.pop_back();
+        calcCommSize();
+    }
+
     void Redistribute (int lev_min=0, int lev_max=-1, int nGrow=0, int local=0)
     {
         clearNeighbors();
