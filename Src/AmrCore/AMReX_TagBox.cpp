@@ -472,7 +472,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
         {
             int bid = blockIdx.x;
             int tid = threadIdx.x;
-            int icell = blockDim.x*blockIdx.x+threadIdx.x;
+            int icell = block_size*blockIdx.x+threadIdx.x;
 
             int t = 0;
             if (icell < ncells && tags[icell] != TagBox::CLEAR) {
@@ -558,7 +558,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
             {
                 int bid = blockIdx.x;
                 int tid = threadIdx.x;
-                int icell = blockDim.x*blockIdx.x+threadIdx.x;
+                int icell = block_size*blockIdx.x+threadIdx.x;
 
                 Gpu::SharedMemory<unsigned int> gsm;
                 unsigned int * shared_counter = gsm.dataPtr();
