@@ -328,6 +328,7 @@ struct TestParams
     int do_regrid;
     int sort;
     int test_level_lost = 0;
+    int stable_redistribute = 0;
 };
 
 void testRedistribute();
@@ -358,6 +359,7 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.query("num_runtime_real", num_runtime_real);
     pp.query("num_runtime_int", num_runtime_int);
     pp.query("remove_negative", remove_negative);
+    pp.query("stable_redistribute", params.stable_redistribute);
 
     params.sort = 0;
     pp.query("sort", params.sort);
@@ -410,6 +412,7 @@ void testRedistribute ()
     }
 
     TestParticleContainer pc(geom, dm, ba, rr);
+    pc.setStableRedistribute(params.stable_redistribute);
 
     IntVect nppc(params.num_ppc);
 

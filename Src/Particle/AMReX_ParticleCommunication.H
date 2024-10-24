@@ -154,7 +154,9 @@ struct ParticleCopyPlan
         m_box_counts_d.resize(num_buckets+1, 0);
         m_box_offsets.resize(num_buckets+1);
         auto* p_dst_box_counts = m_box_counts_d.dataPtr();
-        auto getBucket = pc.BufferMap().getBucketFunctor();
+        auto getBucket = pc.stableRedistribute() ? pc.BufferMap().getHostBucketFunctor() : pc.BufferMap().getBucketFunctor();
+
+        Gpu::HostVector<unsigned int> h_box_counts(m_box_counts_d.size(), 0);
 
         m_dst_indices.resize(num_levels);
         for (int lev = 0; lev < num_levels; ++lev)
@@ -166,22 +168,47 @@ struct ParticleCopyPlan
                 if (num_copies == 0) { continue; }
                 m_dst_indices[lev][gid].resize(num_copies);
 
-                const auto* p_boxes = op.m_boxes[lev].at(gid).dataPtr();
-                const auto* p_levs = op.m_levels[lev].at(gid).dataPtr();
-                auto* p_dst_indices = m_dst_indices[lev][gid].dataPtr();
+                if (pc.stableRedistribute()) {
+                    const Gpu::DeviceVector<int>& d_boxes = op.m_boxes[lev].at(gid);
+                    Gpu::HostVector<int> h_boxes(d_boxes.size());
+                    Gpu::copy(Gpu::deviceToHost,d_boxes.begin(),d_boxes.end(),h_boxes.begin());
 
-                AMREX_FOR_1D ( num_copies, i,
-                {
-                    int dst_box = p_boxes[i];
-                    if (dst_box >= 0)
-                    {
-                        int dst_lev = p_levs[i];
-                        int index = static_cast<int>(Gpu::Atomic::Add(
-                            &p_dst_box_counts[getBucket(dst_lev, dst_box)], 1U));
-                        p_dst_indices[i] = index;
+                    const Gpu::DeviceVector<int>& d_levs = op.m_levels[lev].at(gid);
+                    Gpu::HostVector<int> h_levs(d_levs.size());
+                    Gpu::copy(Gpu::deviceToHost,d_levs.begin(),d_levs.end(),h_levs.begin());
+
+                    Gpu::HostVector<int> h_dst_indices(num_copies);
+                    for (int i = 0; i < num_copies; ++i) {
+                        int dst_box = h_boxes[i];
+                        if (dst_box >= 0) {
+                            int dst_lev = h_levs[i];
+                            int index = static_cast<int>(h_box_counts[getBucket(dst_lev, dst_box)]++);
+                            h_dst_indices[i] = index;
+                        }
                     }
-                });
+                    Gpu::copy(Gpu::hostToDevice,h_dst_indices.begin(),h_dst_indices.end(),m_dst_indices[lev][gid].begin());
+                }
+                else {
+                    const auto* p_boxes = op.m_boxes[lev].at(gid).dataPtr();
+                    const auto* p_levs = op.m_levels[lev].at(gid).dataPtr();
+                    auto* p_dst_indices = m_dst_indices[lev][gid].dataPtr();
+                    AMREX_FOR_1D ( num_copies, i,
+                    {
+                        int dst_box = p_boxes[i];
+                        if (dst_box >= 0)
+                        {
+                            int dst_lev = p_levs[i];
+                            int index = static_cast<int>(Gpu::Atomic::Add(
+                                &p_dst_box_counts[getBucket(dst_lev, dst_box)], 1U));
+                            p_dst_indices[i] = index;
+                        }
+                    });
+                }
             }
+        }
+
+        if (pc.stableRedistribute()) {
+            Gpu::copy(Gpu::hostToDevice,h_box_counts.begin(),h_box_counts.end(),m_box_counts_d.begin());
         }
 
         amrex::Gpu::exclusive_scan(m_box_counts_d.begin(), m_box_counts_d.end(),
