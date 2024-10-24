@@ -36,10 +36,10 @@ struct GetBucket
     const int* m_lev_gid_to_bucket;
     const int* m_lev_offsets;
 
-    GetBucket (const Gpu::DeviceVector<int>& lev_gid_to_bucket,
-               const Gpu::DeviceVector<int>& lev_offsets)
-        : m_lev_gid_to_bucket(lev_gid_to_bucket.dataPtr()),
-          m_lev_offsets(lev_offsets.dataPtr())
+    GetBucket (const int* lev_gid_to_bucket_ptr,
+               const int* lev_offsets_ptr)
+        : m_lev_gid_to_bucket(lev_gid_to_bucket_ptr),
+          m_lev_offsets(lev_offsets_ptr)
         {}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -154,7 +154,9 @@ public:
     }
 
     [[nodiscard]] GetPID getPIDFunctor () const noexcept { return GetPID(d_bucket_to_pid, d_lev_gid_to_bucket, d_lev_offsets);}
-    [[nodiscard]] GetBucket getBucketFunctor () const noexcept { return GetBucket(d_lev_gid_to_bucket, d_lev_offsets);}
+    [[nodiscard]] GetBucket getBucketFunctor () const noexcept { return GetBucket(d_lev_gid_to_bucket.data(), d_lev_offsets.data());}
+    [[nodiscard]] GetBucket getHostBucketFunctor () const noexcept { return GetBucket(m_lev_gid_to_bucket.data(), m_lev_offsets.data());}
+
 };
 
 } // namespace amrex
