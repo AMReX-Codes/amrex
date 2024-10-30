@@ -60,7 +60,7 @@ parallel communication can be avoided. It should also be noted that a lot of
 preparation works are done in the construction of an :cpp:`FFT::R2C`
 object. Therefore, one should cache it for reuse if possible. Although
 :cpp:`FFT::R2C` does not have a default constructor, one could always use
-:cpp:`std::unique_ptr<FFT::R2C>` to store an object in one's class.
+:cpp:`std::unique_ptr<FFT::R2C<Real>>` to store an object in one's class.
 
 
 Poisson Solver
@@ -105,5 +105,5 @@ support non-uniform cell size in the z-direction. For most applications,
 :cpp:`FFT::Poisson` should be used.
 
 Similar to :cpp:`FFT::R2C`, the Poisson solvers should be cached for reuse,
-and one might need to use :cpp:`std::unique_ptr<FFT::Poisson` because there
-is no default constructor.
+and one might need to use :cpp:`std::unique_ptr<FFT::Poisson<MultiFab>>`
+because there is no default constructor.
