@@ -21,6 +21,17 @@ public:
         : m_geom(geom), m_bc(bc), m_r2x(geom.Domain(),bc)
     {}
 
+    template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
+    explicit Poisson (Geometry const& geom)
+        : m_geom(geom),
+          m_bc{AMREX_D_DECL(std::make_pair(Boundary::periodic,Boundary::periodic),
+                            std::make_pair(Boundary::periodic,Boundary::periodic),
+                            std::make_pair(Boundary::periodic,Boundary::periodic))},
+          m_r2x(geom.Domain(),m_bc)
+    {
+        AMREX_ALWAYS_ASSERT(m_geom.isAllPeriodic());
+    }
+
     void solve (MF& soln, MF const& rhs);
 
 private:

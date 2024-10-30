@@ -21,12 +21,17 @@
 #  endif
 #  include <hip/hip_complex.h>
 #elif defined(AMREX_USE_SYCL)
-#  include <oneapi/mkl/dfti.hpp>
+#  if __has_include(<oneapi/mkl/dft.hpp>) // oneAPI 2025.0
+#    include <oneapi/mkl/dft.hpp>
+#else
+#    include <oneapi/mkl/dfti.hpp>
+#  endif
 #else
 #  include <fftw3.h>
 #endif
 
 #include <algorithm>
+#include <complex>
 #include <memory>
 #include <utility>
 #include <variant>
