@@ -146,7 +146,7 @@ int main (int argc, char* argv[])
             // We know that the sum of our rhs is zero for non-Dirichlet
             // cases. Otherwise, we should shift rhs so that its sum is zero.
 
-            FFT::Poisson fft_poisson(geom); //, fft_bc);
+            FFT::Poisson fft_poisson(geom, fft_bc);
             fft_poisson.solve(soln, rhs);
 
             MultiFab phi(soln.boxArray(), soln.DistributionMap(), 1, 1);
