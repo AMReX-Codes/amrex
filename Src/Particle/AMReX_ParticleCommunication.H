@@ -156,7 +156,10 @@ struct ParticleCopyPlan
         auto* p_dst_box_counts = m_box_counts_d.dataPtr();
         auto getBucket = pc.stableRedistribute() ? pc.BufferMap().getHostBucketFunctor() : pc.BufferMap().getBucketFunctor();
 
-        Gpu::HostVector<unsigned int> h_box_counts(m_box_counts_d.size(), 0);
+        Gpu::HostVector<unsigned int> h_box_counts;
+        if (pc.stableRedistribute() ) {
+            h_box_counts.resize(m_box_counts_d.size(), 0);
+        }
 
         m_dst_indices.resize(num_levels);
         for (int lev = 0; lev < num_levels; ++lev)
