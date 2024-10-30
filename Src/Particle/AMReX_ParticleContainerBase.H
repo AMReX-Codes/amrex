@@ -231,7 +231,7 @@ public:
 
     void SetVerbose (int verbose) { m_verbose = verbose; }
 
-    int stableRedistribute () const {return m_stable_redistribute; }
+    [[nodiscard]] int stableRedistribute () const {return m_stable_redistribute; }
 
     void setStableRedistribute (int stable) { m_stable_redistribute = stable; }
 
