@@ -93,6 +93,8 @@ R2X<T>::R2X (Box const& domain,
     : m_dom_0(domain),
       m_bc(bc)
 {
+    BL_PROFILE("FFT::R2X");
+
     static_assert(std::is_same_v<float,T> || std::is_same_v<double,T>);
     AMREX_ALWAYS_ASSERT(domain.smallEnd() == 0 &&
                         domain.length(0) > 1 &&
@@ -494,6 +496,8 @@ template <typename T>
 template <typename F>
 void R2X<T>::forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward)
 {
+    BL_PROFILE("FFT::R2X::forwardbackward");
+
     // forward
 
     m_rx.ParallelCopy(inmf, 0, 0, 1);

@@ -70,6 +70,8 @@ private:
 template <typename MF>
 void Poisson<MF>::solve (MF& soln, MF const& rhs)
 {
+    BL_PROFILE("FFT::Poisson::solve");
+
     using T = typename MF::value_type;
 
     GpuArray<T,AMREX_SPACEDIM> fac
@@ -124,6 +126,8 @@ void Poisson<MF>::solve (MF& soln, MF const& rhs)
 template <typename MF>
 void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs)
 {
+    BL_PROFILE("FFT::PoissonHybrid::solve");
+
 #if (AMREX_SPACEDIM < 3)
     amrex::ignore_unused(soln, rhs);
 #else

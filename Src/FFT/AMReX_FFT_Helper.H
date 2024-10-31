@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX.H>
+#inlcude <AMReX_BLProfiler.H>
 #include <AMReX_DataAllocator.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Enum.H>

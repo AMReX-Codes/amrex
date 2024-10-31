@@ -70,6 +70,7 @@ public:
               std::enable_if_t<DIR == Direction::both, int> = 0>
     void forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward)
     {
+        BL_PROFILE("FFT::R2C::forwardbackward");
         this->forward(inmf);
         this->post_forward_doit(post_forward);
         this->backward(outmf);
@@ -201,6 +202,8 @@ R2C<T,D>::R2C (Box const& domain, Info const& info)
 #endif
       m_info(info)
 {
+    BL_PROFILE("FFT::R2C");
+
     static_assert(std::is_same_v<float,T> || std::is_same_v<double,T>);
     AMREX_ALWAYS_ASSERT(m_real_domain.smallEnd() == 0 &&
                         m_real_domain.length(0) > 1 &&
@@ -344,6 +347,8 @@ template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
                                           DIR == Direction::both, int> >
 void R2C<T,D>::forward (MF const& inmf)
 {
+    BL_PROFILE("FFT::R2C::forward(in)");
+
     m_rx.ParallelCopy(inmf, 0, 0, 1);
     m_fft_fwd_x.template compute_r2c<Direction::forward>();
 
@@ -368,6 +373,8 @@ void R2C<T,D>::backward (MF& outmf)
 template <typename T, Direction D>
 void R2C<T,D>::backward_doit (MF& outmf)
 {
+    BL_PROFILE("FFT::R2C::backward(out)");
+
     m_fft_bwd_z.template compute_c2c<Direction::backward>();
     if (                          m_cmd_z2y) {
         ParallelCopy(m_cy, m_cz, *m_cmd_z2y, 0, 0, 1, m_dtos_z2y);
@@ -471,6 +478,8 @@ template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
                                           DIR == Direction::both, int> >
 void R2C<T,D>::forward (MF const& inmf, cMF& outmf)
 {
+    BL_PROFILE("FFT::R2C::forward(inout)");
+
     forward(inmf);
     if (!m_cz.empty()) { // m_cz's order (z,x,y) -> (x,y,z)
         RotateBwd dtos{};
@@ -491,6 +500,8 @@ template <Direction DIR, std::enable_if_t<DIR == Direction::backward ||
                                           DIR == Direction::both, int> >
 void R2C<T,D>::backward (cMF const& inmf, MF& outmf)
 {
+    BL_PROFILE("FFT::R2C::backward(inout)");
+
     if (!m_cz.empty()) { // (x,y,z) -> m_cz's order (z,x,y)
         RotateFwd dtos{};
         MultiBlockCommMetaData cmd
