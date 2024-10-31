@@ -24,6 +24,7 @@
 #  if __has_include(<oneapi/mkl/dft.hpp>) // oneAPI 2025.0
 #    include <oneapi/mkl/dft.hpp>
 #else
+#    define AMREX_USE_MKL_DFTI_2024 1
 #    include <oneapi/mkl/dfti.hpp>
 #  endif
 #else
@@ -66,7 +67,11 @@ namespace detail
 template <typename T, Direction direction, typename P, typename TI, typename TO>
 void sycl_execute (P* plan, TI* in, TO* out)
 {
+#ifndef AMREX_USE_MKL_DFTI_2024
+    std::int64_t workspaceSize = 0;
+#else
     std::size_t workspaceSize = 0;
+#endif
     plan->get_value(oneapi::mkl::dft::config_param::WORKSPACE_BYTES,
                     &workspaceSize);
     auto* buffer = (T*)amrex::The_Arena()->alloc(workspaceSize);
@@ -214,13 +219,23 @@ struct Plan
 #elif defined(AMREX_USE_SYCL)
 
         auto* pp = new mkl_desc_r(n);
+#ifndef AMREX_USE_MKL_DFTI_2024
+        pp->set_value(oneapi::mkl::dft::config_param::PLACEMENT,
+                      oneapi::mkl::dft::config_value::NOT_INPLACE);
+#else
         pp->set_value(oneapi::mkl::dft::config_param::PLACEMENT, DFTI_NOT_INPLACE);
+#endif
         pp->set_value(oneapi::mkl::dft::config_param::NUMBER_OF_TRANSFORMS, howmany);
         pp->set_value(oneapi::mkl::dft::config_param::FWD_DISTANCE, n);
         pp->set_value(oneapi::mkl::dft::config_param::BWD_DISTANCE, nc);
-        std::array<std::int64_t,2> strides{0,1};
+        std::vector<std::int64_t> strides = {0,1};
+#ifndef AMREX_USE_MKL_DFTI_2024
+        pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides);
+        pp->set_value(oneapi::mkl::dft::config_param::BWD_STRIDES, strides);
+#else
         pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides.data());
         pp->set_value(oneapi::mkl::dft::config_param::BWD_STRIDES, strides.data());
+#endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
         pp->commit(amrex::Gpu::Device::streamQueue());
@@ -288,13 +303,23 @@ struct Plan
 #elif defined(AMREX_USE_SYCL)
 
         auto* pp = new mkl_desc_c(n);
+#ifndef AMREX_USE_MKL_DFTI_2024
+        pp->set_value(oneapi::mkl::dft::config_param::PLACEMENT,
+                      oneapi::mkl::dft::config_value::INPLACE);
+#else
         pp->set_value(oneapi::mkl::dft::config_param::PLACEMENT, DFTI_INPLACE);
+#endif
         pp->set_value(oneapi::mkl::dft::config_param::NUMBER_OF_TRANSFORMS, howmany);
         pp->set_value(oneapi::mkl::dft::config_param::FWD_DISTANCE, n);
         pp->set_value(oneapi::mkl::dft::config_param::BWD_DISTANCE, n);
-        std::array<std::int64_t,2> strides{0,1};
+        std::vector<std::int64_t> strides = {0,1};
+#ifndef AMREX_USE_MKL_DFTI_2024
+        pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides);
+        pp->set_value(oneapi::mkl::dft::config_param::BWD_STRIDES, strides);
+#else
         pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides.data());
         pp->set_value(oneapi::mkl::dft::config_param::BWD_STRIDES, strides.data());
+#endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
         pp->commit(amrex::Gpu::Device::streamQueue());
@@ -438,13 +463,23 @@ struct Plan
 #elif defined(AMREX_USE_SYCL)
 
         auto* pp = new mkl_desc_r(nex);
+#ifndef AMREX_USE_MKL_DFTI_2024
+        pp->set_value(oneapi::mkl::dft::config_param::PLACEMENT,
+                      oneapi::mkl::dft::config_value::INPLACE);
+#else
         pp->set_value(oneapi::mkl::dft::config_param::PLACEMENT, DFTI_INPLACE);
+#endif
         pp->set_value(oneapi::mkl::dft::config_param::NUMBER_OF_TRANSFORMS, howmany);
         pp->set_value(oneapi::mkl::dft::config_param::FWD_DISTANCE, nc*2);
         pp->set_value(oneapi::mkl::dft::config_param::BWD_DISTANCE, nc);
-        std::array<std::int64_t,2> strides{0,1};
+        std::vector<std::int64_t> strides = {0,1};
+#ifndef AMREX_USE_MKL_DFTI_2024
+        pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides);
+        pp->set_value(oneapi::mkl::dft::config_param::BWD_STRIDES, strides);
+#else
         pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides.data());
         pp->set_value(oneapi::mkl::dft::config_param::BWD_STRIDES, strides.data());
+#endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
         pp->commit(amrex::Gpu::Device::streamQueue());
