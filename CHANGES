@@ -1,3 +1,39 @@
+# 24.11
+
+  -- Add option to do stable redistribute with GPUs (#4200)
+
+  -- Remove HIP_INDIRECT_FUNCTION (#4199)
+
+  -- Use The_Comms_Arena in particle communication. (#4175)
+
+  -- Refactor grid-stride loop (#4190)
+
+  -- STL optimization: Bounding volume hierarchy (#4140)
+
+  -- Bounded sampling (#4195)
+
+  -- amrex::FFT (#4193)
+
+  -- SmallMatrix: Structured binding support (#4189)
+
+  -- SmallMatrix: Support 1-based indexing (#4188)
+
+  -- SoA: Public Getter for Names (#4187)
+
+  -- Named SoA Support (#4163)
+
+  -- Fix queryktharr() return value/behaviour. (#4186)
+
+  -- Add more build options for linear solvers (#4181)
+
+  -- New function for domain decomposition (#4183)
+
+  -- SmallMatrix: Matrix class with compile time size (#4176)
+
+  -- modify/remove the assertions about no hidden dimension (#4180)
+
+  -- Add comparison operator for boxarray and distromap. Add hdf5 to dep.py (#4173)
+
 # 24.10
 
   -- TinyProfiler: Remove unnecessary precision() call (#4174)
