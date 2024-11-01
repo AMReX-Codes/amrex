@@ -75,8 +75,8 @@ int main (int argc, char* argv[])
             // forward
             {
                 FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
-		auto const& [cba, cdm] = r2c.getSpectralDataLayout();
-		cmf.define(cba, cdm, 1, 0);
+                auto const& [cba, cdm] = r2c.getSpectralDataLayout();
+                cmf.define(cba, cdm, 1, 0);
                 r2c.forward(mf,cmf);
             }
 
