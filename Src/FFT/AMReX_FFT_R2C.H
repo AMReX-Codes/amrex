@@ -139,6 +139,15 @@ public:
                                                 DIR == Direction::both, int> = 0>
     std::pair<cMF*,IntVect> getSpectralData ();
 
+    /**
+     * \brief Get BoxArray and DistributionMapping for spectral data
+     *
+     * The returned BoxArray and DistributionMapping can be used to build
+     * FabArray<BaseFab<GpuComplex<T>>> for spectral data. The returned
+     * BoxArray has the usual order of `(x,y,z)`.
+     */
+    [[nodiscard]] std::pair<BoxArray,DistributionMapping> getSpectralDataLayout () const;
+
     // public for cuda
     template <typename F>
     void post_forward_doit (F const& post_forward);
@@ -515,6 +524,45 @@ void R2C<T,D>::backward (cMF const& inmf, MF& outmf)
         m_cx.ParallelCopy(inmf, 0, 0, 1);
     }
     backward_doit(outmf);
+}
+
+template <typename T, Direction D>
+std::pair<BoxArray,DistributionMapping>
+R2C<T,D>::getSpectralDataLayout () const
+{
+#if (AMREX_SPACEDIM == 3)
+    if (!m_cz.empty()) {
+	BoxList bl = m_cz.boxArray().boxList();
+	for (auto& b : bl) {
+	    auto lo = b.smallEnd();
+	    auto hi = b.bigEnd();
+	    std::swap(lo[0], lo[1]);
+	    std::swap(lo[1], lo[2]);
+	    std::swap(hi[0], hi[1]);
+	    std::swap(hi[1], hi[2]);
+	    b.setSmall(lo);
+	    b.setBig(hi);
+	}
+	return std::make_pair(BoxArray(std::move(bl)), m_cz.DistributionMap());
+    } else
+#endif
+#if (AMREX_SPACEDIM >= 2)
+    if (!!m_cy.empty()) {
+	BoxList bl = m_cy.boxArray().boxList();
+	for (auto& b : bl) {
+	    auto lo = b.smallEnd();
+	    auto hi = b.bigEnd();
+	    std::swap(lo[0], lo[1]);
+	    std::swap(hi[0], hi[1]);
+	    b.setSmall(lo);
+	    b.setBig(hi);
+	}
+	return std::make_pair(BoxArray(std::move(bl)), m_cy.DistributionMap());
+    } else
+#endif
+    {
+	return std::make_pair(m_cx.boxArray(), m_cx.DistributionMap());
+    }
 }
 
 }

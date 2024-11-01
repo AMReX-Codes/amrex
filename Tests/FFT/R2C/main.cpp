@@ -70,11 +70,13 @@ int main (int argc, char* argv[])
         auto scaling = Real(1) / Real(geom.Domain().d_numPts());
 
         {
-            cMultiFab cmf(ba,dm,1,0);
+            cMultiFab cmf;
 
             // forward
             {
                 FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
+		auto const& [cba, cdm] = r2c.getSpectralDataLayout();
+		cmf.define(cba, cdm, 1, 0);
                 r2c.forward(mf,cmf);
             }
 
