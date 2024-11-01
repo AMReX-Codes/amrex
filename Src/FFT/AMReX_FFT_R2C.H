@@ -532,36 +532,36 @@ R2C<T,D>::getSpectralDataLayout () const
 {
 #if (AMREX_SPACEDIM == 3)
     if (!m_cz.empty()) {
-	BoxList bl = m_cz.boxArray().boxList();
-	for (auto& b : bl) {
-	    auto lo = b.smallEnd();
-	    auto hi = b.bigEnd();
-	    std::swap(lo[0], lo[1]);
-	    std::swap(lo[1], lo[2]);
-	    std::swap(hi[0], hi[1]);
-	    std::swap(hi[1], hi[2]);
-	    b.setSmall(lo);
-	    b.setBig(hi);
-	}
-	return std::make_pair(BoxArray(std::move(bl)), m_cz.DistributionMap());
+        BoxList bl = m_cz.boxArray().boxList();
+        for (auto& b : bl) {
+            auto lo = b.smallEnd();
+            auto hi = b.bigEnd();
+            std::swap(lo[0], lo[1]);
+            std::swap(lo[1], lo[2]);
+            std::swap(hi[0], hi[1]);
+            std::swap(hi[1], hi[2]);
+            b.setSmall(lo);
+            b.setBig(hi);
+        }
+        return std::make_pair(BoxArray(std::move(bl)), m_cz.DistributionMap());
     } else
 #endif
 #if (AMREX_SPACEDIM >= 2)
     if (!!m_cy.empty()) {
-	BoxList bl = m_cy.boxArray().boxList();
-	for (auto& b : bl) {
-	    auto lo = b.smallEnd();
-	    auto hi = b.bigEnd();
-	    std::swap(lo[0], lo[1]);
-	    std::swap(hi[0], hi[1]);
-	    b.setSmall(lo);
-	    b.setBig(hi);
-	}
-	return std::make_pair(BoxArray(std::move(bl)), m_cy.DistributionMap());
+        BoxList bl = m_cy.boxArray().boxList();
+        for (auto& b : bl) {
+            auto lo = b.smallEnd();
+            auto hi = b.bigEnd();
+            std::swap(lo[0], lo[1]);
+            std::swap(hi[0], hi[1]);
+            b.setSmall(lo);
+            b.setBig(hi);
+        }
+        return std::make_pair(BoxArray(std::move(bl)), m_cy.DistributionMap());
     } else
 #endif
     {
-	return std::make_pair(m_cx.boxArray(), m_cx.DistributionMap());
+        return std::make_pair(m_cx.boxArray(), m_cx.DistributionMap());
     }
 }
 

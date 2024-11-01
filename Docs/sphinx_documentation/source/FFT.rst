@@ -47,7 +47,9 @@ Below are examples of using :cpp:`FFT:R2C`.
             sp *= scaling;
         });
 
-    cMultiFab cmf(...);
+    // Use R2C provided spectral data layout.
+    auto const& [cba, cdm] = r2c.getSpectralDataLayout();
+    cMultiFab cmf(cba, cdm, 1, 0);
     FFT::R2C<Real,FFT::Direction::forward> r2c_forward(geom.Domain());
     r2c_forward(mfin, cmf);
 
@@ -56,7 +58,10 @@ Below are examples of using :cpp:`FFT:R2C`.
 
 Note that using :cpp:`forwardThenBackward` is expected to be more efficient
 than separate calls to :cpp:`forward` and :cpp:`backward` because some
-parallel communication can be avoided. It should also be noted that a lot of
+parallel communication can be avoided. For the spectral data, the example
+above builds :cpp:`cMultiFab` using :cpp:`FFT::R2C` provided layout. You can
+also use your own :cpp:`BoxArray` and :cpp:`DistributionMapping`, but it
+might result in extra communication. It should also be noted that a lot of
 preparation works are done in the construction of an :cpp:`FFT::R2C`
 object. Therefore, one should cache it for reuse if possible. Although
 :cpp:`FFT::R2C` does not have a default constructor, one could always use
