@@ -28,7 +28,7 @@ complex data also follows the FFTW convention, where the complex Hermitian
 output array has `(nx/2+1,ny,nz)` elements. Here `nx`, `ny` and `nz` are the
 sizes of the real array and the division is rounded down.
 
-Below are examples of using :cpp:`FFT:R2C`.
+Below are examples of using :cpp:`FFT::R2C`.
 
 .. highlight:: c++
 
