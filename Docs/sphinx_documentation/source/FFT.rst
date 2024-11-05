@@ -71,9 +71,14 @@ object. Therefore, one should cache it for reuse if possible. Although
 Poisson Solver
 ==============
 
-AMReX provides FFT based Poisson solvers. :cpp:`FFT::Poisson` supports
-periodic (:cpp:`FFT::Boundary::periodic`), homogeneous Neumann
-(:cpp:`FFT::Boundary::even`), and homogeneous Dirichlet
+AMReX provides FFT based Poisson solvers. Here, Poisson's equation is
+
+.. math::
+
+  \nabla^2 \phi = \rho.
+
+:cpp:`FFT::Poisson` supports periodic (:cpp:`FFT::Boundary::periodic`),
+homogeneous Neumann (:cpp:`FFT::Boundary::even`), and homogeneous Dirichlet
 (:cpp:`FFT::Boundary::odd`) boundaries using FFT. Below is an example of
 using the solver.
 
@@ -102,6 +107,27 @@ using the solver.
 
     FFT::Poisson fft_poisson(geom, fft_bc);
     fft_poisson.solve(soln, rhs);
+
+:cpp:`FFT::PoissonOpenBC` is a 3D only solver that supports open
+boundaries. Its implementation utilizes :cpp:`FFT::OpenBCSolver`, which can
+be used for implementing convolution based solvers with a user provided
+Green's function. If users want to extend the open BC solver to 2D or other
+types of Green's function, they could use :cpp:`FFT::PoissonOpenBC` as an
+example. Below is an example of solving Poisson's equation with open
+boundaries.
+
+.. highlight:: c++
+
+::
+
+    Geometry geom(...);
+    MultiFab soln(...); // soln can be either nodal or cell-centered.
+    MultiFab rhs(...);  // rhs must have the same index type as soln.
+
+    int ng = ...; // ng can be non-zero, if we want to compute potential
+                  // outside the domain.
+    FFT::PoissonOpenBC openbc_solver(geom, soln.ixType(), IntVect(ng));
+    openbc_solver.solve(soln, rhs);
 
 :cpp:`FFT::PoissonHybrid` is a 3D only solver that supports periodic
 boundaries in the first two dimensions and Neumann boundary in the last

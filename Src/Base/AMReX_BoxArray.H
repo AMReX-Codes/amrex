@@ -69,7 +69,8 @@ namespace amrex
      */
     [[nodiscard]] BoxArray decompose (Box const& domain, int nboxes,
                                       Array<bool,AMREX_SPACEDIM> const& decomp
-                                      = {AMREX_D_DECL(true,true,true)});
+                                      = {AMREX_D_DECL(true,true,true)},
+                                      bool no_overlap = false);
 
 struct BARef
 {

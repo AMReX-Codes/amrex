@@ -10,6 +10,8 @@
 namespace amrex::FFT
 {
 
+template <typename T> class OpenBCSolver;
+
 /**
  * \brief Discrete Fourier Transform
  *
@@ -31,6 +33,8 @@ public:
     using MF = std::conditional_t<std::is_same_v<T,Real>,
                                   MultiFab, FabArray<BaseFab<T> > >;
     using cMF = FabArray<BaseFab<GpuComplex<T> > >;
+
+    template <typename U> friend class OpenBCSolver;
 
     /**
      * \brief Constructor
@@ -156,7 +160,7 @@ private:
 
     static std::pair<Plan<T>,Plan<T>> make_c2c_plans (cMF& inout);
 
-    void backward_doit (MF& outmf);
+    void backward_doit (MF& outmf, IntVect const& ngout = IntVect(0));
 
     Plan<T> m_fft_fwd_x{};
     Plan<T> m_fft_bwd_x{};
@@ -197,16 +201,19 @@ template <typename T, Direction D>
 R2C<T,D>::R2C (Box const& domain, Info const& info)
     : m_real_domain(domain),
       m_spectral_domain_x(IntVect(0), IntVect(AMREX_D_DECL(domain.length(0)/2,
-                                                           domain.bigEnd(1),
-                                                           domain.bigEnd(2)))),
+                                                           domain.length(1)-1,
+                                                           domain.length(2)-1)),
+                          domain.ixType()),
 #if (AMREX_SPACEDIM >= 2)
-      m_spectral_domain_y(IntVect(0), IntVect(AMREX_D_DECL(domain.bigEnd(1),
+      m_spectral_domain_y(IntVect(0), IntVect(AMREX_D_DECL(domain.length(1)-1,
                                                            domain.length(0)/2,
-                                                           domain.bigEnd(2)))),
+                                                           domain.length(2)-1)),
+                          domain.ixType()),
 #if (AMREX_SPACEDIM == 3)
-      m_spectral_domain_z(IntVect(0), IntVect(AMREX_D_DECL(domain.bigEnd(2),
+      m_spectral_domain_z(IntVect(0), IntVect(AMREX_D_DECL(domain.length(2)-1,
                                                            domain.length(0)/2,
-                                                           domain.bigEnd(1)))),
+                                                           domain.length(1)-1)),
+                          domain.ixType()),
 #endif
 #endif
       m_info(info)
@@ -214,9 +221,7 @@ R2C<T,D>::R2C (Box const& domain, Info const& info)
     BL_PROFILE("FFT::R2C");
 
     static_assert(std::is_same_v<float,T> || std::is_same_v<double,T>);
-    AMREX_ALWAYS_ASSERT(m_real_domain.smallEnd() == 0 &&
-                        m_real_domain.length(0) > 1 &&
-                        m_real_domain.cellCentered());
+    AMREX_ALWAYS_ASSERT(m_real_domain.length(0) > 1);
 #if (AMREX_SPACEDIM == 3)
     AMREX_ALWAYS_ASSERT(m_real_domain.length(2) > 1 || ! m_info.batch_mode);
     AMREX_ALWAYS_ASSERT(m_real_domain.length(1) > 1 || m_real_domain.length(2) == 1);
@@ -231,13 +236,15 @@ R2C<T,D>::R2C (Box const& domain, Info const& info)
     // make data containers
     //
 
-    auto bax = amrex::decompose(m_real_domain, nprocs, {AMREX_D_DECL(false,true,true)});
+    auto bax = amrex::decompose(m_real_domain, nprocs,
+                                {AMREX_D_DECL(false,true,true)}, true);
     DistributionMapping dmx = detail::make_iota_distromap(bax.size());
     m_rx.define(bax, dmx, 1, 0, MFInfo().SetAlloc(false));
 
     {
         BoxList bl = bax.boxList();
         for (auto & b : bl) {
+            b.shift(-m_real_domain.smallEnd());
             b.setBig(0, m_spectral_domain_x.bigEnd(0));
         }
         BoxArray cbax(std::move(bl));
@@ -247,7 +254,8 @@ R2C<T,D>::R2C (Box const& domain, Info const& info)
 #if (AMREX_SPACEDIM >= 2)
     DistributionMapping cdmy;
     if (m_real_domain.length(1) > 1) {
-        auto cbay = amrex::decompose(m_spectral_domain_y, nprocs, {AMREX_D_DECL(false,true,true)});
+        auto cbay = amrex::decompose(m_spectral_domain_y, nprocs,
+                                     {AMREX_D_DECL(false,true,true)}, true);
         if (cbay.size() == dmx.size()) {
             cdmy = dmx;
         } else {
@@ -261,7 +269,8 @@ R2C<T,D>::R2C (Box const& domain, Info const& info)
     if (m_real_domain.length(1) > 1 &&
         (! m_info.batch_mode && m_real_domain.length(2) > 1))
     {
-        auto cbaz = amrex::decompose(m_spectral_domain_z, nprocs, {false,true,true});
+        auto cbaz = amrex::decompose(m_spectral_domain_z, nprocs,
+                                     {false,true,true}, true);
         DistributionMapping cdmz;
         if (cbaz.size() == dmx.size()) {
             cdmz = dmx;
@@ -358,7 +367,9 @@ void R2C<T,D>::forward (MF const& inmf)
 {
     BL_PROFILE("FFT::R2C::forward(in)");
 
-    m_rx.ParallelCopy(inmf, 0, 0, 1);
+    if (&m_rx != &inmf) {
+        m_rx.ParallelCopy(inmf, 0, 0, 1);
+    }
     m_fft_fwd_x.template compute_r2c<Direction::forward>();
 
     if (                          m_cmd_x2y) {
@@ -380,7 +391,7 @@ void R2C<T,D>::backward (MF& outmf)
 }
 
 template <typename T, Direction D>
-void R2C<T,D>::backward_doit (MF& outmf)
+void R2C<T,D>::backward_doit (MF& outmf, IntVect const& ngout)
 {
     BL_PROFILE("FFT::R2C::backward(out)");
 
@@ -395,7 +406,7 @@ void R2C<T,D>::backward_doit (MF& outmf)
     }
 
     m_fft_bwd_x.template compute_r2c<Direction::backward>();
-    outmf.ParallelCopy(m_rx, 0, 0, 1);
+    outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout);
 }
 
 template <typename T, Direction D>

@@ -1891,7 +1891,7 @@ bool match (const BoxArray& x, const BoxArray& y)
 }
 
 BoxArray decompose (Box const& domain, int nboxes,
-                    Array<bool,AMREX_SPACEDIM> const& decomp)
+                    Array<bool,AMREX_SPACEDIM> const& decomp, bool no_overlap)
 {
     auto ndecomp = std::count(decomp.begin(), decomp.end(), true);
 
@@ -2048,9 +2048,24 @@ BoxArray decompose (Box const& domain, int nboxes,
                 ilo += domlo[0];
                 ihi += domlo[0];
                 Box b{IntVect(AMREX_D_DECL(ilo,jlo,klo)),
-                      IntVect(AMREX_D_DECL(ihi,jhi,khi))};
+                      IntVect(AMREX_D_DECL(ihi,jhi,khi)), ixtyp};
                 if (b.ok()) {
-                    bl.push_back(b.convert(ixtyp));
+                    if (no_overlap) {
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            if (ixtyp.nodeCentered(idim) &&
+                                b.bigEnd(idim) == ccdomain.bigEnd(idim))
+                            {
+                                b.growHi(idim, 1);
+                            }
+                        }
+                    } else {
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            if (ixtyp.nodeCentered(idim)) {
+                                b.growHi(idim, 1);
+                            }
+                        }
+                    }
+                    bl.push_back(b);
                 }
     AMREX_D_TERM(},},})
 
