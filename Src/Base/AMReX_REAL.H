@@ -100,25 +100,25 @@ inline namespace literals {
       ```
     */
     constexpr Real
-    operator"" _rt( long double x )
+    operator""_rt( long double x )
     {
         return Real( x );
     }
 
     constexpr Real
-    operator"" _rt( unsigned long long int x )
+    operator""_rt( unsigned long long int x )
     {
         return Real( x );
     }
 
     constexpr ParticleReal
-    operator"" _prt( long double x )
+    operator""_prt( long double x )
     {
         return ParticleReal( x );
     }
 
     constexpr ParticleReal
-    operator"" _prt( unsigned long long int x )
+    operator""_prt( unsigned long long int x )
     {
         return ParticleReal( x );
     }
