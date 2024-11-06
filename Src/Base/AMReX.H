@@ -102,8 +102,8 @@ namespace amrex
     * classes to clean up any "global" state that they maintain when we're
     * exiting from AMReX.
     */
-    void ExecOnFinalize (PTR_TO_VOID_FUNC);
-    void ExecOnInitialize (PTR_TO_VOID_FUNC);
+    void ExecOnFinalize (std::function<void()>);
+    void ExecOnInitialize (std::function<void()>);
 
     //! This shuts up the compiler about unused variables
     template <class... Ts>
