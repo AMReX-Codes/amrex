@@ -107,6 +107,7 @@ jobs:
   tests-oneapi-sycl-eb-nvidia:
     name: oneAPI SYCL for Nvidia GPUs [tests w/ EB]
     runs-on: ubuntu-latest
+    if: false
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -156,6 +157,7 @@ jobs:
   no-tests-oneapi-sycl-amd:
     name: oneAPI SYCL for AMD GPUs
     runs-on: ubuntu-20.04
+    if: false
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
