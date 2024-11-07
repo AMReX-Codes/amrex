@@ -26,7 +26,8 @@ template <typename T> class OpenBCSolver;
  * For more details, we refer the users to
  * https://amrex-codes.github.io/amrex/docs_html/FFT_Chapter.html.
  */
-template <typename T = Real, FFT::Direction D = FFT::Direction::both>
+template <typename T = Real, FFT::Direction D = FFT::Direction::both,
+          FFT::DomainStrategy = FFT::DomainStrategy::slab>
 class R2C
 {
 public:
@@ -130,6 +131,11 @@ public:
                                                 DIR == Direction::both, int> = 0>
     void backward (cMF const& inmf, MF& outmf);
 
+    //! Scaling factor. If the data goes through forward and then backward,
+    //! the result multiplied by the scaling factor is equal to the original
+    //! data.
+    [[nodiscard]] T scalingFactor () const;
+
     /**
      * \brief Get the internal spectral data
      *
@@ -176,18 +182,22 @@ private:
     std::unique_ptr<MultiBlockCommMetaData> m_cmd_y2x; // (y,x,z) -> (x,y,z)
     std::unique_ptr<MultiBlockCommMetaData> m_cmd_y2z; // (y,x,z) -> (z,x,y)
     std::unique_ptr<MultiBlockCommMetaData> m_cmd_z2y; // (z,x,y) -> (y,x,z)
+    std::unique_ptr<MultiBlockCommMetaData> m_cmd_x2z; // (x,y,z) -> (z,x,y)
+    std::unique_ptr<MultiBlockCommMetaData> m_cmd_z2x; // (z,x,y) -> (x,y,z)
     Swap01 m_dtos_x2y{};
     Swap01 m_dtos_y2x{};
     Swap02 m_dtos_y2z{};
     Swap02 m_dtos_z2y{};
+    RotateFwd m_dtos_x2z{};
+    RotateBwd m_dtos_z2x{};
 
     MF  m_rx;
     cMF m_cx;
     cMF m_cy;
     cMF m_cz;
 
-    std::unique_ptr<char,DataDeleter> m_data_rx_cy;
-    std::unique_ptr<char,DataDeleter> m_data_cx_cz;
+    std::unique_ptr<char,DataDeleter> m_data_1;
+    std::unique_ptr<char,DataDeleter> m_data_2;
 
     Box m_real_domain;
     Box m_spectral_domain_x;
@@ -195,10 +205,12 @@ private:
     Box m_spectral_domain_z;
 
     Info m_info;
+
+    bool m_slab_decomp = false;
 };
 
-template <typename T, Direction D>
-R2C<T,D>::R2C (Box const& domain, Info const& info)
+template <typename T, Direction D, DomainStrategy S>
+R2C<T,D,S>::R2C (Box const& domain, Info const& info)
     : m_real_domain(domain),
       m_spectral_domain_x(IntVect(0), IntVect(AMREX_D_DECL(domain.length(0)/2,
                                                            domain.length(1)-1,
@@ -232,12 +244,18 @@ R2C<T,D>::R2C (Box const& domain, Info const& info)
     int myproc = ParallelContext::MyProcSub();
     int nprocs = ParallelContext::NProcsSub();
 
+#if (AMREX_SPACEDIM == 3)
+    if (S == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
+        m_slab_decomp = true;
+    }
+#endif
+
     //
     // make data containers
     //
 
     auto bax = amrex::decompose(m_real_domain, nprocs,
-                                {AMREX_D_DECL(false,true,true)}, true);
+                                {AMREX_D_DECL(false,!m_slab_decomp,true)}, true);
     DistributionMapping dmx = detail::make_iota_distromap(bax.size());
     m_rx.define(bax, dmx, 1, 0, MFInfo().SetAlloc(false));
 
@@ -253,7 +271,7 @@ R2C<T,D>::R2C (Box const& domain, Info const& info)
 
 #if (AMREX_SPACEDIM >= 2)
     DistributionMapping cdmy;
-    if (m_real_domain.length(1) > 1) {
+    if ((m_real_domain.length(1) > 1) && !m_slab_decomp) {
         auto cbay = amrex::decompose(m_spectral_domain_y, nprocs,
                                      {AMREX_D_DECL(false,true,true)}, true);
         if (cbay.size() == dmx.size()) {
@@ -283,8 +301,13 @@ R2C<T,D>::R2C (Box const& domain, Info const& info)
     }
 #endif
 
-    m_data_rx_cy = detail::make_mfs_share(m_rx, m_cy);
-    m_data_cx_cz = detail::make_mfs_share(m_cx, m_cz);
+    if (m_slab_decomp) {
+        m_data_1 = detail::make_mfs_share(m_rx, m_cz);
+        m_data_2 = detail::make_mfs_share(m_cx, m_cx);
+    } else {
+        m_data_1 = detail::make_mfs_share(m_rx, m_cy);
+        m_data_2 = detail::make_mfs_share(m_cx, m_cz);
+    }
 
     //
     // make copiers
@@ -300,12 +323,20 @@ R2C<T,D>::R2C (Box const& domain, Info const& info)
     }
 #endif
 #if (AMREX_SPACEDIM == 3)
-    if (! m_cz.empty()) {
-        // comm meta-data between y and z phases
-        m_cmd_y2z = std::make_unique<MultiBlockCommMetaData>
-            (m_cz, m_spectral_domain_z, m_cy, IntVect(0), m_dtos_y2z);
-        m_cmd_z2y = std::make_unique<MultiBlockCommMetaData>
-            (m_cy, m_spectral_domain_y, m_cz, IntVect(0), m_dtos_z2y);
+    if (! m_cz.empty() ) {
+        if (m_slab_decomp) {
+            // comm meta-data between xy and z phases
+            m_cmd_x2z = std::make_unique<MultiBlockCommMetaData>
+                (m_cz, m_spectral_domain_z, m_cx, IntVect(0), m_dtos_x2z);
+            m_cmd_z2x = std::make_unique<MultiBlockCommMetaData>
+                (m_cx, m_spectral_domain_x, m_cz, IntVect(0), m_dtos_z2x);
+        } else {
+            // comm meta-data between y and z phases
+            m_cmd_y2z = std::make_unique<MultiBlockCommMetaData>
+                (m_cz, m_spectral_domain_z, m_cy, IntVect(0), m_dtos_y2z);
+            m_cmd_z2y = std::make_unique<MultiBlockCommMetaData>
+                (m_cy, m_spectral_domain_y, m_cz, IntVect(0), m_dtos_z2y);
+        }
     }
 #endif
 
@@ -319,14 +350,14 @@ R2C<T,D>::R2C (Box const& domain, Info const& info)
         auto* pr = m_rx[myproc].dataPtr();
         auto* pc = (typename Plan<T>::VendorComplex *)m_cx[myproc].dataPtr();
 #ifdef AMREX_USE_SYCL
-        m_fft_fwd_x.template init_r2c<Direction::forward>(box, pr, pc);
+        m_fft_fwd_x.template init_r2c<Direction::forward>(box, pr, pc, m_slab_decomp);
         m_fft_bwd_x = m_fft_fwd_x;
 #else
         if constexpr (D == Direction::both || D == Direction::forward) {
-            m_fft_fwd_x.template init_r2c<Direction::forward>(box, pr, pc);
+            m_fft_fwd_x.template init_r2c<Direction::forward>(box, pr, pc, m_slab_decomp);
         }
         if constexpr (D == Direction::both || D == Direction::backward) {
-            m_fft_bwd_x.template init_r2c<Direction::backward>(box, pr, pc);
+            m_fft_bwd_x.template init_r2c<Direction::backward>(box, pr, pc, m_slab_decomp);
         }
 #endif
     }
@@ -343,8 +374,8 @@ R2C<T,D>::R2C (Box const& domain, Info const& info)
 #endif
 }
 
-template <typename T, Direction D>
-R2C<T,D>::~R2C<T,D> ()
+template <typename T, Direction D, DomainStrategy S>
+R2C<T,D,S>::~R2C<T,D,S> ()
 {
     if (m_fft_bwd_x.plan != m_fft_fwd_x.plan) {
         m_fft_bwd_x.destroy();
@@ -360,10 +391,10 @@ R2C<T,D>::~R2C<T,D> ()
     m_fft_fwd_z.destroy();
 }
 
-template <typename T, Direction D>
+template <typename T, Direction D, DomainStrategy S>
 template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
                                           DIR == Direction::both, int> >
-void R2C<T,D>::forward (MF const& inmf)
+void R2C<T,D,S>::forward (MF const& inmf)
 {
     BL_PROFILE("FFT::R2C::forward(in)");
 
@@ -380,18 +411,23 @@ void R2C<T,D>::forward (MF const& inmf)
     if (                          m_cmd_y2z) {
         ParallelCopy(m_cz, m_cy, *m_cmd_y2z, 0, 0, 1, m_dtos_y2z);
     }
+#if (AMREX_SPACEDIM == 3)
+    else if (                     m_cmd_x2z) {
+        ParallelCopy(m_cz, m_cx, *m_cmd_x2z, 0, 0, 1, m_dtos_x2z);
+    }
+#endif
     m_fft_fwd_z.template compute_c2c<Direction::forward>();
 }
 
-template <typename T, Direction D>
+template <typename T, Direction D, DomainStrategy S>
 template <Direction DIR, std::enable_if_t<DIR == Direction::both, int> >
-void R2C<T,D>::backward (MF& outmf)
+void R2C<T,D,S>::backward (MF& outmf)
 {
     backward_doit(outmf);
 }
 
-template <typename T, Direction D>
-void R2C<T,D>::backward_doit (MF& outmf, IntVect const& ngout)
+template <typename T, Direction D, DomainStrategy S>
+void R2C<T,D,S>::backward_doit (MF& outmf, IntVect const& ngout)
 {
     BL_PROFILE("FFT::R2C::backward(out)");
 
@@ -399,6 +435,11 @@ void R2C<T,D>::backward_doit (MF& outmf, IntVect const& ngout)
     if (                          m_cmd_z2y) {
         ParallelCopy(m_cy, m_cz, *m_cmd_z2y, 0, 0, 1, m_dtos_z2y);
     }
+#if (AMREX_SPACEDIM == 3)
+    else if (                     m_cmd_z2x) {
+        ParallelCopy(m_cx, m_cz, *m_cmd_z2x, 0, 0, 1, m_dtos_z2x);
+    }
+#endif
 
     m_fft_bwd_y.template compute_c2c<Direction::backward>();
     if (                          m_cmd_y2x) {
@@ -409,9 +450,9 @@ void R2C<T,D>::backward_doit (MF& outmf, IntVect const& ngout)
     outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout);
 }
 
-template <typename T, Direction D>
+template <typename T, Direction D, DomainStrategy S>
 std::pair<Plan<T>, Plan<T>>
-R2C<T,D>::make_c2c_plans (cMF& inout)
+R2C<T,D,S>::make_c2c_plans (cMF& inout)
 {
     Plan<T> fwd;
     Plan<T> bwd;
@@ -437,9 +478,9 @@ R2C<T,D>::make_c2c_plans (cMF& inout)
     return {fwd, bwd};
 }
 
-template <typename T, Direction D>
+template <typename T, Direction D, DomainStrategy S>
 template <typename F>
-void R2C<T,D>::post_forward_doit (F const& post_forward)
+void R2C<T,D,S>::post_forward_doit (F const& post_forward)
 {
     if (m_info.batch_mode) {
         amrex::Abort("xxxxx todo: post_forward");
@@ -478,11 +519,25 @@ void R2C<T,D>::post_forward_doit (F const& post_forward)
     }
 }
 
-template <typename T, Direction D>
+template <typename T, Direction D, DomainStrategy S>
+T R2C<T,D,S>::scalingFactor () const
+{
+#if (AMREX_SPACEDIM == 3)
+    if (m_info.batch_mode) {
+        return T(1)/T(Long(m_real_domain.length(0)) *
+                      Long(m_real_domain.length(1)));
+    } else
+#endif
+    {
+        return T(1)/T(m_real_domain.numPts());
+    }
+}
+
+template <typename T, Direction D, DomainStrategy S>
 template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
                                           DIR == Direction::both, int> >
-std::pair<typename R2C<T,D>::cMF *, IntVect>
-R2C<T,D>::getSpectralData ()
+std::pair<typename R2C<T,D,S>::cMF *, IntVect>
+R2C<T,D,S>::getSpectralData ()
 {
     if (!m_cz.empty()) {
         return std::make_pair(&m_cz, IntVect{AMREX_D_DECL(2,0,1)});
@@ -493,10 +548,10 @@ R2C<T,D>::getSpectralData ()
     }
 }
 
-template <typename T, Direction D>
+template <typename T, Direction D, DomainStrategy S>
 template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
                                           DIR == Direction::both, int> >
-void R2C<T,D>::forward (MF const& inmf, cMF& outmf)
+void R2C<T,D,S>::forward (MF const& inmf, cMF& outmf)
 {
     BL_PROFILE("FFT::R2C::forward(inout)");
 
@@ -515,10 +570,10 @@ void R2C<T,D>::forward (MF const& inmf, cMF& outmf)
     }
 }
 
-template <typename T, Direction D>
+template <typename T, Direction D, DomainStrategy S>
 template <Direction DIR, std::enable_if_t<DIR == Direction::backward ||
                                           DIR == Direction::both, int> >
-void R2C<T,D>::backward (cMF const& inmf, MF& outmf)
+void R2C<T,D,S>::backward (cMF const& inmf, MF& outmf)
 {
     BL_PROFILE("FFT::R2C::backward(inout)");
 
@@ -537,9 +592,9 @@ void R2C<T,D>::backward (cMF const& inmf, MF& outmf)
     backward_doit(outmf);
 }
 
-template <typename T, Direction D>
+template <typename T, Direction D, DomainStrategy S>
 std::pair<BoxArray,DistributionMapping>
-R2C<T,D>::getSpectralDataLayout () const
+R2C<T,D,S>::getSpectralDataLayout () const
 {
 #if (AMREX_SPACEDIM == 3)
     if (!m_cz.empty()) {

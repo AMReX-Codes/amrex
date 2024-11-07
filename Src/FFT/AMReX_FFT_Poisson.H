@@ -19,18 +19,33 @@ public:
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     Poisson (Geometry const& geom,
              Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
-        : m_geom(geom), m_bc(bc), m_r2x(geom.Domain(),bc)
-    {}
+        : m_geom(geom), m_bc(bc)
+    {
+        bool all_periodic = true;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            all_periodic = all_periodic
+                && (bc[idim].first == Boundary::periodic)
+                && (bc[idim].second == Boundary::periodic);
+        }
+        if (all_periodic) {
+            m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain());
+        } else {
+            m_r2x = std::make_unique<R2X<typename MF::value_type>> (m_geom.Domain(), m_bc);
+        }
+    }
 
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     explicit Poisson (Geometry const& geom)
         : m_geom(geom),
           m_bc{AMREX_D_DECL(std::make_pair(Boundary::periodic,Boundary::periodic),
                             std::make_pair(Boundary::periodic,Boundary::periodic),
-                            std::make_pair(Boundary::periodic,Boundary::periodic))},
-          m_r2x(geom.Domain(),m_bc)
+                            std::make_pair(Boundary::periodic,Boundary::periodic))}
     {
-        AMREX_ALWAYS_ASSERT(m_geom.isAllPeriodic());
+        if (m_geom.isAllPeriodic()) {
+            m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain());
+        } else {
+            amrex::Abort("FFT::Poisson: wrong BC");
+        }
     }
 
     void solve (MF& soln, MF const& rhs);
@@ -38,7 +53,8 @@ public:
 private:
     Geometry m_geom;
     Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> m_bc;
-    R2X<typename MF::value_type> m_r2x;
+    std::unique_ptr<R2X<typename MF::value_type>> m_r2x;
+    std::unique_ptr<R2C<typename MF::value_type>> m_r2c;
 };
 
 #if (AMREX_SPACEDIM == 3)
@@ -114,7 +130,7 @@ void Poisson<MF>::solve (MF& soln, MF const& rhs)
         {AMREX_D_DECL(T(2)/T(m_geom.CellSize(0)*m_geom.CellSize(0)),
                       T(2)/T(m_geom.CellSize(1)*m_geom.CellSize(1)),
                       T(2)/T(m_geom.CellSize(2)*m_geom.CellSize(2)))};
-    auto scale = m_r2x.scalingFactor();
+    auto scale = (m_r2x) ? m_r2x->scalingFactor() : m_r2c->scalingFactor();
 
     GpuArray<T,AMREX_SPACEDIM> offset{AMREX_D_DECL(T(0),T(0),T(0))};
     // Not sure about odd-even and even-odd yet
@@ -133,8 +149,7 @@ void Poisson<MF>::solve (MF& soln, MF const& rhs)
         }
     }
 
-    m_r2x.forwardThenBackward(rhs, soln,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k, auto& spectral_data)
+    auto f = [=] AMREX_GPU_DEVICE (int i, int j, int k, auto& spectral_data)
     {
         amrex::ignore_unused(j,k);
         AMREX_D_TERM(T a = fac[0]*(i+offset[0]);,
@@ -147,7 +162,13 @@ void Poisson<MF>::solve (MF& soln, MF const& rhs)
             spectral_data /= k2;
         }
         spectral_data *= scale;
-    });
+    };
+
+    if (m_r2x) {
+        m_r2x->forwardThenBackward(rhs, soln, f);
+    } else {
+        m_r2c->forwardThenBackward(rhs, soln, f);
+    }
 }
 
 #if (AMREX_SPACEDIM == 3)

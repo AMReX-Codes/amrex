@@ -40,6 +40,7 @@ echo 'export PATH=/opt/rocm/llvm/bin:/opt/rocm/bin:/opt/rocm/profiler/bin:/opt/r
 
 # we should not need to export HIP_PATH=/opt/rocm/hip with those installs
 
+sudo apt-get clean
 sudo apt-get update
 
 # Ref.: https://rocmdocs.amd.com/en/latest/Installation_Guide/Installation-Guide.html#installing-development-packages-for-cross-compilation

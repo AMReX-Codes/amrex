@@ -74,7 +74,7 @@ int main (int argc, char* argv[])
 
             // forward
             {
-                FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
+                FFT::R2C<Real,FFT::Direction::forward,FFT::DomainStrategy::pencil> r2c(geom.Domain());
                 auto const& [cba, cdm] = r2c.getSpectralDataLayout();
                 cmf.define(cba, cdm, 1, 0);
                 r2c.forward(mf,cmf);
@@ -82,7 +82,7 @@ int main (int argc, char* argv[])
 
             // backward
             {
-                FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
+                FFT::R2C<Real,FFT::Direction::backward,FFT::DomainStrategy::pencil> r2c(geom.Domain());
                 r2c.backward(cmf,mf2);
             }
 
@@ -105,7 +105,7 @@ int main (int argc, char* argv[])
         mf2.setVal(std::numeric_limits<Real>::max());
 
         { // forward and backward
-            FFT::R2C<Real,FFT::Direction::both> r2c(geom.Domain());
+            FFT::R2C<Real,FFT::Direction::both,FFT::DomainStrategy::slab> r2c(geom.Domain());
             r2c.forwardThenBackward(mf, mf2,
                                     [=] AMREX_GPU_DEVICE (int, int, int, auto& sp)
             {
