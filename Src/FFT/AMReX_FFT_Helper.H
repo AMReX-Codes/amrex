@@ -222,7 +222,7 @@ struct Plan
 #elif defined(AMREX_USE_HIP)
 
         auto prec = std::is_same_v<float,T> ? rocfft_precision_single : rocfft_precision_double;
-	// switch to column-major ordering
+        // switch to column-major ordering
         std::size_t length[2] = {std::size_t(len[1]), std::size_t(len[0])};
         if constexpr (D == Direction::forward) {
             AMREX_ROCFFT_SAFE_CALL
