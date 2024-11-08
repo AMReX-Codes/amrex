@@ -28,6 +28,7 @@ template <typename T> class OpenBCSolver;
  */
 template <typename T = Real, FFT::Direction D = FFT::Direction::both,
           FFT::DomainStrategy = FFT::DomainStrategy::slab>
+          // Don't change the default. Otherwise OpenBCSolver might break.
 class R2C
 {
 public:

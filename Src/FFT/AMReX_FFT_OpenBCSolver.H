@@ -15,7 +15,7 @@ public:
     using MF = typename R2C<T>::MF;
     using cMF = typename R2C<T>::cMF;
 
-    explicit OpenBCSolver (Box const& domain);
+    explicit OpenBCSolver (Box const& domain, Info const& info = Info{});
 
     template <class F>
     void setGreensFunction (F const& greens_function);
@@ -25,26 +25,58 @@ public:
     [[nodiscard]] Box const& Domain () const { return m_domain; }
 
 private:
+    static Box make_grown_domain (Box const& domain, Info const& info);
+
     Box m_domain;
+    Info m_info;
     R2C<T> m_r2c;
     cMF m_G_fft;
+    std::unique_ptr<R2C<T>> m_r2c_green;
 };
 
 template <typename T>
-OpenBCSolver<T>::OpenBCSolver (Box const& domain)
-    : m_domain(domain),
-      m_r2c(Box(domain.smallEnd(), domain.bigEnd()+domain.length(), domain.ixType()))
+Box OpenBCSolver<T>::make_grown_domain (Box const& domain, Info const& info)
 {
-    auto [sd, ord] = m_r2c.getSpectralData();
-    amrex::ignore_unused(ord);
-    m_G_fft.define(sd->boxArray(), sd->DistributionMap(), 1, 0);
+    IntVect len = domain.length();
+#if (AMREX_SPACEDIM == 3)
+    if (info.batch_mode) { len[2] = 0; }
+#else
+    amrex::ignore_unused(info);
+#endif
+    return Box(domain.smallEnd(), domain.bigEnd()+len, domain.ixType());
+}
+
+template <typename T>
+OpenBCSolver<T>::OpenBCSolver (Box const& domain, Info const& info)
+    : m_domain(domain),
+      m_info(info),
+      m_r2c(OpenBCSolver<T>::make_grown_domain(domain,info), info)
+{
+#if (AMREX_SPACEDIM == 3)
+    if (m_info.batch_mode) {
+        auto gdom = make_grown_domain(domain,m_info);
+        gdom.enclosedCells(2);
+        gdom.setSmall(2, 0);
+        gdom.setBig(2, std::min(ParallelContext::NProcsSub(),m_domain.length(2))-1);
+        m_r2c_green = std::make_unique<R2C<T>>(gdom,info);
+        auto [sd, ord] = m_r2c_green->getSpectralData();
+        m_G_fft = cMF(*sd, amrex::make_alias, 0, 1);
+    } else
+#endif
+    {
+        amrex::ignore_unused(m_r2c_green);
+        auto [sd, ord] = m_r2c.getSpectralData();
+        amrex::ignore_unused(ord);
+        m_G_fft.define(sd->boxArray(), sd->DistributionMap(), 1, 0);
+    }
 }
 
 template <typename T>
 template <class F>
 void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
 {
-    auto* infab = detail::get_fab(m_r2c.m_rx);
+    auto* infab = m_info.batch_mode ? detail::get_fab(m_r2c_green->m_rx)
+        :                             detail::get_fab(m_r2c.m_rx);
     auto const& lo = m_domain.smallEnd();
     auto const& lo3 = lo.dim3();
     auto const& len = m_domain.length3d();
@@ -52,7 +84,8 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
         auto const& a = infab->array();
         auto box = infab->box();
         GpuArray<int,3> nimages{1,1,1};
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        int ndims = m_info.batch_mode ? AMREX_SPACEDIM : AMREX_SPACEDIM-1;
+        for (int idim = 0; idim < ndims; ++idim) {
             if (box.smallEnd(idim) == lo[idim] && box.length(idim) == 2*len[idim]) {
                 box.growHi(idim, -len[idim]+1); // +1 to include the middle plane
                 nimages[idim] = 2;
@@ -93,22 +126,28 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
         });
     }
 
-    m_r2c.forward(m_r2c.m_rx);
+    if (m_info.batch_mode) {
+        m_r2c_green->forward(m_r2c_green->m_rx);
+    } else {
+        m_r2c.forward(m_r2c.m_rx);
+    }
 
-    auto [sd, ord] = m_r2c.getSpectralData();
-    amrex::ignore_unused(ord);
-    auto const* srcfab = detail::get_fab(*sd);
-    if (srcfab) {
-        auto* dstfab = detail::get_fab(m_G_fft);
-        if (dstfab) {
+    if (!m_info.batch_mode) {
+        auto [sd, ord] = m_r2c.getSpectralData();
+        amrex::ignore_unused(ord);
+        auto const* srcfab = detail::get_fab(*sd);
+        if (srcfab) {
+            auto* dstfab = detail::get_fab(m_G_fft);
+            if (dstfab) {
 #if defined(AMREX_USE_GPU)
-            Gpu::dtod_memcpy_async
+                Gpu::dtod_memcpy_async
 #else
-            std::memcpy
+                std::memcpy
 #endif
-                (dstfab->dataPtr(), srcfab->dataPtr(), dstfab->nBytes());
-        } else {
-            amrex::Abort("FFT::OpenBCSolver: how did this happen");
+                    (dstfab->dataPtr(), srcfab->dataPtr(), dstfab->nBytes());
+            } else {
+                amrex::Abort("FFT::OpenBCSolver: how did this happen");
+            }
         }
     }
 }
@@ -132,9 +171,24 @@ void OpenBCSolver<T>::solve (MF& phi, MF const& rho)
         if (rhofab) {
             auto* pdst = rhofab->dataPtr();
             auto const* psrc = gfab->dataPtr();
-            amrex::ParallelFor(rhofab->box().numPts(), [=] AMREX_GPU_DEVICE (Long i)
+            Box const& rhobox = rhofab->box();
+#if (AMREX_SPACEDIM == 3)
+            Long leng = gfab->box().numPts();
+            if (m_info.batch_mode) {
+                AMREX_ASSERT(gfab->box().length(2) == 1 &&
+                             leng == (rhobox.length(0) * rhobox.length(1)));
+            } else {
+                AMREX_ASSERT(leng == rhobox.numPts());
+            }
+#endif
+            amrex::ParallelFor(rhobox.numPts(), [=] AMREX_GPU_DEVICE (Long i)
             {
-                pdst[i] *= psrc[i] * scaling_factor;
+#if (AMREX_SPACEDIM == 3)
+                Long isrc = i % leng;
+#else
+                Long isrc = i;
+#endif
+                pdst[i] *= psrc[isrc] * scaling_factor;
             });
         } else {
             amrex::Abort("FFT::OpenBCSolver::solve: how did this happen?");
