@@ -62,24 +62,31 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
         box.shift(-lo);
         amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
+            T G;
             if (i == len[0] || j == len[1] || k == len[2]) {
-                a(i+lo3.x,j+lo3.y,k+lo3.z) = T(0);
+                G = 0;
             } else {
                 auto ii = i;
                 auto jj = (j > len[1]) ? 2*len[1]-j : j;
                 auto kk = (k > len[2]) ? 2*len[2]-k : k;
-                auto G = greens_function(ii+lo3.x,jj+lo3.y,kk+lo3.z);
-                for (int koff = 0; koff < nimages[2]; ++koff) {
-                    int k2 = (koff == 0) ?  k : 2*len[2]-k;
-                    if (k2 == 2*len[2]) { continue; }
-                    for (int joff = 0; joff < nimages[1]; ++joff) {
-                        int j2 = (joff == 0) ?  j : 2*len[1]-j;
-                        if (j2 == 2*len[1]) { continue; }
-                        for (int ioff = 0; ioff < nimages[0]; ++ioff) {
-                            int i2 = (ioff == 0) ?  i : 2*len[0]-i;
-                            if (i2 == 2*len[0]) { continue; }
-                            a(i2+lo3.x,j2+lo3.y,k2+lo3.z) = G;
+                G = greens_function(ii+lo3.x,jj+lo3.y,kk+lo3.z);
+            }
+            for (int koff = 0; koff < nimages[2]; ++koff) {
+                int k2 = (koff == 0) ?  k : 2*len[2]-k;
+                if ((k2 == 2*len[2]) || (koff == 1 && k == len[2])) {
+                    continue;
+                }
+                for (int joff = 0; joff < nimages[1]; ++joff) {
+                    int j2 = (joff == 0) ?  j : 2*len[1]-j;
+                    if ((j2 == 2*len[1]) || (joff == 1 && j == len[1])) {
+                        continue;
+                    }
+                    for (int ioff = 0; ioff < nimages[0]; ++ioff) {
+                        int i2 = (ioff == 0) ?  i : 2*len[0]-i;
+                        if ((i2 == 2*len[0]) || (ioff == 1 && i == len[0])) {
+                            continue;
                         }
+                        a(i2+lo3.x,j2+lo3.y,k2+lo3.z) = G;
                     }
                 }
             }
@@ -115,7 +122,7 @@ void OpenBCSolver<T>::solve (MF& phi, MF const& rho)
 
     m_r2c.forward(inmf);
 
-    auto scaling_factor = T(1) / T(m_r2c.m_real_domain.numPts());
+    auto scaling_factor = m_r2c.scalingFactor();
 
     auto const* gfab = detail::get_fab(m_G_fft);
     if (gfab) {
