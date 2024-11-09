@@ -35,13 +35,6 @@
 #include <roctracer/roctx.h>
 #endif
 #endif
-#if defined(AMREX_USE_FFT)
-#  if __has_include(<rocfft/rocfft.h>)  // ROCm 5.3+
-#    include <rocfft/rocfft.h>
-#  else
-#    include <rocfft.h>
-#  endif
-#endif
 #endif
 
 #ifdef AMREX_USE_ACC
@@ -317,10 +310,6 @@ Device::Initialize ()
     }
 #endif /* AMREX_USE_MPI */
 
-#if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
-    AMREX_ROCFFT_SAFE_CALL(rocfft_setup());
-#endif
-
     if (amrex::Verbose()) {
 #if defined(AMREX_USE_CUDA)
         amrex::Print() << "CUDA"
@@ -359,10 +348,6 @@ Device::Finalize ()
 {
 #ifdef AMREX_USE_GPU
     Device::profilerStop();
-
-#if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
-    AMREX_ROCFFT_SAFE_CALL(rocfft_cleanup());
-#endif
 
 #ifdef AMREX_USE_SYCL
     for (auto& s : gpu_stream_pool) {

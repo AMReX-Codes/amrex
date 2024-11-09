@@ -14,7 +14,7 @@ namespace amrex::FFT
 template <typename T> class OpenBCSolver;
 
 /**
- * \brief Discrete Fourier Transform
+ * \brief Parallel Discrete Fourier Transform
  *
  * This class supports Fourier transforms between real and complex data. The
  * name R2C indicates that the forward transform converts real data to

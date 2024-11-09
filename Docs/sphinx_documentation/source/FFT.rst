@@ -7,10 +7,10 @@ FFT::R2C Class
 ==============
 
 Class template `FFT::R2C` supports discrete Fourier transforms between real
-and complex data. The name R2C indicates that the forward transform converts
-real data to complex data, while the backward transform converts complex
-data to real data. It should be noted that both directions of transformation
-are supported, not just from real to complex.
+and complex data across MPI processes. The name R2C indicates that the
+forward transform converts real data to complex data, while the backward
+transform converts complex data to real data. It should be noted that both
+directions of transformation are supported, not just from real to complex.
 
 The implementation utilizes cuFFT, rocFFT, oneMKL and FFTW, for CUDA, HIP,
 SYCL and CPU builds, respectively. Because the parallel communication is
@@ -18,8 +18,7 @@ handled by AMReX, it does not need the parallel version of
 FFTW. Furthermore, there is no constraint on the domain decomposition such
 as one Box per process. This class performs parallel FFT on AMReX's parallel
 data containers (e.g., :cpp:`MultiFab` and
-:cpp:`FabArray<BaseFab<ComplexData<Real>>>`. For local FFT, the users can
-use FFTW, cuFFT, rocFFT, or oneMKL directly.
+:cpp:`FabArray<BaseFab<ComplexData<Real>>>`.
 
 Other than using column-majored order, AMReX follows the convention of
 FFTW. Applying the forward transform followed by the backward transform
@@ -66,6 +65,32 @@ preparation works are done in the construction of an :cpp:`FFT::R2C`
 object. Therefore, one should cache it for reuse if possible. Although
 :cpp:`FFT::R2C` does not have a default constructor, one could always use
 :cpp:`std::unique_ptr<FFT::R2C<Real>>` to store an object in one's class.
+
+
+.. _sec:FFT:localr2c:
+
+FFT::LocalR2C Class
+===================
+
+Class template `FFT::LocalR2C` supports local discrete Fourier transforms
+between real and complex data. The name R2C indicates that the forward
+transform converts real data to complex data, while the backward transform
+converts complex data to real data. It should be noted that both directions
+of transformation are supported, not just from real to complex.
+
+Below is an example of using :cpp:`FFT::LocalR2C`.
+
+.. highlight:: c++
+
+::
+
+    MultiFab mf(...);
+    BaseFab<GpuComplex<T>> cfab;
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        FFT::LocalR2C fft(mfi.fabbox().length());
+        cfab.resize(IntVect(0), fft.spectralSize()-1);
+        fft.forward(mf[mfi].dataPtr(), cfab.dataPtr());
+    }
 
 
 Poisson Solver

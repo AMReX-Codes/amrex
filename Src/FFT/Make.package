@@ -3,6 +3,7 @@ ifndef AMREX_FFT_MAKE
 
 CEXE_headers += AMReX_FFT.H AMReX_FFT_Helper.H AMReX_FFT_Poisson.H
 CEXE_headers += AMReX_FFT_OpenBCSolver.H AMReX_FFT_R2C.H AMReX_FFT_R2X.H
+CEXE_headers += AMReX_FFT_LocalR2C.H
 CEXE_sources += AMReX_FFT.cpp
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/FFT
