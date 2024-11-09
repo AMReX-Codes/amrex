@@ -4,6 +4,7 @@
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_FFT_Helper.H>
+#include <algorithm>
 #include <numeric>
 #include <tuple>
 
@@ -243,7 +244,7 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
 #endif
 
     int myproc = ParallelContext::MyProcSub();
-    int nprocs = ParallelContext::NProcsSub();
+    int nprocs = std::min(ParallelContext::NProcsSub(), m_info.nprocs);
 
 #if (AMREX_SPACEDIM == 3)
     if (S == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {

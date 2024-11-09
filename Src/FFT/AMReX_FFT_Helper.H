@@ -34,6 +34,7 @@
 
 #include <algorithm>
 #include <complex>
+#include <limits>
 #include <memory>
 #include <utility>
 #include <variant>
@@ -57,7 +58,11 @@ struct Info
     //! batch size.
     bool batch_mode = false;
 
+    //! Max number of processes to use
+    int nprocs = std::numeric_limits<int>::max();
+
     Info& setBatchMode (bool x) { batch_mode = x; return *this; }
+    Info& setNumProcs (int n) { nprocs = n; return *this; }
 };
 
 #ifdef AMREX_USE_HIP

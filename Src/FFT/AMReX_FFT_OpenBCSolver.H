@@ -57,7 +57,10 @@ OpenBCSolver<T>::OpenBCSolver (Box const& domain, Info const& info)
         auto gdom = make_grown_domain(domain,m_info);
         gdom.enclosedCells(2);
         gdom.setSmall(2, 0);
-        gdom.setBig(2, std::min(ParallelContext::NProcsSub(),m_domain.length(2))-1);
+        int nprocs = std::min({ParallelContext::NProcsSub(),
+                               m_info.nprocs,
+                               m_domain.length(2)});
+        gdom.setBig(2, nprocs-1);
         m_r2c_green = std::make_unique<R2C<T>>(gdom,info);
         auto [sd, ord] = m_r2c_green->getSpectralData();
         m_G_fft = cMF(*sd, amrex::make_alias, 0, 1);

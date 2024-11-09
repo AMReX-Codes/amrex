@@ -4,6 +4,7 @@
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_FFT_Helper.H>
+#include <algorithm>
 #include <numeric>
 #include <tuple>
 
@@ -25,7 +26,8 @@ public:
     using cMF = FabArray<BaseFab<GpuComplex<T> > >;
 
     R2X (Box const& domain,
-         Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc);
+         Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc,
+         Info const& info = Info{});
 
     ~R2X ();
 
@@ -85,13 +87,17 @@ private:
     Box m_dom_cx;
     Box m_dom_cy;
     Box m_dom_cz;
+
+    Info m_info;
 };
 
 template <typename T>
 R2X<T>::R2X (Box const& domain,
-             Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
+             Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc,
+             Info const& info)
     : m_dom_0(domain),
-      m_bc(bc)
+      m_bc(bc),
+      m_info(info)
 {
     BL_PROFILE("FFT::R2X");
 
@@ -111,7 +117,7 @@ R2X<T>::R2X (Box const& domain,
     }
 
     int myproc = ParallelContext::MyProcSub();
-    int nprocs = ParallelContext::NProcsSub();
+    int nprocs = std::min(ParallelContext::NProcsSub(), m_info.nprocs);
 
     //
     // make data containers
