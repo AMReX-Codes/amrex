@@ -145,9 +145,6 @@ struct Plan
     VendorPlan plan2{};
     void* pf = nullptr;
     void* pb = nullptr;
-#ifdef AMREX_USE_CUDA
-    std::size_t work_size = 0;
-#endif
 
 #ifdef AMREX_USE_GPU
     void set_ptrs (void* p0, void* p1) {
@@ -206,6 +203,7 @@ struct Plan
 
         AMREX_CUFFT_SAFE_CALL(cufftCreate(&plan));
         AMREX_CUFFT_SAFE_CALL(cufftSetAutoAllocation(plan, 0));
+        std::size_t work_size;
         if constexpr (D == Direction::forward) {
             cufftType fwd_type = std::is_same_v<float,T> ? CUFFT_R2C : CUFFT_D2Z;
             AMREX_CUFFT_SAFE_CALL
@@ -215,7 +213,6 @@ struct Plan
             AMREX_CUFFT_SAFE_CALL
                 (cufftMakePlanMany(plan, rank, len, nullptr, 1, nc, nullptr, 1, nr, bwd_type, howmany, &work_size));
         }
-        AMREX_CUFFT_SAFE_CALL(cufftSetStream(plan, Gpu::gpuStream()));
 
 #elif defined(AMREX_USE_HIP)
 
@@ -314,9 +311,9 @@ struct Plan
         AMREX_CUFFT_SAFE_CALL(cufftSetAutoAllocation(plan, 0));
 
         cufftType t = std::is_same_v<float,T> ? CUFFT_C2C : CUFFT_Z2Z;
+        std::size_t work_size;
         AMREX_CUFFT_SAFE_CALL
             (cufftMakePlanMany(plan, 1, &n, nullptr, 1, n, nullptr, 1, n, t, howmany, &work_size));
-        AMREX_CUFFT_SAFE_CALL(cufftSetStream(plan, Gpu::gpuStream()));
 
 #elif defined(AMREX_USE_HIP)
 
@@ -475,9 +472,9 @@ struct Plan
         AMREX_CUFFT_SAFE_CALL(cufftCreate(&plan));
         AMREX_CUFFT_SAFE_CALL(cufftSetAutoAllocation(plan, 0));
         cufftType fwd_type = std::is_same_v<float,T> ? CUFFT_R2C : CUFFT_D2Z;
+        std::size_t work_size;
         AMREX_CUFFT_SAFE_CALL
             (cufftMakePlanMany(plan, 1, &nex, nullptr, 1, nc*2, nullptr, 1, nc, fwd_type, howmany, &work_size));
-        AMREX_CUFFT_SAFE_CALL(cufftSetStream(plan, Gpu::gpuStream()));
 
 #elif defined(AMREX_USE_HIP)
 
@@ -585,8 +582,14 @@ struct Plan
         auto* po = (TO*)((D == Direction::forward) ? pb : pf);
 
 #if defined(AMREX_USE_CUDA)
+        AMREX_CUFFT_SAFE_CALL(cufftSetStream(plan, Gpu::gpuStream()));
+
+        std::size_t work_size = 0;
+        AMREX_CUFFT_SAFE_CALL(cufftGetSize(plan, &work_size));
+
         auto* work_area = The_Arena()->alloc(work_size);
         AMREX_CUFFT_SAFE_CALL(cufftSetWorkArea(plan, work_area));
+
         if constexpr (D == Direction::forward) {
             if constexpr (std::is_same_v<float,T>) {
                 AMREX_CUFFT_SAFE_CALL(cufftExecR2C(plan, pi, po));
@@ -625,8 +628,14 @@ struct Plan
         auto* p = (VendorComplex*)pf;
 
 #if defined(AMREX_USE_CUDA)
+        AMREX_CUFFT_SAFE_CALL(cufftSetStream(plan, Gpu::gpuStream()));
+
+        std::size_t work_size = 0;
+        AMREX_CUFFT_SAFE_CALL(cufftGetSize(plan, &work_size));
+
         auto* work_area = The_Arena()->alloc(work_size);
         AMREX_CUFFT_SAFE_CALL(cufftSetWorkArea(plan, work_area));
+
         auto dir = (D == Direction::forward) ? CUFFT_FORWARD : CUFFT_INVERSE;
         if constexpr (std::is_same_v<float,T>) {
             AMREX_CUFFT_SAFE_CALL(cufftExecC2C(plan, p, p, dir));
@@ -1061,8 +1070,14 @@ struct Plan
 
 #if defined(AMREX_USE_CUDA)
 
+        AMREX_CUFFT_SAFE_CALL(cufftSetStream(plan, Gpu::gpuStream()));
+
+        std::size_t work_size = 0;
+        AMREX_CUFFT_SAFE_CALL(cufftGetSize(plan, &work_size));
+
         auto* work_area = The_Arena()->alloc(work_size);
         AMREX_CUFFT_SAFE_CALL(cufftSetWorkArea(plan, work_area));
+
         if constexpr (std::is_same_v<float,T>) {
             AMREX_CUFFT_SAFE_CALL(cufftExecR2C(plan, (T*)pscratch, (VendorComplex*)pscratch));
         } else {
@@ -1165,6 +1180,7 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* buffer, bool cache)
     } else {
         type = std::is_same_v<float,T> ? CUFFT_C2R : CUFFT_Z2D;
     }
+    std::size_t work_size;
     if constexpr (M == 1) {
         AMREX_CUFFT_SAFE_CALL
             (cufftMakePlan1d(plan, fft_size[0], type, howmany, &work_size));
@@ -1175,7 +1191,6 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* buffer, bool cache)
         AMREX_CUFFT_SAFE_CALL
             (cufftMakePlan3d(plan, fft_size[2], fft_size[1], fft_size[0], type, &work_size));
     }
-    AMREX_CUFFT_SAFE_CALL(cufftSetStream(plan, Gpu::gpuStream()));
 
 #elif defined(AMREX_USE_HIP)
 
