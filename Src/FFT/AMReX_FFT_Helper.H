@@ -1219,12 +1219,13 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* buffer, bool cache)
     for (int i = M-1; i >= 1; --i) {
         strides[i] = strides[i+1] * fft_size[M-1-i];
     }
+
 #ifndef AMREX_USE_MKL_DFTI_2024
     pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides);
     pp->set_value(oneapi::mkl::dft::config_param::BWD_STRIDES, strides);
 #else
     pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides.data());
-    pp->set_value(oneapi::mkl::dft::config_param::BWD_STRIDES, strides.data());
+    // Do not set BWD_STRIDES
 #endif
     pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                   oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
