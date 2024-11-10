@@ -291,7 +291,7 @@ struct Plan
     }
 
     template <Direction D, int M>
-    void init_r2c (IntVectND<M> const& fft_size, void* buffer, bool cache);
+    void init_r2c (IntVectND<M> const& fft_size, void*, void*, bool cache);
 
     template <Direction D>
     void init_c2c (Box const& box, VendorComplex* p)
@@ -1141,34 +1141,36 @@ void add_vendor_plan_f (Key const& key, PlanF plan);
 
 template <typename T>
 template <Direction D, int M>
-void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* buffer, bool cache)
+void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool cache)
 {
     static_assert(D == Direction::forward || D == Direction::backward);
 
     kind = (D == Direction::forward) ? Kind::r2c_f : Kind::r2c_b;
     defined = true;
-    pf = buffer;
-    pb = buffer;
+    pf = pbf;
+    pb = pbb;
 
     n = 1;
     for (auto s : fft_size) { n *= s; }
     howmany = 1;
 
+#if defined(AMREX_USE_GPU)
     Key key = {fft_size.template expand<3>(), D, kind};
-    VendorPlan* cached_plan = nullptr;
     if (cache) {
+        VendorPlan* cached_plan = nullptr;
         if constexpr (std::is_same_v<float,T>) {
             cached_plan = get_vendor_plan_f(key);
         } else {
             cached_plan = get_vendor_plan_d(key);
         }
-#if defined(AMREX_USE_GPU)
         if (cached_plan) {
             plan = *cached_plan;
             return;
         }
-#endif
     }
+#else
+    amrex::ignore_unused(cache);
+#endif
 
 #if defined(AMREX_USE_CUDA)
 
@@ -1249,6 +1251,8 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* buffer, bool cache)
 
 #else /* FFTW */
 
+    if (pf == nullptr || pb == nullptr) { return; }
+
     int size_for_row_major[M];
     for (int idim = 0; idim < M; ++idim) {
         size_for_row_major[idim] = fft_size[M-1-idim];
@@ -1257,41 +1261,35 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* buffer, bool cache)
     if constexpr (std::is_same_v<float,T>) {
         if constexpr (D == Direction::forward) {
             plan = fftwf_plan_dft_r2c
-                (M, size_for_row_major, (float*)buffer, (fftwf_complex*)buffer,
+                (M, size_for_row_major, (float*)pf, (fftwf_complex*)pb,
                  FFTW_ESTIMATE);
         } else {
             plan = fftwf_plan_dft_c2r
-                (M, size_for_row_major, (fftwf_complex*)buffer, (float*)buffer,
+                (M, size_for_row_major, (fftwf_complex*)pb, (float*)pf,
                  FFTW_ESTIMATE);
         }
     } else {
         if constexpr (D == Direction::forward) {
             plan = fftw_plan_dft_r2c
-                (M, size_for_row_major, (double*)buffer, (fftw_complex*)buffer,
+                (M, size_for_row_major, (double*)pf, (fftw_complex*)pb,
                  FFTW_ESTIMATE);
         } else {
             plan = fftw_plan_dft_c2r
-                (M, size_for_row_major, (fftw_complex*)buffer, (double*)buffer,
+                (M, size_for_row_major, (fftw_complex*)pb, (double*)pf,
                  FFTW_ESTIMATE);
         }
     }
 #endif
 
+#if defined(AMREX_USE_GPU)
     if (cache) {
-#if !defined(AMREX_USE_GPU)
-        if (cached_plan) {
-            destroy_vendor_plan(*cached_plan);
-            *cached_plan = plan;
-        } else
-#endif
-        {
-            if constexpr (std::is_same_v<float,T>) {
-                add_vendor_plan_f(key, plan);
-            } else {
-                add_vendor_plan_d(key, plan);
-            }
+        if constexpr (std::is_same_v<float,T>) {
+            add_vendor_plan_f(key, plan);
+        } else {
+            add_vendor_plan_d(key, plan);
         }
     }
+#endif
 }
 
 namespace detail

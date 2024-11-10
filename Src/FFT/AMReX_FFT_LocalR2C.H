@@ -30,23 +30,36 @@ public:
     /**
      * \brief Constructor
      *
-     * \param domain the forward domain (i.e., the domain of the real data)
-     * \param info optional information
+     * Given the diverse interfaces of FFT libraries we use, this constructo
+     * has a number of optional arguments.
+     *
+     * The user can provide the data pointers to the constructor. They are
+     * only needed by FFTW because its plan creation requires the input and
+     * output arrays. If they are null, we will delay the plan creation for
+     * FFTW until the forward or backward funciton is called.
+     *
+     * The cache_plan option is only used when we use cufft, rocfft and
+     * onemkl, but not FFTW.
+     *
+     * \param fft_size The forward domain size (i.e., the domain of the real data)
+     * \param p_fwd Forward domain data pointer (optional)
+     * \param p_bwd Backward domain data pointer (optional)
+     * \param cache_plan Try to cache the plan or not (optionl)
      */
     explicit LocalR2C (IntVectND<M> const& fft_size,
+                       T* p_fwd = nullptr,
+                       GpuComplex<T>* p_bwd = nullptr,
 #ifdef AMREX_USE_GPU
                        bool cache_plan = true);
 #else
                        bool cache_plan = false);
-    // Caching does not work with FFTW, because the plan is associated with
-    // data pointers.
 #endif
 
     ~LocalR2C ();
 
     LocalR2C () = default;
-    LocalR2C (LocalR2C &&);
-    LocalR2C& operator= (LocalR2C &&);
+    LocalR2C (LocalR2C &&) noexcept;
+    LocalR2C& operator= (LocalR2C &&) noexcept;
 
     LocalR2C (LocalR2C const&) = delete;
     LocalR2C& operator= (LocalR2C const&) = delete;
@@ -96,7 +109,8 @@ private:
     Plan<T> m_fft_fwd;
     Plan<T> m_fft_bwd;
 
-    void* m_buffer = nullptr; // for fftw
+    T* m_p_fwd = nullptr;
+    GpuComplex<T>* m_p_bwd = nullptr;
 
 #if defined(AMREX_USE_SYCL)
     gpuStream_t m_gpu_stream{};
@@ -109,8 +123,11 @@ private:
 };
 
 template <typename T, FFT::Direction D, int M>
-LocalR2C<T,D,M>::LocalR2C (IntVectND<M> const& fft_size, bool cache_plan)
-    : m_real_size(fft_size),
+LocalR2C<T,D,M>::LocalR2C (IntVectND<M> const& fft_size, T* p_fwd,
+                           GpuComplex<T>* p_bwd, bool cache_plan)
+    : m_p_fwd(p_fwd),
+      m_p_bwd(p_bwd),
+      m_real_size(fft_size),
       m_spectral_size(fft_size),
 #if defined(AMREX_USE_GPU)
       m_cache_plan(cache_plan)
@@ -131,25 +148,20 @@ LocalR2C<T,D,M>::LocalR2C (IntVectND<M> const& fft_size, bool cache_plan)
     Gpu::Device::resetStreamIndex();
     m_gpu_stream = Gpu::gpuStream();
 
-#elif !defined(AMREX_USE_GPU)
-
-    Long total_size = 1;
-    for (auto s : m_spectral_size) {
-        total_size *= s;
-    }
-    m_buffer = The_Arena()->alloc(sizeof(GpuComplex<T>)*total_size);
-
 #endif
 
+    auto* pf = (void*)m_p_fwd;
+    auto* pb = (void*)m_p_bwd;
+
 #ifdef AMREX_USE_SYCL
-    m_fft_fwd.template init_r2c<Direction::forward,M>(m_real_size, m_buffer, m_cache_plan);
+    m_fft_fwd.template init_r2c<Direction::forward,M>(m_real_size, pf, pb, m_cache_plan);
     m_fft_bwd = m_fft_fwd;
 #else
     if constexpr (D == Direction::both || D == Direction::forward) {
-        m_fft_fwd.template init_r2c<Direction::forward,M>(m_real_size, m_buffer, m_cache_plan);
+        m_fft_fwd.template init_r2c<Direction::forward,M>(m_real_size, pf, pb, m_cache_plan);
     }
     if constexpr (D == Direction::both || D == Direction::backward) {
-        m_fft_bwd.template init_r2c<Direction::backward,M>(m_real_size, m_buffer, m_cache_plan);
+        m_fft_bwd.template init_r2c<Direction::backward,M>(m_real_size, pf, pb, m_cache_plan);
     }
 #endif
 
@@ -161,11 +173,6 @@ LocalR2C<T,D,M>::LocalR2C (IntVectND<M> const& fft_size, bool cache_plan)
 template <typename T, FFT::Direction D, int M>
 void LocalR2C<T,D,M>::clear ()
 {
-    if (m_buffer) {
-        The_Arena()->free(m_buffer);
-        m_buffer = nullptr;
-    }
-
     if (!m_cache_plan) {
         if (m_fft_bwd.plan != m_fft_fwd.plan) {
             m_fft_bwd.destroy();
@@ -185,10 +192,11 @@ LocalR2C<T,D,M>::~LocalR2C ()
 }
 
 template <typename T, FFT::Direction D, int M>
-LocalR2C<T,D,M>::LocalR2C (LocalR2C && rhs)
-    : m_fft_fwd(rhs.m_fft_fwd),
+LocalR2C<T,D,M>::LocalR2C (LocalR2C && rhs) noexcept
+    : m_p_fwd(rhs.m_p_fwd),
+      m_p_bwd(rhs.m_p_bwd),
+      m_fft_fwd(rhs.m_fft_fwd),
       m_fft_bwd(rhs.m_fft_bwd),
-      m_buffer(rhs.m_buffer),
 #if defined(AMREX_USE_SYCL)
       m_gpu_stream(rhs.m_gpu_stream),
 #endif
@@ -196,20 +204,20 @@ LocalR2C<T,D,M>::LocalR2C (LocalR2C && rhs)
       m_spectral_size(rhs.m_spectral_size),
       m_cache_plan(rhs.m_cache_plan)
 {
-    rhs.m_buffer = nullptr;
     rhs.m_cache_plan = true; // So that plans in rhs are not destroyed.
 }
 
 template <typename T, FFT::Direction D, int M>
-LocalR2C<T,D,M>& LocalR2C<T,D,M>::operator= (LocalR2C && rhs)
+LocalR2C<T,D,M>& LocalR2C<T,D,M>::operator= (LocalR2C && rhs) noexcept
 {
     if (this == &rhs) { return *this; }
 
     this->clear();
 
+    m_p_fwd = rhs.m_p_fwd;
+    m_p_bwd = rhs.m_p_bwd;
     m_fft_fwd = rhs.m_fft_fwd;
     m_fft_bwd = rhs.m_fft_bwd;
-    m_buffer = rhs.m_buffer;
 #if defined(AMREX_USE_SYCL)
     m_gpu_stream = rhs.m_gpu_stream;
 #endif
@@ -217,7 +225,6 @@ LocalR2C<T,D,M>& LocalR2C<T,D,M>::operator= (LocalR2C && rhs)
     m_spectral_size = rhs.m_spectral_size;
     m_cache_plan = rhs.m_cache_plan;
 
-    rhs.m_buffer = nullptr;
     rhs.m_cache_plan = true; // So that plans in rhs are not destroyed.
 
     return *this;
@@ -225,7 +232,7 @@ LocalR2C<T,D,M>& LocalR2C<T,D,M>::operator= (LocalR2C && rhs)
 
 template <typename T, FFT::Direction D, int M>
 template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
-                                          DIR == Direction::both, int> >
+                                         DIR == Direction::both, int> >
 void LocalR2C<T,D,M>::forward (T const* indata, GpuComplex<T>* outdata)
 {
     BL_PROFILE("FFT::LocalR2C::forward");
@@ -244,16 +251,17 @@ void LocalR2C<T,D,M>::forward (T const* indata, GpuComplex<T>* outdata)
 
 #else /* FFTW */
 
-    int ny = 1;
-    for (int idim = 1; idim < M; ++idim) {
-        ny *= m_real_size[idim];
-    }
-    auto* pdst = (char*)m_buffer;
-    auto* psrc = (char*)indata;
-    for (int j = 0; j < ny; ++j) {
-        std::memcpy(pdst, psrc, sizeof(T) * m_real_size[0]);
-        pdst += sizeof(GpuComplex<T>) * m_spectral_size[0];
-        psrc += sizeof(           T ) *     m_real_size[0];
+    if (((T*)indata != m_p_fwd) || (outdata != m_p_bwd)) {
+        m_p_fwd = (T*)indata;
+        m_p_bwd = outdata;
+        auto* pf = (void*)m_p_fwd;
+        auto* pb = (void*)m_p_bwd;
+        m_fft_fwd.destroy();
+        m_fft_fwd.template init_r2c<Direction::forward,M>(m_real_size, pf, pb, false);
+        if constexpr (D == Direction::both) {
+            m_fft_bwd.destroy();
+            m_fft_bwd.template init_r2c<Direction::backward,M>(m_real_size, pf, pb, false);
+        }
     }
 
 #endif
@@ -261,17 +269,9 @@ void LocalR2C<T,D,M>::forward (T const* indata, GpuComplex<T>* outdata)
     m_fft_fwd.template compute_r2c<Direction::forward>();
 
 #if defined(AMREX_USE_SYCL)
-
     if (current_stream != m_gpu_stream) {
         Gpu::Device::setStream(current_stream);
     }
-
-#elif !defined(AMREX_USE_GPU)
-
-    std::size_t nbytes = sizeof(GpuComplex<T>);
-    for (auto s : m_spectral_size) { nbytes *= s; }
-    std::memcpy(outdata, m_buffer, nbytes);
-
 #endif
 }
 
@@ -296,34 +296,27 @@ void LocalR2C<T,D,M>::backward (GpuComplex<T> const* indata, T* outdata)
 
 #else /* FFTW */
 
-    std::size_t nbytes = sizeof(GpuComplex<T>);
-    for (auto s : m_spectral_size) { nbytes *= s; }
-    std::memcpy(m_buffer, indata, nbytes);
+    if (((GpuComplex<T>*)indata != m_p_bwd) || (outdata != m_p_fwd)) {
+        m_p_fwd = outdata;
+        m_p_bwd = (GpuComplex<T>*)indata;
+        auto* pf = (void*)m_p_fwd;
+        auto* pb = (void*)m_p_bwd;
+        m_fft_bwd.destroy();
+        m_fft_bwd.template init_r2c<Direction::backward,M>(m_real_size, pf, pb, false);
+        if constexpr (D == Direction::both) {
+            m_fft_fwd.destroy();
+            m_fft_fwd.template init_r2c<Direction::forward,M>(m_real_size, pf, pb, false);
+        }
+    }
 
 #endif
 
     m_fft_bwd.template compute_r2c<Direction::backward>();
 
 #if defined(AMREX_USE_SYCL)
-
     if (current_stream != m_gpu_stream) {
         Gpu::Device::setStream(current_stream);
     }
-
-#elif !defined(AMREX_USE_GPU)
-
-    int ny = 1;
-    for (int idim = 1; idim < M; ++idim) {
-        ny *= m_real_size[idim];
-    }
-    auto* pdst = (char*)outdata;
-    auto* psrc = (char*)m_buffer;
-    for (int j = 0; j < ny; ++j) {
-        std::memcpy(pdst, psrc, sizeof(T) * m_real_size[0]);
-        pdst += sizeof(           T ) *     m_real_size[0];
-        psrc += sizeof(GpuComplex<T>) * m_spectral_size[0];
-    }
-
 #endif
 }
 
