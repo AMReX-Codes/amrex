@@ -33,14 +33,23 @@ public:
      * \param domain the forward domain (i.e., the domain of the real data)
      * \param info optional information
      */
-    explicit LocalR2C (IntVectND<M> const& fft_size, bool cache_plan = true);
+    explicit LocalR2C (IntVectND<M> const& fft_size,
+#ifdef AMREX_USE_GPU
+                       bool cache_plan = true);
+#else
+                       bool cache_plan = false);
+    // Caching does not work with FFTW, because the plan is associated with
+    // data pointers.
+#endif
 
     ~LocalR2C ();
 
+    LocalR2C () = default;
+    LocalR2C (LocalR2C &&);
+    LocalR2C& operator= (LocalR2C &&);
+
     LocalR2C (LocalR2C const&) = delete;
-    LocalR2C (LocalR2C &&) = delete;
     LocalR2C& operator= (LocalR2C const&) = delete;
-    LocalR2C& operator= (LocalR2C &&) = delete;
 
     /**
      * \brief Forward transform
@@ -55,6 +64,8 @@ public:
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
     void forward (T const* indata, GpuComplex<T>* outdata);
+
+    void clear ();
 
     /**
      * \brief Backward transform
@@ -88,21 +99,29 @@ private:
     void* m_buffer = nullptr; // for fftw
 
 #if defined(AMREX_USE_SYCL)
-    gpuStream_t m_gpu_stream;
+    gpuStream_t m_gpu_stream{};
 #endif
 
     IntVectND<M> m_real_size;
     IntVectND<M> m_spectral_size;
 
-    bool m_cache_plan;
+    bool m_cache_plan = false;
 };
 
 template <typename T, FFT::Direction D, int M>
 LocalR2C<T,D,M>::LocalR2C (IntVectND<M> const& fft_size, bool cache_plan)
     : m_real_size(fft_size),
       m_spectral_size(fft_size),
+#if defined(AMREX_USE_GPU)
       m_cache_plan(cache_plan)
+#else
+      m_cache_plan(false)
+#endif
 {
+#if !defined(AMREX_USE_GPU)
+    amrex::ignore_unused(cache_plan);
+#endif
+
     BL_PROFILE("FFT::LocalR2C");
     m_spectral_size[0] = m_real_size[0]/2 + 1;
 
@@ -123,14 +142,14 @@ LocalR2C<T,D,M>::LocalR2C (IntVectND<M> const& fft_size, bool cache_plan)
 #endif
 
 #ifdef AMREX_USE_SYCL
-    m_fft_fwd.template init_r2c<Direction::forward,M>(m_real_size, m_buffer, cache_plan);
+    m_fft_fwd.template init_r2c<Direction::forward,M>(m_real_size, m_buffer, m_cache_plan);
     m_fft_bwd = m_fft_fwd;
 #else
     if constexpr (D == Direction::both || D == Direction::forward) {
-        m_fft_fwd.template init_r2c<Direction::forward,M>(m_real_size, m_buffer, cache_plan);
+        m_fft_fwd.template init_r2c<Direction::forward,M>(m_real_size, m_buffer, m_cache_plan);
     }
     if constexpr (D == Direction::both || D == Direction::backward) {
-        m_fft_bwd.template init_r2c<Direction::backward,M>(m_real_size, m_buffer, cache_plan);
+        m_fft_bwd.template init_r2c<Direction::backward,M>(m_real_size, m_buffer, m_cache_plan);
     }
 #endif
 
@@ -140,11 +159,12 @@ LocalR2C<T,D,M>::LocalR2C (IntVectND<M> const& fft_size, bool cache_plan)
 }
 
 template <typename T, FFT::Direction D, int M>
-LocalR2C<T,D,M>::~LocalR2C ()
+void LocalR2C<T,D,M>::clear ()
 {
-    static_assert(M >= 1 && M <= 3);
-
-    if (m_buffer) { The_Arena()->free(m_buffer); }
+    if (m_buffer) {
+        The_Arena()->free(m_buffer);
+        m_buffer = nullptr;
+    }
 
     if (!m_cache_plan) {
         if (m_fft_bwd.plan != m_fft_fwd.plan) {
@@ -152,6 +172,55 @@ LocalR2C<T,D,M>::~LocalR2C ()
         }
         m_fft_fwd.destroy();
     }
+
+    m_fft_fwd = Plan<T>{};
+    m_fft_bwd = Plan<T>{};
+}
+
+template <typename T, FFT::Direction D, int M>
+LocalR2C<T,D,M>::~LocalR2C ()
+{
+    static_assert(M >= 1 && M <= 3);
+    clear();
+}
+
+template <typename T, FFT::Direction D, int M>
+LocalR2C<T,D,M>::LocalR2C (LocalR2C && rhs)
+    : m_fft_fwd(rhs.m_fft_fwd),
+      m_fft_bwd(rhs.m_fft_bwd),
+      m_buffer(rhs.m_buffer),
+#if defined(AMREX_USE_SYCL)
+      m_gpu_stream(rhs.m_gpu_stream),
+#endif
+      m_real_size(rhs.m_real_size),
+      m_spectral_size(rhs.m_spectral_size),
+      m_cache_plan(rhs.m_cache_plan)
+{
+    rhs.m_buffer = nullptr;
+    rhs.m_cache_plan = true; // So that plans in rhs are not destroyed.
+}
+
+template <typename T, FFT::Direction D, int M>
+LocalR2C<T,D,M>& LocalR2C<T,D,M>::operator= (LocalR2C && rhs)
+{
+    if (this == &rhs) { return *this; }
+
+    this->clear();
+
+    m_fft_fwd = rhs.m_fft_fwd;
+    m_fft_bwd = rhs.m_fft_bwd;
+    m_buffer = rhs.m_buffer;
+#if defined(AMREX_USE_SYCL)
+    m_gpu_stream = rhs.m_gpu_stream;
+#endif
+    m_real_size = rhs.m_real_size;
+    m_spectral_size = rhs.m_spectral_size;
+    m_cache_plan = rhs.m_cache_plan;
+
+    rhs.m_buffer = nullptr;
+    rhs.m_cache_plan = true; // So that plans in rhs are not destroyed.
+
+    return *this;
 }
 
 template <typename T, FFT::Direction D, int M>
