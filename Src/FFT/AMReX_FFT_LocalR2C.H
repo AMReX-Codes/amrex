@@ -128,9 +128,9 @@ LocalR2C<T,D,M>::LocalR2C (IntVectND<M> const& fft_size, T* p_fwd,
     : m_p_fwd(p_fwd),
       m_p_bwd(p_bwd),
       m_real_size(fft_size),
-      m_spectral_size(fft_size),
+      m_spectral_size(fft_size)
 #if defined(AMREX_USE_GPU)
-      m_cache_plan(cache_plan)
+      , m_cache_plan(cache_plan)
 #endif
 {
 #if !defined(AMREX_USE_GPU)
