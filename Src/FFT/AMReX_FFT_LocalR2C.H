@@ -36,7 +36,7 @@ public:
      * The user can provide the data pointers to the constructor. They are
      * only needed by FFTW because its plan creation requires the input and
      * output arrays. If they are null, we will delay the plan creation for
-     * FFTW until the forward or backward funciton is called.
+     * FFTW until the forward or backward function is called.
      *
      * The cache_plan option is only used when we use cufft, rocfft and
      * onemkl, but not FFTW.
