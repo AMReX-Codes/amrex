@@ -671,59 +671,62 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
                      Array4<Real> const& gpy = grad[1]->array(mfi);,
                      Array4<Real> const& gpz = grad[2]->array(mfi);)
 #ifdef AMREX_USE_EB
-        Array4<int const> const& dmarr = dmask.const_array(mfi);
-        bool cutfab = edgecent[0] && edgecent[0]->ok(mfi);
-        AMREX_D_TERM(Array4<Real const> const& ecx
-                         = cutfab ? edgecent[0]->const_array(mfi) : Array4<Real const>{};,
-                     Array4<Real const> const& ecy
-                         = cutfab ? edgecent[1]->const_array(mfi) : Array4<Real const>{};,
-                     Array4<Real const> const& ecz
-                         = cutfab ? edgecent[2]->const_array(mfi) : Array4<Real const>{};)
-        if (phieb == std::numeric_limits<Real>::lowest()) {
-            auto const& phiebarr = m_phi_eb[amrlev].const_array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
-                xbox, txbox,
-                {
-                    mlebndfdlap_grad_x(txbox, gpx, p, dmarr, ecx, phiebarr, dxi);
-                }
-                , ybox, tybox,
-                {
-                    mlebndfdlap_grad_y(tybox, gpy, p, dmarr, ecy, phiebarr, dyi);
-                }
-                , zbox, tzbox,
-                {
-                    mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, ecz, phiebarr, dzi);
-                });
-        } else {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
-                xbox, txbox,
-                {
-                    mlebndfdlap_grad_x(txbox, gpx, p, dmarr, ecx, phieb, dxi);
-                }
-                , ybox, tybox,
-                {
-                    mlebndfdlap_grad_y(tybox, gpy, p, dmarr, ecy, phieb, dyi);
-                }
-                , zbox, tzbox,
-                {
-                    mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, ecz, phieb, dzi);
-                });
-        }
-#else
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
-                xbox, txbox,
-                {
-                    mlebndfdlap_grad_x(txbox, gpx, p, dxi);
-                }
-                , ybox, tybox,
-                {
-                    mlebndfdlap_grad_y(tybox, gpy, p, dyi);
-                }
-                , zbox, tzbox,
-                {
-                    mlebndfdlap_grad_z(tzbox, gpz, p, dzi);
-                });
+        if (factory) {
+            Array4<int const> const& dmarr = dmask.const_array(mfi);
+            bool cutfab = edgecent[0] && edgecent[0]->ok(mfi);
+            AMREX_D_TERM(Array4<Real const> const& ecx
+                             = cutfab ? edgecent[0]->const_array(mfi) : Array4<Real const>{};,
+                         Array4<Real const> const& ecy
+                             = cutfab ? edgecent[1]->const_array(mfi) : Array4<Real const>{};,
+                         Array4<Real const> const& ecz
+                             = cutfab ? edgecent[2]->const_array(mfi) : Array4<Real const>{};)
+            if (phieb == std::numeric_limits<Real>::lowest()) {
+                auto const& phiebarr = m_phi_eb[amrlev].const_array(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
+                    xbox, txbox,
+                    {
+                        mlebndfdlap_grad_x(txbox, gpx, p, dmarr, ecx, phiebarr, dxi);
+                    }
+                    , ybox, tybox,
+                    {
+                        mlebndfdlap_grad_y(tybox, gpy, p, dmarr, ecy, phiebarr, dyi);
+                    }
+                    , zbox, tzbox,
+                    {
+                        mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, ecz, phiebarr, dzi);
+                    });
+            } else {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
+                    xbox, txbox,
+                    {
+                        mlebndfdlap_grad_x(txbox, gpx, p, dmarr, ecx, phieb, dxi);
+                    }
+                    , ybox, tybox,
+                    {
+                        mlebndfdlap_grad_y(tybox, gpy, p, dmarr, ecy, phieb, dyi);
+                    }
+                    , zbox, tzbox,
+                    {
+                        mlebndfdlap_grad_z(tzbox, gpz, p, dmarr, ecz, phieb, dzi);
+                    });
+            }
+        } else
 #endif
+        {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(
+                    xbox, txbox,
+                    {
+                        mlebndfdlap_grad_x(txbox, gpx, p, dxi);
+                    }
+                    , ybox, tybox,
+                    {
+                        mlebndfdlap_grad_y(tybox, gpy, p, dyi);
+                    }
+                    , zbox, tzbox,
+                    {
+                        mlebndfdlap_grad_z(tzbox, gpz, p, dzi);
+                    });
+        }
     }
 }
 
