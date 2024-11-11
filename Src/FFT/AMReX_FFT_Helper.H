@@ -1251,7 +1251,10 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 
 #else /* FFTW */
 
-    if (pf == nullptr || pb == nullptr) { return; }
+    if (pf == nullptr || pb == nullptr) {
+        defined = false;
+        return;
+    }
 
     int size_for_row_major[M];
     for (int idim = 0; idim < M; ++idim) {
