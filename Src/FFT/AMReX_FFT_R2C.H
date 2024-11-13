@@ -246,7 +246,7 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
     int myproc = ParallelContext::MyProcSub();
     int nprocs = std::min(ParallelContext::NProcsSub(), m_info.nprocs);
 
-#if (AMREX_SPACEDIM == 3) && !defined(AMREX_USE_SYCL) /* Intel does not support batched 2d fft */
+#if (AMREX_SPACEDIM == 3)
     if (S == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
         m_slab_decomp = true;
     }

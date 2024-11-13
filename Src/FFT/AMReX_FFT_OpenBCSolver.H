@@ -52,9 +52,6 @@ OpenBCSolver<T>::OpenBCSolver (Box const& domain, Info const& info)
 {
 #if (AMREX_SPACEDIM == 3)
     if (m_info.batch_mode) {
-#if defined(AMREX_USE_SYCL)
-        amrex::Abort("FFT::OpenBCSolver: batch mode not support because Intel does not support batched 2d fft.");
-#endif
         auto gdom = make_grown_domain(domain,m_info);
         gdom.enclosedCells(2);
         gdom.setSmall(2, 0);

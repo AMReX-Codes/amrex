@@ -254,10 +254,10 @@ struct Plan
         strides.push_back(1);
 #ifndef AMREX_USE_MKL_DFTI_2024
         pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides);
-        pp->set_value(oneapi::mkl::dft::config_param::BWD_STRIDES, strides);
+        // Do not set BWD_STRIDES
 #else
         pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides.data());
-        pp->set_value(oneapi::mkl::dft::config_param::BWD_STRIDES, strides.data());
+        // Do not set BWD_STRIDES
 #endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
@@ -1239,7 +1239,7 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 
 #ifndef AMREX_USE_MKL_DFTI_2024
     pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides);
-    pp->set_value(oneapi::mkl::dft::config_param::BWD_STRIDES, strides);
+    // Do not set BWD_STRIDES
 #else
     pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides.data());
     // Do not set BWD_STRIDES
