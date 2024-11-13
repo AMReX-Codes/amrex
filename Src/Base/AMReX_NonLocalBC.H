@@ -528,7 +528,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
 struct PackComponents {
     int dest_component{0};
     int src_component{0};
-    int n_components{0};
+    int n_components{1};
 };
 
 //! \brief Dispatch local copies to the default behaviour that knows no DTOS nor projection.
