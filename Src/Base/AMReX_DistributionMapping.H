@@ -47,6 +47,26 @@ class DistributionMapping
     //! The distribution strategies
     enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, RRSFC };
 
+    struct Ref
+    {
+        //! Constructors to match those in DistributionMapping ....
+        Ref () = default;
+
+        explicit Ref (int len) : m_pmap(len) {}
+
+        explicit Ref (const Vector<int>& pmap) : m_pmap(pmap) {}
+
+        explicit Ref (Vector<int>&& pmap) noexcept : m_pmap(std::move(pmap)) {}
+
+        //! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
+
+        void clear () { m_pmap.clear();  m_index_array.clear();   m_ownership.clear(); }
+
+        Vector<int> m_pmap; //!< index array for all boxes
+        Vector<int> m_index_array;  //!< index array for local boxes owned by the team
+        std::vector<bool> m_ownership; //!< true ownership
+    };
+
     //! The default constructor.
     DistributionMapping () noexcept;
 
@@ -73,6 +93,9 @@ class DistributionMapping
     //! Build mapping out of BoxArray over nprocs processors.
     explicit DistributionMapping (const BoxArray& boxes,
                                   int nprocs = ParallelDescriptor::NProcs());
+
+    explicit DistributionMapping (std::shared_ptr<Ref> a_ref);
+
     /**
     * \brief This is a very specialized distribution map.
     * Do NOT use it unless you really understand what it does.
@@ -259,6 +282,8 @@ class DistributionMapping
                                                       const std::vector<T>& cost,
                                                       Real* efficiency);
 
+    [[nodiscard]] std::weak_ptr<Ref> getWeakRef () const;
+
 private:
 
     const Vector<int>& getIndexArray ();
@@ -332,27 +357,6 @@ private:
     */
     static PVMF m_BuildMap;
 
-    struct Ref
-    {
-        friend class DistributionMapping;
-
-        //! Constructors to match those in DistributionMapping ....
-        Ref () = default;
-
-        explicit Ref (int len) : m_pmap(len) {}
-
-        explicit Ref (const Vector<int>& pmap) : m_pmap(pmap) {}
-
-        explicit Ref (Vector<int>&& pmap) noexcept : m_pmap(std::move(pmap)) {}
-
-        //! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
-
-        void clear () { m_pmap.clear();  m_index_array.clear();   m_ownership.clear(); }
-
-        Vector<int> m_pmap; //!< index array for all boxes
-        Vector<int> m_index_array;  //!< index array for local boxes owned by the team
-        std::vector<bool> m_ownership; //!< true ownership
-    };
     //
     //! The data -- a reference-counted pointer to a Ref.
     std::shared_ptr<Ref> m_ref;
@@ -374,6 +378,8 @@ public:
     //! This gives a unique ID of the reference, which is different from dmID above.
     [[nodiscard]] RefID getRefID () const noexcept { return RefID { m_ref.get() }; }
 };
+
+using DMRef = DistributionMapping::Ref;
 
 //! Our output operator.
 std::ostream& operator<< (std::ostream& os, const DistributionMapping& pmap);

@@ -1623,6 +1623,24 @@ BoxArray::transformer () const
     return m_bat;
 }
 
+std::weak_ptr<BARef>
+BoxArray::getWeakRef () const
+{
+    return std::weak_ptr<BARef>{m_ref};
+}
+
+std::shared_ptr<BARef> const&
+BoxArray::getSharedRef () const
+{
+    return m_ref;
+}
+
+std::shared_ptr<BARef>&
+BoxArray::getSharedRef ()
+{
+    return m_ref;
+}
+
 std::ostream&
 operator<< (std::ostream&   os,
             const BoxArray& ba)

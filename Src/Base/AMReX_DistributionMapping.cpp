@@ -326,6 +326,11 @@ DistributionMapping::DistributionMapping (const BoxArray& boxes,
     define(boxes,nprocs);
 }
 
+DistributionMapping::DistributionMapping (std::shared_ptr<Ref> a_ref)
+    : m_ref(std::move(a_ref))
+{
+}
+
 DistributionMapping::DistributionMapping (const DistributionMapping& d1,
                                           const DistributionMapping& d2)
     :
@@ -1956,6 +1961,12 @@ DistributionMapping::getOwnerShip ()
         }
     }
     return m_ref->m_ownership;
+}
+
+std::weak_ptr<DMRef>
+DistributionMapping::getWeakRef () const
+{
+    return std::weak_ptr<DMRef>{m_ref};
 }
 
 std::ostream&

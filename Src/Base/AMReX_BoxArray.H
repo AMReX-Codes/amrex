@@ -12,6 +12,7 @@
 #include <iosfwd>
 #include <cstddef>
 #include <map>
+#include <memory>
 #include <unordered_map>
 
 namespace amrex
@@ -849,6 +850,10 @@ public:
     [[nodiscard]] BoxArray simplified () const; // For regular AMR grids only!!!
 
     [[nodiscard]] BATransformer const& transformer () const;
+
+    [[nodiscard]] std::weak_ptr<BARef> getWeakRef () const;
+    [[nodiscard]] std::shared_ptr<BARef> const& getSharedRef () const;
+    std::shared_ptr<BARef>& getSharedRef ();
 
     friend class AmrMesh;
     friend class FabArrayBase;
