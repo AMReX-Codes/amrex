@@ -151,6 +151,8 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
             }
         }
     }
+
+    m_r2c.prepare_openbc();
 }
 
 template <typename T>
