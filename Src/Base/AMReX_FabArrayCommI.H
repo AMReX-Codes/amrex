@@ -333,6 +333,61 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
     n_filled = dnghost;
 
+    if ((ParallelDescriptor::NProcs() == 1) &&
+        (this->size() == 1) &&  (src.size() == 1) &&
+        !period.isAnyPeriodic() && !to_ghost_cells_only)
+    {
+        if (this != &src) { // avoid self copy or plus
+            auto const& da = this->array(0, dcomp);
+            auto const& sa = src.const_array(0, scomp);
+            Box box = amrex::grow(src.box(0),snghost)
+                &     amrex::grow(this->box(0),dnghost);
+            if (op == FabArrayBase::COPY) {
+#ifdef AMREX_USE_GPU
+                ParallelFor(box, ncomp,
+                            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
+                    da(i,j,k,n) = sa(i,j,k,n);
+                });
+#else
+                auto const& lo = amrex::lbound(box);
+                auto const& hi = amrex::ubound(box);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for collapse(3)
+#endif
+                for (int n = 0; n < ncomp; ++n) {
+                for (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    da(i,j,k,n) = sa(i,j,k,n);
+                }}}}
+#endif
+            } else {
+#ifdef AMREX_USE_GPU
+                ParallelFor(box, ncomp,
+                            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
+                    da(i,j,k,n) += sa(i,j,k,n);
+                });
+#else
+                auto const& lo = amrex::lbound(box);
+                auto const& hi = amrex::ubound(box);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for collapse(3)
+#endif
+                for (int n = 0; n < ncomp; ++n) {
+                for (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    da(i,j,k,n) += sa(i,j,k,n);
+                }}}}
+#endif
+            }
+            Gpu::streamSynchronize();
+        }
+        return;
+    }
+
     if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
         (boxarray == src.boxarray && distributionMap == src.distributionMap) &&
         snghost == IntVect::TheZeroVector() &&

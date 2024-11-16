@@ -166,11 +166,11 @@ public:
 
     void prepare_openbc ();
 
+    void backward_doit (MF& outmf, IntVect const& ngout = IntVect(0));
+
 private:
 
     static std::pair<Plan<T>,Plan<T>> make_c2c_plans (cMF& inout);
-
-    void backward_doit (MF& outmf, IntVect const& ngout = IntVect(0));
 
     Plan<T> m_fft_fwd_x{};
     Plan<T> m_fft_bwd_x{};
@@ -214,6 +214,7 @@ private:
 
     Info m_info;
 
+    bool m_do_alld_fft = false;
     bool m_slab_decomp = false;
     bool m_openbc_half = false;
 };
@@ -259,10 +260,6 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
     }
 #endif
 
-    //
-    // make data containers
-    //
-
     auto bax = amrex::decompose(m_real_domain, nprocs,
                                 {AMREX_D_DECL(false,!m_slab_decomp,true)}, true);
     DistributionMapping dmx = detail::make_iota_distromap(bax.size());
@@ -278,109 +275,138 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
         m_cx.define(cbax, dmx, 1, 0, MFInfo().SetAlloc(false));
     }
 
-#if (AMREX_SPACEDIM >= 2)
-    DistributionMapping cdmy;
-    if ((m_real_domain.length(1) > 1) && !m_slab_decomp) {
-        auto cbay = amrex::decompose(m_spectral_domain_y, nprocs,
-                                     {AMREX_D_DECL(false,true,true)}, true);
-        if (cbay.size() == dmx.size()) {
-            cdmy = dmx;
-        } else {
-            cdmy = detail::make_iota_distromap(cbay.size());
-        }
-        m_cy.define(cbay, cdmy, 1, 0, MFInfo().SetAlloc(false));
-    }
-#endif
+    m_do_alld_fft = (ParallelDescriptor::NProcs() == 1) && (! m_info.batch_mode);
 
-#if (AMREX_SPACEDIM == 3)
-    if (m_real_domain.length(1) > 1 &&
-        (! m_info.batch_mode && m_real_domain.length(2) > 1))
+    if (!m_do_alld_fft) // do a series of 1d or 2d ffts
     {
-        auto cbaz = amrex::decompose(m_spectral_domain_z, nprocs,
-                                     {false,true,true}, true);
-        DistributionMapping cdmz;
-        if (cbaz.size() == dmx.size()) {
-            cdmz = dmx;
-        } else if (cbaz.size() == cdmy.size()) {
-            cdmz = cdmy;
-        } else {
-            cdmz = detail::make_iota_distromap(cbaz.size());
-        }
-         m_cz.define(cbaz, cdmz, 1, 0, MFInfo().SetAlloc(false));
-    }
-#endif
-
-    if (m_slab_decomp) {
-        m_data_1 = detail::make_mfs_share(m_rx, m_cz);
-        m_data_2 = detail::make_mfs_share(m_cx, m_cx);
-    } else {
-        m_data_1 = detail::make_mfs_share(m_rx, m_cy);
-        m_data_2 = detail::make_mfs_share(m_cx, m_cz);
-    }
-
-    //
-    // make copiers
-    //
+        //
+        // make data containers
+        //
 
 #if (AMREX_SPACEDIM >= 2)
-    if (! m_cy.empty()) {
-        // comm meta-data between x and y phases
-        m_cmd_x2y = std::make_unique<MultiBlockCommMetaData>
-            (m_cy, m_spectral_domain_y, m_cx, IntVect(0), m_dtos_x2y);
-        m_cmd_y2x = std::make_unique<MultiBlockCommMetaData>
-            (m_cx, m_spectral_domain_x, m_cy, IntVect(0), m_dtos_y2x);
-    }
+        DistributionMapping cdmy;
+        if ((m_real_domain.length(1) > 1) && !m_slab_decomp) {
+            auto cbay = amrex::decompose(m_spectral_domain_y, nprocs,
+                                         {AMREX_D_DECL(false,true,true)}, true);
+            if (cbay.size() == dmx.size()) {
+                cdmy = dmx;
+            } else {
+                cdmy = detail::make_iota_distromap(cbay.size());
+            }
+            m_cy.define(cbay, cdmy, 1, 0, MFInfo().SetAlloc(false));
+        }
 #endif
+
 #if (AMREX_SPACEDIM == 3)
-    if (! m_cz.empty() ) {
+        if (m_real_domain.length(1) > 1 &&
+            (! m_info.batch_mode && m_real_domain.length(2) > 1))
+        {
+            auto cbaz = amrex::decompose(m_spectral_domain_z, nprocs,
+                                         {false,true,true}, true);
+            DistributionMapping cdmz;
+            if (cbaz.size() == dmx.size()) {
+                cdmz = dmx;
+            } else if (cbaz.size() == cdmy.size()) {
+                cdmz = cdmy;
+            } else {
+                cdmz = detail::make_iota_distromap(cbaz.size());
+            }
+            m_cz.define(cbaz, cdmz, 1, 0, MFInfo().SetAlloc(false));
+        }
+#endif
+
         if (m_slab_decomp) {
-            // comm meta-data between xy and z phases
-            m_cmd_x2z = std::make_unique<MultiBlockCommMetaData>
-                (m_cz, m_spectral_domain_z, m_cx, IntVect(0), m_dtos_x2z);
-            m_cmd_z2x = std::make_unique<MultiBlockCommMetaData>
-                (m_cx, m_spectral_domain_x, m_cz, IntVect(0), m_dtos_z2x);
+            m_data_1 = detail::make_mfs_share(m_rx, m_cz);
+            m_data_2 = detail::make_mfs_share(m_cx, m_cx);
         } else {
-            // comm meta-data between y and z phases
-            m_cmd_y2z = std::make_unique<MultiBlockCommMetaData>
-                (m_cz, m_spectral_domain_z, m_cy, IntVect(0), m_dtos_y2z);
-            m_cmd_z2y = std::make_unique<MultiBlockCommMetaData>
-                (m_cy, m_spectral_domain_y, m_cz, IntVect(0), m_dtos_z2y);
+            m_data_1 = detail::make_mfs_share(m_rx, m_cy);
+            m_data_2 = detail::make_mfs_share(m_cx, m_cz);
         }
-    }
+
+        //
+        // make copiers
+        //
+
+#if (AMREX_SPACEDIM >= 2)
+        if (! m_cy.empty()) {
+            // comm meta-data between x and y phases
+            m_cmd_x2y = std::make_unique<MultiBlockCommMetaData>
+                (m_cy, m_spectral_domain_y, m_cx, IntVect(0), m_dtos_x2y);
+            m_cmd_y2x = std::make_unique<MultiBlockCommMetaData>
+                (m_cx, m_spectral_domain_x, m_cy, IntVect(0), m_dtos_y2x);
+        }
+#endif
+#if (AMREX_SPACEDIM == 3)
+        if (! m_cz.empty() ) {
+            if (m_slab_decomp) {
+                // comm meta-data between xy and z phases
+                m_cmd_x2z = std::make_unique<MultiBlockCommMetaData>
+                    (m_cz, m_spectral_domain_z, m_cx, IntVect(0), m_dtos_x2z);
+                m_cmd_z2x = std::make_unique<MultiBlockCommMetaData>
+                    (m_cx, m_spectral_domain_x, m_cz, IntVect(0), m_dtos_z2x);
+            } else {
+                // comm meta-data between y and z phases
+                m_cmd_y2z = std::make_unique<MultiBlockCommMetaData>
+                    (m_cz, m_spectral_domain_z, m_cy, IntVect(0), m_dtos_y2z);
+                m_cmd_z2y = std::make_unique<MultiBlockCommMetaData>
+                    (m_cy, m_spectral_domain_y, m_cz, IntVect(0), m_dtos_z2y);
+            }
+        }
 #endif
 
-    //
-    // make plans
-    //
+        //
+        // make plans
+        //
 
-    if (myproc < m_rx.size())
-    {
-        Box const& box = m_rx.box(myproc);
-        auto* pr = m_rx[myproc].dataPtr();
-        auto* pc = (typename Plan<T>::VendorComplex *)m_cx[myproc].dataPtr();
+        if (myproc < m_rx.size())
+        {
+            Box const& box = m_rx.box(myproc);
+            auto* pr = m_rx[myproc].dataPtr();
+            auto* pc = (typename Plan<T>::VendorComplex *)m_cx[myproc].dataPtr();
 #ifdef AMREX_USE_SYCL
-        m_fft_fwd_x.template init_r2c<Direction::forward>(box, pr, pc, m_slab_decomp);
+            m_fft_fwd_x.template init_r2c<Direction::forward>(box, pr, pc, m_slab_decomp);
+            m_fft_bwd_x = m_fft_fwd_x;
+#else
+            if constexpr (D == Direction::both || D == Direction::forward) {
+                m_fft_fwd_x.template init_r2c<Direction::forward>(box, pr, pc, m_slab_decomp);
+            }
+            if constexpr (D == Direction::both || D == Direction::backward) {
+                m_fft_bwd_x.template init_r2c<Direction::backward>(box, pr, pc, m_slab_decomp);
+            }
+#endif
+        }
+
+#if (AMREX_SPACEDIM >= 2)
+        if (! m_cy.empty()) {
+            std::tie(m_fft_fwd_y, m_fft_bwd_y) = make_c2c_plans(m_cy);
+        }
+#endif
+#if (AMREX_SPACEDIM == 3)
+        if (! m_cz.empty()) {
+            std::tie(m_fft_fwd_z, m_fft_bwd_z) = make_c2c_plans(m_cz);
+        }
+#endif
+    }
+    else // do fft in all dimensions at the same time
+    {
+        m_data_1 = detail::make_mfs_share(m_rx, m_rx);
+        m_data_2 = detail::make_mfs_share(m_cx, m_cx);
+
+        auto const& len = m_real_domain.length();
+        auto* pr = (void*)m_rx[0].dataPtr();
+        auto* pc = (void*)m_cx[0].dataPtr();
+#ifdef AMREX_USE_SYCL
+        m_fft_fwd_x.template init_r2c<Direction::forward>(len, pr, pc, false);
         m_fft_bwd_x = m_fft_fwd_x;
 #else
         if constexpr (D == Direction::both || D == Direction::forward) {
-            m_fft_fwd_x.template init_r2c<Direction::forward>(box, pr, pc, m_slab_decomp);
+            m_fft_fwd_x.template init_r2c<Direction::forward>(len, pr, pc, false);
         }
         if constexpr (D == Direction::both || D == Direction::backward) {
-            m_fft_bwd_x.template init_r2c<Direction::backward>(box, pr, pc, m_slab_decomp);
+            m_fft_bwd_x.template init_r2c<Direction::backward>(len, pr, pc, false);
         }
 #endif
     }
-
-#if (AMREX_SPACEDIM >= 2)
-    if (! m_cy.empty()) {
-        std::tie(m_fft_fwd_y, m_fft_bwd_y) = make_c2c_plans(m_cy);
-    }
-#endif
-#if (AMREX_SPACEDIM == 3)
-    if (! m_cz.empty()) {
-        std::tie(m_fft_fwd_z, m_fft_bwd_z) = make_c2c_plans(m_cz);
-    }
-#endif
 }
 
 template <typename T, Direction D, DomainStrategy S>
@@ -408,6 +434,8 @@ template <typename T, Direction D, DomainStrategy S>
 void R2C<T,D,S>::prepare_openbc ()
 {
 #if (AMREX_SPACEDIM == 3)
+    if (m_do_alld_fft) { return; }
+
     if (m_slab_decomp) {
         auto* fab = detail::get_fab(m_rx);
         if (fab) {
@@ -464,6 +492,12 @@ void R2C<T,D,S>::forward (MF const& inmf)
     if (&m_rx != &inmf) {
         m_rx.ParallelCopy(inmf, 0, 0, 1);
     }
+
+    if (m_do_alld_fft) {
+        m_fft_fwd_x.template compute_r2c<Direction::forward>();
+        return;
+    }
+
     auto& fft_x = m_openbc_half ? m_fft_fwd_x_half : m_fft_fwd_x;
     fft_x.template compute_r2c<Direction::forward>();
 
@@ -508,6 +542,12 @@ template <typename T, Direction D, DomainStrategy S>
 void R2C<T,D,S>::backward_doit (MF& outmf, IntVect const& ngout)
 {
     BL_PROFILE("FFT::R2C::backward(out)");
+
+    if (m_do_alld_fft) {
+        m_fft_bwd_x.template compute_r2c<Direction::backward>();
+        outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout);
+        return;
+    }
 
     m_fft_bwd_z.template compute_c2c<Direction::backward>();
     if (                          m_cmd_z2y) {
@@ -693,7 +733,7 @@ R2C<T,D,S>::getSpectralDataLayout () const
     } else
 #endif
 #if (AMREX_SPACEDIM >= 2)
-    if (!!m_cy.empty()) {
+    if (!m_cy.empty()) {
         BoxList bl = m_cy.boxArray().boxList();
         for (auto& b : bl) {
             auto lo = b.smallEnd();

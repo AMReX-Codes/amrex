@@ -76,6 +76,8 @@ template <typename T>
 template <class F>
 void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
 {
+    BL_PROFILE("OpenBCSolver::setGreensFunction");
+
     auto* infab = m_info.batch_mode ? detail::get_fab(m_r2c_green->m_rx)
         :                             detail::get_fab(m_r2c.m_rx);
     auto const& lo = m_domain.smallEnd();
@@ -158,6 +160,8 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
 template <typename T>
 void OpenBCSolver<T>::solve (MF& phi, MF const& rho)
 {
+    BL_PROFILE("OpenBCSolver::solve");
+
     auto& inmf = m_r2c.m_rx;
     inmf.setVal(T(0));
     inmf.ParallelCopy(rho, 0, 0, 1);
