@@ -109,7 +109,7 @@ jobs:
     name: oneAPI SYCL for Nvidia GPUs [tests w/ EB]
     runs-on: ubuntu-latest
     needs: check_changes
-    if: false && needs.check_changes.outputs.has_non_docs_changes == 'true'
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -161,7 +161,7 @@ jobs:
     name: oneAPI SYCL for AMD GPUs
     runs-on: ubuntu-20.04
     needs: check_changes
-    if: false && needs.check_changes.outputs.has_non_docs_changes == 'true'
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
