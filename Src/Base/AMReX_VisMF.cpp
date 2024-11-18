@@ -75,14 +75,14 @@ namespace
             auto cached_ba = it->first.lock();
             if (cached_ba) {
                 if (cached_ba->m_abox == ba_ref->m_abox) {
-                    ba_ref = cached_ba;
+                    ba_ref = std::move(cached_ba);
                     dm_ref = it->second.lock();
                     ielem = int(std::distance(s_layout_cache.begin(), it));
                     break;
                 }
                 ++it;
             } else { // expired
-                s_layout_cache.erase(it);
+                it = s_layout_cache.erase(it);
             }
         }
 
