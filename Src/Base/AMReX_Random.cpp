@@ -134,6 +134,13 @@ unsigned int RandomPoisson (Real lambda)
     return distribution(generators[tid]);
 }
 
+Real RandomGamma (Real alpha, Real beta)
+{
+    std::gamma_distribution<Real> distribution(alpha, beta);
+    int tid = OpenMP::get_thread_num();
+    return distribution(generators[tid]);
+}
+
 unsigned int Random_int (unsigned int n)
 {
     std::uniform_int_distribution<unsigned int> distribution(0, n-1);
