@@ -477,14 +477,14 @@ void mlcurlcurl_1D (int i, int j, int k,
         //Real res_x = rhsx(i,j,k) - beta*ex(i,j,k);
         //ex(i,j,k) += omega/beta*res_x;
         ex(i,j,k) += rhsx(i,j,k) / beta + (1-omega)*ex(i,j,k);
-        
+
         // Update Ey(i,j,k)
         Real gamma_y = dxx * Real(2.0) + beta;
         Real ccey = - dxx * (ey(i-1,j  ,k  ) +
                              ey(i+1,j  ,k  ) );
         Real res_y = rhsy(i,j,k) - ( gamma_y * ey(i,j,k) + ccey );
         ey(i,j,k) += omega/gamma_y * res_y;
-        
+
         //Update Ez(i,j,k)
         Real gamma_z = dxx * Real(2.0) + beta;
         Real ccez = -dxx * (ez(i-1,j  ,k  ) +
