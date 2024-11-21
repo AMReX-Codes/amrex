@@ -209,6 +209,7 @@ struct CurlCurlDirichletInfo
     {
 #if (AMREX_SPACEDIM == 1)
         return true;
+        amrex::ignore_unused(j, k);
 #elif (AMREX_SPACEDIM == 2)
         amrex::ignore_unused(k);
         return (j == dirichlet_lo[1]) || (j == dirichlet_hi[1]);
