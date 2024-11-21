@@ -619,7 +619,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         [=] AMREX_GPU_DEVICE (const typename ParticleTileType::ConstParticleTileDataType& ptd, int ip,
                               amrex::Array4<amrex::Real> const& count)
         {
-            const auto& p = make_particle<ConstParticleType>{}(ptd, ip);
+            const auto p = make_particle<ConstParticleType>{}(ptd, ip);
             CellAssignor assignor;
             IntVect iv = assignor(p, plo, dxi, domain);
             amrex::Gpu::Atomic::AddNoRet(&count(iv), 1.0_rt);
