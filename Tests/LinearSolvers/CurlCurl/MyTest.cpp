@@ -59,7 +59,6 @@ MyTest::solve ()
 
     auto tol_rel = Real(1.0e-10);
     auto tol_abs = Real(0.0);
-
     if (use_gmres)
     {
         GMRESMLMGT<V> gmsolver(mlmg);
@@ -135,7 +134,7 @@ MyTest::initData ()
 
     for (int idim = 0; idim < 3; ++idim) {
         IntVect itype(1);
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM < 3)
         if (idim < AMREX_SPACEDIM)
 #endif
         {
