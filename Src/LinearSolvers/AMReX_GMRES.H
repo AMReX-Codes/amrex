@@ -34,15 +34,20 @@ namespace amrex {
  *               vector product. Here x is made with the makeVecLHS function.
  *               Therefore, it may have ghost cells and it's safe to cast it with
  *               const_cast<V&>(x) and do ghost cell exchange, if necessary.
+ *
  *             - `void assign(V& lhs, V const& rhs)`\n
  *               lhs = rhs. For example, `MultiFab::Copy(lhs,rhs,0,0,1,0)`.
+ *
  *             - `RT dotProduct(V const& v1, V const& v2)`\n
  *               returns v1 * v2. For example, `MultiFab::Dot(v1,0,v2,0,1,0)`.
+ *
  *             - `void increment(V& lhs, V const& rhs, RT a)`\n
  *               lhs += a * rhs. For example, `MultiFab::Saxpy(lhs,a,rhs,0,0,1,0)`.
+ *
  *             - `void linComb(V& lhs, RT a, V const& rhs_a, RT b, V const& rhs_b)`\n
  *               lhs = a * rhs_a + b * rhs_b. For example,
  *               `MultiFab::LinComb(lhs,a,rhs_a,0,b,rhs_b,0,0,1,0)`.
+ *
  *             - `V makeVecRHS()`\n
  *               returns a V object that is suitable as RHS in M x = b. The reason
  *               we distinguish between LHS and RHS is M might need the distinction
@@ -50,18 +55,23 @@ namespace amrex {
  *               in the LHS of M x = b to have ghost cells for efficiency, whereas
  *               no ghost cells are needed for the RHS (i.e., b). An example of the
  *               implementation might be `return MultiFab(grids,dmap,1,0)`.
+ *
  *             - `V makeVecLHS()`\n
  *               returns a V object that is suitable as LHS in M x = b. See the
  *               description for makeVecRHS for more details. An example of the
  *               implementation might be `return MultiFab(grids,dmap,1,1)`.
+ *
  *             - `RT norm2(V const& v)`\n
  *               returns the 2-norm of v. For example, `return v.norm2()`.
+ *
  *             - `void precond(V& lhs, V const& rhs)`\n
  *               applies preconditioner to rhs. If there is no preconditioner,
  *               this function should do lhs = rhs.
+ *
  *             - `void scale(V& v, RT fac)`\n
  *               scales v by fac. For example, `v.mult(fac)`.
- *             - `void setToZero(V& v)1\n
+ *
+ *             - `void setToZero(V& v)`\n
  *               v = 0. For example, `v.setVal(0)`.
  */
 template <typename V, typename M>
