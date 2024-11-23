@@ -80,9 +80,6 @@ std::pair<Real,Real> check_convergence
         {AMREX_D_DECL(1._rt/(dx[0]*dx[0]),
                       1._rt/(dx[1]*dx[1]),
                       1._rt/(dx[2]*dx[2]))};
-    AMREX_D_TERM(int n_cell_x = geom.Domain().length(0);,
-                 int n_cell_y = geom.Domain().length(1);,
-                 int n_cell_z = geom.Domain().length(2));
     ParallelFor(res, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
     {
         auto const& phia = phi_ma[b];
