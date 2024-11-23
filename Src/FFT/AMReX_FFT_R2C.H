@@ -12,6 +12,8 @@ namespace amrex::FFT
 {
 
 template <typename T> class OpenBCSolver;
+template <typename T> class Poisson;
+template <typename T> class PoissonHybrid;
 
 /**
  * \brief Parallel Discrete Fourier Transform
@@ -38,6 +40,8 @@ public:
     using cMF = FabArray<BaseFab<GpuComplex<T> > >;
 
     template <typename U> friend class OpenBCSolver;
+    template <typename U> friend class Poisson;
+    template <typename U> friend class PoissonHybrid;
 
     /**
      * \brief Constructor
@@ -160,15 +164,20 @@ public:
      */
     [[nodiscard]] std::pair<BoxArray,DistributionMapping> getSpectralDataLayout () const;
 
-    // public for cuda
+    // This is a private function, but it's public for cuda.
     template <typename F>
     void post_forward_doit (F const& post_forward);
 
+private:
+
     void prepare_openbc ();
 
-    void backward_doit (MF& outmf, IntVect const& ngout = IntVect(0));
+    void backward_doit (MF& outmf, IntVect const& ngout = IntVect(0),
+                        Periodicity const& period = Periodicity::NonPeriodic());
 
-private:
+    void backward_doit (cMF const& inmf, MF& outmf,
+                        IntVect const& ngout = IntVect(0),
+                        Periodicity const& period = Periodicity::NonPeriodic());
 
     static std::pair<Plan<T>,Plan<T>> make_c2c_plans (cMF& inout);
 
@@ -539,13 +548,14 @@ void R2C<T,D,S>::backward (MF& outmf)
 }
 
 template <typename T, Direction D, DomainStrategy S>
-void R2C<T,D,S>::backward_doit (MF& outmf, IntVect const& ngout)
+void R2C<T,D,S>::backward_doit (MF& outmf, IntVect const& ngout,
+                                Periodicity const& period)
 {
     BL_PROFILE("FFT::R2C::backward(out)");
 
     if (m_do_alld_fft) {
         m_fft_bwd_x.template compute_r2c<Direction::backward>();
-        outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout);
+        outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout, period);
         return;
     }
 
@@ -567,7 +577,7 @@ void R2C<T,D,S>::backward_doit (MF& outmf, IntVect const& ngout)
 
     auto& fft_x = m_openbc_half ? m_fft_bwd_x_half : m_fft_bwd_x;
     fft_x.template compute_r2c<Direction::backward>();
-    outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout);
+    outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout, period);
 }
 
 template <typename T, Direction D, DomainStrategy S>
@@ -695,6 +705,13 @@ template <Direction DIR, std::enable_if_t<DIR == Direction::backward ||
                                           DIR == Direction::both, int> >
 void R2C<T,D,S>::backward (cMF const& inmf, MF& outmf)
 {
+    backward_doit(inmf, outmf);
+}
+
+template <typename T, Direction D, DomainStrategy S>
+void R2C<T,D,S>::backward_doit (cMF const& inmf, MF& outmf, IntVect const& ngout,
+                                Periodicity const& period)
+{
     BL_PROFILE("FFT::R2C::backward(inout)");
 
     if (!m_cz.empty()) { // (x,y,z) -> m_cz's order (z,x,y)
@@ -709,7 +726,7 @@ void R2C<T,D,S>::backward (cMF const& inmf, MF& outmf)
     } else {
         m_cx.ParallelCopy(inmf, 0, 0, 1);
     }
-    backward_doit(outmf);
+    backward_doit(outmf, ngout, period);
 }
 
 template <typename T, Direction D, DomainStrategy S>

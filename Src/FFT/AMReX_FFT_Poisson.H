@@ -7,6 +7,12 @@
 namespace amrex::FFT
 {
 
+namespace detail {
+template <typename MF>
+void fill_physbc (MF& mf, Geometry const& geom,
+                  Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc);
+}
+
 /**
  * \brief Poisson solver for periodic, Dirichlet & Neumann boundaries using
  * FFT.
@@ -48,6 +54,13 @@ public:
         }
     }
 
+    /*
+     * \brief Solve del dot grad soln = rhs
+     *
+     * If soln has ghost cells, one layer of ghost cells will be filled
+     * except for the corners of the physical domain where they are not used
+     * in the cross stencil of the operator. The two MFs could be the same MF.
+     */
     void solve (MF& soln, MF const& rhs);
 
 private:
@@ -104,6 +117,13 @@ public:
 #endif
     }
 
+    /*
+     * \brief Solve del dot grad soln = rhs
+     *
+     * If soln has ghost cells, one layer of ghost cells will be filled
+     * except for the corners of the physical domain where they are not used
+     * in the cross stencil of the operator. The two MFs could be the same MF.
+     */
     void solve (MF& soln, MF const& rhs);
     void solve (MF& soln, MF const& rhs, Vector<T> const& dz);
     void solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> const& dz);
@@ -120,6 +140,8 @@ template <typename MF>
 void Poisson<MF>::solve (MF& soln, MF const& rhs)
 {
     BL_PROFILE("FFT::Poisson::solve");
+
+    AMREX_ASSERT(soln.is_cell_centered() && rhs.is_cell_centered());
 
     using T = typename MF::value_type;
 
@@ -170,10 +192,15 @@ void Poisson<MF>::solve (MF& soln, MF const& rhs)
         spectral_data *= scale;
     };
 
+    IntVect const& ng = amrex::elemwiseMin(soln.nGrowVect(), IntVect(1));
+
     if (m_r2x) {
-        m_r2x->forwardThenBackward(rhs, soln, f);
+        m_r2x->forwardThenBackward_doit(rhs, soln, f, ng, m_geom.periodicity());
+        detail::fill_physbc(soln, m_geom, m_bc);
     } else {
-        m_r2c->forwardThenBackward(rhs, soln, f);
+        m_r2c->forward(rhs);
+        m_r2c->post_forward_doit(f);
+        m_r2c->backward_doit(soln, ng, m_geom.periodicity());
     }
 }
 
@@ -254,6 +281,8 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> con
 template <typename MF>
 void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Vector<T> const& dz)
 {
+    AMREX_ASSERT(soln.is_cell_centered() && rhs.is_cell_centered());
+
 #ifdef AMREX_USE_GPU
     Gpu::DeviceVector<T> d_dz(dz.size());
     Gpu::htod_memcpy_async(d_dz.data(), dz.data(), dz.size()*sizeof(T));
@@ -414,8 +443,87 @@ void PoissonHybrid<MF>::solve_doit (MF& soln, MF const& rhs, DZ const& dz)
 #endif
     }
 
-    m_r2c.backward(spmf, soln);
+    IntVect const& ng = amrex::elemwiseMin(soln.nGrowVect(), IntVect(1));
+    m_r2c.backward_doit(spmf, soln, ng, m_geom.periodicity());
+
+    Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> bc
+        {AMREX_D_DECL(std::make_pair(Boundary::periodic,Boundary::periodic),
+                      std::make_pair(Boundary::periodic,Boundary::periodic),
+                      std::make_pair(Boundary::even,Boundary::even))};
+    detail::fill_physbc(soln, m_geom, bc);
 #endif
+}
+
+namespace detail {
+
+template <class T>
+struct FFTPhysBCTag {
+    Array4<T>   dfab;
+    Box         dbox;
+    Boundary    bc;
+    Orientation face;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box () const noexcept { return dbox; }
+};
+
+template <typename MF>
+void fill_physbc (MF& mf, Geometry const& geom,
+                  Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
+{
+    using T = typename MF::value_type;
+    using Tag = FFTPhysBCTag<T>;
+    Vector<Tag> tags;
+
+    for (MFIter mfi(mf, MFItInfo{}.DisableDeviceSync()); mfi.isValid(); ++mfi)
+    {
+        auto const& box = mfi.fabbox();
+        auto const& arr = mf.array(mfi);
+        for (OrientationIter oit; oit; ++oit) {
+            Orientation face = oit();
+            int idim = face.coordDir();
+            Box b = geom.Domain();
+            Boundary fbc;
+            if (face.isLow()) {
+                b.setRange(idim,geom.Domain().smallEnd(idim)-1);
+                fbc = bc[idim].first;
+            } else {
+                b.setRange(idim,geom.Domain().bigEnd(idim)+1);
+                fbc = bc[idim].second;
+            }
+            b &= box;
+            if (b.ok() && fbc != Boundary::periodic) {
+                tags.push_back({arr, b, fbc, face});
+            }
+        }
+    }
+
+#if defined(AMREX_USE_GPU)
+    amrex::ParallelFor(tags, [=] AMREX_GPU_DEVICE (int i, int j, int k,
+                                                   Tag const& tag) noexcept
+#else
+    auto ntags = int(tags.size());
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+    for (int itag = 0; itag < ntags; ++itag) {
+        Tag const& tag = tags[itag];
+        amrex::LoopOnCpu(tag.dbox, [&] (int i, int j, int k)
+#endif
+        {
+            int sgn = tag.face.isLow() ? 1 : -1;
+            IntVect siv = IntVect(AMREX_D_DECL(i,j,k))
+                +  sgn * IntVect::TheDimensionVector(tag.face.coordDir());
+            if (tag.bc == Boundary::odd) {
+                tag.dfab(i,j,k) = -tag.dfab(siv);
+            } else { // even
+                tag.dfab(i,j,k) = tag.dfab(siv);
+            }
+        });
+#if !defined(AMREX_USE_GPU)
+    }
+#endif
+}
 }
 
 }

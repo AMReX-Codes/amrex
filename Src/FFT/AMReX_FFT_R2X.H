@@ -11,6 +11,9 @@
 namespace amrex::FFT
 {
 
+template <typename T> class Poisson;
+template <typename T> class PoissonHybrid;
+
 /**
  * \brief Discrete Fourier Transform
  *
@@ -24,6 +27,9 @@ public:
     using MF = std::conditional_t<std::is_same_v<T,Real>,
                                   MultiFab, FabArray<BaseFab<T> > >;
     using cMF = FabArray<BaseFab<GpuComplex<T> > >;
+
+    template <typename U> friend class Poisson;
+    template <typename U> friend class PoissonHybrid;
 
     R2X (Box const& domain,
          Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc,
@@ -46,6 +52,12 @@ public:
     void post_forward_doit (FAB* fab, F const& f);
 
 private:
+
+    template <typename F>
+    void forwardThenBackward_doit (MF const& inmf, MF& outmf, F const& post_forward,
+                                   IntVect const& ngout = IntVect(0),
+                                   Periodicity const& period = Periodicity::NonPeriodic());
+
     Box m_dom_0;
     Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> m_bc;
 
@@ -502,6 +514,16 @@ template <typename T>
 template <typename F>
 void R2X<T>::forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward)
 {
+    forwardThenBackward_doit(inmf, outmf, post_forward);
+}
+
+template <typename T>
+template <typename F>
+void R2X<T>::forwardThenBackward_doit (MF const& inmf, MF& outmf,
+                                       F const& post_forward,
+                                       IntVect const& ngout,
+                                       Periodicity const& period)
+{
     BL_PROFILE("FFT::R2X::forwardbackward");
 
     // forward
@@ -638,7 +660,7 @@ void R2X<T>::forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forwa
     } else {
         m_fft_bwd_x.template compute_r2r<Direction::backward>();
     }
-    outmf.ParallelCopy(m_rx, 0, 0, 1);
+    outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout, period);
 }
 
 template <typename T>
