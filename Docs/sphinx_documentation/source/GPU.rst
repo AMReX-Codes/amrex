@@ -268,6 +268,8 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_KEEP_FILES        |  Keep intermediately files (folder: nvcc_tmp)   | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | AMReX_CUDA_OBJDIR_AS_TEMPDIR |  Place intermediate files in object file folder | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_LTO               |  Enable CUDA link-time-optimization             | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_MAXREGCOUNT       |  Limits the number of CUDA registers available  | 255         | User-defined    |

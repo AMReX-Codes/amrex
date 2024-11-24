@@ -141,6 +141,11 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
       list(APPEND _cuda_flags --keep "SHELL:--keep-dir ${PROJECT_BINARY_DIR}/nvcc_tmp")
    endif ()
 
+   # place intermediate files in object file folder
+   if (AMReX_CUDA_OBJDIR_AS_TEMPDIR)
+      list(APPEND _cuda_flags --objdir-as-tempdir)
+   endif ()
+
    # compilation timings
    if (AMReX_CUDA_COMPILATION_TIMER)
       file(REMOVE "${PROJECT_BINARY_DIR}/nvcc_timings.csv")
