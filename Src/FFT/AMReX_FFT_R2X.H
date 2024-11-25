@@ -53,6 +53,15 @@ public:
 
 private:
 
+    void forward (MF const& inmf, MF& outmf);
+    void forward (MF const& inmf, cMF& outmf);
+    void forward (MF const& inmf);
+    void backward (MF const& inmf, MF& outmf, IntVect const& ngout,
+                   Periodicity const& period);
+    void backward (cMF const& inmf, MF& outmf, IntVect const& ngout,
+                   Periodicity const& period);
+    void backward ();
+
     template <typename F>
     void forwardThenBackward_doit (MF const& inmf, MF& outmf, F const& post_forward,
                                    IntVect const& ngout = IntVect(0),
@@ -119,6 +128,8 @@ R2X<T>::R2X (Box const& domain,
                         domain.cellCentered());
 #if (AMREX_SPACEDIM == 3)
     AMREX_ALWAYS_ASSERT(domain.length(1) > 1 || domain.length(2) == 1);
+#else
+    AMREX_ALWAYS_ASSERT(! m_info.batch_mode);
 #endif
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         AMREX_ALWAYS_ASSERT(domain.length(idim) > 1);
@@ -206,7 +217,7 @@ R2X<T>::R2X (Box const& domain,
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-    if (domain.length(2) > 1) {
+    if (domain.length(2) > 1 && !m_info.batch_mode) {
         if (! m_cy.empty()) {
             // copy(m_cy, m_cz)
             m_dom_cz = Box(IntVect(0), IntVect(AMREX_D_DECL(m_dom_cy.bigEnd(2),
@@ -315,7 +326,7 @@ R2X<T>::R2X (Box const& domain,
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-    if (domain.length(2) > 1) {
+    if (domain.length(2) > 1 && !m_info.batch_mode) {
         if (! m_cy.empty()) {
             // copy(m_cy, m_cz)
             m_cmd_cy2cz = std::make_unique<MultiBlockCommMetaData>
@@ -499,11 +510,11 @@ R2X<T>::~R2X ()
 template <typename T>
 T R2X<T>::scalingFactor () const
 {
-    auto r = m_dom_0.numPts();
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (m_bc[idim].first != Boundary::periodic
-            && m_dom_0.length(idim) > 1)
-        {
+    Long r = 1;
+    int ndims = m_info.batch_mode ? AMREX_SPACEDIM-1 : AMREX_SPACEDIM;
+    for (int idim = 0; idim < ndims; ++idim) {
+        r *= m_dom_0.length(idim);
+        if (m_bc[idim].first != Boundary::periodic && (m_dom_0.length(idim) > 1)) {
             r *= 2;
         }
     }
@@ -526,7 +537,53 @@ void R2X<T>::forwardThenBackward_doit (MF const& inmf, MF& outmf,
 {
     BL_PROFILE("FFT::R2X::forwardbackward");
 
-    // forward
+    this->forward(inmf);
+
+    // post-forward
+
+    int actual_dim = AMREX_SPACEDIM;
+#if (AMREX_SPACEDIM >= 2)
+    if (m_dom_0.length(1) == 1) { actual_dim = 1; }
+#endif
+#if (AMREX_SPACEDIM == 3)
+    if ((m_dom_0.length(2) == 1) && (m_dom_0.length(1) > 1)) { actual_dim = 2; }
+#endif
+
+    if (actual_dim == 1) {
+        if (m_cx.empty()) {
+            post_forward_doit<0>(detail::get_fab(m_rx), post_forward);
+        } else {
+            post_forward_doit<0>(detail::get_fab(m_cx), post_forward);
+        }
+    }
+#if (AMREX_SPACEDIM >= 2)
+    else if (actual_dim == 2) {
+        if (m_cy.empty()) {
+            post_forward_doit<1>(detail::get_fab(m_ry), post_forward);
+        } else {
+            post_forward_doit<1>(detail::get_fab(m_cy), post_forward);
+        }
+    }
+#endif
+#if (AMREX_SPACEDIM == 3)
+    else if (actual_dim == 3) {
+        if (m_cz.empty()) {
+            post_forward_doit<2>(detail::get_fab(m_rz), post_forward);
+        } else {
+            post_forward_doit<2>(detail::get_fab(m_cz), post_forward);
+        }
+    }
+#endif
+
+    this->backward();
+
+    outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout, period);
+}
+
+template <typename T>
+void R2X<T>::forward (MF const& inmf)
+{
+    BL_PROFILE("FFT::R2X::forward");
 
     m_rx.ParallelCopy(inmf, 0, 0, 1);
     if (m_bc[0].first == Boundary::periodic) {
@@ -575,44 +632,57 @@ void R2X<T>::forwardThenBackward_doit (MF const& inmf, MF& outmf,
         m_fft_fwd_z.template compute_r2c<Direction::forward>();
     }
 #endif
+}
 
-    // post-forward
+template <typename T>
+void R2X<T>::forward (MF const& inmf, MF& outmf)
+{
+    this->forward(inmf);
 
-    int actual_dim = AMREX_SPACEDIM;
-#if (AMREX_SPACEDIM >= 2)
-    if (m_dom_0.length(1) == 1) { actual_dim = 1; }
-#endif
 #if (AMREX_SPACEDIM == 3)
-    if ((m_dom_0.length(2) == 1) && (m_dom_0.length(1) > 1)) { actual_dim = 2; }
-#endif
-
-    if (actual_dim == 1) {
-        if (m_cx.empty()) {
-            post_forward_doit<0>(detail::get_fab(m_rx), post_forward);
-        } else {
-            post_forward_doit<0>(detail::get_fab(m_cx), post_forward);
-        }
-    }
-#if (AMREX_SPACEDIM >= 2)
-    else if (actual_dim == 2) {
+    if (m_info.batch_mode) {
         if (m_cy.empty()) {
-            post_forward_doit<1>(detail::get_fab(m_ry), post_forward);
+            ParallelCopy(outmf, m_dom_rx, m_ry, 0, 0, 1, IntVect(0), Swap01{});
         } else {
-            post_forward_doit<1>(detail::get_fab(m_cy), post_forward);
+            amrex::Abort("R2X::forward(MF,MF): How did this happen?");
         }
-    }
+    } else
 #endif
-#if (AMREX_SPACEDIM == 3)
-    else if (actual_dim == 3) {
-        if (m_cz.empty()) {
-            post_forward_doit<2>(detail::get_fab(m_rz), post_forward);
-        } else {
-            post_forward_doit<2>(detail::get_fab(m_cz), post_forward);
-        }
+    {
+        amrex::ignore_unused(outmf);
+        amrex::Abort("R2X::forward(MF,MF): TODO");
     }
-#endif
+}
 
-    // backward
+template <typename T>
+void R2X<T>::forward (MF const& inmf, cMF& outmf)
+{
+    this->forward(inmf);
+
+#if (AMREX_SPACEDIM == 3)
+    if (m_info.batch_mode) {
+        if (!m_cy.empty()) {
+            auto lo = m_dom_cy.smallEnd();
+            auto hi = m_dom_cy.bigEnd();
+            std::swap(lo[0],lo[1]);
+            std::swap(hi[0],hi[1]);
+            Box dom(lo,hi);
+            ParallelCopy(outmf, dom, m_cy, 0, 0, 1, IntVect(0), Swap01{});
+        } else {
+            amrex::Abort("R2X::forward(MF,cMF): How did this happen?");
+        }
+    } else
+#endif
+    {
+        amrex::ignore_unused(outmf);
+        amrex::Abort("R2X::forward(MF,cMF): TODO");
+    }
+}
+
+template <typename T>
+void R2X<T>::backward ()
+{
+    BL_PROFILE("FFT::R2X::backward");
 
 #if (AMREX_SPACEDIM == 3)
     if (m_bc[2].first != Boundary::periodic)
@@ -660,6 +730,51 @@ void R2X<T>::forwardThenBackward_doit (MF const& inmf, MF& outmf,
     } else {
         m_fft_bwd_x.template compute_r2r<Direction::backward>();
     }
+}
+
+template <typename T>
+void R2X<T>::backward (MF const& inmf, MF& outmf, IntVect const& ngout,
+                       Periodicity const& period)
+{
+#if (AMREX_SPACEDIM == 3)
+    if (m_info.batch_mode) {
+        if (m_cy.empty()) {
+            ParallelCopy(m_ry, m_dom_ry, inmf, 0, 0, 1, IntVect(0), Swap01{});
+        } else {
+            amrex::Abort("R2X::backward(MF,MF): How did this happen?");
+        }
+    } else
+#endif
+    {
+        amrex::ignore_unused(inmf,outmf,ngout,period);
+        amrex::Abort("R2X::backward(MF,MF): TODO");
+    }
+
+    this->backward();
+
+    outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout, period);
+}
+
+template <typename T>
+void R2X<T>::backward (cMF const& inmf, MF& outmf, IntVect const& ngout,
+                       Periodicity const& period)
+{
+#if (AMREX_SPACEDIM == 3)
+    if (m_info.batch_mode) {
+        if (!m_cy.empty()) {
+            ParallelCopy(m_cy, m_dom_cy, inmf, 0, 0, 1, IntVect(0), Swap01{});
+        } else {
+            amrex::Abort("R2X::backward(cMF,MF): How did this happen?");
+        }
+    } else
+#endif
+    {
+        amrex::ignore_unused(inmf,outmf,ngout,period);
+        amrex::Abort("R2X::backward(cMF,MF): TODO");
+    }
+
+    this->backward();
+
     outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout, period);
 }
 

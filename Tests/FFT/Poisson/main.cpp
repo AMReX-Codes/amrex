@@ -195,13 +195,23 @@ int main (int argc, char* argv[])
         }}}
 
 #if (AMREX_SPACEDIM == 3)
-        {
-            amrex::Print() << "  Testing PoissonHybrid\n";
+        amrex::Print() << "  Testing PoissonHybrid\n";
 
+        icase = 0;
+        for (int ycase = 0; ycase < ncasesy; ++ycase) {
+        for (int xcase = 0; xcase < ncases ; ++xcase) {
+            ++icase;
             Array<std::pair<FFT::Boundary,FFT::Boundary>,AMREX_SPACEDIM>
-                fft_bc{std::make_pair(FFT::Boundary::periodic,FFT::Boundary::periodic),
-                       std::make_pair(FFT::Boundary::periodic,FFT::Boundary::periodic),
+                fft_bc{bcs[xcase], bcs[ycase],
                        std::make_pair(FFT::Boundary::even,FFT::Boundary::even)};
+            amrex::Print() << "  (" << icase << ") Testing (";
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                amrex::Print() << "(" << getEnumNameString(fft_bc[idim].first)
+                               << "," << getEnumNameString(fft_bc[idim].second)
+                               << ")";
+                if (idim+1 < AMREX_SPACEDIM) { amrex::Print() << " "; }
+            }
+            amrex::Print() << ")\n";
 
             MultiFab rhs(ba,dm,1,0);
             MultiFab soln(ba,dm,1,1);
@@ -211,7 +221,7 @@ int main (int argc, char* argv[])
             Gpu::DeviceVector<Real> dz(n_cell_z, geom.CellSize(2));
             // or Vector<Real> dz(n_cell_z, geom.CellSize(2));
 
-            FFT::PoissonHybrid fft_poisson(geom);
+            FFT::PoissonHybrid fft_poisson(geom, fft_bc);
             fft_poisson.solve(soln, rhs, dz);
 
             auto [bnorm, rnorm] = check_convergence(soln, rhs, geom);
@@ -223,7 +233,7 @@ int main (int argc, char* argv[])
             auto eps = 1.e-11;
 #endif
             AMREX_ALWAYS_ASSERT(rnorm < eps*bnorm);
-        }
+        }}
 #endif
     }
 
