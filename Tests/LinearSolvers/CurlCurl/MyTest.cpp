@@ -59,6 +59,7 @@ MyTest::solve ()
 
     auto tol_rel = Real(1.0e-10);
     auto tol_abs = Real(0.0);
+
     if (use_gmres)
     {
         GMRESMLMGT<V> gmsolver(mlmg);

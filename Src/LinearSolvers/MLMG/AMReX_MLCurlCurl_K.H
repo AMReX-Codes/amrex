@@ -179,7 +179,6 @@ namespace amrex {
                        ey(i+1,j  ,k  ))
              + dxy * (-ex(i-1,j+1,k  )
                      + ex(i  ,j+1,k  ))
-
 */
 
 struct CurlCurlDirichletInfo
@@ -208,7 +207,7 @@ struct CurlCurlDirichletInfo
     bool is_dirichlet_x_edge (int, int j, int k) const
     {
 #if (AMREX_SPACEDIM == 1)
-        return true;
+        return false;
         amrex::ignore_unused(j, k);
 #elif (AMREX_SPACEDIM == 2)
         amrex::ignore_unused(k);
@@ -304,6 +303,7 @@ struct CurlCurlSymmetryInfo
     [[nodiscard]] bool is_symmetric (int dir, int side, int idx) const
     {
 #if (AMREX_SPACEDIM == 1)
+        amrex::ignore_unused(dir);
         return (side == 0) ? xlo_is_symmetric(idx) : xhi_is_symmetric(idx);
 #elif (AMREX_SPACEDIM == 2)
         if (dir == 0) {
@@ -332,8 +332,10 @@ void mlcurlcurl_adotx_x (int i, int j, int k, Array4<Real> const& Ax,
                          Array4<Real const> const& ez,
                          Real beta, GpuArray<Real,AMREX_SPACEDIM> const& adxinv)
 {
-#if (AMREX_SPACEDIM > 1)
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(ey,ez,adxinv);
+    Real ccex = 0;
+#elif (AMREX_SPACEDIM == 2)
     amrex::ignore_unused(ez);
     Real dyy = adxinv[1] * adxinv[1];
     Real dxy = adxinv[0] * adxinv[1];
@@ -364,7 +366,6 @@ void mlcurlcurl_adotx_x (int i, int j, int k, Array4<Real> const& Ax,
                + ez(i+1,j  ,k  ));
 #endif
     Ax(i,j,k) = ccex + beta * ex(i,j,k);
-#endif
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -374,8 +375,13 @@ void mlcurlcurl_adotx_y (int i, int j, int k, Array4<Real> const& Ay,
                          Array4<Real const> const& ez,
                          Real beta, GpuArray<Real,AMREX_SPACEDIM> const& adxinv)
 {
-#if (AMREX_SPACEDIM > 1)
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(ex,ez);
+    Real dxx = adxinv[0] * adxinv[0];
+    Real ccey =  ey(i  ,j  ,k  ) * dxx * Real(2.0)
+        - dxx * (ey(i-1,j  ,k  ) +
+                 ey(i+1,j  ,k  ));
+#elif (AMREX_SPACEDIM == 2)
     amrex::ignore_unused(ez);
     Real dxx = adxinv[0] * adxinv[0];
     Real dxy = adxinv[0] * adxinv[1];
@@ -387,7 +393,6 @@ void mlcurlcurl_adotx_y (int i, int j, int k, Array4<Real> const& Ay,
                - ex(i-1,j+1,k  )
                + ex(i  ,j+1,k  ));
 #elif (AMREX_SPACEDIM == 3)
-    amrex::ignore_unused(ez);
     Real dxx = adxinv[0] * adxinv[0];
     Real dzz = adxinv[2] * adxinv[2];
     Real dxy = adxinv[0] * adxinv[1];
@@ -407,7 +412,6 @@ void mlcurlcurl_adotx_y (int i, int j, int k, Array4<Real> const& Ay,
                + ez(i  ,j+1,k  ));
 #endif
     Ay(i,j,k) = ccey + beta * ey(i,j,k);
-#endif
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -417,8 +421,13 @@ void mlcurlcurl_adotx_z (int i, int j, int k, Array4<Real> const& Az,
                          Array4<Real const> const& ez,
                          Real beta, GpuArray<Real,AMREX_SPACEDIM> const& adxinv)
 {
-#if (AMREX_SPACEDIM > 1)
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 1)
+    amrex::ignore_unused(ex,ey);
+    Real dxx = adxinv[0] * adxinv[0];
+    Real ccez =  ez(i  ,j  ,k  ) * dxx*Real(2.0)
+        - dxx * (ez(i-1,j  ,k  ) +
+                 ez(i+1,j  ,k  ));
+#elif (AMREX_SPACEDIM == 2)
     amrex::ignore_unused(ex,ey);
     Real dxx = adxinv[0] * adxinv[0];
     Real dyy = adxinv[1] * adxinv[1];
@@ -447,54 +456,48 @@ void mlcurlcurl_adotx_z (int i, int j, int k, Array4<Real> const& Az,
                + ey(i  ,j  ,k+1));
 #endif
     Az(i,j,k) = ccez + beta * ez(i,j,k);
-#endif
 }
 
-
+#if (AMREX_SPACEDIM == 1)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlcurlcurl_1D (int i, int j, int k,
-                   Array4<Real> const& ex,
-                   Array4<Real> const& ey,
-                   Array4<Real> const& ez,
-                   Array4<Real const> const& rhsx,
-                   Array4<Real const> const& rhsy,
-                   Array4<Real const> const& rhsz,
-                   Real beta,
-                   GpuArray<Real,AMREX_SPACEDIM> const& adxinv,
-                   int color,
-                   CurlCurlDirichletInfo const& dinfo)
-//                   CurlCurlSymmetryInfo const& sinfo)
+                    Array4<Real> const& ex,
+                    Array4<Real> const& ey,
+                    Array4<Real> const& ez,
+                    Array4<Real const> const& rhsx,
+                    Array4<Real const> const& rhsy,
+                    Array4<Real const> const& rhsz,
+                    Real beta,
+                    GpuArray<Real,AMREX_SPACEDIM> const& adxinv,
+                    int color,
+                    CurlCurlDirichletInfo const& dinfo)
 {
     if (dinfo.is_dirichlet_node(i,j,k)) {return; }
-    constexpr Real omega = Real(1.);
+
     Real dxx = adxinv[0] * adxinv[0];
 
     int my_color = i%2;
 
-    if ( ( (my_color == 0) && (color == 0) ) ||
-         ( (my_color == 1) && (color == 1) ) )
+    if (my_color == color)
     {
-        // Update Ex(i,j,k)
-        //Real res_x = rhsx(i,j,k) - beta*ex(i,j,k);
-        //ex(i,j,k) += omega/beta*res_x;
-        ex(i,j,k) += rhsx(i,j,k) / beta + (1-omega)*ex(i,j,k);
+        ex(i,j,k) = rhsx(i,j,k) / beta;
 
-        // Update Ey(i,j,k)
         Real gamma_y = dxx * Real(2.0) + beta;
         Real ccey = - dxx * (ey(i-1,j  ,k  ) +
                              ey(i+1,j  ,k  ) );
         Real res_y = rhsy(i,j,k) - ( gamma_y * ey(i,j,k) + ccey );
-        ey(i,j,k) += omega/gamma_y * res_y;
+        ey(i,j,k) += res_y/gamma_y;
 
-        //Update Ez(i,j,k)
         Real gamma_z = dxx * Real(2.0) + beta;
         Real ccez = -dxx * (ez(i-1,j  ,k  ) +
                             ez(i+1,j  ,k  ) );
         Real res_z = rhsz(i,j,k) - ( gamma_z * ez(i,j,k) + ccez );
-        ez(i,j,k) += omega/gamma_z * res_z;
+        ez(i,j,k) += res_z/gamma_z;
     }
 }
+#endif
 
+#if (AMREX_SPACEDIM > 1)
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlcurlcurl_gs4_lu (int i, int j, int k,
@@ -994,6 +997,8 @@ void mlcurlcurl_gs4 (int i, int j, int k,
 #endif
 }
 
+#endif
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlcurlcurl_interpadd (int dir, int i, int j, int k,
                            Array4<Real> const& fine,
@@ -1140,6 +1145,15 @@ void mlcurlcurl_restriction (int dir, int i, int j, int k,
                              + Real(2.)*fine(ii-1,jj  ,0) + Real(4.)*fine(ii  ,jj  ,0) + Real(2.)*fine(ii+1,jj  ,0)
                                       + fine(ii-1,jj+1,0) + Real(2.)*fine(ii  ,jj+1,0) +          fine(ii+1,jj+1,0));
 
+        }
+
+#elif (AMREX_SPACEDIM == 1)
+        if (dir == 0) {
+            crse(i,0,0) = Real(0.5) * (fine(ii,0,0) + fine(ii+1,0,0));
+        } else {
+            crse(i,0,0) = Real(0.25) * (fine(ii-1,0,0)             +
+                                        fine(ii  ,0,0) * Real(2.0) +
+                                        fine(ii+1,0,0));
         }
 #endif
     }

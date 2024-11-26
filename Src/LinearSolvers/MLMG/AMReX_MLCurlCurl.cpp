@@ -326,26 +326,27 @@ void MLCurlCurl::smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
     applyBC(amrlev, mglev, const_cast<MF&>(rhs), CurlCurlStateType::b);
 
 #if (AMREX_SPACEDIM == 1)
-    for (int color = 0; color < 2; ++color) {
-        if (!skip_fillboundary) {
-            applyBC(amrlev, mglev, sol, CurlCurlStateType::x);
-        }
-        skip_fillboundary = false;
-        smooth1D(amrlev, mglev, sol, rhs, color);
-    }
+    int ncolors = 2;
 #else
-    for (int color = 0; color < 4; ++color) {
+    int ncolors = 4;
+#endif
+
+    for (int color = 0; color < ncolors; ++color) {
         if (!skip_fillboundary) {
             applyBC(amrlev, mglev, sol, CurlCurlStateType::x);
         }
         skip_fillboundary = false;
+#if (AMREX_SPACEDIM == 1)
+        smooth1D(amrlev, mglev, sol, rhs, color);
+#else
         smooth4(amrlev, mglev, sol, rhs, color);
-    }
 #endif
+    }
 }
 
+#if (AMREX_SPACEDIM == 1)
 void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
-                 int color) const
+                           int color) const
 {
     auto const& ex = sol[0].arrays();
     auto const& ey = sol[1].arrays();
@@ -354,7 +355,7 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
     auto const& rhsy = rhs[1].const_arrays();
     auto const& rhsz = rhs[2].const_arrays();
 
-    auto beta = m_beta;
+    auto b = m_beta;
 
     auto dinfo = getDirichletInfo(amrlev,mglev);
     auto adxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
@@ -364,19 +365,25 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
 
     MultiFab nmf(amrex::convert(rhs[0].boxArray(),IntVect(1)),
                  rhs[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
-    ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
-    {
-        mlcurlcurl_1D(i,j,k,ex[bno],ey[bno],ez[bno],
-                      rhsx[bno],rhsy[bno],rhsz[bno],
-                      beta,adxinv,color,dinfo);
-    });
-    Gpu::streamSynchronize();
-}
 
+    if (m_bcoefs[amrlev][mglev][0]) {
+        amrex::Abort("xxxxx"); // TODO
+    } else {
+        ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
+        {
+            mlcurlcurl_1D(i,j,k,ex[bno],ey[bno],ez[bno],
+                          rhsx[bno],rhsy[bno],rhsz[bno],
+                          b,adxinv,color,dinfo);
+        });
+        Gpu::streamSynchronize();
+    }
+}
+#endif
+
+#if (AMREX_SPACEDIM > 1)
 void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
                           int color) const
 {
-#if (AMREX_SPACEDIM > 1)
     auto const& ex = sol[0].arrays();
     auto const& ey = sol[1].arrays();
     auto const& ez = sol[2].arrays();
@@ -434,8 +441,8 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
         }
     }
     Gpu::streamSynchronize();
-#endif
 }
+#endif
 
 void MLCurlCurl::solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
                                    const MF* /*crse_bcdata*/)
@@ -688,7 +695,7 @@ void MLCurlCurl::applyBC (int amrlev, int mglev, MF& in, CurlCurlStateType type)
     }
 #elif (AMREX_SPACEDIM == 1)
     if (CurlCurlStateType::b == type) {
-        nmfs = 1; // no need to applyBC on Ez
+        nmfs = 1; // no need to applyBC on Ey and Ez
     }
 #endif
     Vector<MultiFab*> mfs(nmfs);
@@ -855,7 +862,7 @@ CurlCurlDirichletInfo MLCurlCurl::getDirichletInfo (int amrlev, int mglev) const
             return std::numeric_limits<int>::lowest();
         }
 #elif (AMREX_SPACEDIM == 1)
-        if (idim > 1) {
+        if (idim > 0) {
             return std::numeric_limits<int>::lowest();
         }
 #endif
@@ -893,7 +900,7 @@ CurlCurlSymmetryInfo MLCurlCurl::getSymmetryInfo (int amrlev, int mglev) const
             return std::numeric_limits<int>::lowest();
         }
 #elif (AMREX_SPACEDIM == 1)
-        if (idim > 1) {
+        if (idim > 0) {
             return std::numeric_limits<int>::lowest();
         }
 #endif

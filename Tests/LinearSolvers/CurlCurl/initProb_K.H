@@ -69,8 +69,8 @@ void actual_init_prob (int i, int j, int k,
     }
 
     if (rhs[0].contains(i,j,k)) {
-        Real x = xcc;
 #if (AMREX_SPACEDIM > 1)
+        Real x = xcc;
         Real y = ynd;
 #endif
 #if (AMREX_SPACEDIM == 1)
