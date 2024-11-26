@@ -367,7 +367,17 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
                  rhs[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
 
     if (m_bcoefs[amrlev][mglev][0]) {
-        amrex::Abort("xxxxx"); // TODO
+        auto const& bcx = m_bcoefs[amrlev][mglev][0]->const_arrays();
+        auto const& bcy = m_bcoefs[amrlev][mglev][1]->const_arrays();
+        auto const& bcz = m_bcoefs[amrlev][mglev][2]->const_arrays();
+        ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
+        {
+            mlcurlcurl_1D(i,j,k,ex[bno],ey[bno],ez[bno],
+                          rhsx[bno],rhsy[bno],rhsz[bno],
+                          bcx[bno],bcy[bno],bcz[bno],
+                          adxinv,color,dinfo);
+        });
+        Gpu::streamSynchronize();
     } else {
         ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
