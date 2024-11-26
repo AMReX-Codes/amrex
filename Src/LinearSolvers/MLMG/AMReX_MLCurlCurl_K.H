@@ -213,7 +213,7 @@ struct CurlCurlDirichletInfo
     bool is_dirichlet_x_edge (int, int j, int k) const
     {
 #if (AMREX_SPACEDIM == 1)
-        return is_dirichlet_x_edge_1d(0, j, k);
+        return is_dirichlet_x_edge_1D(0, j, k);
 #elif (AMREX_SPACEDIM == 2)
         amrex::ignore_unused(k);
         return (j == dirichlet_lo[1]) || (j == dirichlet_hi[1]);
