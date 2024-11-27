@@ -210,7 +210,7 @@ struct CurlCurlDirichletInfo
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool is_dirichlet_x_edge (int, int j, int k) const
+    bool is_dirichlet_x_edge (int, int j, int k) const // NOLINT(readability-convert-member-functions-to-static)
     {
 #if (AMREX_SPACEDIM == 1)
         return is_dirichlet_x_edge_1D(0, j, k);
