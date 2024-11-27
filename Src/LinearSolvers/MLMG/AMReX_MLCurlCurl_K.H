@@ -204,16 +204,11 @@ struct CurlCurlDirichletInfo
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static bool is_dirichlet_x_edge_1D (int, int, int)
-    {
-        return false;
-    }
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool is_dirichlet_x_edge (int, int j, int k) const // NOLINT(readability-convert-member-functions-to-static)
     {
 #if (AMREX_SPACEDIM == 1)
-        return is_dirichlet_x_edge_1D(0, j, k);
+        amrex::ignore_unused(j, k);
+        return false;
 #elif (AMREX_SPACEDIM == 2)
         amrex::ignore_unused(k);
         return (j == dirichlet_lo[1]) || (j == dirichlet_hi[1]);
