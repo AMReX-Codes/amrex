@@ -129,6 +129,7 @@ public:
             m_r2x = std::make_unique<R2X<typename MF::value_type>> (m_geom.Domain(),
                                                                     m_bc, info);
         }
+        build_spmf();
     }
 
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
@@ -145,6 +146,7 @@ public:
 #else
         amrex::Abort("FFT::PoissonHybrid: 1D & 2D todo");
 #endif
+        build_spmf();
     }
 
     /*
@@ -158,21 +160,26 @@ public:
     void solve (MF& soln, MF const& rhs, Vector<T> const& dz);
     void solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> const& dz);
 
+    template <typename TRIA, typename TRIC>
+    void solve (MF& soln, MF const& rhs, TRIA const& tria, TRIC const& tric);
+
     // This is public for cuda
-    template <typename FA, typename DZ>
-    void solve_z (FA& spmf, DZ const& dz);
+    template <typename FA, typename TRIA, typename TRIC>
+    void solve_z (FA& spmf, TRIA const& tria, TRIC const& tric);
+
+    [[nodiscard]] std::pair<BoxArray,DistributionMapping> getSpectralDataLayout () const;
 
 private:
 
-    template <typename DZ>
-    void solve_doit (MF& soln, MF const& rhs, DZ const& dz);
+    void build_spmf ();
 
     Geometry m_geom;
     Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> m_bc;
     std::unique_ptr<R2X<typename MF::value_type>> m_r2x;
     std::unique_ptr<R2C<typename MF::value_type>> m_r2c;
     MF m_spmf_r;
-    FabArray<BaseFab<GpuComplex<T>>> m_spmf_c;
+    using cMF = FabArray<BaseFab<GpuComplex<T>>>;
+    cMF m_spmf_c;
 };
 
 template <typename MF>
@@ -296,24 +303,94 @@ void PoissonOpenBC<MF>::solve (MF& soln, MF const& rhs)
 
 namespace fft_poisson_detail {
     template <typename T>
-    struct DZ {
-        [[nodiscard]] constexpr T operator[] (int) const { return m_delz; }
-        T m_delz;
+    struct Tri_Uniform {
+        [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+        T operator() (int, int, int) const
+        {
+            return m_dz2inv;
+        }
+        T m_dz2inv;
     };
+
+    template <typename T>
+    struct TriA {
+        [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+        T operator() (int, int, int k) const
+        {
+            return T(2.0) /(m_dz[k]*(m_dz[k]+m_dz[k-1]));
+        }
+        T const* m_dz;
+    };
+
+    template <typename T>
+    struct TriC {
+        [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+        T operator() (int, int, int k) const
+        {
+            return T(2.0) /(m_dz[k]*(m_dz[k]+m_dz[k+1]));
+        }
+        T const* m_dz;
+    };
+}
+
+template <typename MF>
+std::pair<BoxArray,DistributionMapping>
+PoissonHybrid<MF>::getSpectralDataLayout () const
+{
+    if (!m_spmf_r.empty()) {
+        return std::make_pair(m_spmf_r.boxArray(), m_spmf_r.DistributionMap());
+    } else {
+        return std::make_pair(m_spmf_c.boxArray(), m_spmf_c.DistributionMap());
+    }
+}
+
+template <typename MF>
+void PoissonHybrid<MF>::build_spmf ()
+{
+    if (m_r2c) {
+        Box cdomain = m_geom.Domain();
+        cdomain.setBig(0,cdomain.length(0)/2);
+        auto cba = amrex::decompose(cdomain, ParallelContext::NProcsSub(),
+                                    {AMREX_D_DECL(true,true,false)});
+        DistributionMapping dm = detail::make_iota_distromap(cba.size());
+        m_spmf_c.define(cba, dm, 1, 0);
+    } else {
+        if (m_r2x->m_cy.empty()) { // spectral data is real
+            auto sba = amrex::decompose(m_geom.Domain(),ParallelContext::NProcsSub(),
+                                        {AMREX_D_DECL(true,true,false)});
+            DistributionMapping dm = detail::make_iota_distromap(sba.size());
+            m_spmf_r.define(sba, dm, 1, 0);
+        } else { // spectral data is complex. one of the first two dimensions is periodic.
+            Box cdomain = m_geom.Domain();
+            if (m_bc[0].first == Boundary::periodic) {
+                cdomain.setBig(0,cdomain.length(0)/2);
+            } else {
+                cdomain.setBig(1,cdomain.length(1)/2);
+            }
+            auto cba = amrex::decompose(cdomain, ParallelContext::NProcsSub(),
+                                        {AMREX_D_DECL(true,true,false)});
+            DistributionMapping dm = detail::make_iota_distromap(cba.size());
+            m_spmf_c.define(cba, dm, 1, 0);
+        }
+    }
 }
 
 template <typename MF>
 void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs)
 {
     auto delz = T(m_geom.CellSize(AMREX_SPACEDIM-1));
-    solve_doit(soln, rhs, fft_poisson_detail::DZ<T>{delz});
+    solve(soln, rhs,
+          fft_poisson_detail::Tri_Uniform<T>{T(1)/(delz*delz)},
+          fft_poisson_detail::Tri_Uniform<T>{T(1)/(delz*delz)});
 }
 
 template <typename MF>
 void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> const& dz)
 {
     auto const* pdz = dz.dataPtr();
-    solve_doit(soln, rhs, pdz);
+    solve(soln, rhs,
+          fft_poisson_detail::TriA<T>{pdz},
+          fft_poisson_detail::TriC<T>{pdz});
 }
 
 template <typename MF>
@@ -328,63 +405,41 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Vector<T> const& dz)
 #else
     auto const* pdz = dz.data();
 #endif
-    solve_doit(soln, rhs, pdz);
+    solve(soln, rhs,
+          fft_poisson_detail::TriA<T>{pdz},
+          fft_poisson_detail::TriC<T>{pdz});
 }
 
 template <typename MF>
-template <typename DZ>
-void PoissonHybrid<MF>::solve_doit (MF& soln, MF const& rhs, DZ const& dz)
+template <typename TRIA, typename TRIC>
+void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, TRIA const& tria,
+                               TRIC const& tric)
 {
     BL_PROFILE("FFT::PoissonHybrid::solve");
 
     AMREX_ASSERT(soln.is_cell_centered() && rhs.is_cell_centered());
 
 #if (AMREX_SPACEDIM < 3)
-    amrex::ignore_unused(soln, rhs, dz);
+    amrex::ignore_unused(soln, rhs, tria, tric);
 #else
 
     IntVect const& ng = amrex::elemwiseMin(soln.nGrowVect(), IntVect(1));
 
     if (m_r2c)
     {
-        if (m_spmf_c.empty()) {
-            Box cdomain = m_geom.Domain();
-            cdomain.setBig(0,cdomain.length(0)/2);
-            auto cba = amrex::decompose(cdomain, ParallelContext::NProcsSub(),
-                                        {AMREX_D_DECL(true,true,false)});
-            DistributionMapping dm = detail::make_iota_distromap(cba.size());
-            m_spmf_c.define(cba, dm, 1, 0);
-        }
-
         m_r2c->forward(rhs, m_spmf_c);
-
-        solve_z(m_spmf_c, dz);
-
+        solve_z(m_spmf_c, tria, tric);
         m_r2c->backward_doit(m_spmf_c, soln, ng, m_geom.periodicity());
     }
     else
     {
         if (m_r2x->m_cy.empty()) { // spectral data is real
-            auto sba = amrex::decompose(m_geom.Domain(),ParallelContext::NProcsSub(),
-                                        {AMREX_D_DECL(true,true,false)});
-            DistributionMapping dm = detail::make_iota_distromap(sba.size());
-            m_spmf_r.define(sba, dm, 1, 0);
             m_r2x->forward(rhs, m_spmf_r);
-            solve_z(m_spmf_r, dz);
+            solve_z(m_spmf_r, tria, tric);
             m_r2x->backward(m_spmf_r, soln, ng, m_geom.periodicity());
-        } else { // spectral data is complex. one of the first two dimensions is periodic.
-            Box cdomain = m_geom.Domain();
-            if (m_bc[0].first == Boundary::periodic) {
-                cdomain.setBig(0,cdomain.length(0)/2);
-            } else {
-                cdomain.setBig(1,cdomain.length(1)/2);
-            }
-            auto cba = amrex::decompose(cdomain, ParallelContext::NProcsSub(),
-                                        {AMREX_D_DECL(true,true,false)});
-            DistributionMapping dm = detail::make_iota_distromap(cba.size());
-            m_spmf_c.define(cba, dm, 1, 0);
+        } else { // spectral data is complex.
             m_r2x->forward(rhs, m_spmf_c);
-            solve_z(m_spmf_c, dz);
+            solve_z(m_spmf_c, tria, tric);
             m_r2x->backward(m_spmf_c, soln, ng, m_geom.periodicity());
         }
     }
@@ -394,13 +449,13 @@ void PoissonHybrid<MF>::solve_doit (MF& soln, MF const& rhs, DZ const& dz)
 }
 
 template <typename MF>
-template <typename FA, typename DZ>
-void PoissonHybrid<MF>::solve_z (FA& spmf, DZ const& dz)
+template <typename FA, typename TRIA, typename TRIC>
+void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
 {
     BL_PROFILE("PoissonHybrid::solve_z");
 
 #if (AMREX_SPACEDIM < 3)
-    amrex::ignore_unused(spmf, dz);
+    amrex::ignore_unused(spmf, tria, tric);
 #else
     auto facx = Math::pi<T>()/T(m_geom.Domain().length(0));
     auto facy = Math::pi<T>()/T(m_geom.Domain().length(1));
@@ -458,18 +513,18 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, DZ const& dz)
             for(int k=0; k < nz; k++) {
                 if(k==0) {
                     ald(i,j,k) = T(0.);
-                    cud(i,j,k) = T(2.0) /(dz[k]*(dz[k]+dz[k+1]));
+                    cud(i,j,k) = tric(i,j,k);
                     bd(i,j,k) = k2 -ald(i,j,k)-cud(i,j,k);
                 } else if (k == nz-1) {
-                    ald(i,j,k) = T(2.0) /(dz[k]*(dz[k]+dz[k-1]));
+                    ald(i,j,k) = tria(i,j,k);
                     cud(i,j,k) = T(0.);
                     bd(i,j,k) = k2 -ald(i,j,k)-cud(i,j,k);
                     if (i == 0 && j == 0 && !has_dirichlet) {
                         bd(i,j,k) *= T(2.0);
                     }
                 } else {
-                    ald(i,j,k) = T(2.0) /(dz[k]*(dz[k]+dz[k-1]));
-                    cud(i,j,k) = T(2.0) /(dz[k]*(dz[k]+dz[k+1]));
+                    ald(i,j,k) = tria(i,j,k);
+                    cud(i,j,k) = tric(i,j,k);
                     bd(i,j,k) = k2 -ald(i,j,k)-cud(i,j,k);
                 }
             }
@@ -513,18 +568,18 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, DZ const& dz)
             for(int k=0; k < nz; k++) {
                 if(k==0) {
                     ald[k] = T(0.);
-                    cud[k] = T(2.0) /(dz[k]*(dz[k]+dz[k+1]));
+                    cud[k] = tric(i,j,k);
                     bd[k] = k2 -ald[k]-cud[k];
                 } else if (k == nz-1) {
-                    ald[k] = T(2.0) /(dz[k]*(dz[k]+dz[k-1]));
+                    ald[k] = tria(i,j,k);
                     cud[k] = T(0.);
                     bd[k] = k2 -ald[k]-cud[k];
                     if (i == 0 && j == 0 && !has_dirichlet) {
                         bd[k] *= T(2.0);
                     }
                 } else {
-                    ald[k] = T(2.0) /(dz[k]*(dz[k]+dz[k-1]));
-                    cud[k] = T(2.0) /(dz[k]*(dz[k]+dz[k+1]));
+                    ald[k] = tria(i,j,k);
+                    cud[k] = tric(i,j,k);
                     bd[k] = k2 -ald[k]-cud[k];
                 }
             }
