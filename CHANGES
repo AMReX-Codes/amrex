@@ -1,3 +1,59 @@
+# 24.12
+
+  -- FFT::PoissonHybrid: Add solve() needed by ERF (#4250)
+
+  -- Add CMake option: AMReX_CUDA_OBJDIR_AS_TEMPDIR (#4246)
+
+  -- FFT::PoissonHybrid: Support non-periodic boundaries in x & y directions (#4247)
+
+  -- FFT Poisson Solver: Fill ghost cells in solve() function (#4244)
+
+  -- Update GMRES Comments (#4243)
+
+  -- Fix dangling-reference warnings for particle functions. (#4241)
+
+  -- Parser: Use malloc if Arena is not ready (#4240)
+
+  -- Add portable implementation of random numbers drawn from the Gamma distribution. (#4239)
+
+  -- Implementation of Bessel functions of second kind (yn) (#4234)
+
+  -- FFT: Optimization for single process (#4235)
+
+  -- VisMF::Read: Cache BoxArray and DistributionMapping (#4233)
+
+  -- FFT OpenBC Solver: more optimization (#4232)
+
+  -- FFT::PoissonHybrid: Add interfaces for user provided dz (#4229)
+
+  -- FFT OpenBC Solver: Communication optimization (#4230)
+
+  -- Add local FFT (#4224)
+
+  -- FFT: Add new domain decomposition strategy (#4221)
+
+  -- Skip some CIs if only Docs/ has changed (#4197)
+
+  -- Replace blockDim.x with compile time constant when possible (#4198)
+
+  -- FFT: OpenBC Solver (#4217)
+
+  -- STL: Make the fill(MultiFab) function work with non-nodal types (#4207)
+
+  -- Remove repeated norm_inf calculation in bicgsolver. (#4205)
+
+  -- Initial and final function stacks: Use std::function (#4218)
+
+  -- comply with C++ defect report on user-defined literals (#4215)
+
+  -- Fix a bug in EB2::Level::fillLevelSet (#4208)
+
+  -- HDF5: Fix missing header in GNU Make (#4213)
+
+  -- FFT Poisson Solver: Neumann and Dirichlet Boundaries (#4202)
+
+  -- Remove SWFFT and HPGMG (#4211)
+
 # 24.11
 
   -- Add option to do stable redistribute with GPUs (#4200)
