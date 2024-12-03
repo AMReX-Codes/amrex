@@ -254,7 +254,6 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
     static_assert(std::is_same_v<float,T> || std::is_same_v<double,T>);
     AMREX_ALWAYS_ASSERT(m_real_domain.length(0) > 1);
 #if (AMREX_SPACEDIM == 3)
-    AMREX_ALWAYS_ASSERT(m_real_domain.length(2) > 1 || ! m_info.batch_mode);
     AMREX_ALWAYS_ASSERT(m_real_domain.length(1) > 1 || m_real_domain.length(2) == 1);
 #else
     AMREX_ALWAYS_ASSERT(! m_info.batch_mode);

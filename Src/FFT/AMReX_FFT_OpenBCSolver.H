@@ -87,7 +87,7 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
         auto const& a = infab->array();
         auto box = infab->box();
         GpuArray<int,3> nimages{1,1,1};
-        int ndims = m_info.batch_mode ? AMREX_SPACEDIM : AMREX_SPACEDIM-1;
+        int ndims = m_info.batch_mode ? AMREX_SPACEDIM-1 : AMREX_SPACEDIM;
         for (int idim = 0; idim < ndims; ++idim) {
             if (box.smallEnd(idim) == lo[idim] && box.length(idim) == 2*len[idim]) {
                 box.growHi(idim, -len[idim]+1); // +1 to include the middle plane
@@ -152,9 +152,9 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
                 amrex::Abort("FFT::OpenBCSolver: how did this happen");
             }
         }
-    }
 
-    m_r2c.prepare_openbc();
+        m_r2c.prepare_openbc();
+    }
 }
 
 template <typename T>
@@ -166,7 +166,7 @@ void OpenBCSolver<T>::solve (MF& phi, MF const& rho)
     inmf.setVal(T(0));
     inmf.ParallelCopy(rho, 0, 0, 1);
 
-    m_r2c.m_openbc_half = true;
+    m_r2c.m_openbc_half = !m_info.batch_mode;
     m_r2c.forward(inmf);
     m_r2c.m_openbc_half = false;
 
@@ -204,7 +204,7 @@ void OpenBCSolver<T>::solve (MF& phi, MF const& rho)
         }
     }
 
-    m_r2c.m_openbc_half = true;
+    m_r2c.m_openbc_half = !m_info.batch_mode;
     m_r2c.backward_doit(phi, phi.nGrowVect());
     m_r2c.m_openbc_half = false;
 }
