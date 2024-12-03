@@ -66,7 +66,7 @@ namespace amrex {
  *
  *             - `void precond(V& lhs, V const& rhs)`\n
  *               applies right-preconditioning, i.e.,
- *               solve P(lhs) = rhs, where P is an approximateion to A
+ *               solve P(lhs) = rhs, where P is an approximation to A
  *               If there is no preconditioner, P = I and thus this function should do lhs = rhs.
  *
  *             - `void scale(V& v, RT fac)`\n
