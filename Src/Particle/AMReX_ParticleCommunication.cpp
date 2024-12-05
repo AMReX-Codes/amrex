@@ -158,6 +158,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) 
         m_build_rreqs[i] = ParallelDescriptor::Arecv((char*) (m_rcv_data.dataPtr() + offset), Cnt, Who, SeqNum, ParallelContext::CommunicatorSub()).req();
     }
 
+    Vector<ParallelDescriptor::Message> snd_messages;
     for (auto i : m_neighbor_procs)
     {
         if (i == MyProc) { continue; }
@@ -169,8 +170,9 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) 
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
 
-        ParallelDescriptor::Send((char*) snd_data[i].data(), Cnt, Who, SeqNum,
-                                 ParallelContext::CommunicatorSub());
+        auto msg = ParallelDescriptor::Asend((char*) snd_data[i].data(), Cnt, Who, SeqNum,
+                                             ParallelContext::CommunicatorSub());
+        snd_messages.push_back(msg);
     }
 
     m_snd_counts.resize(0);
@@ -199,6 +201,10 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) 
     m_snd_pad_correction_d.resize(m_snd_pad_correction_h.size());
     Gpu::copy(Gpu::hostToDevice, m_snd_pad_correction_h.begin(), m_snd_pad_correction_h.end(),
               m_snd_pad_correction_d.begin());
+
+    for (auto& msg : snd_messages) {
+        msg.wait();
+    }
 #else
     amrex::ignore_unused(map,psize);
 #endif
@@ -288,8 +294,8 @@ void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>&
 
         AMREX_ASSERT(Who >= 0 && Who < ParallelContext::NProcsSub());
 
-        ParallelDescriptor::Send(&Snds[Who], Cnt, Who, SeqNum,
-                                 ParallelContext::CommunicatorSub());
+        ParallelDescriptor::Asend(&Snds[Who], Cnt, Who, SeqNum,
+                                  ParallelContext::CommunicatorSub());
     }
 
     if (num_rcvs > 0)
@@ -352,11 +358,10 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>
     {
         if (Snds[i] == 0) { continue; }
         const Long Cnt = 1;
-        MPI_Send( &Snds[i], Cnt, ParallelDescriptor::Mpi_typemap<Long>::type(), i, SeqNum,
-                  ParallelContext::CommunicatorSub());
+        ParallelDescriptor::Asend( &Snds[i], Cnt, i, SeqNum, ParallelContext::CommunicatorSub());
     }
 
-    MPI_Waitall(static_cast<int>(num_rcvs), rreqs.data(), stats.data());
+    ParallelDescriptor::Waitall(rreqs, stats);
 
     for (int i = 0; i < num_rcvs; ++i)
     {

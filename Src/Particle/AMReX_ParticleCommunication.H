@@ -571,8 +571,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
         AMREX_ASSERT(plan.m_snd_counts[i] % ParallelDescriptor::sizeof_selected_comm_data_type(plan.m_snd_num_particles[i]*psize) == 0);
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
 
-        ParallelDescriptor::Send((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
-                                 ParallelContext::CommunicatorSub());
+        ParallelDescriptor::Asend((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
+                                  ParallelContext::CommunicatorSub());
     }
 
     amrex::ignore_unused(pc);
