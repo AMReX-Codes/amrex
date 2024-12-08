@@ -124,8 +124,8 @@ ifeq ($(HIP_COMPILER),clang)
 
   LIBRARY_LOCATIONS += $(ROC_PATH)/lib
 
-  # hiprand & hipsparse
-  LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lhiprand -lrocrand -lhipsparse -lrocsparse
+  # hiprand & rocsparse
+  LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lhiprand -lrocrand -lrocsparse
 
   # rocTracer
   ifeq ($(USE_ROCTX),TRUE)

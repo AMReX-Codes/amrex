@@ -9,7 +9,7 @@
 #if defined(AMREX_USE_CUDA)
 #  include <cusparse.h>
 #elif defined(AMREX_USE_HIP)
-#  include <hipsparse/hipsparse.h>
+#  include <rocsparse/rocsparse.h>
 #elif defined(AMREX_USE_DPCPP)
 #  include <oneapi/mkl/spblas.hpp>
 #endif
@@ -19,6 +19,8 @@ namespace amrex {
 template <typename T>
 void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
 {
+    // xxxxx TODOL We might want to cache the cusparse and rocsparse handles
+
     // xxxxx TODO: let's assume it's square matrix for now.
     AMREX_ALWAYS_ASSERT(x.partition() == y.partition() &&
                         x.partition() == A.partition());
@@ -90,53 +92,68 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
 
 #elif defined(AMREX_USE_HIP)
 
-    hipsparseHandle_t handle;
-    hipsparseCreate(&handle);
-    hipsparseSetStream(handle, Gpu::gpuStream());
+    rocsparse_handle handle;
+    rocsparse_create_handle(&handle);
+    rocsparse_set_stream(handle, Gpu::gpuStream());
 
-    hipDataType data_type;
+    rocsparse_datatype data_type;
     if constexpr (std::is_same_v<T,float>) {
-        data_type = HIP_R_32F;
+        data_type = rocsparse_datatype_f32_r;
     } else if constexpr (std::is_same_v<T,double>) {
-        data_type = HIP_R_64F;
+        data_type = rocsparse_datatype_f64_r;
     } else if constexpr (std::is_same_v<T,GpuComplex<float>>) {
-        data_type = HIP_C_32F;
+        data_type = rocsparse_datatype_f32_c;
     } else if constexpr (std::is_same_v<T,GpuComplex<double>>) {
-        data_type = HIP_C_64F;
+        data_type = rocsparse_datatype_f64_c;
     } else {
         amrex::Abort("SpMV: unsupported data type");
     }
 
-    hipsparseIndexType_t index_type =  HIPSPARSE_INDEX_64I;
+    rocsparse_indextype index_type = rocsparse_indextype_i64;
 
-    hipsparseSpMatDescr_t mat_descr;
-    hipsparseCreateCsr(&mat_descr, nrows, ncols, nnz, (void*)row, (void*)col, (void*)mat,
-                       index_type, index_type, HIPSPARSE_INDEX_BASE_ZERO, data_type);
+    rocsparse_spmat_descr mat_descr;
+    rocsparse_create_csr_descr(&mat_descr, nrows, ncols, nnz, (void*)row, (void*)col,
+                               (void*)mat, index_type, index_type,
+                               rocsparse_index_base_zero, data_type);
 
-    hipsparseDnVecDescr_t x_descr;
-    hipsparseCreateDnVec(&x_descr, ncols, (void*)px, data_type);
+    rocsparse_dnvec_descr x_descr;
+    rocsparse_create_dnvec_descr(&x_descr, ncols, (void*)px, data_type);
 
-    hipsparseDnVecDescr_t y_descr;
-    hipsparseCreateDnVec(&y_descr, nrows, (void*)py, data_type);
+    rocsparse_dnvec_descr y_descr;
+    rocsparse_create_dnvec_descr(&y_descr, nrows, (void*)py, data_type);
 
     T alpha = T(1.0);
     T beta = T(0.0);
 
     std::size_t buffer_size;
-    hipsparseSpMV_bufferSize(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat_descr, x_descr,
-                             &beta, y_descr, data_type, HIPSPARSE_SPMV_ALG_DEFAULT, &buffer_size);
+    rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
+                   &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+#if (HIP_VERSION_MAJOR >= 6)
+                   rocsparse_spmv_stage_buffer_size,
+#endif
+                   &buffer_size, nullptr);
 
     void* pbuffer = (void*)The_Arena()->alloc(buffer_size);
 
-    hipsparseSpMV(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE, &alpha, mat_descr, x_descr,
-                  &beta, y_descr, data_type, HIPSPARSE_SPMV_ALG_DEFAULT, pbuffer);
+#if (HIP_VERSION_MAJOR >= 6)
+    rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
+                   &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+                   rocsparse_spmv_stage_preprocess, &buffer_size, pbuffer);
+#endif
+
+    rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
+                   &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+#if (HIP_VERSION_MAJOR >= 6)
+                   rocsparse_spmv_stage_compute,
+#endif
+                   &buffer_size, pbuffer);
 
     Gpu::streamSynchronize();
 
-    hipsparseDestroySpMat(mat_descr);
-    hipsparseDestroyDnVec(x_descr);
-    hipsparseDestroyDnVec(y_descr);
-    hipsparseDestroy(handle);
+    rocsparse_destroy_spmat_descr(mat_descr);
+    rocsparse_destroy_dnvec_descr(x_descr);
+    rocsparse_destroy_dnvec_descr(y_descr);
+    rocsparse_destroy_handle(handle);
     The_Arena()->free(pbuffer);
 
 #elif defined(AMREX_USE_DPCPP)
