@@ -22,6 +22,13 @@ EBFArrayBoxFactory::EBFArrayBoxFactory (const EB2::Level& a_level,
       m_parent(&a_level)
 {
     auto const& ebflags = getMultiEBCellFlagFab();
+    {
+        // If we do not do this here, there would a race condition when
+        // calling const_array() in getEBData, because const_arrays() is not
+        // thread safe.
+        auto const& ma = ebflags.const_arrays();
+        amrex::ignore_unused(ma);
+    }
 #ifdef AMREX_USE_GPU
     m_eb_data.resize(EBData::real_data_size*ebflags.local_size());
     Gpu::PinnedVector<Array4<Real const>> eb_data_hv;
