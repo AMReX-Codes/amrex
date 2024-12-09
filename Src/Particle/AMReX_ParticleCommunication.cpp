@@ -158,7 +158,8 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) 
         m_build_rreqs[i] = ParallelDescriptor::Arecv((char*) (m_rcv_data.dataPtr() + offset), Cnt, Who, SeqNum, ParallelContext::CommunicatorSub()).req();
     }
 
-    Vector<ParallelDescriptor::Message> snd_messages;
+    Vector<MPI_Request> snd_reqs;
+    Vector<MPI_Status>  snd_stats;
     for (auto i : m_neighbor_procs)
     {
         if (i == MyProc) { continue; }
@@ -170,9 +171,8 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) 
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
 
-        auto msg = ParallelDescriptor::Asend((char*) snd_data[i].data(), Cnt, Who, SeqNum,
-                                             ParallelContext::CommunicatorSub());
-        snd_messages.push_back(msg);
+        snd_reqs.push_back(ParallelDescriptor::Asend((char*) snd_data[i].data(), Cnt, Who, SeqNum,
+                                                      ParallelContext::CommunicatorSub()).req());
     }
 
     m_snd_counts.resize(0);
@@ -202,9 +202,9 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) 
     Gpu::copy(Gpu::hostToDevice, m_snd_pad_correction_h.begin(), m_snd_pad_correction_h.end(),
               m_snd_pad_correction_d.begin());
 
-    for (auto& msg : snd_messages) {
-        msg.wait();
-    }
+    snd_stats.resize(0);
+    snd_stats.resize(snd_reqs.size());
+    ParallelDescriptor::Waitall(snd_reqs, snd_stats);
 #else
     amrex::ignore_unused(map,psize);
 #endif
@@ -271,8 +271,10 @@ void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>&
 #ifdef AMREX_USE_MPI
     const int SeqNum = ParallelDescriptor::SeqNum();
     const auto num_rcvs = static_cast<int>(m_neighbor_procs.size());
-    Vector<MPI_Status>  stats(num_rcvs);
+    Vector<MPI_Status>  rstats(num_rcvs);
     Vector<MPI_Request> rreqs(num_rcvs);
+    Vector<MPI_Status>  sstats(num_rcvs);
+    Vector<MPI_Request> sreqs(num_rcvs);
 
     // Post receives
     for (int i = 0; i < num_rcvs; ++i)
@@ -294,13 +296,14 @@ void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>&
 
         AMREX_ASSERT(Who >= 0 && Who < ParallelContext::NProcsSub());
 
-        ParallelDescriptor::Asend(&Snds[Who], Cnt, Who, SeqNum,
-                                  ParallelContext::CommunicatorSub());
+        sreqs[i] = ParallelDescriptor::Asend(&Snds[Who], Cnt, Who, SeqNum,
+                                             ParallelContext::CommunicatorSub()).req();
     }
 
     if (num_rcvs > 0)
     {
-        ParallelDescriptor::Waitall(rreqs, stats);
+        ParallelDescriptor::Waitall(sreqs, sstats);
+        ParallelDescriptor::Waitall(rreqs, rstats);
     }
 #else
     amrex::ignore_unused(Snds,Rcvs);
@@ -345,8 +348,10 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>
                        ParallelDescriptor::Mpi_typemap<Long>::type(), MPI_SUM,
                        ParallelContext::CommunicatorSub());
 
-    Vector<MPI_Status>  stats(num_rcvs);
+    Vector<MPI_Status>  rstats(num_rcvs);
     Vector<MPI_Request> rreqs(num_rcvs);
+    Vector<MPI_Status>  sstats;
+    Vector<MPI_Request> sreqs;
 
     Vector<Long> num_bytes_rcv(num_rcvs);
     for (int i = 0; i < static_cast<int>(num_rcvs); ++i)
@@ -358,14 +363,17 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>
     {
         if (Snds[i] == 0) { continue; }
         const Long Cnt = 1;
-        ParallelDescriptor::Asend( &Snds[i], Cnt, i, SeqNum, ParallelContext::CommunicatorSub());
+        sreqs.push_back(ParallelDescriptor::Asend( &Snds[i], Cnt, i, SeqNum, ParallelContext::CommunicatorSub()).req());
     }
 
-    ParallelDescriptor::Waitall(rreqs, stats);
+    sstats.resize(0);
+    sstats.resize(sreqs.size());
+    ParallelDescriptor::Waitall(sreqs, sstats);
+    ParallelDescriptor::Waitall(rreqs, rstats);
 
     for (int i = 0; i < num_rcvs; ++i)
     {
-        const auto Who = stats[i].MPI_SOURCE;
+        const auto Who = rstats[i].MPI_SOURCE;
         Rcvs[Who] = num_bytes_rcv[i];
     }
 #else
