@@ -543,10 +543,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
     plan.m_particle_rreqs.resize(plan.m_nrcvs);
 
     plan.m_particle_sstats.resize(0);
-    plan.m_particle_sstats.resize(plan.m_NumSnds);
-
     plan.m_particle_sreqs.resize(0);
-    plan.m_particle_sreqs.resize(plan.m_NumSnds);
 
     const int SeqNum = ParallelDescriptor::SeqNum();
 
@@ -569,7 +566,6 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
     if (plan.m_NumSnds == 0) { return; }
 
     // Send.
-    int isnd = 0;
     for (int i = 0; i < NProcs; ++i)
     {
         if (i == MyProc) { continue; }
@@ -581,10 +577,11 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
         AMREX_ASSERT(plan.m_snd_counts[i] % ParallelDescriptor::sizeof_selected_comm_data_type(plan.m_snd_num_particles[i]*psize) == 0);
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
 
-        plan.m_particle_sreqs[isnd++] = ParallelDescriptor::Asend((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
-                                                                  ParallelContext::CommunicatorSub()).req();
+        plan.m_particle_sreqs.push_back(ParallelDescriptor::Asend((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
+                                                                  ParallelContext::CommunicatorSub()).req());
     }
-    AMREX_ASSERT(isnd == plan.m_NumSnds - 1);
+
+    plan.m_particle_sstats.resize(plan.m_particle_sreqs.size());
 
     amrex::ignore_unused(pc);
 #else
