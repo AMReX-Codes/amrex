@@ -96,8 +96,11 @@ struct ParticleCopyPlan
     mutable Vector<MPI_Status> m_build_stats;
     mutable Vector<MPI_Request> m_build_rreqs;
 
-    mutable Vector<MPI_Status> m_particle_stats;
+    mutable Vector<MPI_Status> m_particle_rstats;
     mutable Vector<MPI_Request> m_particle_rreqs;
+
+    mutable Vector<MPI_Status> m_particle_sstats;
+    mutable Vector<MPI_Request> m_particle_sreqs;
 
     Vector<Long> m_snd_num_particles;
     Vector<Long> m_rcv_num_particles;
@@ -533,11 +536,17 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
 
     plan.m_nrcvs = int(RcvProc.size());
 
-    plan.m_particle_stats.resize(0);
-    plan.m_particle_stats.resize(plan.m_nrcvs);
+    plan.m_particle_rstats.resize(0);
+    plan.m_particle_rstats.resize(plan.m_nrcvs);
 
     plan.m_particle_rreqs.resize(0);
     plan.m_particle_rreqs.resize(plan.m_nrcvs);
+
+    plan.m_particle_sstats.resize(0);
+    plan.m_particle_sstats.resize(plan.m_NumSnds);
+
+    plan.m_particle_sreqs.resize(0);
+    plan.m_particle_sreqs.resize(plan.m_NumSnds);
 
     const int SeqNum = ParallelDescriptor::SeqNum();
 
@@ -560,6 +569,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
     if (plan.m_NumSnds == 0) { return; }
 
     // Send.
+    int isnd = 0;
     for (int i = 0; i < NProcs; ++i)
     {
         if (i == MyProc) { continue; }
@@ -571,9 +581,10 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
         AMREX_ASSERT(plan.m_snd_counts[i] % ParallelDescriptor::sizeof_selected_comm_data_type(plan.m_snd_num_particles[i]*psize) == 0);
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
 
-        ParallelDescriptor::Asend((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
-                                  ParallelContext::CommunicatorSub());
+        plan.m_particle_sreqs[isnd++] = ParallelDescriptor::Asend((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
+                                                                  ParallelContext::CommunicatorSub()).req();
     }
+    AMREX_ASSERT(isnd == plan.m_NumSnds - 1);
 
     amrex::ignore_unused(pc);
 #else

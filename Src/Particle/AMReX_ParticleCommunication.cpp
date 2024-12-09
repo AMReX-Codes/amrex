@@ -377,9 +377,13 @@ void amrex::communicateParticlesFinish (const ParticleCopyPlan& plan)
 {
     BL_PROFILE("amrex::communicateParticlesFinish");
 #ifdef AMREX_USE_MPI
+    if (plan.m_NumSnds > 0)
+    {
+        ParallelDescriptor::Waitall(plan.m_particle_sreqs, plan.m_particle_sstats);
+    }
     if (plan.m_nrcvs > 0)
     {
-        ParallelDescriptor::Waitall(plan.m_particle_rreqs, plan.m_particle_stats);
+        ParallelDescriptor::Waitall(plan.m_particle_rreqs, plan.m_particle_rstats);
     }
 #else
     amrex::ignore_unused(plan);
