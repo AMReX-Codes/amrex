@@ -75,7 +75,7 @@ struct Table1D
                     amrex::Abort();
                 ))
             } else {
-                AMREX_IF_ON_DEVICE(( amrex::Abort(); ))
+                AMREX_IF_ON_DEVICE(( amrex::Abort(" Out of bound\n"); ))
             }
             AMREX_IF_ON_HOST((
                 std::stringstream ss;
