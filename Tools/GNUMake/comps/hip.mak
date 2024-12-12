@@ -122,16 +122,10 @@ ifeq ($(HIP_COMPILER),clang)
   ROC_PATH=$(realpath $(HIP_PATH))
   SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include
 
-  # rocRand
-  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/hiprand $(ROC_PATH)/include/rocrand
   LIBRARY_LOCATIONS += $(ROC_PATH)/lib
-  LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lhiprand -lrocrand
 
-  # rocPrim - Header only
-  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/rocprim
-
-  # rocThrust - Header only
-  # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/rocthrust
+  # hiprand & rocsparse
+  LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lhiprand -lrocrand -lrocsparse
 
   # rocTracer
   ifeq ($(USE_ROCTX),TRUE)

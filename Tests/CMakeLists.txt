@@ -138,7 +138,7 @@ else()
    endif ()
 
    if (AMReX_LINEAR_SOLVERS)
-      list(APPEND AMREX_TESTS_SUBDIRS LinearSolvers)
+      list(APPEND AMREX_TESTS_SUBDIRS Algebra LinearSolvers)
    endif ()
 
    if (AMReX_FFT)

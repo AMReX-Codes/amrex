@@ -35,6 +35,14 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLPoisson_${D}D_K.H
        AMReX_GMRES.H
        AMReX_GMRES_MLMG.H
+       AMReX_GMRES_MV.H
+       AMReX_Smoother_MV.H
+       AMReX_Algebra.H
+       AMReX_AlgPartition.H
+       AMReX_AlgPartition.cpp
+       AMReX_AlgVector.H
+       AMReX_SpMatrix.H
+       AMReX_SpMV.H
        )
 
     if (D EQUAL 3)

@@ -203,13 +203,6 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-    const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
-    auto area = (factory) ? factory->getAreaFrac()
-        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    auto fcent = (factory) ? factory->getFaceCent()
-        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
-    const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
     bool is_eb_dirichlet =  isEBDirichlet();
 
@@ -279,18 +272,10 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         else
         {
             Array4<int const> const& ccmfab = ccmask.const_array(mfi);
-            Array4<EBCellFlag const> const& flagfab = flags->const_array(mfi);
-            Array4<Real const> const& vfracfab = vfrac->const_array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
-                         Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
-                         Array4<Real const> const& apzfab = area[2]->const_array(mfi););
-            AMREX_D_TERM(Array4<Real const> const& fcxfab = fcent[0]->const_array(mfi);,
-                         Array4<Real const> const& fcyfab = fcent[1]->const_array(mfi);,
-                         Array4<Real const> const& fczfab = fcent[2]->const_array(mfi););
-            Array4<Real const> const& bafab = barea->const_array(mfi);
-            Array4<Real const> const& bcfab = bcent->const_array(mfi);
             Array4<Real const> const& bebfab = (is_eb_dirichlet)
                 ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
+
+            auto const& ebdata = factory->getEBData(mfi);
 
             bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
             bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
@@ -307,10 +292,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                  AMREX_D_DECL(m1,m3,m5),
                                  AMREX_D_DECL(f0fab,f2fab,f4fab),
                                  AMREX_D_DECL(f1fab,f3fab,f5fab),
-                                 ccmfab, flagfab, vfracfab,
-                                 AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                 AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                 bafab, bcfab, bebfab,
+                                 ccmfab, bebfab, ebdata,
                                  is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
                                  vbx, redblack, nc);
             });

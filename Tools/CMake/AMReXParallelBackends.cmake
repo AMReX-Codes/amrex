@@ -66,10 +66,14 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    foreach(D IN LISTS AMReX_SPACEDIM)
        target_link_libraries(amrex_${D}d PUBLIC CUDA::curand)
 
-        # nvToolsExt: if tiny profiler or base profiler are on.
-        if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
-            target_link_libraries(amrex_${D}d PUBLIC CUDA::nvToolsExt)
-        endif ()
+       if (AMReX_LINEAR_SOLVERS)
+           target_link_libraries(amrex_${D}d PUBLIC CUDA::cusparse)
+       endif ()
+
+       # nvToolsExt: if tiny profiler or base profiler are on.
+       if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
+           target_link_libraries(amrex_${D}d PUBLIC CUDA::nvToolsExt)
+       endif ()
    endforeach()
 
    # Check cuda compiler and host compiler
@@ -277,7 +281,7 @@ if (AMReX_HIP)
           )
        endforeach()
    endif()
-   
+
    # Debug issues with -O0: internal compiler errors
    # work-around for
    #   https://github.com/AMReX-Codes/amrex/pull/3311
@@ -291,6 +295,10 @@ if (AMReX_HIP)
    find_package(rocrand REQUIRED CONFIG)
    find_package(rocprim REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
+   if (AMReX_LINEAR_SOLVERS)
+      find_package(rocsparse REQUIRED CONFIG)
+   endif()
+
    if(AMReX_ROCTX)
        foreach(D IN LISTS AMReX_SPACEDIM)
           # To be modernized in the future, please see:
@@ -308,6 +316,11 @@ if (AMReX_HIP)
    foreach(D IN LISTS AMReX_SPACEDIM)
       target_link_libraries(amrex_${D}d PUBLIC hip::hiprand roc::rocrand roc::rocprim)
    endforeach()
+   if (AMReX_LINEAR_SOLVERS)
+      foreach(D IN LISTS AMReX_SPACEDIM)
+         target_link_libraries(amrex_${D}d PUBLIC roc::rocsparse)
+      endforeach()
+   endif()
 
    # avoid forcing the rocm LLVM flags on a gfortran
    # https://github.com/ROCm-Developer-Tools/HIP/issues/2275

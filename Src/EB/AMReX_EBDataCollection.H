@@ -9,6 +9,7 @@
 
 namespace amrex {
 
+class EBFArrayBoxFactory;
 template <class T> class FabArray;
 class MultiFab;
 class iMultiFab;
@@ -18,6 +19,8 @@ namespace EB2 { class Level; }
 class EBDataCollection
 {
 public:
+
+    friend class EBFArrayBoxFactory;
 
     EBDataCollection (const EB2::Level& a_level, const Geometry& a_geom,
                       const BoxArray& a_ba, const DistributionMapping& a_dm,
