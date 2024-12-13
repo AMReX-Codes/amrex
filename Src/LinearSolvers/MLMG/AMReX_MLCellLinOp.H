@@ -102,7 +102,7 @@ public:
     void compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
                            MF& sol, Location loc) const override;
 
-    void applyMetricTerm (int amrlev, int mglev, MF& rhs, int dir=0) const final;
+    void applyMetricTerm (int amrlev, int mglev, MF& rhs, int dir) const final;
     void unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const final;
     Vector<RT> getSolvabilityOffset (int amrlev, int mglev,
                                              MF const& rhs) const override;
@@ -1463,7 +1463,7 @@ MLCellLinOpT<MF>::applyMetricTerm (int amrlev, int mglev, MF& rhs, int dir) cons
 
     const int ncomp = rhs.nComp();
 
-    bool cc = rhs.ixType().cellCentered();
+    bool cc = rhs.ixType().cellCentered(0);
 
     const Geometry& geom = this->m_geom[amrlev][mglev];
     const RT* problo = geom.ProbLo();
@@ -1554,7 +1554,7 @@ MLCellLinOpT<MF>::unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const
 
     const int ncomp = rhs.nComp();
 
-    bool cc = rhs.ixType().cellCentered();
+    bool cc = rhs.ixType().cellCentered(0);
 
     const Geometry& geom = this->m_geom[amrlev][mglev];
     const RT* problo = geom.ProbLo();

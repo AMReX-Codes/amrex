@@ -828,7 +828,7 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
         MF rhstmp(boxArray(*prhs), DistributionMap(*prhs), ncomp, nghost,
                   MFInfo(), *linop.Factory(alev));
         LocalCopy(rhstmp, *prhs, 0, 0, ncomp, IntVect(nghost));
-        linop.applyMetricTerm(alev, 0, rhstmp);
+        linop.applyMetricTerm(alev, 0, rhstmp, 0);
         linop.unimposeNeumannBC(alev, rhstmp);
         linop.applyInhomogNeumannTerm(alev, rhstmp);
         prhs = &rhstmp;
@@ -1004,7 +1004,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
             rhs[alev] = linop.make(alev, 0, ng_rhs);
         }
         LocalCopy(rhs[alev], *a_rhs[alev], 0, 0, ncomp, ng_rhs);
-        linop.applyMetricTerm(alev, 0, rhs[alev]);
+        linop.applyMetricTerm(alev, 0, rhs[alev], 0);
         linop.unimposeNeumannBC(alev, rhs[alev]);
         linop.applyInhomogNeumannTerm(alev, rhs[alev]);
         linop.applyOverset(alev, rhs[alev]);
