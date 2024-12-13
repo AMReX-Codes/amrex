@@ -768,6 +768,29 @@ public:
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
                      const Vector<std::string>& int_comp_names = Vector<std::string>()) const;
 
+    /**
+     * \brief Writes a particle checkpoint to file, suitable for restarting.
+     *        This version allows some components to be toggled off, if they
+     *        don't need to be stored in the chk file.
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
+      * \param write_real_comp for each real component, whether or not we include that component in the file
+      * \param write_int_comp for each integer component, whether or not we include that component in the file
+     * \param real_comp_names vector of real component names
+     * \param int_comp_names vector of int component names
+     */
+    void Checkpoint (const std::string& dir, const std::string& name,
+                     const Vector<int>& write_real_comp,
+                     const Vector<int>& write_int_comp,
+                     const Vector<std::string>& real_comp_names,
+                     const Vector<std::string>& int_comp_names) const
+    {
+        WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
+                                real_comp_names, int_comp_names,
+                                FilterPositiveID{}, true);
+    }
+
      /**
       * \brief Writes particle data to disk in the AMReX native format.
       *
