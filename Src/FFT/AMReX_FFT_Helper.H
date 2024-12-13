@@ -7,9 +7,11 @@
 #include <AMReX_DataAllocator.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Enum.H>
+#include <AMReX_FabArray.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_GpuComplex.H>
 #include <AMReX_Math.H>
+#include <AMReX_Periodicity.H>
 
 #if defined(AMREX_USE_CUDA)
 #  include <cufft.h>
@@ -1446,6 +1448,83 @@ struct RotateBwd
         return it;
     }
 };
+
+namespace detail
+{
+    struct SubHelper
+    {
+        explicit SubHelper (Box const& domain);
+
+        [[nodiscard]] Box make_box (Box const& box) const;
+
+        [[nodiscard]] Periodicity make_periodicity (Periodicity const& period) const;
+
+        [[nodiscard]] bool ghost_safe (IntVect const& ng) const;
+
+        // This rearranges the order.
+        [[nodiscard]] IntVect make_iv (IntVect const& iv) const;
+
+        // This keeps the order, but zero out the values in the hidden dimension.
+        [[nodiscard]] IntVect make_safe_ghost (IntVect const& ng) const;
+
+        [[nodiscard]] BoxArray inverse_boxarray (BoxArray const& ba) const;
+
+        [[nodiscard]] IntVect inverse_order (IntVect const& order) const;
+
+        template <typename T>
+        [[nodiscard]] T make_array (T const& a) const
+        {
+#if (AMREX_SPACEDIM == 1)
+            amrex::ignore_unused(this);
+            return a;
+#elif (AMREX_SPACEDIM == 2)
+            if (m_case == case_1n) {
+                return T{a[1],a[0]};
+            } else {
+                return a;
+            }
+#else
+            if (m_case == case_11n) {
+                return T{a[2],a[0],a[1]};
+            } else if (m_case == case_1n1) {
+                return T{a[1],a[0],a[2]};
+            } else if (m_case == case_1nn) {
+                return T{a[1],a[2],a[0]};
+            } else if (m_case == case_n1n) {
+                return T{a[0],a[2],a[1]};
+            } else {
+                return a;
+            }
+#endif
+        }
+
+        [[nodiscard]] GpuArray<int,3> xyz_order () const;
+
+        template <typename FA>
+        FA make_alias_mf (FA const& mf)
+        {
+            BoxList bl = mf.boxArray().boxList();
+            for (auto& b : bl) {
+                b = make_box(b);
+            }
+            auto const& ng = make_iv(mf.nGrowVect());
+            FA submf(BoxArray(std::move(bl)), mf.DistributionMap(), 1, ng, MFInfo{}.SetAlloc(false));
+            using FAB = typename FA::fab_type;
+            for (MFIter mfi(submf, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi) {
+                submf.setFab(mfi, FAB(mfi.fabbox(), 1, mf[mfi].dataPtr()));
+            }
+            return submf;
+        }
+
+#if (AMREX_SPACEDIM == 2)
+        enum Case { case_1n, case_other };
+        int m_case = case_other;
+#elif (AMREX_SPACEDIM == 3)
+        enum Case { case_11n, case_1n1, case_1nn, case_n1n, case_other };
+        int m_case = case_other;
+#endif
+    };
+}
 
 }
 

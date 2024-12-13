@@ -56,10 +56,13 @@ void make_rhs (MultiFab& rhs, Geometry const& geom,
     });
 
     bool has_dirichlet = false;
+    auto domlen = geom.Domain().length();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        has_dirichlet = has_dirichlet ||
-            fft_bc[idim].first == FFT::Boundary::odd ||
-            fft_bc[idim].second == FFT::Boundary::odd;
+        if (domlen[idim] > 1) {
+            has_dirichlet = has_dirichlet ||
+                fft_bc[idim].first == FFT::Boundary::odd ||
+                fft_bc[idim].second == FFT::Boundary::odd;
+        }
     }
     if (! has_dirichlet) {
         // Shift rhs so that its sum is zero.
@@ -80,15 +83,23 @@ std::pair<Real,Real> check_convergence
         {AMREX_D_DECL(1._rt/(dx[0]*dx[0]),
                       1._rt/(dx[1]*dx[1]),
                       1._rt/(dx[2]*dx[2]))};
+    auto domlen = geom.Domain().length();
     ParallelFor(res, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
     {
         auto const& phia = phi_ma[b];
-        Real lap = (phia(i-1,j,k)-2._rt*phia(i,j,k)+phia(i+1,j,k)) * lapfac[0];
+        Real lap = 0;
+        if (domlen[0] > 1) {
+            lap += (phia(i-1,j,k)-2._rt*phia(i,j,k)+phia(i+1,j,k)) * lapfac[0];
+        }
 #if (AMREX_SPACEDIM >= 2)
-        lap += (phia(i,j-1,k)-2._rt*phia(i,j,k)+phia(i,j+1,k)) * lapfac[1];
+        if (domlen[1] > 1) {
+            lap += (phia(i,j-1,k)-2._rt*phia(i,j,k)+phia(i,j+1,k)) * lapfac[1];
+        }
 #endif
 #if (AMREX_SPACEDIM == 3)
-        lap += (phia(i,j,k-1)-2._rt*phia(i,j,k)+phia(i,j,k+1)) * lapfac[2];
+        if (domlen[2] > 1) {
+            lap += (phia(i,j,k-1)-2._rt*phia(i,j,k)+phia(i,j,k+1)) * lapfac[2];
+        }
 #endif
         res_ma[b](i,j,k) = rhs_ma[b](i,j,k) - lap;
     });

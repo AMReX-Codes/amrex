@@ -30,7 +30,7 @@ template <typename T> class PoissonHybrid;
  * https://amrex-codes.github.io/amrex/docs_html/FFT_Chapter.html.
  */
 template <typename T = Real, FFT::Direction D = FFT::Direction::both,
-          FFT::DomainStrategy = FFT::DomainStrategy::slab>
+          FFT::DomainStrategy S = FFT::DomainStrategy::slab>
           // Don't change the default. Otherwise OpenBCSolver might break.
 class R2C
 {
@@ -83,7 +83,7 @@ public:
     {
         BL_PROFILE("FFT::R2C::forwardbackward");
         this->forward(inmf);
-        this->post_forward_doit(post_forward);
+        this->post_forward_doit<0>(post_forward);
         this->backward(outmf);
     }
 
@@ -165,7 +165,7 @@ public:
     [[nodiscard]] std::pair<BoxArray,DistributionMapping> getSpectralDataLayout () const;
 
     // This is a private function, but it's public for cuda.
-    template <typename F>
+    template <int Depth, typename F>
     void post_forward_doit (F const& post_forward);
 
 private:
@@ -221,6 +221,9 @@ private:
     Box m_spectral_domain_y;
     Box m_spectral_domain_z;
 
+    std::unique_ptr<R2C<T,D,S>> m_r2c_sub;
+    detail::SubHelper m_sub_helper;
+
     Info m_info;
 
     bool m_do_alld_fft = false;
@@ -247,24 +250,42 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
                           domain.ixType()),
 #endif
 #endif
+      m_sub_helper(domain),
       m_info(info)
 {
     BL_PROFILE("FFT::R2C");
 
     static_assert(std::is_same_v<float,T> || std::is_same_v<double,T>);
-    AMREX_ALWAYS_ASSERT(m_real_domain.length(0) > 1);
-#if (AMREX_SPACEDIM == 3)
-    AMREX_ALWAYS_ASSERT(m_real_domain.length(1) > 1 || m_real_domain.length(2) == 1);
+
+    AMREX_ALWAYS_ASSERT(m_real_domain.numPts() > 1);
+#if (AMREX_SPACEDIM == 2)
+    AMREX_ALWAYS_ASSERT(!m_info.batch_mode);
 #else
-    AMREX_ALWAYS_ASSERT(! m_info.batch_mode);
+    if (m_info.batch_mode) {
+        AMREX_ALWAYS_ASSERT((int(domain.length(0) > 1) +
+                             int(domain.length(1) > 1) +
+                             int(domain.length(2) > 1)) >= 2);
+    }
 #endif
+
+    {
+        Box subbox = m_sub_helper.make_box(m_real_domain);
+        if (subbox.size() != m_real_domain.size()) {
+            m_r2c_sub = std::make_unique<R2C<T,D,S>>(subbox, info);
+            return;
+        }
+    }
 
     int myproc = ParallelContext::MyProcSub();
     int nprocs = std::min(ParallelContext::NProcsSub(), m_info.nprocs);
 
 #if (AMREX_SPACEDIM == 3)
     if (S == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
-        m_slab_decomp = true;
+        if (m_info.batch_mode && m_real_domain.length(2) == 1) {
+            m_slab_decomp = false;
+        } else {
+            m_slab_decomp = true;
+        }
     }
 #endif
 
@@ -292,8 +313,14 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
         //
 
 #if (AMREX_SPACEDIM >= 2)
+#if (AMREX_SPACEDIM == 2)
+        bool batch_on_y = false;
+#else
+        bool batch_on_y = m_info.batch_mode && (m_real_domain.length(2) == 1);
+#endif
         DistributionMapping cdmy;
-        if ((m_real_domain.length(1) > 1) && !m_slab_decomp) {
+        if ((m_real_domain.length(1) > 1) && !m_slab_decomp && !batch_on_y)
+        {
             auto cbay = amrex::decompose(m_spectral_domain_y, nprocs,
                                          {AMREX_D_DECL(false,true,true)}, true);
             if (cbay.size() == dmx.size()) {
@@ -441,6 +468,8 @@ R2C<T,D,S>::~R2C<T,D,S> ()
 template <typename T, Direction D, DomainStrategy S>
 void R2C<T,D,S>::prepare_openbc ()
 {
+    if (m_r2c_sub) { amrex::Abort("R2C: OpenBC not supported with reduced dimensions"); }
+
 #if (AMREX_SPACEDIM == 3)
     if (m_do_alld_fft) { return; }
 
@@ -497,6 +526,17 @@ void R2C<T,D,S>::forward (MF const& inmf)
 {
     BL_PROFILE("FFT::R2C::forward(in)");
 
+    if (m_r2c_sub) {
+        if (m_sub_helper.ghost_safe(inmf.nGrowVect())) {
+            m_r2c_sub->forward(m_sub_helper.make_alias_mf(inmf));
+        } else {
+            MF tmp(inmf.boxArray(), inmf.DistributionMap(), 1, 0);
+            tmp.LocalCopy(inmf, 0, 0, 1, IntVect(0));
+            m_r2c_sub->forward(m_sub_helper.make_alias_mf(tmp));
+        }
+        return;
+    }
+
     if (&m_rx != &inmf) {
         m_rx.ParallelCopy(inmf, 0, 0, 1);
     }
@@ -552,9 +592,25 @@ void R2C<T,D,S>::backward_doit (MF& outmf, IntVect const& ngout,
 {
     BL_PROFILE("FFT::R2C::backward(out)");
 
+    if (m_r2c_sub) {
+        if (m_sub_helper.ghost_safe(outmf.nGrowVect())) {
+            MF submf = m_sub_helper.make_alias_mf(outmf);
+            IntVect const& subngout = m_sub_helper.make_iv(ngout);
+            Periodicity const& subperiod = m_sub_helper.make_periodicity(period);
+            m_r2c_sub->backward_doit(submf, subngout, subperiod);
+        } else {
+            MF tmp(outmf.boxArray(), outmf.DistributionMap(), 1,
+                   m_sub_helper.make_safe_ghost(outmf.nGrowVect()));
+            this->backward_doit(tmp, ngout, period);
+            outmf.LocalCopy(tmp, 0, 0, 1, tmp.nGrowVect());
+        }
+        return;
+    }
+
     if (m_do_alld_fft) {
         m_fft_bwd_x.template compute_r2c<Direction::backward>();
-        outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout, period);
+        outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0),
+                           amrex::elemwiseMin(ngout,outmf.nGrowVect()), period);
         return;
     }
 
@@ -576,7 +632,8 @@ void R2C<T,D,S>::backward_doit (MF& outmf, IntVect const& ngout,
 
     auto& fft_x = m_openbc_half ? m_fft_bwd_x_half : m_fft_bwd_x;
     fft_x.template compute_r2c<Direction::backward>();
-    outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0), ngout, period);
+    outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0),
+                       amrex::elemwiseMin(ngout,outmf.nGrowVect()), period);
 }
 
 template <typename T, Direction D, DomainStrategy S>
@@ -608,11 +665,59 @@ R2C<T,D,S>::make_c2c_plans (cMF& inout)
 }
 
 template <typename T, Direction D, DomainStrategy S>
-template <typename F>
+template <int Depth, typename F>
 void R2C<T,D,S>::post_forward_doit (F const& post_forward)
 {
     if (m_info.batch_mode) {
         amrex::Abort("xxxxx todo: post_forward");
+#if (AMREX_SPACEDIM > 1)
+    } else if (m_r2c_sub) {
+        if constexpr (Depth == 0) {
+            // We need to pass the originally ordered indices to post_forward.
+#if (AMREX_SPACEDIM == 2)
+            // The original domain is (1,ny). The sub domain is (ny,1).
+            m_r2c_sub->template post_forward_doit<(Depth+1)>
+                ([=] AMREX_GPU_DEVICE (int i, int, int, auto& sp)
+                     {
+                         post_forward(0, i, 0, sp);
+                     });
+#else
+            if (m_real_domain.length(0) == 1 && m_real_domain.length(1) == 1) {
+                // Original domain: (1, 1, nz). Sub domain: (nz, 1, 1)
+                m_r2c_sub->template post_forward_doit<(Depth+1)>
+                    ([=] AMREX_GPU_DEVICE (int i, int, int, auto& sp)
+                         {
+                             post_forward(0, 0, i, sp);
+                         });
+            } else if (m_real_domain.length(0) == 1 && m_real_domain.length(2) == 1) {
+                // Original domain: (1, ny, 1). Sub domain: (ny, 1, 1)
+                m_r2c_sub->template post_forward_doit<(Depth+1)>
+                    ([=] AMREX_GPU_DEVICE (int i, int, int, auto& sp)
+                         {
+                             post_forward(0, i, 0, sp);
+                         });
+            } else if (m_real_domain.length(0) == 1) {
+                // Original domain: (1, ny, nz). Sub domain: (ny, nz, 1)
+                m_r2c_sub->template post_forward_doit<(Depth+1)>
+                    ([=] AMREX_GPU_DEVICE (int i, int j, int, auto& sp)
+                         {
+                             post_forward(0, i, j, sp);
+                         });
+            } else if (m_real_domain.length(1) == 1) {
+                // Original domain: (nx, 1, nz). Sub domain: (nx, nz, 1)
+                m_r2c_sub->template post_forward_doit<(Depth+1)>
+                    ([=] AMREX_GPU_DEVICE (int i, int j, int, auto& sp)
+                         {
+                             post_forward(i, 0, j, sp);
+                         });
+            } else {
+                amrex::Abort("R2c::post_forward_doit: how did this happen?");
+            }
+#endif
+        } else {
+            amrex::Abort("R2C::post_forward_doit: How did this happen?");
+        }
+#endif
     } else {
         if (                           ! m_cz.empty()) {
             auto* spectral_fab = detail::get_fab(m_cz);
@@ -653,8 +758,12 @@ T R2C<T,D,S>::scalingFactor () const
 {
 #if (AMREX_SPACEDIM == 3)
     if (m_info.batch_mode) {
-        return T(1)/T(Long(m_real_domain.length(0)) *
-                      Long(m_real_domain.length(1)));
+        if (m_real_domain.length(2) > 1) {
+            return T(1)/T(Long(m_real_domain.length(0)) *
+                          Long(m_real_domain.length(1)));
+        } else {
+            return T(1)/T(m_real_domain.length(0));
+        }
     } else
 #endif
     {
@@ -668,6 +777,12 @@ template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
 std::pair<typename R2C<T,D,S>::cMF *, IntVect>
 R2C<T,D,S>::getSpectralData ()
 {
+#if (AMREX_SPACEDIM > 1)
+    if (m_r2c_sub) {
+        auto [cmf, order] = m_r2c_sub->getSpectralData();
+        return std::make_pair(cmf, m_sub_helper.inverse_order(order));
+   } else
+#endif
     if (!m_cz.empty()) {
         return std::make_pair(&m_cz, IntVect{AMREX_D_DECL(2,0,1)});
     } else if (!m_cy.empty()) {
@@ -684,18 +799,48 @@ void R2C<T,D,S>::forward (MF const& inmf, cMF& outmf)
 {
     BL_PROFILE("FFT::R2C::forward(inout)");
 
-    forward(inmf);
-    if (!m_cz.empty()) { // m_cz's order (z,x,y) -> (x,y,z)
-        RotateBwd dtos{};
-        MultiBlockCommMetaData cmd
-            (outmf, m_spectral_domain_x, m_cz, IntVect(0), dtos);
-        ParallelCopy(outmf, m_cz, cmd, 0, 0, 1, dtos);
-    } else if (!m_cy.empty()) { // m_cy's order (y,x,z) -> (x,y,z)
-        MultiBlockCommMetaData cmd
-            (outmf, m_spectral_domain_x, m_cy, IntVect(0), m_dtos_y2x);
-        ParallelCopy(outmf, m_cy, cmd, 0, 0, 1, m_dtos_y2x);
-    } else {
-        outmf.ParallelCopy(m_cx, 0, 0, 1);
+    if (m_r2c_sub)
+    {
+        bool inmf_safe = m_sub_helper.ghost_safe(inmf.nGrowVect());
+        MF inmf_sub, inmf_tmp;
+        if (inmf_safe) {
+            inmf_sub = m_sub_helper.make_alias_mf(inmf);
+        } else {
+            inmf_tmp.define(inmf.boxArray(), inmf.DistributionMap(), 1, 0);
+            inmf_tmp.LocalCopy(inmf, 0, 0, 1, IntVect(0));
+            inmf_sub = m_sub_helper.make_alias_mf(inmf_tmp);
+        }
+
+        bool outmf_safe = m_sub_helper.ghost_safe(outmf.nGrowVect());
+        cMF outmf_sub, outmf_tmp;
+        if (outmf_safe) {
+            outmf_sub = m_sub_helper.make_alias_mf(outmf);
+        } else {
+            outmf_tmp.define(outmf.boxArray(), outmf.DistributionMap(), 1, 0);
+            outmf_sub = m_sub_helper.make_alias_mf(outmf_tmp);
+        }
+
+        m_r2c_sub->forward(inmf_sub, outmf_sub);
+
+        if (!outmf_safe) {
+            outmf.LocalCopy(outmf_tmp, 0, 0, 1, IntVect(0));
+        }
+    }
+    else
+    {
+        forward(inmf);
+        if (!m_cz.empty()) { // m_cz's order (z,x,y) -> (x,y,z)
+            RotateBwd dtos{};
+            MultiBlockCommMetaData cmd
+                (outmf, m_spectral_domain_x, m_cz, IntVect(0), dtos);
+            ParallelCopy(outmf, m_cz, cmd, 0, 0, 1, dtos);
+        } else if (!m_cy.empty()) { // m_cy's order (y,x,z) -> (x,y,z)
+            MultiBlockCommMetaData cmd
+                (outmf, m_spectral_domain_x, m_cy, IntVect(0), m_dtos_y2x);
+            ParallelCopy(outmf, m_cy, cmd, 0, 0, 1, m_dtos_y2x);
+        } else {
+            outmf.ParallelCopy(m_cx, 0, 0, 1);
+        }
     }
 }
 
@@ -713,25 +858,65 @@ void R2C<T,D,S>::backward_doit (cMF const& inmf, MF& outmf, IntVect const& ngout
 {
     BL_PROFILE("FFT::R2C::backward(inout)");
 
-    if (!m_cz.empty()) { // (x,y,z) -> m_cz's order (z,x,y)
-        RotateFwd dtos{};
-        MultiBlockCommMetaData cmd
-            (m_cz, m_spectral_domain_z, inmf, IntVect(0), dtos);
-        ParallelCopy(m_cz, inmf, cmd, 0, 0, 1, dtos);
-    } else if (!m_cy.empty()) { // (x,y,z) -> m_cy's ordering (y,x,z)
-        MultiBlockCommMetaData cmd
-            (m_cy, m_spectral_domain_y, inmf, IntVect(0), m_dtos_x2y);
-        ParallelCopy(m_cy, inmf, cmd, 0, 0, 1, m_dtos_x2y);
-    } else {
-        m_cx.ParallelCopy(inmf, 0, 0, 1);
+    if (m_r2c_sub)
+    {
+        bool inmf_safe = m_sub_helper.ghost_safe(inmf.nGrowVect());
+        cMF inmf_sub, inmf_tmp;
+        if (inmf_safe) {
+            inmf_sub = m_sub_helper.make_alias_mf(inmf);
+        } else {
+            inmf_tmp.define(inmf.boxArray(), inmf.DistributionMap(), 1, 0);
+            inmf_tmp.LocalCopy(inmf, 0, 0, 1, IntVect(0));
+            inmf_sub = m_sub_helper.make_alias_mf(inmf_tmp);
+        }
+
+        bool outmf_safe = m_sub_helper.ghost_safe(outmf.nGrowVect());
+        MF outmf_sub, outmf_tmp;
+        if (outmf_safe) {
+            outmf_sub = m_sub_helper.make_alias_mf(outmf);
+        } else {
+            IntVect const& ngtmp = m_sub_helper.make_safe_ghost(outmf.nGrowVect());
+            outmf_tmp.define(outmf.boxArray(), outmf.DistributionMap(), 1, ngtmp);
+            outmf_sub = m_sub_helper.make_alias_mf(outmf_tmp);
+        }
+
+        IntVect const& subngout = m_sub_helper.make_iv(ngout);
+        Periodicity const& subperiod = m_sub_helper.make_periodicity(period);
+        m_r2c_sub->backward_doit(inmf_sub, outmf_sub, subngout, subperiod);
+
+        if (!outmf_safe) {
+            outmf.LocalCopy(outmf_tmp, 0, 0, 1, outmf_tmp.nGrowVect());
+        }
     }
-    backward_doit(outmf, ngout, period);
+    else
+    {
+        if (!m_cz.empty()) { // (x,y,z) -> m_cz's order (z,x,y)
+            RotateFwd dtos{};
+            MultiBlockCommMetaData cmd
+                (m_cz, m_spectral_domain_z, inmf, IntVect(0), dtos);
+            ParallelCopy(m_cz, inmf, cmd, 0, 0, 1, dtos);
+        } else if (!m_cy.empty()) { // (x,y,z) -> m_cy's ordering (y,x,z)
+            MultiBlockCommMetaData cmd
+                (m_cy, m_spectral_domain_y, inmf, IntVect(0), m_dtos_x2y);
+            ParallelCopy(m_cy, inmf, cmd, 0, 0, 1, m_dtos_x2y);
+        } else {
+            m_cx.ParallelCopy(inmf, 0, 0, 1);
+        }
+        backward_doit(outmf, ngout, period);
+    }
 }
 
 template <typename T, Direction D, DomainStrategy S>
 std::pair<BoxArray,DistributionMapping>
 R2C<T,D,S>::getSpectralDataLayout () const
 {
+#if (AMREX_SPACEDIM > 1)
+    if (m_r2c_sub) {
+        auto const& [ba, dm] = m_r2c_sub->getSpectralDataLayout();
+        return std::make_pair(m_sub_helper.inverse_boxarray(ba), dm);
+    }
+#endif
+
 #if (AMREX_SPACEDIM == 3)
     if (!m_cz.empty()) {
         BoxList bl = m_cz.boxArray().boxList();
