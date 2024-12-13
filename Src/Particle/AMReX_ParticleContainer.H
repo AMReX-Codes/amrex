@@ -784,12 +784,7 @@ public:
                      const Vector<int>& write_real_comp,
                      const Vector<int>& write_int_comp,
                      const Vector<std::string>& real_comp_names,
-                     const Vector<std::string>& int_comp_names) const
-    {
-        WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
-                                real_comp_names, int_comp_names,
-                                FilterPositiveID{}, true);
-    }
+                     const Vector<std::string>& int_comp_names) const;
 
      /**
       * \brief Writes particle data to disk in the AMReX native format.
