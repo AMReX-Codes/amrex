@@ -59,7 +59,7 @@ public:
 
     void prepareForSolve () override;
 
-    void prepareForGMRES () override;
+    void preparePrecond () override;
 
     void setDirichletNodesToZero (int amrlev, int mglev, MultiFab& mf) const override;
 
@@ -68,6 +68,11 @@ public:
     bool isBottomSingular () const override { return m_is_bottom_singular; }
 
     Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const final;
+
+    Real dotProductPrecond (Vector<MultiFab const*> const& x,
+                            Vector<MultiFab const*> const& y) const final;
+
+    Real norm2Precond (Vector<MultiFab const*> const& x) const final;
 
     virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode, StateMode state_mode,
                           bool skip_fillboundary=false) const;
@@ -135,6 +140,7 @@ protected:
     Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contain c/f boundary?
     MultiFab m_bottom_dot_mask;
     MultiFab m_coarse_dot_mask;
+    Vector<MultiFab> m_precond_weight_mask;
 
     Vector<std::unique_ptr<iMultiFab> > m_norm_fine_mask;
 

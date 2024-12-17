@@ -50,6 +50,9 @@ public:
               std::initializer_list<AMF const*> a_rhs,
               RT a_tol_rel, RT a_tol_abs, const char* checkpoint_file = nullptr);
 
+    RT precond (Vector<MF*> const& a_sol, Vector<MF const*> const& a_rhs,
+                RT a_tol_rel, RT a_tol_abs);
+
     template <typename AMF>
     void getGradSolution (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_grad_sol,
                           Location a_loc = Location::FaceCenter);
@@ -113,11 +116,21 @@ public:
     */
     void apply (const Vector<MF*>& out, const Vector<MF*>& in);
 
+    //! out = L(in) as a preconditioner
+    void applyPrecond (const Vector<MF*>& out, const Vector<MF*>& in);
+
+    [[nodiscard]] int getVerbose () const { return verbose; }
+    [[nodiscard]] int getBottomVerbose () const { return bottom_verbose; }
+
+    void incPrintIdentation ();
+    void decPrintIdentation ();
+
     void setThrowException (bool t) noexcept { throw_exception = t; }
     void setVerbose (int v) noexcept { verbose = v; }
     void setMaxIter (int n) noexcept { max_iters = n; }
     void setMaxFmgIter (int n) noexcept { max_fmg_iters = n; }
     void setFixedIter (int nit) noexcept { do_fixed_number_of_iters = nit; }
+    void setPrecondIter (int nit) noexcept { max_precond_iters = nit; }
 
     void setPreSmooth (int n) noexcept { nu1 = n; }
     void setPostSmooth (int n) noexcept { nu2 = n; }
@@ -125,12 +138,13 @@ public:
     void setBottomSmooth (int n) noexcept { nub = n; }
 
     void setBottomSolver (BottomSolver s) noexcept { bottom_solver = s; }
+    [[nodiscard]] BottomSolver getBottomSolver () const noexcept { return bottom_solver; }
     void setCFStrategy (CFStrategy a_cf_strategy) noexcept {cf_strategy = a_cf_strategy;}
     void setBottomVerbose (int v) noexcept { bottom_verbose = v; }
     void setBottomMaxIter (int n) noexcept { bottom_maxiter = n; }
     void setBottomTolerance (RT t) noexcept { bottom_reltol = t; }
     void setBottomToleranceAbs (RT t) noexcept { bottom_abstol = t;}
-    RT getBottomToleranceAbs () noexcept{ return bottom_abstol; }
+    [[nodiscard]] RT getBottomToleranceAbs () const noexcept{ return bottom_abstol; }
 
     void setAlwaysUseBNorm (int flag) noexcept { always_use_bnorm = flag; }
 
@@ -173,9 +187,7 @@ public:
 
     void prepareLinOp ();
 
-    void prepareMGcycle ();
-
-    void prepareForGMRES ();
+    void preparePrecond ();
 
     void oneIter (int iter);
 
@@ -231,11 +243,13 @@ public:
 
 private:
 
+    bool precond_mode = false;
     bool throw_exception = false;
     int verbose = 1;
 
     int max_iters = 200;
     int do_fixed_number_of_iters = 0;
+    int max_precond_iters = 1;
 
     int nu1 = 2;       //!< pre
     int nu2 = 2;       //!< post
@@ -270,6 +284,8 @@ private:
     std::unique_ptr<MLMGT<MF>> ns_mlmg;
     std::unique_ptr<MF> ns_sol;
     std::unique_ptr<MF> ns_rhs;
+
+    std::string print_ident;
 
     //! Hypre
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
@@ -400,8 +416,8 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 
         if (verbose >= 1)
         {
-            amrex::Print() << "MLMG: Initial rhs               = " << rhsnorm0 << "\n"
-                           << "MLMG: Initial residual (resid0) = " << resnorm0 << "\n";
+            amrex::Print() << print_ident << "MLMG: Initial rhs               = " << rhsnorm0 << "\n"
+                           << print_ident << "MLMG: Initial residual (resid0) = " << resnorm0 << "\n";
         }
     }
 
@@ -422,7 +438,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     if (!is_nsolve && resnorm0 <= res_target) {
         composite_norminf = resnorm0;
         if (verbose >= 1) {
-            amrex::Print() << "MLMG: No iterations needed\n";
+            amrex::Print() << print_ident << "MLMG: No iterations needed\n";
         }
     } else {
         auto iter_start_time = amrex::second();
@@ -444,7 +460,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
             m_iter_fine_resnorm0.push_back(fine_norminf);
             composite_norminf = fine_norminf;
             if (verbose >= 2) {
-                amrex::Print() << "MLMG: Iteration " << std::setw(3) << iter+1 << " Fine resid/"
+                amrex::Print() << print_ident << "MLMG: Iteration " << std::setw(3) << iter+1 << " Fine resid/"
                                << norm_name << " = " << fine_norminf/max_norm << "\n";
             }
             bool fine_converged = (fine_norminf <= res_target);
@@ -456,7 +472,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 computeMLResidual(finest_amr_lev-1);
                 RT crse_norminf = MLResNormInf(finest_amr_lev-1);
                 if (verbose >= 2) {
-                    amrex::Print() << "MLMG: Iteration " << std::setw(3) << iter+1
+                    amrex::Print() << print_ident << "MLMG: Iteration " << std::setw(3) << iter+1
                                    << " Crse resid/" << norm_name << " = "
                                    << crse_norminf/max_norm << "\n";
                 }
@@ -468,7 +484,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 
             if (converged) {
                 if (verbose >= 1) {
-                    amrex::Print() << "MLMG: Final Iter. " << iter+1
+                    amrex::Print() << print_ident << "MLMG: Final Iter. " << iter+1
                                    << " resid, resid/" << norm_name << " = "
                                    << composite_norminf << ", "
                                    << composite_norminf/max_norm << "\n";
@@ -478,7 +494,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 if (composite_norminf > RT(1.e20)*max_norm)
                 {
                     if (verbose > 0) {
-                        amrex::Print() << "MLMG: Failing to converge after " << iter+1 << " iterations."
+                        amrex::Print() << print_ident << "MLMG: Failing to converge after " << iter+1 << " iterations."
                                        << " resid, resid/" << norm_name << " = "
                                        << composite_norminf << ", "
                                        << composite_norminf/max_norm << "\n";
@@ -495,7 +511,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 
         if (!converged && do_fixed_number_of_iters == 0) {
             if (verbose > 0) {
-                amrex::Print() << "MLMG: Failed to converge after " << max_iters << " iterations."
+                amrex::Print() << print_ident << "MLMG: Failed to converge after " << max_iters << " iterations."
                                << " resid, resid/" << norm_name << " = "
                                << composite_norminf << ", "
                                << composite_norminf/max_norm << "\n";
@@ -510,7 +526,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
         timer[iter_time] = amrex::second() - iter_start_time;
     }
 
-    linop.postSolve(sol);
+    linop.postSolve(GetVecOfPtrs(sol));
 
     IntVect ng_back = final_fill_bc ? IntVect(1) : IntVect(0);
     if (linop.hasHiddenDimension()) {
@@ -529,7 +545,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                                     ParallelContext::CommunicatorSub());
         if (ParallelContext::MyProcSub() == 0)
         {
-            amrex::AllPrint() << "MLMG: Timers: Solve = " << timer[solve_time]
+            amrex::AllPrint() << print_ident << "MLMG: Timers: Solve = " << timer[solve_time]
                               << " Iter = " << timer[iter_time]
                               << " Bottom = " << timer[bottom_time] << "\n";
         }
@@ -538,6 +554,24 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     ++solve_called;
 
     return composite_norminf;
+}
+
+template <typename MF>
+auto
+MLMGT<MF>::precond (const Vector<MF*>& a_sol, const Vector<MF const*>& a_rhs,
+                    RT a_tol_rel, RT a_tol_abs) -> RT
+{
+    precond_mode = true;
+    std::swap(max_precond_iters, do_fixed_number_of_iters);
+    linop.beginPrecondBC();
+
+    auto r = solve(a_sol, a_rhs, a_tol_rel, a_tol_abs);
+
+    linop.endPrecondBC();
+    std::swap(max_precond_iters, do_fixed_number_of_iters);
+    precond_mode = false;
+
+    return r;
 }
 
 template <typename MF>
@@ -932,6 +966,17 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
 }
 
 template <typename MF>
+void
+MLMGT<MF>::applyPrecond (const Vector<MF*>& out, const Vector<MF*>& in)
+{
+    precond_mode = true;
+    linop.beginPrecondBC();
+    apply(out, in);
+    linop.endPrecondBC();
+    precond_mode = false;
+}
+
+template <typename MF>
 template <typename AMF>
 void
 MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const& a_rhs)
@@ -1008,7 +1053,10 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         linop.unimposeNeumannBC(alev, rhs[alev]);
         linop.applyInhomogNeumannTerm(alev, rhs[alev]);
         linop.applyOverset(alev, rhs[alev]);
-        linop.scaleRHS(alev, rhs[alev]);
+        if ( ! precond_mode) {
+            bool r = linop.scaleRHS(alev, &(rhs[alev]));
+            amrex::ignore_unused(r);
+        }
 
 #ifdef AMREX_USE_EB
         const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
@@ -1105,12 +1153,12 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
     }
 
     if (verbose >= 2) {
-        amrex::Print() << "MLMG: # of AMR levels: " << namrlevs << "\n"
-                       << "      # of MG levels on the coarsest AMR level: " << linop.NMGLevels(0)
+        amrex::Print() << print_ident << "MLMG: # of AMR levels: " << namrlevs << "\n"
+                       << print_ident << "      # of MG levels on the coarsest AMR level: " << linop.NMGLevels(0)
                        << "\n";
         if (ns_linop) {
-            amrex::Print() << "      # of MG levels in N-Solve: " << ns_linop->NMGLevels(0) << "\n"
-                           << "      # of grids in N-Solve: " << ns_linop->m_grids[0][0].size() << "\n";
+            amrex::Print() << print_ident << "      # of MG levels in N-Solve: " << ns_linop->NMGLevels(0) << "\n"
+                           << print_ident << "      # of grids in N-Solve: " << ns_linop->m_grids[0][0].size() << "\n";
         }
     }
 }
@@ -1129,65 +1177,10 @@ MLMGT<MF>::prepareLinOp ()
 
 template <typename MF>
 void
-MLMGT<MF>::prepareForGMRES ()
+MLMGT<MF>::preparePrecond ()
 {
     prepareLinOp();
-    linop.prepareForGMRES();
-}
-
-template <typename MF>
-void
-MLMGT<MF>::prepareMGcycle ()
-{
-    if (res.empty()) {
-        IntVect ng = linop.getNGrowVectRestriction();
-        linop.make(res, ng);
-        linop.make(rescor, ng);
-
-        for (int alev = 0; alev <= finest_amr_lev; ++alev)
-        {
-            const int nmglevs = linop.NMGLevels(alev);
-            for (int mglev = 0; mglev < nmglevs; ++mglev)
-            {
-                setVal(res   [alev][mglev], RT(0.0));
-                setVal(rescor[alev][mglev], RT(0.0));
-            }
-        }
-
-        IntVect ng_sol(1);
-        if (linop.hasHiddenDimension()) { ng_sol[linop.hiddenDirection()] = 0; }
-        ng = ng_sol;
-
-        cor.resize(namrlevs);
-        for (int alev = 0; alev <= finest_amr_lev; ++alev)
-        {
-            const int nmglevs = linop.NMGLevels(alev);
-            cor[alev].resize(nmglevs);
-            for (int mglev = 0; mglev < nmglevs; ++mglev)
-            {
-                cor[alev][mglev] = linop.make(alev, mglev, ng);
-                setVal(cor[alev][mglev], RT(0.0));
-            }
-        }
-
-        cor_hold.resize(std::max(namrlevs-1,1));
-        {
-            const int alev = 0;
-            const int nmglevs = linop.NMGLevels(alev);
-            cor_hold[alev].resize(nmglevs);
-            for (int mglev = 0; mglev < nmglevs-1; ++mglev)
-            {
-                cor_hold[alev][mglev] = linop.make(alev, mglev, ng);
-                setVal(cor_hold[alev][mglev], RT(0.0));
-            }
-        }
-        for (int alev = 1; alev < finest_amr_lev; ++alev)
-        {
-            cor_hold[alev].resize(1);
-            cor_hold[alev][0] = linop.make(alev, 0, ng);
-            setVal(cor_hold[alev][0], RT(0.0));
-        }
-    }
+    linop.preparePrecond();
 }
 
 template <typename MF>
@@ -1318,7 +1311,7 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             RT norm = norminf(res[amrlev][mglev],0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev
                            << "   DN: Norm before smooth " << norm << "\n";
         }
 
@@ -1335,7 +1328,7 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             RT norm = norminf(rescor[amrlev][mglev],0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev
                            << "   DN: Norm after  smooth " << norm << "\n";
         }
 
@@ -1349,7 +1342,7 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             RT norm = norminf(res[amrlev][mglev_bottom],0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev_bottom
                            << "   DN: Norm before bottom " << norm << "\n";
         }
         bottomSolve();
@@ -1357,7 +1350,7 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
         {
             computeResOfCorrection(amrlev, mglev_bottom);
             RT norm = norminf(rescor[amrlev][mglev_bottom],0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev_bottom
                            << "   UP: Norm after  bottom " << norm << "\n";
         }
     }
@@ -1366,7 +1359,7 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             RT norm = norminf(res[amrlev][mglev_bottom],0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev_bottom
                            << "       Norm before smooth " << norm << "\n";
         }
         setVal(cor[amrlev][mglev_bottom], RT(0.0));
@@ -1380,7 +1373,7 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
         {
             computeResOfCorrection(amrlev, mglev_bottom);
             RT norm = norminf(rescor[amrlev][mglev_bottom],0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev  << " " << mglev_bottom
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev  << " " << mglev_bottom
                            << "       Norm after  smooth " << norm << "\n";
         }
     }
@@ -1395,7 +1388,7 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
         {
             computeResOfCorrection(amrlev, mglev);
             RT norm = norminf(rescor[amrlev][mglev],0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev
                            << "   UP: Norm before smooth " << norm << "\n";
         }
         for (int i = 0; i < nu2; ++i) {
@@ -1408,7 +1401,7 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
         {
             computeResOfCorrection(amrlev, mglev);
             RT norm = norminf(rescor[amrlev][mglev],0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev
                            << "   UP: Norm after  smooth " << norm << "\n";
         }
     }
@@ -1616,13 +1609,14 @@ MLMGT<MF>::bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type
     MLCGSolverT<MF> cg_solver(linop);
     cg_solver.setSolver(type);
     cg_solver.setVerbose(bottom_verbose);
+    cg_solver.setPrintIdentation(print_ident);
     cg_solver.setMaxIter(bottom_maxiter);
     cg_solver.setInitSolnZeroed(true);
     if (cf_strategy == CFStrategy::ghostnodes) { cg_solver.setNGhost(linop.getNGrow()); }
 
     int ret = cg_solver.solve(x, b, bottom_reltol, bottom_abstol);
     if (ret != 0 && verbose > 1) {
-        amrex::Print() << "MLMG: Bottom solve failed.\n";
+        amrex::Print() << print_ident << "MLMG: Bottom solve failed.\n";
     }
     m_niters_cg.push_back(cg_solver.getNumIters());
     return ret;
@@ -1848,7 +1842,7 @@ MLMGT<MF>::makeSolvable ()
     auto const& offset = linop.getSolvabilityOffset(0, 0, rhs[0]);
     if (verbose >= 4) {
         for (int c = 0; c < ncomp; ++c) {
-            amrex::Print() << "MLMG: Subtracting " << offset[c] << " from rhs component "
+            amrex::Print() << print_ident << "MLMG: Subtracting " << offset[c] << " from rhs component "
                            << c << "\n";
         }
     }
@@ -1864,7 +1858,7 @@ MLMGT<MF>::makeSolvable (int amrlev, int mglev, MF& mf)
     auto const& offset = linop.getSolvabilityOffset(amrlev, mglev, mf);
     if (verbose >= 4) {
         for (int c = 0; c < ncomp; ++c) {
-            amrex::Print() << "MLMG: Subtracting " << offset[c]
+            amrex::Print() << print_ident << "MLMG: Subtracting " << offset[c]
                            << " from mf component c = " << c
                            << " on level (" << amrlev << ", " << mglev << ")\n";
         }
@@ -2029,6 +2023,24 @@ MLMGT<MF>::checkPoint (const Vector<MultiFab*>& a_sol,
     }
 
     linop.checkPoint(file_name+"/linop");
+}
+
+template <typename MF>
+void
+MLMGT<MF>::incPrintIdentation ()
+{
+    print_ident.resize(print_ident.size()+4, ' ');
+}
+
+template <typename MF>
+void
+MLMGT<MF>::decPrintIdentation ()
+{
+    if (print_ident.size() > 4) {
+        print_ident.resize(print_ident.size()-4, ' ');
+    } else {
+        print_ident.clear();
+    }
 }
 
 extern template class MLMGT<MultiFab>;

@@ -674,9 +674,9 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     MultiFab fine_res_for_coarse(amrex::coarsen(fba, amrrr), fdm, 1, 0);
 
     std::unique_ptr<MultiFab> tmp_fine_res;
-    if (amrrr == 4 && !a_fine_res.nGrowVect().allGE(3)) {
+    if (!a_fine_res.nGrowVect().allGE(amrrr-1)) {
         tmp_fine_res = std::make_unique<MultiFab>(a_fine_res.boxArray(),
-                                                  a_fine_res.DistributionMap(), 1, 3);
+                                                  a_fine_res.DistributionMap(), 1, amrrr-1);
         MultiFab::Copy(*tmp_fine_res, a_fine_res, 0, 0, 1, 0);
     }
     MultiFab& fine_res = (tmp_fine_res) ? *tmp_fine_res :  a_fine_res;

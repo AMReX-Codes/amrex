@@ -113,6 +113,10 @@ public:
 
     RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const final;
 
+    RT dotProductPrecond (Vector<MF const*> const& x, Vector<MF const*> const& y) const final;
+
+    RT norm2Precond (Vector<MF const*> const& x) const final;
+
     virtual void Fapply (int amrlev, int mglev, MF& out, const MF& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const = 0;
     virtual void FFlux (int amrlev, const MFIter& mfi,
@@ -129,6 +133,9 @@ public:
     void averageDownAndSync (Vector<MF>& sol) const override;
 
     void avgDownResAmr (int clev, MF& cres, MF const& fres) const override;
+
+    void beginPrecondBC () override;
+    void endPrecondBC () override;
 
     struct BCTL {
         BoundCond type;
@@ -150,6 +157,8 @@ protected:
 
     Vector<std::unique_ptr<MLMGBndryT<MF>> > m_bndry_cor;
     Vector<std::unique_ptr<BndryRegisterT<MF>> > m_crse_cor_br;
+
+    Vector<std::unique_ptr<MLMGBndryT<MF>> > m_bndry_sol_zero;
 
     // In case of agglomeration, coarse MG grids on amr level 0 are
     // not simply coarsened from fine MG grids.  So we need to build
@@ -1944,6 +1953,37 @@ MLCellLinOpT<MF>::xdoty (int /*amrlev*/, int /*mglev*/, const MF& x, const MF& y
 }
 
 template <typename MF>
+auto
+MLCellLinOpT<MF>::dotProductPrecond (Vector<MF const*> const& x, Vector<MF const*> const& y) const -> RT
+{
+    const int ncomp = this->getNComp();
+    const IntVect nghost(0);
+    RT result = 0;
+    for (int ilev = 0; ilev < this->NAMRLevels()-1; ++ilev) {
+        result += amrex::Dot(*m_norm_fine_mask[ilev], *x[ilev], 0, *y[ilev], 0, ncomp, nghost, true);
+    }
+    result += amrex::Dot(*x[this->NAMRLevels()-1], 0,
+                         *y[this->NAMRLevels()-1], 0, ncomp, nghost, true);
+    ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
+    return result;
+}
+
+template <typename MF>
+auto
+MLCellLinOpT<MF>::norm2Precond (Vector<MF const*> const& x) const -> RT
+{
+    const int ncomp = this->getNComp();
+    const IntVect nghost(0);
+    RT result = 0;
+    for (int ilev = 0; ilev < this->NAMRLevels()-1; ++ilev) {
+        result += amrex::Dot(*m_norm_fine_mask[ilev], *x[ilev], 0, ncomp, nghost, true);
+    }
+    result += amrex::Dot(*x[this->NAMRLevels()-1], 0, ncomp, nghost, true);
+    ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
+    return std::sqrt(result);
+}
+
+template <typename MF>
 void
 MLCellLinOpT<MF>::computeVolInv () const
 {
@@ -2145,6 +2185,42 @@ MLCellLinOpT<MF>::avgDownResAmr (int clev, MF& cres, MF const& fres) const
         amrex::average_down(fres, cres, 0, this->getNComp(),
                             this->AMRRefRatio(clev));
     }
+}
+
+template <typename MF>
+void
+MLCellLinOpT<MF>::beginPrecondBC ()
+{
+    this->m_precond_mode = true;
+
+    if (m_bndry_sol_zero.empty()) {
+        m_bndry_sol_zero.resize(m_bndry_sol.size());
+        const int ncomp = this->getNComp();
+        for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
+            m_bndry_sol_zero[amrlev] = std::make_unique<MLMGBndryT<MF>>
+                (this->m_grids[amrlev][0],
+                 this->m_dmap[amrlev][0],
+                 ncomp,
+                 this->m_geom[amrlev][0]);
+        }
+        std::swap(m_bndry_sol, m_bndry_sol_zero);
+        MF const* coarse_data_for_bc_save = this->m_coarse_data_for_bc;
+        this->m_coarse_data_for_bc = nullptr;
+        for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
+            this->setLevelBC(amrlev, nullptr);
+        }
+        this->m_coarse_data_for_bc = coarse_data_for_bc_save;
+    } else {
+        std::swap(m_bndry_sol, m_bndry_sol_zero);
+    }
+}
+
+template <typename MF>
+void
+MLCellLinOpT<MF>::endPrecondBC ()
+{
+    this->m_precond_mode = false;
+    std::swap(m_bndry_sol, m_bndry_sol_zero);
 }
 
 extern template class MLCellLinOpT<MultiFab>;
