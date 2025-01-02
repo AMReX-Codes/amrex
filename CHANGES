@@ -1,3 +1,24 @@
+# 25.01
+
+  -- Make FFT safe for slabs (#4268)
+
+  -- Fix sumToLine for multiple components (#4266)
+
+  -- Add version of PC::Checkpoint that allows toggling off certain components. (#4264)
+
+  -- Use async sends in particle communication (#4257)
+
+  -- AMReX Algebra: AlgVector and SpMatrix (#4259)
+
+  -- EBData: New class containing Array4's for all EB data (#4238)
+     Fix OMP bug in #4238 (#4260)
+
+  -- FFT::OpenBCSolver: Fix batch mode (#4255)
+
+  -- use abs for spherical 2d area (#4256)
+
+  -- Cartesian1D curl-curl  (#4242)
+
 # 24.12
 
   -- FFT::PoissonHybrid: Add solve() needed by ERF (#4250)
