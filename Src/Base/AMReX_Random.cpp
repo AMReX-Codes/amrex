@@ -98,10 +98,10 @@ InitRandom (ULong cpu_seed, int nprocs, ULong gpu_seed)
 #endif
 
 #ifdef AMREX_USE_OMP
-#pragma omp parallel firstprivate(cpu_seed, nprocs)
+#pragma omp parallel for
 #endif
+    for (int tid = 0; tid < nthreads; tid++) {
     {
-        int tid = OpenMP::get_thread_num();
         ULong init_seed = cpu_seed + tid*nprocs;
         generators[tid].seed(init_seed);
     }
