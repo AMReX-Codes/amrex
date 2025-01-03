@@ -100,7 +100,7 @@ InitRandom (ULong cpu_seed, int nprocs, ULong gpu_seed)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int tid = 0; tid < nthreads; tid++) {
+    for (int tid = 0; tid < nthreads; tid++)
     {
         ULong init_seed = cpu_seed + tid*nprocs;
         generators[tid].seed(init_seed);
