@@ -100,6 +100,7 @@ namespace amrex {
                 --i;
                 --j;
             }
+            AMREX_ASSERT(i >= 0 && j >= 0);
             AMREX_ASSERT(i < NRows && j < NCols);
             if constexpr (ORDER == Order::F) {
                 return m_mat[i+j*NRows];
@@ -116,6 +117,7 @@ namespace amrex {
                 --i;
                 --j;
             }
+            AMREX_ASSERT(i >= 0 && j >= 0);
             AMREX_ASSERT(i < NRows && j < NCols);
             if constexpr (ORDER == Order::F) {
                 return m_mat[i+j*NRows];
@@ -132,6 +134,7 @@ namespace amrex {
             if constexpr (StartIndex == 1) {
                 --i;
             }
+            AMREX_ASSERT(i >= 0);
             AMREX_ASSERT(i < NRows*NCols);
             return m_mat[i];
         }
@@ -144,6 +147,7 @@ namespace amrex {
             if constexpr (StartIndex == 1) {
                 --i;
             }
+            AMREX_ASSERT(i >= 0);
             AMREX_ASSERT(i < NRows*NCols);
             return m_mat[i];
         }
@@ -156,6 +160,7 @@ namespace amrex {
             if constexpr (StartIndex == 1) {
                 --i;
             }
+            AMREX_ASSERT(i >= 0);
             AMREX_ASSERT(i < NRows*NCols);
             return m_mat[i];
         }
@@ -168,6 +173,7 @@ namespace amrex {
             if constexpr (StartIndex == 1) {
                 --i;
             }
+            AMREX_ASSERT(i >= 0);
             AMREX_ASSERT(i < NRows*NCols);
             return m_mat[i];
         }
