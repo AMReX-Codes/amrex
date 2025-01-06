@@ -602,8 +602,10 @@ UnpackRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const 
 }
 #endif // AMREX_USE_MPI
 
+#ifndef _WIN32
 static_assert(IsDataPacking<PackComponents, FArrayBox>(), // NOLINT(bugprone-throw-keyword-missing)
               "PackComponents is expected to satisfy the concept DataPacking.");
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                    [DataPacking.ApplyDtosAndProjectionOnReciever]
@@ -663,8 +665,10 @@ UnpackRecvBuffers (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packin
 }
 #endif // AMREX_USE_MPI
 
+#ifndef _WIN32
 static_assert(IsDataPacking<ApplyDtosAndProjectionOnReciever<>, FArrayBox>(), // NOLINT(bugprone-throw-keyword-missing)
               "ApplyDtosAndProjectionOnReciever<> is expected to satisfy the DataPacking concept.");
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                             [ParallelCopy_nowait]

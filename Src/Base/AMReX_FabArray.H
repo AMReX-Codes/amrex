@@ -537,55 +537,117 @@ public:
     FAB const* fabPtr (int K) const noexcept;
 
     template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    void prefetchToHost (const MFIter& mfi) const noexcept;
+    void prefetchToHost (const MFIter& mfi) const noexcept
+    {
+#ifdef AMREX_USE_CUDA
+        this->fabPtr(mfi)->prefetchToHost();
+#else
+        amrex::ignore_unused(mfi);
+#endif
+    }
 
     template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    void prefetchToDevice (const MFIter& mfi) const noexcept;
+    void prefetchToDevice (const MFIter& mfi) const noexcept
+    {
+#ifdef AMREX_USE_CUDA
+        this->fabPtr(mfi)->prefetchToDevice();
+#else
+        amrex::ignore_unused(mfi);
+#endif
+    }
 
     template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    Array4<typename FabArray<FAB>::value_type const> array (const MFIter& mfi) const noexcept;
-    //
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    Array4<typename FabArray<FAB>::value_type> array (const MFIter& mfi) noexcept;
-    //
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    Array4<typename FabArray<FAB>::value_type const> array (int K) const noexcept;
-    //
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    Array4<typename FabArray<FAB>::value_type> array (int K) noexcept;
+    Array4<typename FabArray<FAB>::value_type const> array (const MFIter& mfi) const noexcept
+    {
+        return fabPtr(mfi)->const_array();
+    }
 
     template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    Array4<typename FabArray<FAB>::value_type const> const_array (const MFIter& mfi) const noexcept;
-    //
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    Array4<typename FabArray<FAB>::value_type const> const_array (int K) const noexcept;
+    Array4<typename FabArray<FAB>::value_type> array (const MFIter& mfi) noexcept
+    {
+        return fabPtr(mfi)->array();
+    }
 
     template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    Array4<typename FabArray<FAB>::value_type const> array (const MFIter& mfi, int start_comp) const noexcept;
-    //
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    Array4<typename FabArray<FAB>::value_type> array (const MFIter& mfi, int start_comp) noexcept;
-    //
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    Array4<typename FabArray<FAB>::value_type const> array (int K, int start_comp) const noexcept;
-    //
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    Array4<typename FabArray<FAB>::value_type> array (int K, int start_comp) noexcept;
+    Array4<typename FabArray<FAB>::value_type const> array (int K) const noexcept
+    {
+        return fabPtr(K)->const_array();
+    }
 
     template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    Array4<typename FabArray<FAB>::value_type const> const_array (const MFIter& mfi, int start_comp) const noexcept;
-    //
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    Array4<typename FabArray<FAB>::value_type const> const_array (int K, int start_comp) const noexcept;
+    Array4<typename FabArray<FAB>::value_type> array (int K) noexcept
+    {
+        return fabPtr(K)->array();
+    }
 
     template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    MultiArray4<typename FabArray<FAB>::value_type> arrays () noexcept;
+    Array4<typename FabArray<FAB>::value_type const> const_array (const MFIter& mfi) const noexcept
+    {
+        return fabPtr(mfi)->const_array();
+    }
 
     template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    MultiArray4<typename FabArray<FAB>::value_type const> arrays () const noexcept;
+    Array4<typename FabArray<FAB>::value_type const> const_array (int K) const noexcept
+    {
+        return fabPtr(K)->const_array();
+    }
 
     template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    MultiArray4<typename FabArray<FAB>::value_type const> const_arrays () const noexcept;
+    Array4<typename FabArray<FAB>::value_type const> array (const MFIter& mfi, int start_comp) const noexcept
+    {
+        return fabPtr(mfi)->const_array(start_comp);
+    }
+
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    Array4<typename FabArray<FAB>::value_type> array (const MFIter& mfi, int start_comp) noexcept
+    {
+        return fabPtr(mfi)->array(start_comp);
+    }
+
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    Array4<typename FabArray<FAB>::value_type const> array (int K, int start_comp) const noexcept
+    {
+        return fabPtr(K)->const_array(start_comp);
+    }
+
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    Array4<typename FabArray<FAB>::value_type> array (int K, int start_comp) noexcept
+    {
+        return fabPtr(K)->array(start_comp);
+    }
+
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    Array4<typename FabArray<FAB>::value_type const> const_array (const MFIter& mfi, int start_comp) const noexcept
+    {
+        return fabPtr(mfi)->const_array(start_comp);
+    }
+
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    Array4<typename FabArray<FAB>::value_type const> const_array (int K, int start_comp) const noexcept
+    {
+        return fabPtr(K)->const_array(start_comp);
+    }
+
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    MultiArray4<typename FabArray<FAB>::value_type> arrays () noexcept
+    {
+        build_arrays();
+        return m_arrays;
+    }
+
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    MultiArray4<typename FabArray<FAB>::value_type const> arrays () const noexcept
+    {
+        build_arrays();
+        return m_const_arrays;
+    }
+
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    MultiArray4<typename FabArray<FAB>::value_type const> const_arrays () const noexcept
+    {
+        build_arrays();
+        return m_const_arrays;
+    }
 
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
     void setFab (int boxno, std::unique_ptr<FAB> elem);
@@ -1529,153 +1591,6 @@ FabArray<FAB>::fabPtr (int K) const noexcept
     int li = localindex(K);
     AMREX_ASSERT(li >=0 && li < indexArray.size());
     return m_fabs_v[li];
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-void
-FabArray<FAB>::prefetchToHost (const MFIter& mfi) const noexcept
-{
-#ifdef AMREX_USE_CUDA
-    this->fabPtr(mfi)->prefetchToHost();
-#else
-    amrex::ignore_unused(mfi);
-#endif
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-void
-FabArray<FAB>::prefetchToDevice (const MFIter& mfi) const noexcept
-{
-#ifdef AMREX_USE_CUDA
-    this->fabPtr(mfi)->prefetchToDevice();
-#else
-    amrex::ignore_unused(mfi);
-#endif
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-Array4<typename FabArray<FAB>::value_type const>
-FabArray<FAB>::array (const MFIter& mfi) const noexcept
-{
-    return fabPtr(mfi)->const_array();
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-Array4<typename FabArray<FAB>::value_type>
-FabArray<FAB>::array (const MFIter& mfi) noexcept
-{
-    return fabPtr(mfi)->array();
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-Array4<typename FabArray<FAB>::value_type const>
-FabArray<FAB>::array (int K) const noexcept
-{
-    return fabPtr(K)->const_array();
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-Array4<typename FabArray<FAB>::value_type>
-FabArray<FAB>::array (int K) noexcept
-{
-    return fabPtr(K)->array();
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-Array4<typename FabArray<FAB>::value_type const>
-FabArray<FAB>::const_array (const MFIter& mfi) const noexcept
-{
-    return fabPtr(mfi)->const_array();
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-Array4<typename FabArray<FAB>::value_type const>
-FabArray<FAB>::const_array (int K) const noexcept
-{
-    return fabPtr(K)->const_array();
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-Array4<typename FabArray<FAB>::value_type const>
-FabArray<FAB>::array (const MFIter& mfi, int start_comp) const noexcept
-{
-    return fabPtr(mfi)->const_array(start_comp);
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-Array4<typename FabArray<FAB>::value_type>
-FabArray<FAB>::array (const MFIter& mfi, int start_comp) noexcept
-{
-    return fabPtr(mfi)->array(start_comp);
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-Array4<typename FabArray<FAB>::value_type const>
-FabArray<FAB>::array (int K, int start_comp) const noexcept
-{
-    return fabPtr(K)->const_array(start_comp);
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-Array4<typename FabArray<FAB>::value_type>
-FabArray<FAB>::array (int K, int start_comp) noexcept
-{
-    return fabPtr(K)->array(start_comp);
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-Array4<typename FabArray<FAB>::value_type const>
-FabArray<FAB>::const_array (const MFIter& mfi, int start_comp) const noexcept
-{
-    return fabPtr(mfi)->const_array(start_comp);
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-Array4<typename FabArray<FAB>::value_type const>
-FabArray<FAB>::const_array (int K, int start_comp) const noexcept
-{
-    return fabPtr(K)->const_array(start_comp);
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-MultiArray4<typename FabArray<FAB>::value_type>
-FabArray<FAB>::arrays () noexcept
-{
-    build_arrays();
-    return m_arrays;
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-MultiArray4<typename FabArray<FAB>::value_type const>
-FabArray<FAB>::arrays () const noexcept
-{
-    build_arrays();
-    return m_const_arrays;
-}
-
-template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
-MultiArray4<typename FabArray<FAB>::value_type const>
-FabArray<FAB>::const_arrays () const noexcept
-{
-    build_arrays();
-    return m_const_arrays;
 }
 
 template <class FAB>

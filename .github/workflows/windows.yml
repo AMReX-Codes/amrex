@@ -18,6 +18,7 @@ jobs:
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
+    # If we add ccache back, don't forget to update cleanup-cache.yml
     #- name: Set Up Cache
     #  uses: actions/cache@v3
     #  with:
@@ -66,6 +67,7 @@ jobs:
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
+    # If we add ccache back, don't forget to update cleanup-cache.yml
     #- name: Set Up Cache
     #  uses: actions/cache@v3
     #  with:
@@ -144,4 +146,32 @@ jobs:
         set "PATH=%PATH%;D:\\a\amrex\amrex\installdir\bin"
         cmake --build build --config Release --target test_install
 
-  # If we add ccache back, don't forget to update cleanup-cache.yml
+  tests_cuda:
+    name: CUDA on Windows
+    runs-on: windows-latest
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
+    steps:
+    - uses: Jimver/cuda-toolkit@v0.2.19
+      id: cuda-toolkit
+      with:
+        cuda: '12.6.1'
+        use-github-cache: 'false'
+    - uses: actions/checkout@v4
+    - name: Compile
+      run: |
+        cmake -S . -B build                       `
+              -DCUDAToolkit_ROOT="$Env:CUDA_PATH" `
+              -DCMAKE_VERBOSE_MAKEFILE=ON         `
+              -DCMAKE_BUILD_TYPE=Release          `
+              -DAMReX_GPU_BACKEND=CUDA            `
+              -DAMReX_CUDA_ARCH="8.0"             `
+              -DAMReX_ENABLE_TESTS=ON             `
+              -DAMReX_EB=ON                       `
+              -DAMReX_FFT=ON                      `
+              -DAMReX_LINEAR_SOLVERS=ON           `
+              -DAMReX_PARTICLES=ON                `
+              -DAMReX_FORTRAN=OFF                 `
+              -DAMReX_MPI=OFF
+        cmake --build build --config Release -j 4
+        cmake --build build --config Release --target install

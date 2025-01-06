@@ -305,8 +305,8 @@ void GMRES<V,M>::cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0)
 
         auto tt = m_linop->norm2(vv_it1);
 
-        auto const small = RT((sizeof(RT) == 8) ? 1.e-99 : 1.e-30);
-        bool happyend = (tt < small);
+        auto const sml = RT((sizeof(RT) == 8) ? 1.e-99 : 1.e-30);
+        bool happyend = (tt < sml);
         if (!happyend) {
             m_linop->scale(vv_it1, RT(1.0)/tt);
         }

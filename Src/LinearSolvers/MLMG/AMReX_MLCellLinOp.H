@@ -1648,7 +1648,11 @@ MLCellLinOpT<MF>::prepareForSolve ()
             if (Gpu::inLaunchRegion()) {
 #ifdef AMREX_USE_EB
                 if (factory && !factory->isAllRegular()) {
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+                    if           (!std::is_same<MF,MultiFab>()) {
+#else
                     if constexpr (!std::is_same<MF,MultiFab>()) {
+#endif
                         amrex::Abort("MLCellLinOp with EB only works with MultiFab");
                     } else {
                         Vector<MLMGPSEBTag<RT>> tags;
@@ -2011,7 +2015,11 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
 #ifdef AMREX_USE_EB
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev));
     if (factory && !factory->isAllRegular()) {
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+        if           (!std::is_same<MF,MultiFab>()) {
+#else
         if constexpr (!std::is_same<MF,MultiFab>()) {
+#endif
             amrex::Abort("MLCellLinOpT with EB only works with MultiFab");
         } else {
             const MultiFab& vfrac = factory->getVolFrac();

@@ -248,17 +248,17 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
                 thi = tlo + ts_right - 1;
             }
         };
-        const IntVect& small = box.smallEnd();
-        const IntVect& big   = box.bigEnd();
+        const IntVect& sml = box.smallEnd();
+        const IntVect& big = box.bigEnd();
         IntVect ntiles, ivIndex, tilelo, tilehi;
 
-        AMREX_D_TERM(int iv0 = amrex::min(amrex::max(iv[0], small[0]), big[0]);,
-                     int iv1 = amrex::min(amrex::max(iv[1], small[1]), big[1]);,
-                     int iv2 = amrex::min(amrex::max(iv[2], small[2]), big[2]););
+        AMREX_D_TERM(int iv0 = amrex::min(amrex::max(iv[0], sml[0]), big[0]);,
+                     int iv1 = amrex::min(amrex::max(iv[1], sml[1]), big[1]);,
+                     int iv2 = amrex::min(amrex::max(iv[2], sml[2]), big[2]););
 
-        AMREX_D_TERM(tiling_1d(iv0, small[0], big[0], a_tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
-                     tiling_1d(iv1, small[1], big[1], a_tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
-                     tiling_1d(iv2, small[2], big[2], a_tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
+        AMREX_D_TERM(tiling_1d(iv0, sml[0], big[0], a_tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
+                     tiling_1d(iv1, sml[1], big[1], a_tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
+                     tiling_1d(iv2, sml[2], big[2], a_tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
 
         tbx = Box(tilelo, tilehi);
 
@@ -280,13 +280,13 @@ int numTilesInBox (const Box& box, const bool a_do_tiling, const IntVect& a_tile
             ntile = amrex::max(ncells/tilesize, 1);
         };
 
-        const IntVect& small = box.smallEnd();
-        const IntVect& big   = box.bigEnd();
+        const IntVect& sml = box.smallEnd();
+        const IntVect& big = box.bigEnd();
         IntVect ntiles;
 
-        AMREX_D_TERM(tiling_1d(small[0], big[0], a_tile_size[0], ntiles[0]);,
-                     tiling_1d(small[1], big[1], a_tile_size[1], ntiles[1]);,
-                     tiling_1d(small[2], big[2], a_tile_size[2], ntiles[2]););
+        AMREX_D_TERM(tiling_1d(sml[0], big[0], a_tile_size[0], ntiles[0]);,
+                     tiling_1d(sml[1], big[1], a_tile_size[1], ntiles[1]);,
+                     tiling_1d(sml[2], big[2], a_tile_size[2], ntiles[2]););
 
         return AMREX_D_TERM(ntiles[0], *=ntiles[1], *=ntiles[2]);
     }
