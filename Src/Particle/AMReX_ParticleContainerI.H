@@ -63,6 +63,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         pp.query("use_prepost", usePrePost);
         pp.query("do_unlink", doUnlink);
         pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
+        pp.queryAdd("use_comms_arena", use_comms_arena);
 
         // add default names for SoA Real and Int compile-time arguments
         for (int i=0; i<NArrayReal; ++i)
@@ -1392,7 +1393,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     amrex::PODVector<char, PolymorphicArenaAllocator<char> > snd_buffer;
     amrex::PODVector<char, PolymorphicArenaAllocator<char> > rcv_buffer;
 
-    if (ParallelDescriptor::UseGpuAwareMpi()) {
+    if (use_comms_arena) {
         snd_buffer.setArena(The_Comms_Arena());
         rcv_buffer.setArena(The_Comms_Arena());
     }

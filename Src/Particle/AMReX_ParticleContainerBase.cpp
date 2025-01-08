@@ -10,6 +10,7 @@ using namespace amrex;
 bool    ParticleContainerBase::do_tiling = false;
 IntVect ParticleContainerBase::tile_size { AMREX_D_DECL(1024000,8,8) };
 bool    ParticleContainerBase::memEfficientSort = true;
+bool    ParticleContainerBase::use_comms_arena = false;
 
 void ParticleContainerBase::Define (const Geometry            & geom,
                                     const DistributionMapping & dmap,
