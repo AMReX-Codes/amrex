@@ -9,11 +9,8 @@ namespace amrex::FFT
 namespace
 {
     bool s_initialized = false;
-#ifdef AMREX_USE_FLOAT
-    std::map<Key, PlanF> s_plans_f;
-#else
     std::map<Key, PlanD> s_plans_d;
-#endif
+    std::map<Key, PlanF> s_plans_f;
 }
 
 void Initialize ()
@@ -46,27 +43,15 @@ void Finalize ()
 
 void Clear ()
 {
-#ifdef AMREX_USE_FLOAT
-    for (auto& [k, p] : s_plans_f) {
-        Plan<float>::destroy_vendor_plan(p);
-    }
-#else
     for (auto& [k, p] : s_plans_d) {
         Plan<double>::destroy_vendor_plan(p);
     }
-#endif
-}
 
-#ifdef AMREX_USE_FLOAT
-PlanF* get_vendor_plan_f (Key const& key)
-{
-    if (auto found = s_plans_f.find(key); found != s_plans_f.end()) {
-        return &(found->second);
-    } else {
-        return nullptr;
+    for (auto& [k, p] : s_plans_f) {
+        Plan<float>::destroy_vendor_plan(p);
     }
 }
-#else
+
 PlanD* get_vendor_plan_d (Key const& key)
 {
     if (auto found = s_plans_d.find(key); found != s_plans_d.end()) {
@@ -75,19 +60,25 @@ PlanD* get_vendor_plan_d (Key const& key)
         return nullptr;
     }
 }
-#endif
 
-#ifdef AMREX_USE_FLOAT
-void add_vendor_plan_f (Key const& key, PlanF plan)
+PlanF* get_vendor_plan_f (Key const& key)
 {
-    s_plans_f[key] = plan;
+    if (auto found = s_plans_f.find(key); found != s_plans_f.end()) {
+        return &(found->second);
+    } else {
+        return nullptr;
+    }
 }
-#else
+
 void add_vendor_plan_d (Key const& key, PlanD plan)
 {
     s_plans_d[key] = plan;
 }
-#endif
+
+void add_vendor_plan_f (Key const& key, PlanF plan)
+{
+    s_plans_f[key] = plan;
+}
 
 }
 

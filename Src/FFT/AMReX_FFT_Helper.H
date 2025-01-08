@@ -1132,16 +1132,14 @@ struct Plan
 };
 
 using Key = std::tuple<IntVectND<3>,Direction,Kind>;
-
-#ifdef AMREX_USE_FLOAT
-using PlanF = typename Plan<float>::VendorPlan;
-PlanF* get_vendor_plan_f (Key const& key);
-void add_vendor_plan_f (Key const& key, PlanF plan);
-#else
 using PlanD = typename Plan<double>::VendorPlan;
+using PlanF = typename Plan<float>::VendorPlan;
+
 PlanD* get_vendor_plan_d (Key const& key);
+PlanF* get_vendor_plan_f (Key const& key);
+
 void add_vendor_plan_d (Key const& key, PlanD plan);
-#endif
+void add_vendor_plan_f (Key const& key, PlanF plan);
 
 template <typename T>
 template <Direction D, int M>
@@ -1162,15 +1160,11 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
     Key key = {fft_size.template expand<3>(), D, kind};
     if (cache) {
         VendorPlan* cached_plan = nullptr;
-#ifdef AMREX_USE_FLOAT
-        if constexpr (std::is_same_v<float, T>) {
+        if constexpr (std::is_same_v<float,T>) {
             cached_plan = get_vendor_plan_f(key);
-        }
-#else
-        if constexpr (std::is_same_v<double, T>) {
+        } else {
             cached_plan = get_vendor_plan_d(key);
         }
-#endif
         if (cached_plan) {
             plan = *cached_plan;
             return;
@@ -1294,15 +1288,11 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 
 #if defined(AMREX_USE_GPU)
     if (cache) {
-#ifdef AMREX_USE_FLOAT
-        if constexpr (std::is_same_v<float, T>) {
+        if constexpr (std::is_same_v<float,T>) {
             add_vendor_plan_f(key, plan);
-        }
-#else
-        if constexpr (std::is_same_v<double, T>) {
+        } else {
             add_vendor_plan_d(key, plan);
         }
-#endif
     }
 #endif
 }
