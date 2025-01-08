@@ -55,27 +55,27 @@ endfunction()
 # libfftw3(f)_omp.(a|so) shipped and if yes, set the AMReX_FFTW_OMP=1 define.
 #
 function(fftw_check_omp library_paths fftw_precision_suffix)
-    find_library(HAS_FFTW_OMP_LIB fftw3${fftw_precision_suffix}_omp
-            PATHS ${library_paths}
-            # this is intentional, so we don't mix different FFTW installs
-            # and only check what is in the location hinted by the
-            # "library_paths" variable
-            NO_DEFAULT_PATH
-            NO_PACKAGE_ROOT_PATH
-            NO_CMAKE_PATH
-            NO_CMAKE_ENVIRONMENT_PATH
-            NO_SYSTEM_ENVIRONMENT_PATH
-            NO_CMAKE_SYSTEM_PATH
-            NO_CMAKE_FIND_ROOT_PATH
+    find_library(HAS_FFTW_OMP_LIB${fftw_precision_suffix} fftw3${fftw_precision_suffix}_omp
+        PATHS ${library_paths}
+        # this is intentional, so we don't mix different FFTW installs
+        # and only check what is in the location hinted by the
+        # "library_paths" variable
+        NO_DEFAULT_PATH
+        NO_PACKAGE_ROOT_PATH
+        NO_CMAKE_PATH
+        NO_CMAKE_ENVIRONMENT_PATH
+        NO_SYSTEM_ENVIRONMENT_PATH
+        NO_CMAKE_SYSTEM_PATH
+        NO_CMAKE_FIND_ROOT_PATH
     )
-    if(HAS_FFTW_OMP_LIB)
+    if(HAS_FFTW_OMP_LIB${fftw_precision_suffix})
         # the .pc files here forget to link the _omp.a/so files
         # explicitly - we add those manually to avoid any trouble,
         # e.g., in static builds.
-        target_link_libraries(AMReX::FFTW INTERFACE ${HAS_FFTW_OMP_LIB})
+        target_link_libraries(AMReX::FFTW INTERFACE ${HAS_FFTW_OMP_LIB${fftw_precision_suffix}})
     endif()
 
-    fftw_add_define("${HAS_FFTW_OMP_LIB}")
+    fftw_add_define("${HAS_FFTW_OMP_LIB${fftw_precision_suffix}}")
 endfunction()
 
 
