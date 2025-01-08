@@ -256,7 +256,7 @@ updateNeighborsGPU (bool boundary_neighbors_only)
 
     clearNeighbors();
 
-    if (use_comms_arena) {
+    if (this->use_comms_arena) {
         snd_buffer.setArena(The_Comms_Arena());
         rcv_buffer.setArena(The_Comms_Arena());
     }
