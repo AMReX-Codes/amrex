@@ -473,7 +473,7 @@ void R2C<T,D,S>::prepare_openbc ()
 #if (AMREX_SPACEDIM == 3)
     if (m_do_alld_fft) { return; }
 
-    if (m_slab_decomp) {
+    if (m_slab_decomp && ! m_fft_fwd_x_half.defined) {
         auto* fab = detail::get_fab(m_rx);
         if (fab) {
             Box bottom_half = m_real_domain;
