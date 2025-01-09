@@ -39,6 +39,10 @@ void Finalize ()
         AMREX_ROCFFT_SAFE_CALL(rocfft_cleanup());
 #endif
     }
+
+#if defined(AMREX_USE_FFT) && !defined(AMREX_USE_GPU)
+    fftw_cleanup();
+#endif
 }
 
 void Clear ()
