@@ -28,7 +28,7 @@ namespace amrex {
 namespace {
     bool initialized = false;
     ParmParse::Table g_table;
-    std::vector<std::set<std::string>> g_parser_recursive_symbols;
+    std::vector<std::set<std::string>> g_parser_recursive_symbols(1);
     namespace pp_detail {
         int verbose = -1;
     }
@@ -1205,6 +1205,7 @@ ParmParse::Finalize ()
 #endif
 
     g_parser_recursive_symbols.clear();
+    g_parser_recursive_symbols.resize(1);
 
     pp_detail::verbose = -1;
     initialized = false;
