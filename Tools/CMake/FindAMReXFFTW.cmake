@@ -102,9 +102,6 @@ if(NOT AMReX_FFTW_SEARCH IN_LIST AMReX_FFTW_SEARCH_VALUES)
 endif()
 mark_as_advanced(AMReX_FFTW_SEARCH)
 
-# Create imported target
-add_library(AMReX::FFTW INTERFACE IMPORTED GLOBAL)
-
 function(fftw_find_precision HFFTWp)
     if(AMReX_FFTW_SEARCH STREQUAL CMAKE)
         find_package(FFTW3${HFFTWp} CONFIG REQUIRED)
@@ -138,9 +135,14 @@ function(fftw_find_precision HFFTWp)
     endif()
 endfunction()
 
-# floating point precision suffixes: we request float and double precision
-fftw_find_precision("")
-fftw_find_precision("f")
+if(NOT TARGET AMReX::FFTW)
+    # Create imported target
+    add_library(AMReX::FFTW INTERFACE IMPORTED GLOBAL)
+
+    # floating point precision suffixes: we request float and double precision
+    fftw_find_precision("")
+    fftw_find_precision("f")
+endif()
 
 # Vars for CMake config
 include(FindPackageHandleStandardArgs)
