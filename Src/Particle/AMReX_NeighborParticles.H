@@ -309,21 +309,22 @@ public:
         calcCommSize();
     }
 
-    void Redistribute (int lev_min=0, int lev_max=-1, int nGrow=0, int local=0)
+    void Redistribute (int lev_min=0, int lev_max=-1, int nGrow=0, int local=0,
+                       bool remove_negative=true)
     {
         clearNeighbors();
         ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-            ::Redistribute(lev_min, lev_max, nGrow, local);
+            ::Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
     }
 
-    void RedistributeLocal ()
+    void RedistributeLocal (bool remove_negative=true)
     {
         const int lev_min = 0;
         const int lev_max = 0;
         const int nGrow = 0;
         const int local = 1;
         clearNeighbors();
-        this->Redistribute(lev_min, lev_max, nGrow, local);
+        this->Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
     }
 
 #ifdef AMREX_USE_GPU
