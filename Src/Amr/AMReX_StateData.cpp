@@ -807,13 +807,13 @@ StateData::checkPoint (const std::string& name,
            if (dump_old)
            {
                os << 2 << '\n' << mf_name_new << '\n' << mf_name_old << '\n';
-               fabArrayHeaderNames.push_back(mf_name_new);
-               fabArrayHeaderNames.push_back(mf_name_old);
+               fabArrayHeaderNames.push_back(std::move(mf_name_new));
+               fabArrayHeaderNames.push_back(std::move(mf_name_old));
            }
            else
            {
                os << 1 << '\n' << mf_name_new << '\n';
-               fabArrayHeaderNames.push_back(mf_name_new);
+               fabArrayHeaderNames.push_back(std::move(mf_name_new));
            }
         }
         else

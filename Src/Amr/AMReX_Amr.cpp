@@ -2890,6 +2890,7 @@ Amr::printGridInfo (std::ostream& os,
         int                       numgrid = static_cast<int>(bs.size());
         Long                      ncells  = amr_level[lev]->countCells();
         double                    ntot    = Geom(lev).Domain().d_numPts();
+        AMREX_ASSERT(ntot > 0.);
         Real                      frac    = Real(100.0 * double(ncells) / ntot);
         const DistributionMapping& map    = amr_level[lev]->get_new_data(0).DistributionMap();
 

@@ -606,7 +606,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
         {
             if ( cur_name.empty() )
             {
-                cur_name = tokname;
+                cur_name = std::move(tokname);
                 break;
             }
             //

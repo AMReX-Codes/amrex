@@ -1967,13 +1967,11 @@ MLCellLinOpT<MF>::computeVolInv () const
         else
 #endif
         {
-            if (this->m_coarse_fine_bc_type == LinOpBCType::Dirichlet) {
-                m_volinv[amrlev][mglev]
-                    = RT(1.0 / this->compactify(this->Geom(amrlev,mglev).Domain()).d_numPts());
-            } else {
-                m_volinv[amrlev][mglev]
-                    = RT(1.0 / this->m_grids[amrlev][mglev].d_numPts());
-            }
+            auto const npts = (this->m_coarse_fine_bc_type == LinOpBCType::Dirichlet)
+                ? this->compactify(this->Geom(amrlev,mglev).Domain()).d_numPts()
+                : this->m_grids[amrlev][mglev].d_numPts();
+            AMREX_ASSERT(npts > 0.);
+            m_volinv[amrlev][mglev] = RT(1.0 / npts);
         }
     };
 
