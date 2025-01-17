@@ -60,6 +60,7 @@
 #include <memory>
 #include <numeric>
 #include <random>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -1269,6 +1270,11 @@ public:
 
     void AddRealComp (std::string const & name, int communicate=1)
     {
+        // names must be unique
+        auto const it = std::find(m_soa_rdata_names.begin(), m_soa_rdata_names.end(), name);
+        if (it != m_soa_rdata_names.end()) {
+            throw std::runtime_error("AddRealComp: name '" + name + "' is already present in the SoA.");
+        }
         m_soa_rdata_names.push_back(name);
 
         m_runtime_comps_defined = true;
@@ -1297,6 +1303,11 @@ public:
 
     void AddIntComp (std::string const & name, int communicate=1)
     {
+        // names must be unique
+        auto const it = std::find(m_soa_idata_names.begin(), m_soa_idata_names.end(), name);
+        if (it != m_soa_idata_names.end()) {
+            throw std::runtime_error("AddIntComp: name '" + name + "' is already present in the SoA.");
+        }
         m_soa_idata_names.push_back(name);
 
         m_runtime_comps_defined = true;

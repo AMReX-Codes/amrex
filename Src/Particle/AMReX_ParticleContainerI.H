@@ -1,5 +1,6 @@
 #include <AMReX_MakeParticle.H>
 
+#include <set>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -88,6 +89,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rdata_name.size() == NArrayReal, "rdata_name must be equal to NArrayReal");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(idata_name.size() == NArrayInt, "idata_name must be equal to NArrayInt");
+
+    // ensure names for components are unique
+    std::set<std::string> const unique_r_names(rdata_name.begin(), rdata_name.end());
+    std::set<std::string> const unique_i_names(idata_name.begin(), idata_name.end());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rdata_name.size() == unique_r_names.size(), "SetSoACompileTimeNames: Provided names in rdata_name are not unique!");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(idata_name.size() == unique_i_names.size(), "SetSoACompileTimeNames: Provided names in idata_name are not unique!");
 
     for (int i=0; i<NArrayReal; ++i)
     {
