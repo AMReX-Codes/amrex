@@ -135,10 +135,10 @@ jobs:
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build Hypre
       run: |
-        wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.28.0.tar.gz
-        tar xfz v2.28.0.tar.gz
-        cd hypre-2.28.0/src
-        ./configure --with-cxxstandard=17
+        wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.32.0.tar.gz
+        tar xfz v2.32.0.tar.gz
+        cd hypre-2.32.0/src
+        ./configure --with-cxxstandard=17 --enable-bigint
         make -j 4
         make install
         cd ../../
@@ -151,7 +151,7 @@ jobs:
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
-        export AMREX_HYPRE_HOME=${PWD}/hypre-2.28.0/src/hypre
+        export AMREX_HYPRE_HOME=${PWD}/hypre-2.32.0/src/hypre
         cd Tests/LinearSolvers/Hypre
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs.2d
