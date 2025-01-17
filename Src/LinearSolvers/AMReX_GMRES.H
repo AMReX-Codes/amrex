@@ -264,7 +264,7 @@ void GMRES<V,M>::solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, in
 template <typename V, typename M>
 void GMRES<V,M>::cycle (V& a_xx, int& a_status, int& a_itcount, RT& a_rnorm0)
 {
-    BL_PROFILE("GMREA::cycle()");
+    BL_PROFILE("GMRES::cycle()");
 
     m_res = m_linop->norm2(m_vv[0]);
     m_grs[0] = m_res;
