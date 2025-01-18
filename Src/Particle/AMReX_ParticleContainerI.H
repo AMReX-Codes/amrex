@@ -42,6 +42,18 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     SetParticleSize();
 
+    // add default names for SoA Real and Int compile-time arguments
+    m_soa_rdata_names.clear();
+    for (int i=0; i<NArrayReal; ++i)
+    {
+        m_soa_rdata_names.push_back(getDefaultCompNameReal<ParticleType>(i));
+    }
+    m_soa_idata_names.clear();
+    for (int i=0; i<NArrayInt; ++i)
+    {
+        m_soa_idata_names.push_back(getDefaultCompNameInt<ParticleType>(i));
+    }
+
     static bool initialized = false;
     if ( ! initialized)
     {
@@ -64,16 +76,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         pp.query("do_unlink", doUnlink);
         pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
         pp.queryAdd("use_comms_arena", use_comms_arena);
-
-        // add default names for SoA Real and Int compile-time arguments
-        for (int i=0; i<NArrayReal; ++i)
-        {
-            m_soa_rdata_names.push_back(getDefaultCompNameReal<ParticleType>(i));
-        }
-        for (int i=0; i<NArrayInt; ++i)
-        {
-            m_soa_idata_names.push_back(getDefaultCompNameInt<ParticleType>(i));
-        }
 
         initialized = true;
     }
