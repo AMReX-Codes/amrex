@@ -36,7 +36,7 @@ jobs:
         tar xfz v3.22.2.tar.gz
         cd petsc-3.22.2
         export PETSC_DIR=${PWD}
-        ./configure --prefix=${PWD}/petsc --with-fortran-bindings=0
+        ./configure --prefix=${PWD}/petsc --with-fortran-bindings=no --with-x=no
         make -j 4
         make install
         cd ../
