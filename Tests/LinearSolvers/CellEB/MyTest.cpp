@@ -51,6 +51,13 @@ MyTest::solve ()
     info.setMaxCoarseningLevel(max_coarsening_level);
 
     MLEBABecLap mleb (geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
+    if (use_hypre || use_petsc) {
+        if (factory[0]->isAllRegular()) {
+            linop_maxorder = std::min(3,linop_maxorder);
+        } else {
+            linop_maxorder = 2;
+        }
+    }
     mleb.setMaxOrder(linop_maxorder);
 
     mleb.setDomainBC(mlmg_lobc, mlmg_hibc);
