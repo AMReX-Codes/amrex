@@ -258,7 +258,8 @@ HypreSolver<MSS>::HypreSolver (Vector<IndexType>   const& a_index_type,
     // To generate global ids for Hypre, we need to remove duplicates on
     // nodes shared by multiple Boxes with OverrideSync.  So we need to use
     // a type that supports atomicAdd.  HYPRE_Int is either int or long
-    // long.  The latter does not have native atomicAdd support in CUDA/HIP.
+    // long.  The latter (i.e., long long) does not have native atomicAdd
+    // support in CUDA/HIP, whereas unsigned long long has.
     using AtomicInt = std::conditional_t<sizeof(HYPRE_Int) == 4,
                                          HYPRE_Int, unsigned long long>;
     fill_global_id<AtomicInt>();
