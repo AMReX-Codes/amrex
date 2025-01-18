@@ -31,6 +31,7 @@ jobs:
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build PETSc
       run: |
+        sudo apt-get install -y --no-install-recommends libblas-dev liblapack-dev
         wget -q https://github.com/petsc/petsc/archive/refs/tags/v3.22.2.tar.gz
         tar xfz v3.22.2.tar.gz
         cd petsc-3.22.2
