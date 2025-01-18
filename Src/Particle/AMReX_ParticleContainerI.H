@@ -1,6 +1,9 @@
 #include <AMReX_MakeParticle.H>
 
+#include <algorithm>
+#include <iterator>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -82,10 +85,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 }
 
-template <typename ParticleType, int NArrayReal, int NArrayInt,
-        template<class> class Allocator, class CellAssignor>
+template<
+    typename ParticleType,
+    int NArrayReal,
+    int NArrayInt,
+    template<class> class Allocator,
+    class CellAssignor
+>
 void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor> :: SetSoACompileTimeNames (
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::SetSoACompileTimeNames (
     std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name
 )
 {
@@ -105,6 +113,71 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i=0; i<NArrayInt; ++i)
     {
         m_soa_idata_names.at(i) = idata_name.at(i);
+    }
+}
+
+template<
+    typename ParticleType,
+    int NArrayReal,
+    int NArrayInt,
+    template<class> class Allocator,
+    class CellAssignor
+>
+bool
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::HasRealComp (std::string const & name)
+{
+    return std::find(m_soa_rdata_names.begin(), m_soa_rdata_names.end(), name) != std::end(m_soa_rdata_names);
+}
+
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+        template<class> class Allocator, class CellAssignor>
+bool
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::HasIntComp (std::string const & name)
+{
+    return std::find(m_soa_idata_names.begin(), m_soa_idata_names.end(), name) != std::end(m_soa_idata_names);
+}
+
+template<
+    typename ParticleType,
+    int NArrayReal,
+    int NArrayInt,
+    template<class> class Allocator,
+    class CellAssignor
+>
+int
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::GetRealCompIndex (std::string const & name)
+{
+    const auto it = std::find(m_soa_rdata_names.begin(), m_soa_rdata_names.end(), name);
+
+    if (it == m_soa_rdata_names.end())
+    {
+        throw std::runtime_error("GetRealCompIndex: Component " + name + " does not exist!");
+    }
+    else
+    {
+        return std::distance(m_soa_rdata_names.begin(), it);
+    }
+}
+
+template<
+    typename ParticleType,
+    int NArrayReal,
+    int NArrayInt,
+    template<class> class Allocator,
+    class CellAssignor
+>
+int
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::GetIntCompIndex (std::string const & name)
+{
+    const auto it = std::find(m_soa_idata_names.begin(), m_soa_idata_names.end(), name);
+
+    if (it == m_soa_idata_names.end())
+    {
+        throw std::runtime_error("GetIntCompIndex: Component " + name + " does not exist!");
+    }
+    else
+    {
+        return std::distance(m_soa_idata_names.begin(), it);
     }
 }
 
