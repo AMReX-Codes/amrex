@@ -206,7 +206,7 @@ static_assert(IsIndexMapping<MultiBlockIndexMapping>(), // NOLINT(bugprone-throw
 //! \brief This class stores data dependencies for an inter-block communication.
 //!
 //! In communication between two blocks one might need to do an index
-//! transformation from one block to antoher.
+//! transformation from one block to another.
 struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     //! \name Constructors
 
