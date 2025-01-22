@@ -64,8 +64,8 @@ Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
     RemoveDuplicates(neighbor_procs);
     return neighbor_procs;
 }
+}
 
 #ifdef AMREX_USE_HDF5_ASYNC
 #include "AMReX_ParticleUtilHDF5.H"
 #endif
-}

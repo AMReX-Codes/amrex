@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <vector>
 
+namespace amrex {
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
@@ -2667,4 +2668,6 @@ ResizeRuntimeIntComp (int new_size, bool communicate)
             }
         }
     }
+}
+
 }

@@ -483,6 +483,8 @@ protected:
     bool m_has_neighbors = false;
 };
 
+}
+
 #include "AMReX_NeighborParticlesI.H"
 
 #ifdef AMREX_USE_GPU
@@ -490,7 +492,5 @@ protected:
 #else
 #include "AMReX_NeighborParticlesCPUImpl.H"
 #endif
-
-}
 
 #endif // _NEIGHBORPARTICLES_H_

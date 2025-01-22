@@ -6,6 +6,8 @@
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_GpuDevice.H>
 
+namespace amrex {
+
 struct KeepValidFilter
 {
     template <typename SrcData>
@@ -1156,6 +1158,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
         }
         AsyncOut::Notify();  // Notify others I am done
     });
+}
+
 }
 
 #ifdef AMREX_USE_HDF5

@@ -1,7 +1,7 @@
 #include <AMReX_ParticleCommunication.H>
 #include <AMReX_ParallelDescriptor.H>
 
-using namespace amrex;
+namespace amrex {
 
 void ParticleCopyOp::clear ()
 {
@@ -381,7 +381,7 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>
 #endif
 }
 
-void amrex::communicateParticlesFinish (const ParticleCopyPlan& plan)
+void communicateParticlesFinish (const ParticleCopyPlan& plan)
 {
     BL_PROFILE("amrex::communicateParticlesFinish");
 #ifdef AMREX_USE_MPI
@@ -396,4 +396,6 @@ void amrex::communicateParticlesFinish (const ParticleCopyPlan& plan)
 #else
     amrex::ignore_unused(plan);
 #endif
+}
+
 }

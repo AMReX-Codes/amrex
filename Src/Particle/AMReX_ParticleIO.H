@@ -4,6 +4,8 @@
 
 #include <AMReX_WriteBinaryParticleData.H>
 
+namespace amrex {
+
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
@@ -1272,6 +1274,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
         amrex::Print() << "ParticleContainer::WriteAsciiFile() time: " << stoptime << '\n';
     }
+}
+
 }
 
 #endif /*AMREX_PARTICLEIO_H*/

@@ -2,6 +2,8 @@
 #define AMREX_NEIGHBORPARTICLESGPUIMPL_H_
 #include <AMReX_Config.H>
 
+namespace amrex {
+
 namespace detail
 {
     inline Vector<Box> getBoundaryBoxes(const Box& box, int ncells)
@@ -312,6 +314,8 @@ clearNeighborsGPU()
             ptile.setNumNeighbors(0);
         }
     }
+}
+
 }
 
 #endif

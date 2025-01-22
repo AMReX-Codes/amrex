@@ -1529,6 +1529,7 @@ using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStru
 template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
 using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
+}
 
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"
@@ -1537,7 +1538,5 @@ using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal
 #ifdef AMREX_USE_HDF5
 #include "AMReX_ParticleHDF5.H"
 #endif
-
-}
 
 #endif /*_PARTICLES_H_*/
