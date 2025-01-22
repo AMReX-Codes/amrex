@@ -22,8 +22,6 @@ struct CompileTimeOptions {
     using list_type = TypeList<std::integral_constant<int, ctr>...>;
 };
 
-#if (__cplusplus >= 201703L)
-
 namespace detail
 {
     template<class F, int... ctr>
@@ -75,8 +73,6 @@ namespace detail
         AMREX_ASSERT(found_option);
     }
 }
-
-#endif
 
 /**
  * \brief Compile time optimization of kernels with run time options.
@@ -184,15 +180,10 @@ void AnyCTO ([[maybe_unused]] TypeList<CTOs...> list_of_compile_time_options,
              std::array<int,sizeof...(CTOs)> const& runtime_options,
              L&& l, Fs&&...cto_functs)
 {
-#if (__cplusplus >= 201703L)
     detail::AnyCTO_helper1(std::forward<L>(l),
                            CartesianProduct(typename CTOs::list_type{}...),
                            runtime_options,
                            std::forward<Fs>(cto_functs)...);
-#else
-    amrex::ignore_unused(runtime_options, l, f);
-    static_assert(std::is_integral<F>::value, "This requires C++17");
-#endif
 }
 
 template <int MT, typename T, class F, typename... CTOs>
