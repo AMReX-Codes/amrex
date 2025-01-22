@@ -622,7 +622,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
                 msg += tokname;
                 amrex::Abort(msg.c_str());
             }
-            cur_list.push_back(tokname);
+            cur_list.push_back(std::move(tokname));
             cur_linefeeds.push_back(num_linefeeds);
             break;
         }
