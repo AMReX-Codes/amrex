@@ -83,7 +83,7 @@ public:
     {
         BL_PROFILE("FFT::R2C::forwardbackward");
         this->forward(inmf);
-        this->post_forward_doit<0>(post_forward);
+        this->post_forward_doit_0(post_forward);
         this->backward(outmf);
     }
 
@@ -165,8 +165,11 @@ public:
     [[nodiscard]] std::pair<BoxArray,DistributionMapping> getSpectralDataLayout () const;
 
     // This is a private function, but it's public for cuda.
-    template <int Depth, typename F>
-    void post_forward_doit (F const& post_forward);
+    template <typename F>
+    void post_forward_doit_0 (F const& post_forward);
+
+    template <typename F>
+    void post_forward_doit_1 (F const& post_forward);
 
 private:
 
@@ -665,63 +668,68 @@ R2C<T,D,S>::make_c2c_plans (cMF& inout)
 }
 
 template <typename T, Direction D, DomainStrategy S>
-template <int Depth, typename F>
-void R2C<T,D,S>::post_forward_doit (F const& post_forward)
+template <typename F>
+void R2C<T,D,S>::post_forward_doit_0 (F const& post_forward)
 {
     if (m_info.batch_mode) {
         amrex::Abort("xxxxx todo: post_forward");
 #if (AMREX_SPACEDIM > 1)
     } else if (m_r2c_sub) {
-#if defined(AMREX_USE_CUDA) && defined(_WIN32)
-        if           (Depth == 0) {
-#else
-        if constexpr (Depth == 0) {
-#endif
-            // We need to pass the originally ordered indices to post_forward.
+        // We need to pass the originally ordered indices to post_forward.
 #if (AMREX_SPACEDIM == 2)
-            // The original domain is (1,ny). The sub domain is (ny,1).
-            m_r2c_sub->template post_forward_doit<(Depth+1)>
+        // The original domain is (1,ny). The sub domain is (ny,1).
+        m_r2c_sub->post_forward_doit_1
+            ([=] AMREX_GPU_DEVICE (int i, int, int, auto& sp)
+             {
+                 post_forward(0, i, 0, sp);
+             });
+#else
+        if (m_real_domain.length(0) == 1 && m_real_domain.length(1) == 1) {
+            // Original domain: (1, 1, nz). Sub domain: (nz, 1, 1)
+            m_r2c_sub->post_forward_doit_1
+                ([=] AMREX_GPU_DEVICE (int i, int, int, auto& sp)
+                 {
+                     post_forward(0, 0, i, sp);
+                 });
+        } else if (m_real_domain.length(0) == 1 && m_real_domain.length(2) == 1) {
+            // Original domain: (1, ny, 1). Sub domain: (ny, 1, 1)
+            m_r2c_sub->post_forward_doit_1
                 ([=] AMREX_GPU_DEVICE (int i, int, int, auto& sp)
                      {
                          post_forward(0, i, 0, sp);
                      });
-#else
-            if (m_real_domain.length(0) == 1 && m_real_domain.length(1) == 1) {
-                // Original domain: (1, 1, nz). Sub domain: (nz, 1, 1)
-                m_r2c_sub->template post_forward_doit<(Depth+1)>
-                    ([=] AMREX_GPU_DEVICE (int i, int, int, auto& sp)
-                         {
-                             post_forward(0, 0, i, sp);
-                         });
-            } else if (m_real_domain.length(0) == 1 && m_real_domain.length(2) == 1) {
-                // Original domain: (1, ny, 1). Sub domain: (ny, 1, 1)
-                m_r2c_sub->template post_forward_doit<(Depth+1)>
-                    ([=] AMREX_GPU_DEVICE (int i, int, int, auto& sp)
-                         {
-                             post_forward(0, i, 0, sp);
-                         });
-            } else if (m_real_domain.length(0) == 1) {
-                // Original domain: (1, ny, nz). Sub domain: (ny, nz, 1)
-                m_r2c_sub->template post_forward_doit<(Depth+1)>
-                    ([=] AMREX_GPU_DEVICE (int i, int j, int, auto& sp)
-                         {
-                             post_forward(0, i, j, sp);
-                         });
-            } else if (m_real_domain.length(1) == 1) {
-                // Original domain: (nx, 1, nz). Sub domain: (nx, nz, 1)
-                m_r2c_sub->template post_forward_doit<(Depth+1)>
-                    ([=] AMREX_GPU_DEVICE (int i, int j, int, auto& sp)
-                         {
-                             post_forward(i, 0, j, sp);
-                         });
-            } else {
-                amrex::Abort("R2c::post_forward_doit: how did this happen?");
-            }
-#endif
+        } else if (m_real_domain.length(0) == 1) {
+            // Original domain: (1, ny, nz). Sub domain: (ny, nz, 1)
+            m_r2c_sub->post_forward_doit_1
+                ([=] AMREX_GPU_DEVICE (int i, int j, int, auto& sp)
+                     {
+                         post_forward(0, i, j, sp);
+                     });
+        } else if (m_real_domain.length(1) == 1) {
+            // Original domain: (nx, 1, nz). Sub domain: (nx, nz, 1)
+            m_r2c_sub->post_forward_doit_1
+                ([=] AMREX_GPU_DEVICE (int i, int j, int, auto& sp)
+                     {
+                         post_forward(i, 0, j, sp);
+                     });
         } else {
-            amrex::Abort("R2C::post_forward_doit: How did this happen?");
+            amrex::Abort("R2c::post_forward_doit_0: how did this happen?");
         }
 #endif
+#endif
+    } else {
+        this->post_forward_doit_1(post_forward);
+    }
+}
+
+template <typename T, Direction D, DomainStrategy S>
+template <typename F>
+void R2C<T,D,S>::post_forward_doit_1 (F const& post_forward)
+{
+    if (m_info.batch_mode) {
+        amrex::Abort("xxxxx todo: post_forward");
+    } else if (m_r2c_sub) {
+        amrex::Abort("R2C::post_forward_doit_1: How did this happen?");
     } else {
         if (                           ! m_cz.empty()) {
             auto* spectral_fab = detail::get_fab(m_cz);

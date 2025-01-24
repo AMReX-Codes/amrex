@@ -52,10 +52,14 @@ public:
     void post_forward_doit (FAB* fab, F const& f);
 
     // private function made public for cuda
-    template <int Depth, typename F>
-    void forwardThenBackward_doit (MF const& inmf, MF& outmf, F const& post_forward,
-                                   IntVect const& ngout = IntVect(0),
-                                   Periodicity const& period = Periodicity::NonPeriodic());
+    template <typename F>
+    void forwardThenBackward_doit_0 (MF const& inmf, MF& outmf, F const& post_forward,
+                                     IntVect const& ngout = IntVect(0),
+                                     Periodicity const& period = Periodicity::NonPeriodic());
+    template <typename F>
+    void forwardThenBackward_doit_1 (MF const& inmf, MF& outmf, F const& post_forward,
+                                     IntVect const& ngout = IntVect(0),
+                                     Periodicity const& period = Periodicity::NonPeriodic());
 
 private:
 
@@ -552,65 +556,72 @@ template <typename T>
 template <typename F>
 void R2X<T>::forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward)
 {
-    forwardThenBackward_doit<0>(inmf, outmf, post_forward);
+    forwardThenBackward_doit_0(inmf, outmf, post_forward);
 }
 
 template <typename T>
-template <int Depth, typename F>
-void R2X<T>::forwardThenBackward_doit (MF const& inmf, MF& outmf,
-                                       F const& post_forward,
-                                       IntVect const& ngout,
-                                       Periodicity const& period)
+template <typename F>
+void R2X<T>::forwardThenBackward_doit_0 (MF const& inmf, MF& outmf,
+                                         F const& post_forward,
+                                         IntVect const& ngout,
+                                         Periodicity const& period)
 {
-    BL_PROFILE("FFT::R2X::forwardbackward");
+    BL_PROFILE("FFT::R2X::forwardbackward_0");
 
     if (m_r2x_sub) {
-#if defined(AMREX_USE_CUDA) && defined(_WIN32)
-        if           (Depth == 0)
-#else
-        if constexpr (Depth == 0)
-#endif
-        {
-            bool inmf_safe = m_sub_helper.ghost_safe(inmf.nGrowVect());
-            MF inmf_sub, inmf_tmp;
-            if (inmf_safe) {
-                inmf_sub = m_sub_helper.make_alias_mf(inmf);
-            } else {
-                inmf_tmp.define(inmf.boxArray(), inmf.DistributionMap(), 1, 0);
-                inmf_tmp.LocalCopy(inmf, 0, 0, 1, IntVect(0));
-                inmf_sub = m_sub_helper.make_alias_mf(inmf_tmp);
-            }
-
-            bool outmf_safe = m_sub_helper.ghost_safe(outmf.nGrowVect());
-            MF outmf_sub, outmf_tmp;
-            if (outmf_safe) {
-                outmf_sub = m_sub_helper.make_alias_mf(outmf);
-            } else {
-                IntVect const& ngtmp = m_sub_helper.make_safe_ghost(outmf.nGrowVect());
-                outmf_tmp.define(outmf.boxArray(), outmf.DistributionMap(), 1, ngtmp);
-                outmf_sub = m_sub_helper.make_alias_mf(outmf_tmp);
-            }
-
-            IntVect const& subngout = m_sub_helper.make_iv(ngout);
-            Periodicity const& subperiod = m_sub_helper.make_periodicity(period);
-            GpuArray<int,3> const& order = m_sub_helper.xyz_order();
-            m_r2x_sub->template forwardThenBackward_doit<(Depth+1)>
-                (inmf_sub, outmf_sub,
-                 [=] AMREX_GPU_DEVICE (int i, int j, int k, auto& sp)
-                 {
-                     GpuArray<int,3> idx{i,j,k};
-                     post_forward(idx[order[0]], idx[order[1]], idx[order[2]], sp);
-                 },
-                 subngout, subperiod);
-
-            if (!outmf_safe) {
-                outmf.LocalCopy(outmf_tmp, 0, 0, 1, outmf_tmp.nGrowVect());
-            }
+        bool inmf_safe = m_sub_helper.ghost_safe(inmf.nGrowVect());
+        MF inmf_sub, inmf_tmp;
+        if (inmf_safe) {
+            inmf_sub = m_sub_helper.make_alias_mf(inmf);
+        } else {
+            inmf_tmp.define(inmf.boxArray(), inmf.DistributionMap(), 1, 0);
+            inmf_tmp.LocalCopy(inmf, 0, 0, 1, IntVect(0));
+            inmf_sub = m_sub_helper.make_alias_mf(inmf_tmp);
         }
-        else
-        {
-            amrex::Abort("R2X::forwardThenBackward_doit: How did this happen?");
+
+        bool outmf_safe = m_sub_helper.ghost_safe(outmf.nGrowVect());
+        MF outmf_sub, outmf_tmp;
+        if (outmf_safe) {
+            outmf_sub = m_sub_helper.make_alias_mf(outmf);
+        } else {
+            IntVect const& ngtmp = m_sub_helper.make_safe_ghost(outmf.nGrowVect());
+            outmf_tmp.define(outmf.boxArray(), outmf.DistributionMap(), 1, ngtmp);
+            outmf_sub = m_sub_helper.make_alias_mf(outmf_tmp);
         }
+
+        IntVect const& subngout = m_sub_helper.make_iv(ngout);
+        Periodicity const& subperiod = m_sub_helper.make_periodicity(period);
+        GpuArray<int,3> const& order = m_sub_helper.xyz_order();
+        m_r2x_sub->forwardThenBackward_doit_1
+            (inmf_sub, outmf_sub,
+             [=] AMREX_GPU_DEVICE (int i, int j, int k, auto& sp)
+             {
+                 GpuArray<int,3> idx{i,j,k};
+                 post_forward(idx[order[0]], idx[order[1]], idx[order[2]], sp);
+             },
+             subngout, subperiod);
+
+        if (!outmf_safe) {
+            outmf.LocalCopy(outmf_tmp, 0, 0, 1, outmf_tmp.nGrowVect());
+        }
+    }
+    else
+    {
+        this->forwardThenBackward_doit_1(inmf, outmf, post_forward, ngout, period);
+    }
+}
+
+template <typename T>
+template <typename F>
+void R2X<T>::forwardThenBackward_doit_1 (MF const& inmf, MF& outmf,
+                                         F const& post_forward,
+                                         IntVect const& ngout,
+                                         Periodicity const& period)
+{
+    BL_PROFILE("FFT::R2X::forwardbackward_1");
+
+    if (m_r2x_sub) {
+        amrex::Abort("R2X::forwardThenBackward_doit_1: How did this happen?");
     }
     else
     {

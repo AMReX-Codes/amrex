@@ -252,11 +252,11 @@ void Poisson<MF>::solve (MF& soln, MF const& rhs)
     IntVect const& ng = amrex::elemwiseMin(soln.nGrowVect(), IntVect(1));
 
     if (m_r2x) {
-        m_r2x->template forwardThenBackward_doit<0>(rhs, soln, f, ng, m_geom.periodicity());
+        m_r2x->forwardThenBackward_doit_0(rhs, soln, f, ng, m_geom.periodicity());
         detail::fill_physbc(soln, m_geom, m_bc);
     } else {
         m_r2c->forward(rhs);
-        m_r2c->template post_forward_doit<0>(f);
+        m_r2c->post_forward_doit_0(f);
         m_r2c->backward_doit(soln, ng, m_geom.periodicity());
     }
 }
