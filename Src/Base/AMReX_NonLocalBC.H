@@ -476,6 +476,9 @@ template <typename... Args>
 using LocalCopy_t = decltype(LocalCopy(std::declval<Args>()...));
 
 //! \brief This type trait tests if a given type DP satisfies the DataPacking concept for type FAB.
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+template <typename DP, typename FAB> struct IsDataPacking : std::true_type {};
+#else
 template <typename DP, typename FAB>
 struct IsDataPacking :
     Conjunction<
@@ -487,6 +490,7 @@ struct IsDataPacking :
         IsDetected<UnpackRecvBuffers_t, DP&, FabArray<FAB>&, CommData&>
 #endif
     > {};
+#endif
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
@@ -602,10 +606,8 @@ UnpackRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const 
 }
 #endif // AMREX_USE_MPI
 
-#ifndef _WIN32
 static_assert(IsDataPacking<PackComponents, FArrayBox>(), // NOLINT(bugprone-throw-keyword-missing)
               "PackComponents is expected to satisfy the concept DataPacking.");
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                    [DataPacking.ApplyDtosAndProjectionOnReciever]
@@ -665,10 +667,8 @@ UnpackRecvBuffers (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packin
 }
 #endif // AMREX_USE_MPI
 
-#ifndef _WIN32
 static_assert(IsDataPacking<ApplyDtosAndProjectionOnReciever<>, FArrayBox>(), // NOLINT(bugprone-throw-keyword-missing)
               "ApplyDtosAndProjectionOnReciever<> is expected to satisfy the DataPacking concept.");
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////////
 //                                                             [ParallelCopy_nowait]

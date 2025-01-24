@@ -161,7 +161,6 @@ jobs:
     - name: Compile
       run: |
         cmake -S . -B build                       `
-              -DCUDAToolkit_ROOT="$Env:CUDA_PATH" `
               -DCMAKE_VERBOSE_MAKEFILE=ON         `
               -DCMAKE_BUILD_TYPE=Release          `
               -DAMReX_GPU_BACKEND=CUDA            `

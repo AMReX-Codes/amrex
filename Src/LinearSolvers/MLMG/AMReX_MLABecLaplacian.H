@@ -672,6 +672,20 @@ MLABecLaplacianT<MF>::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a,
                              auto const& by = b[mglev][1].array(mfi);,
                              auto const& bz = b[mglev][2].array(mfi));
                 auto const& osm = this->m_overset_mask[amrlev][mglev]->const_array(mfi);
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+                amrex::launch(xbx, [=] AMREX_GPU_DEVICE (Box const& t_xbx)
+                {
+                    overset_rescale_bcoef_x(t_xbx, bx, osm, ncomp, osfac);
+                });
+                amrex::launch(ybx, [=] AMREX_GPU_DEVICE (Box const& t_ybx)
+                {
+                    overset_rescale_bcoef_y(t_ybx, by, osm, ncomp, osfac);
+                });
+                amrex::launch(zbx, [=] AMREX_GPU_DEVICE (Box const& t_zbx)
+                {
+                    overset_rescale_bcoef_z(t_zbx, bz, osm, ncomp, osfac);
+                });
+#else
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
                     (xbx, t_xbx,
                      {
@@ -685,6 +699,7 @@ MLABecLaplacianT<MF>::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a,
                      {
                          overset_rescale_bcoef_z(t_zbx, bz, osm, ncomp, osfac);
                      });
+#endif
             }
         }
     }

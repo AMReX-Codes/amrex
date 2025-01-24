@@ -1213,7 +1213,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     const size_t np_total = np + ptile.numNeighborParticles();
 
     if (memEfficientSort) {
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+        if           (!ParticleType::is_soa_particle) {
+#else
         if constexpr (!ParticleType::is_soa_particle) {
+#endif
             static_assert(sizeof(ParticleType)%4 == 0 && sizeof(uint32_t) == 4);
             using tmp_t = std::conditional_t<sizeof(ParticleType)%8 == 0,
                                              uint64_t, uint32_t>;
