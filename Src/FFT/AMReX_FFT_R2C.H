@@ -672,7 +672,11 @@ void R2C<T,D,S>::post_forward_doit (F const& post_forward)
         amrex::Abort("xxxxx todo: post_forward");
 #if (AMREX_SPACEDIM > 1)
     } else if (m_r2c_sub) {
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+        if           (Depth == 0) {
+#else
         if constexpr (Depth == 0) {
+#endif
             // We need to pass the originally ordered indices to post_forward.
 #if (AMREX_SPACEDIM == 2)
             // The original domain is (1,ny). The sub domain is (ny,1).

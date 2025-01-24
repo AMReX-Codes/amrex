@@ -123,6 +123,16 @@
         ); \
     }
 
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::launch(box, [=] AMREX_GPU_DEVICE (std::decay_t<decltype(box)> const& tbox) { block }); \
+    } else { \
+        auto tbox = box; \
+        block; \
+    }
+#else
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
@@ -131,6 +141,7 @@
         auto tbox = box; \
         block; \
     }
+#endif
 
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(where_to_run,bx1,tbx1,block1) \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \

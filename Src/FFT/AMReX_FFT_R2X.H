@@ -565,7 +565,11 @@ void R2X<T>::forwardThenBackward_doit (MF const& inmf, MF& outmf,
     BL_PROFILE("FFT::R2X::forwardbackward");
 
     if (m_r2x_sub) {
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+        if           (Depth == 0)
+#else
         if constexpr (Depth == 0)
+#endif
         {
             bool inmf_safe = m_sub_helper.ghost_safe(inmf.nGrowVect());
             MF inmf_sub, inmf_tmp;
