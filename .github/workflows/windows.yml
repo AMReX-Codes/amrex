@@ -152,15 +152,25 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
+    - uses: actions/checkout@v4
     - uses: Jimver/cuda-toolkit@v0.2.19
       id: cuda-toolkit
       with:
         cuda: '12.6.1'
+        sub-packages: '["nvcc", "cudart", "cuda_profiler_api", "cufft_dev", "cusparse_dev", "curand_dev"]'
+        method: 'network'
         use-github-cache: 'false'
-    - uses: actions/checkout@v4
+    - name: Install Ninja
+      run: |
+        curl.exe -L -o ninja-win.zip https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip
+        Expand-Archive -Path ninja-win.zip -DestinationPath .
+        echo "$pwd" >> $env:GITHUB_PATH
+    - name: Set Up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
     - name: Compile
       run: |
         cmake -S . -B build                       `
+              -G "Ninja"                          `
               -DCMAKE_VERBOSE_MAKEFILE=ON         `
               -DCMAKE_BUILD_TYPE=Release          `
               -DAMReX_GPU_BACKEND=CUDA            `
@@ -171,6 +181,14 @@ jobs:
               -DAMReX_LINEAR_SOLVERS=ON           `
               -DAMReX_PARTICLES=ON                `
               -DAMReX_FORTRAN=OFF                 `
-              -DAMReX_MPI=OFF
+              -DAMReX_MPI=OFF                     `
+              -DCMAKE_CXX_COMPILER=cl             `
+              -DCMAKE_CUDA_COMPILER=nvcc
+        # Sometimes cmake fails, but powershell continues to run
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
         cmake --build build --config Release -j 4
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
         cmake --build build --config Release --target install
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
