@@ -65,11 +65,15 @@ namespace {
 namespace {
     __host__ __device__ void amrex_check_wavefront_size () {
 #ifdef __HIP_DEVICE_COMPILE__
-        // https://github.com/AMReX-Codes/amrex/issues/3792
-        // __AMDGCN_WAVEFRONT_SIZE is valid in device code only.
-        // Thus we have to check it this way.
+        // * https://github.com/AMReX-Codes/amrex/issues/3792
+        //   __AMDGCN_WAVEFRONT_SIZE is valid in device code only.
+        //   Thus we have to check it this way.
+        // * https://github.com/AMReX-Codes/amrex/issues/4270
+        //   __AMDGCN_WAVEFRONT_SIZE will be deprecated.
+#ifdef __AMDGCN_WAVEFRONT_SIZE
         static_assert(__AMDGCN_WAVEFRONT_SIZE == AMREX_AMDGCN_WAVEFRONT_SIZE,
                       "Please let the amrex team know if you encounter this");
+#endif
 #endif
     }
 }
