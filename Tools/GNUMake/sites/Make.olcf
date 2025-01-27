@@ -2,62 +2,10 @@
 # For Summit et al. at OLCF
 #
 
-OLCF_MACHINES := summit ascent spock crusher frontier
+OLCF_MACHINES := crusher frontier
 
 ifneq ($(which_computer), $(findstring $(which_computer), $(OLCF_MACHINES)))
   $(error Unknown OLCF computer, $(which_computer))
-endif
-
-ifeq ($(which_computer),$(filter $(which_computer),summit ascent))
-
-  ifeq ($(USE_MPI),TRUE)
-
-    CC  := mpicc
-    CXX := mpicxx
-    FC  := mpif90
-    F90 := mpif90
-
-    LIBRARIES += -lmpi_ibm_mpifh -lmpi_ibm
-
-  endif
-
-  ifeq ($(lowercase_comp),gnu)
-    override XTRALIBS := -lgfortran
-  endif
-
-  ifeq ($(lowercase_comp),ibm)
-    override XTRALIBS += -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib
-  endif
-
-  SYSTEM_CUDA_PATH=$(OLCF_CUDA_ROOT)
-
-  SYSTEM_NVML_PATH=$(OLCF_CUDA_ROOT)/lib64/stubs
-
-  # Specify that we want to build for Volta
-
-  CUDA_ARCH = 70
-  COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
-
-endif
-
-ifeq ($(which_computer),spock)
-  ifeq ($(USE_HIP),TRUE)
-    # MI100
-    AMD_ARCH=gfx908
-  endif
-
-  ifeq ($(USE_MPI),TRUE)
-    includes += $(shell CC --cray-print-opts=cflags)
-    ifneq ($(BL_NO_FORT),TRUE)
-      LIBRARIES += $(shell ftn --cray-print-opts=libs)
-    else
-      LIBRARIES += $(shell CC --cray-print-opts=libs)
-    endif
-    # for gpu aware mpi
-    ifeq ($(USE_HIP),TRUE)
-      LIBRARIES += $(PE_MPICH_GTL_DIR_amd_gfx908) -lmpi_gtl_hsa
-    endif
-  endif
 endif
 
 ifeq ($(which_computer),crusher)

@@ -1,14 +1,4 @@
 
-ifeq ($(which_computer),theta)
-  ifeq ($(USE_MPI),TRUE)
-    CC  = cc
-    CXX = CC
-    FC  = ftn
-    F90 = ftn
-    LIBRARIES += -lmpichf90
-  endif
-endif
-
 ifeq ($(which_computer),$(filter $(which_computer),polaris))
 
   ifdef PE_ENV
