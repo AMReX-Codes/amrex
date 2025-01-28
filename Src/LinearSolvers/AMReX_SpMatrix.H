@@ -34,6 +34,14 @@ public:
 
     void define (AlgPartition partition, int nnz);
 
+    //! Define a matrix with CSR format data. Note that mat and col_index
+    //! should contains nnz elements. The number of elements in row_index
+    //! should the numbrer of local rows plus 1. The data can be freed after
+    //! this function call. For GPU builds, the data are expected to be in
+    //! GPU memory.
+    void define (AlgPartition partition, T const* mat, Long const* col_index,
+                 Long nnz, Long const* row_index);
+
     [[nodiscard]] AlgPartition const& partition () const { return m_partition; }
 
     [[nodiscard]] Long numLocalRows () const { return m_row_end - m_row_begin; }
@@ -158,6 +166,28 @@ SpMatrix<T,Allocator>::define_doit (int nnz)
     {
         poffset[lrow] = lrow*nnz;
     });
+}
+
+template <typename T, template<typename> class Allocator>
+void
+SpMatrix<T,Allocator>::define (AlgPartition partition, T const* mat,
+                               Long const* col_index, Long nnz,
+                               Long const* row_index)
+{
+    m_partition = std::move(partition);
+    m_row_begin = m_partition[ParallelDescriptor::MyProc()];
+    m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
+    Long nlocalrows = this->numLocalRows();
+    m_data.mat.resize(nnz);
+    m_data.col_index.resize(nnz);
+    m_data.row_offset.resize(nlocalrows+1);
+    m_data.nnz = nnz;
+    Gpu::copyAsync(Gpu::deviceToDevice, mat, mat+nnz, m_data.mat.begin());
+    Gpu::copyAsync(Gpu::deviceToDevice, col_index, col_index+nnz,
+                   m_data.col_index.begin());
+    Gpu::copyAsync(Gpu::deviceToDevice, row_index, row_index+nlocalrows+1,
+                   m_data.row_index.begin());
+    Gpu::streamSynchronize();
 }
 
 template <typename T, template<typename> class Allocator>
