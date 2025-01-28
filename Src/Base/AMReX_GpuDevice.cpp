@@ -204,7 +204,7 @@ Device::Initialize ()
     }
     else {
         if (amrex::Verbose() && ParallelDescriptor::IOProcessor()) {
-            amrex::Warning("Multiple GPUs are visible to each MPI rank, This may lead to incorrect or suboptimal rank-to-GPU mapping.");
+            amrex::Warning("Multiple GPUs are visible to each MPI rank. This is usually not an issue. But this may lead to incorrect or suboptimal rank-to-GPU mapping.");
         }
         if (ParallelDescriptor::NProcsPerNode() == gpu_device_count) {
             device_id = ParallelDescriptor::MyRankInNode();
@@ -322,7 +322,8 @@ Device::Initialize ()
                        << ((num_devices_used == 1) ? " device.\n"
                                                    : " devices.\n");
         if (num_devices_used < ParallelDescriptor::NProcs() && ParallelDescriptor::IOProcessor()) {
-            amrex::Warning("There are more MPI processes than the number of GPUs.");
+            amrex::Warning("There are more MPI processes than the number of unique GPU devices. This is not necessarily a problem.\n"
+                           "For example this could happen when a device such as MI300A is partitioned into multiple subdevices.");
         }
     }
 
