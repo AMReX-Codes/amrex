@@ -143,7 +143,7 @@ endif ()
 # HYPRE
 #
 if (AMReX_HYPRE)
-    find_package(HYPRE 2.20.0 REQUIRED)
+    find_package(HYPRE REQUIRED)
     if(AMReX_CUDA)
         find_package(CUDAToolkit REQUIRED)
 
