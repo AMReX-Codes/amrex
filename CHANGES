@@ -1,3 +1,55 @@
+# 25.02
+
+  -- SpMatrix: Add constructor for CSR format (#4316)
+
+  -- Modify warning messages about number of GPUs (#4315)
+
+  -- Fix Doxygen with default void std::enable_if_t (#4314)
+
+  -- CUDA On Windows (MSVC) (#4309)
+
+  -- Fix includes (#4308)
+
+  -- Fix CMake Compiler Flag Summary: ID Regex Matching (#4272)
+
+  -- Use std::move (#4307)
+
+  -- ParaView: AnyLocation -> Any Location (#4306)
+
+  -- Documentation: Fix malformed table (#4305)
+
+  -- PC: SoA Name Helpers (#4300)
+
+  -- PC: Ensure Uniqueness of SoA Names (#4299)
+
+  -- PC Names: Same Type, Multiple Vars/Instances (#4302)
+
+  -- Use bigint in HypreSolver test (#4297)
+
+  -- CI: Remove ICC/ICPC (Compiler Classic) (#4303)
+
+  -- Fix: PC Tile Copy w/ Names (#4298)
+
+  -- Add argument for NeighborParticleContainer::Redistribute (#4294)
+
+  -- Fix `AMReX::FFTW` Once (#4293)
+
+  -- Make ParmParse Parser more robust (#4291)
+
+  -- std::clamp -> amrex::Clamp (#4292)
+
+  -- Fix a memory leak in Open BC solver (#4290)
+
+  -- Make using The_Comms_Arena() for particle communication opt-in (#4286)
+
+  -- FFTW: Windows, OMP & Floats (#4282)
+
+  -- SmallMatrix: Assert Lower Bound Index (#4283)
+
+  -- ParmParse `queryAddWithParser` No Const (#4285)
+
+  -- Fix bug in EBData::randomPointOnEB (#4277)
+
 # 25.01
 
   -- Make FFT safe for slabs (#4268)
