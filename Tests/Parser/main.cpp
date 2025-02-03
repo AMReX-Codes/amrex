@@ -318,14 +318,14 @@ int main (int argc, char* argv[])
                         {-149.e-6}, {1.e-6}, 1000,
                         1.e-12, 1.e-15);
 
-        nerror += test1("if(z<lramp, 0.5*(1-cos(pi*z/lramp))*dens, dens)",
+        nerror += test1("if(z<lramp, sin(pi/2*z/lramp)**2*dens, dens)",
                         {{"lramp",8.e-3},{"pi",3.14},{"dens",1.e23}},
                         {"z"},
                         [=] (Real z) -> Real {
                             Real lramp=8.e-3, pi=3.14, dens=1.e23;
                             if (z < lramp) {
-                                //return 0.5*(1-std::cos(pi*z/lramp))*dens;
-                                return 0.5*dens-0.5*dens*std::cos(pi*z/lramp);
+                                auto x = std::sin(pi/2*z/lramp);
+                                return x*x*dens;
                             } else {
                                 return dens;
                             }
