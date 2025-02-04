@@ -131,6 +131,10 @@ void addParticles ()
 
 int main (int argc, char* argv[])
  {
+    {
+        amrex::ParmParse pp("amrex");
+        pp.add("the_arena_is_managed", 1);
+    }
     amrex::Initialize(argc,argv);
     {
         addParticles();
