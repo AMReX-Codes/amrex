@@ -132,6 +132,7 @@ namespace amrex
     */
     Real RandomGamma (Real alpha, Real beta);
 
+    template <int depth = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real RandomGamma (Real alpha, Real beta, RandomEngine const& random_engine)
     {
@@ -141,8 +142,12 @@ namespace amrex
         AMREX_IF_ON_DEVICE((
         if (alpha < 1)
         {
-            Real u = amrex::Random(random_engine);
-            return RandomGamma(1.0_rt + alpha, beta, random_engine) * std::pow(u, 1.0_rt / alpha);
+            if constexpr (depth == 0)
+            {
+                // note that alpha is assumed to be > 0, so this function will recurse at most once.
+                Real u = amrex::Random(random_engine);
+                return RandomGamma<1>(1.0_rt + alpha, beta, random_engine) * std::pow(u, 1.0_rt / alpha);
+            }
         }
 
         {
