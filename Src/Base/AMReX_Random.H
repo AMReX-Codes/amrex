@@ -131,7 +131,7 @@ namespace amrex
         Real d = alpha - 1.0_rt / 3.0_rt;
         Real c = (1.0_rt / 3.0_rt) / std::sqrt(d);
 
-        while (1) {
+        while (true) {
             do {
                 x = amrex::RandomNormal(0.0_rt, 1.0_rt, random_engine);
                 v = 1.0_rt + c * x;
