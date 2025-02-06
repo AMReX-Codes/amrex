@@ -185,7 +185,7 @@ namespace amrex
             amrex::ignore_unused(random_engine);
             return RandomGamma(alpha, beta);
         ))
-
+    }
 
     /**
     * \brief Generates one pseudorandom unsigned integer which is
