@@ -119,7 +119,7 @@ namespace amrex
 #endif
     }
 
-    namespace {
+    namespace random_util {
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Real RandomGamma_alpha_ge_1 (Real alpha, Real beta, RandomEngine const& random_engine)
@@ -175,9 +175,9 @@ namespace amrex
         if (alpha < 1)
         {
             Real u = amrex::Random(random_engine);
-            return RandomGamma_alpha_ge_1(1.0_rt + alpha, beta, random_engine) * std::pow(u, 1.0_rt / alpha);
+            return amrex::random_util::RandomGamma_alpha_ge_1(1.0_rt + alpha, beta, random_engine) * std::pow(u, 1.0_rt / alpha);
         } else {
-            return RandomGamma_alpha_ge_1(alpha, beta, random_engine);
+            return amrex::random_util::RandomGamma_alpha_ge_1(alpha, beta, random_engine);
         }
         ))
 
