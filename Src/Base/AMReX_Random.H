@@ -177,7 +177,7 @@ namespace amrex
             Real u = amrex::Random(random_engine);
             return RandomGamma_alpha_ge_1(1.0_rt + alpha, beta, random_engine) * std::pow(u, 1.0_rt / alpha);
         } else {
-            RandomGamma_alpha_ge_1(alpha, beta, random_engine);
+            return RandomGamma_alpha_ge_1(alpha, beta, random_engine);
         }
         ))
 
@@ -185,7 +185,7 @@ namespace amrex
             amrex::ignore_unused(random_engine);
             return RandomGamma(alpha, beta);
         ))
-    }
+
 
     /**
     * \brief Generates one pseudorandom unsigned integer which is
