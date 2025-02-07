@@ -506,6 +506,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     }
 #endif
 
+    Machine::Initialize();
+
 #ifdef AMREX_USE_GPU
     // Initialize after ParmParse so that we can read inputs.
     Gpu::Device::Initialize();
@@ -669,8 +671,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     BL_PROFILE_INITPARAMS();
 #endif // ifndef BL_AMRPROF
-
-    machine::Initialize();
 
 #ifdef AMREX_USE_HYPRE
     if (init_hypre) {

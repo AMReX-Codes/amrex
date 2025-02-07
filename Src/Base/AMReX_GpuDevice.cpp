@@ -1,9 +1,10 @@
 
 #include <AMReX_GpuDevice.H>
+#include <AMReX_GpuLaunch.H>
+#include <AMReX_Machine.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
-#include <AMReX_GpuLaunch.H>
 
 #ifdef AMREX_USE_HYPRE
 #  include <_hypre_utilities.h>
@@ -208,7 +209,11 @@ Device::Initialize ()
     }
     else {
         if (amrex::Verbose() && ParallelDescriptor::IOProcessor()) {
-            amrex::Warning("Multiple GPUs are visible to each MPI rank. This is usually not an issue. But this may lead to incorrect or suboptimal rank-to-GPU mapping.");
+            if ((Machine::name() != "nersc.perlmutter") &&
+                (Machine::name() != "olcf.frontier"))
+            {
+                amrex::Warning("Multiple GPUs are visible to each MPI rank. This is usually not an issue. But this may lead to incorrect or suboptimal rank-to-GPU mapping.");
+            }
         }
         if (ParallelDescriptor::NProcsPerNode() == gpu_device_count) {
             device_id = ParallelDescriptor::MyRankInNode();
@@ -216,6 +221,20 @@ Device::Initialize ()
             device_id = ParallelDescriptor::MyRankInProcessor();
         } else {
             device_id = ParallelDescriptor::MyProc() % gpu_device_count;
+        }
+    }
+
+    if (gpu_device_count > 1){
+        if (Machine::name() == "nersc.perlmutter") {
+            // The CPU/GPU mapping on perlmutter has the reverse order.
+            device_id = gpu_device_count - device_id - 1;
+        } else if (Machine::name() == "olcf.frontier") {
+            // The CPU/GPU mapping on fronter is documented at
+            // https://docs.olcf.ornl.gov/systems/frontier_user_guide.html
+            if (gpu_device_count == 8) {
+                constexpr std::array<int,8> gpu_order = {4,5,2,3,6,7,0,1};
+                device_id = gpu_order[device_id];
+            }
         }
     }
 
