@@ -127,7 +127,7 @@ public:
             }
         }
         Info info{};
-        info.setBatchMode(true);
+        info.setTwoDMode(true);
         if (periodic_xy) {
             m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain(),
                                                                    info);
@@ -145,7 +145,7 @@ public:
                             std::make_pair(Boundary::periodic,Boundary::periodic),
                             std::make_pair(Boundary::even,Boundary::even))},
           m_r2c(std::make_unique<R2C<typename MF::value_type>>
-                (geom.Domain(), Info().setBatchMode(true)))
+                (geom.Domain(), Info().setTwoDMode(true)))
     {
 #if (AMREX_SPACEDIM == 3)
         AMREX_ALWAYS_ASSERT(geom.isPeriodic(0) && geom.isPeriodic(1));

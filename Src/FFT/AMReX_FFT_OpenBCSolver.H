@@ -37,7 +37,7 @@ Box OpenBCSolver<T>::make_grown_domain (Box const& domain, Info const& info)
 {
     IntVect len = domain.length();
 #if (AMREX_SPACEDIM == 3)
-    if (info.batch_mode) { len[2] = 0; }
+    if (info.twod_mode) { len[2] = 0; }
 #else
     amrex::ignore_unused(info);
 #endif
@@ -48,10 +48,11 @@ template <typename T>
 OpenBCSolver<T>::OpenBCSolver (Box const& domain, Info const& info)
     : m_domain(domain),
       m_info(info),
-      m_r2c(OpenBCSolver<T>::make_grown_domain(domain,info), info)
+      m_r2c(OpenBCSolver<T>::make_grown_domain(domain,info),
+            m_info.setDomainStrategy(FFT::DomainStrategy::slab))
 {
 #if (AMREX_SPACEDIM == 3)
-    if (m_info.batch_mode) {
+    if (m_info.twod_mode) {
         auto gdom = make_grown_domain(domain,m_info);
         gdom.enclosedCells(2);
         gdom.setSmall(2, 0);
@@ -59,7 +60,7 @@ OpenBCSolver<T>::OpenBCSolver (Box const& domain, Info const& info)
                                m_info.nprocs,
                                m_domain.length(2)});
         gdom.setBig(2, nprocs-1);
-        m_r2c_green = std::make_unique<R2C<T>>(gdom,info);
+        m_r2c_green = std::make_unique<R2C<T>>(gdom,m_info);
         auto [sd, ord] = m_r2c_green->getSpectralData();
         m_G_fft = cMF(*sd, amrex::make_alias, 0, 1);
     } else
@@ -78,7 +79,7 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
 {
     BL_PROFILE("OpenBCSolver::setGreensFunction");
 
-    auto* infab = m_info.batch_mode ? detail::get_fab(m_r2c_green->m_rx)
+    auto* infab = m_info.twod_mode ? detail::get_fab(m_r2c_green->m_rx)
         :                             detail::get_fab(m_r2c.m_rx);
     auto const& lo = m_domain.smallEnd();
     auto const& lo3 = lo.dim3();
@@ -87,7 +88,7 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
         auto const& a = infab->array();
         auto box = infab->box();
         GpuArray<int,3> nimages{1,1,1};
-        int ndims = m_info.batch_mode ? AMREX_SPACEDIM-1 : AMREX_SPACEDIM;
+        int ndims = m_info.twod_mode ? AMREX_SPACEDIM-1 : AMREX_SPACEDIM;
         for (int idim = 0; idim < ndims; ++idim) {
             if (box.smallEnd(idim) == lo[idim] && box.length(idim) == 2*len[idim]) {
                 box.growHi(idim, -len[idim]+1); // +1 to include the middle plane
@@ -129,13 +130,13 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
         });
     }
 
-    if (m_info.batch_mode) {
+    if (m_info.twod_mode) {
         m_r2c_green->forward(m_r2c_green->m_rx);
     } else {
         m_r2c.forward(m_r2c.m_rx);
     }
 
-    if (!m_info.batch_mode) {
+    if (!m_info.twod_mode) {
         auto [sd, ord] = m_r2c.getSpectralData();
         amrex::ignore_unused(ord);
         auto const* srcfab = detail::get_fab(*sd);
@@ -166,7 +167,7 @@ void OpenBCSolver<T>::solve (MF& phi, MF const& rho)
     inmf.setVal(T(0));
     inmf.ParallelCopy(rho, 0, 0, 1);
 
-    m_r2c.m_openbc_half = !m_info.batch_mode;
+    m_r2c.m_openbc_half = !m_info.twod_mode;
     m_r2c.forward(inmf);
     m_r2c.m_openbc_half = false;
 
@@ -183,7 +184,7 @@ void OpenBCSolver<T>::solve (MF& phi, MF const& rho)
             Box const& rhobox = rhofab->box();
 #if (AMREX_SPACEDIM == 3)
             Long leng = gfab->box().numPts();
-            if (m_info.batch_mode) {
+            if (m_info.twod_mode) {
                 AMREX_ASSERT(gfab->box().length(2) == 1 &&
                              leng == (rhobox.length(0) * rhobox.length(1)));
             } else {
@@ -204,7 +205,7 @@ void OpenBCSolver<T>::solve (MF& phi, MF const& rho)
         }
     }
 
-    m_r2c.m_openbc_half = !m_info.batch_mode;
+    m_r2c.m_openbc_half = !m_info.twod_mode;
     m_r2c.backward_doit(phi, phi.nGrowVect());
     m_r2c.m_openbc_half = false;
 }

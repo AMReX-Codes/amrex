@@ -133,11 +133,11 @@ R2X<T>::R2X (Box const& domain,
 
     static_assert(std::is_same_v<float,T> || std::is_same_v<double,T>);
 
-    AMREX_ALWAYS_ASSERT(m_dom_0.numPts() > 1);
+    AMREX_ALWAYS_ASSERT((m_dom_0.numPts() > 1) && (m_info.batch_size == 1));
 #if (AMREX_SPACEDIM == 2)
-    AMREX_ALWAYS_ASSERT(!m_info.batch_mode);
+    AMREX_ALWAYS_ASSERT(!m_info.twod_mode);
 #else
-    if (m_info.batch_mode) {
+    if (m_info.twod_mode) {
         AMREX_ALWAYS_ASSERT((int(domain.length(0) > 1) +
                              int(domain.length(1) > 1) +
                              int(domain.length(2) > 1)) >= 2);
@@ -191,7 +191,7 @@ R2X<T>::R2X (Box const& domain,
 #if (AMREX_SPACEDIM == 2)
     bool batch_on_y = false;
 #else
-    bool batch_on_y = m_info.batch_mode && (m_dom_0.length(2) == 1);
+    bool batch_on_y = m_info.twod_mode && (m_dom_0.length(2) == 1);
 #endif
 
     if ((domain.length(1) > 1) && !batch_on_y) {
@@ -245,7 +245,7 @@ R2X<T>::R2X (Box const& domain,
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-    if (domain.length(2) > 1 && !m_info.batch_mode) {
+    if (domain.length(2) > 1 && !m_info.twod_mode) {
         if (! m_cy.empty()) {
             // copy(m_cy, m_cz)
             m_dom_cz = Box(IntVect(0), IntVect(AMREX_D_DECL(m_dom_cy.bigEnd(2),
@@ -539,9 +539,9 @@ template <typename T>
 T R2X<T>::scalingFactor () const
 {
     Long r = 1;
-    int ndims = m_info.batch_mode ? AMREX_SPACEDIM-1 : AMREX_SPACEDIM;
+    int ndims = m_info.twod_mode ? AMREX_SPACEDIM-1 : AMREX_SPACEDIM;
 #if (AMREX_SPACEDIM == 3)
-    if (m_info.batch_mode && m_dom_0.length(2) == 1) { ndims = 1; };
+    if (m_info.twod_mode && m_dom_0.length(2) == 1) { ndims = 1; };
 #endif
     for (int idim = 0; idim < ndims; ++idim) {
         r *= m_dom_0.length(idim);
@@ -770,7 +770,7 @@ void R2X<T>::forward (MF const& inmf, MF& outmf)
         this->forward(inmf);
 
 #if (AMREX_SPACEDIM == 3)
-        if (m_info.batch_mode) {
+        if (m_info.twod_mode) {
             if (m_cy.empty() && !m_ry.empty()) {
                 ParallelCopy(outmf, m_dom_rx, m_ry, 0, 0, 1, IntVect(0), Swap01{});
             } else if (m_ry.empty() && m_cy.empty() && m_cx.empty()) {
@@ -822,7 +822,7 @@ void R2X<T>::forward (MF const& inmf, cMF& outmf)
         this->forward(inmf);
 
 #if (AMREX_SPACEDIM == 3)
-        if (m_info.batch_mode) {
+        if (m_info.twod_mode) {
             if (!m_cy.empty()) {
                 auto lo = m_dom_cy.smallEnd();
                 auto hi = m_dom_cy.bigEnd();
@@ -936,7 +936,7 @@ void R2X<T>::backward (MF const& inmf, MF& outmf, IntVect const& ngout,
     else
     {
 #if (AMREX_SPACEDIM == 3)
-        if (m_info.batch_mode) {
+        if (m_info.twod_mode) {
             if (m_cy.empty() && !m_ry.empty()) {
                 ParallelCopy(m_ry, m_dom_ry, inmf, 0, 0, 1, IntVect(0), Swap01{});
             } else if (m_ry.empty() && m_cy.empty() && m_cx.empty()) {
@@ -995,7 +995,7 @@ void R2X<T>::backward (cMF const& inmf, MF& outmf, IntVect const& ngout,
     else
     {
 #if (AMREX_SPACEDIM == 3)
-        if (m_info.batch_mode) {
+        if (m_info.twod_mode) {
             if (!m_cy.empty()) {
                 ParallelCopy(m_cy, m_dom_cy, inmf, 0, 0, 1, IntVect(0), Swap01{});
             } else if (m_ry.empty() && m_cy.empty() && !m_cx.empty()) {
@@ -1021,7 +1021,7 @@ template <typename T>
 template <int dim, typename FAB, typename F>
 void R2X<T>::post_forward_doit (FAB* fab, F const& f)
 {
-    if (m_info.batch_mode) {
+    if (m_info.twod_mode) {
         amrex::Abort("xxxxx post_forward_doit: todo");
     }
     if (fab) {

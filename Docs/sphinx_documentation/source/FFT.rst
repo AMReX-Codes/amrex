@@ -67,6 +67,32 @@ object. Therefore, one should cache it for reuse if possible. Although
 :cpp:`std::unique_ptr<FFT::R2C<Real>>` to store an object in one's class.
 
 
+Class template `FFT::R2C` also supports batched FFTs. The batch size is set
+in an :cpp:`FFT::Info` object passed to the constructor of
+:cpp:`FFT::R2C`. Below is an example.
+
+.. highlight:: c++
+
+::
+
+    int batch_size = 10;
+    Geometry geom(...);
+    MultiFab mf(ba, dm, batch_size, 0);
+
+    FFT::Info info{};
+    info.setBatchSize(batch_size));
+    FFT::R2C<Real,FFT::Direction::both> r2c(geom.Domain(), info);
+
+    auto const& [cba, cdm] = r2c.getSpectralDataLayout();
+    cMultiFab cmf(cba, cdm, batch_size, 0);
+
+    r2c.forward(mf, cmf);
+
+    // Do work on cmf.
+    // Function forwardThenBackward is not yet supported for a batched FFT.
+
+    r2c.backward(cmf, mf);
+
 .. _sec:FFT:localr2c:
 
 FFT::LocalR2C Class

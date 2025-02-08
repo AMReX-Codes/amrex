@@ -47,7 +47,7 @@ namespace amrex::FFT
 
 enum struct Direction { forward, backward, both, none };
 
-enum struct DomainStrategy { slab, pencil };
+enum struct DomainStrategy { automatic, slab, pencil };
 
 AMREX_ENUM( Boundary, periodic, even, odd );
 
@@ -56,15 +56,28 @@ enum struct Kind { none, r2c_f, r2c_b, c2c_f, c2c_b, r2r_ee_f, r2r_ee_b,
 
 struct Info
 {
-    //! Supported only in 3D. When batch_mode is true, FFT is performed on
+    //! Domain composition strategy.
+    DomainStrategy domain_strategy = DomainStrategy::automatic;
+
+    //! For automatic strategy, this is the size per process below which we
+    //! switch from slab to pencil.
+    int pencil_threshold = 8;
+
+    //! Supported only in 3D. When twod_mode is true, FFT is performed on
     //! the first two dimensions only and the third dimension size is the
     //! batch size.
-    bool batch_mode = false;
+    bool twod_mode = false;
+
+    //! Batched FFT size. Only support in R2C, not R2X.
+    int batch_size = 1;
 
     //! Max number of processes to use
     int nprocs = std::numeric_limits<int>::max();
 
-    Info& setBatchMode (bool x) { batch_mode = x; return *this; }
+    Info& setDomainStrategy (DomainStrategy s) { domain_strategy = s; return *this; }
+    Info& setPencilThreshold (int t) { pencil_threshold = t; return *this; }
+    Info& setTwoDMode (bool x) { twod_mode = x; return *this; }
+    Info& setBatchSize (int bsize) { batch_size = bsize; return *this; }
     Info& setNumProcs (int n) { nprocs = n; return *this; }
 };
 
@@ -170,7 +183,7 @@ struct Plan
     }
 
     template <Direction D>
-    void init_r2c (Box const& box, T* pr, VendorComplex* pc, bool is_2d_transform = false)
+    void init_r2c (Box const& box, T* pr, VendorComplex* pc, bool is_2d_transform = false, int ncomp = 1)
     {
         static_assert(D == Direction::forward || D == Direction::backward);
 
@@ -198,6 +211,7 @@ struct Plan
         howmany = (rank == 1) ? AMREX_D_TERM(1, *box.length(1), *box.length(2))
                               : AMREX_D_TERM(1, *1            , *box.length(2));
 #endif
+        howmany *= ncomp;
 
         amrex::ignore_unused(nc);
 
@@ -293,10 +307,10 @@ struct Plan
     }
 
     template <Direction D, int M>
-    void init_r2c (IntVectND<M> const& fft_size, void*, void*, bool cache);
+    void init_r2c (IntVectND<M> const& fft_size, void*, void*, bool cache, int ncomp = 1);
 
     template <Direction D>
-    void init_c2c (Box const& box, VendorComplex* p)
+    void init_c2c (Box const& box, VendorComplex* p, int ncomp = 1)
     {
         static_assert(D == Direction::forward || D == Direction::backward);
 
@@ -307,6 +321,7 @@ struct Plan
 
         n = box.length(0);
         howmany = AMREX_D_TERM(1, *box.length(1), *box.length(2));
+        howmany *= ncomp;
 
 #if defined(AMREX_USE_CUDA)
         AMREX_CUFFT_SAFE_CALL(cufftCreate(&plan));
@@ -1131,7 +1146,7 @@ struct Plan
     }
 };
 
-using Key = std::tuple<IntVectND<3>,Direction,Kind>;
+using Key = std::tuple<IntVectND<3>,int,Direction,Kind>;
 using PlanD = typename Plan<double>::VendorPlan;
 using PlanF = typename Plan<float>::VendorPlan;
 
@@ -1143,7 +1158,7 @@ void add_vendor_plan_f (Key const& key, PlanF plan);
 
 template <typename T>
 template <Direction D, int M>
-void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool cache)
+void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool cache, int ncomp)
 {
     static_assert(D == Direction::forward || D == Direction::backward);
 
@@ -1154,10 +1169,10 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 
     n = 1;
     for (auto s : fft_size) { n *= s; }
-    howmany = 1;
+    howmany = ncomp;
 
 #if defined(AMREX_USE_GPU)
-    Key key = {fft_size.template expand<3>(), D, kind};
+    Key key = {fft_size.template expand<3>(), ncomp, D, kind};
     if (cache) {
         VendorPlan* cached_plan = nullptr;
         if constexpr (std::is_same_v<float,T>) {
@@ -1174,27 +1189,34 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
     amrex::ignore_unused(cache);
 #endif
 
+    int len[M];
+    for (int i = 0; i < M; ++i) {
+        len[i] = fft_size[M-1-i];
+    }
+
+    int nc = fft_size[0]/2+1;
+    for (int i = 1; i < M; ++i) {
+        nc *= fft_size[i];
+    }
+
 #if defined(AMREX_USE_CUDA)
 
     AMREX_CUFFT_SAFE_CALL(cufftCreate(&plan));
     AMREX_CUFFT_SAFE_CALL(cufftSetAutoAllocation(plan, 0));
     cufftType type;
+    int n_in, n_out;
     if constexpr (D == Direction::forward) {
         type = std::is_same_v<float,T> ? CUFFT_R2C : CUFFT_D2Z;
+        n_in = n;
+        n_out = nc;
     } else {
         type = std::is_same_v<float,T> ? CUFFT_C2R : CUFFT_Z2D;
+        n_in = nc;
+        n_out = n;
     }
     std::size_t work_size;
-    if constexpr (M == 1) {
-        AMREX_CUFFT_SAFE_CALL
-            (cufftMakePlan1d(plan, fft_size[0], type, howmany, &work_size));
-    } else if constexpr (M == 2) {
-        AMREX_CUFFT_SAFE_CALL
-            (cufftMakePlan2d(plan, fft_size[1], fft_size[0], type, &work_size));
-    } else if constexpr (M == 3) {
-        AMREX_CUFFT_SAFE_CALL
-            (cufftMakePlan3d(plan, fft_size[2], fft_size[1], fft_size[0], type, &work_size));
-    }
+    AMREX_CUFFT_SAFE_CALL
+        (cufftMakePlanMany(plan, M, len, nullptr, 1, n_in, nullptr, 1, n_out, type, howmany, &work_size));
 
 #elif defined(AMREX_USE_HIP)
 
@@ -1219,11 +1241,11 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
     if (M == 1) {
         pp = new mkl_desc_r(fft_size[0]);
     } else {
-        std::vector<std::int64_t> len(M);
+        std::vector<std::int64_t> len64(M);
         for (int idim = 0; idim < M; ++idim) {
-            len[idim] = fft_size[M-1-idim];
+            len64[idim] = len[idim];
         }
-        pp = new mkl_desc_r(len);
+        pp = new mkl_desc_r(len64);
     }
 #ifndef AMREX_USE_MKL_DFTI_2024
     pp->set_value(oneapi::mkl::dft::config_param::PLACEMENT,
@@ -1231,7 +1253,9 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 #else
     pp->set_value(oneapi::mkl::dft::config_param::PLACEMENT, DFTI_NOT_INPLACE);
 #endif
-
+    pp->set_value(oneapi::mkl::dft::config_param::NUMBER_OF_TRANSFORMS, howmany);
+    pp->set_value(oneapi::mkl::dft::config_param::FWD_DISTANCE, n);
+    pp->set_value(oneapi::mkl::dft::config_param::BWD_DISTANCE, nc);
     std::vector<std::int64_t> strides(M+1);
     strides[0] = 0;
     strides[M] = 1;
@@ -1258,29 +1282,24 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
         return;
     }
 
-    int size_for_row_major[M];
-    for (int idim = 0; idim < M; ++idim) {
-        size_for_row_major[idim] = fft_size[M-1-idim];
-    }
-
     if constexpr (std::is_same_v<float,T>) {
         if constexpr (D == Direction::forward) {
-            plan = fftwf_plan_dft_r2c
-                (M, size_for_row_major, (float*)pf, (fftwf_complex*)pb,
+            plan = fftwf_plan_many_dft_r2c
+                (M, len, howmany, (float*)pf, nullptr, 1, n, (fftwf_complex*)pb, nullptr, 1, nc,
                  FFTW_ESTIMATE);
         } else {
-            plan = fftwf_plan_dft_c2r
-                (M, size_for_row_major, (fftwf_complex*)pb, (float*)pf,
+            plan = fftwf_plan_many_dft_c2r
+                (M, len, howmany, (fftwf_complex*)pb, nullptr, 1, nc, (float*)pf, nullptr, 1, n,
                  FFTW_ESTIMATE);
         }
     } else {
         if constexpr (D == Direction::forward) {
-            plan = fftw_plan_dft_r2c
-                (M, size_for_row_major, (double*)pf, (fftw_complex*)pb,
+            plan = fftw_plan_many_dft_r2c
+                (M, len, howmany, (double*)pf, nullptr, 1, n, (fftw_complex*)pb, nullptr, 1, nc,
                  FFTW_ESTIMATE);
         } else {
-            plan = fftw_plan_dft_c2r
-                (M, size_for_row_major, (fftw_complex*)pb, (double*)pf,
+            plan = fftw_plan_many_dft_c2r
+                (M, len, howmany, (fftw_complex*)pb, nullptr, 1, nc, (double*)pf, nullptr, 1, n,
                  FFTW_ESTIMATE);
         }
     }
@@ -1508,10 +1527,10 @@ namespace detail
                 b = make_box(b);
             }
             auto const& ng = make_iv(mf.nGrowVect());
-            FA submf(BoxArray(std::move(bl)), mf.DistributionMap(), 1, ng, MFInfo{}.SetAlloc(false));
+            FA submf(BoxArray(std::move(bl)), mf.DistributionMap(), mf.nComp(), ng, MFInfo{}.SetAlloc(false));
             using FAB = typename FA::fab_type;
             for (MFIter mfi(submf, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi) {
-                submf.setFab(mfi, FAB(mfi.fabbox(), 1, mf[mfi].dataPtr()));
+                submf.setFab(mfi, FAB(mfi.fabbox(), mf.nComp(), mf[mfi].dataPtr()));
             }
             return submf;
         }

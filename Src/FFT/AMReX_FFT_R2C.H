@@ -29,9 +29,7 @@ template <typename T> class PoissonHybrid;
  * For more details, we refer the users to
  * https://amrex-codes.github.io/amrex/docs_html/FFT_Chapter.html.
  */
-template <typename T = Real, FFT::Direction D = FFT::Direction::both,
-          FFT::DomainStrategy S = FFT::DomainStrategy::slab>
-          // Don't change the default. Otherwise OpenBCSolver might break.
+template <typename T = Real, FFT::Direction D = FFT::Direction::both>
 class R2C
 {
 public:
@@ -79,12 +77,13 @@ public:
      */
     template <typename F, Direction DIR=D,
               std::enable_if_t<DIR == Direction::both, int> = 0>
-    void forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward)
+    void forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward,
+                              int incomp = 0, int outcomp = 0)
     {
         BL_PROFILE("FFT::R2C::forwardbackward");
-        this->forward(inmf);
+        this->forward(inmf, incomp);
         this->post_forward_doit_0(post_forward);
-        this->backward(outmf);
+        this->backward(outmf, outcomp);
     }
 
     /**
@@ -98,7 +97,7 @@ public:
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
-    void forward (MF const& inmf);
+    void forward (MF const& inmf, int incomp = 0);
 
     /**
      * \brief Forward transform
@@ -111,7 +110,7 @@ public:
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
-    void forward (MF const& inmf, cMF& outmf);
+    void forward (MF const& inmf, cMF& outmf, int incomp = 0, int outcomp = 0);
 
     /**
      * \brief Backward transform
@@ -122,7 +121,7 @@ public:
      * \param outmf output data in MultiFab or FabArray<BaseFab<float>>
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::both, int> = 0>
-    void backward (MF& outmf);
+    void backward (MF& outmf, int outcomp = 0);
 
     /**
      * \brief Backward transform
@@ -135,7 +134,7 @@ public:
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::backward ||
                                                 DIR == Direction::both, int> = 0>
-    void backward (cMF const& inmf, MF& outmf);
+    void backward (cMF const& inmf, MF& outmf, int incomp = 0, int outcomp = 0);
 
     //! Scaling factor. If the data goes through forward and then backward,
     //! the result multiplied by the scaling factor is equal to the original
@@ -176,13 +175,15 @@ private:
     void prepare_openbc ();
 
     void backward_doit (MF& outmf, IntVect const& ngout = IntVect(0),
-                        Periodicity const& period = Periodicity::NonPeriodic());
+                        Periodicity const& period = Periodicity::NonPeriodic(),
+                        int outcomp = 0);
 
     void backward_doit (cMF const& inmf, MF& outmf,
                         IntVect const& ngout = IntVect(0),
-                        Periodicity const& period = Periodicity::NonPeriodic());
+                        Periodicity const& period = Periodicity::NonPeriodic(),
+                        int incomp = 0, int outcomp = 0);
 
-    static std::pair<Plan<T>,Plan<T>> make_c2c_plans (cMF& inout);
+    std::pair<Plan<T>,Plan<T>> make_c2c_plans (cMF& inout) const;
 
     Plan<T> m_fft_fwd_x{};
     Plan<T> m_fft_bwd_x{};
@@ -224,7 +225,7 @@ private:
     Box m_spectral_domain_y;
     Box m_spectral_domain_z;
 
-    std::unique_ptr<R2C<T,D,S>> m_r2c_sub;
+    std::unique_ptr<R2C<T,D>> m_r2c_sub;
     detail::SubHelper m_sub_helper;
 
     Info m_info;
@@ -234,8 +235,8 @@ private:
     bool m_openbc_half = false;
 };
 
-template <typename T, Direction D, DomainStrategy S>
-R2C<T,D,S>::R2C (Box const& domain, Info const& info)
+template <typename T, Direction D>
+R2C<T,D>::R2C (Box const& domain, Info const& info)
     : m_real_domain(domain),
       m_spectral_domain_x(IntVect(0), IntVect(AMREX_D_DECL(domain.length(0)/2,
                                                            domain.length(1)-1,
@@ -262,9 +263,9 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
 
     AMREX_ALWAYS_ASSERT(m_real_domain.numPts() > 1);
 #if (AMREX_SPACEDIM == 2)
-    AMREX_ALWAYS_ASSERT(!m_info.batch_mode);
+    AMREX_ALWAYS_ASSERT(!m_info.twod_mode);
 #else
-    if (m_info.batch_mode) {
+    if (m_info.twod_mode) {
         AMREX_ALWAYS_ASSERT((int(domain.length(0) > 1) +
                              int(domain.length(1) > 1) +
                              int(domain.length(2) > 1)) >= 2);
@@ -274,7 +275,7 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
     {
         Box subbox = m_sub_helper.make_box(m_real_domain);
         if (subbox.size() != m_real_domain.size()) {
-            m_r2c_sub = std::make_unique<R2C<T,D,S>>(subbox, info);
+            m_r2c_sub = std::make_unique<R2C<T,D>>(subbox, m_info);
             return;
         }
     }
@@ -283,8 +284,16 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
     int nprocs = std::min(ParallelContext::NProcsSub(), m_info.nprocs);
 
 #if (AMREX_SPACEDIM == 3)
-    if (S == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
-        if (m_info.batch_mode && m_real_domain.length(2) == 1) {
+    if (m_info.domain_strategy == DomainStrategy::automatic) {
+        int shortside = m_real_domain.shortside();
+        if (shortside <= m_info.pencil_threshold*nprocs) {
+            m_info.domain_strategy = DomainStrategy::pencil;
+        } else {
+            m_info.domain_strategy = DomainStrategy::slab;
+        }
+    }
+    if (m_info.domain_strategy == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
+        if (m_info.twod_mode && m_real_domain.length(2) == 1) {
             m_slab_decomp = false;
         } else {
             m_slab_decomp = true;
@@ -292,10 +301,12 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
     }
 #endif
 
+    auto const ncomp = m_info.batch_size;
+
     auto bax = amrex::decompose(m_real_domain, nprocs,
                                 {AMREX_D_DECL(false,!m_slab_decomp,true)}, true);
     DistributionMapping dmx = detail::make_iota_distromap(bax.size());
-    m_rx.define(bax, dmx, 1, 0, MFInfo().SetAlloc(false));
+    m_rx.define(bax, dmx, ncomp, 0, MFInfo().SetAlloc(false));
 
     {
         BoxList bl = bax.boxList();
@@ -304,10 +315,10 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
             b.setBig(0, m_spectral_domain_x.bigEnd(0));
         }
         BoxArray cbax(std::move(bl));
-        m_cx.define(cbax, dmx, 1, 0, MFInfo().SetAlloc(false));
+        m_cx.define(cbax, dmx, ncomp, 0, MFInfo().SetAlloc(false));
     }
 
-    m_do_alld_fft = (ParallelDescriptor::NProcs() == 1) && (! m_info.batch_mode);
+    m_do_alld_fft = (ParallelDescriptor::NProcs() == 1) && (! m_info.twod_mode);
 
     if (!m_do_alld_fft) // do a series of 1d or 2d ffts
     {
@@ -319,7 +330,7 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
 #if (AMREX_SPACEDIM == 2)
         bool batch_on_y = false;
 #else
-        bool batch_on_y = m_info.batch_mode && (m_real_domain.length(2) == 1);
+        bool batch_on_y = m_info.twod_mode && (m_real_domain.length(2) == 1);
 #endif
         DistributionMapping cdmy;
         if ((m_real_domain.length(1) > 1) && !m_slab_decomp && !batch_on_y)
@@ -331,13 +342,13 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
             } else {
                 cdmy = detail::make_iota_distromap(cbay.size());
             }
-            m_cy.define(cbay, cdmy, 1, 0, MFInfo().SetAlloc(false));
+            m_cy.define(cbay, cdmy, ncomp, 0, MFInfo().SetAlloc(false));
         }
 #endif
 
 #if (AMREX_SPACEDIM == 3)
         if (m_real_domain.length(1) > 1 &&
-            (! m_info.batch_mode && m_real_domain.length(2) > 1))
+            (! m_info.twod_mode && m_real_domain.length(2) > 1))
         {
             auto cbaz = amrex::decompose(m_spectral_domain_z, nprocs,
                                          {false,true,true}, true);
@@ -349,7 +360,7 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
             } else {
                 cdmz = detail::make_iota_distromap(cbaz.size());
             }
-            m_cz.define(cbaz, cdmz, 1, 0, MFInfo().SetAlloc(false));
+            m_cz.define(cbaz, cdmz, ncomp, 0, MFInfo().SetAlloc(false));
         }
 #endif
 
@@ -402,14 +413,14 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
             auto* pr = m_rx[myproc].dataPtr();
             auto* pc = (typename Plan<T>::VendorComplex *)m_cx[myproc].dataPtr();
 #ifdef AMREX_USE_SYCL
-            m_fft_fwd_x.template init_r2c<Direction::forward>(box, pr, pc, m_slab_decomp);
+            m_fft_fwd_x.template init_r2c<Direction::forward>(box, pr, pc, m_slab_decomp, ncomp);
             m_fft_bwd_x = m_fft_fwd_x;
 #else
             if constexpr (D == Direction::both || D == Direction::forward) {
-                m_fft_fwd_x.template init_r2c<Direction::forward>(box, pr, pc, m_slab_decomp);
+                m_fft_fwd_x.template init_r2c<Direction::forward>(box, pr, pc, m_slab_decomp, ncomp);
             }
             if constexpr (D == Direction::both || D == Direction::backward) {
-                m_fft_bwd_x.template init_r2c<Direction::backward>(box, pr, pc, m_slab_decomp);
+                m_fft_bwd_x.template init_r2c<Direction::backward>(box, pr, pc, m_slab_decomp, ncomp);
             }
 #endif
         }
@@ -434,21 +445,21 @@ R2C<T,D,S>::R2C (Box const& domain, Info const& info)
         auto* pr = (void*)m_rx[0].dataPtr();
         auto* pc = (void*)m_cx[0].dataPtr();
 #ifdef AMREX_USE_SYCL
-        m_fft_fwd_x.template init_r2c<Direction::forward>(len, pr, pc, false);
+        m_fft_fwd_x.template init_r2c<Direction::forward>(len, pr, pc, false, ncomp);
         m_fft_bwd_x = m_fft_fwd_x;
 #else
         if constexpr (D == Direction::both || D == Direction::forward) {
-            m_fft_fwd_x.template init_r2c<Direction::forward>(len, pr, pc, false);
+            m_fft_fwd_x.template init_r2c<Direction::forward>(len, pr, pc, false, ncomp);
         }
         if constexpr (D == Direction::both || D == Direction::backward) {
-            m_fft_bwd_x.template init_r2c<Direction::backward>(len, pr, pc, false);
+            m_fft_bwd_x.template init_r2c<Direction::backward>(len, pr, pc, false, ncomp);
         }
 #endif
     }
 }
 
-template <typename T, Direction D, DomainStrategy S>
-R2C<T,D,S>::~R2C<T,D,S> ()
+template <typename T, Direction D>
+R2C<T,D>::~R2C<T,D> ()
 {
     if (m_fft_bwd_x.plan != m_fft_fwd_x.plan) {
         m_fft_bwd_x.destroy();
@@ -468,13 +479,15 @@ R2C<T,D,S>::~R2C<T,D,S> ()
     m_fft_fwd_x_half.destroy();
 }
 
-template <typename T, Direction D, DomainStrategy S>
-void R2C<T,D,S>::prepare_openbc ()
+template <typename T, Direction D>
+void R2C<T,D>::prepare_openbc ()
 {
     if (m_r2c_sub) { amrex::Abort("R2C: OpenBC not supported with reduced dimensions"); }
 
 #if (AMREX_SPACEDIM == 3)
     if (m_do_alld_fft) { return; }
+
+    auto const ncomp = m_info.batch_size;
 
     if (m_slab_decomp && ! m_fft_fwd_x_half.defined) {
         auto* fab = detail::get_fab(m_rx);
@@ -488,16 +501,16 @@ void R2C<T,D,S>::prepare_openbc ()
                     detail::get_fab(m_cx)->dataPtr();
 #ifdef AMREX_USE_SYCL
                 m_fft_fwd_x_half.template init_r2c<Direction::forward>
-                    (box, pr, pc, m_slab_decomp);
+                    (box, pr, pc, m_slab_decomp, ncomp);
                 m_fft_bwd_x_half = m_fft_fwd_x_half;
 #else
                 if constexpr (D == Direction::both || D == Direction::forward) {
                     m_fft_fwd_x_half.template init_r2c<Direction::forward>
-                        (box, pr, pc, m_slab_decomp);
+                        (box, pr, pc, m_slab_decomp, ncomp);
                 }
                 if constexpr (D == Direction::both || D == Direction::backward) {
                     m_fft_bwd_x_half.template init_r2c<Direction::backward>
-                        (box, pr, pc, m_slab_decomp);
+                        (box, pr, pc, m_slab_decomp, ncomp);
                 }
 #endif
             }
@@ -522,26 +535,28 @@ void R2C<T,D,S>::prepare_openbc ()
 #endif
 }
 
-template <typename T, Direction D, DomainStrategy S>
+template <typename T, Direction D>
 template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
                                           DIR == Direction::both, int> >
-void R2C<T,D,S>::forward (MF const& inmf)
+void R2C<T,D>::forward (MF const& inmf, int incomp)
 {
     BL_PROFILE("FFT::R2C::forward(in)");
 
+    auto const ncomp = m_info.batch_size;
+
     if (m_r2c_sub) {
         if (m_sub_helper.ghost_safe(inmf.nGrowVect())) {
-            m_r2c_sub->forward(m_sub_helper.make_alias_mf(inmf));
+            m_r2c_sub->forward(m_sub_helper.make_alias_mf(inmf), incomp);
         } else {
-            MF tmp(inmf.boxArray(), inmf.DistributionMap(), 1, 0);
-            tmp.LocalCopy(inmf, 0, 0, 1, IntVect(0));
-            m_r2c_sub->forward(m_sub_helper.make_alias_mf(tmp));
+            MF tmp(inmf.boxArray(), inmf.DistributionMap(), ncomp, 0);
+            tmp.LocalCopy(inmf, incomp, 0, ncomp, IntVect(0));
+            m_r2c_sub->forward(m_sub_helper.make_alias_mf(tmp),0);
         }
         return;
     }
 
     if (&m_rx != &inmf) {
-        m_rx.ParallelCopy(inmf, 0, 0, 1);
+        m_rx.ParallelCopy(inmf, incomp, 0, ncomp);
     }
 
     if (m_do_alld_fft) {
@@ -553,95 +568,99 @@ void R2C<T,D,S>::forward (MF const& inmf)
     fft_x.template compute_r2c<Direction::forward>();
 
     if (                          m_cmd_x2y) {
-        ParallelCopy(m_cy, m_cx, *m_cmd_x2y, 0, 0, 1, m_dtos_x2y);
+        ParallelCopy(m_cy, m_cx, *m_cmd_x2y, 0, 0, ncomp, m_dtos_x2y);
     }
     m_fft_fwd_y.template compute_c2c<Direction::forward>();
 
     if (                          m_cmd_y2z) {
-        ParallelCopy(m_cz, m_cy, *m_cmd_y2z, 0, 0, 1, m_dtos_y2z);
+        ParallelCopy(m_cz, m_cy, *m_cmd_y2z, 0, 0, ncomp, m_dtos_y2z);
     }
 #if (AMREX_SPACEDIM == 3)
     else if (                     m_cmd_x2z) {
         if (m_openbc_half) {
+            NonLocalBC::PackComponents components{};
+            components.n_components = ncomp;
             NonLocalBC::ApplyDtosAndProjectionOnReciever packing
-                {NonLocalBC::PackComponents{}, m_dtos_x2z};
+                {components, m_dtos_x2z};
             auto handler = ParallelCopy_nowait(m_cz, m_cx, *m_cmd_x2z_half, packing);
 
             Box upper_half = m_spectral_domain_z;
             // Note that z-direction's index is 0 because we z is the
             // unit-stride direction here.
             upper_half.growLo (0,-m_spectral_domain_z.length(0)/2);
-            m_cz.setVal(0, upper_half, 0, 1);
+            m_cz.setVal(0, upper_half, 0, ncomp);
 
             ParallelCopy_finish(m_cz, std::move(handler), *m_cmd_x2z_half, packing);
         } else {
-            ParallelCopy(m_cz, m_cx, *m_cmd_x2z, 0, 0, 1, m_dtos_x2z);
+            ParallelCopy(m_cz, m_cx, *m_cmd_x2z, 0, 0, ncomp, m_dtos_x2z);
         }
     }
 #endif
     m_fft_fwd_z.template compute_c2c<Direction::forward>();
 }
 
-template <typename T, Direction D, DomainStrategy S>
+template <typename T, Direction D>
 template <Direction DIR, std::enable_if_t<DIR == Direction::both, int> >
-void R2C<T,D,S>::backward (MF& outmf)
+void R2C<T,D>::backward (MF& outmf, int outcomp)
 {
-    backward_doit(outmf);
+    backward_doit(outmf, IntVect(0), Periodicity::NonPeriodic(), outcomp);
 }
 
-template <typename T, Direction D, DomainStrategy S>
-void R2C<T,D,S>::backward_doit (MF& outmf, IntVect const& ngout,
-                                Periodicity const& period)
+template <typename T, Direction D>
+void R2C<T,D>::backward_doit (MF& outmf, IntVect const& ngout,
+                              Periodicity const& period, int outcomp)
 {
     BL_PROFILE("FFT::R2C::backward(out)");
+
+    auto const ncomp = m_info.batch_size;
 
     if (m_r2c_sub) {
         if (m_sub_helper.ghost_safe(outmf.nGrowVect())) {
             MF submf = m_sub_helper.make_alias_mf(outmf);
             IntVect const& subngout = m_sub_helper.make_iv(ngout);
             Periodicity const& subperiod = m_sub_helper.make_periodicity(period);
-            m_r2c_sub->backward_doit(submf, subngout, subperiod);
+            m_r2c_sub->backward_doit(submf, subngout, subperiod, outcomp);
         } else {
-            MF tmp(outmf.boxArray(), outmf.DistributionMap(), 1,
+            MF tmp(outmf.boxArray(), outmf.DistributionMap(), ncomp,
                    m_sub_helper.make_safe_ghost(outmf.nGrowVect()));
-            this->backward_doit(tmp, ngout, period);
-            outmf.LocalCopy(tmp, 0, 0, 1, tmp.nGrowVect());
+            this->backward_doit(tmp, ngout, period, 0);
+            outmf.LocalCopy(tmp, 0, outcomp, ncomp, tmp.nGrowVect());
         }
         return;
     }
 
     if (m_do_alld_fft) {
         m_fft_bwd_x.template compute_r2c<Direction::backward>();
-        outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0),
+        outmf.ParallelCopy(m_rx, 0, outcomp, ncomp, IntVect(0),
                            amrex::elemwiseMin(ngout,outmf.nGrowVect()), period);
         return;
     }
 
     m_fft_bwd_z.template compute_c2c<Direction::backward>();
     if (                          m_cmd_z2y) {
-        ParallelCopy(m_cy, m_cz, *m_cmd_z2y, 0, 0, 1, m_dtos_z2y);
+        ParallelCopy(m_cy, m_cz, *m_cmd_z2y, 0, 0, ncomp, m_dtos_z2y);
     }
 #if (AMREX_SPACEDIM == 3)
     else if (                     m_cmd_z2x) {
         auto const& cmd = m_openbc_half ? m_cmd_z2x_half : m_cmd_z2x;
-        ParallelCopy(m_cx, m_cz, *cmd, 0, 0, 1, m_dtos_z2x);
+        ParallelCopy(m_cx, m_cz, *cmd, 0, 0, ncomp, m_dtos_z2x);
     }
 #endif
 
     m_fft_bwd_y.template compute_c2c<Direction::backward>();
     if (                          m_cmd_y2x) {
-        ParallelCopy(m_cx, m_cy, *m_cmd_y2x, 0, 0, 1, m_dtos_y2x);
+        ParallelCopy(m_cx, m_cy, *m_cmd_y2x, 0, 0, ncomp, m_dtos_y2x);
     }
 
     auto& fft_x = m_openbc_half ? m_fft_bwd_x_half : m_fft_bwd_x;
     fft_x.template compute_r2c<Direction::backward>();
-    outmf.ParallelCopy(m_rx, 0, 0, 1, IntVect(0),
+    outmf.ParallelCopy(m_rx, 0, outcomp, ncomp, IntVect(0),
                        amrex::elemwiseMin(ngout,outmf.nGrowVect()), period);
 }
 
-template <typename T, Direction D, DomainStrategy S>
+template <typename T, Direction D>
 std::pair<Plan<T>, Plan<T>>
-R2C<T,D,S>::make_c2c_plans (cMF& inout)
+R2C<T,D>::make_c2c_plans (cMF& inout) const
 {
     Plan<T> fwd;
     Plan<T> bwd;
@@ -652,26 +671,28 @@ R2C<T,D,S>::make_c2c_plans (cMF& inout)
     Box const& box = fab->box();
     auto* pio = (typename Plan<T>::VendorComplex *)fab->dataPtr();
 
+    auto const ncomp = m_info.batch_size;
+
 #ifdef AMREX_USE_SYCL
-    fwd.template init_c2c<Direction::forward>(box, pio);
+    fwd.template init_c2c<Direction::forward>(box, pio, ncomp);
     bwd = fwd;
 #else
     if constexpr (D == Direction::both || D == Direction::forward) {
-        fwd.template init_c2c<Direction::forward>(box, pio);
+        fwd.template init_c2c<Direction::forward>(box, pio, ncomp);
     }
     if constexpr (D == Direction::both || D == Direction::backward) {
-        bwd.template init_c2c<Direction::backward>(box, pio);
+        bwd.template init_c2c<Direction::backward>(box, pio, ncomp);
     }
 #endif
 
     return {fwd, bwd};
 }
 
-template <typename T, Direction D, DomainStrategy S>
+template <typename T, Direction D>
 template <typename F>
-void R2C<T,D,S>::post_forward_doit_0 (F const& post_forward)
+void R2C<T,D>::post_forward_doit_0 (F const& post_forward)
 {
-    if (m_info.batch_mode) {
+    if (m_info.twod_mode || m_info.batch_size > 1) {
         amrex::Abort("xxxxx todo: post_forward");
 #if (AMREX_SPACEDIM > 1)
     } else if (m_r2c_sub) {
@@ -722,11 +743,11 @@ void R2C<T,D,S>::post_forward_doit_0 (F const& post_forward)
     }
 }
 
-template <typename T, Direction D, DomainStrategy S>
+template <typename T, Direction D>
 template <typename F>
-void R2C<T,D,S>::post_forward_doit_1 (F const& post_forward)
+void R2C<T,D>::post_forward_doit_1 (F const& post_forward)
 {
-    if (m_info.batch_mode) {
+    if (m_info.twod_mode || m_info.batch_size > 1) {
         amrex::Abort("xxxxx todo: post_forward");
     } else if (m_r2c_sub) {
         amrex::Abort("R2C::post_forward_doit_1: How did this happen?");
@@ -765,11 +786,11 @@ void R2C<T,D,S>::post_forward_doit_1 (F const& post_forward)
     }
 }
 
-template <typename T, Direction D, DomainStrategy S>
-T R2C<T,D,S>::scalingFactor () const
+template <typename T, Direction D>
+T R2C<T,D>::scalingFactor () const
 {
 #if (AMREX_SPACEDIM == 3)
-    if (m_info.batch_mode) {
+    if (m_info.twod_mode) {
         if (m_real_domain.length(2) > 1) {
             return T(1)/T(Long(m_real_domain.length(0)) *
                           Long(m_real_domain.length(1)));
@@ -783,11 +804,11 @@ T R2C<T,D,S>::scalingFactor () const
     }
 }
 
-template <typename T, Direction D, DomainStrategy S>
+template <typename T, Direction D>
 template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
                                           DIR == Direction::both, int> >
-std::pair<typename R2C<T,D,S>::cMF *, IntVect>
-R2C<T,D,S>::getSpectralData ()
+std::pair<typename R2C<T,D>::cMF *, IntVect>
+R2C<T,D>::getSpectralData ()
 {
 #if (AMREX_SPACEDIM > 1)
     if (m_r2c_sub) {
@@ -804,100 +825,116 @@ R2C<T,D,S>::getSpectralData ()
     }
 }
 
-template <typename T, Direction D, DomainStrategy S>
+template <typename T, Direction D>
 template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
                                           DIR == Direction::both, int> >
-void R2C<T,D,S>::forward (MF const& inmf, cMF& outmf)
+void R2C<T,D>::forward (MF const& inmf, cMF& outmf, int incomp, int outcomp)
 {
     BL_PROFILE("FFT::R2C::forward(inout)");
+
+    auto const ncomp = m_info.batch_size;
 
     if (m_r2c_sub)
     {
         bool inmf_safe = m_sub_helper.ghost_safe(inmf.nGrowVect());
         MF inmf_sub, inmf_tmp;
+        int incomp_sub;
         if (inmf_safe) {
             inmf_sub = m_sub_helper.make_alias_mf(inmf);
+            incomp_sub = incomp;
         } else {
-            inmf_tmp.define(inmf.boxArray(), inmf.DistributionMap(), 1, 0);
-            inmf_tmp.LocalCopy(inmf, 0, 0, 1, IntVect(0));
+            inmf_tmp.define(inmf.boxArray(), inmf.DistributionMap(), ncomp, 0);
+            inmf_tmp.LocalCopy(inmf, incomp, 0, ncomp, IntVect(0));
             inmf_sub = m_sub_helper.make_alias_mf(inmf_tmp);
+            incomp_sub = 0;
         }
 
         bool outmf_safe = m_sub_helper.ghost_safe(outmf.nGrowVect());
         cMF outmf_sub, outmf_tmp;
+        int outcomp_sub;
         if (outmf_safe) {
             outmf_sub = m_sub_helper.make_alias_mf(outmf);
+            outcomp_sub = outcomp;
         } else {
-            outmf_tmp.define(outmf.boxArray(), outmf.DistributionMap(), 1, 0);
+            outmf_tmp.define(outmf.boxArray(), outmf.DistributionMap(), ncomp, 0);
             outmf_sub = m_sub_helper.make_alias_mf(outmf_tmp);
+            outcomp_sub = 0;
         }
 
-        m_r2c_sub->forward(inmf_sub, outmf_sub);
+        m_r2c_sub->forward(inmf_sub, outmf_sub, incomp_sub, outcomp_sub);
 
         if (!outmf_safe) {
-            outmf.LocalCopy(outmf_tmp, 0, 0, 1, IntVect(0));
+            outmf.LocalCopy(outmf_tmp, 0, outcomp, ncomp, IntVect(0));
         }
     }
     else
     {
-        forward(inmf);
+        forward(inmf, incomp);
         if (!m_cz.empty()) { // m_cz's order (z,x,y) -> (x,y,z)
             RotateBwd dtos{};
             MultiBlockCommMetaData cmd
                 (outmf, m_spectral_domain_x, m_cz, IntVect(0), dtos);
-            ParallelCopy(outmf, m_cz, cmd, 0, 0, 1, dtos);
+            ParallelCopy(outmf, m_cz, cmd, 0, outcomp, ncomp, dtos);
         } else if (!m_cy.empty()) { // m_cy's order (y,x,z) -> (x,y,z)
             MultiBlockCommMetaData cmd
                 (outmf, m_spectral_domain_x, m_cy, IntVect(0), m_dtos_y2x);
-            ParallelCopy(outmf, m_cy, cmd, 0, 0, 1, m_dtos_y2x);
+            ParallelCopy(outmf, m_cy, cmd, 0, outcomp, ncomp, m_dtos_y2x);
         } else {
-            outmf.ParallelCopy(m_cx, 0, 0, 1);
+            outmf.ParallelCopy(m_cx, 0, outcomp, ncomp);
         }
     }
 }
 
-template <typename T, Direction D, DomainStrategy S>
+template <typename T, Direction D>
 template <Direction DIR, std::enable_if_t<DIR == Direction::backward ||
                                           DIR == Direction::both, int> >
-void R2C<T,D,S>::backward (cMF const& inmf, MF& outmf)
+void R2C<T,D>::backward (cMF const& inmf, MF& outmf, int incomp, int outcomp)
 {
-    backward_doit(inmf, outmf);
+    backward_doit(inmf, outmf, IntVect(0), Periodicity::NonPeriodic(), incomp, outcomp);
 }
 
-template <typename T, Direction D, DomainStrategy S>
-void R2C<T,D,S>::backward_doit (cMF const& inmf, MF& outmf, IntVect const& ngout,
-                                Periodicity const& period)
+template <typename T, Direction D>
+void R2C<T,D>::backward_doit (cMF const& inmf, MF& outmf, IntVect const& ngout,
+                              Periodicity const& period, int incomp, int outcomp)
 {
     BL_PROFILE("FFT::R2C::backward(inout)");
+
+    auto const ncomp = m_info.batch_size;
 
     if (m_r2c_sub)
     {
         bool inmf_safe = m_sub_helper.ghost_safe(inmf.nGrowVect());
         cMF inmf_sub, inmf_tmp;
+        int incomp_sub;
         if (inmf_safe) {
             inmf_sub = m_sub_helper.make_alias_mf(inmf);
+            incomp_sub = incomp;
         } else {
-            inmf_tmp.define(inmf.boxArray(), inmf.DistributionMap(), 1, 0);
-            inmf_tmp.LocalCopy(inmf, 0, 0, 1, IntVect(0));
+            inmf_tmp.define(inmf.boxArray(), inmf.DistributionMap(), ncomp, 0);
+            inmf_tmp.LocalCopy(inmf, incomp, 0, ncomp, IntVect(0));
             inmf_sub = m_sub_helper.make_alias_mf(inmf_tmp);
+            incomp_sub = 0;
         }
 
         bool outmf_safe = m_sub_helper.ghost_safe(outmf.nGrowVect());
         MF outmf_sub, outmf_tmp;
+        int outcomp_sub;
         if (outmf_safe) {
             outmf_sub = m_sub_helper.make_alias_mf(outmf);
+            outcomp_sub = outcomp;
         } else {
             IntVect const& ngtmp = m_sub_helper.make_safe_ghost(outmf.nGrowVect());
-            outmf_tmp.define(outmf.boxArray(), outmf.DistributionMap(), 1, ngtmp);
+            outmf_tmp.define(outmf.boxArray(), outmf.DistributionMap(), ncomp, ngtmp);
             outmf_sub = m_sub_helper.make_alias_mf(outmf_tmp);
+            outcomp_sub = 0;
         }
 
         IntVect const& subngout = m_sub_helper.make_iv(ngout);
         Periodicity const& subperiod = m_sub_helper.make_periodicity(period);
-        m_r2c_sub->backward_doit(inmf_sub, outmf_sub, subngout, subperiod);
+        m_r2c_sub->backward_doit(inmf_sub, outmf_sub, subngout, subperiod, incomp_sub, outcomp_sub);
 
         if (!outmf_safe) {
-            outmf.LocalCopy(outmf_tmp, 0, 0, 1, outmf_tmp.nGrowVect());
+            outmf.LocalCopy(outmf_tmp, 0, outcomp, ncomp, outmf_tmp.nGrowVect());
         }
     }
     else
@@ -906,21 +943,21 @@ void R2C<T,D,S>::backward_doit (cMF const& inmf, MF& outmf, IntVect const& ngout
             RotateFwd dtos{};
             MultiBlockCommMetaData cmd
                 (m_cz, m_spectral_domain_z, inmf, IntVect(0), dtos);
-            ParallelCopy(m_cz, inmf, cmd, 0, 0, 1, dtos);
+            ParallelCopy(m_cz, inmf, cmd, incomp, 0, ncomp, dtos);
         } else if (!m_cy.empty()) { // (x,y,z) -> m_cy's ordering (y,x,z)
             MultiBlockCommMetaData cmd
                 (m_cy, m_spectral_domain_y, inmf, IntVect(0), m_dtos_x2y);
-            ParallelCopy(m_cy, inmf, cmd, 0, 0, 1, m_dtos_x2y);
+            ParallelCopy(m_cy, inmf, cmd, incomp, 0, ncomp, m_dtos_x2y);
         } else {
-            m_cx.ParallelCopy(inmf, 0, 0, 1);
+            m_cx.ParallelCopy(inmf, incomp, 0, ncomp);
         }
-        backward_doit(outmf, ngout, period);
+        backward_doit(outmf, ngout, period, outcomp);
     }
 }
 
-template <typename T, Direction D, DomainStrategy S>
+template <typename T, Direction D>
 std::pair<BoxArray,DistributionMapping>
-R2C<T,D,S>::getSpectralDataLayout () const
+R2C<T,D>::getSpectralDataLayout () const
 {
 #if (AMREX_SPACEDIM > 1)
     if (m_r2c_sub) {
