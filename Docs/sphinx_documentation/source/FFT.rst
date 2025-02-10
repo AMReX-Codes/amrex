@@ -93,6 +93,14 @@ in an :cpp:`FFT::Info` object passed to the constructor of
 
     r2c.backward(cmf, mf);
 
+.. _sec:FFT:c2c:
+
+FFT::C2C Class
+==============
+
+:cpp:`FFT::C2C` is a class template that supports complex to complex Fourier
+transforms. It has a similar interface as :cpp:`FFT::R2C`.
+
 .. _sec:FFT:localr2c:
 
 FFT::LocalR2C Class
