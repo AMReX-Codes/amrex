@@ -3,9 +3,10 @@
 
 namespace amrex {
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int j, int k, Array4<Real> const& slope,
-                                      Array4<Real const> const& u, int scomp, int ncomp,
+void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int j, int k, Array4<T> const& slope,
+                                      Array4<T const> const& u, int scomp, int ncomp,
                                       Box const& domain, IntVect const& ratio, BCRec const* bc) noexcept
 {
     Real sfx = Real(1.0);
@@ -107,9 +108,10 @@ void mf_cell_cons_lin_interp_limit_minmax_llslope (int i, int j, int k, Array4<R
     }
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mf_cell_cons_lin_interp_llslope (int i, int j, int k, Array4<Real> const& slope,
-                                      Array4<Real const> const& u, int scomp, int ncomp,
+void mf_cell_cons_lin_interp_llslope (int i, int j, int k, Array4<T> const& slope,
+                                      Array4<T const> const& u, int scomp, int ncomp,
                                       Box const& domain, IntVect const& ratio, BCRec const* bc) noexcept
 {
     Real sfx = Real(1.0);
@@ -174,9 +176,10 @@ void mf_cell_cons_lin_interp_llslope (int i, int j, int k, Array4<Real> const& s
     }
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mf_cell_cons_lin_interp_mcslope (int i, int j, int k, int ns, Array4<Real> const& slope,
-                                      Array4<Real const> const& u, int scomp, int ncomp,
+void mf_cell_cons_lin_interp_mcslope (int i, int j, int k, int ns, Array4<T> const& slope,
+                                      Array4<T const> const& u, int scomp, int ncomp,
                                       Box const& domain, IntVect const& ratio,
                                       BCRec const* bc) noexcept
 {
@@ -242,9 +245,10 @@ void mf_cell_cons_lin_interp_mcslope (int i, int j, int k, int ns, Array4<Real> 
     slope(i,j,k,ns+2*ncomp) = sz * alpha;
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mf_cell_cons_lin_interp (int i, int j, int k, int ns, Array4<Real> const& fine, int fcomp,
-                              Array4<Real const> const& slope, Array4<Real const> const& crse,
+void mf_cell_cons_lin_interp (int i, int j, int k, int ns, Array4<T> const& fine, int fcomp,
+                              Array4<T const> const& slope, Array4<T const> const& crse,
                               int ccomp, int ncomp, IntVect const& ratio) noexcept
 {
     const int ic = amrex::coarsen(i, ratio[0]);
@@ -304,9 +308,10 @@ void mf_cell_bilin_interp (int i, int j, int k, int n, Array4<T> const& fine, in
         crse(ic+sx,jc+sy,kc+sz,n+ccomp)*(Real(1.0)-wx)*(Real(1.0)-wy)*(Real(1.0)-wz);
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mf_nodebilin_interp (int i, int j, int k, int n, Array4<Real> const& fine, int fcomp,
-                          Array4<Real const> const& crse, int ccomp, IntVect const& ratio) noexcept
+void mf_nodebilin_interp (int i, int j, int k, int n, Array4<T> const& fine, int fcomp,
+                          Array4<T const> const& crse, int ccomp, IntVect const& ratio) noexcept
 {
     int ic = amrex::coarsen(i,ratio[0]);
     int jc = amrex::coarsen(j,ratio[1]);
@@ -367,10 +372,11 @@ void mf_nodebilin_interp (int i, int j, int k, int n, Array4<Real> const& fine, 
     }
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mf_cell_quadratic_calcslope (int i, int j, int k, int n,
-                                  Array4<Real const> const& crse,  int ccomp,
-                                  Array4<Real>       const& slope,
+                                  Array4<T const> const& crse,  int ccomp,
+                                  Array4<T>       const& slope,
                                   Box const& domain,
                                   BCRec const* bc) noexcept
 {
@@ -396,11 +402,12 @@ void mf_cell_quadratic_calcslope (int i, int j, int k, int n,
     slope(i,j,k,9*n+8) = syz; // yz
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mf_cell_quadratic_interp (int i, int j, int k, int n,
-                               Array4<Real>       const& fine,  int fcomp,
-                               Array4<Real const> const& crse,  int ccomp,
-                               Array4<Real const> const& slope,
+                               Array4<T>       const& fine,  int fcomp,
+                               Array4<T const> const& crse,  int ccomp,
+                               Array4<T const> const& slope,
                                IntVect const& ratio) noexcept
 {
     int ic = amrex::coarsen(i, ratio[0]);
