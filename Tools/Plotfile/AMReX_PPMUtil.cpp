@@ -20,6 +20,7 @@ int loadPalette (const std::string& filename,
     FILE* fp = std::fopen(filename.c_str(), "rb");
     if (!fp) {
         amrex::Abort("loadPalette: cannot open "+filename);
+        return 0;
     }
 
     std::fseek(fp, 0, SEEK_END);

@@ -282,7 +282,6 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                   const FArrayBox& fab  = mf[grid];
                   auto uccarr = fab.array();
 
-                  amrex::Array4<amrex::Real const>* uccarr_ptr = &uccarr;
 #ifdef AMREX_USE_GPU
                   std::unique_ptr<FArrayBox> hostfab;
                   {
@@ -291,8 +290,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                       Gpu::dtoh_memcpy_async(hostfab->dataPtr(), fab.dataPtr(),
                                              fab.size()*sizeof(Real));
                       Gpu::streamSynchronize();
-                      auto hostarr = hostfab->const_array();
-                      uccarr_ptr = &hostarr;
+                      uccarr = hostfab->const_array();
                   }
 #endif
 
@@ -322,7 +320,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                       if (M > 0)
                         {
-                          cic_interpolate(p, plo, dxi, *uccarr_ptr, vals.data(), M);
+                          cic_interpolate(p, plo, dxi, uccarr, vals.data(), M);
 
                           for (int i = 0; i < M; i++)
                             {

@@ -530,7 +530,7 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
 }
 
 template <typename T, Direction D, bool C>
-R2C<T,D,C>::~R2C<T,D,C> ()
+R2C<T,D,C>::~R2C ()
 {
     if (m_fft_bwd_x.plan != m_fft_fwd_x.plan) {
         m_fft_bwd_x.destroy();

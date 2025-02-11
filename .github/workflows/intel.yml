@@ -159,7 +159,7 @@ jobs:
 
   no-tests-oneapi-sycl-amd:
     name: oneAPI SYCL for AMD GPUs
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:

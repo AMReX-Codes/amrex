@@ -11,25 +11,25 @@ jobs:
     uses: ./.github/workflows/check_changes.yml
 
   compile-hypre-cuda-eb-2d:
-    name: CUDA EB 2D Hypre@2.26.0
-    runs-on: ubuntu-20.04
+    name: CUDA EB 2D Hypre@2.32.0
+    runs-on: ubuntu-22.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     env:
-      AMREX_HYPRE_HOME: ${HOME}/.cache/hypre-2.26.0-cuda
+      AMREX_HYPRE_HOME: ${HOME}/.cache/hypre-2.32.0-cuda
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc.sh 11.2
-        sudo apt-get install -y libcublas-dev-11-2 libcusparse-dev-11-2
+        .github/workflows/dependencies/dependencies_nvcc.sh 12.0
+        sudo apt-get install -y libcublas-dev-12.0
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v4
       with:
         path: |
           ~/.cache/ccache
-          ~/.cache/hypre-2.26.0-cuda
+          ~/.cache/hypre-2.32.0-cuda
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -37,9 +37,9 @@ jobs:
       run: |
         if [ ! -d "${{ env.AMREX_HYPRE_HOME }}" ]
         then
-          wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.26.0.tar.gz
-          tar xfz v2.26.0.tar.gz
-          cd hypre-2.26.0/src
+          wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.32.0.tar.gz
+          tar xfz v2.32.0.tar.gz
+          cd hypre-2.32.0/src
           ./configure --with-cxxstandard=17 --with-cuda --enable-unified-memory \
               --with-cuda-home=/usr/local/cuda --with-gpu-arch="80" \
               --prefix=${{ env.AMREX_HYPRE_HOME }}

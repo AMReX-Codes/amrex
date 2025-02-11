@@ -33,7 +33,9 @@ sudo apt-key add rocm.gpg.key
 
 source /etc/os-release # set UBUNTU_CODENAME: focal or jammy or ...
 
-echo "deb [arch=amd64] https://repo.radeon.com/rocm/apt/${1-latest} ${UBUNTU_CODENAME} main" \
+VERSION=${1-6.3.2}
+
+echo "deb [arch=amd64] https://repo.radeon.com/rocm/apt/${VERSION} ${UBUNTU_CODENAME} main" \
   | sudo tee /etc/apt/sources.list.d/rocm.list
 echo 'export PATH=/opt/rocm/llvm/bin:/opt/rocm/bin:/opt/rocm/profiler/bin:/opt/rocm/opencl/bin:$PATH' \
   | sudo tee -a /etc/profile.d/rocm.sh
@@ -53,16 +55,16 @@ sudo apt-get install -y --no-install-recommends \
     libnuma-dev     \
     libopenmpi-dev  \
     openmpi-bin     \
-    rocm-dev        \
-    roctracer-dev   \
-    rocprofiler-dev \
-    rocrand-dev     \
-    rocfft-dev      \
-    rocprim-dev     \
-    rocsparse-dev
+    rocm-dev${VERSION}        \
+    roctracer-dev${VERSION}   \
+    rocprofiler-dev${VERSION} \
+    rocrand-dev${VERSION}     \
+    rocfft-dev${VERSION}      \
+    rocprim-dev${VERSION}     \
+    rocsparse-dev${VERSION}
 
 # hiprand-dev is a new package that does not exist in old versions
-sudo apt-get install -y --no-install-recommends hiprand-dev || true
+sudo apt-get install -y --no-install-recommends hiprand-dev${VERSION} || true
 
 # activate
 #

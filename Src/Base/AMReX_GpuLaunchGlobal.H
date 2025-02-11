@@ -4,6 +4,11 @@
 
 #include <AMReX_GpuQualifiers.H>
 
+#if defined(AMREX_USE_CUDA) && defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 namespace amrex {
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
@@ -21,5 +26,9 @@ namespace amrex {
 #endif
 
 }
+
+#if defined(AMREX_USE_CUDA) && defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif
