@@ -55,14 +55,12 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     endif ()
 
     if (AMReX_LINEAR_SOLVERS_EM)
-       if (NOT D EQUAL 1 AND AMReX_LINEAR_SOLVERS_EM)
-          target_sources(amrex_${D}d
-             PRIVATE
-             MLMG/AMReX_MLCurlCurl.H
-             MLMG/AMReX_MLCurlCurl.cpp
-             MLMG/AMReX_MLCurlCurl_K.H
-             )
-       endif ()
+       target_sources(amrex_${D}d
+          PRIVATE
+          MLMG/AMReX_MLCurlCurl.H
+          MLMG/AMReX_MLCurlCurl.cpp
+          MLMG/AMReX_MLCurlCurl_K.H
+          )
 
        target_sources(amrex_${D}d
           PRIVATE
