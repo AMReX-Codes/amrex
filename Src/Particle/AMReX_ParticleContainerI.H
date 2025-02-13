@@ -1754,7 +1754,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             particles_to_send.resize(new_size);
                             std::memcpy(&particles_to_send[old_size], &p, particle_size);
                             char* dst = &particles_to_send[old_size] + particle_size;
-                            int array_comp_start = AMREX_SPACEDIM + NStructReal;
+                            int array_comp_start = 0;
+                            if constexpr (!ParticleType::is_soa_particle) {
+                                array_comp_start = AMREX_SPACEDIM + NStructReal;
+                            }
                             for (int comp = 0; comp < NumRealComps(); comp++) {
                                 if (h_redistribute_real_comp[array_comp_start + comp]) {
                                     std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
@@ -1878,7 +1881,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                 std::memcpy(dst, &soa.GetIdCPUData()[pindex], sizeof(uint64_t));
                                 dst += sizeof(uint64_t);
                             }
-                            int array_comp_start = AMREX_SPACEDIM + NStructReal;
+                            int array_comp_start = 0;
+                            if constexpr (!ParticleType::is_soa_particle) {
+                                array_comp_start = AMREX_SPACEDIM + NStructReal;
+                            }
                             for (int comp = 0; comp < NumRealComps(); comp++) {
                                 if (h_redistribute_real_comp[array_comp_start + comp]) {
                                     std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
@@ -2279,7 +2285,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                     ptile.push_back(p);
                 }
 
-                int array_comp_start = AMREX_SPACEDIM + NStructReal;
+                int array_comp_start = 0;
+                if constexpr (!ParticleType::is_soa_particle) {
+                    array_comp_start = AMREX_SPACEDIM + NStructReal;
+                }
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (h_redistribute_real_comp[array_comp_start + comp]) {
                         ParticleReal rdata;
@@ -2357,7 +2366,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 host_int_attribs[lev][ind].resize(NumIntComps());
 
                 // add the real...
-                int array_comp_start = AMREX_SPACEDIM + NStructReal;
+                int array_comp_start = 0;
+                if constexpr (!ParticleType::is_soa_particle) {
+                    array_comp_start = AMREX_SPACEDIM + NStructReal;
+                }
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (h_redistribute_real_comp[array_comp_start + comp]) {
                         Real rdata;
