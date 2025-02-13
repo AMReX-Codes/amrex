@@ -199,9 +199,7 @@ public:
     //!  of a level hierarchy. Must be properly initialized later.
     ParticleContainer_impl ()
       :
-      ParticleContainerBase(),
-      h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-      h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
+      ParticleContainerBase()
     {
         Initialize ();
     }
@@ -215,9 +213,7 @@ public:
     //!
     ParticleContainer_impl (ParGDBBase* gdb)
         :
-        ParticleContainerBase(gdb),
-        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
+        ParticleContainerBase(gdb)
     {
         Initialize ();
         ParticleContainer_impl::reserveData();
@@ -235,9 +231,7 @@ public:
                             const DistributionMapping & dmap,
                             const BoxArray            & ba)
         :
-        ParticleContainerBase(geom, dmap, ba),
-        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
+        ParticleContainerBase(geom, dmap, ba)
     {
         Initialize ();
         ParticleContainer_impl::reserveData();
@@ -258,9 +252,7 @@ public:
                             const Vector<BoxArray>            & ba,
                             const Vector<int>                 & rr)
         :
-        ParticleContainerBase(geom, dmap, ba, rr),
-        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
+        ParticleContainerBase(geom, dmap, ba, rr)
     {
         Initialize ();
         ParticleContainer_impl::reserveData();
@@ -280,9 +272,7 @@ public:
                             const Vector<BoxArray>            & ba,
                             const Vector<IntVect>             & rr)
         :
-        ParticleContainerBase(geom, dmap, ba, rr),
-        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
+        ParticleContainerBase(geom, dmap, ba, rr)
     {
         Initialize ();
         ParticleContainer_impl::reserveData();

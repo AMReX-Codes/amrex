@@ -16,7 +16,10 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::SetParticleSize ()
 {
     num_real_comm_comps  = 0;
-    int comm_comps_start = AMREX_SPACEDIM + NStructReal;
+    int comm_comps_start = 0;
+    if constexpr (!ParticleType::is_soa_particle) {
+        comm_comps_start += AMREX_SPACEDIM + NStructReal;
+    }
     for (int i = comm_comps_start; i < comm_comps_start + NumRealComps(); ++i) {
         if (h_redistribute_real_comp[i]) {++num_real_comm_comps;}
     }
@@ -44,6 +47,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     levelDirectoriesCreated = false;
     usePrePost = false;
     doUnlink = true;
+
+    // by default communicate all components
+   if constexpr (ParticleType::is_soa_particle)
+   {
+       h_redistribute_real_comp.resize(NArrayReal, true);
+   } else {
+       h_redistribute_real_comp.resize(AMREX_SPACEDIM + NStructReal + NArrayReal, true);
+   }
+   h_redistribute_int_comp.resize(2 + NStructInt + NArrayInt, true);
 
     SetParticleSize();
 
