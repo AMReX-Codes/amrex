@@ -208,13 +208,6 @@ Device::Initialize ()
         device_id = 0;
     }
     else {
-        if (amrex::Verbose() && ParallelDescriptor::IOProcessor()) {
-            if ((Machine::name() != "nersc.perlmutter") &&
-                (Machine::name() != "olcf.frontier"))
-            {
-                amrex::Warning("Multiple GPUs are visible to each MPI rank. This is usually not an issue. But this may lead to incorrect or suboptimal rank-to-GPU mapping.");
-            }
-        }
         if (ParallelDescriptor::NProcsPerNode() == gpu_device_count) {
             device_id = ParallelDescriptor::MyRankInNode();
         } else if (ParallelDescriptor::NProcsPerProcessor() == gpu_device_count) {
@@ -228,12 +221,22 @@ Device::Initialize ()
         if (Machine::name() == "nersc.perlmutter") {
             // The CPU/GPU mapping on perlmutter has the reverse order.
             device_id = gpu_device_count - device_id - 1;
+            if (amrex::Verbose()) {
+                amrex::Print() << "Multiple GPUs are visible to each MPI rank. Fixing GPU assignment for Perlmuuter according to heuristics.\n";
+            }
         } else if (Machine::name() == "olcf.frontier") {
             // The CPU/GPU mapping on fronter is documented at
             // https://docs.olcf.ornl.gov/systems/frontier_user_guide.html
             if (gpu_device_count == 8) {
                 constexpr std::array<int,8> gpu_order = {4,5,2,3,6,7,0,1};
                 device_id = gpu_order[device_id];
+                if (amrex::Verbose()) {
+                    amrex::Print() << "Multiple GPUs are visible to each MPI rank. Fixing GPU assignment for Frontier according to heuristics.\n";
+                }
+            }
+        } else {
+            if (amrex::Verbose() && ParallelDescriptor::IOProcessor()) {
+                amrex::Warning("Multiple GPUs are visible to each MPI rank. This is usually not an issue. But this may lead to incorrect or suboptimal rank-to-GPU mapping.");
             }
         }
     }
