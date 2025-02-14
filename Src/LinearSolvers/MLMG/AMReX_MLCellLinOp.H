@@ -144,9 +144,7 @@ public:
 
     Vector<std::unique_ptr<MF> > m_robin_bcval;
 
-#ifdef AMREX_USE_HYPRE
     void setInterpBndryHalfWidth (int w) { m_interpbndry_halfwidth = w; }
-#endif
 
 protected:
 
