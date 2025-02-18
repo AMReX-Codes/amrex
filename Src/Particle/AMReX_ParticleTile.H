@@ -135,9 +135,9 @@ struct ParticleTileData
             dst += sizeof(uint64_t);
         }
         int array_start_index = 0;
-	if constexpr (!ParticleType::is_soa_particle) {
-	    array_start_index = AMREX_SPACEDIM + NStructReal;
-	}
+    if constexpr (!ParticleType::is_soa_particle) {
+        array_start_index = AMREX_SPACEDIM + NStructReal;
+    }
         for (int i = 0; i < NAR; ++i)
         {
             if (comm_real[array_start_index + i])
@@ -189,9 +189,9 @@ struct ParticleTileData
             src += sizeof(uint64_t);
         }
         int array_start_index = 0;
-	if constexpr (!ParticleType::is_soa_particle) {
-	    array_start_index = AMREX_SPACEDIM + NStructReal;
-	}
+    if constexpr (!ParticleType::is_soa_particle) {
+        array_start_index = AMREX_SPACEDIM + NStructReal;
+    }
         for (int i = 0; i < NAR; ++i)
         {
             if (comm_real[array_start_index + i])
@@ -602,9 +602,9 @@ struct ConstParticleTileData
             dst += sizeof(uint64_t);
         }
         int array_start_index = 0;
-	if constexpr (!ParticleType::is_soa_particle) {
-	    array_start_index = AMREX_SPACEDIM + NStructReal;
-	}
+    if constexpr (!ParticleType::is_soa_particle) {
+        array_start_index = AMREX_SPACEDIM + NStructReal;
+    }
         for (int i = 0; i < NArrayReal; ++i)
         {
             if (comm_real[array_start_index + i])
