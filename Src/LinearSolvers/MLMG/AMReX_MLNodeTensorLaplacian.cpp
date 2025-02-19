@@ -219,7 +219,6 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
     {
         mlndtslap_adotx(i,j,k, out_a[box_no], in_a[box_no], dmsk_a[box_no], s);
     });
-    Gpu::streamSynchronize();
 #endif
 }
 
@@ -261,7 +260,6 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
             mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
         }
     });
-    Gpu::streamSynchronize();
 #endif
 }
 

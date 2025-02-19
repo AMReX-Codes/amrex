@@ -302,8 +302,6 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 
     AMREX_ASSERT(!isBottomSingular());
 
-    Gpu::streamSynchronize();
-
 #if (AMREX_SPACEDIM == 2)
     if (m_rz) {
         if (m_geom[0][0].ProbLo(0) == 0._rt) {
