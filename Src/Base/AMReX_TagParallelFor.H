@@ -303,7 +303,7 @@ ParallelFor_doit (TagVector<TagType> const& tv, F && f)
     const auto d_nwarps = tv.d_nwarps;
     const auto ntags = tv.ntags;
     const auto ntotwarps = tv.ntotwarps;
-    constexpr auto nthreads = tv.nthreads;
+    constexpr auto nthreads = TagVector<TagType>::nthreads;
 
     amrex::launch(tv.nblocks, nthreads, Gpu::gpuStream(),
 #ifdef AMREX_USE_SYCL
