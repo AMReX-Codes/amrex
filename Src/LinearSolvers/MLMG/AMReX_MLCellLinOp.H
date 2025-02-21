@@ -15,6 +15,9 @@
 
 namespace amrex {
 
+template <typename T>
+struct MLMGABCTag;
+
 template <typename MF>
 class MLCellLinOpT  // NOLINT(cppcoreguidelines-virtual-class-destructor)
     : public MLLinOpT<MF>
@@ -83,7 +86,7 @@ public:
     void apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndryT<MF>* bndry=nullptr) const override;
     void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
-                         bool skip_fillboundary=false) const final;
+                         bool skip_fillboundary=false, int niter=1) const final;
 
     void solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
                                    const MF* crse_bcdata=nullptr) override;
@@ -219,6 +222,9 @@ private:
 
     void computeVolInv () const;
     mutable Vector<Vector<RT> > m_volinv; // used by solvability fix
+
+    mutable TagVector<MLMGABCTag<RT>> m_bc_tag_vector;
+    mutable bool m_reuse_bc_tag_vector = false;
 
     int m_interpbndry_halfwidth = 2;
 };
@@ -728,37 +734,41 @@ MLCellLinOpT<MF>::applyBC (int amrlev, int mglev, MF& in, BCMode bc_mode, StateM
 #ifdef AMREX_USE_GPU
     if ((cross || tensorop) && Gpu::inLaunchRegion())
     {
-        Vector<MLMGABCTag<RT>> tags;
-        tags.reserve(in.local_size()*AMREX_SPACEDIM*ncomp);
 
-        for (MFIter mfi(in); mfi.isValid(); ++mfi) {
-            const Box& vbx = mfi.validbox();
-            const auto& iofab = in.array(mfi);
-            const auto & bdlv = bcondloc.bndryLocs(mfi);
-            const auto & bdcv = bcondloc.bndryConds(mfi);
+        if (!m_reuse_bc_tag_vector || !m_bc_tag_vector.is_defined()) {
+            Vector<MLMGABCTag<RT>> tags;
+            tags.reserve(in.local_size()*AMREX_SPACEDIM*ncomp);
 
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if (idim != hidden_direction) {
-                    const Orientation olo(idim,Orientation::low);
-                    const Orientation ohi(idim,Orientation::high);
-                    const auto& bvlo = (bndry != nullptr) ?
-                        bndry->bndryValues(olo).const_array(mfi) : foo;
-                    const auto& bvhi = (bndry != nullptr) ?
-                        bndry->bndryValues(ohi).const_array(mfi) : foo;
-                    for (int icomp = 0; icomp < ncomp; ++icomp) {
-                        tags.emplace_back(MLMGABCTag<RT>{iofab, bvlo, bvhi,
-                                                 maskvals[olo].const_array(mfi),
-                                                 maskvals[ohi].const_array(mfi),
-                                                 bdlv[icomp][olo], bdlv[icomp][ohi],
-                                                 amrex::adjCell(vbx,olo),
-                                                 bdcv[icomp][olo], bdcv[icomp][ohi],
-                                                 vbx.length(idim), icomp, idim});
+            for (MFIter mfi(in); mfi.isValid(); ++mfi) {
+                const Box& vbx = mfi.validbox();
+                const auto& iofab = in.array(mfi);
+                const auto & bdlv = bcondloc.bndryLocs(mfi);
+                const auto & bdcv = bcondloc.bndryConds(mfi);
+
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (idim != hidden_direction) {
+                        const Orientation olo(idim,Orientation::low);
+                        const Orientation ohi(idim,Orientation::high);
+                        const auto& bvlo = (bndry != nullptr) ?
+                            bndry->bndryValues(olo).const_array(mfi) : foo;
+                        const auto& bvhi = (bndry != nullptr) ?
+                            bndry->bndryValues(ohi).const_array(mfi) : foo;
+                        for (int icomp = 0; icomp < ncomp; ++icomp) {
+                            tags.emplace_back(MLMGABCTag<RT>{iofab, bvlo, bvhi,
+                                                    maskvals[olo].const_array(mfi),
+                                                    maskvals[ohi].const_array(mfi),
+                                                    bdlv[icomp][olo], bdlv[icomp][ohi],
+                                                    amrex::adjCell(vbx,olo),
+                                                    bdcv[icomp][olo], bdcv[icomp][ohi],
+                                                    vbx.length(idim), icomp, idim});
+                        }
                     }
                 }
             }
+            m_bc_tag_vector.define(tags);
         }
 
-        ParallelFor(tags,
+        ParallelFor(m_bc_tag_vector,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, MLMGABCTag<RT> const& tag) noexcept
         {
             if (tag.dir == 0)
@@ -795,6 +805,11 @@ MLCellLinOpT<MF>::applyBC (int amrlev, int mglev, MF& in, BCMode bc_mode, StateM
 #endif
 #endif
         });
+
+        if (!m_reuse_bc_tag_vector) {
+            m_bc_tag_vector.undefine();
+        }
+
     } else
 #endif
     if (cross || tensorop)
@@ -1211,16 +1226,24 @@ MLCellLinOpT<MF>::apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
 template <typename MF>
 void
 MLCellLinOpT<MF>::smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
-                          bool skip_fillboundary) const
+                          bool skip_fillboundary, int niter) const
 {
     BL_PROFILE("MLCellLinOp::smooth()");
-    for (int redblack = 0; redblack < 2; ++redblack)
-    {
-        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Solution,
-                nullptr, skip_fillboundary);
-        Fsmooth(amrlev, mglev, sol, rhs, redblack);
-        skip_fillboundary = false;
+
+    m_reuse_bc_tag_vector = true;
+
+    for (int i = 0; i < niter; ++i) {
+        for (int redblack = 0; redblack < 2; ++redblack)
+        {
+            applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Solution,
+                    nullptr, skip_fillboundary);
+            Fsmooth(amrlev, mglev, sol, rhs, redblack);
+            skip_fillboundary = false;
+        }
     }
+
+    m_reuse_bc_tag_vector = false;
+    m_bc_tag_vector.undefine();
 }
 
 template <typename MF>

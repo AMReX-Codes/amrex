@@ -101,27 +101,130 @@ struct VectorTag {
     Long size () const noexcept { return m_size; }
 };
 
+namespace detail {
+
+    template <typename T>
+    std::enable_if_t<std::is_same<std::decay_t<decltype(std::declval<T>().box())>, Box>::value,
+                     Long>
+    get_tag_size (T const& tag) noexcept
+    {
+        AMREX_ASSERT(tag.box().numPts() < Long(std::numeric_limits<int>::max()));
+        return static_cast<int>(tag.box().numPts());
+    }
+
+    template <typename T>
+    std::enable_if_t<std::is_integral<std::decay_t<decltype(std::declval<T>().size())> >::value,
+                     Long>
+    get_tag_size (T const& tag) noexcept
+    {
+        AMREX_ASSERT(tag.size() < Long(std::numeric_limits<int>::max()));
+        return tag.size();
+    }
+
+}
+
+template <class TagType>
+struct TagVector {
+
+    char* h_buffer = nullptr;
+    char* d_buffer = nullptr;
+    TagType* d_tags =  nullptr;
+    int* d_nwarps = nullptr;
+    int ntags = 0;
+    int ntotwarps = 0;
+    int nblocks = 0;
+    bool defined = false;
+    static constexpr int nthreads = 256;
+
+    TagVector () = default;
+
+    TagVector (Vector<TagType> const& tags) {
+        define(tags);
+    }
+
+    ~TagVector () {
+        if (defined) {
+            undefine();
+        }
+    }
+
+    TagVector (const TagVector& other) = delete;
+    TagVector (TagVector&& other) = default;
+    TagVector& operator= (const TagVector& other) = delete;
+    TagVector& operator= (TagVector&& other) = default;
+
+    bool is_defined () const { return defined; }
+
+    void define (Vector<TagType> const& tags) {
+        if (defined) {
+            undefine();
+        }
+
+        ntags = tags.size();
+        if (ntags == 0) {
+            defined = true;
+            return;
+        }
+
+        Long l_ntotwarps = 0;
+        ntotwarps = 0;
+        Vector<int> nwarps;
+        nwarps.reserve(ntags+1);
+        for (int i = 0; i < ntags; ++i)
+        {
+            auto& tag = tags[i];
+            nwarps.push_back(ntotwarps);
+            auto nw = (detail::get_tag_size(tag) + Gpu::Device::warp_size-1) /
+                Gpu::Device::warp_size;
+            l_ntotwarps += nw;
+            ntotwarps += static_cast<int>(nw);
+        }
+        nwarps.push_back(ntotwarps);
+
+        std::size_t sizeof_tags = ntags*sizeof(TagType);
+        std::size_t offset_nwarps = Arena::align(sizeof_tags);
+        std::size_t sizeof_nwarps = (ntags+1)*sizeof(int);
+        std::size_t total_buf_size = offset_nwarps + sizeof_nwarps;
+
+        h_buffer = (char*)The_Pinned_Arena()->alloc(total_buf_size);
+        d_buffer = (char*)The_Arena()->alloc(total_buf_size);
+
+        std::memcpy(h_buffer, tags.data(), sizeof_tags);
+        std::memcpy(h_buffer+offset_nwarps, nwarps.data(), sizeof_nwarps);
+        Gpu::htod_memcpy_async(d_buffer, h_buffer, total_buf_size);
+
+        d_tags = reinterpret_cast<TagType*>(d_buffer);
+        d_nwarps = reinterpret_cast<int*>(d_buffer+offset_nwarps);
+
+        constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
+        nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
+
+        defined = true;
+
+        amrex::ignore_unused(l_ntotwarps);
+        AMREX_ALWAYS_ASSERT(l_ntotwarps+nwarps_per_block-1 < Long(std::numeric_limits<int>::max()));
+    }
+
+    void undefine () {
+        if (defined) {
+            Gpu::streamSynchronize();
+            The_Pinned_Arena()->free(h_buffer);
+            The_Arena()->free(d_buffer);
+            h_buffer = nullptr;
+            d_buffer = nullptr;
+            d_tags = nullptr;
+            d_nwarps = nullptr;
+            ntags = 0;
+            ntotwarps = 0;
+            nblocks = 0;
+            defined = false;
+        }
+    }
+};
+
 #ifdef AMREX_USE_GPU
 
 namespace detail {
-
-template <typename T>
-std::enable_if_t<std::is_same<std::decay_t<decltype(std::declval<T>().box())>, Box>::value,
-                 Long>
-get_tag_size (T const& tag) noexcept
-{
-    AMREX_ASSERT(tag.box().numPts() < Long(std::numeric_limits<int>::max()));
-    return static_cast<int>(tag.box().numPts());
-}
-
-template <typename T>
-std::enable_if_t<std::is_integral<std::decay_t<decltype(std::declval<T>().size())> >::value,
-                 Long>
-get_tag_size (T const& tag) noexcept
-{
-    AMREX_ASSERT(tag.size() < Long(std::numeric_limits<int>::max()));
-    return tag.size();
-}
 
 template <typename T, typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -167,48 +270,19 @@ tagparfor_call_f (
 
 template <class TagType, class F>
 void
-ParallelFor_doit (Vector<TagType> const& tags, F && f)
+ParallelFor_doit (TagVector<TagType> const& tv, F && f)
 {
-    const int ntags = tags.size();
-    if (ntags == 0) { return; }
+    AMREX_ALWAYS_ASSERT(tv.is_defined());
 
-    Long l_ntotwarps = 0;
-    int ntotwarps = 0;
-    Vector<int> nwarps;
-    nwarps.reserve(ntags+1);
-    for (int i = 0; i < ntags; ++i)
-    {
-        auto& tag = tags[i];
-        nwarps.push_back(ntotwarps);
-        auto nw = (get_tag_size(tag) + Gpu::Device::warp_size-1) / Gpu::Device::warp_size;
-        l_ntotwarps += nw;
-        ntotwarps += static_cast<int>(nw);
-    }
-    nwarps.push_back(ntotwarps);
+    if (tv.ntags == 0) { return; }
 
-    std::size_t sizeof_tags = ntags*sizeof(TagType);
-    std::size_t offset_nwarps = Arena::align(sizeof_tags);
-    std::size_t sizeof_nwarps = (ntags+1)*sizeof(int);
-    std::size_t total_buf_size = offset_nwarps + sizeof_nwarps;
+    auto d_tags = tv.d_tags;
+    auto d_nwarps = tv.d_nwarps;
+    auto ntags = tv.ntags;
+    auto ntotwarps = tv.ntotwarps;
+    constexpr auto nthreads = tv.nthreads;
 
-    char* h_buffer = (char*)The_Pinned_Arena()->alloc(total_buf_size);
-    char* d_buffer = (char*)The_Arena()->alloc(total_buf_size);
-
-    std::memcpy(h_buffer, tags.data(), sizeof_tags);
-    std::memcpy(h_buffer+offset_nwarps, nwarps.data(), sizeof_nwarps);
-    Gpu::htod_memcpy_async(d_buffer, h_buffer, total_buf_size);
-
-    auto d_tags = reinterpret_cast<TagType*>(d_buffer);
-    auto d_nwarps = reinterpret_cast<int*>(d_buffer+offset_nwarps);
-
-    constexpr int nthreads = 256;
-    constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
-    int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
-
-    amrex::ignore_unused(l_ntotwarps);
-    AMREX_ASSERT(l_ntotwarps+nwarps_per_block-1 < Long(std::numeric_limits<int>::max()));
-
-    amrex::launch(nblocks, nthreads, Gpu::gpuStream(),
+    amrex::launch(tv.nblocks, nthreads, Gpu::gpuStream(),
 #ifdef AMREX_USE_SYCL
     [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
     [[sycl::reqd_work_group_size(nthreads)]]
@@ -241,10 +315,6 @@ ParallelFor_doit (Vector<TagType> const& tags, F && f)
         tagparfor_call_f(      icell, d_tags[tag_id], f);
 #endif
     });
-
-    Gpu::streamSynchronize();
-    The_Pinned_Arena()->free(h_buffer);
-    The_Arena()->free(d_buffer);
 }
 
 }
@@ -252,9 +322,65 @@ ParallelFor_doit (Vector<TagType> const& tags, F && f)
 template <class TagType, class F>
 std::enable_if_t<std::is_same<std::decay_t<decltype(std::declval<TagType>().box())>,
                               Box>::value>
+ParallelFor (TagVector<TagType> const& tv, int ncomp, F && f)
+{
+    detail::ParallelFor_doit(tv,
+        [=] AMREX_GPU_DEVICE (
+#ifdef AMREX_USE_SYCL
+            sycl::nd_item<1> const& /*item*/,
+#endif
+            int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
+        {
+            if (icell < ncells) {
+                for (int n = 0; n < ncomp; ++n) {
+                    f(i,j,k,n,tag);
+                }
+            }
+        });
+}
+
+template <class TagType, class F>
+std::enable_if_t<std::is_same<std::decay_t<decltype(std::declval<TagType>().box())>, Box>::value, void>
+ParallelFor (TagVector<TagType> const& tv, F && f)
+{
+    detail::ParallelFor_doit(tv,
+        [=] AMREX_GPU_DEVICE (
+#ifdef AMREX_USE_SYCL
+            sycl::nd_item<1> const& /*item*/,
+#endif
+            int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
+        {
+            if (icell < ncells) {
+                f(i,j,k,tag);
+            }
+        });
+}
+
+template <class TagType, class F>
+std::enable_if_t<std::is_integral<std::decay_t<decltype(std::declval<TagType>().size())> >::value, void>
+ParallelFor (TagVector<TagType> const& tv, F && f)
+{
+    detail::ParallelFor_doit(tv,
+        [=] AMREX_GPU_DEVICE (
+#ifdef AMREX_USE_SYCL
+            sycl::nd_item<1> const& /*item*/,
+#endif
+            int icell, int ncells, TagType const& tag) noexcept
+        {
+            if (icell < ncells) {
+                f(icell,tag);
+            }
+        });
+}
+
+template <class TagType, class F>
+std::enable_if_t<std::is_same<std::decay_t<decltype(std::declval<TagType>().box())>,
+                              Box>::value>
 ParallelFor (Vector<TagType> const& tags, int ncomp, F && f)
 {
-    detail::ParallelFor_doit(tags,
+    TagVector<TagType> tv{tags};
+
+    detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
 #ifdef AMREX_USE_SYCL
             sycl::nd_item<1> const& /*item*/,
@@ -273,7 +399,9 @@ template <class TagType, class F>
 std::enable_if_t<std::is_same<std::decay_t<decltype(std::declval<TagType>().box())>, Box>::value, void>
 ParallelFor (Vector<TagType> const& tags, F && f)
 {
-    detail::ParallelFor_doit(tags,
+    TagVector<TagType> tv{tags};
+
+    detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
 #ifdef AMREX_USE_SYCL
             sycl::nd_item<1> const& /*item*/,
@@ -290,7 +418,9 @@ template <class TagType, class F>
 std::enable_if_t<std::is_integral<std::decay_t<decltype(std::declval<TagType>().size())> >::value, void>
 ParallelFor (Vector<TagType> const& tags, F && f)
 {
-    detail::ParallelFor_doit(tags,
+    TagVector<TagType> tv{tags};
+
+    detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
 #ifdef AMREX_USE_SYCL
             sycl::nd_item<1> const& /*item*/,

@@ -58,7 +58,7 @@ public:
                  MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final;
 
     void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                 bool skip_fillboundary=false) const final;
+                 bool skip_fillboundary=false, int niter=1) const final;
 
     void prepareForSolve () final;
     void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;

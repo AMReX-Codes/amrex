@@ -319,7 +319,7 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
 }
 
 void MLCurlCurl::smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
-                         bool skip_fillboundary) const
+                         bool skip_fillboundary, int niter) const
 {
     AMREX_ASSERT(rhs[0].nGrowVect().allGE(1));
 
@@ -331,16 +331,18 @@ void MLCurlCurl::smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
     int ncolors = 4;
 #endif
 
-    for (int color = 0; color < ncolors; ++color) {
-        if (!skip_fillboundary) {
-            applyBC(amrlev, mglev, sol, CurlCurlStateType::x);
-        }
-        skip_fillboundary = false;
+    for (int i = 0; i < niter; ++i) {
+        for (int color = 0; color < ncolors; ++color) {
+            if (!skip_fillboundary) {
+                applyBC(amrlev, mglev, sol, CurlCurlStateType::x);
+            }
+            skip_fillboundary = false;
 #if (AMREX_SPACEDIM == 1)
-        smooth1D(amrlev, mglev, sol, rhs, color);
+            smooth1D(amrlev, mglev, sol, rhs, color);
 #else
-        smooth4(amrlev, mglev, sol, rhs, color);
+            smooth4(amrlev, mglev, sol, rhs, color);
 #endif
+        }
     }
 }
 
