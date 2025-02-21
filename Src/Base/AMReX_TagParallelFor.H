@@ -161,7 +161,7 @@ struct TagVector {
     TagVector& operator= (const TagVector& other) = delete;
     TagVector& operator= (TagVector&& other) = default;
 
-    bool is_defined () const { return defined; }
+    [[nodiscard]] bool is_defined () const { return defined; }
 
     void define (Vector<TagType> const& tags) {
         if (defined) {
@@ -340,7 +340,7 @@ ParallelFor_doit (TagVector<TagType> const& tv, F && f)
 
 template <class TagType, class F>
 void
-ParallelFor_doit (TagVector<TagType> const& tv, F &&)
+ParallelFor_doit (TagVector<TagType> const& tv, F && f)
 {
     AMREX_ALWAYS_ASSERT(tv.is_defined());
 
@@ -385,7 +385,7 @@ ParallelFor_doit (TagVector<TagType> const& tv, F &&)
 
 template <class TagType, class F>
 std::enable_if_t<std::is_same_v<std::decay_t<decltype(std::declval<TagType>().box())>, Box>>
-ParallelFor (TagVector<TagType> const& tv, int ncomp, F && f)
+ParallelFor (TagVector<TagType> const& tv, int ncomp, F const& f)
 {
     detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
@@ -404,7 +404,7 @@ ParallelFor (TagVector<TagType> const& tv, int ncomp, F && f)
 
 template <class TagType, class F>
 std::enable_if_t<std::is_same_v<std::decay_t<decltype(std::declval<TagType>().box())>, Box>, void>
-ParallelFor (TagVector<TagType> const& tv, F && f)
+ParallelFor (TagVector<TagType> const& tv, F const& f)
 {
     detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
@@ -421,7 +421,7 @@ ParallelFor (TagVector<TagType> const& tv, F && f)
 
 template <class TagType, class F>
 std::enable_if_t<std::is_integral_v<std::decay_t<decltype(std::declval<TagType>().size())> >, void>
-ParallelFor (TagVector<TagType> const& tv, F && f)
+ParallelFor (TagVector<TagType> const& tv, F const& f)
 {
     detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
