@@ -265,6 +265,83 @@ void abec_gsrb (int i, int j, int k, int n, Array4<T> const& phi, Array4<T const
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void precompute_abec_gsrb (int i, int j, int k, int n,
+                Array4<T> const& pre_comp,
+                T alpha, Array4<T const> const& a,
+                T dhx, T dhy, T dhz,
+                Array4<T const> const& bX, Array4<T const> const& bY,
+                Array4<T const> const& bZ,
+                Array4<int const> const& m0, Array4<int const> const& m2,
+                Array4<int const> const& m4,
+                Array4<int const> const& m1, Array4<int const> const& m3,
+                Array4<int const> const& m5,
+                Array4<T const> const& f0, Array4<T const> const& f2,
+                Array4<T const> const& f4,
+                Array4<T const> const& f1, Array4<T const> const& f3,
+                Array4<T const> const& f5,
+                Box const& vbox) noexcept
+{
+    constexpr T omega = T(1.15);
+
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+        ? f0(vlo.x,j,k,n) : T(0.0);
+    T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+        ? f1(i,vlo.y,k,n) : T(0.0);
+    T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+        ? f2(i,j,vlo.z,n) : T(0.0);
+    T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+        ? f3(vhi.x,j,k,n) : T(0.0);
+    T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+        ? f4(i,vhi.y,k,n) : T(0.0);
+    T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+        ? f5(i,j,vhi.z,n) : T(0.0);
+
+    T gamma = alpha*a(i,j,k)
+        +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
+        +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
+        +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
+
+    T g_m_d = gamma
+        - (dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
+        +  dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
+        +  dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5));
+
+    T omega_dif_g_m_d = omega / g_m_d;
+
+    pre_comp(i, j, k, 2*n) = gamma;
+    pre_comp(i, j, k, 2*n+1) = omega_dif_g_m_d;
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void abec_gsrb_v2 (int i, int j, int k, int n, Array4<T> const& phi, Array4<T const> const& rhs,
+                Array4<T const> const& pre_comp,
+                T dhx, T dhy, T dhz,
+                Array4<T const> const& bX, Array4<T const> const& bY,
+                Array4<T const> const& bZ, int redblack) noexcept
+{
+    if ((i+j+k+redblack)%2 == 0) {
+
+        T gamma = pre_comp(i,j,k,2*n);
+        T omega_dif_g_m_d = pre_comp(i,j,k,2*n+1);
+
+        T rho =  dhx*( bX(i  ,j,k,n)*phi(i-1,j,k,n)
+               +       bX(i+1,j,k,n)*phi(i+1,j,k,n) )
+               + dhy*( bY(i,j  ,k,n)*phi(i,j-1,k,n)
+               +       bY(i,j+1,k,n)*phi(i,j+1,k,n) )
+               + dhz*( bZ(i,j,k  ,n)*phi(i,j,k-1,n)
+               +       bZ(i,j,k+1,n)*phi(i,j,k+1,n) );
+
+        T res =  rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
+        phi(i,j,k,n) = phi(i,j,k,n) + omega_dif_g_m_d * res;
+    }
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb_os (int i, int j, int k, int n,
                    Array4<T> const& phi, Array4<T const> const& rhs,
                    T alpha, Array4<T const> const& a,

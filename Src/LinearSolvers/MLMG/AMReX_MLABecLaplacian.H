@@ -155,6 +155,7 @@ public:
     [[nodiscard]] bool isSingular (int amrlev) const override { return m_is_singular[amrlev]; }
     [[nodiscard]] bool isBottomSingular () const override { return m_is_singular[0]; }
     void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final;
+    void PrecompiteSmoothCoeffs (int amrlev, int mglev);
     void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const final;
     void FFlux (int amrlev, const MFIter& mfi,
                 const Array<FAB*,AMREX_SPACEDIM>& flux,
@@ -194,6 +195,7 @@ public:
     RT m_b_scalar = std::numeric_limits<RT>::quiet_NaN();
     Vector<Vector<MF> > m_a_coeffs;
     Vector<Vector<Array<MF,AMREX_SPACEDIM> > > m_b_coeffs;
+    Vector<Vector<MF> > m_pre_comp;
 
     bool m_scalars_set = false;
     bool m_acoef_set = false;
@@ -277,15 +279,22 @@ MLABecLaplacianT<MF>::define_ab_coeffs ()
 {
     m_a_coeffs.resize(this->m_num_amr_levels);
     m_b_coeffs.resize(this->m_num_amr_levels);
+    m_pre_comp.resize(this->m_num_amr_levels);
     for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev)
     {
         m_a_coeffs[amrlev].resize(this->m_num_mg_levels[amrlev]);
         m_b_coeffs[amrlev].resize(this->m_num_mg_levels[amrlev]);
+        m_pre_comp[amrlev].resize(this->m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev)
         {
             m_a_coeffs[amrlev][mglev].define
                 (this->m_grids[amrlev][mglev], this->m_dmap[amrlev][mglev],
-                 1, 0, MFInfo(), *(this->m_factory[amrlev][mglev]));
+                1, 0, MFInfo(), *(this->m_factory[amrlev][mglev]));
+
+            const int pre_comp_nghost = 0;
+            m_pre_comp[amrlev][mglev].define
+                (this->m_grids[amrlev][mglev], this->m_dmap[amrlev][mglev],
+                2, pre_comp_nghost, MFInfo(), *(this->m_factory[amrlev][mglev]));
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 const BoxArray& ba = amrex::convert(this->m_grids[amrlev][mglev],
@@ -435,6 +444,12 @@ MLABecLaplacianT<MF>::prepareForSolve ()
     averageDownCoeffs();
 
     update_singular_flags();
+
+    for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
+        for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev) {
+            PrecompiteSmoothCoeffs(amrlev, mglev);
+        }
+    }
 
     m_needs_update = false;
 }
@@ -876,6 +891,88 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
 
 template <typename MF>
 void
+MLABecLaplacianT<MF>::PrecompiteSmoothCoeffs (int amrlev, int mglev)
+{
+    BL_PROFILE("MLABecLaplacian::PrecompiteSmoothCoeffs()");
+
+#if (AMREX_SPACEDIM == 3) && defined(AMREX_USE_GPU)
+    bool regular_coarsening = true;
+    if (amrlev == 0 && mglev > 0) {
+        regular_coarsening = this->mg_coarsen_ratio_vec[mglev-1] == this->mg_coarsen_ratio;
+    }
+
+    if (!this->m_use_gauss_seidel || this->m_overset_mask[amrlev][mglev] ||
+        !Gpu::inLaunchRegion() || !regular_coarsening) {
+        return;
+    }
+
+    const MF& acoef = m_a_coeffs[amrlev][mglev];
+    AMREX_ALWAYS_ASSERT(acoef.nGrowVect() == 0);
+
+    const auto& undrrelxr = this->m_undrrelxr[amrlev][mglev];
+    const auto& maskvals  = this->m_maskvals [amrlev][mglev];
+
+    auto& pre_comp = this->m_pre_comp[amrlev][mglev];
+
+    const int nc = this->getNComp();
+    const Real* h = this->m_geom[amrlev][mglev].CellSize();
+    AMREX_D_TERM(const RT dhx = m_b_scalar/static_cast<RT>(h[0]*h[0]);,
+                 const RT dhy = m_b_scalar/static_cast<RT>(h[1]*h[1]);,
+                 const RT dhz = m_b_scalar/static_cast<RT>(h[2]*h[2]));
+    const RT alpha = m_a_scalar;
+
+    const auto& m0ma = maskvals[0].const_arrays();
+    const auto& m1ma = maskvals[1].const_arrays();
+#if (AMREX_SPACEDIM > 1)
+    const auto& m2ma = maskvals[2].const_arrays();
+    const auto& m3ma = maskvals[3].const_arrays();
+#if (AMREX_SPACEDIM > 2)
+    const auto& m4ma = maskvals[4].const_arrays();
+    const auto& m5ma = maskvals[5].const_arrays();
+#endif
+#endif
+
+    const auto& ama = acoef.const_arrays();
+
+    AMREX_D_TERM(const auto& bxma = m_b_coeffs[amrlev][mglev][0].const_arrays();,
+                 const auto& byma = m_b_coeffs[amrlev][mglev][1].const_arrays();,
+                 const auto& bzma = m_b_coeffs[amrlev][mglev][2].const_arrays(););
+
+    OrientationIter oitr;
+
+    const auto& f0ma = undrrelxr[oitr()].const_arrays(); ++oitr;
+    const auto& f1ma = undrrelxr[oitr()].const_arrays(); ++oitr;
+#if (AMREX_SPACEDIM > 1)
+    const auto& f2ma = undrrelxr[oitr()].const_arrays(); ++oitr;
+    const auto& f3ma = undrrelxr[oitr()].const_arrays(); ++oitr;
+#if (AMREX_SPACEDIM > 2)
+    const auto& f4ma = undrrelxr[oitr()].const_arrays(); ++oitr;
+    const auto& f5ma = undrrelxr[oitr()].const_arrays(); ++oitr;
+#endif
+#endif
+
+    const auto& pcma = pre_comp.arrays();
+
+    ParallelFor(acoef, IntVect(0), nc,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            Box vbx(ama[box_no]);
+            precompute_abec_gsrb(i,j,k,n, pcma[box_no], alpha, ama[box_no],
+                                 AMREX_D_DECL(dhx, dhy, dhz),
+                                 AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                 AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
+                                 AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
+                                 AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
+                                 AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
+                                 vbx);
+        });
+
+    pre_comp.FillBoundary();
+#endif
+}
+
+template <typename MF>
+void
 MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const
 {
     BL_PROFILE("MLABecLaplacian::Fsmooth()");
@@ -923,6 +1020,8 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 #endif
 #endif
 
+    const auto& pre_comp = this->m_pre_comp[amrlev][mglev];
+
     const int nc = this->getNComp();
     const Real* h = this->m_geom[amrlev][mglev].CellSize();
     AMREX_D_TERM(const RT dhx = m_b_scalar/static_cast<RT>(h[0]*h[0]);,
@@ -964,6 +1063,8 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 #endif
 #endif
 
+        const auto& pcma = pre_comp.const_arrays();
+
         if (this->m_overset_mask[amrlev][mglev]) {
             const auto& osmma = this->m_overset_mask[amrlev][mglev]->const_arrays();
             if (this->m_use_gauss_seidel) {
@@ -1002,6 +1103,12 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
                 ParallelFor(sol, IntVect(0), nc,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
                 {
+#if (AMREX_SPACEDIM == 3)
+                    abec_gsrb_v2(i,j,k,n, solnma[box_no], rhsma[box_no], pcma[box_no],
+                              AMREX_D_DECL(dhx, dhy, dhz),
+                              AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                              redblack);
+#else
                     Box vbx(ama[box_no]);
                     abec_gsrb(i,j,k,n, solnma[box_no], rhsma[box_no], alpha, ama[box_no],
                               AMREX_D_DECL(dhx, dhy, dhz),
@@ -1011,6 +1118,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
                               AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
                               AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
                               vbx, redblack);
+#endif
                 });
             } else {
                 const auto& axma = Ax.const_arrays();

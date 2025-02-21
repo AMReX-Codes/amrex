@@ -1232,13 +1232,26 @@ MLCellLinOpT<MF>::smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
 
     m_reuse_bc_tag_vector = true;
 
+    int ghost_cells_valid = skip_fillboundary ? 1 : 0;
+
     for (int i = 0; i < niter; ++i) {
         for (int redblack = 0; redblack < 2; ++redblack)
         {
+            if (ghost_cells_valid == 0) {
+                const int ncomp = this->getNComp();
+                const int cross = false; //isCrossStencil();
+                const int ngrow = sol.nGrowVect().min();
+                //std::cout << "ncomp " << ncomp << " ngrow " << ngrow << " cross " << cross << std::endl;
+                sol.FillBoundary(0, ncomp, IntVect(ngrow), this->m_geom[amrlev][mglev].periodicity(), cross);
+                ghost_cells_valid = ngrow;
+                //sol.nGrowVect().min();
+            }
+
             applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Solution,
-                    nullptr, skip_fillboundary);
+                    nullptr, true);
             Fsmooth(amrlev, mglev, sol, rhs, redblack);
-            skip_fillboundary = false;
+
+            --ghost_cells_valid;
         }
     }
 
