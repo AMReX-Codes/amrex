@@ -1376,13 +1376,16 @@ public:
 
         // add runtime real comps to tmp
         for (int ic = 0; ic < this->NumRuntimeRealComps(); ++ic) {
-            tmp.AddRealComp(real_names.at(ic + NArrayReal), false);
+            tmp.AddRealComp(real_names.at(ic + NArrayReal));
         }
 
         // add runtime int comps to tmp
         for (int ic = 0; ic < this->NumRuntimeIntComps(); ++ic) {
-            tmp.AddIntComp(int_names.at(ic + NArrayInt), false);
+            tmp.AddIntComp(int_names.at(ic + NArrayInt));
         }
+
+        tmp.h_redistribute_real_comp = h_redistribute_real_comp;
+        tmp.h_redistribute_int_comp = h_redistribute_int_comp;
 
         return tmp;
     }
