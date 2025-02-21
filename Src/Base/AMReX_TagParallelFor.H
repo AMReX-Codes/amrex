@@ -289,7 +289,7 @@ tagparfor_call_f (
 
 template <class TagType, class F>
 void
-ParallelFor_doit (TagVector<TagType> const& tv, F && f)
+ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
 {
     AMREX_ALWAYS_ASSERT(tv.is_defined());
 
@@ -340,7 +340,7 @@ ParallelFor_doit (TagVector<TagType> const& tv, F && f)
 
 template <class TagType, class F>
 void
-ParallelFor_doit (TagVector<TagType> const& tv, F && f)
+ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
 {
     AMREX_ALWAYS_ASSERT(tv.is_defined());
 
