@@ -1623,7 +1623,10 @@ FabArray<FAB>::build_arrays () const
 #ifdef AMREX_USE_GPU
         m_arrays.dp = (A*)m_dp_arrays;
         m_const_arrays.dp = (AC*)m_dp_arrays + n;
-        Gpu::htod_memcpy(m_dp_arrays, m_hp_arrays, n*2*sizeof(A));
+        Gpu::htod_memcpy_async(m_dp_arrays, m_hp_arrays, n*2*sizeof(A));
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
 #endif
     }
 }
@@ -1633,9 +1636,12 @@ void
 FabArray<FAB>::clear_arrays ()
 {
 #ifdef AMREX_USE_GPU
-    The_Pinned_Arena()->free(m_hp_arrays);
-    The_Arena()->free(m_dp_arrays);
-    m_dp_arrays = nullptr;
+    if (m_dp_arrays) {
+        Gpu::streamSynchronize();
+        The_Pinned_Arena()->free(m_hp_arrays);
+        The_Arena()->free(m_dp_arrays);
+        m_dp_arrays = nullptr;
+    }
 #else
     std::free(m_hp_arrays);
 #endif
