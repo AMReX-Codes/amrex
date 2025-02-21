@@ -1020,7 +1020,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
 #endif
 #endif
 
-    const auto& pre_comp = this->m_pre_comp[amrlev][mglev];
+    [[maybe_unused]] const auto& pre_comp = this->m_pre_comp[amrlev][mglev];
 
     const int nc = this->getNComp();
     const Real* h = this->m_geom[amrlev][mglev].CellSize();
