@@ -155,7 +155,7 @@ public:
     [[nodiscard]] bool isSingular (int amrlev) const override { return m_is_singular[amrlev]; }
     [[nodiscard]] bool isBottomSingular () const override { return m_is_singular[0]; }
     void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final;
-    void PrecompiteSmoothCoeffs (int amrlev, int mglev);
+    void PrecomputeSmoothCoeffs (int amrlev, int mglev);
     void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const final;
     void FFlux (int amrlev, const MFIter& mfi,
                 const Array<FAB*,AMREX_SPACEDIM>& flux,
@@ -447,7 +447,7 @@ MLABecLaplacianT<MF>::prepareForSolve ()
 
     for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev) {
-            PrecompiteSmoothCoeffs(amrlev, mglev);
+            PrecomputeSmoothCoeffs(amrlev, mglev);
         }
     }
 
@@ -891,9 +891,9 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
 
 template <typename MF>
 void
-MLABecLaplacianT<MF>::PrecompiteSmoothCoeffs (int amrlev, int mglev)
+MLABecLaplacianT<MF>::PrecomputeSmoothCoeffs ([[maybe_unused]] int amrlev, [[maybe_unused]] int mglev)
 {
-    BL_PROFILE("MLABecLaplacian::PrecompiteSmoothCoeffs()");
+    BL_PROFILE("MLABecLaplacian::PrecomputeSmoothCoeffs()");
 
 #if (AMREX_SPACEDIM == 3) && defined(AMREX_USE_GPU)
     bool regular_coarsening = true;
