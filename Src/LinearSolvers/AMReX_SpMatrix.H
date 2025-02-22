@@ -36,7 +36,7 @@ public:
 
     //! Define a matrix with CSR format data. Note that mat and col_index
     //! should contains nnz elements. The number of elements in row_index
-    //! should the numbrer of local rows plus 1. The data can be freed after
+    //! should be the number of local rows plus 1. The data can be freed after
     //! this function call. For GPU builds, the data are expected to be in
     //! GPU memory.
     void define (AlgPartition partition, T const* mat, Long const* col_index,

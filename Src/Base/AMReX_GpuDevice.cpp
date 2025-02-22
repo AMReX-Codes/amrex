@@ -145,8 +145,9 @@ namespace {
 #endif
 
 void
-Device::Initialize ()
+Device::Initialize (bool minimal)
 {
+    amrex::ignore_unused(minimal);
 #ifdef AMREX_USE_GPU
 
 #if defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
@@ -201,7 +202,11 @@ Device::Initialize ()
     int n_local_procs = 1;
     amrex::ignore_unused(n_local_procs);
 
-    if (ParallelDescriptor::NProcs() == 1) {
+    if (minimal) {
+        device_id = 0;
+        AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipGetDevice(&device_id));,
+                          AMREX_CUDA_SAFE_CALL(cudaGetDevice(&device_id)); );
+    } else if (ParallelDescriptor::NProcs() == 1) {
         device_id = 0;
     }
     else if (gpu_device_count == 1) {
@@ -217,7 +222,7 @@ Device::Initialize ()
         }
     }
 
-    if (gpu_device_count > 1){
+    if (gpu_device_count > 1 && ! minimal) {
         if (Machine::name() == "nersc.perlmutter") {
             // The CPU/GPU mapping on perlmutter has the reverse order.
             device_id = gpu_device_count - device_id - 1;
@@ -241,19 +246,23 @@ Device::Initialize ()
         }
     }
 
-    AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDevice(device_id));,
-                      AMREX_CUDA_SAFE_CALL(cudaSetDevice(device_id)); );
+#if !defined(AMREX_USE_SYCL)
+    if ( ! minimal) {
+        AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDevice(device_id));,
+                          AMREX_CUDA_SAFE_CALL(cudaSetDevice(device_id)); );
+    }
+#endif
 
 #ifdef AMREX_USE_ACC
     amrex_initialize_acc(device_id);
 #endif
 
-    initialize_gpu();
+    initialize_gpu(minimal);
 
     num_devices_used = ParallelDescriptor::NProcs();
 
 #ifdef AMREX_USE_MPI
-    if (ParallelDescriptor::NProcs() > 1) {
+    if (ParallelDescriptor::NProcs() > 1 && ! minimal) {
 
 #if defined(HIP_VERSION_MAJOR) && defined(HIP_VERSION_MINOR) && ((HIP_VERSION_MAJOR < 5) || ((HIP_VERSION_MAJOR == 5) && (HIP_VERSION_MINOR < 2)))
 
@@ -336,7 +345,7 @@ Device::Initialize ()
     }
 #endif /* AMREX_USE_MPI */
 
-    if (amrex::Verbose()) {
+    if (amrex::Verbose() && ! minimal) {
 #if defined(AMREX_USE_CUDA)
         amrex::Print() << "CUDA"
 #elif defined(AMREX_USE_HIP)
@@ -401,8 +410,10 @@ Device::Finalize ()
 }
 
 void
-Device::initialize_gpu ()
+Device::initialize_gpu (bool minimal)
 {
+    amrex::ignore_unused(minimal);
+
 #ifdef AMREX_USE_GPU
 
     gpu_stream_pool.resize(max_gpu_streams);
@@ -436,10 +447,12 @@ Device::initialize_gpu ()
 #endif
 
 #if (__CUDACC_VER_MAJOR__ < 12) || ((__CUDACC_VER_MAJOR__ == 12) && (__CUDACC_VER_MINOR__ < 4))
-    if (sizeof(Real) == 8) {
-        AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
-    } else if (sizeof(Real) == 4) {
-        AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
+    if ( ! minimal ) {
+        if (sizeof(Real) == 8) {
+            AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
+        } else if (sizeof(Real) == 4) {
+            AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
+        }
     }
 #endif
 

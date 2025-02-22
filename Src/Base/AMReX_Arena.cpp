@@ -36,7 +36,7 @@ namespace {
     Arena* the_cpu_arena = nullptr;
     Arena* the_comms_arena = nullptr;
 
-    Long the_arena_init_size = 0L;
+    Long the_arena_init_size = 1024*1024*8;
     Long the_device_arena_init_size = 1024*1024*8;
     Long the_managed_arena_init_size = 1024*1024*8;
     Long the_pinned_arena_init_size = 1024*1024*8;
@@ -280,7 +280,7 @@ namespace {
 }
 
 void
-Arena::Initialize ()
+Arena::Initialize (bool minimal)
 {
     if (initialized) { return; }
     initialized = true;
@@ -294,11 +294,18 @@ Arena::Initialize ()
     BL_ASSERT(the_cpu_arena == nullptr || the_cpu_arena == The_BArena());
     BL_ASSERT(the_comms_arena == nullptr || the_comms_arena == The_BArena());
 
+    if (minimal) {
+        the_pinned_arena_init_size = 0;
+    } else {
 #ifdef AMREX_USE_GPU
-    the_arena_init_size = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 4L * 3L;
+        the_arena_init_size = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 4L * 3L;
 #ifdef AMREX_USE_SYCL
-    the_arena_init_size = std::min(the_arena_init_size, Gpu::Device::maxMemAllocSize());
+        the_arena_init_size = std::min(the_arena_init_size, Gpu::Device::maxMemAllocSize());
 #endif
+#endif
+    }
+
+#ifdef AMREX_USE_GPU
     the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 2L;
 #endif
 
