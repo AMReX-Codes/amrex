@@ -87,6 +87,18 @@ namespace amrex
                        std::ostream& a_oserr = std::cerr,
                        ErrorHandler a_errhandler = nullptr);
 
+    // \brief Minimal version of initialization.
+    //
+    // This version is intended for users who only need AMReX for some
+    // specific functionalities such as FFT. It's the user's responsibility
+    // to initialize MPI. For multiple-GPU systems, it's the user's
+    // responsibility to properly set the GPU devices to be used. We will not
+    // try to pre-allocate memory arenas. We will not install a signal
+    // handler. Functionalities like random number generator and async I/O
+    // will be work. However, functionalities like FFT and linear solvers do
+    // work.
+    void Init_minimal (MPI_Comm mpi_comm = MPI_COMM_WORLD);
+
     /**
        \brief Returns true if there are any currently-active and initialized
        AMReX instances (i.e. one for which amrex::Initialize has been called,
@@ -96,6 +108,10 @@ namespace amrex
 
     void Finalize (AMReX* pamrex);
     void Finalize (); // Finalize the current top
+    // For initialization with Init_minimal, Finalize_minimal should be used
+    // for finalization.
+    void Finalize_minimal();
+
     /**
     * \brief We maintain a stack of functions that need to be called in Finalize().
     * The functions are called in LIFO order.  The idea here is to allow

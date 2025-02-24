@@ -129,6 +129,61 @@ int main (int argc, char* argv[])
 #endif
             AMREX_ALWAYS_ASSERT(error < eps);
         }
+
+        {
+            auto sba = amrex::decompose(domain, ParallelDescriptor::NProcs());
+            DistributionMapping sdm{sba};
+            cMultiFab smf(sba,sdm,1,0);
+            smf.ParallelCopy(mf);
+
+            auto domain_size = domain.length().toArray();
+            FFT::C2C<Real,FFT::Direction::both> c2c(domain_size);
+
+            GpuComplex<Real>* pio = nullptr;
+            std::array<int,AMREX_SPACEDIM> local_start{AMREX_D_DECL(0,0,0)};
+            std::array<int,AMREX_SPACEDIM> local_size{AMREX_D_DECL(0,0,0)};
+            auto const& imap = smf.IndexArray();
+            AMREX_ALWAYS_ASSERT(imap.size() <= 1);
+            if (imap.size() == 1) {
+                pio = smf[imap[0]].dataPtr();
+                auto const& box = sba[imap[0]];
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    local_start[idim] = box.smallEnd(idim);
+                    local_size[idim] = box.length(idim);
+                }
+            }
+            c2c.setLocalDomain(local_start, local_size);
+
+            auto const& [sp_start, sp_size] = c2c.getLocalSpectralDomain();
+            auto npts = AMREX_D_TERM(std::size_t(sp_size[0]),
+                                    *std::size_t(sp_size[1]),
+                                    *std::size_t(sp_size[2]));
+            Gpu::DeviceVector<GpuComplex<Real>> spv(npts);
+
+            c2c.forward(pio, spv.data());
+            c2c.backward(spv.data(), pio);
+
+            amrex::Scale(smf, -scaling, 0, 1, 0);
+            smf.ParallelAdd(mf);
+
+            MultiFab errmf(sba,sdm,1,0);
+            auto const& errma = errmf.arrays();
+
+            auto const& sma = smf.const_arrays();
+            ParallelFor(smf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+            {
+                errma[b](i,j,k) = amrex::norm(sma[b](i,j,k));
+            });
+
+            auto error = errmf.norminf();
+            amrex::Print() << "  Expected to be close to zero: " << error << "\n";
+#ifdef AMREX_USE_FLOAT
+            auto eps = 1.e-6f;
+#else
+            auto eps = 1.e-13;
+#endif
+            AMREX_ALWAYS_ASSERT(error < eps);
+        }
     }
     amrex::Finalize();
 }

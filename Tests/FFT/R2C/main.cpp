@@ -169,6 +169,72 @@ int main (int argc, char* argv[])
 #endif
             AMREX_ALWAYS_ASSERT(error < eps);
         }
+
+        // Test raw pointer interface
+        {
+            auto sba = amrex::decompose(domain, ParallelDescriptor::NProcs());
+            DistributionMapping sdm{sba};
+            MultiFab smf(sba,sdm,1,0);
+            smf.ParallelCopy(mf);
+
+            Box cdomain(IntVect(0),IntVect(AMREX_D_DECL(domain.length(0)/2,
+                                                        domain.length(1)-1,
+                                                        domain.length(2)-1)));
+            auto sba_c = amrex::decompose(cdomain, ParallelDescriptor::NProcs());
+            DistributionMapping sdm_c{sba_c};
+            FabArray<BaseFab<GpuComplex<Real>>> smf_c(sba_c,sdm_c,1,0);
+
+            auto domain_size = domain.length().toArray();
+            FFT::R2C<Real,FFT::Direction::both> r2c(domain_size);
+
+            Real* preal = nullptr;
+            std::array<int,AMREX_SPACEDIM> local_start{AMREX_D_DECL(0,0,0)};
+            std::array<int,AMREX_SPACEDIM> local_size{AMREX_D_DECL(0,0,0)};
+            auto const& imap = smf.IndexArray();
+            AMREX_ALWAYS_ASSERT(imap.size() <= 1);
+            if (imap.size() == 1) {
+                preal = smf[imap[0]].dataPtr();
+                auto const& box = sba[imap[0]];
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    local_start[idim] = box.smallEnd(idim);
+                    local_size[idim] = box.length(idim);
+                }
+            }
+            r2c.setLocalDomain(local_start, local_size);
+
+            GpuComplex<Real>* pcomplex = nullptr;
+            std::array<int,AMREX_SPACEDIM> local_start_c{AMREX_D_DECL(0,0,0)};
+            std::array<int,AMREX_SPACEDIM> local_size_c{AMREX_D_DECL(0,0,0)};
+            auto const& imap_c = smf_c.IndexArray();
+            AMREX_ALWAYS_ASSERT(imap_c.size() <= 1);
+            if (imap_c.size() == 1) {
+                pcomplex = smf_c[imap_c[0]].dataPtr();
+                auto const& box = sba_c[imap_c[0]];
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    local_start_c[idim] = box.smallEnd(idim);
+                    local_size_c[idim] = box.length(idim);
+                }
+            }
+            r2c.setLocalSpectralDomain(local_start_c, local_size_c);
+
+            r2c.forward(preal, pcomplex);
+
+            amrex::Scale(smf_c, scaling, 0, 1, 0);
+
+            r2c.backward(pcomplex, preal);
+
+            mf2.ParallelCopy(smf);
+            MultiFab::Subtract(mf2, mf, 0, 0, 1, 0);
+
+            auto error = mf2.norminf();
+            amrex::Print() << "  Expected to be close to zero: " << error << "\n";
+#ifdef AMREX_USE_FLOAT
+            auto eps = 1.e-6f;
+#else
+            auto eps = 1.e-13;
+#endif
+            AMREX_ALWAYS_ASSERT(error < eps);
+        }
     }
     amrex::Finalize();
 }
