@@ -35,6 +35,14 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        MLMG/AMReX_MLPoisson_${D}D_K.H
        AMReX_GMRES.H
        AMReX_GMRES_MLMG.H
+       AMReX_GMRES_MV.H
+       AMReX_Smoother_MV.H
+       AMReX_Algebra.H
+       AMReX_AlgPartition.H
+       AMReX_AlgPartition.cpp
+       AMReX_AlgVector.H
+       AMReX_SpMatrix.H
+       AMReX_SpMV.H
        )
 
     if (D EQUAL 3)
@@ -47,14 +55,12 @@ foreach(D IN LISTS AMReX_SPACEDIM)
     endif ()
 
     if (AMReX_LINEAR_SOLVERS_EM)
-       if (NOT D EQUAL 1 AND AMReX_LINEAR_SOLVERS_EM)
-          target_sources(amrex_${D}d
-             PRIVATE
-             MLMG/AMReX_MLCurlCurl.H
-             MLMG/AMReX_MLCurlCurl.cpp
-             MLMG/AMReX_MLCurlCurl_K.H
-             )
-       endif ()
+       target_sources(amrex_${D}d
+          PRIVATE
+          MLMG/AMReX_MLCurlCurl.H
+          MLMG/AMReX_MLCurlCurl.cpp
+          MLMG/AMReX_MLCurlCurl_K.H
+          )
 
        target_sources(amrex_${D}d
           PRIVATE

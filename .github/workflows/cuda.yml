@@ -10,17 +10,17 @@ jobs:
   check_changes:
     uses: ./.github/workflows/check_changes.yml
 
-  # Build libamrex and all tests with CUDA 11.2
-  tests-cuda11:
-    name: CUDA@11.2 GNU@9.3.0 C++17 Release [tests]
-    runs-on: ubuntu-20.04
+  # Build libamrex and all tests with CUDA 12.6
+  tests-cuda12:
+    name: CUDA@12.6 C++17 Release [tests]
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc.sh 11.2
+        .github/workflows/dependencies/dependencies_nvcc.sh 12.6
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v4
@@ -121,7 +121,7 @@ jobs:
   # Build libamrex and all tests with NVHPC (recent supported)
   tests-nvhpc-nvcc:
     name: NVHPC NVCC/NVC++ C++17 Release [tests]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
@@ -185,15 +185,15 @@ jobs:
 
   # Build 3D libamrex cuda build with configure
   configure-3d-cuda:
-    name: CUDA@11.2 GNU@9.3.0 [configure 3D]
-    runs-on: ubuntu-20.04
+    name: CUDA@12.6 [configure 3D]
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc.sh 11.2
+        .github/workflows/dependencies/dependencies_nvcc.sh 12.6
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v4

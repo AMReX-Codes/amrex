@@ -6,6 +6,7 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_EB2.H>
+#include <AMReX_GMRES_MLMG.H>
 
 #include <cmath>
 
@@ -50,6 +51,13 @@ MyTest::solve ()
     info.setMaxCoarseningLevel(max_coarsening_level);
 
     MLEBABecLap mleb (geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
+    if (use_hypre || use_petsc) {
+        if (factory[0]->isAllRegular()) {
+            linop_maxorder = std::min(3,linop_maxorder);
+        } else {
+            linop_maxorder = 2;
+        }
+    }
     mleb.setMaxOrder(linop_maxorder);
 
     mleb.setDomainBC(mlmg_lobc, mlmg_hibc);
@@ -85,7 +93,43 @@ MyTest::solve ()
     }
     const Real tol_rel = reltol;
     const Real tol_abs = 0.0;
-    mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+
+    if (verbose) {
+        Vector<MultiFab> res(max_level+1);
+        for (int ilev = 0; ilev <= max_level; ++ilev) {
+            res[ilev].define(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
+        }
+        mlmg.apply(GetVecOfPtrs(res), GetVecOfPtrs(phi)); // res = L(sol)
+        for (int ilev = 0; ilev <= max_level; ++ilev) {
+            MultiFab::Subtract(res[ilev], rhs[ilev], 0, 0, 1, 0);
+            amrex::Print() << "Initial max, 1 and 2-norm residuals at level " << ilev << " = "
+                           << res[ilev].norminf(0) << " " << res[ilev].norm1(0) << " "
+                           << res[ilev].norm2(0) << '\n';
+        }
+    }
+
+    if (use_gmres) {
+        GMRESMLMGT<MultiFab> gmsolver(mlmg);
+        gmsolver.usePrecond(true);
+        gmsolver.setVerbose(verbose);
+        gmsolver.solve(GetVecOfPtrs(phi), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+    } else {
+        mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+    }
+
+    if (verbose) {
+        Vector<MultiFab> res(max_level+1);
+        for (int ilev = 0; ilev <= max_level; ++ilev) {
+            res[ilev].define(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
+        }
+        mlmg.apply(GetVecOfPtrs(res), GetVecOfPtrs(phi)); // res = L(sol)
+        for (int ilev = 0; ilev <= max_level; ++ilev) {
+            MultiFab::Subtract(res[ilev], rhs[ilev], 0, 0, 1, 0);
+            amrex::Print() << "Final max, 1 and 2-norm residuals at level " << ilev << " = "
+                           << res[ilev].norminf(0) << " " << res[ilev].norm1(0) << " "
+                           << res[ilev].norm2(0) << '\n';
+        }
+    }
 }
 
 void
@@ -143,6 +187,8 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_PETSC
     pp.query("use_petsc",use_petsc);
 #endif
+
+    pp.query("use_gmres", use_gmres);
 }
 
 void

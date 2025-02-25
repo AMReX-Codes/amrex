@@ -113,6 +113,10 @@ public:
 
     RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const final;
 
+    RT dotProductPrecond (Vector<MF const*> const& x, Vector<MF const*> const& y) const final;
+
+    RT norm2Precond (Vector<MF const*> const& x) const final;
+
     virtual void Fapply (int amrlev, int mglev, MF& out, const MF& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const = 0;
     virtual void FFlux (int amrlev, const MFIter& mfi,
@@ -130,6 +134,9 @@ public:
 
     void avgDownResAmr (int clev, MF& cres, MF const& fres) const override;
 
+    void beginPrecondBC () override;
+    void endPrecondBC () override;
+
     struct BCTL {
         BoundCond type;
         RT location;
@@ -137,9 +144,7 @@ public:
 
     Vector<std::unique_ptr<MF> > m_robin_bcval;
 
-#ifdef AMREX_USE_HYPRE
     void setInterpBndryHalfWidth (int w) { m_interpbndry_halfwidth = w; }
-#endif
 
 protected:
 
@@ -150,6 +155,8 @@ protected:
 
     Vector<std::unique_ptr<MLMGBndryT<MF>> > m_bndry_cor;
     Vector<std::unique_ptr<BndryRegisterT<MF>> > m_crse_cor_br;
+
+    Vector<std::unique_ptr<MLMGBndryT<MF>> > m_bndry_sol_zero;
 
     // In case of agglomeration, coarse MG grids on amr level 0 are
     // not simply coarsened from fine MG grids.  So we need to build
@@ -1053,7 +1060,7 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
                 call_lincc = true;
             } else {
                 Array4<EBCellFlag const> const& flg = flag.const_array();
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx, tbx,
                 {
                     mlmg_eb_cc_interp_r<2>(tbx, ff, cc, flg, ncomp);
                 });
@@ -1075,14 +1082,14 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
                 Box const& bx_2d = this->compactify(bx);
                 auto const& ff_2d = this->compactify(ff);
                 auto const& cc_2d = this->compactify(cc);
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx_2d, tbx,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx_2d, tbx,
                 {
                     TwoD::mlmg_lin_cc_interp_r2(tbx, ff_2d, cc_2d, ncomp);
                 });
             } else
 #endif
             {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx, tbx,
                 {
                     mlmg_lin_cc_interp_r2(tbx, ff, cc, ncomp);
                 });
@@ -1126,7 +1133,7 @@ MLCellLinOpT<MF>::interpolationAmr (int famrlev, MF& fine, const MF& crse,
                 switch(refratio) {
                 case 2:
                 {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx, tbx,
                     {
                         mlmg_eb_cc_interp_r<2>(tbx, ff, cc, flg, ncomp);
                     });
@@ -1134,7 +1141,7 @@ MLCellLinOpT<MF>::interpolationAmr (int famrlev, MF& fine, const MF& crse,
                 }
                 case 4:
                 {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx, tbx,
                     {
                         mlmg_eb_cc_interp_r<4>(tbx, ff, cc, flg, ncomp);
                     });
@@ -1159,7 +1166,7 @@ MLCellLinOpT<MF>::interpolationAmr (int famrlev, MF& fine, const MF& crse,
             switch(refratio) {
             case 2:
             {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx, tbx,
                 {
                     mlmg_lin_cc_interp_r2(tbx, ff, cc, ncomp);
                 });
@@ -1167,7 +1174,7 @@ MLCellLinOpT<MF>::interpolationAmr (int famrlev, MF& fine, const MF& crse,
             }
             case 4:
             {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx, tbx,
                 {
                     mlmg_lin_cc_interp_r4(tbx, ff, cc, ncomp);
                 });
@@ -1717,7 +1724,11 @@ MLCellLinOpT<MF>::prepareForSolve ()
             if (Gpu::inLaunchRegion()) {
 #ifdef AMREX_USE_EB
                 if (factory && !factory->isAllRegular()) {
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+                    if           (!std::is_same<MF,MultiFab>()) {
+#else
                     if constexpr (!std::is_same<MF,MultiFab>()) {
+#endif
                         amrex::Abort("MLCellLinOp with EB only works with MultiFab");
                     } else {
                         Vector<MLMGPSEBTag<RT>> tags;
@@ -2009,6 +2020,37 @@ MLCellLinOpT<MF>::xdoty (int /*amrlev*/, int /*mglev*/, const MF& x, const MF& y
 }
 
 template <typename MF>
+auto
+MLCellLinOpT<MF>::dotProductPrecond (Vector<MF const*> const& x, Vector<MF const*> const& y) const -> RT
+{
+    const int ncomp = this->getNComp();
+    const IntVect nghost(0);
+    RT result = 0;
+    for (int ilev = 0; ilev < this->NAMRLevels()-1; ++ilev) {
+        result += amrex::Dot(*m_norm_fine_mask[ilev], *x[ilev], 0, *y[ilev], 0, ncomp, nghost, true);
+    }
+    result += amrex::Dot(*x[this->NAMRLevels()-1], 0,
+                         *y[this->NAMRLevels()-1], 0, ncomp, nghost, true);
+    ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
+    return result;
+}
+
+template <typename MF>
+auto
+MLCellLinOpT<MF>::norm2Precond (Vector<MF const*> const& x) const -> RT
+{
+    const int ncomp = this->getNComp();
+    const IntVect nghost(0);
+    RT result = 0;
+    for (int ilev = 0; ilev < this->NAMRLevels()-1; ++ilev) {
+        result += amrex::Dot(*m_norm_fine_mask[ilev], *x[ilev], 0, ncomp, nghost, true);
+    }
+    result += amrex::Dot(*x[this->NAMRLevels()-1], 0, ncomp, nghost, true);
+    ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
+    return std::sqrt(result);
+}
+
+template <typename MF>
 void
 MLCellLinOpT<MF>::computeVolInv () const
 {
@@ -2036,13 +2078,11 @@ MLCellLinOpT<MF>::computeVolInv () const
         else
 #endif
         {
-            if (this->m_coarse_fine_bc_type == LinOpBCType::Dirichlet) {
-                m_volinv[amrlev][mglev]
-                    = RT(1.0 / this->compactify(this->Geom(amrlev,mglev).Domain()).d_numPts());
-            } else {
-                m_volinv[amrlev][mglev]
-                    = RT(1.0 / this->m_grids[amrlev][mglev].d_numPts());
-            }
+            auto const npts = (this->m_coarse_fine_bc_type == LinOpBCType::Dirichlet)
+                ? this->compactify(this->Geom(amrlev,mglev).Domain()).d_numPts()
+                : this->m_grids[amrlev][mglev].d_numPts();
+            AMREX_ASSERT(npts > 0.);
+            m_volinv[amrlev][mglev] = RT(1.0 / npts);
         }
     };
 
@@ -2082,7 +2122,11 @@ MLCellLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
 #ifdef AMREX_USE_EB
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(amrlev));
     if (factory && !factory->isAllRegular()) {
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+        if           (!std::is_same<MF,MultiFab>()) {
+#else
         if constexpr (!std::is_same<MF,MultiFab>()) {
+#endif
             amrex::Abort("MLCellLinOpT with EB only works with MultiFab");
         } else {
             const MultiFab& vfrac = factory->getVolFrac();
@@ -2208,6 +2252,42 @@ MLCellLinOpT<MF>::avgDownResAmr (int clev, MF& cres, MF const& fres) const
         amrex::average_down(fres, cres, 0, this->getNComp(),
                             this->AMRRefRatio(clev));
     }
+}
+
+template <typename MF>
+void
+MLCellLinOpT<MF>::beginPrecondBC ()
+{
+    this->m_precond_mode = true;
+
+    if (m_bndry_sol_zero.empty()) {
+        m_bndry_sol_zero.resize(m_bndry_sol.size());
+        const int ncomp = this->getNComp();
+        for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
+            m_bndry_sol_zero[amrlev] = std::make_unique<MLMGBndryT<MF>>
+                (this->m_grids[amrlev][0],
+                 this->m_dmap[amrlev][0],
+                 ncomp,
+                 this->m_geom[amrlev][0]);
+        }
+        std::swap(m_bndry_sol, m_bndry_sol_zero);
+        MF const* coarse_data_for_bc_save = this->m_coarse_data_for_bc;
+        this->m_coarse_data_for_bc = nullptr;
+        for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
+            this->setLevelBC(amrlev, nullptr);
+        }
+        this->m_coarse_data_for_bc = coarse_data_for_bc_save;
+    } else {
+        std::swap(m_bndry_sol, m_bndry_sol_zero);
+    }
+}
+
+template <typename MF>
+void
+MLCellLinOpT<MF>::endPrecondBC ()
+{
+    this->m_precond_mode = false;
+    std::swap(m_bndry_sol, m_bndry_sol_zero);
 }
 
 extern template class MLCellLinOpT<MultiFab>;

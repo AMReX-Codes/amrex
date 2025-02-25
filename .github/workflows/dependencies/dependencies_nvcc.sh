@@ -36,5 +36,9 @@ sudo apt-get install -y \
     cuda-nvml-dev-$VERSION_DASHED           \
     cuda-nvtx-$VERSION_DASHED               \
     libcufft-dev-$VERSION_DASHED            \
-    libcurand-dev-$VERSION_DASHED
+    libcurand-dev-$VERSION_DASHED           \
+    libcusparse-dev-$VERSION_DASHED
+
+sudo apt-get install -y --no-install-recommends libnvjitlink-dev-$VERSION_DASHED || true
+
 sudo ln -s cuda-$VERSION_DOTTED /usr/local/cuda

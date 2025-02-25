@@ -704,7 +704,7 @@ reading from command line or input file.
 
 Because many AMReX classes and functions (including destructors
 inserted by the compiler) do not function properly after
-:cpp:`amrex:Finalize` is called, it's best to put the codes between
+:cpp:`amrex::Finalize` is called, it's best to put the codes between
 :cpp:`amrex::Initialize` and :cpp:`amrex::Finalize` into its scope
 (e.g., a pair of curly braces or a separate function) to make sure
 resources are properly freed.

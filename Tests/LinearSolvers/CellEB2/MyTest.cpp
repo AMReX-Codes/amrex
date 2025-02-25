@@ -28,6 +28,14 @@ MyTest::MyTest ()
 void
 MyTest::solve ()
 {
+    if (use_hypre || use_petsc) {
+        if (factory[0]->isAllRegular()) {
+            linop_maxorder = std::min(3,linop_maxorder);
+        } else {
+            linop_maxorder = 2;
+        }
+    }
+
     if (verbose > 0) {
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             const MultiFab& vfrc = factory[ilev]->getVolFrac();

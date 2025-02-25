@@ -2,6 +2,8 @@
 #define AMREX_PARTICLEINIT_H
 #include <AMReX_Config.H>
 
+namespace amrex {
+
 /*
   \brief Initialize particles from an Ascii file in the following format:
 
@@ -1683,4 +1685,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 
     Gpu::streamSynchronize();
 }
+
+}
+
 #endif /*AMREX_PARTICLEINIT_H*/

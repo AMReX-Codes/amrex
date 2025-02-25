@@ -16,15 +16,15 @@ jobs:
   # Build and install libamrex as AMReX CMake project
   # Note: this is an intentional "minimal" build that does not enable (many) options
   library:
-    name: GNU@8.4 C++17 Release [lib]
-    runs-on: ubuntu-20.04
+    name: GNU@14 C++17 Release [lib]
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_gcc.sh 8
+        .github/workflows/dependencies/dependencies_gcc.sh 14
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
@@ -35,7 +35,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -52,9 +52,9 @@ jobs:
             -DAMReX_PLOTFILE_TOOLS=ON             \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
-            -DCMAKE_C_COMPILER=$(which gcc-8)     \
-            -DCMAKE_CXX_COMPILER=$(which g++-8)   \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-8) \
+            -DCMAKE_C_COMPILER=$(which gcc-14)     \
+            -DCMAKE_CXX_COMPILER=$(which g++-14)   \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-14) \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
         make install
@@ -127,7 +127,7 @@ jobs:
 
   tests_build_2D:
     name: GNU@9.3 C++17 2D Debug Fortran [tests]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
@@ -178,7 +178,7 @@ jobs:
 
   tests_build_1D:
     name: GNU@9.3 C++17 1D Debug Fortran [tests]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
@@ -231,7 +231,7 @@ jobs:
   # Build libamrex and all tests
   tests_cxx20:
     name: GNU@10.1 C++20 OMP [tests]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
@@ -292,15 +292,15 @@ jobs:
 
   # Build libamrex and all tests w/o MPI
   tests-nonmpi:
-    name: GNU@8.4 C++17 NOMPI [tests]
-    runs-on: ubuntu-20.04
+    name: GNU@14 C++17 NOMPI [tests]
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_gcc.sh 8
+        .github/workflows/dependencies/dependencies_gcc.sh 14
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
@@ -311,7 +311,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -335,9 +335,9 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_MPI=OFF             \
-            -DCMAKE_C_COMPILER=$(which gcc-8)     \
-            -DCMAKE_CXX_COMPILER=$(which g++-8)   \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-8) \
+            -DCMAKE_C_COMPILER=$(which gcc-14)     \
+            -DCMAKE_CXX_COMPILER=$(which g++-14)   \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-14) \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
 
@@ -417,7 +417,7 @@ jobs:
   # Build 1D libamrex with configure
   configure-1d:
     name: GNU@9.3 Release [configure 1D]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
@@ -501,7 +501,7 @@ jobs:
   # Build 3D libamrex with single precision and tiny profiler
   configure-3d-single-tprof:
     name: GNU@9.3 Release [configure 3D]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
@@ -544,7 +544,7 @@ jobs:
   # Build 3D libamrex debug omp build with configure
   configure-3d-omp-debug:
     name: GNU@9.3 OMP Debug [configure 3D]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
@@ -586,7 +586,7 @@ jobs:
   # Build Tools/Plotfile
   plotfile-tools:
     name: GNU Plotfile Tools [tools]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
@@ -679,7 +679,7 @@ jobs:
 
   test_hdf5:
     name: GNU@9.3 HDF5 I/O Test [tests]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     env:

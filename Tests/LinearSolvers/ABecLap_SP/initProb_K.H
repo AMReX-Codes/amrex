@@ -76,9 +76,9 @@ void actual_init_bcoef (int i, int j, int k,
     if (domain.contains(i,j,k)) {
         sol(i,j,k) = 0.0;
     } else {
-        AMREX_D_TERM(x = std::clamp(x, prob_lo[0], prob_hi[0]);,
-                     y = std::clamp(y, prob_lo[1], prob_hi[1]);,
-                     z = std::clamp(z, prob_lo[2], prob_hi[2]););
+        AMREX_D_TERM(x = amrex::Clamp(x, prob_lo[0], prob_hi[0]);,
+                     y = amrex::Clamp(y, prob_lo[1], prob_hi[1]);,
+                     z = amrex::Clamp(z, prob_lo[2], prob_hi[2]););
         sol(i,j,k) = std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z)
             +  .25 * std::cos(fpi*x) * std::cos(fpi*y) * std::cos(fpi*z);
     }

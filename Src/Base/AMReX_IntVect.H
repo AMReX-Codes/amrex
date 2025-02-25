@@ -182,9 +182,8 @@ public:
         }
     }
 
-#if __cplusplus >= 201402L
     template< typename T = int >
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Array<T, dim>
     toArray () const noexcept {
         Array<T, dim> ret {};
@@ -193,7 +192,6 @@ public:
         }
         return ret;
     }
-#endif
 
   ///
   /**

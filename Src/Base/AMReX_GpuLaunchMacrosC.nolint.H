@@ -35,18 +35,18 @@
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(__VA_ARGS__)
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(__VA_ARGS__)
 
-#define AMREX_GPU_FOR_1D_IMPL(n,i,block) \
+#define AMREX_FOR_1D_IMPL(n,i,block) \
         for (auto i = decltype(n){0}; i < n; ++i) {     \
             block \
         }
 
-#define AMREX_GPU_PARALLEL_FOR_1D_IMPL(n,i,block) \
+#define AMREX_PARALLEL_FOR_1D_IMPL(n,i,block) \
         AMREX_PRAGMA_SIMD \
         for (auto i = decltype(n){0}; i < n; ++i) {     \
             block \
         }
 
-#define AMREX_GPU_FOR_3D_IMPL(box,i,j,k,block) \
+#define AMREX_FOR_3D_IMPL(box,i,j,k,block) \
     { \
         const auto amrex_i_lo = amrex::lbound(box); \
         const auto amrex_i_hi = amrex::ubound(box); \
@@ -57,7 +57,7 @@
         }}} \
     }
 
-#define AMREX_GPU_PARALLEL_FOR_3D_IMPL(box,i,j,k,block) \
+#define AMREX_PARALLEL_FOR_3D_IMPL(box,i,j,k,block) \
     { \
         const auto amrex_i_lo = amrex::lbound(box); \
         const auto amrex_i_hi = amrex::ubound(box); \
@@ -69,7 +69,7 @@
         }}} \
     }
 
-#define AMREX_GPU_FOR_4D_IMPL(box,ncomp,i,j,k,n,block) \
+#define AMREX_FOR_4D_IMPL(box,ncomp,i,j,k,n,block) \
     { \
         const auto amrex_i_lo = amrex::lbound(box); \
         const auto amrex_i_hi = amrex::ubound(box); \
@@ -81,7 +81,7 @@
         }}}} \
     }
 
-#define AMREX_GPU_PARALLEL_FOR_4D_IMPL(box,ncomp,i,j,k,n,block) \
+#define AMREX_PARALLEL_FOR_4D_IMPL(box,ncomp,i,j,k,n,block) \
     { \
         const auto amrex_i_lo = amrex::lbound(box); \
         const auto amrex_i_hi = amrex::ubound(box); \
@@ -94,19 +94,18 @@
         }}}} \
     }
 
-#define AMREX_GPU_HOST_DEVICE_FOR_1D(...) AMREX_GPU_FOR_1D_IMPL(__VA_ARGS__);
-#define AMREX_GPU_DEVICE_FOR_1D(...)      AMREX_GPU_FOR_1D_IMPL(__VA_ARGS__);
+#define AMREX_FOR_1D(...) AMREX_FOR_1D_IMPL(__VA_ARGS__);
+#define AMREX_FOR_3D(...) AMREX_FOR_3D_IMPL(__VA_ARGS__);
+#define AMREX_FOR_4D(...) AMREX_FOR_4D_IMPL(__VA_ARGS__);
 
-#define AMREX_GPU_HOST_DEVICE_FOR_3D(...) AMREX_GPU_FOR_3D_IMPL(__VA_ARGS__);
-#define AMREX_GPU_DEVICE_FOR_3D(...)      AMREX_GPU_FOR_3D_IMPL(__VA_ARGS__);
+#define AMREX_PARALLEL_FOR_1D(...) AMREX_PARALLEL_FOR_1D_IMPL(__VA_ARGS__);
+#define AMREX_PARALLEL_FOR_3D(...) AMREX_PARALLEL_FOR_3D_IMPL(__VA_ARGS__);
+#define AMREX_PARALLEL_FOR_4D(...) AMREX_PARALLEL_FOR_4D_IMPL(__VA_ARGS__);
 
-#define AMREX_GPU_HOST_DEVICE_FOR_4D(...) AMREX_GPU_FOR_4D_IMPL(__VA_ARGS__);
-#define AMREX_GPU_DEVICE_FOR_4D(...)      AMREX_GPU_FOR_4D_IMPL(__VA_ARGS__);
+#define AMREX_HOST_DEVICE_FOR_1D(...) AMREX_FOR_1D_IMPL(__VA_ARGS__);
+#define AMREX_HOST_DEVICE_FOR_3D(...) AMREX_FOR_3D_IMPL(__VA_ARGS__);
+#define AMREX_HOST_DEVICE_FOR_4D(...) AMREX_FOR_4D_IMPL(__VA_ARGS__);
 
-#define AMREX_GPU_DEVICE_PARALLEL_FOR_1D(...)      AMREX_GPU_PARALLEL_FOR_1D_IMPL(__VA_ARGS__);
-#define AMREX_GPU_DEVICE_PARALLEL_FOR_3D(...)      AMREX_GPU_PARALLEL_FOR_3D_IMPL(__VA_ARGS__);
-#define AMREX_GPU_DEVICE_PARALLEL_FOR_4D(...)      AMREX_GPU_PARALLEL_FOR_4D_IMPL(__VA_ARGS__);
-
-#define AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_1D(...) AMREX_GPU_PARALLEL_FOR_1D_IMPL(__VA_ARGS__);
-#define AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_3D(...) AMREX_GPU_PARALLEL_FOR_3D_IMPL(__VA_ARGS__);
-#define AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_4D(...) AMREX_GPU_PARALLEL_FOR_4D_IMPL(__VA_ARGS__);
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D(...) AMREX_PARALLEL_FOR_1D_IMPL(__VA_ARGS__);
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D(...) AMREX_PARALLEL_FOR_3D_IMPL(__VA_ARGS__);
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D(...) AMREX_PARALLEL_FOR_4D_IMPL(__VA_ARGS__);

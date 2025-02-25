@@ -14,7 +14,7 @@ jobs:
 
   test_sensei:
     name: SENSEI Adaptor [test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     env:

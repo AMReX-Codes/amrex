@@ -1,3 +1,41 @@
 
 CPPFLAGS += -DAMREX_USE_SUNDIALS
 include $(AMREX_HOME)/Src/Extern/SUNDIALS/Make.package
+
+ifndef AMREX_SUNDIALS_HOME
+ifdef SUNDIALS_DIR
+  AMREX_SUNDIALS_HOME = $(SUNDIALS_DIR)
+endif
+ifdef SUNDIALS_HOME
+  AMREX_SUNDIALS_HOME = $(SUNDIALS_HOME)
+endif
+endif
+
+ifdef AMREX_SUNDIALS_HOME
+  SUNDIALS_ABSPATH = $(abspath $(AMREX_SUNDIALS_HOME))
+  SYSTEM_INCLUDE_LOCATIONS += $(SUNDIALS_ABSPATH)/include
+  LIBRARY_LOCATIONS += $(SUNDIALS_ABSPATH)/lib
+  LIBRARY_LOCATIONS += $(SUNDIALS_ABSPATH)/lib64
+  # libraries are usually installed under lib or lib64 depending on the system
+  LIBRARIES += -Wl,-rpath,$(SUNDIALS_ABSPATH)/lib
+  LIBRARIES += -Wl,-rpath,$(SUNDIALS_ABSPATH)/lib64
+  LIBRARIES += -lsundials_arkode -lsundials_cvode -lsundials_nvecmanyvector
+
+  ifeq ($(USE_CUDA),TRUE)
+    LIBRARIES += -lsundials_nveccuda
+  endif
+
+  ifeq ($(USE_HIP),TRUE)
+    LIBRARIES += -lsundials_nvechip
+  endif
+
+  ifeq ($(USE_SYCL),TRUE)
+    LIBRARIES += -lsundials_nvecsycl
+  endif
+
+  # sundials_core library added in sundials v7.0.0
+  ifneq ($(wildcard $(SUNDIALS_ABSPATH)/lib*/libsundials_core.*),)
+    LIBRARIES += -lsundials_core
+  endif
+
+endif

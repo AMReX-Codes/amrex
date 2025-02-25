@@ -32,6 +32,8 @@ public:
     //! Cell-centered domain Box "infinitely" long in non-periodic directions.
     [[nodiscard]] Box Domain () const noexcept;
 
+    [[nodiscard]] IntVect const& intVect () const { return period; }
+
     [[nodiscard]] std::vector<IntVect> shiftIntVect (IntVect const& nghost = IntVect(0)) const;
 
     static const Periodicity& NonPeriodic () noexcept;

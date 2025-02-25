@@ -59,7 +59,13 @@ MyTest::solve ()
             solution[ilev].setVal(0.0, interior, 0, 1, 0);
         }
 
-        mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0);
+        if (use_gmres) {
+            GMRESMLMG gmsolver(mlmg);
+            gmsolver.setVerbose(verbose);
+            gmsolver.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0);
+        } else {
+            mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0);
+        }
     }
     else // solve level by level
     {
@@ -154,9 +160,6 @@ MyTest::readParameters ()
 
     pp.query("composite_solve", composite_solve);
     pp.query("use_gmres", use_gmres);
-    if (use_gmres) {
-        composite_solve = false;
-    }
 
     pp.query("verbose", verbose);
     pp.query("bottom_verbose", bottom_verbose);

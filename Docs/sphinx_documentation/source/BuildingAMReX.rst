@@ -464,10 +464,10 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_LINEAR_SOLVERS         |  Build AMReX linear solvers                     | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_LINEAR_SOLVERS_INCFLO  |  Build AMReX linear solvers for incompressible  | YES                     | YES, NO               |
-   |                              |  flow                                           |                         |
+   |                              |  flow                                           |                         |                       |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_LINEAR_SOLVERS_EM      |  Build AMReX linear solvers for electromagnetic | YES                     | YES, NO               |
-   |                              |  solvers                                        |                         |
+   |                              |  solvers                                        |                         |                       |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_AMRDATA                |  Build data services                            | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+

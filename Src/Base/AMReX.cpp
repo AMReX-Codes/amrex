@@ -126,6 +126,11 @@ namespace system
 }
 
 namespace {
+    long long init_minimal_called = 0;
+    bool initialization_by_init_minimal = false;
+}
+
+namespace {
     std::string command_line;
     std::vector<std::string> command_arguments;
 }
@@ -339,20 +344,37 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    ErrorHandler a_errhandler)
 {
     system::exename.clear();
+    if (initialization_by_init_minimal) {
+        system::verbose = 0;
+        system::regtest_reduction = false;
+        system::signal_handling = false;
+        system::handle_sigsegv = false;
+        system::handle_sigterm = false;
+        system::handle_sigint  = false;
+        system::handle_sigabrt = false;
+        system::handle_sigfpe  = false;
+        system::handle_sigill  = false;
+        system::call_addr2line = false;
+        system::throw_exception = false;
+        system::osout = &std::cout;
+        system::oserr = &std::cerr;
+        system::error_handler = nullptr;
+    } else {
 //    system::verbose = 0;
-    system::regtest_reduction = false;
-    system::signal_handling = true;
-    system::handle_sigsegv = true;
-    system::handle_sigterm = false;
-    system::handle_sigint  = true;
-    system::handle_sigabrt = true;
-    system::handle_sigfpe  = true;
-    system::handle_sigill  = true;
-    system::call_addr2line = true;
-    system::throw_exception = false;
-    system::osout = &a_osout;
-    system::oserr = &a_oserr;
-    system::error_handler = a_errhandler;
+        system::regtest_reduction = false;
+        system::signal_handling = true;
+        system::handle_sigsegv = true;
+        system::handle_sigterm = false;
+        system::handle_sigint  = true;
+        system::handle_sigabrt = true;
+        system::handle_sigfpe  = true;
+        system::handle_sigill  = true;
+        system::call_addr2line = true;
+        system::throw_exception = false;
+        system::osout = &a_osout;
+        system::oserr = &a_oserr;
+        system::error_handler = a_errhandler;
+    }
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
@@ -506,9 +528,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     }
 #endif
 
+    Machine::Initialize();
+
 #ifdef AMREX_USE_GPU
     // Initialize after ParmParse so that we can read inputs.
-    Gpu::Device::Initialize();
+    Gpu::Device::Initialize(initialization_by_init_minimal);
 #ifdef AMREX_USE_CUPTI
     CuptiInitialize();
 #endif
@@ -638,13 +662,15 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     ParallelDescriptor::Initialize();
 
     BL_TINY_PROFILE_MEMORYINITIALIZE();
-    Arena::Initialize();
+    Arena::Initialize(initialization_by_init_minimal);
     amrex_mempool_init();
 
     //
     // Initialize random seed after we're running in parallel.
     //
-    amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
+    if (!initialization_by_init_minimal) {
+        amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
+    }
 
     // For thread safety, we should do these initializations here.
     BaseFab_Initialize();
@@ -656,7 +682,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     MultiFab::Initialize();
     iMultiFab::Initialize();
     VisMF::Initialize();
-    AsyncOut::Initialize();
+    if (!initialization_by_init_minimal) {
+        AsyncOut::Initialize();
+    }
     VectorGrowthStrategy::Initialize();
 
 #ifdef AMREX_USE_FFT
@@ -669,8 +697,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     BL_PROFILE_INITPARAMS();
 #endif // ifndef BL_AMRPROF
-
-    machine::Initialize();
 
 #ifdef AMREX_USE_HYPRE
     if (init_hypre) {
@@ -996,6 +1022,27 @@ FPExcept enableFPExcept (FPExcept excepts)
     amrex::ignore_unused(excepts);
 #endif
     return prev;
+}
+
+void Init_minimal (MPI_Comm mpi_comm)
+{
+    ++init_minimal_called;
+
+    if (Initialized()) { return; }
+
+    initialization_by_init_minimal = true;
+    Initialize(mpi_comm);
+}
+
+void Finalize_minimal ()
+{
+    if (init_minimal_called > 0) {
+        --init_minimal_called;
+    }
+    if (init_minimal_called == 0 && initialization_by_init_minimal) {
+        Finalize();
+        initialization_by_init_minimal = false;
+    }
 }
 
 }

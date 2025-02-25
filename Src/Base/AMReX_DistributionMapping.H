@@ -437,6 +437,8 @@ void DistributionMapping::ComputeDistributionMappingEfficiency (
         sum_weight += w;
     }
 
+    AMREX_ASSERT(nprocs > 0 && max_weight > T(0));
+
     *efficiency = static_cast<Real>(sum_weight) /
         (static_cast<Real>(nprocs) * static_cast<Real>(max_weight));
 }

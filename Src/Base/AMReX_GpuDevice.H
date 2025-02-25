@@ -53,7 +53,7 @@ class Device
 
 public:
 
-    static void Initialize ();
+    static void Initialize (bool minimal);
     static void Finalize ();
 
 #if defined(AMREX_USE_GPU)
@@ -184,7 +184,7 @@ public:
 
 private:
 
-    static void initialize_gpu ();
+    static void initialize_gpu (bool minimal);
 
     static AMREX_EXPORT int device_id;
     static AMREX_EXPORT int num_devices_used;

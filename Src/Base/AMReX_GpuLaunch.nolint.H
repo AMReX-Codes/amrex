@@ -38,22 +38,6 @@
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(...) AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3_FLAG(__VA_ARGS__)
 #endif
 
-#define AMREX_FOR_1D(...)      AMREX_GPU_DEVICE_FOR_1D(__VA_ARGS__)
-#define AMREX_FOR_3D(...)      AMREX_GPU_DEVICE_FOR_3D(__VA_ARGS__)
-#define AMREX_FOR_4D(...)      AMREX_GPU_DEVICE_FOR_4D(__VA_ARGS__)
-
-#define AMREX_PARALLEL_FOR_1D(...)      AMREX_GPU_DEVICE_PARALLEL_FOR_1D(__VA_ARGS__)
-#define AMREX_PARALLEL_FOR_3D(...)      AMREX_GPU_DEVICE_PARALLEL_FOR_3D(__VA_ARGS__)
-#define AMREX_PARALLEL_FOR_4D(...)      AMREX_GPU_DEVICE_PARALLEL_FOR_4D(__VA_ARGS__)
-
-#define AMREX_HOST_DEVICE_FOR_1D(...) AMREX_GPU_HOST_DEVICE_FOR_1D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_FOR_3D(...) AMREX_GPU_HOST_DEVICE_FOR_3D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_FOR_4D(...) AMREX_GPU_HOST_DEVICE_FOR_4D(__VA_ARGS__)
-
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D(...) AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_1D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D(...) AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_3D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D(...) AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_4D(__VA_ARGS__)
-
 #ifdef AMREX_USE_GPU
 
 #ifndef AMREX_USE_SYCL
@@ -139,6 +123,16 @@
         ); \
     }
 
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::launch(box, [=] AMREX_GPU_DEVICE (std::decay_t<decltype(box)> const& tbox) { block }); \
+    } else { \
+        auto tbox = box; \
+        block; \
+    }
+#else
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
@@ -147,6 +141,7 @@
         auto tbox = box; \
         block; \
     }
+#endif
 
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(where_to_run,bx1,tbx1,block1) \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \

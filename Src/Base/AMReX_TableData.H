@@ -15,12 +15,12 @@
 
 namespace amrex {
 
-template <typename T>
+template <typename T, typename IDX = int>
 struct Table1D
 {
     T* AMREX_RESTRICT p = nullptr;
-    int begin = 1;
-    int end = 0;
+    IDX begin = 1;
+    IDX end = 0;
 
     constexpr Table1D () noexcept = default;
 
@@ -33,7 +33,7 @@ struct Table1D
         {}
 
     AMREX_GPU_HOST_DEVICE
-    constexpr Table1D (T* a_p, int a_begin, int a_end) noexcept
+    constexpr Table1D (T* a_p, IDX a_begin, IDX a_end) noexcept
         : p(a_p),
           begin(a_begin),
           end(a_end)
@@ -44,7 +44,7 @@ struct Table1D
 
     template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    U& operator() (int i) const noexcept {
+    U& operator() (IDX i) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
         index_assert(i);
 #endif
@@ -53,14 +53,30 @@ struct Table1D
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
     AMREX_GPU_HOST_DEVICE inline
-    void index_assert (int i) const
+    void index_assert (IDX i) const
     {
         if (i < begin || i >= end) {
-            AMREX_IF_ON_DEVICE((
-                AMREX_DEVICE_PRINTF(" (%d) is out of bound (%d:%d)\n",
-                                    i, begin, end-1);
-                amrex::Abort();
-            ))
+            if constexpr (std::is_same_v<IDX,int>) {
+                AMREX_IF_ON_DEVICE((
+                    AMREX_DEVICE_PRINTF(" (%d) is out of bound (%d:%d)\n",
+                                        i, begin, end-1);
+                    amrex::Abort();
+                ))
+            } else if constexpr (std::is_same_v<IDX,long>) {
+                AMREX_IF_ON_DEVICE((
+                    AMREX_DEVICE_PRINTF(" (%ld) is out of bound (%ld:%ld)\n",
+                                        i, begin, end-1);
+                    amrex::Abort();
+                ))
+            } else if constexpr (std::is_same_v<IDX,long long>) {
+                AMREX_IF_ON_DEVICE((
+                    AMREX_DEVICE_PRINTF(" (%lld) is out of bound (%lld:%lld)\n",
+                                        i, begin, end-1);
+                    amrex::Abort();
+                ))
+            } else {
+                AMREX_IF_ON_DEVICE(( amrex::Abort(" Out of bound\n"); ))
+            }
             AMREX_IF_ON_HOST((
                 std::stringstream ss;
                 ss << " (" << i << ") is out of bound ("

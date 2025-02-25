@@ -269,7 +269,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 
             Array4<Real const> foo;
             const bool is_eb_dirichlet =  isEBDirichlet();
-            const bool is_eb_inhomog = m_is_eb_inhomog;
+            const bool is_eb_inhomog = m_is_eb_inhomog && !this->m_precond_mode;
             Array4<Real const> const& velbfab = (is_eb_dirichlet && is_eb_inhomog)
                 ? m_eb_phi[amrlev]->const_array(mfi) : foo;
 

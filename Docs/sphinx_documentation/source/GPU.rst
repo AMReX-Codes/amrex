@@ -1643,7 +1643,7 @@ Finally, the parallel communication of particle data has been ported and optimiz
 platforms. This includes :cpp:`Redistribute()`, which moves particles back to the proper grids after their positions
 have changed, as well as :cpp:`fillNeighbors()` and :cpp:`updateNeighbors()`, which are used to exchange halo particles.
 As with :cpp:`MultiFab` data, these have been designed to minimize host / device traffic as much as possible, and can
-take advantage of the Cuda-aware MPI implementations available on platforms such as ORNL's Summit.
+take advantage of the GPU-aware MPI implementations available on platforms such as ORNL's Frontier.
 
 
 Profiling with GPUs
@@ -1742,17 +1742,18 @@ Inputs Parameters
 The following inputs parameters control the behavior of amrex when running on GPUs. They should be prefaced
 by "amrex" in your :cpp:`inputs` file.
 
-+----------------------------+-----------------------------------------------------------------------+-------------+----------+
-|                            | Description                                                           |   Type      | Default  |
-+============================+=======================================================================+=============+==========+
-| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | 0        |
-|                            | If true, the buffers will use device memory. If false (i.e., 0), they |             |          |
-|                            | will use pinned memory. In practice, we find it is not always worth   |             |          |
-|                            | it to use GPU aware MPI.                                              |             |          |
-+----------------------------+-----------------------------------------------------------------------+-------------+----------+
-| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0        |
-|                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |          |
-|                            | describing how much free memory there is and what was requested.      |             |          |
-+----------------------------+-----------------------------------------------------------------------+-------------+----------+
-| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | 0        |
-+----------------------------+-----------------------------------------------------------------------+-------------+----------+
++----------------------------+-----------------------------------------------------------------------+-------------+----------------+
+|                            | Description                                                           |   Type      | Default        |
++============================+=======================================================================+=============+================+
+| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | MPI-dependent  |
+|                            | If true, the buffers will use device memory. If false (i.e., 0), they |             |                |
+|                            | will use pinned memory. It will be activated if AMReX detects that    |             |                |
+|                            | GPU-aware MPI is supported by the MPI library (MPICH, OpenMPI, and    |             |                |
+|                            | derivative implementations).                                          |             |                |
++----------------------------+-----------------------------------------------------------------------+-------------+----------------+
+| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0              |
+|                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |                |
+|                            | describing how much free memory there is and what was requested.      |             |                |
++----------------------------+-----------------------------------------------------------------------+-------------+----------------+
+| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | 0              |
++----------------------------+-----------------------------------------------------------------------+-------------+----------------+

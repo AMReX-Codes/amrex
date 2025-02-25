@@ -134,7 +134,10 @@ struct ParticleTileData
             memcpy(dst, m_idcpu + src_index, sizeof(uint64_t));
             dst += sizeof(uint64_t);
         }
-        int array_start_index  = AMREX_SPACEDIM + NStructReal;
+        int array_start_index = 0;
+        if constexpr (!ParticleType::is_soa_particle) {
+            array_start_index = AMREX_SPACEDIM + NStructReal;
+        }
         for (int i = 0; i < NAR; ++i)
         {
             if (comm_real[array_start_index + i])
@@ -143,7 +146,7 @@ struct ParticleTileData
                 dst += sizeof(ParticleReal);
             }
         }
-        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NAR;
+        int runtime_start_index  = array_start_index + NAR;
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
             if (comm_real[runtime_start_index + i])
@@ -185,7 +188,10 @@ struct ParticleTileData
             memcpy(m_idcpu + dst_index, src, sizeof(uint64_t));
             src += sizeof(uint64_t);
         }
-        int array_start_index  = AMREX_SPACEDIM + NStructReal;
+        int array_start_index = 0;
+        if constexpr (!ParticleType::is_soa_particle) {
+            array_start_index = AMREX_SPACEDIM + NStructReal;
+        }
         for (int i = 0; i < NAR; ++i)
         {
             if (comm_real[array_start_index + i])
@@ -194,7 +200,7 @@ struct ParticleTileData
                 src += sizeof(ParticleReal);
             }
         }
-        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NAR;
+        int runtime_start_index  = array_start_index + NAR;
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
             if (comm_real[runtime_start_index + i])
@@ -595,7 +601,10 @@ struct ConstParticleTileData
             memcpy(dst, m_idcpu + src_index, sizeof(uint64_t));
             dst += sizeof(uint64_t);
         }
-        int array_start_index  = AMREX_SPACEDIM + NStructReal;
+        int array_start_index = 0;
+        if constexpr (!ParticleType::is_soa_particle) {
+            array_start_index = AMREX_SPACEDIM + NStructReal;
+        }
         for (int i = 0; i < NArrayReal; ++i)
         {
             if (comm_real[array_start_index + i])
@@ -604,7 +613,7 @@ struct ConstParticleTileData
                 dst += sizeof(ParticleReal);
             }
         }
-        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NArrayReal;
+        int runtime_start_index  = array_start_index + NArrayReal;
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
             if (comm_real[runtime_start_index + i])

@@ -1,6 +1,8 @@
 #ifdef AMREX_USE_HDF5_ASYNC
 #include "hdf5.h"
 
+namespace amrex {
+
 hid_t es_par_g = 0;
 
 void async_vol_es_wait_particle()
@@ -29,4 +31,7 @@ void async_vol_es_wait_close_particle()
     }
     return;
 }
+
+}
+
 #endif

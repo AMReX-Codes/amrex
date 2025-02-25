@@ -125,7 +125,7 @@ get_tag_size (T const& tag) noexcept
 
 template <typename T, typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-std::enable_if_t<std::is_same<std::decay_t<decltype(std::declval<T>().box())>, Box>::value>
+std::enable_if_t<std::is_same<std::decay_t<decltype(std::declval<T>().box())>, Box>::value, void>
 tagparfor_call_f (
 #ifdef AMREX_USE_SYCL
     sycl::nd_item<1> const& item,
@@ -150,7 +150,7 @@ tagparfor_call_f (
 
 template <typename T, typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-std::enable_if_t<std::is_integral<std::decay_t<decltype(std::declval<T>().size())> >::value>
+std::enable_if_t<std::is_integral<std::decay_t<decltype(std::declval<T>().size())> >::value, void>
 tagparfor_call_f (
 #ifdef AMREX_USE_SYCL
     sycl::nd_item<1> const& item,
@@ -270,7 +270,7 @@ ParallelFor (Vector<TagType> const& tags, int ncomp, F && f)
 }
 
 template <class TagType, class F>
-std::enable_if_t<std::is_same<std::decay_t<decltype(std::declval<TagType>().box())>, Box>::value>
+std::enable_if_t<std::is_same<std::decay_t<decltype(std::declval<TagType>().box())>, Box>::value, void>
 ParallelFor (Vector<TagType> const& tags, F && f)
 {
     detail::ParallelFor_doit(tags,
@@ -287,7 +287,7 @@ ParallelFor (Vector<TagType> const& tags, F && f)
 }
 
 template <class TagType, class F>
-std::enable_if_t<std::is_integral<std::decay_t<decltype(std::declval<TagType>().size())> >::value>
+std::enable_if_t<std::is_integral<std::decay_t<decltype(std::declval<TagType>().size())> >::value, void>
 ParallelFor (Vector<TagType> const& tags, F && f)
 {
     detail::ParallelFor_doit(tags,

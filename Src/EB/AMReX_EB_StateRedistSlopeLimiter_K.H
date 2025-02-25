@@ -13,12 +13,12 @@ amrex_calc_alpha_stencil(Real q_hat, Real q_max, Real q_min, Real state) noexcep
     constexpr Real epsilon = 1.e-12;
 #endif
 
-    const Real small = epsilon*amrex::max(amrex::Math::abs(q_max),amrex::Math::abs(q_min));
+    const Real sml = epsilon*amrex::max(amrex::Math::abs(q_max),amrex::Math::abs(q_min));
     Real alpha;
 
-    if ((q_hat-state) > small) {
+    if ((q_hat-state) > sml) {
         alpha = amrex::min(1.0_rt,(q_max-state)/(q_hat-state));
-    } else if ((q_hat-state) < -small) {
+    } else if ((q_hat-state) < -sml) {
         alpha = amrex::min(1.0_rt,(q_min-state)/(q_hat-state));
     } else {
         alpha = 1.0_rt;

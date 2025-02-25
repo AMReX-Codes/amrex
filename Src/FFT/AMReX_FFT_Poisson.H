@@ -112,16 +112,22 @@ public:
                    Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
         : m_geom(geom), m_bc(bc)
     {
+#if (AMREX_SPACEDIM < 3)
+        amrex::Abort("FFT::PoissonHybrid: 1D & 2D todo");
+        return;
+#endif
         bool periodic_xy = true;
         for (int idim = 0; idim < 2; ++idim) {
-            periodic_xy = periodic_xy && (bc[idim].first == Boundary::periodic);
-            AMREX_ALWAYS_ASSERT((bc[idim].first == Boundary::periodic &&
-                                 bc[idim].second == Boundary::periodic) ||
-                                (bc[idim].first != Boundary::periodic &&
-                                 bc[idim].second != Boundary::periodic));
+            if (m_geom.Domain().length(idim) > 1) {
+                periodic_xy = periodic_xy && (bc[idim].first == Boundary::periodic);
+                AMREX_ALWAYS_ASSERT((bc[idim].first == Boundary::periodic &&
+                                     bc[idim].second == Boundary::periodic) ||
+                                    (bc[idim].first != Boundary::periodic &&
+                                     bc[idim].second != Boundary::periodic));
+            }
         }
         Info info{};
-        info.setBatchMode(true);
+        info.setTwoDMode(true);
         if (periodic_xy) {
             m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain(),
                                                                    info);
@@ -139,12 +145,13 @@ public:
                             std::make_pair(Boundary::periodic,Boundary::periodic),
                             std::make_pair(Boundary::even,Boundary::even))},
           m_r2c(std::make_unique<R2C<typename MF::value_type>>
-                (geom.Domain(), Info().setBatchMode(true)))
+                (geom.Domain(), Info().setTwoDMode(true)))
     {
 #if (AMREX_SPACEDIM == 3)
         AMREX_ALWAYS_ASSERT(geom.isPeriodic(0) && geom.isPeriodic(1));
 #else
         amrex::Abort("FFT::PoissonHybrid: 1D & 2D todo");
+        return;
 #endif
         build_spmf();
     }
@@ -204,6 +211,11 @@ void Poisson<MF>::solve (MF& soln, MF const& rhs)
         {AMREX_D_DECL(T(2)/T(m_geom.CellSize(0)*m_geom.CellSize(0)),
                       T(2)/T(m_geom.CellSize(1)*m_geom.CellSize(1)),
                       T(2)/T(m_geom.CellSize(2)*m_geom.CellSize(2)))};
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (m_geom.Domain().length(idim) == 1) {
+            dxfac[idim] = 0;
+        }
+    }
     auto scale = (m_r2x) ? m_r2x->scalingFactor() : m_r2c->scalingFactor();
 
     GpuArray<T,AMREX_SPACEDIM> offset{AMREX_D_DECL(T(0),T(0),T(0))};
@@ -240,11 +252,11 @@ void Poisson<MF>::solve (MF& soln, MF const& rhs)
     IntVect const& ng = amrex::elemwiseMin(soln.nGrowVect(), IntVect(1));
 
     if (m_r2x) {
-        m_r2x->forwardThenBackward_doit(rhs, soln, f, ng, m_geom.periodicity());
+        m_r2x->forwardThenBackward_doit_0(rhs, soln, f, ng, m_geom.periodicity());
         detail::fill_physbc(soln, m_geom, m_bc);
     } else {
         m_r2c->forward(rhs);
-        m_r2c->post_forward_doit(f);
+        m_r2c->post_forward_doit_0(f);
         m_r2c->backward_doit(soln, ng, m_geom.periodicity());
     }
 }
@@ -347,14 +359,24 @@ PoissonHybrid<MF>::getSpectralDataLayout () const
 template <typename MF>
 void PoissonHybrid<MF>::build_spmf ()
 {
+#if (AMREX_SPACEDIM == 3)
+    AMREX_ALWAYS_ASSERT(m_geom.Domain().length(2) > 1 &&
+                        (m_geom.Domain().length(0) > 1 ||
+                         m_geom.Domain().length(1) > 1));
+
     if (m_r2c) {
         Box cdomain = m_geom.Domain();
-        cdomain.setBig(0,cdomain.length(0)/2);
+        if (cdomain.length(0) > 1) {
+            cdomain.setBig(0,cdomain.length(0)/2);
+        } else {
+            cdomain.setBig(1,cdomain.length(1)/2);
+        }
         auto cba = amrex::decompose(cdomain, ParallelContext::NProcsSub(),
                                     {AMREX_D_DECL(true,true,false)});
         DistributionMapping dm = detail::make_iota_distromap(cba.size());
         m_spmf_c.define(cba, dm, 1, 0);
-    } else {
+    } else if (m_geom.Domain().length(0) > 1 &&
+               m_geom.Domain().length(1) > 1) {
         if (m_r2x->m_cy.empty()) { // spectral data is real
             auto sba = amrex::decompose(m_geom.Domain(),ParallelContext::NProcsSub(),
                                         {AMREX_D_DECL(true,true,false)});
@@ -372,7 +394,16 @@ void PoissonHybrid<MF>::build_spmf ()
             DistributionMapping dm = detail::make_iota_distromap(cba.size());
             m_spmf_c.define(cba, dm, 1, 0);
         }
+    } else {
+        // spectral data is real
+        auto sba = amrex::decompose(m_geom.Domain(),ParallelContext::NProcsSub(),
+                                    {AMREX_D_DECL(true,true,false)});
+        DistributionMapping dm = detail::make_iota_distromap(sba.size());
+        m_spmf_r.define(sba, dm, 1, 0);
     }
+#else
+    amrex::ignore_unused(this);
+#endif
 }
 
 template <typename MF>
@@ -465,19 +496,24 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
     auto dyfac = T(2)/T(m_geom.CellSize(1)*m_geom.CellSize(1));
     auto scale = (m_r2x) ? m_r2x->scalingFactor() : m_r2c->scalingFactor();
 
+    if (m_geom.Domain().length(0) == 1) { dxfac = 0; }
+    if (m_geom.Domain().length(1) == 1) { dyfac = 0; }
+
     GpuArray<T,AMREX_SPACEDIM-1> offset{T(0),T(0)};
     for (int idim = 0; idim < AMREX_SPACEDIM-1; ++idim) {
-        if (m_bc[idim].first == Boundary::odd &&
-            m_bc[idim].second == Boundary::odd)
-        {
-            offset[idim] = T(1);
-        }
-        else if ((m_bc[idim].first == Boundary::odd &&
-                  m_bc[idim].second == Boundary::even) ||
-                 (m_bc[idim].first == Boundary::even &&
-                  m_bc[idim].second == Boundary::odd))
-        {
-            offset[idim] = T(0.5);
+        if (m_geom.Domain().length(idim) > 1) {
+            if (m_bc[idim].first == Boundary::odd &&
+                m_bc[idim].second == Boundary::odd)
+            {
+                offset[idim] = T(1);
+            }
+            else if ((m_bc[idim].first == Boundary::odd &&
+                      m_bc[idim].second == Boundary::even) ||
+                     (m_bc[idim].first == Boundary::even &&
+                      m_bc[idim].second == Boundary::odd))
+            {
+                offset[idim] = T(0.5);
+            }
         }
     }
 
