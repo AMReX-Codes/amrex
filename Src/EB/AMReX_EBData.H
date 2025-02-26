@@ -70,7 +70,7 @@ struct EBData
                 Real ymax = std::max(ym,yp);
                 ymin = std::max(ymin, Real(-0.5));
                 ymax = std::min(ymax, Real( 0.5));
-                Real y = rn/(ymax-ymin) + ymin;
+                Real y = rn*(ymax-ymin) + ymin;
                 Real x = bc0 - (y-bc1)*n1/n0;
                 return amrex::makeTuple(x,y);
             }
@@ -105,7 +105,7 @@ struct EBData
                 Real ymax = std::max(ym,yp);
                 ymin = std::max(ymin, Real(-0.5));
                 ymax = std::min(ymax, Real( 0.5));
-                Real y = amrex::Random(engine)/(ymax-ymin) + ymin;
+                Real y = amrex::Random(engine)*(ymax-ymin) + ymin;
                 Real z = amrex::Random(engine) - Real(0.5);
                 Real x = bc0 - ((y-bc1)*n1+(z-bc2)*n2)/n0;
                 return amrex::makeTuple(x,y,z);
@@ -128,8 +128,8 @@ struct EBData
                 zmax = std::min(zmax, Real( 0.5));
                 Real x, y, z;
                 do {
-                    y = amrex::Random(engine)/(ymax-ymin) + ymin;
-                    z = amrex::Random(engine)/(zmax-zmin) + zmin;
+                    y = amrex::Random(engine)*(ymax-ymin) + ymin;
+                    z = amrex::Random(engine)*(zmax-zmin) + zmin;
                     x = bc0 - ((y-bc1)*n1+(z-bc2)*n2)/n0;
                 } while (x > Real(0.5) || x < Real(-0.5));
                 return amrex::makeTuple(x,y,z);

@@ -285,23 +285,34 @@ void FillRandom (Real* p, Long N)
 
 void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
 {
+    if (N <= 0) { return; }
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    if (N == 1) {
+        auto r = amrex::RandomNormal(mean, stddev);
+        Gpu::htod_memcpy_async(p, &r, sizeof(Real));
+        Gpu::streamSynchronize();
+        return;
+    }
+    // The length passed to [cu|hip]randGenerateNormal must be even
+    Long Neven =  (N%2 == 0) ? N : N-1;
+#endif
+
 #if defined(AMREX_USE_CUDA)
 
 #  ifdef BL_USE_FLOAT
-    AMREX_CURAND_SAFE_CALL(curandGenerateNormal(gpu_rand_generator, p, N, mean, stddev));
+    AMREX_CURAND_SAFE_CALL(curandGenerateNormal(gpu_rand_generator, p, Neven, mean, stddev));
 #  else
-    AMREX_CURAND_SAFE_CALL(curandGenerateNormalDouble(gpu_rand_generator, p, N, mean, stddev));
+    AMREX_CURAND_SAFE_CALL(curandGenerateNormalDouble(gpu_rand_generator, p, Neven, mean, stddev));
 #  endif
-    Gpu::synchronize();
 
 #elif defined(AMREX_USE_HIP)
 
 #  ifdef BL_USE_FLOAT
-    AMREX_HIPRAND_SAFE_CALL(hiprandGenerateNormal(gpu_rand_generator, p, N, mean, stddev));
+    AMREX_HIPRAND_SAFE_CALL(hiprandGenerateNormal(gpu_rand_generator, p, Neven, mean, stddev));
 #  else
-    AMREX_HIPRAND_SAFE_CALL(hiprandGenerateNormalDouble(gpu_rand_generator, p, N, mean, stddev));
+    AMREX_HIPRAND_SAFE_CALL(hiprandGenerateNormalDouble(gpu_rand_generator, p, Neven, mean, stddev));
 #  endif
-    Gpu::synchronize();
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -317,6 +328,14 @@ void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
         p[i] = distribution(gen);
     }
 
+#endif
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    if (Neven < N) {
+        auto r = amrex::RandomNormal(mean, stddev);
+        Gpu::htod_memcpy_async(p+(N-1), &r, sizeof(Real));
+    }
+    Gpu::synchronize();
 #endif
 }
 

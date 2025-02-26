@@ -199,10 +199,10 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
                   Real bcx, Real bcy) noexcept
 {
 #ifdef AMREX_USE_FLOAT
-    constexpr Real small = 1.e-5_rt;
+    constexpr Real sml = 1.e-5_rt;
     constexpr Real tiny  = 1.e-6_rt;
 #else
-    constexpr Real small = 1.e-14;
+    constexpr Real sml = 1.e-14;
     constexpr Real tiny  = 1.e-15;
 #endif
     Real apnorm = std::hypot(axm-axp,aym-ayp);
@@ -214,13 +214,13 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
 
     if (nxabs < tiny || nyabs > 1.0_rt-tiny) {
         areafrac = 0.5_rt*(axm+axp);
-        if (areafrac > 1.0_rt-small) {
+        if (areafrac > 1.0_rt-sml) {
             areafrac = 1.0_rt;
             centx = 0.0_rt;
             centy = 0.0_rt;
             Sx2 = Sy2 = 1.0_rt/12._rt;
             Sxy = 0.0_rt;
-        } else if (areafrac < small) {
+        } else if (areafrac < sml) {
             areafrac = 0.0_rt;
             centx = 0.0_rt;
             centy = 0.0_rt;
@@ -236,13 +236,13 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
         }
     } else if (nyabs < tiny || nxabs > 1.0_rt-tiny) {
         areafrac = 0.5_rt*(aym+ayp);
-        if (areafrac > 1.0_rt-small) {
+        if (areafrac > 1.0_rt-sml) {
             areafrac = 1.0_rt;
             centx = 0.0_rt;
             centy = 0.0_rt;
             Sx2 = Sy2 = 1.0_rt/12._rt;
             Sxy = 0.0_rt;
-        } else if (areafrac < small) {
+        } else if (areafrac < sml) {
             areafrac = 0.0_rt;
             centx = 0.0_rt;
             centy = 0.0_rt;
@@ -289,13 +289,13 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
             : -signx*(1.0_rt/16._rt)*dx2 + 0.5_rt*ny*S_b;
 
         areafrac = 0.5_rt*(af1+af2);
-        if (areafrac > 1.0_rt-small) {
+        if (areafrac > 1.0_rt-sml) {
             areafrac = 1.0_rt;
             centx = 0.0_rt;
             centy = 0.0_rt;
             Sx2 = Sy2 = 1.0_rt/12._rt;
             Sxy = 0.0_rt;
-        } else if (areafrac < small) {
+        } else if (areafrac < sml) {
             areafrac = 0.0_rt;
             centx = 0.0_rt;
             centy = 0.0_rt;
@@ -377,9 +377,9 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
     int* dp = nmulticuts.data();
 
 #ifdef AMREX_USE_FLOAT
-    constexpr Real small = 1.e-5_rt;
+    constexpr Real sml = 1.e-5_rt;
 #else
-    constexpr Real small = 1.e-14;
+    constexpr Real sml = 1.e-14;
 #endif
     const Real dxinv = 1.0_rt/dx[0];
     const Real dyinv = 1.0_rt/dx[1];
@@ -464,7 +464,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 Gpu::Atomic::Add(dp,1);
             }
 
-            if ((ncuts > 2) || (lym <= small && lyp <= small && lzm <= small && lzp <= small)) {
+            if ((ncuts > 2) || (lym <= sml && lyp <= sml && lzm <= sml && lzp <= sml)) {
                 apx(i,j,k) = 0.0_rt;
                 fcx(i,j,k,0) = 0.0_rt;
                 fcx(i,j,k,1) = 0.0_rt;
@@ -572,7 +572,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 Gpu::Atomic::Add(dp,1);
             }
 
-            if ((ncuts > 2) || (lxm <= small && lxp <= small && lzm <= small && lzp <= small)) {
+            if ((ncuts > 2) || (lxm <= sml && lxp <= sml && lzm <= sml && lzp <= sml)) {
                 apy(i,j,k) = 0.0_rt;
                 fcy(i,j,k,0) = 0.0_rt;
                 fcy(i,j,k,1) = 0.0_rt;
@@ -680,7 +680,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 Gpu::Atomic::Add(dp,1);
             }
 
-            if ((ncuts > 2) || (lxm <= small && lxp <= small && lym <= small && lyp <= small)) {
+            if ((ncuts > 2) || (lxm <= sml && lxp <= sml && lym <= sml && lyp <= sml)) {
                 apz(i,j,k) = 0.0_rt;
                 fcz(i,j,k,0) = 0.0_rt;
                 fcz(i,j,k,1) = 0.0_rt;

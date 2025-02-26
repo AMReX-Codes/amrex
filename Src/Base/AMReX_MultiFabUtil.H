@@ -334,7 +334,7 @@ namespace amrex
      * Return a HostVector that contains the sum of the given MultiFab data in the plane
      * with the given normal direction.  The size of the vector is
      * domain.length(direction) x ncomp.  The vector is actually a 2D array, where the
-     * element for component icomp at spatial index k is at [icomp*ncomp+k].
+     * element for component icomp at spatial index k is at [icomp+ncomp*k].
      *
      * \param mf MultiFab data for summing
      * \param icomp starting component

@@ -279,7 +279,7 @@ function ( eval_genex _list _lang _comp )
       string(REGEX REPLACE "\\$<PLATFORM_ID:[A-Za-z]*>" "0"  _in "${_in}")
 
       # Genex in the form $<*_COMPILER_ID:compiler_ids>
-      string(REGEX REPLACE "\\$<${_lang}_COMPILER_ID:[^>]*${_comp}[^>]*>" "1"  _in "${_in}")
+      string(REGEX REPLACE "\\$<${_lang}_COMPILER_ID[^>]*[:,]${_comp}[>,]" "1"  _in "${_in}")
       string(REGEX REPLACE "\\$<[A-Za-z]*_COMPILER_ID:[A-Za-z]*>" "0"  _in "${_in}")
 
       # Genex in the form $<*_COMPILER_VERSION:version>
@@ -290,7 +290,7 @@ function ( eval_genex _list _lang _comp )
       string(REGEX REPLACE "\\$<[A-Za-z]*_COMPILER_VERSION:[^\$>]*>" "0"  _in "${_in}")
 
       # Genex in the form $<COMPILE_LANG_AND_ID:language,compiler_ids>
-      string(REGEX REPLACE "\\$<COMPILE_LANG_AND_ID:${_lang},[^\$>]*${_comp}[^\$>]*>" "1"  _in "${_in}")
+      string(REGEX REPLACE "\\$<COMPILE_LANG_AND_ID:${_lang}[^\$>]*,${_comp}[>,]" "1"  _in "${_in}")
       string(REGEX REPLACE "\\$<COMPILE_LANG_AND_ID:[A-Za-z,]*>" "0"  _in "${_in}")
 
       # Genex in the form $<COMPILE_LANGUAGE:languages>
@@ -298,7 +298,7 @@ function ( eval_genex _list _lang _comp )
       string(REGEX REPLACE "\\$<COMPILE_LANGUAGE:[A-Za-z]*>" "0"  _in "${_in}")
 
       # Genex in the form $<LINK_LANGUAGE_AND_ID:language,compiler_ids>
-      string(REGEX REPLACE "\\$<LINK_LANGUAGE_AND_ID:${_lang},[^\$>]*${_comp}[^\$>]*>" "1"  _in "${_in}")
+      string(REGEX REPLACE "\\$<LINK_LANGUAGE_AND_ID:${_lang}[^\$>]*,${_comp}[>,]" "1"  _in "${_in}")
       string(REGEX REPLACE "\\$<LINK_LANGUAGE_AND_ID:[A-Za-z,]*>" "0"  _in "${_in}")
 
       # Genex in the form $<LINK_LANGUAGE:languages>

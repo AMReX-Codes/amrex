@@ -244,7 +244,11 @@ struct ParticleCopyPlan
         int NStructInt  = PC::ParticleContainerType::NStructInt;
 
         int num_real_comm_comp = 0;
-        for (int i = AMREX_SPACEDIM + NStructReal; i < real_comp_mask.size(); ++i) {
+        int comm_comps_start = 0;
+        if constexpr (!PC::ParticleType::is_soa_particle) {
+            comm_comps_start += AMREX_SPACEDIM + NStructReal;
+        }
+        for (int i = comm_comps_start; i < real_comp_mask.size(); ++i) {
             if (real_comp_mask[i]) {++num_real_comm_comp;}
         }
 

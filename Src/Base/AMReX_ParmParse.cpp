@@ -28,7 +28,7 @@ namespace amrex {
 namespace {
     bool initialized = false;
     ParmParse::Table g_table;
-    std::vector<std::set<std::string>> g_parser_recursive_symbols;
+    std::vector<std::set<std::string>> g_parser_recursive_symbols(1);
     namespace pp_detail {
         int verbose = -1;
     }
@@ -606,7 +606,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
         {
             if ( cur_name.empty() )
             {
-                cur_name = tokname;
+                cur_name = std::move(tokname);
                 break;
             }
             //
@@ -622,7 +622,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
                 msg += tokname;
                 amrex::Abort(msg.c_str());
             }
-            cur_list.push_back(tokname);
+            cur_list.push_back(std::move(tokname));
             cur_linefeeds.push_back(num_linefeeds);
             break;
         }
@@ -1205,6 +1205,7 @@ ParmParse::Finalize ()
 #endif
 
     g_parser_recursive_symbols.clear();
+    g_parser_recursive_symbols.resize(1);
 
     pp_detail::verbose = -1;
     initialized = false;

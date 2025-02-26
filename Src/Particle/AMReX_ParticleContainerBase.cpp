@@ -5,11 +5,12 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_iMultiFab.H>
 
-using namespace amrex;
+namespace amrex {
 
 bool    ParticleContainerBase::do_tiling = false;
 IntVect ParticleContainerBase::tile_size { AMREX_D_DECL(1024000,8,8) };
 bool    ParticleContainerBase::memEfficientSort = true;
+bool    ParticleContainerBase::use_comms_arena = false;
 
 void ParticleContainerBase::Define (const Geometry            & geom,
                                     const DistributionMapping & dmap,
@@ -327,4 +328,6 @@ void ParticleContainerBase::BuildRedistributeMask (int lev, int nghost) const
         }
         RemoveDuplicates(neighbor_procs);
     }
+}
+
 }

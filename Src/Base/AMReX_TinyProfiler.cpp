@@ -695,7 +695,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
         std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compin);
         if (print_other_procstat) {
             // make sure "Other" is printed at the end of the list
-            allprocstats.push_back(other_procstat);
+            allprocstats.push_back(std::move(other_procstat));
         }
         *os << "\n" << hline << "\n";
         *os << std::left
@@ -805,7 +805,7 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
             pst.avgmem_avg /= nprocs;
             pst.maxmem_avg /= nprocs;
             pst.fname = it.first;
-            allprocstats.push_back(pst);
+            allprocstats.push_back(std::move(pst));
         }
     }
 

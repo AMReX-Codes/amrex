@@ -626,7 +626,7 @@ ifeq ($(USE_FFT),TRUE)
     ifneq ($(FFTW_HOME),NOT_SET)
       SYSTEM_INCLUDE_LOCATIONS += $(FFTW_HOME)/include
       LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
-      LIBRARIES += -Wl,--rpath=$(FFTW_HOME)/lib
+      LIBRARIES += -Wl,-rpath,$(FFTW_HOME)/lib
     endif
     LIBRARIES += -lfftw3f -lfftw3
   endif

@@ -47,7 +47,11 @@ namespace amrex
                                      [[maybe_unused]] Allocator<T> const& allocator)
         {
 #ifdef AMREX_USE_GPU
+#ifdef _WIN32
+            if           (RunOnGpu<Allocator<T>>::value)
+#else
             if constexpr (RunOnGpu<Allocator<T>>::value)
+#endif
             {
                 amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
                     data[i] = value;
@@ -55,7 +59,11 @@ namespace amrex
                 Gpu::streamSynchronize();
                 return;
             }
+#ifdef _WIN32
+            else if           (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+#else
             else if constexpr (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+#endif
             {
                 if (allocator.arena()->isManaged() ||
                     allocator.arena()->isDevice())
@@ -103,7 +111,11 @@ namespace amrex
                              [[maybe_unused]] Allocator<T> const& allocator)
         {
 #ifdef AMREX_USE_GPU
+#ifdef _WIN32
+            if           (RunOnGpu<Allocator<T>>::value)
+#else
             if constexpr (RunOnGpu<Allocator<T>>::value)
+#endif
             {
                 amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
                     dst[i] = src[i];
@@ -111,7 +123,11 @@ namespace amrex
                 Gpu::Device::streamSynchronize();
                 return;
             }
+#ifdef _WIN32
+            else if           (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+#else
             else if constexpr (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+#endif
             {
                 if (allocator.arena()->isManaged() ||
                     allocator.arena()->isDevice())

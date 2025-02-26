@@ -805,6 +805,88 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
+                           Array4<int const> const& omsk,
+                           Array4<int const> const& fmsk, Box const& dom,
+                           GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                           GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        if (fmsk(i,j,k) == 0) {
+            dmsk(i,j,k) = static_cast<Real>(omsk(i,j,k));
+        } else {
+            dmsk(i,j,k) = Real(0);
+        }
+    }}}
+
+    const auto domlo = amrex::lbound(dom);
+    const auto domhi = amrex::ubound(dom);
+
+    if ((bclo[0] == LinOpBCType::Neumann || bclo[0] == LinOpBCType::inflow)
+        && lo.x == domlo.x)
+    {
+        for (int k = lo.z; k <= hi.z; ++k) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+            dmsk(lo.x,j,k) *= Real(0.5);
+        }}
+    }
+
+    if ((bchi[0] == LinOpBCType::Neumann || bchi[0] == LinOpBCType::inflow)
+        && hi.x == domhi.x)
+    {
+        for (int k = lo.z; k <= hi.z; ++k) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+            dmsk(hi.x,j,k) *= Real(0.5);
+        }}
+    }
+
+    if ((bclo[1] == LinOpBCType::Neumann || bclo[1] == LinOpBCType::inflow)
+        && lo.y == domlo.y)
+    {
+        for (int k = lo.z; k <= hi.z; ++k) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            dmsk(i,lo.y,k) *= Real(0.5);
+        }}
+    }
+
+    if ((bchi[1] == LinOpBCType::Neumann || bchi[1] == LinOpBCType::inflow)
+        && hi.y == domhi.y)
+    {
+        for (int k = lo.z; k <= hi.z; ++k) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            dmsk(i,hi.y,k) *= Real(0.5);
+        }}
+    }
+
+    if ((bclo[2] == LinOpBCType::Neumann || bclo[2] == LinOpBCType::inflow)
+        && lo.z == domlo.z)
+    {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            dmsk(i,j,lo.z) *= Real(0.5);
+        }}
+    }
+
+    if ((bchi[2] == LinOpBCType::Neumann || bchi[2] == LinOpBCType::inflow)
+        && hi.z == domhi.z)
+    {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            dmsk(i,j,hi.z) *= Real(0.5);
+        }}
+    }
+}
+
 }
 
 #endif

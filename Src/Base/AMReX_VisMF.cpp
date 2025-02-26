@@ -1710,7 +1710,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           frcIter = FileReadChains.find(fileName);
           BL_ASSERT(frcIter != FileReadChains.end());
           Vector<FabReadLink> &frc = frcIter->second;
-          for(NFilesIter nfi(std::move(fullFileName), readRanks); nfi.ReadyToRead(); ++nfi) {
+          for(NFilesIter nfi(std::move(fullFileName), std::move(readRanks)); nfi.ReadyToRead(); ++nfi) {
 
               // ---- confirm the data is contiguous in the stream
               Long firstOffset(-1);

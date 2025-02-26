@@ -108,6 +108,7 @@ public:
 #endif
     fill_local_id (Marker const& marker);
 
+    template <typename AI>
     void fill_global_id ();
 
     template <class Filler,
@@ -254,7 +255,14 @@ HypreSolver<MSS>::HypreSolver (Vector<IndexType>   const& a_index_type,
     }
     AMREX_ASSERT(proc_end == proc_begin + m_nrows_proc);
 
-    fill_global_id();
+    // To generate global ids for Hypre, we need to remove duplicates on
+    // nodes shared by multiple Boxes with OverrideSync.  So we need to use
+    // a type that supports atomicAdd.  HYPRE_Int is either int or long
+    // long.  The latter (i.e., long long) does not have native atomicAdd
+    // support in CUDA/HIP, whereas unsigned long long has.
+    using AtomicInt = std::conditional_t<sizeof(HYPRE_Int) == 4,
+                                         HYPRE_Int, unsigned long long>;
+    fill_global_id<AtomicInt>();
 
     // Create and initialize A, b & x
     HYPRE_Int ilower = proc_begin;
@@ -366,27 +374,22 @@ HypreSolver<MSS>::fill_local_id (Marker const& marker)
 }
 
 template <int MSS>
+template <typename AI>
 void
 HypreSolver<MSS>::fill_global_id ()
 {
     BL_PROFILE("HypreSolver::fill_global_id()");
 
-    // To generate global ids for Hypre, we need to remove duplicates on
-    // nodes shared by multiple Boxes with OverrideSync.  So we need to use
-    // a type that supports atomicAdd.  HYPRE_Int is either int or long
-    // long.  The latter does not have native atomicAdd support in CUDA/HIP.
-    using AtomicInt = std::conditional_t<sizeof(HYPRE_Int) == 4,
-                                         HYPRE_Int, unsigned long long>;
+    Vector<FabArray<BaseFab<AI>>> global_id_raii;
+    Vector<FabArray<BaseFab<AI>>*> p_global_id;
 
-    Vector<FabArray<BaseFab<AtomicInt>>> global_id_raii;
-    Vector<FabArray<BaseFab<AtomicInt>>*> p_global_id;
-    if constexpr (std::is_same<HYPRE_Int, AtomicInt>()) {
+    if constexpr (std::is_same_v<HYPRE_Int,AI>) {
         for (int ivar = 0; ivar < m_nvars; ++ivar) {
             p_global_id.push_back(&(m_global_id[ivar]));
         }
     } else {
         for (int ivar = 0; ivar < m_nvars; ++ivar) {
-            global_id_raii[ivar].define(m_global_id[ivar].boxArray(),
+            global_id_raii.emplace_back(m_global_id[ivar].boxArray(),
                                         m_global_id[ivar].DistributionMap(),
                                         1, m_global_id[ivar].nGrowVect());
             p_global_id.push_back(&(global_id_raii[ivar]));
@@ -405,7 +408,7 @@ HypreSolver<MSS>::fill_global_id ()
             HYPRE_Int const os = m_id_offset[ivar][mfi];
             Box bx = mfi.validbox();
             bx.convert(m_index_type[ivar]).grow(m_nghost);
-            Array4<AtomicInt> const& gid = p_global_id[ivar]->array(mfi);
+            Array4<AI> const& gid = p_global_id[ivar]->array(mfi);
             auto const& lid = m_local_id[ivar].const_array(mfi);
             HYPRE_Int* rows = rows_vec.data() + nrows;
             nrows += m_nrows_grid[ivar][mfi];
@@ -414,9 +417,9 @@ HypreSolver<MSS>::fill_global_id ()
                 if (lid.contains(i,j,k) && lid(i,j,k) >= 0) {
                     const auto id = lid(i,j,k) + os;
                     rows[lid(i,j,k)] = id;
-                    gid(i,j,k) = static_cast<AtomicInt>(id);
+                    gid(i,j,k) = static_cast<AI>(id);
                 } else {
-                    gid(i,j,k) = static_cast<AtomicInt>
+                    gid(i,j,k) = static_cast<AI>
                         (std::numeric_limits<HYPRE_Int>::max());
                 }
             });
@@ -428,7 +431,7 @@ HypreSolver<MSS>::fill_global_id ()
                             m_geom.periodicity());
         p_global_id[ivar]->FillBoundary(m_geom.periodicity());
 
-        if constexpr (!std::is_same<HYPRE_Int, AtomicInt>()) {
+        if constexpr (!std::is_same<HYPRE_Int, AI>()) {
             auto const& dst = m_global_id[ivar].arrays();
             auto const& src = p_global_id[ivar]->const_arrays();
             amrex::ParallelFor(m_global_id[ivar], m_global_id[ivar].nGrowVect(),

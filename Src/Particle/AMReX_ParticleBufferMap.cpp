@@ -1,6 +1,6 @@
 #include <AMReX_ParticleBufferMap.H>
 
-using namespace amrex;
+namespace amrex {
 
 ParticleBufferMap::ParticleBufferMap (const ParGDBBase* a_gdb)
 {
@@ -129,4 +129,6 @@ bool ParticleBufferMap::isValid (const ParGDBBase* a_gdb) const
     }
 
     return valid;
+}
+
 }

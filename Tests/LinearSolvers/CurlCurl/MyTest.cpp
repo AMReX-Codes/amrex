@@ -65,11 +65,6 @@ MyTest::solve ()
         GMRESMLMGT<V> gmsolver(mlmg);
         gmsolver.usePrecond(gmres_use_precond);
         gmsolver.setPrecondNumIters(gmres_precond_niters);
-
-        // This system has homogeneous BC unlike
-        // Tests/LinearSolvers/ABecLaplacian_C, so the setup is simpler.
-        gmsolver.setPropertyOfZero(true);
-
         gmsolver.setVerbose(verbose);
         gmsolver.solve(solution, rhs, tol_rel, tol_abs);
     }

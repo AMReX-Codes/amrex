@@ -3,6 +3,8 @@
 
 #include <type_traits>
 
+namespace amrex {
+
 template< class T >
 struct is_soa_particle
      : std::integral_constant<
@@ -36,5 +38,7 @@ struct make_particle<T_ParticleType, std::enable_if_t<is_soa_particle<T_Particle
         return T_ParticleType(ptd, index);
     }
 };
+
+}
 
 #endif

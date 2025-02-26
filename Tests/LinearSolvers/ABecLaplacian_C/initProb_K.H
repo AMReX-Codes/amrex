@@ -134,12 +134,12 @@ void actual_init_abeclap (int i, int j, int k,
                                  + a * (std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z)
                                + 0.25 * std::cos(fpi*x) * std::cos(fpi*y) * std::cos(fpi*z));
     } else {
-        amrex::Real xb = std::clamp(x, prob_lo[0], prob_hi[0]);
-        amrex::Real yb = std::clamp(y, prob_lo[1], prob_hi[1]);
+        amrex::Real xb = amrex::Clamp(x, prob_lo[0], prob_hi[0]);
+        amrex::Real yb = amrex::Clamp(y, prob_lo[1], prob_hi[1]);
 #if (AMREX_SPACEDIM == 2)
         amrex::Real zb = 0.0;
 #else
-        amrex::Real zb = std::clamp(z, prob_lo[2], prob_hi[2]);
+        amrex::Real zb = amrex::Clamp(z, prob_lo[2], prob_hi[2]);
 #endif
         // provide Dirichlet BC
         sol(i,j,k) = std::cos(tpi*xb) * std::cos(tpi*yb) * std::cos(tpi*zb)

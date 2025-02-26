@@ -1117,7 +1117,7 @@ public:
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
                                            std::is_same_v<T,double>,int> = 0>
-    int queryAddWithParser (const char* name, T& ref) const
+    int queryAddWithParser (const char* name, T& ref)
     {
         int exist = this->queryWithParser(name, ref);
         if (!exist) {

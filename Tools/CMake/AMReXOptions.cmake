@@ -482,7 +482,7 @@ option(AMReX_DIFFERENT_COMPILER
    "Allow an application to use a different compiler than the one used to build AMReX" OFF)
 print_option(AMReX_DIFFERENT_COMPILER)
 
-if (AMReX_BUILD_SHARED_LIBS AND NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
+if ( NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
    option(AMReX_PROBINIT "Enable support for probin file" OFF)
 else ()
    cmake_dependent_option(AMReX_PROBINIT "Enable support for probin file" ON

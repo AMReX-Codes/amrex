@@ -649,6 +649,7 @@ knapsack (const std::vector<Long>&         wgts,
         }
     }
 
+    AMREX_ASSERT(nprocs > 0 && max_weight > Real(0));
     efficiency = sum_weight/(static_cast<Real>(nprocs)*max_weight);
 
     std::sort(wblv.begin(), wblv.end());
@@ -982,6 +983,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
                 }
             }
 
+            AMREX_ASSERT(max_weight > Real(0));
             new_efficiency = avg_weight / max_weight;
 
             if (new_efficiency < max_efficiency && wblv.size() > 1) {

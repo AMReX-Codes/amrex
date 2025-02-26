@@ -80,10 +80,14 @@ namespace Gpu {
         amrex::Abort(errStr); \
     }}
 
-#define AMREX_CURAND_SAFE_CALL(x) do { if((x)!=CURAND_STATUS_SUCCESS) { \
-    std::string errStr(std::string("CURAND error in file ") + __FILE__  \
-                       + " line " + std::to_string(__LINE__));          \
-    amrex::Abort(errStr); }} while(0)
+#define AMREX_CURAND_SAFE_CALL(call) { \
+    curandStatus_t amrex_i_err = call;          \
+    if (CURAND_STATUS_SUCCESS != amrex_i_err) { \
+        std::string errStr(std::string("CURAND error ") + std::to_string(amrex_i_err) \
+                           + std::string(" in file ") + __FILE__ \
+                           + " line " + std::to_string(__LINE__)); \
+        amrex::Abort(errStr); \
+    }}
 
 #define AMREX_CUFFT_SAFE_CALL(call) { \
     cufftResult_t amrex_i_err = call; \
@@ -106,10 +110,14 @@ namespace Gpu {
         amrex::Abort(errStr); \
     }}
 
-#define AMREX_HIPRAND_SAFE_CALL(x) do { if((x)!=HIPRAND_STATUS_SUCCESS) { \
-    std::string errStr(std::string("HIPRAND error in file ") + __FILE__  \
-                       + " line " + std::to_string(__LINE__));          \
-    amrex::Abort(errStr); }} while(0)
+#define AMREX_HIPRAND_SAFE_CALL(call) { \
+    hiprandStatus_t amrex_i_err = call;          \
+    if (HIPRAND_STATUS_SUCCESS != amrex_i_err) { \
+        std::string errStr(std::string("HIPRAND error ") + std::to_string(amrex_i_err) \
+                           + std::string(" in file ") + __FILE__ \
+                           + " line " + std::to_string(__LINE__)); \
+        amrex::Abort(errStr); \
+    }}
 
 #define AMREX_ROCFFT_SAFE_CALL(call) { \
     auto amrex_i_err = call; \

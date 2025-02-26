@@ -80,7 +80,7 @@ namespace amrex
 
             // and record the siblings group
             // (assumes: ascending and unique sets per cpuIndex)
-            uniqueThreadSets.insert(siblings);
+            uniqueThreadSets.insert(std::move(siblings));
             cpuIndex++;
         }
 

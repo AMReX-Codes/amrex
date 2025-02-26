@@ -33,7 +33,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
     const auto *const  ccent = (factory) ? &(factory->getCentroid()) : nullptr;
 
     const bool is_eb_dirichlet =  isEBDirichlet();
-    const bool is_eb_inhomog = m_is_eb_inhomog;
+    const bool is_eb_inhomog = m_is_eb_inhomog && (!this->m_precond_mode);
 
     const int ncomp = getNComp();
 

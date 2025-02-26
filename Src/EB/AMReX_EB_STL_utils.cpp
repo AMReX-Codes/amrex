@@ -544,13 +544,13 @@ STLtools::build_bvh (Triangle* begin, Triangle* end, Gpu::PinnedVector<Node>& bv
 #else
         constexpr Real eps = Real(1.e-10);
 #endif
-        Real small = eps*std::max({AMREX_D_DECL(bbox.length(0),
-                                                bbox.length(1),
-                                                bbox.length(2))});
+        Real sml = eps*std::max({AMREX_D_DECL(bbox.length(0),
+                                              bbox.length(1),
+                                              bbox.length(2))});
         // Make bounding box slightly bigger for robustness.
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            bbox.setLo(idim,bbox.lo(idim)-small);
-            bbox.setHi(idim,bbox.hi(idim)+small);
+            bbox.setLo(idim,bbox.lo(idim)-sml);
+            bbox.setHi(idim,bbox.hi(idim)+sml);
         }
         node.ntriangles = int(ntri); // NOLINT
         return;

@@ -2337,7 +2337,7 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
                 ntiles *= nt_in_fab[d];
             }
 
-            IntVect small, big, ijk;  // note that the initial values are all zero.
+            IntVect sml, big, ijk;  // note that the initial values are all zero.
             ijk[0] = -1;
             for (int t = 0; t < ntiles; ++t) {
                 ta.indexMap.push_back(K);
@@ -2356,15 +2356,15 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 
                 for (int d=0; d<AMREX_SPACEDIM; d++) {
                     if (ijk[d] < nleft[d]) {
-                        small[d] = ijk[d]*(tsize[d]+1);
-                        big[d] = small[d] + tsize[d];
+                        sml[d] = ijk[d]*(tsize[d]+1);
+                        big[d] = sml[d] + tsize[d];
                     } else {
-                        small[d] = ijk[d]*tsize[d] + nleft[d];
-                        big[d] = small[d] + tsize[d] - 1;
+                        sml[d] = ijk[d]*tsize[d] + nleft[d];
+                        big[d] = sml[d] + tsize[d] - 1;
                     }
                 }
 
-                Box tbx(small, big, IndexType::TheCellType());
+                Box tbx(sml, big, IndexType::TheCellType());
                 tbx.shift(bx.smallEnd());
 
                 ta.tileArray.push_back(tbx);

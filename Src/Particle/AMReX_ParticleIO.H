@@ -4,6 +4,8 @@
 
 #include <AMReX_WriteBinaryParticleData.H>
 
+namespace amrex {
+
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
@@ -83,6 +85,21 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             tmp_real_comp_names, tmp_int_comp_names,
+                            FilterPositiveID{}, true);
+}
+
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+void
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
+::Checkpoint (const std::string& dir, const std::string& name,
+              const Vector<int>& write_real_comp,
+              const Vector<int>& write_int_comp,
+              const Vector<std::string>& real_comp_names,
+              const Vector<std::string>& int_comp_names) const
+{
+    WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
+                            real_comp_names, int_comp_names,
                             FilterPositiveID{}, true);
 }
 
@@ -1257,6 +1274,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
         amrex::Print() << "ParticleContainer::WriteAsciiFile() time: " << stoptime << '\n';
     }
+}
+
 }
 
 #endif /*AMREX_PARTICLEIO_H*/

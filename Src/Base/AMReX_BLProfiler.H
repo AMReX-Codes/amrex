@@ -579,7 +579,7 @@ class BLProfiler
 #endif
 
 // ============================================================
-// If applicible, turn off comm profiling
+// If applicable, turn off comm profiling
 // ============================================================
 
 #ifndef BL_COMM_PROFILING

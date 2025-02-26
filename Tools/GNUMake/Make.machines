@@ -18,14 +18,6 @@ host_name_short := $(shell hostname -s)
 # MACHINES supported
 
 ifdef NERSC_HOST
-ifeq ($(findstring cgpu, $(host_name)), cgpu)
-  which_site := nersc
-  which_computer := cgpu
-else
-ifeq ($(NERSC_HOST), cori)
-  which_site := nersc
-  which_computer := cori
-else
 ifeq ($(NERSC_HOST), perlmutter)
   which_site := nersc
   which_computer := perlmutter
@@ -42,27 +34,8 @@ ifeq ($(NERSC_HOST), muller)
   which_computer := perlmutter
 endif
 endif
-endif
-endif
-
-ifdef OLCF_MODULEPATH_ROOT
-  ifeq ($(findstring summit, $(host_name)), summit)
-    which_site := olcf
-    which_computer := summit
-  endif
-
-  ifeq ($(findstring ascent, $(host_name)), ascent)
-    which_site := olcf
-    which_computer := ascent
-  endif
-endif
 
 ifeq ($(LMOD_SITE_NAME),OLCF)
-  ifeq ($(findstring spock, $(host_name)), spock)
-    which_site := olcf
-    which_computer := spock
-  endif
-
   ifeq ($(findstring crusher, $(host_name)), crusher)
     which_site := olcf
     which_computer := crusher
@@ -75,12 +48,6 @@ ifeq ($(LMOD_SITE_NAME),OLCF)
 endif
 
 ifeq ($(findstring alcf.anl.gov, $(host_name)),alcf.anl.gov)
-  ifeq ($(findstring theta, $(host_name)), theta)
-  ifneq ($(findstring thetagpu, $(host_name)), thetagpu)
-    which_site := alcf
-    which_computer := theta
-  endif
-  endif
   ifeq ($(findstring polaris, $(host_name)), polaris)
     which_site := alcf
     which_computer := polaris

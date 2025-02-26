@@ -672,6 +672,27 @@ MLABecLaplacianT<MF>::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a,
                              auto const& by = b[mglev][1].array(mfi);,
                              auto const& bz = b[mglev][2].array(mfi));
                 auto const& osm = this->m_overset_mask[amrlev][mglev]->const_array(mfi);
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE
+                    (xbx, t_xbx,
+                     {
+                         overset_rescale_bcoef_x(t_xbx, bx, osm, ncomp, osfac);
+                     });
+#if (AMREX_SPACEDIM >= 2)
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE
+                    (ybx, t_ybx,
+                     {
+                         overset_rescale_bcoef_y(t_ybx, by, osm, ncomp, osfac);
+                     });
+#endif
+#if (AMREX_SPACEDIM == 3)
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE
+                    (zbx, t_zbx,
+                     {
+                         overset_rescale_bcoef_z(t_zbx, bz, osm, ncomp, osfac);
+                     });
+#endif
+#else
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
                     (xbx, t_xbx,
                      {
@@ -685,6 +706,7 @@ MLABecLaplacianT<MF>::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a,
                      {
                          overset_rescale_bcoef_z(t_zbx, bz, osm, ncomp, osfac);
                      });
+#endif
             }
         }
     }
@@ -1164,7 +1186,7 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
         RT fac = bscalar*static_cast<RT>(dxinv[0]);
         Box blo = amrex::bdryLo(box, 0);
         int blen = box.length(0);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
         {
             mlabeclap_flux_xface(tbox, fxarr, solarr, bx, fac, blen, ncomp);
         });
@@ -1172,7 +1194,7 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
         fac = bscalar*static_cast<RT>(dxinv[1]);
         blo = amrex::bdryLo(box, 1);
         blen = box.length(1);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
         {
             mlabeclap_flux_yface(tbox, fyarr, solarr, by, fac, blen, ncomp);
         });
@@ -1181,7 +1203,7 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
         fac = bscalar*static_cast<RT>(dxinv[2]);
         blo = amrex::bdryLo(box, 2);
         blen = box.length(2);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
         {
             mlabeclap_flux_zface(tbox, fzarr, solarr, bz, fac, blen, ncomp);
         });
@@ -1191,14 +1213,14 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
     {
         RT fac = bscalar*static_cast<RT>(dxinv[0]);
         Box bflux = amrex::surroundingNodes(box, 0);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
         {
             mlabeclap_flux_x(tbox, fxarr, solarr, bx, fac, ncomp);
         });
 #if (AMREX_SPACEDIM >= 2)
         fac = bscalar*static_cast<RT>(dxinv[1]);
         bflux = amrex::surroundingNodes(box, 1);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
         {
             mlabeclap_flux_y(tbox, fyarr, solarr, by, fac, ncomp);
         });
@@ -1206,7 +1228,7 @@ MLABecLaplacianT<MF>::FFlux (Box const& box, Real const* dxinv, RT bscalar,
 #if (AMREX_SPACEDIM == 3)
         fac = bscalar*static_cast<RT>(dxinv[2]);
         bflux = amrex::surroundingNodes(box, 2);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
         {
             mlabeclap_flux_z(tbox, fzarr, solarr, bz, fac, ncomp);
         });

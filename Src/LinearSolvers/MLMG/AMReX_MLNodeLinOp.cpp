@@ -183,17 +183,39 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
     AMREX_ASSERT(mglev+1==m_num_mg_levels[0] || mglev==0);
     const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
     const int ncomp = y.nComp();
-    const int nghost = 0;
-    MultiFab tmp(x.boxArray(), x.DistributionMap(), ncomp, 0);
-    MultiFab::Copy(tmp, x, 0, 0, ncomp, nghost);
-    for (int i = 0; i < ncomp; i++) {
-        MultiFab::Multiply(tmp, mask, 0, i, 1, nghost);
-    }
-    Real result = MultiFab::Dot(tmp,0,y,0,ncomp,nghost,true);
+    const IntVect nghost(0);
+    Real result = amrex::Dot(mask, x, 0, y, 0, ncomp, nghost, true);
     if (!local) {
         ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
     }
     return result;
+}
+
+Real
+MLNodeLinOp::dotProductPrecond (Vector<MultiFab const*> const& x,
+                                Vector<MultiFab const*> const& y) const
+{
+    Real result = 0;
+    const int ncomp = x[0]->nComp();
+    for (int ilev = 0; ilev < NAMRLevels(); ++ilev) {
+        result += amrex::Dot(m_precond_weight_mask[ilev],
+                             *x[ilev],0,*y[ilev],0,ncomp,IntVect(0),true);
+    }
+    ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
+    return result;
+}
+
+Real
+MLNodeLinOp::norm2Precond (Vector<MultiFab const*> const& x) const
+{
+    Real result = 0;
+    const int ncomp = x[0]->nComp();
+    for (int ilev = 0; ilev < NAMRLevels(); ++ilev) {
+        result += amrex::Dot(m_precond_weight_mask[ilev],
+                             *x[ilev],0,ncomp,IntVect(0),true);
+    }
+    ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
+    return std::sqrt(result);
 }
 
 Vector<Real>
@@ -384,17 +406,56 @@ MLNodeLinOp::buildMasks ()
 }
 
 void
-MLNodeLinOp::prepareForGMRES ()
+MLNodeLinOp::preparePrecond ()
 {
-    if (m_coarse_dot_mask.empty()) {
-        int amrlev = 0;
-        int mglev = 0;
-        const Geometry& geom = m_geom[amrlev][mglev];
-        const iMultiFab& omask = *m_owner_mask_top;
-        m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
-        const auto lobc = LoBC();
-        const auto hibc = HiBC();
-        MLNodeLinOp_set_dot_mask(m_coarse_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
+    if (m_precond_weight_mask.empty()) {
+        m_precond_weight_mask.resize(m_num_amr_levels);
+        for (int ilev = 0; ilev < m_num_amr_levels; ++ilev) {
+            m_precond_weight_mask[ilev].define(amrex::convert(m_grids[ilev][0],IntVect(1)),
+                                               m_dmap[ilev][0], 1, 0);
+            auto omask = makeOwnerMask(m_grids[ilev][0],
+                                       m_dmap[ilev][0],
+                                       m_geom[ilev][0]);
+            const auto lobc = LoBC();
+            const auto hibc = HiBC();
+            Box nddomain = amrex::surroundingNodes(m_geom[ilev][0].Domain());
+            if (m_coarsening_strategy != MLNodeLinOp::CoarseningStrategy::Sigma) {
+                nddomain.grow(1000); // hack to avoid masks being modified at Neumann boundary
+            }
+            if (ilev < m_num_amr_levels-1) {
+                auto const& fmask = *m_nd_fine_mask[ilev];
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+                for (MFIter mfi(m_precond_weight_mask[ilev],TilingIfNotGPU());
+                     mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.tilebox();
+                    Array4<Real> const& dfab = m_precond_weight_mask[ilev].array(mfi);
+                    Array4<int const> const& sfab = omask->const_array(mfi);
+                    Array4<int const> const& ffab = fmask.const_array(mfi);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        mlndlap_set_dot_mask(tbx, dfab, sfab, ffab, nddomain, lobc, hibc);
+                    });
+                }
+            } else {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+                for (MFIter mfi(m_precond_weight_mask[ilev],TilingIfNotGPU());
+                     mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.tilebox();
+                    Array4<Real> const& dfab = m_precond_weight_mask[ilev].array(mfi);
+                    Array4<int const> const& sfab = omask->const_array(mfi);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        mlndlap_set_dot_mask(tbx, dfab, sfab, nddomain, lobc, hibc);
+                    });
+                }
+            }
+        }
     }
 }
 

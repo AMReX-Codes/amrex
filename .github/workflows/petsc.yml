@@ -11,7 +11,7 @@ jobs:
     uses: ./.github/workflows/check_changes.yml
 
   test-petsc-cpu-2d:
-    name: GCC 2D EB PETSc@3.18.1
+    name: GCC 2D EB PETSc
     runs-on: ubuntu-latest
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -31,11 +31,12 @@ jobs:
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build PETSc
       run: |
-        wget -q https://github.com/petsc/petsc/archive/refs/tags/v3.18.1.tar.gz
-        tar xfz v3.18.1.tar.gz
-        cd petsc-3.18.1
+        sudo apt-get install -y --no-install-recommends libblas-dev liblapack-dev
+        wget -q https://github.com/petsc/petsc/archive/refs/tags/v3.22.2.tar.gz
+        tar xfz v3.22.2.tar.gz
+        cd petsc-3.22.2
         export PETSC_DIR=${PWD}
-        ./configure --prefix=${PWD}/petsc
+        ./configure --prefix=${PWD}/petsc --with-fortran-bindings=no --with-x=no
         make -j 4
         make install
         cd ../
@@ -48,7 +49,7 @@ jobs:
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
-        export AMREX_PETSC_HOME=${PWD}/petsc-3.18.1/petsc
+        export AMREX_PETSC_HOME=${PWD}/petsc-3.22.2/petsc
         cd Tests/LinearSolvers/CellEB
         make -j4 USE_MPI=TRUE USE_PETSC=TRUE DIM=2 TEST=TRUE \
             CCACHE=ccache

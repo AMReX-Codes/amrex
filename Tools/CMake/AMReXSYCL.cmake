@@ -83,9 +83,15 @@ if (AMReX_SYCL_AOT)
 endif ()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND "${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-   target_link_options( SYCL
-      INTERFACE
-      "$<${_cxx_sycl}:-fsycl-link-huge-device-code>" )
+   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 2023.2)
+      target_link_options( SYCL
+          INTERFACE
+          "$<${_cxx_sycl}:-fsycl-link-huge-device-code>" )
+   else ()
+      target_link_options( SYCL
+          INTERFACE
+          "$<${_cxx_sycl}:-flink-huge-device-code>" )
+   endif ()
 endif ()
 
 if (AMReX_PARALLEL_LINK_JOBS GREATER 1)
