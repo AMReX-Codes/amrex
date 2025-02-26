@@ -204,7 +204,7 @@ private:
             amrex::Print() << "SUNDIALS ERK time integrator\n";
             arkode_fast_mem = ARKStepCreate(SundialsUserFun::ff, nullptr, time, y_data, sunctx);
 
-            if (method != "DEFAULT") {
+            if (fast_method != "DEFAULT") {
                 amrex::Print() << "SUNDIALS ERK method " << method << "\n";
                 ARKStepSetTableName(arkode_fast_mem, "ARKODE_DIRK_NONE", fast_method.c_str());
             }
@@ -213,7 +213,7 @@ private:
             amrex::Print() << "SUNDIALS DIRK time integrator\n";
             arkode_fast_mem = ARKStepCreate(nullptr, SundialsUserFun::ff, time, y_data, sunctx);
 
-            if (method != "DEFAULT") {
+            if (fast_method != "DEFAULT") {
                 amrex::Print() << "SUNDIALS DIRK method " << method << "\n";
                 ARKStepSetTableName(arkode_fast_mem, fast_method.c_str(), "ARKODE_ERK_NONE");
             }
