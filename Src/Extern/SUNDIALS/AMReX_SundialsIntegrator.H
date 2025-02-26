@@ -128,8 +128,8 @@ private:
 
         pp.query("type", type);
         pp.query("method", method);
-        pp.query("method_e", method);
-        pp.query("method_i", method);
+        pp.query("method_e", method_e);
+        pp.query("method_i", method_i);
 
         pp.query("fast_type", fast_type);
         pp.query("fast_method", fast_method);
