@@ -167,12 +167,15 @@ MLNodeLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode b
 
 void
 MLNodeLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                     bool skip_fillboundary) const
+                     bool skip_fillboundary, int niter) const
 {
-    if (!skip_fillboundary) {
-        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+    for (int i = 0; i < niter; ++i) {
+        if (!skip_fillboundary) {
+            applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+        }
+        Fsmooth(amrlev, mglev, sol, rhs);
+        skip_fillboundary = false;
     }
-    Fsmooth(amrlev, mglev, sol, rhs);
 }
 
 Real
