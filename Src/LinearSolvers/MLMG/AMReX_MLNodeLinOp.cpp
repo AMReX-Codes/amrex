@@ -470,7 +470,9 @@ MLNodeLinOp::setDirichletNodesToZero (int amrlev, int mglev, MultiFab& mf) const
     {
         if (maskma[bno](i,j,k)) { ma[bno](i,j,k,n) = RT(0.0); }
     });
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 #ifdef AMREX_USE_EB
     EB_set_covered(mf, 0, ncomp, 0, RT(0.0));
 #endif

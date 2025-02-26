@@ -52,7 +52,9 @@ MFPCInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fco
                              fine[box_no](i,j,k,n+fcomp) = crse[box_no](ic,jc,kc,n+ccomp);)
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -202,7 +204,9 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
             });
         }
 
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -373,7 +377,9 @@ MFCellConsLinMinmaxLimitInterp::interp (MultiFab const& crsemf, int ccomp, Multi
             }
         });
 
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -457,7 +463,9 @@ MFCellBilinear::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int
                 mf_cell_bilin_interp(i,j,k,n, fine[box_no], fcomp, crse[box_no], ccomp, ratio);
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -512,7 +520,9 @@ MFNodeBilinear::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int
                 mf_nodebilin_interp(i,j,k,n, fine[box_no], fcomp, crse[box_no], ccomp, ratio);
             }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {

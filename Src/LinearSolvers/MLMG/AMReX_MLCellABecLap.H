@@ -206,7 +206,9 @@ MLCellABecLapT<MF>::define (const Vector<Geometry>& a_geom,
                 {
                     coarsen_overset_mask(i,j,k, crsema[box_no], finema[box_no]);
                 });
-                Gpu::streamSynchronize();
+                if (!Gpu::inNoSyncRegion()) {
+                    Gpu::streamSynchronize();
+                }
             } else
 #endif
             {
@@ -263,7 +265,9 @@ MLCellABecLapT<MF>::setDirichletNodesToZero (int amrlev, int mglev, MF& mf) cons
         {
             if (mskma[bno](i,j,k) == 0) { ma[bno](i,j,k,n) = RT(0.0); }
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     }
 }
 
@@ -639,7 +643,9 @@ MLCellABecLapT<MF>::applyOverset (int amrlev, MF& rhs) const
                     rhsa[box_no](i,j,k,n) = RT(0.0);
                 }
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {

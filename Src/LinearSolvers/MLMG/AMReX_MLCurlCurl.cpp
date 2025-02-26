@@ -193,7 +193,9 @@ void MLCurlCurl::restriction (int amrlev, int cmglev, MF& crse, MF& fine) const
         {
             mlcurlcurl_restriction(idim,i,j,k,crsema[bno],finema[bno],dinfo);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
 
         if (need_parallel_copy) {
             crse[idim].ParallelCopy(cfine);
@@ -228,7 +230,9 @@ void MLCurlCurl::interpolation (int amrlev, int fmglev, MF& fine,
             }
         });
     }
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 }
 
 void
@@ -377,7 +381,9 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
                           bcx[bno],bcy[bno],bcz[bno],
                           adxinv,color,dinfo);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else {
         ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
@@ -385,7 +391,9 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
                           rhsx[bno],rhsy[bno],rhsz[bno],
                           b,adxinv,color,dinfo);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     }
 }
 #endif
@@ -450,7 +458,9 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
             });
         }
     }
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 }
 #endif
 
