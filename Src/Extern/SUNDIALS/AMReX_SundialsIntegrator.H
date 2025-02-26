@@ -154,8 +154,8 @@ private:
             amrex::Print() << "SUNDIALS ERK time integrator\n";
             arkode_mem = ARKStepCreate(SundialsUserFun::f, nullptr, time, y_data, sunctx);
 
+            amrex::Print() << "SUNDIALS ERK method " << method << "\n";
             if (method != "DEFAULT") {
-                amrex::Print() << "SUNDIALS ERK method " << method << "\n";
                 ARKStepSetTableName(arkode_mem, "ARKODE_DIRK_NONE", method.c_str());
             }
         }
@@ -163,8 +163,8 @@ private:
             amrex::Print() << "SUNDIALS DIRK time integrator\n";
             arkode_mem = ARKStepCreate(nullptr, SundialsUserFun::f, time, y_data, sunctx);
 
+            amrex::Print() << "SUNDIALS DIRK method " << method << "\n";
             if (method != "DEFAULT") {
-                amrex::Print() << "SUNDIALS DIRK method " << method << "\n";
                 ARKStepSetTableName(arkode_mem, method.c_str(), "ARKODE_ERK_NONE");
             }
         }
@@ -172,10 +172,10 @@ private:
             amrex::Print() << "SUNDIALS IMEX time integrator\n";
             arkode_mem = ARKStepCreate(SundialsUserFun::fe, SundialsUserFun::fi, time, y_data, sunctx);
 
+            amrex::Print() << "SUNDIALS IMEX method " << method_i << " and "
+                           << method_e << "\n";
             if (method_e != "DEFAULT" && method_i != "DEFAULT")
             {
-                amrex::Print() << "SUNDIALS IMEX method " << method_i << " and "
-                               << method_e << "\n";
                 ARKStepSetTableName(arkode_mem, method_i.c_str(), method_e.c_str());
             }
         }
@@ -199,22 +199,31 @@ private:
 
     void SetupMRI (amrex::Real time, N_Vector y_data)
     {
+        if (type == "EX-MRI") {
+            amrex::Print() << "SUNDIALS EX-MRI time integrator\n";
+        } else if (type == "IM-MRI") {
+            amrex::Print() << "SUNDIALS IM-MRI time integrator\n";
+        } else if (type == "IMEX-MRI") {
+            amrex::Print() << "SUNDIALS IMEX-MRI time integrator\n";
+        }
+        amrex::Print() << "SUNDIALS MRI method " << method << "\n";
+
         // Create the fast integrator and select method
         if (fast_type == "ERK") {
-            amrex::Print() << "SUNDIALS ERK time integrator\n";
+            amrex::Print() << "SUNDIALS MRI fast time scale ERK time integrator\n";
             arkode_fast_mem = ARKStepCreate(SundialsUserFun::ff, nullptr, time, y_data, sunctx);
 
+            amrex::Print() << "SUNDIALS MRI fast time scale ERK method " << method << "\n";
             if (fast_method != "DEFAULT") {
-                amrex::Print() << "SUNDIALS ERK method " << method << "\n";
                 ARKStepSetTableName(arkode_fast_mem, "ARKODE_DIRK_NONE", fast_method.c_str());
             }
         }
         else if (fast_type == "DIRK") {
-            amrex::Print() << "SUNDIALS DIRK time integrator\n";
+            amrex::Print() << "SUNDIALS MRI fast time scale DIRK time integrator\n";
             arkode_fast_mem = ARKStepCreate(nullptr, SundialsUserFun::ff, time, y_data, sunctx);
 
+            amrex::Print() << "SUNDIALS MRI fast time scale DIRK method " << method << "\n";
             if (fast_method != "DEFAULT") {
-                amrex::Print() << "SUNDIALS DIRK method " << method << "\n";
                 ARKStepSetTableName(arkode_fast_mem, fast_method.c_str(), "ARKODE_ERK_NONE");
             }
 
@@ -237,17 +246,14 @@ private:
 
         // Create slow integrator
         if (type == "EX-MRI") {
-            amrex::Print() << "SUNDIALS ERK time integrator\n";
             arkode_mem = MRIStepCreate(SundialsUserFun::f, nullptr, time, y_data,
                                        fast_stepper, sunctx);
         }
         else if (type == "IM-MRI") {
-            amrex::Print() << "SUNDIALS DIRK time integrator\n";
             arkode_mem = MRIStepCreate(nullptr, SundialsUserFun::f, time, y_data,
                                        fast_stepper, sunctx);
         }
         else if (type == "IMEX-MRI") {
-            amrex::Print() << "SUNDIALS IMEX time integrator\n";
             arkode_mem = MRIStepCreate(SundialsUserFun::fe, SundialsUserFun::fi,
                                        time, y_data, fast_stepper, sunctx);
         }
