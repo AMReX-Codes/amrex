@@ -12,6 +12,7 @@
 #include <AMReX_Sundials.H>
 
 #include <nvector/nvector_manyvector.h>
+#include <sunnonlinsol/sunnonlinsol_fixedpoint.h>
 #include <sunlinsol/sunlinsol_spgmr.h>
 #include <arkode/arkode_arkstep.h>
 #include <arkode/arkode_mristep.h>
@@ -100,6 +101,10 @@ private:
     std::string fast_type   = "ERK";
     std::string fast_method = "DEFAULT";
 
+    // Nonlinear solver
+    std::string nonlinear_solver = "Newton";
+    std::string linear_solver = "GMRES";
+
     // SUNDIALS package flags, set based on type
     bool use_ark = false;
     bool use_mri = false;
@@ -116,11 +121,13 @@ private:
     // Single rate or slow time scale
     void *arkode_mem   = nullptr;
     SUNLinearSolver LS = nullptr;
+    SUNNonlinearSolver NLS = nullptr;
 
     // Fast time scale
     void *arkode_fast_mem            = nullptr;
     MRIStepInnerStepper fast_stepper = nullptr;
     SUNLinearSolver fast_LS          = nullptr;
+    SUNNonlinearSolver fast_NLS      = nullptr;
 
     void initialize_parameters ()
     {
@@ -145,6 +152,9 @@ private:
             msg += type;
             amrex::Error(msg.c_str());
         }
+
+        pp.query("nonlinear_solver", nonlinear_solver);
+        pp.query("linear_solver", linear_solver);
     }
 
     void SetupRK (amrex::Real time, N_Vector y_data)
@@ -197,10 +207,21 @@ private:
 
         // Create and attach linear solver for implicit methods
         if (type == "DIRK" || type == "IMEX-RK") {
+          amrex::Print() << "Nonlinear solver: " << nonlinear_solver << "\n";
+          if (nonlinear_solver == "fixed-point") {
+            NLS = SUNNonlinSol_FixedPoint(y_data, 4, sunctx);
+            AMREX_ALWAYS_ASSERT(NLS != nullptr);
+            flag = ARKStepSetNonlinearSolver(arkode_mem, NLS);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+            flag = ARKStepSetMaxNonlinIters(arkode_mem, 10);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+          } else {
+            amrex::Print() << "Linear solver: " << linear_solver << "\n";
             LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
             AMREX_ALWAYS_ASSERT(LS != nullptr);
             flag = ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
             AMREX_ALWAYS_ASSERT(flag == 0);
+          }
         }
 
         // Set post stage and step function
@@ -595,6 +616,7 @@ public:
         // Clean up allocated memory
         SUNLinSolFree(LS);
         SUNLinSolFree(fast_LS);
+        SUNNonlinSolFree(NLS);
         MRIStepInnerStepper_Free(&fast_stepper);
         MRIStepFree(&arkode_fast_mem);
         ARKStepFree(&arkode_mem);
