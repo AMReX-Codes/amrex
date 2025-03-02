@@ -103,7 +103,11 @@ private:
 
     // Nonlinear solver
     std::string nonlinear_solver = "Newton";
+    int max_nonlinear_iters = 0;
+
+    // Linear solver
     std::string linear_solver = "GMRES";
+    int max_linear_iters = 0;
 
     // SUNDIALS package flags, set based on type
     bool use_ark = false;
@@ -154,7 +158,10 @@ private:
         }
 
         pp.query("nonlinear_solver", nonlinear_solver);
+        pp.query("max_nonlinear_iters", max_nonlinear_iters);
+
         pp.query("linear_solver", linear_solver);
+        pp.query("max_linear_iters", max_linear_iters);
     }
 
     void SetupRK (amrex::Real time, N_Vector y_data)
@@ -208,16 +215,20 @@ private:
         // Create and attach linear solver for implicit methods
         if (type == "DIRK" || type == "IMEX-RK") {
           amrex::Print() << "Nonlinear solver: " << nonlinear_solver << "\n";
+          amrex::Print() << "Max nonlinear iters: " << max_nonlinear_iters << "\n";
           if (nonlinear_solver == "fixed-point") {
             NLS = SUNNonlinSol_FixedPoint(y_data, 4, sunctx);
             AMREX_ALWAYS_ASSERT(NLS != nullptr);
             flag = ARKStepSetNonlinearSolver(arkode_mem, NLS);
             AMREX_ALWAYS_ASSERT(flag == 0);
-            flag = ARKStepSetMaxNonlinIters(arkode_mem, 10);
-            AMREX_ALWAYS_ASSERT(flag == 0);
-          } else {
+          }
+          flag = ARKStepSetMaxNonlinIters(arkode_mem, max_nonlinear_iters);
+          AMREX_ALWAYS_ASSERT(flag == 0);
+
+          if (nonlinear_solver == "Newton") {
             amrex::Print() << "Linear solver: " << linear_solver << "\n";
-            LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
+            amrex::Print() << "Max linear iters: " << max_linear_iters << "\n";
+            LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, max_linear_iters, sunctx);
             AMREX_ALWAYS_ASSERT(LS != nullptr);
             flag = ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
             AMREX_ALWAYS_ASSERT(flag == 0);
