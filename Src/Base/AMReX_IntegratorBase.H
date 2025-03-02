@@ -161,6 +161,19 @@ struct IntegratorOps<T, std::enable_if_t<std::is_same_v<amrex::MultiFab, T> > >
 template<class T>
 class IntegratorBase
 {
+private:
+  void initialize_base_parameters ()
+  {
+    amrex::ParmParse pp("integration");
+    pp.quarty("use_adaptive_time_step", use_adaptive_time_step);
+    pp.query("time_step", time_step);
+    pp.quarty("use_adaptive_fast_time_step", use_adaptive_fast_time_step);
+    pp.query("time_step", fast_time_step);
+    pp.query("rel_tol", rel_tol);
+    pp.query("abs_tol", abs_tol);
+    pp.query("fast_rel_tol", fast_rel_tol);
+    pp.query("fast_abs_tol", fast_abs_tol);
+  }
 protected:
     /**
      * \brief Rhs is the right-hand-side function the integrator will use.
@@ -271,9 +284,13 @@ protected:
 
 
 public:
-    IntegratorBase () = default;
+    IntegratorBase () {
+      initialize_base_parameters();
+    }
 
-    IntegratorBase (const T& /* S_data */) {}
+    IntegratorBase (const T& /* S_data */) {
+      initialize_base_parameters();
+    }
 
     virtual ~IntegratorBase () = default;
 
