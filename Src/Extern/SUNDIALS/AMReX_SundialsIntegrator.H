@@ -575,6 +575,23 @@ public:
     }
 
     virtual ~SundialsIntegrator () {
+        // Print integrator statistics
+        if (type == "EX-MRI" || type == "IM-MRI" || type == "IMEX-MRI") {
+          amrex::Print() << "Slow Time Integrator Stats\n";
+          if (ParallelDescriptor::IOProcessor()) {
+            MRIStepPrintAllStats(arkode_mem, stdout, SUN_OUTPUTFORMAT_TABLE);
+          }
+          amrex::Print() << "Fast Time Integrator Stats\n";
+          if (ParallelDescriptor::IOProcessor()) {
+            ARKStepPrintAllStats(arkode_fast_mem, stdout, SUN_OUTPUTFORMAT_TABLE);
+          }
+        } else {
+          amrex::Print() << "Time Integrator Stats\n";
+          if (ParallelDescriptor::IOProcessor()) {
+            ARKStepPrintAllStats(arkode_mem, stdout, SUN_OUTPUTFORMAT_TABLE);
+          }
+        }
+
         // Clean up allocated memory
         SUNLinSolFree(LS);
         SUNLinSolFree(fast_LS);
