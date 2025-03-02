@@ -4,6 +4,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
 
 #if defined(AMREX_PARTICLES)
 #include <AMReX_Particles.H>
@@ -165,9 +166,9 @@ private:
   void initialize_base_parameters ()
   {
     amrex::ParmParse pp("integration");
-    pp.quarty("use_adaptive_time_step", use_adaptive_time_step);
+    pp.query("use_adaptive_time_step", use_adaptive_time_step);
     pp.query("time_step", time_step);
-    pp.quarty("use_adaptive_fast_time_step", use_adaptive_fast_time_step);
+    pp.query("use_adaptive_fast_time_step", use_adaptive_fast_time_step);
     pp.query("time_step", fast_time_step);
     pp.query("rel_tol", rel_tol);
     pp.query("abs_tol", abs_tol);
