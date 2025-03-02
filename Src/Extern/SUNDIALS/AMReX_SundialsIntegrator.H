@@ -150,136 +150,172 @@ private:
     void SetupRK (amrex::Real time, N_Vector y_data)
     {
         amrex::Print() << "Using SUNDIALS time integrator\n";
+        int flag = 0;
 
         // Create integrator and select method
         if (type == "ERK") {
             amrex::Print() << "ERK method: " << method << "\n";
             arkode_mem = ARKStepCreate(SundialsUserFun::f, nullptr, time, y_data, sunctx);
+            AMREX_ALWAYS_ASSERT(arkode_mem != nullptr);
             if (method != "DEFAULT") {
-                ARKStepSetTableName(arkode_mem, "ARKODE_DIRK_NONE", method.c_str());
+                flag = ARKStepSetTableName(arkode_mem, "ARKODE_DIRK_NONE", method.c_str());
+                AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
         else if (type == "DIRK") {
             amrex::Print() << "DIRK method: " << method << "\n";
             arkode_mem = ARKStepCreate(nullptr, SundialsUserFun::f, time, y_data, sunctx);
+            AMREX_ALWAYS_ASSERT(arkode_mem != nullptr);
             if (method != "DEFAULT") {
-                ARKStepSetTableName(arkode_mem, method.c_str(), "ARKODE_ERK_NONE");
+                flag = ARKStepSetTableName(arkode_mem, method.c_str(), "ARKODE_ERK_NONE");
+                AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
         else if (type == "IMEX-RK") {
             amrex::Print() << "IMEX-RK method: " << method_i << " and "
                            << method_e << "\n";
             arkode_mem = ARKStepCreate(SundialsUserFun::fe, SundialsUserFun::fi, time, y_data, sunctx);
+            AMREX_ALWAYS_ASSERT(arkode_mem != 0);
             if (method_e != "DEFAULT" && method_i != "DEFAULT")
             {
-                ARKStepSetTableName(arkode_mem, method_i.c_str(), method_e.c_str());
+                flag = ARKStepSetTableName(arkode_mem, method_i.c_str(), method_e.c_str());
+                AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
 
         // Attach structure with user-supplied function wrappers
-        ARKStepSetUserData(arkode_mem, &udata);
+        flag = ARKStepSetUserData(arkode_mem, &udata);
+        AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Set integrator tolerances
         if (BaseT::use_adaptive_time_step || type == "DIRK" || type == "IMEX-RK") {
           amrex::Print() << "Relative tolerance: " << BaseT::rel_tol << "\n";
           amrex::Print() << "Abolute tolerance: " << BaseT::abs_tol << "\n";
-          ARKStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
+          flag = ARKStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
+          AMREX_ALWAYS_ASSERT(flag == 0);
         }
 
         // Create and attach linear solver for implicit methods
         if (type == "DIRK" || type == "IMEX-RK") {
             LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
-            ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
+            AMREX_ALWAYS_ASSERT(LS != nullptr);
+            flag = ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
+            AMREX_ALWAYS_ASSERT(flag == 0);
         }
 
         // Set post stage and step function
-        ARKStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::post_stage);
-        ARKStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
+        flag = ARKStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::post_stage);
+        AMREX_ALWAYS_ASSERT(flag == 0);
+        flag = ARKStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
+        AMREX_ALWAYS_ASSERT(flag == 0);
     }
 
     void SetupMRI (amrex::Real time, N_Vector y_data)
     {
         amrex::Print() << "Using SUNDIALS multirate time integrator\n";
+        int flag = 0;
 
         // Create the fast integrator and select method
         if (fast_type == "ERK") {
             amrex::Print() << "Fast ERK method: " << method << "\n";
             arkode_fast_mem = ARKStepCreate(SundialsUserFun::ff, nullptr, time, y_data, sunctx);
+            AMREX_ALWAYS_ASSERT(arkode_fast_mem != nullptr);
             if (fast_method != "DEFAULT") {
-                ARKStepSetTableName(arkode_fast_mem, "ARKODE_DIRK_NONE", fast_method.c_str());
+                flag = ARKStepSetTableName(arkode_fast_mem, "ARKODE_DIRK_NONE", fast_method.c_str());
+                AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
         else if (fast_type == "DIRK") {
             amrex::Print() << "Fast DIRK method: " << method << "\n";
             arkode_fast_mem = ARKStepCreate(nullptr, SundialsUserFun::ff, time, y_data, sunctx);
+            AMREX_ALWAYS_ASSERT(arkode_fast_mem != nullptr);
             if (fast_method != "DEFAULT") {
-                ARKStepSetTableName(arkode_fast_mem, fast_method.c_str(), "ARKODE_ERK_NONE");
+                flag = ARKStepSetTableName(arkode_fast_mem, fast_method.c_str(), "ARKODE_ERK_NONE");
+                AMREX_ALWAYS_ASSERT(flag == 0);
             }
 
             fast_LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
-            ARKStepSetLinearSolver(arkode_fast_mem, fast_LS, nullptr);
+            AMREX_ALWAYS_ASSERT(fast_LS != nullptr);
+            flag = ARKStepSetLinearSolver(arkode_fast_mem, fast_LS, nullptr);
+            AMREX_ALWAYS_ASSERT(flag == 0);
         }
 
         // Attach structure with user-supplied function wrappers
-        ARKStepSetUserData(arkode_fast_mem, &udata);
+        flag = ARKStepSetUserData(arkode_fast_mem, &udata);
+        AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Set integrator tolerances
         if (BaseT::use_adaptive_fast_time_step || fast_type == "DIRK" || fast_type == "IMEX-RK") {
           amrex::Print() << "Fast relative tolerance: " << BaseT::fast_rel_tol << "\n";
           amrex::Print() << "Fast abolute tolerance: " << BaseT::fast_abs_tol << "\n";
-          ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
+          flag = ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
+          AMREX_ALWAYS_ASSERT(flag == 0);
         }
 
         // Set post stage and step function
-        ARKStepSetPostprocessStageFn(arkode_fast_mem, SundialsUserFun::post_fast_stage);
-        ARKStepSetPostprocessStepFn(arkode_fast_mem, SundialsUserFun::post_fast_step);
+        flag = ARKStepSetPostprocessStageFn(arkode_fast_mem, SundialsUserFun::post_fast_stage);
+        AMREX_ALWAYS_ASSERT(flag == 0);
+        flag = ARKStepSetPostprocessStepFn(arkode_fast_mem, SundialsUserFun::post_fast_step);
+        AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Wrap fast integrator as an inner stepper
-        ARKStepCreateMRIStepInnerStepper(arkode_fast_mem, &fast_stepper);
+        flag = ARKStepCreateMRIStepInnerStepper(arkode_fast_mem, &fast_stepper);
+        AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Create slow integrator
         if (type == "EX-MRI") {
             amrex::Print() << "EX-MRI method: " << method << "\n";
             arkode_mem = MRIStepCreate(SundialsUserFun::f, nullptr, time, y_data,
                                        fast_stepper, sunctx);
+            AMREX_ALWAYS_ASSERT(arkode_mem != nullptr);
         }
         else if (type == "IM-MRI") {
             amrex::Print() << "IM-MRI method: " << method << "\n";
             arkode_mem = MRIStepCreate(nullptr, SundialsUserFun::f, time, y_data,
                                        fast_stepper, sunctx);
+            AMREX_ALWAYS_ASSERT(arkode_mem != nullptr);
         }
         else if (type == "IMEX-MRI") {
             amrex::Print() << "IMEX-MRI method: " << method << "\n";
             arkode_mem = MRIStepCreate(SundialsUserFun::fe, SundialsUserFun::fi,
                                        time, y_data, fast_stepper, sunctx);
+            AMREX_ALWAYS_ASSERT(arkode_mem != nullptr);
         }
 
         // Set method
         if (method != "DEFAULT") {
             MRIStepCoupling MRIC = MRIStepCoupling_LoadTableByName(method.c_str());
-            MRIStepSetCoupling(arkode_mem, MRIC);
+            AMREX_ALWAYS_ASSERT(MRIC != nullptr);
+            flag = MRIStepSetCoupling(arkode_mem, MRIC);
+            AMREX_ALWAYS_ASSERT(flag == 0);
             MRIStepCoupling_Free(MRIC);
         }
 
         // Attach structure with user-supplied function wrappers
-        MRIStepSetUserData(arkode_mem, &udata);
+        flag = MRIStepSetUserData(arkode_mem, &udata);
+        AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Set integrator tolerances
         if (BaseT::use_adaptive_time_step || fast_type == "IM-MRI" || fast_type == "IMEX-MRI") {
           amrex::Print() << "Relative tolerance: " << BaseT::rel_tol << "\n";
           amrex::Print() << "Abolute tolerance: " << BaseT::abs_tol << "\n";
-          MRIStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
+          flag = MRIStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
+          AMREX_ALWAYS_ASSERT(flag == 0);
         }
 
         // Create and attach linear solver
         if (type == "IM-MRI" || type == "IMEX-MRI") {
             LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
-            MRIStepSetLinearSolver(arkode_mem, LS, nullptr);
+            AMREX_ALWAYS_ASSERT(LS != nullptr);
+            flag = MRIStepSetLinearSolver(arkode_mem, LS, nullptr);
+            AMREX_ALWAYS_ASSERT(flag == 0);
         }
 
         // Set post stage and step function
-        MRIStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::post_stage);
-        MRIStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
+        flag = MRIStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::post_stage);
+        AMREX_ALWAYS_ASSERT(flag == 0);
+        flag = MRIStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
+        AMREX_ALWAYS_ASSERT(flag == 0);
     }
 
     // -------------------------------------
