@@ -227,7 +227,7 @@ Device::Initialize (bool minimal)
             // The CPU/GPU mapping on perlmutter has the reverse order.
             device_id = gpu_device_count - device_id - 1;
             if (amrex::Verbose()) {
-                amrex::Print() << "Multiple GPUs are visible to each MPI rank. Fixing GPU assignment for Perlmuuter according to heuristics.\n";
+                amrex::Print() << "Multiple GPUs are visible to each MPI rank. Fixing GPU assignment for Perlmutter according to heuristics.\n";
             }
         } else if (Machine::name() == "olcf.frontier") {
             // The CPU/GPU mapping on fronter is documented at
