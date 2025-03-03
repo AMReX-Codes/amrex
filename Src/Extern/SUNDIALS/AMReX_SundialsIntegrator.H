@@ -133,6 +133,10 @@ private:
     SUNLinearSolver fast_LS          = nullptr;
     SUNNonlinearSolver fast_NLS      = nullptr;
 
+    // Integrator stop time
+    bool set_stop_time = false;
+    amrex::Real stop_time = 0.0;
+
     void initialize_parameters ()
     {
         amrex::ParmParse pp("integration.sundials");
@@ -162,6 +166,8 @@ private:
 
         pp.query("linear_solver", linear_solver);
         pp.query("max_linear_iters", max_linear_iters);
+
+        set_stop_time = pp.query("stop_time", stop_time);
     }
 
     void SetupRK (amrex::Real time, N_Vector y_data)
@@ -206,6 +212,7 @@ private:
 
         // Set integrator tolerances
         if (BaseT::use_adaptive_time_step || type == "DIRK" || type == "IMEX-RK") {
+          amrex::Print() << "Adaptive time steps: " << BaseT::use_adaptive_time_step << "\n";
           amrex::Print() << "Relative tolerance: " << BaseT::rel_tol << "\n";
           amrex::Print() << "Abolute tolerance: " << BaseT::abs_tol << "\n";
           flag = ARKStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
@@ -240,6 +247,13 @@ private:
         AMREX_ALWAYS_ASSERT(flag == 0);
         flag = ARKStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
         AMREX_ALWAYS_ASSERT(flag == 0);
+
+        // Set a stop time
+        if (set_stop_time) {
+          amrex::Print() << "Stop time: " << stop_time << "\n";
+          flag = ARKStepSetStopTime(arkode_mem, stop_time);
+          AMREX_ALWAYS_ASSERT(flag == 0);
+        }
     }
 
     void SetupMRI (amrex::Real time, N_Vector y_data)
@@ -278,6 +292,7 @@ private:
 
         // Set integrator tolerances
         if (BaseT::use_adaptive_fast_time_step || fast_type == "DIRK" || fast_type == "IMEX-RK") {
+          amrex::Print() << "Fast adaptive time steps: " << BaseT::use_adaptive_fast_time_step << "\n";
           amrex::Print() << "Fast relative tolerance: " << BaseT::fast_rel_tol << "\n";
           amrex::Print() << "Fast abolute tolerance: " << BaseT::fast_abs_tol << "\n";
           flag = ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
@@ -329,6 +344,7 @@ private:
 
         // Set integrator tolerances
         if (BaseT::use_adaptive_time_step || fast_type == "IM-MRI" || fast_type == "IMEX-MRI") {
+          amrex::Print() << "Adaptive time steps: " << BaseT::use_adaptive_time_step << "\n";
           amrex::Print() << "Relative tolerance: " << BaseT::rel_tol << "\n";
           amrex::Print() << "Abolute tolerance: " << BaseT::abs_tol << "\n";
           flag = MRIStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
@@ -348,6 +364,13 @@ private:
         AMREX_ALWAYS_ASSERT(flag == 0);
         flag = MRIStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
         AMREX_ALWAYS_ASSERT(flag == 0);
+
+        // Set a stop time
+        if (set_stop_time) {
+          amrex::Print() << "Stop time: " << stop_time << "\n";
+          flag = ARKStepSetStopTime(arkode_mem, stop_time);
+          AMREX_ALWAYS_ASSERT(flag == 0);
+        }
     }
 
     // -------------------------------------
