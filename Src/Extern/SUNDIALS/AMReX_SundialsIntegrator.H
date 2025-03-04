@@ -137,6 +137,9 @@ private:
     bool set_stop_time = false;
     amrex::Real stop_time = 0.0;
 
+    // Max steps between returns
+    amrex::Long max_num_steps = 0;
+
     void initialize_parameters ()
     {
         amrex::ParmParse pp("integration.sundials");
@@ -168,6 +171,8 @@ private:
         pp.query("max_linear_iters", max_linear_iters);
 
         set_stop_time = pp.query("stop_time", stop_time);
+
+        pp.query("max_num_steps", max_num_steps);
     }
 
     void SetupRK (amrex::Real time, N_Vector y_data)
@@ -254,6 +259,10 @@ private:
           flag = ARKStepSetStopTime(arkode_mem, stop_time);
           AMREX_ALWAYS_ASSERT(flag == 0);
         }
+
+        // Set max number of steps between returns
+        ARKStepSetMaxNumSteps(arkode_mem, max_num_steps);
+        AMREX_ALWAYS_ASSERT(flag == 0);
     }
 
     void SetupMRI (amrex::Real time, N_Vector y_data)
@@ -303,6 +312,10 @@ private:
         flag = ARKStepSetPostprocessStageFn(arkode_fast_mem, SundialsUserFun::post_fast_stage);
         AMREX_ALWAYS_ASSERT(flag == 0);
         flag = ARKStepSetPostprocessStepFn(arkode_fast_mem, SundialsUserFun::post_fast_step);
+        AMREX_ALWAYS_ASSERT(flag == 0);
+
+        // Set max number of steps between returns
+        ARKStepSetMaxNumSteps(arkode_fast_mem, max_num_steps);
         AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Wrap fast integrator as an inner stepper
@@ -371,6 +384,10 @@ private:
           flag = ARKStepSetStopTime(arkode_mem, stop_time);
           AMREX_ALWAYS_ASSERT(flag == 0);
         }
+
+        // Set max number of steps between returns
+        ARKStepSetMaxNumSteps(arkode_mem, max_num_steps);
+        AMREX_ALWAYS_ASSERT(flag == 0);
     }
 
     // -------------------------------------
