@@ -374,7 +374,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 {
     BL_PROFILE("MLMG::solve()");
 
-    [[maybe_unused]] Gpu::SingleStreamRegion single_strean_reg;
+    [[maybe_unused]] Gpu::SingleStreamRegion single_stream_reg;
     [[maybe_unused]] Gpu::NoSyncRegion no_sync_reg;
 
     if constexpr (std::is_same<AMF,MultiFab>()) {
