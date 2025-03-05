@@ -863,6 +863,7 @@ saddval (const std::string& name, const T& ref)
     auto& entry = g_table[name];
     entry.m_vals.emplace_back(std::vector<std::string>{val.str()});
     ++entry.m_count;
+    entry.m_typehint = T{};
 }
 
 template <class T>
@@ -880,6 +881,7 @@ saddarr (const std::string& name, const std::vector<T>& ref)
     auto& entry = g_table[name];
     entry.m_vals.emplace_back(std::move(arr));
     ++entry.m_count;
+    entry.m_typehint = T{};
 }
 
 // Initialize ParmParse.
