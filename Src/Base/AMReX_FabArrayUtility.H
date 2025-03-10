@@ -1858,6 +1858,15 @@ void Xpay (MF& dst, typename MF::value_type a, MF const& src, int scomp, int dco
     MF::Xpay(dst, a, src, scomp, dcomp, ncomp, nghost);
 }
 
+//! dst += a * src; dst = src + a * dst
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void Saxpy_Xpay (MF& dst, typename MF::value_type a_saxpy, MF const& src_saxpy,
+                 typename MF::value_type a_xpay, MF const& src_xpay, int scomp, int dcomp,
+                 int ncomp, IntVect const& nghost)
+{
+    MF::Saxpy_Xpay(dst, a_saxpy, src_saxpy, a_xpay, src_xpay, scomp, dcomp, ncomp, nghost);
+}
+
 //! dst = a*src_a + b*src_b
 template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
 void LinComb (MF& dst,

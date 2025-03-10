@@ -166,8 +166,9 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         else
         {
             const RT beta = (rho/rho_1)*(alpha/omega);
-            Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
-            Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
+            // two operations: p += -omega*v; p = r + beta*p
+            // same as:        p = r + beta*(p - omega*v)
+            Saxpy_Xpay(p, -omega, v, beta, r, 0, 0, ncomp, nghost);
         }
         Lp.apply(amrlev, mglev, v, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);

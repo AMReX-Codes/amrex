@@ -621,6 +621,21 @@ public:
     using FabArray<FArrayBox>::Xpay;
 
     /**
+    * \brief dst = src2+a2*(dst+a1*src1)
+    */
+    static void Saxpy_Xpay (MultiFab&       dst,
+                            Real            a_saxpy,
+                            const MultiFab& src_saxpy,
+                            Real            a_xpay,
+                            const MultiFab& src_xpay,
+                            int             srccomp,
+                            int             dstcomp,
+                            int             numcomp,
+                            int             nghost);
+
+    using FabArray<FArrayBox>::Saxpy_Xpay;
+
+    /**
     * \brief dst = a*x + b*y
     */
     static void LinComb (MultiFab&       dst,
