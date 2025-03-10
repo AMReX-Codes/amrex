@@ -11,11 +11,11 @@ void mlabeclap_adotx (int i, int j, int, int n, Array4<T> const& y,
                       Array4<T const> const& a,
                       Array4<T const> const& bX,
                       Array4<T const> const& bY,
-                      GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                      GpuArray<T,AMREX_SPACEDIM> const& dxinv2,
                       T alpha, T beta) noexcept
 {
-    const T dhx = beta*dxinv[0]*dxinv[0];
-    const T dhy = beta*dxinv[1]*dxinv[1];
+    const T dhx = beta*dxinv2[0];
+    const T dhy = beta*dxinv2[1];
     y(i,j,0,n) = alpha*a(i,j,0)*x(i,j,0,n)
             - dhx * (bX(i+1,j,0,n)*(x(i+1,j,0,n) - x(i  ,j,0,n))
                    - bX(i  ,j,0,n)*(x(i  ,j,0,n) - x(i-1,j,0,n)))

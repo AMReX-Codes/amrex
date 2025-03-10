@@ -810,10 +810,19 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
                       static_cast<RT>(this->m_geom[amrlev][mglev].InvCellSize(1)),
                       static_cast<RT>(this->m_geom[amrlev][mglev].InvCellSize(2)))};
 
+    GpuArray<RT, AMREX_SPACEDIM> dxinv2
+        {AMREX_D_DECL(dxinv[0]*dxinv[0],
+                      dxinv[1]*dxinv[1],
+                      dxinv[2]*dxinv[2])};
+
     const RT ascalar = m_a_scalar;
     const RT bscalar = m_b_scalar;
 
     const int ncomp = this->getNComp();
+    const Geometry& geom = this->m_geom[amrlev][mglev];
+    const RT* problo = geom.ProbLo();
+    const RT* dx = geom.CellSize();
+    const int coord = geom.Coord();
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
@@ -836,9 +845,15 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
             ParallelFor(out, IntVect(0), ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
+#if (AMREX_SPACEDIM == 2)
+                if (coord == CoordSys::spherical) {
+                    RT sinc = std::sin(static_cast<RT>(problo[1] + j+RT(0.5)/dxinv[1]));
+                    dxinv2[1] *= (sinc==RT(0.0)) ? RT(0.0) : RT(1.)/sinc;
+                }
+#endif
                 mlabeclap_adotx(i,j,k,n, yma[box_no], xma[box_no], ama[box_no],
                                 AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
-                                dxinv, ascalar, bscalar);
+                                dxinv2, ascalar, bscalar);
             });
         }
         Gpu::streamSynchronize();
@@ -867,8 +882,14 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
             } else {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
                 {
+// #if (AMREX_SPACEDIM == 2)
+//                     if (coord == CoordSys::SPHERICAL) {
+//                         RT sinc = std::sin(static_cast<RT>(problo[1] + j+RT(0.5)/dxinv[1]));
+//                         dxinv2[1] *= (sinc==RT(0.0)) ? RT(0.0) : RT(1.)/sinc;
+//                     }
+// #endif
                     mlabeclap_adotx(i,j,k,n, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                    dxinv, ascalar, bscalar);
+                                    dxinv2, ascalar, bscalar);
                 });
             }
         }

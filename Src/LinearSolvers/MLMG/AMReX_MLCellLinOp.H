@@ -1411,16 +1411,9 @@ MLCellLinOpT<MF>::compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
 
     const int ncomp = this->getNComp();
 
-    const Geometry& geom = this->m_geom[amrlev][mglev];
-    AMREX_D_TERM(const RT dxi = static_cast<RT>(geom.InvCellSize(0));,
-                 const RT dyi = static_cast<RT>(geom.InvCellSize(1));,
-                 const RT dzi = static_cast<RT>(geom.InvCellSize(2)););
-
-#if (AMREX_SPACEDIM >= 2)
-    const RT* problo = geom.ProbLo();
-    const RT* dx = geom.CellSize();
-    const int coord = geom.Coord();
-#endif
+    AMREX_D_TERM(const RT dxi = static_cast<RT>(this->m_geom[amrlev][mglev].InvCellSize(0));,
+                 const RT dyi = static_cast<RT>(this->m_geom[amrlev][mglev].InvCellSize(1));,
+                 const RT dzi = static_cast<RT>(this->m_geom[amrlev][mglev].InvCellSize(2)););
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1443,10 +1436,6 @@ MLCellLinOpT<MF>::compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( ybx, ncomp, i, j, k, n,
         {
             gy(i,j,k,n) = dyi*(s(i,j,k,n) - s(i,j-1,k,n));
-            if (coord == CoordSys::SPHERICAL) {
-                RT rinv = RT(1.0) / (problo[0] + (i + RT(0.5)) * dx[0]);
-                gy(i,j,k,n) *= rinv;
-            }
         });
 #endif
 #if (AMREX_SPACEDIM == 3)
@@ -1519,15 +1508,13 @@ MLCellLinOpT<MF>::applyMetricTerm (int amrlev, int mglev, MF& rhs, int dir) cons
                     AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
                                                         {
                                                             RT rc = problo[0] + (i+RT(0.5))*dx[0];
-                                                            RT thetac = problo[1] + (j+RT(0.5))*dx[1];
-                                                            rhsarr(i,j,k,n) *= rc*rc*std::sin(thetac);
+                                                            rhsarr(i,j,k,n) *= rc*rc;
                                                         });
                 } else {
                     AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
                                                         {
                                                             RT re = problo[0] + i*dx[0];
-                                                            RT thetae = problo[1] + j*dx[1];
-                                                            rhsarr(i,j,k,n) *= re*re*std::sin(thetae);
+                                                            rhsarr(i,j,k,n) *= re*re;
                                                         });
                 }
             } else {
@@ -1611,18 +1598,14 @@ MLCellLinOpT<MF>::unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
                                                     {
                                                         RT rcinv = RT(1.0)/(problo[0] + (i+RT(0.5))*dx[0]);
-                                                        RT sinc = std::sin(problo[1] + (j+RT(0.5))*dx[1]);
-                                                        RT sincinv = (sinc==RT(0.0)) ? RT(0.0) : RT(1.)/sinc;
-                                                        rhsarr(i,j,k,n) *= rcinv * rcinv * sincinv;
+                                                        rhsarr(i,j,k,n) *= rcinv*rcinv;
                                                     });
             } else {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
                                                     {
                                                         RT re = problo[0] + i*dx[0];
                                                         RT reinv = (re==RT(0.0)) ? RT(0.0) : RT(1.)/re;
-                                                        RT sine = std::sin(problo[1] + j*dx[1]);
-                                                        RT sineinv = (sine==RT(0.0)) ? RT(0.0) : RT(1.)/sine;
-                                                        rhsarr(i,j,k,n) *= reinv * reinv * sineinv;
+                                                        rhsarr(i,j,k,n) *= reinv*reinv;
                                                     });
             }
         }
