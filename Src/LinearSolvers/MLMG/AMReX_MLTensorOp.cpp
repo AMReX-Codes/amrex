@@ -243,12 +243,9 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
             AMREX_D_TERM(Box const xbx = amrex::surroundingNodes(bx,0);,
                          Box const ybx = amrex::surroundingNodes(bx,1);,
                          Box const zbx = amrex::surroundingNodes(bx,2););
-            AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM);,
-                         fluxfab_tmp[1].resize(ybx,AMREX_SPACEDIM);,
-                         fluxfab_tmp[2].resize(zbx,AMREX_SPACEDIM););
-            AMREX_D_TERM(Elixir fxeli = fluxfab_tmp[0].elixir();,
-                         Elixir fyeli = fluxfab_tmp[1].elixir();,
-                         Elixir fzeli = fluxfab_tmp[2].elixir(););
+            AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM, The_Async_Arena());,
+                         fluxfab_tmp[1].resize(ybx,AMREX_SPACEDIM, The_Async_Arena());,
+                         fluxfab_tmp[2].resize(zbx,AMREX_SPACEDIM, The_Async_Arena()););
             AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
                          Array4<Real> const fyfab = fluxfab_tmp[1].array();,
                          Array4<Real> const fzfab = fluxfab_tmp[2].array(););
