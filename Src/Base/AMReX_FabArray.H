@@ -1542,6 +1542,25 @@ public:
     static void Saxpy_Xpay (FabArray<FAB>& y, value_type a_saxpy, FabArray<FAB> const& x_saxpy,
                             value_type a_xpay, FabArray<FAB> const& x_xpay,
                             int xcomp, int ycomp, int ncomp, IntVect const& nghost);
+
+    /**
+     * \brief y1 += a1*x1; y2 += a2*x2;
+     *
+     * \param y1      FabArray y1
+     * \param a1      scalar a1
+     * \param x1      FabArray x1
+     * \param y2      FabArray y2
+     * \param a2      scalar a2
+     * \param x2      FabArray x2
+     * \param xcomp  starting component of x1, x2
+     * \param ycomp  starting component of y1, y2
+     * \param ncomp  number of components
+     * \param nghost number of ghost cells
+     */
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    static void Saxpy_Saxpy (FabArray<FAB>& y1, value_type a1, FabArray<FAB> const& x1,
+                             FabArray<FAB>& y2, value_type a2, FabArray<FAB> const& x2,
+                             int xcomp, int ycomp, int ncomp, IntVect const& nghost);
 };
 
 
@@ -2986,6 +3005,62 @@ void FabArray<FAB>::Saxpy_Xpay (FabArray<FAB>& y, value_type a_saxpy, FabArray<F
                     yfab(i,j,k,ycomp+n) += a_saxpy * xfab_s(i,j,k,xcomp+n);
                     yfab(i,j,k,ycomp+n) = xfab_x(i,j,k,xcomp+n)
                                  + a_xpay * yfab(i,j,k,ycomp+n);
+                });
+            }
+        }
+    }
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+void FabArray<FAB>::Saxpy_Saxpy (FabArray<FAB>& y1, value_type a1, FabArray<FAB> const& x1,
+                                 FabArray<FAB>& y2, value_type a2, FabArray<FAB> const& x2,
+                                 int xcomp, int ycomp, int ncomp, IntVect const& nghost)
+{
+    AMREX_ASSERT(y1.boxArray() == x1.boxArray());
+    AMREX_ASSERT(y1.distributionMap == x1.distributionMap);
+    AMREX_ASSERT(y1.nGrowVect().allGE(nghost) && x1.nGrowVect().allGE(nghost));
+
+    AMREX_ASSERT(y2.boxArray() == x2.boxArray());
+    AMREX_ASSERT(y2.distributionMap == x2.distributionMap);
+    AMREX_ASSERT(y2.nGrowVect().allGE(nghost) && x2.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("FabArray::Saxpy_Saxpy()");
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && y1.isFusingCandidate()) {
+        auto const& y1ma = y1.arrays();
+        auto const& x1ma = x1.const_arrays();
+        auto const& y2ma = y2.arrays();
+        auto const& x2ma = x2.const_arrays();
+        ParallelFor(y1, nghost, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            y1ma[box_no](i,j,k,ycomp+n) += a1 * x1ma[box_no](i,j,k,xcomp+n);
+            y2ma[box_no](i,j,k,ycomp+n) += a2 * x2ma[box_no](i,j,k,xcomp+n);
+        });
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(y1,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+
+            if (bx.ok()) {
+                auto const& x1fab = x1.const_array(mfi);
+                auto const& y1fab = y1.array(mfi);
+                auto const& x2fab = x2.const_array(mfi);
+                auto const& y2fab = y2.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                {
+                    y1fab(i,j,k,ycomp+n) += a1 * x1fab(i,j,k,xcomp+n);
+                    y2fab(i,j,k,ycomp+n) += a2 * x2fab(i,j,k,xcomp+n);
                 });
             }
         }

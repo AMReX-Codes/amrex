@@ -182,8 +182,9 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 2; break;
         }
-        Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
-        Saxpy(r,  -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
+        // sol += alpha * p; r += -alpha * v
+        Saxpy_Saxpy(sol, alpha, p, r, -alpha, v, 0, 0, ncomp, nghost);
+
 
         rnorm = norm_inf(r);
 
@@ -218,8 +219,8 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 3; break;
         }
-        Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
-        Saxpy(r,  -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
+        // sol += omega * r; r += -omega * t
+        Saxpy_Saxpy(sol, omega, r, r, -omega, t, 0, 0, ncomp, nghost);
 
         rnorm = norm_inf(r);
 
@@ -360,8 +361,8 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
                            << " rho " << rho
                            << " alpha " << alpha << '\n';
         }
-        Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
-        Saxpy(r, -alpha, q, 0, 0, ncomp, nghost); // r += -alpha * q
+        // sol += alpha * p; r += -alpha * q
+        Saxpy_Saxpy(sol, alpha, p, r, -alpha, q, 0, 0, ncomp, nghost);
         rnorm = norm_inf(r);
 
         if ( verbose > 2 )
