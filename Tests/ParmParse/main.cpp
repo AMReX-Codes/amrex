@@ -137,6 +137,15 @@ int main(int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(!o_do_that.has_value());
     }
     {
+        ParmParse pp;
+        std::string line;
+        pp.queryline("my_string_line", line);
+        AMREX_ALWAYS_ASSERT(line == "a b c");
+        line.clear();
+        pp.getline("my_string_line", line);
+        AMREX_ALWAYS_ASSERT(line == "a b c");
+    }
+    {
         amrex::Print() << "SUCCESS\n";
     }
     amrex::Finalize();

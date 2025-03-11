@@ -51,4 +51,25 @@ std::vector<std::string> split (std::string const& s, std::string const& sep)
     return result;
 }
 
+std::string join (std::vector<std::string> const& sv, char sep)
+{
+    std::string r;
+    for (auto const& s : sv) {
+        if (!r.empty()) {
+            r += sep;
+        }
+        r += s;
+    }
+    return r;
+}
+
+std::string join (std::vector<std::string> const& sv)
+{
+    std::string r;
+    for (auto const& s : sv) {
+        r += s;
+    }
+    return r;
+}
+
 }
