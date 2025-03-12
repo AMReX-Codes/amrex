@@ -847,7 +847,7 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
             {
 #if (AMREX_SPACEDIM == 2)
                 if (coord == CoordSys::spherical) {
-                    RT sinc = std::sin(static_cast<RT>(problo[1] + j+RT(0.5)/dxinv[1]));
+                    RT sinc = std::sin(problo[1] + dx[1]*(static_cast<RT>(j)+RT(0.5)));
                     dxinv2[1] *= (sinc==RT(0.0)) ? RT(0.0) : RT(1.)/sinc;
                 }
 #endif
