@@ -1100,7 +1100,9 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
             }
         }
 
-#ifdef AMREX_USE_EB
+#ifndef AMREX_USE_EB
+        amrex::ignore_unused(index_space);
+#else
         if (index_space) {
             auto factory = makeEBFabFactory(index_space, cgeom, ba_crse_patch, dm,
                                             {0,0,0}, EBSupport::basic);
