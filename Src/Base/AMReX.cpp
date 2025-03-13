@@ -608,7 +608,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 pp.queryAdd("fpe_trap_zero", divbyzero);
                 pp.queryAdd("fpe_trap_overflow", overflow);
 
-#if defined(__linux__)
+#if defined(__linux__) && defined(__GLIBC__)
+
                 curr_fpe_excepts = 0;
                 if (invalid)   { curr_fpe_excepts |= FE_INVALID;   }
                 if (divbyzero) { curr_fpe_excepts |= FE_DIVBYZERO; }
