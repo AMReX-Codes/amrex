@@ -565,8 +565,8 @@ To build Hypre, follow the next steps:
 ::
 
     1.- git clone https://github.com/hypre-space/hypre.git
-    2.- git checkout v2.32.0
-    3.- cd hypre/src
+    2.- cd hypre/src
+    3.- git checkout v2.32.0
     4.- ./configure
         (if you want to build hypre with long long int, do ./configure --enable-bigint )
     5.- make install
@@ -579,8 +579,8 @@ To use Hypre with CUDA, nvcc compiler is needed along with all other requirement
 ::
 
     1.- git clone https://github.com/hypre-space/hypre.git
-    2.- git checkout v2.32.0
-    3.- cd hypre/src
+    2.- cd hypre/src
+    3.- git checkout v2.32.0
     4.- ./configure --with-cuda --with-gpu-arch='80 90' --enable-unified-memory
         (you can figure out the gpu arch from command line using
         nvidia-smi --query-gpu=compute_cap --format=csv, if it gives 9.0, gpu-arch is 90)
