@@ -290,8 +290,9 @@ struct SoAParticleBase
  * \tparam T_NInt The number of extra integer components
  */
 template <int T_NReal, int T_NInt=0>
-struct Particle
-    : ParticleBase<ParticleReal,T_NReal,T_NInt>
+struct alignas(sizeof(ParticleReal))
+       alignas(ParticleBase<ParticleReal,T_NReal,T_NInt>)
+Particle :     ParticleBase<ParticleReal,T_NReal,T_NInt>
 {
     static constexpr bool is_soa_particle = false;
     using StorageParticleType = Particle;
