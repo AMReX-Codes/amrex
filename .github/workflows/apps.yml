@@ -74,7 +74,7 @@ jobs:
     - name: Download WarpX
       uses: actions/checkout@v4
       with:
-        repository: 'ECP-WarpX/WarpX'
+        repository: 'BLAST-WarpX/warpx'
         ref: development
         path: 'WarpX'
     - name: Dependencies
@@ -140,7 +140,7 @@ jobs:
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
-        python3 -m pip install -U pip setuptools wheel
+        python3 -m pip install -U pip setuptools[core] wheel
         python3 -m pip install -U cmake
         python3 -m pip install -U pandas pytest mpi4py
 
