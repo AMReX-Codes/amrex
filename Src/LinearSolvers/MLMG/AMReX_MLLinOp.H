@@ -358,7 +358,7 @@ public:
      * \param niter number of (multicolor) smoothing iterations
      */
     virtual void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
-                         bool skip_fillboundary=false, int niter=1) const = 0;
+                         bool skip_fillboundary, int niter) const = 0;
 
     //! Divide mf by the diagonal component of the operator. Used by bicgstab.
     virtual void normalize (int amrlev, int mglev, MF& mf) const {

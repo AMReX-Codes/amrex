@@ -73,7 +73,7 @@ public:
                 StateMode s_mode, const MLMGBndryT<MF>* bndry=nullptr) const override;
 
     void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
-                 bool skip_fillboundary=false, int niter=1) const override;
+                 bool skip_fillboundary, int niter) const override;
 
     void solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
                            const MF* crse_bcdata=nullptr) override;
