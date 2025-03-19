@@ -155,6 +155,8 @@ public:
     void setNSolve (int flag) noexcept { do_nsolve = flag; }
     void setNSolveGridSize (int s) noexcept { nsolve_grid_size = s; }
 
+    void setNoGpuSync (bool do_not_sync) noexcept { do_no_sync_gpu = do_not_sync; }
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     void setHypreInterface (Hypre::Interface f) noexcept {
         // must use ij interface for EB
@@ -287,6 +289,8 @@ private:
 
     std::string print_ident;
 
+    bool do_no_sync_gpu = false;
+
     //! Hypre
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     // Hypre::Interface hypre_interface = Hypre::Interface::structed;
@@ -374,8 +378,13 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 {
     BL_PROFILE("MLMG::solve()");
 
-    [[maybe_unused]] Gpu::SingleStreamRegion single_stream_reg;
-    [[maybe_unused]] Gpu::NoSyncRegion no_sync_reg;
+    const bool prev_in_single_stream_region = Gpu::inSingleStreamRegion();
+    const bool prev_in_nosync_region = Gpu::inNoSyncRegion();
+
+    if (do_no_sync_gpu) {
+        Gpu::setSingleStreamRegion(true);
+        Gpu::setNoSyncRegion(true);
+    }
 
     if constexpr (std::is_same<AMF,MultiFab>()) {
         if (checkpoint_file != nullptr) {
@@ -555,6 +564,9 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     }
 
     ++solve_called;
+
+    Gpu::setSingleStreamRegion(prev_in_single_stream_region);
+    Gpu::setNoSyncRegion(prev_in_nosync_region);
 
     return composite_norminf;
 }
