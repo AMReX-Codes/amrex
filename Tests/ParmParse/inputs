@@ -62,3 +62,6 @@ n_cell = nx nx nx
 ny = nx
 
 do_this = 1
+
+# queryline and getline
+my_string_line = a  b c

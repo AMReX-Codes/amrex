@@ -134,8 +134,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 {
                     const Box& ccvbx = amrex::enclosedCells(mfi.validbox());
 
-                    u.resize(ccbxg1, AMREX_SPACEDIM);
-                    Elixir ueli = u.elixir();
+                    u.resize(ccbxg1, AMREX_SPACEDIM, The_Async_Arena());
                     Array4<Real> const& uarr = u.array();
 
                     Box b = ccbxg1 & ccvbx;
@@ -169,8 +168,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         }
                     });
 
-                    rhs.resize(bx);
-                    Elixir rhseli = rhs.elixir();
+                    rhs.resize(bx, 1, The_Async_Arena());
                     Array4<Real> const& rhsarr = rhs.array();
                     Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
@@ -248,13 +246,11 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         Box const& sgbx = amrex::grow(amrex::enclosedCells(stbx),1);
 
                         constexpr int ncomp_s = (AMREX_SPACEDIM == 2) ? 5 : 9;
-                        sten.resize(stbx,ncomp_s);
-                        Elixir steneli = sten.elixir();
+                        sten.resize(stbx,ncomp_s, The_Async_Arena());
                         Array4<Real> const& stenarr = sten.array();
 
                         constexpr int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
-                        cn.resize(sgbx,ncomp_c+1);
-                        Elixir cneli = cn.elixir();
+                        cn.resize(sgbx,ncomp_c+1, The_Async_Arena());
                         Array4<Real> const& cnarr = cn.array();
                         Array4<Real> const& sgarr = cn.array(ncomp_c);
 
@@ -395,8 +391,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                 const Box& bxg1 = amrex::grow(bx,1);
                 const Box& ccbxg1 = amrex::enclosedCells(bxg1);
 
-                u.resize(ccbxg1, AMREX_SPACEDIM);
-                Elixir ueli = u.elixir();
+                u.resize(ccbxg1, AMREX_SPACEDIM, The_Async_Arena());
                 Array4<Real> const& uarr = u.array();
 
                 Box ovlp = ccvbx & ccbxg1;
@@ -430,8 +425,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                     }
                 });
 
-                tmpmask.resize(bx);
-                Elixir tmeli = tmpmask.elixir();
+                tmpmask.resize(bx, 1, The_Async_Arena());
                 Array4<int> const& tmpmaskarr = tmpmask.array();
                 Array4<int const> const& dmskarr = dmsk.const_array(mfi);
                 AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
@@ -439,8 +433,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                     tmpmaskarr(i,j,k) = 1-dmskarr(i,j,k);
                 });
 
-                rhs.resize(bx);
-                Elixir rhseli = rhs.elixir();
+                rhs.resize(bx, 1, The_Async_Arena());
                 Array4<Real> const& rhsarr = rhs.array();
 
 #ifdef AMREX_USE_EB
@@ -516,13 +509,11 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                     Box const& sgbx = amrex::grow(amrex::enclosedCells(stbx),1);
 
                     constexpr int ncomp_s = (AMREX_SPACEDIM == 2) ? 5 : 9;
-                    sten.resize(stbx,ncomp_s);
-                    Elixir steneli = sten.elixir();
+                    sten.resize(stbx,ncomp_s, The_Async_Arena());
                     Array4<Real> const& stenarr = sten.array();
 
                     constexpr int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
-                    cn.resize(sgbx,ncomp_c+1);
-                    Elixir cneli = cn.elixir();
+                    cn.resize(sgbx,ncomp_c+1, The_Async_Arena());
                     Array4<Real> const& cnarr = cn.array();
                     Array4<Real> const& sgarr = cn.array(ncomp_c);
 

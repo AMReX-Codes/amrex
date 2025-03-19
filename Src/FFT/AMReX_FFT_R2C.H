@@ -26,6 +26,12 @@ template <typename T> class PoissonHybrid;
  * convention, where applying the forward transform followed by the backward
  * transform scales the original data by the size of the input array.
  *
+ * The arrays are assumed to be in column-major, which is different from
+ * FFTW's row-major layout. Because the complex domain data have the
+ * Hermitian symmetry, only half of the data in the complex domain are
+ * stored. If the real domain size is nx * ny * nz, the complex domain's
+ * size will be (nx/2+1) * ny * nz.
+ *
  * For more details, we refer the users to
  * https://amrex-codes.github.io/amrex/docs_html/FFT_Chapter.html.
  */
@@ -50,12 +56,115 @@ public:
      */
     explicit R2C (Box const& domain, Info const& info = Info{});
 
+    /**
+     * \brief Constructor
+     *
+     * If AMREX_SPACEDIM is 3 and you want to do 2D FFT, you just need to
+     * set the size of one of the dimensions to 1.
+     *
+     * \param domain_size size of the forward domain (i.e., the real data domain)
+     * \param info optional information
+     */
+    explicit R2C (std::array<int,AMREX_SPACEDIM> const& domain_size,
+                  Info const& info = Info{});
+
     ~R2C ();
 
     R2C (R2C const&) = delete;
     R2C (R2C &&) = delete;
     R2C& operator= (R2C const&) = delete;
     R2C& operator= (R2C &&) = delete;
+
+    /**
+     * \brief Set local domain
+     *
+     * This is needed, only if one uses the raw pointer interfaces, not the
+     * amrex::MulitFab interfaces. This may contain collective MPI calls. So
+     * all processes even if their local size is zero should call. This
+     * function informs AMReX the domain decomposition chosen by the user
+     * for the forward domain (i.e., real data domain). There is no
+     * constraint on the domain decomposition strategy. One can do 1D, 2D or
+     * 3D domain decomposition. Alternatively, one could also let AMReX
+     * choose for you by calling getLocalDomain. The latter could
+     * potentially reduce data communication.
+     *
+     * Again, this is needed, only if one uses the raw pointer
+     * interfaces. Only one of the functions, setLocalDomain and
+     * getLocalDomain, should be called.
+     *
+     * This should only be called once unless the domain decomposition
+     * changes.
+     *
+     * local_start starting indices of the local domain
+     * local_size size of the local domain
+     */
+    void setLocalDomain (std::array<int,AMREX_SPACEDIM> const& local_start,
+                         std::array<int,AMREX_SPACEDIM> const& local_size);
+
+    /**
+     * \brief Get local domain
+     *
+     * This function returns the domain decomposition chosen by AMReX. The
+     * first part of the pair is the local starting indices, and the second
+     * part is the local domain size.
+     *
+     * This is needed, only if one uses the raw pointer interfaces, not the
+     * amrex::MulitFab interfaces. Only one of the functions, setLocalDomain
+     * and getLocalDomain, should be called.
+     */
+    std::pair<std::array<int,AMREX_SPACEDIM>,std::array<int,AMREX_SPACEDIM>>
+    getLocalDomain () const;
+
+    /**
+     * \brief Set local spectral domain
+     *
+     * This is needed, only if one uses the raw pointer interfaces, not the
+     * amrex::MulitFab interfaces. This may contain collective MPI calls. So
+     * all processes even if their local size is zero should call. This
+     * function informs AMReX the domain decomposition chosen by the user
+     * for the complex data domain. There is no constraint on the domain
+     * decomposition strategy. One can do 1D, 2D or 3D domain
+     * decomposition. Alternatively, one could also let AMReX choose for you
+     * by calling getLocalSpectralDomain. The latter could potentially
+     * reduce data communication.
+     *
+     * Again, this is needed, only if one uses the raw pointer
+     * interfaces. Only one of the functions, setLocalSpectralDomain and
+     * getLocalSpectralDomain, should be called. Note that one could use
+     * this function together with getLocalDomain. That is the user is
+     * allowed to choose their own spectral domain decomposition, while let
+     * AMReX choose the real data domain decomposition. Also note that the
+     * entire spectral domain has the size of (nx+1)/2 * ny * nz, if the real
+     * domain is nx * ny * nz.
+     *
+     * This should only be called once unless the domain decomposition
+     * changes.
+     *
+     * local_start starting indices of the local domain
+     * local_size size of the local domain
+     */
+    void setLocalSpectralDomain (std::array<int,AMREX_SPACEDIM> const& local_start,
+                                 std::array<int,AMREX_SPACEDIM> const& local_size);
+
+    /**
+     * \brief Get local spectral domain
+     *
+     * This function returns the domain decomposition chosen by AMReX for
+     * the complex data spectral domain. The returned pair contains the
+     * local starting indices and the local domain size.
+     *
+     * This is needed, only if one uses the raw pointer interfaces, not the
+     * amrex::MulitFab interfaces. Only one of the functions,
+     * setLocalSpectralDomain and getLocalSpectralDomain, should be called.
+     * Note that one could use this function together with
+     * setLocalDomain. That is the user is allowed to choose their own real
+     * domain decomposition, while let AMReX choose the spectral data domain
+     * decomposition. Also note that the entire spectral domain has the size
+     * of (nx+1)/2 * ny * nz, if the real domain is nx * ny * nz.
+     *
+     */
+    std::pair<std::array<int,AMREX_SPACEDIM>,std::array<int,AMREX_SPACEDIM>>
+    getLocalSpectralDomain () const;
 
     /**
      * \brief Forward and then backward transform
@@ -114,6 +223,26 @@ public:
     void forward (MF const& inmf, cMF& outmf, int incomp = 0, int outcomp = 0);
 
     /**
+     * \brief Forward transform
+     *
+     * This raw pointer version of forward requires
+     * setLocalDomain/getLocalDomain and
+     * setLocalSpectralDomain/getLocalSpectralDomain have been called
+     * already. Note that one is allowed to call this function multiple
+     * times after the set/get domain functions are called only once, unless
+     * the domain decomposition changes. In fact, that is the preferred way
+     * because it has better performance. All processes need to call this
+     * function even if their local size is zero. If the local size is zero,
+     * one can pass nullptrs.
+     */
+    template <typename RT, typename CT, Direction DIR=D, bool CP=C,
+              std::enable_if_t<(DIR == Direction::forward ||
+                                DIR == Direction::both)
+                               && ((sizeof(RT)*2 == sizeof(CT) && !CP) ||
+                                   (sizeof(RT) == sizeof(CT) && CP)), int> = 0>
+    void forward (RT const* in, CT* out);
+
+    /**
      * \brief Backward transform
      *
      * This function is available only when this class template is
@@ -137,6 +266,26 @@ public:
                                                 DIR == Direction::both, int> = 0>
     void backward (cMF const& inmf, MF& outmf, int incomp = 0, int outcomp = 0);
 
+    /**
+     * \brief Backward transform
+     *
+     * This raw pointer version of backward requires
+     * setLocalDomain/getLocalDomain and
+     * setLocalSpectralDomain/getLocalSpectralDomain have been called
+     * already. Note that one is allowed to call this function multiple
+     * times after the set/get domain functions are called only once unless
+     * the domain decomposition changes. In fact, that is the preferred way
+     * because it has better performance. All processes need to call this
+     * function even if their local size is zero. If the local size is zero,
+     * one can pass nullptrs.
+     */
+    template <typename CT, typename RT, Direction DIR=D, bool CP=C,
+              std::enable_if_t<(DIR == Direction::backward ||
+                                DIR == Direction::both)
+                               && ((sizeof(RT)*2 == sizeof(CT) && !CP) ||
+                                   (sizeof(RT) == sizeof(CT) && CP)), int> = 0>
+    void backward (CT const* in, RT* out);
+
     //! Scaling factor. If the data goes through forward and then backward,
     //! the result multiplied by the scaling factor is equal to the original
     //! data.
@@ -153,7 +302,7 @@ public:
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
-    std::pair<cMF*,IntVect> getSpectralData ();
+    std::pair<cMF*,IntVect> getSpectralData () const;
 
     /**
      * \brief Get BoxArray and DistributionMapping for spectral data
@@ -231,6 +380,14 @@ private:
         }
     }
 
+    static std::pair<BoxArray,DistributionMapping>
+    make_layout_from_local_domain (std::array<int,AMREX_SPACEDIM> const& local_start,
+                                   std::array<int,AMREX_SPACEDIM> const& local_size);
+
+    template <typename FA, typename RT>
+    std::pair<std::unique_ptr<char,DataDeleter>,std::size_t>
+    install_raw_ptr (FA& fa, RT const* p);
+
     Plan<T> m_fft_fwd_x{};
     Plan<T> m_fft_bwd_x{};
     Plan<T> m_fft_fwd_y{};
@@ -262,6 +419,9 @@ private:
     cMF m_cx;
     cMF m_cy;
     cMF m_cz;
+
+    mutable MF m_raw_mf;
+    mutable cMF m_raw_cmf;
 
     std::unique_ptr<char,DataDeleter> m_data_1;
     std::unique_ptr<char,DataDeleter> m_data_2;
@@ -530,6 +690,11 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
 }
 
 template <typename T, Direction D, bool C>
+R2C<T,D,C>::R2C (std::array<int,AMREX_SPACEDIM> const& domain_size, Info const& info)
+    : R2C<T,D,C>(Box(IntVect(0),IntVect(domain_size)-1), info)
+{}
+
+template <typename T, Direction D, bool C>
 R2C<T,D,C>::~R2C ()
 {
     if (m_fft_bwd_x.plan != m_fft_fwd_x.plan) {
@@ -548,6 +713,89 @@ R2C<T,D,C>::~R2C ()
         m_fft_bwd_x_half.destroy();
     }
     m_fft_fwd_x_half.destroy();
+}
+
+template <typename T, Direction D, bool C>
+std::pair<BoxArray,DistributionMapping>
+R2C<T,D,C>::make_layout_from_local_domain (std::array<int,AMREX_SPACEDIM> const& local_start,
+                                           std::array<int,AMREX_SPACEDIM> const& local_size)
+{
+    IntVect lo(local_start);
+    IntVect len(local_size);
+    Box bx(lo, lo+len-1);
+#ifdef AMREX_USE_MPI
+    Vector<Box> allboxes(ParallelDescriptor::NProcs());
+    MPI_Allgather(&bx, 1, ParallelDescriptor::Mpi_typemap<Box>::type(),
+                  allboxes.data(), 1, ParallelDescriptor::Mpi_typemap<Box>::type(),
+                  ParallelDescriptor::Communicator());
+    Vector<int> pmap;
+    pmap.reserve(allboxes.size());
+    for (int i = 0; i < allboxes.size(); ++i) {
+        if (allboxes[i].ok()) {
+            pmap.push_back(i);
+        }
+    }
+    allboxes.erase(std::remove_if(allboxes.begin(), allboxes.end(),
+                                  [=] (Box const& b) { return b.isEmpty(); }),
+                   allboxes.end());
+    BoxList bl(std::move(allboxes));
+    return std::make_pair(BoxArray(std::move(bl)), DistributionMapping(std::move(pmap)));
+#else
+    return std::make_pair(BoxArray(bx), DistributionMapping(Vector<int>({0})));
+#endif
+}
+
+template <typename T, Direction D, bool C>
+void R2C<T,D,C>::setLocalDomain (std::array<int,AMREX_SPACEDIM> const& local_start,
+                                 std::array<int,AMREX_SPACEDIM> const& local_size)
+{
+    auto const& [ba, dm] = make_layout_from_local_domain(local_start, local_size);
+    m_raw_mf = MF(ba, dm, m_rx.nComp(), 0, MFInfo().SetAlloc(false));
+}
+
+template <typename T, Direction D, bool C>
+std::pair<std::array<int,AMREX_SPACEDIM>,std::array<int,AMREX_SPACEDIM>>
+R2C<T,D,C>::getLocalDomain () const
+{
+    m_raw_mf = MF(m_rx.boxArray(), m_rx.DistributionMap(), m_rx.nComp(), 0,
+                  MFInfo{}.SetAlloc(false));
+
+    auto const myproc = ParallelDescriptor::MyProc();
+    if (myproc < m_rx.size()) {
+        Box const& box = m_rx.box(myproc);
+        return std::make_pair(box.smallEnd().toArray(),
+                              box.length().toArray());
+    } else {
+        return std::make_pair(std::array<int,AMREX_SPACEDIM>{AMREX_D_DECL(0,0,0)},
+                              std::array<int,AMREX_SPACEDIM>{AMREX_D_DECL(0,0,0)});
+    }
+}
+
+template <typename T, Direction D, bool C>
+void R2C<T,D,C>::setLocalSpectralDomain (std::array<int,AMREX_SPACEDIM> const& local_start,
+                                         std::array<int,AMREX_SPACEDIM> const& local_size)
+{
+    auto const& [ba, dm] = make_layout_from_local_domain(local_start, local_size);
+    m_raw_cmf = cMF(ba, dm, m_rx.nComp(), 0, MFInfo().SetAlloc(false));
+}
+
+template <typename T, Direction D, bool C>
+std::pair<std::array<int,AMREX_SPACEDIM>,std::array<int,AMREX_SPACEDIM>>
+R2C<T,D,C>::getLocalSpectralDomain () const
+{
+    auto const ncomp = m_info.batch_size;
+    auto const& [ba, dm] = getSpectralDataLayout();
+
+    m_raw_cmf = cMF(ba, dm, ncomp, 0, MFInfo{}.SetAlloc(false));
+
+    auto const myproc = ParallelDescriptor::MyProc();
+    if (myproc < m_raw_cmf.size()) {
+        Box const& box = m_raw_cmf.box(myproc);
+        return std::make_pair(box.smallEnd().toArray(), box.length().toArray());
+    } else {
+        return std::make_pair(std::array<int,AMREX_SPACEDIM>{AMREX_D_DECL(0,0,0)},
+                              std::array<int,AMREX_SPACEDIM>{AMREX_D_DECL(0,0,0)});
+    }
 }
 
 template <typename T, Direction D, bool C>
@@ -679,6 +927,76 @@ void R2C<T,D,C>::forward (MF const& inmf, int incomp)
 }
 
 template <typename T, Direction D, bool C>
+template <typename FA, typename RT>
+std::pair<std::unique_ptr<char,DataDeleter>,std::size_t>
+R2C<T,D,C>::install_raw_ptr (FA& fa, RT const* p)
+{
+    AMREX_ALWAYS_ASSERT(!fa.empty());
+
+    using FAB = typename FA::FABType::value_type;
+    using T_FAB = typename FAB::value_type;
+    static_assert(sizeof(T_FAB) == sizeof(RT));
+
+    auto const ncomp = m_info.batch_size;
+    auto const& ia = fa.IndexArray();
+
+    T_FAB* pp = nullptr;
+    std::size_t sz = 0;
+
+    if ( ! ia.empty() ) {
+        int K = ia[0];
+        Box const& box = fa.fabbox(K);
+        if ((alignof(T_FAB) == alignof(RT)) || amrex::is_aligned(p,alignof(T_FAB))) {
+            pp = (T_FAB*)p;
+        } else {
+            sz = sizeof(T_FAB) * box.numPts() * ncomp;
+            pp = (T_FAB*) The_Arena()->alloc(sz);
+        }
+        fa.setFab(K, FAB(box,ncomp,pp));
+    }
+
+    if (sz == 0) {
+        return std::make_pair(std::unique_ptr<char,DataDeleter>{},std::size_t(0));
+    } else {
+        return std::make_pair(std::unique_ptr<char,DataDeleter>
+                              {(char*)pp,DataDeleter{The_Arena()}}, sz);
+    }
+}
+
+
+template <typename T, Direction D, bool C>
+template <typename RT, typename CT, Direction DIR, bool CP,
+          std::enable_if_t<(DIR == Direction::forward ||
+                            DIR == Direction::both)
+                           && ((sizeof(RT)*2 == sizeof(CT) && !CP) ||
+                               (sizeof(RT) == sizeof(CT) && CP)), int> >
+void R2C<T,D,C>::forward (RT const* in, CT* out)
+{
+    auto [rdata, rsz] = install_raw_ptr(m_raw_mf, in);
+    auto [cdata, csz] = install_raw_ptr(m_raw_cmf, out);
+
+    if (rsz > 0) {
+#ifdef AMREX_USE_GPU
+        Gpu::dtod_memcpy_async(rdata.get(),in,rsz);
+        Gpu::streamSynchronize();
+#else
+        std::memcpy(rdata.get(),in,rsz);
+#endif
+    }
+
+    forward(m_raw_mf, m_raw_cmf);
+
+    if (csz) {
+#ifdef AMREX_USE_GPU
+        Gpu::dtod_memcpy_async(out,cdata.get(),csz);
+        Gpu::streamSynchronize();
+#else
+        std::memcpy(out,cdata.get(),csz);
+#endif
+    }
+}
+
+template <typename T, Direction D, bool C>
 template <Direction DIR, std::enable_if_t<DIR == Direction::both, int> >
 void R2C<T,D,C>::backward (MF& outmf, int outcomp)
 {
@@ -743,6 +1061,38 @@ void R2C<T,D,C>::backward_doit (MF& outmf, IntVect const& ngout,
     }
     outmf.ParallelCopy(m_rx, 0, outcomp, ncomp, IntVect(0),
                        amrex::elemwiseMin(ngout,outmf.nGrowVect()), period);
+}
+
+template <typename T, Direction D, bool C>
+template <typename CT, typename RT, Direction DIR, bool CP,
+          std::enable_if_t<(DIR == Direction::backward ||
+                            DIR == Direction::both)
+                           && ((sizeof(RT)*2 == sizeof(CT) && !CP) ||
+                               (sizeof(RT) == sizeof(CT) && CP)), int> >
+void R2C<T,D,C>::backward (CT const* in, RT* out)
+{
+    auto [rdata, rsz] = install_raw_ptr(m_raw_mf, out);
+    auto [cdata, csz] = install_raw_ptr(m_raw_cmf, in);
+
+    if (csz) {
+#ifdef AMREX_USE_GPU
+        Gpu::dtod_memcpy_async(cdata.get(),in,csz);
+        Gpu::streamSynchronize();
+#else
+        std::memcpy(cdata.get(),in,csz);
+#endif
+    }
+
+    backward(m_raw_cmf, m_raw_mf);
+
+    if (rsz > 0) {
+#ifdef AMREX_USE_GPU
+        Gpu::dtod_memcpy_async(out,rdata.get(),rsz);
+        Gpu::streamSynchronize();
+#else
+        std::memcpy(out,rdata.get(),rsz);
+#endif
+    }
 }
 
 template <typename T, Direction D, bool C>
@@ -895,7 +1245,7 @@ template <typename T, Direction D, bool C>
 template <Direction DIR, std::enable_if_t<DIR == Direction::forward ||
                                           DIR == Direction::both, int> >
 std::pair<typename R2C<T,D,C>::cMF *, IntVect>
-R2C<T,D,C>::getSpectralData ()
+R2C<T,D,C>::getSpectralData () const
 {
 #if (AMREX_SPACEDIM > 1)
     if (m_r2c_sub) {
@@ -904,11 +1254,11 @@ R2C<T,D,C>::getSpectralData ()
    } else
 #endif
     if (!m_cz.empty()) {
-        return std::make_pair(&m_cz, IntVect{AMREX_D_DECL(2,0,1)});
+        return std::make_pair(const_cast<cMF*>(&m_cz), IntVect{AMREX_D_DECL(2,0,1)});
     } else if (!m_cy.empty()) {
-        return std::make_pair(&m_cy, IntVect{AMREX_D_DECL(1,0,2)});
+        return std::make_pair(const_cast<cMF*>(&m_cy), IntVect{AMREX_D_DECL(1,0,2)});
     } else {
-        return std::make_pair(&m_cx, IntVect{AMREX_D_DECL(0,1,2)});
+        return std::make_pair(const_cast<cMF*>(&m_cx), IntVect{AMREX_D_DECL(0,1,2)});
     }
 }
 

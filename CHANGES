@@ -1,3 +1,51 @@
+# 25.03
+
+  -- Make Parser CI less sensitive to roundoff errors (#4321)
+
+  -- FFT: Add raw pointer interfaces (#4345)
+
+  -- Update SUNDIALS GNUMake (#4344)
+
+  -- Change FFTW rapth flag (#4343)
+
+  -- Copy comm flags in make_alike (#4341)
+
+  -- GPU Mapping (#4326)
+
+  -- Fix FillRandomNormal for odd number of length (#4338)
+
+  -- Fix new bug in pure soa communication (#4337)
+
+  -- Expose MLCellLinOP::setInterpBndryHalfWidth for non-hypre cases (#4334)
+
+  -- GMRESMLMG: Support Multi-level composite solve (#4271)
+
+  -- Fix optional component communication for pure SoA particles (#4333)
+
+  -- SYCL: fix '-flink-huge-device-code' compiler flag (#4332)
+
+  -- compile MLCurlCurl for 1D in cmake (#4331)
+
+  -- GitHub Runner: ubuntu-20.04 -> ubuntu-24.04 (#4330)
+
+  -- FFT: Support complex to complex transforms (#4329)
+
+  -- FFT: Add batch support (#4327)
+
+  -- Fix recursion-related nvlink warning in RandomGamma (#4324)
+
+  -- Fix a number of tests for GPU (#4323)
+
+  -- Fix: Names in `PC::make_alike` (#4322)
+
+  -- Enable GPU-aware MPI by default (#4318)
+
+  -- Preparation for deprecation of `__AMDGCN_WAVEFRONT_SIZE` (#4311)
+
+  -- Speed up CUDA Toolkit installation in Windows CI (#4310)
+
+  -- GNU Make: Remove old machines like summit and cori (#4312)
+
 # 25.02
 
   -- SpMatrix: Add constructor for CSR format (#4316)

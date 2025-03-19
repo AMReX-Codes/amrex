@@ -992,7 +992,13 @@ InterpFromCoarseLevel (MF& mf, Real time,
                        const PreInterpHook& pre_interp,
                        const PostInterpHook& post_interp)
 {
-    InterpFromCoarseLevel(mf,mf.nGrowVect(),time,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
+#ifdef AMREX_USE_EB
+    EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
+#else
+    EB2::IndexSpace const* index_space = nullptr;
+#endif
+
+    InterpFromCoarseLevel(mf,mf.nGrowVect(),time,index_space,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
                           cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
                           pre_interp,post_interp);
 }
@@ -1018,6 +1024,31 @@ InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 std::enable_if_t<IsFabArray<MF>::value>
 InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
+                       const MF& cmf, int scomp, int dcomp, int ncomp,
+                       const Geometry& cgeom, const Geometry& fgeom,
+                       BC& cbc, int cbccomp,
+                       BC& fbc, int fbccomp,
+                       const IntVect& ratio,
+                       Interp* mapper,
+                       const Vector<BCRec>& bcs, int bcscomp,
+                       const PreInterpHook& pre_interp,
+                       const PostInterpHook& post_interp)
+{
+#ifdef AMREX_USE_EB
+    EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
+#else
+    EB2::IndexSpace const* index_space = nullptr;
+#endif
+
+    InterpFromCoarseLevel(mf,nghost,time,index_space,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
+                          cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
+                          pre_interp,post_interp);
+}
+
+template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
+std::enable_if_t<IsFabArray<MF>::value>
+InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
+                       const EB2::IndexSpace* index_space,
                        const MF& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
                        BC& cbc, int cbccomp,
@@ -1069,9 +1100,12 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
             }
         }
 
-#ifdef AMREX_USE_EB
-        if (EB2::TopIndexSpaceIfPresent()) {
-            auto factory = makeEBFabFactory(cgeom, ba_crse_patch, dm, {0,0,0}, EBSupport::basic);
+#ifndef AMREX_USE_EB
+        amrex::ignore_unused(index_space);
+#else
+        if (index_space) {
+            auto factory = makeEBFabFactory(index_space, cgeom, ba_crse_patch, dm,
+                                            {0,0,0}, EBSupport::basic);
             mf_crse_patch.define(ba_crse_patch, dm, ncomp, 0, MFInfo(), *factory);
         } else
 #endif

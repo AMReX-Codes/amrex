@@ -586,6 +586,27 @@ public:
     //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name, const std::string& val);
 
+
+    //! Similar to get() but store the whole line including empty spaces in
+    //! the middle if present as a single string. For example, `foo = a b c`
+    //! is treated by this function as a single string "a b c", whereas
+    //! get() will give only "a" and getarr() will store the results in
+    //! `std::vectcor<std::string>`. Note this does not preserve the number
+    //! of empty spaces, because of how ParmParse parses the line. For
+    //! example, `a b  c` with two spaces between `b` and `c` will become "a
+    //! b c".
+    void getline (const char* name, std::string& ref) const;
+
+    //! Similar to query() but store the whole line including empty spaces
+    //! in the middle if present as a single string. For example, `foo = a b
+    //! c` is treated by this function as a single string "a b c", whereas
+    //! query() will give only "a" and queryarr() will store the results in
+    //! `std::vectcor<std::string>`. Note this does not preserve the number
+    //! of empty spaces, because of how ParmParse parses the line. For
+    //! example, `a b  c` with two spaces between `b` and `c` will become "a
+    //! b c".
+    int queryline (const char* name, std::string& ref) const;
+
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to an IntVect and stored
