@@ -157,9 +157,48 @@ struct TagVector {
     }
 
     TagVector (const TagVector& other) = delete;
-    TagVector (TagVector&& other) = default;
     TagVector& operator= (const TagVector& other) = delete;
-    TagVector& operator= (TagVector&& other) = default;
+    TagVector (TagVector&& other) noexcept {
+        h_buffer = other.h_buffer;
+        other.h_buffer = nullptr;
+        d_buffer = other.d_buffer;
+        other.d_buffer = nullptr;
+        d_tags = other.d_tags;
+        other.d_tags = nullptr;
+        d_nwarps = other.d_nwarps;
+        other.d_nwarps = nullptr;
+        ntags = other.ntags;
+        other.ntags = 0;
+        ntotwarps = other.ntotwarps;
+        other.ntotwarps = 0;
+        nblocks = other.nblocks;
+        other.nblocks = 0;
+        defined = other.defined;
+        other.defined = false;
+    }
+    TagVector& operator= (TagVector&& other) noexcept {
+        if (this == &other) {
+            return *this;
+        }
+        undefine();
+        h_buffer = other.h_buffer;
+        other.h_buffer = nullptr;
+        d_buffer = other.d_buffer;
+        other.d_buffer = nullptr;
+        d_tags = other.d_tags;
+        other.d_tags = nullptr;
+        d_nwarps = other.d_nwarps;
+        other.d_nwarps = nullptr;
+        ntags = other.ntags;
+        other.ntags = 0;
+        ntotwarps = other.ntotwarps;
+        other.ntotwarps = 0;
+        nblocks = other.nblocks;
+        other.nblocks = 0;
+        defined = other.defined;
+        other.defined = false;
+        return *this;
+    }
 
     [[nodiscard]] bool is_defined () const { return defined; }
 
@@ -342,6 +381,9 @@ template <class TagType, class F>
 void
 ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
 {
+    // Note: this CPU version may not have optimal performance:
+    // The loop over ncomp is the innermost instead of the outermost
+    // There is not load-balancing or splitting of tags
     AMREX_ALWAYS_ASSERT(tv.is_defined());
 
     if (tv.ntags == 0) { return; }
@@ -350,7 +392,7 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
     const auto ntags = tv.ntags;
 
 #ifdef AMREX_USE_OMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
     for (int itag = 0; itag < ntags; ++itag) {
 
