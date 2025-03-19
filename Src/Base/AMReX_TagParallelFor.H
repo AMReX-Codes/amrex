@@ -159,13 +159,13 @@ struct TagVector {
     TagVector (const TagVector& other) = delete;
     TagVector& operator= (const TagVector& other) = delete;
     TagVector (TagVector&& other) noexcept
-        : h_buffer{other.h_buffer}
-          d_buffer{other.d_buffer}
-          d_tags{other.d_tags}
-          d_nwarps{other.d_nwarps}
-          ntags{other.ntags}
-          ntotwarps{other.ntotwarps}
-          nblocks{other.nblocks}
+        : h_buffer{other.h_buffer},
+          d_buffer{other.d_buffer},
+          d_tags{other.d_tags},
+          d_nwarps{other.d_nwarps},
+          ntags{other.ntags},
+          ntotwarps{other.ntotwarps},
+          nblocks{other.nblocks},
           defined{other.defined}
     {
         other.h_buffer = nullptr;
