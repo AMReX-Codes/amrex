@@ -80,7 +80,7 @@ void mf_cell_cons_lin_interp_mcslope (int i, int /*j*/, int /*k*/, int ns,
 
     Real alpha = Real(1.0);
     if (sx != Real(0.0)) {
-        Real dumax = std::abs(sx) * Real(ratio[0]-1)/Real(2*ratio[0]);
+        Real dumax = Real(0.5) * std::abs(sx);
         Real umax = u(i,0,0,nu);
         Real umin = u(i,0,0,nu);
         for (int ioff = -1; ioff <= 1; ++ioff) {

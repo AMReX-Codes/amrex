@@ -215,9 +215,7 @@ void mf_cell_cons_lin_interp_mcslope (int i, int j, int k, int ns, Array4<Real> 
 
     Real alpha = 1.0;
     if (sx != Real(0.0) || sy != Real(0.0) || sz != Real(0.0)) {
-        Real dumax = std::abs(sx) * Real(ratio[0]-1)/Real(2*ratio[0])
-            +        std::abs(sy) * Real(ratio[1]-1)/Real(2*ratio[1])
-            +        std::abs(sz) * Real(ratio[2]-1)/Real(2*ratio[2]);
+        Real dumax = Real(0.5) * (std::abs(sx) + std::abs(sy) + std::abs(sz));
         Real umax = u(i,j,k,nu);
         Real umin = u(i,j,k,nu);
         int ilim = ratio[0] > 1 ? 1 : 0;
