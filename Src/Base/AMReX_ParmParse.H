@@ -1616,7 +1616,17 @@ public:
         // vector<vector<std::string>>.
         std::vector<std::vector<std::string>> m_vals;
         mutable Long                          m_count = 0;
-        std::variant<std::string, bool, int, long, long long, amrex::IntVect, amrex::Box, float, double> m_typehint = std::string{};
+        std::variant<
+            std::string*,
+            bool*,
+            int*,
+            long*,
+            long long*,
+            amrex::IntVect*,
+            amrex::Box*,
+            float*,
+            double*
+        > m_typehint = static_cast<std::string*>(nullptr);
     };
     using Table = std::unordered_map<std::string, PP_entry>;
 
