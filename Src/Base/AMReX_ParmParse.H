@@ -3,8 +3,10 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
+#include <AMReX_Box.H>
 #include <AMReX_Enum.H>
 #include <AMReX_INT.H>
+#include <AMReX_IntVect.H>
 #include <AMReX_IParser.H>
 #include <AMReX_Parser.H>
 #include <AMReX_TypeTraits.H>
@@ -15,7 +17,9 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace amrex {
@@ -1633,6 +1637,17 @@ public:
         // vector<vector<std::string>>.
         std::vector<std::vector<std::string>> m_vals;
         mutable Long                          m_count = 0;
+        std::variant<
+            std::string*,
+            bool*,
+            int*,
+            long*,
+            long long*,
+            amrex::IntVect*,
+            amrex::Box*,
+            float*,
+            double*
+        > m_typehint = static_cast<std::string*>(nullptr);
     };
     using Table = std::unordered_map<std::string, PP_entry>;
 
