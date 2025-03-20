@@ -66,7 +66,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mf_cell_cons_lin_interp_mcslope (int i, int /*j*/, int /*k*/, int ns,
                                       Array4<Real> const& slope,
                                       Array4<Real const> const& u, int scomp, int /*ncomp*/,
-                                      Box const& domain, IntVect const& ratio,
+                                      Box const& domain, IntVect const& /*ratio*/,
                                       BCRec const* bc) noexcept
 {
     int nu = ns + scomp;
