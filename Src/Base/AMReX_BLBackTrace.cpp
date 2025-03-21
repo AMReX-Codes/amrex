@@ -36,7 +36,7 @@
 #endif
 
 #ifndef _WIN32
-#  if defined(__GLIBC__)
+#  if defined(__GLIBC__) || defined(__APPLE__)
 #    include <execinfo.h>
 #  endif
 #include <unistd.h>
