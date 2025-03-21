@@ -1,4 +1,6 @@
 import numpy as np
+import struct
+import os
 
 def write_paraview_file_structmesh(fname,xp,yp,ccdata,ncdata):
 
@@ -184,7 +186,7 @@ def write_paraview_file_particles(fname,pts,ncdata):
     Npts=pts.shape[0]
 
     outfile.write("<?xml version=\"1.0\"?>\n")
-    outfile.write("<VTKFile type=\"PolyData\" version=\"0.1\" byte_order=\"LittleEndian\">\n")
+    outfile.write("<VTKFile type=\"PolyData\" version=\"0.1\" byte_order=\"LittleEndian\" header_type=\"UInt64\">\n")
     outfile.write("<PolyData>\n")
     outfile.write("<Piece NumberOfPoints=\"%d\" NumberOfVerts=\"0\" NumberOfLines=\"0\" NumberOfStrips=\"0\" NumberOfPolys=\"0\">\n"%(Npts))
 
@@ -200,16 +202,24 @@ def write_paraview_file_particles(fname,pts,ncdata):
 
     outfile.write("<Points>\n")
     outfile.write("<DataArray type=\"Float32\" Name=\"Points\" NumberOfComponents=\"3\" format=\"appended\" offset=\"0\">\n")
-    outfile.write("\n</DataArray>\n")
+    outfile.write("</DataArray>\n")
     outfile.write("</Points>\n")    
     outfile.write("</Piece>\n")
     outfile.write("</PolyData>\n")
 
-    # write binary data AppendedData
-    outfile.write("<AppendedData>\n")
-    outfile.write("_")
-    outfile.write(pts.tobytes('C')) # use C-ordering of array
-    outfile.write("\n</AppendedData>")
+    # write AppendedData in special format
+    # https://vtk.org/Wiki/VTK_XML_Formats#Uncompressed_Data
+    outfile.write("<AppendedData encoding=\"raw\">\n")
+    outfile.write("\t_")
+    outfile.close()
+    with open(fname, 'ab') as binfile:
+        arrays_to_write = [pts]
+        for arr in arrays_to_write:
+            float_arr = arr.astype(np.float32)
+            binfile.write(struct.pack('<L', arr.nbytes))
+            binfile.write(float_arr.tobytes('C'))
 
+    outfile = open(fname, 'a')
+    outfile.write("\n</AppendedData>")
     outfile.write("</VTKFile>\n")
     outfile.close()
