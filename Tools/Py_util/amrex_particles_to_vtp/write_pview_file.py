@@ -199,14 +199,17 @@ def write_paraview_file_particles(fname,pts,ncdata):
     outfile.write("</PointData>\n")
 
     outfile.write("<Points>\n")
-    outfile.write("<DataArray type=\"Float32\" Name=\"Points\" NumberOfComponents=\"3\" format=\"ascii\">\n")
-    for i in range(Npts):
-        outfile.write("%e\t%e\t%e\t"%(pts[i][0],pts[i][1],pts[i][2]))
+    outfile.write("<DataArray type=\"Float32\" Name=\"Points\" NumberOfComponents=\"3\" format=\"appended\" offset=\"0\">\n")
     outfile.write("\n</DataArray>\n")
-    outfile.write("</Points>\n")
-
+    outfile.write("</Points>\n")    
     outfile.write("</Piece>\n")
     outfile.write("</PolyData>\n")
-    outfile.write("</VTKFile>\n")
 
+    # write binary data AppendedData
+    outfile.write("<AppendedData>\n")
+    outfile.write("_")
+    outfile.write(pts.tobytes('C')) # use C-ordering of array
+    outfile.write("\n</AppendedData>")
+
+    outfile.write("</VTKFile>\n")
     outfile.close()
