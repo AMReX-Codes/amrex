@@ -378,12 +378,12 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 {
     BL_PROFILE("MLMG::solve()");
 
-    const bool prev_in_single_stream_region = Gpu::inSingleStreamRegion();
-    const bool prev_in_nosync_region = Gpu::inNoSyncRegion();
+    bool prev_in_single_stream_region = false;
+    bool prev_in_nosync_region = false;
 
     if (do_no_sync_gpu) {
-        Gpu::setSingleStreamRegion(true);
-        Gpu::setNoSyncRegion(true);
+        prev_in_single_stream_region = Gpu::setSingleStreamRegion(true);
+        prev_in_nosync_region = Gpu::setNoSyncRegion(true);
     }
 
     if constexpr (std::is_same<AMF,MultiFab>()) {
@@ -565,8 +565,10 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 
     ++solve_called;
 
-    Gpu::setSingleStreamRegion(prev_in_single_stream_region);
-    Gpu::setNoSyncRegion(prev_in_nosync_region);
+    if (do_no_sync_gpu) {
+        Gpu::setSingleStreamRegion(prev_in_single_stream_region);
+        Gpu::setNoSyncRegion(prev_in_nosync_region);
+    }
 
     return composite_norminf;
 }
