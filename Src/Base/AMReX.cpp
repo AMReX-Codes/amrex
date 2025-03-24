@@ -146,7 +146,7 @@ namespace {
     SignalHandler prev_handler_sigabrt = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
     SignalHandler prev_handler_sigfpe  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
     SignalHandler prev_handler_sigill  = SIG_ERR; // NOLINT(performance-no-int-to-ptr)
-#if defined(__linux__)
+#if defined(__linux__) && defined(__GLIBC__)
     int           prev_fpe_excepts = 0;
     int           curr_fpe_excepts = 0;
 #elif defined(__APPLE__) && defined(__x86_64__)
@@ -851,7 +851,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
         if (prev_handler_sigabrt != SIG_ERR) { std::signal(SIGABRT, prev_handler_sigabrt); } // NOLINT(performance-no-int-to-ptr)
         if (prev_handler_sigfpe  != SIG_ERR) { std::signal(SIGFPE , prev_handler_sigfpe);  } // NOLINT(performance-no-int-to-ptr)
         if (prev_handler_sigill  != SIG_ERR) { std::signal(SIGILL , prev_handler_sigill);  } // NOLINT(performance-no-int-to-ptr)
-#if defined(__linux__)
+#if defined(__linux__) && defined(__GLIBC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {
             fedisableexcept(curr_fpe_excepts);
@@ -969,7 +969,7 @@ AMReX::erase (AMReX* pamrex)
 FPExcept getFPExcept ()
 {
     auto r = FPExcept::none;
-#if defined(__linux__)
+#if defined(__linux__) && defined(__GLIBC__)
     auto excepts = fegetexcept();
     if (excepts & FE_INVALID  ) { r = r | FPExcept::invalid ; }
     if (excepts & FE_DIVBYZERO) { r = r | FPExcept::zero    ; }
@@ -981,7 +981,7 @@ FPExcept getFPExcept ()
 FPExcept setFPExcept (FPExcept excepts)
 {
     auto prev = getFPExcept();
-#if defined(__linux__)
+#if defined(__linux__) && defined(__GLIBC__)
     int flags = FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW;
     fedisableexcept(flags);
     flags = 0;
@@ -998,7 +998,7 @@ FPExcept setFPExcept (FPExcept excepts)
 FPExcept disableFPExcept (FPExcept excepts)
 {
     auto prev = getFPExcept();
-#if defined(__linux__)
+#if defined(__linux__) && defined(__GLIBC__)
     int flags = 0;
     if (any(excepts & FPExcept::invalid )) { flags |= FE_INVALID  ; }
     if (any(excepts & FPExcept::zero    )) { flags |= FE_DIVBYZERO; }
@@ -1013,7 +1013,7 @@ FPExcept disableFPExcept (FPExcept excepts)
 FPExcept enableFPExcept (FPExcept excepts)
 {
     auto prev = getFPExcept();
-#if defined(__linux__)
+#if defined(__linux__) && defined(__GLIBC__)
     int flags = 0;
     if (any(excepts & FPExcept::invalid )) { flags |= FE_INVALID  ; }
     if (any(excepts & FPExcept::zero    )) { flags |= FE_DIVBYZERO; }
