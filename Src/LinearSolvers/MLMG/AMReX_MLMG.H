@@ -566,8 +566,8 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     ++solve_called;
 
     if (do_no_sync_gpu) {
-        Gpu::setSingleStreamRegion(prev_in_single_stream_region);
-        Gpu::setNoSyncRegion(prev_in_nosync_region);
+        (void)Gpu::setSingleStreamRegion(prev_in_single_stream_region);
+        (void)Gpu::setNoSyncRegion(prev_in_nosync_region);
     }
 
     return composite_norminf;
