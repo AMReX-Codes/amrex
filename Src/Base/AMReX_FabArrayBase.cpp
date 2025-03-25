@@ -2638,12 +2638,10 @@ FabArrayBase::isFusingCandidate () const noexcept // NOLINT(readability-convert-
 FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& nghost, int nthreads)
     : m_bat(fa.boxArray().transformer()),
       m_ng(nghost),
-      m_nthreads(nthreads),
-      m_nblocks_x({nullptr,nullptr})
+      m_nthreads(nthreads)
 {
     Vector<Box> boxes;
-    Vector<Long> ncells;
-    ncells.reserve(fa.indexArray.size());
+    Long ncellsmax = 0;
     for (int K : fa.indexArray) {
         Long N = 0;
         Box b = fa.box(K);
@@ -2652,14 +2650,15 @@ FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& ngh
             N = b.numPts();
         }
         boxes.push_back(b);
-        ncells.push_back(N);
+        ncellsmax = std::max(ncellsmax, N);
     }
-    detail::build_par_for_nblocks(m_hp, m_dp, m_nblocks_x, m_boxes, boxes, ncells, nthreads);
+    m_nblocks_per_box = int((ncellsmax+nthreads-1)/nthreads);
+    detail::build_par_for_boxes(m_hp, m_boxes, boxes);
 }
 
 FabArrayBase::ParForInfo::~ParForInfo ()
 {
-    detail::destroy_par_for_nblocks(m_hp, m_dp);
+    detail::destroy_par_for_boxes(m_hp, (char*)m_boxes);
 }
 
 FabArrayBase::ParForInfo const&

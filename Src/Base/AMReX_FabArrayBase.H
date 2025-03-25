@@ -653,7 +653,7 @@ public:
         ParForInfo (const FabArrayBase& fa, const IntVect& nghost, int nthreads);
         ~ParForInfo ();
 
-        std::pair<int*,int*> const& getBlocks () const { return m_nblocks_x; }
+        int getNBlocksPerBox () const { return m_nblocks_per_box; }
         BoxIndexer const* getBoxes () const { return m_boxes; }
 
         ParForInfo () = delete;
@@ -665,10 +665,9 @@ public:
         BATransformer m_bat;
         IntVect m_ng;
         int m_nthreads;
-        std::pair<int*,int*> m_nblocks_x;
+        int m_nblocks_per_box;
         BoxIndexer* m_boxes = nullptr;
         char* m_hp = nullptr;
-        char* m_dp = nullptr;
     };
 
     ParForInfo const& getParForInfo (const IntVect& nghost, int nthreads) const;
