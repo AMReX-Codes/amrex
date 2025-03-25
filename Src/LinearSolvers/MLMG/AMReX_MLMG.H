@@ -1317,10 +1317,7 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
 
         setVal(cor[amrlev][mglev], RT(0.0));
         bool skip_fillboundary = true;
-        for (int i = 0; i < nu1; ++i) {
-            linop.smooth(amrlev, mglev, cor[amrlev][mglev], res[amrlev][mglev], skip_fillboundary);
-            skip_fillboundary = false;
-        }
+        linop.smooth(amrlev, mglev, cor[amrlev][mglev], res[amrlev][mglev], skip_fillboundary, nu1);
 
         // rescor = res - L(cor)
         computeResOfCorrection(amrlev, mglev);
@@ -1364,11 +1361,8 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
         }
         setVal(cor[amrlev][mglev_bottom], RT(0.0));
         bool skip_fillboundary = true;
-        for (int i = 0; i < nu1; ++i) {
-            linop.smooth(amrlev, mglev_bottom, cor[amrlev][mglev_bottom],
-                         res[amrlev][mglev_bottom], skip_fillboundary);
-            skip_fillboundary = false;
-        }
+        linop.smooth(amrlev, mglev_bottom, cor[amrlev][mglev_bottom],
+            res[amrlev][mglev_bottom], skip_fillboundary, nu1);
         if (verbose >= 4)
         {
             computeResOfCorrection(amrlev, mglev_bottom);
@@ -1391,9 +1385,7 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
             amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev
                            << "   UP: Norm before smooth " << norm << "\n";
         }
-        for (int i = 0; i < nu2; ++i) {
-            linop.smooth(amrlev, mglev, cor[amrlev][mglev], res[amrlev][mglev]);
-        }
+        linop.smooth(amrlev, mglev, cor[amrlev][mglev], res[amrlev][mglev], false, nu2);
 
         if (cf_strategy == CFStrategy::ghostnodes) { computeResOfCorrection(amrlev, mglev); }
 
@@ -1512,10 +1504,7 @@ MLMGT<MF>::actualBottomSolve ()
     if (bottom_solver == BottomSolver::smoother)
     {
         bool skip_fillboundary = true;
-        for (int i = 0; i < nuf; ++i) {
-            linop.smooth(amrlev, mglev, x, b, skip_fillboundary);
-            skip_fillboundary = false;
-        }
+        linop.smooth(amrlev, mglev, x, b, skip_fillboundary, nuf);
     }
     else
     {
@@ -1589,9 +1578,7 @@ MLMGT<MF>::actualBottomSolve ()
                 setVal(cor[amrlev][mglev], RT(0.0));
             }
             const int n = (ret==0) ? nub : nuf;
-            for (int i = 0; i < n; ++i) {
-                linop.smooth(amrlev, mglev, x, b);
-            }
+            linop.smooth(amrlev, mglev, x, b, false, n);
         }
     }
 
