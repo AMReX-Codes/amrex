@@ -197,7 +197,7 @@ MLNodeABecLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     {
         mlndlap_restriction(i,j,k,pcrse_ma[box_no],fine_ma[box_no],msk_ma[box_no]);
     });
-    if (!Gpu::inNoSyncRegion()) {
+    if (need_parallel_copy || !Gpu::inNoSyncRegion()) {
         Gpu::streamSynchronize();
     }
 

@@ -204,9 +204,7 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
             });
         }
 
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::streamSynchronize();
     } else
 #endif
     {
@@ -377,9 +375,7 @@ MFCellConsLinMinmaxLimitInterp::interp (MultiFab const& crsemf, int ccomp, Multi
             }
         });
 
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        Gpu::streamSynchronize();
     } else
 #endif
     {

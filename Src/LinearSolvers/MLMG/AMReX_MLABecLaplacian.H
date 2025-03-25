@@ -1033,7 +1033,7 @@ MLABecLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, in
                 });
             }
         }
-        if (!Gpu::inNoSyncRegion()) {
+        if (Ax.local_size() > 0 || !Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
     } else
