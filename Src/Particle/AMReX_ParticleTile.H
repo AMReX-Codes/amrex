@@ -311,7 +311,7 @@ struct ParticleTileData
 
 // SOA Particle Structure
 template <int T_NArrayReal, int T_NArrayInt>
-struct ConstSoAParticle : SoAParticleBase
+struct alignas(sizeof(double)) ConstSoAParticle : SoAParticleBase
 {
     static constexpr int NArrayReal = T_NArrayReal;
     static constexpr int NArrayInt = T_NArrayInt;
@@ -373,7 +373,7 @@ struct ConstSoAParticle : SoAParticleBase
 };
 
 template <int T_NArrayReal, int T_NArrayInt>
-struct SoAParticle : SoAParticleBase
+struct alignas(sizeof(double)) SoAParticle : SoAParticleBase
 {
     static constexpr int NArrayReal = T_NArrayReal;
     static constexpr int NArrayInt = T_NArrayInt;
