@@ -151,7 +151,7 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE inline
         void index_assert (int i) const
         {
-            if (i < 0 || i >= N) {
+            if (i < 0 || static_cast<unsigned int>(i) >= N) {
                 AMREX_IF_ON_DEVICE((
                     AMREX_DEVICE_PRINTF(" (%d) is out of bound (0:%d)\n",
                                         i, N);
