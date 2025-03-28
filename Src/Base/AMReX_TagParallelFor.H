@@ -384,7 +384,7 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
 {
     // Note: this CPU version may not have optimal performance:
     // The loop over ncomp is the innermost instead of the outermost
-    // There is not load-balancing or splitting of tags
+    // There is no load-balancing or splitting of tags
     AMREX_ALWAYS_ASSERT(tv.is_defined());
 
     if (tv.ntags == 0) { return; }
