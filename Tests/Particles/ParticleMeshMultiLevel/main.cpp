@@ -65,11 +65,12 @@ void testParticleMesh (TestParams& parms)
 
     Vector<MultiFab> density1(parms.nlevs);
     Vector<MultiFab> density2(parms.nlevs);
+    const amrex::Real originalVal = -2.0e8;
     for (int lev = 0; lev < parms.nlevs; lev++) {
         density1[lev].define(ba[lev], dm[lev], 1, 1);
-        density1[lev].setVal(-2e8);
+        density1[lev].setVal(originalVal);
         density2[lev].define(ba[lev], dm[lev], 1, 1);
-        density2[lev].setVal(-2e8);
+        density2[lev].setVal(originalVal);
     }
     
     MyParticleContainer myPC(geom, dm, ba, rr);
@@ -113,11 +114,12 @@ void testParticleMesh (TestParams& parms)
     int        num_comp = 1;
 
     amrex::ParticleToMesh(myPC,GetVecOfPtrs(density2),0,parms.nlevs-1,
-                          TrilinearDeposition{start_part_comp,start_mesh_comp,num_comp}, zero_out_input);
+                          TrilinearDeposition{start_part_comp,start_mesh_comp,num_comp}, !zero_out_input);
 
     // check that input is NOT zeroed-out
-    int lev = 0;
-    amrex::print_state(density1[lev], IntVect{0,0,0}); // should be a negative value
+    // density1 and density2 should differ by originalVal in each cell
+    amrex::print_state(density1[0], IntVect{0,0,0});
+    amrex::print_state(density2[0], IntVect{0,0,0});
     
     //
     // Now write the output from each into separate plotfiles for comparison
