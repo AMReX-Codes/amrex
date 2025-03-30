@@ -245,7 +245,10 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
 
     for (int lev = lev_min; lev <= lev_max; lev++)
     {
-        mf[lev]->ParallelCopy(mf_part[lev],0,0,mf_part[lev].nComp(),0,0);
+      if (zero_out_input) {
+        mf[lev]->ParallelCopy(mf_part[lev],0,0,mf_part[lev].nComp(),0,0,FabArrayBase::COPY);
+      } else {
+        mf[lev]->ParallelCopy(mf_part[lev],0,0,mf_part[lev].nComp(),0,0,FabArrayBase::ADD);	
     }
 }
 
