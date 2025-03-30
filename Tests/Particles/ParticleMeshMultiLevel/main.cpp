@@ -67,11 +67,11 @@ void testParticleMesh (TestParams& parms)
     Vector<MultiFab> density2(parms.nlevs);
     for (int lev = 0; lev < parms.nlevs; lev++) {
         density1[lev].define(ba[lev], dm[lev], 1, 1);
-        density1[lev].setVal(0.0);
+        density1[lev].setVal(-2e8);
         density2[lev].define(ba[lev], dm[lev], 1, 1);
-        density2[lev].setVal(0.0);
+        density2[lev].setVal(-2e8);
     }
-
+    
     MyParticleContainer myPC(geom, dm, ba, rr);
     myPC.SetVerbose(false);
 
@@ -88,6 +88,8 @@ void testParticleMesh (TestParams& parms)
     //
     // Here we provide an example of one way to call ParticleToMesh
     //
+    const bool zero_out_input = false;
+
     amrex::ParticleToMesh(myPC, GetVecOfPtrs(density1), 0, parms.nlevs-1,
         [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
                               amrex::Array4<amrex::Real> const& rho,
@@ -101,7 +103,7 @@ void testParticleMesh (TestParams& parms)
                 {
                     return part.rdata(comp);  // no weighting
                 });
-        });
+        }, zero_out_input);
 
     //
     // Here we provide an example of another way to call ParticleToMesh
@@ -111,8 +113,12 @@ void testParticleMesh (TestParams& parms)
     int        num_comp = 1;
 
     amrex::ParticleToMesh(myPC,GetVecOfPtrs(density2),0,parms.nlevs-1,
-                          TrilinearDeposition{start_part_comp,start_mesh_comp,num_comp});
+                          TrilinearDeposition{start_part_comp,start_mesh_comp,num_comp}, zero_out_input);
 
+    // check that input is NOT zeroed-out
+    int lev = 0;
+    amrex::print_state(density1[lev], IntVect{0,0,0}); // should be a negative value
+    
     //
     // Now write the output from each into separate plotfiles for comparison
     //
