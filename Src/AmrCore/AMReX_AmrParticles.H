@@ -249,6 +249,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
         mf[lev]->ParallelCopy(mf_part[lev],0,0,mf_part[lev].nComp(),0,0);
       } else { // do not zero out input
         mf[lev]->ParallelAdd(mf_part[lev],0,0,mf_part[lev].nComp(),0,0);
+      }
     }
 }
 
