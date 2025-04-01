@@ -10,10 +10,10 @@ void mlabeclap_adotx (int i, int, int, int n, Array4<T> const& y,
                       Array4<T const> const& x,
                       Array4<T const> const& a,
                       Array4<T const> const& bX,
-                      GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                      GpuArray<T,AMREX_SPACEDIM> const& dxinv2,
                       T alpha, T beta) noexcept
 {
-    const T dhx = beta*dxinv[0]*dxinv[0];
+    const T dhx = beta*dxinv2[0];
     y(i,0,0,n) = alpha*a(i,0,0)*x(i,0,0,n)
         - dhx * (bX(i+1,0,0,n)*(x(i+1,0,0,n) - x(i  ,0,0,n))
                - bX(i  ,0,0,n)*(x(i  ,0,0,n) - x(i-1,0,0,n)));
@@ -26,10 +26,10 @@ void mlabeclap_adotx_os (int i, int, int, int n, Array4<T> const& y,
                          Array4<T const> const& a,
                          Array4<T const> const& bX,
                          Array4<int const> const& osm,
-                         GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                         GpuArray<T,AMREX_SPACEDIM> const& dxinv2,
                          T alpha, T beta) noexcept
 {
-    const T dhx = beta*dxinv[0]*dxinv[0];
+    const T dhx = beta*dxinv2[0];
     if (osm(i,0,0) == 0) {
         y(i,0,0,n) = T(0.0);
     } else {

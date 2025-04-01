@@ -810,7 +810,7 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
                       static_cast<RT>(this->m_geom[amrlev][mglev].InvCellSize(1)),
                       static_cast<RT>(this->m_geom[amrlev][mglev].InvCellSize(2)))};
 
-    GpuArray<RT, AMREX_SPACEDIM> dxinv2
+    GpuArray<RT,AMREX_SPACEDIM> dxinv2
         {AMREX_D_DECL(dxinv[0]*dxinv[0],
                       dxinv[1]*dxinv[1],
                       dxinv[2]*dxinv[2])};
@@ -822,6 +822,11 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
     const Geometry& geom = this->m_geom[amrlev][mglev];
     const RT* problo = geom.ProbLo();
     const auto dx = geom.CellSizeArray();
+    const int coord = geom.Coord();
+
+    const Geometry& geom = this->m_geom[amrlev][mglev];
+    const RT* problo = geom.ProbLo();
+    const RT* dx = geom.CellSize();
     const int coord = geom.Coord();
 
 #ifdef AMREX_USE_GPU
@@ -837,17 +842,23 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
             ParallelFor(out, IntVect(0), ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
+#if (AMREX_SPACEDIM == 2)
+                if (coord == CoordSys::SPHERICAL) {
+                    RT sinc = std::sin(problo[1] + dx[1]*(static_cast<RT>(j) + RT(0.5)));
+                    dxinv2[1] *= (sinc==RT(0.0)) ? RT(0.0) : RT(1.)/sinc;
+                }
+#endif
                 mlabeclap_adotx_os(i,j,k,n, yma[box_no], xma[box_no], ama[box_no],
                                    AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
-                                   osmma[box_no], dxinv, ascalar, bscalar);
+                                   osmma[box_no], dxinv2, ascalar, bscalar);
             });
         } else {
             ParallelFor(out, IntVect(0), ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
 #if (AMREX_SPACEDIM == 2)
-                if (coord == CoordSys::spherical) {
-                    RT sinc = std::sin(problo[1] + dx[1]*(static_cast<RT>(j)+RT(0.5)));
+                if (coord == CoordSys::SPHERICAL) {
+                    RT sinc = std::sin(problo[1] + dx[1]*(static_cast<RT>(j) + RT(0.5)));
                     dxinv2[1] *= (sinc==RT(0.0)) ? RT(0.0) : RT(1.)/sinc;
                 }
 #endif
@@ -876,8 +887,14 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
                 const auto& osm = this->m_overset_mask[amrlev][mglev]->const_array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
                 {
+#if (AMREX_SPACEDIM == 2)
+                    if (coord == CoordSys::SPHERICAL) {
+                        RT sinc = std::sin(problo[1] + dx[1]*(static_cast<RT>(j) + RT(0.5)));
+                        dxinv2[1] *= (sinc==RT(0.0)) ? RT(0.0) : RT(1.)/sinc;
+                    }
+#endif
                     mlabeclap_adotx_os(i,j,k,n, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                       osm, dxinv, ascalar, bscalar);
+                                       osm, dxinv2, ascalar, bscalar);
                 });
             } else {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
