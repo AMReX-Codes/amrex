@@ -1452,7 +1452,7 @@ MLCellLinOpT<MF>::applyMetricTerm (int amrlev, int mglev, MF& rhs, int dir) cons
 
     const int ncomp = rhs.nComp();
 
-    bool cc = rhs.ixType().cellCentered(idir);
+    bool cc = rhs.ixType().cellCentered(dir);
 
     const Geometry& geom = this->m_geom[amrlev][mglev];
     const RT* problo = geom.ProbLo();
