@@ -5,6 +5,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_RealVect.H>
+#include <AMReX_String.H>
 #include <AMReX_Utility.H>
 
 #include <algorithm>
@@ -863,6 +864,8 @@ saddval (const std::string& name, const T& ref)
     auto& entry = g_table[name];
     entry.m_vals.emplace_back(std::vector<std::string>{val.str()});
     ++entry.m_count;
+    using T_ptr = std::decay_t<T>*;
+    entry.m_typehint = static_cast<T_ptr>(nullptr);
 }
 
 template <class T>
@@ -880,6 +883,8 @@ saddarr (const std::string& name, const std::vector<T>& ref)
     auto& entry = g_table[name];
     entry.m_vals.emplace_back(std::move(arr));
     ++entry.m_count;
+    using T_ptr = std::decay_t<T>*;
+    entry.m_typehint = static_cast<T_ptr>(nullptr);
 }
 
 // Initialize ParmParse.
@@ -1890,6 +1895,25 @@ ParmParse::getarr (const char* name, RealVect& ref) const
     this->getarr(name, v);
     AMREX_ALWAYS_ASSERT(v.size() == AMREX_SPACEDIM);
     for (int i = 0; i < AMREX_SPACEDIM; ++i) { ref[i] = v[i]; }
+}
+
+void
+ParmParse::getline (const char* name, std::string& ref) const
+{
+    std::vector<std::string> tmp;
+    getarr(name, tmp);
+    ref = amrex::join(tmp, ' ');
+}
+
+int
+ParmParse::queryline (const char* name, std::string& ref) const
+{
+    std::vector<std::string> tmp;
+    auto r = queryarr(name, tmp);
+    if (r) {
+        ref = amrex::join(tmp, ' ');
+    }
+    return r;
 }
 
 //

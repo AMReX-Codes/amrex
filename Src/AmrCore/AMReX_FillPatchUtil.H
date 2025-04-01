@@ -517,7 +517,7 @@ namespace amrex
     /**
      * \brief Fill with interpolation of coarse level data
      *
-     * No ghost cells of the destination MF are filled.
+     * All ghost cells of the destination MF are filled.
      *
      * \tparam MF the MultiFab/FabArray type
      * \tparam BC functor for filling physical boundaries
@@ -604,9 +604,55 @@ namespace amrex
                            const PostInterpHook& post_interp = {});
 
     /**
+     * \brief Fill with interpolation of coarse level data
+     *
+     * \tparam MF the MultiFab/FabArray type
+     * \tparam BC functor for filling physical boundaries
+     * \tparam Interp spatial interpolater
+     * \tparam PreInterpHook pre-interpolation hook
+     * \tparam PostInterpHook post-interpolation hook
+     *
+     * \param mf destination MF on the fine level
+     * \param nghost number of ghost cells of mf needed to be filled
+     * \param time time associated with mf
+     * \param index_space EB IndexSpace
+     * \param cmf source MF on the coarse level
+     * \param scomp starting component of the source MF
+     * \param dcomp starting component of the destination MF
+     * \param ncomp number of components
+     * \param cgeom Geometry for the coarse level
+     * \param fgeom Geometry for the fine level
+     * \param cbc functor for physical boundaries on the coarse level
+     * \param cbccomp starting component for cbc
+     * \param fbc functor for physical boundaries on the fine level
+     * \param fbccomp starting component for fbc
+     * \param ratio refinement ratio
+     * \param mapper spatial interpolater
+     * \param bcs boundary types for each component. We need this because some interpolaters need it.
+     * \param bcscomp starting component for bcs
+     * \param pre_interp pre-interpolation hook
+     * \param post_interp post-interpolation hook
+     */
+    template <typename MF, typename BC, typename Interp,
+              typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
+              typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
+    std::enable_if_t<IsFabArray<MF>::value>
+    InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
+                           const EB2::IndexSpace* index_space,
+                           const MF& cmf, int scomp, int dcomp, int ncomp,
+                           const Geometry& cgeom, const Geometry& fgeom,
+                           BC& cbc, int cbccomp,
+                           BC& fbc, int fbccomp,
+                           const IntVect& ratio,
+                           Interp* mapper,
+                           const Vector<BCRec>& bcs, int bcscomp,
+                           const PreInterpHook& pre_interp = {},
+                           const PostInterpHook& post_interp = {});
+
+    /**
      * \brief Fill face variables with data from the coarse level.
      * Sometimes, we need to fillpatch all AMREX_SPACEDIM face MultiFabs
-     * togother to satisfy certain constraint such as divergence preserving.
+     * together to satisfy certain constraint such as divergence preserving.
      *
      * \tparam MF the MultiFab/FabArray type
      * \tparam BC functor for filling physical boundaries

@@ -155,6 +155,8 @@ public:
     void setNSolve (int flag) noexcept { do_nsolve = flag; }
     void setNSolveGridSize (int s) noexcept { nsolve_grid_size = s; }
 
+    void setNoGpuSync (bool do_not_sync) noexcept { do_no_sync_gpu = do_not_sync; }
+
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     void setHypreInterface (Hypre::Interface f) noexcept {
         // must use ij interface for EB
@@ -287,6 +289,8 @@ private:
 
     std::string print_ident;
 
+    bool do_no_sync_gpu = false;
+
     //! Hypre
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     // Hypre::Interface hypre_interface = Hypre::Interface::structed;
@@ -373,6 +377,14 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                   RT a_tol_rel, RT a_tol_abs, const char* checkpoint_file) -> RT
 {
     BL_PROFILE("MLMG::solve()");
+
+    bool prev_in_single_stream_region = false;
+    bool prev_in_nosync_region = false;
+
+    if (do_no_sync_gpu) {
+        prev_in_single_stream_region = Gpu::setSingleStreamRegion(true);
+        prev_in_nosync_region = Gpu::setNoSyncRegion(true);
+    }
 
     if constexpr (std::is_same<AMF,MultiFab>()) {
         if (checkpoint_file != nullptr) {
@@ -552,6 +564,11 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     }
 
     ++solve_called;
+
+    if (do_no_sync_gpu) {
+        (void)Gpu::setSingleStreamRegion(prev_in_single_stream_region);
+        (void)Gpu::setNoSyncRegion(prev_in_nosync_region);
+    }
 
     return composite_norminf;
 }
@@ -1317,10 +1334,7 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
 
         setVal(cor[amrlev][mglev], RT(0.0));
         bool skip_fillboundary = true;
-        for (int i = 0; i < nu1; ++i) {
-            linop.smooth(amrlev, mglev, cor[amrlev][mglev], res[amrlev][mglev], skip_fillboundary);
-            skip_fillboundary = false;
-        }
+        linop.smooth(amrlev, mglev, cor[amrlev][mglev], res[amrlev][mglev], skip_fillboundary, nu1);
 
         // rescor = res - L(cor)
         computeResOfCorrection(amrlev, mglev);
@@ -1364,11 +1378,8 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
         }
         setVal(cor[amrlev][mglev_bottom], RT(0.0));
         bool skip_fillboundary = true;
-        for (int i = 0; i < nu1; ++i) {
-            linop.smooth(amrlev, mglev_bottom, cor[amrlev][mglev_bottom],
-                         res[amrlev][mglev_bottom], skip_fillboundary);
-            skip_fillboundary = false;
-        }
+        linop.smooth(amrlev, mglev_bottom, cor[amrlev][mglev_bottom],
+            res[amrlev][mglev_bottom], skip_fillboundary, nu1);
         if (verbose >= 4)
         {
             computeResOfCorrection(amrlev, mglev_bottom);
@@ -1391,9 +1402,7 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
             amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev
                            << "   UP: Norm before smooth " << norm << "\n";
         }
-        for (int i = 0; i < nu2; ++i) {
-            linop.smooth(amrlev, mglev, cor[amrlev][mglev], res[amrlev][mglev]);
-        }
+        linop.smooth(amrlev, mglev, cor[amrlev][mglev], res[amrlev][mglev], false, nu2);
 
         if (cf_strategy == CFStrategy::ghostnodes) { computeResOfCorrection(amrlev, mglev); }
 
@@ -1512,10 +1521,7 @@ MLMGT<MF>::actualBottomSolve ()
     if (bottom_solver == BottomSolver::smoother)
     {
         bool skip_fillboundary = true;
-        for (int i = 0; i < nuf; ++i) {
-            linop.smooth(amrlev, mglev, x, b, skip_fillboundary);
-            skip_fillboundary = false;
-        }
+        linop.smooth(amrlev, mglev, x, b, skip_fillboundary, nuf);
     }
     else
     {
@@ -1589,9 +1595,7 @@ MLMGT<MF>::actualBottomSolve ()
                 setVal(cor[amrlev][mglev], RT(0.0));
             }
             const int n = (ret==0) ? nub : nuf;
-            for (int i = 0; i < n; ++i) {
-                linop.smooth(amrlev, mglev, x, b);
-            }
+            linop.smooth(amrlev, mglev, x, b, false, n);
         }
     }
 

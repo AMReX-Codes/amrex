@@ -25,6 +25,12 @@ namespace amrex {
     //! Split a string using given tokens in `sep`.
     std::vector<std::string> split (std::string const& s,
                                     std::string const& sep = " \t");
+
+    //! Join a vector of strings with given char `sep` as delimiter.
+    std::string join (std::vector<std::string> const& sv, char sep);
+
+    //! Join a vector of strings without delimiter.
+    std::string join (std::vector<std::string> const& sv);
 }
 
 #endif

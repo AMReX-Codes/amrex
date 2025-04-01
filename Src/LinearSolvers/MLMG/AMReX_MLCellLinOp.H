@@ -83,7 +83,7 @@ public:
     void apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndryT<MF>* bndry=nullptr) const override;
     void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
-                         bool skip_fillboundary=false) const final;
+                 bool skip_fillboundary, int niter) const final;
 
     void solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
                                    const MF* crse_bcdata=nullptr) override;
@@ -1211,15 +1211,17 @@ MLCellLinOpT<MF>::apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
 template <typename MF>
 void
 MLCellLinOpT<MF>::smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
-                          bool skip_fillboundary) const
+                          bool skip_fillboundary, int niter) const
 {
     BL_PROFILE("MLCellLinOp::smooth()");
-    for (int redblack = 0; redblack < 2; ++redblack)
-    {
-        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Solution,
-                nullptr, skip_fillboundary);
-        Fsmooth(amrlev, mglev, sol, rhs, redblack);
-        skip_fillboundary = false;
+    for (int i = 0; i < niter; ++i) {
+        for (int redblack = 0; redblack < 2; ++redblack)
+        {
+            applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Solution,
+                    nullptr, skip_fillboundary);
+            Fsmooth(amrlev, mglev, sol, rhs, redblack);
+            skip_fillboundary = false;
+        }
     }
 }
 
@@ -1314,12 +1316,9 @@ MLCellLinOpT<MF>::reflux (int crse_amrlev, MF& res, const MF& crse_sol, const MF
             if (fluxreg.CrseHasWork(mfi))
             {
                 const Box& tbx = mfi.tilebox();
-                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
-                             flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
-                             flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
-                AMREX_D_TERM(Elixir elifx = flux[0].elixir();,
-                             Elixir elify = flux[1].elixir();,
-                             Elixir elifz = flux[2].elixir(););
+                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp,The_Async_Arena());,
+                             flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp,The_Async_Arena());,
+                             flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp,The_Async_Arena()););
                 FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi], Location::FaceCentroid);
                 fluxreg.CrseAdd(mfi, cpflux, crse_dx, dt, RunOn::Gpu);
             }
@@ -1335,12 +1334,9 @@ MLCellLinOpT<MF>::reflux (int crse_amrlev, MF& res, const MF& crse_sol, const MF
             {
                 const Box& tbx = mfi.tilebox();
                 const int face_only = true;
-                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
-                             flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
-                             flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
-                AMREX_D_TERM(Elixir elifx = flux[0].elixir();,
-                             Elixir elify = flux[1].elixir();,
-                             Elixir elifz = flux[2].elixir(););
+                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp,The_Async_Arena());,
+                             flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp,The_Async_Arena());,
+                             flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp,The_Async_Arena()););
                 FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], Location::FaceCentroid, face_only);
                 fluxreg.FineAdd(mfi, cpflux, fine_dx, dt, RunOn::Gpu);
             }
@@ -1374,12 +1370,9 @@ MLCellLinOpT<MF>::compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
         for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
-            AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
-                         flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
-                         flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
-            AMREX_D_TERM(Elixir elifx = flux[0].elixir();,
-                         Elixir elify = flux[1].elixir();,
-                         Elixir elifz = flux[2].elixir(););
+            AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp,The_Async_Arena());,
+                         flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp,The_Async_Arena());,
+                         flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp,The_Async_Arena()););
             FFlux(amrlev, mfi, pflux, sol[mfi], loc);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const Box& nbx = mfi.nodaltilebox(idim);
