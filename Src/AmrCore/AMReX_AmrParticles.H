@@ -195,8 +195,14 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
         mf_tmp[lev].define( pc.ParticleBoxArray(lev),
                             pc.ParticleDistributionMap(lev),
                             mf[lev]->nComp(), 0);
-        mf_part[lev].setVal(0.0);
-        mf_tmp[lev].setVal( 0.0);
+        
+        if (zero_out_input) {
+            mf_part[lev].setVal(0.0);
+        } else {
+            mf_part[lev].ParallelCopy(*mf[lev], 0, 0, mf[lev]->nComp(), 0, 0);
+        }
+        
+        mf_tmp[lev].setVal(0.0);
     }
 
     // configure this to do a no-op at the physical boundaries.
