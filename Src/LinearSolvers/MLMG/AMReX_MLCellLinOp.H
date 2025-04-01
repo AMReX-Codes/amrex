@@ -1452,7 +1452,7 @@ MLCellLinOpT<MF>::applyMetricTerm (int amrlev, int mglev, MF& rhs, int dir) cons
 
     const int ncomp = rhs.nComp();
 
-    bool cc = rhs.ixType().cellCentered(0);
+    bool cc = rhs.ixType().cellCentered(idir);
 
     const Geometry& geom = this->m_geom[amrlev][mglev];
     const RT* problo = geom.ProbLo();
@@ -1514,13 +1514,13 @@ MLCellLinOpT<MF>::applyMetricTerm (int amrlev, int mglev, MF& rhs, int dir) cons
                 if (cc) {
                     AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
                                                         {
-                                                            RT thetac = problo[1] + (j+RT(0.5))*dx[1];
+                                                            RT thetac = std::abs(problo[1] + (j+RT(0.5))*dx[1]);
                                                             rhsarr(i,j,k,n) *= std::sin(thetac);
                                                         });
                 } else {
                     AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
                                                         {
-                                                            RT thetae = problo[1] + j*dx[1];
+                                                            RT thetae = std::abs(problo[1] + j*dx[1]);
                                                             rhsarr(i,j,k,n) *= std::sin(thetae);
                                                         });
                 }
