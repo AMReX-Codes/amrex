@@ -819,10 +819,6 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
     const RT bscalar = m_b_scalar;
 
     const int ncomp = this->getNComp();
-    const Geometry& geom = this->m_geom[amrlev][mglev];
-    const RT* problo = geom.ProbLo();
-    const auto dx = geom.CellSizeArray();
-    const int coord = geom.Coord();
 
     const Geometry& geom = this->m_geom[amrlev][mglev];
     const RT* problo = geom.ProbLo();

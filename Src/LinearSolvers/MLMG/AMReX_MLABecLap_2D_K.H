@@ -31,11 +31,11 @@ void mlabeclap_adotx_os (int i, int j, int, int n, Array4<T> const& y,
                          Array4<T const> const& bX,
                          Array4<T const> const& bY,
                          Array4<int const> const& osm,
-                         GpuArray<T,AMREX_SPACEDIM> const& dxinv,
+                         GpuArray<T,AMREX_SPACEDIM> const& dxinv2,
                          T alpha, T beta) noexcept
 {
-    const T dhx = beta*dxinv[0]*dxinv[0];
-    const T dhy = beta*dxinv[1]*dxinv[1];
+    const T dhx = beta*dxinv2[0];
+    const T dhy = beta*dxinv2[1];
     if (osm(i,j,0) == 0) {
         y(i,j,0,n) = T(0.0);
     } else {
