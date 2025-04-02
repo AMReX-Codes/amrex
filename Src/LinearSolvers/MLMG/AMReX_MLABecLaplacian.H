@@ -840,7 +840,7 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
             {
 #if AMREX_SPACEDIM == 2
                 if (coord == CoordSys::SPHERICAL) {
-                    RT sinc = std::abs(std::sin(problo[1] + dx[1]*(static_cast<RT>(j) + RT(0.5))));
+                    RT sinc = std::sin(problo[1] + dx[1]*(static_cast<RT>(j) + RT(0.5)));
                     dxinv2[1] = dxinv[1] * dxinv[1] / sinc;
                 }
 #endif
@@ -854,7 +854,7 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
             {
 #if AMREX_SPACEDIM == 2
                 if (coord == CoordSys::SPHERICAL) {
-                    RT sinc = std::abs(std::sin(problo[1] + dx[1]*(static_cast<RT>(j) + RT(0.5))));
+                    RT sinc = std::sin(problo[1] + dx[1]*(static_cast<RT>(j) + RT(0.5)));
                     dxinv2[1] = dxinv[1] * dxinv[1] / sinc;
                 }
 #endif
@@ -885,7 +885,7 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
                 {
 #if AMREX_SPACEDIM == 2
                     if (coord == CoordSys::SPHERICAL) {
-                        RT sinc = std::abs(std::sin(problo[1] + dx[1]*(static_cast<RT>(j) + RT(0.5))));
+                        RT sinc = std::sin(problo[1] + dx[1]*(static_cast<RT>(j) + RT(0.5)));
                         dxinv2[1] = dxinv[1] * dxinv[1] / sinc;
                     }
 #endif
@@ -897,7 +897,7 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
                 {
 #if AMREX_SPACEDIM == 2
                     if (coord == CoordSys::SPHERICAL) {
-                        RT sinc = std::abs(std::sin(problo[1] + dx[1]*(static_cast<RT>(j) + RT(0.5))));
+                        RT sinc = std::sin(problo[1] + dx[1]*(static_cast<RT>(j) + RT(0.5)));
                         dxinv2[1] = dxinv[1] * dxinv[1] / sinc;
                     }
 #endif
