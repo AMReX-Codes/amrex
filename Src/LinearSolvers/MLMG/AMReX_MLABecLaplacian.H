@@ -820,7 +820,7 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
 
     const int ncomp = this->getNComp();
 
-#ifdef AMREX_SPACEDIM == 2
+#if AMREX_SPACEDIM == 2
     const Geometry& geom = this->m_geom[amrlev][mglev];
     const auto problo = geom.ProbLo();
     const auto dx = geom.CellSize();
