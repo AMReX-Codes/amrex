@@ -820,10 +820,12 @@ MLABecLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) cons
 
     const int ncomp = this->getNComp();
 
+#ifdef AMREX_SPACEDIM == 2
     const Geometry& geom = this->m_geom[amrlev][mglev];
-    const RT* problo = geom.ProbLo();
-    const RT* dx = geom.CellSize();
-    const int coord = geom.Coord();
+    const auto problo = geom.ProbLo();
+    const auto dx = geom.CellSize();
+    const auto coord = geom.Coord();
+#endif
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
