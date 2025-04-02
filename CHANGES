@@ -1,3 +1,35 @@
+# 25.04
+
+  -- Use SingleStreamRegion and NoSyncRegion in MLMG solve (#4355)
+
+  -- Force the alignment of SoA and AoS Particles  (#4375)
+
+  -- Put loop over iter in MLMG smooth (#4352)
+
+  -- More Guard of GNU extensions (#4385)
+
+  -- ParmParse: Type Hints (#4364)
+
+  -- Update CMake for Cray compiler (#4379)
+
+  -- CI: New WarpX Repo (#4368)
+
+  -- Add option to pass an IndexSpace to InterpFromCoarse (#4369)
+
+  -- update docs for HYPRE installation (#4372)
+
+  -- Guard the use of GNU extensions (#4374)
+
+  -- Fixed EB data for anisotropic grids: boundary centroid, normal vector (backward compatible) (#4357)
+
+  -- ParmParse: Add getline and queryline (#4367)
+
+  -- update docs on NsightCompute profiling with / in syntax (#4362)
+
+  -- Replace Elixir with Async Arena (#4354)
+
+  -- More efficient OrientationIter (#4350)
+
 # 25.03
 
   -- Make Parser CI less sensitive to roundoff errors (#4321)
