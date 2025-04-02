@@ -154,7 +154,7 @@ namespace amrex {
             if (i < 0 || static_cast<unsigned int>(i) >= N) {
                 AMREX_IF_ON_DEVICE((
                     AMREX_DEVICE_PRINTF(" (%d) is out of bound (0:%d)\n",
-                                        i, N);
+                                        i, N-1);
                     amrex::Abort();
                 ))
                 AMREX_IF_ON_HOST((
