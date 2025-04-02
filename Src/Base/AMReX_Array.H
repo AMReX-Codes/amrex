@@ -159,7 +159,7 @@ namespace amrex {
                 ))
                 AMREX_IF_ON_HOST((
                     std::stringstream ss;
-                    ss << " (" << i << ") is out of bound (0:" << N <<")";
+                    ss << " (" << i << ") is out of bound (0:" << N-1 <<")";
                     amrex::Abort(ss.str());
                 ))
             }
