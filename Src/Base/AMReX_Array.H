@@ -148,8 +148,8 @@ namespace amrex {
         }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-        AMREX_GPU_HOST_DEVICE inline
-        void index_assert (int i) const
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static void index_assert (int i)
         {
             if (i < 0 || static_cast<unsigned int>(i) >= N) {
                 AMREX_IF_ON_DEVICE((
@@ -290,8 +290,8 @@ namespace amrex {
             return p;
         }
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-        AMREX_GPU_HOST_DEVICE inline
-        void index_assert (int i) const
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static void index_assert (int i)
         {
             if (i<XLO || i>XHI) {
                 AMREX_IF_ON_DEVICE((
@@ -585,8 +585,8 @@ namespace amrex {
             return p;
         }
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-        AMREX_GPU_HOST_DEVICE inline
-        void index_assert (int i, int j) const
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static void index_assert (int i, int j)
         {
             if (i<XLO || i>XHI || j<YLO || j>YHI) {
                 AMREX_IF_ON_DEVICE((
@@ -934,8 +934,8 @@ namespace amrex {
         }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-        AMREX_GPU_HOST_DEVICE inline
-        void index_assert (int i, int j, int k) const
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        static void index_assert (int i, int j, int k)
         {
             if (i<XLO || i>XHI || j<YLO || j>YHI || k<ZLO || k>ZHI) {
                 AMREX_IF_ON_DEVICE((
