@@ -63,14 +63,18 @@ void testParticleMesh (TestParams& parms)
         domain.refine(2);
     }
 
+    Vector<MultiFab> density0(parms.nlevs);
     Vector<MultiFab> density1(parms.nlevs);
     Vector<MultiFab> density2(parms.nlevs);
     for (int lev = 0; lev < parms.nlevs; lev++) {
-        density1[lev].define(ba[lev], dm[lev], 1, 1);
+        density0[lev].define(ba[lev], dm[lev], 1, 1);
+        density0[lev].setVal(0.0);
+	density1[lev].define(ba[lev], dm[lev], 1, 1);
         density1[lev].setVal(0.0);
         density2[lev].define(ba[lev], dm[lev], 1, 1);
         density2[lev].setVal(0.0);
     }
+    
     MyParticleContainer myPC(geom, dm, ba, rr);
     myPC.SetVerbose(false);
 
@@ -89,7 +93,7 @@ void testParticleMesh (TestParams& parms)
     //
     const bool zero_out_input = false; // setting this to false gives a different answer for the two ways of interpolating below, even when input is identically zero
 
-    amrex::ParticleToMesh(myPC, GetVecOfPtrs(density1), 0, parms.nlevs-1,
+    amrex::ParticleToMesh(myPC, GetVecOfPtrs(density0), 0, parms.nlevs-1,
         [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
                               amrex::Array4<amrex::Real> const& rho,
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
@@ -104,6 +108,21 @@ void testParticleMesh (TestParams& parms)
                 });
         }, zero_out_input);
 
+    amrex::ParticleToMesh(myPC, GetVecOfPtrs(density1), 0, parms.nlevs-1,
+        [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
+                              amrex::Array4<amrex::Real> const& rho,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi) noexcept
+        {
+            ParticleInterpolator::Linear interp(p, plo, dxi);
+
+            interp.ParticleToMesh(p, rho, 0, 0, 1,
+                [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& part, int comp)
+                {
+                    return part.rdata(comp);  // no weighting
+                });
+        });
+
     //
     // Here we provide an example of another way to call ParticleToMesh
     //
@@ -114,28 +133,6 @@ void testParticleMesh (TestParams& parms)
     amrex::ParticleToMesh(myPC,GetVecOfPtrs(density2),0,parms.nlevs-1,
                           TrilinearDeposition{start_part_comp,start_mesh_comp,num_comp});
 
-#if 0
-    // check that input is NOT zeroed-out
-    for (int lev = 0; lev < parms.nlevs-1; ++lev) {
-      auto const rho1 = density1[lev].const_arrays();
-      auto const rho2 = density2[lev].const_arrays();
-      const amrex::Real eps_tol = 1.0e-6;
-
-      amrex::ParallelFor(density1[lev], [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k) {
-	// density1 and density2 should be identical
-	amrex::Real const r1 = rho1[bx](i,j,k);
-	amrex::Real const r2 = rho2[bx](i,j,k);
-	amrex::Real const result = (r1 - r2);
-	amrex::Real const rel_err = result / std::max(r1, r2);
-	if (std::abs(rel_err) > eps_tol) {
-	  printf("rel_err = %g\n", rel_err);
-	  amrex::Abort("failed!!");
-	}
-      });
-    }
-    amrex::Gpu::streamSynchronize();
-#endif
-    
     //
     // Now write the output from each into separate plotfiles for comparison
     //
@@ -154,6 +151,14 @@ void testParticleMesh (TestParams& parms)
 
     Vector<const MultiFab*> outputMF(output_levs);
     Vector<IntVect> outputRR(output_levs);
+    for (int lev = 0; lev < output_levs; ++lev) {
+        outputMF[lev] = &density0[lev];
+        outputRR[lev] = IntVect(AMREX_D_DECL(2, 2, 2));
+    }
+    WriteMultiLevelPlotfile("plt00000_v0", output_levs, outputMF,
+                            varnames, geom, 0.0, level_steps, outputRR);
+    myPC.WritePlotFile("plt00000_v0", "particle0", particle_varnames);
+
     for (int lev = 0; lev < output_levs; ++lev) {
         outputMF[lev] = &density1[lev];
         outputRR[lev] = IntVect(AMREX_D_DECL(2, 2, 2));
