@@ -19,6 +19,7 @@ struct TestParams {
     int nlevs;
     int max_grid_size;
     int nppc;
+    bool zero_out_input;
     bool verbose;
 };
 
@@ -91,7 +92,6 @@ void testParticleMesh (TestParams& parms)
     //
     // Here we provide an example of one way to call ParticleToMesh
     //
-    const bool zero_out_input = false; // setting this to false gives a different answer for density0 and density1, even when setVal(0.0) is done for both
 
     amrex::ParticleToMesh(myPC, GetVecOfPtrs(density0), 0, parms.nlevs-1,
         [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
@@ -106,7 +106,7 @@ void testParticleMesh (TestParams& parms)
                 {
                     return part.rdata(comp);  // no weighting
                 });
-        }, zero_out_input);
+        }, parms.zero_out_input);
 
     amrex::ParticleToMesh(myPC, GetVecOfPtrs(density1), 0, parms.nlevs-1,
         [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
@@ -194,6 +194,9 @@ int main(int argc, char* argv[])
     amrex::Abort("Must specify at least one particle per cell");
   }
 
+  parms.zero_out_input = true; // setting this to false gives a different answer for density0 and density1, even when setVal(0.0) is done for both
+  pp.query("zero_out_input", parms.zero_out_input);
+  
   parms.verbose = false;
   pp.query("verbose", parms.verbose);
 
