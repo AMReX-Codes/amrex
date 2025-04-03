@@ -705,7 +705,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             }
         }
 
-        if (!Gpu::inNoSyncRegion()) {
+        if (Ax.local_size() > 0 || !Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
     }
