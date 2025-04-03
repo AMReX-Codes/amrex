@@ -91,7 +91,7 @@ void testParticleMesh (TestParams& parms)
     //
     // Here we provide an example of one way to call ParticleToMesh
     //
-    const bool zero_out_input = false; // setting this to false gives a different answer for the two ways of interpolating below, even when input is identically zero
+    const bool zero_out_input = false; // setting this to false gives a different answer for density0 and density1, even when setVal(0.0) is done for both
 
     amrex::ParticleToMesh(myPC, GetVecOfPtrs(density0), 0, parms.nlevs-1,
         [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
