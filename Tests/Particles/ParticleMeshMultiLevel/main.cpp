@@ -65,12 +65,12 @@ void testParticleMesh (TestParams& parms)
 
     Vector<MultiFab> density1(parms.nlevs);
     Vector<MultiFab> density2(parms.nlevs);
-    const amrex::Real originalVal = -2.0e8;
+    const amrex::Real originalVal = 0.0;
     for (int lev = 0; lev < parms.nlevs; lev++) {
         density1[lev].define(ba[lev], dm[lev], 1, 1);
         density1[lev].setVal(originalVal);
         density2[lev].define(ba[lev], dm[lev], 1, 1);
-        density2[lev].setVal(originalVal);
+        density2[lev].setVal(0.0);
     }
     
     MyParticleContainer myPC(geom, dm, ba, rr);
@@ -89,7 +89,7 @@ void testParticleMesh (TestParams& parms)
     //
     // Here we provide an example of one way to call ParticleToMesh
     //
-    const bool zero_out_input = false;
+    const bool zero_out_input = false; // setting this to false gives a different answer for the two ways of interpolating below, even when input is identically zero
 
     amrex::ParticleToMesh(myPC, GetVecOfPtrs(density1), 0, parms.nlevs-1,
         [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
@@ -114,12 +114,29 @@ void testParticleMesh (TestParams& parms)
     int        num_comp = 1;
 
     amrex::ParticleToMesh(myPC,GetVecOfPtrs(density2),0,parms.nlevs-1,
-                          TrilinearDeposition{start_part_comp,start_mesh_comp,num_comp}, !zero_out_input);
+                          TrilinearDeposition{start_part_comp,start_mesh_comp,num_comp});
 
+#if 0
     // check that input is NOT zeroed-out
-    // density1 and density2 should differ by originalVal in each cell
-    amrex::print_state(density1[0], IntVect{0,0,0});
-    amrex::print_state(density2[0], IntVect{0,0,0});
+    for (int lev = 0; lev < parms.nlevs-1; ++lev) {
+      auto const rho1 = density1[lev].const_arrays();
+      auto const rho2 = density2[lev].const_arrays();
+      const amrex::Real eps_tol = 1.0e-6;
+
+      amrex::ParallelFor(density1[lev], [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k) {
+	// density1 and density2 should differ by originalVal in each cell
+	amrex::Real const r1 = rho1[bx](i,j,k);
+	amrex::Real const r2 = rho2[bx](i,j,k);
+	amrex::Real const result = (r1 - r2) - originalVal;
+	amrex::Real const rel_err = result / std::max(r1, r2);
+	if (std::abs(rel_err) > eps_tol) {
+	  printf("rel_err = %g\n", rel_err);
+	  amrex::Abort("failed!!");
+	}
+      });
+    }
+    amrex::Gpu::streamSynchronize();
+#endif
     
     //
     // Now write the output from each into separate plotfiles for comparison
