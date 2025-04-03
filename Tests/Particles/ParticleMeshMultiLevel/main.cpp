@@ -65,14 +65,12 @@ void testParticleMesh (TestParams& parms)
 
     Vector<MultiFab> density1(parms.nlevs);
     Vector<MultiFab> density2(parms.nlevs);
-    const amrex::Real originalVal = 0.0;
     for (int lev = 0; lev < parms.nlevs; lev++) {
         density1[lev].define(ba[lev], dm[lev], 1, 1);
-        density1[lev].setVal(originalVal);
+        density1[lev].setVal(0.0);
         density2[lev].define(ba[lev], dm[lev], 1, 1);
         density2[lev].setVal(0.0);
     }
-    
     MyParticleContainer myPC(geom, dm, ba, rr);
     myPC.SetVerbose(false);
 
@@ -124,10 +122,10 @@ void testParticleMesh (TestParams& parms)
       const amrex::Real eps_tol = 1.0e-6;
 
       amrex::ParallelFor(density1[lev], [=] AMREX_GPU_DEVICE (int bx, int i, int j, int k) {
-	// density1 and density2 should differ by originalVal in each cell
+	// density1 and density2 should be identical
 	amrex::Real const r1 = rho1[bx](i,j,k);
 	amrex::Real const r2 = rho2[bx](i,j,k);
-	amrex::Real const result = (r1 - r2) - originalVal;
+	amrex::Real const result = (r1 - r2);
 	amrex::Real const rel_err = result / std::max(r1, r2);
 	if (std::abs(rel_err) > eps_tol) {
 	  printf("rel_err = %g\n", rel_err);
