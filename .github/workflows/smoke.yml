@@ -60,7 +60,7 @@ jobs:
         cd ../Tests/SpackSmokeTest/build
         cmake .. \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
-            -DAMReX_ROOT=../../../installdir      \
+            -DAMReX_ROOT=${PWD}/../../../installdir      \
             -DCMAKE_CXX_STANDARD=17               \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
