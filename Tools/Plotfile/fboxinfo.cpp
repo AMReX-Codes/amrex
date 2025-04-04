@@ -110,7 +110,7 @@ void main_main()
                                << ", volume = "
                                << std::fixed << std::setw(6) << std::setprecision(2)
                                << 100.*static_cast<double>(ncells)/ncells_domain
-			       << "%, number of cells = " << std::setw(6) << ncells << "\n";
+                               << "%, number of cells = " << std::setw(6) << ncells << "\n";
                 if (dim == 1) {
                     amrex::Print() << "          maximum zones =   "
                                    << std::setw(7) << prob_domain.length(0) << "\n";
