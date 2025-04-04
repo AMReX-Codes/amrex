@@ -71,7 +71,7 @@ void testParticleMesh (TestParams& parms)
     for (int lev = 0; lev < parms.nlevs; lev++) {
         const_mf[lev].define(ba[lev], dm[lev], 1, 1);
         const_mf[lev].setVal(-2.0e8);
-	    density1[lev].define(ba[lev], dm[lev], 1, 1);
+        density1[lev].define(ba[lev], dm[lev], 1, 1);
         density1[lev].setVal(-2.0e8);
         density2[lev].define(ba[lev], dm[lev], 1, 1);
         density2[lev].setVal(0.0);
@@ -185,7 +185,7 @@ int main(int argc, char* argv[])
 
   parms.zero_out_input = true;
   pp.query("zero_out_input", parms.zero_out_input);
-  
+
   parms.verbose = false;
   pp.query("verbose", parms.verbose);
 
