@@ -3,6 +3,7 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
+#include "AMReX_FabArrayUtility.H"
 #include "AMReX_Particles.H"
 #include "AMReX_PlotFileUtil.H"
 #include <AMReX_AmrParticles.H>
@@ -64,18 +65,18 @@ void testParticleMesh (TestParams& parms)
         domain.refine(2);
     }
 
-    Vector<MultiFab> density0(parms.nlevs);
+    Vector<MultiFab> const_mf(parms.nlevs);
     Vector<MultiFab> density1(parms.nlevs);
     Vector<MultiFab> density2(parms.nlevs);
     for (int lev = 0; lev < parms.nlevs; lev++) {
-        density0[lev].define(ba[lev], dm[lev], 1, 1);
-        density0[lev].setVal(0.0);
-	density1[lev].define(ba[lev], dm[lev], 1, 1);
-        density1[lev].setVal(0.0);
+        const_mf[lev].define(ba[lev], dm[lev], 1, 1);
+        const_mf[lev].setVal(-2.0e8);
+	    density1[lev].define(ba[lev], dm[lev], 1, 1);
+        density1[lev].setVal(-2.0e8);
         density2[lev].define(ba[lev], dm[lev], 1, 1);
         density2[lev].setVal(0.0);
     }
-    
+
     MyParticleContainer myPC(geom, dm, ba, rr);
     myPC.SetVerbose(false);
 
@@ -93,7 +94,7 @@ void testParticleMesh (TestParams& parms)
     // Here we provide an example of one way to call ParticleToMesh
     //
 
-    amrex::ParticleToMesh(myPC, GetVecOfPtrs(density0), 0, parms.nlevs-1,
+    amrex::ParticleToMesh(myPC, GetVecOfPtrs(density1), 0, parms.nlevs-1,
         [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
                               amrex::Array4<amrex::Real> const& rho,
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
@@ -108,20 +109,16 @@ void testParticleMesh (TestParams& parms)
                 });
         }, parms.zero_out_input);
 
-    amrex::ParticleToMesh(myPC, GetVecOfPtrs(density1), 0, parms.nlevs-1,
-        [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
-                              amrex::Array4<amrex::Real> const& rho,
-                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
-                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi) noexcept
-        {
-            ParticleInterpolator::Linear interp(p, plo, dxi);
+    //
+    // Subtract initial value if input was not zeroed-out.
+    // (Plotfiles will only agree to machine precision in this case.)
+    //
 
-            interp.ParticleToMesh(p, rho, 0, 0, 1,
-                [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& part, int comp)
-                {
-                    return part.rdata(comp);  // no weighting
-                });
-        });
+    if (!parms.zero_out_input) {
+        for (int lev = 0; lev < parms.nlevs; ++lev) {
+            amrex::Subtract(density1[lev], const_mf[lev], 0, 0, 1, 1);
+        }
+    }
 
     //
     // Here we provide an example of another way to call ParticleToMesh
@@ -151,14 +148,6 @@ void testParticleMesh (TestParams& parms)
 
     Vector<const MultiFab*> outputMF(output_levs);
     Vector<IntVect> outputRR(output_levs);
-    for (int lev = 0; lev < output_levs; ++lev) {
-        outputMF[lev] = &density0[lev];
-        outputRR[lev] = IntVect(AMREX_D_DECL(2, 2, 2));
-    }
-    WriteMultiLevelPlotfile("plt00000_v0", output_levs, outputMF,
-                            varnames, geom, 0.0, level_steps, outputRR);
-    myPC.WritePlotFile("plt00000_v0", "particle0", particle_varnames);
-
     for (int lev = 0; lev < output_levs; ++lev) {
         outputMF[lev] = &density1[lev];
         outputRR[lev] = IntVect(AMREX_D_DECL(2, 2, 2));
@@ -194,7 +183,7 @@ int main(int argc, char* argv[])
     amrex::Abort("Must specify at least one particle per cell");
   }
 
-  parms.zero_out_input = true; // setting this to false gives a different answer for density0 and density1, even when setVal(0.0) is done for both
+  parms.zero_out_input = true;
   pp.query("zero_out_input", parms.zero_out_input);
   
   parms.verbose = false;
