@@ -534,7 +534,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
                 mlndlap_restriction_rap(i,j,k,pcrse_ma[box_no],fine_ma[box_no],st_ma[box_no],msk_ma[box_no]);
             });
         }
-        if (!Gpu::inNoSyncRegion()) {
+        if (cfine.local_size() > 0 || !Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
     } else
