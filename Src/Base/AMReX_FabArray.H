@@ -3102,7 +3102,7 @@ void FabArray<FAB>::Saypy_Saxpy (FabArray<FAB>& y1, value_type a1,
                  y2.nGrowVect().allGE(nghost) &&
                   x.nGrowVect().allGE(nghost));
 
-    BL_PROFILE("FabArray::Saxpy_Saxpy()");
+    BL_PROFILE("FabArray::Saypy_Saxpy()");
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && y1.isFusingCandidate()) {
