@@ -1389,7 +1389,7 @@ MLABecLaplacianT<MF>::makeNLinOp (int /*grid_size*/) const
                 ama[box_no](i,j,k,n) = huge_alpha;
             }
         });
-        if (!Gpu::inNoSyncRegion()) {
+        if (alpha.local_size() > 0 || !Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
     } else
@@ -1442,7 +1442,7 @@ MLABecLaplacianT<MF>::copyNSolveSolution (MF& dst, MF const& src) const
                 dstma[box_no](i,j,k,n) = RT(0.0);
             }
         });
-        if (alpha.local_size() > 0 || !Gpu::inNoSyncRegion()) {
+        if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
     } else
