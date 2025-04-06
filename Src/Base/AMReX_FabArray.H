@@ -1576,7 +1576,7 @@ public:
      * \param nghost number of ghost cells
      */
     template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    static void Saxpy_Saxpy (FabArray<FAB>& y1, value_type a1,
+    static void Saypy_Saxpy (FabArray<FAB>& y1, value_type a1,
                              FabArray<FAB>& y2, value_type a2, FabArray<FAB> const& x,
                              int xcomp, int ycomp, int ncomp, IntVect const& nghost);
 };
@@ -3090,7 +3090,7 @@ void FabArray<FAB>::Saxpy_Saxpy (FabArray<FAB>& y1, value_type a1, FabArray<FAB>
 
 template <class FAB>
 template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
-void FabArray<FAB>::Saxpy_Saxpy (FabArray<FAB>& y1, value_type a1,
+void FabArray<FAB>::Saypy_Saxpy (FabArray<FAB>& y1, value_type a1,
                                  FabArray<FAB>& y2, value_type a2, FabArray<FAB> const& x,
                                  int xcomp, int ycomp, int ncomp, IntVect const& nghost)
 {

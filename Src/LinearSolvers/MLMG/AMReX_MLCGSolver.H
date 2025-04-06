@@ -230,7 +230,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         if constexpr (IsMultiFabLike_v<MF>) {
             // sol += omega * r; r += -omega * t
-            Saxpy_Saxpy(sol, omega, r, -omega, t, 0, 0, ncomp, nghost);
+            Saypy_Saxpy(sol, omega, r, -omega, t, 0, 0, ncomp, nghost);
         } else {
             Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
             Saxpy(r,  -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
