@@ -166,9 +166,14 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         else
         {
             const RT beta = (rho/rho_1)*(alpha/omega);
-            // two operations: p += -omega*v; p = r + beta*p
-            // same as:        p = r + beta*(p - omega*v)
-            Saxpy_Xpay(p, -omega, v, beta, r, 0, 0, ncomp, nghost);
+            if constexpr (IsMultiFabLike_v<MF>) {
+                // two operations: p += -omega*v; p = r + beta*p
+                // same as:        p = r + beta*(p - omega*v)
+                Saxpy_Xpay(p, -omega, v, beta, r, 0, 0, ncomp, nghost);
+            } else {
+                Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
+                Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
+            }
         }
         Lp.apply(amrlev, mglev, v, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
@@ -182,9 +187,13 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 2; break;
         }
-        // sol += alpha * p; r += -alpha * v
-        Saxpy_Saxpy(sol, alpha, p, r, -alpha, v, 0, 0, ncomp, nghost);
-
+        if constexpr (IsMultiFabLike_v<MF>) {
+            // sol += alpha * p; r += -alpha * v
+            Saxpy_Saxpy(sol, alpha, p, r, -alpha, v, 0, 0, ncomp, nghost);
+        } else {
+            Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
+            Saxpy(r,  -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
+        }
 
         rnorm = norm_inf(r);
 
@@ -219,8 +228,13 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 3; break;
         }
-        // sol += omega * r; r += -omega * t
-        Saxpy_Saxpy(sol, omega, r, r, -omega, t, 0, 0, ncomp, nghost);
+        if constexpr (IsMultiFabLike_v<MF>) {
+            // sol += omega * r; r += -omega * t
+            Saxpy_Saxpy(sol, omega, r, r, -omega, t, 0, 0, ncomp, nghost);
+        } else {
+            Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
+            Saxpy(r,  -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
+        }
 
         rnorm = norm_inf(r);
 
@@ -361,8 +375,13 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
                            << " rho " << rho
                            << " alpha " << alpha << '\n';
         }
-        // sol += alpha * p; r += -alpha * q
-        Saxpy_Saxpy(sol, alpha, p, r, -alpha, q, 0, 0, ncomp, nghost);
+        if constexpr (IsMultiFabLike_v<MF>) {
+            // sol += alpha * p; r += -alpha * q
+            Saxpy_Saxpy(sol, alpha, p, r, -alpha, q, 0, 0, ncomp, nghost);
+        } else {
+            Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
+            Saxpy(r, -alpha, q, 0, 0, ncomp, nghost); // r += -alpha * q
+        }
         rnorm = norm_inf(r);
 
         if ( verbose > 2 )
