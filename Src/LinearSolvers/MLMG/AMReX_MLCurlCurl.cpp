@@ -227,8 +227,8 @@ void MLCurlCurl::interpolation (int amrlev, int fmglev, MF& fine,
                 mlcurlcurl_interpadd(idim,i,j,k,finema[bno],crsema[bno]);
             }
         });
+        Gpu::streamSynchronize();
     }
-    Gpu::streamSynchronize();
 }
 
 void
@@ -378,7 +378,6 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
                           bcx[bno],bcy[bno],bcz[bno],
                           adxinv,color,dinfo);
         });
-        Gpu::streamSynchronize();
     } else {
         ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
@@ -386,8 +385,8 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
                           rhsx[bno],rhsy[bno],rhsz[bno],
                           b,adxinv,color,dinfo);
         });
-        Gpu::streamSynchronize();
     }
+    Gpu::streamSynchronize();
 }
 #endif
 
