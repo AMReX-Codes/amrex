@@ -225,18 +225,20 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
 
 void
 MLNodeTensorLaplacian::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                               bool skip_fillboundary) const
+                               bool skip_fillboundary, int niter) const
 {
     BL_PROFILE("MLNodeTensorLaplacian::smooth()");
-    for (int redblack = 0; redblack < 4; ++redblack) {
-        if (!skip_fillboundary) {
-            applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+    for (int i = 0; i < niter; ++i) {
+        for (int redblack = 0; redblack < 4; ++redblack) {
+            if (!skip_fillboundary) {
+                applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+            }
+            m_redblack = redblack;
+            Fsmooth(amrlev, mglev, sol, rhs);
+            skip_fillboundary = false;
         }
-        m_redblack = redblack;
-        Fsmooth(amrlev, mglev, sol, rhs);
-        skip_fillboundary = false;
+        nodalSync(amrlev, mglev, sol);
     }
-    nodalSync(amrlev, mglev, sol);
 }
 
 void

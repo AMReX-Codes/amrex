@@ -53,7 +53,9 @@ void
 fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcomp, int ncomp,
             F && f)
 {
-    detail::ParallelFor_doit(copy_tags,
+    TagVector<Array4CopyTag<T0, T1>> tv{copy_tags};
+
+    detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
 #ifdef AMREX_USE_SYCL
             sycl::nd_item<1> const& /*item*/,
@@ -85,7 +87,9 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
 
     amrex::Abort("xxxxx TODO This function still has a bug.  Even if we fix the bug, it should still be avoided because it is slow due to the lack of atomic operations for this type.");
 
-    detail::ParallelFor_doit(tags,
+    TagVector<TagType> tv{tags};
+
+    detail::ParallelFor_doit(tv,
     [=] AMREX_GPU_DEVICE (
 #ifdef AMREX_USE_SYCL
         sycl::nd_item<1> const& item,
