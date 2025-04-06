@@ -356,22 +356,6 @@ MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
 }
 
 void
-MultiFab::Saxpy_Xpay (MultiFab& dst, Real a_saxpy, const MultiFab& src_saxpy,
-                      Real a_xpay, const MultiFab& src_xpay,
-                      int srccomp, int dstcomp, int numcomp, int nghost)
-{
-    Saxpy_Xpay(dst,a_saxpy,src_saxpy,a_xpay,src_xpay,srccomp,dstcomp,numcomp,IntVect(nghost));
-}
-
-void
-MultiFab::Saxpy_Saxpy (MultiFab& dst1, Real a1, const MultiFab& src1,
-                       MultiFab& dst2, Real a2, const MultiFab& src2,
-                       int srccomp, int dstcomp, int numcomp, int nghost)
-{
-    Saxpy_Saxpy(dst1,a1,src1,dst2,a2,src2,srccomp,dstcomp,numcomp,IntVect(nghost));
-}
-
-void
 MultiFab::LinComb (MultiFab& dst,
                    Real a, const MultiFab& x, int xcomp,
                    Real b, const MultiFab& y, int ycomp,
