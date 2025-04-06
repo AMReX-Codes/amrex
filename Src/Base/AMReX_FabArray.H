@@ -2959,7 +2959,7 @@ template <class FAB>
 template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
 void FabArray<FAB>::Saxpy_Xpay (FabArray<FAB>& y, value_type a_saxpy, FabArray<FAB> const& x_saxpy,
                                 value_type a_xpay, FabArray<FAB> const& x_xpay,
-                           int xcomp, int ycomp, int ncomp, IntVect const& nghost)
+                                int xcomp, int ycomp, int ncomp, IntVect const& nghost)
 {
     AMREX_ASSERT(y.boxArray() == x_saxpy.boxArray());
     AMREX_ASSERT(y.distributionMap == x_saxpy.distributionMap);
