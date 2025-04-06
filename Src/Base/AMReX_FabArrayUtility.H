@@ -1867,13 +1867,22 @@ void Saxpy_Xpay (MF& dst, typename MF::value_type a_saxpy, MF const& src_saxpy,
     MF::Saxpy_Xpay(dst, a_saxpy, src_saxpy, a_xpay, src_xpay, scomp, dcomp, ncomp, nghost);
 }
 
-//! dst1 += a1 * src1 followed by dst2+= a2 * src2
+//! dst1 += a1 * src1 followed by dst2 += a2 * src2
 template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
 void Saxpy_Saxpy (MF& dst1, typename MF::value_type a1, MF const& src1,
                   MF& dst2, typename MF::value_type a2, MF const& src2, int scomp, int dcomp,
                   int ncomp, IntVect const& nghost)
 {
     MF::Saxpy_Saxpy(dst1, a1, src1, dst2, a2, src2, scomp, dcomp, ncomp, nghost);
+}
+
+//! dst1 += a1 * dst1 followed by dst2 += a2 * src
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void Saxpy_Saxpy (MF& dst1, typename MF::value_type a1,
+                  MF& dst2, typename MF::value_type a2, MF const& src, int scomp, int dcomp,
+                  int ncomp, IntVect const& nghost)
+{
+    MF::Saxpy_Saxpy(dst1, a1, dst2, a2, src, scomp, dcomp, ncomp, nghost);
 }
 
 //! dst = a*src_a + b*src_b
