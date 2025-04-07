@@ -151,7 +151,7 @@ struct SoAParticle2
 {
     using PTD = ParticleTileData2<RType, IType>;
     static constexpr bool is_constsoa_particle = PTD::is_const;
-    using size_type = PTD::size_type;
+    using size_type = typename PTD::size_type;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SoAParticle2 (PTD const& ptd, size_type i) :
@@ -203,7 +203,7 @@ struct ParticleTile2
     using ParticleTileDataType = ParticleTileData2<RType, IType>;
     using ConstParticleTileDataType = ParticleTileData2<const RType, const IType>;
 
-    using size_type = ParticleTileDataType::size_type;
+    using size_type = typename ParticleTileDataType::size_type;
 
     ParticleTile2 () = default;
     ~ParticleTile2 () = default;
@@ -365,36 +365,36 @@ struct ParticleTile2
     IType* GetRealData (std::string const & name) {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(m_real_names.size() == m_n_real);
-        auto const pos = std::find(m_real_names->begin(), m_real_names->end(), name);
-        AMREX_ALWAYS_ASSERT(pos != m_real_names->end());
-        int const index = std::distance(m_real_names->begin(), pos);
+        auto const pos = std::find(m_real_names.begin(), m_real_names.end(), name);
+        AMREX_ALWAYS_ASSERT(pos != m_real_names.end());
+        int const index = std::distance(m_real_names.begin(), pos);
         return GetRealData(index);
     }
 
     const IType* GetRealData (std::string const & name) const {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(m_real_names.size() == m_n_real);
-        auto const pos = std::find(m_real_names->begin(), m_real_names->end(), name);
-        AMREX_ALWAYS_ASSERT(pos != m_real_names->end());
-        int const index = std::distance(m_real_names->begin(), pos);
+        auto const pos = std::find(m_real_names.begin(), m_real_names.end(), name);
+        AMREX_ALWAYS_ASSERT(pos != m_real_names.end());
+        int const index = std::distance(m_real_names.begin(), pos);
         return GetRealData(index);
     }
 
     IType* GetIntData (std::string const & name) {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(m_int_names.size() == m_n_int);
-        auto const pos = std::find(m_int_names->begin(), m_int_names->end(), name);
-        AMREX_ALWAYS_ASSERT(pos != m_int_names->end());
-        int const index = std::distance(m_int_names->begin(), pos);
+        auto const pos = std::find(m_int_names.begin(), m_int_names.end(), name);
+        AMREX_ALWAYS_ASSERT(pos != m_int_names.end());
+        int const index = std::distance(m_int_names.begin(), pos);
         return GetIntData(index);
     }
 
     const IType* GetIntData (std::string const & name) const {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(m_int_names.size() == m_n_int);
-        auto const pos = std::find(m_int_names->begin(), m_int_names->end(), name);
-        AMREX_ALWAYS_ASSERT(pos != m_int_names->end());
-        int const index = std::distance(m_int_names->begin(), pos);
+        auto const pos = std::find(m_int_names.begin(), m_int_names.end(), name);
+        AMREX_ALWAYS_ASSERT(pos != m_int_names.end());
+        int const index = std::distance(m_int_names.begin(), pos);
         return GetIntData(index);
     }
 
