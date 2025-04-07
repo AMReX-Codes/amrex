@@ -1858,6 +1858,33 @@ void Xpay (MF& dst, typename MF::value_type a, MF const& src, int scomp, int dco
     MF::Xpay(dst, a, src, scomp, dcomp, ncomp, nghost);
 }
 
+//! dst += a_saxpy * src_saxpy followed by dst = src_xpay + a_xpay * dst
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void Saxpy_Xpay (MF& dst, typename MF::value_type a_saxpy, MF const& src_saxpy,
+                 typename MF::value_type a_xpay, MF const& src_xpay, int scomp, int dcomp,
+                 int ncomp, IntVect const& nghost)
+{
+    MF::Saxpy_Xpay(dst, a_saxpy, src_saxpy, a_xpay, src_xpay, scomp, dcomp, ncomp, nghost);
+}
+
+//! dst1 += a1 * src1 followed by dst2 += a2 * src2
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void Saxpy_Saxpy (MF& dst1, typename MF::value_type a1, MF const& src1,
+                  MF& dst2, typename MF::value_type a2, MF const& src2, int scomp, int dcomp,
+                  int ncomp, IntVect const& nghost)
+{
+    MF::Saxpy_Saxpy(dst1, a1, src1, dst2, a2, src2, scomp, dcomp, ncomp, nghost);
+}
+
+//! dst1 += a1 * dst2 followed by dst2 += a2 * src
+template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
+void Saypy_Saxpy (MF& dst1, typename MF::value_type a1,
+                  MF& dst2, typename MF::value_type a2, MF const& src, int scomp, int dcomp,
+                  int ncomp, IntVect const& nghost)
+{
+    MF::Saypy_Saxpy(dst1, a1, dst2, a2, src, scomp, dcomp, ncomp, nghost);
+}
+
 //! dst = a*src_a + b*src_b
 template <class MF, std::enable_if_t<IsMultiFabLike_v<MF>,int> = 0>
 void LinComb (MF& dst,
