@@ -9,6 +9,7 @@
 #include <AMReX_NeighborList.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleTile2.H>
 
 namespace amrex {
 

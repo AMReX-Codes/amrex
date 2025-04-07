@@ -23,6 +23,7 @@
 #include <AMReX_ArrayOfStructs.H>
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleTile2.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_GpuContainers.H>
 #include <AMReX_ParticleUtil.H>

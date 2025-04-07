@@ -7,6 +7,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleTile2.H>
 #include <AMReX_ParticleUtil.H>
 
 namespace amrex

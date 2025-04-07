@@ -11,6 +11,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_ParGDB.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleTile2.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Scan.H>

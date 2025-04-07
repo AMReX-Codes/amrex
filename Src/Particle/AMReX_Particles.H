@@ -10,6 +10,7 @@
 #include <AMReX_ArrayOfStructs.H>
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleTile2.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_ParticleReduce.H>
 #include <AMReX_ParticleBufferMap.H>

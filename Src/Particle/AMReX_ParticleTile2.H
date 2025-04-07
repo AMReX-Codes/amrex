@@ -1,0 +1,584 @@
+#ifndef AMREX_PARTICLETILE2_H_
+#define AMREX_PARTICLETILE2_H_
+#include <AMReX_Config.H>
+
+#include <AMReX_Extension.H>
+#include <AMReX_Particle.H>
+#include <AMReX_ArrayOfStructs.H>
+#include <AMReX_StructOfArrays.H>
+#include <AMReX_Vector.H>
+#include <AMReX_REAL.H>
+#include <AMReX_RealVect.H>
+
+#include <array>
+#include <string>
+#include <type_traits>
+#include <vector>
+
+
+namespace amrex {
+
+// Forward Declaration
+template <class RType, class IType>
+struct SoAParticle2;
+
+template <class RType, class IType>
+struct ParticleTileData2
+{
+    using Self = ParticleTileData2<RType, IType>;
+    using size_type = std::size_t;
+
+    static constexpr bool is_particle_tile_data = true;
+    static constexpr bool is_const = std::is_const_v<RType>;
+
+    size_type m_capacity;
+    std::conditional_t<is_const, const uint64_t*, uint64_t*> AMREX_RESTRICT m_idcpu;
+    RType* AMREX_RESTRICT m_rdata;
+    IType* AMREX_RESTRICT m_idata;
+    int m_n_real;
+    int m_n_int;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RType& pos (const int dir, const size_type index) const &
+    {
+        AMREX_ASSERT(index < m_capacity && 0 <= dir && dir < m_n_real);
+        return this->m_rdata[dir * m_capacity + index];
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) id (const size_type index) const &
+    {
+        AMREX_ASSERT(index < m_capacity);
+        if constexpr (is_const) {
+            return ConstParticleIDWrapper(this->m_idcpu[index]);
+        } else {
+            return ParticleIDWrapper(this->m_idcpu[index]);
+        }
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) cpu (const size_type index) const &
+    {
+        AMREX_ASSERT(index < m_capacity);
+        if constexpr (is_const) {
+            return ConstParticleCPUWrapper(this->m_idcpu[index]);
+        } else {
+            return ParticleCPUWrapper(this->m_idcpu[index]);
+        }
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) idcpu (const size_type index) const &
+    {
+        AMREX_ASSERT(index < m_capacity);
+        return this->m_idcpu[index];
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RType& rdata (const int comp_index, const size_type partice_index) const &
+    {
+        AMREX_ASSERT(partice_index < m_capacity && 0 <= comp_index && comp_index < m_n_real);
+        return this->m_rdata[comp_index * m_capacity + partice_index];
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IType& idata (const int comp_index, const size_type partice_index) const &
+    {
+        AMREX_ASSERT(partice_index < m_capacity && 0 <= comp_index && comp_index < m_n_int);
+        return this->m_idata[comp_index * m_capacity + partice_index];
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) operator[] (const size_type index) const
+    {
+        AMREX_ASSERT(index < m_capacity);
+        return SoAParticle2<RType, IType>(*this, index);
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void packParticleData (char* buffer, size_type src_index, std::size_t dst_offset,
+                           const int* comm_real, const int * comm_int) const noexcept
+    {
+        AMREX_ASSERT(src_index < m_capacity);
+        auto* dst = buffer + dst_offset;
+
+        memcpy(dst, m_idcpu + src_index, sizeof(uint64_t));
+        dst += sizeof(uint64_t);
+
+        for (int i = 0; i < m_n_real; ++i) {
+            if (comm_real[i]) {
+                memcpy(dst, m_rdata + i * m_capacity + src_index, sizeof(RType));
+                dst += sizeof(RType);
+            }
+        }
+
+        for (int i = 0; i < m_n_int; ++i) {
+            if (comm_int[i]) {
+                memcpy(dst, m_idata + i * m_capacity + src_index, sizeof(IType));
+                dst += sizeof(IType);
+            }
+        }
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void unpackParticleData (const char* buffer, Long src_offset, size_type dst_index,
+                             const int* comm_real, const int* comm_int) const noexcept
+    {
+        AMREX_ASSERT(dst_index < m_capacity);
+        const auto* src = buffer + src_offset;
+
+        memcpy(m_idcpu + dst_index, src, sizeof(uint64_t));
+        src += sizeof(uint64_t);
+
+        for (int i = 0; i < m_n_real; ++i) {
+            if (comm_real[i]) {
+                memcpy(m_rdata + i * m_capacity + dst_index, src, sizeof(RType));
+                src += sizeof(RType);
+            }
+        }
+
+        for (int i = 0; i < m_n_int; ++i) {
+            if (comm_int[i]) {
+                memcpy(m_idata + i * m_capacity + dst_index, src, sizeof(IType));
+                src += sizeof(IType);
+            }
+        }
+    }
+};
+
+template <class RType, class IType>
+struct SoAParticle2
+{
+    using PTD = ParticleTileData2<RType, IType>;
+    static constexpr bool is_constsoa_particle = PTD::is_const;
+    using size_type = PTD::size_type;
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    SoAParticle2 (PTD const& ptd, size_type i) :
+        m_particle_tile_data(ptd), m_index(i) {}
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) cpu () const & { return this->m_particle_tile_data.cpu(m_index); }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) id () const & { return this->m_particle_tile_data.id(m_index); }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) idcpu () const & { return this->m_particle_tile_data.idcpu(m_index); }
+
+    //functions to get positions of the particle in the SOA data
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RealVect pos () const & {
+        return RealVect(AMREX_D_DECL(
+            this->m_particle_tile_data.pos(0, m_index),
+            this->m_particle_tile_data.pos(1, m_index),
+            this->m_particle_tile_data.pos(2, m_index)
+        ));
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RType& pos (int position_index) const &
+    {
+        return this->m_particle_tile_data.pos(position_index, m_index);
+    }
+
+private :
+
+    static_assert(std::is_trivially_copyable<PTD>(), "ParticleTileData is not trivially copyable");
+
+    PTD m_particle_tile_data;
+    size_type m_index;
+};
+
+template<class RType, class IType>
+using ConstParticleTileData2 = ParticleTileData2<const RType, const IType>;
+
+template <class RType=ParticleReal, class IType=int>
+struct ParticleTile2
+{
+    using ParticleType = SoAParticle2<RType, IType>;
+    using RealType = RType;
+
+    using ParticleTileDataType = ParticleTileData2<RType, IType>;
+    using ConstParticleTileDataType = ParticleTileData2<const RType, const IType>;
+
+    using size_type = ParticleTileDataType::size_type;
+
+    ParticleTile2 () = default;
+    ~ParticleTile2 () = default;
+
+    ParticleTile2 (ParticleTile2 const&) = delete;
+    ParticleTile2 (ParticleTile2 &&) noexcept = default;
+
+    ParticleTile2& operator= (ParticleTile2 const&) = delete;
+    ParticleTile2& operator= (ParticleTile2 &&) noexcept = default;
+
+    void define (
+        Arena* a_arena,
+        int a_num_real_comps,
+        int a_num_int_comps,
+        std::vector<std::string>* a_rdata_names=nullptr,
+        std::vector<std::string>* a_idata_names=nullptr)
+    {
+        AMREX_ALWAYS_ASSERT(!m_defined);
+        m_defined = true;
+        m_arena = a_arena;
+        m_n_real = a_num_real_comps;
+        m_n_int = a_num_int_comps;
+        if (a_rdata_names != nullptr) {
+            m_real_names = *a_rdata_names;
+        }
+        if (a_idata_names != nullptr) {
+            m_int_names = *a_idata_names;
+        }
+    }
+
+    bool empty () const
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return size() == 0;
+    }
+
+    /**
+    * \brief Returns the total number of particles (real and neighbor)
+    *
+    */
+    size_type size () const
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_size;
+    }
+
+    /**
+    * \brief Returns the number of real particles (excluding neighbors)
+    *
+    */
+    size_type numParticles () const
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return numRealParticles();
+    }
+
+    /**
+    * \brief Returns the number of real particles (excluding neighbors)
+    *
+    */
+    size_type numRealParticles () const
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_size - m_num_neighbor_particles;
+    }
+
+    /**
+    * \brief Returns the number of neighbor particles (excluding reals)
+    *
+    */
+    size_type numNeighborParticles () const
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_num_neighbor_particles;
+    }
+
+    /**
+    * \brief Returns the total number of particles, real and neighbor
+    *
+    */
+    size_type numTotalParticles () const
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_size;
+    }
+
+    void setNumNeighbors (size_type num_neighbors)
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        m_num_neighbor_particles = num_neighbors;
+    }
+
+    size_type getNumNeighbors () const
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_num_neighbor_particles;
+    }
+
+    int NumRealComps () const noexcept { AMREX_ALWAYS_ASSERT(m_defined); return m_n_real; }
+
+    int NumIntComps () const noexcept { AMREX_ALWAYS_ASSERT(m_defined); return m_n_int; }
+
+    /** Get the names for the real SoA components **/
+    [[nodiscard]] std::vector<std::string> GetRealNames () const
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        if (m_real_names) {
+            return m_real_names;
+        } else {
+            return std::vector<std::string>();
+        }
+    }
+
+    /** Get the names for the int SoA components **/
+    [[nodiscard]] std::vector<std::string> GetIntNames () const
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        if (m_int_names) {
+            return m_int_names;
+        } else {
+            return std::vector<std::string>();
+        }
+    }
+
+    uint64_t* GetIdCPUData () {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_idcpu_data.data();
+    }
+
+    const uint64_t* GetIdCPUData () const {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_idcpu_data.data();
+    }
+
+    RType* GetRealData (int comp_index) {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_real);
+        return m_real_data.data() + comp_index * m_capacity;
+    }
+
+    const RType* GetRealData (int comp_index) const {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_real);
+        return m_real_data.data() + comp_index * m_capacity;
+    }
+
+    RType* GetIntData (int comp_index) {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_int);
+        return m_real_data.data() + comp_index * m_capacity;
+    }
+
+    const RType* GetIntData (int comp_index) const {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_int);
+        return m_int_data.data() + comp_index * m_capacity;
+    }
+
+    IType* GetRealData (std::string const & name) {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        AMREX_ALWAYS_ASSERT(m_real_names.size() == m_n_real);
+        auto const pos = std::find(m_real_names->begin(), m_real_names->end(), name);
+        AMREX_ALWAYS_ASSERT(pos != m_real_names->end());
+        int const index = std::distance(m_real_names->begin(), pos);
+        return GetRealData(index);
+    }
+
+    const IType* GetRealData (std::string const & name) const {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        AMREX_ALWAYS_ASSERT(m_real_names.size() == m_n_real);
+        auto const pos = std::find(m_real_names->begin(), m_real_names->end(), name);
+        AMREX_ALWAYS_ASSERT(pos != m_real_names->end());
+        int const index = std::distance(m_real_names->begin(), pos);
+        return GetRealData(index);
+    }
+
+    IType* GetIntData (std::string const & name) {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        AMREX_ALWAYS_ASSERT(m_int_names.size() == m_n_int);
+        auto const pos = std::find(m_int_names->begin(), m_int_names->end(), name);
+        AMREX_ALWAYS_ASSERT(pos != m_int_names->end());
+        int const index = std::distance(m_int_names->begin(), pos);
+        return GetIntData(index);
+    }
+
+    const IType* GetIntData (std::string const & name) const {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        AMREX_ALWAYS_ASSERT(m_int_names.size() == m_n_int);
+        auto const pos = std::find(m_int_names->begin(), m_int_names->end(), name);
+        AMREX_ALWAYS_ASSERT(pos != m_int_names->end());
+        int const index = std::distance(m_int_names->begin(), pos);
+        return GetIntData(index);
+    }
+
+    void resize (size_type new_size)
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+
+        if (new_size <= m_capacity) {
+            m_size = new_size;
+        } else {
+            realloc_and_move(new_size, new_size);
+        }
+    }
+
+    void resize_geometric_grow (size_type new_size)
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+
+        if (new_size <= m_capacity) {
+            m_size = new_size;
+        } else {
+            realloc_and_move(new_size, std::max(new_size, m_capacity + m_capacity / 4));
+        }
+    }
+
+    void reserve (size_type new_capacity)
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+
+        if (new_capacity > m_capacity) {
+            realloc_and_move(m_size, new_capacity);
+        }
+    }
+
+    void realloc_and_move (size_type new_size, size_type new_capacity)
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+
+        if (new_capacity <= new_size) {
+            new_capacity = new_size;
+        }
+
+        decltype(m_idcpu_data) new_idcpu_data;
+        decltype(m_real_data) new_real_data;
+        decltype(m_int_data) new_int_data;
+
+        new_idcpu_data.setArena(m_arena);
+        new_real_data.setArena(m_arena);
+        new_int_data.setArena(m_arena);
+
+        new_idcpu_data.resize(new_capacity);
+        new_real_data.resize(new_capacity * m_n_real);
+        new_int_data.resize(new_capacity * m_n_int);
+
+        auto p_idcpu = new_idcpu_data.data();
+        auto p_real = new_real_data.data();
+        auto p_int = new_int_data.data();
+
+        auto old_ptd = getParticleTileData();
+        auto old_size = m_size;
+
+        m_size = new_size;
+        m_capacity = new_capacity;
+        m_idcpu_data.swap(new_idcpu_data);
+        m_real_data.swap(new_real_data);
+        m_int_data.swap(new_int_data);
+
+        auto new_ptd = getParticleTileData();
+
+        if (new_size == 0) {
+            return;
+        }
+
+        if (m_arena->isDeviceAccessible()) {
+            ParallelFor(std::min(new_size, old_size),
+                [=] AMREX_GPU_DEVICE (size_type i) noexcept {
+                    new_ptd.idcpu(i) = old_ptd.idcpu(i);
+
+                    for (int n = 0;  n < new_ptd.m_n_real; ++n) {
+                        new_ptd.rdata(n, i) = old_ptd.rdata(n, i);
+                    }
+
+                    for (int n = 0;  n < new_ptd.m_n_int; ++n) {
+                        new_ptd.idata(n, i) = old_ptd.idata(n, i);
+                    }
+                });
+            Gpu::streamSynchronize();
+        } else {
+            for (size_type i = 0; i < std::min(new_size, old_size); ++i) {
+                new_ptd.idcpu(i) = old_ptd.idcpu(i);
+
+                for (int n = 0;  n < new_ptd.m_n_real; ++n) {
+                    new_ptd.rdata(n, i) = old_ptd.rdata(n, i);
+                }
+
+                for (int n = 0;  n < new_ptd.m_n_int; ++n) {
+                    new_ptd.idata(n, i) = old_ptd.idata(n, i);
+                }
+            }
+        }
+    }
+
+    void shrink_to_fit ()
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+
+        if (m_size != m_capacity) {
+            realloc_and_move(m_size, m_size);
+        }
+    }
+
+    size_type capacity () const
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_capacity * (sizeof(uint64_t) + m_n_real * sizeof(RType) + m_n_int * sizeof(IType));
+    }
+
+    void swap (ParticleTile2<RType, IType>& other) noexcept
+    {
+        std::swap(m_defined, other.m_defined);
+        std::swap(m_arena, other.m_arena);
+        std::swap(m_capacity, other.m_capacity);
+        std::swap(m_size, other.m_size);
+        std::swap(m_num_neighbor_particles, other.m_num_neighbor_particles);
+        std::swap(m_n_real, other.m_n_real);
+        std::swap(m_n_int, other.m_n_int);
+        m_idcpu_data.swap(other.m_idcpu_data);
+        m_real_data.swap(other.m_real_data);
+        m_int_data.swap(other.m_int_data);
+        std::swap(m_real_names, other.m_real_names);
+        std::swap(m_int_names, other.m_int_names);
+    }
+
+    ParticleTileDataType getParticleTileData ()
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        ParticleTileDataType ptd;
+
+        ptd.m_capacity = m_capacity;
+        ptd.m_idcpu = m_idcpu_data.data();
+        ptd.m_rdata = m_real_data.data();
+        ptd.m_idata = m_int_data.data();
+        ptd.m_n_real = m_n_real;
+        ptd.m_n_int = m_n_int;
+
+        return ptd;
+    }
+
+    ConstParticleTileDataType getConstParticleTileData () const
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        ConstParticleTileDataType ptd;
+
+        ptd.m_capacity = m_capacity;
+        ptd.m_idcpu = m_idcpu_data.data();
+        ptd.m_rdata = m_real_data.data();
+        ptd.m_idata = m_int_data.data();
+        ptd.m_n_real = m_n_real;
+        ptd.m_n_int = m_n_int;
+
+        return ptd;
+    }
+
+private:
+
+    bool m_defined = false;
+
+    Arena* m_arena = nullptr;
+
+    size_type m_capacity = 0;
+    size_type m_size = 0;
+    size_type m_num_neighbor_particles = 0;
+
+    int m_n_real = 0;
+    int m_n_int = 0;
+
+    amrex::PODVector<uint64_t, PolymorphicArenaAllocator<uint64_t>> m_idcpu_data;
+    amrex::PODVector<RType, PolymorphicArenaAllocator<RType>> m_real_data;
+    amrex::PODVector<IType, PolymorphicArenaAllocator<IType>> m_int_data;
+
+    std::vector<std::string> m_real_names;
+    std::vector<std::string> m_int_names;
+};
+
+} // namespace amrex
+
+#endif // AMREX_PARTICLETILE2_H_
