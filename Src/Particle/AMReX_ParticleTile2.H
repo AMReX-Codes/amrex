@@ -32,7 +32,7 @@ struct ParticleTileData2
     static constexpr bool is_const = std::is_const_v<RType>;
 
     size_type m_capacity;
-    std::conditional_t<is_const, const uint64_t*, uint64_t*> AMREX_RESTRICT m_idcpu;
+    std::conditional_t<is_const, const uint64_t* AMREX_RESTRICT, uint64_t* AMREX_RESTRICT> m_idcpu;
     RType* AMREX_RESTRICT m_rdata;
     IType* AMREX_RESTRICT m_idata;
     int m_n_real;
