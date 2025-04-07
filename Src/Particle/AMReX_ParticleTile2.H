@@ -234,7 +234,7 @@ struct ParticleTile2
         }
     }
 
-    bool empty () const
+    [[nodiscard]] bool empty () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
         return size() == 0;
@@ -302,9 +302,17 @@ struct ParticleTile2
         return m_num_neighbor_particles;
     }
 
-    int NumRealComps () const noexcept { AMREX_ALWAYS_ASSERT(m_defined); return m_n_real; }
+    [[nodiscard]] int NumRealComps () const noexcept
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_n_real;
+    }
 
-    int NumIntComps () const noexcept { AMREX_ALWAYS_ASSERT(m_defined); return m_n_int; }
+    [[nodiscard]] int NumIntComps () const noexcept
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_n_int;
+    }
 
     /** Get the names for the real SoA components **/
     [[nodiscard]] std::vector<std::string> GetRealNames () const
@@ -328,41 +336,41 @@ struct ParticleTile2
         }
     }
 
-    uint64_t* GetIdCPUData () {
+    [[nodiscard]] uint64_t* GetIdCPUData () {
         AMREX_ALWAYS_ASSERT(m_defined);
         return m_idcpu_data.data();
     }
 
-    const uint64_t* GetIdCPUData () const {
+    [[nodiscard]] const uint64_t* GetIdCPUData () const {
         AMREX_ALWAYS_ASSERT(m_defined);
         return m_idcpu_data.data();
     }
 
-    RType* GetRealData (int comp_index) {
+    [[nodiscard]] RType* GetRealData (int comp_index) {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_real);
         return m_real_data.data() + comp_index * m_capacity;
     }
 
-    const RType* GetRealData (int comp_index) const {
+    [[nodiscard]] const RType* GetRealData (int comp_index) const {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_real);
         return m_real_data.data() + comp_index * m_capacity;
     }
 
-    RType* GetIntData (int comp_index) {
+    [[nodiscard]] RType* GetIntData (int comp_index) {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_int);
         return m_real_data.data() + comp_index * m_capacity;
     }
 
-    const RType* GetIntData (int comp_index) const {
+    [[nodiscard]] const RType* GetIntData (int comp_index) const {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_int);
         return m_int_data.data() + comp_index * m_capacity;
     }
 
-    IType* GetRealData (std::string const & name) {
+    [[nodiscard]] IType* GetRealData (std::string const & name) {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(m_real_names.size() == m_n_real);
         auto const pos = std::find(m_real_names.begin(), m_real_names.end(), name);
@@ -371,7 +379,7 @@ struct ParticleTile2
         return GetRealData(index);
     }
 
-    const IType* GetRealData (std::string const & name) const {
+    [[nodiscard]] const IType* GetRealData (std::string const & name) const {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(m_real_names.size() == m_n_real);
         auto const pos = std::find(m_real_names.begin(), m_real_names.end(), name);
@@ -380,7 +388,7 @@ struct ParticleTile2
         return GetRealData(index);
     }
 
-    IType* GetIntData (std::string const & name) {
+    [[nodiscard]] IType* GetIntData (std::string const & name) {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(m_int_names.size() == m_n_int);
         auto const pos = std::find(m_int_names.begin(), m_int_names.end(), name);
@@ -389,7 +397,7 @@ struct ParticleTile2
         return GetIntData(index);
     }
 
-    const IType* GetIntData (std::string const & name) const {
+    [[nodiscard]] const IType* GetIntData (std::string const & name) const {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(m_int_names.size() == m_n_int);
         auto const pos = std::find(m_int_names.begin(), m_int_names.end(), name);
