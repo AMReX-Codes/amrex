@@ -310,7 +310,7 @@ struct ParticleTile2
     [[nodiscard]] std::vector<std::string> GetRealNames () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
-        if (m_real_names) {
+        if (m_real_names.size() == m_n_real) {
             return m_real_names;
         } else {
             return std::vector<std::string>();
@@ -321,7 +321,7 @@ struct ParticleTile2
     [[nodiscard]] std::vector<std::string> GetIntNames () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
-        if (m_int_names) {
+        if (m_int_names.size() == m_n_int) {
             return m_int_names;
         } else {
             return std::vector<std::string>();
