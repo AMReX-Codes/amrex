@@ -1636,12 +1636,8 @@ void
 FabArray<FAB>::clear_arrays ()
 {
 #ifdef AMREX_USE_GPU
-    if (m_dp_arrays) {
-        Gpu::streamSynchronize();
-        The_Pinned_Arena()->free(m_hp_arrays);
-        The_Arena()->free(m_dp_arrays);
-        m_dp_arrays = nullptr;
-    }
+    The_Pinned_Arena()->free(m_hp_arrays);
+    The_Arena()->free(m_dp_arrays);
 #else
     std::free(m_hp_arrays);
 #endif
