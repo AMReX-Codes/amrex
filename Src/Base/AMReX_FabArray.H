@@ -1678,7 +1678,10 @@ FabArray<FAB>::build_arrays () const
 #ifdef AMREX_USE_GPU
         m_arrays.dp = (A*)m_dp_arrays;
         m_const_arrays.dp = (AC*)m_dp_arrays + n;
-        Gpu::htod_memcpy(m_dp_arrays, m_hp_arrays, n*2*sizeof(A));
+        Gpu::htod_memcpy_async(m_dp_arrays, m_hp_arrays, n*2*sizeof(A));
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
 #endif
     }
 }
