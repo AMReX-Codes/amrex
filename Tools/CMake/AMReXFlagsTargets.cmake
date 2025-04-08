@@ -68,6 +68,7 @@ endif ()
 add_library(Flags_CXX INTERFACE)
 add_library(AMReX::Flags_CXX ALIAS Flags_CXX)
 
+if (NOT AMReX_HIP)
 target_compile_options( Flags_CXX
    INTERFACE
    $<${_cxx_gnu_dbg}:-O0 -ggdb -Wall -Wno-sign-compare -Wno-unused-but-set-variable -Werror=return-type>
@@ -93,6 +94,7 @@ target_compile_options( Flags_CXX
    $<${_cxx_intelllvm_rwdbg}:-gline-tables-only -fdebug-info-for-profiling> # recommended by Intel VTune
    $<${_cxx_intelllvm_rel}:>
    )
+endif()
 
 add_library(Flags_INLINE INTERFACE)
 add_library(AMReX::Flags_INLINE ALIAS Flags_INLINE)
@@ -131,6 +133,7 @@ target_compile_options( Flags_Fortran
 add_library(Flags_FPE INTERFACE)
 add_library(AMReX::Flags_FPE ALIAS Flags_FPE)
 
+if (NOT AMReX_HIP)
 target_compile_options ( Flags_FPE
    INTERFACE
    $<${_fortran_gnu}:-ffpe-trap=invalid,zero -ftrapv>
@@ -145,6 +148,7 @@ target_compile_options ( Flags_FPE
    $<${_cxx_clang}:-ftrapv>
    $<${_cxx_appleclang}:-ftrapv>	
    )
+endif()
 
 #
 # Unset all the variables defined in this module
