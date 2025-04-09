@@ -891,6 +891,13 @@ saddarr (const std::string& name, const std::vector<T>& ref)
 void
 ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
 {
+    // Check environment first
+    if (char const* env = std::getenv("AMREX_DEFAULT_INIT")) {
+        std::string env_s = std::string(env) + '\n';
+        char const* s = env_s.c_str();
+        bldTable(s, table);
+    }
+
     if ( parfile != nullptr )
     {
         read_file(parfile, table);
