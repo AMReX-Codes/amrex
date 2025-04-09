@@ -486,6 +486,32 @@ run with:
         myexecutable myinputsfile ncells="64 32 16" hydro.cfl=0.9
 
 
+Setting Default Via Environment Variable
+----------------------------------------
+
+You can specify default parameter values using the environment variable
+`AMREX_DEFAULT_INIT`. This method has lower precedence than settings
+provided in the inputs file or via command-line arguments. Here is an
+example of how to use it.
+
+.. highlight:: console
+
+::
+
+   export AMREX_DEFAULT_INIT="amrex.envfoo=0 amrex.envbar=1 amrex.envabc=1 2 3 amrex.envstr=\"a b c\""
+
+This is equivalent to setting the following in the inputs file.
+
+.. highlight:: python
+
+::
+
+    amrex.envfoo = 0
+    amrex.envbar = 1
+    amrex.envabc = 1 2 3
+    amrex.envstr = "a b c"
+
+
 Setting Parameter Values Inside Functions
 -----------------------------------------
 
