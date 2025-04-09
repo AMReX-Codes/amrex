@@ -70,7 +70,6 @@
 #include <cfenv>
 #endif
 
-#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -344,18 +343,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    std::ostream& a_osout, std::ostream& a_oserr,
                    ErrorHandler a_errhandler)
 {
-    // trying to use AMReX in a debugger?
-    char const *env_amrex_debug = std::getenv("AMREX_DEBUG");
-    bool amrex_debug = false;
-    if (env_amrex_debug != nullptr) {
-        std::string str_amrex_debug{env_amrex_debug};
-        for(auto& c : str_amrex_debug) { c = std::tolower(c); }
-
-        if (str_amrex_debug == "1" || str_amrex_debug == "on" || str_amrex_debug == "true") {
-            amrex_debug = true;
-        }
-    }
-
     system::exename.clear();
     if (initialization_by_init_minimal) {
         system::verbose = 0;
