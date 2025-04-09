@@ -191,7 +191,7 @@ riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real /*
     using amrex::Real;
 
     constexpr Real weakwv = Real(1.e-3);
-    constexpr Real small = Real(1.e-6);
+    constexpr Real sml = Real(1.e-6);
 
     Real clsql = gamma*pl*rl;
     Real clsqr = gamma*pr*rr;
@@ -199,7 +199,7 @@ riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real /*
     Real wr = std::sqrt(clsqr);
     Real cleft = wl/rl;
     Real cright = wr/rr;
-    Real ccsmall = small*(cleft+cright);
+    Real ccsmall = sml*(cleft+cright);
 
     Real pstar = (wl*pr + wr*pl - wr*wl*(ur-ul))/(wl+wr);
     pstar = amrex::max(pstar,smallp);

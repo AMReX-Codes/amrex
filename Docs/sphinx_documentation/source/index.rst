@@ -52,6 +52,7 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    Fortran_Chapter
    Python_Chapter
    EB_Chapter
+   FFT_Chapter
    TimeIntegration_Chapter
    GPU_Chapter
    Visualization_Chapter

@@ -1,5 +1,14 @@
-#include <type_traits>
 #include <AMReX_MakeParticle.H>
+
+#include <algorithm>
+#include <iterator>
+#include <set>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <vector>
+
+namespace amrex {
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
@@ -7,7 +16,10 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::SetParticleSize ()
 {
     num_real_comm_comps  = 0;
-    int comm_comps_start = AMREX_SPACEDIM + NStructReal;
+    int comm_comps_start = 0;
+    if constexpr (!ParticleType::is_soa_particle) {
+        comm_comps_start += AMREX_SPACEDIM + NStructReal;
+    }
     for (int i = comm_comps_start; i < comm_comps_start + NumRealComps(); ++i) {
         if (h_redistribute_real_comp[i]) {++num_real_comm_comps;}
     }
@@ -36,7 +48,28 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     usePrePost = false;
     doUnlink = true;
 
+    // by default communicate all components
+   if constexpr (ParticleType::is_soa_particle)
+   {
+       h_redistribute_real_comp.resize(NArrayReal, true);
+   } else {
+       h_redistribute_real_comp.resize(AMREX_SPACEDIM + NStructReal + NArrayReal, true);
+   }
+   h_redistribute_int_comp.resize(2 + NStructInt + NArrayInt, true);
+
     SetParticleSize();
+
+    // add default names for SoA Real and Int compile-time arguments
+    m_soa_rdata_names.clear();
+    for (int i=0; i<NArrayReal; ++i)
+    {
+        m_soa_rdata_names.push_back(getDefaultCompNameReal<ParticleType>(i));
+    }
+    m_soa_idata_names.clear();
+    for (int i=0; i<NArrayInt; ++i)
+    {
+        m_soa_idata_names.push_back(getDefaultCompNameInt<ParticleType>(i));
+    }
 
     static bool initialized = false;
     if ( ! initialized)
@@ -59,8 +92,105 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         pp.query("use_prepost", usePrePost);
         pp.query("do_unlink", doUnlink);
         pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
+        pp.queryAdd("use_comms_arena", use_comms_arena);
 
         initialized = true;
+    }
+}
+
+template<
+    typename ParticleType,
+    int NArrayReal,
+    int NArrayInt,
+    template<class> class Allocator,
+    class CellAssignor
+>
+void
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::SetSoACompileTimeNames (
+    std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name
+)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rdata_name.size() == NArrayReal, "rdata_name must be equal to NArrayReal");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(idata_name.size() == NArrayInt, "idata_name must be equal to NArrayInt");
+
+    // ensure names for components are unique
+    std::set<std::string> const unique_r_names(rdata_name.begin(), rdata_name.end());
+    std::set<std::string> const unique_i_names(idata_name.begin(), idata_name.end());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rdata_name.size() == unique_r_names.size(), "SetSoACompileTimeNames: Provided names in rdata_name are not unique!");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(idata_name.size() == unique_i_names.size(), "SetSoACompileTimeNames: Provided names in idata_name are not unique!");
+
+    for (int i=0; i<NArrayReal; ++i)
+    {
+        m_soa_rdata_names.at(i) = rdata_name.at(i);
+    }
+    for (int i=0; i<NArrayInt; ++i)
+    {
+        m_soa_idata_names.at(i) = idata_name.at(i);
+    }
+}
+
+template<
+    typename ParticleType,
+    int NArrayReal,
+    int NArrayInt,
+    template<class> class Allocator,
+    class CellAssignor
+>
+bool
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::HasRealComp (std::string const & name)
+{
+    return std::find(m_soa_rdata_names.begin(), m_soa_rdata_names.end(), name) != std::end(m_soa_rdata_names);
+}
+
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+        template<class> class Allocator, class CellAssignor>
+bool
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::HasIntComp (std::string const & name)
+{
+    return std::find(m_soa_idata_names.begin(), m_soa_idata_names.end(), name) != std::end(m_soa_idata_names);
+}
+
+template<
+    typename ParticleType,
+    int NArrayReal,
+    int NArrayInt,
+    template<class> class Allocator,
+    class CellAssignor
+>
+int
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::GetRealCompIndex (std::string const & name)
+{
+    const auto it = std::find(m_soa_rdata_names.begin(), m_soa_rdata_names.end(), name);
+
+    if (it == m_soa_rdata_names.end())
+    {
+        throw std::runtime_error("GetRealCompIndex: Component " + name + " does not exist!");
+    }
+    else
+    {
+        return std::distance(m_soa_rdata_names.begin(), it);
+    }
+}
+
+template<
+    typename ParticleType,
+    int NArrayReal,
+    int NArrayInt,
+    template<class> class Allocator,
+    class CellAssignor
+>
+int
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::GetIntCompIndex (std::string const & name)
+{
+    const auto it = std::find(m_soa_idata_names.begin(), m_soa_idata_names.end(), name);
+
+    if (it == m_soa_idata_names.end())
+    {
+        throw std::runtime_error("GetIntCompIndex: Component " + name + " does not exist!");
+    }
+    else
+    {
+        return std::distance(m_soa_idata_names.begin(), it);
     }
 }
 
@@ -585,7 +715,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         [=] AMREX_GPU_DEVICE (const typename ParticleTileType::ConstParticleTileDataType& ptd, int ip,
                               amrex::Array4<amrex::Real> const& count)
         {
-            const auto& p = make_particle<ConstParticleType>{}(ptd, ip);
+            const auto p = make_particle<ConstParticleType>{}(ptd, ip);
             CellAssignor assignor;
             IntVect iv = assignor(p, plo, dxi, domain);
             amrex::Gpu::Atomic::AddNoRet(&count(iv), 1.0_rt);
@@ -1095,7 +1225,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     const size_t np_total = np + ptile.numNeighborParticles();
 
     if (memEfficientSort) {
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+        if           (!ParticleType::is_soa_particle) {
+#else
         if constexpr (!ParticleType::is_soa_particle) {
+#endif
             static_assert(sizeof(ParticleType)%4 == 0 && sizeof(uint32_t) == 4);
             using tmp_t = std::conditional_t<sizeof(ParticleType)%8 == 0,
                                              uint64_t, uint32_t>;
@@ -1161,7 +1295,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     } else {
         ParticleTileType ptile_tmp;
-        ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
+        ptile_tmp.define(m_num_runtime_real, m_num_runtime_int, &m_soa_rdata_names, &m_soa_idata_names);
         ptile_tmp.resize(np_total);
         // copy re-ordered particles
         gatherParticles(ptile_tmp, ptile, np, permutations);
@@ -1354,8 +1488,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     plan.build(*this, op, h_redistribute_int_comp,
                h_redistribute_real_comp, local);
 
+    // by default, this uses The_Arena();
     amrex::PODVector<char, PolymorphicArenaAllocator<char> > snd_buffer;
-    Gpu::DeviceVector<char> rcv_buffer;
+    amrex::PODVector<char, PolymorphicArenaAllocator<char> > rcv_buffer;
+
+    if (use_comms_arena) {
+        snd_buffer.setArena(The_Comms_Arena());
+        rcv_buffer.setArena(The_Comms_Arena());
+    }
 
     packBuffer(*this, op, plan, snd_buffer);
 
@@ -1498,7 +1638,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             tmp_local[lev][index].resize(num_threads);
             soa_local[lev][index].resize(num_threads);
             for (int t = 0; t < num_threads; ++t) {
-                soa_local[lev][index][t].define(m_num_runtime_real, m_num_runtime_int);
+                soa_local[lev][index][t].define(m_num_runtime_real, m_num_runtime_int, &m_soa_rdata_names, &m_soa_idata_names);
             }
         }
     }
@@ -1614,7 +1754,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             particles_to_send.resize(new_size);
                             std::memcpy(&particles_to_send[old_size], &p, particle_size);
                             char* dst = &particles_to_send[old_size] + particle_size;
-                            int array_comp_start = AMREX_SPACEDIM + NStructReal;
+                            int array_comp_start = 0;
+                            if constexpr (!ParticleType::is_soa_particle) {
+                                array_comp_start = AMREX_SPACEDIM + NStructReal;
+                            }
                             for (int comp = 0; comp < NumRealComps(); comp++) {
                                 if (h_redistribute_real_comp[array_comp_start + comp]) {
                                     std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
@@ -1738,7 +1881,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                 std::memcpy(dst, &soa.GetIdCPUData()[pindex], sizeof(uint64_t));
                                 dst += sizeof(uint64_t);
                             }
-                            int array_comp_start = AMREX_SPACEDIM + NStructReal;
+                            int array_comp_start = 0;
+                            if constexpr (!ParticleType::is_soa_particle) {
+                                array_comp_start = AMREX_SPACEDIM + NStructReal;
+                            }
                             for (int comp = 0; comp < NumRealComps(); comp++) {
                                 if (h_redistribute_real_comp[array_comp_start + comp]) {
                                     std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(ParticleReal));
@@ -2139,7 +2285,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                     ptile.push_back(p);
                 }
 
-                int array_comp_start = AMREX_SPACEDIM + NStructReal;
+                int array_comp_start = 0;
+                if constexpr (!ParticleType::is_soa_particle) {
+                    array_comp_start = AMREX_SPACEDIM + NStructReal;
+                }
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (h_redistribute_real_comp[array_comp_start + comp]) {
                         ParticleReal rdata;
@@ -2217,7 +2366,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 host_int_attribs[lev][ind].resize(NumIntComps());
 
                 // add the real...
-                int array_comp_start = AMREX_SPACEDIM + NStructReal;
+                int array_comp_start = 0;
+                if constexpr (!ParticleType::is_soa_particle) {
+                    array_comp_start = AMREX_SPACEDIM + NStructReal;
+                }
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (h_redistribute_real_comp[array_comp_start + comp]) {
                         Real rdata;
@@ -2544,4 +2696,6 @@ ResizeRuntimeIntComp (int new_size, bool communicate)
             }
         }
     }
+}
+
 }

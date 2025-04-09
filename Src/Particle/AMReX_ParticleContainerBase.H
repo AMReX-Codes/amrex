@@ -231,6 +231,10 @@ public:
 
     void SetVerbose (int verbose) { m_verbose = verbose; }
 
+    [[nodiscard]] int stableRedistribute () const {return m_stable_redistribute; }
+
+    void setStableRedistribute (int stable) { m_stable_redistribute = stable; }
+
     const ParticleBufferMap& BufferMap () const {return m_buffer_map;}
 
     Vector<int> NeighborProcs(int ngrow) const
@@ -252,6 +256,7 @@ public:
     static AMREX_EXPORT bool do_tiling;
     static AMREX_EXPORT IntVect tile_size;
     static AMREX_EXPORT bool memEfficientSort;
+    static AMREX_EXPORT bool use_comms_arena;
     mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
 
 protected:
@@ -260,6 +265,7 @@ protected:
     void defineBufferMap () const;
 
     int         m_verbose{0};
+    int m_stable_redistribute = 0;
     std::unique_ptr<ParGDB> m_gdb_object = std::make_unique<ParGDB>();
     ParGDBBase* m_gdb{nullptr};
     Vector<std::unique_ptr<MultiFab> > m_dummy_mf;

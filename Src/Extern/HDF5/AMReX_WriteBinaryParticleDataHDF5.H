@@ -1,6 +1,8 @@
 #ifndef AMREX_WRITE_BINARY_PARTICLE_DATA_HDF5_H
 #define AMREX_WRITE_BINARY_PARTICLE_DATA_HDF5_H
 
+namespace amrex {
+
 static int CreateWriteHDF5Attr(hid_t loc, const char *name, hsize_t n, void *data, hid_t dtype)
 {
     herr_t ret;
@@ -475,5 +477,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
 
     return;
 } // End WriteHDF5ParticleDataSync
+
+}
 
 #endif /*AMREX_WRITE_BINARY_PARTICLE_DATA_HDF5_H*/

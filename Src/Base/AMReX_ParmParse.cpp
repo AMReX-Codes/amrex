@@ -5,6 +5,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_RealVect.H>
+#include <AMReX_String.H>
 #include <AMReX_Utility.H>
 
 #include <algorithm>
@@ -28,7 +29,7 @@ namespace amrex {
 namespace {
     bool initialized = false;
     ParmParse::Table g_table;
-    std::vector<std::set<std::string>> g_parser_recursive_symbols;
+    std::vector<std::set<std::string>> g_parser_recursive_symbols(1);
     namespace pp_detail {
         int verbose = -1;
     }
@@ -182,16 +183,6 @@ enum lexState
     QUOTED_STRING,
     IDENTIFIER,
     LIST
-};
-
-const char* const
-state_name[] =
-{
-   "START",
-   "STRING",
-   "QUOTED_STRING",
-   "IDENTIFIER",
-   "LIST"
 };
 
 int
@@ -348,7 +339,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
            break;
        default:
            amrex::ErrorStream() << "ParmParse::getToken(): invalid string = " << ostr << '\n'
-                                << "STATE = " << state_name[state]
+                                << "STATE = " << static_cast<int>(state)
                                 << ", next char = " << ch << '\n'
                                 << ", rest of input = \n" << str << '\n';
            amrex::Abort();
@@ -359,7 +350,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
 //
 // Return the index of the n'th occurrence of a parameter name,
 // except if n==-1, return the index of the last occurrence.
-// Return 0 if the specified occurrence does not exist.
+// Return nullptr if the specified occurrence does not exist.
 //
 std::vector<std::string> const*
 ppindex (const ParmParse::Table& table, int n, const std::string& name)
@@ -375,6 +366,9 @@ ppindex (const ParmParse::Table& table, int n, const std::string& name)
     if (n == ParmParse::LAST) {
         return &(found->second.m_vals.back());
     } else {
+        if(found->second.m_vals.size() < (std::size_t)n + 1) {
+            return nullptr;
+        }
         return &(found->second.m_vals[n]);
     }
 }
@@ -613,7 +607,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
         {
             if ( cur_name.empty() )
             {
-                cur_name = tokname;
+                cur_name = std::move(tokname);
                 break;
             }
             //
@@ -629,7 +623,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
                 msg += tokname;
                 amrex::Abort(msg.c_str());
             }
-            cur_list.push_back(tokname);
+            cur_list.push_back(std::move(tokname));
             cur_linefeeds.push_back(num_linefeeds);
             break;
         }
@@ -652,7 +646,7 @@ squeryval (const ParmParse::Table& table,
            int                     occurrence)
 {
     //
-    // Get last occurrence of name in table.
+    // Get specified occurrence of name in table.
     //
     auto const* def = ppindex(table, occurrence, name);
     if ( def == nullptr )
@@ -870,6 +864,8 @@ saddval (const std::string& name, const T& ref)
     auto& entry = g_table[name];
     entry.m_vals.emplace_back(std::vector<std::string>{val.str()});
     ++entry.m_count;
+    using T_ptr = std::decay_t<T>*;
+    entry.m_typehint = static_cast<T_ptr>(nullptr);
 }
 
 template <class T>
@@ -887,6 +883,8 @@ saddarr (const std::string& name, const std::vector<T>& ref)
     auto& entry = g_table[name];
     entry.m_vals.emplace_back(std::move(arr));
     ++entry.m_count;
+    using T_ptr = std::decay_t<T>*;
+    entry.m_typehint = static_cast<T_ptr>(nullptr);
 }
 
 // Initialize ParmParse.
@@ -1212,6 +1210,7 @@ ParmParse::Finalize ()
 #endif
 
     g_parser_recursive_symbols.clear();
+    g_parser_recursive_symbols.resize(1);
 
     pp_detail::verbose = -1;
     initialized = false;
@@ -1896,6 +1895,25 @@ ParmParse::getarr (const char* name, RealVect& ref) const
     this->getarr(name, v);
     AMREX_ALWAYS_ASSERT(v.size() == AMREX_SPACEDIM);
     for (int i = 0; i < AMREX_SPACEDIM; ++i) { ref[i] = v[i]; }
+}
+
+void
+ParmParse::getline (const char* name, std::string& ref) const
+{
+    std::vector<std::string> tmp;
+    getarr(name, tmp);
+    ref = amrex::join(tmp, ' ');
+}
+
+int
+ParmParse::queryline (const char* name, std::string& ref) const
+{
+    std::vector<std::string> tmp;
+    auto r = queryarr(name, tmp);
+    if (r) {
+        ref = amrex::join(tmp, ' ');
+    }
+    return r;
 }
 
 //

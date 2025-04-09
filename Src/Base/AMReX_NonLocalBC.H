@@ -206,7 +206,7 @@ static_assert(IsIndexMapping<MultiBlockIndexMapping>(), // NOLINT(bugprone-throw
 //! \brief This class stores data dependencies for an inter-block communication.
 //!
 //! In communication between two blocks one might need to do an index
-//! transformation from one block to antoher.
+//! transformation from one block to another.
 struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     //! \name Constructors
 
@@ -476,6 +476,9 @@ template <typename... Args>
 using LocalCopy_t = decltype(LocalCopy(std::declval<Args>()...));
 
 //! \brief This type trait tests if a given type DP satisfies the DataPacking concept for type FAB.
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+template <typename DP, typename FAB> struct IsDataPacking : std::true_type {};
+#else
 template <typename DP, typename FAB>
 struct IsDataPacking :
     Conjunction<
@@ -487,6 +490,7 @@ struct IsDataPacking :
         IsDetected<UnpackRecvBuffers_t, DP&, FabArray<FAB>&, CommData&>
 #endif
     > {};
+#endif
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
@@ -528,7 +532,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
 struct PackComponents {
     int dest_component{0};
     int src_component{0};
-    int n_components{0};
+    int n_components{1};
 };
 
 //! \brief Dispatch local copies to the default behaviour that knows no DTOS nor projection.
@@ -882,9 +886,16 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
     components.dest_component = destcomp.i;
     components.src_component = srccomp.i;
     components.n_components = numcomp.n;
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
     ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{components, dtos, proj};
     CommHandler handler = ParallelCopy_nowait(dest, src, cmd, packing);
     ParallelCopy_finish(dest, std::move(handler), cmd, packing); // NOLINT
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 }
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish.

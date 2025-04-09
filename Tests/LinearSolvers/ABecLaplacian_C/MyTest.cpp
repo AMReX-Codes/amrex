@@ -477,12 +477,9 @@ MyTest::solveABecLaplacianGMRES ()
 
     const auto nlevels = static_cast<int>(geom.size());
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(composite_solve == false || nlevels == 1,
-       "solveABecLaplacianGMRES does not support composite solve");
-
-    for (int ilev = 0; ilev < nlevels; ++ilev)
+    if (composite_solve)
     {
-        MLABecLaplacian mlabec({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
+        MLABecLaplacian mlabec(geom, grids, dmap, info);
 
         mlabec.setMaxOrder(linop_maxorder);
 
@@ -493,40 +490,99 @@ MyTest::solveABecLaplacianGMRES ()
                                          LinOpBCType::Dirichlet,
                                          LinOpBCType::Neumann)});
 
-        if (ilev > 0) {
-            mlabec.setCoarseFineBC(&solution[ilev-1], ref_ratio);
+        for (int ilev = 0; ilev < nlevels; ++ilev)
+        {
+            mlabec.setLevelBC(ilev, &solution[ilev]);
         }
-
-        // for problem with pure homogeneous Neumann BC, we could pass a nullptr
-        mlabec.setLevelBC(0, &solution[ilev]);
 
         mlabec.setScalars(ascalar, bscalar);
 
-        mlabec.setACoeffs(0, acoef[ilev]);
-
-        Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        for (int ilev = 0; ilev < nlevels; ++ilev)
         {
-            const BoxArray& ba = amrex::convert(bcoef[ilev].boxArray(),
-                                                IntVect::TheDimensionVector(idim));
-            face_bcoef[idim].define(ba, bcoef[ilev].DistributionMap(), 1, 0);
+            mlabec.setACoeffs(ilev, acoef[ilev]);
+
+            Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                const BoxArray& ba = amrex::convert(bcoef[ilev].boxArray(),
+                                                    IntVect::TheDimensionVector(idim));
+                face_bcoef[idim].define(ba, bcoef[ilev].DistributionMap(), 1, 0);
+            }
+            amrex::average_cellcenter_to_face(GetArrOfPtrs(face_bcoef),
+                                              bcoef[ilev], geom[ilev]);
+            mlabec.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(face_bcoef));
         }
-        amrex::average_cellcenter_to_face(GetArrOfPtrs(face_bcoef),
-                                          bcoef[ilev], geom[ilev]);
-        mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
 
         MLMG mlmg(mlabec);
-        GMRESMLMG gmsolver(mlmg);
+        GMRESMLMGT<MultiFab> gmsolver(mlmg);
         gmsolver.usePrecond(true);
         gmsolver.setVerbose(verbose);
-        gmsolver.solve(solution[ilev], rhs[ilev], tol_rel, tol_abs);
+        gmsolver.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
 
         if (verbose) {
-            MultiFab res(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
-            mlmg.apply({&res}, {&solution[ilev]}); // res = L(sol)
-            MultiFab::Subtract(res, rhs[ilev], 0, 0, 1, 0); // now res = L(sol) - rhs
-            amrex::Print() << "Final residual = " << res.norminf(0)
-                           << " " << res.norm1(0) << " " << res.norm2(0) << '\n';
+            Vector<MultiFab> res(nlevels);
+            for (int ilev = 0; ilev < nlevels; ++ilev) {
+                res[ilev].define(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
+            }
+            mlmg.apply(GetVecOfPtrs(res), GetVecOfPtrs(solution)); // res = L(sol)
+            for (int ilev = 0; ilev < nlevels; ++ilev) {
+                MultiFab::Subtract(res[ilev], rhs[ilev], 0, 0, 1, 0);
+                amrex::Print() << "Final residual at level " << ilev << " = "
+                               << res[ilev].norminf(0) << " " << res[ilev].norm1(0) << " "
+                               << res[ilev].norm2(0) << '\n';
+            }
+        }
+    }
+    else
+    {
+        for (int ilev = 0; ilev < nlevels; ++ilev)
+        {
+            MLABecLaplacian mlabec({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info);
+
+            mlabec.setMaxOrder(linop_maxorder);
+
+            mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                             LinOpBCType::Neumann,
+                                             LinOpBCType::Neumann)},
+                               {AMREX_D_DECL(LinOpBCType::Neumann,
+                                             LinOpBCType::Dirichlet,
+                                             LinOpBCType::Neumann)});
+
+            if (ilev > 0) {
+                mlabec.setCoarseFineBC(&solution[ilev-1], ref_ratio);
+            }
+
+            // for problem with pure homogeneous Neumann BC, we could pass a nullptr
+            mlabec.setLevelBC(0, &solution[ilev]);
+
+            mlabec.setScalars(ascalar, bscalar);
+
+            mlabec.setACoeffs(0, acoef[ilev]);
+
+            Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                const BoxArray& ba = amrex::convert(bcoef[ilev].boxArray(),
+                                                    IntVect::TheDimensionVector(idim));
+                face_bcoef[idim].define(ba, bcoef[ilev].DistributionMap(), 1, 0);
+            }
+            amrex::average_cellcenter_to_face(GetArrOfPtrs(face_bcoef),
+                                              bcoef[ilev], geom[ilev]);
+            mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
+
+            MLMG mlmg(mlabec);
+            GMRESMLMGT gmsolver(mlmg);
+            gmsolver.usePrecond(true);
+            gmsolver.setVerbose(verbose);
+            gmsolver.solve(solution[ilev], rhs[ilev], tol_rel, tol_abs);
+
+            if (verbose) {
+                MultiFab res(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
+                mlmg.apply({&res}, {&solution[ilev]}); // res = L(sol)
+                MultiFab::Subtract(res, rhs[ilev], 0, 0, 1, 0); // now res = L(sol) - rhs
+                amrex::Print() << "Final residual = " << res.norminf(0)
+                               << " " << res.norm1(0) << " " << res.norm2(0) << '\n';
+            }
         }
     }
 }

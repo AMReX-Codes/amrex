@@ -355,9 +355,10 @@ public:
      * \param sol               unknowns
      * \param rhs               RHS
      * \param skip_fillboundary flag controlling whether ghost cell filling can be skipped.
+     * \param niter number of (multicolor) smoothing iterations
      */
     virtual void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
-                         bool skip_fillboundary=false) const = 0;
+                         bool skip_fillboundary, int niter) const = 0;
 
     //! Divide mf by the diagonal component of the operator. Used by bicgstab.
     virtual void normalize (int amrlev, int mglev, MF& mf) const {
@@ -455,7 +456,9 @@ public:
     virtual void applyOverset (int /*amlev*/, MF& /*rhs*/) const {}
 
     //! scale RHS to fix solvability
-    virtual void scaleRHS (int /*amrlev*/, MF& /*rhs*/) const {}
+    [[nodiscard]] virtual bool scaleRHS (int /*amrlev*/, MF* /*rhs*/) const {
+        return false;
+    }
 
     //! get offset for fixing solvability
     virtual Vector<RT> getSolvabilityOffset (int /*amrlev*/, int /*mglev*/,
@@ -467,7 +470,7 @@ public:
 
     virtual void prepareForSolve () = 0;
 
-    virtual void prepareForGMRES () {}
+    virtual void preparePrecond () {}
 
     //! For GMRES to work, this might need to be implemented to mask out
     //! Dirichlet nodes or cells (e.g., EB covered cells or overset cells)
@@ -484,6 +487,10 @@ public:
 
     //! x dot y, used by the bottom solver
     virtual RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const = 0;
+
+    virtual RT dotProductPrecond (Vector<MF const*> const& x, Vector<MF const*> const& y) const;
+
+    virtual RT norm2Precond (Vector<MF const*> const& x) const;
 
     virtual std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int /*grid_size*/) const
     {
@@ -533,7 +540,7 @@ public:
 
     virtual void copyNSolveSolution (MF&, MF const&) const {}
 
-    virtual void postSolve (Vector<MF>& /*sol*/) const {}
+    virtual void postSolve (Vector<MF*> const& /*sol*/) const {}
 
     [[nodiscard]] virtual RT normInf (int amrlev, MF const& mf, bool local) const = 0;
 
@@ -547,6 +554,9 @@ public:
 
     // This function is needed for FMG cycle, but not V-cycle.
     virtual void avgDownResMG (int clev, MF& cres, MF const& fres) const;
+
+    virtual void beginPrecondBC () { m_precond_mode = true; }
+    virtual void endPrecondBC () { m_precond_mode = false; }
 
     [[nodiscard]] bool isMFIterSafe (int amrlev, int mglev1, int mglev2) const;
 
@@ -627,6 +637,8 @@ protected:
     RealVect m_coarse_bc_loc;
     const MF* m_coarse_data_for_bc = nullptr;
     MF m_coarse_data_for_bc_raii;
+
+    bool m_precond_mode = false;
 
     //! Return AMR refinement ratios
     [[nodiscard]] const Vector<int>& AMRRefRatio () const noexcept { return m_amr_ref_ratio; }
@@ -1641,6 +1653,23 @@ MLLinOpT<MF>::setLevelBC (int amrlev, const AMF* levelbcdata,
 
     this->setLevelBC(amrlev, levelbc_raii[amrlev].get(), robin_a_raii[amrlev].get(),
                      robin_b_raii[amrlev].get(), robin_f_raii[amrlev].get());
+}
+
+template <typename MF>
+auto
+MLLinOpT<MF>::dotProductPrecond (Vector<MF const*> const& x, Vector<MF const*> const& y) const -> RT
+{
+    AMREX_ALWAYS_ASSERT(NAMRLevels() == 1);
+    return xdoty(0,0,*x[0],*y[0],false);
+}
+
+template <typename MF>
+auto
+MLLinOpT<MF>::norm2Precond (Vector<MF const*> const& x) const -> RT
+{
+    AMREX_ALWAYS_ASSERT(NAMRLevels() == 1);
+    auto r = xdoty(0,0,*x[0],*x[0],false);
+    return std::sqrt(r);
 }
 
 extern template class MLLinOpT<MultiFab>;

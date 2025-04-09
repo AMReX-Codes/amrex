@@ -1,5 +1,5 @@
 #include <AMReX_MLNodeTensorLaplacian.H>
-#include <AMReX_MLNodeLap_K.H>
+#include <AMReX_MLNodeLinOp_K.H>
 #include <AMReX_MLNodeTensorLap_K.H>
 #include <AMReX_MultiFabUtil.H>
 
@@ -219,24 +219,28 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
     {
         mlndtslap_adotx(i,j,k, out_a[box_no], in_a[box_no], dmsk_a[box_no], s);
     });
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 #endif
 }
 
 void
 MLNodeTensorLaplacian::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                               bool skip_fillboundary) const
+                               bool skip_fillboundary, int niter) const
 {
     BL_PROFILE("MLNodeTensorLaplacian::smooth()");
-    for (int redblack = 0; redblack < 4; ++redblack) {
-        if (!skip_fillboundary) {
-            applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+    for (int i = 0; i < niter; ++i) {
+        for (int redblack = 0; redblack < 4; ++redblack) {
+            if (!skip_fillboundary) {
+                applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+            }
+            m_redblack = redblack;
+            Fsmooth(amrlev, mglev, sol, rhs);
+            skip_fillboundary = false;
         }
-        m_redblack = redblack;
-        Fsmooth(amrlev, mglev, sol, rhs);
-        skip_fillboundary = false;
+        nodalSync(amrlev, mglev, sol);
     }
-    nodalSync(amrlev, mglev, sol);
 }
 
 void
@@ -261,7 +265,9 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
             mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
         }
     });
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 #endif
 }
 

@@ -7,14 +7,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
   tests-hip:
     name: HIP ROCm Flang C++17 [tests]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_hip.sh
+        .github/workflows/dependencies/dependencies_hip.sh 6.3.2
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v4
@@ -41,13 +46,9 @@ jobs:
         which clang++
         which flang
 
-        # "mpic++ --showme" forgets open-pal in Ubuntu 20.04 + OpenMPI 4.0.3
-        #   https://bugs.launchpad.net/ubuntu/+source/openmpi/+bug/1941786
-        #   https://github.com/open-mpi/ompi/issues/9317
-        export LDFLAGS="-lopen-pal"
-
         cmake -S . -B build                               \
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
+            -DAMReX_FFT=ON                                \
             -DAMReX_EB=ON                                 \
             -DAMReX_ENABLE_TESTS=ON                       \
             -DAMReX_FORTRAN=ON                            \
@@ -67,12 +68,14 @@ jobs:
 
   tests-hip-wrapper:
     name: HIP ROCm GFortran@9.3 C++17 [tests-hipcc]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_hip.sh
+        .github/workflows/dependencies/dependencies_hip.sh 6.3.2
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v4
@@ -96,13 +99,9 @@ jobs:
         source /etc/profile.d/rocm.sh
         hipcc --version
 
-        # "mpic++ --showme" forgets open-pal in Ubuntu 20.04 + OpenMPI 4.0.3
-        #   https://bugs.launchpad.net/ubuntu/+source/openmpi/+bug/1941786
-        #   https://github.com/open-mpi/ompi/issues/9317
-        export LDFLAGS="-lopen-pal"
-
         cmake -S . -B build_full_legacywrapper            \
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
+            -DAMReX_FFT=ON                                \
             -DAMReX_EB=OFF                                \
             -DAMReX_ENABLE_TESTS=ON                       \
             -DAMReX_FORTRAN=ON                            \
@@ -124,7 +123,9 @@ jobs:
   # Build 2D libamrex hip build with configure
   configure-2d-single-hip:
     name: HIP EB [configure 2D]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies
@@ -145,7 +146,9 @@ jobs:
         export CCACHE_MAXSIZE=100M
         ccache -z
 
-        ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes --with-mpi no --with-omp no --single-precision yes --single-precision-particles yes
+        ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes \
+                    --with-mpi no --with-omp no --single-precision yes \
+                    --single-precision-particles yes --enable-fft yes
         make -j4 WARN_ALL=TRUE AMD_ARCH=gfx90a CCACHE=ccache
         make install
 
@@ -155,7 +158,9 @@ jobs:
   # Build 3D EB hip with gnu make
   hip-3d-eb-gmake:
     name: HIP EB 3D GMake
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Dependencies

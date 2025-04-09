@@ -267,9 +267,13 @@ BndryRegisterT<MF>::copyFrom (const MF& src, int nghost,
                               int src_comp, int dest_comp, int num_comp,
                               const Periodicity& period)
 {
-    for (OrientationIter face; face; ++face)
-    {
-        bndry[face()].copyFrom(src,nghost,src_comp,dest_comp,num_comp,period);
+    for (OrientationIter face; face; ++face) {
+        bndry[face()].multiFab().ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,
+                                                     nghost,0,period);
+    }
+
+    for (OrientationIter face; face; ++face) {
+        bndry[face()].multiFab().ParallelCopy_finish();
     }
     return *this;
 }

@@ -70,6 +70,7 @@ EXP	([Ee][-+]?[0-9]+)
 "pow"         { amrex_parserlval.f2 = amrex::PARSER_POW;       return F2; }
 "heaviside"   { amrex_parserlval.f2 = amrex::PARSER_HEAVISIDE; return F2; }
 "jn"          { amrex_parserlval.f2 = amrex::PARSER_JN;        return F2; }
+"yn"          { amrex_parserlval.f2 = amrex::PARSER_YN;        return F2; }
 "min"         { amrex_parserlval.f2 = amrex::PARSER_MIN;       return F2; }
 "max"         { amrex_parserlval.f2 = amrex::PARSER_MAX;       return F2; }
 "fmod"        { amrex_parserlval.f2 = amrex::PARSER_FMOD;      return F2; }

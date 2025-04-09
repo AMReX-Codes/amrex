@@ -1,4 +1,6 @@
 
+namespace amrex {
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::use_mask = false;
 
@@ -1126,4 +1128,6 @@ resizeContainers (int num_levels)
 
     AMREX_ASSERT((neighbors.size() == m_neighbor_list.size()) &&
                  (neighbors.size() == mask_ptr.size()     )    );
+}
+
 }

@@ -554,7 +554,11 @@ problem as much as possible.  However, as we have mentioned, we can
 call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
 passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
-residual correction form of the original problem. To build Hypre, follow the next steps:
+residual correction form of the original problem.
+
+As of March 2025, AMReX supports and is tested with Hypre version 2.32.0 (check
+``amrex/.github/workflows/hypre.yml`` so see what versions are currently tested).
+To build Hypre, follow the next steps:
 
 .. highlight:: console
 
@@ -562,23 +566,26 @@ residual correction form of the original problem. To build Hypre, follow the nex
 
     1.- git clone https://github.com/hypre-space/hypre.git
     2.- cd hypre/src
-    3.- ./configure
+    3.- git checkout v2.32.0
+    4.- ./configure
         (if you want to build hypre with long long int, do ./configure --enable-bigint )
-    4.- make install
-    5.- Create an environment variable with the HYPRE directory --
+    5.- make install
+    6.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
-To use Hypre with CUDA, nvcc compiler is needed along with all other requirements for CPU (e.g. gcc, mpicc). It is very important that the GPU architecture for Hypre matches with that of AMReX. By default, Hypre assumes its architecture number to be 70 and it is best to build Hypre for multiple architectures by specifying multiple compute capability numbers (e.g. 80 and 90).
+To use Hypre with CUDA, nvcc compiler is needed along with all other requirements for CPU (e.g. gcc, mpicc). It is very important that the GPU architecture for Hypre matches with that of AMReX. By default, Hypre assumes its architecture number to be 70 and it is best to build Hypre for multiple architectures by specifying multiple compute capability numbers (e.g. 80 and 90). If you see a runtime error similar to
+``terminate called after throwing an instance of 'thrust::system::system_error'``, you likely did not build for the correct architecture.
 
 ::
 
     1.- git clone https://github.com/hypre-space/hypre.git
     2.- cd hypre/src
-    3.- ./configure --with-cuda -—with-gpu-arch=’80 90'
+    3.- git checkout v2.32.0
+    4.- ./configure --with-cuda --with-gpu-arch='80 90' --enable-unified-memory
         (you can figure out the gpu arch from command line using
         nvidia-smi --query-gpu=compute_cap --format=csv, if it gives 9.0, gpu-arch is 90)
-    4.- make install
-    5.- Create an environment variable with the HYPRE directory --
+    5.- make install
+    6.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
 To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system.
@@ -699,7 +706,7 @@ the following cross-terms are evaluated separately using the ``MLTensorOp`` and 
 
     (\eta u_y)_x + ( (\kappa - \frac{2}{3} \eta) (u_x + w_z) )_y  + (\eta w_y)_z
 
-    (\eta u_z)_x + (\eta v_z)_y - ( (\kappa - \frac{2}{3} \eta) (u_x + v_y) )_z
+    (\eta u_z)_x + (\eta v_z)_y + ( (\kappa - \frac{2}{3} \eta) (u_x + v_y) )_z
 
 The code below is an example of how to set up the solver to compute the
 viscous term `divtau` explicitly:

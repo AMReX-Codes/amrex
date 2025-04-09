@@ -78,7 +78,7 @@ void MLCurlCurl::setBeta (const Vector<Array<MultiFab const*,3>>& a_bcoefs)
                                    *m_bcoefs[amrlev][mglev  ][idim], ratio);
                 m_bcoefs[amrlev][mglev][idim]->FillBoundary(m_geom[amrlev][mglev].periodicity());
             }
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM < 3)
             if (m_bcoefs[amrlev][mglev][2] == nullptr) {
                 m_bcoefs[amrlev][mglev][2] = std::make_unique<MultiFab>
                     (amrex::convert(m_grids[amrlev][mglev], m_etype[2]),
@@ -86,6 +86,15 @@ void MLCurlCurl::setBeta (const Vector<Array<MultiFab const*,3>>& a_bcoefs)
             }
             average_down_nodal(*m_bcoefs[amrlev][mglev-1][2],
                                *m_bcoefs[amrlev][mglev  ][2], ratio);
+#endif
+#if (AMREX_SPACEDIM == 1)
+            if (m_bcoefs[amrlev][mglev][1] == nullptr) {
+                m_bcoefs[amrlev][mglev][1] = std::make_unique<MultiFab>
+                    (amrex::convert(m_grids[amrlev][mglev], m_etype[1]),
+                     m_dmap[amrlev][mglev], 1, 0);
+            }
+            average_down_nodal(*m_bcoefs[amrlev][mglev-1][1],
+                               *m_bcoefs[amrlev][mglev  ][1], ratio);
 #endif
         }
     }
@@ -218,8 +227,8 @@ void MLCurlCurl::interpolation (int amrlev, int fmglev, MF& fine,
                 mlcurlcurl_interpadd(idim,i,j,k,finema[bno],crsema[bno]);
             }
         });
+        Gpu::streamSynchronize();
     }
-    Gpu::streamSynchronize();
 }
 
 void
@@ -310,21 +319,82 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
 }
 
 void MLCurlCurl::smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
-                         bool skip_fillboundary) const
+                         bool skip_fillboundary, int niter) const
 {
     AMREX_ASSERT(rhs[0].nGrowVect().allGE(1));
 
     applyBC(amrlev, mglev, const_cast<MF&>(rhs), CurlCurlStateType::b);
+#if (AMREX_SPACEDIM == 1)
+    int ncolors = 2;
+#else
+    int ncolors = 4;
+#endif
 
-    for (int color = 0; color < 4; ++color) {
-        if (!skip_fillboundary) {
-            applyBC(amrlev, mglev, sol, CurlCurlStateType::x);
+    for (int i = 0; i < niter; ++i) {
+        for (int color = 0; color < ncolors; ++color) {
+            if (!skip_fillboundary) {
+                applyBC(amrlev, mglev, sol, CurlCurlStateType::x);
+            }
+            skip_fillboundary = false;
+#if (AMREX_SPACEDIM == 1)
+            smooth1D(amrlev, mglev, sol, rhs, color);
+#else
+            smooth4(amrlev, mglev, sol, rhs, color);
+#endif
         }
-        skip_fillboundary = false;
-        smooth4(amrlev, mglev, sol, rhs, color);
     }
 }
 
+#if (AMREX_SPACEDIM == 1)
+void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
+                           int color) const
+{
+    auto const& ex = sol[0].arrays();
+    auto const& ey = sol[1].arrays();
+    auto const& ez = sol[2].arrays();
+    auto const& rhsx = rhs[0].const_arrays();
+    auto const& rhsy = rhs[1].const_arrays();
+    auto const& rhsz = rhs[2].const_arrays();
+
+    auto b = m_beta;
+
+    auto dinfo = getDirichletInfo(amrlev,mglev);
+    auto adxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        adxinv[idim] *= std::sqrt(m_alpha);
+    }
+
+    int xhi = this->m_geom[amrlev][mglev].Domain().bigEnd(0);
+
+    MultiFab nmf(amrex::convert(rhs[0].boxArray(),IntVect(1)),
+                 rhs[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
+
+    if (m_bcoefs[amrlev][mglev][0]) {
+        auto const& bcx = m_bcoefs[amrlev][mglev][0]->const_arrays();
+        auto const& bcy = m_bcoefs[amrlev][mglev][1]->const_arrays();
+        auto const& bcz = m_bcoefs[amrlev][mglev][2]->const_arrays();
+        ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
+        {
+            bool valid_x = i <= xhi; // x is cell-centered, not nodal
+            mlcurlcurl_1D(i,j,k,ex[bno],ey[bno],ez[bno],
+                          rhsx[bno],rhsy[bno],rhsz[bno],
+                          bcx[bno],bcy[bno],bcz[bno],
+                          adxinv,color,dinfo,valid_x);
+        });
+    } else {
+        ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
+        {
+            bool valid_x = i <= xhi; // x is cell-centered, not nodal
+            mlcurlcurl_1D(i,j,k,ex[bno],ey[bno],ez[bno],
+                          rhsx[bno],rhsy[bno],rhsz[bno],
+                          b,adxinv,color,dinfo,valid_x);
+        });
+    }
+    Gpu::streamSynchronize();
+}
+#endif
+
+#if (AMREX_SPACEDIM > 1)
 void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
                           int color) const
 {
@@ -386,6 +456,7 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
     }
     Gpu::streamSynchronize();
 }
+#endif
 
 void MLCurlCurl::solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
                                    const MF* /*crse_bcdata*/)
@@ -453,6 +524,7 @@ void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
 
 void MLCurlCurl::prepareForSolve ()
 {
+#if (AMREX_SPACEDIM > 1)
     if (m_bcoefs[0][0][0] == nullptr) {
         for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev) {
             for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
@@ -536,6 +608,7 @@ void MLCurlCurl::prepareForSolve ()
             }
         }
     }
+#endif
 }
 
 Real MLCurlCurl::xdoty (int amrlev, int mglev, const MF& x, const MF& y,
@@ -633,6 +706,10 @@ void MLCurlCurl::applyBC (int amrlev, int mglev, MF& in, CurlCurlStateType type)
 #if (AMREX_SPACEDIM == 2)
     if (CurlCurlStateType::b == type) {
         nmfs = 2; // no need to applyBC on Ez
+    }
+#elif (AMREX_SPACEDIM == 1)
+    if (CurlCurlStateType::b == type) {
+        nmfs = 1; // no need to applyBC on Ey and Ez
     }
 #endif
     Vector<MultiFab*> mfs(nmfs);
@@ -798,6 +875,10 @@ CurlCurlDirichletInfo MLCurlCurl::getDirichletInfo (int amrlev, int mglev) const
         if (idim == 2) {
             return std::numeric_limits<int>::lowest();
         }
+#elif (AMREX_SPACEDIM == 1)
+        if (idim > 0) {
+            return std::numeric_limits<int>::lowest();
+        }
 #endif
 
         if (face == 0) {
@@ -830,6 +911,10 @@ CurlCurlSymmetryInfo MLCurlCurl::getSymmetryInfo (int amrlev, int mglev) const
     {
 #if (AMREX_SPACEDIM == 2)
         if (idim == 2) {
+            return std::numeric_limits<int>::lowest();
+        }
+#elif (AMREX_SPACEDIM == 1)
+        if (idim > 0) {
             return std::numeric_limits<int>::lowest();
         }
 #endif

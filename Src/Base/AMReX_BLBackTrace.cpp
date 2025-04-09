@@ -31,12 +31,14 @@
 #include <cxxabi.h>
 #include <dlfcn.h>
 #define AMREX_BACKTRACE_SUPPORTED 1
-#elif defined(__linux__)
+#elif defined(__linux__) && defined(__GLIBC__)
 #define AMREX_BACKTRACE_SUPPORTED 1
 #endif
 
 #ifndef _WIN32
-#include <execinfo.h>
+#  if defined(__GLIBC__) || defined(__APPLE__)
+#    include <execinfo.h>
+#  endif
 #include <unistd.h>
 #endif
 

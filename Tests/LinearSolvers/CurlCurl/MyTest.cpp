@@ -65,11 +65,6 @@ MyTest::solve ()
         GMRESMLMGT<V> gmsolver(mlmg);
         gmsolver.usePrecond(gmres_use_precond);
         gmsolver.setPrecondNumIters(gmres_precond_niters);
-
-        // This system has homogeneous BC unlike
-        // Tests/LinearSolvers/ABecLaplacian_C, so the setup is simpler.
-        gmsolver.setPropertyOfZero(true);
-
         gmsolver.setVerbose(verbose);
         gmsolver.solve(solution, rhs, tol_rel, tol_abs);
     }
@@ -135,7 +130,7 @@ MyTest::initData ()
 
     for (int idim = 0; idim < 3; ++idim) {
         IntVect itype(1);
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM < 3)
         if (idim < AMREX_SPACEDIM)
 #endif
         {

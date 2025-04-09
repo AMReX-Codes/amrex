@@ -612,9 +612,9 @@ while ( false )
     */
     inline int SeqNum () noexcept { return ParallelContext::get_inc_mpi_tag(); }
 
-    template <class T> Message Asend(const T*, size_t n, int pid, int tag);
-    template <class T> Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);
-    template <class T> Message Asend(const std::vector<T>& buf, int pid, int tag);
+    template <class T> [[nodiscard]] Message Asend(const T*, size_t n, int pid, int tag);
+    template <class T> [[nodiscard]] Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);
+    template <class T> [[nodiscard]] Message Asend(const std::vector<T>& buf, int pid, int tag);
 
     template <class T> Message Arecv(T*, size_t n, int pid, int tag);
     template <class T> Message Arecv(T*, size_t n, int pid, int tag, MPI_Comm comm);

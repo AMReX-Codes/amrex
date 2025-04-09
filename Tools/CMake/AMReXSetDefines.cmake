@@ -62,7 +62,7 @@ endif()
 if (AMReX_HIP)
    add_amrex_define( AMREX_USE_HIP NO_LEGACY )
    add_amrex_define( NDEBUG )  # This address a bug that causes slow build times
-   if (${AMReX_AMD_ARCH} MATCHES "gfx10.*")
+   if (${AMReX_AMD_ARCH} MATCHES "gfx1[01].*")
       add_amrex_define( AMREX_AMDGCN_WAVEFRONT_SIZE=32 NO_LEGACY )
    else ()
       add_amrex_define( AMREX_AMDGCN_WAVEFRONT_SIZE=64 NO_LEGACY )

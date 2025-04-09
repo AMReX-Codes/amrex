@@ -103,6 +103,11 @@ if (AMReX_CUDA_KEEP_FILES)
     string(APPEND CMAKE_CUDA_FLAGS " --keep --keep-dir ${PROJECT_BINARY_DIR}/nvcc_tmp")
 endif ()
 
+# place intermediate files in object file folder
+if (AMReX_CUDA_OBJDIR_AS_TEMPDIR)
+    string(APPEND CMAKE_CUDA_FLAGS " --objdir-as-tempdir")
+endif ()
+
 # compilation timings
 if (AMReX_CUDA_COMPILATION_TIMER)
     file(REMOVE "${PROJECT_BINARY_DIR}/nvcc_timings.csv")

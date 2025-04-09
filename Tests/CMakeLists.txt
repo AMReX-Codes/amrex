@@ -117,13 +117,17 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
       add_subdirectory("LinearSolvers/ABecLaplacian_C")
    endif()
 
+   if (AMReX_FFT)
+      add_subdirectory("FFT/Poisson")
+   endif()
+
 else()
    #
    # List of subdirectories to search for CMakeLists.
    #
    set( AMREX_TESTS_SUBDIRS Amr AsyncOut CLZ CTOParFor DeviceGlobal Enum
                             MultiBlock MultiPeriod ParmParse Parser Parser2 Reinit
-                            RoundoffDomain)
+                            RoundoffDomain SmallMatrix)
 
    if (AMReX_PARTICLES)
      list(APPEND AMREX_TESTS_SUBDIRS Particles)
@@ -134,7 +138,11 @@ else()
    endif ()
 
    if (AMReX_LINEAR_SOLVERS)
-      list(APPEND AMREX_TESTS_SUBDIRS LinearSolvers)
+      list(APPEND AMREX_TESTS_SUBDIRS Algebra LinearSolvers)
+   endif ()
+
+   if (AMReX_FFT)
+      list(APPEND AMREX_TESTS_SUBDIRS FFT)
    endif ()
 
    if (AMReX_HDF5)

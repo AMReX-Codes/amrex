@@ -7,9 +7,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
   castro:
     name: Castro
     runs-on: ubuntu-latest
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Get Latest Release Tag
@@ -52,7 +57,9 @@ jobs:
         export AMREX_HOME=${PWD}
         export MICROPHYSICS_HOME=${PWD}/Microphysics
         cd Castro/Exec/hydro_tests/Sedov/
-        make -j4 CCACHE=ccache USE_MPI=FALSE
+        make -j4 CCACHE=ccache USE_MPI=FALSE \
+            USE_LINEAR_SOLVERS_INCFLO=FALSE \
+            USE_LINEAR_SOLVERS_EM=FALSE
 
         ccache -s
         du -hs ~/.cache/ccache
@@ -60,12 +67,14 @@ jobs:
   warpx:
     name: WarpX
     runs-on: ubuntu-latest
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Download WarpX
       uses: actions/checkout@v4
       with:
-        repository: 'ECP-WarpX/WarpX'
+        repository: 'BLAST-WarpX/warpx'
         ref: development
         path: 'WarpX'
     - name: Dependencies
@@ -92,7 +101,8 @@ jobs:
             -DWarpX_QED=OFF                       \
             -DWarpX_OPENPMD=OFF                   \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache  \
+            -DAMReX_FFT=ON
         cmake --build WarpX/build -j 4
 
         ccache -s
@@ -101,6 +111,8 @@ jobs:
   pyamrex:
     name: pyamrex
     runs-on: ubuntu-latest
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v4
     - name: Checkout pyamrex
@@ -128,7 +140,7 @@ jobs:
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         ccache -z
 
-        python3 -m pip install -U pip setuptools wheel
+        python3 -m pip install -U pip setuptools[core] wheel
         python3 -m pip install -U cmake
         python3 -m pip install -U pandas pytest mpi4py
 

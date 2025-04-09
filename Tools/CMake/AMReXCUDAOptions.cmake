@@ -102,3 +102,6 @@ cuda_print_option(AMReX_CUDA_BACKTRACE)
 
 option(AMReX_CUDA_KEEP_FILES "Keep intermediately generated files (folder: nvcc_tmp)" OFF)
 cuda_print_option(AMReX_CUDA_KEEP_FILES)
+
+option(AMReX_CUDA_OBJDIR_AS_TEMPDIR "Place intermediate files in object file folder" OFF)
+cuda_print_option(AMReX_CUDA_OBJDIR_AS_TEMPDIR)

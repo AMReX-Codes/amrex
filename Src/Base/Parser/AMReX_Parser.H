@@ -99,13 +99,14 @@ private:
         std::string m_expression;
         struct amrex_parser* m_parser = nullptr;
         int m_nvars = 0;
-        mutable char* m_host_executor = nullptr;
+        bool m_use_arena = true;
+        char* m_host_executor = nullptr;
 #ifdef AMREX_USE_GPU
-        mutable char* m_device_executor = nullptr;
+        char* m_device_executor = nullptr;
 #endif
-        mutable int m_max_stack_size = 0;
-        mutable int m_exe_size = 0;
-        mutable Vector<char const*> m_locals;
+        int m_max_stack_size = 0;
+        int m_exe_size = 0;
+        Vector<char const*> m_locals;
         Data () = default;
         ~Data ();
         Data (Data const&) = delete;
@@ -142,6 +143,10 @@ Parser::compileHost () const
             }
 
             m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(m_data->m_exe_size);
+            if (m_data->m_host_executor == nullptr) { // Arena is not ready yet
+                m_data->m_host_executor = (char*) std::malloc(m_data->m_exe_size);
+                m_data->m_use_arena = false;
+            }
 
             try {
                 m_data->m_locals = parser_compile(m_data->m_parser,
@@ -169,7 +174,9 @@ Parser::compile () const
     auto exe = compileHost<N>();
 
 #ifdef AMREX_USE_GPU
-    if (m_data && m_data->m_parser && !(m_data->m_device_executor)) {
+    if (m_data && m_data->m_parser && !(m_data->m_device_executor)
+        && m_data->m_use_arena)
+    {
         m_data->m_device_executor = (char*)The_Arena()->alloc(m_data->m_exe_size);
         Gpu::htod_memcpy_async(m_data->m_device_executor, m_data->m_host_executor,
                                m_data->m_exe_size);

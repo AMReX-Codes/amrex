@@ -96,8 +96,11 @@ struct ParticleCopyPlan
     mutable Vector<MPI_Status> m_build_stats;
     mutable Vector<MPI_Request> m_build_rreqs;
 
-    mutable Vector<MPI_Status> m_particle_stats;
+    mutable Vector<MPI_Status> m_particle_rstats;
     mutable Vector<MPI_Request> m_particle_rreqs;
+
+    mutable Vector<MPI_Status> m_particle_sstats;
+    mutable Vector<MPI_Request> m_particle_sreqs;
 
     Vector<Long> m_snd_num_particles;
     Vector<Long> m_rcv_num_particles;
@@ -154,7 +157,12 @@ struct ParticleCopyPlan
         m_box_counts_d.resize(num_buckets+1, 0);
         m_box_offsets.resize(num_buckets+1);
         auto* p_dst_box_counts = m_box_counts_d.dataPtr();
-        auto getBucket = pc.BufferMap().getBucketFunctor();
+        auto getBucket = pc.stableRedistribute() ? pc.BufferMap().getHostBucketFunctor() : pc.BufferMap().getBucketFunctor();
+
+        Gpu::HostVector<unsigned int> h_box_counts;
+        if (pc.stableRedistribute() ) {
+            h_box_counts.resize(m_box_counts_d.size(), 0);
+        }
 
         m_dst_indices.resize(num_levels);
         for (int lev = 0; lev < num_levels; ++lev)
@@ -166,22 +174,47 @@ struct ParticleCopyPlan
                 if (num_copies == 0) { continue; }
                 m_dst_indices[lev][gid].resize(num_copies);
 
-                const auto* p_boxes = op.m_boxes[lev].at(gid).dataPtr();
-                const auto* p_levs = op.m_levels[lev].at(gid).dataPtr();
-                auto* p_dst_indices = m_dst_indices[lev][gid].dataPtr();
+                if (pc.stableRedistribute()) {
+                    const Gpu::DeviceVector<int>& d_boxes = op.m_boxes[lev].at(gid);
+                    Gpu::HostVector<int> h_boxes(d_boxes.size());
+                    Gpu::copy(Gpu::deviceToHost,d_boxes.begin(),d_boxes.end(),h_boxes.begin());
 
-                AMREX_FOR_1D ( num_copies, i,
-                {
-                    int dst_box = p_boxes[i];
-                    if (dst_box >= 0)
-                    {
-                        int dst_lev = p_levs[i];
-                        int index = static_cast<int>(Gpu::Atomic::Add(
-                            &p_dst_box_counts[getBucket(dst_lev, dst_box)], 1U));
-                        p_dst_indices[i] = index;
+                    const Gpu::DeviceVector<int>& d_levs = op.m_levels[lev].at(gid);
+                    Gpu::HostVector<int> h_levs(d_levs.size());
+                    Gpu::copy(Gpu::deviceToHost,d_levs.begin(),d_levs.end(),h_levs.begin());
+
+                    Gpu::HostVector<int> h_dst_indices(num_copies);
+                    for (int i = 0; i < num_copies; ++i) {
+                        int dst_box = h_boxes[i];
+                        if (dst_box >= 0) {
+                            int dst_lev = h_levs[i];
+                            int index = static_cast<int>(h_box_counts[getBucket(dst_lev, dst_box)]++);
+                            h_dst_indices[i] = index;
+                        }
                     }
-                });
+                    Gpu::copy(Gpu::hostToDevice,h_dst_indices.begin(),h_dst_indices.end(),m_dst_indices[lev][gid].begin());
+                }
+                else {
+                    const auto* p_boxes = op.m_boxes[lev].at(gid).dataPtr();
+                    const auto* p_levs = op.m_levels[lev].at(gid).dataPtr();
+                    auto* p_dst_indices = m_dst_indices[lev][gid].dataPtr();
+                    AMREX_FOR_1D ( num_copies, i,
+                    {
+                        int dst_box = p_boxes[i];
+                        if (dst_box >= 0)
+                        {
+                            int dst_lev = p_levs[i];
+                            int index = static_cast<int>(Gpu::Atomic::Add(
+                                &p_dst_box_counts[getBucket(dst_lev, dst_box)], 1U));
+                            p_dst_indices[i] = index;
+                        }
+                    });
+                }
             }
+        }
+
+        if (pc.stableRedistribute()) {
+            Gpu::copy(Gpu::hostToDevice,h_box_counts.begin(),h_box_counts.end(),m_box_counts_d.begin());
         }
 
         amrex::Gpu::exclusive_scan(m_box_counts_d.begin(), m_box_counts_d.end(),
@@ -211,7 +244,11 @@ struct ParticleCopyPlan
         int NStructInt  = PC::ParticleContainerType::NStructInt;
 
         int num_real_comm_comp = 0;
-        for (int i = AMREX_SPACEDIM + NStructReal; i < real_comp_mask.size(); ++i) {
+        int comm_comps_start = 0;
+        if constexpr (!PC::ParticleType::is_soa_particle) {
+            comm_comps_start += AMREX_SPACEDIM + NStructReal;
+        }
+        for (int i = comm_comps_start; i < real_comp_mask.size(); ++i) {
             if (real_comp_mask[i]) {++num_real_comm_comp;}
         }
 
@@ -503,11 +540,14 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
 
     plan.m_nrcvs = int(RcvProc.size());
 
-    plan.m_particle_stats.resize(0);
-    plan.m_particle_stats.resize(plan.m_nrcvs);
+    plan.m_particle_rstats.resize(0);
+    plan.m_particle_rstats.resize(plan.m_nrcvs);
 
     plan.m_particle_rreqs.resize(0);
     plan.m_particle_rreqs.resize(plan.m_nrcvs);
+
+    plan.m_particle_sstats.resize(0);
+    plan.m_particle_sreqs.resize(0);
 
     const int SeqNum = ParallelDescriptor::SeqNum();
 
@@ -541,9 +581,11 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
         AMREX_ASSERT(plan.m_snd_counts[i] % ParallelDescriptor::sizeof_selected_comm_data_type(plan.m_snd_num_particles[i]*psize) == 0);
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
 
-        ParallelDescriptor::Send((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
-                                 ParallelContext::CommunicatorSub());
+        plan.m_particle_sreqs.push_back(ParallelDescriptor::Asend((char const*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum,
+                                                                  ParallelContext::CommunicatorSub()).req());
     }
+
+    plan.m_particle_sstats.resize(plan.m_particle_sreqs.size());
 
     amrex::ignore_unused(pc);
 #else

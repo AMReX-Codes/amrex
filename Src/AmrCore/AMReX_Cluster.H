@@ -62,7 +62,7 @@ public:
     /**
     * \brief Does cluster contain any points?
     */
-    [[nodiscard]] bool ok () const noexcept { return m_ar != nullptr && m_len > 0; }
+    [[nodiscard]] bool ok () const noexcept { return m_bx.d_numPts() > 0. && m_ar != nullptr && m_len > 0; }
 
     /**
     * \brief Returns number of tagged points in cluster.

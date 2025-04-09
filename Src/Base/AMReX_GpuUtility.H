@@ -149,7 +149,10 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isnan (T m) noexcept
     {
-#if defined(AMREX_USE_SYCL)
+#if defined(_WIN32)
+        AMREX_IF_ON_DEVICE((return m != m;))
+        AMREX_IF_ON_HOST((return std::isnan(m);))
+#elif defined(AMREX_USE_SYCL)
         return sycl::isnan(m);
 #else
         return std::isnan(m);
@@ -160,7 +163,10 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isinf (T m) noexcept
     {
-#if defined(AMREX_USE_SYCL)
+#if defined(_WIN32)
+        AMREX_IF_ON_DEVICE((return (2*m == m) && (m != 0);))
+        AMREX_IF_ON_HOST((return std::isinf(m);))
+#elif defined(AMREX_USE_SYCL)
         return sycl::isinf(m);
 #else
         return std::isinf(m);

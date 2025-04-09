@@ -326,6 +326,11 @@ DistributionMapping::DistributionMapping (const BoxArray& boxes,
     define(boxes,nprocs);
 }
 
+DistributionMapping::DistributionMapping (std::shared_ptr<Ref> a_ref)
+    : m_ref(std::move(a_ref))
+{
+}
+
 DistributionMapping::DistributionMapping (const DistributionMapping& d1,
                                           const DistributionMapping& d2)
     :
@@ -644,6 +649,7 @@ knapsack (const std::vector<Long>&         wgts,
         }
     }
 
+    AMREX_ASSERT(nprocs > 0 && max_weight > Real(0));
     efficiency = sum_weight/(static_cast<Real>(nprocs)*max_weight);
 
     std::sort(wblv.begin(), wblv.end());
@@ -977,6 +983,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
                 }
             }
 
+            AMREX_ASSERT(max_weight > Real(0));
             new_efficiency = avg_weight / max_weight;
 
             if (new_efficiency < max_efficiency && wblv.size() > 1) {
@@ -1956,6 +1963,12 @@ DistributionMapping::getOwnerShip ()
         }
     }
     return m_ref->m_ownership;
+}
+
+std::weak_ptr<DMRef>
+DistributionMapping::getWeakRef () const
+{
+    return std::weak_ptr<DMRef>{m_ref};
 }
 
 std::ostream&

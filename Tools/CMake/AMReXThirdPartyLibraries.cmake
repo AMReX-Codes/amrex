@@ -1,4 +1,28 @@
 #
+# FFT
+#
+if (AMReX_FFT)
+    if (AMReX_CUDA)
+        find_package(CUDAToolkit REQUIRED)
+        foreach(D IN LISTS AMReX_SPACEDIM)
+            target_link_libraries(amrex_${D}d PUBLIC CUDA::cufft)
+        endforeach()
+    elseif (AMReX_HIP)
+        find_package(rocfft REQUIRED)
+        foreach(D IN LISTS AMReX_SPACEDIM)
+            target_link_libraries(amrex_${D}d PUBLIC roc::rocfft)
+        endforeach()
+    elseif (AMReX_SYCL)
+        # nothing to do
+    else()
+        find_package(AMReXFFTW REQUIRED)
+        foreach(D IN LISTS AMReX_SPACEDIM)
+            target_link_libraries(amrex_${D}d PUBLIC AMReX::FFTW)
+        endforeach()
+    endif()
+endif()
+
+#
 # HDF5 -- here it would be best to create an imported target
 #
 if (AMReX_HDF5)

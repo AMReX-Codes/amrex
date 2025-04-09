@@ -3,9 +3,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_MultiCutFab.H>
-
 #include <AMReX_EB2_Level.H>
-#include <algorithm>
+#include <AMReX_Algorithm.H>
 #include <utility>
 
 namespace amrex {
@@ -128,13 +127,13 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
             amrex::ParallelFor(nbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (! level_nodal_domain.contains(i,j,k)) {
-                    int ii = std::clamp(i, level_nodal_domain.smallEnd(0),
-                                           level_nodal_domain.bigEnd(0));
-                    int jj = std::clamp(j, level_nodal_domain.smallEnd(1),
-                                           level_nodal_domain.bigEnd(1));
+                    int ii = amrex::Clamp(i, level_nodal_domain.smallEnd(0),
+                                             level_nodal_domain.bigEnd  (0));
+                    int jj = amrex::Clamp(j, level_nodal_domain.smallEnd(1),
+                                             level_nodal_domain.bigEnd  (1));
 #if (AMREX_SPACEDIM > 2)
-                    int kk = std::clamp(k, level_nodal_domain.smallEnd(2),
-                                           level_nodal_domain.bigEnd(2));
+                    int kk = amrex::Clamp(k, level_nodal_domain.smallEnd(2),
+                                             level_nodal_domain.bigEnd  (2));
 #else
                     int kk = 0;
 #endif
@@ -145,13 +144,13 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
             {
                 if (! level_domain.contains(i,j,k)) {
                     EBCellFlag flag;
-                    int ii = std::clamp(i, level_domain.smallEnd(0),
-                                           level_domain.bigEnd(0));
-                    int jj = std::clamp(j, level_domain.smallEnd(1),
-                                           level_domain.bigEnd(1));
+                    int ii = amrex::Clamp(i, level_domain.smallEnd(0),
+                                             level_domain.bigEnd  (0));
+                    int jj = amrex::Clamp(j, level_domain.smallEnd(1),
+                                             level_domain.bigEnd  (1));
 #if (AMREX_SPACEDIM > 2)
-                    int kk = std::clamp(k, level_domain.smallEnd(2),
-                                           level_domain.bigEnd(2));
+                    int kk = amrex::Clamp(k, level_domain.smallEnd(2),
+                                             level_domain.bigEnd  (2));
 #else
                     int kk = 0;
 #endif

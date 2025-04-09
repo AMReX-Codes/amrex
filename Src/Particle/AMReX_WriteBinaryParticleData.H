@@ -6,6 +6,8 @@
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_GpuDevice.H>
 
+namespace amrex {
+
 struct KeepValidFilter
 {
     template <typename SrcData>
@@ -167,7 +169,7 @@ void packParticleIDs (I* idata, const P& p, bool is_checkpoint) noexcept
 }
 
 template <class PC>
-std::enable_if_t<RunOnGpu<typename PC::template AllocatorType<int>>::value>
+std::enable_if_t<RunOnGpu<typename PC::template AllocatorType<int>>::value, void>
 packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int lev, int grid,
             const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
             const Vector<std::map<std::pair<int, int>, typename PC::IntVector>>& particle_io_flags,
@@ -277,7 +279,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
 }
 
 template <class PC>
-std::enable_if_t<!RunOnGpu<typename PC::template AllocatorType<int>>::value>
+std::enable_if_t<!RunOnGpu<typename PC::template AllocatorType<int>>::value, void>
 packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int lev, int grid,
             const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
             const Vector<std::map<std::pair<int, int>, typename PC::IntVector>>& particle_io_flags,
@@ -1024,7 +1026,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     {
                         const auto& soa  = pbox.GetStructOfArrays();
 
-                        const auto& p = make_particle<typename PC::ConstParticleType>{}(ptd, pindex);
+                        make_particle<typename PC::ConstParticleType> mp{};
+                        const auto& p = mp(ptd, pindex);
                         if (p.id() <= 0) { continue; }
 
                         // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct
@@ -1101,7 +1104,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                          pindex < pbox.numParticles(); ++pindex)
                     {
                         const auto& soa  = pbox.GetStructOfArrays();
-                        const auto& p = make_particle<typename PC::ConstParticleType>{}(ptd, pindex);
+                        make_particle<typename PC::ConstParticleType> mp{};
+                        const auto& p = mp(ptd, pindex);
 
                         if (p.id() <= 0) { continue; }
 
@@ -1154,6 +1158,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
         }
         AsyncOut::Notify();  // Notify others I am done
     });
+}
+
 }
 
 #ifdef AMREX_USE_HDF5

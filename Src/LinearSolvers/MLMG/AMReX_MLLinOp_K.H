@@ -1053,6 +1053,15 @@ void mllinop_apply_innu_zhi (int i, int j, int k,
     }
 }
 
+#ifdef AMREX_USE_EB
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real get_dx_eb (Real kappa) noexcept {
+    return amrex::max(Real(0.3),(kappa*kappa-Real(0.25))/(Real(2.0)*kappa));
+}
+
+#endif
+
 }
 
 #endif

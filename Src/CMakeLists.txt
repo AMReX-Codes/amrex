@@ -136,6 +136,10 @@ if (AMReX_PARTICLES)
    add_subdirectory(Particle)
 endif ()
 
+if (AMReX_FFT)
+   add_subdirectory(FFT)
+endif ()
+
 #
 # Optional external components
 #

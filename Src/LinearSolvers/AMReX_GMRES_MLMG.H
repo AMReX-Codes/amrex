@@ -4,6 +4,7 @@
 
 #include <AMReX_GMRES.H>
 #include <AMReX_MLMG.H>
+#include <AMReX_TypeTraits.H>
 #include <utility>
 
 namespace amrex {
@@ -19,9 +20,10 @@ template <typename MF>
 class GMRESMLMGT
 {
 public:
+    using VEC = Vector<MF>;
     using MG = MLMGT<MF>;
     using RT = typename MG::RT; // double or float
-    using GM = GMRES<MF,GMRESMLMGT<MF>>;
+    using GM = GMRES<Vector<MF>,GMRESMLMGT<MF>>;
 
     explicit GMRESMLMGT (MG& mlmg);
 
@@ -35,8 +37,13 @@ public:
      */
     void solve (MF& a_sol, MF const& a_rhs, RT a_tol_rel, RT a_tol_abs);
 
+    void solve (Vector<MF*> const& a_sol, Vector<MF const*> const& a_rhs, RT a_tol_rel, RT a_tol_abs);
+
     //! Sets verbosity.
-    void setVerbose (int v) { m_gmres.setVerbose(v); }
+    void setVerbose (int v) {
+        m_verbose = v;
+        m_gmres.setVerbose(v);
+    }
 
     //! Sets the max number of iterations
     void setMaxIters (int niters) { m_gmres.setMaxIters(niters); }
@@ -50,46 +57,34 @@ public:
     //! Get the GMRES object.
     GM& getGMRES () { return m_gmres; }
 
-    /**
-     * \brief Set MLMG's multiplicative property of zero
-     *
-     * This should NOT be called unless MLMG has the multiplicative property
-     * of zero. MLMG is not a matrix, and usually does not have the
-     * properties of a matrix such as the multiplicative property of zero
-     * (i.e., M*0=0) because how domain boundary conditions are
-     * handled. However, if MLMG has the property of zero, calling this
-     * function with true can have a small performance benefit.
-     */
-    void setPropertyOfZero (bool b) { m_prop_zero = b; }
-
     //! Make MultiFab without ghost cells
-    MF makeVecRHS () const;
+    VEC makeVecRHS () const;
 
     //! Make MultiFab with ghost cells and set ghost cells to zero
-    MF makeVecLHS () const;
+    VEC makeVecLHS () const;
 
-    RT norm2 (MF const& mf) const;
+    RT norm2 (VEC const& mf) const;
 
-    static void scale (MF& mf, RT scale_factor);
+    static void scale (VEC& mf, RT scale_factor);
 
-    RT dotProduct (MF const& mf1, MF const& mf2) const;
+    RT dotProduct (VEC const& mf1, VEC const& mf2) const;
 
     //! lhs = 0
-    static void setToZero (MF& lhs);
+    static void setToZero (VEC& lhs);
 
     //! lhs = rhs
-    static void assign (MF& lhs, MF const& rhs);
+    static void assign (VEC& lhs, VEC const& rhs);
 
     //! lhs += a*rhs
-    static void increment (MF& lhs, MF const& rhs, RT a);
+    static void increment (VEC& lhs, VEC const& rhs, RT a);
 
     //! lhs = a*rhs_a + b*rhs_b
-    static void linComb (MF& lhs, RT a, MF const& rhs_a, RT b, MF const& rhs_b);
+    static void linComb (VEC& lhs, RT a, VEC const& rhs_a, RT b, VEC const& rhs_b);
 
     //! lhs = L(rhs)
-    void apply (MF& lhs, MF const& rhs) const;
+    void apply (VEC& lhs, VEC const& rhs) const;
 
-    void precond (MF& lhs, MF const& rhs) const;
+    void precond (VEC& lhs, VEC const& rhs) const;
 
     //! Control whether or not to use MLMG as preconditioner.
     bool usePrecond (bool new_flag) { return std::exchange(m_use_precond, new_flag); }
@@ -101,132 +96,170 @@ private:
     GM m_gmres;
     MG* m_mlmg;
     MLLinOpT<MF>* m_linop;
+    int m_verbose = 0;
+    int m_nlevels = 0;
     bool m_use_precond = true;
-    bool m_prop_zero = false;
     int m_precond_niters = 1;
 };
 
 template <typename MF>
 GMRESMLMGT<MF>::GMRESMLMGT (MG& mlmg)
-    : m_mlmg(&mlmg), m_linop(&mlmg.getLinOp())
+    : m_mlmg(&mlmg), m_linop(&mlmg.getLinOp()), m_nlevels(m_linop->NAMRLevels())
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_linop->NAMRLevels() == 1,
-                                     "Only support single level solve");
-    m_mlmg->setVerbose(0);
-    m_mlmg->setBottomVerbose(0);
-    m_mlmg->prepareForGMRES();
+    m_mlmg->preparePrecond();
     m_gmres.define(*this);
 }
 
 template <typename MF>
-auto GMRESMLMGT<MF>::makeVecRHS () const -> MF
+auto GMRESMLMGT<MF>::makeVecRHS () const -> VEC
 {
-    return m_linop->make(0, 0, IntVect(0));
+    VEC vmf(m_nlevels);
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        vmf[ilev] = m_linop->make(ilev, 0, IntVect(0));
+    }
+    return vmf;
 }
 
 template <typename MF>
-auto GMRESMLMGT<MF>::makeVecLHS () const -> MF
+auto GMRESMLMGT<MF>::makeVecLHS () const -> VEC
 {
-    auto mf = m_linop->make(0, 0, IntVect(1));
-    setBndry(mf, RT(0), 0, nComp(mf));
-    return mf;
+    VEC vmf(m_nlevels);
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        vmf[ilev] = m_linop->make(ilev, 0, IntVect(1));
+        setBndry(vmf[ilev], RT(0), 0, nComp(vmf[ilev]));
+    }
+    return vmf;
 }
 
 template <typename MF>
-auto GMRESMLMGT<MF>::norm2 (MF const& mf) const -> RT
+auto GMRESMLMGT<MF>::norm2 (VEC const& mf) const -> RT
 {
-    auto r = m_linop->xdoty(0, 0, mf, mf, false);
-    return std::sqrt(r);
+    return m_linop->norm2Precond(GetVecOfConstPtrs(mf));
 }
 
 template <typename MF>
-void GMRESMLMGT<MF>::scale (MF& mf, RT scale_factor)
+void GMRESMLMGT<MF>::scale (VEC& mf, RT scale_factor)
 {
-    Scale(mf, scale_factor, 0, nComp(mf), 0);
+    for (auto& xmf : mf) {
+        Scale(xmf, scale_factor, 0, nComp(xmf), 0);
+    }
 }
 
 template <typename MF>
-auto GMRESMLMGT<MF>::dotProduct (MF const& mf1, MF const& mf2) const -> RT
+auto GMRESMLMGT<MF>::dotProduct (VEC const& mf1, VEC const& mf2) const -> RT
 {
-    return m_linop->xdoty(0, 0, mf1, mf2, false);
+    return m_linop->dotProductPrecond(GetVecOfConstPtrs(mf1), GetVecOfConstPtrs(mf2));
 }
 
 template <typename MF>
-void GMRESMLMGT<MF>::setToZero (MF& lhs)
+void GMRESMLMGT<MF>::setToZero (VEC& lhs)
 {
-    setVal(lhs, RT(0.0));
+    for (auto& xmf : lhs) {
+        setVal(xmf, RT(0.0));
+    }
 }
 
 template <typename MF>
-void GMRESMLMGT<MF>::assign (MF& lhs, MF const& rhs)
+void GMRESMLMGT<MF>::assign (VEC& lhs, VEC const& rhs)
 {
-    LocalCopy(lhs, rhs, 0, 0, nComp(lhs), IntVect(0));
+    auto nlevels = int(lhs.size());
+    for (int ilev = 0; ilev < nlevels; ++ilev) {
+        LocalCopy(lhs[ilev], rhs[ilev], 0, 0, nComp(lhs[ilev]), IntVect(0));
+    }
 }
 
 template <typename MF>
-void GMRESMLMGT<MF>::increment (MF& lhs, MF const& rhs, RT a)
+void GMRESMLMGT<MF>::increment (VEC& lhs, VEC const& rhs, RT a)
 {
-    Saxpy(lhs, a, rhs, 0, 0, nComp(lhs), IntVect(0));
+    auto nlevels = int(lhs.size());
+    for (int ilev = 0; ilev < nlevels; ++ilev) {
+        Saxpy(lhs[ilev], a, rhs[ilev], 0, 0, nComp(lhs[ilev]), IntVect(0));
+    }
 }
 
 template <typename MF>
-void GMRESMLMGT<MF>::linComb (MF& lhs, RT a, MF const& rhs_a, RT b, MF const& rhs_b)
+void GMRESMLMGT<MF>::linComb (VEC& lhs, RT a, VEC const& rhs_a, RT b, VEC const& rhs_b)
 {
-    LinComb(lhs, a, rhs_a, 0, b, rhs_b, 0, 0, nComp(lhs), IntVect(0));
+    auto nlevels = int(lhs.size());
+    for (int ilev = 0; ilev < nlevels; ++ilev) {
+        LinComb(lhs[ilev], a, rhs_a[ilev], 0, b, rhs_b[ilev], 0, 0, nComp(lhs[ilev]), IntVect(0));
+    }
 }
 
 template <typename MF>
-void GMRESMLMGT<MF>::apply (MF& lhs, MF const& rhs) const
+void GMRESMLMGT<MF>::apply (VEC& lhs, VEC const& rhs) const
 {
-    m_linop->apply(0, 0, lhs, const_cast<MF&>(rhs),
-                   MLLinOpT<MF>::BCMode::Homogeneous,
-                   MLLinOpT<MF>::StateMode::Correction);
+    m_mlmg->applyPrecond(GetVecOfPtrs(lhs), GetVecOfPtrs(const_cast<VEC&>(rhs)));
 }
 
 template <typename MF>
-void GMRESMLMGT<MF>::precond (MF& lhs, MF const& rhs) const
+void GMRESMLMGT<MF>::precond (VEC& lhs, VEC const& rhs) const
 {
     if (m_use_precond) {
-        m_mlmg->prepareMGcycle();
-
-        for (int icycle = 0; icycle < m_precond_niters; ++icycle) {
-            if (icycle == 0) {
-                LocalCopy(m_mlmg->res[0][0], rhs, 0, 0, nComp(rhs), IntVect(0));
-            } else {
-                m_mlmg->computeResOfCorrection(0,0);
-                LocalCopy(m_mlmg->res[0][0], m_mlmg->rescor[0][0], 0, 0, nComp(rhs), IntVect(0));
-            }
-
-            m_mlmg->mgVcycle(0,0);
-
-            if (icycle == 0) {
-                LocalCopy(lhs, m_mlmg->cor[0][0], 0, 0, nComp(rhs), IntVect(0));
-            } else {
-                increment(lhs, m_mlmg->cor[0][0], RT(1));
-            }
-        }
+        m_mlmg->setPrecondIter(m_precond_niters);
+        setToZero(lhs);
+        m_mlmg->precond(GetVecOfPtrs(lhs), GetVecOfConstPtrs(rhs), 0, 0);
     } else {
-        LocalCopy(lhs, rhs, 0, 0, nComp(lhs), IntVect(0));
+        for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+            LocalCopy(lhs[ilev], rhs[ilev], 0, 0, nComp(lhs[ilev]), IntVect(0));
+        }
     }
 }
 
 template <typename MF>
 void GMRESMLMGT<MF>::solve (MF& a_sol, MF const& a_rhs, RT a_tol_rel, RT a_tol_abs)
 {
-    if (m_prop_zero) {
-        auto rhs = makeVecRHS();
-        assign(rhs, a_rhs);
-        m_linop->setDirichletNodesToZero(0,0,rhs);
-        m_gmres.solve(a_sol, rhs, a_tol_rel, a_tol_abs);
-    } else {
-        auto res = makeVecRHS();
-        m_mlmg->apply({&res}, {&a_sol}); // res = L(sol)
-        increment(res, a_rhs, RT(-1)); // res = L(sol) - rhs
-        auto cor = makeVecLHS();
-        m_linop->setDirichletNodesToZero(0,0,res);
-        m_gmres.solve(cor, res, a_tol_rel, a_tol_abs); // L(cor) = res
-        increment(a_sol, cor, RT(-1)); // sol = sol - cor
+    AMREX_ALWAYS_ASSERT(m_nlevels == 1);
+    this->solve({&a_sol}, {&a_rhs}, a_tol_rel, a_tol_abs);
+}
+
+template <typename MF>
+void GMRESMLMGT<MF>::solve (Vector<MF*> const& a_sol, Vector<MF const*> const& a_rhs, RT a_tol_rel, RT a_tol_abs)
+{
+    m_mlmg->incPrintIdentation();
+    auto mlmg_verbose = m_mlmg->getVerbose();
+    auto mlmg_bottom_verbose = m_mlmg->getBottomVerbose();
+    m_mlmg->setVerbose(m_verbose);
+    auto mlmg_bottom_solver = m_mlmg->getBottomSolver();
+
+    if (mlmg_bottom_solver != BottomSolver::smoother &&
+        mlmg_bottom_solver != BottomSolver::hypre &&
+        mlmg_bottom_solver != BottomSolver::petsc)
+    {
+        m_mlmg->setBottomSolver(BottomSolver::smoother);
     }
+
+    auto res = makeVecLHS();
+    auto cor = makeVecLHS();
+
+    m_mlmg->apply(GetVecOfPtrs(res), a_sol); // res = L(sol)
+    // res = L(sol) - rhs
+    bool need_to_scale_rhs = m_linop->scaleRHS(0,nullptr);
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        MF const* prhs;
+        if (need_to_scale_rhs) {
+            LocalCopy(cor[ilev], *a_rhs[ilev], 0, 0, nComp(cor[ilev]), IntVect(0));
+            auto r = m_linop->scaleRHS(ilev, &(cor[ilev]));
+            amrex::ignore_unused(r);
+            prhs = &(cor[ilev]);
+        } else {
+            prhs = a_rhs[ilev];
+        }
+        Saxpy(res[ilev], RT(-1), *prhs, 0, 0, nComp(res[ilev]), IntVect(0));
+    }
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        m_linop->setDirichletNodesToZero(ilev,0,res[ilev]);
+    }
+    m_gmres.solve(cor, res, a_tol_rel, a_tol_abs); // L(cor) = res
+    // sol = sol - cor
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+        Saxpy(*a_sol[ilev], RT(-1), cor[ilev], 0, 0, nComp(*a_sol[ilev]), IntVect(0));
+    }
+
+    m_mlmg->setBottomSolver(mlmg_bottom_solver);
+    m_mlmg->setVerbose(mlmg_verbose);
+    m_mlmg->setBottomVerbose(mlmg_bottom_verbose);
+    m_mlmg->decPrintIdentation();
 }
 
 using GMRESMLMG = GMRESMLMGT<MultiFab>;

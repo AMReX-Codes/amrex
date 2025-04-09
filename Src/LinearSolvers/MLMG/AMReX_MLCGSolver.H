@@ -42,6 +42,7 @@ public:
     void setMaxIter (int _maxiter) { maxiter = _maxiter; }
     [[nodiscard]] int getMaxIter () const { return maxiter; }
 
+    void setPrintIdentation (std::string s) { print_ident = std::move(s); }
 
     /**
     * Is the initial guess provided to the solver zero ?
@@ -73,6 +74,7 @@ private:
     IntVect nghost = IntVect(0);
     int iter = -1;
     bool initial_vec_zeroed = false;
+    std::string print_ident;
 };
 
 template <typename MF>
@@ -133,7 +135,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( verbose > 0 )
     {
-        amrex::Print() << "MLCGSolver_BiCGStab: Initial error (error0) =        " << rnorm0 << '\n';
+        amrex::Print() << print_ident << "MLCGSolver_BiCGStab: Initial error (error0) =        " << rnorm0 << '\n';
     }
     int ret = 0;
     iter = 1;
@@ -143,7 +145,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     {
         if ( verbose > 0 )
         {
-            amrex::Print() << "MLCGSolver_BiCGStab: niter = 0,"
+            amrex::Print() << print_ident << "MLCGSolver_BiCGStab: niter = 0,"
                            << ", rnorm = " << rnorm
                            << ", eps_abs = " << eps_abs << '\n';
         }
@@ -164,8 +166,14 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         else
         {
             const RT beta = (rho/rho_1)*(alpha/omega);
-            Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
-            Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
+            if constexpr (IsMultiFabLike_v<MF>) {
+                // two operations: p += -omega*v; p = r + beta*p
+                // same as:        p = r + beta*(p - omega*v)
+                Saxpy_Xpay(p, -omega, v, beta, r, 0, 0, ncomp, nghost);
+            } else {
+                Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
+                Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
+            }
         }
         Lp.apply(amrlev, mglev, v, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
@@ -179,15 +187,19 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 2; break;
         }
-        Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
-        Saxpy(r,  -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
+        if constexpr (IsMultiFabLike_v<MF>) {
+            // sol += alpha * p; r += -alpha * v
+            Saxpy_Saxpy(sol, alpha, p, r, -alpha, v, 0, 0, ncomp, nghost);
+        } else {
+            Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
+            Saxpy(r,  -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
+        }
 
-        rnorm = norm_inf(r);
         rnorm = norm_inf(r);
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
-            amrex::Print() << "MLCGSolver_BiCGStab: Half Iter "
+            amrex::Print() << print_ident << "MLCGSolver_BiCGStab: Half Iter "
                            << std::setw(11) << iter
                            << " rel. err. "
                            << rnorm/(rnorm0) << '\n';
@@ -216,14 +228,19 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 3; break;
         }
-        Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
-        Saxpy(r,  -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
+        if constexpr (IsMultiFabLike_v<MF>) {
+            // sol += omega * r; r += -omega * t
+            Saypy_Saxpy(sol, omega, r, -omega, t, 0, 0, ncomp, nghost);
+        } else {
+            Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
+            Saxpy(r,  -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
+        }
 
         rnorm = norm_inf(r);
 
         if ( verbose > 2 )
         {
-            amrex::Print() << "MLCGSolver_BiCGStab: Iteration "
+            amrex::Print() << print_ident << "MLCGSolver_BiCGStab: Iteration "
                            << std::setw(11) << iter
                            << " rel. err. "
                            << rnorm/(rnorm0) << '\n';
@@ -240,7 +257,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( verbose > 0 )
     {
-        amrex::Print() << "MLCGSolver_BiCGStab: Final: Iteration "
+        amrex::Print() << print_ident << "MLCGSolver_BiCGStab: Final: Iteration "
                        << std::setw(4) << iter
                        << " rel. err. "
                        << rnorm/(rnorm0) << '\n';
@@ -304,7 +321,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( verbose > 0 )
     {
-        amrex::Print() << "MLCGSolver_CG: Initial error (error0) :        " << rnorm0 << '\n';
+        amrex::Print() << print_ident << "MLCGSolver_CG: Initial error (error0) :        " << rnorm0 << '\n';
     }
 
     RT rho_1 = 0;
@@ -314,7 +331,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
         if ( verbose > 0 ) {
-            amrex::Print() << "MLCGSolver_CG: niter = 0,"
+            amrex::Print() << print_ident << "MLCGSolver_CG: niter = 0,"
                            << ", rnorm = " << rnorm
                            << ", eps_abs = " << eps_abs << '\n';
         }
@@ -353,18 +370,23 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         if ( verbose > 2 )
         {
-            amrex::Print() << "MLCGSolver_cg:"
+            amrex::Print() << print_ident << "MLCGSolver_cg:"
                            << " iter " << iter
                            << " rho " << rho
                            << " alpha " << alpha << '\n';
         }
-        Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
-        Saxpy(r, -alpha, q, 0, 0, ncomp, nghost); // r += -alpha * q
+        if constexpr (IsMultiFabLike_v<MF>) {
+            // sol += alpha * p; r += -alpha * q
+            Saxpy_Saxpy(sol, alpha, p, r, -alpha, q, 0, 0, ncomp, nghost);
+        } else {
+            Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
+            Saxpy(r, -alpha, q, 0, 0, ncomp, nghost); // r += -alpha * q
+        }
         rnorm = norm_inf(r);
 
         if ( verbose > 2 )
         {
-            amrex::Print() << "MLCGSolver_cg:       Iteration"
+            amrex::Print() << print_ident << "MLCGSolver_cg:       Iteration"
                            << std::setw(4) << iter
                            << " rel. err. "
                            << rnorm/(rnorm0) << '\n';
@@ -377,7 +399,7 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( verbose > 0 )
     {
-        amrex::Print() << "MLCGSolver_cg: Final Iteration"
+        amrex::Print() << print_ident << "MLCGSolver_cg: Final Iteration"
                        << std::setw(4) << iter
                        << " rel. err. "
                        << rnorm/(rnorm0) << '\n';

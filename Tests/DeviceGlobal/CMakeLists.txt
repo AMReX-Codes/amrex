@@ -4,6 +4,10 @@ if (( (AMReX_GPU_BACKEND STREQUAL "CUDA") OR
    return()
 endif ()
 
+if (WIN32)
+   return()
+endif()
+
 foreach(D IN LISTS AMReX_SPACEDIM)
     set(_sources     main.cpp global_vars.cpp init.cpp work.cpp)
     set(_input_files)

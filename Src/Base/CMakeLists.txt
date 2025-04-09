@@ -14,6 +14,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_BlockMutex.cpp
        AMReX_Enum.H
        AMReX_GpuComplex.H
+       AMReX_SmallMatrix.H
+       AMReX_ConstexprFor.H
        AMReX_Vector.H
        AMReX_TableData.H
        AMReX_Tuple.H

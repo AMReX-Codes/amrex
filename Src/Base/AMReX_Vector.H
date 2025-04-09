@@ -66,6 +66,15 @@ namespace amrex
         return r;
     }
 
+    template <class T, std::size_t N, typename = typename T::FABType>
+    [[nodiscard]] Vector<Array<T,N>*> GetVecOfPtrs (Vector<Array<T,N>>& a)
+    {
+        Vector<Array<T,N>*> r;
+        r.reserve(a.size());
+        for (auto& x : a) { r.push_back(&x); }
+        return r;
+    }
+
     template <class T>
     [[nodiscard]] Vector<T*> GetVecOfPtrs (const Vector<std::unique_ptr<T> >& a)
     {
@@ -83,6 +92,15 @@ namespace amrex
         Vector<const T*> r;
         r.reserve(a.size());
         for (const auto& x : a) { r.push_back(&x); }
+        return r;
+    }
+
+    template <class T, std::size_t N, typename = typename T::FABType>
+    [[nodiscard]] Vector<Array<T,N> const*> GetVecOfConstPtrs (Vector<Array<T,N>> const& a)
+    {
+        Vector<Array<T,N> const*> r;
+        r.reserve(a.size());
+        for (auto& x : a) { r.push_back(&x); }
         return r;
     }
 

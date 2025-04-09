@@ -235,7 +235,9 @@ MLPoissonT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) const
                 });
             }
         }
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -333,7 +335,9 @@ MLPoissonT<MF>::normalize (int amrlev, int mglev, MF& mf) const
         {
             mlpoisson_normalize(i,j,k, ma[box_no], AMREX_D_DECL(dhx,dhy,dhz), dx, probxlo);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -880,7 +884,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
             RT fac = RT(dxinv[0]);
             Box blo = amrex::bdryLo(box, 0);
             int blen = box.length(0);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
             {
                 mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen);
             });
@@ -891,7 +895,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
             RT fac = RT(dxinv[1]);
             Box blo = amrex::bdryLo(box, 1);
             int blen = box.length(1);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
             {
                 mlpoisson_flux_yface(tbox, fyarr, solarr, fac, blen);
             });
@@ -902,7 +906,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
             RT fac = RT(dxinv[2]);
             Box blo = amrex::bdryLo(box, 2);
             int blen = box.length(2);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
             {
                 mlpoisson_flux_zface(tbox, fzarr, solarr, fac, blen);
             });
@@ -913,7 +917,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
         if (this->hiddenDirection() != 0) {
             RT fac = RT(dxinv[0]);
             Box bflux = amrex::surroundingNodes(box, 0);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
             {
                 mlpoisson_flux_x(tbox, fxarr, solarr, fac);
             });
@@ -923,7 +927,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
         if (this->hiddenDirection() != 1) {
             RT fac = RT(dxinv[1]);
             Box bflux = amrex::surroundingNodes(box, 1);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
             {
                 mlpoisson_flux_y(tbox, fyarr, solarr, fac);
             });
@@ -933,7 +937,7 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
         if (this->hiddenDirection() != 2) {
             RT fac = RT(dxinv[2]);
             Box bflux = amrex::surroundingNodes(box, 2);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
             {
                 mlpoisson_flux_z(tbox, fzarr, solarr, fac);
             });
@@ -948,12 +952,12 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
             Box blo = amrex::bdryLo(box, 0);
             int blen = box.length(0);
             if (this->m_has_metric_term) {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
                 {
                     mlpoisson_flux_xface_m(tbox, fxarr, solarr, fac, blen, dx, probxlo);
                 });
             } else {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
                 {
                     mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen);
                 });
@@ -966,12 +970,12 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
             Box blo = amrex::bdryLo(box, 1);
             int blen = box.length(1);
             if (this->m_has_metric_term) {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
                 {
                     mlpoisson_flux_yface_m(tbox, fyarr, solarr, fac, blen, dx, probxlo);
                 });
             } else {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
                 {
                     mlpoisson_flux_yface(tbox, fyarr, solarr, fac, blen);
                 });
@@ -984,12 +988,12 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
             RT fac = RT(dxinv[0]);
             Box bflux = amrex::surroundingNodes(box, 0);
             if (this->m_has_metric_term) {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
                 {
                     mlpoisson_flux_x_m(tbox, fxarr, solarr, fac, dx, probxlo);
                 });
             } else {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
                 {
                     mlpoisson_flux_x(tbox, fxarr, solarr, fac);
                 });
@@ -1001,12 +1005,12 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
             RT fac = RT(dxinv[1]);
             Box bflux = amrex::surroundingNodes(box, 1);
             if (this->m_has_metric_term) {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
                 {
                     mlpoisson_flux_y_m(tbox, fyarr, solarr, fac, dx, probxlo);
                 });
             } else {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
                 {
                     mlpoisson_flux_y(tbox, fyarr, solarr, fac);
                 });
@@ -1021,12 +1025,12 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
         Box blo = amrex::bdryLo(box, 0);
         int blen = box.length(0);
         if (this->m_has_metric_term) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
             {
                 mlpoisson_flux_xface_m(tbox, fxarr, solarr, fac, blen, dx, probxlo);
             });
         } else {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( blo, tbox,
             {
                 mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen);
             });
@@ -1035,12 +1039,12 @@ MLPoissonT<MF>::FFlux (int amrlev, const MFIter& mfi,
         RT fac = RT(dxinv[0]);
         Box bflux = amrex::surroundingNodes(box, 0);
         if (this->m_has_metric_term) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
             {
                 mlpoisson_flux_x_m(tbox, fxarr, solarr, fac, dx, probxlo);
             });
         } else {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE ( bflux, tbox,
             {
                 mlpoisson_flux_x(tbox, fxarr, solarr, fac);
             });

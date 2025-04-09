@@ -187,7 +187,7 @@ public:
     */
     static std::size_t align (std::size_t sz);
 
-    static void Initialize ();
+    static void Initialize (bool minimal);
     static void PrintUsage ();
     static void PrintUsageToFiles (std::string const& filename, std::string const& message);
     static void Finalize ();

@@ -284,6 +284,19 @@ print_option(AMReX_FORTRAN_INTERFACES)
 option( AMReX_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option( AMReX_LINEAR_SOLVERS )
 
+cmake_dependent_option( AMReX_LINEAR_SOLVERS_INCFLO
+    "Build AMReX Linear solvers useful for incompressible flow codes" ON
+    "AMReX_LINEAR_SOLVERS" OFF)
+print_option( AMReX_LINEAR_SOLVERS_INCFLO )
+
+cmake_dependent_option( AMReX_LINEAR_SOLVERS_EM
+    "Build AMReX Linear solvers useful for electromagnetic codes" ON
+    "AMReX_LINEAR_SOLVERS" OFF)
+print_option( AMReX_LINEAR_SOLVERS_EM )
+
+option( AMReX_FFT  "Build AMReX FFT" OFF )
+print_option( AMReX_FFT )
+
 option( AMReX_AMRDATA "Build data services" OFF )
 print_option( AMReX_AMRDATA )
 
@@ -469,7 +482,7 @@ option(AMReX_DIFFERENT_COMPILER
    "Allow an application to use a different compiler than the one used to build AMReX" OFF)
 print_option(AMReX_DIFFERENT_COMPILER)
 
-if (AMReX_BUILD_SHARED_LIBS AND NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
+if ( NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
    option(AMReX_PROBINIT "Enable support for probin file" OFF)
 else ()
    cmake_dependent_option(AMReX_PROBINIT "Enable support for probin file" ON

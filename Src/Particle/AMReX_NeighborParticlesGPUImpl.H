@@ -2,6 +2,8 @@
 #define AMREX_NEIGHBORPARTICLESGPUIMPL_H_
 #include <AMReX_Config.H>
 
+namespace amrex {
+
 namespace detail
 {
     inline Vector<Box> getBoundaryBoxes(const Box& box, int ncells)
@@ -255,6 +257,12 @@ updateNeighborsGPU (bool boundary_neighbors_only)
     }
 
     clearNeighbors();
+
+    if (this->use_comms_arena) {
+        snd_buffer.setArena(The_Comms_Arena());
+        rcv_buffer.setArena(The_Comms_Arena());
+    }
+
     packBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer);
     if (ParallelDescriptor::UseGpuAwareMpi())
     {
@@ -306,6 +314,8 @@ clearNeighborsGPU()
             ptile.setNumNeighbors(0);
         }
     }
+}
+
 }
 
 #endif

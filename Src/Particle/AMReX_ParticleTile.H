@@ -11,7 +11,10 @@
 #include <AMReX_RealVect.H>
 
 #include <array>
+#include <string>
 #include <type_traits>
+#include <vector>
+
 
 namespace amrex {
 
@@ -131,7 +134,10 @@ struct ParticleTileData
             memcpy(dst, m_idcpu + src_index, sizeof(uint64_t));
             dst += sizeof(uint64_t);
         }
-        int array_start_index  = AMREX_SPACEDIM + NStructReal;
+        int array_start_index = 0;
+        if constexpr (!ParticleType::is_soa_particle) {
+            array_start_index = AMREX_SPACEDIM + NStructReal;
+        }
         for (int i = 0; i < NAR; ++i)
         {
             if (comm_real[array_start_index + i])
@@ -140,7 +146,7 @@ struct ParticleTileData
                 dst += sizeof(ParticleReal);
             }
         }
-        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NAR;
+        int runtime_start_index  = array_start_index + NAR;
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
             if (comm_real[runtime_start_index + i])
@@ -182,7 +188,10 @@ struct ParticleTileData
             memcpy(m_idcpu + dst_index, src, sizeof(uint64_t));
             src += sizeof(uint64_t);
         }
-        int array_start_index  = AMREX_SPACEDIM + NStructReal;
+        int array_start_index = 0;
+        if constexpr (!ParticleType::is_soa_particle) {
+            array_start_index = AMREX_SPACEDIM + NStructReal;
+        }
         for (int i = 0; i < NAR; ++i)
         {
             if (comm_real[array_start_index + i])
@@ -191,7 +200,7 @@ struct ParticleTileData
                 src += sizeof(ParticleReal);
             }
         }
-        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NAR;
+        int runtime_start_index  = array_start_index + NAR;
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
             if (comm_real[runtime_start_index + i])
@@ -302,7 +311,7 @@ struct ParticleTileData
 
 // SOA Particle Structure
 template <int T_NArrayReal, int T_NArrayInt>
-struct ConstSoAParticle : SoAParticleBase
+struct alignas(sizeof(double)) ConstSoAParticle : SoAParticleBase
 {
     static constexpr int NArrayReal = T_NArrayReal;
     static constexpr int NArrayInt = T_NArrayInt;
@@ -364,7 +373,7 @@ struct ConstSoAParticle : SoAParticleBase
 };
 
 template <int T_NArrayReal, int T_NArrayInt>
-struct SoAParticle : SoAParticleBase
+struct alignas(sizeof(double)) SoAParticle : SoAParticleBase
 {
     static constexpr int NArrayReal = T_NArrayReal;
     static constexpr int NArrayInt = T_NArrayInt;
@@ -592,7 +601,10 @@ struct ConstParticleTileData
             memcpy(dst, m_idcpu + src_index, sizeof(uint64_t));
             dst += sizeof(uint64_t);
         }
-        int array_start_index  = AMREX_SPACEDIM + NStructReal;
+        int array_start_index = 0;
+        if constexpr (!ParticleType::is_soa_particle) {
+            array_start_index = AMREX_SPACEDIM + NStructReal;
+        }
         for (int i = 0; i < NArrayReal; ++i)
         {
             if (comm_real[array_start_index + i])
@@ -601,7 +613,7 @@ struct ConstParticleTileData
                 dst += sizeof(ParticleReal);
             }
         }
-        int runtime_start_index  = AMREX_SPACEDIM + NStructReal + NArrayReal;
+        int runtime_start_index  = array_start_index + NArrayReal;
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
             if (comm_real[runtime_start_index + i])
@@ -730,10 +742,15 @@ struct ParticleTile
     ParticleTile& operator= (ParticleTile &&) noexcept = default;
 #endif
 
-    void define (int a_num_runtime_real, int a_num_runtime_int)
+    void define (
+        int a_num_runtime_real,
+        int a_num_runtime_int,
+        std::vector<std::string>* soa_rdata_names=nullptr,
+        std::vector<std::string>* soa_idata_names=nullptr
+    )
     {
         m_defined = true;
-        GetStructOfArrays().define(a_num_runtime_real, a_num_runtime_int);
+        GetStructOfArrays().define(a_num_runtime_real, a_num_runtime_int, soa_rdata_names, soa_idata_names);
         m_runtime_r_ptrs.resize(a_num_runtime_real);
         m_runtime_i_ptrs.resize(a_num_runtime_int);
         m_runtime_r_cptrs.resize(a_num_runtime_real);

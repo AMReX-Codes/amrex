@@ -3,8 +3,10 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
+#include <AMReX_Box.H>
 #include <AMReX_Enum.H>
 #include <AMReX_INT.H>
+#include <AMReX_IntVect.H>
 #include <AMReX_IParser.H>
 #include <AMReX_Parser.H>
 #include <AMReX_TypeTraits.H>
@@ -15,7 +17,9 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace amrex {
@@ -586,6 +590,27 @@ public:
     //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name, const std::string& val);
 
+
+    //! Similar to get() but store the whole line including empty spaces in
+    //! the middle if present as a single string. For example, `foo = a b c`
+    //! is treated by this function as a single string "a b c", whereas
+    //! get() will give only "a" and getarr() will store the results in
+    //! `std::vectcor<std::string>`. Note this does not preserve the number
+    //! of empty spaces, because of how ParmParse parses the line. For
+    //! example, `a b  c` with two spaces between `b` and `c` will become "a
+    //! b c".
+    void getline (const char* name, std::string& ref) const;
+
+    //! Similar to query() but store the whole line including empty spaces
+    //! in the middle if present as a single string. For example, `foo = a b
+    //! c` is treated by this function as a single string "a b c", whereas
+    //! query() will give only "a" and queryarr() will store the results in
+    //! `std::vectcor<std::string>`. Note this does not preserve the number
+    //! of empty spaces, because of how ParmParse parses the line. For
+    //! example, `a b  c` with two spaces between `b` and `c` will become "a
+    //! b c".
+    int queryline (const char* name, std::string& ref) const;
+
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to an IntVect and stored
@@ -1117,7 +1142,7 @@ public:
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
                                            std::is_same_v<T,double>,int> = 0>
-    int queryAddWithParser (const char* name, T& ref) const
+    int queryAddWithParser (const char* name, T& ref)
     {
         int exist = this->queryWithParser(name, ref);
         if (!exist) {
@@ -1612,6 +1637,17 @@ public:
         // vector<vector<std::string>>.
         std::vector<std::vector<std::string>> m_vals;
         mutable Long                          m_count = 0;
+        std::variant<
+            std::string*,
+            bool*,
+            int*,
+            long*,
+            long long*,
+            amrex::IntVect*,
+            amrex::Box*,
+            float*,
+            double*
+        > m_typehint = static_cast<std::string*>(nullptr);
     };
     using Table = std::unordered_map<std::string, PP_entry>;
 

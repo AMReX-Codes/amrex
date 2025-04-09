@@ -332,6 +332,8 @@ public:
     {
         BL_PROFILE("DenseBins<T>::buildOpenMP");
 
+        if (nbins <= 0) { return; }
+
         m_items = v;
 
         m_bins.resize(nitems);

@@ -90,7 +90,7 @@ public:
 
     /**
     * Returns True if this BoxDomain is valid.  Checks for
-    * disjointness. Returns true if the BoxDomain is empty.
+    * disjointedness. Returns true if the BoxDomain is empty.
     */
     [[nodiscard]] bool ok () const;
 

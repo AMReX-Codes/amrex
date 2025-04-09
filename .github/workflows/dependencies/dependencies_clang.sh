@@ -16,5 +16,6 @@ sudo apt-get update
 
 sudo apt-get install -y --no-install-recommends \
     build-essential      \
+    libfftw3-dev         \
     gfortran             \
     clang-$1

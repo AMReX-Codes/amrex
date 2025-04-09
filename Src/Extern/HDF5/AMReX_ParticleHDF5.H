@@ -17,6 +17,8 @@
 #include "H5Z_SZ.h"
 #endif
 
+namespace amrex {
+
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
@@ -1532,6 +1534,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
       }
 
     Gpu::streamSynchronize();
+}
+
 }
 
 #endif /*AMREX_USE_HDF5*/

@@ -4,10 +4,12 @@
 
 #include <AMReX_FabFactory.H>
 
+#include <AMReX_EBData.H>
 #include <AMReX_EBDataCollection.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_EBSupport.H>
 #include <AMReX_Array.H>
+#include <AMReX_MFIter.H>
 
 namespace amrex
 {
@@ -89,12 +91,15 @@ public:
     //! One should use getMultiEBCellFlagFab for normal levels.
     [[nodiscard]] iMultiFab const* getCutCellMask () const noexcept { return m_ebdc->getCutCellMask(); }
 
+    [[nodiscard]] EBData getEBData (MFIter const& mfi) const noexcept;
+
 private:
 
     EBSupport m_support;
     Geometry m_geom;
     std::shared_ptr<EBDataCollection> m_ebdc;
     EB2::Level const* m_parent = nullptr;
+    Gpu::DeviceVector<Array4<Real const>> m_eb_data;
 };
 
 std::unique_ptr<EBFArrayBoxFactory>

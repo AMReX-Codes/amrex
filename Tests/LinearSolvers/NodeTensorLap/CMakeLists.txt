@@ -1,6 +1,6 @@
 if (AMReX_GPU_BACKEND STREQUAL NONE)
     foreach(D IN LISTS AMReX_SPACEDIM)
-        if(D EQUAL 1)
+        if(D EQUAL 1 OR NOT AMReX_LINEAR_SOLVERS_EM)
             continue()
         endif()
 
