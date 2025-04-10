@@ -10,7 +10,7 @@
 #  include <cusparse.h>
 #elif defined(AMREX_USE_HIP)
 #  include <rocsparse/rocsparse.h>
-#elif defined(AMREX_USE_DPCPP)
+#elif defined(AMREX_USE_SYCL)
 #  include <oneapi/mkl/spblas.hpp>
 #endif
 
@@ -156,8 +156,9 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
     rocsparse_destroy_handle(handle);
     The_Arena()->free(pbuffer);
 
-#elif defined(AMREX_USE_DPCPP)
+#elif defined(AMREX_USE_SYCL)
 
+    amrex::ignore_unused(nnz);
     mkl::sparse::matrix_handle_t handle{};
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, nrows, ncols, mkl::index_base::zero,
                               (Long*)row, (Long*)col, (T*)mat);
