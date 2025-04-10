@@ -33,6 +33,79 @@ namespace amrex {
 
     using namespace ParticleIdCpus;
 
+    namespace particle_impl {
+
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+	Long unpack_id (const uint64_t idcpu) noexcept {
+	    Long r = 0;
+
+	    uint64_t sign = idcpu >> 63;  // extract leftmost sign bit
+	    uint64_t val  = ((idcpu >> 24) & 0x7FFFFFFFFF);  // extract next 39 id bits
+
+	    Long lval = static_cast<Long>(val);  // bc we take -
+	    r = (sign) ? lval : -lval;
+	    return r;
+	}
+
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+	int unpack_cpu (const uint64_t idcpu) noexcept {
+	    return static_cast<int>(idcpu & 0x00FFFFFF);
+	}
+
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+	void pack_id (uint64_t& idcpu, const Long id) noexcept {
+	    // zero out the 40 leftmost bits, which store the sign and the abs of the id;
+	    idcpu &= 0x00FFFFFF;
+
+	    uint64_t val;
+	    uint64_t sign = id >= 0;
+	    if (sign)
+	    {
+		// 2**39-1, the max value representable in this fashion
+		AMREX_ASSERT(id <= 549755813887L);
+		val = id;
+	    }
+	    else
+	    {
+		// -2**39-1, the min value representable in this fashion
+		AMREX_ASSERT(id >= -549755813887L);
+		val = -id;
+	    }
+
+	    (idcpu) |= (sign << 63);  // put the sign in the leftmost bit
+	    (idcpu) |= (val << 24);   // put the val in the next 39
+	}
+
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+	void pack_cpu (uint64_t& idcpu, const int cpu) noexcept {
+	    // zero out the first 24 bits, which are used to store the cpu number
+	    idcpu &= (~ 0x00FFFFFF);
+
+	    AMREX_ASSERT(cpu >= 0);
+	    AMREX_ASSERT(cpu <= 16777215);  // 2**24-1, the max representable number
+
+	    idcpu |= cpu;
+	}
+
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+	void make_invalid (uint64_t& idcpu) noexcept {
+	    // RHS mask: 0111...
+	    idcpu &= ~(uint64_t(1) << 63);
+	}
+
+	AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+	void make_valid (uint64_t& idcpu) noexcept {
+	    // RHS mask: 1000...
+	    idcpu |= uint64_t(1) << 63;
+	}
+
+	[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+	bool is_valid (const uint64_t idcpu) noexcept {
+	    // the leftmost bit is our id's valid sign
+	    return idcpu >> 63;
+	}
+    }
+
 struct ParticleIDWrapper
 {
     uint64_t* m_idata;
@@ -64,40 +137,14 @@ struct ParticleIDWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper& operator= (const Long id) noexcept
     {
-        // zero out the 40 leftmost bits, which store the sign and the abs of the id;
-        (*m_idata) &= 0x00FFFFFF;
-
-        uint64_t val;
-        uint64_t sign = id >= 0;
-        if (sign)
-        {
-            // 2**39-1, the max value representable in this fashion
-            AMREX_ASSERT(id <= 549755813887L);
-            val = id;
-        }
-        else
-        {
-            // -2**39-1, the min value representable in this fashion
-            AMREX_ASSERT(id >= -549755813887L);
-            val = -id;
-        }
-
-        (*m_idata) |= (sign << 63);  // put the sign in the leftmost bit
-        (*m_idata) |= (val << 24);   // put the val in the next 39
+	particle_impl::pack_id(*m_idata, id);
         return *this;
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     operator Long () const noexcept
     {
-        Long r = 0;
-
-        uint64_t sign = (*m_idata) >> 63;  // extract leftmost sign bit
-        uint64_t val  = (((*m_idata) >> 24) & 0x7FFFFFFFFF);  // extract next 39 id bits
-
-        Long lval = static_cast<Long>(val);  // bc we take -
-        r = (sign) ? lval : -lval;
-        return r;
+	return particle_impl::unpack_id(*m_idata);
     }
 
     /** Mark the particle as invalid
@@ -108,8 +155,7 @@ struct ParticleIDWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void make_invalid () const noexcept
     {
-        // RHS mask: 0111...
-        (*m_idata) &= ~(uint64_t(1) << 63);
+	particle_impl::make_invalid(*m_idata);
     }
 
     /** Mark the particle as valid
@@ -120,8 +166,7 @@ struct ParticleIDWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void make_valid () const noexcept
     {
-        // RHS mask: 1000...
-        (*m_idata) |= uint64_t(1) << 63;
+	particle_impl::make_valid(*m_idata);
     }
 
     /** Check the particle is valid, via the sign of the id.
@@ -131,8 +176,7 @@ struct ParticleIDWrapper
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool is_valid () const noexcept
     {
-        // the leftmost bit is our id's valid sign
-        return (*m_idata) >> 63;
+	return particle_impl::is_valid(*m_idata);
     }
 };
 
@@ -167,20 +211,14 @@ struct ParticleCPUWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper& operator= (const int cpu) noexcept
     {
-        // zero out the first 24 bits, which are used to store the cpu number
-        (*m_idata) &= (~ 0x00FFFFFF);
-
-        AMREX_ASSERT(cpu >= 0);
-        AMREX_ASSERT(cpu <= 16777215);  // 2**24-1, the max representable number
-
-        (*m_idata) |= cpu;
+	particle_impl::pack_cpu(*m_idata, cpu);
         return *this;
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     operator int () const noexcept
     {
-        return static_cast<int>((*m_idata) & 0x00FFFFFF);
+	return particle_impl::unpack_cpu(*m_idata);
     }
 };
 
