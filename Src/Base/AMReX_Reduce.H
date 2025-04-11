@@ -371,8 +371,8 @@ public:
         using ReduceTuple = typename D::Type;
         const int nboxes = mf.local_size();
         if (nboxes > 0) {
-            auto const& parforinfo = mf.getParForInfo(nghost,AMREX_GPU_MAX_THREADS);
-            auto nblocks_per_box = parforinfo.getNBlocksPerBox();
+            auto const& parforinfo = mf.getParForInfo(nghost);
+            auto nblocks_per_box = parforinfo.getNBlocksPerBox(AMREX_GPU_MAX_THREADS);
             AMREX_ASSERT(Long(nblocks_per_box)*Long(nboxes) < Long(std::numeric_limits<int>::max()));
             const int nblocks = nblocks_per_box * nboxes;
             const BoxIndexer* dp_boxes = parforinfo.getBoxes();
