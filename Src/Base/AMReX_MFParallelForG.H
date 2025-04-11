@@ -49,10 +49,12 @@ namespace parfor_mf_detail {
 
     template <typename F>
     AMREX_GPU_DEVICE
-    auto call_f (F const& f, int b, int i, int j, int k, int n) noexcept
+    auto call_f (F const& f, int b, int i, int j, int k, int ncomp) noexcept
         -> decltype(f(0,0,0,0,0))
     {
-        f(b,i,j,k,n);
+        for (int n = 0; n < ncomp; ++n) {
+            f(b,i,j,k,n);
+        }
     }
 }
 
@@ -67,9 +69,9 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, boo
         return;
     } else if (nboxes == 1) {
         Box const& b = amrex::grow(mf.box(index_array[0]), nghost);
-        amrex::ParallelFor(b, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            parfor_mf_detail::call_f(f, 0, i, j, k, n);
+            parfor_mf_detail::call_f(f, 0, i, j, k, ncomp);
         });
     } else {
         auto const& parforinfo = mf.getParForInfo(nghost,MT);
@@ -100,9 +102,7 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, boo
                  BoxIndexer const& indexer = dp_boxes[ibox];
                  if (icell < indexer.numPts()) {
                      auto [i, j, k] = indexer(icell);
-                     for (int n = 0; n < ncomp; ++n) {
-                         parfor_mf_detail::call_f(f, ibox, i, j, k, n);
-                     }
+                     parfor_mf_detail::call_f(f, ibox, i, j, k, ncomp);
                  }
              });
     }
