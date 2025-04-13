@@ -42,7 +42,7 @@ Extend (FArrayBox& xfab,
       xfab(IntVect(i,j,0),0) = vfab(iv,comp);
     }
   }
-  
+
   for (int i=0; i<3; ++i) {
     for (int j=0; j<vbx.length(jdir); ++j) {
       IntVect iv;
@@ -159,16 +159,16 @@ main (int   argc,
 
       for (int k = 0; k < nf; ++k)
       {
-	FArrayBox fileFab;
-	{
-	  std::ifstream ifs(ifiles[k]);
-	  fileFab.readFrom(ifs);
-	  if (d==0) {
-	    ifs >> fileTimes[k];
-	  }
-	  ifs.close();
-	}
-	Extend(TMP, fileFab, domain, idir, jdir, kdir, d);	
+        FArrayBox fileFab;
+        {
+          std::ifstream ifs(ifiles[k]);
+          fileFab.readFrom(ifs);
+          if (d==0) {
+            ifs >> fileTimes[k];
+          }
+          ifs.close();
+        }
+        Extend(TMP, fileFab, domain, idir, jdir, kdir, d);
         //
         // Write current position of data file to header file.
         //
