@@ -408,7 +408,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel, // NOLINT(reada
         // only edge vals used in 3D stencil
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            amrex::launch(12, 64, Gpu::gpuStream(),
+            amrex::launch<64>(12, Gpu::gpuStream(),
 #ifdef AMREX_USE_SYCL
             [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item)
             {

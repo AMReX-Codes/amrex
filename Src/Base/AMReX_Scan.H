@@ -209,7 +209,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
     T* blocksum_p = (T*)(dp + nbytes_blockresult);
     T* totalsum_p = (T*)(dp + nbytes_blockresult + nbytes_blocksum);
 
-    amrex::launch(nblocks, nthreads, sm, stream,
+    amrex::launch<nthreads>(nblocks, sm, stream,
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
     {
         sycl::sub_group const& sg = gh.item->get_sub_group();
@@ -289,7 +289,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
         }
     });
 
-    amrex::launch(1, nthreads, sm, stream,
+    amrex::launch<nthreads>(1, sm, stream,
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
     {
         sycl::sub_group const& sg = gh.item->get_sub_group();
@@ -355,7 +355,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
         }
     });
 
-    amrex::launch(nblocks, nthreads, 0, stream,
+    amrex::launch<nthreads>(nblocks, 0, stream,
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
     {
         int threadIdxx = gh.item->get_local_id(0);
@@ -429,7 +429,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
         }
     });
 
-    amrex::launch(nblocks, nthreads, sm, stream,
+    amrex::launch<nthreads>(nblocks, sm, stream,
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
     {
         sycl::sub_group const& sg = gh.item->get_sub_group();
@@ -672,7 +672,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         (reinterpret_cast<OrderedBlockId::id_type*>(dp + nbytes_tile_state));
 
     // Init ScanTileState on device
-    amrex::launch((nblocks+nthreads-1)/nthreads, nthreads, 0, stream, [=] AMREX_GPU_DEVICE ()
+    amrex::launch<nthreads>((nblocks+nthreads-1)/nthreads, 0, stream, [=] AMREX_GPU_DEVICE ()
     {
         auto& scan_tile_state = const_cast<ScanTileState&>(tile_state);
         auto& scan_bid = const_cast<OrderedBlockId&>(ordered_block_id);
@@ -813,7 +813,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
     if (nblocks > 1) {
         // Init ScanTileState on device
-        amrex::launch((nblocks+nthreads-1)/nthreads, nthreads, 0, stream, [=] AMREX_GPU_DEVICE ()
+        amrex::launch<nthreads>((nblocks+nthreads-1)/nthreads, 0, stream, [=] AMREX_GPU_DEVICE ()
         {
             const_cast<ScanTileState&>(tile_state).InitializeStatus(nblocks);
         });
@@ -957,7 +957,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         }
     });
 
-    amrex::launch(nblocks, nthreads, sm, stream,
+    amrex::launch<nthreads>(nblocks, sm, stream,
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int lane = threadIdx.x % Gpu::Device::warp_size;
