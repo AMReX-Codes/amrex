@@ -137,7 +137,7 @@ struct ParticleIDWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper& operator= (const Long id) noexcept
     {
-    particle_impl::pack_id(*m_idata, id);
+        particle_impl::pack_id(*m_idata, id);
         return *this;
     }
 
