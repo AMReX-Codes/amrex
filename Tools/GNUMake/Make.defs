@@ -269,8 +269,12 @@ else
 endif
 
 # Maximum number of GPU threads per block.
-CUDA_MAX_THREADS ?= 256
-GPU_MAX_THREADS ?= $(CUDA_MAX_THREADS)
+CUDA_MAX_THREADS ?= 128
+ifeq ($(USE_CUDA),TRUE)
+  GPU_MAX_THREADS ?= $(CUDA_MAX_THREADS)
+else
+  GPU_MAX_THREADS ?= 256
+endif
 
 ifeq ($(USE_CUDA),TRUE)
   # Set the default CUDA architecture version.

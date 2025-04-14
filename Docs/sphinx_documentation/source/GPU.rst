@@ -229,9 +229,9 @@ Building with CMake
 
 To build AMReX with GPU support in CMake, add
 ``-DAMReX_GPU_BACKEND=CUDA|HIP|SYCL`` to the ``cmake`` invocation, for CUDA,
-HIP and SYCL, respectively. By default, AMReX uses 256 threads per GPU
-block/group in most situations. This can be changed with
-``-DAMReX_GPU_MAX_THREADS=N``, where ``N`` is 128 for example.
+HIP and SYCL, respectively. By default, AMReX uses 128 threads per GPU block
+in most situations for CUDA, and 256 for HIP and SYCL. This can be changed
+with ``-DAMReX_GPU_MAX_THREADS=N``, where ``N`` is 256 or 128 for example.
 
 Enabling CUDA support
 ^^^^^^^^^^^^^^^^^^^^^
@@ -1166,7 +1166,7 @@ GPU block size
 
 By default, :cpp:`ParallelFor` launches ``AMREX_GPU_MAX_THREADS`` threads
 per GPU block, where ``AMREX_GPU_MAX_THREADS`` is a compile-time constant
-with a default value of 256.  The users can also explicitly specify the
+with a default value of 128 for CUDA and 256 for HIP and SYCL.  The users can also explicitly specify the
 number of threads per block by :cpp:`ParallelFor<MY_BLOCK_SIZE>(...)`, where
 ``MY_BLOCK_SIZE`` is a multiple of the warp size (e.g., 128).  This allows
 the users to do performance tuning for individual kernels.
