@@ -433,11 +433,11 @@ namespace amrex::Gpu {
                                          unsigned long long, unsigned int>;
             constexpr Long nU = sizeof(T) / sizeof(U);
             auto pu = reinterpret_cast<U*>(p);
-            int nthreads_per_block = (sizeof(T) <= 64) ? 256 : 128;
+            constexpr int nthreads_per_block = (sizeof(T) <= 64) ? 256 : 128;
             int nblocks = static_cast<int>((N+nthreads_per_block-1)/nthreads_per_block);
             std::size_t shared_mem_bytes = nthreads_per_block * sizeof(T);
 #ifdef AMREX_USE_SYCL
-            amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
+            amrex::launch<nthreads_per_block>(nblocks, shared_mem_bytes, Gpu::gpuStream(),
             [=] AMREX_GPU_DEVICE (Gpu::Handler const& handler) noexcept
             {
                 Long i = handler.globalIdx();
@@ -458,7 +458,7 @@ namespace amrex::Gpu {
                 }
             });
 #else
-            amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
+            amrex::launch<nthreads_per_block>(nblocks, shared_mem_bytes, Gpu::gpuStream(),
                           [=] AMREX_GPU_DEVICE () noexcept
             {
                 Long blockDimx = blockDim.x;

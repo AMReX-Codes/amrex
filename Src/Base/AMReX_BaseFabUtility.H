@@ -38,14 +38,14 @@ void fill (BaseFab<STRUCT>& aos_fab, F const& f)
     if (Gpu::inLaunchRegion()) {
         BoxIndexer indexer(box);
         const auto ntotcells = std::uint64_t(box.numPts());
-        int nthreads_per_block = (STRUCTSIZE <= 8) ? 256 : 128;
+        constexpr int nthreads_per_block = (STRUCTSIZE <= 8) ? 256 : 128;
         std::uint64_t nblocks_long = (ntotcells+nthreads_per_block-1)/nthreads_per_block;
         AMREX_ASSERT(nblocks_long <= std::uint64_t(std::numeric_limits<int>::max()));
         auto nblocks = int(nblocks_long);
         std::size_t shared_mem_bytes = nthreads_per_block * sizeof(STRUCT);
         T* p = (T*)aos_fab.dataPtr();
 #ifdef AMREX_USE_SYCL
-        amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
+        amrex::launch<nthreads_per_block>(nblocks, shared_mem_bytes, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& handler) noexcept
         {
             auto const icell = std::uint64_t(handler.globalIdx());
@@ -66,7 +66,7 @@ void fill (BaseFab<STRUCT>& aos_fab, F const& f)
             }
         });
 #else
-        amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
+        amrex::launch<nthreads_per_block>(nblocks, shared_mem_bytes, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept
         {
             std::uint64_t const icell = std::uint64_t(blockDim.x)*blockIdx.x+threadIdx.x;

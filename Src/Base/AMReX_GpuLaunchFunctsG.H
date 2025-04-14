@@ -735,9 +735,8 @@ template<typename L>
 void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
              gpuStream_t stream, L const& f) noexcept
 {
-    AMREX_ASSERT(nthreads_per_block <= AMREX_GPU_MAX_THREADS);
-    AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, nblocks, nthreads_per_block, shared_mem_bytes,
-                        stream, [=] AMREX_GPU_DEVICE () noexcept { f(); });
+    AMREX_LAUNCH_KERNEL_NOBOUND(nblocks, nthreads_per_block, shared_mem_bytes,
+                                stream, [=] AMREX_GPU_DEVICE () noexcept { f(); });
     AMREX_GPU_ERROR_CHECK();
 }
 
