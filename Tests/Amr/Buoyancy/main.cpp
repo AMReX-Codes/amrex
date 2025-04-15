@@ -277,14 +277,8 @@ int MyMain ()
         CalculateVelocities( vels );
         CalculateTemperatures( temps, geoms, bcrec );
 
-        // Debug
-        WriteAllResults( vels, temps, geoms, "init" );
-
         // At every level, calculate the buoyancy term and modify the velocities
         CalculateBuoyancy( vels, temps, dt, gs, beta, T_ref );
-
-        // Debug
-        WriteAllResults( vels, temps, geoms, "final" );
     }
 
     //

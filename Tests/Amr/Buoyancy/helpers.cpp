@@ -11,7 +11,6 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
-#include <fstream>
 
 /*--------------------------------------------------------------------
   defines and static variables
@@ -38,11 +37,6 @@ static void FillCoarseFineGhosts(  //
   const amrex::Vector<amrex::Geometry>& geoms,
   const amrex::BCRec& bcrec,
   int level );
-
-static void WriteResults(  //
-  const amrex::MultiFab& data,
-  const amrex::Geometry& geom,
-  const std::string& filename );
 
 static double Interpolate(  //
   const std::map<double, double>& data,
@@ -394,61 +388,6 @@ void CalculateBuoyancy(  //
 } /* end: CalculateBuoyancy() */
 
 
-static void WriteResults(  //
-  const amrex::MultiFab& data,
-  const amrex::Geometry& geom,
-  const std::string& filename )
-{
-  std::ofstream file( filename );
-  for ( amrex::MFIter mfi( data ); mfi.isValid(); ++mfi ) {
-    const amrex::Box& bx = mfi.validbox();
-    // const amrex::Box& bx = mfi.growntilebox();
-    const amrex::Array4<const amrex::Real>& arr = data.array( mfi );
-    const auto lo = amrex::lbound( bx );
-    const auto hi = amrex::ubound( bx );
-    for ( int i = lo.x; i <= hi.x; ++i ) {
-      for ( int j = lo.y; j <= hi.y; ++j ) {
-        for ( int k = lo.z; k <= hi.z; ++k ) {
-          // TODO: This is the bottom-left corner of the voxel instead of the
-          // voxel or face center...
-          // TODO: Some of these should be CellCenter() instead of LoEdge()
-          const amrex::Real x = geom.LoEdge( i, U );
-          const amrex::Real y = geom.LoEdge( j, V );
-          const amrex::Real z = geom.LoEdge( k, W );
-          constexpr bool printIndex = false;
-          if constexpr ( printIndex ) {
-            file << x << ", " << y << ", " << z << ", "  //
-                 << i << ", " << j << ", " << k << ", "  //
-                 << arr( i, j, k ) << "\n";
-          } else {
-            file << x << ", " << y << ", " << z << ", "  //
-                 << arr( i, j, k ) << "\n";
-          }
-        }
-      }
-    }
-  }
-  file.close();
-}
-
-
-void WriteAllResults(  //
-  const amrex::Vector<std::array<amrex::MultiFab, 3>>& vels,
-  const amrex::Vector<amrex::MultiFab>& temps,
-  const amrex::Vector<amrex::Geometry>& geoms,
-  const std::string& identifier )
-{
-  for ( int level = 0; level < geoms.size(); ++level ) {
-    const auto& geom = geoms.at( level );
-    const std::string suffix = "_level" + std::to_string( level ) + "_" + identifier + ".csv";
-    WriteResults( temps.at( level ), geom, "temperature" + suffix );
-    WriteResults( vels.at( level ).at( U ), geom, "velocity_U" + suffix );
-    WriteResults( vels.at( level ).at( V ), geom, "velocity_V" + suffix );
-    WriteResults( vels.at( level ).at( W ), geom, "velocity_W" + suffix );
-  }
-}
-
-
 void CheckResults(  //
   const amrex::Vector<std::array<amrex::MultiFab, 3>>& vels,
   const amrex::Vector<amrex::Geometry>& geoms )
@@ -506,14 +445,9 @@ void CheckResults(  //
           for ( int k = lo.z; k <= hi.z; ++k ) {
             // Check "valid" cells against the expected expression.
             const amrex::Real x = geom.LoEdge( i, U );
-#ifdef GTEST
-            EXPECT_FLOAT_EQ( arr( i, j, k ), Interpolate( expectedValues, x ) )
-              << i << ", " << j << ", " << k;
-#else
             const auto diff = arr( i, j, k ) - Interpolate( expectedValues, x );
             constexpr auto tol_arbitrary = 1.0E-5;
             AMREX_ALWAYS_ASSERT( std::abs( diff ) < tol_arbitrary );
-#endif
           }
         }
       }

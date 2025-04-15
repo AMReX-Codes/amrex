@@ -41,12 +41,6 @@ void CalculateBuoyancy(  //
   amrex::Real beta,
   amrex::Real T_ref );
 
-void WriteAllResults(  //
-  const amrex::Vector<std::array<amrex::MultiFab, 3>>& vels,
-  const amrex::Vector<amrex::MultiFab>& temps,
-  const amrex::Vector<amrex::Geometry>& geoms,
-  const std::string& identifier );
-
 void CheckResults(  //
   const amrex::Vector<std::array<amrex::MultiFab, 3>>& vels,
   const amrex::Vector<amrex::Geometry>& geoms );
