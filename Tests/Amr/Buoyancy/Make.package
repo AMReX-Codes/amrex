@@ -1,1 +1,1 @@
-CEXE_sources += main.cpp
+CEXE_sources += main.cpp helpers.cpp
