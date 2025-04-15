@@ -27,8 +27,8 @@ struct FilccCell
         const int jhi = domain_hi[1];
         const int is = amrex::max(q.begin.x,ilo);
         const int js = amrex::max(q.begin.y,jlo);
-        const int ie = amrex::min(q.end.x-1,ihi);
-        const int je = amrex::min(q.end.y-1,jhi);
+        const int ie = amrex::min(q.begin.x+q.len.x-1,ihi);
+        const int je = amrex::min(q.begin.y+q.len.y-1,jhi);
 
         for (int n = dcomp; n < numcomp+dcomp; ++n)
         {

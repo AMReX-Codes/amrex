@@ -39,16 +39,16 @@ makeCopyMemory (Array4<T> const& src, Array4<U> const& dst, int scomp, int ncomp
     mem.src = (void*)(src.p);
     mem.dst = (void*)(dst.p);
     mem.src_begin = src.begin;
-    mem.src_end = src.end;
+    mem.src_end = end(src);
     mem.dst_begin = dst.begin;
-    mem.dst_end = dst.end;
+    mem.dst_end = end(dst);
     mem.scomp = scomp;
     mem.ncomp = ncomp;
     return mem;
 
 #else
 
-    return CopyMemory{ (void*)(src.p), (void*)(dst.p), src.begin, src.end, dst.begin, dst.end, scomp, ncomp };
+    return CopyMemory{ (void*)(src.p), (void*)(dst.p), src.begin, end(src), dst.begin, end(dst), scomp, ncomp };
 #endif
 }
 

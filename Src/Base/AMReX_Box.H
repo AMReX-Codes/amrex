@@ -95,7 +95,7 @@ public:
     AMREX_GPU_HOST_DEVICE
     explicit BoxND (Array4<T> const& a) noexcept
         : smallend(a.begin),
-          bigend(IntVectND<dim>(a.end) - 1)
+          bigend(IntVectND<dim>(ubound(a)))
         {}
 
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.

@@ -988,7 +988,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                      p.idata(NStructInt+n) = imf_arr(i,j,k,1+NStructInt+n);
                  }
                  //Set the new particle in dst tile
-                 dst.setSuperParticle(p, last_offset+offsets_ptr[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]);
+                 dst.setSuperParticle(p, last_offset+offsets_ptr[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride()+(k-imf_arr.begin.z)*imf_arr.kstride())]);
              }
 
         });
