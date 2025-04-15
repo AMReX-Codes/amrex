@@ -135,7 +135,7 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(i,j,k,n);
 #endif
-            return p[(i-begin.x)+(j-begin.y)*jstride()+(k-begin.z)*kstride()+n*nstride()];
+            return p[(i-begin.x)+Long(len.x)*((j-begin.y)+Long(len.y)*((k-begin.z)+Long(len.z)*n))];
         }
 
         template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
