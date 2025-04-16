@@ -397,12 +397,14 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     }
 
 #if (defined(AMREX_USE_HYPRE) || defined(AMREX_USE_PETSC)) && (AMREX_SPACEDIM > 1)
-    if (bottom_solver == BottomSolver::hypre || bottom_solver == BottomSolver::petsc) {
-        int mo = linop.getMaxOrder();
-        if (a_sol[0]->hasEBFabFactory()) {
-            linop.setMaxOrder(2);
-        } else {
-            linop.setMaxOrder(std::min(3,mo));  // maxorder = 4 not supported
+    if constexpr (IsFabArray_v<AMF>) {
+        if (bottom_solver == BottomSolver::hypre || bottom_solver == BottomSolver::petsc) {
+            int mo = linop.getMaxOrder();
+            if (a_sol[0]->hasEBFabFactory()) {
+                linop.setMaxOrder(2);
+            } else {
+                linop.setMaxOrder(std::min(3,mo));  // maxorder = 4 not supported
+            }
         }
     }
 #endif
