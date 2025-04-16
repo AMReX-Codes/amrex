@@ -470,7 +470,7 @@ void mlcurlcurl_1D (int i, int j, int k,
                     Real beta,
                     GpuArray<Real,AMREX_SPACEDIM> const& adxinv,
                     int color,
-                    CurlCurlDirichletInfo const& dinfo)
+                    CurlCurlDirichletInfo const& dinfo, bool valid_x)
 {
     if (dinfo.is_dirichlet_node(i,j,k)) {return; }
 
@@ -480,7 +480,9 @@ void mlcurlcurl_1D (int i, int j, int k,
 
     if (my_color == color)
     {
-        ex(i,j,k) = rhsx(i,j,k) / beta;
+        if (valid_x) {
+            ex(i,j,k) = rhsx(i,j,k) / beta;
+        }
 
         Real gamma_y = dxx * Real(2.0) + beta;
         Real ccey = - dxx * (ey(i-1,j  ,k  ) +
@@ -510,7 +512,7 @@ void mlcurlcurl_1D (int i, int j, int k,
                     Array4<Real const> const& betaz,
                     GpuArray<Real,AMREX_SPACEDIM> const& adxinv,
                     int color,
-                    CurlCurlDirichletInfo const& dinfo)
+                    CurlCurlDirichletInfo const& dinfo, bool valid_x)
 {
     if (dinfo.is_dirichlet_node(i,j,k)) {return; }
     Real dxx = adxinv[0] * adxinv[0];
@@ -519,7 +521,9 @@ void mlcurlcurl_1D (int i, int j, int k,
 
     if (my_color == color)
     {
-        ex(i,j,k) = rhsx(i,j,k) / betax(i,j,k);
+        if (valid_x) {
+            ex(i,j,k) = rhsx(i,j,k) / betax(i,j,k);
+        }
 
         Real gamma_y = dxx * Real(2.0) + betay(i,j,k);
         Real ccey = - dxx * (ey(i-1,j  ,k  ) +

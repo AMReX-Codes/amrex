@@ -227,8 +227,8 @@ void MLCurlCurl::interpolation (int amrlev, int fmglev, MF& fine,
                 mlcurlcurl_interpadd(idim,i,j,k,finema[bno],crsema[bno]);
             }
         });
+        Gpu::streamSynchronize();
     }
-    Gpu::streamSynchronize();
 }
 
 void
@@ -364,6 +364,8 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
         adxinv[idim] *= std::sqrt(m_alpha);
     }
 
+    int xhi = this->m_geom[amrlev][mglev].Domain().bigEnd(0);
+
     MultiFab nmf(amrex::convert(rhs[0].boxArray(),IntVect(1)),
                  rhs[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
 
@@ -373,21 +375,22 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
         auto const& bcz = m_bcoefs[amrlev][mglev][2]->const_arrays();
         ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
+            bool valid_x = i <= xhi; // x is cell-centered, not nodal
             mlcurlcurl_1D(i,j,k,ex[bno],ey[bno],ez[bno],
                           rhsx[bno],rhsy[bno],rhsz[bno],
                           bcx[bno],bcy[bno],bcz[bno],
-                          adxinv,color,dinfo);
+                          adxinv,color,dinfo,valid_x);
         });
-        Gpu::streamSynchronize();
     } else {
         ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
+            bool valid_x = i <= xhi; // x is cell-centered, not nodal
             mlcurlcurl_1D(i,j,k,ex[bno],ey[bno],ez[bno],
                           rhsx[bno],rhsy[bno],rhsz[bno],
-                          b,adxinv,color,dinfo);
+                          b,adxinv,color,dinfo,valid_x);
         });
-        Gpu::streamSynchronize();
     }
+    Gpu::streamSynchronize();
 }
 #endif
 

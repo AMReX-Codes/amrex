@@ -447,8 +447,8 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
         const int ncells = fai.fabbox().numPts();
         const char* tags = (*this)[fai].dataPtr();
 #ifdef AMREX_USE_SYCL
-        amrex::launch(nblocks[li], block_size, sizeof(int)*Gpu::Device::warp_size,
-                      Gpu::Device::gpuStream(),
+        amrex::launch<block_size>(nblocks[li], sizeof(int)*Gpu::Device::warp_size,
+                                  Gpu::Device::gpuStream(),
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
         {
             int bid = h.item->get_group_linear_id();
@@ -467,7 +467,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
             }
         });
 #else
-        amrex::launch(nblocks[li], block_size, Gpu::Device::gpuStream(),
+        amrex::launch<block_size>(nblocks[li], Gpu::Device::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept
         {
             int bid = blockIdx.x;
@@ -525,7 +525,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
             const int ncells = bx.numPts();
             const char* tags = (*this)[fai].dataPtr();
 #ifdef AMREX_USE_SYCL
-            amrex::launch(nblocks[li], block_size, sizeof(unsigned int), Gpu::Device::gpuStream(),
+            amrex::launch<block_size>(nblocks[li], sizeof(unsigned int), Gpu::Device::gpuStream(),
             [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
             {
                 int bid = h.item->get_group(0);
@@ -553,7 +553,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
                 }
             });
 #else
-            amrex::launch(nblocks[li], block_size, sizeof(unsigned int), Gpu::Device::gpuStream(),
+            amrex::launch<block_size>(nblocks[li], sizeof(unsigned int), Gpu::Device::gpuStream(),
             [=] AMREX_GPU_DEVICE () noexcept
             {
                 int bid = blockIdx.x;

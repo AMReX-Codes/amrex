@@ -1081,7 +1081,11 @@ Device::profilerStop ()
 void hypreSynchronize ()
 {
 #ifdef AMREX_USE_GPU
+#if (HYPRE_RELEASE_NUMBER > 23200) || (HYPRE_RELEASE_NUMBER == 23200 && HYPRE_DEVELOP_NUMBER >= 4)
+    hypre_SyncComputeStream();
+#else
     hypre_SyncCudaDevice(hypre_handle()); // works for non-cuda device too
+#endif
 #endif
 }
 #endif
