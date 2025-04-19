@@ -237,4 +237,19 @@ using Gpu::isinf;
 
 } // namespace amrex
 
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+/* Somehow I cannot get cudaMemcpyFromSymbol to work. */
+#define AMREX_GET_DEVICE_FUNC_PTR(FP_t, sym) \
+    [] () { \
+        auto* amrex_i_hp = (FP_t*) amrex::The_Pinned_Arena()->alloc(sizeof(FP_t)); \
+        amrex::single_task([=] AMREX_GPU_DEVICE () { *amrex_i_hp = sym; }); \
+        amrex::Gpu::streamSynchronize(); \
+        auto amrex_i_r = *amrex_i_hp; \
+        amrex::The_Pinned_Arena()->free(amrex_i_hp); \
+        return amrex_i_r; \
+    } ()
+#elif !defined(AMREX_USE_SYCL)
+#define AMREX_GET_DEVICE_FUNC_PTR(FP_t, sym) sym
+#endif
+
 #endif
