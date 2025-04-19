@@ -768,9 +768,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     if (have_pheaders)
     {
-        for (int lev = 0; lev <= finestLevel(); lev++)
+        for (int lev = 0; lev <= amrex::min(finestLevel(), finest_level_in_file); lev++)
         {
-            old_dms[lev] = ParticleDistributionMap(lev);
+            old_dms[lev] = ParticleDistributionMap(lev); // FIXME: segfault here!!!
             old_bas[lev] = ParticleBoxArray(lev);
             std::string phdr_name = fullname;
             phdr_name += "/Level_";
@@ -787,13 +787,20 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             particle_box_arrays[lev].readFrom(phdr_file);
             if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) { dual_grid = true; }
         }
+        // set particleBoxArray and particleDistributionMap for any new levels gained on restart
+        for (int lev = finest_level_in_file; lev <= finestLevel(); lev++) {
+            amrex::BoxArray pba(Geom(lev).Domain());
+            amrex::DistributionMapping pdm(pba);
+            SetParticleBoxArray(lev, pba);
+            SetParticleDistributionMap(lev, pdm);
+        }
     } else // if no particle box array information exists in the file, we assume a single grid restart
     {
         dual_grid = false;
     }
 
     if (dual_grid) {
-        for (int lev = 0; lev <= finestLevel(); lev++) {
+        for (int lev = 0; lev <= amrex::min(finestLevel(), finest_level_in_file); lev++) {
             // this can happen if there are no particles at a given level in the checkpoint
             if (particle_box_arrays[lev].empty()) {
                 particle_box_arrays[lev] = BoxArray(Geom(lev).Domain());
@@ -914,7 +921,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     if (dual_grid) {
-        for (int lev = 0; lev <= finestLevel(); lev++) {
+        for (int lev = 0; lev <= amrex::min(finestLevel(), finest_level_in_file); lev++) {
             SetParticleBoxArray(lev, old_bas[lev]);
             SetParticleDistributionMap(lev, old_dms[lev]);
         }
