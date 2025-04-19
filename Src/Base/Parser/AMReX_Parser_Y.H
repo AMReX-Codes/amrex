@@ -12,14 +12,21 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <map>
 #include <set>
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <vector>
 
 void amrex_parsererror (char const *s, ...);
 
 namespace amrex {
+
+using ParserUserFn1 = double (*)(double);
+using ParserUserFn2 = double (*)(double,double);
+using ParserUserFn3 = double (*)(double,double,double);
+using ParserUserFn4 = double (*)(double,double,double,double);
 
 enum parser_f1_t {  // Built-in functions with one argument
     PARSER_SQRT,
@@ -148,6 +155,9 @@ enum parser_node_t {
     PARSER_F1,
     PARSER_F2,
     PARSER_F3,
+    PARSER_USRF1,
+    PARSER_USRF2,
+    PARSER_USRFN,
     PARSER_ASSIGN,
     PARSER_LIST
 };
@@ -169,6 +179,9 @@ std::string_view parser_node_s[] =
     "f1",
     "f2",
     "f3",
+    "usrf1",
+    "usrf2",
+    "usrfn",
     "assign",
     "list"
 };
@@ -222,13 +235,41 @@ struct alignas(parser_node) parser_f3 { /* Builtin functions with three argument
     struct parser_node* n3;
 };
 
+struct alignas(parser_node) parser_usrf1 {  /* User functions with one argument */
+    enum parser_node_t type;
+    enum parser_node_t padding;
+    char* name;
+    struct parser_node* l; // NOLINT(misc-confusable-identifiers)
+    struct parser_node* padding1;
+};
+
+struct alignas(parser_node) parser_usrf2 {  /* User functions with two arguments */
+    enum parser_node_t type;
+    enum parser_node_t padding;
+    char* name;
+    struct parser_node* l; // NOLINT(misc-confusable-identifiers)
+    struct parser_node* r;
+};
+
+struct alignas(parser_node) parser_usrfn { /* User functions with three arguments */
+    enum parser_node_t type;
+    short argc;
+    char* name;
+    struct parser_node* n1;
+    struct parser_node** others;
+};
+
 struct alignas(parser_node) parser_assign {
     enum parser_node_t type;
     struct parser_symbol* s;
     struct parser_node* v;
 };
 
-static_assert(sizeof(parser_f3) <= sizeof(parser_node), "amrex parser: sizeof parser_node too small");
+static_assert(sizeof(parser_f3) <= sizeof(parser_node) &&
+              sizeof(parser_usrf1) <= sizeof(parser_node) &&
+              sizeof(parser_usrf2) <= sizeof(parser_node) &&
+              sizeof(parser_usrfn) <= sizeof(parser_node),
+              "amrex parser: sizeof parser_node too small");
 
 /*******************************************************************/
 
@@ -245,6 +286,11 @@ struct parser_node* parser_newf2 (enum parser_f2_t ftype, struct parser_node* l,
                                   struct parser_node* r);
 struct parser_node* parser_newf3 (enum parser_f3_t ftype, struct parser_node* n1,
                                   struct parser_node* n2, struct parser_node* n3);
+struct parser_node* parser_newusrf1 (struct parser_symbol* fname, struct parser_node* l);
+struct parser_node* parser_newusrf2 (struct parser_symbol* fname, struct parser_node* l,
+                                     struct parser_node* r);
+struct parser_node* parser_newusrfn (struct parser_symbol* fname,
+                                     std::vector<struct parser_node*> const& nv);
 struct parser_node* parser_newassign (struct parser_symbol* s, struct parser_node* v);
 struct parser_node* parser_newlist (struct parser_node* nl, struct parser_node* nr);
 
@@ -263,14 +309,15 @@ struct amrex_parser {
 
 struct amrex_parser* amrex_parser_new ();
 void amrex_parser_delete (struct amrex_parser* parser);
+void amrex_parser_delete_ptrs ();
 
-struct amrex_parser* parser_dup (struct amrex_parser* source);
-struct parser_node* parser_ast_dup (struct amrex_parser* parser, struct parser_node* node, int move);
+struct parser_node* parser_ast_dup (struct amrex_parser* parser, struct parser_node* node);
 
 void parser_regvar (struct amrex_parser* parser, char const* name, int i);
 void parser_setconst (struct amrex_parser* parser, char const* name, double c);
 void parser_print (struct amrex_parser* parser);
 std::set<std::string> parser_get_symbols (struct amrex_parser* parser);
+std::map<std::string,int> parser_get_user_functions (struct amrex_parser* parser);
 int parser_depth (struct amrex_parser* parser);
 
 /* We need to walk the tree in these functions */
@@ -281,6 +328,8 @@ void parser_ast_regvar (struct parser_node* node, char const* name, int i);
 void parser_ast_setconst (struct parser_node* node, char const* name, double c);
 void parser_ast_get_symbols (struct parser_node* node, std::set<std::string>& symbols,
                              std::set<std::string>& local_symbols);
+void parser_ast_get_user_functions (struct parser_node* node,
+                                    std::map<std::string,int>& user_functions);
 int parser_ast_depth (struct parser_node* node);
 void parser_ast_sort (struct parser_node* node);
 
