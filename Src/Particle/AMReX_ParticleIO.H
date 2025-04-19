@@ -746,10 +746,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     HdrFile >> finest_level_in_file;
     AMREX_ASSERT(finest_level_in_file >= 0);
 
+    // handle the case finestLevel() > finest_level_in_file
+    int finest_level_overall = std::max(finest_level_in_file, finestLevel());
+
     // Determine whether this is a dual-grid restart or not.
-    Vector<DistributionMapping> old_dms(finest_level_in_file + 1);
-    Vector<BoxArray> old_bas(finest_level_in_file + 1);
-    Vector<BoxArray> particle_box_arrays(finest_level_in_file + 1);
+    Vector<DistributionMapping> old_dms(finest_level_overall + 1);
+    Vector<BoxArray> old_bas(finest_level_overall + 1);
+    Vector<BoxArray> particle_box_arrays(finest_level_overall + 1);
     bool dual_grid = false;
 
     bool have_pheaders = false;
@@ -787,12 +790,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             particle_box_arrays[lev].readFrom(phdr_file);
             if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) { dual_grid = true; }
         }
-        // set particleBoxArray and particleDistributionMap for any new levels gained on restart
-        for (int lev = (finest_level_in_file + 1); lev <= finestLevel(); lev++) {
-            amrex::BoxArray pba(Geom(lev).Domain());
-            amrex::DistributionMapping pdm(pba);
-            SetParticleBoxArray(lev, pba);
-            SetParticleDistributionMap(lev, pdm);
+        if (finestLevel() > finest_level_in_file) {
+            dual_grid = true;
         }
     } else // if no particle box array information exists in the file, we assume a single grid restart
     {
@@ -800,7 +799,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     if (dual_grid) {
-        for (int lev = 0; lev <= amrex::min(finestLevel(), finest_level_in_file); lev++) {
+        for (int lev = 0; lev <= finest_level_overall; lev++) {
             // this can happen if there are no particles at a given level in the checkpoint
             if (particle_box_arrays[lev].empty()) {
                 particle_box_arrays[lev] = BoxArray(Geom(lev).Domain());
@@ -921,7 +920,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     if (dual_grid) {
-        for (int lev = 0; lev <= amrex::min(finestLevel(), finest_level_in_file); lev++) {
+        for (int lev = 0; lev <= finest_level_in_file; lev++) {
             SetParticleBoxArray(lev, old_bas[lev]);
             SetParticleDistributionMap(lev, old_dms[lev]);
         }
