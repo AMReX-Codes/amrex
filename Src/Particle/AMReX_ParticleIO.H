@@ -788,7 +788,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) { dual_grid = true; }
         }
         // set particleBoxArray and particleDistributionMap for any new levels gained on restart
-        for (int lev = finest_level_in_file; lev <= finestLevel(); lev++) {
+        for (int lev = (finest_level_in_file + 1); lev <= finestLevel(); lev++) {
             amrex::BoxArray pba(Geom(lev).Domain());
             amrex::DistributionMapping pdm(pba);
             SetParticleBoxArray(lev, pba);
