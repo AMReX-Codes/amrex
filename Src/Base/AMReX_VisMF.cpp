@@ -1111,7 +1111,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
             nfi.Stream().flush();
             delete [] allFabData;
 
-        } else {    // ---- write fabs individually
+          } else {    // ---- write fabs individually
             for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
                 std::streamoff hLength = 0;
                 const FArrayBox &fab = mf[mfi];
@@ -1123,10 +1123,9 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     hLength = static_cast<std::streamoff>(hss.tellp());
                     auto tstr = hss.str();
                     nfi.Stream().write(tstr.c_str(), hLength);    // ---- the fab header
-                    nfi.Stream().flush();
                 }
                 Real const* fabdata = fab.dataPtr();
-#ifdef AMREX_USE_GPU
+        #ifdef AMREX_USE_GPU
                 std::unique_ptr<FArrayBox> hostfab;
                 if (fab.arena()->isManaged() || fab.arena()->isDevice()) {
                     hostfab = std::make_unique<FArrayBox>(fab.box(), fab.nComp(),
@@ -1136,20 +1135,19 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     Gpu::streamSynchronize();
                     fabdata = hostfab->dataPtr();
                 }
-#endif
+        #endif
                 if(doConvert) {
                     char *cDataPtr = new char[writeDataSize];
                     RealDescriptor::convertFromNativeFormat(static_cast<void *> (cDataPtr),
                                                             writeDataItems,
                                                             fabdata, *whichRD);
                     nfi.Stream().write(cDataPtr, writeDataSize);
-                    nfi.Stream().flush();
                     delete [] cDataPtr;
                 } else {    // ---- copy from the fab
                     nfi.Stream().write((char *) fabdata, writeDataSize);
-                    nfi.Stream().flush();
                 }
             }
+            nfi.Stream().flush();
         }
     }
 
