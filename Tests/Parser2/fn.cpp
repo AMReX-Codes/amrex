@@ -2,9 +2,10 @@
 #include <cmath>
 
 // This is intentional. Cannot have std:: in amrex::Parser expressions.
-using std::sin;
 using std::atan2;
 using std::pow;
+using std::sin;
+using std::sqrt;
 
 double f (int icase, double x, double y, double z)
 {
@@ -206,6 +207,182 @@ double f (int icase, double x, double y, double z)
         return pow(x,y+1);
     case 97:
         return pow(x+1,y);
+    case 98:
+        return x+(y+z);
+    case 99:
+        return x+(y-z);
+    case 100:
+        return x+(y+-z);
+    case 101:
+        return x+(y*z);
+    case 102:
+        return x+(y*-z);
+    case 103:
+        return x+-(y*z);
+    case 104:
+        return x+(y/z);
+    case 105:
+        return x+-(y/z);
+    case 106:
+        return x+(-y/z);
+    case 107:
+        return x+(y/-z);
+    case 108:
+        return x+(-y/-z);
+    case 109:
+        return -x+(y*z);
+    case 110:
+        return -x+(y/z);
+    case 111:
+        return (x+y) + -z;
+    case 112:
+        return (x-y) + -z;
+    case 113:
+        return (x+-y) + -z;
+    case 114:
+        return (x-(-y)) + -z;
+    case 115:
+        return (-x+y) + -z;
+    case 116:
+        return (x*y) + -z;
+    case 117:
+        return x * (y+z);
+    case 118:
+        return x * (y-z);
+    case 119:
+        return x * (-y+z);
+    case 120:
+        return x * (y*z);
+    case 121:
+        return x * (-y*-z);
+    case 122:
+        return x * (y/z);
+    case 123:
+        return x * (-y/-z);
+    case 124:
+        return x / (y+z);
+    case 125:
+        return x / (y-z);
+    case 126:
+        return x / (-y+z);
+    case 127:
+        return x / (y*z);
+    case 128:
+        return x / (-y*-z);
+    case 129:
+        return x / (y/z);
+    case 130:
+        return x / (-y/-z);
+    case 131:
+        return (x*y) / z;
+    case 132:
+        return (x+y) / z;
+    case 133:
+        return (x-y) / z;
+    case 134:
+        return (x/y) / z;
+    case 135:
+        return (-x/y) / -z;
+    case 136:
+        return -(3*x)*(y*z);
+    case 137:
+        return -(3*x)/(y*z);
+    case 138:
+        return x - (y+z);
+    case 139:
+        return x - (y-z);
+    case 140:
+        return x - (y*z);
+    case 141:
+        return x - (y/z);
+    case 142:
+        return x*x;
+    case 143:
+        return pow(x,2);
+    case 144:
+        return x*x*x;
+    case 145:
+        return pow(x,3);
+    case 146:
+        return sqrt(x*x+y*y);
+    case 147:
+        return sqrt(pow(x,2)+pow(y,2));
+    case 148:
+        return sqrt(pow(x+y,2)+pow(x+z,2));
+    case 149:
+        return sqrt(x*x+y*y+z*z);
+    case 150:
+        return sqrt(pow(x,2)+pow(y,2)+pow(z,2));
+    case 151:
+        return sqrt(pow(x+y,2)+pow(x+z,2)+pow(y+z,2));
+    case 152:
+        return pow(x,0.5);
+    case 153:
+        return pow(pow(pow(x,0.3),0.4),0.5);
+    case 154:
+        return pow(pow(pow(x,0.3),y),0.5);
+    case 155:
+        return pow(x,-1);
+    case 156:
+        return (10.1+x) + y;
+    case 157:
+        return (10.1+x) - y;
+    case 158:
+        return (10.1+x) * y;
+    case 159:
+        return (x+y) * 10.1;
+    case 160:
+        return (10.1+x) * 11.2;
+    case 161:
+        return (10.1+x) / y;
+    case 162:
+        return (10.1-y) - z;
+    case 163:
+        return (9.1-y) * z;
+    case 164:
+        return (x-y) * 9.1;
+    case 165:
+        return (7.1-y) / z;
+    case 166:
+        return (7.1*y) + z;
+    case 167:
+        return (x*y) + 7.3;
+    case 168:
+        return (7.1*y) - z;
+    case 169:
+        return (7.1*y) * z;
+    case 170:
+        return (7.1*y) / z;
+    case 171:
+        return (7.1/y) + z;
+    case 172:
+        return (x/y) + 7.3;
+    case 173:
+        return (7.1/y) + 7.3;
+    case 174:
+        return (7.1/y) - z;
+    case 175:
+        return (7.1/y) * z;
+    case 176:
+        return 7.1 - (y + z);
+    case 177:
+        return 7.1 - ( y * z );
+    case 178:
+        return 7.1 - ( y / z );
+    case 179:
+        return 7.1 / ( y + z );
+    case 180:
+        return x / ( 7.2 + z );
+    case 181:
+        return 7.1 / ( 7.2 + z );
+    case 182:
+        return 7.1 / ( y - z );
+    case 183:
+        return x / ( 7.2 - z );
+    case 184:
+        return 7.1 / ( y - 7.3 );
+    case 185:
+        return 7.1 / ( 7.2 - z );
     default:
         amrex::Abort("Unknown case "+std::to_string(icase));
         return 0.0;

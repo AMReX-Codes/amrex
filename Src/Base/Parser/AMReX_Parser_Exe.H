@@ -58,169 +58,169 @@ enum parser_exe_t {
     PARSER_EXE_USER_FN
 };
 
-struct alignas(8) ParserExeNull {
+struct alignas(double) ParserExeNull {
     enum parser_exe_t type = PARSER_EXE_NULL;
 };
 
-struct alignas(8) ParserExeNumber {
+struct alignas(double) ParserExeNumber {
     enum parser_exe_t type = PARSER_EXE_NUMBER;
     double v;
 };
 
-struct alignas(8) ParserExeSymbol {
+struct alignas(double) ParserExeSymbol {
     enum parser_exe_t type = PARSER_EXE_SYMBOL;
     int i;
 };
 
-struct alignas(8) ParserExeADD {
+struct alignas(double) ParserExeADD {
     enum parser_exe_t type = PARSER_EXE_ADD;
 };
 
-struct alignas(8) ParserExeSUB_F {
+struct alignas(double) ParserExeSUB_F {
     enum parser_exe_t type = PARSER_EXE_SUB_F;
 };
 
-struct alignas(8) ParserExeSUB_B {
+struct alignas(double) ParserExeSUB_B {
     enum parser_exe_t type = PARSER_EXE_SUB_B;
 };
 
-struct alignas(8) ParserExeMUL {
+struct alignas(double) ParserExeMUL {
     enum parser_exe_t type = PARSER_EXE_MUL;
 };
 
-struct alignas(8) ParserExeDIV_F {
+struct alignas(double) ParserExeDIV_F {
     enum parser_exe_t type = PARSER_EXE_DIV_F;
 };
 
-struct alignas(8) ParserExeDIV_B {
+struct alignas(double) ParserExeDIV_B {
     enum parser_exe_t type = PARSER_EXE_DIV_B;
 };
 
-struct alignas(8) ParserExeF1 {
+struct alignas(double) ParserExeF1 {
     enum parser_exe_t type = PARSER_EXE_F1;
     parser_f1_t ftype;
 };
 
-struct alignas(8) ParserExeF2_F {
+struct alignas(double) ParserExeF2_F {
     enum parser_exe_t type = PARSER_EXE_F2_F;
     parser_f2_t ftype;
 };
 
-struct alignas(8) ParserExeF2_B {
+struct alignas(double) ParserExeF2_B {
     enum parser_exe_t type = PARSER_EXE_F2_B;
     parser_f2_t ftype;
 };
 
-struct alignas(8) ParserExeADD_VP {
+struct alignas(double) ParserExeADD_VP {
     enum parser_exe_t type = PARSER_EXE_ADD_VP;
     int i;
     double v;
 };
 
-struct alignas(8) ParserExeSUB_VP {
+struct alignas(double) ParserExeSUB_VP {
     enum parser_exe_t type = PARSER_EXE_SUB_VP;
     int i;
     double v;
 };
 
-struct alignas(8) ParserExeMUL_VP {
+struct alignas(double) ParserExeMUL_VP {
     enum parser_exe_t type = PARSER_EXE_MUL_VP;
     int i;
     double v;
 };
 
-struct alignas(8) ParserExeDIV_VP {
+struct alignas(double) ParserExeDIV_VP {
     enum parser_exe_t type = PARSER_EXE_DIV_VP;
     int i;
     double v;
 };
 
-struct alignas(8) ParserExeADD_PP {
+struct alignas(double) ParserExeADD_PP {
     enum parser_exe_t type = PARSER_EXE_ADD_PP;
     int i1;
     int i2;
 };
 
-struct alignas(8) ParserExeSUB_PP {
+struct alignas(double) ParserExeSUB_PP {
     enum parser_exe_t type = PARSER_EXE_SUB_PP;
     int i1;
     int i2;
 };
 
-struct alignas(8) ParserExeMUL_PP {
+struct alignas(double) ParserExeMUL_PP {
     enum parser_exe_t type = PARSER_EXE_MUL_PP;
     int i1;
     int i2;
 };
 
-struct alignas(8) ParserExeDIV_PP {
+struct alignas(double) ParserExeDIV_PP {
     enum parser_exe_t type = PARSER_EXE_DIV_PP;
     int i1;
     int i2;
 };
 
-struct alignas(8) ParserExeADD_VN {
+struct alignas(double) ParserExeADD_VN {
     enum parser_exe_t type = PARSER_EXE_ADD_VN;
     double v;
 };
 
-struct alignas(8) ParserExeSUB_VN {
+struct alignas(double) ParserExeSUB_VN {
     enum parser_exe_t type = PARSER_EXE_SUB_VN;
     double v;
 };
 
-struct alignas(8) ParserExeMUL_VN {
+struct alignas(double) ParserExeMUL_VN {
     enum parser_exe_t type = PARSER_EXE_MUL_VN;
     double v;
 };
 
-struct alignas(8) ParserExeDIV_VN {
+struct alignas(double) ParserExeDIV_VN {
     enum parser_exe_t type = PARSER_EXE_DIV_VN;
     double v;
 };
 
-struct alignas(8) ParserExeADD_PN {
+struct alignas(double) ParserExeADD_PN {
     enum parser_exe_t type = PARSER_EXE_ADD_PN;
     int i;
 };
 
-struct alignas(8) ParserExeSUB_PN {
+struct alignas(double) ParserExeSUB_PN {
     enum parser_exe_t type = PARSER_EXE_SUB_PN;
     int i;
     double sign;
 };
 
-struct alignas(8) ParserExeMUL_PN {
+struct alignas(double) ParserExeMUL_PN {
     enum parser_exe_t type = PARSER_EXE_MUL_PN;
     int i;
 };
 
-struct alignas(8) ParserExeDIV_PN {
+struct alignas(double) ParserExeDIV_PN {
     enum parser_exe_t type = PARSER_EXE_DIV_PN;
     int i;
     bool reverse;
 };
 
-struct alignas(8) ParserExeSquare {
+struct alignas(double) ParserExeSquare {
     enum parser_exe_t type = PARSER_EXE_SQUARE;
 };
 
-struct alignas(8) ParserExePOWI {
+struct alignas(double) ParserExePOWI {
     enum parser_exe_t type = PARSER_EXE_POWI;
     int i;
 };
 
-struct alignas(8) ParserExeIF {
+struct alignas(double) ParserExeIF {
     enum parser_exe_t type = PARSER_EXE_IF;
     int offset;
 };
 
-struct alignas(8) ParserExeJUMP {
+struct alignas(double) ParserExeJUMP {
     enum parser_exe_t type = PARSER_EXE_JUMP;
     int offset;
 };
 
-struct alignas(8) ParserExeUserFn {
+struct alignas(double) ParserExeUserFn {
     enum parser_exe_t type = PARSER_EXE_USER_FN;
     short argc;
     void* fh;

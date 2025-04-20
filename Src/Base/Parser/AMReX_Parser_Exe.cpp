@@ -3,6 +3,14 @@
 
 namespace amrex {
 
+namespace
+{
+    bool is_negative_one(struct parser_node* node)
+    {
+        return (node->type == PARSER_NUMBER) && (parser_get_number(node) == -1.0);
+    }
+}
+
 void
 parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_size,
                          int& max_stack_size, int& stack_size,
@@ -29,6 +37,11 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
 
     // In parser_exe_eval, we push to the stack for NUMBER, SYMBOL, VP, PP.
     // In parser_exe_eval, we pop the stack for ADD, SUB, MUL, DIV, F2, and IF.
+
+    // Note that for + and * the nodes have been sorted before this function
+    // is called. So we don't need to worry about cases like f(x) + x.
+
+    // Note that there is no PARSER_SUB. a-b is actually a+(-b).
 
     switch (node->type)
     {
@@ -73,9 +86,8 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
         }
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_MUL &&
-                 node->r->l->type == PARSER_NUMBER &&
-                 node->r->r->type == PARSER_SYMBOL &&
-                 parser_get_number(node->r->l) == -1.0)
+                 is_negative_one(node->r->l) &&
+                 node->r->r->type == PARSER_SYMBOL)
         { // 3 + (-1.0)*x => 3 - x
             if (p) {
                 auto *t = new(p) ParserExeSUB_VP;
@@ -89,8 +101,7 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
         }
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_MUL &&
-                 node->r->l->type == PARSER_NUMBER &&
-                 parser_get_number(node->r->l) == -1.0)
+                 is_negative_one(node->r->l))
         { // 3 + (-1)*f(x) => 3 - f(x)
             parser_compile_exe_size(node->r->r, p, exe_size, max_stack_size,
                                     stack_size, local_variables, ufs);
@@ -114,9 +125,8 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
         }
         else if (node->l->type == PARSER_SYMBOL &&
                  node->r->type == PARSER_MUL &&
-                 node->r->l->type == PARSER_NUMBER &&
-                 node->r->r->type == PARSER_SYMBOL &&
-                 parser_get_number(node->r->l) == -1.0)
+                 is_negative_one(node->r->l) &&
+                 node->r->r->type == PARSER_SYMBOL)
         { // x + -y => x - y
             if (p) {
                 auto *t = new(p) ParserExeSUB_PP;
@@ -127,7 +137,6 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             exe_size += sizeof(ParserExeSUB_PP);
             ++stack_size;
             max_stack_size = std::max(max_stack_size, stack_size);
-            break;
         }
         else if (node->l->type == PARSER_SYMBOL &&
                  node->r->type == PARSER_SYMBOL)
@@ -141,12 +150,10 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             exe_size += sizeof(ParserExeADD_PP);
             ++stack_size;
             max_stack_size = std::max(max_stack_size, stack_size);
-            break;
         }
         else if (node->l->type == PARSER_SYMBOL &&
                  node->r->type == PARSER_MUL &&
-                 node->r->l->type == PARSER_NUMBER &&
-                 parser_get_number(node->r->l) == -1.0)
+                 is_negative_one(node->r->l))
         { // x + (-1)*f(x) => x - f(x)
             parser_compile_exe_size(node->r->r, p, exe_size, max_stack_size,
                                     stack_size, local_variables, ufs);
@@ -170,9 +177,8 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             exe_size += sizeof(ParserExeADD_PN);
         }
         else if (node->l->type == PARSER_MUL &&
-                 node->l->l->type == PARSER_NUMBER &&
-                 node->l->r->type == PARSER_SYMBOL &&
-                 parser_get_number(node->l->l) == -1.0)
+                 is_negative_one(node->l->l) &&
+                 node->l->r->type == PARSER_SYMBOL)
         { // -x + f(x)
             parser_compile_exe_size(node->r, p, exe_size, max_stack_size, stack_size,
                                     local_variables, ufs);
@@ -185,9 +191,8 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             exe_size += sizeof(ParserExeSUB_PN);
         }
         else if (node->r->type == PARSER_MUL &&
-                 node->r->l->type == PARSER_NUMBER &&
-                 node->r->r->type == PARSER_SYMBOL &&
-                 parser_get_number(node->r->l) == -1.0)
+                 is_negative_one(node->r->l) &&
+                 node->r->r->type == PARSER_SYMBOL)
         { // f(x) + (-1)*x => -(x-f(x))
             parser_compile_exe_size(node->l, p, exe_size, max_stack_size, stack_size,
                                     local_variables, ufs);
@@ -200,8 +205,7 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             exe_size += sizeof(ParserExeSUB_PN);
         }
         else if (node->l->type == PARSER_MUL &&
-                 node->l->l->type == PARSER_NUMBER &&
-                 parser_get_number(node->l->l) == -1.0)
+                 is_negative_one(node->l->l))
         { // (-1)*f(x) + g(x) => g(x) - f(x)
             int d1 = parser_ast_depth(node->l->r);
             int d2 = parser_ast_depth(node->r);
@@ -468,6 +472,19 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                                       (((struct parser_f2*)node)->r)));
             }
             exe_size += sizeof(ParserExePOWI);
+        }
+        else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
+                 ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
+                 parser_get_number(((struct parser_f2*)node)->r) == 0.5)
+        {
+            parser_compile_exe_size(((struct parser_f2*)node)->l, p, exe_size,
+                                    max_stack_size, stack_size, local_variables, ufs);
+            if (p) {
+                auto *t = new(p) ParserExeF1;
+                p      += sizeof(ParserExeF1);
+                t->ftype = PARSER_SQRT;
+            }
+            exe_size += sizeof(ParserExeF1);
         }
         else
         {

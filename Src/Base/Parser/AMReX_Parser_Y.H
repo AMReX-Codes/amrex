@@ -337,6 +337,7 @@ void parser_ast_sort (struct parser_node* node);
 double parser_get_number (struct parser_node* node);
 void parser_set_number (struct parser_node* node, double v);
 bool parser_node_equal (struct parser_node* a, struct parser_node* b);
+bool parser_same_symbol (struct parser_node* a, struct parser_node* b);
 /*******************************************************************/
 
 template <typename T>

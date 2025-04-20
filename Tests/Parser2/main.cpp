@@ -13,12 +13,16 @@ bool test_parser(int icase, std::string const& expr)
     double x = 1.23, y = 2.34, z = 3.45;
     auto result_native = f(icase, x, y, z);
 
+    amrex::Print() << "\ncase " << icase << ": " << expr << "\n";
+
     Parser parser(expr);
     parser.registerVariables({"x","y","z"});
+
+    parser.print();
+
     auto const exe = parser.compile<3>();
     auto result_parser = exe(x,y,z);
 
-    amrex::Print() << "\ncase " << icase << ": " << expr << "\n";
     parser.printExe();
 
     return amrex::almostEqual(result_native, result_parser, 10);
@@ -68,6 +72,7 @@ int main (int argc, char* argv[])
                 amrex::Print() << "  case " << ie.first << ": " << ie.second << "\n";
             }
         }
+        amrex::Print() << "\n";
     }
 
     amrex::Finalize();
