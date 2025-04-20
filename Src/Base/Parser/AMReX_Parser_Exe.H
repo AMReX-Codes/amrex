@@ -55,6 +55,10 @@ enum parser_exe_t {
     PARSER_EXE_SQUARE_P,
     PARSER_EXE_CUBIC_P,
     PARSER_EXE_POWI,
+    PARSER_EXE_HYPOT2_P,
+    PARSER_EXE_HYPOT2,
+    PARSER_EXE_HYPOT3_P,
+    PARSER_EXE_HYPOT3,
     PARSER_EXE_IF,
     PARSER_EXE_JUMP,
     PARSER_EXE_USER_FN
@@ -220,6 +224,27 @@ struct alignas(double) ParserExeCubic_P {
 struct alignas(double) ParserExePOWI {
     enum parser_exe_t type = PARSER_EXE_POWI;
     int i;
+};
+
+struct alignas(double) ParserExeHypot2_P {
+    enum parser_exe_t type = PARSER_EXE_HYPOT2_P;
+    int i1;
+    int i2;
+};
+
+struct alignas(double) ParserExeHypot2 {
+    enum parser_exe_t type = PARSER_EXE_HYPOT2;
+};
+
+struct alignas(double) ParserExeHypot3_P {
+    enum parser_exe_t type = PARSER_EXE_HYPOT3_P;
+    int i1;
+    int i2;
+    int i3;
+};
+
+struct alignas(double) ParserExeHypot3 {
+    enum parser_exe_t type = PARSER_EXE_HYPOT3;
 };
 
 struct alignas(double) ParserExeIF {
@@ -512,6 +537,48 @@ double parser_exe_eval (const char* p, double const* x)
                 d = 1.0;
             }
             p += sizeof(ParserExePOWI);
+            break;
+        }
+        case PARSER_EXE_HYPOT2_P:
+        {
+            int i1 = ((ParserExeHypot2_P*)p)->i1;
+            int i2 = ((ParserExeHypot2_P*)p)->i2;
+            double d1 = AMREX_PARSER_GET_DATA(i1);
+            double d2 = AMREX_PARSER_GET_DATA(i2);
+            pstack.push(std::sqrt(d1*d1+d2*d2));
+            p += sizeof(ParserExeHypot2_P);
+            break;
+        }
+        case PARSER_EXE_HYPOT3_P:
+        {
+            int i1 = ((ParserExeHypot3_P*)p)->i1;
+            int i2 = ((ParserExeHypot3_P*)p)->i2;
+            int i3 = ((ParserExeHypot3_P*)p)->i3;
+            double d1 = AMREX_PARSER_GET_DATA(i1);
+            double d2 = AMREX_PARSER_GET_DATA(i2);
+            double d3 = AMREX_PARSER_GET_DATA(i3);
+            pstack.push(std::sqrt(d1*d1+d2*d2+d3*d3));
+            p += sizeof(ParserExeHypot3_P);
+            break;
+        }
+        case PARSER_EXE_HYPOT2:
+        {
+            double v1 = pstack.top(); // NOLINT;
+            pstack.pop();
+            double v2 = pstack.top(); // NOLINT;
+            pstack.top() = std::sqrt(v1*v1+v2*v2);
+            p += sizeof(ParserExeHypot2);
+            break;
+        }
+        case PARSER_EXE_HYPOT3:
+        {
+            double v1 = pstack.top(); // NOLINT;
+            pstack.pop();
+            double v2 = pstack.top(); // NOLINT;
+            pstack.pop();
+            double v3 = pstack.top(); // NOLINT;
+            pstack.top() = std::sqrt(v1*v1+v2*v2+v3*v3);
+            p += sizeof(ParserExeHypot3);
             break;
         }
         case PARSER_EXE_IF:

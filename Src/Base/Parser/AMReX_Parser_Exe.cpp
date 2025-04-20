@@ -458,14 +458,182 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
     }
     case PARSER_F1:
     {
-        parser_compile_exe_size(((struct parser_f1*)node)->l, p, exe_size,
-                                max_stack_size, stack_size, local_variables, ufs);
-        if (p) {
-            auto *t = new(p) ParserExeF1;
-            p      += sizeof(ParserExeF1);
-            t->ftype = ((struct parser_f1*)node)->ftype;
+        if (((struct parser_f1*)node)->ftype == PARSER_SQRT &&
+            ((struct parser_f1*)node)->l->type == PARSER_ADD &&
+            ((struct parser_f1*)node)->l->l->type == PARSER_MUL &&
+            ((struct parser_f1*)node)->l->r->type == PARSER_MUL &&
+            parser_same_symbol(((struct parser_f1*)node)->l->l->l,
+                               ((struct parser_f1*)node)->l->l->r) &&
+            parser_same_symbol(((struct parser_f1*)node)->l->r->l,
+                               ((struct parser_f1*)node)->l->r->r))
+        { // sqrt(x*x+y*y)
+            if (p) {
+                auto *t = new(p) ParserExeHypot2_P;;
+                p      += sizeof(ParserExeHypot2_P);
+                t->i1 = parser_symbol_idx(((struct parser_f1*)node)->l->l->l);
+                t->i2 = parser_symbol_idx(((struct parser_f1*)node)->l->r->l);
+            }
+            exe_size += sizeof(ParserExeHypot2_P);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
         }
-        exe_size += sizeof(ParserExeF1);
+        else if (((struct parser_f1*)node)->ftype == PARSER_SQRT &&
+            ((struct parser_f1*)node)->l->type == PARSER_ADD &&
+            ((struct parser_f1*)node)->l->l->type == PARSER_F2 &&
+            ((struct parser_f1*)node)->l->r->type == PARSER_F2 &&
+            ((struct parser_f2*)((struct parser_f1*)node)->l->l)->ftype == PARSER_POW &&
+            ((struct parser_f2*)((struct parser_f1*)node)->l->r)->ftype == PARSER_POW &&
+            ((struct parser_f2*)((struct parser_f1*)node)->l->l)->l->type == PARSER_SYMBOL &&
+            ((struct parser_f2*)((struct parser_f1*)node)->l->r)->l->type == PARSER_SYMBOL &&
+            parser_get_number(((struct parser_f2*)((struct parser_f1*)node)->l->l)->r) == 2.0 &&
+            parser_get_number(((struct parser_f2*)((struct parser_f1*)node)->l->r)->r) == 2.0)
+        { // sqrt(x^2+y^2)
+            if (p) {
+                auto *t = new(p) ParserExeHypot2_P;;
+                p      += sizeof(ParserExeHypot2_P);
+                t->i1 = parser_symbol_idx(((struct parser_f2*)((struct parser_f1*)node)->l->l)->l);
+                t->i2 = parser_symbol_idx(((struct parser_f2*)((struct parser_f1*)node)->l->r)->l);
+            }
+            exe_size += sizeof(ParserExeHypot2_P);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (((struct parser_f1*)node)->ftype == PARSER_SQRT &&
+            ((struct parser_f1*)node)->l->type == PARSER_ADD &&
+            ((struct parser_f1*)node)->l->l->type == PARSER_F2 &&
+            ((struct parser_f1*)node)->l->r->type == PARSER_F2 &&
+            ((struct parser_f2*)((struct parser_f1*)node)->l->l)->ftype == PARSER_POW &&
+            ((struct parser_f2*)((struct parser_f1*)node)->l->r)->ftype == PARSER_POW &&
+            parser_get_number(((struct parser_f2*)((struct parser_f1*)node)->l->l)->r) == 2.0 &&
+            parser_get_number(((struct parser_f2*)((struct parser_f1*)node)->l->r)->r) == 2.0)
+        { // sqrt(f(x)^2+f(y)^2)
+            int d1 = parser_ast_depth(((struct parser_f2*)((struct parser_f1*)node)->l->l)->l);
+            int d2 = parser_ast_depth(((struct parser_f2*)((struct parser_f1*)node)->l->r)->l);
+            if (d1 < d2) {
+                parser_compile_exe_size(((struct parser_f2*)((struct parser_f1*)node)->l->r)->l,
+                                        p, exe_size, max_stack_size, stack_size,
+                                        local_variables, ufs);
+                parser_compile_exe_size(((struct parser_f2*)((struct parser_f1*)node)->l->l)->l,
+                                        p, exe_size, max_stack_size, stack_size,
+                                        local_variables, ufs);
+            } else {
+                parser_compile_exe_size(((struct parser_f2*)((struct parser_f1*)node)->l->l)->l,
+                                        p, exe_size, max_stack_size, stack_size,
+                                        local_variables, ufs);
+                parser_compile_exe_size(((struct parser_f2*)((struct parser_f1*)node)->l->r)->l,
+                                        p, exe_size, max_stack_size, stack_size,
+                                        local_variables, ufs);
+            }
+            if (p) {
+                new(p)      ParserExeHypot2;;
+                p += sizeof(ParserExeHypot2);
+            }
+            exe_size += sizeof(ParserExeHypot2);
+            --stack_size;
+        }
+        else if (((struct parser_f1*)node)->ftype == PARSER_SQRT &&
+                 ((struct parser_f1*)node)->l->type == PARSER_ADD &&
+                 ((struct parser_f1*)node)->l->r->type == PARSER_MUL &&
+                 ((struct parser_f1*)node)->l->l->type == PARSER_ADD &&
+                 ((struct parser_f1*)node)->l->l->l->type == PARSER_MUL &&
+                 ((struct parser_f1*)node)->l->l->r->type == PARSER_MUL &&
+                 parser_same_symbol(((struct parser_f1*)node)->l->r->l,
+                                    ((struct parser_f1*)node)->l->r->r) &&
+                 parser_same_symbol(((struct parser_f1*)node)->l->l->l->l,
+                                    ((struct parser_f1*)node)->l->l->l->r) &&
+                 parser_same_symbol(((struct parser_f1*)node)->l->l->r->l,
+                                    ((struct parser_f1*)node)->l->l->r->r))
+        { // sqrt(x*x+y*y+z*z)
+            if (p) {
+                auto *t = new(p) ParserExeHypot3_P;;
+                p      += sizeof(ParserExeHypot3_P);
+                t->i1 = parser_symbol_idx(((struct parser_f1*)node)->l->r->l);
+                t->i2 = parser_symbol_idx(((struct parser_f1*)node)->l->l->l->l);
+                t->i3 = parser_symbol_idx(((struct parser_f1*)node)->l->l->r->l);
+            }
+            exe_size += sizeof(ParserExeHypot3_P);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (((struct parser_f1*)node)->ftype == PARSER_SQRT &&
+                 ((struct parser_f1*)node)->l->type == PARSER_ADD &&
+                 ((struct parser_f1*)node)->l->l->type == PARSER_ADD &&
+                 ((struct parser_f1*)node)->l->r->type == PARSER_F2 &&
+                 ((struct parser_f1*)node)->l->l->l->type == PARSER_F2 &&
+                 ((struct parser_f1*)node)->l->l->r->type == PARSER_F2 &&
+                 ((struct parser_f2*)((struct parser_f1*)node)->l->r)->ftype == PARSER_POW &&
+                 ((struct parser_f2*)((struct parser_f1*)node)->l->l->l)->ftype == PARSER_POW &&
+                 ((struct parser_f2*)((struct parser_f1*)node)->l->l->r)->ftype == PARSER_POW &&
+                 ((struct parser_f2*)((struct parser_f1*)node)->l->r)->l->type == PARSER_SYMBOL &&
+                 ((struct parser_f2*)((struct parser_f1*)node)->l->l->l)->l->type == PARSER_SYMBOL &&
+                 ((struct parser_f2*)((struct parser_f1*)node)->l->l->r)->l->type == PARSER_SYMBOL &&
+                 parser_get_number(((struct parser_f2*)((struct parser_f1*)node)->l->r)->r) == 2.0 &&
+                 parser_get_number(((struct parser_f2*)((struct parser_f1*)node)->l->l->l)->r) == 2.0 &&
+                 parser_get_number(((struct parser_f2*)((struct parser_f1*)node)->l->l->r)->r) == 2.0)
+        { // sqrt(x^2+y^2+z^2)
+            if (p) {
+                auto *t = new(p) ParserExeHypot3_P;;
+                p      += sizeof(ParserExeHypot3_P);
+                t->i1 = parser_symbol_idx(((struct parser_f2*)((struct parser_f1*)node)->l->r)->l);
+                t->i2 = parser_symbol_idx(((struct parser_f2*)((struct parser_f1*)node)->l->l->l)->l);
+                t->i3 = parser_symbol_idx(((struct parser_f2*)((struct parser_f1*)node)->l->l->r)->l);
+            }
+            exe_size += sizeof(ParserExeHypot3_P);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (((struct parser_f1*)node)->ftype == PARSER_SQRT &&
+                 ((struct parser_f1*)node)->l->type == PARSER_ADD &&
+                 ((struct parser_f1*)node)->l->l->type == PARSER_ADD &&
+                 ((struct parser_f1*)node)->l->r->type == PARSER_F2 &&
+                 ((struct parser_f1*)node)->l->l->l->type == PARSER_F2 &&
+                 ((struct parser_f1*)node)->l->l->r->type == PARSER_F2 &&
+                 ((struct parser_f2*)((struct parser_f1*)node)->l->r)->ftype == PARSER_POW &&
+                 ((struct parser_f2*)((struct parser_f1*)node)->l->l->l)->ftype == PARSER_POW &&
+                 ((struct parser_f2*)((struct parser_f1*)node)->l->l->r)->ftype == PARSER_POW &&
+                 parser_get_number(((struct parser_f2*)((struct parser_f1*)node)->l->r)->r) == 2.0 &&
+                 parser_get_number(((struct parser_f2*)((struct parser_f1*)node)->l->l->l)->r) == 2.0 &&
+                 parser_get_number(((struct parser_f2*)((struct parser_f1*)node)->l->l->r)->r) == 2.0)
+        { // sqrt(f(x)^2+f(y)^2+f(z)^2)
+            auto* n1 = ((struct parser_f2*)((struct parser_f1*)node)->l->r)->l;
+            auto* n2 = ((struct parser_f2*)((struct parser_f1*)node)->l->l->l)->l;
+            auto* n3 = ((struct parser_f2*)((struct parser_f1*)node)->l->l->r)->l;
+            int d1 = parser_ast_depth(n1);
+            int d2 = parser_ast_depth(n2);
+            int d3 = parser_ast_depth(n3);
+            if (d1 < d2) {
+                std::swap(d1,d2);
+                std::swap(n1,n2);
+            }
+            if (d2 < d3) {
+                std::swap(d2,d3);
+                std::swap(n2,n3);
+            }
+            if (d1 < d2) {
+                std::swap(d1,d2);
+                std::swap(n1,n2);
+            }
+            parser_compile_exe_size(n1, p, exe_size, max_stack_size, stack_size, local_variables, ufs);
+            parser_compile_exe_size(n2, p, exe_size, max_stack_size, stack_size, local_variables, ufs);
+            parser_compile_exe_size(n3, p, exe_size, max_stack_size, stack_size, local_variables, ufs);
+            if (p) {
+                new(p)      ParserExeHypot3;;
+                p += sizeof(ParserExeHypot3);
+            }
+            exe_size += sizeof(ParserExeHypot3);
+            stack_size -= 2;
+        }
+        else
+        {
+            parser_compile_exe_size(((struct parser_f1*)node)->l, p, exe_size,
+                                    max_stack_size, stack_size, local_variables, ufs);
+            if (p) {
+                auto *t = new(p) ParserExeF1;
+                p      += sizeof(ParserExeF1);
+                t->ftype = ((struct parser_f1*)node)->ftype;
+            }
+            exe_size += sizeof(ParserExeF1);
+        }
         break;
     }
     case PARSER_F2:
@@ -759,6 +927,14 @@ namespace {
     {
         std::string r{f};
         r.append("(").append(a).append(",").append(b).append(")");
+        return {r,paren_atom};
+    }
+
+    std::pair<std::string,paren_t> make_f3_string (std::string_view const& f, std::string const& a,
+                                                   std::string const& b, std::string const& c)
+    {
+        std::string r{f};
+        r.append("(").append(a).append(",").append(b).append(",").append(c).append(")");
         return {r,paren_atom};
     }
 }
@@ -1195,6 +1371,61 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
                << "   "
                << pstack.back().first << "\n";
             p += sizeof(ParserExePOWI);
+            break;
+        }
+        case PARSER_EXE_HYPOT2_P:
+        {
+            int i1 = ((ParserExeHypot2_P*)p)->i1;
+            int i2 = ((ParserExeHypot2_P*)p)->i2;
+            pstack.push_back(make_f2_string("hypot", get_sym(i1).first, get_sym(i2).first));
+            os << std::setw(3) << count++
+               << std::setw(16) << "hypot2p"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeHypot2_P);
+            break;
+        }
+        case PARSER_EXE_HYPOT3_P:
+        {
+            int i1 = ((ParserExeHypot3_P*)p)->i1;
+            int i2 = ((ParserExeHypot3_P*)p)->i2;
+            int i3 = ((ParserExeHypot3_P*)p)->i3;
+            pstack.push_back(make_f3_string("hypot", get_sym(i1).first, get_sym(i2).first, get_sym(i3).first));
+            os << std::setw(3) << count++
+               << std::setw(16) << "hypot3p"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeHypot3_P);
+            break;
+        }
+        case PARSER_EXE_HYPOT2:
+        {
+            auto n = pstack.size();
+            pstack[n-2] = make_f2_string("hypot",
+                                         pstack[n-2].first, pstack[n-1].first); // NOLINT
+            pstack.pop_back();
+            os << std::setw(3) << count++
+               << std::setw(16) << "hypot2"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeHypot2);
+            break;
+        }
+        case PARSER_EXE_HYPOT3:
+        {
+            auto n = pstack.size();
+            pstack[n-3] = make_f3_string("hypot",
+                                         pstack[n-3].first, pstack[n-2].first, pstack[n-1].first); // NOLINT
+            pstack.pop_back();
+            os << std::setw(3) << count++
+               << std::setw(16) << "hypot3"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeHypot3);
             break;
         }
         case PARSER_EXE_IF:
