@@ -282,6 +282,17 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             }
             exe_size += sizeof(ParserExeMUL_VN);
         }
+        else if (parser_same_symbol(node->l,node->r))
+        { // x * x
+            if (p) {
+                auto *t = new(p) ParserExeSquare_P;
+                p      += sizeof(ParserExeSquare_P);
+                t->i = parser_symbol_idx(node->l);
+            }
+            exe_size += sizeof(ParserExeSquare_P);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
         else if (node->l->type == PARSER_SYMBOL &&
                  node->r->type == PARSER_SYMBOL)
         { // x * y
@@ -292,6 +303,19 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                 t->i2 = parser_symbol_idx(node->r);
             }
             exe_size += sizeof(ParserExeMUL_PP);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->r->type == PARSER_MUL &&
+                 parser_same_symbol(node->l, node->r->l) &&
+                 parser_same_symbol(node->l, node->r->r))
+        { // x * (x*x)
+            if (p) {
+                auto *t = new(p) ParserExeCubic_P;
+                p      += sizeof(ParserExeCubic_P);
+                t->i = parser_symbol_idx(node->l);
+            }
+            exe_size += sizeof(ParserExeCubic_P);
             ++stack_size;
             max_stack_size = std::max(max_stack_size, stack_size);
         }
@@ -447,6 +471,34 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
     case PARSER_F2:
     {
         if (((struct parser_f2*)node)->ftype == PARSER_POW &&
+            ((struct parser_f2*)node)->l->type == PARSER_SYMBOL &&
+            ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
+            parser_get_number(((struct parser_f2*)node)->r) == 2.0)
+        {
+            if (p) {
+                auto* t = new(p) ParserExeSquare_P;
+                p      += sizeof(ParserExeSquare_P);
+                t->i = parser_symbol_idx(((struct parser_f2*)node)->l);
+            }
+            exe_size += sizeof(ParserExeSquare_P);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
+                 ((struct parser_f2*)node)->l->type == PARSER_SYMBOL &&
+                 ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
+                 parser_get_number(((struct parser_f2*)node)->r) == 3.0)
+        {
+            if (p) {
+                auto* t = new(p) ParserExeCubic_P;
+                p      += sizeof(ParserExeCubic_P);
+                t->i = parser_symbol_idx(((struct parser_f2*)node)->l);
+            }
+            exe_size += sizeof(ParserExeCubic_P);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
             ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
             parser_get_number(((struct parser_f2*)node)->r) == 2.0)
         {
@@ -1106,6 +1158,30 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
                << "   "
                << pstack.back().first << "\n";
             p += sizeof(ParserExeSquare);
+            break;
+        }
+        case PARSER_EXE_SQUARE_P:
+        {
+            int i = ((ParserExeSquare_P*)p)->i;
+            pstack.push_back(make_op_string(get_sym(i), {"^",paren_pow}, {"2",paren_atom}));
+            os << std::setw(3) << count++
+               << std::setw(16) << "sqp"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeSquare_P);
+            break;
+        }
+        case PARSER_EXE_CUBIC_P:
+        {
+            int i = ((ParserExeCubic_P*)p)->i;
+            pstack.push_back(make_op_string(get_sym(i), {"^",paren_pow}, {"3",paren_atom}));
+            os << std::setw(3) << count++
+               << std::setw(16) << "cubp"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeCubic_P);
             break;
         }
         case PARSER_EXE_POWI:

@@ -52,6 +52,8 @@ enum parser_exe_t {
     PARSER_EXE_MUL_PN,
     PARSER_EXE_DIV_PN,
     PARSER_EXE_SQUARE,
+    PARSER_EXE_SQUARE_P,
+    PARSER_EXE_CUBIC_P,
     PARSER_EXE_POWI,
     PARSER_EXE_IF,
     PARSER_EXE_JUMP,
@@ -203,6 +205,16 @@ struct alignas(double) ParserExeDIV_PN {
 
 struct alignas(double) ParserExeSquare {
     enum parser_exe_t type = PARSER_EXE_SQUARE;
+};
+
+struct alignas(double) ParserExeSquare_P {
+    enum parser_exe_t type = PARSER_EXE_SQUARE_P;
+    int i;
+};
+
+struct alignas(double) ParserExeCubic_P {
+    enum parser_exe_t type = PARSER_EXE_CUBIC_P;
+    int i;
 };
 
 struct alignas(double) ParserExePOWI {
@@ -457,6 +469,22 @@ double parser_exe_eval (const char* p, double const* x)
             double& d = pstack.top();
             d *= d;
             p += sizeof(ParserExeSquare);
+            break;
+        }
+        case PARSER_EXE_SQUARE_P:
+        {
+            int i = ((ParserExeSquare_P*)p)->i;
+            double d = AMREX_PARSER_GET_DATA(i);
+            pstack.push(d*d);
+            p += sizeof(ParserExeSquare_P);
+            break;
+        }
+        case PARSER_EXE_CUBIC_P:
+        {
+            int i = ((ParserExeCubic_P*)p)->i;
+            double d = AMREX_PARSER_GET_DATA(i);
+            pstack.push(d*d*d);
+            p += sizeof(ParserExeCubic_P);
             break;
         }
         case PARSER_EXE_POWI:
