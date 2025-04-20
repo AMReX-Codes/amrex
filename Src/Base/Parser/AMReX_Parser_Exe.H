@@ -22,6 +22,15 @@ namespace amrex {
 // P: pointer offset
 // V: value (i.e., double literal)
 
+/*
+ TO: Ternary operator, a op0 b op1 c
+     L: (a op0 b) op1 c
+     R: a op0 (b op1 c)
+     op: 0:+, 1:-, 2:*, 3:/
+     For example, TO_L03 means (a + b) / c
+     Due to soring, some types are not needed.
+*/
+
 enum parser_exe_t {
     PARSER_EXE_NULL = 0,
     PARSER_EXE_NUMBER,
@@ -59,6 +68,38 @@ enum parser_exe_t {
     PARSER_EXE_HYPOT2,
     PARSER_EXE_HYPOT3_P,
     PARSER_EXE_HYPOT3,
+    // PARSER_EXE_TO_L00, similar to R00
+    PARSER_EXE_TO_L01,
+    // PARSER_EXE_TO_L02, similar to R20
+    PARSER_EXE_TO_L03,
+    // PARSER_EXE_TO_L10, similar to R01
+    PARSER_EXE_TO_L11,
+    // PARSER_EXE_TO_L12, similar to R21
+    PARSER_EXE_TO_L13,
+    // PARSER_EXE_TO_L20, similar to R02
+    PARSER_EXE_TO_L21,
+    // PARSER_EXE_TO_L22, similar to R22
+    PARSER_EXE_TO_L23,
+    // PARSER_EXE_TO_L30, similar to R03
+    PARSER_EXE_TO_L31,
+    // PARSER_EXE_TO_L32, similar to R23
+    // PARSER_EXE_TO_L33, (a/b)/c is similar to a/(b*c)
+    PARSER_EXE_TO_R00,
+    PARSER_EXE_TO_R01,
+    PARSER_EXE_TO_R02,
+    PARSER_EXE_TO_R03,
+    PARSER_EXE_TO_R10,
+    // PARSER_EXE_TO_R11, a-(b-c) is similar to a+(c-b)
+    PARSER_EXE_TO_R12,
+    PARSER_EXE_TO_R13,
+    PARSER_EXE_TO_R20,
+    PARSER_EXE_TO_R21,
+    PARSER_EXE_TO_R22,
+    PARSER_EXE_TO_R23,
+    PARSER_EXE_TO_R30,
+    PARSER_EXE_TO_R31,
+    PARSER_EXE_TO_R32,
+    // PARSER_EXE_TO_R33, a/(b/c) is similar to (x*c)/y
     PARSER_EXE_IF,
     PARSER_EXE_JUMP,
     PARSER_EXE_USER_FN
@@ -245,6 +286,111 @@ struct alignas(double) ParserExeHypot3_P {
 
 struct alignas(double) ParserExeHypot3 {
     enum parser_exe_t type = PARSER_EXE_HYPOT3;
+};
+
+struct alignas(double) ParserExeTO_L01 {
+    enum parser_exe_t type = PARSER_EXE_TO_L01;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_L03 {
+    enum parser_exe_t type = PARSER_EXE_TO_L03;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_L11 {
+    enum parser_exe_t type = PARSER_EXE_TO_L11;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_L13 {
+    enum parser_exe_t type = PARSER_EXE_TO_L13;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_L21 {
+    enum parser_exe_t type = PARSER_EXE_TO_L21;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_L23 {
+    enum parser_exe_t type = PARSER_EXE_TO_L23;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_L31 {
+    enum parser_exe_t type = PARSER_EXE_TO_L31;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R00 {
+    enum parser_exe_t type = PARSER_EXE_TO_R00;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R01 {
+    enum parser_exe_t type = PARSER_EXE_TO_R01;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R02 {
+    enum parser_exe_t type = PARSER_EXE_TO_R02;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R03 {
+    enum parser_exe_t type = PARSER_EXE_TO_R03;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R10 {
+    enum parser_exe_t type = PARSER_EXE_TO_R10;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R12 {
+    enum parser_exe_t type = PARSER_EXE_TO_R12;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R13 {
+    enum parser_exe_t type = PARSER_EXE_TO_R13;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R20 {
+    enum parser_exe_t type = PARSER_EXE_TO_R20;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R21 {
+    enum parser_exe_t type = PARSER_EXE_TO_R21;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R22 {
+    enum parser_exe_t type = PARSER_EXE_TO_R22;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R23 {
+    enum parser_exe_t type = PARSER_EXE_TO_R23;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R30 {
+    enum parser_exe_t type = PARSER_EXE_TO_R30;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R31 {
+    enum parser_exe_t type = PARSER_EXE_TO_R31;
+    int ia, ib, ic;
+};
+
+struct alignas(double) ParserExeTO_R32 {
+    enum parser_exe_t type = PARSER_EXE_TO_R32;
+    int ia, ib, ic;
 };
 
 struct alignas(double) ParserExeIF {
@@ -579,6 +725,216 @@ double parser_exe_eval (const char* p, double const* x)
             double v3 = pstack.top(); // NOLINT;
             pstack.top() = std::sqrt(v1*v1+v2*v2+v3*v3);
             p += sizeof(ParserExeHypot3);
+            break;
+        }
+        case PARSER_EXE_TO_L01:
+        {
+            auto* q  = (ParserExeTO_L01*)p;
+            p += sizeof(ParserExeTO_L01);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push((a+b)-c);
+            break;
+        }
+        case PARSER_EXE_TO_L03:
+        {
+            auto* q  = (ParserExeTO_L03*)p;
+            p += sizeof(ParserExeTO_L03);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push((a+b)/c);
+            break;
+        }
+        case PARSER_EXE_TO_L11:
+        {
+            auto* q  = (ParserExeTO_L11*)p;
+            p += sizeof(ParserExeTO_L11);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push((a-b)-c);
+            break;
+        }
+        case PARSER_EXE_TO_L13:
+        {
+            auto* q  = (ParserExeTO_L13*)p;
+            p += sizeof(ParserExeTO_L13);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push((a-b)/c);
+            break;
+        }
+        case PARSER_EXE_TO_L21:
+        {
+            auto* q  = (ParserExeTO_L21*)p;
+            p += sizeof(ParserExeTO_L21);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push((a*b)-c);
+            break;
+        }
+        case PARSER_EXE_TO_L23:
+        {
+            auto* q  = (ParserExeTO_L23*)p;
+            p += sizeof(ParserExeTO_L23);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push((a*b)/c);
+            break;
+        }
+        case PARSER_EXE_TO_L31:
+        {
+            auto* q  = (ParserExeTO_L31*)p;
+            p += sizeof(ParserExeTO_L31);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push((a/b)-c);
+            break;
+        }
+        case PARSER_EXE_TO_R00:
+        {
+            auto* q  = (ParserExeTO_R00*)p;
+            p += sizeof(ParserExeTO_R00);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a+(b+c));
+            break;
+        }
+        case PARSER_EXE_TO_R01:
+        {
+            auto* q  = (ParserExeTO_R01*)p;
+            p += sizeof(ParserExeTO_R01);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a+(b-c));
+            break;
+        }
+        case PARSER_EXE_TO_R02:
+        {
+            auto* q  = (ParserExeTO_R02*)p;
+            p += sizeof(ParserExeTO_R02);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a+(b*c));
+            break;
+        }
+        case PARSER_EXE_TO_R03:
+        {
+            auto* q  = (ParserExeTO_R03*)p;
+            p += sizeof(ParserExeTO_R03);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a+(b/c));
+            break;
+        }
+        case PARSER_EXE_TO_R10:
+        {
+            auto* q  = (ParserExeTO_R10*)p;
+            p += sizeof(ParserExeTO_R10);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a-(b+c));
+            break;
+        }
+        case PARSER_EXE_TO_R12:
+        {
+            auto* q  = (ParserExeTO_R12*)p;
+            p += sizeof(ParserExeTO_R12);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a-(b*c));
+            break;
+        }
+        case PARSER_EXE_TO_R13:
+        {
+            auto* q  = (ParserExeTO_R13*)p;
+            p += sizeof(ParserExeTO_R13);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a-(b/c));
+            break;
+        }
+        case PARSER_EXE_TO_R20:
+        {
+            auto* q  = (ParserExeTO_R20*)p;
+            p += sizeof(ParserExeTO_R20);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a*(b+c));
+            break;
+        }
+        case PARSER_EXE_TO_R21:
+        {
+            auto* q  = (ParserExeTO_R21*)p;
+            p += sizeof(ParserExeTO_R21);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a*(b-c));
+            break;
+        }
+        case PARSER_EXE_TO_R22:
+        {
+            auto* q  = (ParserExeTO_R22*)p;
+            p += sizeof(ParserExeTO_R22);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a*(b*c));
+            break;
+        }
+        case PARSER_EXE_TO_R23:
+        {
+            auto* q  = (ParserExeTO_R23*)p;
+            p += sizeof(ParserExeTO_R23);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a*(b/c));
+            break;
+        }
+        case PARSER_EXE_TO_R30:
+        {
+            auto* q  = (ParserExeTO_R30*)p;
+            p += sizeof(ParserExeTO_R30);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a/(b+c));
+            break;
+        }
+        case PARSER_EXE_TO_R31:
+        {
+            auto* q  = (ParserExeTO_R31*)p;
+            p += sizeof(ParserExeTO_R31);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a/(b-c));
+            break;
+        }
+        case PARSER_EXE_TO_R32:
+        {
+            auto* q  = (ParserExeTO_R32*)p;
+            p += sizeof(ParserExeTO_R32);
+            double a = AMREX_PARSER_GET_DATA(q->ia);
+            double b = AMREX_PARSER_GET_DATA(q->ib);
+            double c = AMREX_PARSER_GET_DATA(q->ic);
+            pstack.push(a/(b*c));
             break;
         }
         case PARSER_EXE_IF:

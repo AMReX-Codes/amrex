@@ -35,7 +35,7 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
         }
     };
 
-    // In parser_exe_eval, we push to the stack for NUMBER, SYMBOL, VP, PP.
+    // In parser_exe_eval, we push to the stack for NUMBER, SYMBOL, VP, PP, TO.
     // In parser_exe_eval, we pop the stack for ADD, SUB, MUL, DIV, F2, and IF.
 
     // Note that for + and * the nodes have been sorted before this function
@@ -152,6 +152,144 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             max_stack_size = std::max(max_stack_size, stack_size);
         }
         else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_ADD &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // x + (y+z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R00;
+                p      += sizeof(ParserExeTO_R00);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->l);
+                t->ic = parser_symbol_idx(node->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R00);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_ADD &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_MUL &&
+                 is_negative_one(node->r->r->l) &&
+                 node->r->r->r->type == PARSER_SYMBOL)
+        { // x + (y+-z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R01;
+                p      += sizeof(ParserExeTO_R01);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->l);
+                t->ic = parser_symbol_idx(node->r->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R01);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_MUL &&
+                 is_negative_one(node->r->l) &&
+                 node->r->r->type == PARSER_ADD &&
+                 node->r->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->r->type == PARSER_SYMBOL)
+        { // x + -(y+z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R10;
+                p      += sizeof(ParserExeTO_R10);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->r->l);
+                t->ic = parser_symbol_idx(node->r->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R10);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_MUL &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // x + (y*z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R02;
+                p      += sizeof(ParserExeTO_R02);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->l);
+                t->ic = parser_symbol_idx(node->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R02);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_MUL &&
+                 is_negative_one(node->r->l) &&
+                 node->r->r->type == PARSER_MUL &&
+                 node->r->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->r->type == PARSER_SYMBOL)
+        { // x + -(y*z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R12;
+                p      += sizeof(ParserExeTO_R12);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->r->l);
+                t->ic = parser_symbol_idx(node->r->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R12);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_DIV &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // x + (y/z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R03;
+                p      += sizeof(ParserExeTO_R03);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->l);
+                t->ic = parser_symbol_idx(node->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R03);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_MUL &&
+                 is_negative_one(node->r->l) &&
+                 node->r->r->type == PARSER_DIV &&
+                 node->r->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->r->type == PARSER_SYMBOL)
+        { // x + -(y/z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R13;
+                p      += sizeof(ParserExeTO_R13);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->r->l);
+                t->ic = parser_symbol_idx(node->r->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R13);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_DIV &&
+                 node->r->l->type == PARSER_MUL &&
+                 is_negative_one(node->r->l->l) &&
+                 node->r->l->r->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // x + (-y/z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R13;
+                p      += sizeof(ParserExeTO_R13);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->l->r);
+                t->ic = parser_symbol_idx(node->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R13);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
                  node->r->type == PARSER_MUL &&
                  is_negative_one(node->r->l))
         { // x + (-1)*f(x) => x - f(x)
@@ -178,6 +316,42 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
         }
         else if (node->l->type == PARSER_MUL &&
                  is_negative_one(node->l->l) &&
+                 node->l->r->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_MUL &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // -x + (y*z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_L21;
+                p      += sizeof(ParserExeTO_L21);
+                t->ia = parser_symbol_idx(node->r->l);
+                t->ib = parser_symbol_idx(node->r->r);
+                t->ic = parser_symbol_idx(node->l->r);
+            }
+            exe_size += sizeof(ParserExeTO_L21);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_MUL &&
+                 is_negative_one(node->l->l) &&
+                 node->l->r->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_DIV &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // -x + (y/z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_L31;
+                p      += sizeof(ParserExeTO_L31);
+                t->ia = parser_symbol_idx(node->r->l);
+                t->ib = parser_symbol_idx(node->r->r);
+                t->ic = parser_symbol_idx(node->l->r);
+            }
+            exe_size += sizeof(ParserExeTO_L31);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_MUL &&
+                 is_negative_one(node->l->l) &&
                  node->l->r->type == PARSER_SYMBOL)
         { // -x + f(x)
             parser_compile_exe_size(node->r, p, exe_size, max_stack_size, stack_size,
@@ -189,6 +363,62 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                 t->sign = -1.0;
             }
             exe_size += sizeof(ParserExeSUB_PN);
+        }
+        else if (node->r->type == PARSER_MUL &&
+                 is_negative_one(node->r->l) &&
+                 node->r->r->type == PARSER_SYMBOL &&
+                 node->l->type == PARSER_ADD &&
+                 node->l->l->type == PARSER_SYMBOL &&
+                 node->l->r->type == PARSER_SYMBOL)
+        { // (y+z) + (-1)*x
+            if (p) {
+                auto *t = new(p) ParserExeTO_L01;
+                p      += sizeof(ParserExeTO_L01);
+                t->ia = parser_symbol_idx(node->l->l);
+                t->ib = parser_symbol_idx(node->l->r);
+                t->ic = parser_symbol_idx(node->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_L01);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->r->type == PARSER_MUL &&
+                 is_negative_one(node->r->l) &&
+                 node->r->r->type == PARSER_SYMBOL &&
+                 node->l->type == PARSER_ADD &&
+                 node->l->l->type == PARSER_SYMBOL &&
+                 node->l->r->type == PARSER_MUL &&
+                 is_negative_one(node->l->r->l) &&
+                 node->l->r->r->type == PARSER_SYMBOL)
+        { // (y+-z) + (-1)*x
+            if (p) {
+                auto *t = new(p) ParserExeTO_L11;
+                p      += sizeof(ParserExeTO_L11);
+                t->ia = parser_symbol_idx(node->l->l);
+                t->ib = parser_symbol_idx(node->l->r->r);
+                t->ic = parser_symbol_idx(node->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_L11);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->r->type == PARSER_MUL &&
+                 is_negative_one(node->r->l) &&
+                 node->r->r->type == PARSER_SYMBOL &&
+                 node->l->type == PARSER_MUL &&
+                 node->l->l->type == PARSER_SYMBOL &&
+                 node->l->r->type == PARSER_SYMBOL)
+        { // (y*z) + (-1)*x
+            if (p) {
+                auto *t = new(p) ParserExeTO_L21;
+                p      += sizeof(ParserExeTO_L21);
+                t->ia = parser_symbol_idx(node->l->l);
+                t->ib = parser_symbol_idx(node->l->r);
+                t->ic = parser_symbol_idx(node->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_L21);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
         }
         else if (node->r->type == PARSER_MUL &&
                  is_negative_one(node->r->l) &&
@@ -306,6 +536,40 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             ++stack_size;
             max_stack_size = std::max(max_stack_size, stack_size);
         }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_ADD &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // x * (y+z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R20;
+                p      += sizeof(ParserExeTO_R20);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->l);
+                t->ic = parser_symbol_idx(node->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R20);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_ADD &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_MUL &&
+                 is_negative_one(node->r->r->l) &&
+                 node->r->r->r->type == PARSER_SYMBOL)
+        { // x * (y+-z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R21;
+                p      += sizeof(ParserExeTO_R21);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->l);
+                t->ic = parser_symbol_idx(node->r->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R21);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
         else if (node->r->type == PARSER_MUL &&
                  parser_same_symbol(node->l, node->r->l) &&
                  parser_same_symbol(node->l, node->r->r))
@@ -316,6 +580,38 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                 t->i = parser_symbol_idx(node->l);
             }
             exe_size += sizeof(ParserExeCubic_P);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_MUL &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // x * (y*z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R22;
+                p      += sizeof(ParserExeTO_R22);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->l);
+                t->ic = parser_symbol_idx(node->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R22);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_DIV &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // x * (y/z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R23;
+                p      += sizeof(ParserExeTO_R23);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->l);
+                t->ic = parser_symbol_idx(node->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R23);
             ++stack_size;
             max_stack_size = std::max(max_stack_size, stack_size);
         }
@@ -403,6 +699,56 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             ++stack_size;
             max_stack_size = std::max(max_stack_size, stack_size);
         }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_ADD &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // x / (y+z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R30;
+                p      += sizeof(ParserExeTO_R30);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->l);
+                t->ic = parser_symbol_idx(node->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R30);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_ADD &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_MUL &&
+                 is_negative_one(node->r->r->l) &&
+                 node->r->r->r->type == PARSER_SYMBOL)
+        { // x / (y+-z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R31;
+                p      += sizeof(ParserExeTO_R31);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->l);
+                t->ic = parser_symbol_idx(node->r->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R31);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_SYMBOL &&
+                 node->r->type == PARSER_MUL &&
+                 node->r->l->type == PARSER_SYMBOL &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // x / (y*z)
+            if (p) {
+                auto *t = new(p) ParserExeTO_R32;
+                p      += sizeof(ParserExeTO_R32);
+                t->ia = parser_symbol_idx(node->l);
+                t->ib = parser_symbol_idx(node->r->l);
+                t->ic = parser_symbol_idx(node->r->r);
+            }
+            exe_size += sizeof(ParserExeTO_R32);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
         else if (node->l->type == PARSER_SYMBOL)
         { // x / f(x)
             parser_compile_exe_size(node->r, p, exe_size, max_stack_size, stack_size,
@@ -414,6 +760,56 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
                 t->reverse = false;
             }
             exe_size += sizeof(ParserExeDIV_PN);
+        }
+        else if (node->r->type == PARSER_SYMBOL &&
+                 node->l->type == PARSER_ADD &&
+                 node->l->l->type == PARSER_SYMBOL &&
+                 node->l->r->type == PARSER_SYMBOL)
+        { // (x+y) / z
+            if (p) {
+                auto *t = new(p) ParserExeTO_L03;
+                p      += sizeof(ParserExeTO_L03);
+                t->ia = parser_symbol_idx(node->l->l);
+                t->ib = parser_symbol_idx(node->l->r);
+                t->ic = parser_symbol_idx(node->r);
+            }
+            exe_size += sizeof(ParserExeTO_L03);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->r->type == PARSER_SYMBOL &&
+                 node->l->type == PARSER_ADD &&
+                 node->l->l->type == PARSER_SYMBOL &&
+                 node->l->r->type == PARSER_MUL &&
+                 is_negative_one(node->l->r->l) &&
+                 node->l->r->r->type == PARSER_SYMBOL)
+        { // (x+-y) / z
+            if (p) {
+                auto *t = new(p) ParserExeTO_L13;
+                p      += sizeof(ParserExeTO_L13);
+                t->ia = parser_symbol_idx(node->l->l);
+                t->ib = parser_symbol_idx(node->l->r->r);
+                t->ic = parser_symbol_idx(node->r);
+            }
+            exe_size += sizeof(ParserExeTO_L13);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->r->type == PARSER_SYMBOL &&
+                 node->l->type == PARSER_MUL &&
+                 node->l->l->type == PARSER_SYMBOL &&
+                 node->l->r->type == PARSER_SYMBOL)
+        { // (x*y) / z
+            if (p) {
+                auto *t = new(p) ParserExeTO_L23;
+                p      += sizeof(ParserExeTO_L23);
+                t->ia = parser_symbol_idx(node->l->l);
+                t->ib = parser_symbol_idx(node->l->r);
+                t->ic = parser_symbol_idx(node->r);
+            }
+            exe_size += sizeof(ParserExeTO_L23);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
         }
         else if (node->r->type == PARSER_SYMBOL)
         { // f(x) / x
@@ -913,6 +1309,24 @@ namespace {
             r += ")";
         }
         return {r,op.second};
+    }
+
+    std::pair<std::string,paren_t> make_tol_string(
+        std::pair<std::string,paren_t> const& a,
+        std::pair<std::string,paren_t> const& b,
+        std::pair<std::string,paren_t> const& c,
+        std::string const& opl, std::string const& opr, paren_t par)
+    {
+        return std::make_pair("("+a.first+opl+b.first+")"+opr+c.first, par);
+    }
+
+    std::pair<std::string,paren_t> make_tor_string(
+        std::pair<std::string,paren_t> const& a,
+        std::pair<std::string,paren_t> const& b,
+        std::pair<std::string,paren_t> const& c,
+        std::string const& opl, std::string const& opr, paren_t par)
+    {
+        return std::make_pair(a.first+opl+"("+b.first+opr+c.first+")", par);
     }
 
     std::pair<std::string,paren_t> make_f1_string (std::string_view const& f, std::string const& a)
@@ -1426,6 +1840,279 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
                << "   "
                << pstack.back().first << "\n";
             p += sizeof(ParserExeHypot3);
+            break;
+        }
+        case PARSER_EXE_TO_L01:
+        {
+            auto* q  = (ParserExeTO_L01*)p;
+            p += sizeof(ParserExeTO_L01);
+            pstack.push_back(make_tol_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "+", "-", paren_plusminus));
+            os << std::setw(3) << count++
+               << std::setw(16) << "(+)-"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_L03:
+        {
+            auto* q  = (ParserExeTO_L03*)p;
+            p += sizeof(ParserExeTO_L03);
+            pstack.push_back(make_tol_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "+", "/", paren_plusminus));
+            os << std::setw(3) << count++
+               << std::setw(16) << "(+)/"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_L11:
+        {
+            auto* q  = (ParserExeTO_L11*)p;
+            p += sizeof(ParserExeTO_L11);
+            pstack.push_back(make_tol_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "-", "-", paren_plusminus));
+            os << std::setw(3) << count++
+               << std::setw(16) << "(-)-"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_L13:
+        {
+            auto* q  = (ParserExeTO_L13*)p;
+            p += sizeof(ParserExeTO_L13);
+            pstack.push_back(make_tol_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "-", "/", paren_plusminus));
+            os << std::setw(3) << count++
+               << std::setw(16) << "(-)/"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_L21:
+        {
+            auto* q  = (ParserExeTO_L21*)p;
+            p += sizeof(ParserExeTO_L21);
+            pstack.push_back(make_tol_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "*", "-", paren_muldiv));
+            os << std::setw(3) << count++
+               << std::setw(16) << "(*)-"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_L23:
+        {
+            auto* q  = (ParserExeTO_L23*)p;
+            p += sizeof(ParserExeTO_L23);
+            pstack.push_back(make_tol_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "*", "/", paren_muldiv));
+            os << std::setw(3) << count++
+               << std::setw(16) << "(*)/"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_L31:
+        {
+            auto* q  = (ParserExeTO_L31*)p;
+            p += sizeof(ParserExeTO_L31);
+            pstack.push_back(make_tol_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "/", "-", paren_muldiv));
+            os << std::setw(3) << count++
+               << std::setw(16) << "(/)-"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R00:
+        {
+            auto* q  = (ParserExeTO_R00*)p;
+            p += sizeof(ParserExeTO_R00);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "+", "+", paren_plusminus));
+            os << std::setw(3) << count++
+               << std::setw(16) << "+(+)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R01:
+        {
+            auto* q  = (ParserExeTO_R01*)p;
+            p += sizeof(ParserExeTO_R01);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "+", "-", paren_plusminus));
+            os << std::setw(3) << count++
+               << std::setw(16) << "+(-)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R02:
+        {
+            auto* q  = (ParserExeTO_R02*)p;
+            p += sizeof(ParserExeTO_R02);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "+", "*", paren_plusminus));
+            os << std::setw(3) << count++
+               << std::setw(16) << "+(*)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R03:
+        {
+            auto* q  = (ParserExeTO_R03*)p;
+            p += sizeof(ParserExeTO_R03);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "+", "/", paren_plusminus));
+            os << std::setw(3) << count++
+               << std::setw(16) << "+(/)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R10:
+        {
+            auto* q  = (ParserExeTO_R10*)p;
+            p += sizeof(ParserExeTO_R10);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "-", "+", paren_plusminus));
+            os << std::setw(3) << count++
+               << std::setw(16) << "-(+)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R12:
+        {
+            auto* q  = (ParserExeTO_R12*)p;
+            p += sizeof(ParserExeTO_R12);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "-", "*", paren_plusminus));
+            os << std::setw(3) << count++
+               << std::setw(16) << "-(*)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R13:
+        {
+            auto* q  = (ParserExeTO_R13*)p;
+            p += sizeof(ParserExeTO_R13);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "-", "/", paren_plusminus));
+            os << std::setw(3) << count++
+               << std::setw(16) << "-(/)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R20:
+        {
+            auto* q  = (ParserExeTO_R20*)p;
+            p += sizeof(ParserExeTO_R20);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "*", "+", paren_muldiv));
+            os << std::setw(3) << count++
+               << std::setw(16) << "*(+)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R21:
+        {
+            auto* q  = (ParserExeTO_R21*)p;
+            p += sizeof(ParserExeTO_R21);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "*", "-", paren_muldiv));
+            os << std::setw(3) << count++
+               << std::setw(16) << "*(-)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R22:
+        {
+            auto* q  = (ParserExeTO_R22*)p;
+            p += sizeof(ParserExeTO_R22);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "*", "*", paren_muldiv));
+            os << std::setw(3) << count++
+               << std::setw(16) << "*(*)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R23:
+        {
+            auto* q  = (ParserExeTO_R23*)p;
+            p += sizeof(ParserExeTO_R23);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "*", "/", paren_muldiv));
+            os << std::setw(3) << count++
+               << std::setw(16) << "*(/)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R30:
+        {
+            auto* q  = (ParserExeTO_R30*)p;
+            p += sizeof(ParserExeTO_R30);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "/", "+", paren_muldiv));
+            os << std::setw(3) << count++
+               << std::setw(16) << "/(+)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R31:
+        {
+            auto* q  = (ParserExeTO_R31*)p;
+            p += sizeof(ParserExeTO_R31);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "/", "-", paren_muldiv));
+            os << std::setw(3) << count++
+               << std::setw(16) << "/(-)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            break;
+        }
+        case PARSER_EXE_TO_R32:
+        {
+            auto* q  = (ParserExeTO_R32*)p;
+            p += sizeof(ParserExeTO_R32);
+            pstack.push_back(make_tor_string(get_sym(q->ia), get_sym(q->ib), get_sym(q->ic),
+                                             "/", "*", paren_muldiv));
+            os << std::setw(3) << count++
+               << std::setw(16) << "/(*)"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
             break;
         }
         case PARSER_EXE_IF:
