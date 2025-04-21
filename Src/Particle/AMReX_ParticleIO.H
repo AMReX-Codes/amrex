@@ -613,10 +613,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                     particle_io_flags, tile_map[grid], count[grid], is_checkpoint);
 
         writeIntData(istuff.dataPtr(), istuff.size(), ofs);
-        ofs.flush();  // Some systems require this flush() (probably due to a bug)
+        //ofs.flush();  // Some systems require this flush() (probably due to a bug)
 
         WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs);
-        ofs.flush();  // Some systems require this flush() (probably due to a bug)
+        //ofs.flush();  // Some systems require this flush() (probably due to a bug)
     }
 }
 
