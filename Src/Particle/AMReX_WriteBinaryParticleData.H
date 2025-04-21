@@ -669,6 +669,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
                 }
             }
         }
+        ParallelDescriptor::Barrier();
     }
 
     if (ParallelDescriptor::IOProcessor())
