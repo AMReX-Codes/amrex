@@ -36,24 +36,6 @@ struct ArrayView {
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T& operator[] (const int i) const {
-        AMREX_ASSERT(i < m_capacity);
-        return m_data[i];
-    }
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T& operator[] (const unsigned int i) const {
-        AMREX_ASSERT(i < m_capacity);
-        return m_data[i];
-    }
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T& operator[] (const Long i) const {
-        AMREX_ASSERT(i < m_capacity);
-        return m_data[i];
-    }
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T* data () const {
         return m_data;
     }
@@ -74,7 +56,7 @@ struct ArrayView {
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    operator T* () const {
+    explicit operator T* () const {
         return m_data;
     }
 };
@@ -296,16 +278,23 @@ struct ParticleTile2
         std::vector<std::string>* a_rdata_names=nullptr,
         std::vector<std::string>* a_idata_names=nullptr)
     {
-        AMREX_ALWAYS_ASSERT(!m_defined);
-        m_defined = true;
-        m_arena = a_arena;
-        m_n_real = a_num_real_comps;
-        m_n_int = a_num_int_comps;
+        if (m_defined) {
+            AMREX_ALWAYS_ASSERT(a_arena == nullptr || a_arena == m_arena);
+            if (a_num_real_comps != m_n_real || a_num_int_comps != m_n_int) {
+                realloc_and_move(m_size, m_capacity, a_num_real_comps, a_num_int_comps);
+            }
+        } else {
+            m_defined = true;
+            m_arena = a_arena;
+            m_n_real = a_num_real_comps;
+            m_n_int = a_num_int_comps;
+        }
+
         if (a_rdata_names != nullptr) {
-            m_real_names = *a_rdata_names;
+            m_real_names = a_rdata_names;
         }
         if (a_idata_names != nullptr) {
-            m_int_names = *a_idata_names;
+            m_int_names = a_idata_names;
         }
     }
 
@@ -393,8 +382,8 @@ struct ParticleTile2
     [[nodiscard]] std::vector<std::string> GetRealNames () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
-        if (m_real_names.size() == m_n_real) {
-            return m_real_names;
+        if (m_real_names != nullptr) {
+            return *m_real_names;
         } else {
             return std::vector<std::string>();
         }
@@ -404,8 +393,8 @@ struct ParticleTile2
     [[nodiscard]] std::vector<std::string> GetIntNames () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
-        if (m_int_names.size() == m_n_int) {
-            return m_int_names;
+        if (m_int_names != nullptr) {
+            return *m_int_names;
         } else {
             return std::vector<std::string>();
         }
@@ -446,39 +435,19 @@ struct ParticleTile2
     }
 
     [[nodiscard]] ArrayView<RType> GetRealData (std::string const & name) {
-        AMREX_ALWAYS_ASSERT(m_defined);
-        AMREX_ALWAYS_ASSERT(m_real_names.size() == m_n_real);
-        auto const pos = std::find(m_real_names.begin(), m_real_names.end(), name);
-        AMREX_ALWAYS_ASSERT(pos != m_real_names.end());
-        int const index = std::distance(m_real_names.begin(), pos);
-        return GetRealData(index);
+        return GetRealData(get_idx_from_str(name, m_real_names));
     }
 
-    [[nodiscard]] ArrayView<const RType>GetRealData (std::string const & name) const {
-        AMREX_ALWAYS_ASSERT(m_defined);
-        AMREX_ALWAYS_ASSERT(m_real_names.size() == m_n_real);
-        auto const pos = std::find(m_real_names.begin(), m_real_names.end(), name);
-        AMREX_ALWAYS_ASSERT(pos != m_real_names.end());
-        int const index = std::distance(m_real_names.begin(), pos);
-        return GetRealData(index);
+    [[nodiscard]] ArrayView<const RType> GetRealData (std::string const & name) const {
+        return GetRealData(get_idx_from_str(name, m_real_names));
     }
 
-    [[nodiscard]] ArrayView<IType>  GetIntData (std::string const & name) {
-        AMREX_ALWAYS_ASSERT(m_defined);
-        AMREX_ALWAYS_ASSERT(m_int_names.size() == m_n_int);
-        auto const pos = std::find(m_int_names.begin(), m_int_names.end(), name);
-        AMREX_ALWAYS_ASSERT(pos != m_int_names.end());
-        int const index = std::distance(m_int_names.begin(), pos);
-        return GetIntData(index);
+    [[nodiscard]] ArrayView<IType> GetIntData (std::string const & name) {
+        return GetIntData(get_idx_from_str(name, m_int_names));
     }
 
     [[nodiscard]] ArrayView<const IType> GetIntData (std::string const & name) const {
-        AMREX_ALWAYS_ASSERT(m_defined);
-        AMREX_ALWAYS_ASSERT(m_int_names.size() == m_n_int);
-        auto const pos = std::find(m_int_names.begin(), m_int_names.end(), name);
-        AMREX_ALWAYS_ASSERT(pos != m_int_names.end());
-        int const index = std::distance(m_int_names.begin(), pos);
-        return GetIntData(index);
+        return GetIntData(get_idx_from_str(name, m_int_names));
     }
 
     void resize (size_type new_size)
@@ -488,7 +457,7 @@ struct ParticleTile2
         if (new_size <= m_capacity && new_size * 10 > m_capacity) {
             m_size = new_size;
         } else {
-            realloc_and_move(new_size, new_size);
+            realloc_and_move(new_size, new_size, m_n_real, m_n_int);
         }
     }
 
@@ -499,7 +468,8 @@ struct ParticleTile2
         if (new_size <= m_capacity && new_size * 10 > m_capacity) {
             m_size = new_size;
         } else {
-            realloc_and_move(new_size, std::max(new_size, m_capacity + m_capacity / 4));
+            realloc_and_move(new_size, std::max(new_size, m_capacity + m_capacity / 4),
+                             m_n_real, m_n_int);
         }
     }
 
@@ -508,11 +478,12 @@ struct ParticleTile2
         AMREX_ALWAYS_ASSERT(m_defined);
 
         if (new_capacity > m_capacity) {
-            realloc_and_move(m_size, new_capacity);
+            realloc_and_move(m_size, new_capacity, m_n_real, m_n_int);
         }
     }
 
-    void realloc_and_move (size_type new_size, size_type new_capacity)
+    void realloc_and_move (size_type new_size, size_type new_capacity,
+                           int new_n_real, int new_n_int)
     {
         AMREX_ALWAYS_ASSERT(m_defined);
 
@@ -529,18 +500,22 @@ struct ParticleTile2
         new_int_data.setArena(m_arena);
 
         new_idcpu_data.resize(new_capacity);
-        new_real_data.resize(new_capacity * m_n_real);
-        new_int_data.resize(new_capacity * m_n_int);
+        new_real_data.resize(new_capacity * new_n_real);
+        new_int_data.resize(new_capacity * new_n_int);
 
         auto p_idcpu = new_idcpu_data.data();
         auto p_real = new_real_data.data();
         auto p_int = new_int_data.data();
 
         auto old_ptd = getParticleTileData();
-        auto old_size = m_size;
+        auto copy_size = std::min(m_size, new_size);
+        auto copy_n_real = std::min(m_n_real, new_n_real);
+        auto copy_n_int = std::min(m_n_int, new_n_int);
 
         m_size = new_size;
         m_capacity = new_capacity;
+        m_n_real = new_n_real;
+        m_n_int = new_n_int;
         m_idcpu_data.swap(new_idcpu_data);
         m_real_data.swap(new_real_data);
         m_int_data.swap(new_int_data);
@@ -552,28 +527,28 @@ struct ParticleTile2
         }
 
         if (m_arena->isDeviceAccessible()) {
-            ParallelFor(std::min(new_size, old_size),
+            ParallelFor(copy_size,
                 [=] AMREX_GPU_DEVICE (size_type i) noexcept {
                     new_ptd.idcpu(i) = old_ptd.idcpu(i);
 
-                    for (int n = 0;  n < new_ptd.m_n_real; ++n) {
+                    for (int n = 0;  n < copy_n_real; ++n) {
                         new_ptd.rdata(n, i) = old_ptd.rdata(n, i);
                     }
 
-                    for (int n = 0;  n < new_ptd.m_n_int; ++n) {
+                    for (int n = 0;  n < copy_n_int; ++n) {
                         new_ptd.idata(n, i) = old_ptd.idata(n, i);
                     }
                 });
             Gpu::streamSynchronize();
         } else {
-            for (size_type i = 0; i < std::min(new_size, old_size); ++i) {
+            for (size_type i = 0; i < copy_size; ++i) {
                 new_ptd.idcpu(i) = old_ptd.idcpu(i);
 
-                for (int n = 0;  n < new_ptd.m_n_real; ++n) {
+                for (int n = 0;  n < copy_n_real; ++n) {
                     new_ptd.rdata(n, i) = old_ptd.rdata(n, i);
                 }
 
-                for (int n = 0;  n < new_ptd.m_n_int; ++n) {
+                for (int n = 0;  n < copy_n_int; ++n) {
                     new_ptd.idata(n, i) = old_ptd.idata(n, i);
                 }
             }
@@ -585,7 +560,7 @@ struct ParticleTile2
         AMREX_ALWAYS_ASSERT(m_defined);
 
         if (m_size != m_capacity) {
-            realloc_and_move(m_size, m_size);
+            realloc_and_move(m_size, m_size, m_n_real, m_n_int);
         }
     }
 
@@ -646,6 +621,13 @@ struct ParticleTile2
 
 private:
 
+    static int get_idx_from_str (std::string const & name, std::vector<std::string>* name_list) {
+        AMREX_ALWAYS_ASSERT(name_list != nullptr);
+        auto const pos = std::find(name_list->begin(), name_list->end(), name);
+        AMREX_ALWAYS_ASSERT(pos != name_list->end());
+        return std::distance(name_list->begin(), pos);
+    }
+
     bool m_defined = false;
 
     Arena* m_arena = nullptr;
@@ -661,8 +643,8 @@ private:
     amrex::PODVector<RType, PolymorphicArenaAllocator<RType>> m_real_data;
     amrex::PODVector<IType, PolymorphicArenaAllocator<IType>> m_int_data;
 
-    std::vector<std::string> m_real_names;
-    std::vector<std::string> m_int_names;
+    std::vector<std::string>* m_real_names = nullptr;
+    std::vector<std::string>* m_int_names = nullptr;
 };
 
 } // namespace amrex

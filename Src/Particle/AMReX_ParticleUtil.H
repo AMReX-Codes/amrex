@@ -867,7 +867,6 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
     const IntVect ref_offset(AMREX_D_DECL(1, refine_vect[0], refine_vect[0] * refine_vect[1]));
 
     auto ptd = ptile.getConstParticleTileData();
-    using ParticleType = typename PTile::ParticleType::ConstType;
     PermutationForDeposition<index_type>(perm, nitems, bx.numPts() * ref_product,
         [=] AMREX_GPU_DEVICE (index_type idx) noexcept
             {
