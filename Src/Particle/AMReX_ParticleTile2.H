@@ -625,7 +625,7 @@ private:
         AMREX_ALWAYS_ASSERT(name_list != nullptr);
         auto const pos = std::find(name_list->begin(), name_list->end(), name);
         AMREX_ALWAYS_ASSERT(pos != name_list->end());
-        return std::distance(name_list->begin(), pos);
+        return static_cast<int>(std::distance(name_list->begin(), pos));
     }
 
     bool m_defined = false;
