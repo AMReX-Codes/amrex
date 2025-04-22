@@ -275,6 +275,8 @@ struct ParticleTile2
     using IntVector = ThisParticleTileHasNoIntVector;
 
     ParticleTile2 () = default;
+
+#ifndef _WIN32  // workaround windows compiler bug
     ~ParticleTile2 () = default;
 
     ParticleTile2 (ParticleTile2 const&) = delete;
@@ -282,6 +284,7 @@ struct ParticleTile2
 
     ParticleTile2& operator= (ParticleTile2 const&) = delete;
     ParticleTile2& operator= (ParticleTile2 &&) noexcept = default;
+#endif
 
     void define (
         Arena* a_arena,
