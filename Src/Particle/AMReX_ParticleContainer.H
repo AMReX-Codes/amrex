@@ -179,8 +179,14 @@ public:
     RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
 #endif
 
+    static constexpr bool is_soa2_pc = ParticleType::is_soa2_particle;
+
     using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
-    using ParticleTileType = ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ParticleTileType = std::conditional_t<
+        is_soa2_pc,
+        ParticleTile2<typename ParticleType::RealType, typename ParticleType::IntType>,
+        ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>
+    >;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
     //! A single level worth of particles is indexed (grid id, tile id)
@@ -510,6 +516,9 @@ public:
      */
     template <class index_type>
     void ReorderParticles (int lev, const MFIter& mfi, const index_type* permutations);
+
+    template <class index_type>
+    void ReorderParticles2 (int lev, const MFIter& mfi, const index_type* permutations);
 
     /**
      * \brief Sort particles on each tile such that particles adjacent in memory
@@ -1155,7 +1164,14 @@ public:
      */
     ParticleTileType& DefineAndReturnParticleTile (int lev, int grid, int tile)
     {
-        m_particles[lev][std::make_pair(grid, tile)].define(NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
+        if constexpr (is_soa2_pc) {
+            AMREX_ALWAYS_ASSERT(arena() != nullptr);
+            m_particles[lev][std::make_pair(grid, tile)].define(arena(),
+                NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
+        } else {
+            m_particles[lev][std::make_pair(grid, tile)].define(
+                NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
+        }
 
         return ParticlesAt(lev, grid, tile);
     }
@@ -1185,7 +1201,14 @@ public:
     ParticleTileType& DefineAndReturnParticleTile (int lev, const Iterator& iter)
     {
         auto index = std::make_pair(iter.index(), iter.LocalTileIndex());
-        m_particles[lev][index].define(NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
+        if constexpr (is_soa2_pc) {
+            AMREX_ALWAYS_ASSERT(arena() != nullptr);
+            m_particles[lev][index].define(arena(),
+                NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
+        } else {
+            m_particles[lev][index].define(
+                NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
+        }
         return ParticlesAt(lev, iter);
     }
 
@@ -1536,6 +1559,9 @@ using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStru
 
 template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
 using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
+
+template <class RType=ParticleReal, class IType=int, class CellAssignor=DefaultAssignor>
+using ParticleContainerPureSoA2 = ParticleContainer_impl<SoAParticle2<RType, IType>, 0, 0, PolymorphicArenaAllocator, CellAssignor>;
 
 }
 

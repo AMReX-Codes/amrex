@@ -245,6 +245,14 @@ public:
     template <class MF>
     bool OnSameGrids (int level, const MF& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
+    Arena* arena () const {
+        return m_arena;
+    }
+
+    void SetArena (Arena* a) {
+        m_arena = a;
+    }
+
     static const std::string& CheckpointVersion ();
     static const std::string& PlotfileVersion ();
     static const std::string& DataPrefix ();
@@ -269,6 +277,7 @@ protected:
     std::unique_ptr<ParGDB> m_gdb_object = std::make_unique<ParGDB>();
     ParGDBBase* m_gdb{nullptr};
     Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
+    Arena* m_arena = nullptr;
 
     mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
     mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();

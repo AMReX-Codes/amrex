@@ -321,6 +321,7 @@ struct alignas(sizeof(double)) ConstSoAParticle : SoAParticleBase
     static constexpr bool is_constsoa_particle = true;
 
     using RealType = ParticleReal;
+    using IntType = int;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ConstSoAParticle (ConstPTD const& ptd, long i) : // Note: should this be int instead?
@@ -380,10 +381,12 @@ struct alignas(sizeof(double)) SoAParticle : SoAParticleBase
     using StorageParticleType = SoAParticleBase;
     using PTD = ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
     static constexpr bool is_soa_particle = true;
+    static constexpr bool is_soa2_particle = false;
     static constexpr bool is_constsoa_particle = false;
 
     using ConstType = ConstSoAParticle<T_NArrayReal, T_NArrayInt>;
     using RealType = ParticleReal;
+    using IntType = int;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SoAParticle (PTD const& ptd, long i) : // Note: should this be int instead?
@@ -691,6 +694,8 @@ struct ConstParticleTileData
 };
 
 struct ThisParticleTileHasNoParticleVector {};
+struct ThisParticleTileHasNoRealVector {};
+struct ThisParticleTileHasNoIntVector {};
 
 struct ThisParticleTileHasNoAoS {
     using ParticleVector = ThisParticleTileHasNoParticleVector;

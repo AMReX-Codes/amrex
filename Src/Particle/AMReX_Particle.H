@@ -326,6 +326,7 @@ struct alignas(sizeof(double)) Particle
     : ParticleBase<ParticleReal,T_NReal,T_NInt>
 {
     static constexpr bool is_soa_particle = false;
+    static constexpr bool is_soa2_particle = false;
     using StorageParticleType = Particle;
     using ConstType = Particle const;
 
@@ -337,6 +338,7 @@ struct alignas(sizeof(double)) Particle
 
     //! The floating point type used for the particles.
     using RealType = ParticleReal;
+    using IntType = int;
 
     static Long the_next_id;
 

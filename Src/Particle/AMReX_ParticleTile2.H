@@ -208,7 +208,13 @@ struct SoAParticle2
     using PTD = ParticleTileData2<RType, IType>;
     using ConstType = SoAParticle2<std::add_const_t<RType>, std::add_const_t<IType>>;
     static constexpr bool is_constsoa_particle = PTD::is_const;
+    static constexpr int NReal = 0;
+    static constexpr int NInt = 0;
+    static constexpr bool is_soa_particle = true;
+    static constexpr bool is_soa2_particle = true;
     using size_type = typename PTD::size_type;
+    using RealType = RType;
+    using IntType = IType;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SoAParticle2 (PTD const& ptd, size_type i) :
@@ -261,6 +267,12 @@ struct ParticleTile2
     using ConstParticleTileDataType = ParticleTileData2<const RType, const IType>;
 
     using size_type = typename ParticleTileDataType::size_type;
+
+    using AoS = ThisParticleTileHasNoAoS;
+    using SoA = ParticleTile2<RType, IType>;
+
+    using RealVector = ThisParticleTileHasNoRealVector;
+    using IntVector = ThisParticleTileHasNoIntVector;
 
     ParticleTile2 () = default;
     ~ParticleTile2 () = default;
@@ -618,6 +630,10 @@ struct ParticleTile2
 
     auto&       GetStructOfArrays ()       { return *this; }
     const auto& GetStructOfArrays () const { return *this; }
+
+    Arena* arena() const {
+        return m_arena;
+    }
 
 private:
 
