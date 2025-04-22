@@ -341,7 +341,7 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
     const auto ntotwarps = tv.ntotwarps;
     constexpr auto nthreads = TagVector<TagType>::nthreads;
 
-    amrex::launch(tv.nblocks, nthreads, Gpu::gpuStream(),
+    amrex::launch<nthreads>(tv.nblocks, Gpu::gpuStream(),
 #ifdef AMREX_USE_SYCL
     [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
     [[sycl::reqd_work_group_size(nthreads)]]
