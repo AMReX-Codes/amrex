@@ -245,7 +245,7 @@ public:
     template <class MF>
     bool OnSameGrids (int level, const MF& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
-    Arena* arena () const {
+    [[nodiscard]] Arena* arena () const {
         return m_arena;
     }
 

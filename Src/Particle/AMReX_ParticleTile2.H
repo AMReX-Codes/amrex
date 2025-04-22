@@ -631,7 +631,7 @@ struct ParticleTile2
     auto&       GetStructOfArrays ()       { return *this; }
     const auto& GetStructOfArrays () const { return *this; }
 
-    Arena* arena() const {
+    [[nodiscard]] Arena* arena() const {
         return m_arena;
     }
 
