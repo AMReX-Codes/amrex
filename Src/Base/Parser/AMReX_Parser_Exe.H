@@ -28,7 +28,7 @@ namespace amrex {
      R: a op0 (b op1 c)
      op: 0:+, 1:-, 2:*, 3:/
      For example, TO_L03 means (a + b) / c
-     Due to soring, some types are not needed.
+     Due to sorting, some types are not needed.
 */
 
 enum parser_exe_t {
