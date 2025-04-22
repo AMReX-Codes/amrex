@@ -18,6 +18,9 @@ struct Particle;
 template <int NArrayReal, int NArrayInt>
 struct SoAParticle;
 
+template <class RType, class IType>
+struct SoAParticle2;
+
 struct DefaultAssignor;
 
 // for backwards compatibility
