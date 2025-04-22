@@ -22,6 +22,66 @@ namespace amrex {
 template <class RType, class IType>
 struct SoAParticle2;
 
+template <class T>
+struct ArrayView {
+    using size_type = std::size_t;
+
+    T* m_data = nullptr;
+    size_type m_capacity = 0;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T& operator[] (const size_type i) const {
+        AMREX_ASSERT(i < m_capacity);
+        return m_data[i];
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T& operator[] (const int i) const {
+        AMREX_ASSERT(i < m_capacity);
+        return m_data[i];
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T& operator[] (const unsigned int i) const {
+        AMREX_ASSERT(i < m_capacity);
+        return m_data[i];
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T& operator[] (const Long i) const {
+        AMREX_ASSERT(i < m_capacity);
+        return m_data[i];
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T* data () const {
+        return m_data;
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T* dataPtr () const {
+        return m_data;
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T* begin () const {
+        return m_data;
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T* end () const {
+        return m_data + m_capacity;
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    operator T* () const {
+        return m_data;
+    }
+};
+
+template <class T>
+ArrayView(T* data, std::size_t capacity) -> ArrayView<T>;
+
 template <class RType, class IType>
 struct ParticleTileData2
 {
@@ -72,6 +132,20 @@ struct ParticleTileData2
     {
         AMREX_ASSERT(index < m_capacity);
         return this->m_idcpu[index];
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ArrayView<RType> rdata (const int comp_index) const &
+    {
+        AMREX_ASSERT(0 <= comp_index && comp_index < m_n_real);
+        return {this->m_rdata + comp_index * m_capacity, m_capacity};
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    ArrayView<IType> idata (const int comp_index) const &
+    {
+        AMREX_ASSERT(0 <= comp_index && comp_index < m_n_int);
+        return {this->m_idata + comp_index * m_capacity, m_capacity};
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -150,6 +224,7 @@ template <class RType, class IType>
 struct SoAParticle2
 {
     using PTD = ParticleTileData2<RType, IType>;
+    using ConstType = SoAParticle2<std::add_const_t<RType>, std::add_const_t<IType>>;
     static constexpr bool is_constsoa_particle = PTD::is_const;
     using size_type = typename PTD::size_type;
 
@@ -336,41 +411,41 @@ struct ParticleTile2
         }
     }
 
-    [[nodiscard]] uint64_t* GetIdCPUData () {
+    [[nodiscard]] ArrayView<uint64_t> GetIdCPUData () {
         AMREX_ALWAYS_ASSERT(m_defined);
-        return m_idcpu_data.data();
+        return {m_idcpu_data.data(), m_capacity};
     }
 
-    [[nodiscard]] const uint64_t* GetIdCPUData () const {
+    [[nodiscard]] ArrayView<const uint64_t> GetIdCPUData () const {
         AMREX_ALWAYS_ASSERT(m_defined);
-        return m_idcpu_data.data();
+        return {m_idcpu_data.data(), m_capacity};
     }
 
-    [[nodiscard]] RType* GetRealData (int comp_index) {
-        AMREX_ALWAYS_ASSERT(m_defined);
-        AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_real);
-        return m_real_data.data() + comp_index * m_capacity;
-    }
-
-    [[nodiscard]] const RType* GetRealData (int comp_index) const {
+    [[nodiscard]] ArrayView<RType> GetRealData (int comp_index) {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_real);
-        return m_real_data.data() + comp_index * m_capacity;
+        return {m_real_data.data() + comp_index * m_capacity, m_capacity};
     }
 
-    [[nodiscard]] RType* GetIntData (int comp_index) {
+    [[nodiscard]] ArrayView<const RType> GetRealData (int comp_index) const {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_real);
+        return {m_real_data.data() + comp_index * m_capacity, m_capacity};
+    }
+
+    [[nodiscard]] ArrayView<IType> GetIntData (int comp_index) {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_int);
-        return m_real_data.data() + comp_index * m_capacity;
+        return {m_int_data.data() + comp_index * m_capacity, m_capacity};
     }
 
-    [[nodiscard]] const RType* GetIntData (int comp_index) const {
+    [[nodiscard]] ArrayView<const IType> GetIntData (int comp_index) const {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_int);
-        return m_int_data.data() + comp_index * m_capacity;
+        return {m_int_data.data() + comp_index * m_capacity, m_capacity};
     }
 
-    [[nodiscard]] IType* GetRealData (std::string const & name) {
+    [[nodiscard]] ArrayView<RType> GetRealData (std::string const & name) {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(m_real_names.size() == m_n_real);
         auto const pos = std::find(m_real_names.begin(), m_real_names.end(), name);
@@ -379,7 +454,7 @@ struct ParticleTile2
         return GetRealData(index);
     }
 
-    [[nodiscard]] const IType* GetRealData (std::string const & name) const {
+    [[nodiscard]] ArrayView<const RType>GetRealData (std::string const & name) const {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(m_real_names.size() == m_n_real);
         auto const pos = std::find(m_real_names.begin(), m_real_names.end(), name);
@@ -388,7 +463,7 @@ struct ParticleTile2
         return GetRealData(index);
     }
 
-    [[nodiscard]] IType* GetIntData (std::string const & name) {
+    [[nodiscard]] ArrayView<IType>  GetIntData (std::string const & name) {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(m_int_names.size() == m_n_int);
         auto const pos = std::find(m_int_names.begin(), m_int_names.end(), name);
@@ -397,7 +472,7 @@ struct ParticleTile2
         return GetIntData(index);
     }
 
-    [[nodiscard]] const IType* GetIntData (std::string const & name) const {
+    [[nodiscard]] ArrayView<const IType> GetIntData (std::string const & name) const {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(m_int_names.size() == m_n_int);
         auto const pos = std::find(m_int_names.begin(), m_int_names.end(), name);
@@ -410,7 +485,7 @@ struct ParticleTile2
     {
         AMREX_ALWAYS_ASSERT(m_defined);
 
-        if (new_size <= m_capacity) {
+        if (new_size <= m_capacity && new_size * 10 > m_capacity) {
             m_size = new_size;
         } else {
             realloc_and_move(new_size, new_size);
@@ -421,7 +496,7 @@ struct ParticleTile2
     {
         AMREX_ALWAYS_ASSERT(m_defined);
 
-        if (new_size <= m_capacity) {
+        if (new_size <= m_capacity && new_size * 10 > m_capacity) {
             m_size = new_size;
         } else {
             realloc_and_move(new_size, std::max(new_size, m_capacity + m_capacity / 4));
@@ -565,6 +640,9 @@ struct ParticleTile2
 
         return ptd;
     }
+
+    auto&       GetStructOfArrays ()       { return *this; }
+    const auto& GetStructOfArrays () const { return *this; }
 
 private:
 

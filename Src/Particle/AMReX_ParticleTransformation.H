@@ -144,6 +144,60 @@ void swapParticle (const ParticleTileData<T_ParticleType, NAR, NAI>& dst,
 }
 
 /**
+ * \brief A general single particle copying routine that can run on the GPU.
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param src_i the index in the source to read from
+ * \param dst_i the index in the destination to write to
+ *
+ */
+template <class DRType, class DIType, class SRType, class SIType>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void copyParticle (const ParticleTileData2<DRType, DIType>& dst,
+                   const ParticleTileData2<SRType, SIType>& src,
+                   typename ParticleTileData2<SRType, SIType>::size_type src_i,
+                   typename ParticleTileData2<DRType, DIType>::size_type dst_i) noexcept
+{
+    dst.idcpu(dst_i) = src.idcpu(src_i);
+
+    for (int j = 0; j < dst.m_n_real && j < src.m_n_real; ++j) {
+        dst.rdata(j)[dst_i] = src.rdata(j)[src_i];
+    }
+
+    for (int j = 0; j < dst.m_n_int && j < src.m_n_int; ++j) {
+        dst.idata(j)[dst_i] = src.idata(j)[src_i];
+    }
+}
+
+/**
+ * \brief A general single particle swapping routine that can run on the GPU.
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param src_i the index in the source to read from
+ * \param dst_i the index in the destination to write to
+ *
+ */
+template <class DRType, class DIType, class SRType, class SIType>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void swapParticle (const ParticleTileData2<DRType, DIType>& dst,
+                   const ParticleTileData2<SRType, SIType>& src,
+                   typename ParticleTileData2<SRType, SIType>::size_type src_i,
+                   typename ParticleTileData2<DRType, DIType>::size_type dst_i) noexcept
+{
+    amrex::Swap(dst.idcpu(dst_i), src.idcpu(src_i));
+
+    for (int j = 0; j < dst.m_n_real && j < src.m_n_real; ++j) {
+        amrex::Swap(dst.rdata(j)[dst_i], src.rdata(j)[src_i]);
+    }
+
+    for (int j = 0; j < dst.m_n_int && j < src.m_n_int; ++j) {
+        amrex::Swap(dst.idata(j)[dst_i], src.idata(j)[src_i]);
+    }
+}
+
+/**
  * \brief Copy particles from src to dst. This version copies all the
  * particles, writing them to the beginning of dst.
  *

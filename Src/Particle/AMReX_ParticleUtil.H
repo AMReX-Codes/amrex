@@ -871,7 +871,7 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
     PermutationForDeposition<index_type>(perm, nitems, bx.numPts() * ref_product,
         [=] AMREX_GPU_DEVICE (index_type idx) noexcept
             {
-                const auto p = make_particle<ParticleType>{}(ptd,idx);
+                const auto p = ptd[idx];
 
                 IntVect iv = ((p.pos() - pos_offset) * dxi).round();
 
