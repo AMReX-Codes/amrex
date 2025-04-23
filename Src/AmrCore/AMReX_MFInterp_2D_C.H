@@ -203,6 +203,134 @@ void mf_cell_cons_lin_interp (int i, int j, int /*k*/, int ns, Array4<Real> cons
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_cons_lin_interp_mcslope_sph (int i, int j, int ns, Array4<Real> const& slope,
+                                          Array4<Real const> const& u, int scomp, int ncomp,
+                                          Box const& domain, IntVect const& ratio,
+                                          BCRec const* bc, Real drf, Real rlo,
+                                          Real dtf, Real tlo) noexcept
+{
+    int nu = ns + scomp;
+
+    Real sx = Real(0.0);
+    Real sy = Real(0.0);
+
+    // x-direction
+    if (ratio[0] > 1) {
+        Real dc = mf_compute_slopes_x(i, j, 0, u, nu, domain, bc[ns]);
+        Real df = Real(2.0) * (u(i+1,j,0,nu) - u(i  ,j,0,nu));
+        Real db = Real(2.0) * (u(i  ,j,0,nu) - u(i-1,j,0,nu));
+        sx = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
+        sx = std::copysign(Real(1.),dc)*amrex::min(sx,std::abs(dc));
+    }
+
+    // y-direction
+    if (ratio[1] > 1) {
+        Real dc = mf_compute_slopes_y(i, j, 0, u, nu, domain, bc[ns]);
+        Real df = Real(2.0) * (u(i,j+1,0,nu) - u(i,j  ,0,nu));
+        Real db = Real(2.0) * (u(i,j  ,0,nu) - u(i,j-1,0,nu));
+        sy = (df*db >= Real(0.0)) ? amrex::min(std::abs(df),std::abs(db)) : Real(0.);
+        sy = std::copysign(Real(1.),dc)*amrex::min(sy,std::abs(dc));
+    }
+
+    Real alpha = Real(1.0);
+    if (sx != Real(0.0) || sy != Real(0.0)) {
+
+        // x-direction
+        const Real drc = drf * ratio[0];
+        const Real rcm =  i    * drc + rlo;
+        const Real rcp = (i+1) * drc + rlo;
+        Real vcm = rcm*rcm*rcm;
+        Real vcp = rcp*rcp*rcp;
+        Real rfm =  i*ratio[0]      * drf + rlo;
+        Real rfp = (i*ratio[0] + 1) * drf + rlo;
+        Real vfm = rfm*rfm*rfm;
+        Real vfp = rfp*rfp*rfp;
+        Real xlo = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
+        rfm = ((i+1)*ratio[0] - 1) * drf + rlo;
+        rfp =  (i+1)*ratio[0]      * drf + rlo;
+        vfm = rfm*rfm*rfm;
+        vfp = rfp*rfp*rfp;
+        Real xhi = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
+
+        // y-direction
+        const Real dtc = dtf * ratio[1];
+        const Real tcm = j     * dtc + tlo;
+        const Real tcp = (j+1) * dtc + tlo;
+        vcm = std::cos(tcm);
+        vcp = std::cos(tcp);
+        Real tfm =  j*ratio[1]      * dtf + tlo;
+        Real tfp = (j*ratio[1] + 1) * dtf + tlo;
+        vfm = std::cos(tfm);
+        vfp = std::cos(tfp);
+        Real ylo = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
+        tfm = ((j+1)*ratio[1] - 1) * dtf + tlo;
+        tfp =  (j+1)*ratio[1]      * dtf + tlo;
+        vfm = std::cos(tfm);
+        vfp = std::cos(tfp);
+        Real yhi = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
+
+        Real dumax =  amrex::max(sx*xlo, sx*xhi) + amrex::max(sy*ylo, sy*yhi);
+        Real dumin = -amrex::min(sx*xlo, sx*xhi) - amrex::min(sy*ylo, sy*yhi);;
+        Real umax = u(i,j,0,nu);
+        Real umin = u(i,j,0,nu);
+        int ilim = ratio[0] > 1 ? 1 : 0;
+        int jlim = ratio[1] > 1 ? 1 : 0;
+        for (int joff = -jlim; joff <= jlim; ++joff) {
+        for (int ioff = -ilim; ioff <= ilim; ++ioff) {
+            umin = amrex::min(umin, u(i+ioff,j+joff,0,nu));
+            umax = amrex::max(umax, u(i+ioff,j+joff,0,nu));
+        }}
+        if (dumax * alpha > (umax - u(i,j,0,nu))) {
+            alpha = (umax - u(i,j,0,nu)) / dumax;
+        }
+        if (dumin * alpha > (u(i,j,0,nu) - umin)) {
+            alpha = (u(i,j,0,nu) - umin) / dumin;
+        }
+    }
+
+    slope(i,j,0,ns        ) = sx * alpha;
+    slope(i,j,0,ns+  ncomp) = sy * alpha;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mf_cell_cons_lin_interp_sph (int i, int j, int ns, Array4<Real> const& fine, int fcomp,
+                                  Array4<Real const> const& slope, Array4<Real const> const& crse,
+                                  int ccomp, int ncomp, IntVect const& ratio, Real drf, Real rlo,
+                                  Real dtf, Real tlo) noexcept
+{
+    // x-direction
+    const int ic = amrex::coarsen(i, ratio[0]);
+    const Real drc =  drf * ratio[0];
+    const Real rcm =  ic    * drc + rlo;
+    const Real rcp = (ic+1) * drc + rlo;
+    const Real rfm =  i     * drf + rlo;
+    const Real rfp = (i +1) * drf + rlo;
+    Real vcm = rcm*rcm;
+    Real vcp = rcp*rcp;
+    Real vfm = rfm*rfm;
+    Real vfp = rfp*rfp;
+    const Real xoff = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
+
+    // y-direction
+    const int jc = amrex::coarsen(j, ratio[1]);
+    const Real dtc =  dtf * ratio[1];
+    const Real tcm =  jc    * dtc + tlo;
+    const Real tcp = (jc+1) * dtc + tlo;
+    const Real tfm =  j     * dtf + tlo;
+    const Real tfp = (j +1) * dtf + tlo;
+    vcm = std::cos(tcm);
+    vcp = std::cos(tcp);
+    vfm = std::cos(tfm);
+    vfp = std::cos(tfp);
+    // const Real yoff = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
+    const Real yoff = (j - jc*ratio[1] + Real(0.5)) / Real(ratio[1]) - Real(0.5);
+
+    fine(i,j,0,fcomp+ns) = crse(ic,jc,0,ccomp+ns)
+        + xoff * slope(ic,jc,0,ns)
+        + yoff * slope(ic,jc,0,ns+ncomp);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mf_cell_cons_lin_interp_mcslope_rz (int i, int j, int ns, Array4<Real> const& slope,
                                          Array4<Real const> const& u, int scomp, int ncomp,
                                          Box const& domain, IntVect const& ratio,
