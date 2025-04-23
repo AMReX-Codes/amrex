@@ -2631,15 +2631,12 @@ FabArrayBase::isFusingCandidate () const noexcept // NOLINT(readability-convert-
 
 #ifdef AMREX_USE_GPU
 
-FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& nghost, int nthreads)
+FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& nghost)
     : m_bat(fa.boxArray().transformer()),
-      m_ng(nghost),
-      m_nthreads(nthreads),
-      m_nblocks_x({nullptr,nullptr})
+      m_ng(nghost)
 {
     Vector<Box> boxes;
-    Vector<Long> ncells;
-    ncells.reserve(fa.indexArray.size());
+    m_ncellsmax = 0;
     for (int K : fa.indexArray) {
         Long N = 0;
         Box b = fa.box(K);
@@ -2648,31 +2645,30 @@ FabArrayBase::ParForInfo::ParForInfo (const FabArrayBase& fa, const IntVect& ngh
             N = b.numPts();
         }
         boxes.push_back(b);
-        ncells.push_back(N);
+        m_ncellsmax = std::max(m_ncellsmax, N);
     }
-    detail::build_par_for_nblocks(m_hp, m_dp, m_nblocks_x, m_boxes, boxes, ncells, nthreads);
+    detail::build_par_for_boxes(m_hp, m_boxes, boxes);
 }
 
 FabArrayBase::ParForInfo::~ParForInfo ()
 {
-    detail::destroy_par_for_nblocks(m_hp, m_dp);
+    detail::destroy_par_for_boxes(m_hp, (char*)m_boxes);
 }
 
 FabArrayBase::ParForInfo const&
-FabArrayBase::getParForInfo (const IntVect& nghost, int nthreads) const
+FabArrayBase::getParForInfo (const IntVect& nghost) const
 {
     AMREX_ASSERT(getBDKey() == m_bdkey);
     auto er_it = m_TheParForCache.equal_range(m_bdkey);
     for (auto it = er_it.first; it != er_it.second; ++it) {
         if (it->second->m_bat        == boxArray().transformer() &&
-            it->second->m_ng         == nghost                 &&
-            it->second->m_nthreads   == nthreads)
+            it->second->m_ng         == nghost)
         {
             return *(it->second);
         }
     }
 
-    ParForInfo* new_pfi = new ParForInfo(*this, nghost, nthreads);
+    ParForInfo* new_pfi = new ParForInfo(*this, nghost);
     m_TheParForCache.insert(er_it.second,
                             std::multimap<BDKey,ParForInfo*>::value_type(m_bdkey,new_pfi));
     return *new_pfi;

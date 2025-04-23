@@ -650,10 +650,12 @@ public:
     //! For ParallelFor(FabArray)
     struct ParForInfo
     {
-        ParForInfo (const FabArrayBase& fa, const IntVect& nghost, int nthreads);
+        ParForInfo (const FabArrayBase& fa, const IntVect& nghost);
         ~ParForInfo ();
 
-        std::pair<int*,int*> const& getBlocks () const { return m_nblocks_x; }
+        int getNBlocksPerBox (int nthreads) const {
+            return int((m_ncellsmax+nthreads-1)/nthreads);
+        }
         BoxIndexer const* getBoxes () const { return m_boxes; }
 
         ParForInfo () = delete;
@@ -664,14 +666,12 @@ public:
 
         BATransformer m_bat;
         IntVect m_ng;
-        int m_nthreads;
-        std::pair<int*,int*> m_nblocks_x;
+        Long m_ncellsmax = 0;
         BoxIndexer* m_boxes = nullptr;
         char* m_hp = nullptr;
-        char* m_dp = nullptr;
     };
 
-    ParForInfo const& getParForInfo (const IntVect& nghost, int nthreads) const;
+    ParForInfo const& getParForInfo (const IntVect& nghost) const;
 
     static std::multimap<BDKey,ParForInfo*> m_TheParForCache;
 
