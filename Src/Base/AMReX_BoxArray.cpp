@@ -1311,6 +1311,26 @@ BoxArray::complementIn (const Box& bx) const
     return bl;
 }
 
+BoxList
+BoxArray::complementIn (const Box& bx, const Periodicity& period) const
+{
+    BoxList bl(bx.ixType());
+    complementIn(bl, bx);
+    auto const& pshifts = period.shiftIntVect();
+    for (auto const& pit : pshifts) {
+        if (pit != 0) {
+            auto bltmp = complementIn(bx+pit);
+            if (bltmp.isNotEmpty()) {
+                for (auto& btmp : bltmp) {
+                    btmp -= pit;
+                }
+                bl.join(bltmp);
+            }
+        }
+    }
+    return bl;
+}
+
 void
 BoxArray::complementIn (BoxList& bl, const Box& bx) const
 {

@@ -668,8 +668,6 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
     // so that they can share work.  But for remote communication, they are all different.
 
     const int nlocal = static_cast<int>(imap.size());
-    const IntVect& ng = nghost;
-    const IntVect ng_ng =nghost - 1;
     std::vector< std::pair<int,Box> > isects;
 
     const std::vector<IntVect>& pshifts = period.shiftIntVect(nghost);
@@ -680,11 +678,11 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
     {
         const int ksnd = imap[i];
         const Box& vbx = ba[ksnd];
-        const Box& vbx_ng  = amrex::grow(vbx,1);
+        const Box& vbx_ng1  = amrex::grow(vbx,1);
 
         for (auto const& pit : pshifts)
         {
-            ba.intersections(vbx+pit, isects, false, ng);
+            ba.intersections(vbx+pit, isects, false, nghost);
 
             for (auto const& is : isects)
             {
@@ -701,8 +699,8 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
                         // In the case where ngrow>1, augment the send/rcv box list
                         // with boxes for overlapping ghost nodes.
                         const Box& ba_krcv   = amrex::grow(ba[krcv],1);
-                        const Box& dst_bx_ng = (amrex::grow(ba_krcv,ng_ng) & (vbx_ng + pit));
-                        const BoxList &bltmp = ba.complementIn(dst_bx_ng);
+                        const Box& dst_bx_ng = amrex::grow(ba[krcv],nghost) & (vbx_ng1 + pit);
+                        const BoxList &bltmp = ba.complementIn(dst_bx_ng,period);
                         for (auto const& btmp : bltmp)
                         {
                             bl.join(amrex::boxDiff(btmp,ba_krcv));
@@ -743,8 +741,8 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
 
         const int   krcv = imap[i];
         const Box& vbx   = ba[krcv];
-        const Box& vbx_ng  = amrex::grow(vbx,1);
-        const Box& bxrcv = amrex::grow(vbx, ng);
+        const Box& vbx_ng1  = amrex::grow(vbx,1);
+        const Box& bxrcv = amrex::grow(vbx, nghost);
 
         for (auto const& pit : pshifts)
         {
@@ -765,10 +763,10 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
                     Box ba_ksnd = ba[ksnd];
                     ba_ksnd.grow(1);
                     const Box dst_bx_ng = (ba_ksnd & (bxrcv + pit)) - pit;
-                    const BoxList &bltmp = ba.complementIn(dst_bx_ng);
+                    const BoxList &bltmp = ba.complementIn(dst_bx_ng,period);
                     for (auto const& btmp : bltmp)
                     {
-                        bl.join(amrex::boxDiff(btmp,vbx_ng));
+                        bl.join(amrex::boxDiff(btmp,vbx_ng1));
                     }
                     bl.simplify();
                 }
@@ -837,7 +835,7 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
                     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
                     {
                         Box lo = dstvbx;
-                        lo.setSmall(dir, dstvbx.smallEnd(dir) - ng[dir]);
+                        lo.setSmall(dir, dstvbx.smallEnd(dir) - nghost[dir]);
                         lo.setBig  (dir, dstvbx.smallEnd(dir) - 1);
                         lo &= bx;
                         if (lo.ok()) {
@@ -846,7 +844,7 @@ FabArrayBase::define_fb_metadata (CommMetaData& cmd, const IntVect& nghost,
 
                         Box hi = dstvbx;
                         hi.setSmall(dir, dstvbx.bigEnd(dir) + 1);
-                        hi.setBig  (dir, dstvbx.bigEnd(dir) + ng[dir]);
+                        hi.setBig  (dir, dstvbx.bigEnd(dir) + nghost[dir]);
                         hi &= bx;
                         if (hi.ok()) {
                             boxes.push_back(hi);
@@ -880,8 +878,6 @@ void
 FabArrayBase::FB::define_fb (const FabArrayBase& fa)
 {
     AMREX_ASSERT(m_multi_ghost ? fa.nGrowVect().allGE(2) : true); // must have >= 2 ghost nodes
-    AMREX_ASSERT(m_multi_ghost ? !m_period.isAnyPeriodic() : true); // this only works for non-periodic
-
     fa.define_fb_metadata(*this, m_ngrow, m_cross, m_period, m_multi_ghost);
 }
 
