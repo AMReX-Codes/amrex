@@ -1755,12 +1755,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             int thread_num = OpenMP::get_thread_num();
             int grid = grid_tile_ids[pmap_it].first;
             int tile = grid_tile_ids[pmap_it].second;
-            auto& soa = ptile_ptrs[pmap_it]->GetStructOfArrays();
 
-            // AMREX_ASSERT_WITH_MESSAGE((NumRealComps() == 0 && NumIntComps() == 0)
-            //                           || aos.size() == soa.size(),
-            //     "The AoS and SoA data on this tile are different sizes - "
-            //     "perhaps particles have not been initialized correctly?");
             unsigned npart = ptile_ptrs[pmap_it]->numParticles();
             ParticleLocData pld;
 
