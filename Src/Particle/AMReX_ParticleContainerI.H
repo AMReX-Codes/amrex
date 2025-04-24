@@ -2156,7 +2156,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                     ParticleType p;
                     std::memcpy(&p, pbuf, sizeof(ParticleType));
                     pbuf += sizeof(ParticleType);
-                    ptile[old_size] = p;
+                    ptile.GetArrayOfStructs()[old_size] = p;
                 }
 
                 int array_comp_start = 0;
