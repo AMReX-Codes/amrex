@@ -305,10 +305,10 @@ void mf_cell_cons_lin_interp_sph (int i, int j, int ns, Array4<Real> const& fine
     const Real rcp = (ic+1) * drc + rlo;
     const Real rfm =  i     * drf + rlo;
     const Real rfp = (i +1) * drf + rlo;
-    Real vcm = rcm*rcm;
-    Real vcp = rcp*rcp;
-    Real vfm = rfm*rfm;
-    Real vfp = rfp*rfp;
+    Real vcm = rcm*rcm*rcm;
+    Real vcp = rcp*rcp*rcp;
+    Real vfm = rfm*rfm*rfm;
+    Real vfp = rfp*rfp*rfp;
     const Real xoff = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
 
     // y-direction
@@ -322,8 +322,7 @@ void mf_cell_cons_lin_interp_sph (int i, int j, int ns, Array4<Real> const& fine
     vcp = std::cos(tcp);
     vfm = std::cos(tfm);
     vfp = std::cos(tfp);
-    // const Real yoff = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
-    const Real yoff = (j - jc*ratio[1] + Real(0.5)) / Real(ratio[1]) - Real(0.5);
+    const Real yoff = Real(0.5) * ((vfm+vfp) - (vcm+vcp)) / (vcp - vcm);
 
     fine(i,j,0,fcomp+ns) = crse(ic,jc,0,ccomp+ns)
         + xoff * slope(ic,jc,0,ns)
