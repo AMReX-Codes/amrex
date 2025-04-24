@@ -1714,8 +1714,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
             ptile_local[lev][index].resize(num_threads);
             for (int t = 0; t < num_threads; ++t) {
-                ptile_local[lev][index][t].define(arena(), m_num_runtime_real, m_num_runtime_int,
-                                                  &m_soa_rdata_names, &m_soa_idata_names);
+                if constexpr (is_soa2_pc) {
+                    ptile_local[lev][index][t].define(arena(), m_num_runtime_real, m_num_runtime_int,
+                        &m_soa_rdata_names, &m_soa_idata_names);
+                } else {
+                    ptile_local[lev][index][t].define(m_num_runtime_real, m_num_runtime_int,
+                        &m_soa_rdata_names, &m_soa_idata_names);
+                }
             }
         }
     }
