@@ -215,7 +215,7 @@ struct ParticleTileData2
         }
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SoASuperParticle2 getSuperParticle (size_type index) const noexcept
     {
         return { AMREX_D_DECL( pos(0, index), pos(1, index), pos(2, index) )};
