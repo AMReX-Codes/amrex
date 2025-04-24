@@ -64,6 +64,20 @@ struct ArrayView {
 template <class T>
 ArrayView(T* data, std::size_t capacity) -> ArrayView<T>;
 
+struct SoASuperParticle2 {
+    amrex::Real m_pos[AMREX_SPACEDIM];
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    amrex::Real& pos(const int dir) {
+        return m_pos[dir];
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    amrex::Real pos(const int dir) const {
+        return m_pos[dir];
+    }
+};
+
 template <class RType, class IType>
 struct ParticleTileData2
 {
@@ -199,6 +213,12 @@ struct ParticleTileData2
                 src += sizeof(IType);
             }
         }
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    SoASuperParticle2 getSuperParticle (size_type index) const noexcept
+    {
+        return { AMREX_D_DECL( pos(0, index), pos(1, index), pos(2, index) )};
     }
 };
 
@@ -372,7 +392,9 @@ struct ParticleTile2
     void setNumNeighbors (size_type num_neighbors)
     {
         AMREX_ALWAYS_ASSERT(m_defined);
+        auto nrp = numRealParticles();
         m_num_neighbor_particles = num_neighbors;
+        resize(nrp + num_neighbors);
     }
 
     size_type getNumNeighbors () const
