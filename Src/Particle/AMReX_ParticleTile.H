@@ -694,8 +694,6 @@ struct ConstParticleTileData
 };
 
 struct ThisParticleTileHasNoParticleVector {};
-struct ThisParticleTileHasNoRealVector {};
-struct ThisParticleTileHasNoIntVector {};
 
 struct ThisParticleTileHasNoAoS {
     using ParticleVector = ThisParticleTileHasNoParticleVector;

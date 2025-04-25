@@ -130,18 +130,32 @@ struct ParticleTileData2
         return this->m_idcpu[index];
     }
 
+    // [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    // ArrayView<RType> rdata (const int comp_index) const &
+    // {
+    //     AMREX_ASSERT(0 <= comp_index && comp_index < m_n_real);
+    //     return {this->m_rdata + comp_index * m_capacity, m_capacity};
+    // }
+
+    // [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    // ArrayView<IType> idata (const int comp_index) const &
+    // {
+    //     AMREX_ASSERT(0 <= comp_index && comp_index < m_n_int);
+    //     return {this->m_idata + comp_index * m_capacity, m_capacity};
+    // }
+
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ArrayView<RType> rdata (const int comp_index) const &
+    RType * rdata (const int comp_index) const &
     {
         AMREX_ASSERT(0 <= comp_index && comp_index < m_n_real);
-        return {this->m_rdata + comp_index * m_capacity, m_capacity};
+        return this->m_rdata + comp_index * m_capacity;
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ArrayView<IType> idata (const int comp_index) const &
+    IType * idata (const int comp_index) const &
     {
         AMREX_ASSERT(0 <= comp_index && comp_index < m_n_int);
-        return {this->m_idata + comp_index * m_capacity, m_capacity};
+        return this->m_idata + comp_index * m_capacity;
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -249,6 +263,16 @@ struct SoAParticle2
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     decltype(auto) idcpu () const & { return this->m_particle_tile_data.idcpu(m_index); }
 
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    RType& rdata (const int comp_index) const & {
+        return this->m_particle_tile_data.rdata(comp_index, m_index);
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IType& idata (const int comp_index) const & {
+        return this->m_particle_tile_data.idata(comp_index, m_index);
+    }
+
     //functions to get positions of the particle in the SOA data
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -261,8 +285,7 @@ struct SoAParticle2
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    RType& pos (int position_index) const &
-    {
+    RType& pos (int position_index) const & {
         return this->m_particle_tile_data.pos(position_index, m_index);
     }
 
@@ -291,8 +314,8 @@ struct ParticleTile2
     using AoS = ThisParticleTileHasNoAoS;
     using SoA = ParticleTile2<RType, IType>;
 
-    using RealVector = ThisParticleTileHasNoRealVector;
-    using IntVector = ThisParticleTileHasNoIntVector;
+    using RealVector = ArrayView<RType>;
+    using IntVector = ArrayView<IType>;
 
     ParticleTile2 () = default;
 
