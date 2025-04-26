@@ -840,6 +840,7 @@ RealVectND<dim>::dotProduct (const RealVectND<dim>& a_rhs) const noexcept {
     for (int i=1; i<dim; ++i) {
         retval += vect[i] * a_rhs.vect[i];
     }
+    return retval;
 }
 
 template <int dim>
