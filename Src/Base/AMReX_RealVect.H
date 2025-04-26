@@ -87,7 +87,7 @@ class RealVectND {
         Construct a RealVectND from an IntVectND by coercing each component
         from <tt>int</tt> to Real.
     */
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE constexpr
     RealVectND (const IntVectND<dim>& iv) noexcept {
         for (int i = 0; i < dim; ++i) {
             vect[i] = static_cast<Real>(iv[i]);
@@ -98,7 +98,7 @@ class RealVectND {
     /**
         Construct a RealVectND from a GpuArray
     */
-   AMREX_GPU_HOST_DEVICE
+   AMREX_GPU_HOST_DEVICE constexpr
    RealVectND (const GpuArray<Real, dim> ga) noexcept {
        for (int i = 0; i < dim; ++i) {
            vect[i] = ga[i];
@@ -117,8 +117,8 @@ class RealVectND {
         Returns a modifiable lvalue reference to the <i>i</i>'th coordinate of the
         RealVectND.
     */
-    AMREX_GPU_HOST_DEVICE
-    inline Real& operator[] (int i) & noexcept {
+    AMREX_GPU_HOST_DEVICE inline constexpr
+    Real& operator[] (int i) & noexcept {
         AMREX_ASSERT(i >= 0 && i < dim);
         return vect[i];
     }
@@ -127,8 +127,8 @@ class RealVectND {
     /**
         Returns the <i>i</i>'th coordinate of the RealVectND.
     */
-    AMREX_GPU_HOST_DEVICE
-    inline const Real& operator[] (int i) const& noexcept {
+    AMREX_GPU_HOST_DEVICE inline constexpr
+    const Real& operator[] (int i) const& noexcept {
         AMREX_ASSERT(i >= 0 && i < dim);
         return vect[i];
     }
@@ -163,25 +163,29 @@ class RealVectND {
     /**
         Return pointer to the first component.
     */
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline Real* begin () noexcept { return vect; }
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline constexpr
+    Real* begin () noexcept { return vect; }
 
     ///
     /**
         Return pointer to the first component.
     */
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline const Real* begin () const noexcept { return vect; }
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline constexpr
+    const Real* begin () const noexcept { return vect; }
 
     ///
     /**
         Return pointer to the one past last component
     */
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline Real* end () noexcept { return vect + dim; }
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline constexpr
+    Real* end () noexcept { return vect + dim; }
 
     ///
     /**
         Return pointer to the one past last component
     */
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline const Real* end () const noexcept {
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline constexpr
+    const Real* end () const noexcept {
         return vect + dim;
     }
 
@@ -197,7 +201,7 @@ class RealVectND {
         Returns true if this RealVectND is equivalent to argument RealVectND.  All
         comparisons between analogous components must be satisfied.
     */
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE constexpr
     bool operator== (const RealVectND& p) const noexcept {
         bool retval = vect[0] == p[0];
         for (int i=1; i<dim; ++i) {
@@ -211,7 +215,7 @@ class RealVectND {
         Returns true if this RealVectND is different from argument RealVectND.
         All comparisons between analogous components must be satisfied.
     */
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE constexpr
     bool operator!= (const RealVectND& p) const noexcept {
         bool retval = vect[0] != p[0];
         for (int i=1; i<dim; ++i) {
@@ -516,14 +520,14 @@ class RealVectND {
         The zero vector in dim-dimensional space.
     */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static constexpr RealVectND TheZeroVector () noexcept {
-        return RealVectND(0.);
+        return RealVectND{0.};
     }
 
     /**
         The unit vector in dim-dimensional space.
     */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static constexpr RealVectND TheUnitVector () noexcept {
-        return RealVectND(1.);
+        return RealVectND{1.};
     }
 
     /*@}*/
@@ -1001,7 +1005,7 @@ template <int dim=AMREX_SPACEDIM>
 AMREX_GPU_HOST_DEVICE inline
 RealVectND<dim> BASISREALV (int dir) noexcept {
     AMREX_ASSERT(dir >= 0 && dir < dim);
-    RealVectND<dim> tmp(0.);
+    RealVectND<dim> tmp{0.};
     tmp[dir] = 1;
     return tmp;
 }
@@ -1185,7 +1189,7 @@ AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 constexpr RealVectND<detail::get_sum<d, dims...>()>
 RealVectCat (const RealVectND<d>& v, const RealVectND<dims>&...vects) noexcept {
-    RealVectND<detail::get_sum<d, dims...>()> retval (0);
+    RealVectND<detail::get_sum<d, dims...>()> retval {0.};
     Real* dst = retval.begin();
     detail::RealVectCat_imp(dst, v);
     (detail::RealVectCat_imp(dst, vects), ...);
