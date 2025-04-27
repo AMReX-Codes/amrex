@@ -44,10 +44,12 @@ using gpuDeviceProp_t = cudaDeviceProp;
         int maxParameterSize;
     };
 #endif
-
-class CArena;
 }
 #endif
+
+namespace amrex {
+    class CArena;
+}
 
 namespace amrex::Gpu {
 
@@ -95,7 +97,10 @@ public:
 #endif
 
     static void freeAfterSync (CArena* arena, void* mem) noexcept {
+        amrex::ignore_unused(arena, mem);
+#ifdef AMREX_USE_CUDA
         gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].stream_free(arena, mem);
+#endif
     }
 
     static int numGpuStreams () noexcept {

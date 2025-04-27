@@ -736,7 +736,7 @@ Device::synchronize () noexcept
     for (auto& s : gpu_stream_pool) {
         s.sync();
     }
-#else
+#elif defined(AMREX_USE_GPU)
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
                        AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize()); )
     for (auto& s : gpu_stream_pool) {
