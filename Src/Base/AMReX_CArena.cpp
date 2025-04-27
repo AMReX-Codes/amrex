@@ -2,6 +2,7 @@
 #include <AMReX_CArena.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_GpuDevice.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_ParallelReduce.H>
 
@@ -254,6 +255,23 @@ CArena::shrink_in_place (void* pt, std::size_t new_size)
 
 void
 CArena::free (void* vp)
+{
+    if (vp == nullptr) {
+        //
+        // Allow calls with NULL as allowed by C++ delete.
+        //
+        return;
+    }
+
+    if (this->isDeviceAccessible()) {
+        Gpu::Device::freeAfterSync(this, vp);
+    } else {
+        free_now(vp);
+    }
+}
+
+void
+CArena::free_now (void* vp)
 {
     if (vp == nullptr) {
         //

@@ -63,6 +63,8 @@ public:
     */
     void free (void* vp) final;
 
+    void free_now (void* vp);
+
     std::size_t freeUnused () final;
 
     /**

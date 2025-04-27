@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <mutex>
 
 #define AMREX_GPU_MAX_STREAMS 8
 
@@ -43,10 +44,27 @@ using gpuDeviceProp_t = cudaDeviceProp;
         int maxParameterSize;
     };
 #endif
+
+class CArena;
 }
 #endif
 
 namespace amrex::Gpu {
+
+#ifdef AMREX_USE_GPU
+class StreamManager {
+    gpuStream_t m_stream;
+    bool m_is_synced = true;
+    Vector<std::pair<CArena*, void*>> m_free_wait_list;
+    std::mutex m_mutex;
+public:
+    [[nodiscard]] gpuStream_t get ();
+    [[nodiscard]] gpuStream_t& internal_get ();
+    void sync ();
+    void internal_after_sync ();
+    void stream_free (CArena* arena, void* mem);
+};
+#endif
 
 class Device
 {
@@ -57,16 +75,28 @@ public:
     static void Finalize ();
 
 #if defined(AMREX_USE_GPU)
-    static gpuStream_t gpuStream () noexcept { return gpu_stream[OpenMP::get_thread_num()]; }
+    static gpuStream_t gpuStream () noexcept {
+        return gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].get();
+    }
 #ifdef AMREX_USE_CUDA
     /** for backward compatibility */
-    static cudaStream_t cudaStream () noexcept { return gpu_stream[OpenMP::get_thread_num()]; }
+    static cudaStream_t cudaStream () noexcept {
+        return gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].get();
+    }
 #endif
 #ifdef AMREX_USE_SYCL
-    static sycl::queue& streamQueue () noexcept { return *(gpu_stream[OpenMP::get_thread_num()].queue); }
-    static sycl::queue& streamQueue (int i) noexcept { return *(gpu_stream_pool[i].queue); }
+    static sycl::queue& streamQueue () noexcept {
+        return *(gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].get().queue);
+    }
+    static sycl::queue& streamQueue (int i) noexcept {
+        return *(gpu_stream_pool[i].get().queue);
+    }
 #endif
 #endif
+
+    static void freeAfterSync (CArena* arena, void* mem) noexcept {
+        gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].stream_free(arena, mem);
+    }
 
     static int numGpuStreams () noexcept {
         return inSingleStreamRegion() ? 1 : max_gpu_streams;
@@ -196,10 +226,11 @@ private:
     static AMREX_EXPORT dim3 numThreadsMin;
     static AMREX_EXPORT dim3 numBlocksOverride, numThreadsOverride;
 
-    static AMREX_EXPORT Vector<gpuStream_t> gpu_stream_pool; // The size of this is max_gpu_stream
-    // The non-owning gpu_stream is used to store the current stream that will be used.
-    // gpu_stream is a vector so that it's thread safe to write to it.
-    static AMREX_EXPORT Vector<gpuStream_t> gpu_stream; // The size of this is omp_max_threads
+    static AMREX_EXPORT Vector<StreamManager> gpu_stream_pool; // The size of this is max_gpu_stream
+    // The non-owning gpu_stream_index is used to store the current stream index that will be used.
+    // gpu_stream_index is a vector so that it's thread safe to write to it.
+    static AMREX_EXPORT Vector<int> gpu_stream_index; // The size of this is omp_max_threads
+
     static AMREX_EXPORT gpuDeviceProp_t device_prop;
     static AMREX_EXPORT int memory_pools_supported;
     static AMREX_EXPORT unsigned int max_blocks_per_launch;
