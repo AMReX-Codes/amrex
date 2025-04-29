@@ -152,7 +152,7 @@ MyTest::solve ()
 
             hp = (!ecx || ecx(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.)*ecx(i,j,k));
             hm = (!ecx || ecx(i-1,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecx(i-1,j,k));
-            scale = std::min({scale, hp, hm});
+            scale = amrex::min(scale, hp, hm);
             Real s = fac[0]*Real(2.0)/(hp+hm);
 
             if (levset(i+1,j,k) < Real(0.0)) {
@@ -185,7 +185,7 @@ MyTest::solve ()
 
             hp = (!ecy || ecy(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.)*ecy(i,j,k));
             hm = (!ecy || ecy(i,j-1,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecy(i,j-1,k));
-            scale = std::min({scale, hp, hm});
+            scale = amrex::min(scale, hp, hm);
             s = fac[1]*Real(2.0)/(hp+hm);
 
             if (levset(i,j+1,k) < Real(0.0)) {
@@ -219,7 +219,7 @@ MyTest::solve ()
 #if (AMREX_SPACEDIM > 2)
             hp = (!ecz || ecz(i,j,k) == Real(1.0)) ? Real(1.0) : (Real(1.0)+Real(2.)*ecz(i,j,k));
             hm = (!ecz || ecz(i,j,k-1) == Real(1.0)) ? Real(1.0) : (Real(1.0)-Real(2.)*ecz(i,j,k-1));
-            scale = std::min({scale, hp, hm});
+            scale = amrex::min(scale, hp, hm);
             s = fac[2]*Real(2.0)/(hp+hm);
 
             if (levset(i,j,k+1) < Real(0.0)) {
