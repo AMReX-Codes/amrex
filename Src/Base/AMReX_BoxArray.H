@@ -810,6 +810,9 @@ public:
     [[nodiscard]] BoxList complementIn (const Box& b) const;
     void complementIn (BoxList& bl, const Box& b) const;
 
+    //! Return box - periodic boxarray
+    [[nodiscard]] BoxList complementIn (const Box& b, const Periodicity& period) const;
+
     //! Clear out the internal hash table used by intersections.
     void clear_hash_bin () const;
 
