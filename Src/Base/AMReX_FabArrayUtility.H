@@ -1101,6 +1101,73 @@ printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
 template <class FAB,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
 void
+Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Swap(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
+Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+    // We can take a shortcut and do a std::swap if we're swapping all of the data
+    // and they are allocated in the same Arena.
+
+    bool explicit_swap = true;
+
+    if (srccomp == dstcomp && dstcomp == 0 && src.nComp() == dst.nComp() &&
+        src.nGrowVect() == nghost && src.nGrowVect() == dst.nGrowVect() &&
+        src.arena() == dst.arena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
+        explicit_swap = false;
+    }
+
+    if (!explicit_swap) {
+
+        std::swap(dst, src);
+
+    } else {
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
+            auto const& dstma = dst.arrays();
+            auto const& srcma = src.arrays();
+            ParallelFor(dst, nghost, numcomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                const auto tmp                 = dstma[box_no](i,j,k,n+dstcomp);
+                dstma[box_no](i,j,k,n+dstcomp) = srcma[box_no](i,j,k,n+srccomp);
+                srcma[box_no](i,j,k,n+srccomp) = tmp;
+            });
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
+        } else
+#endif
+        {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox(nghost);
+                if (bx.ok()) {
+                    auto sfab = src.array(mfi);
+                    auto dfab = dst.array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
+                    {
+                        const auto tmp        = dfab(i,j,k,n+dstcomp);
+                        dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp);
+                        sfab(i,j,k,n+srccomp) = tmp;
+                    });
+                }
+            }
+        }
+    }
+}
+
+template <class FAB,
+          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+void
 Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));

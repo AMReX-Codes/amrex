@@ -260,7 +260,7 @@ namespace amrex
     }
 
     /**
-     * \brief Reduce FabArray/MultiFab data to a plane.
+     * \brief Reduce FabArray/MultiFab data to a plane Fab.
      *
      * This function takes a FabArray/MultiFab and reduces its data to a
      * plane.  The return data are stored in a BaseFab with only one cell in
@@ -327,6 +327,111 @@ namespace amrex
                                , int> FOO = 0>
     BaseFab<T>
     ReduceToPlane (int direction, Box const& domain, FabArray<FAB> const& mf, F const& f);
+
+    /**
+     * \brief Reduce FabArray/MultiFab data to plane FabArray
+     *
+     * This function takes a FabArray/MultiFab and reduce its data to a
+     * plane. The first template parameter specifies the reduction
+     * operation. Currently only ReduceOpSum is supported. The return data
+     * is a FabArray whose BoxArray is based on the input FabArray with each
+     * box shrunk to just one cell in the the specified direction and its
+     * index set to zero. Its DistributionMapping is the same as the input
+     * FabArray. Note that the returned FA may contain duplicated Boxes. It
+     * contains global reduction results that have been MPI reduced. This
+     * behavior is different from that of ReduceToPlane that returns local
+     * reduction results.
+     *
+     \verbatim
+        auto const& ma = mf.const_arrays();
+        auto mf2 = ReduceToPlaneMF<ReduceOpSum>
+            (2, domain, mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+        {
+            return ma[b](i,j,k);
+        });
+        auto nz = domain.length(2); // number of cells in z-direction
+        auto const& ma2 = mf2.const_arrays();
+        ParallelFor(mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+        {
+            ma[b](i,j,k) -= ma2[b](i,j,0) / nz; // (i,j,0) is used to access ma2
+        });
+        // If sync is needed, call Gpu::streamSynchronize()
+        // mf now contains data with z-direction line average subtracted
+     \endverbatim
+     *
+     * \tparam Op  reduce operator (Must be ReduceSum for now.)
+     * \tparam FA  Type of FabArray
+     * \tparam F   callable type like a lambda function
+     *
+     * \param direction normal direction of the plane (e.g., 0, 1 and 2)
+     * \param domain    domain Box
+     * \param mf        a FabArray/MultiFab object specifying the iteration space
+     * \param f         a callable object returning data fore reduction. It takes
+     *                  four ints, where the first int is the local box index and
+     *                  the others are spatial indices for x, y, and z-directions.
+     *
+     * \return reduction result (FA)
+     */
+    template <typename Op, typename FA, typename F,
+              std::enable_if_t<IsMultiFabLike_v<FA>
+#ifndef AMREX_USE_CUDA
+                               && IsCallableR<typename FA::value_type,
+                                              F,int,int,int,int>::value
+#endif
+                               , int> FOO = 0>
+    FA ReduceToPlaneMF (int direction, Box const& domain, FA const& mf, F const& f);
+
+    /**
+     * \brief Reduce FabArray/MultiFab data to plane FabArray
+     *
+     * This function takes a FabArray/MultiFab and reduce its data to a
+     * plane. The first template parameter specifies the reduction
+     * operation. Currently only ReduceOpSum is supported. The return data
+     * are a pair of FabArrays. The first FA's BoxArray is based on the
+     * input FabArray with each box shrunk to just one cell in the the
+     * specified direction and its index set to zero. Its
+     * DistributionMapping is the same as the input FabArray. The second
+     * FA's BoxArray is a new 2D BoxArray with only one cell in the
+     * specified direction. The first FA may contain duplicated Boxes,
+     * whereas the second one is unique. The local reduction results are
+     * stored in the first FA, whereas the global results (including MPI
+     * communication) are in the second FA.  Below is and an example.
+     *
+     \verbatim
+        auto const& ma = mf.const_arrays();
+        auto [mf2, mf2_unique] = ReduceToPlaneMF2<ReduceOpSum>
+            (2, domain, mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+        {
+            return ma[b](i,j,k);
+        });
+        // mf2: box local reduction result
+        // mf2_unique: global reduction result
+        auto phi = poisson_solver(mf2_unique); // Perform 2D Poisson solve
+        mf2.ParallelCopy(phi); // Each Fab in mf2 has the 2D Poisson solver result
+     \endverbatim
+     *
+     * \tparam Op  reduce operator (Must be ReduceSum for now.)
+     * \tparam FA  Type of FabArray
+     * \tparam F   callable type like a lambda function
+     *
+     * \param direction normal direction of the plane (e.g., 0, 1 and 2)
+     * \param domain    domain Box
+     * \param mf        a FabArray/MultiFab object specifying the iteration space
+     * \param f         a callable object returning data fore reduction. It takes
+     *                  four ints, where the first int is the local box index and
+     *                  the others are spatial indices for x, y, and z-directions.
+     *
+     * \return reduction result (std::pair<FA,FA>)
+     */
+    template <typename Op, typename FA, typename F,
+              std::enable_if_t<IsMultiFabLike_v<FA>
+#ifndef AMREX_USE_CUDA
+                               && IsCallableR<typename FA::value_type,
+                                              F,int,int,int,int>::value
+#endif
+                               , int> FOO = 0>
+    std::pair<FA,FA>
+    ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f);
 
     /**
      * \brief Sum MultiFab data to line
@@ -1058,31 +1163,11 @@ MF get_line_data (MF const& mf, int dir, IntVect const& cell, Box const& bnd_bx)
     }
 }
 
-template <typename Op, typename T, typename FAB, typename F,
-          std::enable_if_t<IsBaseFab<FAB>::value
-#ifndef AMREX_USE_CUDA
-                           && IsCallableR<T,F,int,int,int,int>::value
-#endif
-                           , int> FOO>
-BaseFab<T>
-ReduceToPlane (int direction, Box const& domain, FabArray<FAB> const& mf, F const& f)
+namespace detail {
+template <typename Op, typename T, typename F>
+void reduce_to_plane (Array4<T> const& ar, int direction, Box const& bx, int box_no,
+                      F const& f)
 {
-    Box domain2d = domain;
-    domain2d.setRange(direction, 0);
-
-    T initval;
-    Op().init(initval);
-
-    BaseFab<T> r(domain2d);
-    r.template setVal<RunOn::Device>(initval);
-    auto const& ar = r.array();
-
-    for (MFIter mfi(mf,MFItInfo().UseDefaultStream().DisableDeviceSync());
-         mfi.isValid(); ++mfi)
-    {
-        Box bx = mfi.validbox() & domain;
-        if (bx.ok()) {
-            int box_no = mfi.LocalIndex();
 #if defined(AMREX_USE_GPU)
             Box b2d = bx;
             b2d.setRange(direction,0);
@@ -1160,11 +1245,126 @@ ReduceToPlane (int direction, Box const& domain, FabArray<FAB> const& mf, F cons
                 });
             }
 #endif
+}
+}
+
+template <typename Op, typename T, typename FAB, typename F,
+          std::enable_if_t<IsBaseFab<FAB>::value
+#ifndef AMREX_USE_CUDA
+                           && IsCallableR<T,F,int,int,int,int>::value
+#endif
+                           , int> FOO>
+BaseFab<T>
+ReduceToPlane (int direction, Box const& a_domain, FabArray<FAB> const& mf, F const& f)
+{
+    Box const domain = amrex::convert(a_domain, mf.ixType());
+
+    Box domain2d = domain;
+    domain2d.setRange(direction, 0);
+
+    T initval;
+    Op().init(initval);
+
+    BaseFab<T> r(domain2d);
+    r.template setVal<RunOn::Device>(initval);
+    auto const& ar = r.array();
+
+    for (MFIter mfi(mf,MFItInfo().UseDefaultStream().DisableDeviceSync());
+         mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.validbox() & domain;
+        if (bx.ok()) {
+            int box_no = mfi.LocalIndex();
+            detail::reduce_to_plane<Op, T>(ar, direction, bx, box_no, f);
         }
     }
     Gpu::streamSynchronize();
 
     return r;
+}
+
+namespace detail {
+template <typename Op, typename FA, typename F>
+FA reduce_to_plane (int direction, Box const& domain, FA const& mf, F const& f)
+{
+    using T = typename FA::value_type;
+
+    Box const ndomain = amrex::convert(domain, mf.ixType());
+
+    auto npts = amrex::convert(mf.boxArray(),IntVect(0)).numPts();
+    if (npts != ndomain.numPts()) {
+        amrex::Abort("ReduceToPlaneMF: mf's BoxArray must have a rectangular domain.");
+    }
+
+    T initval;
+    Op().init(initval);
+
+    BoxList bl = mf.boxArray().boxList();
+    for (auto& b : bl) {
+        b.setRange(direction, 0);
+    }
+    BoxArray ba(std::move(bl));
+    FA tmpfa(ba, mf.DistributionMap(), 1, 0);
+    tmpfa.setVal(initval);
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.validbox() & ndomain;
+        if (bx.ok()) {
+            int box_no = mfi.LocalIndex();
+            detail::reduce_to_plane<Op, T>(tmpfa.array(mfi), direction, bx, box_no, f);
+        }
+    }
+
+    return tmpfa;
+}
+}
+
+template <typename Op, typename FA, typename F,
+          std::enable_if_t<IsMultiFabLike_v<FA>
+#ifndef AMREX_USE_CUDA
+                           && IsCallableR<typename FA::value_type,
+                                          F,int,int,int,int>::value
+#endif
+                           , int> FOO>
+FA ReduceToPlaneMF (int direction, Box const& domain, FA const& mf, F const& f)
+{
+    auto [fa3, fa2] = ReduceToPlaneMF2<Op>(direction, domain, mf, f);
+    fa3.ParallelCopy(fa2);
+    return std::move(fa3);
+}
+
+template <typename Op, typename FA, typename F,
+          std::enable_if_t<IsMultiFabLike_v<FA>
+#ifndef AMREX_USE_CUDA
+                           && IsCallableR<typename FA::value_type,
+                                          F,int,int,int,int>::value
+#endif
+                           , int> FOO>
+std::pair<FA,FA>
+ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f)
+{
+    using T = typename FA::value_type;
+
+    T initval;
+    Op().init(initval);
+
+    auto tmpmf = detail::reduce_to_plane<Op>(direction, domain, mf, f);
+
+    Box domain2d = amrex::convert(domain, mf.ixType());
+    domain2d.setRange(direction, 0);
+
+    BoxArray ba2d(domain2d);
+    ba2d.maxSize(mf.boxArray()[0].length());
+    DistributionMapping dm2d(ba2d);
+
+    FA mf2d(ba2d, dm2d, 1, 0);
+    mf2d.setVal(initval);
+
+    static_assert(std::is_same_v<Op, ReduceOpSum>, "Currently only ReduceOpSum is supported.");
+    mf2d.ParallelAdd(tmpmf);
+
+    return std::make_pair(std::move(tmpmf), std::move(mf2d));
 }
 
 }

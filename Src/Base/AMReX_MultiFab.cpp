@@ -225,61 +225,8 @@ MultiFab::Swap (MultiFab& dst, MultiFab& src,
     BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Swap()");
-
-    // We can take a shortcut and do a std::swap if we're swapping all of the data
-    // and they are allocated in the same Arena.
-
-    bool explicit_swap = true;
-
-    if (srccomp == dstcomp && dstcomp == 0 && src.nComp() == dst.nComp() &&
-        src.nGrowVect() == nghost && src.nGrowVect() == dst.nGrowVect() &&
-        src.arena() == dst.arena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
-        explicit_swap = false;
-    }
-
-    if (!explicit_swap) {
-
-        std::swap(dst, src);
-
-    } else {
-#ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
-            auto const& dstma = dst.arrays();
-            auto const& srcma = src.arrays();
-            ParallelFor(dst, nghost, numcomp,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-            {
-                const amrex::Real tmp = dstma[box_no](i,j,k,n+dstcomp);
-                dstma[box_no](i,j,k,n+dstcomp) = srcma[box_no](i,j,k,n+srccomp);
-                srcma[box_no](i,j,k,n+srccomp) = tmp;
-            });
-            if (!Gpu::inNoSyncRegion()) {
-                Gpu::streamSynchronize();
-            }
-        } else
-#endif
-        {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-            for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.growntilebox(nghost);
-                if (bx.ok()) {
-                    auto sfab = src.array(mfi);
-                    auto dfab = dst.array(mfi);
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
-                    {
-                        const amrex::Real tmp = dfab(i,j,k,n+dstcomp);
-                        dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp);
-                        sfab(i,j,k,n+srccomp) = tmp;
-                    });
-                }
-            }
-        }
-    }
+    amrex::Swap(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
-
 
 void
 MultiFab::Subtract (MultiFab& dst, const MultiFab& src,
