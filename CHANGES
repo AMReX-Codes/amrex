@@ -1,3 +1,51 @@
+# 25.05
+
+  -- SYCL on Windows workaround (#4436)
+
+  -- Fix MF ParallelFor<MT> (#4414)
+
+  -- Avoid calling bisection in MFParallelFor (#4392)
+
+  -- SYCL: Update link flag for huge device code in GNU Make file (#4421)
+
+  -- Hypre & PETSc: Fix compilation when MLMG's MF type is not FabArray (#4422)
+
+  -- iMulitFab: Add more methods (#4410)
+
+  -- HIP Debug Build (#4408)
+
+  -- ReduceToPlaneMF (#4384)
+
+  -- Periodicity boundary support for multi-ghost communication (#4405)
+
+  -- Move the implemetation of the idcpu bit packing to standalone functions. (#4413)
+
+  -- Fix safety of amrex::launch (#4419)
+
+  -- Add utility to create non-periodic turbulence files (#4418)
+
+  -- Add new MPI data type for RealVect (#4416)
+
+  -- Env Variable: `AMREX_DEFAULT_INIT`, etc. (#4165)
+
+  -- Fix a bug in 1d Curl Curl Solver (#4407)
+
+  -- Remove stream sync in build_arrays (#4349)
+
+  -- Combine back-to-back saxpy operations, as well as saxpy next to xpay (#4366)
+
+  -- Guard some stream syncs (#4351)
+
+  -- fix multi-level ParticleToMesh when zero_out_input is false (#4396)
+
+  -- print number of cells per level in fboxinfo (#4403)
+
+  -- Bug fix for index_assert in Array4 (#4400)
+
+  -- Added bounds checking to GPUable arrays (#4395)
+
+  -- Add a way to reuse TagParallelFor Tags (#4348)
+
 # 25.04
 
   -- Use SingleStreamRegion and NoSyncRegion in MLMG solve (#4355)
