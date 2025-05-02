@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdarg>
+#include <vector>
 
 void
 amrex_parsererror (char const *s, ...)
@@ -20,6 +21,7 @@ namespace amrex {
 
 namespace {
     struct parser_node* parser_root = nullptr;
+    std::vector<void*>  parser_ptrs;
 }
 
 // This is called by a bison rule to store the original AST in a static variable.
@@ -34,9 +36,11 @@ parser_makesymbol (char* name)
 {
     // We allocate more than enough space so that late we can turn parser_symbol
     // into into parser_node if necessary.
-    auto *symbol = (struct parser_symbol*) std::malloc(sizeof(struct parser_node)); // NOLINT
+    parser_ptrs.push_back(std::malloc(sizeof(struct parser_node)));
+    auto *symbol = (struct parser_symbol*) parser_ptrs.back(); // NOLINT
     symbol->type = PARSER_SYMBOL;
     symbol->name = strdup(name);
+    parser_ptrs.push_back(symbol->name);
     symbol->ip = -1;
     return symbol;
 }
@@ -44,7 +48,8 @@ parser_makesymbol (char* name)
 struct parser_node*
 parser_newnode (enum parser_node_t type, struct parser_node* l, struct parser_node* r)
 {
-    auto *tmp = (struct parser_node*) std::malloc(sizeof(struct parser_node));
+    parser_ptrs.push_back(std::malloc(sizeof(struct parser_node)));
+    auto *tmp = (struct parser_node*) parser_ptrs.back();
     if (type == PARSER_SUB) {
         tmp->type = PARSER_ADD;
         tmp->l = l;
@@ -60,7 +65,8 @@ parser_newnode (enum parser_node_t type, struct parser_node* l, struct parser_no
 struct parser_node*
 parser_newneg (struct parser_node* n)
 {
-    auto *tmp = (struct parser_node*) std::malloc(sizeof(struct parser_node));
+    parser_ptrs.push_back(std::malloc(sizeof(struct parser_node)));
+    auto *tmp = (struct parser_node*) parser_ptrs.back();
     tmp->type = PARSER_MUL;
     tmp->l = parser_newnumber(-1.0);
     tmp->r = n;
@@ -72,7 +78,8 @@ parser_newnumber (double d)
 {
     // We allocate more than enough space so that late we can turn parser_number
     // into into parser_node if necessary.
-    auto *r = (struct parser_number*) std::malloc(sizeof(struct parser_node)); // NOLINT
+    parser_ptrs.push_back(std::malloc(sizeof(struct parser_node)));
+    auto *r = (struct parser_number*) parser_ptrs.back(); // NOLINT
     r->type = PARSER_NUMBER;
     r->value = d;
     return (struct parser_node*) r;
@@ -87,7 +94,8 @@ parser_newsymbol (struct parser_symbol* symbol)
 struct parser_node*
 parser_newf1 (enum parser_f1_t ftype, struct parser_node* l)
 {
-    auto *tmp = (struct parser_f1*) std::malloc(sizeof(struct parser_node)); // NOLINT
+    parser_ptrs.push_back(std::malloc(sizeof(struct parser_node)));
+    auto *tmp = (struct parser_f1*) parser_ptrs.back(); // NOLINT
     tmp->type = PARSER_F1;
     tmp->l = l;
     tmp->ftype = ftype;
@@ -97,7 +105,8 @@ parser_newf1 (enum parser_f1_t ftype, struct parser_node* l)
 struct parser_node*
 parser_newf2 (enum parser_f2_t ftype, struct parser_node* l, struct parser_node* r)
 {
-    auto *tmp = (struct parser_f2*) std::malloc(sizeof(struct parser_node)); // NOLINT
+    parser_ptrs.push_back(std::malloc(sizeof(struct parser_node)));
+    auto *tmp = (struct parser_f2*) parser_ptrs.back(); // NOLINT
     tmp->type = PARSER_F2;
     tmp->l = l;
     tmp->r = r;
@@ -109,7 +118,8 @@ struct parser_node*
 parser_newf3 (enum parser_f3_t ftype, struct parser_node* n1, struct parser_node* n2,
               struct parser_node* n3)
 {
-    auto *tmp = (struct parser_f3*) std::malloc(sizeof(struct parser_node)); // NOLINT
+    parser_ptrs.push_back(std::malloc(sizeof(struct parser_node)));
+    auto *tmp = (struct parser_f3*) parser_ptrs.back(); // NOLINT
     tmp->type = PARSER_F3;
     tmp->n1 = n1;
     tmp->n2 = n2;
@@ -121,7 +131,8 @@ parser_newf3 (enum parser_f3_t ftype, struct parser_node* n1, struct parser_node
 struct parser_node*
 parser_newassign (struct parser_symbol* sym, struct parser_node* v)
 {
-    auto *r = (struct parser_assign*) std::malloc(sizeof(struct parser_node)); // NOLINT
+    parser_ptrs.push_back(std::malloc(sizeof(struct parser_node)));
+    auto *r = (struct parser_assign*) parser_ptrs.back(); // NOLINT
     r->type = PARSER_ASSIGN;
     r->s = sym;
     r->v = v;
@@ -134,7 +145,8 @@ parser_newlist (struct parser_node* nl, struct parser_node* nr)
     if (nr == nullptr) {
         return nl;
     } else {
-        auto *r = (struct parser_node*) std::malloc(sizeof(struct parser_node));
+        parser_ptrs.push_back(std::malloc(sizeof(struct parser_node)));
+        auto *r = (struct parser_node*) parser_ptrs.back();
         r->type = PARSER_LIST;
         r->l = nl;
         r->r = nr;
@@ -153,7 +165,9 @@ amrex_parser_new ()
     my_parser->p_root = std::malloc(my_parser->sz_mempool);
     my_parser->p_free = my_parser->p_root;
 
-    my_parser->ast = parser_ast_dup(my_parser, parser_root, 1); /* 1: free the source parser_root */
+    my_parser->ast = parser_ast_dup(my_parser, parser_root);
+
+    amrex_parser_delete_ptrs();
 
     if ((char*)my_parser->p_root + my_parser->sz_mempool != (char*)my_parser->p_free) {
         amrex::Abort("amrex_parser_new: error in memory size");
@@ -171,6 +185,15 @@ amrex_parser_delete (struct amrex_parser* parser)
 {
     std::free(parser->p_root);
     std::free(parser);
+}
+
+void
+amrex_parser_delete_ptrs ()
+{
+    for (auto* p : parser_ptrs) {
+        std::free(p);
+    }
+    parser_ptrs.clear();
 }
 
 namespace {
@@ -192,19 +215,6 @@ parser_allocate (struct amrex_parser* my_parser, std::size_t N)
     return r;
 }
 
-}
-
-struct amrex_parser*
-parser_dup (struct amrex_parser* source)
-{
-    auto *dest = (struct amrex_parser*) std::malloc(sizeof(struct amrex_parser));
-    dest->sz_mempool = source->sz_mempool;
-    dest->p_root = std::malloc(dest->sz_mempool);
-    dest->p_free = dest->p_root;
-
-    dest->ast = parser_ast_dup(dest, source->ast, 0); /* 0: don't free the source */
-
-    return dest;
 }
 
 std::size_t
@@ -257,7 +267,7 @@ parser_ast_size (struct parser_node* node)
 }
 
 struct parser_node*
-parser_ast_dup (struct amrex_parser* my_parser, struct parser_node* node, int move)
+parser_ast_dup (struct amrex_parser* my_parser, struct parser_node* node)
 {
     void* result = nullptr;
 
@@ -285,54 +295,44 @@ parser_ast_dup (struct amrex_parser* my_parser, struct parser_node* node, int mo
     case PARSER_LIST:
         result = parser_allocate(my_parser, sizeof(struct parser_node));
         std::memcpy(result, node          , sizeof(struct parser_node));
-        ((struct parser_node*)result)->l = parser_ast_dup(my_parser, node->l, move);
-        ((struct parser_node*)result)->r = parser_ast_dup(my_parser, node->r, move);
+        ((struct parser_node*)result)->l = parser_ast_dup(my_parser, node->l);
+        ((struct parser_node*)result)->r = parser_ast_dup(my_parser, node->r);
         break;
     case PARSER_F1:
         result = parser_allocate(my_parser, sizeof(struct parser_node));
         std::memcpy(result, node          , sizeof(struct parser_f1));
         ((struct parser_f1*)result)->l = parser_ast_dup(my_parser,
-                                                 ((struct parser_f1*)node)->l, move);
+                                                 ((struct parser_f1*)node)->l);
         break;
     case PARSER_F2:
         result = parser_allocate(my_parser, sizeof(struct parser_node));
         std::memcpy(result, node          , sizeof(struct parser_f2));
         ((struct parser_f2*)result)->l = parser_ast_dup(my_parser,
-                                                 ((struct parser_f2*)node)->l, move);
+                                                 ((struct parser_f2*)node)->l);
         ((struct parser_f2*)result)->r = parser_ast_dup(my_parser,
-                                                 ((struct parser_f2*)node)->r, move);
+                                                 ((struct parser_f2*)node)->r);
         break;
     case PARSER_F3:
         result = parser_allocate(my_parser, sizeof(struct parser_node));
         std::memcpy(result, node          , sizeof(struct parser_f3));
         ((struct parser_f3*)result)->n1 = parser_ast_dup(my_parser,
-                                                 ((struct parser_f3*)node)->n1, move);
+                                                 ((struct parser_f3*)node)->n1);
         ((struct parser_f3*)result)->n2 = parser_ast_dup(my_parser,
-                                                 ((struct parser_f3*)node)->n2, move);
+                                                 ((struct parser_f3*)node)->n2);
         ((struct parser_f3*)result)->n3 = parser_ast_dup(my_parser,
-                                                 ((struct parser_f3*)node)->n3, move);
+                                                 ((struct parser_f3*)node)->n3);
         break;
     case PARSER_ASSIGN:
         result = parser_allocate(my_parser, sizeof(struct parser_node));
         std::memcpy(result, node          , sizeof(struct parser_assign));
         ((struct parser_assign*)result)->s = (struct parser_symbol*)
             parser_ast_dup(my_parser, (struct parser_node*)
-                                                (((struct parser_assign*)node)->s), move);
+                                                (((struct parser_assign*)node)->s));
         ((struct parser_assign*)result)->v = parser_ast_dup(my_parser,
-                                                 ((struct parser_assign*)node)->v, move);
+                                                 ((struct parser_assign*)node)->v);
         break;
     default:
         amrex::Abort("parser_ast_dup: unknown node type " + std::to_string(node->type));
-    }
-    if (move) {
-        /* Note that we only do this on the original AST.  We do not
-         * need to call free for AST stored in amrex_parser because the
-         * memory is not allocated with std::malloc directly.
-         */
-        if (node->type == PARSER_SYMBOL) {
-            std::free(((struct parser_symbol*)node)->name);
-        }
-        std::free((void*)node);
     }
     return (struct parser_node*)result;
 }
@@ -342,14 +342,6 @@ namespace {
     {
         AMREX_ASSERT(node->type == PARSER_SYMBOL);
         return ((struct parser_symbol*)node)->name;
-    }
-
-    bool parser_same_symbol (struct parser_node* a, struct parser_node* b)
-    {
-        return (a->type == PARSER_SYMBOL)
-            && (b->type == PARSER_SYMBOL)
-            && (std::strcmp(((struct parser_symbol*)a)->name,
-                            ((struct parser_symbol*)b)->name) == 0);
     }
 
     bool is_add_combinable (struct parser_node* a, struct parser_node*b)
@@ -603,6 +595,14 @@ namespace {
         }
         return false;
     }
+}
+
+bool parser_same_symbol (struct parser_node* a, struct parser_node* b)
+{
+    return (a->type == PARSER_SYMBOL)
+        && (b->type == PARSER_SYMBOL)
+        && (std::strcmp(((struct parser_symbol*)a)->name,
+                        ((struct parser_symbol*)b)->name) == 0);
 }
 
 bool parser_node_equal (struct parser_node* a, struct parser_node* b)
