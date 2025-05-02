@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <cstdarg>
-#include <string>
 
 void
 amrex_parsererror (char const *s, ...)
@@ -160,7 +159,8 @@ amrex_parser_new ()
         amrex::Abort("amrex_parser_new: error in memory size");
     }
 
-    parser_ast_optimize(my_parser->ast);
+    std::map<std::string,double> local_consts;
+    parser_ast_optimize(my_parser->ast, local_consts);
     parser_ast_sort(my_parser->ast);
 
     return my_parser;
@@ -675,19 +675,28 @@ bool parser_node_equal (struct parser_node* a, struct parser_node* b)
 }
 
 void
-parser_ast_optimize (struct parser_node* node)
+parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& local_consts)
 {
     // No need to free memory because we only call this on ASTs in
     // amrex_parser that are allocated from the memory pool.
 
+    if (node == nullptr) { return; };
+
     switch (node->type)
     {
     case PARSER_NUMBER:
+        break;
     case PARSER_SYMBOL:
+        if (auto it = local_consts.find(((struct parser_symbol*)node)->name);
+            it != local_consts.end())
+        {
+            ((struct parser_number*)node)->type = PARSER_NUMBER;
+            ((struct parser_number*)node)->value = it->second;
+        }
         break;
     case PARSER_ADD:
-        parser_ast_optimize(node->l);
-        parser_ast_optimize(node->r);
+        parser_ast_optimize(node->l,local_consts);
+        parser_ast_optimize(node->r,local_consts);
         parser_ast_sort(node);
         if (node->l->type == PARSER_NUMBER && parser_get_number(node->l) == 0.0)
         { // 0 + ?
@@ -704,7 +713,7 @@ parser_ast_optimize (struct parser_node* node)
         { // x + x = 2*x
             parser_set_number(node->l, 2.0);
             node->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_MUL &&
                  node->l->l->type == PARSER_NUMBER &&
@@ -712,7 +721,7 @@ parser_ast_optimize (struct parser_node* node)
         { // (3 * x) + x => 4 * x
             parser_set_number(node->l, parser_get_number(node->l->l)+1.0);
             node->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_MUL &&
                  node->r->l->type == PARSER_NUMBER &&
@@ -721,7 +730,7 @@ parser_ast_optimize (struct parser_node* node)
             parser_set_number(node->r, parser_get_number(node->r->l)+1.0);
             std::swap(node->l, node->r);
             node->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_MUL &&
                  node->l->l->type == PARSER_NUMBER &&
@@ -733,7 +742,7 @@ parser_ast_optimize (struct parser_node* node)
             parser_set_number(node->l, c);
             node->r = node->r->r;
             node->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_DIV &&
                  node->l->l->type == PARSER_NUMBER &&
@@ -745,12 +754,12 @@ parser_ast_optimize (struct parser_node* node)
             parser_set_number(node->l, c);
             node->r = node->r->r;
             node->type = PARSER_DIV;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         // At this point, we have handled all directly combinable cases.
         else if (group_combinables(node->l, node->r, is_add_combinable, PARSER_ADD))
         {
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type != PARSER_NUMBER &&
                  node->r->type == PARSER_MUL &&
@@ -759,7 +768,7 @@ parser_ast_optimize (struct parser_node* node)
             parser_set_number(node->r->l, 1.0);
             node->r->type = PARSER_ADD;
             node->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type != PARSER_NUMBER &&
                  node->r->type == PARSER_MUL &&
@@ -769,7 +778,7 @@ parser_ast_optimize (struct parser_node* node)
             std::swap(node->r->l, node->r->r);
             node->r->type = PARSER_ADD;
             node->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type != PARSER_NUMBER &&
                  node->l->type == PARSER_MUL &&
@@ -779,7 +788,7 @@ parser_ast_optimize (struct parser_node* node)
             node->type = PARSER_MUL;
             parser_set_number(node->r->l, 1.0);
             node->r->type = PARSER_ADD;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type != PARSER_NUMBER &&
                  node->l->type == PARSER_MUL &&
@@ -790,7 +799,7 @@ parser_ast_optimize (struct parser_node* node)
             std::swap(node->r->l, node->r->r);
             parser_set_number(node->r->l, 1.0);
             node->r->type = PARSER_ADD;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_MUL &&
                  node->r->type == PARSER_MUL &&
@@ -801,7 +810,7 @@ parser_ast_optimize (struct parser_node* node)
             node->type = PARSER_MUL;           // (a*a) * (x*y)
             node->r->type = PARSER_ADD;        // (a*a) * (x+y)
             node->l = node->l->l;              // a * (x+y)
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_MUL &&
                  node->r->type == PARSER_MUL &&
@@ -811,7 +820,7 @@ parser_ast_optimize (struct parser_node* node)
             node->type = PARSER_MUL;           // (a*a) * (y*x)
             node->r->type = PARSER_ADD;        // (a*x) * (y+x)
             node->l = node->l->l;              // a * (y+x)
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_MUL &&
                  node->r->type == PARSER_MUL &&
@@ -821,7 +830,7 @@ parser_ast_optimize (struct parser_node* node)
             node->type = PARSER_MUL;           // (a*a) * (x*y)
             node->r->type = PARSER_ADD;        // (a*a) * (x+y)
             node->l = node->l->l;              // a * (x+y)
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_MUL &&
                  node->r->type == PARSER_MUL &&
@@ -831,14 +840,14 @@ parser_ast_optimize (struct parser_node* node)
             node->type = PARSER_MUL;           // (a*x) * (y*x)
             node->r->type = PARSER_ADD;        // (a*x) * (y+x)
             node->l = node->l->l;              // a * (y+x)
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_ADD &&
                  node->l->type != PARSER_NUMBER &&
                  node->r->l->type == PARSER_NUMBER)
         { // L + (# + RR)
             std::swap(node->l, node->r->l);
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_ADD &&
                  node->r->type != PARSER_NUMBER &&
@@ -846,12 +855,12 @@ parser_ast_optimize (struct parser_node* node)
         { // (# + LR) + R
             std::swap(node->l->l,node->r);
             std::swap(node->l, node->r);
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         break;
     case PARSER_MUL:
-        parser_ast_optimize(node->l);
-        parser_ast_optimize(node->r);
+        parser_ast_optimize(node->l,local_consts);
+        parser_ast_optimize(node->r,local_consts);
         parser_ast_sort(node);
         if (node->l->type == PARSER_NUMBER && parser_get_number(node->l) == 0.0)
         {
@@ -874,6 +883,7 @@ parser_ast_optimize (struct parser_node* node)
             parser_set_number(node->l, parser_get_number(node->l)
                               *        parser_get_number(node->r->l));
             node->r = node->r->r;
+            parser_ast_optimize(node,local_consts); // The number might be 1.
         }
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_DIV &&
@@ -892,7 +902,7 @@ parser_ast_optimize (struct parser_node* node)
             std::swap(node->l->r, node->r->l); // (3*4) * (x*y)
             parser_set_number(node->l, parser_get_number(node->l->l) *
                               parser_get_number(node->l->r));
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_DIV &&
                  parser_node_equal(node->l, node->r->r))
@@ -905,7 +915,7 @@ parser_ast_optimize (struct parser_node* node)
         { // (x*a) * (b/x)
             node->l = node->l->r;
             node->r = node->r->l;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_MUL &&
                  node->r->type == PARSER_DIV &&
@@ -913,7 +923,7 @@ parser_ast_optimize (struct parser_node* node)
         { // (a*x) * (b/x)
             node->l = node->l->l;
             node->r = node->r->l;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_DIV &&
                  parser_node_equal(node->l->r, node->r))
@@ -933,7 +943,7 @@ parser_ast_optimize (struct parser_node* node)
             ptmp->r = xtmp;
             parser_set_number(ptmp->r, 1.0);
             ((struct parser_f2*)node)->r = ptmp;
-            parser_ast_optimize(((struct parser_f2*)node)->r);
+            parser_ast_optimize(((struct parser_f2*)node)->r,local_consts);
         }
         else if (node->l->type == PARSER_F2 &&
                  ((struct parser_f2*)(node->l))->ftype == PARSER_POW &&
@@ -947,7 +957,7 @@ parser_ast_optimize (struct parser_node* node)
             ptmp->r = xtmp;
             parser_set_number(ptmp->r, 1.0);
             ((struct parser_f2*)node)->r = ptmp;
-            parser_ast_optimize(((struct parser_f2*)node)->r);
+            parser_ast_optimize(((struct parser_f2*)node)->r,local_consts);
         }
         else if (node->r->type == PARSER_F2 &&
                  ((struct parser_f2*)(node->r))->ftype == PARSER_POW &&
@@ -958,26 +968,26 @@ parser_ast_optimize (struct parser_node* node)
             std::swap(node->l, ((struct parser_f2*)(node->r))->r->l);
             ((struct parser_f2*)(node->r))->r->type = PARSER_ADD;
             parser_set_number(((struct parser_f2*)(node->r))->r->r, -1.0);
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         // At this point, we have handled all directdly combinable cases.
         else if (group_combinables(node->l, node->r, is_mul_combinable, PARSER_MUL))
         {
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type != PARSER_NUMBER &&
                  node->r->type == PARSER_MUL &&
                  node->r->l->type == PARSER_NUMBER)
         { // x * (3*y) = 3 * (x*y)  // NOLINT(bugprone-branch-clone)
             std::swap(node->l, node->r->l);
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type != PARSER_NUMBER &&
                  node->r->type == PARSER_DIV &&
                  node->r->l->type == PARSER_NUMBER)
         { // x * (3/y) = 3 * (x/y)  // NOLINT(bugprone-branch-clone)
             std::swap(node->l, node->r->l);
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_ADD &&
@@ -988,7 +998,7 @@ parser_ast_optimize (struct parser_node* node)
                               parser_get_number(node->r->l));
             node->type = PARSER_ADD;
             node->r->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_ADD &&
@@ -1000,7 +1010,7 @@ parser_ast_optimize (struct parser_node* node)
                               parser_get_number(node->r->l)); // (12*x) * (3+y)
             node->type = PARSER_ADD;
             node->r->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_ADD &&
@@ -1013,21 +1023,21 @@ parser_ast_optimize (struct parser_node* node)
             node->type = PARSER_ADD;
             node->r->type = PARSER_MUL;
             std::swap(node->r->l, node->r->r);
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_MUL &&
                  node->l->l->type == PARSER_NUMBER)
         { // (4*x) * y => 4*(x*y)  // NOLINT(bugprone-branch-clone)
             std::swap(node->l->l, node->r);
             std::swap(node->l, node->r);
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_DIV &&
                  node->l->l->type == PARSER_NUMBER)
         { // (4/x) * y => 4*(y/x)  // NOLINT(bugprone-branch-clone)
             std::swap(node->l->l, node->r);
             std::swap(node->l, node->r);
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_DIV &&
                  node->r->type == PARSER_DIV)
@@ -1036,7 +1046,7 @@ parser_ast_optimize (struct parser_node* node)
             node->type = PARSER_DIV;
             node->l->type = PARSER_MUL;
             node->r->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_F2 &&
                  node->r->type == PARSER_F2 &&
@@ -1051,12 +1061,12 @@ parser_ast_optimize (struct parser_node* node)
             std::swap(l->r, node->r);
             node->l->r->type = PARSER_ADD;
             std::memcpy(node, node->l, sizeof(struct parser_node));
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         break;
     case PARSER_DIV:
-        parser_ast_optimize(node->l);
-        parser_ast_optimize(node->r);
+        parser_ast_optimize(node->l,local_consts);
+        parser_ast_optimize(node->r,local_consts);
         if (node->l->type == PARSER_NUMBER &&
             parser_get_number(node->l) == 0.0)
         {
@@ -1087,7 +1097,7 @@ parser_ast_optimize (struct parser_node* node)
                  node->r->type == PARSER_NUMBER)
         { // (4/x)/3 => (4/3) / x
             std::swap(node->l->r, node->r);
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_MUL &&
                  node->l->l->type == PARSER_NUMBER &&
@@ -1098,7 +1108,7 @@ parser_ast_optimize (struct parser_node* node)
             node->type = PARSER_MUL;
             node->l->type = PARSER_DIV;
             node->r->type = PARSER_DIV;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_DIV &&
                  node->l->l->type == PARSER_NUMBER &&
@@ -1106,7 +1116,7 @@ parser_ast_optimize (struct parser_node* node)
                  node->r->l->type == PARSER_NUMBER)
         { // (4/x)/(3*y) => (4/3) / (x*y)
             std::swap(node->l->r, node->r->l);
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_MUL &&
                  node->l->l->type == PARSER_NUMBER &&
@@ -1117,7 +1127,7 @@ parser_ast_optimize (struct parser_node* node)
             node->l->type = PARSER_DIV;
             node->type = PARSER_MUL;
             node->r->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_DIV &&
                  node->l->l->type == PARSER_NUMBER &&
@@ -1127,14 +1137,14 @@ parser_ast_optimize (struct parser_node* node)
             std::swap(node->l->r, node->r->l);
             node->type = PARSER_MUL;
             std::swap(node->r->l, node->r->r);
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_NUMBER)
         { // x / 3 => (1/3) * x
             std::swap(node->l, node->r);
             parser_set_number(node->l, 1./parser_get_number(node->l));
             node->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_MUL &&
                  node->r->l->type == PARSER_NUMBER)
@@ -1143,7 +1153,7 @@ parser_ast_optimize (struct parser_node* node)
             parser_set_number(node->l, 1.0/parser_get_number(node->l));
             node->type = PARSER_MUL;
             node->r->type = PARSER_DIV;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_DIV &&
                  node->r->l->type == PARSER_NUMBER)
@@ -1152,21 +1162,21 @@ parser_ast_optimize (struct parser_node* node)
             parser_set_number(node->l, 1.0/parser_get_number(node->l));
             node->type = PARSER_MUL;
             node->r->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_MUL &&
                  parser_node_equal(node->l, node->r->l))
         { // x / (x*y)
             parser_set_number(node->l, 1.0);
             node->r = node->r->r;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_MUL &&
                  parser_node_equal(node->l, node->r->r))
         { // x / (y*x)
             parser_set_number(node->l, 1.0);
             node->r = node->r->l;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_DIV &&
                  parser_node_equal(node->l, node->r->l))
@@ -1188,7 +1198,7 @@ parser_ast_optimize (struct parser_node* node)
         { // (x/y)/x
             node->r = node->l->r;
             parser_set_number(node->l, 1.0);
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_DIV &&
                  node->l->type == PARSER_DIV)
@@ -1196,21 +1206,21 @@ parser_ast_optimize (struct parser_node* node)
             std::swap(node->l->r, node->r->r); // (x/b) / (a/y)
             node->l->type = PARSER_MUL;
             node->r->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_DIV)
         { // x / (y/z) => (x*z)/y     // NOLINT(bugprone-branch-clone)
             std::swap(node->l, node->r->l); // y/(x/z)
             std::swap(node->l, node->r);
             node->l->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_DIV)
         { // (x/y) / z => x/(y*z)     // NOLINT(bugprone-branch-clone)
             std::swap(node->l, node->r); // z / (x/y)
             std::swap(node->l, node->r->l); // x / (z/y)
             node->r->type = PARSER_MUL;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->l->type == PARSER_F2 &&
                  node->r->type == PARSER_F2 &&
@@ -1226,7 +1236,7 @@ parser_ast_optimize (struct parser_node* node)
             l->r->type = PARSER_MUL;
             parser_set_number(l->r->l, -1.0);
             node->r = l;
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_F2 &&
                  ((struct parser_f2*)(node->r))->r->type == PARSER_NUMBER)
@@ -1234,19 +1244,19 @@ parser_ast_optimize (struct parser_node* node)
             node->type = PARSER_MUL;
             parser_set_number(((struct parser_f2*)(node->r))->r,
                               -parser_get_number(((struct parser_f2*)(node->r))->r));
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (try_divide(node->l, node->r))
         { // (a*...x...) / x            // NOLINT(bugprone-branch-clone)
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         else if (try_divide_2(node->l, node->r))
         { // (a*...x...) / (b*...x...)  // NOLINT(bugprone-branch-clone)
-            parser_ast_optimize(node);
+            parser_ast_optimize(node,local_consts);
         }
         break;
     case PARSER_F1:
-        parser_ast_optimize(((struct parser_f1*)node)->l);
+        parser_ast_optimize(((struct parser_f1*)node)->l,local_consts);
         if (((struct parser_f1*)node)->l->type == PARSER_NUMBER)
         {
             double v = parser_call_f1
@@ -1256,8 +1266,8 @@ parser_ast_optimize (struct parser_node* node)
         }
         break;
     case PARSER_F2:
-        parser_ast_optimize(((struct parser_f2*)node)->l);
-        parser_ast_optimize(((struct parser_f2*)node)->r);
+        parser_ast_optimize(((struct parser_f2*)node)->l,local_consts);
+        parser_ast_optimize(((struct parser_f2*)node)->r,local_consts);
         if (((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
             ((struct parser_f2*)node)->r->type == PARSER_NUMBER)
         {
@@ -1296,9 +1306,9 @@ parser_ast_optimize (struct parser_node* node)
         }
         break;
     case PARSER_F3:
-        parser_ast_optimize(((struct parser_f3*)node)->n1);
-        parser_ast_optimize(((struct parser_f3*)node)->n2);
-        parser_ast_optimize(((struct parser_f3*)node)->n3);
+        parser_ast_optimize(((struct parser_f3*)node)->n1,local_consts);
+        parser_ast_optimize(((struct parser_f3*)node)->n2,local_consts);
+        parser_ast_optimize(((struct parser_f3*)node)->n3,local_consts);
         if (((struct parser_f3*)node)->n1->type == PARSER_NUMBER &&
             ((struct parser_f3*)node)->n2->type == PARSER_NUMBER &&
             ((struct parser_f3*)node)->n3->type == PARSER_NUMBER)
@@ -1323,11 +1333,41 @@ parser_ast_optimize (struct parser_node* node)
         }
         break;
     case PARSER_ASSIGN:
-        parser_ast_optimize(((struct parser_assign*)node)->v);
+    {   // lhs = rhs
+        parser_ast_optimize(((struct parser_assign*)node)->v,local_consts);
+        std::string lhs(((struct parser_assign*)node)->s->name);
+        if (auto it = local_consts.find(lhs); it != local_consts.end()) {
+            // lhs exists as a local constant
+            if (((struct parser_assign*)node)->v->type == PARSER_NUMBER) {
+                // Update its value. It's okay if it's the same value.
+                // Then delete this node.
+                it->second = parser_get_number(((struct parser_assign*)node)->v);
+                node = nullptr;
+            } else {
+                // No longer a constant.
+                local_consts.erase(it);
+            }
+        } else {
+            // If lhs is not an existing constant and rhs is a number, we
+            // add it to the local constant map and delete this node.
+            if (((struct parser_assign*)node)->v->type == PARSER_NUMBER) {
+
+                local_consts[lhs] = parser_get_number(((struct parser_assign*)node)->v);
+                node = nullptr;
+            }
+        }
         break;
+    }
     case PARSER_LIST:
-        parser_ast_optimize(node->l);
-        parser_ast_optimize(node->r);
+        parser_ast_optimize(node->l,local_consts);
+        parser_ast_optimize(node->r,local_consts);
+        if (node->l == nullptr && node->r == nullptr) {
+            node = nullptr;
+        } else if (node->l && node->r == nullptr) {
+            std::memcpy(node, node->l, sizeof(struct parser_node));
+        } else if (node->r && node->l == nullptr) {
+            std::memcpy(node, node->r, sizeof(struct parser_node));
+        }
         break;
     case PARSER_SUB:
         amrex::Abort("parser_ast_optimize: should not have PARSER_SUB");
@@ -1412,6 +1452,8 @@ parser_ast_print (struct parser_node* node, std::string const& space, std::ostre
 int
 parser_ast_depth (struct parser_node* node)
 {
+    if (node == nullptr) { return 0; }
+
     switch (node->type)
     {
     case PARSER_NUMBER:
@@ -1455,6 +1497,8 @@ parser_ast_depth (struct parser_node* node)
 
 void parser_ast_sort (struct parser_node* node)
 {
+    if (node == nullptr) { return; }
+
     switch (node->type)
     {
     case PARSER_NUMBER:
@@ -1625,7 +1669,8 @@ void
 parser_setconst (struct amrex_parser* parser, char const* name, double c)
 {
     parser_ast_setconst(parser->ast, name, c);
-    parser_ast_optimize(parser->ast);
+    std::map<std::string,double> local_consts;
+    parser_ast_optimize(parser->ast, local_consts);
     parser_ast_sort(parser->ast);
 }
 
