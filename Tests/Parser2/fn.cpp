@@ -206,6 +206,10 @@ double f (int icase, double x, double y, double z)
         return pow(x,y+1);
     case 97:
         return pow(x+1,y);
+    case 98:
+        return pow(x,0.5);
+    case 99:
+        return pow(pow(x,y),z);
     default:
         amrex::Abort("Unknown case "+std::to_string(icase));
         return 0.0;

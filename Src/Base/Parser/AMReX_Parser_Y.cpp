@@ -1304,6 +1304,16 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
             node->type = PARSER_DIV;
             parser_set_number(node->l, 1.0);
         }
+        else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
+                 ((struct parser_f2*)node)->l->type == PARSER_F2 &&
+                 ((struct parser_f2*)((struct parser_f2*)node)->l)->ftype == PARSER_POW)
+        { // pow(pow(,),)
+            std::swap(node->l, node->r);
+            std::swap(node->l, node->r->l);
+            node->r->type = PARSER_MUL;
+            parser_ast_sort(node);
+            parser_ast_optimize(node, local_consts);
+        }
         break;
     case PARSER_F3:
         parser_ast_optimize(((struct parser_f3*)node)->n1,local_consts);
