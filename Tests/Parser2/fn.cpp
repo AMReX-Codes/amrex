@@ -210,6 +210,12 @@ double f (int icase, double x, double y, double z)
         return pow(x,0.5);
     case 99:
         return pow(pow(x,y),z);
+    case 100:
+        return (x+y+z) + (x-y-z);
+    case 101:
+        return (x+y+z) - (-x+y-z);
+    case 102:
+        return x/y/z*x*y*z;
     default:
         amrex::Abort("Unknown case "+std::to_string(icase));
         return 0.0;

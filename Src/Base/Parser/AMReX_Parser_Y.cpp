@@ -568,64 +568,36 @@ namespace {
         return false;
     }
 
-    bool try_divide (struct parser_node* num, struct parser_node* den)
+    // Try to find x**idx in y, where idx is either 1 or -1. If found, we
+    // can cancel them by setting x and the x**idx node in y to one.
+    bool try_cancel (struct parser_node* x, int idx, struct parser_node* y)
     {
-        if (num->type == PARSER_MUL)
-        {
-            if (parser_node_equal(num->l, den))
-            {
-                parser_set_number(num->l, 1.0);
-                parser_set_number(den, 1.0);
+        if (idx == 1 && parser_node_equal(x,y)) {
+            parser_set_number(x, 1.0);
+            parser_set_number(y, 1.0);
+            return true;
+        } else if (y->type == PARSER_MUL) {
+            if (try_cancel(x, idx, y->l)) {
+                return true;
+            } else if (try_cancel(x, idx, y->r)) {
                 return true;
             }
-            else if (parser_node_equal(num->r, den))
-            {
-                parser_set_number(num->r, 1.0);
-                parser_set_number(den, 1.0);
+        } else if (y->type == PARSER_DIV) {
+            if (try_cancel(x, idx, y->l)) {
+                return true;
+            } else if (try_cancel(x, -idx, y->r)) {
                 return true;
             }
-            else if (try_divide(num->l, den))
-            { // NOLINT(bugprone-branch-clone)
+        } else if (x->type == PARSER_MUL) {
+            if (try_cancel(x->l, idx, y)) {
+                return true;
+            } else if (try_cancel(x->r, idx, y)) {
                 return true;
             }
-            else if (try_divide(num->r, den))
-            { // NOLINT(bugprone-branch-clone)
+        } else if (x->type == PARSER_DIV) {
+            if (try_cancel(x->l, idx, y)) {
                 return true;
-            }
-        }
-        return false;
-    }
-
-    bool try_divide_2 (struct parser_node* num, struct parser_node* den)
-    {
-        if (den->type == PARSER_MUL)
-        {
-            if (parser_node_equal(num, den->l))
-            {
-                parser_set_number(num, 1.0);
-                parser_set_number(den->l, 1.0);
-                return true;
-            }
-            else if (parser_node_equal(num, den->r))
-            {
-                parser_set_number(num, 1.0);
-                parser_set_number(den->r, 1.0);
-                return true;
-            }
-            else if (num->type == PARSER_MUL && try_divide(num, den->l))
-            { // NOLINT(bugprone-branch-clone)
-                return true;
-            }
-            else if (num->type == PARSER_MUL && try_divide(num, den->r))
-            { // NOLINT(bugprone-branch-clone)
-                return true;
-            }
-            else if (try_divide_2(num, den->l))
-            { // NOLINT(bugprone-branch-clone)
-                return true;
-            }
-            else if (try_divide_2(num, den->r))
-            { // NOLINT(bugprone-branch-clone)
+            } else if (try_cancel(x->r, -idx, y)) {
                 return true;
             }
         }
@@ -904,33 +876,6 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
                               parser_get_number(node->l->r));
             parser_ast_optimize(node,local_consts);
         }
-        else if (node->r->type == PARSER_DIV &&
-                 parser_node_equal(node->l, node->r->r))
-        { // x * (a/x)
-            std::memcpy(node, node->r->l, sizeof(struct parser_node));
-        }
-        else if (node->l->type == PARSER_MUL &&
-                 node->r->type == PARSER_DIV &&
-                 parser_node_equal(node->l->l, node->r->r))
-        { // (x*a) * (b/x)
-            node->l = node->l->r;
-            node->r = node->r->l;
-            parser_ast_optimize(node,local_consts);
-        }
-        else if (node->l->type == PARSER_MUL &&
-                 node->r->type == PARSER_DIV &&
-                 parser_node_equal(node->l->r, node->r->r))
-        { // (a*x) * (b/x)
-            node->l = node->l->l;
-            node->r = node->r->l;
-            parser_ast_optimize(node,local_consts);
-        }
-        else if (node->l->type == PARSER_DIV &&
-                 parser_node_equal(node->l->r, node->r))
-        { // (a/x) * x
-            std::memcpy(node, node->l->l, sizeof(struct parser_node));
-        }
-        // not need to handle (a/x) * (b*x) because of sorting.
         else if (node->r->type == PARSER_F2 &&
                  ((struct parser_f2*)(node->r))->ftype == PARSER_POW &&
                  parser_node_equal(((struct parser_f2*)(node->r))->l, node->l))
@@ -1063,6 +1008,14 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
             std::memcpy(node, node->l, sizeof(struct parser_node));
             parser_ast_optimize(node,local_consts);
         }
+        else if (try_cancel(node->l, -1, node->r))
+        { // x * (.../(...x...))
+            parser_ast_optimize(node,local_consts);
+        }
+        else if (try_cancel(node->r, -1, node->l))
+        { // (.../(...x...)) * x
+            parser_ast_optimize(node,local_consts);
+        }
         break;
     case PARSER_DIV:
         parser_ast_optimize(node->l,local_consts);
@@ -1164,42 +1117,6 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
             node->r->type = PARSER_MUL;
             parser_ast_optimize(node,local_consts);
         }
-        else if (node->r->type == PARSER_MUL &&
-                 parser_node_equal(node->l, node->r->l))
-        { // x / (x*y)
-            parser_set_number(node->l, 1.0);
-            node->r = node->r->r;
-            parser_ast_optimize(node,local_consts);
-        }
-        else if (node->r->type == PARSER_MUL &&
-                 parser_node_equal(node->l, node->r->r))
-        { // x / (y*x)
-            parser_set_number(node->l, 1.0);
-            node->r = node->r->l;
-            parser_ast_optimize(node,local_consts);
-        }
-        else if (node->r->type == PARSER_DIV &&
-                 parser_node_equal(node->l, node->r->l))
-        { // x / (x/y)
-            std::memcpy(node, node->r->r, sizeof(struct parser_node));
-        }
-        else if (node->l->type == PARSER_MUL &&
-                 parser_node_equal(node->l->l, node->r))
-        { // (x*y) / x
-            std::memcpy(node, node->l->r, sizeof(struct parser_node));
-        }
-        else if (node->l->type == PARSER_MUL &&
-                 parser_node_equal(node->l->r, node->r))
-        { // (y*x) / x
-            std::memcpy(node, node->l->l, sizeof(struct parser_node));
-        }
-        else if (node->l->type == PARSER_DIV &&
-                 parser_node_equal(node->l->l, node->r))
-        { // (x/y)/x
-            node->r = node->l->r;
-            parser_set_number(node->l, 1.0);
-            parser_ast_optimize(node,local_consts);
-        }
         else if (node->r->type == PARSER_DIV &&
                  node->l->type == PARSER_DIV)
         { // (x/y)/(a/b) => (b*x) / (a*y)
@@ -1246,12 +1163,12 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
                               -parser_get_number(((struct parser_f2*)(node->r))->r));
             parser_ast_optimize(node,local_consts);
         }
-        else if (try_divide(node->l, node->r))
-        { // (a*...x...) / x            // NOLINT(bugprone-branch-clone)
+        else if (try_cancel(node->l, 1, node->r))
+        { // x / (...x...)
             parser_ast_optimize(node,local_consts);
         }
-        else if (try_divide_2(node->l, node->r))
-        { // (a*...x...) / (b*...x...)  // NOLINT(bugprone-branch-clone)
+        else if (try_cancel(node->r, 1, node->l))
+        { // (...x...) / x
             parser_ast_optimize(node,local_consts);
         }
         break;
