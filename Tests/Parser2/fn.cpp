@@ -216,6 +216,8 @@ double f (int icase, double x, double y, double z)
         return (x+y+z) - (-x+y-z);
     case 102:
         return x/y/z*x*y*z;
+    case 103:
+        return ((x+y*z-x*y/z-x*y*z-x/y*z-x/y+z*x/y/z*x*y+z*x-y*z));
     default:
         amrex::Abort("Unknown case "+std::to_string(icase));
         return 0.0;
