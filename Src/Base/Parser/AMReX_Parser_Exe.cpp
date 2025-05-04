@@ -201,6 +201,35 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             }
             exe_size += sizeof(ParserExeSUB_PN);
         }
+        else if (node->r->type == PARSER_MUL &&
+                 node->r->l->type == PARSER_NUMBER &&
+                 parser_get_number(node->r->l) == -1.0)
+        { // f(x) + (-1)*g(x) => f(x) - g(x)
+            int d1 = parser_ast_depth(node->l);
+            int d2 = parser_ast_depth(node->r->r);
+            if (d1 < d2) {
+                parser_compile_exe_size(node->r->r, p, exe_size, max_stack_size,
+                                        stack_size, local_variables);
+                parser_compile_exe_size(node->l, p, exe_size, max_stack_size,
+                                        stack_size, local_variables);
+                if (p) {
+                    new(p)      ParserExeSUB_B;
+                    p += sizeof(ParserExeSUB_B);
+                }
+                exe_size += sizeof(ParserExeSUB_B);
+            } else {
+                parser_compile_exe_size(node->l, p, exe_size, max_stack_size,
+                                        stack_size, local_variables);
+                parser_compile_exe_size(node->r->r, p, exe_size, max_stack_size,
+                                        stack_size, local_variables);
+                if (p) {
+                    new(p)      ParserExeSUB_F;
+                    p += sizeof(ParserExeSUB_F);
+                }
+                exe_size += sizeof(ParserExeSUB_F);
+            }
+            --stack_size;
+        }
         else if (node->l->type == PARSER_MUL &&
                  node->l->l->type == PARSER_NUMBER &&
                  parser_get_number(node->l->l) == -1.0)
