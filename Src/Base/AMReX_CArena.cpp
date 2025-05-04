@@ -44,11 +44,7 @@ CArena::alloc_protected (std::size_t nbytes)
     }
 #endif
 
-    if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold
-#ifdef AMREX_USE_GPU
-        && (MFIter::currentDepth() == 0)
-#endif
-        ) {
+    if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
         freeUnused_protected();
     }
 
@@ -67,7 +63,11 @@ CArena::alloc_protected (std::size_t nbytes)
 
     if (free_it == m_freelist.end())
     {
-        const std::size_t N = nbytes < m_hunk ? m_hunk : nbytes;
+        // Both freeUnused_protected and allocate_system may invalidate free_it.
+        // All unused memory allocations are combined with the new one to reduce fragmentation.
+        const std::size_t freed_bytes = freeUnused_protected();
+
+        const std::size_t N = std::max(m_hunk, freed_bytes + nbytes);
 
         vp = allocate_system(N);
 
@@ -75,7 +75,7 @@ CArena::alloc_protected (std::size_t nbytes)
 
         m_alloc.emplace_back(vp,N);
 
-        if (nbytes < m_hunk)
+        if (nbytes < N)
         {
             //
             // Add leftover chunk to free list.
@@ -84,7 +84,7 @@ CArena::alloc_protected (std::size_t nbytes)
             //
             void* block = static_cast<char*>(vp) + nbytes;
 
-            m_freelist.insert(m_freelist.end(), Node(block, vp, m_hunk-nbytes));
+            m_freelist.insert(m_freelist.end(), Node(block, vp, N-nbytes));
         }
 
         m_busylist.insert(Node(vp, vp, nbytes, stat));
@@ -353,8 +353,9 @@ std::size_t
 CArena::freeUnused_protected ()
 {
     std::size_t nbytes = 0;
+    std::vector<std::pair<void*, std::size_t>> to_free{};
     m_alloc.erase(std::remove_if(m_alloc.begin(), m_alloc.end(),
-                                 [&nbytes,this] (std::pair<void*,std::size_t> a)
+                                 [&nbytes,&to_free,this] (std::pair<void*,std::size_t> a)
                                  {
                                      // We cannot simply use std::set::erase because
                                      // Node::operator== only compares the starting address.
@@ -365,13 +366,25 @@ CArena::freeUnused_protected ()
                                      {
                                          it = m_freelist.erase(it);
                                          nbytes += a.second;
-                                         deallocate_system(a.first,a.second);
+                                         to_free.emplace_back(a.first, a.second);
                                          return true;
                                      }
                                      return false;
                                  }),
                   m_alloc.end());
     m_used -= nbytes;
+
+    // deallocate_system can call cudafree which may perform implicit synchronization
+    // of all cuda streams. In case amrex::Gpu::Elixir is used, a cudaLaunchHostFunc can be
+    // in the steam which calls CArena::free that aquires carena_mutex.
+    // So here carena_mutex needs to be unlocked first to avoid a deadlock.
+    // Note that other threads to allocate/free memory from the CArena in the mean time.
+    carena_mutex.unlock();
+    for (auto& a : to_free) {
+        deallocate_system(a.first, a.second);
+    }
+    carena_mutex.lock();
+
     return nbytes;
 }
 
@@ -384,11 +397,7 @@ CArena::hasFreeDeviceMemory (std::size_t sz)
 
         std::size_t nbytes = Arena::align(sz == 0 ? 1 : sz);
 
-        if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold
-#ifdef AMREX_USE_GPU
-            && (MFIter::currentDepth() == 0)
-#endif
-            ) {
+        if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
             freeUnused_protected();
         }
 
