@@ -31,7 +31,9 @@ refinement applications.
 [License](#License) -
 [Citation](#Citation)
 
+<a href="https://hpsf.io/">
 <img src="https://github.com/amrex-codes/amrex-codes.github.io/blob/main/images/HPSF_Project_Badge_Established.png" alt="HPSF Badge" style="width:96px;height:96px;">
+</a>
 
 </div>
 
