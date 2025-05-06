@@ -69,11 +69,6 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
        if (AMReX_LINEAR_SOLVERS)
            target_link_libraries(amrex_${D}d PUBLIC CUDA::cusparse)
        endif ()
-
-       # nvToolsExt: if tiny profiler or base profiler are on.
-       if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
-           target_link_libraries(amrex_${D}d PUBLIC CUDA::nvToolsExt)
-       endif ()
    endforeach()
 
    # Check cuda compiler and host compiler
