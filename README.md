@@ -16,7 +16,6 @@
   </a>
 </p>
 
-
 <p>
 A software framework for massively parallel block-structured adaptive mesh
 refinement applications.
@@ -31,6 +30,8 @@ refinement applications.
 [Copyright Notice](#copyright-notice) -
 [License](#License) -
 [Citation](#Citation)
+
+<img src="https://github.com/amrex-codes/amrex-codes.github.io/blob/main/images/HPSF_Project_Badge_Established.png" alt="HPSF Badge" style="width:96px;height:96px;">
 
 </div>
 
