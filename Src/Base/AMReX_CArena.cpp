@@ -376,9 +376,9 @@ CArena::freeUnused_protected ()
 
     // deallocate_system can call cudafree which may perform implicit synchronization
     // of all cuda streams. In case amrex::Gpu::Elixir is used, a cudaLaunchHostFunc can be
-    // in the steam which calls CArena::free that aquires carena_mutex.
+    // in the steam which calls CArena::free that acquires carena_mutex.
     // So here carena_mutex needs to be unlocked first to avoid a deadlock.
-    // Note that other threads to allocate/free memory from the CArena in the mean time.
+    // Note that other threads to allocate/free memory from the CArena in the meantime.
     carena_mutex.unlock();
     for (auto& a : to_free) {
         deallocate_system(a.first, a.second);
