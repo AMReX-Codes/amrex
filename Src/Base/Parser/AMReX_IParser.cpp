@@ -30,6 +30,8 @@ IParser::define (std::string const& func_body)
         try {
             amrex_iparserparse();
         } catch (const std::runtime_error& e) {
+            amrex_iparser_delete_buffer(buffer); // delete buffer allocated by bison
+            amrex_iparser_delete_ptrs();         // delete ptrs allocated by amrex
             throw std::runtime_error(std::string(e.what()) + " in IParser expression \""
                                      + m_data->m_expression + "\"");
         }

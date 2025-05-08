@@ -264,9 +264,9 @@ struct amrex_parser {
 
 struct amrex_parser* amrex_parser_new ();
 void amrex_parser_delete (struct amrex_parser* parser);
+void amrex_parser_delete_ptrs ();
 
-struct amrex_parser* parser_dup (struct amrex_parser* source);
-struct parser_node* parser_ast_dup (struct amrex_parser* parser, struct parser_node* node, int move);
+struct parser_node* parser_ast_dup (struct amrex_parser* parser, struct parser_node* node);
 
 void parser_regvar (struct amrex_parser* parser, char const* name, int i);
 void parser_setconst (struct amrex_parser* parser, char const* name, double c);
@@ -289,6 +289,7 @@ void parser_ast_sort (struct parser_node* node);
 double parser_get_number (struct parser_node* node);
 void parser_set_number (struct parser_node* node, double v);
 bool parser_node_equal (struct parser_node* a, struct parser_node* b);
+bool parser_same_symbol (struct parser_node* a, struct parser_node* b);
 /*******************************************************************/
 
 template <typename T>
