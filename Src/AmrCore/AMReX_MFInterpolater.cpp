@@ -148,7 +148,36 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
             });
         } else
 #elif (AMREX_SPACEDIM == 2)
-        if (cgeom.IsRZ()) {
+        if (cgeom.IsSPHERICAL()) {
+            Real drf = fgeom.CellSize(0);
+            Real dtf = fgeom.CellSize(1);
+            Real rlo = fgeom.Offset(0);
+            Real tlo = fgeom.Offset(1);
+            if (do_linear_limiting) {
+                ParallelFor(crsemf, minus1,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int) noexcept
+                {
+                    mf_cell_cons_lin_interp_llslope(i,j,0, tmp[box_no], crse[box_no], ccomp, nc,
+                                                    cdomain, ratio, pbc);
+                });
+            } else {
+                ParallelFor(crsemf, minus1, nc,
+                [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int, int n) noexcept
+                {
+                    mf_cell_cons_lin_interp_mcslope_sph(i,j,n, tmp[box_no], crse[box_no], ccomp, nc,
+                                                        cdomain, ratio, pbc, drf, rlo, dtf, tlo);
+                });
+            }
+
+            ParallelFor(finemf, ng, nc,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int, int n) noexcept
+            {
+                if (dest_domain.contains(i,j,0)) {
+                    mf_cell_cons_lin_interp_sph(i, j, n, fine[box_no], fcomp, ctmp[box_no],
+                                                crse[box_no], ccomp, nc, ratio, drf, rlo, dtf, tlo);
+                }
+            });
+        } else if (cgeom.IsRZ()) {
             Real drf = fgeom.CellSize(0);
             Real rlo = fgeom.Offset(0);
             if (do_linear_limiting) {
@@ -254,7 +283,36 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
                     });
                 } else
 #elif (AMREX_SPACEDIM == 2)
-                if (cgeom.IsRZ()) {
+                if (cgeom.IsSPHERICAL()) {
+                    Real drf = fgeom.CellSize(0);
+                    Real dtf = fgeom.CellSize(1);
+                    Real rlo = fgeom.Offset(0);
+                    Real tlo = fgeom.Offset(1);
+                    if (do_linear_limiting) {
+                        amrex::LoopConcurrentOnCpu(cbox,
+                        [&] (int i, int j, int) noexcept
+                        {
+                            mf_cell_cons_lin_interp_llslope(i,j,0, tmp, crse, ccomp, nc,
+                                                            cdomain, ratio, pbc);
+                        });
+                    } else {
+                        amrex::LoopConcurrentOnCpu(cbox, nc,
+                        [&] (int i, int j, int, int n) noexcept
+                        {
+                            mf_cell_cons_lin_interp_mcslope_sph(i, j, n, tmp, crse, ccomp, nc,
+                                                                cdomain, ratio, pbc,
+                                                                drf, rlo, dtf, tlo);
+                        });
+                    }
+
+                    amrex::LoopConcurrentOnCpu(fbox, nc,
+                    [&] (int i, int j, int, int n) noexcept
+                    {
+                        mf_cell_cons_lin_interp_sph(i, j, n, fine, fcomp, ctmp,
+                                                    crse, ccomp, nc, ratio,
+                                                    drf, rlo, dtf, tlo);
+                    });
+                } else if (cgeom.IsRZ()) {
                     Real drf = fgeom.CellSize(0);
                     Real rlo = fgeom.Offset(0);
                     if (do_linear_limiting) {
