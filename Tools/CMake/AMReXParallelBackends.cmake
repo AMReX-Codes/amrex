@@ -76,7 +76,6 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
                target_link_libraries(amrex_${D}d PUBLIC CUDA::nvToolsExt)
            endif ()
        endif ()
-
    endforeach()
 
    # Check cuda compiler and host compiler
