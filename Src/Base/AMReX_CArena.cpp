@@ -2,7 +2,6 @@
 #include <AMReX_CArena.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Gpu.H>
-#include <AMReX_MFIter.H>
 #include <AMReX_ParallelReduce.H>
 
 #include <utility>
