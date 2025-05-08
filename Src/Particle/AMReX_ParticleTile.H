@@ -192,12 +192,14 @@ struct ParticleTileData
         if constexpr (!ParticleType::is_soa_particle) {
             array_start_index = AMREX_SPACEDIM + NStructReal;
         }
-        for (int i = 0; i < NAR; ++i)
-        {
-            if (comm_real[array_start_index + i])
+        if constexpr (NAR > 0) {
+            for (int i = 0; i < NAR; ++i)
             {
-                memcpy(m_rdata[i] + dst_index, src, sizeof(ParticleReal));
-                src += sizeof(ParticleReal);
+                if (comm_real[array_start_index + i])
+                {
+                    memcpy(m_rdata[i] + dst_index, src, sizeof(ParticleReal));
+                    src += sizeof(ParticleReal);
+                }
             }
         }
         int runtime_start_index  = array_start_index + NAR;
@@ -210,12 +212,14 @@ struct ParticleTileData
             }
         }
         array_start_index  = 2 + NStructInt;
-        for (int i = 0; i < NAI; ++i)
-        {
-            if (comm_int[array_start_index + i])
+        if constexpr (NAI > 0) {
+            for (int i = 0; i < NAI; ++i)
             {
-                memcpy(m_idata[i] + dst_index, src, sizeof(int));
-                src += sizeof(int);
+                if (comm_int[array_start_index + i])
+                {
+                    memcpy(m_idata[i] + dst_index, src, sizeof(int));
+                    src += sizeof(int);
+                }
             }
         }
         runtime_start_index  = 2 + NStructInt + NAI;
@@ -241,16 +245,20 @@ struct ParticleTileData
         for (int i = 0; i < NStructReal; ++i) {
             sp.rdata(i) = m_aos[index].rdata(i);
         }
-        for (int i = 0; i < NAR; ++i) {
-            sp.rdata(NStructReal+i) = m_rdata[i][index];
+        if constexpr (NAR >0) {
+            for (int i = 0; i < NAR; ++i) {
+                sp.rdata(NStructReal+i) = m_rdata[i][index];
+            }
         }
         sp.id() = m_aos[index].id();
         sp.cpu() = m_aos[index].cpu();
         for (int i = 0; i < NStructInt; ++i) {
             sp.idata(i) = m_aos[index].idata(i);
         }
-        for (int i = 0; i < NAI; ++i) {
-            sp.idata(NStructInt+i) = m_idata[i][index];
+        if constexpr (NAI > 0) {
+            for (int i = 0; i < NAI; ++i) {
+                sp.idata(NStructInt+i) = m_idata[i][index];
+            }
         }
         return sp;
     }
@@ -605,12 +613,14 @@ struct ConstParticleTileData
         if constexpr (!ParticleType::is_soa_particle) {
             array_start_index = AMREX_SPACEDIM + NStructReal;
         }
-        for (int i = 0; i < NArrayReal; ++i)
-        {
-            if (comm_real[array_start_index + i])
+        if constexpr (NArrayReal > 0) {
+            for (int i = 0; i < NArrayReal; ++i)
             {
-                memcpy(dst, m_rdata[i] + src_index, sizeof(ParticleReal));
-                dst += sizeof(ParticleReal);
+                if (comm_real[array_start_index + i])
+                {
+                    memcpy(dst, m_rdata[i] + src_index, sizeof(ParticleReal));
+                    dst += sizeof(ParticleReal);
+                }
             }
         }
         int runtime_start_index  = array_start_index + NArrayReal;
@@ -623,12 +633,14 @@ struct ConstParticleTileData
             }
         }
         array_start_index  = 2 + NStructInt;
-        for (int i = 0; i < NArrayInt; ++i)
-        {
-            if (comm_int[array_start_index + i])
+        if constexpr (NArrayInt > 0) {
+            for (int i = 0; i < NArrayInt; ++i)
             {
-                memcpy(dst, m_idata[i] + src_index, sizeof(int));
-                dst += sizeof(int);
+                if (comm_int[array_start_index + i])
+                {
+                    memcpy(dst, m_idata[i] + src_index, sizeof(int));
+                    dst += sizeof(int);
+                }
             }
         }
         runtime_start_index  = 2 + NStructInt + NArrayInt;
