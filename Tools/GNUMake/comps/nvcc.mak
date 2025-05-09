@@ -126,6 +126,15 @@ ifeq ($(USE_CUPTI),TRUE)
   LIBRARIES += -Wl,-rpath,${MAKE_CUDA_PATH}/extras/CUPTI/lib64 -lcupti
 endif
 
+ifeq ($(shell expr $(nvcc_major_version) \< 12),1)
+  ifeq ($(PROFILE),TRUE)
+      LIBRARIES += -lnvToolsExt
+  endif
+  ifeq ($(TINY_PROFILE),TRUE)
+      LIBRARIES += -lnvToolsExt
+  endif
+endif
+
 ifneq ($(USE_CUDA_FAST_MATH),FALSE)
   NVCC_FLAGS += --use_fast_math
 endif

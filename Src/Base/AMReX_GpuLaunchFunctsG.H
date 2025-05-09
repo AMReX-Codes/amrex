@@ -591,7 +591,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
             [[sycl::reqd_work_group_size(MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
-                auto const ncells = std::max({indexer1.numPts(), indexer2.numPts(), indexer3.numPts()});
+                auto const ncells = amrex::max(indexer1.numPts(), indexer2.numPts(), indexer3.numPts());
                 for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
@@ -680,7 +680,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
             [[sycl::reqd_work_group_size(MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
-                auto const ncells = std::max({indexer1.numPts(), indexer2.numPts(), indexer3.numPts()});
+                auto const ncells = amrex::max(indexer1.numPts(), indexer2.numPts(), indexer3.numPts());
                 for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
