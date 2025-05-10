@@ -219,10 +219,14 @@ command line sharing (see section :ref:`sec:basics:parmparse:sharingCL` ).
 Inputs File
 -----------
 
-The format of the inputs
-file is a series of
-definitions in the form of ``prefix.name = value value ....`` For each line,
-text after # are comments. Here is an example inputs file.
+The format of the inputs file is a series of definitions in the form of
+``prefix.name = value value ...``. For each line, text after # are
+comments. For values spanning multiple lines except for table, one must use
+``\`` at the end of a line for continuation, otherwise it's a runtime
+error. Note that there must be at least one space before the continuation
+character ``\``.  Multiple lines inside a pair of double quotes are
+considered a single string containing ``\n``\ s. Here is an example inputs
+file.
 
 .. highlight:: python
 
@@ -235,6 +239,24 @@ text after # are comments. Here is an example inputs file.
     xrange    = -0.5 0.5          # a list of 2 reals
     title     = "Three Kingdoms"  # a string
     hydro.cfl = 0.8               # with prefix, hydro
+    my_2d_table = \
+           # col 1      2      3
+             {{ 11.0,  12.0,  13.0 }   # row 1
+              { 21.0,  22.0,  23.0 }   # row 2
+              { 31.0,  32.0,  33.0 }   # row 3
+              { 41.0,  42.0,  43.0 } } # row 4
+    # or
+    my_2d_table = # col 1    2    3
+                    {{ 11,  12,  13 }   # row 1
+                     { 21,  22,  23 }   # row 2
+                     { 31,  32,  33 }   # row 3
+                     { 41,  42,  43 } } # row 4
+    # or
+    my_2d_table = # col 1    2    3
+                    {{ 11,  12,  13 },   # row 1
+                     { 21,  22,  23 },   # row 2
+                     { 31,  32,  33 },   # row 3
+                     { 41,  42,  43 }  } # row 4
 
 The following code shows how to use :cpp:`ParmParse` to get/query the values.
 
@@ -268,6 +290,9 @@ The following code shows how to use :cpp:`ParmParse` to get/query the values.
      ParmParse pph("hydro");  // with prefix 'hydro'
      Real cfl;
      pph.get("cfl", cfl);    // get parameter with prefix
+
+     std::vector<std::vector<double>> my_2d_table;
+     pp.gettable("my_2d_table", my_2d_table);
 
 Note that when there are multiple definitions for a parameter :cpp:`ParmParse`
 by default returns the last one. The difference between :cpp:`query` and

@@ -81,10 +81,17 @@ namespace ppdetail {
               9 10 11 12      # continuation of bigarray
    multi_line_string = "This is a
                         multi-line string."
+   my_2d_table = \
+           # col 1      2      3
+             {{ 11.0,  12.0,  13.0 }   # row 1
+              { 21.0,  22.0,  23.0 }   # row 2
+              { 31.0,  32.0,  33.0 }   # row 3
+              { 41.0,  42.0,  43.0 } } # row 4
    test = apple "boy blue" 10 20 30 40
    FILE = prob_file           # insert contents of this "prob_file" here
 */
-// For values spanning multiple lines, one must use '\' at the end of a line
+// For values spanning multiple lines except for table, one must use '\' at
+// the end of a line
 // for continuation, otherwise it's a runtime error. Note that there must be
 // at least one space before the continuation character `\`.  Multiple lines
 // inside a pair of double quotes are considered a single string containing
@@ -1588,6 +1595,31 @@ public:
     //! runtime error, if there are unknown symbols in `func`.
     [[nodiscard]] IParser makeIParser (std::string const& func,
                                        Vector<std::string> const& vars) const;
+
+    /**
+     * \brief Query vector of vector. The return value indicates whether
+     * it's found. The table (i.e., vector of vector) is in the format of
+     * `{{a00, a01, a02...} {a10, a11, a12...} ...}`.
+     */
+    int querytable (const char* name, std::vector<std::vector<double>>& ref) const;
+    int querytable (const char* name, std::vector<std::vector<float>>& ref) const;
+    int querytable (const char* name, std::vector<std::vector<int>>& ref) const;
+
+    /**
+     * \brief Get vector of vector. It's an error if it is not found.  The
+     * table (i.e., vector of vector) is in the format of
+     * `{{a00, a01, * a02...} {a10, a11, a12...} ...}`.
+     */
+    template <typename T>
+    void gettable (const char* name, std::vector<std::vector<T>>& ref) const
+    {
+        if (this->querytable(name, ref) == 0) {
+            amrex::ErrorStream() << "ParmParse::gettable: " << name
+                                 << " not found in database\n";
+            ParmParse::dumpTable(amrex::ErrorStream());
+            amrex::Abort();
+        }
+    }
 
     /**
     * \brief Construct an initial ParmParse object from the argc and argv
