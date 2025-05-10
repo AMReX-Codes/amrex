@@ -220,12 +220,12 @@ Inputs File
 -----------
 
 The format of the inputs file is a series of definitions in the form of
-``prefix.name = value value ....`` For each line, text after # are
+``prefix.name = value value ...``. For each line, text after # are
 comments. For values spanning multiple lines except for table, one must use
 ``\`` at the end of a line for continuation, otherwise it's a runtime
 error. Note that there must be at least one space before the continuation
 character ``\``.  Multiple lines inside a pair of double quotes are
-considered a single string containing ``\n``s. Here is an example inputs
+considered a single string containing ``\n``\ s. Here is an example inputs
 file.
 
 .. highlight:: python
