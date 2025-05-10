@@ -251,6 +251,12 @@ file.
                      { 21,  22,  23 }   # row 2
                      { 31,  32,  33 }   # row 3
                      { 41,  42,  43 } } # row 4
+    # or
+    my_2d_table = # col 1    2    3
+                    {{ 11,  12,  13 },   # row 1
+                     { 21,  22,  23 },   # row 2
+                     { 31,  32,  33 },   # row 3
+                     { 41,  42,  43 }  } # row 4
 
 The following code shows how to use :cpp:`ParmParse` to get/query the values.
 

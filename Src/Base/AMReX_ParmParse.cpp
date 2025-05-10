@@ -2138,10 +2138,10 @@ std::vector<T> read_table_row (std::istream& is)
         }
         is.ignore(100000,  '}');
     } else {
-        amrex::Error("ParmParse::querytable: expected \'{\'");
+        amrex::Error("ParmParse::querytable: read_table_row expected \'{\'");
     }
     if (is.fail()) {
-        amrex::Error("ParmParse::querytable failed to read table");
+        amrex::Error("ParmParse::querytable read_table_row failed to read table");
     }
     return r;
 }
@@ -2163,14 +2163,19 @@ void read_table (std::vector<std::vector<T>>& ref, std::string const& str)
             }
             is >> std::ws;
             auto nc = is.peek();
+            if (nc == ',') {
+                is >> c; // skip optional ','
+                is >> std::ws;
+                nc = is.peek();
+            }
             if (nc == '}') { break; }
         }
         is.ignore(100000,  '}');
     } else {
-        amrex::Error("ParmParse::querytable: expected \'{\'");
+        amrex::Error("ParmParse::querytable: read_table expected \'{\'");
     }
     if (is.fail()) {
-        amrex::Error("ParmParse::querytable failed to read table");
+        amrex::Error("ParmParse::querytable read_table failed to read table");
     }
 }
 }
