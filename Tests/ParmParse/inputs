@@ -65,3 +65,17 @@ do_this = 1
 
 # queryline and getline
 my_string_line = a  b c
+
+# table
+t.table = \
+           # col 1      2      3
+             {{ 11.0,  12.0,  13.0 }   # row 1
+              { 21.0,  22.0,  23.0 }   # row 2
+              { 31.0,  32.0,  33.0 }   # row 3
+              { 41.0,  42.0,  43.0 } } # row 4
+
+t.table2 = # col 1    2    3
+             {{ 11,  12,  13 }   # row 1
+              { 21,  22,  23 }   # row 2
+              { 31,  32,  33 }   # row 3
+              { 41,  42,  43 } } # row 4
