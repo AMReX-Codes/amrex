@@ -183,7 +183,7 @@ enum lexState
     QUOTED_STRING,
     IDENTIFIER,
     LIST,
-    INITILIZER
+    INITIALIZER
 };
 
 int
@@ -278,7 +278,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
            else if ( ch == '{' )
            {
                ostr += ch; str++; cbcnt = 1;
-               state = INITILIZER;
+               state = INITIALIZER;
            }
            else if ( std::isalpha(ch) )
            {
@@ -326,7 +326,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                ostr += ch; str++;
            }
            break;
-       case INITILIZER:
+       case INITIALIZER:
            eat_garbage(str);
            ch = *str;
            if ( ch == '{' )
