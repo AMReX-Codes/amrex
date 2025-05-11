@@ -169,6 +169,21 @@ int main(int argc, char* argv[])
     }
 #endif
     {
+        ParmParse pp("t");
+        std::vector<std::vector<double>> table;
+        pp.querytable("table", table);
+        std::vector<std::vector<int>> table2;
+        pp.gettable("table2", table2);
+        AMREX_ALWAYS_ASSERT(table.size() == 4 && table2.size() == 4);
+        for (int irow = 0; irow < 4; ++irow) {
+            AMREX_ALWAYS_ASSERT(table[irow].size() == 3 && table2[irow].size() == 3);
+            for (int icol = 0; icol < 3; ++icol) {
+                AMREX_ALWAYS_ASSERT(table [irow][icol] == (irow+1)*10.+icol+1 &&
+                                    table2[irow][icol] == (irow+1)*10 +icol+1);
+            }
+        }
+    }
+    {
         amrex::Print() << "SUCCESS\n";
     }
     amrex::Finalize();
