@@ -251,7 +251,7 @@ struct alignas(parser_node) parser_usrf2 {  /* User functions with two arguments
     struct parser_node* r;
 };
 
-struct alignas(parser_node) parser_usrfn { /* User functions with three arguments */
+struct alignas(parser_node) parser_usrfn { /* User functions with three or more arguments */
     enum parser_node_t type;
     short argc;
     char* name;
