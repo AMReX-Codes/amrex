@@ -117,7 +117,7 @@ StreamManager::sync () {
         // lock mutex before accessing and modifying member variables
         std::lock_guard<std::mutex> lock(m_mutex);
         is_synced = (m_stream_op_id == m_last_sync);
-        if (!is_synced)) {
+        if (!is_synced) {
             sync_op = m_stream_op_id;
             m_free_wait_list.swap(new_empty_wait_list);
         }
@@ -126,7 +126,7 @@ StreamManager::sync () {
     }
 
     if (!is_synced) {
-        Device::actualStreamSynchronize(stream)
+        Device::actualStreamSynchronize(m_stream)
 
         // synconizing the stream may have taken a long time and
         // there may be new kernels launched already, so we free memory and
