@@ -126,7 +126,7 @@ StreamManager::sync () {
     }
 
     if (!is_synced) {
-        Device::actualStreamSynchronize(m_stream)
+        Device::actualStreamSynchronize(m_stream);
 
         // synconizing the stream may have taken a long time and
         // there may be new kernels launched already, so we free memory and
@@ -794,7 +794,7 @@ Device::streamSynchronizeAll () noexcept
 void
 Device::actualStreamSynchronize (gpuStream_t stream) noexcept
 {
-#if defined(AMReX_USE_CUDA)
+#if defined(AMREX_USE_CUDA)
     cudaError_t amrex_i_err = cudaStreamSynchronize(stream);
     if (cudaSuccess != amrex_i_err) {
         std::string errStr(std::string("CUDA error from calling cudaStreamSynchronize ")
@@ -805,7 +805,7 @@ Device::actualStreamSynchronize (gpuStream_t stream) noexcept
             + "such as amrex::ParallelFor");
         amrex::Abort(errStr);
     }
-#elif defined(AMReX_USE_HIP)
+#elif defined(AMREX_USE_HIP)
     hipError_t amrex_i_err = hipStreamSynchronize(stream);
     if (hipSuccess != amrex_i_err) {
         std::string errStr(std::string("HIP error from calling hipStreamSynchronize")
