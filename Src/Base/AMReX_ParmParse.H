@@ -30,7 +30,9 @@ using Box = BoxND<AMREX_SPACEDIM>;
 template<int dim>
 class IntVectND;
 using IntVect = IntVectND<AMREX_SPACEDIM>;
-class RealVect;
+template<int dim>
+class RealVectND;
+using RealVect = RealVectND<AMREX_SPACEDIM>;
 
 namespace ppdetail {
     template <class T, class Enable = void>
