@@ -56,7 +56,8 @@ namespace amrex::Gpu {
 #ifdef AMREX_USE_GPU
 class StreamManager {
     gpuStream_t m_stream;
-    bool m_is_synced = true;
+    std::uint64_t m_stream_op_id = 0;
+    std::uint64_t m_last_sync = 0;
     Vector<std::pair<CArena*, void*>> m_free_wait_list;
     std::mutex m_mutex;
 public:
@@ -138,6 +139,16 @@ public:
      * previously requested tasks.
      */
     static void streamSynchronizeAll () noexcept;
+
+#ifdef AMREX_USE_GPU
+    /**
+     * Halt execution of code until the current AMReX GPU stream has finished processing all
+     * previously requested tasks. Unlike streamSynchronize which avoids redundant
+     * synchronizations when being called multiple times in a row,
+     * this function always causes the GPU stream to be synchronized
+     */
+    static void actualStreamSynchronize (gpuStream_t stream) noexcept;
+#endif
 
 #if defined(__CUDACC__)
     /**  Generic graph selection. These should be called by users.  */

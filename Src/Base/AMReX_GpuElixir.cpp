@@ -1,6 +1,7 @@
 
 #include <AMReX_GpuElixir.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_CArena.H>
 #include <cstddef>
 #include <cstring>
 #include <cstdlib>
@@ -21,7 +22,12 @@ extern "C" {
     {
         auto p_pa = reinterpret_cast<Vector<std::pair<void*,Arena*> >*>(p);
         for (auto const& pa : *p_pa) {
-            pa.second->free(pa.first);
+            auto* p = dynamic_cast<amrex::CArena*>(pa.second);
+            if (p) {
+                p->free_now(pa.first);
+            } else {
+                pa.second->free(pa.first);
+            }
         }
         delete p_pa;
     }

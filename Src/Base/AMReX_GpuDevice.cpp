@@ -98,8 +98,7 @@ int Device::max_gpu_streams = 1;
 [[nodiscard]] gpuStream_t
 StreamManager::get () {
     std::lock_guard<std::mutex> lock(m_mutex);
-
-    m_is_synced = false;
+    ++m_stream_op_id;
     return m_stream;
 }
 
@@ -110,47 +109,75 @@ StreamManager::internal_get () {
 
 void
 StreamManager::sync () {
-    std::lock_guard<std::mutex> lock(m_mutex);
 
-    if (!m_is_synced) {
-        m_is_synced = true;
-#ifdef AMREX_USE_SYCL
-        auto& q = *(m_stream.queue);
-        try {
-            q.wait_and_throw();
-        } catch (sycl::exception const& ex) {
-            amrex::Abort(std::string("streamSynchronize: ")+ex.what()+"!!!!!");
+    bool is_synced = false;
+    std::uint64_t sync_op = 0;
+    decltype(m_free_wait_list) new_empty_wait_list{};
+    {
+        // lock mutex before accessing and modifying member variables
+        std::lock_guard<std::mutex> lock(m_mutex);
+        is_synced = (m_stream_op_id == m_last_sync);
+        if (!is_synced)) {
+            sync_op = m_stream_op_id;
+            m_free_wait_list.swap(new_empty_wait_list);
         }
-#else
-        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(m_stream));,
-                           AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(m_stream)); )
-#endif
-        for (auto [arena, mem] : m_free_wait_list) {
+        // unlock mutex before stream sync and memory free
+        // to avoid deadlocks from the CArena mutex
+    }
+
+    if (!is_synced) {
+        Device::actualStreamSynchronize(stream)
+
+        // synconizing the stream may have taken a long time and
+        // there may be new kernels launched already, so we free memory and
+        // set m_last_sync according to the state from before the stream was synced
+
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_last_sync = sync_op;
+        }
+
+        for (auto [arena, mem] : new_empty_wait_list) {
             arena->free_now(mem);
         }
-        m_free_wait_list.clear();
     }
 }
 
 void
 StreamManager::internal_after_sync () {
-    std::lock_guard<std::mutex> lock(m_mutex);
 
-    m_is_synced = true;
-    for (auto [arena, mem] : m_free_wait_list) {
+    decltype(m_free_wait_list) new_empty_wait_list{};
+    {
+        // lock mutex before accessing and modifying member variables
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_last_sync = m_stream_op_id;
+        m_free_wait_list.swap(new_empty_wait_list);
+        // unlock mutex before memory free
+        // to avoid deadlocks from the CArena mutex
+    }
+
+    for (auto [arena, mem] : new_empty_wait_list) {
         arena->free_now(mem);
     }
-    m_free_wait_list.clear();
 }
 
 void
 StreamManager::stream_free (CArena* arena, void* mem) {
-    std::lock_guard<std::mutex> lock(m_mutex);
 
-    if (m_is_synced) {
+    bool is_synced = false;
+    {
+        // lock mutex before accessing and modifying member variables
+        std::lock_guard<std::mutex> lock(m_mutex);
+        is_synced = (m_stream_op_id == m_last_sync);
+        if (!is_synced) {
+            m_free_wait_list.emplace_back(arena, mem);
+        }
+        // unlock mutex before memory free
+        // to avoid deadlocks from the CArena mutex
+    }
+
+    if (is_synced) {
         arena->free_now(mem);
-    } else {
-        m_free_wait_list.emplace_back(arena, mem);
     }
 }
 
@@ -762,6 +789,47 @@ Device::streamSynchronizeAll () noexcept
     }
 #endif
 }
+
+#ifdef AMREX_USE_GPU
+void
+Device::actualStreamSynchronize (gpuStream_t stream) noexcept
+{
+#if defined(AMReX_USE_CUDA)
+    cudaError_t amrex_i_err = cudaStreamSynchronize(stream);
+    if (cudaSuccess != amrex_i_err) {
+        std::string errStr(std::string("CUDA error from calling cudaStreamSynchronize ")
+            + std::to_string(amrex_i_err)
+            + std::string(" in file ") + __FILE__
+            + ": " + cudaGetErrorString(amrex_i_err)
+            + "This is likely caused by an issue in a previous kernel launch "
+            + "such as amrex::ParallelFor");
+        amrex::Abort(errStr);
+    }
+#elif defined(AMReX_USE_HIP)
+    hipError_t amrex_i_err = hipStreamSynchronize(stream);
+    if (hipSuccess != amrex_i_err) {
+        std::string errStr(std::string("HIP error from calling hipStreamSynchronize")
+            + std::string(" in file ") + __FILE__
+            + ": " + hipGetErrorString(amrex_i_err)
+            + "This is likely caused by an issue in a previous kernel launch "
+            + "such as amrex::ParallelFor"));
+        amrex::Abort(errStr);
+    }
+#elif defined(AMREX_USE_SYCL)
+    auto& q = *(stream.queue);
+    try {
+        q.wait_and_throw();
+    } catch (sycl::exception const& ex) {
+        std::string errStr(std::string("SYCL exception from calling queue.wait_and_throw")
+            + std::string(" in file ") + __FILE__
+            + ": " + ex.what() + "!!!!!"
+            + "This is likely caused by an issue in a previous kernel launch "
+            + "such as amrex::ParallelFor");
+        amrex::Abort(errStr);
+    }
+#endif
+}
+#endif
 
 #if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
 
