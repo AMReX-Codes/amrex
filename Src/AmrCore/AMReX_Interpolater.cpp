@@ -868,7 +868,33 @@ CellConservativeLinear::interp (const FArrayBox& crse,
         });
     } else
 #elif (AMREX_SPACEDIM == 2)
-    if (crse_geom.IsRZ()) {
+    if (crse_geom.IsSPHERICAL()) {
+        Real drf = fine_geom.CellSize(0);
+        Real dtf = fine_geom.CellSize(1);
+        Real rlo = fine_geom.Offset(0);
+        Real tlo = fine_geom.Offset(1);
+        if (do_linear_limiting) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(runon, cslope_bx, i, j, k,
+            {
+                mf_cell_cons_lin_interp_llslope(i,j,k, tmp, crsearr, crse_comp, ncomp,
+                                                cdomain, ratio, bcrp);
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, cslope_bx, ncomp, i, j, k, n,
+            {
+                amrex::ignore_unused(k);
+                mf_cell_cons_lin_interp_mcslope_sph(i, j, n, tmp, crsearr, crse_comp, ncomp,
+                                                    cdomain, ratio, bcrp, drf, rlo, dtf, tlo);
+            });
+        }
+
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, fine_region, ncomp, i, j, k, n,
+        {
+            amrex::ignore_unused(k);
+            mf_cell_cons_lin_interp_sph(i, j, n, finearr, fine_comp, ctmp, crsearr, crse_comp,
+                                        ncomp, ratio, drf, rlo, dtf, tlo);
+        });
+    } else if (crse_geom.IsRZ()) {
         Real drf = fine_geom.CellSize(0);
         Real rlo = fine_geom.Offset(0);
         if (do_linear_limiting) {

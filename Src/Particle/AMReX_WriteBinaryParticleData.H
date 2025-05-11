@@ -66,7 +66,11 @@ fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F const& f)
     for (int k = 0; k < np; ++k) {
         const auto p = ptd.getSuperParticle(k);
         if constexpr (IsCallable<F,decltype(p),RandomEngine>::value) {
+#ifdef AMREX_USE_GPU
+            flag_ptr[k] = f(p,RandomEngine{nullptr});
+#else
             flag_ptr[k] = f(p,RandomEngine{});
+#endif
         } else {
             flag_ptr[k] = f(p);
         }

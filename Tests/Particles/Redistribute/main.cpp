@@ -293,13 +293,17 @@ public:
                     {
                         AMREX_ALWAYS_ASSERT(ptd.m_aos[i].idata(j) == ptd.m_aos[i].id());
                     }
-                    for (int j = 0; j < NAR; ++j)
-                    {
-                        AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == ptd.m_aos[i].id());
+                    if constexpr (NAR > 0) {
+                        for (int j = 0; j < NAR; ++j)
+                        {
+                            AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == ptd.m_aos[i].id());
+                        }
                     }
-                    for (int j = 0; j < NAI; ++j)
-                    {
-                        AMREX_ALWAYS_ASSERT(ptd.m_idata[j][i] == ptd.m_aos[i].id());
+                    if constexpr (NAI > 0) {
+                        for (int j = 0; j < NAI; ++j)
+                        {
+                            AMREX_ALWAYS_ASSERT(ptd.m_idata[j][i] == ptd.m_aos[i].id());
+                        }
                     }
                     for (int j = 0; j < num_rr; ++j)
                     {
