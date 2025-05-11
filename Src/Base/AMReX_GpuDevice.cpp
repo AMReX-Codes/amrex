@@ -812,7 +812,7 @@ Device::actualStreamSynchronize (gpuStream_t stream) noexcept
             + std::string(" in file ") + __FILE__
             + ": " + hipGetErrorString(amrex_i_err)
             + "This is likely caused by an issue in a previous kernel launch "
-            + "such as amrex::ParallelFor"));
+            + "such as amrex::ParallelFor");
         amrex::Abort(errStr);
     }
 #elif defined(AMREX_USE_SYCL)
