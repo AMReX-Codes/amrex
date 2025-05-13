@@ -60,7 +60,7 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
 #ifdef AMREX_USE_SYCL
             sycl::nd_item<1> const& /*item*/,
 #endif
-            int icell, int ncells, int i, int j, int k, Array4CopyTag<T0, T1> const tag) noexcept
+            int icell, int ncells, int i, int j, int k, Array4CopyTag<T0, T1> const& tag) noexcept
         {
             if (icell < ncells) {
                 for (int n = 0; n < ncomp; ++n) {
@@ -280,55 +280,55 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
     if (N_locs == 0) { return; }
     bool is_thread_safe = TheFB.m_threadsafe_loc;
 
+    if (!amrex::IsStoreAtomic<value_type>::value && !is_thread_safe) {
+        amrex::Abort("xxxxx TODO This function still has a bug for non-atomic types. Even if we fix the bug, it should still be avoided because it is slow due to the lack of atomic operations for this type.");
+    }
+
     using TagType = Array4CopyTag<value_type>;
-    Vector<TagType> loc_copy_tags;
-    loc_copy_tags.reserve(N_locs);
 
-    Vector<BaseFab<int> > maskfabs;
-    Vector<Array4Tag<int> > masks;
-    if (!amrex::IsStoreAtomic<value_type>::value && !is_thread_safe)
+    TagVector<TagType>* tv;
+    if (auto it = m_local_copy_handler.find(LocTags.data());
+        it != m_local_copy_handler.end())
     {
-        maskfabs.resize(this->local_size());
-        masks.reserve(N_locs);
-    }
-
-    for (int i = 0; i < N_locs; ++i)
-    {
-        const CopyComTag& tag = LocTags[i];
-
-        BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
-        BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
-
-        int li = this->localindex(tag.dstIndex);
-        loc_copy_tags.push_back
-            ({this->atLocalIdx(li).array(),
-              this->fabPtr(tag.srcIndex)->const_array(),
-              tag.dbox,
-              (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
-
-        if (maskfabs.size() > 0) {
-            if (!maskfabs[li].isAllocated()) {
-                maskfabs[li].resize(this->atLocalIdx(li).box());
-            }
-            masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
-        }
-    }
-
-    if (maskfabs.size() > 0) {
-        amrex::ParallelFor(masks,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k, Array4Tag<int> const& msk) noexcept
-        {
-            msk.dfab(i,j,k) = 0;
-        });
-    }
-
-    if (is_thread_safe) {
-        detail::fab_to_fab<value_type, value_type>(loc_copy_tags, scomp, scomp,
-            ncomp, detail::CellStore<value_type, value_type>());
+        tv = it->second;
     } else {
-        detail::fab_to_fab_atomic_cpy<value_type, value_type>(
-            loc_copy_tags, scomp, scomp, ncomp, masks);
+        Vector<TagType> loc_copy_tags;
+        loc_copy_tags.reserve(N_locs);
+
+        for (int i = 0; i < N_locs; ++i)
+        {
+            const CopyComTag& tag = LocTags[i];
+
+            BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
+            BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
+
+            int li = this->localindex(tag.dstIndex);
+            loc_copy_tags.push_back
+                ({this->atLocalIdx(li).array(),
+                  this->fabPtr(tag.srcIndex)->const_array(),
+                  tag.dbox,
+                  (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
+        }
+
+       tv = new TagVector<TagType>(loc_copy_tags);
+       m_local_copy_handler[LocTags.data()] = tv;
     }
+
+    detail::ParallelFor_doit(*tv,
+        [=] AMREX_GPU_DEVICE (
+#ifdef AMREX_USE_SYCL
+            sycl::nd_item<1> const& /*item*/,
+#endif
+            int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
+        {
+            if (icell < ncells) {
+                for (int n = 0; n < ncomp; ++n) {
+                    tag.dfab(i,j,k,n+scomp) = tag.sfab(i+tag.offset.x,
+                                                       j+tag.offset.y,
+                                                       k+tag.offset.z,n+scomp);
+                }
+            }
+        });
 }
 
 template <class FAB>

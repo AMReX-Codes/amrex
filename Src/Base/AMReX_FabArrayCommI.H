@@ -47,6 +47,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #endif
             {
                 FB_local_copy_gpu(TheFB, scomp, ncomp);
+                if (!Gpu::inNoSyncRegion()) {
+                    Gpu::streamSynchronize();
+                }
             }
         }
         else
@@ -148,6 +151,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #endif
             {
                 FB_local_copy_gpu(TheFB, scomp, ncomp);
+                if (!Gpu::inNoSyncRegion() && N_rcvs == 0) {
+                    Gpu::streamSynchronize();
+                }
             }
         }
         else

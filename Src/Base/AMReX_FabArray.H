@@ -1415,6 +1415,11 @@ private:
 
     void clear_arrays ();
 
+#ifdef AMREX_USE_GPU
+    std::map<CopyComTag const*, TagVector<Array4CopyTag<value_type>>*,
+             std::less<>> m_local_copy_handler;
+#endif
+
 public:
 
 #ifdef BL_USE_MPI
@@ -1778,6 +1783,13 @@ FabArray<FAB>::clear ()
 
     m_tags.clear();
 
+#ifdef AMREX_USE_GPU
+    for (auto& [k,v] : m_local_copy_handler) {
+        delete v;
+    }
+    m_local_copy_handler.clear();
+#endif
+
     FabArrayBase::clear();
 }
 
@@ -1913,11 +1925,17 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     , m_const_arrays(rhs.m_const_arrays)
     , m_tags       (std::move(rhs.m_tags))
     , shmem        (std::move(rhs.shmem))
+#ifdef AMREX_USE_GPU
+    , m_local_copy_handler(std::move(rhs.m_local_copy_handler))
+#endif
     // no need to worry about the data used in non-blocking FillBoundary.
 {
     m_FA_stats.recordBuild();
     rhs.define_function_called = false; // the responsibility of clear BD has been transferred.
     rhs.m_fabs_v.clear(); // clear the data pointers so that rhs.clear does delete them.
+#ifdef AMREX_USE_GPU
+    rhs.m_local_copy_handler.clear();
+#endif
     rhs.clear();
 }
 
@@ -1944,10 +1962,16 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         m_const_arrays = rhs.m_const_arrays;
         std::swap(m_tags, rhs.m_tags);
         shmem = std::move(rhs.shmem);
+#ifdef AMREX_USE_GPU
+        std::swap(m_local_copy_handler, rhs.m_local_copy_handler);
+#endif
 
         rhs.define_function_called = false;
         rhs.m_fabs_v.clear();
         rhs.m_tags.clear();
+#ifdef AMREX_USE_GPU
+        rhs.m_local_copy_handler.clear();
+#endif
         rhs.clear();
     }
     return *this;
