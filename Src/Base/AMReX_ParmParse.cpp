@@ -230,6 +230,17 @@ eat_garbage (const char*& str)
     return num_linefeeds;
 }
 
+void eat_comment (const char*& str)
+{
+    if ( *str == '#' )
+    {
+        while ( *str && *str != '\n' )
+        {
+            str++;
+        }
+    }
+}
+
 PType
 getToken (const char*& str, std::string& ostr, int& num_linefeeds)
 {
@@ -307,7 +318,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
            }
            break;
        case LIST:
-           eat_garbage(str);
+           eat_comment(str);
            ch = *str;
            if ( ch == '(' )
            {
