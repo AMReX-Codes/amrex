@@ -232,21 +232,11 @@ eat_garbage (const char*& str)
 
 void eat_comment (const char*& str)
 {
-    for (;;)
+    if ( *str == '#' )
     {
-        if ( *str == 0 ) { break; } // NOLINT
-        else if ( *str == '#' )
+        while ( *str && *str != '\n' )
         {
-            while ( *str && *str != '\n' )
-            {
-                str++;
-            }
-            if (*str == '\n') { str++; }
-            continue;
-        }
-        else
-        {
-            break;
+            str++;
         }
     }
 }
