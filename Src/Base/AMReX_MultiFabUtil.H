@@ -253,7 +253,7 @@ namespace amrex
             auto const* psrc = mf_in [mfi].dataPtr();
             AMREX_HOST_DEVICE_PARALLEL_FOR_1D ( n, i,
             {
-                pdst[i] = static_cast<typename U::value_type>(psrc[i]); // NOLINT(bugprone-signed-char-misuse)
+                pdst[i] = static_cast<typename T::value_type>(psrc[i]); // NOLINT(bugprone-signed-char-misuse)
             });
         }
         return mf_out;
