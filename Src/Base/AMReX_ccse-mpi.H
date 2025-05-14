@@ -43,6 +43,8 @@ namespace amrex::ParallelDescriptor
 
 #else
 
+namespace amrex {
+
 using MPI_Op       = int;
 using MPI_Comm     = int;
 using MPI_Group    = int;
@@ -59,6 +61,8 @@ static constexpr int MPI_MAX_PROCESSOR_NAME = 64;
 
 static constexpr int MPI_MINLOC = 0;
 static constexpr int MPI_MAXLOC = 0;
+
+}
 
 namespace amrex::ParallelDescriptor
 {
