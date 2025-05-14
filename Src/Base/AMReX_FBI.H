@@ -272,17 +272,11 @@ FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
 #ifdef AMREX_USE_GPU
 
 template <class FAB>
-void
-FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
+auto FabArray<FAB>::FB_get_local_copy_tag_vector (const FB& TheFB)
+    -> TagVector<Array4CopyTag<value_type>> const*
 {
     auto const& LocTags = *(TheFB.m_LocTags);
     int N_locs = LocTags.size();
-    if (N_locs == 0) { return; }
-    bool is_thread_safe = TheFB.m_threadsafe_loc;
-
-    if (!amrex::IsStoreAtomic<value_type>::value && !is_thread_safe) {
-        amrex::Abort("xxxxx TODO This function still has a bug for non-atomic types. Even if we fix the bug, it should still be avoided because it is slow due to the lack of atomic operations for this type.");
-    }
 
     using TagType = Array4CopyTag<value_type>;
 
@@ -313,6 +307,26 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
        tv = new TagVector<TagType>(loc_copy_tags);
        m_local_copy_handler[LocTags.data()] = tv;
     }
+
+    return tv;
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
+{
+    auto const& LocTags = *(TheFB.m_LocTags);
+    int N_locs = LocTags.size();
+    if (N_locs == 0) { return; }
+    bool is_thread_safe = TheFB.m_threadsafe_loc;
+
+    if (!amrex::IsStoreAtomic<value_type>::value && !is_thread_safe) {
+        amrex::Abort("xxxxx TODO This function still has a bug for non-atomic types. Even if we fix the bug, it should still be avoided because it is slow due to the lack of atomic operations for this type.");
+    }
+
+    using TagType = Array4CopyTag<value_type>;
+
+    auto* tv = FB_get_local_copy_tag_vector(TheFB);
 
     detail::ParallelFor_doit(*tv,
         [=] AMREX_GPU_DEVICE (

@@ -1235,6 +1235,9 @@ public:
 
 #ifdef AMREX_USE_GPU
 
+    TagVector<Array4CopyTag<value_type>> const*
+    FB_get_local_copy_tag_vector (const FB& TheFB);
+
     void FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp);
     void PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
                        int scomp, int dcomp, int ncomp, CpOp op);
