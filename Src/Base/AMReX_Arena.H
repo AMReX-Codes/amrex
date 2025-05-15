@@ -210,7 +210,7 @@ public:
      */
     [[nodiscard]] const ArenaInfo& arenaInfo () const { return arena_info; }
 
-    virtual void ResetMaxUsageCounter () {};
+    virtual void ResetMaxUsageCounter () {}
 
 protected:
 
