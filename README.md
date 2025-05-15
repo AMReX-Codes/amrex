@@ -16,7 +16,6 @@
   </a>
 </p>
 
-
 <p>
 A software framework for massively parallel block-structured adaptive mesh
 refinement applications.
@@ -32,6 +31,10 @@ refinement applications.
 [License](#License) -
 [Citation](#Citation)
 
+<a href="https://hpsf.io/">
+<img src="https://github.com/amrex-codes/amrex-codes.github.io/blob/main/images/HPSF_Project_Badge_Established.png" alt="HPSF Badge" style="width:96px;height:96px;">
+</a>
+
 </div>
 
 ## Overview
@@ -41,7 +44,6 @@ applications solving partial differential equations on block-structured meshes. 
 massively parallel adaptive mesh refinement (AMR) algorithms focus computational
 resources and allow scalable performance on heterogeneous architectures so that
 scientists can efficiently resolve details in large simulations.
-AMReX is developed at [LBNL](https://www.lbl.gov/).
 
 More information is available at the [AMReX website](https://amrex-codes.github.io/).
 
@@ -92,6 +94,10 @@ contribute, issue a pull request against the development branch.
 Any level of changes are welcomed: documentation, bug fixes, new test problems,
 new solvers, etc. For more details on how to contribute to AMReX, please see
 [CONTRIBUTING.md](CONTRIBUTING.md).
+
+💡 If you're using AMReX in your own GitHub projects, consider adding `amrex`
+as a [repository topic](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics)!
+This helps others discover related work and strengthens the AMReX ecosystem.
 
 ## Copyright Notice
 

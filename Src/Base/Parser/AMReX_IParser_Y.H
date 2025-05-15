@@ -159,9 +159,9 @@ struct amrex_iparser {
 
 struct amrex_iparser* amrex_iparser_new ();
 void amrex_iparser_delete (struct amrex_iparser* iparser);
+void amrex_iparser_delete_ptrs ();
 
-struct amrex_iparser* iparser_dup (struct amrex_iparser* source);
-struct iparser_node* iparser_ast_dup (struct amrex_iparser* iparser, struct iparser_node* node, int move);
+struct iparser_node* iparser_ast_dup (struct amrex_iparser* iparser, struct iparser_node* node);
 
 void iparser_regvar (struct amrex_iparser* iparser, char const* name, int i);
 void iparser_setconst (struct amrex_iparser* iparser, char const* name, long long c);
