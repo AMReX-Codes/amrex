@@ -88,7 +88,7 @@ public:
 
     void ResetMaxUsageCounter () final {
         m_max_actually_used = 0;
-    };
+    }
 
     //! The default memory hunk size to grab from the heap.
     constexpr static std::size_t DefaultHunkSize = 1024*1024*8;
