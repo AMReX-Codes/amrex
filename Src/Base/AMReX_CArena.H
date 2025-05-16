@@ -82,7 +82,7 @@ public:
     //! Return the amount of memory in this pointer.  Return 0 for unknown pointer.
     std::size_t sizeOf (void* p) const noexcept;
 
-    void PrintUsage (std::string const& name, bool print_max_usage=false) const;
+    void PrintUsage (std::string const& name, bool print_max_usage) const;
 
     void PrintUsage (std::ostream& os, std::string const& name, std::string const& space) const;
 
