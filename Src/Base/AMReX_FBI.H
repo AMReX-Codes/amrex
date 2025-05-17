@@ -746,62 +746,106 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
 
 template <class FAB>
 template <typename BUF>
+auto
+FabArray<FAB>::get_send_copy_tag_vector (Vector<char*> const& send_data,
+                                         Vector<std::size_t> const& send_size,
+                                         Vector<CopyComTagsContainer const*> const& send_cctc,
+                                         int ncomp) const
+    -> TagVector<Array4CopyTag<char,value_type>> const*
+{
+    using TagType = Array4CopyTag<char,value_type>;
+
+    auto kit = std::find_if(send_cctc.begin(), send_cctc.end(),
+                            [] (CopyComTagsContainer const* p) { return p != nullptr; });
+    if (kit == send_cctc.end()) {
+        return nullptr;
+    }
+
+    auto key = std::make_pair(*kit, std::make_pair(sizeof(BUF),ncomp));
+
+    TagVector<TagType>* tv;
+    if (auto it = m_send_copy_handler.find(key); it != m_send_copy_handler.end()) {
+        tv = it->second;
+    } else {
+        const int N_snds = send_data.size();
+        Vector<TagType> snd_copy_tags;
+        snd_copy_tags.reserve(N_snds);
+
+        for (int j = 0; j < N_snds; ++j)
+        {
+            if (send_size[j] > 0)
+            {
+                std::intptr_t offset = send_data[j]-send_data[0];
+                auto* dptr = reinterpret_cast<char*>(offset);
+                auto const& cctc = *send_cctc[j];
+                for (auto const& tag : cctc)
+                {
+                    snd_copy_tags.emplace_back(TagType{
+                            amrex::makeArray4(dptr, tag.sbox, ncomp),
+                            this->array(tag.srcIndex),
+                            tag.sbox,
+                            Dim3{0,0,0}
+                        });
+                    dptr += (tag.sbox.numPts() * ncomp * sizeof(BUF));
+                }
+            }
+        }
+
+        if (m_send_copy_handler.size() > 64) {
+            // Just in case. If this is used in ParallelCopy, it's possible
+            // that the size of this map may increase indefinitely.
+            Gpu::streamSynchronize();
+            for (auto& [k,v] : m_send_copy_handler) {
+                delete v;
+            }
+            m_send_copy_handler.clear();
+        }
+
+        tv = new TagVector<TagType>(snd_copy_tags);
+        m_send_copy_handler[key] = tv;
+    }
+
+    return tv;
+}
+
+template <class FAB>
+template <typename BUF>
 void
 FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
                                      Vector<char*> const& send_data,
                                      Vector<std::size_t> const& send_size,
                                      Vector<CopyComTagsContainer const*> const& send_cctc)
 {
-    amrex::ignore_unused(send_size);
-
     const int N_snds = send_data.size();
     if (N_snds == 0) { return; }
 
     char* pbuffer = send_data[0];
-    std::size_t szbuffer = 0;
-#if 0
-    // For linear solver test on summit, this is slower than writing to
-    // pinned memory directly on device.
-    if (! ParallelDescriptor::UseGpuAwareMpi()) {
-        // Memory in send_data is pinned.
-        szbuffer = (send_data[N_snds-1]-send_data[0]) + send_size[N_snds-1];
-        pbuffer = (char*)The_Arena()->alloc(szbuffer);
-    }
+    using TagType = Array4CopyTag<char, value_type>;
+
+    auto* tv = src.template get_send_copy_tag_vector<BUF>(send_data, send_size,
+                                                          send_cctc, ncomp);
+    if (tv == nullptr) { return; }
+
+    detail::ParallelFor_doit(*tv,
+        [=] AMREX_GPU_DEVICE (
+#ifdef AMREX_USE_SYCL
+            sycl::nd_item<1> const& /*item*/,
 #endif
-
-    using TagType = Array4CopyTag<BUF, value_type>;
-    Vector<TagType> snd_copy_tags;
-    for (int j = 0; j < N_snds; ++j)
-    {
-        if (send_size[j] > 0)
+            int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
         {
-            std::size_t offset = send_data[j]-send_data[0];
-            char* dptr = pbuffer + offset;
-            auto const& cctc = *send_cctc[j];
-            for (auto const& tag : cctc)
-            {
-                snd_copy_tags.emplace_back(TagType{
-                    amrex::makeArray4((BUF*)(dptr), tag.sbox, ncomp),
-                    src.array(tag.srcIndex),
-                    tag.sbox,
-                    Dim3{0,0,0}
-                });
-                dptr += (tag.sbox.numPts() * ncomp * sizeof(BUF));
+            if (icell < ncells) {
+                Array4<BUF> dfab{reinterpret_cast<BUF*>
+                    (pbuffer + reinterpret_cast<std::intptr_t>(tag.dfab.p)),
+                    tag.dfab.begin, tag.dfab.end, tag.dfab.ncomp};
+                for (int n = 0; n < dfab.ncomp; ++n) {
+                    dfab(i,j,k,n) = (BUF)tag.sfab(i+tag.offset.x,
+                                                  j+tag.offset.y,
+                                                  k+tag.offset.z,n+scomp);
+                }
             }
-            BL_ASSERT(dptr <= pbuffer + offset + send_size[j]);
-        }
-    }
+        });
 
-    detail::fab_to_fab<BUF, value_type>(snd_copy_tags, scomp, 0, ncomp,
-                                        detail::CellStore<BUF, value_type>());
-
-    // There is Gpu::streamSynchronize in fab_to_fab.
-
-    if (pbuffer != send_data[0]) {
-        Gpu::copyAsync(Gpu::deviceToHost,pbuffer,pbuffer+szbuffer,send_data[0]);
-        Gpu::streamSynchronize();
-        The_Arena()->free(pbuffer);
-    }
+    Gpu::streamSynchronize();
 }
 
 template <class FAB>
@@ -855,6 +899,7 @@ FabArray<FAB>::get_recv_copy_tag_vector (Vector<char*> const& recv_data,
         if (m_recv_copy_handler.size() > 64) {
             // Just in case. If this is used in ParallelCopy, it's possible
             // that the size of this map may increase indefinitely.
+            Gpu::streamSynchronize();
             for (auto& [k,v] : m_recv_copy_handler) {
                 delete v;
             }
@@ -910,9 +955,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                         (pbuffer + reinterpret_cast<std::intptr_t>(tag.sfab.p)),
                         tag.sfab.begin, tag.sfab.end, tag.sfab.ncomp};
                     for (int n = 0; n < sfab.ncomp; ++n) {
-                        tag.dfab(i,j,k,n+dcomp) = (value_type)sfab(i+tag.offset.x,
-                                                                   j+tag.offset.y,
-                                                                   k+tag.offset.z,n);
+                        tag.dfab(i,j,k,n+dcomp) = (value_type)sfab(i,j,k,n);
                     }
                 }
             });
@@ -932,9 +975,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                             (pbuffer + reinterpret_cast<std::intptr_t>(tag.sfab.p)),
                             tag.sfab.begin, tag.sfab.end, tag.sfab.ncomp};
                         for (int n = 0; n < sfab.ncomp; ++n) {
-                            tag.dfab(i,j,k,n+dcomp) += (value_type)sfab(i+tag.offset.x,
-                                                                        j+tag.offset.y,
-                                                                        k+tag.offset.z,n);
+                            tag.dfab(i,j,k,n+dcomp) += (value_type)sfab(i,j,k,n);
                         }
                     }
                 });
@@ -952,9 +993,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                             tag.sfab.begin, tag.sfab.end, tag.sfab.ncomp};
                         for (int n = 0; n < sfab.ncomp; ++n) {
                             Gpu::Atomic::AddNoRet(tag.dfab.ptr(i,j,k,n+dcomp),
-                                                  (value_type)sfab(i+tag.offset.x,
-                                                                   j+tag.offset.y,
-                                                                   k+tag.offset.z,n));
+                                                  (value_type)sfab(i,j,k,n));
                         }
                     }
                 });

@@ -1291,6 +1291,13 @@ public:
                               Vector<CopyComTagsContainer const*> const& recv_cctc,
                               int ncomp);
 
+    template <typename BUF>
+    TagVector<Array4CopyTag<char,value_type>> const*
+    get_send_copy_tag_vector (Vector<char*> const& send_data,
+                              Vector<std::size_t> const& send_size,
+                              Vector<CopyComTagsContainer const*> const& send_cctc,
+                              int ncomp) const;
+
 #endif
 
     template <typename BUF = value_type>
@@ -1441,8 +1448,8 @@ private:
     };
     std::map<RecvSendCopyHandlerKey, TagVector<Array4CopyTag<value_type,char>>*,
              RecvSendCopyHandlerCompare> m_recv_copy_handler;
-    std::map<RecvSendCopyHandlerKey, TagVector<Array4CopyTag<char,value_type>>*,
-             RecvSendCopyHandlerCompare> m_send_copy_handler;
+    mutable std::map<RecvSendCopyHandlerKey, TagVector<Array4CopyTag<char,value_type>>*,
+                     RecvSendCopyHandlerCompare> m_send_copy_handler;
 #endif
 
 public:
