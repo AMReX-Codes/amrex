@@ -572,9 +572,6 @@ public:
     //
     const CPC& getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVect& srcng,
                        const Periodicity& period, bool to_ghost_cells_only = false) const;
-    //
-    void flushCPC (bool no_assertion=false) const;      //!< This flushes its own CPC.
-    static void flushCPCache (); //!< This flusheds the entire cache.
 
     //
     //! Rotate Boundary by 90
@@ -725,8 +722,11 @@ public:
 
 private:
 
-    void flushFB (bool no_assertion=false) const;       //!< This flushes its own FB.
+    void flushFB (bool no_assertion=false) const; //!< This flushes its own FB.
     static void flushFBCache (); //!< This flushes the entire cache.
+
+    void flushCPC (bool no_assertion=false) const; //!< This flushes its own CPC.
+    static void flushCPCache (); //!< This flusheds the entire cache.
 };
 
 namespace detail {
