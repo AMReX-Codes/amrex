@@ -750,7 +750,7 @@ auto
 FabArray<FAB>::get_send_copy_tag_vector (Vector<char*> const& send_data,
                                          Vector<std::size_t> const& send_size,
                                          Vector<CopyComTagsContainer const*> const& send_cctc,
-                                         int ncomp) const
+                                         int ncomp, bool called_by_pc) const
     -> TagVector<CommSendBufTag<value_type>> const*
 {
     using TagType = CommSendBufTag<value_type>;
@@ -763,16 +763,11 @@ FabArray<FAB>::get_send_copy_tag_vector (Vector<char*> const& send_data,
 
     auto key = std::make_pair(*kit, std::make_pair(sizeof(BUF),ncomp));
 
-    TagVector<TagType>* tv;
-    if (auto it = m_send_copy_handler.find(key); it != m_send_copy_handler.end()) {
-        tv = it->second;
-    } else {
-        const int N_snds = send_data.size();
+    auto get_tags = [&] () -> Vector<TagType>
+    {
         Vector<TagType> snd_copy_tags;
-        snd_copy_tags.reserve(N_snds);
-
         char* pbuf = send_data[0];
-
+        const int N_snds = send_data.size();
         for (int j = 0; j < N_snds; ++j)
         {
             if (send_size[j] > 0)
@@ -787,19 +782,24 @@ FabArray<FAB>::get_send_copy_tag_vector (Vector<char*> const& send_data,
                 }
             }
         }
+        return snd_copy_tags;
+    };
 
-        if (m_send_copy_handler.size() > 64) {
-            // Just in case. If this is used in ParallelCopy, it's possible
-            // that the sendinging FabArray is the same, but the receiving
-            // FabArray is different everytime. Then the size of this map
-            // could increase indefinitely.
-            Gpu::streamSynchronize();
-            for (auto& [k,v] : m_send_copy_handler) {
-                delete v;
+    TagVector<TagType>* tv;
+
+    if (auto it = m_send_copy_handler.find(key); it != m_send_copy_handler.end()) {
+        tv = it->second;
+        if (called_by_pc) {
+            auto snd_copy_tags = get_tags();
+            if (*tv != snd_copy_tags) {
+                delete tv;
+                m_send_copy_handler.erase(it);
+                tv = new TagVector<TagType>(snd_copy_tags);
+                m_send_copy_handler[key] = tv;
             }
-            m_send_copy_handler.clear();
         }
-
+    } else {
+        auto snd_copy_tags = get_tags();
         tv = new TagVector<TagType>(snd_copy_tags);
         m_send_copy_handler[key] = tv;
     }
@@ -813,15 +813,16 @@ void
 FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
                                      Vector<char*> const& send_data,
                                      Vector<std::size_t> const& send_size,
-                                     Vector<CopyComTagsContainer const*> const& send_cctc)
+                                     Vector<CopyComTagsContainer const*> const& send_cctc,
+                                     bool called_by_pc)
 {
     const int N_snds = send_data.size();
     if (N_snds == 0) { return; }
 
     using TagType = CommSendBufTag<value_type>;
 
-    auto* tv = src.template get_send_copy_tag_vector<BUF>(send_data, send_size,
-                                                          send_cctc, ncomp);
+    auto* tv = src.template get_send_copy_tag_vector<BUF>
+        (send_data, send_size, send_cctc, ncomp, called_by_pc);
     if (tv == nullptr) { return; }
 
     char* pbuffer = send_data[0];
@@ -851,7 +852,7 @@ auto
 FabArray<FAB>::get_recv_copy_tag_vector (Vector<char*> const& recv_data,
                                          Vector<std::size_t> const& recv_size,
                                          Vector<CopyComTagsContainer const*> const& recv_cctc,
-                                         int ncomp)
+                                         int ncomp, bool called_by_pc)
     -> TagVector<CommRecvBufTag<value_type>> const*
 {
     using TagType = CommRecvBufTag<value_type>;
@@ -864,16 +865,11 @@ FabArray<FAB>::get_recv_copy_tag_vector (Vector<char*> const& recv_data,
 
     auto key = std::make_pair(*kit, std::make_pair(sizeof(BUF),ncomp));
 
-    TagVector<TagType>* tv;
-    if (auto it = m_recv_copy_handler.find(key); it != m_recv_copy_handler.end()) {
-        tv = it->second;
-    } else {
-        const int N_rcvs = recv_cctc.size();
+    auto get_tags = [&] () -> Vector<TagType>
+    {
         Vector<TagType> recv_copy_tags;
-        recv_copy_tags.reserve(N_rcvs);
-
         char* pbuf = recv_data[0];
-
+        const int N_rcvs = recv_cctc.size();
         for (int k = 0; k < N_rcvs; ++k)
         {
             if (recv_size[k] > 0)
@@ -889,19 +885,24 @@ FabArray<FAB>::get_recv_copy_tag_vector (Vector<char*> const& recv_data,
                 }
             }
         }
+        return recv_copy_tags;
+    };
 
-        if (m_recv_copy_handler.size() > 64) {
-            // Just in case. If this is used in ParallelCopy, it's possible
-            // that the receiving FabArray is the same, but the sending
-            // FabArray is different everytime. Then the size of this map
-            // could increase indefinitely.
-            Gpu::streamSynchronize();
-            for (auto& [k,v] : m_recv_copy_handler) {
-                delete v;
+    TagVector<TagType>* tv;
+
+    if (auto it = m_recv_copy_handler.find(key); it != m_recv_copy_handler.end()) {
+        tv = it->second;
+        if (called_by_pc) {
+            auto recv_copy_tags = get_tags();
+            if (*tv != recv_copy_tags) {
+                delete tv;
+                m_recv_copy_handler.erase(it);
+                tv = new TagVector<TagType>(recv_copy_tags);
+                m_recv_copy_handler[key] = tv;
             }
-            m_recv_copy_handler.clear();
         }
-
+    } else {
+        auto recv_copy_tags = get_tags();
         tv = new TagVector<TagType>(recv_copy_tags);
         m_recv_copy_handler[key] = tv;
     }
@@ -916,7 +917,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                        Vector<char*> const& recv_data,
                                        Vector<std::size_t> const& recv_size,
                                        Vector<CopyComTagsContainer const*> const& recv_cctc,
-                                       CpOp op, bool is_thread_safe)
+                                       CpOp op, bool is_thread_safe, bool called_by_pc)
 {
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) { return; }
@@ -931,8 +932,8 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     }
 
     using TagType = CommRecvBufTag<value_type>;
-    auto* tv = dst.template get_recv_copy_tag_vector<BUF>(recv_data, recv_size,
-                                                          recv_cctc, ncomp);
+    auto* tv = dst.template get_recv_copy_tag_vector<BUF>
+        (recv_data, recv_size, recv_cctc, ncomp, called_by_pc);
     if (tv == nullptr) { return; }
 
     char* pbuffer = recv_data[0];

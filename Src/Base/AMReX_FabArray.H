@@ -1275,28 +1275,30 @@ public:
     static void pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
                                       Vector<char*> const& send_data,
                                       Vector<std::size_t> const& send_size,
-                                      Vector<const CopyComTagsContainer*> const& send_cctc);
+                                      Vector<const CopyComTagsContainer*> const& send_cctc,
+                                      bool called_by_pc = false);
 
     template <typename BUF = value_type>
     static void unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                         Vector<char*> const& recv_data,
                                         Vector<std::size_t> const& recv_size,
                                         Vector<const CopyComTagsContainer*> const& recv_cctc,
-                                        CpOp op, bool is_thread_safe);
+                                        CpOp op, bool is_thread_safe,
+                                        bool called_by_pc = false);
 
     template <typename BUF>
     TagVector<CommRecvBufTag<value_type>> const*
     get_recv_copy_tag_vector (Vector<char*> const& recv_data,
                               Vector<std::size_t> const& recv_size,
                               Vector<CopyComTagsContainer const*> const& recv_cctc,
-                              int ncomp);
+                              int ncomp, bool called_by_pc);
 
     template <typename BUF>
     TagVector<CommSendBufTag<value_type>> const*
     get_send_copy_tag_vector (Vector<char*> const& send_data,
                               Vector<std::size_t> const& send_size,
                               Vector<CopyComTagsContainer const*> const& send_cctc,
-                              int ncomp) const;
+                              int ncomp, bool called_by_pc) const;
 
 #endif
 
