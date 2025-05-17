@@ -129,14 +129,18 @@ void swapParticle (const ParticleTileData<T_ParticleType, NAR, NAI>& dst,
     } else {
         amrex::Swap(src.m_aos[src_i], dst.m_aos[dst_i]);
     }
+    if constexpr (NAR > 0) {
     for (int j = 0; j < NAR; ++j) {
         amrex::Swap(dst.m_rdata[j][dst_i], src.m_rdata[j][src_i]);
+    }
     }
     for (int j = 0; j < dst.m_num_runtime_real; ++j) {
         amrex::Swap(dst.m_runtime_rdata[j][dst_i], src.m_runtime_rdata[j][src_i]);
     }
+    if constexpr (NAI > 0) {
     for (int j = 0; j < NAI; ++j) {
         amrex::Swap(dst.m_idata[j][dst_i], src.m_idata[j][src_i]);
+    }
     }
     for (int j = 0; j < dst.m_num_runtime_int; ++j) {
         amrex::Swap(dst.m_runtime_idata[j][dst_i], src.m_runtime_idata[j][src_i]);

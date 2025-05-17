@@ -22,32 +22,40 @@ namespace
 
 void
 iMultiFab::Add (iMultiFab&       dst,
-               const iMultiFab& src,
-               int             srccomp,
-               int             dstcomp,
-               int             numcomp,
-               int             nghost)
+                const iMultiFab& src,
+                int              srccomp,
+                int              dstcomp,
+                int              numcomp,
+                int              nghost)
+{
+    iMultiFab::Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+iMultiFab::Add (iMultiFab&       dst,
+                const iMultiFab& src,
+                int              srccomp,
+                int              dstcomp,
+                int              numcomp,
+                const IntVect&   nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
-    amrex::Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    BL_PROFILE("iMultiFab::Add()");
+    amrex::Add(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
 void
 iMultiFab::Copy (iMultiFab&       dst,
-                const iMultiFab& src,
-                int             srccomp,
-                int             dstcomp,
-                int             numcomp,
-                int             nghost)
+                 const iMultiFab& src,
+                 int              srccomp,
+                 int              dstcomp,
+                 int              numcomp,
+                 int              nghost)
 {
-    BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
-
-    amrex::Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    iMultiFab::Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 void
@@ -59,53 +67,107 @@ iMultiFab::Copy (iMultiFab& dst, const iMultiFab& src,
     BL_ASSERT(dst.nGrowVect().allGE(nghost));
 
     BL_PROFILE("iMultiFab::Copy()");
-
     amrex::Copy(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
 void
-iMultiFab::Subtract (iMultiFab&       dst,
-                    const iMultiFab& src,
-                    int             srccomp,
-                    int             dstcomp,
-                    int             numcomp,
-                    int             nghost)
+iMultiFab::Swap (iMultiFab& dst, iMultiFab& src,
+                int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Swap(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+iMultiFab::Swap (iMultiFab& dst, iMultiFab& src,
+                int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
-    amrex::Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    BL_PROFILE("iMultiFab::Swap()");
+    amrex::Swap(dst,src,srccomp,dstcomp,numcomp,nghost);
+}
+
+void
+iMultiFab::Subtract (iMultiFab&       dst,
+                     const iMultiFab& src,
+                     int              srccomp,
+                     int              dstcomp,
+                     int              numcomp,
+                     int              nghost)
+{
+    iMultiFab::Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+iMultiFab::Subtract (iMultiFab&       dst,
+                     const iMultiFab& src,
+                     int              srccomp,
+                     int              dstcomp,
+                     int              numcomp,
+                     const IntVect&   nghost)
+{
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("iMultiFab::Subtract()");
+    amrex::Subtract(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
 void
 iMultiFab::Multiply (iMultiFab&       dst,
-                    const iMultiFab& src,
-                    int             srccomp,
-                    int             dstcomp,
-                    int             numcomp,
-                    int             nghost)
+                     const iMultiFab& src,
+                     int              srccomp,
+                     int              dstcomp,
+                     int              numcomp,
+                     int              nghost)
+{
+    iMultiFab::Multiply(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+iMultiFab::Multiply (iMultiFab&       dst,
+                     const iMultiFab& src,
+                     int              srccomp,
+                     int              dstcomp,
+                     int              numcomp,
+                     const IntVect&   nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
-    amrex::Multiply(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    BL_PROFILE("iMultiFab::Multiply()");
+    amrex::Multiply(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
 void
 iMultiFab::Divide (iMultiFab&       dst,
-                  const iMultiFab& src,
-                  int             srccomp,
-                  int             dstcomp,
-                  int             numcomp,
-                  int             nghost)
+                   const iMultiFab& src,
+                   int              srccomp,
+                   int              dstcomp,
+                   int              numcomp,
+                   int              nghost)
+{
+    iMultiFab::Divide(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+iMultiFab::Divide (iMultiFab&       dst,
+                   const iMultiFab& src,
+                   int              srccomp,
+                   int              dstcomp,
+                   int              numcomp,
+                   const IntVect&   nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
-    amrex::Divide(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    BL_PROFILE("iMultiFab::Divide()");
+    amrex::Divide(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
 void

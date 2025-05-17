@@ -7,6 +7,8 @@
 
 #include "AMReX_PlotFileUtil.H"
 
+using namespace amrex;
+
 void MyMain();
 
 int main(int argc, char** argv) {
@@ -23,8 +25,6 @@ int main(int argc, char** argv) {
     MPI_Finalize();
 #endif
 }
-
-using namespace amrex;
 
 enum idirs { ix, iy };
 enum num_components { three_components = 3 };

@@ -371,11 +371,10 @@ public:
         using ReduceTuple = typename D::Type;
         const int nboxes = mf.local_size();
         if (nboxes > 0) {
-            auto const& parforinfo = mf.getParForInfo(nghost,AMREX_GPU_MAX_THREADS);
-            auto par_for_blocks = parforinfo.getBlocks();
-            const int nblocks = par_for_blocks.first[nboxes];
-            const int block_0_size = par_for_blocks.first[1];
-            const int* dp_nblocks = par_for_blocks.second;
+            auto const& parforinfo = mf.getParForInfo(nghost);
+            auto nblocks_per_box = parforinfo.getNBlocksPerBox(AMREX_GPU_MAX_THREADS);
+            AMREX_ASSERT(Long(nblocks_per_box)*Long(nboxes) < Long(std::numeric_limits<int>::max()));
+            const int nblocks = nblocks_per_box * nboxes;
             const BoxIndexer* dp_boxes = parforinfo.getBoxes();
 
             auto const& stream = Gpu::gpuStream();
@@ -406,15 +405,8 @@ public:
                     dst = r;
                 }
                 for (int iblock = blockIdx.x; iblock < nblocks; iblock += nblocks_ec) {
-                    int ibox;
-                    std::uint64_t icell;
-                    if (dp_nblocks) {
-                        ibox = amrex::bisect(dp_nblocks, 0, nboxes, iblock);
-                        icell = std::uint64_t(iblock-dp_nblocks[ibox])*AMREX_GPU_MAX_THREADS + threadIdx.x;
-                    } else {
-                        ibox = iblock / block_0_size;
-                        icell = std::uint64_t(iblock-ibox*block_0_size)*AMREX_GPU_MAX_THREADS + threadIdx.x;
-                    }
+                    int ibox = iblock / nblocks_per_box;
+                    auto icell = std::uint64_t(iblock-ibox*nblocks_per_box)*AMREX_GPU_MAX_THREADS + threadIdx.x;
 
                     BoxIndexer const& indexer = dp_boxes[ibox];
                     if (icell < indexer.numPts()) {

@@ -188,7 +188,7 @@ public:
     static std::size_t align (std::size_t sz);
 
     static void Initialize (bool minimal);
-    static void PrintUsage ();
+    static void PrintUsage (bool print_max_usage=false);
     static void PrintUsageToFiles (std::string const& filename, std::string const& message);
     static void Finalize ();
 
@@ -209,6 +209,8 @@ public:
      *  \brief Return the ArenaInfo object for querying
      */
     [[nodiscard]] const ArenaInfo& arenaInfo () const { return arena_info; }
+
+    virtual void ResetMaxUsageCounter () {}
 
 protected:
 
