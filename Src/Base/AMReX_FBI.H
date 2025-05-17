@@ -61,14 +61,14 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
             sycl::nd_item<1> const& /*item*/,
 #endif
             int icell, int ncells, int i, int j, int k, Array4CopyTag<T0, T1> const& tag) noexcept
-        {
-            if (icell < ncells) {
-                for (int n = 0; n < ncomp; ++n) {
-                    f(&(tag.dfab(i,j,k,n+dcomp)),
-                      tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
-                }
+    {
+        if (icell < ncells) {
+            for (int n = 0; n < ncomp; ++n) {
+                f(&(tag.dfab(i,j,k,n+dcomp)),
+                  tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
             }
-        });
+        }
+    });
 }
 
 template <class T0, class T1, class F>
@@ -336,15 +336,15 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
             sycl::nd_item<1> const& /*item*/,
 #endif
             int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
-        {
-            if (icell < ncells) {
-                for (int n = 0; n < ncomp; ++n) {
-                    tag.dfab(i,j,k,n+scomp) = tag.sfab(i+tag.offset.x,
-                                                       j+tag.offset.y,
-                                                       k+tag.offset.z,n+scomp);
-                }
+    {
+        if (icell < ncells) {
+            for (int n = 0; n < ncomp; ++n) {
+                tag.dfab(i,j,k,n+scomp) = tag.sfab(i+tag.offset.x,
+                                                   j+tag.offset.y,
+                                                   k+tag.offset.z,n+scomp);
             }
-        });
+        }
+    });
 }
 
 template <class FAB>
@@ -832,18 +832,18 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
             sycl::nd_item<1> const& /*item*/,
 #endif
             int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
-        {
-            if (icell < ncells) {
-                Array4<BUF> dfab{reinterpret_cast<BUF*>
-                    (pbuffer + reinterpret_cast<std::intptr_t>(tag.dfab.p)),
-                    tag.dfab.begin, tag.dfab.end, tag.dfab.ncomp};
-                for (int n = 0; n < dfab.ncomp; ++n) {
-                    dfab(i,j,k,n) = (BUF)tag.sfab(i+tag.offset.x,
-                                                  j+tag.offset.y,
-                                                  k+tag.offset.z,n+scomp);
-                }
+    {
+        if (icell < ncells) {
+            Array4<BUF> dfab{reinterpret_cast<BUF*>
+                (pbuffer + reinterpret_cast<std::intptr_t>(tag.dfab.p)),
+                tag.dfab.begin, tag.dfab.end, tag.dfab.ncomp};
+            for (int n = 0; n < dfab.ncomp; ++n) {
+                dfab(i,j,k,n) = (BUF)tag.sfab(i+tag.offset.x,
+                                              j+tag.offset.y,
+                                              k+tag.offset.z,n+scomp);
             }
-        });
+        }
+    });
 
     Gpu::streamSynchronize();
 }
@@ -949,16 +949,16 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                 sycl::nd_item<1> const& /*item*/,
 #endif
                 int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
-            {
-                if (icell < ncells) {
-                    Array4<BUF const> sfab{reinterpret_cast<BUF const*>
-                        (pbuffer + reinterpret_cast<std::intptr_t>(tag.sfab.p)),
-                        tag.sfab.begin, tag.sfab.end, tag.sfab.ncomp};
-                    for (int n = 0; n < sfab.ncomp; ++n) {
-                        tag.dfab(i,j,k,n+dcomp) = (value_type)sfab(i,j,k,n);
-                    }
+        {
+            if (icell < ncells) {
+                Array4<BUF const> sfab{reinterpret_cast<BUF const*>
+                    (pbuffer + reinterpret_cast<std::intptr_t>(tag.sfab.p)),
+                    tag.sfab.begin, tag.sfab.end, tag.sfab.ncomp};
+                for (int n = 0; n < sfab.ncomp; ++n) {
+                    tag.dfab(i,j,k,n+dcomp) = (value_type)sfab(i,j,k,n);
                 }
-            });
+            }
+        });
     }
     else
     {
@@ -969,23 +969,24 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     sycl::nd_item<1> const& /*item*/,
 #endif
                     int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
-                {
-                    if (icell < ncells) {
-                        Array4<BUF const> sfab{reinterpret_cast<BUF const*>
-                            (pbuffer + reinterpret_cast<std::intptr_t>(tag.sfab.p)),
-                            tag.sfab.begin, tag.sfab.end, tag.sfab.ncomp};
-                        for (int n = 0; n < sfab.ncomp; ++n) {
-                            tag.dfab(i,j,k,n+dcomp) += (value_type)sfab(i,j,k,n);
-                        }
+            {
+                if (icell < ncells) {
+                    Array4<BUF const> sfab{reinterpret_cast<BUF const*>
+                        (pbuffer + reinterpret_cast<std::intptr_t>(tag.sfab.p)),
+                        tag.sfab.begin, tag.sfab.end, tag.sfab.ncomp};
+                    for (int n = 0; n < sfab.ncomp; ++n) {
+                        tag.dfab(i,j,k,n+dcomp) += (value_type)sfab(i,j,k,n);
                     }
-                });
+                }
+            });
         } else {
-            detail::ParallelFor_doit(*tv,
-                [=] AMREX_GPU_DEVICE (
+            if constexpr (amrex::HasAtomicAdd<value_type>::value) {
+                detail::ParallelFor_doit(*tv,
+                    [=] AMREX_GPU_DEVICE (
 #ifdef AMREX_USE_SYCL
-                    sycl::nd_item<1> const& /*item*/,
+                        sycl::nd_item<1> const& /*item*/,
 #endif
-                    int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
+                        int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
                 {
                     if (icell < ncells) {
                         Array4<BUF const> sfab{reinterpret_cast<BUF const*>
@@ -997,6 +998,9 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                         }
                     }
                 });
+            } else {
+                amrex::Abort("unpack_recv_buffer_gpu: shoule NOT get here");
+            }
         }
     }
 
