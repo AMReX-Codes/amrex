@@ -999,7 +999,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     }
                 });
             } else {
-                amrex::Abort("unpack_recv_buffer_gpu: shoule NOT get here");
+                amrex::Abort("unpack_recv_buffer_gpu: should NOT get here");
             }
         }
     }
