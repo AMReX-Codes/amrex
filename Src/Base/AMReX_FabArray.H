@@ -1285,14 +1285,14 @@ public:
                                         CpOp op, bool is_thread_safe);
 
     template <typename BUF>
-    TagVector<Array4CopyTag<value_type,char>> const*
+    TagVector<CommRecvBufTag<value_type>> const*
     get_recv_copy_tag_vector (Vector<char*> const& recv_data,
                               Vector<std::size_t> const& recv_size,
                               Vector<CopyComTagsContainer const*> const& recv_cctc,
                               int ncomp);
 
     template <typename BUF>
-    TagVector<Array4CopyTag<char,value_type>> const*
+    TagVector<CommSendBufTag<value_type>> const*
     get_send_copy_tag_vector (Vector<char*> const& send_data,
                               Vector<std::size_t> const& send_size,
                               Vector<CopyComTagsContainer const*> const& send_cctc,
@@ -1434,7 +1434,7 @@ private:
 
 #ifdef AMREX_USE_GPU
     std::map<CopyComTagsContainer const*, TagVector<Array4CopyTag<value_type>>*,
-             std::less<>> m_local_copy_handler;
+             std::less<>> m_fb_local_copy_handler;
 
     using RecvSendCopyHandlerKey = std::pair<CopyComTagsContainer const*,
                                              std::pair<std::size_t,int>>;
@@ -1446,9 +1446,9 @@ private:
                 ((a.first == b.first) && (a.second < b.second));
         }
     };
-    std::map<RecvSendCopyHandlerKey, TagVector<Array4CopyTag<value_type,char>>*,
+    std::map<RecvSendCopyHandlerKey, TagVector<CommRecvBufTag<value_type>>*,
              RecvSendCopyHandlerCompare> m_recv_copy_handler;
-    mutable std::map<RecvSendCopyHandlerKey, TagVector<Array4CopyTag<char,value_type>>*,
+    mutable std::map<RecvSendCopyHandlerKey, TagVector<CommSendBufTag<value_type>>*,
                      RecvSendCopyHandlerCompare> m_send_copy_handler;
 #endif
 
@@ -1816,10 +1816,10 @@ FabArray<FAB>::clear ()
     m_tags.clear();
 
 #ifdef AMREX_USE_GPU
-    for (auto& [k,v] : m_local_copy_handler) {
+    for (auto& [k,v] : m_fb_local_copy_handler) {
         delete v;
     }
-    m_local_copy_handler.clear();
+    m_fb_local_copy_handler.clear();
     for (auto& [k,v] : m_recv_copy_handler) {
         delete v;
     }
@@ -1966,7 +1966,7 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     , m_tags       (std::move(rhs.m_tags))
     , shmem        (std::move(rhs.shmem))
 #ifdef AMREX_USE_GPU
-    , m_local_copy_handler(std::move(rhs.m_local_copy_handler))
+    , m_fb_local_copy_handler(std::move(rhs.m_fb_local_copy_handler))
     , m_recv_copy_handler(std::move(rhs.m_recv_copy_handler))
     , m_send_copy_handler(std::move(rhs.m_send_copy_handler))
 #endif
@@ -1976,7 +1976,7 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     rhs.define_function_called = false; // the responsibility of clear BD has been transferred.
     rhs.m_fabs_v.clear(); // clear the data pointers so that rhs.clear does not delete them.
 #ifdef AMREX_USE_GPU
-    rhs.m_local_copy_handler.clear(); // clear pointers so that rhs.clear does not delete them
+    rhs.m_fb_local_copy_handler.clear(); // clear pointers so that rhs.clear does not delete them
     rhs.m_recv_copy_handler.clear();
     rhs.m_send_copy_handler.clear();
 #endif
@@ -2007,7 +2007,7 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         std::swap(m_tags, rhs.m_tags);
         shmem = std::move(rhs.shmem);
 #ifdef AMREX_USE_GPU
-        std::swap(m_local_copy_handler, rhs.m_local_copy_handler);
+        std::swap(m_fb_local_copy_handler, rhs.m_fb_local_copy_handler);
         std::swap(m_recv_copy_handler, rhs.m_recv_copy_handler);
         std::swap(m_send_copy_handler, rhs.m_send_copy_handler);
 #endif
@@ -2016,7 +2016,7 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         rhs.m_fabs_v.clear();
         rhs.m_tags.clear();
 #ifdef AMREX_USE_GPU
-        rhs.m_local_copy_handler.clear();
+        rhs.m_fb_local_copy_handler.clear();
         rhs.m_recv_copy_handler.clear();
         rhs.m_send_copy_handler.clear();
 #endif

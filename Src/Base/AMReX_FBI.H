@@ -281,8 +281,8 @@ auto FabArray<FAB>::FB_get_local_copy_tag_vector (const FB& TheFB)
     using TagType = Array4CopyTag<value_type>;
 
     TagVector<TagType>* tv;
-    if (auto it = m_local_copy_handler.find(TheFB.m_LocTags.get());
-        it != m_local_copy_handler.end())
+    if (auto it = m_fb_local_copy_handler.find(TheFB.m_LocTags.get());
+        it != m_fb_local_copy_handler.end())
     {
         tv = it->second;
     } else {
@@ -307,7 +307,7 @@ auto FabArray<FAB>::FB_get_local_copy_tag_vector (const FB& TheFB)
         tv = new TagVector<TagType>(loc_copy_tags);
         // Note that during the lifetime of this FabArray LocTags's pointer
         // is stable.
-        m_local_copy_handler[TheFB.m_LocTags.get()] = tv;
+        m_fb_local_copy_handler[TheFB.m_LocTags.get()] = tv;
     }
 
     return tv;
@@ -751,9 +751,9 @@ FabArray<FAB>::get_send_copy_tag_vector (Vector<char*> const& send_data,
                                          Vector<std::size_t> const& send_size,
                                          Vector<CopyComTagsContainer const*> const& send_cctc,
                                          int ncomp) const
-    -> TagVector<Array4CopyTag<char,value_type>> const*
+    -> TagVector<CommSendBufTag<value_type>> const*
 {
-    using TagType = Array4CopyTag<char,value_type>;
+    using TagType = CommSendBufTag<value_type>;
 
     auto kit = std::find_if(send_cctc.begin(), send_cctc.end(),
                             [] (CopyComTagsContainer const* p) { return p != nullptr; });
@@ -771,21 +771,18 @@ FabArray<FAB>::get_send_copy_tag_vector (Vector<char*> const& send_data,
         Vector<TagType> snd_copy_tags;
         snd_copy_tags.reserve(N_snds);
 
+        char* pbuf = send_data[0];
+
         for (int j = 0; j < N_snds; ++j)
         {
             if (send_size[j] > 0)
             {
-                std::intptr_t offset = send_data[j]-send_data[0];
-                auto* dptr = reinterpret_cast<char*>(offset);
+                char* dptr = send_data[j];
                 auto const& cctc = *send_cctc[j];
                 for (auto const& tag : cctc)
                 {
-                    snd_copy_tags.emplace_back(TagType{
-                            amrex::makeArray4(dptr, tag.sbox, ncomp),
-                            this->array(tag.srcIndex),
-                            tag.sbox,
-                            Dim3{0,0,0}
-                        });
+                    snd_copy_tags.emplace_back
+                        (TagType{this->const_array(tag.srcIndex), dptr-pbuf, tag.sbox});
                     dptr += (tag.sbox.numPts() * ncomp * sizeof(BUF));
                 }
             }
@@ -793,7 +790,9 @@ FabArray<FAB>::get_send_copy_tag_vector (Vector<char*> const& send_data,
 
         if (m_send_copy_handler.size() > 64) {
             // Just in case. If this is used in ParallelCopy, it's possible
-            // that the size of this map may increase indefinitely.
+            // that the sendinging FabArray is the same, but the receiving
+            // FabArray is different everytime. Then the size of this map
+            // could increase indefinitely.
             Gpu::streamSynchronize();
             for (auto& [k,v] : m_send_copy_handler) {
                 delete v;
@@ -819,12 +818,13 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
     const int N_snds = send_data.size();
     if (N_snds == 0) { return; }
 
-    char* pbuffer = send_data[0];
-    using TagType = Array4CopyTag<char, value_type>;
+    using TagType = CommSendBufTag<value_type>;
 
     auto* tv = src.template get_send_copy_tag_vector<BUF>(send_data, send_size,
                                                           send_cctc, ncomp);
     if (tv == nullptr) { return; }
+
+    char* pbuffer = send_data[0];
 
     detail::ParallelFor_doit(*tv,
         [=] AMREX_GPU_DEVICE (
@@ -834,13 +834,10 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
             int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
     {
         if (icell < ncells) {
-            Array4<BUF> dfab{reinterpret_cast<BUF*>
-                (pbuffer + reinterpret_cast<std::intptr_t>(tag.dfab.p)),
-                tag.dfab.begin, tag.dfab.end, tag.dfab.ncomp};
-            for (int n = 0; n < dfab.ncomp; ++n) {
-                dfab(i,j,k,n) = (BUF)tag.sfab(i+tag.offset.x,
-                                              j+tag.offset.y,
-                                              k+tag.offset.z,n+scomp);
+            Array4<BUF> dfab{(BUF*)(pbuffer+tag.poff),
+                amrex::begin(tag.bx), amrex::end(tag.bx), ncomp};
+            for (int n = 0; n < ncomp; ++n) {
+                dfab(i,j,k,n) = (BUF)tag.sfab(i,j,k,n+scomp);
             }
         }
     });
@@ -855,9 +852,9 @@ FabArray<FAB>::get_recv_copy_tag_vector (Vector<char*> const& recv_data,
                                          Vector<std::size_t> const& recv_size,
                                          Vector<CopyComTagsContainer const*> const& recv_cctc,
                                          int ncomp)
-    -> TagVector<Array4CopyTag<value_type,char>> const*
+    -> TagVector<CommRecvBufTag<value_type>> const*
 {
-    using TagType = Array4CopyTag<value_type,char>;
+    using TagType = CommRecvBufTag<value_type>;
 
     auto kit = std::find_if(recv_cctc.begin(), recv_cctc.end(),
                             [] (CopyComTagsContainer const* p) { return p != nullptr; });
@@ -875,22 +872,19 @@ FabArray<FAB>::get_recv_copy_tag_vector (Vector<char*> const& recv_data,
         Vector<TagType> recv_copy_tags;
         recv_copy_tags.reserve(N_rcvs);
 
+        char* pbuf = recv_data[0];
+
         for (int k = 0; k < N_rcvs; ++k)
         {
             if (recv_size[k] > 0)
             {
-                std::intptr_t offset = recv_data[k]-recv_data[0];
-                auto* dptr = reinterpret_cast<char const*>(offset);
+                char* dptr = recv_data[k];
                 auto const& cctc = *recv_cctc[k];
                 for (auto const& tag : cctc)
                 {
                     const int li = this->localindex(tag.dstIndex);
-                    recv_copy_tags.emplace_back(TagType{
-                            this->atLocalIdx(li).array(),
-                            amrex::makeArray4(dptr, tag.dbox, ncomp),
-                            tag.dbox,
-                            Dim3{0,0,0}
-                        });
+                    recv_copy_tags.emplace_back
+                        (TagType{this->atLocalIdx(li).array(), dptr-pbuf, tag.dbox});
                     dptr += tag.dbox.numPts() * ncomp * sizeof(BUF);
                 }
             }
@@ -898,7 +892,9 @@ FabArray<FAB>::get_recv_copy_tag_vector (Vector<char*> const& recv_data,
 
         if (m_recv_copy_handler.size() > 64) {
             // Just in case. If this is used in ParallelCopy, it's possible
-            // that the size of this map may increase indefinitely.
+            // that the receiving FabArray is the same, but the sending
+            // FabArray is different everytime. Then the size of this map
+            // could increase indefinitely.
             Gpu::streamSynchronize();
             for (auto& [k,v] : m_recv_copy_handler) {
                 delete v;
@@ -934,12 +930,12 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
         }
     }
 
-    char* pbuffer = recv_data[0];
-    using TagType = Array4CopyTag<value_type, char>;
-
+    using TagType = CommRecvBufTag<value_type>;
     auto* tv = dst.template get_recv_copy_tag_vector<BUF>(recv_data, recv_size,
                                                           recv_cctc, ncomp);
     if (tv == nullptr) { return; }
+
+    char* pbuffer = recv_data[0];
 
     if (op == FabArrayBase::COPY)
     {
@@ -951,10 +947,9 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                 int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
         {
             if (icell < ncells) {
-                Array4<BUF const> sfab{reinterpret_cast<BUF const*>
-                    (pbuffer + reinterpret_cast<std::intptr_t>(tag.sfab.p)),
-                    tag.sfab.begin, tag.sfab.end, tag.sfab.ncomp};
-                for (int n = 0; n < sfab.ncomp; ++n) {
+                Array4<BUF const> sfab{(BUF const*)(pbuffer+tag.poff),
+                    amrex::begin(tag.bx), amrex::end(tag.bx), ncomp};
+                for (int n = 0; n < ncomp; ++n) {
                     tag.dfab(i,j,k,n+dcomp) = (value_type)sfab(i,j,k,n);
                 }
             }
@@ -971,10 +966,9 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
             {
                 if (icell < ncells) {
-                    Array4<BUF const> sfab{reinterpret_cast<BUF const*>
-                        (pbuffer + reinterpret_cast<std::intptr_t>(tag.sfab.p)),
-                        tag.sfab.begin, tag.sfab.end, tag.sfab.ncomp};
-                    for (int n = 0; n < sfab.ncomp; ++n) {
+                    Array4<BUF const> sfab{(BUF const*)(pbuffer+tag.poff),
+                        amrex::begin(tag.bx), amrex::end(tag.bx), ncomp};
+                    for (int n = 0; n < ncomp; ++n) {
                         tag.dfab(i,j,k,n+dcomp) += (value_type)sfab(i,j,k,n);
                     }
                 }
@@ -989,10 +983,9 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                         int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
                 {
                     if (icell < ncells) {
-                        Array4<BUF const> sfab{reinterpret_cast<BUF const*>
-                            (pbuffer + reinterpret_cast<std::intptr_t>(tag.sfab.p)),
-                            tag.sfab.begin, tag.sfab.end, tag.sfab.ncomp};
-                        for (int n = 0; n < sfab.ncomp; ++n) {
+                        Array4<BUF const> sfab{(BUF const*)(pbuffer+tag.poff),
+                            amrex::begin(tag.bx), amrex::end(tag.bx), ncomp};
+                        for (int n = 0; n < ncomp; ++n) {
                             Gpu::Atomic::AddNoRet(tag.dfab.ptr(i,j,k,n+dcomp),
                                                   (value_type)sfab(i,j,k,n));
                         }

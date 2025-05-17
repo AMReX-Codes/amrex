@@ -101,6 +101,26 @@ struct VectorTag {
     Long size () const noexcept { return m_size; }
 };
 
+template <class T>
+struct CommRecvBufTag { // for unpacking recv buffer
+    Array4<T> dfab;
+    std::ptrdiff_t poff;
+    Box bx;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box () const noexcept { return bx; }
+};
+
+template <class T>
+struct CommSendBufTag { // for packing send buffer
+    Array4<T const> sfab;
+    std::ptrdiff_t poff;
+    Box bx;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box () const noexcept { return bx; }
+};
+
 namespace detail {
 
     template <typename T>
