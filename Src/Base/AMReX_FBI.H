@@ -304,10 +304,10 @@ auto FabArray<FAB>::FB_get_local_copy_tag_vector (const FB& TheFB)
                   (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
         }
 
-       tv = new TagVector<TagType>(loc_copy_tags);
-       // Note that during the lifetime of this FabArray LocTags's pointer
-       // is stable.
-       m_local_copy_handler[TheFB.m_LocTags.get()] = tv;
+        tv = new TagVector<TagType>(loc_copy_tags);
+        // Note that during the lifetime of this FabArray LocTags's pointer
+        // is stable.
+        m_local_copy_handler[TheFB.m_LocTags.get()] = tv;
     }
 
     return tv;
