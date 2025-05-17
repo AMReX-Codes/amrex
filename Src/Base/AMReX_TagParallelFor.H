@@ -107,13 +107,6 @@ struct CommRecvBufTag { // for unpacking recv buffer
     std::ptrdiff_t poff;
     Box bx;
 
-    [[nodiscard]] bool operator== (CommRecvBufTag<T> const& other) const
-    {
-        return this->dfab == other.dfab
-            && this->poff == other.poff
-            && this->bx   == other.bx;
-    }
-
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return bx; }
 };
@@ -123,13 +116,6 @@ struct CommSendBufTag { // for packing send buffer
     Array4<T const> sfab;
     std::ptrdiff_t poff;
     Box bx;
-
-    [[nodiscard]] bool operator== (CommSendBufTag<T> const& other) const
-    {
-        return this->sfab == other.sfab
-            && this->poff == other.poff
-            && this->bx   == other.bx;
-    }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return bx; }
@@ -312,23 +298,6 @@ struct TagVector {
             nblocks = 0;
             defined = false;
         }
-    }
-
-    [[nodiscard]] bool operator== (Vector<TagType> const& other) const
-    {
-        bool r = (ntags == other.size()) && h_buffer;
-        if (r) {
-            auto* p = (TagType const*) h_buffer;
-            for (int i = 0; i < ntags && r; ++i) {
-                r = (p[i] == other[i]);
-            }
-        }
-        return r;
-    }
-
-    [[nodiscard]] bool operator!= (Vector<TagType> const& other) const
-    {
-        return ! (*this == other);
     }
 };
 

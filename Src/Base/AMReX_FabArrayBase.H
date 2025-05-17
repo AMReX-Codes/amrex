@@ -16,6 +16,7 @@
 #include <omp.h>
 #endif
 
+#include <cstdint>
 #include <ostream>
 #include <string>
 #include <utility>
@@ -490,6 +491,7 @@ public:
             bool enforce_periodicity_only, bool override_sync,
             bool multi_ghost);
 
+        std::uint64_t m_id = std::numeric_limits<std::uint64_t>::max();
         IndexType    m_typ;
         IntVect      m_crse_ratio; //!< BoxArray in FabArrayBase may have crse_ratio.
         IntVect      m_ngrow;
@@ -544,6 +546,7 @@ public:
 
         [[nodiscard]] Long bytes () const;
 
+        std::uint64_t m_id = std::numeric_limits<std::uint64_t>::max();
         BDKey       m_srcbdk;
         BDKey       m_dstbdk;
         IntVect     m_srcng;
@@ -719,6 +722,8 @@ public:
     static AMREX_EXPORT bool m_alloc_single_chunk;
 
     [[nodiscard]] static bool getAllocSingleChunk () { return m_alloc_single_chunk; }
+
+    [[nodiscard]] static std::uint64_t getNextCommMetaDataId ();
 
 private:
 

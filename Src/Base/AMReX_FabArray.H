@@ -1276,7 +1276,7 @@ public:
                                       Vector<char*> const& send_data,
                                       Vector<std::size_t> const& send_size,
                                       Vector<const CopyComTagsContainer*> const& send_cctc,
-                                      bool called_by_pc = false);
+                                      std::uint64_t id);
 
     template <typename BUF = value_type>
     static void unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
@@ -1284,21 +1284,21 @@ public:
                                         Vector<std::size_t> const& recv_size,
                                         Vector<const CopyComTagsContainer*> const& recv_cctc,
                                         CpOp op, bool is_thread_safe,
-                                        bool called_by_pc = false);
+                                        std::uint64_t id);
 
     template <typename BUF>
     TagVector<CommRecvBufTag<value_type>> const*
     get_recv_copy_tag_vector (Vector<char*> const& recv_data,
                               Vector<std::size_t> const& recv_size,
                               Vector<CopyComTagsContainer const*> const& recv_cctc,
-                              int ncomp, bool called_by_pc);
+                              int ncomp, std::uint64_t id);
 
     template <typename BUF>
     TagVector<CommSendBufTag<value_type>> const*
     get_send_copy_tag_vector (Vector<char*> const& send_data,
                               Vector<std::size_t> const& send_size,
                               Vector<CopyComTagsContainer const*> const& send_cctc,
-                              int ncomp, bool called_by_pc) const;
+                              int ncomp, std::uint64_t id) const;
 
 #endif
 
@@ -1435,23 +1435,17 @@ private:
     void clear_arrays ();
 
 #ifdef AMREX_USE_GPU
-    std::map<CopyComTagsContainer const*, TagVector<Array4CopyTag<value_type>>*,
-             std::less<>> m_fb_local_copy_handler;
+    std::map<std::uint64_t,
+             std::unique_ptr<TagVector<Array4CopyTag<value_type>>>>
+        m_fb_local_copy_handler;
 
-    using RecvSendCopyHandlerKey = std::pair<CopyComTagsContainer const*,
-                                             std::pair<std::size_t,int>>;
-    struct RecvSendCopyHandlerCompare {
-        bool operator() (RecvSendCopyHandlerKey const& a,
-                         RecvSendCopyHandlerKey const& b) const
-        {
-            return std::less<>{}(a.first, b.first) ||
-                ((a.first == b.first) && (a.second < b.second));
-        }
-    };
-    std::map<RecvSendCopyHandlerKey, TagVector<CommRecvBufTag<value_type>>*,
-             RecvSendCopyHandlerCompare> m_recv_copy_handler;
-    mutable std::map<RecvSendCopyHandlerKey, TagVector<CommSendBufTag<value_type>>*,
-                     RecvSendCopyHandlerCompare> m_send_copy_handler;
+    using RecvSendCopyHandlerKey = std::tuple<std::uint64_t,std::size_t,int>;
+    std::map<RecvSendCopyHandlerKey,
+             std::unique_ptr<TagVector<CommRecvBufTag<value_type>>>>
+        m_recv_copy_handler;
+    mutable std::map<RecvSendCopyHandlerKey,
+                     std::unique_ptr<TagVector<CommSendBufTag<value_type>>>>
+        m_send_copy_handler;
 #endif
 
 public:
@@ -1818,17 +1812,8 @@ FabArray<FAB>::clear ()
     m_tags.clear();
 
 #ifdef AMREX_USE_GPU
-    for (auto& [k,v] : m_fb_local_copy_handler) {
-        delete v;
-    }
     m_fb_local_copy_handler.clear();
-    for (auto& [k,v] : m_recv_copy_handler) {
-        delete v;
-    }
     m_recv_copy_handler.clear();
-    for (auto& [k,v] : m_send_copy_handler) {
-        delete v;
-    }
     m_send_copy_handler.clear();
 #endif
 
@@ -1977,11 +1962,6 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     m_FA_stats.recordBuild();
     rhs.define_function_called = false; // the responsibility of clear BD has been transferred.
     rhs.m_fabs_v.clear(); // clear the data pointers so that rhs.clear does not delete them.
-#ifdef AMREX_USE_GPU
-    rhs.m_fb_local_copy_handler.clear(); // clear pointers so that rhs.clear does not delete them
-    rhs.m_recv_copy_handler.clear();
-    rhs.m_send_copy_handler.clear();
-#endif
     rhs.clear();
 }
 
@@ -2017,11 +1997,6 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         rhs.define_function_called = false;
         rhs.m_fabs_v.clear();
         rhs.m_tags.clear();
-#ifdef AMREX_USE_GPU
-        rhs.m_fb_local_copy_handler.clear();
-        rhs.m_recv_copy_handler.clear();
-        rhs.m_send_copy_handler.clear();
-#endif
         rhs.clear();
     }
     return *this;

@@ -281,10 +281,10 @@ auto FabArray<FAB>::FB_get_local_copy_tag_vector (const FB& TheFB)
     using TagType = Array4CopyTag<value_type>;
 
     TagVector<TagType>* tv;
-    if (auto it = m_fb_local_copy_handler.find(TheFB.m_LocTags.get());
+    if (auto it = m_fb_local_copy_handler.find(TheFB.m_id);
         it != m_fb_local_copy_handler.end())
     {
-        tv = it->second;
+        tv = it->second.get();
     } else {
         Vector<TagType> loc_copy_tags;
         loc_copy_tags.reserve(N_locs);
@@ -304,10 +304,9 @@ auto FabArray<FAB>::FB_get_local_copy_tag_vector (const FB& TheFB)
                   (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
         }
 
-        tv = new TagVector<TagType>(loc_copy_tags);
-        // Note that during the lifetime of this FabArray LocTags's pointer
-        // is stable.
-        m_fb_local_copy_handler[TheFB.m_LocTags.get()] = tv;
+        auto utv = std::make_unique<TagVector<TagType>>(loc_copy_tags);
+        tv = utv.get();
+        m_fb_local_copy_handler[TheFB.m_id] = std::move(utv);
     }
 
     return tv;
@@ -750,7 +749,7 @@ auto
 FabArray<FAB>::get_send_copy_tag_vector (Vector<char*> const& send_data,
                                          Vector<std::size_t> const& send_size,
                                          Vector<CopyComTagsContainer const*> const& send_cctc,
-                                         int ncomp, bool called_by_pc) const
+                                         int ncomp, std::uint64_t id) const
     -> TagVector<CommSendBufTag<value_type>> const*
 {
     using TagType = CommSendBufTag<value_type>;
@@ -760,8 +759,6 @@ FabArray<FAB>::get_send_copy_tag_vector (Vector<char*> const& send_data,
     if (kit == send_cctc.end()) {
         return nullptr;
     }
-
-    auto key = std::make_pair(*kit, std::make_pair(sizeof(BUF),ncomp));
 
     auto get_tags = [&] () -> Vector<TagType>
     {
@@ -786,22 +783,22 @@ FabArray<FAB>::get_send_copy_tag_vector (Vector<char*> const& send_data,
     };
 
     TagVector<TagType>* tv;
+    std::tuple<std::uint64_t,std::size_t,int> key{id, sizeof(BUF), ncomp};
 
     if (auto it = m_send_copy_handler.find(key); it != m_send_copy_handler.end()) {
-        tv = it->second;
-        if (called_by_pc) {
-            auto snd_copy_tags = get_tags();
-            if (*tv != snd_copy_tags) {
-                delete tv;
-                m_send_copy_handler.erase(it);
-                tv = new TagVector<TagType>(snd_copy_tags);
-                m_send_copy_handler[key] = tv;
-            }
-        }
+        tv = it->second.get();
     } else {
+        if (m_send_copy_handler.size() > 64) {
+            // Just in case. If this is used in ParallelCopy, it's possible
+            // that the sending FabArray is the same, but the receiving
+            // FabArray is different everytime. Then the size of this map
+            // could increase indefinitely.
+            m_send_copy_handler.clear();
+        }
         auto snd_copy_tags = get_tags();
-        tv = new TagVector<TagType>(snd_copy_tags);
-        m_send_copy_handler[key] = tv;
+        auto utv = std::make_unique<TagVector<TagType>>(snd_copy_tags);
+        tv = utv.get();
+        m_send_copy_handler[key] = std::move(utv);
     }
 
     return tv;
@@ -814,7 +811,7 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
                                      Vector<char*> const& send_data,
                                      Vector<std::size_t> const& send_size,
                                      Vector<CopyComTagsContainer const*> const& send_cctc,
-                                     bool called_by_pc)
+                                     std::uint64_t id)
 {
     const int N_snds = send_data.size();
     if (N_snds == 0) { return; }
@@ -822,7 +819,7 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
     using TagType = CommSendBufTag<value_type>;
 
     auto* tv = src.template get_send_copy_tag_vector<BUF>
-        (send_data, send_size, send_cctc, ncomp, called_by_pc);
+        (send_data, send_size, send_cctc, ncomp, id);
     if (tv == nullptr) { return; }
 
     char* pbuffer = send_data[0];
@@ -852,7 +849,7 @@ auto
 FabArray<FAB>::get_recv_copy_tag_vector (Vector<char*> const& recv_data,
                                          Vector<std::size_t> const& recv_size,
                                          Vector<CopyComTagsContainer const*> const& recv_cctc,
-                                         int ncomp, bool called_by_pc)
+                                         int ncomp, std::uint64_t id)
     -> TagVector<CommRecvBufTag<value_type>> const*
 {
     using TagType = CommRecvBufTag<value_type>;
@@ -862,8 +859,6 @@ FabArray<FAB>::get_recv_copy_tag_vector (Vector<char*> const& recv_data,
     if (kit == recv_cctc.end()) {
         return nullptr;
     }
-
-    auto key = std::make_pair(*kit, std::make_pair(sizeof(BUF),ncomp));
 
     auto get_tags = [&] () -> Vector<TagType>
     {
@@ -889,22 +884,22 @@ FabArray<FAB>::get_recv_copy_tag_vector (Vector<char*> const& recv_data,
     };
 
     TagVector<TagType>* tv;
+    std::tuple<std::uint64_t,std::size_t,int> key{id, sizeof(BUF), ncomp};
 
     if (auto it = m_recv_copy_handler.find(key); it != m_recv_copy_handler.end()) {
-        tv = it->second;
-        if (called_by_pc) {
-            auto recv_copy_tags = get_tags();
-            if (*tv != recv_copy_tags) {
-                delete tv;
-                m_recv_copy_handler.erase(it);
-                tv = new TagVector<TagType>(recv_copy_tags);
-                m_recv_copy_handler[key] = tv;
-            }
-        }
+        tv = it->second.get();
     } else {
+        if (m_recv_copy_handler.size() > 64) {
+            // Just in case. If this is used in ParallelCopy, it's possible
+            // that the receiving FabArray is the same, but the sending
+            // FabArray is different everytime. Then the size of this map
+            // could increase indefinitely.
+            m_recv_copy_handler.clear();
+        }
         auto recv_copy_tags = get_tags();
-        tv = new TagVector<TagType>(recv_copy_tags);
-        m_recv_copy_handler[key] = tv;
+        auto utv = std::make_unique<TagVector<TagType>>(recv_copy_tags);
+        tv = utv.get();
+        m_recv_copy_handler[key] = std::move(utv);
     }
 
     return tv;
@@ -917,7 +912,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                        Vector<char*> const& recv_data,
                                        Vector<std::size_t> const& recv_size,
                                        Vector<CopyComTagsContainer const*> const& recv_cctc,
-                                       CpOp op, bool is_thread_safe, bool called_by_pc)
+                                       CpOp op, bool is_thread_safe, std::uint64_t id)
 {
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) { return; }
@@ -933,7 +928,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 
     using TagType = CommRecvBufTag<value_type>;
     auto* tv = dst.template get_recv_copy_tag_vector<BUF>
-        (recv_data, recv_size, recv_cctc, ncomp, called_by_pc);
+        (recv_data, recv_size, recv_cctc, ncomp, id);
     if (tv == nullptr) { return; }
 
     char* pbuffer = recv_data[0];

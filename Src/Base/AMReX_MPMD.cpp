@@ -141,7 +141,9 @@ int MyProgId ()
 
 Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
         bool send_ba)
-        : m_ba(ba), m_dm(dm)
+        : m_send_id(FabArrayBase::getNextCommMetaDataId()),
+          m_recv_id(FabArrayBase::getNextCommMetaDataId()),
+          m_ba(ba), m_dm(dm)
 {
     int rank_offset = myproc - ParallelDescriptor::MyProc();
     int this_root, other_root;
@@ -277,7 +279,9 @@ Copier::Copier (BoxArray const& ba, DistributionMapping const& dm,
 }
 
 Copier::Copier (bool)
-    : m_is_thread_safe(true)
+    : m_send_id(FabArrayBase::getNextCommMetaDataId()),
+      m_recv_id(FabArrayBase::getNextCommMetaDataId()),
+      m_is_thread_safe(true)
 {
     int rank_offset = myproc - ParallelDescriptor::MyProc();
     int this_root, other_root;
