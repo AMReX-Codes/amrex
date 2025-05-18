@@ -788,10 +788,10 @@ FabArray<FAB>::get_send_copy_tag_vector (Vector<char*> const& send_data,
     if (auto it = m_send_copy_handler.find(key); it != m_send_copy_handler.end()) {
         tv = it->second.get();
     } else {
-        if (m_send_copy_handler.size() > 64) {
+        if (m_send_copy_handler.size() > 32) {
             // Just in case. If this is used in ParallelCopy, it's possible
             // that the sending FabArray is the same, but the receiving
-            // FabArray is different everytime. Then the size of this map
+            // FabArray is different every time. Then the size of this map
             // could increase indefinitely.
             m_send_copy_handler.clear();
         }
@@ -889,10 +889,10 @@ FabArray<FAB>::get_recv_copy_tag_vector (Vector<char*> const& recv_data,
     if (auto it = m_recv_copy_handler.find(key); it != m_recv_copy_handler.end()) {
         tv = it->second.get();
     } else {
-        if (m_recv_copy_handler.size() > 64) {
+        if (m_recv_copy_handler.size() > 32) {
             // Just in case. If this is used in ParallelCopy, it's possible
             // that the receiving FabArray is the same, but the sending
-            // FabArray is different everytime. Then the size of this map
+            // FabArray is different every time. Then the size of this map
             // could increase indefinitely.
             m_recv_copy_handler.clear();
         }
