@@ -72,6 +72,7 @@ CArena::alloc_protected (std::size_t nbytes)
         vp = allocate_system(N);
 
         m_used += N;
+        m_max_used = std::max(m_used, m_max_used);
 
         m_alloc.emplace_back(vp,N);
 
@@ -117,6 +118,7 @@ CArena::alloc_protected (std::size_t nbytes)
     }
 
     m_actually_used += nbytes;
+    m_max_actually_used = std::max(m_actually_used, m_max_actually_used);
 
     BL_ASSERT(vp != nullptr);
 
@@ -167,6 +169,7 @@ CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
                 }
 #endif
                 m_actually_used += new_size - busy_it->size();
+                m_max_actually_used = std::max(m_actually_used, m_max_actually_used);
                 const_cast<Node&>(*busy_it).size(new_size);
                 return std::make_pair(pt, new_size);
             } else if (total_size >= szmin) {
@@ -180,6 +183,7 @@ CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
                 }
 #endif
                 m_actually_used += total_size - busy_it->size();
+                m_max_actually_used = std::max(m_actually_used, m_max_actually_used);
                 const_cast<Node&>(*busy_it).size(total_size);
                 return std::make_pair(pt, total_size);
             }
@@ -471,25 +475,29 @@ CArena::sizeOf (void* p) const noexcept
 }
 
 void
-CArena::PrintUsage (std::string const& name) const
+CArena::PrintUsage (std::string const& name, bool print_max_usage) const
 {
-    Long min_megabytes = static_cast<Long>(heap_space_used() / (1024*1024));
+    Long min_megabytes = static_cast<Long>(
+        (print_max_usage ? m_max_used : heap_space_used()) / (1024*1024));
     Long max_megabytes = min_megabytes;
-    Long actual_min_megabytes = static_cast<Long>(heap_space_actually_used() / (1024*1024));
+    Long actual_min_megabytes = static_cast<Long>(
+        (print_max_usage ? m_max_actually_used : heap_space_actually_used()) / (1024*1024));
     Long actual_max_megabytes = actual_min_megabytes;
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     ParallelReduce::Min<Long>({min_megabytes, actual_min_megabytes},
                               IOProc, ParallelDescriptor::Communicator());
     ParallelReduce::Max<Long>({max_megabytes, actual_max_megabytes},
                               IOProc, ParallelDescriptor::Communicator());
+
+    const auto name_space = "[" + name + "] " + (print_max_usage ? "max " : "") + "space ";
 #ifdef AMREX_USE_MPI
-    amrex::Print() << "[" << name << "] space (MB) allocated spread across MPI: ["
+    amrex::Print() << name_space << "(MB) allocated spread across MPI: ["
                    << min_megabytes << " ... " << max_megabytes << "]\n"
-                   << "[" << name << "] space (MB) used      spread across MPI: ["
+                   << name_space << "(MB) used      spread across MPI: ["
                    << actual_min_megabytes << " ... " << actual_max_megabytes << "]\n";
 #else
-    amrex::Print() << "[" << name << "] space allocated (MB): " << min_megabytes << "\n";
-    amrex::Print() << "[" << name << "] space used      (MB): " << actual_min_megabytes << "\n";
+    amrex::Print() << name_space << "allocated (MB): " << min_megabytes << "\n";
+    amrex::Print() << name_space << "used      (MB): " << actual_min_megabytes << "\n";
 #endif
 }
 

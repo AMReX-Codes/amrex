@@ -37,6 +37,7 @@ Parser::define (std::string const& func_body)
         }
         m_data->m_parser = amrex_parser_new();
         amrex_parser_delete_buffer(buffer);
+        m_ufs = parser_get_user_functions(m_data->m_parser);
     }
 }
 
@@ -79,6 +80,30 @@ Parser::registerVariables (Vector<std::string> const& vars)
             parser_regvar(m_data->m_parser, vars[i].c_str(), i);
         }
     }
+}
+
+void
+Parser::registerUserFn1 (std::string const& name, ParserUserFn1 fh, ParserUserFn1 fd)
+{
+    register_user_fn<1>(name,fh,fd);
+}
+
+void
+Parser::registerUserFn2 (std::string const& name, ParserUserFn2 fh, ParserUserFn2 fd)
+{
+    register_user_fn<2>(name,fh,fd);
+}
+
+void
+Parser::registerUserFn3 (std::string const& name, ParserUserFn3 fh, ParserUserFn3 fd)
+{
+    register_user_fn<3>(name,fh,fd);
+}
+
+void
+Parser::registerUserFn4 (std::string const& name, ParserUserFn4 fh, ParserUserFn4 fd)
+{
+    register_user_fn<4>(name,fh,fd);
 }
 
 void
@@ -127,6 +152,12 @@ Parser::symbols () const
     } else {
         return std::set<std::string>{};
     }
+}
+
+std::map<std::string,int> const&
+Parser::userFunctions () const
+{
+    return m_ufs;
 }
 
 void

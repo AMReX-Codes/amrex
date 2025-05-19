@@ -84,9 +84,13 @@ public:
     //! Return the amount of memory in this pointer.  Return 0 for unknown pointer.
     std::size_t sizeOf (void* p) const noexcept;
 
-    void PrintUsage (std::string const& name) const;
+    void PrintUsage (std::string const& name, bool print_max_usage) const;
 
     void PrintUsage (std::ostream& os, std::string const& name, std::string const& space) const;
+
+    void ResetMaxUsageCounter () final {
+        m_max_actually_used = 0;
+    }
 
     //! The default memory hunk size to grab from the heap.
     constexpr static std::size_t DefaultHunkSize = 1024*1024*8;
@@ -183,8 +187,12 @@ protected:
     std::size_t m_hunk;
     //! The amount of heap space currently allocated.
     std::size_t m_used{0};
+    //! The max amount of heap space currently allocated.
+    std::size_t m_max_used{0};
     //! The amount of memory given out via alloc().
     std::size_t m_actually_used{0};
+    //! The max amount of memory given out via alloc().
+    std::size_t m_max_actually_used{0};
 
 
     std::mutex carena_mutex;

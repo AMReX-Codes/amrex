@@ -610,10 +610,10 @@ AMREX_GPU_HOST_DEVICE // __device__ for HIP
 RealVectND(const GpuArray<Real, dim>&) -> RealVectND<dim>;
 
 template <int dim>
-inline constexpr const RealVectND<dim> RealVectND<dim>::Zero{0};
+inline constexpr const RealVectND<dim> RealVectND<dim>::Zero{Real(0)};
 
 template <int dim>
-inline constexpr const RealVectND<dim> RealVectND<dim>::Unit{1};
+inline constexpr const RealVectND<dim> RealVectND<dim>::Unit{Real(1)};
 
 using RealVect = RealVectND<AMREX_SPACEDIM>;
 
