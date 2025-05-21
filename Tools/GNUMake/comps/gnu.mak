@@ -83,21 +83,11 @@ CXXFLAGS += -Werror=return-type
 CFLAGS   += -Werror=return-type
 
 ifeq ($(DEBUG),TRUE)
-  ifeq ($(gcc_major_ge_11),1)
-    CXXFLAGS += -gdwarf-4 -O0 -ggdb -ftrapv
-    CFLAGS   += -gdwarf-4 -O0 -ggdb -ftrapv
-  else
-    CXXFLAGS += -g -O0 -ggdb -ftrapv
-    CFLAGS   += -g -O0 -ggdb -ftrapv
-  endif
+  CXXFLAGS += -g -O0 -ggdb -ftrapv
+  CFLAGS   += -g -O0 -ggdb -ftrapv
 else
-  ifeq ($(gcc_major_ge_11),1)
-    CXXFLAGS += -gdwarf-4 -O3
-    CFLAGS   += -gdwarf-4 -O3
-  else
-    CXXFLAGS += -g -O3
-    CFLAGS   += -g -O3
-  endif
+  CXXFLAGS += -g1 -O3
+  CFLAGS   += -g1 -O3
   ifneq ($(USE_COMPILER_DEFAULT_INLINE),TRUE)
     CXXFLAGS += -finline-limit=$(INLINE_LIMIT)
   endif
@@ -191,8 +181,8 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  FFLAGS   += -g -O3
-  F90FLAGS += -g -O3
+  FFLAGS   += -g1 -O3
+  F90FLAGS += -g1 -O3
 
 endif
 

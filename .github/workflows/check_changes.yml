@@ -3,8 +3,6 @@ name: Check Changes
 on:
   workflow_call:
     outputs:
-      has_docs_changes:
-        value: ${{ jobs.check.outputs.has_docs_changes }}
       has_non_docs_changes:
         value: ${{ jobs.check.outputs.has_non_docs_changes }}
 
@@ -19,11 +17,12 @@ jobs:
         id: changes
         with:
           filters: |
-            docs:
-              - 'Docs/**'
-            others:
+            non_docs:
               - '!Docs/**'
+              - '!CHANGES'
+              - '!**.md'
+              - '!**.rst'
+          predicate-quantifier: 'every'
       - id: set-output
         run: |
-          echo "has_docs_changes=${{ steps.changes.outputs.docs }}" >> $GITHUB_OUTPUT
-          echo "has_non_docs_changes=${{ steps.changes.outputs.others }}" >> $GITHUB_OUTPUT
+          echo "has_non_docs_changes=${{ steps.changes.outputs.non_docs }}" >> $GITHUB_OUTPUT

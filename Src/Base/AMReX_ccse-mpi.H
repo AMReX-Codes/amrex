@@ -41,7 +41,11 @@ namespace amrex::ParallelDescriptor
     template <> MPI_Datatype Mpi_typemap<lull_t>::type();
 }
 
+namespace amrex::mpidatatypes {}
+
 #else
+
+namespace amrex::mpidatatypes {
 
 using MPI_Op       = int;
 using MPI_Comm     = int;
@@ -59,6 +63,12 @@ static constexpr int MPI_MAX_PROCESSOR_NAME = 64;
 
 static constexpr int MPI_MINLOC = 0;
 static constexpr int MPI_MAXLOC = 0;
+
+}
+
+namespace amrex {
+    using namespace mpidatatypes;
+}
 
 namespace amrex::ParallelDescriptor
 {
