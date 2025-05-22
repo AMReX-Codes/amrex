@@ -43,8 +43,10 @@ CArena::alloc_protected (std::size_t nbytes)
     }
 #endif
 
+    bool freeunused_called = false;
     if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
         freeUnused_protected();
+        freeunused_called = true;
     }
 
     //
@@ -64,7 +66,8 @@ CArena::alloc_protected (std::size_t nbytes)
     {
         // Both freeUnused_protected and allocate_system may invalidate free_it.
         // All unused memory allocations are combined with the new one to reduce fragmentation.
-        const std::size_t freed_bytes = freeUnused_protected();
+        const auto freed_bytes = (freeunused_called || !arena_info.defragmentation)
+            ? std::size_t(0) : freeUnused_protected();
 
         const std::size_t N = std::max(m_hunk, freed_bytes + nbytes);
 
@@ -382,11 +385,13 @@ CArena::freeUnused_protected ()
     // in the steam which calls CArena::free that acquires carena_mutex.
     // So here carena_mutex needs to be unlocked first to avoid a deadlock.
     // Note that other threads to allocate/free memory from the CArena in the meantime.
-    carena_mutex.unlock();
-    for (auto& a : to_free) {
-        deallocate_system(a.first, a.second);
+    if (!to_free.empty()) {
+        carena_mutex.unlock();
+        for (auto& a : to_free) {
+            deallocate_system(a.first, a.second);
+        }
+        carena_mutex.lock();
     }
-    carena_mutex.lock();
 
     return nbytes;
 }
