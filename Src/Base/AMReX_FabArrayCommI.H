@@ -344,46 +344,57 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                 &     amrex::grow(this->box(0),dnghost);
             if (op == FabArrayBase::COPY) {
 #ifdef AMREX_USE_GPU
-                ParallelFor(box, ncomp,
+                if (Gpu::inLaunchRegion()) {
+                    ParallelFor(box, ncomp,
                             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-                    da(i,j,k,n) = sa(i,j,k,n);
-                });
-#else
-                auto const& lo = amrex::lbound(box);
-                auto const& hi = amrex::ubound(box);
+                                da(i,j,k,n) = sa(i,j,k,n);
+                            });
+                    if (!Gpu::inNoSyncRegion()) {
+                        Gpu::streamSynchronize();
+                    }
+                } else
+#endif
+                {
+                    auto const& lo = amrex::lbound(box);
+                    auto const& hi = amrex::ubound(box);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for collapse(3)
 #endif
-                for (int n = 0; n < ncomp; ++n) {
-                for (int k = lo.z; k <= hi.z; ++k) {
-                for (int j = lo.y; j <= hi.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    da(i,j,k,n) = sa(i,j,k,n);
-                }}}}
-#endif
+                    for (int n = 0; n < ncomp; ++n) {
+                    for (int k = lo.z; k <= hi.z; ++k) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                    AMREX_PRAGMA_SIMD
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        da(i,j,k,n) = sa(i,j,k,n);
+                    }}}}
+                }
             } else {
+                if (Gpu::inLaunchRegion()) {
 #ifdef AMREX_USE_GPU
-                ParallelFor(box, ncomp,
+                    ParallelFor(box, ncomp,
                             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-                    da(i,j,k,n) += sa(i,j,k,n);
-                });
-#else
-                auto const& lo = amrex::lbound(box);
-                auto const& hi = amrex::ubound(box);
+                                da(i,j,k,n) += sa(i,j,k,n);
+                            });
+                    if (!Gpu::inNoSyncRegion()) {
+                        Gpu::streamSynchronize();
+                    }
+                } else
+#endif
+                {
+                    auto const& lo = amrex::lbound(box);
+                    auto const& hi = amrex::ubound(box);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for collapse(3)
 #endif
-                for (int n = 0; n < ncomp; ++n) {
-                for (int k = lo.z; k <= hi.z; ++k) {
-                for (int j = lo.y; j <= hi.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    da(i,j,k,n) += sa(i,j,k,n);
-                }}}}
-#endif
+                    for (int n = 0; n < ncomp; ++n) {
+                    for (int k = lo.z; k <= hi.z; ++k) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                    AMREX_PRAGMA_SIMD
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        da(i,j,k,n) += sa(i,j,k,n);
+                    }}}}
+                }
             }
-            Gpu::streamSynchronize();
         }
         return;
     }
