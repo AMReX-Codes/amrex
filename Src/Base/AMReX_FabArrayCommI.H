@@ -369,8 +369,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                     }}}}
                 }
             } else {
-                if (Gpu::inLaunchRegion()) {
 #ifdef AMREX_USE_GPU
+                if (Gpu::inLaunchRegion()) {
                     ParallelFor(box, ncomp,
                             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
                                 da(i,j,k,n) += sa(i,j,k,n);
