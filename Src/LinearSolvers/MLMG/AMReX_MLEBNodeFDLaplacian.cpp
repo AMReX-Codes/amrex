@@ -43,6 +43,7 @@ MLEBNodeFDLaplacian::setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexce
 void
 MLEBNodeFDLaplacian::setSigma (int amrlev, MultiFab const& a_sigma)
 {
+    m_needs_update = true;
     m_has_sigma_mf = true;
     m_sigma_mf[amrlev][0] = std::make_unique<MultiFab>
         (this->m_grids[amrlev][0], this->m_dmap[amrlev][0], 1, 1, MFInfo{},
@@ -318,47 +319,7 @@ MLEBNodeFDLaplacian::prepareForSolve ()
 #endif
 
     if (m_has_sigma_mf) {
-        AMREX_D_TERM(m_sigma[0] = Real(1.0);,
-                     m_sigma[1] = Real(1.0);,
-                     m_sigma[2] = Real(1.0));
-        AMREX_ALWAYS_ASSERT(this->m_num_amr_levels == 1);
-        for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
-            for (int mglev = 1; mglev < this->m_num_mg_levels[amrlev]; ++mglev) {
-                m_sigma_mf[amrlev][mglev] = std::make_unique<MultiFab>
-                    (this->m_grids[amrlev][mglev], this->m_dmap[amrlev][mglev], 1, 1,
-                     MFInfo{}, *(this->m_factory[amrlev][mglev]));
-                IntVect const ratio = (amrlev > 0) ? IntVect (2)
-                    : this->mg_coarsen_ratio_vec[mglev-1];
-#ifdef AMREX_USE_EB
-                amrex::EB_average_down
-#else
-                amrex::average_down
-#endif
-                    (*m_sigma_mf[amrlev][mglev-1],
-                     *m_sigma_mf[amrlev][mglev], 0, 1, ratio);
-            }
-
-            for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev) {
-                auto const& geom = this->m_geom[amrlev][mglev];
-                auto& sigma = *m_sigma_mf[amrlev][mglev];
-                sigma.FillBoundary(geom.periodicity());
-
-                const Box& domain = geom.Domain();
-                const auto lobc = LoBC();
-                const auto hibc = HiBC();
-
-                MFItInfo mfi_info;
-                if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-                for (MFIter mfi(sigma, mfi_info); mfi.isValid(); ++mfi)
-                {
-                    Array4<Real> const& sfab = sigma.array(mfi);
-                    mlndlap_fillbc_cc<Real>(mfi.validbox(),sfab,domain,lobc,hibc);
-                }
-            }
-        }
+        update_sigma();
     }
 }
 
@@ -790,6 +751,67 @@ MLEBNodeFDLaplacian::postSolve (Vector<MultiFab*> const& sol) const
 #else
     amrex::ignore_unused(sol);
 #endif
+}
+
+void
+MLEBNodeFDLaplacian::update ()
+{
+    if (MLNodeLinOp::needsUpdate()) {
+        MLNodeLinOp::update();
+    }
+
+    if (m_needs_update && m_has_sigma_mf) {
+        update_sigma();
+    }
+    m_needs_update = false;
+}
+
+void
+MLEBNodeFDLaplacian::update_sigma ()
+{
+    AMREX_D_TERM(m_sigma[0] = Real(1.0);,
+                 m_sigma[1] = Real(1.0);,
+                 m_sigma[2] = Real(1.0));
+    AMREX_ALWAYS_ASSERT(this->m_num_amr_levels == 1);
+    for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
+        for (int mglev = 1; mglev < this->m_num_mg_levels[amrlev]; ++mglev) {
+            if (m_sigma_mf[amrlev][mglev] == nullptr) {
+                m_sigma_mf[amrlev][mglev] = std::make_unique<MultiFab>
+                    (this->m_grids[amrlev][mglev], this->m_dmap[amrlev][mglev], 1, 1,
+                     MFInfo{}, *(this->m_factory[amrlev][mglev]));
+            }
+            IntVect const ratio = (amrlev > 0) ? IntVect (2)
+                : this->mg_coarsen_ratio_vec[mglev-1];
+#ifdef AMREX_USE_EB
+            amrex::EB_average_down
+#else
+            amrex::average_down
+#endif
+                (*m_sigma_mf[amrlev][mglev-1],
+                 *m_sigma_mf[amrlev][mglev], 0, 1, ratio);
+        }
+
+        for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev) {
+            auto const& geom = this->m_geom[amrlev][mglev];
+            auto& sigma = *m_sigma_mf[amrlev][mglev];
+            sigma.FillBoundary(geom.periodicity());
+
+            const Box& domain = geom.Domain();
+            const auto lobc = LoBC();
+            const auto hibc = HiBC();
+
+            MFItInfo mfi_info;
+            if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(sigma, mfi_info); mfi.isValid(); ++mfi)
+            {
+                Array4<Real> const& sfab = sigma.array(mfi);
+                mlndlap_fillbc_cc<Real>(mfi.validbox(),sfab,domain,lobc,hibc);
+            }
+        }
+    }
 }
 
 }

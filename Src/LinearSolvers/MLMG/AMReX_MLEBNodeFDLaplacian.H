@@ -90,6 +90,11 @@ public:
     void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final;
     void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;
 
+    [[nodiscard]] bool needsUpdate () const override {
+        return (m_needs_update || MLNodeLinOp::needsUpdate());
+    }
+    void update () override;
+
     void prepareForSolve () final;
     void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
     void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;
@@ -123,10 +128,13 @@ private:
     GpuArray<Real,AMREX_SPACEDIM> m_sigma{{AMREX_D_DECL(1_rt,1_rt,1_rt)}};
     Vector<Vector<std::unique_ptr<MultiFab>>> m_sigma_mf;
     bool m_has_sigma_mf = false;
+    bool m_needs_update = true;
     Real m_s_phi_eb = std::numeric_limits<Real>::lowest();
     Vector<MultiFab> m_phi_eb;
     int m_rz = false;
     Real m_rz_alpha = 0._rt;
+
+    void update_sigma ();
 };
 
 #ifdef AMREX_USE_EB
@@ -142,9 +150,11 @@ MLEBNodeFDLaplacian::setEBDirichlet (F const& f)
             Geometry const& geom = m_geom[amrlev][0];
             auto const problo = geom.ProbLoArray();
             auto const cellsize = geom.CellSizeArray();
-            m_phi_eb[amrlev].define(amrex::convert(m_grids[amrlev][0],IntVect(1)),
-                                    m_dmap[amrlev][0], 1, 1);
-            m_phi_eb[amrlev].setVal(0.0);
+            if (m_phi_eb[amrlev].empty()) {
+                m_phi_eb[amrlev].define(amrex::convert(m_grids[amrlev][0],IntVect(1)),
+                                        m_dmap[amrlev][0], 1, 1);
+                m_phi_eb[amrlev].setVal(0.0);
+            }
             auto const& flags = factory->getMultiEBCellFlagFab();
             auto const& levset = factory->getLevelSet();
 #ifdef AMREX_USE_OMP

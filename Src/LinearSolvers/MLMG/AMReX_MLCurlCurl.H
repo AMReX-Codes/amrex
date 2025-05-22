@@ -82,6 +82,11 @@ public:
                              const MF& b, BCMode bc_mode,
                              const MF* crse_bcdata=nullptr) override;
 
+    [[nodiscard]] bool needsUpdate () const override {
+        return (m_needs_update || MLLinOpT<Array<MultiFab,3>>::needsUpdate());
+    }
+    void update () override;
+
     void prepareForSolve () override;
 
     [[nodiscard]] bool isSingular (int /*amrlev*/) const override { return false; }
@@ -128,6 +133,8 @@ private:
     [[nodiscard]] CurlCurlDirichletInfo getDirichletInfo (int amrlev, int mglev) const;
     [[nodiscard]] CurlCurlSymmetryInfo getSymmetryInfo (int amrlev, int mglev) const;
 
+    void update_lusolver ();
+
     RT m_alpha = std::numeric_limits<RT>::lowest();
     RT m_beta  = std::numeric_limits<RT>::lowest();
 
@@ -146,6 +153,7 @@ private:
                                   <LUSolver<AMREX_SPACEDIM*2,RT>>>>> m_lusolver;
     Vector<Vector<Array<std::unique_ptr<MultiFab>,3>>> m_bcoefs;
     bool m_use_pcg = false;
+    bool m_needs_update = true;
 };
 
 }
