@@ -47,10 +47,10 @@ namespace {
     Long the_pinned_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_comms_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_async_arena_release_threshold = std::numeric_limits<Long>::max();
-    bool the_arena_defragmentation = false;
-    bool the_device_arena_defragmentation = false;
-    bool the_managed_arena_defragmentation = false;
-    bool the_pinned_arena_defragmentation = false;
+    bool the_arena_defragmentation = true;
+    bool the_device_arena_defragmentation = true;
+    bool the_managed_arena_defragmentation = true;
+    bool the_pinned_arena_defragmentation = true;
     bool the_comms_arena_defragmentation = false;
     bool the_arena_is_managed = false;
     bool abort_on_out_of_gpu_memory = false;
@@ -355,10 +355,12 @@ Arena::Initialize (bool minimal)
 #endif
         }
 #ifdef AMREX_USE_GPU
-        BL_PROFILE("The_Arena::Initialize()");
-        void *p = the_arena->alloc(static_cast<std::size_t>(the_arena_init_size));
-        the_arena->free(p);
-        the_arena->ResetMaxUsageCounter();
+        if (the_arena_init_size > 0) {
+            BL_PROFILE("The_Arena::Initialize()");
+            void *p = the_arena->alloc(static_cast<std::size_t>(the_arena_init_size));
+            the_arena->free(p);
+            the_arena->ResetMaxUsageCounter();
+        }
 #endif
 #else
         the_arena = The_BArena();
@@ -410,7 +412,9 @@ Arena::Initialize (bool minimal)
 
 #ifdef AMREX_USE_GPU
     if (ParallelDescriptor::UseGpuAwareMpi()) {
-        if (!(the_arena->isDevice())) {
+        if (!(the_arena->isDevice()) &&
+            the_device_arena_defragmentation == the_comms_arena_defragmentation)
+        {
             the_comms_arena = the_device_arena;
         } else {
             ArenaInfo ai{};
