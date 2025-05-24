@@ -1111,9 +1111,10 @@ Memory
 
 .. py:data:: amrex.the_comms_arena_defragmentation
    :type: bool
-   :value: false
+   :value: [build dependent]
 
-   This controls the defragmentation behavior of the communication arena.
+   This controls the defragmentation behavior of the communication arena. The default is
+   false for HIP builds and true for others.
 
 .. py:data:: amrex.the_arena_is_managed
    :type: bool

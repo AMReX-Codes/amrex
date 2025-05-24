@@ -51,7 +51,11 @@ namespace {
     bool the_device_arena_defragmentation = true;
     bool the_managed_arena_defragmentation = true;
     bool the_pinned_arena_defragmentation = true;
+#ifdef AMREX_USE_HIP
     bool the_comms_arena_defragmentation = false;
+#else
+    bool the_comms_arena_defragmentation = true;
+#endif
     bool the_arena_is_managed = false;
     bool abort_on_out_of_gpu_memory = false;
 }
