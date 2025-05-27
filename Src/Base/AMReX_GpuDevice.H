@@ -97,12 +97,7 @@ public:
 #endif
 #endif
 
-    static void freeAfterSync (CArena* arena, void* mem) noexcept {
-        amrex::ignore_unused(arena, mem);
-#ifdef AMREX_USE_CUDA
-        gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].stream_free(arena, mem);
-#endif
-    }
+    static void freeAfterSync (CArena* arena, void* mem) noexcept;
 
     static int numGpuStreams () noexcept {
         return inSingleStreamRegion() ? 1 : max_gpu_streams;
@@ -251,10 +246,16 @@ private:
     static AMREX_EXPORT int memory_pools_supported;
     static AMREX_EXPORT unsigned int max_blocks_per_launch;
 
+    static AMREX_EXPORT bool sync_before_memory_free;
+    static AMREX_EXPORT bool delay_memory_free_until_sync;
+    static AMREX_EXPORT bool avoid_double_sync;
+
 #ifdef AMREX_USE_SYCL
     static AMREX_EXPORT std::unique_ptr<sycl::context> sycl_context;
     static AMREX_EXPORT std::unique_ptr<sycl::device>  sycl_device;
 #endif
+
+    friend StreamManager;
 #endif
 };
 

@@ -117,7 +117,7 @@ StreamManager::sync () {
         // lock mutex before accessing and modifying member variables
         std::lock_guard<std::mutex> lock(m_mutex);
         is_synced = (m_stream_op_id == m_last_sync);
-        if (!is_synced) {
+        if (!is_synced || !Device::avoid_double_sync) {
             sync_op = m_stream_op_id;
             m_free_wait_list.swap(new_empty_wait_list);
         }
@@ -125,7 +125,7 @@ StreamManager::sync () {
         // to avoid deadlocks from the CArena mutex
     }
 
-    if (!is_synced) {
+    if (!is_synced || !Device::avoid_double_sync) {
         Device::actualStreamSynchronize(m_stream);
 
         // synconizing the stream may have taken a long time and
@@ -190,6 +190,10 @@ Vector<StreamManager>   Device::gpu_stream_pool;
 Vector<int>             Device::gpu_stream_index;
 gpuDeviceProp_t         Device::device_prop;
 int                     Device::memory_pools_supported = 0;
+
+bool Device::sync_before_memory_free = false;
+bool Device::delay_memory_free_until_sync = false;
+bool Device::avoid_double_sync = true;
 
 constexpr int Device::warp_size;
 
@@ -256,6 +260,10 @@ Device::Initialize (bool minimal)
     if (! pp.query("verbose", "v", verbose)) {
         pp.add("verbose", verbose);
     }
+
+    pp.queryAdd("sync_before_memory_free", sync_before_memory_free);
+    pp.queryAdd("delay_memory_free_until_sync", delay_memory_free_until_sync);
+    pp.queryAdd("avoid_double_sync", avoid_double_sync);
 
     if (amrex::Verbose()) {
         AMREX_HIP_OR_CUDA_OR_SYCL
@@ -725,6 +733,23 @@ Device::streamIndex (gpuStream_t s) noexcept
     return N;
 }
 #endif
+
+void
+Device::freeAfterSync (CArena* arena, void* mem) noexcept
+{
+#ifdef AMREX_USE_CUDA
+    if (delay_memory_free_until_sync) {
+        gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].stream_free(arena, mem);
+    } else if (sync_before_memory_free) {
+        gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].sync();
+        arena->free_now(mem);
+    } else {
+        arena->free_now(mem);
+    }
+#else
+    arena->free_now(mem);
+#endif
+}
 
 void
 Device::setStreamIndex (int idx) noexcept
