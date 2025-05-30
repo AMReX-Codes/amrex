@@ -347,6 +347,7 @@ Arena::Initialize (bool minimal)
         BL_PROFILE("The_Arena::Initialize()");
         void *p = the_arena->alloc(static_cast<std::size_t>(the_arena_init_size));
         the_arena->free(p);
+        the_arena->ResetMaxUsageCounter();
 #endif
 #else
         the_arena = The_BArena();
@@ -406,18 +407,21 @@ Arena::Initialize (bool minimal)
         BL_PROFILE("The_Device_Arena::Initialize()");
         void *p = the_device_arena->alloc(the_device_arena_init_size);
         the_device_arena->free(p);
+        the_device_arena->ResetMaxUsageCounter();
     }
 
     if (the_managed_arena_init_size > 0 && the_managed_arena != the_arena) {
         BL_PROFILE("The_Managed_Arena::Initialize()");
         void *p = the_managed_arena->alloc(the_managed_arena_init_size);
         the_managed_arena->free(p);
+        the_managed_arena->ResetMaxUsageCounter();
     }
 
     if (the_pinned_arena_init_size > 0) {
         BL_PROFILE("The_Pinned_Arena::Initialize()");
         void *p = the_pinned_arena->alloc(the_pinned_arena_init_size);
         the_pinned_arena->free(p);
+        the_pinned_arena->ResetMaxUsageCounter();
     }
 
     if (the_comms_arena_init_size > 0 && the_comms_arena != the_arena
@@ -425,6 +429,7 @@ Arena::Initialize (bool minimal)
         BL_PROFILE("The_Comms_Arena::Initialize()");
         void *p = the_comms_arena->alloc(the_comms_arena_init_size);
         the_comms_arena->free(p);
+        the_comms_arena->ResetMaxUsageCounter();
     }
 
     the_cpu_arena = The_BArena();
@@ -436,7 +441,7 @@ Arena::Initialize (bool minimal)
 }
 
 void
-Arena::PrintUsage ()
+Arena::PrintUsage (bool print_max_usage)
 {
 #ifdef AMREX_USE_GPU
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
@@ -468,32 +473,32 @@ Arena::PrintUsage ()
     if (The_Arena()) {
         auto* p = dynamic_cast<CArena*>(The_Arena());
         if (p) {
-            p->PrintUsage("The         Arena");
+            p->PrintUsage("The         Arena", print_max_usage);
         }
     }
     if (The_Device_Arena() && The_Device_Arena() != The_Arena()) {
         auto* p = dynamic_cast<CArena*>(The_Device_Arena());
         if (p) {
-            p->PrintUsage("The  Device Arena");
+            p->PrintUsage("The  Device Arena", print_max_usage);
         }
     }
     if (The_Managed_Arena() && The_Managed_Arena() != The_Arena()) {
         auto* p = dynamic_cast<CArena*>(The_Managed_Arena());
         if (p) {
-            p->PrintUsage("The Managed Arena");
+            p->PrintUsage("The Managed Arena", print_max_usage);
         }
     }
     if (The_Pinned_Arena()) {
         auto* p = dynamic_cast<CArena*>(The_Pinned_Arena());
         if (p) {
-            p->PrintUsage("The  Pinned Arena");
+            p->PrintUsage("The  Pinned Arena", print_max_usage);
         }
     }
     if (The_Comms_Arena() && The_Comms_Arena() != The_Device_Arena()
          && The_Comms_Arena() != The_Pinned_Arena()) {
         auto* p = dynamic_cast<CArena*>(The_Comms_Arena());
         if (p) {
-            p->PrintUsage("The   Comms Arena");
+            p->PrintUsage("The   Comms Arena", print_max_usage);
         }
     }
 }
@@ -560,7 +565,7 @@ Arena::Finalize ()
 #else
     if (amrex::Verbose() > 1) {
 #endif
-        PrintUsage();
+        PrintUsage(true);
     }
 
     initialized = false;

@@ -70,9 +70,11 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
            target_link_libraries(amrex_${D}d PUBLIC CUDA::cusparse)
        endif ()
 
-       # nvToolsExt: if tiny profiler or base profiler are on.
-       if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
-           target_link_libraries(amrex_${D}d PUBLIC CUDA::nvToolsExt)
+       if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.2)
+           # nvToolsExt: if tiny profiler or base profiler are on.
+           if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
+               target_link_libraries(amrex_${D}d PUBLIC CUDA::nvToolsExt)
+           endif ()
        endif ()
    endforeach()
 

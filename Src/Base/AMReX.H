@@ -80,6 +80,13 @@ namespace amrex
                        ErrorHandler a_errhandler = nullptr);
 
     // The returned AMReX* is non-owning! To delete it, call Finalize(AMReX*).
+    AMReX* Initialize (int& argc, char**& argv,
+                       const std::function<void()>& func_parm_parse,
+                       std::ostream& a_osout = std::cout,
+                       std::ostream& a_oserr = std::cerr,
+                       ErrorHandler a_errhandler = nullptr);
+
+    // The returned AMReX* is non-owning! To delete it, call Finalize(AMReX*).
     AMReX* Initialize (int& argc, char**& argv, bool build_parm_parse=true,
                        MPI_Comm mpi_comm = MPI_COMM_WORLD,
                        const std::function<void()>& func_parm_parse = {},

@@ -338,6 +338,16 @@ amrex::Initialize (MPI_Comm mpi_comm,
 }
 
 amrex::AMReX*
+amrex::Initialize (int& argc, char**& argv,
+                   const std::function<void()>& func_parm_parse,
+                   std::ostream& a_osout, std::ostream& a_oserr,
+                   ErrorHandler a_errhandler)
+{
+    return Initialize(argc, argv, true, MPI_COMM_WORLD, func_parm_parse,
+                      a_osout, a_oserr, a_errhandler);
+}
+
+amrex::AMReX*
 amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse,
                    std::ostream& a_osout, std::ostream& a_oserr,

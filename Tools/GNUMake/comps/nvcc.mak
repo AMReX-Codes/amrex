@@ -126,6 +126,15 @@ ifeq ($(USE_CUPTI),TRUE)
   LIBRARIES += -Wl,-rpath,${MAKE_CUDA_PATH}/extras/CUPTI/lib64 -lcupti
 endif
 
+ifeq ($(shell expr $(nvcc_major_version) \< 12),1)
+  ifeq ($(PROFILE),TRUE)
+      LIBRARIES += -lnvToolsExt
+  endif
+  ifeq ($(TINY_PROFILE),TRUE)
+      LIBRARIES += -lnvToolsExt
+  endif
+endif
+
 ifneq ($(USE_CUDA_FAST_MATH),FALSE)
   NVCC_FLAGS += --use_fast_math
 endif
@@ -155,15 +164,11 @@ ifeq ($(nvcc_diag_error),1)
   NVCC_FLAGS += --display-error-number --diag-error 20092
 endif
 
-CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) $(NVCC_ARCH_COMPILE_FLAGS) -x cu
-CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) $(NVCC_ARCH_COMPILE_FLAGS) -x cu
+CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) $(NVCC_ARCH_COMPILE_FLAGS) -x cu -c
+CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) $(NVCC_ARCH_COMPILE_FLAGS) -x cu -c
 
 ifeq ($(USE_GPU_RDC),TRUE)
-  CXXFLAGS += -dc
-  CFLAGS   += -dc
-else
-  CXXFLAGS += -c
-  CFLAGS   += -c
+  NVCC_FLAGS += --relocatable-device-code=true
 endif
 
 CXX = nvcc
