@@ -33,6 +33,8 @@ bool VisMF::usePersistentIFStreams(false);
 bool VisMF::useSynchronousReads(false);
 bool VisMF::useDynamicSetSelection(true);
 bool VisMF::allowSparseWrites(true);
+bool VisMF::noFlushAfterWrite(false);
+bool VisMF::barrierAfterLevel(false);
 
 Long VisMFBuffer::ioBufferSize(VisMF::IO_Buffer_Size);
 
@@ -137,6 +139,8 @@ VisMF::Initialize ()
     pp.query("usedynamicsetselection", useDynamicSetSelection);
     pp.query("iobuffersize", ioBufferSize);
     pp.query("allowsparsewrites", allowSparseWrites);
+    pp.query("noflushafterwrite", noFlushAfterWrite);
+    pp.query("barrierafterlevel", barrierAfterLevel);
 
     initialized = true;
 }
@@ -1111,7 +1115,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
             nfi.Stream().flush();
             delete [] allFabData;
 
-          } else {    // ---- write fabs individually
+        } else {    // ---- write fabs individually
             for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
                 std::streamoff hLength = 0;
                 const FArrayBox &fab = mf[mfi];
@@ -1125,7 +1129,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     nfi.Stream().write(tstr.c_str(), hLength);    // ---- the fab header
                 }
                 Real const* fabdata = fab.dataPtr();
-        #ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
                 std::unique_ptr<FArrayBox> hostfab;
                 if (fab.arena()->isManaged() || fab.arena()->isDevice()) {
                     hostfab = std::make_unique<FArrayBox>(fab.box(), fab.nComp(),
@@ -1135,7 +1139,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     Gpu::streamSynchronize();
                     fabdata = hostfab->dataPtr();
                 }
-        #endif
+#endif
                 if(doConvert) {
                     char *cDataPtr = new char[writeDataSize];
                     RealDescriptor::convertFromNativeFormat(static_cast<void *> (cDataPtr),
@@ -1147,7 +1151,9 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     nfi.Stream().write((char *) fabdata, writeDataSize);
                 }
             }
-            nfi.Stream().flush();
+            if (!noFlushAfterWrite) {
+                nfi.Stream().flush();
+            }
         }
     }
 

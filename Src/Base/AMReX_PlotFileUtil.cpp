@@ -237,7 +237,9 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
             }
             VisMF::Write(*data, MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix));
         }
-        ParallelDescriptor::Barrier();
+        if (VisMF::GetBarrierAfterLevel()) {
+            ParallelDescriptor::Barrier();
+        }
     }
 }
 
