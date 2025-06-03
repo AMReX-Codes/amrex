@@ -205,9 +205,9 @@ void FillSignedDistance (MultiFab& mf_in, EB2::Level const& ls_lev,
     // because the algorithm below is N^2 in the number of points per box,
     // we always do this operation with a max grid size of 32.
     auto new_ba = mf_in.boxArray();
-    new_ba.convert({0, 0, 0});
+    new_ba.convert(IntVect::TheZeroVector());
     new_ba.maxSize(32);
-    new_ba.convert({1, 1, 1});
+    new_ba.convert(IntVect::TheUnitVector());
     int max_guard = eb_factory_in.getBndryCent().nGrow();
     auto eb_factory_ptr = amrex::makeEBFabFactory(ls_lev.Geom(), new_ba,
                                                   DistributionMapping(new_ba),
