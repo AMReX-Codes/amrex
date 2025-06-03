@@ -1428,7 +1428,17 @@ MLMGT<MF>::mgFcycle ()
     BL_PROFILE("MLMG::mgFcycle()");
 
 #ifdef AMREX_USE_EB
-    AMREX_ASSERT(linop.isCellCentered());
+   auto* pf = linop.Factory(0);
+   auto is_all_regular = [pf] () {
+        const auto *const f = dynamic_cast<EBFArrayBoxFactory const*>(pf);
+        if (f) {
+            return f->isAllRegular();
+        } else {
+            return true;
+        }
+    };
+    amrex::ignore_unused(pf, is_all_regular);
+    AMREX_ASSERT(linop.isCellCentered() || is_all_regular());
 #endif
 
     const int amrlev = 0;
