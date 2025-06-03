@@ -196,11 +196,25 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
 }
 }
 
-void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
-                         EBFArrayBoxFactory const& eb_factory, int refratio,
+void FillSignedDistance (MultiFab& mf_in, EB2::Level const& ls_lev,
+                         EBFArrayBoxFactory const& eb_factory_in, int refratio,
                          bool fluid_has_positive_sign)
 {
-    AMREX_ALWAYS_ASSERT(mf.is_nodal());
+    AMREX_ALWAYS_ASSERT(mf_in.is_nodal());
+
+    // because the algorithm below is N^2 in the number of points per box,
+    // we always do this operation with a max grid size of 32.
+    auto new_ba = mf_in.boxArray();
+    new_ba.convert({0, 0, 0});
+    new_ba.maxSize(32);
+    new_ba.convert({1, 1, 1});
+    int max_guard = eb_factory_in.getBndryCent().nGrow();
+    auto eb_factory_ptr = amrex::makeEBFabFactory(ls_lev.Geom(), new_ba,
+                                                  DistributionMapping(new_ba),
+                                                  {max_guard, max_guard, max_guard},
+                                                  amrex::EBSupport::full);
+    EBFArrayBoxFactory const& eb_factory = *eb_factory_ptr;
+    MultiFab mf(new_ba, DistributionMapping(new_ba), mf_in.nComp(), mf_in.nGrow());
 
     ls_lev.fillLevelSet(mf, ls_lev.Geom()); // This is the implicit function, not the SDF.
 
@@ -406,6 +420,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
     }
 
     mf.FillBoundary(0,1,ls_lev.Geom().periodicity());
+    mf_in.ParallelCopy(mf);
 }
 
 } // end namespace
