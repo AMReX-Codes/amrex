@@ -196,23 +196,11 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
 }
 }
 
-void FillSignedDistance (MultiFab& mf_in, EB2::Level const& ls_lev,
-                         EBFArrayBoxFactory const& eb_factory_in, int refratio,
+void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
+                         EBFArrayBoxFactory const& eb_factory, int refratio,
                          bool fluid_has_positive_sign)
 {
-    AMREX_ALWAYS_ASSERT(mf_in.is_nodal());
-
-    // because the algorithm below is N^2 in the number of points per box,
-    // we always do this operation with a max grid size of 32.
-    auto new_ba = mf_in.boxArray();
-    new_ba.maxSize(32);
-    auto new_dm = DistributionMapping(new_ba);
-    int max_guard = eb_factory_in.getBndryCent().nGrow();
-    auto eb_factory_ptr = amrex::makeEBFabFactory(ls_lev.Geom(), new_ba, new_dm,
-                                                  {max_guard, max_guard, max_guard},
-                                                  amrex::EBSupport::full);
-    EBFArrayBoxFactory const& eb_factory = *eb_factory_ptr;
-    MultiFab mf(new_ba, new_dm, mf_in.nComp(), mf_in.nGrow());
+    AMREX_ALWAYS_ASSERT(mf.is_nodal());
 
     ls_lev.fillLevelSet(mf, ls_lev.Geom()); // This is the implicit function, not the SDF.
 
@@ -228,19 +216,23 @@ void FillSignedDistance (MultiFab& mf_in, EB2::Level const& ls_lev,
 
     Real fluid_sign = fluid_has_positive_sign ? 1._rt : -1._rt;
 
+    // because the algorithm below is N^2 in the number of points per box,
+    // we always tile this loop with a size of 32, on CPU and GPU,
+    // whatever the user's requested tiling behavior.
+    constexpr IntVect fsd_tilesize = IntVect(AMREX_D_DECL(32, 32, 32));
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf, fsd_tilesize, MFIter::Flags::Tiling); mfi.isValid(); ++mfi)
     {
-        Box const& gbx = mfi.fabbox();
+        Box const& gbx = mfi.growntilebox();
         Array4<Real> const& fab = mf.array(mfi);
 
         if (bndrycent.ok(mfi))
         {
             const auto& flag = flags.const_array(mfi);
 
-            Box eb_search = mfi.validbox();
+            Box eb_search = mfi.tilebox();
             eb_search.coarsen(refratio).enclosedCells().grow(eb_pad);
 
             const auto nallcells = static_cast<int>(eb_search.numPts());
@@ -418,7 +410,6 @@ void FillSignedDistance (MultiFab& mf_in, EB2::Level const& ls_lev,
     }
 
     mf.FillBoundary(0,1,ls_lev.Geom().periodicity());
-    mf_in.ParallelCopy(mf, 0, 0, mf.nComp(), mf.nGrow(), mf.nGrow());
 }
 
 } // end namespace
