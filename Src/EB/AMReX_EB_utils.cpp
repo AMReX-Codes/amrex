@@ -205,16 +205,14 @@ void FillSignedDistance (MultiFab& mf_in, EB2::Level const& ls_lev,
     // because the algorithm below is N^2 in the number of points per box,
     // we always do this operation with a max grid size of 32.
     auto new_ba = mf_in.boxArray();
-    new_ba.convert(IntVect::TheZeroVector());
     new_ba.maxSize(32);
-    new_ba.convert(IntVect::TheUnitVector());
+    auto new_dm = DistributionMapping(new_ba);
     int max_guard = eb_factory_in.getBndryCent().nGrow();
-    auto eb_factory_ptr = amrex::makeEBFabFactory(ls_lev.Geom(), new_ba,
-                                                  DistributionMapping(new_ba),
+    auto eb_factory_ptr = amrex::makeEBFabFactory(ls_lev.Geom(), new_ba, new_dm,
                                                   {max_guard, max_guard, max_guard},
                                                   amrex::EBSupport::full);
     EBFArrayBoxFactory const& eb_factory = *eb_factory_ptr;
-    MultiFab mf(new_ba, DistributionMapping(new_ba), mf_in.nComp(), mf_in.nGrow());
+    MultiFab mf(new_ba, new_dm, mf_in.nComp(), mf_in.nGrow());
 
     ls_lev.fillLevelSet(mf, ls_lev.Geom()); // This is the implicit function, not the SDF.
 
@@ -420,7 +418,7 @@ void FillSignedDistance (MultiFab& mf_in, EB2::Level const& ls_lev,
     }
 
     mf.FillBoundary(0,1,ls_lev.Geom().periodicity());
-    mf_in.ParallelCopy(mf);
+    mf_in.ParallelCopy(mf, 0, 0, mf.nComp(), mf.nGrow(), mf.nGrow());
 }
 
 } // end namespace
