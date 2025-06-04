@@ -387,6 +387,8 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
     // There is no load-balancing or splitting of tags
     AMREX_ALWAYS_ASSERT(tv.is_defined());
 
+    constexpr bool tag_type = is_box_tag(TagType{});
+
     if (tv.ntags == 0) { return; }
 
     const auto d_tags = tv.d_tags;
@@ -399,7 +401,7 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
 
         const auto& t = d_tags[itag];
 
-        if constexpr (is_box_tag(t)) {
+        if constexpr (tag_type) {
             const auto lo = amrex::lbound(t.box());
             const auto hi = amrex::ubound(t.box());
 
