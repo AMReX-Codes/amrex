@@ -21,9 +21,6 @@ class MemberFunction(object):
     self.arguments = arguments
     self.function_ = wrapped_function
 
-  def __call__(self, *args):
-    self.function_(*args)
-
 
 def member_function(return_type, name, arguments):
   """Decorate a member function.
@@ -59,17 +56,12 @@ def Class(class_name, template_types):
     @class_methods.Class('std::__1::vector', template_types=['T'])
     class LibcppVector(object):
       @class_methods.member_function('T&', 'operator[]', ['int'])
-      def element(obj, i):
+      def element(self, obj, i):
         return obj['__begin_'][i]
 
       @class_methods.member_function('size_t', 'size', [])
-      def size(obj):
+      def size(self, obj):
         return obj['__end_'] - obj['__begin_']
-
-  Note:
-    Note that functions are looked up by the function name, which means that
-    functions cannot currently have overloaded implementations for different
-    arguments.
   """
 
   class MethodWorkerWrapper(gdb.xmethod.XMethod):
@@ -104,7 +96,7 @@ def Class(class_name, template_types):
                      attr.arguments]
         method = MethodWorkerWrapper(
             attr.name,
-            CreateTemplatedMethodWorker(return_type,
+            CreateTemplatedMethodWorker(obj, return_type,
                                         arguments, attr.function_))
         self.methods.append(method)
 
@@ -160,12 +152,18 @@ def Class(class_name, template_types):
       return lambda template_types: gdb.lookup_type(type_desc)
 
 
-  def CreateTemplatedMethodWorker(return_callback, args_callbacks,
-                                  method_callback):
-    class TemplatedMethodWorker(gdb.xmethod.XMethodWorker):
+  def CreateTemplatedMethodWorker(parent_class, return_callback,
+                                  args_callbacks, method_callback):
+    class TemplatedMethodWorker(parent_class, gdb.xmethod.XMethodWorker):
       def __init__(self, templates):
         super(TemplatedMethodWorker, self).__init__()
         self._templates = templates
+
+      def __getattr__(self, name):
+        if name in template_types:
+          return self._templates[template_types.index(name)]
+        msg = f"'{type(self).__name__:.100s}' has no attribute '{name}'"
+        raise AttributeError(msg)
 
       def get_arg_types(self):
         return [cb(self._templates) for cb in args_callbacks]
@@ -174,7 +172,7 @@ def Class(class_name, template_types):
         return return_callback(self._templates)
 
       def __call__(self, *args):
-        return method_callback(*args)
+        return method_callback(self, *args)
     return TemplatedMethodWorker
 
   def DefineClass(obj):
