@@ -223,7 +223,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(mf, fsd_tilesize, MFIter::Flags::Tiling); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf, fsd_tilesize); mfi.isValid(); ++mfi)
     {
         Box const& gbx = mfi.growntilebox();
         Array4<Real> const& fab = mf.array(mfi);
