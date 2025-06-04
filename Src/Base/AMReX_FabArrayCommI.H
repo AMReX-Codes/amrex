@@ -47,6 +47,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #endif
             {
                 FB_local_copy_gpu(TheFB, scomp, ncomp);
+                if (!Gpu::inNoSyncRegion()) {
+                    Gpu::streamSynchronize();
+                }
             }
         }
         else
@@ -117,7 +120,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             else
 #endif
             {
-                pack_send_buffer_gpu<BUF>(*this, scomp, ncomp, send_data, send_size, send_cctc);
+                pack_send_buffer_gpu<BUF>(*this, scomp, ncomp, send_data, send_size, send_cctc, TheFB.m_id);
             }
         }
         else
@@ -148,6 +151,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #endif
             {
                 FB_local_copy_gpu(TheFB, scomp, ncomp);
+                if (!Gpu::inNoSyncRegion() && N_rcvs == 0) {
+                    Gpu::streamSynchronize();
+                }
             }
         }
         else
@@ -216,7 +222,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif
             {
                 unpack_recv_buffer_gpu<BUF>(*this, fbd->scomp, fbd->ncomp, fbd->recv_data, fbd->recv_size,
-                                            recv_cctc, FabArrayBase::COPY, is_thread_safe);
+                                            recv_cctc, FabArrayBase::COPY, is_thread_safe, TheFB->m_id);
             }
         }
         else
@@ -513,7 +519,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                pack_send_buffer_gpu(src, SC, NC, send_data, send_size, send_cctc);
+                pack_send_buffer_gpu(src, SC, NC, send_data, send_size, send_cctc, thecpc.m_id);
             }
             else
 #endif
@@ -603,7 +609,7 @@ FabArray<FAB>::ParallelCopy_finish ()
         if (Gpu::inLaunchRegion())
         {
             unpack_recv_buffer_gpu(*this, pcd->DC, pcd->NC, pcd->recv_data, pcd->recv_size,
-                                   recv_cctc, pcd->op, is_thread_safe);
+                                   recv_cctc, pcd->op, is_thread_safe, thecpc->m_id);
         }
         else
 #endif

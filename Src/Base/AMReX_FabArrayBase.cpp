@@ -88,6 +88,7 @@ bool                               FabArrayBase::m_alloc_single_chunk = false;
 namespace
 {
     bool initialized = false;
+    std::uint64_t comm_meta_data_id = 0;
 }
 
 void
@@ -291,7 +292,8 @@ FabArrayBase::TileArray::bytes () const
 FabArrayBase::CPC::CPC (const FabArrayBase& dstfa, const IntVect& dstng,
                         const FabArrayBase& srcfa, const IntVect& srcng,
                         const Periodicity& period, bool to_ghost_cells_only)
-    : m_srcbdk(srcfa.getBDKey()),
+    : m_id(comm_meta_data_id++),
+      m_srcbdk(srcfa.getBDKey()),
       m_dstbdk(dstfa.getBDKey()),
       m_srcng(srcng),
       m_dstng(dstng),
@@ -309,7 +311,7 @@ FabArrayBase::CPC::CPC (const BoxArray& dstba, const DistributionMapping& dstdm,
                         const BoxArray& srcba, const DistributionMapping& srcdm,
                         const Vector<int>& srcidx, const IntVect& srcng,
                         const Periodicity& period, int myproc)
-    :
+    : m_id(comm_meta_data_id++),
       m_srcng(srcng),
       m_dstng(dstng),
       m_period(period),
@@ -468,7 +470,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
 FabArrayBase::CPC::CPC (const BoxArray& ba, const IntVect& ng,
                         const DistributionMapping& dstdm, const DistributionMapping& srcdm)
-    :
+    : m_id(comm_meta_data_id++),
       m_srcng(ng),
       m_dstng(ng),
       m_tgco(false),
@@ -630,7 +632,8 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
                       bool cross, const Periodicity& period,
                       bool enforce_periodicity_only, bool override_sync,
                       bool multi_ghost)
-    : m_typ(fa.boxArray().ixType()), m_crse_ratio(fa.boxArray().crseRatio()),
+    : m_id(comm_meta_data_id++),
+      m_typ(fa.boxArray().ixType()), m_crse_ratio(fa.boxArray().crseRatio()),
       m_ngrow(nghost), m_cross(cross), m_epo(enforce_periodicity_only),
       m_override_sync(override_sync),  m_period(period),
       m_multi_ghost(multi_ghost)
@@ -2696,6 +2699,12 @@ FabArrayBase::flushParForCache ()
 }
 
 #endif
+
+std::uint64_t
+FabArrayBase::getNextCommMetaDataId ()
+{
+    return comm_meta_data_id++;
+}
 
 namespace detail {
 

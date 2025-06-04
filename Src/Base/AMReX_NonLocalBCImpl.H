@@ -451,7 +451,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
             FabArray<FAB>::pack_send_buffer_gpu(mf, scomp, ncomp, handler.send.data,
-                                                handler.send.size, handler.send.cctc);
+                                                handler.send.size, handler.send.cctc, handler.send.id);
         } else
 #endif
         {

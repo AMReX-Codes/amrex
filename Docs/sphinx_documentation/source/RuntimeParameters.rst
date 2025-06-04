@@ -1085,6 +1085,37 @@ Memory
    this is only relevant for the CUDA (>= 11.2) and HIP backends that
    support stream-ordered memory allocator.
 
+.. py:data:: amrex.the_arena_defragmentation
+   :type: bool
+   :value: true
+
+   This controls the defragmentation behavior of the main arena.
+
+.. py:data:: amrex.the_device_arena_defragmentation
+   :type: bool
+   :value: true
+
+   This controls the defragmentation behavior of the device arena.
+
+.. py:data:: amrex.the_managed_arena_defragmentation
+   :type: bool
+   :value: true
+
+   This controls the defragmentation behavior of the managed arena.
+
+.. py:data:: amrex.the_pinned_arena_defragmentation
+   :type: bool
+   :value: true
+
+   This controls the defragmentation behavior of the pinned arena.
+
+.. py:data:: amrex.the_comms_arena_defragmentation
+   :type: bool
+   :value: [build dependent]
+
+   This controls the defragmentation behavior of the communication arena. The default is
+   false for HIP builds and true for others.
+
 .. py:data:: amrex.the_arena_is_managed
    :type: bool
    :value: false
