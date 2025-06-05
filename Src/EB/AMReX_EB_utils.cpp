@@ -216,19 +216,23 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
 
     Real fluid_sign = fluid_has_positive_sign ? 1._rt : -1._rt;
 
+    // because the algorithm below is N^2 in the number of points per box,
+    // we always tile this loop with a size of 32, on CPU and GPU,
+    // whatever the user's requested tiling behavior.
+    constexpr IntVect fsd_tilesize = IntVect(AMREX_D_DECL(32, 32, 32));
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf, fsd_tilesize); mfi.isValid(); ++mfi)
     {
-        Box const& gbx = mfi.fabbox();
+        Box const& gbx = mfi.growntilebox();
         Array4<Real> const& fab = mf.array(mfi);
 
         if (bndrycent.ok(mfi))
         {
             const auto& flag = flags.const_array(mfi);
 
-            Box eb_search = mfi.validbox();
+            Box eb_search = mfi.tilebox();
             eb_search.coarsen(refratio).enclosedCells().grow(eb_pad);
 
             const auto nallcells = static_cast<int>(eb_search.numPts());
