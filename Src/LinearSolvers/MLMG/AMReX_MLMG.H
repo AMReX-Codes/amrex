@@ -150,7 +150,7 @@ public:
     [[nodiscard]] RT getBottomToleranceAbs () const noexcept{ return bottom_abstol; }
 
     void setAlwaysUseBNorm (int flag) noexcept;
-    void setAlwaysUseResNorm (int flag) noexcept;
+    void setConvergenceNormType (NormType norm) noexcept { norm_type = norm; }
 
     void setFinalFillBC (int flag) noexcept { final_fill_bc = flag; }
 
@@ -368,17 +368,6 @@ MLMGT<MF>::setAlwaysUseBNorm (int flag) noexcept
 {
     if (flag) {
         norm_type = NormType::BNorm;
-    } else {
-        norm_type = NormType::Greater;
-    }
-}
-
-template <typename MF>
-void
-MLMGT<MF>::setAlwaysUseResNorm (int flag) noexcept
-{
-    if (flag) {
-        norm_type = NormType::ResNorm;
     } else {
         norm_type = NormType::Greater;
     }
@@ -2072,7 +2061,7 @@ MLMGT<MF>::checkPoint (const Vector<MultiFab*>& a_sol,
                    << "bottom_verbose = " << bottom_verbose << "\n"
                    << "bottom_maxiter = " << bottom_maxiter << "\n"
                    << "bottom_reltol = " << bottom_reltol << "\n"
-                   << "norm_type = " << norm_name << "\n"
+                   << "convergence_norm = " << norm_name << "\n"
                    << "namrlevs = " << namrlevs << "\n"
                    << "finest_amr_lev = " << finest_amr_lev << "\n"
                    << "linop_prepared = " << linop_prepared << "\n"
