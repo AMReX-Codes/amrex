@@ -1,11 +1,15 @@
 #ifndef AMREX_ML_MG_H_
 #define AMREX_ML_MG_H_
 #include <AMReX_Config.H>
+#include <AMReX_Enum.H>
 
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLCGSolver.H>
 
 namespace amrex {
+
+// Norm used to evaluate the target convergece criteria
+AMREX_ENUM(MLMGNormType, greater, bnorm, resnorm);
 
 template <typename MF>
 class MLMGT
@@ -31,9 +35,6 @@ public:
 
     using BottomSolver = amrex::BottomSolver;
     enum class CFStrategy : int {none,ghostnodes};
-
-    // Norm used to evaluate the target convergence criteria.
-    enum class NormType: int {Greater, BNorm, ResNorm};
 
     MLMGT (MLLinOpT<MF>& a_lp);
     ~MLMGT ();
@@ -150,7 +151,7 @@ public:
     [[nodiscard]] RT getBottomToleranceAbs () const noexcept{ return bottom_abstol; }
 
     void setAlwaysUseBNorm (int flag) noexcept;
-    void setConvergenceNormType (NormType norm) noexcept { norm_type = norm; }
+    void setConvergenceNormType (MLMGNormType norm) noexcept { norm_type = norm; }
 
     void setFinalFillBC (int flag) noexcept { final_fill_bc = flag; }
 
@@ -271,7 +272,7 @@ private:
     RT bottom_reltol = std::is_same<RT,double>() ? RT(1.e-4) : RT(1.e-3);
     RT bottom_abstol = RT(-1.0);
 
-    NormType norm_type = NormType::Greater;
+    MLMGNormType norm_type = MLMGNormType::greater;
 
     int final_fill_bc = 0;
 
@@ -367,9 +368,9 @@ void
 MLMGT<MF>::setAlwaysUseBNorm (int flag) noexcept
 {
     if (flag) {
-        norm_type = NormType::BNorm;
+        norm_type = MLMGNormType::bnorm;
     } else {
-        norm_type = NormType::Greater;
+        norm_type = MLMGNormType::greater;
     }
 }
 
@@ -456,7 +457,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     RT max_norm = resnorm0;
     std::string norm_name = "resid0";
     switch (norm_type) {
-        case NormType::Greater:
+        case MLMGNormType::greater:
             if (rhsnorm0 >= resnorm0) {
                 norm_name = "bnorm";
                 max_norm = rhsnorm0;
@@ -465,11 +466,11 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 max_norm = resnorm0;
             }
             break;
-        case NormType::BNorm:
+        case MLMGNormType::bnorm:
             norm_name = "bnorm";
             max_norm = rhsnorm0;
             break;
-        case NormType::ResNorm:
+        case MLMGNormType::resnorm:
             norm_name = "resid0";
             max_norm = resnorm0;
             break;
@@ -2034,18 +2035,7 @@ MLMGT<MF>::checkPoint (const Vector<MultiFab*>& a_sol,
 
         HeaderFile.precision(17);
 
-        std::string norm_name;
-        switch (norm_type) {
-            case NormType::Greater:
-                norm_name = "Greater";
-                break;
-            case NormType::BNorm:
-                norm_name = "BNorm";
-                break;
-            case NormType::ResNorm:
-                norm_name = "ResNorm";
-                break;
-        }
+        std::string norm_name = getEnumNameString(norm_type);
 
         HeaderFile << linop.name() << "\n"
                    << "a_tol_rel = " << a_tol_rel << "\n"
