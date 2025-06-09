@@ -150,7 +150,9 @@ public:
     void setBottomToleranceAbs (RT t) noexcept { bottom_abstol = t;}
     [[nodiscard]] RT getBottomToleranceAbs () const noexcept{ return bottom_abstol; }
 
+    [[deprecated("Use MLMG::setConvergenceNormType() instead.")]]
     void setAlwaysUseBNorm (int flag) noexcept;
+
     void setConvergenceNormType (MLMGNormType norm) noexcept { norm_type = norm; }
 
     void setFinalFillBC (int flag) noexcept { final_fill_bc = flag; }
