@@ -228,6 +228,8 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
         Box const& gbx = mfi.growntilebox();
         Array4<Real> const& fab = mf.array(mfi);
 
+        bool filled = false;
+
         if (bndrycent.ok(mfi))
         {
             const auto& flag = flags.const_array(mfi);
@@ -396,8 +398,11 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                     }
                 });
                 Gpu::streamSynchronize();
+                filled = true;
             }
-        } else {
+        }
+
+        if (!filled) {
             amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (fab(i,j,k) <= 0._rt) {
