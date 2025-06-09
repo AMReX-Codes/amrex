@@ -161,16 +161,16 @@ list are the targeted relative and absolute error tolerances. The relative
 error tolerance is hard-coded to be at least :math:`10^{-16}`.
 Given the linear system :math:`Ax = b`, the solver will terminate when the
 max-norm of the residual (:math:`b - Ax`) is less than
-:cpp:`std::max(a_tol_abs, a_tol_rel * max_norm)` where :cpp:`max_norm` is
+:cpp:`std::max(a_tol_abs, a_tol_rel * max_norm)`. By default, :cpp:`max_norm` is
 equal to the greater of rhs max-norm and residual max-norm. This behavior can
-be modified using the ``MLMG`` member function :cpp:`setConvergenceNormType (NormType norm)`
+be modified using the ``MLMG`` member function :cpp:`setConvergenceNormType (MLMGNormType norm)`,
 where the available options are
 
-- :cpp:`MLMG::NormType::Greater`: The default.
+- :cpp:`MLMGNormType::greater`: The default.
 
-- :cpp:`MLMG::NormType::BNorm`: :cpp:`max_norm` is set to rhs max-norm.
+- :cpp:`MLMGNormType::bnorm`: :cpp:`max_norm` is set to rhs max-norm.
 
-- :cpp:`MLMG::NormType::ResNorm`: :cpp:`max_norm` is set to residual max-norm.
+- :cpp:`MLMGNormType::resnorm`: :cpp:`max_norm` is set to residual max-norm.
 
 Set the absolute tolerance to zero if one does not have a
 good value for it.  The return value of :cpp:`solve` is the max-norm error.
