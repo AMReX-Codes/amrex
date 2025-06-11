@@ -16,6 +16,7 @@
 
 #if defined(AMREX_USE_CUB)
 #include <cub/cub.cuh>
+#include <cuda/functional>
 #elif defined(AMREX_USE_HIP)
 #include <rocprim/rocprim.hpp>
 #endif
