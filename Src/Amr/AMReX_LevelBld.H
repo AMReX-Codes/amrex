@@ -18,7 +18,6 @@ namespace amrex {
 * Abstract base class specifying an interface for building problem-specific
 * AmrLevels.
 */
-
 class LevelBld
 {
 public:

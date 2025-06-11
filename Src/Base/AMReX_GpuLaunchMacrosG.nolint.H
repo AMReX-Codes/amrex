@@ -16,7 +16,7 @@
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
                 [=] (sycl::nd_item<1> amrex_i_item) \
-                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
+                [[sycl::reqd_work_group_size(AMREX_GPU_MAX_THREADS)]] \
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     for (auto const TI : amrex::Gpu::Range(amrex_i_tn,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
@@ -266,7 +266,7 @@
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
                 [=] (sycl::nd_item<1> amrex_i_item) \
-                [[sycl::reqd_work_group_size(1,1,AMREX_GPU_MAX_THREADS)]] \
+                [[sycl::reqd_work_group_size(AMREX_GPU_MAX_THREADS)]] \
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]] \
                 { \
                     for (auto const TI : amrex::Gpu::Range(amrex_i_tn,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
@@ -454,10 +454,10 @@
 // FOR_1D
 
 #ifdef AMREX_USE_SYCL
-#define AMREX_GPU_HOST_DEVICE_FOR_1D(n,i,block) \
+#define AMREX_HOST_DEVICE_FOR_1D(n,i,block) \
 { \
     auto const& amrex_i_n = n; \
-    using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
     if (amrex::Gpu::inLaunchRegion()) { \
         amrex::ParallelFor(amrex_i_n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
     } else { \
@@ -465,10 +465,10 @@
     } \
 }
 #else
-#define AMREX_GPU_HOST_DEVICE_FOR_1D(n,i,block) \
+#define AMREX_HOST_DEVICE_FOR_1D(n,i,block) \
 { \
     auto const& amrex_i_n = n; \
-    using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
     if (amrex::Gpu::inLaunchRegion()) { \
         amrex::ParallelFor(amrex_i_n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
     } else { \
@@ -479,16 +479,48 @@
 }
 #endif
 
-#define AMREX_GPU_DEVICE_FOR_1D(n,i,block) \
+#ifdef AMREX_USE_SYCL
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D(n,i,block) \
 { \
-    using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    auto const& amrex_i_n = n; \
+    using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
+    if (amrex::Gpu::inLaunchRegion()) { \
+        amrex::ParallelFor(amrex_i_n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
+    } else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    } \
+}
+#else
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D(n,i,block) \
+{ \
+    auto const& amrex_i_n = n; \
+    using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
+    if (amrex::Gpu::inLaunchRegion()) { \
+        amrex::ParallelFor(amrex_i_n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
+    } else { \
+        auto amrex_i_lambda = [=] (amrex_i_inttype i) noexcept block; \
+        AMREX_PRAGMA_SIMD \
+        for (amrex_i_inttype i = 0; i < amrex_i_n; ++i) amrex_i_lambda(i); \
+    } \
+}
+#endif
+
+#define AMREX_FOR_1D(n,i,block) \
+{ \
+    using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
+    amrex::ParallelFor(n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
+}
+
+#define AMREX_PARALLEL_FOR_1D(n,i,block) \
+{ \
+    using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
     amrex::ParallelFor(n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
 }
 
 // FOR_3D
 
 #ifdef AMREX_USE_SYCL
-#define AMREX_GPU_HOST_DEVICE_FOR_3D(box,i,j,k,block) \
+#define AMREX_HOST_DEVICE_FOR_3D(box,i,j,k,block) \
 { \
     auto const& amrex_i_box = box; \
     if (amrex::Gpu::inLaunchRegion()) { \
@@ -498,7 +530,7 @@
     } \
 }
 #else
-#define AMREX_GPU_HOST_DEVICE_FOR_3D(box,i,j,k,block) \
+#define AMREX_HOST_DEVICE_FOR_3D(box,i,j,k,block) \
 { \
     auto const& amrex_i_box = box; \
     if (amrex::Gpu::inLaunchRegion()) { \
@@ -509,7 +541,34 @@
 }
 #endif
 
-#define AMREX_GPU_DEVICE_FOR_3D(box,i,j,k,block) \
+#ifdef AMREX_USE_SYCL
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D(box,i,j,k,block) \
+{ \
+    auto const& amrex_i_box = box; \
+    if (amrex::Gpu::inLaunchRegion()) { \
+        amrex::ParallelFor(amrex_i_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept block); \
+    } else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    } \
+}
+#else
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D(box,i,j,k,block) \
+{ \
+    auto const& amrex_i_box = box; \
+    if (amrex::Gpu::inLaunchRegion()) { \
+        amrex::ParallelFor(amrex_i_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept block); \
+    } else { \
+        amrex::LoopConcurrentOnCpu(amrex_i_box,[=] (int i, int j, int k) noexcept block); \
+    } \
+}
+#endif
+
+#define AMREX_FOR_3D(box,i,j,k,block) \
+{ \
+    amrex::ParallelFor(box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept block); \
+}
+
+#define AMREX_PARALLEL_FOR_3D(box,i,j,k,block) \
 { \
     amrex::ParallelFor(box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept block); \
 }
@@ -517,7 +576,7 @@
 // FOR_4D
 
 #ifdef AMREX_USE_SYCL
-#define AMREX_GPU_HOST_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
+#define AMREX_HOST_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
 { \
     auto const& amrex_i_box = box; \
     auto const& amrex_i_ncomp = ncomp; \
@@ -528,7 +587,7 @@
     } \
 }
 #else
-#define AMREX_GPU_HOST_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
+#define AMREX_HOST_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
 { \
     auto const& amrex_i_box = box; \
     auto const& amrex_i_ncomp = ncomp; \
@@ -540,15 +599,36 @@
 }
 #endif
 
-#define AMREX_GPU_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
+#ifdef AMREX_USE_SYCL
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D(box,ncomp,i,j,k,n,block) \
+{ \
+    auto const& amrex_i_box = box; \
+    auto const& amrex_i_ncomp = ncomp; \
+    if (amrex::Gpu::inLaunchRegion()) { \
+        amrex::ParallelFor(amrex_i_box,amrex_i_ncomp,[=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block); \
+    } else { \
+        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    } \
+}
+#else
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D(box,ncomp,i,j,k,n,block) \
+{ \
+    auto const& amrex_i_box = box; \
+    auto const& amrex_i_ncomp = ncomp; \
+    if (amrex::Gpu::inLaunchRegion()) { \
+        amrex::ParallelFor(amrex_i_box,amrex_i_ncomp,[=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block); \
+    } else { \
+        amrex::LoopConcurrentOnCpu(amrex_i_box,amrex_i_ncomp,[=] (int i, int j, int k, int n) noexcept block); \
+    } \
+}
+#endif
+
+#define AMREX_FOR_4D(box,ncomp,i,j,k,n,block) \
 { \
     amrex::ParallelFor(box,ncomp,[=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block); \
 }
 
-#define AMREX_GPU_DEVICE_PARALLEL_FOR_1D(...) AMREX_GPU_DEVICE_FOR_1D(__VA_ARGS__)
-#define AMREX_GPU_DEVICE_PARALLEL_FOR_3D(...) AMREX_GPU_DEVICE_FOR_3D(__VA_ARGS__)
-#define AMREX_GPU_DEVICE_PARALLEL_FOR_4D(...) AMREX_GPU_DEVICE_FOR_4D(__VA_ARGS__)
-
-#define AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_1D(...) AMREX_GPU_HOST_DEVICE_FOR_1D(__VA_ARGS__)
-#define AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_3D(...) AMREX_GPU_HOST_DEVICE_FOR_3D(__VA_ARGS__)
-#define AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_4D(...) AMREX_GPU_HOST_DEVICE_FOR_4D(__VA_ARGS__)
+#define AMREX_PARALLEL_FOR_4D(box,ncomp,i,j,k,n,block) \
+{ \
+    amrex::ParallelFor(box,ncomp,[=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block); \
+}

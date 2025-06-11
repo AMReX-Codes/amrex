@@ -188,7 +188,7 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
         ntiles *= nt[d];
     }
 
-    IntVect small, big, ijk;  // note that the initial values are all zero.
+    IntVect sml, big, ijk;  // note that the initial values are all zero.
     ijk[0] = -1;
     for (int t=0; t<ntiles; ++t) {
         for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -201,11 +201,11 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
         }
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
-            small[d] = ijk[d]*tilesize[d];
-            big[d] = std::min(small[d]+tilesize[d]-1, bx.length(d)-1);
+            sml[d] = ijk[d]*tilesize[d];
+            big[d] = std::min(sml[d]+tilesize[d]-1, bx.length(d)-1);
         }
 
-        Box tbx(small, big, btype);
+        Box tbx(sml, big, btype);
         tbx.shift(bx.smallEnd());
         push_back(tbx);
     }

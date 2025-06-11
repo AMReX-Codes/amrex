@@ -4,7 +4,7 @@
 
 namespace amrex {
 
-namespace {
+namespace mlndts_detail {
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_line_x (Array4<Real const> const& crse, int ic, int jc) noexcept
@@ -32,6 +32,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndtslap_interpadd (int i, int j, int, Array4<Real> const& fine,
                           Array4<Real const> const& crse, Array4<int const> const& msk) noexcept
 {
+    using namespace mlndts_detail;
+
     if (!msk(i,j,0)) {
         int ic = amrex::coarsen(i,2);
         int jc = amrex::coarsen(j,2);
@@ -58,6 +60,8 @@ void mlndtslap_semi_interpadd (int i, int j, int, Array4<Real> const& fine,
                                Array4<Real const> const& crse, Array4<int const> const& msk,
                                int semi_dir) noexcept
 {
+    using namespace mlndts_detail;
+
     if (!msk(i,j,0)) {
         if (semi_dir == 0) {
             int jc = amrex::coarsen(j,2);

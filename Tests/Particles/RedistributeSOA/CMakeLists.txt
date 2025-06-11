@@ -1,6 +1,6 @@
 foreach(D IN LISTS AMReX_SPACEDIM)
     set(_sources     main.cpp)
-    if (AMReX_CUDA)
+    if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
       set(_input_files inputs.rt.cuda  )
     else ()
       set(_input_files inputs.rt  )

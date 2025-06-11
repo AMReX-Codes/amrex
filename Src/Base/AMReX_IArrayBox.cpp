@@ -2,7 +2,6 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_IArrayBox.H>
 #include <AMReX_VectorIO.H>
-#include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 
 #include <cfloat>
@@ -32,7 +31,6 @@ void
 IArrayBox::Initialize ()
 {
     if (initialized) { return; }
-//    ParmParse pp("iab");
 
     ifabio = std::make_unique<IFABio>();
 

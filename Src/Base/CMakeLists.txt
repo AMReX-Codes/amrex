@@ -12,7 +12,10 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Array.H
        AMReX_BlockMutex.H
        AMReX_BlockMutex.cpp
+       AMReX_Enum.H
        AMReX_GpuComplex.H
+       AMReX_SmallMatrix.H
+       AMReX_ConstexprFor.H
        AMReX_Vector.H
        AMReX_TableData.H
        AMReX_Tuple.H
@@ -30,6 +33,9 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_parmparse_fi.cpp
        AMReX_ParmParse.H
        AMReX_Functional.H
+       AMReX_Stack.H
+       AMReX_String.H
+       AMReX_String.cpp
        AMReX_Utility.H
        AMReX_Utility.cpp
        AMReX_FileSystem.H
@@ -53,6 +59,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_ParallelDescriptor.H
        AMReX_ParallelDescriptor.cpp
        AMReX_OpenMP.H
+       AMReX_OpenMP.cpp
        AMReX_ParallelReduce.H
        AMReX_ForkJoin.H
        AMReX_ForkJoin.cpp
@@ -93,6 +100,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Print.H
        AMReX_IntConv.H
        AMReX_IntConv.cpp
+       AMReX_IOFormat.H
        # Index space -------------------------------------------------------------
        AMReX_Box.H
        AMReX_Box.cpp
@@ -131,6 +139,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Array4.H
        AMReX_MakeType.H
        AMReX_TypeTraits.H
+       AMReX_FabDataType.H
        AMReX_FabFactory.H
        AMReX_BaseFabUtility.H
        # Fortran data defined on unions of rectangles ----------------------------
@@ -268,6 +277,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        Parser/amrex_iparser.tab.cpp
        Parser/amrex_iparser.tab.nolint.H
        Parser/amrex_iparser.tab.h
+       # Dense linear algebra solver using LU decomposition
+       AMReX_LUSolver.H
        # AMReX Hydro -----------------------------------------------------
        AMReX_Slopes_K.H
        # Forward declaration -----------------------------------------------------
@@ -291,7 +302,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           AMReX_filcc_f.H
           AMReX_BLutil_F.F90
           AMReX_BLProfiler_F.F90
-          AMReX_FILCC_${D}D.F90
           AMReX_filcc_mod.F90
           AMReX_omp_mod.F90
           AMReX_acc_mod.F90

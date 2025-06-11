@@ -280,7 +280,7 @@ public:
                 int gid = mfi.index();
                 int tid = mfi.LocalTileIndex();
                 const auto& ptile = plev.at(std::make_pair(gid, tid));
-                const auto ptd = ptile.getConstParticleTileData();
+                const auto& ptd = ptile.getConstParticleTileData();
                 const size_t np = ptile.numParticles();
 
                 AMREX_FOR_1D ( np, i,
@@ -293,13 +293,17 @@ public:
                     {
                         AMREX_ALWAYS_ASSERT(ptd.m_aos[i].idata(j) == ptd.m_aos[i].id());
                     }
-                    for (int j = 0; j < NAR; ++j)
-                    {
-                        AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == ptd.m_aos[i].id());
+                    if constexpr (NAR > 0) {
+                        for (int j = 0; j < NAR; ++j)
+                        {
+                            AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == ptd.m_aos[i].id());
+                        }
                     }
-                    for (int j = 0; j < NAI; ++j)
-                    {
-                        AMREX_ALWAYS_ASSERT(ptd.m_idata[j][i] == ptd.m_aos[i].id());
+                    if constexpr (NAI > 0) {
+                        for (int j = 0; j < NAI; ++j)
+                        {
+                            AMREX_ALWAYS_ASSERT(ptd.m_idata[j][i] == ptd.m_aos[i].id());
+                        }
                     }
                     for (int j = 0; j < num_rr; ++j)
                     {
@@ -328,6 +332,7 @@ struct TestParams
     int do_regrid;
     int sort;
     int test_level_lost = 0;
+    int stable_redistribute = 0;
 };
 
 void testRedistribute();
@@ -358,6 +363,7 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.query("num_runtime_real", num_runtime_real);
     pp.query("num_runtime_int", num_runtime_int);
     pp.query("remove_negative", remove_negative);
+    pp.query("stable_redistribute", params.stable_redistribute);
 
     params.sort = 0;
     pp.query("sort", params.sort);
@@ -410,6 +416,7 @@ void testRedistribute ()
     }
 
     TestParticleContainer pc(geom, dm, ba, rr);
+    pc.setStableRedistribute(params.stable_redistribute);
 
     IntVect nppc(params.num_ppc);
 

@@ -4,7 +4,6 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
-#include <AMReX_ParmParse.H>
 
 #include <algorithm>
 #include <cfloat>
@@ -23,32 +22,40 @@ namespace
 
 void
 iMultiFab::Add (iMultiFab&       dst,
-               const iMultiFab& src,
-               int             srccomp,
-               int             dstcomp,
-               int             numcomp,
-               int             nghost)
+                const iMultiFab& src,
+                int              srccomp,
+                int              dstcomp,
+                int              numcomp,
+                int              nghost)
+{
+    iMultiFab::Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+iMultiFab::Add (iMultiFab&       dst,
+                const iMultiFab& src,
+                int              srccomp,
+                int              dstcomp,
+                int              numcomp,
+                const IntVect&   nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
-    amrex::Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    BL_PROFILE("iMultiFab::Add()");
+    amrex::Add(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
 void
 iMultiFab::Copy (iMultiFab&       dst,
-                const iMultiFab& src,
-                int             srccomp,
-                int             dstcomp,
-                int             numcomp,
-                int             nghost)
+                 const iMultiFab& src,
+                 int              srccomp,
+                 int              dstcomp,
+                 int              numcomp,
+                 int              nghost)
 {
-    BL_ASSERT(dst.boxArray() == src.boxArray());
-    BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
-
-    amrex::Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    iMultiFab::Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 void
@@ -60,53 +67,107 @@ iMultiFab::Copy (iMultiFab& dst, const iMultiFab& src,
     BL_ASSERT(dst.nGrowVect().allGE(nghost));
 
     BL_PROFILE("iMultiFab::Copy()");
-
     amrex::Copy(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
 void
-iMultiFab::Subtract (iMultiFab&       dst,
-                    const iMultiFab& src,
-                    int             srccomp,
-                    int             dstcomp,
-                    int             numcomp,
-                    int             nghost)
+iMultiFab::Swap (iMultiFab& dst, iMultiFab& src,
+                int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Swap(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+iMultiFab::Swap (iMultiFab& dst, iMultiFab& src,
+                int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
-    amrex::Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    BL_PROFILE("iMultiFab::Swap()");
+    amrex::Swap(dst,src,srccomp,dstcomp,numcomp,nghost);
+}
+
+void
+iMultiFab::Subtract (iMultiFab&       dst,
+                     const iMultiFab& src,
+                     int              srccomp,
+                     int              dstcomp,
+                     int              numcomp,
+                     int              nghost)
+{
+    iMultiFab::Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+iMultiFab::Subtract (iMultiFab&       dst,
+                     const iMultiFab& src,
+                     int              srccomp,
+                     int              dstcomp,
+                     int              numcomp,
+                     const IntVect&   nghost)
+{
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("iMultiFab::Subtract()");
+    amrex::Subtract(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
 void
 iMultiFab::Multiply (iMultiFab&       dst,
-                    const iMultiFab& src,
-                    int             srccomp,
-                    int             dstcomp,
-                    int             numcomp,
-                    int             nghost)
+                     const iMultiFab& src,
+                     int              srccomp,
+                     int              dstcomp,
+                     int              numcomp,
+                     int              nghost)
+{
+    iMultiFab::Multiply(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+iMultiFab::Multiply (iMultiFab&       dst,
+                     const iMultiFab& src,
+                     int              srccomp,
+                     int              dstcomp,
+                     int              numcomp,
+                     const IntVect&   nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
-    amrex::Multiply(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    BL_PROFILE("iMultiFab::Multiply()");
+    amrex::Multiply(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
 void
 iMultiFab::Divide (iMultiFab&       dst,
-                  const iMultiFab& src,
-                  int             srccomp,
-                  int             dstcomp,
-                  int             numcomp,
-                  int             nghost)
+                   const iMultiFab& src,
+                   int              srccomp,
+                   int              dstcomp,
+                   int              numcomp,
+                   int              nghost)
+{
+    iMultiFab::Divide(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+iMultiFab::Divide (iMultiFab&       dst,
+                   const iMultiFab& src,
+                   int              srccomp,
+                   int              dstcomp,
+                   int              numcomp,
+                   const IntVect&   nghost)
 {
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
-    amrex::Divide(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    BL_PROFILE("iMultiFab::Divide()");
+    amrex::Divide(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
 
 void
@@ -226,7 +287,7 @@ iMultiFab::min (int comp, int nghost, bool local) const
 {
     BL_PROFILE("iMultiFab::min()");
 
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
 
     int mn = std::numeric_limits<int>::max();
 
@@ -266,7 +327,7 @@ iMultiFab::min (const Box& region, int comp, int nghost, bool local) const
 {
     BL_PROFILE("iMultiFab::min(region)");
 
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
 
     int mn = std::numeric_limits<int>::max();
 
@@ -310,7 +371,7 @@ iMultiFab::max (int comp, int nghost, bool local) const
 {
     BL_PROFILE("iMultiFab::max()");
 
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
 
     int mx = std::numeric_limits<int>::lowest();
 
@@ -350,7 +411,7 @@ iMultiFab::max (const Box& region, int comp, int nghost, bool local) const
 {
     BL_PROFILE("iMultiFab::max(region)");
 
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
 
     int mx = std::numeric_limits<int>::lowest();
 
@@ -394,7 +455,7 @@ iMultiFab::sum (int comp, int nghost, bool local) const
 {
     BL_PROFILE("iMultiFab::sum()");
 
-    AMREX_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    AMREX_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
 
     Long sm = 0;
 
@@ -422,6 +483,51 @@ iMultiFab::sum (int comp, int nghost, bool local) const
             {
                 sm += fab(i,j,k,comp);
             });
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
+
+    return sm;
+}
+
+Long
+iMultiFab::sum (Box const& region, int comp, bool local) const
+{
+    BL_PROFILE("iMultiFab::sum(region)");
+
+    Long sm = 0;
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        auto const& ma = this->const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Long>{}, *this, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Long>
+        {
+            return (region.contains(i,j,k)) ? static_cast<Long>(ma[box_no](i,j,k,comp)) : Long(0);
+        });
+    }
+    else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox() & region;
+            if (bx.ok()) {
+                Array4<int const> const& fab = this->const_array(mfi);
+                auto tmp = Long(0);
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    tmp += fab(i,j,k,comp);
+                });
+                sm += tmp;
+            }
         }
     }
 
@@ -466,7 +572,7 @@ indexFromValue (iMultiFab const& mf, int comp, int nghost, int value, MPI_Op mml
 IntVect
 iMultiFab::minIndex (int comp, int nghost) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     int mn = this->min(comp, nghost, true);
     return indexFromValue(*this, comp, nghost, mn, MPI_MINLOC);
 }
@@ -474,7 +580,7 @@ iMultiFab::minIndex (int comp, int nghost) const
 IntVect
 iMultiFab::maxIndex (int comp, int nghost) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     int mx = this->max(comp, nghost, true);
     return indexFromValue(*this, comp, nghost, mx, MPI_MAXLOC);
 }
@@ -503,7 +609,7 @@ iMultiFab::plus (int val,
                  int  num_comp,
                  int  nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -517,7 +623,7 @@ iMultiFab::plus (int       val,
                  int        num_comp,
                  int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -534,7 +640,7 @@ iMultiFab::plus (const iMultiFab& mf,
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
-    BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
+    BL_ASSERT(n_grow.allGE(nghost) && mf.n_grow.allGE(nghost));
 
     amrex::Add(*this, mf, strt_comp, strt_comp, num_comp, nghost);
 }
@@ -545,7 +651,7 @@ iMultiFab::mult (int val,
                  int  num_comp,
                  int  nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -559,7 +665,7 @@ iMultiFab::mult (int       val,
                  int        num_comp,
                  int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -571,7 +677,7 @@ iMultiFab::negate (int comp,
                   int num_comp,
                   int nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
 
     FabArray<IArrayBox>::mult(-1,comp,num_comp,nghost);
@@ -583,7 +689,7 @@ iMultiFab::negate (const Box& region,
                   int        num_comp,
                   int        nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
 
     FabArray<IArrayBox>::mult(-1,region,comp,num_comp,nghost);

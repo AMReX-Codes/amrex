@@ -118,7 +118,7 @@ amrex_setarea (Box const& bx, Array4<Real> const& area,
                 AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
                     Real ri = offset[0] + dx[0]*(i);
-                    Real a = tmp*ri*ri;
+                    Real a = std::abs(tmp*ri*ri);
                     area(i,j,0) = a;
                 }
             }
@@ -132,7 +132,7 @@ amrex_setarea (Box const& bx, Array4<Real> const& area,
                 for (int i = lo.x; i <= hi.x; ++i) {
                     Real ri = offset[0] + dx[0]*(i);
                     Real ro = ri + dx[0];
-                    Real a = tmp*(ro-ri)*(ro+ri);
+                    Real a = std::abs(tmp*(ro-ri)*(ro+ri));
                     area(i,j,0) = a;
                 }
             }

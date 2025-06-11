@@ -80,7 +80,7 @@ MyTest::solve ()
 void
 MyTest::writePlotfile ()
 {
-//    amrex::Print() << "MyTest::writePlotfile todo" << std::endl;
+//    amrex::Print() << "MyTest::writePlotfile todo" << '\n';
 }
 
 void

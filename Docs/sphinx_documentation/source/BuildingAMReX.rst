@@ -463,11 +463,19 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_LINEAR_SOLVERS         |  Build AMReX linear solvers                     | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_LINEAR_SOLVERS_INCFLO  |  Build AMReX linear solvers for incompressible  | YES                     | YES, NO               |
+   |                              |  flow                                           |                         |                       |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_LINEAR_SOLVERS_EM      |  Build AMReX linear solvers for electromagnetic | YES                     | YES, NO               |
+   |                              |  solvers                                        |                         |                       |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_AMRDATA                |  Build data services                            | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_AMRLEVEL               |  Build AmrLevel class                           | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_EB                     |  Build Embedded Boundary support                | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_FFT                    |  Build FFT support                              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PARTICLES              |  Build particle classes                         | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -508,6 +516,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_CONDUIT                |  Enable Conduit support                         | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_CATALYST               |  Enable Catalyst support                        | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_ASCENT                 |  Enable Ascent support                          | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_HYPRE                  |  Enable HYPRE interfaces                        | NO                      | YES, NO               |
@@ -531,6 +541,15 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_INSTALL                |  Generate Install Targets                       | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PROBINIT               |  Enable support for probin file                 | Platform dependent      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_FLATTEN_FOR            |  Enable flattening of ParallelFor and similar   | NO                      | YES, NO               |
+   |                              |  functions for host code                        |                         |                       |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_COMPILER_DEFAULT_INLINE|  Use default inline behavior of compiler,       | NO for GCC              | YES, NO               |
+   |                              |  so far relevant for GCC Only                   | YES otherwise           |                       |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_INLINE_LIMIT           |  Inline limit. Relevant only when               | 43210                   | Non-negative number   |
+   |                              |  AMReX_COMPILER_DEFAULT_INLINE is NO.           |                         |                       |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
 .. raw:: latex
 
@@ -670,11 +689,17 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | AMReX_LINEAR_SOLVERS         | LSOLVERS        |
    +------------------------------+-----------------+
+   | AMReX_LINEAR_SOLVERS_INCFLO  | LSOLVERS_INCFLO |
+   +------------------------------+-----------------+
+   | AMReX_LINEAR_SOLVERS_EM      | LSOLVERS_EM     |
+   +------------------------------+-----------------+
    | AMReX_AMRDATA                | AMRDATA         |
    +------------------------------+-----------------+
    | AMReX_AMRLEVEL               | AMRLEVEL        |
    +------------------------------+-----------------+
    | AMReX_EB                     | EB              |
+   +------------------------------+-----------------+
+   | AMReX_FFT                    | FFT             |
    +------------------------------+-----------------+
    | AMReX_PARTICLES              | PARTICLES       |
    +------------------------------+-----------------+

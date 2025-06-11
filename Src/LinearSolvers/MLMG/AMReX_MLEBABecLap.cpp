@@ -116,7 +116,9 @@ MLEBABecLap::setScalars (Real a, Real b)
         {
             m_a_coeffs[amrlev][0].setVal(0.0);
         }
+        m_acoef_set = true;
     }
+    m_scalars_set = true;
 }
 
 void
@@ -124,6 +126,7 @@ MLEBABecLap::setACoeffs (int amrlev, const MultiFab& alpha)
 {
     MultiFab::Copy(m_a_coeffs[amrlev][0], alpha, 0, 0, 1, 0);
     m_needs_update = true;
+    m_acoef_set = true;
 }
 
 void
@@ -131,6 +134,7 @@ MLEBABecLap::setACoeffs (int amrlev, Real alpha)
 {
     m_a_coeffs[amrlev][0].setVal(alpha);
     m_needs_update = true;
+    m_acoef_set = true;
 }
 
 void
@@ -685,6 +689,8 @@ MLEBABecLap::prepareForSolve ()
 
     MLCellABecLap::prepareForSolve();
 
+    applyRobinBCTermsCoeffs();
+
     averageDownCoeffs();
 
     if (m_eb_phi[0]) {
@@ -1183,6 +1189,8 @@ MLEBABecLap::update ()
 {
     if (MLCellABecLap::needsUpdate()) { MLCellABecLap::update(); }
 
+    applyRobinBCTermsCoeffs();
+
     averageDownCoeffs();
 
     m_is_singular.clear();
@@ -1282,6 +1290,14 @@ MLEBABecLap::getEBFluxes (const Vector<MultiFab*>& a_flux, const Vector<MultiFab
                 }
             }
         }
+    }
+}
+
+void
+MLEBABecLap::applyRobinBCTermsCoeffs ()
+{
+    if (this->hasRobinBC()) {
+        detail::applyRobinBCTermsCoeffs(*this);
     }
 }
 

@@ -34,8 +34,8 @@ else
 
   CXXFLAGS += -g1 -O3
   CFLAGS   += -g1 -O3
-  FFLAGS   += -g -O3
-  F90FLAGS += -g -O3
+  FFLAGS   += -g1 -O3
+  F90FLAGS += -g1 -O3
 
 endif
 

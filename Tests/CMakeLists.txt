@@ -101,6 +101,10 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
 
    add_subdirectory("Amr/Advection_AmrCore")
 
+   if (AMReX_OMP)
+      add_subdirectory("OpenMP/atomicAdd")
+   endif ()
+
    if (AMReX_PARTICLES)
       add_subdirectory("Particles/Redistribute")
    endif ()
@@ -113,11 +117,17 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
       add_subdirectory("LinearSolvers/ABecLaplacian_C")
    endif()
 
+   if (AMReX_FFT)
+      add_subdirectory("FFT/Poisson")
+   endif()
+
 else()
    #
    # List of subdirectories to search for CMakeLists.
    #
-   set( AMREX_TESTS_SUBDIRS AsyncOut MultiBlock Reinit Amr CLZ Parser Parser2 CTOParFor RoundoffDomain)
+   set( AMREX_TESTS_SUBDIRS Amr AsyncOut CLZ CTOParFor DeviceGlobal Enum
+                            MultiBlock MultiPeriod ParmParse Parser Parser2 ParserUserFn Reinit
+                            RoundoffDomain SmallMatrix)
 
    if (AMReX_PARTICLES)
      list(APPEND AMREX_TESTS_SUBDIRS Particles)
@@ -128,7 +138,11 @@ else()
    endif ()
 
    if (AMReX_LINEAR_SOLVERS)
-      list(APPEND AMREX_TESTS_SUBDIRS LinearSolvers)
+      list(APPEND AMREX_TESTS_SUBDIRS Algebra LinearSolvers)
+   endif ()
+
+   if (AMReX_FFT)
+      list(APPEND AMREX_TESTS_SUBDIRS FFT)
    endif ()
 
    if (AMReX_HDF5)
@@ -139,8 +153,12 @@ else()
       list(APPEND AMREX_TESTS_SUBDIRS FortranInterface)
    endif ()
 
-   if (AMReX_CUDA)
+   if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
       list(APPEND AMREX_TESTS_SUBDIRS GPU)
+   endif ()
+
+   if (AMReX_GPU_BACKEND STREQUAL NONE)
+      list(APPEND AMREX_TESTS_SUBDIRS OpenMP)
    endif ()
 
    list(TRANSFORM AMREX_TESTS_SUBDIRS PREPEND "${CMAKE_CURRENT_LIST_DIR}/")

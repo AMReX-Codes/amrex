@@ -2,6 +2,8 @@
 #define AMREX_NEIGHBORPARTICLESCPUIMPL_H_
 #include <AMReX_Config.H>
 
+namespace amrex {
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
@@ -651,6 +653,8 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
 #else
     amrex::ignore_unused(reuse_rcv_counts);
 #endif
+}
+
 }
 
 #endif

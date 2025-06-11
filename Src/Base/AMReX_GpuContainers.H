@@ -5,7 +5,6 @@
 #include <AMReX_Vector.H>
 #include <AMReX_PODVector.H>
 #include <AMReX_GpuAllocators.H>
-#include <AMReX_Scan.H>
 #include <type_traits>
 
 #include <numeric>
@@ -408,7 +407,7 @@ namespace amrex::Gpu {
                                std::is_trivially_copyable_v<T> &&
                                amrex::IsCallable<F, T&, Long>::value,
                                int> FOO = 0>
-    void fillAsync (IT first, IT last, F&& f) noexcept
+    void fillAsync (IT first, IT last, F const& f) noexcept
     {
         auto N = static_cast<Long>(std::distance(first, last));
         if (N <= 0) { return; }
@@ -434,11 +433,11 @@ namespace amrex::Gpu {
                                          unsigned long long, unsigned int>;
             constexpr Long nU = sizeof(T) / sizeof(U);
             auto pu = reinterpret_cast<U*>(p);
-            int nthreads_per_block = (sizeof(T) <= 64) ? 256 : 128;
+            constexpr int nthreads_per_block = (sizeof(T) <= 64) ? 256 : 128;
             int nblocks = static_cast<int>((N+nthreads_per_block-1)/nthreads_per_block);
             std::size_t shared_mem_bytes = nthreads_per_block * sizeof(T);
 #ifdef AMREX_USE_SYCL
-            amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
+            amrex::launch<nthreads_per_block>(nblocks, shared_mem_bytes, Gpu::gpuStream(),
             [=] AMREX_GPU_DEVICE (Gpu::Handler const& handler) noexcept
             {
                 Long i = handler.globalIdx();
@@ -459,7 +458,7 @@ namespace amrex::Gpu {
                 }
             });
 #else
-            amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
+            amrex::launch<nthreads_per_block>(nblocks, shared_mem_bytes, Gpu::gpuStream(),
                           [=] AMREX_GPU_DEVICE () noexcept
             {
                 Long blockDimx = blockDim.x;

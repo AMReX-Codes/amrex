@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BoxArray.H>
+#include <AMReX_DataAllocator.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
@@ -15,8 +16,11 @@
 #include <omp.h>
 #endif
 
+#include <cstdint>
+#include <ostream>
 #include <string>
 #include <utility>
+
 
 namespace amrex {
 
@@ -28,6 +32,12 @@ template <typename FAB> class FabArray;
 
 namespace EB2 { class IndexSpace; }
 
+/**
+ * \brief Base class for FabArray.
+ *
+ * Not to be confused with FArrayBox or `FAB` shorthands.
+ * Can be read as FArrayBox-like Array Base.
+ */
 class FabArrayBase
 {
     friend class MFIter;
@@ -481,6 +491,7 @@ public:
             bool enforce_periodicity_only, bool override_sync,
             bool multi_ghost);
 
+        std::uint64_t m_id = std::numeric_limits<std::uint64_t>::max();
         IndexType    m_typ;
         IntVect      m_crse_ratio; //!< BoxArray in FabArrayBase may have crse_ratio.
         IntVect      m_ngrow;
@@ -516,9 +527,6 @@ public:
     const FB& getFB (const IntVect& nghost, const Periodicity& period,
                      bool cross=false, bool enforce_periodicity_only = false,
                      bool override_sync = false) const;
-    //
-    void flushFB (bool no_assertion=false) const;       //!< This flushes its own FB.
-    static void flushFBCache (); //!< This flushes the entire cache.
 
     //
     //! parallel copy or add
@@ -538,6 +546,7 @@ public:
 
         [[nodiscard]] Long bytes () const;
 
+        std::uint64_t m_id = std::numeric_limits<std::uint64_t>::max();
         BDKey       m_srcbdk;
         BDKey       m_dstbdk;
         IntVect     m_srcng;
@@ -566,9 +575,6 @@ public:
     //
     const CPC& getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVect& srcng,
                        const Periodicity& period, bool to_ghost_cells_only = false) const;
-    //
-    void flushCPC (bool no_assertion=false) const;      //!< This flushes its own CPC.
-    static void flushCPCache (); //!< This flusheds the entire cache.
 
     //
     //! Rotate Boundary by 90
@@ -641,11 +647,13 @@ public:
     //! For ParallelFor(FabArray)
     struct ParForInfo
     {
-        ParForInfo (const FabArrayBase& fa, const IntVect& nghost, int nthreads);
+        ParForInfo (const FabArrayBase& fa, const IntVect& nghost);
         ~ParForInfo ();
 
-        std::pair<int*,int*> const& getBlocks () const { return m_nblocks_x; }
-        Box const* getBoxes () const { return m_boxes; }
+        int getNBlocksPerBox (int nthreads) const {
+            return int((m_ncellsmax+nthreads-1)/nthreads);
+        }
+        BoxIndexer const* getBoxes () const { return m_boxes; }
 
         ParForInfo () = delete;
         ParForInfo (ParForInfo const&) = delete;
@@ -655,14 +663,12 @@ public:
 
         BATransformer m_bat;
         IntVect m_ng;
-        int m_nthreads;
-        std::pair<int*,int*> m_nblocks_x;
-        Box* m_boxes = nullptr;
+        Long m_ncellsmax = 0;
+        BoxIndexer* m_boxes = nullptr;
         char* m_hp = nullptr;
-        char* m_dp = nullptr;
     };
 
-    ParForInfo const& getParForInfo (const IntVect& nghost, int nthreads) const;
+    ParForInfo const& getParForInfo (const IntVect& nghost) const;
 
     static std::multimap<BDKey,ParForInfo*> m_TheParForCache;
 
@@ -713,7 +719,60 @@ public:
     };
     static AMREX_EXPORT FabArrayStats m_FA_stats;
 
+    static AMREX_EXPORT bool m_alloc_single_chunk;
+
+    [[nodiscard]] static bool getAllocSingleChunk () { return m_alloc_single_chunk; }
+
+    [[nodiscard]] static std::uint64_t getNextCommMetaDataId ();
+
+private:
+
+    void flushFB (bool no_assertion=false) const; //!< This flushes its own FB.
+    static void flushFBCache (); //!< This flushes the entire cache.
+
+    void flushCPC (bool no_assertion=false) const; //!< This flushes its own CPC.
+    static void flushCPCache (); //!< This flusheds the entire cache.
 };
+
+namespace detail {
+    class SingleChunkArena final
+        : public Arena
+    {
+    public:
+        SingleChunkArena (Arena* a_arena, std::size_t a_size);
+        ~SingleChunkArena () override;
+
+        SingleChunkArena () = delete;
+        SingleChunkArena (const SingleChunkArena& rhs) = delete;
+        SingleChunkArena (SingleChunkArena&& rhs) = delete;
+        SingleChunkArena& operator= (const SingleChunkArena& rhs) = delete;
+        SingleChunkArena& operator= (SingleChunkArena&& rhs) = delete;
+
+        [[nodiscard]] void* alloc (std::size_t sz) override;
+        void free (void* pt) override;
+
+        // isDeviceAccessible and isHostAccessible can both be true.
+        [[nodiscard]] bool isDeviceAccessible () const override;
+        [[nodiscard]] bool isHostAccessible () const override;
+
+        [[nodiscard]] bool isManaged () const override;
+        [[nodiscard]] bool isDevice () const override;
+        [[nodiscard]] bool isPinned () const override;
+
+        [[nodiscard]] void* data () const noexcept { return (void*) m_root; }
+
+    private:
+        DataAllocator m_dallocator;
+        char* m_root = nullptr;
+        char* m_free = nullptr;
+        std::size_t m_size = 0;
+    };
+}
+
+[[nodiscard]] int nComp (FabArrayBase const& fa);
+[[nodiscard]] IntVect nGrowVect (FabArrayBase const& fa);
+[[nodiscard]] BoxArray const& boxArray (FabArrayBase const& fa);
+[[nodiscard]] DistributionMapping const& DistributionMap (FabArrayBase const& fa);
 
 #ifdef BL_USE_MPI
 bool CheckRcvStats (Vector<MPI_Status>& recv_stats, const Vector<std::size_t>& recv_size, int tag);

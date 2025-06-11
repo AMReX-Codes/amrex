@@ -26,7 +26,6 @@ class FArrayBox;
 * primarily for FArrayBox implementers; i.e. user's shouldn't
 * call any of the member functions in this class directly.
 */
-
 class FABio // NOLINT(cppcoreguidelines-special-member-functions)
 {
 public:
@@ -116,7 +115,7 @@ public:
     * \brief Pure virtual function.  Derived classes MUST override this
     * function to skip over the next FAB f in the istream, under the
     * assumption that the header for the FAB f has already been
-    * skpped over.
+    * skipped over.
     */
     virtual void skip (std::istream& is,
                        FArrayBox&    f) const = 0;
@@ -224,7 +223,6 @@ private:
 *  This class does NOT provide a copy constructor or assignment operator,
 *  but it has a move constructor.
 */
-
 class FArrayBox
     :
     public BaseFab<Real>

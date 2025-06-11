@@ -4,9 +4,21 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX_INT.H>
+
+#ifdef AMREX_TINY_PROFILING
+#include <AMReX_TinyProfiler.H>
+#else
+namespace amrex {
+    struct MemStat {};
+}
+#endif
+
 #include <cstddef>
 #include <cstdlib>
 #include <limits>
+#include <map>
+#include <mutex>
+#include <unordered_map>
 #include <utility>
 
 namespace amrex {
@@ -22,7 +34,9 @@ inline std::size_t aligned_size (std::size_t align_requirement, std::size_t size
 
 inline bool is_aligned (const void* p, std::size_t alignment) noexcept
 {
-    return (reinterpret_cast<std::size_t>(p) % alignment) == 0;
+    auto* q = const_cast<void*>(p);
+    auto space = alignment;
+    return std::align(alignment, alignment, q, space) == p;
 }
 
 class Arena;
@@ -43,6 +57,7 @@ struct ArenaInfo
     bool device_set_readonly = false;
     bool device_set_preferred = false;
     bool device_use_hostalloc = false;
+    bool defragmentation = false;
     ArenaInfo& SetReleaseThreshold (Long rt) noexcept {
         release_threshold = rt;
         return *this;
@@ -75,6 +90,10 @@ struct ArenaInfo
         device_use_hostalloc = false;
         return *this;
     }
+    ArenaInfo& SetDefragmentation (bool b) noexcept {
+        defragmentation = b;
+        return *this;
+    }
 };
 
 /**
@@ -82,7 +101,6 @@ struct ArenaInfo
 * A virtual base class for objects that manage their own dynamic
 * memory allocation.
 */
-
 class Arena
 {
 public:
@@ -155,7 +173,18 @@ public:
      * \brief Add this Arena to the list of Arenas that are profiled by TinyProfiler.
      * \param memory_name The name of this arena in the TinyProfiler output.
      */
-    virtual void registerForProfiling (const std::string& memory_name);
+    void registerForProfiling (const std::string& memory_name);
+
+    /**
+     * \brief Remove this Arena from the list of Arenas that are profiled by TinyProfiler.
+     * This is equivalent to destructing and re-constructing the Arena
+     */
+    void deregisterFromProfiling ();
+
+#ifdef AMREX_USE_GPU
+    //! Is this GPU stream ordered memory allocator?
+    [[nodiscard]] virtual bool isStreamOrderedArena () const { return false; }
+#endif
 
     /**
     * \brief Given a minimum required arena size of sz bytes, this returns
@@ -163,8 +192,8 @@ public:
     */
     static std::size_t align (std::size_t sz);
 
-    static void Initialize ();
-    static void PrintUsage ();
+    static void Initialize (bool minimal);
+    static void PrintUsage (bool print_max_usage=false);
     static void PrintUsageToFiles (std::string const& filename, std::string const& message);
     static void Finalize ();
 
@@ -186,6 +215,8 @@ public:
      */
     [[nodiscard]] const ArenaInfo& arenaInfo () const { return arena_info; }
 
+    virtual void ResetMaxUsageCounter () {}
+
 protected:
 
     ArenaInfo arena_info;
@@ -193,6 +224,29 @@ protected:
     virtual std::size_t freeUnused_protected () { return 0; }
     void* allocate_system (std::size_t nbytes);
     void deallocate_system (void* p, std::size_t nbytes);
+
+    struct ArenaProfiler {
+        //! If this arena is profiled by TinyProfiler
+        bool m_do_profiling = false;
+        //! Mutex for the profiling
+        std::mutex m_arena_profiler_mutex;
+        //! Data structure used for profiling with TinyProfiler
+        std::map<std::string, MemStat> m_profiling_stats;
+        //! Track the currently allocated memory, not used by CArena
+        std::unordered_map<void*, std::pair<MemStat*, std::size_t>> m_currently_allocated;
+
+        ~ArenaProfiler ();
+        ArenaProfiler () noexcept = default;
+        ArenaProfiler (const ArenaProfiler& rhs) = delete;
+        ArenaProfiler (ArenaProfiler&& rhs) = delete;
+        ArenaProfiler& operator= (const ArenaProfiler& rhs) = delete;
+        ArenaProfiler& operator= (ArenaProfiler&& rhs) = delete;
+
+        void profile_alloc (void* ptr, std::size_t nbytes);
+
+        void profile_free (void* ptr);
+
+    } m_profiler;
 };
 
 }

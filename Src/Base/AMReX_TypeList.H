@@ -34,13 +34,13 @@ using TypeAt = typename detail::TypeListGet<I,T>::type;
 namespace detail
 {
     template <typename TL, typename F, std::size_t...N>
-    constexpr void for_each_impl (F&&f, std::index_sequence<N...>)
+    constexpr void for_each_impl (F const&f, std::index_sequence<N...>)
     {
         (f(TypeAt<N,TL>{}), ...);
     }
 
     template <typename TL, typename F, std::size_t...N>
-    constexpr bool for_each_until_impl (F&&f, std::index_sequence<N...>)
+    constexpr bool for_each_until_impl (F const&f, std::index_sequence<N...>)
     {
         return (f(TypeAt<N,TL>{}) || ...);
     }
@@ -93,7 +93,7 @@ ForEach (TypeList<Ts...>, F&& f)
          // dst and src are either MultiFab or fMultiFab
          auto tt = CartesianProduct(TypeList<MultiFab,fMultiFab>{},
                                     TypeList<MultiFab,fMultiFab>{});
-         bool r = ForEachUtil(tt, [&] (auto t) -> bool
+         bool r = ForEachUntil(tt, [&] (auto t) -> bool
          {
              using MF0 = TypeAt<0,decltype(t)>;
              using MF1 = TypeAt<1,decltype(t)>;
@@ -150,6 +150,53 @@ template <typename... Ls>
 constexpr auto CartesianProduct (Ls...) {
     return (TypeList<TypeList<>>{} * ... * Ls{});
 }
+
+namespace detail {
+    // return TypeList<T, T, T, T, ... (N times)> by using the fast power algorithm
+    template <class T, std::size_t N>
+    constexpr auto SingleTypeMultiplier_impl () {
+        if constexpr (N == 0) {
+            return TypeList<>{};
+        } else if constexpr (N == 1) {
+            return TypeList<T>{};
+        } else if constexpr (N % 2 == 0) {
+            return SingleTypeMultiplier_impl<T, N / 2>() + SingleTypeMultiplier_impl<T, N / 2>();
+        } else {
+            return SingleTypeMultiplier_impl<T, N - 1>() + TypeList<T>{};
+        }
+    }
+
+    // overload of SingleTypeMultiplier for multiple types:
+    // convert T[N] to  T, T, T, T, ... (N times with N >= 1)
+    template <class T, std::size_t N>
+    constexpr auto SingleTypeMultiplier (const T (&)[N]) {
+        return SingleTypeMultiplier_impl<T, N>();
+    }
+
+    // overload of SingleTypeMultiplier for one regular type
+    template <class T>
+    constexpr auto SingleTypeMultiplier (T) {
+        return TypeList<T>{};
+    }
+
+    // apply the types of the input TypeList as template arguments to TParam
+    template <template <class...> class TParam, class... Args>
+    constexpr auto TApply (TypeList<Args...>) {
+        return TypeList<TParam<Args...>>{};
+    }
+}
+
+/**
+ * \brief Return the first template argument with the later arguments applied to it.
+ * Types of the form T[N] are expanded to T, T, T, T, ... (N times with N >= 1).
+ *
+ * For example, TypeMultiplier<ReduceData, Real[4], int[2], Long>
+ * is an alias to the type ReduceData<Real, Real, Real, Real, int, int, Long>.
+ */
+template <template <class...> class TParam, class... Types>
+using TypeMultiplier = TypeAt<0, decltype(detail::TApply<TParam>(
+    (TypeList<>{} + ... + detail::SingleTypeMultiplier(Types{}))
+))>;
 
 }
 

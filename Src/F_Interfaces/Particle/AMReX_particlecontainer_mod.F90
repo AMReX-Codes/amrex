@@ -163,6 +163,10 @@ module amrex_particlecontainer_module
 
   end interface
 
+  interface amrex_particlecontainer_destroy
+     module procedure amrex_particlecontainer_destroy
+  end interface amrex_particlecontainer_destroy
+
 contains
 
   subroutine amrex_particlecontainer_build (pc, amrcore)

@@ -1,7 +1,6 @@
 
 #include <AMReX_EB2_MultiGFab.H>
 #include <AMReX_EB2_C.H>
-#include <AMReX_ParmParse.H>
 
 namespace amrex::EB2 {
 

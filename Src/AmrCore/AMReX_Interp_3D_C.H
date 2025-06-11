@@ -31,7 +31,7 @@ pcinterp_interp (Box const& bx,
     }
 }
 
-namespace {
+namespace interp_detail {
     constexpr int ix   = 0;
     constexpr int iy   = 1;
     constexpr int iz   = 2;
@@ -49,6 +49,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& u,
                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
 {
+    using namespace interp_detail;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -91,6 +93,8 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
                   Array4<T const> const& slope, Array4<T const> const& crse,
                   const int ccomp, IntVect const& ratio) noexcept
 {
+    using namespace interp_detail;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
     const auto chi = amrex::ubound(slope);
@@ -204,6 +208,7 @@ facediv_face_interp (int ci, int cj, int ck,
 
             break;
         }
+        default : { break; }
     }
 }
 
@@ -289,13 +294,13 @@ facediv_int (int ci, int cj, int ck, int nf,
                                   + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w000+w012-w002-w010)
                                   +                dy3/(8*dz*xspys)*(w100+w112-w102-w110);
 
-    fine[1](fi+1, fj+1, fk  , nf) = Real(0.5)*(v001+v021)
+    fine[1](fi+1, fj+1, fk  , nf) = Real(0.5)*(v100+v120)
                                   + dy*(2*dz*dz+dy*dy)/(8*dx*yspzs)*(u000+u210-u010-u200)
                                   +                dy3/(8*dx*yspzs)*(u001+u211-u011-u201)
                                   + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w100+w112-w102-w110)
                                   +                dy3/(8*dz*xspys)*(w000+w012-w002-w010);
 
-    fine[1](fi  , fj+1, fk+1, nf) = Real(0.5)*(v100+v120)
+    fine[1](fi  , fj+1, fk+1, nf) = Real(0.5)*(v001+v021)
                                   + dy*(2*dz*dz+dy*dy)/(8*dx*yspzs)*(u001+u211-u011-u201)
                                   +                dy3/(8*dx*yspzs)*(u000+u210-u010-u200)
                                   + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w000+w012-w002-w010)
@@ -314,16 +319,16 @@ facediv_int (int ci, int cj, int ck, int nf,
                                   +                dz3/(8*dy*zspxs)*(v100+v121-v101-v120);
 
     fine[2](fi  , fj+1, fk+1, nf) = Real(0.5)*(w010+w012)
-                                  + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u000+u201-u001-u200)
-                                  +                dz3/(8*dx*yspzs)*(u010+u211-u011-u210)
-                                  + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v100+v121-v101-v120)
-                                  +                dz3/(8*dy*zspxs)*(v000+v021-v001-v020);
-
-    fine[2](fi+1, fj  , fk+1, nf) = Real(0.5)*(w100+w102)
                                   + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u010+u211-u011-u210)
                                   +                dz3/(8*dx*yspzs)*(u000+u201-u001-u200)
                                   + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v000+v021-v001-v020)
                                   +                dz3/(8*dy*zspxs)*(v100+v121-v101-v120);
+
+    fine[2](fi+1, fj  , fk+1, nf) = Real(0.5)*(w100+w102)
+                                  + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u000+u201-u001-u200)
+                                  +                dz3/(8*dx*yspzs)*(u010+u211-u011-u210)
+                                  + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v100+v121-v101-v120)
+                                  +                dz3/(8*dy*zspxs)*(v000+v021-v001-v020);
 
     fine[2](fi+1, fj+1, fk+1, nf) = Real(0.5)*(w110+w112)
                                   + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u010+u211-u011-u210)

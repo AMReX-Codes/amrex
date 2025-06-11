@@ -15,7 +15,6 @@ namespace amrex {
 * \brief This arena uses CUDA stream-ordered memory allocator if available.
 * If not, use The_Arena().
 */
-
 class PArena
     :
     public Arena
@@ -38,10 +37,21 @@ public:
     [[nodiscard]] bool isDevice () const final;
     [[nodiscard]] bool isPinned () const final;
 
-#ifdef AMREX_CUDA_GE_11_2
+#ifdef AMREX_USE_GPU
+    //! Is this CUDA stream ordered memory allocator?
+    [[nodiscard]] bool isStreamOrderedArena () const final { return true; }
+#endif
+
+#ifdef AMREX_GPU_STREAM_ALLOC_SUPPORT
 private:
-    cudaMemPool_t m_pool;
-    cuuint64_t m_old_release_threshold;
+    AMREX_HIP_OR_CUDA(
+        hipMemPool_t m_pool;,
+        cudaMemPool_t m_pool;
+    )
+    AMREX_HIP_OR_CUDA(
+        uint64_t m_old_release_threshold;,
+        cuuint64_t m_old_release_threshold;
+    )
 #endif
 };
 

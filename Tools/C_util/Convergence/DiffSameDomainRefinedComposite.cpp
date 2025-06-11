@@ -241,11 +241,11 @@ main (int   argc,
 
 
                     FORT_CV_AVGDOWN(data2Coarse.dataPtr(),
-                                    ARLIM(bx.loVect()), ARLIM(bx.hiVect()),
+                                    AMREX_ARLIM(bx.loVect()), AMREX_ARLIM(bx.hiVect()),
                                     &ncCoarse,
                                     data2Fine[mfi].dataPtr(),
-                                    ARLIM(data2Fine[mfi].loVect()),
-                                    ARLIM(data2Fine[mfi].hiVect()),
+                                    AMREX_ARLIM(data2Fine[mfi].loVect()),
+                                    AMREX_ARLIM(data2Fine[mfi].hiVect()),
                                     bx.loVect(), bx.hiVect(),
                                     refine_ratio.getVect());
 
@@ -269,7 +269,7 @@ main (int   argc,
 
                     if (norm != 0)
                     {
-                        norms[iComp] = norms[iComp] + pow(grdL2, norm);
+                        norms[iComp] = norms[iComp] + grdL2;
                     }
                     else
                     {
@@ -414,4 +414,3 @@ getRefRatio(const Box& crse,
         ref_ratio = IntVect();
     return ref_ratio;
 }
-

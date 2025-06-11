@@ -5,10 +5,16 @@ using namespace amrex;
 extern "C"
 {
     void amrex_fi_average_down (const MultiFab* S_fine, MultiFab* S_crse,
-                             const Geometry* fgeom, const Geometry* cgeom,
-                             int scomp, int ncomp, int rr)
+                                const Geometry* fgeom, const Geometry* cgeom,
+                                int scomp, int ncomp, int rr)
     {
         amrex::average_down(*S_fine, *S_crse, *fgeom, *cgeom, scomp, ncomp, rr);
+    }
+
+    void amrex_fi_average_down_cell_node (const MultiFab* S_fine, MultiFab* S_crse,
+                                          int scomp, int ncomp, int rr)
+    {
+        amrex::average_down(*S_fine, *S_crse, scomp, ncomp, rr);
     }
 
     void amrex_fi_average_down_faces (MultiFab const* fmf[], MultiFab* cmf[],

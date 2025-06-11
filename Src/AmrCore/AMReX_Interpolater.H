@@ -17,7 +17,6 @@ class IArrayBox;
 *
 * Specifies interpolater interface for coarse-to-fine interpolation in space.
 */
-
 class Interpolater
     : public InterpBase
 {
@@ -160,7 +159,6 @@ public:
 *
 * Bilinear interpolation on node centered data.
 */
-
 class NodeBilinear
     :
     public Interpolater
@@ -219,7 +217,6 @@ public:
 *
 * Bilinear interpolation on cell centered data.
 */
-
 class CellBilinear
     :
     public Interpolater
@@ -286,7 +283,6 @@ public:
 * sum_ivar a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied
 * in all fine cells if,jf covering coarse cell ic,jc.
 */
-
 class CellConservativeLinear
     :
     public Interpolater
@@ -344,7 +340,6 @@ protected:
 * Linear conservative interpolation on cell centered data
 * but with protection against undershoots or overshoots.
 */
-
 class CellConservativeProtected
     :
     public CellConservativeLinear
@@ -393,7 +388,6 @@ public:
 *
 * Quadratic interpolation on cell centered data.
 */
-
 class CellQuadratic
     :
     public Interpolater
@@ -451,7 +445,6 @@ public:
 /**
 * \brief Piecewise Constant interpolation on cell centered data.
 */
-
 class PCInterp
     :
     public Interpolater
@@ -512,7 +505,6 @@ public:
 * in constructing the polynomial, the average of the polynomial inside that
 * cell is equal to the cell averaged value of the original data.
 */
-
 class CellConservativeQuartic
     :
     public Interpolater
@@ -573,8 +565,10 @@ public:
 * of the divergence of the underlying crse cell. All fine cells overlying
 * a given coarse cell will have the same divergence, even when the coarse
 * grid divergence is spatially varying.
+* Based on Vanella et. al. (doi:10.1016/j.jcp.2010.05.003, section 3.2),
+* but solves the interior closure problem using least squares with an
+* initial guess equal to the average of fine face values across the cell.
 */
-
 class FaceDivFree
     :
     public Interpolater
@@ -663,12 +657,132 @@ public:
 
 
 /**
-* \brief Bilinear interpolation on face data.
+* \brief Piecewise constant tangential interpolation / linear normal interpolation of face data.
 *
-* Bilinear interpolation on data.
+* Piecewise constant tangential interpolation / linear normal interpolation of face data.
 */
-
 class FaceLinear
+    :
+    public Interpolater
+{
+public:
+    /**
+    * \brief Returns coarsened box given fine box and refinement ratio.
+    *
+    * \param fine
+    * \param ratio
+    */
+    Box CoarseBox (const Box& fine, int ratio) override;
+
+    /**
+    * \brief Returns coarsened box given fine box and refinement ratio.
+    *
+    * \param fine
+    * \param ratio
+    */
+    Box CoarseBox (const Box& fine, const IntVect& ratio) override;
+
+    /**
+    * \brief Coarse to fine interpolation in space.
+    *
+    * \param crse
+    * \param crse_comp
+    * \param fine
+    * \param fine_comp
+    * \param ncomp
+    * \param fine_region
+    * \param ratio
+    * \param crse_geom
+    * \param fine_geom
+    * \param bcr
+    * \param actual_comp
+    * \param actual_state
+    */
+    void interp (const FArrayBox& crse,
+                 int              crse_comp,
+                 FArrayBox&       fine,
+                 int              fine_comp,
+                 int              ncomp,
+                 const Box&       fine_region,
+                 const IntVect&   ratio,
+                 const Geometry&  crse_geom,
+                 const Geometry&  fine_geom,
+                 Vector<BCRec> const& bcr,
+                 int              actual_comp,
+                 int              actual_state,
+                 RunOn            runon) override;
+
+    /**
+    * \brief Coarse to fine interpolation in space for face-based data.
+    *
+    * \param crse
+    * \param crse_comp
+    * \param fine
+    * \param fine_comp
+    * \param ncomp
+    * \param fine_region
+    * \param ratio
+    * \param solve_mask
+    * \param crse_geom
+    * \param fine_geom
+    * \param bcr
+    * \param bccomp
+    * \param runon
+    */
+    void interp_face (const FArrayBox& crse,
+                      int        crse_comp,
+                      FArrayBox&       fine,
+                      int        fine_comp,
+                      int        ncomp,
+                      const Box&       fine_region,
+                      const IntVect&   ratio,
+                      const IArrayBox& solve_mask,
+                      const Geometry&  crse_geom,
+                      const Geometry&  fine_geom,
+                      Vector<BCRec> const & bcr,
+                      int        bccomp,
+                      RunOn            runon) override;
+
+    /**
+    * \brief Coarse to fine interpolation in space.
+    *
+    * \param crse
+    * \param crse_comp
+    * \param fine
+    * \param fine_comp
+    * \param ncomp
+    * \param fine_region
+    * \param ratio
+    * \param crse_geom
+    * \param fine_geom
+    * \param bcr
+    * \param actual_comp
+    * \param actual_state
+    */
+    void interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
+                     int         crse_comp,
+                     Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
+                     int         fine_comp,
+                     int         ncomp,
+                     const Box&        fine_region,
+                     const IntVect&    ratio,
+                     Array<IArrayBox*, AMREX_SPACEDIM> const& solve_mask,
+                     const Geometry&   /*crse_geom*/,
+                     const Geometry&   /*fine_geom*/,
+                     Vector<Array<BCRec, AMREX_SPACEDIM> > const& /*bcr*/,
+                     int         /*actual_comp*/,
+                     int         /*actual_state*/,
+                     RunOn       runon) override;
+
+
+};
+
+/**
+* \brief Bilinear tangential interpolation / linear normal interpolation of face data.
+*
+* Bilinear tangential interpolation / linear normal interpolation of face data.
+*/
+class FaceConservativeLinear
     :
     public Interpolater
 {
@@ -789,7 +903,6 @@ public:
 *
 * Quartic interpolation on cell centered data.
 */
-
 class CellQuartic
     :
     public Interpolater
@@ -847,6 +960,7 @@ extern AMREX_EXPORT PCInterp                  pc_interp;
 extern AMREX_EXPORT NodeBilinear              node_bilinear_interp;
 extern AMREX_EXPORT FaceDivFree               face_divfree_interp;
 extern AMREX_EXPORT FaceLinear                face_linear_interp;
+extern AMREX_EXPORT FaceConservativeLinear    face_cons_linear_interp;
 extern AMREX_EXPORT CellConservativeLinear    lincc_interp;
 extern AMREX_EXPORT CellConservativeLinear    cell_cons_interp;
 extern AMREX_EXPORT CellBilinear              cell_bilinear_interp;

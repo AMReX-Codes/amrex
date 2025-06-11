@@ -880,7 +880,7 @@ void
 Level::fillLevelSet (MultiFab& levelset, const Geometry& geom) const
 {
     levelset.setVal(-1.0);
-    levelset.ParallelCopy(m_levelset,0,0,1,0,0);
+    levelset.ParallelCopy(m_levelset,0,0,1,IntVect(0),levelset.nGrowVect(),geom.periodicity());
 
     const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
 

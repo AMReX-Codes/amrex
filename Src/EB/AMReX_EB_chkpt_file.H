@@ -10,18 +10,18 @@ class ChkptFile
 private:
     std::string m_restart_file;
 
-    const std::string m_volfrac_name   = "volfrac";
-    const std::string m_centroid_name  = "centroid";
-    const std::string m_bndryarea_name = "bndryarea";
-    const std::string m_bndrycent_name = "bndrycent";
-    const std::string m_bndrynorm_name = "bndrynorm";
-    const std::string m_levelset_name  = "levelset";
+    std::string m_volfrac_name   = "volfrac";
+    std::string m_centroid_name  = "centroid";
+    std::string m_bndryarea_name = "bndryarea";
+    std::string m_bndrycent_name = "bndrycent";
+    std::string m_bndrynorm_name = "bndrynorm";
+    std::string m_levelset_name  = "levelset";
 
-    const amrex::Vector<std::string> m_areafrac_name
+    amrex::Vector<std::string> m_areafrac_name
         = {AMREX_D_DECL("areafrac_x", "areafrac_y", "areafrac_z")};
-    const amrex::Vector<std::string> m_facecent_name
+    amrex::Vector<std::string> m_facecent_name
         = {AMREX_D_DECL("facecent_x", "facecent_y", "facecent_z")};
-    const amrex::Vector<std::string> m_edgecent_name
+    amrex::Vector<std::string> m_edgecent_name
         = {AMREX_D_DECL("edgecent_x", "edgecent_y", "edgecent_z")};
 
     void writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba, const Geometry& geom,

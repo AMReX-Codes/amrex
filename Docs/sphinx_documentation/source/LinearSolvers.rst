@@ -159,13 +159,20 @@ to solve the problem given an initial guess and a right-hand side.
 Zero is a perfectly fine initial guess.  The two :cpp:`Reals` in the argument
 list are the targeted relative and absolute error tolerances. The relative
 error tolerance is hard-coded to be at least :math:`10^{-16}`.
-Given the linear system :math:`Ax=b`, the solver will terminate when the
-max-norm of the residual (:math:`b-Ax`) is less than
-:cpp:`std::max(a_tol_abs, a_tol_rel*max_norm)` where :cpp:`max_norm`
-is the max-norm of the rhs, :math:`b`, if the flag :cpp:`always_use_bnorm` is
-set to True or if the rhs max-norm is greater than or equal to the max-norm error
-of the initial guess, otherwise :cpp:`max_norm` is equal to the max-norm error
-of the initial guess.  Set the absolute tolerance to zero if one does not have a
+Given the linear system :math:`Ax = b`, the solver will terminate when the
+max-norm of the residual (:math:`b - Ax`) is less than
+:cpp:`std::max(a_tol_abs, a_tol_rel * max_norm)`. By default, :cpp:`max_norm` is
+equal to the greater of rhs max-norm and residual max-norm. This behavior can
+be modified using the ``MLMG`` member function :cpp:`setConvergenceNormType (MLMGNormType norm)`,
+where the available options are
+
+- :cpp:`MLMGNormType::greater`: The default.
+
+- :cpp:`MLMGNormType::bnorm`: :cpp:`max_norm` is set to rhs max-norm.
+
+- :cpp:`MLMGNormType::resnorm`: :cpp:`max_norm` is set to residual max-norm.
+
+Set the absolute tolerance to zero if one does not have a
 good value for it.  The return value of :cpp:`solve` is the max-norm error.
 
 After the solver returns successfully, if needed, we can call
@@ -292,6 +299,18 @@ For Robin boundary conditions, the ghost cells in
 ``MultiFab* robinbc_a``, ``MultiFab* robinbc_b``, and ``MultiFab* robinbc_f``
 store the numerical values in the condition,
 :math:`a\phi + b\frac{\partial\phi}{\partial n} = f`.
+
+4) Nodal solver provides the option to use an overset mask:
+
+.. highlight:: c++
+
+::
+
+   // omask is either 0 or 1. 1 means the node is an unknown. 0 means it's known.
+   void setOversetMask (int amrlev, const iMultiFab& a_dmask);
+
+Note this is an integer (not bool) MultiFab, so the values must be only either 0 or 1.
+
 
 .. _sec:linearsolver:pars:
 
@@ -483,7 +502,9 @@ To set homogeneous Dirichlet boundary conditions, call
     ml_ebabeclap->setEBHomogDirichlet(lev, coeff);
 
 where coeff can be a real number (i.e. the value is the same at every cell)
-or is the MultiFab holding the coefficient of the gradient at each cell with an EB face.
+or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
+In other words, coeff is :math:`\beta` in the canonical form given in equation :eq:`eqn::abeclap`
+located at the EB surface centroid.
 
 To set inhomogeneous Dirichlet boundary conditions, call
 
@@ -494,8 +515,9 @@ To set inhomogeneous Dirichlet boundary conditions, call
     ml_ebabeclap->setEBDirichlet(lev, phi_on_eb, coeff);
 
 where phi_on_eb is the MultiFab holding the Dirichlet values in every cut cell,
-and coeff again is a real number (i.e. the value is the same at every cell)
-or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
+and coeff again is a real number
+or a MultiFab holding the coefficient of the gradient at each cell with an EB face,
+i.e. :math:`\beta` in equation :eq:`eqn::abeclap` located at the EB surface centroid.
 
 Currently there are options to define the face-based coefficients on
 face centers vs face centroids, and to interpret the solution variable
@@ -539,7 +561,11 @@ problem as much as possible.  However, as we have mentioned, we can
 call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
 passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
-residual correction form of the original problem. To build Hypre, follow the next steps:
+residual correction form of the original problem.
+
+As of March 2025, AMReX supports and is tested with Hypre version 2.32.0 (check
+``amrex/.github/workflows/hypre.yml`` so see what versions are currently tested).
+To build Hypre, follow the next steps:
 
 .. highlight:: console
 
@@ -547,10 +573,26 @@ residual correction form of the original problem. To build Hypre, follow the nex
 
     1.- git clone https://github.com/hypre-space/hypre.git
     2.- cd hypre/src
-    3.- ./configure
+    3.- git checkout v2.32.0
+    4.- ./configure
         (if you want to build hypre with long long int, do ./configure --enable-bigint )
-    4.- make install
-    5.- Create an environment variable with the HYPRE directory --
+    5.- make install
+    6.- Create an environment variable with the HYPRE directory --
+        HYPRE_DIR=/hypre_path/hypre/src/hypre
+
+To use Hypre with CUDA, nvcc compiler is needed along with all other requirements for CPU (e.g. gcc, mpicc). It is very important that the GPU architecture for Hypre matches with that of AMReX. By default, Hypre assumes its architecture number to be 70 and it is best to build Hypre for multiple architectures by specifying multiple compute capability numbers (e.g. 80 and 90). If you see a runtime error similar to
+``terminate called after throwing an instance of 'thrust::system::system_error'``, you likely did not build for the correct architecture.
+
+::
+
+    1.- git clone https://github.com/hypre-space/hypre.git
+    2.- cd hypre/src
+    3.- git checkout v2.32.0
+    4.- ./configure --with-cuda --with-gpu-arch='80 90' --enable-unified-memory
+        (you can figure out the gpu arch from command line using
+        nvidia-smi --query-gpu=compute_cap --format=csv, if it gives 9.0, gpu-arch is 90)
+    5.- make install
+    6.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
 To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system.
@@ -671,7 +713,7 @@ the following cross-terms are evaluated separately using the ``MLTensorOp`` and 
 
     (\eta u_y)_x + ( (\kappa - \frac{2}{3} \eta) (u_x + w_z) )_y  + (\eta w_y)_z
 
-    (\eta u_z)_x + (\eta v_z)_y - ( (\kappa - \frac{2}{3} \eta) (u_x + v_y) )_z
+    (\eta u_z)_x + (\eta v_z)_y + ( (\kappa - \frac{2}{3} \eta) (u_x + v_y) )_z
 
 The code below is an example of how to set up the solver to compute the
 viscous term `divtau` explicitly:

@@ -16,13 +16,8 @@ A Simple Time Integrator Setup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This is best shown with some sample code that sets up a time integrator and
-asks it to step forwards by some interval ``dt``. The user needs to supply at
-minimum, the right-hand side function using the ``TimeIntegrator::set_rhs()``
-function. By using the ``TimeIntegrator::set_post_update()`` function, a user
-can also supply a post update function which is called on state data immediately
-before evaluating the right-hand side. This post update function is a good
-opportunity to fill boundary conditions for Runge-Kutta stage solution data so that
-ghost cells are filled when the right hand side function is called on that solution data.
+asks it to step forward by some interval ``dt``. The user needs to supply the
+right-hand side function using the ``TimeIntegrator::set_rhs()`` function.
 
 .. highlight:: c++
 
@@ -30,171 +25,26 @@ ghost cells are filled when the right hand side function is called on that solut
 
    #include <AMReX_TimeIntegrator.H>
 
-   MultiFab Sborder; // MultiFab containing old-time state data and ghost cells
-   MultiFab Snew;    // MultiFab where we want new-time state data
-   Geometry geom;    // The domain (or level) geometry
+   MultiFab Sold; // MultiFab containing old-time state data
+   MultiFab Snew; // MultiFab where we want new-time state data
 
-   // [Fill Sborder here]
+   // [Fill Sold here]
 
    // Create a time integrator that will work with
    // MultiFabs with the same BoxArray, DistributionMapping,
    // and number of components as the state_data MultiFab.
-   TimeIntegrator<MultiFab> integrator(Sborder);
+   TimeIntegrator<MultiFab> integrator(Sold);
 
-   // Create a RHS source function we will integrate
-   auto source_fun = [&](MultiFab& rhs, const MultiFab& state, const Real time){
-       // User function to calculate the rhs MultiFab given the state MultiFab
-       fill_rhs(rhs, state, time);
+   // Create a function that fills the state BCs and computes the RHS
+   auto rhs_fun = [&](MultiFab& rhs, MultiFab& state, const Real time){
+       // [Calculate the rhs MultiFab given the state MultiFab]
    };
 
-   // Create a function to call after updating a state
-   auto post_update_fun = [&](MultiFab& S_data, const Real time) {
-       // Call user function to update state MultiFab, e.g. fill BCs
-       post_update(S_data, time, geom);
-   };
-
-   // Attach the right hand side and post-update functions
-   // to the integrator
+   // Attach the right hand side function to the integrator
    integrator.set_rhs(source_fun);
-   integrator.set_post_update(post_update_fun);
 
-   // integrate forward one step from `time` by `dt` to fill S_new
-   integrator.advance(Sborder, S_new, time, dt);
-
-.. _sec:time_int:sundials:
-
-Using SUNDIALS
-^^^^^^^^^^^^^^
-
-The AMReX Time Integration interface also supports a SUNDIALS backend that
-wraps both the explicit Runge-Kutta (ERK) and multirate (MRI) integration
-schemes in the SUNDIALS ARKODE package. To use either of them, the user needs
-to compile AMReX with `USE_SUNDIALS=TRUE` and use SUNDIALS v. 6.0 or later.
-
-There are only minor changes to the code above required to use the SUNDIALS
-interface. The first change is that the integration datatype is now a
-`Vector<MultiFab>` type instead of simply `MultiFab`. The reason for
-introducing a `Vector<MultiFab>` in this case, is to permit integrating state
-data with different spatial centering (e.g. cell centered, face centered, node
-centered) concurrently. Shown here is sample code equivalent to the code above,
-suitable for the SUNDIALS explicit Runge-Kutta integrator:
-
-.. highlight:: c++
-
-::
-
-   #include <AMReX_TimeIntegrator.H>
-
-   Vector<MultiFab> Sborder; // MultiFab(s) containing old-time state data and ghost cells
-   Vector<MultiFab> Snew;    // MultiFab(s) where we want new-time state data
-   Geometry geom;    // The domain (or level) geometry
-
-   // [Fill Sborder here]
-
-   // Create a time integrator that will work with
-   // MultiFabs with the same BoxArray, DistributionMapping,
-   // and number of components as the state_data MultiFab.
-   TimeIntegrator<Vector<MultiFab> > integrator(Sborder);
-
-   // Create a RHS source function we will integrate
-   auto source_fun = [&](Vector<MultiFab>& rhs, const Vector<MultiFab>& state, const Real time){
-       // User function to calculate the rhs MultiFab given the state MultiFab
-       fill_rhs(rhs, state, time);
-   };
-
-   // Create a function to call after updating a state
-   auto post_update_fun = [&](Vector<MultiFab>& S_data, const Real time) {
-       // Call user function to update state MultiFab, e.g. fill BCs
-       post_update(S_data, time, geom);
-   };
-
-   // Attach the right hand side and post-update functions
-   // to the integrator
-   integrator.set_rhs(source_fun);
-   integrator.set_post_update(post_update_fun);
-
-   // integrate forward one step from `time` by `dt` to fill S_new
-   integrator.advance(Sborder, S_new, time, dt);
-
-Afterwards, to select the ERK integrator, one needs only to add the following
-two input parameters at runtime:
-
-::
-
-  integration.type = SUNDIALS
-  integration.sundials.strategy = ERK
-
-If instead one wishes to use the SUNDIALS multirate integrator, then the user
-will need to use the following runtime inputs parameters:
-
-::
-
-  integration.type = SUNDIALS
-  integration.sundials.strategy = MRI
-
-In addition, to set up the multirate problem, the user needs to supply a fast
-timescale right-hand-side function in addition to the usual right hand side
-function (which is interpreted as the slow timescale right-hand side). The user
-will also need to supply the ratio of the slow timestep size to the fast
-timestep size, which is an integer corresponding to the number of fast
-timesteps the integrator will take per every slow timestep. An example code
-snippet would look as follows:
-
-.. highlight:: c++
-
-::
-
-   #include <AMReX_TimeIntegrator.H>
-
-   Vector<MultiFab> Sborder; // Vector of MultiFab(s) containing old-time state data and ghost cells
-   Vector<MultiFab> Snew;    // Vector of MultiFab(s) where we want new-time state data
-   Geometry geom;    // The domain (or level) geometry
-
-   // [Fill Sborder here]
-
-   // Create a time integrator that will work with
-   // MultiFabs with the same BoxArray, DistributionMapping,
-   // and number of components as the state_data MultiFab.
-   TimeIntegrator<Vector<MultiFab> > integrator(Sborder);
-
-   // Create a slow timescale RHS function we will integrate
-   auto rhs_fun = [&](Vector<MultiFab>& rhs, const Vector<MultiFab>& state, const Real time){
-       // User function to calculate the rhs MultiFab given the state MultiFab(s)
-       fill_rhs(rhs, state, time);
-   };
-
-   // Create a fast timescale RHS function to integrate
-   auto rhs_fun_fast = [&](Vector<MultiFab>& rhs,
-                           const Vector<MultiFab>& stage_data,
-                           const Vector<MultiFab>& state, const Real time) {
-        // User function to calculate the fast-timescale rhs MultiFab given
-        // the state MultiFab and stage_data which holds the previously
-        // accessed slow-timescale stage state data.
-        fill_fast_rhs(rhs, stage_data, state, time);
-   };
-
-   // The post update function is called after updating state data or
-   // immediately before using state data to calculate a fast or slow right hand side.
-   // (it is a good place to e.g. fill boundary conditions)
-   auto post_update_fun = [&](Vector<MultiFab>& S_data, const Real time) {
-       // Call user function to update state MultiFab(s), e.g. fill BCs
-       post_update(S_data, time, geom);
-   };
-
-   // Attach the slow and fast right hand side functions to integrator
-   integrator.set_rhs(rhs_fun);
-   integrator.set_fast_rhs(rhs_fun_fast);
-
-   // This sets the ratio of slow timestep size to fast timestep size as an integer,
-   // or equivalently, the number of fast timesteps per slow timestep.
-   integrator.set_slow_fast_timestep_ratio(2);
-
-   // Attach the post update function to the integrator
-   integrator.set_post_update(post_update_fun);
-
-   // integrate forward one step from `time` by `dt` to fill S_new
-   integrator.advance(Sborder, S_new, time, dt);
-
+   // integrate forward one step from `time` by `dt` to fill Snew
+   integrator.advance(Sold, Snew, time, dt);
 
 Picking A Time Integration Method
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -204,12 +54,6 @@ runtime parameters that allow choosing between a simple Forward Euler method or
 a generic explicit Runge-Kutta method. If Runge-Kutta is selected, then the user
 can choose which of a set of predefined Butcher Tables to use, or can choose to
 use a custom table and supply it manually.
-
-When AMReX is compiled with SUNDIALS v.6 or later, the user also has an option
-to use the SUNDIALS ARKODE integrator as a backend for the AMReX Time Integrator
-class. The features of this interface evolve with the needs of our codes, so
-they may not yet support all SUNDIALS configurations available. If you find you
-need SUNDIALS options we have not implemented, please let us know.
 
 The full set of integrator options are detailed as follows:
 
@@ -222,7 +66,7 @@ The full set of integrator options are detailed as follows:
   ## (without the quotation marks)
   ## "ForwardEuler" or "0" = Native Forward Euler Integrator
   ## "RungeKutta" or "1"   = Native Explicit Runge Kutta
-  ## "SUNDIALS" or "2"     = SUNDIALS ARKODE Integrator
+  ## "SUNDIALS" or "2"     = SUNDIALS Integrator
   ## for example:
   integration.type = RungeKutta
 
@@ -246,35 +90,104 @@ The full set of integrator options are detailed as follows:
   integration.rk.nodes = 0
   integration.rk.tableau = 0.0
 
-  ## *** Parameters Needed For SUNDIALS ARKODE Integrator ***
-  ## integration.sundials.strategy specifies which ARKODE strategy to use.
-  ## The available options are (without the quotations):
-  ## "ERK" = Explicit Runge Kutta
-  ## "MRI" = Multirate Integrator
-  ## "MRITEST" = Tests the Multirate Integrator by setting a zero-valued fast RHS function
-  ## for example:
-  integration.sundials.strategy = ERK
+.. _sec:time_int:sundials:
 
-  ## *** Parameters Specific to SUNDIALS ERK Strategy ***
-  ## (Requires integration.type=SUNDIALS and integration.sundials.strategy=ERK)
-  ## integration.sundials.erk.method specifies which explicit Runge Kutta method
-  ## for SUNDIALS to use. The following options are supported:
-  ## "SSPRK3" = 3rd order strong stability preserving RK (default)
-  ## "Trapezoid" = 2nd order trapezoidal rule
-  ## "ForwardEuler" = 1st order forward euler
-  ## for example:
-  integration.sundials.erk.method = SSPRK3
+Using SUNDIALS
+^^^^^^^^^^^^^^
 
-  ## *** Parameters Specific to SUNDIALS MRI Strategy ***
-  ## (Requires integration.type=SUNDIALS and integration.sundials.strategy=MRI)
-  ## integration.sundials.mri.implicit_inner specifies whether or not to use an implicit inner solve
-  ## integration.sundials.mri.outer_method specifies which outer (slow) method to use
-  ## integration.sundials.mri.inner_method specifies which inner (fast) method to use
-  ## The following options are supported for both the inner and outer methods:
-  ## "KnothWolke3" = 3rd order Knoth-Wolke method (default for outer method)
-  ## "Trapezoid" = 2nd order trapezoidal rule
-  ## "ForwardEuler" = 1st order forward euler (default for inner method)
-  ## for example:
-  integration.sundials.mri.implicit_inner = false
-  integration.sundials.mri.outer_method = KnothWolke3
-  integration.sundials.mri.inner_method = Trapezoid
+The AMReX Time Integration interface also supports a SUNDIALS backend that
+provides explicit, implicit, and implicit-explicit (ImEx) Runge-Kutta methods
+as well a multirate (MRI) methods from the ARKODE package in SUNDIALS.
+To use SUNDIALS integrators, the user needs to compile AMReX with
+``USE_SUNDIALS=TRUE`` and use SUNDIALS v6.0 or later.
+
+The SUNDIALS interface supports ``MultiFab`` or ``Vector<MultiFab>`` data
+types. Using a ``Vector<MultiFab>`` permits integrating state data with
+different spatial centering (e.g. cell centered, face centered, node centered)
+concurrently.
+
+The same code as above can be used with SUNDIALS explicit or implicit
+Runge-Kutta methods without any modification. To select a SUNDIALS explicit
+Runge-Kutta integrator, one needs only to add the following two input parameters
+at runtime:
+
+::
+
+  integration.type = SUNDIALS
+  integration.sundials.type = ERK
+
+One can select a different method type by changing the value of
+``integration.sundials.type`` to one of the following values:
+
++------------------------+--------------------------------------------------+
+| Input Option           | SUNDIALS Method Type                             |
++========================+==================================================+
+| ERK                    | Explicit Runge-Kutta method                      |
++------------------------+--------------------------------------------------+
+| DIRK                   | Diagonally Implicit Runge-Kutta method           |
++------------------------+--------------------------------------------------+
+| IMEX-RK                | Implicit-Explicit Additive Runge-Kutta method    |
++------------------------+--------------------------------------------------+
+| EX-MRI                 | Explicit Multirate Infinitesimal method          |
++------------------------+--------------------------------------------------+
+| IM-MRI                 | Implicit Multirate Infinitesimal method          |
++------------------------+--------------------------------------------------+
+| IMEX-MRI               | Implicit-Explicit Multirate Infinitesimal method |
++------------------------+--------------------------------------------------+
+
+For ImEx methods, the user needs to supply two right-hand side functions, an
+implicit and an explicit function, using the function
+``TimeIntegrator::set_imex_rhs()``. Similarly for multirate methods, the user
+needs to supply slow and fast right-hand side functions using
+``TimeIntegrator::set_rhs()`` to set the slow function and
+``TimeIntegrator::set_fast_rhs()`` to set the fast function. With multirate
+methods, one also needs to select the fast time scale method type using the
+input option ``integration.sundials.fast_type`` which maybe set to ``ERK`` or
+``DIRK``.
+
+To select a specific SUNDIALS method use the input option
+``integration.sundials.method`` for ERK and DIRK methods as well as the slow
+time scale method with an MRI integrator, use ``integration.sundials.method_i``
+and ``integration.sundials.method_e`` to set the implicit and explicit method in
+an ImEx method, and ``integration.sundials.fast_method`` to set the ERK or DIRK
+method used at the fast time scale with an MRI integrator. These options may be
+set to any valid SUNDIALS method name, see the following sections in the
+SUNDIALS documentation for more details:
+
+* `ERK methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#explicit-butcher-tables>`_
+* `DIRK methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#implicit-butcher-tables>`_
+* `ImEx methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#additive-butcher-tables>`_
+* `MRI methods <https://sundials.readthedocs.io/en/latest/arkode/Usage/MRIStep/MRIStepCoupling.html#mri-coupling-tables>`_
+
+The full set of integrator options are detailed as follows:
+
+::
+
+  # INTEGRATION WITH SUNDIALS
+
+  # *** Select the SUNDIALS integrator backend ***
+  integration.type = SUNDIALS
+
+  # *** Select the SUNDIALS method type ***
+  # ERK      = Explicit Runge-Kutta method
+  # DIRK     = Diagonally Implicit Runge-Kutta method
+  # IMEX-RK  = Implicit-Explicit Additive Runge-Kutta method
+  # EX-MRI   = Explicit Multirate Infatesimal method
+  # IM-MRI   = Implicit Multirate Infatesimal method
+  # IMEX-MRI = Implicit-Explicit Multirate Infatesimal method
+  integration.sundials.type = ERK
+
+  # *** Select a specific SUNDIALS ERK method ***
+  integration.sundials.method = ARKODE_BOGACKI_SHAMPINE_4_2_3
+
+  # *** Select a specific SUNDIALS ImEx method ***
+  integration.sundials.method_i = ARKODE_ARK2_DIRK_3_1_2
+  integration.sundials.method_e = ARKODE_ARK2_ERK_3_1_2
+
+  # *** Select a specific SUNDIALS MRI method ***
+  integration.sundials.method = ARKODE_MIS_KW3
+  integration.sundials.fast_method = ARKODE_KNOTH_WOLKE_3_3
+
+The features of this interface evolve with the needs of our codes, so they may
+not yet support all SUNDIALS configurations available. If you find you need
+SUNDIALS options we have not implemented, please let us know.

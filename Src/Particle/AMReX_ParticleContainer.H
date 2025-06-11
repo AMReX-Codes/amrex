@@ -60,6 +60,8 @@
 #include <memory>
 #include <numeric>
 #include <random>
+#include <stdexcept>
+#include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -197,9 +199,7 @@ public:
     //!  of a level hierarchy. Must be properly initialized later.
     ParticleContainer_impl ()
       :
-      ParticleContainerBase(),
-      h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-      h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
+      ParticleContainerBase()
     {
         Initialize ();
     }
@@ -213,9 +213,7 @@ public:
     //!
     ParticleContainer_impl (ParGDBBase* gdb)
         :
-        ParticleContainerBase(gdb),
-        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
+        ParticleContainerBase(gdb)
     {
         Initialize ();
         ParticleContainer_impl::reserveData();
@@ -233,9 +231,7 @@ public:
                             const DistributionMapping & dmap,
                             const BoxArray            & ba)
         :
-        ParticleContainerBase(geom, dmap, ba),
-        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
+        ParticleContainerBase(geom, dmap, ba)
     {
         Initialize ();
         ParticleContainer_impl::reserveData();
@@ -256,9 +252,7 @@ public:
                             const Vector<BoxArray>            & ba,
                             const Vector<int>                 & rr)
         :
-        ParticleContainerBase(geom, dmap, ba, rr),
-        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
+        ParticleContainerBase(geom, dmap, ba, rr)
     {
         Initialize ();
         ParticleContainer_impl::reserveData();
@@ -278,9 +272,7 @@ public:
                             const Vector<BoxArray>            & ba,
                             const Vector<IntVect>             & rr)
         :
-        ParticleContainerBase(geom, dmap, ba, rr),
-        h_redistribute_real_comp(AMREX_SPACEDIM + NStructReal + NArrayReal, true),
-        h_redistribute_int_comp(2 + NStructInt + NArrayInt, true)
+        ParticleContainerBase(geom, dmap, ba, rr)
     {
         Initialize ();
         ParticleContainer_impl::reserveData();
@@ -369,7 +361,18 @@ public:
         return (lev < m_particles.size()) ? m_particles[lev].size() : 0;
     }
 
+    /**
+     * \brief This reserves data in the vector of dummy MultiFabs used by
+     * the ParticleContainer for the maximum number of levels possible.
+     */
     void reserveData () override;
+
+    /**
+     * \brief This resizes the vector of dummy MultiFabs used by the
+     * ParticleContainer for the current number of levels and calls
+     * RedefineDummyMF on each level. Note that this must be done prior
+     * to using ParticleIterator.
+     */
     void resizeData () override;
 
     void InitFromAsciiFile (const std::string& file, int extradata,
@@ -692,7 +695,7 @@ public:
     */
     template <class F, class PCType,
               std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
+              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
     void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
@@ -710,8 +713,8 @@ public:
     */
     template <class F, class PCType,
               std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral<F>::value, int> bar = 0>
-    void addParticles (const PCType& other, F&& f, bool local=false);
+              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
+    void addParticles (const PCType& other, F const& f, bool local=false);
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.
@@ -755,6 +758,24 @@ public:
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
                      const Vector<std::string>& int_comp_names = Vector<std::string>()) const;
+
+    /**
+     * \brief Writes a particle checkpoint to file, suitable for restarting.
+     *        This version allows some components to be toggled off, if they
+     *        don't need to be stored in the chk file.
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
+      * \param write_real_comp for each real component, whether or not we include that component in the file
+      * \param write_int_comp for each integer component, whether or not we include that component in the file
+     * \param real_comp_names vector of real component names
+     * \param int_comp_names vector of int component names
+     */
+    void Checkpoint (const std::string& dir, const std::string& name,
+                     const Vector<int>& write_real_comp,
+                     const Vector<int>& write_int_comp,
+                     const Vector<std::string>& real_comp_names,
+                     const Vector<std::string>& int_comp_names) const;
 
      /**
       * \brief Writes particle data to disk in the AMReX native format.
@@ -819,7 +840,7 @@ public:
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>&>::value>::type* = nullptr>
+    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
     void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
 
     /**
@@ -876,7 +897,7 @@ public:
      * \param real_comp_names for each real component, a name to label the data with
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type* = nullptr>
+    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names, F&& f) const;
 
@@ -1133,7 +1154,8 @@ public:
      */
     ParticleTileType& DefineAndReturnParticleTile (int lev, int grid, int tile)
     {
-        m_particles[lev][std::make_pair(grid, tile)].define(NumRuntimeRealComps(), NumRuntimeIntComps());
+        m_particles[lev][std::make_pair(grid, tile)].define(NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
+
         return ParticlesAt(lev, grid, tile);
     }
 
@@ -1162,7 +1184,7 @@ public:
     ParticleTileType& DefineAndReturnParticleTile (int lev, const Iterator& iter)
     {
         auto index = std::make_pair(iter.index(), iter.LocalTileIndex());
-        m_particles[lev][index].define(NumRuntimeRealComps(), NumRuntimeIntComps());
+        m_particles[lev][index].define(NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
         return ParticlesAt(lev, iter);
     }
 
@@ -1179,11 +1201,6 @@ public:
     void AssignDensity (int rho_index,
                         Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled,
                         int lev_min, int ncomp, int finest_level, int ngrow=2) const;
-
-    void Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data,
-                      int lev_min, int lev_max);
-
-    void InterpolateSingleLevel (MultiFab& mesh_data, int lev);
 
     void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
                                        int ncomp=1, int particle_lvl_offset = 0) const;
@@ -1241,24 +1258,70 @@ public:
 
     Long superParticleSize() const { return superparticle_size; }
 
-    template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
-    void AddRealComp (T communicate=true)
+    void AddRealComp (std::string const & name, int communicate=1)
     {
+        // names must be unique
+        auto const it = std::find(m_soa_rdata_names.begin(), m_soa_rdata_names.end(), name);
+        if (it != m_soa_rdata_names.end()) {
+            throw std::runtime_error("AddRealComp: name '" + name + "' is already present in the SoA.");
+        }
+        m_soa_rdata_names.push_back(name);
+
         m_runtime_comps_defined = true;
         m_num_runtime_real++;
         h_redistribute_real_comp.push_back(communicate);
         SetParticleSize();
+        this->resizeData();
+
+        // resize runtime SoA
+        for (int lev = 0; lev < numLevels(); ++lev) {
+            for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
+                auto& tile = DefineAndReturnParticleTile(lev, pti);
+                auto np = tile.numParticles();
+                if (np > 0) {
+                    auto& soa = tile.GetStructOfArrays();
+                    soa.resize(np);
+                }
+            }
+        }
     }
 
-    template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
-    void AddIntComp (T communicate=true)
+    void AddRealComp (int communicate=1)
     {
+        AddRealComp(getDefaultCompNameReal<ParticleType>(NArrayReal+m_num_runtime_real), communicate);
+    }
+
+    void AddIntComp (std::string const & name, int communicate=1)
+    {
+        // names must be unique
+        auto const it = std::find(m_soa_idata_names.begin(), m_soa_idata_names.end(), name);
+        if (it != m_soa_idata_names.end()) {
+            throw std::runtime_error("AddIntComp: name '" + name + "' is already present in the SoA.");
+        }
+        m_soa_idata_names.push_back(name);
+
         m_runtime_comps_defined = true;
         m_num_runtime_int++;
         h_redistribute_int_comp.push_back(communicate);
         SetParticleSize();
+        this->resizeData();
+
+        // resize runtime SoA
+        for (int lev = 0; lev < numLevels(); ++lev) {
+            for (ParIterType pti(*this,lev); pti.isValid(); ++pti) {
+                auto& tile = DefineAndReturnParticleTile(lev, pti);
+                auto np = tile.numParticles();
+                if (np > 0) {
+                    auto& soa = tile.GetStructOfArrays();
+                    soa.resize(np);
+                }
+            }
+        }
+    }
+
+    void AddIntComp (int communicate=1)
+    {
+        AddIntComp(getDefaultCompNameInt<ParticleType>(NArrayInt+m_num_runtime_int), communicate);
     }
 
     /** Remove the last n Real components of the species
@@ -1299,7 +1362,18 @@ public:
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
+    /** Resize the Real runtime components (SoA)
+     *
+     * @param new_size new number of Real runtime components
+     * @param communicate participate this component in redistribute
+     */
     void ResizeRuntimeRealComp (int new_size, bool communicate);
+
+    /** Resize the Int runtime components (SoA)
+     *
+     * @param new_size new number of integer runtime components
+     * @param communicate participate this component in redistribute
+     */
     void ResizeRuntimeIntComp (int new_size, bool communicate);
 
     /** type trait to translate one particle container to another, with changed allocator */
@@ -1322,11 +1396,28 @@ public:
     {
         ContainerLike<NewAllocator> tmp(m_gdb);
 
+        std::vector<std::string> const real_names = this->GetRealSoANames();
+        std::vector<std::string> real_ct_names(NArrayReal);
+        for (int ic = 0; ic < NArrayReal; ++ic) { real_ct_names.at(ic) = real_names[ic]; }
+
+        std::vector<std::string> const int_names = this->GetIntSoANames();
+        std::vector<std::string> int_ct_names(NArrayInt);
+        for (int ic = 0; ic < NArrayInt; ++ic) { int_ct_names.at(ic) = int_names[ic]; }
+
+        tmp.SetSoACompileTimeNames(real_ct_names, int_ct_names);
+
         // add runtime real comps to tmp
-        for (int ic = 0; ic < this->NumRuntimeRealComps(); ++ic) { tmp.AddRealComp(false); }
+        for (int ic = 0; ic < this->NumRuntimeRealComps(); ++ic) {
+            tmp.AddRealComp(real_names.at(ic + NArrayReal));
+        }
 
         // add runtime int comps to tmp
-        for (int ic = 0; ic < this->NumRuntimeIntComps(); ++ic) { tmp.AddIntComp(false); }
+        for (int ic = 0; ic < this->NumRuntimeIntComps(); ++ic) {
+            tmp.AddIntComp(int_names.at(ic + NArrayInt));
+        }
+
+        tmp.h_redistribute_real_comp = h_redistribute_real_comp;
+        tmp.h_redistribute_int_comp = h_redistribute_int_comp;
 
         return tmp;
     }
@@ -1392,6 +1483,47 @@ public:
 #include "AMReX_ParticlesHDF5.H"
 #endif
 
+    /** Overwrite the default names for the compile-time SoA components */
+    void SetSoACompileTimeNames (std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name);
+
+    /** Get the names for the real SoA components **/
+    std::vector<std::string> GetRealSoANames () const {return m_soa_rdata_names;}
+
+    /** Get the names for the int SoA components **/
+    std::vector<std::string> GetIntSoANames () const {return m_soa_idata_names;}
+
+    /** Check if a container has a ParticleReal component
+     *
+     * @param name component name to check
+     * @return true if found, else false
+     */
+    bool HasRealComp (std::string const & name);
+
+    /** Check if a container has an Integer component
+     *
+     * @param name component name to check
+     * @return true if found, else false
+     */
+    bool HasIntComp (std::string const & name);
+
+    /** Get the ParticleReal SoA index of a component
+     *
+     * This throws a runtime exception if the component does not exist.
+     *
+     * @param name component name to query index for
+     * @return zero-based index
+     */
+    int GetRealCompIndex (std::string const & name);
+
+    /** Get the Integer SoA index of a component
+     *
+     * This throws a runtime exception if the component does not exist.
+     *
+     * @param name component name to query index for
+     * @return zero-based index
+     */
+    int GetIntCompIndex (std::string const & name);
+
 protected:
 
     template <class RTYPE>
@@ -1424,6 +1556,10 @@ private:
     size_t particle_size, superparticle_size;
     int num_real_comm_comps, num_int_comm_comps;
     Vector<ParticleLevel> m_particles;
+
+    // names of both compile-time and runtime Real and Int SoA data
+    std::vector<std::string> m_soa_rdata_names;
+    std::vector<std::string> m_soa_idata_names;
 };
 
 template <int T_NStructReal, int T_NStructInt, int T_NArrayReal, int T_NArrayInt, template<class> class Allocator, class CellAssignor>
@@ -1432,6 +1568,7 @@ using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStru
 template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
 using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
+}
 
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"
@@ -1440,7 +1577,5 @@ using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal
 #ifdef AMREX_USE_HDF5
 #include "AMReX_ParticleHDF5.H"
 #endif
-
-}
 
 #endif /*_PARTICLES_H_*/

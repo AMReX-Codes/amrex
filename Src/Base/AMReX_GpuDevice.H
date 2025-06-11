@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <cstring>
 #include <memory>
 
 #define AMREX_GPU_MAX_STREAMS 8
@@ -52,7 +53,7 @@ class Device
 
 public:
 
-    static void Initialize ();
+    static void Initialize (bool minimal);
     static void Finalize ();
 
 #if defined(AMREX_USE_GPU)
@@ -164,11 +165,8 @@ public:
 
     static int memoryPoolsSupported () noexcept { return memory_pools_supported; }
 
-#if defined(AMREX_USE_HIP) && (HIP_VERSION_MAJOR >= 4)
-    // definition: https://github.com/llvm/llvm-project/blob/62ec4ac90738a5f2d209ed28c822223e58aaaeb7/clang/lib/Basic/Targets/AMDGPU.cpp#L400
-    // overview wavefront size: https://github.com/llvm/llvm-project/blob/efc063b621ea0c4d1e452bcade62f7fc7e1cc937/clang/test/Driver/amdgpu-macros.cl#L70-L115
-    // gfx10XX has 32 threads per wavefront else 64
-    static AMREX_EXPORT constexpr int warp_size = __AMDGCN_WAVEFRONT_SIZE;
+#if defined(AMREX_USE_HIP)
+    static AMREX_EXPORT constexpr int warp_size = AMREX_AMDGCN_WAVEFRONT_SIZE;
 #elif defined(AMREX_USE_SYCL)
     static AMREX_EXPORT constexpr int warp_size = AMREX_SYCL_SUB_GROUP_SIZE;
 #else
@@ -186,7 +184,7 @@ public:
 
 private:
 
-    static void initialize_gpu ();
+    static void initialize_gpu (bool minimal);
 
     static AMREX_EXPORT int device_id;
     static AMREX_EXPORT int num_devices_used;
@@ -316,6 +314,56 @@ dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
 }
 
 #endif
+
+#ifdef AMREX_USE_HYPRE
+void hypreSynchronize ();
+#endif
+
+//! Copy `nbytes` bytes from host to device global variable. `offset` is the
+//! offset in bytes from the start of the device global variable.
+template <typename T>
+void memcpy_from_host_to_device_global_async (T& dg, const void* src,
+                                              std::size_t nbytes,
+                                              std::size_t offset = 0)
+{
+#if defined(AMREX_USE_CUDA)
+    AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbolAsync(dg, src, nbytes, offset,
+                                                 cudaMemcpyHostToDevice,
+                                                 Device::gpuStream()));
+#elif defined(AMREX_USE_HIP)
+    AMREX_HIP_SAFE_CALL(hipMemcpyToSymbolAsync(dg, src, nbytes, offset,
+                                               hipMemcpyHostToDevice,
+                                               Device::gpuStream()));
+#elif defined(AMREX_USE_SYCL)
+    Device::streamQueue().memcpy(dg, src, nbytes, offset);
+#else
+    auto* p = (char*)(&dg);
+    std::memcpy(p+offset, src, nbytes);
+#endif
+}
+
+//! Copy `nbytes` bytes from device global variable to host. `offset` is the
+//! offset in bytes from the start of the device global variable.
+template <typename T>
+void memcpy_from_device_global_to_host_async (void* dst, T const& dg,
+                                              std::size_t nbytes,
+                                              std::size_t offset = 0)
+{
+#if defined(AMREX_USE_CUDA)
+    AMREX_CUDA_SAFE_CALL(cudaMemcpyFromSymbolAsync(dst, dg, nbytes, offset,
+                                                   cudaMemcpyDeviceToHost,
+                                                   Device::gpuStream()));
+#elif defined(AMREX_USE_HIP)
+    AMREX_HIP_SAFE_CALL(hipMemcpyFromSymbolAsync(dst, dg, nbytes, offset,
+                                                  hipMemcpyDeviceToHost,
+                                                  Device::gpuStream()));
+#elif defined(AMREX_USE_SYCL)
+    Device::streamQueue().memcpy(dst, dg, nbytes, offset);
+#else
+    auto const* p = (char const*)(&dg);
+    std::memcpy(dst, p+offset, nbytes);
+#endif
+}
 
 }
 

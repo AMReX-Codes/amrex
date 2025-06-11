@@ -68,7 +68,7 @@ void main_main ()
                             return ( item > 2.0 ) ;
                         });
         amrex::Print() << "Vector, (0, 1): "
-                       << anyof_M << ", " << anyof_N << std::endl;
+                       << anyof_M << ", " << anyof_N << '\n';
     }
 
     // Redo, confirming works for a single item.
@@ -91,7 +91,7 @@ void main_main ()
                         });
 
         amrex::Print() << "Vector, both true: "
-                       << anyof_M << ", " << anyof_N << std::endl;
+                       << anyof_M << ", " << anyof_N << '\n';
     }
 
     amrex::Print() << "\nTesting Box Version.\n One box = 0,1,1,1, all others 0,1,0,1\n";
@@ -138,7 +138,7 @@ void main_main ()
 
             amrex::Print() << "Box #" << mfi.LocalIndex() << " = "
                            << anyof_A << ", " << anyof_B << ", "
-                           << anyof_C << ", " << anyof_D << std::endl;
+                           << anyof_C << ", " << anyof_D << '\n';
         }
     }
 

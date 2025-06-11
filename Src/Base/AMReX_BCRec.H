@@ -10,10 +10,9 @@ namespace amrex {
 /**
 * \brief Boundary Condition Records.
 * Necessary information and functions for computing boundary conditions.
+*
+* This class has standard layout.  And we should keep it so!
 */
-
-// This class has standard layout.  And we should keep it so!
-
 class BCRec
 {
 public:
@@ -43,7 +42,7 @@ public:
         {}
     /*
     * \brief Yet another constructor.  Inherits bndry types from bc_domain
-    * when bx lies on edge of domain otherwise gets interior Dirchlet.
+    * when bx lies on edge of domain otherwise gets interior Dirichlet.
     */
     AMREX_GPU_HOST_DEVICE
     BCRec (const Box&   bx,

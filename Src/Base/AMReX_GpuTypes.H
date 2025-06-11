@@ -29,6 +29,7 @@ struct Dim1 {
 struct gpuStream_t {
     sycl::queue* queue = nullptr;
     bool operator== (gpuStream_t const& rhs) noexcept { return queue == rhs.queue; }
+    bool operator!= (gpuStream_t const& rhs) noexcept { return queue != rhs.queue; }
 };
 
 #endif
@@ -83,7 +84,7 @@ struct Handler
 
 struct Handler
 {
-    AMREX_GPU_HOST_DEVICE constexpr Handler (int n_active_threads = -1)
+    AMREX_GPU_HOST_DEVICE constexpr explicit Handler (int n_active_threads = -1)
         : numActiveThreads(n_active_threads) {}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

@@ -29,7 +29,6 @@ class StateDataPhysBCFunct;
 *
 * StateData holds state data on a level for the current and previous time step.
 */
-
 class StateData
 {
     friend class StateDataPhysBCFunct;
@@ -471,7 +470,7 @@ public:
 private:
     StateData* statedata;
     int src_comp;
-    const Geometry& geom;
+    const Geometry* geom;
 
 };
 

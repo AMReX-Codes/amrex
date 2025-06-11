@@ -5,17 +5,16 @@
 #include <AMReX_Arena.H>
 
 #include <cstddef>
-#include <set>
-#include <vector>
+#include <functional>
+#include <iosfwd>
 #include <map>
 #include <mutex>
-#include <unordered_set>
-#include <functional>
+#include <set>
 #include <string>
+#include <unordered_set>
+#include <vector>
 
 namespace amrex {
-
-struct MemStat;
 
 /**
 * \brief A Concrete Class for Dynamic Memory Management using first fit.
@@ -23,7 +22,6 @@ struct MemStat;
 * chunks of heap space and apportions it out as requested.  It merges
 * together neighboring chunks on each free().
 */
-
 class CArena
     :
     public Arena
@@ -57,7 +55,7 @@ public:
      * Try to shrink in-place
      */
     [[nodiscard]] void*
-    shrink_in_place (void* pt, std::size_t sz) final;
+    shrink_in_place (void* pt, std::size_t new_size) final;
 
     /**
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
@@ -75,12 +73,6 @@ public:
      */
     [[nodiscard]] bool hasFreeDeviceMemory (std::size_t sz) final;
 
-    /**
-     * \brief Add this Arena to the list of Arenas that are profiled by TinyProfiler.
-     * \param memory_name The name of this arena in the TinyProfiler output.
-     */
-    void registerForProfiling (const std::string& memory_name) final;
-
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
 
@@ -90,9 +82,13 @@ public:
     //! Return the amount of memory in this pointer.  Return 0 for unknown pointer.
     std::size_t sizeOf (void* p) const noexcept;
 
-    void PrintUsage (std::string const& name) const;
+    void PrintUsage (std::string const& name, bool print_max_usage) const;
 
     void PrintUsage (std::ostream& os, std::string const& name, std::string const& space) const;
+
+    void ResetMaxUsageCounter () final {
+        m_max_actually_used = 0;
+    }
 
     //! The default memory hunk size to grab from the heap.
     constexpr static std::size_t DefaultHunkSize = 1024*1024*8;
@@ -164,14 +160,14 @@ protected:
         MemStat* m_stat;
     };
 
+    //! The list of blocks allocated via ::operator new().
+    std::vector<std::pair<void*,std::size_t> > m_alloc;
+
     /**
     * \brief The type of our freelist and blocklist.
     * We use a set sorted from lo to hi memory addresses.
     */
     using NL = std::set<Node>;
-
-    //! The list of blocks allocated via ::operator new().
-    std::vector<std::pair<void*,std::size_t> > m_alloc;
 
     /**
     * \brief The free list of allocated but not currently used blocks.
@@ -189,15 +185,16 @@ protected:
     std::size_t m_hunk;
     //! The amount of heap space currently allocated.
     std::size_t m_used{0};
+    //! The max amount of heap space currently allocated.
+    std::size_t m_max_used{0};
     //! The amount of memory given out via alloc().
     std::size_t m_actually_used{0};
-    //! If this arena is profiled by TinyProfiler
-    bool m_do_profiling = false;
-    //! Data structure used for profiling with TinyProfiler
-    std::map<std::string, MemStat> m_profiling_stats;
-
+    //! The max amount of memory given out via alloc().
+    std::size_t m_max_actually_used{0};
 
     std::mutex carena_mutex;
+
+    friend std::ostream& operator<< (std::ostream& os, const CArena& arena);
 };
 
 }

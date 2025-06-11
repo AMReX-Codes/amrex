@@ -1,5 +1,5 @@
-#ifndef NEIGHBOR_LIST_H_
-#define NEIGHBOR_LIST_H_
+#ifndef AMREX_NEIGHBOR_LIST_H_
+#define AMREX_NEIGHBOR_LIST_H_
 #include <AMReX_Config.H>
 
 #include <AMReX_Particles.H>
@@ -9,7 +9,7 @@
 namespace amrex
 {
 
-namespace
+namespace detail
 {
     // SelectActualNeighbors
     template <typename F,
@@ -200,7 +200,7 @@ struct Neighbors
 
 private:
 
-    const int m_i;
+    int m_i;
     const unsigned int * m_nbor_offsets_ptr;
     const unsigned int * m_nbor_list_ptr;
     ParticleType * m_pstruct;
@@ -227,16 +227,16 @@ struct NeighborData
 };
 
 template<typename A, typename B,
-         typename std::enable_if<std::is_same<std::remove_cv_t<A>,
-                                              std::remove_cv_t<B> >::value, int>::type = 0>
+         std::enable_if_t<std::is_same_v<std::remove_cv_t<A>,
+                                         std::remove_cv_t<B> >, int> = 0>
 bool isSame (A const* pa, B const* pb)
 {
     return pa == pb;
 }
 
 template<typename A, typename B,
-         typename std::enable_if<!std::is_same<std::remove_cv_t<A>,
-                                               std::remove_cv_t<B> >::value, int>::type = 0>
+         std::enable_if_t<!std::is_same_v<std::remove_cv_t<A>,
+                                          std::remove_cv_t<B> >, int> = 0>
 bool isSame (A const* /*pa*/, B const* /*pb*/)
 {
     return false;
@@ -264,7 +264,7 @@ public:
         dxi_v.push_back(geom.InvCellSizeArray());
         plo_v.push_back(geom.ProbLoArray());
 
-        build(ptile, ptile, check_pair, off_bins_v, dxi_v, plo_v,
+        build(ptile, ptile, std::forward<CheckPair>(check_pair), off_bins_v, dxi_v, plo_v,
               lo_v, hi_v, num_cells, 1, nullptr );
     }
 
@@ -280,14 +280,14 @@ public:
                 int  num_bin_types=1,
                 int* bin_type_array=nullptr)
     {
-        build(ptile, ptile, check_pair, off_bins_v, dxi_v, plo_v,
+        build(ptile, ptile, std::forward<CheckPair>(check_pair), off_bins_v, dxi_v, plo_v,
               lo_v, hi_v, num_cells, num_bin_types, bin_type_array );
     }
 
     template <class SrcTile, class TargetTile, class CheckPair>
     void build (SrcTile& src_tile,
                 TargetTile& target_tile,
-                CheckPair&& check_pair,
+                CheckPair const& check_pair,
                 const Gpu::DeviceVector<int>& off_bins_v,
                 const Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>>& dxi_v,
                 const Gpu::DeviceVector<GpuArray<Real,AMREX_SPACEDIM>>& plo_v,
@@ -310,8 +310,8 @@ public:
         m_pstruct = aos().dataPtr();
         auto* const pstruct_ptr = aos().dataPtr();
 
-        const size_t np_total = aos.size();
-        const size_t np_real  = src_tile.numRealParticles();
+        const int np_total = aos.size();
+        const int np_real  = src_tile.numRealParticles();
 
         auto const* off_bins_p = off_bins_v.data();
         auto const* dxi_p      = dxi_v.data();
@@ -333,7 +333,7 @@ public:
 
         // First pass: count the number of neighbors for each particle
         //---------------------------------------------------------------------------------------------------------
-        const size_t np_size  = (num_bin_types > 1) ? np_total : np_real;
+        const int np_size  = (num_bin_types > 1) ? np_total : np_real;
         m_nbor_counts.resize( np_size+1, 0);
         m_nbor_offsets.resize(np_size+1);
 
@@ -376,7 +376,7 @@ public:
                       const auto& pid = pperm[p];
                       bool  ghost_pid = (pid >= np_real);
                       if (is_same && (pid == i)) { continue; }
-                      if (call_check_pair(check_pair,
+                      if (detail::call_check_pair(check_pair,
                                           src_ptile_data, dst_ptile_data,
                                           i, pid, type, ghost_i, ghost_pid)) {
                           count += 1;
@@ -436,7 +436,7 @@ public:
                     const auto& pid = pperm[p];
                     bool  ghost_pid = (pid >= np_real);
                     if (is_same && (pid == i)) { continue; }
-                    if (call_check_pair(check_pair,
+                    if (detail::call_check_pair(check_pair,
                                         src_ptile_data, dst_ptile_data,
                                         i, pid, type, ghost_i, ghost_pid)) {
                         pm_nbor_list[pnbor_offset[i] + n] = pid;

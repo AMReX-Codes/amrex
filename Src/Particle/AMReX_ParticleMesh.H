@@ -5,6 +5,7 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParticleUtil.H>
+#include <type_traits>
 
 namespace amrex {
 
@@ -18,9 +19,12 @@ auto call_f (F const& f,
              GpuArray<Real,AMREX_SPACEDIM> const& plo,
              GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
 {
-    if constexpr (IsCallable<F, decltype(p.m_aos[i]), decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
+    using PTDTypeT = std::remove_const_t<std::remove_reference_t<decltype(p)>>;
+    if constexpr ( ! T_ParticleType::is_soa_particle &&
+                   IsCallable<F, typename PTDTypeT::ParticleRefType, decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
         return f(p.m_aos[i], fabarr, plo, dxi);
-    } else if constexpr (IsCallable<F, decltype(p.m_aos[i]), decltype(fabarr)>::value) {
+    } else if constexpr ( ! T_ParticleType::is_soa_particle &&
+                          IsCallable<F, typename PTDTypeT::ParticleRefType, decltype(fabarr)>::value) {
         return f(p.m_aos[i], fabarr);
     } else if constexpr (IsCallable<F, decltype(p.getSuperParticle(i)), decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
         return f(p.getSuperParticle(i), fabarr, plo, dxi);
@@ -36,7 +40,7 @@ auto call_f (F const& f,
 
 template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void
-ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
+ParticleToMesh (PC const& pc, MF& mf, int lev, F const& f, bool zero_out_input=true)
 {
     BL_PROFILE("amrex::ParticleToMesh");
 
@@ -121,7 +125,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f, bool zero_out_input=true)
 
 template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void
-MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
+MeshToParticle (PC& pc, MF const& mf, int lev, F const& f)
 {
     BL_PROFILE("amrex::MeshToParticle");
 

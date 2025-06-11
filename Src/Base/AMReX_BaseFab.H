@@ -19,11 +19,10 @@
 #include <AMReX_Utility.H>
 #include <AMReX_Reduce.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_Scan.H>
 #include <AMReX_Math.H>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
+#include <AMReX_OpenMP.H>
+#include <AMReX_MemPool.H>
 
 #include <cmath>
 #include <cstdlib>
@@ -90,62 +89,14 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
     return Array4<T>{p, amrex::begin(bx), amrex::end(bx), ncomp};
 }
 
-/**
-*  \brief A Fortran Array-like Object
-*  BaseFab emulates the Fortran array concept.
-*  Useful operations can be performed upon
-*  BaseFabs in C++, and they provide a convenient interface to
-*  Fortran when it is necessary to retreat into that language.
-
-*  BaseFab is a template class.  Through use of the
-*  template, a BaseFab may be based upon any class.  So far at least,
-*  most applications have been based upon simple types like integers,
-*  real*4s, or real*8s.  Most applications do not use BaseFabs
-*  directly, but utilize specialized classes derived from BaseFab.
-
-*  Classes derived from BaseFab include FArrayBox, IArrayBox, TagBox,
-*  Mask, EBFArrayBox, EBCellFlag and CutFab.
-
-*  BaseFab objects depend on the dimensionality of space
-*  (indirectly through the DOMAIN Box member).  It is
-*  typical to define the macro SPACEDIM to be 1, 2, or 3 to indicate
-*  the dimension of space.  See the discussion of class Box for more
-*  information.  A BaseFab contains a Box DOMAIN, which indicates the
-*  integer indexing space over which the array is defined.  A BaseFab
-*  also has NVAR components.  By components, we mean that for each
-*  point in the rectangular indexing space, there are NVAR values
-*  associated with that point.  A Fortran array corresponding to a
-*  BaseFab would have (SPACEDIM+1) dimensions.
-
-*  By design, the array layout in a BaseFab mirrors that of a
-*  Fortran array.  The first index (x direction for example) varies
-*  most rapidly, the next index (y direction), if any, varies next
-*  fastest. The component index varies last, after all the spatial
-*  indices.
-
-*  It is sometimes convenient to be able to treat a sub-array within an
-*  existing BaseFab as a BaseFab in its own right.  This is often
-*  referred to as aliasing the BaseFab.  Note that when aliasing is
-*  used, the BaseFabs domain will not, in general, be the same as the
-*  parent BaseFabs domain, nor will the number of components.
-*  BaseFab is a dimension dependent class, so SPACEDIM must be
-*  defined as either 1, 2, or 3 when compiling.
-
-*  This is NOT a polymorphic class.
-
-*  It does NOT provide a copy constructor or assignment operator.
-
-*  T MUST have a default constructor and an assignment operator.
-*/
-
 template <typename T>
-typename std::enable_if<std::is_arithmetic<T>::value>::type
+std::enable_if_t<std::is_arithmetic_v<T>>
 placementNew (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-std::enable_if_t<std::is_trivially_default_constructible<T>::value
-                 && !std::is_arithmetic<T>::value>
+std::enable_if_t<std::is_trivially_default_constructible_v<T>
+                 && !std::is_arithmetic_v<T>>
 placementNew (T* const ptr, Long n)
 {
     for (Long i = 0; i < n; ++i) {
@@ -154,7 +105,7 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-std::enable_if_t<!std::is_trivially_default_constructible<T>::value>
+std::enable_if_t<!std::is_trivially_default_constructible_v<T>>
 placementNew (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D ( n, i,
@@ -164,12 +115,12 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-typename std::enable_if<std::is_trivially_destructible<T>::value>::type
+std::enable_if_t<std::is_trivially_destructible_v<T>>
 placementDelete (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-typename std::enable_if<!std::is_trivially_destructible<T>::value>::type
+std::enable_if_t<!std::is_trivially_destructible_v<T>>
 placementDelete (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D (n, i,
@@ -178,6 +129,54 @@ placementDelete (T* const ptr, Long n)
     });
 }
 
+/**
+ * \brief A FortranArrayBox(FAB)-like object
+ *
+ * BaseFab emulates the Fortran array concept.
+ * Useful operations can be performed upon
+ * BaseFabs in C++, and they provide a convenient interface to
+ * Fortran when it is necessary to retreat into that language.
+ *
+ * BaseFab is a template class.  Through use of the
+ * template, a BaseFab may be based upon any class.  So far at least,
+ * most applications have been based upon simple types like integers,
+ * real*4s, or real*8s.  Most applications do not use BaseFabs
+ * directly, but utilize specialized classes derived from BaseFab.
+ *
+ * Classes derived from BaseFab include FArrayBox, IArrayBox, TagBox,
+ * Mask, EBFArrayBox, EBCellFlag and CutFab.
+ *
+ * BaseFab objects depend on the dimensionality of space
+ * (indirectly through the DOMAIN Box member).  It is
+ * typical to define the macro SPACEDIM to be 1, 2, or 3 to indicate
+ * the dimension of space.  See the discussion of class Box for more
+ * information.  A BaseFab contains a Box DOMAIN, which indicates the
+ * integer indexing space over which the array is defined.  A BaseFab
+ * also has NVAR components.  By components, we mean that for each
+ * point in the rectangular indexing space, there are NVAR values
+ * associated with that point.  A Fortran array corresponding to a
+ * BaseFab would have (SPACEDIM+1) dimensions.
+ *
+ * By design, the array layout in a BaseFab mirrors that of a
+ * Fortran array.  The first index (x direction for example) varies
+ * most rapidly, the next index (y direction), if any, varies next
+ * fastest. The component index varies last, after all the spatial
+ * indices.
+ *
+ * It is sometimes convenient to be able to treat a sub-array within an
+ * existing BaseFab as a BaseFab in its own right.  This is often
+ * referred to as aliasing the BaseFab.  Note that when aliasing is
+ * used, the BaseFabs domain will not, in general, be the same as the
+ * parent BaseFabs domain, nor will the number of components.
+ * BaseFab is a dimension dependent class, so SPACEDIM must be
+ * defined as either 1, 2, or 3 when compiling.
+ *
+ * This is NOT a polymorphic class.
+ *
+ * It does NOT provide a copy constructor or assignment operator.
+ *
+ * \tparam T MUST have a default constructor and an assignment operator.
+ */
 template <class T>
 class BaseFab
     : public DataAllocator
@@ -251,7 +250,7 @@ public:
     */
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
-    template <class U=T, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<std::is_trivially_destructible_v<U>,int> = 0>
     [[nodiscard]] Elixir elixir () noexcept;
 
     /**
@@ -458,6 +457,15 @@ public:
     void getVal (T* data, const IntVect& pos, int N, int numcomp) const noexcept;
     //! Same as above, except that starts at component 0 and copies all comps.
     void getVal (T* data, const IntVect& pos) const noexcept;
+
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on,
+#else
+    template <RunOn run_on=RunOn::Host,
+#endif
+              class U=T, std::enable_if_t<std::is_same_v<U,float> || std::is_same_v<U,double>,int> FOO = 0>
+    void fill_snan () noexcept;
+
     /**
     * \brief The setVal functions set sub-regions in the BaseFab to a
     * constant value.  This most general form specifies the sub-box,
@@ -543,7 +551,7 @@ public:
                       int numcomp = 1) noexcept;
     /**
     * \brief As above, except that the destination Box is specified,
-    * but the source Box is taken to the equal to the source
+    * but the source Box is taken to the equal to the destination
     * Box, and all components of the destination BaseFab are
     * copied.
     */
@@ -978,6 +986,19 @@ public:
 #endif
     BaseFab<T>& atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                            int srccomp, int destcomp, int numcomp=1) noexcept;
+
+    /**
+    * \brief Atomically add srcbox region of src FAB to destbox region of this FAB.
+    * The srcbox and destbox must be same size. When OMP is on, this uses OMP locks
+    * in the implementation and it's usually faster than atomicAdd.
+    */
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template <RunOn run_on=RunOn::Host>
+#endif
+    BaseFab<T>& lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
+                         int srccomp, int destcomp, int numcomp) noexcept;
 
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
 #if defined(AMREX_USE_GPU)
@@ -1631,6 +1652,9 @@ protected:
     Long truesize = 0L;         //!< nvar*numpts that was allocated on heap.
     bool ptr_owner = false;     //!< Owner of T*?
     bool shared_memory = false; //!< Is the memory allocated in shared memory?
+#ifdef AMREX_USE_GPU
+    gpuStream_t alloc_stream{};
+#endif
 };
 
 template <class T>
@@ -1815,6 +1839,15 @@ BaseFab<T>::shiftHalf (int idir, int n_cell) noexcept
 }
 
 template <class T>
+template <RunOn run_on, class U,
+          std::enable_if_t<std::is_same_v<U,float> || std::is_same_v<U,double>, int> FOO>
+void
+BaseFab<T>::fill_snan () noexcept
+{
+    amrex::fill_snan<run_on>(this->dptr, this->truesize);
+}
+
+template <class T>
 template <RunOn run_on>
 void
 BaseFab<T>::setVal (T const& x, const Box& bx, int n) noexcept
@@ -1902,10 +1935,27 @@ BaseFab<T>::define ()
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;
     this->dptr = static_cast<T*>(this->alloc(this->truesize*sizeof(T)));
+#ifdef AMREX_USE_GPU
+    this->alloc_stream = Gpu::gpuStream();
+#endif
 
     placementNew(this->dptr, this->truesize);
 
     amrex::update_fab_stats(this->domain.numPts(), this->truesize, sizeof(T));
+
+    if constexpr (std::is_same_v<T,float> || std::is_same_v<T,double>) {
+        if (amrex::InitSNaN() && this->truesize > 0) {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion() && arena()->isDeviceAccessible()) {
+                this->template fill_snan<RunOn::Device>();
+                Gpu::streamSynchronize();
+            } else
+#endif
+            {
+                this->template fill_snan<RunOn::Host>();
+            }
+        }
+    }
 }
 
 template <class T>
@@ -2003,6 +2053,9 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
       dptr(rhs.dptr), domain(rhs.domain),
       nvar(rhs.nvar), truesize(rhs.truesize),
       ptr_owner(rhs.ptr_owner), shared_memory(rhs.shared_memory)
+#ifdef AMREX_USE_GPU
+      , alloc_stream(rhs.alloc_stream)
+#endif
 {
     rhs.dptr = nullptr;
     rhs.ptr_owner = false;
@@ -2021,6 +2074,9 @@ BaseFab<T>::operator= (BaseFab<T>&& rhs) noexcept
         truesize = rhs.truesize;
         ptr_owner = rhs.ptr_owner;
         shared_memory = rhs.shared_memory;
+#ifdef AMREX_USE_GPU
+        alloc_stream = rhs.alloc_stream;
+#endif
 
         rhs.dptr = nullptr;
         rhs.ptr_owner = false;
@@ -2062,7 +2118,11 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
         this->dptr = nullptr;
         define();
     }
-    else if (this->nvar*this->domain.numPts() > this->truesize)
+    else if (this->nvar*this->domain.numPts() > this->truesize
+#ifdef AMREX_USE_GPU
+             || (arena()->isStreamOrderedArena() && alloc_stream != Gpu::gpuStream())
+#endif
+             )
     {
         if (this->shared_memory) {
             amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
@@ -2075,7 +2135,7 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 }
 
 template <class T>
-template <class U, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type>
+template <class U, std::enable_if_t<std::is_trivially_destructible_v<U>,int>>
 Elixir
 BaseFab<T>::elixir () noexcept
 {
@@ -2114,7 +2174,14 @@ BaseFab<T>::clear () noexcept
 
             placementDelete(this->dptr, this->truesize);
 
+#ifdef AMREX_USE_GPU
+            auto current_stream = Gpu::Device::gpuStream();
+            Gpu::Device::setStream(alloc_stream);
+#endif
             this->free(this->dptr);
+#ifdef AMREX_USE_GPU
+            Gpu::Device::setStream(current_stream);
+#endif
 
             if (this->nvar > 1) {
                 amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
@@ -3280,6 +3347,110 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& dest
 template <class T>
 template <RunOn run_on>
 BaseFab<T>&
+BaseFab<T>::lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
+                     int srccomp, int destcomp, int numcomp) noexcept
+{
+#if defined(AMREX_USE_OMP) && (AMREX_SPACEDIM > 1)
+#if defined(AMREX_USE_GPU)
+    if (run_on == RunOn::Host || Gpu::notInLaunchRegion()) {
+#endif
+        BL_ASSERT(destbox.ok());
+        BL_ASSERT(src.box().contains(srcbox));
+        BL_ASSERT(box().contains(destbox));
+        BL_ASSERT(destbox.sameSize(srcbox));
+        BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+        BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
+
+        Array4<T> const& d = this->array();
+        Array4<T const> const& s = src.const_array();
+        auto const& dlo = amrex::lbound(destbox);
+        auto const& dhi = amrex::ubound(destbox);
+        auto const& len = amrex::length(destbox);
+        auto const& slo = amrex::lbound(srcbox);
+        Dim3 const offset{slo.x-dlo.x, slo.y-dlo.y, slo.z-dlo.z};
+
+        int planedim;
+        int nplanes;
+        int plo;
+        if (len.z == 1) {
+            planedim = 1;
+            nplanes = len.y;
+            plo = dlo.y;
+        } else {
+            planedim = 2;
+            nplanes = len.z;
+            plo = dlo.z;
+        }
+
+        auto* mask = (bool*) amrex_mempool_alloc(sizeof(bool)*nplanes);
+        for (int ip = 0; ip < nplanes; ++ip) {
+            mask[ip] = false;
+        }
+
+        int mm = 0;
+        int planes_left = nplanes;
+        while (planes_left > 0) {
+            AMREX_ASSERT(mm < nplanes);
+            auto const m = mm + plo;
+            auto* lock = OpenMP::get_lock(m);
+            if (omp_test_lock(lock))
+            {
+                auto lo = dlo;
+                auto hi = dhi;
+                if (planedim == 1) {
+                    lo.y = m;
+                    hi.y = m;
+                } else {
+                    lo.z = m;
+                    hi.z = m;
+                }
+
+                for (int n = 0; n < numcomp; ++n) {
+                    for     (int k = lo.z; k <= hi.z; ++k) {
+                        for (int j = lo.y; j <= hi.y; ++j) {
+                            auto      * pdst = d.ptr(dlo.x,j         ,k         ,n+destcomp);
+                            auto const* psrc = s.ptr(slo.x,j+offset.y,k+offset.z,n+ srccomp);
+#pragma omp simd
+                            for (int ii = 0; ii < len.x; ++ii) {
+                                pdst[ii] += psrc[ii];
+                            }
+                        }
+                    }
+                }
+
+                mask[mm] = true;
+                --planes_left;
+                omp_unset_lock(lock);
+                if (planes_left == 0) { break; }
+            }
+
+            ++mm;
+            for (int ip = 0; ip < nplanes; ++ip) {
+                int new_mm = (mm+ip) % nplanes;
+                if ( ! mask[new_mm] ) {
+                    mm = new_mm;
+                    break;
+                }
+            }
+        }
+
+        amrex_mempool_free(mask);
+
+        return *this;
+
+#if defined(AMREX_USE_GPU)
+    } else {
+        return this->template atomicAdd<run_on>(src, srcbox, destbox, srccomp, destcomp, numcomp);
+    }
+#endif
+#else
+    return this->template atomicAdd<run_on>(src, srcbox, destbox, srccomp, destcomp, numcomp);
+#endif
+}
+
+template <class T>
+template <RunOn run_on>
+BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
     return this->minus<run_on>(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
@@ -3505,7 +3676,6 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& srcbox, const Bo
 * and stored in component comp of this FAB.
 * This fab is returned as a reference for chaining.
 */
-
 template <class T>
 template <RunOn run_on>
 BaseFab<T>&

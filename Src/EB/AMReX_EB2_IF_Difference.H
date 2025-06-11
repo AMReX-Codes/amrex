@@ -31,8 +31,8 @@ public:
     }
 
     template <class U=F, class V=G,
-              typename std::enable_if<IsGPUable<U>::value &&
-                                      IsGPUable<V>::value, int>::type = 0>
+              std::enable_if_t<IsGPUable<U>::value &&
+                                      IsGPUable<V>::value, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
@@ -48,17 +48,17 @@ protected:
 };
 
 template <class F, class G>
-struct IsGPUable<DifferenceIF<F,G>, typename std::enable_if<IsGPUable<F>::value &&
-                                                            IsGPUable<G>::value>::type>
+struct IsGPUable<DifferenceIF<F,G>, std::enable_if_t<IsGPUable<F>::value &&
+                                                            IsGPUable<G>::value>>
     : std::true_type {};
 
 template <class F, class G>
-constexpr DifferenceIF<typename std::decay<F>::type,
-                       typename std::decay<G>::type>
+constexpr DifferenceIF<std::decay_t<F>,
+                       std::decay_t<G>>
 makeDifference (F&& f, G&& g)
 {
-    return DifferenceIF<typename std::decay<F>::type,
-                        typename std::decay<G>::type>
+    return DifferenceIF<std::decay_t<F>,
+                        std::decay_t<G>>
         (std::forward<F>(f), std::forward<G>(g));
 }
 

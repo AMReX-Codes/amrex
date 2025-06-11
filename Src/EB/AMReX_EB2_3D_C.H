@@ -159,7 +159,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     });
 }
 
-namespace {
+namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int num_cuts (Real a, Real b) noexcept {
         return (a >= 0.0_rt && b < 0.0_rt) || (b >= 0.0_rt && a < 0.0_rt);
@@ -169,6 +169,8 @@ namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
 {
+    using detail::num_cuts;
+
     int ierr = 0;
 
     i *= 2;
@@ -272,7 +274,7 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
     return ierr;
 }
 
-namespace {
+namespace detail {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real coarsen_edge_cent (Real f1, Real f2)
 {
@@ -320,6 +322,8 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
                        Array4<Real const> const& fecy, Array4<Real const> const& fecz,
                        Array4<EBCellFlag const> const& fflag)
 {
+    using detail::coarsen_edge_cent;
+
     const Box& gbx = amrex::grow(bx,ngrow);
     const Box& xbx = amrex::surroundingNodes(bx,0); // face boxes
     const Box& ybx = amrex::surroundingNodes(bx,1);

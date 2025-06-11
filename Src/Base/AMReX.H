@@ -10,10 +10,12 @@
 #include <AMReX_Exception.H>
 #include <AMReX_Extension.H>
 
+#include <cstdint>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 //
@@ -47,23 +49,25 @@ namespace amrex
 
         extern AMREX_EXPORT int verbose;
 
-        extern AMREX_EXPORT int signal_handling;
-        extern AMREX_EXPORT int handle_sigsegv;
-        extern AMREX_EXPORT int handle_sigterm;
-        extern AMREX_EXPORT int handle_sigint;
-        extern AMREX_EXPORT int handle_sigabrt;
-        extern AMREX_EXPORT int handle_sigfpe;
+        extern AMREX_EXPORT bool signal_handling;
+        extern AMREX_EXPORT bool handle_sigsegv;
+        extern AMREX_EXPORT bool handle_sigterm;
+        extern AMREX_EXPORT bool handle_sigint;
+        extern AMREX_EXPORT bool handle_sigabrt;
+        extern AMREX_EXPORT bool handle_sigfpe;
 
-        extern AMREX_EXPORT int call_addr2line;
-        extern AMREX_EXPORT int throw_exception;
+        extern AMREX_EXPORT bool call_addr2line;
+        extern AMREX_EXPORT bool throw_exception;
 
-        extern AMREX_EXPORT int regtest_reduction;
+        extern AMREX_EXPORT bool regtest_reduction;
 
         extern AMREX_EXPORT std::ostream* osout;
         extern AMREX_EXPORT std::ostream* oserr;
 
         extern AMREX_EXPORT ErrorHandler error_handler;
-        extern AMREX_EXPORT int abort_on_unused_inputs;
+        extern AMREX_EXPORT bool abort_on_unused_inputs;
+
+        extern AMREX_EXPORT bool init_snan;
     }
 
     /** the AMReX "git describe" version */
@@ -76,12 +80,31 @@ namespace amrex
                        ErrorHandler a_errhandler = nullptr);
 
     // The returned AMReX* is non-owning! To delete it, call Finalize(AMReX*).
+    AMReX* Initialize (int& argc, char**& argv,
+                       const std::function<void()>& func_parm_parse,
+                       std::ostream& a_osout = std::cout,
+                       std::ostream& a_oserr = std::cerr,
+                       ErrorHandler a_errhandler = nullptr);
+
+    // The returned AMReX* is non-owning! To delete it, call Finalize(AMReX*).
     AMReX* Initialize (int& argc, char**& argv, bool build_parm_parse=true,
                        MPI_Comm mpi_comm = MPI_COMM_WORLD,
                        const std::function<void()>& func_parm_parse = {},
                        std::ostream& a_osout = std::cout,
                        std::ostream& a_oserr = std::cerr,
                        ErrorHandler a_errhandler = nullptr);
+
+    // \brief Minimal version of initialization.
+    //
+    // This version is intended for users who only need AMReX for some
+    // specific functionalities such as FFT. It's the user's responsibility
+    // to initialize MPI. For multiple-GPU systems, it's the user's
+    // responsibility to properly set the GPU devices to be used. We will not
+    // try to pre-allocate memory arenas. We will not install a signal
+    // handler. Functionalities like random number generator and async I/O
+    // will be work. However, functionalities like FFT and linear solvers do
+    // work.
+    void Init_minimal (MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
     /**
        \brief Returns true if there are any currently-active and initialized
@@ -92,14 +115,18 @@ namespace amrex
 
     void Finalize (AMReX* pamrex);
     void Finalize (); // Finalize the current top
+    // For initialization with Init_minimal, Finalize_minimal should be used
+    // for finalization.
+    void Finalize_minimal();
+
     /**
     * \brief We maintain a stack of functions that need to be called in Finalize().
     * The functions are called in LIFO order.  The idea here is to allow
     * classes to clean up any "global" state that they maintain when we're
     * exiting from AMReX.
     */
-    void ExecOnFinalize (PTR_TO_VOID_FUNC);
-    void ExecOnInitialize (PTR_TO_VOID_FUNC);
+    void ExecOnFinalize (std::function<void()>);
+    void ExecOnInitialize (std::function<void()>);
 
     //! This shuts up the compiler about unused variables
     template <class... Ts>
@@ -113,16 +140,15 @@ namespace amrex
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Error (const char* msg = nullptr) {
-#if AMREX_DEVICE_COMPILE
 #if defined(NDEBUG)
-        amrex::ignore_unused(msg);
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(msg);))
 #else
-        if (msg) { AMREX_DEVICE_PRINTF("Error %s\n", msg); }
-        AMREX_DEVICE_ASSERT(0);
+        AMREX_IF_ON_DEVICE((
+                if (msg) { AMREX_DEVICE_PRINTF("Error %s\n", msg); }
+                AMREX_DEVICE_ASSERT(0);
+        ))
 #endif
-#else
-        Error_host("Error", msg);
-#endif
+        AMREX_IF_ON_HOST((Error_host("Error", msg);))
     }
 
     //! Print out warning message to cerr.
@@ -132,15 +158,12 @@ namespace amrex
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Warning (const char * msg) {
-#if AMREX_DEVICE_COMPILE
 #if defined(NDEBUG)
-        amrex::ignore_unused(msg);
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(msg);))
 #else
-        if (msg) { AMREX_DEVICE_PRINTF("Warning %s\n", msg); }
+        AMREX_IF_ON_DEVICE((if (msg) { AMREX_DEVICE_PRINTF("Warning %s\n", msg); }))
 #endif
-#else
-        Warning_host(msg);
-#endif
+        AMREX_IF_ON_HOST((Warning_host(msg);))
     }
 
     //! Print out message to cerr and exit via abort().
@@ -148,16 +171,15 @@ namespace amrex
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Abort (const char * msg = nullptr) {
-#if AMREX_DEVICE_COMPILE
 #if defined(NDEBUG)
-        amrex::ignore_unused(msg);
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(msg);))
 #else
-        if (msg) { AMREX_DEVICE_PRINTF("Abort %s\n", msg); }
-        AMREX_DEVICE_ASSERT(0);
+        AMREX_IF_ON_DEVICE((
+                if (msg) { AMREX_DEVICE_PRINTF("Abort %s\n", msg); }
+                AMREX_DEVICE_ASSERT(0);
+        ))
 #endif
-#else
-        Error_host("Abort", msg);
-#endif
+        AMREX_IF_ON_HOST((Error_host("Abort", msg);))
     }
 
     /**
@@ -170,22 +192,21 @@ namespace amrex
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line, const char* msg = nullptr) {
-#if AMREX_DEVICE_COMPILE
 #if defined(NDEBUG)
-        amrex::ignore_unused(EX,file,line,msg);
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(EX,file,line,msg);))
 #else
-        if (msg) {
-            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
-                                EX, file, line, msg);
-        } else {
-            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
-                                EX, file, line);
-        }
-        AMREX_DEVICE_ASSERT(0);
+        AMREX_IF_ON_DEVICE((
+                if (msg) {
+                AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
+                                        EX, file, line, msg);
+                } else {
+                AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
+                                        EX, file, line);
+                }
+                AMREX_DEVICE_ASSERT(0);
+        ))
 #endif
-#else
-        Assert_host(EX,file,line,msg);
-#endif
+        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg);))
     }
 
     /**
@@ -202,6 +223,9 @@ namespace amrex
 
     [[nodiscard]] int Verbose () noexcept;
     void SetVerbose (int v) noexcept;
+
+    [[nodiscard]] bool InitSNaN () noexcept;
+    void SetInitSNaN (bool v) noexcept;
 
     // ! Get the entire command line including the executable
     [[nodiscard]] std::string get_command ();
@@ -283,6 +307,65 @@ namespace amrex
 
         Geometry* m_geom = nullptr;
     };
+
+    enum struct FPExcept : std::uint8_t {
+        none     = 0B0000,
+        invalid  = 0B0001,
+        zero     = 0B0010,
+        overflow = 0B0100,
+        all      = 0B0111
+    };
+
+    [[nodiscard]] inline bool any (FPExcept a) { return a != FPExcept::none; }
+
+    [[nodiscard]] inline FPExcept operator| (FPExcept a, FPExcept b)
+    {
+        using T = std::underlying_type_t<FPExcept>;
+        return static_cast<FPExcept>(static_cast<T>(a) | static_cast<T>(b));
+    }
+
+    [[nodiscard]] inline FPExcept operator& (FPExcept a, FPExcept b)
+    {
+        using T = std::underlying_type_t<FPExcept>;
+        return static_cast<FPExcept>(static_cast<T>(a) & static_cast<T>(b));
+    }
+
+    //! Return currently enabled FP exceptions. Linux only.
+    [[nodiscard]] FPExcept getFPExcept ();
+
+    //! Set FP exception traps. Linux only. This enables set flags and
+    //! DISABLES unset flags. This can be used to restore previous settings.
+    FPExcept setFPExcept (FPExcept excepts);
+
+    /**
+     * \brief Disable FP exceptions. Linux Only
+     *
+     * This function disables given exception traps and keeps the status of
+     * the others. The example below disables FPE invalid and
+     * divide-by-zero, and later restores the previous settings.
+     *
+     \verbatim
+         auto prev_excepts = disableFPExcept(FPExcept::invalid | FPExcept::zero);
+         // ....
+         setFPExcept(prev_excepts); // restore previous settings
+     \endverbatim
+     */
+    [[nodiscard]] FPExcept disableFPExcept (FPExcept excepts);
+
+    /**
+     * \brief Enable FP exceptions. Linux Only
+     *
+     * This function enables given exception traps and keeps the status of
+     * the others. The example below enables all FPE traps, and later
+     * restores the previous settings.
+     *
+     \verbatim
+         auto prev_excepts = disableFPExcept(FPExcept::all);
+         // ....
+         setFPExcept(prev_excepts); // restore previous settings
+     \endverbatim
+     */
+    [[nodiscard]] FPExcept enableFPExcept (FPExcept excepts);
 }
 
 #endif /*BL_AMREX_H*/

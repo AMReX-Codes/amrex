@@ -349,10 +349,10 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
     {
 #if (AMREX_SPACEDIM > 2)
         amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax << ", wmax = " << wmax
-                          << ", dt = " << dt_lev << " dx = " << dx << " " << dy << " " << dz << std::endl;
+                          << ", dt = " << dt_lev << " dx = " << dx << " " << dy << " " << dz << '\n';
 #else
         amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax
-                          << ", dt = " << dt_lev << " dx = " << dx << " " << dy << " " << dz << std::endl;
+                          << ", dt = " << dt_lev << " dx = " << dx << " " << dy << " " << dz << '\n';
 #endif
         amrex::Abort("CFL violation. use smaller adv.cfl.");
     }

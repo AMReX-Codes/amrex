@@ -10,6 +10,7 @@ Checks: >
      clang-diagnostic-*,
      cppcoreguidelines-*,
        -cppcoreguidelines-avoid-c-arrays,
+       -cppcoreguidelines-avoid-do-while,
        -cppcoreguidelines-avoid-magic-numbers,
        -cppcoreguidelines-avoid-non-const-global-variables,
        -cppcoreguidelines-init-variables,
@@ -24,6 +25,7 @@ Checks: >
      google-global-names-in-headers,
      misc-*,
        -misc-const-correctness,
+       -misc-include-cleaner,
        -misc-non-private-member-variables-in-classes,
        -misc-no-recursion,
      modernize-*,
@@ -34,6 +36,7 @@ Checks: >
      performance-*,
      portability-*,
      readability-*,
+       -readability-avoid-unconditional-preprocessor-if,
        -readability-else-after-return,
        -readability-function-cognitive-complexity,
        -readability-function-size,
@@ -48,3 +51,6 @@ Checks: >
 
 # Files not ending with nolint.H will be filtered in.
 HeaderFilterRegex: '([^n].....|[^o]....|[^l]...|[^i]..|[^n].|[^t])\.H$'
+
+# Only available in clang-tidy >= 17
+HeaderFileExtensions: ['', "H", 'h', 'hh', 'hpp', 'hxx']

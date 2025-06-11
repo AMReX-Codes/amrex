@@ -29,7 +29,6 @@ class IArrayBox;
 * \brief File I/O for FabArray<FArrayBox>.
 *  Wrapper class for reading/writing FabArray<FArrayBox> objects to disk in various "smart" ways.
 */
-
 class VisMF
     : public VisMFBuffer
 {
@@ -280,6 +279,12 @@ public:
     static bool GetUseDynamicSetSelection () { return useDynamicSetSelection; }
     static void SetUseDynamicSetSelection (bool usedss) { useDynamicSetSelection = usedss; }
 
+    static bool GetNoFlushAfterWrite () { return noFlushAfterWrite; }
+    static void SetNoFlushAfterWrite (bool nfaw) { noFlushAfterWrite = nfaw; }
+
+    static bool GetBarrierAfterLevel () { return barrierAfterLevel; }
+    static void SetBarrierAfterLevel (bool bal) { barrierAfterLevel = bal; }
+
     static std::string DirName (const std::string& filename);
     static std::string BaseName (const std::string& filename);
 
@@ -354,6 +359,8 @@ private:
     static AMREX_EXPORT bool useSynchronousReads;
     static AMREX_EXPORT bool useDynamicSetSelection;
     static AMREX_EXPORT bool allowSparseWrites;
+    static AMREX_EXPORT bool noFlushAfterWrite;
+    static AMREX_EXPORT bool barrierAfterLevel;
 };
 
 //! Write a FabOnDisk to an ostream in ASCII.
@@ -380,7 +387,7 @@ std::istream& operator>> (std::istream& is, VisMF::Header& hd);
  */
 template <typename FAB>
 // This function does work for MultiFab, but let's disable it to avoid confusion.
-std::enable_if_t<std::is_same<FAB,IArrayBox>::value>
+std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
 Write (const FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Write(FabArray)");
@@ -393,8 +400,8 @@ Write (const FabArray<FAB>& fa, const std::string& name)
     const Vector<int> &pmap = fa.DistributionMap().ProcessorMap();
     std::set<int> procsWithData;
     Vector<int> procsWithDataVector;
-    for(int i = 0; i < pmap.size(); ++i) {
-        procsWithData.insert(pmap[i]);
+    for(int i : pmap) {
+        procsWithData.insert(i);
     }
     const int nOutFiles = VisMF::GetNOutFiles();
     if (static_cast<int>(procsWithData.size()) < nOutFiles) {
@@ -557,7 +564,7 @@ void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
  */
 template <typename FAB>
 // This function does work for MultiFab, but let's disable it to avoid confusion.
-std::enable_if_t<std::is_same<FAB,IArrayBox>::value>
+std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
 Read (FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Read(FabArray)");

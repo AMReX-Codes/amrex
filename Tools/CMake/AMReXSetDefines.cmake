@@ -59,8 +59,15 @@ if (AMReX_SYCL)
 endif()
 
 # HIP
-add_amrex_define( AMREX_USE_HIP NO_LEGACY IF AMReX_HIP )
-add_amrex_define( NDEBUG IF AMReX_HIP)  # This address a bug that causes slow build times
+if (AMReX_HIP)
+   add_amrex_define( AMREX_USE_HIP NO_LEGACY )
+   add_amrex_define( NDEBUG )  # This address a bug that causes slow build times
+   if (${AMReX_AMD_ARCH} MATCHES "gfx1[01].*")
+      add_amrex_define( AMREX_AMDGCN_WAVEFRONT_SIZE=32 NO_LEGACY )
+   else ()
+      add_amrex_define( AMREX_AMDGCN_WAVEFRONT_SIZE=64 NO_LEGACY )
+   endif ()
+endif()
 
 # Precision
 if (AMReX_PRECISION STREQUAL "SINGLE")
@@ -78,6 +85,9 @@ add_amrex_define( AMREX_${CMAKE_SYSTEM_NAME} )
 
 #  Assertions
 add_amrex_define( AMREX_USE_ASSERTION NO_LEGACY IF AMReX_ASSERTIONS )
+
+# Flatten
+add_amrex_define( AMREX_USE_FLATTEN_FOR NO_LEGACY IF AMReX_FLATTEN_FOR )
 
 # Bound checking
 add_amrex_define( AMREX_BOUND_CHECK NO_LEGACY IF AMReX_BOUND_CHECK )
@@ -137,6 +147,9 @@ add_amrex_define( AMREX_NO_SENSEI_AMR_INST NO_LEGACY IF AMReX_NO_SENSEI_AMR_INST
 
 # Conduit Support
 add_amrex_define( AMREX_USE_CONDUIT NO_LEGACY IF AMReX_CONDUIT )
+
+# Catalyst Support
+add_amrex_define( AMREX_USE_CATALYST NO_LEGACY IF AMReX_CATALYST )
 
 # Ascent Support
 add_amrex_define( AMREX_USE_ASCENT NO_LEGACY IF AMReX_ASCENT )

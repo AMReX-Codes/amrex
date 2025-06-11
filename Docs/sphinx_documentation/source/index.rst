@@ -8,8 +8,7 @@ massively parallel, block-structured adaptive mesh refinement (AMR)
 applications. AMReX is freely available `on Github
 <https://github.com/AMReX-Codes/amrex>`_.
 
-AMReX is developed at LBNL, NREL, and ANL as part of the Block-Structured AMR
-Co-Design Center in DOE's Exascale Computing Project.
+AMReX is developed at LBNL.
 
 All of AMReX's development is done in the GitHub repository under the
 development branch; anyone can see the latest updates. A monthly release is tagged at the beginning
@@ -53,28 +52,23 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    Fortran_Chapter
    Python_Chapter
    EB_Chapter
+   FFT_Chapter
    TimeIntegration_Chapter
    GPU_Chapter
    Visualization_Chapter
    Post_Processing_Chapter
    Debugging
-   Inputs_Chapter
+   RuntimeParameters
    AMReX_Profiling_Tools_Chapter
    External_Profiling_Tools_Chapter
    External_Frameworks_Chapter
    Regression_Testing_Chapter
    Faq
+   Governance
 
 .. toctree::
    :maxdepth: 1
    :caption: API
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
 The copyright notice of AMReX is included in the AMReX home directory
 as README.txt.

@@ -13,12 +13,13 @@
 #include <AMReX_TinyProfiler.H>
 #endif
 
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
 #include <iostream>
 #include <sstream>
-#include <fstream>
-#include <cstring>
-#include <cstdio>
-#include <csignal>
 
 #if !(defined(_MSC_VER) && defined(__CUDACC__))
 //MSVC can't pre-processor cfenv with `Zc:preprocessor`
@@ -30,12 +31,14 @@
 #include <cxxabi.h>
 #include <dlfcn.h>
 #define AMREX_BACKTRACE_SUPPORTED 1
-#elif defined(__linux__)
+#elif defined(__linux__) && defined(__GLIBC__)
 #define AMREX_BACKTRACE_SUPPORTED 1
 #endif
 
 #ifndef _WIN32
-#include <execinfo.h>
+#  if defined(__GLIBC__) || defined(__APPLE__)
+#    include <execinfo.h>
+#  endif
 #include <unistd.h>
 #endif
 
@@ -70,6 +73,7 @@ BLBackTrace::handler(int s)
     case SIGABRT:
         amrex::ErrorStream() << "SIGABRT\n";
         break;
+    default: break;
     }
 
 #if defined(AMREX_BACKTRACE_SUPPORTED) || defined(AMREX_TINY_PROFILING)
@@ -99,19 +103,19 @@ BLBackTrace::handler(int s)
         fclose(p);
     }
 
-    amrex::ErrorStream() << "See " << errfilename << " file for details" << std::endl;
+    amrex::ErrorStream() << "See " << errfilename << " file for details" << '\n';
 
     if (!bt_stack.empty()) {
         std::ofstream errfile;
         errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
         if (errfile.is_open()) {
-            errfile << std::endl;
+            errfile << '\n';
             while (!bt_stack.empty()) {
                 errfile << "== BACKTRACE == " << bt_stack.top().first
                         <<", " << bt_stack.top().second << "\n";
                 bt_stack.pop();
             }
-            errfile << std::endl;
+            errfile << '\n';
         }
     }
 
@@ -120,9 +124,9 @@ BLBackTrace::handler(int s)
         std::ofstream errfile;
         errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
         if (errfile.is_open()) {
-            errfile << std::endl;
+            errfile << '\n';
             TinyProfiler::PrintCallStack(errfile);
-            errfile << std::endl;
+            errfile << '\n';
         }
     }
 #endif
@@ -148,7 +152,7 @@ BLBackTrace::print_backtrace_info (const std::string& filename)
     {
         amrex::Print() << "Warning @ BLBackTrace::print_backtrace_info: "
                        << filename << " is not a valid output file."
-                       << std::endl;
+                       << '\n';
     }
 }
 
@@ -176,6 +180,18 @@ namespace {
         }
         return r;
     }
+
+#ifdef __linux__
+    bool command_exists(std::string const &cmd)
+    {
+        // command -v is part of POSIX so should be available
+        std::string check_command = "command -v " + cmd + " > /dev/null 2>&1";
+        int r = std::system(check_command.c_str());
+        // return value of std::system is implementation defined and can be
+        // decoded using WEXITSTATUS but it should be 0 on success
+        return r == 0;
+    }
+#endif
 }
 #endif
 
@@ -208,19 +224,32 @@ BLBackTrace::print_backtrace_info (FILE* f)
         int have_addr2line = 0;
         std::string eu_cmd;
         {
-            have_eu_addr2line = file_exists("/usr/bin/eu-addr2line");
+            if (command_exists("eu-addr2line")) {
+                have_eu_addr2line = 1;
+                eu_cmd = "eu-addr2line";
+            } else {
+                std::string eu_fallback_path = "/usr/bin/eu-addr2line";
+                have_eu_addr2line = file_exists(eu_fallback_path.c_str());
+                eu_cmd = std::move(eu_fallback_path);
+            }
             if (have_eu_addr2line) {
                 const pid_t pid = getpid();
                 // cmd = "/usr/bin/eu-addr2line -C -f -i --pretty-print -p "
-                eu_cmd = "/usr/bin/eu-addr2line -C -f -i -p "
-                    + std::to_string(pid);
+                eu_cmd += " -C -f -i -p " + std::to_string(pid);
             }
         }
         std::string cmd;
         {
-            have_addr2line = file_exists("/usr/bin/addr2line");
+            if (command_exists("addr2line")) {
+                have_addr2line = 1;
+                cmd = "addr2line";
+            } else {
+                std::string fallback_path = "/usr/bin/addr2line";
+                have_addr2line = file_exists(fallback_path.c_str());
+                cmd = std::move(fallback_path);
+            }
             if (have_addr2line) {
-                cmd = "/usr/bin/addr2line -Cpfie " + amrex::system::exename;
+                cmd += " -Cpfie " + amrex::system::exename;
             }
         }
 
@@ -355,7 +384,7 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
         ss0 << "Proc. " << ParallelDescriptor::MyProc()
             << ", Thread " << omp_get_thread_num()
             << ": \"" << s << "\"";
-        BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
+        BLBackTrace::bt_stack.emplace(ss0.str(), line_file);
     }
     else {
         #pragma omp parallel
@@ -364,14 +393,14 @@ BLBTer::BLBTer(const std::string& s, const char* file, int line)
             ss0 << "Proc. " << ParallelDescriptor::MyProc()
                 << ", Master Thread"
                 << ": \"" << s << "\"";
-            BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
+            BLBackTrace::bt_stack.emplace(ss0.str(), line_file);
         }
     }
 #else
     std::ostringstream ss0;
     ss0 << "Proc. " << ParallelDescriptor::MyProc()
         << ": \"" << s << "\"";
-    BLBackTrace::bt_stack.push(std::make_pair(ss0.str(), line_file));
+    BLBackTrace::bt_stack.emplace(ss0.str(), line_file);
 #endif
 }
 

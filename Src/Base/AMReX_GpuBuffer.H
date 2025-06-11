@@ -12,7 +12,7 @@
 
 namespace amrex::Gpu {
 
-template <typename T, std::enable_if_t<std::is_trivially_copyable<T>::value,int> = 0>
+template <typename T, std::enable_if_t<std::is_trivially_copyable_v<T>,int> = 0>
 class Buffer
 {
 public:

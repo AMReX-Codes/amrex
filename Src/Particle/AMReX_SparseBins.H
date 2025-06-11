@@ -14,17 +14,17 @@ template <typename T>
 struct SparseBinIteratorFactory
 {
 
-    using index_type = unsigned int;
+    using index_type = int;
 
-    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_type = std::conditional_t<IsParticleTileData<T>(),
         T,
         const T*
-    >::type;
+    >;
 
-    using const_pointer_input_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_input_type = std::conditional_t<IsParticleTileData<T>(),
         const T&,
         const T*
-    >::type;
+    >;
 
     SparseBinIteratorFactory (const Gpu::DeviceVector<index_type>& bins,
                               const Gpu::DeviceVector<index_type>& offsets,
@@ -33,7 +33,7 @@ struct SparseBinIteratorFactory
         : m_bins_ptr(bins.dataPtr()),
           m_offsets_ptr(offsets.dataPtr()),
           m_permutation_ptr(permutation.dataPtr()),
-          m_items(items), m_num_bins(bins.size())
+          m_items(items), m_num_bins(int(bins.size()))
     {}
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
@@ -97,17 +97,17 @@ public:
 
     using BinIteratorFactory = SparseBinIteratorFactory<T>;
     using bin_type = IntVect;
-    using index_type = unsigned int;
+    using index_type = int;
 
-    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_type = std::conditional_t<IsParticleTileData<T>(),
         T,
         const T*
-    >::type;
+    >;
 
-    using const_pointer_input_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_input_type = std::conditional_t<IsParticleTileData<T>(),
         const T&,
         const T*
-    >::type;
+    >;
 
     /**
      * \brief Populate the bins with a set of items.
@@ -121,7 +121,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (N nitems, const_pointer_input_type v, const Box& bx, F&& f)
+    void build (N nitems, const_pointer_input_type v, const Box& bx, F const& f)
     {
         BL_PROFILE("SparseBins<T>::build");
 

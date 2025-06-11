@@ -48,7 +48,7 @@ Here is a simple example of initialize the database for an embedded sphere.
     EB2::Build(shop, geom, 0, 0);
 
 Alternatively, the EB information can be initialized from an STL file
-specified by a :cpp:`ParmParse` parameter ``eb2.stl_file``.  The
+specified by a :cpp:`ParmParse` parameter ``eb2.stl_file``. (This also requires setting ``eb2.geom_type = stl``.) The
 initialization is done by calling
 
 .. highlight:: c++
@@ -271,6 +271,12 @@ following data:
     // embedded boundary centroid
     const MultiCutFab& getBndryCent () const;
 
+    // embedded boundary normal direction
+    const MultiCutFab& getBndryNormal () const;
+
+    // embedded boundary surface area
+    const MultiCutFab& getBndryArea () const;
+
     // area fractions
     Array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const;
 
@@ -291,9 +297,16 @@ following data:
   of the data is in the range of :math:`[-0.5,0.5]`, based on each
   cell's local coordinates with respect to the regular cell's center.
 
-- **Face centroid** is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM`` components.
-  Each component of the data is in the range of :math:`[-0.5,0.5]`, based on
-  each cell's local coordinates with respect to the embedded boundary.
+- **Boundary normal** is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM``
+  components representing the unit vector pointing toward the covered part.
+
+- **Boundary area** is in a :cpp:`MultiCutFab` with a single component
+  representing the dimensionless boundary area. When the cell is isotropic
+  (i.e., :math:`\Delta x = \Delta y = \Delta z`), it's trivial to convert it
+  to physical units. If the cell size is anisotropic, the conversion
+  requires multiplying by a factor of :math:`\sqrt{(n_x \Delta y \Delta
+  z)^2 + (n_y \Delta x \Delta z)^2 + (n_z \Delta x \Delta y)^2}`, where
+  :math:`n` is the boundary normal vector.
 
 - **Area fractions** are returned in an :cpp:`Array` of :cpp:`MultiCutFab`
   pointers. For each direction, area fraction is for the face of that direction.
@@ -385,6 +398,9 @@ testing cell types and getting neighbor information. For example
             end do
         end do
     end do
+
+
+.. _sec:EB:redistribution:
 
 Small Cell Problem and Redistribution
 =====================================

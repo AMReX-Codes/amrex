@@ -31,4 +31,29 @@ namespace amrex {
 }
 #endif
 
+#if (defined(__x86_64) || defined (__aarch64__)) && !defined(_WIN32) && (defined(__GNUC__) || defined(__clang__)) && !defined(__NVCOMPILER)
+
+#define AMREX_INT128_SUPPORTED 1
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#endif
+
+typedef unsigned __int128 amrex_uint128_t; // NOLINT(modernize-use-using)
+typedef          __int128 amrex_int128_t;  // NOLINT(modernize-use-using)
+
+#ifdef __cplusplus
+namespace amrex {
+    using UInt128_t = amrex_uint128_t;
+    using  Int128_t = amrex_int128_t;
+}
+#endif
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+
+#endif /* (defined(__x86_64) || defined (__aarch64__)) && !defined(_WIN32) && (defined(__GNUC__) || defined(__clang__)) */
+
 #endif

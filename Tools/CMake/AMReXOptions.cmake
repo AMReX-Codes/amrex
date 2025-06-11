@@ -213,6 +213,16 @@ if (AMReX_SYCL)
       endif()
    endif()
 
+   set(AMReX_PARALLEL_LINK_JOBS_DEFAULT 1)
+   if (DEFINED ENV{AMREX_PARALLEL_LINK_JOBS})
+      set(AMReX_PARALLEL_LINK_JOBS_DEFAULT "$ENV{AMREX_PARALLEL_LINK_JOBS}")
+   endif()
+   set(AMReX_PARALLEL_LINK_JOBS ${AMReX_PARALLEL_LINK_JOBS_DEFAULT}
+       CACHE STRING "SYCL max parallel link jobs")
+   if (NOT AMReX_PARALLEL_LINK_JOBS GREATER_EQUAL 1 OR
+       NOT AMReX_PARALLEL_LINK_JOBS MATCHES "^[1-9][0-9]*$")
+      message(FATAL_ERROR "AMReX_PARALLEL_LINK_JOBS (${AMReX_PARALLEL_LINK_JOBS}) must be a positive integer")
+   endif()
 endif ()
 
 # --- HIP ----
@@ -274,8 +284,20 @@ print_option(AMReX_FORTRAN_INTERFACES)
 option( AMReX_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option( AMReX_LINEAR_SOLVERS )
 
-cmake_dependent_option( AMReX_AMRDATA "Build data services" OFF
-   "AMReX_FORTRAN" OFF )
+cmake_dependent_option( AMReX_LINEAR_SOLVERS_INCFLO
+    "Build AMReX Linear solvers useful for incompressible flow codes" ON
+    "AMReX_LINEAR_SOLVERS" OFF)
+print_option( AMReX_LINEAR_SOLVERS_INCFLO )
+
+cmake_dependent_option( AMReX_LINEAR_SOLVERS_EM
+    "Build AMReX Linear solvers useful for electromagnetic codes" ON
+    "AMReX_LINEAR_SOLVERS" OFF)
+print_option( AMReX_LINEAR_SOLVERS_EM )
+
+option( AMReX_FFT  "Build AMReX FFT" OFF )
+print_option( AMReX_FFT )
+
+option( AMReX_AMRDATA "Build data services" OFF )
 print_option( AMReX_AMRDATA )
 
 option( AMReX_PARTICLES "Build particle classes" ON)
@@ -310,6 +332,11 @@ print_option( AMReX_NO_SENSEI_AMR_INST )
 # Conduit (requires CONDUIT_DIR)
 option( AMReX_CONDUIT "Enable Conduit support" OFF )
 print_option( AMReX_CONDUIT )
+
+# Catalyst
+cmake_dependent_option( AMReX_CATALYST "Enable Catalyst support" OFF 
+   "AMReX_CONDUIT" OFF )
+print_option( AMReX_CATALYST )
 
 # Ascent
 cmake_dependent_option( AMReX_ASCENT "Enable Ascent support" OFF
@@ -359,6 +386,20 @@ print_option( AMReX_IPO )
 option(AMReX_FPE "Enable Floating Point Exceptions checks" OFF)
 print_option( AMReX_FPE )
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+   option(AMReX_COMPILER_DEFAULT_INLINE "Use compiler default inline behavior" OFF)
+   set(AMReX_INLINE_LIMIT 43210 CACHE STRING "Inline limit")
+   if (NOT AMReX_COMPILER_DEFAULT_INLINE)
+      if (AMReX_INLINE_LIMIT LESS 0)
+         message(FATAL_ERROR "AMReX_INLINE_LIMIT, if set, must be non-negative")
+      endif()
+      message(STATUS "   AMReX_INLINE_LIMIT = ${AMReX_INLINE_LIMIT}")
+   endif ()
+else ()
+   set(AMReX_COMPILER_DEFAULT_INLINE ON)
+endif ()
+
+
 if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
    option( AMReX_ASSERTIONS "Enable assertions" ON)
 else ()
@@ -366,6 +407,9 @@ else ()
 endif ()
 
 print_option( AMReX_ASSERTIONS )
+
+option( AMReX_FLATTEN_FOR "Enable flattening of ParallelFor and other similar functions" OFF)
+print_option( AMReX_FLATTEN_FOR )
 
 option(AMReX_BOUND_CHECK  "Enable bound checking in Array4 class" OFF)
 print_option( AMReX_BOUND_CHECK )
@@ -438,7 +482,7 @@ option(AMReX_DIFFERENT_COMPILER
    "Allow an application to use a different compiler than the one used to build AMReX" OFF)
 print_option(AMReX_DIFFERENT_COMPILER)
 
-if (AMReX_BUILD_SHARED_LIBS AND NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
+if ( NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux") )
    option(AMReX_PROBINIT "Enable support for probin file" OFF)
 else ()
    cmake_dependent_option(AMReX_PROBINIT "Enable support for probin file" ON

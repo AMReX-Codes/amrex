@@ -12,7 +12,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_WritePlotFile.H
        AMReX_WritePlotFile.cpp
        AMReX_AmrvisConstants.H
-       AMReX_FABUTIL_${D}D.F
        )
 
     if (AMReX_PROFPARSER)

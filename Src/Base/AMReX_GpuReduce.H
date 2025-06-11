@@ -12,6 +12,9 @@
 
 #if !defined(AMREX_USE_CUB) && defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
 #define AMREX_USE_CUB 1
+#if defined(CCCL_MAJOR_VERSION) && (CCCL_MAJOR_VERSION >= 3)
+#define AMREX_CUDA_CCCL_VER_3 1
+#endif
 #endif
 
 #if defined(AMREX_USE_CUB)
@@ -419,7 +422,12 @@ T blockReduceMin (T source) noexcept
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
     __syncthreads();
+
+#ifdef AMREX_CUDA_CCCL_VER_3
+    return BlockReduce(temp_storage).Reduce(source, cuda::minimum<T>{});
+#else
     return BlockReduce(temp_storage).Reduce(source, cub::Min());
+#endif
 #elif defined(AMREX_USE_HIP)
     using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
@@ -469,7 +477,11 @@ T blockReduceMax (T source) noexcept
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
     __syncthreads();
+#ifdef AMREX_CUDA_CCCL_VER_3
+    return BlockReduce(temp_storage).Reduce(source, cuda::maximum<T>());
+#else
     return BlockReduce(temp_storage).Reduce(source, cub::Max());
+#endif
 #elif defined(AMREX_USE_HIP)
     using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;

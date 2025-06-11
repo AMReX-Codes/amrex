@@ -66,7 +66,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     });
 }
 
-namespace {
+namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int num_cuts (Real a, Real b) noexcept {
         return (a >= 0.0_rt && b < 0.0_rt) || (b >= 0.0_rt && a < 0.0_rt);
@@ -76,6 +76,8 @@ namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int check_mvmc (int i, int j, int, Array4<Real const> const& fine)
 {
+    using detail::num_cuts;
+
     constexpr int k = 0;
     i *= 2;
     j *= 2;

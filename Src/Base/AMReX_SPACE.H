@@ -161,29 +161,6 @@ namespace amrex
 #  define AMREX_D_PICK(a,b,c) c
 #endif
 
-#ifndef AMREX_XSDK
-
-/* for backward compatibility */
-#if (AMREX_SPACEDIM == 1)
-#  define D_DECL(a,b,c) a
-#  define D_EXPR(a,b,c) ((void)((a),0))
-#  define D_PICK(a,b,c) a
-#  define D_TERM(a,b,c) a
-#elif (AMREX_SPACEDIM == 2)
-#  define D_DECL(a,b,c) a,b
-#  define D_EXPR(a,b,c) ((void)((a),(b),0))
-#  define D_PICK(a,b,c) b
-#  define D_TERM(a,b,c) a b
-#elif (AMREX_SPACEDIM == 3)
-#  define D_DECL(a,b,c) a,b,c
-#  define D_EXPR(a,b,c) ((void)((a),(b),(c),0))
-#  define D_PICK(a,b,c) c
-#  define D_TERM(a,b,c) a b c
-#endif
-
-#endif
-
-
 #if (AMREX_SPACEDIM == 1)
 #  define AMREX_1D_ONLY(a) a
 #  define AMREX_2D_ONLY(a) ((void)0)

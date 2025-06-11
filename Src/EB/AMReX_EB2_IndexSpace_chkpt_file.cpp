@@ -78,9 +78,12 @@ IndexSpaceChkptFile::getGeometry (const Box& dom) const
 }
 
 void
-IndexSpaceChkptFile::addFineLevels (int /*num_new_fine_levels*/)
+IndexSpaceChkptFile::addFineLevels (int num_new_fine_levels)
 {
-    amrex::Abort("IndexSpaceChkptFile::addFineLevels: not supported");
+    // This function is a no op if not adding levels, otherwise TODO
+    if (num_new_fine_levels > 0) {
+        amrex::Abort("IndexSpaceChkptFile::addFineLevels: not supported");
+    }
 }
 
 void

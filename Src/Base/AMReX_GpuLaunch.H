@@ -20,6 +20,8 @@
 #include <AMReX_GpuLaunchGlobal.H>
 #include <AMReX_RandomEngine.H>
 #include <AMReX_Algorithm.H>
+#include <AMReX_Math.H>
+#include <AMReX_Vector.H>
 #include <cstddef>
 #include <limits>
 #include <algorithm>
@@ -32,9 +34,13 @@
 #ifdef AMREX_USE_CUDA
 #  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
         amrex::launch_global<MT><<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
+#  define AMREX_LAUNCH_KERNEL_NOBOUND(blocks, threads, sharedMem, stream, ... ) \
+        amrex::launch_global    <<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
 #elif defined(AMREX_USE_HIP)
 #  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
         hipLaunchKernelGGL(launch_global<MT>, blocks, threads, sharedMem, stream, __VA_ARGS__)
+#  define AMREX_LAUNCH_KERNEL_NOBOUND(blocks, threads, sharedMem, stream, ... ) \
+        hipLaunchKernelGGL(launch_global    , blocks, threads, sharedMem, stream, __VA_ARGS__)
 #endif
 
 
@@ -61,11 +67,11 @@ namespace amrex {
 // CPU variation
 
     template<class L>
-    void launch_host (L&& f0) noexcept { f0(); }
+    void launch_host (L&& f0) noexcept { std::forward<L>(f0)(); }
 
     template<class L, class... Lambdas>
     void launch_host (L&& f0, Lambdas&&... fs) noexcept {
-        f0();
+        std::forward<L>(f0)();
         launch_host(std::forward<Lambdas>(fs)...);
     }
 
@@ -76,11 +82,11 @@ namespace amrex {
 namespace Gpu {
 
 #ifdef AMREX_USE_GPU
-    static constexpr std::size_t numThreadsPerBlockParallelFor () {
+    inline constexpr std::size_t numThreadsPerBlockParallelFor () {
         return AMREX_GPU_MAX_THREADS;
     }
 #else
-    static constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
+    inline constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
 #endif
 
 // ************************************************
@@ -103,20 +109,21 @@ namespace Gpu {
     inline
     Box getThreadBox (const Box& bx, Long offset) noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        const auto len = bx.length3d();
-        Long k = offset / (len[0]*len[1]);
-        Long j = (offset - k*(len[0]*len[1])) / len[0];
-        Long i = (offset - k*(len[0]*len[1])) - j*len[0];
-        IntVect iv{AMREX_D_DECL(static_cast<int>(i),
-                                static_cast<int>(j),
-                                static_cast<int>(k))};
-        iv += bx.smallEnd();
-        return (bx & Box(iv,iv,bx.type()));
-#else
-        amrex::ignore_unused(offset);
-        return bx;
-#endif
+        AMREX_IF_ON_DEVICE((
+            const auto len = bx.length3d();
+            Long k = offset / (len[0]*len[1]);
+            Long j = (offset - k*(len[0]*len[1])) / len[0];
+            Long i = (offset - k*(len[0]*len[1])) - j*len[0];
+            IntVect iv{AMREX_D_DECL(static_cast<int>(i),
+                                    static_cast<int>(j),
+                                    static_cast<int>(k))};
+            iv += bx.smallEnd();
+            return (bx & Box(iv,iv,bx.type()));
+        ))
+        AMREX_IF_ON_HOST((
+            amrex::ignore_unused(offset);
+            return bx;
+        ))
     }
 
 // ************************************************
@@ -173,6 +180,47 @@ namespace Gpu {
     makeExecutionConfig (const Box& box) noexcept
     {
         return makeExecutionConfig<MT>(box.numPts());
+    }
+
+    struct ExecConfig
+    {
+        Long start_idx;
+        int nblocks;
+    };
+
+    template <int MT>
+    Vector<ExecConfig> makeNExecutionConfigs (Long N) noexcept
+    {
+        // Max # of blocks in a kernel launch
+        int numblocks_max = std::numeric_limits<int>::max();
+        // Max # of threads in a kernel launch
+        Long nmax = Long(MT) * numblocks_max;
+        // # of launches needed for N elements without using grid-stride
+        // loops inside GPU kernels.
+        auto nlaunches = int((N+nmax-1)/nmax);
+        Vector<ExecConfig> r(nlaunches);
+        Long ndone = 0;
+        for (int i = 0; i < nlaunches; ++i) {
+            int nblocks;
+            if (N > nmax) {
+                nblocks = numblocks_max;
+                N -= nmax;
+            } else {
+                nblocks = int((N+MT-1)/MT);
+            }
+            // At which element ID the kernel should start
+            r[i].start_idx = ndone;
+            ndone += Long(nblocks) * MT;
+            // # of blocks in this launch
+            r[i].nblocks = nblocks;
+        }
+        return r;
+    }
+
+    template <int MT, int dim>
+    Vector<ExecConfig> makeNExecutionConfigs (BoxND<dim> const& box) noexcept
+    {
+        return makeNExecutionConfigs<MT>(box.numPts());
     }
 #endif
 

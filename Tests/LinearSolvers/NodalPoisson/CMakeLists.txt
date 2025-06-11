@@ -1,5 +1,5 @@
 foreach(D IN LISTS AMReX_SPACEDIM)
-    if(D EQUAL 1)
+    if(D EQUAL 1 OR NOT AMReX_LINEAR_SOLVERS_INCFLO)
        continue()
     endif()
 

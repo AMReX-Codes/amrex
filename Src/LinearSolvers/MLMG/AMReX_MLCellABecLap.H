@@ -50,6 +50,8 @@ public:
 
     void prepareForSolve () override;
 
+    void setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const override;
+
     void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
                             const Vector<MF*>& a_sol,
                             Location a_loc) const final;
@@ -204,7 +206,9 @@ MLCellABecLapT<MF>::define (const Vector<Geometry>& a_geom,
                 {
                     coarsen_overset_mask(i,j,k, crsema[box_no], finema[box_no]);
                 });
-                Gpu::streamSynchronize();
+                if (!Gpu::inNoSyncRegion()) {
+                    Gpu::streamSynchronize();
+                }
             } else
 #endif
             {
@@ -245,6 +249,26 @@ void
 MLCellABecLapT<MF>::prepareForSolve ()
 {
     MLCellLinOpT<MF>::prepareForSolve();
+}
+
+template <typename MF>
+void
+MLCellABecLapT<MF>::setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const
+{
+    auto const* omask = this->getOversetMask(amrlev, mglev);
+    if (omask) {
+        const int ncomp = this->getNComp();
+        auto const& mskma = omask->const_arrays();
+        auto const& ma = mf.arrays();
+        ParallelFor(mf, IntVect(0), ncomp,
+        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n)
+        {
+            if (mskma[bno](i,j,k) == 0) { ma[bno](i,j,k,n) = RT(0.0); }
+        });
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
+    }
 }
 
 template <typename MF>
@@ -542,8 +566,8 @@ MLCellABecLapT<MF>::addInhomogNeumannFlux (
             if (! domain.contains(ccb)) {
                 for (int icomp = 0; icomp < ncomp; ++icomp) {
                     auto const& phi = sol.const_array(mfi,icomp);
-                    auto const bv = bndry.bndryValues(ori).multiFab().const_array(mfi,icomp);
-                    auto const bc = bcoef[idim] ? bcoef[idim]->const_array(mfi,icomp)
+                    auto const& bv = bndry.bndryValues(ori).multiFab().const_array(mfi,icomp);
+                    auto const& bc = bcoef[idim] ? bcoef[idim]->const_array(mfi,icomp)
                         : Array4<RT const>{};
                     auto const& f = grad[idim]->array(mfi,icomp);
                     if (ori.isLow()) {
@@ -619,7 +643,9 @@ MLCellABecLapT<MF>::applyOverset (int amrlev, MF& rhs) const
                     rhsa[box_no](i,j,k,n) = RT(0.0);
                 }
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {

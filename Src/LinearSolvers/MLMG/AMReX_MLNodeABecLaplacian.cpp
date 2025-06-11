@@ -109,7 +109,9 @@ MLNodeABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
         yarr_ma[box_no](i,j,k) = (dmskarr_ma[box_no](i,j,k)) ? Real(0.0)
             : alpha*acoef_ma[box_no](i,j,k)*xarr_ma[box_no](i,j,k) - beta*lap;
     });
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 }
 
 void
@@ -145,7 +147,9 @@ MLNodeABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
                                   acoef_ma[box_no], bcoef_ma[box_no],
                                   dmskarr_ma[box_no], dxinvarr);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
         if (m_smooth_num_sweeps > 1) { nodalSync(amrlev, mglev, sol); }
     }
 #else
@@ -193,7 +197,9 @@ MLNodeABecLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiF
     {
         mlndlap_restriction(i,j,k,pcrse_ma[box_no],fine_ma[box_no],msk_ma[box_no]);
     });
-    Gpu::streamSynchronize();
+    if (need_parallel_copy || !Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 
     if (need_parallel_copy) {
         crse.ParallelCopy(cfine);
@@ -225,7 +231,9 @@ MLNodeABecLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, cons
         mlndlap_interpadd_aa(i, j, k, fine_ma[box_no], crse_ma[box_no],
                              sig_ma[box_no], msk_ma[box_no]);
     });
-    Gpu::streamSynchronize();
+    if (cfine.local_size() > 0 || !Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 }
 
 void
@@ -278,9 +286,11 @@ MLNodeABecLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
     amrex::ParallelFor(resmsk,
     [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
     {
-        if (fmsk[bno](i,j,k) == crse_fine_node) { rmsk[bno](i,j,k) = 1; }
+        if (fmsk[bno](i,j,k) == nodelap_detail::crse_fine_node) { rmsk[bno](i,j,k) = 1; }
     });
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 }
 
 void

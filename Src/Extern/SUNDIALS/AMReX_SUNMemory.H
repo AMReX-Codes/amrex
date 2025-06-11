@@ -13,7 +13,6 @@ namespace amrex::sundials {
  *
  * This class allows SUNDIALS to allocate memory using the amrex::Arena.
  */
-
 class MemoryHelper {
 public:
     MemoryHelper(::sundials::Context* sunctx);

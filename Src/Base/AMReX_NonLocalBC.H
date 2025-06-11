@@ -206,7 +206,7 @@ static_assert(IsIndexMapping<MultiBlockIndexMapping>(), // NOLINT(bugprone-throw
 //! \brief This class stores data dependencies for an inter-block communication.
 //!
 //! In communication between two blocks one might need to do an index
-//! transformation from one block to antoher.
+//! transformation from one block to another.
 struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     //! \name Constructors
 
@@ -296,9 +296,9 @@ struct Identity  {
 static constexpr Identity identity{};
 
 static_assert(sizeof(Identity) == 1 );
-static_assert(std::is_trivially_default_constructible<Identity>::value );
-static_assert(std::is_trivially_copy_assignable<Identity>::value );
-static_assert(std::is_trivially_copy_constructible<Identity>::value );
+static_assert(std::is_trivially_default_constructible_v<Identity> );
+static_assert(std::is_trivially_copy_assignable_v<Identity> );
+static_assert(std::is_trivially_copy_constructible_v<Identity> );
 static_assert(IsIndexMapping<Identity>() ); // NOLINT(bugprone-throw-keyword-missing)
 static_assert(IsFabProjection<Identity, FArrayBox>() ); // NOLINT(bugprone-throw-keyword-missing)
 
@@ -430,6 +430,7 @@ struct CommData {
     Vector<MPI_Status> stats{};
     //! \brief For each request the copy comm tags for the corresponding data FABs.
     Vector<const FabArrayBase::CopyComTagsContainer*> cctc{};
+    std::uint64_t id = std::numeric_limits<std::uint64_t>::max();
 #endif
 };
 
@@ -476,6 +477,9 @@ template <typename... Args>
 using LocalCopy_t = decltype(LocalCopy(std::declval<Args>()...));
 
 //! \brief This type trait tests if a given type DP satisfies the DataPacking concept for type FAB.
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+template <typename DP, typename FAB> struct IsDataPacking : std::true_type {};
+#else
 template <typename DP, typename FAB>
 struct IsDataPacking :
     Conjunction<
@@ -487,6 +491,7 @@ struct IsDataPacking :
         IsDetected<UnpackRecvBuffers_t, DP&, FabArray<FAB>&, CommData&>
 #endif
     > {};
+#endif
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
@@ -528,7 +533,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
 struct PackComponents {
     int dest_component{0};
     int src_component{0};
-    int n_components{0};
+    int n_components{1};
 };
 
 //! \brief Dispatch local copies to the default behaviour that knows no DTOS nor projection.
@@ -576,7 +581,7 @@ PackSendBuffers (const PackComponents& components, const FabArray<FAB>& src, Com
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         FabArray<FAB>::pack_send_buffer_gpu(src, components.src_component, components.n_components,
-                                            send.data, send.size, send.cctc);
+                                            send.data, send.size, send.cctc, send.id);
     } else
 #endif // AMREX_USE_GPU
     {
@@ -882,9 +887,16 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
     components.dest_component = destcomp.i;
     components.src_component = srccomp.i;
     components.n_components = numcomp.n;
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
     ApplyDtosAndProjectionOnReciever<DTOS, Proj> packing{components, dtos, proj};
     CommHandler handler = ParallelCopy_nowait(dest, src, cmd, packing);
     ParallelCopy_finish(dest, std::move(handler), cmd, packing); // NOLINT
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 }
 
 //! \brief Call ParallelCopy_nowait followed by ParallelCopy_finish.
@@ -1129,7 +1141,7 @@ FillBoundary_finish (CommHandler handler,
     auto cmd = makeFillBoundaryMetaData(mf, mf.nGrowVect, geom, dtos);
     // The metadata cmd can be cached and reused on a MultiFab/FabArray with
     // the same BoxArray and DistributionMapping.
-    FillBoundary_finish(mf, cmd, scomp, ncomp, dtos, proj);
+    FillBoundary(mf, cmd, scomp, ncomp, dtos, proj);
 \endverbatim
  *
  * The FillBoundary capability here is more flexible than FabArray's

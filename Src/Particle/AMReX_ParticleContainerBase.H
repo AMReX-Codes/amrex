@@ -57,15 +57,15 @@ public:
         m_gdb_object
         (std::make_unique<ParGDB>(geom,dmap,ba, [&]() -> Vector<int> {
                 Vector<int> ref_ratio;
-                for (int i = 0; i < static_cast<int>(rr.size()); ++i)
+                for (auto const& iv : rr)
                 {
 #if AMREX_SPACEDIM > 1
-                    AMREX_ASSERT(rr[i][0] == rr[i][1]);
+                    AMREX_ASSERT(iv[0] == iv[1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                    AMREX_ASSERT(rr[i][0] == rr[i][2]);
+                    AMREX_ASSERT(iv[0] == iv[2]);
 #endif
-                    ref_ratio.push_back(rr[i][0]);
+                    ref_ratio.push_back(iv[0]);
                 }
                 return ref_ratio;  }() )),
         m_gdb(static_cast<ParGDBBase*>(m_gdb_object.get()))
@@ -231,6 +231,10 @@ public:
 
     void SetVerbose (int verbose) { m_verbose = verbose; }
 
+    [[nodiscard]] int stableRedistribute () const {return m_stable_redistribute; }
+
+    void setStableRedistribute (int stable) { m_stable_redistribute = stable; }
+
     const ParticleBufferMap& BufferMap () const {return m_buffer_map;}
 
     Vector<int> NeighborProcs(int ngrow) const
@@ -252,6 +256,7 @@ public:
     static AMREX_EXPORT bool do_tiling;
     static AMREX_EXPORT IntVect tile_size;
     static AMREX_EXPORT bool memEfficientSort;
+    static AMREX_EXPORT bool use_comms_arena;
     mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
 
 protected:
@@ -260,6 +265,7 @@ protected:
     void defineBufferMap () const;
 
     int         m_verbose{0};
+    int m_stable_redistribute = 0;
     std::unique_ptr<ParGDB> m_gdb_object = std::make_unique<ParGDB>();
     ParGDBBase* m_gdb{nullptr};
     Vector<std::unique_ptr<MultiFab> > m_dummy_mf;

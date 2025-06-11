@@ -47,6 +47,10 @@ module amrex_physbc_module
      end subroutine amrex_fi_delete_physbc
   end interface
 
+  interface amrex_physbc_destroy
+    module procedure amrex_physbc_destroy
+  end interface amrex_physbc_destroy
+
 contains
 
   subroutine amrex_physbc_build (pbc, fill, geom)

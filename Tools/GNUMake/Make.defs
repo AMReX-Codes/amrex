@@ -112,6 +112,12 @@ else
   DEBUG := FALSE
 endif
 
+ifdef USE_FFT
+  USE_FFT := $(strip $(USE_FFT))
+else
+  USE_FFT := FALSE
+endif
+
 ifdef PROFILE
   PROFILE := $(strip $(PROFILE))
 else
@@ -216,6 +222,12 @@ else
   USE_CONDUIT := FALSE
 endif
 
+ifdef USE_CATALYST
+  USE_CATALYST := $(strip $(USE_CATALYST))
+else
+  USE_CATALYST := FALSE
+endif
+
 ifdef USE_ASCENT
   USE_ASCENT := $(strip $(USE_ASCENT))
 else
@@ -267,6 +279,9 @@ ifeq ($(USE_CUDA),TRUE)
   # Limit the maximum number of registers available.
   CUDA_MAXREGCOUNT ?= 255
 
+  # Link-time optimization
+  CUDA_LTO ?= FALSE
+
   # Enable verbosity in the CUDA compilation.
   CUDA_VERBOSE ?= TRUE
 endif
@@ -309,6 +324,12 @@ ifdef USE_FORCE_INLINE
   USE_FORCE_INLINE := $(strip $(USE_FORCE_INLINE))
 else
   USE_FORCE_INLINE := FALSE
+endif
+
+ifdef USE_FLATTEN_FOR
+  USE_FLATTEN_FOR := $(strip $(USE_FLATTEN_FOR))
+else
+  USE_FLATTEN_FOR := FALSE
 endif
 
 ifdef WARN_ALL
@@ -589,6 +610,28 @@ else
     DebugSuffix :=
 endif
 
+ifeq ($(USE_FFT),TRUE)
+  include $(AMREX_HOME)/Src/FFT/Make.package
+  ifeq ($(USE_CUDA),TRUE)
+    LIBRARIES += -lcufft
+  else ifeq ($(USE_HIP),TRUE)
+    # Use rocFFT.  ROC_PATH is defined in hip.mak
+    SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocfft/include
+    LIBRARY_LOCATIONS += $(ROC_PATH)/rocfft/lib
+    LIBRARIES += -Wl,--rpath=$(ROC_PATH)/rocfft/lib -lrocfft
+  else ifeq ($(USE_SYCL),TRUE)
+    # nothing
+  else
+    FFTW_HOME ?= NOT_SET
+    ifneq ($(FFTW_HOME),NOT_SET)
+      SYSTEM_INCLUDE_LOCATIONS += $(FFTW_HOME)/include
+      LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
+      LIBRARIES += -Wl,-rpath,$(FFTW_HOME)/lib
+    endif
+    LIBRARIES += -lfftw3f -lfftw3
+  endif
+endif
+
 ifeq ($(USE_PROFPARSER),TRUE)
   PROFILE := TRUE
   TRACE_PROFILE := TRUE
@@ -714,6 +757,12 @@ ifeq ($(USE_FORCE_INLINE),TRUE)
     CPPFLAGS += -DAMREX_USE_FORCE_INLINE
 endif
 
+ifeq ($(USE_FLATTEN_FOR),TRUE)
+ifneq ($(DEBUG),TRUE)
+    CPPFLAGS += -DAMREX_USE_FLATTEN_FOR
+endif
+endif
+
 ifeq ($(USE_ACC),TRUE)
 
   USE_GPU := TRUE
@@ -738,10 +787,6 @@ ifeq ($(USE_HIP),TRUE)
     DEFINES += -DAMREX_USE_HIP
 
     GPUSuffix := .HIP
-
-    ifeq ($(HIP_INDIRECT_FUNCTION),TRUE)
-      DEFINES += -DAMREX_HIP_INDIRECT_FUNCTION
-    endif
 
     ifeq ($(USE_MPI),TRUE)
       # Make sure that the C/C++ MPI
@@ -897,6 +942,10 @@ ifeq ($(USE_PARTICLES),TRUE)
   DEFINES += -DAMREX_PARTICLES
 endif
 
+ifeq ($(USE_FFT),TRUE)
+    DEFINES += -DAMREX_USE_FFT
+endif
+
 ifeq ($(USE_EB),TRUE)
     DEFINES += -DAMREX_USE_EB
 endif
@@ -1013,12 +1062,6 @@ ifeq ($(TP_PROFILING),FORGE)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
 endif
 
-# Use Sam Williams's HPGMG
-ifeq ($(USE_HPGMG), TRUE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hpgmg...)
-  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hpgmg
-endif
-
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/sites/Make.$(host_name))","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/sites/Make.$(host_name)...)
   include        $(AMREX_HOME)/Tools/GNUMake/sites/Make.$(host_name)
@@ -1040,6 +1083,11 @@ endif
 ifeq ($(USE_CONDUIT),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.conduit...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.conduit
+endif
+
+ifeq ($(USE_CATALYST),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.catalyst...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.catalyst
 endif
 
 ifeq ($(USE_ASCENT),TRUE)
@@ -1091,6 +1139,13 @@ else ifeq ($(USE_HIP),TRUE)
       AMD_ARCH = $(AMREX_AMD_ARCH)
     endif
 
+    # For AMD GPUs, the wavefront is 64 except for gfx10?? and gfx11??.
+    ifeq ($(filter gfx10% gfx11%,$(AMD_ARCH)),)
+       DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=64
+    else
+       DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=32
+    endif
+
     ifeq ($(HIP_SAVE_TEMPS),TRUE)
       ifeq ($(USE_GPU_RDC),TRUE)
         $(warning *** HIP_SAVE_TEMPS requires USE_GPU_RDC=FALSE to obtain the assembly files for AMD GPU kernels.)
@@ -1119,19 +1174,11 @@ else ifeq ($(USE_CUDA),TRUE)
         MAKE_CUDA_PATH := $(SYSTEM_CUDA_PATH)
     endif
 
-    LIBRARIES += -lcuda -lcurand
+    LIBRARIES += -lcuda -lcurand -lcusparse
 
     ifneq ($(MAKE_CUDA_PATH),)
         LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64
         SYSTEM_INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/include
-
-        ifeq ($(PROFILE),TRUE)
-            LIBRARIES += -lnvToolsExt
-        endif
-
-        ifeq ($(TINY_PROFILE),TRUE)
-            LIBRARIES += -lnvToolsExt
-        endif
     endif
 
     # Bring in NVML support. This is not required,
@@ -1157,7 +1204,7 @@ else ifeq ($(USE_CUDA),TRUE)
     endif
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-      LINKFLAGS = $(NVCC_FLAGS) $(CXXFLAGS_FROM_HOST)
+      LINKFLAGS = $(NVCC_FLAGS) $(NVCC_ARCH_LINK_FLAGS) $(CXXFLAGS_FROM_HOST)
       AMREX_LINKER = nvcc
     endif
 

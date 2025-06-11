@@ -47,7 +47,6 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-
 template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value && !Iterator::ContainerType::ParticleType::is_soa_particle, int> foo = 0>
 int
 numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
@@ -56,12 +55,12 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
 
     const auto& tile = pti.GetParticleTile();
     const auto np = tile.numParticles();
-    const auto ptd = tile.getConstParticleTileData();
+    const auto& ptd = tile.getConstParticleTileData();
     const auto& geom = pti.Geom(pti.GetLevel());
 
-    const auto domain = geom.Domain();
-    const auto plo = geom.ProbLoArray();
-    const auto dxi = geom.InvCellSizeArray();
+    const auto& domain = geom.Domain();
+    const auto& plo = geom.ProbLoArray();
+    const auto& dxi = geom.InvCellSizeArray();
 
     Box box = pti.tilebox();
     box.grow(nGrow);
@@ -249,17 +248,17 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
                 thi = tlo + ts_right - 1;
             }
         };
-        const IntVect& small = box.smallEnd();
-        const IntVect& big   = box.bigEnd();
+        const IntVect& sml = box.smallEnd();
+        const IntVect& big = box.bigEnd();
         IntVect ntiles, ivIndex, tilelo, tilehi;
 
-        AMREX_D_TERM(int iv0 = amrex::min(amrex::max(iv[0], small[0]), big[0]);,
-                     int iv1 = amrex::min(amrex::max(iv[1], small[1]), big[1]);,
-                     int iv2 = amrex::min(amrex::max(iv[2], small[2]), big[2]););
+        AMREX_D_TERM(int iv0 = amrex::min(amrex::max(iv[0], sml[0]), big[0]);,
+                     int iv1 = amrex::min(amrex::max(iv[1], sml[1]), big[1]);,
+                     int iv2 = amrex::min(amrex::max(iv[2], sml[2]), big[2]););
 
-        AMREX_D_TERM(tiling_1d(iv0, small[0], big[0], a_tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
-                     tiling_1d(iv1, small[1], big[1], a_tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
-                     tiling_1d(iv2, small[2], big[2], a_tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
+        AMREX_D_TERM(tiling_1d(iv0, sml[0], big[0], a_tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
+                     tiling_1d(iv1, sml[1], big[1], a_tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
+                     tiling_1d(iv2, sml[2], big[2], a_tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
 
         tbx = Box(tilelo, tilehi);
 
@@ -281,13 +280,13 @@ int numTilesInBox (const Box& box, const bool a_do_tiling, const IntVect& a_tile
             ntile = amrex::max(ncells/tilesize, 1);
         };
 
-        const IntVect& small = box.smallEnd();
-        const IntVect& big   = box.bigEnd();
+        const IntVect& sml = box.smallEnd();
+        const IntVect& big = box.bigEnd();
         IntVect ntiles;
 
-        AMREX_D_TERM(tiling_1d(small[0], big[0], a_tile_size[0], ntiles[0]);,
-                     tiling_1d(small[1], big[1], a_tile_size[1], ntiles[1]);,
-                     tiling_1d(small[2], big[2], a_tile_size[2], ntiles[2]););
+        AMREX_D_TERM(tiling_1d(sml[0], big[0], a_tile_size[0], ntiles[0]);,
+                     tiling_1d(sml[1], big[1], a_tile_size[1], ntiles[1]);,
+                     tiling_1d(sml[2], big[2], a_tile_size[2], ntiles[2]););
 
         return AMREX_D_TERM(ntiles[0], *=ntiles[1], *=ntiles[2]);
     }
@@ -357,6 +356,46 @@ struct GetParticleBin
     }
 };
 
+/**
+ * \brief Returns the cell index for a given particle using the
+ * provided lower bounds and cell sizes.
+ *
+ * This version indexes cells starting from 0 at the lower left corner of
+ * the provided lower bounds, i.e., it returns a local index.
+ *
+ * \tparam P a type of AMReX particle.
+ *
+ * \param p the particle for which the cell index is calculated
+ * \param plo the low end of the domain
+ * \param dxi cell sizes in each dimension
+ */
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+IntVect getParticleCell (P const& p,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi) noexcept
+{
+    IntVect iv(
+        AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
+                     int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
+                     int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
+    return iv;
+}
+
+/**
+ * \brief Returns the cell index for a given particle using the
+ * provided lower bounds, cell sizes and global domain offset.
+ *
+ * This version indexes cells starting from 0 at the lower left corner of
+ * the simulation geometry, i.e., it returns a global index.
+ *
+ * \tparam P a type of AMReX particle.
+ *
+ * \param p the particle for which the cell index is calculated
+ * \param plo the low end of the domain
+ * \param dxi cell sizes in each dimension
+ * \param domain AMReX box in which the given particle resides
+ */
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 IntVect getParticleCell (P const& p,
@@ -364,12 +403,29 @@ IntVect getParticleCell (P const& p,
                          amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
                          const Box& domain) noexcept
 {
-    IntVect iv(
-        AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
-                     int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
-                     int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
+    IntVect iv = getParticleCell(p, plo, dxi);
     iv += domain.smallEnd();
     return iv;
+}
+
+template <typename PTD>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+IntVect getParticleCell (PTD const& ptd, int i,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                         const Box& domain) noexcept
+{
+    if constexpr (PTD::ParticleType::is_soa_particle)
+    {
+        IntVect iv(
+                   AMREX_D_DECL(int(amrex::Math::floor((ptd.m_rdata[0][i]-plo[0])*dxi[0])),
+                                int(amrex::Math::floor((ptd.m_rdata[1][i]-plo[1])*dxi[1])),
+                                int(amrex::Math::floor((ptd.m_rdata[2][i]-plo[2])*dxi[2]))));
+        iv += domain.smallEnd();
+        return iv;
+    } else {
+        return getParticleCell(ptd.m_aos[i], plo, dxi, domain);;
+    }
 }
 
 struct DefaultAssignor
@@ -437,11 +493,136 @@ bool enforcePeriodic (P& p,
     return shifted;
 }
 
+/**
+ * \brief Reorders the ParticleTile into two partitions
+ * left [0, num_left-1] and right [num_left, ptile.numParticles()-1]
+ * and returns the number of particles in the left partition.
+ *
+ * The functor is_left [(ParticleTileData ptd, int index) -> bool] maps each particle to
+ * either the left [return true] or the right [return false] partition.
+ * It must return the same result if evaluated multiple times for the same particle.
+ *
+ * \param ptile the ParticleTile to partition
+ * \param is_left functor to map particles to a partition
+ */
+template <typename PTile, typename ParFunc>
+int
+partitionParticles (PTile& ptile, ParFunc const& is_left)
+{
+    const int np = ptile.numParticles();
+    if (np == 0) { return 0; }
+
+    auto ptd = ptile.getParticleTileData();
+
+    const int num_left = Reduce::Sum<int>(np,
+        [=] AMREX_GPU_DEVICE (int i) -> int
+        {
+            return int(is_left(ptd, i));
+        });
+
+    // The ptile will be partitioned into left [0, num_left-1] and right [num_left, np-1].
+    //
+    // Note that currently the number of particles in [0, num_left-1] that should belong to the
+    // right partition is equal to the number of particles in [num_left, np-1] that should belong
+    // in the left partition. We will define num_swaps to be this number. This is the minimum
+    // number of swaps that need to be performed to partition the ptile in place for any algorithm.
+    //
+    // From this it is easy to see that
+    // max_num_swaps = min(size([0, num_left-1]), size([num_left, np-1]))
+    // is an upper bound for num_swaps.
+
+    const int max_num_swaps = std::min(num_left, np - num_left);
+    if (max_num_swaps == 0) { return num_left; }
+
+    Gpu::DeviceVector<int> index_left(max_num_swaps);
+    Gpu::DeviceVector<int> index_right(max_num_swaps);
+    int * const p_index_left = index_left.dataPtr();
+    int * const p_index_right = index_right.dataPtr();
+
+    // The num_swaps particles that are in [0, num_left-1] but should be moved to the right
+    // partition are at the same time the first num_swaps particles for which is_left is false
+    // in all the ptile.
+    // Similarly, the num_swaps particles in [num_left, np-1] that should be moved to the left
+    // partition are the last num_swaps particles of the ptile for which is_left is true.
+    //
+    // The PrefixSum is used to find exactly these particles and store their indexes in
+    // index_left and index_right. Since num_swaps is not known, the first max_num_swaps
+    // particles are stored instead. Here, dst = num_left-1-(i-s) is used to effectively reverse
+    // the PrefixSum to store the last particles for which is_left is true.
+    //
+    // This way, all indexes in index_right are in ascending order, and all indexes in
+    // index_left are in descending order.
+
+    Scan::PrefixSum<int>(np,
+        [=] AMREX_GPU_DEVICE (int i) -> int
+        {
+            return int(!is_left(ptd, i));
+        },
+        [=] AMREX_GPU_DEVICE (int i, int const& s)
+        {
+            if (!is_left(ptd, i)) {
+                int dst = s;
+                if (dst < max_num_swaps) {
+                    p_index_right[dst] = i;
+                }
+            } else {
+                int dst = num_left-1-(i-s); // avoid integer overflow
+                if (dst < max_num_swaps) {
+                    p_index_left[dst] = i;
+                }
+            }
+        },
+        Scan::Type::exclusive, Scan::noRetSum);
+
+    // Finally, the particles are swapped. Since max_num_swaps is only an upper bound for num_swaps,
+    // some swaps should not be performed and need to be skipped. This is the case if the index
+    // in index_left[i] is already in the left partition or the index in index_right[i] is already
+    // in the right partition. These two cases coincide for the same i because index_right is in
+    // ascending order and index_left in descending order. This means for both index_left and
+    // index_right the first num_swaps particles need to be swapped, and the particles after that
+    // should be skipped.
+    //
+    // The check right_i < left_i makes sure that the particle going to the right partition is
+    // actually coming from the left partition, which has a lower index than the other particle and
+    // visa-versa.
+    //
+    // Since exactly num_swaps swap operations are performed in the end, which is the smallest
+    // number possible, this algorithm is optimal in the number of swap operations.
+    // This results in good performance in practice if the size of a particle is large enough that
+    // it compensates for the extra kernel launches and evaluations of is_left which this
+    // algorithm needs.
+
+    ParallelFor(max_num_swaps,
+        [=] AMREX_GPU_DEVICE (int i)
+        {
+            int left_i = p_index_left[i];
+            int right_i = p_index_right[i];
+            if (right_i < left_i) {
+                swapParticle(ptd, ptd, left_i, right_i);
+            }
+        });
+
+    Gpu::streamSynchronize(); // for index_left and index_right deallocation
+
+    return num_left;
+}
+
+template <typename PTile>
+void
+removeInvalidParticles (PTile& ptile)
+{
+    const int new_size = partitionParticles(ptile,
+        [=] AMREX_GPU_DEVICE (auto& ptd, int i) {
+            return ptd.id(i).is_valid();
+        });
+    ptile.resize(new_size);
+}
+
 #if defined(AMREX_USE_GPU)
 
 template <typename PTile, typename PLocator, typename CellAssignor>
 int
-partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& assignor,
+partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const& assignor,
                           const ParticleBufferMap& pmap,
                           const GpuArray<Real,AMREX_SPACEDIM>& plo,
                           const GpuArray<Real,AMREX_SPACEDIM>& phi,
@@ -451,115 +632,59 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor&& ass
                           int lev, int gid, int /*tid*/,
                           int lev_min, int lev_max, int nGrow, bool remove_negative)
 {
-    const int np = ptile.numParticles();
-    if (np == 0) { return 0; }
-
     auto getPID = pmap.getPIDFunctor();
-
     int pid = ParallelContext::MyProcSub();
-    constexpr int chunk_size = 256*256*256;
-    int num_chunks = std::max(1, (np + (chunk_size - 1)) / chunk_size);
 
-    PTile ptile_tmp;
-    ptile_tmp.define(ptile.NumRuntimeRealComps(), ptile.NumRuntimeIntComps());
-    ptile_tmp.resize(std::min(np, chunk_size));
+    Gpu::DeviceVector<uint8_t> particle_stays(ptile.numParticles());
+    uint8_t * const p_particle_stays = particle_stays.dataPtr();
+    auto ptd = ptile.getParticleTileData();
 
-    auto src_data = ptile.getParticleTileData();
-    auto dst_data = ptile_tmp.getParticleTileData();
-
-    int last_offset = 0;
-    for (int ichunk = 0; ichunk < num_chunks; ++ichunk)
-    {
-        int this_offset = ichunk*chunk_size;
-        int this_chunk_size = std::min(chunk_size, np - this_offset);
-
-        int num_stay;
+    // the function for determining if a particle stays on this grid is very slow,
+    // so we cache it in particle_stays to avoid evaluating it multiple times.
+    ParallelFor(ptile.numParticles(),
+        [=] AMREX_GPU_DEVICE (int i)
         {
-            auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
+            int assigned_grid;
+            int assigned_lev;
+
+            if (!ptd.id(i).is_valid())
             {
-                int assigned_grid;
-                int assigned_lev;
-
-                if (src_data.id(i+this_offset) < 0 )
-                {
-                    assigned_grid = -1;
-                    assigned_lev  = -1;
-                }
-                else
-                {
-                    amrex::Particle<0> p_prime;
-                    AMREX_D_TERM(p_prime.pos(0) = src_data.pos(0, i+this_offset);,
-                                 p_prime.pos(1) = src_data.pos(1, i+this_offset);,
-                                 p_prime.pos(2) = src_data.pos(2, i+this_offset););
-
-                    enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
-                    auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
-                    assigned_grid = amrex::get<0>(tup_prime);
-                    assigned_lev  = amrex::get<1>(tup_prime);
-                    if (assigned_grid >= 0)
-                    {
-                      AMREX_D_TERM(src_data.pos(0, i+this_offset) = p_prime.pos(0);,
-                                   src_data.pos(1, i+this_offset) = p_prime.pos(1);,
-                                   src_data.pos(2, i+this_offset) = p_prime.pos(2););
-                    }
-                    else if (lev_min > 0)
-                    {
-                      AMREX_D_TERM(p_prime.pos(0) = src_data.pos(0, i+this_offset);,
-                                   p_prime.pos(1) = src_data.pos(1, i+this_offset);,
-                                   p_prime.pos(2) = src_data.pos(2, i+this_offset););
-                      auto tup = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
-                      assigned_grid = amrex::get<0>(tup);
-                      assigned_lev  = amrex::get<1>(tup);
-                    }
-                }
-
-                if ((remove_negative == false) && (src_data.id(i+this_offset) < 0)) {
-                    return true;
-                }
-
-                return ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid));
-            };
-
-            num_stay = Scan::PrefixSum<int> (this_chunk_size,
-                          [=] AMREX_GPU_DEVICE (int i) -> int
-                          {
-                              return particle_stays(i);
-                          },
-                          [=] AMREX_GPU_DEVICE (int i, int const& s)
-                          {
-                              int src_i = i + this_offset;
-                              int dst_i = particle_stays(i) ? s : this_chunk_size-1-(i-s);
-                              copyParticle(dst_data, src_data, src_i, dst_i);
-                          },
-                          Scan::Type::exclusive);
-        }
-
-        if (num_chunks == 1)
-        {
-            ptile.swap(ptile_tmp);
-        }
-        else
-        {
-            AMREX_FOR_1D(this_chunk_size, i,
-                         {
-                             copyParticle(src_data, dst_data, i, i + this_offset);
-                         });
-        }
-
-        if ( ichunk > 0 )
-        {
-            int num_swap = std::min(this_offset - last_offset, num_stay);
-            AMREX_FOR_1D( num_swap, i,
+                assigned_grid = -1;
+                assigned_lev  = -1;
+            }
+            else
             {
-                swapParticle(src_data, src_data, last_offset + i,
-                             this_offset + num_stay - 1 - i);
-            });
-        }
+                auto p_prime = ptd.getSuperParticle(i);
+                enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
+                auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
+                assigned_grid = amrex::get<0>(tup_prime);
+                assigned_lev  = amrex::get<1>(tup_prime);
+                if (assigned_grid >= 0)
+                {
+                    AMREX_D_TERM(ptd.pos(0, i) = p_prime.pos(0);,
+                                 ptd.pos(1, i) = p_prime.pos(1);,
+                                 ptd.pos(2, i) = p_prime.pos(2););
+                }
+                else if (lev_min > 0)
+                {
+                    AMREX_D_TERM(p_prime.pos(0) = ptd.pos(0, i);,
+                                 p_prime.pos(1) = ptd.pos(1, i);,
+                                 p_prime.pos(2) = ptd.pos(2, i););
+                    auto tup = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
+                    assigned_grid = amrex::get<0>(tup);
+                    assigned_lev  = amrex::get<1>(tup);
+                }
+            }
 
-        last_offset += num_stay;
-    }
+            p_particle_stays[i] = uint8_t(
+                ((remove_negative == false) && (!ptd.id(i).is_valid())) ||
+                ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid)));
+        });
 
-    return last_offset;
+    return partitionParticles(ptile,
+        [=] AMREX_GPU_DEVICE (auto& /* ptd */, int i) -> bool {
+            return p_particle_stays[i];
+        });
 }
 
 #endif
@@ -605,13 +730,24 @@ void clearEmptyEntries (C& c)
 
 template <class index_type, typename F>
 void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type nitems,
-                               index_type nbins, F&& f)
+                               index_type nbins, F const& f)
 {
     BL_PROFILE("PermutationForDeposition()");
 
-    constexpr index_type gpu_block_size = 1024;
-    constexpr index_type gpu_block_size_m1 = gpu_block_size - 1;
-    constexpr index_type llist_guard = std::numeric_limits<index_type>::max();
+#if defined(AMREX_USE_HIP)
+    // MI250X has a small L2 cache and is more tolerant of atomic add contention,
+    // so we use a small block size of 64 and the compressed layout.
+    static constexpr index_type gpu_block_size = 64;
+    static constexpr bool compressed_layout = true;
+#else
+    // A100 has a larger L2 cache and is very sensitive to atomic add contention,
+    // so we use a large bock size of 1024 and not the compressed layout.
+    static constexpr index_type gpu_block_size = 1024;
+    static constexpr bool compressed_layout = false;
+#endif
+
+    static constexpr index_type gpu_block_size_m1 = gpu_block_size - 1;
+    static constexpr index_type llist_guard = std::numeric_limits<index_type>::max();
 
     // round up to gpu_block_size
     nbins = (nbins + gpu_block_size_m1) / gpu_block_size * gpu_block_size;
@@ -634,9 +770,34 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     amrex::launch<gpu_block_size>(nbins / gpu_block_size, Gpu::gpuStream(),
-        [=] AMREX_GPU_DEVICE () {
+        [pllist_start,pllist_next,pperm,pglobal_idx] AMREX_GPU_DEVICE () {
             __shared__ index_type sdata[gpu_block_size];
-            index_type current_idx = pllist_start[threadIdx.x + gpu_block_size * blockIdx.x];
+            __shared__ index_type global_idx_start;
+            __shared__ index_type idx_start;
+
+            index_type current_idx = 0;
+
+            if constexpr (compressed_layout) {
+                // Compressed layout: subsequent sweeps of up to gpu_block_size contiguous particles
+                // are put right next to each other, while without the compressed layout,
+                // there can be other particle sweeps from different locations between them.
+                current_idx = pllist_start[threadIdx.x + gpu_block_size * blockIdx.x];
+
+                index_type num_particles_thread = 0;
+                while (current_idx != llist_guard) {
+                    ++num_particles_thread;
+                    current_idx = pllist_next[current_idx];
+                }
+
+                index_type num_particles_block =
+                    Gpu::blockReduceSum<gpu_block_size>(num_particles_thread);
+
+                if (threadIdx.x == 0) {
+                    global_idx_start = Gpu::Atomic::Add(pglobal_idx, num_particles_block);
+                }
+            }
+
+            current_idx = pllist_start[threadIdx.x + gpu_block_size * blockIdx.x];
 
             while (true) {
                 sdata[threadIdx.x] = index_type(current_idx != llist_guard);
@@ -657,21 +818,16 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
                 if (sdata[gpu_block_size_m1] == 0) {
                     break;
                 }
-                __syncthreads();
                 if (threadIdx.x == gpu_block_size_m1) {
-                    x = sdata[gpu_block_size_m1];
-                    sdata[gpu_block_size_m1] = Gpu::Atomic::Add(pglobal_idx, x);
+                    if constexpr (compressed_layout) {
+                        idx_start = global_idx_start;
+                        global_idx_start += sdata[gpu_block_size_m1];
+                    } else {
+                        idx_start = Gpu::Atomic::Add(pglobal_idx, sdata[gpu_block_size_m1]);
+                    }
                 }
                 __syncthreads();
-                if (threadIdx.x < gpu_block_size_m1) {
-                    sdata[threadIdx.x] += sdata[gpu_block_size_m1];
-                }
-                __syncthreads();
-                if (threadIdx.x == gpu_block_size_m1) {
-                    sdata[gpu_block_size_m1] += x;
-                }
-                __syncthreads();
-
+                sdata[threadIdx.x] += idx_start;
                 if (current_idx != llist_guard) {
                     pperm[sdata[threadIdx.x] - 1] = current_idx;
                     current_idx = pllist_next[current_idx];
@@ -679,7 +835,8 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
             }
         });
 #else
-    Abort("Not implemented");
+    amrex::ignore_unused(pperm, pglobal_idx, compressed_layout);
+    Abort("PermutationForDeposition only implemented for CUDA and HIP");
 #endif
 
     Gpu::Device::streamSynchronize();
@@ -689,7 +846,7 @@ template <class index_type, class PTile>
 void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type nitems,
                                const PTile& ptile, Box bx, Geometry geom, const IntVect idx_type)
 {
-    AMREX_ALWAYS_ASSERT(idx_type.allGE(IntVect(0)) && idx_type.allLE(IntVect(2)));
+    AMREX_ALWAYS_ASSERT(idx_type.allGE(0) && idx_type.allLE(2));
 
     const IntVect refine_vect = max(idx_type, IntVect(1)).min(IntVect(2));
     const IntVect type_vect = idx_type - idx_type / 2 * 2;
@@ -713,7 +870,7 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
     PermutationForDeposition<index_type>(perm, nitems, bx.numPts() * ref_product,
         [=] AMREX_GPU_DEVICE (index_type idx) noexcept
             {
-                const auto& p = make_particle<ParticleType>{}(ptd,idx);
+                const auto p = make_particle<ParticleType>{}(ptd,idx);
 
                 IntVect iv = ((p.pos() - pos_offset) * dxi).round();
 
@@ -726,6 +883,26 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
         });
 }
 
+template <typename P>
+std::string getDefaultCompNameReal (const int i) {
+    int first_r_name = 0;
+    if constexpr (P::is_soa_particle) {
+        if (i < AMREX_SPACEDIM) {
+            constexpr int x_in_ascii = 120;
+            std::string const name{char(x_in_ascii+i)};
+            return name;
+        }
+        first_r_name = AMREX_SPACEDIM;
+    }
+    std::string const name{("real_comp" + std::to_string(i-first_r_name))};
+    return name;
+}
+
+template <typename P>
+std::string getDefaultCompNameInt (const int i) {
+    std::string const name{("int_comp" + std::to_string(i))};
+    return name;
+}
 
 #ifdef AMREX_USE_HDF5_ASYNC
 void async_vol_es_wait_particle();

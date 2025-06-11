@@ -6,7 +6,7 @@
 
 namespace amrex {
 
-// del dot (sigma grah phi) = rhs
+// del dot (sigma grad phi) = rhs
 // where phi and rhs are nodal, and sigma is cell-centered.
 
 class MLNodeLaplacian

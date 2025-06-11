@@ -73,6 +73,7 @@ MyTest::solve ()
     mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
     mlmg.getFluxes(amrex::GetVecOfArrOfPtrs(flux));
     mlmg.getGradSolution(amrex::GetVecOfArrOfPtrs(grad));
+    mlmg.getGradSolution(amrex::GetVecOfArrOfPtrs(fgrad)); // Test when MF is different from AMF
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         amrex::VisMF::Write(phi[0], "phi-"+std::to_string(ilev));
     }
@@ -146,6 +147,7 @@ MyTest::initData ()
     bcoef.resize(nlevels);
     flux.resize(1);
     grad.resize(1);
+    fgrad.resize(1);
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
         dmap[ilev].define(grids[ilev]);
@@ -193,5 +195,7 @@ MyTest::initData ()
                                      dmap[0], 1, 0, MFInfo(), *factory[0]);
         grad[0][idim].define(amrex::convert(grids[0],IntVect::TheDimensionVector(idim)),
                                      dmap[0], 1, 0, MFInfo(), *factory[0]);
+        fgrad[0][idim].define(amrex::convert(grids[0],IntVect::TheDimensionVector(idim)),
+                                      dmap[0], 1, 0, MFInfo(), DefaultFabFactory<BaseFab<float>>());
     }
 }

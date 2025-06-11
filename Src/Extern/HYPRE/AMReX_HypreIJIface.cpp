@@ -27,7 +27,7 @@ struct HypreOptParse
         if (pp.contains(key.c_str())) {
             int val;
             pp.query(key.c_str(), val);
-            func(solver, val);
+            std::forward<F>(func)(solver, val);
         }
     }
 
@@ -36,7 +36,7 @@ struct HypreOptParse
     {
         T val = default_val;
         pp.queryAdd(key.c_str(), val);
-        func(solver, val);
+        std::forward<F>(func)(solver, val);
     }
 
     template <typename F, typename T>
@@ -44,7 +44,7 @@ struct HypreOptParse
     {
         T val = default_val;
         pp.queryAdd(key.c_str(), val);
-        func(solver, val, index);
+        std::forward<F>(func)(solver, val, index);
     }
 
     template <typename T, typename F>
@@ -53,7 +53,7 @@ struct HypreOptParse
         if (pp.contains(key.c_str())) {
             T val;
             pp.query(key.c_str(), val);
-            func(solver, val);
+            std::forward<F>(func)(solver, val);
         }
     }
 };
@@ -165,7 +165,7 @@ void HypreIJIface::solve (
         amrex::Print() << "HYPRE " << m_solver_name
                        << ": Num. iterations = " << m_num_iterations
                        << "; Relative residual = " << m_final_res_norm
-                       << std::endl;
+                       << '\n';
     }
 }
 
@@ -183,7 +183,7 @@ void HypreIJIface::parse_inputs (const std::string& prefix)
     if (m_verbose > 2) {
         amrex::Print() << "HYPRE: solver = " << m_solver_name
                        << "; preconditioner = " << m_preconditioner_name
-                       << std::endl;
+                       << '\n';
     }
 
     if (m_preconditioner_name == "none") {
@@ -235,7 +235,7 @@ void HypreIJIface::init_solver (
 void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
 {
     if (m_verbose > 2) {
-        amrex::Print() << "Creating BoomerAMG preconditioner" << std::endl;
+        amrex::Print() << "Creating BoomerAMG preconditioner" << '\n';
     }
     HYPRE_BoomerAMGCreate(&m_precond);
 
@@ -433,7 +433,7 @@ void HypreIJIface::boomeramg_solver_configure (const std::string& prefix)
 void HypreIJIface::gmres_solver_configure (const std::string& prefix)
 {
     if (m_verbose > 2) {
-        amrex::Print() << "Creating GMRES solver" << std::endl;
+        amrex::Print() << "Creating GMRES solver" << '\n';
     }
     HYPRE_ParCSRGMRESCreate(m_comm, &m_solver);
 

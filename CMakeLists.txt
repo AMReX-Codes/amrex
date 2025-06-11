@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.18)
 
 #
+# Setting a cmake_policy to OLD is deprecated by definition and will raise a
+# verbose warning
+#
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+    set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+endif()
+
+#
 # Allow for MSVC Runtime library controls
 #
 if(POLICY CMP0091)

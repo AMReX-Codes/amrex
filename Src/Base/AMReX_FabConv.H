@@ -13,20 +13,18 @@
 
 namespace amrex {
 
-//
-// A Descriptor of the Long Integer type
-
 /**
-* This class is meant to hold all information needed to completely
-* describe the "int" or "Long" type on a machine.  To describe an integer both
-* the number of bytes and their ordering, relative to canonical
-* ordering 1 .. sizeof(Long), needs to be specified.
-* This allows us to write out integers in the native format on a machine,
-* and then by also saving the IntDescriptor, we can read them back in on
-* another machine and have enough information to construct the exact same
-* values.
-*/
-
+ * \brief A Descriptor of the Long Integer type
+ *
+ * This class is meant to hold all information needed to completely
+ * describe the "int" or "Long" type on a machine.  To describe an integer both
+ * the number of bytes and their ordering, relative to canonical
+ * ordering 1 .. sizeof(Long), needs to be specified.
+ * This allows us to write out integers in the native format on a machine,
+ * and then by also saving the IntDescriptor, we can read them back in on
+ * another machine and have enough information to construct the exact same
+ * values.
+ */
 class IntDescriptor
 {
 
@@ -72,39 +70,37 @@ std::ostream& operator<< (std::ostream& os, const IntDescriptor& id);
 //!
 std::istream& operator>> (std::istream& is, IntDescriptor& id);
 
-
-  //A Descriptor of the Real Type
-
 /**
-* \brief  This class is meant to hold all information needed to completely
-*  describe the "Real" floating-point type on a machine.  By "Real" here we
-*  mean either the "float" or "double" type that this version of AMReX
-*  was built with, which corresponds to whether BL_USE_FLOAT or
-*  BL_USE_DOUBLE was used to build the version of the library.
-*
-*  To describe a "Real" type two arrays are needed: one detailing the ordering
-*  of the bytes in the Real, relative to the canonical ordering
-*  1 .. sizeof(Real) and the other detailing the format of the floating-point
-*  number.
-*
-*  The array detailing the format of a floating-point number is an eight-element
-*  array of longs containing the following information:
-*
-*          format[0] = number of bits per number
-*          format[1] = number of bits in exponent
-*          format[2] = number of bits in mantissa
-*          format[3] = start bit of sign
-*          format[4] = start bit of exponent
-*          format[5] = start bit of mantissa
-*          format[6] = high order mantissa bit (CRAY needs this)
-*          format[7] = bias of exponent
-*
-*  This allows us to write out "Real"s in the native format on a machine,
-*  and then by also saving the IntDescriptor, we can read them back in on
-*  another machine and have enough information to construct the exact same
-*  "Real" values, provided the Reals have the same size on the two machines.
-*/
-
+ * \brief A Descriptor of the Real Type
+ *
+ * This class is meant to hold all information needed to completely
+ * describe the "Real" floating-point type on a machine.  By "Real" here we
+ * mean either the "float" or "double" type that this version of AMReX
+ * was built with, which corresponds to whether BL_USE_FLOAT or
+ * BL_USE_DOUBLE was used to build the version of the library.
+ *
+ * To describe a "Real" type two arrays are needed: one detailing the ordering
+ * of the bytes in the Real, relative to the canonical ordering
+ * 1 .. sizeof(Real) and the other detailing the format of the floating-point
+ * number.
+ *
+ * The array detailing the format of a floating-point number is an eight-element
+ * array of longs containing the following information:
+ *
+ *         format[0] = number of bits per number
+ *         format[1] = number of bits in exponent
+ *         format[2] = number of bits in mantissa
+ *         format[3] = start bit of sign
+ *         format[4] = start bit of exponent
+ *         format[5] = start bit of mantissa
+ *         format[6] = high order mantissa bit (CRAY needs this)
+ *         format[7] = bias of exponent
+ *
+ * This allows us to write out "Real"s in the native format on a machine,
+ * and then by also saving the IntDescriptor, we can read them back in on
+ * another machine and have enough information to construct the exact same
+ * "Real" values, provided the Reals have the same size on the two machines.
+ */
 class RealDescriptor
 {
 public:

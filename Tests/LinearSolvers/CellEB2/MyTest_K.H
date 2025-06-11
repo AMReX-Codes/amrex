@@ -4,8 +4,6 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 
-namespace {
-
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mytest_set_phi_reg (int i, int j, int k, amrex::Array4<amrex::Real> const& phie,
                          amrex::Array4<amrex::Real> const& rhs,
@@ -171,8 +169,6 @@ void mytest_set_phi_boundary (int i, int j, int k, amrex::Array4<amrex::Real> co
         amrex::Real r2 = x*x+y*y;
         phi(i,j,k) = r2*r2 * std::cos(3.*theta);
     }
-}
-
 }
 
 #endif

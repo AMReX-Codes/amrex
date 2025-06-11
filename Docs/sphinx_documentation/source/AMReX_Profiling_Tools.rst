@@ -93,6 +93,47 @@ it is also recommended to wrap any ``BL_PROFILE_TINY_FLUSH();`` calls in
 informative ``amrex::Print()`` lines to ensure accurate identification of each
 set of timers.
 
+Hot Spots and Load Balance
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The output of TinyProfiler can help us to identify hot spots. For example,
+the following output shows the top three hot spots of a linear solver test
+running on 4 MPI processes.
+
+.. highlight:: console
+
+::
+
+    --------------------------------------------------------------------------------------------
+    Name                                         NCalls  Excl. Min  Excl. Avg  Excl. Max   Max %
+    --------------------------------------------------------------------------------------------
+    MLPoisson::Fsmooth()                            560     0.4775     0.4793     0.4815  34.97%
+    MLPoisson::Fapply()                             114     0.1103      0.113     0.1167   8.48%
+    FabArray::Xpay()                                109        0.1     0.1013     0.1038   7.54%
+
+In this test, there are 16 boxes evenly distributed among 4 MPI processes. The
+output above shows that the load is perfectly balanced. However, if the load
+is not balanced, the results can be very different and sometimes
+misleading. For example, if we put 2, 2, 6 and 6 boxes on processes 0, 1, 2
+and 3, respectively, the top three hot spots now include two MPI
+communication functions, ``FillBoundary`` and ``ParallelCopy``.
+
+.. highlight:: console
+
+::
+
+    --------------------------------------------------------------------------------------------
+    Name                                         NCalls  Excl. Min  Excl. Avg  Excl. Max   Max %
+    --------------------------------------------------------------------------------------------
+    FillBoundary_finish()                           607    0.01568     0.3367     0.6574  41.97%
+    MLPoisson::Fsmooth()                            560     0.2133     0.4047     0.5973  38.13%
+    FabArray::ParallelCopy_finish()                 231   0.002977    0.09748     0.1895  12.10%
+
+The reason that the MPI communication appears slow is that the lightly
+loaded processes have to wait for messages sent by the heavily loaded
+processes. See also :ref:`sec:profopts` for a diagnostic option that may
+provide more insight on the load imbalance.
+
 .. _sec:full:profiling:
 
 Full Profiling

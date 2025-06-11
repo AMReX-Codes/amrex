@@ -20,9 +20,12 @@ T norm (const GpuComplex<T>& a_z) noexcept;
  *  work in device code with Cuda yet.
  *
  *  Should be bit-wise compatible with std::complex.
+ *
+ *  GpuComplex is aligned to its size (stricter than std::complex) to allow for
+ *  coalesced memory accesses with nvidia GPUs.
  */
 template <typename T>
-struct GpuComplex
+struct alignas(2*sizeof(T)) GpuComplex
 {
     using value_type = T;
 
@@ -38,16 +41,16 @@ struct GpuComplex
     /**
      * \brief Return the real part.
      */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr T real () const noexcept { return m_real; }
 
     /**
      * \brief Return the imaginary part.
      */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr T imag () const noexcept { return m_imag; }
 
-   /**
+    /**
      * \brief Add a real number to this complex number.
      */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

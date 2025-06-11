@@ -8,14 +8,51 @@
 
 namespace amrex {
 
+namespace detail {
+    class CutFabFactory final
+        : public DefaultFabFactory<CutFab>
+    {
+    public:
+        CutFabFactory (const FabArray<EBCellFlagFab>* a_cellflags)
+            : m_cellflags(a_cellflags)
+            {}
+
+        AMREX_NODISCARD
+        CutFab* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override
+        {
+            if ((*m_cellflags)[box_index].getType() == FabType::singlevalued) {
+                return new CutFab(box, ncomps, info.alloc, info.shared, info.arena);
+            } else {
+                return new CutFab();
+            }
+        }
+
+        AMREX_NODISCARD
+        CutFabFactory* clone () const override { return new CutFabFactory(m_cellflags); }
+
+        AMREX_NODISCARD
+        Long nBytes (const Box& box, int ncomps, int box_index) const override
+        {
+            if ((*m_cellflags)[box_index].getType() == FabType::singlevalued) {
+                return box.numPts() * ncomps * Long(sizeof(Real));
+            } else {
+                return Long(0);
+            }
+        }
+
+    private:
+        const FabArray<EBCellFlagFab>* m_cellflags = nullptr;
+    };
+}
+
+
 MultiCutFab::MultiCutFab () = default;
 
 MultiCutFab::MultiCutFab (const BoxArray& ba, const DistributionMapping& dm,
                           int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags)
-    : m_data(ba,dm,ncomp,ngrow,MFInfo(),DefaultFabFactory<CutFab>()),
+    : m_data(ba,dm,ncomp,ngrow,MFInfo(),detail::CutFabFactory(&cellflags)),
       m_cellflags(&cellflags)
 {
-    remove();
 }
 
 MultiCutFab::~MultiCutFab () = default;
@@ -24,21 +61,8 @@ void
 MultiCutFab::define (const BoxArray& ba, const DistributionMapping& dm,
                      int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags)
 {
-    m_data.define(ba,dm,ncomp,ngrow,MFInfo(),DefaultFabFactory<CutFab>()),
+    m_data.define(ba,dm,ncomp,ngrow,MFInfo(),detail::CutFabFactory(&cellflags)),
     m_cellflags = &cellflags;
-    remove();
-}
-
-void
-MultiCutFab::remove ()
-{
-    for (MFIter mfi(m_data); mfi.isValid(); ++mfi)
-    {
-        if (!ok(mfi))
-        {
-            delete m_data.release(mfi);
-        }
-    }
 }
 
 const CutFab&

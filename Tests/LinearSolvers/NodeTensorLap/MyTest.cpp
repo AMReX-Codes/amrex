@@ -168,7 +168,11 @@ MyTest::initData ()
 
                 Real x = i*dx[0];
                 Real y = j*dx[1];
+#if (AMREX_SPACEDIM == 2)
+                Real z = 0;
+#else
                 Real z = k*dx[2];
+#endif
 
                 phi(i,j,k) = (std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z))
                     + 0.25 * (std::cos(fpi*x) * std::cos(fpi*y) * std::cos(fpi*z));

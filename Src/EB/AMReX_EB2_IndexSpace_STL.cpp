@@ -7,11 +7,13 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
                               const Geometry& geom, int required_coarsening_level,
                               int max_coarsening_level, int ngrow,
                               bool build_coarse_level_by_coarsening,
-                              bool extend_domain_face, int num_coarsen_opt)
+                              bool extend_domain_face, int num_coarsen_opt,
+                              bool bvh_optimization)
 {
     Gpu::LaunchSafeGuard lsg(true); // Always use GPU
 
     STLtools stl_tools;
+    stl_tools.setBVHOptimization(bvh_optimization);
     stl_tools.read_stl_file(stl_file, stl_scale, stl_center, stl_reverse_normal);
 
     // build finest level (i.e., level 0) first
@@ -83,9 +85,12 @@ IndexSpaceSTL::getGeometry (const Box& dom) const
 }
 
 void
-IndexSpaceSTL::addFineLevels (int /*num_new_fine_levels*/)
+IndexSpaceSTL::addFineLevels (int num_new_fine_levels)
 {
-    amrex::Abort("IndexSpaceSTL::addFineLevels: todo");
+    // This function is a no op if not adding levels, otherwise TODO
+    if (num_new_fine_levels > 0) {
+        amrex::Abort("IndexSpaceSTL::addFineLevels: todo");
+    }
 }
 
 void

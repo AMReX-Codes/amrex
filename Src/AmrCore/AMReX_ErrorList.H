@@ -102,7 +102,6 @@ extern "C"
 * actual error tagging will be through derivation, so provision is made
 * for this as well.
 */
-
 class ErrorRec
 {
 public:
@@ -348,7 +347,6 @@ private:
 *
 * Container class for ErrorRecs.
 */
-
 class ErrorList
 {
 public:
@@ -455,20 +453,16 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
                  AMRErrorTag::TEST      test,
                  std::string            field,
                  const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
-      : m_test(test), m_field(std::move(field)), m_info(info)
+      : m_value(info.m_max_level, value), m_test(test), m_field(std::move(field)), m_info(info),
+        m_ngrow(SetNGrow())
       {
-          m_value.resize(info.m_max_level);
-          for (int i = 0; i < m_value.size(); ++i) {
-              m_value[i] = value;
-          }
-          m_ngrow = SetNGrow();
       }
 
     AMRErrorTag (amrex::Vector<amrex::Real>  value,
                  AMRErrorTag::TEST           test,
                  std::string                 field,
                  const AMRErrorTagInfo&      info = AMRErrorTagInfo()) noexcept
-      : m_test(test), m_field(std::move(field)), m_info(info)
+      : m_test(test), m_field(std::move(field)), m_info(info), m_ngrow(SetNGrow())
       {
           AMREX_ASSERT(!value.empty());
           m_value.resize(info.m_max_level);
@@ -480,7 +474,6 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
           for (auto i = int(value.size()); i < m_value.size(); ++i) {
               m_value[i] = value[value.size()-1];
           }
-          m_ngrow = SetNGrow();
       }
 
     AMRErrorTag (AMRErrorTag::UserFunc* userfunc,

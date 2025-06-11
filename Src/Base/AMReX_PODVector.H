@@ -2,10 +2,12 @@
 #define AMREX_PODVECTOR_H_
 #include <AMReX_Config.H>
 
+#include <AMReX.H>
 #include <AMReX_Arena.H>
 #include <AMReX_GpuLaunch.H>
 #include <AMReX_GpuAllocators.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_MemPool.H>
 #include <AMReX_TypeTraits.H>
 
 #include <iterator>
@@ -45,7 +47,11 @@ namespace amrex
                                      [[maybe_unused]] Allocator<T> const& allocator)
         {
 #ifdef AMREX_USE_GPU
+#ifdef _WIN32
+            if           (RunOnGpu<Allocator<T>>::value)
+#else
             if constexpr (RunOnGpu<Allocator<T>>::value)
+#endif
             {
                 amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
                     data[i] = value;
@@ -53,7 +59,11 @@ namespace amrex
                 Gpu::streamSynchronize();
                 return;
             }
+#ifdef _WIN32
+            else if           (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+#else
             else if constexpr (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+#endif
             {
                 if (allocator.arena()->isManaged() ||
                     allocator.arena()->isDevice())
@@ -101,7 +111,11 @@ namespace amrex
                              [[maybe_unused]] Allocator<T> const& allocator)
         {
 #ifdef AMREX_USE_GPU
+#ifdef _WIN32
+            if           (RunOnGpu<Allocator<T>>::value)
+#else
             if constexpr (RunOnGpu<Allocator<T>>::value)
+#endif
             {
                 amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
                     dst[i] = src[i];
@@ -109,7 +123,11 @@ namespace amrex
                 Gpu::Device::streamSynchronize();
                 return;
             }
+#ifdef _WIN32
+            else if           (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+#else
             else if constexpr (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+#endif
             {
                 if (allocator.arena()->isManaged() ||
                     allocator.arena()->isDevice())
@@ -196,6 +214,33 @@ namespace amrex
 #endif
             std::memmove(dst, src, count);
         }
+
+        template <typename T, typename Size, template<class> class Allocator>
+        void maybe_init_snan (T* data, Size count, Allocator<T> const& allocator)
+        {
+            amrex::ignore_unused(data, count, allocator);
+            if constexpr (std::is_same_v<float,  std::remove_cv_t<T>> ||
+                          std::is_same_v<double, std::remove_cv_t<T>>) {
+                if (amrex::InitSNaN()) {
+#ifdef AMREX_USE_GPU
+                   if constexpr (RunOnGpu<Allocator<T>>::value) {
+                       amrex::fill_snan<RunOn::Device>(data, count);
+                       Gpu::streamSynchronize();
+                       return;
+                   } else if constexpr (IsPolymorphicArenaAllocator<Allocator<T>>::value) {
+                       if (allocator.arena()->isManaged() ||
+                           allocator.arena()->isDevice())
+                       {
+                           amrex::fill_snan<RunOn::Device>(data, count);
+                           Gpu::streamSynchronize();
+                           return;
+                       }
+                   }
+#endif
+                   amrex::fill_snan<RunOn::Host>(data, count);
+                }
+            }
+        }
     }
 
     namespace VectorGrowthStrategy
@@ -254,6 +299,7 @@ namespace amrex
         {
             if (a_size != 0) {
                 m_data = allocate(m_size);
+                detail::maybe_init_snan(m_data, m_size, (Allocator const&)(*this));
             }
         }
 
@@ -366,7 +412,7 @@ namespace amrex
             else
             {
                 // if the allocators are not the same we give up and copy
-                *this = a_vector;
+                *this = a_vector; // must copy instead of move
             }
 
             return *this;
@@ -423,7 +469,7 @@ namespace amrex
         iterator insert (const_iterator a_pos, T&& a_item)
         {
             // This is *POD* vector after all
-            return insert(a_pos, 1, a_item);
+            return insert(a_pos, 1, std::move(a_item));
         }
 
         iterator insert (const_iterator a_pos,
@@ -512,6 +558,15 @@ namespace amrex
                                    (Allocator const&)(*this));
         }
 
+        /** Set the same value to every element of the vector
+         *
+         * @param a_value the value to assign
+         */
+        void assign (const T& a_value)
+        {
+            assign(m_size, a_value);
+        }
+
         [[nodiscard]] allocator_type get_allocator () const noexcept { return *this; }
 
         void push_back (const T& a_value)
@@ -585,16 +640,18 @@ namespace amrex
 
         void resize (size_type a_new_size)
         {
-            if (m_capacity < a_new_size) {
-                reserve(a_new_size);
+            auto old_size = m_size;
+            resize_without_init_snan(a_new_size);
+            if (old_size < a_new_size) {
+                detail::maybe_init_snan(m_data + old_size,
+                                        m_size - old_size, (Allocator const&)(*this));
             }
-            m_size = a_new_size;
         }
 
         void resize (size_type a_new_size, const T& a_val)
         {
             size_type old_size = m_size;
-            resize(a_new_size);
+            resize_without_init_snan(a_new_size);
             if (old_size < a_new_size)
             {
                 detail::uninitializedFillNImpl(m_data + old_size,
@@ -728,6 +785,14 @@ namespace amrex
             m_data = new_data;
             m_size = new_size;
             m_capacity = new_capacity;
+        }
+
+        void resize_without_init_snan (size_type a_new_size)
+        {
+            if (m_capacity < a_new_size) {
+                reserve(a_new_size);
+            }
+            m_size = a_new_size;
         }
     };
 }

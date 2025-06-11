@@ -15,7 +15,7 @@ void write_plotfile(const Geometry& geom, const MultiFab& plotmf)
 {
     std::string plotfile_name("plt00000");
 
-    amrex::Print() << "Writing " << plotfile_name << std::endl;
+    amrex::Print() << "Writing " << plotfile_name << '\n';
 
 #if (AMREX_SPACEDIM == 2)
        EB_WriteSingleLevelPlotfile(plotfile_name, plotmf,
@@ -254,21 +254,21 @@ int main (int argc, char* argv[])
         // Define the absolute tolerance; note that this argument is optional
         Real abstol = 1.e-15;
 
-        amrex::Print() << " \n********************************************************************" << std::endl;
-        amrex::Print() << " Let's project the initial velocity to find " << std::endl;
-        amrex::Print() << "   the flow field around the obstacles ... " << std::endl;
-        amrex::Print() << " The domain has " << n_cell_x << " cells in the x-direction "          << std::endl;
-        amrex::Print() << " The maximum grid size is " << max_grid_size                             << std::endl;
-        amrex::Print() << "******************************************************************** \n" << std::endl;
+        amrex::Print() << " \n********************************************************************" << '\n';
+        amrex::Print() << " Let's project the initial velocity to find " << '\n';
+        amrex::Print() << "   the flow field around the obstacles ... " << '\n';
+        amrex::Print() << " The domain has " << n_cell_x << " cells in the x-direction "          << '\n';
+        amrex::Print() << " The maximum grid size is " << max_grid_size                             << '\n';
+        amrex::Print() << "******************************************************************** \n" << '\n';
 
         //
         // Solve div( sigma * grad(phi) ) = RHS
         //
         nodal_solver.solve( {&phi}, {&rhs}, reltol, abstol);
 
-        amrex::Print() << " \n********************************************************************" << std::endl;
-        amrex::Print() << " Done solving the equation " << std::endl;
-        amrex::Print() << " ... now subtracting off sigmna grad phi from vel" << std::endl;
+        amrex::Print() << " \n********************************************************************" << '\n';
+        amrex::Print() << " Done solving the equation " << '\n';
+        amrex::Print() << " ... now subtracting off sigmna grad phi from vel" << '\n';
 
         //
         // Create cell-centered multifab to hold value of -sigma*grad(phi) at cell-centers
@@ -284,8 +284,8 @@ int main (int argc, char* argv[])
         //
         MultiFab::Add( vel, fluxes, 0, 0, AMREX_SPACEDIM, 0);
 
-        amrex::Print() << " ... now done with full projection operation" << std::endl;
-        amrex::Print() << "******************************************************************** \n" << std::endl;
+        amrex::Print() << " ... now done with full projection operation" << '\n';
+        amrex::Print() << "******************************************************************** \n" << '\n';
 
         // Store plotfile variables; velocity and processor id
         MultiFab plotfile_mf(grids, dmap, AMREX_SPACEDIM+1, 0, MFInfo(), factory);
@@ -301,7 +301,7 @@ int main (int argc, char* argv[])
     }
 
     auto stop_time = amrex::second() - strt_time;
-    amrex::Print() << "Total run time " << stop_time << std::endl;
+    amrex::Print() << "Total run time " << stop_time << '\n';
 
     amrex::Finalize();
 }

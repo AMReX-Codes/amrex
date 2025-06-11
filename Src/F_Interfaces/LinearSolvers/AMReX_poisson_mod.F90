@@ -35,6 +35,10 @@ module amrex_poisson_module
      end subroutine amrex_fi_delete_linop
   end interface
 
+  interface amrex_poisson_destroy
+     module procedure amrex_poisson_destroy
+  end interface amrex_poisson_destroy
+
 contains
 
   subroutine amrex_poisson_assign (dst, src)

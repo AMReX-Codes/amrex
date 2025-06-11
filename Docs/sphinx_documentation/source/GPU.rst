@@ -217,7 +217,7 @@ variables to configure the build
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | SYCL_SUB_GROUP_SIZE          | Specify subgroup size                           | 32          | 64, 32, 16      |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | SYCL_MAX_PARALLEL_LINK_JOBS  | Number of parallel jobs in device link          | 1           | 1, 2, 3, etc.   |
+   | SYCL_PARALLEL_LINK_JOBS      | Number of parallel jobs in device link          | 1           | 1, 2, 3, etc.   |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
@@ -268,6 +268,8 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_KEEP_FILES        |  Keep intermediately files (folder: nvcc_tmp)   | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | AMReX_CUDA_OBJDIR_AS_TEMPDIR |  Place intermediate files in object file folder | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_LTO               |  Enable CUDA link-time-optimization             | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_MAXREGCOUNT       |  Limits the number of CUDA registers available  | 255         | User-defined    |
@@ -307,7 +309,7 @@ If autodetection fails, a list of "common" architectures is assumed.
 Building for multiple CUDA architectures will generally result in a larger library and longer build times.
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
-CUDA Toolkit version 9.0 or higher.**
+CUDA Toolkit version 11.0 or higher.**
 
 In order to import the CUDA-enabled AMReX library into your CMake project, you need to include
 the following code into the appropriate CMakeLists.txt file:
@@ -428,22 +430,24 @@ Below is an example configuration for SYCL:
 
 .. table:: AMReX SYCL-specific build options
 
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | Variable Name                | Description                                     | Default     | Possible values |
-   +==============================+=================================================+=============+=================+
-   | AMReX_SYCL_AOT               | Enable SYCL ahead-of-time compilation           | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_SYCL_AOT_GRF_MODE      | Specify AOT register file mode                  | Default     | Default, Large, |
-   |                              |                                                 |             | AutoLarge       |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMREX_INTEL_ARCH             | Specify target if AOT is enabled                | None        | pvc, etc.       |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_SYCL_SPLIT_KERNEL      | Enable SYCL kernel splitting                    | YES         | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_SYCL_ONEDPL            | Enable SYCL's oneDPL algorithms                 | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_SYCL_SUB_GROUP_SIZE    | Specify subgroup size                           | 32          | 64, 32, 16      |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | Variable Name                 | Description                                  | Default     | Possible values  |
+   +===============================+==============================================+=============+==================+
+   | AMReX_SYCL_AOT                | Enable SYCL ahead-of-time compilation        | NO          | YES, NO          |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_SYCL_AOT_GRF_MODE       | Specify AOT register file mode               | Default     | Default, Large,  |
+   |                               |                                              |             | AutoLarge        |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMREX_INTEL_ARCH              | Specify target if AOT is enabled             | None        | pvc, etc.        |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_SYCL_SPLIT_KERNEL       | Enable SYCL kernel splitting                 | YES         | YES, NO          |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_SYCL_ONEDPL             | Enable SYCL's oneDPL algorithms              | NO          | YES, NO          |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_SYCL_SUB_GROUP_SIZE     | Specify subgroup size                        | 32          | 64, 32, 16       |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
+   | AMReX_PARALLEL_LINK_JOBS      | Specify number of parallel link jobs         | 1           | positive integer |
+   +-------------------------------+----------------------------------------------+-------------+------------------+
 .. raw:: latex
 
    \end{center}
@@ -489,11 +493,10 @@ GPU support.
 When AMReX is compiled with ``USE_OMP_OFFLOAD=TRUE``,
 ``AMREX_USE_OMP_OFFLOAD`` is defined.
 
-In addition to AMReX's preprocessor macros, CUDA provides the
-``__CUDA_ARCH__`` macro which is only defined when in device code.
-HIP and Sycl provide similar macros.
-``AMREX_DEVICE_COMPILE`` should be used when a ``__host__ __device__``
-function requires separate code for the CPU and GPU implementations.
+The macros ``AMREX_IF_ON_DEVICE((code_for_device))`` and
+``AMREX_IF_ON_HOST((code_for_host))`` should be used when a
+``__host__ __device__`` function requires separate code for the
+CPU and GPU implementations.
 
 .. ===================================================================
 
@@ -795,7 +798,7 @@ As another example, the following function computes the max- and 1-norm of a
 ::
 
     GpuTuple<Real,Real> compute_norms (MultiFab const& mf,
-                                       iMulitiFab const& mask)
+                                       iMultiFab const& mask)
     {
         auto const& data_ma = mf.const_arrays();
         auto const& mask_ma = mask.const_arrays();
@@ -1553,9 +1556,13 @@ Assertions and Error Checking
 To help debugging, we often use :cpp:`amrex::Assert` and
 :cpp:`amrex::Abort`.  These functions are GPU safe and can be used in
 GPU kernels.  However, implementing these functions requires additional
-GPU registers, which will reduce overall performance.  Therefore, it
-is preferred to implement such calls in debug mode only by wrapping the
-calls using ``#ifdef AMREX_DEBUG``.
+GPU registers, which will reduce overall performance.  Therefore, by
+default these functions and the macro ``AMREX_ALWAYS_ASSERT`` are no-ops
+for optimized builds (e.g., ``DEBUG=FALSE`` using the GNU Make build
+system) when called from kernels run on GPU. Calls to these functions from
+GPU kernels are active for debug builds and can optionally be activated
+at compile time for optimized builds (e.g., ``DEBUG=FALSE`` and
+``USE_ASSERTION=TRUE`` using the GNU Make build system).
 
 In CPU code, :cpp:`AMREX_GPU_ERROR_CHECK()` can be called
 to check the health of previous GPU launches.  This call
@@ -1636,7 +1643,7 @@ Finally, the parallel communication of particle data has been ported and optimiz
 platforms. This includes :cpp:`Redistribute()`, which moves particles back to the proper grids after their positions
 have changed, as well as :cpp:`fillNeighbors()` and :cpp:`updateNeighbors()`, which are used to exchange halo particles.
 As with :cpp:`MultiFab` data, these have been designed to minimize host / device traffic as much as possible, and can
-take advantage of the Cuda-aware MPI implementations available on platforms such as ORNL's Summit.
+take advantage of the GPU-aware MPI implementations available on platforms such as ORNL's Frontier.
 
 
 Profiling with GPUs
@@ -1735,17 +1742,18 @@ Inputs Parameters
 The following inputs parameters control the behavior of amrex when running on GPUs. They should be prefaced
 by "amrex" in your :cpp:`inputs` file.
 
-+----------------------------+-----------------------------------------------------------------------+-------------+----------+
-|                            | Description                                                           |   Type      | Default  |
-+============================+=======================================================================+=============+==========+
-| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | 0        |
-|                            | If true, the buffers will use device memory. If false (i.e., 0), they |             |          |
-|                            | will use pinned memory. In practice, we find it is not always worth   |             |          |
-|                            | it to use GPU aware MPI.                                              |             |          |
-+----------------------------+-----------------------------------------------------------------------+-------------+----------+
-| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0        |
-|                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |          |
-|                            | describing how much free memory there is and what was requested.      |             |          |
-+----------------------------+-----------------------------------------------------------------------+-------------+----------+
-| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | 0        |
-+----------------------------+-----------------------------------------------------------------------+-------------+----------+
++----------------------------+-----------------------------------------------------------------------+-------------+----------------+
+|                            | Description                                                           |   Type      | Default        |
++============================+=======================================================================+=============+================+
+| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | MPI-dependent  |
+|                            | If true, the buffers will use device memory. If false (i.e., 0), they |             |                |
+|                            | will use pinned memory. It will be activated if AMReX detects that    |             |                |
+|                            | GPU-aware MPI is supported by the MPI library (MPICH, OpenMPI, and    |             |                |
+|                            | derivative implementations).                                          |             |                |
++----------------------------+-----------------------------------------------------------------------+-------------+----------------+
+| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is less than the size of a      | Bool        | 0              |
+|                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |                |
+|                            | describing how much free memory there is and what was requested.      |             |                |
++----------------------------+-----------------------------------------------------------------------+-------------+----------------+
+| the_arena_is_managed       | Whether :cpp:`The_Arena()` allocates managed memory.                  | Bool        | 0              |
++----------------------------+-----------------------------------------------------------------------+-------------+----------------+

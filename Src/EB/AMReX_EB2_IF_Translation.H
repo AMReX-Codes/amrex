@@ -28,7 +28,7 @@ public:
                                  p[2]-m_offset.z)});
     }
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value,int>::type = 0>
+    template <class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
@@ -44,14 +44,14 @@ protected:
 };
 
 template <class F>
-struct IsGPUable<TranslationIF<F>, typename std::enable_if<IsGPUable<F>::value>::type>
+struct IsGPUable<TranslationIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class F>
-constexpr TranslationIF<typename std::decay<F>::type>
+constexpr TranslationIF<std::decay_t<F>>
 translate (F&&f, const RealArray& offset)
 {
-    return TranslationIF<typename std::decay<F>::type>(std::forward<F>(f),offset);
+    return TranslationIF<std::decay_t<F>>(std::forward<F>(f),offset);
 }
 
 }

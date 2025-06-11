@@ -9,7 +9,7 @@ namespace {
     using namespace amrex;
 
     Box
-    getIndexBox(const RealBox& real_box, const Geometry& geom) {
+    getIndexBox (const RealBox& real_box, const Geometry& geom) {
         IntVect slice_lo, slice_hi;
 
         AMREX_D_TERM(slice_lo[0]=static_cast<int>(std::floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0)));,
@@ -24,12 +24,11 @@ namespace {
     }
 
 
-    std::unique_ptr<MultiFab> allocateSlice(int dir, const MultiFab& cell_centered_data,
-                                            int ncomp, const Geometry& geom, Real dir_coord,
-                                            Vector<int>& slice_to_full_ba_map) {
+    std::unique_ptr<MultiFab> allocateSlice (int dir, const MultiFab& cell_centered_data,
+                                             int ncomp, const Geometry& geom, Real dir_coord,
+                                             Vector<int>& slice_to_full_ba_map, RealBox real_slice) {
 
         // Get our slice and convert to index space
-        RealBox real_slice = geom.ProbDomain();
         real_slice.setLo(dir, dir_coord);
         real_slice.setHi(dir, dir_coord);
         Box slice_box = getIndexBox(real_slice, geom);
@@ -46,11 +45,15 @@ namespace {
             boxes.push_back(is.second);
             slice_to_full_ba_map.push_back(is.first);
         }
-        BoxArray slice_ba(boxes.data(), static_cast<int>(boxes.size()));
-        DistributionMapping slice_dmap(std::move(procs));
+        if (!boxes.empty()) {
+            BoxArray slice_ba(boxes.data(), static_cast<int>(boxes.size()));
+            DistributionMapping slice_dmap(std::move(procs));
 
-        return std::make_unique<MultiFab>(slice_ba, slice_dmap, ncomp, 0,
-                                          MFInfo(), FArrayBoxFactory());
+            return std::make_unique<MultiFab>(slice_ba, slice_dmap, ncomp, 0,
+                                              MFInfo(), FArrayBoxFactory());
+        } else {
+            return nullptr;
+        }
     }
 }
 
@@ -224,7 +227,7 @@ namespace amrex
                                     const Geometry& geom, int ncomp, bool use_harmonic_averaging)
     {
         AMREX_ASSERT(cc.nComp() == ncomp);
-        AMREX_ASSERT(cc.nGrow() >= 1);
+        AMREX_ASSERT(cc.nGrowVect().allGE(1));
         AMREX_ASSERT(fc[0]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
 #if (AMREX_SPACEDIM >= 2)
         AMREX_ASSERT(fc[1]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
@@ -308,9 +311,6 @@ namespace amrex
 
 // *************************************************************************************************************
 
-    // Average fine cell-based MultiFab onto crse cell-centered MultiFab.
-    // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
-    // This version DOES use volume-weighting.
     void average_down (const MultiFab& S_fine, MultiFab& S_crse,
                        const Geometry& fgeom, const Geometry& cgeom,
                        int scomp, int ncomp, int rr)
@@ -395,10 +395,9 @@ namespace amrex
                             const Geometry& cgeom, const Geometry& /*fgeom*/)
     {
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
-        AMREX_ASSERT(ratio == ratio[0]);
-        AMREX_ASSERT(S_fine.nGrow() % ratio[0] == 0);
 
-        const int nGrow = S_fine.nGrow() / ratio[0];
+        const IntVect nGrow = S_fine.nGrowVect() / ratio;
+        AMREX_ASSERT((nGrow*ratio) == S_fine.nGrowVect());
 
         //
         // Coarsen() the fine stuff on processors owning the fine data.
@@ -411,7 +410,7 @@ namespace amrex
         if (Gpu::inLaunchRegion() && crse_S_fine.isFusingCandidate()) {
             auto const& crsema = crse_S_fine.arrays();
             auto const& finema = S_fine.const_arrays();
-            ParallelFor(crse_S_fine, IntVect(nGrow), ncomp,
+            ParallelFor(crse_S_fine, nGrow, ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 amrex_avgdown(i,j,k,n,crsema[box_no],finema[box_no],0,scomp,ratio);
@@ -439,7 +438,7 @@ namespace amrex
             }
         }
 
-        S_crse.ParallelCopy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
+        S_crse.ParallelCopy(crse_S_fine, 0, scomp, ncomp, nGrow, IntVect(0),
                             cgeom.periodicity(), FabArrayBase::ADD);
     }
 
@@ -477,7 +476,7 @@ namespace amrex
         auto tmptype = type;
         tmptype.set(dir);
         if (dir >= AMREX_SPACEDIM || !tmptype.nodeCentered()) {
-            amrex::Abort("average_down_edges: not face index type");
+            amrex::Abort("average_down_edges: not edge index type");
         }
         const int ncomp = crse.nComp();
         if (isMFIterSafe(fine, crse))
@@ -550,18 +549,28 @@ namespace amrex
         return amrex::cast<FabArray<BaseFab<Long> > > (imf);
     }
 
-    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate) {
+    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate, RealBox const& bnd_rbx) {
 
         BL_PROFILE("amrex::get_slice_data");
 
         if (interpolate) {
-            AMREX_ASSERT(cc.nGrow() >= 1);
+            AMREX_ASSERT(cc.nGrowVect().allGE(1));
         }
 
         const auto geomdata = geom.data();
+        RealBox real_slice;
+        if (bnd_rbx.ok()) {
+            real_slice = bnd_rbx;
+        } else {
+            real_slice = geom.ProbDomain();
+        }
 
         Vector<int> slice_to_full_ba_map;
-        std::unique_ptr<MultiFab> slice = allocateSlice(dir, cc, ncomp, geom, coord, slice_to_full_ba_map);
+        std::unique_ptr<MultiFab> slice = allocateSlice(dir, cc, ncomp, geom, coord, slice_to_full_ba_map, real_slice);
+
+        if (!slice) {
+            return nullptr;
+        }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -813,7 +822,7 @@ namespace amrex
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            Gpu::DeviceVector<Real> dv(domain.length(direction), Real(0.0));
+            Gpu::DeviceVector<Real> dv(hv.size(), Real(0.0));
             Real* p = dv.data();
 
             for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
@@ -837,19 +846,19 @@ namespace amrex
                 int nblocks = n2dblocks * b.length(direction);
 #ifdef AMREX_USE_SYCL
                 std::size_t shared_mem_byte = sizeof(Real)*Gpu::Device::warp_size;
-                amrex::launch(nblocks, AMREX_GPU_MAX_THREADS, shared_mem_byte, Gpu::gpuStream(),
+                amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks, shared_mem_byte, Gpu::gpuStream(),
                               [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
 #else
-                amrex::launch(nblocks, AMREX_GPU_MAX_THREADS, Gpu::gpuStream(),
+                amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks, Gpu::gpuStream(),
                               [=] AMREX_GPU_DEVICE () noexcept
 #endif
                 {
 #ifdef AMREX_USE_SYCL
                     int i1d = h.blockIdx() / n2dblocks;
-                    int i2d = h.threadIdx() + h.blockDim()*(h.blockIdx()-i1d*n2dblocks);
+                    int i2d = h.threadIdx() + AMREX_GPU_MAX_THREADS*(h.blockIdx()-i1d*n2dblocks);
 #else
                     int i1d = blockIdx.x / n2dblocks;
-                    int i2d = threadIdx.x + blockDim.x*(blockIdx.x-i1d*n2dblocks);
+                    int i2d = threadIdx.x + AMREX_GPU_MAX_THREADS*(blockIdx.x-i1d*n2dblocks);
 #endif
                     int i2dy = i2d / n2dx;
                     int i2dx = i2d - i2dy*n2dx;
@@ -1211,5 +1220,58 @@ namespace amrex
             Long npts = mf[mfi].box().numPts() * ncomp;
             FillRandomNormal(p, npts, mean, stddev);
         }
+    }
+
+    Vector<MultiFab> convexify (Vector<MultiFab const*> const& mf,
+                                Vector<IntVect> const& refinement_ratio)
+    {
+        if (mf.empty()) { return Vector<MultiFab>{}; }
+
+        const auto nlevels = int(mf.size());
+        Vector <MultiFab> rmf(nlevels);
+
+        const int ncomp = mf[nlevels-1]->nComp();
+        rmf[nlevels-1].define(mf[nlevels-1]->boxArray(),
+                              mf[nlevels-1]->DistributionMap(), ncomp, 0);
+        MultiFab::Copy(rmf[nlevels-1], *mf[nlevels-1], 0, 0, ncomp, 0);
+
+        for (int ilev = nlevels-2; ilev >= 0; --ilev) {
+            BoxArray fba = mf[ilev+1]->boxArray();
+            BoxArray cba = mf[ilev  ]->boxArray();
+            AMREX_ASSERT(fba.ixType() == cba.ixType());
+            AMREX_ASSERT(mf[ilev]->nComp() == ncomp);
+
+            fba.convert(IntVect(0)).coarsen(refinement_ratio[ilev]);
+            cba.convert(IntVect(0));
+            auto const& cdm = mf[ilev]->DistributionMap();
+
+            BoxList blnew, bltmp;
+            Vector<int> procmap;
+            Vector<int> localmap;
+            for (int ibox = 0; ibox < int(cba.size()); ++ibox) {
+                fba.complementIn(bltmp, cba[ibox]);
+                blnew.join(bltmp);
+                procmap.resize(procmap.size()+bltmp.size(), cdm[ibox]);
+                if (ParallelDescriptor::MyProc() == cdm[ibox]) {
+                    localmap.resize(localmap.size()+bltmp.size(), ibox);
+                }
+            }
+
+            if (blnew.isNotEmpty()) {
+                BoxArray banew(std::move(blnew));
+                banew.convert(mf[ilev]->ixType());
+                DistributionMapping dmnew(std::move(procmap));
+                rmf[ilev].define(banew, dmnew, ncomp, 0);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+                for (MFIter mfi(rmf[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+                   rmf[ilev][mfi].template copy<RunOn::Device>
+                       ((*mf[ilev])[localmap[mfi.LocalIndex()]], mfi.tilebox());
+                }
+            }
+        }
+
+        return rmf;
     }
 }

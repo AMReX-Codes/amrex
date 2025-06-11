@@ -23,10 +23,6 @@ module amrex_filcc_module
   public :: amrex_hoextraptocc_2d
 #endif
 
-#ifndef AMREX_XSDK
-  public :: filccn
-#endif
-
 contains
 
   subroutine amrex_filcc_n(q,qlo,qhi,domlo,domhi,dx,xlo,bclo,bchi)
@@ -104,20 +100,6 @@ contains
     call amrex_filccn(lo, hi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
 
   end subroutine amrex_fab_filcc
-
-#ifndef AMREX_XSDK
-  subroutine filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
-    implicit none
-    integer,          intent(in   ) :: lo(3), hi(3)
-    integer,          intent(in   ) :: q_lo(3), q_hi(3)
-    integer,          intent(in   ) :: ncomp
-    integer,          intent(in   ) :: domlo(amrex_spacedim), domhi(amrex_spacedim)
-    real(amrex_real), intent(in   ) :: xlo(amrex_spacedim), dx(amrex_spacedim)
-    real(amrex_real), intent(inout) :: q(q_lo(1):q_hi(1),q_lo(2):q_hi(2),q_lo(3):q_hi(3),ncomp)
-    integer,          intent(in   ) :: bc(amrex_spacedim,2,ncomp)
-    call amrex_filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
-  end subroutine filccn
-#endif
 
   subroutine amrex_filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
 

@@ -59,7 +59,7 @@ bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
 Vector<BoxArray>       Amr::initial_ba;
 Vector<BoxArray>       Amr::regrid_ba;
-int                    Amr::compute_new_dt_on_regrid;
+bool                   Amr::compute_new_dt_on_regrid;
 #if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
 AmrInSituBridge*       Amr::insitu_bridge;
 #endif
@@ -80,12 +80,12 @@ namespace
 #endif
     bool plot_files_output;
     int  checkpoint_nfiles;
-    int  regrid_on_restart;
-    int  force_regrid_level_zero;
-    int  use_efficient_regrid;
-    int  plotfile_on_restart;
-    int  insitu_on_restart;
-    int  checkpoint_on_restart;
+    bool regrid_on_restart;
+    bool force_regrid_level_zero;
+    bool use_efficient_regrid;
+    bool plotfile_on_restart;
+    bool insitu_on_restart;
+    bool checkpoint_on_restart;
     bool checkpoint_files_output;
     bool precreateDirectories;
     bool prereadFAHeaders;
@@ -117,14 +117,14 @@ Amr::Initialize ()
 #endif
     plot_files_output        = true;
     checkpoint_nfiles        = 64;
-    regrid_on_restart        = 0;
-    force_regrid_level_zero  = 0;
-    use_efficient_regrid     = 0;
-    plotfile_on_restart      = 0;
-    insitu_on_restart        = 0;
-    checkpoint_on_restart    = 0;
+    regrid_on_restart        = false;
+    force_regrid_level_zero  = false;
+    use_efficient_regrid     = false;
+    plotfile_on_restart      = false;
+    insitu_on_restart        = false;
+    checkpoint_on_restart    = false;
     checkpoint_files_output  = true;
-    compute_new_dt_on_regrid = 0;
+    compute_new_dt_on_regrid = false;
     precreateDirectories     = true;
     prereadFAHeaders         = true;
     plot_headerversion       = VisMF::Header::Version_v1;
@@ -257,17 +257,17 @@ Amr::InitAmr ()
     //
     pp.queryAdd("regrid_on_restart",regrid_on_restart);
     pp.queryAdd("force_regrid_level_zero",force_regrid_level_zero);
-    pp.queryAdd("use_efficient_regrid",use_efficient_regrid);
+    pp.query("use_efficient_regrid",use_efficient_regrid);
     pp.queryAdd("plotfile_on_restart",plotfile_on_restart);
-    pp.queryAdd("insitu_on_restart",insitu_on_restart);
+    pp.query("insitu_on_restart",insitu_on_restart);
     pp.queryAdd("checkpoint_on_restart",checkpoint_on_restart);
 
     pp.queryAdd("compute_new_dt_on_regrid",compute_new_dt_on_regrid);
 
-    pp.queryAdd("mffile_nstreams", mffile_nstreams);
+    pp.query("mffile_nstreams", mffile_nstreams);
 
 #ifndef AMREX_NO_PROBINIT
-    pp.queryAdd("probinit_natonce", probinit_natonce);
+    pp.query("probinit_natonce", probinit_natonce);
     probinit_natonce = std::max(1, std::min(ParallelDescriptor::NProcs(), probinit_natonce));
 #endif
 
@@ -502,13 +502,13 @@ Amr::InitAmr ()
     }
 
     loadbalance_with_workestimates = 0;
-    pp.queryAdd("loadbalance_with_workestimates", loadbalance_with_workestimates);
+    pp.query("loadbalance_with_workestimates", loadbalance_with_workestimates);
 
     loadbalance_level0_int = 2;
-    pp.queryAdd("loadbalance_level0_int", loadbalance_level0_int);
+    pp.query("loadbalance_level0_int", loadbalance_level0_int);
 
     loadbalance_max_fac = 1.5;
-    pp.queryAdd("loadbalance_max_fac", loadbalance_max_fac);
+    pp.query("loadbalance_max_fac", loadbalance_max_fac);
 }
 
 int
@@ -518,7 +518,7 @@ Amr::initInSitu()
     insitu_bridge = new AmrInSituBridge;
     if (insitu_bridge->initialize())
     {
-        amrex::ErrorStream() << "Amr::initInSitu : Failed to initialize." << std::endl;
+        amrex::ErrorStream() << "Amr::initInSitu : Failed to initialize." << '\n';
         amrex::Abort();
     }
 #endif
@@ -531,7 +531,7 @@ Amr::updateInSitu() // NOLINT(readability-convert-member-functions-to-static)
 #if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
     if (insitu_bridge && insitu_bridge->update(this))
     {
-        amrex::ErrorStream() << "Amr::updateInSitu : Failed to update." << std::endl;
+        amrex::ErrorStream() << "Amr::updateInSitu : Failed to update." << '\n';
         amrex::Abort();
     }
 #endif
@@ -545,7 +545,7 @@ Amr::finalizeInSitu()
     if (insitu_bridge)
     {
         if (insitu_bridge->finalize())
-            amrex::ErrorStream() << "Amr::finalizeInSitu : Failed to finalize." << std::endl;
+            amrex::ErrorStream() << "Amr::finalizeInSitu : Failed to finalize." << '\n';
 
         delete insitu_bridge;
         insitu_bridge = nullptr;
@@ -855,7 +855,7 @@ Amr::writePlotFile ()
 
     // Don't continue if we have no variables to plot.
 
-    if (statePlotVars().empty()) {
+    if (statePlotVars().empty() && derivePlotVars().empty()) {
         return;
     }
 
@@ -920,6 +920,8 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
 {
     auto dPlotFileTime0 = amrex::second();
 
+    int max_level_to_plot = std::min(plot_max_level, finest_level);
+
     VisMF::SetNOutFiles(plot_nfiles);
     VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
     VisMF::SetHeaderVersion(plot_headerversion);
@@ -941,7 +943,7 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
         if (precreateDirectories) {    // ---- make all directories at once
             amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
             amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
-            for(int i(0); i <= finest_level; ++i) {
+            for(int i(0); i <= max_level_to_plot; ++i) {
                 amr_level[i]->CreateLevelDirectory(pltfileTemp);
             }
             ParallelDescriptor::Barrier("Amr::writePlotFile:PCD");
@@ -973,17 +975,17 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
         }
 
         if (regular) {
-            for (int k(0); k <= finest_level; ++k) {
+            for (int k(0); k <= max_level_to_plot; ++k) {
                 amr_level[k]->writePlotFilePre(pltfileTemp, HeaderFile);
             }
-            for (int k(0); k <= finest_level; ++k) {
+            for (int k(0); k <= max_level_to_plot; ++k) {
                 amr_level[k]->writePlotFile(pltfileTemp, HeaderFile);
             }
-            for (int k(0); k <= finest_level; ++k) {
+            for (int k(0); k <= max_level_to_plot; ++k) {
                 amr_level[k]->writePlotFilePost(pltfileTemp, HeaderFile);
             }
         } else {
-            for (int k(0); k <= finest_level; ++k) {
+            for (int k(0); k <= max_level_to_plot; ++k) {
                 amr_level[k]->writeSmallPlotFile(pltfileTemp, HeaderFile);
             }
         }
@@ -1830,8 +1832,8 @@ Amr::checkPoint ()
                 amrex::FileOpenFailed(FAHeaderFilesName);
             }
 
-            for(int i(0); i < FAHeaderNames.size(); ++i) {
-                FAHeaderFile << FAHeaderNames[i] << '\n';
+            for(const auto & FAHeaderName : FAHeaderNames) {
+                FAHeaderFile << FAHeaderName << '\n';
             }
         }
     }
@@ -2006,7 +2008,7 @@ Amr::timeStep (int  level,
     //
     if (plotfile_on_restart && ! (restart_chkfile.empty()) )
     {
-        plotfile_on_restart = 0;
+        plotfile_on_restart = false;
         writePlotFile();
     }
     //
@@ -2206,7 +2208,8 @@ Amr::coarseTimeStep (Real stop_time)
     }
     if (record_run_info_terse && ParallelDescriptor::IOProcessor()) {
         runlog_terse << level_steps[0] << " " << cumtime << " " << dt_level[0];
-        runlog_terse << std::endl; // Make sure we flush!
+        runlog_terse << '\n';
+        runlog_terse.flush();
     }
 
     int check_test = 0;
@@ -2346,11 +2349,11 @@ Amr::coarseTimeStep (Real stop_time)
         if(ParallelDescriptor::IOProcessor()) {
             if (to_checkpoint)
             {
-                amrex::ErrorStream() << "Stopped by user w/ checkpoint" << std::endl;
+                amrex::ErrorStream() << "Stopped by user w/ checkpoint" << '\n';
             }
             else
             {
-                amrex::ErrorStream() << "Stopped by user w/o checkpoint" << std::endl;
+                amrex::ErrorStream() << "Stopped by user w/o checkpoint" << '\n';
             }
         }
     }
@@ -2607,7 +2610,7 @@ Amr::regrid (int  lbase,
     //
     // If use_efficient_regrid flag is set and grids are unchanged, then don't do anything more here.
     //
-    if (use_efficient_regrid == 1 && grids_unchanged )
+    if (use_efficient_regrid == true && grids_unchanged )
     {
         if (verbose > 0) {
             amrex::Print() << "Regridding at level lbase = " << lbase
@@ -2670,7 +2673,7 @@ Amr::regrid (int  lbase,
         {
             //
             // Init with data from old structure then remove old structure.
-            // NOTE: The init function may use a filPatch from the old level,
+            // NOTE: The init function may use a fillPatch from the old level,
             //       which therefore needs remain in the hierarchy during the call.
             //
             a->init(*amr_level[lev]);
@@ -2735,7 +2738,7 @@ Amr::regrid (int  lbase,
                        << time
                        << " : REGRID  with lbase = "
                        << lbase
-                       << std::endl;
+                       << '\n';
 
         if (verbose > 1)
         {
@@ -2817,7 +2820,7 @@ Amr::InstallNewDistributionMap (int lev, const DistributionMapping& newdm)
 void
 Amr::regrid_level_0_on_restart()
 {
-    regrid_on_restart = 0;
+    regrid_on_restart = false;
     //
     // Coarsening before we split the grids ensures that each resulting
     // grid will have an even number of cells in each direction.
@@ -2887,6 +2890,7 @@ Amr::printGridInfo (std::ostream& os,
         int                       numgrid = static_cast<int>(bs.size());
         Long                      ncells  = amr_level[lev]->countCells();
         double                    ntot    = Geom(lev).Domain().d_numPts();
+        AMREX_ASSERT(ntot > 0.);
         Real                      frac    = Real(100.0 * double(ncells) / ntot);
         const DistributionMapping& map    = amr_level[lev]->get_new_data(0).DistributionMap();
 
@@ -2916,7 +2920,8 @@ Amr::printGridInfo (std::ostream& os,
         }
     }
 
-    os << std::endl; // Make sure we flush!
+    os << '\n';
+    os.flush();
 }
 
 
@@ -3117,6 +3122,7 @@ Amr::initSubcycle ()
     BL_PROFILE("Amr::initSubcycle()");
     ParmParse pp("amr");
     sub_cycle = true;
+    subcycling_mode = "Auto";
     if (pp.contains("nosub"))
     {
         if (verbose) {
@@ -3132,11 +3138,8 @@ Amr::initSubcycle ()
         }
         subcycling_mode = "None";
     }
-    else
-    {
-        subcycling_mode = "Auto";
-        pp.queryAdd("subcycling_mode",subcycling_mode);
-    }
+
+    pp.queryAdd("subcycling_mode",subcycling_mode);
 
     if (subcycling_mode == "None")
     {
@@ -3266,6 +3269,9 @@ Amr::initPltAndChk ()
         }
     }
 
+    plot_max_level = max_level;
+    pp.queryAdd("plot_max_level",plot_max_level);
+
     small_plot_file_root = "smallplt";
     pp.queryAdd("small_plot_file",small_plot_file_root);
 
@@ -3285,25 +3291,25 @@ Amr::initPltAndChk ()
         }
     }
 
-    write_plotfile_with_checkpoint = 1;
+    write_plotfile_with_checkpoint = true;
     pp.queryAdd("write_plotfile_with_checkpoint",write_plotfile_with_checkpoint);
 
     stream_max_tries = 4;
-    pp.queryAdd("stream_max_tries",stream_max_tries);
+    pp.query("stream_max_tries",stream_max_tries);
     stream_max_tries = std::max(stream_max_tries, 1);
 
     abort_on_stream_retry_failure = false;
-    pp.queryAdd("abort_on_stream_retry_failure",abort_on_stream_retry_failure);
+    pp.query("abort_on_stream_retry_failure",abort_on_stream_retry_failure);
 
-    pp.queryAdd("precreateDirectories", precreateDirectories);
-    pp.queryAdd("prereadFAHeaders", prereadFAHeaders);
+    pp.query("precreateDirectories", precreateDirectories);
+    pp.query("prereadFAHeaders", prereadFAHeaders);
 
     int phvInt(plot_headerversion), chvInt(checkpoint_headerversion);
-    pp.queryAdd("plot_headerversion", phvInt);
+    pp.query("plot_headerversion", phvInt);
     if(phvInt != plot_headerversion) {
         plot_headerversion = static_cast<VisMF::Header::Version> (phvInt);
     }
-    pp.queryAdd("checkpoint_headerversion", chvInt);
+    pp.query("checkpoint_headerversion", chvInt);
     if(chvInt != checkpoint_headerversion) {
         checkpoint_headerversion = static_cast<VisMF::Header::Version> (chvInt);
     }
