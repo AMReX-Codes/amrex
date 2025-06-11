@@ -282,11 +282,12 @@ MFIter::Initialize ()
             "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)".);
     }
 
-#ifdef AMREX_USE_GPU
-    if (device_sync) {
-#ifdef AMREX_USE_OMP
+#if defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
+    if (Gpu::inLaunchRegion() && device_sync && (streams > 1)
+        && (OpenMP::get_num_threads() > 1))
+    { // If there are multiple gpu streams and multiple omp threads, we need
+      // to sync here. Otherwise, the sync will be delayed.
 #pragma omp single
-#endif
         Gpu::streamSynchronize();
     }
 #endif
@@ -534,6 +535,17 @@ MFIter::operator++ () noexcept
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
+            if (device_sync && (streams > 1) && (OpenMP::get_num_threads() == 1)
+                && (currentIndex == 1) && isValid())
+            {
+                // Because omp num threads is 1, gpu stream sync has not
+                // been called in Initialize. We need to sync stream 0
+                // before launching kernels on stream 1, because the user
+                // might have launched kernels (such as memcpyAsync) on
+                // stream 0 before this MFIter and the kernels on stream 1
+                // might depend on it.
+                Gpu::streamSynchronize();
+            }
             Gpu::Device::setStreamIndex(currentIndex%streams);
             AMREX_GPU_ERROR_CHECK();
 #ifdef AMREX_DEBUG
