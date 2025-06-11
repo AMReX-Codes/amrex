@@ -9,7 +9,8 @@ module amrex_boxarray_module
 
   private
 
-  public :: amrex_boxarray_build, amrex_boxarray_destroy, amrex_print
+  public :: amrex_boxarray_build, amrex_boxarray_destroy, amrex_print, &
+            operator(==)
 
   type, public :: amrex_boxarray
      logical     :: owner = .false.
@@ -20,6 +21,7 @@ module amrex_boxarray_module
      procedure :: move          => amrex_boxarray_move     ! transfer ownership
      generic   :: maxSize       => amrex_boxarray_maxsize_int, &  ! make the boxes smaller
           &                        amrex_boxarray_maxsize_int3, amrex_boxarray_maxsize_iv
+     procedure :: nboxes        => amrex_boxarray_nboxes
      procedure :: get_box       => amrex_boxarray_get_box
      procedure :: nodal_type    => amrex_boxarray_nodal_type  ! get index type
      procedure :: num_pts       => amrex_boxarray_num_pts
@@ -35,6 +37,10 @@ module amrex_boxarray_module
 #endif
   end type amrex_boxarray
 
+  interface operator(==)
+    module procedure amrex_boxarray_issame
+  end interface operator(==)
+
   interface amrex_boxarray_build
      module procedure amrex_boxarray_build_bx
      module procedure amrex_boxarray_build_bxs
@@ -43,6 +49,10 @@ module amrex_boxarray_module
   interface amrex_print
      module procedure amrex_boxarray_print
   end interface amrex_print
+
+  interface amrex_boxarray_destroy
+     module procedure amrex_boxarray_destroy
+  end interface amrex_boxarray_destroy
 
   ! interfaces to cpp functions
 
@@ -82,6 +92,13 @@ module amrex_boxarray_module
        integer(c_int), intent(in) :: s(3)
      end subroutine amrex_fi_boxarray_maxsize
 
+     pure function amrex_fi_boxarray_nboxes (ba) bind(c)
+       import
+       implicit none
+       type(c_ptr), value, intent(in) :: ba
+       integer(amrex_long) :: amrex_fi_boxarray_nboxes
+     end function amrex_fi_boxarray_nboxes
+
      subroutine amrex_fi_boxarray_get_box (ba,i,lo,hi) bind(c)
        import
        implicit none
@@ -110,12 +127,18 @@ module amrex_boxarray_module
        integer(amrex_long) :: amrex_fi_boxarray_numpts
      end function amrex_fi_boxarray_numpts
 
-     pure integer function amrex_fi_boxarray_intersects_box (ba, lo, hi) bind(c)
+     pure integer(c_int) function amrex_fi_boxarray_intersects_box (ba, lo, hi) bind(c)
        import
        implicit none
        type(c_ptr), value, intent(in) :: ba
        integer, intent(in) :: lo(*), hi(*)
      end function amrex_fi_boxarray_intersects_box
+
+     pure integer(c_int) function amrex_fi_boxarray_issame (baa, bab) bind(c)
+       import
+       implicit none
+       type(c_ptr), value, intent(in) :: baa, bab
+     end function amrex_fi_boxarray_issame
   end interface
 
 contains
@@ -194,6 +217,16 @@ contains
     call amrex_fi_boxarray_maxsize(this%p, s)
   end subroutine amrex_boxarray_maxsize_iv
 
+  pure function amrex_boxarray_nboxes (this) result(n)
+    class(amrex_boxarray), intent(in) :: this
+    integer(amrex_long) :: n
+    if (c_associated(this%p)) then
+       n = amrex_fi_boxarray_nboxes(this%p)
+    else
+       n = 0
+    end if
+  end function amrex_boxarray_nboxes
+
   function amrex_boxarray_get_box (this, i) result(bx)
     class(amrex_boxarray) :: this
     integer, intent(in)   :: i
@@ -220,7 +253,11 @@ contains
   pure function amrex_boxarray_num_pts (this) result(n)
     class(amrex_boxarray), intent(in) :: this
     integer(amrex_long) :: n
-    n = amrex_fi_boxarray_numpts(this%p)
+    if (c_associated(this%p)) then
+       n = amrex_fi_boxarray_numpts(this%p)
+    else
+       n = 0
+    end if
   end function amrex_boxarray_num_pts
 
   pure function amrex_boxarray_intersects_box (this, bx) result(r)
@@ -231,5 +268,11 @@ contains
     ir = amrex_fi_boxarray_intersects_box(this%p, bx%lo, bx%hi)
     r = ir .ne. 0
   end function amrex_boxarray_intersects_box
+
+  pure logical function amrex_boxarray_issame(baa, bab) result(r)
+    type(amrex_boxarray), intent(in) :: baa
+    type(amrex_boxarray), intent(in) :: bab
+    r = amrex_fi_boxarray_issame(baa%p, bab%p) .ne. 0
+  end function amrex_boxarray_issame
 
 end module amrex_boxarray_module

@@ -13,7 +13,7 @@ class CutFab final
 {
 public:
 
-    CutFab () {}
+    CutFab () = default;
 
     explicit CutFab (Arena* ar) : FArrayBox(ar) {}
 
@@ -27,7 +27,7 @@ public:
     CutFab (CutFab const& rhs, MakeType make_type, int scomp, int ncomp)
         : FArrayBox(rhs, make_type, scomp, ncomp) {}
 
-    virtual ~CutFab () noexcept override = default;
+    ~CutFab () noexcept override = default;
 
     CutFab (CutFab&& rhs) noexcept = default;
 
@@ -107,6 +107,18 @@ public:
     Array4<Real const> array (const MFIter& mfi) const noexcept;
     Array4<Real const> const_array (const MFIter& mfi) const noexcept;
 
+    MultiArray4<Real> arrays () noexcept {
+        return m_data.arrays();
+    }
+
+    MultiArray4<Real const> arrays () const noexcept {
+        return m_data.const_arrays();
+    }
+
+    MultiArray4<Real const> const_arrays () const noexcept {
+        return m_data.const_arrays();
+    }
+
     //! Is it OK to call operator[] with this MFIter?
     bool ok (const MFIter& mfi) const noexcept;
 
@@ -131,9 +143,7 @@ public:
 private:
 
     FabArray<CutFab> m_data;
-    const FabArray<EBCellFlagFab>* m_cellflags;
-
-    void remove ();
+    const FabArray<EBCellFlagFab>* m_cellflags = nullptr;
 };
 
 }

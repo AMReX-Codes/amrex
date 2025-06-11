@@ -1,4 +1,3 @@
 #include <AMReX_AmrParticles.H>
 
-typedef amrex::ParticleContainer<1> MyParticleContainer;
-
+using MyParticleContainer = amrex::ParticleContainer<1>;

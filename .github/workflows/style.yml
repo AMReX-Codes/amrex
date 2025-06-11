@@ -10,21 +10,21 @@ jobs:
   tabs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Tabs
         run: .github/workflows/style/check_tabs.sh
 
   trailing_whitespaces:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Trailing Whitespaces
         run: .github/workflows/style/check_trailing_whitespaces.sh
 
   doxygen:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Doxygen
         run: |
           sudo apt-get install -y --no-install-recommends doxygen

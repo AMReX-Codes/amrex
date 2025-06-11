@@ -1,5 +1,11 @@
-set(_sources main.cpp)
+if (AMReX_MPI)
+   return ()
+endif()
 
-setup_test(_sources FALSE)
+foreach(D IN LISTS AMReX_SPACEDIM)
+    set(_sources main.cpp)
 
-unset(_sources)
+    setup_test(${D} _sources FALSE)
+
+    unset(_sources)
+endforeach()

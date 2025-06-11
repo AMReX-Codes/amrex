@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -27,12 +27,11 @@ jobs:
 
       - name: Deploy
         if: github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex' && github.ref == 'refs/heads/development'
-        uses: JamesIves/github-pages-deploy-action@3.7.1
+        uses: JamesIves/github-pages-deploy-action@v4.5.0
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ACCESS_TOKEN: ${{ secrets.DEPLOY_DOCS }}
-          REPOSITORY_NAME: AMReX-Codes/AMReX-Codes.github.io
-          BRANCH: main # The branch the action should deploy to.
-          FOLDER: build # The folder the action should deploy.
-          TARGET_FOLDER: amrex # The folder the action should deploy to.
-          CLEAN: false # Do not remove existing files from the deploy target.
+          ssh-key: ${{ secrets.AMREX_BUILD_DOCS }}
+          repository-name: AMReX-Codes/AMReX-Codes.github.io
+          branch: main # The branch the action should deploy to.
+          folder: build # The folder the action should deploy.
+          target-folder: amrex # The folder the action should deploy to.
+          clean: false # Do not remove existing files from the deploy target.

@@ -33,10 +33,10 @@ cns_estdt (int i, int j, int k, amrex::Array4<Real const> const& state,
 #endif
     Real p = amrex::max((parm.eos_gamma-Real(1.0))*ei, parm.smallp);
     Real cs = std::sqrt(parm.eos_gamma*p*rhoinv);
-    Real dtx = dx[0]/(amrex::Math::abs(vx)+cs);
-    Real dty = dx[1]/(amrex::Math::abs(vy)+cs);
+    Real dtx = dx[0]/(std::abs(vx)+cs);
+    Real dty = dx[1]/(std::abs(vy)+cs);
 #if (AMREX_SPACEDIM == 3)
-    Real dtz = dx[2]/(amrex::Math::abs(vz)+cs);
+    Real dtz = dx[2]/(std::abs(vz)+cs);
 #endif
 
 #if (AMREX_SPACEDIM == 2)

@@ -19,19 +19,34 @@ namespace amrex {
 
 struct amrex_KSP
 {
-    ~amrex_KSP () { if (a) KSPDestroy(&a); }
+    amrex_KSP () = default;
+    ~amrex_KSP () { if (a) { KSPDestroy(&a); } }
+    amrex_KSP (amrex_KSP const&) = delete;
+    amrex_KSP (amrex_KSP &&) = delete;
+    amrex_KSP& operator= (amrex_KSP const&) = delete;
+    amrex_KSP& operator= (amrex_KSP &&) = delete;
     KSP a = nullptr;
 };
 
 struct amrex_Mat
 {
-    ~amrex_Mat () { if (a) MatDestroy(&a); }
+    amrex_Mat () = default;
+    ~amrex_Mat () { if (a) { MatDestroy(&a); } }
+    amrex_Mat (amrex_Mat const&) = delete;
+    amrex_Mat (amrex_Mat &&) = delete;
+    amrex_Mat& operator= (amrex_Mat const&) = delete;
+    amrex_Mat& operator= (amrex_Mat &&) = delete;
     Mat a = nullptr;
 };
 
 struct amrex_Vec
 {
-    ~amrex_Vec () { if (a) VecDestroy(&a); }
+    amrex_Vec () = default;
+    ~amrex_Vec () { if (a) { VecDestroy(&a); } }
+    amrex_Vec (amrex_Vec const&) = delete;
+    amrex_Vec (amrex_Vec &&) = delete;
+    amrex_Vec& operator= (amrex_Vec const&) = delete;
+    amrex_Vec& operator= (amrex_Vec &&) = delete;
     Vec a = nullptr;
 };
 
@@ -49,7 +64,7 @@ PETScABecLap::PETScABecLap (const BoxArray& grids, const DistributionMapping& dm
       geom(geom_)
 {
     static_assert(AMREX_SPACEDIM > 1, "PETScABecLap: 1D not supported");
-    static_assert(std::is_same<Real, PetscScalar>::value, "amrex::Real != PetscScalar");
+    static_assert(std::is_same_v<Real, PetscScalar>, "amrex::Real != PetscScalar");
 
     const int ncomp = 1;
     int ngrow = 0;
@@ -70,7 +85,7 @@ PETScABecLap::PETScABecLap (const BoxArray& grids, const DistributionMapping& dm
     diaginv.define(grids,dmap,ncomp,0);
 
     PETSC_COMM_WORLD = comm;
-    PetscInitialize(0, 0, 0, 0);
+    PetscInitialize(nullptr, nullptr, nullptr, nullptr);
 
     solver = std::make_unique<amrex_KSP>();
     A = std::make_unique<amrex_Mat>();
@@ -153,7 +168,7 @@ PETScABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real /*a
         Real res;
         KSPGetIterationNumber(solver->a, &niters);
         KSPGetResidualNorm(solver->a, &res);
-        amrex::Print() <<"\n" <<  niters << " PETSc Iterations, Residual Norm " << res << std::endl;
+        amrex::Print() <<"\n" <<  niters << " PETSc Iterations, Residual Norm " << res << '\n';
     }
 
     getSolution(soln);
@@ -177,7 +192,7 @@ PETScABecLap::prepareSolver ()
     }
 #endif
 
-    static_assert(std::is_signed<PetscInt>::value, "PetscInt is assumed to be signed");
+    static_assert(std::is_signed_v<PetscInt>, "PetscInt is assumed to be signed");
 
     // how many non-covered cells do we have?
     ncells_grid.define(ba,dm);
@@ -188,15 +203,15 @@ PETScABecLap::prepareSolver ()
 
 #ifdef AMREX_USE_EB
 
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
+    const auto* ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (ebfactory) ? &(ebfactory->getVolFrac()) : nullptr;
     auto area = (ebfactory) ? ebfactory->getAreaFrac()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (ebfactory) ? ebfactory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    auto barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr;
-    auto bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr;
+    const auto* barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr;
+    const auto* bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr;
 
     if (ebfactory)
     {
@@ -222,7 +237,7 @@ PETScABecLap::prepareSolver ()
             Gpu::DeviceVector<int> dv_is_covered(hv_is_covered.size());
             Gpu::copyAsync(Gpu::hostToDevice, hv_is_covered.begin(), hv_is_covered.end(),
                            dv_is_covered.begin());
-            auto pc = dv_is_covered.data();
+            auto const* pc = dv_is_covered.data();
             auto const& cell_id_ma = cell_id.arrays();
             ParallelFor(cell_id, IntVect(1),
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
@@ -258,7 +273,7 @@ PETScABecLap::prepareSolver ()
                 }
                 else
                 {
-                    Long npts = bx.numPts();
+                    auto npts = static_cast<PetscInt>(bx.numPts());
                     ncells_grid[mfi] = npts;
                     ncells_proc += npts;
 
@@ -278,7 +293,7 @@ PETScABecLap::prepareSolver ()
 #endif
     {
         for (MFIter mfi(cell_id); mfi.isValid(); ++mfi) {
-            Long npts = mfi.validbox().numPts();
+            auto npts = static_cast<PetscInt>(mfi.validbox().numPts());
             ncells_grid[mfi] = npts;
             ncells_proc += npts;
         }
@@ -346,7 +361,7 @@ PETScABecLap::prepareSolver ()
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && cell_id.isFusingCandidate()) {
         Gpu::Buffer<PetscInt> offset_buf(offset.data(), offset.local_size());
-        auto poffset = offset_buf.data();
+        auto const* poffset = offset_buf.data();
         auto const& cell_id_ma = cell_id.arrays();
         auto const& cell_id_vec_ma = cell_id_vec.arrays();
         ParallelFor(cell_id,
@@ -385,7 +400,7 @@ PETScABecLap::prepareSolver ()
     MatCreate(PETSC_COMM_WORLD, &A->a);
     MatSetType(A->a, MATMPIAIJ);
     MatSetSizes(A->a, ncells_proc, ncells_proc, ncells_world, ncells_world);
-    MatMPIAIJSetPreallocation(A->a, d_nz, NULL, o_nz, NULL );
+    MatMPIAIJSetPreallocation(A->a, d_nz, nullptr, o_nz, nullptr );
     //Maybe an over estimate of the diag/off diag #of non-zero entries, so we turn off malloc warnings
     MatSetUp(A->a);
     MatSetOption(A->a, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
@@ -595,7 +610,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
     BL_PROFILE("PETScABecLap::loadVectors()");
 
 #ifdef AMREX_USE_EB
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
+    const auto* ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
 #endif
 

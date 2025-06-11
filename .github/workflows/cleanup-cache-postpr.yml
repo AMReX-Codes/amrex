@@ -1,0 +1,43 @@
+name: CleanUpCachePostPR
+
+on:
+  workflow_run:
+    workflows: [PostPR]
+    types:
+      - completed
+
+jobs:
+  CleanUpCcacheCachePostPR:
+    name: Clean Up Ccache Cache Post PR
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clean up ccache
+        run: |
+          gh extension install actions/gh-actions-cache
+
+          REPO=${{ github.repository }}
+
+          # For debugging cat ${GITHUB_EVENT_PATH} to see the payload.
+
+          pr_head_sha=${{ github.event.workflow_run.head_sha }}
+          pr_number=$(gh pr list --state all --search $pr_head_sha --json number --jq '.[0].number')
+          echo "Post-PR cache cleanup for PR ${pr_number}"
+          BRANCH=refs/pull/${pr_number}/merge
+
+          # Setting this to not fail the workflow while deleting cache keys.
+          set +e
+
+          keys=$(gh actions-cache list -L 100 -R $REPO -B $BRANCH | cut -f 1)
+          # $keys might contain spaces. Thus we set IFS to \n.
+          IFS=$'\n'
+          for k in $keys
+          do
+            gh actions-cache delete "$k" -R $REPO -B $BRANCH --confirm
+          done
+          unset IFS

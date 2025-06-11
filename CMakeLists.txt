@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.18)
 
 #
+# Setting a cmake_policy to OLD is deprecated by definition and will raise a
+# verbose warning
+#
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+    set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+endif()
+
+#
 # Allow for MSVC Runtime library controls
 #
 if(POLICY CMP0091)
@@ -92,8 +100,15 @@ endif()
 # Include options, utilities and other stuff we need
 #
 include( AMReXOptions )
-if (AMReX_GPU_BACKEND STREQUAL "CUDA")
-   include(AMReXCUDAOptions)
+
+#
+# Enable CUDA if requested
+#
+if (AMReX_CUDA)
+    enable_language(CUDA)
+    if(CMAKE_VERSION VERSION_LESS 3.20)
+        include(AMReX_SetupCUDA)
+    endif()
 endif ()
 
 #
@@ -104,13 +119,10 @@ if(AMReX_FORTRAN)
 endif ()
 
 #
-# Enable CUDA if requested
+# Include options specifically for CUDA
 #
-if (AMReX_CUDA)
-    enable_language(CUDA)
-    if(CMAKE_VERSION VERSION_LESS 3.20)
-        include(AMReX_SetupCUDA)
-    endif()
+if (AMReX_GPU_BACKEND STREQUAL "CUDA")
+   include(AMReXCUDAOptions)
 endif ()
 
 #
@@ -165,7 +177,6 @@ endif()
 #
 # Enable CTests
 #
-option(AMReX_ENABLE_TESTS "Enable CTest suite for AMReX"  NO)
 if (AMReX_ENABLE_TESTS)
    enable_testing()
    add_subdirectory(Tests)

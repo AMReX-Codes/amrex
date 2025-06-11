@@ -17,6 +17,10 @@ class BackgroundThread
 public:
     BackgroundThread ();
     ~BackgroundThread ();
+    BackgroundThread (BackgroundThread const&) = delete;
+    BackgroundThread (BackgroundThread &&) = delete;
+    BackgroundThread& operator= (BackgroundThread const&) = delete;
+    BackgroundThread& operator= (BackgroundThread &&) = delete;
 
     void Submit (std::function<void()>&& a_f);
     void Submit (std::function<void()> const& a_f);

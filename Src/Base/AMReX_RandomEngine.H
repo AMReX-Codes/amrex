@@ -8,13 +8,14 @@
 #if defined(AMREX_USE_HIP)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-W#warnings"
-#include <hiprand.hpp>
+#include <hiprand/hiprand.hpp>
 #pragma clang diagnostic pop
 #elif defined(AMREX_USE_CUDA)
 #include <curand.h>
 #include <curand_kernel.h>
 #elif defined(AMREX_USE_SYCL)
 #include <sycl/sycl.hpp>
+#include <oneapi/mkl/rng.hpp>
 #include <oneapi/mkl/rng/device.hpp>
 namespace mkl = oneapi::mkl;
 #endif
@@ -36,14 +37,17 @@ namespace amrex
 
     struct RandomEngine {
         sycl_rng_engine* engine;
+        AMREX_GPU_HOST_DEVICE RandomEngine (sycl_rng_engine* e) : engine(e) {}
     };
 
 #else
 
 #ifdef AMREX_USE_HIP
     using randState_t = hiprandState_t;
+    using randGenerator_t = hiprandGenerator_t;
 #else
     using randState_t = curandState_t;
+    using randGenerator_t = curandGenerator_t;
 #endif
 
     extern randState_t* gpu_rand_state;
@@ -53,6 +57,7 @@ namespace amrex
 
     struct RandomEngine {
         randState_t* rand_state;
+        AMREX_GPU_HOST_DEVICE RandomEngine (randState_t* rs) : rand_state(rs) {}
     };
 
 #endif

@@ -359,6 +359,10 @@ MultiLevelToBlueprint (int n_levels,
     int rank   = ParallelDescriptor::MyProc();
     int ntasks = ParallelDescriptor::NProcs();
 
+    // get global domains already present in node
+    long domain_offset = (long)res.number_of_children();
+    ParallelDescriptor::ReduceLongSum(domain_offset);
+
     Vector<const BoxArray*> box_arrays;
     Vector<int> box_offsets;
 
@@ -398,7 +402,7 @@ MultiLevelToBlueprint (int n_levels,
         for(MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
             // domain_id is mfi.index + all patches on lower levels
-            int domain_id = mfi.index() + num_domains;
+            int domain_id = mfi.index() + num_domains + domain_offset;
             const std::string& patch_name = amrex::Concatenate("domain_",
                                                                domain_id,
                                                                6);

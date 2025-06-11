@@ -16,7 +16,7 @@ namespace Font {
     constexpr char RapidBlink  [] = "\033[6m";
 }
 
-namespace FGColor { // Forground colors
+namespace FGColor { // Foreground colors
     constexpr char Black         [] = "\033[30m";
     constexpr char Red           [] = "\033[31m";
     constexpr char Green         [] = "\033[32m";

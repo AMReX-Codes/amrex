@@ -16,8 +16,8 @@ EBMFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& fine
     MFCellConsLinInterp::interp(crsemf, ccomp, finemf, fcomp, nc, ng, cgeom, fgeom, dest_domain,
                                 ratio, bcs, bcomp);
 
-    auto const ffact = dynamic_cast<EBFArrayBoxFactory const*>(&finemf.Factory());
-    auto const cfact = dynamic_cast<EBFArrayBoxFactory const*>(&crsemf.Factory());
+    const auto *const ffact = dynamic_cast<EBFArrayBoxFactory const*>(&finemf.Factory());
+    const auto *const cfact = dynamic_cast<EBFArrayBoxFactory const*>(&crsemf.Factory());
     if (!ffact || !cfact || ffact->isAllRegular()) {
         return;
     }

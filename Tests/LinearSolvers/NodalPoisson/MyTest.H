@@ -20,8 +20,8 @@ public:
 
     void initData ();
 
-    int getNumTrials() { return num_trials; }
-    int getDoPlots() { return do_plots; }
+    [[nodiscard]] int getNumTrials () const { return num_trials; }
+    [[nodiscard]] int getDoPlots () const { return do_plots; }
 
 private:
 
@@ -31,8 +31,10 @@ private:
     int ref_ratio = 2;
     int n_cell = 128;
     int max_grid_size = 64;
+    amrex::Real domain_ratio = 1.0;
 
     bool composite_solve = true;
+    bool use_gmres = false;
 
     // For MLMG solver
     int verbose = 2;

@@ -104,7 +104,7 @@ contains
   end subroutine my_amr_finalize
 
   ! Make a new level from scratch and put the data in phi_new.
-  ! Note tha phi_old contains no valid data after this.
+  ! Note that phi_old contains no valid data after this.
   subroutine my_make_new_level_from_scratch (lev, time, pba, pdm) bind(c)
     use prob_module, only : init_prob_data
     integer, intent(in), value :: lev
@@ -145,7 +145,7 @@ contains
   end subroutine my_make_new_level_from_scratch
 
   ! Make a new level from coarse level and put the data in phi_new.
-  ! Note tha phi_old contains no valid data after this.
+  ! Note that phi_old contains no valid data after this.
   subroutine my_make_new_level_from_coarse (lev, time, pba, pdm) bind(c)
     use fillpatch_module, only : fillcoarsepatch
     integer, intent(in), value :: lev
@@ -173,7 +173,7 @@ contains
   end subroutine my_make_new_level_from_coarse
 
   ! Remake a level from current and coarse elvels and put the data in phi_new.
-  ! Note tha phi_old contains no valid data after this.
+  ! Note that phi_old contains no valid data after this.
   subroutine my_remake_level (lev, time, pba, pdm) bind(c)
     use fillpatch_module, only : fillpatch
     integer, intent(in), value :: lev

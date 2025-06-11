@@ -5,14 +5,16 @@
 
 using namespace amrex;
 
-static int max_stack_size = 0;
-static int test_number = 0;
+namespace {
+    int max_stack_size = 0;
+    int test_number = 0;
+}
 
 template <typename F>
 int test1 (std::string const& f,
            std::map<std::string,Real> const& constants,
            Vector<std::string> const& variables,
-           F && fb, Array<Real,1> const& lo, Array<Real,1> const& hi,
+           F const& fb, Array<Real,1> const& lo, Array<Real,1> const& hi,
            int N, Real reltol, Real abstol)
 {
     amrex::Print() << test_number++ << ". Testing \"" << f << "\"   ";
@@ -56,7 +58,7 @@ template <typename F>
 int test3 (std::string const& f,
            std::map<std::string,Real> const& constants,
            Vector<std::string> const& variables,
-           F && fb, Array<Real,3> const& lo, Array<Real,3> const& hi,
+           F const& fb, Array<Real,3> const& lo, Array<Real,3> const& hi,
            int N, Real reltol, Real abstol)
 {
     amrex::Print() << test_number++ << ". Testing \"" << f << "\"   ";
@@ -102,7 +104,7 @@ template <typename F>
 int test4 (std::string const& f,
            std::map<std::string,Real> const& constants,
            Vector<std::string> const& variables,
-           F && fb, Array<Real,4> const& lo, Array<Real,4> const& hi,
+           F const& fb, Array<Real,4> const& lo, Array<Real,4> const& hi,
            int N, Real reltol, Real abstol)
 {
     amrex::Print() << test_number++ << ". Testing \"" << f << "\"   ";
@@ -316,13 +318,14 @@ int main (int argc, char* argv[])
                         {-149.e-6}, {1.e-6}, 1000,
                         1.e-12, 1.e-15);
 
-        nerror += test1("if(z<lramp, 0.5*(1-cos(pi*z/lramp))*dens, dens)",
+        nerror += test1("if(z<lramp, sin(pi/2*z/lramp)**2*dens, dens)",
                         {{"lramp",8.e-3},{"pi",3.14},{"dens",1.e23}},
                         {"z"},
                         [=] (Real z) -> Real {
                             Real lramp=8.e-3, pi=3.14, dens=1.e23;
                             if (z < lramp) {
-                                return 0.5*(1-std::cos(pi*z/lramp))*dens;
+                                auto x = std::sin(pi/2*z/lramp);
+                                return x*x*dens;
                             } else {
                                 return dens;
                             }
@@ -370,7 +373,7 @@ int main (int argc, char* argv[])
         int count = 0;
         int x = 11;
         {
-            auto f = [&] (std::string s) -> int
+            auto f = [&] (std::string const& s)
             {
                 amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
                 IParser iparser(s);
@@ -387,7 +390,7 @@ int main (int argc, char* argv[])
             AMREX_ALWAYS_ASSERT(f("x/13/5") == ((x/13)/5));
             AMREX_ALWAYS_ASSERT(f("13/x/5") == ((13/x)/5));
 
-            auto g = [&] (std::string s, std::string c, int cv) -> int
+            auto g = [&] (std::string const& s, std::string const& c, int cv)
             {
                 amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
                 IParser iparser(s);
@@ -405,7 +408,7 @@ int main (int argc, char* argv[])
             AMREX_ALWAYS_ASSERT(g("x/b/5", "b", 13) == ((x/13)/5));
             AMREX_ALWAYS_ASSERT(g("b/x/5", "b", 13) == ((13/x)/5));
 
-            auto h = [&] (std::string s) -> int
+            auto h = [&] (std::string const& s)
             {
                 amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
                 IParser iparser(s);
@@ -432,6 +435,31 @@ int main (int argc, char* argv[])
                     }
                 }
             }
+
+            AMREX_ALWAYS_ASSERT(h("123456789012345") == 123456789012345LL);
+            AMREX_ALWAYS_ASSERT(h("123456789012345.") == 123456789012345LL);
+            AMREX_ALWAYS_ASSERT(h("123'456'789'012'345") == 123456789012345LL);
+            AMREX_ALWAYS_ASSERT(h("1.23456789012345e14") == 123456789012345LL);
+            AMREX_ALWAYS_ASSERT(h("1.0E3") == 1000);
+            AMREX_ALWAYS_ASSERT(h("2**40") == 1024LL*1024LL*1024LL*1024LL);
+
+            auto test_bad_number = [&] (std::string const& s)
+            {
+                amrex::Print() << count++ << ". Testing \"" << s << "\"\n";
+                try {
+                    IParser iparser(s);
+                    auto exe = iparser.compileHost<0>();
+                    auto r = exe();
+                    amrex::ignore_unused(r);
+                    return false;
+                } catch (std::runtime_error const& e) {
+                    amrex::Print() << "    Expected error: " << e.what() << '\n';
+                    return true;
+                }
+            };
+            AMREX_ALWAYS_ASSERT(test_bad_number("1000000e-4"));
+            AMREX_ALWAYS_ASSERT(test_bad_number("1.234e2"));
+            AMREX_ALWAYS_ASSERT(test_bad_number("3.14"));
         }
         amrex::Print() << "\nAll IParser tests passed\n\n";
     }

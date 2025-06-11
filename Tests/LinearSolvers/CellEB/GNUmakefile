@@ -22,7 +22,7 @@ include ./Make.package
 
 Pdirs := Base Boundary AmrCore
 Pdirs += EB
-Pdirs += LinearSolvers/MLMG
+Pdirs += LinearSolvers
 
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 

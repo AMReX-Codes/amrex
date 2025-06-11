@@ -22,84 +22,86 @@ public:
          const amrex::BoxArray& bl,
          const amrex::DistributionMapping& dm,
          amrex::Real            time);
-    virtual ~CNS ();
+    ~CNS () override;
 
     CNS (const CNS& rhs) = delete;
+    CNS (CNS&& rhs) = delete;
     CNS& operator= (const CNS& rhs) = delete;
+    CNS& operator= (CNS&& rhs) = delete;
 
     // Restart from a checkpoint file.
-    virtual void restart (amrex::Amr&     papa,
-                          std::istream&   is,
-                          bool            bReadSpecial = false) override;
+    void restart (amrex::Amr&     papa,
+                  std::istream&   is,
+                  bool            bReadSpecial = false) override;
 
     // Write checkpoint
-    virtual void checkPoint(const std::string& dir,
-                            std::ostream&      os,
-                            amrex::VisMF::How  how = amrex::VisMF::NFiles,
-                            bool               dump_old = true) override;
+    void checkPoint(const std::string& dir,
+                    std::ostream&      os,
+                    amrex::VisMF::How  how = amrex::VisMF::NFiles,
+                    bool               dump_old = true) override;
 
-    virtual std::string thePlotFileType () const override {
+    std::string thePlotFileType () const override {
         return {"HyperCLaw-V1.1"};
     }
 
     // Write a plotfile to specified directory.
-    virtual void writePlotFile (const std::string& dir,
-                                std::ostream&      os,
-                                amrex::VisMF::How  how) override;
+    void writePlotFile (const std::string& dir,
+                        std::ostream&      os,
+                        amrex::VisMF::How  how) override;
 
     // Initialize data on this level from another CNS (during regrid).
-    virtual void init (amrex::AmrLevel& old) override;
+    void init (amrex::AmrLevel& old) override;
 
     // Initialize data on this level after regridding if old level did not previously exist
-    virtual void init () override;
+    void init () override;
 
     // Initialize grid data at problem start-up.
-    virtual void initData () override;
+    void initData () override;
 
     // Advance grids at this level in time.
-    virtual amrex::Real advance (amrex::Real time,
-                                 amrex::Real dt,
-                                 int  iteration,
-                                 int  ncycle) override;
+    amrex::Real advance (amrex::Real time,
+                         amrex::Real dt,
+                         int  iteration,
+                         int  ncycle) override;
 
-    virtual void computeInitialDt (int                                 finest_level,
-                                   int                                 sub_cycle,
-                                   amrex::Vector<int>&                  n_cycle,
-                                   const amrex::Vector<amrex::IntVect>& ref_ratio,
-                                   amrex::Vector<amrex::Real>&          dt_level,
-                                   amrex::Real                         stop_time) override;
+    void computeInitialDt (int                                 finest_level,
+                           int                                 sub_cycle,
+                           amrex::Vector<int>&                  n_cycle,
+                           const amrex::Vector<amrex::IntVect>& ref_ratio,
+                           amrex::Vector<amrex::Real>&          dt_level,
+                           amrex::Real                         stop_time) override;
 
-    virtual void computeNewDt (int                                 finest_level,
-                               int                                 sub_cycle,
-                               amrex::Vector<int>&                  n_cycle,
-                               const amrex::Vector<amrex::IntVect>& ref_ratio,
-                               amrex::Vector<amrex::Real>&          dt_min,
-                               amrex::Vector<amrex::Real>&          dt_level,
-                               amrex::Real                         stop_time,
-                               int                                 post_regrid_flag) override;
+    void computeNewDt (int                                 finest_level,
+                       int                                 sub_cycle,
+                       amrex::Vector<int>&                  n_cycle,
+                       const amrex::Vector<amrex::IntVect>& ref_ratio,
+                       amrex::Vector<amrex::Real>&          dt_min,
+                       amrex::Vector<amrex::Real>&          dt_level,
+                       amrex::Real                         stop_time,
+                       int                                 post_regrid_flag) override;
 
-    virtual void post_regrid (int lbase, int new_finest) override;
+    void post_regrid (int lbase, int new_finest) override;
 
     // Do work after timestep().
-    virtual void post_timestep (int iteration) override;
+    void post_timestep (int iteration) override;
 
     // After a full time step
-    virtual void postCoarseTimeStep (amrex::Real time) override;
+    void postCoarseTimeStep (amrex::Real time) override;
 
     // Do work after init().
-    virtual void post_init (amrex::Real stop_time) override;
+    void post_init (amrex::Real stop_time) override;
 
-    virtual void post_restart () override;
+    void post_restart () override;
 
     // Error estimation for regridding.
-    virtual void errorEst (amrex::TagBoxArray& tb,
-                           int                 clearval,
-                           int                 tagval,
-                           amrex::Real         time,
-                           int                 n_error_buf = 0,
-                           int                 ngrow = 0) override;
+    void errorEst (amrex::TagBoxArray& tags,
+                   int                 clearval,
+                   int                 tagval,
+                   amrex::Real         time,
+                   int                 n_error_buf = 0,
+                   int                 ngrow = 0) override;
 
-    virtual int WorkEstType () override { return Cost_Type; }
+    int WorkEstType () override { return Cost_Type; }
 
     // Define data descriptors.
     static void variableSetUp ();
@@ -180,51 +182,33 @@ public:
 
     amrex::Real estTimeStep ();
 
-    void computeTemp (amrex::MultiFab& State, int ng);
+    static void computeTemp (amrex::MultiFab& State, int ng);
 
     void compute_dSdt_box (const amrex::Box& bx,
-                           amrex::Array4<amrex::Real const>& Sfab,
-                           amrex::Array4<amrex::Real      >& dSdtfab,
+                           amrex::Array4<amrex::Real const>& sfab,
+                           amrex::Array4<amrex::Real      >& dsdtfab,
                            const std::array<FArrayBox*, AMREX_SPACEDIM>& flux);
 
     void compute_dSdt_box_eb (const amrex::Box& bx,
-                              amrex::Array4<amrex::Real       const> const& Sfab,
-                              amrex::Array4<amrex::Real            > const& dSdtfab,
+                              Array4<Real const> const& s_arr,
+                              Array4<Real      > const& dsdt_arr,
                               std::array<FArrayBox*, AMREX_SPACEDIM> const& flux,
-                              amrex::Array4<amrex::EBCellFlag const> const& flag,
-                              amrex::Array4<amrex::Real       const> const& vfrac,
-                              AMREX_D_DECL(
-                              amrex::Array4<amrex::Real       const> const& apx,
-                              amrex::Array4<amrex::Real       const> const& apy,
-                              amrex::Array4<amrex::Real       const> const& apz),
-                              AMREX_D_DECL(
-                              amrex::Array4<amrex::Real       const> const& fcx,
-                              amrex::Array4<amrex::Real       const> const& fcy,
-                              amrex::Array4<amrex::Real       const> const& fcz),
-                              amrex::Array4<amrex::Real       const> const& bcent,
+                              Array4<EBCellFlag const> const& flag,
+                              Array4<Real       const> const& vfrac,
+                              AMREX_D_DECL(Array4<Real const> const& apx,
+                                           Array4<Real const> const& apy,
+                                           Array4<Real const> const& apz),
+                              AMREX_D_DECL(Array4<Real const> const& fcx,
+                                           Array4<Real const> const& fcy,
+                                           Array4<Real const> const& fcz),
+                              Array4<Real       const> const& bcent,
                               int as_crse,
-                              amrex::Array4<amrex::Real            > const& drho_as_crse,
-                              amrex::Array4<int               const> const& rrflag_as_crse,
+                              Array4<Real            > const& drho_as_crse,
+                              Array4<int        const> const& rrflag_as_crse,
                               int as_fine,
-                              amrex::Array4<amrex::Real            > const& dm_as_fine,
-                              amrex::Array4<int               const> const& lev_mask,
-                              amrex::Real dt);
-
-    void cns_flux_redistribute (const amrex::Box& bx,
-                                amrex::Array4<amrex::Real            > const& dqdt,
-                                amrex::Array4<amrex::Real            > const& divc,
-                                amrex::Array4<amrex::Real            > const& optmp,
-                                amrex::Array4<amrex::Real            > const& del_m,
-                                amrex::Array4<amrex::Real       const> const& redistwgt,
-                                amrex::Array4<amrex::Real       const> const& vfrac,
-                                amrex::Array4<amrex::EBCellFlag const> const& flag,
-                                int as_crse,
-                                amrex::Array4<amrex::Real            > const& drho_as_crse,
-                                amrex::Array4<int               const> const& rrflag_as_crse,
-                                int as_fine,
-                                amrex::Array4<amrex::Real            > const& dm_as_fine,
-                                amrex::Array4<int               const> const& lev_mask,
-                                amrex::Real dt);
+                              Array4<Real            > const& dm_as_fine,
+                              Array4<int        const> const& lev_mask,
+                              Real dt);
 
     static Parm* h_parm;
     static Parm* d_parm;
@@ -233,9 +217,9 @@ public:
 };
 
 void cns_bcfill (amrex::Box const& bx, amrex::FArrayBox& data,
-                 const int dcomp, const int numcomp,
-                 amrex::Geometry const& geom, const amrex::Real time,
-                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
-                 const int scomp);
+                 int dcomp, int numcomp,
+                 amrex::Geometry const& geom, amrex::Real time,
+                 const amrex::Vector<amrex::BCRec>& bcr, int bcomp,
+                 int scomp);
 
 #endif

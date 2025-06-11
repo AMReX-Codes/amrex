@@ -22,42 +22,40 @@ public:
           m_ba(amr->maxLevel()+1)
     { }
 
-    virtual ~AmrParGDB () {;}
+    [[nodiscard]] const Geometry& ParticleGeom (int level) const override;
+    [[nodiscard]] const Geometry&         Geom (int level) const override;
 
-    virtual const Geometry& ParticleGeom (int level) const override;
-    virtual const Geometry&         Geom (int level) const override;
+    [[nodiscard]] const Vector<Geometry>& ParticleGeom () const override;
+    [[nodiscard]] const Vector<Geometry>&         Geom () const override;
 
-    virtual const Vector<Geometry>& ParticleGeom () const override;
-    virtual const Vector<Geometry>&         Geom () const override;
+    [[nodiscard]] const DistributionMapping& ParticleDistributionMap (int level) const override;
+    [[nodiscard]] const DistributionMapping&         DistributionMap (int level) const override;
 
-    virtual const DistributionMapping& ParticleDistributionMap (int level) const override;
-    virtual const DistributionMapping&         DistributionMap (int level) const override;
+    [[nodiscard]] const Vector<DistributionMapping>& ParticleDistributionMap () const override;
+    [[nodiscard]] const Vector<DistributionMapping>&         DistributionMap () const override;
 
-    virtual const Vector<DistributionMapping>& ParticleDistributionMap () const override;
-    virtual const Vector<DistributionMapping>&         DistributionMap () const override;
+    [[nodiscard]] const BoxArray& ParticleBoxArray (int level) const override;
+    [[nodiscard]] const BoxArray&         boxArray (int level) const override;
 
-    virtual const BoxArray& ParticleBoxArray (int level) const override;
-    virtual const BoxArray&         boxArray (int level) const override;
+    [[nodiscard]] const Vector<BoxArray>& ParticleBoxArray () const override;
+    [[nodiscard]] const Vector<BoxArray>&         boxArray () const override;
 
-    virtual const Vector<BoxArray>& ParticleBoxArray () const override;
-    virtual const Vector<BoxArray>&         boxArray () const override;
+    void SetParticleBoxArray (int level, const BoxArray& new_ba) override;
+    void SetParticleDistributionMap (int level, const DistributionMapping& new_dm) override;
+    void SetParticleGeometry (int level, const Geometry& new_geom) override;
 
-    virtual void SetParticleBoxArray (int level, const BoxArray& new_ba) override;
-    virtual void SetParticleDistributionMap (int level, const DistributionMapping& new_dm) override;
-    virtual void SetParticleGeometry (int level, const Geometry& new_geom) override;
+    void ClearParticleBoxArray (int level) override;
+    void ClearParticleDistributionMap (int level) override;
+    void ClearParticleGeometry (int level) override;
 
-    virtual void ClearParticleBoxArray (int level) override;
-    virtual void ClearParticleDistributionMap (int level) override;
-    virtual void ClearParticleGeometry (int level) override;
+    [[nodiscard]] bool LevelDefined (int level) const override;
+    [[nodiscard]] int finestLevel () const override;
+    [[nodiscard]] int maxLevel () const override;
 
-    virtual bool LevelDefined (int level) const override;
-    virtual int finestLevel () const override;
-    virtual int maxLevel () const override;
+    [[nodiscard]] IntVect refRatio (int level) const override;
+    [[nodiscard]] int MaxRefRatio (int level) const override;
 
-    virtual IntVect refRatio (int level) const override;
-    virtual int MaxRefRatio (int level) const override;
-
-    virtual Vector<IntVect> refRatio () const override;
+    [[nodiscard]] Vector<IntVect> refRatio () const override;
 
 protected:
 

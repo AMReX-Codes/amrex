@@ -2,9 +2,6 @@
 #define PROB_PARM_H_
 
 #include <AMReX_REAL.H>
-#include <AMReX_Vector.H>
-
-using namespace amrex::literals;
 
 // Define the struct to contain problem-specific variables here.
 struct ProbParm

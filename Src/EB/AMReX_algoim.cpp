@@ -3,7 +3,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_algoim_K.H>
 
-namespace amrex { namespace algoim {
+namespace amrex::algoim {
 
 void
 compute_integrals (MultiFab& intg, int nghost)
@@ -30,7 +30,7 @@ compute_integrals (MultiFab& intgmf, IntVect nghost)
     const auto&        flags = my_factory.getMultiEBCellFlagFab();
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if(Gpu::notInLaunchRegion())
@@ -66,14 +66,22 @@ compute_integrals (MultiFab& intgmf, IntVect nghost)
 
             if (Gpu::inLaunchRegion())
             {
+#if defined(AMREX_USE_CUDA)
+                // It appears that there is a nvcc bug. We have to use the
+                // 4D ParallelFor here, even though ncomp is 1.
+                int ncomp = fg.nComp();
+                amrex::ParallelFor(bx, ncomp,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k, int) noexcept
+#else
                 amrex::ParallelFor(bx,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+#endif
                 {
                     const auto ebflag = fg(i,j,k);
                     if (ebflag.isRegular()) {
                         set_regular(i,j,k,intg);
                     } else if (ebflag.isCovered()) {
-                        for (int n = 0; n < numIntgs; ++n) intg(i,j,k,n) = 0.0;
+                        for (int n = 0; n < numIntgs; ++n) { intg(i,j,k,n) = 0.0; }
                     } else {
                         EBPlane phi(bc(i,j,k,0),bc(i,j,k,1),bc(i,j,k,2),
                                     bn(i,j,k,0),bn(i,j,k,1),bn(i,j,k,2));
@@ -125,15 +133,15 @@ compute_integrals (MultiFab& intgmf, IntVect nghost)
             {
                 const auto lo = amrex::lbound(bx);
                 const auto hi = amrex::ubound(bx);
-                for (int k = lo.z; k <= hi.z; ++k)
-                for (int j = lo.y; j <= hi.y; ++j)
+                for (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i)
                 {
                     const auto ebflag = fg(i,j,k);
                     if (ebflag.isRegular()) {
                         set_regular(i,j,k,intg);
                     } else if (ebflag.isCovered()) {
-                        for (int n = 0; n < numIntgs; ++n) intg(i,j,k,n) = 0.0;
+                        for (int n = 0; n < numIntgs; ++n) { intg(i,j,k,n) = 0.0; }
                     } else {
                         EBPlane phi(bc(i,j,k,0),bc(i,j,k,1),bc(i,j,k,2),
                                     bn(i,j,k,0),bn(i,j,k,1),bn(i,j,k,2));
@@ -179,7 +187,7 @@ compute_integrals (MultiFab& intgmf, IntVect nghost)
                         intg(i,j,k,i_S_xyz  ) = q.eval([](Real x, Real y, Real z) noexcept
                                                    { return x*y*z; });
                     }
-                }
+                }}}
             }
         }
     }
@@ -213,7 +221,7 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
     const auto&        barea = my_factory.getBndryArea();
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if(Gpu::notInLaunchRegion())
@@ -260,12 +268,12 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
                     if (ebflag.isRegular()) {
                         set_regular_surface(i,j,k,sintg);
                     } else if (ebflag.isCovered()) {
-                        for (int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
+                        for (int n = 0; n < numSurfIntgs; ++n) { sintg(i,j,k,n) = 0.0; }
                     } else {
                         constexpr Real almostone = Real(1.) - Real(100.)*std::numeric_limits<Real>::epsilon();
 
                         if (vf(i,j,k) >= almostone) {
-                            for(int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
+                            for(int n = 0; n < numSurfIntgs; ++n) { sintg(i,j,k,n) = 0.0; }
 
                             Real apxm = apx(i  ,j  ,k  );
                             Real apxp = apx(i+1,j  ,k  );
@@ -317,20 +325,20 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
             {
                 const auto lo = amrex::lbound(bx);
                 const auto hi = amrex::ubound(bx);
-                for (int k = lo.z; k <= hi.z; ++k)
-                for (int j = lo.y; j <= hi.y; ++j)
+                for (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i)
                 {
                     const auto ebflag = fg(i,j,k);
                     if (ebflag.isRegular()) {
                         set_regular_surface(i,j,k,sintg);
                     } else if (ebflag.isCovered()) {
-                        for (int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
+                        for (int n = 0; n < numSurfIntgs; ++n) { sintg(i,j,k,n) = 0.0; }
                     } else {
                         constexpr Real almostone = Real(1.) - Real(100.)*std::numeric_limits<Real>::epsilon();
 
                         if (vf(i,j,k) >= almostone) {
-                            for(int n = 0; n < numSurfIntgs; ++n) sintg(i,j,k,n) = 0.0;
+                            for(int n = 0; n < numSurfIntgs; ++n) { sintg(i,j,k,n) = 0.0; }
 
                             Real apxm = apx(i  ,j  ,k  );
                             Real apxp = apx(i+1,j  ,k  );
@@ -376,11 +384,11 @@ compute_surface_integrals (MultiFab& sintgmf, IntVect nghost)
                                                        { return x*y*z; });
                         }
                     }
-                }
+                }}}
             }
         }
     }
 #endif
 }
 
-}}
+}

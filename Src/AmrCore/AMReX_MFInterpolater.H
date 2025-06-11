@@ -14,8 +14,6 @@ class MFInterpolater
     : public InterpBase
 {
 public:
-    virtual ~MFInterpolater () = default;
-
     virtual void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
                          IntVect const& ng, Geometry const& cgeom, Geometry const& fgeom,
                          Box const& dest_domain, IntVect const& ratio,
@@ -29,15 +27,13 @@ class MFPCInterp final
     : public MFInterpolater
 {
 public:
-    virtual ~MFPCInterp () = default;
+    Box CoarseBox (Box const& fine, int ratio) override;
+    Box CoarseBox (Box const& fine, IntVect const& ratio) override;
 
-    virtual Box CoarseBox (Box const& fine, int ratio);
-    virtual Box CoarseBox (Box const& fine, IntVect const& ratio);
-
-    virtual void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
+    void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
                          IntVect const& ng, Geometry const& cgeom, Geometry const& fgeom,
                          Box const& dest_domain, IntVect const& ratio,
-                         Vector<BCRec> const& bcs, int bcscomp);
+                         Vector<BCRec> const& bcs, int bcscomp) override;
 };
 
 /**
@@ -57,15 +53,13 @@ public:
     explicit MFCellConsLinInterp (bool do_linear_limiting_)
         : do_linear_limiting(do_linear_limiting_) {}
 
-    virtual ~MFCellConsLinInterp () = default;
+    Box CoarseBox (Box const& fine, int ratio) override;
+    Box CoarseBox (Box const& fine, IntVect const& ratio) override;
 
-    virtual Box CoarseBox (Box const& fine, int ratio) override;
-    virtual Box CoarseBox (Box const& fine, IntVect const& ratio) override;
-
-    virtual void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
+    void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
                          IntVect const& ng, Geometry const& cgeom, Geometry const& fgeom,
                          Box const& dest_domain, IntVect const& ratio,
-                         Vector<BCRec> const& bcs, int bcscomp) override;
+                         Vector<BCRec> const& bcs, int bcomp) override;
 protected:
     bool do_linear_limiting = true;
 };
@@ -85,17 +79,13 @@ class MFCellConsLinMinmaxLimitInterp
     : public MFInterpolater
 {
 public:
-    explicit MFCellConsLinMinmaxLimitInterp () {}
+    Box CoarseBox (Box const& fine, int ratio) override;
+    Box CoarseBox (Box const& fine, IntVect const& ratio) override;
 
-    virtual ~MFCellConsLinMinmaxLimitInterp () = default;
-
-    virtual Box CoarseBox (Box const& fine, int ratio) override;
-    virtual Box CoarseBox (Box const& fine, IntVect const& ratio) override;
-
-    virtual void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
+    void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
                          IntVect const& ng, Geometry const& cgeom, Geometry const& fgeom,
                          Box const& dest_domain, IntVect const& ratio,
-                         Vector<BCRec> const& bcs, int bcscomp) override;
+                         Vector<BCRec> const& bcs, int bcomp) override;
 };
 
 /**
@@ -105,15 +95,13 @@ class MFCellBilinear final
     : public MFInterpolater
 {
 public:
-    virtual ~MFCellBilinear () = default;
+    Box CoarseBox (Box const& fine, int ratio) override;
+    Box CoarseBox (Box const& fine, IntVect const& ratio) override;
 
-    virtual Box CoarseBox (Box const& fine, int ratio);
-    virtual Box CoarseBox (Box const& fine, IntVect const& ratio);
-
-    virtual void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
+    void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
                          IntVect const& ng, Geometry const& cgeom, Geometry const& fgeom,
                          Box const& dest_domain, IntVect const& ratio,
-                         Vector<BCRec> const& bcs, int bcscomp);
+                         Vector<BCRec> const& bcs, int bcscomp) override;
 };
 
 /*
@@ -123,15 +111,13 @@ class MFNodeBilinear final
     : public MFInterpolater
 {
 public:
-    virtual ~MFNodeBilinear () = default;
+    Box CoarseBox (Box const& fine, int ratio) override;
+    Box CoarseBox (Box const& fine, IntVect const& ratio) override;
 
-    virtual Box CoarseBox (Box const& fine, int ratio);
-    virtual Box CoarseBox (Box const& fine, IntVect const& ratio);
-
-    virtual void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
+    void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
                          IntVect const& ng, Geometry const& cgeom, Geometry const& fgeom,
                          Box const& dest_domain, IntVect const& ratio,
-                         Vector<BCRec> const& bcs, int bcscomp);
+                         Vector<BCRec> const& bcs, int bcscomp) override;
 };
 
 extern AMREX_EXPORT MFPCInterp          mf_pc_interp;

@@ -42,21 +42,26 @@ struct ParticleArrayAccessor;
 template <class T>
 class ref_wrapper {
 public:
-    typedef T type;
+    using type = T;
 
     AMREX_GPU_HOST_DEVICE
     ref_wrapper(T& ref) noexcept : _ptr(&ref) {}
-    ref_wrapper(T&&) = delete;
-    ref_wrapper(const ref_wrapper&) noexcept = default;
+    ref_wrapper(T&&) = delete; // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved) // clang-tidy bug
+
+    ~ref_wrapper () = default;
+    ref_wrapper (const ref_wrapper&) noexcept = default;
+    ref_wrapper (ref_wrapper&&) noexcept = default;
 
     AMREX_GPU_HOST_DEVICE
-    void operator= (T&& a_other) {this->get()=a_other;}
-    ref_wrapper& operator=(const ref_wrapper& x) noexcept = default;
+    ref_wrapper& operator= (T&& a_other) { this->get()=std::move(a_other); return *this; }
 
-    AMREX_GPU_HOST_DEVICE
+    ref_wrapper& operator= (const ref_wrapper&) noexcept = default;
+    ref_wrapper& operator= (ref_wrapper&&) noexcept = default;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     operator T& () const noexcept { return *_ptr; }
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     T& get() const noexcept { return *_ptr; }
 
 private:
@@ -78,7 +83,7 @@ struct DataLayoutPolicy<ContainerType, ParticleType<Types...>, DataLayout::AoS>
 
     static constexpr raw_type get_raw_data (container_type& a_container)
     {
-        return raw_type(static_cast<ParticleType<Types...>*>(&a_container[0]));
+        return raw_type(static_cast<ParticleType<Types...>*>(a_container.data()));
     }
 
     static constexpr void resize (container_type& a_container, std::size_t a_size)
@@ -89,7 +94,7 @@ struct DataLayoutPolicy<ContainerType, ParticleType<Types...>, DataLayout::AoS>
     template <typename ValueType>
     static constexpr void push_back (container_type& a_container, ValueType&& a_value)
     {
-        a_container.push_back(a_value);
+        a_container.push_back(std::forward<ValueType>(a_value));
     }
 
     static constexpr std::size_t size (container_type& a_container)
@@ -125,7 +130,7 @@ template <template <typename...> class ContainerType,
           typename... Types>
 struct DataLayoutPolicy<ContainerType, ParticleType<Types...>, DataLayout::SoA> {
     using container_type = std::tuple<ContainerType<Types>...>;
-    using raw_type = const amrex::GpuTuple<Types*...>;
+    using raw_type = amrex::GpuTuple<Types*...>;
     using value_type = ParticleType<ref_wrapper<Types>...>;
 
     static constexpr raw_type get_raw_data (container_type& a_container)
@@ -168,12 +173,12 @@ private:
     }
 
     template <typename ValueType, std::size_t... Is>
-    static constexpr void push_back_impl(container_type& a_container, ValueType&& a_value,
+    static constexpr void push_back_impl(container_type& a_container, ValueType const& a_value,
                                          std::index_sequence<Is...>)
     {
         using expander = int[];
         (void) expander{ 0, (std::get<Is>(a_container).push_back(
-                                 std::get<Is>(std::forward<ValueType>(a_value))), 0)... };
+                                 std::get<Is>(a_value)), 0)... };
     }
 };
 
@@ -182,11 +187,11 @@ private:
  */
 template <template<typename...> class ParticleType, typename... Types>
 struct DataLayoutPolicyRaw<ParticleType<Types...>, DataLayout::SoA> {
-    using raw_type = const amrex::GpuTuple<Types*...>;
+    using raw_type = amrex::GpuTuple<Types*...>;
     using value_type = ParticleType<ref_wrapper<Types>...>;
 
     AMREX_GPU_HOST_DEVICE
-    static constexpr value_type get (raw_type& a_tuple, std::size_t a_index)
+    static constexpr value_type get (raw_type const& a_tuple, std::size_t a_index)
     {
         return get_impl(a_tuple, a_index, std::make_index_sequence<sizeof...(Types)>());
     }
@@ -195,7 +200,7 @@ private:
 
     template <std::size_t... Is>
     AMREX_GPU_HOST_DEVICE
-    static constexpr auto get_impl (raw_type& a_tuple, std::size_t a_index,
+    static constexpr auto get_impl (raw_type const& a_tuple, std::size_t a_index,
                                     std::index_sequence<Is...>)
     {
         return value_type{ref_wrapper<Types>(amrex::get<Is>(a_tuple)[a_index])... };
@@ -248,6 +253,10 @@ private:
 template <typename ParticleType, DataLayout DataLayoutTag>
 struct ParticleArrayAccessor
 {
+    // ParticleType: Particle<double, double, double, int, int>
+    // DataLayoutTag: amrex::DataLayout::SoA
+    // value_type: Particle<amrex::ref_wrapper<double>, amrex::ref_wrapper<double>, amrex::ref_wrapper<double>, amrex::ref_wrapper<int>, amrex::ref_wrapper<int> >
+
     using policy_type  = DataLayoutPolicyRaw<ParticleType, DataLayoutTag>;
     using value_type   = typename policy_type::value_type;
     using raw_type     = typename policy_type::raw_type;
@@ -258,11 +267,11 @@ struct ParticleArrayAccessor
         : m_size(a_size), m_data(a_data)
     {}
 
-    AMREX_GPU_HOST_DEVICE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
     value_type operator[] (std::size_t a_index) const { return policy_type::get(m_data, a_index); }
 
-    AMREX_GPU_HOST_DEVICE
-    std::size_t size () { return m_size; }
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
+    std::size_t size () const { return m_size; }
 
 private:
     std::size_t m_size;

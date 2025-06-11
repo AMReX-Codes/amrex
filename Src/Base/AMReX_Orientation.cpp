@@ -11,8 +11,9 @@ operator<< (std::ostream&      os,
             const Orientation& o)
 {
     os << '('<< int(o) << ')' ;
-    if (os.fail())
+    if (os.fail()) {
         amrex::Error("operator<<(ostream&,Orientation&) failed");
+    }
     return os;
 }
 
@@ -38,8 +39,9 @@ operator>> (std::istream& is,
         amrex::Error("operator>>(istream&,Orientation&): expected \'(\'");
     }
 
-    if (is.fail())
+    if (is.fail()) {
         amrex::Error("operator>>(ostream&,Orientation&) failed");
+    }
 
     return is;
 }

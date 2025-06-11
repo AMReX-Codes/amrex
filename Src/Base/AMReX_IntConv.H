@@ -27,7 +27,7 @@ namespace amrex {
         bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
         for (std::size_t j = 0; j < size; ++j) {
             value = static_cast<To>(data[j]);
-            if (swapEndian) value = swapBytes(value);
+            if (swapEndian) { value = swapBytes(value); }
             os.write((char*) &value, sizeof(To));
         }
     }
@@ -40,7 +40,7 @@ namespace amrex {
         bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
         for (std::size_t j = 0; j < size; ++j) {
             is.read((char*) &value, sizeof(From));
-            if (swapEndian) value = swapBytes(value);
+            if (swapEndian) { value = swapBytes(value); }
             data[j] = static_cast<To>(value);
         }
     }

@@ -18,7 +18,7 @@ CreateDirectories (std::string const& p, mode_t /*mode*/, bool verbose)
     std::filesystem::create_directories(std::filesystem::path{p}, ec);
     if (ec && verbose) {
         amrex::AllPrint() << "amrex::UtilCreateDirectory failed to create "
-                          << p << ": " << ec.message() << std::endl;
+                          << p << ": " << ec.message() << '\n';
     }
     return !ec;
 }
@@ -29,7 +29,7 @@ Exists (std::string const& filename)
     std::error_code ec;
     bool r = std::filesystem::exists(std::filesystem::path{filename}, ec);
     if (ec && amrex::Verbose() > 0) {
-        amrex::AllPrint() << "amrex::FileSystem::Exists failed. " << ec.message() << std::endl;
+        amrex::AllPrint() << "amrex::FileSystem::Exists failed. " << ec.message() << '\n';
     }
     return r;
 }
@@ -40,7 +40,7 @@ CurrentPath ()
     std::error_code ec;
     auto path = std::filesystem::current_path(ec);
     if (ec && amrex::Verbose() > 0) {
-        amrex::AllPrint() << "amrex::FileSystem::CurrentPath failed. " << ec.message() << std::endl;
+        amrex::AllPrint() << "amrex::FileSystem::CurrentPath failed. " << ec.message() << '\n';
     }
     return path.string();
 }
@@ -73,13 +73,12 @@ RemoveAll (std::string const& p)
 #include <sys/types.h>
 #include <sys/wait.h>
 
-namespace amrex {
-namespace FileSystem {
+namespace amrex::FileSystem {
 
 bool
 CreateDirectories (std::string const& path, mode_t mode, bool verbose)
 {
-    bool retVal(false);
+    bool retVal = false;
     Vector<std::pair<std::string, int> > pathError;
 
     const char* path_sep_str = "/";
@@ -90,7 +89,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
 
     errno = 0;
 
-    if(std::strchr(path.c_str(), *path_sep_str) == 0) {
+    if(std::strchr(path.c_str(), *path_sep_str) == nullptr) {
         //
         // No slashes in the path.
         //
@@ -106,7 +105,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
         // Make copy of the directory pathname so we can write to it.
         //
         char *dir = new char[path.length() + 1];
-        (void) strcpy(dir, path.c_str());
+        (void) std::strncpy(dir, path.c_str(), path.length()+1);
 
         char *slash = std::strchr(dir, *path_sep_str);
 
@@ -115,7 +114,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
                 if(*(slash+1) == 0) {
                     break;
                 }
-                if((slash = std::strchr(slash+1, *path_sep_str)) != 0) {
+                if((slash = std::strchr(slash+1, *path_sep_str)) != nullptr) { // NOLINT(bugprone-assignment-in-if-condition)
                     *slash = 0;
                 }
                 errno = 0;
@@ -142,7 +141,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
                 }
                 pathError.push_back(std::make_pair(dir, errno));
                 *slash = *path_sep_str;
-            } while((slash = std::strchr(slash+1, *path_sep_str)) != 0);
+            } while((slash = std::strchr(slash+1, *path_sep_str)) != nullptr); // NOLINT(bugprone-assignment-in-if-condition)
 
             errno = 0;
             if(mkdir(dir, mode) < 0 && errno != EEXIST) {
@@ -155,11 +154,11 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
     }
 
     if(retVal == false  || verbose == true) {
-      for(int i(0); i < pathError.size(); ++i) {
+      for(auto & i : pathError) {
           amrex::AllPrint()<< "amrex::UtilCreateDirectory:: path errno:  "
-                           << pathError[i].first << " :: "
-                           << strerror(pathError[i].second)
-                           << std::endl;
+                           << i.first << " :: "
+                           << strerror(i.second)
+                           << '\n';
       }
     }
 
@@ -179,10 +178,12 @@ CurrentPath ()
     constexpr int bufSize = 1024;
     char temp[bufSize];
     char *rCheck = getcwd(temp, bufSize);
-    if(rCheck == 0) {
+    if(rCheck == nullptr) {
         amrex::Abort("**** Error:  getcwd buffer too small.");
+        return std::string{};
+    } else {
+        return std::string(rCheck);
     }
-    return std::string(rCheck);
 }
 
 bool
@@ -208,6 +209,6 @@ RemoveAll (std::string const& p)
     return true;
 }
 
-}}
+}
 
 #endif

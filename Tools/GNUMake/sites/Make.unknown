@@ -43,11 +43,17 @@ ifeq ($(USE_MPI),TRUE)
   ifeq ($(code_sml), 0)
      mpi_link_flags  := $(shell $(MPI_OTHER_COMP) -showme:link)
      mpicxx_link_libs := $(filter -l%,$(shell mpicxx -showme:link))
+     mpicxx_include_dirs := $(addprefix -I,$(shell mpicxx -showme:incdirs))
   else ifeq ($(code_li), 0)
      mpi_link_flags  := $(shell $(MPI_OTHER_COMP) -link_info)
      mpicxx_link_libs := $(filter -l%,$(shell mpicxx -link_info))
+     mpicxx_include_dirs := $(filter -I%,$(shell mpicxx -compile_info))
   else
      $(error Unknown mpi wrapper.  You can try setting MPI stuff in amrex/Tools/GNUMake/Make.local and then compile with NO_MPI_CHECKING=TRUE.)
+  endif
+
+  ifeq ($(ISYSTEM_MPI_INCDIRS),TRUE)
+     mpicxx_include_dirs := $(subst -I,-isystem ,$(mpicxx_include_dirs))
   endif
 
   # some compilers return the compiler command as part of the link line info.
@@ -56,6 +62,10 @@ ifeq ($(USE_MPI),TRUE)
   ifneq ($(mpi_filter),)
      mpi_link_flags := $(filter-out $(mpi_filter), $(mpi_link_flags))
   endif
+
+  # Some wrappers include `-fallow-argument-mismatch`, `-g` etc in the link line info.
+  mpi_link_flags := $(filter-out -f%,$(mpi_link_flags))
+  mpi_link_flags := $(filter-out -g%,$(mpi_link_flags))
 
   LIBRARIES += $(mpi_link_flags)
   ifneq ($(MPI_OTHER_COMP),mpicxx)
@@ -80,7 +90,12 @@ ifeq ($(USE_CUDA),TRUE)
   COMPILE_CUDA_PATH = $(CUDA_HOME)
   SYSTEM_CUDA_PATH = $(CUDA_HOME)
 
-  cuda_device_query_result := $(shell $(CUDA_HOME)/extras/demo_suite/deviceQuery | grep "CUDA Capability")
+  ifneq ($(wildcard $(CUDA_HOME)/extras/demo_suite/deviceQuery),)
+     cuda_device_query_result := $(shell $(CUDA_HOME)/extras/demo_suite/deviceQuery | grep "CUDA Capability")
+  else
+     # try nvidia-smi, as deviceQuery is no longer distributed with CUDA 12 and up
+     cuda_device_query_result := $(shell nvidia-smi --query-gpu=compute_cap --format=csv,noheader)
+  endif
   ifneq ($(cuda_device_query_result),)
      TEMP_CUDA_ARCH = $(lastword $(cuda_device_query_result))
 #      CUDA_ARCH = $(subst .,,$(TEMP_CUDA_ARCH))

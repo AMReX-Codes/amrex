@@ -1,9 +1,14 @@
 
 #include <AMReX_GpuDevice.H>
+#include <AMReX_GpuLaunch.H>
+#include <AMReX_Machine.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
-#include <AMReX_GpuLaunch.H>
+
+#ifdef AMREX_USE_HYPRE
+#  include <_hypre_utilities.h>
+#endif
 
 #include <iostream>
 #include <map>
@@ -15,7 +20,11 @@
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
 #if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
-#include <nvToolsExt.h>
+#if __has_include(<nvtx3/nvToolsExt.h>)
+#  include <nvtx3/nvToolsExt.h>
+#else
+#  include <nvToolsExt.h>
+#endif
 #endif
 #endif
 
@@ -53,8 +62,25 @@ namespace {
 }
 #endif
 
-namespace amrex {
-namespace Gpu {
+#ifdef AMREX_USE_HIP
+namespace {
+    __host__ __device__ void amrex_check_wavefront_size () {
+#ifdef __HIP_DEVICE_COMPILE__
+        // * https://github.com/AMReX-Codes/amrex/issues/3792
+        //   __AMDGCN_WAVEFRONT_SIZE is valid in device code only.
+        //   Thus we have to check it this way.
+        // * https://github.com/AMReX-Codes/amrex/issues/4270
+        //   __AMDGCN_WAVEFRONT_SIZE will be deprecated.
+#ifdef __AMDGCN_WAVEFRONT_SIZE
+        static_assert(__AMDGCN_WAVEFRONT_SIZE == AMREX_AMDGCN_WAVEFRONT_SIZE,
+                      "Please let the amrex team know if you encounter this");
+#endif
+#endif
+    }
+}
+#endif
+
+namespace amrex::Gpu {
 
 int Device::device_id = 0;
 int Device::num_devices_used = 0;
@@ -94,7 +120,7 @@ namespace {
     {
         amrex::ignore_unused(graph_size);
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
 
         BL_PROFILE("InitGraph");
 
@@ -119,8 +145,9 @@ namespace {
 #endif
 
 void
-Device::Initialize ()
+Device::Initialize (bool minimal)
 {
+    amrex::ignore_unused(minimal);
 #ifdef AMREX_USE_GPU
 
 #if defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
@@ -138,9 +165,9 @@ Device::Initialize ()
     max_gpu_streams = std::max(max_gpu_streams, 1);
 
     ParmParse pp("device");
-
-    pp.queryAdd("v", verbose);
-    pp.queryAdd("verbose", verbose);
+    if (! pp.query("verbose", "v", verbose)) {
+        pp.add("verbose", verbose);
+    }
 
     if (amrex::Verbose()) {
         AMREX_HIP_OR_CUDA_OR_SYCL
@@ -175,115 +202,67 @@ Device::Initialize ()
     int n_local_procs = 1;
     amrex::ignore_unused(n_local_procs);
 
-    if (ParallelDescriptor::NProcs() == 1) {
+    if (minimal) {
+        device_id = 0;
+        AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipGetDevice(&device_id));,
+                          AMREX_CUDA_SAFE_CALL(cudaGetDevice(&device_id)); );
+    } else if (ParallelDescriptor::NProcs() == 1) {
         device_id = 0;
     }
     else if (gpu_device_count == 1) {
         device_id = 0;
     }
     else {
-
-        // ifdef the following against MPI so it compiles, but note
-        // that we can only get here if using more than one processor,
-        // which requires MPI.
-
-#ifdef BL_USE_MPI
-
-        // Create a communicator out of only the ranks sharing GPUs.
-        // The default assumption is that this is all the ranks on the
-        // same node, and to get that we'll use the MPI-3.0 split that
-        // looks for shared memory communicators (and we'll error out
-        // if that standard is unsupported).
-
-#if MPI_VERSION < 3
-        amrex::Abort("When using GPUs with MPI, if multiple devices are visible to each rank, MPI-3.0 must be supported.");
-#endif
-
-        // However, it's possible that the ranks sharing GPUs will be
-        // confined to a single socket rather than a full node. Indeed,
-        // this is often the optimal configuration; for example, on Summit,
-        // a good configuration using jsrun is one resource set per
-        // socket (two per node), with three GPUs per resource set.
-        // To deal with this where we can, we'll take advantage of OpenMPI's
-        // specialized split by socket. However, we only want to do this
-        // if in fact our resource set is confined to the socket.
-        // To make this determination we need to have system information,
-        // which is provided by the build system for the systems
-        // we know about. The simple heuristic we'll use to determine
-        // this is if the number of visible devices is smaller than
-        // the known number of GPUs per socket.
-
-#if defined(AMREX_USE_CUDA)
-#if (!defined(AMREX_GPUS_PER_SOCKET) && !defined(AMREX_GPUS_PER_NODE))
-        if (amrex::Verbose()) {
-            amrex::Warning("Multiple GPUs are visible to each MPI rank, but the number of GPUs per socket or node has not been provided.\n"
-                           "This may lead to incorrect or suboptimal rank-to-GPU mapping.");
+        if (ParallelDescriptor::NProcsPerNode() == gpu_device_count) {
+            device_id = ParallelDescriptor::MyRankInNode();
+        } else if (ParallelDescriptor::NProcsPerProcessor() == gpu_device_count) {
+            device_id = ParallelDescriptor::MyRankInProcessor();
+        } else {
+            device_id = ParallelDescriptor::MyProc() % gpu_device_count;
         }
-#endif
-#endif
-
-        MPI_Comm local_comm;
-
-        int split_type;
-
-#if (defined(OPEN_MPI) && defined(AMREX_GPUS_PER_SOCKET))
-        if (gpu_device_count <= AMREX_GPUS_PER_SOCKET)
-            split_type = OMPI_COMM_TYPE_SOCKET;
-        else
-            split_type = OMPI_COMM_TYPE_NODE;
-#else
-        split_type = MPI_COMM_TYPE_SHARED;
-#endif
-
-        // We have no preference on how ranks get ordered within this communicator.
-        int key = 0;
-
-        MPI_Comm_split_type(ParallelDescriptor::Communicator(), split_type, key, MPI_INFO_NULL, &local_comm);
-
-        // Get rank within the local communicator, and number of ranks.
-        MPI_Comm_size(local_comm, &n_local_procs);
-
-        int my_rank;
-        MPI_Comm_rank(local_comm, &my_rank);
-
-        // Free the local communicator.
-        MPI_Comm_free(&local_comm);
-
-        // For each rank that shares a GPU, use round-robin assignment
-        // to assign MPI ranks to GPUs. We will arbitrarily assign
-        // ranks to GPUs, assuming that socket awareness has already
-        // been handled.
-
-        device_id = my_rank % gpu_device_count;
-
-        // If we detect more ranks than visible GPUs, warn the user
-        // that this will fail in the case where the devices are
-        // set to exclusive process mode and MPS is not enabled.
-
-        if (n_local_procs > gpu_device_count && amrex::Verbose()) {
-            amrex::Print() << "Mapping more than one rank per GPU. This will fail if the GPUs are in exclusive process mode\n"
-                           << "and MPS is not enabled. In that case you will see an error such as: 'all CUDA-capable devices are\n"
-                           << "busy'. To resolve that issue, set the GPUs to the default compute mode, or enable MPS. If you are\n"
-                           << "on a cluster, please consult the system user guide for how to launch your job in this configuration.\n";
-        }
-
-#endif   // BL_USE_MPI
-
     }
 
-    AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDevice(device_id));,
-                      AMREX_CUDA_SAFE_CALL(cudaSetDevice(device_id)); );
+    if (gpu_device_count > 1 && ! minimal) {
+        if (Machine::name() == "nersc.perlmutter") {
+            // The CPU/GPU mapping on perlmutter has the reverse order.
+            device_id = gpu_device_count - device_id - 1;
+            if (amrex::Verbose()) {
+                amrex::Print() << "Multiple GPUs are visible to each MPI rank. Fixing GPU assignment for Perlmutter according to heuristics.\n";
+            }
+        } else if (Machine::name() == "olcf.frontier") {
+            // The CPU/GPU mapping on fronter is documented at
+            // https://docs.olcf.ornl.gov/systems/frontier_user_guide.html
+            if (gpu_device_count == 8) {
+                constexpr std::array<int,8> gpu_order = {4,5,2,3,6,7,0,1};
+                device_id = gpu_order[device_id];
+                if (amrex::Verbose()) {
+                    amrex::Print() << "Multiple GPUs are visible to each MPI rank. Fixing GPU assignment for Frontier according to heuristics.\n";
+                }
+            }
+        } else {
+            if (amrex::Verbose() && ParallelDescriptor::IOProcessor()) {
+                amrex::Warning("Multiple GPUs are visible to each MPI rank. This is usually not an issue. But this may lead to incorrect or suboptimal rank-to-GPU mapping.");
+            }
+        }
+    }
+
+#if !defined(AMREX_USE_SYCL)
+    if ( ! minimal) {
+        AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDevice(device_id));,
+                          AMREX_CUDA_SAFE_CALL(cudaSetDevice(device_id)); );
+    }
+#endif
 
 #ifdef AMREX_USE_ACC
     amrex_initialize_acc(device_id);
 #endif
 
-    initialize_gpu();
+    initialize_gpu(minimal);
 
     num_devices_used = ParallelDescriptor::NProcs();
 
 #ifdef AMREX_USE_MPI
-    if (ParallelDescriptor::NProcs() > 1) {
+    if (ParallelDescriptor::NProcs() > 1 && ! minimal) {
 
 #if defined(HIP_VERSION_MAJOR) && defined(HIP_VERSION_MINOR) && ((HIP_VERSION_MAJOR < 5) || ((HIP_VERSION_MAJOR == 5) && (HIP_VERSION_MINOR < 2)))
 
@@ -320,7 +299,6 @@ Device::Initialize ()
 
 #elif defined(AMREX_USE_SYCL)
 
-#if 0
         auto const& d = *sycl_device;
         if (d.has(sycl::aspect::ext_intel_device_info_uuid)) {
             auto uuid = d.get_info<sycl::ext::intel::info::device::uuid>();
@@ -346,10 +324,20 @@ Device::Initialize ()
             }
             num_devices_used = uuid_counts.size();
             num_device_partners = uuid_counts[my_uuid];
-        }
-#else
-        num_device_partners = 1;  // xxxxx SYCL: todo, also check memory available when implicit scaling is off.
+
+#if 0
+            for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+                if (i == ParallelDescriptor::MyProc()) {
+                    std::cout << "Proc. " << i << ": |";
+                    for (auto x : uuid) {
+                        std::cout << std::hex << static_cast<unsigned int>(x) << "|";
+                    }
+                    std::cout << '\n';;
+                }
+                ParallelDescriptor::Barrier();
+            }
 #endif
+        }
 
 #endif
 
@@ -357,7 +345,7 @@ Device::Initialize ()
     }
 #endif /* AMREX_USE_MPI */
 
-    if (amrex::Verbose()) {
+    if (amrex::Verbose() && ! minimal) {
 #if defined(AMREX_USE_CUDA)
         amrex::Print() << "CUDA"
 #elif defined(AMREX_USE_HIP)
@@ -368,10 +356,22 @@ Device::Initialize ()
                        << " initialized with " << num_devices_used
                        << ((num_devices_used == 1) ? " device.\n"
                                                    : " devices.\n");
+        if (num_devices_used < ParallelDescriptor::NProcs() && ParallelDescriptor::IOProcessor()) {
+            amrex::Warning("There are more MPI processes than the number of unique GPU devices. This is not necessarily a problem.\n"
+                           "For example this could happen when a device such as MI300A is partitioned into multiple subdevices.");
+        }
     }
 
 #if defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
     nvtxRangePop();
+#endif
+
+#if defined(AMREX_USE_HIP)
+    if (num_devices_used < 0) {
+        // This test is always false, but it makes the compiler no longer
+        // complain about unused function, amrex_check_wavefront_size.
+        amrex::single_task(amrex_check_wavefront_size);
+    }
 #endif
 
     Device::profilerStart();
@@ -410,8 +410,10 @@ Device::Finalize ()
 }
 
 void
-Device::initialize_gpu ()
+Device::initialize_gpu (bool minimal)
 {
+    amrex::ignore_unused(minimal);
+
 #ifdef AMREX_USE_GPU
 
     gpu_stream_pool.resize(max_gpu_streams);
@@ -419,6 +421,8 @@ Device::initialize_gpu ()
 #ifdef AMREX_USE_HIP
 
     AMREX_HIP_SAFE_CALL(hipGetDeviceProperties(&device_prop, device_id));
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(warp_size == device_prop.warpSize, "Incorrect warp size");
 
     // check compute capability
 
@@ -428,21 +432,29 @@ Device::initialize_gpu ()
         AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_stream_pool[i]));
     }
 
+#ifdef AMREX_GPU_STREAM_ALLOC_SUPPORT
+    AMREX_HIP_SAFE_CALL(hipDeviceGetAttribute(&memory_pools_supported, hipDeviceAttributeMemoryPoolsSupported, device_id));
+#endif
+
 #elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaGetDeviceProperties(&device_prop, device_id));
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 4 || (device_prop.major == 3 && device_prop.minor >= 5),
                                      "Compute capability must be >= 3.5");
 
-#ifdef AMREX_CUDA_GE_11_2
+#ifdef AMREX_GPU_STREAM_ALLOC_SUPPORT
     cudaDeviceGetAttribute(&memory_pools_supported, cudaDevAttrMemoryPoolsSupported, device_id);
 #endif
 
-    if (sizeof(Real) == 8) {
-        AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
-    } else if (sizeof(Real) == 4) {
-        AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
+#if (__CUDACC_VER_MAJOR__ < 12) || ((__CUDACC_VER_MAJOR__ == 12) && (__CUDACC_VER_MINOR__ < 4))
+    if ( ! minimal ) {
+        if (sizeof(Real) == 8) {
+            AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
+        } else if (sizeof(Real) == 4) {
+            AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
+        }
     }
+#endif
 
     for (int i = 0; i < max_gpu_streams; ++i) {
         AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_stream_pool[i]));
@@ -468,6 +480,7 @@ Device::initialize_gpu ()
     { // device property
         auto const& d = *sycl_device;
         device_prop.name = d.get_info<sycl::info::device::name>();
+        device_prop.vendor = d.get_info<sycl::info::device::vendor>();
         device_prop.totalGlobalMem = d.get_info<sycl::info::device::global_mem_size>();
         device_prop.sharedMemPerBlock = d.get_info<sycl::info::device::local_mem_size>();
         device_prop.multiProcessorCount = d.get_info<sycl::info::device::max_compute_units>();
@@ -490,6 +503,7 @@ Device::initialize_gpu ()
         {
             amrex::Print() << "Device Properties:\n"
                            << "  name: " << device_prop.name << "\n"
+                           << "  vendor: " << device_prop.vendor << "\n"
                            << "  totalGlobalMem: " << device_prop.totalGlobalMem << "\n"
                            << "  sharedMemPerBlock: " << device_prop.sharedMemPerBlock << "\n"
                            << "  multiProcessorCount: " << device_prop.multiProcessorCount << "\n"
@@ -504,10 +518,40 @@ Device::initialize_gpu ()
                            << "  managedMemory: " << (device_prop.managedMemory ? "Yes" : "No") << "\n"
                            << "  concurrentManagedAccess: " << (device_prop.concurrentManagedAccess ? "Yes" : "No") << "\n"
                            << "  maxParameterSize: " << device_prop.maxParameterSize << "\n"
-                           << std::endl;
+                           << '\n';
+#if defined(__INTEL_LLVM_COMPILER)
+            if (d.has(sycl::aspect::ext_intel_gpu_eu_simd_width)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::gpu_eu_simd_width>();
+                amrex::Print() << "  Intel GPU Execution Unit SIMD Width: " << r << "\n";
+            }
+            if (d.has(sycl::aspect::ext_intel_gpu_eu_count)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::gpu_eu_count>();
+                amrex::Print() << "  Intel GPU Execution Unit Count: " << r << "\n";
+            }
+            if (d.has(sycl::aspect::ext_intel_gpu_slices)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::gpu_slices>();
+                amrex::Print() << "  Intel GPU Number of Slices: " << r << "\n";
+            }
+            if (d.has(sycl::aspect::ext_intel_gpu_subslices_per_slice)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::gpu_subslices_per_slice>();
+                amrex::Print() << "  Intel GPU Number of Subslices per Slice: " << r << "\n";
+            }
+            if (d.has(sycl::aspect::ext_intel_gpu_eu_count_per_subslice)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::gpu_eu_count_per_subslice>();
+                amrex::Print() << "  Intel GPU Number of EUs per Subslice: " << r << "\n";
+            }
+            if (d.has(sycl::aspect::ext_intel_gpu_hw_threads_per_eu)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::gpu_hw_threads_per_eu>();
+                amrex::Print() << "  Intel GPU Number of hardware threads per EU: " << r << "\n";
+            }
+            if (d.has(sycl::aspect::ext_intel_max_mem_bandwidth)) {
+                auto r = d.get_info<sycl::ext::intel::info::device::max_mem_bandwidth>();
+                amrex::Print() << "  Intel GPU Maximum Memory Bandwidth (B/s): " << r << "\n";
+            }
+#endif
         }
         auto found = std::find(sgss.begin(), sgss.end(), static_cast<decltype(sgss)::value_type>(warp_size));
-        if (found == sgss.end()) amrex::Abort("Incorrect subgroup size");
+        if (found == sgss.end()) { amrex::Abort("Incorrect subgroup size"); }
     }
 #endif
 
@@ -519,9 +563,9 @@ Device::initialize_gpu ()
     int ny = 0;
     int nz = 0;
 
-    pp.queryAdd("numThreads.x", nx);
-    pp.queryAdd("numThreads.y", ny);
-    pp.queryAdd("numThreads.z", nz);
+    pp.query("numThreads.x", nx);
+    pp.query("numThreads.y", ny);
+    pp.query("numThreads.z", nz);
 
     numThreadsOverride.x = (int) nx;
     numThreadsOverride.y = (int) ny;
@@ -531,9 +575,9 @@ Device::initialize_gpu ()
     ny = 0;
     nz = 0;
 
-    pp.queryAdd("numBlocks.x", nx);
-    pp.queryAdd("numBlocks.y", ny);
-    pp.queryAdd("numBlocks.z", nz);
+    pp.query("numBlocks.x", nx);
+    pp.query("numBlocks.y", ny);
+    pp.query("numBlocks.z", nz);
 
     numBlocksOverride.x = (int) nx;
     numBlocksOverride.y = (int) ny;
@@ -542,8 +586,8 @@ Device::initialize_gpu ()
     // Graph initialization
     int graph_init = 0;
     int graph_size = 10000;
-    pp.queryAdd("graph_init", graph_init);
-    pp.queryAdd("graph_init_nodes", graph_size);
+    pp.query("graph_init", graph_init);
+    pp.query("graph_init_nodes", graph_size);
 
     if (graph_init)
     {
@@ -587,7 +631,7 @@ Device::streamIndex (gpuStream_t s) noexcept
 #endif
 
 void
-Device::setStreamIndex (const int idx) noexcept
+Device::setStreamIndex (int idx) noexcept
 {
     amrex::ignore_unused(idx);
 #ifdef AMREX_USE_GPU
@@ -664,7 +708,7 @@ Device::streamSynchronizeAll () noexcept
 #endif
 }
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
 
 void
 Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz)
@@ -751,7 +795,7 @@ Device::instantiateGraph(cudaGraph_t graph)
 
     if (graph_log[0] != '\0')
     {
-        amrex::Print() << graph_log << std::endl;
+        amrex::Print() << graph_log << '\n';
         AMREX_GPU_ERROR_CHECK();
     }
 #else
@@ -781,7 +825,7 @@ Device::executeGraph(const cudaGraphExec_t &graphExec, bool synch)
 #endif
 
 void
-Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int device)
+Device::mem_advise_set_preferred (void* p, std::size_t sz, int device)
 {
     amrex::ignore_unused(p,sz,device);
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
@@ -804,7 +848,7 @@ Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int devic
 }
 
 void
-Device::mem_advise_set_readonly (void* p, const std::size_t sz)
+Device::mem_advise_set_readonly (void* p, std::size_t sz)
 {
     amrex::ignore_unused(p,sz);
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
@@ -999,8 +1043,13 @@ Device::freeMemAvailable ()
     std::size_t t;
 #endif
     AMREX_HIP_OR_CUDA_OR_SYCL( AMREX_HIP_SAFE_CALL(hipMemGetInfo(&f,&t));,
-                                AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));,
-                                f = device_prop.totalGlobalMem; ); // xxxxx SYCL todo
+                             AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));,
+                               f = device_prop.totalGlobalMem; );
+#if defined (AMREX_USE_SYCL) && defined(__INTEL_LLVM_COMPILER)
+    if (sycl_device->has(sycl::aspect::ext_intel_free_memory)) {
+        f = sycl_device->get_info<sycl::ext::intel::info::device::free_memory>();
+    }
+#endif
     return f;
 #else
     return 0;
@@ -1028,4 +1077,17 @@ Device::profilerStop ()
 #endif
 }
 
-}}
+#ifdef AMREX_USE_HYPRE
+void hypreSynchronize ()
+{
+#ifdef AMREX_USE_GPU
+#if (HYPRE_RELEASE_NUMBER > 23200) || (HYPRE_RELEASE_NUMBER == 23200 && HYPRE_DEVELOP_NUMBER >= 4)
+    hypre_SyncComputeStream();
+#else
+    hypre_SyncCudaDevice(hypre_handle()); // works for non-cuda device too
+#endif
+#endif
+}
+#endif
+
+}

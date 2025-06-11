@@ -4,37 +4,24 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_ParallelReduce.H>
 
-#ifdef AMREX_TINY_PROFILING
-#include <AMReX_TinyProfiler.H>
-#else
-namespace amrex {
-    struct MemStat {};
-}
-#endif
-
 #include <utility>
 #include <cstring>
+#include <iostream>
 
 namespace amrex {
 
 CArena::CArena (std::size_t hunk_size, ArenaInfo info)
+    : m_hunk(align(hunk_size == 0 ? DefaultHunkSize : hunk_size))
 {
     arena_info = info;
-    //
-    // Force alignment of hunksize.
-    //
-    m_hunk = Arena::align(hunk_size == 0 ? DefaultHunkSize : hunk_size);
-    m_used = 0;
-    m_actually_used = 0;
-
     BL_ASSERT(m_hunk >= hunk_size);
     BL_ASSERT(m_hunk%Arena::align_size == 0);
 }
 
 CArena::~CArena ()
 {
-    for (unsigned int i = 0, N = m_alloc.size(); i < N; i++) {
-        deallocate_system(m_alloc[i].first, m_alloc[i].second);
+    for (auto const& a : m_alloc) {
+        deallocate_system(a.first, a.second);
     }
 }
 
@@ -42,30 +29,30 @@ void*
 CArena::alloc (std::size_t nbytes)
 {
     std::lock_guard<std::mutex> lock(carena_mutex);
-
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
+    return alloc_protected(nbytes);
+}
 
+void*
+CArena::alloc_protected (std::size_t nbytes)
+{
     MemStat* stat = nullptr;
 #ifdef AMREX_TINY_PROFILING
-    if (isDevice()) {
-        stat = TinyProfiler::memory_alloc(nbytes, MemStat::device);
-    } else if (isManaged()) {
-        stat = TinyProfiler::memory_alloc(nbytes, MemStat::managed);
-    } else if (isPinned()) {
-        stat = TinyProfiler::memory_alloc(nbytes, MemStat::pinned);
-    } else {
-        stat = TinyProfiler::memory_alloc(nbytes, MemStat::cpu);
+    if (m_profiler.m_do_profiling) {
+        stat = TinyProfiler::memory_alloc(nbytes, m_profiler.m_profiling_stats);
     }
 #endif
 
+    bool freeunused_called = false;
     if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
         freeUnused_protected();
+        freeunused_called = true;
     }
 
     //
     // Find node in freelist at lowest memory address that'll satisfy request.
     //
-    NL::iterator free_it = m_freelist.begin();
+    auto free_it = m_freelist.begin();
 
     for ( ; free_it != m_freelist.end(); ++free_it) {
         if ((*free_it).size() >= nbytes) {
@@ -73,19 +60,25 @@ CArena::alloc (std::size_t nbytes)
         }
     }
 
-    void* vp = 0;
+    void* vp = nullptr;
 
     if (free_it == m_freelist.end())
     {
-        const std::size_t N = nbytes < m_hunk ? m_hunk : nbytes;
+        // Both freeUnused_protected and allocate_system may invalidate free_it.
+        // All unused memory allocations are combined with the new one to reduce fragmentation.
+        const auto freed_bytes = (freeunused_called || !arena_info.defragmentation)
+            ? std::size_t(0) : freeUnused_protected();
+
+        const std::size_t N = std::max(m_hunk, freed_bytes + nbytes);
 
         vp = allocate_system(N);
 
         m_used += N;
+        m_max_used = std::max(m_used, m_max_used);
 
-        m_alloc.push_back(std::make_pair(vp,N));
+        m_alloc.emplace_back(vp,N);
 
-        if (nbytes < m_hunk)
+        if (nbytes < N)
         {
             //
             // Add leftover chunk to free list.
@@ -94,7 +87,7 @@ CArena::alloc (std::size_t nbytes)
             //
             void* block = static_cast<char*>(vp) + nbytes;
 
-            m_freelist.insert(m_freelist.end(), Node(block, vp, m_hunk-nbytes));
+            m_freelist.insert(m_freelist.end(), Node(block, vp, N-nbytes));
         }
 
         m_busylist.insert(Node(vp, vp, nbytes, stat));
@@ -127,16 +120,148 @@ CArena::alloc (std::size_t nbytes)
     }
 
     m_actually_used += nbytes;
+    m_max_actually_used = std::max(m_actually_used, m_max_actually_used);
 
-    BL_ASSERT(!(vp == 0));
+    BL_ASSERT(vp != nullptr);
 
     return vp;
+}
+
+std::pair<void*,std::size_t>
+CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
+{
+    std::lock_guard<std::mutex> lock(carena_mutex);
+
+    std::size_t nbytes_max = Arena::align(szmax == 0 ? 1 : szmax);
+
+    if (pt != nullptr) { // Try to allocate in-place first
+        auto busy_it = m_busylist.find(Node(pt,nullptr,0));
+        if (busy_it == m_busylist.end()) {
+            amrex::Abort("CArena::alloc_in_place: unknown pointer");
+            return std::make_pair(nullptr,0);
+        }
+        AMREX_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
+
+        if (busy_it->size() >= szmax) {
+            return std::make_pair(pt, busy_it->size());
+        }
+
+        void* next_block = (char*)pt + busy_it->size();
+        auto next_it = m_freelist.find(Node(next_block,nullptr,0));
+        if (next_it != m_freelist.end() && busy_it->coalescable(*next_it)) {
+            std::size_t total_size = busy_it->size() + next_it->size();
+            if (total_size >= szmax) {
+                // Must use nbytes_max instead of szmax for alignment.
+                std::size_t new_size = std::min(total_size, nbytes_max);
+                std::size_t left_size = total_size - new_size;
+                if (left_size <= 64) {
+                    m_freelist.erase(next_it);
+                    new_size = total_size;
+                } else {
+                    auto& free_node = const_cast<Node&>(*next_it);
+                    free_node.block((char*)pt + new_size);
+                    free_node.size(left_size);
+                }
+#ifdef AMREX_TINY_PROFILING
+                if (m_profiler.m_do_profiling) {
+                    TinyProfiler::memory_free(busy_it->size(), busy_it->mem_stat());
+                    auto* stat = TinyProfiler::memory_alloc(new_size,
+                                                            m_profiler.m_profiling_stats);
+                    const_cast<Node&>(*busy_it).mem_stat(stat);
+                }
+#endif
+                m_actually_used += new_size - busy_it->size();
+                m_max_actually_used = std::max(m_actually_used, m_max_actually_used);
+                const_cast<Node&>(*busy_it).size(new_size);
+                return std::make_pair(pt, new_size);
+            } else if (total_size >= szmin) {
+                m_freelist.erase(next_it);
+#ifdef AMREX_TINY_PROFILING
+                if (m_profiler.m_do_profiling) {
+                    TinyProfiler::memory_free(busy_it->size(), busy_it->mem_stat());
+                    auto* stat = TinyProfiler::memory_alloc(total_size,
+                                                            m_profiler.m_profiling_stats);
+                    const_cast<Node&>(*busy_it).mem_stat(stat);
+                }
+#endif
+                m_actually_used += total_size - busy_it->size();
+                m_max_actually_used = std::max(m_actually_used, m_max_actually_used);
+                const_cast<Node&>(*busy_it).size(total_size);
+                return std::make_pair(pt, total_size);
+            }
+        }
+
+        if (busy_it->size() >= szmin) {
+            return std::make_pair(pt, busy_it->size());
+        }
+    }
+
+    void* newp = alloc_protected(nbytes_max);
+    return std::make_pair(newp, nbytes_max);
+}
+
+void*
+CArena::shrink_in_place (void* pt, std::size_t new_size)
+{
+    if ((pt == nullptr) || (new_size == 0)) { return nullptr; }
+
+    new_size = Arena::align(new_size);
+
+    std::lock_guard<std::mutex> lock(carena_mutex);
+
+    auto busy_it = m_busylist.find(Node(pt,nullptr,0));
+    if (busy_it == m_busylist.end()) {
+        amrex::Abort("CArena::shrink_in_place: unknown pointer");
+        return nullptr;
+    }
+    AMREX_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
+
+    auto const old_size = busy_it->size();
+
+    if (new_size > old_size) {
+        amrex::Abort("CArena::shrink_in_place: wrong size. Cannot shrink to a larger size.");
+        return nullptr;
+    } else if (new_size == old_size) {
+        return pt;
+    } else {
+        auto const leftover_size = old_size - new_size;
+
+        void* pt2 = static_cast<char*>(pt) + new_size;
+        Node new_free_node(pt2, busy_it->owner(), leftover_size);
+
+        void* pt_end = static_cast<char*>(pt) + old_size;
+        auto free_it = m_freelist.find(Node(pt_end,nullptr,0));
+        if ((free_it == m_freelist.end()) || ! new_free_node.coalescable(*free_it)) {
+            m_freelist.insert(free_it, new_free_node);
+        } else {
+            auto& node = const_cast<Node&>(*free_it);
+            // This is safe because the free list is std::set and the
+            // modification of `block` does not change the order of elements
+            // in the container, even though Node's operator< uses block.
+            node.block(pt2);
+            node.size(leftover_size + node.size());
+        }
+
+        const_cast<Node&>(*busy_it).size(new_size);
+
+        m_actually_used -= leftover_size;
+
+#ifdef AMREX_TINY_PROFILING
+        if (m_profiler.m_do_profiling) {
+            TinyProfiler::memory_free(old_size, busy_it->mem_stat());
+            auto* stat = TinyProfiler::memory_alloc(new_size, m_profiler.m_profiling_stats);
+            const_cast<Node&>(*busy_it).mem_stat(stat);
+        }
+#endif
+
+        return pt;
+    }
 }
 
 void
 CArena::free (void* vp)
 {
-    if (vp == 0) {
+    if (vp == nullptr) {
         //
         // Allow calls with NULL as allowed by C++ delete.
         //
@@ -148,7 +273,7 @@ CArena::free (void* vp)
     //
     // `vp' had better be in the busy list.
     //
-    auto busy_it = m_busylist.find(Node(vp,0,0));
+    auto busy_it = m_busylist.find(Node(vp,nullptr,0));
     if (busy_it == m_busylist.end()) {
         amrex::Abort("CArena::free: unknown pointer");
         return;
@@ -168,7 +293,7 @@ CArena::free (void* vp)
 
     BL_ASSERT(pair_it.second == true);
 
-    NL::iterator free_it = pair_it.first;
+    auto free_it = pair_it.first;
 
     BL_ASSERT(free_it != m_freelist.end() && (*free_it).block() == (*busy_it).block());
     //
@@ -180,7 +305,7 @@ CArena::free (void* vp)
     //
     if (!(free_it == m_freelist.begin()))
     {
-        NL::iterator lo_it = free_it;
+        auto lo_it = free_it;
 
         --lo_it;
 
@@ -200,14 +325,14 @@ CArena::free (void* vp)
             // back into the same place in the set.
             //
             Node* node = const_cast<Node*>(&(*lo_it));
-            BL_ASSERT(!(node == 0));
+            BL_ASSERT(node != nullptr);
             node->size((*lo_it).size() + (*free_it).size());
             m_freelist.erase(free_it);
             free_it = lo_it;
         }
     }
 
-    NL::iterator hi_it = free_it;
+    auto hi_it = free_it;
 
     void* addr = static_cast<char*>((*free_it).block()) + (*free_it).size();
 
@@ -217,7 +342,7 @@ CArena::free (void* vp)
         // Ditto the above comment.
         //
         Node* node = const_cast<Node*>(&(*free_it));
-        BL_ASSERT(!(node == 0));
+        BL_ASSERT(node != nullptr);
         node->size((*free_it).size() + (*hi_it).size());
         m_freelist.erase(hi_it);
     }
@@ -234,8 +359,9 @@ std::size_t
 CArena::freeUnused_protected ()
 {
     std::size_t nbytes = 0;
+    std::vector<std::pair<void*, std::size_t>> to_free{};
     m_alloc.erase(std::remove_if(m_alloc.begin(), m_alloc.end(),
-                                 [&nbytes,this] (std::pair<void*,std::size_t> a)
+                                 [&nbytes,&to_free,this] (std::pair<void*,std::size_t> a)
                                  {
                                      // We cannot simply use std::set::erase because
                                      // Node::operator== only compares the starting address.
@@ -246,13 +372,27 @@ CArena::freeUnused_protected ()
                                      {
                                          it = m_freelist.erase(it);
                                          nbytes += a.second;
-                                         deallocate_system(a.first,a.second);
+                                         to_free.emplace_back(a.first, a.second);
                                          return true;
                                      }
                                      return false;
                                  }),
                   m_alloc.end());
     m_used -= nbytes;
+
+    // deallocate_system can call cudafree which may perform implicit synchronization
+    // of all cuda streams. In case amrex::Gpu::Elixir is used, a cudaLaunchHostFunc can be
+    // in the steam which calls CArena::free that acquires carena_mutex.
+    // So here carena_mutex needs to be unlocked first to avoid a deadlock.
+    // Note that other threads to allocate/free memory from the CArena in the meantime.
+    if (!to_free.empty()) {
+        carena_mutex.unlock();
+        for (auto& a : to_free) {
+            deallocate_system(a.first, a.second);
+        }
+        carena_mutex.lock();
+    }
+
     return nbytes;
 }
 
@@ -312,7 +452,7 @@ CArena::sizeOf (void* p) const noexcept
     if (p == nullptr) {
         return 0;
     } else {
-        auto it = m_busylist.find(Node(p,0,0));
+        auto it = m_busylist.find(Node(p,nullptr,0));
         if (it == m_busylist.end()) {
             return 0;
         } else {
@@ -322,37 +462,80 @@ CArena::sizeOf (void* p) const noexcept
 }
 
 void
-CArena::PrintUsage (std::string const& name) const
+CArena::PrintUsage (std::string const& name, bool print_max_usage) const
 {
-    Long min_megabytes = heap_space_used() / (1024*1024);
+    Long min_megabytes = static_cast<Long>(
+        (print_max_usage ? m_max_used : heap_space_used()) / (1024*1024));
     Long max_megabytes = min_megabytes;
-    Long actual_min_megabytes = heap_space_actually_used() / (1024*1024);
+    Long actual_min_megabytes = static_cast<Long>(
+        (print_max_usage ? m_max_actually_used : heap_space_actually_used()) / (1024*1024));
     Long actual_max_megabytes = actual_min_megabytes;
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     ParallelReduce::Min<Long>({min_megabytes, actual_min_megabytes},
                               IOProc, ParallelDescriptor::Communicator());
     ParallelReduce::Max<Long>({max_megabytes, actual_max_megabytes},
                               IOProc, ParallelDescriptor::Communicator());
+
+    const auto name_space = "[" + name + "] " + (print_max_usage ? "max " : "") + "space ";
 #ifdef AMREX_USE_MPI
-    amrex::Print() << "[" << name << "] space (MB) allocated spread across MPI: ["
+    amrex::Print() << name_space << "(MB) allocated spread across MPI: ["
                    << min_megabytes << " ... " << max_megabytes << "]\n"
-                   << "[" << name << "] space (MB) used      spread across MPI: ["
+                   << name_space << "(MB) used      spread across MPI: ["
                    << actual_min_megabytes << " ... " << actual_max_megabytes << "]\n";
 #else
-    amrex::Print() << "[" << name << "] space allocated (MB): " << min_megabytes << "\n";
-    amrex::Print() << "[" << name << "] space used      (MB): " << actual_min_megabytes << "\n";
+    amrex::Print() << name_space << "allocated (MB): " << min_megabytes << "\n";
+    amrex::Print() << name_space << "used      (MB): " << actual_min_megabytes << "\n";
 #endif
 }
 
 void
 CArena::PrintUsage (std::ostream& os, std::string const& name, std::string const& space) const
 {
-    Long megabytes = heap_space_used() / (1024*1024);
-    Long actual_megabytes = heap_space_actually_used() / (1024*1024);
+    auto megabytes = heap_space_used() / (1024*1024);
+    auto actual_megabytes = heap_space_actually_used() / (1024*1024);
     os << space << "[" << name << "] space allocated (MB): " << megabytes << "\n";
     os << space << "[" << name << "] space used      (MB): " << actual_megabytes << "\n";
     os << space << "[" << name << "]: " << m_alloc.size() << " allocs, "
        << m_busylist.size() << " busy blocks, " << m_freelist.size() << " free blocks\n";
+}
+
+std::ostream& operator<< (std::ostream& os, const CArena& arena)
+{
+    os << "CArea:\n"
+       << "    Hunk size: " << arena.m_hunk << "\n"
+       << "    Memory allocated: " << arena.m_used << "\n"
+       << "    Memory actually used: " << arena.m_actually_used << "\n";
+
+    if (arena.m_alloc.empty()) {
+        os << "    No memory allocations\n";
+    } else {
+        os << "    List of memory alloations: (address, size)\n";
+        for (auto const& a : arena.m_alloc) {
+            os << "        " << a.first << ", " << a.second << "\n";
+        }
+    }
+
+    if (arena.m_freelist.empty()) {
+        os << "    No free nodes\n";
+    } else {
+        os << "    List of free nodes: (address, owner, size)\n";
+        for (auto const& a : arena.m_freelist) {
+            os << "        " << a.block() << ", " << a.owner() << ", "
+               << a.size() << "\n";
+        }
+    }
+
+    if (arena.m_busylist.empty()) {
+        os << "    No busy nodes\n";
+    } else {
+        os << "    List of busy nodes: (address, owner, size)\n";
+        for (auto const& a : arena.m_busylist) {
+            os << "        " << a.block() << ", " << a.owner() << ", "
+               << a.size() << "\n";
+        }
+    }
+
+    return os;
 }
 
 }

@@ -12,8 +12,8 @@ class MLCGSolverT
 {
 public:
 
-    using FAB = typename MF::fab_type;
-    using RT  = typename MF::value_type;
+    using FAB = typename MLLinOpT<MF>::FAB;
+    using RT  = typename MLLinOpT<MF>::RT;
 
     enum struct Type { BiCGStab, CG };
 
@@ -21,7 +21,9 @@ public:
     ~MLCGSolverT ();
 
     MLCGSolverT (const MLCGSolverT<MF>& rhs) = delete;
+    MLCGSolverT (MLCGSolverT<MF>&& rhs) = delete;
     MLCGSolverT<MF>& operator= (const MLCGSolverT<MF>& rhs) = delete;
+    MLCGSolverT<MF>& operator= (MLCGSolverT<MF>&& rhs) = delete;
 
     void setSolver (Type _typ) noexcept { solver_type = _typ; }
 
@@ -35,39 +37,52 @@ public:
     int solve (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
 
     void setVerbose (int _verbose) { verbose = _verbose; }
-    int getVerbose () const { return verbose; }
+    [[nodiscard]] int getVerbose () const { return verbose; }
 
     void setMaxIter (int _maxiter) { maxiter = _maxiter; }
-    int getMaxIter () const { return maxiter; }
+    [[nodiscard]] int getMaxIter () const { return maxiter; }
+
+    void setPrintIdentation (std::string s) { print_ident = std::move(s); }
+
+    /**
+    * Is the initial guess provided to the solver zero ?
+    * If so, set this to true.
+    * The solver will avoid a few operations if this is true.
+    * Default is false.
+    */
+    void setInitSolnZeroed (bool _sol_zeroed) { initial_vec_zeroed = _sol_zeroed; }
+    [[nodiscard]] bool getInitSolnZeroed () const { return initial_vec_zeroed; }
 
     void setNGhost(int _nghost) {nghost = IntVect(_nghost);}
-    int getNGhost() {return nghost[0];}
+    [[nodiscard]] int getNGhost() {return nghost[0];}
 
-    RT dotxy (const MF& r, const MF& z, bool local = false);
-    RT norm_inf (const MF& res, bool local = false);
+    [[nodiscard]] RT dotxy (const MF& r, const MF& z, bool local = false);
+    [[nodiscard]] RT norm_inf (const MF& res, bool local = false);
     int solve_bicgstab (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
     int solve_cg (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
 
-    int getNumIters () const noexcept { return iter; }
+    [[nodiscard]] int getNumIters () const noexcept { return iter; }
 
 private:
 
     MLLinOpT<MF>& Lp;
     Type solver_type;
-    const int amrlev;
+    const int amrlev = 0;
     const int mglev;
     int verbose   = 0;
     int maxiter   = 100;
     IntVect nghost = IntVect(0);
     int iter = -1;
+    bool initial_vec_zeroed = false;
+    std::string print_ident;
 };
 
 template <typename MF>
 MLCGSolverT<MF>::MLCGSolverT (MLLinOpT<MF>& _lp, Type _typ)
-    : Lp(_lp), solver_type(_typ), amrlev(0), mglev(_lp.NMGLevels(0)-1)
+    : Lp(_lp), solver_type(_typ), mglev(_lp.NMGLevels(0)-1)
 {}
 
-template <typename MF> MLCGSolverT<MF>::~MLCGSolverT () {}
+template <typename MF> MLCGSolverT<MF>::~MLCGSolverT () = default;
 
 template <typename MF>
 int
@@ -86,41 +101,41 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 {
     BL_PROFILE("MLCGSolver::bicgstab");
 
-    const int ncomp = sol.nComp();
+    const int ncomp = nComp(sol);
 
-    const BoxArray& ba = sol.boxArray();
-    const DistributionMapping& dm = sol.DistributionMap();
-    const auto& factory = sol.Factory();
+    MF p = Lp.make(amrlev, mglev, nGrowVect(sol));
+    MF r = Lp.make(amrlev, mglev, nGrowVect(sol));
+    setVal(p, RT(0.0)); // Make sure all entries are initialized to avoid errors
+    setVal(r, RT(0.0));
 
-    MF ph(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
-    MF sh(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
-    ph.setVal(RT(0.0));
-    sh.setVal(RT(0.0));
+    MF rh    = Lp.make(amrlev, mglev, nghost);
+    MF v     = Lp.make(amrlev, mglev, nghost);
+    MF t     = Lp.make(amrlev, mglev, nghost);
 
-    MF sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF p    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF r    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF s    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF rh   (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF v    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF t    (ba, dm, ncomp, nghost, MFInfo(), factory);
 
-    Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
+    MF sorig;
+
+    if ( initial_vec_zeroed ) {
+        LocalCopy(r,rhs,0,0,ncomp,nghost);
+    } else {
+        sorig = Lp.make(amrlev, mglev, nghost);
+
+        Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
+
+        LocalCopy(sorig,sol,0,0,ncomp,nghost);
+        setVal(sol, RT(0.0));
+    }
 
     // Then normalize
     Lp.normalize(amrlev, mglev, r);
-
-    sorig.LocalCopy(sol,0,0,ncomp,nghost);
-    rh.LocalCopy   (r  ,0,0,ncomp,nghost);
-
-    sol.setVal(RT(0.0));
+    LocalCopy(rh, r, 0,0,ncomp,nghost);
 
     RT rnorm = norm_inf(r);
     const RT rnorm0 = rnorm;
 
     if ( verbose > 0 )
     {
-        amrex::Print() << "MLCGSolver_BiCGStab: Initial error (error0) =        " << rnorm0 << '\n';
+        amrex::Print() << print_ident << "MLCGSolver_BiCGStab: Initial error (error0) =        " << rnorm0 << '\n';
     }
     int ret = 0;
     iter = 1;
@@ -130,9 +145,9 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     {
         if ( verbose > 0 )
         {
-            amrex::Print() << "MLCGSolver_BiCGStab: niter = 0,"
+            amrex::Print() << print_ident << "MLCGSolver_BiCGStab: niter = 0,"
                            << ", rnorm = " << rnorm
-                           << ", eps_abs = " << eps_abs << std::endl;
+                           << ", eps_abs = " << eps_abs << '\n';
         }
         return ret;
     }
@@ -146,16 +161,21 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         if ( iter == 1 )
         {
-            p.LocalCopy(r,0,0,ncomp,nghost);
+            LocalCopy(p,r,0,0,ncomp,nghost);
         }
         else
         {
             const RT beta = (rho/rho_1)*(alpha/omega);
-            MF::Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
-            MF::Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
+            if constexpr (IsMultiFabLike_v<MF>) {
+                // two operations: p += -omega*v; p = r + beta*p
+                // same as:        p = r + beta*(p - omega*v)
+                Saxpy_Xpay(p, -omega, v, beta, r, 0, 0, ncomp, nghost);
+            } else {
+                Saxpy(p, -omega, v, 0, 0, ncomp, nghost); // p += -omega*v
+                Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta*p
+            }
         }
-        ph.LocalCopy(p,0,0,ncomp,nghost);
-        Lp.apply(amrlev, mglev, v, ph, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
+        Lp.apply(amrlev, mglev, v, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
         RT rhTv = dotxy(rh,v);
@@ -167,30 +187,34 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 2; break;
         }
-        MF::Saxpy(sol, alpha, ph, 0, 0, ncomp, nghost); // sol += alpha * ph
-        MF::LinComb(s, RT(1.0), r, 0, -alpha, v, 0, 0, ncomp, nghost); // s = r - alpha * v
+        if constexpr (IsMultiFabLike_v<MF>) {
+            // sol += alpha * p; r += -alpha * v
+            Saxpy_Saxpy(sol, alpha, p, r, -alpha, v, 0, 0, ncomp, nghost);
+        } else {
+            Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
+            Saxpy(r,  -alpha, v, 0, 0, ncomp, nghost); // r += -alpha * v
+        }
 
-        rnorm = norm_inf(s);
+        rnorm = norm_inf(r);
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
-            amrex::Print() << "MLCGSolver_BiCGStab: Half Iter "
+            amrex::Print() << print_ident << "MLCGSolver_BiCGStab: Half Iter "
                            << std::setw(11) << iter
                            << " rel. err. "
                            << rnorm/(rnorm0) << '\n';
         }
 
-        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
+        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
-        sh.LocalCopy(s,0,0,ncomp,nghost);
-        Lp.apply(amrlev, mglev, t, sh, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
+        Lp.apply(amrlev, mglev, t, r, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
         Lp.normalize(amrlev, mglev, t);
         //
         // This is a little funky.  I want to elide one of the reductions
         // in the following two dotxy()s.  We do that by calculating the "local"
         // values and then reducing the two local values at the same time.
         //
-        RT tvals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
+        RT tvals[2] = { dotxy(t,t,true), dotxy(t,r,true) };
 
         BL_PROFILE_VAR("MLCGSolver::ParallelAllReduce", blp_par);
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
@@ -204,20 +228,25 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         {
             ret = 3; break;
         }
-        MF::Saxpy(sol, omega, sh, 0, 0, ncomp, nghost); // sol += omega * sh
-        MF::LinComb(r, RT(1.0), s, 0, -omega, t, 0, 0, ncomp, nghost); // r = s - omega * t
+        if constexpr (IsMultiFabLike_v<MF>) {
+            // sol += omega * r; r += -omega * t
+            Saypy_Saxpy(sol, omega, r, -omega, t, 0, 0, ncomp, nghost);
+        } else {
+            Saxpy(sol, omega, r, 0, 0, ncomp, nghost); // sol += omega * r
+            Saxpy(r,  -omega, t, 0, 0, ncomp, nghost); // r += -omega * t
+        }
 
         rnorm = norm_inf(r);
 
         if ( verbose > 2 )
         {
-            amrex::Print() << "MLCGSolver_BiCGStab: Iteration "
+            amrex::Print() << print_ident << "MLCGSolver_BiCGStab: Iteration "
                            << std::setw(11) << iter
                            << " rel. err. "
                            << rnorm/(rnorm0) << '\n';
         }
 
-        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
+        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
         if ( omega == 0 )
         {
@@ -228,7 +257,7 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( verbose > 0 )
     {
-        amrex::Print() << "MLCGSolver_BiCGStab: Final: Iteration "
+        amrex::Print() << print_ident << "MLCGSolver_BiCGStab: Final: Iteration "
                        << std::setw(4) << iter
                        << " rel. err. "
                        << rnorm/(rnorm0) << '\n';
@@ -236,19 +265,25 @@ MLCGSolverT<MF>::solve_bicgstab (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( ret == 0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
     {
-        if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
+        if ( verbose > 0 && ParallelDescriptor::IOProcessor() ) {
             amrex::Warning("MLCGSolver_BiCGStab:: failed to converge!");
+        }
         ret = 8;
     }
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        if ( !initial_vec_zeroed ) {
+            LocalAdd(sol, sorig, 0, 0, ncomp, nghost);
+        }
+        if (ret == 8) { ret = 9; }
     }
     else
     {
-        sol.setVal(RT(0.0));
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        setVal(sol, RT(0.0));
+        if ( !initial_vec_zeroed ) {
+            LocalAdd(sol, sorig, 0, 0, ncomp, nghost);
+        }
     }
 
     return ret;
@@ -260,32 +295,33 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 {
     BL_PROFILE("MLCGSolver::cg");
 
-    const int ncomp = sol.nComp();
+    const int ncomp = nComp(sol);
 
-    const BoxArray& ba = sol.boxArray();
-    const DistributionMapping& dm = sol.DistributionMap();
-    const auto& factory = sol.Factory();
+    MF p = Lp.make(amrlev, mglev, nGrowVect(sol));
+    setVal(p, RT(0.0));
 
-    MF p(ba, dm, ncomp, sol.nGrowVect(), MFInfo(), factory);
-    p.setVal(RT(0.0));
+    MF r     = Lp.make(amrlev, mglev, nghost);
+    MF q     = Lp.make(amrlev, mglev, nghost);
 
-    MF sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF r    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF z    (ba, dm, ncomp, nghost, MFInfo(), factory);
-    MF q    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MF sorig;
 
-    sorig.LocalCopy(sol,0,0,ncomp,nghost);
+    if ( initial_vec_zeroed ) {
+        LocalCopy(r,rhs,0,0,ncomp,nghost);
+    } else {
+        sorig = Lp.make(amrlev, mglev, nghost);
 
-    Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
+        Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOpT<MF>::BCMode::Homogeneous);
 
-    sol.setVal(RT(0.0));
+        LocalCopy(sorig,sol,0,0,ncomp,nghost);
+        setVal(sol, RT(0.0));
+    }
 
     RT       rnorm    = norm_inf(r);
     const RT rnorm0   = rnorm;
 
     if ( verbose > 0 )
     {
-        amrex::Print() << "MLCGSolver_CG: Initial error (error0) :        " << rnorm0 << '\n';
+        amrex::Print() << print_ident << "MLCGSolver_CG: Initial error (error0) :        " << rnorm0 << '\n';
     }
 
     RT rho_1 = 0;
@@ -295,18 +331,16 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
         if ( verbose > 0 ) {
-            amrex::Print() << "MLCGSolver_CG: niter = 0,"
+            amrex::Print() << print_ident << "MLCGSolver_CG: niter = 0,"
                            << ", rnorm = " << rnorm
-                           << ", eps_abs = " << eps_abs << std::endl;
+                           << ", eps_abs = " << eps_abs << '\n';
         }
         return ret;
     }
 
     for (; iter <= maxiter; ++iter)
     {
-        z.LocalCopy(r,0,0,ncomp,nghost);
-
-        RT rho = dotxy(z,r);
+        RT rho = dotxy(r,r);
 
         if ( rho == 0 )
         {
@@ -314,12 +348,12 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
         }
         if (iter == 1)
         {
-            p.LocalCopy(z,0,0,ncomp,nghost);
+            LocalCopy(p,r,0,0,ncomp,nghost);
         }
         else
         {
             RT beta = rho/rho_1;
-            MF::Xpay(p, beta, z, 0, 0, ncomp, nghost); // p = z + beta * p
+            Xpay(p, beta, r, 0, 0, ncomp, nghost); // p = r + beta * p
         }
         Lp.apply(amrlev, mglev, q, p, MLLinOpT<MF>::BCMode::Homogeneous, MLLinOpT<MF>::StateMode::Correction);
 
@@ -336,31 +370,36 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
         if ( verbose > 2 )
         {
-            amrex::Print() << "MLCGSolver_cg:"
+            amrex::Print() << print_ident << "MLCGSolver_cg:"
                            << " iter " << iter
                            << " rho " << rho
                            << " alpha " << alpha << '\n';
         }
-        MF::Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
-        MF::Saxpy(r, -alpha, q, 0, 0, ncomp, nghost); // r += -alpha * q
+        if constexpr (IsMultiFabLike_v<MF>) {
+            // sol += alpha * p; r += -alpha * q
+            Saxpy_Saxpy(sol, alpha, p, r, -alpha, q, 0, 0, ncomp, nghost);
+        } else {
+            Saxpy(sol, alpha, p, 0, 0, ncomp, nghost); // sol += alpha * p
+            Saxpy(r, -alpha, q, 0, 0, ncomp, nghost); // r += -alpha * q
+        }
         rnorm = norm_inf(r);
 
         if ( verbose > 2 )
         {
-            amrex::Print() << "MLCGSolver_cg:       Iteration"
+            amrex::Print() << print_ident << "MLCGSolver_cg:       Iteration"
                            << std::setw(4) << iter
                            << " rel. err. "
                            << rnorm/(rnorm0) << '\n';
         }
 
-        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
+        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) { break; }
 
         rho_1 = rho;
     }
 
     if ( verbose > 0 )
     {
-        amrex::Print() << "MLCGSolver_cg: Final Iteration"
+        amrex::Print() << print_ident << "MLCGSolver_cg: Final Iteration"
                        << std::setw(4) << iter
                        << " rel. err. "
                        << rnorm/(rnorm0) << '\n';
@@ -368,19 +407,25 @@ MLCGSolverT<MF>::solve_cg (MF& sol, const MF& rhs, RT eps_rel, RT eps_abs)
 
     if ( ret == 0 &&  rnorm > eps_rel*rnorm0 && rnorm > eps_abs )
     {
-        if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
+        if ( verbose > 0 && ParallelDescriptor::IOProcessor() ) {
             amrex::Warning("MLCGSolver_cg: failed to converge!");
+        }
         ret = 8;
     }
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        if ( !initial_vec_zeroed ) {
+            LocalAdd(sol, sorig, 0, 0, ncomp, nghost);
+        }
+        if (ret == 8) { ret = 9; }
     }
     else
     {
-        sol.setVal(RT(0.0));
-        sol.LocalAdd(sorig, 0, 0, ncomp, nghost);
+        setVal(sol, RT(0.0));
+        if ( !initial_vec_zeroed ) {
+            LocalAdd(sol, sorig, 0, 0, ncomp, nghost);
+        }
     }
 
     return ret;
@@ -401,8 +446,8 @@ template <typename MF>
 auto
 MLCGSolverT<MF>::norm_inf (const MF& res, bool local) -> RT
 {
-    int ncomp = res.nComp();
-    RT result = res.norminf(0,ncomp,IntVect(0),true);
+    int ncomp = nComp(res);
+    RT result = norminf(res,0,ncomp,IntVect(0),true);
     if (!local) {
         BL_PROFILE("MLCGSolver::ParallelAllReduce");
         ParallelAllReduce::Max(result, Lp.BottomCommunicator());

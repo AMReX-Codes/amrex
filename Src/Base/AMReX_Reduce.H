@@ -14,7 +14,7 @@
 
 namespace amrex {
 
-namespace Reduce { namespace detail {
+namespace Reduce::detail {
 
 #ifdef AMREX_USE_GPU
 #ifdef AMREX_USE_SYCL
@@ -67,19 +67,19 @@ namespace Reduce { namespace detail {
 
     template <std::size_t I, typename T, typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void for_each_init (T& t)
+    constexpr void for_each_init (T& t)
     {
         P().init(amrex::get<I>(t));
     }
 
     template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void for_each_init (T& t)
+    constexpr void for_each_init (T& t)
     {
         P().init(amrex::get<I>(t));
         for_each_init<I+1,T,P1,Ps...>(t);
     }
-}}
+}
 
 struct ReduceOpSum
 {
@@ -93,17 +93,17 @@ struct ReduceOpSum
         if (h.threadIdx() == 0) { d += r; }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept {
-        T r = Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceSum<MT>(s);
         if (threadIdx.x == 0) { d += r; }
     }
 #endif
 #endif
 
     template <typename T>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void local_update (T& d, T const& s) const noexcept { d += s; }
 
     template <typename T>
@@ -121,17 +121,17 @@ struct ReduceOpMin
         if (h.threadIdx() == 0) { d = amrex::min(d,r); }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept {
-        T r = Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceMin<MT>(s);
         if (threadIdx.x == 0) { d = amrex::min(d,r); }
     }
 #endif
 #endif
 
     template <typename T>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void local_update (T& d, T const& s) const noexcept { d = amrex::min(d,s); }
 
     template <typename T>
@@ -154,17 +154,17 @@ struct ReduceOpMax
         if (h.threadIdx() == 0) { d = amrex::max(d,r); }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept {
-        T r = Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceMax<MT>(s);
         if (threadIdx.x == 0) { d = amrex::max(d,r); }
     }
 #endif
 #endif
 
     template <typename T>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void local_update (T& d, T const& s) const noexcept { d = amrex::max(d,s); }
 
     template <typename T>
@@ -188,23 +188,23 @@ struct ReduceOpLogicalAnd
         if (h.threadIdx() == 0) { d = d && r; }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<std::is_integral<T>::value>
     parallel_update (T& d, T s) const noexcept {
-        T r = Gpu::blockReduceLogicalAnd<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceLogicalAnd<MT>(s);
         if (threadIdx.x == 0) { d = d && r; }
     }
 #endif
 #endif
 
     template <typename T>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<std::is_integral<T>::value>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    std::enable_if_t<std::is_integral_v<T>>
     local_update (T& d, T s) const noexcept { d = d && s; }
 
     template <typename T>
-    constexpr std::enable_if_t<std::is_integral<T>::value>
+    constexpr std::enable_if_t<std::is_integral_v<T>>
     init (T& t) const noexcept { t = true; }
 };
 
@@ -220,23 +220,23 @@ struct ReduceOpLogicalOr
         if (h.threadIdx() == 0) { d = d || r; }
     }
 #else
-    template <typename T>
+    template <typename T, int MT=AMREX_GPU_MAX_THREADS>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<std::is_integral<T>::value>
     parallel_update (T& d, T s) const noexcept {
-        T r = Gpu::blockReduceLogicalOr<AMREX_GPU_MAX_THREADS>(s);
+        T r = Gpu::blockReduceLogicalOr<MT>(s);
         if (threadIdx.x == 0) { d = d || r; }
     }
 #endif
 #endif
 
     template <typename T>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<std::is_integral<T>::value>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    std::enable_if_t<std::is_integral_v<T>>
     local_update (T& d, T s) const noexcept { d = d || s; }
 
     template <typename T>
-    constexpr std::enable_if_t<std::is_integral<T>::value>
+    constexpr std::enable_if_t<std::is_integral_v<T>>
     init (T& t) const noexcept { t = false; }
 };
 
@@ -254,10 +254,11 @@ public:
     explicit ReduceData (ReduceOps<Ps...>& reduce_op)
         : m_max_blocks(Gpu::Device::maxBlocksPerLaunch()),
           m_host_tuple((Type*)(The_Pinned_Arena()->alloc(sizeof(Type)))),
-          m_device_tuple((Type*)(The_Arena()->alloc((AMREX_GPU_MAX_STREAMS+1)
+          m_device_tuple((Type*)(The_Arena()->alloc((AMREX_GPU_MAX_STREAMS)
                                                     * m_max_blocks * sizeof(Type)))),
           m_fn_value([&reduce_op,this] () -> Type { return this->value(reduce_op); })
     {
+        reduce_op.resetResultReadiness();
         static_assert(std::is_trivially_copyable<Type>(),
                       "ReduceData::Type must be trivially copyable");
         static_assert(std::is_trivially_destructible<Type>(),
@@ -290,25 +291,31 @@ public:
 
     Type* devicePtr () { return m_device_tuple; }
     Type* devicePtr (gpuStream_t const& s) {
-        return m_device_tuple+(Gpu::Device::streamIndex(s)+1)*m_max_blocks;
+        return m_device_tuple+(Gpu::Device::streamIndex(s))*m_max_blocks;
     }
 
     Type* hostPtr () { return m_host_tuple; }
 
-    GpuArray<int,AMREX_GPU_MAX_STREAMS+1>& nBlocks () { return m_nblocks; }
-    int& nBlocks (gpuStream_t const& s) { return m_nblocks[Gpu::Device::streamIndex(s)+1]; }
+    GpuArray<int,AMREX_GPU_MAX_STREAMS>& nBlocks () { return m_nblocks; }
+    int& nBlocks (gpuStream_t const& s) { return m_nblocks[Gpu::Device::streamIndex(s)]; }
 
     int maxBlocks () const { return m_max_blocks; }
 
+    int maxStreamIndex () const { return m_max_stream_index; }
+    void updateMaxStreamIndex (gpuStream_t const& s) {
+        m_max_stream_index = std::max(m_max_stream_index,Gpu::Device::streamIndex(s));
+    }
+
 private:
     int m_max_blocks;
+    int m_max_stream_index = 0;
     Type* m_host_tuple = nullptr;
     Type* m_device_tuple = nullptr;
-    GpuArray<int,AMREX_GPU_MAX_STREAMS+1> m_nblocks;
+    GpuArray<int,AMREX_GPU_MAX_STREAMS> m_nblocks;
     std::function<Type()> m_fn_value;
 };
 
-namespace Reduce { namespace detail {
+namespace Reduce::detail {
     template <typename F>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto call_f (F const& f, int i, int j, int k, IndexType)
@@ -350,7 +357,7 @@ namespace Reduce { namespace detail {
             Reduce::detail::for_each_local<0, T, Ps...>(r, pr);
         }
     }
-}}
+}
 
 template <typename... Ps>
 class ReduceOps
@@ -359,27 +366,28 @@ public:
 
     // This is public for CUDA
     template <typename I, typename MF, typename D, typename F>
-    void eval_mf (I, MF const& mf, IntVect const& nghost, int ncomp, D& reduce_data, F&&f)
+    void eval_mf (I, MF const& mf, IntVect const& nghost, int ncomp, D& reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         const int nboxes = mf.local_size();
         if (nboxes > 0) {
-            auto const& parforinfo = mf.getParForInfo(nghost,AMREX_GPU_MAX_THREADS);
-            auto par_for_blocks = parforinfo.getBlocks();
-            const int nblocks = par_for_blocks.first[nboxes];
-            const int block_0_size = par_for_blocks.first[1];
-            const int* dp_nblocks = par_for_blocks.second;
-            const Box* dp_boxes = parforinfo.getBoxes();
+            auto const& parforinfo = mf.getParForInfo(nghost);
+            auto nblocks_per_box = parforinfo.getNBlocksPerBox(AMREX_GPU_MAX_THREADS);
+            AMREX_ASSERT(Long(nblocks_per_box)*Long(nboxes) < Long(std::numeric_limits<int>::max()));
+            const int nblocks = nblocks_per_box * nboxes;
+            const BoxIndexer* dp_boxes = parforinfo.getBoxes();
 
             auto const& stream = Gpu::gpuStream();
             auto pdst = reduce_data.devicePtr(stream);
             int nblocks_ec = std::min(nblocks, reduce_data.maxBlocks());
+            AMREX_ASSERT(Long(nblocks_ec)*2 <= Long(std::numeric_limits<int>::max()));
             reduce_data.nBlocks(stream) = nblocks_ec;
+            reduce_data.updateMaxStreamIndex(stream);
 
 #ifdef AMREX_USE_SYCL
             // device reduce needs local(i.e., shared) memory
             constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
-            amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
+            amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
                           [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
             {
                 Dim1 blockIdx {gh.blockIdx()};
@@ -397,25 +405,12 @@ public:
                     dst = r;
                 }
                 for (int iblock = blockIdx.x; iblock < nblocks; iblock += nblocks_ec) {
-                    int ibox, icell;
-                    if (dp_nblocks) {
-                        ibox = amrex::bisect(dp_nblocks, 0, nboxes, iblock);
-                        icell = (iblock-dp_nblocks[ibox])*AMREX_GPU_MAX_THREADS + threadIdx.x;
-                    } else {
-                        ibox = iblock / block_0_size;
-                        icell = (iblock-ibox*block_0_size)*AMREX_GPU_MAX_THREADS + threadIdx.x;
-                    }
+                    int ibox = iblock / nblocks_per_box;
+                    auto icell = std::uint64_t(iblock-ibox*nblocks_per_box)*AMREX_GPU_MAX_THREADS + threadIdx.x;
 
-                    Box const& b = dp_boxes[ibox];
-                    int ncells = b.numPts();
-                    if (icell < ncells) {
-                        const auto len = amrex::length(b);
-                        int k =  icell /   (len.x*len.y);
-                        int j = (icell - k*(len.x*len.y)) /   len.x;
-                        int i = (icell - k*(len.x*len.y)) - j*len.x;
-                        AMREX_D_TERM(i += b.smallEnd(0);,
-                                     j += b.smallEnd(1);,
-                                     k += b.smallEnd(2););
+                    BoxIndexer const& indexer = dp_boxes[ibox];
+                    if (icell < indexer.numPts()) {
+                        auto [i, j, k] = indexer(icell);
                         Reduce::detail::mf_call_f<I, F, ReduceTuple, Ps...>
                             (f, ibox, i, j, k, ncomp, r);
                     }
@@ -488,7 +483,7 @@ public:
     }
 
     template <typename D, typename F>
-    void eval (Box const& box, D & reduce_data, F&& f)
+    void eval (Box const& box, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
@@ -504,18 +499,18 @@ public:
         int nblocks_ec = (ncells + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
             / (nitems_per_thread*AMREX_GPU_MAX_THREADS);
         nblocks_ec = std::min(nblocks_ec, reduce_data.maxBlocks());
+        reduce_data.updateMaxStreamIndex(stream);
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
-        amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             Dim1 blockIdx {gh.blockIdx()};
             Dim1 threadIdx{gh.threadIdx()};
-            Dim1 blockDim {gh.blockDim()};
             Dim1 gridDim  {gh.gridDim()};
 #else
-        amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream,
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
         [=] AMREX_GPU_DEVICE () noexcept
         {
 #endif
@@ -525,7 +520,7 @@ public:
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  icell < ncells; icell += stride) {
                 int k =  icell /   lenxy;
                 int j = (icell - k*lenxy) /   lenx;
@@ -547,7 +542,7 @@ public:
 
     template <typename N, typename D, typename F,
               typename M=std::enable_if_t<std::is_integral<N>::value> >
-    void eval (Box const& box, N ncomp, D & reduce_data, F&& f)
+    void eval (Box const& box, N ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
@@ -562,18 +557,18 @@ public:
         int nblocks_ec = (ncells + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
             / (nitems_per_thread*AMREX_GPU_MAX_THREADS);
         nblocks_ec = std::min(nblocks_ec, reduce_data.maxBlocks());
+        reduce_data.updateMaxStreamIndex(stream);
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
-        amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             Dim1 blockIdx {gh.blockIdx()};
             Dim1 threadIdx{gh.threadIdx()};
-            Dim1 blockDim {gh.blockDim()};
             Dim1 gridDim  {gh.gridDim()};
 #else
-        amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream,
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
         [=] AMREX_GPU_DEVICE () noexcept
         {
 #endif
@@ -583,7 +578,7 @@ public:
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  icell < ncells; icell += stride) {
                 int k =  icell /   lenxy;
                 int j = (icell - k*lenxy) /   lenx;
@@ -607,9 +602,9 @@ public:
 
     template <typename N, typename D, typename F,
               typename M=std::enable_if_t<std::is_integral<N>::value> >
-    void eval (N n, D & reduce_data, F&& f)
+    void eval (N n, D & reduce_data, F const& f)
     {
-        if (n <= 0) return;
+        if (n <= 0) { return; }
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
         auto dp = reduce_data.devicePtr(stream);
@@ -618,18 +613,18 @@ public:
         int nblocks_ec = (n + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
             / (nitems_per_thread*AMREX_GPU_MAX_THREADS);
         nblocks_ec = std::min(nblocks_ec, reduce_data.maxBlocks());
+        reduce_data.updateMaxStreamIndex(stream);
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
-        amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             Dim1 blockIdx {gh.blockIdx()};
             Dim1 threadIdx{gh.threadIdx()};
-            Dim1 blockDim {gh.blockDim()};
             Dim1 gridDim  {gh.gridDim()};
 #else
-        amrex::launch(nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream,
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
         [=] AMREX_GPU_DEVICE () noexcept
         {
 #endif
@@ -639,7 +634,7 @@ public:
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+            for (N i = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  i < n; i += stride) {
                 auto pr = f(i);
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
@@ -656,62 +651,93 @@ public:
     template <typename D>
     typename D::Type value (D & reduce_data)
     {
+        auto hp = reduce_data.hostPtr();
+
+        if (m_result_is_ready) {
+            return *hp;
+        }
+
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
-        auto hp = reduce_data.hostPtr();
         auto dp = reduce_data.devicePtr();
         auto const& nblocks = reduce_data.nBlocks();
-        int maxblocks = reduce_data.maxBlocks();
+#if defined(AMREX_USE_SYCL)
+        if (reduce_data.maxStreamIndex() == 0 && nblocks[0] <= 4096) {
+            const int N = nblocks[0];
+            if (N == 0) {
+                Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(*hp);
+            } else {
+                Gpu::PinnedVector<ReduceTuple> tmp(N);
+                Gpu::dtoh_memcpy_async(tmp.data(), dp, sizeof(ReduceTuple)*N);
+                Gpu::streamSynchronize();
+                for (int i = 1; i < N; ++i) {
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(tmp[0], tmp[i]);
+                }
+                *hp = tmp[0];
+            }
+        } else
+#endif
+        {
+            int maxblocks = reduce_data.maxBlocks();
 #ifdef AMREX_USE_SYCL
-        // device reduce needs local(i.e., shared) memory
-        constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+            // device reduce needs local(i.e., shared) memory
+            constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
 #ifndef AMREX_NO_SYCL_REDUCE_WORKAROUND
-        // xxxxx SYCL todo: reduce bug workaround
-        Gpu::DeviceVector<ReduceTuple> dtmp(1);
-        auto presult = dtmp.data();
+            // xxxxx SYCL todo: reduce bug workaround
+            Gpu::DeviceVector<ReduceTuple> dtmp(1);
+            auto presult = dtmp.data();
 #else
-        auto presult = hp;
+            auto presult = hp;
 #endif
-        amrex::launch(1, AMREX_GPU_MAX_THREADS, shared_mem_bytes, stream,
-        [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
-        {
-            ReduceTuple r;
-            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
-            ReduceTuple dst = r;
-            for (int istream = 0, nstreams = nblocks.size(); istream < nstreams; ++istream) {
-                auto dp_stream = dp+istream*maxblocks;
-                for (int i = gh.item->get_global_id(0), stride = gh.item->get_global_range(0);
-                     i < nblocks[istream]; i += stride) {
-                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, dp_stream[i]);
+            amrex::launch<AMREX_GPU_MAX_THREADS>(1, shared_mem_bytes, stream,
+            [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
+            {
+                ReduceTuple r;
+                Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
+                ReduceTuple dst = r;
+                for (int istream = 0, nstreams = nblocks.size(); istream < nstreams; ++istream) {
+                    auto dp_stream = dp+istream*maxblocks;
+                    for (int i = gh.item->get_global_id(0), stride = gh.item->get_global_range(0);
+                         i < nblocks[istream]; i += stride) {
+                        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, dp_stream[i]);
+                    }
                 }
-            }
-            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
-            if (gh.threadIdx() == 0) { *presult = dst; }
-        });
+                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
+                if (gh.threadIdx() == 0) { *presult = dst; }
+            });
 #ifndef AMREX_NO_SYCL_REDUCE_WORKAROUND
-        Gpu::dtoh_memcpy_async(hp, dtmp.data(), sizeof(ReduceTuple));
+            Gpu::dtoh_memcpy_async(hp, dtmp.data(), sizeof(ReduceTuple));
 #endif
 #else
-        amrex::launch(1, AMREX_GPU_MAX_THREADS, 0, stream,
-        [=] AMREX_GPU_DEVICE () noexcept
-        {
-            ReduceTuple r;
-            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
-            ReduceTuple dst = r;
-            for (int istream = 0, nstreams = nblocks.size(); istream < nstreams; ++istream) {
-                auto dp_stream = dp+istream*maxblocks;
-                for (int i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
-                     i < nblocks[istream]; i += stride) {
-                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, dp_stream[i]);
+            amrex::launch<AMREX_GPU_MAX_THREADS>(1, 0, stream,
+            [=] AMREX_GPU_DEVICE () noexcept
+            {
+                ReduceTuple r;
+                Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
+                ReduceTuple dst = r;
+                for (int istream = 0, nstreams = nblocks.size(); istream < nstreams; ++istream) {
+                    auto dp_stream = dp+istream*maxblocks;
+                    for (int i = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
+                         i < nblocks[istream]; i += stride) {
+                        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, dp_stream[i]);
+                    }
                 }
-            }
-            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
-            if (threadIdx.x == 0) { *hp = dst; }
-        });
+                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
+                if (threadIdx.x == 0) { *hp = dst; }
+            });
 #endif
-        Gpu::streamSynchronize();
+            Gpu::streamSynchronize();
+        }
+
+        m_result_is_ready = true;
         return *hp;
     }
+
+private:
+    bool m_result_is_ready = false;
+
+public:
+    void resetResultReadiness () { m_result_is_ready = false; }
 };
 
 namespace Reduce {
@@ -729,7 +755,7 @@ T Sum (N n, T const* v, T init_val = 0)
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral<N>::value> >
-T Sum (N n, F&& f, T init_val = 0)
+T Sum (N n, F const& f, T init_val = 0)
 {
     ReduceOps<ReduceOpSum> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -752,7 +778,7 @@ T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral<N>::value> >
-T Min (N n, F&& f, T init_val = std::numeric_limits<T>::max())
+T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max())
 {
     ReduceOps<ReduceOpMin> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -775,7 +801,7 @@ T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral<N>::value> >
-T Max (N n, F&& f, T init_val = std::numeric_limits<T>::lowest())
+T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest())
 {
     ReduceOps<ReduceOpMax> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -800,7 +826,7 @@ std::pair<T,T> MinMax (N n, T const* v)
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral<N>::value> >
-std::pair<T,T> MinMax (N n, F&& f)
+std::pair<T,T> MinMax (N n, F const& f)
 {
     ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
     ReduceData<T,T> reduce_data(reduce_op);
@@ -814,7 +840,7 @@ std::pair<T,T> MinMax (N n, F&& f)
 }
 
 template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral<N>::value> >
-bool AnyOf (N n, T const* v, P&& pred)
+bool AnyOf (N n, T const* v, P const& pred)
 {
     Gpu::LaunchSafeGuard lsg(true);
     Gpu::DeviceScalar<int> ds(0);
@@ -825,7 +851,7 @@ bool AnyOf (N n, T const* v, P&& pred)
 #ifdef AMREX_USE_SYCL
     const int num_ints = std::max(Gpu::Device::warp_size, int(ec.numThreads.x)/Gpu::Device::warp_size) + 1;
     const std::size_t shared_mem_bytes = num_ints*sizeof(int);
-    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::gpuStream(),
+    amrex::launch<AMREX_GPU_MAX_THREADS>(ec.numBlocks.x, shared_mem_bytes, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
         int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
         if (gh.threadIdx() == 0) { *has_any = *dp; }
@@ -834,7 +860,7 @@ bool AnyOf (N n, T const* v, P&& pred)
         if (!(*has_any))
         {
             int r = false;
-            for (N i = gh.blockDim()*gh.blockIdx()+gh.threadIdx(), stride = gh.blockDim()*gh.gridDim();
+            for (N i = AMREX_GPU_MAX_THREADS*gh.blockIdx()+gh.threadIdx(), stride = AMREX_GPU_MAX_THREADS*gh.gridDim();
                  i < n && !r; i += stride)
             {
                 r = pred(v[i]) ? 1 : 0;
@@ -846,16 +872,16 @@ bool AnyOf (N n, T const* v, P&& pred)
         }
     });
 #else
-    amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
+    amrex::launch<AMREX_GPU_MAX_THREADS>(ec.numBlocks.x, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
-        if (threadIdx.x == 0) has_any = *dp;
+        if (threadIdx.x == 0) { has_any = *dp; }
         __syncthreads();
 
         if (!has_any)
         {
             int r = false;
-            for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+            for (N i = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  i < n && !r; i += stride)
             {
                 r = pred(v[i]) ? 1 : 0;
@@ -870,7 +896,7 @@ bool AnyOf (N n, T const* v, P&& pred)
 }
 
 template <typename P>
-bool AnyOf (Box const& box, P&& pred)
+bool AnyOf (Box const& box, P const& pred)
 {
     Gpu::LaunchSafeGuard lsg(true);
     Gpu::DeviceScalar<int> ds(0);
@@ -886,7 +912,7 @@ bool AnyOf (Box const& box, P&& pred)
 #ifdef AMREX_USE_SYCL
     const int num_ints = std::max(Gpu::Device::warp_size, int(ec.numThreads.x)/Gpu::Device::warp_size) + 1;
     const std::size_t shared_mem_bytes = num_ints*sizeof(int);
-    amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::gpuStream(),
+    amrex::launch<AMREX_GPU_MAX_THREADS>(ec.numBlocks.x, shared_mem_bytes, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept {
         int* has_any = &(static_cast<int*>(gh.sharedMemory())[num_ints-1]);
         if (gh.threadIdx() == 0) { *has_any = *dp; }
@@ -895,7 +921,7 @@ bool AnyOf (Box const& box, P&& pred)
         if (!(*has_any))
         {
             int r = false;
-            for (int icell = gh.blockDim()*gh.blockIdx()+gh.threadIdx(), stride = gh.blockDim()*gh.gridDim();
+            for (int icell = AMREX_GPU_MAX_THREADS*gh.blockIdx()+gh.threadIdx(), stride = AMREX_GPU_MAX_THREADS*gh.gridDim();
                  icell < ncells && !r; icell += stride) {
                 int k =  icell /   lenxy;
                 int j = (icell - k*lenxy) /   lenx;
@@ -915,13 +941,13 @@ bool AnyOf (Box const& box, P&& pred)
                         Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
-        if (threadIdx.x == 0) has_any = *dp;
+        if (threadIdx.x == 0) { has_any = *dp; }
         __syncthreads();
 
         if (!has_any)
         {
             int r = false;
-            for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  icell < ncells && !r; icell += stride) {
                 int k =  icell /   lenxy;
                 int j = (icell - k*lenxy) /   lenx;
@@ -955,11 +981,13 @@ public:
         : m_tuple(OpenMP::in_parallel() ? 1 : OpenMP::get_max_threads()),
           m_fn_value([&reduce_op,this] () -> Type { return this->value(reduce_op); })
     {
+        reduce_op.resetResultReadiness();
         for (auto& t : m_tuple) {
             Reduce::detail::for_each_init<0, Type, Ps...>(t);
         }
     }
 
+    ~ReduceData () = default;
     ReduceData (ReduceData<Ts...> const&) = delete;
     ReduceData (ReduceData<Ts...> &&) = delete;
     void operator= (ReduceData<Ts...> const&) = delete;
@@ -998,8 +1026,8 @@ private:
     template <typename D, typename F>
     AMREX_FORCE_INLINE
     static auto call_f (Box const& box, typename D::Type & r, F const& f)
-        noexcept -> std::enable_if_t<std::is_same<std::decay_t<decltype(f(0,0,0))>,
-                                                  typename D::Type>::value>
+        noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(f(0,0,0))>,
+                                                  typename D::Type>>
     {
         using ReduceTuple = typename D::Type;
         const auto lo = amrex::lbound(box);
@@ -1014,8 +1042,8 @@ private:
     template <typename D, typename F>
     AMREX_FORCE_INLINE
     static auto call_f (Box const& box, typename D::Type & r, F const& f)
-        noexcept -> std::enable_if_t<std::is_same<std::decay_t<decltype(f(Box()))>,
-                                                  typename D::Type>::value>
+        noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(f(Box()))>,
+                                                  typename D::Type>>
     {
         using ReduceTuple = typename D::Type;
         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, f(box));
@@ -1025,7 +1053,7 @@ public:
 
     template <typename MF, typename D, typename F>
     std::enable_if_t<IsFabArray<MF>::value && IsCallable<F, int, int, int, int>::value>
-    eval (MF const& mf, IntVect const& nghost, D & reduce_data, F&& f)
+    eval (MF const& mf, IntVect const& nghost, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
 #ifdef AMREX_USE_OMP
@@ -1047,7 +1075,7 @@ public:
 
     template <typename MF, typename D, typename F>
     std::enable_if_t<IsFabArray<MF>::value && IsCallable<F, int, int, int, int, int>::value>
-    eval (MF const& mf, IntVect const& nghost, int ncomp, D & reduce_data, F&& f)
+    eval (MF const& mf, IntVect const& nghost, int ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
 #ifdef AMREX_USE_OMP
@@ -1072,12 +1100,12 @@ public:
     void eval (Box const& box, D & reduce_data, F&& f)
     {
         auto& rr = reduce_data.reference(OpenMP::get_thread_num());
-        call_f<D>(box, rr, f);
+        call_f<D>(box, rr, std::forward<F>(f));
     }
 
     template <typename N, typename D, typename F,
-              typename M=std::enable_if_t<std::is_integral<N>::value> >
-    void eval (Box const& box, N ncomp, D & reduce_data, F&& f)
+              typename M=std::enable_if_t<std::is_integral_v<N>> >
+    void eval (Box const& box, N ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         auto& rr = reduce_data.reference(OpenMP::get_thread_num());
@@ -1092,8 +1120,8 @@ public:
     }
 
     template <typename N, typename D, typename F,
-              typename M=std::enable_if_t<std::is_integral<N>::value> >
-    void eval (N n, D & reduce_data, F&& f)
+              typename M=std::enable_if_t<std::is_integral_v<N>> >
+    void eval (N n, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         auto& rr = reduce_data.reference(OpenMP::get_thread_num());
@@ -1105,22 +1133,29 @@ public:
     template <typename D>
     typename D::Type value (D & reduce_data)
     {
-        using ReduceTuple = typename D::Type;
         auto& rrv = reduce_data.reference();
-        if (rrv.size() > 1) {
-            for (int i = 1, N = rrv.size(); i < N; ++i) {
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rrv[0], rrv[i]);
+        if (! m_result_is_ready) {
+            using ReduceTuple = typename D::Type;
+            if (rrv.size() > 1) {
+                for (int i = 1, N = rrv.size(); i < N; ++i) {
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rrv[0], rrv[i]);
+                }
             }
+            m_result_is_ready = true;
         }
         return rrv[0];
     }
+
+    bool m_result_is_ready = false;
+
+    void resetResultReadiness () { m_result_is_ready = false; }
 };
 
 namespace Reduce {
 
 template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral<N>::value> >
-T Sum (N n, F&& f, T init_val = 0)
+          typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Sum (N n, F const& f, T init_val = 0)
 {
     T r = init_val;
 #ifdef AMREX_USE_OMP
@@ -1132,15 +1167,15 @@ T Sum (N n, F&& f, T init_val = 0)
     return r;
 }
 
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T Sum (N n, T const* v, T init_val = 0)
 {
     return Sum(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
 template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral<N>::value> >
-T Min (N n, F&& f, T init_val = std::numeric_limits<T>::max())
+          typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max())
 {
     T r = init_val;
 #ifdef AMREX_USE_OMP
@@ -1152,15 +1187,15 @@ T Min (N n, F&& f, T init_val = std::numeric_limits<T>::max())
     return r;
 }
 
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
 {
     return Reduce::Min(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
 template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral<N>::value> >
-T Max (N n, F&& f, T init_val = std::numeric_limits<T>::lowest())
+          typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest())
 {
     T r = init_val;
 #ifdef AMREX_USE_OMP
@@ -1172,15 +1207,15 @@ T Max (N n, F&& f, T init_val = std::numeric_limits<T>::lowest())
     return r;
 }
 
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
 {
     return Reduce::Max(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
 template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral<N>::value> >
-std::pair<T,T> Min (N n, F&& f)
+          typename M=std::enable_if_t<std::is_integral_v<N>> >
+std::pair<T,T> Min (N n, F const& f)
 {
     T r_min = std::numeric_limits<T>::max();
     T r_max = std::numeric_limits<T>::lowest();
@@ -1195,27 +1230,27 @@ std::pair<T,T> Min (N n, F&& f)
     return std::make_pair(r_min,r_max);
 }
 
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
 std::pair<T,T> MinMax (N n, T const* v)
 {
     return Reduce::MinMax<T>(n, [=] (N i) -> T { return v[i]; });
 }
 
-template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral_v<N>> >
 bool AnyOf (N n, T const* v, P&& pred)
 {
-    return std::any_of(v, v+n, pred);
+    return std::any_of(v, v+n, std::forward<P>(pred));
 }
 
 template <typename P>
-bool AnyOf (Box const& box, P&&pred)
+bool AnyOf (Box const& box, P const& pred)
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        if (pred(i,j,k)) return true;
+        if (pred(i,j,k)) { return true; }
     }}}
     return false;
 }
@@ -1223,6 +1258,34 @@ bool AnyOf (Box const& box, P&&pred)
 }
 
 #endif
+
+/**
+ * \brief Return a GpuTuple containing the identity element for each operation in ReduceOps.
+ * For example 0, +inf and -inf for ReduceOpSum, ReduceOpMin and ReduceOpMax respectively.
+ */
+template <typename... Ts, typename... Ps>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts...>
+IdentityTuple (GpuTuple<Ts...>, ReduceOps<Ps...>) noexcept
+{
+    GpuTuple<Ts...> r{};
+    Reduce::detail::for_each_init<0, decltype(r), Ps...>(r);
+    return r;
+}
+
+/**
+ * \brief Return a GpuTuple containing the identity element for each ReduceOp in TypeList.
+ * For example 0, +inf and -inf for ReduceOpSum, ReduceOpMin and ReduceOpMax respectively.
+ */
+template <typename... Ts, typename... Ps>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts...>
+IdentityTuple (GpuTuple<Ts...>, TypeList<Ps...>) noexcept
+{
+    GpuTuple<Ts...> r{};
+    Reduce::detail::for_each_init<0, decltype(r), Ps...>(r);
+    return r;
+}
 
 }
 

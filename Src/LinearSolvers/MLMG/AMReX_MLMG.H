@@ -1,21 +1,34 @@
 #ifndef AMREX_ML_MG_H_
 #define AMREX_ML_MG_H_
 #include <AMReX_Config.H>
+#include <AMReX_Enum.H>
 
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLCGSolver.H>
 
 namespace amrex {
 
+// Norm used to evaluate the target convergece criteria
+AMREX_ENUM(MLMGNormType, greater, bnorm, resnorm);
+
 template <typename MF>
 class MLMGT
 {
 public:
 
-    template <typename T> friend class MLCGSolverT;
+    class error
+        : public std::runtime_error
+    {
+    public :
+        using std::runtime_error::runtime_error;
+    };
 
-    using FAB = typename MF::fab_type;
-    using RT  = typename MF::value_type;
+    template <typename T> friend class MLCGSolverT;
+    template <typename M> friend class GMRESMLMGT;
+
+    using MFType = MF;
+    using FAB = typename MLLinOpT<MF>::FAB;
+    using RT  = typename MLLinOpT<MF>::RT;
 
     using BCMode   = typename MLLinOpT<MF>::BCMode;
     using Location = typename MLLinOpT<MF>::Location;
@@ -26,6 +39,11 @@ public:
     MLMGT (MLLinOpT<MF>& a_lp);
     ~MLMGT ();
 
+    MLMGT (MLMGT<MF> const&) = delete;
+    MLMGT (MLMGT<MF> &&) = delete;
+    MLMGT<MF>& operator= (MLMGT<MF> const&) = delete;
+    MLMGT<MF>& operator= (MLMGT<MF> &&) = delete;
+
     // Optional argument checkpoint_file is for debugging only.
     template <typename AMF>
     RT solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
@@ -35,6 +53,9 @@ public:
     RT solve (std::initializer_list<AMF*> a_sol,
               std::initializer_list<AMF const*> a_rhs,
               RT a_tol_rel, RT a_tol_abs, const char* checkpoint_file = nullptr);
+
+    RT precond (Vector<MF*> const& a_sol, Vector<MF const*> const& a_rhs,
+                RT a_tol_rel, RT a_tol_abs);
 
     template <typename AMF>
     void getGradSolution (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_grad_sol,
@@ -99,10 +120,21 @@ public:
     */
     void apply (const Vector<MF*>& out, const Vector<MF*>& in);
 
+    //! out = L(in) as a preconditioner
+    void applyPrecond (const Vector<MF*>& out, const Vector<MF*>& in);
+
+    [[nodiscard]] int getVerbose () const { return verbose; }
+    [[nodiscard]] int getBottomVerbose () const { return bottom_verbose; }
+
+    void incPrintIdentation ();
+    void decPrintIdentation ();
+
+    void setThrowException (bool t) noexcept { throw_exception = t; }
     void setVerbose (int v) noexcept { verbose = v; }
     void setMaxIter (int n) noexcept { max_iters = n; }
     void setMaxFmgIter (int n) noexcept { max_fmg_iters = n; }
     void setFixedIter (int nit) noexcept { do_fixed_number_of_iters = nit; }
+    void setPrecondIter (int nit) noexcept { max_precond_iters = nit; }
 
     void setPreSmooth (int n) noexcept { nu1 = n; }
     void setPostSmooth (int n) noexcept { nu2 = n; }
@@ -110,21 +142,27 @@ public:
     void setBottomSmooth (int n) noexcept { nub = n; }
 
     void setBottomSolver (BottomSolver s) noexcept { bottom_solver = s; }
+    [[nodiscard]] BottomSolver getBottomSolver () const noexcept { return bottom_solver; }
     void setCFStrategy (CFStrategy a_cf_strategy) noexcept {cf_strategy = a_cf_strategy;}
     void setBottomVerbose (int v) noexcept { bottom_verbose = v; }
     void setBottomMaxIter (int n) noexcept { bottom_maxiter = n; }
     void setBottomTolerance (RT t) noexcept { bottom_reltol = t; }
     void setBottomToleranceAbs (RT t) noexcept { bottom_abstol = t;}
-    RT getBottomToleranceAbs () noexcept{ return bottom_abstol; }
+    [[nodiscard]] RT getBottomToleranceAbs () const noexcept{ return bottom_abstol; }
 
-    void setAlwaysUseBNorm (int flag) noexcept { always_use_bnorm = flag; }
+    [[deprecated("Use MLMG::setConvergenceNormType() instead.")]]
+    void setAlwaysUseBNorm (int flag) noexcept;
+
+    void setConvergenceNormType (MLMGNormType norm) noexcept { norm_type = norm; }
 
     void setFinalFillBC (int flag) noexcept { final_fill_bc = flag; }
 
-    int numAMRLevels () const noexcept { return namrlevs; }
+    [[nodiscard]] int numAMRLevels () const noexcept { return namrlevs; }
 
     void setNSolve (int flag) noexcept { do_nsolve = flag; }
     void setNSolveGridSize (int s) noexcept { nsolve_grid_size = s; }
+
+    void setNoGpuSync (bool do_not_sync) noexcept { do_no_sync_gpu = do_not_sync; }
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     void setHypreInterface (Hypre::Interface f) noexcept {
@@ -139,7 +177,7 @@ public:
     //! Set the namespace in input file for parsing HYPRE specific options
     void setHypreOptionsNamespace(const std::string& prefix) noexcept
     {
-     hypre_options_namespace = prefix;
+        hypre_options_namespace = prefix;
     }
 
     void setHypreOldDefault (bool l) noexcept {hypre_old_default = l;}
@@ -149,14 +187,20 @@ public:
     void setHypreStrongThreshold (Real t) noexcept {hypre_strong_threshold = t;}
 #endif
 
+    void prepareForFluxes (Vector<MF const*> const& a_sol);
+
     template <typename AMF>
     void prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const& a_rhs);
 
     void prepareForNSolve ();
 
+    void prepareLinOp ();
+
+    void preparePrecond ();
+
     void oneIter (int iter);
 
-    void miniCycle (int alev);
+    void miniCycle (int amrlev);
 
     void mgVcycle (int amrlev, int mglev);
     void mgFcycle ();
@@ -167,15 +211,15 @@ public:
 
     void computeMLResidual (int amrlevmax);
     void computeResidual (int alev);
-    void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
-    void computeResWithCrseCorFineCor (int fine_amr_lev);
+    void computeResWithCrseSolFineCor (int calev, int falev);
+    void computeResWithCrseCorFineCor (int falev);
     void interpCorrection (int alev);
     void interpCorrection (int alev, int mglev);
     void addInterpCorrection (int alev, int mglev);
 
     void computeResOfCorrection (int amrlev, int mglev);
 
-    RT ResNormInf (int amrlev, bool local = false);
+    RT ResNormInf (int alev, bool local = false);
     RT MLResNormInf (int alevmax, bool local = false);
     RT MLRhsNormInf (bool local = false);
 
@@ -183,30 +227,38 @@ public:
     void makeSolvable (int amrlev, int mglev, MF& mf);
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+    template <class TMF=MF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int> = 0>
     void bottomSolveWithHypre (MF& x, const MF& b);
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
+    template <class TMF=MF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int> = 0>
     void bottomSolveWithPETSc (MF& x, const MF& b);
 #endif
 
     int bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type type);
 
-    RT getInitRHS () const noexcept { return m_rhsnorm0; }
+    [[nodiscard]] RT getInitRHS () const noexcept { return m_rhsnorm0; }
     // Initial composite residual
-    RT getInitResidual () const noexcept { return m_init_resnorm0; }
+    [[nodiscard]] RT getInitResidual () const noexcept { return m_init_resnorm0; }
     // Final composite residual
-    RT getFinalResidual () const noexcept { return m_final_resnorm0; }
+    [[nodiscard]] RT getFinalResidual () const noexcept { return m_final_resnorm0; }
     // Residuals on the *finest* AMR level after each iteration
-    Vector<RT> const& getResidualHistory () const noexcept { return m_iter_fine_resnorm0; }
-    int getNumIters () const noexcept { return m_iter_fine_resnorm0.size(); }
-    Vector<int> const& getNumCGIters () const noexcept { return m_niters_cg; }
+    [[nodiscard]] Vector<RT> const& getResidualHistory () const noexcept { return m_iter_fine_resnorm0; }
+    [[nodiscard]] int getNumIters () const noexcept { return m_iter_fine_resnorm0.size(); }
+    [[nodiscard]] Vector<int> const& getNumCGIters () const noexcept { return m_niters_cg; }
+
+    MLLinOpT<MF>& getLinOp () { return linop; }
 
 private:
 
+    bool precond_mode = false;
+    bool throw_exception = false;
     int verbose = 1;
+
     int max_iters = 200;
     int do_fixed_number_of_iters = 0;
+    int max_precond_iters = 1;
 
     int nu1 = 2;       //!< pre
     int nu2 = 2;       //!< post
@@ -222,7 +274,7 @@ private:
     RT bottom_reltol = std::is_same<RT,double>() ? RT(1.e-4) : RT(1.e-3);
     RT bottom_abstol = RT(-1.0);
 
-    int always_use_bnorm = 0;
+    MLMGNormType norm_type = MLMGNormType::greater;
 
     int final_fill_bc = 0;
 
@@ -241,6 +293,10 @@ private:
     std::unique_ptr<MLMGT<MF>> ns_mlmg;
     std::unique_ptr<MF> ns_sol;
     std::unique_ptr<MF> ns_rhs;
+
+    std::string print_ident;
+
+    bool do_no_sync_gpu = false;
 
     //! Hypre
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
@@ -307,7 +363,18 @@ MLMGT<MF>::MLMGT (MLLinOpT<MF>& a_lp)
       finest_amr_lev(a_lp.NAMRLevels()-1)
 {}
 
-template <typename MF> MLMGT<MF>::~MLMGT () {}
+template <typename MF> MLMGT<MF>::~MLMGT () = default;
+
+template <typename MF>
+void
+MLMGT<MF>::setAlwaysUseBNorm (int flag) noexcept
+{
+    if (flag) {
+        norm_type = MLMGNormType::bnorm;
+    } else {
+        norm_type = MLMGNormType::greater;
+    }
+}
 
 template <typename MF>
 template <typename AMF>
@@ -329,6 +396,14 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 {
     BL_PROFILE("MLMG::solve()");
 
+    bool prev_in_single_stream_region = false;
+    bool prev_in_nosync_region = false;
+
+    if (do_no_sync_gpu) {
+        prev_in_single_stream_region = Gpu::setSingleStreamRegion(true);
+        prev_in_nosync_region = Gpu::setNoSyncRegion(true);
+    }
+
     if constexpr (std::is_same<AMF,MultiFab>()) {
         if (checkpoint_file != nullptr) {
             checkPoint(a_sol, a_rhs, a_tol_rel, a_tol_abs, checkpoint_file);
@@ -340,12 +415,14 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     }
 
 #if (defined(AMREX_USE_HYPRE) || defined(AMREX_USE_PETSC)) && (AMREX_SPACEDIM > 1)
-    if (bottom_solver == BottomSolver::hypre || bottom_solver == BottomSolver::petsc) {
-        int mo = linop.getMaxOrder();
-        if (a_sol[0]->hasEBFabFactory()) {
-            linop.setMaxOrder(2);
-        } else {
-            linop.setMaxOrder(std::min(3,mo));  // maxorder = 4 not supported
+    if constexpr (IsFabArray_v<AMF>) {
+        if (bottom_solver == BottomSolver::hypre || bottom_solver == BottomSolver::petsc) {
+            int mo = linop.getMaxOrder();
+            if (a_sol[0]->hasEBFabFactory()) {
+                linop.setMaxOrder(2);
+            } else {
+                linop.setMaxOrder(std::min(3,mo));  // maxorder = 4 not supported
+            }
         }
     }
 #endif
@@ -371,29 +448,42 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 
         if (verbose >= 1)
         {
-            amrex::Print() << "MLMG: Initial rhs               = " << rhsnorm0 << "\n"
-                           << "MLMG: Initial residual (resid0) = " << resnorm0 << "\n";
+            amrex::Print() << print_ident << "MLMG: Initial rhs               = " << rhsnorm0 << "\n"
+                           << print_ident << "MLMG: Initial residual (resid0) = " << resnorm0 << "\n";
         }
     }
 
     m_init_resnorm0 = resnorm0;
     m_rhsnorm0 = rhsnorm0;
 
-    RT max_norm;
-    std::string norm_name;
-    if (always_use_bnorm || rhsnorm0 >= resnorm0) {
-        norm_name = "bnorm";
-        max_norm = rhsnorm0;
-    } else {
-        norm_name = "resid0";
-        max_norm = resnorm0;
+    RT max_norm = resnorm0;
+    std::string norm_name = "resid0";
+    switch (norm_type) {
+        case MLMGNormType::greater:
+            if (rhsnorm0 >= resnorm0) {
+                norm_name = "bnorm";
+                max_norm = rhsnorm0;
+            } else {
+                norm_name = "resid0";
+                max_norm = resnorm0;
+            }
+            break;
+        case MLMGNormType::bnorm:
+            norm_name = "bnorm";
+            max_norm = rhsnorm0;
+            break;
+        case MLMGNormType::resnorm:
+            norm_name = "resid0";
+            max_norm = resnorm0;
+            break;
     }
+
     const RT res_target = std::max(a_tol_abs, std::max(a_tol_rel,RT(1.e-16))*max_norm);
 
     if (!is_nsolve && resnorm0 <= res_target) {
         composite_norminf = resnorm0;
         if (verbose >= 1) {
-            amrex::Print() << "MLMG: No iterations needed\n";
+            amrex::Print() << print_ident << "MLMG: No iterations needed\n";
         }
     } else {
         auto iter_start_time = amrex::second();
@@ -409,13 +499,13 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
             // Test convergence on the fine amr level
             computeResidual(finest_amr_lev);
 
-            if (is_nsolve) continue;
+            if (is_nsolve) { continue; }
 
             RT fine_norminf = ResNormInf(finest_amr_lev);
             m_iter_fine_resnorm0.push_back(fine_norminf);
             composite_norminf = fine_norminf;
             if (verbose >= 2) {
-                amrex::Print() << "MLMG: Iteration " << std::setw(3) << iter+1 << " Fine resid/"
+                amrex::Print() << print_ident << "MLMG: Iteration " << std::setw(3) << iter+1 << " Fine resid/"
                                << norm_name << " = " << fine_norminf/max_norm << "\n";
             }
             bool fine_converged = (fine_norminf <= res_target);
@@ -427,7 +517,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                 computeMLResidual(finest_amr_lev-1);
                 RT crse_norminf = MLResNormInf(finest_amr_lev-1);
                 if (verbose >= 2) {
-                    amrex::Print() << "MLMG: Iteration " << std::setw(3) << iter+1
+                    amrex::Print() << print_ident << "MLMG: Iteration " << std::setw(3) << iter+1
                                    << " Crse resid/" << norm_name << " = "
                                    << crse_norminf/max_norm << "\n";
                 }
@@ -439,39 +529,49 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 
             if (converged) {
                 if (verbose >= 1) {
-                    amrex::Print() << "MLMG: Final Iter. " << iter+1
+                    amrex::Print() << print_ident << "MLMG: Final Iter. " << iter+1
                                    << " resid, resid/" << norm_name << " = "
                                    << composite_norminf << ", "
                                    << composite_norminf/max_norm << "\n";
                 }
                 break;
             } else {
-              if (composite_norminf > RT(1.e20)*max_norm)
-              {
-                  if (verbose > 0) {
-                      amrex::Print() << "MLMG: Failing to converge after " << iter+1 << " iterations."
-                                     << " resid, resid/" << norm_name << " = "
-                                     << composite_norminf << ", "
-                                     << composite_norminf/max_norm << "\n";
-                  }
-                  amrex::Abort("MLMG failing so lets stop here");
-              }
+                if (composite_norminf > RT(1.e20)*max_norm)
+                {
+                    if (verbose > 0) {
+                        amrex::Print() << print_ident << "MLMG: Failing to converge after " << iter+1 << " iterations."
+                                       << " resid, resid/" << norm_name << " = "
+                                       << composite_norminf << ", "
+                                       << composite_norminf/max_norm << "\n";
+                    }
+
+                    if ( throw_exception ) {
+                        throw error("MLMG blew up.");
+                    } else {
+                        amrex::Abort("MLMG failing so lets stop here");
+                    }
+                }
             }
         }
 
         if (!converged && do_fixed_number_of_iters == 0) {
             if (verbose > 0) {
-                amrex::Print() << "MLMG: Failed to converge after " << max_iters << " iterations."
+                amrex::Print() << print_ident << "MLMG: Failed to converge after " << max_iters << " iterations."
                                << " resid, resid/" << norm_name << " = "
                                << composite_norminf << ", "
                                << composite_norminf/max_norm << "\n";
             }
-            amrex::Abort("MLMG failed");
+
+            if ( throw_exception ) {
+                throw error("MLMG failed to converge.");
+            } else {
+                amrex::Abort("MLMG failed.");
+            }
         }
         timer[iter_time] = amrex::second() - iter_start_time;
     }
 
-    linop.postSolve(sol);
+    linop.postSolve(GetVecOfPtrs(sol));
 
     IntVect ng_back = final_fill_bc ? IntVect(1) : IntVect(0);
     if (linop.hasHiddenDimension()) {
@@ -480,7 +580,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     for (int alev = 0; alev < namrlevs; ++alev)
     {
         if (!sol_is_alias[alev]) {
-            a_sol[alev]->LocalCopy(sol[alev], 0, 0, ncomp, ng_back);
+            LocalCopy(*a_sol[alev], sol[alev], 0, 0, ncomp, ng_back);
         }
     }
 
@@ -490,7 +590,7 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
                                     ParallelContext::CommunicatorSub());
         if (ParallelContext::MyProcSub() == 0)
         {
-            amrex::AllPrint() << "MLMG: Timers: Solve = " << timer[solve_time]
+            amrex::AllPrint() << print_ident << "MLMG: Timers: Solve = " << timer[solve_time]
                               << " Iter = " << timer[iter_time]
                               << " Bottom = " << timer[bottom_time] << "\n";
         }
@@ -498,7 +598,40 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 
     ++solve_called;
 
+    if (do_no_sync_gpu) {
+        (void)Gpu::setSingleStreamRegion(prev_in_single_stream_region);
+        (void)Gpu::setNoSyncRegion(prev_in_nosync_region);
+    }
+
     return composite_norminf;
+}
+
+template <typename MF>
+auto
+MLMGT<MF>::precond (const Vector<MF*>& a_sol, const Vector<MF const*>& a_rhs,
+                    RT a_tol_rel, RT a_tol_abs) -> RT
+{
+    precond_mode = true;
+    std::swap(max_precond_iters, do_fixed_number_of_iters);
+    linop.beginPrecondBC();
+
+    auto r = solve(a_sol, a_rhs, a_tol_rel, a_tol_abs);
+
+    linop.endPrecondBC();
+    std::swap(max_precond_iters, do_fixed_number_of_iters);
+    precond_mode = false;
+
+    return r;
+}
+
+template <typename MF>
+void
+MLMGT<MF>::prepareForFluxes (Vector<MF const*> const& a_sol)
+{
+    for (int alev = finest_amr_lev; alev >= 0; --alev) {
+        const MF* crse_bcdata = (alev > 0) ? a_sol[alev-1] : nullptr;
+        linop.prepareForFluxes(alev, crse_bcdata);
+    }
 }
 
 template <typename MF>
@@ -514,11 +647,11 @@ MLMGT<MF>::getGradSolution (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_grad_so
             Array<MF,AMREX_SPACEDIM> grad_sol;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 auto const& amf = *(a_grad_sol[alev][idim]);
-                grad_sol[idim].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+                grad_sol[idim].define(boxArray(amf), DistributionMap(amf), ncomp, 0);
             }
             linop.compGrad(alev, GetArrOfPtrs(grad_sol), sol[alev], a_loc);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                a_grad_sol[alev][idim]->LocalCopy(grad_sol, 0, 0, ncomp, IntVect(0));
+                LocalCopy(*a_grad_sol[alev][idim], grad_sol[idim], 0, 0, ncomp, IntVect(0));
             }
         }
     }
@@ -551,13 +684,13 @@ MLMGT<MF>::getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 auto const& amf = *(a_flux[ilev][idim]);
-                fluxes[ilev][idim].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+                fluxes[ilev][idim].define(boxArray(amf), DistributionMap(amf), ncomp, 0);
             }
         }
         getFluxes(GetVecOfArrOfPtrs(fluxes), GetVecOfPtrs(sol), a_loc);
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                a_flux[ilev][idim]->LocalCopy(fluxes[ilev][idim], 0, 0, ncomp, IntVect(0));
+                LocalCopy(*a_flux[ilev][idim], fluxes[ilev][idim], 0, 0, ncomp, IntVect(0));
             }
         }
     }
@@ -591,14 +724,14 @@ MLMGT<MF>::getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 auto const& amf = *(a_flux[ilev][idim]);
-                fluxes[ilev][idim].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+                fluxes[ilev][idim].define(boxArray(amf), DistributionMap(amf), ncomp, 0);
             }
-            sol[ilev].LocalCopy(*a_sol[ilev], 0, 0, ncomp, sol[ilev].nGrowVect());
+            LocalCopy(sol[ilev], *a_sol[ilev], 0, 0, ncomp, nGrowVect(sol[ilev]));
         }
         linop.getFluxes(GetVecOfArrOfPtrs(fluxes), GetVecOfPtrs(sol), a_loc);
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                a_flux[ilev][idim]->LocalCopy(fluxes[ilev][idim], 0, 0, ncomp, IntVect(0));
+                LocalCopy(*a_flux[ilev][idim], fluxes[ilev][idim], 0, 0, ncomp, IntVect(0));
             }
         }
     }
@@ -626,11 +759,11 @@ MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux, Location a_loc)
         Vector<MF> fluxes(namrlevs);
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
             auto const& amf = *a_flux[ilev];
-            fluxes[ilev].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+            fluxes[ilev].define(boxArray(amf), DistributionMap(amf), ncomp, 0);
         }
         getFluxes(GetVecOfPtrs(fluxes), GetVecOfPtrs(sol), a_loc);
         for (int ilev = 0; ilev < namrlevs; ++ilev) {
-            a_flux[ilev]->LocalCopy(fluxes[ilev], 0, 0, ncomp, IntVect(0));
+            LocalCopy(*a_flux[ilev], fluxes[ilev], 0, 0, ncomp, IntVect(0));
         }
     }
 }
@@ -649,11 +782,11 @@ void
 MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux,
                       const Vector<AMF*>& a_sol, Location /*a_loc*/)
 {
-    AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
+    AMREX_ASSERT(nComp(*a_flux[0]) >= AMREX_SPACEDIM);
 
     if constexpr (! std::is_same<AMF,MF>()) {
         for (int alev = 0; alev < namrlevs; ++alev) {
-            sol[alev].LocalCopy(*a_sol[alev], 0, 0, ncomp, sol[alev].nGrowVect());
+            LocalCopy(sol[alev], *a_sol[alev], 0, 0, ncomp, nGrowVect(sol[alev]));
         }
     }
 
@@ -691,11 +824,11 @@ MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux,
             Vector<MF> fluxes(namrlevs);
             for (int ilev = 0; ilev < namrlevs; ++ilev) {
                 auto const& amf = *a_flux[ilev];
-                fluxes[ilev].define(amf.boxArray(), amf.DistributionMap(), ncomp, 0);
+                fluxes[ilev].define(boxArray(amf), DistributionMap(amf), ncomp, 0);
             }
             linop.getFluxes(GetVecOfPtrs(fluxes), GetVecOfPtrs(sol));
             for (int ilev = 0; ilev < namrlevs; ++ilev) {
-                a_flux[ilev]->LocalCopy(fluxes[ilev], 0, 0, ncomp, IntVect(0));
+                LocalCopy(*a_flux[ilev], fluxes[ilev], 0, 0, ncomp, IntVect(0));
             }
         }
     }
@@ -752,7 +885,7 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
     sol_is_alias.resize(namrlevs,true);
     for (int alev = 0; alev < namrlevs; ++alev)
     {
-        if (cf_strategy == CFStrategy::ghostnodes || a_sol[alev]->nGrowVect() == ng_sol)
+        if (cf_strategy == CFStrategy::ghostnodes || nGrowVect(*a_sol[alev]) == ng_sol)
         {
             sol[alev] = linop.makeAlias(*a_sol[alev]);
             sol_is_alias[alev] = true;
@@ -763,16 +896,11 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
             {
                 sol[alev] = linop.make(alev, 0, ng_sol);
             }
-            sol[alev].LocalCopy(*a_sol[alev], 0, 0, ncomp, IntVect(0));
+            LocalCopy(sol[alev], *a_sol[alev], 0, 0, ncomp, IntVect(0));
         }
     }
 
-    if (!linop_prepared) {
-        linop.prepareForSolve();
-        linop_prepared = true;
-    } else if (linop.needsUpdate()) {
-        linop.update();
-    }
+    prepareLinOp();
 
     const auto& amrrr = linop.AMRRefRatio();
 
@@ -781,9 +909,9 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
         const MF* prhs = a_rhs[alev];
 #if (AMREX_SPACEDIM != 3)
         int nghost = (cf_strategy == CFStrategy::ghostnodes) ? linop.getNGrow(alev) : 0;
-        MF rhstmp(prhs->boxArray(), prhs->DistributionMap(), ncomp, nghost,
+        MF rhstmp(boxArray(*prhs), DistributionMap(*prhs), ncomp, nghost,
                   MFInfo(), *linop.Factory(alev));
-        rhstmp.LocalCopy(*prhs, 0, 0, ncomp, IntVect(nghost));
+        LocalCopy(rhstmp, *prhs, 0, 0, ncomp, IntVect(nghost));
         linop.applyMetricTerm(alev, 0, rhstmp);
         linop.unimposeNeumannBC(alev, rhstmp);
         linop.applyInhomogNeumannTerm(alev, rhstmp);
@@ -795,9 +923,9 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
                          *a_res[alev+1], sol[alev+1], *a_rhs[alev+1]);
             if (linop.isCellCentered()) {
 #ifdef AMREX_USE_EB
-                amrex::EB_average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
+                EB_average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
 #else
-                amrex::average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
+                average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
 #endif
             }
         }
@@ -831,7 +959,7 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
             nghost = linop.getNGrow(alev);
             in[alev] = a_in[alev];
         }
-        else if (a_in[alev]->nGrowVect() == ng_sol)
+        else if (nGrowVect(*a_in[alev]) == ng_sol)
         {
             in[alev] = a_in[alev];
         }
@@ -839,26 +967,15 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
         {
             IntVect ng = ng_sol;
             if (cf_strategy == CFStrategy::ghostnodes) { ng = IntVect(nghost); }
-            in_raii[alev].define(a_in[alev]->boxArray(),
-                                 a_in[alev]->DistributionMap(),
-                                 a_in[alev]->nComp(), ng,
-                                 MFInfo(), *linop.Factory(alev));
-            in_raii[alev].LocalCopy(*a_in[alev], 0, 0, ncomp, IntVect(nghost));
+            in_raii[alev] = linop.make(alev, 0, ng);
+            LocalCopy(in_raii[alev], *a_in[alev], 0, 0, ncomp, IntVect(nghost));
             in[alev] = &(in_raii[alev]);
         }
-        rh[alev].define(a_in[alev]->boxArray(),
-                        a_in[alev]->DistributionMap(),
-                        a_in[alev]->nComp(), nghost, MFInfo(),
-                        *linop.Factory(alev));
-        rh[alev].setVal(RT(0.0));
+        rh[alev] = linop.make(alev, 0, IntVect(nghost));
+        setVal(rh[alev], RT(0.0));
     }
 
-    if (!linop_prepared) {
-        linop.prepareForSolve();
-        linop_prepared = true;
-    } else if (linop.needsUpdate()) {
-        linop.update();
-    }
+    prepareLinOp();
 
     for (int alev = 0; alev < namrlevs; ++alev) {
         linop.applyInhomogNeumannTerm(alev, rh[alev]);
@@ -873,11 +990,15 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
             linop.reflux(alev, *out[alev], *in[alev], rh[alev],
                          *out[alev+1], *in[alev+1], rh[alev+1]);
             if (linop.isCellCentered()) {
+                if constexpr (IsMultiFabLike_v<MF>) {
 #ifdef AMREX_USE_EB
-                amrex::EB_average_down(*out[alev+1], *out[alev], 0, out[alev]->nComp(), amrrr[alev]);
+                    EB_average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), amrrr[alev]);
 #else
-                amrex::average_down(*out[alev+1], *out[alev], 0, out[alev]->nComp(), amrrr[alev]);
+                    average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), amrrr[alev]);
 #endif
+                } else {
+                    amrex::Abort("MLMG: TODO average_down for non-MultiFab");
+                }
             }
         }
     }
@@ -889,9 +1010,20 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
 #endif
 
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        if (cf_strategy == CFStrategy::ghostnodes)  nghost = linop.getNGrow(alev);
-        out[alev]->negate(nghost);
+        if (cf_strategy == CFStrategy::ghostnodes) { nghost = linop.getNGrow(alev); }
+        Scale(*out[alev], RT(-1), 0, nComp(*out[alev]), nghost);
     }
+}
+
+template <typename MF>
+void
+MLMGT<MF>::applyPrecond (const Vector<MF*>& out, const Vector<MF*>& in)
+{
+    precond_mode = true;
+    linop.beginPrecondBC();
+    apply(out, in);
+    linop.endPrecondBC();
+    precond_mode = false;
 }
 
 template <typename MF>
@@ -943,10 +1075,9 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         }
         else
         {
-            if (a_sol[alev]->nGrowVect() == ng_sol) {
+            if (nGrowVect(*a_sol[alev]) == ng_sol) {
                 if constexpr (std::is_same<AMF,MF>()) {
                     sol[alev] = linop.makeAlias(*a_sol[alev]);
-                    sol[alev].setBndry(RT(0.0), 0, ncomp);
                     sol_is_alias[alev] = true;
                 }
             }
@@ -954,8 +1085,8 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
                 if (!solve_called) {
                     sol[alev] = linop.make(alev, 0, ng_sol);
                 }
-                sol[alev].LocalCopy(*a_sol[alev], 0, 0, ncomp, IntVect(0));
-                sol[alev].setBndry(RT(0.0), 0, ncomp);
+                LocalCopy(sol[alev], *a_sol[alev], 0, 0, ncomp, IntVect(0));
+                setBndry(sol[alev], RT(0.0), 0, ncomp);
             }
         }
     }
@@ -967,15 +1098,18 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         if (!solve_called) {
             rhs[alev] = linop.make(alev, 0, ng_rhs);
         }
-        rhs[alev].LocalCopy(*a_rhs[alev], 0, 0, ncomp, ng_rhs);
+        LocalCopy(rhs[alev], *a_rhs[alev], 0, 0, ncomp, ng_rhs);
         linop.applyMetricTerm(alev, 0, rhs[alev]);
         linop.unimposeNeumannBC(alev, rhs[alev]);
         linop.applyInhomogNeumannTerm(alev, rhs[alev]);
         linop.applyOverset(alev, rhs[alev]);
-        linop.scaleRHS(alev, rhs[alev]);
+        if ( ! precond_mode) {
+            bool r = linop.scaleRHS(alev, &(rhs[alev]));
+            amrex::ignore_unused(r);
+        }
 
 #ifdef AMREX_USE_EB
-        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
+        const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
         if (factory && !factory->isAllRegular()) {
             if constexpr (std::is_same<MF,MultiFab>()) {
                 EB_set_covered(rhs[alev], 0, ncomp, 0, RT(0.0));
@@ -998,7 +1132,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         makeSolvable();
     }
 
-    IntVect ng = linop.isCellCentered() ? IntVect(0) : IntVect(1);
+    IntVect ng = linop.getNGrowVectRestriction();
     if (cf_strategy == CFStrategy::ghostnodes) { ng = ng_rhs; }
     if (!solve_called) {
         linop.make(res, ng);
@@ -1009,8 +1143,8 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         const int nmglevs = linop.NMGLevels(alev);
         for (int mglev = 0; mglev < nmglevs; ++mglev)
         {
-            res   [alev][mglev].setVal(RT(0.0));
-            rescor[alev][mglev].setVal(RT(0.0));
+            setVal(res   [alev][mglev], RT(0.0));
+            setVal(rescor[alev][mglev], RT(0.0));
         }
     }
 
@@ -1027,7 +1161,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
                 if (cf_strategy == CFStrategy::ghostnodes) { _ng=IntVect(linop.getNGrow(alev,mglev)); }
                 cor[alev][mglev] = linop.make(alev, mglev, _ng);
             }
-            cor[alev][mglev].setVal(RT(0.0));
+            setVal(cor[alev][mglev], RT(0.0));
         }
     }
 
@@ -1043,7 +1177,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
                 if (cf_strategy == CFStrategy::ghostnodes) { _ng=IntVect(linop.getNGrow(alev,mglev)); }
                 cor_hold[alev][mglev] = linop.make(alev, mglev, _ng);
             }
-            cor_hold[alev][mglev].setVal(RT(0.0));
+            setVal(cor_hold[alev][mglev], RT(0.0));
         }
     }
     for (int alev = 1; alev < finest_amr_lev; ++alev)
@@ -1054,12 +1188,12 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
             if (cf_strategy == CFStrategy::ghostnodes) { _ng=IntVect(linop.getNGrow(alev)); }
             cor_hold[alev][0] = linop.make(alev, 0, _ng);
         }
-        cor_hold[alev][0].setVal(RT(0.0));
+        setVal(cor_hold[alev][0], RT(0.0));
     }
 
-    if (linop.m_parent) {
-        do_nsolve = false;  // no embedded N-Solve
-    } else if (!linop.supportNSolve()) {
+    if (linop.m_parent // no embedded N-Solve
+        || !linop.supportNSolve())
+    {
         do_nsolve = false;
     }
 
@@ -1069,44 +1203,66 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
     }
 
     if (verbose >= 2) {
-        amrex::Print() << "MLMG: # of AMR levels: " << namrlevs << "\n"
-                       << "      # of MG levels on the coarsest AMR level: " << linop.NMGLevels(0)
+        amrex::Print() << print_ident << "MLMG: # of AMR levels: " << namrlevs << "\n"
+                       << print_ident << "      # of MG levels on the coarsest AMR level: " << linop.NMGLevels(0)
                        << "\n";
         if (ns_linop) {
-            amrex::Print() << "      # of MG levels in N-Solve: " << ns_linop->NMGLevels(0) << "\n"
-                           << "      # of grids in N-Solve: " << ns_linop->m_grids[0][0].size() << "\n";
+            amrex::Print() << print_ident << "      # of MG levels in N-Solve: " << ns_linop->NMGLevels(0) << "\n"
+                           << print_ident << "      # of grids in N-Solve: " << ns_linop->m_grids[0][0].size() << "\n";
         }
     }
 }
 
 template <typename MF>
 void
+MLMGT<MF>::prepareLinOp ()
+{
+    if (!linop_prepared) {
+        linop.prepareForSolve();
+        linop_prepared = true;
+    } else if (linop.needsUpdate()) {
+        linop.update();
+    }
+}
+
+template <typename MF>
+void
+MLMGT<MF>::preparePrecond ()
+{
+    prepareLinOp();
+    linop.preparePrecond();
+}
+
+template <typename MF>
+void
 MLMGT<MF>::prepareForNSolve ()
 {
-    ns_linop = linop.makeNLinOp(nsolve_grid_size);
+    if constexpr (IsMultiFabLike_v<MF>) {
+        ns_linop = linop.makeNLinOp(nsolve_grid_size);
 
-    int nghost = 0;
-    if (cf_strategy == CFStrategy::ghostnodes) { nghost = linop.getNGrow(); }
+        int nghost = 0;
+        if (cf_strategy == CFStrategy::ghostnodes) { nghost = linop.getNGrow(); }
 
-    const BoxArray& ba = (*ns_linop).m_grids[0][0];
-    const DistributionMapping& dm =(*ns_linop).m_dmap[0][0];
+        const BoxArray& ba = (*ns_linop).m_grids[0][0];
+        const DistributionMapping& dm =(*ns_linop).m_dmap[0][0];
 
-    int ng = 1;
-    if (cf_strategy == CFStrategy::ghostnodes) { ng = nghost; }
-    ns_sol = std::make_unique<MF>(ba, dm, ncomp, ng, MFInfo(), *(ns_linop->Factory(0,0)));
-    ng = 0;
-    if (cf_strategy == CFStrategy::ghostnodes) { ng = nghost; }
-    ns_rhs = std::make_unique<MF>(ba, dm, ncomp, ng, MFInfo(), *(ns_linop->Factory(0,0)));
-    ns_sol->setVal(RT(0.0));
-    ns_rhs->setVal(RT(0.0));
+        int ng = 1;
+        if (cf_strategy == CFStrategy::ghostnodes) { ng = nghost; }
+        ns_sol = std::make_unique<MF>(ba, dm, ncomp, ng, MFInfo(), *(ns_linop->Factory(0,0)));
+        ng = 0;
+        if (cf_strategy == CFStrategy::ghostnodes) { ng = nghost; }
+        ns_rhs = std::make_unique<MF>(ba, dm, ncomp, ng, MFInfo(), *(ns_linop->Factory(0,0)));
+        setVal(*ns_sol, RT(0.0));
+        setVal(*ns_rhs, RT(0.0));
 
-    ns_linop->setLevelBC(0, ns_sol.get());
+        ns_linop->setLevelBC(0, ns_sol.get());
 
-    ns_mlmg = std::make_unique<MLMGT<MF>>(*ns_linop);
-    ns_mlmg->setVerbose(0);
-    ns_mlmg->setFixedIter(1);
-    ns_mlmg->setMaxFmgIter(20);
-    ns_mlmg->setBottomSolver(BottomSolver::smoother);
+        ns_mlmg = std::make_unique<MLMGT<MF>>(*ns_linop);
+        ns_mlmg->setVerbose(0);
+        ns_mlmg->setFixedIter(1);
+        ns_mlmg->setMaxFmgIter(20);
+        ns_mlmg->setBottomSolver(BottomSolver::smoother);
+    }
 }
 
 // in  : Residual (res) on the finest AMR level
@@ -1122,7 +1278,7 @@ void MLMGT<MF>::oneIter (int iter)
 
         IntVect nghost(0);
         if (cf_strategy == CFStrategy::ghostnodes) { nghost = IntVect(linop.getNGrow(alev)); }
-        sol[alev].LocalAdd(cor[alev][0], 0, 0, ncomp, nghost);
+        LocalAdd(sol[alev], cor[alev][0], 0, 0, ncomp, nghost);
 
         // compute residual for the coarse AMR level
         computeResWithCrseSolFineCor(alev-1,alev);
@@ -1148,7 +1304,7 @@ void MLMGT<MF>::oneIter (int iter)
 
         IntVect nghost(0);
         if (cf_strategy == CFStrategy::ghostnodes) { nghost = IntVect(linop.getNGrow(0)); }
-        sol[0].LocalAdd(cor[0][0], 0, 0, ncomp, nghost);
+        LocalAdd(sol[0], cor[0][0], 0, 0, ncomp, nghost);
     }
 
     for (int alev = 1; alev <= finest_amr_lev; ++alev)
@@ -1158,10 +1314,10 @@ void MLMGT<MF>::oneIter (int iter)
 
         IntVect nghost(0);
         if (cf_strategy == CFStrategy::ghostnodes) { nghost = IntVect(linop.getNGrow(alev)); }
-        sol[alev].LocalAdd(cor[alev][0], 0, 0, ncomp, nghost);
+        LocalAdd(sol[alev], cor[alev][0], 0, 0, ncomp, nghost);
 
         if (alev != finest_amr_lev) {
-            cor_hold[alev][0].LocalAdd(cor[alev][0], 0, 0, ncomp, nghost);
+            LocalAdd(cor_hold[alev][0], cor[alev][0], 0, 0, ncomp, nghost);
         }
 
         // Update fine AMR level correction
@@ -1169,10 +1325,10 @@ void MLMGT<MF>::oneIter (int iter)
 
         miniCycle(alev);
 
-        sol[alev].LocalAdd(cor[alev][0], 0, 0, ncomp, nghost);
+        LocalAdd(sol[alev], cor[alev][0], 0, 0, ncomp, nghost);
 
         if (alev != finest_amr_lev) {
-            cor[alev][0].LocalAdd(cor_hold[alev][0], 0, 0, ncomp, nghost);
+            LocalAdd(cor[alev][0], cor_hold[alev][0], 0, 0, ncomp, nghost);
         }
     }
 
@@ -1204,25 +1360,22 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
 
         if (verbose >= 4)
         {
-            RT norm = res[amrlev][mglev].norminf(0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
+            RT norm = norminf(res[amrlev][mglev],0,ncomp,IntVect(0));
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev
                            << "   DN: Norm before smooth " << norm << "\n";
         }
 
-        cor[amrlev][mglev].setVal(RT(0.0));
+        setVal(cor[amrlev][mglev], RT(0.0));
         bool skip_fillboundary = true;
-        for (int i = 0; i < nu1; ++i) {
-            linop.smooth(amrlev, mglev, cor[amrlev][mglev], res[amrlev][mglev], skip_fillboundary);
-            skip_fillboundary = false;
-        }
+        linop.smooth(amrlev, mglev, cor[amrlev][mglev], res[amrlev][mglev], skip_fillboundary, nu1);
 
         // rescor = res - L(cor)
         computeResOfCorrection(amrlev, mglev);
 
         if (verbose >= 4)
         {
-            RT norm = rescor[amrlev][mglev].norminf(0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
+            RT norm = norminf(rescor[amrlev][mglev],0,ncomp,IntVect(0));
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev
                            << "   DN: Norm after  smooth " << norm << "\n";
         }
 
@@ -1235,16 +1388,16 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
     {
         if (verbose >= 4)
         {
-            RT norm = res[amrlev][mglev_bottom].norminf(0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom
+            RT norm = norminf(res[amrlev][mglev_bottom],0,ncomp,IntVect(0));
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev_bottom
                            << "   DN: Norm before bottom " << norm << "\n";
         }
         bottomSolve();
         if (verbose >= 4)
         {
             computeResOfCorrection(amrlev, mglev_bottom);
-            RT norm = rescor[amrlev][mglev_bottom].norminf(0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom
+            RT norm = norminf(rescor[amrlev][mglev_bottom],0,ncomp,IntVect(0));
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev_bottom
                            << "   UP: Norm after  bottom " << norm << "\n";
         }
     }
@@ -1252,22 +1405,19 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
     {
         if (verbose >= 4)
         {
-            RT norm = res[amrlev][mglev_bottom].norminf(0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom
+            RT norm = norminf(res[amrlev][mglev_bottom],0,ncomp,IntVect(0));
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev_bottom
                            << "       Norm before smooth " << norm << "\n";
         }
-        cor[amrlev][mglev_bottom].setVal(RT(0.0));
+        setVal(cor[amrlev][mglev_bottom], RT(0.0));
         bool skip_fillboundary = true;
-        for (int i = 0; i < nu1; ++i) {
-            linop.smooth(amrlev, mglev_bottom, cor[amrlev][mglev_bottom],
-                         res[amrlev][mglev_bottom], skip_fillboundary);
-            skip_fillboundary = false;
-        }
+        linop.smooth(amrlev, mglev_bottom, cor[amrlev][mglev_bottom],
+            res[amrlev][mglev_bottom], skip_fillboundary, nu1);
         if (verbose >= 4)
         {
             computeResOfCorrection(amrlev, mglev_bottom);
-            RT norm = rescor[amrlev][mglev_bottom].norminf(0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev  << " " << mglev_bottom
+            RT norm = norminf(rescor[amrlev][mglev_bottom],0,ncomp,IntVect(0));
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev  << " " << mglev_bottom
                            << "       Norm after  smooth " << norm << "\n";
         }
     }
@@ -1281,21 +1431,19 @@ MLMGT<MF>::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             computeResOfCorrection(amrlev, mglev);
-            RT norm = rescor[amrlev][mglev].norminf(0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
+            RT norm = norminf(rescor[amrlev][mglev],0,ncomp,IntVect(0));
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev
                            << "   UP: Norm before smooth " << norm << "\n";
         }
-        for (int i = 0; i < nu2; ++i) {
-            linop.smooth(amrlev, mglev, cor[amrlev][mglev], res[amrlev][mglev]);
-        }
+        linop.smooth(amrlev, mglev, cor[amrlev][mglev], res[amrlev][mglev], false, nu2);
 
         if (cf_strategy == CFStrategy::ghostnodes) { computeResOfCorrection(amrlev, mglev); }
 
         if (verbose >= 4)
         {
             computeResOfCorrection(amrlev, mglev);
-            RT norm = rescor[amrlev][mglev].norminf(0,ncomp,IntVect(0));
-            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
+            RT norm = norminf(rescor[amrlev][mglev],0,ncomp,IntVect(0));
+            amrex::Print() << print_ident << "AT LEVEL "  << amrlev << " " << mglev
                            << "   UP: Norm after  smooth " << norm << "\n";
         }
     }
@@ -1311,7 +1459,17 @@ MLMGT<MF>::mgFcycle ()
     BL_PROFILE("MLMG::mgFcycle()");
 
 #ifdef AMREX_USE_EB
-    AMREX_ASSERT(linop.isCellCentered());
+   auto* pf = linop.Factory(0);
+   auto is_all_regular = [pf] () {
+        const auto *const f = dynamic_cast<EBFArrayBoxFactory const*>(pf);
+        if (f) {
+            return f->isAllRegular();
+        } else {
+            return true;
+        }
+    };
+    amrex::ignore_unused(pf, is_all_regular);
+    AMREX_ASSERT(linop.isCellCentered() || is_all_regular());
 #endif
 
     const int amrlev = 0;
@@ -1334,16 +1492,16 @@ MLMGT<MF>::mgFcycle ()
         // rescor = res - L(cor)
         computeResOfCorrection(amrlev, mglev);
         // res = rescor; this provides b to the vcycle below
-        res[amrlev][mglev].LocalCopy(rescor[amrlev][mglev], 0, 0, ncomp, nghost);
+        LocalCopy(res[amrlev][mglev], rescor[amrlev][mglev], 0, 0, ncomp, nghost);
 
         // save cor; do v-cycle; add the saved to cor
         std::swap(cor[amrlev][mglev], cor_hold[amrlev][mglev]);
         mgVcycle(amrlev, mglev);
-        cor[amrlev][mglev].LocalAdd(cor_hold[amrlev][mglev], 0, 0, ncomp, nghost);
+        LocalAdd(cor[amrlev][mglev], cor_hold[amrlev][mglev], 0, 0, ncomp, nghost);
     }
 }
 
-// At the true bottom of the coarset AMR level.
+// At the true bottom of the coarsest AMR level.
 // in  : Residual (res) as b
 // out : Correction (cor) as x
 template <typename MF>
@@ -1366,16 +1524,16 @@ MLMGT<MF>::NSolve (MLMGT<MF>& a_solver, MF& a_sol, MF& a_rhs)
 {
     BL_PROFILE("MLMG::NSolve()");
 
-    a_sol.setVal(RT(0.0));
+    setVal(a_sol, RT(0.0));
 
     MF const& res_bottom = res[0].back();
-    if (BoxArray::SameRefs(a_rhs.boxArray(),res_bottom.boxArray()) &&
-        DistributionMapping::SameRefs(a_rhs.DistributionMap(),res_bottom.DistributionMap()))
+    if (BoxArray::SameRefs(boxArray(a_rhs),boxArray(res_bottom)) &&
+        DistributionMapping::SameRefs(DistributionMap(a_rhs),DistributionMap(res_bottom)))
     {
-        a_rhs.LocalCopy(res_bottom, 0, 0, ncomp, IntVect(0));
+        LocalCopy(a_rhs, res_bottom, 0, 0, ncomp, IntVect(0));
     } else {
-        a_rhs.setVal(RT(0.0));
-        a_rhs.ParallelCopy(res_bottom);
+        setVal(a_rhs, RT(0.0));
+        ParallelCopy(a_rhs, res_bottom, 0, 0, ncomp);
     }
 
     a_solver.solve(Vector<MF*>{&a_sol}, Vector<MF const*>{&a_rhs},
@@ -1390,7 +1548,7 @@ MLMGT<MF>::actualBottomSolve ()
 {
     BL_PROFILE("MLMG::actualBottomSolve()");
 
-    if (!linop.isBottomActive()) return;
+    if (!linop.isBottomActive()) { return; }
 
     auto bottom_start_time = amrex::second();
 
@@ -1401,15 +1559,12 @@ MLMGT<MF>::actualBottomSolve ()
     auto& x = cor[amrlev][mglev];
     auto& b = res[amrlev][mglev];
 
-    x.setVal(RT(0.0));
+    setVal(x, RT(0.0));
 
     if (bottom_solver == BottomSolver::smoother)
     {
         bool skip_fillboundary = true;
-        for (int i = 0; i < nuf; ++i) {
-            linop.smooth(amrlev, mglev, x, b, skip_fillboundary);
-            skip_fillboundary = false;
-        }
+        linop.smooth(amrlev, mglev, x, b, skip_fillboundary, nuf);
     }
     else
     {
@@ -1417,9 +1572,9 @@ MLMGT<MF>::actualBottomSolve ()
         MF raii_b;
         if (linop.isBottomSingular() && linop.getEnforceSingularSolvable())
         {
-            const IntVect ng = b.nGrowVect();
+            const IntVect ng = nGrowVect(b);
             raii_b = linop.make(amrlev, mglev, ng);
-            raii_b.LocalCopy(b, 0, 0, ncomp, ng);
+            LocalCopy(raii_b, b, 0, 0, ncomp, ng);
             bottom_b = &raii_b;
 
             makeSolvable(amrlev,mglev,*bottom_b);
@@ -1428,14 +1583,24 @@ MLMGT<MF>::actualBottomSolve ()
         if (bottom_solver == BottomSolver::hypre)
         {
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-            bottomSolveWithHypre(x, *bottom_b);
+            if constexpr (std::is_same<MF,MultiFab>()) {
+                bottomSolveWithHypre(x, *bottom_b);
+            } else
 #endif
+            {
+                amrex::Abort("Using Hypre as bottom solver not supported in this case");
+            }
         }
         else if (bottom_solver == BottomSolver::petsc)
         {
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-            bottomSolveWithPETSc(x, *bottom_b);
+            if constexpr (std::is_same<MF,MultiFab>()) {
+                bottomSolveWithPETSc(x, *bottom_b);
+            } else
 #endif
+            {
+                amrex::Abort("Using PETSc as bottom solver not supported in this case");
+            }
         }
         else
         {
@@ -1446,39 +1611,42 @@ MLMGT<MF>::actualBottomSolve ()
             } else {
                 cg_type = MLCGSolverT<MF>::Type::BiCGStab;
             }
+
             int ret = bottomSolveWithCG(x, *bottom_b, cg_type);
-            // If the MLMG solve failed then set the correction to zero
-            if (ret != 0) {
-                cor[amrlev][mglev].setVal(RT(0.0));
-                if (bottom_solver == BottomSolver::cgbicg ||
-                    bottom_solver == BottomSolver::bicgcg) {
-                    if (bottom_solver == BottomSolver::cgbicg) {
-                        cg_type = MLCGSolverT<MF>::Type::BiCGStab; // switch to bicg
+
+            if (ret != 0 && (bottom_solver == BottomSolver::cgbicg ||
+                             bottom_solver == BottomSolver::bicgcg))
+            {
+                if (bottom_solver == BottomSolver::cgbicg) {
+                    cg_type = MLCGSolverT<MF>::Type::BiCGStab; // switch to bicg
+                } else {
+                    cg_type = MLCGSolverT<MF>::Type::CG; // switch to cg
+                }
+                setVal(cor[amrlev][mglev], RT(0.0));
+                ret = bottomSolveWithCG(x, *bottom_b, cg_type);
+                if (ret == 0) { // switch permanently
+                    if (cg_type == MLCGSolverT<MF>::Type::CG) {
+                        bottom_solver = BottomSolver::cg;
                     } else {
-                        cg_type = MLCGSolverT<MF>::Type::CG; // switch to cg
-                    }
-                    ret = bottomSolveWithCG(x, *bottom_b, cg_type);
-                    if (ret != 0) {
-                        cor[amrlev][mglev].setVal(RT(0.0));
-                    } else { // switch permanently
-                        if (cg_type == MLCGSolverT<MF>::Type::CG) {
-                            bottom_solver = BottomSolver::cg;
-                        } else {
-                            bottom_solver = BottomSolver::bicgstab;
-                        }
+                        bottom_solver = BottomSolver::bicgstab;
                     }
                 }
             }
-            const int n = (ret==0) ? nub : nuf;
-            for (int i = 0; i < n; ++i) {
-                linop.smooth(amrlev, mglev, x, b);
+
+            // If the bottom solve failed then set the correction to zero
+            if (ret != 0 && ret != 9) {
+                setVal(cor[amrlev][mglev], RT(0.0));
             }
+            const int n = (ret==0) ? nub : nuf;
+            linop.smooth(amrlev, mglev, x, b, false, n);
         }
     }
 
     ParallelContext::pop();
 
-    timer[bottom_time] += amrex::second() - bottom_start_time;
+    if (! timer.empty()) {
+        timer[bottom_time] += amrex::second() - bottom_start_time;
+    }
 }
 
 template <typename MF>
@@ -1488,12 +1656,14 @@ MLMGT<MF>::bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type
     MLCGSolverT<MF> cg_solver(linop);
     cg_solver.setSolver(type);
     cg_solver.setVerbose(bottom_verbose);
+    cg_solver.setPrintIdentation(print_ident);
     cg_solver.setMaxIter(bottom_maxiter);
+    cg_solver.setInitSolnZeroed(true);
     if (cf_strategy == CFStrategy::ghostnodes) { cg_solver.setNGhost(linop.getNGrow()); }
 
     int ret = cg_solver.solve(x, b, bottom_reltol, bottom_abstol);
     if (ret != 0 && verbose > 1) {
-        amrex::Print() << "MLMG: Bottom solve failed.\n";
+        amrex::Print() << print_ident << "MLMG: Bottom solve failed.\n";
     }
     m_niters_cg.push_back(cg_solver.getNumIters());
     return ret;
@@ -1535,7 +1705,9 @@ MLMGT<MF>::computeResWithCrseSolFineCor (int calev, int falev)
     BL_PROFILE("MLMG::computeResWithCrseSolFineCor()");
 
     IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = IntVect(std::min(linop.getNGrow(falev),linop.getNGrow(calev)));
+    if (cf_strategy == CFStrategy::ghostnodes) {
+        nghost = IntVect(std::min(linop.getNGrow(falev),linop.getNGrow(calev)));
+    }
 
     MF&       crse_sol = sol[calev];
     const MF& crse_rhs = rhs[calev];
@@ -1551,7 +1723,7 @@ MLMGT<MF>::computeResWithCrseSolFineCor (int calev, int falev)
     linop.solutionResidual(calev, crse_res, crse_sol, crse_rhs, crse_bcdata);
 
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
-    fine_res.LocalCopy(fine_rescor, 0, 0, ncomp, nghost);
+    LocalCopy(fine_res, fine_rescor, 0, 0, ncomp, nghost);
 
     linop.reflux(calev, crse_res, crse_sol, crse_rhs, fine_res, fine_sol, fine_rhs);
 
@@ -1566,7 +1738,9 @@ MLMGT<MF>::computeResWithCrseCorFineCor (int falev)
     BL_PROFILE("MLMG::computeResWithCrseCorFineCor()");
 
     IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = IntVect(linop.getNGrow(falev));
+    if (cf_strategy == CFStrategy::ghostnodes) {
+        nghost = IntVect(linop.getNGrow(falev));
+    }
 
     const MF& crse_cor = cor[falev-1][0];
 
@@ -1577,7 +1751,7 @@ MLMGT<MF>::computeResWithCrseCorFineCor (int falev)
     // fine_rescor = fine_res - L(fine_cor)
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res,
                              BCMode::Inhomogeneous, &crse_cor);
-    fine_res.LocalCopy(fine_rescor, 0, 0, ncomp, nghost);
+    LocalCopy(fine_res, fine_rescor, 0, 0, ncomp, nghost);
 }
 
 // Interpolate correction from coarse to fine AMR level.
@@ -1588,7 +1762,9 @@ MLMGT<MF>::interpCorrection (int alev)
     BL_PROFILE("MLMG::interpCorrection_1");
 
     IntVect nghost(0);
-    if (cf_strategy == CFStrategy::ghostnodes) nghost = IntVect(linop.getNGrow(alev));
+    if (cf_strategy == CFStrategy::ghostnodes) {
+        nghost = IntVect(linop.getNGrow(alev));
+    }
 
     MF const& crse_cor = cor[alev-1][0];
     MF      & fine_cor = cor[alev  ][0];
@@ -1604,11 +1780,11 @@ MLMGT<MF>::interpCorrection (int alev)
     }
 
     MF cfine = linop.makeCoarseAmr(alev, IntVect(ng_dst));
-    cfine.setVal(RT(0.0));
-    cfine.ParallelCopy(crse_cor, 0, 0, ncomp,  IntVect(ng_src), IntVect(ng_dst),
-                       crse_geom.periodicity());
+    setVal(cfine, RT(0.0));
+    ParallelCopy(cfine, crse_cor, 0, 0, ncomp, IntVect(ng_src), IntVect(ng_dst),
+                 crse_geom.periodicity());
 
-    linop.interpolationAmr(alev, fine_cor, cfine, nghost);
+    linop.interpolationAmr(alev, fine_cor, cfine, nghost); // NOLINT(readability-suspicious-call-argument)
 }
 
 // Interpolate correction between MG levels
@@ -1645,7 +1821,7 @@ MLMGT<MF>::addInterpCorrection (int alev, int mglev)
     else
     {
         cfine = linop.makeCoarseMG(alev, mglev, IntVect(0));
-        cfine.ParallelCopy(crse_cor,0,0,ncomp,IntVect(0),IntVect(0));
+        ParallelCopy(cfine, crse_cor, 0, 0, ncomp);
         cmf = &cfine;
     }
 
@@ -1687,7 +1863,7 @@ MLMGT<MF>::MLResNormInf (int alevmax, bool local) -> RT
     {
         r = std::max(r, ResNormInf(alev,true));
     }
-    if (!local) ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub());
+    if (!local) { ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub()); }
     return r;
 }
 
@@ -1702,7 +1878,7 @@ MLMGT<MF>::MLRhsNormInf (bool local) -> RT
         auto t = linop.normInf(alev, rhs[alev], true);
         r = std::max(r, t);
     }
-    if (!local) ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub());
+    if (!local) { ParallelAllReduce::Max(r, ParallelContext::CommunicatorSub()); }
     return r;
 }
 
@@ -1713,7 +1889,7 @@ MLMGT<MF>::makeSolvable ()
     auto const& offset = linop.getSolvabilityOffset(0, 0, rhs[0]);
     if (verbose >= 4) {
         for (int c = 0; c < ncomp; ++c) {
-            amrex::Print() << "MLMG: Subtracting " << offset[c] << " from rhs component "
+            amrex::Print() << print_ident << "MLMG: Subtracting " << offset[c] << " from rhs component "
                            << c << "\n";
         }
     }
@@ -1729,7 +1905,7 @@ MLMGT<MF>::makeSolvable (int amrlev, int mglev, MF& mf)
     auto const& offset = linop.getSolvabilityOffset(amrlev, mglev, mf);
     if (verbose >= 4) {
         for (int c = 0; c < ncomp; ++c) {
-            amrex::Print() << "MLMG: Subtracting " << offset[c]
+            amrex::Print() << print_ident << "MLMG: Subtracting " << offset[c]
                            << " from mf component c = " << c
                            << " on level (" << amrlev << ", " << mglev << ")\n";
         }
@@ -1739,6 +1915,7 @@ MLMGT<MF>::makeSolvable (int amrlev, int mglev, MF& mf)
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 template <typename MF>
+template <class TMF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int>>
 void
 MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
 {
@@ -1768,14 +1945,15 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
             const DistributionMapping& dm = linop.m_dmap[amrlev].back();
             const Geometry& geom = linop.m_geom[amrlev].back();
 
-            hypre_bndry = std::make_unique<MLMGBndry>(ba, dm, ncomp, geom);
+            hypre_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
             hypre_bndry->setHomogValues();
             const Real* dx = linop.m_geom[0][0].CellSize();
-            int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
-            RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
-                                             0.5*dx[1]*crse_ratio,
-                                             0.5*dx[2]*crse_ratio));
-            hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
+            IntVect crse_ratio = linop.m_coarse_data_crse_ratio.allGT(0) ? linop.m_coarse_data_crse_ratio : IntVect(1);
+            RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio[0],
+                                             0.5*dx[1]*crse_ratio[1],
+                                             0.5*dx[2]*crse_ratio[2]));
+            hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, IntVect(-1), bclocation,
+                                         linop.m_coarse_fine_bc_type);
         }
 
         // IJ interface understands absolute tolerance API of hypre
@@ -1807,6 +1985,7 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
 template <typename MF>
+template <class TMF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int>>
 void
 MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
 {
@@ -1821,14 +2000,15 @@ MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
 
-        petsc_bndry = std::make_unique<MLMGBndry>(ba, dm, ncomp, geom);
+        petsc_bndry = std::make_unique<MLMGBndryT<MF>>(ba, dm, ncomp, geom);
         petsc_bndry->setHomogValues();
         const Real* dx = linop.m_geom[0][0].CellSize();
-        int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
-        RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
-                                         0.5*dx[1]*crse_ratio,
-                                         0.5*dx[2]*crse_ratio));
-        petsc_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
+        auto crse_ratio = linop.m_coarse_data_crse_ratio.allGT(0) ? linop.m_coarse_data_crse_ratio : IntVect(1);
+        RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio[0],
+                                         0.5*dx[1]*crse_ratio[1],
+                                         0.5*dx[2]*crse_ratio[2]));
+        petsc_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, IntVect(-1), bclocation,
+                                     linop.m_coarse_fine_bc_type);
     }
     petsc_solver->solve(x, b, bottom_reltol, Real(-1.), bottom_maxiter, *petsc_bndry,
                         linop.getMaxOrder());
@@ -1857,6 +2037,8 @@ MLMGT<MF>::checkPoint (const Vector<MultiFab*>& a_sol,
 
         HeaderFile.precision(17);
 
+        std::string norm_name = getEnumNameString(norm_type);
+
         HeaderFile << linop.name() << "\n"
                    << "a_tol_rel = " << a_tol_rel << "\n"
                    << "a_tol_abs = " << a_tol_abs << "\n"
@@ -1871,7 +2053,7 @@ MLMGT<MF>::checkPoint (const Vector<MultiFab*>& a_sol,
                    << "bottom_verbose = " << bottom_verbose << "\n"
                    << "bottom_maxiter = " << bottom_maxiter << "\n"
                    << "bottom_reltol = " << bottom_reltol << "\n"
-                   << "always_use_bnorm = " << always_use_bnorm << "\n"
+                   << "convergence_norm = " << norm_name << "\n"
                    << "namrlevs = " << namrlevs << "\n"
                    << "finest_amr_lev = " << finest_amr_lev << "\n"
                    << "linop_prepared = " << linop_prepared << "\n"
@@ -1890,6 +2072,24 @@ MLMGT<MF>::checkPoint (const Vector<MultiFab*>& a_sol,
     }
 
     linop.checkPoint(file_name+"/linop");
+}
+
+template <typename MF>
+void
+MLMGT<MF>::incPrintIdentation ()
+{
+    print_ident.resize(print_ident.size()+4, ' ');
+}
+
+template <typename MF>
+void
+MLMGT<MF>::decPrintIdentation ()
+{
+    if (print_ident.size() > 4) {
+        print_ident.resize(print_ident.size()-4, ' ');
+    } else {
+        print_ident.clear();
+    }
 }
 
 extern template class MLMGT<MultiFab>;

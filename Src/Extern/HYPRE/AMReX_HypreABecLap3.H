@@ -13,7 +13,7 @@
 namespace amrex
 {
 
-class HypreABecLap3
+class HypreABecLap3 final
     : public Hypre
 {
 public:
@@ -21,10 +21,15 @@ public:
     HypreABecLap3 (const BoxArray& grids, const DistributionMapping& dmap,
                    const Geometry& geom_, MPI_Comm comm_,
                    const iMultiFab* overset_mask = nullptr);
-    virtual ~HypreABecLap3 ();
+    ~HypreABecLap3 () override;
 
-    virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
-                        int max_iter, const BndryData& bndry, int max_bndry_order) final;
+    HypreABecLap3 (HypreABecLap3 const&) = delete;
+    HypreABecLap3 (HypreABecLap3 &&) = delete;
+    HypreABecLap3& operator= (HypreABecLap3 const&) = delete;
+    HypreABecLap3& operator= (HypreABecLap3 &&) = delete;
+
+    void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
+                int max_iter, const BndryData& bndry, int max_bndry_order) override;
 
 #ifdef AMREX_USE_EB
     void setEBDirichlet (MultiFab const* beb) { m_eb_b_coeffs = beb; }
@@ -34,9 +39,9 @@ private :
     std::unique_ptr<HypreIJIface> hypre_ij;
 
     // Non-owning references to hypre matrix, rhs, and solution data
-    HYPRE_IJMatrix A = NULL;
-    HYPRE_IJVector b = NULL;
-    HYPRE_IJVector x = NULL;
+    HYPRE_IJMatrix A = nullptr;
+    HYPRE_IJVector b = nullptr;
+    HYPRE_IJVector x = nullptr;
 
     LayoutData<HYPRE_Int> ncells_grid;
     FabArray<BaseFab<HYPRE_Int> > cell_id;

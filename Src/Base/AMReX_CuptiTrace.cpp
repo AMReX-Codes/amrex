@@ -142,7 +142,7 @@ double
 computeElapsedTimeUserdata (const std::vector<std::unique_ptr<CUpti_Activity_Userdata>>&
                             activityRecordUserdata) noexcept
 {
-    if (activityRecordUserdata.size() == 0) {
+    if (activityRecordUserdata.empty()) {
         return 0.0;
     }
 

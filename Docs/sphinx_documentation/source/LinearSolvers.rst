@@ -92,7 +92,7 @@ there is the option to use
       void setBCoeffs (int amrlev, Real beta);
       void setBCoeffs (int amrlev, Vector<Real> const& beta);
 
-Note, however, that the solver behaviour is the same regardless of which functions you
+Note, however, that the solver behavior is the same regardless of which functions you
 use to set the coefficients. These functions solely copy the constant value(s) to a MultiFab
 internal to ``MLMG`` and so no appreciable efficiency gains can be expected.
 
@@ -159,13 +159,20 @@ to solve the problem given an initial guess and a right-hand side.
 Zero is a perfectly fine initial guess.  The two :cpp:`Reals` in the argument
 list are the targeted relative and absolute error tolerances. The relative
 error tolerance is hard-coded to be at least :math:`10^{-16}`.
-Given the linear system :math:`Ax=b`, the solver will terminate when the
-max-norm of the residual (:math:`b-Ax`) is less than
-:cpp:`std::max(a_tol_abs, a_tol_rel*max_norm)` where :cpp:`max_norm`
-is the max-norm of the rhs, :math:`b`, if the flag :cpp:`always_use_bnorm` is
-set to True or if the rhs max-norm is greater than or equal to the max-norm error
-of the initial guess, otherwise :cpp:`max_norm` is equal to the max-norm error
-of the initial guess.  Set the absolute tolerance to zero if one does not have a
+Given the linear system :math:`Ax = b`, the solver will terminate when the
+max-norm of the residual (:math:`b - Ax`) is less than
+:cpp:`std::max(a_tol_abs, a_tol_rel * max_norm)`. By default, :cpp:`max_norm` is
+equal to the greater of rhs max-norm and residual max-norm. This behavior can
+be modified using the ``MLMG`` member function :cpp:`setConvergenceNormType (MLMGNormType norm)`,
+where the available options are
+
+- :cpp:`MLMGNormType::greater`: The default.
+
+- :cpp:`MLMGNormType::bnorm`: :cpp:`max_norm` is set to rhs max-norm.
+
+- :cpp:`MLMGNormType::resnorm`: :cpp:`max_norm` is set to residual max-norm.
+
+Set the absolute tolerance to zero if one does not have a
 good value for it.  The return value of :cpp:`solve` is the max-norm error.
 
 After the solver returns successfully, if needed, we can call
@@ -245,9 +252,9 @@ The :cpp:`MLLinOp` member function for this step is
 Here :cpp:`const MultiFab* crse` contains the Dirichlet boundary
 values at the coarse resolution, and :cpp:`int crse_ratio` (e.g., 2)
 is the refinement ratio between the coarsest solver level and the AMR
-level below it.  The MultiFab crse does not need to have ghost cells itself.
-If the coarse grid bc's for the solve are identically zero, :cpp:`nullptr`
-can be passed instead of :cpp:`crse`.
+level below it.  The MultiFab :cpp:`crse` does not need to have ghost cells
+itself. If the coarse grid bc's for the solve are identically zero,
+:cpp:`nullptr` can be passed instead of :cpp:`crse`.
 
 3) Cell-centered solvers only:
 before the solve one must always call the :cpp:`MLLinOp` member function
@@ -292,6 +299,18 @@ For Robin boundary conditions, the ghost cells in
 ``MultiFab* robinbc_a``, ``MultiFab* robinbc_b``, and ``MultiFab* robinbc_f``
 store the numerical values in the condition,
 :math:`a\phi + b\frac{\partial\phi}{\partial n} = f`.
+
+4) Nodal solver provides the option to use an overset mask:
+
+.. highlight:: c++
+
+::
+
+   // omask is either 0 or 1. 1 means the node is an unknown. 0 means it's known.
+   void setOversetMask (int amrlev, const iMultiFab& a_dmask);
+
+Note this is an integer (not bool) MultiFab, so the values must be only either 0 or 1.
+
 
 .. _sec:linearsolver:pars:
 
@@ -367,10 +386,42 @@ Available choices are
 
 - :cpp:`LPInfo::setConsolidation(bool)` (by default true) can be used
   continue to transfer a multigrid problem to fewer MPI ranks.
-  There are more setting sucsh as :cpp:`LPInfo::setConsolidationGridSize(int)`,
+  There are more setting such as :cpp:`LPInfo::setConsolidationGridSize(int)`,
   :cpp:`LPInfo::setConsolidationRatio(int)`, and
   :cpp:`LPInfo::setConsolidationStrategy(int)`, to give control over how this
   process works.
+
+
+:cpp:`MLMG::setThrowException(bool)` controls whether multigrid failure results
+in aborting (default) or throwing an exception, whereby control will return to the calling
+application. The application code must catch the exception:
+
+.. highlight:: c++
+
+::
+
+    try {
+        mlmg.solve(...);
+    } catch (const MLMG::error& e) {
+        Print()<<e.what()<<std::endl; //Prints description of error
+
+        // Do something else...
+    }
+
+Note that exceptions that are not caught are passed up the calling chain so that
+application codes using specialized solvers relying on MLMG can still catch the exception.
+For example, using AMReX-Hydro's :cpp:`NodalProjector`
+
+.. highlight:: c++
+
+::
+
+    try {
+        nodal_projector.project(...);
+    } catch (const MLMG::error& e) {
+        // Do something else...
+    }
+
 
 Boundary Stencils for Cell-Centered Solvers
 ===========================================
@@ -400,7 +451,7 @@ Some of the linear solvers support curvilinear coordinates including 1D
 spherical and 2d cylindrical :math:`(r,z)`.  In those cases, the
 divergence operator has extra metric terms.  If one does not want the
 solver to include the metric terms because they have been handled in
-other ways, one can turn them off with a setter funtion. For
+other ways, one can turn them off with a setter function. For
 the cell-centered linear solvers `MLABecLaplacian` and `MLPoisson`, one
 can call :cpp:`setMetricTerm(bool)` with :cpp:`false`
 on the :cpp:`LPInfo` object passed to the constructor of linear
@@ -451,7 +502,9 @@ To set homogeneous Dirichlet boundary conditions, call
     ml_ebabeclap->setEBHomogDirichlet(lev, coeff);
 
 where coeff can be a real number (i.e. the value is the same at every cell)
-or is the MultiFab holding the coefficient of the gradient at each cell with an EB face.
+or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
+In other words, coeff is :math:`\beta` in the canonical form given in equation :eq:`eqn::abeclap`
+located at the EB surface centroid.
 
 To set inhomogeneous Dirichlet boundary conditions, call
 
@@ -462,8 +515,9 @@ To set inhomogeneous Dirichlet boundary conditions, call
     ml_ebabeclap->setEBDirichlet(lev, phi_on_eb, coeff);
 
 where phi_on_eb is the MultiFab holding the Dirichlet values in every cut cell,
-and coeff again is a real number (i.e. the value is the same at every cell)
-or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
+and coeff again is a real number
+or a MultiFab holding the coefficient of the gradient at each cell with an EB face,
+i.e. :math:`\beta` in equation :eq:`eqn::abeclap` located at the EB surface centroid.
 
 Currently there are options to define the face-based coefficients on
 face centers vs face centroids, and to interpret the solution variable
@@ -507,18 +561,38 @@ problem as much as possible.  However, as we have mentioned, we can
 call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
 passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
-residual correction form of the original problem. To build Hypre, follow the next steps:
+residual correction form of the original problem.
 
-.. highlight:: c++
+As of March 2025, AMReX supports and is tested with Hypre version 2.32.0 (check
+``amrex/.github/workflows/hypre.yml`` so see what versions are currently tested).
+To build Hypre, follow the next steps:
+
+.. highlight:: console
 
 ::
 
     1.- git clone https://github.com/hypre-space/hypre.git
     2.- cd hypre/src
-    3.- ./configure
+    3.- git checkout v2.32.0
+    4.- ./configure
         (if you want to build hypre with long long int, do ./configure --enable-bigint )
-    4.- make install
-    5.- Create an environment variable with the HYPRE directory --
+    5.- make install
+    6.- Create an environment variable with the HYPRE directory --
+        HYPRE_DIR=/hypre_path/hypre/src/hypre
+
+To use Hypre with CUDA, nvcc compiler is needed along with all other requirements for CPU (e.g. gcc, mpicc). It is very important that the GPU architecture for Hypre matches with that of AMReX. By default, Hypre assumes its architecture number to be 70 and it is best to build Hypre for multiple architectures by specifying multiple compute capability numbers (e.g. 80 and 90). If you see a runtime error similar to
+``terminate called after throwing an instance of 'thrust::system::system_error'``, you likely did not build for the correct architecture.
+
+::
+
+    1.- git clone https://github.com/hypre-space/hypre.git
+    2.- cd hypre/src
+    3.- git checkout v2.32.0
+    4.- ./configure --with-cuda --with-gpu-arch='80 90' --enable-unified-memory
+        (you can figure out the gpu arch from command line using
+        nvidia-smi --query-gpu=compute_cap --format=csv, if it gives 9.0, gpu-arch is 90)
+    5.- make install
+    6.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
 To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system.
@@ -533,7 +607,7 @@ The following parameter should be set to True if the problem to be solved has a 
 In this case, the solution is only defined to within a constant.  Setting this parameter to True
 replaces one row in the matrix sent to hypre from AMReX by a row that sets the value at one cell to 0.
 
-- :cpp:`hypre.adjust_singular_matrix`:   Default is False.
+- :cpp:`hypre.adjust_singular_matrix`:   Default is false.
 
 
 The following parameters can be set in the inputs file to control the choice of preconditioner and smoother:
@@ -577,15 +651,16 @@ The user is referred to the
 AMReX can also use `PETSc <https://www.mcs.anl.gov/petsc/>`_ as a bottom solver for cell-centered
 problems. To build PETSc, follow the next steps:
 
-.. highlight:: c++
+.. highlight:: console
 
 ::
 
     1.- git clone https://github.com/petsc/petsc.git
     2.- cd petsc
-    3.- ./configure --download-hypre=yes --prefix=build_dir
-    4.- Follow the steps given by petsc
-    5.- Create an environment variable with the PETSC directory --
+    3.- ./configure --prefix=build_dir
+    4.- Invoke the ``make all'' command given at the end of the previous command output
+    5.- Invoke the ``make install'' command given at the end of the previous command output
+    6.- Create an environment variable with the PETSC directory --
         PETSC_DIR=/petsc_path/petsc/build_dir
 
 To use PETSc, one must include ``amrex/Src/Extern/PETSc``
@@ -638,7 +713,7 @@ the following cross-terms are evaluated separately using the ``MLTensorOp`` and 
 
     (\eta u_y)_x + ( (\kappa - \frac{2}{3} \eta) (u_x + w_z) )_y  + (\eta w_y)_z
 
-    (\eta u_z)_x + (\eta v_z)_y - ( (\kappa - \frac{2}{3} \eta) (u_x + v_y) )_z
+    (\eta u_z)_x + (\eta v_z)_y + ( (\kappa - \frac{2}{3} \eta) (u_x + v_y) )_z
 
 The code below is an example of how to set up the solver to compute the
 viscous term `divtau` explicitly:

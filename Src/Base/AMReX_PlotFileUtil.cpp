@@ -1,4 +1,5 @@
 
+#include "AMReX_ParallelDescriptor.H"
 #include <AMReX_VisMF.H>
 #include <AMReX_AsyncOut.H>
 #include <AMReX_PlotFileUtil.H>
@@ -98,8 +99,8 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
 
         HeaderFile << varnames.size() << '\n';
 
-        for (int ivar = 0; ivar < varnames.size(); ++ivar) {
-            HeaderFile << varnames[ivar] << "\n";
+        for (const auto & varname : varnames) {
+            HeaderFile << varname << "\n";
         }
         HeaderFile << AMREX_SPACEDIM << '\n';
         HeaderFile << time << '\n';
@@ -181,7 +182,8 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
     PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
     if (!extra_dirs.empty()) {
         for (const auto& d : extra_dirs) {
-            const std::string ed = plotfilename+"/"+d;
+            std::string ed = plotfilename;
+            ed.append("/").append(d);
             amrex::PreBuildDirectorHierarchy(ed, levelPrefix, nlevels, callBarrier);
         }
     }
@@ -201,7 +203,7 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
             HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
                                                     std::ofstream::trunc |
                                                     std::ofstream::binary);
-            if( ! HeaderFile.good()) FileOpenFailed(HeaderFileName);
+            if( ! HeaderFile.good()) { FileOpenFailed(HeaderFileName); }
             WriteGenericPlotfileHeader(HeaderFile, nlevels, boxArrays, varnames,
                                        geom, time, level_steps, ref_ratio, versionName,
                                        levelPrefix, mfPrefix);
@@ -235,6 +237,9 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
             }
             VisMF::Write(*data, MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix));
         }
+        if (VisMF::GetBarrierAfterLevel()) {
+            ParallelDescriptor::Barrier();
+        }
     }
 }
 
@@ -249,7 +254,7 @@ void WriteMLMF (const std::string &plotfilename,
                 const Vector<const MultiFab*>& mf,
                 const Vector<Geometry> &geom)
 {
-    int nlevs = mf.size();
+    int nlevs = static_cast<int>(mf.size());
     int ncomp = mf[0]->nComp();
 
     // variables names are "Var0", "Var1", etc.
@@ -300,7 +305,8 @@ WriteMultiLevelPlotfileHeaders (const std::string & plotfilename, int nlevels,
     PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
     if (!extra_dirs.empty()) {
         for (const auto& d : extra_dirs) {
-            const std::string ed = plotfilename+"/"+d;
+            std::string ed = plotfilename;
+            ed.append("/").append(d);
             amrex::PreBuildDirectorHierarchy(ed, levelPrefix, nlevels, callBarrier);
         }
     }
@@ -403,7 +409,8 @@ EB_WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
     PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
     if (!extra_dirs.empty()) {
         for (const auto& d : extra_dirs) {
-            const std::string ed = plotfilename+"/"+d;
+            std::string ed = plotfilename;
+            ed.append("/").append(d);
             amrex::PreBuildDirectorHierarchy(ed, levelPrefix, nlevels, callBarrier);
         }
     }

@@ -43,7 +43,7 @@ def configure(argv):
                         default="no")
     parser.add_argument("--comp",
                         help="Compiler [default=gnu]",
-                        choices=["gnu","intel","cray","pgi","llvm","nag","nec","ibm","armclang"],
+                        choices=["gnu","intel","intel-llvm","intel-classic","cray","pgi","llvm","nag","nec","ibm","armclang"],
                         default="gnu")
     parser.add_argument("--debug",
                         help="Debug build [default=no]",
@@ -57,8 +57,20 @@ def configure(argv):
                         help="Enable AMReX Fortran API [default=yes]",
                         choices=["yes","no"],
                         default="yes")
+    parser.add_argument("--enable-fft",
+                        help="Enable AMReX FFT [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     parser.add_argument("--enable-linear-solver",
                         help="Enable AMReX linear solvers [default=yes]",
+                        choices=["yes","no"],
+                        default="yes")
+    parser.add_argument("--enable-linear-solver-incflo",
+                        help="Enable AMReX linear solvers for incompressible flow codes [default=yes]",
+                        choices=["yes","no"],
+                        default="yes")
+    parser.add_argument("--enable-linear-solver-em",
+                        help="Enable AMReX linear solvers for electromagnetic codes [default=yes]",
                         choices=["yes","no"],
                         default="yes")
     parser.add_argument("--enable-hypre",
@@ -116,6 +128,10 @@ def configure(argv):
                         help="Only relevant to Amr/AmrLevel based codes that need to read probin file or call amrex_probinit",
                         choices=["yes","no"],
                         default="yes")
+    parser.add_argument("--enable-bittree",
+                        help="Enable Bittree mode [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     args = parser.parse_args()
 
     if args.with_fortran == "no":
@@ -139,7 +155,10 @@ def configure(argv):
     f.write("DEBUG = {}\n".format("TRUE" if args.debug == "yes" else "FALSE"))
     f.write("USE_PARTICLES = {}\n".format("FALSE" if args.enable_particle == "no" else "TRUE"))
     f.write("USE_FORTRAN_INTERFACE = {}\n".format("FALSE" if args.enable_fortran_api == "no" else "TRUE"))
+    f.write("USE_FFT = {}\n".format("TRUE" if args.enable_fft == "yes" else "FALSE"))
     f.write("USE_LINEAR_SOLVERS = {}\n".format("FALSE" if args.enable_linear_solver == "no" else "TRUE"))
+    f.write("USE_LINEAR_SOLVERS_INCFLO = {}\n".format("FALSE" if args.enable_linear_solver_incflo == "no" else "TRUE"))
+    f.write("USE_LINEAR_SOLVERS_EM = {}\n".format("FALSE" if args.enable_linear_solver_em == "no" else "TRUE"))
     f.write("USE_HYPRE = {}\n".format("TRUE" if args.enable_hypre == "yes" else "FALSE"))
     f.write("USE_PETSC = {}\n".format("TRUE" if args.enable_petsc == "yes" else "FALSE"))
     f.write("USE_EB = {}\n".format("TRUE" if args.enable_eb == "yes" else "FALSE"))
@@ -154,6 +173,7 @@ def configure(argv):
     f.write("USE_COMPILE_PIC = {}\n".format("FALSE" if args.enable_pic == "no" else "TRUE"))
     f.write("CUDA_ARCH = " + args.cuda_arch.strip() + "\n")
     f.write("AMREX_NO_PROBINIT = {}\n".format("TRUE" if args.enable_probinit == "no" else "FALSE"))
+    f.write("USE_BITTREE = {}\n".format("TRUE" if args.enable_bittree == "yes" else "FALSE"))
     f.write("\n")
 
     fin = open("GNUmakefile.in","r")

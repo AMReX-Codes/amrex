@@ -1,6 +1,6 @@
 #include <AMReX_EB2_C.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 void intercept_to_edge_centroid (AMREX_D_DECL(Array4<Real> const& excent,
                                               Array4<Real> const& eycent,
@@ -64,4 +64,4 @@ void intercept_to_edge_centroid (AMREX_D_DECL(Array4<Real> const& excent,
     );
 }
 
-}}
+}

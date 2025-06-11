@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, os, glob, operator, time
+import sys, os, glob, operator
 
 if __name__ == "__main__":
     dt = float(sys.argv[3])-float(sys.argv[2])

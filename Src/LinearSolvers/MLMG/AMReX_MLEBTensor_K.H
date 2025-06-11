@@ -8,7 +8,7 @@ namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real mlebtensor_weight (int d) {
-    return (d==2) ? 0.5 : ((d==1) ? 1.0 : 0.0);
+    return (d==2) ? Real(0.5) : ((d==1) ? Real(1.0) : Real(0.0));
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

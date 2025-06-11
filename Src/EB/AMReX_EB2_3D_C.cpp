@@ -1,6 +1,6 @@
 #include <AMReX_EB2_C.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 namespace {
 
@@ -32,17 +32,18 @@ void set_eb_data (const int i, const int j, const int k,
                   Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                   Array4<Real const> const& fcz, Array4<Real const> const& m2x,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
+                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Real small_volfrac,
                   bool& is_small_cell, bool& is_multicut) noexcept
 {
-    Real axm = apx(i,j,k);
-    Real axp = apx(i+1,j,k);
-    Real aym = apy(i,j,k);
-    Real ayp = apy(i,j+1,k);
-    Real azm = apz(i,j,k);
-    Real azp = apz(i,j,k+1);
+    const Real axm = apx(i,j,k);
+    const Real axp = apx(i+1,j,k);
+    const Real aym = apy(i,j,k);
+    const Real ayp = apy(i,j+1,k);
+    const Real azm = apz(i,j,k);
+    const Real azp = apz(i,j,k+1);
 
     // Check for small cell first
     if (((axm == 0.0_rt && axp == 0.0_rt) &&
@@ -76,10 +77,10 @@ void set_eb_data (const int i, const int j, const int k,
         return;
     }
 
-    Real dapx = axm - axp;
-    Real dapy = aym - ayp;
-    Real dapz = azm - azp;
-    Real apnorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+    Real dapx = (axm - axp)*(dx[1]*dx[2]);
+    Real dapy = (aym - ayp)*(dx[0]*dx[2]);
+    Real dapz = (azm - azp)*(dx[0]*dx[1]);
+    const Real apnorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
     if (apnorm == 0.0_rt) {
         bool maybe_multi_cuts = (axm == 0.0_rt && axp == 0.0_rt) ||
                                 (aym == 0.0_rt && ayp == 0.0_rt) ||
@@ -96,10 +97,13 @@ void set_eb_data (const int i, const int j, const int k,
     Real nx = dapx * apnorminv;
     Real ny = dapy * apnorminv;
     Real nz = dapz * apnorminv;
+
     bnorm(i,j,k,0) = nx;
     bnorm(i,j,k,1) = ny;
     bnorm(i,j,k,2) = nz;
-    barea(i,j,k) = nx*dapx + ny*dapy + nz*dapz;
+    barea(i,j,k) = (nx*dapx + ny*dapy + nz*dapz) / std::sqrt(Math::powi<2>(nx*dx[1]*dx[2]) +
+                                                             Math::powi<2>(ny*dx[0]*dx[2]) +
+                                                             Math::powi<2>(nz*dx[0]*dx[1]));
 
     Real aax = 0.5_rt*(axm+axp);
     Real aay = 0.5_rt*(aym+ayp);
@@ -121,25 +125,30 @@ void set_eb_data (const int i, const int j, const int k,
         return;
     }
 
-    Real bainv = 1.0_rt/barea(i,j,k);
-    bcent(i,j,k,0) = bainv * (Bx + nx*vfrac(i,j,k));
-    bcent(i,j,k,1) = bainv * (By + ny*vfrac(i,j,k));
-    bcent(i,j,k,2) = bainv * (Bz + nz*vfrac(i,j,k));
+    bcent(i,j,k,0) = (Bx + nx*vfrac(i,j,k)) * apnorminv * dx[1] * dx[2];
+    bcent(i,j,k,1) = (By + ny*vfrac(i,j,k)) * apnorminv * dx[0] * dx[2];
+    bcent(i,j,k,2) = (Bz + nz*vfrac(i,j,k)) * apnorminv * dx[0] * dx[1];
 
     Real b1 = 0.5_rt*(axp-axm) + 0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0)) + 0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
     Real b2 = 0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0)) + 0.5_rt*(ayp-aym) + 0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
     Real b3 = 0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1)) + 0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1)) + 0.5_rt*(azp-azm);
-    Real b4 = -nx*0.25*(axp-axm) - ny*(m2y(i,j+1,k,0) - m2y(i,j,k,0)) - nz*(m2z(i,j,k+1,0) - m2z(i,j,k,0));
-    Real b5 = -nx*(m2x(i+1,j,k,0) - m2x(i,j,k,0)) - ny*0.25*(ayp-aym) - nz*(m2z(i,j,k+1,1) - m2z(i,j,k,1));
-    Real b6 = -nx*(m2x(i+1,j,k,1) - m2x(i,j,k,1)) - ny*(m2y(i,j+1,k,1) - m2y(i,j,k,1)) - nz*0.25*(azp-azm);
-    Real b7 = -nx*0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0)) - ny*0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0)) - nz*(m2z(i,j,k+1,2) - m2z(i,j,k,2));
-    Real b8 = -nx*0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1)) - ny*(m2y(i,j+1,k,2) - m2y(i,j,k,2)) - nz*0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
-    Real b9 = -nx*(m2x(i+1,j,k,2) - m2x(i,j,k,2)) - ny*0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1)) - nz*0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
+    Real b4 = -nx*0.25_rt*(axp-axm) - ny*(m2y(i,j+1,k,0) - m2y(i,j,k,0)) - nz*(m2z(i,j,k+1,0) - m2z(i,j,k,0));
+    Real b5 = -nx*(m2x(i+1,j,k,0) - m2x(i,j,k,0)) - ny*0.25_rt*(ayp-aym) - nz*(m2z(i,j,k+1,1) - m2z(i,j,k,1));
+    Real b6 = -nx*(m2x(i+1,j,k,1) - m2x(i,j,k,1)) - ny*(m2y(i,j+1,k,1) - m2y(i,j,k,1)) - nz*0.25_rt*(azp-azm);
+    Real b7 = -nx*0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0))
+              -ny*0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0))
+              -nz*(m2z(i,j,k+1,2) - m2z(i,j,k,2));
+    Real b8 = -nx*0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1))
+              -ny*(m2y(i,j+1,k,2) - m2y(i,j,k,2))
+              -nz*0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
+    Real b9 = -nx*(m2x(i+1,j,k,2) - m2x(i,j,k,2))
+              -ny*0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1))
+              -nz*0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
 
-    Real ny2 = ny*ny;
+    Real ny2 = ny *ny;
     Real ny3 = ny2*ny;
     Real ny4 = ny3*ny;
-    Real nz2 = nz*nz;
+    Real nz2 = nz *nz;
     Real nz3 = nz2*nz;
     Real nz4 = nz3*nz;
     Real nz5 = nz4*nz;
@@ -175,13 +184,11 @@ void set_eb_data (const int i, const int j, const int k,
                    2._rt*(b4 + b5 - 4._rt*b6)*ny2)*nz3 + 2._rt*b9*ny*nz4);
 
     Real den = 1._rt / (10._rt*(5._rt + 4._rt*nz2 - 4._rt*nz4 + 2._rt*ny4*(-2._rt + nz2) +
-                                  2._rt*ny2*(2._rt - 3._rt*nz2 + nz4)) * (vfrac(i,j,k)+1.e-30_rt) );
+                                2._rt*ny2*(2._rt - 3._rt*nz2 + nz4)) * (vfrac(i,j,k)+1.e-30_rt) );
 
     vcent(i,j,k,0) = Sx * den;
     vcent(i,j,k,1) = Sy * den;
     vcent(i,j,k,2) = Sz * den;
-
-
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -191,28 +198,28 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
                   Real bcx, Real bcy) noexcept
 {
 #ifdef AMREX_USE_FLOAT
-    constexpr Real small = 1.e-5_rt;
+    constexpr Real sml = 1.e-5_rt;
     constexpr Real tiny  = 1.e-6_rt;
 #else
-    constexpr Real small = 1.e-14;
+    constexpr Real sml = 1.e-14;
     constexpr Real tiny  = 1.e-15;
 #endif
     Real apnorm = std::hypot(axm-axp,aym-ayp);
     Real nx = (axm-axp) * (1.0_rt/apnorm); // pointing to the wall
     Real ny = (aym-ayp) * (1.0_rt/apnorm);
 
-    Real nxabs = amrex::Math::abs(nx);
-    Real nyabs = amrex::Math::abs(ny);
+    Real nxabs = std::abs(nx);
+    Real nyabs = std::abs(ny);
 
     if (nxabs < tiny || nyabs > 1.0_rt-tiny) {
         areafrac = 0.5_rt*(axm+axp);
-        if (areafrac > 1.0_rt-small) {
+        if (areafrac > 1.0_rt-sml) {
             areafrac = 1.0_rt;
             centx = 0.0_rt;
             centy = 0.0_rt;
             Sx2 = Sy2 = 1.0_rt/12._rt;
             Sxy = 0.0_rt;
-        } else if (areafrac < small) {
+        } else if (areafrac < sml) {
             areafrac = 0.0_rt;
             centx = 0.0_rt;
             centy = 0.0_rt;
@@ -228,13 +235,13 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
         }
     } else if (nyabs < tiny || nxabs > 1.0_rt-tiny) {
         areafrac = 0.5_rt*(aym+ayp);
-        if (areafrac > 1.0_rt-small) {
+        if (areafrac > 1.0_rt-sml) {
             areafrac = 1.0_rt;
             centx = 0.0_rt;
             centy = 0.0_rt;
             Sx2 = Sy2 = 1.0_rt/12._rt;
             Sxy = 0.0_rt;
-        } else if (areafrac < small) {
+        } else if (areafrac < sml) {
             areafrac = 0.0_rt;
             centx = 0.0_rt;
             centy = 0.0_rt;
@@ -281,13 +288,13 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
             : -signx*(1.0_rt/16._rt)*dx2 + 0.5_rt*ny*S_b;
 
         areafrac = 0.5_rt*(af1+af2);
-        if (areafrac > 1.0_rt-small) {
+        if (areafrac > 1.0_rt-sml) {
             areafrac = 1.0_rt;
             centx = 0.0_rt;
             centy = 0.0_rt;
             Sx2 = Sy2 = 1.0_rt/12._rt;
             Sxy = 0.0_rt;
-        } else if (areafrac < small) {
+        } else if (areafrac < sml) {
             areafrac = 0.0_rt;
             centx = 0.0_rt;
             centy = 0.0_rt;
@@ -310,6 +317,7 @@ void set_eb_cell (int i, int j, int k,
                   Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                   Array4<Real const> const& fcz, Array4<Real const> const& m2x,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
+                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Real small_volfrac,
@@ -341,7 +349,7 @@ void set_eb_cell (int i, int j, int k,
         barea(i,j,k) = 0.0_rt;
     } else {
         set_eb_data(i, j , k, cell, apx, apy, apz, fcx, fcy, fcz, m2x, m2y, m2z,
-                    vfrac, vcent, barea, bcent, bnorm, small_volfrac,
+                    dx, vfrac, vcent, barea, bcent, bnorm, small_volfrac,
                     is_small_cell, is_multicut);
     }
 }
@@ -368,9 +376,9 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
     int* dp = nmulticuts.data();
 
 #ifdef AMREX_USE_FLOAT
-    constexpr Real small = 1.e-5_rt;
+    constexpr Real sml = 1.e-5_rt;
 #else
-    constexpr Real small = 1.e-14;
+    constexpr Real sml = 1.e-14;
 #endif
     const Real dxinv = 1.0_rt/dx[0];
     const Real dyinv = 1.0_rt/dx[1];
@@ -455,7 +463,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 Gpu::Atomic::Add(dp,1);
             }
 
-            if ((ncuts > 2) || (lym <= small && lyp <= small && lzm <= small && lzp <= small)) {
+            if ((ncuts > 2) || (lym <= sml && lyp <= sml && lzm <= sml && lzp <= sml)) {
                 apx(i,j,k) = 0.0_rt;
                 fcx(i,j,k,0) = 0.0_rt;
                 fcx(i,j,k,1) = 0.0_rt;
@@ -472,7 +480,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             } else {
                 bcy = 0.5_rt*bcy - 0.5_rt;
                 bcz = 0.5_rt*bcz - 0.5_rt;
-                cut_face_2d(apx(i,j,k),fcx(i,j,k,0),fcx(i,j,k,1),
+                cut_face_2d(apx(i,j,k),fcx(i,j,k,0),fcx(i,j,k,1), // NOLINT(readability-suspicious-call-argument)
                             m2x(i,j,k,0),m2x(i,j,k,1),m2x(i,j,k,2),
                             lzm,lzp,lym,lyp,bcy,bcz);
             }
@@ -563,7 +571,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 Gpu::Atomic::Add(dp,1);
             }
 
-            if ((ncuts > 2) || (lxm <= small && lxp <= small && lzm <= small && lzp <= small)) {
+            if ((ncuts > 2) || (lxm <= sml && lxp <= sml && lzm <= sml && lzp <= sml)) {
                 apy(i,j,k) = 0.0_rt;
                 fcy(i,j,k,0) = 0.0_rt;
                 fcy(i,j,k,1) = 0.0_rt;
@@ -580,7 +588,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             } else {
                 bcx = 0.5_rt*bcx - 0.5_rt;
                 bcz = 0.5_rt*bcz - 0.5_rt;
-                cut_face_2d(apy(i,j,k),fcy(i,j,k,0),fcy(i,j,k,1),
+                cut_face_2d(apy(i,j,k),fcy(i,j,k,0),fcy(i,j,k,1), // NOLINT(readability-suspicious-call-argument)
                             m2y(i,j,k,0),m2y(i,j,k,1),m2y(i,j,k,2),
                             lzm,lzp,lxm,lxp,bcx,bcz);
             }
@@ -671,7 +679,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 Gpu::Atomic::Add(dp,1);
             }
 
-            if ((ncuts > 2) || (lxm <= small && lxp <= small && lym <= small && lyp <= small)) {
+            if ((ncuts > 2) || (lxm <= sml && lxp <= sml && lym <= sml && lyp <= sml)) {
                 apz(i,j,k) = 0.0_rt;
                 fcz(i,j,k,0) = 0.0_rt;
                 fcz(i,j,k,1) = 0.0_rt;
@@ -688,7 +696,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             } else {
                 bcx = 0.5_rt*bcx - 0.5_rt;
                 bcy = 0.5_rt*bcy - 0.5_rt;
-                cut_face_2d(apz(i,j,k),fcz(i,j,k,0),fcz(i,j,k,1),
+                cut_face_2d(apz(i,j,k),fcz(i,j,k,0),fcz(i,j,k,1), // NOLINT(readability-suspicious-call-argument)
                             m2z(i,j,k,0),m2z(i,j,k,1),m2z(i,j,k,2),
                             lym,lyp,lxm,lxp,bcx,bcy);
             }
@@ -728,51 +736,39 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             AMREX_HOST_DEVICE_FOR_3D(nbxg1, i, j, k,
             {
                 if (levset(i,j,k) < Real(0.0)) {
-                    bool zero_levset = false;
-                    if        (xbx.contains(i  ,j-1,k-1)
-                             &&          fx(i  ,j-1,k-1) == Type::covered) {
-                        zero_levset = true;
-                    } else if (xbx.contains(i  ,j  ,k-1)
-                             &&          fx(i  ,j  ,k-1) == Type::covered) {
-                        zero_levset = true;
-                    } else if (xbx.contains(i  ,j-1,k  )
-                             &&          fx(i  ,j-1,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (xbx.contains(i  ,j  ,k  )
-                             &&          fx(i  ,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (ybx.contains(i-1,j  ,k-1)
-                             &&          fy(i-1,j  ,k-1) == Type::covered) {
-                        zero_levset = true;
-                    } else if (ybx.contains(i  ,j  ,k-1)
-                             &&          fy(i  ,j  ,k-1) == Type::covered) {
-                        zero_levset = true;
-                    } else if (ybx.contains(i-1,j  ,k  )
-                             &&          fy(i-1,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (ybx.contains(i  ,j  ,k  )
-                             &&          fy(i  ,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (zbx.contains(i-1,j-1,k  )
-                             &&          fz(i-1,j-1,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (zbx.contains(i  ,j-1,k  )
-                             &&          fz(i  ,j-1,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (zbx.contains(i-1,j  ,k  )
-                             &&          fz(i-1,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    } else if (zbx.contains(i  ,j  ,k  )
-                             &&          fz(i  ,j  ,k  ) == Type::covered) {
-                        zero_levset = true;
-                    }
+                    bool zero_levset =
+                        (xbx.contains(i  ,j-1,k-1)
+                         &&        fx(i  ,j-1,k-1) == Type::covered) ||
+                        (xbx.contains(i  ,j  ,k-1)
+                         &&        fx(i  ,j  ,k-1) == Type::covered) ||
+                        (xbx.contains(i  ,j-1,k  )
+                         &&        fx(i  ,j-1,k  ) == Type::covered) ||
+                        (xbx.contains(i  ,j  ,k  )
+                         &&        fx(i  ,j  ,k  ) == Type::covered) ||
+                        (ybx.contains(i-1,j  ,k-1)
+                         &&        fy(i-1,j  ,k-1) == Type::covered) ||
+                        (ybx.contains(i  ,j  ,k-1)
+                         &&        fy(i  ,j  ,k-1) == Type::covered) ||
+                        (ybx.contains(i-1,j  ,k  )
+                         &&        fy(i-1,j  ,k  ) == Type::covered) ||
+                        (ybx.contains(i  ,j  ,k  )
+                         &&        fy(i  ,j  ,k  ) == Type::covered) ||
+                        (zbx.contains(i-1,j-1,k  )
+                         &&        fz(i-1,j-1,k  ) == Type::covered) ||
+                        (zbx.contains(i  ,j-1,k  )
+                         &&        fz(i  ,j-1,k  ) == Type::covered) ||
+                        (zbx.contains(i-1,j  ,k  )
+                         &&        fz(i-1,j  ,k  ) == Type::covered) ||
+                        (zbx.contains(i  ,j  ,k  )
+                         &&        fz(i  ,j  ,k  ) == Type::covered);
                     if (zero_levset) {
                         levset(i,j,k) = Real(0.0);
                     }
                 }
             });
         } else {
-            amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
+            amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported. "
+                         "You can try to fix it by using runtime parameter eb2.cover_multiple_cuts=1.");
         }
     }
 
@@ -786,6 +782,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                   Array4<Real const> const& fcz, Array4<Real const> const& m2x,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
+                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
@@ -803,7 +800,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         bool is_small_cell = false;
         bool is_multicut = false;
         set_eb_cell(i, j, k, cell, apx, apy, apz, fcx, fcy, fcz, m2x, m2y, m2z,
-                    vfrac, vcent, barea, bcent, bnorm, small_volfrac,
+                    dx, vfrac, vcent, barea, bcent, bnorm, small_volfrac,
                     is_small_cell, is_multicut);
         if (is_small_cell) {
             Gpu::Atomic::Add(dp, 1);
@@ -886,68 +883,47 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     AMREX_HOST_DEVICE_FOR_3D(nbxg1, i, j, k,
     {
         if (levset(i,j,k) < Real(0.0)) {
-            bool zero_levset = false;
-            if        (bxg1.contains(i-1,j-1,k-1)
-                       &&       cell(i-1,j-1,k-1).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i  ,j-1,k-1)
-                       &&       cell(i  ,j-1,k-1).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i-1,j  ,k-1)
-                       &&       cell(i-1,j  ,k-1).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i  ,j  ,k-1)
-                       &&       cell(i  ,j  ,k-1).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i-1,j-1,k  )
-                       &&       cell(i-1,j-1,k  ).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i  ,j-1,k  )
-                       &&       cell(i  ,j-1,k  ).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i-1,j  ,k  )
-                       &&       cell(i-1,j  ,k  ).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1.contains(i  ,j  ,k  )
-                       &&       cell(i  ,j  ,k  ).isCovered()) {
-                zero_levset = true;
-            } else if (bxg1x.contains(i  ,j-1,k-1)
-                       &&          fx(i  ,j-1,k-1) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1x.contains(i  ,j  ,k-1)
-                       &&          fx(i  ,j  ,k-1) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1x.contains(i  ,j-1,k  )
-                       &&          fx(i  ,j-1,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1x.contains(i  ,j  ,k  )
-                       &&          fx(i  ,j  ,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1y.contains(i-1,j  ,k-1)
-                       &&          fy(i-1,j  ,k-1) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1y.contains(i  ,j  ,k-1)
-                       &&          fy(i  ,j  ,k-1) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1y.contains(i-1,j  ,k  )
-                       &&          fy(i-1,j  ,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1y.contains(i  ,j  ,k  )
-                       &&          fy(i  ,j  ,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1z.contains(i-1,j-1,k  )
-                       &&          fz(i-1,j-1,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1z.contains(i  ,j-1,k  )
-                       &&          fz(i  ,j-1,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1z.contains(i-1,j  ,k  )
-                       &&          fz(i-1,j  ,k  ) == Type::covered) {
-                zero_levset = true;
-            } else if (bxg1z.contains(i  ,j  ,k  )
-                       &&          fz(i  ,j  ,k  ) == Type::covered) {
-                zero_levset = true;
-            }
+            bool zero_levset =
+                (bxg1.contains(i-1,j-1,k-1)
+                 &&       cell(i-1,j-1,k-1).isCovered()) ||
+                (bxg1.contains(i  ,j-1,k-1)
+                 &&       cell(i  ,j-1,k-1).isCovered()) ||
+                (bxg1.contains(i-1,j  ,k-1)
+                 &&       cell(i-1,j  ,k-1).isCovered()) ||
+                (bxg1.contains(i  ,j  ,k-1)
+                 &&       cell(i  ,j  ,k-1).isCovered()) ||
+                (bxg1.contains(i-1,j-1,k  )
+                 &&       cell(i-1,j-1,k  ).isCovered()) ||
+                (bxg1.contains(i  ,j-1,k  )
+                 &&       cell(i  ,j-1,k  ).isCovered()) ||
+                (bxg1.contains(i-1,j  ,k  )
+                 &&       cell(i-1,j  ,k  ).isCovered()) ||
+                (bxg1.contains(i  ,j  ,k  )
+                 &&       cell(i  ,j  ,k  ).isCovered()) ||
+                (bxg1x.contains(i  ,j-1,k-1)
+                 &&          fx(i  ,j-1,k-1) == Type::covered) ||
+                (bxg1x.contains(i  ,j  ,k-1)
+                 &&          fx(i  ,j  ,k-1) == Type::covered) ||
+                (bxg1x.contains(i  ,j-1,k  )
+                 &&          fx(i  ,j-1,k  ) == Type::covered) ||
+                (bxg1x.contains(i  ,j  ,k  )
+                 &&          fx(i  ,j  ,k  ) == Type::covered) ||
+                (bxg1y.contains(i-1,j  ,k-1)
+                 &&          fy(i-1,j  ,k-1) == Type::covered) ||
+                (bxg1y.contains(i  ,j  ,k-1)
+                 &&          fy(i  ,j  ,k-1) == Type::covered) ||
+                (bxg1y.contains(i-1,j  ,k  )
+                 &&          fy(i-1,j  ,k  ) == Type::covered) ||
+                (bxg1y.contains(i  ,j  ,k  )
+                 &&          fy(i  ,j  ,k  ) == Type::covered) ||
+                (bxg1z.contains(i-1,j-1,k  )
+                 &&          fz(i-1,j-1,k  ) == Type::covered) ||
+                (bxg1z.contains(i  ,j-1,k  )
+                 &&          fz(i  ,j-1,k  ) == Type::covered) ||
+                (bxg1z.contains(i-1,j  ,k  )
+                 &&          fz(i-1,j  ,k  ) == Type::covered) ||
+                (bxg1z.contains(i  ,j  ,k  )
+                 &&          fz(i  ,j  ,k  ) == Type::covered);
             if (zero_levset) {
                 levset(i,j,k) = Real(0.0);
             }
@@ -956,7 +932,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
 
     if (nsmallcells > 0 || nmulticuts > 0) {
         if (!cover_multiple_cuts && nmulticuts > 0) {
-            amrex::Abort("amrex::EB2::build_cells: multi-cuts not supported");
+            amrex::Abort("amrex::EB2::build_cells: multi-cuts not supported. "
+                         "You can try to fix it by using runtime parameter eb2.cover_multiple_cuts=1.");
         }
         return;
     } else {
@@ -1152,4 +1129,4 @@ void set_connection_flags (Box const& bx,
     });
 }
 
-}}
+}

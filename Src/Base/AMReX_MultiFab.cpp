@@ -44,7 +44,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
 Real
 MultiFab::Dot (const MultiFab& x, int xcomp, int numcomp, int nghost, bool local)
 {
-    BL_ASSERT(x.nGrow() >= nghost);
+    BL_ASSERT(x.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Dot()");
 
@@ -97,8 +97,8 @@ MultiFab::Dot (const iMultiFab& mask,
     BL_ASSERT(x.boxArray() == mask.boxArray());
     BL_ASSERT(x.DistributionMap() == y.DistributionMap());
     BL_ASSERT(x.DistributionMap() == mask.DistributionMap());
-    BL_ASSERT(x.nGrow() >= nghost && y.nGrow() >= nghost);
-    BL_ASSERT(mask.nGrow() >= nghost);
+    BL_ASSERT(x.nGrowVect().allGE(nghost) && y.nGrowVect().allGE(nghost));
+    BL_ASSERT(mask.nGrowVect().allGE(nghost));
 
     Real sm = Real(0.0);
 #ifdef AMREX_USE_GPU
@@ -167,6 +167,28 @@ MultiFab::Add (MultiFab& dst, const MultiFab& src,
     amrex::Add(dst, src, srccomp, dstcomp, numcomp, nghost);
 }
 
+MultiFab
+MultiFab::deepCopy () const
+{
+    MultiFab mf(
+        this->boxArray(),
+        this->DistributionMap(),
+        this->nComp(),
+        this->nGrowVect(),
+        MFInfo().SetArena(this->arena()),
+        this->Factory()
+    );
+    MultiFab::Copy(
+        mf,
+        *this,
+        0,
+        0,
+        this->nComp(),
+        this->nGrowVect()
+    );
+    return mf;
+}
+
 void
 MultiFab::Copy (MultiFab& dst, const MultiFab& src,
                 int srccomp, int dstcomp, int numcomp, int nghost)
@@ -203,61 +225,8 @@ MultiFab::Swap (MultiFab& dst, MultiFab& src,
     BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Swap()");
-
-    // We can take a shortcut and do a std::swap if we're swapping all of the data
-    // and they are allocated in the same Arena.
-
-    bool explicit_swap = true;
-
-    if (srccomp == dstcomp && dstcomp == 0 && src.nComp() == dst.nComp() &&
-        src.nGrowVect() == nghost && src.nGrowVect() == dst.nGrowVect() &&
-        src.arena() == dst.arena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
-        explicit_swap = false;
-    }
-
-    if (!explicit_swap) {
-
-        std::swap(dst, src);
-
-    } else {
-#ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
-            auto const& dstma = dst.arrays();
-            auto const& srcma = src.arrays();
-            ParallelFor(dst, nghost, numcomp,
-            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-            {
-                const amrex::Real tmp = dstma[box_no](i,j,k,n+dstcomp);
-                dstma[box_no](i,j,k,n+dstcomp) = srcma[box_no](i,j,k,n+srccomp);
-                srcma[box_no](i,j,k,n+srccomp) = tmp;
-            });
-            if (!Gpu::inNoSyncRegion()) {
-                Gpu::streamSynchronize();
-            }
-        } else
-#endif
-        {
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-            for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.growntilebox(nghost);
-                if (bx.ok()) {
-                    auto sfab = src.array(mfi);
-                    auto dfab = dst.array(mfi);
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, numcomp, i, j, k, n,
-                    {
-                        const amrex::Real tmp = dfab(i,j,k,n+dstcomp);
-                        dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp);
-                        sfab(i,j,k,n+srccomp) = tmp;
-                    });
-                }
-            }
-        }
-    }
+    amrex::Swap(dst,src,srccomp,dstcomp,numcomp,nghost);
 }
-
 
 void
 MultiFab::Subtract (MultiFab& dst, const MultiFab& src,
@@ -452,7 +421,7 @@ MultiFab::negate (const Box& region, int nghost)
 void
 MultiFab::Initialize ()
 {
-    if (initialized) return;
+    if (initialized) { return; }
     initialized = true;
 
     amrex::ExecOnFinalize(MultiFab::Finalize);
@@ -471,7 +440,7 @@ MultiFab::Finalize ()
     initialized = false;
 }
 
-MultiFab::MultiFab () noexcept
+MultiFab::MultiFab () noexcept // NOLINT(modernize-use-equals-default)
 {
 #ifdef AMREX_MEM_PROFILING
     ++num_multifabs;
@@ -506,7 +475,7 @@ MultiFab::MultiFab (const BoxArray&            bxs,
     :
     FabArray<FArrayBox>(bxs,dm,ncomp,ngrow,info,factory)
 {
-    if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
+    if (SharedMemory() && info.alloc) { initVal(); } // else already done in FArrayBox
 #ifdef AMREX_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
@@ -532,17 +501,18 @@ MultiFab::MultiFab (MultiFab&& rhs) noexcept
 #endif
 }
 
-MultiFab::~MultiFab()
+MultiFab::~MultiFab() // NOLINT(modernize-use-equals-default)
 {
 #ifdef AMREX_MEM_PROFILING
     --num_multifabs;
 #endif
 }
 
-void
+MultiFab&
 MultiFab::operator= (Real r)
 {
     setVal(r);
+    return *this;
 }
 
 void
@@ -554,7 +524,7 @@ MultiFab::define (const BoxArray&            bxs,
                   const FabFactory<FArrayBox>& factory)
 {
     define(bxs, dm, nvar, IntVect(ngrow), info, factory);
-    if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
+    if (SharedMemory() && info.alloc) { initVal(); } // else already done in FArrayBox
 }
 
 void
@@ -566,7 +536,7 @@ MultiFab::define (const BoxArray&            bxs,
                   const FabFactory<FArrayBox>& factory)
 {
     this->FabArray<FArrayBox>::define(bxs,dm,nvar,ngrow,info,factory);
-    if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
+    if (SharedMemory() && info.alloc) { initVal(); } // else already done in FArrayBox
 }
 
 void
@@ -580,6 +550,65 @@ MultiFab::initVal ()
         FArrayBox& fab = (*this)[mfi];
         fab.initVal();
     }
+}
+
+bool
+MultiFab::is_finite (int scomp, int ncomp, int ngrow, bool local) const
+{
+    return is_finite(scomp, ncomp, IntVect(ngrow), local);
+}
+
+bool
+MultiFab::is_finite (int scomp, int ncomp, const IntVect& ngrow, bool local) const
+{
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(scomp + ncomp <= nComp());
+    BL_ASSERT(ncomp >  0 && ncomp <= nComp());
+    BL_ASSERT(IntVect::TheZeroVector().allLE(ngrow) && ngrow.allLE(nGrowVect()));
+
+    BL_PROFILE("MultiFab::is_finite()");
+
+    bool r = false;
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = this->const_arrays();
+        r = ParReduce(TypeList<ReduceOpLogicalOr>{}, TypeList<bool>{}, *this, ngrow, ncomp,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept -> GpuTuple<bool>
+        {
+#if defined(_WIN32)
+            return Gpu::isnan(ma[box_no](i,j,k,n+scomp)) || Gpu::isinf(ma[box_no](i,j,k,n+scomp));
+#else
+            return !amrex::Math::isfinite(ma[box_no](i,j,k,n+scomp));
+#endif
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel reduction(||:r)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid() && !r; ++mfi)
+        {
+            Box const& bx = mfi.growntilebox(ngrow);
+            Array4<Real const> const& fab = this->const_array(mfi);
+            AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+            {
+                r = r || !amrex::Math::isfinite(fab(i,j,k,n+scomp));
+            });
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Or(r, ParallelContext::CommunicatorSub());
+    }
+
+    return !r;
+}
+
+bool
+MultiFab::is_finite (bool local) const
+{
+    return is_finite(0,nComp(),nGrowVect(),local);
 }
 
 bool
@@ -689,7 +718,7 @@ MultiFab::contains_inf (int scomp, int ncomp, int ngrow, bool local) const
 bool
 MultiFab::contains_inf (bool local) const
 {
-    return contains_inf(0,nComp(),nGrow(),local);
+    return contains_inf(0,nComp(),nGrowVect(),local);
 }
 
 Real
@@ -697,7 +726,7 @@ MultiFab::min (int comp, int nghost, bool local) const
 {
     BL_PROFILE("MultiFab::min()");
 
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
 
     Real mn = std::numeric_limits<Real>::max();
 
@@ -778,7 +807,7 @@ MultiFab::min (int comp, int nghost, bool local) const
 Real
 MultiFab::min (const Box& region, int comp, int nghost, bool local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
 
     BL_PROFILE("MultiFab::min(region)");
 
@@ -824,7 +853,7 @@ MultiFab::min (const Box& region, int comp, int nghost, bool local) const
 Real
 MultiFab::max (int comp, int nghost, bool local) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
 
     BL_PROFILE("MultiFab::max()");
 
@@ -950,7 +979,7 @@ MultiFab::max (const Box& region, int comp, int nghost, bool local) const
 
 namespace {
 
-static IntVect
+IntVect
 indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mmloc)
 {
     IntVect loc = indexFromValue(mf, comp, IntVect{nghost}, value);
@@ -983,7 +1012,7 @@ indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mml
 IntVect
 MultiFab::minIndex (int comp, int nghost) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     Real mn = this->min(comp, nghost, true);
     return indexFromValue(*this, comp, nghost, mn, MPI_MINLOC);
 }
@@ -991,7 +1020,7 @@ MultiFab::minIndex (int comp, int nghost) const
 IntVect
 MultiFab::maxIndex (int comp, int nghost) const
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     Real mx = this->max(comp, nghost, true);
     return indexFromValue(*this, comp, nghost, mx, MPI_MAXLOC);
 }
@@ -1017,7 +1046,7 @@ MultiFab::norm0 (int comp, int ncomp, IntVect const& nghost, bool local, bool ig
 Vector<Real>
 MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local, bool ignore_covered) const
 {
-    int n = comps.size();
+    int n = static_cast<int>(comps.size());
     Vector<Real> nm0;
     nm0.reserve(n);
 
@@ -1089,7 +1118,7 @@ MultiFab::norm2 (const Vector<int>& comps) const
 {
     BL_ASSERT(ixType().cellCentered());
 
-    int n = comps.size();
+    int n = static_cast<int>(comps.size());
     Vector<Real> nm2;
     nm2.reserve(n);
 
@@ -1111,8 +1140,9 @@ MultiFab::norm1 (int comp, const Periodicity& period, bool ignore_covered ) cons
     MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
 
 #ifdef AMREX_USE_EB
-    if ( this -> hasEBFabFactory() && ignore_covered )
+    if ( this -> hasEBFabFactory() && ignore_covered ) {
         EB_set_covered( tmpmf, Real(0.0) );
+    }
 #endif
 
     auto mask = OverlapMask(period);
@@ -1134,7 +1164,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
         nm1 = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(ngrow),
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
         {
-            return amrex::Math::abs(ma[box_no](i,j,k,comp));
+            return std::abs(ma[box_no](i,j,k,comp));
         });
     } else
 #endif
@@ -1147,7 +1177,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
             auto const& a = this->const_array(mfi);
             AMREX_LOOP_3D(bx, i, j, k,
             {
-                nm1 += amrex::Math::abs(a(i,j,k,comp));
+                nm1 += std::abs(a(i,j,k,comp));
             });
         }
     }
@@ -1164,7 +1194,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 {
     BL_ASSERT(ixType().cellCentered());
 
-    int n = comps.size();
+    int n = static_cast<int>(comps.size());
     Vector<Real> nm1;
     nm1.reserve(n);
 
@@ -1172,8 +1202,9 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
         nm1.push_back(this->norm1(comp, ngrow, true));
     }
 
-    if (!local)
+    if (!local) {
         ParallelAllReduce::Sum(nm1.dataPtr(), n, ParallelContext::CommunicatorSub());
+    }
 
     return nm1;
 }
@@ -1185,15 +1216,58 @@ MultiFab::sum (int comp, bool local) const
 }
 
 Real
+MultiFab::sum (Box const& region, int comp, bool local) const
+{
+    BL_PROFILE("MultiFab::sum(region)");
+
+    auto sm = 0.0_rt;
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = this->const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept -> GpuTuple<Real>
+        {
+            return (region.contains(i,j,k)) ? ma[box_no](i,j,k,comp) : 0.0_rt;
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi) {
+            Box const& bx = mfi.tilebox() & region;
+            if (bx.ok()) {
+                auto const& a = this->const_array(mfi);
+                auto tmp = 0.0_rt;
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    tmp += a(i,j,k,comp);
+                });
+                sm += tmp; // Do it this way so that it does not break regression tests.
+            }
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
+
+    return sm;
+}
+
+Real
 MultiFab::sum_unique (int comp,
                       bool local,
                       const Periodicity& period) const
 {
     BL_PROFILE("MultiFab::sum_unique()");
 
-    // no duplicatly distributed points if cell centered
-    if (ixType().cellCentered())
+    // no duplicately distributed points if cell centered
+    if (ixType().cellCentered()) {
         return this->sum(comp, local);
+    }
 
     // Owner is the grid with the lowest grid number containing the data
     std::unique_ptr<iMultiFab> owner_mask = OwnerMask(period);
@@ -1236,6 +1310,60 @@ MultiFab::sum_unique (int comp,
     return sm;
 }
 
+Real
+MultiFab::sum_unique (Box const& region, int comp, bool local) const
+{
+    BL_PROFILE("MultiFab::sum_unique(region)");
+
+    // no duplicately distributed points if cell centered
+    if (ixType().cellCentered()) {
+        return this->sum(region, comp, local);
+    }
+
+    // Owner is the grid with the lowest grid number containing the data
+    std::unique_ptr<iMultiFab> owner_mask = OwnerMask();
+
+    auto sm = 0.0_rt;
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
+        auto const& ma = this->const_arrays();
+        auto const& msk = owner_mask->const_arrays();
+        sm = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, *this, IntVect(0),
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                       -> GpuTuple<Real>
+        {
+            return (region.contains(i,j,k) && msk[box_no](i,j,k))
+                ? ma[box_no](i,j,k,comp) : 0.0_rt;
+        });
+    } else
+#endif
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.tilebox() & region;
+            if (bx.ok()) {
+                Array4<Real const> const& a = this->const_array(mfi);
+                Array4<int const> const& msk = owner_mask->const_array(mfi);
+                auto tmp = 0.0_rt;
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    if (msk(i,j,k)) { tmp += a(i,j,k,comp); }
+                });
+                sm += tmp; // Do it this way so that it does not break regression tests.
+            }
+        }
+    }
+
+    if (!local) {
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    }
+
+    return sm;
+}
+
 void
 MultiFab::minus (const MultiFab& mf, int strt_comp, int num_comp, int nghost)
 {
@@ -1252,7 +1380,7 @@ void
 MultiFab::plus (Real val, int comp, int num_comp, int nghost)
 {
 
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -1262,7 +1390,7 @@ MultiFab::plus (Real val, int comp, int num_comp, int nghost)
 void
 MultiFab::plus (Real val, const Box& region, int comp, int num_comp, int nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -1278,7 +1406,7 @@ MultiFab::plus (const MultiFab& mf, int strt_comp, int num_comp, int nghost)
 void
 MultiFab::mult (Real val, int comp, int num_comp, int  nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -1288,7 +1416,7 @@ MultiFab::mult (Real val, int comp, int num_comp, int  nghost)
 void
 MultiFab::mult (Real val, const Box& region, int comp, int num_comp, int nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -1298,7 +1426,7 @@ MultiFab::mult (Real val, const Box& region, int comp, int num_comp, int nghost)
 void
 MultiFab::invert (Real numerator, int comp, int num_comp, int nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -1308,7 +1436,7 @@ MultiFab::invert (Real numerator, int comp, int num_comp, int nghost)
 void
 MultiFab::invert (Real numerator, const Box& region, int comp, int num_comp, int nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
@@ -1318,7 +1446,7 @@ MultiFab::invert (Real numerator, const Box& region, int comp, int num_comp, int
 void
 MultiFab::negate (int comp, int num_comp, int nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
 
     FabArray<FArrayBox>::mult(-1., comp, num_comp, nghost);
@@ -1327,7 +1455,7 @@ MultiFab::negate (int comp, int num_comp, int nghost)
 void
 MultiFab::negate (const Box& region, int comp, int num_comp, int nghost)
 {
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    BL_ASSERT(nghost >= 0 && n_grow.allGE(nghost));
     BL_ASSERT(comp+num_comp <= n_comp);
 
     FabArray<FArrayBox>::mult(-1.,region,comp,num_comp,nghost);
@@ -1348,6 +1476,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     Vector<Array4BoxTag<Real> > tags;
 
     bool run_on_gpu = Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_gpu, tags);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (!run_on_gpu)
 #endif
@@ -1370,9 +1499,12 @@ MultiFab::OverlapMask (const Periodicity& period) const
                 for (const auto& is : isects)
                 {
                     Box const& b = is.second-iv;
+#ifdef AMREX_USE_GPU
                     if (run_on_gpu) {
                         tags.push_back({arr,b});
-                    } else {
+                    } else
+#endif
+                    {
                         amrex::LoopConcurrentOnCpu(b, [=] (int i, int j, int k) noexcept
                         {
                             arr(i,j,k) += Real(1.0);
@@ -1406,7 +1538,7 @@ MultiFab::AverageSync (const Periodicity& period)
 {
     BL_PROFILE("MultiFab::AverageSync()");
 
-    if (ixType().cellCentered()) return;
+    if (ixType().cellCentered()) { return; }
     auto wgt = this->OverlapMask(period);
     wgt->invert(1.0, 0, 1);
     this->WeightedSync(*wgt, period);
@@ -1417,7 +1549,7 @@ MultiFab::WeightedSync (const MultiFab& wgt, const Periodicity& period)
 {
     BL_PROFILE("MultiFab::WeightedSync()");
 
-    if (ixType().cellCentered()) return;
+    if (ixType().cellCentered()) { return; }
 
     const int ncomp = nComp();
     for (int comp = 0; comp < ncomp; ++comp)

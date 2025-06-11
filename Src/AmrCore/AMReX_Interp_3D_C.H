@@ -31,14 +31,14 @@ pcinterp_interp (Box const& bx,
     }
 }
 
-namespace {
-    static constexpr int ix   = 0;
-    static constexpr int iy   = 1;
-    static constexpr int iz   = 2;
-    static constexpr int ixy  = 3;
-    static constexpr int ixz  = 4;
-    static constexpr int iyz  = 5;
-    static constexpr int ixyz = 6;
+namespace interp_detail {
+    constexpr int ix   = 0;
+    constexpr int iy   = 1;
+    constexpr int iz   = 2;
+    constexpr int ixy  = 3;
+    constexpr int ixz  = 4;
+    constexpr int iyz  = 5;
+    constexpr int ixyz = 6;
 }
 
 // Let's keep these nodal functions even though amrex is no longer using
@@ -49,12 +49,14 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& u,
                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
 {
+    using namespace interp_detail;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    const Real rx = Real(1.)/ratio[0];
-    const Real ry = Real(1.)/ratio[1];
-    const Real rz = Real(1.)/ratio[2];
+    const Real rx = Real(1.)/Real(ratio[0]);
+    const Real ry = Real(1.)/Real(ratio[1]);
+    const Real rz = Real(1.)/Real(ratio[2]);
 
     for (int n = 0; n < ncomp; ++n) {
         const int nu = n + icomp;
@@ -91,6 +93,8 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
                   Array4<T const> const& slope, Array4<T const> const& crse,
                   const int ccomp, IntVect const& ratio) noexcept
 {
+    using namespace interp_detail;
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
     const auto chi = amrex::ubound(slope);
@@ -204,6 +208,7 @@ facediv_face_interp (int ci, int cj, int ck,
 
             break;
         }
+        default : { break; }
     }
 }
 
@@ -289,13 +294,13 @@ facediv_int (int ci, int cj, int ck, int nf,
                                   + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w000+w012-w002-w010)
                                   +                dy3/(8*dz*xspys)*(w100+w112-w102-w110);
 
-    fine[1](fi+1, fj+1, fk  , nf) = Real(0.5)*(v001+v021)
+    fine[1](fi+1, fj+1, fk  , nf) = Real(0.5)*(v100+v120)
                                   + dy*(2*dz*dz+dy*dy)/(8*dx*yspzs)*(u000+u210-u010-u200)
                                   +                dy3/(8*dx*yspzs)*(u001+u211-u011-u201)
                                   + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w100+w112-w102-w110)
                                   +                dy3/(8*dz*xspys)*(w000+w012-w002-w010);
 
-    fine[1](fi  , fj+1, fk+1, nf) = Real(0.5)*(v100+v120)
+    fine[1](fi  , fj+1, fk+1, nf) = Real(0.5)*(v001+v021)
                                   + dy*(2*dz*dz+dy*dy)/(8*dx*yspzs)*(u001+u211-u011-u201)
                                   +                dy3/(8*dx*yspzs)*(u000+u210-u010-u200)
                                   + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w000+w012-w002-w010)
@@ -314,22 +319,70 @@ facediv_int (int ci, int cj, int ck, int nf,
                                   +                dz3/(8*dy*zspxs)*(v100+v121-v101-v120);
 
     fine[2](fi  , fj+1, fk+1, nf) = Real(0.5)*(w010+w012)
-                                  + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u000+u201-u001-u200)
-                                  +                dz3/(8*dx*yspzs)*(u010+u211-u011-u210)
-                                  + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v100+v121-v101-v120)
-                                  +                dz3/(8*dy*zspxs)*(v000+v021-v001-v020);
-
-    fine[2](fi+1, fj  , fk+1, nf) = Real(0.5)*(w100+w102)
                                   + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u010+u211-u011-u210)
                                   +                dz3/(8*dx*yspzs)*(u000+u201-u001-u200)
                                   + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v000+v021-v001-v020)
                                   +                dz3/(8*dy*zspxs)*(v100+v121-v101-v120);
+
+    fine[2](fi+1, fj  , fk+1, nf) = Real(0.5)*(w100+w102)
+                                  + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u000+u201-u001-u200)
+                                  +                dz3/(8*dx*yspzs)*(u010+u211-u011-u210)
+                                  + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v100+v121-v101-v120)
+                                  +                dz3/(8*dy*zspxs)*(v000+v021-v001-v020);
 
     fine[2](fi+1, fj+1, fk+1, nf) = Real(0.5)*(w110+w112)
                                   + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u010+u211-u011-u210)
                                   +                dz3/(8*dx*yspzs)*(u000+u201-u001-u200)
                                   + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v100+v121-v101-v120)
                                   +                dz3/(8*dy*zspxs)*(v000+v021-v001-v020);
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_linear_interp_x (int i, int j, int k, int n, Array4<T> const& fine,
+                      Array4<T const> const& crse, IntVect const& ratio) noexcept
+{
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    const int kk = amrex::coarsen(k,ratio[2]);
+    if (i-ii*ratio[0] == 0) {
+        fine(i,j,k,n) = crse(ii,jj,kk,n);
+    } else {
+        Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/Real(ratio[0]));
+        fine(i,j,k,n) = (Real(1.)-w) * crse(ii,jj,kk,n) + w * crse(ii+1,jj,kk,n);
+    }
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_linear_interp_y (int i, int j, int k, int n, Array4<T> const& fine,
+                      Array4<T const> const& crse, IntVect const& ratio) noexcept
+{
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    const int kk = amrex::coarsen(k,ratio[2]);
+    if (j-jj*ratio[1] == 0) {
+        fine(i,j,k,n) = crse(ii,jj,kk,n);
+    } else {
+        Real const w = static_cast<Real>(j-jj*ratio[1]) * (Real(1.)/Real(ratio[1]));
+        fine(i,j,k,n) = (Real(1.)-w) * crse(ii,jj,kk,n) + w * crse(ii,jj+1,kk,n);
+    }
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_linear_interp_z (int i, int j, int k, int n, Array4<T> const& fine,
+                      Array4<T const> const& crse, IntVect const& ratio) noexcept
+{
+    const int ii = amrex::coarsen(i,ratio[0]);
+    const int jj = amrex::coarsen(j,ratio[1]);
+    const int kk = amrex::coarsen(k,ratio[2]);
+    if (k-kk*ratio[2] == 0) {
+        fine(i,j,k,n) = crse(ii,jj,kk,n);
+    } else {
+        Real const w = static_cast<Real>(k-kk*ratio[2]) * (Real(1.)/Real(ratio[2]));
+        fine(i,j,k,n) = (Real(1.)-w) * crse(ii,jj,kk,n) + w * crse(ii,jj,kk+1,n);
+    }
 }
 
 template <typename T>
@@ -405,7 +458,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                 }
             }
 
-            if ( (crseTot > 0) && (crseTot > Math::abs(SumN)) ) {
+            if ( (crseTot > 0) && (crseTot > std::abs(SumN)) ) {
 
                 /*
                  * Special case 1:
@@ -429,11 +482,11 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                             // Then, add the remaining positive proportionally.
                             if (SumP > 0.0) {
                                 if (fine_state(i,j,k,n) > 0.0) {
-                                    Real alpha = (crseTot - Math::abs(SumN)) / SumP;
+                                    Real alpha = (crseTot - std::abs(SumN)) / SumP;
                                     fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
                                 }
                             } else { /* (SumP < 0) */
-                                Real posVal = (crseTot - Math::abs(SumN)) / (Real)numFineCells;
+                                Real posVal = (crseTot - std::abs(SumN)) / (Real)numFineCells;
                                 fine(i,j,k,n) += posVal;
                             }
 
@@ -441,7 +494,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     }
                 }
 
-            } else if ( (crseTot > 0) && (crseTot < Math::abs(SumN)) ) {
+            } else if ( (crseTot > 0) && (crseTot < std::abs(SumN)) ) {
 
                 /*
                  * Special case 2:
@@ -456,10 +509,10 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                 for         (int k = klo; k <= khi; ++k) {
                     for     (int j = jlo; j <= jhi; ++j) {
                         for (int i = ilo; i <= ihi; ++i) {
-                            Real alpha = crseTot / Math::abs(SumN);
+                            Real alpha = crseTot / std::abs(SumN);
                             if (fine_state(i,j,k,n) < 0.0) {
                                 // Add correction to negative cells proportionally.
-                                fine(i,j,k,n) = alpha * Math::abs(fine_state(i,j,k,n));
+                                fine(i,j,k,n) = alpha * std::abs(fine_state(i,j,k,n));
                             } else {
                                 // Don't touch the positive states.
                                 fine(i,j,k,n) = 0.0;
@@ -469,7 +522,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     }
                 }
 
-            } else if ( (crseTot < 0) && (Math::abs(crseTot) > SumP) ) {
+            } else if ( (crseTot < 0) && (std::abs(crseTot) > SumP) ) {
 
                 /*
                  * Special case 3:
@@ -492,7 +545,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     }
                 }
 
-            } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+            } else if ( (crseTot < 0) && (std::abs(crseTot) < SumP) &&
                         ((SumP+SumN+crseTot) > 0.0) )  {
 
                 /*
@@ -520,7 +573,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     }
                 }
 
-            } else if ( (crseTot < 0) && (Math::abs(crseTot) < SumP) &&
+            } else if ( (crseTot < 0) && (std::abs(crseTot) < SumP) &&
                         ((SumP+SumN+crseTot) < 0.0) )  {
                 /*
                  * Special case 5:

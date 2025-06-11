@@ -58,6 +58,10 @@ module amrex_abeclaplacian_module
      end subroutine amrex_fi_abeclap_set_bcoeffs
   end interface
 
+  interface amrex_abeclaplacian_destroy
+     module procedure amrex_abeclaplacian_destroy
+  end interface amrex_abeclaplacian_destroy
+
 contains
 
   subroutine amrex_abeclaplacian_assign (dst, src)

@@ -27,13 +27,14 @@ void testIntersection()
     TestParams params;
     get_test_params(params, "intersect");
 
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = params.is_periodic;
+    int is_per[] = {AMREX_D_DECL(params.is_periodic,
+                                 params.is_periodic,
+                                 params.is_periodic)};
 
     Vector<IntVect> rr(params.nlevs-1);
-    for (int lev = 1; lev < params.nlevs; lev++)
+    for (int lev = 1; lev < params.nlevs; lev++) {
         rr[lev-1] = IntVect(AMREX_D_DECL(2,2,2));
+    }
 
     RealBox real_box;
     for (int n = 0; n < AMREX_SPACEDIM; n++)
@@ -54,7 +55,7 @@ void testIntersection()
     }
 
     Vector<BoxArray> ba(params.nlevs);
-    IntVect lo = IntVect(AMREX_D_DECL(0, 0, 0));
+    IntVect lo(0);
     IntVect size = params.size;
     for (int lev = 0; lev < params.nlevs; ++lev)
     {
@@ -77,18 +78,18 @@ void testIntersection()
             const Box& box = ba[lev][i];
 
             Gpu::HostVector<IntVect> host_cells;
-            for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) host_cells.push_back(iv);
+            for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) { host_cells.push_back(iv); }
             //host_cells.push_back(box.smallEnd());
 
-            int num_cells = host_cells.size();
+            auto const num_cells = int(host_cells.size());
 
             Gpu::DeviceVector<IntVect> device_cells(num_cells);
             Gpu::copyAsync(Gpu::hostToDevice, host_cells.begin(), host_cells.end(), device_cells.begin());
 
             Gpu::DeviceVector<int> device_grids(num_cells);
 
-            const auto cells_ptr = device_cells.dataPtr();
-            const auto grids_ptr = device_grids.dataPtr();
+            auto* const cells_ptr = device_cells.dataPtr();
+            auto* const grids_ptr = device_grids.dataPtr();
             amrex::ParallelFor(num_cells, [=] AMREX_GPU_DEVICE (int j) noexcept
             {
                 grids_ptr[j] = assign_grid(cells_ptr[j]);

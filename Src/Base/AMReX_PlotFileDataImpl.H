@@ -12,39 +12,38 @@ class PlotFileDataImpl
 {
 public:
     PlotFileDataImpl (std::string const& plotfile_name);
-    ~PlotFileDataImpl ();
 
-    int spaceDim () const noexcept { return m_spacedim; }
+    [[nodiscard]] int spaceDim () const noexcept { return m_spacedim; }
 
-    Real time () const noexcept { return m_time; }
+    [[nodiscard]] Real time () const noexcept { return m_time; }
 
-    int finestLevel () const noexcept { return m_finest_level; }
+    [[nodiscard]] int finestLevel () const noexcept { return m_finest_level; }
 
-    int refRatio (int level) const noexcept { return m_ref_ratio[level]; }
+    [[nodiscard]] int refRatio (int level) const noexcept { return m_ref_ratio[level]; }
 
-    int levelStep (int level) const noexcept { return m_level_steps[level]; }
+    [[nodiscard]] int levelStep (int level) const noexcept { return m_level_steps[level]; }
 
-    const BoxArray& boxArray (int level) const noexcept { return m_ba[level]; }
+    [[nodiscard]] const BoxArray& boxArray (int level) const noexcept { return m_ba[level]; }
 
-    const DistributionMapping& DistributionMap (int level) const noexcept { return m_dmap[level]; }
+    [[nodiscard]] const DistributionMapping& DistributionMap (int level) const noexcept { return m_dmap[level]; }
 
     void syncDistributionMap (PlotFileDataImpl const& src) noexcept;
 
     void syncDistributionMap (int level, PlotFileDataImpl const& src) noexcept;
 
-    int coordSys () const noexcept { return m_coordsys; }
+    [[nodiscard]] int coordSys () const noexcept { return m_coordsys; }
 
-    Box probDomain (int level) const noexcept { return m_prob_domain[level]; }
+    [[nodiscard]] Box probDomain (int level) const noexcept { return m_prob_domain[level]; }
 
-    Array<Real,AMREX_SPACEDIM> probSize () const noexcept { return m_prob_size; }
-    Array<Real,AMREX_SPACEDIM> probLo () const noexcept { return m_prob_lo; }
-    Array<Real,AMREX_SPACEDIM> probHi () const noexcept { return m_prob_hi; }
-    Array<Real,AMREX_SPACEDIM> cellSize (int level) const noexcept { return m_cell_size[level]; }
+    [[nodiscard]] Array<Real,AMREX_SPACEDIM> probSize () const noexcept { return m_prob_size; }
+    [[nodiscard]] Array<Real,AMREX_SPACEDIM> probLo () const noexcept { return m_prob_lo; }
+    [[nodiscard]] Array<Real,AMREX_SPACEDIM> probHi () const noexcept { return m_prob_hi; }
+    [[nodiscard]] Array<Real,AMREX_SPACEDIM> cellSize (int level) const noexcept { return m_cell_size[level]; }
 
-    const Vector<std::string>& varNames () const noexcept { return m_var_names; }
+    [[nodiscard]] const Vector<std::string>& varNames () const noexcept { return m_var_names; }
 
-    int nComp () const noexcept { return m_ncomp; }
-    IntVect nGrowVect (int level) const noexcept { return m_ngrow[level]; }
+    [[nodiscard]] int nComp () const noexcept { return m_ncomp; }
+    [[nodiscard]] IntVect nGrowVect (int level) const noexcept { return m_ngrow[level]; }
 
     MultiFab get (int level) noexcept;
     MultiFab get (int level, std::string const& varname) noexcept;

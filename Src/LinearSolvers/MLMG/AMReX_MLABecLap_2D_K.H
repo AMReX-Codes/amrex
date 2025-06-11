@@ -230,6 +230,81 @@ void abec_gsrb_os (int i, int j, int, int n, Array4<T> const& phi, Array4<T cons
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void abec_jacobi (int i, int j, int, int n, Array4<T> const& phi,
+                  Array4<T const> const& rhs, Array4< T const> const& Ax,
+                  T alpha, Array4<T const> const& a,
+                  T dhx, T dhy,
+                  Array4<T const> const& bX, Array4<T const> const& bY,
+                  Array4<int const> const& m0, Array4<int const> const& m2,
+                  Array4<int const> const& m1, Array4<int const> const& m3,
+                  Array4<T const> const& f0, Array4<T const> const& f2,
+                  Array4<T const> const& f1, Array4<T const> const& f3,
+                  Box const& vbox) noexcept
+{
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    T cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+        ? f0(vlo.x,j,0,n) : T(0.0);
+    T cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
+        ? f1(i,vlo.y,0,n) : T(0.0);
+    T cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
+        ? f2(vhi.x,j,0,n) : T(0.0);
+    T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
+        ? f3(i,vhi.y,0,n) : T(0.0);
+
+    T delta = dhx*(bX(i,j,0,n)*cf0 + bX(i+1,j,0,n)*cf2)
+           +  dhy*(bY(i,j,0,n)*cf1 + bY(i,j+1,0,n)*cf3);
+
+    T gamma = alpha*a(i,j,0)
+        +   dhx*( bX(i,j,0,n) + bX(i+1,j,0,n) )
+        +   dhy*( bY(i,j,0,n) + bY(i,j+1,0,n) );
+
+    phi(i,j,0,n) += T(2.0/3.0) * (rhs(i,j,0,n) - Ax(i,j,0,n)) / (gamma - delta);
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void abec_jacobi_os (int i, int j, int, int n, Array4<T> const& phi,
+                     Array4<T const> const& rhs, Array4<T const> const& Ax,
+                     T alpha, Array4<T const> const& a,
+                     T dhx, T dhy,
+                     Array4<T const> const& bX, Array4<T const> const& bY,
+                     Array4<int const> const& m0, Array4<int const> const& m2,
+                     Array4<int const> const& m1, Array4<int const> const& m3,
+                     Array4<T const> const& f0, Array4<T const> const& f2,
+                     Array4<T const> const& f1, Array4<T const> const& f3,
+                     Array4<int const> const& osm,
+                     Box const& vbox) noexcept
+{
+    if (osm(i,j,0) == 0) {
+        phi(i,j,0,n) = T(0.0);
+    } else {
+        const auto vlo = amrex::lbound(vbox);
+        const auto vhi = amrex::ubound(vbox);
+
+        T cf0 = (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+            ? f0(vlo.x,j,0,n) : T(0.0);
+        T cf1 = (j == vlo.y && m1(i,vlo.y-1,0) > 0)
+            ? f1(i,vlo.y,0,n) : T(0.0);
+        T cf2 = (i == vhi.x && m2(vhi.x+1,j,0) > 0)
+            ? f2(vhi.x,j,0,n) : T(0.0);
+        T cf3 = (j == vhi.y && m3(i,vhi.y+1,0) > 0)
+            ? f3(i,vhi.y,0,n) : T(0.0);
+
+        T delta = dhx*(bX(i,j,0,n)*cf0 + bX(i+1,j,0,n)*cf2)
+               +  dhy*(bY(i,j,0,n)*cf1 + bY(i,j+1,0,n)*cf3);
+
+        T gamma = alpha*a(i,j,0)
+            +   dhx*( bX(i,j,0,n) + bX(i+1,j,0,n) )
+            +   dhy*( bY(i,j,0,n) + bY(i,j+1,0,n) );
+
+        phi(i,j,0,n) += T(2.0/3.0) * (rhs(i,j,0,n) - Ax(i,j,0,n)) / (gamma - delta);
+    }
+}
+
+template <typename T>
+AMREX_FORCE_INLINE
 void abec_gsrb_with_line_solve (
                 Box const& box, Array4<T> const& phi, Array4<T const> const& rhs,
                 T alpha, Array4<T const> const& a,
@@ -247,20 +322,18 @@ void abec_gsrb_with_line_solve (
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
-    // amrex::Print() << "GSRB LS " << box << " " << dhx << " " << dhy << " " << dhz << std::endl;
-
     // idir is the direction in which we will do the tridiagonal solve --
     // it should be the direction in which the mesh spacing is much larger
     // than in the other directions
     // int idir = 1;
 
     // This should be moved outside the kernel!
-    if (dhy <= dhx) amrex::Abort("dhy is supposed to be much larger than dhx");
+    if (dhy <= dhx) { amrex::Abort("dhy is supposed to be much larger than dhx"); }
 
     int ilen = hi.y - lo.y + 1;
 
     // This should be moved outside the kernel!
-    if (ilen > 32) amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32");
+    if (ilen > 32) { amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32"); }
 
     Array1D<T,0,31> a_ls;
     Array1D<T,0,31> b_ls;
@@ -295,10 +368,12 @@ void abec_gsrb_with_line_solve (
                            +       bX(i+1,j,0,n)*phi(i+1,j,0,n) );
 
                     // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
-                    if (i == vlo.x && m0(vlo.x-1,j,0) > 0)
+                    if (i == vlo.x && m0(vlo.x-1,j,0) > 0) {
                         rho -= dhx*bX(i  ,j,0,n)*phi(i-1,j,0,n);
-                    if (i == vhi.x && m3(vhi.x+1,j,0) > 0)
+                    }
+                    if (i == vhi.x && m3(vhi.x+1,j,0) > 0) {
                         rho -= dhx*bX(i+1,j,0,n)*phi(i+1,j,0,n);
+                    }
 
                     a_ls(j-lo.y) = -dhy*bY(i,j,0,n);
                     b_ls(j-lo.y) =  g_m_d;
@@ -308,11 +383,11 @@ void abec_gsrb_with_line_solve (
 
                     if (j == lo.y) {
                         a_ls(j-lo.y) = T(0.);
-                        if (!(m1(i,vlo.y-1,0) > 0)) r_ls(j-lo.y) += dhy*bY(i,j,0,n)*phi(i,j-1,0,n);
+                        if (!(m1(i,vlo.y-1,0) > 0)) { r_ls(j-lo.y) += dhy*bY(i,j,0,n)*phi(i,j-1,0,n); }
                     }
                     if (j == hi.y) {
                         c_ls(j-lo.y) = T(0.);
-                        if (!(m3(i,vhi.y+1,0) > 0)) r_ls(j-lo.y) += dhy*bY(i,j+1,0,n)*phi(i,j+1,0,n);
+                        if (!(m3(i,vhi.y+1,0) > 0)) { r_ls(j-lo.y) += dhy*bY(i,j+1,0,n)*phi(i,j+1,0,n); }
                     }
                 }
 //                      This is the tridiagonal solve
@@ -323,7 +398,7 @@ void abec_gsrb_with_line_solve (
                     for (int jj = 1; jj <= ilen-1; jj++) {
                         gam(jj) = c_ls(jj-1) / bet;
                         bet = b_ls(jj) - a_ls(jj)*gam(jj);
-                        if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
+                        if (bet == 0) { amrex::Abort(">>>TRIDIAG FAILED"); }
                         u_ls(jj) = (r_ls(jj)-a_ls(jj)*u_ls(jj-1)) / bet;
                     }
 

@@ -15,14 +15,6 @@
 
 using namespace amrex;
 
-
-
-#ifdef AMREX_PARTICLES
-std::unique_ptr<AmrTracerParticleContainer> AmrCoreAdv::TracerPC =  nullptr;
-int AmrCoreAdv::do_tracers = 0;
-#endif
-
-
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
 //             - initializes BCRec boundary condition object
@@ -60,8 +52,8 @@ AmrCoreAdv::AmrCoreAdv ()
 
 /*
     // walls (Neumann)
-    int bc_lo[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
-    int bc_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
+    int bc_lo[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
+    int bc_hi[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
 */
 
     bcs.resize(1);     // Setup 1-component
@@ -100,9 +92,7 @@ AmrCoreAdv::AmrCoreAdv ()
     fillpatcher.resize(nlevs_max+1);
 }
 
-AmrCoreAdv::~AmrCoreAdv ()
-{
-}
+AmrCoreAdv::~AmrCoreAdv () = default;
 
 // advance solution to final time
 void
@@ -111,18 +101,36 @@ AmrCoreAdv::Evolve ()
     Real cur_time = t_new[0];
     int last_plot_file_step = 0;
 
+    int levmean = max_level;
+    MultiFab mfmean;
+    int test_fillpatchnlevels = 0;
+    {
+        ParmParse pp;
+        pp.query("test_fillpatchnlevels", test_fillpatchnlevels);
+    }
+    if (test_fillpatchnlevels) {
+        Box bxmean = geom[levmean].Domain();
+        IntVect shrink = geom[levmean].Domain().length() / 4;
+        bxmean.grow(-shrink);
+        BoxArray bamean(bxmean);
+        bamean.maxSize(32);
+        mfmean.define(bamean,DistributionMapping{bamean},1,0);
+        mfmean.setVal(0.0);
+    }
+
     for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
     {
-        amrex::Print() << "\nCoarse STEP " << step+1 << " starts ..." << std::endl;
+        amrex::Print() << "\nCoarse STEP " << step+1 << " starts ..." << '\n';
 
         ComputeDt();
 
         int lev = 0;
         int iteration = 1;
-        if (do_subcycle)
+        if (do_subcycle) {
             timeStepWithSubcycling(lev, cur_time, iteration);
-        else
+        } else {
             timeStepNoSubcycling(cur_time, iteration);
+        }
 
         cur_time += dt[0];
 
@@ -130,7 +138,7 @@ AmrCoreAdv::Evolve ()
         Real sum_phi = phi_new[0].sum();
 
         amrex::Print() << "Coarse STEP " << step+1 << " ends." << " TIME = " << cur_time
-                       << " DT = " << dt[0] << " Sum(Phi) = " << sum_phi << std::endl;
+                       << " DT = " << dt[0] << " Sum(Phi) = " << sum_phi << '\n';
 
         // sync up time
         for (lev = 0; lev <= finest_level; ++lev) {
@@ -154,7 +162,35 @@ AmrCoreAdv::Evolve ()
         }
 #endif
 
-        if (cur_time >= stop_time - 1.e-6*dt[0]) break;
+        if (cur_time >= stop_time - 1.e-6*dt[0]) { break; }
+
+        if (test_fillpatchnlevels)
+        {
+            MultiFab mftmp(mfmean.boxArray(), mfmean.DistributionMap(), 1, 0);
+
+            CpuBndryFuncFab bndry_func(nullptr);
+            Vector<PhysBCFunct<CpuBndryFuncFab>> physbcs;
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                physbcs.emplace_back(geom[ilev],bcs,bndry_func);
+            }
+            Vector<Vector<MultiFab*>> smf(finest_level+1);
+            Vector<Vector<Real>> st(finest_level+1);
+            for (int ilev = 0; ilev <= finest_level; ++ilev) {
+                smf[ilev].push_back(&phi_new[ilev]);
+                st[ilev].push_back(0.0);
+            }
+            FillPatchNLevels(mftmp, levmean, IntVect(0), 0.0, smf, st, 0, 0, 1, geom,
+                             physbcs, 0, refRatio(), &cell_cons_interp, bcs, 0);
+            MultiFab::Add(mfmean, mftmp, 0, 0, 1, 0);
+        }
+    }
+
+    if (test_fillpatchnlevels) {
+        if (mfmean.is_finite()) {
+            amrex::Print() << "\namrex::FillPatchNLevels test passed\n\n";
+        } else {
+            amrex::Abort("amrex::FillPatchNLevels test failed");
+        }
     }
 
     if (plot_int > 0 && istep[0] > last_plot_file_step) {
@@ -166,7 +202,7 @@ AmrCoreAdv::Evolve ()
 void
 AmrCoreAdv::InitData ()
 {
-    if (restart_chkfile == "") {
+    if (restart_chkfile.empty()) {
         // start simulation from the beginning
         const Real time = 0.0;
         InitFromScratch(time);
@@ -334,7 +370,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
         }
     }
 
-    if (lev >= phierr.size()) return;
+    if (lev >= phierr.size()) { return; }
 
 //    const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -612,7 +648,7 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
     if (Verbose()) {
         amrex::Print() << "[Level " << lev << " step " << istep[lev]+1 << "] ";
         amrex::Print() << "ADVANCE with time = " << t_new[lev]
-                       << " dt = " << dt[lev] << std::endl;
+                       << " dt = " << dt[lev] << '\n';
     }
 
     // Advance a single level for a single time step, and update flux registers
@@ -637,7 +673,7 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
     if (Verbose())
     {
         amrex::Print() << "[Level " << lev << " step " << istep[lev] << "] ";
-        amrex::Print() << "Advanced " << CountCells(lev) << " cells" << std::endl;
+        amrex::Print() << "Advanced " << CountCells(lev) << " cells" << '\n';
     }
 
     if (lev < finest_level)
@@ -700,7 +736,7 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         {
            amrex::Print() << "[Level " << lev << " step " << istep[lev]+1 << "] ";
            amrex::Print() << "ADVANCE with time = " << t_new[lev]
-                          << " dt = " << dt[0] << std::endl;
+                          << " dt = " << dt[0] << '\n';
         }
     }
 
@@ -724,15 +760,16 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         fp.reset(); // Because the data have changed.
     }
 
-    for (int lev = 0; lev <= finest_level; lev++)
+    for (int lev = 0; lev <= finest_level; lev++) {
         ++istep[lev];
+    }
 
     if (Verbose())
     {
         for (int lev = 0; lev <= finest_level; lev++)
         {
             amrex::Print() << "[Level " << lev << " step " << istep[lev] << "] ";
-            amrex::Print() << "Advanced " << CountCells(lev) << " cells" << std::endl;
+            amrex::Print() << "Advanced " << CountCells(lev) << " cells" << '\n';
         }
     }
 }
@@ -747,7 +784,7 @@ AmrCoreAdv::ComputeDt ()
     {
         dt_tmp[lev] = EstTimeStep(lev, t_new[lev]);
     }
-    ParallelDescriptor::ReduceRealMin(&dt_tmp[0], dt_tmp.size());
+    ParallelDescriptor::ReduceRealMin(dt_tmp.data(), int(dt_tmp.size()));
 
     constexpr Real change_max = 1.1;
     Real dt_0 = dt_tmp[0];
@@ -783,7 +820,7 @@ AmrCoreAdv::EstTimeStep (int lev, Real time)
 
     const Real* dx  =  geom[lev].CellSize();
 
-    if (time == 0.0) {
+    if (time == Real(0.0)) {
        DefineVelocityAtLevel(lev,time);
     } else {
        Real t_nph_predicted = time + 0.5 * dt[lev];
@@ -821,7 +858,7 @@ AmrCoreAdv::PlotFileMF () const
 
 // set plotfile variable names
 Vector<std::string>
-AmrCoreAdv::PlotFileVarNames () const
+AmrCoreAdv::PlotFileVarNames ()
 {
     return {"phi"};
 }
@@ -895,20 +932,20 @@ AmrCoreAdv::WriteCheckpointFile () const
        HeaderFile << finest_level << "\n";
 
        // write out array of istep
-       for (int i = 0; i < istep.size(); ++i) {
-           HeaderFile << istep[i] << " ";
+       for (auto s : istep) {
+           HeaderFile << s << " ";
        }
        HeaderFile << "\n";
 
        // write out array of dt
-       for (int i = 0; i < dt.size(); ++i) {
-           HeaderFile << dt[i] << " ";
+       for (auto dti : dt) {
+           HeaderFile << dti << " ";
        }
        HeaderFile << "\n";
 
        // write out array of t_new
-       for (int i = 0; i < t_new.size(); ++i) {
-           HeaderFile << t_new[i] << " ";
+       for (auto t_new_i : t_new) {
+           HeaderFile << t_new_i << " ";
        }
        HeaderFile << "\n";
 
@@ -1056,7 +1093,7 @@ AmrCoreAdv::ReadCheckpointFile ()
 
 #ifdef AMREX_PARTICLES
     if (do_tracers) {
-        BL_ASSERT(TracerPC == 0);
+        BL_ASSERT(TracerPC == nullptr);
         TracerPC = std::make_unique<AmrTracerParticleContainer>(this);
         TracerPC->Restart(this->restart_chkfile, "particles");
     }

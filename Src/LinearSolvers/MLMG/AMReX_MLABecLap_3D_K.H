@@ -329,6 +329,106 @@ void abec_gsrb_os (int i, int j, int k, int n,
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void abec_jacobi (int i, int j, int k, int n, Array4<T> const& phi,
+                  Array4<T const> const& rhs, Array4<T const> const& Ax,
+                  T alpha, Array4<T const> const& a,
+                  T dhx, T dhy, T dhz,
+                  Array4<T const> const& bX, Array4<T const> const& bY,
+                  Array4<T const> const& bZ,
+                  Array4<int const> const& m0, Array4<int const> const& m2,
+                  Array4<int const> const& m4,
+                  Array4<int const> const& m1, Array4<int const> const& m3,
+                  Array4<int const> const& m5,
+                  Array4<T const> const& f0, Array4<T const> const& f2,
+                  Array4<T const> const& f4,
+                  Array4<T const> const& f1, Array4<T const> const& f3,
+                  Array4<T const> const& f5,
+                  Box const& vbox) noexcept
+{
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+        ? f0(vlo.x,j,k,n) : T(0.0);
+    T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+        ? f1(i,vlo.y,k,n) : T(0.0);
+    T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+        ? f2(i,j,vlo.z,n) : T(0.0);
+    T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+        ? f3(vhi.x,j,k,n) : T(0.0);
+    T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+        ? f4(i,vhi.y,k,n) : T(0.0);
+    T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+        ? f5(i,j,vhi.z,n) : T(0.0);
+
+    T gamma = alpha*a(i,j,k)
+        +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
+        +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
+        +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
+
+    T g_m_d = gamma
+        - (dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
+        +  dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
+        +  dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5));
+
+    phi(i,j,k,n) += T(2.0/3.0) * (rhs(i,j,k,n) - Ax(i,j,k,n)) / g_m_d;
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void abec_jacobi_os (int i, int j, int k, int n,
+                     Array4<T> const& phi, Array4<T const> const& rhs,
+                     Array4<T const> const& Ax,
+                     T alpha, Array4<T const> const& a,
+                     T dhx, T dhy, T dhz,
+                     Array4<T const> const& bX, Array4<T const> const& bY,
+                     Array4<T const> const& bZ,
+                     Array4<int const> const& m0, Array4<int const> const& m2,
+                     Array4<int const> const& m4,
+                     Array4<int const> const& m1, Array4<int const> const& m3,
+                     Array4<int const> const& m5,
+                     Array4<T const> const& f0, Array4<T const> const& f2,
+                     Array4<T const> const& f4,
+                     Array4<T const> const& f1, Array4<T const> const& f3,
+                     Array4<T const> const& f5,
+                     Array4<int const> const& osm,
+                     Box const& vbox) noexcept
+{
+    if (osm(i,j,k) == 0) {
+        phi(i,j,k,n) = T(0.0);
+    } else {
+        const auto vlo = amrex::lbound(vbox);
+        const auto vhi = amrex::ubound(vbox);
+
+        T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+            ? f0(vlo.x,j,k,n) : T(0.0);
+        T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+            ? f1(i,vlo.y,k,n) : T(0.0);
+        T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+            ? f2(i,j,vlo.z,n) : T(0.0);
+        T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+            ? f3(vhi.x,j,k,n) : T(0.0);
+        T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+            ? f4(i,vhi.y,k,n) : T(0.0);
+        T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+            ? f5(i,j,vhi.z,n) : T(0.0);
+
+        T gamma = alpha*a(i,j,k)
+            +   dhx*(bX(i,j,k,n)+bX(i+1,j,k,n))
+            +   dhy*(bY(i,j,k,n)+bY(i,j+1,k,n))
+            +   dhz*(bZ(i,j,k,n)+bZ(i,j,k+1,n));
+
+        T g_m_d = gamma
+            - (dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
+            +  dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
+            +  dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5));
+
+        phi(i,j,k,n) += T(2.0/3.0) * (rhs(i,j,k,n) - Ax(i,j,k,n)) / g_m_d;
+    }
+}
+
+template <typename T>
+AMREX_FORCE_INLINE
 void tridiagonal_solve (Array1D<T,0,31>& a_ls, Array1D<T,0,31>& b_ls, Array1D<T,0,31>& c_ls,
                         Array1D<T,0,31>& r_ls, Array1D<T,0,31>& u_ls, Array1D<T,0,31>& gam,
                         int ilen ) noexcept
@@ -339,7 +439,7 @@ void tridiagonal_solve (Array1D<T,0,31>& a_ls, Array1D<T,0,31>& b_ls, Array1D<T,
     for (int i = 1; i <= ilen - 1; i++) {
         gam(i) = c_ls(i-1) / bet;
         bet = b_ls(i) - a_ls(i)*gam(i);
-        if (bet == 0) amrex::Abort(">>>TRIDIAG FAILED");
+        if (bet == 0) { amrex::Abort(">>>TRIDIAG FAILED"); }
         u_ls(i) = (r_ls(i)-a_ls(i)*u_ls(i-1)) / bet;
     }
     for (int i = ilen-2; i >= 0; i--) {
@@ -348,7 +448,7 @@ void tridiagonal_solve (Array1D<T,0,31>& a_ls, Array1D<T,0,31>& b_ls, Array1D<T,
 }
 
 template <typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+AMREX_FORCE_INLINE
 void abec_gsrb_with_line_solve (
                 Box const& box, Array4<T> const& phi, Array4<T const> const& rhs,
                 T alpha, Array4<T const> const& a,
@@ -370,8 +470,6 @@ void abec_gsrb_with_line_solve (
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
-    // amrex::Print() << "GSRB LS " << box << " " << dhx << " " << dhy << " " << dhz << std::endl;
-
     // idir is the direction in which we will do the tridiagonal solve --
     //    it should be the direction in which the mesh spacing is much larger
     //    than in the other directions
@@ -388,7 +486,7 @@ void abec_gsrb_with_line_solve (
     }
 
     // This assertion should be moved outside the kernel for performance!
-    if (ilen > 32) amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32");
+    if (ilen > 32) { amrex::Abort("abec_gsrb_with_line_solve is hard-wired to be no longer than 32"); }
 
     Array1D<T,0,31> a_ls;
     Array1D<T,0,31> b_ls;
@@ -435,14 +533,18 @@ void abec_gsrb_with_line_solve (
                                    +       bY(i,j+1,k,n)*phi(i,j+1,k,n) );
 
                             // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
-                            if (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+                            if (i == vlo.x && m0(vlo.x-1,j,k) > 0) {
                                 rho -= dhx*bX(i  ,j,k,n)*phi(i-1,j,k,n);
-                            if (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+                            }
+                            if (i == vhi.x && m3(vhi.x+1,j,k) > 0) {
                                 rho -= dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
-                            if (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+                            }
+                            if (j == vlo.y && m1(i,vlo.y-1,k) > 0) {
                                 rho -= dhy*bY(i,j  ,k,n)*phi(i,j-1,k,n);
-                            if (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+                            }
+                            if (j == vhi.y && m4(i,vhi.y+1,k) > 0) {
                                 rho -= dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
+                            }
 
                             a_ls(k-lo.z) = -dhz*bZ(i,j,k,n);
                             b_ls(k-lo.z) =  g_m_d;
@@ -454,12 +556,12 @@ void abec_gsrb_with_line_solve (
                             if (k == lo.z)
                             {
                                 a_ls(k-lo.z) = T(0.);
-                                if (!(m2(i,j,vlo.z-1) > 0)) r_ls(k-lo.z) += dhz*bZ(i,j,k,n)*phi(i,j,k-1,n);
+                                if (!(m2(i,j,vlo.z-1) > 0)) { r_ls(k-lo.z) += dhz*bZ(i,j,k,n)*phi(i,j,k-1,n); }
                             }
                             if (k == hi.z)
                             {
                                 c_ls(k-lo.z) = T(0.);
-                                if (!(m5(i,j,vhi.z+1) > 0)) r_ls(k-lo.z) += dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
+                                if (!(m5(i,j,vhi.z+1) > 0)) { r_ls(k-lo.z) += dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n); }
                             }
                         }
 
@@ -511,14 +613,18 @@ void abec_gsrb_with_line_solve (
                                    +       bZ(i,j,k+1,n)*phi(i,j,k+1,n) );
 
                             // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
-                            if (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+                            if (i == vlo.x && m0(vlo.x-1,j,k) > 0) {
                                 rho -= dhx*bX(i  ,j,k,n)*phi(i-1,j,k,n);
-                            if (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+                            }
+                            if (i == vhi.x && m3(vhi.x+1,j,k) > 0) {
                                 rho -= dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
-                            if (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+                            }
+                            if (k == vlo.z && m2(i,j,vlo.z-1) > 0) {
                                 rho -= dhz*bZ(i,j  ,k,n)*phi(i,j,k-1,n);
-                            if (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+                            }
+                            if (k == vhi.z && m5(i,j,vhi.z+1) > 0) {
                                 rho -= dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
+                            }
 
                             a_ls(j-lo.y) = -dhy*bY(i,j,k,n);
                             b_ls(j-lo.y) =  g_m_d;
@@ -529,12 +635,12 @@ void abec_gsrb_with_line_solve (
                             if (j == lo.y)
                             {
                                 a_ls(j-lo.y) = T(0.);
-                                if (!(m1(i,vlo.y-1,k) > 0)) r_ls(j-lo.y) += dhy*bY(i,j,k,n)*phi(i,j-1,k,n);
+                                if (!(m1(i,vlo.y-1,k) > 0)) { r_ls(j-lo.y) += dhy*bY(i,j,k,n)*phi(i,j-1,k,n); }
                             }
                             if (j == hi.y)
                             {
                                 c_ls(j-lo.y) = T(0.);
-                                if (!(m4(i,vhi.y+1,k) > 0)) r_ls(j-lo.y) += dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
+                                if (!(m4(i,vhi.y+1,k) > 0)) { r_ls(j-lo.y) += dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n); }
                             }
                         }
 
@@ -586,14 +692,18 @@ void abec_gsrb_with_line_solve (
                                    +       bZ(i,j,k+1,n)*phi(i,j,k+1,n) );
 
                             // We have already accounted for this external boundary in the coefficient of phi(i,j,k,n)
-                            if (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+                            if (j == vlo.y && m1(i,vlo.y-1,k) > 0) {
                                 rho -= dhy*bY(i,j  ,k,n)*phi(i,j-1,k,n);
-                            if (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+                            }
+                            if (j == vhi.y && m4(i,vhi.y+1,k) > 0) {
                                 rho -= dhy*bY(i,j+1,k,n)*phi(i,j+1,k,n);
-                            if (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+                            }
+                            if (k == vlo.z && m2(i,j,vlo.z-1) > 0) {
                                 rho -= dhz*bZ(i,j  ,k,n)*phi(i,j,k-1,n);
-                            if (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+                            }
+                            if (k == vhi.z && m5(i,j,vhi.z+1) > 0) {
                                 rho -= dhz*bZ(i,j,k+1,n)*phi(i,j,k+1,n);
+                            }
 
                             a_ls(i-lo.x) = -dhx*bX(i,j,k,n);
                             b_ls(i-lo.x) =  g_m_d;
@@ -604,12 +714,12 @@ void abec_gsrb_with_line_solve (
                             if (i == lo.x)
                             {
                                 a_ls(i-lo.x) = T(0.);
-                                if (!(m0(vlo.x-1,j,k) > 0)) r_ls(i-lo.x) += dhx*bX(i,j,k,n)*phi(i-1,j,k,n);
+                                if (!(m0(vlo.x-1,j,k) > 0)) { r_ls(i-lo.x) += dhx*bX(i,j,k,n)*phi(i-1,j,k,n); }
                             }
                             if (i == hi.x)
                             {
                                 c_ls(i-lo.x) = T(0.);
-                                if (!(m3(vhi.x+1,j,k) > 0)) r_ls(i-lo.x) += dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n);
+                                if (!(m3(vhi.x+1,j,k) > 0)) { r_ls(i-lo.x) += dhx*bX(i+1,j,k,n)*phi(i+1,j,k,n); }
                             }
                         }
 

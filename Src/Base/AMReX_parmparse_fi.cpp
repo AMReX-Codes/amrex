@@ -46,7 +46,7 @@ extern "C"
     {
         std::string b;
         pp->get(name, b);
-        *len = b.size() + 1;
+        *len = static_cast<int>(b.size()) + 1;
         v = new char[*len];
         std::strncpy(v, b.c_str(), *len);
     }
@@ -82,7 +82,7 @@ extern "C"
         pp->getarr(name, b);
         BL_ASSERT(n == static_cast<int>(b.size()));
         for (int i = 0; i < n; ++i) {
-            sv[i] = b[i].size() + 1;
+            sv[i] = static_cast<int>(b[i].size()) + 1;
             v[i] = new char[sv[i]];
             std::strncpy(v[i], b[i].c_str(), sv[i]);
         }
@@ -113,7 +113,7 @@ extern "C"
     {
       std::string b;
       int r = pp->query(name, b);
-      *len = b.size() + 1;
+      *len = static_cast<int>(b.size()) + 1;
       v = new char[*len];
       std::strncpy(v, b.c_str(), *len);
       return r;
@@ -155,7 +155,7 @@ extern "C"
         vs.reserve(len);
         const char* p = v;
         for (int i = 0; i < len; ++i) {
-            vs.push_back(p);
+            vs.push_back(p); // NOLINT(modernize-use-emplace)
             p += vs[i].size()+1;
         }
         pp->addarr(name, vs);

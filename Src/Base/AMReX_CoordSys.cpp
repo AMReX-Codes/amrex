@@ -25,32 +25,11 @@ CoordSys::SetOffset (const Real* x_lo) noexcept
     }
 }
 
-CoordSys::CoordSys () noexcept
-{
-}
-
-// void
-// CoordSys::define (const Real* cell_dx)
-// {
-//     AMREX_ASSERT(c_sys != undef);
-//     ok = true;
-//     for (int k = 0; k < AMREX_SPACEDIM; k++)
-//     {
-//         dx[k] = cell_dx[k];
-//     inv_dx[k] = 1.0/dx[k];
-//     }
-// }
-//
-// CoordSys::CoordSys (const Real* cell_dx)
-// {
-//     define(cell_dx);
-// }
-
 void
 CoordSys::CellCenter (const IntVect& point, Real* loc) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(loc != 0);
+    AMREX_ASSERT(loc != nullptr);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         loc[k] = offset[k] + dx[k]*(0.5_rt+ (Real)point[k]);
@@ -71,7 +50,7 @@ CoordSys::LoFace (const IntVect& point,
                   Real*          loc) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(loc != 0);
+    AMREX_ASSERT(loc != nullptr);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         Real off = (k == dir) ? 0.0_rt : 0.5_rt;
@@ -94,7 +73,7 @@ CoordSys::HiFace (const IntVect& point,
                   Real*          loc) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(loc != 0);
+    AMREX_ASSERT(loc != nullptr);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         Real off = (k == dir) ? 1.0_rt : 0.5_rt;
@@ -116,10 +95,10 @@ CoordSys::LoNode (const IntVect& point,
                   Real*          loc) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(loc != 0);
+    AMREX_ASSERT(loc != nullptr);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
-        loc[k] = offset[k] + dx[k]*point[k];
+        loc[k] = offset[k] + dx[k]*static_cast<Real>(point[k]);
     }
 }
 
@@ -136,10 +115,10 @@ CoordSys::HiNode (const IntVect& point,
                   Real*          loc) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(loc != 0);
+    AMREX_ASSERT(loc != nullptr);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
-        loc[k] = offset[k] + dx[k]*(point[k] + 1);
+        loc[k] = offset[k] + dx[k]*static_cast<Real>(point[k] + 1);
     }
 }
 
@@ -155,7 +134,7 @@ IntVect
 CoordSys::CellIndex (const Real* point) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(point != 0);
+    AMREX_ASSERT(point != nullptr);
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -168,7 +147,7 @@ IntVect
 CoordSys::LowerIndex (const Real* point) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(point != 0);
+    AMREX_ASSERT(point != nullptr);
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -181,11 +160,11 @@ IntVect
 CoordSys::UpperIndex(const Real* point) const noexcept
 {
     AMREX_ASSERT(ok);
-    AMREX_ASSERT(point != 0);
+    AMREX_ASSERT(point != nullptr);
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
-        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
+        ix[k] = (int) ((point[k]-offset[k])/dx[k]) + 1;
     }
     return ix;
 }
@@ -235,7 +214,7 @@ CoordSys::GetDLogA (FArrayBox& dloga,
 }
 
 void
-CoordSys::SetDLogA (FArrayBox& a_dlogafab,
+CoordSys::SetDLogA (FArrayBox& a_dlogafab, // NOLINT(readability-convert-member-functions-to-static)
                     const Box& region,
                     int        dir) const
 {
@@ -311,12 +290,12 @@ CoordSys::GetEdgeLoc (Vector<Real>& loc,
     const int* lo = region.loVect();
     const int* hi = region.hiVect();
     int len       = hi[dir] - lo[dir] + 2;
-    Real off      = offset[dir] + dx[dir]*lo[dir];
+    Real off      = offset[dir] + dx[dir]*static_cast<Real>(lo[dir]);
     loc.resize(len);
     AMREX_PRAGMA_SIMD
     for (int i = 0; i < len; i++)
     {
-        loc[i] = off + dx[dir]*i;
+        loc[i] = off + dx[dir]*static_cast<Real>(i);
     }
 }
 
@@ -335,7 +314,7 @@ CoordSys::GetCellLoc (Vector<Real>& loc,
     AMREX_PRAGMA_SIMD
     for (int i = 0; i < len; i++)
     {
-        loc[i] = off + dx[dir]*i;
+        loc[i] = off + dx[dir]*static_cast<Real>(i);
     }
 }
 
@@ -351,11 +330,13 @@ CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
     GetEdgeLoc(vc,region,dir);
     //
     // In R direction of RZ, vol coord = (r^2)/2
+    // In R direction of SPHERICAL, vol coord = (r^3)/3
+    // In theta direction of SPHERICAL, vol coord = -cos(theta)
     //
 #if (AMREX_SPACEDIM == 2)
     if (dir == 0 && c_sys == RZ)
     {
-        int len = vc.size();
+        int len = static_cast<int>(vc.size());
         AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++)
         {
@@ -363,10 +344,33 @@ CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
             vc[i] = 0.5_rt*r*r;
         }
     }
+    else if (c_sys == SPHERICAL)
+    {
+        if (dir == 0)
+        {
+            int len = static_cast<int>(vc.size());
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len; i++)
+            {
+                Real r = vc[i];
+                vc[i] = r*r*r/3.0_rt;
+            }
+        }
+        else
+        {
+            int len = static_cast<int>(vc.size());
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len; i++)
+            {
+                Real theta = vc[i];
+                vc[i] = -std::cos(theta);
+            }
+        }
+    }
 #elif (AMREX_SPACEDIM == 1)
     if (c_sys == SPHERICAL)
     {
-        int len = vc.size();
+        int len = static_cast<int>(vc.size());
         AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++) {
             Real r = vc[i];
@@ -386,13 +390,16 @@ CoordSys::GetCellVolCoord (Vector<Real>& vc,
     // are identical to physical distance from axis.
     //
     GetCellLoc(vc,region,dir);
+
     //
-    // In R direction of RZ, vol coord = (r^2)/2.
+    // In R direction of RZ, vol coord = (r^2)/2
+    // In R direction of SPHERICAL, vol coord = (r^3)/3
+    // In theta direction of SPHERICAL, vol coord = -cos(theta)
     //
 #if (AMREX_SPACEDIM == 2)
     if (dir == 0 && c_sys == RZ)
     {
-        int len = vc.size();
+        int len = static_cast<int>(vc.size());
         AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++)
         {
@@ -400,9 +407,32 @@ CoordSys::GetCellVolCoord (Vector<Real>& vc,
             vc[i] = 0.5_rt*r*r;
         }
     }
+    else if (c_sys == SPHERICAL)
+    {
+        if (dir == 0)
+        {
+            int len = static_cast<int>(vc.size());
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len; i++)
+            {
+                Real r = vc[i];
+                vc[i] = r*r*r/3.0_rt;
+            }
+        }
+        else
+        {
+            int len = static_cast<int>(vc.size());
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len; i++)
+            {
+                Real theta = vc[i];
+                vc[i] = -std::cos(theta);
+            }
+        }
+    }
 #elif (AMREX_SPACEDIM == 1)
     if (c_sys == SPHERICAL) {
-        int len = vc.size();
+        int len = static_cast<int>(vc.size());
         AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++) {
             Real r = vc[i];
@@ -483,6 +513,9 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
 #if (AMREX_SPACEDIM==2)
     case RZ:
         return static_cast<Real>(0.5*TWOPI)*(xhi[1]-xlo[1])*(xhi[0]*xhi[0]-xlo[0]*xlo[0]);
+    case SPHERICAL:
+        return static_cast<Real>(TWOPI/3.)*(std::cos(xlo[1])-std::cos(xhi[1])) *
+            (xhi[0]-xlo[0])*(xhi[0]*xhi[0]+xhi[0]*xlo[0]+xlo[0]*xlo[0]);
 #endif
     default:
         AMREX_ASSERT(0);
@@ -491,7 +524,7 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
 }
 
 Real
-CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
+CoordSys::AreaLo (const IntVect& point, int dir) const noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
     amrex::ignore_unused(point,dir);
 #if (AMREX_SPACEDIM==2)
@@ -503,6 +536,8 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
         {
         case 0: return dx[1];
         case 1: return dx[0];
+        default:
+            AMREX_ASSERT(0);
         }
         return 0._rt; // to silent compiler warning
     case RZ:
@@ -511,6 +546,18 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
         {
         case 0: return Real(TWOPI)*dx[1]*xlo[0];
         case 1: return ((xlo[0]+dx[0])*(xlo[0]+dx[0])-xlo[0]*xlo[0])*static_cast<Real>(0.5*TWOPI);
+        default:
+            AMREX_ASSERT(0);
+        }
+        return 0._rt; // to silent compiler warning
+    case SPHERICAL:
+        LoNode(point,xlo);
+        switch (dir)
+        {
+        case 0: return Real(TWOPI)*xlo[0]*xlo[0]*(std::cos(xlo[1]) - std::cos(xlo[1]+dx[1]));
+        case 1: return (xlo[0]+xlo[0]+dx[0])*dx[0]*std::sin(xlo[1])*static_cast<Real>(0.5*TWOPI);
+        default:
+            AMREX_ASSERT(0);
         }
         return 0._rt; // to silent compiler warning
     default:
@@ -523,13 +570,15 @@ CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
     case 0: return dx[1]*dx[2];
     case 1: return dx[0]*dx[2];
     case 2: return dx[1]*dx[0];
+    default:
+        AMREX_ASSERT(0);
     }
 #endif
     return 0;
 }
 
 Real
-CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
+CoordSys::AreaHi (const IntVect& point, int dir) const noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
     amrex::ignore_unused(point,dir);
 #if (AMREX_SPACEDIM==2)
@@ -541,6 +590,8 @@ CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
         {
         case 0: return dx[1];
         case 1: return dx[0];
+        default:
+            AMREX_ASSERT(0);
         }
         return 0._rt; // to silent compiler warning
     case RZ:
@@ -549,6 +600,18 @@ CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
         {
         case 0: return Real(TWOPI)*dx[1]*xhi[0];
         case 1: return (xhi[0]*xhi[0]-(xhi[0]-dx[0])*(xhi[0]-dx[0]))*static_cast<Real>(TWOPI*0.5);
+        default:
+            AMREX_ASSERT(0);
+        }
+        return 0._rt; // to silent compiler warning
+    case SPHERICAL:
+        HiNode(point,xhi);
+        switch (dir)
+        {
+        case 0: return Real(TWOPI)*xhi[0]*xhi[0]*(std::cos(xhi[1]-dx[1]) - std::cos(xhi[1]));
+        case 1: return (xhi[0]+xhi[0]-dx[0])*dx[0]*std::sin(xhi[1])*static_cast<Real>(0.5*TWOPI);
+        default:
+            AMREX_ASSERT(0);
         }
         return 0._rt; // to silent compiler warning
     default:
@@ -561,6 +624,8 @@ CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
     case 0: return dx[1]*dx[2];
     case 1: return dx[0]*dx[2];
     case 2: return dx[1]*dx[0];
+    default:
+        AMREX_ASSERT(0);
     }
 #endif
     return 0._rt;

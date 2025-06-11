@@ -1,17 +1,19 @@
 #include <AMReX_EB2_IndexSpace_STL.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
                               Array<Real,3> const& stl_center, int stl_reverse_normal,
                               const Geometry& geom, int required_coarsening_level,
                               int max_coarsening_level, int ngrow,
                               bool build_coarse_level_by_coarsening,
-                              bool extend_domain_face, int num_coarsen_opt)
+                              bool extend_domain_face, int num_coarsen_opt,
+                              bool bvh_optimization)
 {
     Gpu::LaunchSafeGuard lsg(true); // Always use GPU
 
     STLtools stl_tools;
+    stl_tools.setBVHOptimization(bvh_optimization);
     stl_tools.read_stl_file(stl_file, stl_scale, stl_center, stl_reverse_normal);
 
     // build finest level (i.e., level 0) first
@@ -70,7 +72,7 @@ const Level&
 IndexSpaceSTL::getLevel (const Geometry& geom) const
 {
     auto it = std::find(std::begin(m_domain), std::end(m_domain), geom.Domain());
-    int i = std::distance(m_domain.begin(), it);
+    auto i = std::distance(m_domain.begin(), it);
     return m_stllevel[i];
 }
 
@@ -78,14 +80,23 @@ const Geometry&
 IndexSpaceSTL::getGeometry (const Box& dom) const
 {
     auto it = std::find(std::begin(m_domain), std::end(m_domain), dom);
-    int i = std::distance(m_domain.begin(), it);
+    auto i = std::distance(m_domain.begin(), it);
     return m_geom[i];
 }
 
 void
-IndexSpaceSTL::addFineLevels (int /*num_new_fine_levels*/)
+IndexSpaceSTL::addFineLevels (int num_new_fine_levels)
 {
-    amrex::Abort("IndexSpaceSTL::addFineLevels: todo");
+    // This function is a no op if not adding levels, otherwise TODO
+    if (num_new_fine_levels > 0) {
+        amrex::Abort("IndexSpaceSTL::addFineLevels: todo");
+    }
 }
 
-}}
+void
+IndexSpaceSTL::addRegularCoarseLevels (int /*num_new_coarse_levels*/)
+{
+    amrex::Abort("IndexSpaceSTL::addRegularCoarseLevels: todo");
+}
+
+}

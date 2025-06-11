@@ -7,6 +7,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_RandomEngine.H>
 #include <limits>
+#include <cmath>
 #include <cstdint>
 
 namespace amrex
@@ -23,24 +24,29 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real Random (RandomEngine const& random_engine)
     {
-#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
-#ifdef BL_USE_FLOAT
-        return 1.0f - curand_uniform(random_engine.rand_state);
-#else
-        return 1.0 - curand_uniform_double(random_engine.rand_state);
-#endif
-#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
-#ifdef BL_USE_FLOAT
-        return 1.0f - hiprand_uniform(random_engine.rand_state);
-#else
-        return 1.0 - hiprand_uniform_double(random_engine.rand_state);
-#endif
-#elif defined (__SYCL_DEVICE_ONLY__)
+#if defined (__SYCL_DEVICE_ONLY__)
         mkl::rng::device::uniform<Real> distr;
         return mkl::rng::device::generate(distr, *random_engine.engine);
 #else
-        amrex::ignore_unused(random_engine);
-        return Random();
+#ifdef BL_USE_FLOAT
+        AMREX_IF_ON_DEVICE((
+                AMREX_HIP_OR_CUDA(
+                        return 1.0f - hiprand_uniform(random_engine.rand_state); ,
+                        return 1.0f - curand_uniform(random_engine.rand_state);
+                )
+        ))
+#else
+        AMREX_IF_ON_DEVICE((
+                AMREX_HIP_OR_CUDA(
+                        return 1.0 - hiprand_uniform_double(random_engine.rand_state); ,
+                        return 1.0 - curand_uniform_double(random_engine.rand_state);
+                )
+        ))
+#endif
+        AMREX_IF_ON_HOST((
+                amrex::ignore_unused(random_engine);
+                return Random();
+        ))
 #endif
     }
 
@@ -56,24 +62,29 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real RandomNormal (Real mean, Real stddev, RandomEngine const& random_engine)
     {
-#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
-#ifdef BL_USE_FLOAT
-        return stddev * curand_normal(random_engine.rand_state) + mean;
-#else
-        return stddev * curand_normal_double(random_engine.rand_state) + mean;
-#endif
-#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
-#ifdef BL_USE_FLOAT
-        return stddev * hiprand_normal(random_engine.rand_state) + mean;
-#else
-        return stddev * hiprand_normal_double(random_engine.rand_state) + mean;
-#endif
-#elif defined (__SYCL_DEVICE_ONLY__)
+#if defined (__SYCL_DEVICE_ONLY__)
         mkl::rng::device::gaussian<Real> distr(mean, stddev);
         return mkl::rng::device::generate(distr, *random_engine.engine);
 #else
-        amrex::ignore_unused(random_engine);
-        return RandomNormal(mean, stddev);
+#ifdef BL_USE_FLOAT
+        AMREX_IF_ON_DEVICE((
+                AMREX_HIP_OR_CUDA(
+                        return stddev * hiprand_normal(random_engine.rand_state) + mean; ,
+                        return stddev * curand_normal(random_engine.rand_state) + mean;
+                )
+        ))
+#else
+        AMREX_IF_ON_DEVICE((
+                AMREX_HIP_OR_CUDA(
+                        return stddev * hiprand_normal_double(random_engine.rand_state) + mean; ,
+                        return stddev * curand_normal_double(random_engine.rand_state) + mean;
+                )
+        ))
+#endif
+        AMREX_IF_ON_HOST((
+                amrex::ignore_unused(random_engine);
+                return RandomNormal(mean, stddev);
+        ))
 #endif
     }
 
@@ -91,17 +102,89 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int RandomPoisson (Real lambda, RandomEngine const& random_engine)
     {
-#if defined(__CUDA_ARCH__) && defined(AMREX_USE_CUDA)
-        return curand_poisson(random_engine.rand_state, lambda);
-#elif defined(__HIP_DEVICE_COMPILE__) && defined(AMREX_USE_HIP)
-        return hiprand_poisson(random_engine.rand_state, lambda);
-#elif defined (__SYCL_DEVICE_ONLY__)
+#if defined (__SYCL_DEVICE_ONLY__)
         mkl::rng::device::poisson<unsigned int> distr(lambda);
         return mkl::rng::device::generate(distr, *random_engine.engine);
 #else
-        amrex::ignore_unused(random_engine);
-        return RandomPoisson(lambda);
+        AMREX_IF_ON_DEVICE((
+                AMREX_HIP_OR_CUDA(
+                        return hiprand_poisson(random_engine.rand_state, lambda); ,
+                        return curand_poisson(random_engine.rand_state, lambda);
+                )
+        ))
+        AMREX_IF_ON_HOST((
+                amrex::ignore_unused(random_engine);
+                return RandomPoisson(lambda);
+        ))
 #endif
+    }
+
+    namespace random_util {
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    Real RandomGamma_alpha_ge_1 (Real alpha, Real beta, RandomEngine const& random_engine)
+    {
+        AMREX_ASSERT(alpha >= 1);
+        AMREX_ASSERT(beta > 0);
+
+        Real x, v, u;
+        Real d = alpha - 1.0_rt / 3.0_rt;
+        Real c = (1.0_rt / 3.0_rt) / std::sqrt(d);
+
+        while (true) {
+            do {
+                x = amrex::RandomNormal(0.0_rt, 1.0_rt, random_engine);
+                v = 1.0_rt + c * x;
+            } while (v <= 0.0_rt);
+
+            v = v * v * v;
+            u = amrex::Random(random_engine);
+
+            if (u < 1.0_rt - 0.0331_rt * x * x * x * x) {
+                break;
+            }
+
+            if (std::log(u) < 0.5_rt * x * x + d * (1.0_rt - v + std::log(v))) {
+                break;
+            }
+        }
+        return beta * d * v;
+    }
+    }
+
+    /**
+    * \brief Generate a psuedo-random floating point number from the Gamma distribution
+    *
+    *  Generates one real number (single or double)
+    *  extracted from a Gamma distribution, given the Real parameters alpha and beta.
+    *  alpha and beta must both be > 0.
+    *  The CPU version of this function relies on the Standard Template Library
+    *  The GPU version of this function relies is implemented in terms of Random
+    *  and RandomNormal.
+    *
+    */
+    Real RandomGamma (Real alpha, Real beta);
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real RandomGamma (Real alpha, Real beta, RandomEngine const& random_engine)
+    {
+        AMREX_ASSERT(alpha > 0);
+        AMREX_ASSERT(beta > 0);
+
+        AMREX_IF_ON_DEVICE((
+        if (alpha < 1)
+        {
+            Real u = amrex::Random(random_engine);
+            return amrex::random_util::RandomGamma_alpha_ge_1(1.0_rt + alpha, beta, random_engine) * std::pow(u, 1.0_rt / alpha);
+        } else {
+            return amrex::random_util::RandomGamma_alpha_ge_1(alpha, beta, random_engine);
+        }
+        ))
+
+        AMREX_IF_ON_HOST((
+            amrex::ignore_unused(random_engine);
+            return RandomGamma(alpha, beta);
+        ))
     }
 
     /**
@@ -116,22 +199,23 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int Random_int (unsigned int n, RandomEngine const& random_engine)
     {
-#if AMREX_DEVICE_COMPILE
 #if defined(__SYCL_DEVICE_ONLY__)
         mkl::rng::device::uniform<unsigned int> distr(0,n);
         return mkl::rng::device::generate(distr, *random_engine.engine);
 #else
-        unsigned int rand;
-        constexpr unsigned int RAND_M = 4294967295; // 2**32-1
-        do {
-            AMREX_HIP_OR_CUDA( rand = hiprand(random_engine.rand_state);,
-                               rand =  curand(random_engine.rand_state) );
-        } while (rand > (RAND_M - RAND_M % n));
-        return rand % n;
-#endif
-#else
-        amrex::ignore_unused(random_engine);
-        return Random_int(n);
+        AMREX_IF_ON_DEVICE((
+                unsigned int rand;
+                constexpr unsigned int RAND_M = 4294967295; // 2**32-1
+                do {
+                AMREX_HIP_OR_CUDA( rand = hiprand(random_engine.rand_state);,
+                                rand =  curand(random_engine.rand_state) );
+                } while (rand > (RAND_M - RAND_M % n));
+                return rand % n;
+        ))
+        AMREX_IF_ON_HOST((
+                amrex::ignore_unused(random_engine);
+                return Random_int(n);
+        ))
 #endif
     }
 
@@ -143,6 +227,13 @@ namespace amrex
     * There is no GPU version.
     */
     ULong Random_long (ULong n); // [0,n-1]
+
+    //! Fill random numbers from uniform distribution.  The range is [0,1)
+    //! for CPU and SYCl, and (0,1] for CUADA and HIP.
+    void FillRandom (Real* p, Long N);
+
+    //! Fill random numbers from normal distribution
+    void FillRandomNormal (Real* p, Long N, Real mean, Real stddev);
 
     namespace detail {
         inline ULong DefaultGpuSeed () {
@@ -186,12 +277,6 @@ namespace amrex
     */
     void UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
                              bool printSet = false);
-
-    /**
-    * \brief Fill binCounts with the number of items for each bin.
-    *   The remainder items are randomly assigned.
-    */
-    void NItemsPerBin (int totalItems, Vector<int> &binCounts);
 
     void DeallocateRandomSeedDevArray ();
 }

@@ -1,8 +1,0 @@
-cEXE_headers +=  AlignedAllocator.h
-cEXE_headers +=  complex-type.h
-cEXE_headers +=  distribution_c.h
-cEXE_headers +=  TimingStats.h
-cEXE_headers +=  Error.h
-CEXE_headers += Distribution.H
-CEXE_headers += Dfft.H
-cEXE_sources += distribution.c

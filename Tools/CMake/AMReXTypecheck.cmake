@@ -296,9 +296,13 @@ function( add_typecheck_target _target)
    #
    set(_outfile  "${_typecheck_dir}/${_target}_typecheck.ou" )
 
-   # Find typechecker 
+   # Find typechecker
    find_file(_typechecker "typechecker.py"
-      HINTS ${AMReX_SOURCE_DIR} ${AMReX_ROOT} ENV AMReX_ROOT PATH_SUFFIXES Tools/typechecker)
+      HINTS ${AMReX_SOURCE_DIR} ${AMReX_ROOT} ENV AMReX_ROOT
+      PATH_SUFFIXES
+        Tools/typechecker        # in-source
+        share/amrex/typechecker  # installed
+   )
 
    add_custom_target( typecheck_${_target}
       COMMAND python3  ${_typechecker}

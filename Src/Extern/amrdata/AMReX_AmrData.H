@@ -16,8 +16,6 @@
 
 namespace amrex {
 
-class Interpolater;
-
 class AmrData {
 
  protected:
@@ -182,8 +180,6 @@ class AmrData {
 
   // fill on interior by piecewise constant interpolation
   void FillInterior(FArrayBox &dest, int level, const Box &subbox);
-  void Interp(FArrayBox &fine, FArrayBox &crse,
-              const Box &fine_box, int lrat);
   void PcInterp(FArrayBox &fine, const FArrayBox &crse,
                 const Box &subbox, int lrat);
   FArrayBox *ReadGrid(std::istream &is, int numVar);

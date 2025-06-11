@@ -24,11 +24,6 @@ public:
           m_sign(a_inside ? 1.0 : -1.0)
         {}
 
-    FlowerIF (const FlowerIF& rhs) noexcept = default;
-    FlowerIF (FlowerIF&& rhs) noexcept = default;
-    FlowerIF& operator= (const FlowerIF& rhs) = delete;
-    FlowerIF& operator= (FlowerIF&& rhs) = delete;
-
     AMREX_GPU_HOST_DEVICE inline
     amrex::Real operator() (AMREX_D_DECL(amrex::Real x, amrex::Real y, amrex::Real))
         const noexcept

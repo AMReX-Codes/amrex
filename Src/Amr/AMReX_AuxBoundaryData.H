@@ -12,15 +12,19 @@ class AuxBoundaryData
 {
 public:
 
-    AuxBoundaryData () noexcept;
+    AuxBoundaryData () noexcept = default;
 
-    AuxBoundaryData (const BoxArray& grids,
+    AuxBoundaryData (const BoxArray& ba,
                      int             n_grow,
                      int             n_comp,
                      const Geometry& geom);
 
-    AuxBoundaryData (const AuxBoundaryData& rhs);
+    ~AuxBoundaryData () = default;
 
+    AuxBoundaryData (AuxBoundaryData&& rhs) = default;
+    AuxBoundaryData& operator= (AuxBoundaryData&& rhs) = default;
+
+    AuxBoundaryData (const AuxBoundaryData& rhs);
     AuxBoundaryData& operator= (const AuxBoundaryData& rhs) = delete;
 
     void copyTo (MultiFab& destmf,
@@ -44,7 +48,7 @@ public:
                int                    dst_comp,
                int                    num_comp);
 
-    void initialize (const BoxArray& grids,
+    void initialize (const BoxArray& ba,
                      int             n_grow,
                      int             n_comp,
                      const Geometry& geom);
@@ -54,7 +58,7 @@ public:
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.boxArray();
     }
 
-    void setVal (Real r) { BL_ASSERT(m_initialized); if (!m_empty) m_fabs.setVal(r); }
+    void setVal (Real r) { BL_ASSERT(m_initialized); if (!m_empty) { m_fabs.setVal(r); } }
 
     const DistributionMapping& DistributionMap () const noexcept
     {
@@ -82,9 +86,9 @@ public:
 private:
 
     MultiFab m_fabs;
-    int      m_ngrow;
-    bool     m_empty;
-    bool     m_initialized;
+    int      m_ngrow{0};
+    bool     m_empty{false};
+    bool     m_initialized{false};
 };
 // \endcond
 

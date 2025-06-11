@@ -44,6 +44,8 @@ gcc_major_ge_10 = $(shell expr $(gcc_major_version) \>= 10)
 gcc_major_ge_11 = $(shell expr $(gcc_major_version) \>= 11)
 gcc_major_ge_12 = $(shell expr $(gcc_major_version) \>= 12)
 
+INLINE_LIMIT ?= 43210
+
 ifneq ($(NO_CONFIG_CHECKING),TRUE)
 ifneq ($(gcc_major_ge_8),1)
   $(error GCC < 8 not supported)
@@ -81,21 +83,18 @@ CXXFLAGS += -Werror=return-type
 CFLAGS   += -Werror=return-type
 
 ifeq ($(DEBUG),TRUE)
-  ifeq ($(gcc_major_ge_11),1)
-    CXXFLAGS += -gdwarf-4 -O0 -ggdb -ftrapv
-    CFLAGS   += -gdwarf-4 -O0 -ggdb -ftrapv
-  else
-    CXXFLAGS += -g -O0 -ggdb -ftrapv
-    CFLAGS   += -g -O0 -ggdb -ftrapv
-  endif
+  CXXFLAGS += -g -O0 -ggdb -ftrapv
+  CFLAGS   += -g -O0 -ggdb -ftrapv
 else
-  ifeq ($(gcc_major_ge_11),1)
-    CXXFLAGS += -gdwarf-4 -O3
-    CFLAGS   += -gdwarf-4 -O3
-  else
-    CXXFLAGS += -g -O3
-    CFLAGS   += -g -O3
+  CXXFLAGS += -g1 -O3
+  CFLAGS   += -g1 -O3
+  ifneq ($(USE_COMPILER_DEFAULT_INLINE),TRUE)
+    CXXFLAGS += -finline-limit=$(INLINE_LIMIT)
   endif
+endif
+
+ifeq ($(DEBUG_LIBSTDCXX),TRUE)
+   CPPFLAGS += -D_GLIBCXX_DEBUG
 endif
 
 ifeq ($(WARN_ALL),TRUE)
@@ -182,8 +181,8 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  FFLAGS   += -g -O3
-  F90FLAGS += -g -O3
+  FFLAGS   += -g1 -O3
+  F90FLAGS += -g1 -O3
 
 endif
 

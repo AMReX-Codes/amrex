@@ -14,7 +14,6 @@ public:
 
     FPhysBC (fill_physbc_funptr_t fill, const Geometry* geom_) : fill_physbc(fill), geom(geom_) {}
 
-    ~FPhysBC () {}
     void operator() (MultiFab& mf, int scomp, int ncomp, IntVect const& nghost,
                      Real time, int bccomp);
 

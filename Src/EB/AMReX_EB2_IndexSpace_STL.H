@@ -7,7 +7,7 @@
 
 #include <string>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class IndexSpaceSTL
     : public IndexSpace
@@ -19,21 +19,22 @@ public:
                   const Geometry& geom, int required_coarsening_level,
                   int max_coarsening_level, int ngrow,
                   bool build_coarse_level_by_coarsening,
-                  bool extend_domain_face, int num_coarsen_opt);
+                  bool extend_domain_face, int num_coarsen_opt, bool bvh_optimization);
 
     IndexSpaceSTL (IndexSpaceSTL const&) = delete;
     IndexSpaceSTL (IndexSpaceSTL &&) = delete;
     void operator= (IndexSpaceSTL const&) = delete;
     void operator= (IndexSpaceSTL &&) = delete;
 
-    virtual ~IndexSpaceSTL () {}
+    ~IndexSpaceSTL () override = default;
 
-    virtual const Level& getLevel (const Geometry& geom) const final;
-    virtual const Geometry& getGeometry (const Box& dom) const final;
-    virtual const Box& coarsestDomain () const final {
+    [[nodiscard]] const Level& getLevel (const Geometry& geom) const final;
+    [[nodiscard]] const Geometry& getGeometry (const Box& dom) const final;
+    [[nodiscard]] const Box& coarsestDomain () const final {
         return m_geom.back().Domain();
     }
-    virtual void addFineLevels (int num_new_fine_levels) final;
+    void addFineLevels (int num_new_fine_levels) final;
+    void addRegularCoarseLevels (int num_new_coarse_levels) final;
 
 private:
 
@@ -43,6 +44,6 @@ private:
     Vector<int> m_ngrow;
 };
 
-}}
+}
 
 #endif

@@ -22,7 +22,7 @@ ifeq ($(USE_OMP),TRUE)
 endif
 
 ifeq ($(USE_OMP_OFFLOAD),TRUE)
-  GENERIC_IBM_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_$(CUDA_ARCH)
+  GENERIC_IBM_FLAGS += -qsmp=omp:noauto -qoffload $(foreach arch,$(CUDA_ARCH),-qtgtarch=sm_$(arch))
 endif
 
 ########################################################################

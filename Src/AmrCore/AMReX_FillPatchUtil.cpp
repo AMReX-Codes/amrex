@@ -15,8 +15,8 @@ namespace amrex
                                      int ref_ratio)
     {
         InterpCrseFineBndryEMfield(interp_type,
-                                   {{AMREX_D_DECL(&crse[0],&crse[1],&crse[2])}},
-                                   {{AMREX_D_DECL(&fine[0],&fine[1],&fine[2])}},
+                                   {{AMREX_D_DECL(crse.data(),crse.data()+1,crse.data()+2)}},
+                                   {{AMREX_D_DECL(fine.data(),fine.data()+1,fine.data()+2)}},
                                    cgeom, fgeom, ref_ratio);
     }
 
@@ -35,7 +35,7 @@ namespace amrex
             BL_ASSERT(ngrow == fine[idim]->nGrowVect());
         }
 
-        if (ngrow.max() == 0) return;
+        if (ngrow.max() == 0) { return; }
 
         bool include_periodic = true;
         bool include_physbndry = false;

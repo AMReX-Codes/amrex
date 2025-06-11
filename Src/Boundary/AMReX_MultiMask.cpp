@@ -17,7 +17,7 @@ MultiMask::MultiMask (const BoxArray& regba, const DistributionMapping& dm, cons
 void
 MultiMask::define (const BoxArray& ba, const DistributionMapping& dm, int ncomp)
 {
-    BL_ASSERT(m_fa.size() == 0);
+    BL_ASSERT(m_fa.empty());
     m_fa.define(ba,dm,ncomp,0,MFInfo(),DefaultFabFactory<Mask>());
 }
 
@@ -25,7 +25,7 @@ void
 MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const Geometry& geom,
                    Orientation face, int in_rad, int out_rad, int extent_rad, int ncomp, bool initval)
 {
-    BL_ASSERT(m_fa.size() == 0);
+    BL_ASSERT(m_fa.empty());
 
     BoxArray mskba(regba, BATransformer(face,IndexType::TheCellType(),in_rad,out_rad,extent_rad));
     m_fa.define(mskba, dm, ncomp, 0, MFInfo(), DefaultFabFactory<Mask>());

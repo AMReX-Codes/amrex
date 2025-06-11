@@ -88,7 +88,7 @@ void amrex_avgdown_faces (Box const& bx, Array4<T> const& crse,
     switch (idir) {
     case 0:
     {
-        T facInv =  T(1.0) / facy;
+        T facInv =  T(1.0) / static_cast<T>(facy);
         for (int n = 0; n < ncomp; ++n) {
             for (int j = clo.y; j <= chi.y; ++j) {
             for (int i = clo.x; i <= chi.x; ++i) {
@@ -105,7 +105,7 @@ void amrex_avgdown_faces (Box const& bx, Array4<T> const& crse,
     }
     case 1:
     {
-        T facInv = T(1.0) / facx;
+        T facInv = T(1.0) / static_cast<T>(facx);
         for (int n = 0; n < ncomp; ++n) {
             for (int j = clo.y; j <= chi.y; ++j) {
             for (int i = clo.x; i <= chi.x; ++i) {
@@ -120,6 +120,7 @@ void amrex_avgdown_faces (Box const& bx, Array4<T> const& crse,
         }
         break;
     }
+    default: { break; }
     }
 }
 
@@ -135,7 +136,7 @@ void amrex_avgdown_faces (int i, int j, int, int n, Array4<T> const& crse,
     switch (idir) {
     case 0:
     {
-        const T facInv =  T(1.0) / facy;
+        const T facInv =  T(1.0) / static_cast<T>(facy);
         const int ii = i*facx;
         const int jj = j*facy;
         T c = T(0.);
@@ -147,7 +148,7 @@ void amrex_avgdown_faces (int i, int j, int, int n, Array4<T> const& crse,
     }
     case 1:
     {
-        const T facInv = T(1.0) / facx;
+        const T facInv = T(1.0) / static_cast<T>(facx);
         const int ii = i*facx;
         const int jj = j*facy;
         T c = T(0.);
@@ -157,6 +158,7 @@ void amrex_avgdown_faces (int i, int j, int, int n, Array4<T> const& crse,
         crse(i,j,0,n+ccomp) = c * facInv;
         break;
     }
+    default: { break; }
     }
 }
 
@@ -174,7 +176,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
     switch (idir) {
     case 0:
     {
-        Real facInv = Real(1.0) / facx;
+        Real facInv = Real(1.0) / static_cast<Real>(facx);
         for (int n = 0; n < ncomp; ++n) {
             for (int j = clo.y; j <= chi.y; ++j) {
             for (int i = clo.x; i <= chi.x; ++i) {
@@ -191,7 +193,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
     }
     case 1:
     {
-        Real facInv = Real(1.0) / facy;
+        Real facInv = Real(1.0) / static_cast<Real>(facy);
         for (int n = 0; n < ncomp; ++n) {
             for (int j = clo.y; j <= chi.y; ++j) {
             for (int i = clo.x; i <= chi.x; ++i) {
@@ -206,6 +208,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
         }
         break;
     }
+    default: { break; }
     }
 }
 
@@ -220,7 +223,7 @@ void amrex_avgdown_edges (int i, int j, int, int n, Array4<Real> const& crse,
     switch (idir) {
     case 0:
     {
-        const Real facInv = Real(1.0) / facx;
+        const Real facInv = Real(1.0) / static_cast<Real>(facx);
         const int ii = i*facx;
         const int jj = j*facy;
         Real c = 0.;
@@ -232,7 +235,7 @@ void amrex_avgdown_edges (int i, int j, int, int n, Array4<Real> const& crse,
     }
     case 1:
     {
-        const Real facInv = Real(1.0) / facy;
+        const Real facInv = Real(1.0) / static_cast<Real>(facy);
         const int ii = i*facx;
         const int jj = j*facy;
         Real c = 0.;
@@ -242,6 +245,7 @@ void amrex_avgdown_edges (int i, int j, int, int n, Array4<Real> const& crse,
         crse(i,j,0,n+ccomp) = c * facInv;
         break;
     }
+    default: { break; }
     }
 }
 

@@ -32,12 +32,18 @@ extern "C" {
     {
         Long dmsize = dm->size();
         AMREX_ASSERT(plen >= dmsize);
-        for (int i = 0; i < dmsize && i < plen; ++i)
+        for (int i = 0; i < dmsize && i < plen; ++i) {
             pmap[i] = (*dm)[i];
+        }
     }
 
     void amrex_fi_print_distromap (const DistributionMapping* dm)
     {
         AllPrint() << *dm;
+    }
+
+    int amrex_fi_distromap_issame (const DistributionMapping* dma, const DistributionMapping* dmb)
+    {
+        return *dma == *dmb;
     }
 }

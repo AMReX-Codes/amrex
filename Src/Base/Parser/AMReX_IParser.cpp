@@ -30,6 +30,8 @@ IParser::define (std::string const& func_body)
         try {
             amrex_iparserparse();
         } catch (const std::runtime_error& e) {
+            amrex_iparser_delete_buffer(buffer); // delete buffer allocated by bison
+            amrex_iparser_delete_ptrs();         // delete ptrs allocated by amrex
             throw std::runtime_error(std::string(e.what()) + " in IParser expression \""
                                      + m_data->m_expression + "\"");
         }
@@ -38,14 +40,17 @@ IParser::define (std::string const& func_body)
     }
 }
 
-IParser::~IParser ()
-{}
-
 IParser::Data::~Data ()
 {
     m_expression.clear();
     if (m_iparser) { amrex_iparser_delete(m_iparser); }
-    if (m_host_executor) { The_Pinned_Arena()->free(m_host_executor); }
+    if (m_host_executor) {
+        if (m_use_arena) {
+            The_Pinned_Arena()->free(m_host_executor);
+        } else {
+            std::free(m_host_executor);
+        }
+    }
 #ifdef AMREX_USE_GPU
     if (m_device_executor) { The_Arena()->free(m_device_executor); }
 #endif
@@ -57,7 +62,7 @@ IParser::operator bool () const
 }
 
 void
-IParser::setConstant (std::string const& name, int c)
+IParser::setConstant (std::string const& name, long long c)
 {
     if (m_data && m_data->m_iparser) {
         iparser_setconst(m_data->m_iparser, name.c_str(), c);
@@ -68,7 +73,7 @@ void
 IParser::registerVariables (Vector<std::string> const& vars)
 {
     if (m_data && m_data->m_iparser) {
-        m_data->m_nvars = vars.size();
+        m_data->m_nvars = static_cast<int>(vars.size());
         for (int i = 0; i < m_data->m_nvars; ++i) {
             iparser_regvar(m_data->m_iparser, vars[i].c_str(), i);
         }

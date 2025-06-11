@@ -1,4 +1,4 @@
-if (NOT AMReX_SPACEDIM EQUAL 3)
+if (NOT 3 IN_LIST AMReX_SPACEDIM)
    return()
 endif ()
 
@@ -15,7 +15,7 @@ list(TRANSFORM _sources PREPEND Source/)
 set(_sod_sources Exec/Sod/cns_prob.cpp Exec/Sod/cns_prob.H Exec/Sod/cns_prob_parm.H ${_sources})
 set(_input_files Exec/Sod/inputs-ci)
 
-setup_test(_sod_sources _input_files
+setup_test(3 _sod_sources _input_files
    BASE_NAME GPU_CNS_Sod
    RUNTIME_SUBDIR Sod)
 

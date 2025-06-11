@@ -37,7 +37,6 @@ class FabArrayBase;
 *  BoxArray are as equal across CPUs as is possible.  The SFC distribution is
 *  based on a space filling curve.
 */
-
 class DistributionMapping
 {
   public:
@@ -48,8 +47,28 @@ class DistributionMapping
     //! The distribution strategies
     enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, RRSFC };
 
+    struct Ref
+    {
+        //! Constructors to match those in DistributionMapping ....
+        Ref () = default;
+
+        explicit Ref (int len) : m_pmap(len) {}
+
+        explicit Ref (const Vector<int>& pmap) : m_pmap(pmap) {}
+
+        explicit Ref (Vector<int>&& pmap) noexcept : m_pmap(std::move(pmap)) {}
+
+        //! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
+
+        void clear () { m_pmap.clear();  m_index_array.clear();   m_ownership.clear(); }
+
+        Vector<int> m_pmap; //!< index array for all boxes
+        Vector<int> m_index_array;  //!< index array for local boxes owned by the team
+        std::vector<bool> m_ownership; //!< true ownership
+    };
+
     //! The default constructor.
-    DistributionMapping ();
+    DistributionMapping () noexcept;
 
     //! The copy constructor.
     DistributionMapping (const DistributionMapping& rhs) = default;
@@ -74,6 +93,9 @@ class DistributionMapping
     //! Build mapping out of BoxArray over nprocs processors.
     explicit DistributionMapping (const BoxArray& boxes,
                                   int nprocs = ParallelDescriptor::NProcs());
+
+    explicit DistributionMapping (std::shared_ptr<Ref> a_ref);
+
     /**
     * \brief This is a very specialized distribution map.
     * Do NOT use it unless you really understand what it does.
@@ -99,18 +121,18 @@ class DistributionMapping
     * ProcessorMap()[i] is an integer in the interval [0, NCPU) where
     * NCPU is the number of CPUs being used.
     */
-    const Vector<int>& ProcessorMap () const noexcept;
+    [[nodiscard]] const Vector<int>& ProcessorMap () const noexcept;
 
     //! Length of the underlying processor map.
-    Long size () const noexcept { return m_ref->m_pmap.size(); }
-    Long capacity () const noexcept { return m_ref->m_pmap.capacity(); }
-    bool empty () const noexcept { return m_ref->m_pmap.empty(); }
+    [[nodiscard]] Long size () const noexcept { return Long(m_ref->m_pmap.size()); }
+    [[nodiscard]] Long capacity () const noexcept { return Long(m_ref->m_pmap.capacity()); }
+    [[nodiscard]] bool empty () const noexcept { return m_ref->m_pmap.empty(); }
 
     //! Number of references to this DistributionMapping
-    Long linkCount () const noexcept { return m_ref.use_count(); }
+    [[nodiscard]] Long linkCount () const noexcept { return m_ref.use_count(); }
 
     //! Equivalent to ProcessorMap()[index].
-    int operator[] (int index) const noexcept { return m_ref->m_pmap[index]; }
+    [[nodiscard]] int operator[] (int index) const noexcept { return m_ref->m_pmap[index]; }
 
     std::istream& readFrom (std::istream& is);
 
@@ -137,7 +159,7 @@ class DistributionMapping
     void SFCProcessorMap (const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
                           Real& efficiency, bool sort=true);
     void KnapSackProcessorMap (const std::vector<Long>& wgts, int nprocs,
-                               Real* efficiency=0,
+                               Real* efficiency=nullptr,
                                bool do_full_knapsack=true,
                                int nmax=std::numeric_limits<int>::max(),
                                bool sort=true);
@@ -246,7 +268,7 @@ class DistributionMapping
     */
     static std::vector<std::vector<int> > makeSFC (const BoxArray& ba,
                                                    bool use_box_vol=true,
-                                                   const int nprocs=ParallelContext::NProcsSub() );
+                                                   int nprocs=ParallelContext::NProcsSub() );
 
     /** \brief Computes the average cost per MPI rank given a distribution mapping
      * global cost vector.
@@ -259,6 +281,8 @@ class DistributionMapping
     static void ComputeDistributionMappingEfficiency (const DistributionMapping& dm,
                                                       const std::vector<T>& cost,
                                                       Real* efficiency);
+
+    [[nodiscard]] std::weak_ptr<Ref> getWeakRef () const;
 
 private:
 
@@ -295,7 +319,7 @@ private:
 
     void RoundRobinDoIt (int                  nboxes,
                          int                  nprocs,
-                         std::vector<LIpair>* LIpairV = 0,
+                         std::vector<LIpair>* LIpairV = nullptr,
                          bool                 sort = true);
 
     void KnapSackDoIt (const std::vector<Long>& wgts,
@@ -315,15 +339,15 @@ private:
                               int                      nprocs);
 
     //! Least used ordering of CPUs (by # of bytes of FAB data).
-    void LeastUsedCPUs (int nprocs, Vector<int>& result);
+    static void LeastUsedCPUs (int nprocs, Vector<int>& result);
     /**
     * \brief rteam: Least used ordering of Teams
     * rworker[i]: Least used ordering of team workers for Team i
     */
-    void LeastUsedTeams (Vector<int>& rteam, Vector<Vector<int> >& rworker, int nteams, int nworkers);
+    static void LeastUsedTeams (Vector<int>& rteam, Vector<Vector<int> >& rworker, int nteams, int nworkers);
 
     //! A useful typedef.
-    typedef void (DistributionMapping::*PVMF)(const BoxArray &, int);
+    using PVMF = void (DistributionMapping::*)(const BoxArray &, int);
 
     //! Everyone uses the same Strategy -- defaults to SFC.
     static Strategy m_Strategy;
@@ -333,48 +357,29 @@ private:
     */
     static PVMF m_BuildMap;
 
-    struct Ref
-    {
-        friend class DistributionMapping;
-
-        //! Constructors to match those in DistributionMapping ....
-        Ref () noexcept {}
-
-        explicit Ref (int len) : m_pmap(len) {}
-
-        explicit Ref (const Vector<int>& pmap) : m_pmap(pmap) {}
-
-        explicit Ref (Vector<int>&& pmap) noexcept : m_pmap(std::move(pmap)) {}
-
-        //! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
-
-        void clear () { m_pmap.clear();  m_index_array.clear();   m_ownership.clear(); }
-
-        Vector<int> m_pmap; //!< index array for all boxes
-        Vector<int> m_index_array;  //!< index array for local boxes owned by the team
-        std::vector<bool> m_ownership; //!< true ownership
-    };
     //
     //! The data -- a reference-counted pointer to a Ref.
     std::shared_ptr<Ref> m_ref;
 
 public:
     struct RefID {
-        RefID () noexcept : data(nullptr) {}
+        constexpr RefID () noexcept {} // =default does not work due to a clang bug // NOLINT
         explicit RefID (Ref* data_) noexcept : data(data_) {}
-        bool operator<  (const RefID& rhs) const noexcept { return std::less<Ref*>()(data,rhs.data); }
+        bool operator<  (const RefID& rhs) const noexcept { return std::less<>{}(data,rhs.data); }
         bool operator== (const RefID& rhs) const noexcept { return data == rhs.data; }
         bool operator!= (const RefID& rhs) const noexcept { return data != rhs.data; }
-        const Ref *dataPtr() const noexcept { return data; }
+        [[nodiscard]] const Ref *dataPtr() const noexcept { return data; }
         void PrintPtr(std::ostream &os) const { os << data << '\n'; }
         friend std::ostream& operator<< (std::ostream& os, const RefID& id);
    private:
-        Ref* data;
+        Ref* data = nullptr;
     };
 
     //! This gives a unique ID of the reference, which is different from dmID above.
-    RefID getRefID () const noexcept { return RefID { m_ref.get() }; }
+    [[nodiscard]] RefID getRefID () const noexcept { return RefID { m_ref.get() }; }
 };
+
+using DMRef = DistributionMapping::Ref;
 
 //! Our output operator.
 std::ostream& operator<< (std::ostream& os, const DistributionMapping& pmap);
@@ -405,7 +410,7 @@ DistributionMapping MakeSimilarDM (const BoxArray& ba, const MultiFab& mf, const
  *  of overlap with.
  *
  *  @param[in] ba The BoxArray we want to generate a DistributionMapping for.
- *  @param[in] src_ba The BoxArray associatied with the src DistributionMapping.
+ *  @param[in] src_ba The BoxArray associated with the src DistributionMapping.
  *  @param[in] src_dm The input DistributionMapping we want the output to be similar to.
  *  @param[in] ng The number of grow cells to use when computing intersection / overlap
  *  @return The computed DistributionMapping.
@@ -420,8 +425,8 @@ void DistributionMapping::ComputeDistributionMappingEfficiency (
     const int nprocs = ParallelDescriptor::NProcs();
     Vector<T> wgts(nprocs, T(0));
 
-    const Long nboxes = dm.size();
-    for (Long ibox = 0; ibox < nboxes; ++ibox) {
+    const auto nboxes = int(dm.size());
+    for (int ibox = 0; ibox < nboxes; ++ibox) {
         wgts[dm[ibox]] += cost[ibox];
     }
 
@@ -431,6 +436,8 @@ void DistributionMapping::ComputeDistributionMappingEfficiency (
         max_weight = std::max(w, max_weight);
         sum_weight += w;
     }
+
+    AMREX_ASSERT(nprocs > 0 && max_weight > T(0));
 
     *efficiency = static_cast<Real>(sum_weight) /
         (static_cast<Real>(nprocs) * static_cast<Real>(max_weight));

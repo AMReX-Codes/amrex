@@ -7,54 +7,48 @@
 
 #include <iostream>
 
-namespace amrex {
-
-const IntVect IntVect::Zero = IntVect::TheZeroVector();
-const IntVect IntVect::Unit = IntVect::TheUnitVector();
+namespace amrex::detail {
 
 std::ostream&
-operator<< (std::ostream&  os,
-            const IntVect& p)
+int_vector_write (std::ostream& os, const int* iv, int dim)
 {
-    os << AMREX_D_TERM( '(' << p[0] , <<
-                  ',' << p[1] , <<
-                  ',' << p[2])  << ')';
-    if (os.fail())
+    os << '(' << iv[0];
+    for (int i=1; i<dim; ++i) {
+        os << ',' << iv[i];
+    }
+    os << ')';
+    if (os.fail()) {
         amrex::Error("operator<<(ostream&,IntVect&) failed");
+    }
     return os;
 }
 
 #define BL_IGNORE_MAX 100000
 
 std::istream&
-operator>> (std::istream& is,
-            IntVect&      iv)
+int_vector_read (std::istream& is, int* iv, int dim)
 {
     is >> std::ws;
     char c;
     is >> c;
 
-    AMREX_D_TERM(iv[0]=0;, iv[1]=0;, iv[2]=0);
+    for (int i=0; i<dim; ++i) {
+        iv[i] = 0;
+    }
 
     if (c == '(')
     {
         is >> iv[0];
-#if (AMREX_SPACEDIM >= 2)
-        is >> std::ws;
-        int ic = is.peek();
-        if (ic == static_cast<int>(',')) {
-            is.ignore(BL_IGNORE_MAX, ',');
-            is >> iv[1];
-#if (AMREX_SPACEDIM == 3)
+        for (int i=1; i<dim; ++i) {
             is >> std::ws;
-            ic = is.peek();
+            int ic = is.peek();
             if (ic == static_cast<int>(',')) {
                 is.ignore(BL_IGNORE_MAX, ',');
-                is >> iv[2];
+                is >> iv[i];
+                continue;
             }
-#endif
+            break;
         }
-#endif
         is.ignore(BL_IGNORE_MAX, ')');
     }
     else
@@ -62,8 +56,9 @@ operator>> (std::istream& is,
         amrex::Error("operator>>(istream&,IntVect&): expected \'(\'");
     }
 
-    if (is.fail())
+    if (is.fail()) {
         amrex::Error("operator>>(istream&,IntVect&) failed");
+    }
 
     return is;
 }

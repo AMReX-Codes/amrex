@@ -1,0 +1,40 @@
+AMREX_HOME ?= ../../../amrex
+
+PREC ?= 1
+
+ifeq ($(PREC),1)
+  PRECISION = DOUBLE
+  USE_SINGLE_PRECISION_PARTICLES = FALSE
+else ifeq ($(PREC),2)
+  PRECISION = FLOAT
+  USE_SINGLE_PRECISION_PARTICLES = FALSE
+else ifeq ($(PREC),3)
+  PRECISION = DOUBLE
+  USE_SINGLE_PRECISION_PARTICLES = TRUE
+else ifeq ($(PREC),4)
+  PRECISION = FLOAT
+  USE_SINGLE_PRECISION_PARTICLES = TRUE
+endif
+
+DEBUG	= FALSE
+
+DIM	= 3
+
+COMP    = gcc
+
+USE_MPI   = FALSE
+USE_OMP   = FALSE
+USE_CUDA  = FALSE
+USE_HIP   = FALSE
+USE_SYCL  = FALSE
+
+BL_NO_FORT = TRUE
+
+TINY_PROFILE = FALSE
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+
+include ./Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

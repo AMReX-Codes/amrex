@@ -2,6 +2,7 @@
 #include <AMReX_EBAmrUtil.H>
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBCellFlag.H>
+#include <AMReX_iMultiFab.H>
 
 #ifdef AMREX_USE_OMP
 #include <omp.h>
@@ -16,28 +17,44 @@ TagCutCells (TagBoxArray& tags, const MultiFab& state)
 //    const char clearval = TagBox::CLEAR;
 
     auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
-    auto const& flags = factory.getMultiEBCellFlagFab();
+
+    if (factory.hasEBInfo()) {
+        auto const& flags = factory.getMultiEBCellFlagFab();
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(state, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-
-        const auto& flag = flags[mfi];
-
-        const FabType typ = flag.getType(bx);
-        if (typ != FabType::regular && typ != FabType::covered)
+        for (MFIter mfi(state, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            Array4<char> const& tagarr = tags.array(mfi);
-            Array4<EBCellFlag const> const& flagarr = flag.const_array();
-            AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+            const Box& bx = mfi.tilebox();
+
+            const auto& flag = flags[mfi];
+
+            const FabType typ = flag.getType(bx);
+            if (typ != FabType::regular && typ != FabType::covered)
             {
-                if (flagarr(i,j,k).isSingleValued()) {
-                    tagarr(i,j,k) = tagval;
+                Array4<char> const& tagarr = tags.array(mfi);
+                Array4<EBCellFlag const> const& flagarr = flag.const_array();
+                AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+                {
+                    if (flagarr(i,j,k).isSingleValued()) {
+                        tagarr(i,j,k) = tagval;
+                    }
+                });
+            }
+        }
+    } else {
+        auto const* cutcell_mask = factory.getCutCellMask();
+        if (cutcell_mask) {
+            auto const& ta = tags.arrays();
+            auto const& ma = cutcell_mask->const_arrays();
+            ParallelFor(state, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
+            {
+                if (ma[bno](i,j,k)) {
+                    ta[bno](i,j,k) = tagval;
                 }
             });
+            amrex::Gpu::streamSynchronize();
         }
     }
 }

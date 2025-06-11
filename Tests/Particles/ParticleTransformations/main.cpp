@@ -39,7 +39,7 @@ class TestParticleContainer
 
 public:
 
-    using ParticleTileType = ParticleTile<NSR, NSI, NAR, NAI>;
+    using ParticleTileType = ParticleTile<Particle<NSR, NSI>, NAR, NAI>;
 
 
     TestParticleContainer (const amrex::Geometry            & a_geom,
@@ -72,9 +72,9 @@ public:
                     Real r[3];
                     get_position_unit_cell(r, a_num_particles_per_cell, i_part);
 
-                    AMREX_D_TERM(ParticleReal x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);,
-                                 ParticleReal y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);,
-                                 ParticleReal z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);)
+                    AMREX_D_TERM(auto x = static_cast<ParticleReal> (plo[0] + (iv[0] + r[0])*dx[0]);,
+                                 auto y = static_cast<ParticleReal> (plo[1] + (iv[1] + r[1])*dx[1]);,
+                                 auto z = static_cast<ParticleReal> (plo[2] + (iv[2] + r[2])*dx[2]);)
 
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
@@ -83,14 +83,25 @@ public:
                                  p.pos(1) = y;,
                                  p.pos(2) = z;)
 
-                    for (int i = 0; i < NSR; ++i) p.rdata(i) = i;
-                    for (int i = 0; i < NSI; ++i) p.idata(i) = i;
+                    if constexpr (NSR > 0) {
+                        for (int i = 0; i < NSR; ++i) { p.rdata(i) = ParticleReal(i); }
+                    }
+                    if constexpr (NSI > 0) {
+                        for (int i = 0; i < NSI; ++i) { p.idata(i) = i; }
+                    }
 
                     host_particles.push_back(p);
-                    for (int i = 0; i < NAR; ++i)
-                        host_real[i].push_back(i);
-                    for (int i = 0; i < NAI; ++i)
-                        host_int[i].push_back(i);
+
+                    if constexpr (NAR > 0) {
+                        for (int i = 0; i < NAR; ++i) {
+                            host_real[i].push_back(ParticleReal(i));
+                        }
+                    }
+                    if constexpr (NAI > 0) {
+                        for (int i = 0; i < NAI; ++i) {
+                            host_int[i].push_back(i);
+                        }
+                    }
                 }
             }
 
@@ -139,14 +150,18 @@ struct Transformer
                      int src_i, int dst_i) const noexcept
     {
         dst.m_aos[dst_i] = src.m_aos[src_i];
-        for (int j = 0; j < DstData::NAR; ++j)
+        for (int j = 0; j < DstData::NAR; ++j) {
             dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
-        for (int j = 0; j < dst.m_num_runtime_real; ++j)
+        }
+        for (int j = 0; j < dst.m_num_runtime_real; ++j) {
             dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
-        for (int j = 0; j < DstData::NAI; ++j)
+        }
+        for (int j = 0; j < DstData::NAI; ++j) {
             dst.m_idata[j][dst_i] = m_factor*src.m_idata[j][src_i];
-        for (int j = 0; j < dst.m_num_runtime_int; ++j)
+        }
+        for (int j = 0; j < dst.m_num_runtime_int; ++j) {
             dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+        }
     }
 };
 
@@ -170,24 +185,32 @@ struct TwoWayTransformer
                      int src_i, int dst1_i, int dst2_i) const noexcept
     {
         dst1.m_aos[dst1_i] = src.m_aos[src_i];
-        for (int j = 0; j < DstData::NAR; ++j)
+        for (int j = 0; j < DstData::NAR; ++j) {
             dst1.m_rdata[j][dst1_i] = src.m_rdata[j][src_i];
-        for (int j = 0; j < dst1.m_num_runtime_real; ++j)
+        }
+        for (int j = 0; j < dst1.m_num_runtime_real; ++j) {
             dst1.m_runtime_rdata[j][dst1_i] = src.m_runtime_rdata[j][src_i];
-        for (int j = 0; j < DstData::NAI; ++j)
+        }
+        for (int j = 0; j < DstData::NAI; ++j) {
             dst1.m_idata[j][dst1_i] = m_factor1*src.m_idata[j][src_i];
-        for (int j = 0; j < dst1.m_num_runtime_int; ++j)
+        }
+        for (int j = 0; j < dst1.m_num_runtime_int; ++j) {
             dst1.m_runtime_idata[j][dst1_i] = src.m_runtime_idata[j][src_i];
+        }
 
         dst2.m_aos[dst2_i] = src.m_aos[src_i];
-        for (int j = 0; j < DstData::NAR; ++j)
+        for (int j = 0; j < DstData::NAR; ++j) {
             dst2.m_rdata[j][dst2_i] = src.m_rdata[j][src_i];
-        for (int j = 0; j < dst2.m_num_runtime_real; ++j)
+        }
+        for (int j = 0; j < dst2.m_num_runtime_real; ++j) {
             dst2.m_runtime_rdata[j][dst2_i] = src.m_runtime_rdata[j][src_i];
-        for (int j = 0; j < DstData::NAI; ++j)
+        }
+        for (int j = 0; j < DstData::NAI; ++j) {
             dst2.m_idata[j][dst2_i] = m_factor2*src.m_idata[j][src_i];
-        for (int j = 0; j < dst2.m_num_runtime_int; ++j)
+        }
+        for (int j = 0; j < dst2.m_num_runtime_int; ++j) {
             dst2.m_runtime_idata[j][dst2_i] = src.m_runtime_idata[j][src_i];
+        }
     }
 };
 
@@ -212,7 +235,7 @@ struct KeepEvenFilter
 };
 
 template <typename PC, typename F>
-void transformParticles (PC& pc, F&& f)
+void transformParticles (PC& pc, F const& f)
 {
     BL_PROFILE("transformParticles");
 
@@ -228,14 +251,14 @@ void transformParticles (PC& pc, F&& f)
             ParticleTileType ptile_tmp;
             ptile_tmp.resize(ptile.size());
 
-            amrex::transformParticles(ptile_tmp, ptile, std::forward<F>(f));
+            amrex::transformParticles(ptile_tmp, ptile, f);
             ptile.swap(ptile_tmp);
         }
     }
 }
 
 template <typename PC, typename F>
-void twoWayTransformParticles (PC& dst1, PC& dst2, const PC& src, F&& f)
+void twoWayTransformParticles (PC& dst1, PC& dst2, const PC& src, F const& f)
 {
     BL_PROFILE("twoWayTransformParticles");
 
@@ -252,7 +275,7 @@ void twoWayTransformParticles (PC& dst1, PC& dst2, const PC& src, F&& f)
             ptile_dst1.resize(ptile_src.size());
             ptile_dst2.resize(ptile_src.size());
 
-            amrex::transformParticles(ptile_dst1, ptile_dst2, ptile_src, std::forward<F>(f));
+            amrex::transformParticles(ptile_dst1, ptile_dst2, ptile_src, f);
         }
     }
 }
@@ -292,7 +315,7 @@ void testTwoWayTransform (const PC& pc)
 }
 
 template <typename PC, typename F>
-void filterParticles (PC& pc, F&& f)
+void filterParticles (PC& pc, F const& f)
 {
     BL_PROFILE("filterParticles");
 
@@ -308,7 +331,7 @@ void filterParticles (PC& pc, F&& f)
             ParticleTileType ptile_tmp;
             ptile_tmp.resize(ptile.size());
 
-            auto num_output = amrex::filterParticles(ptile_tmp, ptile, std::forward<F>(f));
+            auto num_output = amrex::filterParticles(ptile_tmp, ptile, f);
 
             ptile.swap(ptile_tmp);
             ptile.resize(num_output);
@@ -317,7 +340,7 @@ void filterParticles (PC& pc, F&& f)
 }
 
 template <typename PC, typename Pred, typename F>
-void filterAndTransformParticles (PC& pc, Pred&& p, F&& f)
+void filterAndTransformParticles (PC& pc, Pred const& p, F const& f)
 {
     BL_PROFILE("filterAndTransformParticles");
 
@@ -333,7 +356,7 @@ void filterAndTransformParticles (PC& pc, Pred&& p, F&& f)
             ParticleTileType ptile_tmp;
             ptile_tmp.resize(ptile.size());
 
-            auto num_output = amrex::filterAndTransformParticles(ptile_tmp, ptile, std::forward<Pred>(p), std::forward<F>(f));
+            auto num_output = amrex::filterAndTransformParticles(ptile_tmp, ptile, p, f);
 
             ptile.swap(ptile_tmp);
             ptile.resize(num_output);
@@ -342,7 +365,7 @@ void filterAndTransformParticles (PC& pc, Pred&& p, F&& f)
 }
 
 template <typename PC, typename Pred, typename F>
-void twoWayFilterAndTransformParticles (PC& dst1, PC& dst2, const PC& src, Pred&& p, F&& f)
+void twoWayFilterAndTransformParticles (PC& dst1, PC& dst2, const PC& src, Pred const& p, F const& f)
 {
     BL_PROFILE("twoWayFilterAndTransformParticles");
 
@@ -361,8 +384,8 @@ void twoWayFilterAndTransformParticles (PC& dst1, PC& dst2, const PC& src, Pred&
             auto num_output = amrex::filterAndTransformParticles(ptile_dst1,
                                                                  ptile_dst2,
                                                                  ptile_src,
-                                                                 std::forward<Pred>(p),
-                                                                 std::forward<F>(f));
+                                                                 p,
+                                                                 f);
 
             ptile_dst1.resize(num_output);
             ptile_dst2.resize(num_output);
@@ -534,9 +557,7 @@ void testTransformations ()
     const Box domain(domain_lo, domain_hi);
 
     int coord = 0;
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+    int is_per[] = {AMREX_D_DECL(1,1,1)};
     Geometry geom(domain, &real_box, coord, is_per);
 
     BoxArray ba(domain);
@@ -545,11 +566,11 @@ void testTransformations ()
 
     TestParticleContainer pc(geom, dm, ba);
 
-    int npc = params.num_ppc;
-    IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
+    IntVect nppc(params.num_ppc);
 
-    if (ParallelDescriptor::MyProc() == dm[0])
+    if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::Print() << "About to initialize particles \n";
+    }
 
     pc.InitParticles(nppc);
 

@@ -8,44 +8,44 @@
 
 namespace amrex {
 
-class distFcnElement2d {
+class distFcnElement2d { // NOLINT(cppcoreguidelines-special-member-functions)
  public:
   //! Constructor
-  distFcnElement2d() {}
-  virtual ~distFcnElement2d() {}
+  distFcnElement2d() = default;
+  virtual ~distFcnElement2d() = default;
 
-  virtual distFcnElement2d* newDistFcnElement2d() const = 0;
+  [[nodiscard]] virtual distFcnElement2d* newDistFcnElement2d() const = 0;
 
-  virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const = 0;
-  virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const = 0;
-  int solve_thomas(const std::vector<amrex::Real> &diagminus,
-                   std::vector<amrex::Real> diag,
-                   const std::vector<amrex::Real> &diagplus,
-                   std::vector<amrex::Real> rhs,
-                   std::vector<amrex::Real> &X);
+  [[nodiscard]] virtual amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const = 0;
+  [[nodiscard]] virtual amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const = 0;
+  static int solve_thomas (const std::vector<amrex::Real> &a,
+                           std::vector<amrex::Real> &b,
+                           const std::vector<amrex::Real> &c,
+                           std::vector<amrex::Real> &d,
+                           std::vector<amrex::Real> &X);
 };
 
 
-class LineDistFcnElement2d: public distFcnElement2d {
+class LineDistFcnElement2d: public distFcnElement2d { // NOLINT(cppcoreguidelines-special-member-functions)
  public:
-  LineDistFcnElement2d() {}
-  virtual ~LineDistFcnElement2d() {}
+  LineDistFcnElement2d() = default;
+  ~LineDistFcnElement2d() override = default;
 
-  virtual distFcnElement2d* newDistFcnElement2d() const override;
+  [[nodiscard]] distFcnElement2d* newDistFcnElement2d() const override;
 
   void set_control_points(std::vector<amrex::RealVect>  pts);
 
-  virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const override;
-  virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const override;
+  [[nodiscard]] amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const override;
+  [[nodiscard]] amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const override;
 
   void print_control_points();
 
  protected:
-  void single_seg_cpdist(amrex::RealVect pt,
+  static void single_seg_cpdist(amrex::RealVect pt,
                          amrex::Real x0, amrex::Real x1,
                          amrex::Real y0, amrex::Real y1,
                          amrex::RealVect& cp,
-                         amrex::Real& dist) const;
+                         amrex::Real& dist);
 
  private:
   std::vector<amrex::Real> control_points_x;
@@ -55,12 +55,12 @@ class LineDistFcnElement2d: public distFcnElement2d {
 };
 
 
-class SplineDistFcnElement2d: public distFcnElement2d {
+class SplineDistFcnElement2d: public distFcnElement2d { // NOLINT(cppcoreguidelines-special-member-functions)
  public:
-  SplineDistFcnElement2d() {}
-  virtual ~SplineDistFcnElement2d() {}
+  SplineDistFcnElement2d() = default;
+  ~SplineDistFcnElement2d() override = default;
 
-  virtual distFcnElement2d* newDistFcnElement2d() const override;
+  [[nodiscard]] distFcnElement2d* newDistFcnElement2d() const override;
 
 
   void set_control_points(std::vector<amrex::RealVect>  pts);
@@ -71,31 +71,31 @@ class SplineDistFcnElement2d: public distFcnElement2d {
 
   void calc_D(bool clamped_bc = false);
 
-  virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const override;
-  virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const override;
+  [[nodiscard]] amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const override;
+  [[nodiscard]] amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const override;
 
  protected:
-  amrex::Real eval(amrex::Real t, amrex::Real y0, amrex::Real y1,
-                   amrex::Real D0, amrex::Real D1) const;
-  void  dxbydt(amrex::Real t, amrex::Real y0, amrex::Real y1,
+  static amrex::Real eval(amrex::Real t, amrex::Real y0, amrex::Real y1,
+                   amrex::Real D0, amrex::Real D1);
+  static void  dxbydt(amrex::Real t, amrex::Real y0, amrex::Real y1,
                amrex::Real D0, amrex::Real D1, amrex::Real& dyf,
-               amrex::Real& d2yf) const;
+               amrex::Real& d2yf);
 
-  void single_spline_cpdist(amrex::RealVect pt,
+  static void single_spline_cpdist(amrex::RealVect pt,
                             amrex::Real x0, amrex::Real x1,
                             amrex::Real Dx0, amrex::Real Dx1,
                             amrex::Real y0, amrex::Real y1,
                             amrex::Real Dy0, amrex::Real Dy1,
                             amrex::Real& t, amrex::RealVect& cp,
-                            amrex::Real& dist) const;
+                            amrex::Real& dist);
 
-  amrex::Real dist(amrex::RealVect pt,
+  static amrex::Real dist(amrex::RealVect pt,
                    amrex::Real x0, amrex::Real x1,
                    amrex::Real Dx0, amrex::Real Dx1,
                    amrex::Real y0, amrex::Real y1,
                    amrex::Real Dy0, amrex::Real Dy1,
                    amrex::Real& t,
-                   amrex::RealVect& spt) const;
+                   amrex::RealVect& spt);
 
  private:
   std::vector<amrex::Real> control_points_x;

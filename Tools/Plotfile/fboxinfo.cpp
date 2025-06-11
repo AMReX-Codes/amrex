@@ -6,18 +6,18 @@ using namespace amrex;
 
 namespace {
 
-class BoxND
+class BoxNDDynamic
 {
 public:
-    friend std::ostream& operator<< (std::ostream& os, const BoxND& b);
-    BoxND (Box const& b, int dim) : m_box(b), m_dim(dim) {}
+    friend std::ostream& operator<< (std::ostream& os, const BoxNDDynamic& b);
+    BoxNDDynamic (Box const& b, int dim) : m_box(b), m_dim(dim) {}
 private:
     Box m_box;
     int m_dim;
 };
 
 std::ostream&
-operator<< (std::ostream& os, const BoxND& b)
+operator<< (std::ostream& os, const BoxNDDynamic& b)
 {
     if (b.m_dim == 1) {
         os << "("
@@ -78,7 +78,7 @@ void main_main()
                        << "    [-f|--full]     output detailed information about the boxes\n"
                        << "    [-g|--gridfile] output a gridfile for use with test_average\n"
                        << "    [-l|--levels]   just output the number of levels\n"
-                       << std::endl;
+                       << '\n';
         return;
     }
 
@@ -94,7 +94,7 @@ void main_main()
         const int nlevels = plotfile.finestLevel()+1;
 
         if (b_levels) {
-            amrex::Print() << " " << nlevels << std::endl;
+            amrex::Print() << " " << nlevels << '\n';
             continue;
         }
 
@@ -104,12 +104,13 @@ void main_main()
                 const Long nboxes = plotfile.boxArray(ilev).size();
                 const Long ncells = plotfile.boxArray(ilev).numPts();
                 const Box prob_domain = plotfile.probDomain(ilev);
-                const Real ncells_domain = prob_domain.d_numPts();
+                const auto ncells_domain = prob_domain.d_numPts();
                 amrex::Print() << " level " << std::setw(3) << ilev
                                << ": number of boxes = " << std::setw(6) << nboxes
                                << ", volume = "
                                << std::fixed << std::setw(6) << std::setprecision(2)
-                               << 100.*(ncells/ncells_domain) << "%\n";
+                               << 100.*static_cast<double>(ncells)/ncells_domain
+                               << "%, number of cells = " << std::setw(6) << ncells << "\n";
                 if (dim == 1) {
                     amrex::Print() << "          maximum zones =   "
                                    << std::setw(7) << prob_domain.length(0) << "\n";
@@ -126,7 +127,7 @@ void main_main()
                                    << " x "
                                    << std::setw(7) << prob_domain.length(2) << "\n";
                 }
-                amrex::Print() << std::endl;
+                amrex::Print() << '\n';
             }
         }
 
@@ -134,8 +135,8 @@ void main_main()
             for (int ilev = 0; ilev < nlevels; ++ilev) {
                 amrex::Print() << "\n  level " << ilev << "\n";
                 const BoxArray& ba = plotfile.boxArray(ilev);
-                const Long nboxes = ba.size();
-                for (Long ibox = 0; ibox < nboxes; ++ibox) {
+                const auto nboxes = static_cast<int>(ba.size());
+                for (int ibox = 0; ibox < nboxes; ++ibox) {
                     const Box& b = ba[ibox];
                     if (dim == 1) {
                         amrex::Print() << "   box " << std::setw(5) << ibox
@@ -175,15 +176,15 @@ void main_main()
                 const BoxArray& ba = plotfile.boxArray(ilev);
                 const Long nboxes = ba.size();
                 const Box prob_domain = plotfile.probDomain(ilev);
-                amrex::Print() << "   " << BoxND(prob_domain,dim)
+                amrex::Print() << "   " << BoxNDDynamic(prob_domain,dim)
                                << "  " << nboxes << "\n";
                 for (int ibox = 0; ibox < nboxes; ++ibox) {
-                    amrex::Print() << "      "  << BoxND(ba[ibox],dim) << "\n";
+                    amrex::Print() << "      "  << BoxNDDynamic(ba[ibox],dim) << "\n";
                 }
             }
         }
 
-        amrex::Print() << std::endl;
+        amrex::Print() << '\n';
     }
 }
 

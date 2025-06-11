@@ -6,9 +6,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 
-namespace amrex
-{
-namespace ParticleInterpolator
+namespace amrex::ParticleInterpolator
 {
 
 /** \brief A base class for doing general particle/mesh interpolation operations.
@@ -65,7 +63,7 @@ struct Base
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void ParticleToMesh (const P& p,
                          amrex::Array4<V> const& arr,
-                         int src_comp, int dst_comp, int num_comps, F&& f)
+                         int src_comp, int dst_comp, int num_comps, F const& f)
     {
         static constexpr int stencil_width = Derived::stencil_width;
         for (int ic=0; ic < num_comps; ++ic) {
@@ -141,7 +139,7 @@ struct Base
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void MeshToParticle (P& p,
                          amrex::Array4<const V> const& arr,
-                         int src_comp, int dst_comp, int num_comps, F&& f, G&& g)
+                         int src_comp, int dst_comp, int num_comps, F const& f, G const& g)
     {
         static constexpr int stencil_width = Derived::stencil_width;
         for (int ic=0; ic < num_comps; ++ic) {
@@ -251,7 +249,6 @@ struct Linear : public Base<Linear, amrex::Real>
         }
     }
 };
-}
 }
 
 #endif // include guard

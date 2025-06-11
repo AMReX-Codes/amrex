@@ -36,7 +36,7 @@ nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& 
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    const Real rx = Real(1.)/ratio[0];
+    const Real rx = Real(1.)/Real(ratio[0]);
 
     for (int n = 0; n < ncomp; ++n) {
         AMREX_PRAGMA_SIMD
@@ -101,7 +101,7 @@ face_linear_interp_x (int i, int /*j*/, int /*k*/, int n, Array4<T> const& fine,
     if (i-ii*ratio[0] == 0) {
         fine(i,0,0,n) = crse(ii,0,0,n);
     } else {
-        Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/ratio[0]);
+        Real const w = static_cast<Real>(i-ii*ratio[0]) * (Real(1.)/Real(ratio[0]));
         fine(i,0,0,n) = (Real(1.)-w) * crse(ii,0,0,n) + w * crse(ii+1,0,0,n);
     }
 }

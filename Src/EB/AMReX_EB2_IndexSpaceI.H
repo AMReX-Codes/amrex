@@ -106,3 +106,49 @@ IndexSpaceImp<G>::addFineLevels (int num_new_fine_levels)
     m_domain.insert(m_domain.begin(), fine_isp.m_domain.begin(), fine_isp.m_domain.end());
     m_ngrow.insert(m_ngrow.begin(), fine_isp.m_ngrow.begin(), fine_isp.m_ngrow.end());
 }
+
+template <typename G>
+void
+IndexSpaceImp<G>::addRegularCoarseLevels (int num_new_coarse_levels)
+{
+    if (num_new_coarse_levels <= 0) { return; }
+
+    auto nlevs_old = int(m_gslevel.size());
+    int nlevs_new = nlevs_old + num_new_coarse_levels;
+
+    Vector<GShopLevel<G>> new_gslevel;
+    new_gslevel.reserve(nlevs_new);
+
+    Vector<Geometry> new_geom;
+    new_geom.reserve(nlevs_new);
+
+    Vector<Box> new_domain;
+    new_domain.reserve(nlevs_new);
+
+    Vector<int> new_ngrow;
+    new_ngrow.reserve(nlevs_new);
+
+    for (int ilev = 0; ilev < num_new_coarse_levels; ++ilev) {
+        int rr = 1 << (num_new_coarse_levels-ilev); // 2^(num_new_coarse_levels-ilev)
+        new_geom.push_back(amrex::coarsen(m_geom[0], rr));
+        new_domain.push_back(new_geom.back().Domain());
+        new_ngrow.push_back(m_ngrow[0]);
+        new_gslevel.push_back(GShopLevel<G>::makeAllRegular(this, new_geom.back()));
+    }
+
+    for (int ilev = 0; ilev < nlevs_old; ++ilev) {
+        new_gslevel.emplace_back(std::move(m_gslevel[ilev]));
+        new_geom.push_back  (m_geom  [ilev]);
+        new_domain.push_back(m_domain[ilev]);
+        new_ngrow.push_back (m_ngrow [ilev]);
+    }
+
+    std::swap(new_gslevel, m_gslevel);
+    std::swap(new_geom   , m_geom);
+    std::swap(new_domain , m_domain);
+    std::swap(new_ngrow  , m_ngrow);
+
+    for (int ilev = num_new_coarse_levels-1; ilev >= 0; --ilev) {
+        m_gslevel[ilev].buildCutCellMask(m_gslevel[ilev+1]);
+    }
+}

@@ -35,9 +35,6 @@ MLTensorOp::MLTensorOp (const Vector<Geometry>& a_geom,
     define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
 }
 
-MLTensorOp::~MLTensorOp ()
-{}
-
 void
 MLTensorOp::define (const Vector<Geometry>& a_geom,
                     const Vector<BoxArray>& a_grids,
@@ -47,7 +44,8 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLTensorOp::define()");
 
-    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_info, a_factory,
+                            AMREX_SPACEDIM);
 
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());
@@ -75,7 +73,8 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLTensorOp::define(oveset)");
 
-    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info,
+                            a_factory, AMREX_SPACEDIM);
 
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());
@@ -143,9 +142,9 @@ MLTensorOp::prepareForSolve ()
         }
     } else {
         for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
-            for (int mglev = 0; mglev < m_kappa[amrlev].size(); ++mglev) {
+            for (auto & mglev : m_kappa[amrlev]) {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    m_kappa[amrlev][mglev][idim].setVal(0.0);
+                    mglev[idim].setVal(0.0);
                 }
             }
         }
@@ -208,7 +207,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     MLABecLaplacian::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
 
-    if (mglev >= m_kappa[amrlev].size()) return;
+    if (mglev >= m_kappa[amrlev].size()) { return; }
 
     applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
 
@@ -244,12 +243,9 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
             AMREX_D_TERM(Box const xbx = amrex::surroundingNodes(bx,0);,
                          Box const ybx = amrex::surroundingNodes(bx,1);,
                          Box const zbx = amrex::surroundingNodes(bx,2););
-            AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM);,
-                         fluxfab_tmp[1].resize(ybx,AMREX_SPACEDIM);,
-                         fluxfab_tmp[2].resize(zbx,AMREX_SPACEDIM););
-            AMREX_D_TERM(Elixir fxeli = fluxfab_tmp[0].elixir();,
-                         Elixir fyeli = fluxfab_tmp[1].elixir();,
-                         Elixir fzeli = fluxfab_tmp[2].elixir(););
+            AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM, The_Async_Arena());,
+                         fluxfab_tmp[1].resize(ybx,AMREX_SPACEDIM, The_Async_Arena());,
+                         fluxfab_tmp[2].resize(zbx,AMREX_SPACEDIM, The_Async_Arena()););
             AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
                          Array4<Real> const fyfab = fluxfab_tmp[1].array();,
                          Array4<Real> const fzfab = fluxfab_tmp[2].array(););
@@ -334,7 +330,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 }
 
 void
-MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
+MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel, // NOLINT(readability-convert-member-functions-to-static)
                            BCMode bc_mode, StateMode, const MLMGBndry* bndry) const
 {
 #if (AMREX_SPACEDIM == 1)
@@ -354,7 +350,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto dhi = amrex::ubound(domain);
 
     MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -412,7 +408,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         // only edge vals used in 3D stencil
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            amrex::launch(12, 64, Gpu::gpuStream(),
+            amrex::launch<64>(12, Gpu::gpuStream(),
 #ifdef AMREX_USE_SYCL
             [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item)
             {

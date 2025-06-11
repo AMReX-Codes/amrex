@@ -6,18 +6,11 @@
 int MyMain();
 
 int main(int argc, char** argv) {
-#ifdef AMREX_USE_MPI
-    MPI_Init(&argc, &argv);
-#else
-    amrex::ignore_unused(argc,argv);
-#endif
+    amrex::Initialize(argc, argv);
     // Let me throw exceptions for triggering my debugger
-    amrex::Initialize(MPI_COMM_WORLD, std::cout, std::cerr, [](const char* msg) { throw std::runtime_error(msg); });
+    amrex::SetErrorHandler([](const char* msg) { throw std::runtime_error(msg); });
     int ret = MyMain();
     amrex::Finalize();
-#ifdef AMREX_USE_MPI
-    MPI_Finalize();
-#endif
     return ret;
 }
 
@@ -51,19 +44,23 @@ bool ParallelCopyWithItselfIsCorrect(amrex::iMultiFab& mf, const amrex::Box& dom
     const int nx = domain.length(0);
     const int ny = domain.length(1);
     int fails = 0;
+    amrex::ReduceOps<amrex::ReduceOpSum> reduce_op;
+    amrex::ReduceData<int> reduce_data(reduce_op);
+    using ReduceTuple = amrex::GpuTuple<int>;
     for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const amrex::Box section = dest_box & mfi.tilebox();
-        if (section.isEmpty()) continue;
+        if (section.isEmpty()) { continue; }
         auto array = mf.const_array(mfi);
-        amrex::LoopOnCpu(section, [&](int i, int j, int k)
+        reduce_op.eval(section, reduce_data,
+                       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
             amrex::Dim3 si = dtos(amrex::Dim3{i,j,k});
             int value = si.x + si.y*nx + si.z*nx*ny;
-            fails += (array(i,j,k) != value);
-
-            AMREX_ASSERT(fails==0);  // If DEBUG, crash on first error.
+            auto r = int(array(i,j,k) != value);
+            return { r };
         });
     }
+    fails += amrex::get<0>(reduce_data.value());
     return fails == 0;
 }
 
@@ -72,7 +69,7 @@ int GetFaceDir(amrex::IndexType iv)
     static_assert(sizeof(amrex::IndexType) == sizeof(unsigned int), "IndexType is not punnable to unsigned int");
     unsigned int value{0};
     std::memcpy(&value, &iv, sizeof(unsigned int));
-    return ((value & 0b001) + (value & 0b010) + (value & 0b100)) >> 1;
+    return int(((value & 0b001) + (value & 0b010) + (value & 0b100)) >> 1);
 }
 
 amrex::Box GetFaceBoundary(const amrex::Box& domain, amrex::Orientation::Side side)
@@ -113,19 +110,23 @@ bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_des
     int fails = 0;
     const int nx = domain_src.length(0);
     const int ny = domain_src.length(1);
+    amrex::ReduceOps<amrex::ReduceOpSum> reduce_op;
+    amrex::ReduceData<int> reduce_data(reduce_op);
+    using ReduceTuple = amrex::GpuTuple<int>;
     for (amrex::MFIter mfi(dest); mfi.isValid(); ++mfi) {
         const amrex::Box section = dest_box & mfi.tilebox();
-        if (section.isEmpty()) continue;
+        if (section.isEmpty()) { continue; }
         auto darray = dest.const_array(mfi);
-        amrex::LoopOnCpu(section, [&](int i, int j, int k)
+        reduce_op.eval(section, reduce_data,
+                       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
             amrex::Dim3 si = dtos(amrex::Dim3{i,j,k});
             int value = si.x + si.y*nx + si.z*nx*ny;
-            fails += (darray(i,j,k) != value);
-
-            AMREX_ASSERT(fails==0); // If in debug, crash on first error.
+            auto r = int(darray(i,j,k) != value);
+            return { r };
         });
     }
+    fails += amrex::get<0>(reduce_data.value());
     return fails == 0;
 }
 

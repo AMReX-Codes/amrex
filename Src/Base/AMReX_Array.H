@@ -10,11 +10,12 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Algorithm.H>
 #include <AMReX_Dim3.H>
+#include <AMReX_SmallMatrix.H>
 
 #include <array>
 #include <memory>
 #include <utility>
-#include <string>
+#include <sstream>
 #include <type_traits>
 
 namespace amrex {
@@ -39,60 +40,70 @@ namespace amrex {
          * other array.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T& operator [] (int i) const noexcept { return arr[i]; }
+        const T& operator [] (int i) const noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i);
+#endif
+            return arr[i];
+        }
 
         /**
          * GpuArray elements are indexed using square brackets, as with any
          * other array.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator [] (int i) noexcept { return arr[i]; }
+        T& operator [] (int i) noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i);
+#endif
+            return arr[i];
+        }
 
         /**
          * Returns a \c const pointer to the underlying data of a GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* data () const noexcept { return arr; }
 
         /**
          * Returns a pointer to the underlying data of a GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* data () noexcept { return arr; }
 
         /**
          * Returns the number of elements in the GpuArray object as an
          * unsigned integer.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int size () noexcept { return N; }
 
         /**
          * Returns a \c const pointer address to the first element of the
          * GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin () const noexcept { return arr; }
 
         /**
          * Returns a const pointer address right after the last element of the
          * GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* end () const noexcept { return arr + N; }
 
         /**
          * Returns a pointer address to the first element of the
          * GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* begin () noexcept { return arr; }
 
         /**
          * Returns a pointer address right after the last element of the
          * GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end () noexcept { return arr + N; }
 
         /**
@@ -103,12 +114,12 @@ namespace amrex {
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void fill ( const T& value ) noexcept
-        { for (unsigned int i = 0; i < N; ++i) arr[i] = value; }
+        { for (unsigned int i = 0; i < N; ++i) { arr[i] = value; } }
 
         /**
          * Returns the sum of all elements in the GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T sum () const noexcept
         {
             T s = 0;
@@ -119,15 +130,46 @@ namespace amrex {
         /**
          * Returns the product of all elements in the GpuArray object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr T product () const noexcept
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T product () const noexcept
         {
             T p = 1;
             for (unsigned int i = 0; i < N; ++i) { p *= arr[i]; }
             return p;
         }
 
-        T arr[amrex::max(N,1u)];
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        GpuArray<T,N>& operator+= (GpuArray<T,N> const& a) noexcept
+        {
+            for (unsigned int i = 0; i < N; ++i) {
+                arr[i] += a.arr[i];
+            }
+            return *this;
+        }
+
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+#if defined(AMREX_USE_HIP)
+        AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+#else
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+#endif
+        static void index_assert (int i)
+        {
+            if (i < 0 || static_cast<unsigned int>(i) >= N) {
+                AMREX_IF_ON_DEVICE((
+                    AMREX_DEVICE_PRINTF(" (%d) is out of bound (0:%d)\n",
+                                        i, N-1);
+                    amrex::Abort();
+                ))
+                AMREX_IF_ON_HOST((
+                    std::stringstream ss;
+                    ss << " (" << i << ") is out of bound (0:" << N-1 <<")";
+                    amrex::Abort(ss.str());
+                ))
+            }
+        }
+#endif
+        T arr[amrex::max(N,1U)];
     };
 }
 
@@ -139,10 +181,6 @@ namespace amrex {
      * order (last index moving fastest). If not specified, Fortran order is
      * assumed.
      */
-    namespace Order {
-        struct C {};
-        struct F {};
-    }
 
     /**
      * A GPU-compatible one-dimensional array.
@@ -157,64 +195,66 @@ namespace amrex {
          * Returns the number of elements in the Array1D object as an unsigned
          * integer.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int size () noexcept { return (XHI-XLO+1); }
 
         /**
          * Returns the index of the lower bound of the Array1D object.
          * Can be other than 0.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int lo () noexcept { return XLO; }
 
         /**
          * Returns the index of the upper bound of the Array1D object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int hi () noexcept { return XHI; }
 
         /**
          * Returns the number of elements in the Array1D object as an unsigned
          * integer.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int len () noexcept { return (XHI-XLO+1); }
 
         /**
          * Returns a \c const pointer address to the first element of the
          * Array1D object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin () const noexcept { return arr; }
 
         /**
          * Returns a \c const pointer address right after the last element of the
          * Array1D object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* end () const noexcept { return arr + XHI-XLO+1; }
 
         /**
          * Returns a pointer address to the first element of the
          * Array1D object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* begin () noexcept { return arr; }
 
         /**
          * Returns a pointer address right after the last element of the
          * Array1D object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end () noexcept { return arr + XHI-XLO+1; }
 
         /**
          * The elements of an Array1D object are accessed using parentheses,
          * e.g. \c array(i), instead of using square brackets.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i) const noexcept {
-            AMREX_ASSERT(i >= XLO && i <= XHI);
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i);
+#endif
             return arr[i-XLO];
         }
 
@@ -222,16 +262,18 @@ namespace amrex {
          * The elements of an Array1D object are accessed using parentheses,
          * e.g. array(i), instead of using square brackets.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i) noexcept {
-            AMREX_ASSERT(i >= XLO && i <= XHI);
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i);
+#endif
             return arr[i-XLO];
         }
 
         /**
          * Returns the sum of all elements in the Array1D object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T sum () const noexcept
         {
             T s = 0;
@@ -242,7 +284,7 @@ namespace amrex {
         /**
          * Returns the product of all elements in the Array1D object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T product() const noexcept
         {
             T p = 1;
@@ -251,6 +293,29 @@ namespace amrex {
             }
             return p;
         }
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+#if defined(AMREX_USE_HIP)
+        AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+#else
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+#endif
+        static void index_assert (int i)
+        {
+            if (i<XLO || i>XHI) {
+                AMREX_IF_ON_DEVICE((
+                    AMREX_DEVICE_PRINTF(" (%d) is out of bound (%d:%d)\n",
+                                        i, XLO, XHI);
+                    amrex::Abort();
+                ))
+                AMREX_IF_ON_HOST((
+                    std::stringstream ss;
+                    ss << " (" << i << ") is out of bound ("
+                    << XLO << ":" << XHI << ")";
+                    amrex::Abort(ss.str());
+                ))
+            }
+        }
+#endif
 
         /**
          * Array1D is implemented as a fixed-size array.
@@ -271,14 +336,14 @@ namespace amrex {
      *               default if not given)
      */
     template <class T, int XLO, int XHI, int YLO, int YHI,
-              class ORDER=Order::F>
+              Order ORDER = Order::F>
     struct Array2D
     {
         /**
          * Returns the total number of elements of the Array2D object as an
          * unsigned integer.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int size() noexcept { return (XHI-XLO+1)*(YHI-YLO+1); }
 
         /**
@@ -286,14 +351,14 @@ namespace amrex {
          * \a x direction.
          * Can be other than 0.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int xlo () noexcept { return XLO; }
 
         /**
          * Returns the index of the upper bound of the Array2D object in the
          * \a x direction.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int xhi () noexcept { return XHI; }
 
 
@@ -301,7 +366,7 @@ namespace amrex {
          * Returns the number of elements of the Array2D object in the
          * \a x direction as an unsigned integer.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int xlen () noexcept { return (XHI-XLO+1); }
 
         /**
@@ -309,14 +374,14 @@ namespace amrex {
          * \a y direction.
          * Can be other than 0.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int ylo () noexcept { return YLO; }
 
         /**
          * Returns the index of the upper bound of the Array2D object in the
          * \a y direction.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int yhi () noexcept { return YHI; }
 
 
@@ -324,35 +389,35 @@ namespace amrex {
          * Returns the number of elements of the Array2D object in the
          * \a y direction as an unsigned integer.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int ylen () noexcept { return (YHI-YLO+1); }
 
         /**
          * Returns a \c const pointer address to the first element of the
          * Array2D object, as if the object is treated as one-dimensional.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin () const noexcept { return arr; }
 
         /**
          * Returns a \c const pointer address right after the last element of the
          * Array2D object, as if the object is treated as one-dimensional.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* end () const noexcept { return arr + (XHI-XLO+1)*(YHI-YLO+1); }
 
         /**
          * Returns a pointer address to the first element of the
          * Array2D object, as if the object is treated as one-dimensional.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* begin () noexcept { return arr; }
 
         /**
          * Returns a pointer address right after the last element of the
          * Array2D object, as if the object is treated as one-dimensional.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end () noexcept { return arr + (XHI-XLO+1)*(YHI-YLO+1); }
 
         /**
@@ -361,11 +426,12 @@ namespace amrex {
          * If the order is not specified, Fortran column-major order is assumed
          * (the index \c i moves the fastest)
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::F,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j) const noexcept {
-            AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i, j);
+#endif
             return arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
         }
 
@@ -375,11 +441,12 @@ namespace amrex {
          * If the order is not specified, Fortran column-major order is assumed
          * (the index \c i moves the fastest)
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::F,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j) noexcept {
-            AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i, j);
+#endif
             return arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
         }
 
@@ -389,11 +456,12 @@ namespace amrex {
          * When the order is manually specified as Order::C, row-major order
          * is used (the index \c j moves the fastest).
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::C,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j) const noexcept {
-            AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i, j);
+#endif
             return arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
         }
 
@@ -403,11 +471,12 @@ namespace amrex {
          * When the order is manually specified as Order::C, row-major order
          * is used (the index \c j moves the fastest).
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::C,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j) noexcept {
-            AMREX_ASSERT(i >= XLO && i <= XHI && j >= YLO && j <= YHI);
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i, j);
+#endif
             return arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
         }
 
@@ -415,7 +484,7 @@ namespace amrex {
          * When called without any arguments, returns the sum of all
          * elements in the Array2D object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T sum () const noexcept
         {
             T s = 0;
@@ -449,7 +518,7 @@ namespace amrex {
          * In this example, the axis is 1 and the location index is \c i.
          *
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T sum (int axis, int loc) const noexcept
         {
             T s = 0;
@@ -471,7 +540,7 @@ namespace amrex {
          * When called without any arguments, returns the product of all
          * elements in the Array2D object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T product () const noexcept
         {
             T p = 1;
@@ -506,7 +575,7 @@ namespace amrex {
          * In this example, the axis is 0 and the location index is \c j.
          *
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T product (int axis, int loc) const noexcept
         {
             T p = 1;
@@ -523,7 +592,31 @@ namespace amrex {
             }
             return p;
         }
-
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+#if defined(AMREX_USE_HIP)
+        AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+#else
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+#endif
+        static void index_assert (int i, int j)
+        {
+            if (i<XLO || i>XHI || j<YLO || j>YHI) {
+                AMREX_IF_ON_DEVICE((
+                    AMREX_DEVICE_PRINTF(" (%d,%d) is out of bound (%d:%d,%d:%d)\n",
+                                        i, j, XLO, XHI, YLO, YHI);
+                    amrex::Abort();
+                ))
+                AMREX_IF_ON_HOST((
+                    std::stringstream ss;
+                    ss << " (" << i << "," << j
+                    << ") is out of bound ("
+                    << XLO << ":" << XHI << ","
+                    << YLO << ":" << YHI << ")";
+                    amrex::Abort(ss.str());
+                ))
+            }
+        }
+#endif
         T arr[(XHI-XLO+1)*(YHI-YLO+1)];
     };
 
@@ -542,14 +635,14 @@ namespace amrex {
      *               default if not given)
      */
     template <class T, int XLO, int XHI, int YLO, int YHI, int ZLO, int ZHI,
-              class ORDER=Order::F>
+              Order ORDER=Order::F>
     struct Array3D
     {
         /**
          * Returns the total number of elements in the Array3D object as an
          * unsigned integer.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int size () noexcept { return (XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1); }
 
         /**
@@ -557,21 +650,21 @@ namespace amrex {
          * \a x direction.
          * Can be other than 0.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int xlo () noexcept { return XLO; }
 
         /**
          * Returns the index of the upper bound of the Array3D object in the
          * \a x direction.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int xhi () noexcept { return XHI; }
 
         /**
          * Returns the number of elements of the Array3D object in the
          * \a x direction as an unsigned integer.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int xlen () noexcept { return (XHI-XLO+1); }
 
         /**
@@ -579,14 +672,14 @@ namespace amrex {
          * \a y direction.
          * Can be other than 0.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int ylo () noexcept { return YLO; }
 
         /**
          * Returns the index of the upper bound of the Array3D object in the
          * \a y direction.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int yhi () noexcept { return YHI; }
 
 
@@ -594,7 +687,7 @@ namespace amrex {
          * Returns the number of elements of the Array3D object in the
          * \a y direction as an unsigned integer.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int ylen () noexcept { return (YHI-YLO+1); }
 
         /**
@@ -602,49 +695,49 @@ namespace amrex {
          * \a z direction.
          * Can be other than 0.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int zlo () noexcept { return ZLO; }
 
         /**
          * Returns the index of the upper bound of the Array3D object in the
          * \a z direction.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr int zhi () noexcept { return ZHI; }
 
         /**
          * Returns the number of elements of the Array3D object in the
          * \a z direction as an unsigned integer.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         static constexpr unsigned int zlen () noexcept { return (ZHI-ZLO+1); }
 
         /**
          * Returns a \c const pointer address to the first element of the
          * Array3D object, as if the object is treated as one-dimensional.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin () const noexcept { return arr; }
 
         /**
          * Returns a \c const pointer address right after the last element of the
          * Array3D object, as if the object is treated as one-dimensional.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* end () const noexcept { return arr + (XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1); }
 
         /**
          * Returns a pointer address to the first element of the
          * Array3D object, as if the object is treated as one-dimensional.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* begin () noexcept { return arr; }
 
         /**
          * Returns a pointer address right after the last element of the
          * Array3D object, as if the object is treated as one-dimensional.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end () noexcept { return arr + (XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1); }
 
         /**
@@ -653,10 +746,12 @@ namespace amrex {
          * If the order is not specified, Fortran column-major order is assumed
          * (the index \c i moves the fastest)
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::F,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j, int k) const noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i, j, k);
+#endif
             return arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
                        -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
         }
@@ -667,10 +762,12 @@ namespace amrex {
          * If the order is not specified, Fortran column-major order is assumed
          * (the index \c i moves the fastest)
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::F,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k) noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i, j, k);
+#endif
             return arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
                        -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
         }
@@ -681,10 +778,12 @@ namespace amrex {
          * When the order is manually specified as Order::C, row-major order
          * is used (the index \c k moves the fastest).
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::C,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j, int k) const noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i, j, k);
+#endif
             return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
                        -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
         }
@@ -695,10 +794,12 @@ namespace amrex {
          * When the order is manually specified as Order::C, row-major order
          * is used (the index \c k moves the fastest).
          */
-        template <typename O=ORDER,
-                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        template <Order Ord=ORDER, std::enable_if_t<Ord==Order::C,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k) noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i, j, k);
+#endif
             return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
                        -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
         }
@@ -707,7 +808,7 @@ namespace amrex {
          * When called without any arguments, returns the sum of all
          * elements in the Array3D object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T sum () const noexcept
         {
             T s = 0;
@@ -747,7 +848,7 @@ namespace amrex {
          * \c loc0 = \c i and \c loc1 = \c k; for axis = 2, \c loc0 = \c j and \c loc1 = \c k.
          *
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T sum (int axis, int loc0, int loc1) const noexcept
         {
             T s = 0;
@@ -777,7 +878,7 @@ namespace amrex {
          * When called without any arguments, returns the product of all
          * elements in the Array3D object.
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T product () const noexcept
         {
             T p = 1;
@@ -818,7 +919,7 @@ namespace amrex {
          * \c loc0 = \c j and \c loc1 = \c k; for axis = 1, \c loc0 = \c i and \c loc1 = \c k.
          *
          */
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T product (const int axis, const int loc0, const int loc1) const noexcept
         {
             T p = 1;
@@ -844,6 +945,33 @@ namespace amrex {
             return p;
         }
 
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+#if defined(AMREX_USE_HIP)
+        AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+#else
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+#endif
+        static void index_assert (int i, int j, int k)
+        {
+            if (i<XLO || i>XHI || j<YLO || j>YHI || k<ZLO || k>ZHI) {
+                AMREX_IF_ON_DEVICE((
+                    AMREX_DEVICE_PRINTF(" (%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d)\n",
+                                        i, j, k, XLO, XHI, YLO, YHI, ZLO, ZHI);
+                    amrex::Abort();
+                ))
+                AMREX_IF_ON_HOST((
+                    std::stringstream ss;
+                    ss << " (" << i << "," << j << "," << k
+                    << ") is out of bound ("
+                    << XLO << ":" << XHI << ","
+                    << YLO << ":" << YHI << ","
+                    << ZLO << ":" << ZHI << ")";
+                    amrex::Abort(ss.str());
+                ))
+            }
+        }
+#endif
+
         T arr[(XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1)];
     };
 }
@@ -853,7 +981,7 @@ namespace amrex
     template <class T, typename = typename T::FABType>
     std::array<T*,AMREX_SPACEDIM> GetArrOfPtrs (std::array<T,AMREX_SPACEDIM>& a) noexcept
     {
-        return {{AMREX_D_DECL(&a[0], &a[1], &a[2])}};
+        return {{AMREX_D_DECL(a.data(), a.data()+1, a.data()+2)}};
     }
 
     template <class T>
@@ -865,7 +993,7 @@ namespace amrex
     template <class T>
     std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<T,AMREX_SPACEDIM>& a) noexcept
     {
-        return {{AMREX_D_DECL(&a[0], &a[1], &a[2])}};
+        return {{AMREX_D_DECL(a.data(), a.data()+1, a.data()+2)}};
     }
 
     template <class T>

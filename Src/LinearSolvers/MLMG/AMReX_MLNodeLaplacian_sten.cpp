@@ -25,7 +25,7 @@ MLNodeLaplacian::buildStencil ()
         m_s0_norm0[amrlev].resize(m_num_mg_levels[amrlev],0.0);
     }
 
-    if (m_coarsening_strategy != CoarseningStrategy::RAP) return;
+    if (m_coarsening_strategy != CoarseningStrategy::RAP) { return; }
 
     const int ncomp_s = (AMREX_SPACEDIM == 2) ? 5 : 9;
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM != 1,
@@ -57,14 +57,14 @@ MLNodeLaplacian::buildStencil ()
             const auto dxinvarr = geom.InvCellSizeArray();
 
 #ifdef AMREX_USE_EB
-            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+            const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
             const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
             const MultiFab* intg = m_integral[amrlev].get();
             const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
 #endif
 
             MFItInfo mfi_info;
-            if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+            if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -115,12 +115,10 @@ MLNodeLaplacian::buildStencil ()
                         {
                             const Box& btmp = ccbxg1 & sgfab_orig.box();
 
-                            cnfab.resize(ccbxg1, ncomp_c);
-                            Elixir cneli = cnfab.elixir();
+                            cnfab.resize(ccbxg1, ncomp_c, The_Async_Arena());
                             Array4<Real> const& cnarr = cnfab.array();
 
-                            sgfab.resize(ccbxg1);
-                            Elixir sgeli = sgfab.elixir();
+                            sgfab.resize(ccbxg1, 1, The_Async_Arena());
                             Array4<Real> const& sgarr = sgfab.array();
 
                             AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
@@ -162,8 +160,7 @@ MLNodeLaplacian::buildStencil ()
                     {
                         const Box& btmp = ccbxg1 & sgfab_orig.box();
 
-                        sgfab.resize(ccbxg1);
-                        Elixir sgeli = sgfab.elixir();
+                        sgfab.resize(ccbxg1, 1, The_Async_Arena());
                         Array4<Real> const& sgarr = sgfab.array();
 
                         AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
@@ -344,7 +341,7 @@ MLNodeLaplacian::buildStencil ()
         });
     }
 
-    if (m_is_bottom_singular)
+    if (isBottomSingular())
     {
         int amrlev = 0;
         int mglev = 0;

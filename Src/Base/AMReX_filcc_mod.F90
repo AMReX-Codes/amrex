@@ -23,10 +23,6 @@ module amrex_filcc_module
   public :: amrex_hoextraptocc_2d
 #endif
 
-#ifndef AMREX_XSDK
-  public :: filccn
-#endif
-
 contains
 
   subroutine amrex_filcc_n(q,qlo,qhi,domlo,domhi,dx,xlo,bclo,bchi)
@@ -105,20 +101,6 @@ contains
 
   end subroutine amrex_fab_filcc
 
-#ifndef AMREX_XSDK
-  subroutine filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
-    implicit none
-    integer,          intent(in   ) :: lo(3), hi(3)
-    integer,          intent(in   ) :: q_lo(3), q_hi(3)
-    integer,          intent(in   ) :: ncomp
-    integer,          intent(in   ) :: domlo(amrex_spacedim), domhi(amrex_spacedim)
-    real(amrex_real), intent(in   ) :: xlo(amrex_spacedim), dx(amrex_spacedim)
-    real(amrex_real), intent(inout) :: q(q_lo(1):q_hi(1),q_lo(2):q_hi(2),q_lo(3):q_hi(3),ncomp)
-    integer,          intent(in   ) :: bc(amrex_spacedim,2,ncomp)
-    call amrex_filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
-  end subroutine filccn
-#endif
-
   subroutine amrex_filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
 
     implicit none
@@ -165,7 +147,7 @@ contains
           imin = lo(1)
           imax = ilo-1
 
-          if (bc(1,1,n) .eq. amrex_bc_ext_dir) then
+          if (bc(1,1,n) .eq. amrex_bc_ext_dir .or. bc(1,1,n) .eq. amrex_bc_ext_dir_cc) then
 
              ! Do nothing.
 
@@ -237,7 +219,7 @@ contains
           imin = ihi+1
           imax = hi(1)
 
-          if (bc(1,2,n) .eq. amrex_bc_ext_dir) then
+          if (bc(1,2,n) .eq. amrex_bc_ext_dir .or. bc(1,2,n) .eq. amrex_bc_ext_dir_cc) then
 
              ! Do nothing.
 
@@ -311,7 +293,7 @@ contains
           jmin = lo(2)
           jmax = jlo-1
 
-          if (bc(2,1,n) .eq. amrex_bc_ext_dir) then
+          if (bc(2,1,n) .eq. amrex_bc_ext_dir .or. bc(2,1,n) .eq. amrex_bc_ext_dir_cc) then
 
              ! Do nothing.
 
@@ -383,7 +365,7 @@ contains
           jmin = jhi+1
           jmax = hi(2)
 
-          if (bc(2,2,n) .eq. amrex_bc_ext_dir) then
+          if (bc(2,2,n) .eq. amrex_bc_ext_dir .or. bc(2,2,n) .eq. amrex_bc_ext_dir_cc) then
 
              ! Do nothing.
 
@@ -461,7 +443,7 @@ contains
           kmin = lo(3)
           kmax = klo-1
 
-          if (bc(3,1,n) .eq. amrex_bc_ext_dir) then
+          if (bc(3,1,n) .eq. amrex_bc_ext_dir .or. bc(3,1,n) .eq. amrex_bc_ext_dir_cc) then
 
              ! Do nothing.
 
@@ -533,7 +515,7 @@ contains
           kmin = khi+1
           kmax = hi(3)
 
-          if (bc(3,2,n) .eq. amrex_bc_ext_dir) then
+          if (bc(3,2,n) .eq. amrex_bc_ext_dir .or. bc(3,2,n) .eq. amrex_bc_ext_dir_cc) then
 
              ! Do nothing.
 

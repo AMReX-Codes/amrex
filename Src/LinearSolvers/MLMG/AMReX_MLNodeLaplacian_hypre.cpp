@@ -11,9 +11,9 @@ void
 MLNodeLaplacian::fillIJMatrix (MFIter const& mfi,
                                Array4<HypreNodeLap::AtomicInt const> const& gid,
                                Array4<int const> const& lid,
-                               HypreNodeLap::Int* const ncols,
-                               HypreNodeLap::Int* const cols,
-                               Real* const mat) const
+                               HypreNodeLap::Int* ncols,
+                               HypreNodeLap::Int* cols,
+                               Real* mat) const
 {
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
@@ -31,9 +31,9 @@ void
 MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
                                    Array4<HypreNodeLap::AtomicInt const> const& gid,
                                    Array4<int const> const& lid,
-                                   HypreNodeLap::Int* const ncols,
-                                   HypreNodeLap::Int* const cols,
-                                   Real* const mat) const
+                                   HypreNodeLap::Int* ncols,
+                                   HypreNodeLap::Int* cols,
+                                   Real* mat) const
 {
     const int amrlev = 0;
     const int mglev  = m_num_mg_levels[amrlev]-1;
@@ -65,15 +65,15 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
             (nmax,
              [=] AMREX_GPU_DEVICE (int offset) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
-                 Dim3 node2 = GetNode2()(offset, node);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
                          < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
                  mlndlap_fillijmat_sten_gpu(ps, node.x, node.y, node.z, offset, gid, lid,
                                             ncols, cols, mat, sten);
              },
@@ -86,15 +86,15 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
             (nmax,
              [=] AMREX_GPU_DEVICE (int offset) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
-                 Dim3 node2 = GetNode2()(offset, node);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
                          < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
                  mlndlap_fillijmat_cs_gpu(ps, node.x, node.y, node.z, offset,
                                           ndbx, gid, lid, ncols, cols, mat,
                                           const_sigma, dxinvarr, domain
@@ -115,15 +115,15 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
             (nmax,
              [=] AMREX_GPU_DEVICE (int offset) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
-                 Dim3 node2 = GetNode2()(offset, node);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
                          < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
                  mlndlap_fillijmat_ha_gpu(ps, node.x, node.y, node.z, offset,
                                           ndbx, gid, lid, ncols, cols, mat,
                                           AMREX_D_DECL(sxarr, syarr, szarr),
@@ -142,15 +142,15 @@ MLNodeLaplacian::fillIJMatrix_gpu (MFIter const& mfi,
             (nmax,
              [=] AMREX_GPU_DEVICE (int offset) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
-                 Dim3 node2 = GetNode2()(offset, node);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
                          < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
                  mlndlap_fillijmat_aa_gpu(ps, node.x, node.y, node.z, offset,
                                           ndbx, gid, lid, ncols, cols, mat,
                                           sarr, dxinvarr, domain
@@ -171,9 +171,9 @@ void
 MLNodeLaplacian::fillIJMatrix_cpu (MFIter const& mfi,
                                    Array4<HypreNodeLap::AtomicInt const> const& gid,
                                    Array4<int const> const& lid,
-                                   HypreNodeLap::Int* const ncols,
-                                   HypreNodeLap::Int* const cols,
-                                   Real* const mat) const
+                                   HypreNodeLap::Int* ncols,
+                                   HypreNodeLap::Int* cols,
+                                   Real* mat) const
 {
     const int amrlev = 0;
     const int mglev  = m_num_mg_levels[amrlev]-1;
@@ -230,7 +230,7 @@ MLNodeLaplacian::fillIJMatrix_cpu (MFIter const& mfi,
 
 void
 MLNodeLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
-                          Real* const rhs, Array4<Real const> const& bfab) const
+                          Real* rhs, Array4<Real const> const& bfab) const
 {
     const int amrlev = 0;
     const int mglev  = m_num_mg_levels[amrlev]-1;

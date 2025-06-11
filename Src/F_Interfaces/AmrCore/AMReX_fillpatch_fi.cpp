@@ -6,7 +6,7 @@ using namespace amrex;
 namespace
 {
     // THIS MUST BE CONSISTENT WITH amrex_interpolater_module in AMReX_interpolater_mod.F90!!!
-    static Vector<Interpolater*> interp = {
+    Vector<Interpolater*> interp = {
         &amrex::pc_interp,               // 0
         &amrex::node_bilinear_interp,    // 1
         &amrex::cell_bilinear_interp,    // 2
@@ -22,11 +22,11 @@ namespace
 
 namespace {
 
-    typedef void (*INTERP_HOOK) (const int* lo, const int*hi,
-                                 Real* d, const int* dlo, const int* dhi, const int nd,
-                                 const int icomp, const int ncomp);
+    using INTERP_HOOK = void (*)(const int* lo, const int*hi,
+                                 Real* d, const int* dlo, const int* dhi, int nd,
+                                 int icomp, int ncomp);
 
-    typedef void (*INTERP_HOOK_ARR) (const int* lo, const int*hi,
+    using INTERP_HOOK_ARR = void (*)(const int* lo, const int*hi,
                                      Real* dx, const int* dxlo, const int* dxhi,
 #if AMREX_SPACEDIM>=2
                                      Real* dy, const int* dylo, const int* dyhi,
@@ -34,7 +34,7 @@ namespace {
                                      Real* dz, const int* dzlo, const int* dzhi,
 #endif
 #endif
-                                     const int nd, const int icomp, const int ncomp);
+                                     int nd, int icomp, int ncomp);
 
     class FIInterpHook
     {
@@ -104,7 +104,7 @@ extern "C"
                                  int* lo_bc[], int* hi_bc[],
                                  INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
     {
-        Vector<BCRec> bcs(ncomp);
+        Vector<BCRec> bcs;
         for (int i = 0; i < ncomp; ++i) {
             bcs.emplace_back(lo_bc[i+scomp], hi_bc[i+scomp]);
         }
@@ -137,7 +137,6 @@ extern "C"
         Array<Vector<BCRec>, AMREX_SPACEDIM> bcs;
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
-            bcs[d].resize(ncomp);
             for (int i = 0; i < ncomp; ++i)
                 { bcs[d].emplace_back(lo_bc[d*(scomp+ncomp)+i+scomp],
                                       hi_bc[d*(scomp+ncomp)+i+scomp]); }
@@ -147,11 +146,11 @@ extern "C"
         Vector<Array<MultiFab*, AMREX_SPACEDIM> > va_fmf(nf);
         for (int i = 0; i < nc; ++i) {
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                { va_cmf[i][d] = cmf[i+d*AMREX_SPACEDIM]; }
+                { va_cmf[i][d] = cmf[i*AMREX_SPACEDIM+d]; }
         }
         for (int i = 0; i < nf; ++i) {
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                { va_fmf[i][d] = fmf[i+d*AMREX_SPACEDIM]; }
+                { va_fmf[i][d] = fmf[i*AMREX_SPACEDIM+d]; }
         }
 
         Array<FPhysBC, AMREX_SPACEDIM> cbc{ AMREX_D_DECL( FPhysBC(cfill[0], cgeom),
@@ -183,7 +182,7 @@ extern "C"
                                    int* lo_bc[], int* hi_bc[],
                                    INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
     {
-        Vector<BCRec> bcs(ncomp);
+        Vector<BCRec> bcs;
         for (int i = 0; i < ncomp; ++i) {
             bcs.emplace_back(lo_bc[i+scomp], hi_bc[i+scomp]);
         }
@@ -198,5 +197,42 @@ extern "C"
                                      interp[interp_id], bcs, 0,
                                      FIInterpHook(pre_interp),
                                      FIInterpHook(post_interp));
+    }
+
+    void amrex_fi_fillcoarsepatch_faces (MultiFab* mf[], Real time, MultiFab* cmf[],
+                                         int scomp, int dcomp, int ncomp,
+                                         const Geometry* cgeom, const Geometry* fgeom,
+                                         FPhysBC::fill_physbc_funptr_t cfill[],
+                                         FPhysBC::fill_physbc_funptr_t ffill[],
+                                         int rr, int interp_id,
+                                         int* lo_bc[], int* hi_bc[],
+                                         INTERP_HOOK_ARR pre_interp, INTERP_HOOK_ARR post_interp)
+    {
+        Array<Vector<BCRec>, AMREX_SPACEDIM> bcs;
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            for (int i = 0; i < ncomp; ++i)
+                { bcs[d].emplace_back(lo_bc[d*(scomp+ncomp)+i+scomp],
+                                      hi_bc[d*(scomp+ncomp)+i+scomp]); }
+        }
+
+        Array<MultiFab*, AMREX_SPACEDIM> a_mf {AMREX_D_DECL( mf[0], mf[1], mf[2])};
+        Array<MultiFab*, AMREX_SPACEDIM> a_cmf{AMREX_D_DECL(cmf[0],cmf[1],cmf[2])};
+
+        Array<FPhysBC, AMREX_SPACEDIM> cbc{ AMREX_D_DECL( FPhysBC(cfill[0], cgeom),
+                                                          FPhysBC(cfill[1], cgeom),
+                                                          FPhysBC(cfill[2], cgeom)) };
+        Array<FPhysBC, AMREX_SPACEDIM> fbc{ AMREX_D_DECL( FPhysBC(ffill[0], fgeom),
+                                                          FPhysBC(ffill[1], fgeom),
+                                                          FPhysBC(ffill[2], fgeom)) };
+
+        amrex::InterpFromCoarseLevel(a_mf, time, a_cmf,
+                                     scomp, dcomp, ncomp,
+                                     *cgeom, *fgeom,
+                                     cbc, 0, fbc, 0,
+                                     IntVect{AMREX_D_DECL(rr,rr,rr)},
+                                     interp[interp_id], bcs, 0,
+                                     FIArrInterpHook(pre_interp),
+                                     FIArrInterpHook(post_interp));
     }
 }

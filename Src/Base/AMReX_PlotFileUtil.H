@@ -2,14 +2,17 @@
 #define AMREX_PLOTFILEUTIL_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Array.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileDataImpl.H>
+#include <AMReX_Vector.H>
 
 #ifdef AMREX_USE_HDF5
 #include <AMReX_PlotFileUtilHDF5.H>
 #endif
 
+#include <ostream>
 #include <string>
 #include <memory>
 
@@ -154,37 +157,37 @@ namespace amrex
     public:
         PlotFileData (std::string const& plotfile_name) : m_impl(new PlotFileDataImpl(plotfile_name)) {}
 
-        int spaceDim () const noexcept { return m_impl->spaceDim(); }
+        [[nodiscard]] int spaceDim () const noexcept { return m_impl->spaceDim(); }
 
-        Real time () const noexcept { return m_impl->time(); }
+        [[nodiscard]] Real time () const noexcept { return m_impl->time(); }
 
-        int finestLevel () const noexcept { return m_impl->finestLevel(); }
+        [[nodiscard]] int finestLevel () const noexcept { return m_impl->finestLevel(); }
 
-        int refRatio (int level) const noexcept { return m_impl->refRatio(level); }
+        [[nodiscard]] int refRatio (int level) const noexcept { return m_impl->refRatio(level); }
 
-        int levelStep (int level) const noexcept { return m_impl->levelStep(level); }
+        [[nodiscard]] int levelStep (int level) const noexcept { return m_impl->levelStep(level); }
 
-        const BoxArray& boxArray (int level) const noexcept { return m_impl->boxArray(level); }
+        [[nodiscard]] const BoxArray& boxArray (int level) const noexcept { return m_impl->boxArray(level); }
 
-        const DistributionMapping& DistributionMap (int level) const noexcept { return m_impl->DistributionMap(level); }
+        [[nodiscard]] const DistributionMapping& DistributionMap (int level) const noexcept { return m_impl->DistributionMap(level); }
 
         void syncDistributionMap (PlotFileData const& src) noexcept { m_impl->syncDistributionMap(*src.m_impl); }
 
         void syncDistributionMap (int level, PlotFileData const& src) noexcept { m_impl->syncDistributionMap(level, *src.m_impl); }
 
-        int coordSys () const noexcept { return m_impl->coordSys(); }
+        [[nodiscard]] int coordSys () const noexcept { return m_impl->coordSys(); }
 
-        Box probDomain (int level) const noexcept { return m_impl->probDomain(level); }
+        [[nodiscard]] Box probDomain (int level) const noexcept { return m_impl->probDomain(level); }
 
-        Array<Real,AMREX_SPACEDIM> probSize () const noexcept { return m_impl->probSize(); }
-        Array<Real,AMREX_SPACEDIM> probLo () const noexcept { return m_impl->probLo(); }
-        Array<Real,AMREX_SPACEDIM> probHi () const noexcept { return m_impl->probHi(); }
-        Array<Real,AMREX_SPACEDIM> cellSize (int level) const noexcept { return m_impl->cellSize(level); }
+        [[nodiscard]] Array<Real,AMREX_SPACEDIM> probSize () const noexcept { return m_impl->probSize(); }
+        [[nodiscard]] Array<Real,AMREX_SPACEDIM> probLo () const noexcept { return m_impl->probLo(); }
+        [[nodiscard]] Array<Real,AMREX_SPACEDIM> probHi () const noexcept { return m_impl->probHi(); }
+        [[nodiscard]] Array<Real,AMREX_SPACEDIM> cellSize (int level) const noexcept { return m_impl->cellSize(level); }
 
-        const Vector<std::string>& varNames () const noexcept { return m_impl->varNames(); }
+        [[nodiscard]] const Vector<std::string>& varNames () const noexcept { return m_impl->varNames(); }
 
-        int nComp () const noexcept { return m_impl->nComp(); }
-        IntVect nGrowVect (int level) const noexcept { return m_impl->nGrowVect(level); }
+        [[nodiscard]] int nComp () const noexcept { return m_impl->nComp(); }
+        [[nodiscard]] IntVect nGrowVect (int level) const noexcept { return m_impl->nGrowVect(level); }
 
         MultiFab get (int level) noexcept { return m_impl->get(level); }
         MultiFab get (int level, std::string const& varname) noexcept { return m_impl->get(level, varname); }

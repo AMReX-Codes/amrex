@@ -4,7 +4,6 @@
 #include <string>
 
 amrex::FAmrCore::FAmrCore ()
-    : amrex::AmrCore()
 {
     for (int lev = 0; lev <= maxLevel(); ++lev)
     {
@@ -58,10 +57,6 @@ amrex::FAmrCore::FAmrCore ()
             }
         }
     }
-}
-
-amrex::FAmrCore::~FAmrCore ()
-{
 }
 
 void

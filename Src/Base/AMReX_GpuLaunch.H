@@ -20,6 +20,8 @@
 #include <AMReX_GpuLaunchGlobal.H>
 #include <AMReX_RandomEngine.H>
 #include <AMReX_Algorithm.H>
+#include <AMReX_Math.H>
+#include <AMReX_Vector.H>
 #include <cstddef>
 #include <limits>
 #include <algorithm>
@@ -32,9 +34,13 @@
 #ifdef AMREX_USE_CUDA
 #  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
         amrex::launch_global<MT><<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
+#  define AMREX_LAUNCH_KERNEL_NOBOUND(blocks, threads, sharedMem, stream, ... ) \
+        amrex::launch_global    <<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
 #elif defined(AMREX_USE_HIP)
 #  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
         hipLaunchKernelGGL(launch_global<MT>, blocks, threads, sharedMem, stream, __VA_ARGS__)
+#  define AMREX_LAUNCH_KERNEL_NOBOUND(blocks, threads, sharedMem, stream, ... ) \
+        hipLaunchKernelGGL(launch_global    , blocks, threads, sharedMem, stream, __VA_ARGS__)
 #endif
 
 
@@ -61,11 +67,11 @@ namespace amrex {
 // CPU variation
 
     template<class L>
-    void launch_host (L&& f0) noexcept { f0(); }
+    void launch_host (L&& f0) noexcept { std::forward<L>(f0)(); }
 
     template<class L, class... Lambdas>
     void launch_host (L&& f0, Lambdas&&... fs) noexcept {
-        f0();
+        std::forward<L>(f0)();
         launch_host(std::forward<Lambdas>(fs)...);
     }
 
@@ -76,11 +82,11 @@ namespace amrex {
 namespace Gpu {
 
 #ifdef AMREX_USE_GPU
-    static constexpr std::size_t numThreadsPerBlockParallelFor () {
+    inline constexpr std::size_t numThreadsPerBlockParallelFor () {
         return AMREX_GPU_MAX_THREADS;
     }
 #else
-    static constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
+    inline constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
 #endif
 
 // ************************************************
@@ -103,20 +109,21 @@ namespace Gpu {
     inline
     Box getThreadBox (const Box& bx, Long offset) noexcept
     {
-#if AMREX_DEVICE_COMPILE
-        const auto len = bx.length3d();
-        Long k = offset / (len[0]*len[1]);
-        Long j = (offset - k*(len[0]*len[1])) / len[0];
-        Long i = (offset - k*(len[0]*len[1])) - j*len[0];
-        IntVect iv{AMREX_D_DECL(static_cast<int>(i),
-                                static_cast<int>(j),
-                                static_cast<int>(k))};
-        iv += bx.smallEnd();
-        return (bx & Box(iv,iv,bx.type()));
-#else
-        amrex::ignore_unused(offset);
-        return bx;
-#endif
+        AMREX_IF_ON_DEVICE((
+            const auto len = bx.length3d();
+            Long k = offset / (len[0]*len[1]);
+            Long j = (offset - k*(len[0]*len[1])) / len[0];
+            Long i = (offset - k*(len[0]*len[1])) - j*len[0];
+            IntVect iv{AMREX_D_DECL(static_cast<int>(i),
+                                    static_cast<int>(j),
+                                    static_cast<int>(k))};
+            iv += bx.smallEnd();
+            return (bx & Box(iv,iv,bx.type()));
+        ))
+        AMREX_IF_ON_HOST((
+            amrex::ignore_unused(offset);
+            return bx;
+        ))
     }
 
 // ************************************************
@@ -157,7 +164,12 @@ namespace Gpu {
     makeExecutionConfig (Long N) noexcept
     {
         ExecutionConfig ec(dim3{}, dim3{});
-        ec.numBlocks.x = (std::max(N,Long(1)) + MT - 1) / MT;
+        Long numBlocks = (std::max(N,Long(1)) + MT - 1) / MT;
+        // ensure that blockDim.x*gridDim.x does not overflow
+        numBlocks = std::min(numBlocks, Long(std::numeric_limits<unsigned int>::max()/MT));
+        // ensure that the maximum grid size of 2^31-1 won't be exceeded
+        numBlocks = std::min(numBlocks, Long(std::numeric_limits<int>::max()));
+        ec.numBlocks.x = numBlocks;
         ec.numThreads.x = MT;
         AMREX_ASSERT(MT % Gpu::Device::warp_size == 0);
         return ec;
@@ -167,11 +179,48 @@ namespace Gpu {
     ExecutionConfig
     makeExecutionConfig (const Box& box) noexcept
     {
-        ExecutionConfig ec(dim3{}, dim3{});
-        ec.numBlocks.x = (std::max(box.numPts(),Long(1)) + MT - 1) / MT;
-        ec.numThreads.x = MT;
-        AMREX_ASSERT(MT % Gpu::Device::warp_size == 0);
-        return ec;
+        return makeExecutionConfig<MT>(box.numPts());
+    }
+
+    struct ExecConfig
+    {
+        Long start_idx;
+        int nblocks;
+    };
+
+    template <int MT>
+    Vector<ExecConfig> makeNExecutionConfigs (Long N) noexcept
+    {
+        // Max # of blocks in a kernel launch
+        int numblocks_max = std::numeric_limits<int>::max();
+        // Max # of threads in a kernel launch
+        Long nmax = Long(MT) * numblocks_max;
+        // # of launches needed for N elements without using grid-stride
+        // loops inside GPU kernels.
+        auto nlaunches = int((N+nmax-1)/nmax);
+        Vector<ExecConfig> r(nlaunches);
+        Long ndone = 0;
+        for (int i = 0; i < nlaunches; ++i) {
+            int nblocks;
+            if (N > nmax) {
+                nblocks = numblocks_max;
+                N -= nmax;
+            } else {
+                nblocks = int((N+MT-1)/MT);
+            }
+            // At which element ID the kernel should start
+            r[i].start_idx = ndone;
+            ndone += Long(nblocks) * MT;
+            // # of blocks in this launch
+            r[i].nblocks = nblocks;
+        }
+        return r;
+    }
+
+    template <int MT, int dim>
+    Vector<ExecConfig> makeNExecutionConfigs (BoxND<dim> const& box) noexcept
+    {
+        return makeNExecutionConfigs<MT>(box.numPts());
     }
 #endif
 
@@ -187,368 +236,7 @@ namespace Gpu {
 #include <AMReX_GpuLaunchFunctsC.H>
 #endif
 
-#define AMREX_WRONG_NUM_ARGS(...) static_assert(false,"Wrong number of arguments to macro")
-#define AMREX_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,NAME,...) NAME
-#define AMREX_LAUNCH_DEVICE_LAMBDA(...) AMREX_GET_MACRO(__VA_ARGS__,\
-                                                        AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_WRONG_NUM_ARGS)(__VA_ARGS__)
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA(...) AMREX_GET_MACRO(__VA_ARGS__,\
-                                                        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE, \
-                                                        AMREX_WRONG_NUM_ARGS, \
-                                                        AMREX_WRONG_NUM_ARGS)(__VA_ARGS__)
-
-#if (AMREX_SPACEDIM == 1)
-#define AMREX_LAUNCH_DEVICE_LAMBDA_DIM(a1,a2,a3,b1,b2,b3,c1,c2,c3)      AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE     (a1,a2,a3)
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(a1,a2,a3,b1,b2,b3,c1,c2,c3) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(a1,a2,a3)
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(fl,a1,a2,a3,b1,b2,b3,c1,c2,c3) AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(fl,a1,a2,a3)
-#elif (AMREX_SPACEDIM == 2)
-#define AMREX_LAUNCH_DEVICE_LAMBDA_DIM(a1,a2,a3,b1,b2,b3,c1,c2,c3)      AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2     (a1,a2,a3,b1,b2,b3)
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(a1,a2,a3,b1,b2,b3,c1,c2,c3) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(a1,a2,a3,b1,b2,b3)
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(fl,a1,a2,a3,b1,b2,b3,c1,c2,c3) AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2_FLAG(fl,a1,a2,a3,b1,b2,b3)
-#elif (AMREX_SPACEDIM == 3)
-#define AMREX_LAUNCH_DEVICE_LAMBDA_DIM(...)      AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3     (__VA_ARGS__)
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(__VA_ARGS__)
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(...) AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3_FLAG(__VA_ARGS__)
-#endif
-
-#define AMREX_FOR_1D(...)      AMREX_GPU_DEVICE_FOR_1D(__VA_ARGS__)
-#define AMREX_FOR_3D(...)      AMREX_GPU_DEVICE_FOR_3D(__VA_ARGS__)
-#define AMREX_FOR_4D(...)      AMREX_GPU_DEVICE_FOR_4D(__VA_ARGS__)
-
-#define AMREX_PARALLEL_FOR_1D(...)      AMREX_GPU_DEVICE_PARALLEL_FOR_1D(__VA_ARGS__)
-#define AMREX_PARALLEL_FOR_3D(...)      AMREX_GPU_DEVICE_PARALLEL_FOR_3D(__VA_ARGS__)
-#define AMREX_PARALLEL_FOR_4D(...)      AMREX_GPU_DEVICE_PARALLEL_FOR_4D(__VA_ARGS__)
-
-#define AMREX_HOST_DEVICE_FOR_1D(...) AMREX_GPU_HOST_DEVICE_FOR_1D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_FOR_3D(...) AMREX_GPU_HOST_DEVICE_FOR_3D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_FOR_4D(...) AMREX_GPU_HOST_DEVICE_FOR_4D(__VA_ARGS__)
-
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D(...) AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_1D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D(...) AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_3D(__VA_ARGS__)
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D(...) AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_4D(__VA_ARGS__)
-
-#ifdef AMREX_USE_GPU
-
-#ifndef AMREX_USE_SYCL
-
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
-    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
-            block \
-        ); \
-    } \
-    else { \
-        AMREX_PRAGMA_SIMD \
-        for (amrex_i_inttype i = 0; i < n; ++i) { \
-            block \
-        } \
-    }}
-
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
-            block \
-        ); \
-    } \
-    else { \
-        amrex::LoopConcurrentOnCpu(box, [=] (int i, int j, int k) noexcept \
-            block \
-        ); \
-    }
-
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
-            block \
-        ); \
-    } \
-    else { \
-        amrex::LoopConcurrentOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
-            block \
-        ); \
-    }
-
-#define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
-    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
-            block \
-        ); \
-    } \
-    else { \
-        for (amrex_i_inttype i = 0; i < n; ++i) { \
-            block \
-        } \
-    }}
-
-#define AMREX_HOST_DEVICE_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
-            block \
-        ); \
-    } \
-    else { \
-        amrex::LoopOnCpu(box, [=] (int i, int j, int k) noexcept \
-            block \
-        ); \
-    }
-
-#define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
-            block \
-        ); \
-    } \
-    else { \
-        amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
-            block \
-        ); \
-    }
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        AMREX_LAUNCH_DEVICE_LAMBDA(box,tbox,block); \
-    } else { \
-        auto tbox = box; \
-        block; \
-    }
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(where_to_run,bx1,tbx1,block1) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1); \
-    } else { \
-        auto tbx1 = bx1; \
-        block1; \
-    }
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1,bx2,tbx2,block2); \
-    } else { \
-        auto tbx1 = bx1; \
-        auto tbx2 = bx2; \
-        block1; \
-        block2; \
-    }
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2,bx3,tbx3,block3) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1,bx2,tbx2,block2,bx3,tbx3,block3); \
-    } else { \
-        auto tbx1 = bx1; \
-        auto tbx2 = bx2; \
-        auto tbx3 = bx3; \
-        block1; \
-        block2; \
-        block3; \
-    }
-
-#else
-// xxxxx SYCL todo: host disabled in host device
-
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
-    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
-            block \
-        ); \
-    } \
-    else { \
-        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
-    }}
-
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
-            block \
-        ); \
-    } \
-    else { \
-        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
-    }
-
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
-            block \
-        ); \
-    } \
-    else { \
-        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
-    }
-
-#define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
-    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
-            block \
-        ); \
-    } \
-    else { \
-        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
-    }}
-
-#define AMREX_HOST_DEVICE_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
-            block \
-        ); \
-    } \
-    else { \
-        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
-    }
-
-#define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
-            block \
-        ); \
-    } \
-    else { \
-        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
-    }
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        AMREX_LAUNCH_DEVICE_LAMBDA(box,tbox,block); \
-    } else { \
-        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
-    }
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(where_to_run,bx1,tbx1,block1) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1); \
-    } else { \
-        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
-    }
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1,bx2,tbx2,block2); \
-    } else { \
-        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
-    }
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2,bx3,tbx3,block3) \
-    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
-    { \
-        AMREX_LAUNCH_DEVICE_LAMBDA(bx1,tbx1,block1,bx2,tbx2,block2,bx3,tbx3,block3); \
-    } else { \
-        amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
-    }
-
-#endif
-
-#else
-
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
-    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
-    amrex::ignore_unused(where_to_run); \
-    AMREX_PRAGMA_SIMD \
-    for (amrex_i_inttype i = 0; i < n; ++i) { \
-        block \
-    }}
-
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
-    amrex::ignore_unused(where_to_run); \
-    amrex::LoopConcurrentOnCpu(box, [=] (int i, int j, int k) noexcept \
-        block \
-    );
-
-#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
-    amrex::ignore_unused(where_to_run); \
-    amrex::LoopConcurrentOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
-        block \
-    );
-
-#define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
-    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
-    amrex::ignore_unused(where_to_run); \
-    for (amrex_i_inttype i = 0; i < n; ++i) { \
-        block \
-    }}
-
-#define AMREX_HOST_DEVICE_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
-    amrex::ignore_unused(where_to_run); \
-    amrex::LoopOnCpu(box, [=] (int i, int j, int k) noexcept \
-        block \
-    );
-
-#define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
-    amrex::ignore_unused(where_to_run); \
-    amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
-        block \
-    );
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
-    amrex::ignore_unused(where_to_run); \
-    { \
-        auto tbox = box; \
-        block; \
-    }
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_FLAG(where_to_run,bx1,tbx1,block1) \
-    amrex::ignore_unused(where_to_run); \
-    { \
-        auto tbx1 = bx1; \
-        block1; \
-    }
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2) \
-    amrex::ignore_unused(where_to_run); \
-    { \
-        auto tbx1 = bx1; \
-        auto tbx2 = bx2; \
-        block1; \
-        block2; \
-    }
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3_FLAG(where_to_run,bx1,tbx1,block1,bx2,tbx2,block2,bx3,tbx3,block3) \
-    amrex::ignore_unused(where_to_run); \
-    { \
-        auto tbx1 = bx1; \
-        auto tbx2 = bx2; \
-        auto tbx3 = bx3; \
-        block1; \
-        block2; \
-        block3; \
-    }
-
-#endif
+#include <AMReX_GpuLaunch.nolint.H>
 
 #include <AMReX_CTOParallelForImpl.H>
 

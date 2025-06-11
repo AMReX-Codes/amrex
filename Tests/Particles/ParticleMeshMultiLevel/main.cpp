@@ -3,6 +3,7 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
+#include "AMReX_FabArrayUtility.H"
 #include "AMReX_Particles.H"
 #include "AMReX_PlotFileUtil.H"
 #include <AMReX_AmrParticles.H>
@@ -19,14 +20,16 @@ struct TestParams {
     int nlevs;
     int max_grid_size;
     int nppc;
+    bool zero_out_input;
     bool verbose;
 };
 
 void testParticleMesh (TestParams& parms)
 {
     Vector<IntVect> rr(parms.nlevs-1);
-    for (int lev = 1; lev < parms.nlevs; lev++)
+    for (int lev = 1; lev < parms.nlevs; lev++) {
         rr[lev-1] = IntVect(AMREX_D_DECL(2,2,2));
+    }
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
@@ -39,9 +42,7 @@ void testParticleMesh (TestParams& parms)
     const Box base_domain(domain_lo, domain_hi);
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+    int is_per[] = {AMREX_D_DECL(1,1,1)};
 
     Vector<Geometry> geom(parms.nlevs);
     geom[0].define(base_domain, &real_box, CoordSys::cartesian, is_per);
@@ -54,7 +55,7 @@ void testParticleMesh (TestParams& parms)
     Vector<DistributionMapping> dm(parms.nlevs);
 
     Box domain = base_domain;
-    IntVect size = IntVect(AMREX_D_DECL(parms.nx, parms.ny, parms.nz));
+    IntVect size(AMREX_D_DECL(parms.nx, parms.ny, parms.nz));
     for (int lev = 0; lev < parms.nlevs; ++lev)
     {
         ba[lev].define(domain);
@@ -64,11 +65,14 @@ void testParticleMesh (TestParams& parms)
         domain.refine(2);
     }
 
+    Vector<MultiFab> const_mf(parms.nlevs);
     Vector<MultiFab> density1(parms.nlevs);
     Vector<MultiFab> density2(parms.nlevs);
     for (int lev = 0; lev < parms.nlevs; lev++) {
+        const_mf[lev].define(ba[lev], dm[lev], 1, 1);
+        const_mf[lev].setVal(-2.0e8);
         density1[lev].define(ba[lev], dm[lev], 1, 1);
-        density1[lev].setVal(0.0);
+        density1[lev].setVal(-2.0e8);
         density2[lev].define(ba[lev], dm[lev], 1, 1);
         density2[lev].setVal(0.0);
     }
@@ -89,6 +93,7 @@ void testParticleMesh (TestParams& parms)
     //
     // Here we provide an example of one way to call ParticleToMesh
     //
+
     amrex::ParticleToMesh(myPC, GetVecOfPtrs(density1), 0, parms.nlevs-1,
         [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
                               amrex::Array4<amrex::Real> const& rho,
@@ -102,7 +107,18 @@ void testParticleMesh (TestParams& parms)
                 {
                     return part.rdata(comp);  // no weighting
                 });
-        });
+        }, parms.zero_out_input);
+
+    //
+    // Subtract initial value if input was not zeroed-out.
+    // (Plotfiles will only agree to machine precision in this case.)
+    //
+
+    if (!parms.zero_out_input) {
+        for (int lev = 0; lev < parms.nlevs; ++lev) {
+            amrex::Subtract(density1[lev], const_mf[lev], 0, 0, 1, 1);
+        }
+    }
 
     //
     // Here we provide an example of another way to call ParticleToMesh
@@ -163,18 +179,22 @@ int main(int argc, char* argv[])
   pp.get("max_grid_size", parms.max_grid_size);
   pp.get("nppc", parms.nppc);
   pp.get("nlevs", parms.nlevs);
-  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
+  if (parms.nppc < 1 && ParallelDescriptor::IOProcessor()) {
     amrex::Abort("Must specify at least one particle per cell");
+  }
+
+  parms.zero_out_input = true;
+  pp.query("zero_out_input", parms.zero_out_input);
 
   parms.verbose = false;
   pp.query("verbose", parms.verbose);
 
   if (parms.verbose && ParallelDescriptor::IOProcessor()) {
-    std::cout << std::endl;
+    std::cout << '\n';
     std::cout << "Number of particles per cell : ";
-    std::cout << parms.nppc  << std::endl;
+    std::cout << parms.nppc  << '\n';
     std::cout << "Size of domain               : ";
-    std::cout << parms.nx << " " << parms.ny << " " << parms.nz << std::endl;
+    std::cout << parms.nx << " " << parms.ny << " " << parms.nz << '\n';
   }
 
   testParticleMesh(parms);

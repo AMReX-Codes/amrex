@@ -20,5 +20,4 @@ Key features of AMReX include:
    - Parallel I/O
    - Plotfile format supported by AmrVis, VisIt, ParaView, and yt.
 
-AMReX is developed at LBNL, NREL, and ANL as part of the Block-Structured AMR
-Co-Design Center in DOE's Exascale Computing Project.
+AMReX is developed at LBNL.

@@ -19,7 +19,7 @@ template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_x_doit (int i, int j, int k, Array4<Real> const& px,
                               Array4<Real const> const& p, Array4<int const> const& dmsk,
-                              Array4<Real const> const& ecx, F&& phieb, Real dxi)
+                              Array4<Real const> const& ecx, F const& phieb, Real dxi)
 {
     if (dmsk(i,j,k) >= 0 && dmsk(i+1,j,k) >= 0) {
         px(i,j,k) = dxi * (p(i+1,j,k) - p(i,j,k));
@@ -36,7 +36,7 @@ template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_y_doit (int i, int j, int k, Array4<Real> const& py,
                               Array4<Real const> const& p, Array4<int const> const& dmsk,
-                              Array4<Real const> const& ecy, F&& phieb, Real dyi)
+                              Array4<Real const> const& ecy, F const& phieb, Real dyi)
 {
     if (dmsk(i,j,k) >= 0 && dmsk(i,j+1,k) >= 0) {
         py(i,j,k) = dyi * (p(i,j+1,k) - p(i,j,k));
@@ -54,7 +54,7 @@ template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_grad_z_doit (int i, int j, int k, Array4<Real> const& pz,
                               Array4<Real const> const& p, Array4<int const> const& dmsk,
-                              Array4<Real const> const& ecz, F&& phieb, Real dzi)
+                              Array4<Real const> const& ecz, F const& phieb, Real dzi)
 {
     if (dmsk(i,j,k) >= 0 && dmsk(i,j,k+1) >= 0) {
         pz(i,j,k) = dzi * (p(i,j,k+1) - p(i,j,k));

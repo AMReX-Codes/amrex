@@ -2,7 +2,7 @@
 #define AMREX_EB2_2D_C_H_
 #include <AMReX_Config.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void
@@ -66,7 +66,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     });
 }
 
-namespace {
+namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int num_cuts (Real a, Real b) noexcept {
         return (a >= 0.0_rt && b < 0.0_rt) || (b >= 0.0_rt && a < 0.0_rt);
@@ -76,6 +76,8 @@ namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int check_mvmc (int i, int j, int, Array4<Real const> const& fine)
 {
+    using detail::num_cuts;
+
     constexpr int k = 0;
     i *= 2;
     j *= 2;
@@ -271,10 +273,10 @@ void build_cellflag_from_ap (int i, int j, Array4<EBCellFlag> const& cflag,
     // By default, all neighbors are already set.
     auto flg = cflag(i,j,k);
 
-    if (apx(i  ,j  ,k) == 0.0_rt) flg.setDisconnected(-1, 0, 0);
-    if (apx(i+1,j  ,k) == 0.0_rt) flg.setDisconnected( 1, 0, 0);
-    if (apy(i  ,j  ,k) == 0.0_rt) flg.setDisconnected( 0,-1, 0);
-    if (apy(i  ,j+1,k) == 0.0_rt) flg.setDisconnected( 0, 1, 0);
+    if (apx(i  ,j  ,k) == 0.0_rt) { flg.setDisconnected(-1, 0, 0); }
+    if (apx(i+1,j  ,k) == 0.0_rt) { flg.setDisconnected( 1, 0, 0); }
+    if (apy(i  ,j  ,k) == 0.0_rt) { flg.setDisconnected( 0,-1, 0); }
+    if (apy(i  ,j+1,k) == 0.0_rt) { flg.setDisconnected( 0, 1, 0); }
 
     if ((apx(i,j  ,k) == 0.0_rt || apy(i-1,j,k) == 0.0_rt) &&
         (apx(i,j-1,k) == 0.0_rt || apy(i  ,j,k) == 0.0_rt))
@@ -303,6 +305,6 @@ void build_cellflag_from_ap (int i, int j, Array4<EBCellFlag> const& cflag,
     cflag(i,j,k) = flg;
 }
 
-}}
+}
 
 #endif

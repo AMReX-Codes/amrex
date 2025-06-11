@@ -5,7 +5,7 @@
 #include <AMReX_EB2_Level.H>
 #include <AMReX_EB_chkpt_file.H>
 
-namespace amrex { namespace EB2 {
+namespace amrex::EB2 {
 
 class ChkptFileLevel
     : public GShopLevel<ChkptFile>
@@ -26,6 +26,6 @@ public:
     void finalize_cell_flags (); //sets the connection flags and adjustments to cellflags
 };
 
-}}
+}
 
 #endif

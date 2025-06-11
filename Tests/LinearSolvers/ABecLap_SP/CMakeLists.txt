@@ -1,18 +1,24 @@
-if (AMReX_SPACEDIM EQUAL 1)
-   return()
-endif ()
+if (WIN32 AND (AMReX_GPU_BACKEND STREQUAL "CUDA"))
+    return()
+endif()
 
-set(_sources
-   main.cpp
-   MyTest.cpp
-   initProb.cpp
-   MyTestPlotfile.cpp
-   MyTest.H
-   initProb_K.H)
+foreach(D IN LISTS AMReX_SPACEDIM)
+    if (D EQUAL 1)
+       continue()
+    endif ()
 
-set(_input_files inputs)
+    set(_sources
+       main.cpp
+       MyTest.cpp
+       initProb.cpp
+       MyTestPlotfile.cpp
+       MyTest.H
+       initProb_K.H)
 
-setup_test(_sources _input_files)
+    set(_input_files inputs)
 
-unset(_sources)
-unset(_input_files)
+    setup_test(${D} _sources _input_files)
+
+    unset(_sources)
+    unset(_input_files)
+endforeach()

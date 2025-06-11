@@ -6,7 +6,7 @@
 
 AMREX_GPU_HOST
 void
-AmrLevelAdv::advect (const amrex::Real /*time*/,
+AmrLevelAdv::advect (amrex::Real /*time*/,
                      const amrex::Box& bx,
                      amrex::GpuArray<amrex::Box,BL_SPACEDIM> nbx,
                      const amrex::FArrayBox& statein,
@@ -17,8 +17,8 @@ AmrLevelAdv::advect (const amrex::Real /*time*/,
                      AMREX_D_DECL(amrex::FArrayBox& fx,
                                   amrex::FArrayBox& fy,
                                   amrex::FArrayBox& fz),
-                     amrex::GpuArray<amrex::Real,BL_SPACEDIM> dx,
-                     const amrex::Real dt)
+                     amrex::GpuArray<amrex::Real,BL_SPACEDIM> const& dx,
+                     amrex::Real dt)
 {
     using namespace amrex;
 

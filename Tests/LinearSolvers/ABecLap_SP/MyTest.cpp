@@ -53,6 +53,23 @@ MyTest::readParameters ()
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
     pp.query("max_coarsening_level", max_coarsening_level);
+
+#ifdef AMREX_USE_HYPRE
+    pp.query("use_hypre", use_hypre);
+    pp.query("hypre_interface", hypre_interface_i);
+    if (hypre_interface_i == 1) {
+        hypre_interface = Hypre::Interface::structed;
+    } else if (hypre_interface_i == 2) {
+        hypre_interface = Hypre::Interface::semi_structed;
+    } else {
+        hypre_interface = Hypre::Interface::ij;
+    }
+#endif
+#ifdef AMREX_USE_PETSC
+    pp.query("use_petsc", use_petsc);
+#endif
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(use_hypre && use_petsc),
+                                     "use_hypre & use_petsc cannot be both true");
 }
 
 void

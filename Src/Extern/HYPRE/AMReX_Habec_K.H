@@ -6,7 +6,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IArrayBox.H>
 
-namespace amrex { namespace detail {
+namespace amrex::detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void comp_bf (Real& bf1, Real& bf2, Real sb, Real h, int bct, Real bcl, int bho)
     {
@@ -54,7 +54,7 @@ namespace amrex { namespace detail {
             AMREX_ASSERT_WITH_MESSAGE(false,"hpmat: unsupported boundary type");
         }
     }
-}}
+}
 
 #if (AMREX_SPACEDIM == 2)
 #include <AMReX_Habec_2D_K.H>

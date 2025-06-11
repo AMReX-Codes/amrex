@@ -1,5 +1,5 @@
 
-ifeq ($(lowercase_comp),intel)
+ifeq ($(findstring $(lowercase_comp),intel),intel)
 
   DEFINES += -DAMREX_VTUNE
   

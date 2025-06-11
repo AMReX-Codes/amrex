@@ -1,0 +1,10 @@
+query-filters:
+  - exclude:
+      id:
+        - cpp/commented-out-code
+        - cpp/complex-condition
+        - cpp/equality-on-floats
+        - cpp/fixme-comment
+        - cpp/path-injection
+        - cpp/poorly-documented-function
+        - cpp/use-of-goto

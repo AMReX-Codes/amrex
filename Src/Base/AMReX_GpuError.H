@@ -79,6 +79,25 @@ namespace Gpu {
                            + ": " + cudaGetErrorString(amrex_i_err)); \
         amrex::Abort(errStr); \
     }}
+
+#define AMREX_CURAND_SAFE_CALL(call) { \
+    curandStatus_t amrex_i_err = call;          \
+    if (CURAND_STATUS_SUCCESS != amrex_i_err) { \
+        std::string errStr(std::string("CURAND error ") + std::to_string(amrex_i_err) \
+                           + std::string(" in file ") + __FILE__ \
+                           + " line " + std::to_string(__LINE__)); \
+        amrex::Abort(errStr); \
+    }}
+
+#define AMREX_CUFFT_SAFE_CALL(call) { \
+    cufftResult_t amrex_i_err = call; \
+    if (CUFFT_SUCCESS != amrex_i_err) { \
+        std::string errStr(std::string("CUFFT error ")+std::to_string(amrex_i_err) \
+                           + std::string(" in file ") + __FILE__        \
+                           + " line " + std::to_string(__LINE__));      \
+        amrex::Abort(errStr); \
+    }}
+
 #endif
 
 #ifdef AMREX_USE_HIP
@@ -90,6 +109,25 @@ namespace Gpu {
                            + " " + hipGetErrorString(amrex_i_err)); \
         amrex::Abort(errStr); \
     }}
+
+#define AMREX_HIPRAND_SAFE_CALL(call) { \
+    hiprandStatus_t amrex_i_err = call;          \
+    if (HIPRAND_STATUS_SUCCESS != amrex_i_err) { \
+        std::string errStr(std::string("HIPRAND error ") + std::to_string(amrex_i_err) \
+                           + std::string(" in file ") + __FILE__ \
+                           + " line " + std::to_string(__LINE__)); \
+        amrex::Abort(errStr); \
+    }}
+
+#define AMREX_ROCFFT_SAFE_CALL(call) { \
+    auto amrex_i_err = call; \
+    if (rocfft_status_success != amrex_i_err) { \
+        std::string errStr(std::string("rocFFT error ")+std::to_string(amrex_i_err) \
+                           + std::string(" in file ") + __FILE__        \
+                           + " line " + std::to_string(__LINE__));      \
+        amrex::Abort(errStr); \
+    }}
+
 #endif
 
 #define AMREX_GPU_ERROR_CHECK() amrex::Gpu::ErrorCheck(__FILE__, __LINE__)

@@ -57,18 +57,14 @@ namespace ParallelDescriptor
     {
     public:
 
-        Message () :
-            m_finished(true),
-            m_type(MPI_DATATYPE_NULL),
-            m_req(MPI_REQUEST_NULL) {}
+        Message () = default;
         Message (MPI_Request req_, MPI_Datatype type_) :
             m_finished(false),
             m_type(type_),
             m_req(req_) {}
         Message (MPI_Status stat_, MPI_Datatype type_) :
-            m_finished(true),
             m_type(type_),
-            m_req(MPI_REQUEST_NULL), m_stat(stat_) {}
+            m_stat(stat_) {}
         void wait ();
         bool test ();
         size_t count () const;
@@ -80,14 +76,14 @@ namespace ParallelDescriptor
 
     private:
 
-        bool               m_finished;
-        MPI_Datatype       m_type;
-        MPI_Request        m_req;
-        mutable MPI_Status m_stat;
+        bool               m_finished = true;
+        MPI_Datatype       m_type = MPI_DATATYPE_NULL;
+        MPI_Request        m_req  = MPI_REQUEST_NULL;
+        mutable MPI_Status m_stat{};
     };
 
 #ifdef BL_USE_MPI
-    void MPI_Error(const char* file, int line, const char* msg, int rc);
+    void MPI_Error(const char* file, int line, const char* str, int rc);
 
 #define BL_MPI_REQUIRE(x)                                                \
 do                                                                        \
@@ -104,14 +100,14 @@ while ( false )
     * \brief Perform any needed parallel initialization.  This MUST be the
     * first routine in this class called from within a program.
     */
-    void StartParallel (int*    argc = 0,
-                        char*** argv = 0,
+    void StartParallel (int*    argc = nullptr,
+                        char*** argv = nullptr,
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
     void Initialize ();
     void Finalize ();
 
-    extern AMREX_EXPORT int use_gpu_aware_mpi;
+    extern AMREX_EXPORT bool use_gpu_aware_mpi;
     inline bool UseGpuAwareMpi () { return use_gpu_aware_mpi; }
 
     //! Split the process pool into teams
@@ -146,7 +142,7 @@ while ( false )
     //! Provide functionalities needed to construct a team of processes to perform a particular job
     struct ProcessTeam
     {
-        typedef MPI_Comm team_t;
+        using team_t = MPI_Comm;
 
         //! synchronize processes within the team
         void Barrier () const {
@@ -181,17 +177,17 @@ while ( false )
 #if defined(BL_USE_MPI3)
             if (m_size > 1) {
                 MPI_Comm_free(&m_team_comm);
-                if (m_rankInTeam==0) MPI_Comm_free(&m_lead_comm);
+                if (m_rankInTeam==0) { MPI_Comm_free(&m_lead_comm); }
             }
 #endif
         }
 
-        const team_t& get() const {
+        [[nodiscard]] const team_t& get() const {
             return m_team_comm;
         }
         //! return the communicator
-        const MPI_Comm& get_team_comm() const { return m_team_comm; }
-        const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
+        [[nodiscard]] const MPI_Comm& get_team_comm() const { return m_team_comm; }
+        [[nodiscard]] const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
 
         int    m_numTeams;
         int    m_size;
@@ -212,6 +208,30 @@ while ( false )
 
     extern AMREX_EXPORT MPI_Comm m_comm;
     inline MPI_Comm Communicator () noexcept { return m_comm; }
+
+    extern AMREX_EXPORT int m_nprocs_per_node;
+    //! Return the number of MPI ranks per node as defined by
+    //! MPI_COMM_TYPE_SHARED. This might be the same or different from
+    //! NProcsPerProcessor based on MPI_Get_processor_name.
+    inline int NProcsPerNode () noexcept { return m_nprocs_per_node; }
+
+    extern AMREX_EXPORT int m_rank_in_node;
+    //! Return the rank in a node defined by MPI_COMM_TYPE_SHARED. This
+    //! might be the same or different from MyRankInProcessor based on
+    //! MPI_Get_processor_name.
+    inline int MyRankInNode () noexcept { return m_rank_in_node; }
+
+    extern AMREX_EXPORT int m_nprocs_per_processor;
+    //! Return the number of MPI ranks per node as defined by
+    //! MPI_Get_processor_name. This might be the same or different from
+    //! NProcsPerNode based on MPI_COMM_TYPE_SHARED.
+    inline int NProcsPerProcessor () noexcept { return m_nprocs_per_processor; }
+
+    extern AMREX_EXPORT int m_rank_in_processor;
+    //! Return the rank in a node defined by MPI_Get_processor_name. This
+    //! might be the same or different from MyRankInNode based on
+    //! MPI_COMM_TYPE_SHARED.
+    inline int MyRankInProcessor () noexcept { return m_rank_in_processor; }
 
 #ifdef AMREX_USE_MPI
     extern Vector<MPI_Datatype*> m_mpi_types;
@@ -335,8 +355,8 @@ while ( false )
     {
         int rb, re;
         {
-            if (rit < 0) rit = ParallelDescriptor::MyRankInTeam();
-            if (nworkers == 0) nworkers = ParallelDescriptor::TeamSize();
+            if (rit < 0) { rit = ParallelDescriptor::MyRankInTeam(); }
+            if (nworkers == 0) { nworkers = ParallelDescriptor::TeamSize(); }
             BL_ASSERT(rit<nworkers);
             if (nworkers == 1) {
                 rb = begin;
@@ -411,7 +431,7 @@ while ( false )
     //! Abort with specified error code.
     void Abort (int errorcode = SIGABRT, bool backtrace = true);
     //! ErrorString return string associated with error internal error condition
-    const char* ErrorString (int errcode);
+    const char* ErrorString (int errorcode);
     //! Returns wall-clock seconds since start of execution.
     double second () noexcept;
 
@@ -427,177 +447,174 @@ while ( false )
 
     //! Real sum reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T& rvar);
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T* rvar, int cnt);
 
     // Having this for backward compatibility
-    void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar);
+    void ReduceRealSum (Vector<std::reference_wrapper<Real> > const& rvar);
     //
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealSum (Vector<std::reference_wrapper<T> >&& rvar);
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar);
 
     //! Real sum reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T& rvar, int cpu);
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T* rvar, int cnt, int cpu);
 
     // Having this for backward compatibility
-    void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, int cpu);
+    void ReduceRealSum (Vector<std::reference_wrapper<Real> > const& rvar, int cpu);
     //
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealSum (Vector<std::reference_wrapper<T> >&& rvar, int cpu);
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar, int cpu);
 
     //! Real max reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T& rvar);
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T* rvar, int cnt);
 
     // Having this for backward compatibility
-    void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar);
+    void ReduceRealMax (Vector<std::reference_wrapper<Real> > const& rvar);
     //
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMax (Vector<std::reference_wrapper<T> >&& rvar);
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar);
 
     //! Real max reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T& rvar, int cpu);
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T* rvar, int cnt, int cpu);
 
     // Having this for backward compatibility
-    void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu);
+    void ReduceRealMax (Vector<std::reference_wrapper<Real> > const& rvar, int cpu);
     //
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMax (Vector<std::reference_wrapper<T> >&& rvar, int cpu);
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar, int cpu);
 
     //! Real min reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T& rvar);
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T* rvar, int cnt);
 
     // Having this for backward compatibility
-    void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar);
+    void ReduceRealMin (Vector<std::reference_wrapper<Real> > const& rvar);
     //
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMin (Vector<std::reference_wrapper<T> >&& rvar);
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar);
 
     //! Real min reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T& rvar, int cpu);
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T* rvar, int cnt, int cpu);
 
     // Having this for backward compatibility
-    void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu);
+    void ReduceRealMin (Vector<std::reference_wrapper<Real> > const& rvar, int cpu);
     //
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMin (Vector<std::reference_wrapper<T> >&& rvar, int cpu);
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar, int cpu);
 
     //! Integer sum reduction.
     void ReduceIntSum (int& rvar);
     void ReduceIntSum (int* rvar, int cnt);
-    void ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar);
+    void ReduceIntSum (Vector<std::reference_wrapper<int> > const& rvar);
     //! Integer sum reduction to specified cpu.
     void ReduceIntSum (int& rvar, int cpu);
     void ReduceIntSum (int* rvar, int cnt, int cpu);
-    void ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
+    void ReduceIntSum (Vector<std::reference_wrapper<int> > const& rvar, int cpu);
 
     //! Integer max reduction.
     void ReduceIntMax (int& rvar);
     void ReduceIntMax (int* rvar, int cnt);
-    void ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar);
+    void ReduceIntMax (Vector<std::reference_wrapper<int> > const& rvar);
     //! Integer max reduction to specified cpu.
     void ReduceIntMax (int& rvar, int cpu);
     void ReduceIntMax (int* rvar, int cnt, int cpu);
-    void ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
+    void ReduceIntMax (Vector<std::reference_wrapper<int> > const& rvar, int cpu);
 
     //! Integer min reduction.
     void ReduceIntMin (int& rvar);
     void ReduceIntMin (int* rvar, int cnt);
-    void ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar);
+    void ReduceIntMin (Vector<std::reference_wrapper<int> > const& rvar);
     //! Integer min reduction to specified cpu.
     void ReduceIntMin (int& rvar, int cpu);
     void ReduceIntMin (int* rvar, int cnt, int cpu);
-    void ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
+    void ReduceIntMin (Vector<std::reference_wrapper<int> > const& rvar, int cpu);
 
     //! Long sum reduction.
     void ReduceLongSum (Long& rvar);
     void ReduceLongSum (Long* rvar, int cnt);
-    void ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar);
+    void ReduceLongSum (Vector<std::reference_wrapper<Long> > const& rvar);
     //! Long sum reduction to specified cpu.
     void ReduceLongSum (Long& rvar, int cpu);
     void ReduceLongSum (Long* rvar, int cnt, int cpu);
-    void ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
+    void ReduceLongSum (Vector<std::reference_wrapper<Long> > const& rvar, int cpu);
 
     //! Long max reduction.
     void ReduceLongMax (Long& rvar);
     void ReduceLongMax (Long* rvar, int cnt);
-    void ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar);
+    void ReduceLongMax (Vector<std::reference_wrapper<Long> > const& rvar);
     //! Long max reduction to specified cpu.
     void ReduceLongMax (Long& rvar, int cpu);
     void ReduceLongMax (Long* rvar, int cnt, int cpu);
-    void ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
+    void ReduceLongMax (Vector<std::reference_wrapper<Long> > const& rvar, int cpu);
 
     //! Long min reduction.
     void ReduceLongMin (Long& rvar);
     void ReduceLongMin (Long* rvar, int cnt);
-    void ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar);
+    void ReduceLongMin (Vector<std::reference_wrapper<Long> > const& rvar);
     //! Long min reduction to specified cpu.
     void ReduceLongMin (Long& rvar, int cpu);
     void ReduceLongMin (Long* rvar, int cnt, int cpu);
-    void ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
+    void ReduceLongMin (Vector<std::reference_wrapper<Long> > const& rvar, int cpu);
 
     //! Long and-wise reduction.
     void ReduceLongAnd (Long& rvar);
     void ReduceLongAnd (Long* rvar, int cnt);
-    void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar);
+    void ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& rvar);
     //! Long and-wise reduction to specified cpu.
     void ReduceLongAnd (Long& rvar, int cpu);
     void ReduceLongAnd (Long* rvar, int cnt, int cpu);
-    void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
+    void ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& rvar, int cpu);
 
     //! Parallel gather.
-    void Gather (Real* sendbuf,
-                 int   sendcount,
-                 Real* recvbuf,
-                 int   root);
+    void Gather (Real const* sendbuf, int nsend, Real* recvbuf, int root);
     /**
     * \brief Returns sequential message sequence numbers, usually used as
     * tags for send/recv.
     */
     inline int SeqNum () noexcept { return ParallelContext::get_inc_mpi_tag(); }
 
-    template <class T> Message Asend(const T*, size_t n, int pid, int tag);
-    template <class T> Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);
-    template <class T> Message Asend(const std::vector<T>& buf, int pid, int tag);
+    template <class T> [[nodiscard]] Message Asend(const T*, size_t n, int pid, int tag);
+    template <class T> [[nodiscard]] Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);
+    template <class T> [[nodiscard]] Message Asend(const std::vector<T>& buf, int pid, int tag);
 
     template <class T> Message Arecv(T*, size_t n, int pid, int tag);
     template <class T> Message Arecv(T*, size_t n, int pid, int tag, MPI_Comm comm);
@@ -609,7 +626,7 @@ while ( false )
 
     template <class T> Message Recv(T*, size_t n, int pid, int tag);
     template <class T> Message Recv(T*, size_t n, int pid, int tag, MPI_Comm comm);
-    template <class T> Message Recv(std::vector<T>& t, int pid, int tag);
+    template <class T> Message Recv(std::vector<T>& buf, int pid, int tag);
 
     template <class T> void Bcast(T*, size_t n, int root = 0);
     template <class T> void Bcast(T*, size_t n, int root, const MPI_Comm &comm);
@@ -657,7 +674,7 @@ while ( false )
 
 #ifdef BL_USE_MPI
     int select_comm_data_type (std::size_t nbytes);
-    std::size_t alignof_comm_data (std::size_t nbytes);
+    std::size_t sizeof_selected_comm_data_type (std::size_t nbytes);
 #endif
 }
 }
@@ -682,7 +699,7 @@ template <class T>
 Message
 Asend (const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm)
 {
-    static_assert(!std::is_same<char,T>::value, "Asend: char version has been specialized");
+    static_assert(!std::is_same_v<char,T>, "Asend: char version has been specialized");
 
     BL_PROFILE_T_S("ParallelDescriptor::Asend(TsiiM)", T);
     BL_COMM_PROFILE(BLProfiler::AsendTsiiM, n * sizeof(T), dst_pid, tag);
@@ -723,7 +740,7 @@ template <class T>
 Message
 Send (const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm)
 {
-    static_assert(!std::is_same<char,T>::value, "Send: char version has been specialized");
+    static_assert(!std::is_same_v<char,T>, "Send: char version has been specialized");
 
     BL_PROFILE_T_S("ParallelDescriptor::Send(Tsii)", T);
 
@@ -771,7 +788,7 @@ template <class T>
 Message
 Arecv (T* buf, size_t n, int src_pid, int tag, MPI_Comm comm)
 {
-    static_assert(!std::is_same<char,T>::value, "Arecv: char version has been specialized");
+    static_assert(!std::is_same_v<char,T>, "Arecv: char version has been specialized");
 
     BL_PROFILE_T_S("ParallelDescriptor::Arecv(TsiiM)", T);
     BL_COMM_PROFILE(BLProfiler::ArecvTsiiM, n * sizeof(T), src_pid, tag);
@@ -812,7 +829,7 @@ template <class T>
 Message
 Recv (T* buf, size_t n, int src_pid, int tag, MPI_Comm comm)
 {
-    static_assert(!std::is_same<char,T>::value, "Recv: char version has been specialized");
+    static_assert(!std::is_same_v<char,T>, "Recv: char version has been specialized");
 
     BL_PROFILE_T_S("ParallelDescriptor::Recv(Tsii)", T);
     BL_COMM_PROFILE(BLProfiler::RecvTsii, BLProfiler::BeforeCall(), src_pid, tag);
@@ -881,8 +898,7 @@ ParallelDescriptor::Bcast (T*     t,
 #ifdef BL_LAZY
     int r;
     MPI_Comm_compare(comm, Communicator(), &r);
-    if (r == MPI_IDENT)
-        Lazy::EvalReduction();
+    if (r == MPI_IDENT) { Lazy::EvalReduction(); }
 #endif
 
     BL_ASSERT(n < static_cast<size_t>(std::numeric_limits<int>::max()));
@@ -931,7 +947,7 @@ ParallelDescriptor::Gather (const T& t, int root)
     BL_COMM_PROFILE(BLProfiler::GatherTi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     std::vector<T> resl;
-    if ( root == MyProc() ) resl.resize(NProcs());
+    if ( root == MyProc() ) { resl.resize(NProcs()); }
     BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(&t),
                                1,
                                Mpi_typemap<T>::type(),
@@ -954,7 +970,7 @@ ParallelDescriptor::Gatherv (const T* send, int sc,
     BL_COMM_PROFILE(BLProfiler::Gatherv,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     MPI_Gatherv(send, sc, ParallelDescriptor::Mpi_typemap<T>::type(),
-                recv, &rc[0], &disp[0], ParallelDescriptor::Mpi_typemap<T>::type(),
+                recv, rc.data(), disp.data(), ParallelDescriptor::Mpi_typemap<T>::type(),
                 root, Communicator());
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, std::accumulate(rc.begin(),rc.end(),0)*sizeof(T), root, BLProfiler::NoTag());
@@ -968,7 +984,6 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     BL_PROFILE_T_S("ParallelDescriptor::GatherLayoutData(Ti)", T);
 
     // Gather prelims
-    Vector<int> index_to_send = sendbuf.IndexArray();
     Vector<T> T_to_send;
     T_to_send.reserve(sendbuf.local_size());
 
@@ -981,9 +996,9 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     Vector<int> recvcount(nprocs, 0);
     recvbuf.resize(sendbuf.size());
     const Vector<int>& old_pmap = sendbuf.DistributionMap().ProcessorMap();
-    for (int i=0; i<old_pmap.size(); ++i)
+    for (int i : old_pmap)
     {
-        ++recvcount[old_pmap[i]];
+        ++recvcount[i];
     }
 
     // Make a map from post-gather to pre-gather index
@@ -1002,7 +1017,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     new_index_to_old_index.reserve(old_pmap.size());
     for (const Vector<int>& v : new_ind_to_old_ind)
     {
-        if (v.size()>0)
+        if (!v.empty())
         {
             for (int el : v)
             {
@@ -1012,7 +1027,7 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     }
 
     Vector<int> disp(nprocs);
-    if (!disp.empty()) disp[0] = 0;
+    if (!disp.empty()) { disp[0] = 0; }
     std::partial_sum(recvcount.begin(), recvcount.end()-1, disp.begin()+1);
     Vector<T> new_index_to_T(sendbuf.size());
 
@@ -1169,7 +1184,7 @@ Gather (const T* t, size_t n, T1* t1, size_t n1, int /*root*/)
     BL_ASSERT(n == n1);
     amrex::ignore_unused(n1);
 
-    int const sc = n;
+    int const sc = static_cast<int>(n);
     for (int j=0; j<sc; ++j) { t1[j] = t[j]; }
 }
 
@@ -1256,20 +1271,20 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real sum reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T& rvar) {
         detail::DoAllReduce<T>(&rvar,MPI_SUM,1);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T* rvar, int cnt) {
         detail::DoAllReduce<T>(rvar,MPI_SUM,cnt);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealSum (Vector<std::reference_wrapper<T> >&& rvar)
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar)
     {
         int cnt = rvar.size();
         Vector<T> tmp{std::begin(rvar), std::end(rvar)};
@@ -1281,20 +1296,20 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real sum reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T& rvar, int cpu) {
         detail::DoReduce<T>(&rvar,MPI_SUM,1,cpu);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T* rvar, int cnt, int cpu) {
         detail::DoReduce<T>(rvar,MPI_SUM,cnt,cpu);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealSum (Vector<std::reference_wrapper<T> >&& rvar, int cpu)
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar, int cpu)
     {
         int cnt = rvar.size();
         Vector<T> tmp{std::begin(rvar), std::end(rvar)};
@@ -1306,20 +1321,20 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real max reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T& rvar) {
         detail::DoAllReduce<T>(&rvar,MPI_MAX,1);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T* rvar, int cnt) {
         detail::DoAllReduce<T>(rvar,MPI_MAX,cnt);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMax (Vector<std::reference_wrapper<T> >&& rvar)
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar)
     {
         int cnt = rvar.size();
         Vector<T> tmp{std::begin(rvar), std::end(rvar)};
@@ -1331,20 +1346,20 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real max reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T& rvar, int cpu) {
         detail::DoReduce<T>(&rvar,MPI_MAX,1,cpu);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T* rvar, int cnt, int cpu) {
         detail::DoReduce<T>(rvar,MPI_MAX,cnt,cpu);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMax (Vector<std::reference_wrapper<T> >&& rvar, int cpu)
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar, int cpu)
     {
         int cnt = rvar.size();
         Vector<T> tmp{std::begin(rvar), std::end(rvar)};
@@ -1356,20 +1371,20 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real min reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T& rvar) {
         detail::DoAllReduce<T>(&rvar,MPI_MIN,1);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T* rvar, int cnt) {
         detail::DoAllReduce<T>(rvar,MPI_MIN,cnt);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMin (Vector<std::reference_wrapper<T> >&& rvar)
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar)
     {
         int cnt = rvar.size();
         Vector<T> tmp{std::begin(rvar), std::end(rvar)};
@@ -1381,20 +1396,20 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real min reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T& rvar, int cpu) {
         detail::DoReduce<T>(&rvar,MPI_MIN,1,cpu);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T* rvar, int cnt, int cpu) {
         detail::DoReduce<T>(rvar,MPI_MIN,cnt,cpu);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMin (Vector<std::reference_wrapper<T> >&& rvar, int cpu)
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar, int cpu)
     {
         int cnt = rvar.size();
         Vector<T> tmp{std::begin(rvar), std::end(rvar)};
@@ -1408,81 +1423,81 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real sum reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T& ) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T*, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealSum (Vector<std::reference_wrapper<T> >&&) {}
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealSum (Vector<std::reference_wrapper<T> > const&) {}
 
     //! Real sum reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T&, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T*, int, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealSum (Vector<std::reference_wrapper<T> >&&, int) {}
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealSum (Vector<std::reference_wrapper<T> > const&, int) {}
 
     //! Real max reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T&) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T*, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMax (Vector<std::reference_wrapper<T> >&&) {}
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMax (Vector<std::reference_wrapper<T> > const&) {}
 
     //! Real max reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T&, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T*, int, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMax (Vector<std::reference_wrapper<T> >&&, int) {}
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMax (Vector<std::reference_wrapper<T> > const&, int) {}
 
     //! Real min reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T&) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T*, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMin (Vector<std::reference_wrapper<T> >&&) {}
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMin (Vector<std::reference_wrapper<T> > const&) {}
 
     //! Real min reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T&, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T*, int, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMin (Vector<std::reference_wrapper<T> >&&, int) {}
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMin (Vector<std::reference_wrapper<T> > const&, int) {}
 
 #endif
 }
@@ -1514,9 +1529,9 @@ struct Mpi_typemap<ValLocPair<TV,TI>>
         static MPI_Datatype mpi_type = MPI_DATATYPE_NULL;
         if (mpi_type == MPI_DATATYPE_NULL) {
             using T = ValLocPair<TV,TI>;
-            static_assert(std::is_trivially_copyable<T>::value,
+            static_assert(std::is_trivially_copyable_v<T>,
                           "To communicate with MPI, ValLocPair must be trivially copyable.");
-            static_assert(std::is_standard_layout<T>::value,
+            static_assert(std::is_standard_layout_v<T>,
                           "To communicate with MPI, ValLocPair must be standard layout");
 
             T vlp[2];
@@ -1552,7 +1567,7 @@ MPI_Op Mpi_op ()
 {
     static MPI_Op mpi_op = MPI_OP_NULL;
     if (mpi_op == MPI_OP_NULL) {
-        static auto user_fn = [] (void *invec, void *inoutvec, int* len,
+        static auto user_fn = [] (void *invec, void *inoutvec, int* len, // NOLINT
                                   MPI_Datatype * /*datatype*/)
         {
             auto in = static_cast<T const*>(invec);

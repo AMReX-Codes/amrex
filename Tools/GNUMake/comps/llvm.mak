@@ -31,10 +31,10 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -g -O3
-  CFLAGS   += -g -O3
-  FFLAGS   += -g -O3
-  F90FLAGS += -g -O3
+  CXXFLAGS += -g1 -O3
+  CFLAGS   += -g1 -O3
+  FFLAGS   += -g1 -O3
+  F90FLAGS += -g1 -O3
 
 endif
 
@@ -134,5 +134,7 @@ endif
 endif
 
 ifeq ($(FSANITIZER),TRUE)
-  override XTRALIBS += -lubsan
+  ifneq ($(shell uname),Darwin)
+    override XTRALIBS += -lubsan
+  endif
 endif

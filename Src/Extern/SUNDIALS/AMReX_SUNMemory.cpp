@@ -1,8 +1,8 @@
+#include <AMReX_Sundials_Core.H>
+#include <AMReX_SUNMemory.H>
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
-#include <AMReX_Sundials.H>
-#include <AMReX_SUNMemory.H>
-#include <sundials/sundials_context.h>
+
 #if defined(AMREX_USE_HIP)
 #include <sunmemory/sunmemory_hip.h>
 #elif defined(AMREX_USE_CUDA)
@@ -10,9 +10,9 @@
 #elif defined(AMREX_USE_SYCL)
 #include <sunmemory/sunmemory_sycl.h>
 #endif
+#include <sundials/sundials_config.h>
 
-namespace amrex {
-namespace sundials {
+namespace amrex::sundials {
 
 namespace {
     amrex::Arena* getArena (SUNMemoryType mem_type)
@@ -38,20 +38,24 @@ namespace {
 
     int Alloc(SUNMemoryHelper, SUNMemory* memptr, size_t memsize, SUNMemoryType mem_type, void* /*queue*/)
     {
+#if defined(SUNDIALS_VERSION_MAJOR) && (SUNDIALS_VERSION_MAJOR < 7)
         SUNMemory mem = SUNMemoryNewEmpty();
+#else
+        SUNMemory mem = SUNMemoryNewEmpty(*The_Sundials_Context());
+#endif
 
-        if (mem == nullptr) return -1;
-        mem->ptr = NULL;
+        if (mem == nullptr) { return -1; }
+        mem->ptr = nullptr;
         mem->own = SUNTRUE;
         mem->type = mem_type;
-        auto arena = getArena(mem->type);
+        auto* arena = getArena(mem->type);
         if (arena) {
             mem->ptr = arena->alloc(memsize);
             *memptr = mem;
             return 0;
         }
         else {
-            free(mem);
+            std::free(mem);
             memptr = nullptr;
             return -1;
         }
@@ -62,22 +66,22 @@ namespace {
     int Dealloc(SUNMemoryHelper, SUNMemory mem, void* /*queue*/)
     {
 
-        if (mem == nullptr) return 0;
-        auto arena = getArena(mem->type);
+        if (mem == nullptr) { return 0; }
+        auto* arena = getArena(mem->type);
         if (arena) {
             if(mem->own)
             {
                 arena->free(mem->ptr);
-                free(mem);
+                std::free(mem);
                 return 0;
             }
         }
         else {
-            free(mem);
+            std::free(mem);
             return -1;
         }
 
-        free(mem);
+        std::free(mem);
         return 0;
     }
 
@@ -96,8 +100,8 @@ namespace {
 
     void ActuallyDestroySUNMemoryHelper(SUNMemoryHelper helper)
     {
-        if (helper->ops) free(helper->ops);
-        free(helper);
+        if (helper->ops) { std::free(helper->ops); }
+        std::free(helper);
     }
 
     SUNMemoryHelper CreateMemoryHelper(::sundials::Context* sunctx)
@@ -106,7 +110,7 @@ namespace {
 
         helper = SUNMemoryHelper_NewEmpty(*sunctx);
 
-        helper->content          = NULL;
+        helper->content          = nullptr;
         helper->ops->clone       = CloneMemoryHelper;
         helper->ops->alloc       = Alloc;
         helper->ops->dealloc     = Dealloc;
@@ -145,7 +149,7 @@ MemoryHelper::MemoryHelper(const MemoryHelper& rhs)
         sunctx(rhs.sunctx)
 {}
 
-MemoryHelper::MemoryHelper(MemoryHelper&& rhs)
+MemoryHelper::MemoryHelper(MemoryHelper&& rhs) noexcept
     : helper(rhs.helper),
         sunctx(rhs.sunctx)
 {
@@ -153,14 +157,7 @@ MemoryHelper::MemoryHelper(MemoryHelper&& rhs)
     rhs.sunctx = nullptr;
 }
 
-MemoryHelper& MemoryHelper::operator=(MemoryHelper rhs)
-{
-    std::swap(helper, rhs.helper);
-    std::swap(sunctx, rhs.sunctx);
-    return *this;
-}
-
-MemoryHelper& MemoryHelper::operator=(MemoryHelper&& rhs)
+MemoryHelper& MemoryHelper::operator=(MemoryHelper&& rhs) noexcept
 {
     if (this != &rhs)
     {
@@ -176,14 +173,14 @@ MemoryHelper& MemoryHelper::operator=(MemoryHelper&& rhs)
 
 void MemoryHelper::Initialize(int nthreads)
 {
-    if (initialized.size() == 0) {
+    if (initialized.empty()) {
         initialized.resize(nthreads);
         std::fill(initialized.begin(), initialized.end(), 0);
         the_sunmemory_helper.resize(nthreads);
         std::fill(the_sunmemory_helper.begin(), the_sunmemory_helper.end(), nullptr);
     }
     for (int i = 0; i < nthreads; i++) {
-        if (initialized[i]) continue;
+        if (initialized[i]) { continue; }
         initialized[i] = 1;
         BL_ASSERT(the_sunmemory_helper[i] == nullptr);
         the_sunmemory_helper[i] = new MemoryHelper(The_Sundials_Context(i));
@@ -205,5 +202,4 @@ MemoryHelper* The_SUNMemory_Helper(int i)
     return the_sunmemory_helper[i];
 }
 
-}
 }

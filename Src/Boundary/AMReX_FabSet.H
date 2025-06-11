@@ -3,6 +3,7 @@
 #define AMREX_FABSET_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_FabDataType.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
@@ -40,19 +41,18 @@ namespace amrex {
         FabSets are used primarily as a data storage mechanism, and are
         manipulated by more sophisticated control classes.
 */
-
 template <typename MF>
 class FabSetT
 {
     friend class FabSetIter;
     friend class FluxRegister;
 public:
-    using value_type = typename MF::value_type;
-    using FAB = typename MF::fab_type;
+    using value_type = typename FabDataType<MF>::value_type;
+    using FAB        = typename FabDataType<MF>::fab_type;
 
     //
     //! The default constructor -- you must later call define().
-    FabSetT () noexcept {}
+    FabSetT () noexcept = default;
     //
     //! Construct a FabSetT<MF> of specified number of components on the grids.
     FabSetT (const BoxArray& grids, const DistributionMapping& dmap, int ncomp);
@@ -85,19 +85,19 @@ public:
     MultiArray4<value_type      > arrays ()       noexcept { return m_mf.arrays(); }
     MultiArray4<value_type const> const_arrays () const noexcept { return m_mf.const_arrays(); }
 
-    Box fabbox (int K) const noexcept { return m_mf.fabbox(K); }
+    [[nodiscard]] Box fabbox (int K) const noexcept { return m_mf.fabbox(K); }
 
-    int size () const noexcept { return m_mf.size(); }
+    [[nodiscard]] int size () const noexcept { return m_mf.size(); }
 
-    const BoxArray& boxArray () const noexcept { return m_mf.boxArray(); }
+    [[nodiscard]] const BoxArray& boxArray () const noexcept { return m_mf.boxArray(); }
 
-    const DistributionMapping& DistributionMap () const noexcept
+    [[nodiscard]] const DistributionMapping& DistributionMap () const noexcept
         { return m_mf.DistributionMap(); }
 
-    MF      & multiFab ()       noexcept { return m_mf; }
-    MF const& multiFab () const noexcept { return m_mf; }
+    [[nodiscard]] MF      & multiFab ()       noexcept { return m_mf; }
+    [[nodiscard]] MF const& multiFab () const noexcept { return m_mf; }
 
-    int nComp () const noexcept { return m_mf.nComp(); }
+    [[nodiscard]] int nComp () const noexcept { return m_mf.nComp(); }
 
     void clear () { m_mf.clear(); }
 
@@ -318,15 +318,14 @@ FabSetT<MF>::linComb (value_type a, const MF& mfa, int a_comp,
                       int dcomp, int ncomp, int ngrow)
 {
     BL_PROFILE("FabSetT<MF>::linComb()");
-    BL_ASSERT(ngrow <= mfa.nGrow());
-    BL_ASSERT(ngrow <= mfb.nGrow());
+    BL_ASSERT(mfa.nGrowVect().allGE(ngrow) && mfb.nGrowVect().allGE(ngrow));
     BL_ASSERT(mfa.boxArray() == mfb.boxArray());
     BL_ASSERT(boxArray() != mfa.boxArray());
 
     MF bdrya(boxArray(),DistributionMap(),ncomp,0,MFInfo());
     MF bdryb(boxArray(),DistributionMap(),ncomp,0,MFInfo());
 
-    const value_type huge = static_cast<value_type>(sizeof(value_type) == 8 ? 1.e200 : 1.e30);
+    const auto huge = static_cast<value_type>(sizeof(value_type) == 8 ? 1.e200 : 1.e30);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

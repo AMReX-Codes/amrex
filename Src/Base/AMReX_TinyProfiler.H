@@ -5,14 +5,6 @@
 #include <AMReX_INT.H>
 #include <AMReX_REAL.H>
 
-#ifdef AMREX_USE_CUDA
-#include <nvToolsExt.h>
-#endif
-
-#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
-#include <roctracer/roctx.h>
-#endif
-
 #include <array>
 #include <deque>
 #include <iosfwd>
@@ -25,21 +17,8 @@
 
 namespace amrex {
 
-class CArena;
-
 struct MemStat
 {
-    enum memory_type {
-        device = 0,
-        managed = 1,
-        pinned = 2,
-        cpu = 3,
-    };
-
-    static constexpr std::array<const char *, 4> memory_name = {
-        "Device", "Managed", "Pinned", "Cpu (amrex_mempool)"
-    };
-
     Long nalloc = 0;        //!< number of allocations
     Long nfree = 0;         //!< number of frees
     Long currentmem = 0;    //!< amount of currently used memory in bytes
@@ -52,22 +31,24 @@ class TinyProfiler
 {
 public:
     explicit TinyProfiler (std::string funcname) noexcept;
-    TinyProfiler (std::string funcname, bool start_, bool useCUPTI=false) noexcept;
+    TinyProfiler (std::string funcname, bool start_) noexcept;
     explicit TinyProfiler (const char* funcname) noexcept;
-    TinyProfiler (const char* funcname, bool start_, bool useCUPTI=false) noexcept;
+    TinyProfiler (const char* funcname, bool start_) noexcept;
     ~TinyProfiler ();
+
+    TinyProfiler (TinyProfiler const&) = delete;
+    TinyProfiler (TinyProfiler &&) = delete;
+    TinyProfiler& operator= (TinyProfiler const&) = delete;
+    TinyProfiler& operator= (TinyProfiler &&) = delete;
 
     void start () noexcept;
     void stop () noexcept;
-#ifdef AMREX_USE_CUPTI
-    void stop (unsigned boxUintID) noexcept;
-#endif // AMREX_USE_CUPTI
-
 
     void memory_start () const noexcept;
     void memory_stop () const noexcept;
 
-    static MemStat* memory_alloc (std::size_t nbytes, int memtype) noexcept;
+    static MemStat* memory_alloc (std::size_t nbytes,
+                                  std::map<std::string, MemStat>& memstats) noexcept;
     static void memory_free (std::size_t nbytes, MemStat* stat) noexcept;
 
     static void Initialize () noexcept;
@@ -75,6 +56,11 @@ public:
 
     static void MemoryInitialize () noexcept;
     static void MemoryFinalize (bool bFlushing = false) noexcept;
+
+    static bool RegisterArena (const std::string& memory_name,
+                               std::map<std::string, MemStat>& memstats) noexcept;
+
+    static void DeregisterArena (std::map<std::string, MemStat>& memstats) noexcept;
 
     static void StartRegion (std::string regname) noexcept;
     static void StopRegion (const std::string& regname) noexcept;
@@ -84,30 +70,24 @@ public:
 private:
     struct Stats
     {
-        Stats () noexcept : depth(0), n(0L), dtin(0.0), dtex(0.0),
-                            usesCUPTI(false), nk(0) { }
-        int  depth;     //!< recursive depth
-        Long n;         //!< number of calls
-        double dtin;    //!< inclusive dt
-        double dtex;    //!< exclusive dt
-        bool usesCUPTI; //!< uses CUPTI
-        Long nk;        //!< number of kernel calls
+        Stats () noexcept  = default;
+        int  depth{0};     //!< recursive depth
+        Long n{0L};         //!< number of calls
+        double dtin{0.0};    //!< inclusive dt
+        double dtex{0.0};    //!< exclusive dt
     };
 
     //! stats across processes
     struct ProcStats
     {
-        ProcStats () : nmin(std::numeric_limits<Long>::max()),
-                       navg(0L), nmax(0L),
-                       dtinmin(std::numeric_limits<double>::max()),
-                       dtinavg(0.0), dtinmax(0.0),
-                       dtexmin(std::numeric_limits<double>::max()),
-                       dtexavg(0.0), dtexmax(0.0),
-                       usesCUPTI(false) {}
-        Long nmin, navg, nmax;
-        double dtinmin, dtinavg, dtinmax;
-        double dtexmin, dtexavg, dtexmax;
-        bool usesCUPTI;
+
+        Long nmin{std::numeric_limits<Long>::max()};
+        Long navg{0L}, nmax{0L};
+        double dtinmin{std::numeric_limits<double>::max()};
+        double dtinavg{0.0}, dtinmax{0.0};
+        double dtexmin{std::numeric_limits<double>::max()};
+        double dtexavg{0.0}, dtexmax{0.0};
+        bool do_print{true};
         std::string fname;
         static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
             return lhs.dtexmax > rhs.dtexmax;
@@ -134,11 +114,9 @@ private:
     };
 
     std::string fname;
-    bool uCUPTI;
-    bool in_parallel_region;
-    int global_depth;
+    bool in_parallel_region = false;
+    int global_depth = -1;
     std::vector<Stats*> stats;
-
 
     static std::deque<const TinyProfiler*> mem_stack;
 
@@ -150,18 +128,27 @@ private:
 
     static std::vector<aligned_deque> mem_stack_thread_private;
 #endif
-    static std::array<std::map<std::string, MemStat>, 4> mem_statsmap;
+    static std::vector<std::map<std::string, MemStat>*> all_memstats;
+    static std::vector<std::string> all_memnames;
 
     static std::vector<std::string> regionstack;
     static std::deque<std::tuple<double,double,std::string*> > ttstack;
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static double t_init;
-    static int device_synchronize_around_region;
+    static bool device_synchronize_around_region;
     static int n_print_tabs;
     static int verbose;
+    static double print_threshold;
+    static bool enabled;
+    static bool memprof_enabled;
+    static std::string output_file;
 
-    static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
-    static void PrintMemStats (int mem_type, double dt_max, double t_final);
+    static std::string const& get_output_file ();
+    static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
+                            std::ostream* os);
+    static void PrintMemStats (std::map<std::string, MemStat>& memstats,
+                               std::string const& memname, double dt_max,
+                               double t_final, std::ostream* os);
 };
 
 class TinyProfileRegion
@@ -169,6 +156,10 @@ class TinyProfileRegion
 public:
     explicit TinyProfileRegion (std::string a_regname) noexcept;
     explicit TinyProfileRegion (const char* a_regname) noexcept;
+    TinyProfileRegion (TinyProfileRegion const&) = delete;
+    TinyProfileRegion (TinyProfileRegion &&) = delete;
+    TinyProfileRegion& operator= (TinyProfileRegion const&) = delete;
+    TinyProfileRegion& operator= (TinyProfileRegion &&) = delete;
     ~TinyProfileRegion ();
 private:
     std::string regname;

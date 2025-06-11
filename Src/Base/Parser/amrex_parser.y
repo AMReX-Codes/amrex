@@ -100,12 +100,16 @@ exp:
 | exp NEQ exp                { $$ = amrex::parser_newf2(amrex::PARSER_NEQ, $1, $3); }
 | exp AND exp                { $$ = amrex::parser_newf2(amrex::PARSER_AND, $1, $3); }
 | exp OR exp                 { $$ = amrex::parser_newf2(amrex::PARSER_OR, $1, $3); }
-| '-'exp %prec NEG           { $$ = amrex::parser_newnode(amrex::PARSER_NEG, $2, nullptr); }
+| '-'exp %prec NEG           { $$ = amrex::parser_newneg($2); }
 | '+'exp %prec UPLUS         { $$ = $2; }
 | exp POW exp                { $$ = amrex::parser_newf2(amrex::PARSER_POW, $1, $3); }
 | F1 '(' exp ')'             { $$ = amrex::parser_newf1($1, $3); }
 | F2 '(' exp ',' exp ')'     { $$ = amrex::parser_newf2($1, $3, $5); }
 | F3 '(' exp ',' exp ',' exp ')' { $$ = amrex::parser_newf3($1, $3, $5, $7); }
+| SYMBOL '(' exp ')'                 { $$ = amrex::parser_newusrf1($1, $3); }
+| SYMBOL '(' exp ',' exp ')'         { $$ = amrex::parser_newusrf2($1, $3, $5); }
+| SYMBOL '(' exp ',' exp ',' exp ')' { $$ = amrex::parser_newusrfn($1, {$3, $5, $7}); }
+| SYMBOL '(' exp ',' exp ',' exp ',' exp ')' { $$ = amrex::parser_newusrfn($1, {$3, $5, $7, $9}); }
 | SYMBOL '=' exp             { $$ = amrex::parser_newassign($1, $3); }
 | exp ';' exp                { $$ = amrex::parser_newlist($1, $3); }
 | exp ';'                    { $$ = amrex::parser_newlist($1, nullptr); }

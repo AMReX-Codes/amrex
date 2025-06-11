@@ -1,6 +1,6 @@
 
 ifneq (,$(findstring ~,$(AMREX_HOME)))
-  $(warning *** AMREX_HOME string constains ~ and make will not like it. So it is replaced.)
+  $(warning *** AMREX_HOME string contains ~ and make will not like it. So it is replaced.)
   AMREX_HOME := $(shell echo $(AMREX_HOME))
 endif
 
@@ -26,7 +26,7 @@ endif
 ifdef USE_SYCL
   USE_SYCL := $(strip $(USE_SYCL))
 else ifdef USE_DPCPP
-  $(warning *** USE_DPCPP has bee deprecated. Use USE_SYCL instead.)
+  $(warning *** USE_DPCPP has been deprecated. Use USE_SYCL instead.)
   USE_SYCL := $(strip $(USE_DPCPP))
 else
   USE_SYCL := FALSE
@@ -35,6 +35,8 @@ endif
 ifeq ($(USE_SYCL),TRUE)
   override COMP = sycl
   DEFINES += -DAMREX_USE_SYCL -DAMREX_USE_DPCPP
+  SYCL_SUB_GROUP_SIZE ?= 32
+  DEFINES += -DAMREX_SYCL_SUB_GROUP_SIZE=$(SYCL_SUB_GROUP_SIZE)
   USE_GPU := TRUE
   USE_CUDA := FALSE
   USE_HIP := FALSE
@@ -54,7 +56,6 @@ else
 endif
 
 ifeq ($(USE_HIP),TRUE)
-  DEBUG := FALSE  # Currently there is a compiler bug for DEBUG=TRUE.
   USE_CUDA := FALSE
   override COMP = hip
   ifneq ($(NO_CONFIG_CHECKING),TRUE)
@@ -109,6 +110,12 @@ ifdef DEBUG
   DEBUG := $(strip $(DEBUG))
 else
   DEBUG := FALSE
+endif
+
+ifdef USE_FFT
+  USE_FFT := $(strip $(USE_FFT))
+else
+  USE_FFT := FALSE
 endif
 
 ifdef PROFILE
@@ -215,6 +222,12 @@ else
   USE_CONDUIT := FALSE
 endif
 
+ifdef USE_CATALYST
+  USE_CATALYST := $(strip $(USE_CATALYST))
+else
+  USE_CATALYST := FALSE
+endif
+
 ifdef USE_ASCENT
   USE_ASCENT := $(strip $(USE_ASCENT))
 else
@@ -266,6 +279,9 @@ ifeq ($(USE_CUDA),TRUE)
   # Limit the maximum number of registers available.
   CUDA_MAXREGCOUNT ?= 255
 
+  # Link-time optimization
+  CUDA_LTO ?= FALSE
+
   # Enable verbosity in the CUDA compilation.
   CUDA_VERBOSE ?= TRUE
 endif
@@ -308,6 +324,12 @@ ifdef USE_FORCE_INLINE
   USE_FORCE_INLINE := $(strip $(USE_FORCE_INLINE))
 else
   USE_FORCE_INLINE := FALSE
+endif
+
+ifdef USE_FLATTEN_FOR
+  USE_FLATTEN_FOR := $(strip $(USE_FLATTEN_FOR))
+else
+  USE_FLATTEN_FOR := FALSE
 endif
 
 ifdef WARN_ALL
@@ -456,6 +478,10 @@ ifdef AMREX_CCOMP
     AMREX_CCOMP = gnu
   else ifeq ($(lowercase_amrex_ccomp),intel)
     AMREX_CCOMP = intel
+  else ifeq ($(lowercase_amrex_ccomp),intel-llvm)
+    AMREX_CCOMP = intel-llvm
+  else ifeq ($(lowercase_amrex_ccomp),intel-classic)
+    AMREX_CCOMP = intel-classic
   else ifeq ($(lowercase_amrex_ccomp),sycl)
     AMREX_CCOMP = sycl
   else ifeq ($(lowercase_amrex_ccomp),cray)
@@ -477,7 +503,7 @@ ifdef AMREX_CCOMP
   else ifeq ($(lowercase_amrex_ccomp),armclang)
     AMREX_CCOMP = armclang
   else
-    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, sycl, cray, pgi, nvhpc, ibm, llvm, nag, nec, and armclang)
+    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, intel-llvm, intel-classic, sycl, cray, pgi, nvhpc, ibm, llvm, nag, nec, and armclang)
   endif
 endif
 
@@ -494,6 +520,16 @@ else ifeq ($(lowercase_comp),intel)
   AMREX_CCOMP ?= intel
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak
+else ifeq ($(lowercase_comp),intel-llvm)
+  AMREX_FCOMP ?= intel-llvm
+  AMREX_CCOMP ?= intel-llvm
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel-llvm.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/intel-llvm.mak
+else ifeq ($(lowercase_comp),intel-classic)
+  AMREX_FCOMP ?= intel-classic
+  AMREX_CCOMP ?= intel-classic
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel-classic.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/intel-classic.mak
 else ifeq ($(lowercase_comp),sycl)
   AMREX_FCOMP ?= none
   AMREX_CCOMP ?= sycl
@@ -552,7 +588,7 @@ else ifeq ($(lowercase_comp),hip)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, sycl, cray, pgi, nvhpc, ibm, llvm, nag, and nec)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, intel-llvm, intel-classic, sycl, cray, pgi, nvhpc, ibm, llvm, nag, and nec)
 endif
 
 CXXFLAGS += $(XTRA_CXXFLAGS)
@@ -572,6 +608,28 @@ ifeq ($(DEBUG),TRUE)
     DebugSuffix := .DEBUG
 else
     DebugSuffix :=
+endif
+
+ifeq ($(USE_FFT),TRUE)
+  include $(AMREX_HOME)/Src/FFT/Make.package
+  ifeq ($(USE_CUDA),TRUE)
+    LIBRARIES += -lcufft
+  else ifeq ($(USE_HIP),TRUE)
+    # Use rocFFT.  ROC_PATH is defined in hip.mak
+    SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/rocfft/include
+    LIBRARY_LOCATIONS += $(ROC_PATH)/rocfft/lib
+    LIBRARIES += -Wl,--rpath=$(ROC_PATH)/rocfft/lib -lrocfft
+  else ifeq ($(USE_SYCL),TRUE)
+    # nothing
+  else
+    FFTW_HOME ?= NOT_SET
+    ifneq ($(FFTW_HOME),NOT_SET)
+      SYSTEM_INCLUDE_LOCATIONS += $(FFTW_HOME)/include
+      LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
+      LIBRARIES += -Wl,-rpath,$(FFTW_HOME)/lib
+    endif
+    LIBRARIES += -lfftw3f -lfftw3
+  endif
 endif
 
 ifeq ($(USE_PROFPARSER),TRUE)
@@ -699,6 +757,12 @@ ifeq ($(USE_FORCE_INLINE),TRUE)
     CPPFLAGS += -DAMREX_USE_FORCE_INLINE
 endif
 
+ifeq ($(USE_FLATTEN_FOR),TRUE)
+ifneq ($(DEBUG),TRUE)
+    CPPFLAGS += -DAMREX_USE_FLATTEN_FOR
+endif
+endif
+
 ifeq ($(USE_ACC),TRUE)
 
   USE_GPU := TRUE
@@ -723,10 +787,6 @@ ifeq ($(USE_HIP),TRUE)
     DEFINES += -DAMREX_USE_HIP
 
     GPUSuffix := .HIP
-
-    ifeq ($(HIP_INDIRECT_FUNCTION),TRUE)
-      DEFINES += -DAMREX_HIP_INDIRECT_FUNCTION
-    endif
 
     ifeq ($(USE_MPI),TRUE)
       # Make sure that the C/C++ MPI
@@ -882,6 +942,10 @@ ifeq ($(USE_PARTICLES),TRUE)
   DEFINES += -DAMREX_PARTICLES
 endif
 
+ifeq ($(USE_FFT),TRUE)
+    DEFINES += -DAMREX_USE_FFT
+endif
+
 ifeq ($(USE_EB),TRUE)
     DEFINES += -DAMREX_USE_EB
 endif
@@ -920,12 +984,14 @@ optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
-TmpBuildDir     = tmp_build_dir
-srcTempDir      = $(TmpBuildDir)/s/$(optionsSuffix).EXE
-depEXETempDir	= $(TmpBuildDir)/d/$(optionsSuffix).EXE
-objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
-f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
-tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
+TMP_BUILD_DIR     ?= tmp_build_dir
+# backwards compatibility: alias the old name so codes don't break
+TmpBuildDir := $(TMP_BUILD_DIR)
+srcTempDir      = $(TMP_BUILD_DIR)/s/$(optionsSuffix).EXE
+depEXETempDir	= $(TMP_BUILD_DIR)/d/$(optionsSuffix).EXE
+objEXETempDir   = $(TMP_BUILD_DIR)/o/$(optionsSuffix).EXE
+f77EXETempDir	= $(TMP_BUILD_DIR)/f/$(optionsSuffix).EXE
+tmpEXETempDir	= $(TMP_BUILD_DIR)/t/$(optionsSuffix).EXE
 
 includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS)) $(addprefix -isystem , $(SYSTEM_INCLUDE_LOCATIONS))
 ifeq ($(lowercase_comp),pgi)
@@ -944,7 +1010,7 @@ fmoddir         = $(objEXETempDir)
 
 amrexlib = $(objEXETempDir)/libamrex.a
 
-AMREX_INSTALL_DIR ?= tmp_build_dir
+AMREX_INSTALL_DIR ?= $(TMP_BUILD_DIR)
 amrexLibDir = $(AMREX_INSTALL_DIR)/lib
 amrexIncludeDir = $(AMREX_INSTALL_DIR)/include
 # Do different compilers have different name convention for mod files?
@@ -969,28 +1035,31 @@ else
   CCACHE =
 endif
 
+ifeq ($(USE_CLANG_TIDY),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.clang-tidy)
+  include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.clang-tidy
+endif
+
+ifeq ($(USE_COVERITY),TRUE)
+  DEFINES += -DAMREX_USE_COVERITY
+endif
+
 # place holder
 F90CACHE =
 
 ifeq ($(TP_PROFILING),VTUNE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
 endif
 
 ifeq ($(TP_PROFILING),CRAYPAT)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
 endif
 
 ifeq ($(TP_PROFILING),FORGE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.forge
-endif
-
-# Use Sam Williams's HPGMG
-ifeq ($(USE_HPGMG), TRUE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hpgmg...)
-  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hpgmg
 endif
 
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/sites/Make.$(host_name))","")
@@ -1014,6 +1083,11 @@ endif
 ifeq ($(USE_CONDUIT),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.conduit...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.conduit
+endif
+
+ifeq ($(USE_CATALYST),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.catalyst...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.catalyst
 endif
 
 ifeq ($(USE_ASCENT),TRUE)
@@ -1041,6 +1115,12 @@ ifeq ($(USE_HDF5),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hdf5
 endif
 
+ifeq ($(USE_BITTREE),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.bittree...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.bittree
+endif
+
+
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
@@ -1059,12 +1139,19 @@ else ifeq ($(USE_HIP),TRUE)
       AMD_ARCH = $(AMREX_AMD_ARCH)
     endif
 
+    # For AMD GPUs, the wavefront is 64 except for gfx10?? and gfx11??.
+    ifeq ($(filter gfx10% gfx11%,$(AMD_ARCH)),)
+       DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=64
+    else
+       DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=32
+    endif
+
     ifeq ($(HIP_SAVE_TEMPS),TRUE)
+      ifeq ($(USE_GPU_RDC),TRUE)
+        $(warning *** HIP_SAVE_TEMPS requires USE_GPU_RDC=FALSE to obtain the assembly files for AMD GPU kernels.)
+      endif
       # Issue: hipcc does not seem to respect the arg to --save-temps
       CXXFLAGS += --save-temps=$(objEXETempDir)
-      ifeq ($(DEBUG),TRUE) # --save-temps does not like AMREX_GPU_EXTERNAL
-        CPPFLAGS += -DNDEBUG
-      endif
     endif
 
 else ifeq ($(USE_CUDA),TRUE)
@@ -1087,19 +1174,11 @@ else ifeq ($(USE_CUDA),TRUE)
         MAKE_CUDA_PATH := $(SYSTEM_CUDA_PATH)
     endif
 
-    LIBRARIES += -lcuda
+    LIBRARIES += -lcuda -lcurand -lcusparse
 
     ifneq ($(MAKE_CUDA_PATH),)
         LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64
         SYSTEM_INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/include
-
-        ifeq ($(PROFILE),TRUE)
-            LIBRARIES += -lnvToolsExt
-        endif
-
-        ifeq ($(TINY_PROFILE),TRUE)
-            LIBRARIES += -lnvToolsExt
-        endif
     endif
 
     # Bring in NVML support. This is not required,
@@ -1124,18 +1203,8 @@ else ifeq ($(USE_CUDA),TRUE)
 
     endif
 
-    # Provide system configuration, if available.
-
-    ifdef GPUS_PER_SOCKET
-       DEFINES += -DAMREX_GPUS_PER_SOCKET=$(GPUS_PER_SOCKET)
-    endif
-
-    ifdef GPUS_PER_NODE
-       DEFINES += -DAMREX_GPUS_PER_NODE=$(GPUS_PER_NODE)
-    endif
-
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-      LINKFLAGS = $(NVCC_FLAGS) $(CXXFLAGS_FROM_HOST)
+      LINKFLAGS = $(NVCC_FLAGS) $(NVCC_ARCH_LINK_FLAGS) $(CXXFLAGS_FROM_HOST)
       AMREX_LINKER = nvcc
     endif
 

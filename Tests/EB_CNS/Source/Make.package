@@ -11,7 +11,6 @@ CEXE_sources += CNS_advance_box.cpp
 CEXE_sources += CNS_advance_box_eb.cpp
 CEXE_sources += CNS_bcfill.cpp
 CEXE_sources += CNS_derive.cpp
-CEXE_sources += CNS_flux_redistribute.cpp
 CEXE_sources += CNS.cpp
 CEXE_sources += CNSBld.cpp
 CEXE_sources += CNS_io.cpp

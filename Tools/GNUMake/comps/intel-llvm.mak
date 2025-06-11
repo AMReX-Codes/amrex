@@ -11,6 +11,10 @@ CFLAGS   =
 FFLAGS   =
 F90FLAGS =
 
+AMREX_CCOMP = intel-llvm
+AMREX_FCOMP = intel-llvm
+lowercase_comp = intel-llvm
+
 ########################################################################
 
 intel_version = $(shell $(CXX) -dumpversion)
@@ -30,8 +34,8 @@ else
 
   CXXFLAGS += -g1 -O3
   CFLAGS   += -g1 -O3
-  FFLAGS   += -g -O3
-  F90FLAGS += -g -O3
+  FFLAGS   += -g1 -O3
+  F90FLAGS += -g1 -O3
 
 endif
 

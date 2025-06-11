@@ -7,7 +7,7 @@
 namespace amrex {
 
 EBCellConservativeLinear  eb_lincc_interp;
-EBCellConservativeLinear  eb_cell_cons_interp(0);
+EBCellConservativeLinear  eb_cell_cons_interp(false);
 
 void
 EBCellConservativeLinear::interp (const FArrayBox& crse,
@@ -31,12 +31,12 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
 
     if (crse.getType() == FabType::regular)
     {
-        BL_ASSERT(amrex::getEBCellFlagFab(fine).getType(target_fine_region) == FabType::regular);
+        AMREX_ASSERT(amrex::getEBCellFlagFab(fine).getType(target_fine_region) == FabType::regular);
     }
     else
     {
-        const EBFArrayBox& crse_eb = static_cast<EBFArrayBox const&>(crse);
-        EBFArrayBox&       fine_eb = static_cast<EBFArrayBox      &>(fine);
+        const auto& crse_eb = static_cast<EBFArrayBox const&>(crse);
+        auto&       fine_eb = static_cast<EBFArrayBox      &>(fine);
 
         const EBCellFlagFab& crse_flag = crse_eb.getEBCellFlagFab();
         const EBCellFlagFab& fine_flag = fine_eb.getEBCellFlagFab();

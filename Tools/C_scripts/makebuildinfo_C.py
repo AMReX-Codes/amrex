@@ -110,7 +110,7 @@ const char* buildInfoGetAux(int i) {
 }
 
 int buildInfoGetNumModules() {
-  // int num_modules = X;
+  // int const num_modules = X;
   @@NUM_MODULES@@
   return num_modules;
 }
@@ -263,6 +263,10 @@ if __name__ == "__main__":
                         help="style options for the 'git describe' command used to construct hash strings",
                         type=str, default="--always --tags --dirty")
 
+    parser.add_argument("--output_dir",
+                        help="the directory where AMReX_buildInfo.cpp should be placed",
+                        type=str, default="")
+
 
     # parse and convert to a dictionary
     args = parser.parse_args()
@@ -281,7 +285,6 @@ if __name__ == "__main__":
     else:
         GIT = args.GIT.split()
 
-    ngit = len(GIT)
     git_hashes = []
     for d in GIT:
         if d and os.path.isdir(d):
@@ -321,7 +324,11 @@ if __name__ == "__main__":
         AUX = args.AUX.split()
 
 
-    fout = open("AMReX_buildInfo.cpp", "w")
+    dest_path = "AMReX_buildInfo.cpp"
+    if args.output_dir:
+        os.makedirs(args.output_dir, exist_ok=True)
+        dest_path = os.path.join(args.output_dir, dest_path)
+    fout = open(dest_path, "w")
 
     # dictionary view of the args
     dargs = vars(args)
@@ -367,7 +374,7 @@ if __name__ == "__main__":
             elif keyword == "NUM_MODULES":
                 num_modules = len(MODULES)
                 indent = index
-                fout.write("{}int num_modules = {};\n".format(
+                fout.write("{}int const num_modules = {};\n".format(
                     indent*" ", num_modules))
 
             elif keyword == "MNAME_DECLS":

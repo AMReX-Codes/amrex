@@ -24,10 +24,10 @@ struct CnsFillExtDir
 // scomp               : component index for dcomp as in the descriptor set up in CNS::variableSetUp.
 
 void cns_bcfill (Box const& bx, FArrayBox& data,
-                 const int dcomp, const int numcomp,
-                 Geometry const& geom, const Real time,
-                 const Vector<BCRec>& bcr, const int bcomp,
-                 const int scomp)
+                 int dcomp, int numcomp,
+                 Geometry const& geom, Real time,
+                 const Vector<BCRec>& bcr, int bcomp,
+                 int scomp)
 {
     GpuBndryFuncFab<CnsFillExtDir> gpu_bndry_func(CnsFillExtDir{});
     gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);

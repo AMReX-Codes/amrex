@@ -68,7 +68,7 @@ std::enable_if_t<IsFabArray<MF>::value>
 ParallelFor (MF const& mf, F&& f)
 {
 #ifdef AMREX_USE_GPU
-    detail::ParallelFor<MT>(mf, IntVect(0), FabArrayBase::mfiter_tile_size, false, std::forward<F>(f));
+    detail::ParallelFor<MT>(mf, IntVect(0), 1, FabArrayBase::mfiter_tile_size, false, std::forward<F>(f));
 #else
     detail::ParallelFor(mf, IntVect(0), FabArrayBase::mfiter_tile_size, false, std::forward<F>(f));
 #endif
@@ -119,7 +119,7 @@ std::enable_if_t<IsFabArray<MF>::value>
 ParallelFor (MF const& mf, IntVect const& ng, F&& f)
 {
 #ifdef AMREX_USE_GPU
-    detail::ParallelFor<MT>(mf, ng, FabArrayBase::mfiter_tile_size, false, std::forward<F>(f));
+    detail::ParallelFor<MT>(mf, ng, 1, FabArrayBase::mfiter_tile_size, false, std::forward<F>(f));
 #else
     detail::ParallelFor(mf, ng, FabArrayBase::mfiter_tile_size, false, std::forward<F>(f));
 #endif
@@ -225,7 +225,7 @@ std::enable_if_t<IsFabArray<MF>::value>
 ParallelFor (MF const& mf, TileSize const& ts, F&& f)
 {
 #ifdef AMREX_USE_GPU
-    detail::ParallelFor<MT>(mf, IntVect(0), ts.tile_size, false, std::forward<F>(f));
+    detail::ParallelFor<MT>(mf, IntVect(0), 1, ts.tile_size, false, std::forward<F>(f));
 #else
     detail::ParallelFor(mf, IntVect(0), ts.tile_size, false, std::forward<F>(f));
 #endif
@@ -280,7 +280,7 @@ std::enable_if_t<IsFabArray<MF>::value>
 ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, F&& f)
 {
 #ifdef AMREX_USE_GPU
-    detail::ParallelFor<MT>(mf, ng, ts.tile_size, false, std::forward<F>(f));
+    detail::ParallelFor<MT>(mf, ng, 1, ts.tile_size, false, std::forward<F>(f));
 #else
     detail::ParallelFor(mf, ng, ts.tile_size, false, std::forward<F>(f));
 #endif
@@ -423,7 +423,7 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts,
              DynamicTiling dt, F&& f)
 {
 #ifdef AMREX_USE_GPU
-    detail::ParallelFor<MT>(mf, ng, ts.tile_size, dt.dynamic, std::forward<F>(f));
+    detail::ParallelFor<MT>(mf, ng, 1, ts.tile_size, dt.dynamic, std::forward<F>(f));
 #else
     detail::ParallelFor(mf, ng, ts.tile_size, dt.dynamic, std::forward<F>(f));
 #endif

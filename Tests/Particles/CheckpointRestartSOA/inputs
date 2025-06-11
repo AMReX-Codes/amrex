@@ -1,0 +1,26 @@
+# Domain size
+ncells = 64
+
+# Maximum allowable size of each subdomain in the problem domain;
+# this is used to decompose the domain for parallel calculations.
+max_grid_size = 8
+
+# Number of levels
+nlevs = 1
+
+# Number of components in the multifabs
+ncomp = 6
+
+# Number of particles per cell
+nppc = 2
+
+# Number of plot files to write
+nplotfile = 1
+
+# Number of plot files to write
+nparticlefile = 1
+
+# Whether to check the correctness of Checkpoint / Restart
+restart_check = 1
+
+directory=.

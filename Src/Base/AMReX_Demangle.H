@@ -26,7 +26,7 @@ inline std::string demangle (const char* name)
 {
 #ifdef AMREX_USE_CXXABI
     int status;
-    char* p = abi::__cxa_demangle(name, 0, 0, &status);
+    char* p = abi::__cxa_demangle(name, nullptr, nullptr, &status);
     if (p) {
         std::string s(p);
         std::free(p);

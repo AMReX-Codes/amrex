@@ -103,6 +103,10 @@ module amrex_fluxregister_module
      end subroutine amrex_fi_fluxregister_overwrite
   end interface
 
+  interface amrex_fluxregister_destroy
+     module procedure amrex_fluxregister_destroy
+  end interface amrex_fluxregister_destroy
+
 contains
 
   subroutine amrex_fluxregister_build (fr, ba, dm, ref_ratio, fine_lev, ncomp)

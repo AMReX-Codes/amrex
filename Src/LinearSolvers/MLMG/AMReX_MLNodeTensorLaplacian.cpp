@@ -1,5 +1,5 @@
 #include <AMReX_MLNodeTensorLaplacian.H>
-#include <AMReX_MLNodeLap_K.H>
+#include <AMReX_MLNodeLinOp_K.H>
 #include <AMReX_MLNodeTensorLap_K.H>
 #include <AMReX_MultiFabUtil.H>
 
@@ -13,17 +13,14 @@ MLNodeTensorLaplacian::MLNodeTensorLaplacian (const Vector<Geometry>& a_geom,
     define(a_geom, a_grids, a_dmap, a_info);
 }
 
-MLNodeTensorLaplacian::~MLNodeTensorLaplacian ()
-{}
-
 void
 MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 {
-    for (int i = 0; i < nelems; ++i) m_sigma[i] = a_sigma[i];
+    for (int i = 0; i < nelems; ++i) { m_sigma[i] = a_sigma[i]; }
 }
 
 void
-MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept
+MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(a_beta);
@@ -41,7 +38,7 @@ MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexce
 #endif
 }
 
-GpuArray<Real,nelems>
+GpuArray<Real,MLNodeTensorLaplacian::nelems>
 MLNodeTensorLaplacian::scaledSigma (int amrlev, int mglev) const noexcept
 {
     auto s = m_sigma;
@@ -88,7 +85,7 @@ MLNodeTensorLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, Mult
 
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
-    IntVect const ratio = mg_coarsen_ratio_vec[cmglev-1];
+    IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
     int semicoarsening_dir = info.semicoarsening_direction;
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
@@ -134,7 +131,7 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
 {
     BL_PROFILE("MLNodeTensorLaplacian::interpolation()");
 
-    IntVect const ratio = mg_coarsen_ratio_vec[fmglev];
+    IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
     int semicoarsening_dir = info.semicoarsening_direction;
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
@@ -222,24 +219,28 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
     {
         mlndtslap_adotx(i,j,k, out_a[box_no], in_a[box_no], dmsk_a[box_no], s);
     });
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 #endif
 }
 
 void
 MLNodeTensorLaplacian::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                               bool skip_fillboundary) const
+                               bool skip_fillboundary, int niter) const
 {
     BL_PROFILE("MLNodeTensorLaplacian::smooth()");
-    for (int redblack = 0; redblack < 4; ++redblack) {
-        if (!skip_fillboundary) {
-            applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+    for (int i = 0; i < niter; ++i) {
+        for (int redblack = 0; redblack < 4; ++redblack) {
+            if (!skip_fillboundary) {
+                applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+            }
+            m_redblack = redblack;
+            Fsmooth(amrlev, mglev, sol, rhs);
+            skip_fillboundary = false;
         }
-        m_redblack = redblack;
-        Fsmooth(amrlev, mglev, sol, rhs);
-        skip_fillboundary = false;
+        nodalSync(amrlev, mglev, sol);
     }
-    nodalSync(amrlev, mglev, sol);
 }
 
 void
@@ -264,7 +265,9 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
             mlndtslap_gauss_seidel(i, j, k, sol_a[box_no], rhs_a[box_no], dmsk_a[box_no], s);
         }
     });
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 #endif
 }
 
@@ -272,7 +275,6 @@ void
 MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
     amrex::ignore_unused(amrlev,mglev,mf);
-    return;
 }
 
 void
@@ -286,9 +288,9 @@ void
 MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
                                      Array4<HypreNodeLap::AtomicInt const> const& gid,
                                      Array4<int const> const& lid,
-                                     HypreNodeLap::Int* const ncols,
-                                     HypreNodeLap::Int* const cols,
-                                     Real* const mat) const
+                                     HypreNodeLap::Int* ncols,
+                                     HypreNodeLap::Int* cols,
+                                     Real* mat) const
 {
     const int amrlev = 0;
     const int mglev = NMGLevels(amrlev)-1;
@@ -309,15 +311,15 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
             (nmax,
              [=] AMREX_GPU_DEVICE (int offset) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
-                 Dim3 node2 = GetNode2()(offset, node);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
+                 Dim3 node2 = nodelap_detail::GetNode2()(offset, node);
                  return (lid(node.x,node.y,node.z) >= 0 &&
                          gid(node2.x,node2.y,node2.z)
                          < std::numeric_limits<HypreNodeLap::AtomicInt>::max());
              },
              [=] AMREX_GPU_DEVICE (int offset, int ps) noexcept
              {
-                 Dim3 node = GetNode()(ndlo, ndlen, offset);
+                 Dim3 node = nodelap_detail::GetNode()(ndlo, ndlen, offset);
                  mlndtslap_fill_ijmatrix_gpu(ps, node.x, node.y, node.z, offset,
                                              ndbx, gid, lid, ncols, cols, mat, s);
              },
@@ -331,7 +333,7 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
 
 void
 MLNodeTensorLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
-                                Real* const rhs, Array4<Real const> const& bfab) const
+                                Real* rhs, Array4<Real const> const& bfab) const
 {
     const Box& bx = mfi.validbox();
     AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,

@@ -14,7 +14,7 @@ namespace amrex {
  * the second MultiFab.
  \verbatim
      auto const& ma1 = mf1.const_arrays();
-     auot const& ma2 = mf2.const_arrays();
+     auto const& ma2 = mf2.const_arrays();
      GpuTuple<Real,Real> mm = ParReduce(TypeList<ReduceOpMin,ReduceOpMax>{},
                                         TypeList<Real,Real>{},
                                         mf1, mf1.nGrowVect(),
@@ -29,7 +29,7 @@ namespace amrex {
  *                ReduceOpLogicalAnd, and ReduceOpLogicalOr)
  * \tparam Ts...  data types (e.g., Real, int, etc.)
  * \tparam FAB    MultiFab/FabArray type
- * \tparam F      callable type like a lambda funcion
+ * \tparam F      callable type like a lambda function
  *
  * \param operation_list list of reduce operators
  * \param type_list      list of data types
@@ -79,7 +79,7 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
  *             ReduceOpLogicalAnd, and ReduceOpLogicalOr)
  * \tparam T   data type (e.g., Real, int, etc.)
  * \tparam FAB MultiFab/FabArray type
- * \tparam F   callable type like a lambda funcion
+ * \tparam F   callable type like a lambda function
  *
  * \param operation_list a reduce operator stored in TypeList
  * \param type_list      a data type stored in TypeList
@@ -113,7 +113,7 @@ ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
  * and the maximum of the second MultiFab.
  \verbatim
      auto const& ma1 = mf1.const_arrays();
-     auot const& ma2 = mf2.const_arrays();
+     auto const& ma2 = mf2.const_arrays();
      GpuTuple<Real,Real> mm = ParReduce(TypeList<ReduceOpMin,ReduceOpMax>{},
                                         TypeList<Real,Real>{},
                                         mf1, mf1.nGrowVect(), mf1.nComp(),
@@ -128,7 +128,7 @@ ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
  *                ReduceOpLogicalAnd, and ReduceOpLogicalOr)
  * \tparam Ts...  data types (e.g., Real, int, etc.)
  * \tparam FAB    MultiFab/FabArray type
- * \tparam F      callable type like a lambda funcion
+ * \tparam F      callable type like a lambda function
  *
  * \param operation_list list of reduce operators
  * \param type_list      list of data types
@@ -175,7 +175,7 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
  *             ReduceOpLogicalAnd, and ReduceOpLogicalOr)
  * \tparam T   data type (e.g., Real, int, etc.)
  * \tparam FAB MultiFab/FabArray type
- * \tparam F   callable type like a lambda funcion
+ * \tparam F   callable type like a lambda function
  *
  * \param operation_list a reduce operator stored in TypeList
  * \param type_list      a data type stored in TypeList
@@ -210,7 +210,7 @@ ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
  * the second MultiFab.
  \verbatim
      auto const& ma1 = mf1.const_arrays();
-     auot const& ma2 = mf2.const_arrays();
+     auto const& ma2 = mf2.const_arrays();
      GpuTuple<Real,Real> mm = ParReduce(TypeList<ReduceOpMin,ReduceOpMax>{},
                                         TypeList<Real,Real>{}, mf1,
      [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
@@ -224,7 +224,7 @@ ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
  *                ReduceOpLogicalAnd, and ReduceOpLogicalOr)
  * \tparam Ts...  data types (e.g., Real, int, etc.)
  * \tparam FAB    MultiFab/FabArray type
- * \tparam F      callable type like a lambda funcion
+ * \tparam F      callable type like a lambda function
  *
  * \param operation_list list of reduce operators
  * \param type_list      list of data types
@@ -268,7 +268,7 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
  *             ReduceOpLogicalAnd, and ReduceOpLogicalOr)
  * \tparam T   data type (e.g., Real, int, etc.)
  * \tparam FAB MultiFab/FabArray type
- * \tparam F   callable type like a lambda funcion
+ * \tparam F   callable type like a lambda function
  *
  * \param operation_list a reduce operator stored in TypeList
  * \param type_list      a data type stored in TypeList
