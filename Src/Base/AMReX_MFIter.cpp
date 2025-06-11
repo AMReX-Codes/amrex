@@ -540,7 +540,7 @@ MFIter::operator++ () noexcept
             {
                 // Because omp num threads is 1, gpu stream sync has not
                 // been called in Initialize. We need to sync stream 0
-                // before launching kerenles on stream 1, because the user
+                // before launching kernels on stream 1, because the user
                 // might have launched kernels (such as memcpyAsync) on
                 // stream 0 before this MFIter and the kernels on stream 1
                 // might depend on it.
