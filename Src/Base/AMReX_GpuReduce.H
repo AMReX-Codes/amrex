@@ -16,7 +16,6 @@
 
 #if defined(AMREX_USE_CUB)
 #include <cub/cub.cuh>
-#include <cuda/functional>
 #elif defined(AMREX_USE_HIP)
 #include <rocprim/rocprim.hpp>
 #endif
@@ -251,6 +250,15 @@ void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& h) noexc
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
+#if defined(CCCL_MAJOR_VERSION) && (CCCL_MAJOR_VERSION >= 3)
+#include <cuda/functional>
+using Max = cuda::maximum<>;
+using Min = cuda::minimum<>;
+#else
+using Max = cub::Max;
+using Min = cub::Min;
+#endif
+
 namespace detail {
 
 template <typename T>
@@ -420,7 +428,7 @@ T blockReduceMin (T source) noexcept
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
     __syncthreads();
-    return BlockReduce(temp_storage).Reduce(source, cuda::minimum<T>{});
+    return BlockReduce(temp_storage).Reduce(source, Min{});
 #elif defined(AMREX_USE_HIP)
     using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
@@ -470,7 +478,7 @@ T blockReduceMax (T source) noexcept
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
     __syncthreads();
-    return BlockReduce(temp_storage).Reduce(source, cuda::maximum<T>{});
+    return BlockReduce(temp_storage).Reduce(source, Max{});
 #elif defined(AMREX_USE_HIP)
     using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
