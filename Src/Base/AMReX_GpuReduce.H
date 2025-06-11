@@ -419,7 +419,7 @@ T blockReduceMin (T source) noexcept
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
     __syncthreads();
-    return BlockReduce(temp_storage).Reduce(source, cub::Min());
+    return BlockReduce(temp_storage).Reduce(source, cuda::minimum<T>{});
 #elif defined(AMREX_USE_HIP)
     using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
@@ -469,7 +469,7 @@ T blockReduceMax (T source) noexcept
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
     __syncthreads();
-    return BlockReduce(temp_storage).Reduce(source, cub::Max());
+    return BlockReduce(temp_storage).Reduce(source, cuda::maximum<T>{});
 #elif defined(AMREX_USE_HIP)
     using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
