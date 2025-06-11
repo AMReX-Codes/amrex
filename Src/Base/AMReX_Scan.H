@@ -827,7 +827,13 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         using BlockLoad = cub::BlockLoad<T, nthreads, nelms_per_thread, cub::BLOCK_LOAD_WARP_TRANSPOSE>;
         using BlockScan = cub::BlockScan<T, nthreads, cub::BLOCK_SCAN_WARP_SCANS>;
         using BlockExchange = cub::BlockExchange<T, nthreads, nelms_per_thread>;
-        using TilePrefixCallbackOp = cub::TilePrefixCallbackOp<T, cub::Sum, ScanTileState>;
+
+#ifdef AMREX_CUDA_CCCL_VER_3
+        using Sum = cuda::std::plus<T>;
+#else
+        using Sum = cub::Sum;
+#endif
+        using TilePrefixCallbackOp = cub::TilePrefixCallbackOp<T, Sum, ScanTileState>;
 
         __shared__ union TempStorage
         {
@@ -881,7 +887,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
             T last = data[nelms_per_thread-1]; // Need this for the total sum in exclusive case
 
             TilePrefixCallbackOp prefix_op(scan_tile_state, temp_storage.scan_storeage.prefix,
-                                           cub::Sum{}, virtual_block_id);
+                                           Sum{}, virtual_block_id);
             AMREX_IF_CONSTEXPR(is_exclusive) {
                 BlockScan(temp_storage.scan_storeage.scan).ExclusiveSum(data, data, prefix_op);
             } else {
