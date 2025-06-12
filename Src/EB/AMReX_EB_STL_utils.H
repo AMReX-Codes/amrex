@@ -84,6 +84,8 @@ public:
                           Array<Array4<EB2::Type_t const>,AMREX_SPACEDIM> const& type_arr,
                           Array4<Real const> const& lst, Geometry const& geom) ;
 
+    void fillSignedDistance (MultiFab& mf, IntVect const& nghost, Geometry const& geom) const;
+
     void prepare (Gpu::PinnedVector<Triangle> a_tri_pts);  // public for cuda
 
 private:
