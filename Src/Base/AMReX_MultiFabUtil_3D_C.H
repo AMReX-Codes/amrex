@@ -394,6 +394,27 @@ void amrex_avgdown (int i, int j, int k, int n, Array4<T> const& crse,
     crse(i,j,k,n+ccomp) = volfrac * c;
 }
 
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void amrex_sum_fine_to_crse (int i, int j, int k, int n, Array4<T> const& crse,
+                    Array4<T const> const& fine,
+                    int ccomp, int fcomp, IntVect const& ratio) noexcept
+{
+    const int facx = ratio[0];
+    const int facy = ratio[1];
+    const int facz = ratio[2];
+    const int ii = i*facx;
+    const int jj = j*facy;
+    const int kk = k*facz;
+    T c = 0;
+    for (int kref = 0; kref < facz; ++kref) {
+    for (int jref = 0; jref < facy; ++jref) {
+    for (int iref = 0; iref < facx; ++iref) {
+        c += fine(ii+iref,jj+jref,kk+kref,n+fcomp);
+    }}}
+    crse(i,j,k,n+ccomp) = c;
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void amrex_avgdown_with_vol (int i, int j, int k, int n, Array4<Real> const& crse,
                              Array4<Real const> const& fine,

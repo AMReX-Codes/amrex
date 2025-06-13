@@ -298,6 +298,24 @@ void amrex_avgdown (int i, int j, int, int n, Array4<T> const& crse,
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void amrex_sum_fine_to_crse (int i, int j, int, int n, Array4<T> const& crse,
+                    Array4<T const> const& fine,
+                    int ccomp, int fcomp, IntVect const& ratio) noexcept
+{
+    const int facx = ratio[0];
+    const int facy = ratio[1];
+    const int ii = i*facx;
+    const int jj = j*facy;
+    T c = 0;
+    for (int jref = 0; jref < facy; ++jref) {
+    for (int iref = 0; iref < facx; ++iref) {
+        c += fine(ii+iref,jj+jref,0,n+fcomp);
+    }}
+    crse(i,j,0,n+ccomp) = c;
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void amrex_avgdown_nodes (Box const& bx, Array4<T> const& crse,
                           Array4<T const> const& fine,
                           int ccomp, int fcomp, int ncomp,

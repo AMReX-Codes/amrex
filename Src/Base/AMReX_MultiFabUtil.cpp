@@ -413,7 +413,7 @@ namespace amrex
             ParallelFor(crse_S_fine, nGrow, ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
-                amrex_avgdown(i,j,k,n,crsema[box_no],finema[box_no],0,scomp,ratio);
+                amrex_sum_fine_to_crse(i,j,k,n,crsema[box_no],finema[box_no],0,scomp,ratio);
             });
             if (!Gpu::inNoSyncRegion()) {
                 Gpu::streamSynchronize();
@@ -433,7 +433,7 @@ namespace amrex
 
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
                 {
-                    amrex_avgdown(i,j,k,n,crsearr,finearr,0,scomp,ratio);
+                    amrex_sum_fine_to_crse(i,j,k,n,crsearr,finearr,0,scomp,ratio);
                 });
             }
         }
