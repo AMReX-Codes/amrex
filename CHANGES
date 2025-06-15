@@ -1,3 +1,77 @@
+# 25.06
+
+  ## Highlights:
+
+  * The default constructor of amrex::RandomEngine in GPU builds has been
+    removed to prevent a common bug where a RandomEngine object is
+    mistakenly created on the device using the default constructor.
+
+  * CArena now uses a new memory defragmentation strategy. It is known that
+    this has caused performance regression on Frontier. A fix for this is
+    currently under review (https://github.com/AMReX-Codes/amrex/pull/4479),
+    and it is expected in the next monthly release.
+
+  * AMReX has previously defined fake MPI data types globally in non-MPI
+    builds for convenience. Unfortunately, this can lead to conflicts with
+    other libraries doing the same. In this release, we have put these MPI
+    data types in non-MPI builds into the amrex namespace. This might break
+    non-MPI builds of some application codes. To fix it, you can explicitly
+    use these data types with `using amrex::mpidatatypes`. For many codes,
+    using a new version of amrex::Initialize that does not need MPI_Comm
+    introduced in this release can also fix the issue.
+
+  ## Major changes:
+
+  * ParallelCopy: Fix a launch region issue (#4481)
+
+  * Reuse MLEBNodeFDLaplacian and MLCurlCurl (#4480)
+
+  * Add new amrex::Initialize (#4476)
+
+  * GNU Make: Use -g1 for optimized builds with GCC and Clang (#4475)
+
+  * Update rules of check-changes (#4474)
+
+  * Fix compilation of PlotfileToMatLab (#4471)
+
+  * Print max CArena usage (#4468)
+
+  * Put MPI datatypes in separate namespace (#4470)
+
+  * Fix incorrect static_cast in amrex::cast (#4465)
+
+  * Avoid polluting global namespace with MPI types for non-MPI builds (#4463)
+
+  * Parser: Support User defined functions (#4425)
+
+  * ParmParse: Fix backward compatibility issue in #4457 (#4460)
+
+  * Fix RealVect::Zero (#4459)
+
+  * Convert RealVect to RealVectND (#4430)
+
+  * New ParmParse Feature: 2d table (#4457)
+
+  * CMake: NVTX is header-only for CUDA >= 11.2 (#4449)
+
+  * Fix new warnings from size 0 arrays (#4429)
+
+  * Parser: Fix a minor memory leak due to exception (#4442)
+
+  * add conservative linear interpolation for spherical 2d geometry (#4441)
+
+  * CArena free unused memory before allocate (#4451)
+
+  * GNU Make: NVTX is now header only (#4452)
+
+  * Parser Optimization: More aggressive cancellation (#4445)
+
+  * Parser: minor optimization (#4444)
+
+  * Delete RandomEngine's default constructor (#4443)
+
+  * Parser Optimization: Local constant folding (#4428)
+
 # 25.05
 
   -- SYCL on Windows workaround (#4436)

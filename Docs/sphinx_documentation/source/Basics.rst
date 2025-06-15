@@ -208,7 +208,7 @@ ParmParse
 
 :cpp:`ParmParse` in AMReX_ParmParse.H is a class providing a database for the
 storage and retrieval of command-line and input-file arguments. When
-:cpp:`amrex::Initialize(int& argc, char**& argv)` is called, the first command-line
+:cpp:`amrex::Initialize(int& argc, char**& argv, ...)` is called, the first command-line
 argument after the executable name (if there is one, and it does not contain the character
 '=' or start with '\-') is taken
 to be the inputs file, and the contents of the file are used to initialize the
@@ -579,7 +579,7 @@ In the example above the function was called ``add_par``, and therefore we write
 
 .. code-block:: cpp
 
-   amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, add_par);
+   amrex::Initialize(argc, argv, add_par);
 
 Now AMReX will use the user defined function to appropriately set the desired values.
 
@@ -726,6 +726,12 @@ are two versions of :cpp:`Initialize`.
                      std::ostream& a_oserr = std::cerr,
                      ErrorHandler a_errhandler = nullptr);
 
+    AMReX* Initialize (int& argc, char**& argv,
+                       const std::function<void()>& func_parm_parse,
+                       std::ostream& a_osout = std::cout,
+                       std::ostream& a_oserr = std::cerr,
+                       ErrorHandler a_errhandler = nullptr);
+
     void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
                      MPI_Comm mpi_comm = MPI_COMM_WORLD,
                      const std::function<void()>& func_parm_parse = {},
@@ -733,25 +739,31 @@ are two versions of :cpp:`Initialize`.
                      std::ostream& a_oserr = std::cerr,
                      ErrorHandler a_errhandler = nullptr);
 
-:cpp:`Initialize` tests if MPI has been initialized.  If MPI has been
-initialized, AMReX will duplicate the ``MPI_Comm`` argument.  If not,
-AMReX will initialize MPI and ignore the ``MPI_Comm`` argument.
+:cpp:`Initialize` checks if MPI has been initialized.  If it has, AMReX will
+duplicate the ``MPI_Comm`` argument provided by the users in the first and
+third versions or ``MPI_COMM_WORLD`` in the second version.  If not, AMReX
+will initialize MPI and ignore the ``MPI_Comm`` argument. Since AMReX 25.06,
+MPI types are no longer placed in the global namespace in non-MPI builds to
+avoid potential conflicts with other libraries. If you want to use MPI types
+in non-MPI builds for convenience (e.g., calling
+:cpp:`amrex::Initialize(MPI_COMM_WORLD)`), you could add :cpp:`using
+namespace amrex::mpidatatypes;`.
 
-Both versions have two optional :cpp:`std::ostream` parameters, one
-for standard output in :cpp:`Print` (section :ref:`sec:basics:print`)
-and the other for standard error, and they can be accessed with
-functions :cpp:`OutStream()` and :cpp:`ErrorStream()`.  Both versions
-can also take an optional error handler function.  If it is provided
-by the user, AMReX will use it to handle errors and signals.
-Otherwise, AMReX will use its own function for error and signal
-handling.
+All three versions accept two optional :cpp:`std::ostream` parameters, one
+for standard output in :cpp:`Print` (section :ref:`sec:basics:print`) and
+the other for standard error. These streams can be accessed via functions
+:cpp:`OutStream()` and :cpp:`ErrorStream()`. Each version can also take an
+optional error handler function.  If provided, AMReX will use it to handle
+errors and signals; otherwise, it will use its own function for error and
+signal handling.
 
 The first version of :cpp:`Initialize` does not parse the command line
-options, whereas the second version will build ParmParse database
-(section :ref:`sec:basics:parmparse`) unless ``build_parm_parse``
-parameter is :cpp:`false`.  In the second version, one can pass a
-function that adds ParmParse parameters to the database instead of
-reading from command line or input file.
+options. The second version builds ParmParse database (section
+:ref:`sec:basics:parmparse`), and the third version does so as well unless
+the ``build_parm_parse`` parameter is set to :cpp:`false`. In both the
+second and third versions, the user may also pass a function that adds
+parameters to the ParmParse database instead of reading from command line or
+input file.
 
 Because many AMReX classes and functions (including destructors
 inserted by the compiler) do not function properly after

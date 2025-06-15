@@ -57,6 +57,7 @@ struct ArenaInfo
     bool device_set_readonly = false;
     bool device_set_preferred = false;
     bool device_use_hostalloc = false;
+    bool defragmentation = false;
     ArenaInfo& SetReleaseThreshold (Long rt) noexcept {
         release_threshold = rt;
         return *this;
@@ -87,6 +88,10 @@ struct ArenaInfo
         device_set_readonly = false;
         device_set_preferred = false;
         device_use_hostalloc = false;
+        return *this;
+    }
+    ArenaInfo& SetDefragmentation (bool b) noexcept {
+        defragmentation = b;
         return *this;
     }
 };

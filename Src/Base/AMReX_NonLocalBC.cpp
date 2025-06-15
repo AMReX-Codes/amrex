@@ -50,6 +50,8 @@ void PrepareCommBuffers(CommData& comm,
     comm.cctc.clear();
     comm.stats.clear();
 
+    comm.id = FabArrayBase::getNextCommMetaDataId();
+
     const auto N_comms = static_cast<int>(cctc.size());
     if (N_comms == 0) { return; }
     // reserve for upcominf push_backs

@@ -16,6 +16,7 @@
 #include <omp.h>
 #endif
 
+#include <cstdint>
 #include <ostream>
 #include <string>
 #include <utility>
@@ -490,6 +491,7 @@ public:
             bool enforce_periodicity_only, bool override_sync,
             bool multi_ghost);
 
+        std::uint64_t m_id = std::numeric_limits<std::uint64_t>::max();
         IndexType    m_typ;
         IntVect      m_crse_ratio; //!< BoxArray in FabArrayBase may have crse_ratio.
         IntVect      m_ngrow;
@@ -525,9 +527,6 @@ public:
     const FB& getFB (const IntVect& nghost, const Periodicity& period,
                      bool cross=false, bool enforce_periodicity_only = false,
                      bool override_sync = false) const;
-    //
-    void flushFB (bool no_assertion=false) const;       //!< This flushes its own FB.
-    static void flushFBCache (); //!< This flushes the entire cache.
 
     //
     //! parallel copy or add
@@ -547,6 +546,7 @@ public:
 
         [[nodiscard]] Long bytes () const;
 
+        std::uint64_t m_id = std::numeric_limits<std::uint64_t>::max();
         BDKey       m_srcbdk;
         BDKey       m_dstbdk;
         IntVect     m_srcng;
@@ -575,9 +575,6 @@ public:
     //
     const CPC& getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVect& srcng,
                        const Periodicity& period, bool to_ghost_cells_only = false) const;
-    //
-    void flushCPC (bool no_assertion=false) const;      //!< This flushes its own CPC.
-    static void flushCPCache (); //!< This flusheds the entire cache.
 
     //
     //! Rotate Boundary by 90
@@ -725,6 +722,16 @@ public:
     static AMREX_EXPORT bool m_alloc_single_chunk;
 
     [[nodiscard]] static bool getAllocSingleChunk () { return m_alloc_single_chunk; }
+
+    [[nodiscard]] static std::uint64_t getNextCommMetaDataId ();
+
+private:
+
+    void flushFB (bool no_assertion=false) const; //!< This flushes its own FB.
+    static void flushFBCache (); //!< This flushes the entire cache.
+
+    void flushCPC (bool no_assertion=false) const; //!< This flushes its own CPC.
+    static void flushCPCache (); //!< This flusheds the entire cache.
 };
 
 namespace detail {

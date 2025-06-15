@@ -35,6 +35,7 @@ void MLCurlCurl::define (const Vector<Geometry>& a_geom,
 
 void MLCurlCurl::setScalars (RT a_alpha, RT a_beta) noexcept
 {
+    m_needs_update = true;
     m_alpha = a_alpha;
     m_beta = a_beta;
     AMREX_ASSERT(m_beta > RT(0));
@@ -42,6 +43,8 @@ void MLCurlCurl::setScalars (RT a_alpha, RT a_beta) noexcept
 
 void MLCurlCurl::setBeta (const Vector<Array<MultiFab const*,3>>& a_bcoefs)
 {
+    m_needs_update = true;
+
     Array<IntVect,3> ng;
     for (int idim = 0; idim < 3; ++idim) {
         ng[idim] = IntVect(1) - m_etype[idim]; // 1 ghost for cell direction, 0 for node
@@ -522,7 +525,7 @@ void MLCurlCurl::compresid (int amrlev, int mglev, MF& resid, MF const& b) const
     }
 }
 
-void MLCurlCurl::prepareForSolve ()
+void MLCurlCurl::update_lusolver ()
 {
 #if (AMREX_SPACEDIM > 1)
     if (m_bcoefs[0][0][0] == nullptr) {
@@ -609,6 +612,11 @@ void MLCurlCurl::prepareForSolve ()
         }
     }
 #endif
+}
+
+void MLCurlCurl::prepareForSolve ()
+{
+    update_lusolver();
 }
 
 Real MLCurlCurl::xdoty (int amrlev, int mglev, const MF& x, const MF& y,
@@ -940,6 +948,18 @@ CurlCurlSymmetryInfo MLCurlCurl::getSymmetryInfo (int amrlev, int mglev) const
                                 IntVect(AMREX_D_DECL(helper(0,1),
                                                      helper(1,1),
                                                      helper(2,1)))};
+}
+
+void MLCurlCurl::update ()
+{
+    if (MLLinOpT<Array<MultiFab,3>>::needsUpdate()) {
+        MLLinOpT<Array<MultiFab,3>>::update();
+    }
+
+    if (m_needs_update) {
+        update_lusolver();
+        m_needs_update = false;
+    }
 }
 
 }

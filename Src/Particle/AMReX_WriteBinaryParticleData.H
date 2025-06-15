@@ -5,6 +5,7 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_VisMF.H>
 
 namespace amrex {
 
@@ -672,6 +673,9 @@ void WriteBinaryParticleDataSync (PC const& pc,
                     }
                 }
             }
+        }
+        if (VisMF::GetBarrierAfterLevel()) {
+            ParallelDescriptor::Barrier();
         }
     }
 

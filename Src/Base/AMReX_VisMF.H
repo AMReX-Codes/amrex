@@ -279,6 +279,12 @@ public:
     static bool GetUseDynamicSetSelection () { return useDynamicSetSelection; }
     static void SetUseDynamicSetSelection (bool usedss) { useDynamicSetSelection = usedss; }
 
+    static bool GetNoFlushAfterWrite () { return noFlushAfterWrite; }
+    static void SetNoFlushAfterWrite (bool nfaw) { noFlushAfterWrite = nfaw; }
+
+    static bool GetBarrierAfterLevel () { return barrierAfterLevel; }
+    static void SetBarrierAfterLevel (bool bal) { barrierAfterLevel = bal; }
+
     static std::string DirName (const std::string& filename);
     static std::string BaseName (const std::string& filename);
 
@@ -353,6 +359,8 @@ private:
     static AMREX_EXPORT bool useSynchronousReads;
     static AMREX_EXPORT bool useDynamicSetSelection;
     static AMREX_EXPORT bool allowSparseWrites;
+    static AMREX_EXPORT bool noFlushAfterWrite;
+    static AMREX_EXPORT bool barrierAfterLevel;
 };
 
 //! Write a FabOnDisk to an ostream in ASCII.
