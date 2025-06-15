@@ -1121,7 +1121,7 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 copyParticles (const PCType& other, bool local)
 {
-    using PData = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
+    using PData = typename ParticleTileType::ConstParticleTileDataType;
     copyParticles(other, [] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
@@ -1132,7 +1132,7 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 addParticles (const PCType& other, bool local)
 {
-    using PData = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
+    using PData = typename ParticleTileType::ConstParticleTileDataType;
     addParticles(other, [] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
@@ -1177,7 +1177,8 @@ addParticles (const PCType& other, F const& f, bool local)
             auto dst_index = ptile.numParticles();
             ptile.resize(dst_index + np);
 
-            auto count = amrex::filterParticles(ptile, ptile_other, f, 0, dst_index, np);
+            auto count = amrex::filterParticles(ptile, ptile_other, f,
+                static_cast<decltype(np)>(0), dst_index, np);
 
             ptile.resize(dst_index + count);
         }

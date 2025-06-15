@@ -1466,11 +1466,13 @@ protected:
                                int lev_min = 0, int lev_max = -1, int local_grid=-1) const;
 
 public:
+    using FlagsVector = PODVector<int, Allocator<int>>;
+
     void
     WriteParticles (int level, std::ofstream& ofs, int fnum,
                     Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                     const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-                    const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags, bool is_checkpoint) const;
+                    const Vector<std::map<std::pair<int, int>,FlagsVector>>& particle_io_flags, bool is_checkpoint) const;
 #ifdef AMREX_USE_HDF5
 #include "AMReX_ParticlesHDF5.H"
 #endif

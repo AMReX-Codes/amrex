@@ -87,12 +87,38 @@ struct ParticleTileData2
     static constexpr bool is_particle_tile_data = true;
     static constexpr bool is_const = std::is_const_v<RType>;
 
-    size_type m_capacity;
-    std::conditional_t<is_const, const uint64_t* AMREX_RESTRICT, uint64_t* AMREX_RESTRICT> m_idcpu;
-    RType* AMREX_RESTRICT m_rdata;
-    IType* AMREX_RESTRICT m_idata;
-    int m_n_real;
-    int m_n_int;
+    size_type m_capacity = 0;
+    std::conditional_t<is_const,
+        const uint64_t* AMREX_RESTRICT,
+        uint64_t* AMREX_RESTRICT> m_idcpu = nullptr;
+    RType* AMREX_RESTRICT m_rdata = nullptr;
+    IType* AMREX_RESTRICT m_idata = nullptr;
+    int m_n_real = 0;
+    int m_n_int = 0;
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    constexpr ParticleTileData2 () = default;
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    constexpr ParticleTileData2 (size_type a_capacity,
+        decltype(m_idcpu) a_idcpu, decltype(m_rdata) a_rdata,
+        decltype(m_idata) a_idata, int a_n_real, int a_n_int) noexcept :
+        m_capacity{a_capacity},
+        m_idcpu{a_idcpu},
+        m_rdata{a_rdata},
+        m_idata{a_idata},
+        m_n_real{a_n_real},
+        m_n_int{a_n_int} {}
+
+    template <class aRType, class aIType>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    constexpr ParticleTileData2 (ParticleTileData2<aRType, aIType> const& rhs) noexcept :
+        m_capacity{rhs.m_capacity},
+        m_idcpu{rhs.m_idcpu},
+        m_rdata{rhs.m_rdata},
+        m_idata{rhs.m_idata},
+        m_n_real{rhs.m_n_real},
+        m_n_int{rhs.m_n_int} {}
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RType& pos (const int dir, const size_type index) const &
@@ -251,8 +277,18 @@ struct SoAParticle2
     using IntType = IType;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    SoAParticle2 (PTD const& ptd, size_type i) :
-        m_particle_tile_data(ptd), m_index(i) {}
+    SoAParticle2 (PTD const& ptd, size_type i) noexcept :
+        m_particle_tile_data(ptd),
+        m_index(i) {}
+
+    template <class aRType, class aIType>
+    friend struct SoAParticle2;
+
+    template <class aRType, class aIType>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    SoAParticle2 (SoAParticle2<aRType, aIType> const& rhs) noexcept :
+        m_particle_tile_data(rhs.m_particle_tile_data),
+        m_index(rhs.m_index) {}
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     decltype(auto) cpu () const & { return this->m_particle_tile_data.cpu(m_index); }
@@ -289,13 +325,70 @@ struct SoAParticle2
         return this->m_particle_tile_data.pos(position_index, m_index);
     }
 
-private :
+    static Long NextID ();
+
+    /**
+    * \brief This version can only be used inside omp critical.
+    */
+    static Long UnprotectedNextID ();
+
+    /**
+    * \brief Reset on restart.
+    *
+    * \param nextid
+    */
+    static void NextID (Long nextid);
+
+private:
 
     static_assert(std::is_trivially_copyable<PTD>(), "ParticleTileData is not trivially copyable");
 
     PTD m_particle_tile_data;
     size_type m_index;
 };
+
+struct NextIDSoA2 {
+    inline static Long the_next_id = 1;
+};
+
+template <class RType, class IType>
+Long
+SoAParticle2<RType, IType>::NextID ()
+{
+    Long next;
+// we should be able to test on _OPENMP < 201107 for capture (version 3.1)
+// but we must work around a bug in gcc < 4.9
+#if defined(AMREX_USE_OMP) && defined(_OPENMP) && _OPENMP < 201307
+#pragma omp critical (amrex_particle_nextid)
+#elif defined(AMREX_USE_OMP)
+#pragma omp atomic capture
+#endif
+    next = NextIDSoA2::the_next_id++;
+
+    if (next > LongParticleIds::LastParticleID) {
+        amrex::Abort("SoAParticle2<RType, IType>::NextID() -- too many particles");
+    }
+
+    return next;
+}
+
+template <class RType, class IType>
+Long
+SoAParticle2<RType, IType>::UnprotectedNextID ()
+{
+    Long next = NextIDSoA2::the_next_id++;
+    if (next > LongParticleIds::LastParticleID) {
+        amrex::Abort("SoAParticle2<RType, IType>::NextID() -- too many particles");
+    }
+    return next;
+}
+
+template <class RType, class IType>
+void
+SoAParticle2<RType, IType>::NextID (Long nextid)
+{
+    NextIDSoA2::the_next_id = nextid;
+}
 
 template<class RType, class IType>
 using ConstParticleTileData2 = ParticleTileData2<const RType, const IType>;
@@ -433,6 +526,18 @@ struct ParticleTile2
     }
 
     [[nodiscard]] int NumIntComps () const noexcept
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_n_int;
+    }
+
+    [[nodiscard]] int NumRuntimeRealComps () const noexcept
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_n_real;
+    }
+
+    [[nodiscard]] int NumRuntimeIntComps () const noexcept
     {
         AMREX_ALWAYS_ASSERT(m_defined);
         return m_n_int;
@@ -649,31 +754,27 @@ struct ParticleTile2
     ParticleTileDataType getParticleTileData ()
     {
         AMREX_ALWAYS_ASSERT(m_defined);
-        ParticleTileDataType ptd;
-
-        ptd.m_capacity = m_capacity;
-        ptd.m_idcpu = m_idcpu_data.data();
-        ptd.m_rdata = m_real_data.data();
-        ptd.m_idata = m_int_data.data();
-        ptd.m_n_real = m_n_real;
-        ptd.m_n_int = m_n_int;
-
-        return ptd;
+        return ParticleTileDataType{
+            m_capacity,
+            m_idcpu_data.data(),
+            m_real_data.data(),
+            m_int_data.data(),
+            m_n_real,
+            m_n_int
+        };
     }
 
     ConstParticleTileDataType getConstParticleTileData () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
-        ConstParticleTileDataType ptd;
-
-        ptd.m_capacity = m_capacity;
-        ptd.m_idcpu = m_idcpu_data.data();
-        ptd.m_rdata = m_real_data.data();
-        ptd.m_idata = m_int_data.data();
-        ptd.m_n_real = m_n_real;
-        ptd.m_n_int = m_n_int;
-
-        return ptd;
+        return ConstParticleTileDataType{
+            m_capacity,
+            m_idcpu_data.data(),
+            m_real_data.data(),
+            m_int_data.data(),
+            m_n_real,
+            m_n_int
+        };
     }
 
     auto&       GetStructOfArrays ()       { return *this; }

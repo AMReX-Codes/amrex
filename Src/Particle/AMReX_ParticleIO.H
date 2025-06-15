@@ -575,7 +575,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                   Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                   const Vector<int>& write_real_comp,
                   const Vector<int>& write_int_comp,
-                  const Vector<std::map<std::pair<int, int>, IntVector>>& particle_io_flags,
+                  const Vector<std::map<std::pair<int, int>, FlagsVector>>& particle_io_flags,
                   bool is_checkpoint) const
 {
     BL_PROFILE("ParticleContainer::WriteParticles()");
