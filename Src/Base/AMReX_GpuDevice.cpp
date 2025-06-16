@@ -95,6 +95,10 @@ int Device::max_gpu_streams = 1;
 
 #ifdef AMREX_USE_GPU
 
+StreamManager::StreamManager () {
+    m_is_synced.resize(OpenMP::get_max_threads(), true);
+}
+
 [[nodiscard]] gpuStream_t
 StreamManager::get () {
     m_is_synced[OpenMP::get_thread_num()] = false;
@@ -497,9 +501,6 @@ Device::initialize_gpu (bool minimal)
 
     if (gpu_stream_pool.size() != max_gpu_streams) {
         gpu_stream_pool = Vector<StreamManager>(max_gpu_streams);
-    }
-    for (auto& stream : gpu_stream_pool) {
-        stream.m_is_synced.resize(OpenMP::get_max_threads(), true);
     }
 
 #ifdef AMREX_USE_HIP

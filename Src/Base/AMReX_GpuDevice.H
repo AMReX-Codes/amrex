@@ -60,6 +60,7 @@ class StreamManager {
     Vector<std::pair<CArena*, void*>> m_free_wait_list;
     std::mutex m_mutex;
 public:
+    StreamManager ();
     [[nodiscard]] gpuStream_t get ();
     [[nodiscard]] gpuStream_t& internal_get ();
     void sync ();
