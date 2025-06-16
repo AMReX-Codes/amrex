@@ -56,8 +56,7 @@ namespace amrex::Gpu {
 #ifdef AMREX_USE_GPU
 class StreamManager {
     gpuStream_t m_stream;
-    std::uint64_t m_stream_op_id = 0;
-    std::uint64_t m_last_sync = 0;
+    Vector<int> m_is_synced;
     Vector<std::pair<CArena*, void*>> m_free_wait_list;
     std::mutex m_mutex;
 public:

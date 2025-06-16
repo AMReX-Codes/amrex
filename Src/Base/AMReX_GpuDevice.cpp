@@ -97,8 +97,7 @@ int Device::max_gpu_streams = 1;
 
 [[nodiscard]] gpuStream_t
 StreamManager::get () {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    ++m_stream_op_id;
+    m_is_synced[OpenMP::get_thread_num()] = false;
     return m_stream;
 }
 
@@ -109,33 +108,25 @@ StreamManager::internal_get () {
 
 void
 StreamManager::sync () {
-
-    bool is_synced = false;
-    std::uint64_t sync_op = 0;
+    const bool is_synced = m_is_synced[OpenMP::get_thread_num()];
     decltype(m_free_wait_list) new_empty_wait_list{};
-    {
+
+    if (!is_synced || !Device::avoid_double_sync) {
         // lock mutex before accessing and modifying member variables
-        std::lock_guard<std::mutex> lock(m_mutex);
-        is_synced = (m_stream_op_id == m_last_sync);
-        if (!is_synced || !Device::avoid_double_sync) {
-            sync_op = m_stream_op_id;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
             m_free_wait_list.swap(new_empty_wait_list);
         }
         // unlock mutex before stream sync and memory free
         // to avoid deadlocks from the CArena mutex
-    }
 
-    if (!is_synced || !Device::avoid_double_sync) {
         Device::actualStreamSynchronize(m_stream);
 
         // synconizing the stream may have taken a long time and
-        // there may be new kernels launched already, so we free memory and
-        // set m_last_sync according to the state from before the stream was synced
+        // there may be new kernels launched already, so we free memory
+        // according to the state from before the stream was synced
 
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            m_last_sync = sync_op;
-        }
+        m_is_synced[OpenMP::get_thread_num()] = true;
 
         for (auto [arena, mem] : new_empty_wait_list) {
             arena->free_now(mem);
@@ -145,16 +136,16 @@ StreamManager::sync () {
 
 void
 StreamManager::internal_after_sync () {
-
     decltype(m_free_wait_list) new_empty_wait_list{};
     {
         // lock mutex before accessing and modifying member variables
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_last_sync = m_stream_op_id;
         m_free_wait_list.swap(new_empty_wait_list);
         // unlock mutex before memory free
         // to avoid deadlocks from the CArena mutex
     }
+
+    m_is_synced[OpenMP::get_thread_num()] = true;
 
     for (auto [arena, mem] : new_empty_wait_list) {
         arena->free_now(mem);
@@ -163,21 +154,12 @@ StreamManager::internal_after_sync () {
 
 void
 StreamManager::stream_free (CArena* arena, void* mem) {
-
-    bool is_synced = false;
-    {
+    if (m_is_synced[OpenMP::get_thread_num()]) {
+        arena->free_now(mem);
+    } else {
         // lock mutex before accessing and modifying member variables
         std::lock_guard<std::mutex> lock(m_mutex);
-        is_synced = (m_stream_op_id == m_last_sync);
-        if (!is_synced) {
-            m_free_wait_list.emplace_back(arena, mem);
-        }
-        // unlock mutex before memory free
-        // to avoid deadlocks from the CArena mutex
-    }
-
-    if (is_synced) {
-        arena->free_now(mem);
+        m_free_wait_list.emplace_back(arena, mem);
     }
 }
 
@@ -515,6 +497,9 @@ Device::initialize_gpu (bool minimal)
 
     if (gpu_stream_pool.size() != max_gpu_streams) {
         gpu_stream_pool = Vector<StreamManager>(max_gpu_streams);
+    }
+    for (auto& stream : gpu_stream_pool) {
+        stream.m_is_synced.resize(OpenMP::get_max_threads(), true);
     }
 
 #ifdef AMREX_USE_HIP
