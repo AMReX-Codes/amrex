@@ -125,7 +125,7 @@ countFlagsGpu (const Vector<std::map<std::pair<int,int>,Container>>& particle_io
 }
 
 template <class Container>
-int
+amrex::Long
 countFlagsGpu (const Container& pflags)
 {
     ReduceOps<ReduceOpSum> reduce_op;
@@ -134,7 +134,7 @@ countFlagsGpu (const Container& pflags)
 
     const auto flag_ptr = pflags.data();
     reduce_op.eval(pflags.size(), reduce_data,
-        [=] AMREX_GPU_DEVICE (const int i) -> ReduceTuple
+        [=] AMREX_GPU_DEVICE (const amrex::Long i) -> ReduceTuple
         {
             return flag_ptr[i] ? 1 : 0;
         });
@@ -163,10 +163,10 @@ countFlagsCpu (const Vector<std::map<std::pair<int,int>,Container>>& particle_io
 }
 
 template <class Container>
-int
+amrex::Long
 countFlagsCpu (const Container& pflags)
 {
-    int nparticles = 0;
+    amrex::Long nparticles = 0;
     for (std::size_t k = 0; k < pflags.size(); ++k)
     {
         if (pflags[k]) { nparticles++; }
@@ -194,7 +194,7 @@ countFlags (const Vector<std::map<std::pair<int,int>,Container<int,Allocator>>>&
 }
 
 template <template <class, class> class Container, class Allocator>
-int
+amrex::Long
 countFlags (const Container<int,Allocator>& pflags)
 {
     if constexpr (IsPolymorphicArenaAllocator<Allocator>::value) {
@@ -275,11 +275,11 @@ packIODataGpu (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, in
         typename Gpu::DeviceVector<int> idata_d(num_copies*iChunkSize);
         typename Gpu::DeviceVector<ParticleReal> rdata_d(num_copies*rChunkSize);
 
-        const auto flag_ptr = pflags.data();
-        const auto poffsets = offsets.data();
+        const auto* flag_ptr = pflags.data();
+        const auto* poffsets = offsets.data();
 
-        auto idata_d_ptr = idata_d.data();
-        auto rdata_d_ptr = rdata_d.data();
+        auto* idata_d_ptr = idata_d.data();
+        auto* rdata_d_ptr = rdata_d.data();
 
         const auto& ptd = ptile.getConstParticleTileData();
         amrex::ParallelFor(num_copies,
@@ -363,9 +363,9 @@ packIODataGpu (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, in
         });
 
         Gpu::copyAsync(Gpu::deviceToHost, idata_d.begin(), idata_d.end(),
-                       idata.begin() + poffset);
+                       idata.begin() + static_cast<amrex::Long>(poffset));
         Gpu::copyAsync(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(),
-                       rdata.begin() + poffset);
+                       rdata.begin() + static_cast<amrex::Long>(poffset));
         Gpu::Device::streamSynchronize();
 
         poffset += num_copies;
