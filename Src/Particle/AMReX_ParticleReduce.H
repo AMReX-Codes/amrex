@@ -29,6 +29,8 @@ auto call_f (F const& f,
         return f(p.m_aos[i]);
     } else if constexpr (IsCallable<F, decltype(p.getSuperParticle(i))>::value) {
         return f(p.getSuperParticle(i));
+    } else if constexpr (IsCallable<F, decltype(p[i])>::value) {
+        return f(p[i]);
     } else {
         return f(p, i);
     }
