@@ -1072,6 +1072,16 @@ MultiFab::norm2 (int comp) const
 }
 
 Real
+MultiFab::norm2 (int comp, int numcomp) const
+{
+    BL_ASSERT(ixType().cellCentered());
+
+    Real nm2 = MultiFab::Dot(*this, comp, numcomp, 0);
+    nm2 = std::sqrt(nm2);
+    return nm2;
+}
+
+Real
 MultiFab::norm2 (int comp, const Periodicity& period) const
 {
     BL_PROFILE("MultiFab::norm2(period)");
