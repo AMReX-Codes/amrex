@@ -980,6 +980,18 @@ public:
                               const FabArrayBase::CPC* a_cpc = nullptr,
                               bool                 to_ghost_cells_only = false);
 
+    void ParallelCopy_nowait (const FabArray<FAB>& src,
+                              int                  scomp,
+                              int                  dcomp,
+                              int                  ncomp,
+                              const IntVect&       snghost,
+                              const IntVect&       dnghost,
+                              const IntVect&       offset,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY,
+                              const FabArrayBase::CPC* a_cpc = nullptr,
+                              bool                 to_ghost_cells_only = false);
+
     void ParallelCopy_finish ();
 
     void ParallelCopyToGhost (const FabArray<FAB>& src,
@@ -999,6 +1011,38 @@ public:
                                      const Periodicity&   period = Periodicity::NonPeriodic());
 
     void ParallelCopyToGhost_finish();
+
+    /**
+     * \brief This function copies data from src to this FabArray.
+     *
+     * \param src       source FabArray
+     * \param src_comp  starting component of source involved in this function
+     * \param dest_comp starting component of this FabArray involved in this function
+     * \param num_comp  number of components involved in this function
+     * \param snghost   number of source ghost cells involved in this function
+     * \param dnghost   number of destination ghost cells involved in this function
+     * \param offset    index shift. dest(iv,dest_comp+n) = src(iv-offset,src_comp+n)
+     * \param period    periodicity of the data
+     */
+    void ParallelCopy (const FabArray<FAB>& src, int src_comp, int dest_comp, int num_comp,
+                       const IntVect& snghost, const IntVect& dnghost,
+                       const IntVect& offset, const Periodicity& period);
+
+    /**
+     * \brief This function adds data from src to this FabArray.
+     *
+     * \param src       source FabArray
+     * \param src_comp  starting component of source involved in this function
+     * \param dest_comp starting component of this FabArray involved in this function
+     * \param num_comp  number of components involved in this function
+     * \param snghost   number of source ghost cells involved in this function
+     * \param dnghost   number of destination ghost cells involved in this function
+     * \param offset    index shift. dest(iv,dest_comp+n) = src(iv-offset,src_comp+n)
+     * \param period    periodicity of the data
+     */
+    void ParallelAdd (const FabArray<FAB>& src, int src_comp, int dest_comp, int num_comp,
+                      const IntVect& snghost, const IntVect& dnghost,
+                      const IntVect& offset, const Periodicity& period);
 
     [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
