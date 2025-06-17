@@ -99,4 +99,14 @@ IndexSpaceSTL::addRegularCoarseLevels (int /*num_new_coarse_levels*/)
     amrex::Abort("IndexSpaceSTL::addRegularCoarseLevels: todo");
 }
 
+void
+IndexSpaceSTL::setShift (int direction, int ncells)
+{
+    auto nlevs = int(m_stllevel.size());
+    for (int ilev = nlevs-1; ilev >= 0; --ilev) {
+        m_stllevel[ilev].setShift(direction, ncells);
+        ncells *= 2;
+    }
+}
+
 }

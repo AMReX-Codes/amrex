@@ -423,7 +423,7 @@ Level::buildCellFlag ()
 }
 
 void
-Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) const
+Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& /*geom*/) const
 {
     if (isAllRegular()) {
         cellflag.setVal(EBCellFlag::TheDefaultCell());
@@ -436,10 +436,13 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
     }
 
     const int ng = cellflag.nGrow();
+    cellflag.ParallelCopy(m_cellflag,0,0,1,IntVect(0),IntVect(ng),-m_shift,
+                          m_geom.periodicity());
 
-    cellflag.ParallelCopy(m_cellflag,0,0,1,0,ng,geom.periodicity());
-
-    const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+    std::vector<IntVect> pshifts = m_geom.periodicity().shiftIntVect();
+    if (m_shift != 0) {
+        for (auto& pit : pshifts) { pit += m_shift; }
+    }
 
     auto cov_val = EBCellFlag::TheCoveredCell();
 #ifdef AMREX_USE_OMP
@@ -474,14 +477,18 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
 }
 
 void
-Level::fillVolFrac (MultiFab& vfrac, const Geometry& geom) const
+Level::fillVolFrac (MultiFab& vfrac, const Geometry& /*geom*/) const
 {
     vfrac.setVal(1.0);
     if (isAllRegular()) { return; }
 
-    vfrac.ParallelCopy(m_volfrac,0,0,1,0,vfrac.nGrow(),geom.periodicity());
+    vfrac.ParallelCopy(m_volfrac,0,0,1,IntVect(0),vfrac.nGrowVect(),-m_shift,
+                       m_geom.periodicity());
 
-    const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+    std::vector<IntVect> pshifts = m_geom.periodicity().shiftIntVect();
+    if (m_shift != 0) {
+        for (auto& pit : pshifts) { pit += m_shift; }
+    }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -545,12 +552,12 @@ Level::fillCentroid (MultiCutFab& centroid, const Geometry& geom) const
 }
 
 void
-Level::fillCentroid (MultiFab& centroid, const Geometry& geom) const
+Level::fillCentroid (MultiFab& centroid, const Geometry& /*geom*/) const
 {
     centroid.setVal(0.0);
     if (!isAllRegular()) {
-        centroid.ParallelCopy(m_centroid,0,0,AMREX_SPACEDIM,0,centroid.nGrow(),
-                              geom.periodicity());
+        centroid.ParallelCopy(m_centroid,0,0,AMREX_SPACEDIM,IntVect(0),centroid.nGrowVect(),
+                              -m_shift, m_geom.periodicity());
     }
 }
 
@@ -569,11 +576,12 @@ Level::fillBndryArea (MultiCutFab& bndryarea, const Geometry& geom) const
 }
 
 void
-Level::fillBndryArea (   MultiFab& bndryarea, const Geometry& geom) const
+Level::fillBndryArea (   MultiFab& bndryarea, const Geometry& /*geom*/) const
 {
     bndryarea.setVal(0.0);
     if (!isAllRegular()) {
-        bndryarea.ParallelCopy(m_bndryarea,0,0,1,0,bndryarea.nGrow(),geom.periodicity());
+        bndryarea.ParallelCopy(m_bndryarea,0,0,1,IntVect(0),bndryarea.nGrowVect(),
+                               -m_shift, m_geom.periodicity());
     }
 }
 
@@ -592,12 +600,12 @@ Level::fillBndryCent (MultiCutFab& bndrycent, const Geometry& geom) const
 }
 
 void
-Level::fillBndryCent (MultiFab& bndrycent, const Geometry& geom) const
+Level::fillBndryCent (MultiFab& bndrycent, const Geometry& /*geom*/) const
 {
     bndrycent.setVal(-1.0);
     if (!isAllRegular()) {
-        bndrycent.ParallelCopy(m_bndrycent,0,0,bndrycent.nComp(),0,bndrycent.nGrow(),
-                               geom.periodicity());
+        bndrycent.ParallelCopy(m_bndrycent,0,0,bndrycent.nComp(),IntVect(0),
+                               bndrycent.nGrowVect(), -m_shift, m_geom.periodicity());
     }
 }
 
@@ -616,17 +624,18 @@ Level::fillBndryNorm (MultiCutFab& bndrynorm, const Geometry& geom) const
 }
 
 void
-Level::fillBndryNorm (   MultiFab& bndrynorm, const Geometry& geom) const
+Level::fillBndryNorm (   MultiFab& bndrynorm, const Geometry& /*geom*/) const
 {
     bndrynorm.setVal(0.0);
     if (!isAllRegular()) {
-        bndrynorm.ParallelCopy(m_bndrynorm,0,0,bndrynorm.nComp(),0,bndrynorm.nGrow(),
-                               geom.periodicity());
+        bndrynorm.ParallelCopy(m_bndrynorm,0,0,bndrynorm.nComp(),IntVect(0),
+                               bndrynorm.nGrowVect(), -m_shift, m_geom.periodicity());
     }
 }
 
 void
-Level::fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM> const& a_areafrac, const Geometry& geom) const
+Level::fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM> const& a_areafrac,
+                     const Geometry& /*geom*/) const
 {
     if (isAllRegular()) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -642,11 +651,14 @@ Level::fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM> const& a_areafrac, const
                      areafrac.nComp(), areafrac.nGrow());
         tmp.setVal(1.0);
         tmp.ParallelCopy(m_areafrac[idim],0,0,areafrac.nComp(),
-                         0,areafrac.nGrow(),geom.periodicity());
+                         IntVect(0),tmp.nGrowVect(), -m_shift, m_geom.periodicity());
         copyMultiFabToMultiCutFab(areafrac, tmp);
     }
 
-    const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+    std::vector<IntVect> pshifts = m_geom.periodicity().shiftIntVect();
+    if (m_shift != 0) {
+        for (auto& pit : pshifts) { pit += m_shift; }
+    }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -703,7 +715,8 @@ Level::fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM> const& a_areafrac, const
 }
 
 void
-Level::fillAreaFrac (Array<MultiFab*,AMREX_SPACEDIM> const& a_areafrac, const Geometry& geom) const
+Level::fillAreaFrac (Array<MultiFab*,AMREX_SPACEDIM> const& a_areafrac,
+                     const Geometry& /*geom*/) const
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         a_areafrac[idim]->setVal(1.0);
@@ -715,10 +728,13 @@ Level::fillAreaFrac (Array<MultiFab*,AMREX_SPACEDIM> const& a_areafrac, const Ge
     {
         auto& areafrac = *a_areafrac[idim];
         areafrac.ParallelCopy(m_areafrac[idim],0,0,areafrac.nComp(),
-                              0,areafrac.nGrow(),geom.periodicity());
+                              IntVect(0),areafrac.nGrowVect(),-m_shift,m_geom.periodicity());
     }
 
-    const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+    std::vector<IntVect> pshifts = m_geom.periodicity().shiftIntVect();
+    if (m_shift != 0) {
+        for (auto& pit : pshifts) { pit += m_shift; }
+    }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -772,7 +788,8 @@ Level::fillAreaFrac (Array<MultiFab*,AMREX_SPACEDIM> const& a_areafrac, const Ge
 }
 
 void
-Level::fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& a_facecent, const Geometry& geom) const
+Level::fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& a_facecent,
+                     const Geometry& /*geom*/) const
 {
     if (isAllRegular()) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -788,13 +805,14 @@ Level::fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& a_facecent, const
                      facecent.nComp(), facecent.nGrow());
         tmp.setVal(0.0);
         tmp.ParallelCopy(m_facecent[idim],0,0,facecent.nComp(),
-                         0,facecent.nGrow(),geom.periodicity());
+                         IntVect(0),tmp.nGrowVect(),-m_shift,m_geom.periodicity());
         copyMultiFabToMultiCutFab(facecent,tmp);
     }
 }
 
 void
-Level::fillFaceCent (Array<MultiFab*,AMREX_SPACEDIM> const& a_facecent, const Geometry& geom) const
+Level::fillFaceCent (Array<MultiFab*,AMREX_SPACEDIM> const& a_facecent,
+                     const Geometry& /*geom*/) const
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         a_facecent[idim]->setVal(0.0);
@@ -804,7 +822,8 @@ Level::fillFaceCent (Array<MultiFab*,AMREX_SPACEDIM> const& a_facecent, const Ge
         {
             auto& facecent = *a_facecent[idim];
             a_facecent[idim]->ParallelCopy(m_facecent[idim],0,0,facecent.nComp(),
-                                           0,facecent.nGrow(),geom.periodicity());
+                                           IntVect(0),facecent.nGrowVect(),
+                                           -m_shift, m_geom.periodicity());
         }
     }
 }
@@ -834,7 +853,8 @@ Level::fillEdgeCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& a_edgecent, const
 }
 
 void
-Level::fillEdgeCent (Array<MultiFab*,AMREX_SPACEDIM> const& a_edgecent, const Geometry& geom) const
+Level::fillEdgeCent (Array<MultiFab*,AMREX_SPACEDIM> const& a_edgecent,
+                     const Geometry& /*geom*/) const
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         a_edgecent[idim]->setVal(1.0);
@@ -844,14 +864,18 @@ Level::fillEdgeCent (Array<MultiFab*,AMREX_SPACEDIM> const& a_edgecent, const Ge
         {
             auto& edgecent = *a_edgecent[idim];
             a_edgecent[idim]->ParallelCopy(m_edgecent[idim],0,0,edgecent.nComp(),
-                                           0,edgecent.nGrow(),geom.periodicity());
+                                           IntVect(0),edgecent.nGrowVect(),
+                                           -m_shift,m_geom.periodicity());
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             if (!m_covered_grids.empty())
             {
-                const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+                std::vector<IntVect> pshifts = m_geom.periodicity().shiftIntVect();
+                if (m_shift != 0) {
+                    for (auto& pit : pshifts) { pit += m_shift; }
+                }
                 BoxArray const& covered_edge_grids = amrex::convert(m_covered_grids,
                                                                     edgecent.ixType());
                 std::vector<std::pair<int,Box> > isects;
@@ -877,12 +901,16 @@ Level::fillEdgeCent (Array<MultiFab*,AMREX_SPACEDIM> const& a_edgecent, const Ge
 }
 
 void
-Level::fillLevelSet (MultiFab& levelset, const Geometry& geom) const
+Level::fillLevelSet (MultiFab& levelset, const Geometry& /*geom*/) const
 {
     levelset.setVal(-1.0);
-    levelset.ParallelCopy(m_levelset,0,0,1,IntVect(0),levelset.nGrowVect(),geom.periodicity());
+    levelset.ParallelCopy(m_levelset,0,0,1,IntVect(0),levelset.nGrowVect(),
+                          -m_shift, m_geom.periodicity());
 
-    const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+    std::vector<IntVect> pshifts = m_geom.periodicity().shiftIntVect();
+    if (m_shift != 0) {
+        for (auto& pit : pshifts) { pit += m_shift; }
+    }
 
     Real cov_val = 1.0; // for covered cells
 
@@ -916,7 +944,8 @@ Level::fillCutCellMask (iMultiFab& cutcellmask, const Geometry&) const
 {
     if (!m_has_eb_info) {
         cutcellmask.setVal(0);
-        cutcellmask.ParallelCopy(m_cutcellmask);
+        cutcellmask.ParallelCopy(m_cutcellmask,0,0,1,IntVect(0),IntVect(0),-m_shift,
+                                 m_geom.periodicity());
     }
 }
 
@@ -1009,6 +1038,21 @@ Level::buildCutCellMask (Level const& fine_level)
         });
         Gpu::streamSynchronize();
     }
+}
+
+void
+Level::setShift (int direction, int ncells)
+{
+    if (direction < 0 || direction >= AMREX_SPACEDIM) { return; }
+
+    if (m_geom.isPeriodic(direction)) {
+        auto len = m_geom.Domain().length(direction);
+        ncells = ncells % len;
+        if (ncells < 0) { ncells += len; }
+        if (2*ncells > len) { ncells -= len; }
+    }
+
+    m_shift[direction] = ncells;
 }
 
 }

@@ -36,6 +36,8 @@ public:
     void addFineLevels (int num_new_fine_levels) final;
     void addRegularCoarseLevels (int num_new_coarse_levels) final;
 
+    void setShift (int direction, int ncells) override;
+
 private:
 
     Vector<STLLevel> m_stllevel;
