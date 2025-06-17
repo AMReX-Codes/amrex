@@ -225,6 +225,11 @@ public:
     */
     [[nodiscard]] Real norm2 (int comp = 0) const;
     /**
+    * \brief Returns the L2 norm of \p numcomp components starting from \p comp component over the MultiFab.
+    * No ghost cells are used.
+    */
+    [[nodiscard]] Real norm2 (int comp, int numcomp) const;
+    /**
     * \brief Returns the L2 norm of component \p comp over the MultiFab.
     * No ghost cells are used. This version has no double counting for nodal data.
     */
