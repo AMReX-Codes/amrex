@@ -297,6 +297,8 @@ public:
     */
     const BoxArray& boxArray () const noexcept { return grids; }
 
+    void setBoxArray (BoxArray const& a_grids) noexcept { grids = a_grids; }
+
     const DistributionMapping& DistributionMap () const noexcept { return dmap; }
 
     /**
@@ -306,6 +308,10 @@ public:
     void setDistributionMap ( DistributionMapping& new_dmap ) noexcept { dmap = new_dmap; }
 
     const FabFactory<FArrayBox>& Factory () const noexcept { return *m_factory; }
+
+    void setFactory (FabFactory<FArrayBox> const& a_factory) {
+        m_factory.reset(a_factory.clone());
+    }
 
     /**
     * \brief Returns the current time.
