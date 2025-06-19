@@ -107,13 +107,13 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
             int* m = &(tag.mask(i,j,k));
             bool my_turn = false;
             do {
-                my_turn = (atomicCAS(m, 0, 1) == 0);
+                my_turn = (Gpu::Atomic::CAS(m, 0, 1) == 0);
                 if (my_turn) {
                     for (int n = 0; n < ncomp; ++n) {
                         f(&(tag.dfab(i,j,k,n+dcomp)),
                           tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
                     }
-                    atomicExch(m, 0);
+                    Gpu::Atomic::Exch(m, 0);
                 }
             } while (!my_turn);
         });
