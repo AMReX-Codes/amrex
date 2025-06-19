@@ -71,6 +71,45 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
     });
 }
 
+template <class TagType, class F>
+void
+fab_to_fab_store (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, F&&f)
+{
+    amrex::ParallelFor(tags,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, TagType const& tag) noexcept
+    {
+        int m = Gpu::Atomic::Add(&(tag.mask(i,j,k)), 1);
+        if (m == 0) {
+            for (int n = 0; n < ncomp; ++n) {
+                f(&(tag.dfab(i,j,k,n+dcomp)),
+                  tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
+            }
+        }
+    });
+}
+
+template <class TagType, class F>
+void
+fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, F&&f)
+{
+    amrex::ParallelFor(tags,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, TagType const& tag) noexcept
+    {
+        int* m = &(tag.mask(i,j,k));
+        bool my_turn = false;
+        do {
+            my_turn = (Gpu::Atomic::CAS(m, 0, 1) == 0);
+            if (my_turn) {
+                for (int n = 0; n < ncomp; ++n) {
+                    f(&(tag.dfab(i,j,k,n+dcomp)),
+                      tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
+                }
+                Gpu::Atomic::Exch(m, 0);
+            }
+        } while (!my_turn);
+    });
+}
+
 template <class T0, class T1, class F>
 void
 fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcomp,
@@ -87,36 +126,11 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
 
     if constexpr (std::is_same_v<F, CellStore<T0,T1>>)
     {
-        amrex::ParallelFor(tags,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k, TagType const& tag) noexcept
-        {
-            int m = Gpu::Atomic::Add(&(tag.mask(i,j,k)), 1);
-            if (m == 0) {
-                for (int n = 0; n < ncomp; ++n) {
-                    f(&(tag.dfab(i,j,k,n+dcomp)),
-                      tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
-                }
-            }
-        });
+        fab_to_fab_store(tags, scomp, dcomp, ncomp, std::forward<F>(f));
     }
     else
     {
-        amrex::ParallelFor(tags,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k, TagType const& tag) noexcept
-        {
-            int* m = &(tag.mask(i,j,k));
-            bool my_turn = false;
-            do {
-                my_turn = (Gpu::Atomic::CAS(m, 0, 1) == 0);
-                if (my_turn) {
-                    for (int n = 0; n < ncomp; ++n) {
-                        f(&(tag.dfab(i,j,k,n+dcomp)),
-                          tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
-                    }
-                    Gpu::Atomic::Exch(m, 0);
-                }
-            } while (!my_turn);
-        });
+        fab_to_fab_other(tags, scomp, dcomp, ncomp, std::forward<F>(f));
     }
     // Note that Tag ParalleFor has a stream sync call in the end.
 }
