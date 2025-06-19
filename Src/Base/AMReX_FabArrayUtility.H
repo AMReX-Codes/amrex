@@ -2123,6 +2123,75 @@ DistributionMap (Array<MF,N> const& mf)
     return mf[0].DistributionMap();
 }
 
+/*
+ * \brief Return a mask indicating how many duplicates are in each point
+ *
+ * \param fa     input FabArray
+ * \param nghost number of ghost cells included in counting
+ * \param period periodicity
+ */
+template <class FAB>
+FabArray<BaseFab<int>>
+OverlapMask (FabArray<FAB> const& fa, IntVect const& nghost, Periodicity const& period)
+{
+    BL_PROFILE("OverlapMask()");
+
+    const BoxArray& ba = fa.boxArray();
+    const DistributionMapping& dm = fa.DistributionMap();
+
+    FabArray<BaseFab<int>> mask(ba, dm, 1, nghost);
+    mask.setVal(0);
+
+    const std::vector<IntVect>& pshifts = period.shiftIntVect();
+
+    Vector<Array4BoxTag<int> > tags;
+
+    bool run_on_gpu = Gpu::inLaunchRegion();
+    amrex::ignore_unused(run_on_gpu, tags);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (!run_on_gpu)
+#endif
+    {
+        std::vector< std::pair<int,Box> > isects;
+
+        for (MFIter mfi(mask); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mask[mfi].box();
+            auto const& arr = mask.array(mfi);
+
+            for (const auto& iv : pshifts)
+            {
+                ba.intersections(bx+iv, isects, false, nghost);
+                for (const auto& is : isects)
+                {
+                    Box const& b = is.second-iv;
+#ifdef AMREX_USE_GPU
+                    if (run_on_gpu) {
+                        tags.push_back({arr,b});
+                    } else
+#endif
+                    {
+                        amrex::LoopConcurrentOnCpu(b, [=] (int i, int j, int k) noexcept
+                        {
+                            arr(i,j,k) += 1;
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+#ifdef AMREX_USE_GPU
+    amrex::ParallelFor(tags, 1,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4BoxTag<int> const& tag) noexcept
+    {
+        Gpu::Atomic::AddNoRet(tag.dfab.ptr(i,j,k,n), 1);
+    });
+#endif
+
+    return mask;
+}
+
 }
 
 #endif
