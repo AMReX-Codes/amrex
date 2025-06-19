@@ -100,10 +100,20 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
         do {
             my_turn = (Gpu::Atomic::CAS(m, 0, 1) == 0);
             if (my_turn) {
+#if defined(AMREX_USE_SYCL)
+                sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#else
+                __threadfence();
+#endif
                 for (int n = 0; n < ncomp; ++n) {
                     f(&(tag.dfab(i,j,k,n+dcomp)),
                       tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
                 }
+#if defined(AMREX_USE_SYCL)
+                sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+#else
+                __threadfence(); // It appears that we need this fence too if a GPU is shared.
+#endif
                 Gpu::Atomic::Exch(m, 0);
             }
         } while (!my_turn);
