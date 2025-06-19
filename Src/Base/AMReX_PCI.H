@@ -97,6 +97,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     loc_copy_tags.reserve(N_locs);
 
     Vector<BaseFab<int> > maskfabs;
+    Vector<Array4Tag<int> > masks_unique;
     Vector<Array4Tag<int> > masks;
     if (!is_thread_safe)
     {
@@ -104,6 +105,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
             (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
         {
             maskfabs.resize(this->local_size());
+            masks_unique.resize(N_locs);
             masks.reserve(N_locs);
         }
     }
@@ -122,6 +124,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
             if (maskfabs.size() > 0) {
                 if (!maskfabs[li].isAllocated()) {
                     maskfabs[li].resize(this->atLocalIdx(li).box());
+                    masks_unique.emplace_back(Array4Tag<int>{maskfabs[li].array()});
                 }
                 masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
             }
@@ -129,7 +132,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     }
 
     if (maskfabs.size() > 0) {
-        amrex::ParallelFor(masks,
+        amrex::ParallelFor(masks_unique,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, Array4Tag<int> const& msk) noexcept
         {
             msk.dfab(i,j,k) = 0;
