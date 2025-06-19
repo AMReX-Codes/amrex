@@ -2140,7 +2140,7 @@ OverlapMask (FabArray<FAB> const& fa, IntVect const& nghost, Periodicity const& 
     const DistributionMapping& dm = fa.DistributionMap();
 
     FabArray<BaseFab<int>> mask(ba, dm, 1, nghost);
-    mask.setVal(0);
+    mask.setVal(1);
 
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 
@@ -2165,6 +2165,7 @@ OverlapMask (FabArray<FAB> const& fa, IntVect const& nghost, Periodicity const& 
                 for (const auto& is : isects)
                 {
                     Box const& b = is.second-iv;
+                    if (iv == 0 && b == bx) { continue; }
 #ifdef AMREX_USE_GPU
                     if (run_on_gpu) {
                         tags.push_back({arr,b});
