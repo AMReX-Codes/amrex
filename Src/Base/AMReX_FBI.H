@@ -92,6 +92,10 @@ template <class TagType, class F>
 void
 fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, F&&f)
 {
+#if defined(AMREX_USE_SYCL)
+    amrex::Abort("xxxxx TODO: This function hangs with SYCL");
+#endif
+
     amrex::ParallelFor(tags,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, TagType const& tag) noexcept
     {
@@ -124,7 +128,7 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
                     __asm__ volatile(""); // prevent optimization
                 }
 #else
-                __nanosleep(ns);
+                __nanosleep(1);
 #endif
 
 #elif defined(AMREX_USE_HIP)
@@ -133,7 +137,9 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
 
 #elif defined(AMREX_USE_SYCL)
 
-                for (volite unsigned int i = 0; i < 2; ++i) {}
+                for (unsigned int i = 0; i < 8; ++i) {
+                    __asm__ volatile(""); // prevent optimization
+                }
 
 #endif
             }
