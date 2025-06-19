@@ -105,7 +105,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
             (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
         {
             maskfabs.resize(this->local_size());
-            masks_unique.reserve(N_locs);
+            masks_unique.reserve(this->local_size());
             masks.reserve(N_locs);
         }
     }
