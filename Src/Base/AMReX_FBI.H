@@ -92,8 +92,8 @@ template <class TagType, class F>
 void
 fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, F&&f)
 {
-#if defined(AMREX_USE_SYCL)
-    amrex::Abort("xxxxx TODO: This function hangs with SYCL");
+#if defined(AMREX_USE_SYCL) || defined(AMREX_USE_HIP)
+    amrex::Abort("xxxxx TODO: This function hangs with SYCL and HIP");
 #endif
 
     amrex::ParallelFor(tags,
