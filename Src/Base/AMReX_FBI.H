@@ -92,10 +92,6 @@ template <class TagType, class F>
 void
 fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, F&&f)
 {
-#if defined(AMREX_USE_SYCL) || defined(AMREX_USE_HIP)
-    amrex::Abort("xxxxx TODO: This function hangs with SYCL and HIP");
-#endif
-
     amrex::ParallelFor(tags,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, TagType const& tag) noexcept
     {
@@ -119,6 +115,27 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
                 __threadfence(); // It appears that we need this fence too if a GPU is shared.
 #endif
                 Gpu::Atomic::Exch(m, 0);
+            }
+            else {
+#if defined(AMREX_USE_CUDA)
+
+#if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700)
+                for (unsigned int i = 0; i < 2; ++i) {
+                    __asm__ volatile(""); // prevent optimization
+                }
+#else
+                __nanosleep(ns);
+#endif
+
+#elif defined(AMREX_USE_HIP)
+
+                __builtin_amdgcn_s_sleep(1);
+
+#elif defined(AMREX_USE_SYCL)
+
+                for (volite unsigned int i = 0; i < 2; ++i) {}
+
+#endif
             }
         } while (!my_turn);
     });
