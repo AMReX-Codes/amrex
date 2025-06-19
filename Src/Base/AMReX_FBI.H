@@ -92,17 +92,17 @@ template <class TagType, class F>
 void
 fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, F&&f)
 {
-#if defined(AMREX_USE_SYCL)
-    amrex::Abort("xxxxx TODO: This function hangs with SYCL");
-#endif
-
     amrex::ParallelFor(tags,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, TagType const& tag) noexcept
     {
         int* m = &(tag.mask(i,j,k));
         bool my_turn = false;
         do {
+#if defined(AMREX_USE_SYCL)
+            my_turn = (Gpu::Atomic::Exch(m, 1) == 0);
+#else
             my_turn = (Gpu::Atomic::CAS(m, 0, 1) == 0);
+#endif
             if (my_turn) {
 #if defined(AMREX_USE_SYCL)
                 sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
@@ -124,7 +124,7 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
 #if defined(AMREX_USE_CUDA)
 
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700)
-                for (unsigned int c = 0; c < 2; ++c) {
+                for (int c = 0; c < 2; ++c) {
                     __asm__ volatile(""); // prevent optimization
                 }
 #else
@@ -137,7 +137,7 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
 
 #elif defined(AMREX_USE_SYCL)
 
-                for (unsigned int c = 0; c < 8; ++c) {
+                for (int c = 0; c < 2; ++c) {
                     __asm__ volatile(""); // prevent optimization
                 }
 
