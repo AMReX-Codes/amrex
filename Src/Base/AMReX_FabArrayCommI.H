@@ -273,6 +273,31 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
 template <class FAB>
 void
+FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src, int src_comp, int dest_comp,
+                             int num_comp, const IntVect& snghost, const IntVect& dnghost,
+                             const IntVect& offset, const Periodicity& period)
+{
+    BL_PROFILE("FabArray::ParallelCopy()");
+
+    ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,snghost,dnghost,offset,period);
+    ParallelCopy_finish();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::ParallelAdd (const FabArray<FAB>& src, int src_comp, int dest_comp,
+                             int num_comp, const IntVect& snghost, const IntVect& dnghost,
+                             const IntVect& offset, const Periodicity& period)
+{
+    BL_PROFILE("FabArray::ParallelAdd()");
+
+    ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,snghost,dnghost,offset,period,
+                        FabArray::ADD);
+    ParallelCopy_finish();
+}
+
+template <class FAB>
+void
 FabArray<FAB>::ParallelCopyToGhost (const FabArray<FAB>& src,
                                     int                  scomp,
                                     int                  dcomp,
@@ -323,6 +348,24 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     const FabArrayBase::CPC * a_cpc,
                                     bool                 to_ghost_cells_only)
 {
+    ParallelCopy_nowait(src,scomp,dcomp,ncomp,snghost,dnghost,IntVect(0),period,op,a_cpc,
+                        to_ghost_cells_only);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
+                                    int                  scomp,
+                                    int                  dcomp,
+                                    int                  ncomp,
+                                    const IntVect&       snghost,
+                                    const IntVect&       dnghost,
+                                    const IntVect&       offset,
+                                    const Periodicity&   period,
+                                    CpOp                 op,
+                                    const FabArrayBase::CPC * a_cpc,
+                                    bool                 to_ghost_cells_only)
+{
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: PC");
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
 
@@ -341,7 +384,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
     if ((ParallelDescriptor::NProcs() == 1) &&
         (this->size() == 1) &&  (src.size() == 1) &&
-        !period.isAnyPeriodic() && !to_ghost_cells_only)
+        !period.isAnyPeriodic() && !to_ghost_cells_only && (offset == 0))
     {
         if (this != &src) { // avoid self copy or plus
             auto const& da = this->array(0, dcomp);
@@ -409,7 +452,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         (boxarray == src.boxarray && distributionMap == src.distributionMap) &&
         snghost == IntVect::TheZeroVector() &&
         dnghost == IntVect::TheZeroVector() &&
-        !period.isAnyPeriodic() && !to_ghost_cells_only)
+        !period.isAnyPeriodic() && !to_ghost_cells_only && (offset == 0))
     {
         //
         // Short-circuit full intersection code if we're doing copy()s or if
@@ -426,7 +469,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         return;
     }
 
-    const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period, to_ghost_cells_only);
+    const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period,
+                                                  to_ghost_cells_only,offset);
 
     if (ParallelContext::NProcsSub() == 1)
     {
