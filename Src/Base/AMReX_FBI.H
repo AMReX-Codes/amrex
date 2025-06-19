@@ -124,7 +124,7 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
 #if defined(AMREX_USE_CUDA)
 
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700)
-                for (unsigned int i = 0; i < 2; ++i) {
+                for (unsigned int c = 0; c < 2; ++c) {
                     __asm__ volatile(""); // prevent optimization
                 }
 #else
@@ -137,7 +137,7 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
 
 #elif defined(AMREX_USE_SYCL)
 
-                for (unsigned int i = 0; i < 8; ++i) {
+                for (unsigned int c = 0; c < 8; ++c) {
                     __asm__ volatile(""); // prevent optimization
                 }
 
