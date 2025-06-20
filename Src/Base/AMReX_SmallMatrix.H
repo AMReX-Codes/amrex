@@ -7,6 +7,7 @@
 #include <AMReX_Extension.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_ConstexprFor.H>
+#include <AMReX_Order.H>
 
 #include <algorithm>
 #include <initializer_list>
@@ -15,8 +16,6 @@
 #include <type_traits>
 
 namespace amrex {
-
-    enum struct Order { C, F, RowMajor=C, ColumnMajor=F };
 
     /**
      * \brief Matrix class with compile-time size
