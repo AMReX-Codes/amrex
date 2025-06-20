@@ -69,6 +69,8 @@ public:
     bool hasEBInfo () const noexcept { return m_has_eb_info; }
     void fillCutCellMask (iMultiFab& cutcellmask, const Geometry& geom) const;
 
+    void setShift (int direction, int ncells);
+
 // public: // for cuda
     int coarsenFromFine (Level& fineLevel, bool fill_boundary);
     void buildCellFlag ();
@@ -96,6 +98,7 @@ protected:
     bool m_allregular = false;
     bool m_ok = false;
     bool m_has_eb_info = true;
+    IntVect m_shift{0};
     IndexSpace const* m_parent;
 
 private:

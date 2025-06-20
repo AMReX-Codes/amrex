@@ -152,3 +152,14 @@ IndexSpaceImp<G>::addRegularCoarseLevels (int num_new_coarse_levels)
         m_gslevel[ilev].buildCutCellMask(m_gslevel[ilev+1]);
     }
 }
+
+template <typename G>
+void
+IndexSpaceImp<G>::setShift (int direction, int ncells)
+{
+    auto nlevs = int(m_gslevel.size());
+    for (int ilev = nlevs-1; ilev >= 0; --ilev) {
+        m_gslevel[ilev].setShift(direction, ncells);
+        ncells *= 2;
+    }
+}
