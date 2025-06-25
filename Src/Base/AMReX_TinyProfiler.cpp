@@ -25,7 +25,7 @@
 #endif
 
 #if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
-#include <roctracer/roctx.h>
+#include <rocprofiler-sdk-roctx/roctx.h>
 #endif
 
 #include <algorithm>
