@@ -302,17 +302,9 @@ if (AMReX_HIP)
    endif()
 
    if(AMReX_ROCTX)
+       find_package(rocprofiler-sdk-roctx REQUIRED CONFIG)
        foreach(D IN LISTS AMReX_SPACEDIM)
-          # To be modernized in the future, please see:
-          # https://github.com/ROCm-Developer-Tools/roctracer/issues/56
-          target_include_directories(amrex_${D}d SYSTEM PUBLIC
-              ${HIP_PATH}/../roctracer/include
-              ${HIP_PATH}/../rocprofiler/include
-          )
-          target_link_libraries(amrex_${D}d PUBLIC
-              "-L${HIP_PATH}/../roctracer/lib -lroctracer64"
-              "-L${HIP_PATH}/../roctracer/lib -lroctx64"
-          )
+          target_link_libraries(amrex_${D}d PUBLIC rocprofiler-sdk-roctx::rocprofiler-sdk-roctx)
       endforeach()
    endif()
    foreach(D IN LISTS AMReX_SPACEDIM)
