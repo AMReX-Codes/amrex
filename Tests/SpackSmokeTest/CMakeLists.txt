@@ -33,6 +33,10 @@ elseif(AMReX_GPU_BACKEND STREQUAL "HIP")
     find_package(rocrand REQUIRED CONFIG)
     find_package(rocprim REQUIRED CONFIG)
     find_package(hiprand REQUIRED CONFIG)
+    find_package(rocsparse REQUIRED CONFIG)
+
+elseif (AMReX_GPU_BACKEND STREQUAL "SYCL")
+    find_package(AMReX REQUIRED SYCL)
 
 else()
    # Use installed version of AMReX
