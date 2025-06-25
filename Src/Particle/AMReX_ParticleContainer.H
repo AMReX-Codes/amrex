@@ -1387,6 +1387,8 @@ public:
         tmp.h_redistribute_real_comp = h_redistribute_real_comp;
         tmp.h_redistribute_int_comp = h_redistribute_int_comp;
 
+        tmp.tile_size = tile_size;
+
         return tmp;
     }
 
