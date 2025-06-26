@@ -366,10 +366,10 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
         for (int pindex = 0; pindex < ptile.numParticles(); ++pindex) {
             if (pflags[pindex]) {
                 iPackParticleData(ptd, pindex, iChunkSize, iptr,
-                                  write_int_comp, is_checkpoint);
+                                  write_int_comp.dataPtr(), is_checkpoint);
 
                 rPackParticleData(ptd, pindex, rChunkSize, rptr,
-                                  write_real_comp);
+                                  write_real_comp.dataPtr());
             }
         }
     }
