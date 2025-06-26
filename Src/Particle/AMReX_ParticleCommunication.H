@@ -444,22 +444,29 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
     // count how many particles we have to add to each tile
     std::vector<int> sizes;
     std::vector<PTile*> tiles;
-    for (int lev = 0; lev < num_levels; ++lev)
     {
-        for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        BL_PROFILE("amrex::unpackBuffer::double_loop_start");
+
+        for (int lev = 0; lev < num_levels; ++lev)
         {
-            int gid = mfi.index();
-            int tid = mfi.LocalTileIndex();
-            auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
-            int num_copies = plan.m_box_counts_h[pc.BufferMap().gridAndLevToBucket(gid, lev)];
-            sizes.push_back(num_copies);
-            tiles.push_back(&tile);
+            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+            {
+                int gid = mfi.index();
+                int tid = mfi.LocalTileIndex();
+                auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
+                int num_copies = plan.m_box_counts_h[pc.BufferMap().gridAndLevToBucket(gid, lev)];
+                sizes.push_back(num_copies);
+                tiles.push_back(&tile);
+            }
         }
     }
 
     // resize the tiles and compute offsets
     std::vector<int> offsets;
-    policy.resizeTiles(tiles, sizes, offsets);
+    {
+        BL_PROFILE("amrex::unpackRemotes::resizeTiles");
+        policy.resizeTiles(tiles, sizes, offsets);
+    }
 
     const auto* p_comm_real = plan.d_real_comp_mask.dataPtr();
     const auto* p_comm_int  = plan.d_int_comp_mask.dataPtr();
@@ -471,26 +478,36 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
         auto& plev  = pc.GetParticles(lev);
         for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
+            BL_PROFILE_VAR("amrex::unpackRemotes::mfiter_start", blpv_mfiter_start);
             int gid = mfi.index();
             int tid = mfi.LocalTileIndex();
             auto index = std::make_pair(gid, tid);
 
             auto& tile = plev[index];
+            BL_PROFILE_VAR_STOP(blpv_mfiter_start);
 
+            BL_PROFILE_VAR("amrex::unpackRemotes::mfiter_getoffset", blpv_mfiter_getoffset);
             GetSendBufferOffset get_offset(plan, pc.BufferMap());
             auto p_snd_buffer = snd_buffer.dataPtr();
+            BL_PROFILE_VAR_STOP(blpv_mfiter_getoffset);
 
             int offset = offsets[uindex];
             int size = sizes[uindex];
             ++uindex;
 
+            BL_PROFILE_VAR("amrex::unpackRemotes::mfiter_ptd", blpv_mfiter_ptd);
             auto ptd = tile.getParticleTileData();
+            BL_PROFILE_VAR_STOP(blpv_mfiter_ptd);
+
+            BL_PROFILE_VAR("amrex::unpackRemotes::mfiter_for1d", blpv_mfiter_for1d);
             AMREX_FOR_1D ( size, i,
             {
                 auto src_offset = get_offset(gid, lev, psize, i);
                 int dst_index = offset + i;
                 ptd.unpackParticleData(p_snd_buffer, src_offset, dst_index, p_comm_real, p_comm_int);
             });
+
+            BL_PROFILE_VAR_STOP(blpv_mfiter_for1d);
         }
     }
 }
