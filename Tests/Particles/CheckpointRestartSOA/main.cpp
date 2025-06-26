@@ -150,7 +150,7 @@ void test ()
         std::snprintf(directory_path, sizeof directory_path, "%s%s", directory.c_str(), "plt00000");
         newPC.Restart(directory_path, "particle0");
 
-        using PType = typename MyPC::SuperParticleType;
+        using PTDType = typename MyPC::PTDType;
 
         for (int icomp=0; icomp<NReal; ++icomp)
         {
