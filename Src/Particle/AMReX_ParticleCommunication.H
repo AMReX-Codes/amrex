@@ -617,33 +617,43 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
 
         std::vector<int> sizes;
         std::vector<PTile*> tiles;
-        for (int i = 0, N = int(plan.m_rcv_box_counts.size()); i < N; ++i)
         {
-            int copy_size = plan.m_rcv_box_counts[i];
-            int lev = plan.m_rcv_box_levs[i];
-            int gid = plan.m_rcv_box_ids[i];
-            int tid = 0;
-            auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
-            sizes.push_back(copy_size);
-            tiles.push_back(&tile);
+            BL_PROFILE("amrex::unpackRemotes::plan_boxes");
+            for (int i = 0, N = int(plan.m_rcv_box_counts.size()); i < N; ++i)
+            {
+                int copy_size = plan.m_rcv_box_counts[i];
+                int lev = plan.m_rcv_box_levs[i];
+                int gid = plan.m_rcv_box_ids[i];
+                int tid = 0;
+                auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
+                sizes.push_back(copy_size);
+                tiles.push_back(&tile);
+            }
         }
 
         Vector<int> offsets;
-        policy.resizeTiles(tiles, sizes, offsets);
-        Gpu::streamSynchronize();
+        {
+            BL_PROFILE("amrex::unpackRemotes::resizeTiles");
+            policy.resizeTiles(tiles, sizes, offsets);
+            Gpu::streamSynchronize();
+        }
         int uindex = 0;
         int procindex = 0, rproc = plan.m_rcv_box_pids[0];
         for (int i = 0, N = int(plan.m_rcv_box_counts.size()); i < N; ++i)
         {
+            BL_PROFILE_VAR("amrex::unpackRemotes::loop_start", blpv_loop_start);
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
             int tid = 0;
             auto offset = plan.m_rcv_box_offsets[i];
             procindex = (rproc == plan.m_rcv_box_pids[i]) ? procindex : procindex+1;
             rproc = plan.m_rcv_box_pids[i];
+            BL_PROFILE_VAR_STOP(blpv_loop_start);
 
+            BL_PROFILE_VAR("amrex::unpackRemotes::loop_ptd", blpv_loop_ptd);
             auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
             auto ptd = tile.getParticleTileData();
+            BL_PROFILE_VAR_STOP(blpv_loop_ptd);
 
             AMREX_ASSERT(MyProc ==
                 ParallelContext::global_to_local_rank(pc.ParticleDistributionMap(lev)[gid]));
@@ -652,9 +662,12 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
             int size = sizes[uindex];
             ++uindex;
 
+            BL_PROFILE_VAR("amrex::unpackRemotes::loop_superParticleSize", blpv_loop_sps);
             Long psize = plan.superParticleSize();
             const auto* p_pad_adjust = plan.m_rcv_pad_correction_d.dataPtr();
+            BL_PROFILE_VAR_STOP(blpv_loop_sps);
 
+            BL_PROFILE_VAR("amrex::unpackRemotes::loop_for1d", blpv_loop_for1d);
             AMREX_FOR_1D ( size, ip, {
                 Long src_offset = psize*(offset + ip) + p_pad_adjust[procindex];
                 int dst_index = dst_offset + ip;
@@ -663,6 +676,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
               });
 
             Gpu::streamSynchronize();
+            BL_PROFILE_VAR_STOP(blpv_loop_for1d);
         }
     }
 #else
