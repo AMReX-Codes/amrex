@@ -962,7 +962,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     +(k-imf_arr.begin.z)*imf_arr.kstride)
                 ];
 
-                dst.cpu() = 0;
+                dst.cpu(idx) = 0;
                 dst.id(idx) = LongParticleIds::VirtualParticleID;
 
                 auto& p = dst[idx];
