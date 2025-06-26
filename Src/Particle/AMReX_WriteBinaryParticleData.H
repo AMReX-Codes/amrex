@@ -860,7 +860,6 @@ void WriteBinaryParticleDataAsync (PC const& pc,
         dms.push_back(pc.ParticleDistributionMap(lev));
     }
 
-    int nrc = pc.NumRealComps();
     int nic = pc.NumIntComps();
     int rnames_size = (int) real_comp_names.size();
 
