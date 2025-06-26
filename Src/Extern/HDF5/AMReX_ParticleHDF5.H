@@ -66,7 +66,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
                           tmp_real_comp_names, tmp_int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, int i) -> int
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i) -> int
                           {
                               return ptd.id(i) > 0;
                           }, true);
@@ -102,7 +102,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
                           real_comp_names, int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, int i) -> int
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i) -> int
                           {
                               return ptd.id(i) > 0;
                           });
@@ -138,7 +138,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
                           real_comp_names, int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, int i)
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
                               return ptd.id(i) > 0;
                           });
@@ -166,7 +166,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                           write_real_comp, write_int_comp,
                           real_comp_names, int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, int i)
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
                               return ptd.id(i) > 0;
                           });
@@ -200,7 +200,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                           write_real_comp, write_int_comp,
                           real_comp_names, int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, int i)
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
                               return ptd.id(i) > 0;
                           });
@@ -238,7 +238,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
                           real_comp_names, int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, int i)
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
                               return ptd.id(i) > 0;
                           });
@@ -261,7 +261,7 @@ WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                           write_real_comp, write_int_comp,
                           real_comp_names, int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, int i)
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
                               return ptd.id(i) > 0;
                           });

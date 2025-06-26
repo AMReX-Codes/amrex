@@ -166,9 +166,9 @@ countFlags (const Container<int,Allocator>& pflags)
     return nparticles;
 }
 
-template <typename P, typename I>
+template <typename I>
 AMREX_GPU_HOST_DEVICE
-void packParticleIDs (I* idata, const std::uint32_t idcpu, bool is_checkpoint) noexcept
+void packParticleIDs (I* idata, const std::uint64_t idcpu, bool is_checkpoint) noexcept
 {
     if (is_checkpoint) {
         std::int32_t  xi, yi;
