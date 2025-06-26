@@ -62,7 +62,7 @@ struct ParticleTileData
     int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleReal& pos (const int dir, const int index) const &
+    decltype(auto) pos (const int dir, const int index) const &
     {
         if constexpr(!ParticleType::is_soa_particle) {
             return this->m_aos[index].pos(dir);
@@ -536,7 +536,7 @@ struct ConstParticleTileData
     GpuArray<const int*, NArrayInt > m_idata;
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const ParticleReal& pos (const int dir, const int index) const &
+    decltype(auto) pos (const int dir, const int index) const &
     {
         if constexpr(!ParticleType::is_soa_particle) {
             return this->m_aos[index].pos(dir);
