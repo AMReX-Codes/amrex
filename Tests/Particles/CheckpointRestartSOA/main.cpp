@@ -156,15 +156,15 @@ void test ()
         {
             amrex::Print() << "working on comp " << icomp << "\n";
             auto sm_new = amrex::ReduceSum(newPC,
-                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> Real
                 {
-                    return p.rdata(icomp);
+                    return ptd.rdata(icomp)[i];
                 });
 
             auto sm_old = amrex::ReduceSum(myPC,
-                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> Real
                 {
-                    return p.rdata(icomp);
+                    return ptd.rdata(icomp)[i];
                 });
 
             ParallelDescriptor::ReduceRealSum(sm_new);
@@ -178,15 +178,15 @@ void test ()
         {
             amrex::Print() << "working on comp " << icomp << "\n";
             auto sm_new = amrex::ReduceSum(newPC,
-                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> Real
                 {
-                    return p.idata(icomp);
+                    return ptd.idata(icomp)[i];
                 });
 
             auto sm_old = amrex::ReduceSum(myPC,
-                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> Real
                 {
-                    return p.idata(icomp);
+                    return ptd.idata(icomp)[i];
                 });
 
             ParallelDescriptor::ReduceRealSum(sm_new);

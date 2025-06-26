@@ -954,42 +954,47 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         auto dst = virts.getParticleTileData();
         ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
-             if(imf_arr(i,j,k,0)!=0)
-             {
-                 SuperParticleType p;
-                 p.cpu() = 0;
-                 p.id() = LongParticleIds::VirtualParticleID;
+            if(imf_arr(i,j,k,0)!=0)
+            {
+                const auto idx = last_offset + offsets_ptr[
+                    ((i-imf_arr.begin.x)
+                    +(j-imf_arr.begin.y)*imf_arr.jstride
+                    +(k-imf_arr.begin.z)*imf_arr.kstride)
+                ];
 
-                 //Set rdata(0) first so we can normalize the weighted fields
-                 p.rdata(0) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM));
-                 //Set pos with the normalized weighted field
-                 for (int n = 0; n < AMREX_SPACEDIM; ++n)
-                 {
-                     p.pos(n) = static_cast<ParticleReal>(partData(i,j,k,n) / p.rdata(0));
-                 }
-                 //Set rdata(n>0) with the normalized weighted field for NStructReal
-                 for (int n = 1; n < NStructReal; ++n)
-                 {
-                     p.rdata(n) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM+n) / p.rdata(0));
-                 }
-                 //Set rdata(n>0) with the normalized weighted field for NArrayReal
-                 for (int n = 0; n < NArrayReal; ++n)
-                 {
-                     p.rdata(NStructReal+n) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM+NStructReal+n));
-                 }
-                 //Set idata with the "first" particles idata field for NStructInt
-                 for (int n = 0; n < NStructInt; ++n)
-                 {
-                     p.idata(n) = imf_arr(i,j,k,1+n);
-                 }
-                 //Set idata with the "first" particles idata field for NArrayInt
-                 for (int n = 0; n < NArrayInt; ++n)
-                 {
-                     p.idata(NStructInt+n) = imf_arr(i,j,k,1+NStructInt+n);
-                 }
-                 //Set the new particle in dst tile
-                 dst.setSuperParticle(p, last_offset+offsets_ptr[((i-imf_arr.begin.x)+(j-imf_arr.begin.y)*imf_arr.jstride+(k-imf_arr.begin.z)*imf_arr.kstride)]);
-             }
+                dst.cpu() = 0;
+                dst.id(idx) = LongParticleIds::VirtualParticleID;
+
+                auto& p = dst[idx];
+                //Set rdata(0) first so we can normalize the weighted fields
+                //Note that this does not work for soa PC
+                p.rdata(0) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM));;
+                //Set pos with the normalized weighted field
+                for (int n = 0; n < AMREX_SPACEDIM; ++n)
+                {
+                    p.pos(n) = static_cast<ParticleReal>(partData(i,j,k,n) / p.rdata(0));
+                }
+                //Set rdata(n>0) with the normalized weighted field for NStructReal
+                for (int n = 1; n < NStructReal; ++n)
+                {
+                    p.rdata(n) = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM+n) / p.rdata(0));
+                }
+                //Set rdata(n>0) with the normalized weighted field for NArrayReal
+                for (int n = 0; n < NArrayReal; ++n)
+                {
+                    dst.rdata(n)[idx] = static_cast<ParticleReal>(partData(i,j,k,AMREX_SPACEDIM+NStructReal+n));
+                }
+                //Set idata with the "first" particles idata field for NStructInt
+                for (int n = 0; n < NStructInt; ++n)
+                {
+                    p.idata(n) = imf_arr(i,j,k,1+n);
+                }
+                //Set idata with the "first" particles idata field for NArrayInt
+                for (int n = 0; n < NArrayInt; ++n)
+                {
+                    dst.idata(n)[idx] = imf_arr(i,j,k,1+NStructInt+n);
+                }
+            }
 
         });
         last_offset+=next_offset;
