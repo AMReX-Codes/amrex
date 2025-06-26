@@ -515,6 +515,8 @@ struct ConstParticleTileData
     static constexpr int NAI = NArrayInt;
     using ParticleType = T_ParticleType;
     using ParticleRefType = T_ParticleType const&;
+    using RealType = ParticleReal;
+    using IntType = int;
 
     static constexpr int NStructReal = ParticleType::NReal;
     static constexpr int NStructInt = ParticleType::NInt;
