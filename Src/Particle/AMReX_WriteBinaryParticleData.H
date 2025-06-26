@@ -1014,7 +1014,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     {
                         if (ptd.id(pindex) <= 0) { continue; }
 
-                        iPackParticleData(ptd, pindex, iChunkSize, iptr,
+                        particle_detail::iPackParticleData(ptd, pindex, iChunkSize, iptr,
                             write_int_comp, is_checkpoint);
                     }
                 }
@@ -1040,7 +1040,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     {
                         if (ptd.id(pindex) <= 0) { continue; }
 
-                        rPackParticleData(ptd, pindex, rChunkSize, rptr,
+                        particle_detail::rPackParticleData(ptd, pindex, rChunkSize, rptr,
                             write_real_comp);
                     }
                 }
