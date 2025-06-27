@@ -42,7 +42,7 @@ void make_rhs (MultiFab& rhs, Geometry const& geom,
                        fft_bc[idim].second == FFT::Boundary::odd) {
                 r *= std::sin(x*1.5_rt*fac[idim]);
             } else if (fft_bc[idim].first == FFT::Boundary::odd &&
-                               fft_bc[idim].second == FFT::Boundary::even) {
+                       fft_bc[idim].second == FFT::Boundary::even) {
                 r *= std::sin(x*0.75_rt*fac[idim]);
             } else if (fft_bc[idim].first == FFT::Boundary::even &&
                        fft_bc[idim].second == FFT::Boundary::odd) {
@@ -209,12 +209,12 @@ int main (int argc, char* argv[])
         amrex::Print() << "  Testing PoissonHybrid\n";
 
         icase = 0;
+        for (int zcase = 1; zcase < ncasesz; ++zcase) { // skip periodic z-direction
         for (int ycase = 0; ycase < ncasesy; ++ycase) {
         for (int xcase = 0; xcase < ncases ; ++xcase) {
             ++icase;
             Array<std::pair<FFT::Boundary,FFT::Boundary>,AMREX_SPACEDIM>
-                fft_bc{bcs[xcase], bcs[ycase],
-                       std::make_pair(FFT::Boundary::even,FFT::Boundary::even)};
+                fft_bc{bcs[xcase], bcs[ycase], bcs[zcase]};
             amrex::Print() << "  (" << icase << ") Testing (";
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 amrex::Print() << "(" << getEnumNameString(fft_bc[idim].first)
@@ -244,7 +244,7 @@ int main (int argc, char* argv[])
             auto eps = 1.e-11;
 #endif
             AMREX_ALWAYS_ASSERT(rnorm < eps*bnorm);
-        }}
+        }}}
 #endif
     }
 
