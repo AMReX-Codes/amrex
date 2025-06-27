@@ -64,12 +64,17 @@ namespace amrex
 
 #else
 
-    struct RandomEngine {
-        RandomEngine () = default;
-        RandomEngine (void*) {}
-    }; // CPU
+    struct RandomEngine {}; // CPU
 
 #endif
+
+    RandomEngine getInvalidRandomEngine () {
+#ifdef AMREX_USE_GPU
+        return RandomEngine{nullptr};
+#else
+        return RandomEngine{};
+#endif
+    }
 
 }
 

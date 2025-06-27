@@ -67,7 +67,7 @@ fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F const& f)
     for (int k = 0; k < np; ++k) {
         const auto p = ptd.getSuperParticle(k);
         if constexpr (IsCallable<F,decltype(p),RandomEngine>::value) {
-            flag_ptr[k] = f(p,RandomEngine{nullptr});
+            flag_ptr[k] = f(p,getInvalidRandomEngine());
         } else {
             flag_ptr[k] = f(p);
         }
