@@ -64,7 +64,10 @@ namespace amrex
 
 #else
 
-    struct RandomEngine {}; // CPU
+    struct RandomEngine {
+        RandomEngine () = default;
+        RandomEngine (void*) {}
+    }; // CPU
 
 #endif
 
