@@ -1728,7 +1728,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                         auto& particles_to_send = tmp_remote[who][thread_num];
                         auto old_size = particles_to_send.size();
                         auto new_size = old_size + superparticle_size;
-                        particles_to_send.resize_geometric_grow(new_size);
+                        particles_to_send.resize(new_size);
 
                         ptd.packParticleData(particles_to_send.data(), pindex, old_size,
                             h_redistribute_real_comp.data(), h_redistribute_int_comp.data());
