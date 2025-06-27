@@ -1717,7 +1717,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             auto& dst = ptile_local[pld.m_lev][index][thread_num];
                             auto old_size = dst.size();
                             auto new_size = old_size + 1;
-                            dst.resize_geometric_grow(new_size);
+                            dst.resize(new_size);
                             auto dst_ptd = dst.getParticleTileData();
 
                             copyParticle(dst_ptd, ptd, pindex, old_size);
@@ -1746,7 +1746,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     ++pindex;
                 }
 
-                auto tot_npart = ptile_ptrs[pmap_it]->numTotalParticles();
+                auto tot_npart = particle_tile->numTotalParticles();
 
                 if (last != npart - 1) {
                     pindex = last + 1;
@@ -2055,7 +2055,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                                                                           rcv_tile[ipart])];
                 auto old_size = ptile.numTotalParticles();
                 auto new_size = old_size + 1;
-                ptile.resize_geometric_grow(new_size);
+                ptile.resize(new_size);
 
                 char* pbuf = ((char*) &recvdata[offset]) + j*superparticle_size;
 
