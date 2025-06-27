@@ -646,7 +646,8 @@ numbers can be computed with ``min`` and ``max``, respectively.  It supports
 the Heaviside step function, ``heaviside(x1,x2)`` that gives ``0``, ``x2``,
 ``1``, for ``x1 < 0``, ``x1 = 0`` and ``x1 > 0``, respectively.
 It supports the Bessel function of the first kind of order ``n``
-``jn(n,x)``, and the Bessel function of the second kind of order ``n`` ``yn(n,x)``. Complete elliptic integrals of the first and second kind, ``comp_ellint_1(k)`` and ``comp_ellint_2(k)``,
+``jn(n,x)``, and the Bessel function of the second kind of order ``n`` ``yn(n,x)``.
+Complete elliptic integrals of the first and second kind, ``comp_ellint_1(k)`` and ``comp_ellint_2(k)``,
 are supported.
 There is ``if(a,b,c)`` that gives ``b`` or ``c`` depending on the value of
 ``a``.  A number of comparison operators are supported, including ``<``,
@@ -661,9 +662,9 @@ the parser.
 ::
 
    Parser parser("if(x>a and x<b, sin(x)*cos(y)*if(z<0, 1.0, exp(-z)), .3*c**2)");
-   parser.setConstant(a, ...);
-   parser.setConstant(b, ...);
-   parser.setConstant(c, ...);
+   parser.setConstant("a", ...);
+   parser.setConstant("b", ...);
+   parser.setConstant("c", ...);
    parser.registerVariables({"x","y","z"});
    auto f = parser.compile<3>();  // 3 because there are three variables.
 
@@ -672,7 +673,7 @@ the parser.
    for (int k = 0; ...) {
      for (int j = 0; ...) {
        for (int i = 0; ...) {
-         a(i,j,k) = f(i*dx, j*dy, k*dz);
+         my_array(i,j,k) = f(i*dx, j*dy, k*dz);
        }
      }
    }
