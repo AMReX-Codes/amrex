@@ -64,20 +64,6 @@ struct ArrayView {
 template <class T>
 ArrayView(T* data, std::size_t capacity) -> ArrayView<T>;
 
-struct SoASuperParticle2 {
-    amrex::Real m_pos[AMREX_SPACEDIM];
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    amrex::Real& pos(const int dir) {
-        return m_pos[dir];
-    }
-
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    amrex::Real pos(const int dir) const {
-        return m_pos[dir];
-    }
-};
-
 template <class RType, class IType>
 struct ParticleTileData2
 {
@@ -155,20 +141,6 @@ struct ParticleTileData2
         AMREX_ASSERT(index < m_capacity);
         return this->m_idcpu[index];
     }
-
-    // [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    // ArrayView<RType> rdata (const int comp_index) const &
-    // {
-    //     AMREX_ASSERT(0 <= comp_index && comp_index < m_n_real);
-    //     return {this->m_rdata + comp_index * m_capacity, m_capacity};
-    // }
-
-    // [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    // ArrayView<IType> idata (const int comp_index) const &
-    // {
-    //     AMREX_ASSERT(0 <= comp_index && comp_index < m_n_int);
-    //     return {this->m_idata + comp_index * m_capacity, m_capacity};
-    // }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RType * rdata (const int comp_index) const &
@@ -256,9 +228,12 @@ struct ParticleTileData2
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    SoASuperParticle2 getSuperParticle (size_type index) const noexcept
+    Particle<0, 0> getSuperParticle (size_type index) const noexcept
     {
-        return { AMREX_D_DECL( pos(0, index), pos(1, index), pos(2, index) )};
+        return {
+            { AMREX_D_DECL( pos(0, index), pos(1, index), pos(2, index) ) },
+            idcpu(index)
+        };
     }
 };
 
