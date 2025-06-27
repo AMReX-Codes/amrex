@@ -346,7 +346,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     }
 
     const Long iChunkSize = 2 + num_output_int;
-    idata.resize(std::max(np*iChunkSize, Long{0})); // max to fix compiler warning
+    idata.resize(static_cast<std::size_t>(np*iChunkSize));
 
     int num_output_real = 0;
     for (int i : write_real_comp) {
@@ -354,7 +354,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     }
 
     const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
-    rdata.resize(np*rChunkSize);
+    rdata.resize(static_cast<std::size_t>(np*rChunkSize));
 
     int* iptr = idata.dataPtr();
     ParticleReal* rptr = rdata.dataPtr();
