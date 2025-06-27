@@ -663,8 +663,10 @@ namespace amrex
         void resize_geometric_grow (size_type a_new_size)
         {
             auto old_size = m_size;
-            size_type new_capacity = std::max(a_new_size, GetNewCapacityForPush());
-            reserve(new_capacity);
+            if (m_capacity < a_new_size) {
+                size_type new_capacity = std::max(a_new_size, GetNewCapacityForPush());
+                reserve(new_capacity);
+            }
             m_size = a_new_size;
             if (old_size < a_new_size) {
                 detail::maybe_init_snan(m_data + old_size,
