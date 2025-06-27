@@ -346,7 +346,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     }
 
     const Long iChunkSize = 2 + num_output_int;
-    idata.resize(np*iChunkSize);
+    idata.resize(std::max(np*iChunkSize, Long{0})); // max to fix compiler warning
 
     int num_output_real = 0;
     for (int i : write_real_comp) {
