@@ -371,6 +371,9 @@ jobs:
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Clear ccache
+      run: |
+        ccache -C
     - name: Build & Install
       #
       # /home/runner/work/amrex/amrex/Src/Base/AMReX_IntVect.H:194:92: error: array subscript -1 is below array bounds of ‘int [3]’ [-Werror=array-bounds]
