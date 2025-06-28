@@ -98,8 +98,8 @@ private:
 
 /**
  * \brief 3D Poisson solver for periodic, Dirichlet & Neumann boundaries in
- * the first two dimensions, and Neumann in the last dimension. The last
- * dimension could have non-uniform mesh.
+ * the first two dimensions, and Dirichlet & Neumann in the last
+ * dimension. The last dimension could have non-uniform mesh.
  */
 template <typename MF = MultiFab>
 class PoissonHybrid
@@ -126,6 +126,8 @@ public:
                                      bc[idim].second != Boundary::periodic));
             }
         }
+        AMREX_ALWAYS_ASSERT(bc[2].first != Boundary::periodic &&
+                            bc[2].second != Boundary::periodic);
         Info info{};
         info.setTwoDMode(true);
         if (periodic_xy) {
@@ -135,24 +137,6 @@ public:
             m_r2x = std::make_unique<R2X<typename MF::value_type>> (m_geom.Domain(),
                                                                     m_bc, info);
         }
-        build_spmf();
-    }
-
-    template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
-    explicit PoissonHybrid (Geometry const& geom)
-        : m_geom(geom),
-          m_bc{AMREX_D_DECL(std::make_pair(Boundary::periodic,Boundary::periodic),
-                            std::make_pair(Boundary::periodic,Boundary::periodic),
-                            std::make_pair(Boundary::even,Boundary::even))},
-          m_r2c(std::make_unique<R2C<typename MF::value_type>>
-                (geom.Domain(), Info().setTwoDMode(true)))
-    {
-#if (AMREX_SPACEDIM == 3)
-        AMREX_ALWAYS_ASSERT(geom.isPeriodic(0) && geom.isPeriodic(1));
-#else
-        amrex::Abort("FFT::PoissonHybrid: 1D & 2D todo");
-        return;
-#endif
         build_spmf();
     }
 
@@ -329,7 +313,8 @@ namespace fft_poisson_detail {
         [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
         T operator() (int, int, int k) const
         {
-            return T(2.0) /(m_dz[k]*(m_dz[k]+m_dz[k-1]));
+            return (k > 0) ? T(2.0) / (m_dz[k]*(m_dz[k]+m_dz[k-1]))
+                           : T(1.0) / (m_dz[k]* m_dz[k]);
         }
         T const* m_dz;
     };
@@ -339,9 +324,11 @@ namespace fft_poisson_detail {
         [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
         T operator() (int, int, int k) const
         {
-            return T(2.0) /(m_dz[k]*(m_dz[k]+m_dz[k+1]));
+            return (k < m_size-1) ? T(2.0) / (m_dz[k]*(m_dz[k]+m_dz[k+1]))
+                                  : T(1.0) / (m_dz[k]* m_dz[k]);
         }
         T const* m_dz;
+        int m_size;
     };
 }
 
@@ -421,7 +408,7 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> con
     auto const* pdz = dz.dataPtr();
     solve(soln, rhs,
           fft_poisson_detail::TriA<T>{pdz},
-          fft_poisson_detail::TriC<T>{pdz});
+          fft_poisson_detail::TriC<T>{pdz,int(dz.size())});
 }
 
 template <typename MF>
@@ -438,7 +425,7 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Vector<T> const& dz)
 #endif
     solve(soln, rhs,
           fft_poisson_detail::TriA<T>{pdz},
-          fft_poisson_detail::TriC<T>{pdz});
+          fft_poisson_detail::TriC<T>{pdz,int(dz.size())});
 }
 
 template <typename MF>
@@ -517,7 +504,10 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
         }
     }
 
-    bool has_dirichlet = (offset[0] != T(0)) || (offset[1] != T(0));
+    bool zlo_neumann = m_bc[2].first == Boundary::even;
+    bool zhi_neumann = m_bc[2].second == Boundary::even;
+    bool is_singular = (offset[0] == T(0)) && (offset[1] == T(0))
+        && zlo_neumann && zhi_neumann;
 
     auto nz = m_geom.Domain().length(2);
 
@@ -545,18 +535,26 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
             T k2 = dxfac * (std::cos(a)-T(1))
                 +  dyfac * (std::cos(b)-T(1));
 
-            // Tridiagonal solve with homogeneous Neumann
+            // Tridiagonal solve
             for(int k=0; k < nz; k++) {
                 if(k==0) {
                     ald(i,j,k) = T(0.);
                     cud(i,j,k) = tric(i,j,k);
-                    bd(i,j,k) = k2 -ald(i,j,k)-cud(i,j,k);
+                    if (zlo_neumann) {
+                        bd(i,j,k) = k2 - cud(i,j,k);
+                    } else {
+                        bd(i,j,k) = k2 - cud(i,j,k) - T(2.0)*tria(i,j,k);
+                    }
                 } else if (k == nz-1) {
                     ald(i,j,k) = tria(i,j,k);
                     cud(i,j,k) = T(0.);
-                    bd(i,j,k) = k2 -ald(i,j,k)-cud(i,j,k);
-                    if (i == 0 && j == 0 && !has_dirichlet) {
-                        bd(i,j,k) *= T(2.0);
+                    if (zhi_neumann) {
+                        bd(i,j,k) = k2 - ald(i,j,k);
+                        if (i == 0 && j == 0 && is_singular) {
+                            bd(i,j,k) *= T(2.0);
+                        }
+                    } else {
+                        bd(i,j,k) = k2 - ald(i,j,k) - T(2.0)*tric(i,j,k);
                     }
                 } else {
                     ald(i,j,k) = tria(i,j,k);
@@ -600,18 +598,26 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
             T k2 = dxfac * (std::cos(a)-T(1))
                 +  dyfac * (std::cos(b)-T(1));
 
-            // Tridiagonal solve with homogeneous Neumann
+            // Tridiagonal solve
             for(int k=0; k < nz; k++) {
                 if(k==0) {
                     ald[k] = T(0.);
                     cud[k] = tric(i,j,k);
-                    bd[k] = k2 -ald[k]-cud[k];
+                    if (zlo_neumann) {
+                        bd[k] = k2 - cud[k];
+                    } else {
+                        bd[k] = k2 - cud[k] - T(2.0)*tria(i,j,k);
+                    }
                 } else if (k == nz-1) {
                     ald[k] = tria(i,j,k);
                     cud[k] = T(0.);
-                    bd[k] = k2 -ald[k]-cud[k];
-                    if (i == 0 && j == 0 && !has_dirichlet) {
-                        bd[k] *= T(2.0);
+                    if (zhi_neumann) {
+                        bd[k] = k2 - ald[k];
+                        if (i == 0 && j == 0 && is_singular) {
+                            bd[k] *= T(2.0);
+                        }
+                    } else {
+                        bd[k] = k2 - ald[k] - T(2.0)*tric(i,j,k);
                     }
                 } else {
                     ald[k] = tria(i,j,k);
