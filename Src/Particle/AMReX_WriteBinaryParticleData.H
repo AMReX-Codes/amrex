@@ -340,7 +340,6 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     }
 
     const Long iChunkSize = 2 + num_output_int;
-    AMREX_ALWAYS_ASSERT(idata.size() >= 0 && idata.capacity() >= 0);
     idata.resize(np*iChunkSize);
 
     int num_output_real = 0;
@@ -1013,7 +1012,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
                         particle_detail::iPackParticleData(ptd, pindex, iptr,
                             write_int_comp.dataPtr(), is_checkpoint);
-                        iptr+ = iChunkSize;
+                        iptr += iChunkSize;
                     }
                 }
 
