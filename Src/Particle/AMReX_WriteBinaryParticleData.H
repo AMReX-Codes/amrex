@@ -179,10 +179,10 @@ void packParticleIDs (I* idata, const std::uint64_t idcpu, bool is_checkpoint) n
 
 template<class PTD>
 AMREX_GPU_HOST_DEVICE void
-rPackParticleData (const PTD& ptd, int idx, Long rchunck_size, typename PTD::RealType * rdata_ptr,
+rPackParticleData (const PTD& ptd, int idx, typename PTD::RealType * rdata_ptr,
                    const int * write_real_comp)
 {
-    std::size_t rout_index = idx*rchunck_size;
+    std::size_t rout_index = 0;
 
     for (int j = 0; j < AMREX_SPACEDIM; ++j) {
         rdata_ptr[rout_index] = ptd.pos(j, idx);
@@ -219,10 +219,10 @@ rPackParticleData (const PTD& ptd, int idx, Long rchunck_size, typename PTD::Rea
 
 template<class PTD>
 AMREX_GPU_HOST_DEVICE void
-iPackParticleData (const PTD& ptd, int idx, Long ichunck_size, typename PTD::IntType * idata_ptr,
+iPackParticleData (const PTD& ptd, int idx, typename PTD::IntType * idata_ptr,
                    const int * write_int_comp, bool is_checkpoint)
 {
-    std::size_t iout_index = idx*ichunck_size;
+    std::size_t iout_index = 0;
 
     packParticleIDs(&idata_ptr[iout_index], ptd.idcpu(idx), is_checkpoint);
     iout_index += 2;
@@ -298,19 +298,21 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
         typename PC::RealVector rdata_d(num_copies*rChunkSize);
 
         const auto flag_ptr = pflags.data();
+        const auto offset_ptr = offsets.data();
 
         auto idata_d_ptr = idata_d.data();
         auto rdata_d_ptr = rdata_d.data();
 
         const auto& ptd = ptile.getConstParticleTileData();
-        amrex::ParallelFor(num_copies,
+        amrex::ParallelFor(ptile.numParticles(),
         [=] AMREX_GPU_DEVICE (int pindex) noexcept
         {
             if (flag_ptr[pindex]) {
-                iPackParticleData(ptd, pindex, iChunkSize, idata_d_ptr,
+                const int out_indx = offset_ptr[pindex];
+                iPackParticleData(ptd, pindex, idata_d_ptr + out_indx * iChunkSize,
                                   write_int_comp_d_ptr, is_checkpoint);
 
-                rPackParticleData(ptd, pindex, rChunkSize, rdata_d_ptr,
+                rPackParticleData(ptd, pindex, rdata_d_ptr + out_indx * rChunkSize,
                                   write_real_comp_d_ptr);
             }
         });
@@ -338,7 +340,8 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     }
 
     const Long iChunkSize = 2 + num_output_int;
-    idata.resize(static_cast<std::size_t>(np*iChunkSize));
+    AMREX_ALWAYS_ASSERT(idata.size() >= 0 && idata.capacity() >= 0);
+    idata.resize(np*iChunkSize);
 
     int num_output_real = 0;
     for (int i : write_real_comp) {
@@ -346,7 +349,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
     }
 
     const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
-    rdata.resize(static_cast<std::size_t>(np*rChunkSize));
+    rdata.resize(np*rChunkSize);
 
     int* iptr = idata.dataPtr();
     ParticleReal* rptr = rdata.dataPtr();
@@ -357,11 +360,13 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
 
         for (int pindex = 0; pindex < ptile.numParticles(); ++pindex) {
             if (pflags[pindex]) {
-                iPackParticleData(ptd, pindex, iChunkSize, iptr,
+                iPackParticleData(ptd, pindex, iptr,
                                   write_int_comp.dataPtr(), is_checkpoint);
+                iptr += iChunkSize;
 
-                rPackParticleData(ptd, pindex, rChunkSize, rptr,
+                rPackParticleData(ptd, pindex, rptr,
                                   write_real_comp.dataPtr());
+                rptr += rChunkSize;
             }
         }
     }
@@ -1006,8 +1011,9 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     {
                         if (ptd.id(pindex) <= 0) { continue; }
 
-                        particle_detail::iPackParticleData(ptd, pindex, iChunkSize, iptr,
+                        particle_detail::iPackParticleData(ptd, pindex, iptr,
                             write_int_comp.dataPtr(), is_checkpoint);
+                        iptr+ = iChunkSize;
                     }
                 }
 
@@ -1032,8 +1038,9 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     {
                         if (ptd.id(pindex) <= 0) { continue; }
 
-                        particle_detail::rPackParticleData(ptd, pindex, rChunkSize, rptr,
+                        particle_detail::rPackParticleData(ptd, pindex, rptr,
                             write_real_comp.dataPtr());
+                        rptr += rChunkSize;
                     }
                 }
 
