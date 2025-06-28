@@ -861,8 +861,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
         if (count[grid] == 0) { continue; }
 
-        Vector<int> istuff;
-        Vector<ParticleReal> rstuff;
+        Vector<int> istuff(0);
+        Vector<ParticleReal> rstuff(0);
         particle_detail::packIOData(istuff, rstuff, *this, lev, grid,
                                     write_real_comp, write_int_comp,
                                     particle_io_flags, tile_map[grid], count[grid],
