@@ -1142,7 +1142,7 @@ Memory
 
 .. py:data:: amrex.vector_growth_factor
    :type: amrex::Real
-   :value: 1.5
+   :value: 1.25
 
    This controls the growth factor of :cpp:`amrex::PODVector` and its
    derived classes such as :cpp:`amrex::Gpu::DeviceVector`,

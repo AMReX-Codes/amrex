@@ -4,7 +4,7 @@
 
 namespace amrex::VectorGrowthStrategy
 {
-    Real growth_factor = 1.5_rt;
+    Real growth_factor = 1.25_rt;
 
     // clamp user input to reasonable values
     constexpr Real min_factor = 1.001_rt;

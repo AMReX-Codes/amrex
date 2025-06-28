@@ -928,6 +928,26 @@ struct ParticleTile
         m_soa_tile.resize(count);
     }
 
+    void resize_geometric_grow (std::size_t count)
+    {
+        if constexpr (ParticleType::is_soa_particle) {
+            GetStructOfArrays().GetIdCPUData().resize_geometric_grow(count);
+        } else {
+            m_aos_tile().resize_geometric_grow(count);
+        }
+        for (int j = 0; j < NumRealComps(); ++j)
+        {
+            auto& rdata = GetStructOfArrays().GetRealData(j);
+            rdata.resize_geometric_grow(count);
+        }
+
+        for (int j = 0; j < NumIntComps(); ++j)
+        {
+            auto& idata = GetStructOfArrays().GetIntData(j);
+            idata.resize_geometric_grow(count);
+        }
+    }
+
     ///
     /// Add one particle to this tile.
     ///
