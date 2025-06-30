@@ -1114,6 +1114,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
             nfi.Stream().write(allFabData, bytesWritten);
             nfi.Stream().flush();
             delete [] allFabData;
+            if (! nfi.Stream().good()) { amrex::Error("VisMF::Write failed"); }
 
         } else {    // ---- write fabs individually
             for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
@@ -1154,6 +1155,8 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
             if (!noFlushAfterWrite) {
                 nfi.Stream().flush();
             }
+
+            if (! nfi.Stream().good()) { amrex::Error("VisMF::Write failed"); }
         }
     }
 
@@ -1485,6 +1488,8 @@ VisMF::readFAB (int                  idx,
 #endif
     }
 
+    if (!(infs->good())) { amrex::Error("VisMF::readFAB failed"); }
+
     VisMF::CloseStream(FullName);
 
     return fab;
@@ -1531,6 +1536,8 @@ VisMF::readFAB (FabArray<FArrayBox> &mf,
     } else {
       fab.readFrom(*infs);
     }
+
+    if (!(infs->good())) { amrex::Error("VisMF::readFAB failed"); }
 
     VisMF::CloseStream(FullName);
 }
@@ -1830,6 +1837,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                   }
                 }
               }
+
+              if (! nfi.Stream().good()) { amrex::Error("VisMF::Read failed"); }
 
           }    // ---- end NFilesIter
         }
@@ -2524,6 +2533,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
                 fabio->write(ofs, fab, 0, fab.nComp());
             }
             ofs.flush();
+            if (!ofs.good()) { amrex::Error("VisMF::AsyncWriteDoit failed"); }
             ofs.close();
         }
 
