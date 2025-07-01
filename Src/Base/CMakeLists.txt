@@ -87,6 +87,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_BLFort.H
        AMReX_NFiles.H
        AMReX_NFiles.cpp
+       AMReX_NFileStream.H
+       AMReX_NFileStream.cpp
        AMReX_parstream.H
        AMReX_parstream.cpp
        # I/O stuff  --------------------------------------------------------------

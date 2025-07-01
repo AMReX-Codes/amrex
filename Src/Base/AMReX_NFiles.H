@@ -6,8 +6,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMFBuffer.H>
+#include <AMReX_NFileStream.H>
 
-#include <fstream>
 #include <string>
 
 namespace amrex {
@@ -95,7 +95,7 @@ class NFilesIter
 
     NFilesIter &operator++();
 
-    std::fstream &Stream() { return fileStream; }
+    NFileStream &Stream() { return fileStream; }
 
 
     /**
@@ -215,7 +215,7 @@ class NFilesIter
     std::string filePrefix;
     std::string fullFileName;
     VisMFBuffer::IO_Buffer io_buffer;
-    std::fstream fileStream;
+    NFileStream fileStream;
     bool finishedWriting = false;
     bool isReading = false;
     bool finishedReading = false;
