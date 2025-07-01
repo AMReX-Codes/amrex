@@ -64,6 +64,11 @@ namespace {
 
 NFileStream::~NFileStream()
 {
+    // Stop write thread first if it's running
+    if (m_thread_running) {
+        stop_write_thread();
+    }
+    
     if (is_open()) {
         close();
     }
@@ -144,11 +149,6 @@ void NFileStream::open(const std::string& filename, std::ios_base::openmode mode
 void NFileStream::close()
 {
     if (is_open()) {
-        // Stop write thread if it's running
-        if (m_thread_running) {
-            stop_write_thread();
-        }
-
         // Flush before closing if we were writing
         if (m_mode & std::ios_base::out) {
             flush();
