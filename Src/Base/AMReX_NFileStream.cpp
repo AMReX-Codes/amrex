@@ -68,6 +68,48 @@ NFileStream::~NFileStream()
     }
 }
 
+NFileStream::NFileStream(NFileStream&& other) noexcept
+    : m_fd(other.m_fd)
+    , m_good(other.m_good)
+    , m_fail(other.m_fail)
+    , m_eof(other.m_eof)
+    , m_mode(other.m_mode)
+    , m_stringbuf(std::move(other.m_stringbuf))
+{
+    // Reset the moved-from object
+    other.m_fd = -1;
+    other.m_good = true;
+    other.m_fail = false;
+    other.m_eof = false;
+    other.m_mode = {};
+}
+
+NFileStream& NFileStream::operator=(NFileStream&& other) noexcept
+{
+    if (this != &other) {
+        // Close current file if open
+        if (is_open()) {
+            close();
+        }
+
+        // Move data from other
+        m_fd = other.m_fd;
+        m_good = other.m_good;
+        m_fail = other.m_fail;
+        m_eof = other.m_eof;
+        m_mode = other.m_mode;
+        m_stringbuf = std::move(other.m_stringbuf);
+
+        // Reset the moved-from object
+        other.m_fd = -1;
+        other.m_good = true;
+        other.m_fail = false;
+        other.m_eof = false;
+        other.m_mode = {};
+    }
+    return *this;
+}
+
 int NFileStream::convert_openmode_to_flags(std::ios_base::openmode mode)
 {
     int flags = 0;

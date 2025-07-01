@@ -26,6 +26,14 @@ public:
     NFileStream() = default;
     ~NFileStream();
 
+    // Disable copy operations (file descriptors shouldn't be copied)
+    NFileStream(const NFileStream&) = delete;
+    NFileStream& operator=(const NFileStream&) = delete;
+
+    // Enable move operations (file descriptors can be moved)
+    NFileStream(NFileStream&& other) noexcept;
+    NFileStream& operator=(NFileStream&& other) noexcept;
+
     // File operations
     void open(const std::string& filename, std::ios_base::openmode mode);
     void close();
