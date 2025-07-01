@@ -89,7 +89,7 @@ private:
         std::vector<char> data;
         std::promise<bool> result;
         std::chrono::steady_clock::time_point start_time;
-        WriteTask(const char* s, std::streamsize n) 
+        WriteTask(const char* s, std::streamsize n)
             : data(s, s + n), start_time(std::chrono::steady_clock::now()) {}
     };
 
@@ -99,7 +99,7 @@ private:
     std::condition_variable m_queue_cv;
     std::atomic<bool> m_shutdown{false};
     std::atomic<bool> m_thread_running{false};
-    
+
     // Hang detection configuration
     static constexpr std::chrono::seconds default_write_timeout{30};
     std::chrono::seconds m_write_timeout{default_write_timeout};
@@ -111,15 +111,15 @@ private:
     void stop_write_thread();
     void write_thread_worker();
     bool perform_write_syscall(const char* data, std::streamsize size);
-    
+
 public:
     // Hang detection configuration
     void set_write_timeout(std::chrono::seconds timeout) { m_write_timeout = timeout; }
     [[nodiscard]] std::chrono::seconds get_write_timeout() const { return m_write_timeout; }
-    
+
     // Initialize timeout from runtime parameters
     void init_timeout_from_parmparse();
-    
+
 private:
 };
 

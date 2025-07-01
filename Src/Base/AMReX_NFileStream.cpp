@@ -205,20 +205,20 @@ NFileStream& NFileStream::write(const char* s, std::streamsize n)
     if (m_thread_running) {
         auto task = std::make_unique<WriteTask>(s, n);
         auto future = task->result.get_future();
-        
+
         {
             std::lock_guard<std::mutex> lock(m_queue_mutex);
             m_write_queue.push(std::move(task));
         }
         m_queue_cv.notify_one();
-        
+
         // Wait for the write to complete with timeout
         auto future_status = future.wait_for(m_write_timeout);
-        
+
         if (future_status == std::future_status::timeout) {
             // Write operation timed out - this indicates a hung filesystem
             if (amrex::Verbose() > 0) {
-                amrex::Print() << "Warning: NFileStream write operation timed out after " 
+                amrex::Print() << "Warning: NFileStream write operation timed out after "
                               << m_write_timeout.count() << " seconds. Filesystem may be hung." << std::endl;
             }
             set_error_state(true);
@@ -386,14 +386,14 @@ void NFileStream::stop_write_thread()
         // Signal shutdown
         m_shutdown = true;
         m_queue_cv.notify_all();
-        
+
         // Wait for thread to finish
         if (m_write_thread.joinable()) {
             m_write_thread.join();
         }
-        
+
         m_thread_running = false;
-        
+
         // Clear any remaining tasks
         std::lock_guard<std::mutex> lock(m_queue_mutex);
         while (!m_write_queue.empty()) {
@@ -408,22 +408,22 @@ void NFileStream::write_thread_worker()
 {
     while (!m_shutdown) {
         std::unique_ptr<WriteTask> task;
-        
+
         // Wait for a task or shutdown signal
         {
             std::unique_lock<std::mutex> lock(m_queue_mutex);
             m_queue_cv.wait(lock, [this] { return !m_write_queue.empty() || m_shutdown; });
-            
+
             if (m_shutdown && m_write_queue.empty()) {
                 break;
             }
-            
+
             if (!m_write_queue.empty()) {
                 task = std::move(m_write_queue.front());
                 m_write_queue.pop();
             }
         }
-        
+
         // Perform the write operation if we have a task
         if (task) {
             bool success = perform_write_syscall(task->data.data(), task->data.size());
@@ -461,7 +461,7 @@ void NFileStream::init_timeout_from_parmparse()
     amrex::ParmParse pp("nfilestream");
     int timeout_seconds = static_cast<int>(default_write_timeout.count());
     pp.queryWithParser("write_timeout", timeout_seconds);
-    
+
     if (timeout_seconds > 0) {
         m_write_timeout = std::chrono::seconds(timeout_seconds);
     } else {
