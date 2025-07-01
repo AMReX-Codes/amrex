@@ -4,6 +4,7 @@
 #include <AMReX_NFileStream.H>
 #include <AMReX_Print.H>
 #include <AMReX_BLassert.H>
+#include <AMReX_ParmParse.H>
 #include <cerrno>
 #include <chrono>
 #include <thread>
@@ -68,63 +69,6 @@ NFileStream::~NFileStream()
     }
 }
 
-NFileStream::NFileStream(NFileStream&& other) noexcept
-    : m_fd(other.m_fd)
-    , m_good(other.m_good)
-    , m_fail(other.m_fail)
-    , m_eof(other.m_eof)
-    , m_mode(other.m_mode)
-    , m_stringbuf(std::move(other.m_stringbuf))
-    , m_write_thread(std::move(other.m_write_thread))
-    , m_write_queue(std::move(other.m_write_queue))
-    , m_queue_mutex(std::move(other.m_queue_mutex))
-    , m_queue_cv(std::move(other.m_queue_cv))
-    , m_shutdown(other.m_shutdown.load())
-    , m_thread_running(other.m_thread_running.load())
-{
-    // Reset the moved-from object
-    other.m_fd = -1;
-    other.m_good = true;
-    other.m_fail = false;
-    other.m_eof = false;
-    other.m_mode = {};
-    other.m_shutdown = false;
-    other.m_thread_running = false;
-}
-
-NFileStream& NFileStream::operator=(NFileStream&& other) noexcept
-{
-    if (this != &other) {
-        // Close current file if open
-        if (is_open()) {
-            close();
-        }
-
-        // Move data from other
-        m_fd = other.m_fd;
-        m_good = other.m_good;
-        m_fail = other.m_fail;
-        m_eof = other.m_eof;
-        m_mode = other.m_mode;
-        m_stringbuf = std::move(other.m_stringbuf);
-        m_write_thread = std::move(other.m_write_thread);
-        m_write_queue = std::move(other.m_write_queue);
-        m_queue_mutex = std::move(other.m_queue_mutex);
-        m_queue_cv = std::move(other.m_queue_cv);
-        m_shutdown = other.m_shutdown.load();
-        m_thread_running = other.m_thread_running.load();
-
-        // Reset the moved-from object
-        other.m_fd = -1;
-        other.m_good = true;
-        other.m_fail = false;
-        other.m_eof = false;
-        other.m_mode = {};
-        other.m_shutdown = false;
-        other.m_thread_running = false;
-    }
-    return *this;
-}
 
 int NFileStream::convert_openmode_to_flags(std::ios_base::openmode mode)
 {
@@ -186,6 +130,8 @@ void NFileStream::open(const std::string& filename, std::ios_base::openmode mode
 
     if (m_fd >= 0) {
         clear();  // Reset error flags on successful open
+        // Initialize timeout from runtime parameters
+        init_timeout_from_parmparse();
         // Start write thread if we're opening for writing
         if (mode & std::ios_base::out) {
             start_write_thread();
@@ -266,8 +212,17 @@ NFileStream& NFileStream::write(const char* s, std::streamsize n)
         }
         m_queue_cv.notify_one();
         
-        // Wait for the write to complete
-        if (!future.get()) {
+        // Wait for the write to complete with timeout
+        auto future_status = future.wait_for(m_write_timeout);
+        
+        if (future_status == std::future_status::timeout) {
+            // Write operation timed out - this indicates a hung filesystem
+            if (amrex::Verbose() > 0) {
+                amrex::Print() << "Warning: NFileStream write operation timed out after " 
+                              << m_write_timeout.count() << " seconds. Filesystem may be hung." << std::endl;
+            }
+            set_error_state(true);
+        } else if (!future.get()) {
             set_error_state(true);
         }
     } else {
@@ -499,6 +454,20 @@ bool NFileStream::perform_write_syscall(const char* data, std::streamsize size)
     }
 
     return true;
+}
+
+void NFileStream::init_timeout_from_parmparse()
+{
+    amrex::ParmParse pp("nfilestream");
+    int timeout_seconds = static_cast<int>(default_write_timeout.count());
+    pp.queryWithParser("write_timeout", timeout_seconds);
+    
+    if (timeout_seconds > 0) {
+        m_write_timeout = std::chrono::seconds(timeout_seconds);
+    } else {
+        // Use default timeout if invalid value provided
+        m_write_timeout = default_write_timeout;
+    }
 }
 
 } // namespace amrex
