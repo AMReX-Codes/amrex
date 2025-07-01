@@ -11,6 +11,14 @@
 #include <string>
 #include <ios>
 #include <sstream>
+#include <thread>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
+#include <future>
+#include <vector>
+#include <memory>
 
 namespace amrex {
 
@@ -77,9 +85,27 @@ private:
     std::ios_base::openmode m_mode = {};
     mutable std::stringstream m_stringbuf;  // For rdbuf() compatibility
 
+    // Threading infrastructure for async writes
+    struct WriteTask {
+        std::vector<char> data;
+        std::promise<bool> result;
+        WriteTask(const char* s, std::streamsize n) : data(s, s + n) {}
+    };
+
+    std::thread m_write_thread;
+    std::queue<std::unique_ptr<WriteTask>> m_write_queue;
+    std::mutex m_queue_mutex;
+    std::condition_variable m_queue_cv;
+    std::atomic<bool> m_shutdown{false};
+    std::atomic<bool> m_thread_running{false};
+
     // Helper methods
     int convert_openmode_to_flags(std::ios_base::openmode mode);
     void set_error_state(bool fail_state, bool eof_state = false);
+    void start_write_thread();
+    void stop_write_thread();
+    void write_thread_worker();
+    bool perform_write_syscall(const char* data, std::streamsize size);
 };
 
 } // namespace amrex

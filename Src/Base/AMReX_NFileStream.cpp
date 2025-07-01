@@ -75,6 +75,12 @@ NFileStream::NFileStream(NFileStream&& other) noexcept
     , m_eof(other.m_eof)
     , m_mode(other.m_mode)
     , m_stringbuf(std::move(other.m_stringbuf))
+    , m_write_thread(std::move(other.m_write_thread))
+    , m_write_queue(std::move(other.m_write_queue))
+    , m_queue_mutex(std::move(other.m_queue_mutex))
+    , m_queue_cv(std::move(other.m_queue_cv))
+    , m_shutdown(other.m_shutdown.load())
+    , m_thread_running(other.m_thread_running.load())
 {
     // Reset the moved-from object
     other.m_fd = -1;
@@ -82,6 +88,8 @@ NFileStream::NFileStream(NFileStream&& other) noexcept
     other.m_fail = false;
     other.m_eof = false;
     other.m_mode = {};
+    other.m_shutdown = false;
+    other.m_thread_running = false;
 }
 
 NFileStream& NFileStream::operator=(NFileStream&& other) noexcept
@@ -99,6 +107,12 @@ NFileStream& NFileStream::operator=(NFileStream&& other) noexcept
         m_eof = other.m_eof;
         m_mode = other.m_mode;
         m_stringbuf = std::move(other.m_stringbuf);
+        m_write_thread = std::move(other.m_write_thread);
+        m_write_queue = std::move(other.m_write_queue);
+        m_queue_mutex = std::move(other.m_queue_mutex);
+        m_queue_cv = std::move(other.m_queue_cv);
+        m_shutdown = other.m_shutdown.load();
+        m_thread_running = other.m_thread_running.load();
 
         // Reset the moved-from object
         other.m_fd = -1;
@@ -106,6 +120,8 @@ NFileStream& NFileStream::operator=(NFileStream&& other) noexcept
         other.m_fail = false;
         other.m_eof = false;
         other.m_mode = {};
+        other.m_shutdown = false;
+        other.m_thread_running = false;
     }
     return *this;
 }
@@ -170,6 +186,10 @@ void NFileStream::open(const std::string& filename, std::ios_base::openmode mode
 
     if (m_fd >= 0) {
         clear();  // Reset error flags on successful open
+        // Start write thread if we're opening for writing
+        if (mode & std::ios_base::out) {
+            start_write_thread();
+        }
     } else {
         set_error_state(true);
     }
@@ -178,6 +198,11 @@ void NFileStream::open(const std::string& filename, std::ios_base::openmode mode
 void NFileStream::close()
 {
     if (is_open()) {
+        // Stop write thread if it's running
+        if (m_thread_running) {
+            stop_write_thread();
+        }
+
         // Flush before closing if we were writing
         if (m_mode & std::ios_base::out) {
             flush();
@@ -230,23 +255,25 @@ NFileStream& NFileStream::write(const char* s, std::streamsize n)
         return *this;
     }
 
-    std::streamsize total_written = 0;
-
-    while (total_written < n) {
-        std::streamsize to_write = n - total_written;
-
-        ssize_t written = perform_io_with_retry(
-            [this, s, total_written, to_write]() -> ssize_t {
-                return ::write(m_fd, s + total_written, static_cast<size_t>(to_write));
-            },
-            "NFileStream::write"
-        );
-
-        if (written > 0) {
-            total_written += written;
-        } else {
+    // If write thread is running, queue the write operation
+    if (m_thread_running) {
+        auto task = std::make_unique<WriteTask>(s, n);
+        auto future = task->result.get_future();
+        
+        {
+            std::lock_guard<std::mutex> lock(m_queue_mutex);
+            m_write_queue.push(std::move(task));
+        }
+        m_queue_cv.notify_one();
+        
+        // Wait for the write to complete
+        if (!future.get()) {
             set_error_state(true);
-            break;
+        }
+    } else {
+        // Fall back to synchronous write if no thread is running
+        if (!perform_write_syscall(s, n)) {
+            set_error_state(true);
         }
     }
 
@@ -387,6 +414,91 @@ std::streampos NFileStream::tellp()
     }
 
     return std::streampos(pos);
+}
+
+void NFileStream::start_write_thread()
+{
+    if (!m_thread_running) {
+        m_shutdown = false;
+        m_thread_running = true;
+        m_write_thread = std::thread(&NFileStream::write_thread_worker, this);
+    }
+}
+
+void NFileStream::stop_write_thread()
+{
+    if (m_thread_running) {
+        // Signal shutdown
+        m_shutdown = true;
+        m_queue_cv.notify_all();
+        
+        // Wait for thread to finish
+        if (m_write_thread.joinable()) {
+            m_write_thread.join();
+        }
+        
+        m_thread_running = false;
+        
+        // Clear any remaining tasks
+        std::lock_guard<std::mutex> lock(m_queue_mutex);
+        while (!m_write_queue.empty()) {
+            auto task = std::move(m_write_queue.front());
+            m_write_queue.pop();
+            task->result.set_value(false);  // Mark as failed
+        }
+    }
+}
+
+void NFileStream::write_thread_worker()
+{
+    while (!m_shutdown) {
+        std::unique_ptr<WriteTask> task;
+        
+        // Wait for a task or shutdown signal
+        {
+            std::unique_lock<std::mutex> lock(m_queue_mutex);
+            m_queue_cv.wait(lock, [this] { return !m_write_queue.empty() || m_shutdown; });
+            
+            if (m_shutdown && m_write_queue.empty()) {
+                break;
+            }
+            
+            if (!m_write_queue.empty()) {
+                task = std::move(m_write_queue.front());
+                m_write_queue.pop();
+            }
+        }
+        
+        // Perform the write operation if we have a task
+        if (task) {
+            bool success = perform_write_syscall(task->data.data(), task->data.size());
+            task->result.set_value(success);
+        }
+    }
+}
+
+bool NFileStream::perform_write_syscall(const char* data, std::streamsize size)
+{
+    std::streamsize total_written = 0;
+
+    while (total_written < size) {
+        std::streamsize to_write = size - total_written;
+
+        ssize_t written = perform_io_with_retry(
+            [this, data, total_written, to_write]() -> ssize_t {
+                return ::write(m_fd, data + total_written, static_cast<size_t>(to_write));
+            },
+            "NFileStream::perform_write_syscall"
+        );
+
+        if (written > 0) {
+            total_written += written;
+        } else {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 } // namespace amrex
