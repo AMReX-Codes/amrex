@@ -22,7 +22,7 @@ NFileStream::~NFileStream()
         // Suppress all exceptions in destructor to prevent segfaults
         // Log the error if verbose mode is enabled
         if (amrex::Verbose() > 0) {
-            amrex::Print() << "Warning: Exception caught in NFileStream destructor" << std::endl;
+            amrex::Print() << "Warning: Exception caught in NFileStream destructor\n";
         }
     }
 }
@@ -43,7 +43,7 @@ void NFileStream::open(const std::string& filename, std::ios_base::openmode mode
     init_timeout_from_parmparse();
 
     // Start write thread if we're opening for writing
-    if (mode & std::ios_base::out) {
+    if ((mode & std::ios_base::out) != 0) {
         start_write_thread();
     }
 }
@@ -162,7 +162,7 @@ void NFileStream::stop_write_thread()
                 if (status == std::future_status::timeout) {
                     // Thread didn't finish in time, detach it to prevent hanging
                     if (amrex::Verbose() > 0) {
-                        amrex::Print() << "Warning: Write thread did not finish cleanly, detaching" << std::endl;
+                        amrex::Print() << "Warning: Write thread did not finish cleanly, detaching\n";
                     }
                     m_write_thread.detach();
                 }
@@ -175,11 +175,9 @@ void NFileStream::stop_write_thread()
             while (!m_write_queue.empty()) {
                 auto task = std::move(m_write_queue.front());
                 m_write_queue.pop();
-                try {
-                    task->result.set_value(false);  // Mark as failed
-                } catch (...) {
-                    // Ignore promise exceptions during cleanup
-                }
+                // Note: set_value may throw if promise is already satisfied,
+                // but we don't need to handle that during cleanup
+                task->result.set_value(false);  // Mark as failed
             }
         } catch (...) {
             // Ensure thread state is reset even if cleanup fails
@@ -213,7 +211,7 @@ void NFileStream::write_thread_worker()
 
         // Perform the write operation if we have a task
         if (task) {
-            m_file.write(task->data.data(), task->data.size());
+            m_file.write(task->data.data(), static_cast<std::streamsize>(task->data.size()));
             bool success = !m_file.fail();
             task->result.set_value(success);
         }
