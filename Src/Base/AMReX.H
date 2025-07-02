@@ -136,7 +136,7 @@ namespace amrex
     //! Print out message to cerr and exit via amrex::Abort().
     void Error (const std::string& msg);
 
-    void Error_host (const char* type, const char* msg);
+    void Error_host (const char* type, const char* msg, bool can_throw = true);
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Error (const char* msg = nullptr) {

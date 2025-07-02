@@ -25,10 +25,14 @@ NFilesIter::NFilesIter(int noutfiles, std::string fileprefix,
       stWriteTag      (ParallelDescriptor::SeqNum()),
       stReadTag       (ParallelDescriptor::SeqNum())
 {
+#ifdef AMREX_USE_OWN_FILE_STREAM
+  amrex::ignore_unused(setBuf);
+#else
   if(setBuf) {
     io_buffer.resize(VisMFBuffer::GetIOBufferSize());
     fileStream.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
   }
+#endif
 
   if(myProc == coordinatorProc) {
     // ---- make a static order
@@ -187,10 +191,14 @@ NFilesIter::NFilesIter(std::string filename,
     finishedReading = false;
   }
 
+#ifdef AMREX_USE_OWN_FILE_STREAM
+  amrex::ignore_unused(setBuf);
+#else
   if(setBuf) {
     io_buffer.resize(VisMFBuffer::GetIOBufferSize());
     fileStream.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
   }
+#endif
 }
 
 

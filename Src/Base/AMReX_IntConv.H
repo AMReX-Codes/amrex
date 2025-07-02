@@ -19,8 +19,8 @@ namespace amrex {
     std::uint32_t swapBytes (std::uint32_t value);
     std::uint64_t swapBytes (std::uint64_t value);
 
-    template <typename To, typename From>
-    void writeIntData (const From* data, std::size_t size, std::ostream& os,
+    template <typename To, typename From, typename OS>
+    void writeIntData (const From* data, std::size_t size, OS& os,
                        const amrex::IntDescriptor& id)
     {
         To value;
@@ -32,8 +32,8 @@ namespace amrex {
         }
     }
 
-    template <typename To, typename From>
-    void readIntData (To* data, std::size_t size, std::istream& is,
+    template <typename To, typename From, typename IS>
+    void readIntData (To* data, std::size_t size, IS& is,
                       const amrex::IntDescriptor& id)
     {
         From value;

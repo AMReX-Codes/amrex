@@ -97,6 +97,7 @@ set(AMReX_ASSERTIONS_FOUND          @AMReX_ASSERTIONS@)
 set(AMReX_FLATTEN_FOR_FOUND         @AMReX_FLATTEN_FOR@)
 set(AMReX_COMPILER_DEFAULT_INLINE_FOUND   @AMReX_COMPILER_DEFAULT_INLINE@)
 set(AMReX_INLINE_LIMIT_FOUND              @AMReX_INLINE_LIMIT@)
+set(AMReX_OWN_FILE_STREAM_FOUND     @AMReX_OWN_FILE_STREAM@)
 
 # Profiling options
 set(AMReX_BASEP_FOUND               @AMReX_BASE_PROFILE@)
@@ -108,7 +109,6 @@ set(AMReX_PROFPARSER_FOUND          @AMReX_PROFPARSER@)
 
 # Plotfile tools
 set(AMReX_PFTOOLS_FOUND             @AMReX_PLOTFILE_TOOLS@)
-
 
 # export the actual values as well.
 # General options
@@ -154,6 +154,7 @@ set(AMReX_FPE                       @AMReX_FPE@)
 set(AMReX_PIC                       @AMReX_PIC@)
 set(AMReX_ASSERTIONS                @AMReX_ASSERTIONS@)
 set(AMReX_FLATTEN_FOR               @AMReX_FLATTEN_FOR@)
+set(AMReX_OWN_FILE_STREAM           @AMReX_OWN_FILE_STREAM@)
 
 # Profiling options
 set(AMReX_BASE_PROFILE              @AMReX_BASE_PROFILE@)

@@ -399,6 +399,8 @@ else ()
    set(AMReX_COMPILER_DEFAULT_INLINE ON)
 endif ()
 
+option( AMReX_OWN_FILE_STREAM "Use AMReX's own file stream for I/O" OFF )
+print_option( AMReX_OWN_FILE_STREAM )
 
 if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
    option( AMReX_ASSERTIONS "Enable assertions" ON)

@@ -39,6 +39,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_String.cpp
        AMReX_Utility.H
        AMReX_Utility.cpp
+       AMReX_FileStream.H
+       AMReX_FileStream.cpp
        AMReX_FileSystem.H
        AMReX_FileSystem.cpp
        AMReX_ValLocPair.H
@@ -97,7 +99,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_FPC.H
        AMReX_FPC.cpp
        AMReX_VectorIO.H
-       AMReX_VectorIO.cpp
        AMReX_Print.H
        AMReX_IntConv.H
        AMReX_IntConv.cpp

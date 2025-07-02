@@ -9,9 +9,10 @@ namespace amrex {
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
+template <typename OS>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::WriteParticleRealData (void* data, size_t size, std::ostream& os) const
+::WriteParticleRealData (void* data, size_t size, OS& os) const
 {
     if (sizeof(typename ParticleType::RealType) == 4) {
         writeFloatData((float*) data, size, os, ParticleRealDescriptor);
@@ -23,9 +24,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
+template <typename IS>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::ReadParticleRealData (void* data, size_t size, std::istream& is)
+::ReadParticleRealData (void* data, size_t size, IS& is)
 {
     if (sizeof(typename ParticleType::RealType) == 4) {
         readFloatData((float*) data, size, is, ParticleRealDescriptor);
@@ -569,9 +571,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
+template <typename OS>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::WriteParticles (int lev, std::ofstream& ofs, int fnum,
+::WriteParticles (int lev, OS& ofs, int fnum,
                   Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                   const Vector<int>& write_real_comp,
                   const Vector<int>& write_int_comp,

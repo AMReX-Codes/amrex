@@ -396,6 +396,16 @@ else
   USE_GPU_RDC := TRUE
 endif
 
+ifdef USE_OWN_FILE_STREAM
+  USE_OWN_FILE_STREAM := $(strip $(USE_OWN_FILE_STREAM))
+else
+  USE_OWN_FILE_STREAM := FALSE
+endif
+
+ifeq ($(USE_OWN_FILE_STREAM),TRUE)
+  DEFINES += -DAMREX_USE_OWN_FILE_STREAM
+endif
+
 build_time_begin := $(shell date +"%s")
 
 ALLOW_DIFFERENT_COMP ?= TRUE

@@ -3,6 +3,7 @@
 #define BL_NFILES_H
 #include <AMReX_Config.H>
 
+#include <AMReX_FileStream.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMFBuffer.H>
@@ -27,6 +28,11 @@ class NFilesIter
 {
   public:
 
+#if defined(AMREX_USE_OWN_FILE_STREAM)
+    using stream_type = amrex::FileStream;
+#else
+    using stream_type = std::fstream;
+#endif
 
     /**
     * \brief the nfiles will be named "filePrefix" + "00000"
@@ -95,7 +101,7 @@ class NFilesIter
 
     NFilesIter &operator++();
 
-    std::fstream &Stream() { return fileStream; }
+    stream_type &Stream() { return fileStream; }
 
 
     /**
@@ -215,7 +221,7 @@ class NFilesIter
     std::string filePrefix;
     std::string fullFileName;
     VisMFBuffer::IO_Buffer io_buffer;
-    std::fstream fileStream;
+    stream_type fileStream;
     bool finishedWriting = false;
     bool isReading = false;
     bool finishedReading = false;

@@ -8,6 +8,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 #include <AMReX_INT.H>
+#include <AMReX_FileStream.H>
 
 #include <iosfwd>
 
@@ -182,12 +183,20 @@ public:
                                        Long                  nitems,
                                        std::istream&         is,
                                        const RealDescriptor& id);
+    static void convertToNativeFormat (Real*                 out,
+                                       Long                  nitems,
+                                       amrex::FileStream&    is,
+                                       const RealDescriptor& id);
 
     /**
     * \brief Convert nitems Reals in native format to RealDescriptor format
     * and write them to the ostream.
     */
     static void convertFromNativeFormat (std::ostream&         os,
+                                         Long                  nitems,
+                                         const Real*           in,
+                                         const RealDescriptor& od);
+    static void convertFromNativeFormat (amrex::FileStream&    os,
                                          Long                  nitems,
                                          const Real*           in,
                                          const RealDescriptor& od);
@@ -209,12 +218,20 @@ public:
                                               Long                  nitems,
                                               const float*          in,
                                               const RealDescriptor& od);
+    static void convertFromNativeFloatFormat (amrex::FileStream&    os,
+                                              Long                  nitems,
+                                              const float*          in,
+                                              const RealDescriptor& od);
 
     /**
     * \brief Convert nitems doubles in native format to RealDescriptor format
     * and write them to the ostream.
     */
     static void convertFromNativeDoubleFormat (std::ostream&         os,
+                                               Long                  nitems,
+                                               const double*         in,
+                                               const RealDescriptor& od);
+    static void convertFromNativeDoubleFormat (amrex::FileStream&    os,
                                                Long                  nitems,
                                                const double*         in,
                                                const RealDescriptor& od);
@@ -228,6 +245,10 @@ public:
                                             Long                  nitems,
                                             std::istream&         is,
                                             const RealDescriptor& id);
+    static void convertToNativeFloatFormat (float*                out,
+                                            Long                  nitems,
+                                            amrex::FileStream&    is,
+                                            const RealDescriptor& id);
 
     /**
     * \brief Read nitems from istream in RealDescriptor format and
@@ -237,6 +258,10 @@ public:
     static void convertToNativeDoubleFormat (double*               out,
                                              Long                  nitems,
                                              std::istream&         is,
+                                             const RealDescriptor& id);
+    static void convertToNativeDoubleFormat (double*               out,
+                                             Long                  nitems,
+                                             amrex::FileStream&    is,
                                              const RealDescriptor& id);
 
 private:

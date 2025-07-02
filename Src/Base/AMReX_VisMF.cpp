@@ -1,4 +1,6 @@
 
+#include <AMReX_FileStream.H> // xxxxx will remove this in the future
+
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_FPC.H>
 #include <AMReX_IOFormat.H>
@@ -590,6 +592,15 @@ VisMF::FileOffset (std::ostream& os)
 
     return static_cast<std::streamoff>(os.tellp());
 }
+
+#ifdef AMREX_USE_OWN_FILE_STREAM
+Long
+VisMF::FileOffset (FileStream& os)
+{
+    os.seekp(0, std::ios::end);
+    return static_cast<std::streamoff>(os.tellp());
+}
+#endif
 
 FArrayBox*
 VisMF::readFAB (int idx, const std::string& mf_name)

@@ -605,7 +605,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         {
             for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi)
             {
-                auto& myStream = (std::ofstream&) nfi.Stream();
+                auto& myStream = nfi.Stream();
                 pc.WriteParticles(lev, myStream, nfi.FileNumber(), which, count, where,
                                   write_real_comp, write_int_comp, particle_io_flags, is_checkpoint);
             }

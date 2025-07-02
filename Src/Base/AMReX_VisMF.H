@@ -237,6 +237,9 @@ public:
     static bool Check (const std::string &name);
     //! The file offset of the passed ostream.
     static Long FileOffset (std::ostream& os);
+#ifdef AMREX_USE_OWN_FILE_STREAM
+    static Long FileOffset (FileStream& os);
+#endif
     //! Read the entire fab (all components).
     FArrayBox* readFAB (int idx, const std::string& mf_name);
     //! Read the specified fab component.

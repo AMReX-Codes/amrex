@@ -239,7 +239,7 @@ amrex::Warning (const std::string& msg)
 }
 
 void
-amrex::Error_host (const char* type, const char * msg)
+amrex::Error_host (const char* type, const char * msg, bool can_throw)
 {
     amrex::ignore_unused(type);
 #ifdef AMREX_USE_COVERITY
@@ -247,7 +247,7 @@ amrex::Error_host (const char* type, const char * msg)
 #else
     if (system::error_handler) {
         system::error_handler(msg);
-    } else if (system::throw_exception) {
+    } else if (system::throw_exception && can_throw) {
         throw RuntimeError(msg);
     } else {
         write_lib_id(type);
