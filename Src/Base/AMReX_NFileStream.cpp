@@ -151,11 +151,10 @@ NFileStream& NFileStream::write(const char* s, std::streamsize n)
 
         if (future_status == std::future_status::timeout) {
             // Write operation timed out - this indicates a hung filesystem
-            if (amrex::Verbose() > 0) {
-                amrex::Print() << "Warning: NFileStream write operation timed out after "
-                              << m_write_timeout.count() << " seconds. Filesystem may be hung." << std::endl;
-            }
-            m_file.setstate(std::ios::failbit);
+            std::string error_msg = "NFileStream write operation timed out after " +
+                                   std::to_string(m_write_timeout.count()) + 
+                                   " seconds. Filesystem may be hung.";
+            amrex::Abort(error_msg);
         } else if (!future.get()) {
             m_file.setstate(std::ios::failbit);
         }
