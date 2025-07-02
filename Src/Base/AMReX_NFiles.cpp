@@ -215,10 +215,10 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
 
       if(mySparseFileNumber != -1) {
         if( ! appendFirst) {
-          fileStream.open(fullFileName.c_str(),
+          fileStream.open(fullFileName,
                           std::ios::out | std::ios::trunc | std::ios::binary);
         } else {
-          fileStream.open(fullFileName.c_str(),
+          fileStream.open(fullFileName,
                           std::ios::out | std::ios::app | std::ios::binary);
         }
         if( ! fileStream.good()) {
@@ -235,10 +235,10 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
     for(int iSet(0); iSet < nSets; ++iSet) {
       if(mySetPosition == iSet) {
         if(iSet == 0 && ! appendFirst) {   // ---- first set
-          fileStream.open(fullFileName.c_str(),
+          fileStream.open(fullFileName,
                           std::ios::out | std::ios::trunc | std::ios::binary);
         } else {
-          fileStream.open(fullFileName.c_str(),
+          fileStream.open(fullFileName,
                           std::ios::out | std::ios::app | std::ios::binary);
         }
         if( ! fileStream.good()) {
@@ -265,10 +265,10 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
 
       fullFileName = amrex::Concatenate(filePrefix, fileNumber, minDigits);
       if(appendFirst) {
-        fileStream.open(fullFileName.c_str(),
+        fileStream.open(fullFileName,
                         std::ios::out | std::ios::app | std::ios::binary);
       } else {
-        fileStream.open(fullFileName.c_str(),
+        fileStream.open(fullFileName,
                         std::ios::out | std::ios::trunc | std::ios::binary);
       }
       if( ! fileStream.good()) {
@@ -295,7 +295,7 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
       coordinatorProc = rmess.pid();
       fullFileName = amrex::Concatenate(filePrefix, fileNumber, minDigits);
 
-      fileStream.open(fullFileName.c_str(),
+      fileStream.open(fullFileName,
                       std::ios::out | std::ios::app | std::ios::binary);
       if( ! fileStream.good()) {
         amrex::FileOpenFailed(fullFileName);
@@ -312,7 +312,7 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
   if(finishedWriting) {
     return false;
   }
-  fileStream.open(fullFileName.c_str(),
+  fileStream.open(fullFileName,
                   std::ios::out | std::ios::trunc | std::ios::binary);
   if( ! fileStream.good()) {
     amrex::FileOpenFailed(fullFileName);
@@ -333,7 +333,7 @@ bool NFilesIter::ReadyToRead() {
     ParallelDescriptor::Recv(&iBuff, 1, waitForPID, stReadTag);
   }
 
-  fileStream.open(fullFileName.c_str(),
+  fileStream.open(fullFileName,
                   std::ios::in | std::ios::binary);
   if( ! fileStream.good()) {
     amrex::FileOpenFailed(fullFileName);
