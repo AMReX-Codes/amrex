@@ -1,5 +1,5 @@
-// ABOUTME: This file defines AMReX_NFileStream, a custom stream class for NFilesIter
-// ABOUTME: It uses std::fstream with threaded writes and I/O hang detection
+// ABOUTME: This file defines AMReX_NFileStream, a wrapper around std::fstream for NFilesIter
+// ABOUTME: It provides threaded writes with I/O hang detection
 
 #ifndef AMREX_NFILESTREAM_H_
 #define AMREX_NFILESTREAM_H_
@@ -24,7 +24,7 @@
 namespace amrex {
 
 /**
- * \brief A custom file stream class for NFilesIter that wraps std::fstream
+ * \brief A wrapper around std::fstream for NFilesIter with threaded writes
  *
  * This class provides the same interface as std::fstream but uses threaded writes
  * with hang detection for better performance and reliability on network filesystems.

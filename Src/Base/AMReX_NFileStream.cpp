@@ -1,71 +1,11 @@
 // ABOUTME: This file implements AMReX_NFileStream using std::fstream with threaded writes
-// ABOUTME: It provides controlled file I/O operations with hang detection and exponential backoff
+// ABOUTME: It provides a simple wrapper around std::fstream with I/O hang detection
 
 #include <AMReX_NFileStream.H>
 #include <AMReX_Print.H>
-#include <AMReX_BLassert.H>
 #include <AMReX_ParmParse.H>
-#include <cerrno>
-#include <chrono>
-#include <thread>
-#include <cstring>
 
 namespace amrex {
-
-namespace {
-    // Exponential backoff parameters
-    constexpr int max_retries = 10;
-    constexpr int initial_backoff_ms = 1;
-    constexpr int max_backoff_ms = 1000;
-
-    // Helper function to perform I/O with exponential backoff for retryable errors
-    template <typename IOFunc>
-    bool perform_io_with_retry(IOFunc&& io_func, const char* op_name)
-    {
-        int retry_count = 0;
-        int backoff_ms = initial_backoff_ms;
-
-        while (retry_count < max_retries) {
-            errno = 0;
-            bool result = io_func();
-
-            if (result) {
-                return true;  // Success
-            }
-
-            int err = errno;
-
-            // Check for retryable errors
-            if (err == EINTR || err == EAGAIN || err == EWOULDBLOCK) {
-                if (retry_count > 0) {
-                    // Exponential backoff
-                    std::this_thread::sleep_for(std::chrono::milliseconds(backoff_ms));
-                    backoff_ms = std::min(backoff_ms * 2, max_backoff_ms);
-                }
-                ++retry_count;
-                continue;
-            }
-
-            // Non-retryable error - log but don't throw during destruction
-            if (amrex::Verbose() > 0) {
-                std::string error_msg = std::string(op_name) + " failed";
-                if (err != 0) {
-                    error_msg += ": " + std::string(std::strerror(err));
-                }
-                amrex::Print() << "Error: " << error_msg << std::endl;
-            }
-            return false;
-        }
-
-        // Max retries exceeded - log but don't throw during destruction
-        if (amrex::Verbose() > 0) {
-            std::string error_msg = std::string(op_name) + " failed after " +
-                                   std::to_string(max_retries) + " retries";
-            amrex::Print() << "Error: " << error_msg << std::endl;
-        }
-        return false;
-    }
-}
 
 NFileStream::~NFileStream()
 {
@@ -95,11 +35,7 @@ void NFileStream::open(const std::string& filename, std::ios_base::openmode mode
 
     m_file.open(filename, mode);
     if (!m_file.good()) {
-        int err = errno;
         std::string error_msg = "NFileStream::open failed to open file: " + filename;
-        if (err != 0) {
-            error_msg += " (errno: " + std::to_string(err) + " - " + std::strerror(err) + ")";
-        }
         amrex::Error(error_msg);
     }
 
@@ -117,15 +53,7 @@ void NFileStream::close()
     if (is_open()) {
         // Flush before closing if we were writing
         flush();
-
-        // Close with retry logic
-        perform_io_with_retry(
-            [this]() -> bool {
-                m_file.close();
-                return !m_file.fail();
-            },
-            "NFileStream::close"
-        );
+        m_file.close();
     }
 }
 
@@ -160,9 +88,7 @@ NFileStream& NFileStream::write(const char* s, std::streamsize n)
         }
     } else {
         // Fall back to synchronous write if no thread is running
-        if (!perform_write_operation(s, n)) {
-            m_file.setstate(std::ios::failbit);
-        }
+        m_file.write(s, n);
     }
 
     return *this;
@@ -170,89 +96,42 @@ NFileStream& NFileStream::write(const char* s, std::streamsize n)
 
 NFileStream& NFileStream::flush()
 {
-    if (!is_open()) {
-        return *this;
+    if (is_open()) {
+        m_file.flush();
     }
-
-    perform_io_with_retry(
-        [this]() -> bool {
-            m_file.flush();
-            return !m_file.fail();
-        },
-        "NFileStream::flush"
-    );
-
     return *this;
 }
 
 NFileStream& NFileStream::read(char* s, std::streamsize n)
 {
-    if (!is_open() || n <= 0) {
-        return *this;
+    if (is_open() && n > 0) {
+        m_file.read(s, n);
     }
-
-    perform_io_with_retry(
-        [this, s, n]() -> bool {
-            m_file.read(s, n);
-            return !m_file.fail() || m_file.eof();
-        },
-        "NFileStream::read"
-    );
-
     return *this;
 }
 
 NFileStream& NFileStream::seekp(std::streampos pos)
 {
-    if (!is_open()) {
-        return *this;
+    if (is_open()) {
+        m_file.seekp(pos);
     }
-
-    perform_io_with_retry(
-        [this, pos]() -> bool {
-            m_file.seekp(pos);
-            return !m_file.fail();
-        },
-        "NFileStream::seekp"
-    );
-
     return *this;
 }
 
 NFileStream& NFileStream::seekp(std::streamoff off, std::ios_base::seekdir way)
 {
-    if (!is_open()) {
-        return *this;
+    if (is_open()) {
+        m_file.seekp(off, way);
     }
-
-    perform_io_with_retry(
-        [this, off, way]() -> bool {
-            m_file.seekp(off, way);
-            return !m_file.fail();
-        },
-        "NFileStream::seekp"
-    );
-
     return *this;
 }
 
 std::streampos NFileStream::tellp()
 {
-    if (!is_open()) {
-        return std::streampos(-1);
+    if (is_open()) {
+        return m_file.tellp();
     }
-
-    std::streampos pos = std::streampos(-1);
-
-    perform_io_with_retry(
-        [this, &pos]() -> bool {
-            pos = m_file.tellp();
-            return pos != std::streampos(-1);
-        },
-        "NFileStream::tellp"
-    );
-
-    return pos;
+    return std::streampos(-1);
 }
 
 void NFileStream::start_write_thread()
@@ -334,21 +213,11 @@ void NFileStream::write_thread_worker()
 
         // Perform the write operation if we have a task
         if (task) {
-            bool success = perform_write_operation(task->data.data(), task->data.size());
+            m_file.write(task->data.data(), task->data.size());
+            bool success = !m_file.fail();
             task->result.set_value(success);
         }
     }
-}
-
-bool NFileStream::perform_write_operation(const char* data, std::streamsize size)
-{
-    return perform_io_with_retry(
-        [this, data, size]() -> bool {
-            m_file.write(data, size);
-            return !m_file.fail();
-        },
-        "NFileStream::perform_write_operation"
-    );
 }
 
 void NFileStream::init_timeout_from_parmparse()
