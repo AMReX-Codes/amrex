@@ -14,7 +14,7 @@ NFileStream::~NFileStream()
         if (m_thread_running) {
             stop_write_thread();
         }
-        
+
         if (is_open()) {
             close();
         }
@@ -41,7 +41,7 @@ void NFileStream::open(const std::string& filename, std::ios_base::openmode mode
 
     // Initialize timeout from runtime parameters
     init_timeout_from_parmparse();
-    
+
     // Start write thread if we're opening for writing
     if (mode & std::ios_base::out) {
         start_write_thread();
@@ -80,7 +80,7 @@ NFileStream& NFileStream::write(const char* s, std::streamsize n)
         if (future_status == std::future_status::timeout) {
             // Write operation timed out - this indicates a hung filesystem
             std::string error_msg = "NFileStream write operation timed out after " +
-                                   std::to_string(m_write_timeout.count()) + 
+                                   std::to_string(m_write_timeout.count()) +
                                    " seconds. Filesystem may be hung.";
             amrex::Abort(error_msg);
         } else if (!future.get()) {
@@ -157,7 +157,7 @@ void NFileStream::stop_write_thread()
                 auto future = std::async(std::launch::async, [this]() {
                     m_write_thread.join();
                 });
-                
+
                 auto status = future.wait_for(std::chrono::seconds(5));
                 if (status == std::future_status::timeout) {
                     // Thread didn't finish in time, detach it to prevent hanging
