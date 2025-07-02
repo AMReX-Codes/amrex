@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <limits>
 
+namespace amrex {
+
 namespace {
 amrex::Real dot_product(const std::array<amrex::Real,3>& a, const std::array<amrex::Real,3>& b)
 {
@@ -21,8 +23,6 @@ bool intersects(amrex::Real val)
 }
 
 }
-
-namespace amrex {
 
 void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
       const Box & bx, Array4<EBCellFlag const> const& flag,

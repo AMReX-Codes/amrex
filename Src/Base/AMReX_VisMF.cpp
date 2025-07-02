@@ -33,6 +33,8 @@ bool VisMF::usePersistentIFStreams(false);
 bool VisMF::useSynchronousReads(false);
 bool VisMF::useDynamicSetSelection(true);
 bool VisMF::allowSparseWrites(true);
+bool VisMF::noFlushAfterWrite(false);
+bool VisMF::barrierAfterLevel(false);
 
 Long VisMFBuffer::ioBufferSize(VisMF::IO_Buffer_Size);
 
@@ -137,6 +139,8 @@ VisMF::Initialize ()
     pp.query("usedynamicsetselection", useDynamicSetSelection);
     pp.query("iobuffersize", ioBufferSize);
     pp.query("allowsparsewrites", allowSparseWrites);
+    pp.query("noflushafterwrite", noFlushAfterWrite);
+    pp.query("barrierafterlevel", barrierAfterLevel);
 
     initialized = true;
 }
@@ -1123,7 +1127,6 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     hLength = static_cast<std::streamoff>(hss.tellp());
                     auto tstr = hss.str();
                     nfi.Stream().write(tstr.c_str(), hLength);    // ---- the fab header
-                    nfi.Stream().flush();
                 }
                 Real const* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
@@ -1143,12 +1146,13 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                                                             writeDataItems,
                                                             fabdata, *whichRD);
                     nfi.Stream().write(cDataPtr, writeDataSize);
-                    nfi.Stream().flush();
                     delete [] cDataPtr;
                 } else {    // ---- copy from the fab
                     nfi.Stream().write((char *) fabdata, writeDataSize);
-                    nfi.Stream().flush();
                 }
+            }
+            if (!noFlushAfterWrite) {
+                nfi.Stream().flush();
             }
         }
     }

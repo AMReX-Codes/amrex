@@ -192,7 +192,6 @@ protected:
     //! The max amount of memory given out via alloc().
     std::size_t m_max_actually_used{0};
 
-
     std::mutex carena_mutex;
 
     friend std::ostream& operator<< (std::ostream& os, const CArena& arena);

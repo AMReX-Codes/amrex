@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_WriteBinaryParticleData.H>
+#include <AMReX_VisMF.H>
 
 namespace amrex {
 
@@ -613,10 +614,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                     particle_io_flags, tile_map[grid], count[grid], is_checkpoint);
 
         writeIntData(istuff.dataPtr(), istuff.size(), ofs);
-        ofs.flush();  // Some systems require this flush() (probably due to a bug)
+        if (!VisMF::GetNoFlushAfterWrite()) {
+            ofs.flush();  // Some systems require this flush() (probably due to a bug)
+        }
 
         WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs);
-        ofs.flush();  // Some systems require this flush() (probably due to a bug)
+        if (!VisMF::GetNoFlushAfterWrite()) {
+            ofs.flush();  // Some systems require this flush() (probably due to a bug)
+        }
     }
 }
 

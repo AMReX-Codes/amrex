@@ -3,12 +3,13 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
-#include <AMReX_Vector.H>
-#include <AMReX_REAL.H>
 #include <AMReX_ArrayLim.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_TagBox.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Parser.H>
+#include <AMReX_REAL.H>
+#include <AMReX_TagBox.H>
+#include <AMReX_Vector.H>
 
 #include <string>
 #include <memory>
@@ -426,7 +427,7 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
   {
   public:
 
-    enum TEST {GRAD=0, RELGRAD, LESS, GREATER, VORT, BOX, USER};
+    enum TEST {GRAD=0, RELGRAD, LESS, GREATER, VORT, BOX, USER, PARSER};
 
     struct UserFunc
     {
@@ -482,6 +483,12 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
                  const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
       : m_userfunc(userfunc), m_field(std::move(field)), m_info(info), m_ngrow(ngrow) {}
 
+    //! Construct AMRErrorTag from a Parser that returns Real for given
+    //! (x,y,z,t). This class's operator() can then be used to tag regions
+    //! where the Parser's return value is greater than 0.
+    explicit AMRErrorTag (Parser parser,
+                          const AMRErrorTagInfo& info = AMRErrorTagInfo());
+
     void operator() (amrex::TagBoxArray&    tb,
                      const amrex::MultiFab* mf,
                      char                   clearval,
@@ -503,9 +510,11 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
     Vector<Real> m_value;
     TEST m_test{BOX};
     UserFunc* m_userfunc = nullptr;
+    std::unique_ptr<Parser> m_parser;
+    ParserExecutor<4> m_parser_exe; // 4: (x,y,z,t)
     std::string m_field;
     AMRErrorTagInfo m_info;
-    int m_ngrow;
+    int m_ngrow = 0;
   };
 }
 

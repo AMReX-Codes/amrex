@@ -42,6 +42,8 @@ public:
     [[nodiscard]] DistributionMapping const& DistributionMap () const;
 
 private:
+    std::uint64_t m_send_id;
+    std::uint64_t m_recv_id;
     std::map<int,FabArrayBase::CopyComTagsContainer> m_SndTags;
     std::map<int,FabArrayBase::CopyComTagsContainer> m_RcvTags;
     bool m_is_thread_safe;
@@ -100,7 +102,7 @@ void Copier::send (FabArray<FAB> const& mf, int icomp, int ncomp) const
     // Pack buffer
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && (mf.arena()->isDevice() || mf.arena()->isManaged())) {
-        mf.pack_send_buffer_gpu(mf, icomp, ncomp, send_data, send_size, send_cctc);
+        mf.pack_send_buffer_gpu(mf, icomp, ncomp, send_data, send_size, send_cctc, m_send_id);
     } else
 #endif
     {
@@ -176,7 +178,7 @@ void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && (mf.arena()->isDevice() || mf.arena()->isManaged())) {
         mf.unpack_recv_buffer_gpu(mf, icomp, ncomp, recv_data, recv_size, recv_cctc,
-                                  FabArrayBase::COPY, m_is_thread_safe);
+                                  FabArrayBase::COPY, m_is_thread_safe, m_recv_id);
     } else
 #endif
     {

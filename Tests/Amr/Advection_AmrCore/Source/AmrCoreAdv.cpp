@@ -90,6 +90,14 @@ AmrCoreAdv::AmrCoreAdv ()
     // fillpatcher[lev] is for filling data on level lev using the data on
     // lev-1 and lev.
     fillpatcher.resize(nlevs_max+1);
+
+    // amrex::AMRErrorTag supports a number of common tagging
+    // approaches. Here we set it up to use amrex::Parser.
+    if (! error_fn.empty()) {
+        amrex::Parser parser(error_fn);
+        parser.registerVariables({"x","y","z","t"});
+        error_tag.emplace_back(std::move(parser));
+    }
 }
 
 AmrCoreAdv::~AmrCoreAdv () = default;
@@ -349,7 +357,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
 // tag all cells for refinement
 // overrides the pure virtual function in AmrCore
 void
-AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
+AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)
 {
     static bool first = true;
     static Vector<Real> phierr;
@@ -370,18 +378,16 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
         }
     }
 
-    if (lev >= phierr.size()) { return; }
-
-//    const int clearval = TagBox::CLEAR;
+    const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
 
-    const MultiFab& state = phi_new[lev];
+    if (lev < phierr.size())
+    {
+        const MultiFab& state = phi_new[lev];
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
-    {
-
         for (MFIter mfi(state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx  = mfi.tilebox();
@@ -395,6 +401,10 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
                 state_error(i, j, k, tagfab, statefab, phierror, tagval);
             });
         }
+    }
+
+    for (auto const& etag : error_tag) {
+        etag(tags, nullptr, clearval, tagval, time, lev, geom[lev]);
     }
 }
 
@@ -425,6 +435,7 @@ AmrCoreAdv::ReadParameters ()
         pp.query("cfl", cfl);
         pp.query("do_reflux", do_reflux);
         pp.query("do_subcycle", do_subcycle);
+        pp.query("errfn", error_fn);
     }
 
 #ifdef AMREX_PARTICLES

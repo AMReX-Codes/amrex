@@ -1,3 +1,143 @@
+# 25.07
+
+  ## Highlights:
+
+  * Fix GPU communication for non-arithmetic types (#4515)
+
+    Previously communication of non-arithmetic types for GPU builds did not
+    work if there were race conditions. This has now been fixed.
+
+  * Parallel Copy with Offset (#4510)
+
+    Add new versions of ParallelCopy and ParallelAdd that effectively shift
+    the source multifab first and then perform copy/add. Previously, one
+    would need to use NonLocalBC::PareallelCopy, which has a relatively more
+    complicated interface.
+
+  * Add STLtools::fillSignedDistance (#4501)
+
+    This adds a new approach for computing signed distances for STL files.
+
+  ## Other major changes:
+
+  * AMRErrorTag: Add PARSER (#4534)
+
+  * Support Dirichlet BC in z-direction in hybrid FFT Poisson solver (#4503)
+
+  * Add getInvalidRandomEngine() for CPU (#4528)
+
+  * Spack Smoke Test: Fix HIP and Add SYCL (#4521)
+
+  * Modernize roctx Annotations (#4523)
+
+  * Add `AMReX_Order.H` (#4517)
+
+  * EB: Move EB without regenerating geometry (#4511)
+
+  * hypre with hip GNUmake improvements (#4514)
+
+  * StateData: add new set functions (#4512)
+
+  * Adding a new overload for MultiFab::norm2 (int comp, int numcomp) (#4509)
+
+  * Delay gpu stream sync in MFIter (#4493)
+
+  * Add paramters for controlling CArena defragmentation (#4479)
+
+  * CMake: Need to set CUDA ARCH for plotfile tools (#4485)
+
+  * Replaced depreciated cub::Max, cub::Min cub::Sum with cuda::maximum<>… (#4500)
+
+  * Added option to use either always use BNorm or ResNorm for calculatin… (#4495)
+
+  * Add support for force-inlined methods in GDB (#4492)
+
+  * Always FillSignedDistance with max grid size of 32 (#4489)
+
+  * Workarounds for Lustre I/O issues (#4426)
+
+  * Communication Optimization: Cache GPU kernel metadata (#4462)
+
+  * Fix constexpr evaulation bug for is_box_tag() in CPU version of Paral… (#4487)
+
+  * Adding new assert check for MLMG to allow for staggered and non-cell … (#4488)
+
+  * Add an --output_dir option to makebuildinfo_C.py (#4490)
+
+# 25.06
+
+  ## Highlights:
+
+  * The default constructor of amrex::RandomEngine in GPU builds has been
+    removed to prevent a common bug where a RandomEngine object is
+    mistakenly created on the device using the default constructor.
+
+  * CArena now uses a new memory defragmentation strategy. It is known that
+    this has caused performance regression on Frontier. A fix for this is
+    currently under review (https://github.com/AMReX-Codes/amrex/pull/4479),
+    and it is expected in the next monthly release.
+
+  * AMReX has previously defined fake MPI data types globally in non-MPI
+    builds for convenience. Unfortunately, this can lead to conflicts with
+    other libraries doing the same. In this release, we have put these MPI
+    data types in non-MPI builds into the amrex namespace. This might break
+    non-MPI builds of some application codes. To fix it, you can explicitly
+    use these data types with `using amrex::mpidatatypes`. For many codes,
+    using a new version of amrex::Initialize that does not need MPI_Comm
+    introduced in this release can also fix the issue.
+
+  ## Other major changes:
+
+  * ParallelCopy: Fix a launch region issue (#4481)
+
+  * Reuse MLEBNodeFDLaplacian and MLCurlCurl (#4480)
+
+  * Add new amrex::Initialize (#4476)
+
+  * GNU Make: Use -g1 for optimized builds with GCC and Clang (#4475)
+
+  * Update rules of check-changes (#4474)
+
+  * Fix compilation of PlotfileToMatLab (#4471)
+
+  * Print max CArena usage (#4468)
+
+  * Put MPI datatypes in separate namespace (#4470)
+
+  * Fix incorrect static_cast in amrex::cast (#4465)
+
+  * Avoid polluting global namespace with MPI types for non-MPI builds (#4463)
+
+  * Parser: Support User defined functions (#4425)
+
+  * ParmParse: Fix backward compatibility issue in #4457 (#4460)
+
+  * Fix RealVect::Zero (#4459)
+
+  * Convert RealVect to RealVectND (#4430)
+
+  * New ParmParse Feature: 2d table (#4457)
+
+  * CMake: NVTX is header-only for CUDA >= 11.2 (#4449)
+
+  * Fix new warnings from size 0 arrays (#4429)
+
+  * Parser: Fix a minor memory leak due to exception (#4442)
+
+  * add conservative linear interpolation for spherical 2d geometry (#4441)
+
+  * CArena free unused memory before allocate (#4451)
+
+  * GNU Make: NVTX is now header only (#4452)
+
+  * Parser Optimization: More aggressive cancellation (#4445)
+
+  * Parser: minor optimization (#4444)
+
+  * Delete RandomEngine's default constructor (#4443)
+
+  * Parser Optimization: Local constant folding (#4428)
+
 # 25.05
 
   -- SYCL on Windows workaround (#4436)

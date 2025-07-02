@@ -980,6 +980,18 @@ public:
                               const FabArrayBase::CPC* a_cpc = nullptr,
                               bool                 to_ghost_cells_only = false);
 
+    void ParallelCopy_nowait (const FabArray<FAB>& src,
+                              int                  scomp,
+                              int                  dcomp,
+                              int                  ncomp,
+                              const IntVect&       snghost,
+                              const IntVect&       dnghost,
+                              const IntVect&       offset,
+                              const Periodicity&   period = Periodicity::NonPeriodic(),
+                              CpOp                 op = FabArrayBase::COPY,
+                              const FabArrayBase::CPC* a_cpc = nullptr,
+                              bool                 to_ghost_cells_only = false);
+
     void ParallelCopy_finish ();
 
     void ParallelCopyToGhost (const FabArray<FAB>& src,
@@ -999,6 +1011,38 @@ public:
                                      const Periodicity&   period = Periodicity::NonPeriodic());
 
     void ParallelCopyToGhost_finish();
+
+    /**
+     * \brief This function copies data from src to this FabArray.
+     *
+     * \param src       source FabArray
+     * \param src_comp  starting component of source involved in this function
+     * \param dest_comp starting component of this FabArray involved in this function
+     * \param num_comp  number of components involved in this function
+     * \param snghost   number of source ghost cells involved in this function
+     * \param dnghost   number of destination ghost cells involved in this function
+     * \param offset    index shift. dest(iv,dest_comp+n) = src(iv-offset,src_comp+n)
+     * \param period    periodicity of the data
+     */
+    void ParallelCopy (const FabArray<FAB>& src, int src_comp, int dest_comp, int num_comp,
+                       const IntVect& snghost, const IntVect& dnghost,
+                       const IntVect& offset, const Periodicity& period);
+
+    /**
+     * \brief This function adds data from src to this FabArray.
+     *
+     * \param src       source FabArray
+     * \param src_comp  starting component of source involved in this function
+     * \param dest_comp starting component of this FabArray involved in this function
+     * \param num_comp  number of components involved in this function
+     * \param snghost   number of source ghost cells involved in this function
+     * \param dnghost   number of destination ghost cells involved in this function
+     * \param offset    index shift. dest(iv,dest_comp+n) = src(iv-offset,src_comp+n)
+     * \param period    periodicity of the data
+     */
+    void ParallelAdd (const FabArray<FAB>& src, int src_comp, int dest_comp, int num_comp,
+                      const IntVect& snghost, const IntVect& dnghost,
+                      const IntVect& offset, const Periodicity& period);
 
     [[deprecated("Use FabArray::ParallelCopy() instead.")]]
     void copy (const FabArray<FAB>& src,
@@ -1235,6 +1279,9 @@ public:
 
 #ifdef AMREX_USE_GPU
 
+    TagVector<Array4CopyTag<value_type>> const*
+    FB_get_local_copy_tag_vector (const FB& TheFB);
+
     void FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp);
     void PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
                        int scomp, int dcomp, int ncomp, CpOp op);
@@ -1272,14 +1319,30 @@ public:
     static void pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
                                       Vector<char*> const& send_data,
                                       Vector<std::size_t> const& send_size,
-                                      Vector<const CopyComTagsContainer*> const& send_cctc);
+                                      Vector<const CopyComTagsContainer*> const& send_cctc,
+                                      std::uint64_t id);
 
     template <typename BUF = value_type>
     static void unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                         Vector<char*> const& recv_data,
                                         Vector<std::size_t> const& recv_size,
                                         Vector<const CopyComTagsContainer*> const& recv_cctc,
-                                        CpOp op, bool is_thread_safe);
+                                        CpOp op, bool is_thread_safe,
+                                        std::uint64_t id);
+
+    template <typename BUF>
+    TagVector<CommRecvBufTag<value_type>> const*
+    get_recv_copy_tag_vector (Vector<char*> const& recv_data,
+                              Vector<std::size_t> const& recv_size,
+                              Vector<CopyComTagsContainer const*> const& recv_cctc,
+                              int ncomp, std::uint64_t id);
+
+    template <typename BUF>
+    TagVector<CommSendBufTag<value_type>> const*
+    get_send_copy_tag_vector (Vector<char*> const& send_data,
+                              Vector<std::size_t> const& send_size,
+                              Vector<CopyComTagsContainer const*> const& send_cctc,
+                              int ncomp, std::uint64_t id) const;
 
 #endif
 
@@ -1414,6 +1477,20 @@ private:
     void build_arrays () const;
 
     void clear_arrays ();
+
+#ifdef AMREX_USE_GPU
+    std::map<std::uint64_t,
+             std::unique_ptr<TagVector<Array4CopyTag<value_type>>>>
+        m_fb_local_copy_handler;
+
+    using RecvSendCopyHandlerKey = std::tuple<std::uint64_t,std::size_t,int>;
+    std::map<RecvSendCopyHandlerKey,
+             std::unique_ptr<TagVector<CommRecvBufTag<value_type>>>>
+        m_recv_copy_handler;
+    mutable std::map<RecvSendCopyHandlerKey,
+                     std::unique_ptr<TagVector<CommSendBufTag<value_type>>>>
+        m_send_copy_handler;
+#endif
 
 public:
 
@@ -1778,6 +1855,12 @@ FabArray<FAB>::clear ()
 
     m_tags.clear();
 
+#ifdef AMREX_USE_GPU
+    m_fb_local_copy_handler.clear();
+    m_recv_copy_handler.clear();
+    m_send_copy_handler.clear();
+#endif
+
     FabArrayBase::clear();
 }
 
@@ -1913,11 +1996,16 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     , m_const_arrays(rhs.m_const_arrays)
     , m_tags       (std::move(rhs.m_tags))
     , shmem        (std::move(rhs.shmem))
+#ifdef AMREX_USE_GPU
+    , m_fb_local_copy_handler(std::move(rhs.m_fb_local_copy_handler))
+    , m_recv_copy_handler(std::move(rhs.m_recv_copy_handler))
+    , m_send_copy_handler(std::move(rhs.m_send_copy_handler))
+#endif
     // no need to worry about the data used in non-blocking FillBoundary.
 {
     m_FA_stats.recordBuild();
     rhs.define_function_called = false; // the responsibility of clear BD has been transferred.
-    rhs.m_fabs_v.clear(); // clear the data pointers so that rhs.clear does delete them.
+    rhs.m_fabs_v.clear(); // clear the data pointers so that rhs.clear does not delete them.
     rhs.clear();
 }
 
@@ -1944,6 +2032,11 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         m_const_arrays = rhs.m_const_arrays;
         std::swap(m_tags, rhs.m_tags);
         shmem = std::move(rhs.shmem);
+#ifdef AMREX_USE_GPU
+        std::swap(m_fb_local_copy_handler, rhs.m_fb_local_copy_handler);
+        std::swap(m_recv_copy_handler, rhs.m_recv_copy_handler);
+        std::swap(m_send_copy_handler, rhs.m_send_copy_handler);
+#endif
 
         rhs.define_function_called = false;
         rhs.m_fabs_v.clear();

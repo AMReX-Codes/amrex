@@ -132,7 +132,7 @@ ifeq ($(HIP_COMPILER),clang)
     CXXFLAGS += -DAMREX_USE_ROCTX
     HIPCC_FLAGS += -DAMREX_USE_ROCTX
     LIBRARY_LOCATIONS += $(ROC_PATH)/lib
-    LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lroctracer64 -lroctx64
+    LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lrocprofiler-sdk-roctx
   endif
 
   # hipcc passes a lot of unused arguments to clang

@@ -214,12 +214,21 @@ operator << (std::ostream&    os,
     return os;
 }
 
+AMRErrorTag::AMRErrorTag (Parser parser, const AMRErrorTagInfo& info)
+    : m_test(PARSER),
+      m_parser(std::make_unique<Parser>(std::move(parser))),
+      m_parser_exe(m_parser->compile<4>()),
+      m_info(info)
+{}
+
 int
 AMRErrorTag::SetNGrow () const noexcept
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_test != USER, "Do not call SetNGrow with USER test");
-    static std::map<TEST,int> ng = { {GRAD,1}, {RELGRAD,1}, {LESS,0}, {GREATER,0}, {VORT,0}, {BOX,0} };
-    return ng[m_test];
+    if (m_test == GRAD || m_test == RELGRAD) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 void
@@ -269,6 +278,30 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                                       plo[2]+(Real(k)+Real(0.5))*dx[2])};
                     if (tag_rb.contains(pt.data())) {
                         tagma[bi](i,j,k) = tagval;
+                    }
+                });
+            }
+            else if (m_test == PARSER)
+            {
+                const auto& plo = geom.ProbLoArray();
+                const auto& dx  = geom.CellSizeArray();
+                auto tag_update = m_info.m_derefine ? clearval : tagval;
+                auto fn = m_parser_exe;
+                ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                {
+                    auto x = plo[0]+(Real(i)+Real(0.5))*dx[0];
+#if (AMREX_SPACEDIM > 1)
+                    auto y = plo[1]+(Real(j)+Real(0.5))*dx[1];
+#else
+                    auto y = Real(0);
+#endif
+#if (AMREX_SPACEDIM == 3)
+                    auto z = plo[2]+(Real(k)+Real(0.5))*dx[2];
+#else
+                    auto z = Real(0);
+#endif
+                    if (fn(x,y,z,time) > 0) {
+                        tagma[bi](i,j,k) = tag_update;
                     }
                 });
             }

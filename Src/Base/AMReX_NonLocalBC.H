@@ -430,6 +430,7 @@ struct CommData {
     Vector<MPI_Status> stats{};
     //! \brief For each request the copy comm tags for the corresponding data FABs.
     Vector<const FabArrayBase::CopyComTagsContainer*> cctc{};
+    std::uint64_t id = std::numeric_limits<std::uint64_t>::max();
 #endif
 };
 
@@ -580,7 +581,7 @@ PackSendBuffers (const PackComponents& components, const FabArray<FAB>& src, Com
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         FabArray<FAB>::pack_send_buffer_gpu(src, components.src_component, components.n_components,
-                                            send.data, send.size, send.cctc);
+                                            send.data, send.size, send.cctc, send.id);
     } else
 #endif // AMREX_USE_GPU
     {

@@ -5,6 +5,7 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_VisMF.H>
 
 namespace amrex {
 
@@ -66,11 +67,7 @@ fillFlags (Container<int, Allocator>& pflags, const PTile& ptile, F const& f)
     for (int k = 0; k < np; ++k) {
         const auto p = ptd.getSuperParticle(k);
         if constexpr (IsCallable<F,decltype(p),RandomEngine>::value) {
-#ifdef AMREX_USE_GPU
-            flag_ptr[k] = f(p,RandomEngine{nullptr});
-#else
-            flag_ptr[k] = f(p,RandomEngine{});
-#endif
+            flag_ptr[k] = f(p,getInvalidRandomEngine());
         } else {
             flag_ptr[k] = f(p);
         }
@@ -672,6 +669,9 @@ void WriteBinaryParticleDataSync (PC const& pc,
                     }
                 }
             }
+        }
+        if (VisMF::GetBarrierAfterLevel()) {
+            ParallelDescriptor::Barrier();
         }
     }
 

@@ -101,6 +101,26 @@ struct VectorTag {
     Long size () const noexcept { return m_size; }
 };
 
+template <class T>
+struct CommRecvBufTag { // for unpacking recv buffer
+    Array4<T> dfab;
+    std::ptrdiff_t poff;
+    Box bx;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box () const noexcept { return bx; }
+};
+
+template <class T>
+struct CommSendBufTag { // for packing send buffer
+    Array4<T const> sfab;
+    std::ptrdiff_t poff;
+    Box bx;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Box const& box () const noexcept { return bx; }
+};
+
 namespace detail {
 
     template <typename T>
@@ -387,6 +407,8 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
     // There is no load-balancing or splitting of tags
     AMREX_ALWAYS_ASSERT(tv.is_defined());
 
+    constexpr bool tag_type = is_box_tag(TagType{});
+
     if (tv.ntags == 0) { return; }
 
     const auto d_tags = tv.d_tags;
@@ -399,7 +421,7 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
 
         const auto& t = d_tags[itag];
 
-        if constexpr (is_box_tag(t)) {
+        if constexpr (tag_type) {
             const auto lo = amrex::lbound(t.box());
             const auto hi = amrex::ubound(t.box());
 

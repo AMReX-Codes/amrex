@@ -68,6 +68,15 @@ namespace amrex
 
 #endif
 
+    AMREX_FORCE_INLINE
+    RandomEngine getInvalidRandomEngine () {
+#ifdef AMREX_USE_GPU
+        return RandomEngine{nullptr};
+#else
+        return RandomEngine{};
+#endif
+    }
+
 }
 
 #endif
