@@ -97,8 +97,14 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
           )
   endforeach()
 
-   # Take care of cuda archs
-   set_cuda_architectures(AMReX_CUDA_ARCH)
+   # default to building for the architecture of the available GPU 
+   set(AMREX_CUDA_ARCHS native)
+
+   # but, if the user specifies architectures explicitly then use that instead
+   if (DEFINED CMAKE_CUDA_ARCHITECTURES) 
+      set(AMREX_CUDA_ARCHS ${CMAKE_CUDA_ARCHITECTURES})
+   endif()
+
    foreach(D IN LISTS AMReX_SPACEDIM)
        set_target_properties(amrex_${D}d
           PROPERTIES
