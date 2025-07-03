@@ -1,3 +1,69 @@
+# 25.07
+
+  ## Highlights:
+
+  * Fix GPU communication for non-arithmetic types (#4515)
+
+    Previously communication of non-arithmetic types for GPU builds did not
+    work if there were race conditions. This has now been fixed.
+
+  * Parallel Copy with Offset (#4510)
+
+    Add new versions of ParallelCopy and ParallelAdd that effectively shift
+    the source multifab first and then perform copy/add. Previously, one
+    would need to use NonLocalBC::PareallelCopy, which has a relatively more
+    complicated interface.
+
+  * Add STLtools::fillSignedDistance (#4501)
+
+    This adds a new approach for computing signed distances for STL files.
+
+  ## Other major changes:
+
+  * AMRErrorTag: Add PARSER (#4534)
+
+  * Support Dirichlet BC in z-direction in hybrid FFT Poisson solver (#4503)
+
+  * Add getInvalidRandomEngine() for CPU (#4528)
+
+  * Spack Smoke Test: Fix HIP and Add SYCL (#4521)
+
+  * Modernize roctx Annotations (#4523)
+
+  * Add `AMReX_Order.H` (#4517)
+
+  * EB: Move EB without regenerating geometry (#4511)
+
+  * hypre with hip GNUmake improvements (#4514)
+
+  * StateData: add new set functions (#4512)
+
+  * Adding a new overload for MultiFab::norm2 (int comp, int numcomp) (#4509)
+
+  * Delay gpu stream sync in MFIter (#4493)
+
+  * Add paramters for controlling CArena defragmentation (#4479)
+
+  * CMake: Need to set CUDA ARCH for plotfile tools (#4485)
+
+  * Replaced depreciated cub::Max, cub::Min cub::Sum with cuda::maximum<>… (#4500)
+
+  * Added option to use either always use BNorm or ResNorm for calculatin… (#4495)
+
+  * Add support for force-inlined methods in GDB (#4492)
+
+  * Always FillSignedDistance with max grid size of 32 (#4489)
+
+  * Workarounds for Lustre I/O issues (#4426)
+
+  * Communication Optimization: Cache GPU kernel metadata (#4462)
+
+  * Fix constexpr evaulation bug for is_box_tag() in CPU version of Paral… (#4487)
+
+  * Adding new assert check for MLMG to allow for staggered and non-cell … (#4488)
+
+  * Add an --output_dir option to makebuildinfo_C.py (#4490)
+
 # 25.06
 
   ## Highlights:
@@ -20,7 +86,7 @@
     using a new version of amrex::Initialize that does not need MPI_Comm
     introduced in this release can also fix the issue.
 
-  ## Major changes:
+  ## Other major changes:
 
   * ParallelCopy: Fix a launch region issue (#4481)
 

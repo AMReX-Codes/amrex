@@ -188,11 +188,10 @@ boundaries.
     FFT::PoissonOpenBC openbc_solver(geom, soln.ixType(), IntVect(ng));
     openbc_solver.solve(soln, rhs);
 
-:cpp:`FFT::PoissonHybrid` is a 3D only solver that supports periodic
-boundaries in the first two dimensions and Neumann boundary in the last
-dimension. The last dimension is solved with a tridiagonal solver that can
-support non-uniform cell size in the z-direction. For most applications,
-:cpp:`FFT::Poisson` should be used.
+:cpp:`FFT::PoissonHybrid` is a 3D only solver that supports Dirichlet and
+Neumann boundary in the last dimension. The last dimension is solved with a
+tridiagonal solver that can support non-uniform cell size in the
+z-direction. For most applications, :cpp:`FFT::Poisson` should be used.
 
 Similar to :cpp:`FFT::R2C`, the Poisson solvers should be cached for reuse,
 and one might need to use :cpp:`std::unique_ptr<FFT::Poisson<MultiFab>>`

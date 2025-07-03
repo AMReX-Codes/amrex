@@ -65,11 +65,16 @@ CArena::alloc_protected (std::size_t nbytes)
     if (free_it == m_freelist.end())
     {
         // Both freeUnused_protected and allocate_system may invalidate free_it.
-        // All unused memory allocations are combined with the new one to reduce fragmentation.
-        const auto freed_bytes = (freeunused_called || !arena_info.defragmentation)
-            ? std::size_t(0) : freeUnused_protected();
 
-        const std::size_t N = std::max(m_hunk, freed_bytes + nbytes);
+        std::size_t N = std::max(m_hunk, nbytes);
+
+        if ((!freeunused_called) && arena_info.defragmentation) {
+            auto freeable_nbytes = freeableMemory();
+            if (freeable_nbytes >= N) {
+                freeUnused_protected();
+                N = freeable_nbytes;
+            }
+        }
 
         vp = allocate_system(N);
 
@@ -353,6 +358,19 @@ CArena::freeUnused ()
 {
     std::lock_guard<std::mutex> lock(carena_mutex);
     return freeUnused_protected();
+}
+
+std::size_t
+CArena::freeableMemory () const
+{
+    std::size_t nbytes = 0;
+    for (auto const& [p, sz] : m_alloc) {
+        auto it = m_freelist.find(Node(p,nullptr,0));
+        if (it != m_freelist.end() && it->owner() == p && it->size()  == sz) {
+            nbytes += sz;
+        }
+    }
+    return nbytes;
 }
 
 std::size_t
