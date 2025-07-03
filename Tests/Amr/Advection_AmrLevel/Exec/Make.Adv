@@ -18,7 +18,10 @@ include $(Bpack)
 INCLUDE_LOCATIONS += $(Blocs)
 VPATH_LOCATIONS   += $(Blocs)
 
-Pdirs 	:= Base Boundary AmrCore Amr Particle
+Pdirs 	:= Base Boundary AmrCore Amr
+ifeq ($(USE_PARTICLES),TRUE)
+    Pdirs += Particle
+endif
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 
 include $(Ppack)
