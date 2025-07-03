@@ -337,6 +337,7 @@ struct alignas(sizeof(double)) Particle
 
     //! The floating point type used for the particles.
     using RealType = ParticleReal;
+    using IntType = int;
 
     static Long the_next_id;
 
@@ -365,6 +366,12 @@ struct alignas(sizeof(double)) Particle
         amrex::Gpu::Atomic::Exch(old_ptr, (unsigned long long) wrapper.m_idata);
 #endif
     }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    uint64_t& idcpu () & { return this->m_idcpu; }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const uint64_t& idcpu () const & { return this->m_idcpu; }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_pos[0], this->m_pos[1], this->m_pos[2]));}
