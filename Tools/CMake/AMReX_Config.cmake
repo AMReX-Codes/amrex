@@ -72,7 +72,6 @@ function (configure_amrex AMREX_TARGET)
    )
 
    unset(_condition)
-   unset(_cxx_msvc)
 
    #
    # Setup OpenMP
@@ -146,10 +145,32 @@ function (configure_amrex AMREX_TARGET)
       endif()
    endif()
 
+   # fast math
+   if (AMReX_FASTMATH)
+       # GPU specific backends set in AMReXParallelBackends.cmake
+       if (AMReX_GPU_BACKEND STREQUAL NONE)
+           # See https://cmake.org/cmake/help/v4.1/variable/CMAKE_LANG_COMPILER_ID.html#variable:CMAKE_%3CLANG%3E_COMPILER_ID
+           target_compile_options(${AMREX_TARGET} PUBLIC
+               $<$<CXX_COMPILER_ID:AppleClang,Clang,CrayClang,GNU,IBMClang,IntelLLVM,XLClang>:-ffast-math>
+               $<${_cxx_msvc}:"/fp:fast">  # MSVC
+           )
+           if (CMAKE_Fortran_COMPILER_LOADED)
+               target_compile_options(${AMREX_TARGET} PUBLIC
+                   $<$<Fortran_COMPILER_ID:AppleClang,Clang,CrayClang,GNU,IBMClang,IntelLLVM,XLClang>:-ffast-math>
+               )
+           endif ()
+       endif()
+   endif()
+
    #
    # Setup third-party profilers
    #
    set_amrex_profilers(${AMREX_TARGET})
+
+   #
+   # clean up helpers
+   #
+   unset(_cxx_msvc)
 
 endfunction ()
 
