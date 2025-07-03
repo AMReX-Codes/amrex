@@ -362,7 +362,11 @@ save this script. Then run the bash script by executing the following command in
 
     bash write_series_file.sh
 
-This will generate a file ``plot_files.series``. Open ParaView, and then select
+This will generate a file ``plot_files.series`` which indexes the time variable based on the order of the plotfile numbers.
+
+To make a ``.series`` file which reads the time out of the plotfile header, use :download:`write_series_file_timestamp.sh </Visualization/write_series_file_timestamp.sh>`.
+
+Open ParaView, and then select
 "File" :math:`\rightarrow` "Open". In the "Files of Type" dropdown menu (see :numref:`fig:ParaView_filegroup`)
 choose the option ``All Files (*)``. Then choose ``plot_files.series`` and click "OK". Now the plotfiles have been
 loaded as a Group as in Step 2 of section :ref:`section-1`. Now, you can follow the steps 2 to 7 in the section
