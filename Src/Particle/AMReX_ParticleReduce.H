@@ -756,7 +756,7 @@ ReduceLogicalAnd (PC const& pc, int lev, F&& f)
  *                      return p.id() > 0;
  *                  });
  *
- *        using SPType  = typename PC::;
+ *        using SPType  = typename PC::SuperParticleType;
  *        auto rv = amrex::ReduceLogicalAnd(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
  *                  {
