@@ -92,7 +92,7 @@ void FileStream::open (char const* filename, std::ios_base::openmode mode)
         }
     }, "File open");
 
-    if (m_good && (mode & std::ios_base::ate) && !(mode & std::ios_base::app)) {
+    if (m_good && ((mode & std::ios_base::ate) != 0) && ((mode & std::ios_base::app) == 0)) {
         execute_with_retry([&]() {
             auto end_pos = ::lseek(m_fd, 0, SEEK_END);
             if (end_pos >= 0) {
@@ -231,7 +231,7 @@ FileStream& FileStream::write (char const* s, std::streamsize count)
 
             if ((m_buffer_mode == BufferMode::None) && (remaining > 2*m_buffer_size)) {
                 file_write(src, remaining);
-                total_written += remaining;
+                // no need to update total_written due to break
                 break;
             } else {
                 auto to_buffer = std::min(remaining, space_left);
