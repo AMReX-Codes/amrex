@@ -186,7 +186,7 @@ FileStream& FileStream::read (char* s, std::streamsize count)
 
 FileStream& FileStream::write (char const* s, std::streamsize count)
 {
-    if (count == 0) { return *this; }
+    if (count <= 0) { return *this; }
 
     if (m_fd == -1 || !m_good) {
         throw std::runtime_error("FileStream::write: bad file descriptor or bad state");
@@ -205,7 +205,7 @@ FileStream& FileStream::write (char const* s, std::streamsize count)
     }
 
     if (m_buffer_mode == BufferMode::None) {
-        if (count <= m_buffer_size) {
+        if (std::size_t(count) <= m_buffer_size) {
             fill_write_buffer(s, count);
         } else {
             file_write(s, count);
@@ -227,7 +227,7 @@ FileStream& FileStream::write (char const* s, std::streamsize count)
                 space_left = m_buffer_size;
             }
 
-            if ((m_buffer_mode == BufferMode::None) && (remaining > 2*m_buffer_size)) {
+            if ((m_buffer_mode == BufferMode::None) && (std::size_t(remaining) > 2*m_buffer_size)) {
                 file_write(src, remaining);
                 total_written += remaining;
                 break;
