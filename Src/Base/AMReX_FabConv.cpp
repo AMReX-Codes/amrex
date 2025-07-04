@@ -1034,6 +1034,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
     delete [] bufr;
 }
 
+#ifndef _WIN32
 void
 RealDescriptor::convertToNativeFormat (Real*                 out,
                                        Long                  nitems,
@@ -1066,6 +1067,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
         amrex::Error("convert(Real*,Long,FileStream&,RealDescriptor&) failed");
     }
 }
+#endif
 
 //
 // Convert nitems Reals in native format to RealDescriptor format.
@@ -1129,6 +1131,7 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
   }
 }
 
+#ifndef _WIN32
 void
 RealDescriptor::convertFromNativeFormat (amrex::FileStream&    os,
                                          Long                  nitems,
@@ -1152,6 +1155,7 @@ RealDescriptor::convertFromNativeFormat (amrex::FileStream&    os,
         in     += put;
     }
 }
+#endif
 
 //
 // Convert nitems floats in native format to RealDescriptor format
@@ -1195,6 +1199,7 @@ RealDescriptor::convertFromNativeFloatFormat (std::ostream&         os,
   }
 }
 
+#ifndef _WIN32
 void
 RealDescriptor::convertFromNativeFloatFormat (amrex::FileStream&    os,
                                               Long                  nitems,
@@ -1218,6 +1223,7 @@ RealDescriptor::convertFromNativeFloatFormat (amrex::FileStream&    os,
         in     += put;
     }
 }
+#endif
 
 //
 // Convert nitems doubles in native format to RealDescriptor format
@@ -1261,6 +1267,7 @@ RealDescriptor::convertFromNativeDoubleFormat (std::ostream&         os,
   }
 }
 
+#ifndef _WIN32
 void
 RealDescriptor::convertFromNativeDoubleFormat (amrex::FileStream&    os,
                                                Long                  nitems,
@@ -1284,6 +1291,7 @@ RealDescriptor::convertFromNativeDoubleFormat (amrex::FileStream&    os,
         in     += put;
     }
 }
+#endif
 
 //
 // Read nitems from istream in RealDescriptor format to native float format.
@@ -1327,6 +1335,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
     delete [] bufr;
 }
 
+#ifndef _WIN32
 void
 RealDescriptor::convertToNativeFloatFormat (float*                out,
                                             Long                  nitems,
@@ -1359,6 +1368,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
         amrex::Error("convert(Real*,Long,FileStream&,RealDescriptor&) failed");
     }
 }
+#endif
 
 //
 // Read nitems from istream in RealDescriptor format to native double format.
@@ -1402,6 +1412,7 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
     delete [] bufr;
 }
 
+#ifndef _WIN32
 void
 RealDescriptor::convertToNativeDoubleFormat (double*               out,
                                              Long                  nitems,
@@ -1434,5 +1445,6 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
         amrex::Error("convert(Real*,Long,FileStream&,RealDescriptor&) failed");
     }
 }
+#endif
 
 }
