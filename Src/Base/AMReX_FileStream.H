@@ -79,10 +79,12 @@ private:
 
     double m_base_delay = 0.1;
     off_t m_pos = 0;
+    off_t m_size = 0;
     int m_max_retries = 16;
     int m_fd = -1;
     bool m_good = false;
     bool m_binary = true; // not used
+    bool m_append = false;
 
     std::unique_ptr<char[]> m_buffer;
     Long m_buffer_size = 32*1024*1024; // 32MB

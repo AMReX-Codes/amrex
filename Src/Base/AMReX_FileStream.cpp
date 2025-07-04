@@ -3,6 +3,7 @@
 #ifndef _WIN32
 
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 namespace amrex
@@ -21,10 +22,12 @@ FileStream::FileStream (std::string const& filename, std::ios_base::openmode mod
 FileStream::FileStream (FileStream&& rhs) noexcept
     : m_base_delay   (rhs.m_base_delay),
       m_pos          (rhs.m_pos),
+      m_size         (rhs.m_size),
       m_max_retries  (rhs.m_max_retries),
       m_fd           (std::exchange(rhs.m_fd,-1)),
       m_good         (std::exchange(rhs.m_good,false)),
       m_binary       (rhs.m_binary),
+      m_append       (rhs.m_append),
       m_buffer       (std::exchange(rhs.m_buffer,nullptr)),
       m_buffer_size  (rhs.m_buffer_size),
       m_buffer_begin (rhs.m_buffer_begin),
@@ -37,9 +40,11 @@ FileStream& FileStream::operator= (FileStream&& rhs) noexcept
     if (this != &rhs) {
         std::swap(m_base_delay  , rhs.m_base_delay);
         std::swap(m_pos         , rhs.m_pos);
+        std::swap(m_size        , rhs.m_size);
         std::swap(m_max_retries , rhs.m_max_retries);
         std::swap(m_good        , rhs.m_good);
         std::swap(m_binary      , rhs.m_binary);
+        std::swap(m_append      , rhs.m_append);
         std::swap(m_fd          , rhs.m_fd);
         std::swap(m_buffer      , rhs.m_buffer);
         std::swap(m_buffer_size , rhs.m_buffer_size);
@@ -78,6 +83,7 @@ void FileStream::open (char const* filename, std::ios_base::openmode mode)
         flags |= O_TRUNC;
     }
     m_binary = (mode & std::ios_base::binary) != 0;
+    m_append = (mode & std::ios_base::app) != 0;
 
     mode_t mod = 0666;
     execute_with_retry([&]() {
@@ -92,17 +98,18 @@ void FileStream::open (char const* filename, std::ios_base::openmode mode)
         }
     }, "File open");
 
-    if (m_good && ((mode & std::ios_base::ate) != 0) && ((mode & std::ios_base::app) == 0)) {
+    if (m_good && (((mode & std::ios_base::ate) != 0) || m_append)) {
         execute_with_retry([&]() {
             auto end_pos = ::lseek(m_fd, 0, SEEK_END);
             if (end_pos >= 0) {
                 m_pos = end_pos;
+                m_size = end_pos;
                 return true;
             } else {
                 m_good = false;
                 return false;
             }
-        }, "Seek to end in ate mode");
+        }, "Seek to end in ate or app mode");
     }
 
     if (m_buffer == nullptr) {
@@ -194,6 +201,10 @@ FileStream& FileStream::write (char const* s, std::streamsize count)
         throw std::runtime_error("FileStream::write: bad file descriptor or bad state");
     }
 
+    if (m_append && (m_pos != m_size)) {
+        this->seekp(0, std::ios_base::end);
+    }
+
     if (m_buffer_mode == BufferMode::Read) {
         if (m_buffer_begin < m_buffer_end) {
             off_type unread = m_buffer_end - m_buffer_begin;
@@ -243,6 +254,7 @@ FileStream& FileStream::write (char const* s, std::streamsize count)
     }
 
     m_pos += count;
+    m_size += count;
 
     return *this;
 }
