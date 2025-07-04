@@ -72,7 +72,9 @@ void FileStream::open (char const* filename, std::ios_base::openmode mode)
     }
     if (mode & std::ios_base::app) {
         flags |= O_APPEND;
-    } else if ((mode & std::ios_base::trunc) || (mode & std::ios_base::out)) {
+    } else if (mode & std::ios_base::trunc) {
+        flags |= O_TRUNC;
+    } else if ((mode & std::ios_base::out) && !(mode & std::ios_base::in)) {
         flags |= O_TRUNC;
     }
     m_binary = (mode & std::ios_base::binary);
