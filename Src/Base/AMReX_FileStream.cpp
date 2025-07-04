@@ -18,21 +18,21 @@ FileStream::FileStream (std::string const& filename, std::ios_base::openmode mod
     open(filename.c_str(), mode);
 }
 
-FileStream::FileStream (FileStream&& other)
-    : m_base_delay   (other.m_base_delay),
-      m_pos          (other.m_pos),
-      m_max_retries  (other.m_max_retries),
-      m_fd           (std::exchange(other.m_fd,-1)),
-      m_good         (std::exchange(other.m_good,false)),
-      m_binary       (other.m_binary),
-      m_buffer       (std::exchange(other.m_buffer,nullptr)),
-      m_buffer_size  (other.m_buffer_size),
-      m_buffer_begin (other.m_buffer_begin),
-      m_buffer_end   (other.m_buffer_end),
-      m_buffer_mode  (other.m_buffer_mode)
+FileStream::FileStream (FileStream&& rhs) noexcept
+    : m_base_delay   (rhs.m_base_delay),
+      m_pos          (rhs.m_pos),
+      m_max_retries  (rhs.m_max_retries),
+      m_fd           (std::exchange(rhs.m_fd,-1)),
+      m_good         (std::exchange(rhs.m_good,false)),
+      m_binary       (rhs.m_binary),
+      m_buffer       (std::exchange(rhs.m_buffer,nullptr)),
+      m_buffer_size  (rhs.m_buffer_size),
+      m_buffer_begin (rhs.m_buffer_begin),
+      m_buffer_end   (rhs.m_buffer_end),
+      m_buffer_mode  (rhs.m_buffer_mode)
 {}
 
-FileStream& FileStream::operator= (FileStream&& rhs)
+FileStream& FileStream::operator= (FileStream&& rhs) noexcept
 {
     if (this != &rhs) {
         std::swap(m_base_delay  , rhs.m_base_delay);
@@ -62,22 +62,22 @@ FileStream::~FileStream ()
 void FileStream::open (char const* filename, std::ios_base::openmode mode)
 {
     int flags = 0;
-    if ((mode & std::ios_base::in) &&
-        (mode & std::ios_base::out)) {
+    if ((mode & std::ios_base::in ) != 0 &&
+        (mode & std::ios_base::out) != 0) {
         flags |= O_RDWR | O_CREAT;
-    } else if (mode & std::ios_base::in) {
+    } else if ((mode & std::ios_base::in) != 0) {
         flags |= O_RDONLY;
-    } else if (mode & std::ios_base::out) {
+    } else if ((mode & std::ios_base::out) != 0) {
         flags |= O_WRONLY | O_CREAT;
     }
-    if (mode & std::ios_base::app) {
+    if ((mode & std::ios_base::app) != 0) {
         flags |= O_APPEND;
-    } else if (mode & std::ios_base::trunc) {
+    } else if ((mode & std::ios_base::trunc) != 0) {
         flags |= O_TRUNC;
-    } else if ((mode & std::ios_base::out) && !(mode & std::ios_base::in)) {
+    } else if (((mode & std::ios_base::out) != 0) && ((mode & std::ios_base::in) == 0)) {
         flags |= O_TRUNC;
     }
-    m_binary = (mode & std::ios_base::binary);
+    m_binary = (mode & std::ios_base::binary) != 0;
 
     mode_t mod = 0666;
     execute_with_retry([&]() {
@@ -170,7 +170,7 @@ FileStream& FileStream::read (char* s, std::streamsize count)
         if (m_buffer_end == m_buffer_begin) { break; } // EOF
 
         auto available = m_buffer_end - m_buffer_begin;
-        auto to_copy = std::min(available, std::size_t(count-total_read));
+        auto to_copy = std::min(available, count-total_read);
 
         std::memcpy(s + total_read, m_buffer.get() + m_buffer_begin, to_copy);
         m_buffer_begin += to_copy;
@@ -207,7 +207,7 @@ FileStream& FileStream::write (char const* s, std::streamsize count)
     }
 
     if (m_buffer_mode == BufferMode::None) {
-        if (std::size_t(count) <= m_buffer_size) {
+        if (count <= m_buffer_size) {
             fill_write_buffer(s, count);
         } else {
             file_write(s, count);
@@ -218,7 +218,7 @@ FileStream& FileStream::write (char const* s, std::streamsize count)
         while (total_written < count) {
             std::streamsize remaining = count - total_written;
 
-            std::size_t space_left = m_buffer_size - m_buffer_end;
+            auto space_left = m_buffer_size - m_buffer_end;
             if (space_left == 0) {
                 try {
                     flush_write_buffer(); // this sets buffer mode to None
@@ -229,12 +229,12 @@ FileStream& FileStream::write (char const* s, std::streamsize count)
                 space_left = m_buffer_size;
             }
 
-            if ((m_buffer_mode == BufferMode::None) && (std::size_t(remaining) > 2*m_buffer_size)) {
+            if ((m_buffer_mode == BufferMode::None) && (remaining > 2*m_buffer_size)) {
                 file_write(src, remaining);
                 total_written += remaining;
                 break;
             } else {
-                auto to_buffer = std::min(std::size_t(remaining), space_left);
+                auto to_buffer = std::min(remaining, space_left);
                 fill_write_buffer(src, to_buffer);
                 src           += to_buffer;
                 total_written += to_buffer;
@@ -323,12 +323,12 @@ FileStream& FileStream::seekg (off_type off, std::ios_base::seekdir dir)
     return seekp(off,dir);
 }
 
-FileStream::pos_type FileStream::tellp ()
+FileStream::pos_type FileStream::tellp () const
 {
     return m_pos;
 }
 
-FileStream::pos_type FileStream::tellg ()
+FileStream::pos_type FileStream::tellg () const
 {
     return m_pos;
 }
@@ -348,7 +348,7 @@ bool FileStream::fail () const
     return !m_good || m_fd == -1;
 }
 
-void FileStream::file_write (char const* s, std::size_t count)
+void FileStream::file_write (char const* s, Long count)
 {
     if (count == 0) { return; }
 
@@ -356,7 +356,7 @@ void FileStream::file_write (char const* s, std::size_t count)
         throw std::runtime_error("FileStream::file_write: bad file descriptor or bad state");
     }
 
-    size_t total_written = 0;
+    Long total_written = 0;
     while (total_written < count) {
         ssize_t nbytes_written = -1;
         execute_with_retry([&]() {
@@ -383,7 +383,7 @@ void FileStream::flush_write_buffer ()
     m_buffer_end = 0;
 }
 
-void FileStream::fill_write_buffer (char const* s, std::size_t count)
+void FileStream::fill_write_buffer (char const* s, Long count)
 {
     std::memcpy(m_buffer.get()+m_buffer_end, s, count);
     m_buffer_mode = BufferMode::Write;

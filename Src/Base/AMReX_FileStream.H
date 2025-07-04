@@ -36,12 +36,12 @@ public:
                              = std::ios_base::in | std::ios_base::out);
 
     FileStream () = default;
-    FileStream (FileStream&& other);
+    FileStream (FileStream&& rhs) noexcept;
     FileStream (FileStream const& rhs) = delete;
 
     ~FileStream ();
 
-    FileStream& operator= (FileStream&& other);
+    FileStream& operator= (FileStream&& rhs) noexcept;
     FileStream& operator= (FileStream const& rhs) = delete;
 
     void open (char const* filename,
@@ -65,9 +65,9 @@ public:
     FileStream& seekg (pos_type off);
     FileStream& seekg (off_type off, std::ios_base::seekdir dir);
 
-    pos_type tellp ();
+    [[nodiscard]] pos_type tellp () const;
 
-    pos_type tellg ();
+    [[nodiscard]] pos_type tellg () const;
 
     [[nodiscard]] bool good () const;
 
@@ -85,14 +85,14 @@ private:
     bool m_binary = true; // not used
 
     std::unique_ptr<char[]> m_buffer;
-    std::size_t m_buffer_size = 32*1024*1024; // 32MB
-    std::size_t m_buffer_begin = 0;
-    std::size_t m_buffer_end = 0;
+    Long m_buffer_size = 32*1024*1024; // 32MB
+    Long m_buffer_begin = 0;
+    Long m_buffer_end = 0;
     enum class BufferMode { Read, Write, None};
     BufferMode m_buffer_mode = BufferMode::None;
 
     template <typename F>
-    void execute_with_retry (F&& func, std::string const& op_name)
+    void execute_with_retry (F const& func, std::string const& op_name)
     {
         int attempt = 0;
         double delay = m_base_delay;
@@ -133,11 +133,11 @@ private:
         throw std::runtime_error(op_name + " failed: " + std::strerror(errno));
     }
 
-    void file_write (char const* s, std::size_t count);
+    void file_write (char const* s, Long count);
 
     void flush_write_buffer ();
 
-    void fill_write_buffer (char const* s, std::size_t count);
+    void fill_write_buffer (char const* s, Long count);
 
     void fill_read_buffer ();
 };
