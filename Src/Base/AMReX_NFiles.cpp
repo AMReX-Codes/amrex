@@ -72,6 +72,10 @@ NFilesIter::NFilesIter(int noutfiles, std::string fileprefix,
 
 void NFilesIter::SetDynamic(int deciderproc)
 {
+#if defined(AMREX_USE_OWN_FILE_STREAM)
+    amrex::ignore_unused(deciderproc);
+    AMREX_ALWAYS_ASSERT(useStaticSetSelection); // disable dynamic selection for now
+#else
   deciderProc = deciderproc;
   // ---- we have to check currentDeciderIndex here also in case of
   // ---- different nfiles for plots and checkpoints
@@ -112,6 +116,7 @@ void NFilesIter::SetDynamic(int deciderproc)
     fileNumbersWriteOrder.clear();
     fileNumbersWriteOrder.resize(nOutFiles);
   }
+#endif
 }
 
 
@@ -221,50 +226,56 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
 
     if(useSparseFPP) {
 
-      if(mySparseFileNumber != -1) {
-        if( ! appendFirst) {
-          fileStream.open(fullFileName.c_str(),
-                          std::ios::out | std::ios::trunc | std::ios::binary);
+        if(mySparseFileNumber != -1) {
+            if( ! appendFirst) {
+                fileStream.open(fullFileName.c_str(),
+                                std::ios::out | std::ios::trunc | std::ios::binary);
+            } else {
+                fileStream.open(fullFileName.c_str(),
+                                std::ios::out | std::ios::app | std::ios::binary);
+            }
+            if( ! fileStream.good()) {
+                amrex::FileOpenFailed(fullFileName);
+            }
+            return true;
         } else {
-          fileStream.open(fullFileName.c_str(),
-                          std::ios::out | std::ios::app | std::ios::binary);
+            return false;
         }
-        if( ! fileStream.good()) {
-          amrex::FileOpenFailed(fullFileName);
-        }
-        return true;
-      } else {
-        return false;
-      }
 
 
     } else {  // ---- the general static set selection
 
-    for(int iSet(0); iSet < nSets; ++iSet) {
-      if(mySetPosition == iSet) {
-        if(iSet == 0 && ! appendFirst) {   // ---- first set
-          fileStream.open(fullFileName.c_str(),
-                          std::ios::out | std::ios::trunc | std::ios::binary);
-        } else {
-          fileStream.open(fullFileName.c_str(),
-                          std::ios::out | std::ios::app | std::ios::binary);
-        }
-        if( ! fileStream.good()) {
-          amrex::FileOpenFailed(fullFileName);
-        }
-        return true;
-      }
+        static Long file_size = -1;
 
-      if(mySetPosition == (iSet + 1)) {   // ---- next set waits
-        int iBuff, waitForPID(-1);
-        if(groupSets) {
-          waitForPID = (myProc - nOutFiles);
-        } else {
-          waitForPID = (myProc - 1);
+        for(int iSet(0); iSet < nSets; ++iSet) {
+            if(mySetPosition == iSet) {
+                if(iSet == 0 && ! appendFirst) {   // ---- first set
+                    fileStream.open(fullFileName.c_str(),
+                                    std::ios::out | std::ios::trunc | std::ios::binary);
+                } else {
+                    fileStream.open(fullFileName.c_str(),
+                                    std::ios::out | std::ios::app | std::ios::binary);
+                    fileStream.seekg(0, std::ios_base::end);
+                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+                        (file_size == Long(fileStream.tellg()),
+                         "File size in incorrect");
+                }
+                if( ! fileStream.good()) {
+                    amrex::FileOpenFailed(fullFileName);
+                }
+                return true;
+            }
+
+            if(mySetPosition == (iSet + 1)) {   // ---- next set waits
+                int waitForPID(-1);
+                if(groupSets) {
+                    waitForPID = (myProc - nOutFiles);
+                } else {
+                    waitForPID = (myProc - 1);
+                }
+                ParallelDescriptor::Recv(&file_size, 1, waitForPID, stWriteTag);
+            }
         }
-        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, stWriteTag);
-      }
-    }
     }
 
   } else {    // ---- use dynamic set selection
@@ -367,32 +378,34 @@ NFilesIter &NFilesIter::operator++() {
 
     if(useStaticSetSelection) {
 
-      if(useSparseFPP) {
+        if(useSparseFPP) {
 
-        if(mySparseFileNumber != -1) {
-          fileStream.flush();
-          fileStream.close();
-        }
-        finishedWriting = true;
+            if(mySparseFileNumber != -1) {
+                fileStream.flush();
+                fileStream.close();
+            }
+            finishedWriting = true;
 
-      } else {  // ---- the general static set selection
+        } else {  // ---- the general static set selection
 
-      fileStream.flush();
-      fileStream.close();
+            fileStream.flush();
+            fileStream.seekg(0, std::ios_base::end);
+            auto file_size = (Long)fileStream.tellg();
+            fileStream.close();
 
-      int iBuff(0), wakeUpPID(-1);
-      if(groupSets) {
-        wakeUpPID = (myProc + nOutFiles);
-      } else {
-        wakeUpPID = (myProc + 1);
-      }
-      if(wakeUpPID < nProcs) {
-        int nextSP = WhichSetPosition(wakeUpPID, nProcs, nOutFiles, groupSets);
-        if(nextSP > mySetPosition) {
-          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, stWriteTag);
-        }
-      }
-      finishedWriting = true;
+            int wakeUpPID(-1);
+            if(groupSets) {
+                wakeUpPID = (myProc + nOutFiles);
+            } else {
+                wakeUpPID = (myProc + 1);
+            }
+            if(wakeUpPID < nProcs) {
+                int nextSP = WhichSetPosition(wakeUpPID, nProcs, nOutFiles, groupSets);
+                if(nextSP > mySetPosition) {
+                    ParallelDescriptor::Send(&file_size, 1, wakeUpPID, stWriteTag);
+                }
+            }
+            finishedWriting = true;
 
       }
 
