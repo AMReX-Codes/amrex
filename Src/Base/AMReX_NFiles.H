@@ -26,7 +26,7 @@ namespace amrex {
 */
 class NFilesIter
 {
-  public:
+public:
 
 #if defined(AMREX_USE_OWN_FILE_STREAM)
     using stream_type = amrex::FileStream;
@@ -46,8 +46,8 @@ class NFilesIter
     * \param groupsets
     * \param setBuf
     */
-    NFilesIter(int noutfiles, std::string fileprefix,
-               bool groupsets, bool setBuf);
+    NFilesIter (int noutfiles, std::string fileprefix,
+                bool groupsets, bool setBuf);
 
 
     /**
@@ -56,8 +56,8 @@ class NFilesIter
     *
     * \param deciderproc
     */
-    void SetDynamic(int deciderproc = -1);
-    [[nodiscard]] bool GetDynamic() const { return ( ! useStaticSetSelection); }
+    void SetDynamic (int deciderproc = -1);
+    [[nodiscard]] bool GetDynamic () const { return ( ! useStaticSetSelection); }
 
 
     /**
@@ -67,8 +67,8 @@ class NFilesIter
     *
     * \param &ranksToWrite
     */
-    void SetSparseFPP(const Vector<int> &ranksToWrite);
-    [[nodiscard]] bool GetSparseFPP() const { return useSparseFPP; }
+    void SetSparseFPP (const Vector<int> &ranksToWrite);
+    [[nodiscard]] bool GetSparseFPP () const { return useSparseFPP; }
 
 
     /**
@@ -78,11 +78,11 @@ class NFilesIter
     * \param &readRanks
     * \param setBuf
     */
-    NFilesIter(std::string fileName,
-               Vector<int> readRanks,
-               bool setBuf = false);
+    NFilesIter (std::string fileName,
+                Vector<int> readRanks,
+                bool setBuf = false);
 
-    ~NFilesIter();
+    ~NFilesIter ();
 
     NFilesIter (NFilesIter const&) = delete;
     NFilesIter (NFilesIter &&) = delete;
@@ -95,35 +95,35 @@ class NFilesIter
     *
     * \param appendFirst
     */
-    bool ReadyToWrite(bool appendFirst = false);
+    bool ReadyToWrite (bool appendFirst = false);
 
-    bool ReadyToRead();
+    bool ReadyToRead ();
 
-    NFilesIter &operator++();
+    NFilesIter &operator++ ();
 
-    stream_type &Stream() { return fileStream; }
+    stream_type &Stream () { return fileStream; }
 
 
     /**
     * \brief get the current Stream()'s seek position
     */
-    std::streampos SeekPos();
+    std::streampos SeekPos ();
 
-    static int LengthOfSet(int nProcs, int nOutFiles) {
-      int anf(ActualNFiles(nOutFiles));
-      return ((nProcs + (anf - 1)) / anf);
+    static int LengthOfSet (int nProcs, int nOutFiles) {
+        int anf(ActualNFiles(nOutFiles));
+        return ((nProcs + (anf - 1)) / anf);
     }
 
-    static int WhichSetPosition(int whichproc, int nprocs,
-                                int noutfiles, bool groupsets)
+    static int WhichSetPosition (int whichproc, int nprocs,
+                                 int noutfiles, bool groupsets)
     {
-      int whichset;
-      if(groupsets) {
-        whichset = whichproc / noutfiles;
-      } else {
-        whichset = whichproc % LengthOfSet(nprocs, noutfiles);
-      }
-      return whichset;
+        int whichset;
+        if(groupsets) {
+            whichset = whichproc / noutfiles;
+        } else {
+            whichset = whichproc % LengthOfSet(nprocs, noutfiles);
+        }
+        return whichset;
     }
 
 
@@ -133,9 +133,9 @@ class NFilesIter
     *
     * \param nOutFiles
     */
-    static int ActualNFiles(int nOutFiles)
+    static int ActualNFiles (int nOutFiles)
     {
-      return( std::max(1, std::min(ParallelDescriptor::NProcs(), nOutFiles)) );
+        return( std::max(1, std::min(ParallelDescriptor::NProcs(), nOutFiles)) );
     }
 
 
@@ -147,69 +147,69 @@ class NFilesIter
     * \param nOutFiles
     * \param groupSets
     */
-    static bool CheckNFiles(int nProcs, int nOutFiles, bool groupSets);
+    static bool CheckNFiles (int nProcs, int nOutFiles, bool groupSets);
 
-    static int FileNumber(int nOutFiles, int whichProc, bool groupSets)
+    static int FileNumber (int nOutFiles, int whichProc, bool groupSets)
     {
-      BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
+        BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
 
-      int anf(ActualNFiles(nOutFiles));
-      if(groupSets) {
-        return(whichProc % anf);
-      } else {
+        int anf(ActualNFiles(nOutFiles));
+        if(groupSets) {
+            return(whichProc % anf);
+        } else {
 
-        int nProcs(ParallelDescriptor::NProcs());
-        return(whichProc / LengthOfSet(nProcs, anf));
-      }
+            int nProcs(ParallelDescriptor::NProcs());
+            return(whichProc / LengthOfSet(nProcs, anf));
+        }
     }
 
-    [[nodiscard]] const std::string &FileName() const { return fullFileName; }
-    [[nodiscard]] int FileNumber() const { return fileNumber; }
+    [[nodiscard]] const std::string &FileName () const { return fullFileName; }
+    [[nodiscard]] int FileNumber () const { return fileNumber; }
 
-    static std::string FileName(int nOutFiles,
-                                const std::string &filePrefix,
-                                int whichProc, bool groupSets)
+    static std::string FileName (int nOutFiles,
+                                 const std::string &filePrefix,
+                                 int whichProc, bool groupSets)
     {
-      BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
+        BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
 
-      return ( amrex::Concatenate(filePrefix,
-                                   FileNumber(ActualNFiles(nOutFiles),
-                                              whichProc, groupSets), minDigits ) );
+        return ( amrex::Concatenate(filePrefix,
+                                    FileNumber(ActualNFiles(nOutFiles),
+                                               whichProc, groupSets), minDigits ) );
     }
 
-    static std::string FileName(int fileNumber,
-                                const std::string &filePrefix)
+    static std::string FileName (int fileNumber,
+                                 const std::string &filePrefix)
     {
-      return ( amrex::Concatenate(filePrefix, fileNumber, minDigits ) );
+        return ( amrex::Concatenate(filePrefix, fileNumber, minDigits ) );
     }
 
 
     /**
     * \brief this is the processor coordinating dynamic set selection
     */
-    [[nodiscard]] int CoordinatorProc() const { return coordinatorProc; }
+    [[nodiscard]] int CoordinatorProc () const { return coordinatorProc; }
 
 
     /**
     * \brief these are the file numbers to which each rank wrote  [rank]
     * a rank only writes to one file
     */
-    Vector<int> FileNumbersWritten();
+    Vector<int> FileNumbersWritten ();
 
 
     /**
     * \brief these are the order of ranks which wrote to each file
     * [filenumber][ranks in order they wrote to filenumber]
     */
-    [[nodiscard]] const Vector< Vector<int> > &FileNumbersWriteOrder() const { return fileNumbersWriteOrder; }
+    [[nodiscard]] const Vector< Vector<int> > &FileNumbersWriteOrder () const { return fileNumbersWriteOrder; }
 
-    void CleanUpMessages();
+    void CleanUpMessages ();
 
-    static int  GetMinDigits()       { return minDigits; }
+    static int GetMinDigits () { return minDigits; }
 
-    static void SetMinDigits(int md) { minDigits = md;   }
+    static void SetMinDigits (int md) { minDigits = md;   }
 
-  private:
+private:
 
     int myProc = -1;
     int nProcs = -1;
