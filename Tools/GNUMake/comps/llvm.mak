@@ -59,6 +59,11 @@ ifeq ($(WARN_ERROR),TRUE)
   CFLAGS += -Werror
 endif
 
+ifeq ($(USE_COMPILE_PIC),TRUE)
+  CXXFLAGS = -fPIC
+  CFLAGS = -fPIC
+endif
+
 # disable some warnings
 CXXFLAGS += -Wno-c++17-extensions
 
@@ -72,6 +77,14 @@ endif
 
 CXXFLAGS += -std=$(CXXSTD)
 CFLAGS   += -std=c11
+
+
+ifeq ($(USE_COMPILE_PIC),TRUE)
+
+  FFLAGS = -fPIC
+  F90FLAGS = -fPIC
+
+endif
 
 FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
 F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
