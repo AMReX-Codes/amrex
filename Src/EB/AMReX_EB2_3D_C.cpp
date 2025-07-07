@@ -196,7 +196,7 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
                   Real& Sx2, Real& Sy2, Real& Sxy,
                   Real axm, Real axp, Real aym, Real ayp,
                   Real bcx, Real bcy,
-          const Real dxval, const Real dyval) noexcept
+                  const Real dxval, const Real dyval) noexcept
 {
 #ifdef AMREX_USE_FLOAT
     constexpr Real sml = 1.e-5_rt;
