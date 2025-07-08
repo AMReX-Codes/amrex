@@ -144,7 +144,6 @@ struct iparser_node* iparser_get_rightmost_operand (struct iparser_node* node)
                    ftype == IPARSER_EQ || ftype == IPARSER_NEQ) {
             return node->r;
         }
-
     }
     return nullptr;
 }

@@ -209,7 +209,6 @@ struct parser_node* parser_get_rightmost_operand (struct parser_node* node)
                    ftype == PARSER_EQ || ftype == PARSER_NEQ) {
             return node->r;
         }
-
     }
     return nullptr;
 }
@@ -1404,13 +1403,13 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
                  ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
                  parser_get_number(((struct parser_f2*)node)->l) != 0.0)
-        { // true and ? => true
+        { // true or ? => true
             parser_set_number(node, 1.0);
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
                  ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
                  parser_get_number(((struct parser_f2*)node)->l) == 0.0)
-        { // false and ? => ?
+        { // false or ? => ?
             std::memcpy(node, node->r, sizeof(struct parser_node));
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
