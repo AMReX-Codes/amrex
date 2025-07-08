@@ -34,8 +34,23 @@ do
         intel-oneapi-compiler-fortran \
         intel-oneapi-mkl-devel \
         intel-oneapi-mpi-devel \
-        intel-ocloc \
         && { sudo apt-get clean; status=0; break; }  \
         || { sleep 10; }
 done
 if [[ ${status} -ne 0 ]]; then exit 1; fi
+
+
+source /etc/os-release
+ver="${VERSION_ID//\"/}"
+if [ "$ver" == "22.04" ]; then exit 0; fi
+
+status=1
+for itry in {1..5}
+do
+    sudo apt-get install -y --no-install-recommends \
+        intel-igc-core \
+        intel-igc-opencl \
+        intel-ocloc \
+        && { sudo apt-get clean; status=0; break; }  \
+        || { sleep 10; }
+done
