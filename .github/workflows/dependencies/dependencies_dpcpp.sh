@@ -34,7 +34,7 @@ do
         intel-oneapi-compiler-fortran \
         intel-oneapi-mkl-devel \
         intel-oneapi-mpi-devel \
-        intel-oneapi-runtime-opencl \
+        intel-ocloc \
         && { sudo apt-get clean; status=0; break; }  \
         || { sleep 10; }
 done
