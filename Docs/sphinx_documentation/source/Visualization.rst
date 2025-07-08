@@ -362,7 +362,11 @@ save this script. Then run the bash script by executing the following command in
 
     bash write_series_file.sh
 
-This will generate a file ``plot_files.series``. Open ParaView, and then select
+This will generate a file ``plot_files.series`` which indexes the time variable based on the order of the plotfile numbers.
+
+To make a ``.series`` file which reads the time out of the plotfile header, use :download:`write_series_file_timestamp.sh </Visualization/write_series_file_timestamp.sh>`.
+
+Open ParaView, and then select
 "File" :math:`\rightarrow` "Open". In the "Files of Type" dropdown menu (see :numref:`fig:ParaView_filegroup`)
 choose the option ``All Files (*)``. Then choose ``plot_files.series`` and click "OK". Now the plotfiles have been
 loaded as a Group as in Step 2 of section :ref:`section-1`. Now, you can follow the steps 2 to 7 in the section
@@ -458,14 +462,32 @@ Plot a Vector Field
 
 Paraview can be used to plot a vector field from AMR plotfile data. In this example
 we will assume a single vector has been stored as three separate variables,
-``V_x``, ``V_y`` and ``V_z``. The steps below outline a basic construction:
+``V_x``, ``V_y`` and ``V_z``.
 
-#. Open a plotfile or plotfile group, using ``File`` :math:`\rightarrow` ``Open``.
+The easiest way to create a vector ``V`` from the components is to
+first download the python file
+:download:`makevector.py </Visualization/makevector.py>`.
+
+If you are running paraview remotely, put ``makevector.py`` in the location
+of the plotfiles you will open under the heading ``Remote Plugins``.
+
+#. Now open a plotfile or plotfile group, using ``File`` :math:`\rightarrow` ``Open``.
    A pop-up will appear, select "AMReX/Boxlib Grid Reader".
 
 #. Select the plotfile or group in the Pipeline Browser. The Cell Array Status
    window of the Properties should populate with the values ``V_x``, ``V_y``
    and ``V_z``. Select these values and click apply.
+
+#. Select ``Tools``  :math:`\rightarrow` ``Manage Plugins...`` then choose
+   ``Load New...``.   Select ``makevector.py``; after you load it you will see
+   ``makevector`` in the list of plugins.
+
+#. Select the MakeVector filter from ``Filters`` :math:`\rightarrow` ``Alphabetical``
+   :math:`\rightarrow` ``MakeVector`` and apply.  You will now have the vector ``V``
+   listed with your other variables.
+
+Alternatively, if you prefer not to use the python plugin, you can follow the
+steps below:
 
 #. Select the Cell Centers filter from ``Filters`` :math:`\rightarrow` ``Alphabetical``
    :math:`\rightarrow` ``Cell Centers`` and apply.
@@ -479,7 +501,9 @@ we will assume a single vector has been stored as three separate variables,
    Note that, the values ``V_x``, ``V_y`` and ``V_z``, should be selectable
    from the dropdown Scalars menu. Apply the filter.
 
-#. To plot the arrows, select the Glyph filter,
+To plot the arrows corresponding to this vector field
+
+#. Select the Glyph filter,
    ``Filters`` :math:`\rightarrow` ``Alphabetical`` :math:`\rightarrow` ``Glyph``.
    Under the heading, Glyph Source, select ``Arrow``. Under Orientation, select
    the name of the vector value created in the last step. The default name is
