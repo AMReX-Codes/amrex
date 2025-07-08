@@ -144,8 +144,8 @@ struct iparser_node* iparser_newf3 (enum iparser_f3_t ftype, struct iparser_node
                                     struct iparser_node* n2, struct iparser_node* n3);
 struct iparser_node* iparser_newassign (struct iparser_symbol* s, struct iparser_node* v);
 struct iparser_node* iparser_newlist (struct iparser_node* nl, struct iparser_node* nr);
-struct iparser_node* iparser_get_rightmost_operand (struct iparser_node* node);
-bool iparser_is_comparison (struct iparser_node* node);
+struct iparser_node* iparser_newcmpchain (struct iparser_node* nl, enum iparser_f2_t cmp,
+                                          struct iparser_node* nr)
 
 /*******************************************************************/
 

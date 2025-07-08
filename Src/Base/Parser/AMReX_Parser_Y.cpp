@@ -198,6 +198,7 @@ parser_newlist (struct parser_node* nl, struct parser_node* nr)
     }
 }
 
+namespace {
 struct parser_node* parser_get_rightmost_operand (struct parser_node* node)
 {
     if (node && node->type == PARSER_F2) {
@@ -223,6 +224,21 @@ bool parser_is_comparison (struct parser_node* node)
                 (ftype == PARSER_CMP_CHAIN && parser_is_comparison(node->r)));
     } else {
         return false;
+    }
+}
+}
+
+struct parser_node* parser_newcmpchain (struct parser_node* nl, enum parser_f2_t cmp,
+                                        struct parser_node* nr)
+{
+    /* If left side is already a comparison, this extends the chain */
+    if (amrex::parser_is_comparison(nl)) {
+       return amrex::parser_newf2(amrex::PARSER_CMP_CHAIN, nl,
+                                  amrex::parser_newf2(cmp,
+                                                      amrex::parser_get_rightmost_operand(nl),
+                                                      nr));
+    } else {
+        return amrex::parser_newf2(cmp, nl, nr); // Intital comparison
     }
 }
 

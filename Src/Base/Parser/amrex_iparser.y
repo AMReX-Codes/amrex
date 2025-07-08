@@ -106,63 +106,12 @@ and_exp:
 /* Comparison expressions - handles all comparison operators and chaining */
 cmp_exp:
   add_exp                    { $$ = $1; }
-/* Only chaining rules - this handles both initial and chained comparisons */
-| cmp_exp '<' add_exp        {
-    /* If left side is add_exp (via cmp_exp -> add_exp), this is initial comparison */
-    /* If left side is already a comparison, this extends the chain */
-    if (amrex::iparser_is_comparison($1)) {
-        $$ = amrex::iparser_newf2(amrex::IPARSER_CMP_CHAIN, $1,
-                                 amrex::iparser_newf2(amrex::IPARSER_LT,
-                                   amrex::iparser_get_rightmost_operand($1), $3));
-    } else {
-        $$ = amrex::iparser_newf2(amrex::IPARSER_LT, $1, $3);
-    }
-}
-| cmp_exp '>' add_exp        {
-    if (amrex::iparser_is_comparison($1)) {
-        $$ = amrex::iparser_newf2(amrex::IPARSER_CMP_CHAIN, $1,
-                                 amrex::iparser_newf2(amrex::IPARSER_GT,
-                                   amrex::iparser_get_rightmost_operand($1), $3));
-    } else {
-        $$ = amrex::iparser_newf2(amrex::IPARSER_GT, $1, $3);
-    }
-}
-| cmp_exp LEQ add_exp        {
-    if (amrex::iparser_is_comparison($1)) {
-        $$ = amrex::iparser_newf2(amrex::IPARSER_CMP_CHAIN, $1,
-                                 amrex::iparser_newf2(amrex::IPARSER_LEQ,
-                                   amrex::iparser_get_rightmost_operand($1), $3));
-    } else {
-        $$ = amrex::iparser_newf2(amrex::IPARSER_LEQ, $1, $3);
-    }
-}
-| cmp_exp GEQ add_exp        {
-    if (amrex::iparser_is_comparison($1)) {
-        $$ = amrex::iparser_newf2(amrex::IPARSER_CMP_CHAIN, $1,
-                                 amrex::iparser_newf2(amrex::IPARSER_GEQ,
-                                   amrex::iparser_get_rightmost_operand($1), $3));
-    } else {
-        $$ = amrex::iparser_newf2(amrex::IPARSER_GEQ, $1, $3);
-    }
-}
-| cmp_exp EQ add_exp         {
-    if (amrex::iparser_is_comparison($1)) {
-        $$ = amrex::iparser_newf2(amrex::IPARSER_CMP_CHAIN, $1,
-                                 amrex::iparser_newf2(amrex::IPARSER_EQ,
-                                   amrex::iparser_get_rightmost_operand($1), $3));
-    } else {
-        $$ = amrex::iparser_newf2(amrex::IPARSER_EQ, $1, $3);
-    }
-}
-| cmp_exp NEQ add_exp        {
-    if (amrex::iparser_is_comparison($1)) {
-        $$ = amrex::iparser_newf2(amrex::IPARSER_CMP_CHAIN, $1,
-                                 amrex::iparser_newf2(amrex::IPARSER_NEQ,
-                                   amrex::iparser_get_rightmost_operand($1), $3));
-    } else {
-        $$ = amrex::iparser_newf2(amrex::IPARSER_NEQ, $1, $3);
-    }
-}
+| cmp_exp '<' add_exp        { $$ = amrex::iparser_newcmpchain($1, amrex::IPARSER_LT, $3); }
+| cmp_exp '>' add_exp        { $$ = amrex::iparser_newcmpchain($1, amrex::IPARSER_GT, $3); }
+| cmp_exp LEQ add_exp        { $$ = amrex::iparser_newcmpchain($1, amrex::IPARSER_LEQ,$3); }
+| cmp_exp GEQ add_exp        { $$ = amrex::iparser_newcmpchain($1, amrex::IPARSER_GEQ,$3); }
+| cmp_exp EQ add_exp         { $$ = amrex::iparser_newcmpchain($1, amrex::IPARSER_EQ ,$3); }
+| cmp_exp NEQ add_exp        { $$ = amrex::iparser_newcmpchain($1, amrex::IPARSER_NEQ,$3); }
 ;
 
 /* Addition and subtraction */

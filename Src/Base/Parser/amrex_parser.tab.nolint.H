@@ -547,10 +547,10 @@ static const yytype_int8 yytranslate[] =
 static const yytype_uint8 yyrline[] =
 {
        0,    75,    75,    76,    83,    84,    85,    90,    91,    95,
-      96,   101,   102,   107,   109,   120,   129,   138,   147,   156,
-     169,   170,   171,   176,   177,   178,   183,   184,   185,   190,
-     191,   196,   197,   198,   199,   200,   201,   202,   203,   204,
-     205
+      96,   101,   102,   107,   108,   109,   110,   111,   112,   113,
+     118,   119,   120,   125,   126,   127,   132,   133,   134,   139,
+     140,   145,   146,   147,   148,   149,   150,   151,   152,   153,
+     154
 };
 #endif
 
@@ -1211,77 +1211,27 @@ yyreduce:
     break;
 
   case 14: /* cmp_exp: cmp_exp '<' add_exp  */
-                             {
-    /* If left side is add_exp (via cmp_exp -> add_exp), this is initial comparison */
-    /* If left side is already a comparison, this extends the chain */
-    if (amrex::parser_is_comparison((yyvsp[-2].n))) {
-        (yyval.n) = amrex::parser_newf2(amrex::PARSER_CMP_CHAIN, (yyvsp[-2].n),
-                                 amrex::parser_newf2(amrex::PARSER_LT,
-                                   amrex::parser_get_rightmost_operand((yyvsp[-2].n)), (yyvsp[0].n)));
-    } else {
-        (yyval.n) = amrex::parser_newf2(amrex::PARSER_LT, (yyvsp[-2].n), (yyvsp[0].n));
-    }
-}
+                             { (yyval.n) = amrex::parser_newcmpchain((yyvsp[-2].n), amrex::PARSER_LT, (yyvsp[0].n)); }
     break;
 
   case 15: /* cmp_exp: cmp_exp '>' add_exp  */
-                             {
-    if (amrex::parser_is_comparison((yyvsp[-2].n))) {
-        (yyval.n) = amrex::parser_newf2(amrex::PARSER_CMP_CHAIN, (yyvsp[-2].n),
-                                 amrex::parser_newf2(amrex::PARSER_GT,
-                                   amrex::parser_get_rightmost_operand((yyvsp[-2].n)), (yyvsp[0].n)));
-    } else {
-        (yyval.n) = amrex::parser_newf2(amrex::PARSER_GT, (yyvsp[-2].n), (yyvsp[0].n));
-    }
-}
+                             { (yyval.n) = amrex::parser_newcmpchain((yyvsp[-2].n), amrex::PARSER_GT, (yyvsp[0].n)); }
     break;
 
   case 16: /* cmp_exp: cmp_exp "<=" add_exp  */
-                             {
-    if (amrex::parser_is_comparison((yyvsp[-2].n))) {
-        (yyval.n) = amrex::parser_newf2(amrex::PARSER_CMP_CHAIN, (yyvsp[-2].n),
-                                 amrex::parser_newf2(amrex::PARSER_LEQ,
-                                   amrex::parser_get_rightmost_operand((yyvsp[-2].n)), (yyvsp[0].n)));
-    } else {
-        (yyval.n) = amrex::parser_newf2(amrex::PARSER_LEQ, (yyvsp[-2].n), (yyvsp[0].n));
-    }
-}
+                             { (yyval.n) = amrex::parser_newcmpchain((yyvsp[-2].n), amrex::PARSER_LEQ,(yyvsp[0].n)); }
     break;
 
   case 17: /* cmp_exp: cmp_exp ">=" add_exp  */
-                             {
-    if (amrex::parser_is_comparison((yyvsp[-2].n))) {
-        (yyval.n) = amrex::parser_newf2(amrex::PARSER_CMP_CHAIN, (yyvsp[-2].n),
-                                 amrex::parser_newf2(amrex::PARSER_GEQ,
-                                   amrex::parser_get_rightmost_operand((yyvsp[-2].n)), (yyvsp[0].n)));
-    } else {
-        (yyval.n) = amrex::parser_newf2(amrex::PARSER_GEQ, (yyvsp[-2].n), (yyvsp[0].n));
-    }
-}
+                             { (yyval.n) = amrex::parser_newcmpchain((yyvsp[-2].n), amrex::PARSER_GEQ,(yyvsp[0].n)); }
     break;
 
   case 18: /* cmp_exp: cmp_exp "==" add_exp  */
-                             {
-    if (amrex::parser_is_comparison((yyvsp[-2].n))) {
-        (yyval.n) = amrex::parser_newf2(amrex::PARSER_CMP_CHAIN, (yyvsp[-2].n),
-                                 amrex::parser_newf2(amrex::PARSER_EQ,
-                                   amrex::parser_get_rightmost_operand((yyvsp[-2].n)), (yyvsp[0].n)));
-    } else {
-        (yyval.n) = amrex::parser_newf2(amrex::PARSER_EQ, (yyvsp[-2].n), (yyvsp[0].n));
-    }
-}
+                             { (yyval.n) = amrex::parser_newcmpchain((yyvsp[-2].n), amrex::PARSER_EQ ,(yyvsp[0].n)); }
     break;
 
   case 19: /* cmp_exp: cmp_exp "!=" add_exp  */
-                             {
-    if (amrex::parser_is_comparison((yyvsp[-2].n))) {
-        (yyval.n) = amrex::parser_newf2(amrex::PARSER_CMP_CHAIN, (yyvsp[-2].n),
-                                 amrex::parser_newf2(amrex::PARSER_NEQ,
-                                   amrex::parser_get_rightmost_operand((yyvsp[-2].n)), (yyvsp[0].n)));
-    } else {
-        (yyval.n) = amrex::parser_newf2(amrex::PARSER_NEQ, (yyvsp[-2].n), (yyvsp[0].n));
-    }
-}
+                             { (yyval.n) = amrex::parser_newcmpchain((yyvsp[-2].n), amrex::PARSER_NEQ,(yyvsp[0].n)); }
     break;
 
   case 20: /* add_exp: mul_exp  */

@@ -295,8 +295,8 @@ struct parser_node* parser_newusrfn (struct parser_symbol* fname,
                                      std::vector<struct parser_node*> const& nv);
 struct parser_node* parser_newassign (struct parser_symbol* s, struct parser_node* v);
 struct parser_node* parser_newlist (struct parser_node* nl, struct parser_node* nr);
-struct parser_node* parser_get_rightmost_operand (struct parser_node* node);
-bool parser_is_comparison (struct parser_node* node);
+struct parser_node* parser_newcmpchain (struct parser_node* nl, enum parser_f2_t cmp,
+                                        struct parser_node* nr);
 
 /*******************************************************************/
 

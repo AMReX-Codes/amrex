@@ -133,6 +133,7 @@ iparser_newlist (struct iparser_node* nl, struct iparser_node* nr)
     }
 }
 
+namespace {
 struct iparser_node* iparser_get_rightmost_operand (struct iparser_node* node)
 {
     if (node && node->type == IPARSER_F2) {
@@ -158,6 +159,21 @@ bool iparser_is_comparison (struct iparser_node* node)
                 (ftype == IPARSER_CMP_CHAIN && iparser_is_comparison(node->r)));
     } else {
         return false;
+    }
+}
+}
+
+struct iparser_node* iparser_newcmpchain (struct iparser_node* nl, enum iparser_f2_t cmp,
+                                          struct iparser_node* nr)
+{
+    /* If left side is already a comparison, this extends the chain */
+    if (amrex::iparser_is_comparison(nl)) {
+       return amrex::iparser_newf2(amrex::IPARSER_CMP_CHAIN, nl,
+                                   amrex::iparser_newf2(cmp,
+                                                        amrex::iparser_get_rightmost_operand(nl),
+                                                        nr));
+    } else {
+        return amrex::iparser_newf2(cmp, nl, nr); // Intital comparison
     }
 }
 
