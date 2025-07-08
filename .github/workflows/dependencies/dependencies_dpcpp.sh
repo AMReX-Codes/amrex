@@ -40,6 +40,8 @@ done
 if [[ ${status} -ne 0 ]]; then exit 1; fi
 
 
+sudo apt-cache search ^intel-
+
 source /etc/os-release
 ver="${VERSION_ID//\"/}"
 if [ "$ver" == "22.04" ]; then exit 0; fi
