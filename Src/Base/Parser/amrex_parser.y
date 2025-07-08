@@ -188,7 +188,7 @@ unary_exp:
 /* Power (right associative) */
 pow_exp:
   primary_exp                { $$ = $1; }
-| primary_exp POW pow_exp    { $$ = amrex::parser_newf2(amrex::PARSER_POW, $1, $3); }
+| primary_exp POW unary_exp  { $$ = amrex::parser_newf2(amrex::PARSER_POW, $1, $3); }
 ;
 
 /* Primary expressions */
