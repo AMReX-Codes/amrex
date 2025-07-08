@@ -173,22 +173,22 @@ add_exp:
 
 /* Multiplication and division */
 mul_exp:
-  pow_exp                    { $$ = $1; }
-| mul_exp '*' pow_exp        { $$ = amrex::parser_newnode(amrex::PARSER_MUL, $1, $3); }
-| mul_exp '/' pow_exp        { $$ = amrex::parser_newnode(amrex::PARSER_DIV, $1, $3); }
-;
-
-/* Power (right associative) */
-pow_exp:
   unary_exp                  { $$ = $1; }
-| unary_exp POW pow_exp      { $$ = amrex::parser_newf2(amrex::PARSER_POW, $1, $3); }
+| mul_exp '*' unary_exp      { $$ = amrex::parser_newnode(amrex::PARSER_MUL, $1, $3); }
+| mul_exp '/' unary_exp      { $$ = amrex::parser_newnode(amrex::PARSER_DIV, $1, $3); }
 ;
 
 /* Unary expressions */
 unary_exp:
-  primary_exp                { $$ = $1; }
+  pow_exp                    { $$ = $1; }
 | '-' unary_exp              { $$ = amrex::parser_newneg($2); }
 | '+' unary_exp              { $$ = $2; }
+;
+
+/* Power (right associative) */
+pow_exp:
+  primary_exp                { $$ = $1; }
+| primary_exp POW pow_exp    { $$ = amrex::parser_newf2(amrex::PARSER_POW, $1, $3); }
 ;
 
 /* Primary expressions */

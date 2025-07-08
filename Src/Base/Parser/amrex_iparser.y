@@ -174,22 +174,22 @@ add_exp:
 
 /* Multiplication and division */
 mul_exp:
-  pow_exp                    { $$ = $1; }
-| mul_exp '*' pow_exp        { $$ = amrex::iparser_newnode(amrex::IPARSER_MUL, $1, $3); }
-| mul_exp '/' pow_exp        { $$ = amrex::iparser_newnode(amrex::IPARSER_DIV, $1, $3); }
-| mul_exp FLRDIV pow_exp     { $$ = amrex::iparser_newf2(amrex::IPARSER_FLRDIV, $1, $3); };
-
-/* Power (right associative) */
-pow_exp:
   unary_exp                  { $$ = $1; }
-| unary_exp POW pow_exp      { $$ = amrex::iparser_newf2(amrex::IPARSER_POW, $1, $3); }
-;
+| mul_exp '*' unary_exp      { $$ = amrex::iparser_newnode(amrex::IPARSER_MUL, $1, $3); }
+| mul_exp '/' unary_exp      { $$ = amrex::iparser_newnode(amrex::IPARSER_DIV, $1, $3); }
+| mul_exp FLRDIV unary_exp   { $$ = amrex::iparser_newf2(amrex::IPARSER_FLRDIV, $1, $3); };
 
 /* Unary expressions */
 unary_exp:
-  primary_exp                { $$ = $1; }
+  pow_exp                    { $$ = $1; }
 | '-' unary_exp              { $$ = amrex::iparser_newnode(amrex::IPARSER_NEG, $2, nullptr); }
 | '+' unary_exp              { $$ = $2; }
+;
+
+/* Power (right associative) */
+pow_exp:
+  primary_exp                { $$ = $1; }
+| primary_exp POW pow_exp    { $$ = amrex::iparser_newf2(amrex::IPARSER_POW, $1, $3); }
 ;
 
 /* Primary expressions */

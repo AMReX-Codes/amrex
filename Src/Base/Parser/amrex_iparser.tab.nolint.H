@@ -157,8 +157,8 @@ enum yysymbol_kind_t
   YYSYMBOL_cmp_exp = 38,                   /* cmp_exp  */
   YYSYMBOL_add_exp = 39,                   /* add_exp  */
   YYSYMBOL_mul_exp = 40,                   /* mul_exp  */
-  YYSYMBOL_pow_exp = 41,                   /* pow_exp  */
-  YYSYMBOL_unary_exp = 42,                 /* unary_exp  */
+  YYSYMBOL_unary_exp = 41,                 /* unary_exp  */
+  YYSYMBOL_pow_exp = 42,                   /* pow_exp  */
   YYSYMBOL_primary_exp = 43                /* primary_exp  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
@@ -487,7 +487,7 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  2
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   84
+#define YYLAST   94
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  32
@@ -549,7 +549,7 @@ static const yytype_uint8 yyrline[] =
 {
        0,    76,    76,    77,    84,    85,    86,    91,    92,    96,
       97,   102,   103,   108,   110,   121,   130,   139,   148,   157,
-     170,   171,   172,   177,   178,   179,   180,   184,   185,   190,
+     170,   171,   172,   177,   178,   179,   180,   184,   185,   186,
      191,   192,   197,   198,   199,   200,   201,   202
 };
 #endif
@@ -571,7 +571,7 @@ static const char *const yytname[] =
   "\"<=\"", "\"==\"", "\"!=\"", "\"and\"", "\"or\"", "';'", "'='", "'<'",
   "'>'", "'+'", "'-'", "'*'", "'/'", "NEG", "UPLUS", "'('", "')'", "','",
   "$accept", "input", "exp", "stmt", "or_exp", "and_exp", "cmp_exp",
-  "add_exp", "mul_exp", "pow_exp", "unary_exp", "primary_exp", YY_NULLPTR
+  "add_exp", "mul_exp", "unary_exp", "pow_exp", "primary_exp", YY_NULLPTR
 };
 
 static const char *
@@ -581,7 +581,7 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-22)
+#define YYPACT_NINF (-20)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
@@ -595,14 +595,14 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-     -22,     1,   -22,   -22,   -16,     0,     3,    26,    11,    11,
-      11,    40,   -22,    13,     4,    56,   -21,    12,   -22,    47,
-     -22,    11,    11,    11,    11,   -22,   -22,   -22,    18,   -22,
-      39,    11,    11,    11,    11,    11,    11,    11,    11,    11,
-      11,    11,    11,    11,    11,    13,    23,    -8,     2,   -22,
-     -22,     4,    56,   -21,   -21,   -21,   -21,   -21,   -21,    12,
-      12,   -22,   -22,   -22,   -22,   -22,    11,    11,    24,     8,
-     -22,    11,    34,   -22
+     -20,    15,   -20,   -20,   -17,   -19,   -11,    -3,     1,     1,
+       1,    49,   -20,    11,    16,    66,    53,     6,   -20,   -20,
+      26,     1,     1,     1,     1,   -20,   -20,   -20,    25,   -20,
+      41,     1,     1,     1,     1,     1,     1,     1,     1,     1,
+       1,     1,     1,     1,    46,    11,    42,   -14,     9,   -20,
+     -20,    16,    66,    53,    53,    53,    53,    53,    53,     6,
+       6,   -20,   -20,   -20,   -20,   -20,     1,     1,    44,    10,
+     -20,     1,    48,   -20
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -612,19 +612,19 @@ static const yytype_int8 yydefact[] =
 {
        2,     0,     1,    32,    33,     0,     0,     0,     0,     0,
        0,     0,     4,     7,     9,    11,    13,    20,    23,    27,
-      29,     0,     0,     0,     0,    33,    31,    30,     0,     3,
+      30,     0,     0,     0,     0,    33,    29,    28,     0,     3,
        6,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     8,     0,     0,     0,    34,
        5,    10,    12,    17,    16,    18,    19,    14,    15,    21,
-      22,    26,    24,    25,    28,    35,     0,     0,     0,     0,
+      22,    26,    24,    25,    31,    35,     0,     0,     0,     0,
       36,     0,     0,    37
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -22,   -22,   -22,    30,   -10,    35,    33,    46,   -12,    32,
-      42,   -22
+     -20,   -20,   -20,    12,   -10,    28,    31,    56,    45,    -7,
+      23,   -20
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
@@ -639,27 +639,29 @@ static const yytype_int8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-      28,     2,    39,    40,    21,     3,     4,     5,     6,     7,
-      31,    45,    46,    47,    48,     3,    25,     5,     6,     7,
-      31,    32,    41,    66,     8,     9,    31,    59,    60,    22,
-      10,    31,    23,    67,     8,     9,    31,    42,    43,    71,
-      10,    31,    31,     3,     4,     5,     6,     7,    49,    29,
-      26,    27,    31,    65,    70,    24,    68,    69,    44,    30,
-      50,    72,     8,     9,    73,    52,    51,     0,    10,    33,
-      34,    35,    36,    61,    62,    63,    64,    37,    38,    53,
+      28,    26,    27,    21,    31,     3,    25,     5,     6,     7,
+      22,    45,    46,    47,    48,     2,    41,    66,    23,     3,
+       4,     5,     6,     7,     8,     9,    24,    31,    31,    31,
+      10,    42,    43,    32,    61,    62,    63,    44,     8,     9,
+      67,    71,    50,    31,    10,     3,     4,     5,     6,     7,
+       3,    25,     5,     6,     7,    49,    68,    69,    29,    51,
+      31,    72,    31,    52,     8,     9,    31,    64,    30,     0,
+      10,     0,    65,     0,    70,    10,    39,    40,    73,    33,
+      34,    35,    36,     0,    59,    60,     0,    37,    38,    53,
       54,    55,    56,    57,    58
 };
 
 static const yytype_int8 yycheck[] =
 {
-      10,     0,    23,    24,    20,     4,     5,     6,     7,     8,
-      18,    21,    22,    23,    24,     4,     5,     6,     7,     8,
-      18,    17,    10,    31,    23,    24,    18,    39,    40,    29,
-      29,    18,    29,    31,    23,    24,    18,    25,    26,    31,
-      29,    18,    18,     4,     5,     6,     7,     8,    30,     9,
-       8,     9,    18,    30,    30,    29,    66,    67,    11,    19,
-      30,    71,    23,    24,    30,    32,    31,    -1,    29,    13,
-      14,    15,    16,    41,    42,    43,    44,    21,    22,    33,
+      10,     8,     9,    20,    18,     4,     5,     6,     7,     8,
+      29,    21,    22,    23,    24,     0,    10,    31,    29,     4,
+       5,     6,     7,     8,    23,    24,    29,    18,    18,    18,
+      29,    25,    26,    17,    41,    42,    43,    11,    23,    24,
+      31,    31,    30,    18,    29,     4,     5,     6,     7,     8,
+       4,     5,     6,     7,     8,    30,    66,    67,     9,    31,
+      18,    71,    18,    32,    23,    24,    18,    44,    19,    -1,
+      29,    -1,    30,    -1,    30,    29,    23,    24,    30,    13,
+      14,    15,    16,    -1,    39,    40,    -1,    21,    22,    33,
       34,    35,    36,    37,    38
 };
 
@@ -669,11 +671,11 @@ static const yytype_int8 yystos[] =
 {
        0,    33,     0,     4,     5,     6,     7,     8,    23,    24,
       29,    34,    35,    36,    37,    38,    39,    40,    41,    42,
-      43,    20,    29,    29,    29,     5,    42,    42,    36,     9,
+      43,    20,    29,    29,    29,     5,    41,    41,    36,     9,
       19,    18,    17,    13,    14,    15,    16,    21,    22,    23,
       24,    10,    25,    26,    11,    36,    36,    36,    36,    30,
       35,    37,    38,    39,    39,    39,    39,    39,    39,    40,
-      40,    41,    41,    41,    41,    30,    31,    31,    36,    36,
+      40,    41,    41,    41,    42,    30,    31,    31,    36,    36,
       30,    31,    36,    30
 };
 
@@ -682,7 +684,7 @@ static const yytype_int8 yyr1[] =
 {
        0,    32,    33,    33,    34,    34,    34,    35,    35,    36,
       36,    37,    37,    38,    38,    38,    38,    38,    38,    38,
-      39,    39,    39,    40,    40,    40,    40,    41,    41,    42,
+      39,    39,    39,    40,    40,    40,    40,    41,    41,    41,
       42,    42,    43,    43,    43,    43,    43,    43
 };
 
@@ -691,8 +693,8 @@ static const yytype_int8 yyr2[] =
 {
        0,     2,     0,     3,     1,     3,     2,     1,     3,     1,
        3,     1,     3,     1,     3,     3,     3,     3,     3,     3,
-       1,     3,     3,     1,     3,     3,     3,     1,     3,     1,
-       2,     2,     1,     1,     3,     4,     6,     8
+       1,     3,     3,     1,     3,     3,     3,     1,     2,     2,
+       1,     3,     1,     1,     3,     4,     6,     8
 };
 
 
@@ -1287,40 +1289,40 @@ yyreduce:
                              { (yyval.n) = amrex::iparser_newnode(amrex::IPARSER_SUB, (yyvsp[-2].n), (yyvsp[0].n)); }
     break;
 
-  case 23: /* mul_exp: pow_exp  */
+  case 23: /* mul_exp: unary_exp  */
                              { (yyval.n) = (yyvsp[0].n); }
     break;
 
-  case 24: /* mul_exp: mul_exp '*' pow_exp  */
+  case 24: /* mul_exp: mul_exp '*' unary_exp  */
                              { (yyval.n) = amrex::iparser_newnode(amrex::IPARSER_MUL, (yyvsp[-2].n), (yyvsp[0].n)); }
     break;
 
-  case 25: /* mul_exp: mul_exp '/' pow_exp  */
+  case 25: /* mul_exp: mul_exp '/' unary_exp  */
                              { (yyval.n) = amrex::iparser_newnode(amrex::IPARSER_DIV, (yyvsp[-2].n), (yyvsp[0].n)); }
     break;
 
-  case 26: /* mul_exp: mul_exp "//" pow_exp  */
+  case 26: /* mul_exp: mul_exp "//" unary_exp  */
                              { (yyval.n) = amrex::iparser_newf2(amrex::IPARSER_FLRDIV, (yyvsp[-2].n), (yyvsp[0].n)); }
     break;
 
-  case 27: /* pow_exp: unary_exp  */
+  case 27: /* unary_exp: pow_exp  */
                              { (yyval.n) = (yyvsp[0].n); }
     break;
 
-  case 28: /* pow_exp: unary_exp "**" pow_exp  */
-                             { (yyval.n) = amrex::iparser_newf2(amrex::IPARSER_POW, (yyvsp[-2].n), (yyvsp[0].n)); }
-    break;
-
-  case 29: /* unary_exp: primary_exp  */
-                             { (yyval.n) = (yyvsp[0].n); }
-    break;
-
-  case 30: /* unary_exp: '-' unary_exp  */
+  case 28: /* unary_exp: '-' unary_exp  */
                              { (yyval.n) = amrex::iparser_newnode(amrex::IPARSER_NEG, (yyvsp[0].n), nullptr); }
     break;
 
-  case 31: /* unary_exp: '+' unary_exp  */
+  case 29: /* unary_exp: '+' unary_exp  */
                              { (yyval.n) = (yyvsp[0].n); }
+    break;
+
+  case 30: /* pow_exp: primary_exp  */
+                             { (yyval.n) = (yyvsp[0].n); }
+    break;
+
+  case 31: /* pow_exp: primary_exp "**" pow_exp  */
+                             { (yyval.n) = amrex::iparser_newf2(amrex::IPARSER_POW, (yyvsp[-2].n), (yyvsp[0].n)); }
     break;
 
   case 32: /* primary_exp: NUMBER  */
