@@ -238,7 +238,7 @@ struct parser_node* parser_newcmpchain (struct parser_node* nl, enum parser_f2_t
                                                       amrex::parser_get_rightmost_operand(nl),
                                                       nr));
     } else {
-        return amrex::parser_newf2(cmp, nl, nr); // Intital comparison
+        return amrex::parser_newf2(cmp, nl, nr); // Initial comparison
     }
 }
 

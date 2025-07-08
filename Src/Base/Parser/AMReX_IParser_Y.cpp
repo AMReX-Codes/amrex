@@ -173,7 +173,7 @@ struct iparser_node* iparser_newcmpchain (struct iparser_node* nl, enum iparser_
                                                         amrex::iparser_get_rightmost_operand(nl),
                                                         nr));
     } else {
-        return amrex::iparser_newf2(cmp, nl, nr); // Intital comparison
+        return amrex::iparser_newf2(cmp, nl, nr); // Initial comparison
     }
 }
 
