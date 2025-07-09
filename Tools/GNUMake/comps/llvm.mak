@@ -60,8 +60,8 @@ ifeq ($(WARN_ERROR),TRUE)
 endif
 
 ifeq ($(USE_COMPILE_PIC),TRUE)
-  CXXFLAGS = -fPIC
-  CFLAGS = -fPIC
+  CXXFLAGS += -fPIC
+  CFLAGS += -fPIC
 endif
 
 # disable some warnings
@@ -81,8 +81,8 @@ CFLAGS   += -std=c11
 
 ifeq ($(USE_COMPILE_PIC),TRUE)
 
-  FFLAGS = -fPIC
-  F90FLAGS = -fPIC
+  FFLAGS += -fPIC
+  F90FLAGS += -fPIC
 
 endif
 

@@ -133,8 +133,8 @@ endif
 
 
 ifeq ($(USE_COMPILE_PIC),TRUE)
-  CXXFLAGS = -fPIC
-  CFLAGS = -fPIC
+  CXXFLAGS += -fPIC
+  CFLAGS += -fPIC
 endif
 
 ifeq ($(ERROR_DEPRECATED),TRUE)
@@ -195,8 +195,8 @@ endif
 
 ifeq ($(USE_COMPILE_PIC),TRUE)
 
-  FFLAGS = -fPIC
-  F90FLAGS = -fPIC
+  FFLAGS += -fPIC
+  F90FLAGS += -fPIC
 
 endif
 
