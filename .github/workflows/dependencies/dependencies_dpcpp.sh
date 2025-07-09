@@ -39,27 +39,16 @@ do
 done
 if [[ ${status} -ne 0 ]]; then exit 1; fi
 
-sudo apt-cache search ^intel-
-
 source /etc/os-release
 ver="${VERSION_ID//\"/}"
 if [ "$ver" == "22.04" ]; then exit 0; fi
-
-# Add Intel Graphics compute stack repo (for IGC, libigc, ocloc, etc.)
-echo "deb [arch=amd64] https://repositories.intel.com/gpu/ubuntu ${UBUNTU_CODENAME} main" | sudo tee /etc/apt/sources.list.d/intel-gpu.list
-wget -qO - https://repositories.intel.com/gpu/intel-gpu-deb.key | sudo apt-key add -
-
-sudo apt-get update
-
-sudo apt-cache search ^intel-
 
 status=1
 for itry in {1..5}
 do
     sudo apt-get install -y --no-install-recommends \
-        intel-igc-core \
-        intel-igc-opencl \
         intel-ocloc \
+        libigc-dev  \
         && { sudo apt-get clean; status=0; break; }  \
         || { sleep 10; }
 done
