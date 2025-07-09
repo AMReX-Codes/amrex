@@ -145,6 +145,14 @@ int main(int argc, char* argv[])
     }
     {
         ParmParse pp;
+        bool my_bool_flag_1 = false;
+        bool my_bool_flag_2 = false;
+        pp.queryAddWithParser("my_bool_flag", my_bool_flag_1);
+        pp.query("my_bool_flag", my_bool_flag_2);
+        AMREX_ALWAYS_ASSERT(my_bool_flag_1 && my_bool_flag_2);
+    }
+    {
+        ParmParse pp;
         std::string line;
         pp.queryline("my_string_line", line);
         AMREX_ALWAYS_ASSERT(line == "a b c");
