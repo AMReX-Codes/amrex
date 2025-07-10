@@ -543,6 +543,10 @@ HPC facility for high-throughput visualization of large data sets.
 
 Note - AMReX datasets require yt version 3.4 or greater.
 
+We also note that there is active development of an xarray-like interface
+for AMReX simulation data via yt; see the `xamr docs <https://xamr.readthedocs.io/>`_
+for more details.
+
 Using on a local workstation
 -----------------------------
 
