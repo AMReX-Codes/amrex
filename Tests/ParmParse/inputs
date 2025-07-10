@@ -63,6 +63,11 @@ ny = nx
 
 do_this = 1
 
+# query bool with parser
+my_value = 10
+my_threshold = 3
+my_bool_flag = "(my_threshold < my_value) and (my_value < 100)"
+
 # queryline and getline
 my_string_line = a  b c
 

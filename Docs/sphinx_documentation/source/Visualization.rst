@@ -479,8 +479,8 @@ of the plotfiles you will open under the heading ``Remote Plugins``.
    and ``V_z``. Select these values and click apply.
 
 #. Select ``Tools``  :math:`\rightarrow` ``Manage Plugins...`` then choose
-``Load New...``.   Select ``makevector.py``; after you load it you will see
-``makevector`` in the list of plugins.
+   ``Load New...``.   Select ``makevector.py``; after you load it you will see
+   ``makevector`` in the list of plugins.
 
 #. Select the MakeVector filter from ``Filters`` :math:`\rightarrow` ``Alphabetical``
    :math:`\rightarrow` ``MakeVector`` and apply.  You will now have the vector ``V``

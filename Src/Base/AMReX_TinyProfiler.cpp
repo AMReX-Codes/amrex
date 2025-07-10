@@ -308,7 +308,7 @@ TinyProfiler::memory_free (std::size_t nbytes, MemStat* stat) noexcept
 
 
 void
-TinyProfiler::Initialize () noexcept
+TinyProfiler::Initialize ()
 {
     {
         amrex::ParmParse pp("tiny_profiler");
@@ -332,7 +332,7 @@ TinyProfiler::Initialize () noexcept
 }
 
 void
-TinyProfiler::MemoryInitialize () noexcept
+TinyProfiler::MemoryInitialize ()
 {
     {
         amrex::ParmParse pp("tiny_profiler");
