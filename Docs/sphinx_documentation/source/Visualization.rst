@@ -521,6 +521,102 @@ To plot the arrows corresponding to this vector field
 
    Vector Field generated with ParaView
 
+Saving and Loading State Files
+------------------------------
+
+Paraview allows users to save the *state* of their visualization, viz. variable mappings,
+filters, color maps, etc. The same display style can then be applied to different datasets.
+See also `here`__ and `here`__.
+
+__ https://docs.paraview.org/en/latest/Tutorials/ClassroomTutorials/advancedStateManagement.html
+__ https://docs.paraview.org/en/v5.8/UsersGuide/savingResults.html#saving-state
+
+There are two file formats available for saving and loading state: ``.pvsm`` (XML) and ``.py`` (Python).
+Examples of both methods are given below. For these examples, we will be working with the data stored
+in the folder ``plt..`` that results from running ``HeatEquation_EX1_C`` in 3D, as in the example at the
+`beginning of this section`__.
+
+__ https://amrex-codes.github.io/amrex/docs_html/Visualization.html#paraview
+
+To save the state of this example, go to ``File > Save State...``, and select the format, location, and name
+of the state file you want to save. In order to later reload the state you've saved, see below. Note that
+the ``Save State`` option will write state files containing the absolute path to the data files you have loaded.
+This can cause issues if you're using state files saved on another machine, have moved your data files, or
+if Paraview doesn't know which directory to look in. When loading state from a ``pvsm`` file, there are menu
+options available to navigate to the data source directory. When running a Python script to load data, this can
+cause an error or crash. We outline the way to avoid this below.
+
+For demonstration purposes, we have also included state files in both formats, which can be found in
+``amrex/Docs/sphinx_documentation/source/Visualization``. These are titled ``slice_state1.pvsm`` and ``slice_state1.py``.
+
+Loading from a Paraview state file (.pvsm)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Go to ``File > Load State``, navigate to ``amrex/Docs/sphinx_documentation/source/Visualization/slice_state1.pvsm``
+in the file browser and click ``OK``. A new window labeled ``Load State Options`` appears with a drop-down menu.
+Select ``Search files under specified directory``, and click the ``...`` button to the right of the ``Data Directory`` line.
+Navigate to ``amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec`` and click ``OK``. This is where the plotfiles
+will have been saved by default if you've built and run the example code ``HeatEquation_EX1_C``.
+
+What you see displayed should be a 2D slice of the solution to the 3D equation.
+
+
+Loading from a Python state file (.py)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to load state from a ``.py`` file, you must execute the file as a script from the Python Shell within Paraview.
+If the Python Shell is not displayed, click the checkbox in ``View > Python Shell``. Click the ``Run Script`` button to the
+bottom right of the Python shell, navigate to the file ``amrex/Docs/sphinx_documentation/source/Visualization/slice_state1.py``
+in the file navigator, and click ``OK``. You should see a 2D slice of the solution to the 3D heat equation. If Paraview reports
+an error or crashes, see below.
+
+Aside: Working directory in the Paraview Python shell
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When you load a state from a Python script in Paraview, it will look in the current working directory of the Python shell to
+resolve the paths to the data files provided in the Python script. For example, the script used in the example above
+attempts to build an ``AMReXBoxLibGridReader`` object by looking in the directory ``amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt*``:
+
+.. code-block:: python
+
+   # ----------------------------------------------------------------
+   # setup the data processing pipelines
+   # ----------------------------------------------------------------
+
+   # create a new 'AMReX/BoxLib Grid Reader'
+   plt00000 = AMReXBoxLibGridReader(
+       registrationName="plt00000*",
+       FileNames=[
+           "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00000",
+           "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00100",
+           "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00200",
+           "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00300",
+           "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00400",
+           "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00500",
+           "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00600",
+           "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00700",
+           "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00800",
+           "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00900",
+           "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt01000",
+       ],
+   )
+
+By default, the current working directory of the Paraview Python shell will be the directory from which you launched Paraview.
+In this example, if the current working directory of the Python shell does not contain the ``amrex-tutorials`` folder, this will result in an error,
+and potentially crash Paraview. To check the cwd of the Paraview Python shell, run
+
+.. code-block:: python
+
+   >>> import os
+   >>> os.getcwd()
+
+and make sure that your cwd contains the folder you want to search in so that Python can resolve the path. To change the cwd, run
+
+.. code-block:: python
+
+   >>> os.chdir('path/to/folder/containing/amrex-tutorials')
+
+
 ParaView HDF5 Format
 --------------------
 
