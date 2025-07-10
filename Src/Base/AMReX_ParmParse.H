@@ -1108,6 +1108,7 @@ public:
      * scalar. The return value indicates whether it's found. Note that
      * queryWithParser will be used recursively for unresolved symbols.
      */
+    int queryWithParser (const char* name, bool& ref) const;
     int queryWithParser (const char* name, int& ref) const;
     int queryWithParser (const char* name, long& ref) const;
     int queryWithParser (const char* name, long long& ref) const;
@@ -1120,12 +1121,14 @@ public:
      * symbols. If the number of elements in the input does not equal to
      * `nvals`, it's a runtime error.
      */
+    int queryarrWithParser (const char* name, int nvals, bool* ref) const;
     int queryarrWithParser (const char* name, int nvals, int* ref) const;
     int queryarrWithParser (const char* name, int nvals, long* ref) const;
     int queryarrWithParser (const char* name, int nvals, long long* ref) const;
     int queryarrWithParser (const char* name, int nvals, float* ref) const;
     int queryarrWithParser (const char* name, int nvals, double* ref) const;
-    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+    template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
+                                           std::is_same_v<T,int> ||
                                            std::is_same_v<T,long> ||
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
@@ -1146,7 +1149,8 @@ public:
      * scalar. If not, the value in `ref` will be added to the ParmParse
      * database. The return value indicates whether it's found.
      */
-    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+    template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
+                                           std::is_same_v<T,int> ||
                                            std::is_same_v<T,long> ||
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
@@ -1165,7 +1169,8 @@ public:
      * to parse the entire list of empty space separated values as a single
      * scalar. If not, it's a runtime error.
      */
-    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+    template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
+                                           std::is_same_v<T,int> ||
                                            std::is_same_v<T,long> ||
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
@@ -1183,7 +1188,8 @@ public:
      * error. If the number of elements does not equal to `nvals`, it's also
      * a runtime error.
      */
-    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+    template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
+                                           std::is_same_v<T,int> ||
                                            std::is_same_v<T,long> ||
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
@@ -1201,7 +1207,8 @@ public:
      * error. If the number of elements does not equal to `nvals`, it's also
      * a runtime error.
      */
-    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+    template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
+                                           std::is_same_v<T,int> ||
                                            std::is_same_v<T,long> ||
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
@@ -1219,7 +1226,8 @@ public:
      *
      * For unknown symbols, ParmParse database will be queried.
      */
-    template <typename T, std::enable_if_t<std::is_same_v<T,int> ||
+    template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
+                                           std::is_same_v<T,int> ||
                                            std::is_same_v<T,long> ||
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||

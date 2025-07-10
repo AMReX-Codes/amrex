@@ -47,6 +47,8 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=ON                             \
             -DAMReX_GPU_BACKEND=SYCL                       \
+            -DAMReX_SYCL_AOT=ON                            \
+            -DAMReX_INTEL_ARCH=pvc                         \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
             -DCMAKE_Fortran_COMPILER=$(which ifx)          \
@@ -94,6 +96,8 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=OFF                            \
             -DAMReX_GPU_BACKEND=SYCL                       \
+            -DAMReX_SYCL_AOT=ON                            \
+            -DAMReX_INTEL_ARCH=pvc                         \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
@@ -145,6 +149,8 @@ jobs:
             -DAMReX_ENABLE_TESTS=OFF                       \
             -DAMReX_TEST_TYPE=Small                        \
             -DAMReX_GPU_BACKEND=SYCL                       \
+            -DAMReX_SYCL_AOT=ON                            \
+            -DAMReX_INTEL_ARCH=pvc                         \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which clang++)          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache           \
@@ -192,6 +198,8 @@ jobs:
             -DAMReX_EB=OFF                                 \
             -DAMReX_ENABLE_TESTS=OFF                       \
             -DAMReX_GPU_BACKEND=SYCL                       \
+            -DAMReX_SYCL_AOT=ON                            \
+            -DAMReX_INTEL_ARCH=pvc                         \
             -DAMReX_SYCL_SUB_GROUP_SIZE=64                 \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which clang++)          \
