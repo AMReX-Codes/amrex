@@ -16,6 +16,7 @@
 #cmakedefine AMREX_USE_MPI
 #cmakedefine BL_USE_MPI
 #cmakedefine AMREX_MPI_THREAD_MULTIPLE
+#cmakedefine AMREX_USE_SIMD
 #cmakedefine AMREX_USE_OMP
 #cmakedefine BL_USE_OMP
 #cmakedefine AMREX_USE_SYCL

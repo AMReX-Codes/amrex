@@ -276,6 +276,9 @@ cmake_dependent_option( AMReX_MPI_THREAD_MULTIPLE
    "AMReX_MPI" OFF)
 print_option( AMReX_MPI_THREAD_MULTIPLE )
 
+option( AMReX_SIMD  "Enable SIMD Primitives" OFF)
+print_option( AMReX_SIMD )
+
 option( AMReX_OMP  "Enable OpenMP" OFF)
 print_option( AMReX_OMP )
 

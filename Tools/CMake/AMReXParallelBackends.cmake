@@ -30,6 +30,18 @@ endif ()
 
 #
 #
+#  VIR-SIMD
+#
+#
+if (AMReX_SIMD)
+   find_package(vir-simd REQUIRED)
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       target_link_libraries(amrex_${D}d PUBLIC vir-simd::vir-simd)
+   endforeach()
+endif ()
+
+#
+#
 #  OpenMP
 #
 #

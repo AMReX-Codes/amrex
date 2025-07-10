@@ -62,6 +62,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${AMReX_MODULE_PATH})
 # General options
 set(AMReX_MPI_FOUND                 @AMReX_MPI@)
 set(AMReX_MPI_THREAD_MULTIPLE_FOUND @AMReX_MPI_THREAD_MULTIPLE@)
+set(AMReX_SIMD_FOUND                @AMReX_SIMD@)
 set(AMReX_OMP_FOUND                 @AMReX_OMP@)
 set(AMReX_CUDA_FOUND                @AMReX_CUDA@)
 set(AMReX_SYCL_FOUND                @AMReX_SYCL@)
@@ -118,6 +119,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
 endforeach()
 set(AMReX_MPI                       @AMReX_MPI@)
 set(AMReX_MPI_THREAD_MULTIPLE       @AMReX_MPI_THREAD_MULTIPLE@)
+set(AMReX_SIMD                      @AMReX_SIMD@)
 set(AMReX_OMP                       @AMReX_OMP@)
 set(AMReX_CUDA                      @AMReX_CUDA@)
 set(AMReX_SYCL                      @AMReX_SYCL@)
@@ -202,6 +204,10 @@ endif ()
 #
 # Third party libraries
 #
+if (@AMReX_SIMD@)
+   find_dependency(vir-simd REQUIRED)
+endif ()
+
 if (@AMReX_SENSEI@)
     set(SENSEI_DIR @SENSEI_DIR@)
     find_dependency(SENSEI REQUIRED)
