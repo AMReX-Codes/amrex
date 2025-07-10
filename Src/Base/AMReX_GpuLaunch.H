@@ -234,6 +234,7 @@ namespace Gpu {
 #else
 #include <AMReX_GpuLaunchMacrosC.H>
 #include <AMReX_GpuLaunchFunctsC.H>
+#include <AMReX_SIMD.H>
 #endif
 
 #include <AMReX_GpuLaunch.nolint.H>
