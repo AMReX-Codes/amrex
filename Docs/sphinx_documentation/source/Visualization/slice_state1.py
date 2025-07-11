@@ -1,6 +1,8 @@
 # state file generated using paraview version 5.13.0
 import paraview
 
+import glob
+
 paraview.compatibility.major = 5
 paraview.compatibility.minor = 13
 
@@ -55,23 +57,13 @@ SetActiveView(renderView1)
 # setup the data processing pipelines
 # ----------------------------------------------------------------
 
+# User edit: create a glob which returns a list of matching path names
+# in cwd
+PlotFiles = sorted(glob.glob("plt" + "[0-9]" * 5))
+
 # create a new 'AMReX/BoxLib Grid Reader'
-plt00000 = AMReXBoxLibGridReader(
-    registrationName="plt00000*",
-    FileNames=[
-        "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00000",
-        "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00100",
-        "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00200",
-        "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00300",
-        "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00400",
-        "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00500",
-        "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00600",
-        "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00700",
-        "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00800",
-        "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt00900",
-        "amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec/plt01000",
-    ],
-)
+plt00000 = AMReXBoxLibGridReader(registrationName="plt00000*", FileNames=PlotFiles)
+
 plt00000.CellArrayStatus = ["phi"]
 
 # create a new 'Slice'
