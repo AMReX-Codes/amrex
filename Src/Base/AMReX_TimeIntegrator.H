@@ -64,7 +64,7 @@ private:
 
     void set_default_functions ()
     {
-        // By default, abort if the RHS function was not set
+        // Abort if the RHS function is called but was not set
         set_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */) { amrex::Abort("RHS function not set!"); });
         set_imex_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */) { amrex::Abort("Implicit RHS function not set!"); },
                      [](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */) { amrex::Abort("Explicit RHS function not set!"); } );
