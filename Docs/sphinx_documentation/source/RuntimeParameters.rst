@@ -1360,7 +1360,7 @@ Methods
    :value: [none]
 
    When using an IMEX method, both the implicit and explicit methods must be
-   specified. This parameter can be used to select the *impicit* portion of the
+   specified. This parameter can be used to select the *implicit* portion of the
    IMEX method. See the `ImEx methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#additive-butcher-tables>`__
    section in the SUNDIALS documentation for valid method names. If a method
    name is not provided, the SUNDIALS default method is used.
