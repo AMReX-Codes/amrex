@@ -105,9 +105,15 @@ private:
     std::string nonlinear_solver = "Newton";
     int max_nonlinear_iters = 0;
 
+    std::string fast_nonlinear_solver = "Newton";
+    int fast_max_nonlinear_iters = 0;
+
     // Linear solver
     std::string linear_solver = "GMRES";
     int max_linear_iters = 0;
+
+    std::string fast_linear_solver = "GMRES";
+    int fast_max_linear_iters = 0;
 
     // SUNDIALS package flags, set based on type
     bool use_ark = false;
@@ -167,8 +173,14 @@ private:
         pp.query("nonlinear_solver", nonlinear_solver);
         pp.query("max_nonlinear_iters", max_nonlinear_iters);
 
+        pp.query("fast_nonlinear_solver", fast_nonlinear_solver);
+        pp.query("fast_max_nonlinear_iters", fast_max_nonlinear_iters);
+
         pp.query("linear_solver", linear_solver);
         pp.query("max_linear_iters", max_linear_iters);
+
+        pp.query("fast_linear_solver", fast_linear_solver);
+        pp.query("fast_max_linear_iters", fast_max_linear_iters);
 
         set_stop_time = pp.query("stop_time", stop_time);
 
@@ -294,10 +306,29 @@ private:
                 AMREX_ALWAYS_ASSERT(flag == 0);
             }
 
-            fast_LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
-            AMREX_ALWAYS_ASSERT(fast_LS != nullptr);
-            flag = ARKStepSetLinearSolver(arkode_fast_mem, fast_LS, nullptr);
+            if (amrex::Verbose()) {
+                amrex::Print() << "Fast nonlinear solver: " << fast_nonlinear_solver << "\n";
+                amrex::Print() << "Fast max nonlinear iters: " << fast_max_nonlinear_iters << "\n";
+            }
+            if (fast_nonlinear_solver == "fixed-point") {
+                NLS = SUNNonlinSol_FixedPoint(y_data, 0, sunctx);
+                AMREX_ALWAYS_ASSERT(NLS != nullptr);
+                flag = ARKStepSetNonlinearSolver(arkode_mem, NLS);
+                AMREX_ALWAYS_ASSERT(flag == 0);
+            }
+            flag = ARKStepSetMaxNonlinIters(arkode_mem, fast_max_nonlinear_iters);
             AMREX_ALWAYS_ASSERT(flag == 0);
+
+            if (fast_nonlinear_solver == "Newton") {
+                if (amrex::Verbose()) {
+                    amrex::Print() << "Linear solver: " << fast_linear_solver << "\n";
+                    amrex::Print() << "Max linear iters: " << fast_max_linear_iters << "\n";
+                }
+                LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, fast_max_linear_iters, sunctx);
+                AMREX_ALWAYS_ASSERT(LS != nullptr);
+                flag = ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
+                AMREX_ALWAYS_ASSERT(flag == 0);
+            }
         }
 
         // Attach structure with user-supplied function wrappers
@@ -373,10 +404,29 @@ private:
 
         // Create and attach linear solver
         if (type == "IM-MRI" || type == "IMEX-MRI") {
-            LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
-            AMREX_ALWAYS_ASSERT(LS != nullptr);
-            flag = MRIStepSetLinearSolver(arkode_mem, LS, nullptr);
+            if (amrex::Verbose()) {
+                amrex::Print() << "Nonlinear solver: " << nonlinear_solver << "\n";
+                amrex::Print() << "Max nonlinear iters: " << max_nonlinear_iters << "\n";
+            }
+            if (nonlinear_solver == "fixed-point") {
+                NLS = SUNNonlinSol_FixedPoint(y_data, 0, sunctx);
+                AMREX_ALWAYS_ASSERT(NLS != nullptr);
+                flag = ARKStepSetNonlinearSolver(arkode_mem, NLS);
+                AMREX_ALWAYS_ASSERT(flag == 0);
+            }
+            flag = ARKStepSetMaxNonlinIters(arkode_mem, max_nonlinear_iters);
             AMREX_ALWAYS_ASSERT(flag == 0);
+
+            if (nonlinear_solver == "Newton") {
+                if (amrex::Verbose()) {
+                    amrex::Print() << "Linear solver: " << linear_solver << "\n";
+                    amrex::Print() << "Max linear iters: " << max_linear_iters << "\n";
+                }
+                LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, max_linear_iters, sunctx);
+                AMREX_ALWAYS_ASSERT(LS != nullptr);
+                flag = ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
+                AMREX_ALWAYS_ASSERT(flag == 0);
+            }
         }
 
         // Set post stage and step function
