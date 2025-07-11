@@ -169,7 +169,7 @@ private:
     pp.query("use_adaptive_time_step", use_adaptive_time_step);
     pp.query("time_step", time_step);
     pp.query("use_adaptive_fast_time_step", use_adaptive_fast_time_step);
-    pp.query("time_step", fast_time_step);
+    pp.query("fast_time_step", fast_time_step);
     pp.query("rel_tol", rel_tol);
     pp.query("abs_tol", abs_tol);
     pp.query("fast_rel_tol", fast_rel_tol);
