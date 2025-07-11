@@ -483,7 +483,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 bcz = 0.5_rt*bcz - 0.5_rt;
                 cut_face_2d(apx(i,j,k),fcx(i,j,k,0),fcx(i,j,k,1), // NOLINT(readability-suspicious-call-argument)
                             m2x(i,j,k,0),m2x(i,j,k,1),m2x(i,j,k,2),
-                            lzm,lzp,lym,lyp,bcy,bcz,dx[2],dx[1]);
+                            lzm,lzp,lym,lyp,bcz,bcy,dx[2],dx[1]);
             }
 
             if (apx(i,j,k) == 0.0_rt) {
@@ -591,7 +591,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 bcz = 0.5_rt*bcz - 0.5_rt;
                 cut_face_2d(apy(i,j,k),fcy(i,j,k,0),fcy(i,j,k,1), // NOLINT(readability-suspicious-call-argument)
                             m2y(i,j,k,0),m2y(i,j,k,1),m2y(i,j,k,2),
-                            lzm,lzp,lxm,lxp,bcx,bcz,dx[2],dx[0]);
+                            lzm,lzp,lxm,lxp,bcz,bcx,dx[2],dx[0]);
             }
 
             if (apy(i,j,k) == 0.0_rt) {
@@ -699,7 +699,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                 bcy = 0.5_rt*bcy - 0.5_rt;
                 cut_face_2d(apz(i,j,k),fcz(i,j,k,0),fcz(i,j,k,1), // NOLINT(readability-suspicious-call-argument)
                             m2z(i,j,k,0),m2z(i,j,k,1),m2z(i,j,k,2),
-                            lym,lyp,lxm,lxp,bcx,bcy,dx[1],dx[0]);
+                            lym,lyp,lxm,lxp,bcy,bcx,dx[1],dx[0]);
             }
 
             if (apz(i,j,k) == 0.0_rt) {
