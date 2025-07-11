@@ -219,7 +219,7 @@ private:
         if (BaseT::use_adaptive_time_step || type == "DIRK" || type == "IMEX-RK") {
             if (amrex::Verbose()) {
                 amrex::Print() << "Relative tolerance: " << BaseT::rel_tol << "\n";
-                amrex::Print() << "Abolute tolerance: " << BaseT::abs_tol << "\n";
+                amrex::Print() << "Absolute tolerance: " << BaseT::abs_tol << "\n";
             }
             flag = ARKStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
             AMREX_ALWAYS_ASSERT(flag == 0);
@@ -308,7 +308,7 @@ private:
         if (BaseT::use_adaptive_fast_time_step || fast_type == "DIRK" || fast_type == "IMEX-RK") {
             if (amrex::Verbose()) {
                 amrex::Print() << "Fast relative tolerance: " << BaseT::fast_rel_tol << "\n";
-                amrex::Print() << "Fast abolute tolerance: " << BaseT::fast_abs_tol << "\n";
+                amrex::Print() << "Fast absolute tolerance: " << BaseT::fast_abs_tol << "\n";
             }
           flag = ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
           AMREX_ALWAYS_ASSERT(flag == 0);
@@ -365,7 +365,7 @@ private:
         if (BaseT::use_adaptive_time_step || fast_type == "IM-MRI" || fast_type == "IMEX-MRI") {
             if (amrex::Verbose()) {
                 amrex::Print() << "Relative tolerance: " << BaseT::rel_tol << "\n";
-                amrex::Print() << "Abolute tolerance: " << BaseT::abs_tol << "\n";
+                amrex::Print() << "Absolute tolerance: " << BaseT::abs_tol << "\n";
             }
             flag = MRIStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
             AMREX_ALWAYS_ASSERT(flag == 0);
