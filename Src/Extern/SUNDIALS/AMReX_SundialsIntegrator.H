@@ -311,9 +311,9 @@ private:
                 amrex::Print() << "Fast max nonlinear iters: " << fast_max_nonlinear_iters << "\n";
             }
             if (fast_nonlinear_solver == "fixed-point") {
-                NLS = SUNNonlinSol_FixedPoint(y_data, 0, sunctx);
-                AMREX_ALWAYS_ASSERT(NLS != nullptr);
-                flag = ARKStepSetNonlinearSolver(arkode_mem, NLS);
+                fast_NLS = SUNNonlinSol_FixedPoint(y_data, 0, sunctx);
+                AMREX_ALWAYS_ASSERT(fast_NLS != nullptr);
+                flag = ARKStepSetNonlinearSolver(arkode_mem, fast_NLS);
                 AMREX_ALWAYS_ASSERT(flag == 0);
             }
             flag = ARKStepSetMaxNonlinIters(arkode_mem, fast_max_nonlinear_iters);
@@ -324,9 +324,9 @@ private:
                     amrex::Print() << "Linear solver: " << fast_linear_solver << "\n";
                     amrex::Print() << "Max linear iters: " << fast_max_linear_iters << "\n";
                 }
-                LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, fast_max_linear_iters, sunctx);
-                AMREX_ALWAYS_ASSERT(LS != nullptr);
-                flag = ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
+                fast_LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, fast_max_linear_iters, sunctx);
+                AMREX_ALWAYS_ASSERT(fast_LS != nullptr);
+                flag = ARKStepSetLinearSolver(arkode_mem, fast_LS, nullptr);
                 AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
@@ -727,6 +727,7 @@ public:
         SUNLinSolFree(LS);
         SUNLinSolFree(fast_LS);
         SUNNonlinSolFree(NLS);
+        SUNNonlinSolFree(fast_NLS);
         MRIStepInnerStepper_Free(&fast_stepper);
         MRIStepFree(&arkode_fast_mem);
         ARKStepFree(&arkode_mem);
