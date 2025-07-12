@@ -267,7 +267,7 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
         Real dx4 = dx * (x_ym + x_yp) * (x_ym*x_ym + x_yp*x_yp);
         Real af1 = 0.5_rt*(axm+axp) + aa*0.5_rt*dx2*dxval/dyval;
         centx = 0.125_rt*(axp-axm) + aa*(1.0_rt/6._rt)*dx3*dxval/dyval;
-        Sx2 = (1.0_rt/24._rt)*(axm+axp) + aa*(1.0_rt/12._rt)*dx4;
+        Sx2 = (1.0_rt/24._rt)*(axm+axp) + aa*(1.0_rt/12._rt)*dx4*dxval/dyval;
 
         Real signy = (ny > 0.0_rt) ? 1.0_rt : -1.0_rt;
         Real y_xm = (-0.5_rt + axm)*signy;
@@ -279,11 +279,11 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
         Real dy4 = dy * (y_xm + y_xp) * (y_xm*y_xm + y_xp*y_xp);
         Real af2 = 0.5_rt*(aym+ayp) + aa*0.5_rt*dy2*dyval/dxval;
         centy = (1.0_rt/8._rt)*(ayp-aym) + aa*(1.0_rt/6._rt)*dy3*dyval/dxval;
-        Sy2 = (1.0_rt/24._rt)*(aym+ayp) + aa*(1.0_rt/12._rt)*dy4;
+        Sy2 = (1.0_rt/24._rt)*(aym+ayp) + aa*(1.0_rt/12._rt)*dy4*dyval/dxval;
 
         Real S_b = (nxabs < nyabs)
-            ? (Sx2 - (1.0_rt/24._rt) - signx*(1.0_rt/6._rt)*(x_ym*x_ym*x_ym+x_yp*x_yp*x_yp)) / ny
-            : (Sy2 - (1.0_rt/24._rt) - signy*(1.0_rt/6._rt)*(y_xm*y_xm*y_xm+y_xp*y_xp*y_xp)) / nx;
+            ? (Sx2 - (1.0_rt/24._rt) - signx*(1.0_rt/6._rt)*(x_ym*x_ym*x_ym+x_yp*x_yp*x_yp)) / ny * dxval/dyval
+            : (Sy2 - (1.0_rt/24._rt) - signy*(1.0_rt/6._rt)*(y_xm*y_xm*y_xm+y_xp*y_xp*y_xp)) / nx * dyval/dxval;
         Sxy = (nxabs < nyabs)
             ? -signy*(1.0_rt/16._rt)*dy2 + 0.5_rt*nx*S_b
             : -signx*(1.0_rt/16._rt)*dx2 + 0.5_rt*ny*S_b;
