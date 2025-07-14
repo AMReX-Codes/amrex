@@ -10,6 +10,8 @@
 #   include <vir/simd.h>  // includes SIMD TS2 header <experimental/simd>
 #endif
 
+#include <type_traits>
+
 
 namespace amrex::simd
 {
@@ -107,6 +109,45 @@ namespace amrex::simd
      */
     template<typename T>
     constexpr bool is_vectorized = std::is_base_of_v<detail::InternalVectorized, T>;
+
+    /** Check if a function argument is declared as non-const
+     *
+     * Use in conjunction with conditional write-back logic from vector registers, e.g.,
+     *
+     * ```c++
+     * template<typename T_Real>
+     * void compute (T_Real & AMREX_RESTRICT x,
+     *               T_Real const & AMREX_RESTRICT y) { ... }
+     *
+     * part_x.copy_from(&m_part_x[i], stdx::element_aligned);
+     * part_y.copy_from(&m_part_y[i], stdx::element_aligned);
+     *
+     * compute(part_x, part_y);
+     *
+     * if constexpr (is_nth_arg_non_const(compute<double>, 0))
+     *     part_x.copy_to(&m_part_x[i], stdx::element_aligned);
+     * if constexpr (is_nth_arg_non_const(compute<double>, 1))
+     *     part_y.copy_to(&m_part_y[i], stdx::element_aligned);
+     */
+    template<typename R, typename... Args>
+    constexpr bool is_nth_arg_non_const (R(*)(Args...), int n)
+    {
+        constexpr bool val_arr[sizeof...(Args)] {!std::is_const_v<std::remove_reference_t<Args>>...};
+        return val_arr[n];
+    }
+    // same for functors (const/non-const ::operator() members)
+    template<typename C, typename R, typename... Args>
+    constexpr bool is_nth_arg_non_const (R(C::*)(Args...), int n)
+    {
+        constexpr bool val_arr[sizeof...(Args)] {!std::is_const_v<std::remove_reference_t<Args>>...};
+        return val_arr[n];
+    }
+    template<typename C, typename R, typename... Args>
+    constexpr bool is_nth_arg_non_const (R(C::*)(Args...) const, int n)
+    {
+        constexpr bool val_arr[sizeof...(Args)] {!std::is_const_v<std::remove_reference_t<Args>>...};
+        return val_arr[n];
+    }
 
 } // namespace amrex::simd
 
