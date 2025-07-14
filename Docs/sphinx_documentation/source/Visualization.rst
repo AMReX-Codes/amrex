@@ -562,6 +562,8 @@ Loading from a Paraview state file (.pvsm)
 
 What you see displayed should be a 2D slice of the solution to the 3D equation.
 
+In general, you can use the load state menu options to navigate to whichever data files you wish to load using your saved ``pvsm`` state.
+
 
 Loading from a Python state file (.py)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
