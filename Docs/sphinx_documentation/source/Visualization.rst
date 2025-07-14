@@ -331,6 +331,10 @@ To open a plotfile (for example, you could run the
 
    \end{center}
 
+
+Creating and Loading ``.series`` Files
+-----------------
+
 Another useful feature in ParaView to load and re-load a group of plotfiles is using a ``.series`` file
 (similar to the ``.visit`` file in VisIt). It is a text file (say ``plot_files.series``) which lists
 the plotfiles in a JSON format as below.
@@ -584,8 +588,11 @@ When you load a state from a Python script in Paraview, it will look in the curr
 resolve the paths to the data files provided in the Python script.
 
 By default, the current working directory of the Paraview Python shell will be the directory from which you launched Paraview.
-In this example, if the current working directory of the Python shell does not contain the ``amrex-tutorials`` folder, this will result in an error,
-and potentially crash Paraview. To check the cwd of the Paraview Python shell, run
+
+.. warning:: If your Python script makes direct reference to a set of files that can't be found from your current working directory, then running that script will result in an error, and potentially cause Paraview to crash. This can be addressed by changing the cwd of your Python shell to the proper location.
+
+
+To check the cwd of the Paraview Python shell, run
 
 .. code-block:: python
 
