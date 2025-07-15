@@ -333,7 +333,7 @@ To open a plotfile (for example, you could run the
 
 
 Creating and Loading ``.series`` Files
------------------
+--------------------------------------
 
 Another useful feature in ParaView to load and re-load a group of plotfiles is using a ``.series`` file
 (similar to the ``.visit`` file in VisIt). It is a text file (say ``plot_files.series``) which lists
@@ -582,7 +582,7 @@ You should see a 2D slice of the solution to the 3D heat equation. If Paraview r
 an error or crashes, see below.
 
 Aside: Working directory in the Paraview Python shell
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 When you load a state from a Python script in Paraview, it will look in the current working directory of the Python shell to
 resolve the paths to the data files provided in the Python script.
@@ -606,7 +606,7 @@ and make sure that your cwd contains the folder you want to search in so that Py
    >>> os.chdir('path/to/folder/containing/your/plotfiles')
 
 Modifying a State File to Work with Different Data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++++++++++++++++++++++++++++++
 
 As noted above, a Python state file exported from Paraview will save the path to the data files you used, if any, from your working directory.
 In order to use such a file with different data, you can modify your Python state file to use the `glob`__ package to create a list
