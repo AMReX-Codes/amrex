@@ -4,6 +4,24 @@
 
 namespace amrex {
 
+/** Helper type to store/access the SIMD width in ParallelForSIMD lambdas
+ *
+ * Use instead of int as the running index i. Used to pass the
+ * SIMD WIDTH as compile-time meta-data into a called function/method.
+ *
+ * @tparam WIDTH SIMD width in elements
+ * @tparam N index type (integer)
+ */
+template<int WIDTH, class N=int>
+struct SIMDindex
+{
+    /** SIMD width in elements */
+    static constexpr int width = WIDTH;
+
+    /** The linear loop index of ParallelFor(SIMD) */
+    N index = 0;
+};
+
 namespace detail {
 
     // call_f_scalar_handler
@@ -22,16 +40,6 @@ namespace detail {
         noexcept -> decltype(f(0,Gpu::Handler{}))
     {
         f(i, Gpu::Handler{});
-    }
-
-    // call_f_vector_handler
-
-    template <int SIMD_WIDTH, typename F, typename N>
-    AMREX_FORCE_INLINE
-    auto call_f_vector_handler (F const& f, N i)
-        noexcept -> decltype(f.template operator()<SIMD_WIDTH>(0))
-    {
-        f.template operator()<SIMD_WIDTH>(i);
     }
 
     // call_f_intvect_inner
@@ -190,23 +198,23 @@ void ParallelFor (T n, L&& f) noexcept
  * SIMD load/Write-back operations need to be performed before/after calling this.
  *
  * @tparam WIDTH SIMD width in elements
- * @tparam T index type (integer)
+ * @tparam N index type (integer)
  * @tparam L function/functor to call per SIMD set of elements
  */
-template <int WIDTH, typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int WIDTH, typename N, typename L, typename M=std::enable_if_t<std::is_integral_v<N>> >
 AMREX_ATTRIBUTE_FLATTEN_FOR
-void ParallelForSIMD (T n, L const& f) noexcept
+void ParallelForSIMD (N n, L const& f) noexcept
 {
-    T i = 0;
+    N i = 0;
     // vectorize full lanes
     for (; i + WIDTH <= n; i+=WIDTH) {
-        detail::call_f_vector_handler<WIDTH>(f, i);
+        f(SIMDindex<WIDTH, N>{i});
     }
     // scalar handling of the remainder
     // note: we could make the remainder calls faster, by repeatedly
-    //       calling call_f_vector_handler with WIDTH / 2 until we reach 1
+    //       decreasing the SIMD width by 2 until we reach 1
     for (; i < n; ++i) {
-        detail::call_f_scalar_handler(f, i);
+        f(SIMDindex<1, N>{i});
     }
 }
 
