@@ -10,6 +10,7 @@
 #   include <vir/simd.h>  // includes SIMD TS2 header <experimental/simd>
 #endif
 
+#include <cstdint>
 #include <type_traits>
 
 
@@ -49,7 +50,7 @@ namespace amrex::simd
 
     // Type that has the same amount of IdCpu SIMD elements as the SIMDParticleReal type
     template<typename T_ParticleReal = SIMDParticleReal<>>
-    using SIMDIdCpu = std::experimental::rebind_simd_t<uint64_t, T_ParticleReal>;
+    using SIMDIdCpu = std::experimental::rebind_simd_t<std::uint64_t, T_ParticleReal>;
 #else
     constexpr auto native_simd_size_real = 1;
     constexpr auto native_simd_size_particlereal = 1;
@@ -62,7 +63,7 @@ namespace amrex::simd
 
     // Type that has the same amount of IdCpu SIMD elements as the SIMDParticleReal type
     template<typename T_ParticleReal = SIMDParticleReal<>>
-    using SIMDIdCpu = uint64_t;
+    using SIMDIdCpu = std::uint64_t;
 #endif
 
     namespace detail {
