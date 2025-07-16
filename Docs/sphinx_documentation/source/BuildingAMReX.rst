@@ -455,6 +455,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_MPI                    |  Build with MPI support                         | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_SIMD                   |  Enable SIMD Primitives (using vir::stdx::simd) | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_OMP                    |  Build with OpenMP support                      | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_GPU_BACKEND            |  Build with on-node, accelerated GPU backend    | NONE                    | NONE, SYCL, HIP, CUDA |
@@ -682,6 +684,8 @@ A list of AMReX component names and related configure options are shown in the t
    | AMReX_PIC                    | PIC             |
    +------------------------------+-----------------+
    | AMReX_MPI                    | MPI             |
+   +------------------------------+-----------------+
+   | AMReX_SIMD                   | SIMD            |
    +------------------------------+-----------------+
    | AMReX_OMP                    | OMP             |
    +------------------------------+-----------------+
