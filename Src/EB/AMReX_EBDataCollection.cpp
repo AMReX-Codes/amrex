@@ -23,7 +23,7 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
 
     if (m_support >= EBSupport::basic)
     {
-        AMREX_ALWAYS_ASSERT(m_ngrow.size() >= 1);
+        AMREX_ALWAYS_ASSERT(!m_ngrow.empty());
 
         m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0], MFInfo(),
                                                   DefaultFabFactory<EBCellFlagFab>());
