@@ -775,7 +775,7 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
         std::vector<Long> avgmem_vec(nprocs);
         std::vector<Long> maxmem_vec(nprocs);
 
-        if (nprocs == 1)
+        if (ParallelDescriptor::NProcs() == 1)
         {
             nalloc_vec[0] = nalloc;
             nfree_vec[0] = nfree;
