@@ -2212,47 +2212,6 @@ Amr::coarseTimeStep (Real stop_time)
         runlog_terse.flush();
     }
 
-    int check_test = 0;
-
-    if (check_per > 0.0)
-    {
-
-        // Check to see if we've crossed a check_per interval by comparing
-        // the number of intervals that have elapsed for both the current
-        // time and the time at the beginning of this timestep.
-
-        int num_per_old = static_cast<int>((cumtime-dt_level[0]) / check_per);
-        int num_per_new = static_cast<int>((cumtime            ) / check_per);
-
-        // Before using these, however, we must test for the case where we're
-        // within machine epsilon of the next interval. In that case, increment
-        // the counter, because we have indeed reached the next check_per interval
-        // at this point.
-
-        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0_rt * std::abs(cumtime);
-        const Real next_chk_time = static_cast<Real>(num_per_old + 1) * check_per;
-
-        if ((num_per_new == num_per_old) && std::abs(cumtime - next_chk_time) <= eps)
-        {
-            num_per_new += 1;
-        }
-
-        // Similarly, we have to account for the case where the old time is within
-        // machine epsilon of the beginning of this interval, so that we don't double
-        // count that time threshold -- we already plotted at that time on the last timestep.
-
-        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - next_chk_time) <= eps)
-        {
-            num_per_old += 1;
-        }
-
-        if (num_per_old != num_per_new)
-        {
-            check_test = 1;
-        }
-
-    }
-
     int to_stop       = 0;
     int to_checkpoint = 0;
     int to_plot       = 0;
@@ -2323,8 +2282,7 @@ Amr::coarseTimeStep (Real stop_time)
         to_small_plot = 1;
     }
 
-    if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1
-        || to_checkpoint)
+    if (checkPointNow() || to_checkpoint)
     {
         checkPoint();
     }
@@ -2359,6 +2317,54 @@ Amr::coarseTimeStep (Real stop_time)
     }
 }
 
+bool
+Amr::checkPointNow () noexcept 
+{
+    int check_test = 0;
+
+    if (check_per > 0.0)
+    {
+
+        // Check to see if we've crossed a check_per interval by comparing
+        // the number of intervals that have elapsed for both the current
+        // time and the time at the beginning of this timestep.
+
+        int num_per_old = static_cast<int>((cumtime-dt_level[0]) / check_per);
+        int num_per_new = static_cast<int>((cumtime            ) / check_per);
+
+        // Before using these, however, we must test for the case where we're
+        // within machine epsilon of the next interval. In that case, increment
+        // the counter, because we have indeed reached the next check_per interval
+        // at this point.
+
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0_rt * std::abs(cumtime);
+        const Real next_chk_time = static_cast<Real>(num_per_old + 1) * check_per;
+
+        if ((num_per_new == num_per_old) && std::abs(cumtime - next_chk_time) <= eps)
+        {
+            num_per_new += 1;
+        }
+
+        // Similarly, we have to account for the case where the old time is within
+        // machine epsilon of the beginning of this interval, so that we don't double
+        // count that time threshold -- we already plotted at that time on the last timestep.
+
+        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - next_chk_time) <= eps)
+        {
+            num_per_old += 1;
+        }
+
+        if (num_per_old != num_per_new)
+        {
+            check_test = 1;
+        }
+
+    }
+
+    return ((check_int > 0 && level_steps[0] % check_int == 0) || 
+            check_test == 1 ||
+            amr_level[0]->checkPointNow());
+}
 bool
 Amr::writePlotNow() noexcept
 {
