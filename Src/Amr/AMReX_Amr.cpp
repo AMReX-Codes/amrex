@@ -2318,7 +2318,7 @@ Amr::coarseTimeStep (Real stop_time)
 }
 
 bool
-Amr::checkPointNow () noexcept 
+Amr::checkPointNow () noexcept
 {
     int check_test = 0;
 
@@ -2361,7 +2361,7 @@ Amr::checkPointNow () noexcept
 
     }
 
-    return ((check_int > 0 && level_steps[0] % check_int == 0) || 
+    return ((check_int > 0 && level_steps[0] % check_int == 0) ||
             check_test == 1 ||
             amr_level[0]->checkPointNow());
 }
