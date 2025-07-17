@@ -490,7 +490,7 @@ void PoissonHybrid<MF>::solve (MF& a_soln, MF const& a_rhs, TRIA const& tria,
     AMREX_ASSERT(a_soln.is_cell_centered() && a_rhs.is_cell_centered());
 
 #if (AMREX_SPACEDIM < 3)
-    amrex::ignore_unused(soln, rhs, tria, tric);
+    amrex::ignore_unused(a_soln, a_rhs, tria, tric);
 #else
 
     MF* soln = &a_soln;
