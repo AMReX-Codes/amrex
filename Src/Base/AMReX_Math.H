@@ -134,7 +134,13 @@ namespace detail {
 }
 
 //! Return sine and cosine of given number
-template<typename T_Real>
+template<typename T_Real,
+#ifdef AMREX_USE_SIMD
+         std::enable_if_t<std::experimental::is_simd_v<T_Real>,int> = 0
+#else
+         std::enable_if_t<std::is_floating_point_v<T_Real>,int> = 0
+#endif
+         >
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<T_Real,T_Real> sincos (T_Real x)
 {
@@ -181,7 +187,13 @@ std::pair<float,float> sincos (float x)
 }
 
 //! Return sin(pi*x) and cos(pi*x) given x
-template<typename T_Real>
+template<typename T_Real,
+#ifdef AMREX_USE_SIMD
+         std::enable_if_t<std::experimental::is_simd_v<T_Real>,int> = 0
+#else
+         std::enable_if_t<std::is_floating_point_v<T_Real>,int> = 0
+#endif
+         >
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<T_Real,T_Real> sincospi (T_Real x)
 {
