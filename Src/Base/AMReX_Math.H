@@ -5,6 +5,7 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
 #include <AMReX_INT.H>
+#include <AMReX_SIMD.H>
 #include <AMReX_REAL.H>
 #include <cmath>
 #include <cstdlib>
@@ -133,6 +134,28 @@ namespace detail {
 }
 
 //! Return sine and cosine of given number
+template<typename T_Real
+#ifndef AMREX_USE_SIMD
+         , std::enable_if_t<std::is_floating_point_v<T_Real>,int> = 0
+#endif
+         >
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::pair<T_Real,T_Real> sincos (T_Real x)
+{
+#ifdef AMREX_USE_SIMD
+    using namespace amrex::simd::stdx;
+#else
+    using namespace std;
+#endif
+
+    std::pair<T_Real,T_Real> r;
+    r.first = sin(x);
+    r.second = cos(x);
+    return r;
+}
+
+//! Return sine and cosine of given number
+template<>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincos (double x)
 {
@@ -147,6 +170,7 @@ std::pair<double,double> sincos (double x)
 }
 
 //! Return sine and cosine of given number
+template<>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincos (float x)
 {
@@ -161,6 +185,29 @@ std::pair<float,float> sincos (float x)
 }
 
 //! Return sin(pi*x) and cos(pi*x) given x
+template<typename T_Real
+#ifndef AMREX_USE_SIMD
+         , std::enable_if_t<std::is_floating_point_v<T_Real>,int> = 0
+#endif
+         >
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::pair<T_Real,T_Real> sincospi (T_Real x)
+{
+#ifdef AMREX_USE_SIMD
+    using namespace amrex::simd::stdx;
+#else
+    using namespace std;
+#endif
+
+    T_Real const px = pi<T_Real>() * x;
+    std::pair<T_Real,T_Real> r;
+    r.first = sin(px);
+    r.second = cos(px);
+    return r;
+}
+
+//! Return sin(pi*x) and cos(pi*x) given x
+template<>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincospi (double x)
 {
@@ -175,6 +222,7 @@ std::pair<double,double> sincospi (double x)
 }
 
 //! Return sin(pi*x) and cos(pi*x) given x
+template<>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincospi (float x)
 {

@@ -30,6 +30,18 @@ endif ()
 
 #
 #
+#  VIR-SIMD
+#
+#
+if (AMReX_SIMD)
+   find_package(vir-simd REQUIRED)
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       target_link_libraries(amrex_${D}d PUBLIC vir-simd::vir-simd)
+   endforeach()
+endif ()
+
+#
+#
 #  OpenMP
 #
 #
@@ -211,6 +223,11 @@ if (AMReX_SYCL)
    include(AMReXSYCL)
    foreach(D IN LISTS AMReX_SPACEDIM)
       target_link_libraries(amrex_${D}d PUBLIC SYCL)
+
+       # fast math
+       if(AMReX_FASTMATH)
+           target_compile_options(amrex_${D}d PUBLIC -ffast-math)
+       endif()
    endforeach()
 endif ()
 
@@ -355,6 +372,11 @@ if (AMReX_HIP)
 
    foreach(D IN LISTS AMReX_SPACEDIM)
        target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-m64>)
+
+       # fast math
+       if(AMReX_FASTMATH)
+           target_compile_options(amrex_${D}d PUBLIC -ffast-math)
+       endif()
 
        # ROCm 4.5: use unsafe floating point atomics, otherwise atomicAdd is much slower
        # 

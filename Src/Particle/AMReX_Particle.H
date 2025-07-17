@@ -2,14 +2,15 @@
 #define AMREX_PARTICLE_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_REAL.H>
 #include <AMReX_FArrayBox.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_RealVect.H>
-#include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_REAL.H>
+#include <AMReX_RealVect.H>
 
-#include <string>
+#include <type_traits>
+
 
 namespace amrex {
 
@@ -93,10 +94,50 @@ namespace amrex {
         idcpu &= ~(uint64_t(1) << 63);
     }
 
+    template<typename T_SIMD, typename T_Mask>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_invalid (T_SIMD & idcpu, T_Mask const & mask) noexcept {
+        // RHS mask: 0111...
+        if constexpr (std::is_same_v<T_Mask, bool>) {
+            // scalar
+            static_assert(std::is_same_v<T_SIMD, uint64_t>, "make_invalid: forgot template on wrapper?");
+            if (mask) { make_invalid(idcpu); }
+        } else {
+#ifdef AMREX_USE_SIMD
+            // SIMD
+            static_assert(!std::is_same_v<T_SIMD, uint64_t>, "make_invalid: forgot template on wrapper?");
+            // .__cvt() because of: https://github.com/VcDevel/std-simd/issues/41
+            simd::stdx::where(mask.__cvt(), idcpu) &= ~(T_SIMD{1} << 63);
+#else
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "make_invalid: AMReX_SIMD was not enabled!");
+#endif
+        }
+    }
+
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void make_valid (uint64_t& idcpu) noexcept {
         // RHS mask: 1000...
         idcpu |= uint64_t(1) << 63;
+    }
+
+    template<typename T_SIMD, typename T_Mask>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_valid (T_SIMD & idcpu, T_Mask const & mask) noexcept {
+        // RHS mask: 1000...
+        if constexpr (std::is_same_v<T_Mask, bool>) {
+            // scalar
+            static_assert(std::is_same_v<T_SIMD, uint64_t>, "make_valid: forgot template on wrapper?");
+            if (mask) { make_valid(idcpu); }
+        } else {
+#ifdef AMREX_USE_SIMD
+            // SIMD
+            static_assert(!std::is_same_v<T_SIMD, uint64_t>, "make_valid: forgot template on wrapper?");
+            // .__cvt() because of: https://github.com/VcDevel/std-simd/issues/41
+            simd::stdx::where(mask.__cvt(), idcpu) |= T_SIMD{1} << 63;
+#else
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "make_valid: AMReX_SIMD was not enabled!");
+#endif
+        }
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -104,16 +145,24 @@ namespace amrex {
         // the leftmost bit is our id's valid sign
         return idcpu >> 63;
     }
-    }
+    } // namespace particle_impl
 
+template<typename T = uint64_t>
 struct ParticleIDWrapper
 {
-    uint64_t* m_idata;
+    /*
+    static_assert(std::is_same<T, uint64_t>::value ||
+                  std::is_same<T, simd::SIMDIdCpu<>>::value,  // note: this one will not work because users can change the SIMDIdCpu width
+                  "ParticleIDWrapper only supports uint64_t or SIMD thereof"
+    );
+    */
+
+    T* m_idata;
 
     ~ParticleIDWrapper () noexcept = default;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleIDWrapper (uint64_t& idata) noexcept
+    ParticleIDWrapper (T& idata) noexcept
         : m_idata(&idata)
     {}
 
@@ -158,6 +207,18 @@ struct ParticleIDWrapper
         particle_impl::make_invalid(*m_idata);
     }
 
+    /** Mark the particle as invalid
+     *
+     * Swaps the is_valid (sign) bit to invalid.
+     * This is NOT identical to id = -id, but it is equally reversible via make_valid().
+     */
+    template<typename T_Bool>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_invalid (T_Bool const & mask) const noexcept
+    {
+        particle_impl::make_invalid(*m_idata, mask);
+    }
+
     /** Mark the particle as valid
      *
      * Swaps the is_valid (sign) bit to valid.
@@ -167,6 +228,18 @@ struct ParticleIDWrapper
     void make_valid () const noexcept
     {
         particle_impl::make_valid(*m_idata);
+    }
+
+    /** Mark the particle as valid
+     *
+     * Swaps the is_valid (sign) bit to valid.
+     * This is NOT identical to id = -id, but it is equally reversible via make_invalid().
+     */
+    template<typename T_Bool>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_valid (T_Bool const & mask) const noexcept
+    {
+        particle_impl::make_valid(*m_idata, mask);
     }
 
     /** Check the particle is valid, via the sign of the id.
@@ -337,6 +410,7 @@ struct alignas(sizeof(double)) Particle
 
     //! The floating point type used for the particles.
     using RealType = ParticleReal;
+    using IntType = int;
 
     static Long the_next_id;
 
@@ -344,7 +418,7 @@ struct alignas(sizeof(double)) Particle
     ParticleCPUWrapper cpu () & { return ParticleCPUWrapper(this->m_idcpu); }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleIDWrapper id () & { return ParticleIDWrapper(this->m_idcpu); }
+    ParticleIDWrapper<> id () & { return ParticleIDWrapper(this->m_idcpu); }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ConstParticleCPUWrapper cpu () const & { return ConstParticleCPUWrapper(this->m_idcpu); }
@@ -365,6 +439,12 @@ struct alignas(sizeof(double)) Particle
         amrex::Gpu::Atomic::Exch(old_ptr, (unsigned long long) wrapper.m_idata);
 #endif
     }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    uint64_t& idcpu () & { return this->m_idcpu; }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const uint64_t& idcpu () const & { return this->m_idcpu; }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_pos[0], this->m_pos[1], this->m_pos[2]));}

@@ -1292,7 +1292,7 @@ FA reduce_to_plane (int direction, Box const& domain, FA const& mf, F const& f)
     Box const ndomain = amrex::convert(domain, mf.ixType());
 
     auto npts = amrex::convert(mf.boxArray(),IntVect(0)).numPts();
-    if (npts != ndomain.numPts()) {
+    if (npts != amrex::convert(domain, amrex::IntVect(0)).numPts()) {
         amrex::Abort("ReduceToPlaneMF: mf's BoxArray must have a rectangular domain.");
     }
 

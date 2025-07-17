@@ -308,7 +308,7 @@ TinyProfiler::memory_free (std::size_t nbytes, MemStat* stat) noexcept
 
 
 void
-TinyProfiler::Initialize () noexcept
+TinyProfiler::Initialize ()
 {
     {
         amrex::ParmParse pp("tiny_profiler");
@@ -332,7 +332,7 @@ TinyProfiler::Initialize () noexcept
 }
 
 void
-TinyProfiler::MemoryInitialize () noexcept
+TinyProfiler::MemoryInitialize ()
 {
     {
         amrex::ParmParse pp("tiny_profiler");
@@ -775,7 +775,7 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
         std::vector<Long> avgmem_vec(nprocs);
         std::vector<Long> maxmem_vec(nprocs);
 
-        if (nprocs == 1)
+        if (ParallelDescriptor::NProcs() == 1)
         {
             nalloc_vec[0] = nalloc;
             nfree_vec[0] = nfree;

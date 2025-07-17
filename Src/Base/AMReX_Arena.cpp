@@ -162,6 +162,10 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
     if (arena_info.use_cpu_memory)
     {
         p = std::malloc(nbytes);
+        if (!p) {
+            freeUnused_protected();
+            p = std::malloc(nbytes);
+        }
 #ifndef _WIN32
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -175,17 +179,29 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
     }
     else if (arena_info.device_use_hostalloc)
     {
-        AMREX_HIP_OR_CUDA_OR_SYCL(
-            AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped|hipHostMallocNonCoherent));,
-            AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));,
-            p = sycl::malloc_host(nbytes, Gpu::Device::syclContext()));
+#if defined(AMREX_USE_HIP)
+        auto ret = hipHostMalloc(&p, nbytes, hipHostMallocMapped|hipHostMallocNonCoherent);
+        if (ret != hipSuccess) { p = nullptr; }
+#elif defined(AMREX_USE_CUDA)
+        auto ret = cudaHostAlloc(&p, nbytes, cudaHostAllocMapped);
+        if (ret != cudaSuccess) { p = nullptr; }
+#else
+        p = sycl::malloc_host(nbytes, Gpu::Device::syclContext());
+#endif
+        if (!p) {
+            freeUnused_protected();
+            AMREX_HIP_OR_CUDA_OR_SYCL(
+                AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped|hipHostMallocNonCoherent));,
+                AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));,
+                p = sycl::malloc_host(nbytes, Gpu::Device::syclContext()));
+        }
     }
     else
     {
         std::size_t free_mem_avail = Gpu::Device::freeMemAvailable();
         if (nbytes >= free_mem_avail) {
             free_mem_avail += freeUnused_protected(); // For CArena, mutex has already acquired
-            if (abort_on_out_of_gpu_memory && nbytes >= free_mem_avail) {
+            if (abort_on_out_of_gpu_memory && nbytes >= free_mem_avail && arena_info.device_use_managed_memory) {
                 amrex::Abort("Out of gpu memory. Free: " + std::to_string(free_mem_avail)
                              + " Asked: " + std::to_string(nbytes));
             }
@@ -193,10 +209,22 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
 
         if (arena_info.device_use_managed_memory)
         {
-            AMREX_HIP_OR_CUDA_OR_SYCL
-                (AMREX_HIP_SAFE_CALL(hipMallocManaged(&p, nbytes));,
-                 AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));,
-                 p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
+#if defined(AMREX_USE_HIP)
+            auto ret = hipMallocManaged(&p, nbytes);
+            if (ret != hipSuccess) { p = nullptr; }
+#elif defined(AMREX_USE_CUDA)
+            auto ret = cudaMallocManaged(&p, nbytes);
+            if (ret != cudaSuccess) { p = nullptr; }
+#else
+            p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext());
+#endif
+            if (!p) {
+                freeUnused_protected();
+                AMREX_HIP_OR_CUDA_OR_SYCL
+                    (AMREX_HIP_SAFE_CALL(hipMallocManaged(&p, nbytes));,
+                     AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));,
+                     p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
+            }
 #ifdef AMREX_USE_HIP
             // Otherwise atomiAdd won't work because we instruct the compiler to do unsafe atomics
             AMREX_HIP_SAFE_CALL(hipMemAdvise(p, nbytes, hipMemAdviseSetCoarseGrain,
@@ -214,14 +242,30 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
         }
         else
         {
-            AMREX_HIP_OR_CUDA_OR_SYCL
-                (AMREX_HIP_SAFE_CALL ( hipMalloc(&p, nbytes));,
-                 AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes));,
-                 p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
+#if defined(AMREX_USE_HIP)
+            auto ret = hipMalloc(&p, nbytes);
+            if (ret != hipSuccess) { p = nullptr; }
+#elif defined(AMREX_USE_CUDA)
+            auto ret = cudaMalloc(&p, nbytes);
+            if (ret != cudaSuccess) { p = nullptr; }
+#else
+            p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext());
+#endif
+            if (!p) {
+                freeUnused_protected();
+                AMREX_HIP_OR_CUDA_OR_SYCL
+                    (AMREX_HIP_SAFE_CALL ( hipMalloc(&p, nbytes));,
+                     AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes));,
+                     p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
+            }
         }
     }
 #else
     p = std::malloc(nbytes);
+    if (!p) {
+        freeUnused_protected();
+        p = std::malloc(nbytes);
+    }
 #ifndef _WIN32
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push

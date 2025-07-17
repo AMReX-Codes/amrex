@@ -181,15 +181,5 @@ There is an option to turn on passively advected particles. In the
 (do a ``make realclean first``).
 In the inputs file, add the line ``adv.do_tracers = 1``.
 When you run the code, within each plotfile directory there will be a
-subdirectory called "Tracer".
-
-Copy the files from ``amrex/Tools/Py_util/amrex_particles_to_vtp`` into
-the run directory and type, e.g.,
-
-.. highlight:: console
-
-::
-
-    python amrex_binary_particles_to_vtp.py plt00000 Tracer
-
-To generate a vtp file you can open with ParaView (Refer to the chapter on :ref:`Chap:Visualization`).
+subdirectory called "Tracer". These can be visualized using either yt or
+Paraview (refer to the chapter on :ref:`Chap:Visualization`).

@@ -51,10 +51,10 @@ public:
                                   std::map<std::string, MemStat>& memstats) noexcept;
     static void memory_free (std::size_t nbytes, MemStat* stat) noexcept;
 
-    static void Initialize () noexcept;
+    static void Initialize ();
     static void Finalize (bool bFlushing = false) noexcept;
 
-    static void MemoryInitialize () noexcept;
+    static void MemoryInitialize ();
     static void MemoryFinalize (bool bFlushing = false) noexcept;
 
     static bool RegisterArena (const std::string& memory_name,

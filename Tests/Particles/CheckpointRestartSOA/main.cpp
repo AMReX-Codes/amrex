@@ -150,21 +150,21 @@ void test ()
         std::snprintf(directory_path, sizeof directory_path, "%s%s", directory.c_str(), "plt00000");
         newPC.Restart(directory_path, "particle0");
 
-        using PType = typename MyPC::SuperParticleType;
+        using ConstPTDType = typename MyPC::ConstPTDType;
 
         for (int icomp=0; icomp<NReal; ++icomp)
         {
             amrex::Print() << "working on comp " << icomp << "\n";
             auto sm_new = amrex::ReduceSum(newPC,
-                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Real
                 {
-                    return p.rdata(icomp);
+                    return ptd.rdata(icomp)[i];
                 });
 
             auto sm_old = amrex::ReduceSum(myPC,
-                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Real
                 {
-                    return p.rdata(icomp);
+                    return ptd.rdata(icomp)[i];
                 });
 
             ParallelDescriptor::ReduceRealSum(sm_new);
@@ -178,15 +178,15 @@ void test ()
         {
             amrex::Print() << "working on comp " << icomp << "\n";
             auto sm_new = amrex::ReduceSum(newPC,
-                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Real
                 {
-                    return p.idata(icomp);
+                    return ptd.idata(icomp)[i];
                 });
 
             auto sm_old = amrex::ReduceSum(myPC,
-                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Real
                 {
-                    return p.idata(icomp);
+                    return ptd.idata(icomp)[i];
                 });
 
             ParallelDescriptor::ReduceRealSum(sm_new);
