@@ -133,29 +133,22 @@ namespace detail {
     }
 }
 
+#ifdef AMREX_USE_SIMD
 //! Return sine and cosine of given number
-template<typename T_Real
-#ifndef AMREX_USE_SIMD
-         , std::enable_if_t<std::is_floating_point_v<T_Real>,int> = 0
-#endif
-         >
+template<typename T_Real,
+         std::enable_if_t<amrex::simd::stdx::is_simd_v<T_Real>,int> = 0>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<T_Real,T_Real> sincos (T_Real x)
 {
-#ifdef AMREX_USE_SIMD
     using namespace amrex::simd::stdx;
-#else
-    using namespace std;
-#endif
-
     std::pair<T_Real,T_Real> r;
     r.first = sin(x);
     r.second = cos(x);
     return r;
 }
+#endif
 
 //! Return sine and cosine of given number
-template<>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincos (double x)
 {
@@ -170,7 +163,6 @@ std::pair<double,double> sincos (double x)
 }
 
 //! Return sine and cosine of given number
-template<>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincos (float x)
 {
@@ -184,30 +176,23 @@ std::pair<float,float> sincos (float x)
     return r;
 }
 
+#ifdef AMREX_USE_SIMD
 //! Return sin(pi*x) and cos(pi*x) given x
-template<typename T_Real
-#ifndef AMREX_USE_SIMD
-         , std::enable_if_t<std::is_floating_point_v<T_Real>,int> = 0
-#endif
-         >
+template<typename T_Real,
+         std::enable_if_t<amrex::simd::stdx::is_simd_v<T_Real>,int> = 0>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<T_Real,T_Real> sincospi (T_Real x)
 {
-#ifdef AMREX_USE_SIMD
     using namespace amrex::simd::stdx;
-#else
-    using namespace std;
-#endif
-
-    T_Real const px = pi<T_Real>() * x;
+    T_Real const px = pi<typename T_Real::value_type>() * x;
     std::pair<T_Real,T_Real> r;
     r.first = sin(px);
     r.second = cos(px);
     return r;
 }
+#endif
 
 //! Return sin(pi*x) and cos(pi*x) given x
-template<>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincospi (double x)
 {
@@ -222,7 +207,6 @@ std::pair<double,double> sincospi (double x)
 }
 
 //! Return sin(pi*x) and cos(pi*x) given x
-template<>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincospi (float x)
 {
