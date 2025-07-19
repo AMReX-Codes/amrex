@@ -196,9 +196,9 @@ void set_eb_data (const int i, const int j, const int k,
     Real den = 1._rt / (10._rt*(5._rt + 4._rt*nz2 - 4._rt*nz4 + 2._rt*ny4*(-2._rt + nz2) +
                                 2._rt*ny2*(2._rt - 3._rt*nz2 + nz4)) * (vfrac(i,j,k)+1.e-30_rt) );
 
-    vcent(i,j,k,0) = Sx * den / (dx2*dy*dz);
-    vcent(i,j,k,1) = Sy * den / (dx*dy2*dz);
-    vcent(i,j,k,2) = Sz * den / (dx*dy*dz2);
+    vcent(i,j,k,0) = Sx * den / (dx2*dy1*dz1);
+    vcent(i,j,k,1) = Sy * den / (dx1*dy2*dz1);
+    vcent(i,j,k,2) = Sz * den / (dx1*dy1*dz2);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
