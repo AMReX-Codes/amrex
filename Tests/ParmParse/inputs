@@ -1,3 +1,4 @@
+dAx_x/dx(x,y,t,zeval) = 12
 
 amrex.signal_handling = 0
 amrex.throw_exception = 1

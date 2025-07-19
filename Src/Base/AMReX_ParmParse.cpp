@@ -616,10 +616,6 @@ bldTable (const char*& str, ParmParse::Table& tab)
         }
         case pEQ_sign:
         {
-            if ( cur_name.empty() )
-            {
-                amrex::Abort("ParmParse::bldTable() EQ with no current defn");
-            }
             if ( !cur_list.empty() )
             {
                 //
@@ -658,12 +654,6 @@ bldTable (const char*& str, ParmParse::Table& tab)
         }
         case pValue:
         {
-            if ( cur_name.empty() )
-            {
-                std::string msg("ParmParse::bldTable(): value with no defn: ");
-                msg += tokname;
-                amrex::Abort(msg.c_str());
-            }
             cur_list.push_back(std::move(tokname));
             cur_linefeeds.push_back(num_linefeeds);
             break;
