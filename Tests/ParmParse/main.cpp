@@ -24,6 +24,12 @@ int main(int argc, char* argv[])
     }
     {
         ParmParse pp;
+        int val;
+        pp.query("dAx_x/dx(x,y,t,zeval)", val);
+        AMREX_ALWAYS_ASSERT(val == 12);
+    }
+    {
+        ParmParse pp;
 
         std::string name;
         pp.query("name", name);
