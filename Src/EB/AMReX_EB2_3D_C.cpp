@@ -129,21 +129,31 @@ void set_eb_data (const int i, const int j, const int k,
     bcent(i,j,k,1) = (By + ny*vfrac(i,j,k)) * apnorminv * dx[0] * dx[2];
     bcent(i,j,k,2) = (Bz + nz*vfrac(i,j,k)) * apnorminv * dx[0] * dx[1];
 
-    Real b1 = 0.5_rt*(axp-axm) + 0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0)) + 0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
-    Real b2 = 0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0)) + 0.5_rt*(ayp-aym) + 0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
-    Real b3 = 0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1)) + 0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1)) + 0.5_rt*(azp-azm);
-    Real b4 = -nx*0.25_rt*(axp-axm) - ny*(m2y(i,j+1,k,0) - m2y(i,j,k,0)) - nz*(m2z(i,j,k+1,0) - m2z(i,j,k,0));
-    Real b5 = -nx*(m2x(i+1,j,k,0) - m2x(i,j,k,0)) - ny*0.25_rt*(ayp-aym) - nz*(m2z(i,j,k+1,1) - m2z(i,j,k,1));
-    Real b6 = -nx*(m2x(i+1,j,k,1) - m2x(i,j,k,1)) - ny*(m2y(i,j+1,k,1) - m2y(i,j,k,1)) - nz*0.25_rt*(azp-azm);
-    Real b7 = -nx*0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0))
-              -ny*0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0))
-              -nz*(m2z(i,j,k+1,2) - m2z(i,j,k,2));
-    Real b8 = -nx*0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1))
-              -ny*(m2y(i,j+1,k,2) - m2y(i,j,k,2))
-              -nz*0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
-    Real b9 = -nx*(m2x(i+1,j,k,2) - m2x(i,j,k,2))
-              -ny*0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1))
-              -nz*0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
+    Real dx1 = dx[0];
+    Real dx2 = dx1*dx1;
+    Real dx3 = dx2*dx1;
+    Real dy1 = dx[1];
+    Real dy2 = dy1*dy1;
+    Real dy3 = dy2*dy1;
+    Real dz1 = dx[2];
+    Real dz2 = dz1*dz1;
+    Real dz3 = dz2*dz1;
+
+    Real b1 = 0.5_rt*(axp-axm)*dx2*dy1*dz1 + 0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0))*dx1*dy2*dz1 + 0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0))*dx1*dy1*dz2;
+    Real b2 = 0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0))*dx2*dy1*dz1 + 0.5_rt*(ayp-aym)*dx1*dy2*dz1 + 0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1))*dx1*dy1*dz2;
+    Real b3 = 0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1))*dx2*dy1*dz1 + 0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1))*dx1*dy2*dz1 + 0.5_rt*(azp-azm)*dx1*dy1*dz2;
+    Real b4 = -nx*0.25_rt*(axp-axm)*dx2*dy1*dz1 - ny*(m2y(i,j+1,k,0) - m2y(i,j,k,0))*dx3*dz1 - nz*(m2z(i,j,k+1,0) - m2z(i,j,k,0))*dx3*dy1;
+    Real b5 = -nx*(m2x(i+1,j,k,0) - m2x(i,j,k,0))*dy3*dz1 - ny*0.25_rt*(ayp-aym)*dx1*dy2*dz1 - nz*(m2z(i,j,k+1,1) - m2z(i,j,k,1))*dx1*dy3;
+    Real b6 = -nx*(m2x(i+1,j,k,1) - m2x(i,j,k,1))*dy1*dz3 - ny*(m2y(i,j+1,k,1) - m2y(i,j,k,1))*dx1*dz3 - nz*0.25_rt*(azp-azm)*dx1*dy1*dz2;
+    Real b7 = -nx*0.5_rt*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0))*dx2*dy1*dz1
+              -ny*0.5_rt*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0))*dx1*dy2*dz1
+              -nz*(m2z(i,j,k+1,2) - m2z(i,j,k,2))*dx2*dy2;
+    Real b8 = -nx*0.5_rt*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1))*dx2*dy1*dz1
+              -ny*(m2y(i,j+1,k,2) - m2y(i,j,k,2))*dx2*dz2
+              -nz*0.5_rt*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0))*dx1*dy1*dz2;
+    Real b9 = -nx*(m2x(i+1,j,k,2) - m2x(i,j,k,2))*dy2*dz2
+              -ny*0.5_rt*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1))*dx1*dy2*dz1
+              -nz*0.5_rt*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1))*dx1*dy1*dz2;
 
     Real ny2 = ny *ny;
     Real ny3 = ny2*ny;
@@ -186,9 +196,9 @@ void set_eb_data (const int i, const int j, const int k,
     Real den = 1._rt / (10._rt*(5._rt + 4._rt*nz2 - 4._rt*nz4 + 2._rt*ny4*(-2._rt + nz2) +
                                 2._rt*ny2*(2._rt - 3._rt*nz2 + nz4)) * (vfrac(i,j,k)+1.e-30_rt) );
 
-    vcent(i,j,k,0) = Sx * den;
-    vcent(i,j,k,1) = Sy * den;
-    vcent(i,j,k,2) = Sz * den;
+    vcent(i,j,k,0) = Sx * den / (dx2*dy1*dz1);
+    vcent(i,j,k,1) = Sy * den / (dx1*dy2*dz1);
+    vcent(i,j,k,2) = Sz * den / (dx1*dy1*dz2);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
